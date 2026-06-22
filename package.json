@@ -1,0 +1,13 @@
+{
+  "name": "linkpilot-morning-card",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LinkPilot 프리미엄 명언 카드 — 매일 아침 무인 친구톡 발송 (GitHub Actions + Solapi)",
+  "main": "send-morning-card.js",
+  "scripts": {
+    "send": "node send-morning-card.js"
+  },
+  "dependencies": {
+    "solapi": "^5.5.1"
+  }
+}

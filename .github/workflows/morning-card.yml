@@ -1,0 +1,37 @@
+name: morning-card
+
+# 매일 무인 발송 (GitHub Actions cron은 UTC 기준)
+#   07:00 KST = 22:00 UTC (전날)
+#   06:00 KST = 21:00 UTC (전날)
+# ※ GitHub cron은 부하에 따라 수 분 지연될 수 있음(정상). 정확히 정시 보장은 아님.
+on:
+  schedule:
+    - cron: '0 22 * * *'   # 매일 07:00 KST
+    # - cron: '0 21 * * *' # (원하면 주석 해제) 매일 06:00 KST
+  workflow_dispatch:        # 수동 실행(테스트) 버튼
+
+concurrency:
+  group: morning-card
+  cancel-in-progress: false
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install deps
+        run: npm ci || npm install
+      - name: Send morning card (친구톡)
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SOLAPI_API_KEY: ${{ secrets.SOLAPI_API_KEY }}
+          SOLAPI_API_SECRET: ${{ secrets.SOLAPI_API_SECRET }}
+          SOLAPI_PFID: ${{ secrets.SOLAPI_PFID }}
+          RECIPIENTS: ${{ secrets.RECIPIENTS }}
+          SENDER_PHONE: ${{ secrets.SENDER_PHONE }}
+          CARD_IMAGE_URL: ${{ secrets.CARD_IMAGE_URL }}
+        run: node send-morning-card.js
