@@ -8,6 +8,7 @@
     "send": "node send-morning-card.js"
   },
   "dependencies": {
-    "solapi": "^5.5.1"
+    "solapi": "^5.5.1",
+    "@napi-rs/canvas": "^0.1.65"
   }
 }

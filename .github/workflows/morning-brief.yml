@@ -1,16 +1,16 @@
-name: morning-card
+name: morning-brief
 
-# 매일 무인 발송 (GitHub Actions cron은 UTC 기준)
+# 매일 무인 '아침업무 브리핑' 발송 (GitHub Actions cron은 UTC 기준)
 #   ★ 친구톡은 08:00~20:50 에만 발송 가능 → 08시 이전 금지!
-#   08:10 KST = 23:10 UTC (전날)
-# ※ GitHub cron은 부하에 따라 수 분 지연될 수 있음(정상). 정확히 정시 보장은 아님.
+#   기본 08:05 KST = 23:05 UTC (전날)
+#   ※ GitHub cron은 부하에 따라 수 분 지연될 수 있음(정상).
 on:
   schedule:
-    - cron: '10 23 * * *'   # 매일 08:10 KST (친구톡 발송 가능시간 08:00~20:50 준수)
-  workflow_dispatch:        # 수동 실행(테스트) 버튼
+    - cron: '5 23 * * *'    # 매일 08:05 KST (지정시간 변경은 이 줄만 수정)
+  workflow_dispatch:         # 수동 실행(테스트) 버튼
 
 concurrency:
-  group: morning-card
+  group: morning-brief
   cancel-in-progress: false
 
 jobs:
@@ -24,17 +24,16 @@ jobs:
           node-version: '20'
       - name: Install deps
         run: npm ci || npm install
-      - name: Send morning card (친구톡)
+      - name: Send morning brief (친구톡)
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODELS: ${{ secrets.GEMINI_MODELS }}
           SOLAPI_API_KEY: ${{ secrets.SOLAPI_API_KEY }}
           SOLAPI_API_SECRET: ${{ secrets.SOLAPI_API_SECRET }}
           SOLAPI_PFID: ${{ secrets.SOLAPI_PFID }}
+          NAS_BASE_URL: ${{ secrets.NAS_BASE_URL }}
           ONLY_TO: ${{ secrets.ONLY_TO }}
           FRIENDS_URL: ${{ secrets.FRIENDS_URL }}
           RECIPIENTS: ${{ secrets.RECIPIENTS }}
           SENDER_PHONE: ${{ secrets.SENDER_PHONE }}
-          CARD_NAME: ${{ secrets.CARD_NAME }}
-          CARD_COMPANY: ${{ secrets.CARD_COMPANY }}
-          NAS_BASE_URL: ${{ secrets.NAS_BASE_URL }}
-        run: node send-morning-card.js
+        run: node send-morning-brief.js

@@ -1,0 +1,28 @@
+name: daily-quote
+
+# 매일 새벽 '오늘의 생각 한 줄' 명언을 외부 아카이브에서 받아 NAS에 저장 (앱이 읽음)
+#   05:30 KST = 20:30 UTC (전날). 발송 cron(08시대)보다 앞서 미리 준비.
+on:
+  schedule:
+    - cron: '30 20 * * *'   # 매일 05:30 KST
+  workflow_dispatch:
+
+concurrency:
+  group: daily-quote
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Fetch & store daily quote
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODELS: ${{ secrets.GEMINI_MODELS }}
+          NAS_BASE_URL: ${{ secrets.NAS_BASE_URL }}
+        run: node fetch-daily-quote.js

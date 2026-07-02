@@ -16,7 +16,11 @@
  *   CARD_IMAGE_URL     — (선택) 친구톡 와이드 이미지로 쓸 공개 이미지 URL. 비우면 텍스트만
  */
 'use strict';
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 const { SolapiMessageService } = require('solapi');
+const { renderCard } = require('./render-card');
 
 const GEMINI_MODEL = 'gemini-2.5-flash';
 
@@ -63,42 +67,106 @@ async function generateText() {
     systemInstruction: { parts: [{ text: SYSTEM }] },
     generationConfig: { maxOutputTokens: 900, temperature: 0.8, thinkingConfig: { thinkingBudget: 0 } },
   };
-  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(key)}`,
-    { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
-  const j = await r.json();
-  if (!r.ok) throw new Error('Gemini 오류: ' + (j?.error?.message || r.status));
   let out = '';
-  (j?.candidates?.[0]?.content?.parts || []).forEach(p => { if (p.text) out += p.text; });
-  out = (out || '').replace(/\[오늘 ?날짜[^\]]*\]/g, date).trim();
-  if (!out) throw new Error('Gemini 빈 응답');
+  for (let attempt = 1; attempt <= 4; attempt++) {
+    try {
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(key)}`,
+        { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+      const j = await r.json();
+      if (!r.ok) throw new Error('Gemini ' + (j?.error?.message || r.status));
+      (j?.candidates?.[0]?.content?.parts || []).forEach(p => { if (p.text) out += p.text; });
+      out = (out || '').replace(/\[오늘 ?날짜[^\]]*\]/g, date).trim();
+      if (out) break;
+      throw new Error('빈 응답');
+    } catch (e) {
+      console.warn('Gemini 재시도 ' + attempt + '/4: ' + e.message);
+      if (attempt === 4) {
+        // 폴백: 고정 명언(발송 누락 방지)
+        out = '오늘의 생각 한 줄\n' + date + '\n\n"위대한 일은 작은 일들이 모여 이루어진다."\n— 빈센트 반 고흐 (화가)\n\n오늘의 생각\n조급함을 내려놓고 오늘 할 수 있는 한 걸음에 집중하십시오. 꾸준함이 결국 큰 차이를 만듭니다.';
+        break;
+      }
+      await new Promise(res => setTimeout(res, 3000 * attempt));
+    }
+  }
   return out + '\n\n"' + weeklyClosing() + '"';
 }
 
+// 수신자 = ★ONLY_TO(테스트: 특정 1명만) > FRIENDS_URL(앱 친구명단) > RECIPIENTS 시크릿
+async function loadRecipients() {
+  // ★ 테스트 기간: ONLY_TO 가 있으면 그 번호로만 발송(쉼표로 여러명 가능)
+  if (process.env.ONLY_TO) {
+    const only = process.env.ONLY_TO.split(',').map(s => s.replace(/[^0-9]/g, '')).filter(Boolean);
+    if (only.length) { console.log('★ 테스트 모드: ' + only.join(',') + ' 에게만 발송'); return only; }
+  }
+  const url = process.env.FRIENDS_URL;
+  if (url) {
+    try {
+      const sep = url.includes('?') ? '&' : '?';
+      const r = await fetch(url + sep + 'phones=1', { headers: { 'cache-control': 'no-cache' } });
+      if (r.ok) {
+        const arr = await r.json();
+        if (Array.isArray(arr) && arr.length) return arr;
+        console.warn('FRIENDS_URL 명단 비어있음 → RECIPIENTS 폴백');
+      } else { console.warn('FRIENDS_URL 응답 오류 ' + r.status + ' → RECIPIENTS 폴백'); }
+    } catch (e) { console.warn('FRIENDS_URL 조회 실패(' + e.message + ') → RECIPIENTS 폴백'); }
+  }
+  return JSON.parse(process.env.RECIPIENTS || '[]');
+}
+
 async function main() {
-  const recipients = JSON.parse(process.env.RECIPIENTS || '[]');
-  if (!Array.isArray(recipients) || !recipients.length) throw new Error('RECIPIENTS 비어있음 (수신자 휴대폰 JSON 배열)');
+  const recipients = await loadRecipients();
+  if (!Array.isArray(recipients) || !recipients.length) throw new Error('수신자 없음 — 앱 친구명단(FRIENDS_URL) 또는 RECIPIENTS 확인');
+  console.log('수신자 ' + recipients.length + '명');
   const pfId = process.env.SOLAPI_PFID;
   if (!pfId) throw new Error('SOLAPI_PFID 없음 (카카오 발신프로필 ID)');
 
   const text = await generateText();
-  console.log('── 생성된 친구톡 본문 ──\n' + text + '\n────────────────────');
+  console.log('── 생성된 명언 본문 ──\n' + text + '\n────────────────────');
 
   const ms = new SolapiMessageService(process.env.SOLAPI_API_KEY, process.env.SOLAPI_API_SECRET);
 
-  const kakaoOptions = { pfId };
-  if (process.env.CARD_IMAGE_URL) {
-    // 와이드 이미지 친구톡: 이미지를 Solapi 스토리지에 업로드 → imageId
-    try {
-      const up = await ms.uploadFile(process.env.CARD_IMAGE_URL, 'KAKAO'); // URL 업로드 지원
-      if (up && up.fileId) { kakaoOptions.imageId = up.fileId; }
-    } catch (e) { console.warn('이미지 업로드 실패(텍스트만 발송):', e.message); }
+  // ── 카드 이미지 렌더(서버) → NAS 저장(pcard 음악뷰어용) → Solapi 업로드(imageId) ──
+  const dateLabel = kstDateLabel();
+  const name = process.env.CARD_NAME || '김태형';
+  const company = process.env.CARD_COMPANY || '';
+  const kstNow = new Date(Date.now() + 9 * 3600 * 1000);
+  const ymd = kstNow.toISOString().slice(0, 10).replace(/-/g, '');
+  const cardId = 'premium-' + ymd;
+  const nasBase = (process.env.NAS_BASE_URL || (process.env.FRIENDS_URL || '').replace(/\/friends\.php.*$/, '')).replace(/\/$/, '');
+
+  const kakaoOptions = { pfId, disableSms: !process.env.SENDER_PHONE };
+  let viewUrl = nasBase ? (nasBase + '/pcard.php?id=' + encodeURIComponent(cardId) + '&t=' + Date.now()) : '';
+  try {
+    const buf = await renderCard(text, { date: dateLabel, name, company });
+    const dataUrl = 'data:image/jpeg;base64,' + buf.toString('base64');
+    // NAS 저장(친구가 '음악과 함께 보기' 누르면 pcard.php가 이 이미지를 보여줌)
+    if (nasBase) {
+      try {
+        const r = await fetch(nasBase + '/book-img.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: cardId, image: dataUrl }) });
+        console.log('NAS 이미지 저장:', r.ok ? 'OK' : ('실패 ' + r.status));
+      } catch (e) { console.warn('NAS 이미지 저장 실패:', e.message); }
+    }
+    // Solapi 업로드 → imageId (친구톡 이미지형)
+    const tmp = path.join(os.tmpdir(), cardId + '.jpg');
+    fs.writeFileSync(tmp, buf);
+    const up = await ms.uploadFile(tmp, 'KAKAO');
+    if (up && up.fileId) { kakaoOptions.imageId = up.fileId; console.log('Solapi 이미지 업로드 OK:', up.fileId); }
+  } catch (e) {
+    console.warn('카드 이미지 처리 실패 → 텍스트로 발송:', e.message);
   }
+
+  // 버튼: 이미지형이면 '음악과 함께 보기', 아니면 생략
+  if (kakaoOptions.imageId && viewUrl) {
+    kakaoOptions.buttons = [{ buttonType: 'WL', buttonName: '음악과 함께 보기 ♪', linkMo: viewUrl, linkPc: viewUrl }];
+  }
+  // 이미지형이면 본문은 짧게(제목+날짜), 실패 시 전체 텍스트
+  const msgText = kakaoOptions.imageId ? ('오늘의 생각 한 줄\n' + dateLabel) : text;
 
   const messages = recipients.map(to => ({
     to: String(to).replace(/[^0-9]/g, ''),
     from: process.env.SENDER_PHONE ? String(process.env.SENDER_PHONE).replace(/[^0-9]/g, '') : undefined,
-    text,
-    kakaoOptions, // pfId 존재 + templateId 없음 → 친구톡(CTA) 자유형
+    text: msgText,
+    kakaoOptions,
   }));
 
   const res = await ms.send(messages);

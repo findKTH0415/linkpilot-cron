@@ -52,9 +52,16 @@
 | `SOLAPI_API_KEY` | Solapi API Key |
 | `SOLAPI_API_SECRET` | Solapi API Secret |
 | `SOLAPI_PFID` | 발신프로필 ID (예: `KA01PF...`) |
-| `RECIPIENTS` | 수신자 휴대폰 JSON 배열. 예: `["01011112222","01033334444"]` |
+| `FRIENDS_URL` | ★ **앱 친구명단 자동연동(권장)**: `https://synologynas.tail43fc79.ts.net/friends.php` — 앱 "카드 보낼 친구"에 등록한 명단으로 자동 발송(설정 시 RECIPIENTS 불필요) |
+| `RECIPIENTS` | (FRIENDS_URL 미설정 시) 수신자 휴대폰 JSON 배열. 예: `["01011112222","01033334444"]` |
+| `ONLY_TO` | ★ **테스트 기간: 특정 1명에게만 발송**. 예: `01065503050` (김태형). 설정 시 FRIENDS_URL·RECIPIENTS 무시하고 이 번호로만. 테스트 끝나면 이 시크릿 삭제 |
+| `NAS_BASE_URL` | ★ 카드 이미지 저장·음악뷰어용: `https://synologynas.tail43fc79.ts.net` (FRIENDS_URL 있으면 자동 추론되지만 명시 권장) |
+| `CARD_NAME` | (선택) 카드 하단 보내는 사람 이름. 기본 `김태형` |
+| `CARD_COMPANY` | (선택) 카드 하단 회사 상호. 예: `PDI Global infra structure Development` |
 | `SENDER_PHONE` | (선택) 등록된 발신번호. 친구톡 실패 시 SMS 대체 |
-| `CARD_IMAGE_URL` | (선택) 와이드 이미지 친구톡용 공개 이미지 URL |
+
+> ★ 발송 형태: 매일 **9:16에 가까운(3:4) 명언 카드 이미지** + "음악과 함께 보기 ♪" 버튼으로 친구톡 발송(서버에서 직접 렌더링). 배경은 매일 자동 변경.
+> ⚠️ 친구톡 발송 가능 시간 **08:00~20:50**. 워크플로 기본 **08:10 KST**.
 
 ---
 
