@@ -159,8 +159,10 @@ async function main() {
   if (kakaoOptions.imageId && viewUrl) {
     kakaoOptions.buttons = [{ buttonType: 'WL', buttonName: '음악과 함께 보기 ♪', linkMo: viewUrl, linkPc: viewUrl }];
   }
+  // 회사명이 길면 공백 기준 2줄로 분할(카카오 캡션이 한 줄을 "..."로 자르지 않도록)
+  const splitCo = (co) => { if (!co) return ''; if (co.length <= 22) return co; const mid = co.length / 2; let best = -1; for (let i = 0; i < co.length; i++) { if (co[i] === ' ' && (best < 0 || Math.abs(i - mid) < Math.abs(best - mid))) best = i; } return best > 0 ? co.slice(0, best) + '\n' + co.slice(best + 1) : co; };
   // 이미지형이면 본문은 짧게(제목+날짜+보내는사람+회사), 실패 시 전체 텍스트
-  const signLines = dateLabel + ' ' + name + ' 드림' + (company ? ('\n' + company) : '');
+  const signLines = dateLabel + ' ' + name + ' 드림' + (company ? ('\n' + splitCo(company)) : '');
   const msgText = kakaoOptions.imageId ? ('오늘의 생각 한 줄\n' + signLines) : text;
 
   const messages = recipients.map(to => ({
