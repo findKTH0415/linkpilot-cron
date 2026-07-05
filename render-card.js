@@ -64,7 +64,7 @@ async function renderCard(text, opts){
   center(cloLines,'italic 36px CardR',GOLD,cloStart,cloLH);
   if(hasFooter){ center([name+' 드림'],'42px CardB',WHITE,H-94,0); center([company],'34px CardB',WHITE,H-50,0); }
   else center([name+' 드림'],'42px CardB',GOLD,H-56,0);
-  return cv.toBuffer('image/jpeg',0.85);
+  return cv.toBuffer('image/jpeg',0.72); // ★ 초경량화(0.85→0.72) — pcard 뷰어 빠른 스트리밍
 }
 module.exports={renderCard};
 if(require.main===module){

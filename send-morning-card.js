@@ -128,7 +128,7 @@ async function main() {
   // ── 카드 이미지 렌더(서버) → NAS 저장(pcard 음악뷰어용) → Solapi 업로드(imageId) ──
   const dateLabel = kstDateLabel();
   const name = process.env.CARD_NAME || '김태형';
-  const company = process.env.CARD_COMPANY || '';
+  const company = process.env.CARD_COMPANY || 'PDI Global infrastructure Development Co., Ltd';
   const kstNow = new Date(Date.now() + 9 * 3600 * 1000);
   const ymd = kstNow.toISOString().slice(0, 10).replace(/-/g, '');
   const cardId = 'premium-' + ymd;
@@ -159,8 +159,9 @@ async function main() {
   if (kakaoOptions.imageId && viewUrl) {
     kakaoOptions.buttons = [{ buttonType: 'WL', buttonName: '음악과 함께 보기 ♪', linkMo: viewUrl, linkPc: viewUrl }];
   }
-  // 이미지형이면 본문은 짧게(제목+날짜), 실패 시 전체 텍스트
-  const msgText = kakaoOptions.imageId ? ('오늘의 생각 한 줄\n' + dateLabel) : text;
+  // 이미지형이면 본문은 짧게(제목+날짜+보내는사람+회사), 실패 시 전체 텍스트
+  const signLines = dateLabel + ' ' + name + ' 드림' + (company ? ('\n' + company) : '');
+  const msgText = kakaoOptions.imageId ? ('오늘의 생각 한 줄\n' + signLines) : text;
 
   const messages = recipients.map(to => ({
     to: String(to).replace(/[^0-9]/g, ''),
