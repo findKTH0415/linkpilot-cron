@@ -62,7 +62,10 @@ async function renderCard(text, opts){
   const cloLines=wrap('“'+(closing||'오늘도 좋은 하루 되시길 바랍니다.')+'”','italic 36px CardR',W-padX*2);
   const cloLH=50, cloBottom=hasFooter?H-160:H-110, cloStart=cloBottom-(cloLines.length-1)*cloLH;
   center(cloLines,'italic 36px CardR',GOLD,cloStart,cloLH);
-  if(hasFooter){ center([name+' 드림'],'42px CardB',WHITE,H-94,0); center([company],'34px CardB',WHITE,H-50,0); }
+  if(hasFooter){ center([name+' 드림'],'42px CardB',WHITE,H-94,0);
+    // 회사명 길면 한 줄에 맞게 폰트 자동 축소(잘림 방지)
+    x.font='34px CardB'; const _maxCW=W-padX*2, _cw=x.measureText(company).width, _cfs=_cw>_maxCW?Math.max(22,Math.floor(34*_maxCW/_cw)):34;
+    center([company], _cfs+'px CardB', WHITE, H-50, 0); }
   else center([name+' 드림'],'42px CardB',GOLD,H-56,0);
   return cv.toBuffer('image/jpeg',0.72); // ★ 초경량화(0.85→0.72) — pcard 뷰어 빠른 스트리밍
 }
