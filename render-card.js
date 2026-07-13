@@ -23,8 +23,10 @@ async function renderCard(text, opts){
   const isClose=l=>/^["“]?\s*오늘도 /.test(l)||/바랍니다|기원합니다|드림\s*$/.test(l);
   let person='',quote='',quoteEn='',thought='',closing='';
   ls.forEach(l=>{ if(l.indexOf('—')===0&&!person) person=l.replace(/^—\s*/,''); });
-  const enline=ls.find(l=>/^EN:\s*/i.test(l)); if(enline) quoteEn=enline.replace(/^EN:\s*/i,'').replace(/^["“]|["”]$/g,'').trim();
-  const qline=ls.find(l=>/^["“]/.test(l)&&!/바랍니다|기원합니다|오늘도/.test(l)); if(qline) quote=qline.replace(/^["“]|["”]$/g,'');
+  // 명언 인용줄(닫는인사 제외) — 영문(한글 없음)=quoteEn, 한글=quote
+  const qcands=ls.filter(l=>/^["“]/.test(l)&&!/바랍니다|기원합니다|오늘도/.test(l));
+  const enline=qcands.find(l=>!/[가-힣]/.test(l)); if(enline) quoteEn=enline.replace(/^["“]|["”]$/g,'').trim();
+  const kline=qcands.find(l=>/[가-힣]/.test(l)); if(kline) quote=kline.replace(/^["“]|["”]$/g,'');
   const ti=ls.findIndex(l=>/^오늘의 생각$/.test(l));
   if(ti>=0){ for(let i=ti+1;i<ls.length;i++){const l=ls[i];if(!l)continue;if(isDiv(l)||isClose(l)||/드림$/.test(l)||/^\d{4}년/.test(l))break;thought+=(thought?' ':'')+l;} }
   const ci=ls.findIndex(l=>/^["“]?\s*오늘도 |바랍니다|기원합니다/.test(l)); if(ci>=0) closing=ls[ci].replace(/^["“]|["”]$/g,'');
@@ -48,26 +50,22 @@ async function renderCard(text, opts){
   center(['오늘의 생각 한 줄'],'46px CardB',SILVER,184,0);
   center([dateLabel],'36px CardB',GOLD,238,0);
   rule(288);
-  // 명언(중앙) — 영문 원문(위) + 한글, 뒤에 검은 반투명 박스
+  // 명언(중앙) — 영문 원문(위) + 한글, 진한 검은 그림자(박스 대신)
   const enLines=quoteEn?wrap('“'+quoteEn+'”','italic 34px CardR',W-padX*2):[];
   const qLines=wrap('“'+quote+'”','58px CardK',W-padX*2);
   const enLH=46, qLH=76;
   const enH=enLines.length?(enLines.length*enLH+18):0;
-  const boxTop=380-58; // 첫 글자 상단 여유
   const enFirst=380;
   const qFirst=380+enH+(enLines.length?10:0);
   const personY=qFirst+(qLines.length-1)*qLH+64;
-  // ★ 뿌옇게 검은 반투명 배경 박스(영문+한글+인물)
-  (function(){x.save();x.shadowColor='transparent';x.shadowBlur=0;x.shadowOffsetY=0;
-    const bx=padX-30,bw=W-2*(padX-30),bTop=380-70,bBot=personY+18,bh=bBot-bTop,rr=30;
-    x.fillStyle='rgba(8,11,9,.5)';
-    x.beginPath();x.moveTo(bx+rr,bTop);x.arcTo(bx+bw,bTop,bx+bw,bTop+bh,rr);x.arcTo(bx+bw,bTop+bh,bx,bTop+bh,rr);x.arcTo(bx,bTop+bh,bx,bTop,rr);x.arcTo(bx,bTop,bx+bw,bTop,rr);x.closePath();x.fill();
-    x.restore();})();
-  x.shadowColor='rgba(0,0,0,.55)';x.shadowBlur=10;x.shadowOffsetY=1;
-  let y;
+  // ★ 명언 글자에 진한 검은 그림자 — 밝은 배경에서도 하얀 글씨 또렷하게
+  x.save();x.shadowColor='rgba(0,0,0,.85)';x.shadowBlur=16;x.shadowOffsetY=2;
   if(enLines.length){center(enLines,'italic 34px CardR',SILVER,enFirst,enLH);}
   center(qLines,'58px CardK',WHITE,qFirst,qLH);
-  y=personY; center(['— '+person],'40px CardB',GOLD,y,0); y+=64;
+  center(['— '+person],'40px CardB',GOLD,personY,0);
+  x.restore();
+  x.shadowColor='rgba(0,0,0,.55)';x.shadowBlur=10;x.shadowOffsetY=1;
+  let y=personY+64;
   rule(y); y+=64;
   // 오늘의 생각
   center(['오늘의 생각'],'36px CardB',SILVER,y,0); y+=58;
