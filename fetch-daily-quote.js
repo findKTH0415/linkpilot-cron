@@ -128,6 +128,14 @@ async function fetchCandidates(){
     const r=await fetch('https://type.fit/api/quotes');
     if(r.ok){ const arr=await r.json(); (Array.isArray(arr)?shuffle(arr).slice(0,20):[]).forEach(q=>{ if(q&&q.text&&q.text.length>=25&&q.text.length<=200) out.push({content:q.text,author:(q.author||'').replace(/,?\s*type\.fit/i,'').trim()}); }); }
   }catch(e){ console.warn('type.fit 실패:', e.message); }
+  // ③-2 Quotle.info — 검증 출처(provenance) 명언 DB(search.json). c==='verified'만 선별(disputed/misattributed 제외).
+  try{
+    const r=await fetch('https://quotle.info/search.json',{headers:{'User-Agent':'Mozilla/5.0 (compatible; LinkPilotCron/1.0)'}});
+    if(r.ok){ const arr=await r.json();
+      const ver=(Array.isArray(arr)?arr:[]).filter(q=>q&&(q.t==='q')&&(q.c==='verified'||q.c==='genuine-famous')&&q.x&&q.x.length>=25&&q.x.length<=200&&q.a&&!/unknown|anonymous/i.test(q.a));
+      shuffle(ver).slice(0,12).forEach(q=>out.push({content:q.x,author:q.a,src:'Quotle.info('+q.c+')'})); }
+  }catch(e){ console.warn('Quotle.info 실패:', e.message); }
+  // ※ Quotations.co.uk = 봇차단(401), QuoteLibrary.com = 매각 도메인 → 공개 데이터 없어 미채택.
   // ④ 내장 큐레이션 풀(항상) — 날짜 기반 순환으로 매일 다른 세트
   const doy=Math.floor((kstNow()-new Date(Date.UTC(kstNow().getUTCFullYear(),0,0)))/864e5);
   const rot=[...CURATED.slice(doy%CURATED.length),...CURATED.slice(0,doy%CURATED.length)];
@@ -135,7 +143,7 @@ async function fetchCandidates(){
   // 중복 제거 + 셔플 + 상한
   const seen=new Set(); const uniq=[];
   shuffle(out).forEach(q=>{ const k=(q.content||'').slice(0,40).toLowerCase(); if(q.content&&!seen.has(k)){ seen.add(k); uniq.push(q); } });
-  console.log('후보 소스: 통합 '+uniq.length+'건 (wikiquote+zenquotes+type.fit+curated)');
+  console.log('후보 소스: 통합 '+uniq.length+'건 (wikiquote+zenquotes+type.fit+quotle(verified)+curated)');
   return uniq.slice(0,24);
 }
 
@@ -154,7 +162,7 @@ async function gemini(sys, userText){
 
 const SYS=`너는 최고급 비즈니스 매거진 수석 에디터다. 카카오톡 공유용 '오늘의 생각 한 줄' 카드 텍스트를 작성한다. 절제미·품격 있는 한국어.
 [규칙]
-1. 두 톤을 번갈아 사용(약 절반씩): (A) 통찰형 — 제공된 '명언후보'(검증 원문 DB·공식 연설문·도서·아카이브: Wikiquote/Quote Library/ZenQuotes/내장 검증DB) 중 오늘 시의성(이번달·계절·한국 기념일)에 어울리는 1개를 우선 선택. 원저자·출처가 확실한 것만 쓰고, 흔한 오귀속(예: '적자생존'을 다윈 원문으로 단정, 'We are what we repeatedly do'를 아리스토텔레스로 단정) 금지. 세계 리더·시인·작가·정치인·경제인·CEO를 다양하게 순환. (B) 감성형 — 인스타 감성처럼 짧고 직관적이며 울림 있는 한두 문장 글귀(출처 불명확하면 "— 오늘의 문장"). 허위 출처·지어낸 오귀속 절대 금지.
+1. 두 톤을 번갈아 사용(약 절반씩): (A) 통찰형 — 제공된 '명언후보'(검증 원문 DB·공식 연설문·도서·아카이브: Wikiquote/Quotle.info(검증표기)/ZenQuotes/내장 검증DB) 중 오늘 시의성(이번달·계절·한국 기념일)에 어울리는 1개를 우선 선택. 원저자·출처가 확실한 것만 쓰고, 흔한 오귀속(예: '적자생존'을 다윈 원문으로 단정, 'We are what we repeatedly do'를 아리스토텔레스로 단정) 금지. 세계 리더·시인·작가·정치인·경제인·CEO를 다양하게 순환. (B) 감성형 — 인스타 감성처럼 짧고 직관적이며 울림 있는 한두 문장 글귀(출처 불명확하면 "— 오늘의 문장"). 허위 출처·지어낸 오귀속 절대 금지.
 2. '최근사용금지_1년'의 인물·문구는 절대 반복하지 말 것.
 3. 인물명 뒤 직함 괄호 병기. 명언은 자연스러운 한국어로(원문이 영어면 자연스럽게 번역, 뜻 보존).
 4. '오늘의 생각'은 2~3문장, 사업·인생에 즉시 적용 가능한 실천적 해설.
