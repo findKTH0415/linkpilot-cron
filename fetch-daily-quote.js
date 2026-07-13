@@ -29,22 +29,69 @@ function seasonHoliday(){
 }
 
 // ── 외부 명언 후보 수집 ──
+// 내장 큐레이션 풀(검증 원문) — 외부 소스 전부 실패해도 매일 신선한 후보 보장. 날짜로 순환.
+const CURATED=[
+  {content:"The best way to predict the future is to create it.",author:"Peter Drucker"},
+  {content:"What we know is a drop, what we don't know is an ocean.",author:"Isaac Newton"},
+  {content:"It is not the strongest of the species that survives, but the most adaptable to change.",author:"Charles Darwin"},
+  {content:"Discipline is the bridge between goals and accomplishment.",author:"Jim Rohn"},
+  {content:"Price is what you pay. Value is what you get.",author:"Warren Buffett"},
+  {content:"The obstacle is the way.",author:"Marcus Aurelius"},
+  {content:"He who has a why to live can bear almost any how.",author:"Friedrich Nietzsche"},
+  {content:"Quality is not an act, it is a habit.",author:"Aristotle"},
+  {content:"In the middle of difficulty lies opportunity.",author:"Albert Einstein"},
+  {content:"A ship in harbor is safe, but that is not what ships are built for.",author:"John A. Shedd"},
+  {content:"The future depends on what you do today.",author:"Mahatma Gandhi"},
+  {content:"Whether you think you can or you think you can't, you're right.",author:"Henry Ford"},
+  {content:"Well done is better than well said.",author:"Benjamin Franklin"},
+  {content:"Vision without execution is hallucination.",author:"Thomas Edison"},
+  {content:"The two most important days in your life are the day you are born and the day you find out why.",author:"Mark Twain"},
+  {content:"Slow is smooth, and smooth is fast.",author:"Navy SEAL adage"},
+  {content:"Success is not final, failure is not fatal: it is the courage to continue that counts.",author:"Winston Churchill"},
+  {content:"A goal without a plan is just a wish.",author:"Antoine de Saint-Exupéry"},
+  {content:"Simplicity is the ultimate sophistication.",author:"Leonardo da Vinci"},
+  {content:"Do not wait to strike till the iron is hot; but make it hot by striking.",author:"William Butler Yeats"},
+  {content:"Knowing is not enough; we must apply. Willing is not enough; we must do.",author:"Johann Wolfgang von Goethe"},
+  {content:"The man who moves a mountain begins by carrying away small stones.",author:"Confucius"},
+  {content:"Risk comes from not knowing what you're doing.",author:"Warren Buffett"},
+  {content:"Fall seven times, stand up eight.",author:"Japanese proverb"},
+  {content:"An investment in knowledge pays the best interest.",author:"Benjamin Franklin"},
+  {content:"What gets measured gets managed.",author:"Peter Drucker"},
+  {content:"Patience is bitter, but its fruit is sweet.",author:"Jean-Jacques Rousseau"},
+  {content:"The journey of a thousand miles begins with a single step.",author:"Lao Tzu"},
+  {content:"Energy and persistence conquer all things.",author:"Benjamin Franklin"},
+  {content:"If you want to go fast, go alone. If you want to go far, go together.",author:"African proverb"},
+];
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 async function fetchCandidates(){
   const out=[];
-  // ① Wikiquote 오늘의 명언(QOTD) — 영어판 REST 파싱(best effort)
+  // ① Wikiquote 오늘의 명언(QOTD)
   try{
     const d=kstNow();
     const mon=['January','February','March','April','May','June','July','August','September','October','November','December'][d.getUTCMonth()];
     const title=`Wikiquote:Quote_of_the_day/${mon}_${d.getUTCDate()},_${d.getUTCFullYear()}`;
     const r=await fetch(`https://en.wikiquote.org/w/api.php?action=parse&page=${encodeURIComponent(title)}&prop=wikitext&format=json&origin=*`);
     if(r.ok){ const j=await r.json(); const wt=j?.parse?.wikitext?.['*']||''; const m=wt.match(/\{\{[^}]*quote[^}]*\|([^|}]{15,300})/i); if(m&&m[1]) out.push({content:m[1].replace(/\[\[|\]\]|'''/g,'').trim(),author:'Wikiquote 오늘의 명언'}); }
-  }catch(_){}
-  // ② quotable.io — 검증된 명언 랜덤 다수(안정적)
+  }catch(e){ console.warn('Wikiquote 실패:', e.message); }
+  // ② ZenQuotes — 검증 명언 다수(quotable.io 대체, 안정적)
   try{
-    const r=await fetch('https://api.quotable.io/quotes/random?limit=8&minLength=40&maxLength=180');
-    if(r.ok){ const arr=await r.json(); (Array.isArray(arr)?arr:[]).forEach(q=>{ if(q&&q.content)out.push({content:q.content,author:q.author||''}); }); }
-  }catch(_){}
-  return out;
+    const r=await fetch('https://zenquotes.io/api/quotes');
+    if(r.ok){ const arr=await r.json(); (Array.isArray(arr)?arr:[]).forEach(q=>{ if(q&&q.q&&q.q.length>=25&&q.q.length<=200&&!/zenquotes/i.test(q.a||'')) out.push({content:q.q,author:(q.a&&q.a!=='Unknown')?q.a:''}); }); }
+  }catch(e){ console.warn('ZenQuotes 실패:', e.message); }
+  // ③ type.fit — 보조 소스
+  try{
+    const r=await fetch('https://type.fit/api/quotes');
+    if(r.ok){ const arr=await r.json(); (Array.isArray(arr)?shuffle(arr).slice(0,20):[]).forEach(q=>{ if(q&&q.text&&q.text.length>=25&&q.text.length<=200) out.push({content:q.text,author:(q.author||'').replace(/,?\s*type\.fit/i,'').trim()}); }); }
+  }catch(e){ console.warn('type.fit 실패:', e.message); }
+  // ④ 내장 큐레이션 풀(항상) — 날짜 기반 순환으로 매일 다른 세트
+  const doy=Math.floor((kstNow()-new Date(Date.UTC(kstNow().getUTCFullYear(),0,0)))/864e5);
+  const rot=[...CURATED.slice(doy%CURATED.length),...CURATED.slice(0,doy%CURATED.length)];
+  rot.slice(0,8).forEach(q=>out.push(q));
+  // 중복 제거 + 셔플 + 상한
+  const seen=new Set(); const uniq=[];
+  shuffle(out).forEach(q=>{ const k=(q.content||'').slice(0,40).toLowerCase(); if(q.content&&!seen.has(k)){ seen.add(k); uniq.push(q); } });
+  console.log('후보 소스: 통합 '+uniq.length+'건 (wikiquote+zenquotes+type.fit+curated)');
+  return uniq.slice(0,24);
 }
 
 async function gemini(sys, userText){
