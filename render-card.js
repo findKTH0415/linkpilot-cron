@@ -21,8 +21,9 @@ async function renderCard(text, opts){
   const ls=text.split('\n').map(s=>s.trim());
   const isDiv=l=>/^[─-]{3,}$/.test(l);
   const isClose=l=>/^["“]?\s*오늘도 /.test(l)||/바랍니다|기원합니다|드림\s*$/.test(l);
-  let person='',quote='',thought='',closing='';
+  let person='',quote='',quoteEn='',thought='',closing='';
   ls.forEach(l=>{ if(l.indexOf('—')===0&&!person) person=l.replace(/^—\s*/,''); });
+  const enline=ls.find(l=>/^EN:\s*/i.test(l)); if(enline) quoteEn=enline.replace(/^EN:\s*/i,'').replace(/^["“]|["”]$/g,'').trim();
   const qline=ls.find(l=>/^["“]/.test(l)&&!/바랍니다|기원합니다|오늘도/.test(l)); if(qline) quote=qline.replace(/^["“]|["”]$/g,'');
   const ti=ls.findIndex(l=>/^오늘의 생각$/.test(l));
   if(ti>=0){ for(let i=ti+1;i<ls.length;i++){const l=ls[i];if(!l)continue;if(isDiv(l)||isClose(l)||/드림$/.test(l)||/^\d{4}년/.test(l))break;thought+=(thought?' ':'')+l;} }
@@ -47,26 +48,36 @@ async function renderCard(text, opts){
   center(['오늘의 생각 한 줄'],'46px CardB',SILVER,184,0);
   center([dateLabel],'36px CardB',GOLD,238,0);
   rule(288);
-  // 명언(중앙)
-  let y=380;
+  // 명언(중앙) — 영문 원문(위) + 한글, 뒤에 검은 반투명 박스
+  const enLines=quoteEn?wrap('“'+quoteEn+'”','italic 34px CardR',W-padX*2):[];
   const qLines=wrap('“'+quote+'”','58px CardK',W-padX*2);
-  center(qLines,'58px CardK',WHITE,y,76); y+=qLines.length*76+8;
-  center(['— '+person],'40px CardB',GOLD,y,0); y+=64;
+  const enLH=46, qLH=76;
+  const enH=enLines.length?(enLines.length*enLH+18):0;
+  const boxTop=380-58; // 첫 글자 상단 여유
+  const enFirst=380;
+  const qFirst=380+enH+(enLines.length?10:0);
+  const personY=qFirst+(qLines.length-1)*qLH+64;
+  // ★ 뿌옇게 검은 반투명 배경 박스(영문+한글+인물)
+  (function(){x.save();x.shadowColor='transparent';x.shadowBlur=0;x.shadowOffsetY=0;
+    const bx=padX-30,bw=W-2*(padX-30),bTop=380-70,bBot=personY+18,bh=bBot-bTop,rr=30;
+    x.fillStyle='rgba(8,11,9,.5)';
+    x.beginPath();x.moveTo(bx+rr,bTop);x.arcTo(bx+bw,bTop,bx+bw,bTop+bh,rr);x.arcTo(bx+bw,bTop+bh,bx,bTop+bh,rr);x.arcTo(bx,bTop+bh,bx,bTop,rr);x.arcTo(bx,bTop,bx+bw,bTop,rr);x.closePath();x.fill();
+    x.restore();})();
+  x.shadowColor='rgba(0,0,0,.55)';x.shadowBlur=10;x.shadowOffsetY=1;
+  let y;
+  if(enLines.length){center(enLines,'italic 34px CardR',SILVER,enFirst,enLH);}
+  center(qLines,'58px CardK',WHITE,qFirst,qLH);
+  y=personY; center(['— '+person],'40px CardB',GOLD,y,0); y+=64;
   rule(y); y+=64;
   // 오늘의 생각
   center(['오늘의 생각'],'36px CardB',SILVER,y,0); y+=58;
   const tLines=wrap(thought,'38px CardR',W-padX*2);
   center(tLines,'38px CardR',WHITE,y,52);
-  // 하단(마무리+이름+회사)
-  const hasFooter=!!company;
+  // 하단(마무리+이름만 — 회사명 제거)
   const cloLines=wrap('“'+(closing||'오늘도 좋은 하루 되시길 바랍니다.')+'”','italic 36px CardR',W-padX*2);
-  const cloLH=50, cloBottom=hasFooter?H-160:H-110, cloStart=cloBottom-(cloLines.length-1)*cloLH;
+  const cloLH=50, cloBottom=H-110, cloStart=cloBottom-(cloLines.length-1)*cloLH;
   center(cloLines,'italic 36px CardR',GOLD,cloStart,cloLH);
-  if(hasFooter){ center([name+' 드림'],'42px CardB',WHITE,H-94,0);
-    // 회사명 길면 한 줄에 맞게 폰트 자동 축소(잘림 방지)
-    x.font='34px CardB'; const _maxCW=W-padX*2, _cw=x.measureText(company).width, _cfs=_cw>_maxCW?Math.max(22,Math.floor(34*_maxCW/_cw)):34;
-    center([company], _cfs+'px CardB', WHITE, H-50, 0); }
-  else center([name+' 드림'],'42px CardB',GOLD,H-56,0);
+  center([name+' 드림'],'42px CardB',WHITE,H-56,0);
   return cv.toBuffer('image/jpeg',0.72); // ★ 초경량화(0.85→0.72) — pcard 뷰어 빠른 스트리밍
 }
 module.exports={renderCard};
