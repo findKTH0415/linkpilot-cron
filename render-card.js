@@ -33,8 +33,22 @@ async function renderCard(text, opts){
   const cv=createCanvas(W,H); const x=cv.getContext('2d');
   const GOLD='#D9B779',SILVER='#C9CDD2',WHITE='#F5F5F0',LIME='#AAE106';
   const di=Math.floor(Date.now()/86400000);
-  const bpid=BRIGHT_MORNING[di%BRIGHT_MORNING.length];
+  // ★ 테마별 배경: 성경말씀(경건·일출·빛·잔잔한물) / 명언(계절 부합 상쾌한 아침)
+  const SCRIPTURE_MORNING=['1508672019048-805c876b67e2','1500534623283-312aade485b7','1441974231531-c6227db76b6e','1501854140801-50d01698950b','1418065460487-3e41a6c84dc5','1464822759023-fed622ff2c3b','1470252649378-9c29740c9fa8','1470770903676-69b98201ea1c'];
+  const _mon=(new Date()).getMonth()+1;
+  const _season=(_mon>=3&&_mon<=5)?'spring':(_mon>=6&&_mon<=8)?'summer':(_mon>=9&&_mon<=11)?'autumn':'winter';
+  const SEASON_MORNING={
+    spring:['1464822759023-fed622ff2c3b','1490750967868-88aa4486c946','1470252649378-9c29740c9fa8','1501854140801-50d01698950b','1418065460487-3e41a6c84dc5'],
+    summer:['1500534623283-312aade485b7','1501854140801-50d01698950b','1508672019048-805c876b67e2','1418065460487-3e41a6c84dc5','1470770903676-69b98201ea1c'],
+    autumn:['1441974231531-c6227db76b6e','1470071459604-3b5ec3a7fe05','1470252649378-9c29740c9fa8','1444927714506-8492d94b5ba0','1418065460487-3e41a6c84dc5'],
+    winter:['1508672019048-805c876b67e2','1470770903676-69b98201ea1c','1444927714506-8492d94b5ba0','1500534623283-312aade485b7','1441974231531-c6227db76b6e'],
+  };
+  // 성경말씀 감지: 인물칸이 성경 장절(예 빌립보서 4:13) 또는 종교 키워드
+  const isScr = /\d+\s*:\s*\d+/.test(person) || /(성경|말씀|장|절|시편|복음|서\b)/.test(person) || /(주님|하나님|여호와|예수|은혜|믿음|성령)/.test(quote+' '+thought);
+  const POOL = isScr ? SCRIPTURE_MORNING : (SEASON_MORNING[_season]||BRIGHT_MORNING);
+  const bpid=POOL[di%POOL.length];
   let bg=await dl(uUrl(bpid,W,H));
+  if(!bg) bg=await dl(uUrl(POOL[(di+3)%POOL.length],W,H));
   if(!bg) bg=await dl(uUrl(BRIGHT_MORNING[(di+7)%BRIGHT_MORNING.length],W,H));
   if(!bg) bg=await dl('https://picsum.photos/seed/lpprem'+(dateLabel||'x')+'/1080/1440');
   if(bg){const iw=bg.width||1,ih=bg.height||1,r=Math.max(W/iw,H/ih),dw=iw*r,dh=ih*r;x.drawImage(bg,(W-dw)/2,(H-dh)/2,dw,dh);}
