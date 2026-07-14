@@ -1,0 +1,26 @@
+name: fetch-laws
+
+on:
+  schedule:
+    - cron: '0 21 * * 0'
+  workflow_dispatch:
+
+concurrency:
+  group: fetch-laws
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Fetch laws & store to NAS
+        env:
+          LAW_OC: ${{ secrets.LAW_OC }}
+          NAS_BASE_URL: ${{ secrets.NAS_BASE_URL }}
+          LAW_TOKEN: ${{ secrets.LAW_TOKEN }}
+        run: node fetch-laws.js
