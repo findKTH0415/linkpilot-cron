@@ -74,7 +74,7 @@ async function renderCard(text, opts){
   const personY=qFirst+(qLines.length-1)*qLH+64;
   // ★ 명언 글자에 진한 검은 그림자 — 밝은 배경에서도 하얀 글씨 또렷하게
   x.save();x.shadowColor='rgba(0,0,0,.85)';x.shadowBlur=16;x.shadowOffsetY=2;
-  if(enLines.length){center(enLines,'italic 34px CardR',SILVER,enFirst,enLH);}
+  if(enLines.length){center(enLines,'italic 34px CardB',LIME,enFirst,enLH);} // ★ 영문=테마색(라임) 굵게
   center(qLines,'58px CardK',WHITE,qFirst,qLH);
   center(['— '+person],'40px CardB',GOLD,personY,0);
   x.restore();
@@ -83,8 +83,8 @@ async function renderCard(text, opts){
   rule(y); y+=64;
   // 오늘의 생각
   center(['오늘의 생각'],'36px CardB',SILVER,y,0); y+=58;
-  const tLines=wrap(thought,'38px CardR',W-padX*2);
-  center(tLines,'38px CardR',WHITE,y,52);
+  const tLines=wrap(thought,'54px CardR',W-padX*2); // ★ 1.5배 확대(38→54)
+  center(tLines,'54px CardR',WHITE,y,74);
   // 하단(마무리+이름만 — 회사명 제거)
   const cloLines=wrap('“'+(closing||'오늘도 좋은 하루 되시길 바랍니다.')+'”','italic 36px CardR',W-padX*2);
   const cloLH=50, cloBottom=H-110, cloStart=cloBottom-(cloLines.length-1)*cloLH;
