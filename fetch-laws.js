@@ -15,8 +15,8 @@ const TOKEN = process.env.LAW_TOKEN||'';
 if(!OC){ console.error('LAW_OC 없음 — open.law.go.kr 인증키 필요'); process.exit(1); }
 if(!BASE){ console.error('NAS_BASE_URL 없음'); process.exit(1); }
 
-// 태양광/재생에너지 사업 인허가와 직결되는 검색어
-const QUERIES = ['태양광','신에너지 및 재생에너지','전기사업법','농지법','공유수면 관리 및 매립','분산에너지','환경영향평가법'];
+// 태양광/재생에너지 사업 인허가와 직결되는 검색어(정확 법령명 기준 — 법·시행령·시행규칙 포함)
+const QUERIES = ['전기사업법','전기공사업법','재생에너지','농지법','공유수면','산지관리법','분산에너지','환경영향평가법','국토의 계획 및 이용'];
 
 async function searchLaw(q){
   // DRF lawSearch — 법령 목록(JSON). display=최근 공포순 정렬(sort=ddes: 공포일 내림차순)
@@ -32,8 +32,9 @@ async function searchLaw(q){
       type:(x['제개정구분명']||'').trim(),        // 제정/일부개정/전부개정 등
       promulDate:(x['공포일자']||'').toString(),   // YYYYMMDD
       enforceDate:(x['시행일자']||'').toString(),
-      id:(x['법령ID']||'').toString(),
-      url:x['법령상세링크']?('https://www.law.go.kr'+x['법령상세링크']):('https://www.law.go.kr/lsSc.do?query='+encodeURIComponent(x['법령명한글']||q)),
+      id:(x['법령ID']||x['법령일련번호']||'').toString(),
+      // 공개 링크(OC 미노출) — 법령명 검색 페이지
+      url:'https://www.law.go.kr/lsSc.do?menuId=1&query='+encodeURIComponent(x['법령명한글']||q),
       q
     })).filter(o=>o.name);
   }catch(e){ console.error('err',q,e.message); return []; }
