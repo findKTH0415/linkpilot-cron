@@ -80,6 +80,21 @@
 - 레포 → **Actions → morning-card → Run workflow** (workflow_dispatch) 로 즉시 1회 발송 테스트.
 - 로그에 생성된 본문과 `✅ 발송 요청 완료` 가 보이면 정상.
 
+### 설정 누락 시
+
+`morning-card` / `morning-brief` 는 시작 즉시 필수 시크릿을 점검하고, **부족한 항목을 한 번에** 로그에 출력합니다:
+
+```
+❌ 실패: GitHub Secrets 설정이 누락되어 발송을 중단합니다.
+
+  · SOLAPI_API_KEY  — Solapi 대시보드 → 개발/연동 → API Key
+  · 수신자 미지정 — ONLY_TO / FRIENDS_URL / RECIPIENTS 중 최소 1개 필요
+```
+
+- 필수: `GEMINI_API_KEY`, `SOLAPI_API_KEY`, `SOLAPI_API_SECRET`, `SOLAPI_PFID` (+ 브리핑은 `NAS_BASE_URL`)
+- 수신자: `ONLY_TO` / `FRIENDS_URL` / `RECIPIENTS` **중 최소 1개**
+- 미등록 시크릿은 Actions에서 **빈 문자열**로 주입되므로, 값이 비어 있어도 누락으로 처리됩니다.
+
 ---
 
 ## 메모 / 한계

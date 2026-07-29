@@ -21,6 +21,7 @@ const os = require('os');
 const path = require('path');
 const { SolapiMessageService } = require('solapi');
 const { renderCard } = require('./render-card');
+const { preflight } = require('./preflight');
 
 const GEMINI_MODEL = 'gemini-2.5-flash';
 
@@ -114,11 +115,12 @@ async function loadRecipients() {
 }
 
 async function main() {
+  preflight(['GEMINI_API_KEY', 'SOLAPI_API_KEY', 'SOLAPI_API_SECRET', 'SOLAPI_PFID']);
+
   const recipients = await loadRecipients();
   if (!Array.isArray(recipients) || !recipients.length) throw new Error('수신자 없음 — 앱 친구명단(FRIENDS_URL) 또는 RECIPIENTS 확인');
   console.log('수신자 ' + recipients.length + '명');
   const pfId = process.env.SOLAPI_PFID;
-  if (!pfId) throw new Error('SOLAPI_PFID 없음 (카카오 발신프로필 ID)');
 
   const text = await generateText();
   console.log('── 생성된 명언 본문 ──\n' + text + '\n────────────────────');

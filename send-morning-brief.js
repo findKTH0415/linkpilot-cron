@@ -15,6 +15,7 @@
  */
 'use strict';
 const { SolapiMessageService } = require('solapi');
+const { preflight } = require('./preflight');
 
 const GEMINI_MODELS = (process.env.GEMINI_MODELS || 'gemini-2.5-flash,gemini-2.0-flash').split(',').map(s => s.trim()).filter(Boolean);
 const GEMINI_KEYS = (process.env.GEMINI_API_KEY || '').split(',').map(s => s.trim()).filter(Boolean);
@@ -158,10 +159,11 @@ async function loadRecipients() {
 }
 
 async function main() {
+  preflight(['GEMINI_API_KEY', 'SOLAPI_API_KEY', 'SOLAPI_API_SECRET', 'SOLAPI_PFID', 'NAS_BASE_URL']);
+
   const recipients = await loadRecipients();
   if (!recipients.length) throw new Error('수신자 없음 (ONLY_TO/FRIENDS_URL/RECIPIENTS)');
   const pfId = process.env.SOLAPI_PFID;
-  if (!pfId) throw new Error('SOLAPI_PFID 없음');
 
   const data = await fetchData();
   const payload = buildPayload(data);
