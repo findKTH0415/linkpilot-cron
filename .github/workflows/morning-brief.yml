@@ -8,6 +8,11 @@ on:
   schedule:
     - cron: '5 23 * * *'    # 매일 08:05 KST (지정시간 변경은 이 줄만 수정)
   workflow_dispatch:         # 수동 실행(테스트) 버튼
+    inputs:
+      dry_run:
+        description: '발송하지 않고 브리핑 본문만 생성해서 확인 (Solapi 시크릿 불필요)'
+        type: boolean
+        default: false
 
 concurrency:
   group: morning-brief
@@ -36,4 +41,5 @@ jobs:
           FRIENDS_URL: ${{ secrets.FRIENDS_URL }}
           RECIPIENTS: ${{ secrets.RECIPIENTS }}
           SENDER_PHONE: ${{ secrets.SENDER_PHONE }}
+          DRY_RUN: ${{ inputs.dry_run }}
         run: node send-morning-brief.js

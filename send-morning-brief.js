@@ -15,7 +15,7 @@
  */
 'use strict';
 const { SolapiMessageService } = require('solapi');
-const { preflight } = require('./preflight');
+const { preflight, nasBase, friendsUrl, isDryRun } = require('./preflight');
 
 const GEMINI_MODELS = (process.env.GEMINI_MODELS || 'gemini-2.5-flash,gemini-2.0-flash').split(',').map(s => s.trim()).filter(Boolean);
 const GEMINI_KEYS = (process.env.GEMINI_API_KEY || '').split(',').map(s => s.trim()).filter(Boolean);
@@ -77,7 +77,7 @@ function mapToStage(s) {
 }
 
 async function fetchData() {
-  const base = (process.env.NAS_BASE_URL || (process.env.FRIENDS_URL || '').replace(/\/friends\.php.*$/, '')).replace(/\/$/, '');
+  const base = nasBase();
   if (!base) throw new Error('NAS_BASE_URL 없음');
   const r = await fetch(base + '/sync.php?t=' + Date.now(), { headers: { 'cache-control': 'no-cache' } });
   if (!r.ok) throw new Error('sync.php ' + r.status);
@@ -147,22 +147,27 @@ async function loadRecipients() {
     const only = process.env.ONLY_TO.split(',').map(s => s.replace(/[^0-9]/g, '')).filter(Boolean);
     if (only.length) { console.log('★ 테스트 모드: ' + only.join(',')); return only; }
   }
-  const url = process.env.FRIENDS_URL;
+  const url = friendsUrl();
   if (url) {
+    if (!process.env.FRIENDS_URL) console.log('FRIENDS_URL 미등록 → NAS_BASE_URL 기준 추론: ' + url);
     try {
       const sep = url.includes('?') ? '&' : '?';
-      const r = await fetch(url + sep + 'phones=1', { headers: { 'cache-control': 'no-cache' } });
+      const r = await fetch(url + sep + 'phones=1', { headers: { 'cache-control': 'no-cache' }, signal: AbortSignal.timeout(20000) });
       if (r.ok) { const arr = await r.json(); if (Array.isArray(arr) && arr.length) return arr; }
-    } catch (e) { console.warn('FRIENDS_URL 실패: ' + e.message); }
+    } catch (e) { console.warn('친구명단 조회 실패: ' + e.message); }
   }
   return JSON.parse(process.env.RECIPIENTS || '[]');
 }
 
 async function main() {
-  preflight(['GEMINI_API_KEY', 'SOLAPI_API_KEY', 'SOLAPI_API_SECRET', 'SOLAPI_PFID', 'NAS_BASE_URL']);
+  // dry-run: 브리핑 본문 생성까지만 확인. Solapi 자격증명·수신자 없이도 돌아간다.
+  const dry = isDryRun();
+  if (dry) console.log('★ DRY RUN — 실제 발송하지 않습니다 (브리핑 본문만 검증)');
+  preflight(dry ? ['GEMINI_API_KEY', 'NAS_BASE_URL'] : ['GEMINI_API_KEY', 'SOLAPI_API_KEY', 'SOLAPI_API_SECRET', 'SOLAPI_PFID', 'NAS_BASE_URL'],
+    { needRecipients: !dry });
 
   const recipients = await loadRecipients();
-  if (!recipients.length) throw new Error('수신자 없음 (ONLY_TO/FRIENDS_URL/RECIPIENTS)');
+  if (!dry && !recipients.length) throw new Error('수신자 없음 (ONLY_TO/FRIENDS_URL/RECIPIENTS)');
   const pfId = process.env.SOLAPI_PFID;
 
   const data = await fetchData();
@@ -170,6 +175,8 @@ async function main() {
   const text = await genBrief(payload);
   const full = '☀️ 아침업무 브리핑 — ' + dateLabel() + '\n\n' + text;
   console.log('── 브리핑 ──\n' + full + '\n────────────');
+
+  if (dry) { console.log('✅ DRY RUN 완료 — 실제 발송은 하지 않았습니다.'); return; }
 
   const ms = new SolapiMessageService(process.env.SOLAPI_API_KEY, process.env.SOLAPI_API_SECRET);
   const kakaoOptions = { pfId, disableSms: !process.env.SENDER_PHONE };

@@ -8,6 +8,11 @@ on:
   schedule:
     - cron: '10 23 * * *'   # 매일 08:10 KST (친구톡 발송 가능시간 08:00~20:50 준수)
   workflow_dispatch:        # 수동 실행(테스트) 버튼
+    inputs:
+      dry_run:
+        description: '발송하지 않고 본문·카드만 생성해서 확인 (Solapi 시크릿 불필요)'
+        type: boolean
+        default: false
 
 concurrency:
   group: morning-card
@@ -37,4 +42,12 @@ jobs:
           CARD_NAME: ${{ secrets.CARD_NAME }}
           CARD_COMPANY: ${{ secrets.CARD_COMPANY }}
           NAS_BASE_URL: ${{ secrets.NAS_BASE_URL }}
+          DRY_RUN: ${{ inputs.dry_run }}
         run: node send-morning-card.js
+      - name: Upload dry-run card
+        if: ${{ inputs.dry_run }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: dry-run-card
+          path: dry-run/
+          if-no-files-found: warn

@@ -21,7 +21,7 @@ const os = require('os');
 const path = require('path');
 const { SolapiMessageService } = require('solapi');
 const { renderCard } = require('./render-card');
-const { preflight } = require('./preflight');
+const { preflight, nasBase, friendsUrl, isDryRun } = require('./preflight');
 
 const GEMINI_MODEL = 'gemini-2.5-flash';
 
@@ -99,33 +99,38 @@ async function loadRecipients() {
     const only = process.env.ONLY_TO.split(',').map(s => s.replace(/[^0-9]/g, '')).filter(Boolean);
     if (only.length) { console.log('★ 테스트 모드: ' + only.join(',') + ' 에게만 발송'); return only; }
   }
-  const url = process.env.FRIENDS_URL;
+  const url = friendsUrl();
   if (url) {
+    if (!process.env.FRIENDS_URL) console.log('FRIENDS_URL 미등록 → NAS_BASE_URL 기준 추론: ' + url);
     try {
       const sep = url.includes('?') ? '&' : '?';
-      const r = await fetch(url + sep + 'phones=1', { headers: { 'cache-control': 'no-cache' } });
+      const r = await fetch(url + sep + 'phones=1', { headers: { 'cache-control': 'no-cache' }, signal: AbortSignal.timeout(20000) });
       if (r.ok) {
         const arr = await r.json();
         if (Array.isArray(arr) && arr.length) return arr;
-        console.warn('FRIENDS_URL 명단 비어있음 → RECIPIENTS 폴백');
-      } else { console.warn('FRIENDS_URL 응답 오류 ' + r.status + ' → RECIPIENTS 폴백'); }
-    } catch (e) { console.warn('FRIENDS_URL 조회 실패(' + e.message + ') → RECIPIENTS 폴백'); }
+        console.warn('친구명단 비어있음 → RECIPIENTS 폴백');
+      } else { console.warn('친구명단 응답 오류 ' + r.status + ' → RECIPIENTS 폴백'); }
+    } catch (e) { console.warn('친구명단 조회 실패(' + e.message + ') → RECIPIENTS 폴백'); }
   }
   return JSON.parse(process.env.RECIPIENTS || '[]');
 }
 
 async function main() {
-  preflight(['GEMINI_API_KEY', 'SOLAPI_API_KEY', 'SOLAPI_API_SECRET', 'SOLAPI_PFID']);
+  // dry-run: 본문 생성과 카드 렌더까지만 확인. Solapi 자격증명·수신자 없이도 돌아간다.
+  const dry = isDryRun();
+  if (dry) console.log('★ DRY RUN — 실제 발송하지 않습니다 (본문·카드 렌더만 검증)');
+  preflight(dry ? ['GEMINI_API_KEY'] : ['GEMINI_API_KEY', 'SOLAPI_API_KEY', 'SOLAPI_API_SECRET', 'SOLAPI_PFID'],
+    { needRecipients: !dry });
 
   const recipients = await loadRecipients();
-  if (!Array.isArray(recipients) || !recipients.length) throw new Error('수신자 없음 — 앱 친구명단(FRIENDS_URL) 또는 RECIPIENTS 확인');
-  console.log('수신자 ' + recipients.length + '명');
+  if (!dry && (!Array.isArray(recipients) || !recipients.length)) throw new Error('수신자 없음 — 앱 친구명단(FRIENDS_URL) 또는 RECIPIENTS 확인');
+  console.log('수신자 ' + (Array.isArray(recipients) ? recipients.length : 0) + '명');
   const pfId = process.env.SOLAPI_PFID;
 
   const text = await generateText();
   console.log('── 생성된 명언 본문 ──\n' + text + '\n────────────────────');
 
-  const ms = new SolapiMessageService(process.env.SOLAPI_API_KEY, process.env.SOLAPI_API_SECRET);
+  const ms = dry ? null : new SolapiMessageService(process.env.SOLAPI_API_KEY, process.env.SOLAPI_API_SECRET);
 
   // ── 카드 이미지 렌더(서버) → NAS 저장(pcard 음악뷰어용) → Solapi 업로드(imageId) ──
   const dateLabel = kstDateLabel();
@@ -134,25 +139,34 @@ async function main() {
   const kstNow = new Date(Date.now() + 9 * 3600 * 1000);
   const ymd = kstNow.toISOString().slice(0, 10).replace(/-/g, '');
   const cardId = 'premium-' + ymd;
-  const nasBase = (process.env.NAS_BASE_URL || (process.env.FRIENDS_URL || '').replace(/\/friends\.php.*$/, '')).replace(/\/$/, '');
+  const base = nasBase();
 
   const kakaoOptions = { pfId, disableSms: !process.env.SENDER_PHONE };
-  let viewUrl = nasBase ? (nasBase + '/pcard.php?id=' + encodeURIComponent(cardId) + '&t=' + Date.now()) : '';
+  let viewUrl = base ? (base + '/pcard.php?id=' + encodeURIComponent(cardId) + '&t=' + Date.now()) : '';
   try {
     const buf = await renderCard(text, { date: dateLabel, name, company });
-    const dataUrl = 'data:image/jpeg;base64,' + buf.toString('base64');
-    // NAS 저장(친구가 '음악과 함께 보기' 누르면 pcard.php가 이 이미지를 보여줌)
-    if (nasBase) {
-      try {
-        const r = await fetch(nasBase + '/book-img.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: cardId, image: dataUrl }) });
-        console.log('NAS 이미지 저장:', r.ok ? 'OK' : ('실패 ' + r.status));
-      } catch (e) { console.warn('NAS 이미지 저장 실패:', e.message); }
+    // dry-run 은 NAS 를 건드리지 않는다(운영 카드 덮어쓰기 방지). 대신 결과물을 파일로 남긴다.
+    if (dry) {
+      fs.mkdirSync('dry-run', { recursive: true });
+      fs.writeFileSync(path.join('dry-run', cardId + '.jpg'), buf);
+      fs.writeFileSync(path.join('dry-run', cardId + '.txt'), text);
+      console.log('DRY RUN 산출물: dry-run/' + cardId + '.jpg (' + Math.round(buf.length / 1024) + 'KB), .txt');
+      kakaoOptions.imageId = 'DRY-RUN';
+    } else {
+      // NAS 저장(친구가 '음악과 함께 보기' 누르면 pcard.php가 이 이미지를 보여줌)
+      if (base) {
+        try {
+          const dataUrl = 'data:image/jpeg;base64,' + buf.toString('base64');
+          const r = await fetch(base + '/book-img.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: cardId, image: dataUrl }) });
+          console.log('NAS 이미지 저장:', r.ok ? 'OK' : ('실패 ' + r.status));
+        } catch (e) { console.warn('NAS 이미지 저장 실패:', e.message); }
+      }
+      // Solapi 업로드 → imageId (친구톡 이미지형)
+      const tmp = path.join(os.tmpdir(), cardId + '.jpg');
+      fs.writeFileSync(tmp, buf);
+      const up = await ms.uploadFile(tmp, 'KAKAO');
+      if (up && up.fileId) { kakaoOptions.imageId = up.fileId; console.log('Solapi 이미지 업로드 OK:', up.fileId); }
     }
-    // Solapi 업로드 → imageId (친구톡 이미지형)
-    const tmp = path.join(os.tmpdir(), cardId + '.jpg');
-    fs.writeFileSync(tmp, buf);
-    const up = await ms.uploadFile(tmp, 'KAKAO');
-    if (up && up.fileId) { kakaoOptions.imageId = up.fileId; console.log('Solapi 이미지 업로드 OK:', up.fileId); }
   } catch (e) {
     console.warn('카드 이미지 처리 실패 → 텍스트로 발송:', e.message);
   }
@@ -166,6 +180,13 @@ async function main() {
   // 이미지형이면 본문은 짧게(제목+날짜+보내는사람+회사), 실패 시 전체 텍스트
   const signLines = dateLabel + ' ' + name + ' 드림' + (company ? ('\n' + splitCo(company)) : '');
   const msgText = kakaoOptions.imageId ? ('오늘의 생각 한 줄\n' + signLines) : text;
+
+  if (dry) {
+    console.log('── 발송될 친구톡 캡션 ──\n' + msgText + '\n────────────────────');
+    console.log('버튼:', kakaoOptions.buttons ? kakaoOptions.buttons[0].buttonName + ' → ' + viewUrl : '없음');
+    console.log('✅ DRY RUN 완료 — 실제 발송은 하지 않았습니다.');
+    return;
+  }
 
   const messages = recipients.map(to => ({
     to: String(to).replace(/[^0-9]/g, ''),
