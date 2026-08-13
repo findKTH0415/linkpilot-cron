@@ -1,0 +1,4 @@
+{
+  "//": "ui/ 는 React 용 ESM 으로 선언돼 있지만 이 폴더의 app.js 는 브라우저가 script 태그로 바로 읽는 클래식 스크립트(UMD)다. Node 가 ESM 으로 오해하지 않도록 CommonJS 로 되돌린다 (테스트가 require 로 읽는다). 브라우저 동작에는 영향이 없다.",
+  "type": "commonjs"
+}

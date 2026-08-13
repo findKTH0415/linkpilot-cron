@@ -12,7 +12,8 @@
     "im:demo": "IM_AGENT_OFFLINE=1 node im-agent/cli.js demo",
     "im:smoke": "node im-agent/tools/smoke-public-data.js",
     "im:preview": "node im-agent/ui/vanilla/build-preview.js",
-    "im:page": "node im-agent/ui/vanilla/build-page.js"
+    "im:page": "node im-agent/ui/vanilla/build-page.js",
+    "im:platform": "node im-agent/ui/platform/build.js"
   },
   "dependencies": {
     "solapi": "^5.5.1",
