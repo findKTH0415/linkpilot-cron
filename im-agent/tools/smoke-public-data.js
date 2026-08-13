@@ -126,9 +126,13 @@ async function main() {
       report('VWorld 지오코딩', true, `좌표 ${lat}, ${lon} (${g.value.matchedType})`);
     } else {
       report('VWorld 지오코딩', false, g.error);
-      console.log('  ※ VWorld 키는 신청 시 등록한 도메인에서만 동작한다.');
-      console.log('    서버에서 호출하려면 콘솔에서 서버 IP/도메인을 등록하거나');
-      console.log('    VWORLD_DOMAIN 환경변수에 등록된 도메인을 넣어야 한다.');
+      if (g.attempts) {
+        for (const a of g.attempts) console.log(`    · ${a.type} 시도 → ${a.error}`);
+      }
+      if (g.hint) console.log(`  → ${g.hint}`);
+      if (process.env.IM_AGENT_DEBUG_HTTP !== '1') {
+        console.log('  ※ 원문 응답을 보려면: IM_AGENT_DEBUG_HTTP=1 npm run im:smoke');
+      }
     }
   }
 

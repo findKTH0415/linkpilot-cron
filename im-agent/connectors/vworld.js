@@ -69,6 +69,15 @@ async function call(service, params, namespace, cacheParams) {
   return cache.through(PROVIDER, namespace, cacheParams, async () => {
     const url = buildRequestUrl(service, params);
     const r = await request(url);
+
+    // IM_AGENT_DEBUG_HTTP=1 이면 원본 응답을 그대로 보여준다.
+    // 인증 실패인지, 파라미터 문제인지, 결과가 없는 건지는 원문을 봐야 구분된다.
+    if (process.env.IM_AGENT_DEBUG_HTTP === '1') {
+      console.error(`\n[debug] ${redact(url)}`);
+      console.error(`[debug] ${r.ok ? 'HTTP OK' : 'HTTP 실패: ' + r.error}`);
+      if (r.body) console.error(`[debug] 응답: ${redact(String(r.body).slice(0, 400))}\n`);
+    }
+
     if (!r.ok) return { ok: false, error: redact(r.error) };
 
     let j;
@@ -97,6 +106,11 @@ async function geocode(address) {
   if (!address) return { ok: false, error: '주소 없음' };
 
   // 도로명 우선, 실패 시 지번으로 재시도 (호출 2회 → 캐시로 반복 방지)
+  //
+  // ★ 각 시도의 실제 오류를 반드시 보존한다.
+  //   폴백이 원인을 감추면 "미매칭"인지 "인증 실패"인지 구분할 수 없다.
+  const attempts = [];
+
   for (const type of ['ROAD', 'PARCEL']) {
     const r = await call('address', {
       service: 'address', request: 'getcoord', version: '2.0',
@@ -106,7 +120,7 @@ async function geocode(address) {
     if (r.ok && r.value?.result?.point) {
       const p = r.value.result.point;
       return {
-        ok: true, cached: r.cached,
+        ok: true, cached: r.cached, attempts,
         value: {
           lat: num(p.y), lon: num(p.x),
           matchedType: type,
@@ -115,8 +129,25 @@ async function geocode(address) {
       };
     }
     if (r.unavailable) return r;
+
+    attempts.push({
+      type,
+      error: r.error || (r.ok ? '응답에 좌표(result.point)가 없다' : '알 수 없는 실패'),
+      status: r.ok && r.value ? (r.value.status || null) : null,
+    });
   }
-  return { ok: false, error: `지오코딩 실패 (도로명·지번 모두 미매칭): ${address}` };
+
+  // 두 시도의 오류가 같으면 한 번만 보여준다 (같은 원인이면 중복 표시는 잡음이다)
+  const messages = [...new Set(attempts.map(a => a.error))];
+  const detail = messages.length === 1
+    ? messages[0]
+    : attempts.map(a => `${a.type}: ${a.error}`).join(' / ');
+
+  return {
+    ok: false, attempts,
+    error: `지오코딩 실패 — ${detail} (주소: ${address})`,
+    hint: diagnoseGeocodeFailure(attempts),
+  };
 }
 
 /**
@@ -154,6 +185,30 @@ async function parcelAt(lon, lat) {
   };
 }
 
+/**
+ * 실패 원인 추정 — 오류 문구로 다음 행동을 좁혀준다.
+ * 확신할 수 없으면 추측하지 않고 '원문 확인 필요'라고 쓴다.
+ */
+function diagnoseGeocodeFailure(attempts) {
+  const all = attempts.map(a => `${a.error} ${a.status || ''}`).join(' ');
+
+  if (/INVALID_KEY|등록되지|권한|UNAUTHORIZED|인증/i.test(all)) {
+    return '키 또는 도메인 인증 실패 — VWorld 콘솔의 서비스URL 과 VWORLD_DOMAIN 이 정확히 같은지, '
+      + '개발키가 승인 상태인지 확인한다 (승인 전에는 호출이 거부된다)';
+  }
+  if (/NOT_FOUND|결과가 없|no result/i.test(all)) {
+    return '키·도메인은 통과했으나 주소가 매칭되지 않았다 — 다른 주소로 다시 시도한다';
+  }
+  if (/좌표\(result\.point\)가 없다/.test(all)) {
+    return '응답은 정상(OK)인데 좌표가 비어 있다 — 주소 매칭 실패이거나 응답 구조가 다르다. '
+      + 'IM_AGENT_DEBUG_HTTP=1 로 원문을 확인한다';
+  }
+  if (/타임아웃|ETIMEDOUT|ENOTFOUND|EAI_AGAIN/i.test(all)) {
+    return '네트워크 문제 — 방화벽·프록시에서 api.vworld.kr 접근이 막혔는지 확인한다';
+  }
+  return 'IM_AGENT_DEBUG_HTTP=1 로 다시 실행해 VWorld 원문 응답을 확인한다';
+}
+
 /** GeoJSON geometry → 외곽 링 좌표 배열 */
 function extractPolygon(geometry) {
   if (!geometry) return [];
@@ -186,4 +241,4 @@ function mapLink(lat, lon, zoom = 17) {
 
 function round6(n) { return Math.round(Number(n) * 1e6) / 1e6; }
 
-module.exports = { geocode, parcelAt, staticMapUrl, mapLink, isAvailable, extractPolygon, buildRequestUrl, domain, PROVIDER };
+module.exports = { geocode, parcelAt, staticMapUrl, mapLink, isAvailable, extractPolygon, buildRequestUrl, domain, diagnoseGeocodeFailure, PROVIDER };

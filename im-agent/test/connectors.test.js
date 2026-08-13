@@ -186,6 +186,23 @@ test('도메인이 설정되면 요청에 domain 파라미터가 실린다', () 
   if (saved.d) process.env.VWORLD_DOMAIN = saved.d;
 });
 
+test('★ 지오코딩 폴백이 실제 오류를 감추지 않는다', async () => {
+  const vworld = require('../connectors/vworld');
+  // 인증 실패 문구 → 원인 진단이 붙어야 한다
+  const auth = vworld.diagnoseGeocodeFailure([{ type: 'ROAD', error: 'VWorld INVALID_KEY: 등록되지 않은 키' }]);
+  assert.match(auth, /키 또는 도메인 인증 실패/);
+
+  const notFound = vworld.diagnoseGeocodeFailure([{ type: 'ROAD', error: 'VWorld NOT_FOUND: 결과가 없습니다' }]);
+  assert.match(notFound, /주소가 매칭되지 않았다/);
+
+  const net = vworld.diagnoseGeocodeFailure([{ type: 'ROAD', error: '타임아웃 15000ms' }]);
+  assert.match(net, /네트워크/);
+
+  // 알 수 없는 오류는 추측하지 않고 원문 확인을 안내한다
+  const unknown = vworld.diagnoseGeocodeFailure([{ type: 'ROAD', error: '??' }]);
+  assert.match(unknown, /IM_AGENT_DEBUG_HTTP/);
+});
+
 test('키가 없으면 Connector 는 unavailable 로 응답한다 (죽지 않는다)', async () => {
   const saved = process.env.DATA_GO_KR_KEY;
   delete process.env.DATA_GO_KR_KEY;
