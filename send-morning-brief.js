@@ -14,7 +14,9 @@
  *   SENDER_PHONE       — (선택) 친구톡 실패 시 SMS 대체
  */
 'use strict';
-const { SolapiMessageService } = require('solapi');
+// solapi 는 실제 발송 시점에만 불러온다.
+// 최상단에서 require 하면 node_modules 없이는 이 파일을 불러올 수조차 없어
+// 재시도·배너 같은 발송 무관 로직을 의존성 없이 테스트할 수 없다.
 
 const GEMINI_MODELS = (process.env.GEMINI_MODELS || 'gemini-2.5-flash,gemini-2.0-flash').split(',').map(s => s.trim()).filter(Boolean);
 const GEMINI_KEYS = (process.env.GEMINI_API_KEY || '').split(',').map(s => s.trim()).filter(Boolean);
@@ -75,13 +77,41 @@ function mapToStage(s) {
   return '접수'; // 접수/접수검토/검토/그 외
 }
 
+const NAS_RETRIES = 3;
+const NAS_TIMEOUT_MS = 15000;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+/**
+ * NAS(sync.php) 조회. CLAUDE.md §4 — "3회 재시도 → 실패하면 해당 섹션 생략하고 발송은 진행".
+ *
+ * ★ 예외를 던지지 않는다. 예전에는 여기서 throw 하면 브리핑 전체가 죽었다.
+ *   NAS 한 대가 죽었다고 아침 브리핑이 통째로 안 나가면 안 된다.
+ *   대신 { ok:false } 로 돌려주고, 호출부가 '데이터 누락' 배너를 붙여 발송한다.
+ *   빈 데이터를 조용히 "일정 없음"으로 내보내면 CEO가 오해한다 — 그래서 배너는 필수다.
+ *
+ * @returns {{ok:boolean, data:object, error?:string}}
+ */
 async function fetchData() {
   const base = (process.env.NAS_BASE_URL || (process.env.FRIENDS_URL || '').replace(/\/friends\.php.*$/, '')).replace(/\/$/, '');
-  if (!base) throw new Error('NAS_BASE_URL 없음');
-  const r = await fetch(base + '/sync.php?t=' + Date.now(), { headers: { 'cache-control': 'no-cache' } });
-  if (!r.ok) throw new Error('sync.php ' + r.status);
-  const j = await r.json();
-  return j && typeof j === 'object' ? j : {};
+  if (!base) return { ok: false, data: {}, error: 'NAS_BASE_URL 없음' };
+
+  let lastError = '';
+  for (let attempt = 1; attempt <= NAS_RETRIES; attempt++) {
+    try {
+      const r = await fetch(base + '/sync.php?t=' + Date.now(), {
+        headers: { 'cache-control': 'no-cache' },
+        signal: AbortSignal.timeout(NAS_TIMEOUT_MS),   // 응답이 없으면 잡 타임아웃까지 매달리지 않는다
+      });
+      if (!r.ok) throw new Error('sync.php HTTP ' + r.status);
+      const j = await r.json();
+      return { ok: true, data: j && typeof j === 'object' ? j : {} };
+    } catch (e) {
+      lastError = e.message;
+      console.warn(`NAS 조회 실패 (${attempt}/${NAS_RETRIES}): ${e.message}`);
+      if (attempt < NAS_RETRIES) await sleep(1000 * 2 ** (attempt - 1));   // 1s, 2s
+    }
+  }
+  return { ok: false, data: {}, error: lastError };
 }
 
 function buildPayload(data) {
@@ -141,6 +171,18 @@ async function genBrief(payload) {
   throw new Error('Gemini 전체 실패');
 }
 
+/**
+ * NAS 조회가 실패한 채로 발송할 때 맨 앞에 붙는 경고.
+ * ★ LLM 이 아니라 코드가 만든다. "일정 없음"과 "일정을 못 가져왔음"은 완전히 다른 말이고,
+ *   이 구분을 모델 판단에 맡기면 안 된다.
+ */
+function degradedBanner(nas) {
+  if (nas.ok) return '';
+  return `⚠️ NAS 데이터 조회 실패 — 아래 일정·업무·프로젝트 정보는 누락된 상태입니다.\n`
+    + `(사유: ${nas.error || '원인 미상'} · ${NAS_RETRIES}회 재시도 후 실패)\n`
+    + `※ "없음"으로 표시된 항목은 실제로 없는 것이 아니라 확인되지 않은 것입니다.\n\n`;
+}
+
 async function loadRecipients() {
   if (process.env.ONLY_TO) {
     const only = process.env.ONLY_TO.split(',').map(s => s.replace(/[^0-9]/g, '')).filter(Boolean);
@@ -163,12 +205,13 @@ async function main() {
   const pfId = process.env.SOLAPI_PFID;
   if (!pfId) throw new Error('SOLAPI_PFID 없음');
 
-  const data = await fetchData();
-  const payload = buildPayload(data);
+  const nas = await fetchData();
+  const payload = buildPayload(nas.data);
   const text = await genBrief(payload);
-  const full = '☀️ 아침업무 브리핑 — ' + dateLabel() + '\n\n' + text;
+  const full = '☀️ 아침업무 브리핑 — ' + dateLabel() + '\n\n' + degradedBanner(nas) + text;
   console.log('── 브리핑 ──\n' + full + '\n────────────');
 
+  const { SolapiMessageService } = require('solapi');
   const ms = new SolapiMessageService(process.env.SOLAPI_API_KEY, process.env.SOLAPI_API_SECRET);
   const kakaoOptions = { pfId, disableSms: !process.env.SENDER_PHONE };
   const messages = recipients.map(to => ({
@@ -181,4 +224,9 @@ async function main() {
   console.log('✅ 발송 요청 완료:', JSON.stringify(res?.groupInfo || res, null, 2));
 }
 
-main().catch(e => { console.error('❌ 실패:', e.message); process.exit(1); });
+if (require.main === module) {
+  main().catch(e => { console.error('❌ 실패:', e.message); process.exit(1); });
+}
+
+// 테스트에서 발송 없이 개별 함수만 검증할 수 있게 노출한다
+module.exports = { fetchData, buildPayload, degradedBanner, mapToStage };

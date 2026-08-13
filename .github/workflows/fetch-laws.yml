@@ -24,3 +24,14 @@ jobs:
           NAS_BASE_URL: ${{ secrets.NAS_BASE_URL }}
           LAW_TOKEN: ${{ secrets.LAW_TOKEN }}
         run: node fetch-laws.js
+
+  alert:
+    needs: fetch
+    if: failure()
+    uses: ./.github/workflows/alert-failure.yml
+    permissions:
+      issues: write
+      contents: read
+    secrets: inherit
+    with:
+      workflow: fetch-laws
