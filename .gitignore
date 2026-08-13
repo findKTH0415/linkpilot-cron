@@ -8,3 +8,6 @@ im-projects/
 
 # 미리보기는 im-projects 스냅샷에서 생성한다 (npm run im:preview)
 im-agent/ui/vanilla/preview.html
+
+# 브라우저 검증 시 생기는 DOM 덤프
+v-*.html
