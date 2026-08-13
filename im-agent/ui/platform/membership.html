@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>멤버십 · LINKPILOT</title>
+<!--
+  멤버십 — 「유료 멤버십」 섹션의 독립 콘텐츠.
+
+  내정보(프로필·로그인·DB연동·관리자) 안이 아니라, 사이드바 '유료 멤버십'
+  섹션의 별도 메뉴로 들어간다. 구독은 프로필 설정이 아니라 서비스이기 때문이다.
+
+  실제 앱 화면에 맞춘 것:
+    사이드바 메뉴 구성 / 라임 포인트 / 탭 알약 / 하단 탭 6개 / 우상단 날짜·사용자
+
+  ★ 색·플랜·기능은 CONFIG 와 CSS 변수 한 곳에 모았다.
+    브랜드 색이 다르면 --lime 한 줄만 고치면 전부 따라온다.
+  ★ 카드정보를 이 화면에서 받지 않는다. billingUrl 의 결제 페이지로 보낸다.
+  ★ 멤버십 정보가 없으면 '무료'로 단정하지 않고 '확인 필요'로 표시한다.
+-->
+<style>
+:root {
+  --lime: #9ED700;
+  --lime-soft: #EDF7DC;
+  --lime-deep: #5C7A00;
+  --ink: #17181A;
+  --ink2: #7C838C;
+  --line: #E8EAEC;
+  --panel: #F1F2F4;
+  --bg: #F5F6F8;
+  --surface: #FFFFFF;
+  --bad: #E03131;
+  --bad-soft: #FDECEC;
+  --bad-ink: #8F1D1D;
+  --warn: #E8A33D;
+  --r: 18px;
+  --side: 248px;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 400 15px/1.55 -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
+        'Malgun Gothic', '맑은 고딕', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+h1,h2,h3,h4 { margin: 0; }
+ul { margin: 0; padding: 0; list-style: none; }
+
+.app { display: flex; min-height: 100%; }
+
+/* ── 사이드바 ─────────────────────────────────────── */
+.side {
+  width: var(--side); flex: none; background: var(--surface);
+  border-right: 1px solid var(--line); padding: 18px 12px 24px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.side__brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 12px; }
+.side__mark {
+  width: 34px; height: 34px; border-radius: 50%; flex: none;
+  border: 2.5px solid var(--ink); display: grid; place-items: center;
+  color: var(--lime); font-size: 15px;
+}
+.side__name { font-size: 15px; font-weight: 800; letter-spacing: .01em; }
+.side__user { font-size: 12px; color: var(--ink2); }
+.side__sync {
+  margin: 0 4px 12px; padding: 8px 12px; border-radius: 10px;
+  border: 1px solid #FBD9A5; background: #FFF7EC; color: #A9682A; font-size: 12px;
+}
+.side__group {
+  margin: 14px 8px 6px; font-size: 12px; font-weight: 700; color: var(--ink2);
+}
+.nav { display: flex; align-items: center; gap: 11px;
+  padding: 10px 12px; border-radius: 12px; text-decoration: none;
+  color: var(--ink); font-size: 14.5px; }
+.nav:hover { background: var(--panel); }
+.nav.on { background: var(--lime-soft); color: var(--lime-deep); font-weight: 700; }
+.nav__ic { width: 20px; text-align: center; font-size: 15px; opacity: .8; }
+.nav.on .nav__ic { opacity: 1; }
+
+/* ── 본문 ─────────────────────────────────────────── */
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.top {
+  background: var(--surface); border-bottom: 1px solid var(--line);
+  padding: 16px 26px; display: flex; align-items: center;
+}
+.logo { display: flex; align-items: center; gap: 12px; font-size: 24px; font-weight: 900; letter-spacing: -.01em; }
+.logo em { font-style: normal; color: var(--lime); }
+.logo__mark {
+  width: 38px; height: 38px; border-radius: 50%; border: 3px solid var(--ink);
+  display: grid; place-items: center; color: var(--lime); font-size: 16px;
+}
+
+.head { background: var(--surface); padding: 16px 26px 0; }
+.head__row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.head__ic {
+  width: 40px; height: 40px; border-radius: 12px; background: var(--panel);
+  display: grid; place-items: center; font-size: 18px;
+}
+.head__t { font-size: 22px; font-weight: 800; }
+.head__meta { margin-left: auto; text-align: right; font-size: 13px; color: var(--ink2); }
+.head__meta b { display: block; color: var(--ink); font-weight: 700; margin-top: 2px; }
+
+.tabs { display: flex; gap: 10px; margin: 14px 0 0; padding-bottom: 14px; flex-wrap: wrap; }
+.tab {
+  font: 700 14px/1 inherit; padding: 13px 26px; border: 0; border-radius: 12px;
+  background: var(--panel); color: var(--ink2); cursor: pointer;
+}
+.tab.on { background: var(--lime); color: var(--ink); }
+.tab:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.rule { height: 3px; background: var(--lime); }
+
+.body { padding: 22px 26px 96px; display: flex; flex-direction: column; gap: 22px; max-width: 980px; }
+
+/* ── 카드 ─────────────────────────────────────────── */
+.card { background: var(--surface); border-radius: var(--r); padding: 22px; }
+.card__t { font-size: 13px; font-weight: 700; color: var(--ink2); margin-bottom: 14px; }
+
+.now { background: var(--ink); color: #fff; border-radius: var(--r); padding: 24px; }
+.now--none { background: var(--surface); color: var(--ink); }
+.now__row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.now__n { font-size: 26px; font-weight: 800; }
+.now__b { font-size: 12px; font-weight: 700; padding: 5px 11px; border-radius: 999px;
+  background: var(--lime); color: var(--ink); }
+.now__b--bad { background: var(--bad); color: #fff; }
+.now__b--warn { background: var(--warn); color: var(--ink); }
+.now__m { font-size: 13.5px; opacity: .82; margin-top: 10px; font-variant-numeric: tabular-nums; }
+
+.use { margin-top: 20px; display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.use__h { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px;
+  font-variant-numeric: tabular-nums; }
+.use__bar { height: 6px; border-radius: 3px; background: rgba(255,255,255,.22); overflow: hidden; }
+.now--none .use__bar { background: #E2E5E8; }
+.use__f { height: 100%; background: var(--lime); }
+.use__f--over { background: var(--bad); }
+
+.note { padding: 13px 16px; border-radius: 12px; font-size: 13.5px;
+  background: var(--lime-soft); color: var(--ink); }
+.note--bad { background: var(--bad-soft); color: var(--bad-ink); }
+
+/* ── 유료 기능 ────────────────────────────────────── */
+.feat { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+.feat__i { background: var(--panel); border: 2px solid transparent; border-radius: 14px;
+  padding: 18px 14px; text-align: center; }
+.feat__i.on { border-color: var(--lime); background: var(--lime-soft); }
+.feat__ic { font-size: 21px; line-height: 1; }
+.feat__n { font-size: 13.5px; font-weight: 600; margin-top: 9px; }
+.feat__l { font-size: 11.5px; color: var(--ink2); margin-top: 5px; }
+.feat__i.on .feat__l { color: var(--lime-deep); font-weight: 700; }
+
+/* ── 플랜 ─────────────────────────────────────────── */
+.plans { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.plan { position: relative; background: var(--surface); border: 1.5px solid var(--line);
+  border-radius: var(--r); padding: 24px 20px; display: flex; flex-direction: column; }
+.plan--rec { border-color: var(--lime); border-width: 2.5px; }
+.plan--cur { background: var(--panel); }
+.plan__tag { position: absolute; top: -11px; left: 18px; font-size: 11.5px; font-weight: 700;
+  padding: 4px 11px; border-radius: 999px; background: var(--lime); color: var(--ink); }
+.plan__tag--cur { background: var(--ink2); color: #fff; }
+.plan__n { font-size: 18px; font-weight: 800; }
+.plan__p { font-size: 27px; font-weight: 800; margin-top: 8px; }
+.plan__p small { font-size: 13px; font-weight: 400; color: var(--ink2); }
+.plan__l { margin-top: 14px; font-size: 13.5px; color: var(--ink2); flex: 1; }
+.plan__l li { padding: 5px 0 5px 17px; position: relative; }
+.plan__l li::before { content: ''; position: absolute; left: 2px; top: 13px;
+  width: 6px; height: 6px; border-radius: 50%; background: var(--lime); }
+.btn { display: block; width: 100%; margin-top: 18px; padding: 14px;
+  font: 700 14.5px/1 inherit; border: 0; border-radius: 12px;
+  background: var(--lime); color: var(--ink); cursor: pointer; }
+.btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.btn--off { background: var(--panel); color: var(--ink2); cursor: default; }
+.fine { font-size: 12.5px; color: var(--ink2); }
+
+/* ── 하단 탭 ──────────────────────────────────────── */
+.bot { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+  background: var(--surface); border-top: 1px solid var(--line);
+  display: grid; grid-template-columns: repeat(6, 1fr); padding: 9px 0 11px; }
+.bot__i { text-align: center; font-size: 10.5px; color: var(--ink2); text-decoration: none; }
+.bot__i b { display: block; font-size: 17px; line-height: 1.35; font-weight: 400; }
+.bot__i.on { color: var(--lime-deep); font-weight: 700; }
+
+@media (max-width: 900px) {
+  .side { display: none; }
+  .top, .head { padding-left: 16px; padding-right: 16px; }
+  .body { padding: 18px 16px 96px; }
+  .head__t { font-size: 19px; }
+  .tab { flex: 1; padding: 12px 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="side">
+    <div class="side__brand">
+      <div class="side__mark">➤</div>
+      <div>
+        <div class="side__name">LinkPilot</div>
+        <div class="side__user" id="side-user"></div>
+      </div>
+    </div>
+    <div class="side__sync">동기화 중…</div>
+
+    <a class="nav" href="#"><span class="nav__ic">⌂</span>대시보드</a>
+    <a class="nav" href="#"><span class="nav__ic">👥</span>연락처</a>
+    <a class="nav" href="#"><span class="nav__ic">🗂</span>딜파이프라인</a>
+    <a class="nav" href="#"><span class="nav__ic">🗓</span>캘린더</a>
+    <a class="nav" href="#"><span class="nav__ic">👤</span>내정보</a>
+    <a class="nav" href="#"><span class="nav__ic">✓</span>할일</a>
+    <a class="nav" href="#"><span class="nav__ic">📁</span>프로젝트</a>
+    <a class="nav" href="#"><span class="nav__ic">💬</span>Q&amp;A</a>
+    <a class="nav" href="#"><span class="nav__ic">☆</span>투자소스 DB</a>
+
+    <div class="side__group">유료 멤버십</div>
+    <a class="nav" href="#"><span class="nav__ic">☆</span>오늘의 한줄생각</a>
+    <a class="nav" href="#"><span class="nav__ic">☀</span>아침브리핑</a>
+    <a class="nav" href="#"><span class="nav__ic">📞</span>통화음성분석</a>
+    <a class="nav" href="#"><span class="nav__ic">★</span>프리미엄 투자소스 DB</a>
+    <a class="nav" href="#"><span class="nav__ic">🔆</span>신재생에너지 분석</a>
+    <a class="nav on" href="#" aria-current="page"><span class="nav__ic">◈</span>멤버십</a>
+  </aside>
+
+  <div class="main">
+    <div class="top">
+      <div class="logo"><span class="logo__mark">➤</span>LINK<em>PILOT</em></div>
+    </div>
+
+    <div class="head">
+      <div class="head__row">
+        <div class="head__ic">◈</div>
+        <h1 class="head__t">멤버십</h1>
+        <div class="head__meta"><span id="head-date"></span><b id="head-user"></b></div>
+      </div>
+      <div class="tabs" role="tablist">
+        <button class="tab on" type="button" role="tab" data-tab="now">이용 현황</button>
+        <button class="tab" type="button" role="tab" data-tab="plans">플랜</button>
+      </div>
+    </div>
+    <div class="rule"></div>
+
+    <div class="body" id="view"></div>
+  </div>
+</div>
+
+<nav class="bot" aria-label="주요 화면">
+  <a class="bot__i" href="#"><b>⌂</b>대시보드</a>
+  <a class="bot__i" href="#"><b>👥</b>연락처</a>
+  <a class="bot__i" href="#"><b>🗂</b>딜파이프라인</a>
+  <a class="bot__i" href="#"><b>🗓</b>캘린더</a>
+  <a class="bot__i" href="#"><b>👤</b>내정보</a>
+  <a class="bot__i on" href="#"><b>☰</b>더보기</a>
+</nav>
+
+<script>
+/* ── 설정 ──────────────────────────────────────────────────────────
+ * 실제로는 서버가 로그인 세션을 보고 이 값을 내려준다.
+ * 화면 표시는 표시일 뿐이므로 권한 검사는 서버에서 한 번 더 한다.
+ * ───────────────────────────────────────────────────────────────── */
+window.LINKPILOT_MEMBERSHIP = {
+  me: { name: '홍길동', email: 'user@example.com' },
+
+  // null 이면 '확인 필요'로 표시된다 — 무료로 단정하지 않는다
+  membership: {
+    planId: 'pro', status: 'active', until: '2026-09-10',
+    usage: [
+      { name: '프로젝트', used: 54, limit: 100 },
+      { name: 'IM 생성', used: 3, limit: 10 },
+      { name: '통화 분석', used: 128, limit: null },
+    ],
+  },
+
+  // 사이드바 '유료 멤버십' 섹션의 기능들. 어느 플랜부터 열리는지 적는다
+  features: [
+    { icon: '☆', name: '오늘의 한줄생각', from: 'basic' },
+    { icon: '☀', name: '아침브리핑', from: 'basic' },
+    { icon: '📞', name: '통화음성분석', from: 'pro' },
+    { icon: '★', name: '프리미엄 투자소스 DB', from: 'pro' },
+    { icon: '🔆', name: '신재생에너지 분석', from: 'business' },
+  ],
+
+  // 가격을 비워두면 '문의'로 표시된다 — 지어내지 않는다
+  plans: [
+    { id: 'basic', name: 'Basic', price: null,
+      features: ['오늘의 한줄생각', '아침브리핑', '프로젝트 30건'] },
+    { id: 'pro', name: 'Pro', price: null, recommended: true,
+      features: ['Basic 전체', '통화음성분석', '프리미엄 투자소스 DB', '프로젝트 100건'] },
+    { id: 'business', name: 'Business', price: null,
+      features: ['Pro 전체', '신재생에너지 분석', 'IM 자동생성', '프로젝트 무제한'] },
+  ],
+
+  billingUrl: null,
+};
+
+(function () {
+  'use strict';
+  var C = window.LINKPILOT_MEMBERSHIP;
+  var RANK = { basic: 1, pro: 2, business: 3 };
+  var view = document.getElementById('view');
+  var tab = 'now';
+
+  function el(t, c, x) {
+    var n = document.createElement(t);
+    if (c) n.className = c;
+    if (x !== undefined && x !== null && x !== '') n.textContent = String(x);
+    return n;
+  }
+  function add(p) { for (var i = 1; i < arguments.length; i++) if (arguments[i]) p.appendChild(arguments[i]); return p; }
+
+  /** 날짜는 Asia/Seoul 로 명시 계산한다 (로컬타임에 의존하지 않는다) */
+  function todayYmd() {
+    return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date());
+  }
+  function todayLabel() {
+    var p = new Intl.DateTimeFormat('ko-KR', {
+      timeZone: 'Asia/Seoul', year: 'numeric', month: 'numeric', day: 'numeric', weekday: 'short',
+    }).formatToParts(new Date());
+    var g = function (t) { return (p.filter(function (x) { return x.type === t; })[0] || {}).value || ''; };
+    return g('year') + '.' + g('month') + '.' + g('day') + ' (' + g('weekday') + ')';
+  }
+  function dday(s) {
+    if (!s || !/^\d{4}-\d{2}-\d{2}/.test(s)) return null;
+    var t = todayYmd();
+    return Math.round((Date.UTC(+s.slice(0,4), +s.slice(5,7)-1, +s.slice(8,10))
+      - Date.UTC(+t.slice(0,4), +t.slice(5,7)-1, +t.slice(8,10))) / 86400000);
+  }
+  function price(p) {
+    if (p === null || p === undefined || p === '') return '문의';
+    return typeof p === 'number' ? p.toLocaleString('ko-KR') + '원' : String(p);
+  }
+
+  var m = C.membership;
+  var plan = m && (C.plans.filter(function (p) { return p.id === m.planId; })[0] || null);
+  var left = m && m.until ? dday(m.until) : null;
+  var status = m ? (m.status || (left !== null && left < 0 ? 'expired' : 'active')) : null;
+  var rank = m && status !== 'expired' ? (RANK[m.planId] || 0) : 0;
+
+  document.getElementById('side-user').textContent = C.me.name || '';
+  document.getElementById('head-user').textContent = C.me.name || '';
+  document.getElementById('head-date').textContent = todayLabel();
+
+  // ── 이용 현황 ────────────────────────────────────
+  function viewNow() {
+    var f = document.createDocumentFragment();
+
+    var now = el('div', 'now' + (m ? '' : ' now--none'));
+    if (!m) {
+      // ★ 무료로 단정하지 않는다
+      now.appendChild(el('div', 'now__n', '확인 필요'));
+      now.appendChild(el('div', 'now__m', '멤버십 정보를 불러오지 못했습니다. 서버 연동을 확인하세요.'));
+    } else {
+      var row = el('div', 'now__row');
+      row.appendChild(el('div', 'now__n', (plan && plan.name) || m.planId));
+      row.appendChild(el('span', 'now__b'
+        + (status === 'expired' ? ' now__b--bad' : status === 'trial' ? ' now__b--warn' : ''),
+        status === 'expired' ? '만료됨' : status === 'trial' ? '체험 중' : '이용 중'));
+      now.appendChild(row);
+
+      if (m.until) {
+        now.appendChild(el('div', 'now__m',
+          (status === 'expired' ? '만료일 ' : '다음 결제일 ') + m.until
+          + (left !== null ? '  ·  ' + (left === 0 ? '오늘' : left > 0 ? left + '일 남음' : (-left) + '일 지남') : '')));
+      }
+      if (m.usage && m.usage.length) {
+        var u = el('div', 'use');
+        m.usage.forEach(function (x) {
+          var r = el('div');
+          var h = el('div', 'use__h');
+          h.appendChild(el('span', null, x.name));
+          h.appendChild(el('span', null, x.limit == null ? x.used + ' · 무제한' : x.used + ' / ' + x.limit));
+          r.appendChild(h);
+          if (x.limit) {
+            var fl = el('div', 'use__f' + (x.used > x.limit ? ' use__f--over' : ''));
+            fl.style.width = Math.min(100, Math.round(x.used / x.limit * 100)) + '%';
+            r.appendChild(add(el('div', 'use__bar'), fl));
+          }
+          u.appendChild(r);
+        });
+        now.appendChild(u);
+      }
+    }
+    f.appendChild(now);
+
+    // 만료·임박은 눈에 띄게 — 만료되면 유료 기능이 막힌다
+    if (status === 'expired') {
+      f.appendChild(el('p', 'note note--bad', '멤버십이 만료되었습니다. 갱신 전까지 유료 기능을 쓸 수 없습니다.'));
+    } else if (left !== null && left >= 0 && left <= 14) {
+      f.appendChild(el('p', 'note', '결제일이 ' + left + '일 남았습니다.'));
+    }
+
+    var box = el('section', 'card');
+    box.appendChild(el('h2', 'card__t', '유료 기능'));
+    var grid = el('div', 'feat');
+    C.features.forEach(function (x) {
+      var on = rank >= (RANK[x.from] || 99);
+      var need = C.plans.filter(function (p) { return p.id === x.from; })[0];
+      grid.appendChild(add(el('div', 'feat__i' + (on ? ' on' : '')),
+        el('div', 'feat__ic', on ? x.icon : '🔒'),
+        el('div', 'feat__n', x.name),
+        el('div', 'feat__l', on ? '사용 중' : (need ? need.name : x.from) + ' 부터')));
+    });
+    box.appendChild(grid);
+    f.appendChild(box);
+    return f;
+  }
+
+  // ── 플랜 ─────────────────────────────────────────
+  function viewPlans() {
+    var f = document.createDocumentFragment();
+    var list = el('div', 'plans');
+
+    C.plans.forEach(function (p) {
+      var cur = m && p.id === m.planId && status !== 'expired';
+      var c = el('article', 'plan' + (p.recommended && !cur ? ' plan--rec' : '') + (cur ? ' plan--cur' : ''));
+      if (cur) c.appendChild(el('span', 'plan__tag plan__tag--cur', '현재 플랜'));
+      else if (p.recommended) c.appendChild(el('span', 'plan__tag', '추천'));
+
+      c.appendChild(el('h3', 'plan__n', p.name));
+      var pr = el('div', 'plan__p', price(p.price));
+      if (p.price != null && p.price !== '') pr.appendChild(el('small', null, ' / 월'));
+      c.appendChild(pr);
+
+      var ul = el('ul', 'plan__l');
+      p.features.forEach(function (x) { ul.appendChild(el('li', null, x)); });
+      c.appendChild(ul);
+
+      var b = el('button', 'btn' + (cur ? ' btn--off' : ''), cur ? '이용 중' : '이 플랜 선택');
+      b.type = 'button';
+      b.disabled = cur;
+      b.addEventListener('click', function () { go(p, f); });
+      c.appendChild(b);
+      list.appendChild(c);
+    });
+    f.appendChild(list);
+    f.appendChild(el('p', 'fine',
+      '가격·구성은 서버 설정에서 내려옵니다. 결제는 결제 페이지에서 진행되며 이 화면에서는 카드정보를 받지 않습니다.'));
+    return f;
+  }
+
+  /** ★ 카드정보를 받지 않는다. 결제 페이지로 보낸다 */
+  function go(p) {
+    if (C.billingUrl) {
+      window.open(C.billingUrl + (C.billingUrl.indexOf('?') > -1 ? '&' : '?')
+        + 'plan=' + encodeURIComponent(p.id), '_blank', 'noopener');
+      return;
+    }
+    var old = document.getElementById('pay-note');
+    if (old) old.remove();
+    var n = el('p', 'note', p.name + ' 선택됨 — 결제 연동이 아직 없습니다. '
+      + '설정의 billingUrl 에 결제 페이지 주소를 넣으면 이 버튼이 그리로 연결됩니다.');
+    n.id = 'pay-note';
+    view.appendChild(n);
+    n.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+
+  function draw() {
+    view.textContent = '';
+    view.appendChild(tab === 'plans' ? viewPlans() : viewNow());
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (b) {
+    b.addEventListener('click', function () {
+      tab = b.getAttribute('data-tab');
+      Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (x) {
+        x.classList.toggle('on', x === b);
+      });
+      draw();
+    });
+  });
+
+  draw();
+}());
+</script>
+</body>
+</html>
