@@ -21,7 +21,7 @@ IRR·NPV·DSCR·Exit Value는 전부 `finance/` 의 결정적 함수가 계산�
 ## 빠른 실행
 
 ```bash
-npm test                      # 136개 회귀 테스트 (네트워크 불필요)
+npm test                      # 157개 회귀 테스트 (네트워크 불필요)
 npm run im:demo               # 샘플 자료로 전체 흐름 시연 (LLM 없이 동작)
 
 node im-agent/cli.js new "인천 남동공단 6.5MW 데이터센터 개발사업 IM 작성"
@@ -186,6 +186,89 @@ node im-agent/cli.js quota      # 오늘 사용량·한도·캐시 위치
 A 공적장부·감사자료·계산결과   B 신뢰 외부출처(단일)   C 문서 기반 추정
 D 템플릿 통상치·모델 가정      E 출처 미확인 ← 본문 사용 금지
 ```
+
+## 디자인 선택 (테마 13종)
+
+사용자가 프로젝트 성격에 맞는 디자인을 고르면 **IM·보고서·PPT·Dashboard 전체에 같은 테마가
+적용된다.** 테마는 코드가 아니라 **데이터**이고, 렌더러는 색을 하드코딩하지 않는다
+(`design/themes.js`). 그래야 A4·PPT·Dashboard 가 같은 파일을 읽고 같은 결과를 낸다.
+
+```bash
+node im-agent/cli.js design list                       # 13종 목록
+node im-agent/cli.js design recommend LP-DC-2026-001   # AI 추천 상위 3개 + 근거
+node im-agent/cli.js design preview --theme luxury     # 미리보기 HTML
+node im-agent/cli.js design set LP-DC-2026-001 --theme technology --by "홍길동"
+node im-agent/cli.js run LP-DC-2026-001                # 새 디자인으로 재렌더
+node im-agent/cli.js design history LP-DC-2026-001
+node im-agent/cli.js design revert LP-DC-2026-001 --version 1.0 --by "홍길동"
+```
+
+| # | 테마 | 용도 |
+|---|---|---|
+| 01 | `institutional` | 기관투자자 / PF / Credit — **PDI 핸드오프 정본** |
+| 02 | `global_ib` | M&A / 글로벌 투자자 |
+| 03 | `private_equity` | PE / VC / 대체투자 |
+| 04 | `real_estate` | 부동산 개발 — **부동산개발 IM 기본 추천** |
+| 05 | `corporate` | 기업 보고서 (Brand Kit 우선) |
+| 06 | `premium` | 복합개발 / 랜드마크 |
+| 07 | `minimal` | CEO / Executive |
+| 08 | `technology` | Data Center / AI / ICT |
+| 09 | `renewable` | Solar / Wind / ESS |
+| 10 | `infrastructure` | SOC / 물류 / 산업단지 |
+| 11 | `luxury` | 호텔 / 리조트 |
+| 12 | `government` | 공공기관 / 지자체 |
+| 13 | `custom` | 사용자 지정 + Brand Kit |
+
+### Content 와 Design 은 완전히 분리된다
+
+디자인을 바꿔도 **데이터와 분석 결과는 변하지 않는다.** 실측으로 확인한다 —
+테마를 `institutional` → `technology` 로 바꾸고 재실행해도 `im.md` 는 바이트 단위로 동일하고
+색·레이아웃만 바뀐다(`test/design-selection.test.js`).
+
+```
+dataset.json  →  im.json (내용·수치)  →  theme  →  im-a4.html / content.json / theme.css
+     ↑                    ↑                 ↑
+   데이터            Design 무관        여기만 바뀐다
+```
+
+### 무엇이 테마에 따라 바뀌고 무엇이 안 바뀌나
+
+| 바뀐다 | 바뀌지 않는다 |
+|---|---|
+| 팔레트 · 타이포 · 차트 색 | 페이지 기하(A4/17mm) · 괘선 두께 · 표 규격 |
+| 표지 형식 (rule / fullImage / split) | 챕터 오프너 페이지 분리 |
+| 여백 밀도 (compact / normal / airy) | `자료출처:` 캡션 규칙 |
+| 절별 레이아웃 (L01~L12) | 출처 표기 · 미검증 표기 |
+| 표지 강조 KPI | 수치 자체 |
+
+구조까지 테마마다 다르면 문서가 서로 다른 시스템처럼 보인다.
+
+### AI 추천은 규칙 기반이다
+
+같은 프로젝트에 **항상 같은 추천**이 나오고, 왜 그 테마인지 설명할 수 있어야 한다.
+"Confidence 96%" 가 매번 달라지면 그건 신뢰도가 아니라 잡음이다. 그래서 언어모델을 쓰지 않는다.
+
+```
+BEST MATCH — 인천 남동공단 6.5MW 데이터센터 개발사업
+  ① Global Investment Bank — 69%   근거: 문서유형: im / 투자자: global
+  ② Technology / Data Center — 44%  근거: 자산유형: datacenter
+  ③ Institutional — 33%
+```
+
+### 산출물 (12_Final/)
+
+```
+im-a4.html    선택한 테마가 적용된 A4 인쇄본
+content.json  기존 뷰어용 데이터 (theme 정보 포함)
+theme.json    팔레트·타이포·차트 색 — PPT 빌더·Dashboard 가 읽는다
+theme.css     CSS 변수 (--lp-primary 등)
+layouts.json  절별 자동 배정 레이아웃 (L01~L12)
+```
+
+### 디자인 일관성 검사 (D11)
+
+문서에 쓰인 색·서체가 **전부 선택된 테마 팔레트에서 나왔는지** 검사한다.
+도입 즉시 렌더러의 하드코딩 색(`#4A5A70`) 하나를 잡아냈다.
 
 ## LinkPilot Agent Builder 적용
 

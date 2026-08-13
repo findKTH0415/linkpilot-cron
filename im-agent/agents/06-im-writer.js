@@ -20,12 +20,16 @@ const a4 = require('../design/a4');
 const contentJson = require('../design/content');
 const designCheck = require('../design/check');
 const { grade: confGrade, BODY_MARK } = require('../core/confidence');
+const designState = require('../core/design-state');
+const layouts = require('../design/layouts');
 
 const inputSchema = {
   type: 'object',
   required: ['projectId'],
   properties: {
     projectId: { type: 'string' },
+    docType: { type: 'string', nullable: true },
+    theme: { type: 'object', nullable: true },
     financial: { type: 'object', nullable: true },
     research: { type: 'object', nullable: true },
     validation: { type: 'object', nullable: true },
@@ -47,6 +51,7 @@ const outputSchema = {
     html: { type: 'string' },
     content: { type: 'object' },
     designViolations: { type: 'array' },
+    theme: { type: 'object' },
     confidence: { type: 'number', minimum: 0, maximum: 1 },
   },
 };
@@ -450,13 +455,19 @@ async function run(input, ctx) {
     assets: (massing && massing.files) || [],
   };
 
+  // 사용자가 고른 디자인 테마 (없으면 기본). Content 와 Design 은 완전히 분리되어 있으므로
+  // 테마를 바꿔 다시 렌더해도 위에서 만든 내용·수치는 그대로다.
+  const theme = input.theme || designState.currentTheme(input.projectId, input.docType || 'im');
+  docMeta.docType = theme.docType;
+
   let html = '';
   let designViolations = [];
   try {
-    html = a4.render(docMeta);
+    html = a4.render(docMeta, theme);
     const check = designCheck.checkHtml(html, { chapterCount: sections.length });
-    designViolations = check.violations;
-    for (const v of check.violations.filter(x => x.severity === 'RED')) {
+    const themeCheck = designCheck.checkThemeConsistency(html, theme);
+    designViolations = [...check.violations, ...themeCheck.violations];
+    for (const v of designViolations.filter(x => x.severity === 'RED')) {
       ctx.warn(`디자인 규칙 위반 [${v.rule}] ${v.message}`);
     }
   } catch (e) {
@@ -473,8 +484,10 @@ async function run(input, ctx) {
     im, teaser, sections, citations,
     unsourcedNumbers: unsourced,
     html,
-    content: contentJson.build(docMeta),
+    content: contentJson.build({ ...docMeta, theme }),
     designViolations,
+    theme,
+    layouts: layouts.assign(sections, theme).map(s => ({ no: s.no, id: s.id, layout: s.layout.id, reason: s.layout.reason })),
     generatedAt: docMeta.generatedAt,
     confidence,
   };

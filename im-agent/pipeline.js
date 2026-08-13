@@ -16,6 +16,7 @@ const { Dataset } = require('./core/facts');
 const { FIELDS } = require('./core/dictionary');
 const store = require('./core/store');
 const gate = require('./core/gate');
+const designState = require('./core/design-state');
 const { kstStamp } = require('./core/kst');
 
 function loadDataset(projectId) {
@@ -168,6 +169,7 @@ async function run(opts = {}) {
   // ── 06 IM Writer ──────────────────────────────────────────
   const writer = await runAgent('06_im_writer', {
     projectId,
+    docType: opts.docType || null,
     financial: fin.output || null,
     research: res.output || null,
     validation: val.output || null,
@@ -182,6 +184,10 @@ async function run(opts = {}) {
     // PDI 핸드오프 규격 산출물: 자립형 A4 HTML + 기존 뷰어용 content.json
     if (writer.output.html) store.writeText(projectId, '12_Final/im-a4.html', writer.output.html);
     if (writer.output.content) store.writeJson(projectId, '12_Final/content.json', writer.output.content);
+    if (writer.output.theme) {
+      designState.writeThemeAssets(projectId, writer.output.theme);
+      store.writeJson(projectId, '12_Final/layouts.json', writer.output.layouts || []);
+    }
     store.writeJson(projectId, '09_IM/im.json', {
       at: writer.output.generatedAt,
       sections: writer.output.sections,
@@ -190,6 +196,7 @@ async function run(opts = {}) {
       designViolations: writer.output.designViolations || [],
     });
     const dv = (writer.output.designViolations || []).filter(v => v.severity === 'RED').length;
+    log(`  디자인: ${writer.output.theme.label} (${writer.output.theme.id}) · ${writer.output.theme.docType}`);
     log(`  IM 생성: ${writer.output.sections.length}개 절 / 인용 ${writer.output.citations.length}건 / 출처없는숫자 ${writer.output.unsourcedNumbers.length}건 / 디자인위반 ${dv}건`);
   }
 

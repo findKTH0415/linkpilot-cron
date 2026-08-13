@@ -110,9 +110,47 @@ function checkAsset(text) {
   return { ok: v.filter(x => x.severity === 'RED').length === 0, violations: v };
 }
 
+/**
+ * 테마 일관성 검사 (사양 §13 Design Consistency Check).
+ * 문서에 쓰인 색이 전부 활성 테마 팔레트에서 나왔는지 확인한다.
+ * 테마를 골라놓고 다른 색이 섞이면 '한 프로젝트 = 한 디자인' 이 깨진다.
+ */
+function checkThemeConsistency(html, theme) {
+  const v = [];
+  if (!theme) return { ok: true, violations: v };
+
+  const allowed = new Set([
+    theme.primary, theme.primaryMid, theme.accent, theme.accentLight,
+    theme.onPrimary, theme.onPrimarySub, theme.surface, theme.surfaceAlt,
+    theme.track, theme.negative, theme.brandRed,
+    theme.ruleStrong, theme.ruleWeak, theme.body, theme.body2,
+    theme.muted, theme.faint, theme.faint2,
+    ...(theme.chart || []),
+  ].filter(Boolean).map(c => String(c).toUpperCase()));
+
+  const used = new Set((String(html).match(/#[0-9A-Fa-f]{6}\b/g) || []).map(c => c.toUpperCase()));
+  const stray = [...used].filter(c => !allowed.has(c));
+
+  if (stray.length) {
+    v.push(violation('D11-theme-consistency',
+      `테마 '${theme.id}' 팔레트에 없는 색 ${stray.length}개가 문서에 쓰였다: ${stray.slice(0, 5).join(', ')}`,
+      { colors: stray }));
+  }
+
+  const fonts = String(html).match(/font-family:\s*([^;"]+)/g) || [];
+  const themeFonts = [theme.serif, theme.sans].map(f => String(f).replace(/['"]/g, ''));
+  const strayFonts = [...new Set(fonts.map(f => f.replace(/font-family:\s*/, '').replace(/['"]/g, '').trim()))]
+    .filter(f => !themeFonts.some(tf => tf.includes(f.split(',')[0].trim()) || f.includes(tf.split(',')[0].trim())));
+  if (strayFonts.length) {
+    v.push(violation('D11-theme-consistency', `테마 폰트가 아닌 서체가 쓰였다: ${strayFonts.slice(0, 3).join(' / ')}`));
+  }
+
+  return { ok: v.filter(x => x.severity === 'RED').length === 0, violations: v };
+}
+
 /** 규칙 목록 (문서 생성·CLI 노출용) */
 function list() {
   return RULES.rules.map(r => ({ ...r }));
 }
 
-module.exports = { checkHtml, checkMarkdown, checkAsset, list, RULES, FORBIDDEN_COLORS, EMOJI };
+module.exports = { checkHtml, checkMarkdown, checkAsset, checkThemeConsistency, list, RULES, FORBIDDEN_COLORS, EMOJI };

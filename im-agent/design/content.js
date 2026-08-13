@@ -36,6 +36,22 @@ function build(doc) {
       scaleNotice: doc.scaleNotice || null,
     },
 
+    // 선택된 디자인 — IM·PPT·Dashboard 가 같은 테마를 읽는다 (사양 §16)
+    theme: doc.theme ? {
+      id: doc.theme.id,
+      label: doc.theme.label,
+      docType: doc.theme.docType,
+      palette: {
+        primary: doc.theme.primary, primaryMid: doc.theme.primaryMid,
+        accent: doc.theme.accent, accentLight: doc.theme.accentLight,
+        onPrimary: doc.theme.onPrimary, surfaceAlt: doc.theme.surfaceAlt,
+      },
+      chart: doc.theme.chart,
+      typography: { serif: doc.theme.serif, sans: doc.theme.sans },
+      cover: doc.theme.cover,
+      spacing: doc.theme.spacing,
+    } : null,
+
     // 뷰어가 챕터 단위로 렌더한다 — 절 번호·제목·본문(마크다운)
     chapters: sections.map(s => ({
       no: s.no,

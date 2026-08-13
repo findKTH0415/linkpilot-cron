@@ -76,6 +76,95 @@ function cmdStatus(projectId) {
   console.log('');
 }
 
+// ── 디자인 선택 (사양 §2·§6·§14·§15) ────────────────────────
+function cmdDesign(sub, projectId) {
+  const themes = require('./design/themes');
+  const recommend = require('./design/recommend');
+  const designState = require('./core/design-state');
+  const a4 = require('./design/a4');
+
+  if (!sub || sub === 'list') {
+    console.log('\n  SELECT YOUR DESIGN\n');
+    for (const t of themes.list()) {
+      console.log(`  ${t.no}  ${t.id.padEnd(16)} ${t.label.padEnd(26)} ${t.labelKr}`);
+      if (t.note) console.log(`      ${' '.repeat(16)} ※ ${t.note}`);
+    }
+    console.log('\n  추천: cli.js design recommend <PROJECT_ID>');
+    console.log('  적용: cli.js design set <PROJECT_ID> --theme <id> --by "<이름>"');
+    console.log('  미리보기: cli.js design preview --theme <id> [--doc teaser]\n');
+    return;
+  }
+
+  if (sub === 'preview') {
+    const themeId = arg('--theme', 'institutional');
+    const docType = arg('--doc', 'im');
+    if (!themes.get(themeId)) return fail(`알 수 없는 테마: ${themeId}`);
+    const out = arg('--out', path.join(process.cwd(), `design-preview-${themeId}.html`));
+    fs.writeFileSync(out, a4.preview(themeId, { docType }), 'utf8');
+    console.log(`미리보기 생성: ${out}\n브라우저로 열어 확인한 뒤 design set 으로 적용한다.`);
+    return;
+  }
+
+  if (sub === 'recommend') {
+    if (!projectId) return fail('사용법: cli.js design recommend <PROJECT_ID> [--doc im] [--investor bank]');
+    const project = store.readJson(projectId, '01_Project/project.json', null);
+    if (!project) return fail(`프로젝트 없음: ${projectId}`);
+
+    const r = recommend.recommend({
+      assetType: project.assetType, templateId: project.templateId,
+      projectName: project.name,
+      docType: arg('--doc', 'im'),
+      investorType: arg('--investor', null),
+      transactionType: arg('--transaction', null),
+      country: arg('--country', 'KR'),
+    });
+    console.log(`\n  BEST MATCH — ${project.name}\n`);
+    r.recommendations.forEach((x, i) => {
+      console.log(`  ${['①', '②', '③'][i] || (i + 1)} ${x.label} (${x.themeId}) — ${x.confidence}%`);
+      console.log(`     ${x.labelKr} · ${x.purpose}`);
+      if (x.reasons.length) console.log(`     근거: ${x.reasons.join(' / ')}`);
+      console.log('');
+    });
+    console.log(`  판단 신호: ${JSON.stringify(r.signals)}\n`);
+    return;
+  }
+
+  if (sub === 'set') {
+    const themeId = arg('--theme');
+    const by = arg('--by');
+    if (!projectId || !themeId) return fail('사용법: cli.js design set <PROJECT_ID> --theme <id> [--doc im] [--by "<이름>"]');
+    try {
+      const st = designState.select(projectId, { themeId, docType: arg('--doc', null), by, note: arg('--note', '') });
+      console.log(`디자인 적용: ${themes.get(themeId).label} (v${st.version})`);
+      console.log(`  ※ 내용·수치는 그대로다. 재실행하면 새 디자인으로 다시 렌더된다:  cli.js run ${projectId}`);
+    } catch (e) { fail(e.message); }
+    return;
+  }
+
+  if (sub === 'history') {
+    if (!projectId) return fail('사용법: cli.js design history <PROJECT_ID>');
+    const st = designState.read(projectId);
+    console.log(`\n  현재: v${st.version} ${st.themeId} (${st.docType})`);
+    for (const h of [...st.history].reverse()) {
+      console.log(`  이전: v${h.version} ${h.themeId} (${h.docType})${h.by ? ' by ' + h.by : ''}`);
+    }
+    console.log('');
+    return;
+  }
+
+  if (sub === 'revert') {
+    const version = arg('--version');
+    if (!projectId || !version) return fail('사용법: cli.js design revert <PROJECT_ID> --version 1.0 --by "<이름>"');
+    try {
+      const st = designState.revert(projectId, version, arg('--by'));
+      console.log(`디자인 복원: ${st.themeId} (v${st.version})`);
+    } catch (e) { fail(e.message); }
+    return;
+  }
+
+  fail(`알 수 없는 하위명령: ${sub} (list|recommend|preview|set|history|revert)`);
+}
+
 function cmdQuota() {
   const cache = require('./connectors/cache');
   const vworld = require('./connectors/vworld');
@@ -165,6 +254,7 @@ async function main() {
     case 'status': return cmdStatus(a1);
     case 'agents': return cmdAgents();
     case 'quota': return cmdQuota();
+    case 'design': return cmdDesign(process.argv[3], process.argv[4]);
     case 'list': return cmdList();
     case 'approve': return cmdApprove(a1);
     case 'demo': return cmdDemo();
@@ -177,6 +267,12 @@ async function main() {
   list                    프로젝트 목록
   agents                  Agent Control Center
   quota                   공공데이터 일일 호출 현황 (KST 기준)
+  design list             디자인 테마 13종 목록
+  design recommend <ID>   AI 디자인 추천 (상위 3개 + 신뢰도)
+  design preview --theme <id>   미리보기 HTML 생성
+  design set <ID> --theme <id>  디자인 적용 (내용은 유지)
+  design history <ID>     디자인 변경 이력
+  design revert <ID> --version 1.0   이전 디자인으로 복원
   approve <ID> --by <이름>  사람 승인 기록
   demo                    샘플 자료로 전체 흐름 시연
 `);

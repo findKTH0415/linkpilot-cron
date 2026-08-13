@@ -73,6 +73,13 @@
       "why": "값은 토큰으로 갈아끼워지지만 서술문은 그대로 남는다. 태양광 스펙 §10의 교훈.",
       "applies": "markdown,a4html",
       "severity": "YELLOW"
+    },
+    {
+      "id": "D11-theme-consistency",
+      "label": "문서의 색·서체는 선택된 테마 팔레트에서만 나온다",
+      "why": "테마를 골라놓고 다른 색이 섞이면 '한 프로젝트 = 한 디자인'이 깨진다. IM·PPT·Dashboard가 따로 놀게 된다.",
+      "applies": "a4html",
+      "severity": "YELLOW"
     }
   ]
 }
