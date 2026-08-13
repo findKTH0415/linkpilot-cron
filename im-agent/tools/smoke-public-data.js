@@ -103,7 +103,7 @@ async function main() {
     if (dk.fatal) console.log(`  DATA_GO_KR_KEY : ${dk.message}`);
     console.log('\n  올바른 예 (꺾쇠·따옴표 없이 값만):');
     console.log("    export VWORLD_KEY=A9C7F809-AC7C-38B2-90AF-880C060BC17A");
-    console.log("    export VWORLD_DOMAIN=synologynas.tail43fc79.ts.net\n");
+    console.log("    export VWORLD_DOMAIN=nas.example.com\n");
     process.exit(1);
   }
 

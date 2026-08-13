@@ -158,11 +158,11 @@ test('VWORLD_DOMAIN 은 스킴·경로를 제거해 호스트만 보낸다', () 
   const vworld = require('../connectors/vworld');
   const saved = process.env.VWORLD_DOMAIN;
 
-  process.env.VWORLD_DOMAIN = 'https://synologynas.tail43fc79.ts.net/linkpilot-platform.html';
-  assert.strictEqual(vworld.domain(), 'synologynas.tail43fc79.ts.net');
+  process.env.VWORLD_DOMAIN = 'https://nas.example.com/app.html';
+  assert.strictEqual(vworld.domain(), 'nas.example.com');
 
-  process.env.VWORLD_DOMAIN = 'synologynas.tail43fc79.ts.net';
-  assert.strictEqual(vworld.domain(), 'synologynas.tail43fc79.ts.net');
+  process.env.VWORLD_DOMAIN = 'nas.example.com';
+  assert.strictEqual(vworld.domain(), 'nas.example.com');
 
   delete process.env.VWORLD_DOMAIN;
   assert.strictEqual(vworld.domain(), '');
@@ -172,11 +172,11 @@ test('VWORLD_DOMAIN 은 스킴·경로를 제거해 호스트만 보낸다', () 
 test('도메인이 설정되면 요청에 domain 파라미터가 실린다', () => {
   const saved = { k: process.env.VWORLD_KEY, d: process.env.VWORLD_DOMAIN };
   process.env.VWORLD_KEY = 'test-key';
-  process.env.VWORLD_DOMAIN = 'synologynas.tail43fc79.ts.net';
+  process.env.VWORLD_DOMAIN = 'nas.example.com';
   const vworld = require('../connectors/vworld');
 
   const url = new URL(vworld.buildRequestUrl('data', { service: 'data', request: 'GetFeature' }));
-  assert.strictEqual(url.searchParams.get('domain'), 'synologynas.tail43fc79.ts.net');
+  assert.strictEqual(url.searchParams.get('domain'), 'nas.example.com');
 
   delete process.env.VWORLD_DOMAIN;
   const url2 = new URL(vworld.buildRequestUrl('data', { service: 'data' }));

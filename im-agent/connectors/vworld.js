@@ -28,7 +28,7 @@ function apiKey() {
  * VWorld 키는 신청 시 등록한 도메인에서만 동작한다.
  * 브라우저 호출은 Referer 로 판정하지만 서버 호출은 Referer 가 없으므로
  * 등록한 도메인을 `domain` 파라미터로 명시해야 한다.
- *   예: VWORLD_DOMAIN=synologynas.tail43fc79.ts.net   (스킴·경로 없이 호스트만)
+ *   예: VWORLD_DOMAIN=nas.example.com   (스킴·경로 없이 호스트만)
  */
 function domain() {
   return (process.env.VWORLD_DOMAIN || '')
