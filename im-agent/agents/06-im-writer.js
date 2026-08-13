@@ -25,6 +25,9 @@ const inputSchema = {
     financial: { type: 'object', nullable: true },
     research: { type: 'object', nullable: true },
     validation: { type: 'object', nullable: true },
+    geo: { type: 'object', nullable: true },
+    appraisal: { type: 'object', nullable: true },
+    massing: { type: 'object', nullable: true },
   },
 };
 
@@ -76,6 +79,9 @@ function displayValue(key, fact) {
   if (unit === 'MW') return `${fmt(v, 1)}MW`;
   if (unit === 'kW') return `${fmt(v, 0)}kW`;
   if (unit === '년') return `${fmt(v, 1)}년`;
+  if (unit === '원/㎡') return `${fmt(v, 0)}원/㎡`;
+  if (unit === 'm') return `${fmt(v, 1)}m`;
+  if (unit === '층') return `${fmt(v, 0)}층`;
   return fmt(v, 2);
 }
 
@@ -145,12 +151,89 @@ function sensitivityTable(financial) {
 
 function flagsTable(validation) {
   if (!validation || !validation.flags) return '(검증 미실행)';
-  const icon = { RED: '[RED]', YELLOW: '[YELLOW]', GREEN: '[GREEN]' };
+  const icon = { RED: '[RED]', YELLOW: '[YELLOW]', GREEN: '[GREEN]', INFO: '[안내]' };
   const rows = validation.flags
     .filter(f => f.severity !== 'GREEN')
-    .map(f => `| ${icon[f.severity]} | ${f.type} | ${f.message} |`);
+    .map(f => `| ${icon[f.severity] || `[${f.severity}]`} | ${f.type} | ${f.message} |`);
   if (!rows.length) return '중대 위험요인 미검출 (RED/YELLOW 없음)';
   return ['| 구분 | 유형 | 내용 |', '|---|---|---|', ...rows].join('\n');
+}
+
+/** 입지·지적 표. 인증키가 들어간 이미지 URL은 절대 넣지 않는다(공개 지도 링크만). */
+function geoTable(geo) {
+  if (!geo || !geo.geo) return '_공공데이터 입지조회 미실행 (VWORLD_KEY 미설정 또는 소재지 미확인)_';
+  const rows = [
+    ['좌표', `${geo.geo.lat}, ${geo.geo.lon}`, 'VWorld 지오코딩'],
+    ['지도', geo.geo.mapLink ? `[지도에서 보기](${geo.geo.mapLink})` : '-', 'VWorld'],
+  ];
+  if (geo.parcel) {
+    rows.push(['필지고유번호(PNU)', geo.parcel.pnu || '-', 'VWorld 연속지적도']);
+    rows.push(['공부상 대지면적', geo.parcel.officialAreaSqm ? `${fmt(geo.parcel.officialAreaSqm, 0)}㎡` : '-', '지적공부']);
+    if (geo.parcel.polygonAreaSqm) rows.push(['지적도 실측 면적', `${fmt(geo.parcel.polygonAreaSqm, 0)}㎡`, '지적도 폴리곤 계산']);
+  }
+  if (geo.landUse) {
+    rows.push(['용도지역', geo.landUse.zone, 'VWorld 토지이용계획']);
+    if (geo.landUse.limits) {
+      rows.push(['법정 용적률 상한', `${geo.landUse.limits.far}%`, geo.landUse.limitsSource]);
+      rows.push(['법정 건폐율 상한', `${geo.landUse.limits.bcr}%`, geo.landUse.limitsSource]);
+    }
+  }
+  if (geo.building) {
+    rows.push(['기존 건축물 연면적', geo.building.totalAreaSqm ? `${fmt(geo.building.totalAreaSqm, 0)}㎡` : '-', '건축물대장']);
+    rows.push(['사용승인일', geo.building.approvalDate || '-', '건축물대장']);
+  }
+  if (geo.geo.satelliteImage) rows.push(['위성영상', `\`${geo.geo.satelliteImage}\``, 'VWorld 위성영상']);
+
+  return ['| 항목 | 내용 | 출처 |', '|---|---|---|', ...rows.map(r => `| ${r[0]} | ${r[1]} | ${r[2]} |`)].join('\n');
+}
+
+/** 매스 검토표 + 3D 산출물 안내 */
+function massingTable(massing) {
+  if (!massing || !massing.inputs || !massing.inputs.landAreaSqm) return '_매스 검토 미실행 (대지면적 미확인)_';
+  const i = massing.inputs;
+  const rows = [
+    ['대지면적', `${fmt(i.landAreaSqm, 0)}㎡`],
+    ['계획 연면적', i.gfaSqm ? `${fmt(i.gfaSqm, 0)}㎡` : '미확인'],
+    ['법정 허용 연면적', i.gfaAllowedSqm ? `${fmt(i.gfaAllowedSqm, 0)}㎡ (용적률 ${i.farLimit}%)` : '용도지역 미확인'],
+    ['계획 용적률', i.farPlanned !== null ? `${i.farPlanned}%` : '-'],
+    ['계획 건폐율', i.bcrPlanned !== null ? `${i.bcrPlanned}%` : '-'],
+    ['지상 층수', `${i.floors}층`],
+  ];
+  if (massing.model) rows.push(['매스 높이', `${massing.model.heightM}m (층고 ${massing.model.floorHeight}m 가정)`]);
+  if (i.limitSource) rows.push(['법정 한도 근거', i.limitSource]);
+
+  const table = ['| 항목 | 값 |', '|---|---:|', ...rows.map(r => `| ${r[0]} | ${r[1]} |`)].join('\n');
+  const files = (massing.files || []).length
+    ? `\n\n3D 매스 산출물: ${massing.files.map(f => `\`${f}\``).join(' · ')}\n\n> ${massing.model ? massing.model.footprintBasis : ''} — 용적률·건폐율 검토용 매스이며 설계안이 아니다.`
+    : '';
+  return table + files;
+}
+
+/** 감정평가 3방식 요약표 (법적 고지 포함) */
+function appraisalTable(appraisal) {
+  if (!appraisal || !appraisal.methods || !Object.keys(appraisal.methods).length) {
+    return '_감정평가 미실행 (공시지가·실거래·재무모델 중 확보된 자료 없음)_';
+  }
+  const rows = Object.values(appraisal.methods).map(m =>
+    `| ${m.label} | ${m.valueEok !== null && m.valueEok !== undefined ? formatEok(m.valueEok) : '-'} | ${m.basis} |`);
+
+  const out = ['| 평가방식 | 토지가치 | 산정근거 |', '|---|---:|---|', ...rows];
+  if (appraisal.concluded) {
+    out.push(`| **결론(가중평균)** | **${formatEok(appraisal.concluded.valueEok)}** | ${Object.entries(appraisal.concluded.weights).map(([k, v]) => `${k} ${Math.round(v * 100)}%`).join(', ')} |`);
+  }
+  out.push('', `> ⚠ ${appraisal.disclaimer}`);
+
+  const assumptions = Object.values(appraisal.methods).filter(m => m.assumption);
+  if (assumptions.length) {
+    out.push('', '적용 가정:', ...assumptions.map(m => `- ${m.label}: ${m.assumption}`));
+  }
+  if ((appraisal.comparables || []).length) {
+    out.push('', `비교 거래사례 ${appraisal.comparables.length}건 (최근순 5건):`, '', '| 계약일 | 법정동 | 면적 | 거래금액 | 단가(원/㎡) |', '|---|---|---:|---:|---:|');
+    for (const c of appraisal.comparables.slice(0, 5)) {
+      out.push(`| ${c.dealDate || c.ym} | ${c.dong || '-'} | ${c.areaSqm ? fmt(c.areaSqm, 0) + '㎡' : '-'} | ${c.dealAmountEok !== null ? formatEok(c.dealAmountEok) : '-'} | ${c.pricePerSqm ? fmt(c.pricePerSqm, 0) : '-'} |`);
+    }
+  }
+  return out.join('\n');
 }
 
 async function writeNarrative(section, factSheet, researchText, ctx) {
@@ -186,7 +269,7 @@ async function run(input, ctx) {
   const ds = ctx.dataset;
   if (!ds) throw new Error('ctx.dataset 필요');
 
-  const { financial, research, validation } = input;
+  const { financial, research, validation, geo, appraisal, massing } = input;
   const citations = [];
   const unsourced = [];
   const sections = [];
@@ -250,6 +333,8 @@ async function run(input, ctx) {
     if (section.table === 'financial') text += `\n\n${financialTable(financial)}`;
     if (section.table === 'sensitivity') text = sensitivityTable(financial);
     if (section.table === 'flags') text += `\n\n${flagsTable(validation)}`;
+    if (section.table === 'geo') text += `\n\n${geoTable(geo)}`;
+    if (section.table === 'massing') text += `\n\n${massingTable(massing)}`;
 
     // 데이터 요약을 서술 아래에 항상 덧붙인다 (숫자의 출처 추적성 확보)
     if (section.narrative && factSheet.length && text && !text.startsWith('- ')) {
@@ -265,6 +350,13 @@ async function run(input, ctx) {
     body.push('## 부록 A. 가정치 (문서 미확인 · 시장 통상치 적용)\n');
     body.push('| 항목 | 적용값 | 근거 |', '|---|---:|---|');
     body.push(...financial.assumed.map(a => `| ${a.field} | ${fmt(a.value, 2)} | ${a.reason} |`));
+    body.push('');
+  }
+
+  // 감정평가 부록 (부동산개발 프로젝트에서만 생성된다)
+  if (appraisal && appraisal.concluded) {
+    body.push('## 부록 C. 감정평가 요약 (참고용 간이 평가)\n');
+    body.push(appraisalTable(appraisal));
     body.push('');
   }
 
@@ -320,5 +412,5 @@ async function run(input, ctx) {
 module.exports = {
   id: '06_im_writer', label: 'IM Writer Agent',
   inputSchema, outputSchema, run,
-  findUnsourcedNumbers, substitute, displayValue, financialTable,
+  findUnsourcedNumbers, substitute, displayValue, financialTable, geoTable, massingTable, appraisalTable,
 };

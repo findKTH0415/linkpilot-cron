@@ -27,6 +27,8 @@ const inputSchema = {
     projectId: { type: 'string' },
     financial: { type: 'object', nullable: true },
     research: { type: 'object', nullable: true },
+    appraisal: { type: 'object', nullable: true },
+    massing: { type: 'object', nullable: true },
   },
 };
 
@@ -274,7 +276,20 @@ async function run(input, ctx) {
     flags.push(flag('YELLOW', 'MISSING', `IM 필수 항목 ${missingIm.length}건 미확인: ${missingIm.map(k => FIELDS[k].label).join(', ')}`, { keys: missingIm }));
   }
 
-  // ⑧ 시장조사 근거
+  // ⑧ 감정평가 / 매스 검토 Agent가 올린 플래그 병합
+  //    (판정은 각 Agent가 하고, 승인 게이트에 노출하는 책임은 여기에 모은다)
+  for (const [agent, out] of [['08_appraisal', input.appraisal], ['09_massing', input.massing]]) {
+    for (const f of (out && out.flags) || []) {
+      flags.push({ ...f, agent });
+    }
+  }
+  // 법적 고지는 점수를 깎는 결함이 아니라 항상 따라다녀야 하는 안내다 → INFO
+  // (RED/YELLOW 집계와 승인 게이트에 영향을 주지 않으면서 IM 위험표에는 노출된다)
+  if (input.appraisal && input.appraisal.concluded) {
+    flags.push(flag('INFO', 'APPRAISAL_DISCLAIMER', input.appraisal.disclaimer, { keys: ['appraisal.land_value_concluded'] }));
+  }
+
+  // ⑨ 시장조사 근거
   const research = input.research;
   if (research && !research.offline) {
     const noSrc = (research.sections || []).filter(s => !s.sources.length).length;

@@ -76,6 +76,28 @@ function cmdStatus(projectId) {
   console.log('');
 }
 
+function cmdQuota() {
+  const cache = require('./connectors/cache');
+  const vworld = require('./connectors/vworld');
+  const molit = require('./connectors/molit');
+  const s = cache.stats();
+
+  console.log(`\n공공데이터 호출 현황 (KST ${s.date})\n`);
+  console.log(`  캐시 위치 : ${s.cacheRoot}`);
+  console.log(`  VWORLD_KEY     : ${vworld.isAvailable() ? '설정됨' : '미설정 — 지오코딩·지적·공시지가 생략'}`);
+  console.log(`  DATA_GO_KR_KEY : ${molit.isAvailable() ? '설정됨' : '미설정 — 실거래가·건축물대장 생략'}`);
+
+  const providers = new Set([...Object.keys(s.counts), 'vworld', 'data.go.kr']);
+  console.log('');
+  for (const p of providers) {
+    const usedCount = s.counts[p] || 0;
+    const limit = cache.limitFor(p);
+    const bar = '█'.repeat(Math.min(20, Math.round((usedCount / limit) * 20))).padEnd(20, '·');
+    console.log(`  ${p.padEnd(14)} ${bar} ${usedCount} / ${limit}`);
+  }
+  console.log('\n  ※ 캐시 히트는 쿼터를 소모하지 않는다. 재실행 시 호출 0건이 정상이다.\n');
+}
+
 function cmdAgents() {
   console.log('\nAGENT CONTROL CENTER\n');
   for (const a of registry.list()) {
@@ -142,6 +164,7 @@ async function main() {
     case 'run': return cmdRun(a1);
     case 'status': return cmdStatus(a1);
     case 'agents': return cmdAgents();
+    case 'quota': return cmdQuota();
     case 'list': return cmdList();
     case 'approve': return cmdApprove(a1);
     case 'demo': return cmdDemo();
@@ -153,6 +176,7 @@ async function main() {
   status <PROJECT_ID>     현황 조회
   list                    프로젝트 목록
   agents                  Agent Control Center
+  quota                   공공데이터 일일 호출 현황 (KST 기준)
   approve <ID> --by <이름>  사람 승인 기록
   demo                    샘플 자료로 전체 흐름 시연
 `);

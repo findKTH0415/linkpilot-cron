@@ -82,6 +82,16 @@ const FIELDS = {
   'exit.year':           { label: 'Exit 시점(운영 n년차)', category: CATEGORY.EXIT, unit: '년', type: 'number', aliases: ['Exit 시점', '매각시점'], min: 1, max: 50 },
   'exit.selling_cost_pct': { label: '매각부대비용', category: CATEGORY.EXIT, unit: '%', type: 'number', aliases: ['매각비용', 'Selling Cost'], min: 0, max: 10 },
 
+  // ── Geo / 지적 (공공데이터 연동으로 채워지는 항목) ──────────
+  'geo.pnu':             { label: '필지고유번호(PNU)', category: CATEGORY.LAND, unit: null, type: 'string', aliases: ['PNU', '필지고유번호'] },
+  'geo.lat':             { label: '위도', category: CATEGORY.LAND, unit: null, type: 'number', aliases: [], min: 33, max: 39 },
+  'geo.lon':             { label: '경도', category: CATEGORY.LAND, unit: null, type: 'number', aliases: [], min: 124, max: 132 },
+  'land.official_price': { label: '개별공시지가', category: CATEGORY.LAND, unit: '원/㎡', type: 'number', aliases: ['개별공시지가', '공시지가'], min: 0, tolerance: 0.01 },
+  'land.far_limit':      { label: '용적률 상한', category: CATEGORY.LAND, unit: '%', type: 'number', aliases: ['용적률'], min: 0, max: 2000 },
+  'land.bcr_limit':      { label: '건폐율 상한', category: CATEGORY.LAND, unit: '%', type: 'number', aliases: ['건폐율'], min: 0, max: 100 },
+  'building.footprint_sqm': { label: '건축면적', category: CATEGORY.BUILDING, unit: '㎡', type: 'number', aliases: ['건축면적'], min: 0, tolerance: 0.001 },
+  'building.height_m':   { label: '최고높이', category: CATEGORY.BUILDING, unit: 'm', type: 'number', aliases: ['최고높이', '건축물높이'], min: 0, max: 700 },
+
   // ── Legal ──────────────────────────────────────────────────
   'legal.permit_status': { label: '인허가 현황', category: CATEGORY.LEGAL, unit: null, type: 'string', aliases: ['인허가', '허가현황', '건축허가', 'Permit'], requiredFor: ['im'] },
   'legal.spc':           { label: 'SPC/사업시행법인', category: CATEGORY.LEGAL, unit: null, type: 'string', aliases: ['SPC', '시행법인', '특수목적법인'] },
@@ -103,6 +113,18 @@ const COMPUTED_FIELDS = {
   'returns.payback_years':  { label: '자본 회수기간', unit: '년' },
   'returns.exit_value':     { label: 'Exit Value', unit: '억원' },
   'returns.noi_stabilized': { label: '안정화 NOI', unit: '억원' },
+
+  // 감정평가 Agent 산출 (참고용 간이 평가 — 법정 감정평가 아님)
+  'appraisal.land_value_official':    { label: '토지가치(공시지가 기준)', unit: '억원' },
+  'appraisal.land_value_comparison':  { label: '토지가치(거래사례비교법)', unit: '억원' },
+  'appraisal.land_value_income':      { label: '토지가치(수익환원법)', unit: '억원' },
+  'appraisal.land_value_concluded':   { label: '토지가치(참고 결론)', unit: '억원' },
+  'appraisal.market_price_per_sqm':   { label: '인근 실거래 단가(중앙값)', unit: '원/㎡' },
+
+  // 매스 검토 Agent 산출
+  'massing.gfa_allowed_sqm': { label: '법정 허용 연면적', unit: '㎡' },
+  'massing.far_planned':     { label: '계획 용적률', unit: '%' },
+  'massing.bcr_planned':     { label: '계획 건폐율', unit: '%' },
 };
 
 const COMPUTED_KEYS = Object.keys(COMPUTED_FIELDS);

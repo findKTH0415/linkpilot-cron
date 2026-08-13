@@ -1,0 +1,72 @@
+'use strict';
+/**
+ * http.js — 외부 API 호출 공통 계층.
+ *
+ * 규칙:
+ *  - 3회 재시도(지수 백오프) 후 실패하면 예외를 던지지 않고 {ok:false} 를 돌려준다.
+ *    한 소스가 죽어도 IM 생성 전체를 죽이지 않는다.
+ *  - 타임아웃 필수. 무한 대기로 크론/CI를 잡아먹지 않는다.
+ *  - 응답은 호출자가 캐시한다 (cache.js).
+ */
+
+const DEFAULT_TIMEOUT = 15000;
+const RETRY_DELAYS = [1000, 2000, 4000]; // 1s, 2s, 4s
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/** 재시도해도 소용없는 오류 (인증·요청 오류) */
+function isFatalStatus(status) {
+  return status === 400 || status === 401 || status === 403 || status === 404;
+}
+
+/**
+ * @returns {Promise<{ok:boolean, status?:number, body?:string, error?:string, attempts:number}>}
+ */
+async function request(url, { timeoutMs = DEFAULT_TIMEOUT, headers = {}, method = 'GET' } = {}) {
+  let lastError = null;
+
+  for (let attempt = 0; attempt <= RETRY_DELAYS.length; attempt++) {
+    if (attempt > 0) await sleep(RETRY_DELAYS[attempt - 1]);
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const r = await fetch(url, { method, headers, signal: controller.signal });
+      const body = await r.text();
+
+      if (r.ok) return { ok: true, status: r.status, body, attempts: attempt + 1 };
+
+      lastError = `HTTP ${r.status}`;
+      if (isFatalStatus(r.status)) {
+        return { ok: false, status: r.status, error: `${lastError} (재시도 무의미)`, body, attempts: attempt + 1 };
+      }
+    } catch (e) {
+      lastError = e.name === 'AbortError' ? `타임아웃 ${timeoutMs}ms` : e.message;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  return { ok: false, error: `${lastError} (${RETRY_DELAYS.length + 1}회 시도 실패)`, attempts: RETRY_DELAYS.length + 1 };
+}
+
+/** 쿼리스트링 조립. 값이 null/undefined 인 항목은 제외한다. */
+function buildUrl(base, params = {}) {
+  const url = new URL(base);
+  for (const [k, v] of Object.entries(params)) {
+    if (v === null || v === undefined || v === '') continue;
+    url.searchParams.set(k, String(v));
+  }
+  return url.toString();
+}
+
+/** 로그·에러 메시지에서 서비스키를 가린다 (시크릿 평문 노출 금지) */
+function redact(text) {
+  return String(text)
+    .replace(/(serviceKey|key|apiKey|authKey)=[^&\s]+/gi, '$1=***')
+    .replace(/[A-Za-z0-9%+/=]{40,}/g, '***');
+}
+
+module.exports = { request, buildUrl, redact, sleep, DEFAULT_TIMEOUT };

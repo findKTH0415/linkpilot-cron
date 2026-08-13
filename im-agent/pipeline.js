@@ -77,6 +77,24 @@ async function run(opts = {}) {
     log(`  추출: ${ext.output.facts.length}건 / 문서 ${ext.output.documents.length}건 / 미지원 ${ext.output.unsupported.length}건`);
   }
 
+  // ── 07 Geo / Satellite (공공데이터 — 지적·공시지가·건축물대장) ──
+  // 다른 Agent보다 먼저 돈다: 여기서 확보한 PNU/좌표가 감정평가·매스의 입력이다.
+  const geo = await runAgent('07_geo', { projectId }, ctx);
+  results['07_geo'] = geo;
+  if (geo.output) {
+    dataset.dropSource('지적공부(VWorld)');
+    dataset.dropSource('건축물대장(국토교통부)');
+    dataset.addMany(geo.output.facts);
+    dataset.resolve();
+    saveDataset(projectId, dataset);
+    store.writeJson(projectId, '04_Property/geo.json', geo.output);
+    if (geo.output.geo) {
+      log(`  입지: ${geo.output.geo.refined || ''} (${geo.output.geo.lat}, ${geo.output.geo.lon})`
+        + (geo.output.parcel ? ` · 지적 ${geo.output.parcel.officialAreaSqm ?? '-'}㎡` : '')
+        + (geo.output.landUse ? ` · ${geo.output.landUse.zone}` : ''));
+    }
+  }
+
   // ── 03 Research ───────────────────────────────────────────
   const assetTypeFact = dataset.get('project.assetType');
   const locationFact = dataset.get('project.location');
@@ -104,11 +122,42 @@ async function run(opts = {}) {
     log(`  재무모델: Project IRR ${base.projectIRR}% / Equity IRR ${base.equityIRR}% / minDSCR ${base.minDSCR} (가정치 ${fin.output.assumed.length}건)`);
   }
 
+  // ── 08 Appraisal (감정평가 — 수익환원법에 재무모델 NOI가 필요하므로 04 이후) ──
+  const appraisal = await runAgent('08_appraisal', { projectId, financial: fin.output || null }, ctx);
+  results['08_appraisal'] = appraisal;
+  if (appraisal.output) {
+    dataset.dropSource('감정평가 Agent · 3방식 가중평균');
+    for (const label of ['공시지가 기준', '거래사례비교법', '수익환원법']) dataset.dropSource(`감정평가 Agent · ${label}`);
+    dataset.addMany(appraisal.output.facts);
+    dataset.resolve();
+    saveDataset(projectId, dataset);
+    store.writeJson(projectId, '04_Property/appraisal.json', appraisal.output);
+    if (appraisal.output.concluded) {
+      log(`  감정평가(참고): ${appraisal.output.concluded.valueEok}억원 · ${appraisal.output.concluded.methodsUsed.join('/')}`);
+    }
+  }
+
+  // ── 09 Massing / 3D ───────────────────────────────────────
+  const massing = await runAgent('09_massing', { projectId, geo: geo.output || null }, ctx);
+  results['09_massing'] = massing;
+  if (massing.output) {
+    dataset.dropSource('매스 검토 Agent (09_massing)');
+    dataset.addMany(massing.output.facts);
+    dataset.resolve();
+    saveDataset(projectId, dataset);
+    store.writeJson(projectId, '04_Property/massing.json', massing.output);
+    if (massing.output.model) {
+      log(`  매스: 지상 ${massing.output.model.floors}층 · 높이 ${massing.output.model.heightM}m · ${massing.output.files.length}개 파일`);
+    }
+  }
+
   // ── 05 Cross Validation ───────────────────────────────────
   const val = await runAgent('05_validation', {
     projectId,
     financial: fin.output || null,
     research: res.output || null,
+    appraisal: appraisal.output || null,
+    massing: massing.output || null,
   }, ctx);
   results['05_validation'] = val;
   if (val.output) {
@@ -122,6 +171,9 @@ async function run(opts = {}) {
     financial: fin.output || null,
     research: res.output || null,
     validation: val.output || null,
+    geo: geo.output || null,
+    appraisal: appraisal.output || null,
+    massing: massing.output || null,
   }, ctx);
   results['06_im_writer'] = writer;
   if (writer.output) {

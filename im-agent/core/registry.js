@@ -13,23 +13,35 @@
  * 환경변수로 개별 ON/OFF 가능: IM_AGENT_DISABLE="03_research,05_validation"
  */
 
+/**
+ * order = 파이프라인 실행 순서.
+ *   07_geo 는 03/04 보다 먼저 돈다 — 지적·공시지가가 다른 Agent의 입력이 되기 때문이다.
+ *   08_appraisal 은 04_financial 뒤 — 수익환원법에 안정화 NOI가 필요하다.
+ *   05_validation 은 모든 산출물이 나온 뒤 마지막에서 두 번째.
+ */
 const AGENTS = {
-  '01_project':    { order: 1, label: 'Project Manager Agent',  enabled: true,  confidenceThreshold: 0.5, approvalRule: 'auto',      module: '../agents/01-project' },
-  '02_extraction': { order: 2, label: 'Data Extraction Agent',  enabled: true,  confidenceThreshold: 0.6, approvalRule: 'threshold', module: '../agents/02-extraction' },
-  '03_research':   { order: 3, label: 'Market Research Agent',  enabled: true,  confidenceThreshold: 0.5, approvalRule: 'threshold', module: '../agents/03-research' },
-  '04_financial':  { order: 4, label: 'Financial Agent',        enabled: true,  confidenceThreshold: 0.9, approvalRule: 'auto',      module: '../agents/04-financial' },
-  '05_validation': { order: 5, label: 'Cross Validation Agent', enabled: true,  confidenceThreshold: 0.7, approvalRule: 'auto',      module: '../agents/05-validation' },
-  '06_im_writer':  { order: 6, label: 'IM Writer Agent',        enabled: true,  confidenceThreshold: 0.7, approvalRule: 'human',     module: '../agents/06-im-writer' },
+  '01_project':    { order: 1, label: 'Project Manager Agent',    enabled: true,  confidenceThreshold: 0.5, approvalRule: 'auto',      module: '../agents/01-project' },
+  '02_extraction': { order: 2, label: 'Data Extraction Agent',    enabled: true,  confidenceThreshold: 0.6, approvalRule: 'threshold', module: '../agents/02-extraction' },
+  '07_geo':        { order: 3, label: 'Geo / Satellite Agent',    enabled: true,  confidenceThreshold: 0.5, approvalRule: 'auto',      module: '../agents/07-geo' },
+  '03_research':   { order: 4, label: 'Market Research Agent',    enabled: true,  confidenceThreshold: 0.5, approvalRule: 'threshold', module: '../agents/03-research' },
+  '04_financial':  { order: 5, label: 'Financial Agent',          enabled: true,  confidenceThreshold: 0.9, approvalRule: 'auto',      module: '../agents/04-financial' },
+  '08_appraisal':  { order: 6, label: 'Appraisal Agent (감정평가)', enabled: true,  confidenceThreshold: 0.6, approvalRule: 'threshold', module: '../agents/08-appraisal' },
+  '09_massing':    { order: 7, label: 'Massing / 3D Agent',       enabled: true,  confidenceThreshold: 0.5, approvalRule: 'auto',      module: '../agents/09-massing' },
+  '05_validation': { order: 8, label: 'Cross Validation Agent',   enabled: true,  confidenceThreshold: 0.7, approvalRule: 'auto',      module: '../agents/05-validation' },
+  '06_im_writer':  { order: 9, label: 'IM Writer Agent',          enabled: true,  confidenceThreshold: 0.7, approvalRule: 'human',     module: '../agents/06-im-writer' },
 };
+
+/** 부동산개발 전용 Agent — 다른 자산유형에서는 데이터가 없어 자동으로 건너뛴다 */
+const REAL_ESTATE_AGENTS = ['07_geo', '08_appraisal', '09_massing'];
 
 /** Phase 2/3 — 아직 구현하지 않은 Agent (Control Center에 '미구현'으로 노출) */
 const PLANNED = {
-  '07_legal':        { label: 'Legal & Permit Agent', phase: 2 },
-  '08_technical':    { label: 'Technical Agent', phase: 2 },
-  '09_risk':         { label: 'Risk Agent', phase: 2, note: '현재는 05_validation 이 RED/YELLOW/GREEN 을 겸한다' },
-  '10_design':       { label: 'Design Agent (PDF/PPT)', phase: 2 },
-  '11_reviewer':     { label: 'Reviewer Agent (QC Score)', phase: 2, note: '현재는 05_validation 의 score 로 대체' },
-  '12_distribution': { label: 'Distribution Agent', phase: 3, note: '외부 발송 — 사람 승인 없이는 절대 실행하지 않는다' },
+  '10_legal':        { label: 'Legal & Permit Agent', phase: 2 },
+  '11_technical':    { label: 'Technical Agent', phase: 2 },
+  '12_risk':         { label: 'Risk Agent', phase: 2, note: '현재는 05_validation 이 RED/YELLOW/GREEN 을 겸한다' },
+  '13_design':       { label: 'Design Agent (PDF/PPT)', phase: 2, note: '3D 매스 SVG/glTF는 09_massing 이 이미 생성한다' },
+  '14_reviewer':     { label: 'Reviewer Agent (QC Score)', phase: 2, note: '현재는 05_validation 의 score 로 대체' },
+  '15_distribution': { label: 'Distribution Agent', phase: 3, note: '외부 발송 — 사람 승인 없이는 절대 실행하지 않는다' },
 };
 
 function disabledFromEnv() {
@@ -56,4 +68,4 @@ function load(id) {
   return require(a.module);
 }
 
-module.exports = { AGENTS, PLANNED, list, get, load };
+module.exports = { AGENTS, PLANNED, REAL_ESTATE_AGENTS, list, get, load };
