@@ -537,6 +537,7 @@ IM_AGENT_DISABLE="03_research" node im-agent/cli.js run LP-DC-2026-001
 | `GEMINI_API_KEY` | LLM 사용 시. 콤마로 여러 키 지정하면 자동 로테이션 (GitHub Secrets) |
 | `GEMINI_MODELS` | 모델 폴백 순서 (기본 `gemini-2.5-flash,gemini-2.0-flash`) |
 | `VWORLD_KEY` | VWorld 인증키 — 지오코딩·지적도·용도지역·공시지가 |
+| `VWORLD_DOMAIN` | VWorld 콘솔에 **등록한 도메인**(호스트만). 서버 호출에 필수 |
 | `DATA_GO_KR_KEY` | 공공데이터포털 서비스키(디코딩된 일반키) — 실거래가·건축물대장 |
 | `IM_AGENT_QUOTA` | 일일 호출 한도 (기본 10000). 제공자별로 `IM_AGENT_QUOTA_VWORLD` 등 |
 | `IM_AGENT_CACHE` | 공공데이터 캐시 경로 (기본 `<IM_AGENT_ROOT>/.cache`) |

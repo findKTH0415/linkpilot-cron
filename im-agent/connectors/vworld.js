@@ -24,6 +24,36 @@ function apiKey() {
   return process.env.VWORLD_KEY || '';
 }
 
+/**
+ * VWorld 키는 신청 시 등록한 도메인에서만 동작한다.
+ * 브라우저 호출은 Referer 로 판정하지만 서버 호출은 Referer 가 없으므로
+ * 등록한 도메인을 `domain` 파라미터로 명시해야 한다.
+ *   예: VWORLD_DOMAIN=synologynas.tail43fc79.ts.net   (스킴·경로 없이 호스트만)
+ */
+function domain() {
+  return (process.env.VWORLD_DOMAIN || '')
+    .replace(/^https?:\/\//, '')   // 스킴 제거
+    .replace(/\/.*$/, '')           // 경로 제거
+    .trim();
+}
+
+/**
+ * 요청 URL 조립.
+ *
+ * ★ 순서가 중요하다. format 을 먼저 두고 호출자 params 가 그것을 덮게 한다.
+ *   예전에는 `{...params, type:'json'}` 처럼 뒤에 붙여서, 주소 서비스의
+ *   type=ROAD/PARCEL 이 type=json 으로 덮어써졌다 — 지오코딩이 키와 무관하게
+ *   항상 실패하던 원인이다. key·domain 만 마지막에 둬서 덮이지 않게 한다.
+ */
+function buildRequestUrl(service, params) {
+  return buildUrl(`${BASE}/${service}`, {
+    format: 'json',
+    ...params,
+    key: apiKey(),
+    domain: domain() || undefined,
+  });
+}
+
 function isAvailable() {
   return Boolean(apiKey());
 }
@@ -37,7 +67,7 @@ async function call(service, params, namespace, cacheParams) {
   if (!isAvailable()) return unavailable();
 
   return cache.through(PROVIDER, namespace, cacheParams, async () => {
-    const url = buildUrl(`${BASE}/${service}`, { ...params, key: apiKey(), format: 'json', type: 'json' });
+    const url = buildRequestUrl(service, params);
     const r = await request(url);
     if (!r.ok) return { ok: false, error: redact(r.error) };
 
@@ -50,7 +80,10 @@ async function call(service, params, namespace, cacheParams) {
     const status = j?.response?.status;
     if (status && status !== 'OK') {
       const msg = j?.response?.error?.text || status;
-      return { ok: false, error: `VWorld ${status}: ${msg}` };
+      const hint = !domain() && /권한|domain|인증|AUTH|KEY/i.test(String(msg) + status)
+        ? ' — VWORLD_DOMAIN 미설정. VWorld 콘솔에 등록한 도메인을 넣어야 서버 호출이 허용된다'
+        : '';
+      return { ok: false, error: `VWorld ${status}: ${msg}${hint}` };
     }
     return { ok: true, value: j.response };
   });
@@ -138,7 +171,7 @@ function staticMapUrl(lat, lon, { zoom = 17, width = 800, height = 600, layer = 
   if (!isAvailable() || lat === null || lon === null) return null;
   return buildUrl(`${BASE}/image`, {
     service: 'image', request: 'getmap', version: '2.0',
-    key: apiKey(), format: 'png', errorformat: 'json',
+    key: apiKey(), domain: domain() || undefined, format: 'png', errorformat: 'json',
     basemap: layer,                    // Satellite | Base | Hybrid
     center: `${lon},${lat}`, zoom, size: `${width},${height}`,
     crs: 'EPSG:4326',
@@ -153,4 +186,4 @@ function mapLink(lat, lon, zoom = 17) {
 
 function round6(n) { return Math.round(Number(n) * 1e6) / 1e6; }
 
-module.exports = { geocode, parcelAt, staticMapUrl, mapLink, isAvailable, extractPolygon, PROVIDER };
+module.exports = { geocode, parcelAt, staticMapUrl, mapLink, isAvailable, extractPolygon, buildRequestUrl, domain, PROVIDER };

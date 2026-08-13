@@ -137,6 +137,55 @@ test('로그 마스킹: 서비스키가 평문으로 남지 않는다', () => {
   assert.ok(masked.includes('LAWD_CD=11680'));
 });
 
+test('★ 지오코딩 type 이 덮어써지지 않는다 (ROAD/PARCEL → json 덮어쓰기 회귀)', () => {
+  const saved = process.env.VWORLD_KEY;
+  process.env.VWORLD_KEY = 'test-key';
+  const vworld = require('../connectors/vworld');
+
+  const url = new URL(vworld.buildRequestUrl('address', {
+    service: 'address', request: 'getcoord', version: '2.0',
+    crs: 'EPSG:4326', address: '서울시청', type: 'ROAD',
+  }));
+  assert.strictEqual(url.searchParams.get('type'), 'ROAD',
+    'type=json 이 주소 서비스의 ROAD/PARCEL 을 덮으면 지오코딩이 항상 실패한다');
+  assert.strictEqual(url.searchParams.get('format'), 'json');
+  assert.strictEqual(url.searchParams.get('key'), 'test-key');
+
+  if (saved) process.env.VWORLD_KEY = saved; else delete process.env.VWORLD_KEY;
+});
+
+test('VWORLD_DOMAIN 은 스킴·경로를 제거해 호스트만 보낸다', () => {
+  const vworld = require('../connectors/vworld');
+  const saved = process.env.VWORLD_DOMAIN;
+
+  process.env.VWORLD_DOMAIN = 'https://synologynas.tail43fc79.ts.net/linkpilot-platform.html';
+  assert.strictEqual(vworld.domain(), 'synologynas.tail43fc79.ts.net');
+
+  process.env.VWORLD_DOMAIN = 'synologynas.tail43fc79.ts.net';
+  assert.strictEqual(vworld.domain(), 'synologynas.tail43fc79.ts.net');
+
+  delete process.env.VWORLD_DOMAIN;
+  assert.strictEqual(vworld.domain(), '');
+  if (saved) process.env.VWORLD_DOMAIN = saved;
+});
+
+test('도메인이 설정되면 요청에 domain 파라미터가 실린다', () => {
+  const saved = { k: process.env.VWORLD_KEY, d: process.env.VWORLD_DOMAIN };
+  process.env.VWORLD_KEY = 'test-key';
+  process.env.VWORLD_DOMAIN = 'synologynas.tail43fc79.ts.net';
+  const vworld = require('../connectors/vworld');
+
+  const url = new URL(vworld.buildRequestUrl('data', { service: 'data', request: 'GetFeature' }));
+  assert.strictEqual(url.searchParams.get('domain'), 'synologynas.tail43fc79.ts.net');
+
+  delete process.env.VWORLD_DOMAIN;
+  const url2 = new URL(vworld.buildRequestUrl('data', { service: 'data' }));
+  assert.strictEqual(url2.searchParams.has('domain'), false, '미설정 시 빈 파라미터를 보내지 않는다');
+
+  if (saved.k) process.env.VWORLD_KEY = saved.k; else delete process.env.VWORLD_KEY;
+  if (saved.d) process.env.VWORLD_DOMAIN = saved.d;
+});
+
 test('키가 없으면 Connector 는 unavailable 로 응답한다 (죽지 않는다)', async () => {
   const saved = process.env.DATA_GO_KR_KEY;
   delete process.env.DATA_GO_KR_KEY;

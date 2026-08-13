@@ -60,6 +60,7 @@ async function main() {
   console.log('─'.repeat(60));
   console.log(`대상 주소 : ${ADDRESS}`);
   console.log(`VWORLD_KEY     : ${vworld.isAvailable() ? '설정됨' : '미설정 — 지오코딩/지적/공시지가 건너뜀'}`);
+  console.log(`VWORLD_DOMAIN  : ${vworld.domain() || '미설정 ⚠ 서버 호출은 등록 도메인을 명시해야 허용된다'}`);
   console.log(`DATA_GO_KR_KEY : ${molit.isAvailable() ? '설정됨' : '미설정 — 실거래가/건축물대장 건너뜀'}`);
 
   let lat = null, lon = null, parsedPnu = null;

@@ -27,13 +27,18 @@ function isAvailable() {
   return Boolean(apiKey());
 }
 
+/** VWorld 와 같은 도메인 규칙을 쓴다 (스킴·경로 제거) */
+function domain() {
+  return require('./vworld').domain();
+}
+
 async function call(endpoint, params, namespace, cacheParams) {
   if (!isAvailable()) {
     return { ok: false, error: 'VWORLD_KEY 미설정 — 공시지가/용도지역 조회 생략', unavailable: true };
   }
 
   return cache.through(PROVIDER, namespace, cacheParams, async () => {
-    const url = buildUrl(`${BASE}/${endpoint}`, { ...params, key: apiKey(), format: 'json', domain: process.env.VWORLD_DOMAIN || undefined });
+    const url = buildUrl(`${BASE}/${endpoint}`, { format: 'json', ...params, key: apiKey(), domain: domain() || undefined });
     const r = await request(url);
     if (!r.ok) return { ok: false, error: redact(r.error) };
 
