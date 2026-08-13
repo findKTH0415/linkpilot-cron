@@ -21,7 +21,7 @@ IRR·NPV·DSCR·Exit Value는 전부 `finance/` 의 결정적 함수가 계산�
 ## 빠른 실행
 
 ```bash
-npm test                      # 157개 회귀 테스트 (네트워크 불필요)
+npm test                      # 182개 회귀 테스트 (네트워크 불필요)
 npm run im:demo               # 샘플 자료로 전체 흐름 시연 (LLM 없이 동작)
 
 node im-agent/cli.js new "인천 남동공단 6.5MW 데이터센터 개발사업 IM 작성"
@@ -34,6 +34,7 @@ node im-agent/cli.js approve LP-DC-2026-001 --by "홍길동" --comment "IC 통�
 ## 파이프라인
 
 ```
+10 Output Spec  출력 사양 제안 (페이지·크기·형식·언어) — 사람이 확정해야 LOCK
 01 Project      요청문 → Project ID(LP-DC-2026-001) + 13개 표준 폴더
 02 Extraction   원본자료 → Fact (규칙 기반 + LLM 보완, 근거 문구 필수)
 07 Geo          공공데이터: 지오코딩·지적도·용도지역·건축물대장  ← LLM 미사용
@@ -43,6 +44,7 @@ node im-agent/cli.js approve LP-DC-2026-001 --by "홍길동" --comment "IC 통�
 09 Massing      건축 3D 매스 + 용적률/건폐율 법정한도 검토  ← LLM 미사용
 05 Validation   값 충돌·정합성·범위·법률 → RED/YELLOW/GREEN + QC Score  ← LLM 미사용
 06 IM Writer    20개 절 IM + Teaser + 수치 출처표
+11 Final Valid. 8개 GATE 독립 검증 + 재계산 + 추적성  ← LLM 미사용
 ──────────────  사람 승인 게이트 (여기부터는 사람만 통과시킬 수 있다)
 Phase 3         Distribution (미구현)
 ```
@@ -64,6 +66,108 @@ Phase 3         Distribution (미구현)
 | 숫자 직접 기재 금지 | `agents/06-im-writer.js` | 치환 전 원문의 숫자를 전부 검출 |
 | 승인 차단 | `core/gate.js` | RED FLAG나 출처 없는 숫자가 있으면 승인 불가 |
 | AI 자동승인 금지 | `core/gate.js` | `approver`가 AI로 보이면 예외 |
+
+## 최종 검증 게이트 (11_final_validation)
+
+이 저장소에서 **가장 중요한 Agent**다. 앞선 Agent의 결과를 신뢰하지 않는 독립 제3자 검증이다.
+
+### GATE 03 이 핵심이다 — 왜 모델을 다시 부르지 않는가
+
+`buildModel()` 을 다시 호출하면 **같은 코드가 같은 답을 낸다.** 그건 검증이 아니다.
+그래서 이렇게 한다:
+
+1. 모델이 **발표한 현금흐름표(periods)** 만 입력으로 받는다 (모델 입력은 보지 않는다)
+2. IRR을 **Newton-Raphson** 으로 다시 푼다 (원본은 이분법 — 알고리즘이 다르다)
+3. 표 자체의 항등식을 재검산한다 (NOI = 매출 − 운영비, CFADS = NOI − 세금, 원리금 = 이자 + 원금)
+
+실측 결과 — 정상 모델은 14개 항목 전부 오차 0%:
+
+```
+| 지표          | 발표값   | 독립계산 | 차이(%) | 판정 |
+| 차입+자본=총사업비 | 2,961.95 | 2,961.95 |      0 | PASS |
+| Project IRR   |    12.08 |    12.08 |      0 | PASS |
+| Equity IRR    |    15.92 |    15.92 |      0 | PASS |
+| NPV           | 1,274.99 | 1,274.99 |      0 | PASS |
+```
+
+발표값만 몰래 바꾸면 잡힌다:
+
+```
+Equity IRR 을 15.92 → 22.5 로 조작
+→ CRITICAL: 발표값 22.5 vs 독립계산 15.92 (차이 29.244%)
+```
+
+### 8개 GATE
+
+| GATE | 검사 | LLM |
+|---|---|:--:|
+| 01 Source | 핵심 항목 출처·기준일·페이지 | 미사용 |
+| 02 Data | 단위 일관성, 기준일 격차, 오래된 자료 | 미사용 |
+| 03 Calculation | **독립 재계산 (Newton-Raphson)** | 미사용 |
+| 04 Cross | 값충돌, IM↔재무모델, IM↔Teaser, IM↔3D, GIS↔공부 | 미사용 |
+| 05 Legal | 인허가·소유권·용적률 법정한도 | 미사용 |
+| 06 Financial | DSCR, 가정치 비중, Downside 생존 | 미사용 |
+| 07 Document | 출처 없는 숫자, 디자인 규칙, 출처표 | 미사용 |
+| 08 Distribution | 출력사양 확정, 페이지 예산 | 미사용 |
+
+**전 구간 LLM 미사용.** 검증을 언어모델에 맡기면 검증 자체를 신뢰할 수 없다.
+
+### 오차 등급 · 최종 판정
+
+```
+0~0.5% PASS · 0.5~1% MINOR · 1~3% WARNING · 3~5% MAJOR · >5% CRITICAL
+
+점수 100점: Data 20 · Source 15 · Financial 20 · Cross 15 · Legal 10
+            Market 5 · Document 5 · Visual 5 · Traceability 5
+
+95+ APPROVED · 90~94 CONDITIONAL · 80~89 REVIEW · 70~79 REVISION · <70 BLOCKED
+CRITICAL 1건이라도 있으면 점수와 무관하게 BLOCKED
+```
+
+### 산출물 4종
+
+```
+11_QC/validation-report.md    전체 검증 결과 + 독립 재계산 표
+11_QC/red-flag-report.md      미해결 위험사항 (ID·분류·조치·상태)
+11_QC/traceability-report.md  핵심 수치 원천자료 추적표
+12_Final/manifest.json        출력 매니페스트
+```
+
+```bash
+node im-agent/cli.js validate LP-DC-2026-001
+```
+
+## 출력 사양 확정 (10_output_spec)
+
+**순서가 핵심이다.** 콘텐츠를 먼저 만들고 나중에 페이지 수·형식을 정하면, 이미 만든 것에
+사양을 끼워맞추게 된다.
+
+```
+출력 사양 확정 → 콘텐츠 생성 → 디자인 → 렌더링 → 최종 QC
+```
+
+**AI는 제안만 하고 확정하지 않는다.** 사양이 LOCK 되기 전에는 산출물이 DRAFT 이며
+승인 게이트를 통과하지 못한다.
+
+```bash
+node im-agent/cli.js spec show LP-DC-2026-001
+node im-agent/cli.js spec set LP-DC-2026-001 --pages 40 --size A4 --formats html,json
+node im-agent/cli.js spec confirm LP-DC-2026-001 --by "홍길동"   # 사람만 가능
+```
+
+- **페이지 예산**: "약 30페이지"라고 쓰지 않는다. 절별 분량 가중치로 배분한 뒤 목표에 맞춘다.
+  내용을 임의로 삭제하지 않고 배분만 조정한다.
+- **중대 변경 시 버전 상승**: 페이지 수·크기·방향·형식·언어·테마를 바꾸면 확정이 해제되고
+  버전이 올라간다. 다시 사람이 확인해야 한다.
+- **만들 수 없는 형식은 사양에서 막는다**: HWP·PPTX·DOCX 를 사양에 넣으면 확정 단계에서
+  거부된다. 만들 수 있는 척하지 않는다.
+
+| 형식 | 상태 |
+|---|---|
+| `html` (A4 인쇄본) · `json` (뷰어) · `md` | 생성 가능 |
+| `pdf` | HTML을 브라우저 인쇄로 출력 (헤드리스 렌더러 미탑재) |
+| `pptx` · `docx` · `xlsx` | 의존성 추가 승인 필요 |
+| `hwp` | 생성 불가 |
 
 ## 부동산개발 Agent (07 / 08 / 09)
 

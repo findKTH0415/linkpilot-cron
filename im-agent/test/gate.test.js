@@ -13,10 +13,21 @@ const gate = require('../core/gate');
 
 const PID = 'LP-DC-2026-999';
 
-function seed({ flags = [], unsourced = [] }) {
+/**
+ * 승인에 필요한 최소 상태를 만든다.
+ * 게이트는 (교차검증 + IM + 최종 독립검증 + 출력사양 확정) 넷을 모두 요구한다.
+ */
+function seed({ flags = [], unsourced = [], finalStatus = 'APPROVED FOR DISTRIBUTION', finalScore = 96, specLocked = true } = {}) {
   store.createProjectDirs(PID);
   store.writeJson(PID, '11_QC/validation.json', { flags, verdict: 'PASS', score: { total: 90 } });
   store.writeJson(PID, '09_IM/im.json', { sections: [], citations: [], unsourcedNumbers: unsourced });
+  store.writeJson(PID, '11_QC/final-validation.json', {
+    status: finalStatus, score: { total: finalScore }, issues: [],
+    summary: { critical: 0, major: 0, minor: 0 },
+  });
+  store.writeJson(PID, '01_Project/output-spec.json', {
+    docType: 'im', version: 'v1.0', locked: specLocked, confirmedBy: specLocked ? '김대표' : null,
+  });
 }
 
 test('검증 없이는 승인할 수 없다', () => {
@@ -24,6 +35,29 @@ test('검증 없이는 승인할 수 없다', () => {
   const c = gate.canApprove(PID);
   assert.strictEqual(c.allowed, false);
   assert.ok(c.reasons[0].includes('Cross Validation'));
+});
+
+test('최종 독립검증 없이는 승인할 수 없다', () => {
+  seed({});
+  const fs2 = require('fs');
+  fs2.unlinkSync(require('path').join(store.projectDir(PID), '11_QC/final-validation.json'));
+  const c = gate.canApprove(PID);
+  assert.strictEqual(c.allowed, false);
+  assert.ok(c.reasons.some(r => /최종 독립검증 미실행/.test(r)));
+});
+
+test('최종검증이 배포차단이면 승인할 수 없다', () => {
+  seed({ finalStatus: 'DISTRIBUTION BLOCKED', finalScore: 62 });
+  const c = gate.canApprove(PID);
+  assert.strictEqual(c.allowed, false);
+  assert.ok(c.reasons.some(r => /배포차단/.test(r)));
+});
+
+test('출력 사양이 확정되지 않으면 승인할 수 없다', () => {
+  seed({ specLocked: false });
+  const c = gate.canApprove(PID);
+  assert.strictEqual(c.allowed, false);
+  assert.ok(c.reasons.some(r => /출력 사양 미확정/.test(r)));
 });
 
 test('RED FLAG 가 있으면 승인이 거부된다', () => {

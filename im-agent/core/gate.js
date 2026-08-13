@@ -44,6 +44,25 @@ function canApprove(projectId) {
     reasons.push(`디자인 규칙 위반 ${designRed.length}건: ${designRed.slice(0, 2).map(v => v.rule).join(', ')}`);
   }
 
+  // 최종 독립검증(11_final_validation) — 앞선 검증을 통과했어도 여기서 막힐 수 있다
+  const final = store.readJson(projectId, '11_QC/final-validation.json', null);
+  if (!final) {
+    reasons.push('최종 독립검증 미실행 — 재계산·교차대조 없이 승인할 수 없다');
+  } else {
+    if (final.status === 'DISTRIBUTION BLOCKED') {
+      const codes = [...new Set(final.issues.filter(i => i.severity === 'CRITICAL').map(i => i.code))];
+      reasons.push(`최종검증 배포차단 (${final.score.total}/100): ${codes.join(', ')}`);
+    } else if (final.score.total < 90) {
+      reasons.push(`최종검증 점수 ${final.score.total}/100 — 90점 미만은 수정이 필요하다`);
+    }
+  }
+
+  // 출력 사양이 확정되지 않으면 최종 산출물이 아니라 초안이다
+  const spec = store.readJson(projectId, '01_Project/output-spec.json', null);
+  if (!spec || !spec.locked) {
+    reasons.push('출력 사양 미확정 (DRAFT) — 페이지 수·형식·언어를 사람이 확정해야 한다');
+  }
+
   return { allowed: reasons.length === 0, reasons };
 }
 

@@ -20,6 +20,7 @@
  *   05_validation 은 모든 산출물이 나온 뒤 마지막에서 두 번째.
  */
 const AGENTS = {
+  '10_output_spec': { order: 0, label: 'Output Specification Agent', enabled: true, confidenceThreshold: 0.7, approvalRule: 'human', module: '../agents/10-output-spec' },
   '01_project':    { order: 1, label: 'Project Manager Agent',    enabled: true,  confidenceThreshold: 0.5, approvalRule: 'auto',      module: '../agents/01-project' },
   '02_extraction': { order: 2, label: 'Data Extraction Agent',    enabled: true,  confidenceThreshold: 0.6, approvalRule: 'threshold', module: '../agents/02-extraction' },
   '07_geo':        { order: 3, label: 'Geo / Satellite Agent',    enabled: true,  confidenceThreshold: 0.5, approvalRule: 'auto',      module: '../agents/07-geo' },
@@ -29,6 +30,7 @@ const AGENTS = {
   '09_massing':    { order: 7, label: 'Massing / 3D Agent',       enabled: true,  confidenceThreshold: 0.5, approvalRule: 'auto',      module: '../agents/09-massing' },
   '05_validation': { order: 8, label: 'Cross Validation Agent',   enabled: true,  confidenceThreshold: 0.7, approvalRule: 'auto',      module: '../agents/05-validation' },
   '06_im_writer':  { order: 9, label: 'IM Writer Agent',          enabled: true,  confidenceThreshold: 0.7, approvalRule: 'human',     module: '../agents/06-im-writer' },
+  '11_final_validation': { order: 10, label: 'Final Validation Agent (독립 검증)', enabled: true, confidenceThreshold: 0.9, approvalRule: 'human', module: '../agents/11-final-validation' },
 };
 
 /** 부동산개발 전용 Agent — 다른 자산유형에서는 데이터가 없어 자동으로 건너뛴다 */
@@ -36,12 +38,12 @@ const REAL_ESTATE_AGENTS = ['07_geo', '08_appraisal', '09_massing'];
 
 /** Phase 2/3 — 아직 구현하지 않은 Agent (Control Center에 '미구현'으로 노출) */
 const PLANNED = {
-  '10_legal':        { label: 'Legal & Permit Agent', phase: 2 },
-  '11_technical':    { label: 'Technical Agent', phase: 2 },
-  '12_risk':         { label: 'Risk Agent', phase: 2, note: '현재는 05_validation 이 RED/YELLOW/GREEN 을 겸한다' },
-  '13_design':       { label: 'Design Agent (PDF/PPT)', phase: 2, note: '3D 매스 SVG/glTF는 09_massing 이 이미 생성한다' },
-  '14_reviewer':     { label: 'Reviewer Agent (QC Score)', phase: 2, note: '현재는 05_validation 의 score 로 대체' },
-  '15_distribution': { label: 'Distribution Agent', phase: 3, note: '외부 발송 — 사람 승인 없이는 절대 실행하지 않는다' },
+  '12_legal':        { label: 'Legal & Permit Agent', phase: 2 },
+  '13_technical':    { label: 'Technical Agent', phase: 2 },
+  '14_risk':         { label: 'Risk Agent', phase: 2, note: '현재는 05_validation 이 RED/YELLOW/GREEN 을 겸한다' },
+  '15_design':       { label: 'Design Agent (PDF/PPT)', phase: 2, note: '3D 매스 SVG/glTF는 09_massing 이 이미 생성한다' },
+  '16_reviewer':     { label: 'Reviewer Agent (QC Score)', phase: 2, note: '11_final_validation 이 대체 — 별도 구현 불필요' },
+  '17_distribution': { label: 'Distribution Agent', phase: 3, note: '외부 발송 — 사람 승인 없이는 절대 실행하지 않는다' },
 };
 
 function disabledFromEnv() {

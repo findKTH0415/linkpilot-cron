@@ -165,6 +165,111 @@ function cmdDesign(sub, projectId) {
   fail(`알 수 없는 하위명령: ${sub} (list|recommend|preview|set|history|revert)`);
 }
 
+// ── 출력 사양 (사양 확정 → 콘텐츠 → 디자인 → 렌더 → QC) ──
+function cmdSpec(sub, projectId) {
+  const outputspec = require('./core/outputspec');
+
+  if (sub === 'show' || !sub) {
+    if (!projectId) return fail('사용법: cli.js spec show <PROJECT_ID>');
+    const spec = outputspec.read(projectId);
+    if (!spec) return fail('출력 사양이 없다 — cli.js spec propose <ID> 를 먼저 실행한다');
+    const check = outputspec.validateSpec(spec);
+    console.log(`\n  OUTPUT SPECIFICATION — ${projectId}\n`);
+    const rows = [
+      ['Document Type', `${spec.docType} (${spec.label})`],
+      ['Page Size', `${spec.pageSize} ${spec.orientation}`],
+      ['Target Pages', `${spec.targetPages} (${spec.minPages}~${spec.maxPages}, 허용 ±${spec.tolerance})`],
+      ['Format', (spec.formats || []).join(', ')],
+      ['Language', spec.language],
+      ['Design Theme', spec.themeId || '-'],
+      ['Resolution', `${spec.resolution} / ${spec.color}`],
+      ['File Name', spec.fileName],
+      ['Version', spec.version],
+      ['Confidentiality', spec.confidentiality],
+      ['Watermark', spec.watermark ? 'Yes' : 'No'],
+      ['STATUS', spec.locked ? `LOCKED (확정: ${spec.confirmedBy})` : 'PENDING USER CONFIRMATION'],
+    ];
+    for (const [k, v] of rows) console.log(`  ${k.padEnd(18)} ${v}`);
+    if (!check.ok) {
+      console.log('\n  ※ 미확정 항목:');
+      for (const p of check.problems) console.log(`     - ${p}`);
+    }
+    console.log(spec.locked ? '' : `\n  확정: cli.js spec confirm ${projectId} --by "<이름>"\n`);
+    return;
+  }
+
+  if (sub === 'propose') {
+    if (!projectId) return fail('사용법: cli.js spec propose <PROJECT_ID> [--doc im]');
+    const spec = outputspec.propose(projectId, { docType: arg('--doc', 'im') });
+    outputspec.save(projectId, spec);
+    console.log(`출력 사양 제안 생성 (DRAFT). 확인: cli.js spec show ${projectId}`);
+    return;
+  }
+
+  if (sub === 'set') {
+    if (!projectId) return fail('사용법: cli.js spec set <PROJECT_ID> --pages 40 --size A4 --orientation portrait --formats html,json');
+    const changes = {};
+    if (arg('--pages')) changes.targetPages = Number(arg('--pages'));
+    if (arg('--size')) changes.pageSize = arg('--size');
+    if (arg('--orientation')) changes.orientation = arg('--orientation');
+    if (arg('--formats')) changes.formats = arg('--formats').split(',').map(s => s.trim());
+    if (arg('--language')) changes.language = arg('--language');
+    if (arg('--doc')) changes.docType = arg('--doc');
+    if (arg('--tolerance')) changes.tolerance = Number(arg('--tolerance'));
+    if (!Object.keys(changes).length) return fail('변경할 항목이 없다');
+    try {
+      const r = outputspec.change(projectId, changes, { by: arg('--by'), reason: arg('--reason', '') });
+      console.log(`사양 변경: ${Object.keys(changes).join(', ')}`);
+      if (r.materialChanges.length) {
+        console.log(`  ※ 중대 변경(${r.materialChanges.join(', ')}) — 확정이 해제되었다. 다시 confirm 해야 한다.`);
+        if (r.versionBumped) console.log(`  ※ 새 버전: ${r.spec.version}`);
+      }
+    } catch (e) { fail(e.message); }
+    return;
+  }
+
+  if (sub === 'confirm') {
+    const by = arg('--by');
+    if (!projectId || !by) return fail('사용법: cli.js spec confirm <PROJECT_ID> --by "<이름>"');
+    try {
+      const spec = outputspec.confirm(projectId, { by, notes: arg('--note', '') });
+      console.log(`출력 사양 확정 (LOCKED) — ${spec.version} by ${spec.confirmedBy}`);
+      console.log(`  이제 최종 산출물을 생성할 수 있다: cli.js run ${projectId}`);
+    } catch (e) { fail(e.message); }
+    return;
+  }
+
+  fail(`알 수 없는 하위명령: ${sub} (show|propose|set|confirm)`);
+}
+
+// ── 최종 검증 결과 조회 ─────────────────────────────────────
+function cmdValidate(projectId) {
+  if (!projectId) return fail('사용법: cli.js validate <PROJECT_ID>');
+  const final = store.readJson(projectId, '11_QC/final-validation.json', null);
+  if (!final) return fail('최종검증 결과가 없다 — cli.js run 을 먼저 실행한다');
+
+  console.log(`\n  LINKPILOT FINAL VALIDATION — ${projectId}\n`);
+  console.log(`  Overall Score : ${final.score.total} / 100`);
+  console.log(`  Status        : ${final.status}`);
+  console.log(`  Critical ${final.summary.critical} · Major ${final.summary.major} · Minor ${final.summary.minor}\n`);
+
+  for (const g of final.gates) {
+    const mark = { PASS: '●', WARNING: '▲', FAIL: '✕' }[g.status] || '·';
+    console.log(`  ${mark} ${g.id} ${g.name.padEnd(38)} ${g.status}`);
+  }
+  if (final.calculation) {
+    console.log(`\n  독립 재계산: ${final.calculation.worst} — ${final.calculation.checks.filter(c => c.level === 'PASS').length}/${final.calculation.checks.length} 항목 일치`);
+  }
+  console.log(`  추적 가능: ${Math.round((final.traceability.coverage || 0) * 100)}% (${final.traceability.rows.filter(r => r.traceable).length}/${final.traceability.rows.length})`);
+
+  const open = final.issues.filter(i => i.severity !== 'MINOR');
+  if (open.length) {
+    console.log('\n  미해결 (CRITICAL/MAJOR)');
+    for (const i of open) console.log(`   ${i.id} [${i.severity}] ${i.message}\n        → ${i.action}`);
+  }
+  console.log(`\n  보고서: 11_QC/validation-report.md · red-flag-report.md · traceability-report.md\n`);
+}
+
 function cmdQuota() {
   const cache = require('./connectors/cache');
   const vworld = require('./connectors/vworld');
@@ -255,6 +360,8 @@ async function main() {
     case 'agents': return cmdAgents();
     case 'quota': return cmdQuota();
     case 'design': return cmdDesign(process.argv[3], process.argv[4]);
+    case 'spec': return cmdSpec(process.argv[3], process.argv[4]);
+    case 'validate': return cmdValidate(a1);
     case 'list': return cmdList();
     case 'approve': return cmdApprove(a1);
     case 'demo': return cmdDemo();
@@ -272,6 +379,10 @@ async function main() {
   design preview --theme <id>   미리보기 HTML 생성
   design set <ID> --theme <id>  디자인 적용 (내용은 유지)
   design history <ID>     디자인 변경 이력
+  spec show <ID>          출력 사양 조회 (페이지·크기·형식·언어)
+  spec set <ID> --pages 40 --size A4   출력 사양 변경
+  spec confirm <ID> --by <이름>        출력 사양 확정 (LOCK)
+  validate <ID>           최종 독립검증 결과 (8 GATE · 점수 · 추적성)
   design revert <ID> --version 1.0   이전 디자인으로 복원
   approve <ID> --by <이름>  사람 승인 기록
   demo                    샘플 자료로 전체 흐름 시연

@@ -17,6 +17,7 @@ const { FIELDS } = require('./core/dictionary');
 const store = require('./core/store');
 const gate = require('./core/gate');
 const designState = require('./core/design-state');
+const reports = require('./core/reports');
 const { kstStamp } = require('./core/kst');
 
 function loadDataset(projectId) {
@@ -60,6 +61,15 @@ async function run(opts = {}) {
 
   const dataset = loadDataset(projectId);
   const ctx = { projectId, dataset, log };
+
+  // ── 10 Output Specification (콘텐츠보다 먼저) ──────────────
+  // 출력 사양이 확정되기 전에는 최종 산출물을 만들지 않는다. 초안(DRAFT)까지만 만든다.
+  const specRes = await runAgent('10_output_spec', { projectId, docType: opts.docType || null }, ctx);
+  results['10_output_spec'] = specRes;
+  const spec = specRes.output ? specRes.output.spec : null;
+  if (spec) {
+    log(`  출력사양: ${spec.docType} · ${spec.pageSize} ${spec.orientation} · 목표 ${spec.targetPages}p · ${spec.formats.join('/')} · ${spec.locked ? `${spec.version} LOCKED` : 'DRAFT(미확정)'}`);
+  }
 
   // ── 02 Extraction ─────────────────────────────────────────
   const ext = await runAgent('02_extraction', { projectId, useLlm: opts.useLlm !== false }, ctx);
@@ -200,6 +210,32 @@ async function run(opts = {}) {
     log(`  IM 생성: ${writer.output.sections.length}개 절 / 인용 ${writer.output.citations.length}건 / 출처없는숫자 ${writer.output.unsourcedNumbers.length}건 / 디자인위반 ${dv}건`);
   }
 
+  // ── 11 Final Validation (독립 제3자 검증 · 8 GATES) ────────
+  const final = await runAgent('11_final_validation', {
+    projectId,
+    financial: fin.output || null,
+    validation: val.output || null,
+    writer: writer.output || null,
+    geo: geo.output || null,
+    appraisal: appraisal.output || null,
+    massing: massing.output || null,
+    research: res.output || null,
+  }, ctx);
+  results['11_final_validation'] = final;
+  if (final.output) {
+    store.writeJson(projectId, '11_QC/final-validation.json', final.output);
+    store.writeText(projectId, '11_QC/validation-report.md', reports.validationReport(projectId, final.output, spec));
+    store.writeText(projectId, '11_QC/red-flag-report.md', reports.redFlagReport(projectId, final.output));
+    store.writeText(projectId, '11_QC/traceability-report.md', reports.traceabilityReport(projectId, final.output));
+    store.writeJson(projectId, '12_Final/manifest.json', reports.manifest(projectId, { spec, writer: writer.output, final: final.output, theme: writer.output && writer.output.theme }));
+
+    const g = final.output.summary;
+    log(`  최종검증: ${final.output.status} · ${final.output.score.total}/100 · GATE ${g.gatesPassed}/${g.gatesTotal} 통과 · CRITICAL ${g.critical} / MAJOR ${g.major} / MINOR ${g.minor}`);
+    if (final.output.calculation) {
+      log(`  독립 재계산: ${final.output.calculation.worst} (Newton-Raphson 역산)`);
+    }
+  }
+
   // ── 승인 게이트 판정 (승인은 사람이 별도로 한다) ───────────
   const check = gate.canApprove(projectId);
   const project = store.readJson(projectId, '01_Project/project.json', {});
@@ -213,7 +249,7 @@ async function run(opts = {}) {
     ? '  승인 대기: 사람 승인 후 배포 가능 (cli.js approve)'
     : `  배포 차단: ${check.reasons.join(' / ')}`);
 
-  return { projectId, templateId, results, dataset, gate: check };
+  return { projectId, templateId, results, dataset, gate: check, finalValidation: final.output || null, spec };
 }
 
 module.exports = { run, loadDataset, saveDataset };
