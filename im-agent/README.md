@@ -21,7 +21,7 @@ IRR·NPV·DSCR·Exit Value는 전부 `finance/` 의 결정적 함수가 계산�
 ## 빠른 실행
 
 ```bash
-npm test                      # 198개 회귀 테스트 (네트워크 불필요)
+npm test                      # 216개 회귀 테스트 (네트워크 불필요)
 npm run im:demo               # 샘플 자료로 전체 흐름 시연 (LLM 없이 동작)
 
 node im-agent/cli.js new "인천 남동공단 6.5MW 데이터센터 개발사업 IM 작성"
@@ -138,6 +138,24 @@ DATA LINEAGE — 연면적 (building.gfa_sqm)
 변경 영향은 재실행 순서까지 낸다 (매출 변경 → 23개 결과물 영향, Agent 5개 재실행).
 
 산출물: `01_Project/control-tower.json` (UI가 그대로 읽는다) · `01_Project/activity.jsonl` (감사 추적)
+
+### React 대시보드 (본체 드롭인)
+
+`ui/` 폴더를 LinkPilot 본체(React/Vite)에 복사해 넣으면 된다. 상세: **`ui/README.md`**
+
+```bash
+cp -r im-agent/ui <본체>/src/components/ControlTower
+```
+```jsx
+<ControlTower projectId="LP-DC-2026-001" baseUrl="/api/linkpilot" />
+```
+
+- **의존성 추가 0건** — React 만 있으면 된다. 차트 라이브러리·CSS-in-JS 미사용, 진행바는 전부 CSS
+- **색을 하드코딩하지 않는다** — `12_Final/theme.css` 변수를 그대로 쓴다. 테마를 바꾸면 대시보드도 바뀐다
+- **화면이 진행률을 오해하게 두지 않는다** — Agent 진행률이 전체보다 10%p 이상 앞서면 경고를 띄운다
+- **승인 버튼은 차단 사유가 남아 있으면 비활성** — 눌러서 실패하는 게 아니라 못 누른다
+- **폴링 실패해도 마지막 화면을 지우지 않는다** — 대신 "마지막 수신 시각 기준"임을 명시
+- 본체 API 라우터(`api-router.cjs`)는 **읽기 전용**이며 경로 조작을 차단한다
 
 ## 최종 검증 게이트 (11_final_validation)
 

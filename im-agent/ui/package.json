@@ -1,0 +1,11 @@
+{
+  "name": "linkpilot-control-tower-ui",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Control Tower 대시보드 — LinkPilot 본체(React/Vite) 드롭인 패키지. 이 package.json 은 ui/ 폴더만 ESM 으로 선언한다 (저장소 나머지는 CommonJS 유지).",
+  "main": "ControlTower.jsx",
+  "peerDependencies": {
+    "react": ">=18"
+  }
+}
