@@ -291,15 +291,18 @@ window.LINKPILOT_MEMBERSHIP = {
     { icon: '🔆', name: '신재생에너지 분석', from: 'business' },
   ],
 
-  // 가격을 비워두면 '문의'로 표시된다 — 지어내지 않는다. 0 은 '무료'로 표시된다
+  // 표시 통화. 원화로 받으려면 'KRW' 로 바꾸고 plans 의 price 를 원 단위로 넣는다
+  currency: 'USD',
+
+  // price 0 은 '무료', null 은 '문의'로 표시된다 — 없는 값을 지어내지 않는다
   plans: [
     { id: 'free', name: 'Free', price: 0,
       features: ['할일 · 연락처 · 프로젝트', '딜파이프라인 · 캘린더', 'Q&A · 투자소스 DB', '프로젝트 3건'] },
-    { id: 'basic', name: 'Basic', price: null,
+    { id: 'basic', name: 'Basic', price: 25,
       features: ['오늘의 한줄생각', '아침브리핑', '프로젝트 30건'] },
-    { id: 'pro', name: 'Pro', price: null, recommended: true,
+    { id: 'pro', name: 'Pro', price: 55, recommended: true,
       features: ['Basic 전체', '통화음성분석', '프리미엄 투자소스 DB', '프로젝트 100건'] },
-    { id: 'business', name: 'Business', price: null,
+    { id: 'business', name: 'Business', price: 130,
       features: ['Pro 전체', '신재생에너지 분석', 'IM 자동생성', '프로젝트 무제한'] },
   ],
 
@@ -339,10 +342,24 @@ window.LINKPILOT_MEMBERSHIP = {
     return Math.round((Date.UTC(+s.slice(0,4), +s.slice(5,7)-1, +s.slice(8,10))
       - Date.UTC(+t.slice(0,4), +t.slice(5,7)-1, +t.slice(8,10))) / 86400000);
   }
+  /**
+   * 가격 표시.
+   * ★ 환율 환산을 하지 않는다. 설정에 들어온 통화 그대로 보여준다 —
+   *   임의 환율로 원화를 만들어 보여주면 결제 금액과 어긋난다.
+   */
   function price(p) {
     if (p === null || p === undefined || p === '') return '문의';   // 없으면 지어내지 않는다
     if (p === 0) return '무료';
-    return typeof p === 'number' ? p.toLocaleString('ko-KR') + '원' : String(p);
+    if (typeof p !== 'number') return String(p);                    // '월 49,000원~' 같은 문구 그대로
+    var cur = C.currency || 'KRW';
+    if (cur === 'KRW') return p.toLocaleString('ko-KR') + '원';
+    try {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency', currency: cur, minimumFractionDigits: 0, maximumFractionDigits: 0,
+      }).format(p);
+    } catch (e) {
+      return cur + ' ' + p.toLocaleString('en-US');   // 알 수 없는 통화코드도 죽지 않는다
+    }
   }
   /** 무료 플랜인가 (미연동과는 다른 상태다) */
   function isFree() { return !!m && m.planId === 'free'; }
@@ -449,7 +466,8 @@ window.LINKPILOT_MEMBERSHIP = {
 
       c.appendChild(el('h3', 'plan__n', p.name));
       var pr = el('div', 'plan__p', price(p.price));
-      if (p.price != null && p.price !== '') pr.appendChild(el('small', null, ' / 월'));
+      // '무료 / 월', '문의 / 월' 은 말이 안 된다. 금액이 있을 때만 붙인다
+      if (typeof p.price === 'number' && p.price > 0) pr.appendChild(el('small', null, ' / 월'));
       c.appendChild(pr);
 
       var ul = el('ul', 'plan__l');
