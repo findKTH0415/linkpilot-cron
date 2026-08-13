@@ -1,0 +1,54 @@
+name: alert-failure
+
+# 크론 실패 알림 (재사용 워크플로) — CLAUDE.md §2 "발송 실패 시 조용히 죽지 않는다".
+#
+# 각 크론 워크플로가 `if: failure()` 로 이 워크플로를 호출한다.
+# 알림 경로는 GitHub Issue + SMS 두 가지이며, 둘 다 실패해도 이 잡은 성공으로 끝난다
+# (알림 실패가 원래 실패를 덮으면 안 된다 — 사유는 로그에 남는다).
+#
+# ★ workflow_dispatch 로 직접 실행하면 실제 크론을 망가뜨리지 않고
+#   알림 경로가 살아 있는지 점검할 수 있다. 분기마다 한 번씩 눌러본다.
+
+on:
+  workflow_call:
+    inputs:
+      workflow:
+        description: '실패한 워크플로 이름'
+        type: string
+        required: true
+  workflow_dispatch:
+    inputs:
+      workflow:
+        description: '알림 경로 점검 — 실제 실패가 아니어도 알림이 오는지 확인한다'
+        type: string
+        required: false
+        default: '(수동 점검)'
+
+jobs:
+  alert:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # SMS 경로에만 필요하다. 실패해도 이슈 경로는 살아 있어야 하므로 막지 않는다.
+      - name: Install deps (SMS 경로용)
+        continue-on-error: true
+        run: npm ci || npm install
+
+      - name: Send failure alert
+        env:
+          ALERT_WORKFLOW: ${{ inputs.workflow }}
+          ALERT_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ALERT_PHONE: ${{ secrets.ALERT_PHONE }}
+          SENDER_PHONE: ${{ secrets.SENDER_PHONE }}
+          SOLAPI_API_KEY: ${{ secrets.SOLAPI_API_KEY }}
+          SOLAPI_API_SECRET: ${{ secrets.SOLAPI_API_SECRET }}
+        run: node alert-failure.js

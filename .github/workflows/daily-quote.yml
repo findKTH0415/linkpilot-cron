@@ -26,3 +26,15 @@ jobs:
           GEMINI_MODELS: ${{ secrets.GEMINI_MODELS }}
           NAS_BASE_URL: ${{ secrets.NAS_BASE_URL }}
         run: node fetch-daily-quote.js
+
+  # 명언 수집이 실패하면 08시대 발송 크론이 빈 값을 읽는다. 실패를 묻지 않는다.
+  alert:
+    needs: fetch
+    if: failure()
+    uses: ./.github/workflows/alert-failure.yml
+    permissions:
+      issues: write
+      contents: read
+    secrets: inherit
+    with:
+      workflow: daily-quote

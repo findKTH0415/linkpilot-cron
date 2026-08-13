@@ -1,0 +1,117 @@
+name: deploy-nas
+
+# NAS 배포 — 화면 파일을 Synology 웹 루트로 올린다.
+#
+# 왜 Actions 인가: NAS 는 Tailscale 사설망에 있어 외부에서 직접 닿지 않고,
+# 접속정보는 CLAUDE.md §2 에 따라 코드·로그에 남길 수 없다.
+# 러너가 tailnet 에 임시로 붙고, 자격증명은 GitHub Secrets 에만 둔다.
+#
+# ★ 자동 실행하지 않는다 (workflow_dispatch 전용).
+#   운영 중인 화면을 아무도 안 보는 사이에 덮어쓰지 않기 위해서다.
+#   충분히 검증된 뒤 push 트리거로 바꾸는 것은 사람이 판단한다.
+#
+# ★ linkpilot-platform.html 은 배포 목록에 넣지 않는다.
+#   실제 앱 본체 파일이고, 이 저장소에는 그 원본이 없다. 덮어쓰면 되돌릴 수 없다.
+
+on:
+  workflow_dispatch:
+    inputs:
+      files:
+        description: '올릴 파일 (저장소 기준 경로, 공백 구분)'
+        type: string
+        required: true
+        default: 'im-agent/ui/platform/myinfo.html'
+      dest:
+        description: 'NAS 대상 디렉터리'
+        type: string
+        required: true
+        default: '/volume1/web'
+      dry_run:
+        description: '실제로 올리지 않고 무엇이 올라갈지만 확인'
+        type: boolean
+        default: true
+
+concurrency:
+  group: deploy-nas
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      # 배포 대상을 먼저 검증한다. 경로 조작·금지 파일을 여기서 막는다.
+      - name: Check files
+        env:
+          FILES: ${{ inputs.files }}
+        run: |
+          set -euo pipefail
+          for f in $FILES; do
+            case "$f" in
+              /*|*..*) echo "::error::절대경로·상위경로는 허용하지 않는다: $f"; exit 1 ;;
+            esac
+            if [ "$(basename "$f")" = "linkpilot-platform.html" ]; then
+              echo "::error::linkpilot-platform.html 은 앱 본체 파일이라 이 워크플로로 덮어쓸 수 없다"
+              exit 1
+            fi
+            [ -f "$f" ] || { echo "::error::파일 없음: $f"; exit 1; }
+            echo "올릴 파일: $f  ($(wc -c < "$f") bytes)"
+          done
+
+      - name: Connect to tailnet
+        if: ${{ !inputs.dry_run }}
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Upload
+        if: ${{ !inputs.dry_run }}
+        env:
+          FILES: ${{ inputs.files }}
+          DEST: ${{ inputs.dest }}
+          NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+          NAS_USER: ${{ secrets.NAS_SSH_USER }}
+          NAS_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          for v in NAS_HOST NAS_USER NAS_KEY; do
+            [ -n "${!v}" ] || { echo "::error::Secret 미설정: $v"; exit 1; }
+          done
+
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$NAS_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          # 호스트키를 미리 받아둔다. StrictHostKeyChecking 을 끄지 않는다
+          ssh-keyscan -H "$NAS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+          # 기존 파일은 날짜를 붙여 백업한 뒤 덮는다 (되돌릴 수 있게)
+          STAMP=$(TZ=Asia/Seoul date +%Y%m%d-%H%M)
+          for f in $FILES; do
+            BASE=$(basename "$f")
+            ssh -i ~/.ssh/id_deploy "$NAS_USER@$NAS_HOST" \
+              "test -f '$DEST/$BASE' && cp '$DEST/$BASE' '$DEST/$BASE.$STAMP.bak' || true"
+            scp -i ~/.ssh/id_deploy "$f" "$NAS_USER@$NAS_HOST:$DEST/$BASE"
+            echo "배포 완료: $BASE → $DEST/$BASE (백업: $BASE.$STAMP.bak)"
+          done
+
+      - name: Dry run summary
+        if: ${{ inputs.dry_run }}
+        run: |
+          echo "::notice::DRY RUN — 실제로 올리지 않았다. 파일 검증만 수행했다."
+          echo "실제 배포하려면 dry_run 을 끄고 다시 실행한다."
+
+  # 배포가 실패하면 알린다 (CLAUDE.md §2 — 조용히 죽지 않는다)
+  alert:
+    needs: deploy
+    if: failure()
+    uses: ./.github/workflows/alert-failure.yml
+    permissions:
+      issues: write
+      contents: read
+    secrets: inherit
+    with:
+      workflow: deploy-nas

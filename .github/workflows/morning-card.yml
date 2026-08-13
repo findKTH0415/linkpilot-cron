@@ -38,3 +38,15 @@ jobs:
           CARD_COMPANY: ${{ secrets.CARD_COMPANY }}
           NAS_BASE_URL: ${{ secrets.NAS_BASE_URL }}
         run: node send-morning-card.js
+
+  # 발송이 실패하면 반드시 사람에게 알린다 (CLAUDE.md §2).
+  alert:
+    needs: send
+    if: failure()
+    uses: ./.github/workflows/alert-failure.yml
+    permissions:
+      issues: write
+      contents: read
+    secrets: inherit
+    with:
+      workflow: morning-card

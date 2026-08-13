@@ -37,3 +37,16 @@ jobs:
           RECIPIENTS: ${{ secrets.RECIPIENTS }}
           SENDER_PHONE: ${{ secrets.SENDER_PHONE }}
         run: node send-morning-brief.js
+
+  # 발송이 실패하면 반드시 사람에게 알린다 (CLAUDE.md §2).
+  # 실패한 크론을 다음날 아침에야 발견하는 상황을 막는 유일한 경로다.
+  alert:
+    needs: send
+    if: failure()
+    uses: ./.github/workflows/alert-failure.yml
+    permissions:
+      issues: write
+      contents: read
+    secrets: inherit
+    with:
+      workflow: morning-brief
