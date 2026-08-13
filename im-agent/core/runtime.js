@@ -17,6 +17,7 @@ const { assertValid } = require('./schema');
 const { kstStamp } = require('./kst');
 const registry = require('./registry');
 const store = require('./store');
+const monitor = require('./monitor');
 
 const STATUS = {
   COMPLETE: 'complete',
@@ -49,6 +50,15 @@ async function runAgent(agentId, input, ctx) {
         warnings: result.warnings, error: result.error, elapsedMs: result.elapsedMs,
       });
     }
+    if (ctx && ctx.projectId) {
+      try {
+        monitor.update(ctx.projectId, agentId, {
+          status: monitor.FROM_RUNTIME[status] || monitor.STATUS.WARNING,
+          warnings: result.warnings, error: result.error,
+          activity: result.error || (result.warnings.length ? result.warnings[0] : '완료'),
+        });
+      } catch (_) { /* 모니터 실패가 실행을 막지 않는다 */ }
+    }
     if (ctx && typeof ctx.log === 'function') {
       const icon = { complete: '●', warning: '▲', needs_review: '◐', blocked: '■', skipped: '○', error: '✕' }[status] || '·';
       ctx.log(`${icon} ${agentId} ${meta ? meta.label : ''} — ${status}${result.error ? ` (${result.error})` : ''}`);
@@ -58,6 +68,11 @@ async function runAgent(agentId, input, ctx) {
 
   if (!meta) return record(STATUS.ERROR, { error: `등록되지 않은 Agent: ${agentId}` });
   if (!meta.enabled) return record(STATUS.SKIPPED, { warnings: ['Agent OFF'] });
+
+  // Control Tower — 실행 시작 알림
+  if (ctx && ctx.projectId) {
+    try { monitor.update(ctx.projectId, agentId, { status: monitor.STATUS.RUNNING, progress: 5, activity: '시작' }); } catch (_) { /* 모니터 실패가 실행을 막지 않는다 */ }
+  }
 
   let agent;
   try {
@@ -74,8 +89,17 @@ async function runAgent(agentId, input, ctx) {
 
   let output;
   const warnings = [];
+  const report = (message, opts) => {
+    if (ctx && ctx.projectId) {
+      try { monitor.activity(ctx.projectId, agentId, message, opts); } catch (_) { /* 무시 */ }
+    }
+  };
   try {
-    output = await agent.run(input, { ...ctx, warn: m => warnings.push(m) });
+    output = await agent.run(input, {
+      ...ctx,
+      warn: m => { warnings.push(m); report(m, { level: 'WARN' }); },
+      activity: report,
+    });
   } catch (e) {
     return record(STATUS.ERROR, { error: e.message, warnings });
   }

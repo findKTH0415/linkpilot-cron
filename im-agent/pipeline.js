@@ -18,6 +18,7 @@ const store = require('./core/store');
 const gate = require('./core/gate');
 const designState = require('./core/design-state');
 const reports = require('./core/reports');
+const monitor = require('./core/monitor');
 const { kstStamp } = require('./core/kst');
 
 function loadDataset(projectId) {
@@ -61,6 +62,15 @@ async function run(opts = {}) {
 
   const dataset = loadDataset(projectId);
   const ctx = { projectId, dataset, log };
+
+  // Control Tower 시작 — 이후 모든 Agent 상태가 실시간으로 기록된다
+  monitor.start(projectId);
+  // 기존 프로젝트를 재실행하는 경우 01_project 는 이미 끝난 상태다 (WAITING 으로 남으면 진행률이 왜곡된다)
+  if (opts.projectId) {
+    monitor.update(projectId, '01_project', {
+      status: monitor.STATUS.COMPLETED, progress: 100, activity: '기존 프로젝트 (재실행)',
+    });
+  }
 
   // ── 10 Output Specification (콘텐츠보다 먼저) ──────────────
   // 출력 사양이 확정되기 전에는 최종 산출물을 만들지 않는다. 초안(DRAFT)까지만 만든다.
@@ -245,6 +255,11 @@ async function run(opts = {}) {
     lastRunAt: kstStamp(),
   });
 
+  monitor.finish(projectId);
+  const snap = monitor.snapshot(projectId);
+  store.writeJson(projectId, '01_Project/control-tower.json', snap);
+
+  log(`  진행률: 전체 ${snap.overall}% (제작 ${snap.tracks.production.pct}% · 검증 ${snap.tracks.validation.pct}% · 산출 ${snap.tracks.output.pct}% · 승인 ${snap.tracks.approval.pct}%) · ${snap.health.mark} ${snap.health.level}`);
   log(check.allowed
     ? '  승인 대기: 사람 승인 후 배포 가능 (cli.js approve)'
     : `  배포 차단: ${check.reasons.join(' / ')}`);

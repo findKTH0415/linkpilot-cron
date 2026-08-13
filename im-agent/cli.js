@@ -270,6 +270,120 @@ function cmdValidate(projectId) {
   console.log(`\n  보고서: 11_QC/validation-report.md · red-flag-report.md · traceability-report.md\n`);
 }
 
+// ── Project Control Tower ───────────────────────────────────
+function bar(pct, width = 18) {
+  const filled = Math.round((Math.max(0, Math.min(100, pct)) / 100) * width);
+  return '█'.repeat(filled) + '░'.repeat(width - filled);
+}
+
+function cmdMonitor(projectId) {
+  if (!projectId) return fail('사용법: cli.js monitor <PROJECT_ID>');
+  const monitor = require('./core/monitor');
+  const snap = monitor.snapshot(projectId);
+  if (!snap.agents.length) return fail('모니터 기록이 없다 — cli.js run 을 먼저 실행한다');
+
+  const T = snap.tracks;
+  console.log('');
+  console.log('┌────────────────────────────────────────────────────────────┐');
+  console.log('│ LINKPILOT PROJECT CONTROL TOWER                            │');
+  console.log('└────────────────────────────────────────────────────────────┘');
+  console.log(`  Project  : ${snap.project.name}`);
+  console.log(`  ID       : ${snap.project.id}   ${snap.health.mark} ${snap.health.level} (${snap.health.reason})`);
+  console.log(`  Elapsed  : ${Math.round(snap.timing.elapsedMs / 1000)}s`
+    + (snap.timing.estimatedRemainingMs ? `   Est. remaining ~${Math.round(snap.timing.estimatedRemainingMs / 1000)}s (참고값)` : ''));
+
+  console.log('\n① OVERALL PROGRESS');
+  console.log(`  전체  ${bar(snap.overall)} ${String(snap.overall).padStart(3)}%`);
+  console.log('  ※ Agent 진행률이 아니라 4개 트랙의 가중합이다. Agent를 다 돌려도 검증 전이면 100%가 되지 않는다.\n');
+  for (const k of ['production', 'validation', 'output', 'approval']) {
+    console.log(`  ${T[k].label.padEnd(24)} ${bar(T[k].pct, 14)} ${String(T[k].pct).padStart(3)}%  (비중 ${T[k].weight}%)  ${T[k].detail || ''}`);
+  }
+
+  console.log('\n② AGENT ACTIVITY');
+  const icon = { COMPLETED: '●', WARNING: '▲', RUNNING: '▶', ERROR: '✕', WAITING: '○', SKIPPED: '·', BLOCKED: '■' };
+  for (const a of snap.agents) {
+    const t = a.elapsedMs ? `${(a.elapsedMs / 1000).toFixed(1)}s` : '';
+    console.log(`  ${icon[a.status] || '·'} ${a.id.padEnd(20)} ${String(a.progress).padStart(3)}%  ${a.status.padEnd(10)} ${t.padStart(7)}  ${(a.activity || '').slice(0, 34)}`);
+  }
+  if (snap.bottleneck) {
+    console.log(`\n  병목: ${snap.bottleneck.label} — ${(snap.bottleneck.elapsedMs / 1000).toFixed(1)}s (전체의 ${snap.bottleneck.sharePct}%, 후속 ${snap.bottleneck.dependents}개, 영향 ${snap.bottleneck.impactLevel})`);
+  }
+  if (snap.waiting.length) {
+    console.log('  대기: ' + snap.waiting.map(w => `${w.id} ← ${w.waitingFor.join(',')}`).join(' / '));
+  }
+
+  console.log('\n③ VALIDATION / RISK');
+  if (T.validation.score !== null) {
+    console.log(`  Score ${T.validation.score}/100 · ${T.validation.status}`);
+    console.log(`  🔴 CRITICAL ${T.validation.critical}   🟠 MAJOR ${T.validation.major}   🟡 MINOR ${T.validation.minor}   GATE ${T.validation.gatesPassed}/${T.validation.gatesTotal}`);
+  } else {
+    console.log(`  ${T.validation.detail}`);
+  }
+
+  console.log('\n④ OUTPUT STATUS');
+  for (const f of T.output.files) {
+    console.log(`  ${f.exists ? '✓' : '○'} ${f.label.padEnd(16)} ${f.path}`);
+  }
+  console.log(`  사양: ${T.output.detail}${T.output.manifestStatus ? ` · 매니페스트: ${T.output.manifestStatus}` : ''}`);
+
+  if (T.approval.reasons.length) {
+    console.log('\n  USER ACTION REQUIRED');
+    for (const r of T.approval.reasons) console.log(`   - ${r}`);
+  }
+
+  const acts = snap.activity.slice(-8);
+  if (acts.length) {
+    console.log('\n  LIVE ACTIVITY');
+    for (const a of acts) {
+      console.log(`  ${a.at.slice(11, 19)}  ${a.agent.padEnd(18)} ${a.level === 'WARN' ? '⚠ ' : ''}${a.message.slice(0, 60)}`);
+    }
+  }
+  console.log('');
+}
+
+// ── 데이터 계보 / 변경 영향 ─────────────────────────────────
+function cmdLineage(projectId, key) {
+  if (!projectId || !key) return fail('사용법: cli.js lineage <PROJECT_ID> <dictionary-key>   예: lineage LP-DC-2026-001 building.gfa_sqm');
+  const lineage = require('./core/lineage');
+  const r = lineage.trace(projectId, key);
+  if (!r.found) return fail(`${key}: ${r.reason}`);
+
+  console.log(`\n  DATA LINEAGE — ${r.label} (${r.key})`);
+  console.log(`  값: ${r.value}${r.unit ? ' ' + r.unit : ''} · 등급 ${r.grade} · ${r.verified ? '검증됨' : '미검증'}${r.conflicted ? ' · ⚠ 값 충돌 있음' : ''}\n`);
+  for (const c of r.chain) {
+    console.log(`  ${c.adopted ? '│' : '╎'} [${c.stage}] ${c.label}${c.adopted ? '' : '  (미채택)'}`);
+    if (c.detail) console.log(`  ${c.adopted ? '│' : '╎'}    ${c.detail}`);
+    if (c.value !== null && c.value !== undefined) console.log(`  ${c.adopted ? '│' : '╎'}    값: ${c.value}`);
+    console.log(`  ${c.adopted ? '▼' : '╎'}`);
+  }
+  if (r.consumers.length) {
+    console.log('  소비처');
+    for (const c of r.consumers) console.log(`   - ${c.stage}: ${c.affects.slice(0, 5).join(', ')}${c.affects.length > 5 ? ` 외 ${c.affects.length - 5}건` : ''}`);
+  }
+  console.log('');
+}
+
+function cmdImpact(projectId, key) {
+  if (!projectId || !key) return fail('사용법: cli.js impact <PROJECT_ID> <dictionary-key>');
+  const lineage = require('./core/lineage');
+  const r = lineage.impact(projectId, key);
+
+  console.log(`\n  CHANGE IMPACT — ${r.label} (${r.key})\n`);
+  console.log(`  이 값을 바꾸면 ${r.totalAffected}개 결과물이 영향을 받는다.\n`);
+  console.log(`  재실행할 Agent (순서대로):`);
+  for (const a of r.rerunOrder) console.log(`   ${r.rerunOrder.indexOf(a) + 1}. ${a}`);
+  if (r.affectedValues.length) {
+    console.log(`\n  다시 계산되는 값 ${r.affectedValues.length}건:`);
+    console.log('   ' + r.affectedValues.map(v => v.label).join(', '));
+  }
+  console.log(`\n  갱신되는 문서 ${r.affectedDocuments.length}건:`);
+  for (const d of r.affectedDocuments) console.log(`   - ${d}`);
+  if (r.requiresNewVersion) {
+    console.log('\n  ⚠ 이미 승인된 프로젝트다 — 변경하면 새 버전이 필요하다.');
+  }
+  console.log(`\n  재실행: cli.js run ${projectId}\n`);
+}
+
 function cmdQuota() {
   const cache = require('./connectors/cache');
   const vworld = require('./connectors/vworld');
@@ -362,6 +476,9 @@ async function main() {
     case 'design': return cmdDesign(process.argv[3], process.argv[4]);
     case 'spec': return cmdSpec(process.argv[3], process.argv[4]);
     case 'validate': return cmdValidate(a1);
+    case 'monitor': return cmdMonitor(a1);
+    case 'lineage': return cmdLineage(a1, process.argv[4]);
+    case 'impact': return cmdImpact(a1, process.argv[4]);
     case 'list': return cmdList();
     case 'approve': return cmdApprove(a1);
     case 'demo': return cmdDemo();
@@ -383,6 +500,9 @@ async function main() {
   spec set <ID> --pages 40 --size A4   출력 사양 변경
   spec confirm <ID> --by <이름>        출력 사양 확정 (LOCK)
   validate <ID>           최종 독립검증 결과 (8 GATE · 점수 · 추적성)
+  monitor <ID>            Project Control Tower (진행률 4트랙 · Agent · 위험 · 산출)
+  lineage <ID> <key>      데이터 계보 (원천자료 → 계산 → 문서)
+  impact <ID> <key>       변경 영향 분석 (무엇을 다시 계산해야 하는가)
   design revert <ID> --version 1.0   이전 디자인으로 복원
   approve <ID> --by <이름>  사람 승인 기록
   demo                    샘플 자료로 전체 흐름 시연

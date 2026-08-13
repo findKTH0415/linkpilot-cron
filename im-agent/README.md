@@ -21,7 +21,7 @@ IRR·NPV·DSCR·Exit Value는 전부 `finance/` 의 결정적 함수가 계산�
 ## 빠른 실행
 
 ```bash
-npm test                      # 182개 회귀 테스트 (네트워크 불필요)
+npm test                      # 198개 회귀 테스트 (네트워크 불필요)
 npm run im:demo               # 샘플 자료로 전체 흐름 시연 (LLM 없이 동작)
 
 node im-agent/cli.js new "인천 남동공단 6.5MW 데이터센터 개발사업 IM 작성"
@@ -66,6 +66,78 @@ Phase 3         Distribution (미구현)
 | 숫자 직접 기재 금지 | `agents/06-im-writer.js` | 치환 전 원문의 숫자를 전부 검출 |
 | 승인 차단 | `core/gate.js` | RED FLAG나 출처 없는 숫자가 있으면 승인 불가 |
 | AI 자동승인 금지 | `core/gate.js` | `approver`가 AI로 보이면 예외 |
+
+## Project Control Tower
+
+```bash
+node im-agent/cli.js monitor LP-DC-2026-001
+```
+
+### 핵심 규칙 — Agent 진행률은 프로젝트 진행률이 아니다
+
+Agent가 78% 끝났다고 프로젝트가 78% 끝난 것이 아니다. 재무검증이 20%면 그 문서는 배포할 수
+없고, 사용자가 78%를 보고 "거의 다 됐다"고 오해하면 **검증되지 않은 투자문서가 나간다.**
+
+그래서 진행률을 4개 트랙으로 나누고 전체는 가중합으로 낸다.
+
+| 트랙 | 비중 | 내용 |
+|---|---:|---|
+| PRODUCTION | 50% | Agent 실행 — 문서를 만드는 일 |
+| VALIDATION | 25% | 8 GATE 검증 — 문서가 맞는지 확인하는 일 |
+| OUTPUT | 15% | 출력 사양 확정 + 실제 파일 생성 |
+| APPROVAL | 10% | 사람 승인 |
+
+**Agent를 전부 완료해도 검증 전이면 프로젝트는 최대 50%다.** 테스트로 고정해 뒀다.
+
+실측:
+
+```
+① OVERALL PROGRESS
+  전체  ██████████████░░░░  80%
+
+  PRODUCTION (Agent 실행)    ██████████████ 100%  (비중 50%)
+  VALIDATION (검증)          ██████████░░░░  70%  (비중 25%)  GATE 5/8 · 80점
+  OUTPUT (사양·파일)          ███████████░░░  80%  (비중 15%)  사양 DRAFT
+  APPROVAL (사람 승인)        ░░░░░░░░░░░░░░   0%  (비중 10%)  승인 불가 (3건)
+```
+
+### 4개 패널
+
+- **① Overall Progress** — 4트랙 가중합 + 트랙별 분해
+- **② Agent Activity** — Agent별 상태·소요시간·현재 작업, 병목 탐지, 의존성 대기
+- **③ Validation / Risk** — 점수·GATE·CRITICAL/MAJOR/MINOR (Agent 진행과 무관하게 별도 집계)
+- **④ Output Status** — 실제 파일 존재 여부 + 사양 확정 상태
+
+Agent 작업 비중은 **개수가 아니라 중요도**로 잡는다 (재무모델 15 · IM 14 · 최종검증 12 · 추출 12 …).
+병목은 소요시간 × 후속 의존 수로 판정한다.
+
+### 데이터 계보 · 변경 영향
+
+```bash
+node im-agent/cli.js lineage LP-DC-2026-001 building.gfa_sqm   # 이 숫자는 어디서 왔는가
+node im-agent/cli.js impact  LP-DC-2026-001 revenue.annual     # 바꾸면 무엇이 흔들리는가
+```
+
+계보는 **채택되지 않은 후보까지** 보여준다 — 어느 값이 버려졌는지 알아야 한다.
+
+```
+DATA LINEAGE — 연면적 (building.gfa_sqm)
+값: 52822 ㎡ · 등급 B · 미검증 · ⚠ 값 충돌 있음
+
+│ [SOURCE] business-plan.md  p.10  "- 연면적 : 52,822㎡"
+▼
+╎ [SOURCE] technical-proposal.md  (미채택)  값: 54822
+╎
+│ [RESOLVED] 데이터셋 확정값
+▼
+│ [DOCUMENT] IM 본문  02 Investment Highlights, 05 Asset Overview
+▼
+│ [DOCUMENT] Teaser
+```
+
+변경 영향은 재실행 순서까지 낸다 (매출 변경 → 23개 결과물 영향, Agent 5개 재실행).
+
+산출물: `01_Project/control-tower.json` (UI가 그대로 읽는다) · `01_Project/activity.jsonl` (감사 추적)
 
 ## 최종 검증 게이트 (11_final_validation)
 
