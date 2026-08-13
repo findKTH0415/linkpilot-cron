@@ -9,7 +9,7 @@
  */
 
 const { buildModel } = require('../finance/model');
-const { getTemplate, buildInput, applyScenario, BASE_SCENARIOS } = require('../finance/templates');
+const { getTemplate, buildInput, applyScenario, scaleNotice, BASE_SCENARIOS } = require('../finance/templates');
 const { sensitivity } = require('../finance/metrics');
 const { requiredFor } = require('../core/dictionary');
 const { round } = require('../core/numeric');
@@ -28,6 +28,7 @@ const outputSchema = {
   required: ['scenarios', 'assumed', 'missing'],
   properties: {
     scenarios: { type: 'object' },
+    scaleNotice: { type: 'string' },
     assumed: { type: 'array' },
     missing: { type: 'array' },
     sensitivity: { type: 'object', nullable: true },
@@ -121,9 +122,12 @@ async function run(input, ctx) {
     ctx.warn(`재무모델 입력의 ${Math.round((1 - confidence) * 100)}%가 가정치다 — IM에 '가정 기반'임을 명시해야 한다`);
   }
 
+  const notice = scaleNotice(template, dataset);
+  if (notice) ctx.warn(`서식 적용 구간 이탈 — IM 첫머리에 명시된다: ${notice.slice(0, 60)}...`);
+
   return {
     scenarios, assumed, missing, sensitivity: sens, computedFacts,
-    sourcedFields: sourced, confidence,
+    sourcedFields: sourced, scaleNotice: notice, confidence,
   };
 }
 

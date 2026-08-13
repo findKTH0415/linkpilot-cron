@@ -179,13 +179,18 @@ async function run(opts = {}) {
   if (writer.output) {
     store.writeText(projectId, '09_IM/im.md', writer.output.im);
     store.writeText(projectId, '10_Teaser/teaser.md', writer.output.teaser);
+    // PDI 핸드오프 규격 산출물: 자립형 A4 HTML + 기존 뷰어용 content.json
+    if (writer.output.html) store.writeText(projectId, '12_Final/im-a4.html', writer.output.html);
+    if (writer.output.content) store.writeJson(projectId, '12_Final/content.json', writer.output.content);
     store.writeJson(projectId, '09_IM/im.json', {
       at: writer.output.generatedAt,
       sections: writer.output.sections,
       citations: writer.output.citations,
       unsourcedNumbers: writer.output.unsourcedNumbers,
+      designViolations: writer.output.designViolations || [],
     });
-    log(`  IM 생성: ${writer.output.sections.length}개 절 / 인용 ${writer.output.citations.length}건 / 출처없는숫자 ${writer.output.unsourcedNumbers.length}건`);
+    const dv = (writer.output.designViolations || []).filter(v => v.severity === 'RED').length;
+    log(`  IM 생성: ${writer.output.sections.length}개 절 / 인용 ${writer.output.citations.length}건 / 출처없는숫자 ${writer.output.unsourcedNumbers.length}건 / 디자인위반 ${dv}건`);
   }
 
   // ── 승인 게이트 판정 (승인은 사람이 별도로 한다) ───────────

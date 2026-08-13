@@ -38,6 +38,12 @@ function canApprove(projectId) {
     reasons.push(`출처 미확인 숫자 ${im.unsourcedNumbers.length}건이 본문에 존재`);
   }
 
+  // 디자인 규칙 RED 위반도 배포를 막는다 (핸드오프 게이트와 같은 취급)
+  const designRed = ((im && im.designViolations) || []).filter(v => v.severity === 'RED');
+  if (designRed.length) {
+    reasons.push(`디자인 규칙 위반 ${designRed.length}건: ${designRed.slice(0, 2).map(v => v.rule).join(', ')}`);
+  }
+
   return { allowed: reasons.length === 0, reasons };
 }
 

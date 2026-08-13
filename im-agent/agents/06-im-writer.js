@@ -16,6 +16,10 @@ const { formatEok, fmt, pct, round } = require('../core/numeric');
 const { kstDate, kstStamp } = require('../core/kst');
 const { IM_SECTIONS, TEASER_ITEMS, HOUSE_STYLE } = require('../templates/im-outline');
 const llm = require('../core/llm');
+const a4 = require('../design/a4');
+const contentJson = require('../design/content');
+const designCheck = require('../design/check');
+const { grade: confGrade, BODY_MARK } = require('../core/confidence');
 
 const inputSchema = {
   type: 'object',
@@ -40,6 +44,9 @@ const outputSchema = {
     unsourcedNumbers: { type: 'array' },
     citations: { type: 'array' },
     sections: { type: 'array' },
+    html: { type: 'string' },
+    content: { type: 'object' },
+    designViolations: { type: 'array' },
     confidence: { type: 'number', minimum: 0, maximum: 1 },
   },
 };
@@ -99,6 +106,7 @@ function buildFactSheet(dataset, keys) {
       display: displayValue(key, f),
       citation: f.citation(),
       verified: f.verified,
+      source: f.source, confidence: f.confidence, note: f.note,
     });
   }
   return sheet;
@@ -110,7 +118,7 @@ function substitute(text, dataset, citations) {
     const f = dataset.get(key);
     if (!f) return '[미확인]';
     if (!citations.find(c => c.key === key)) {
-      citations.push({ key, label: labelFor(key), value: displayValue(key, f), citation: f.citation(), verified: f.verified });
+      citations.push({ key, label: labelFor(key), value: displayValue(key, f), citation: f.citation(), verified: f.verified, source: f.source, confidence: f.confidence, note: f.note });
     }
     return displayValue(key, f) + (f.verified ? '' : ' [미검증]');
   });
@@ -136,7 +144,10 @@ function financialTable(financial) {
   const sep = `|---|${scenarios.map(() => '---:').join('|')}|`;
   const body = rows.map(([label, f]) =>
     `| ${label} | ${scenarios.map(k => f(financial.scenarios[k].metrics)).join(' | ')} |`).join('\n');
-  return [head, sep, body].join('\n');
+  const assumedCount = (financial.assumed || []).length;
+  return [head, sep, body, '',
+    `자료출처: 본 자료 재무모델(04_financial) 산출치. 문서 확인값 ${(financial.sourcedFields || []).length}건 · 통상치 가정 ${assumedCount}건 기준.`,
+  ].join('\n');
 }
 
 function sensitivityTable(financial) {
@@ -146,7 +157,8 @@ function sensitivityTable(financial) {
   const sep = `|---|${s.cols.map(() => '---:').join('|')}|`;
   const body = s.rows.map(r =>
     `| ${fmt(r.a, 2)} | ${r.cells.map(c => (c === null ? '-' : pct(c, 1))).join(' | ')} |`).join('\n');
-  return [`지표: ${s.metric}`, '', head, sep, body].join('\n');
+  return [`지표: ${s.metric}`, '', head, sep, body, '',
+    '자료출처: 본 자료 재무모델 민감도 산출치. Base 시나리오 입력을 축별로 변동시킨 결과.'].join('\n');
 }
 
 function flagsTable(validation) {
@@ -155,8 +167,10 @@ function flagsTable(validation) {
   const rows = validation.flags
     .filter(f => f.severity !== 'GREEN')
     .map(f => `| ${icon[f.severity] || `[${f.severity}]`} | ${f.type} | ${f.message} |`);
-  if (!rows.length) return '중대 위험요인 미검출 (RED/YELLOW 없음)';
-  return ['| 구분 | 유형 | 내용 |', '|---|---|---|', ...rows].join('\n');
+  if (!rows.length) return ['중대 위험요인 미검출 (RED/YELLOW 없음)', '',
+    '자료출처: 본 자료 교차검증(05_validation) 결과.'].join('\n');
+  return ['| 구분 | 유형 | 내용 |', '|---|---|---|', ...rows, '',
+    '자료출처: 본 자료 교차검증(05_validation) 결과. 원본자료 간 값 불일치·법정한도 초과·정합성 위반을 자동 검출한 것이다.'].join('\n');
 }
 
 /** 입지·지적 표. 인증키가 들어간 이미지 URL은 절대 넣지 않는다(공개 지도 링크만). */
@@ -184,7 +198,8 @@ function geoTable(geo) {
   }
   if (geo.geo.satelliteImage) rows.push(['위성영상', `\`${geo.geo.satelliteImage}\``, 'VWorld 위성영상']);
 
-  return ['| 항목 | 내용 | 출처 |', '|---|---|---|', ...rows.map(r => `| ${r[0]} | ${r[1]} | ${r[2]} |`)].join('\n');
+  return ['| 항목 | 내용 | 출처 |', '|---|---|---|', ...rows.map(r => `| ${r[0]} | ${r[1]} | ${r[2]} |`), '',
+    '자료출처: 국토교통부 공간정보 오픈플랫폼(VWorld) 지오코딩·연속지적도·토지이용계획, 국토교통부 건축물대장. 조회 시점 기준.'].join('\n');
 }
 
 /** 매스 검토표 + 3D 산출물 안내 */
@@ -202,7 +217,8 @@ function massingTable(massing) {
   if (massing.model) rows.push(['매스 높이', `${massing.model.heightM}m (층고 ${massing.model.floorHeight}m 가정)`]);
   if (i.limitSource) rows.push(['법정 한도 근거', i.limitSource]);
 
-  const table = ['| 항목 | 값 |', '|---|---:|', ...rows.map(r => `| ${r[0]} | ${r[1]} |`)].join('\n');
+  const table = ['| 항목 | 값 |', '|---|---:|', ...rows.map(r => `| ${r[0]} | ${r[1]} |`), '',
+    `자료출처: 대지·연면적은 원본자료 및 지적공부, 법정 한도는 ${i.limitSource || '용도지역 미확인'}. 계획 용적률·건폐율은 본 자료 산출치.`].join('\n');
   const files = (massing.files || []).length
     ? `\n\n3D 매스 산출물: ${massing.files.map(f => `\`${f}\``).join(' · ')}\n\n> ${massing.model ? massing.model.footprintBasis : ''} — 용적률·건폐율 검토용 매스이며 설계안이 아니다.`
     : '';
@@ -221,7 +237,8 @@ function appraisalTable(appraisal) {
   if (appraisal.concluded) {
     out.push(`| **결론(가중평균)** | **${formatEok(appraisal.concluded.valueEok)}** | ${Object.entries(appraisal.concluded.weights).map(([k, v]) => `${k} ${Math.round(v * 100)}%`).join(', ')} |`);
   }
-  out.push('', `> ⚠ ${appraisal.disclaimer}`);
+  out.push('', `> ${appraisal.disclaimer}`);
+  out.push('', '자료출처: 개별공시지가·국토교통부 실거래가(공공데이터) 및 본 자료 재무모델. 3방식 가중평균은 본 자료 산출치.');
 
   const assumptions = Object.values(appraisal.methods).filter(m => m.assumption);
   if (assumptions.length) {
@@ -232,6 +249,7 @@ function appraisalTable(appraisal) {
     for (const c of appraisal.comparables.slice(0, 5)) {
       out.push(`| ${c.dealDate || c.ym} | ${c.dong || '-'} | ${c.areaSqm ? fmt(c.areaSqm, 0) + '㎡' : '-'} | ${c.dealAmountEok !== null ? formatEok(c.dealAmountEok) : '-'} | ${c.pricePerSqm ? fmt(c.pricePerSqm, 0) : '-'} |`);
     }
+    out.push('', '자료출처: 국토교통부 실거래가 공개시스템(공공데이터포털 API).');
   }
   return out.join('\n');
 }
@@ -270,6 +288,8 @@ async function run(input, ctx) {
   if (!ds) throw new Error('ctx.dataset 필요');
 
   const { financial, research, validation, geo, appraisal, massing } = input;
+  // 서식 적용 구간 이탈 안내 (PDI SOLAR REPORT SPEC §10)
+  const scaleNotice = (financial && financial.scaleNotice) || '';
   const citations = [];
   const unsourced = [];
   const sections = [];
@@ -287,6 +307,8 @@ async function run(input, ctx) {
     '',
     '> 본 문서의 모든 수치에는 출처가 표기되어 있으며, [미검증] 표기는 단일 출처로만 확인된 값이다.',
     '> 최종 배포 전 반드시 사람의 승인이 필요하다.',
+    scaleNotice ? `>` : '',
+    scaleNotice ? `> 서식 적용 구간 안내: ${scaleNotice}` : '',
     '',
   ].filter(Boolean).join('\n');
 
@@ -324,7 +346,7 @@ async function run(input, ctx) {
           ? factSheet.map(f => `- ${f.label}: ${f.display}${f.verified ? '' : ' [미검증]'} (출처: ${f.citation})`).join('\n')
           : (section.table ? '' : '_자료 미확보 — 원본자료 보완 필요_'); // 표가 붙는 절에는 자리표시 문구를 넣지 않는다
         factSheet.forEach(f => {
-          if (!citations.find(c => c.key === f.key)) citations.push({ key: f.key, label: f.label, value: f.display, citation: f.citation, verified: f.verified });
+          if (!citations.find(c => c.key === f.key)) citations.push({ key: f.key, label: f.label, value: f.display, citation: f.citation, verified: f.verified, source: f.source, confidence: f.confidence, note: f.note });
         });
       }
     }
@@ -351,6 +373,8 @@ async function run(input, ctx) {
     body.push('| 항목 | 적용값 | 근거 |', '|---|---:|---|');
     body.push(...financial.assumed.map(a => `| ${a.field} | ${fmt(a.value, 2)} | ${a.reason} |`));
     body.push('');
+    body.push('자료출처: 본 자료 자산유형별 재무 템플릿의 시장 통상치. 원본자료에서 확인되지 않아 적용된 가정값이다.');
+    body.push('');
   }
 
   // 감정평가 부록 (부동산개발 프로젝트에서만 생성된다)
@@ -367,6 +391,8 @@ async function run(input, ctx) {
     body.push(`| ${c.label} | ${c.value} | ${c.citation} | ${c.verified ? 'O' : 'X'} |`);
   }
   body.push('');
+  body.push('자료출처: 각 행에 표기된 원본자료·공공데이터 및 본 자료 산출치. 검증 O = 독립 출처 2건 이상 일치.');
+  body.push('');
   body.push(`_${HOUSE_STYLE.footer}_`);
 
   const im = `${header}\n${body.join('\n')}`;
@@ -376,7 +402,7 @@ async function run(input, ctx) {
     const f = ds.get(item.key);
     if (!f) return `| ${item.label} | 자료 확인 필요 | - |`;
     if (!citations.find(c => c.key === item.key)) {
-      citations.push({ key: item.key, label: item.label, value: displayValue(item.key, f), citation: f.citation(), verified: f.verified });
+      citations.push({ key: item.key, label: item.label, value: displayValue(item.key, f), citation: f.citation(), verified: f.verified, source: f.source, confidence: f.confidence, note: f.note });
     }
     return `| ${item.label} | ${displayValue(item.key, f)}${f.verified ? '' : ' [미검증]'} | ${f.citation()} |`;
   });
@@ -392,6 +418,9 @@ async function run(input, ctx) {
     `_${HOUSE_STYLE.footer}_`,
   ].join('\n');
 
+  // Confidence 등급(A~E)은 기존 값에서 파생한다 — 이중 관리하지 않는다
+  for (const c of citations) c.grade = confGrade({ source: c.source || c.citation, confidence: c.confidence, verified: c.verified, note: c.note });
+
   const verifiedRatio = citations.length
     ? citations.filter(c => c.verified).length / citations.length
     : 0;
@@ -401,16 +430,88 @@ async function run(input, ctx) {
     ctx.warn(`출처 없는 숫자 총 ${unsourced.length}건 — 승인 게이트에서 배포가 차단된다`);
   }
 
+  // ── 디자인 산출물 (PDI 핸드오프 규격) ──────────────────────
+  const docMeta = {
+    projectId: input.projectId,
+    projectName: name ? String(name.value) : input.projectId,
+    assetType: ds.get('project.assetType') ? String(ds.get('project.assetType').value) : null,
+    location: ds.get('project.location') ? String(ds.get('project.location').value) : null,
+    scaleNotice,
+    sections,
+    citations,
+    unsourcedNumbers: unsourced,
+    validation,
+    generatedAt: kstStamp(),
+    valueRange: financial && financial.scenarios
+      ? `${formatEok(financial.scenarios.downside.metrics.exitValue)} ~ ${formatEok(financial.scenarios.upside.metrics.exitValue)}`
+      : null,
+    kpis: buildKpis(financial, ds),
+    disclaimers: buildDisclaimers(appraisal, massing, financial),
+    assets: (massing && massing.files) || [],
+  };
+
+  let html = '';
+  let designViolations = [];
+  try {
+    html = a4.render(docMeta);
+    const check = designCheck.checkHtml(html, { chapterCount: sections.length });
+    designViolations = check.violations;
+    for (const v of check.violations.filter(x => x.severity === 'RED')) {
+      ctx.warn(`디자인 규칙 위반 [${v.rule}] ${v.message}`);
+    }
+  } catch (e) {
+    ctx.warn(`A4 HTML 생성 실패: ${e.message}`);
+  }
+
+  const mdCheck = designCheck.checkMarkdown(im);
+  for (const v of mdCheck.violations.filter(x => x.severity === 'RED')) {
+    ctx.warn(`디자인 규칙 위반 [${v.rule}] ${v.message}`);
+    designViolations.push(v);
+  }
+
   return {
     im, teaser, sections, citations,
     unsourcedNumbers: unsourced,
-    generatedAt: kstStamp(),
+    html,
+    content: contentJson.build(docMeta),
+    designViolations,
+    generatedAt: docMeta.generatedAt,
     confidence,
   };
+}
+
+/** 표지 KPI 4개 — 전부 계산 결과이거나 출처 있는 값 */
+function buildKpis(financial, ds) {
+  const kpis = [];
+  if (financial && financial.scenarios) {
+    const m = financial.scenarios.base.metrics;
+    kpis.push({ value: formatEok(m.totalProjectCost), label: 'Total Project Cost' });
+    kpis.push({ value: pct(m.equityIRR), label: 'Equity IRR (Base)' });
+    kpis.push({ value: m.minDSCR === null ? '-' : `${fmt(m.minDSCR, 2)}x`, label: 'Min DSCR' });
+  }
+  const gfa = ds.num('building.gfa_sqm');
+  if (gfa) kpis.push({ value: `${fmt(gfa, 0)}㎡`, label: 'Gross Floor Area' });
+  return kpis;
+}
+
+/** 중요 고지 문단 — 산출물 성격에 따라 자동 구성 */
+function buildDisclaimers(appraisal, massing, financial) {
+  const out = [
+    '본 문서의 수치는 제출된 자료와 공공데이터에서 추출·계산된 값이며, 출처가 확인되지 않은 값은 본문에 사용되지 않았다. 투자수익 지표는 전부 결정적 재무모델의 계산 결과이며 생성형 모델이 만들어낸 값이 아니다.',
+  ];
+  if (appraisal && appraisal.disclaimer) out.push(appraisal.disclaimer);
+  if (massing && massing.model) {
+    out.push('본 문서에 포함된 3D 매스는 용적률·건폐율 검토용 볼륨이며 건축 설계안이 아니다. 실시설계·인허가 도서와 다를 수 있다.');
+  }
+  if (financial && (financial.assumed || []).length) {
+    out.push(`재무모델 입력 중 ${financial.assumed.length}건은 문서에서 확인되지 않아 시장 통상치를 적용한 가정값이다. 해당 항목은 부록 A에 전량 명시했다.`);
+  }
+  out.push('본 자료는 최종 투자판단 자료가 아니며, 교차검증(Cross Validation)과 사람의 승인을 거치지 않은 상태에서 배포될 수 없다.');
+  return out;
 }
 
 module.exports = {
   id: '06_im_writer', label: 'IM Writer Agent',
   inputSchema, outputSchema, run,
-  findUnsourcedNumbers, substitute, displayValue, financialTable, geoTable, massingTable, appraisalTable,
+  findUnsourcedNumbers, substitute, displayValue, financialTable, geoTable, massingTable, appraisalTable, buildKpis, buildDisclaimers,
 };

@@ -21,7 +21,7 @@ IRR·NPV·DSCR·Exit Value는 전부 `finance/` 의 결정적 함수가 계산�
 ## 빠른 실행
 
 ```bash
-npm test                      # 113개 회귀 테스트 (네트워크 불필요)
+npm test                      # 136개 회귀 테스트 (네트워크 불필요)
 npm run im:demo               # 샘플 자료로 전체 흐름 시연 (LLM 없이 동작)
 
 node im-agent/cli.js new "인천 남동공단 6.5MW 데이터센터 개발사업 IM 작성"
@@ -135,6 +135,63 @@ CLAUDE.md의 `일 10,000건 한도 · 동일 데이터 재호출 금지` 규칙�
 ```bash
 node im-agent/cli.js quota      # 오늘 사용량·한도·캐시 위치
 ```
+
+## PDI 디자인 시스템 적용
+
+`design_handoff_grand_hyatt` · `PDI SOLAR REPORT SPEC` 핸드오프를 적용했다.
+적합성 분석과 충돌 교차검증 결과는 **`docs/DESIGN-ADOPTION.md`** 에 있다.
+
+| 파일 | 역할 |
+|---|---|
+| `design/tokens.js` | 디자인 토큰 단일 소스 (Navy/Gold/Cream · Noto Serif/Sans · 금액 포맷터) |
+| `design/a4.js` | A4 인쇄 HTML — 표지 → 중요고지 → 목차 → Chapter → 연락처(END) |
+| `design/content.js` | 기존 IM 뷰어 계약(`content.json`) — 뷰어를 다시 만들지 않는다 |
+| `design/rules.json` | 디자인 규칙 **단일 소스** — 게이트와 문서가 같은 파일을 읽는다 |
+| `design/check.js` | 규칙 게이트. RED 위반은 승인·배포를 차단한다 |
+
+산출물은 두 갈래다.
+
+```
+12_Final/im-a4.html    자립형 A4 인쇄본 (그대로 PDF 출력 가능)
+12_Final/content.json  기존 design_handoff_*/build/ 뷰어에 넣으면 그대로 렌더
+```
+
+### 게이트가 실제로 잡은 것
+
+규칙을 문서에만 적었다면 그대로 배포됐을 위반 3건을 도입 즉시 검출했다.
+
+| 위반 | 내용 |
+|---|---|
+| `D5-palette` | 매스 SVG가 아침 브리핑 팔레트(`#C00000`/Arial)를 쓰고 있었다 |
+| `D3-no-emoji` | 대외 문서에 `⚠` 기호가 들어가 있었다 |
+| `D2-caption-prefix` | 표에 `자료출처:` 캡션이 없었다 |
+
+게이트 자체도 시험한다(`test/design.test.js`) — 일부러 위반을 만들어 검출되는지 확인한다.
+
+### 서식 적용 구간 (태양광 스펙 §10)
+
+> "값은 토큰으로 갈아끼워지지만 서술문은 그대로 남는다.
+>  숫자는 게이트가 지키지만 문장은 지킬 수 없다."
+
+자산유형 템플릿의 기본 가정은 특정 규모대를 전제로 한다. 사업이 그 구간을 벗어나면
+수치는 맞아도 서술이 다른 구간 기준이 되므로, IM 첫머리와 표지에 그 사실을 밝힌다
+(`finance/templates.js` 의 `SCALE_BANDS`). 구간 안이면 빈 문자열이라 문서가 달라지지 않는다.
+
+### Confidence 등급 (A~E)
+
+등급은 **파생값**이다. 기존 `(confidence + verified + source)` 에서 계산되며 따로 저장하지 않는다
+(`core/confidence.js`). 두 곳에 적으면 반드시 어긋난다.
+
+```
+A 공적장부·감사자료·계산결과   B 신뢰 외부출처(단일)   C 문서 기반 추정
+D 템플릿 통상치·모델 가정      E 출처 미확인 ← 본문 사용 금지
+```
+
+## LinkPilot Agent Builder 적용
+
+`prompts/master-orchestrator.md` 를 System Prompt 칸에 그대로 붙여넣으면 된다.
+**이 저장소의 실제 구현과 1:1로 대응한다** — 프롬프트만 있고 구현이 없는 기능은 적지 않았다.
+적으면 모델이 있다고 믿고 거짓 산출물을 만든다.
 
 ## 재무모델 규약 (`finance/model.js`)
 

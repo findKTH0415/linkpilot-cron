@@ -12,6 +12,7 @@
  */
 
 const { triangulate, bbox, closedRing } = require('./geometry');
+const { COLOR } = require('../design/tokens');
 
 /**
  * 필지 footprint를 층수만큼 압출한 매스를 만든다.
@@ -110,7 +111,7 @@ function toGltf(mass, name = 'mass') {
     }],
     materials: [{
       name: 'mass',
-      pbrMetallicRoughness: { baseColorFactor: [0.75, 0.06, 0.06, 1], metallicFactor: 0.0, roughnessFactor: 0.85 },
+      pbrMetallicRoughness: { baseColorFactor: hexToLinear(COLOR.navy), metallicFactor: 0.0, roughnessFactor: 0.85 },
     }],
     accessors: [
       { bufferView: 0, componentType: 5126, count: posArray.length / 3, type: 'VEC3', min, max },
@@ -153,24 +154,31 @@ function toSvg(mass, { width = 720, height = 520, label = '' } = {}) {
   const sideFaces = [];
   for (let i = 0; i < ring.length; i++) {
     const j = (i + 1) % ring.length;
-    sideFaces.push(`<polygon points="${poly([bottom[i], bottom[j], top[j], top[i]])}" fill="#C00000" fill-opacity="0.16" stroke="#C00000" stroke-width="0.8"/>`);
+    sideFaces.push(`<polygon points="${poly([bottom[i], bottom[j], top[j], top[i]])}" fill="${COLOR.navyMid}" fill-opacity="0.22" stroke="${COLOR.navy}" stroke-width="0.8"/>`);
   }
 
   const floorLines = floors.slice(1, -1)
-    .map(f => `<polygon points="${poly(f)}" fill="none" stroke="#C00000" stroke-width="0.4" stroke-opacity="0.45"/>`)
+    .map(f => `<polygon points="${poly(f)}" fill="none" stroke="${COLOR.navyL2}" stroke-width="0.4" stroke-opacity="0.6"/>`)
     .join('\n  ');
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" font-family="Arial, 맑은 고딕, sans-serif">
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" font-family="'Noto Sans KR', sans-serif">
   <!-- LinkPilot IM Agent — 검토용 건축 매스(설계안 아님) -->
-  <rect width="${width}" height="${height}" fill="#ffffff"/>
-  <polygon points="${poly(bottom)}" fill="#000000" fill-opacity="0.06" stroke="#999999" stroke-width="0.8" stroke-dasharray="4 3"/>
+  <rect width="${width}" height="${height}" fill="${COLOR.surface}"/>
+  <polygon points="${poly(bottom)}" fill="${COLOR.track}" stroke="${COLOR.ruleStrong}" stroke-width="0.8" stroke-dasharray="4 3"/>
   ${sideFaces.join('\n  ')}
   ${floorLines}
-  <polygon points="${poly(top)}" fill="#C00000" fill-opacity="0.32" stroke="#C00000" stroke-width="1.2"/>
-  <text x="${pad}" y="${height - 12}" font-size="12" fill="#333333">${escapeXml(label)}</text>
-  <text x="${width - pad}" y="${height - 12}" font-size="10" fill="#888888" text-anchor="end">검토용 매스 · 설계안 아님</text>
+  <polygon points="${poly(top)}" fill="${COLOR.gold}" fill-opacity="0.30" stroke="${COLOR.gold}" stroke-width="1.2"/>
+  <text x="${pad}" y="${height - 12}" font-size="12" fill="${COLOR.body}">${escapeXml(label)}</text>
+  <text x="${width - pad}" y="${height - 12}" font-size="10" fill="${COLOR.faint}" text-anchor="end">검토용 매스 · 설계안 아님</text>
 </svg>
 `;
+}
+
+/** '#10233C' → glTF baseColorFactor (선형 근사) */
+function hexToLinear(hex) {
+  const h = hex.replace('#', '');
+  const srgb = [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16) / 255);
+  return [...srgb.map(c => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4))), 1];
 }
 
 function escapeXml(s) {
@@ -181,4 +189,4 @@ function fixed(n) {
   return Number(n).toFixed(3);
 }
 
-module.exports = { buildMass, toObj, toGltf, toSvg };
+module.exports = { buildMass, toObj, toGltf, toSvg, hexToLinear };

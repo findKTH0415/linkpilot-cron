@@ -132,6 +132,39 @@ const TEMPLATES = {
   },
 };
 
+/**
+ * 서식 적용 구간 — PDI SOLAR REPORT SPEC §10 의 교훈을 그대로 가져왔다.
+ *
+ *   "값은 토큰으로 갈아끼워지지만 서술문은 그대로 남는다.
+ *    숫자는 게이트가 지키지만 문장은 지킬 수 없다."
+ *
+ * 템플릿의 기본 가정(공사기간·금리·Cap Rate 등)은 특정 규모대를 전제로 한다.
+ * 사업이 그 구간을 벗어나면 수치는 맞아도 서술이 다른 구간 기준이 되므로,
+ * IM 첫머리에 그 사실을 밝힌다. 구간 안이면 빈 문자열이라 문서가 달라지지 않는다.
+ */
+const SCALE_BANDS = {
+  datacenter:  { key: 'capacity.it_load_mw', label: 'IT Load', unit: 'MW', min: 5, max: 100 },
+  solar:       { key: 'capacity.dc_kw', label: '설비용량', unit: 'kW', min: 1000, max: 20000 },
+  realestate:  { key: 'investment.total', label: '총사업비', unit: '억원', min: 300, max: 10000 },
+  generic:     null,
+};
+
+/**
+ * @returns {string} 구간 안이면 '' (빈 문자열)
+ */
+function scaleNotice(template, dataset) {
+  const band = SCALE_BANDS[template.id];
+  if (!band || !dataset) return '';
+  const v = dataset.num(band.key);
+  if (v === null) return '';
+  if (v >= band.min && v <= band.max) return '';
+
+  const direction = v < band.min ? '작다' : '크다';
+  return `본 서식은 ${band.label} ${band.min.toLocaleString('ko-KR')}~${band.max.toLocaleString('ko-KR')}${band.unit} 규모 사업을 기준으로 작성되었다. `
+    + `본 사업(${v.toLocaleString('ko-KR')}${band.unit})은 그 구간보다 ${direction}. `
+    + `수치는 본 사업 기준으로 계산되었으나 서술문·표준 가정은 기준 구간을 따르므로, 금융조건·공사기간·단가 서술은 별도 확인이 필요하다.`;
+}
+
 /** 사용자 요청문/자산유형 문자열 → template */
 function pickTemplate(text) {
   const s = String(text || '').toLowerCase();
@@ -193,4 +226,4 @@ function applyScenario(baseInput, scenario) {
   return out;
 }
 
-module.exports = { TEMPLATES, BASE_SCENARIOS, COMMON_MAP, pickTemplate, getTemplate, buildInput, applyScenario };
+module.exports = { TEMPLATES, BASE_SCENARIOS, COMMON_MAP, SCALE_BANDS, pickTemplate, getTemplate, buildInput, applyScenario, scaleNotice };
