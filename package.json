@@ -8,7 +8,8 @@
     "send": "node send-morning-card.js",
     "test": "node --test im-agent/test/*.test.js",
     "im": "node im-agent/cli.js",
-    "im:demo": "IM_AGENT_OFFLINE=1 node im-agent/cli.js demo"
+    "im:demo": "IM_AGENT_OFFLINE=1 node im-agent/cli.js demo",
+    "im:smoke": "node im-agent/tools/smoke-public-data.js"
   },
   "dependencies": {
     "solapi": "^5.5.1",

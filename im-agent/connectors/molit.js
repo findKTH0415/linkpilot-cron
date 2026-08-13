@@ -130,6 +130,7 @@ async function buildingRegister({ sigunguCd, bjdongCd, bun, ji }) {
   const b = r.value[0];
   return {
     ok: true, cached: r.cached,
+    raw: b, // 진단용 원본 — 필드명이 문서와 다를 때 대조한다
     value: {
       name: b.bldNm || null,
       platAreaSqm: num(b.platArea),        // 대지면적
