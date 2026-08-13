@@ -5,7 +5,59 @@ React·Vite·번들러가 필요 없다. 상위 폴더의 React 판과 화면·�
 
 > React/Vite 프로젝트라면 이 폴더가 아니라 **상위 `ui/` 폴더**를 쓴다.
 
-## 붙이는 법
+## 가장 빠른 길 — 완성 페이지 하나만 올리기
+
+`linkpilot-control-tower.html` **파일 하나를 NAS 웹 루트(`/volume1/web`)에 올리면 끝난다.**
+CSS·대시보드·프로젝트 선택기가 전부 들어 있고, 데이터는 본체 API(8181)에서 받는다.
+
+```
+https://<NAS>/linkpilot-control-tower.html
+```
+
+기존 `linkpilot-platform.html` 은 건드리지 않는다 — 원본 구조를 모르는 채 덮어쓰면 되돌릴 수 없다.
+나중에 본체 메뉴 안으로 넣고 싶으면 아래 "붙이는 법"을 쓴다.
+
+**API 주소가 다르면** 파일 안의 이 한 줄만 고친다 (파일 상단 근처):
+
+```js
+window.LINKPILOT_API = "/api/linkpilot";
+// NAS 와 API 포트가 다르면: "https://<NAS>:8181/api/linkpilot"
+```
+
+또는 빌드할 때 지정한다:
+
+```bash
+npm run im:page -- --api https://nas.example.com:8181/api/linkpilot
+```
+
+임시 확인은 주소 뒤에 `?api=...` 를 붙이면 된다. 프로젝트는 `#LP-DC-2026-001` 로 지정된다
+(새로고침·북마크·공유가 된다).
+
+## 본체 API(8181)에 붙이기
+
+페이지가 데이터를 받으려면 서버에 라우터를 걸어야 한다.
+
+```js
+// 본체 server.js
+const { createRouter } = require('/volume1/linkpilot/im-agent/ui/api-router.cjs');
+
+app.use('/api/linkpilot', createRouter({
+  agentRoot: '/volume1/linkpilot/im-projects',
+  agentModulePath: '/volume1/linkpilot/im-agent',
+}));
+```
+
+express 를 쓰지 않으면 `createHandlers()` 로 순수 핸들러만 가져다 쓴다.
+엔드포인트는 4개이며 **전부 읽기 전용**이다 — 승인·사양 확정 같은 쓰기 동작은 노출하지 않는다.
+
+| 엔드포인트 | 응답 |
+|---|---|
+| `GET /projects` | 선택용 목록 (id·name·assetType·status 만) |
+| `GET /projects/:id/control-tower` | 진행 스냅샷 |
+| `GET /projects/:id/lineage/:key` | 데이터 계보 |
+| `GET /projects/:id/impact/:key` | 변경 영향 |
+
+## 기존 화면 안에 붙이는 법
 
 `linkpilot-platform.html` 에 세 줄을 넣는다.
 

@@ -2,7 +2,8 @@
 /**
  * api-router.js — LinkPilot 본체 Node API(8181)에 붙이는 라우터.
  *
- * 대시보드가 읽는 3개 엔드포인트만 노출한다. 전부 **읽기 전용**이다.
+ * 대시보드가 읽는 4개 엔드포인트만 노출한다. 전부 **읽기 전용**이다.
+ *   GET /projects
  *   GET /projects/:id/control-tower
  *   GET /projects/:id/lineage/:key
  *   GET /projects/:id/impact/:key
@@ -35,6 +36,23 @@ function createHandlers({ agentRoot, agentModulePath }) {
   };
 
   return {
+    /**
+     * GET /projects — 프로젝트 선택용 목록.
+     *
+     * ★ 딜 내용은 내보내지 않는다. 화면에서 고르는 데 필요한 최소 항목만 담는다.
+     *   금액·IRR·검증 결과는 control-tower 로 따로 받는다.
+     */
+    async projects() {
+      const store = load('core/store');
+      const rows = store.listProjects().map(p => ({
+        id: p.id,
+        name: (p.project && p.project.name) || null,
+        assetType: (p.project && p.project.assetType) || null,
+        status: (p.project && p.project.status) || null,
+      }));
+      return { status: 200, body: { projects: rows } };
+    },
+
     /** GET /projects/:id/control-tower */
     async controlTower(projectId) {
       if (!PROJECT_ID.test(String(projectId))) {
@@ -84,6 +102,9 @@ function createRouter(deps = {}) {
   const router = express.Router();
   const send = (res, r) => res.status(r.status).json(r.body);
 
+  router.get('/projects', async (req, res, next) => {
+    try { send(res, await h.projects()); } catch (e) { next(e); }
+  });
   router.get('/projects/:id/control-tower', async (req, res, next) => {
     try { send(res, await h.controlTower(req.params.id)); } catch (e) { next(e); }
   });

@@ -8,6 +8,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 
 // ui/lib.js 는 ESM 이므로 동적 import 로 읽는다
@@ -164,4 +165,46 @@ test('API 라우터는 경로 조작을 막는다', () => {
 test('API 라우터는 읽기 전용이다 (쓰기 엔드포인트 없음)', () => {
   const src = fs.readFileSync(path.join(__dirname, '..', 'ui', 'api-router.cjs'), 'utf8');
   assert.ok(!/router\.(post|put|patch|delete)/.test(src), '쓰기 엔드포인트가 노출되면 안 된다');
+});
+
+test('GET /projects 는 선택에 필요한 항목만 내보낸다', async () => {
+  const { createHandlers } = require('../ui/api-router.cjs');
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'im-projects-'));
+  const dir = path.join(tmp, 'LP-DC-2026-001', '01_Project');
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, 'project.json'), JSON.stringify({
+    name: '인천 데이터센터', assetType: '데이터센터', status: 'blocked',
+    // ↓ 목록에 실리면 안 되는 것들
+    totalProjectCost: 296200000000, sponsor: '비공개 스폰서',
+  }));
+
+  const r = await createHandlers({ agentRoot: tmp }).projects();
+
+  assert.strictEqual(r.status, 200);
+  assert.strictEqual(r.body.projects.length, 1);
+  assert.deepStrictEqual(Object.keys(r.body.projects[0]).sort(),
+    ['assetType', 'id', 'name', 'status'],
+    '딜 내용(금액·스폰서)이 목록 API 로 새어 나가면 안 된다');
+
+  fs.rmSync(tmp, { recursive: true, force: true });
+});
+
+test('GET /projects 는 프로젝트가 없어도 죽지 않는다', async () => {
+  const { createHandlers } = require('../ui/api-router.cjs');
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'im-empty-'));
+  const r = await createHandlers({ agentRoot: tmp }).projects();
+  assert.strictEqual(r.status, 200);
+  assert.deepStrictEqual(r.body.projects, []);
+  fs.rmSync(tmp, { recursive: true, force: true });
+});
+
+test('배포 페이지: 인라인 스크립트가 조기 종료되지 않는다', () => {
+  // 닫는 스크립트 태그가 이스케이프되지 않으면 화면이 통째로 비고 오류도 안 뜬다.
+  const page = path.join(__dirname, '..', 'ui', 'vanilla', 'linkpilot-control-tower.html');
+  if (!fs.existsSync(page)) return;   // 아직 빌드 전이면 건너뛴다
+  const html = fs.readFileSync(page, 'utf8');
+  const opens = (html.match(/<script\b/gi) || []).length;
+  const closes = (html.match(/<\/script>/gi) || []).length;
+  assert.strictEqual(opens, closes, 'script 태그 짝이 맞지 않는다 — 이스케이프 누락');
+  assert.ok(!/\n\s*\*.*<\/script>/.test(html), '주석 안의 닫는 태그가 그대로 남아 있다');
 });
