@@ -10,7 +10,8 @@
     "alert:dry": "ALERT_DRY_RUN=1 ALERT_WORKFLOW=morning-brief ALERT_RUN_URL=https://github.com/findKTH0415/linkpilot-cron/actions/runs/0 node alert-failure.js",
     "im": "node im-agent/cli.js",
     "im:demo": "IM_AGENT_OFFLINE=1 node im-agent/cli.js demo",
-    "im:smoke": "node im-agent/tools/smoke-public-data.js"
+    "im:smoke": "node im-agent/tools/smoke-public-data.js",
+    "im:preview": "node im-agent/ui/vanilla/build-preview.js"
   },
   "dependencies": {
     "solapi": "^5.5.1",

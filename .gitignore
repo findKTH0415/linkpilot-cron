@@ -5,3 +5,6 @@ package-lock.json
 
 # IM Agent 프로젝트 데이터룸 — 실제 딜 자료가 들어가므로 절대 커밋하지 않는다
 im-projects/
+
+# 미리보기는 im-projects 스냅샷에서 생성한다 (npm run im:preview)
+im-agent/ui/vanilla/preview.html
