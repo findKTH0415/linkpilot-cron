@@ -31,6 +31,40 @@ const geometry = require('../geo/geometry');
 const ADDRESS = argOf('--address') || '인천광역시 남동구 남동대로 215';
 const results = [];
 
+/**
+ * 키 형식 점검.
+ * ★ 안내문의 자리표시자(<...>)를 그대로 복사해 넣는 실수가 흔하다.
+ *   그 상태로 호출하면 인증 오류만 나고 원인이 안 보이므로 여기서 먼저 잡는다.
+ *   값은 절대 출력하지 않는다 — 길이와 형식만 본다.
+ */
+function checkKeyFormat(name, raw, expect) {
+  if (!raw) return { ok: false, fatal: false, message: '미설정' };
+
+  const problems = [];
+  let value = raw;
+
+  if (/^<.*>$/.test(value)) {
+    problems.push('꺾쇠괄호 < > 가 값에 포함되어 있다 — 안내문의 자리표시자를 그대로 복사한 것이다');
+    value = value.slice(1, -1);
+  }
+  if (/^['"].*['"]$/.test(value)) {
+    problems.push('따옴표가 값 안에 포함되어 있다');
+    value = value.slice(1, -1);
+  }
+  if (/\s/.test(value)) problems.push('공백이 포함되어 있다');
+
+  if (expect === 'uuid' && !/^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$/.test(value)) {
+    problems.push(`VWorld 키는 UUID 형식이어야 한다 (현재 ${value.length}자)`);
+  }
+
+  return {
+    ok: problems.length === 0,
+    fatal: problems.length > 0,
+    cleaned: value,
+    message: problems.length ? problems.join(' / ') : `형식 정상 (${value.length}자)`,
+  };
+}
+
 function argOf(flag) {
   const i = process.argv.indexOf(flag);
   return i > -1 ? process.argv[i + 1] : null;
@@ -58,10 +92,29 @@ function report(name, ok, detail, expectedFields = null, raw = null) {
 async function main() {
   console.log('공공데이터 API 실측 진단');
   console.log('─'.repeat(60));
+
+  // ── 0. 키 형식 점검 (호출 전에 먼저) ──────────────────────
+  const vk = checkKeyFormat('VWORLD_KEY', process.env.VWORLD_KEY, 'uuid');
+  const dk = checkKeyFormat('DATA_GO_KR_KEY', process.env.DATA_GO_KR_KEY, null);
+
+  if (vk.fatal || dk.fatal) {
+    console.log('\n✕ 키 형식 오류 — 호출하기 전에 고쳐야 한다\n');
+    if (vk.fatal) console.log(`  VWORLD_KEY     : ${vk.message}`);
+    if (dk.fatal) console.log(`  DATA_GO_KR_KEY : ${dk.message}`);
+    console.log('\n  올바른 예 (꺾쇠·따옴표 없이 값만):');
+    console.log("    export VWORLD_KEY=A9C7F809-AC7C-38B2-90AF-880C060BC17A");
+    console.log("    export VWORLD_DOMAIN=synologynas.tail43fc79.ts.net\n");
+    process.exit(1);
+  }
+
+  // 정상 형식이면 정리된 값으로 교체 (따옴표 등 무해한 껍데기 제거)
+  if (vk.cleaned) process.env.VWORLD_KEY = vk.cleaned;
+  if (dk.cleaned) process.env.DATA_GO_KR_KEY = dk.cleaned;
+
   console.log(`대상 주소 : ${ADDRESS}`);
-  console.log(`VWORLD_KEY     : ${vworld.isAvailable() ? '설정됨' : '미설정 — 지오코딩/지적/공시지가 건너뜀'}`);
+  console.log(`VWORLD_KEY     : ${vworld.isAvailable() ? vk.message : '미설정 — 지오코딩/지적/공시지가 건너뜀'}`);
   console.log(`VWORLD_DOMAIN  : ${vworld.domain() || '미설정 ⚠ 서버 호출은 등록 도메인을 명시해야 허용된다'}`);
-  console.log(`DATA_GO_KR_KEY : ${molit.isAvailable() ? '설정됨' : '미설정 — 실거래가/건축물대장 건너뜀'}`);
+  console.log(`DATA_GO_KR_KEY : ${molit.isAvailable() ? dk.message : '미설정 — 실거래가/건축물대장 건너뜀'}`);
 
   let lat = null, lon = null, parsedPnu = null;
 
