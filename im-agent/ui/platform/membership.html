@@ -264,23 +264,15 @@ window.LINKPILOT_MEMBERSHIP = {
 
   // ★ null 이면 '확인 필요'로 표시된다 — 정보가 없다고 무료로 단정하지 않는다.
   //   무료 사용자는 planId:'free' 로 명시한다. 둘은 다른 상태다.
+  // ★ 이 화면은 유료 회원용이다. 무료 회원은 내정보 > 업그레이드 탭(upgrade.html)으로 보낸다.
   membership: {
-    planId: 'free', status: 'active',   // 무료는 결제일(until)이 없다
+    planId: 'pro', status: 'active', until: '2026-09-10',
     usage: [
-      { name: '프로젝트', used: 54, limit: 3 },     // 한도 초과 → 빨간 막대
-      { name: '연락처', used: 1145, limit: null },
+      { name: '프로젝트', used: 54, limit: 100 },
+      { name: 'IM 생성', used: 3, limit: 10 },
+      { name: '통화 분석', used: 128, limit: null },
     ],
   },
-
-  // 유료 사용자 예시:
-  // membership: {
-  //   planId: 'pro', status: 'active', until: '2026-09-10',
-  //   usage: [
-  //     { name: '프로젝트', used: 54, limit: 100 },
-  //     { name: 'IM 생성', used: 3, limit: 10 },
-  //     { name: '통화 분석', used: 128, limit: null },
-  //   ],
-  // },
 
   // 사이드바 '유료 멤버십' 섹션의 기능들. 어느 플랜부터 열리는지 적는다
   features: [

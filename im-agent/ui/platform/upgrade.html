@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>내정보 · 업그레이드 · LINKPILOT</title>
+<!--
+  업그레이드 — 내정보 화면의 5번째 탭. **무료 회원에게만 보인다.**
+
+  배치 규칙 (서버가 결정한다):
+    무료 회원 → 내정보 > 업그레이드 탭 (이 화면)        · 체험 유도 · 미리보기
+    유료 회원 → 더보기 > 유료 멤버십 > 멤버십 (membership.html) · 구독 관리
+
+  ★ 유료 회원에게 이 탭을 보이지 않는다. 이미 결제한 사람에게 결제를 권하는 화면이다.
+  ★ 미리보기는 전부 '예시'로 명시한다. 실제 데이터로 오해하면 안 된다.
+  ★ 카드정보를 이 화면에서 받지 않는다. 결제 페이지로 보낸다.
+-->
+<style>
+:root {
+  --lime: #9ED700; --lime-soft: #EDF7DC; --lime-deep: #5C7A00;
+  --ink: #17181A; --ink2: #7C838C; --line: #E8EAEC;
+  --panel: #F1F2F4; --bg: #F5F6F8; --surface: #FFFFFF;
+  --bad: #E03131; --warn: #E8A33D;
+  --r: 18px; --side: 248px;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 400 15px/1.55 -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
+        'Malgun Gothic', '맑은 고딕', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+h1,h2,h3,h4 { margin: 0; }
+ul { margin: 0; padding: 0; list-style: none; }
+.app { display: flex; min-height: 100%; }
+
+/* 사이드바 */
+.side { width: var(--side); flex: none; background: var(--surface);
+  border-right: 1px solid var(--line); padding: 18px 12px 24px;
+  display: flex; flex-direction: column; gap: 4px; }
+.side__brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 12px; }
+.side__mark { width: 34px; height: 34px; border-radius: 50%; flex: none;
+  border: 2.5px solid var(--ink); display: grid; place-items: center;
+  color: var(--lime); font-size: 15px; }
+.side__name { font-size: 15px; font-weight: 800; }
+.side__user { font-size: 12px; color: var(--ink2); }
+.side__group { margin: 14px 8px 6px; font-size: 12px; font-weight: 700; color: var(--ink2); }
+.nav { display: flex; align-items: center; gap: 11px; padding: 10px 12px;
+  border-radius: 12px; text-decoration: none; color: var(--ink); font-size: 14.5px; }
+.nav:hover { background: var(--panel); }
+.nav.on { background: var(--lime-soft); color: var(--lime-deep); font-weight: 700; }
+.nav.lock { color: var(--ink2); }
+.nav__ic { width: 20px; text-align: center; font-size: 15px; opacity: .8; }
+.nav__lk { margin-left: auto; font-size: 11px; }
+
+/* 본문 */
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.top { background: var(--surface); border-bottom: 1px solid var(--line);
+  padding: 16px 26px; display: flex; align-items: center; }
+.logo { display: flex; align-items: center; gap: 12px; font-size: 24px; font-weight: 900; }
+.logo em { font-style: normal; color: var(--lime); }
+.logo__mark { width: 38px; height: 38px; border-radius: 50%; border: 3px solid var(--ink);
+  display: grid; place-items: center; color: var(--lime); font-size: 16px; }
+
+.head { background: var(--surface); padding: 16px 26px 0; }
+.head__row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.head__ic { width: 40px; height: 40px; border-radius: 12px; background: var(--panel);
+  display: grid; place-items: center; font-size: 18px; }
+.head__t { font-size: 22px; font-weight: 800; }
+.head__meta { margin-left: auto; text-align: right; font-size: 13px; color: var(--ink2); }
+.head__meta b { display: block; color: var(--ink); font-weight: 700; margin-top: 2px; }
+
+.tabs { display: flex; gap: 10px; margin: 14px 0 0; padding-bottom: 14px; flex-wrap: wrap; }
+.tab { font: 700 14px/1 inherit; padding: 13px 22px; border: 0; border-radius: 12px;
+  background: var(--panel); color: var(--ink2); cursor: pointer; }
+.tab.on { background: var(--lime); color: var(--ink); }
+.tab.admin { background: var(--ink); color: #fff; }
+.tab:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.rule { height: 3px; background: var(--lime); }
+.body { padding: 22px 26px 96px; display: flex; flex-direction: column; gap: 22px; max-width: 980px; }
+
+/* 체험 배너 */
+.trial { background: var(--ink); color: #fff; border-radius: var(--r); padding: 26px; }
+.trial__t { font-size: 24px; font-weight: 800; }
+.trial__s { font-size: 14px; opacity: .82; margin-top: 10px; }
+.trial__b { display: inline-block; margin-top: 18px; padding: 14px 28px;
+  font: 700 15px/1 inherit; border: 0; border-radius: 12px;
+  background: var(--lime); color: var(--ink); cursor: pointer; }
+.trial__b:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+.trial__f { font-size: 12.5px; opacity: .7; margin-top: 12px; }
+
+.card { background: var(--surface); border-radius: var(--r); padding: 22px; }
+.card__t { font-size: 13px; font-weight: 700; color: var(--ink2); margin-bottom: 6px; }
+.card__s { font-size: 13px; color: var(--ink2); margin: 0 0 16px; }
+
+/* 미리보기 그리드 */
+.pv { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.pv__i { background: var(--panel); border: 2px solid transparent; border-radius: 14px;
+  padding: 18px 14px; text-align: center; cursor: pointer; font: inherit; color: inherit; }
+.pv__i:hover { border-color: var(--lime); background: var(--lime-soft); }
+.pv__i:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.pv__ic { font-size: 21px; line-height: 1; }
+.pv__n { font-size: 13.5px; font-weight: 600; margin-top: 9px; }
+.pv__l { font-size: 11.5px; color: var(--ink2); margin-top: 5px; }
+.pv__go { font-size: 11.5px; color: var(--lime-deep); font-weight: 700; margin-top: 6px; }
+
+/* 플랜 */
+.plans { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.plan { position: relative; background: var(--surface); border: 1.5px solid var(--line);
+  border-radius: var(--r); padding: 24px 20px; display: flex; flex-direction: column; }
+.plan--rec { border-color: var(--lime); border-width: 2.5px; }
+.plan--cur { background: var(--panel); }
+.plan__tag { position: absolute; top: -11px; left: 18px; font-size: 11.5px; font-weight: 700;
+  padding: 4px 11px; border-radius: 999px; background: var(--lime); color: var(--ink); }
+.plan__tag--cur { background: var(--ink2); color: #fff; }
+.plan__n { font-size: 18px; font-weight: 800; }
+.plan__p { font-size: 27px; font-weight: 800; margin-top: 8px; }
+.plan__p small { font-size: 13px; font-weight: 400; color: var(--ink2); }
+.plan__l { margin-top: 14px; font-size: 13.5px; color: var(--ink2); flex: 1; }
+.plan__l li { padding: 5px 0 5px 17px; position: relative; }
+.plan__l li::before { content: ''; position: absolute; left: 2px; top: 13px;
+  width: 6px; height: 6px; border-radius: 50%; background: var(--lime); }
+.btn { display: block; width: 100%; margin-top: 18px; padding: 14px;
+  font: 700 14.5px/1 inherit; border: 0; border-radius: 12px;
+  background: var(--lime); color: var(--ink); cursor: pointer; }
+.btn--off { background: var(--panel); color: var(--ink2); cursor: default; }
+.btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.fine { font-size: 12.5px; color: var(--ink2); }
+.note { padding: 13px 16px; border-radius: 12px; font-size: 13.5px;
+  background: var(--lime-soft); color: var(--ink); }
+
+/* 미리보기 모달 */
+.modal { position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-start;
+  justify-content: center; padding: 40px 20px; overflow-y: auto; background: rgba(12,20,30,.55); }
+.modal__box { width: 100%; max-width: 620px; background: var(--surface);
+  border-radius: var(--r); box-shadow: 0 24px 64px rgba(0,0,0,.3); }
+.modal__hd { display: flex; align-items: center; gap: 12px; padding: 18px 22px;
+  border-bottom: 3px solid var(--lime); }
+.modal__t { font-size: 18px; font-weight: 800; }
+.modal__x { margin-left: auto; font-size: 18px; line-height: 1; padding: 6px 10px;
+  border: 1px solid var(--line); border-radius: 10px; background: var(--surface);
+  color: var(--ink2); cursor: pointer; }
+.modal__bd { padding: 22px; display: flex; flex-direction: column; gap: 14px; }
+.sample { background: var(--panel); border-radius: 12px; padding: 16px;
+  font-size: 13.5px; white-space: pre-wrap; line-height: 1.7; }
+.badge { display: inline-block; font-size: 11.5px; font-weight: 700; padding: 4px 10px;
+  border-radius: 999px; background: var(--warn); color: var(--ink); }
+
+/* 하단 탭 */
+.bot { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; background: var(--surface);
+  border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(6, 1fr);
+  padding: 9px 0 11px; }
+.bot__i { text-align: center; font-size: 10.5px; color: var(--ink2); text-decoration: none; }
+.bot__i b { display: block; font-size: 17px; line-height: 1.35; font-weight: 400; }
+.bot__i.on { color: var(--lime-deep); font-weight: 700; }
+
+@media (max-width: 900px) {
+  .side { display: none; }
+  .top, .head { padding-left: 16px; padding-right: 16px; }
+  .body { padding: 18px 16px 96px; }
+  .head__t { font-size: 19px; }
+  .tab { flex: 1 1 auto; padding: 12px 12px; }
+  .modal { padding: 0; }
+  .modal__box { border-radius: 0; min-height: 100vh; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="side">
+    <div class="side__brand">
+      <div class="side__mark">➤</div>
+      <div><div class="side__name">LinkPilot</div><div class="side__user" id="side-user"></div></div>
+    </div>
+    <a class="nav" href="#"><span class="nav__ic">⌂</span>대시보드</a>
+    <a class="nav" href="#"><span class="nav__ic">👥</span>연락처</a>
+    <a class="nav" href="#"><span class="nav__ic">🗂</span>딜파이프라인</a>
+    <a class="nav" href="#"><span class="nav__ic">🗓</span>캘린더</a>
+    <a class="nav on" href="#" aria-current="page"><span class="nav__ic">👤</span>내정보</a>
+    <a class="nav" href="#"><span class="nav__ic">✓</span>할일</a>
+    <a class="nav" href="#"><span class="nav__ic">📁</span>프로젝트</a>
+    <a class="nav" href="#"><span class="nav__ic">💬</span>Q&amp;A</a>
+    <a class="nav" href="#"><span class="nav__ic">☆</span>투자소스 DB</a>
+
+    <div class="side__group">유료 멤버십</div>
+    <!-- 무료 회원에게는 잠금으로만 보인다. '멤버십' 관리 항목은 유료 회원에게만 생긴다 -->
+    <a class="nav lock" href="#"><span class="nav__ic">☆</span>오늘의 한줄생각<span class="nav__lk">🔒</span></a>
+    <a class="nav lock" href="#"><span class="nav__ic">☀</span>아침브리핑<span class="nav__lk">🔒</span></a>
+    <a class="nav lock" href="#"><span class="nav__ic">📞</span>통화음성분석<span class="nav__lk">🔒</span></a>
+    <a class="nav lock" href="#"><span class="nav__ic">★</span>프리미엄 투자소스 DB<span class="nav__lk">🔒</span></a>
+    <a class="nav lock" href="#"><span class="nav__ic">🔆</span>신재생에너지 분석<span class="nav__lk">🔒</span></a>
+  </aside>
+
+  <div class="main">
+    <div class="top"><div class="logo"><span class="logo__mark">➤</span>LINK<em>PILOT</em></div></div>
+
+    <div class="head">
+      <div class="head__row">
+        <div class="head__ic">👤</div>
+        <h1 class="head__t">내 정보</h1>
+        <div class="head__meta"><span id="head-date"></span><b id="head-user"></b></div>
+      </div>
+      <div class="tabs" role="tablist">
+        <button class="tab" type="button" role="tab">프로필</button>
+        <button class="tab" type="button" role="tab">로그인</button>
+        <button class="tab" type="button" role="tab">DB연동</button>
+        <button class="tab admin" type="button" role="tab">관리자</button>
+        <button class="tab on" type="button" role="tab" aria-selected="true">업그레이드</button>
+      </div>
+    </div>
+    <div class="rule"></div>
+
+    <div class="body" id="view"></div>
+  </div>
+</div>
+
+<nav class="bot" aria-label="주요 화면">
+  <a class="bot__i" href="#"><b>⌂</b>대시보드</a>
+  <a class="bot__i" href="#"><b>👥</b>연락처</a>
+  <a class="bot__i" href="#"><b>🗂</b>딜파이프라인</a>
+  <a class="bot__i" href="#"><b>🗓</b>캘린더</a>
+  <a class="bot__i on" href="#"><b>👤</b>내정보</a>
+  <a class="bot__i" href="#"><b>☰</b>더보기</a>
+</nav>
+
+<script>
+/* ── 설정 ──────────────────────────────────────────────────────────
+ * 서버가 로그인 세션을 보고 내려준다. 화면 표시는 표시일 뿐이므로
+ * 권한 검사는 서버에서 한 번 더 한다.
+ *
+ * ★ 이 탭은 무료 회원에게만 노출한다 (planId === 'free').
+ *   유료 회원에게는 더보기 > 유료 멤버십 > 멤버십 화면을 보여준다.
+ * ───────────────────────────────────────────────────────────────── */
+window.LINKPILOT_UPGRADE = {
+  me: { name: '홍길동', email: 'user@example.com' },
+  planId: 'free',
+
+  currency: 'USD',
+
+  // 무료 체험. null 이면 체험 배너 대신 플랜 안내만 나온다 — 없는 혜택을 만들지 않는다
+  trial: { days: 14, planId: 'pro' },
+
+  billingUrl: null,
+
+  // 미리보기 — 각 유료 기능이 무엇을 만들어 주는지 예시로 보여준다
+  previews: [
+    {
+      icon: '☆', name: '오늘의 한줄생각', from: 'basic',
+      what: '매일 아침 테마에 맞춘 문장을 카드로 만들어 보내드립니다.',
+      sample: '"기회는 준비된 사람에게만 기회로 보인다."\n\n2026년 8월 14일 금요일\n— 오늘의 테마: 결정',
+    },
+    {
+      icon: '☀', name: '아침브리핑', from: 'basic',
+      what: '일정·업무·프로젝트·인맥을 8개 섹션으로 정리해 매일 아침 보내드립니다.',
+      sample: '✅ 오늘 핵심정리\n남동공단 현장실사 준비가 오늘의 최우선입니다.\n\n🗓 오늘의 일정\n09:30 새만금 태양광 킥오프 · 참석 박상무\n📍 여의도 IFC\n\n🚨 오늘 반드시 처리할 업무\n1. CB 발행조건 확정 · 마감 오늘',
+    },
+    {
+      icon: '📞', name: '통화음성분석', from: 'pro',
+      what: '통화 내용을 요약하고 후속 조치를 뽑아 할일로 연결합니다.',
+      sample: '통화 요약 (12분 · 박상무)\n· 부동산PF 브릿지 금리 조건 논의\n· 담보 인정비율 60% 선에서 협의\n\n후속 액션\n1. 감정평가서 송부 (D+2)\n2. 대주단 미팅 일정 회신',
+    },
+    {
+      icon: '★', name: '프리미엄 투자소스 DB', from: 'pro',
+      what: '기관별 투자 성향·담당자·최근 집행 이력을 검색합니다.',
+      sample: '검색: 데이터센터 · 선순위\n\nK증권 IB본부 | 부동산PF\n최근 집행 3건 · 티켓 300~800억\n담당 박상무 · 최근 접촉 12일 전\n\nS자산운용 | 대체투자\n최근 집행 1건 · 티켓 500억~',
+    },
+    {
+      icon: '🔆', name: '신재생에너지 분석', from: 'business',
+      what: 'SMP·REC 추이와 사업성 지표를 자동으로 계산합니다.',
+      sample: '새만금 태양광 120MW\n\nSMP 평균      134.2 원/kWh\nREC 가중치    1.2\n예상 연매출    412억원\nProject IRR   8.4%\nminDSCR       1.32',
+    },
+  ],
+
+  plans: [
+    { id: 'free', name: 'Free', price: 0,
+      features: ['할일 · 연락처 · 프로젝트', '딜파이프라인 · 캘린더', 'Q&A · 투자소스 DB', '프로젝트 3건'] },
+    { id: 'basic', name: 'Basic', price: 25,
+      features: ['오늘의 한줄생각', '아침브리핑', '프로젝트 30건'] },
+    { id: 'pro', name: 'Pro', price: 55, recommended: true,
+      features: ['Basic 전체', '통화음성분석', '프리미엄 투자소스 DB', '프로젝트 100건'] },
+    { id: 'business', name: 'Business', price: 130,
+      features: ['Pro 전체', '신재생에너지 분석', 'IM 자동생성', '프로젝트 무제한'] },
+  ],
+};
+
+(function () {
+  'use strict';
+  var C = window.LINKPILOT_UPGRADE;
+  var view = document.getElementById('view');
+
+  function el(t, c, x) {
+    var n = document.createElement(t);
+    if (c) n.className = c;
+    if (x !== undefined && x !== null && x !== '') n.textContent = String(x);
+    return n;
+  }
+  function add(p) { for (var i = 1; i < arguments.length; i++) if (arguments[i]) p.appendChild(arguments[i]); return p; }
+  function planOf(id) { return C.plans.filter(function (p) { return p.id === id; })[0] || null; }
+
+  /** 날짜는 Asia/Seoul 로 명시 계산한다 */
+  function todayLabel() {
+    var p = new Intl.DateTimeFormat('ko-KR', {
+      timeZone: 'Asia/Seoul', year: 'numeric', month: 'numeric', day: 'numeric', weekday: 'short',
+    }).formatToParts(new Date());
+    var g = function (t) { return (p.filter(function (x) { return x.type === t; })[0] || {}).value || ''; };
+    return g('year') + '.' + g('month') + '.' + g('day') + ' (' + g('weekday') + ')';
+  }
+
+  /** ★ 환율 환산을 하지 않는다. 설정 통화 그대로 보여준다 */
+  function price(p) {
+    if (p === null || p === undefined || p === '') return '문의';
+    if (p === 0) return '무료';
+    if (typeof p !== 'number') return String(p);
+    var cur = C.currency || 'KRW';
+    if (cur === 'KRW') return p.toLocaleString('ko-KR') + '원';
+    try {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency', currency: cur, minimumFractionDigits: 0, maximumFractionDigits: 0,
+      }).format(p);
+    } catch (e) { return cur + ' ' + p.toLocaleString('en-US'); }
+  }
+
+  document.getElementById('side-user').textContent = C.me.name || '';
+  document.getElementById('head-user').textContent = C.me.name || '';
+  document.getElementById('head-date').textContent = todayLabel();
+
+  // ── 체험 배너 ────────────────────────────────────
+  function trialBanner() {
+    var box = el('div', 'trial');
+    var t = C.trial;
+    if (!t) {
+      // 체험이 없으면 있는 척하지 않는다
+      box.appendChild(el('div', 'trial__t', '유료 기능을 사용해 보세요'));
+      box.appendChild(el('div', 'trial__s',
+        '아래에서 각 기능이 무엇을 만들어 주는지 미리 볼 수 있습니다.'));
+      return box;
+    }
+    var tp = planOf(t.planId);
+    box.appendChild(el('div', 'trial__t', (tp ? tp.name : '') + ' ' + t.days + '일 무료 체험'));
+    box.appendChild(el('div', 'trial__s',
+      '결제 없이 ' + t.days + '일 동안 유료 기능을 그대로 써볼 수 있습니다. '
+      + '체험이 끝나면 자동으로 Free 로 돌아가며, 별도로 결제되지 않습니다.'));
+    var b = el('button', 'trial__b', '무료로 시작하기');
+    b.type = 'button';
+    b.addEventListener('click', function () { go(tp || planOf('pro'), true); });
+    box.appendChild(b);
+    // 자동결제 여부는 사용자가 가장 궁금해하는 부분이라 버튼 옆에 바로 적는다
+    box.appendChild(el('div', 'trial__f', '카드 등록 없이 시작 · 자동 결제 없음'));
+    return box;
+  }
+
+  // ── 미리 사용해보기 ──────────────────────────────
+  function previewSection() {
+    var box = el('section', 'card');
+    box.appendChild(el('h2', 'card__t', '미리 사용해보기'));
+    box.appendChild(el('p', 'card__s', '눌러서 각 기능이 무엇을 만들어 주는지 확인하세요.'));
+    var grid = el('div', 'pv');
+
+    C.previews.forEach(function (f) {
+      var need = planOf(f.from);
+      var b = el('button', 'pv__i');
+      b.type = 'button';
+      add(b, el('div', 'pv__ic', f.icon), el('div', 'pv__n', f.name),
+        el('div', 'pv__l', (need ? need.name : f.from) + ' 부터'),
+        el('div', 'pv__go', '미리보기 →'));
+      b.addEventListener('click', function () { openPreview(f); });
+      grid.appendChild(b);
+    });
+    box.appendChild(grid);
+    return box;
+  }
+
+  function openPreview(f) {
+    var need = planOf(f.from);
+    var ov = el('div', 'modal');
+    ov.setAttribute('role', 'dialog');
+    ov.setAttribute('aria-modal', 'true');
+    ov.setAttribute('aria-label', f.name + ' 미리보기');
+
+    var box = el('div', 'modal__box');
+    var hd = el('div', 'modal__hd');
+    add(hd, el('span', null, f.icon), el('h3', 'modal__t', f.name));
+    var x = el('button', 'modal__x', '✕');
+    x.type = 'button';
+    x.setAttribute('aria-label', '닫기');
+    hd.appendChild(x);
+    box.appendChild(hd);
+
+    var bd = el('div', 'modal__bd');
+    bd.appendChild(el('p', null, f.what));
+    // ★ 예시임을 반드시 밝힌다. 실제 내 데이터로 오해하면 안 된다
+    bd.appendChild(el('span', 'badge', '예시 화면 — 실제 데이터가 아닙니다'));
+    bd.appendChild(el('div', 'sample', f.sample));
+
+    var b = el('button', 'btn', (need ? need.name : '유료') + ' 플랜으로 사용하기');
+    b.type = 'button';
+    b.addEventListener('click', function () { shut(); go(need); });
+    bd.appendChild(b);
+    box.appendChild(bd);
+    ov.appendChild(box);
+
+    function shut() { ov.remove(); document.removeEventListener('keydown', onKey); }
+    function onKey(e) { if (e.key === 'Escape') shut(); }
+    x.addEventListener('click', shut);
+    ov.addEventListener('click', function (e) { if (e.target === ov) shut(); });
+    document.addEventListener('keydown', onKey);
+
+    document.body.appendChild(ov);
+    x.focus();
+  }
+
+  // ── 플랜 ─────────────────────────────────────────
+  function plansSection() {
+    var box = el('section', 'card');
+    box.appendChild(el('h2', 'card__t', '플랜'));
+    var list = el('div', 'plans');
+
+    C.plans.forEach(function (p) {
+      var cur = p.id === C.planId;
+      var c = el('article', 'plan' + (p.recommended && !cur ? ' plan--rec' : '') + (cur ? ' plan--cur' : ''));
+      if (cur) c.appendChild(el('span', 'plan__tag plan__tag--cur', '현재 플랜'));
+      else if (p.recommended) c.appendChild(el('span', 'plan__tag', '추천'));
+
+      c.appendChild(el('h3', 'plan__n', p.name));
+      var pr = el('div', 'plan__p', price(p.price));
+      if (typeof p.price === 'number' && p.price > 0) pr.appendChild(el('small', null, ' / 월'));
+      c.appendChild(pr);
+
+      var ul = el('ul', 'plan__l');
+      p.features.forEach(function (x) { ul.appendChild(el('li', null, x)); });
+      c.appendChild(ul);
+
+      var b = el('button', 'btn' + (cur ? ' btn--off' : ''), cur ? '이용 중' : '이 플랜 선택');
+      b.type = 'button';
+      b.disabled = cur;
+      b.addEventListener('click', function () { go(p); });
+      c.appendChild(b);
+      list.appendChild(c);
+    });
+    box.appendChild(list);
+    box.appendChild(el('p', 'fine',
+      '가격·구성은 서버 설정에서 내려옵니다. 결제는 결제 페이지에서 진행되며 이 화면에서는 카드정보를 받지 않습니다.'));
+    return box;
+  }
+
+  /** ★ 카드정보를 받지 않는다. 결제 페이지로 보낸다 */
+  function go(p, isTrial) {
+    if (!p) return;
+    if (C.billingUrl) {
+      var q = '?plan=' + encodeURIComponent(p.id) + (isTrial ? '&trial=1' : '');
+      window.open(C.billingUrl + (C.billingUrl.indexOf('?') > -1 ? '&' : '') + q.slice(1), '_blank', 'noopener');
+      return;
+    }
+    var old = document.getElementById('pay-note');
+    if (old) old.remove();
+    var n = el('p', 'note', p.name + (isTrial ? ' 체험' : '') + ' 선택됨 — 결제 연동이 아직 없습니다. '
+      + '설정의 billingUrl 에 결제 페이지 주소를 넣으면 이 버튼이 그리로 연결됩니다.');
+    n.id = 'pay-note';
+    view.appendChild(n);
+    n.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+
+  view.appendChild(trialBanner());
+  view.appendChild(previewSection());
+  view.appendChild(plansSection());
+}());
+</script>
+</body>
+</html>
