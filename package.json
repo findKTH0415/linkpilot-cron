@@ -6,7 +6,7 @@
   "main": "send-morning-card.js",
   "scripts": {
     "send": "node send-morning-card.js",
-    "test": "node --test \"im-agent/test/*.test.js\"",
+    "test": "node --test im-agent/test/*.test.js",
     "im": "node im-agent/cli.js",
     "im:demo": "IM_AGENT_OFFLINE=1 node im-agent/cli.js demo"
   },

@@ -30,8 +30,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+      # 따옴표를 씌우지 않는다: node --test 의 자체 glob 확장은 Node 22+ 기능이라
+      # Node 20 에서는 리터럴 경로로 처리되어 "Could not find" 로 죽는다. 셸이 확장하게 둔다.
       - name: Run IM Agent tests
-        run: node --test "im-agent/test/*.test.js"
+        run: node --test im-agent/test/*.test.js
       - name: Smoke run (offline demo)
         run: |
           IM_AGENT_ROOT="${RUNNER_TEMP}/im-projects" node im-agent/cli.js demo
