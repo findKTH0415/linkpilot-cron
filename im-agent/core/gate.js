@@ -1,0 +1,73 @@
+'use strict';
+/**
+ * gate.js — Human-in-the-Loop 승인 게이트.
+ *
+ * 원칙: AI prepares → Human approves.
+ * 사람 승인 기록 없이는 12_Final / 13_Distribution 단계로 넘어갈 수 없다.
+ * 승인 기록은 프로젝트 폴더에 남으며(감사 추적), RED FLAG가 있으면 승인 자체가 거부된다.
+ */
+
+const store = require('./store');
+const { kstStamp } = require('./kst');
+
+const APPROVAL_PATH = '11_QC/approval.json';
+
+function readApproval(projectId) {
+  return store.readJson(projectId, APPROVAL_PATH, null);
+}
+
+/**
+ * 승인 가능 여부 판정. RED FLAG가 하나라도 있으면 승인 불가.
+ * @returns {{allowed:boolean, reasons:string[]}}
+ */
+function canApprove(projectId) {
+  const validation = store.readJson(projectId, '11_QC/validation.json', null);
+  const reasons = [];
+
+  if (!validation) {
+    reasons.push('Cross Validation 미실행 — 검증 없이 승인할 수 없다');
+    return { allowed: false, reasons };
+  }
+  const red = (validation.flags || []).filter(f => f.severity === 'RED');
+  if (red.length) {
+    reasons.push(`RED FLAG ${red.length}건 미해소: ${red.slice(0, 3).map(f => f.message).join(' / ')}`);
+  }
+  const im = store.readJson(projectId, '09_IM/im.json', null);
+  if (!im) reasons.push('IM 미생성');
+  else if ((im.unsourcedNumbers || []).length) {
+    reasons.push(`출처 미확인 숫자 ${im.unsourcedNumbers.length}건이 본문에 존재`);
+  }
+
+  return { allowed: reasons.length === 0, reasons };
+}
+
+/**
+ * 승인 기록. approver 는 사람 식별자여야 한다 (AI 자동승인 금지).
+ */
+function approve(projectId, { approver, decision = 'APPROVE', comment = '' }) {
+  if (!approver || /agent|ai|auto|claude|gemini/i.test(approver)) {
+    throw new Error('approver 는 사람이어야 한다 — AI 자동 승인은 금지된다');
+  }
+  const check = canApprove(projectId);
+  if (decision === 'APPROVE' && !check.allowed) {
+    throw new Error(`승인 불가: ${check.reasons.join(' / ')}`);
+  }
+  const record = {
+    projectId, decision, approver, comment,
+    at: kstStamp(),
+    checkedReasons: check.reasons,
+  };
+  store.writeJson(projectId, APPROVAL_PATH, record);
+  store.appendRunLog(projectId, { agent: 'human_approval', status: decision.toLowerCase(), approver });
+  return record;
+}
+
+/** 배포 허용 여부 — Distribution Agent(Phase 3)가 반드시 이 함수를 통과해야 한다 */
+function distributionAllowed(projectId) {
+  const a = readApproval(projectId);
+  if (!a) return { allowed: false, reason: '사람 승인 기록 없음' };
+  if (a.decision !== 'APPROVE') return { allowed: false, reason: `승인 상태: ${a.decision}` };
+  return { allowed: true, reason: `승인자 ${a.approver} (${a.at})` };
+}
+
+module.exports = { canApprove, approve, readApproval, distributionAllowed, APPROVAL_PATH };

@@ -5,7 +5,10 @@
   "description": "LinkPilot 프리미엄 명언 카드 — 매일 아침 무인 친구톡 발송 (GitHub Actions + Solapi)",
   "main": "send-morning-card.js",
   "scripts": {
-    "send": "node send-morning-card.js"
+    "send": "node send-morning-card.js",
+    "test": "node --test \"im-agent/test/*.test.js\"",
+    "im": "node im-agent/cli.js",
+    "im:demo": "IM_AGENT_OFFLINE=1 node im-agent/cli.js demo"
   },
   "dependencies": {
     "solapi": "^5.5.1",

@@ -2,3 +2,6 @@ node_modules/
 package-lock.json
 .DS_Store
 .env
+
+# IM Agent 프로젝트 데이터룸 — 실제 딜 자료가 들어가므로 절대 커밋하지 않는다
+im-projects/

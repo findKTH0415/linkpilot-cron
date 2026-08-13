@@ -1,0 +1,68 @@
+'use strict';
+const test = require('node:test');
+const assert = require('node:assert');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+
+const ROOT = fs.mkdtempSync(path.join(os.tmpdir(), 'im-gate-'));
+process.env.IM_AGENT_ROOT = ROOT;
+
+const store = require('../core/store');
+const gate = require('../core/gate');
+
+const PID = 'LP-DC-2026-999';
+
+function seed({ flags = [], unsourced = [] }) {
+  store.createProjectDirs(PID);
+  store.writeJson(PID, '11_QC/validation.json', { flags, verdict: 'PASS', score: { total: 90 } });
+  store.writeJson(PID, '09_IM/im.json', { sections: [], citations: [], unsourcedNumbers: unsourced });
+}
+
+test('검증 없이는 승인할 수 없다', () => {
+  store.createProjectDirs(PID);
+  const c = gate.canApprove(PID);
+  assert.strictEqual(c.allowed, false);
+  assert.ok(c.reasons[0].includes('Cross Validation'));
+});
+
+test('RED FLAG 가 있으면 승인이 거부된다', () => {
+  seed({ flags: [{ severity: 'RED', type: 'VALUE_CONFLICT', message: '연면적 불일치' }] });
+  assert.strictEqual(gate.canApprove(PID).allowed, false);
+  assert.throws(() => gate.approve(PID, { approver: '김대표' }), /승인 불가/);
+});
+
+test('출처 없는 숫자가 본문에 있으면 승인이 거부된다', () => {
+  seed({ flags: [], unsourced: [{ section: '01', token: '18.5%' }] });
+  assert.strictEqual(gate.canApprove(PID).allowed, false);
+});
+
+test('YELLOW 만 있으면 승인 가능하다', () => {
+  seed({ flags: [{ severity: 'YELLOW', type: 'STALE', message: '자료 경과' }] });
+  assert.strictEqual(gate.canApprove(PID).allowed, true);
+});
+
+test('AI 는 스스로 승인할 수 없다', () => {
+  seed({ flags: [] });
+  assert.throws(() => gate.approve(PID, { approver: 'validation-agent' }), /사람이어야 한다/);
+  assert.throws(() => gate.approve(PID, { approver: 'Claude' }), /사람이어야 한다/);
+});
+
+test('사람 승인 기록이 남고, 그 뒤에야 배포가 허용된다', () => {
+  seed({ flags: [] });
+  assert.strictEqual(gate.distributionAllowed(PID).allowed, false);
+
+  const r = gate.approve(PID, { approver: '김대표', comment: 'IC 통과' });
+  assert.strictEqual(r.decision, 'APPROVE');
+  assert.ok(r.at.endsWith('+09:00'), '승인 시각은 KST 로 기록된다');
+
+  assert.strictEqual(gate.distributionAllowed(PID).allowed, true);
+});
+
+test('REJECT 로 기록하면 배포가 다시 막힌다', () => {
+  seed({ flags: [] });
+  gate.approve(PID, { approver: '김대표', decision: 'REJECT', comment: '재작성 필요' });
+  assert.strictEqual(gate.distributionAllowed(PID).allowed, false);
+});
+
+test.after(() => fs.rmSync(ROOT, { recursive: true, force: true }));

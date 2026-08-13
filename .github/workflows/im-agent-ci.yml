@@ -1,0 +1,37 @@
+name: im-agent-ci
+
+# IM Agent 회귀 테스트. 네트워크 호출 없음(IM_AGENT_OFFLINE=1) → 시크릿 불필요.
+# 재무계산·교차검증·환각검출은 아침 크론과 달리 조용히 틀리면 알 방법이 없으므로
+# 모든 PR에서 강제 실행한다.
+on:
+  push:
+    branches-ignore: []
+    paths:
+      - 'im-agent/**'
+      - '.github/workflows/im-agent-ci.yml'
+  pull_request:
+    paths:
+      - 'im-agent/**'
+      - '.github/workflows/im-agent-ci.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: im-agent-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      IM_AGENT_OFFLINE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run IM Agent tests
+        run: node --test "im-agent/test/*.test.js"
+      - name: Smoke run (offline demo)
+        run: |
+          IM_AGENT_ROOT="${RUNNER_TEMP}/im-projects" node im-agent/cli.js demo
