@@ -111,3 +111,54 @@ npm test          # im-agent/test/platform.test.js 포함
 
 날짜(KST·D-Day·월말/연말), 단계 표준화, 검색, 전화번호 추출, 멤버십 상태 판정,
 결제 입력 부재를 검증한다. DOM 은 테스트하지 않는다.
+
+---
+
+## 보고서 생성 연결 (서버)
+
+화면(`reports.html`)이 실제로 동작하려면 서버에 두 조각을 붙인다.
+
+```js
+// 본체 server.js
+const { createRouter } = require('/volume1/linkpilot/im-agent/ui/report-api.cjs');
+const { createQueue }  = require('/volume1/linkpilot/im-agent/ui/run-queue.cjs');
+
+const queue = createQueue({
+  agentRoot: '/volume1/linkpilot/im-projects',
+  concurrency: 1,            // 늘리면 LLM 비용도 같이 는다
+  timeoutMs: 20 * 60_000,    // 넘으면 죽이고 실패로 기록한다
+  onDone: (run) => { /* 알림·로그 (실패해도 큐는 계속 돈다) */ },
+});
+
+app.use('/api/linkpilot', createRouter({
+  agentRoot: '/volume1/linkpilot/im-projects',
+  agentModulePath: '/volume1/linkpilot/im-agent',
+  authenticate: (req) => req.session && req.session.user,   // ★ 없으면 마운트 자체가 실패한다
+  startRun: queue.startRun.bind(queue),
+}));
+
+process.on('SIGTERM', () => queue.stop());   // 자식 프로세스를 남기지 않는다
+```
+
+화면 쪽은 `LINKPILOT_REPORTS.api = '/api/linkpilot'` 한 줄이면 서버를 탄다.
+
+### 이 조합이 막는 것
+
+| 상황 | 결과 |
+|---|---|
+| 미인증 | 401 |
+| 무료·만료·모르는 플랜 코드 | 403 |
+| 검증 보고서를 Pro 가 요청 | 403 (종류별 플랜) |
+| **출력 사양 확정 전 생성** | 409 — 실행기를 부르지 않는다 |
+| **같은 프로젝트 중복 실행** | 409 — 산출물이 섞이고 쿼터가 두 배로 나간다 |
+| PDF·HWP·PPTX 사양 저장 | 400 + 만들 수 없는 이유 |
+| `startRun` 미주입 | 501 — 없는 기능을 있는 척하지 않는다 |
+| 파이프라인이 20분 넘게 안 끝남 | 죽이고 실패로 기록 (영원히 running 으로 남지 않는다) |
+
+### 진행 상황
+
+별도 통로를 만들지 않는다. 파이프라인이 `01_Project/control-tower.json` 에 쓰고,
+**IM 제작현황 화면이 그대로 읽는다.** 실행 자체의 성패는 `queue.get(runId)` 로 본다.
+
+`authenticate` 는 `outputspec.confirm()` 에 사람 이름을 넘기는 데도 쓰인다 —
+서비스 계정 이름(`claude`, `agent` 등)으로는 사양을 확정할 수 없다.

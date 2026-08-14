@@ -208,6 +208,8 @@ function createHandlers(deps) {
         const run = await d.startRun(projectId, spec, g.user);
         return { status: 202, body: { accepted: true, projectId, spec: { version: spec.version, docType: spec.docType }, run: run || null } };
       } catch (err) {
+        // 이미 돌고 있는 것은 서버 오류가 아니다. 사용자가 기다리면 되는 상황이다
+        if (err && err.conflict) return bad(err.message, 409);
         return bad(`생성 시작 실패: ${err.message}`, 500);
       }
     },
