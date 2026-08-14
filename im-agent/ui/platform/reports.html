@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>보고서 생성 · LINKPILOT</title>
+<!--
+  보고서 생성 — 사이드바 '유료 멤버십' 섹션. 유료 회원에게만 노출된다.
+
+  ★ 순서를 강제한다: 출력 사양 확정(LOCK) → 생성
+    사양을 먼저 못 박지 않으면 AI 가 페이지 수·형식·언어를 임의로 정한다.
+    40페이지를 기대했는데 12페이지가 나오면 처음부터 다시 만들어야 한다.
+    그래서 사양이 잠기기 전에는 생성 버튼이 눌리지 않는다.
+
+  ★★ 이 화면은 무엇을 그릴지만 정한다. 권한을 강제하지 않는다.
+    생성 API 가 서버에서 세션·플랜을 다시 확인해야 한다.
+    화면만 열리고 생성은 거부되어야 정상이다.
+
+  접근 판정은 gate-core.js 하나를 쓴다 (모든 유료 화면 공용, 테스트 있음).
+-->
+<style>
+:root {
+  --lime: #9ED700; --lime-soft: #EDF7DC; --lime-deep: #5C7A00;
+  --ink: #17181A; --ink2: #7C838C; --line: #E8EAEC;
+  --panel: #F1F2F4; --bg: #F5F6F8; --surface: #FFFFFF;
+  --bad: #E03131; --bad-soft: #FDECEC; --bad-ink: #8F1D1D;
+  --warn: #E8A33D; --warn-soft: #FDF3E3; --warn-ink: #8A5A10;
+  --r: 18px; --side: 248px;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 400 15px/1.55 -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
+        'Malgun Gothic', '맑은 고딕', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+h1,h2,h3,h4 { margin: 0; }
+ul { margin: 0; padding: 0; list-style: none; }
+.app { display: flex; min-height: 100%; }
+
+/* 사이드바 */
+.side { width: var(--side); flex: none; background: var(--surface);
+  border-right: 1px solid var(--line); padding: 18px 12px 24px;
+  display: flex; flex-direction: column; gap: 4px; }
+.side__brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 12px; }
+.side__mark { width: 34px; height: 34px; border-radius: 50%; flex: none;
+  border: 2.5px solid var(--ink); display: grid; place-items: center;
+  color: var(--lime); font-size: 15px; }
+.side__name { font-size: 15px; font-weight: 800; }
+.side__user { font-size: 12px; color: var(--ink2); }
+.side__group { margin: 14px 8px 6px; font-size: 12px; font-weight: 700; color: var(--ink2); }
+.nav { display: flex; align-items: center; gap: 11px; padding: 10px 12px;
+  border-radius: 12px; text-decoration: none; color: var(--ink); font-size: 14.5px; }
+.nav:hover { background: var(--panel); }
+.nav.on { background: var(--lime-soft); color: var(--lime-deep); font-weight: 700; }
+.nav.lock { color: var(--ink2); }
+.nav__ic { width: 20px; text-align: center; font-size: 15px; opacity: .8; }
+.nav__lk { margin-left: auto; font-size: 11px; }
+
+/* 본문 */
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.top { background: var(--surface); border-bottom: 1px solid var(--line);
+  padding: 16px 26px; display: flex; align-items: center; }
+.logo { display: flex; align-items: center; gap: 12px; font-size: 24px; font-weight: 900; }
+.logo em { font-style: normal; color: var(--lime); }
+.logo__mark { width: 38px; height: 38px; border-radius: 50%; border: 3px solid var(--ink);
+  display: grid; place-items: center; color: var(--lime); font-size: 16px; }
+.head { background: var(--surface); padding: 16px 26px 14px; }
+.head__row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.head__ic { width: 40px; height: 40px; border-radius: 12px; background: var(--panel);
+  display: grid; place-items: center; font-size: 18px; }
+.head__t { font-size: 22px; font-weight: 800; }
+.head__meta { margin-left: auto; text-align: right; font-size: 13px; color: var(--ink2); }
+.head__meta b { display: block; color: var(--ink); font-weight: 700; margin-top: 2px; }
+.rule { height: 3px; background: var(--lime); }
+.body { padding: 20px 26px 96px; max-width: 1080px; }
+
+/* 게이트 */
+.gate { max-width: 560px; margin: 60px auto; background: var(--surface);
+  border-radius: var(--r); padding: 40px 32px; text-align: center; }
+.gate__ic { font-size: 40px; line-height: 1; }
+.gate__t { font-size: 21px; font-weight: 800; margin-top: 18px; }
+.gate__b { font-size: 14.5px; color: var(--ink2); margin-top: 12px; line-height: 1.7; }
+.gate__cta { display: inline-block; margin-top: 24px; padding: 14px 32px;
+  font: 700 15px/1 inherit; border: 0; border-radius: 12px;
+  background: var(--lime); color: var(--ink); cursor: pointer; }
+.gate__cta:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.gate__fine { font-size: 12.5px; color: var(--ink2); margin-top: 16px; }
+
+/* 단계 */
+.steps { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
+.step { display: flex; align-items: center; gap: 8px; padding: 9px 14px;
+  border-radius: 999px; background: var(--panel); color: var(--ink2); font-size: 13px; font-weight: 600; }
+.step.on { background: var(--ink); color: #fff; }
+.step.done { background: var(--lime-soft); color: var(--lime-deep); }
+.step__n { width: 19px; height: 19px; border-radius: 50%; display: grid; place-items: center;
+  background: rgba(0,0,0,.09); font-size: 11px; font-weight: 800; }
+.step.on .step__n { background: rgba(255,255,255,.22); }
+
+.card { background: var(--surface); border-radius: var(--r); padding: 22px; margin-bottom: 16px; }
+.card__t { font-size: 15px; font-weight: 800; margin-bottom: 4px; }
+.card__s { font-size: 13px; color: var(--ink2); margin: 0 0 16px; }
+
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.f { display: flex; flex-direction: column; gap: 6px; }
+.f label { font-size: 12.5px; font-weight: 700; color: var(--ink2); }
+.f select, .f input { font: 400 14px/1.5 inherit; padding: 11px 13px;
+  border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); }
+.f select:disabled, .f input:disabled { background: var(--panel); color: var(--ink2); }
+
+/* 보고서 종류 */
+.kinds { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+.kind { text-align: left; background: var(--panel); border: 2px solid transparent;
+  border-radius: 14px; padding: 15px; cursor: pointer; font: inherit; color: inherit; }
+.kind:hover { border-color: var(--line); }
+.kind.on { border-color: var(--lime); background: var(--lime-soft); }
+.kind:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.kind__n { font-size: 14px; font-weight: 700; }
+.kind__d { font-size: 12px; color: var(--ink2); margin-top: 5px; line-height: 1.5; }
+.kind__m { font-size: 11.5px; color: var(--lime-deep); font-weight: 700; margin-top: 7px; }
+
+/* 테마 */
+.themes { display: flex; gap: 8px; flex-wrap: wrap; }
+.theme { display: flex; align-items: center; gap: 8px; padding: 9px 13px; border-radius: 10px;
+  border: 2px solid transparent; background: var(--panel); cursor: pointer; font: 600 13px/1 inherit; }
+.theme.on { border-color: var(--lime); background: var(--lime-soft); }
+.theme__sw { width: 15px; height: 15px; border-radius: 4px; flex: none; }
+
+.lockbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 18px;
+  padding-top: 18px; border-top: 1px solid var(--line); }
+.btn { padding: 13px 26px; font: 700 14.5px/1 inherit; border: 0; border-radius: 12px;
+  background: var(--lime); color: var(--ink); cursor: pointer; }
+.btn:disabled { background: var(--panel); color: var(--ink2); cursor: not-allowed; }
+.btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.btn--ghost { background: var(--surface); border: 1px solid var(--line); color: var(--ink2); }
+.why { font-size: 13px; color: var(--warn-ink); }
+
+.locked { display: flex; align-items: center; gap: 10px; padding: 13px 16px; border-radius: 12px;
+  background: var(--lime-soft); font-size: 13.5px; font-weight: 600; color: var(--lime-deep); }
+.note { padding: 13px 16px; border-radius: 12px; font-size: 13.5px;
+  background: var(--warn-soft); color: var(--warn-ink); margin-top: 14px; }
+
+/* 산출물 */
+.out { display: flex; align-items: center; gap: 12px; padding: 13px 0;
+  border-top: 1px solid var(--line); }
+.out:first-of-type { border-top: 0; }
+.out__ic { width: 34px; height: 34px; border-radius: 9px; background: var(--panel);
+  display: grid; place-items: center; font-size: 15px; flex: none; }
+.out__n { font-size: 14px; font-weight: 600; }
+.out__m { font-size: 12px; color: var(--ink2); margin-top: 2px; font-variant-numeric: tabular-nums; }
+.out__a { margin-left: auto; font: 600 13px/1 inherit; padding: 9px 15px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer;
+  text-decoration: none; }
+.st { font-size: 11.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
+.st--ok { background: var(--lime-soft); color: var(--lime-deep); }
+.st--run { background: var(--warn-soft); color: var(--warn-ink); }
+.st--blocked { background: var(--bad-soft); color: var(--bad-ink); }
+.empty { font-size: 13.5px; color: var(--ink2); padding: 10px 0; }
+
+/* 하단 탭 */
+.bot { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; background: var(--surface);
+  border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(6, 1fr);
+  padding: 9px 0 11px; }
+.bot__i { text-align: center; font-size: 10.5px; color: var(--ink2); text-decoration: none; }
+.bot__i b { display: block; font-size: 17px; line-height: 1.35; font-weight: 400; }
+.bot__i.on { color: var(--lime-deep); font-weight: 700; }
+
+@media (max-width: 900px) {
+  .side { display: none; }
+  .top, .head { padding-left: 16px; padding-right: 16px; }
+  .body { padding: 16px 16px 96px; }
+  .head__t { font-size: 19px; }
+  .btn { width: 100%; }
+  .lockbar { flex-direction: column; align-items: stretch; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="side">
+    <div class="side__brand">
+      <div class="side__mark">➤</div>
+      <div><div class="side__name">LinkPilot</div><div class="side__user" id="side-user"></div></div>
+    </div>
+    <a class="nav" href="#"><span class="nav__ic">⌂</span>대시보드</a>
+    <a class="nav" href="#"><span class="nav__ic">👥</span>연락처</a>
+    <a class="nav" href="#"><span class="nav__ic">🗂</span>딜파이프라인</a>
+    <a class="nav" href="#"><span class="nav__ic">🗓</span>캘린더</a>
+    <a class="nav" href="#"><span class="nav__ic">👤</span>내정보</a>
+    <a class="nav" href="#"><span class="nav__ic">✓</span>할일</a>
+    <a class="nav" href="#"><span class="nav__ic">📁</span>프로젝트</a>
+    <a class="nav" href="#"><span class="nav__ic">💬</span>Q&amp;A</a>
+    <a class="nav" href="#"><span class="nav__ic">☆</span>투자소스 DB</a>
+
+    <div class="side__group">유료 멤버십</div>
+    <a class="nav" href="#"><span class="nav__ic">☆</span>오늘의 한줄생각</a>
+    <a class="nav" href="#"><span class="nav__ic">☀</span>아침브리핑</a>
+    <a class="nav" href="#"><span class="nav__ic">📞</span>통화음성분석</a>
+    <a class="nav" href="#"><span class="nav__ic">★</span>프리미엄 투자소스 DB</a>
+    <a class="nav" href="#"><span class="nav__ic">🔆</span>신재생에너지 분석</a>
+    <a class="nav" href="#"><span class="nav__ic">📋</span>업무지시 보드</a>
+    <a class="nav on" href="#" aria-current="page" id="nav-rep"><span class="nav__ic">📄</span>보고서 생성</a>
+    <a class="nav" href="#"><span class="nav__ic">◈</span>멤버십</a>
+  </aside>
+
+  <div class="main">
+    <div class="top"><div class="logo"><span class="logo__mark">➤</span>LINK<em>PILOT</em></div></div>
+    <div class="head">
+      <div class="head__row">
+        <div class="head__ic">📄</div>
+        <h1 class="head__t">보고서 생성</h1>
+        <div class="head__meta"><span id="head-date"></span><b id="head-user"></b></div>
+      </div>
+    </div>
+    <div class="rule"></div>
+    <div class="body" id="view"></div>
+  </div>
+</div>
+
+<nav class="bot" aria-label="주요 화면">
+  <a class="bot__i" href="#"><b>⌂</b>대시보드</a>
+  <a class="bot__i" href="#"><b>👥</b>연락처</a>
+  <a class="bot__i" href="#"><b>🗂</b>딜파이프라인</a>
+  <a class="bot__i" href="#"><b>🗓</b>캘린더</a>
+  <a class="bot__i" href="#"><b>👤</b>내정보</a>
+  <a class="bot__i on" href="#"><b>☰</b>더보기</a>
+</nav>
+
+<script src="gate-core.js"></script>
+<script>
+/* ── 설정 ──────────────────────────────────────────────────────────
+ * 서버가 로그인 세션을 보고 내려준다.
+ *
+ * ★★ session 은 화면 표시용이다. 실제 차단은 서버가 한다.
+ *   생성 API 가 세션·플랜을 다시 확인하지 않으면, 사용자가 브라우저에서
+ *   session.planId 를 고쳐 화면을 열 수 있다. 화면은 열려도 생성은 거부되어야 한다.
+ * ───────────────────────────────────────────────────────────────── */
+window.LINKPILOT_REPORTS = {
+  session: { authenticated: true, planId: 'pro', status: 'active', name: '홍길동' },
+  requiredPlan: 'pro',
+  planNames: { free: 'Free', basic: 'Basic', pro: 'Pro', business: 'Business' },
+
+  api: null,   // 예: '/api/linkpilot'  — 없으면 아래 데모 데이터를 쓴다
+
+  projects: [
+    { id: 'LP-DC-2026-001', name: '인천 남동공단 6.5MW 데이터센터' },
+    { id: 'LP-SL-2026-002', name: '새만금 태양광 120MW' },
+  ],
+
+  // 보고서 종류. minPlan 으로 종류별 플랜을 따로 걸 수 있다
+  kinds: [
+    { id: 'im', name: 'IM (투자설명서)', minPlan: 'pro',
+      desc: '20개 절 · 모든 수치에 출처 표기 · 최종검증 8 GATE 통과 필요', pages: 40 },
+    { id: 'teaser', name: 'Teaser', minPlan: 'pro',
+      desc: '2~4페이지 요약본. 딜 개요와 핵심 지표만', pages: 3 },
+    { id: 'summary', name: '요약 보고서', minPlan: 'pro',
+      desc: '내부 검토용. 재무·리스크 요약', pages: 10 },
+    { id: 'validation', name: '검증 보고서', minPlan: 'business',
+      desc: 'RED FLAG · 값 충돌 · 독립 재계산 결과', pages: 12 },
+  ],
+
+  themes: [
+    { id: 'institutional', name: 'Institutional', color: '#16304F' },
+    { id: 'modern', name: 'Modern', color: '#2E7D6B' },
+    { id: 'pdi', name: 'PDI 하우스', color: '#C00000' },
+  ],
+
+  formats: ['HTML', 'PDF', 'Markdown'],
+  sizes: ['A4', 'Letter', '16:9 슬라이드'],
+  langs: ['한국어', 'English', '국문+영문 병기'],
+
+  // 최근 생성물 (실서비스에서는 API 로 받는다)
+  recent: [
+    { name: 'IM 원문', path: '09_IM/im.md', at: '2026-08-13 22:41', status: 'blocked',
+      note: 'RED FLAG 2건 미해소 — 배포 차단' },
+    { name: 'A4 인쇄본', path: '12_Final/im-a4.html', at: '2026-08-13 22:41', status: 'ok' },
+    { name: 'Teaser', path: '10_Teaser/teaser.md', at: '2026-08-13 22:40', status: 'ok' },
+  ],
+};
+
+(function () {
+  'use strict';
+  var C = window.LINKPILOT_REPORTS;
+  var G = window.LinkPilotGate;
+  var view = document.getElementById('view');
+
+  var state = {
+    projectId: (C.projects[0] || {}).id || null,
+    kindId: 'im',
+    pages: null,          // 종류를 고르면 기본값이 들어온다
+    size: 'A4', format: 'HTML', lang: '한국어',
+    themeId: 'institutional',
+    locked: false,        // ★ 출력 사양 확정 여부
+  };
+
+  function el(t, c, x) {
+    var n = document.createElement(t);
+    if (c) n.className = c;
+    if (x !== undefined && x !== null && x !== '') n.textContent = String(x);
+    return n;
+  }
+  function add(p) { for (var i = 1; i < arguments.length; i++) if (arguments[i]) p.appendChild(arguments[i]); return p; }
+  function kindOf(id) { return C.kinds.filter(function (k) { return k.id === id; })[0] || null; }
+
+  document.getElementById('side-user').textContent = (C.session && C.session.name) || '';
+  document.getElementById('head-user').textContent = (C.session && C.session.name) || '';
+  document.getElementById('head-date').textContent = G.kstLabel();
+
+  // ── 게이트 ───────────────────────────────────────
+  function gate(a) {
+    var m = G.accessMessage(a, C.planNames[a.requiredPlan], '보고서 생성');
+    if (a.reason === 'plan') {
+      m.body = 'IM · Teaser · 요약 보고서를 프로젝트 자료에서 자동으로 만듭니다. '
+        + '모든 수치에 출처가 붙고, 검증을 통과하지 못하면 배포가 차단됩니다.';
+    }
+    if (a.reason === 'expired') {
+      m.body = '갱신하면 다시 생성할 수 있습니다. 이미 만든 보고서는 그대로 보관됩니다.';
+    }
+    var box = el('div', 'gate');
+    add(box, el('div', 'gate__ic', G.gateIcon(a.reason)),
+      el('h2', 'gate__t', m.title), el('p', 'gate__b', m.body));
+
+    var b = el('button', 'gate__cta', m.cta);
+    b.type = 'button';
+    b.addEventListener('click', function () {
+      var old = document.getElementById('gate-note');
+      if (old) old.remove();
+      var where = a.reason === 'unauthenticated' ? '로그인 화면'
+        : a.reason === 'expired' ? '멤버십 화면' : '업그레이드 탭';
+      var n = el('p', 'note', where + '으로 이동해야 합니다 — 본체 라우팅에 연결하세요.');
+      n.id = 'gate-note';
+      view.appendChild(n);
+    });
+    box.appendChild(b);
+
+    // 잠긴 상태에서 열리는 것처럼 보이면 안 된다
+    var nav = document.getElementById('nav-rep');
+    nav.className = 'nav lock';
+    nav.appendChild(el('span', 'nav__lk', '🔒'));
+    return box;
+  }
+
+  // ── 단계 표시 ────────────────────────────────────
+  function steps() {
+    var row = el('div', 'steps');
+    [['1', '대상·종류 선택', true], ['2', '출력 사양 확정', state.locked], ['3', '생성', false]]
+      .forEach(function (s, i) {
+        var cls = 'step';
+        if (i === 0) cls += ' done';
+        else if (i === 1) cls += state.locked ? ' done' : ' on';
+        else if (state.locked) cls += ' on';
+        var n = el('div', cls);
+        add(n, el('span', 'step__n', s[0]), el('span', null, s[1]));
+        row.appendChild(n);
+      });
+    return row;
+  }
+
+  // ── 1단계: 대상·종류 ─────────────────────────────
+  function pick() {
+    var box = el('section', 'card');
+    box.appendChild(el('h2', 'card__t', '무엇을 만들까요'));
+    box.appendChild(el('p', 'card__s', '프로젝트와 보고서 종류를 고릅니다.'));
+
+    var f = el('div', 'f');
+    f.appendChild(el('label', null, '프로젝트'));
+    var sel = el('select');
+    C.projects.forEach(function (p) {
+      var o = new Option(p.id + ' — ' + p.name, p.id);
+      sel.appendChild(o);
+    });
+    sel.value = state.projectId || '';
+    sel.disabled = state.locked;
+    sel.addEventListener('change', function () { state.projectId = sel.value; draw(); });
+    f.appendChild(sel);
+    box.appendChild(f);
+
+    var kinds = el('div', 'kinds');
+    kinds.style.marginTop = '16px';
+    C.kinds.forEach(function (k) {
+      // 종류별로 요구 플랜이 다를 수 있다. 못 쓰는 종류는 잠금으로 보인다
+      var ka = G.access(C.session, k.minPlan);
+      var b = el('button', 'kind' + (state.kindId === k.id ? ' on' : ''));
+      b.type = 'button';
+      b.disabled = !ka.allowed || state.locked;
+      add(b, el('div', 'kind__n', (ka.allowed ? '' : '🔒 ') + k.name), el('div', 'kind__d', k.desc));
+      b.appendChild(el('div', 'kind__m', ka.allowed
+        ? '기본 ' + k.pages + '페이지'
+        : (C.planNames[k.minPlan] || k.minPlan) + ' 플랜부터'));
+      b.addEventListener('click', function () {
+        state.kindId = k.id;
+        state.pages = k.pages;    // 종류를 바꾸면 기본 페이지 수를 다시 채운다
+        draw();
+      });
+      kinds.appendChild(b);
+    });
+    box.appendChild(kinds);
+    return box;
+  }
+
+  // ── 2단계: 출력 사양 ─────────────────────────────
+  function spec() {
+    var k = kindOf(state.kindId);
+    if (state.pages === null && k) state.pages = k.pages;
+
+    var box = el('section', 'card');
+    box.appendChild(el('h2', 'card__t', '출력 사양'));
+    box.appendChild(el('p', 'card__s',
+      '생성 전에 확정합니다. 사양을 먼저 못 박지 않으면 페이지 수·형식·언어가 임의로 정해집니다.'));
+
+    var grid = el('div', 'grid');
+    function field(label, node) {
+      var f = el('div', 'f');
+      f.appendChild(el('label', null, label));
+      f.appendChild(node);
+      return f;
+    }
+    var pages = el('input');
+    pages.type = 'number'; pages.min = '1'; pages.max = '200';
+    pages.value = state.pages === null ? '' : state.pages;
+    pages.disabled = state.locked;
+    pages.addEventListener('input', function () {
+      state.pages = pages.value === '' ? null : parseInt(pages.value, 10);
+      updateLockBar();
+    });
+
+    function selOf(list, cur, set) {
+      var s = el('select');
+      list.forEach(function (v) { s.appendChild(new Option(v, v)); });
+      s.value = cur;
+      s.disabled = state.locked;
+      s.addEventListener('change', function () { set(s.value); updateLockBar(); });
+      return s;
+    }
+    add(grid,
+      field('페이지 수', pages),
+      field('용지·비율', selOf(C.sizes, state.size, function (v) { state.size = v; })),
+      field('파일 형식', selOf(C.formats, state.format, function (v) { state.format = v; })),
+      field('언어', selOf(C.langs, state.lang, function (v) { state.lang = v; })));
+    box.appendChild(grid);
+
+    // 디자인 테마 — 내용과 분리된 선택이다
+    var th = el('div');
+    th.style.marginTop = '16px';
+    th.appendChild(el('label', null, '디자인 테마'));
+    th.querySelector('label').style.cssText = 'font-size:12.5px;font-weight:700;color:var(--ink2);display:block;margin-bottom:8px';
+    var list = el('div', 'themes');
+    C.themes.forEach(function (t) {
+      var b = el('button', 'theme' + (state.themeId === t.id ? ' on' : ''));
+      b.type = 'button';
+      b.disabled = state.locked;
+      var sw = el('span', 'theme__sw');
+      sw.style.background = t.color;
+      add(b, sw, el('span', null, t.name));
+      b.addEventListener('click', function () { state.themeId = t.id; draw(); });
+      list.appendChild(b);
+    });
+    th.appendChild(list);
+    box.appendChild(th);
+
+    var bar = el('div', 'lockbar');
+    bar.id = 'lockbar';
+    box.appendChild(bar);
+    return box;
+  }
+
+  /** 확정 전에 무엇이 모자란지 알려준다 */
+  function specProblems() {
+    var p = [];
+    if (!state.projectId) p.push('프로젝트');
+    if (!state.kindId) p.push('보고서 종류');
+    if (!state.pages || state.pages < 1) p.push('페이지 수');
+    return p;
+  }
+
+  function updateLockBar() {
+    var bar = document.getElementById('lockbar');
+    if (!bar) return;
+    bar.textContent = '';
+
+    if (state.locked) {
+      var k = kindOf(state.kindId);
+      bar.appendChild(el('div', 'locked',
+        '🔒 확정됨 — ' + (k ? k.name : '') + ' · ' + state.pages + '페이지 · '
+        + state.size + ' · ' + state.format + ' · ' + state.lang));
+      var un = el('button', 'btn btn--ghost', '사양 수정');
+      un.type = 'button';
+      un.addEventListener('click', function () { state.locked = false; draw(); });
+      bar.appendChild(un);
+      return;
+    }
+
+    var problems = specProblems();
+    var b = el('button', 'btn', '이 사양으로 확정');
+    b.type = 'button';
+    b.disabled = problems.length > 0;
+    b.addEventListener('click', function () { state.locked = true; draw(); });
+    bar.appendChild(b);
+    if (problems.length) bar.appendChild(el('span', 'why', problems.join(', ') + '을(를) 먼저 정하세요.'));
+  }
+
+  // ── 3단계: 생성 ──────────────────────────────────
+  function run() {
+    var box = el('section', 'card');
+    box.appendChild(el('h2', 'card__t', '생성'));
+
+    var b = el('button', 'btn', '보고서 생성 시작');
+    b.type = 'button';
+    // ★ 사양이 잠기기 전에는 누를 수 없다
+    b.disabled = !state.locked;
+    b.addEventListener('click', start);
+    box.appendChild(b);
+
+    if (!state.locked) {
+      box.appendChild(el('p', 'note',
+        '출력 사양을 먼저 확정하세요. 확정 전에는 생성할 수 없습니다 — '
+        + '나중에 페이지 수가 달라지면 처음부터 다시 만들어야 합니다.'));
+    }
+    return box;
+  }
+
+  function start() {
+    var old = document.getElementById('run-note');
+    if (old) old.remove();
+    var n = el('p', 'note',
+      '생성 요청은 본체 API 에 연결해야 합니다 (POST /reports). '
+      + '진행 상황은 IM 제작현황 화면에서 4트랙으로 확인합니다.');
+    n.id = 'run-note';
+    view.appendChild(n);
+    n.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+
+  // ── 최근 생성물 ──────────────────────────────────
+  function recent() {
+    var box = el('section', 'card');
+    box.appendChild(el('h2', 'card__t', '최근 생성물'));
+    var rows = C.recent || [];
+    if (!rows.length) {
+      box.appendChild(el('p', 'empty', '아직 생성한 보고서가 없습니다.'));
+      return box;
+    }
+    rows.forEach(function (r) {
+      var row = el('div', 'out');
+      var mid = el('div');
+      add(mid, el('div', 'out__n', r.name), el('div', 'out__m', r.path + ' · ' + r.at));
+      // ★ 차단된 산출물을 정상처럼 보이게 하지 않는다. 이유까지 적는다
+      if (r.status === 'blocked' && r.note) mid.appendChild(el('div', 'out__m', r.note));
+      add(row, el('div', 'out__ic', r.status === 'blocked' ? '⛔' : '📄'), mid);
+
+      var st = el('span', 'st st--' + (r.status === 'blocked' ? 'blocked' : r.status === 'running' ? 'run' : 'ok'),
+        r.status === 'blocked' ? '배포 차단' : r.status === 'running' ? '생성 중' : '완료');
+      st.style.marginLeft = 'auto';
+      row.appendChild(st);
+
+      var a = el('button', 'out__a', r.status === 'blocked' ? '사유 보기' : '열기');
+      a.type = 'button';
+      a.addEventListener('click', function () {
+        var old = document.getElementById('out-note');
+        if (old) old.remove();
+        var n = el('p', 'note', r.status === 'blocked'
+          ? (r.note || '검증을 통과하지 못했습니다.') + ' — 검증 화면에서 해소해야 배포할 수 있습니다.'
+          : r.path + ' 를 여는 경로를 본체에 연결하세요.');
+        n.id = 'out-note';
+        view.appendChild(n);
+      });
+      row.appendChild(a);
+      box.appendChild(row);
+    });
+    return box;
+  }
+
+  // ── 렌더 ─────────────────────────────────────────
+  function draw() {
+    var a = G.access(C.session, C.requiredPlan);
+    view.textContent = '';
+    if (!a.allowed) { view.appendChild(gate(a)); return; }
+
+    view.appendChild(steps());
+    view.appendChild(pick());
+    view.appendChild(spec());
+    view.appendChild(run());
+    view.appendChild(recent());
+    updateLockBar();
+  }
+
+  draw();
+}());
+</script>
+</body>
+</html>
