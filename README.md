@@ -74,6 +74,7 @@ IM_AGENT_DEBUG_HTTP=1 npm run im:smoke     # 공공데이터 연결 진단
 
 | 화면 | 내용 |
 |---|---|
+| `fields.html` | **가이드 필드 입력** — 수치를 출처와 함께 입력. 출처 없으면 저장되지 않는다 |
 | `reports.html` | **보고서 생성** — 대상·종류 → 사양 확정 → 생성 → 산출물 |
 | IM 제작현황 (Control Tower) | 4트랙 진행률·검증·산출물. 파이프라인이 쓴 `control-tower.json` 을 읽는다 |
 

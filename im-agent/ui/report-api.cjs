@@ -157,6 +157,147 @@ function createHandlers(deps) {
       }
     },
 
+    /**
+     * GET /projects/:id/facts — 가이드 필드에 지금 들어 있는 값.
+     *
+     * 출처를 고를 수 있게 **업로드된 자료 목록도 함께** 준다.
+     * 출처를 자유 입력으로만 두면 "사업계획서"처럼 어느 파일인지 알 수 없는
+     * 문자열이 쌓이고, 나중에 그 값을 추적할 수 없다.
+     */
+    async getFacts(ctx, projectId) {
+      const g = gate(ctx, 'pro'); if (g.error) return g.error;
+      const e = checkId(projectId); if (e) return e;
+
+      const store = load('core/store');
+      const { Dataset } = load('core/facts');
+      const { FIELDS } = load('core/dictionary');
+
+      const json = store.readJson(projectId, '01_Project/dataset.json', null);
+      const ds = json ? Dataset.fromJSON(json, FIELDS) : null;
+
+      const values = {};
+      if (ds) {
+        ds.keys().forEach((key) => {
+          const f = ds.get(key);
+          if (!f) return;
+          values[key] = {
+            value: f.value, source: f.source, sourceDate: f.sourceDate,
+            page: f.page, confidence: f.confidence, verified: f.verified,
+          };
+        });
+      }
+
+      let sources = [];
+      try {
+        sources = store.listSourceFiles(projectId).map(s => (typeof s === 'string' ? s : s.name)).filter(Boolean);
+      } catch (_) {
+        sources = [];   // 자료 폴더가 없을 수 있다. 빈 목록과 오류를 구분할 필요는 없다
+      }
+
+      return ok({ values, sources, hasDataset: !!ds });
+    },
+
+    /**
+     * PUT /projects/:id/facts — 사람이 입력한 값을 저장한다.
+     *
+     * ★ 여기서 지키는 것 세 가지:
+     *   ① 출처 없는 값은 저장하지 않는다 (facts.js 도 던지지만, 여기서 사유를 만들어 준다)
+     *   ② 계산 항목(returns.* 등)은 받지 않는다 — 사람이 IRR 을 적어 넣으면 그 순간
+     *      "숫자는 LLM 도 사람도 만들지 않는다"는 전제가 깨진다
+     *   ③ 생성이 도는 중에는 받지 않는다 — 파이프라인이 읽는 도중에 바뀌면
+     *      산출물과 데이터가 어긋난다
+     *
+     * 범위를 벗어난 값은 **막지 않고 경고만 돌려준다.** 여기서 막으면
+     * 05 Validation 이 RED FLAG 로 잡아야 할 이상값이 화면에서 사라진다.
+     */
+    async saveFacts(ctx, projectId, body) {
+      const g = gate(ctx, 'pro'); if (g.error) return g.error;
+      const e = checkId(projectId); if (e) return e;
+
+      const entries = (body && Array.isArray(body.facts)) ? body.facts : null;
+      if (!entries) return bad('facts 배열이 필요합니다');
+      if (!entries.length) return bad('저장할 값이 없습니다');
+
+      // ③ 생성 중이면 건드리지 않는다
+      if (typeof d.runningFor === 'function') {
+        const running = d.runningFor(projectId);
+        if (running) return bad(`생성이 진행 중입니다 (실행 ${running.runId || '?'}) — 끝난 뒤 수정하세요`, 409);
+      }
+
+      const store = load('core/store');
+      const { Dataset } = load('core/facts');
+      const dict = load('core/dictionary');
+
+      const rejected = [];
+      const warnings = [];
+      const clean = [];
+
+      entries.forEach((raw) => {
+        const key = String((raw && raw.key) || '');
+        // 계산 항목을 먼저 본다. 계산 항목은 FIELDS 에 없으므로 순서를 바꾸면
+        // "사전에 없는 항목"이라는 엉뚱한 사유가 나가고, 왜 거부됐는지 알 수 없다
+        if (dict.COMPUTED_KEYS.indexOf(key) !== -1) {
+          rejected.push({ key, reason: '계산으로 만들어지는 항목이라 입력할 수 없습니다' });
+          return;
+        }
+        const def = dict.FIELDS[key];
+        if (!def) {
+          rejected.push({ key, reason: '사전에 없는 항목' });
+          return;
+        }
+        if (raw.value === '' || raw.value === null || raw.value === undefined) {
+          rejected.push({ key, reason: '값이 비어 있습니다' });
+          return;
+        }
+        const source = String(raw.source || '').trim();
+        if (!source) {
+          rejected.push({ key, reason: '출처가 없습니다 — 출처 없는 값은 저장할 수 없습니다' });
+          return;
+        }
+
+        let value = raw.value;
+        if (def.type === 'number') {
+          const n = Number(String(value).replace(/,/g, '').trim());
+          if (!Number.isFinite(n)) {
+            rejected.push({ key, reason: `숫자가 아닙니다 (${raw.value})` });
+            return;
+          }
+          value = n;
+          const v = dict.rangeViolation(key, n);
+          if (v) warnings.push(v);   // 저장은 한다
+        }
+
+        clean.push({
+          key, value, source,
+          // 단위는 사전에서 가져온다. 사용자가 고를 수 있게 두면 억원/원이 섞인다
+          unit: def.unit || null,
+          sourceDate: raw.sourceDate || null,
+          page: (raw.page === '' || raw.page === undefined) ? null : raw.page,
+          confidence: typeof raw.confidence === 'number' ? raw.confidence : 0.9,
+          verified: false,           // 사람이 적었다고 검증된 것이 아니다
+        });
+      });
+
+      if (!clean.length) return { status: 400, body: { error: '저장할 수 있는 값이 없습니다', rejected } };
+
+      const json = store.readJson(projectId, '01_Project/dataset.json', null);
+      const ds = json ? Dataset.fromJSON(json, dict.FIELDS) : new Dataset(projectId, dict.FIELDS);
+
+      const failed = [];
+      clean.forEach((f) => {
+        try { ds.add(f); } catch (err) { failed.push({ key: f.key, reason: err.message }); }
+      });
+      ds.resolve();
+      store.writeJson(projectId, '01_Project/dataset.json', ds.toJSON());
+
+      return ok({
+        saved: clean.length - failed.length,
+        rejected: rejected.concat(failed),
+        warnings,
+        at: kstStamp(new Date()),
+      });
+    },
+
     /** GET /projects/:id/reports — 파일 존재 여부로 판정한다 */
     async listReports(ctx, projectId) {
       const g = gate(ctx, 'pro'); if (g.error) return g.error;
@@ -258,6 +399,8 @@ function createRouter(deps = {}) {
   router.get('/projects/:id/spec', wrap(req => h.getSpec(req, req.params.id)));
   router.post('/projects/:id/spec', wrap(req => h.saveSpec(req, req.params.id, req.body)));
   router.post('/projects/:id/spec/confirm', wrap(req => h.confirmSpec(req, req.params.id, req.body)));
+  router.get('/projects/:id/facts', wrap(req => h.getFacts(req, req.params.id)));
+  router.put('/projects/:id/facts', wrap(req => h.saveFacts(req, req.params.id, req.body)));
   router.get('/projects/:id/reports', wrap(req => h.listReports(req, req.params.id)));
   router.post('/projects/:id/reports', wrap(req => h.generate(req, req.params.id, req.body)));
 

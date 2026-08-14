@@ -205,6 +205,7 @@ ul { margin: 0; padding: 0; list-style: none; }
     <a class="nav" href="#"><span class="nav__ic">★</span>프리미엄 투자소스 DB</a>
     <a class="nav" href="#"><span class="nav__ic">🔆</span>신재생에너지 분석</a>
     <a class="nav" href="#"><span class="nav__ic">📋</span>업무지시 보드</a>
+    <a class="nav" href="fields.html"><span class="nav__ic">✎</span>가이드 필드 입력</a>
     <a class="nav on" href="#" aria-current="page" id="nav-rep"><span class="nav__ic">📄</span>보고서 생성</a>
     <a class="nav" href="#"><span class="nav__ic">◈</span>멤버십</a>
   </aside>
@@ -408,16 +409,26 @@ window.LINKPILOT_REPORTS = {
   // ── 단계 표시 ────────────────────────────────────
   function steps() {
     var row = el('div', 'steps');
-    [['1', '대상·종류 선택', true], ['2', '출력 사양 확정', state.locked], ['3', '생성', false]]
-      .forEach(function (s, i) {
-        var cls = 'step';
-        if (i === 0) cls += ' done';
-        else if (i === 1) cls += state.locked ? ' done' : ' on';
-        else if (state.locked) cls += ' on';
-        var n = el('div', cls);
-        add(n, el('span', 'step__n', s[0]), el('span', null, s[1]));
-        row.appendChild(n);
-      });
+    ['대상·종류 선택', '가이드 필드 입력', '출력 사양 확정', '생성'].forEach(function (label, i) {
+      var cls = 'step';
+      if (i === 0) cls += ' done';
+      else if (i === 1) cls += ' done';
+      else if (i === 2) cls += state.locked ? ' done' : ' on';
+      else if (state.locked) cls += ' on';
+
+      // 2단계는 별도 화면이다. 여기서 바로 건너갈 수 있어야 한다 —
+      // 값이 비어 있으면 생성해도 빈 칸투성이 보고서가 나온다
+      var n = el(i === 1 ? 'a' : 'div', cls);
+      if (i === 1) {
+        var qs = [];
+        if (state.projectId) qs.push('project=' + encodeURIComponent(state.projectId));
+        if (state.kindId) qs.push('doc=' + encodeURIComponent(state.kindId));
+        n.href = 'fields.html' + (qs.length ? '?' + qs.join('&') : '');
+        n.style.textDecoration = 'none';
+      }
+      add(n, el('span', 'step__n', String(i + 1)), el('span', null, label));
+      row.appendChild(n);
+    });
     return row;
   }
 

@@ -53,6 +53,28 @@ function createHandlers({ agentRoot, agentModulePath }) {
       return { status: 200, body: { projects: rows } };
     },
 
+    /**
+     * GET /fields — 데이터 사전(가이드 필드 정의).
+     *
+     * ★ 화면이 필드 목록을 **복사해 두지 않게** 하려고 있는 엔드포인트다.
+     *   사전(core/dictionary.js)이 단일 출처이고, 항목이 추가·삭제되면
+     *   화면이 즉시 따라온다. 복사본을 두면 사전이 바뀐 날부터 조용히 갈린다.
+     *
+     * 계산 항목(returns.* 등)은 입력 대상이 아니므로 key 만 내보낸다 —
+     * 화면이 입력란을 만들지 않도록.
+     */
+    async fields() {
+      const dict = load('core/dictionary');
+      return {
+        status: 200,
+        body: {
+          fields: dict.FIELDS,
+          computedKeys: dict.COMPUTED_KEYS,
+          categories: dict.CATEGORY,
+        },
+      };
+    },
+
     /** GET /projects/:id/control-tower */
     async controlTower(projectId) {
       if (!PROJECT_ID.test(String(projectId))) {
@@ -102,6 +124,9 @@ function createRouter(deps = {}) {
   const router = express.Router();
   const send = (res, r) => res.status(r.status).json(r.body);
 
+  router.get('/fields', async (req, res, next) => {
+    try { send(res, await h.fields()); } catch (e) { next(e); }
+  });
   router.get('/projects', async (req, res, next) => {
     try { send(res, await h.projects()); } catch (e) { next(e); }
   });
