@@ -1,6 +1,6 @@
 'use strict';
 /**
- * llm.js — Gemini 호출 래퍼. 기존 크론 스크립트(fetch-daily-quote.js)의
+ * llm.js — Gemini 호출 래퍼. 기존 크론 스크립트의
  * 키 로테이션 · 모델 폴백 패턴을 그대로 따른다. 새 의존성 없음(fetch 내장).
  *
  * ★ 원칙: LLM은 '문장'과 '분류'만 담당한다. 숫자 계산은 finance/ 가 한다.

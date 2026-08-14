@@ -1,30 +1,25 @@
-name: cron-ci
+name: alert-ci
 
-# 아침 크론 회귀 테스트. 네트워크·시크릿·node_modules 불필요.
-# 검증 대상은 발송 자체가 아니라 "실패했을 때의 행동"이다:
-#   실패 알림 경로가 살아 있는지, NAS 가 죽어도 브리핑이 나가는지.
-# 이 두 가지가 깨지면 실패를 다음날 아침에야 알게 된다.
+# 실패 알림 회귀 테스트. 네트워크·시크릿·node_modules 불필요.
+# 검증 대상은 "실패했을 때의 행동"이다 — 지금 이 경로를 쓰는 것은 deploy-nas 다.
+# 배포가 실패했는데 알림이 안 오면 NAS 에 무엇이 올라갔는지 모르는 채로 지나간다.
 on:
   push:
     paths:
-      - 'send-morning-*.js'
-      - 'fetch-*.js'
       - 'alert-failure.js'
       - 'test/**'
-      - '.github/workflows/cron-ci.yml'
+      - '.github/workflows/alert-ci.yml'
       - '.github/workflows/alert-failure.yml'
   pull_request:
     paths:
-      - 'send-morning-*.js'
-      - 'fetch-*.js'
       - 'alert-failure.js'
       - 'test/**'
-      - '.github/workflows/cron-ci.yml'
+      - '.github/workflows/alert-ci.yml'
       - '.github/workflows/alert-failure.yml'
   workflow_dispatch:
 
 concurrency:
-  group: cron-ci-${{ github.ref }}
+  group: alert-ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -38,7 +33,7 @@ jobs:
           node-version: '20'
       # 따옴표를 씌우지 않는다: node --test 의 자체 glob 확장은 Node 22+ 기능이라
       # Node 20 에서는 리터럴 경로로 처리되어 "Could not find" 로 죽는다. 셸이 확장하게 둔다.
-      - name: Run cron tests
+      - name: Run alert tests
         run: node --test test/*.test.js
       # 알림 스크립트가 실제로 실행 가능한 상태인지 확인한다 (네트워크 호출 없음).
       - name: Alert dry-run

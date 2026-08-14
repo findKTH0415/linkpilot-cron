@@ -1,88 +1,127 @@
-# LinkPilot 아침 명언 카드 — 무인 친구톡 발송 (GitHub Actions + Solapi)
+# LinkPilot 보고서 생성 (IM Agent)
 
-**NAS 외부망을 열지 않고, 별도 발송 서버도 없이** 매일 아침 6/7시(KST)에
-프리미엄 명언("오늘의 생각 한 줄")을 카카오 **친구톡**으로 무인 발송합니다.
+투자설명서(IM)·티저·요약·검증 보고서를 만드는 파이프라인이다.
+**출처 없는 숫자는 시스템에 들어오지 못한다** — 그 한 가지가 이 저장소의 설계 전부다.
 
 ```
-[GitHub Actions cron 07:00 KST]
-  → Gemini로 오늘 명언 생성
-  → Solapi 친구톡(CTA)으로 채널 친구들에게 발송
+자료 업로드 → 사양 확정(LOCK) → 파이프라인 11단계 → 검증 게이트 → 산출물
 ```
-- 클라우드에서 돌기 때문에 **내 PC·NAS가 꺼져 있어도** 동작합니다.
-- 비밀키는 모두 **GitHub Secrets**에 저장(코드에 미포함).
+
+> **아침 크론(브리핑·모닝카드·한줄생각·법령수집)은 이 저장소에서 제외되었다.**
+> 경위와 복구 방법은 [`docs/삭제-후보.md`](docs/삭제-후보.md) B군 참조.
 
 ---
 
-## 1. 사전 준비 (한 번만)
+## 1. 무엇을 지키는가
 
-### A. 카카오 채널 + Solapi
-1. **카카오 비즈니스 채널** 개설 (business.kakao.com) — 친구톡 발송 주체.
-2. **Solapi** 가입 (solapi.com) → **카카오 채널 연동** → **발신프로필(pfId)** 발급.
-   - 콘솔에서 친구톡 사용 신청/검수(채널 친구에게만 발송됨).
-3. Solapi **API Key / API Secret** 발급 (대시보드 → 개발/연동).
-4. (선택) SMS 대체발송을 쓰려면 **발신번호 등록**(SENDER_PHONE).
+**① 출처 없는 숫자는 들어올 수 없다**
 
-> 친구톡은 **채널을 친구추가한 사람**에게만 갑니다(법적 요건). 수신자는 채널 친구여야 합니다.
+모든 값은 `Value / Unit / Source / Source Date / Page / Confidence / Verified / Last Updated`
+를 반드시 동반한다. `source` 가 없으면 `Fact` 생성 자체가 예외로 죽는다
+(`core/facts.js`) — 우회 경로가 없다.
 
-### B. Gemini 무료 키
-- Google AI Studio(aistudio.google.com)에서 무료 API 키 발급.
+값이 갈리면 덮어쓰지 않고 후보로 모두 보관해 RED FLAG 로 노출한다.
+독립 출처 2건 이상이 일치할 때만 `verified=true` 로 승격한다.
 
----
+**② 숫자는 LLM 이 만들지 않는다**
 
-## 2. GitHub 레포 만들기
+IRR·NPV·DSCR·Exit Value·감정평가액·용적률은 결정적 함수만 계산한다.
+Agent 11개 중 8개는 LLM 을 한 번도 부르지 않는다.
 
-1. GitHub에서 **비공개(private) 레포** 생성 (예: `linkpilot-morning-card`).
-2. 이 폴더(`morning-card-cron/`) 내용을 레포 **루트**에 올립니다:
-   ```bash
-   cd morning-card-cron
-   git init && git add . && git commit -m "morning card cron"
-   git branch -M main
-   git remote add origin https://github.com/<계정>/linkpilot-morning-card.git
-   git push -u origin main
-   ```
-   - 폴더 구조가 그대로면 `.github/workflows/morning-card.yml` 이 자동 인식됩니다.
+Writer 는 본문에 숫자를 쓸 수 없고 `{{key}}` 자리표시자만 쓴다. 치환 전 원문에
+숫자가 남아 있으면 전부 검출되어 승인 게이트가 배포를 막는다.
 
 ---
 
-## 3. Secrets 등록 (레포 → Settings → Secrets and variables → Actions)
+## 2. 파이프라인
 
-| 이름 | 값 |
+| 순서 | Agent | 하는 일 | LLM |
+|--:|---|---|:--:|
+| 0 | 10 Output Spec | **출력 사양 확정(LOCK)** — 확정 전에는 생성이 시작되지 않는다 | 미사용 |
+| 1 | 01 Project | 요청문 → Project ID + 13개 표준 폴더 | 미사용 |
+| 2 | 02 Extraction | 규칙 기반 + LLM 보완. docx/xlsx/pptx 는 내장 zlib 로 파싱 | 보조 |
+| 3 | 07 Geo | 공공데이터 — 지오코딩·지적도·용도지역·건축물대장 | 미사용 |
+| 4 | 03 Research | 시장분석. 산출물 전량 `verified=false`, 재무모델 투입 금지 | 사용 |
+| 5 | 04 Financial | Base/Upside/Downside 3개 시나리오 + 민감도 | 미사용 |
+| 6 | 08 Appraisal | 감정평가 3방식 (공시지가·거래사례·수익환원) | 미사용 |
+| 7 | 09 Massing | 건축 3D 매스 + 용적률/건폐율 법정한도 검토 | 미사용 |
+| 8 | 05 Validation | 값충돌·정합성·범위·법률 → RED/YELLOW/GREEN + QC Score | 미사용 |
+| 9 | 06 IM Writer | 20개 절 IM + Teaser + 수치 출처표 | 문장만 |
+| 10 | 11 Final Validation | 독립 최종 검증 | 미사용 |
+
+`07 / 08 / 09` 는 부동산개발 전용이며, 데이터가 없으면 경고만 남기고 건너뛴다.
+
+---
+
+## 3. 실행
+
+```bash
+npm test                                   # 회귀 테스트 (네트워크·시크릿 불필요)
+
+npm run im:demo                            # 샘플 자료로 전체 파이프라인 1회
+npm run im -- run LP-DC-2026-001           # 실제 프로젝트 생성
+npm run im -- quota                        # 공공데이터 쿼터 확인
+
+npm run im:platform                        # 화면 단일 HTML 빌드
+IM_AGENT_DEBUG_HTTP=1 npm run im:smoke     # 공공데이터 연결 진단
+```
+
+---
+
+## 4. 화면
+
+`im-agent/ui/platform/` — 빌드 도구·번들러·의존성 없이 도는 단일 HTML.
+
+| 화면 | 내용 |
 |---|---|
-| `GEMINI_API_KEY` | Google AI Studio 키 |
-| `SOLAPI_API_KEY` | Solapi API Key |
-| `SOLAPI_API_SECRET` | Solapi API Secret |
-| `SOLAPI_PFID` | 발신프로필 ID (예: `KA01PF...`) |
-| `FRIENDS_URL` | ★ **앱 친구명단 자동연동(권장)**: `https://synologynas.tail43fc79.ts.net/friends.php` — 앱 "카드 보낼 친구"에 등록한 명단으로 자동 발송(설정 시 RECIPIENTS 불필요) |
-| `RECIPIENTS` | (FRIENDS_URL 미설정 시) 수신자 휴대폰 JSON 배열. 예: `["01011112222","01033334444"]` |
-| `ONLY_TO` | ★ **테스트 기간: 특정 1명에게만 발송**. 예: `01065503050` (김태형). 설정 시 FRIENDS_URL·RECIPIENTS 무시하고 이 번호로만. 테스트 끝나면 이 시크릿 삭제 |
-| `NAS_BASE_URL` | ★ 카드 이미지 저장·음악뷰어용: `https://synologynas.tail43fc79.ts.net` (FRIENDS_URL 있으면 자동 추론되지만 명시 권장) |
-| `CARD_NAME` | (선택) 카드 하단 보내는 사람 이름. 기본 `김태형` |
-| `CARD_COMPANY` | (선택) 카드 하단 회사 상호. 예: `PDI Global infra structure Development` |
-| `SENDER_PHONE` | (선택) 등록된 발신번호. 친구톡 실패 시 SMS 대체 |
+| `reports.html` | **보고서 생성** — 대상·종류 → 사양 확정 → 생성 → 산출물 |
+| IM 제작현황 (Control Tower) | 4트랙 진행률·검증·산출물. 파이프라인이 쓴 `control-tower.json` 을 읽는다 |
 
-> ★ 발송 형태: 매일 **9:16에 가까운(3:4) 명언 카드 이미지** + "음악과 함께 보기 ♪" 버튼으로 친구톡 발송(서버에서 직접 렌더링). 배경은 매일 자동 변경.
-> ⚠️ 친구톡 발송 가능 시간 **08:00~20:50**. 워크플로 기본 **08:10 KST**.
+서버 배선은 [`im-agent/ui/platform/README.md`](im-agent/ui/platform/README.md) 참조.
+`authenticate` 없이는 생성 API 가 **마운트 자체를 거부한다.**
 
 ---
 
-## 4. 발송 시간 설정
+## 5. Secrets
 
-`.github/workflows/morning-card.yml` 의 cron (UTC 기준):
-- `0 22 * * *` → **07:00 KST** (기본)
-- `0 21 * * *` → **06:00 KST** (주석 해제하면 추가)
+값은 **GitHub Secrets 에만** 넣는다. 코드·로그·커밋 메시지에 남기지 않는다.
 
-> GitHub cron은 부하에 따라 수 분 지연될 수 있습니다(무료 정책). 정시 ±몇 분은 정상입니다.
+| 이름 | 용도 | 없으면 |
+|---|---|---|
+| `GEMINI_API_KEY` | 02 Extraction 보완 · 06 Writer 문장 | 규칙 기반만 동작 |
+| `VWORLD_KEY` | 지오코딩·지적도·용도지역·공시지가 | 07 Geo 건너뜀 |
+| `DATA_GO_KR_KEY` | 실거래가·건축물대장 | 07/08 일부 건너뜀 |
+| `TS_OAUTH_CLIENT_ID` / `TS_OAUTH_SECRET` | 배포 러너의 tailnet 접속 | 배포 불가 |
+| `NAS_SSH_HOST` / `NAS_SSH_USER` / `NAS_SSH_KEY` | NAS 배포 | 배포 불가 |
+| `ALERT_PHONE` | 배포 실패 SMS | GitHub Issue 알림만 |
+
+**키가 없으면 데이터를 지어내지 않는다.** `unavailable` 을 반환하고 해당 절을 비운다.
+
+공공데이터는 일 10,000건 한도가 있어 `connectors/cache.js` 가 재호출을 막는다
+(지오코딩 180일 / 공시지가·용도지역 30일 / 실거래가 7일). **재실행 시 호출 0건.**
 
 ---
 
-## 5. 테스트
+## 6. 문서
 
-- 레포 → **Actions → morning-card → Run workflow** (workflow_dispatch) 로 즉시 1회 발송 테스트.
-- 로그에 생성된 본문과 `✅ 발송 요청 완료` 가 보이면 정상.
+| 문서 | 내용 |
+|---|---|
+| [`HANDOVER.md`](HANDOVER.md) | 인수인계 · 버그/오류 개선안 · 완성도 |
+| [`docs/미결정-사항.md`](docs/미결정-사항.md) | **미결정 등록부 — 세션 시작 시 먼저 읽는다** |
+| [`docs/재갱신-요청서.md`](docs/재갱신-요청서.md) | 지침 개정 요청 · 결정 체크리스트 |
+| [`docs/삭제-후보.md`](docs/삭제-후보.md) | 범위 정리 내역 |
+| [`im-agent/README.md`](im-agent/README.md) | 파이프라인 상세 · 알려진 한계 |
 
 ---
 
-## 메모 / 한계
-- **친구톡 본문**은 Gemini가 매일 생성(명언+오늘의 생각+주간 마무리 인사). 이미지(9:16 카드)는 기본 텍스트 발송이며, `CARD_IMAGE_URL`을 주면 와이드 이미지로 첨부 시도합니다.
-- Solapi 친구톡 **광고성 메시지**는 야간(20~08시) 발송 제한·수신거부 문구 등 정책이 있습니다. 정보성(명언/인사)으로 운영하되, Solapi/카카오 가이드의 광고 분류 기준을 확인하세요.
-- 인물 중복 방지(최근 1개월)는 앱(브라우저)에서만 관리됩니다. 크론은 Gemini의 다양성에 의존합니다(원하면 레포에 사용이력 파일을 커밋하는 방식으로 강화 가능).
+## 7. 알려진 한계
+
+- 시장조사(`03_research`)는 Connector 가 없어 LLM 기억에 의존한다. 산출물은 전부
+  `verified=false` 라 재무모델에 들어가지 않지만, **운영 투입 전 URL 출처를 강제해야 한다**
+- 공공데이터 응답 스키마를 **실제 키로 검증하지 않았다**
+- 재무모델은 연 단위다. 분기·월 단위 인출 스케줄이 필요한 PF 딜에는 정밀도가 부족하다
+- 용적률/건폐율 상한은 국토계획법 시행령 기준이다. **지자체 조례가 더 강한 경우가 흔하다**
+- 매스 모델은 규모 검토용이며 설계 검토가 아니다 (이격거리·사선제한·주차 미반영)
+
+> ⚠ 감정평가법상 감정평가는 감정평가법인등만 수행할 수 있다.
+> **법정 감정평가가 아니라는 고지**가 모든 산출물과 IM 부록 C 에 자동 첨부된다.
