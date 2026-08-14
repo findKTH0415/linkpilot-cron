@@ -270,9 +270,19 @@ window.LINKPILOT_REPORTS = {
     { id: 'pdi', name: 'PDI 하우스', color: '#C00000' },
   ],
 
-  formats: ['HTML', 'PDF', 'Markdown'],
-  sizes: ['A4', 'Letter', '16:9 슬라이드'],
-  langs: ['한국어', 'English', '국문+영문 병기'],
+  // ★ 만들 수 있는 형식만 고를 수 있다. 못 만드는 것은 이유와 함께 비활성으로 보여준다 —
+  //   목록에서 아예 빼면 "왜 PDF가 없냐"고 묻고, 그냥 두면 골랐다가 안 나온다.
+  //   서버(report-api.cjs)도 같은 목록으로 다시 거른다.
+  formats: [
+    { id: 'html', name: 'HTML (A4 인쇄용)', supported: true },
+    { id: 'md', name: '마크다운 원문', supported: true },
+    { id: 'json', name: '뷰어 데이터 (JSON)', supported: true },
+    { id: 'pdf', name: 'PDF', supported: false, via: 'HTML을 브라우저 인쇄로 출력하세요' },
+    { id: 'pptx', name: 'PowerPoint', supported: false, via: '의존성 추가 승인 필요' },
+    { id: 'hwp', name: '한글(HWP)', supported: false, via: '생성 불가' },
+  ],
+  sizes: ['A4', 'Letter', '16:9'],
+  langs: [{ id: 'ko', name: '한국어' }, { id: 'en', name: 'English' }, { id: 'ko-en', name: '국문+영문 병기' }],
 
   // 최근 생성물 (실서비스에서는 API 로 받는다)
   recent: [
@@ -293,7 +303,7 @@ window.LINKPILOT_REPORTS = {
     projectId: (C.projects[0] || {}).id || null,
     kindId: 'im',
     pages: null,          // 종류를 고르면 기본값이 들어온다
-    size: 'A4', format: 'HTML', lang: '한국어',
+    size: 'A4', format: 'html', lang: 'ko',
     themeId: 'institutional',
     locked: false,        // ★ 출력 사양 확정 여부
   };
@@ -306,6 +316,48 @@ window.LINKPILOT_REPORTS = {
   }
   function add(p) { for (var i = 1; i < arguments.length; i++) if (arguments[i]) p.appendChild(arguments[i]); return p; }
   function kindOf(id) { return C.kinds.filter(function (k) { return k.id === id; })[0] || null; }
+
+  // ── 서버 연결 ────────────────────────────────────
+  // api 가 없으면 데모로 동작한다. 있으면 확정·생성이 실제로 서버를 거친다.
+  // ★ 서버가 거부하면 그 사유를 그대로 보여준다. 화면이 임의로 성공처럼 꾸미지 않는다.
+
+  function apiUrl(p) { return String(C.api).replace(/\/$/, '') + p; }
+
+  function call(method, p, body) {
+    return fetch(apiUrl(p), {
+      method: method,
+      credentials: 'same-origin',     // 세션 쿠키로 인증한다
+      headers: body ? { 'content-type': 'application/json' } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (j) {
+        if (!r.ok) throw new Error((j && j.error) || ('HTTP ' + r.status));
+        return j;
+      });
+    });
+  }
+
+  function say(text, kind) {
+    var old = document.getElementById('api-note');
+    if (old) old.remove();
+    var n = el('p', 'note', text);
+    n.id = 'api-note';
+    if (kind === 'bad') { n.style.background = 'var(--bad-soft)'; n.style.color = 'var(--bad-ink)'; }
+    view.appendChild(n);
+    n.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+
+  /** 현재 화면 값 → 서버 사양 형식 */
+  function specBody() {
+    return {
+      docType: state.kindId,
+      targetPages: state.pages,
+      pageSize: state.size,
+      language: state.lang,
+      formats: [state.format],
+      themeId: state.themeId,
+    };
+  }
 
   document.getElementById('side-user').textContent = (C.session && C.session.name) || '';
   document.getElementById('head-user').textContent = (C.session && C.session.name) || '';
@@ -431,7 +483,15 @@ window.LINKPILOT_REPORTS = {
 
     function selOf(list, cur, set) {
       var s = el('select');
-      list.forEach(function (v) { s.appendChild(new Option(v, v)); });
+      list.forEach(function (v) {
+        var o = new Option(typeof v === 'string' ? v : v.name, typeof v === 'string' ? v : v.id);
+        // 만들 수 없는 형식은 이유를 붙여 비활성으로 남긴다
+        if (typeof v === 'object' && v.supported === false) {
+          o.disabled = true;
+          o.text = v.name + ' — ' + v.via;
+        }
+        s.appendChild(o);
+      });
       s.value = cur;
       s.disabled = state.locked;
       s.addEventListener('change', function () { set(s.value); updateLockBar(); });
@@ -499,7 +559,26 @@ window.LINKPILOT_REPORTS = {
     var b = el('button', 'btn', '이 사양으로 확정');
     b.type = 'button';
     b.disabled = problems.length > 0;
-    b.addEventListener('click', function () { state.locked = true; draw(); });
+    b.addEventListener('click', function () {
+      if (!C.api) { state.locked = true; draw(); return; }
+      b.disabled = true;
+      b.textContent = '확정 중…';
+      // 저장 → 확정. 확정은 서버가 사람 이름으로만 받아준다
+      call('POST', '/projects/' + encodeURIComponent(state.projectId) + '/spec', specBody())
+        .then(function () {
+          return call('POST', '/projects/' + encodeURIComponent(state.projectId) + '/spec/confirm', {});
+        })
+        .then(function (j) {
+          state.locked = !!(j.spec && j.spec.locked);
+          draw();
+          if (!state.locked) say('서버가 확정을 반영하지 않았습니다. 다시 시도하세요.', 'bad');
+        })
+        .catch(function (e) {
+          // ★ 실패했는데 잠긴 것처럼 보이면 안 된다. 화면 상태를 바꾸지 않는다
+          draw();
+          say('사양 확정 실패 — ' + e.message, 'bad');
+        });
+    });
     bar.appendChild(b);
     if (problems.length) bar.appendChild(el('span', 'why', problems.join(', ') + '을(를) 먼저 정하세요.'));
   }
@@ -513,7 +592,7 @@ window.LINKPILOT_REPORTS = {
     b.type = 'button';
     // ★ 사양이 잠기기 전에는 누를 수 없다
     b.disabled = !state.locked;
-    b.addEventListener('click', start);
+    b.addEventListener('click', function () { start(b); });
     box.appendChild(b);
 
     if (!state.locked) {
@@ -524,15 +603,76 @@ window.LINKPILOT_REPORTS = {
     return box;
   }
 
-  function start() {
-    var old = document.getElementById('run-note');
-    if (old) old.remove();
-    var n = el('p', 'note',
-      '생성 요청은 본체 API 에 연결해야 합니다 (POST /reports). '
-      + '진행 상황은 IM 제작현황 화면에서 4트랙으로 확인합니다.');
-    n.id = 'run-note';
-    view.appendChild(n);
-    n.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  function start(btn) {
+    if (!C.api) {
+      say('생성 요청은 본체 API 에 연결해야 합니다 (POST /projects/:id/reports). '
+        + 'LINKPILOT_REPORTS.api 를 설정하면 이 버튼이 실제로 요청합니다.');
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = '요청 중…';
+    call('POST', '/projects/' + encodeURIComponent(state.projectId) + '/reports', { docType: state.kindId })
+      .then(function (j) {
+        btn.textContent = '보고서 생성 시작';
+        btn.disabled = false;
+        say('생성이 접수되었습니다' + (j.run && j.run.runId ? ' (실행 ' + j.run.runId + ')' : '')
+          + ' — 진행 상황은 IM 제작현황 화면에서 확인하세요.');
+        loadReports();
+      })
+      .catch(function (e) {
+        btn.textContent = '보고서 생성 시작';
+        btn.disabled = false;
+        say('생성 시작 실패 — ' + e.message, 'bad');
+      });
+  }
+
+  /**
+   * 서버에 이미 저장된 사양을 화면에 반영한다.
+   * ★ 이걸 빼면 확정 후 새로고침했을 때 화면만 '미확정'으로 돌아간다.
+   *   사용자는 다시 확정을 누르고, 서버는 이미 잠겨 있어 거절하거나 버전을 올린다.
+   */
+  function loadSpec() {
+    if (!C.api || !state.projectId) return Promise.resolve();
+    return call('GET', '/projects/' + encodeURIComponent(state.projectId) + '/spec')
+      .then(function (j) {
+        var s = j && j.spec;
+        if (!s) { state.locked = false; draw(); return; }
+        state.kindId = s.docType || state.kindId;
+        state.pages = s.targetPages != null ? s.targetPages : state.pages;
+        state.size = s.pageSize || state.size;
+        state.lang = s.language || state.lang;
+        state.format = (s.formats && s.formats[0]) || state.format;
+        state.themeId = s.themeId || state.themeId;
+        state.locked = !!s.locked;
+        draw();
+      })
+      .catch(function (e) {
+        // 사양을 못 읽었으면 잠긴 척하지 않는다. 미확정으로 두고 사실을 알린다
+        state.locked = false;
+        draw();
+        say('출력 사양을 불러오지 못했습니다 — ' + e.message, 'bad');
+      });
+  }
+
+  /** 산출물 목록을 서버에서 다시 받는다 (파일 존재 여부로 판정된 결과) */
+  function loadReports() {
+    if (!C.api || !state.projectId) return;
+    call('GET', '/projects/' + encodeURIComponent(state.projectId) + '/reports')
+      .then(function (j) {
+        C.recent = (j.files || []).map(function (f) {
+          var blocked = j.distribution && j.distribution.blocked;
+          return {
+            name: f.name, path: f.path, at: f.at,
+            status: blocked ? 'blocked' : 'ok',
+            note: blocked ? (j.distribution.reasons || []).join(' / ') : '',
+          };
+        });
+        draw();
+      })
+      .catch(function (e) {
+        // 목록을 못 받았다고 화면을 비우지 않는다. 못 받았다는 사실만 알린다
+        say('산출물 목록을 불러오지 못했습니다 — ' + e.message, 'bad');
+      });
   }
 
   // ── 최근 생성물 ──────────────────────────────────
@@ -589,6 +729,8 @@ window.LINKPILOT_REPORTS = {
   }
 
   draw();
+  loadSpec();
+  loadReports();
 }());
 </script>
 </body>

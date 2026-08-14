@@ -1,0 +1,258 @@
+'use strict';
+/**
+ * 보고서 생성 API 테스트.
+ *
+ * 이 API 는 파일을 쓰고, LLM 을 호출하고, 공공데이터 쿼터를 소모한다.
+ * 인증·플랜·사양확정 중 하나라도 새면 돈이 나가거나 검증 안 된 문서가 만들어진다.
+ * 화면(reports.html)이 막는 것과 별개로 여기서 다시 막아야 한다 —
+ * 화면은 사용자가 고칠 수 있다.
+ */
+const test = require('node:test');
+const assert = require('node:assert');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+
+const API = require('../ui/report-api.cjs');
+
+function tmpRoot() {
+  return fs.mkdtempSync(path.join(os.tmpdir(), 'im-reports-'));
+}
+function makeProject(root, id) {
+  const dir = path.join(root, id, '01_Project');
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, 'project.json'),
+    JSON.stringify({ name: '테스트 프로젝트', assetType: '데이터센터', status: 'draft' }));
+  return path.join(root, id);
+}
+
+const PRO = { name: '홍길동', planId: 'pro', status: 'active' };
+const FREE = { name: '홍길동', planId: 'free', status: 'active' };
+const ID = 'LP-DC-2026-001';
+
+function handlers(root, user, extra) {
+  return API.createHandlers(Object.assign({
+    agentRoot: root,
+    authenticate: () => user,
+  }, extra || {}));
+}
+
+// ── 마운트 자체가 막힌다 ──────────────────────────────────────────
+
+test('★ 인증 함수가 없으면 마운트 시점에 예외 (fail closed)', () => {
+  assert.throws(() => API.createHandlers({ agentRoot: '/tmp' }), /authenticate/,
+    '생성 시점이 아니라 마운트 시점에 막아야 한다 — "나중에 붙이지"가 그대로 배포된다');
+  assert.throws(() => API.createHandlers({}), /인증 없이/);
+});
+
+// ── 인증·플랜 ─────────────────────────────────────────────────────
+
+test('미인증은 401', async () => {
+  const root = tmpRoot();
+  const h = handlers(root, null);
+  assert.strictEqual((await h.listReports({}, ID)).status, 401);
+  assert.strictEqual((await h.generate({}, ID, {})).status, 401);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('무료 회원은 403', async () => {
+  const root = tmpRoot();
+  const h = handlers(root, FREE);
+  const r = await h.listReports({}, ID);
+  assert.strictEqual(r.status, 403);
+  assert.match(r.body.error, /pro 플랜부터/);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('만료된 유료 회원도 403', async () => {
+  const root = tmpRoot();
+  const h = handlers(root, { name: '홍길동', planId: 'pro', status: 'expired' });
+  assert.strictEqual((await h.listReports({}, ID)).status, 403);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('★ 모르는 플랜 코드·정보 없음은 통과시키지 않는다', async () => {
+  const root = tmpRoot();
+  for (const planId of ['enterprise-v2', undefined, null, '']) {
+    const h = handlers(root, { name: '홍길동', planId, status: 'active' });
+    const r = await h.listReports({}, ID);
+    assert.strictEqual(r.status, 403, `planId=${planId} 가 통과했다`);
+  }
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('★ 종류별 플랜을 서버에서 다시 본다 (검증 보고서는 Business)', async () => {
+  const root = tmpRoot(); makeProject(root, ID);
+  const h = handlers(root, PRO, { startRun: () => ({ runId: 'r1' }) });
+  const r = await h.generate({}, ID, { docType: 'validation' });
+  assert.strictEqual(r.status, 403);
+  assert.match(r.body.error, /business/);
+  assert.strictEqual(API.DOC_PLANS.validation, 'business', '화면의 minPlan 과 같아야 한다');
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('경로 조작을 막는다', async () => {
+  const root = tmpRoot();
+  const h = handlers(root, PRO);
+  for (const bad of ['../../etc/passwd', 'LP-DC-2026-001/../..', 'x']) {
+    assert.strictEqual((await h.listReports({}, bad)).status, 400);
+  }
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+// ── 사양 ──────────────────────────────────────────────────────────
+
+test('★ 만들 수 없는 형식은 저장 단계에서 거부한다', async () => {
+  const root = tmpRoot(); makeProject(root, ID);
+  const h = handlers(root, PRO);
+
+  const pdf = await h.saveSpec({}, ID, { docType: 'im', formats: ['html', 'pdf'] });
+  assert.strictEqual(pdf.status, 400);
+  assert.match(pdf.body.error, /PDF 생성 불가/, '사양에 넣어도 안 만들어지는 형식을 통과시키면 안 된다');
+
+  const hwp = await h.saveSpec({}, ID, { docType: 'im', formats: ['hwp'] });
+  assert.match(hwp.body.error, /HWP/);
+
+  const unknown = await h.saveSpec({}, ID, { docType: 'im', formats: ['doc'] });
+  assert.match(unknown.body.error, /알 수 없는 형식/);
+
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('지원 형식은 저장된다', async () => {
+  const root = tmpRoot(); makeProject(root, ID);
+  const h = handlers(root, PRO);
+  const r = await h.saveSpec({}, ID, { docType: 'im', formats: ['html', 'md'], targetPages: 40, pageSize: 'A4' });
+  assert.strictEqual(r.status, 200);
+  assert.strictEqual(r.body.spec.targetPages, 40);
+  assert.strictEqual(r.body.spec.locked, false, '저장만으로 확정되지 않는다');
+  assert.strictEqual(r.body.spec.confirmed, false);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('★ 확정은 인증된 사람 이름으로만 — AI 이름은 거부된다', async () => {
+  const root = tmpRoot(); makeProject(root, ID);
+
+  await handlers(root, PRO).saveSpec({}, ID, { docType: 'im', formats: ['html'], targetPages: 40 });
+
+  // 서비스 계정 이름으로는 확정할 수 없다
+  const bot = handlers(root, { name: 'claude-agent', planId: 'pro', status: 'active' });
+  const r = await bot.confirmSpec({}, ID, {});
+  assert.strictEqual(r.status, 409);
+  assert.match(r.body.error, /사람만/);
+
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('사람이 확정하면 LOCKED', async () => {
+  const root = tmpRoot(); makeProject(root, ID);
+  const h = handlers(root, PRO);
+  await h.saveSpec({}, ID, { docType: 'im', formats: ['html'], targetPages: 40 });
+  const r = await h.confirmSpec({}, ID, {});
+  assert.strictEqual(r.status, 200);
+  assert.strictEqual(r.body.spec.locked, true);
+  assert.strictEqual(r.body.spec.confirmedBy, '홍길동');
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+// ── 생성 ──────────────────────────────────────────────────────────
+
+test('★ 사양 확정 전에는 생성하지 않는다 (화면과 별개로 서버가 막는다)', async () => {
+  const root = tmpRoot(); makeProject(root, ID);
+  let started = 0;
+  const h = handlers(root, PRO, { startRun: () => { started++; return { runId: 'r1' }; } });
+
+  const noSpec = await h.generate({}, ID, { docType: 'im' });
+  assert.strictEqual(noSpec.status, 409);
+  assert.match(noSpec.body.error, /사양이 없습니다/);
+
+  await h.saveSpec({}, ID, { docType: 'im', formats: ['html'], targetPages: 40 });
+  const notLocked = await h.generate({}, ID, { docType: 'im' });
+  assert.strictEqual(notLocked.status, 409);
+  assert.match(notLocked.body.error, /확정되지 않았습니다/);
+
+  assert.strictEqual(started, 0, '확정 전에는 실행기를 부르지 않는다 — 돈이 나간다');
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('확정 후 생성은 202 로 접수된다', async () => {
+  const root = tmpRoot(); makeProject(root, ID);
+  const calls = [];
+  const h = handlers(root, PRO, { startRun: (id, spec, user) => { calls.push({ id, by: user.name }); return { runId: 'r9' }; } });
+
+  await h.saveSpec({}, ID, { docType: 'im', formats: ['html'], targetPages: 40 });
+  await h.confirmSpec({}, ID, {});
+  const r = await h.generate({}, ID, { docType: 'im' });
+
+  assert.strictEqual(r.status, 202);
+  assert.strictEqual(r.body.run.runId, 'r9');
+  assert.deepStrictEqual(calls, [{ id: ID, by: '홍길동' }]);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('★ 실행기가 없으면 501 — 없는 기능을 있는 척하지 않는다', async () => {
+  const root = tmpRoot(); makeProject(root, ID);
+  const h = handlers(root, PRO);   // startRun 미주입
+  await h.saveSpec({}, ID, { docType: 'im', formats: ['html'], targetPages: 40 });
+  await h.confirmSpec({}, ID, {});
+  const r = await h.generate({}, ID, { docType: 'im' });
+  assert.strictEqual(r.status, 501);
+  assert.match(r.body.error, /연결되지 않았습니다/);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('실행기가 던져도 500 으로 감싸고 죽지 않는다', async () => {
+  const root = tmpRoot(); makeProject(root, ID);
+  const h = handlers(root, PRO, { startRun: () => { throw new Error('큐 연결 실패'); } });
+  await h.saveSpec({}, ID, { docType: 'im', formats: ['html'], targetPages: 40 });
+  await h.confirmSpec({}, ID, {});
+  const r = await h.generate({}, ID, { docType: 'im' });
+  assert.strictEqual(r.status, 500);
+  assert.match(r.body.error, /큐 연결 실패/);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+// ── 산출물 목록 ───────────────────────────────────────────────────
+
+test('★ 산출물은 파일이 실제로 있는 것만 낸다', async () => {
+  const root = tmpRoot();
+  const dir = makeProject(root, ID);
+  fs.mkdirSync(path.join(dir, '09_IM'), { recursive: true });
+  fs.writeFileSync(path.join(dir, '09_IM/im.md'), '# IM');
+
+  const h = handlers(root, PRO);
+  const r = await h.listReports({}, ID);
+
+  assert.strictEqual(r.status, 200);
+  assert.deepStrictEqual(r.body.files.map(f => f.id), ['im'],
+    '없는 파일을 목록에 넣으면 "완료"로 보인다');
+  assert.ok(r.body.files[0].at, '생성 시각이 있어야 한다');
+  assert.match(r.body.files[0].at, /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/);
+  assert.ok(r.body.files[0].bytes > 0);
+
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('산출물이 하나도 없어도 죽지 않는다', async () => {
+  const root = tmpRoot(); makeProject(root, ID);
+  const r = await handlers(root, PRO).listReports({}, ID);
+  assert.strictEqual(r.status, 200);
+  assert.deepStrictEqual(r.body.files, []);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('배포 차단 여부를 목록과 함께 준다', async () => {
+  const root = tmpRoot(); makeProject(root, ID);
+  const r = await handlers(root, PRO).listReports({}, ID);
+  assert.ok(r.body.distribution, '차단 상태가 없으면 화면이 전부 완료로 보인다');
+  assert.strictEqual(typeof r.body.distribution.blocked, 'boolean');
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+// ── 읽기 전용 라우터와의 분리 ─────────────────────────────────────
+
+test('★ 읽기 전용 라우터는 여전히 쓰기가 없다', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'ui', 'api-router.cjs'), 'utf8');
+  assert.ok(!/router\.(post|put|patch|delete)/.test(src),
+    '생성 API 를 대시보드 라우터에 얹으면 읽기와 같은 권한으로 돈 드는 동작이 열린다');
+});
