@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>외부 업무지침 · LINKPILOT</title>
+<!--
+  외부 업무지침 — 협력사·외부 담당자용. 배포된 PDF 와 같은 내용을 앱 안에서 본다.
+
+  왜 앱 안에 두는가:
+    PDF 는 받은 사람만 갖고 있고, 고치면 다시 뿌려야 한다. 접속이 막힌 사람은
+    PDF 를 못 찾고 담당자에게 전화한다. 앱 안에 있으면 링크 하나로 끝난다.
+
+  ★ 접속 주소를 파일에 박지 않는다 (CLAUDE.md §2 — 저장소는 공개).
+    기본값은 지금 보고 있는 주소에서 만든다. 필요하면 설정으로 덮는다.
+
+  ★★ 등급표(§2)는 catalog.js 에서 그린다. 문서와 앱이 갈리면
+    "지침에는 된다는데 안 된다"는 문의가 외부에서 들어온다.
+
+  인쇄를 전제로 만들었다 — 지침은 협력사에 배포된다. @media print 참고.
+-->
+<style>
+:root {
+  --lime: #9ED700; --lime-soft: #EDF7DC; --lime-deep: #5C7A00;
+  --ink: #17181A; --ink2: #7C838C; --line: #E8EAEC;
+  --panel: #F1F2F4; --bg: #F5F6F8; --surface: #FFFFFF;
+  --bad: #E03131; --bad-soft: #FDECEC; --bad-ink: #8F1D1D;
+  --warn: #E8A33D; --warn-soft: #FDF3E3; --warn-ink: #8A5A10;
+  --r: 18px; --side: 248px;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 400 15px/1.55 -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
+        'Malgun Gothic', '맑은 고딕', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+h1,h2,h3,h4 { margin: 0; }
+ul { margin: 0; padding: 0; list-style: none; }
+.app { display: flex; min-height: 100%; }
+
+/* 사이드바 */
+.side { width: var(--side); flex: none; background: var(--surface);
+  border-right: 1px solid var(--line); padding: 18px 12px 24px;
+  display: flex; flex-direction: column; gap: 4px; }
+.side__brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 12px; }
+.side__mark { width: 34px; height: 34px; border-radius: 50%; flex: none;
+  border: 2.5px solid var(--ink); display: grid; place-items: center;
+  color: var(--lime); font-size: 15px; }
+.side__name { font-size: 15px; font-weight: 800; }
+.side__user { font-size: 12px; color: var(--ink2); }
+.side__group { margin: 14px 8px 6px; font-size: 12px; font-weight: 700; color: var(--ink2); }
+.nav { display: flex; align-items: center; gap: 11px; padding: 10px 12px;
+  border-radius: 12px; text-decoration: none; color: var(--ink); font-size: 14.5px; }
+.nav:hover { background: var(--panel); }
+.nav.on { background: var(--lime-soft); color: var(--lime-deep); font-weight: 700; }
+.nav.lock { color: var(--ink2); }
+.nav__ic { width: 20px; text-align: center; font-size: 15px; opacity: .8; }
+.nav__lk { margin-left: auto; font-size: 11px; }
+
+/* 본문 */
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.top { background: var(--surface); border-bottom: 1px solid var(--line);
+  padding: 16px 26px; display: flex; align-items: center; gap: 14px; }
+.logo { display: flex; align-items: center; gap: 12px; font-size: 24px; font-weight: 900; }
+.logo em { font-style: normal; color: var(--lime); }
+.logo__mark { width: 38px; height: 38px; border-radius: 50%; border: 3px solid var(--ink);
+  display: grid; place-items: center; color: var(--lime); font-size: 16px; }
+.top__act { margin-left: auto; display: flex; gap: 8px; }
+
+.head { background: var(--surface); padding: 16px 26px 0; }
+.head__row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.head__ic { width: 40px; height: 40px; border-radius: 12px; background: var(--panel);
+  display: grid; place-items: center; font-size: 18px; }
+.head__t { font-size: 22px; font-weight: 800; }
+.head__s { font-size: 13px; color: var(--ink2); margin-top: 3px; }
+.head__meta { margin-left: auto; text-align: right; font-size: 13px; color: var(--ink2); }
+.head__meta b { display: block; color: var(--ink); font-weight: 700; margin-top: 2px; }
+.head__nav { display: flex; gap: 8px; margin: 14px 0 0; padding-bottom: 14px; flex-wrap: wrap; }
+.chip { font: 700 12.5px/1 inherit; padding: 9px 14px; border: 0; border-radius: 999px;
+  background: var(--panel); color: var(--ink2); cursor: pointer; text-decoration: none; }
+.chip:hover { background: var(--lime-soft); color: var(--lime-deep); }
+.rule { height: 3px; background: var(--lime); }
+
+.body { padding: 22px 26px 96px; display: flex; flex-direction: column; gap: 18px; max-width: 900px; }
+
+/* 섹션 */
+.sec { background: var(--surface); border-radius: var(--r); padding: 22px 24px; scroll-margin-top: 90px; }
+.sec__h { display: flex; align-items: baseline; gap: 11px; margin-bottom: 4px; }
+.sec__no { width: 26px; height: 26px; flex: none; border-radius: 8px; background: var(--ink);
+  color: var(--lime); font-size: 13px; font-weight: 800; display: grid; place-items: center;
+  align-self: center; }
+.sec__t { font-size: 18px; font-weight: 800; }
+.sec__d { font-size: 13.5px; color: var(--ink2); margin: 10px 0 0; }
+.sec > * + * { margin-top: 14px; }
+
+.why { background: var(--ink); color: #fff; border-radius: var(--r); padding: 24px; }
+.why h2 { font-size: 17px; font-weight: 800; color: var(--lime); }
+.why p { margin: 10px 0 0; font-size: 14px; line-height: 1.65; opacity: .9; }
+
+/* 정의 목록 */
+.dl { display: grid; grid-template-columns: 132px 1fr; gap: 1px; background: var(--line);
+  border: 1px solid var(--line); border-radius: 12px; overflow: hidden; font-size: 14px; }
+.dl > div { background: var(--surface); padding: 12px 14px; min-width: 0; }
+.dl > div:nth-child(odd) { background: var(--panel); font-weight: 700; font-size: 13.5px; }
+.dl code, .url { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px;
+  word-break: break-all; }
+
+/* 표 */
+.tb { width: 100%; border-collapse: collapse; font-size: 14px; }
+.tb th, .tb td { border: 1px solid var(--line); padding: 11px 13px; text-align: left;
+  vertical-align: top; }
+.tb th { background: var(--panel); font-size: 13px; font-weight: 700; }
+.tb td b { font-weight: 800; }
+.tb--grade td:first-child { width: 92px; white-space: nowrap; }
+.grade { display: inline-block; font-size: 11.5px; font-weight: 800; padding: 3px 9px;
+  border-radius: 999px; }
+.grade--free { background: var(--panel); color: var(--ink2); }
+.grade--paid { background: var(--lime); color: var(--ink); }
+.tier { font-size: 11px; color: var(--ink2); margin-left: 5px; white-space: nowrap; }
+
+/* 경고 / 알림 */
+.warn { border-radius: 14px; padding: 15px 17px; font-size: 13.8px; line-height: 1.6; }
+.warn--bad { background: var(--bad-soft); color: var(--bad-ink); }
+.warn--warn { background: var(--warn-soft); color: var(--warn-ink); }
+.warn--ok { background: var(--lime-soft); color: var(--ink); }
+.warn b { display: block; margin-bottom: 5px; font-size: 14px; }
+
+/* 순서 목록 */
+.steps { counter-reset: s; display: grid; gap: 10px; }
+.steps li { counter-increment: s; position: relative; padding: 11px 14px 11px 44px;
+  background: var(--panel); border-radius: 12px; font-size: 14px; }
+.steps li::before { content: counter(s); position: absolute; left: 13px; top: 11px;
+  width: 21px; height: 21px; border-radius: 50%; background: var(--ink); color: var(--lime);
+  font-size: 12px; font-weight: 800; display: grid; place-items: center; }
+.bul li { position: relative; padding: 5px 0 5px 16px; font-size: 14px; }
+.bul li::before { content: ''; position: absolute; left: 2px; top: 13px; width: 6px; height: 6px;
+  border-radius: 50%; background: var(--lime); }
+
+.foot { font-size: 12.5px; color: var(--ink2); padding: 4px 2px 0; line-height: 1.7; }
+.btn { font: 700 13px/1 inherit; padding: 10px 15px; border: 0; border-radius: 11px;
+  background: var(--lime); color: var(--ink); cursor: pointer; }
+.btn--ghost { background: var(--panel); color: var(--ink2); }
+.btn:focus-visible, .chip:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+/* 하단 탭 */
+.bot { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+  background: var(--surface); border-top: 1px solid var(--line);
+  display: grid; grid-template-columns: repeat(6, 1fr); padding: 9px 0 11px; }
+.bot__i { text-align: center; font-size: 10.5px; color: var(--ink2); text-decoration: none; }
+.bot__i b { display: block; font-size: 17px; line-height: 1.35; font-weight: 400; }
+.bot__i.on { color: var(--lime-deep); font-weight: 700; }
+
+@media (max-width: 900px) {
+  .side { display: none; }
+  .top, .head { padding-left: 16px; padding-right: 16px; }
+  .body { padding: 18px 16px 96px; }
+  .head__t { font-size: 19px; }
+  .dl { grid-template-columns: 1fr; }
+  .dl > div:nth-child(odd) { padding-bottom: 2px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+
+/* ★ 지침은 인쇄해서 돌려보는 문서다. 화면 껍데기는 빼고 본문만 남긴다 */
+@media print {
+  .side, .bot, .top__act, .head__nav, .rule { display: none !important; }
+  body { background: #fff; font-size: 11pt; }
+  .body { padding: 0; max-width: none; gap: 10px; }
+  .top, .head { padding: 0 0 8px; border: 0; }
+  .sec, .why { border: 1px solid #ddd; border-radius: 0; padding: 12px 14px;
+    break-inside: avoid; page-break-inside: avoid; }
+  .why { background: #fff; color: #000; }
+  .why h2 { color: #000; }
+  .sec__no { background: #000; color: #fff; print-color-adjust: exact;
+    -webkit-print-color-adjust: exact; }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="side">
+    <div class="side__brand">
+      <div class="side__mark">➤</div>
+      <div>
+        <div class="side__name">LinkPilot</div>
+        <div class="side__user" id="side-user"></div>
+      </div>
+    </div>
+
+    <a class="nav" href="#"><span class="nav__ic">⌂</span>대시보드</a>
+    <a class="nav" href="#"><span class="nav__ic">👤</span>연락처</a>
+    <a class="nav" href="#"><span class="nav__ic">🗓</span>캘린더</a>
+    <a class="nav" href="#"><span class="nav__ic">✓</span>할일</a>
+    <a class="nav" href="#"><span class="nav__ic">📁</span>프로젝트</a>
+    <a class="nav" href="#"><span class="nav__ic">💬</span>Q&amp;A</a>
+    <a class="nav" href="#"><span class="nav__ic">☆</span>투자소스 DB</a>
+
+    <div class="side__group">유료 멤버십</div>
+    <a class="nav" href="#"><span class="nav__ic">☆</span>오늘의 한줄생각</a>
+    <a class="nav" href="#"><span class="nav__ic">☀</span>아침브리핑</a>
+    <a class="nav" href="#"><span class="nav__ic">📞</span>통화음성분석</a>
+    <a class="nav" href="#"><span class="nav__ic">★</span>프리미엄 투자소스 DB</a>
+    <a class="nav" href="#"><span class="nav__ic">🔆</span>신재생에너지 분석</a>
+    <a class="nav" href="reports.html"><span class="nav__ic">📄</span>보고서 생성</a>
+
+    <div class="side__group">안내</div>
+    <a class="nav on" href="#" aria-current="page"><span class="nav__ic">📘</span>외부 업무지침</a>
+  </aside>
+
+  <div class="main">
+    <div class="top">
+      <div class="logo"><span class="logo__mark">➤</span>LINK<em>PILOT</em></div>
+      <div class="top__act">
+        <button class="btn btn--ghost" type="button" id="btn-copy">주소 복사</button>
+        <button class="btn" type="button" id="btn-print">인쇄 · PDF 저장</button>
+      </div>
+    </div>
+
+    <div class="head">
+      <div class="head__row">
+        <div class="head__ic">📘</div>
+        <div>
+          <h1 class="head__t">외부 업무지침</h1>
+          <div class="head__s">협력사 · 외부 담당자를 위한 LinkPilot 이용 및 협업 기준</div>
+        </div>
+        <div class="head__meta"><span id="head-asof"></span><b id="head-user"></b></div>
+      </div>
+      <nav class="head__nav" aria-label="지침 목차">
+        <a class="chip" href="#s1">1 접속</a>
+        <a class="chip" href="#s2">2 계정과 권한</a>
+        <a class="chip" href="#s3">3 자료 공유</a>
+        <a class="chip" href="#s4">4 동영상</a>
+        <a class="chip" href="#s5">5 프로젝트 협업</a>
+        <a class="chip" href="#s6">6 미팅</a>
+        <a class="chip" href="#s7">7 보고서</a>
+        <a class="chip" href="#s8">8 보안</a>
+        <a class="chip" href="#s9">9 문제 해결</a>
+      </nav>
+    </div>
+    <div class="rule"></div>
+
+    <div class="body">
+
+      <section class="why">
+        <h2>이 문서를 먼저 읽어야 하는 이유</h2>
+        <p>LinkPilot은 사내 업무 플랫폼이며, 외부에서 접속할 때
+          <b>메신저 내장 브라우저 · 동영상 형식 · 파일 업로드</b> 세 가지에서 자주 막힙니다.
+          아래 지침은 그 세 가지를 피해 가는 방법을 담고 있습니다.</p>
+      </section>
+
+      <!-- 1 ───────────────────────────────────────────── -->
+      <section class="sec" id="s1">
+        <div class="sec__h"><span class="sec__no">1</span><h2 class="sec__t">접속 방법</h2></div>
+
+        <div class="dl">
+          <div>접속 주소</div><div class="url" id="dl-url">—</div>
+          <div>권장 브라우저</div><div>Chrome · Safari · 삼성인터넷</div>
+          <div>계정</div><div id="dl-account">담당자에게 요청 (이메일 기준 발급)</div>
+        </div>
+
+        <div class="warn warn--bad">
+          <b>카카오톡 · 라인 등에서 링크를 바로 열지 마십시오</b>
+          메신저 안에서 열리는 브라우저(인앱 브라우저)는 새 창 열기와 파일 내려받기를
+          지원하지 않습니다. 화면이 빈 채로 멈추거나 다운로드가 실패합니다.
+          앱 상단에 <b style="display:inline">[외부 브라우저로 열기]</b> 배너가 나오면 그것을 눌러 주시고,
+          배너가 없으면 위 주소를 복사해 Chrome · Safari에 직접 붙여넣어 주십시오.
+        </div>
+
+        <div class="warn warn--ok">
+          <b>홈 화면에 추가하면 편합니다</b>
+          <b style="display:inline">iPhone</b> — Safari에서 공유 → 홈 화면에 추가를 선택합니다.<br>
+          <b style="display:inline">Android</b> — 접속 후 나타나는 [홈 화면에 추가] 안내를 누릅니다.<br>
+          앱처럼 실행되어 인앱 브라우저 문제를 근본적으로 피할 수 있습니다.
+        </div>
+      </section>
+
+      <!-- 2 ───────────────────────────────────────────── -->
+      <section class="sec" id="s2">
+        <div class="sec__h"><span class="sec__no">2</span><h2 class="sec__t">계정과 권한</h2></div>
+
+        <!-- ★ catalog.js 가 그린다. 손으로 고치지 말 것 — 앱과 갈린다 -->
+        <table class="tb tb--grade">
+          <thead><tr><th>등급</th><th>이용 범위</th></tr></thead>
+          <tbody id="grade-body"></tbody>
+        </table>
+
+        <p class="sec__d">
+          유료 기능은 무료 계정에서도 메뉴에 보이되 잠겨 있습니다(🔒).
+          어떤 기능이 있는지 확인한 뒤 필요할 때 담당자에게 승급을 요청하십시오.
+        </p>
+      </section>
+
+      <!-- 3 ───────────────────────────────────────────── -->
+      <section class="sec" id="s3">
+        <div class="sec__h"><span class="sec__no">3</span><h2 class="sec__t">자료 공유 규칙</h2></div>
+
+        <h3 class="sec__t" style="font-size:15px">파일 올리기</h3>
+        <ol class="steps">
+          <li>프로젝트를 열고 <b>[수정]</b>으로 들어갑니다.</li>
+          <li>자료공유 파일 영역에서 파일을 선택합니다. 용량 제한은 없습니다.</li>
+          <li>진행률이 100%가 되고 <b>목록에 파일이 남는지</b> 반드시 확인합니다.</li>
+        </ol>
+
+        <div class="warn warn--warn">
+          <b>올렸다고 끝이 아닙니다 — 목록에 남아야 올라간 것입니다</b>
+          업로드가 중간에 끊기면 “N개는 업로드가 끝나지 않았습니다” 안내가 표시됩니다.
+          이때 <b style="display:inline">같은 파일을 다시 선택</b>하면 끊긴 지점부터 이어서 올라갑니다.
+          처음부터 다시 올릴 필요가 없습니다.
+        </div>
+
+        <div class="warn warn--warn">
+          <b>클라우드에만 있는 파일은 먼저 내려받아 주십시오</b>
+          휴대폰 갤러리에 썸네일만 있고 원본은 클라우드에 있는 사진 · 영상은
+          업로드 중 “파일을 읽을 수 없습니다”로 실패합니다.
+          갤러리에서 한 번 재생하거나 열어 기기에 내려받은 뒤 다시 선택해 주십시오.
+        </div>
+      </section>
+
+      <!-- 4 ───────────────────────────────────────────── -->
+      <section class="sec" id="s4">
+        <div class="sec__h"><span class="sec__no">4</span><h2 class="sec__t">동영상 올릴 때</h2></div>
+
+        <div class="warn warn--bad">
+          <b>휴대폰 「고효율(H.265)」 촬영 영상은 브라우저에서 재생되지 않습니다</b>
+          파일은 정상이지만 브라우저가 그 형식을 열지 못합니다.
+          촬영 전에 아래대로 설정해 주시면 문제가 생기지 않습니다.
+        </div>
+
+        <div class="dl">
+          <div>아이폰</div><div>설정 → 카메라 → 포맷 → <b>높은 호환성</b> 선택</div>
+          <div>삼성 갤럭시</div><div>카메라 → 설정 → <b>고효율 동영상(HEVC) 끄기</b></div>
+          <div>권장 사양</div><div>MP4(H.264) · 가로 1920 이하</div>
+        </div>
+
+        <p class="sec__d">서버에서 자동으로 변환하는 기능은 준비 중입니다.
+          적용 전까지는 위 설정으로 올려 주십시오.</p>
+      </section>
+
+      <!-- 5 ───────────────────────────────────────────── -->
+      <section class="sec" id="s5">
+        <div class="sec__h"><span class="sec__no">5</span><h2 class="sec__t">프로젝트 협업</h2></div>
+
+        <p class="sec__d">프로젝트 한 건에 기본 정보 · 관계자 · 회의기록 · 일정 · 할일 · 자료가
+          함께 붙습니다. 아래 세 가지만 지켜 주시면 보고서가 자동으로 채워집니다.</p>
+
+        <ul class="bul">
+          <li><b>회의 · 통화 후</b> — 회의기록에 날짜 · 장소 · 내용 · 후속조치를 남깁니다.</li>
+          <li><b>사람을 만나면</b> — 연락처에 등록하고 해당 프로젝트에 연결합니다.
+            명함은 촬영하면 자동 인식됩니다.</li>
+          <li><b>할 일이 생기면</b> — 할일에 등록할 때 프로젝트를 지정합니다.</li>
+        </ul>
+      </section>
+
+      <!-- 6 ───────────────────────────────────────────── -->
+      <section class="sec" id="s6">
+        <div class="sec__h"><span class="sec__no">6</span><h2 class="sec__t">미팅 잡기</h2></div>
+        <p class="sec__d">일정을 주고받기 번거로우면 담당자에게 예약 링크를 요청하십시오.
+          링크를 열면 가능한 시간대가 표시되고, 원하는 시간을 선택하면 양측에 자동 등록됩니다.
+          로그인 없이 사용할 수 있습니다.</p>
+      </section>
+
+      <!-- 7 ───────────────────────────────────────────── -->
+      <section class="sec" id="s7">
+        <div class="sec__h"><span class="sec__no">7</span><h2 class="sec__t">보고서</h2></div>
+
+        <p class="sec__d">프로젝트에 쌓인 정보로 사업보고서를 만들 수 있습니다.
+          <b id="rep-plan">(유료 회원 기능)</b></p>
+
+        <ol class="steps">
+          <li>메뉴 → <a href="reports.html">보고서 생성</a>에서 프로젝트를 선택합니다.</li>
+          <li>필요하면 <b>[AI 요약 생성]</b>으로 분석 단락을 덧붙입니다.</li>
+          <li><b>[인쇄 · PDF 저장]</b>으로 저장하거나 인쇄합니다.</li>
+        </ol>
+
+        <p class="sec__d">보고서 내용은 앱에 입력된 정보에서 나옵니다.
+          5번 항목을 지켜 주실수록 보고서가 충실해집니다.</p>
+      </section>
+
+      <!-- 8 ───────────────────────────────────────────── -->
+      <section class="sec" id="s8">
+        <div class="sec__h"><span class="sec__no">8</span><h2 class="sec__t">보안 및 비밀유지</h2></div>
+        <ul class="bul">
+          <li>프로젝트 정보 · 투자 자료 · 연락처는 <b>대외비</b>입니다.
+            별도 합의 없이 외부에 공유하지 마십시오.</li>
+          <li>공유 링크는 <b>링크를 아는 사람이면 열람 가능</b>합니다.
+            전달 대상을 확인한 뒤 보내 주십시오.</li>
+          <li>업무 종료 시 내려받은 자료는 삭제해 주십시오.</li>
+          <li>계정은 개인에게 발급됩니다. 공용으로 쓰지 마십시오.</li>
+        </ul>
+      </section>
+
+      <!-- 9 ───────────────────────────────────────────── -->
+      <section class="sec" id="s9">
+        <div class="sec__h"><span class="sec__no">9</span><h2 class="sec__t">문제가 생기면</h2></div>
+
+        <table class="tb">
+          <thead><tr><th style="width:38%">증상</th><th>먼저 해볼 것</th></tr></thead>
+          <tbody>
+            <tr><td>화면이 비거나 멈춤</td>
+              <td>메신저 인앱 브라우저인지 확인 → Chrome · Safari로 다시 열기</td></tr>
+            <tr><td>다운로드가 안 됨</td><td>같은 원인입니다. 외부 브라우저에서 다시 시도</td></tr>
+            <tr><td>업로드가 끊김</td><td>같은 파일을 다시 선택 (이어서 올라감)</td></tr>
+            <tr><td>동영상이 재생 안 됨</td>
+              <td>4번 항목 확인 후 재촬영 또는 내려받아 기본 동영상 앱으로 열기</td></tr>
+            <tr><td>화면이 옛날 그대로</td><td>새로고침. 그래도 같으면 담당자에게 문의</td></tr>
+          </tbody>
+        </table>
+
+        <p class="sec__d">해결되지 않으면 <b>증상 · 사용 기기 · 브라우저 · 발생 시각</b>과 함께
+          담당자에게 알려 주십시오. 화면 캡처가 있으면 원인 파악이 훨씬 빠릅니다.</p>
+      </section>
+
+      <p class="foot" id="foot"></p>
+    </div>
+  </div>
+</div>
+
+<nav class="bot" aria-label="주요 화면">
+  <a class="bot__i" href="#"><b>⌂</b>대시보드</a>
+  <a class="bot__i" href="#"><b>👥</b>연락처</a>
+  <a class="bot__i" href="#"><b>🗂</b>딜파이프라인</a>
+  <a class="bot__i" href="#"><b>🗓</b>캘린더</a>
+  <a class="bot__i" href="#"><b>👤</b>내정보</a>
+  <a class="bot__i on" href="#"><b>☰</b>더보기</a>
+</nav>
+
+<script src="catalog.js"></script>
+<script src="inapp.js"></script>
+<script>
+/* ── 설정 ──────────────────────────────────────────────────────────
+ * ★ 접속 주소를 여기에 박지 않는다. 이 저장소는 공개다 (CLAUDE.md §2).
+ *   비워 두면 지금 보고 있는 주소에서 만든다 — NAS 에 올리면 저절로 맞는다.
+ * ───────────────────────────────────────────────────────────────── */
+window.LINKPILOT_GUIDE = {
+  url: null,                 // 예: 'https://내부주소/linkpilot-platform.html'
+  contact: null,             // 계정 발급 담당자. 없으면 '담당자에게 요청'으로 둔다
+  session: { authenticated: true, planId: 'pro', status: 'active', name: '홍길동' },
+};
+
+(function () {
+  'use strict';
+  var C = window.LINKPILOT_GUIDE;
+  var K = window.LinkPilotCatalog;
+  var IA = window.LinkPilotInApp;
+
+  /** 값은 전부 textContent 로 넣는다 — 설정도 사람이 쓰는 값이다 */
+  function txt(id, s) { var el = document.getElementById(id); if (el) el.textContent = s; }
+
+  // ── 접속 주소 ────────────────────────────────────────────────
+  // 지침의 첫 줄이자 가장 자주 쓰이는 값이다. 없으면 안내라도 남긴다
+  var url = C.url || (location.protocol === 'http:' || location.protocol === 'https:'
+    ? location.origin + location.pathname.replace(/[^/]*$/, 'linkpilot-platform.html')
+    : null);
+  txt('dl-url', url || '담당자에게 문의하십시오');
+  if (C.contact) txt('dl-account', C.contact + ' 에게 요청 (이메일 기준 발급)');
+
+  // ── §2 등급표 — catalog.js 가 원본이다 ────────────────────────
+  var body = document.getElementById('grade-body');
+  [['free', '무료', K.free()], ['paid', '유료', K.paid()]].forEach(function (row) {
+    var tr = document.createElement('tr');
+    var td1 = document.createElement('td');
+    var b = document.createElement('span');
+    b.className = 'grade grade--' + row[0];
+    b.textContent = row[1];
+    td1.appendChild(b);
+
+    var td2 = document.createElement('td');
+    if (row[0] === 'paid') {
+      var pre = document.createElement('b');
+      pre.textContent = '무료 전체 + ';
+      td2.appendChild(pre);
+    }
+    row[2].forEach(function (f, i) {
+      if (i) td2.appendChild(document.createTextNode(' · '));
+      td2.appendChild(document.createTextNode(f.name));
+      // ★ 지침이 등급까지 못 박은 것만 표기한다 (지침에는 '보고서 생성 (Pro)').
+      //   내부 판단인 등급을 문서에 적으면 바꿀 때마다 문서가 틀린다
+      if (f.byGuide && f.minPlan !== 'free') {
+        var t = document.createElement('span');
+        t.className = 'tier';
+        t.textContent = '(' + K.planName(f.minPlan) + ')';
+        td2.appendChild(t);
+      }
+    });
+    tr.appendChild(td1); tr.appendChild(td2); body.appendChild(tr);
+  });
+
+  var rep = K.byName('보고서 생성');
+  if (rep) txt('rep-plan', '(' + K.planName(rep.minPlan) + ' 회원 기능)');
+
+  // ── 머리말 ───────────────────────────────────────────────────
+  txt('head-asof', K.GUIDE.asOf + ' 기준');
+  var me = (C.session && C.session.name) || '';
+  txt('head-user', me);
+  txt('side-user', me);
+  txt('foot', K.GUIDE.title + ' · ' + K.GUIDE.asOf + ' 기준\n'
+    + '본 문서는 대외비이며, 수신자 외 배포를 금합니다.');
+
+  // ── §2 "무료 계정에서도 메뉴에 보이되 잠겨 있습니다" ──────────
+  K.applyLocks(document, C.session);
+
+  // ── §1 인앱 브라우저 배너 ────────────────────────────────────
+  IA.auto({ url: url || location.href });
+
+  // ── 인쇄 / 주소 복사 ─────────────────────────────────────────
+  document.getElementById('btn-print').onclick = function () { window.print(); };
+  document.getElementById('btn-copy').onclick = function () {
+    var btn = this;
+    if (!url) { btn.textContent = '주소 없음'; return; }
+    var ok = function () {
+      btn.textContent = '복사됨';
+      setTimeout(function () { btn.textContent = '주소 복사'; }, 1600);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(ok, function () { btn.textContent = '복사 실패'; });
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = url; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); ok(); } catch (e) { btn.textContent = '복사 실패'; }
+      ta.remove();
+    }
+  };
+}());
+</script>
+</body>
+</html>

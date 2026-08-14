@@ -238,6 +238,8 @@ ul { margin: 0; padding: 0; list-style: none; }
 </nav>
 
 <script src="gate-core.js"></script>
+<script src="catalog.js"></script>
+<script src="inapp.js"></script>
 <script src="board-core.js"></script>
 <script>
 /* ── 설정 ──────────────────────────────────────────────────────────
@@ -548,6 +550,12 @@ window.LINKPILOT_BOARD = {
   }
 
   draw();
+
+  // ── 지침 반영 ────────────────────────────────────
+  // §2 유료 메뉴는 무료 계정에서도 보이되 잠긴다 (숨기면 승급할 이유를 모른다)
+  if (window.LinkPilotCatalog) window.LinkPilotCatalog.applyLocks(document, C.session);
+  // §1 메신저 인앱 브라우저에서는 파일 내려받기·새 창이 안 된다
+  if (window.LinkPilotInApp) window.LinkPilotInApp.auto();
 }());
 </script>
 </body>

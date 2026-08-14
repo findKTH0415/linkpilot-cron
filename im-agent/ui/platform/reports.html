@@ -140,6 +140,7 @@ ul { margin: 0; padding: 0; list-style: none; }
   background: var(--lime-soft); font-size: 13.5px; font-weight: 600; color: var(--lime-deep); }
 .note { padding: 13px 16px; border-radius: 12px; font-size: 13.5px;
   background: var(--warn-soft); color: var(--warn-ink); margin-top: 14px; }
+.note--bad { background: var(--bad-soft); color: var(--bad-ink); }
 
 /* 산출물 */
 .out { display: flex; align-items: center; gap: 12px; padding: 13px 0;
@@ -232,6 +233,8 @@ ul { margin: 0; padding: 0; list-style: none; }
 </nav>
 
 <script src="gate-core.js"></script>
+<script src="catalog.js"></script>
+<script src="inapp.js"></script>
 <script>
 /* ── 설정 ──────────────────────────────────────────────────────────
  * 서버가 로그인 세션을 보고 내려준다.
@@ -247,6 +250,10 @@ window.LINKPILOT_REPORTS = {
 
   api: null,   // 예: '/api/linkpilot'  — 없으면 아래 데모 데이터를 쓴다
 
+  // 산출물 파일을 여는 주소를 만든다. 없으면 [인쇄 · PDF 저장]이 안내만 띄운다.
+  // 예: function (projectId, rel) { return '/files/' + projectId + '/' + rel; }
+  fileUrl: null,
+
   projects: [
     { id: 'LP-DC-2026-001', name: '인천 남동공단 6.5MW 데이터센터' },
     { id: 'LP-SL-2026-002', name: '새만금 태양광 120MW' },
@@ -260,7 +267,8 @@ window.LINKPILOT_REPORTS = {
       desc: '2~4페이지 요약본. 딜 개요와 핵심 지표만', pages: 3 },
     { id: 'summary', name: '요약 보고서', minPlan: 'pro',
       desc: '내부 검토용. 재무·리스크 요약', pages: 10 },
-    { id: 'validation', name: '검증 보고서', minPlan: 'business',
+    // ★ 지침 §2 가 '보고서 생성 (Pro)' 이므로 검증 보고서만 위 등급으로 올리지 않는다
+    { id: 'validation', name: '검증 보고서', minPlan: 'pro',
       desc: 'RED FLAG · 값 충돌 · 독립 재계산 결과', pages: 12 },
   ],
 
@@ -676,6 +684,35 @@ window.LINKPILOT_REPORTS = {
   }
 
   // ── 최근 생성물 ──────────────────────────────────
+  /**
+   * A4 인쇄본을 새 창에 열고 인쇄창을 띄운다 (지침 §7-3).
+   *
+   * ★ 인앱 브라우저에서는 새 창이 열리지 않는다 — 조용히 실패하면 고장으로 오해하므로
+   *   그 자리에서 이유를 적는다. (배너는 inapp.js 가 따로 띄운다)
+   * @returns {boolean} 처리했으면 true
+   */
+  function openPrint(r) {
+    if (typeof C.fileUrl !== 'function') return false;
+    var url = C.fileUrl(state.projectId, r.path);
+    if (!url) return false;
+
+    var ia = window.LinkPilotInApp && window.LinkPilotInApp.detect(navigator.userAgent);
+    var w = ia && ia.inApp ? null : window.open(url, '_blank', 'noopener');
+    if (!w) {
+      var n = el('p', 'note note--bad',
+        (ia && ia.inApp ? ia.name + ' 안에서는 새 창이 열리지 않습니다. ' : '팝업이 차단되었습니다. ')
+        + '외부 브라우저(Chrome · Safari)에서 다시 열어 주세요. 주소: ' + url);
+      n.id = 'out-note';
+      view.appendChild(n);
+      return true;
+    }
+    // 문서가 다 뜬 뒤 인쇄창을 띄운다. 실패해도 창은 열려 있으니 직접 인쇄할 수 있다
+    try {
+      w.addEventListener('load', function () { try { w.print(); } catch (e) { /* 사용자가 직접 */ } });
+    } catch (e) { /* 교차출처면 접근이 막힌다 — 그때는 사용자가 직접 인쇄한다 */ }
+    return true;
+  }
+
   function recent() {
     var box = el('section', 'card');
     box.appendChild(el('h2', 'card__t', '최근 생성물'));
@@ -697,14 +734,19 @@ window.LINKPILOT_REPORTS = {
       st.style.marginLeft = 'auto';
       row.appendChild(st);
 
-      var a = el('button', 'out__a', r.status === 'blocked' ? '사유 보기' : '열기');
+      // 지침 §7-3 은 '[인쇄 · PDF 저장]으로 저장하거나 인쇄'다.
+      // PDF 를 서버에서 만들지 않으므로(형식 목록 참고) A4 인쇄본을 브라우저로 인쇄한다
+      var printable = r.status !== 'blocked' && /\.html?$/i.test(r.path || '');
+      var a = el('button', 'out__a',
+        r.status === 'blocked' ? '사유 보기' : printable ? '인쇄 · PDF 저장' : '열기');
       a.type = 'button';
       a.addEventListener('click', function () {
         var old = document.getElementById('out-note');
         if (old) old.remove();
+        if (printable && openPrint(r)) return;
         var n = el('p', 'note', r.status === 'blocked'
           ? (r.note || '검증을 통과하지 못했습니다.') + ' — 검증 화면에서 해소해야 배포할 수 있습니다.'
-          : r.path + ' 를 여는 경로를 본체에 연결하세요.');
+          : r.path + ' 를 여는 경로를 본체에 연결하세요. (설정의 fileUrl)');
         n.id = 'out-note';
         view.appendChild(n);
       });
@@ -731,6 +773,12 @@ window.LINKPILOT_REPORTS = {
   draw();
   loadSpec();
   loadReports();
+
+  // ── 지침 반영 ────────────────────────────────────
+  // §2 유료 메뉴는 무료 계정에서도 보이되 잠긴다
+  if (window.LinkPilotCatalog) window.LinkPilotCatalog.applyLocks(document, C.session);
+  // §1 인앱 브라우저에서는 산출물 다운로드가 조용히 실패한다 — 여기서는 특히 치명적이다
+  if (window.LinkPilotInApp) window.LinkPilotInApp.auto();
 }());
 </script>
 </body>

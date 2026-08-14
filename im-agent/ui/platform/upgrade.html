@@ -228,6 +228,8 @@ ul { margin: 0; padding: 0; list-style: none; }
   <a class="bot__i" href="#"><b>☰</b>더보기</a>
 </nav>
 
+<script src="catalog.js"></script>
+<script src="inapp.js"></script>
 <script>
 /* ── 설정 ──────────────────────────────────────────────────────────
  * 서버가 로그인 세션을 보고 내려준다. 화면 표시는 표시일 뿐이므로
@@ -276,15 +278,17 @@ window.LINKPILOT_UPGRADE = {
     },
   ],
 
+  // ★ 「외부 업무지침」 §2 와 같아야 한다 (catalog.js 가 원본).
+  //   지침에 없는 '프로젝트 N건' 한도는 뺐다 — 근거 없는 숫자였다.
   plans: [
     { id: 'free', name: 'Free', price: 0,
-      features: ['할일 · 연락처 · 프로젝트', '딜파이프라인 · 캘린더', 'Q&A · 투자소스 DB', '프로젝트 3건'] },
+      features: ['할일 · 연락처 · 프로젝트', '캘린더 · Q&A', '투자소스 DB'] },
     { id: 'basic', name: 'Basic', price: 25,
-      features: ['오늘의 한줄생각', '아침브리핑', '프로젝트 30건'] },
+      features: ['Free 전체', '오늘의 한줄생각', '아침브리핑'] },
     { id: 'pro', name: 'Pro', price: 55, recommended: true,
-      features: ['Basic 전체', '통화음성분석', '프리미엄 투자소스 DB', '프로젝트 100건'] },
+      features: ['Basic 전체', '통화음성분석', '프리미엄 투자소스 DB', '보고서 생성'] },
     { id: 'business', name: 'Business', price: 130,
-      features: ['Pro 전체', '신재생에너지 분석', 'IM 자동생성', '프로젝트 무제한'] },
+      features: ['Pro 전체', '신재생에너지 분석', 'IM 자동생성'] },
   ],
 };
 
@@ -468,6 +472,14 @@ window.LINKPILOT_UPGRADE = {
   view.appendChild(trialBanner());
   view.appendChild(previewSection());
   view.appendChild(plansSection());
+
+  // ── 지침 반영 ────────────────────────────────────
+  // 이 화면은 무료 회원용이다. 사이드바 유료 항목은 이미 lock 으로 적혀 있지만
+  // 손으로 붙인 것이라 갈릴 수 있어 카탈로그로 한 번 더 칠한다
+  if (window.LinkPilotCatalog) {
+    window.LinkPilotCatalog.applyLocks(document, { authenticated: true, planId: 'free' });
+  }
+  if (window.LinkPilotInApp) window.LinkPilotInApp.auto();
 }());
 </script>
 </body>

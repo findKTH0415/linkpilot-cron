@@ -25,8 +25,15 @@ const path = require('path');
 const PROJECT_ID = /^LP-[A-Z]+-\d{4}-\d{3}$/;
 const PLAN_RANK = { free: 0, basic: 1, pro: 2, business: 3 };
 
-/** 보고서 종류별 요구 플랜. 화면(reports.html)의 minPlan 과 같아야 한다 */
-const DOC_PLANS = { im: 'pro', teaser: 'pro', summary: 'pro', validation: 'business' };
+/**
+ * 보고서 종류별 요구 플랜. 화면(reports.html)의 minPlan 과 같아야 한다.
+ *
+ * ★ 전부 'pro' 인 이유 — 「외부 업무지침」 §2 가 '보고서 생성 (Pro)' 라고
+ *   협력사에 배포되어 있다. 검증 보고서만 'business' 로 두면 Pro 회원이
+ *   문서대로 눌렀는데 403 을 받는다. 문서를 먼저 고치지 않는 한 여기서
+ *   등급을 올리지 않는다. (지침을 바꾸려면 catalog.js 의 '보고서 생성' 도 같이)
+ */
+const DOC_PLANS = { im: 'pro', teaser: 'pro', summary: 'pro', validation: 'pro' };
 
 /** 산출물 경로 — 파일이 실제로 있는지로 판정한다 ('생성됨' 플래그를 믿지 않는다) */
 const OUTPUTS = [

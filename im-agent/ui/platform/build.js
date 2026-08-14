@@ -36,6 +36,9 @@ const towerCss = read(UI, 'controlTower.css');
 const appCss = read(__dirname, 'app.css');
 const towerJs = read(UI, 'vanilla', 'control-tower.js');
 const appJs = read(__dirname, 'app.js');
+// ★ 「외부 업무지침」 §1 — 협력사가 실제로 여는 파일이 이것이다.
+//   카카오톡에서 열면 다운로드가 조용히 실패하므로 여기에 배너가 반드시 있어야 한다
+const inappJs = read(__dirname, 'inapp.js');
 
 const html = `<!doctype html>
 <html lang="ko">
@@ -86,7 +89,13 @@ ${inlineSafe(towerJs)}
 ${inlineSafe(appJs)}
 </script>
 <script>
+${inlineSafe(inappJs)}
+</script>
+<script>
 LinkPilotApp.mount(document.getElementById('lp-root'));
+/* 지침 §1 — 메신저 인앱 브라우저면 [외부 브라우저로 열기] 배너를 띄운다.
+   인앱이 아니면 아무것도 하지 않는다 (오탐이 미탐보다 나쁘다) */
+LinkPilotInApp.auto();
 </script>
 </body>
 </html>

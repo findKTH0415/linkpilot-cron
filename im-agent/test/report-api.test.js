@@ -81,14 +81,24 @@ test('★ 모르는 플랜 코드·정보 없음은 통과시키지 않는다', 
   fs.rmSync(root, { recursive: true, force: true });
 });
 
-test('★ 종류별 플랜을 서버에서 다시 본다 (검증 보고서는 Business)', async () => {
+test('★ 종류별 플랜을 서버에서 다시 본다', async () => {
   const root = tmpRoot(); makeProject(root, ID);
-  const h = handlers(root, PRO, { startRun: () => ({ runId: 'r1' }) });
+  const h = handlers(root, { name: '홍길동', planId: 'basic', status: 'active' },
+    { startRun: () => ({ runId: 'r1' }) });
   const r = await h.generate({}, ID, { docType: 'validation' });
-  assert.strictEqual(r.status, 403);
-  assert.match(r.body.error, /business/);
-  assert.strictEqual(API.DOC_PLANS.validation, 'business', '화면의 minPlan 과 같아야 한다');
+  assert.strictEqual(r.status, 403, 'Basic 은 보고서를 만들 수 없다');
+  assert.match(r.body.error, /pro/);
   fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('★ 어떤 보고서도 Pro 를 넘겨 요구하지 않는다 (외부 업무지침 §2)', () => {
+  // 지침이 '보고서 생성 (Pro)' 로 협력사에 배포되어 있다.
+  // 한 종류라도 Business 를 요구하면 Pro 회원이 문서대로 눌렀다가 403 을 받는다.
+  const rank = API.PLAN_RANK;
+  for (const [docType, need] of Object.entries(API.DOC_PLANS)) {
+    assert.ok(rank[need] <= rank.pro,
+      `${docType} 이 ${need} 를 요구한다 — 지침(§2 보고서 생성 = Pro)과 어긋난다`);
+  }
 });
 
 test('경로 조작을 막는다', async () => {

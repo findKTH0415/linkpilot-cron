@@ -75,6 +75,9 @@ ul { margin: 0; padding: 0; list-style: none; }
   color: var(--ink); font-size: 14.5px; }
 .nav:hover { background: var(--panel); }
 .nav.on { background: var(--lime-soft); color: var(--lime-deep); font-weight: 700; }
+/* 지침 §2 — 유료 항목은 무료 계정에서도 보이되 잠긴다 */
+.nav.lock { color: var(--ink2); }
+.nav__lk { margin-left: auto; font-size: 11px; }
 .nav__ic { width: 20px; text-align: center; font-size: 15px; opacity: .8; }
 .nav.on .nav__ic { opacity: 1; }
 
@@ -254,6 +257,8 @@ ul { margin: 0; padding: 0; list-style: none; }
   <a class="bot__i on" href="#"><b>☰</b>더보기</a>
 </nav>
 
+<script src="catalog.js"></script>
+<script src="inapp.js"></script>
 <script>
 /* ── 설정 ──────────────────────────────────────────────────────────
  * 실제로는 서버가 로그인 세션을 보고 이 값을 내려준다.
@@ -287,15 +292,20 @@ window.LINKPILOT_MEMBERSHIP = {
   currency: 'USD',
 
   // price 0 은 '무료', null 은 '문의'로 표시된다 — 없는 값을 지어내지 않는다
+  //
+  // ★ 기능 목록은 「외부 업무지침」 §2 와 같아야 한다 (catalog.js 가 원본).
+  //   협력사가 받은 문서에 없는 항목·제한을 여기에 적으면 앱과 문서가 갈린다.
+  //   '프로젝트 N건' 같은 한도는 뺐다 — 지침에 없고 근거도 없는 숫자였다.
+  //   실제 사용량 한도는 서버가 usage 로 내려준다.
   plans: [
     { id: 'free', name: 'Free', price: 0,
-      features: ['할일 · 연락처 · 프로젝트', '딜파이프라인 · 캘린더', 'Q&A · 투자소스 DB', '프로젝트 3건'] },
+      features: ['할일 · 연락처 · 프로젝트', '캘린더 · Q&A', '투자소스 DB'] },
     { id: 'basic', name: 'Basic', price: 25,
-      features: ['오늘의 한줄생각', '아침브리핑', '프로젝트 30건'] },
+      features: ['Free 전체', '오늘의 한줄생각', '아침브리핑'] },
     { id: 'pro', name: 'Pro', price: 55, recommended: true,
-      features: ['Basic 전체', '통화음성분석', '프리미엄 투자소스 DB', '프로젝트 100건'] },
+      features: ['Basic 전체', '통화음성분석', '프리미엄 투자소스 DB', '보고서 생성'] },
     { id: 'business', name: 'Business', price: 130,
-      features: ['Pro 전체', '신재생에너지 분석', 'IM 자동생성', '프로젝트 무제한'] },
+      features: ['Pro 전체', '신재생에너지 분석', 'IM 자동생성'] },
   ],
 
   billingUrl: null,
@@ -511,6 +521,12 @@ window.LINKPILOT_MEMBERSHIP = {
   });
 
   draw();
+
+  // ── 지침 반영 ────────────────────────────────────
+  var S = { authenticated: true, planId: (C.membership || {}).planId,
+    status: (C.membership || {}).status };
+  if (window.LinkPilotCatalog) window.LinkPilotCatalog.applyLocks(document, S);
+  if (window.LinkPilotInApp) window.LinkPilotInApp.auto();
 }());
 </script>
 </body>
