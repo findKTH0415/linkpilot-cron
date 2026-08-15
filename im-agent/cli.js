@@ -17,6 +17,8 @@
  *   GEMINI_API_KEY    LLM 사용 시 (GitHub Secrets)
  */
 
+require('./core/env').load();   // .env 가 있으면 올린다 (셸·Secrets 값이 우선)
+
 const fs = require('fs');
 const path = require('path');
 const pipeline = require('./pipeline');

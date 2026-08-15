@@ -270,3 +270,77 @@ test('키는 로그·에러에 남지 않는다', () => {
   assert.ok(!redact(`serviceKey=${fake}&x=1`).includes(fake));
   assert.ok(!redact(`요청 실패: ${fake}`).includes(fake), '본문에 섞여 있어도 가린다');
 });
+
+/* ───────────── .env 로더 ───────────── */
+
+test('★ .env 는 git 이 추적하지 않는다', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const root = require('../core/env').repoRoot();
+  const ignore = fs.readFileSync(path.join(root, '.gitignore'), 'utf8');
+  assert.match(ignore, /^\.env$/m, '.env 가 gitignore 에서 빠지면 키가 커밋된다');
+
+  // 예시 파일에는 값이 들어 있으면 안 된다 (그대로 복사해 쓰는 사람이 있다)
+  const example = fs.readFileSync(path.join(root, '.env.example'), 'utf8');
+  example.split(/\r?\n/).forEach((line) => {
+    const kv = require('../core/env').parseLine(line);
+    if (kv) assert.strictEqual(kv.value, '', `.env.example 의 ${kv.key} 에 값이 들어 있다`);
+  });
+});
+
+test('.env 를 읽되 이미 설정된 값은 덮지 않는다', () => {
+  const fs = require('fs');
+  const os = require('os');
+  const path = require('path');
+  const env = require('../core/env');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'im-env-'));
+  const file = path.join(dir, '.env');
+  fs.writeFileSync(file, [
+    '# 주석',
+    '',
+    'IM_TEST_NEW=fresh',
+    "IM_TEST_QUOTED='sing/le=='",
+    'IM_TEST_DQ="dou/ble=="',
+    'IM_TEST_EXISTING=from-file',
+    '잘못된 줄',
+    '=값만있음',
+  ].join('\n'));
+
+  const before = process.env.IM_TEST_EXISTING;
+  process.env.IM_TEST_EXISTING = 'from-shell';
+  try {
+    const r = env.load(file);
+    assert.strictEqual(r.exists, true);
+    assert.strictEqual(process.env.IM_TEST_NEW, 'fresh');
+    assert.strictEqual(process.env.IM_TEST_QUOTED, 'sing/le==', '따옴표가 값에 남으면 인증이 실패한다');
+    assert.strictEqual(process.env.IM_TEST_DQ, 'dou/ble==');
+    assert.strictEqual(process.env.IM_TEST_EXISTING, 'from-shell',
+      '셸·Secrets 값이 파일보다 세야 한다 — 반대면 CI 에서 남의 .env 가 Secret 을 이긴다');
+    assert.ok(r.skipped.includes('IM_TEST_EXISTING'));
+    // 값은 결과에 담지 않는다 (로그로 새면 안 된다)
+    assert.ok(!JSON.stringify(r).includes('fresh'), '로더 결과에 값이 들어 있다');
+  } finally {
+    ['IM_TEST_NEW', 'IM_TEST_QUOTED', 'IM_TEST_DQ'].forEach(k => delete process.env[k]);
+    if (before === undefined) delete process.env.IM_TEST_EXISTING;
+    else process.env.IM_TEST_EXISTING = before;
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('.env 가 없어도 오류가 아니다 — Secrets 로만 도는 환경이 정상이다', () => {
+  const r = require('../core/env').load('/없는/경로/.env');
+  assert.strictEqual(r.exists, false);
+  assert.deepStrictEqual(r.loaded, []);
+});
+
+test('★ 스모크 도구가 커넥터보다 먼저 .env 를 올린다', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const src = fs.readFileSync(
+    path.join(__dirname, '..', 'tools', 'smoke-public-data.js'), 'utf8');
+  const envAt = src.indexOf("require('../core/env')");
+  const connAt = src.indexOf("require('../connectors/vworld')");
+  assert.ok(envAt > -1 && connAt > -1);
+  assert.ok(envAt < connAt,
+    '커넥터를 먼저 부르면 isAvailable() 이 먼저 평가되어 조용히 미설정이 된다');
+});

@@ -22,6 +22,11 @@ const path = require('path');
 process.env.IM_AGENT_CACHE = process.env.IM_AGENT_CACHE
   || path.join(os.tmpdir(), `lp-smoke-${Date.now()}`);
 
+// ★ 커넥터가 키를 읽기 **전에** .env 를 올린다. 아래에서 require 하는 순간
+//   isAvailable() 이 평가되므로 순서를 바꾸면 조용히 '미설정'이 된다
+//   (connectors.test.js 가 이 순서를 검사한다)
+const envFile = require('../core/env').load();
+
 const vworld = require('../connectors/vworld');
 const nsdi = require('../connectors/nsdi');
 const molit = require('../connectors/molit');
@@ -122,6 +127,10 @@ async function main() {
   if (vk.cleaned) process.env.VWORLD_KEY = vk.cleaned;
   if (dk.cleaned) process.env.DATA_GO_KR_KEY = dk.cleaned;
 
+  if (envFile.exists) {
+    console.log(`.env       : ${envFile.loaded.length}개 적용`
+      + (envFile.skipped.length ? ` · ${envFile.skipped.length}개는 셸 값이 우선` : ''));
+  }
   console.log(`대상 주소 : ${ADDRESS}`);
   console.log(`VWORLD_KEY     : ${vworld.isAvailable() ? vk.message : '미설정 — 지오코딩/지적/공시지가 건너뜀'}`);
   console.log(`VWORLD_DOMAIN  : ${vworld.domain() || '미설정 ⚠ 서버 호출은 등록 도메인을 명시해야 허용된다'}`);
