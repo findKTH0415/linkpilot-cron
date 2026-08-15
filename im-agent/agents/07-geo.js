@@ -300,8 +300,16 @@ async function addSolar(geo, facts, sources, src, ctx, out) {
   out.solar = { ...s, station: near.value };
   sources.push({ name: '기상청 지상관측 일통계', cached: !!solar.cached });
 
-  const origin = `기상청 지상관측 일통계(${near.value.name || near.value.stn} 지점, `
-    + `부지에서 ${near.value.distanceKm}km, ${year}년)`;
+  // 거리를 모르면 모른다고 적는다. 사람이 지점을 직접 지정한 경우가 그렇다.
+  const where = near.value.distanceKm === null
+    ? '거리 미상 — 지점 직접 지정'
+    : `부지에서 ${near.value.distanceKm}km`;
+  const origin = `기상청 지상관측 일통계(${near.value.name || near.value.stn} 지점, ${where}, ${year}년)`;
+
+  if (near.forced) {
+    ctx.warn(`일사량 관측지점을 KMA_STN=${near.value.stn} 로 직접 지정했다 — `
+      + '부지와의 거리가 확인되지 않는다. 지점정보 API 승인 후 자동 선택으로 돌아간다');
+  }
 
   facts.push({
     key: 'site.solar_irradiance', value: s.irradianceKwh, unit: 'kWh/㎡·년',

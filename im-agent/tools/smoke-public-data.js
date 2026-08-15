@@ -266,13 +266,15 @@ async function main() {
   if (kma.isAvailable() && lat !== null) {
     const near = await kma.nearestStation(lat, lon);
     if (!near.ok) {
-      report('일사량 (기상청)', false, `${near.error} — 지점정보 없이는 부지에서 가장 가까운 관측소를 고를 수 없다`);
+      report('일사량 (기상청)', false,
+        `${near.error} — 부지에서 가장 가까운 관측소를 고를 수 없다. `
+        + 'KMA_STN 에 지점번호를 직접 넣으면 승인 전에도 동작한다 (예: 108 서울)');
     } else {
       const year = new Date().getFullYear() - 1;   // 진행 중인 해는 합계가 반토막 난다
       const s = await kma.annualSolar(near.value.stn, year);
       if (s.ok) {
         report('일사량 (기상청)', true,
-          `${near.value.name || near.value.stn} 지점(${near.value.distanceKm}km) · `
+          `${near.value.name || near.value.stn} 지점(${near.value.distanceKm === null ? '거리 미상·직접지정' : near.value.distanceKm + 'km'}) · `
           + `${year}년 ${s.value.irradianceKwh?.toLocaleString('ko-KR')}kWh/㎡ `
           + `(일평균 ${s.value.dailyAvgKwh}) · 일조 ${s.value.sunshineHours}시간`);
         if (s.value.coverage < 90) {

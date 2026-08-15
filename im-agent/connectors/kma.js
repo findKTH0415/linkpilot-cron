@@ -240,6 +240,20 @@ function distanceKm(lat1, lon1, lat2, lon2) {
 async function nearestStation(lat, lon) {
   if (lat === null || lon === null) return { ok: false, error: '좌표 없음' };
 
+  // ★ 지점정보(stn_inf)는 별도 활용신청이 필요하고, 승인 전에는 좌표를 얻을 수
+  //   없어 일사량 경로 전체가 막힌다. 그때 지점번호를 직접 줄 수 있게 한다.
+  //   ★ **거리를 지어내지 않는다.** 사람이 고른 지점이 부지에서 얼마나 떨어졌는지
+  //     우리는 모른다. distanceKm 를 null 로 두어 출처에 "거리 미상" 이 남게 한다 —
+  //     0km 로 채우면 부지에서 잰 값처럼 보인다.
+  const forced = (process.env.KMA_STN || '').trim();
+  if (forced) {
+    return {
+      ok: true,
+      value: { stn: forced, lat: null, lon: null, name: null, distanceKm: null },
+      forced: true,
+    };
+  }
+
   const r = await stations();
   if (!r.ok) return r;
 
