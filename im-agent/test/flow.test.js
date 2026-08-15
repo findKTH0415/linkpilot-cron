@@ -86,6 +86,8 @@ test('★ 끼울 때 사이드바를 두 번 그리지 않는다', () => {
   ['.side', '.top'].forEach(sel => assert.ok(F.EMBED_CSS.includes(sel + '{display:none!important}'),
     `${sel} 을 감추지 않으면 앱 안에 사이드바가 두 벌 뜬다`));
   assert.match(F.EMBED_CSS, /overflow-y:hidden!important/, '안쪽 스크롤을 끄지 않으면 창 안을 또 끌게 된다');
+  assert.ok(F.EMBED_CSS.includes('.steps{display:none!important}'),
+    '셸이 레일을 그리는데 화면 안 단계 칩까지 두면 같은 표시가 두 번 뜬다');
   assert.match(F.EMBED_CSS, /height:auto!important/);
 });
 

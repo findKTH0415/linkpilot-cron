@@ -330,6 +330,9 @@ Object.assign(window.LINKPILOT_REPORT_FLOW, {
     '.side{display:none!important}',   /* 사이드바는 앱이 이미 그린다 */
     '.top{display:none!important}',    /* 로고도 마찬가지 */
     '.main{margin-left:0!important}',
+    // ★ 화면 안의 단계 칩도 감춘다. 셸이 이미 레일을 그리므로 그대로 두면
+    //   같은 단계 표시가 한 화면에 두 번 뜬다 — 어느 쪽을 눌러야 하는지 모른다
+    '.steps{display:none!important}',
   ].join('');
 
   /** 잠긴 이유 — 화면에 그대로 띄운다. 이유 없이 회색이면 고장으로 보인다 */
