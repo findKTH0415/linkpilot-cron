@@ -82,15 +82,15 @@ IM_AGENT_DEBUG_HTTP=1 npm run im:smoke     # 공공데이터 연결 진단
 서버 배선은 [`im-agent/ui/platform/README.md`](im-agent/ui/platform/README.md) 참조.
 `authenticate` 없이는 생성 API 가 **마운트 자체를 거부한다.**
 
-### 입력란은 52칸이 아니라 8칸이다
+### 입력란은 54칸이 아니라 8칸이다
 
-사전에 항목이 52개 있지만 대부분은 사람이 칠 필요가 없다. `core/fieldplan.js` 가
+사전에 항목이 54개 있지만 대부분은 사람이 칠 필요가 없다. `core/fieldplan.js` 가
 항목마다 **누가 채우는지**를 정하고, 화면은 그중 아무도 못 채우는 것만 내민다.
 
 | 경로 | 개수 | 누가 채우는가 |
 |---|---:|---|
 | 요청문 | 5 | 01 Project — 요청문 한 줄에서 뽑는다 |
-| 자료 추출 | 18 | 02 Extraction — 올린 자료에서 뽑는다 |
+| 자료 추출 | 19 | 02 Extraction — 올린 자료에서 뽑는다 |
 | 공공데이터 | 9 | 07 Geo·08 Appraisal (공부) · 03 Research (시장금리) |
 | 계산 | 4 | 재무모델 — 차입금 = 총사업비 × LTC 등 |
 | 산업 통상치 | 17 | 템플릿 기본값 — **가정치로 표시된다** |

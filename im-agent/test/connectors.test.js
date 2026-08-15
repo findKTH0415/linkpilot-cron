@@ -379,3 +379,38 @@ test('★ 안내 문구의 자리표시자가 진짜 키처럼 생기지 않았�
     });
   });
 });
+
+// ── 토지이용계획의 규제 사항 (C-05) ───────────────────────────────
+//
+// 같은 응답에 개발제한구역·군사시설보호구역·지구단위계획구역이 함께 온다.
+// 지금까지는 용도지역 하나만 남기고 전부 버렸다 — **그린벨트에 걸린 땅과 아닌 땅이
+// '자연녹지지역' 하나로 똑같이 보였다.** 용적률보다 먼저 봐야 하는 정보다.
+
+test('★ 규제 사항을 버리지 않는다', () => {
+  const geo = require('../agents/07-geo');
+  const conditional = Object.values(geo.CONDITIONAL_FILLS).flat();
+  assert.ok(conditional.includes('land.restrictions'),
+    '규제가 없는 필지가 대부분이라 조건부다 — 안 물어봤다고 규제가 없는 것은 아니다');
+  assert.ok(!geo.FILLS.includes('land.restrictions'));
+
+  const dict = require('../core/dictionary');
+  assert.ok(dict.FIELDS['land.restrictions'], '용도지역과 따로 있어야 한다');
+  assert.notStrictEqual(dict.FIELDS['land.restrictions'].label, dict.FIELDS['land.zoning'].label);
+});
+
+test('★ 사업 가능 여부를 좌우하는 규제를 가려낸다', () => {
+  const nsdi = require('../connectors/nsdi');
+  ['개발제한구역', '군사기지 및 군사시설 보호구역', '문화재보호구역', '농업진흥구역']
+    .forEach(r => assert.strictEqual(nsdi.isCritical(r), true, `${r} 를 놓쳤다`));
+
+  // 용도지역은 규제가 아니다 — 전부 중대 규제로 잡히면 경고가 무의미해진다
+  ['제2종일반주거지역', '일반상업지역', '자연녹지지역']
+    .forEach(z => assert.strictEqual(nsdi.isCritical(z), false, `${z} 가 규제로 잡혔다`));
+});
+
+test('중대 규제가 있으면 값으로만 두지 않고 경고한다', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'agents', '07-geo.js'), 'utf8');
+  assert.match(src, /중대 규제/);
+  assert.match(src, /사업 가능 여부/,
+    '개발제한구역을 값 한 줄로만 적으면 용적률 표 옆에서 묻힌다');
+});

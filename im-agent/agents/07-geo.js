@@ -140,6 +140,22 @@ async function run(input, ctx) {
       } else {
         ctx.warn(`용도지역 '${landUse.value.zone}' 의 법정 상한 테이블이 없다 — 조례 직접 확인 필요`);
       }
+
+      // ★ 규제 사항 (C-05) — 같은 응답에 이미 들어 있던 것을 지금까지 버리고 있었다.
+      //   개발제한구역에 걸린 땅과 아닌 땅이 '자연녹지지역' 하나로 똑같이 보였다
+      const rst = landUse.value.restrictions || [];
+      if (rst.length) {
+        facts.push({
+          key: 'land.restrictions', value: rst.join(' · '), unit: null,
+          confidence: 0.9, quote: rst.join(' · '),
+          ...src('토지이용계획(VWorld)'),
+        });
+      }
+      // 사업 가능 여부 자체를 좌우하는 규제는 조용히 값으로만 두지 않는다
+      const critical = landUse.value.critical || [];
+      if (critical.length) {
+        ctx.warn(`중대 규제: ${critical.join(' · ')} — 용적률 검토보다 먼저 사업 가능 여부를 확인해야 한다`);
+      }
     } else if (!landUse.unavailable) {
       ctx.warn(`토지이용계획 조회 실패: ${landUse.error}`);
     }
@@ -266,6 +282,10 @@ const CONDITIONAL_FILLS = {
   //   **인허가 현황을 안 물어보고**, 값은 빈 채로 남는다 (B-18 과 똑같은 실패).
   //   기록이 있을 때만 채워지고, 그때가 대조(사업계획서 vs 공부)가 값진 순간이다.
   '건축인허가(허가 기록이 있는 경우에만)': ['legal.permit_status'],
+
+  // 규제가 걸려 있지 않은 필지가 대부분이다. 없을 때도 화면은 물어야 한다 —
+  // '안 물어봤으니 규제가 없는 것'이라고 읽히면 안 된다
+  '토지이용계획의 규제 사항(걸린 규제가 있는 경우에만)': ['land.restrictions'],
 };
 
 module.exports = {

@@ -4,6 +4,7 @@
  *
  *   ① 개별공시지가   PNU → 원/㎡ (연도별 고시)
  *   ② 토지이용계획   PNU → 용도지역 + 조례상 용적률/건폐율 상한
+ *                    + **규제 사항**(개발제한구역·군사시설보호구역·지구단위계획 등)
  *
  * 용도지역별 상한은 '국토계획법 시행령 기준값'을 내장 테이블로 둔다.
  * 지자체 조례가 더 강할 수 있으므로 **참고 상한**으로만 쓰고,
@@ -95,10 +96,37 @@ async function landUse(pnu) {
   const primary = zones.find(z => ZONE_LIMITS[normalizeZone(z)]) || zones[0];
   const limits = ZONE_LIMITS[normalizeZone(primary)] || null;
 
+  // ★ 나머지 항목을 버리지 않는다 (C-05).
+  //   같은 응답에 개발제한구역·군사시설보호구역·지구단위계획구역이 함께 온다.
+  //   지금까지는 용도지역 하나만 남기고 전부 흘려보냈다 — **그린벨트에 걸린 땅과
+  //   아닌 땅이 화면에서 똑같이 보였다.** 용적률보다 먼저 봐야 하는 정보다.
+  const restrictions = zones.filter(z => z !== primary && !ZONE_LIMITS[normalizeZone(z)]);
+
   return {
     ok: true, cached: r.cached,
-    value: { zone: primary, allZones: zones, limits, limitsSource: limits ? '국토계획법 시행령 기준(조례 확인 필요)' : null },
+    value: {
+      zone: primary, allZones: zones, limits,
+      limitsSource: limits ? '국토계획법 시행령 기준(조례 확인 필요)' : null,
+      restrictions: restrictions,
+      critical: restrictions.filter(isCritical),
+    },
   };
+}
+
+/**
+ * **사업 가능 여부 자체를 좌우하는** 규제인가.
+ *
+ * ★ 목록에 없다고 '문제 없음'이 아니다. 여기 있는 것은 "이게 걸려 있으면 용적률
+ *   계산보다 먼저 봐야 한다"는 뜻이고, 없는 것은 사람이 확인해야 한다는 뜻이다.
+ */
+const CRITICAL_RESTRICTIONS = [
+  '개발제한구역', '군사기지', '군사시설보호', '비행안전', '문화재보호',
+  '상수원보호', '수변구역', '보전산지', '농업진흥', '접도구역', '공원구역',
+];
+
+function isCritical(text) {
+  var s = String(text || '').replace(/\s/g, '');
+  return CRITICAL_RESTRICTIONS.some(function (k) { return s.indexOf(k) !== -1; });
 }
 
 // ── 용도지역별 용적률/건폐율 상한 (국토계획법 시행령) ──────────────
@@ -133,4 +161,7 @@ function limitsForZone(zoneText) {
   return ZONE_LIMITS[key] ? { zone: key, ...ZONE_LIMITS[key] } : null;
 }
 
-module.exports = { landPrice, landUse, limitsForZone, normalizeZone, isAvailable, ZONE_LIMITS, PROVIDER };
+module.exports = {
+  landPrice, landUse, limitsForZone, normalizeZone, isAvailable, isCritical,
+  ZONE_LIMITS, CRITICAL_RESTRICTIONS, PROVIDER,
+};
