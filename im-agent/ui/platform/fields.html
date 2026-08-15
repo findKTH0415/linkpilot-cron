@@ -160,6 +160,7 @@ ul { margin: 0; padding: 0; list-style: none; }
 /* 칸 수는 항목마다 다르다 — 페이지·출처일은 필요한 항목에만 붙는다.
    고정 4열로 두면 2칸짜리 줄에 빈 열이 남아 뭔가 빠진 것처럼 보인다 */
 .row__in { display: grid; gap: 8px; grid-template-columns: 1.1fr 1.4fr .6fr .9fr; }
+.row__in.n1 { grid-template-columns: minmax(0, 300px); }
 .row__in.n2 { grid-template-columns: 1.1fr 1.7fr; }
 .row__in.n3 { grid-template-columns: 1.1fr 1.5fr .8fr; }
 .row__in input, .row__in select { font: 400 13.5px/1.5 inherit; padding: 9px 11px; min-width: 0;
@@ -200,6 +201,7 @@ ul { margin: 0; padding: 0; list-style: none; }
   .body { padding: 16px 16px 150px; }
   .head__t { font-size: 19px; }
   .row__in, .row__in.n2, .row__in.n3 { grid-template-columns: 1fr 1fr; }
+  .row__in.n1 { grid-template-columns: 1fr; }
   .btn { flex: 1; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -400,6 +402,18 @@ window.LINKPILOT_FIELDS_CFG = {
    */
   function currentPlan() { return state.plan; }
 
+  /**
+   * 다시 그린 뒤 값 칸으로 커서를 되돌린다.
+   * 자동 행은 첫 글자를 치는 순간 출처 칸이 생기며 줄이 다시 그려진다 —
+   * 그때 포커스를 안 돌려주면 **두 번째 글자가 어디에도 안 들어간다.**
+   */
+  function focusValue(key) {
+    var el2 = document.querySelector('#list input[data-k="' + key + '"]');
+    if (!el2) return;
+    el2.focus();
+    try { el2.setSelectionRange(el2.value.length, el2.value.length); } catch (_) {}
+  }
+
   // 판정은 fields-core 가 한다 (테스트가 이 규칙을 지킨다)
   function visibleItems(group) {
     var opts = {
@@ -431,16 +445,37 @@ window.LINKPILOT_FIELDS_CFG = {
 
     var box = el('div', 'row__in');
 
+    // ★ 자동으로 채워지는 줄에는 **출처를 묻지 않는다.**
+    //   그 값의 출처는 이미 정해져 있다 (요청문 · 공공데이터 · 산업 통상치 · 계산).
+    //   시스템이 채울 값의 근거를 사람에게 물으면, 사람은 자기가 모르는 것을
+    //   적어 넣는다 — 출처 강제가 오히려 거짓 출처를 만든다.
+    //
+    //   단 **사람이 값을 치는 순간** 이야기가 달라진다. 그건 자동값을 덮어쓰는
+    //   것이므로 근거가 있어야 한다. 그때 출처 칸이 나타나고 저장이 잠긴다.
+    var isAuto = F.isAuto(key, pl);
+    var typed = e.value !== '' && e.value !== null && e.value !== undefined;
+    var askSource = F.asksSource(key, e, pl);
+
     var val = el('input');
     val.type = 'text';
     val.value = e.value === null || e.value === undefined ? '' : String(e.value);
-    val.placeholder = def.type === 'number' ? '숫자만' : '값';
+    val.placeholder = isAuto && !typed
+      ? '자동 — ' + pl[key].label
+      : (def.type === 'number' ? '숫자만' : '값');
     val.setAttribute('aria-label', def.label + ' 값');
-    val.addEventListener('input', function () { set(key, 'value', val.value); });
+    val.setAttribute('data-k', key);
+    // 값이 처음 들어오는 순간 출처 칸이 생겨야 하므로 다시 그린다
+    val.addEventListener('input', function () {
+      var had = typed;
+      set(key, 'value', val.value);
+      var now = val.value !== '';
+      if (isAuto && had !== now) { render(); focusValue(key); }
+    });
     box.appendChild(val);
 
     // 출처 — 업로드된 자료 중에서 고르게 한다. 자유 입력만 두면 추적이 끊긴다
     var src;
+    if (askSource) {
     if (state.sources.length) {
       src = el('select');
       src.setAttribute('aria-label', def.label + ' 출처');
@@ -477,12 +512,13 @@ window.LINKPILOT_FIELDS_CFG = {
     }
     if (e.value !== '' && !e.source) src.className = 'miss';
     box.appendChild(src);
+    }
 
     // ★ 페이지는 **출처가 올린 문서일 때만** 뜻이 있다. 공공데이터나 직접 입력에
     //   페이지를 물으면 사람은 빈칸으로 두거나 아무 숫자나 적는다.
     //   이미 값이 있으면 조건과 무관하게 보여준다 — 감추면 고칠 방법이 없다
     var hasPage = e.page !== '' && e.page !== null && e.page !== undefined;
-    if (hasPage || (e.source && state.sources.indexOf(e.source) !== -1)) {
+    if (hasPage || (askSource && e.source && state.sources.indexOf(e.source) !== -1)) {
       var page = el('input');
       page.type = 'text';
       page.value = hasPage ? String(e.page) : '';
@@ -495,7 +531,7 @@ window.LINKPILOT_FIELDS_CFG = {
     // ★ 출처일은 **값이 시점에 따라 달라지는 항목**에만 묻는다 (사전의 def.dated).
     //   시행사명은 언제 조회했든 같다 — 거기에 날짜를 물으면 사람은 오늘 날짜를
     //   적고, 그 날짜는 아무것도 뜻하지 않는다
-    if (def.dated || e.sourceDate) {
+    if ((askSource && def.dated) || e.sourceDate) {
       var date = el('input');
       date.type = 'text';
       date.value = e.sourceDate || '';

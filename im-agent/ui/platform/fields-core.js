@@ -265,6 +265,26 @@
   }
 
   /**
+   * 이 줄에 **출처를 물어야 하는가.**
+   *
+   * ★ 자동으로 채워지는 줄에는 묻지 않는다. 그 값의 출처는 이미 정해져 있다
+   *   (요청문 · 공공데이터 · 산업 통상치 · 계산). 시스템이 채울 값의 근거를
+   *   사람에게 물으면 사람은 **자기가 모르는 것을 적어 넣는다** — 출처 강제가
+   *   오히려 거짓 출처를 만든다. 막으려던 바로 그 일이다.
+   *
+   * ★ 단 사람이 값을 치는 순간 달라진다. 자동값을 덮어쓰는 것이므로 근거가
+   *   있어야 하고, 그때 출처 칸이 나타나며 저장이 잠긴다.
+   *
+   * @param {object} entry { value, source } — 화면의 현재 입력값
+   */
+  function asksSource(key, entry, plan) {
+    if (!isAuto(key, plan)) return true;          // 사람이 채우는 줄 — 처음부터 묻는다
+    var e = entry || {};
+    var typed = e.value !== '' && e.value !== null && e.value !== undefined;
+    return typed || !!e.source;                   // 덮어쓰기 시작 or 이미 적어 둔 출처
+  }
+
+  /**
    * 이 보고서에 필요한 항목 중 자동으로 채워지는 것의 내역.
    * 화면이 "몇 개나 안 물어봐도 되는지"를 근거와 함께 보여줄 때 쓴다.
    */
@@ -318,6 +338,7 @@
     LEVELS: LEVELS,
     AUTO_FILLS: AUTO_FILLS,
     isAuto: isAuto,
+    asksSource: asksSource,
     autoBreakdown: autoBreakdown,
     inScope: inScope,
     isComputed: isComputed,

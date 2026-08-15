@@ -254,6 +254,46 @@ test('직접 입력 판은 필수 항목 중 자동으로 못 채우는 것만 �
   assert.ok(!F.inScope('opex.escalation', dict.FIELDS, o));
 });
 
+/**
+ * ★ 자동으로 채워지는 줄에 출처를 물으면, 사람은 **자기가 모르는 것을 적어 넣는다.**
+ *   출처 강제가 거짓 출처를 만드는 순간이다 — 이 저장소가 막으려던 바로 그 일.
+ */
+test('자동으로 채워지는 줄에는 출처를 묻지 않는다', () => {
+  const plan = fieldplan.plan('generic');
+
+  // 요청문이 채우는 사업명 — 빈 줄에는 출처 칸을 만들지 않는다
+  assert.strictEqual(plan['project.name'].fill, 'request');
+  assert.strictEqual(F.asksSource('project.name', {}, plan), false);
+
+  // 산업 통상치가 채우는 차입금리도 마찬가지
+  assert.strictEqual(plan['debt.rate'].fill, 'default');
+  assert.strictEqual(F.asksSource('debt.rate', { value: '', source: '' }, plan), false);
+
+  // 사람이 채워야 하는 줄은 처음부터 묻는다
+  assert.strictEqual(F.asksSource('investment.total', {}, plan), true);
+
+  // 계획을 못 받으면 전부 묻는다 — 안 묻고 넘어가는 쪽이 위험하다
+  assert.strictEqual(F.asksSource('debt.rate', {}, null), true);
+});
+
+test('자동값을 덮어쓰기 시작하면 그때 출처를 묻는다', () => {
+  const plan = fieldplan.plan('generic');
+  // 한 글자만 쳐도 근거가 필요해진다 — 자동값을 이기는 값이기 때문이다
+  assert.strictEqual(F.asksSource('debt.rate', { value: '5' }, plan), true);
+  // 값을 지워도 출처를 이미 적어 뒀으면 칸이 남는다 (감추면 고칠 방법이 없다)
+  assert.strictEqual(F.asksSource('debt.rate', { value: '', source: 'ECOS' }, plan), true);
+
+  // 그리고 출처 없이 덮어쓴 값은 저장되지 않는다 — 화면·서버 규칙이 같다
+  const v = F.validateAll(dict.FIELDS, { 'debt.rate': { value: 5.8, source: '' } }, dict.COMPUTED_KEYS);
+  assert.strictEqual(v.canSave, false);
+  assert.match(v.errors[0], /출처/);
+});
+
+test('★ 화면이 출처 노출 판정을 자기가 하지 않는다', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'ui', 'platform', 'fields.html'), 'utf8');
+  assert.match(html, /F\.asksSource/, '판정은 fields-core 하나에 있어야 한다');
+});
+
 test('판이 올라갈수록 항목이 줄지 않는다 (직접 입력 ⊆ 일반용 ⊆ 전문가용)', () => {
   const plan = fieldplan.plan('generic');
   const at = (level) => Object.keys(dict.FIELDS)
