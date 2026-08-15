@@ -344,3 +344,38 @@ test('★ 스모크 도구가 커넥터보다 먼저 .env 를 올린다', () => 
   assert.ok(envAt < connAt,
     '커넥터를 먼저 부르면 isAvailable() 이 먼저 평가되어 조용히 미설정이 된다');
 });
+
+/**
+ * ★ 진짜처럼 생긴 값을 자리표시자로 쓰지 않는다.
+ *
+ *   2026-08-15: 진단 도구의 오류 메시지에 "예시"로 적어 둔 UUID 가 **실제 VWorld
+ *   키**였다. 공개 저장소에 이틀간 올라가 있었다. 예시와 실키가 같은 모양이면
+ *   아무도 구분하지 못한다 — 자리표시자는 한눈에 가짜여야 한다.
+ */
+test('★ 안내 문구의 자리표시자가 진짜 키처럼 생기지 않았다', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const root = require('../core/env').repoRoot();
+
+  const FILES = [
+    'im-agent/tools/smoke-public-data.js',
+    'im-agent/connectors/vworld.js',
+    'im-agent/connectors/nsdi.js',
+    'im-agent/connectors/molit.js',
+    '.env.example',
+    'README.md',
+  ];
+  // 8-4-4-4-12 UUID 중 전부 0 이 아닌 것 = 실키로 의심한다
+  const UUID = /\b[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\b/g;
+
+  FILES.forEach((rel) => {
+    const full = path.join(root, rel);
+    if (!fs.existsSync(full)) return;
+    const text = fs.readFileSync(full, 'utf8');
+    (text.match(UUID) || []).forEach((hit) => {
+      assert.ok(/^[0-]+$/.test(hit),
+        `${rel}: UUID 처럼 생긴 값 '${hit.slice(0, 8)}…' 이 있다 — ` +
+        '자리표시자는 00000000-0000-0000-0000-000000000000 처럼 한눈에 가짜여야 한다');
+    });
+  });
+});

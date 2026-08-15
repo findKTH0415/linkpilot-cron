@@ -116,7 +116,10 @@ async function main() {
     if (vk.fatal) console.log(`  VWORLD_KEY     : ${vk.message}`);
     if (dk.fatal) console.log(`  DATA_GO_KR_KEY : ${dk.message}`);
     console.log('\n  올바른 예 (꺾쇠·따옴표 없이 값만):');
-    console.log("    export VWORLD_KEY=A9C7F809-AC7C-38B2-90AF-880C060BC17A");
+    // ★ 자리표시자는 **한눈에 가짜여야 한다.** 진짜처럼 생긴 값을 예시로 쓰면
+    //   그게 진짜인지 예시인지 아무도 구분 못 하고, 실제로 여기에 실키가 박혀
+    //   공개 저장소에 올라간 적이 있다 (2026-08-15 발견 · 재발급 완료)
+    console.log("    export VWORLD_KEY=00000000-0000-0000-0000-000000000000   # UUID 8-4-4-4-12");
     console.log("    export VWORLD_DOMAIN=nas.example.com");
     console.log('\n  DATA_GO_KR_KEY 는 data.go.kr 마이페이지 › 인증키의 **Decoding(일반)** 쪽이다.');
     console.log('  Encoding 쪽은 %2F·%3D 처럼 %XX 가 들어 있어 인증에 실패한다.\n');
