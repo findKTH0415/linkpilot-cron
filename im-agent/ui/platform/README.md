@@ -23,7 +23,6 @@
 | 파일 | 화면 | 대상 |
 |---|---|---|
 | `guide.html` | 외부 업무지침 | 협력사·외부 담당자 |
-| `board.html` | 업무지시 보드 (칸반) | 유료 회원 |
 | `reports.html` | 보고서 생성 | Pro 이상 |
 | `membership.html` | 더보기 › 유료 멤버십 › 멤버십 | 유료 회원 |
 | `upgrade.html` | 내정보 › 업그레이드 | 무료 회원 |
@@ -355,7 +354,6 @@ process.on('SIGTERM', () => queue.stop());   // 자식 프로세스를 남기지
 ```bash
 npm run im:screens     # 입력 화면 4개 (preview.html)
 npm run im:result      # 데모 파이프라인 실행 → 결과 화면 (result.html)
-npm run im:worklog     # 작업지시판 (worklog.html)
 npm run im:platform    # 플랫폼 단일 HTML
 ```
 

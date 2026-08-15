@@ -178,7 +178,7 @@ test('★ 등급표를 손으로 적지 않는다 (카탈로그가 그린다)', 
 });
 
 test('유료 화면들이 카탈로그·인앱 배너를 싣는다', () => {
-  ['guide.html', 'board.html', 'reports.html', 'membership.html', 'upgrade.html'].forEach((f) => {
+  ['guide.html', 'reports.html', 'membership.html', 'upgrade.html'].forEach((f) => {
     const html = read(f);
     assert.ok(/src="catalog\.js"/.test(html), f + ' 에 catalog.js 가 없다');
     assert.ok(/src="inapp\.js"/.test(html), f + ' 에 inapp.js 가 없다');

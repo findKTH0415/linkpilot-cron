@@ -98,27 +98,21 @@ express 를 쓰지 않으면 `createHandlers()` 로 순수 핸들러만 가져�
 ### 쓰기 라우터 (인증 필수)
 
 읽기 라우터와 **분리해 둔다.** 쓰기는 파일을 만들고 LLM 을 부르고 쿼터를 쓴다.
-둘 다 `authenticate` 가 없으면 **마운트 시점에 예외**를 던진다 (fail closed).
+`authenticate` 가 없으면 **마운트 시점에 예외**를 던진다 (fail closed).
 
 ```js
 const reports = require('./im-agent/ui/report-api.cjs');
-const board = require('./im-agent/ui/board-api.cjs');
 
 app.use('/api/linkpilot', reports.createRouter({
   agentRoot: process.env.IM_AGENT_ROOT,
   authenticate: (req) => req.session && req.session.user,   // 필수
   startRun: (id, spec, user) => queue.push({ id, spec, by: user.name }),
 }));
-app.use('/api/linkpilot', board.createRouter({
-  agentRoot: process.env.IM_AGENT_ROOT,
-  authenticate: (req) => req.session && req.session.user,   // 필수
-}));
 ```
 
 | 엔드포인트 | 하는 일 |
 |---|---|
 | `GET /projects/:id/file?rel=` | 산출물 파일. `rel` 은 목록과 **글자 그대로 같을 때만** 통과한다. HTML 은 sandbox CSP 로 내려간다 |
-| `GET·POST·PATCH·DELETE /board…` | 업무지시 보드. `rev` 로 경합을 막고, 완료일은 서버가 KST 로 찍는다 |
 
 **읽기 라우터는 전부 읽기 전용이다.** 승인·사양 확정 같은 쓰기 동작은 노출하지 않았다 —
 그건 사람 인증을 거쳐야 하는 동작이고, 대시보드 폴링 경로와 같은 권한으로 열면 안 된다.

@@ -51,8 +51,9 @@ test('3·4 단계는 같은 파일의 서로 다른 상태다', () => {
   assert.strictEqual(SCREENS[3].after, 'CONFIRM_SPEC', '4단계는 확정을 실제로 눌러야 한다');
 });
 
-test('작업지시판은 4단계 안에 끼지 않는다', () => {
-  assert.ok(EXTRAS.length > 0);
+test('흐름 밖 화면을 4단계 안에 끼우지 않는다', () => {
+  // 지금은 비어 있다 (작업지시판을 2026-08-15 저장소에서 제거했다).
+  // 나중에 다시 생기더라도 단계 목록과 섞이면 안 된다 — 4단계가 5단계처럼 보인다
   const files = SCREENS.map(s => s.file);
   EXTRAS.forEach((x) => {
     assert.ok(!files.includes(x.file), `${x.file} 이 단계 목록에도 들어 있다`);
