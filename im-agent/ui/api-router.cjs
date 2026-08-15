@@ -72,12 +72,22 @@ function createHandlers({ agentRoot, agentModulePath }) {
      */
     async fields() {
       const dict = load('core/dictionary');
+      const tpl = load('finance/templates');
+
+      // 산업분야별로 어떤 항목을 쓰는지 — 목록을 새로 적지 않고
+      // finance/templates.js 의 정의에서 조합해 내린다 (industryKeys)
+      const industries = Object.keys(tpl.TEMPLATES).map((id) => {
+        const k = tpl.industryKeys(id);
+        return { id, label: tpl.TEMPLATES[id].label, own: k.own, foreign: k.foreign };
+      });
+
       return {
         status: 200,
         body: {
           fields: dict.FIELDS,
           computedKeys: dict.COMPUTED_KEYS,
           categories: dict.CATEGORY,
+          industries,
         },
       };
     },

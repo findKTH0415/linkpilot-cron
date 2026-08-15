@@ -60,14 +60,17 @@ const SCREENS = [
 
 async function build() {
   const AGENT = path.join(HERE, '..', '..');
-  const dict = require(path.join(AGENT, 'core', 'dictionary'));
   const { createHandlers } = require(path.join(AGENT, 'ui', 'api-router.cjs'));
-  const intakeInfo = (await createHandlers({ agentModulePath: AGENT }).intake()).body;
+  const h = createHandlers({ agentModulePath: AGENT });
+
+  // ★ 응답을 손으로 만들지 않는다. 서버가 실제로 내려줄 것을 그대로 심는다 —
+  //   손으로 만들면 서버가 항목을 하나 더 보내기 시작해도 미리보기는 모른다
+  const intakeInfo = (await h.intake()).body;
+  const fieldsInfo = (await h.fields()).body;
 
   const INJECT = {
     'intake.html': { global: 'LINKPILOT_INTAKE', value: { preload: intakeInfo } },
-    'fields.html': { global: 'LINKPILOT_FIELDS_CFG',
-      value: { preload: { fields: dict.FIELDS, computedKeys: dict.COMPUTED_KEYS } } },
+    'fields.html': { global: 'LINKPILOT_FIELDS_CFG', value: { preload: fieldsInfo } },
   };
 
   const frames = SCREENS.map((s, i) => {

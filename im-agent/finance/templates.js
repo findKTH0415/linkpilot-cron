@@ -226,4 +226,48 @@ function applyScenario(baseInput, scenario) {
   return out;
 }
 
-module.exports = { TEMPLATES, BASE_SCENARIOS, COMMON_MAP, SCALE_BANDS, pickTemplate, getTemplate, buildInput, applyScenario, scaleNotice };
+
+/**
+ * 이 산업에서 쓰는 데이터 사전 key 집합.
+ *
+ * ★ 목록을 새로 적지 않는다. 이미 있는 정의를 조합할 뿐이다 —
+ *   COMMON_MAP(모든 산업 공통 재무 항목) + 해당 템플릿의 keyMetrics +
+ *   규모 기준(SCALE_BANDS). 여기에 목록을 따로 두면 템플릿이 바뀔 때 갈린다.
+ *
+ * 산업 전용 지표(데이터센터의 PUE, 태양광의 DC/AC 용량 등)는 **다른 산업에서는
+ * 빠진다.** 태양광 딜에 PUE 입력란을 띄우면 무엇을 넣어야 하는지 헷갈린다.
+ *
+ * @param {string} id 템플릿 id (datacenter/solar/realestate/generic)
+ * @returns {{own:string[], foreign:string[]}} own = 이 산업에서 쓰는 key,
+ *   foreign = 다른 산업 전용이라 숨겨야 할 key
+ */
+function industryKeys(id) {
+  const t = TEMPLATES[id] || TEMPLATES.generic;
+  const own = new Set(Object.values(COMMON_MAP));
+  (t.keyMetrics || []).forEach(k => own.add(k));
+  const band = SCALE_BANDS[t.id];
+  if (band && band.key) own.add(band.key);
+
+  // 다른 산업의 전용 지표만 골라낸다 (공통 항목은 빼지 않는다)
+  const foreign = new Set();
+  Object.keys(TEMPLATES).forEach((other) => {
+    if (other === t.id) return;
+    (TEMPLATES[other].keyMetrics || []).forEach(k => { if (!own.has(k)) foreign.add(k); });
+    const b = SCALE_BANDS[other];
+    if (b && b.key && !own.has(b.key)) foreign.add(b.key);
+  });
+
+  // ★ 파이프라인이 요구하는 항목은 산업과 무관하게 숨기지 않는다.
+  //   keyMetrics 는 '이 산업의 핵심 지표'일 뿐 '이 산업 전용'이 아니다 —
+  //   대지면적·연면적처럼 어디서나 필요한 값이 섞여 있어서, 그대로 빼면
+  //   필수 항목이 화면에서 사라지고 사용자는 왜 진행률이 안 오르는지 모른다.
+  const { FIELDS } = require('../core/dictionary');
+  [...foreign].forEach((k) => {
+    const f = FIELDS[k];
+    if (f && (f.requiredFor || []).length) { foreign.delete(k); own.add(k); }
+  });
+
+  return { own: [...own].sort(), foreign: [...foreign].sort() };
+}
+
+module.exports = { TEMPLATES, industryKeys, BASE_SCENARIOS, COMMON_MAP, SCALE_BANDS, pickTemplate, getTemplate, buildInput, applyScenario, scaleNotice };

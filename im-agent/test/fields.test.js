@@ -410,3 +410,91 @@ test('★ 커밋된 단일 HTML 이 소스와 같다 (빌드 산출물 최신 �
     '커밋된 linkpilot-platform.html 이 소스와 다르다 — `npm run im:platform` 로 다시 만들어라. '
     + '산출물이 소스와 갈리면 화면에서만 옛 동작이 계속 살아 있고 아무도 눈치채지 못한다');
 });
+
+// ── 필드 옵션 (산업분야 · 판) ────────────────────────────────
+
+const tpl = require('../finance/templates');
+const industryOf = (id) => Object.assign({ id }, tpl.industryKeys(id));
+
+test('GET /fields 가 산업분야 정의를 함께 준다', async () => {
+  const h = readHandlers({ agentModulePath: path.join(__dirname, '..') });
+  const r = await h.fields();
+  const ids = r.body.industries.map(i => i.id).sort();
+  assert.deepStrictEqual(ids, Object.keys(tpl.TEMPLATES).sort(),
+    '산업 목록을 화면에 복사해 두지 않는다');
+  r.body.industries.forEach((i) => {
+    assert.ok(i.own.length > 0 && i.label, `${i.id}: 정의가 비어 있다`);
+  });
+});
+
+test('★ 산업 전용 항목만 감춘다 — 필수 항목은 남는다', () => {
+  const dc = industryOf('datacenter');
+  const solar = industryOf('solar');
+
+  // 태양광 딜에 PUE 를 띄우지 않는다
+  assert.ok(solar.foreign.includes('capacity.pue'));
+  assert.ok(!dc.foreign.includes('capacity.pue'));
+
+  // 대지면적·연면적은 어느 산업에서도 감추지 않는다 (requiredFor 가 있다)
+  [dc, solar].forEach((ind) => {
+    ['land.area_sqm', 'building.gfa_sqm', 'investment.total'].forEach((k) => {
+      assert.ok(!ind.foreign.includes(k),
+        `${ind.id}: 필수 항목 ${k} 가 감춰졌다 — 진행률이 안 오르는 이유를 알 수 없게 된다`);
+    });
+  });
+});
+
+test('일반용은 필수 항목 위주, 전문가용은 전부 보여준다', () => {
+  const opts = (level) => ({ level, industry: industryOf('datacenter'), docType: 'im' });
+  const count = (level) => Object.keys(dict.FIELDS)
+    .filter(k => F.inScope(k, dict.FIELDS, opts(level))).length;
+
+  const basic = count('basic');
+  const expert = count('expert');
+  assert.ok(basic < expert, '일반용이 더 적어야 한다');
+  assert.ok(basic >= F.requiredKeys(dict.FIELDS, 'im').length,
+    '일반용에 필수 항목이 다 들어 있어야 한다');
+  assert.ok(expert > 40, '전문가용은 사전 전체에 가깝다');
+});
+
+test('★ 감춘 항목이라도 값이 있으면 보인다', () => {
+  const opts = {
+    filter: 'all', q: '', docType: 'im',
+    level: 'basic', industry: industryOf('solar'),
+  };
+  // PUE 는 태양광에서 감추는 항목이다
+  assert.strictEqual(F.isVisible('capacity.pue', dict.FIELDS, {}, dict.COMPUTED_KEYS, opts), false);
+
+  // 그런데 값이 들어 있으면 보여야 한다 — 감춘 채로 두면 고칠 방법이 없다
+  const withValue = { 'capacity.pue': { value: 1.4, source: 'a.pdf' } };
+  assert.strictEqual(F.isVisible('capacity.pue', dict.FIELDS, withValue, dict.COMPUTED_KEYS, opts), true,
+    '감춘 항목에 값이 남아 있으면 그 값도 보고서에 들어간다');
+});
+
+test('산업을 안 고르면 산업으로 거르지 않는다', () => {
+  const opts = { level: 'expert', docType: 'im' };   // industry 없음
+  assert.strictEqual(F.inScope('capacity.pue', dict.FIELDS, opts), true);
+  assert.strictEqual(F.inScope('capacity.dc_kw', dict.FIELDS, opts), true,
+    '모르는 것을 감추면 입력할 방법이 없어진다');
+});
+
+test('판 정의가 화면과 서버에서 같은 이름을 쓴다', () => {
+  assert.deepStrictEqual(Object.keys(F.LEVELS).sort(), ['basic', 'expert']);
+  assert.ok(F.LEVELS.basic.label && F.LEVELS.expert.label);
+});
+
+test('★ 화면이 산업 목록을 복사해 두지 않는다', () => {
+  // 주석은 뺀다 — 규칙을 설명하는 문장은 데이터 복사가 아니다.
+  // 잡으려는 것은 코드가 산업 id·이름을 알고 판단하는 경우다
+  const core = read('fields-core.js')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|[^:])\/\/.*$/gm, '$1');
+  ['datacenter', 'solar', 'realestate', '데이터센터', '태양광'].forEach((n) => {
+    assert.ok(!core.includes(n), `fields-core.js 코드에 '${n}' 이 박혀 있다 — 서버가 준 정의만 쓴다`);
+  });
+  const html = read('fields.html');
+  assert.match(html, /산업분야/, '옵션 입력란이 있어야 한다');
+  // 판 이름은 화면에 적지 않는다 — fields-core 의 LEVELS 가 단일 출처다
+  assert.ok(!/'일반용'|"일반용"/.test(html), 'fields.html 이 판 이름을 따로 적어 두면 갈린다');
+  assert.match(html, /F\.LEVELS/, '판 정의는 fields-core 에서 가져온다');
+});

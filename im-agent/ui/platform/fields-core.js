@@ -171,6 +171,44 @@
     return { errors: errors, warnings: warnings, canSave: errors.length === 0 };
   }
 
+  /**
+   * 화면 판(版) — 무엇까지 보여줄지.
+   *
+   * ★ 일반용은 **파이프라인이 요구하는 항목만** 보여준다. 52개를 한꺼번에
+   *   내밀면 무엇부터 채워야 하는지 모른다. 전문가용은 전부 보여준다.
+   *
+   * ★ 일반용에서 감춘 항목도 **값이 있거나 문제가 있으면 보인다.** 감춘 채로
+   *   틀린 값이 남아 있으면 고칠 방법이 없다 (isVisible 참조).
+   */
+  var LEVELS = {
+    basic:  { id: 'basic',  label: '일반용',   hint: '보고서에 꼭 필요한 항목만' },
+    expert: { id: 'expert', label: '전문가용', hint: '사전의 모든 항목' },
+  };
+
+  /**
+   * 이 판·산업에서 보여줄 key 인가 (값 유무·오류와 무관한 '기본 노출' 판정).
+   *
+   * @param {object} industry { own:[], foreign:[] } — 서버가 준 산업 정의.
+   *   없으면 산업으로 거르지 않는다 (모르는 것을 감추면 입력할 방법이 없어진다)
+   */
+  function inScope(key, fields, opts) {
+    var o = opts || {};
+    var def = (fields || {})[key];
+    if (!def) return false;
+
+    // 산업 전용 항목 — 다른 산업이면 감춘다 (태양광 딜에 PUE 를 띄우지 않는다)
+    var ind = o.industry;
+    if (ind && ind.foreign && ind.foreign.indexOf(key) !== -1) return false;
+
+    if (o.level === 'expert') return true;
+
+    // 일반용 — 이 보고서 종류에 필요한 항목 + 이 산업의 핵심 지표
+    if ((def.requiredFor || []).length) {
+      return requiredKeys(fields, o.docType).indexOf(key) !== -1;
+    }
+    return !!(ind && ind.own && ind.own.indexOf(key) !== -1 && (def.category === 'Capacity'));
+  }
+
   /** 오류·경고가 붙은 항목인가 */
   function hasProblem(key, fields, values, computedKeys) {
     var e = (values || {})[key];
@@ -193,6 +231,12 @@
     if (!def) return false;
 
     if (hasProblem(key, fields, values, computedKeys)) return true;
+
+    // 값이 들어 있으면 판·산업과 무관하게 보인다.
+    // 감춘 채로 틀린 값이 남아 있으면 고칠 방법이 없다
+    var e0 = (values || {})[key];
+    var hasValue = e0 && e0.value !== '' && e0.value !== null && e0.value !== undefined;
+    if (!hasValue && !inScope(key, fields, o)) return false;
 
     if (o.filter === 'required' && requiredKeys(fields, o.docType).indexOf(key) === -1) return false;
     if (o.filter === 'empty') {
@@ -232,6 +276,8 @@
     completeness: completeness,
     parseNumber: parseNumber,
     toEokwon: toEokwon,
+    LEVELS: LEVELS,
+    inScope: inScope,
     isComputed: isComputed,
     hasProblem: hasProblem,
     isVisible: isVisible,

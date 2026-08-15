@@ -121,6 +121,15 @@ ul { margin: 0; padding: 0; list-style: none; }
 .chip.on { background: var(--ink); border-color: var(--ink); color: #fff; }
 .chip:focus-visible, .btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 
+/* 필드 옵션 */
+.optrow { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.seg { display: flex; gap: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.seg__b { flex: 1; padding: 11px 12px; border: 0; background: var(--surface);
+  font: 600 14px/1 inherit; color: var(--ink2); cursor: pointer; }
+.seg__b + .seg__b { border-left: 1px solid var(--line); }
+.seg__b.on { background: var(--ink); color: #fff; }
+.seg__b:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+
 /* 필드 행 */
 .cat { font-size: 13px; font-weight: 800; color: var(--lime-deep); background: var(--lime-soft);
   padding: 8px 13px; border-radius: 9px; margin: 18px 0 10px; }
@@ -251,6 +260,9 @@ window.LINKPILOT_FIELDS_CFG = {
 
   var state = {
     fields: null, computedKeys: [], sources: [],
+    industries: [],      // 서버가 준 산업분야 정의
+    industryId: '',      // 빈 값 = 전체 (거르지 않는다)
+    level: 'basic',      // basic | expert
     values: {},          // key → {value, source, sourceDate, page}
     server: {},          // 서버에 저장돼 있는 값 (되돌리기용)
     filter: 'required',  // required | all | empty
@@ -285,6 +297,7 @@ window.LINKPILOT_FIELDS_CFG = {
     if (C.preload) {
       state.fields = C.preload.fields || {};
       state.computedKeys = C.preload.computedKeys || [];
+      state.industries = C.preload.industries || [];
       state.loadError = null;
       return render();
     }
@@ -296,6 +309,7 @@ window.LINKPILOT_FIELDS_CFG = {
     Promise.all(jobs).then(function (res) {
       state.fields = res[0].fields || {};
       state.computedKeys = res[0].computedKeys || [];
+      state.industries = res[0].industries || [];
       if (res[1]) {
         state.server = res[1].values || {};
         state.sources = res[1].sources || [];
@@ -347,9 +361,21 @@ window.LINKPILOT_FIELDS_CFG = {
     renderFooter();          // 진행률·저장 버튼만 다시 그린다 (입력 중 포커스를 잃지 않게)
   }
 
+  /** 지금 고른 산업분야 정의 (빈 값이면 null — 산업으로 거르지 않는다) */
+  function currentIndustry() {
+    if (!state.industryId) return null;
+    for (var i = 0; i < state.industries.length; i++) {
+      if (state.industries[i].id === state.industryId) return state.industries[i];
+    }
+    return null;
+  }
+
   // 판정은 fields-core 가 한다 (테스트가 이 규칙을 지킨다)
   function visibleItems(group) {
-    var opts = { filter: state.filter, q: state.q, docType: C.docType };
+    var opts = {
+      filter: state.filter, q: state.q, docType: C.docType,
+      level: state.level, industry: currentIndustry(),
+    };
     return group.items.filter(function (it) {
       return F.isVisible(it.key, state.fields, state.values, state.computedKeys, opts);
     });
@@ -474,6 +500,16 @@ window.LINKPILOT_FIELDS_CFG = {
     return row;
   }
 
+  /** 지금 설정에서 기본 노출되는 항목 수 */
+  function scopeCount() {
+    var o = { level: state.level, industry: currentIndustry(), docType: C.docType };
+    var n = 0;
+    Object.keys(state.fields || {}).forEach(function (k) {
+      if (F.inScope(k, state.fields, o)) n++;
+    });
+    return n;
+  }
+
   function renderFooter() {
     var old = document.querySelector('.save');
     if (old) old.remove();
@@ -590,6 +626,56 @@ window.LINKPILOT_FIELDS_CFG = {
     var pd = el('div', 'prog__d'); pd.id = 'prog-d';
     pc.appendChild(pd);
     body.appendChild(pc);
+
+    // 필드 옵션 — 무엇을 보여줄지 정한다
+    var opt = el('div', 'card');
+    opt.appendChild(el('div', 'card__t', '필드 옵션'));
+    opt.appendChild(el('p', 'card__s',
+      '산업분야와 판을 고르면 입력란이 그에 맞게 줄어듭니다. '
+      + '값이 들어 있거나 문제가 있는 항목은 어떤 설정에서도 계속 보입니다.'));
+
+    var og = el('div', 'optrow');
+
+    var f1 = el('div', 'f');
+    f1.appendChild(el('label', null, '산업분야'));
+    var isel = el('select');
+    isel.setAttribute('aria-label', '산업분야');
+    var all = el('option', null, '전체 (거르지 않음)');
+    all.value = '';
+    isel.appendChild(all);
+    state.industries.forEach(function (x) {
+      var o = el('option', null, x.label + ' (' + x.own.length + '개)');
+      o.value = x.id;
+      isel.appendChild(o);
+    });
+    isel.value = state.industryId;
+    isel.addEventListener('change', function () { state.industryId = isel.value; render(); });
+    f1.appendChild(isel);
+    var ind = currentIndustry();
+    f1.appendChild(el('div', 'prog__d', ind && ind.foreign.length
+      ? '다른 산업 전용 ' + ind.foreign.length + '개를 감춥니다 ('
+        + ind.foreign.map(function (k) { return (state.fields[k] || {}).label || k; }).join(' · ') + ')'
+      : '산업을 고르면 그 산업에 없는 항목을 감춥니다'));
+    og.appendChild(f1);
+
+    var f2 = el('div', 'f');
+    f2.appendChild(el('label', null, '판'));
+    var lv = el('div', 'seg');
+    ['basic', 'expert'].forEach(function (id) {
+      var L = F.LEVELS[id];
+      var b = el('button', 'seg__b' + (state.level === id ? ' on' : ''), L.label);
+      b.type = 'button';
+      b.setAttribute('aria-pressed', state.level === id ? 'true' : 'false');
+      b.addEventListener('click', function () { state.level = id; render(); });
+      lv.appendChild(b);
+    });
+    f2.appendChild(lv);
+    f2.appendChild(el('div', 'prog__d', F.LEVELS[state.level].hint
+      + ' — 지금 ' + scopeCount() + '개 항목'));
+    og.appendChild(f2);
+
+    opt.appendChild(og);
+    body.appendChild(opt);
 
     // 도구
     var tools = el('div', 'tools');
