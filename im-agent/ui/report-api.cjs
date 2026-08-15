@@ -53,6 +53,13 @@ const OUTPUTS = [
   { id: 'redflag', name: 'RED FLAG 보고서', rel: '11_QC/red-flag-report.md' },
 ];
 
+/** 산출물 확장자별 MIME. 목록에 없으면 브라우저가 알아서 해석하지 못하게 둔다 */
+const CONTENT_TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.md': 'text/markdown; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+};
+
 function ok(body) { return { status: 200, body }; }
 function bad(message, status) { return { status: status || 400, body: { error: message } }; }
 
@@ -544,6 +551,55 @@ function createHandlers(deps) {
     },
 
     /** POST /projects/:id/reports — 생성 시작 */
+    /**
+     * GET /projects/:id/file?rel=... — 산출물 파일을 내려준다. 〈B-8〉
+     *
+     * 지침 §7-3 이 [인쇄 · PDF 저장]을 안내하므로 **협력사 눈에는 이미 있는 기능**이다.
+     * 파일을 여는 경로가 없어서 안내만 뜨던 것을 여기서 연다.
+     *
+     * ★ 경로를 조립하지 않는다. `rel` 은 OUTPUTS 에 적힌 것과 **글자 그대로 같을 때만**
+     *   통과시킨다. 정규화·`..` 제거 같은 방어는 우회 방법이 계속 나온다 —
+     *   목록에 없으면 거부하는 쪽이 짧고 확실하다.
+     *
+     * ★ HTML 을 같은 출처에서 그냥 서빙하지 않는다. IM 본문은 **업로드된 문서에서
+     *   온 글자**를 담는다. 거기 스크립트가 섞여 있으면 이용자 세션 권한으로 돈다.
+     *   그래서 `sandbox` CSP 로 스크립트를 죽인 채 보여 준다 — A4 인쇄본은
+     *   정적 문서라 이걸로 잃는 것이 없다.
+     */
+    async getFile(ctx, projectId, rel) {
+      const g = gate(ctx, 'pro'); if (g.error) return g.error;
+      const e = checkId(projectId); if (e) return e;
+
+      const out = OUTPUTS.find(o => o.rel === String(rel || ''));
+      if (!out) return bad('내려줄 수 있는 산출물이 아닙니다');
+
+      const file = path.join(projectDir(projectId), out.rel);
+      let stat = null;
+      try { stat = fs.statSync(file); } catch (_) { stat = null; }
+      if (!stat || !stat.isFile()) return bad('아직 생성되지 않았습니다', 404);
+
+      // ★ 배포가 막힌 산출물을 조용히 내려주지 않는다. 목록에서는 '배포 차단'인데
+      //   파일은 열린다면 검증 GATE 가 아무 의미도 없다
+      const gateMod = load('core/gate');
+      try {
+        const decision = gateMod.check ? gateMod.check(projectId) : null;
+        if (decision && decision.blocked) {
+          return bad('검증을 통과하지 못한 산출물입니다 — 검증 화면에서 해소해야 열 수 있습니다', 403);
+        }
+      } catch (_) { /* GATE 를 못 읽는 것만으로 파일을 막지는 않는다 */ }
+
+      return {
+        status: 200,
+        file,
+        contentType: CONTENT_TYPES[path.extname(out.rel).toLowerCase()] || 'application/octet-stream',
+        headers: {
+          'X-Content-Type-Options': 'nosniff',
+          'Content-Security-Policy': "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:",
+          'Cache-Control': 'private, no-store',
+        },
+      };
+    },
+
     async generate(ctx, projectId, body) {
       const b = body || {};
       const docType = String(b.docType || 'im');
@@ -616,12 +672,22 @@ function createRouter(deps = {}) {
   router.get('/projects/:id/facts', wrap(req => h.getFacts(req, req.params.id)));
   router.put('/projects/:id/facts', wrap(req => h.saveFacts(req, req.params.id, req.body)));
   router.get('/projects/:id/reports', wrap(req => h.listReports(req, req.params.id)));
+  // 파일은 JSON 이 아니다 — 성공하면 파일을, 실패하면 평소처럼 JSON 사유를 보낸다
+  router.get('/projects/:id/file', async (req, res, next) => {
+    try {
+      const r = await h.getFile(req, req.params.id, req.query && req.query.rel);
+      if (!r.file) return send(res, r);
+      res.set(r.headers || {});
+      res.type(r.contentType);
+      res.sendFile(r.file);
+    } catch (e) { next(e); }
+  });
   router.post('/projects/:id/reports', wrap(req => h.generate(req, req.params.id, req.body)));
 
   return router;
 }
 
 module.exports = {
-  createHandlers, createRouter, DOC_PLANS, OUTPUTS, PLAN_RANK, PROJECT_ID,
+  createHandlers, createRouter, DOC_PLANS, OUTPUTS, PLAN_RANK, PROJECT_ID, CONTENT_TYPES,
   MAX_FILE_BYTES, MAX_REQUEST_BYTES,
 };

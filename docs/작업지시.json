@@ -367,11 +367,12 @@
     {
       "id": "B-8",
       "title": "[인쇄 · PDF 저장] 실제 연결",
-      "detail": "fileUrl 이 null 이라 안내만 뜬다. 본체가 12_Final/*.html 을 서빙하는 경로 규칙만 알려주면 즉시 연결된다. 지침 §7-3 이 안내하므로 협력사 눈에는 이미 있는 기능이다",
-      "status": "todo",
+      "detail": "본체를 기다리지 않고 API 가 직접 내려주게 했다. GET /projects/:id/file?rel= — rel 은 OUTPUTS 목록과 글자 그대로 같을 때만 통과시킨다(경로를 조립하지 않는다). HTML 은 sandbox CSP 로 스크립트를 죽인 채 보여 준다 — IM 본문은 업로드된 문서에서 온 글자를 담는다. 배포가 막힌 산출물은 파일도 막는다. 화면은 fileUrl 이 없으면 이 경로로 되돌아간다",
+      "status": "done",
       "priority": "normal",
       "assignee": "개발",
       "project": "보고서 생성",
+      "doneAt": "2026-08-15",
       "refs": [
         "B-8"
       ]

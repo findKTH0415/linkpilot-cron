@@ -266,3 +266,93 @@ test('★ 읽기 전용 라우터는 여전히 쓰기가 없다', () => {
   assert.ok(!/router\.(post|put|patch|delete)/.test(src),
     '생성 API 를 대시보드 라우터에 얹으면 읽기와 같은 권한으로 돈 드는 동작이 열린다');
 });
+
+// ── 산출물 파일 내려주기 (B-8) ────────────────────────────────────
+//
+// 지침 §7-3 이 [인쇄 · PDF 저장]을 안내하므로 협력사 눈에는 이미 있는 기능이다.
+// 여는 경로가 없어서 안내만 뜨던 것을 열었다 — 그래서 여기가 새면 안 된다.
+
+function withOutput(root, id, rel, body) {
+  const file = path.join(root, id, rel);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, body);
+  return file;
+}
+
+test('산출물 파일을 내려준다', async () => {
+  const root = tmpRoot(); makeProject(root, ID);
+  withOutput(root, ID, '12_Final/im-a4.html', '<h1>IM</h1>');
+  const r = await handlers(root, PRO).getFile({}, ID, '12_Final/im-a4.html');
+  assert.strictEqual(r.status, 200);
+  assert.ok(r.file.endsWith(path.join('12_Final', 'im-a4.html')));
+  assert.match(r.contentType, /text\/html/);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('★ 목록에 없는 경로는 내려주지 않는다 (경로를 조립하지 않는다)', async () => {
+  const root = tmpRoot(); makeProject(root, ID);
+  const h = handlers(root, PRO);
+  for (const rel of [
+    '../../etc/passwd', '12_Final/../../../etc/passwd', '01_Project/issuer.json',
+    '12_Final/im-a4.html/../../../secret', '', null,
+  ]) {
+    const r = await h.getFile({}, ID, rel);
+    assert.strictEqual(r.status, 400, `${rel} 가 통과했다`);
+  }
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('★ HTML 을 그냥 서빙하지 않는다 (업로드 문서에서 온 글자가 실행되면 안 된다)', async () => {
+  const root = tmpRoot(); makeProject(root, ID);
+  withOutput(root, ID, '12_Final/im-a4.html', '<script>fetch("/api/steal")</script>');
+  const r = await handlers(root, PRO).getFile({}, ID, '12_Final/im-a4.html');
+  assert.match(r.headers['Content-Security-Policy'], /sandbox/,
+    'IM 본문은 업로드된 문서에서 온 글자를 담는다 — 이용자 세션 권한으로 스크립트가 돌면 안 된다');
+  assert.strictEqual(r.headers['X-Content-Type-Options'], 'nosniff');
+});
+
+test('아직 없는 파일은 404', async () => {
+  const root = tmpRoot(); makeProject(root, ID);
+  const r = await handlers(root, PRO).getFile({}, ID, '09_IM/im.md');
+  assert.strictEqual(r.status, 404);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('미인증·무료 회원은 파일도 못 받는다', async () => {
+  const root = tmpRoot(); makeProject(root, ID);
+  withOutput(root, ID, '09_IM/im.md', '# IM');
+  assert.strictEqual((await handlers(root, null).getFile({}, ID, '09_IM/im.md')).status, 401);
+  assert.strictEqual((await handlers(root, FREE).getFile({}, ID, '09_IM/im.md')).status, 403);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('★ 배포가 막힌 산출물은 파일도 막는다', async () => {
+  const root = tmpRoot(); makeProject(root, ID);
+  withOutput(root, ID, '09_IM/im.md', '# IM');
+  const h = API.createHandlers({
+    agentRoot: root,
+    authenticate: () => PRO,
+    agentModulePath: path.join(__dirname, '..'),
+  });
+  // GATE 를 차단으로 만든다 — 목록에서는 '배포 차단'인데 파일은 열리면
+  // 검증 GATE 가 아무 의미도 없다
+  const gate = require('../core/gate');
+  const real = gate.check;
+  gate.check = () => ({ blocked: true, reasons: ['테스트 차단'] });
+  try {
+    const r = await h.getFile({}, ID, '09_IM/im.md');
+    assert.strictEqual(r.status, 403);
+    assert.match(r.body.error, /검증/);
+  } finally {
+    gate.check = real;
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('★ 화면이 서버 경로로 되돌아간다 (fileUrl 이 없어도 열린다)', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'ui', 'platform', 'reports.html'), 'utf8');
+  assert.match(html, /function fileUrlFor/, '본체가 fileUrl 을 안 줘도 열려야 한다');
+  assert.match(html, /\/file\?rel=/, 'API 경로를 쓴다');
+  assert.ok(!/여는 경로를 본체에 연결하세요/.test(html),
+    '지침이 약속한 기능이 "연결하세요" 안내로 끝나면 협력사 눈에는 고장이다');
+});

@@ -332,6 +332,20 @@ window.LINKPILOT_REPORTS = {
 
   function apiUrl(p) { return String(C.api).replace(/\/$/, '') + p; }
 
+  /**
+   * 산출물 파일 주소. 〈B-8〉
+   *
+   * ★ 본체가 fileUrl 을 주면 그것을 쓰고, 없으면 **API 가 직접 내려주는 경로**를 쓴다.
+   *   예전에는 본체가 정적 경로를 붙여 줄 때까지 안내만 띄웠다 — 그런데 지침 §7-3 은
+   *   [인쇄 · PDF 저장]을 이미 약속하고 있어서, 협력사 눈에는 고장으로 보인다.
+   */
+  function fileUrlFor(rel) {
+    if (typeof C.fileUrl === 'function') return C.fileUrl(state.projectId, rel) || null;
+    if (!C.api || !state.projectId || !rel) return null;
+    return apiUrl('/projects/' + encodeURIComponent(state.projectId)
+      + '/file?rel=' + encodeURIComponent(rel));
+  }
+
   function call(method, p, body) {
     return fetch(apiUrl(p), {
       method: method,
@@ -703,8 +717,7 @@ window.LINKPILOT_REPORTS = {
    * @returns {boolean} 처리했으면 true
    */
   function openPrint(r) {
-    if (typeof C.fileUrl !== 'function') return false;
-    var url = C.fileUrl(state.projectId, r.path);
+    var url = fileUrlFor(r.path);
     if (!url) return false;
 
     var ia = window.LinkPilotInApp && window.LinkPilotInApp.detect(navigator.userAgent);
@@ -757,7 +770,7 @@ window.LINKPILOT_REPORTS = {
         if (printable && openPrint(r)) return;
         var n = el('p', 'note', r.status === 'blocked'
           ? (r.note || '검증을 통과하지 못했습니다.') + ' — 검증 화면에서 해소해야 배포할 수 있습니다.'
-          : r.path + ' 를 여는 경로를 본체에 연결하세요. (설정의 fileUrl)');
+          : r.path + ' 를 열 수 없습니다. 서버(api) 연결을 확인하세요.');
         n.id = 'out-note';
         view.appendChild(n);
       });
