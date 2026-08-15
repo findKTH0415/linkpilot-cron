@@ -100,7 +100,7 @@ async function run(opts = {}) {
 
   // ── 07 Geo / Satellite (공공데이터 — 지적·공시지가·건축물대장) ──
   // 다른 Agent보다 먼저 돈다: 여기서 확보한 PNU/좌표가 감정평가·매스의 입력이다.
-  const geo = await runAgent('07_geo', { projectId }, ctx);
+  const geo = await runAgent('07_geo', { projectId, templateId: templateId || null }, ctx);
   results['07_geo'] = geo;
   if (geo.output) {
     dataset.dropSource('지적공부(VWorld)');

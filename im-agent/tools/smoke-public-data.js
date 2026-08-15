@@ -30,6 +30,7 @@ const envFile = require('../core/env').load();
 const vworld = require('../connectors/vworld');
 const nsdi = require('../connectors/nsdi');
 const molit = require('../connectors/molit');
+const kma = require('../connectors/kma');
 const { looksUrlEncoded } = require('../connectors/http');
 const pnuUtil = require('../connectors/pnu');
 const geometry = require('../geo/geometry');
@@ -137,6 +138,7 @@ async function main() {
   console.log(`VWORLD_KEY     : ${vworld.isAvailable() ? vk.message : '미설정 — 지오코딩/지적/공시지가 건너뜀'}`);
   console.log(`VWORLD_DOMAIN  : ${vworld.domain() || '미설정 ⚠ 서버 호출은 등록 도메인을 명시해야 허용된다'}`);
   console.log(`DATA_GO_KR_KEY : ${molit.isAvailable() ? dk.message : '미설정 — 실거래가/건축물대장 건너뜀'}`);
+  console.log(`KMA_APIHUB_KEY : ${kma.isAvailable() ? '설정됨' : '미설정 — 일사량 건너뜀 (태양광 딜에만 필요)'}`);
 
   let lat = null, lon = null, parsedPnu = null, polygonAreaSqm = null;
 
@@ -252,6 +254,29 @@ async function main() {
         }
       } else {
         report(`실거래가 (${type})`, false, t.error);
+      }
+    }
+  }
+
+  // ── 8. 일사량 (기상청 API허브 — 태양광 딜) ──────────────
+  // 키가 없으면 항목 자체를 세지 않는다. 태양광이 아닌 딜에서는 필요 없는 키다.
+  if (kma.isAvailable() && lat !== null) {
+    const near = await kma.nearestStation(lat, lon);
+    if (!near.ok) {
+      report('일사량 (기상청)', false, `${near.error} — 지점정보 없이는 부지에서 가장 가까운 관측소를 고를 수 없다`);
+    } else {
+      const year = new Date().getFullYear() - 1;   // 진행 중인 해는 합계가 반토막 난다
+      const s = await kma.annualSolar(near.value.stn, year);
+      if (s.ok) {
+        report('일사량 (기상청)', true,
+          `${near.value.name || near.value.stn} 지점(${near.value.distanceKm}km) · `
+          + `${year}년 ${s.value.irradianceKwh?.toLocaleString('ko-KR')}kWh/㎡ `
+          + `(일평균 ${s.value.dailyAvgKwh}) · 일조 ${s.value.sunshineHours}시간`);
+        if (s.value.coverage < 90) {
+          console.log(`  ⚠ 결측 ${s.value.missingDays}일 (관측률 ${s.value.coverage}%) — 합계가 실제보다 작다`);
+        }
+      } else {
+        report('일사량 (기상청)', false, s.error);
       }
     }
   }

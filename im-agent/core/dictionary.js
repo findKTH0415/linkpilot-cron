@@ -46,6 +46,10 @@ const FIELDS = {
   'capacity.it_load_mw': { label: 'IT Load', category: CATEGORY.CAPACITY, unit: 'MW', type: 'number', aliases: ['IT Load', 'IT부하', 'IT 용량', '전산부하'], min: 0, requiredFor: ['im', 'teaser'] },
   'capacity.power_mw':   { label: '수전용량', category: CATEGORY.CAPACITY, unit: 'MW', type: 'number', aliases: ['수전용량', '계약전력', '총 전력', 'Power Capacity'], min: 0 },
   'capacity.pue':        { label: 'PUE', category: CATEGORY.CAPACITY, unit: null, type: 'number', aliases: ['PUE'], min: 1.0, max: 2.5 },
+  // 태양광 전용. 발전량이 아니라 **일사량까지만** 둔다 — 발전량은 시스템효율(PR)
+  // 가정이 들어가고, 가정치는 IM 에 넣지 않는다 (2026-08-15 결정, 등록부 D-25).
+  'site.solar_irradiance': { label: '연간 일사량', category: CATEGORY.CAPACITY, unit: 'kWh/㎡·년', type: 'number', aliases: ['일사량', '연간일사량', 'Irradiance', 'GHI'], min: 0 },
+  'site.sunshine_hours':   { label: '연간 일조시간', category: CATEGORY.CAPACITY, unit: 'hr', type: 'number', aliases: ['일조시간', '연간일조시간'], min: 0 },
   'capacity.dc_kw':      { label: '설비용량(DC)', category: CATEGORY.CAPACITY, unit: 'kW', type: 'number', aliases: ['설비용량', 'DC용량', '모듈용량'], min: 0 },
   'capacity.ac_kw':      { label: '설비용량(AC)', category: CATEGORY.CAPACITY, unit: 'kW', type: 'number', aliases: ['AC용량', '인버터용량', '발전용량'], min: 0 },
   'capacity.leasable_sqm': { label: '임대면적', category: CATEGORY.CAPACITY, unit: '㎡', type: 'number', aliases: ['임대면적', '전용면적', 'NLA', 'Leasable Area'], min: 0 },

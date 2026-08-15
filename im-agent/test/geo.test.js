@@ -184,6 +184,64 @@ test('같은 지역·지구가 두 번 와도 한 번만 올린다', () => {
   assert.strictEqual(hits.length, 1);
 });
 
+// ── 기상청 일사량 ────────────────────────────────────────────
+// 응답이 JSON 이 아니라 주석 헤더가 붙은 CSV 라 열 위치로 읽는다. 기상청이 열을
+// 늘리면 조용히 다른 값을 일사량으로 읽게 되므로 실측 표본을 그대로 고정한다.
+const KMA_SAMPLE = [
+  '#START7777',
+  '# YYMMDD STN    TA      TA      TA      TA      TA      HM      HM      HM      CA      SS      SS       SI       SI',
+  '20250801,108,31.0,35.1,1213,27.8,538,66.9,49.0,1358,8.4,4.5,14.1,16.09,2.80,',
+  '20250802,108,31.2,36.2,1600,27.3,605,62.1,45.0,1519,5.4,8.7,14.1,20.88,2.73,',
+  '20250803,108,28.8,32.5,1348,24.0,2359,69.0,52.0,1748,9.0,0.2,14.0,8.08,1.56,',
+  '#7777END',
+].join('\n');
+
+test('일통계: 일사량·일조시간을 올바른 열에서 읽는다', () => {
+  const kma = require('../connectors/kma');
+  const { rows, malformed } = kma.parseDaily(KMA_SAMPLE);
+
+  assert.strictEqual(rows.length, 3, '주석줄(#)은 세지 않는다');
+  assert.strictEqual(malformed, 0);
+  assert.deepStrictEqual(rows[0], {
+    date: '20250801', stn: '108', solarMJ: 16.09, sunshineHr: 4.5, cloud: 8.4,
+  });
+  // 흐린 날(전운량 9.0)에 일사량이 3분의 1로 떨어진다 — 열을 잘못 읽으면 이 관계가 깨진다
+  assert.ok(rows[2].solarMJ < rows[1].solarMJ / 2 && rows[2].cloud > rows[1].cloud);
+});
+
+test('일통계: 결측(-9 계열)은 0 이 아니라 null 이다', () => {
+  const kma = require('../connectors/kma');
+  // 흐린 날의 0 은 실측값이고, -9 는 관측이 없었다는 뜻이다. 섞으면 합계가 조용히 틀어진다.
+  const text = [
+    '20250804,108,28.1,33.9,1647,23.7,522,75.5,53.0,1638,7.1,0.0,14.0,0.0,0.0,',
+    '20250805,108,29.1,33.5,1505,25.4,558,67.4,47.0,1451,-9.0,-9.0,14.0,-9.0,-9.0,',
+  ].join('\n');
+  const { rows } = kma.parseDaily(text);
+
+  assert.strictEqual(rows[0].solarMJ, 0, '흐린 날의 0 은 값이다');
+  assert.strictEqual(rows[1].solarMJ, null, '-9 는 결측이다');
+});
+
+test('일통계: 열이 모자란 줄은 값으로 세지 않는다', () => {
+  const kma = require('../connectors/kma');
+  const { rows, malformed } = kma.parseDaily('20250801,108,31.0\n#주석\n');
+  assert.strictEqual(rows.length, 0);
+  assert.strictEqual(malformed, 1, '조용히 버리지 않고 센다');
+});
+
+test('MJ→kWh 환산이 맞다', () => {
+  const kma = require('../connectors/kma');
+  // 서울 2025년 실측 합계 5,179.1 MJ/㎡ → 1,438.6 kWh/㎡ (국내 통상 1,200~1,500)
+  assert.strictEqual(Math.round(5179.1 * kma.MJ_TO_KWH * 10) / 10, 1438.6);
+});
+
+test('API허브 오류 본문을 알아본다', () => {
+  const kma = require('../connectors/kma');
+  assert.match(kma.errorOf('{"result":{"status":401,"message":"유효한 인증키가 아닙니다."}}'), /인증키/);
+  assert.match(kma.errorOf('{"result":{"status":403,"message":"활용신청이 필요한 API 입니다."}}'), /활용신청/);
+  assert.strictEqual(kma.errorOf(KMA_SAMPLE), null, '정상 응답을 오류로 보지 않는다');
+});
+
 test('용도지역 상한: 문자열만으로 조회된다 (API 불필요)', () => {
   assert.deepStrictEqual(nsdi.limitsForZone('일반공업지역'), { zone: '일반공업지역', far: 350, bcr: 70 });
   assert.deepStrictEqual(nsdi.limitsForZone('제3종 일반주거지역'), { zone: '제3종일반주거지역', far: 300, bcr: 50 });

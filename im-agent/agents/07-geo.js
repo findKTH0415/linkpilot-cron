@@ -15,6 +15,7 @@
 const vworld = require('../connectors/vworld');
 const nsdi = require('../connectors/nsdi');
 const molit = require('../connectors/molit');
+const kma = require('../connectors/kma');
 const pnuUtil = require('../connectors/pnu');
 const geometry = require('../geo/geometry');
 const cache = require('../connectors/cache');
@@ -28,6 +29,7 @@ const inputSchema = {
   properties: {
     projectId: { type: 'string' },
     address: { type: 'string', nullable: true },
+    templateId: { type: 'string', nullable: true },
   },
 };
 
@@ -201,6 +203,15 @@ async function run(input, ctx) {
     }
   }
 
+  // ── ⑥ 일사량 (태양광 딜에서만) ──────────────────────────
+  // ★ 태양광이 아닌 딜에서는 부르지 않는다. 부동산 IM 에 일사량은 쓰이지
+  //   않는데 호출만 1회 늘어난다 (CLAUDE.md §4).
+  // ★ 여기서 내는 것은 **일사량까지**다. 발전량은 시스템효율(PR) 가정이
+  //   들어가므로 사람이 넣는다 (2026-08-15 결정, 등록부 D-25).
+  if (input.templateId === 'solar' && kma.isAvailable() && out.geo) {
+    await addSolar(out.geo, facts, sources, src, ctx, out);
+  }
+
   // ── 교차검증: 지적도 폴리곤 실측 vs 공부상 면적 ────────────
   // ★ 전에는 연속지적도 응답 안에서만 비교했는데 그 응답에는 면적이 없어
   //   **한 번도 동작하지 않았다.** 면적 출처가 확정된 뒤로 옮긴다.
@@ -255,6 +266,53 @@ async function saveSatelliteImage(projectId, lat, lon, ctx) {
     ctx.warn(`위성영상 다운로드 예외: ${e.message}`);
     return null;
   }
+}
+
+/**
+ * 일사량 조회 — 좌표에서 가장 가까운 기상청 관측지점의 최근 완결 연도 통계.
+ *
+ * ★ **어느 관측소의 값인지, 부지에서 몇 km 인지를 출처에 적는다.** 80km 떨어진
+ *   관측소 값을 "이 부지의 일사량"으로 적으면 그것도 근거 없는 숫자다.
+ * ★ 결측일이 많은 해는 합계가 조용히 작아진다 → 커버리지가 낮으면 경고한다.
+ */
+async function addSolar(geo, facts, sources, src, ctx, out) {
+  const near = await kma.nearestStation(geo.lat, geo.lon);
+  if (!near.ok) {
+    ctx.warn(`일사량 조회 생략: ${near.error}`);
+    return;
+  }
+
+  // 올해는 아직 안 끝났으므로 **직전 연도**를 쓴다. 진행 중인 해를 합치면
+  // 연간 일사량이 실제의 절반으로 나온다.
+  const year = Number(kstDate().slice(0, 4)) - 1;
+  const solar = await kma.annualSolar(near.value.stn, year);
+  if (!solar.ok) {
+    ctx.warn(`일사량 조회 실패(${near.value.stn} 지점): ${solar.error}`);
+    return;
+  }
+
+  const s = solar.value;
+  if (s.coverage < 90) {
+    ctx.warn(`${year}년 ${near.value.stn} 지점 일사량 결측 ${s.missingDays}일 `
+      + `(관측률 ${s.coverage}%) — 연간 합계가 실제보다 작다`);
+  }
+
+  out.solar = { ...s, station: near.value };
+  sources.push({ name: '기상청 지상관측 일통계', cached: !!solar.cached });
+
+  const origin = `기상청 지상관측 일통계(${near.value.name || near.value.stn} 지점, `
+    + `부지에서 ${near.value.distanceKm}km, ${year}년)`;
+
+  facts.push({
+    key: 'site.solar_irradiance', value: s.irradianceKwh, unit: 'kWh/㎡·년',
+    confidence: 0.9,
+    quote: `${year}년 일사량 합계 ${s.irradianceMJ}MJ/㎡ (일평균 ${s.dailyAvgKwh}kWh/㎡, 관측 ${s.observedDays}일)`,
+    ...src(origin),
+  });
+  facts.push({
+    key: 'site.sunshine_hours', value: s.sunshineHours, unit: 'hr',
+    confidence: 0.9, ...src(origin),
+  });
 }
 
 /**
