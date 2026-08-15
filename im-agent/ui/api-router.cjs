@@ -97,6 +97,9 @@ function createHandlers({ agentRoot, agentModulePath }) {
           industries,
           plan: fieldplan.plan('generic'),
           planSummary: fieldplan.summary('generic'),
+          // 키가 없으면 공공데이터 경로가 통째로 죽고 그 항목들이 직접 입력으로
+          // 내려온다. 화면이 '왜 물어보는 게 늘었는지'를 말할 수 있게 함께 내린다
+          publicData: fieldplan.publicDataAvailable(),
         },
       };
     },

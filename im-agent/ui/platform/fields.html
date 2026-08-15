@@ -275,6 +275,7 @@ window.LINKPILOT_FIELDS_CFG = {
     fields: null, computedKeys: [], sources: [],
     industries: [],      // 서버가 준 산업분야 정의
     plan: null,          // 채움 계획 (어떤 항목이 자동으로 채워지는가)
+    publicData: null,    // 공공데이터 키가 서버에 있는가 (null = 모름)
     industryId: '',      // 빈 값 = 전체 (거르지 않는다)
     level: 'manual',     // manual | basic | expert — 기본은 '직접 입력'
     showAuto: false,     // 자동으로 채워지는 항목 펼치기
@@ -314,6 +315,7 @@ window.LINKPILOT_FIELDS_CFG = {
       state.computedKeys = C.preload.computedKeys || [];
       state.industries = C.preload.industries || [];
       state.plan = C.preload.plan || null;
+      state.publicData = C.preload.publicData === undefined ? null : C.preload.publicData;
       state.loadError = null;
       return render();
     }
@@ -327,6 +329,7 @@ window.LINKPILOT_FIELDS_CFG = {
       state.computedKeys = res[0].computedKeys || [];
       state.industries = res[0].industries || [];
       state.plan = res[0].plan || null;
+      state.publicData = res[0].publicData === undefined ? null : res[0].publicData;
       if (res[1]) {
         state.server = res[1].values || {};
         state.sources = res[1].sources || [];
@@ -735,6 +738,16 @@ window.LINKPILOT_FIELDS_CFG = {
         ac.appendChild(el('p', 'card__s',
           '남은 ' + b.manual.length + '개 중 ' + byExtract.length + '개는 '
           + plan[byExtract[0]].label + ' 대상입니다 — ' + plan[byExtract[0]].why));
+      }
+
+      // ★ 키가 없으면 공공데이터 경로가 통째로 죽는다. 그 사실을 말하지 않으면
+      //   "왜 물어보는 게 늘었지" 하고 화면을 의심한다 — 화면이 아니라 설정 문제다
+      if (state.publicData === false) {
+        var note = el('p', 'card__s',
+          '공공데이터 인증키가 서버에 없어 공부(公簿) 조회가 꺼져 있습니다. '
+          + '대지면적·공시지가·용도지역처럼 자동으로 채울 수 있었던 값이 직접 입력으로 내려와 있습니다.');
+        note.style.color = 'var(--warn-ink)';
+        ac.appendChild(note);
       }
 
       if (state.showAuto) {

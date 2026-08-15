@@ -19,6 +19,21 @@ const F = require('../ui/platform/fields-core.js');
 
 const TEMPLATE_IDS = Object.keys(templates.TEMPLATES);
 
+/**
+ * 공공데이터 인증키가 **있는** 환경을 흉내 낸다.
+ * 키가 없으면 07 Geo 가 통째로 건너뛰어지므로 public 경로가 죽는다 —
+ * 그 두 상태를 같은 테스트에서 섞으면 어느 쪽을 검사한 건지 알 수 없다.
+ */
+function withPublicKeys(fn) {
+  const before = { v: process.env.VWORLD_KEY, d: process.env.DATA_GO_KR_KEY };
+  process.env.VWORLD_KEY = 'test-key';
+  process.env.DATA_GO_KR_KEY = 'test-key';
+  try { return fn(); } finally {
+    if (before.v === undefined) delete process.env.VWORLD_KEY; else process.env.VWORLD_KEY = before.v;
+    if (before.d === undefined) delete process.env.DATA_GO_KR_KEY; else process.env.DATA_GO_KR_KEY = before.d;
+  }
+}
+
 test('사전의 모든 항목이 채움 경로를 하나씩 갖는다', () => {
   const p = fieldplan.plan('generic');
   const keys = Object.keys(dict.FIELDS);
@@ -38,19 +53,24 @@ test('경로별 합계가 사전 전체와 같다 — 세다가 빠지는 항목
 });
 
 test('요청문·공공데이터 목록을 여기서 새로 적지 않는다 — Agent 의 FILLS 가 출처다', () => {
-  const p = fieldplan.plan('generic');
   const req = require('../agents/01-project').FILLS;
   const pub = require('../agents/07-geo').FILLS;
   assert.ok(req.length > 0 && pub.length > 0, 'Agent 가 FILLS 를 선언하지 않았다');
 
+  const p = fieldplan.plan('generic');
   req.forEach((k) => {
     if (!dict.FIELDS[k]) return;              // 사전에 없는 key 는 화면 대상이 아니다
     assert.strictEqual(p[k].fill, 'request', `${k}: 01-project 가 채우는데 request 가 아니다`);
   });
-  pub.forEach((k) => {
-    if (!dict.FIELDS[k]) return;
-    if (req.indexOf(k) !== -1) return;        // 요청문이 먼저 채우면 그쪽이 이긴다
-    assert.strictEqual(p[k].fill, 'public', `${k}: 07-geo 가 채우는데 public 이 아니다`);
+
+  // 공공데이터 경로는 **키가 있을 때만** 산다 (아래 전용 테스트 참조)
+  withPublicKeys(() => {
+    const pk = fieldplan.plan('generic');
+    pub.forEach((k) => {
+      if (!dict.FIELDS[k]) return;
+      if (req.indexOf(k) !== -1) return;      // 요청문이 먼저 채우면 그쪽이 이긴다
+      assert.strictEqual(pk[k].fill, 'public', `${k}: 07-geo 가 채우는데 public 이 아니다`);
+    });
   });
 
   // 손으로 적은 목록이 아닌지 — 파일에 dictionary key 를 나열해 두지 않았는가
@@ -119,36 +139,68 @@ test('모르는 템플릿 id 는 generic 으로 떨어진다', () => {
 
 /* ───────────── 화면 판정 (fields-core) ───────────── */
 
-test('IM 필수 17개 중 직접 넣을 것은 8개다', () => {
+/** 키가 있을 때 직접 넣어야 하는 것 — 전부 extract 경로다 */
+const MANUAL_WITH_KEYS = [
+  'building.gfa_sqm',
+  'investment.construction',
+  'investment.land',
+  'investment.total',
+  'land.ownership',
+  'legal.permit_status',
+  'project.sponsor',
+  'revenue.annual',
+];
+
+test('IM 필수 17개 중 직접 넣을 것은 8개다 (공공데이터 키가 있을 때)', () => {
+  withPublicKeys(() => {
+    const b = F.autoBreakdown(dict.FIELDS, fieldplan.plan('generic'), 'im');
+    assert.strictEqual(b.total, 17);
+    assert.deepStrictEqual(b.manual.slice().sort(), MANUAL_WITH_KEYS);
+    const auto = b.groups.reduce((a, g) => a + g.keys.length, 0);
+    assert.strictEqual(auto + b.manual.length, b.total, '자동 + 직접이 필수 개수와 다르다');
+  });
+});
+
+/**
+ * ★ 이것이 이 파일에서 가장 중요한 검사다.
+ *   키가 없으면 07 Geo 는 통째로 건너뛴다. 그런데도 화면이 "공공데이터가
+ *   채웁니다"라고 말하면 **안 물어보고 빈 채로 남는다** — 사람은 물어보지
+ *   않았으니 그 항목이 있는 줄도 모른다. 많이 묻는 것보다 훨씬 나쁘다.
+ */
+test('공공데이터 키가 없으면 그 경로가 죽고 직접 입력으로 내려온다', () => {
+  assert.strictEqual(fieldplan.publicDataAvailable(), false,
+    '테스트 환경에 공공데이터 키가 들어 있다 — 이 검사가 의미를 잃는다');
+
   const p = fieldplan.plan('generic');
+  Object.keys(p).forEach((k) => {
+    assert.notStrictEqual(p[k].fill, 'public', `${k}: 키가 없는데 공공데이터가 채운다고 한다`);
+  });
+
   const b = F.autoBreakdown(dict.FIELDS, p, 'im');
-  assert.strictEqual(b.total, 17);
-  assert.deepStrictEqual(b.manual.slice().sort(), [
-    'building.gfa_sqm',
-    'investment.construction',
-    'investment.land',
-    'investment.total',
-    'land.ownership',
-    'legal.permit_status',
-    'project.sponsor',
-    'revenue.annual',
-  ]);
-  const auto = b.groups.reduce((a, g) => a + g.keys.length, 0);
-  assert.strictEqual(auto + b.manual.length, b.total, '자동 + 직접이 필수 개수와 다르다');
+  assert.deepStrictEqual(b.manual.slice().sort(),
+    MANUAL_WITH_KEYS.concat(['land.area_sqm']).sort(),
+    '키 없이도 대지면적을 안 물어보면 빈 채로 보고서에 들어간다');
+
+  // 키가 생기면 다시 자동으로 돌아간다 (한 방향으로만 굳지 않는다)
+  withPublicKeys(() => {
+    assert.strictEqual(fieldplan.plan('generic')['land.area_sqm'].fill, 'public');
+  });
 });
 
 test('자동 내역은 경로별로 묶이고 근거가 함께 나온다', () => {
-  const b = F.autoBreakdown(dict.FIELDS, fieldplan.plan('generic'), 'im');
-  const fills = b.groups.map(g => g.fill);
-  assert.deepStrictEqual(fills, ['request', 'public', 'default'], '경로 순서가 바뀌었다');
-  b.groups.forEach((g) => {
-    assert.ok(g.label && g.why, `${g.fill}: 이름·근거가 비어 있다`);
-    assert.ok(g.keys.length > 0);
+  withPublicKeys(() => {
+    const b = F.autoBreakdown(dict.FIELDS, fieldplan.plan('generic'), 'im');
+    assert.deepStrictEqual(b.groups.map(g => g.fill), ['request', 'public', 'default'],
+      '경로 순서가 바뀌었다');
+    b.groups.forEach((g) => {
+      assert.ok(g.label && g.why, `${g.fill}: 이름·근거가 비어 있다`);
+      assert.ok(g.keys.length > 0);
+    });
   });
 });
 
 test('직접 입력 판은 필수 항목 중 자동으로 못 채우는 것만 보여준다', () => {
-  const plan = fieldplan.plan('generic');
+  const plan = withPublicKeys(() => fieldplan.plan('generic'));
   const o = { level: 'manual', docType: 'im', plan };
   const shown = Object.keys(dict.FIELDS).filter(k => F.inScope(k, dict.FIELDS, o));
   assert.strictEqual(shown.length, 8);
@@ -201,6 +253,8 @@ test('GET /fields 가 채움 계획을 산업 밖에 한 번만 내린다', asyn
 
   assert.ok(body.plan, 'plan 이 없다');
   assert.deepStrictEqual(body.planSummary, fieldplan.summary('generic'));
+  // 화면이 '왜 물어보는 게 늘었는지' 말할 수 있어야 한다
+  assert.strictEqual(body.publicData, fieldplan.publicDataAvailable());
   assert.deepStrictEqual(Object.keys(body.plan).sort(), Object.keys(dict.FIELDS).sort());
   // 산업 안에 복사본을 두지 않는다 — 두 곳이 갈리면 화면이 어느 쪽을 믿을지 모른다
   body.industries.forEach((ind) => {

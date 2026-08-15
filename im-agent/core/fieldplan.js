@@ -58,13 +58,32 @@ function agentFills(rel) {
 }
 
 /**
+ * 공공데이터 인증키가 실제로 있는가.
+ *
+ * ★ 키가 없으면 07 Geo 는 통째로 건너뛴다. 그런데도 화면이 "공공데이터가
+ *   채웁니다"라고 말하면 **안 물어보고 빈 채로 남는다** — 사람은 물어보지
+ *   않았으니 그 항목이 있는 줄도 모른다. 키 없는 환경에서는 직접 입력이다.
+ *   (`VWORLD_KEY`·`DATA_GO_KR_KEY` 는 등록부 D-12 로 아직 미등록 상태다)
+ */
+function publicDataAvailable() {
+  try {
+    return require('../connectors/vworld').isAvailable()
+      || require('../connectors/nsdi').isAvailable()
+      || require('../connectors/molit').isAvailable();
+  } catch (_) {
+    return false;   // 커넥터를 못 읽으면 없는 것으로 본다 — 있다고 단정하는 쪽이 위험하다
+  }
+}
+
+/**
  * @param {string} templateId datacenter/solar/realestate/generic
  * @returns {object} key → { fill, label, why, from?, note? }
  */
 function plan(templateId) {
   const t = templates.getTemplate(templateId) || templates.getTemplate('generic');
   const fromRequest = agentFills('../agents/01-project');
-  const fromPublic = agentFills('../agents/07-geo');
+  const hasPublic = publicDataAvailable();
+  const fromPublic = hasPublic ? agentFills('../agents/07-geo') : [];
 
   // 템플릿 기본값이 있는 dictionary key (map: field→key, defaults: field→value)
   const defaulted = new Set();
@@ -106,4 +125,4 @@ function summary(templateId) {
   return counts;
 }
 
-module.exports = { plan, summary, DERIVED, LABEL, WHY };
+module.exports = { plan, summary, publicDataAvailable, DERIVED, LABEL, WHY };

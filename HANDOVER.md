@@ -20,8 +20,8 @@
 | 항목 | 값 |
 |---|---|
 | 작업 브랜치 | `claude/linkpilot-agent-github-plan-0af7xs` (= **PR #3**) |
-| 최신 커밋 | `11c6cad` 가이드 필드에 산업분야·판 옵션 (+ 이후 교차검증 수정) |
-| PR #3 | open · draft · `mergeable_state: clean` · 151파일 / +32,779 −938 · 42커밋 |
+| 최신 커밋 | `c3e6d57` 입력란을 52칸에서 8칸으로 (+ 이후 교차검증 수정) |
+| PR #3 | open · draft · `mergeable_state: clean` · CI 3/3 green · 153파일 / +33,665 −938 · 44커밋 |
 | PR #4 | open · draft · clean · 브랜치 `claude/ops-cron-alerts-and-deploy` (별개) |
 | 테스트 | `npm test` → **457 pass / 0 fail** |
 | CI | `im-agent-ci.yml`, `alert-ci.yml` (경로 변경 시에만 실행) |
