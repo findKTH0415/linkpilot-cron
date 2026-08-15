@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>보고서 생성 · LINKPILOT</title>
+<!--
+  report-flow.html — 앱의 [보고서 생성] 섹션에 그대로 끼우는 화면.
+
+  ★ 무엇이 달라지는가:
+    지금 앱의 [보고서 생성] 은 **기반정보를 내보내는 곳**이다 — 값 입력은
+    바깥 AGENT 가 받는다. 그러면 「출처 없는 숫자는 들어올 수 없다」를 앱이
+    강제할 수 없다. 출처 검사·계산 항목 차단·사양 확정이 전부 바깥에 있기 때문이다.
+    이 화면은 **값 입력을 앱 안으로 들여온다.** 내보내기 경로는 지우지 않고 아래에 남긴다.
+
+  ★ 4단계는 flow-core.js 하나가 정한다. 미리보기(build-preview.js)도 같은 파일을
+    읽는다 — 목록이 두 벌이 되면 제품과 미리보기가 다른 흐름을 보여준다.
+
+  ★ 단계 화면(intake·fields·reports)을 **복사하지 않는다.** 그 화면들을 그대로
+    끼운다. 복사하면 출처 검사가 두 벌이 되고, 한쪽만 고치는 날 규칙이 갈린다.
+
+  ★ 잠긴 단계는 회색으로만 두지 않고 **이유를 적는다.** 이유 없는 회색은
+    고장으로 보이고, 사용자는 앱이 죽었다고 판단한다.
+
+  앱에 붙이는 법 — 아래 window.LINKPILOT_REPORT_FLOW 만 채운다.
+    api      본체 API 주소 (예: '/api/linkpilot')
+    base     단계 화면들이 놓인 경로 (예: '/im/'). 같은 폴더면 빈 문자열
+    session  로그인·플랜 (gate-core.js 가 판정한다)
+-->
+<style>
+:root {
+  --lime: #9ED700; --lime-soft: #EDF7DC; --lime-deep: #5C7A00;
+  --ink: #17181A; --ink2: #7C838C; --line: #E8EAEC;
+  --panel: #F1F2F4; --bg: #F5F6F8; --surface: #FFFFFF;
+  --bad: #E03131; --bad-soft: #FDECEC; --bad-ink: #8F1D1D;
+  --warn: #E8A33D; --warn-soft: #FDF3E3; --warn-ink: #8A5A10;
+  --r: 18px;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 400 15px/1.65 Arial, 'Malgun Gothic', '맑은 고딕', sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+.wrap { max-width: 1120px; margin: 0 auto; padding: 22px 20px 40px; }
+h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
+
+.card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r); padding: 20px 22px; margin-bottom: 16px;
+}
+.card__t { margin: 0 0 6px; font-size: 17px; }
+.card__d { margin: 0; color: var(--ink2); font-size: 14px; }
+
+/* ── 단계 레일 — 고정형. 창 안에서 또 끌지 않는다 ─────────── */
+.rail { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 0 0 16px; }
+@media (max-width: 720px) { .rail { grid-template-columns: repeat(2, 1fr); } }
+
+.st {
+  text-align: left; font: inherit; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 14px; padding: 13px 14px; display: block; width: 100%;
+}
+.st:hover:not(:disabled) { border-color: var(--lime); }
+.st.on { border-color: var(--lime); background: var(--lime-soft); box-shadow: inset 0 0 0 1px var(--lime); }
+.st:disabled { cursor: not-allowed; background: var(--panel); }
+.st__n {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border-radius: 50%; margin-right: 8px;
+  background: var(--lime); color: #23300A; font-weight: 700; font-size: 13px;
+}
+.st:disabled .st__n { background: #D5D8DC; color: #8A9099; }
+.st__name { font-weight: 700; font-size: 15px; vertical-align: middle; }
+.st__why { display: block; margin-top: 6px; font-size: 12.5px; color: var(--warn-ink); }
+.st__note { display: block; margin-top: 6px; font-size: 12.5px; color: var(--ink2); }
+
+/* ── 단계 화면 — 내용 높이만큼 편다 (안쪽 스크롤 없음) ────── */
+.stage { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.stage__bar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 12px 18px; border-bottom: 1px solid var(--line); background: var(--panel);
+  font-size: 13.5px; color: var(--ink2);
+}
+.stage__bar b { color: var(--ink); }
+.stage iframe { display: block; width: 100%; border: 0; }
+
+.note { margin: 12px 0 0; padding: 12px 14px; border-radius: 12px;
+  background: var(--warn-soft); color: var(--warn-ink); font-size: 13.5px; }
+.note--bad { background: var(--bad-soft); color: var(--bad-ink); }
+.note b { display: block; margin-bottom: 3px; }
+
+.ext { display: flex; gap: 10px; flex-wrap: wrap; margin: 0 0 10px; }
+.ext__b {
+  font: 700 14px/1 Arial, 'Malgun Gothic', sans-serif; cursor: pointer;
+  padding: 13px 18px; border-radius: 12px; border: 1px solid var(--ink);
+  background: var(--ink); color: #fff; text-decoration: none; display: inline-block;
+}
+.ext__b:disabled, .ext__b[aria-disabled="true"] {
+  background: var(--panel); color: var(--ink2); border-color: var(--line); cursor: not-allowed;
+}
+</style>
+</head>
+<body>
+
+<div class="wrap" id="view"></div>
+
+<script>
+/* ─────────────────────────────────────────────────────────────────
+ * 앱이 채우는 설정. 여기 말고 다른 곳에 값을 박지 않는다.
+ * ───────────────────────────────────────────────────────────────── */
+window.LINKPILOT_REPORT_FLOW = {
+  session: { authenticated: true, planId: 'pro', status: 'active', name: '김태형' },
+  requiredPlan: 'pro',
+  planNames: { free: 'Free', basic: 'Basic', pro: 'Pro', business: 'Business' },
+
+  api: null,          // 예: '/api/linkpilot' — 없으면 단계가 전부 잠기고 사유가 뜬다
+  base: '',           // 단계 화면이 놓인 경로. 같은 폴더면 빈 문자열
+  projectId: null,    // 이어서 작업할 프로젝트. 1단계에서 만들면 자동으로 채워진다
+
+  // 지금 운영 중인 **외부 분석 경로**. 지우지 않는다 — 둘 다 쓸 수 있어야 한다
+  external: {
+    repoUrl: null,    // LinkPilot AGENT 저장소
+    agentUrl: null,   // 보고서 생성 AGENT 열기
+  },
+};
+</script>
+<script src="gate-core.js"></script>
+<script src="flow-core.js"></script>
+<script src="catalog.js"></script>
+<script src="inapp.js"></script>
+<script>
+(function () {
+  'use strict';
+  var C = window.LINKPILOT_REPORT_FLOW;
+  var F = window.LinkPilotFlow;
+  var G = window.LinkPilotGate;
+  var view = document.getElementById('view');
+
+  var state = { current: null, projectId: C.projectId || null, embedBlocked: false };
+
+  function el(t, c, x) {
+    var n = document.createElement(t);
+    if (c) n.className = c;
+    if (x !== undefined && x !== null && x !== '') n.textContent = String(x);
+    return n;
+  }
+  function add(p) { for (var i = 1; i < arguments.length; i++) if (arguments[i]) p.appendChild(arguments[i]); return p; }
+
+  function ctx() {
+    return { api: C.api, base: C.base || '', projectId: state.projectId, current: state.current };
+  }
+
+  /* ── 단계 레일 ────────────────────────────────────────── */
+
+  function rail(steps) {
+    var box = el('div', 'rail');
+    steps.forEach(function (s) {
+      var b = el('button', 'st' + (s.current ? ' on' : ''));
+      b.type = 'button';
+      b.disabled = s.locked;
+      var head = el('span');
+      add(head, el('span', 'st__n', s.no), el('span', 'st__name', s.name));
+      b.appendChild(head);
+      // ★ 잠겼으면 이유를 적는다. 회색이기만 하면 고장으로 보인다
+      b.appendChild(el('span', s.locked ? 'st__why' : 'st__note', s.locked ? s.why : s.note));
+      b.addEventListener('click', function () { go(s.id); });
+      box.appendChild(b);
+    });
+    return box;
+  }
+
+  function go(id) {
+    state.current = id;
+    draw();
+  }
+
+  /* ── 단계 화면 ────────────────────────────────────────── */
+
+  /**
+   * 화면을 내용 높이만큼 편다.
+   *
+   * ★ 못 재는 경우가 있다 (다른 출처에서 서빙되면 브라우저가 막는다).
+   *   그때 조용히 400px 쯤으로 두면 잘린 화면을 정상으로 오해한다 — 사유를 띄운다.
+   */
+  function fit(fr) {
+    var d;
+    try { d = fr.contentDocument; } catch (e) { d = null; }
+    if (!d || !d.documentElement) {
+      if (!state.embedBlocked) { state.embedBlocked = true; draw(); }
+      return;
+    }
+    if (!d.getElementById('lp-flow-embed')) {
+      var st = d.createElement('style');
+      st.id = 'lp-flow-embed';
+      st.textContent = F.EMBED_CSS;
+      (d.head || d.documentElement).appendChild(st);
+    }
+    var h = Math.max(d.documentElement.scrollHeight, d.body ? d.body.scrollHeight : 0);
+    if (h) fr.style.height = h + 'px';
+  }
+
+  function watch(fr) {
+    fit(fr);
+    var d;
+    try { d = fr.contentDocument; } catch (e) { return; }
+    if (!d) return;
+    // 값을 넣거나 판을 바꾸면 높이가 달라진다 — 따라가지 않으면 아래가 잘린다
+    if (fr.contentWindow && fr.contentWindow.MutationObserver) {
+      new fr.contentWindow.MutationObserver(function () { fit(fr); })
+        .observe(d.documentElement, { childList: true, subtree: true, characterData: true, attributes: true });
+    }
+    var n = 0, t = setInterval(function () { fit(fr); if (++n > 20) clearInterval(t); }, 150);
+  }
+
+  /** 화면이 스스로 다음 단계로 넘어가면(예: 접수 → 가이드 필드) 레일도 따라간다 */
+  function syncFromFrame(fr) {
+    // 미리보기는 문서를 직접 심으므로 주소가 없다 — 높이만 맞춘다
+    if (window.LINKPILOT_PREVIEW_DOCS) { watch(fr); return; }
+    var loc;
+    try { loc = fr.contentWindow.location; } catch (e) { return; }
+    var step = F.stepOfFile(loc.pathname);
+    var pid = new URLSearchParams(loc.search).get('project');
+    var changed = false;
+    if (pid && pid !== state.projectId) { state.projectId = pid; changed = true; }
+    // 3·4 는 같은 파일이라 파일명만으로는 못 가른다 — 현재 단계를 유지한다
+    if (step && step.id !== state.current && !(step.file === 'reports.html' && state.current === 'make')) {
+      state.current = step.id; changed = true;
+    }
+    if (changed) draw(); else watch(fr);
+  }
+
+  function stage(step) {
+    var box = el('div', 'stage');
+
+    var bar = el('div', 'stage__bar');
+    add(bar, el('b', null, step.no + '. ' + step.name));
+    bar.appendChild(el('span', null, state.projectId ? '프로젝트 ' + state.projectId : '프로젝트 미지정'));
+    box.appendChild(bar);
+
+    var fr = document.createElement('iframe');
+    fr.name = 'lp-flow-' + step.id;
+    fr.title = step.no + '. ' + step.name;
+    fr.setAttribute('scrolling', 'no');   // 안쪽에서 또 끌지 않는다
+    fr.style.height = '320px';            // 재기 전 임시값. 곧 내용 높이로 바뀐다
+
+    // ★ 미리보기 전용 경로. 서버 없이 파일 하나로 열어 보려고 문서를 직접 심는다.
+    //   제품에서는 이 전역이 없으므로 평소대로 화면 파일을 부른다 (CLAUDE.md §8)
+    var docs = window.LINKPILOT_PREVIEW_DOCS;
+    if (docs && docs[step.id]) fr.srcdoc = docs[step.id];
+    else fr.src = F.urlFor(step, ctx());
+
+    fr.addEventListener('load', function () { syncFromFrame(fr); });
+    box.appendChild(fr);
+
+    if (state.embedBlocked) {
+      box.appendChild(notice('note--bad', '화면 높이를 잴 수 없습니다',
+        '단계 화면이 다른 출처에서 열렸습니다. 앱과 같은 주소에서 서빙해야 잘리지 않고 펴집니다.'));
+    }
+    return box;
+  }
+
+  function notice(cls, title, body) {
+    var p = el('div', 'note ' + cls);
+    p.appendChild(el('b', null, title));
+    p.appendChild(document.createTextNode(body));
+    return p;
+  }
+
+  /* ── 외부 분석 경로 (지금 운영 방식 — 지우지 않는다) ────── */
+
+  function external() {
+    var box = el('section', 'card');
+    add(box,
+      el('h2', 'card__t', '외부 분석 환경'),
+      el('p', 'card__d', '기반정보를 내려받아 바깥 AGENT 에 넘기는 경로입니다. '
+        + '위 단계와 별개로 그대로 쓸 수 있습니다.'));
+
+    var row = el('div', 'ext');
+    row.style.marginTop = '14px';
+    [['LinkPilot AGENT 저장소', C.external && C.external.repoUrl],
+      ['보고서 생성 AGENT 열기', C.external && C.external.agentUrl]].forEach(function (p) {
+      if (p[1]) {
+        var a = el('a', 'ext__b', p[0]);
+        a.href = p[1]; a.target = '_blank'; a.rel = 'noopener';
+        row.appendChild(a);
+      } else {
+        // ★ 주소가 없으면 눌리는 척하지 않는다
+        var b = el('button', 'ext__b', p[0]);
+        b.type = 'button'; b.disabled = true;
+        b.title = '주소가 설정되지 않았습니다';
+        row.appendChild(b);
+      }
+    });
+    box.appendChild(row);
+
+    if (!(C.external && (C.external.repoUrl || C.external.agentUrl))) {
+      box.appendChild(el('p', 'card__d', '주소가 설정되지 않아 버튼이 잠겨 있습니다 (설정의 external).'));
+    }
+    return box;
+  }
+
+  /* ── 그리기 ───────────────────────────────────────────── */
+
+  function intro() {
+    var box = el('section', 'card');
+    add(box,
+      el('h2', 'card__t', '값은 앱 안에서 받습니다'),
+      el('p', 'card__d',
+        '출처 없는 숫자가 들어오지 못하게 막는 검사(출처 필수 · 계산 항목 입력 금지 · '
+        + '사양 확정)는 아래 단계 안에 있습니다. 바깥에서 값을 넣으면 그 검사를 지나지 않습니다.'));
+    return box;
+  }
+
+  function draw() {
+    view.textContent = '';
+    view.appendChild(el('h1', null, '보고서 생성'));
+
+    var a = G.access(C.session, C.requiredPlan);
+    if (!a.allowed) {
+      var m = G.accessMessage(a, (C.planNames || {})[C.requiredPlan] || C.requiredPlan, '보고서 생성');
+      var g = el('section', 'card');
+      add(g, el('h2', 'card__t', (m && m.title) || '사용할 수 없습니다'),
+        el('p', 'card__d', (m && m.body) || ''));
+      view.appendChild(g);
+      return;
+    }
+
+    view.appendChild(intro());
+
+    var steps = F.stepState(ctx());
+    if (!state.current) {
+      var first = steps.filter(function (s) { return !s.locked; })[0] || steps[0];
+      state.current = first.id;
+      steps = F.stepState(ctx());
+    }
+    view.appendChild(rail(steps));
+
+    if (window.LINKPILOT_PREVIEW_DOCS) {
+      // 미리보기는 **네 단계를 한 번에 편다.** 눌러 가며 확인하면 빠뜨린다
+      steps.forEach(function (s) { view.appendChild(stage(s)); });
+    } else {
+      var cur = steps.filter(function (s) { return s.current; })[0] || steps[0];
+      if (cur.locked) {
+        view.appendChild(notice('', cur.name + ' 단계를 아직 열 수 없습니다', cur.why));
+      } else {
+        view.appendChild(stage(cur));
+      }
+    }
+
+    if (!C.api) {
+      view.appendChild(notice('', '서버가 연결되어 있지 않습니다',
+        '설정의 api 를 채우면 단계가 열립니다. 지금은 화면만 확인할 수 있습니다.'));
+    }
+
+    view.appendChild(external());
+  }
+
+  draw();
+
+  // 지침 §2 유료 메뉴 잠금 · §1 인앱 브라우저 배너
+  if (window.LinkPilotCatalog) window.LinkPilotCatalog.applyLocks(document, C.session);
+  if (window.LinkPilotInApp) window.LinkPilotInApp.auto();
+}());
+</script>
+</body>
+</html>

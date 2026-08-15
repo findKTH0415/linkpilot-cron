@@ -115,24 +115,14 @@ const CONFIRM_SPEC = `
 <\/script>`;
 
 /**
- * 보고서 생성 4단계. **순서가 곧 강제 흐름이다** — 앞 단계를 건너뛸 수 없다.
- * 3·4 는 같은 파일(reports.html)의 서로 다른 상태다: 확정 전 / 확정 후.
+ * 보고서 생성 4단계. **목록을 여기서 새로 만들지 않는다** — `flow-core.js` 가
+ * 제품 화면(report-flow.html)과 공유하는 단일 출처다. 두 벌이 되면
+ * 미리보기와 제품이 다른 흐름을 보여주고, 어느 쪽이 맞는지 알 수 없게 된다.
  */
-const SCREENS = [
-  { step: 1, file: 'intake.html', name: '보고서 생성 입력',
-    note: '요청문과 원본 자료를 받는다. 지원하지 않는 형식은 올리기 전에 막고, 요청문에서 뽑은 값은 미확인으로 표시한다.' },
-  { step: 2, file: 'fields.html', name: '가이드 필드 입력',
-    note: '수치를 출처와 함께 넣는다. 출처가 없으면 저장 버튼이 열리지 않고, 계산 항목은 입력란을 만들지 않는다. 자동으로 채워지는 줄에는 출처를 묻지 않는다.' },
-  { step: 3, file: 'reports.html', name: '출력 사양 확정',
-    note: '페이지 수·형식·언어를 사람이 못 박는다. 확정 전에는 생성 버튼이 열리지 않는다.' },
-  { step: 4, file: 'reports.html', name: '생성', after: 'CONFIRM_SPEC',
-    note: '확정(LOCK) 뒤의 화면이다. 아래 [이 사양으로 확정] 을 실제로 누른 결과이며, 상태를 억지로 세운 것이 아니다.' },
-];
+const FLOW = require('./flow-core.js');
+const SCREENS = FLOW.STEPS;
 
-/**
- * 이 흐름 밖의 화면 — 순서에 끼워 넣으면 4단계가 5단계처럼 보인다.
- * (작업지시판은 2026-08-15 저장소에서 제거되었다)
- */
+/** 흐름 밖 화면 — 순서에 끼우면 4단계가 5단계처럼 보인다. 지금은 없다 */
 const EXTRAS = [];
 
 async function build() {
@@ -170,14 +160,14 @@ async function build() {
   };
 
   const frames = SCREENS
-    .map(s => panel(s, `s${s.step}`, `<span class="scr__no">${s.step}</span>`))
+    .map(s => panel(s, `s${s.no}`, `<span class="scr__no">${s.no}</span>`))
     .join('\n');
 
   const extras = EXTRAS
     .map((s, i) => panel(s, `x${i}`, '<span class="scr__no scr__no--x">·</span>'))
     .join('\n');
 
-  const nav = SCREENS.map(s => `<a href="#s${s.step}"><b>${s.step}</b>${s.name}</a>`).join('')
+  const nav = SCREENS.map(s => `<a href="#s${s.no}"><b>${s.no}</b>${s.name}</a>`).join('')
     + EXTRAS.map((s, i) => `<a class="nav__x" href="#x${i}">${s.name}</a>`).join('');
 
   return `<title>보고서 생성 화면 미리보기</title>
@@ -266,7 +256,85 @@ window.addEventListener('message', function (e) {
 <\/script>`;
 }
 
+/**
+ * 앱의 [보고서 생성] **섹션 그대로**를 파일 하나로 만든다.
+ *
+ * 위 `build()` 는 화면 넷을 나열해 보여 준다. 이쪽은 **제품이 실제로 그리는 껍데기**
+ * (`report-flow.html`)를 그대로 띄우고, 그 안의 단계 화면만 문서로 심는다 —
+ * 레일·잠금 사유·외부 분석 경로까지 실물이다.
+ *
+ * ★ 화면을 복사하지 않는다. report-flow.html 을 읽어 스크립트만 인라인한다.
+ *   복사하면 제품을 고친 날부터 미리보기가 거짓말을 한다.
+ */
+async function buildSection() {
+  const AGENT = path.join(HERE, '..', '..');
+  const { createHandlers } = require(path.join(AGENT, 'ui', 'api-router.cjs'));
+  const h = createHandlers({ agentModulePath: AGENT });
+
+  const intakeInfo = (await h.intake()).body;
+  const fieldsInfo = (await h.fields()).body;
+  const INJECT = {
+    'intake.html': { global: 'LINKPILOT_INTAKE', value: { preload: intakeInfo } },
+    'fields.html': { global: 'LINKPILOT_FIELDS_CFG', value: { preload: fieldsInfo } },
+  };
+  const AFTER = { CONFIRM_SPEC };
+
+  // 단계별 문서 — 단계마다 상태가 다르므로 파일이 같아도 따로 만든다
+  const docs = {};
+  SCREENS.forEach((s) => {
+    docs[s.id] = selfContained(s.file, { inject: INJECT[s.file], after: AFTER[s.after] });
+  });
+
+  let shell = read('report-flow.html');
+  (shell.match(/<script src="([^"]+)"><\/script>/g) || []).forEach((tag) => {
+    const src = tag.match(/src="([^"]+)"/)[1];
+    shell = shell.replace(tag, '<script>' + read(src).replace(/<\/(script)/gi, '<\\/$1') + '</script>');
+  });
+
+  // 설정 블록 **직후**에 끼운다. 앞에 넣으면 덮어써진다
+  const at = shell.indexOf('</script>', shell.indexOf('LINKPILOT_REPORT_FLOW'));
+  if (at === -1) throw new Error('report-flow.html: 설정 블록을 찾지 못했다');
+
+  // ★ 문서를 스크립트 안에 심을 때 `<` 를 전부 \u003C 로 바꾼다.
+  //   닫는 태그만 깨서는 부족하다 — 화면 문서에는 주석 여는 기호와 여는 script
+  //   태그도 들어 있고, 브라우저는 그걸 만나면 스크립트 데이터 상태를 바꿔
+  //   버려 뒤의 닫는 태그를 종료로 보지 않는다. 그러면 블록 전체가 문법 오류가
+  //   되고 화면이 통째로 빈다 — 오류는 콘솔에만 뜬다 (실제로 그랬다).
+  const embedded = JSON.stringify(docs).replace(/</g, '\\u003C');
+
+  const inject = `
+<script>
+// 미리보기 전용 — 서버가 없으므로 단계 화면을 문서로 직접 심는다
+window.LINKPILOT_PREVIEW_DOCS = ${embedded};
+Object.assign(window.LINKPILOT_REPORT_FLOW, {
+  api: '(미리보기 — 서버 없음)',
+  projectId: 'LP-DC-2026-001',
+  external: { repoUrl: null, agentUrl: null },
+});
+<\/script>`;
+  shell = shell.slice(0, at + 9) + inject + shell.slice(at + 9);
+
+  // ★ 미리보기임을 화면에 박아 둔다. 실물로 오해하면 이걸 근거로 판단한다
+  const banner = `
+<div style="max-width:1120px;margin:18px auto 0;padding:13px 16px;border-radius:12px;
+  background:#FDF3E3;color:#8A5A10;font:400 13.5px/1.65 Arial,'Malgun Gothic',sans-serif">
+  <b>미리보기입니다 — 서버에 연결되어 있지 않습니다.</b>
+  화면이 뜨도록 <b>접수 정보와 데이터 사전만</b> 심어 두었습니다. 서버가 보낼 것과
+  같은 출처에서 가져온 값이며 지어낸 것이 아닙니다. 프로젝트 데이터는 심지 않았으므로
+  목록·저장된 값은 비어 있고, 저장·생성 버튼은 실제로 아무것도 하지 않습니다.
+  제품에서는 네 단계를 하나씩 보여주지만 여기서는 <b>한 번에 펼쳐</b> 둡니다.
+</div>`;
+  return shell.replace('<body>', '<body>' + banner);
+}
+
 async function main() {
+  if (process.argv.includes('--section')) {
+    const outS = arg('--out', path.join(HERE, 'section-preview.html'));
+    const htmlS = await buildSection();
+    fs.writeFileSync(outS, htmlS);
+    console.log(`${outS} (${Math.round(htmlS.length / 1024)}KB) · 보고서 생성 섹션 (단계 ${SCREENS.length}개)`);
+    return;
+  }
   const out = arg('--out', path.join(HERE, 'preview.html'));
   const frag = await build();
   const html = process.argv.includes('--fragment')
@@ -284,4 +352,4 @@ async function main() {
 
 if (require.main === module) main().catch(e => { console.error(e); process.exit(1); });
 
-module.exports = { build, SCREENS, EXTRAS };
+module.exports = { build, buildSection, SCREENS, EXTRAS };

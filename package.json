@@ -14,6 +14,7 @@
     "im:page": "node im-agent/ui/vanilla/build-page.js",
     "im:platform": "node im-agent/ui/platform/build.js",
     "im:screens": "node im-agent/ui/platform/build-preview.js",
+    "im:section": "node im-agent/ui/platform/build-preview.js --section",
     "im:result": "IM_AGENT_OFFLINE=1 node im-agent/cli.js demo >/dev/null && node im-agent/ui/platform/build-result.js"
   },
   "dependencies": {

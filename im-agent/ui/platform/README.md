@@ -23,9 +23,41 @@
 | 파일 | 화면 | 대상 |
 |---|---|---|
 | `guide.html` | 외부 업무지침 | 협력사·외부 담당자 |
-| `reports.html` | 보고서 생성 | Pro 이상 |
+| **`report-flow.html`** | **앱 [보고서 생성] 섹션 — 4단계를 한 화면에** | Pro 이상 |
+| `intake.html` | 1단계 보고서 생성 입력 | Pro 이상 |
+| `fields.html` | 2단계 가이드 필드 입력 | Pro 이상 |
+| `reports.html` | 3·4단계 출력 사양 확정 → 생성 | Pro 이상 |
 | `membership.html` | 더보기 › 유료 멤버십 › 멤버십 | 유료 회원 |
 | `upgrade.html` | 내정보 › 업그레이드 | 무료 회원 |
+
+## 앱 [보고서 생성] 섹션에 붙이기
+
+`report-flow.html` 하나를 그 자리에 놓고 설정만 채운다.
+
+```js
+window.LINKPILOT_REPORT_FLOW = {
+  api: '/api/linkpilot',        // 없으면 단계가 전부 잠기고 **사유가 뜬다**
+  base: '/im/',                 // intake·fields·reports 가 놓인 경로
+  session: currentUser,         // gate-core.js 가 판정한다
+  external: {                   // 지금 쓰는 외부 분석 경로 — 지우지 않는다
+    repoUrl: 'https://…',
+    agentUrl: 'https://…',
+  },
+};
+```
+
+- **4단계는 `flow-core.js` 하나가 정한다.** 제품 화면과 미리보기가 같은 파일을 읽는다 —
+  목록이 두 벌이 되면 둘이 다른 흐름을 보여주고, 어느 쪽이 맞는지 알 수 없다
+- **단계 화면을 복사하지 않는다.** `intake·fields·reports` 를 그대로 끼운다.
+  복사하면 「출처 없는 값은 저장할 수 없다」 같은 검사가 두 벌이 되고 한쪽만 고치는 날 갈린다
+- 끼울 때 사이드바·로고를 감추고 안쪽 스크롤을 끈다 (`flow-core.js` 의 `EMBED_CSS`).
+  **화면 소스는 건드리지 않는다**
+- 단계 화면은 **앱과 같은 주소에서** 서빙해야 한다. 다른 출처면 높이를 못 재
+  잘린 채로 뜨는데, 그때는 화면이 그 사실을 적는다
+
+> **왜 값 입력을 앱 안으로 들여오는가** — 지금 [보고서 생성] 은 기반정보를
+> 내보내고 값 입력은 바깥 AGENT 가 받는다. 그러면 출처 필수·계산 항목 입력 금지·
+> 사양 확정을 **앱이 강제할 수 없다.** 내보내기 경로는 그대로 남겨 두었다.
 
 ## 빌드
 
@@ -352,7 +384,8 @@ process.on('SIGTERM', () => queue.stop());   // 자식 프로세스를 남기지
 ## 미리보기 (CLAUDE.md §8)
 
 ```bash
-npm run im:screens     # 입력 화면 4개 (preview.html)
+npm run im:screens     # 입력 화면 4개 나열 (preview.html)
+npm run im:section     # 앱 [보고서 생성] 섹션 그대로 (section-preview.html)
 npm run im:result      # 데모 파이프라인 실행 → 결과 화면 (result.html)
 npm run im:platform    # 플랫폼 단일 HTML
 ```
