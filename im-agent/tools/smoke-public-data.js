@@ -235,7 +235,24 @@ async function main() {
     }
   }
 
-  // ── 6. 실거래가 ────────────────────────────────────────
+  // ── 6. 건축인허가 ──────────────────────────────────────
+  if (parsedPnu && molit.isAvailable()) {
+    const p = await molit.buildingPermit({
+      ...parsedPnu, platGbCd: parsedPnu.isMountain ? '1' : '0',
+    });
+    if (p.ok) {
+      report('건축인허가 (국토교통부)', true,
+        `${p.records.length}건 · 현재 상태: ${p.value || '(단계 불명)'}`,
+        ['archPmsDay', 'realStcnsDay', 'useAprDay', 'archGbCdNm'], p.raw);
+    } else if (p.notFound) {
+      // ★ 기록 없음은 실패가 아니다. 나대지면 원래 없는 것이 맞다
+      report('건축인허가 (국토교통부)', true, '기록 없음 (나대지이거나 미수록 — 미허가라는 뜻이 아니다)');
+    } else {
+      report('건축인허가 (국토교통부)', false, p.error);
+    }
+  }
+
+  // ── 7. 실거래가 ────────────────────────────────────────
   if (parsedPnu && molit.isAvailable()) {
     const months = pnuUtil.recentMonths(3);
     for (const type of ['land', 'commercial']) {

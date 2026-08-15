@@ -4,6 +4,7 @@
  *
  *   ① 실거래가   토지 / 상업업무용 / 아파트 매매 (시군구코드 + 계약월 단위)
  *   ② 건축물대장 표제부 (연면적·건폐율·용적률·층수·용도)
+ *   ③ 건축인허가 기본개요 (허가일·착공일·사용승인일)
  *
  * ★ 호출 최소화가 이 파일의 설계 제약이다.
  *   실거래가는 (시군구, 월) 조합마다 1회씩 필요하므로 조회 개월 수를 기본 6개월로 제한하고,
@@ -169,4 +170,89 @@ async function buildingRegister({ sigunguCd, bjdongCd, bun, ji }) {
   };
 }
 
-module.exports = { trades, buildingRegister, isAvailable, keyFormatError, TRADE_ENDPOINTS, toTrade, PROVIDER };
+/* ───────────── ③ 건축인허가 (C-02) ───────────── */
+
+/**
+ * 건축인허가 기본개요.
+ *
+ * ★ **기록이 없는 것과 허가가 없는 것은 다르다.**
+ *   개발사업은 대개 나대지에서 시작하고 그때는 인허가 기록 자체가 없다.
+ *   그런데 응답이 비었다고 "미허가"라고 적으면, 실제로는 허가를 받았는데
+ *   API 수록이 늦었거나 주소가 안 맞은 경우까지 **미허가로 단정**하게 된다.
+ *   그래서 빈 응답은 `ok:false` + `notFound:true` 로 돌려주고, 부르는 쪽이
+ *   값을 채우지 않고 **사람에게 묻도록** 둔다.
+ *
+ * ★ 응답 필드명은 공식 문서 기준이고 **실제 키로 검증하지 않았다** (B-4).
+ *   그래서 `raw` 를 함께 돌려준다 — 필드명이 다르면 그걸로 대조한다.
+ *
+ * @param {object} p { sigunguCd, bjdongCd, platGbCd, bun, ji }
+ *        platGbCd: 0=대지, 1=산, 2=블록 (PNU 의 대지구분에서 파생한다)
+ */
+async function buildingPermit({ sigunguCd, bjdongCd, platGbCd = '0', bun, ji }) {
+  if (!isAvailable()) return unavailable('건축인허가');
+  const bad = keyFormatError(); if (bad) return bad;
+  if (!sigunguCd || !bjdongCd) return { ok: false, error: '법정동코드 없음' };
+
+  const r = await call('ArchPmsHubService/getApBasisOulnInfo', {
+    sigunguCd, bjdongCd, platGbCd, bun, ji, numOfRows: 30, pageNo: 1,
+  }, 'permit', { sigunguCd, bjdongCd, platGbCd, bun, ji });
+
+  if (!r.ok) return r;
+  if (!r.value.length) {
+    return {
+      ok: false, notFound: true,
+      error: '건축인허가 기록 없음 — **미허가라는 뜻이 아니다.** '
+        + '나대지이거나, 허가는 받았으나 수록이 늦었거나, 지번이 안 맞을 수 있다',
+    };
+  }
+
+  const records = r.value.map(toPermit).sort(byRecency);
+  return { ok: true, cached: r.cached, raw: r.value[0], records, value: permitStatus(records) };
+}
+
+/** 인허가 원본 → 공통 레코드. 날짜는 YYYYMMDD 로 온다 */
+function toPermit(item) {
+  const day = (v) => {
+    const s = String(v ?? '').replace(/\D/g, '');
+    return /^\d{8}$/.test(s) ? `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6)}` : null;
+  };
+  return {
+    permitDate: day(item.archPmsDay),        // 건축허가일
+    startDate: day(item.realStcnsDay),       // 착공일
+    approvalDate: day(item.useAprDay),       // 사용승인일
+    kind: item.archGbCdNm || null,           // 신축/증축/대수선
+    mainUse: item.mainPurpsCdNm || null,
+    totalAreaSqm: num(item.totArea),
+    platAreaSqm: num(item.platArea),
+    name: item.bldNm || null,
+  };
+}
+
+/** 최근 건이 앞으로 (허가일 기준, 없으면 착공·승인일) */
+function byRecency(a, b) {
+  const k = (r) => r.permitDate || r.startDate || r.approvalDate || '';
+  return k(b).localeCompare(k(a));
+}
+
+/**
+ * 레코드 → `legal.permit_status` 문장.
+ *
+ * ★ 진행 단계는 **뒤에서부터** 본다. 사용승인이 있으면 허가·착공은 당연히 지났고,
+ *   그 상태를 "건축허가 취득"이라고 적으면 실제보다 이른 단계로 읽힌다.
+ */
+function permitStatus(records) {
+  const r = (records || [])[0];
+  if (!r) return null;
+
+  const kind = r.kind ? `${r.kind} · ` : '';
+  if (r.approvalDate) return `${kind}사용승인 완료 (${r.approvalDate})`;
+  if (r.startDate) return `${kind}착공 (${r.startDate})`;
+  if (r.permitDate) return `${kind}건축허가 취득 (${r.permitDate})`;
+  // 기록은 있는데 날짜가 하나도 없다 — 단계를 지어내지 않는다
+  return null;
+}
+
+module.exports = {
+  trades, buildingRegister, buildingPermit,
+  isAvailable, keyFormatError, TRADE_ENDPOINTS, toTrade, toPermit, permitStatus, PROVIDER,
+};

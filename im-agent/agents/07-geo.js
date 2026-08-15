@@ -41,6 +41,7 @@ const outputSchema = {
     parcel: { type: 'object', nullable: true },
     landUse: { type: 'object', nullable: true },
     building: { type: 'object', nullable: true },
+    permit: { type: 'object', nullable: true },
     quota: { type: 'object' },
     confidence: { type: 'number', minimum: 0, maximum: 1 },
   },
@@ -51,7 +52,7 @@ async function run(input, ctx) {
   const today = kstDate();
   const facts = [];
   const sources = [];
-  const out = { geo: null, parcel: null, landUse: null, building: null };
+  const out = { geo: null, parcel: null, landUse: null, building: null, permit: null };
 
   const addrFact = ds && ds.get('project.location');
   const address = input.address || (addrFact ? String(addrFact.value) : null);
@@ -161,9 +162,36 @@ async function run(input, ctx) {
     } else if (!reg.unavailable && !/자료 없음/.test(reg.error || '')) {
       ctx.warn(`건축물대장 조회 실패: ${reg.error}`);
     }
+
+    // ── ⑤ 건축인허가 (C-02) ────────────────────────────────
+    // ★ 값을 채우는 것보다 **대조**가 목적이다. 사업계획서가 "허가 취득"이라고
+    //   적었는데 공부에 기록이 없으면 그 자체가 드러나야 한다.
+    const permit = await molit.buildingPermit({
+      ...parsedPnu,
+      platGbCd: parsedPnu.isMountain ? '1' : '0',
+    });
+    if (permit.ok) {
+      out.permit = { status: permit.value, records: permit.records };
+      sources.push({ name: '건축인허가(국토교통부)', cached: !!permit.cached });
+      if (permit.value) {
+        facts.push({
+          key: 'legal.permit_status', value: permit.value, unit: null,
+          confidence: 0.9, quote: permit.value,
+          ...src('건축인허가(국토교통부)'),
+        });
+      } else {
+        // 기록은 있는데 단계를 알 수 없다 — 지어내지 않고 사람에게 넘긴다
+        ctx.warn('건축인허가 기록은 있으나 허가일·착공일·사용승인일이 모두 비어 있다 — 인허가 현황은 직접 확인해야 한다');
+      }
+    } else if (permit.notFound) {
+      // ★ 여기서 '미허가'라고 적으면 안 된다 (molit.buildingPermit 주석 참조)
+      ctx.warn(permit.error);
+    } else if (!permit.unavailable) {
+      ctx.warn(`건축인허가 조회 실패: ${permit.error}`);
+    }
   }
 
-  // ── ⑤ 지도 이미지 (기본 비활성 — 쿼터 절약) ──────────────
+  // ── ⑥ 지도 이미지 (기본 비활성 — 쿼터 절약) ──────────────
   if (process.env.IM_AGENT_FETCH_IMAGES === '1' && out.geo) {
     const saved = await saveSatelliteImage(input.projectId, out.geo.lat, out.geo.lon, ctx);
     if (saved) out.geo.satelliteImage = saved;
@@ -232,6 +260,12 @@ const FILLS = ['geo.pnu', 'geo.lat', 'geo.lon',
 const CONDITIONAL_FILLS = {
   '건축물대장(기존 건물이 있는 경우에만)':
     ['building.gfa_sqm', 'building.footprint_sqm', 'building.floors', 'building.height_m'],
+
+  // ★ 인허가도 같은 이유로 조건부다. 개발사업은 대개 나대지에서 시작하고 그때는
+  //   인허가 기록 자체가 없다. FILLS 로 올리면 화면이 "자동으로 채워집니다"라며
+  //   **인허가 현황을 안 물어보고**, 값은 빈 채로 남는다 (B-18 과 똑같은 실패).
+  //   기록이 있을 때만 채워지고, 그때가 대조(사업계획서 vs 공부)가 값진 순간이다.
+  '건축인허가(허가 기록이 있는 경우에만)': ['legal.permit_status'],
 };
 
 module.exports = {
