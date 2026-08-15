@@ -122,12 +122,18 @@ IM 필수 17개 중 **직접 넣어야 하는 것은 8개**다 (시행사 · 토
 |---|---|---|
 | `GEMINI_API_KEY` | 02 Extraction 보완 · 06 Writer 문장 | 규칙 기반만 동작 |
 | `VWORLD_KEY` | 지오코딩·지적도·용도지역·공시지가 | 07 Geo 건너뜀 |
+| `VWORLD_DOMAIN` | VWorld 콘솔에 **등록한 도메인**(호스트만) | 키가 있어도 인증 거부 |
 | `DATA_GO_KR_KEY` | 실거래가·건축물대장 | 07/08 일부 건너뜀 |
 | `TS_OAUTH_CLIENT_ID` / `TS_OAUTH_SECRET` | 배포 러너의 tailnet 접속 | 배포 불가 |
 | `NAS_SSH_HOST` / `NAS_SSH_USER` / `NAS_SSH_KEY` | NAS 배포 | 배포 불가 |
 | `ALERT_PHONE` | 배포 실패 SMS | GitHub Issue 알림만 |
 
 **키가 없으면 데이터를 지어내지 않는다.** `unavailable` 을 반환하고 해당 절을 비운다.
+
+> **`VWORLD_DOMAIN` 을 빠뜨리기 쉽다.** VWorld 키는 신청 시 등록한 도메인에서만
+> 동작한다. 브라우저는 Referer 로 판정하지만 **서버 호출에는 Referer 가 없어**
+> `domain` 파라미터로 직접 넘겨야 한다. 이것이 없으면 키가 맞아도 인증 오류만 난다.
+> 진단: `IM_AGENT_DEBUG_HTTP=1 npm run im:smoke`
 
 공공데이터는 일 10,000건 한도가 있어 `connectors/cache.js` 가 재호출을 막는다
 (지오코딩 180일 / 공시지가·용도지역 30일 / 실거래가 7일). **재실행 시 호출 0건.**
