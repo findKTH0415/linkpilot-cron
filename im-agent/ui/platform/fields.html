@@ -157,7 +157,11 @@ ul { margin: 0; padding: 0; list-style: none; }
   background: var(--lime-soft); padding: 2px 8px; border-radius: 999px; }
 .row__req { font-size: 11px; font-weight: 800; color: var(--bad-ink);
   background: var(--bad-soft); padding: 2px 8px; border-radius: 999px; }
+/* 칸 수는 항목마다 다르다 — 페이지·출처일은 필요한 항목에만 붙는다.
+   고정 4열로 두면 2칸짜리 줄에 빈 열이 남아 뭔가 빠진 것처럼 보인다 */
 .row__in { display: grid; gap: 8px; grid-template-columns: 1.1fr 1.4fr .6fr .9fr; }
+.row__in.n2 { grid-template-columns: 1.1fr 1.7fr; }
+.row__in.n3 { grid-template-columns: 1.1fr 1.5fr .8fr; }
 .row__in input, .row__in select { font: 400 13.5px/1.5 inherit; padding: 9px 11px; min-width: 0;
   border: 1px solid var(--line); border-radius: 9px; background: var(--surface); color: var(--ink); }
 .row__in input::placeholder { color: #B6BBC1; }
@@ -195,7 +199,7 @@ ul { margin: 0; padding: 0; list-style: none; }
   .top, .head { padding-left: 16px; padding-right: 16px; }
   .body { padding: 16px 16px 150px; }
   .head__t { font-size: 19px; }
-  .row__in { grid-template-columns: 1fr 1fr; }
+  .row__in, .row__in.n2, .row__in.n3 { grid-template-columns: 1fr 1fr; }
   .btn { flex: 1; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -474,22 +478,35 @@ window.LINKPILOT_FIELDS_CFG = {
     if (e.value !== '' && !e.source) src.className = 'miss';
     box.appendChild(src);
 
-    var page = el('input');
-    page.type = 'text';
-    page.value = e.page === null || e.page === undefined ? '' : String(e.page);
-    page.placeholder = 'p.';
-    page.setAttribute('aria-label', def.label + ' 페이지');
-    page.addEventListener('input', function () { set(key, 'page', page.value); });
-    box.appendChild(page);
+    // ★ 페이지는 **출처가 올린 문서일 때만** 뜻이 있다. 공공데이터나 직접 입력에
+    //   페이지를 물으면 사람은 빈칸으로 두거나 아무 숫자나 적는다.
+    //   이미 값이 있으면 조건과 무관하게 보여준다 — 감추면 고칠 방법이 없다
+    var hasPage = e.page !== '' && e.page !== null && e.page !== undefined;
+    if (hasPage || (e.source && state.sources.indexOf(e.source) !== -1)) {
+      var page = el('input');
+      page.type = 'text';
+      page.value = hasPage ? String(e.page) : '';
+      page.placeholder = 'p.';
+      page.setAttribute('aria-label', def.label + ' 페이지');
+      page.addEventListener('input', function () { set(key, 'page', page.value); });
+      box.appendChild(page);
+    }
 
-    var date = el('input');
-    date.type = 'text';
-    date.value = e.sourceDate || '';
-    date.placeholder = '출처일 YYYY-MM-DD';
-    date.setAttribute('aria-label', def.label + ' 출처일');
-    date.addEventListener('input', function () { set(key, 'sourceDate', date.value); });
-    box.appendChild(date);
+    // ★ 출처일은 **값이 시점에 따라 달라지는 항목**에만 묻는다 (사전의 def.dated).
+    //   시행사명은 언제 조회했든 같다 — 거기에 날짜를 물으면 사람은 오늘 날짜를
+    //   적고, 그 날짜는 아무것도 뜻하지 않는다
+    if (def.dated || e.sourceDate) {
+      var date = el('input');
+      date.type = 'text';
+      date.value = e.sourceDate || '';
+      date.placeholder = '출처일 YYYY-MM-DD';
+      date.setAttribute('aria-label', def.label + ' 출처일');
+      date.addEventListener('input', function () { set(key, 'sourceDate', date.value); });
+      box.appendChild(date);
+    }
 
+    // 붙은 칸 수를 CSS 에 알려 준다 (빈 열이 남지 않게)
+    box.className = 'row__in n' + box.childNodes.length;
     row.appendChild(box);
 
     // 억원 필드는 단위 실수가 재무모델을 통째로 틀리게 만든다. 환산을 도와주되

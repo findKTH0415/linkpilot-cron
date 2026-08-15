@@ -478,6 +478,69 @@ test('산업을 안 고르면 산업으로 거르지 않는다', () => {
     '모르는 것을 감추면 입력할 방법이 없어진다');
 });
 
+/* ───────────── 출처 메타(페이지·출처일) 노출 판정 ───────────── */
+
+/**
+ * ★ 출처 자체는 절대 뺄 수 없다 (facts.js 가 예외로 막는다).
+ *   뺄 수 있는 것은 **뜻 없는 메타**다 — 안 변하는 값에 붙은 출처일,
+ *   문서가 아닌 출처에 붙은 페이지. 사람은 그 칸을 빈칸으로 두거나
+ *   아무거나 적고, 그렇게 채워진 값이 출처표에 실리면 출처표가 덜 믿긴다.
+ */
+test('출처일은 값이 시점에 따라 달라지는 항목에만 붙는다', () => {
+  const dict = require('../core/dictionary');
+
+  // 언제 조회했든 같은 값 — 날짜를 물으면 사람은 오늘 날짜를 적는다
+  ['project.sponsor', 'project.name', 'project.location',
+   'land.area_sqm', 'building.gfa_sqm', 'capacity.it_load_mw'].forEach((k) => {
+    assert.strictEqual(dict.FIELDS[k].dated, false, `${k}: 안 변하는 값에 출처일을 묻는다`);
+  });
+
+  // 시점이 곧 값의 의미 — 견적일·고시연도·인허가 시점
+  ['investment.total', 'investment.land', 'revenue.annual', 'debt.rate',
+   'exit.cap_rate', 'legal.permit_status',
+   'land.official_price',   // LAND 지만 연 1회 고시 — 개별 예외
+   'land.ownership',        // LAND 지만 협의중/계약/이전완료가 바뀐다 — 개별 예외
+  ].forEach((k) => {
+    assert.strictEqual(dict.FIELDS[k].dated, true, `${k}: 시점 종속인데 출처일을 안 묻는다`);
+  });
+
+  // 모든 항목이 판정을 갖는다 (undefined 면 화면이 조건문에서 조용히 false 로 읽는다)
+  Object.keys(dict.FIELDS).forEach((k) => {
+    assert.strictEqual(typeof dict.FIELDS[k].dated, 'boolean', `${k}: dated 가 boolean 이 아니다`);
+  });
+});
+
+test('개별 예외는 사전에 실제로 있는 항목만 가리킨다', () => {
+  const dict = require('../core/dictionary');
+  Object.keys(dict.DATED_OVERRIDE).forEach((k) => {
+    assert.ok(dict.FIELDS[k], `DATED_OVERRIDE 의 ${k} 가 사전에 없다 — 오타면 조용히 무시된다`);
+  });
+  // 카테고리 규칙과 같은 값을 적어 둔 예외는 죽은 코드다
+  Object.keys(dict.DATED_OVERRIDE).forEach((k) => {
+    const byCategory = dict.DATED_CATEGORIES.has(dict.FIELDS[k].category);
+    assert.notStrictEqual(dict.DATED_OVERRIDE[k], byCategory,
+      `${k}: 카테고리 규칙과 같은 값이라 예외가 필요 없다`);
+  });
+});
+
+test('★ 화면이 출처일 여부를 자기가 판단하지 않는다', () => {
+  const html = read('fields.html')
+    .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  // 카테고리 이름을 코드에서 보고 판단하면 사전과 갈린다
+  ['Investment', 'Revenue', 'Legal', 'DATED_CATEGORIES'].forEach((n) => {
+    assert.ok(!html.includes(n), `fields.html 이 '${n}' 을 보고 출처일을 판단한다 — def.dated 를 써야 한다`);
+  });
+  assert.match(html, /def\.dated/, '사전이 준 판정을 읽어야 한다');
+});
+
+test('GET /fields 가 출처일 판정을 함께 내린다', async () => {
+  const { createHandlers } = require('../ui/api-router.cjs');
+  const h = createHandlers({ agentModulePath: path.join(__dirname, '..') });
+  const body = (await h.fields()).body;
+  assert.strictEqual(body.fields['project.sponsor'].dated, false);
+  assert.strictEqual(body.fields['investment.total'].dated, true);
+});
+
 test('판 정의가 화면과 서버에서 같은 이름을 쓴다', () => {
   // 좁은 것부터 넓은 것 순. 화면이 이 순서로 버튼을 놓으므로 순서까지 검사한다
   assert.deepStrictEqual(Object.keys(F.LEVELS), ['manual', 'basic', 'expert']);

@@ -129,6 +129,40 @@ const COMPUTED_FIELDS = {
 
 const COMPUTED_KEYS = Object.keys(COMPUTED_FIELDS);
 
+/**
+ * 출처일(sourceDate)을 물어야 하는 항목 — **값이 시점에 따라 달라지는 것만.**
+ *
+ * 시행사명·연면적·대지면적은 언제 조회했든 같은 값이다. 금리·매출·인허가 현황은
+ * 다르다. 안 변하는 값에 날짜를 물으면 사람은 **오늘 날짜를 적고**, 그 날짜는
+ * 아무것도 뜻하지 않는다. 뜻 없는 값이 출처표에 실리면 출처표 전체가 덜 믿긴다.
+ *
+ * ★ 판정은 여기(사전)에서만 한다. 화면은 `def.dated` 를 읽기만 한다 —
+ *   화면이 카테고리를 보고 판단하기 시작하면 사전과 갈린다.
+ */
+const DATED_CATEGORIES = new Set([
+  CATEGORY.INVESTMENT,   // 견적 시점이 곧 값의 의미다
+  CATEGORY.REVENUE, CATEGORY.OPEX,
+  CATEGORY.DEBT, CATEGORY.EQUITY,
+  CATEGORY.TAX,          // 세율은 개정된다
+  CATEGORY.EXIT,         // Cap Rate 는 시장이다
+  CATEGORY.LEGAL,        // 인허가는 시점이 곧 정보다
+]);
+
+/** 카테고리 규칙에서 벗어나는 개별 항목 (규칙과 같은 값을 적어 두면 테스트가 잡는다) */
+const DATED_OVERRIDE = {
+  'land.official_price': true,   // 개별공시지가 — 연 1회 고시, 몇 년치인지가 핵심
+  'land.ownership': true,        // 토지 확보상태 — 협의중/계약/이전완료가 시점마다 바뀐다
+};
+
+function needsSourceDate(key) {
+  if (Object.prototype.hasOwnProperty.call(DATED_OVERRIDE, key)) return DATED_OVERRIDE[key];
+  const f = FIELDS[key];
+  return !!(f && DATED_CATEGORIES.has(f.category));
+}
+
+// 정의에 박아 둔다 — `GET /fields` 가 그대로 내려보내고 화면은 읽기만 한다
+Object.keys(FIELDS).forEach((k) => { FIELDS[k].dated = needsSourceDate(k); });
+
 function field(key) { return FIELDS[key] || COMPUTED_FIELDS[key] || null; }
 
 /** 사람이 읽는 항목명. 정의가 없으면 key 그대로 (조용히 빈 문자열로 만들지 않는다) */
@@ -173,4 +207,5 @@ function rangeViolation(key, value) {
 module.exports = {
   FIELDS, CATEGORY, COMPUTED_FIELDS, COMPUTED_KEYS,
   field, labelFor, requiredFor, keyForAlias, rangeViolation, ALIAS_INDEX,
+  needsSourceDate, DATED_CATEGORIES, DATED_OVERRIDE,
 };
