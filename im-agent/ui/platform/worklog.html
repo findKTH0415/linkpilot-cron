@@ -1186,7 +1186,7 @@ window.LINKPILOT_BOARD = {
     {
       "id": "C-03",
       "title": "SMP·REC Connector — 태양광 매출단가 기준선",
-      "detail": "revenue.unit_price 의 기준선을 세운다. 전력거래소 SMP·REC 가중평균가 (data.go.kr, 기존 키). ECOS 와 같은 함정이 있다 — SMP 는 계통한계가격이고 실제 매출은 장기 PPA·고정계약이다. debt.benchmark_rate 와 같은 방식으로 별도 항목에 둔다(D-23)",
+      "detail": "revenue.unit_price 의 기준선을 세운다. 전력거래소 SMP·REC 가중평균가. ★ 막힌 것: 엔드포인트 경로를 확인할 수 없다 — 이 컨테이너에서 data.go.kr 로 나가는 연결이 프록시에서 차단(403)되어 존재 여부조차 확인이 안 된다. 필드명 추측과 달리 경로 추측은 통째로 404 가 되므로 지어내지 않는다. 필요한 것: data.go.kr 해당 API 상세 페이지의 요청 URL + 파라미터 표 (또는 활용신청 승인 화면). 값의 성격은 SMP=계통한계가격이라 실매출(PPA)과 다르므로 기준선으로 둔다(D-23)",
       "status": "todo",
       "priority": "normal",
       "assignee": "개발",
@@ -1199,7 +1199,7 @@ window.LINKPILOT_BOARD = {
     {
       "id": "C-04",
       "title": "임대료·수익률 Connector — 부동산 통계(R-ONE)",
-      "detail": "부동산 템플릿의 revenue.unit_price·exit.cap_rate 기준선. 한국부동산원 R-ONE 별도 키가 필요하다. 지역 평균이라 개별 건물 값이 아니다 — 기준선으로만 둔다(D-23)",
+      "detail": "부동산 템플릿의 revenue.unit_price·exit.cap_rate 기준선. 한국부동산원 R-ONE 별도 키가 필요하다. ★ C-03 과 같은 이유로 막혔다 — 엔드포인트를 이 환경에서 확인할 수 없다. 필요한 것: R-ONE 통계 상세 페이지의 요청 URL + 통계표 코드. 지역 평균이라 개별 건물 값이 아니다 — 기준선으로만 둔다(D-23)",
       "status": "todo",
       "priority": "normal",
       "assignee": "개발",
