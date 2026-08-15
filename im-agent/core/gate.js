@@ -8,6 +8,7 @@
  */
 
 const store = require('./store');
+const issuer = require('./issuer');
 const { kstStamp } = require('./kst');
 
 const APPROVAL_PATH = '11_QC/approval.json';
@@ -61,6 +62,12 @@ function canApprove(projectId) {
   const spec = store.readJson(projectId, '01_Project/output-spec.json', null);
   if (!spec || !spec.locked) {
     reasons.push('출력 사양 미확정 (DRAFT) — 페이지 수·형식·언어를 사람이 확정해야 한다');
+  }
+
+  // 발행 주체가 없으면 누가 낸 문서인지 알 수 없다. 대외 배포 문서라
+  // 잘못 나가면 회수할 수 없다 — 여기서 막는다 (core/issuer.js)
+  if (!issuer.read(projectId)) {
+    reasons.push('발행 주체 미설정 — issuer.json 에 회사 정보를 넣어야 대외 배포할 수 있다');
   }
 
   return { allowed: reasons.length === 0, reasons };

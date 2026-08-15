@@ -558,6 +558,35 @@ IM_AGENT_DISABLE="03_research" node im-agent/cli.js run LP-DC-2026-001
 Distribution은 되돌릴 수 없는 외부 발송이므로 `gate.distributionAllowed()` 를 반드시
 통과해야 하도록 인터페이스만 먼저 고정해 두었다.
 
+## 발행 주체 (issuer.json)
+
+IM 서명부·표지에 찍히는 회사 정보다. **코드에 박혀 있지 않다** — 여러 회사가 쓰는
+제품에서 회사명을 박아 두면 다른 회사가 만든 IM 에 남의 이름이 찍혀 나간다.
+대외 배포 문서라 받은 쪽이 먼저 알아챈다.
+
+```json
+{
+  "en": "Acme Capital Partners Co.,Ltd",
+  "kr": "(주)에이스캐피탈파트너스",
+  "tag": "REAL ASSET INVESTMENT",
+  "mark": "ACP"
+}
+```
+
+읽는 순서 — 먼저 찾은 것을 쓴다:
+
+| 순서 | 위치 | 쓰임 |
+|--:|---|---|
+| ① | `<프로젝트>/01_Project/issuer.json` | 이 딜만 다른 주체로 낼 때 |
+| ② | 환경변수 `IM_AGENT_ISSUER` (JSON) | CI·컨테이너 |
+| ③ | `<IM_AGENT_ROOT>/issuer.json` | 보통 여기 |
+
+`en` 만 있어도 된다. `mark`(로고 자리 이니셜)는 없으면 이름에서 만든다.
+
+> **설정하지 않으면 기본 회사를 쓰지 않는다.** 문서에 「발행 주체 미설정」이 붉게
+> 찍히고 승인 게이트가 배포를 막는다. 기본값을 두면 설정을 잊은 것과 일부러 그
+> 회사인 것을 구분할 수 없고, 잘못된 이름이 찍힌 문서가 조용히 나간다.
+
 ## 알려진 한계
 
 1. 시장조사(`03_research`)는 Connector가 없어 LLM 기억에 의존한다. 산출물은 전부

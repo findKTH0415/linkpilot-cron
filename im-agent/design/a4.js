@@ -40,11 +40,15 @@ function styles(T) {
   };
 }
 
-const COMPANY = {
-  en: 'PDI Global Infrastructure Development Co.,Ltd',
-  kr: '(주)피디아이글로벌인프라스트럭쳐디벨롭먼트',
-  tag: 'PROJECT MANAGEMENT & DEALMAKER',
-};
+/**
+ * 발행 주체 — **코드에 박지 않는다.**
+ *
+ * 이 시스템은 여러 회사가 쓴다. 회사명을 여기 두면 다른 회사가 만든 IM 에
+ * 남의 이름이 찍혀 나가고, 대외 배포 문서라 발견도 늦다.
+ * `doc.issuer` 로 받고, 없으면 core/issuer.js 의 '미설정' 표시를 쓴다 —
+ * 기본 회사를 두면 설정을 잊은 것과 일부러 그 회사인 것을 구분할 수 없다.
+ */
+const issuerCfg = require('../core/issuer');
 
 function esc(s) {
   return String(s === null || s === undefined ? '' : s)
@@ -154,7 +158,7 @@ function chapterOpener(no, title, subtitle, T, S) {
 </div>`;
 }
 
-function cover({ projectName, projectId, assetType, location, valueRange, kpis, scaleNotice }, T, S) {
+function cover({ projectName, projectId, assetType, location, valueRange, kpis, scaleNotice, issuer }, T, S) {
   const kpiCells = (kpis || []).slice(0, 4).map(k =>
     `<div><div style="font-family:${T.serif};font-size:20px;color:${T.primary};font-variant-numeric:tabular-nums;">${esc(k.value)}</div>
      <div style="font-size:7.5px;letter-spacing:.16em;text-transform:uppercase;color:${T.faint};margin-top:4px;">${esc(k.label)}</div></div>`).join('');
@@ -175,21 +179,29 @@ function cover({ projectName, projectId, assetType, location, valueRange, kpis, 
     <div style="${S.navyBoxSub}margin-top:6px;">본 자료 산출치 — 법정 감정평가가 아니다</div>
   </div>` : ''}
   <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;border-top:1px solid ${T.primary};border-bottom:.5px solid ${T.ruleStrong};padding:16px 0;margin-top:22px;">${kpiCells}</div>
-  ${signature(false, T)}
+  ${signature(false, T, issuer)}
 </section>`;
 }
 
 /** 서명부 — 로고 자리 + 3줄(영문/국문/태그라인) 가로 배치 (IM RULES §1) */
-function signature(onNavy, T) {
+function signature(onNavy, T, issuer) {
   const c1 = onNavy ? T.onPrimary : T.primary;
   const c2 = onNavy ? T.onPrimarySub : T.muted;
   const c3 = onNavy ? T.onPrimarySub : T.brandRed;
+  const iss = issuer || issuerCfg.UNSET;
+  // 미설정이면 눈에 띄게 둔다. 조용히 비우면 그대로 배포된다
+  const nameColor = iss.unset ? T.negative : c1;
+  const line2 = iss.kr ? `\n    <div style="font-size:11px;color:${c2};">${esc(iss.kr)}</div>` : '';
+  const line3 = iss.tag
+    ? `\n    <div style="font-size:8px;letter-spacing:.16em;text-transform:uppercase;color:${c3};font-weight:600;margin-top:2px;">${esc(iss.tag)}</div>`
+    : '';
+  const hint = iss.unset
+    ? `\n    <div style="font-size:8.5px;color:${T.negative};margin-top:3px;">issuer.json 을 설정하세요 — 발행 주체 없이 배포할 수 없습니다</div>`
+    : '';
   return `<div style="display:flex;align-items:center;gap:12px;margin-top:26px;text-align:left;">
-  <div style="width:44px;height:44px;border-radius:50%;background:${onNavy ? T.surface : T.surfaceAlt};border:1px solid ${onNavy ? 'transparent' : T.ruleStrong};flex:0 0 44px;display:flex;align-items:center;justify-content:center;font-family:${T.serif};font-size:13px;color:${T.brandRed};font-weight:600;">PDI</div>
+  <div style="width:44px;height:44px;border-radius:50%;background:${onNavy ? T.surface : T.surfaceAlt};border:1px solid ${onNavy ? 'transparent' : T.ruleStrong};flex:0 0 44px;display:flex;align-items:center;justify-content:center;font-family:${T.serif};font-size:13px;color:${T.brandRed};font-weight:600;">${esc(iss.mark || '')}</div>
   <div>
-    <div style="font-family:${T.serif};font-size:13.5px;color:${c1};">${COMPANY.en}</div>
-    <div style="font-size:11px;color:${c2};">${COMPANY.kr}</div>
-    <div style="font-size:8px;letter-spacing:.16em;text-transform:uppercase;color:${c3};font-weight:600;margin-top:2px;">${COMPANY.tag}</div>
+    <div style="font-family:${T.serif};font-size:13.5px;color:${nameColor};">${esc(iss.en)}</div>${line2}${line3}${hint}
   </div>
 </div>`;
 }
@@ -221,7 +233,7 @@ function toc(sections, T, S) {
 </section>`;
 }
 
-function contact(T, S) {
+function contact(T, S, issuer) {
   return `<section style="break-before:page;">
   <div style="height:3px;background:${T.primary};"></div>
   <div style="height:1px;background:${T.accentLight};margin-bottom:26px;"></div>
@@ -229,7 +241,7 @@ function contact(T, S) {
   <h2 style="${S.h2}">문의 및 후속 절차</h2>
   <p style="margin:14px 0 20px;${S.body}">본 자료에 관한 문의, 추가 분석 요청, 실사 자료 요청은 발행 주체에 연락 주십시오.</p>
   <div style="${S.navyBox}">
-    ${signature(true, T)}
+    ${signature(true, T, issuer)}
     <div style="border-top:.5px solid ${T.primaryMid};margin-top:16px;padding-top:10px;font-size:10px;color:${T.onPrimarySub};">Strictly Private and Confidential</div>
   </div>
   <div style="display:flex;justify-content:space-between;margin-top:20px;">
@@ -249,6 +261,10 @@ function render(doc, theme = null) {
     ? themes.resolve('institutional', { docType: doc.docType || 'im' })
     : (typeof theme === 'string' ? themes.resolve(theme, { docType: doc.docType || 'im' }) : theme);
   const S = styles(T);
+
+  // 발행 주체 — doc 에 실려 오면 그것을 쓰고, 없으면 설정에서 읽는다.
+  // 어느 쪽도 없으면 '미설정'으로 표시된다 (남의 회사 이름을 찍지 않는다)
+  const issuer = doc.issuer || issuerCfg.resolve(doc.projectId);
 
   const sections = layouts.assign(doc.sections || [], T);
   const chapters = sections.map(s =>
@@ -278,7 +294,7 @@ ${cover(doc, T, S)}
 ${notice(doc, T, S)}
 ${toc(sections, T, S)}
 ${chapters}
-${contact(T, S)}
+${contact(T, S, issuer)}
 `;
 }
 
@@ -313,4 +329,4 @@ function preview(themeId, { docType = 'im', brandKit = null } = {}) {
   }, T);
 }
 
-module.exports = { render, preview, styles, renderBody, mdTableToHtml, chapterOpener, cover, contact, signature, esc, COMPANY };
+module.exports = { render, preview, styles, renderBody, mdTableToHtml, chapterOpener, cover, contact, signature, esc };

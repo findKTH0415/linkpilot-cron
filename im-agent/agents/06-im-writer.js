@@ -17,6 +17,7 @@ const { kstDate, kstStamp } = require('../core/kst');
 const { IM_SECTIONS, TEASER_ITEMS, HOUSE_STYLE } = require('../templates/im-outline');
 const llm = require('../core/llm');
 const a4 = require('../design/a4');
+const issuer = require('../core/issuer');
 const contentJson = require('../design/content');
 const designCheck = require('../design/check');
 const { grade: confGrade, BODY_MARK } = require('../core/confidence');
@@ -453,6 +454,9 @@ async function run(input, ctx) {
     kpis: buildKpis(financial, ds),
     disclaimers: buildDisclaimers(appraisal, massing, financial),
     assets: (massing && massing.files) || [],
+    // 발행 주체 — 설정에서 읽는다. 코드에 박으면 다른 회사가 만든 IM 에
+    // 남의 이름이 찍혀 나간다 (core/issuer.js)
+    issuer: issuer.resolve(input.projectId),
   };
 
   // 사용자가 고른 디자인 테마 (없으면 기본). Content 와 Design 은 완전히 분리되어 있으므로

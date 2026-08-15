@@ -17,7 +17,7 @@ const PID = 'LP-DC-2026-999';
  * 승인에 필요한 최소 상태를 만든다.
  * 게이트는 (교차검증 + IM + 최종 독립검증 + 출력사양 확정) 넷을 모두 요구한다.
  */
-function seed({ flags = [], unsourced = [], finalStatus = 'APPROVED FOR DISTRIBUTION', finalScore = 96, specLocked = true } = {}) {
+function seed({ flags = [], unsourced = [], finalStatus = 'APPROVED FOR DISTRIBUTION', finalScore = 96, specLocked = true, issuerSet = true } = {}) {
   store.createProjectDirs(PID);
   store.writeJson(PID, '11_QC/validation.json', { flags, verdict: 'PASS', score: { total: 90 } });
   store.writeJson(PID, '09_IM/im.json', { sections: [], citations: [], unsourcedNumbers: unsourced });
@@ -28,6 +28,11 @@ function seed({ flags = [], unsourced = [], finalStatus = 'APPROVED FOR DISTRIBU
   store.writeJson(PID, '01_Project/output-spec.json', {
     docType: 'im', version: 'v1.0', locked: specLocked, confirmedBy: specLocked ? '김대표' : null,
   });
+  // 발행 주체가 없으면 대외 배포를 막는다 (core/issuer.js) — 승인 검사의 기본 상태다.
+  // ★ 끄는 경우 파일을 지운다. 남겨 두면 앞 테스트가 쓴 값이 그대로 통과시킨다
+  const issuerFile = path.join(store.projectDir(PID), '01_Project', 'issuer.json');
+  if (issuerSet) store.writeJson(PID, '01_Project/issuer.json', { en: 'Sample Capital Co.,Ltd' });
+  else if (fs.existsSync(issuerFile)) fs.unlinkSync(issuerFile);
 }
 
 test('검증 없이는 승인할 수 없다', () => {
@@ -100,3 +105,14 @@ test('REJECT 로 기록하면 배포가 다시 막힌다', () => {
 });
 
 test.after(() => fs.rmSync(ROOT, { recursive: true, force: true }));
+
+test('★ 발행 주체가 없으면 대외 배포를 막는다', () => {
+  seed({ issuerSet: false });
+  const c = gate.canApprove(PID);
+  assert.strictEqual(c.allowed, false);
+  assert.ok(c.reasons.some(r => r.includes('발행 주체')),
+    '누가 낸 문서인지 모르는 채로 대외 배포하면 회수할 수 없다');
+
+  seed();   // 발행 주체를 넣으면 통과한다
+  assert.strictEqual(gate.canApprove(PID).allowed, true);
+});
