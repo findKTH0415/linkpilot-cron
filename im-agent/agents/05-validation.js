@@ -18,6 +18,8 @@
 
 const { FIELDS, labelFor, rangeViolation, requiredFor } = require('../core/dictionary');
 const fsc = require('../connectors/fsc');
+const molit = require('../connectors/molit');
+const pnuUtil = require('../connectors/pnu');
 const { round, formatEok } = require('../core/numeric');
 const { kstDate, daysBetween } = require('../core/kst');
 
@@ -232,6 +234,56 @@ async function checkSponsor(ds, ctx, today) {
   return flags;
 }
 
+/**
+ * 인허가 현황 대조 — 건축HUB 인허가 이력과 사람이 적은 값을 맞춰 본다.
+ *
+ * ★ **자동으로 채우지 않는다.** 한 필지에 인허가가 여러 건 쌓인다(표본 11건).
+ *   과거 건물 이력이 섞이므로 "최신 건 = 이 딜의 인허가" 라고 단정할 수 없다.
+ *   개발 예정지라면 아직 인허가가 없는 것이 정상이고, 그때 공부에는 옛 건물의
+ *   허가만 남아 있다. 그걸 집어 채우면 없는 인허가를 있다고 적는 셈이다.
+ *
+ * ★ 대신 **근거를 옆에 놓는다.** 사람이 판단할 수 있게 공부상 이력을 보여 주고,
+ *   적힌 값과 어긋나는 경우에만 경고한다.
+ */
+async function checkPermitRecord(ds, ctx) {
+  const flags = [];
+  const pnu = ds.get('geo.pnu');
+  if (!pnu || !molit.isAvailable()) return flags;
+
+  const parsed = pnuUtil.parse(pnu.value);
+  if (!parsed) return flags;
+
+  const r = await molit.buildingPermits(parsed);
+  if (!r.ok) return flags;   // 이력이 없는 필지는 정상이다 — 경고하지 않는다
+
+  const claimed = ds.get('legal.permit_status');
+  const latest = r.latest;
+  const record = `공부상 최신 인허가: ${latest.stage} ${latest.date}`
+    + (latest.archType ? ` (${latest.archType}` + (latest.totalAreaSqm ? `, 연면적 ${latest.totalAreaSqm}㎡)` : ')') : '')
+    + ` · 이력 ${r.count}건`;
+
+  if (!claimed) {
+    // checkLegal 이 이미 RED 를 올렸다. 여기서는 채울 근거만 옆에 놓는다.
+    flags.push(flag('INFO', 'PERMIT_RECORD',
+      `인허가 현황이 비어 있다 — ${record}. 이 딜의 인허가인지 확인해 입력해야 한다`,
+      { keys: ['legal.permit_status'] }));
+    return flags;
+  }
+
+  // 사람이 '준공/사용승인' 이라 적었는데 공부에 사용승인일이 없으면 어긋난다
+  const saysDone = /준공|사용승인|완료/.test(String(claimed.value));
+  const hasApproval = r.value.some(p => p.useAprDay);
+
+  if (saysDone && !hasApproval) {
+    flags.push(flag('YELLOW', 'PERMIT_RECORD',
+      `인허가를 "${claimed.value}" 로 적었으나 공부에 사용승인 기록이 없다 — ${record}`,
+      { keys: ['legal.permit_status'] }));
+  } else {
+    flags.push(flag('INFO', 'PERMIT_RECORD', record, { keys: ['legal.permit_status'] }));
+  }
+  return flags;
+}
+
 async function run(input, ctx) {
   const ds = ctx.dataset;
   if (!ds) throw new Error('ctx.dataset 필요');
@@ -262,6 +314,7 @@ async function run(input, ctx) {
   flags.push(...checkConsistency(ds));
   flags.push(...checkLegal(ds));
   flags.push(...await checkSponsor(ds, ctx, kstDate()));
+  flags.push(...await checkPermitRecord(ds, ctx));
 
   // ④ 미검증 값 (독립출처 1개)
   const single = ds.keys().filter(k => {
@@ -392,4 +445,4 @@ async function run(input, ctx) {
 
 function clamp(n) { return Math.max(0, Math.min(100, Math.round(n))); }
 
-module.exports = { id: '05_validation', label: 'Cross Validation Agent', inputSchema, outputSchema, run, checkConsistency, checkLegal, checkSponsor };
+module.exports = { id: '05_validation', label: 'Cross Validation Agent', inputSchema, outputSchema, run, checkConsistency, checkLegal, checkSponsor, checkPermitRecord };

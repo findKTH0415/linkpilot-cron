@@ -172,4 +172,80 @@ async function buildingRegister({ sigunguCd, bjdongCd, bun, ji }) {
   };
 }
 
-module.exports = { trades, buildingRegister, isAvailable, keyFormatError, TRADE_ENDPOINTS, toTrade, PROVIDER };
+/**
+ * 인허가 단계 판정 — 날짜가 찍힌 순서가 곧 진행 단계다.
+ *
+ * ★ 건축HUB 는 '상태' 필드를 주지 않는다. 허가일·착공일·사용승인일이 있고,
+ *   어디까지 찍혔는지가 단계다. 뒤에서부터 본다.
+ */
+function permitStage(p) {
+  if (p.useAprDay) return { stage: '사용승인', order: 4, date: p.useAprDay };
+  if (p.realStcnsDay) return { stage: '착공', order: 3, date: p.realStcnsDay };
+  if (p.archPmsDay) return { stage: '건축허가', order: 2, date: p.archPmsDay };
+  if (p.stcnsSchedDay) return { stage: '착공예정', order: 1, date: p.stcnsSchedDay };
+  return { stage: '미확인', order: 0, date: null };
+}
+
+function txt(v) {
+  const s = String(v == null ? '' : v).trim();
+  return s || null;
+}
+
+function day(v) {
+  const s = String(v == null ? '' : v).replace(/\D/g, '');
+  return /^\d{8}$/.test(s) ? s : null;
+}
+
+/**
+ * 건축인허가 (건축HUB) — 필지의 인허가 이력.
+ *
+ * ★ **한 필지에 여러 건이 쌓인다** (표본 필지는 11건). 과거 건물의 인허가가
+ *   섞이므로 "가장 최근 건 = 이 프로젝트의 인허가" 라고 단정할 수 없다.
+ *   그래서 하나를 고르지 않고 **이력 전체를 최신순으로** 돌려준다.
+ *   무엇이 이 딜의 인허가인지는 사람이 안다.
+ *
+ * ★ 정렬을 직접 한다. 이 저장소가 공공 API 정렬 방향에 걸린 것이 다섯 번째다.
+ */
+async function buildingPermits({ sigunguCd, bjdongCd, bun, ji }) {
+  if (!isAvailable()) return unavailable('건축인허가');
+  const bad = keyFormatError(); if (bad) return bad;
+  if (!sigunguCd || !bjdongCd) return { ok: false, error: '법정동코드 없음' };
+
+  const r = await call('ArchPmsHubService/getApBasisOulnInfo', {
+    sigunguCd, bjdongCd, bun, ji, numOfRows: 100, pageNo: 1,
+  }, 'permit', { sigunguCd, bjdongCd, bun, ji });
+
+  if (!r.ok) return r;
+  if (!r.value.length) return { ok: false, error: '건축인허가 자료 없음 (인허가 이력이 없는 필지)' };
+
+  const rows = r.value.map((x) => {
+    const p = {
+      pk: x.mgmPmsrgstPk || null,
+      // ★ 빈 값이 '' 가 아니라 공백 한 칸으로 오는 필드가 있다. trim 없이 두면
+      //   화면에 '( )' 처럼 찍힌다 — 값이 있는 줄 알고 들여다보게 된다.
+      name: txt(x.bldNm),
+      archType: txt(x.archGbCdNm),            // 신축 / 증축 / 대수선 / 용도변경
+      mainUse: txt(x.mainPurpsCdNm),
+      totalAreaSqm: num(x.totArea),
+      platAreaSqm: num(x.platArea),
+      bcRatio: num(x.bcRat),
+      vlRatio: num(x.vlRat),
+      archPmsDay: day(x.archPmsDay),
+      stcnsSchedDay: day(x.stcnsSchedDay),
+      realStcnsDay: day(x.realStcnsDay),
+      useAprDay: day(x.useAprDay),
+    };
+    return { ...p, ...permitStage(p) };
+  });
+
+  // 최신 인허가가 앞에 오게 한다 (날짜가 없는 건은 뒤로)
+  rows.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+
+  return {
+    ok: true, cached: r.cached, value: rows,
+    latest: rows[0],
+    count: rows.length,
+  };
+}
+
+module.exports = { trades, buildingRegister, buildingPermits, permitStage, isAvailable, keyFormatError, TRADE_ENDPOINTS, toTrade, PROVIDER };

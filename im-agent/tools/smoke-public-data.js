@@ -323,7 +323,21 @@ async function main() {
     }
   }
 
-  // ── 11. 기업기본정보 (금융위 — 시행사 실체 확인) ─────────
+  // ── 11. 건축인허가 (건축HUB — 인허가 현황 대조) ─────────
+  if (parsedPnu && molit.isAvailable()) {
+    const pm = await molit.buildingPermits(parsedPnu);
+    if (pm.ok) {
+      report('건축인허가 (건축HUB)', true,
+        `이력 ${pm.count}건 · 최신 ${pm.latest.stage} ${pm.latest.date}`
+        + (pm.latest.archType ? ` (${pm.latest.archType})` : ''));
+      const done = pm.value.filter(x => x.useAprDay).length;
+      console.log(`  단계 분포: 사용승인 ${done}건 · 착공 ${pm.value.filter(x => x.realStcnsDay).length}건 · 허가 ${pm.value.filter(x => x.archPmsDay).length}건`);
+    } else {
+      report('건축인허가 (건축HUB)', false, pm.error);
+    }
+  }
+
+  // ── 12. 기업기본정보 (금융위 — 시행사 실체 확인) ─────────
   if (fsc.isAvailable()) {
     const NAME = argOf('--sponsor') || '롯데케미칼';
     const r = await fsc.corpOutline(NAME);
