@@ -414,3 +414,36 @@ test('중대 규제가 있으면 값으로만 두지 않고 경고한다', () =>
   assert.match(src, /사업 가능 여부/,
     '개발제한구역을 값 한 줄로만 적으면 용적률 표 옆에서 묻힌다');
 });
+
+// ── data.go.kr 오류코드 해석 ───────────────────────────────────────
+//
+// 코드만 보여주면 무엇을 해야 하는지 알 수 없다. 특히 20·30 은 "키가 틀렸다"가
+// 아니라 **API 별 활용신청이 승인되지 않았다**는 뜻이다 — 그 구분을 못 하면
+// 멀쩡한 키를 계속 재발급받으면서 원인에 도달하지 못한다.
+
+test('★ 활용신청 미승인을 키 오류와 구분해서 말한다', () => {
+  const xml = require('../connectors/xml');
+  ['20', '30'].forEach((code) => {
+    const msg = xml.explainCode(code, 'SERVICE_ACCESS_DENIED_ERROR');
+    assert.match(msg, /활용신청/, `${code} 이 활용신청 문제라는 것을 말하지 않는다`);
+  });
+  assert.match(xml.explainCode('22', ''), /한도 초과/);
+  assert.match(xml.explainCode('31', ''), /만료/);
+  assert.match(xml.explainCode('03', ''), /키 문제가 아니다/,
+    '자료 없음을 키 문제로 오해하면 엉뚱한 곳을 고친다');
+});
+
+test('모르는 코드는 제공처 메시지를 그대로 남긴다', () => {
+  const xml = require('../connectors/xml');
+  const msg = xml.explainCode('77', 'SOMETHING NEW');
+  assert.match(msg, /77/);
+  assert.match(msg, /SOMETHING NEW/, '해석 못 한다고 원문을 버리면 단서가 사라진다');
+});
+
+test('JSON·XML 응답 모두 같은 해석을 쓴다', () => {
+  const xml = require('../connectors/xml');
+  const j = xml.normalize(JSON.stringify({ response: { header: { resultCode: '30', resultMsg: 'X' } } }));
+  const x = xml.normalize('<response><header><resultCode>30</resultCode><resultMsg>X</resultMsg></header></response>');
+  assert.strictEqual(j.error, x.error, '형식에 따라 다른 사유가 나오면 대조가 안 된다');
+  assert.match(j.error, /활용신청/);
+});
