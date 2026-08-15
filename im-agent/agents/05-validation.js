@@ -253,14 +253,28 @@ async function checkPermitRecord(ds, ctx) {
   const parsed = pnuUtil.parse(pnu.value);
   if (!parsed) return flags;
 
-  const r = await molit.buildingPermits(parsed);
-  if (!r.ok) return flags;   // 이력이 없는 필지는 정상이다 — 경고하지 않는다
+  // ★ **두 트랙을 다 본다.** 30세대 이상 공동주택은 건축허가가 아니라 주택법
+  //   사업계획승인을 받으므로 건축인허가에는 나오지 않는다. 한쪽만 보면 주택
+  //   개발 딜에서 "인허가 기록 없음" 으로 오판한다.
+  const [arch, house] = await Promise.all([
+    molit.buildingPermits(parsed),
+    molit.housingPermits(parsed),
+  ]);
+  if (!arch.ok && !house.ok) return flags;   // 이력이 없는 필지는 정상이다
+
+  const parts = [];
+  if (arch.ok) {
+    const a = arch.latest;
+    parts.push(`건축법 ${a.stage} ${a.date}` + (a.archType ? `(${a.archType})` : '') + ` · ${arch.count}건`);
+  }
+  if (house.ok) {
+    const h = house.latest;
+    parts.push(`주택법 ${h.stage} ${h.date}`
+      + (h.households ? `(${h.households}세대)` : '') + ` · ${house.count}건`);
+  }
 
   const claimed = ds.get('legal.permit_status');
-  const latest = r.latest;
-  const record = `공부상 최신 인허가: ${latest.stage} ${latest.date}`
-    + (latest.archType ? ` (${latest.archType}` + (latest.totalAreaSqm ? `, 연면적 ${latest.totalAreaSqm}㎡)` : ')') : '')
-    + ` · 이력 ${r.count}건`;
+  const record = `공부상 인허가 — ${parts.join(' / ')}`;
 
   if (!claimed) {
     // checkLegal 이 이미 RED 를 올렸다. 여기서는 채울 근거만 옆에 놓는다.
@@ -270,9 +284,11 @@ async function checkPermitRecord(ds, ctx) {
     return flags;
   }
 
-  // 사람이 '준공/사용승인' 이라 적었는데 공부에 사용승인일이 없으면 어긋난다
-  const saysDone = /준공|사용승인|완료/.test(String(claimed.value));
-  const hasApproval = r.value.some(p => p.useAprDay);
+  // 사람이 '준공' 이라 적었는데 공부에 그 기록이 없으면 어긋난다.
+  // 건축법은 사용승인, 주택법은 사용검사다 — 둘 중 하나라도 있으면 준공이다.
+  const saysDone = /준공|사용승인|사용검사|완료/.test(String(claimed.value));
+  const hasApproval = (arch.ok && arch.value.some(p => p.useAprDay))
+    || (house.ok && house.value.some(p => p.useInsptDay));
 
   if (saysDone && !hasApproval) {
     flags.push(flag('YELLOW', 'PERMIT_RECORD',

@@ -248,4 +248,67 @@ async function buildingPermits({ sigunguCd, bjdongCd, bun, ji }) {
   };
 }
 
-module.exports = { trades, buildingRegister, buildingPermits, permitStage, isAvailable, keyFormatError, TRADE_ENDPOINTS, toTrade, PROVIDER };
+/**
+ * 주택인허가 단계 — **건축법이 아니라 주택법 트랙이다.**
+ *
+ * ★ 30세대 이상 공동주택은 건축허가가 아니라 **사업계획승인**을 받는다.
+ *   그래서 건축인허가(ArchPmsHubService)에는 나오지 않는다. 주택 개발 딜에서
+ *   "인허가 기록 없음" 으로 보이는 것은 대개 여기를 안 봤기 때문이다.
+ *
+ *   건축법:  건축허가 → 착공 → 사용승인
+ *   주택법:  사업계획승인 → 착공 → 사용검사     ← 이쪽
+ */
+function housingPermitStage(p) {
+  if (p.useInsptDay) return { stage: '사용검사', order: 4, date: p.useInsptDay };
+  if (p.stcnsDay) return { stage: '착공', order: 3, date: p.stcnsDay };
+  if (p.apprvDay) return { stage: '사업계획승인', order: 2, date: p.apprvDay };
+  if (p.stcnsSchedDay) return { stage: '착공예정', order: 1, date: p.stcnsSchedDay };
+  return { stage: '미확인', order: 0, date: null };
+}
+
+/**
+ * 주택인허가 (건축HUB) — 필지의 주택법 인허가 이력.
+ * ★ 오퍼레이션명이 `getHpBasisOulnInfo` 다. 서비스는 HsPmsHubService 인데
+ *   오퍼레이션 접두사는 Hp 다 — 둘이 어긋나 있어서 이름만으로는 못 맞춘다.
+ */
+async function housingPermits({ sigunguCd, bjdongCd, bun, ji }) {
+  if (!isAvailable()) return unavailable('주택인허가');
+  const bad = keyFormatError(); if (bad) return bad;
+  if (!sigunguCd || !bjdongCd) return { ok: false, error: '법정동코드 없음' };
+
+  const r = await call('HsPmsHubService/getHpBasisOulnInfo', {
+    sigunguCd, bjdongCd, bun, ji, numOfRows: 100, pageNo: 1,
+  }, 'hspermit', { sigunguCd, bjdongCd, bun, ji });
+
+  if (!r.ok) return r;
+  if (!r.value.length) return { ok: false, error: '주택인허가 자료 없음 (주택법 대상이 아닌 필지)' };
+
+  const rows = r.value.map((x) => {
+    const p = {
+      pk: x.mgmHsrgstPk || null,
+      name: txt(x.bldNm),
+      mainUse: txt(x.purpsCdNm),
+      structure: txt(x.strctCdNm),
+      totalAreaSqm: num(x.totArea),
+      // ★ 세대수는 기본개요에 채워지지 않는다 (실측: 전부 0). 0 을 그대로 두면
+      //   "0세대" 로 읽혀 자료가 있는 것처럼 보인다. 세대수가 필요하면 동별개요를
+      //   따로 불러야 한다 — 여기서는 없는 것으로 둔다.
+      households: num(x.totHhldCnt) || null,
+      apprvDay: day(x.apprvDay),            // 사업계획승인일
+      stcnsSchedDay: day(x.stcnsSchedDay),
+      stcnsDay: day(x.stcnsDay),
+      useInsptDay: day(x.useInsptDay),      // 사용검사일
+      demolition: txt(x.demolExtngGbCdNm),  // 멸실 구분
+    };
+    return { ...p, ...housingPermitStage(p) };
+  });
+
+  rows.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+  return { ok: true, cached: r.cached, value: rows, latest: rows[0], count: rows.length };
+}
+
+module.exports = {
+  trades, buildingRegister, buildingPermits, housingPermits,
+  permitStage, housingPermitStage,
+  isAvailable, keyFormatError, TRADE_ENDPOINTS, toTrade, PROVIDER,
+};

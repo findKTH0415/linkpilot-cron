@@ -337,7 +337,23 @@ async function main() {
     }
   }
 
-  // ── 12. 기업기본정보 (금융위 — 시행사 실체 확인) ─────────
+  // ── 12. 주택인허가 (건축HUB — 주택법 트랙) ──────────────
+  // 30세대 이상 공동주택은 건축허가가 아니라 사업계획승인을 받는다.
+  // 이 필지에 자료가 없는 것은 정상이다 (주택법 대상이 아닌 필지).
+  if (parsedPnu && molit.isAvailable()) {
+    const hp = await molit.housingPermits(parsedPnu);
+    if (hp.ok) {
+      report('주택인허가 (건축HUB)', true,
+        `이력 ${hp.count}건 · 최신 ${hp.latest.stage} ${hp.latest.date}`
+        + (hp.latest.households ? ` (${hp.latest.households}세대)` : ''));
+    } else if (/자료 없음/.test(hp.error)) {
+      report('주택인허가 (건축HUB)', true, `${hp.error} — 조회 자체는 정상`);
+    } else {
+      report('주택인허가 (건축HUB)', false, hp.error);
+    }
+  }
+
+  // ── 13. 기업기본정보 (금융위 — 시행사 실체 확인) ─────────
   if (fsc.isAvailable()) {
     const NAME = argOf('--sponsor') || '롯데케미칼';
     const r = await fsc.corpOutline(NAME);
