@@ -102,6 +102,57 @@ test('FILLS 에 적힌 key 를 그 Agent 가 실제로 push 한다', () => {
   });
 });
 
+/**
+ * ★ 반대 방향 검사. 위 테스트는 "선언한 것을 실제로 채우는가"를 본다.
+ *   여기서는 **"채우면서 선언하지 않은 것이 없는가"** 를 본다.
+ *
+ *   07 Geo 는 건축물대장에서 연면적·층수 등을 push 하지만 FILLS 에 넣지 않았다.
+ *   대장은 **건물이 이미 있을 때만** 있고, 개발사업은 대개 나대지에서 시작한다.
+ *   FILLS 에 넣으면 화면이 연면적을 안 물어보고 값은 빈 채로 남는다 (B-18).
+ *
+ *   그래서 조건부 채움은 CONDITIONAL_FILLS 에 따로 적는다 — 선언 없이 두면
+ *   나중에 누군가 "빠졌네" 하고 FILLS 로 옮긴다.
+ */
+test('채우면서 선언하지 않은 key 가 없다 (조건부는 CONDITIONAL_FILLS 에)', () => {
+  const AGENTS = ['01-project', '07-geo', '08-appraisal'];
+  AGENTS.forEach((name) => {
+    const mod = require(`../agents/${name}`);
+    const src = fs.readFileSync(path.join(__dirname, '..', 'agents', `${name}.js`), 'utf8');
+
+    const pushed = new Set();
+    [...src.matchAll(/key: '([a-z_.]+)'/g)].forEach(m => pushed.add(m[1]));
+    [...src.matchAll(/push\('([a-z_.]+)'/g)].forEach(m => pushed.add(m[1]));
+
+    const declared = new Set(mod.FILLS || []);
+    const conditional = new Set(
+      Object.values(mod.CONDITIONAL_FILLS || {}).flat());
+
+    [...pushed].forEach((k) => {
+      if (!dict.FIELDS[k]) return;                 // 계산 전용 key 는 입력 대상이 아니다
+      assert.ok(declared.has(k) || conditional.has(k),
+        `${name}: ${k} 를 채우면서 어디에도 선언하지 않았다 — ` +
+        '조건 없이 채우면 FILLS, 조건이 붙으면 CONDITIONAL_FILLS 에 적는다');
+    });
+  });
+});
+
+/** 조건부 채움은 화면 계획에 들어가면 안 된다 — 들어가면 안 물어본다 */
+test('조건부 채움은 자동으로 잡히지 않는다', () => {
+  const conditional = Object.values(
+    require('../agents/07-geo').CONDITIONAL_FILLS || {}).flat();
+  assert.ok(conditional.length > 0, '조건부 목록이 비었다 — 검사가 의미를 잃는다');
+
+  withPublicKeys(() => {
+    const p = fieldplan.plan('generic');
+    conditional.forEach((k) => {
+      if (!dict.FIELDS[k]) return;
+      assert.notStrictEqual(p[k].fill, 'public',
+        `${k}: 건물이 있을 때만 나오는 값인데 항상 채워지는 것으로 잡혔다 — ` +
+        '나대지 딜에서 화면이 안 물어보고 빈 채로 남는다');
+    });
+  });
+});
+
 test('공공데이터로 채워지는 항목은 그 경로를 부르는 Agent 가 전부 반영된다', () => {
   const declared = new Set([].concat(
     require('../agents/07-geo').FILLS || [],

@@ -217,4 +217,24 @@ async function saveSatelliteImage(projectId, lat, lon, ctx) {
 const FILLS = ['geo.pnu', 'geo.lat', 'geo.lon',
   'land.area_sqm', 'land.zoning', 'land.far_limit', 'land.bcr_limit'];
 
-module.exports = { id: '07_geo', label: 'Geo / Satellite Agent', inputSchema, outputSchema, run, FILLS };
+/**
+ * **조건이 붙는** 채움 — 건축물대장은 **건물이 이미 있을 때만** 존재한다.
+ *
+ * ★ 이걸 FILLS 로 옮기면 안 된다. 개발사업은 대개 나대지에서 시작하고, 그때는
+ *   대장이 없어 이 값들이 안 들어온다. FILLS 에 넣는 순간 화면은 "자동으로
+ *   채워집니다"라며 **연면적을 안 물어보고**, 값은 빈 채로 남는다 (B-18 과
+ *   똑같은 실패다).
+ *
+ * ★ 그렇다고 선언 없이 두면 "왜 여기서 연면적이 나오지" 를 아무도 모른다.
+ *   그래서 목록은 남기되 화면 계획(fieldplan)에는 넣지 않는다.
+ *   `fieldplan.test.js` 가 (실제 push − FILLS) ⊆ CONDITIONAL_FILLS 를 검사한다.
+ */
+const CONDITIONAL_FILLS = {
+  '건축물대장(기존 건물이 있는 경우에만)':
+    ['building.gfa_sqm', 'building.footprint_sqm', 'building.floors', 'building.height_m'],
+};
+
+module.exports = {
+  id: '07_geo', label: 'Geo / Satellite Agent',
+  inputSchema, outputSchema, run, FILLS, CONDITIONAL_FILLS,
+};
