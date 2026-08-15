@@ -11,3 +11,6 @@ im-agent/ui/vanilla/preview.html
 
 # 브라우저 검증 시 생기는 DOM 덤프
 v-*.html
+
+# 결과 미리보기 — 표본 딜 IM 본문이 통째로 들어간다. 필요할 때 npm run im:result 로 만든다
+im-agent/ui/platform/result.html

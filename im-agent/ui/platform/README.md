@@ -265,10 +265,19 @@ process.on('SIGTERM', () => queue.stop());   // 자식 프로세스를 남기지
 ## 미리보기 (CLAUDE.md §8)
 
 ```bash
-npm run im:screens     # 화면 4개를 한 파일로 (preview.html)
+npm run im:screens     # 입력 화면 4개 (preview.html)
+npm run im:result      # 데모 파이프라인 실행 → 결과 화면 (result.html)
 npm run im:worklog     # 작업지시판 (worklog.html)
 npm run im:platform    # 플랫폼 단일 HTML
 ```
+
+`build-result.js` 는 **실제로 돌린 파이프라인의 산출물**을 읽는다. 프로젝트가 없으면
+만들지 않는다 — 빈 화면을 그리느니 만들지 않는 편이 낫다. 제작현황은
+`ui/vanilla/control-tower.js` 를 그대로 쓰고 스냅샷만 `mount(el, { fetch })` 로
+주입한다. 렌더를 복사하면 실제 화면과 미리보기가 갈리고 어느 쪽이 맞는지 알 수 없다.
+
+> 결과 미리보기는 **커밋하지 않는다.** 표본 딜의 IM 본문이 통째로 들어가고,
+> 파이프라인을 돌릴 때마다 달라진다. 필요할 때 위 명령으로 만든다.
 
 `build-preview.js` 는 화면을 **iframe 으로 나눠 담는다.** 한 문서에 이어 붙이면
 각자의 `<style>` 이 서로 덮고 `state` 같은 전역이 충돌한다 — iframe 은 화면을

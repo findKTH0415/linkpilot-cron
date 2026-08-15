@@ -14,7 +14,8 @@
     "im:page": "node im-agent/ui/vanilla/build-page.js",
     "im:platform": "node im-agent/ui/platform/build.js",
     "im:worklog": "node im-agent/ui/platform/build-worklog.js",
-    "im:screens": "node im-agent/ui/platform/build-preview.js"
+    "im:screens": "node im-agent/ui/platform/build-preview.js",
+    "im:result": "IM_AGENT_OFFLINE=1 node im-agent/cli.js demo >/dev/null && node im-agent/ui/platform/build-result.js"
   },
   "dependencies": {
     "solapi": "^5.5.1"
