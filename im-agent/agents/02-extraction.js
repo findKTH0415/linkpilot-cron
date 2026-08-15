@@ -280,4 +280,8 @@ async function run(input, ctx) {
 module.exports = {
   id: '02_extraction', label: 'Data Extraction Agent',
   inputSchema, outputSchema, run, extractFromLine, toText, unitCompatible, findAliasPos,
+  // ★ 접수 화면이 '올리기 전에' 지원 형식을 알려주려면 이 목록이 필요하다.
+  //   화면에 복사해 두면 여기가 바뀌는 날부터 갈린다 — 되는 줄 알고 올렸다가
+  //   추출 단계에서야 안 된다는 걸 알게 된다.
+  TEXT_EXT, ZIP_EXT, UNSUPPORTED_EXT,
 };

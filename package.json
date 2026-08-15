@@ -13,7 +13,8 @@
     "im:preview": "node im-agent/ui/vanilla/build-preview.js",
     "im:page": "node im-agent/ui/vanilla/build-page.js",
     "im:platform": "node im-agent/ui/platform/build.js",
-    "im:worklog": "node im-agent/ui/platform/build-worklog.js"
+    "im:worklog": "node im-agent/ui/platform/build-worklog.js",
+    "im:screens": "node im-agent/ui/platform/build-preview.js"
   },
   "dependencies": {
     "solapi": "^5.5.1"

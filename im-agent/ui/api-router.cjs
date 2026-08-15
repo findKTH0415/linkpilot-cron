@@ -25,6 +25,13 @@ const PROJECT_ID = /^LP-[A-Z]+-\d{4}-\d{3}$/;
 const DICT_KEY = /^[a-z_]+\.[a-z_]+$/;
 
 /**
+ * 업로드 한도. 화면과 서버가 같은 값을 봐야 하므로 여기서 한 번만 정한다.
+ * base64 는 원본보다 약 33% 크므로 본문 크기는 이보다 더 잡아야 한다.
+ */
+const MAX_FILE_BYTES = 20 * 1024 * 1024;
+const MAX_REQUEST_BYTES = 60 * 1024 * 1024;
+
+/**
  * @param {object} deps { agentRoot } — im-agent 저장소 경로 (IM_AGENT_ROOT 와 같은 값)
  */
 function createHandlers({ agentRoot, agentModulePath }) {
@@ -71,6 +78,32 @@ function createHandlers({ agentRoot, agentModulePath }) {
           fields: dict.FIELDS,
           computedKeys: dict.COMPUTED_KEYS,
           categories: dict.CATEGORY,
+        },
+      };
+    },
+
+    /**
+     * GET /intake — 접수 화면이 필요한 것 (자산유형·지원 형식·용량 한도).
+     *
+     * ★ 지원 형식을 화면에 복사해 두지 않으려고 있는 엔드포인트다.
+     *   추출기(02-extraction)가 아는 목록이 그대로 내려간다. 복사해 두면
+     *   되는 줄 알고 올렸다가 추출 단계에서야 안 된다는 걸 알게 된다.
+     */
+    async intake() {
+      const { TEMPLATES } = load('finance/templates');
+      const ext = load('agents/02-extraction');
+      const list = (s) => [...s].sort();
+      return {
+        status: 200,
+        body: {
+          assetTypes: Object.keys(TEMPLATES).map(id => ({ id, label: TEMPLATES[id].label })),
+          supported: {
+            text: list(ext.TEXT_EXT),
+            office: Object.keys(ext.ZIP_EXT).sort(),
+          },
+          unsupported: list(ext.UNSUPPORTED_EXT),
+          maxBytesPerFile: MAX_FILE_BYTES,
+          maxBytesPerRequest: MAX_REQUEST_BYTES,
         },
       };
     },
@@ -124,6 +157,9 @@ function createRouter(deps = {}) {
   const router = express.Router();
   const send = (res, r) => res.status(r.status).json(r.body);
 
+  router.get('/intake', async (req, res, next) => {
+    try { send(res, await h.intake()); } catch (e) { next(e); }
+  });
   router.get('/fields', async (req, res, next) => {
     try { send(res, await h.fields()); } catch (e) { next(e); }
   });
@@ -143,4 +179,7 @@ function createRouter(deps = {}) {
   return router;
 }
 
-module.exports = { createHandlers, createRouter, PROJECT_ID, DICT_KEY };
+module.exports = {
+  createHandlers, createRouter, PROJECT_ID, DICT_KEY,
+  MAX_FILE_BYTES, MAX_REQUEST_BYTES,
+};

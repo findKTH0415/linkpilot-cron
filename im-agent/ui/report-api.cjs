@@ -38,6 +38,10 @@ const DOC_PLANS = { im: 'pro', teaser: 'pro', summary: 'pro', validation: 'pro' 
 /** 화면에서 사람이 넣은 값의 표시. 다시 저장할 때 이전 입력을 찾아 지우는 데 쓴다 */
 const USER_NOTE = 'user_input';
 
+// 업로드 한도는 읽기 라우터와 한 값을 쓴다 (화면이 GET /intake 로 같은 값을 받는다)
+const { MAX_FILE_BYTES, MAX_REQUEST_BYTES } = require('./api-router.cjs');
+const mb = (n) => Math.round(n / (1024 * 1024) * 10) / 10;
+
 /** 산출물 경로 — 파일이 실제로 있는지로 판정한다 ('생성됨' 플래그를 믿지 않는다) */
 const OUTPUTS = [
   { id: 'im', name: 'IM 원문', rel: '09_IM/im.md' },
@@ -94,6 +98,141 @@ function createHandlers(deps) {
   }
 
   return {
+    /**
+     * POST /projects — 요청문으로 프로젝트를 만든다 (보고서 생성 1단계).
+     *
+     * ★ 여기서 **파이프라인 전체를 돌리지 않는다.** 01_project 하나만 부른다.
+     *   자료가 아직 없는데 추출·시장조사·재무모델을 돌리면 빈 값으로 산출물이
+     *   만들어지고 LLM 비용도 그냥 나간다.
+     *
+     * ★ 요청문에서 뽑은 값은 `source: 'user_request'` · `verified: false` 다.
+     *   사용자가 말했다는 것은 문서로 확인됐다는 뜻이 아니다 — 화면도 그렇게 표시한다.
+     */
+    async createProject(ctx, body) {
+      const g = gate(ctx, 'pro'); if (g.error) return g.error;
+
+      const b = body || {};
+      const request = String(b.request || '').trim();
+      if (request.length < 5) {
+        return bad('무엇을 만들지 한 줄로 적어 주세요 (예: 인천 남동공단 6.5MW 데이터센터 IM 작성)');
+      }
+      if (request.length > 2000) return bad('요청문이 너무 깁니다 (2,000자 이내)');
+
+      const { runAgent, STATUS } = load('core/runtime');
+      const { Dataset } = load('core/facts');
+      const { FIELDS } = load('core/dictionary');
+      const store = load('core/store');
+
+      const r = await runAgent('01_project', {
+        request,
+        projectName: b.projectName ? String(b.projectName).slice(0, 200) : undefined,
+        assetType: b.assetType ? String(b.assetType) : undefined,
+      }, { log: () => {} });
+
+      if (r.status === STATUS.ERROR) return bad(`프로젝트 생성 실패: ${r.error}`, 500);
+
+      const out = r.output;
+      const ds = new Dataset(out.projectId, FIELDS);
+      ds.addMany(out.facts || []);
+      ds.resolve();
+      store.writeJson(out.projectId, '01_Project/dataset.json', ds.toJSON());
+
+      return {
+        status: 201,
+        body: {
+          projectId: out.projectId,
+          templateId: out.templateId,
+          name: out.name,
+          // 뽑힌 값을 그대로 돌려준다. 무엇을 넘겨짚었는지 사람이 봐야 한다
+          seeded: (out.facts || []).map(f => ({
+            key: f.key, value: f.value, unit: f.unit || null,
+            quote: f.quote || null, source: f.source, verified: false,
+          })),
+          at: kstStamp(new Date()),
+        },
+      };
+    },
+
+    /**
+     * POST /projects/:id/sources — 원본 자료를 올린다.
+     *
+     * ★ 파일명을 그대로 쓰지 않는다. `../` 하나로 프로젝트 폴더 밖에 쓸 수 있다.
+     *   basename 으로 자르고, 최종 경로가 02_Source_Data 안인지 다시 확인한다.
+     *
+     * ★ 읽지 못하는 형식도 **거부하지 않고 저장하되 그렇다고 말한다.**
+     *   PDF 원본을 보관해야 할 이유는 많다. 다만 본문이 추출되지 않는다는 사실을
+     *   올린 직후에 알려야 한다 — 추출 단계에서야 알면 이미 늦다.
+     */
+    async uploadSources(ctx, projectId, body) {
+      const g = gate(ctx, 'pro'); if (g.error) return g.error;
+      const e = checkId(projectId); if (e) return e;
+
+      const files = (body && Array.isArray(body.files)) ? body.files : null;
+      if (!files || !files.length) return bad('올릴 파일이 없습니다');
+      if (files.length > 50) return bad('한 번에 50개까지 올릴 수 있습니다');
+
+      const store = load('core/store');
+      const ext02 = load('agents/02-extraction');
+      const dir = path.join(store.projectDir(projectId), '02_Source_Data');
+      if (!fs.existsSync(dir)) return bad('프로젝트를 찾을 수 없습니다', 404);
+
+      const saved = [];
+      const rejected = [];
+      let total = 0;
+
+      for (const f of files) {
+        const raw = String((f && f.name) || '');
+        // ★ 경로 조작 차단 — basename 으로 자른 뒤 결과 경로를 다시 확인한다
+        const name = path.basename(raw).replace(/[\u0000-\u001f\u007f]/g, '').trim();
+        if (!name || name.startsWith('.')) {
+          rejected.push({ name: raw, reason: '파일명이 올바르지 않습니다' });
+          continue;
+        }
+        const full = path.join(dir, name);
+        if (path.relative(dir, full).includes('..') || path.dirname(full) !== dir) {
+          rejected.push({ name: raw, reason: '경로가 올바르지 않습니다' });
+          continue;
+        }
+
+        let buf;
+        try {
+          buf = Buffer.from(String(f.contentBase64 || ''), 'base64');
+        } catch (_) {
+          rejected.push({ name, reason: '내용을 읽을 수 없습니다' });
+          continue;
+        }
+        if (!buf.length) { rejected.push({ name, reason: '빈 파일입니다' }); continue; }
+        if (buf.length > MAX_FILE_BYTES) {
+          rejected.push({ name, reason: `파일이 너무 큽니다 (${mb(buf.length)}MB · 한도 ${mb(MAX_FILE_BYTES)}MB)` });
+          continue;
+        }
+        total += buf.length;
+        if (total > MAX_REQUEST_BYTES) {
+          rejected.push({ name, reason: `한 번에 올릴 수 있는 총 용량을 넘었습니다 (한도 ${mb(MAX_REQUEST_BYTES)}MB)` });
+          continue;
+        }
+
+        try {
+          fs.writeFileSync(full, buf);
+        } catch (err) {
+          rejected.push({ name, reason: `저장 실패: ${err.message}` });
+          continue;
+        }
+
+        const lower = path.extname(name).toLowerCase();
+        const readable = ext02.TEXT_EXT.has(lower) || !!ext02.ZIP_EXT[lower];
+        saved.push({
+          name, bytes: buf.length, readable,
+          note: readable ? null
+            : (ext02.UNSUPPORTED_EXT.has(lower)
+              ? '본문을 읽지 못합니다 — 보관은 되지만 수치 추출에는 쓰이지 않습니다'
+              : '처음 보는 형식입니다 — 본문을 읽지 못할 수 있습니다'),
+        });
+      }
+
+      return ok({ saved, rejected, at: kstStamp(new Date()) });
+    },
+
     /** GET /projects/:id/spec */
     async getSpec(ctx, projectId) {
       const g = gate(ctx, 'pro'); if (g.error) return g.error;
@@ -411,6 +550,8 @@ function createRouter(deps = {}) {
     try { send(res, await fn(req)); } catch (e) { next(e); }
   };
 
+  router.post('/projects', wrap(req => h.createProject(req, req.body)));
+  router.post('/projects/:id/sources', wrap(req => h.uploadSources(req, req.params.id, req.body)));
   router.get('/projects/:id/spec', wrap(req => h.getSpec(req, req.params.id)));
   router.post('/projects/:id/spec', wrap(req => h.saveSpec(req, req.params.id, req.body)));
   router.post('/projects/:id/spec/confirm', wrap(req => h.confirmSpec(req, req.params.id, req.body)));
@@ -422,4 +563,7 @@ function createRouter(deps = {}) {
   return router;
 }
 
-module.exports = { createHandlers, createRouter, DOC_PLANS, OUTPUTS, PLAN_RANK, PROJECT_ID };
+module.exports = {
+  createHandlers, createRouter, DOC_PLANS, OUTPUTS, PLAN_RANK, PROJECT_ID,
+  MAX_FILE_BYTES, MAX_REQUEST_BYTES,
+};

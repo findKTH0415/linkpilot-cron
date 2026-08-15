@@ -280,6 +280,14 @@ window.LINKPILOT_FIELDS_CFG = {
   }
 
   function load() {
+    // 미리보기: 서버 없이 화면을 보기 위해 필드 정의를 미리 심어 둔 경우.
+    // ★ 값을 지어내지 않는다 — 사전(core/dictionary.js)에서 그대로 가져온 것이다
+    if (C.preload) {
+      state.fields = C.preload.fields || {};
+      state.computedKeys = C.preload.computedKeys || [];
+      state.loadError = null;
+      return render();
+    }
     if (!C.api) { state.loadError = 'API 주소가 설정되지 않았습니다'; return render(); }
     // 필드 정의는 프로젝트와 무관하다. 값은 프로젝트별이다
     var jobs = [call('GET', '/fields')];
