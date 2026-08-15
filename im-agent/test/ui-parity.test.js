@@ -142,3 +142,172 @@ test('★ 격차 경고 문구가 두 판에서 글자까지 같다', () => {
   assert.strictEqual(v.message, l.message);
   assert.match(v.message, /아직 배포할 수 없다/);
 });
+
+// ── 데이터 계보 모달 (B-11) ───────────────────────────────────────
+//
+// React 판에만 있고 순수 JS 판에는 없었다. 본체가 단일 HTML 이면 **숫자를 눌러
+// 출처를 확인하는 경로가 통째로 막힌다** — 출처 없는 숫자를 막는 것이 이 시스템의
+// 전부인데, 화면에서 출처를 볼 수 없으면 그 규칙이 사람에게는 보이지 않는다.
+
+const fs = require('fs');
+const path = require('path');
+
+/** 최소 DOM. 실제 브라우저가 아니라도 '무엇을 그리는가'는 여기서 확인된다 */
+function makeDom() {
+  function textNode(v) { return { nodeType: 3, textContent: String(v), children: [], className: '' }; }
+  function element(tag) {
+    return {
+      nodeType: 1, tagName: String(tag).toUpperCase(),
+      className: '', id: '', style: {}, attrs: {}, listeners: {},
+      children: [], _text: '',
+      set textContent(v) { this._text = String(v); this.children = []; },
+      get textContent() {
+        return this._text + this.children.map(c => c.textContent).join('');
+      },
+      appendChild(c) { this.children.push(c); return c; },
+      setAttribute(k, v) { this.attrs[k] = v; },
+      addEventListener(k, fn) { (this.listeners[k] = this.listeners[k] || []).push(fn); },
+      removeEventListener() {},
+    };
+  }
+  return {
+    createElement: element,
+    createTextNode: textNode,
+    addEventListener() {}, removeEventListener() {}, hidden: false,
+  };
+}
+
+function walk(node, out) {
+  out = out || [];
+  if (!node) return out;
+  out.push(node);
+  (node.children || []).forEach(c => walk(c, out));
+  return out;
+}
+function classes(node) {
+  return walk(node).flatMap(n => String(n.className || '').split(/\s+/)).filter(Boolean);
+}
+
+function renderLineageWith(state) {
+  const before = global.document;
+  global.document = makeDom();
+  try { return vanilla.renderLineage(state, () => {}); } finally {
+    if (before === undefined) delete global.document; else global.document = before;
+  }
+}
+
+const FOUND = {
+  key: 'building.gfa_sqm',
+  lineage: {
+    found: true, key: 'building.gfa_sqm', label: '연면적', value: 12345, unit: '㎡',
+    grade: 'A', verified: true, conflicted: true,
+    chain: [
+      { stage: '02_extraction', label: '사업계획서 p.12', detail: '표 3-1', value: 12345, adopted: true },
+      { stage: '07_geo', label: '건축물대장', detail: null, value: 11980, adopted: false },
+    ],
+  },
+  impact: {
+    totalAffected: 3, requiresNewVersion: true,
+    rerunOrder: ['04_financial', '05_validation', '06_writer'],
+    affectedValues: [{ key: 'returns.irr', label: 'IRR' }],
+    affectedDocuments: ['09_IM/im.md', '12_Final/im-a4.html'],
+  },
+  loading: false, error: null,
+};
+
+test('★ 계보 모달이 순수 JS 판에도 있다', () => {
+  assert.strictEqual(typeof vanilla.renderLineage, 'function',
+    '없으면 본체(단일 HTML)에서 숫자→출처 경로가 막힌다');
+  assert.strictEqual(vanilla.renderLineage(null, () => {}), null);
+  assert.strictEqual(vanilla.renderLineage({ key: null }, () => {}), null);
+});
+
+test('★ 채택되지 않은 후보를 지우지 않는다', () => {
+  const node = renderLineageWith(FOUND);
+  const cls = classes(node);
+  assert.ok(cls.includes('is-rejected'),
+    '미채택 후보를 빼면 "이 값밖에 없었다"로 읽힌다 — 어느 값이 버려졌는지 알아야 판단할 수 있다');
+  assert.match(node.textContent, /미채택/);
+  assert.match(node.textContent, /11980/, '버려진 값 자체도 보여야 한다');
+});
+
+test('값 충돌을 명시한다', () => {
+  const node = renderLineageWith(FOUND);
+  assert.ok(classes(node).includes('lp-ct__notice--bad'));
+  assert.match(node.textContent, /값 충돌/);
+});
+
+test('★ 추적이 안 되면 경로를 지어내지 않는다', () => {
+  const node = renderLineageWith({
+    key: 'debt.rate',
+    lineage: { found: false, reason: '이 값을 만든 Agent 기록이 없다' },
+    impact: null, loading: false, error: null,
+  });
+  assert.match(node.textContent, /추적 불가/);
+  assert.match(node.textContent, /기록이 없다/);
+  assert.ok(!classes(node).includes('lp-ct__chain'), '없는 경로를 그리지 않는다');
+});
+
+test('변경 영향이 재실행 순서까지 보여준다', () => {
+  const node = renderLineageWith(FOUND);
+  assert.match(node.textContent, /3개/);
+  assert.match(node.textContent, /04_financial → 05_validation → 06_writer/);
+  assert.match(node.textContent, /새 버전이 필요합니다/);
+  assert.match(node.textContent, /12_Final\/im-a4\.html/);
+});
+
+test('불러오는 중·실패를 그대로 말한다', () => {
+  assert.match(renderLineageWith({ key: 'x', loading: true }).textContent, /불러오는 중/);
+  assert.match(renderLineageWith({ key: 'x', error: 'HTTP 500' }).textContent, /HTTP 500/);
+});
+
+test('★ 클래스명이 React 판과 같다 (스타일시트가 한 벌이다)', () => {
+  const jsx = fs.readFileSync(path.join(__dirname, '..', 'ui', 'Lineage.jsx'), 'utf8');
+  const inJsx = new Set([...jsx.matchAll(/lp-ct__[a-z-]+/g)].map(m => m[0]));
+
+  // 한 상태만 보면 그 상태에 없는 클래스가 전부 '누락'으로 잡힌다.
+  // 모달이 가질 수 있는 상태를 모두 그려서 합친다
+  const inVanilla = new Set([
+    FOUND,
+    // 미검증 표시는 verified=false 일 때만 나온다
+    { key: 'x', lineage: Object.assign({}, FOUND.lineage, { verified: false }), impact: null },
+    { key: 'x', lineage: { found: false, reason: '기록 없음' }, impact: null },
+    { key: 'x', loading: true },
+    { key: 'x', error: 'HTTP 500' },
+  ].flatMap(s => classes(renderLineageWith(s))));
+
+  const missing = [...inJsx].filter((c) => {
+    if (inVanilla.has(c)) return false;
+    // JSX 의 `lp-ct__grade--${grade}` 는 값이 붙기 전 조각이다 — 접두사로 본다
+    if (c.endsWith('--')) return ![...inVanilla].some(v => v.startsWith(c));
+    return true;
+  });
+  assert.deepStrictEqual(missing, [],
+    `React 판에 있는 클래스가 순수 JS 판에 없다: ${missing.join(', ')} — 스타일이 한쪽만 먹는다`);
+});
+
+test('★ 값에 섞인 스크립트가 실행되지 않는다 (innerHTML 을 쓰지 않는다)', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'ui', 'vanilla', 'control-tower.js'), 'utf8');
+  // 주석에는 '쓰지 않는다'고 적혀 있으므로 **대입만** 본다
+  assert.ok(!/\.innerHTML\s*=/.test(src),
+    '계보에 뜨는 출처 문자열은 사용자가 올린 문서에서 나온다');
+
+  const node = renderLineageWith({
+    key: 'x',
+    lineage: {
+      found: true, key: 'x', label: '<img src=x onerror=alert(1)>', value: 1, grade: 'C',
+      chain: [{ stage: 's', label: '<script>alert(1)</script>', adopted: true, value: null }],
+    },
+    impact: null, loading: false, error: null,
+  });
+  // 텍스트로만 남는다 — 자식 엘리먼트가 생기지 않는다
+  assert.ok(node.textContent.includes('<script>alert(1)</script>'));
+  assert.ok(!walk(node).some(n => n.tagName === 'IMG' || n.tagName === 'SCRIPT'));
+});
+
+test('닫기 경로가 있다 (ESC · 바깥 클릭 · 닫기 버튼)', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'ui', 'vanilla', 'control-tower.js'), 'utf8');
+  assert.match(src, /Escape/, 'ESC 로 닫히지 않으면 모달에 갇힌다');
+  assert.match(src, /e\.target === back/, '바깥을 눌러도 닫혀야 한다');
+  assert.match(src, /openLineage: openLineage/, '본체가 개별 숫자에 붙일 수 있어야 한다');
+});

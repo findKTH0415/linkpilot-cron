@@ -589,7 +589,9 @@ window.LINKPILOT_CONFIG = {
  * ★ 값은 전부 textContent 로 넣는다. innerHTML 을 쓰지 않는다 —
  *   프로젝트명·활동로그는 사용자가 올린 문서에서 나온 문자열이다.
  *
- * 미이식: 데이터 계보 모달(Lineage.jsx). 별도 화면이라 필요할 때 옮긴다.
+ * ★ 데이터 계보 모달(Lineage.jsx)도 이 판에 있다. 이게 없으면 **숫자를 눌러 출처를
+ *   확인하는 경로가 막힌다** — 출처 없는 숫자를 막는 것이 이 시스템의 전부인데,
+ *   정작 화면에서 출처를 볼 수 없으면 그 규칙이 사람에게는 보이지 않는다.
  */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory();
@@ -1032,6 +1034,121 @@ window.LINKPILOT_CONFIG = {
     return box;
   }
 
+  // ── 데이터 계보 모달 (Lineage.jsx 이식) ───────────────────────────
+  //
+  // ★ 이게 없으면 **숫자를 눌러 출처를 확인하는 경로가 막힌다.** 출처 없는 숫자를
+  //   막는 것이 이 시스템의 전부인데, 정작 화면에서 출처를 볼 수 없으면 그 규칙이
+  //   사람에게는 보이지 않는다. React 판에만 있고 본체(단일 HTML)에는 없었다.
+  //
+  // ★ 채택되지 않은 후보도 보여준다. 어느 값이 버려졌는지 알아야 판단할 수 있다.
+  // ★ 추적이 안 되면 '추적 불가'라고 쓴다. 그럴듯한 경로를 지어내지 않는다.
+
+  function lineageHead(lg) {
+    var p = el('p', 'lp-ct__lineage-head');
+    p.appendChild(el('strong', null, lg.label || ''));
+    p.appendChild(el('code', null, lg.key || ''));
+    p.appendChild(el('span', 'lp-ct__lineage-value',
+      String(lg.value) + (lg.unit ? ' ' + lg.unit : '')));
+    p.appendChild(el('span', 'lp-ct__grade lp-ct__grade--' + lg.grade, String(lg.grade || '')));
+    p.appendChild(lg.verified
+      ? el('span', 'lp-ct__tone--ok', '검증됨')
+      : el('span', 'lp-ct__tone--warn', '미검증'));
+    return p;
+  }
+
+  function lineageChain(chain) {
+    var ol = el('ol', 'lp-ct__chain');
+    (chain || []).forEach(function (c) {
+      // ★ 미채택 후보를 흐리게라도 남긴다. 지우면 "이 값밖에 없었다"로 읽힌다
+      var li = el('li', c.adopted ? null : 'is-rejected');
+      li.appendChild(el('span', 'lp-ct__chain-stage', String(c.stage || '')));
+
+      var label = el('span', 'lp-ct__chain-label', String(c.label || ''));
+      if (!c.adopted) label.appendChild(el('em', null, ' (미채택)'));
+      li.appendChild(label);
+
+      if (c.detail) li.appendChild(el('span', 'lp-ct__chain-detail', String(c.detail)));
+      if (c.value !== null && c.value !== undefined) {
+        li.appendChild(el('span', 'lp-ct__chain-value', String(c.value)));
+      }
+      ol.appendChild(li);
+    });
+    return ol;
+  }
+
+  function lineageImpact(im) {
+    var box = el('section', 'lp-ct__impact');
+    box.appendChild(el('h3', null, '변경 영향'));
+
+    var p = el('p');
+    p.appendChild(document.createTextNode('이 값을 바꾸면 '));
+    p.appendChild(el('strong', null, String(im.totalAffected) + '개'));
+    p.appendChild(document.createTextNode(' 결과물이 영향을 받습니다.'
+      + (im.requiresNewVersion ? ' 이미 승인된 프로젝트이므로 새 버전이 필요합니다.' : '')));
+    box.appendChild(p);
+
+    box.appendChild(el('p', 'lp-ct__impact-order',
+      '재실행 순서: ' + (im.rerunOrder || []).join(' → ')));
+
+    var vals = im.affectedValues || [];
+    if (vals.length) {
+      box.appendChild(el('p', 'lp-ct__impact-values',
+        '다시 계산되는 값 ' + vals.length + '건: '
+        + vals.map(function (v) { return v.label; }).join(', ')));
+    }
+
+    var ul = el('ul', 'lp-ct__impact-docs');
+    (im.affectedDocuments || []).forEach(function (dName) {
+      ul.appendChild(add(el('li'), el('code', null, String(dName))));
+    });
+    box.appendChild(ul);
+    return box;
+  }
+
+  function renderLineage(lineageState, onClose) {
+    if (!lineageState || !lineageState.key) return null;
+
+    var back = el('div', 'lp-ct__modal');
+    back.setAttribute('role', 'dialog');
+    back.setAttribute('aria-modal', 'true');
+    back.setAttribute('aria-labelledby', 'lp-lineage-title');
+
+    var box = el('div', 'lp-ct__modal-box');
+    var head = el('header', 'lp-ct__modal-head');
+    var h2 = el('h2', null, 'Data Lineage');
+    h2.id = 'lp-lineage-title';
+    var close = el('button', 'lp-ct__close', '×');
+    close.type = 'button';
+    close.setAttribute('aria-label', '닫기');
+    close.addEventListener('click', onClose);
+    add(head, h2, close);
+    box.appendChild(head);
+
+    if (lineageState.loading) box.appendChild(el('p', 'lp-ct__muted', '불러오는 중…'));
+    if (lineageState.error) {
+      box.appendChild(el('p', 'lp-ct__error', '불러오지 못했습니다: ' + lineageState.error));
+    }
+
+    var lg = lineageState.lineage;
+    if (lg && !lg.found) {
+      box.appendChild(notice('lp-ct__notice lp-ct__notice--warn', '추적 불가', lg.reason || ''));
+    }
+    if (lg && lg.found) {
+      box.appendChild(lineageHead(lg));
+      if (lg.conflicted) {
+        box.appendChild(notice('lp-ct__notice lp-ct__notice--bad', '값 충돌',
+          '서로 다른 출처가 다른 값을 제시합니다. 아래에서 채택/미채택을 확인하십시오.'));
+      }
+      box.appendChild(lineageChain(lg.chain));
+    }
+    if (lineageState.impact) box.appendChild(lineageImpact(lineageState.impact));
+
+    back.appendChild(box);
+    // 바깥을 눌러도 닫힌다. 상자 안 클릭은 통과시키지 않는다
+    back.addEventListener('click', function (e) { if (e.target === back) onClose(); });
+    return back;
+  }
+
   // ── 마운트 ────────────────────────────────────────────────────────
 
   var RUNNING_MS = 2000;    // 실행 중
@@ -1051,6 +1168,8 @@ window.LINKPILOT_CONFIG = {
       lastAt: null,
       timer: null,
       stopped: false,
+      // 데이터 계보 모달 — 숫자를 눌렀을 때만 채워진다 (상시 폴링 대상이 아니다)
+      lineage: { key: null, lineage: null, impact: null, loading: false, error: null },
     };
 
     function draw() {
@@ -1073,9 +1192,56 @@ window.LINKPILOT_CONFIG = {
       container.appendChild(grid);
 
       container.appendChild(renderActions(snap, opts, state));
-      container.appendChild(add(el('footer', 'lp-ct__footer'), el('span', null, snap.generatedAt || '')));
+
+      var footer = add(el('footer', 'lp-ct__footer'), el('span', null, snap.generatedAt || ''));
+      // ★ 숫자에서 출처로 가는 입구. 본체가 개별 숫자에 붙일 수 있도록
+      //   handle.openLineage(key) 도 함께 내보낸다
+      var link = el('button', 'lp-ct__link', '데이터 계보 보기');
+      link.type = 'button';
+      link.addEventListener('click', function () { openLineage(opts.lineageKey || 'building.gfa_sqm'); });
+      footer.appendChild(link);
+      container.appendChild(footer);
+
+      var modal = renderLineage(state.lineage, closeLineage);
+      if (modal) container.appendChild(modal);
     }
     state.draw = draw;
+
+    /** 계보·영향을 함께 부른다. 영향은 없어도 계보만으로 쓸모가 있으므로 실패를 흡수한다 */
+    function openLineage(key) {
+      if (!key || !state.projectId) return Promise.resolve();
+      state.lineage = { key: key, lineage: null, impact: null, loading: true, error: null };
+      draw();
+
+      if (!fetchImpl) {
+        state.lineage.loading = false;
+        state.lineage.error = 'fetch 를 쓸 수 없다';
+        draw();
+        return Promise.resolve();
+      }
+
+      var url = baseUrl + '/projects/' + encodeURIComponent(state.projectId);
+      var k = encodeURIComponent(key);
+      return Promise.all([
+        fetchImpl(url + '/lineage/' + k),
+        fetchImpl(url + '/impact/' + k).catch(function () { return null; }),
+      ]).then(function (rs) {
+        if (!rs[0] || !rs[0].ok) throw new Error('HTTP ' + (rs[0] ? rs[0].status : '?'));
+        return Promise.all([rs[0].json(), rs[1] && rs[1].ok ? rs[1].json() : null]);
+      }).then(function (j) {
+        state.lineage = { key: key, lineage: j[0], impact: j[1], loading: false, error: null };
+        draw();
+      }).catch(function (e) {
+        state.lineage.loading = false;
+        state.lineage.error = e.message;
+        draw();
+      });
+    }
+
+    function closeLineage() {
+      state.lineage = { key: null, lineage: null, impact: null, loading: false, error: null };
+      draw();
+    }
 
     function nextDelay() {
       var agents = (state.snapshot && state.snapshot.agents) || [];
@@ -1129,9 +1295,22 @@ window.LINKPILOT_CONFIG = {
       });
     }
 
+    // ESC 로 닫는다. 모달이 열려 있을 때만 가로챈다
+    var onKey = function (e) {
+      if ((e.key === 'Escape' || e.keyCode === 27) && state.lineage.key) closeLineage();
+    };
+    if (typeof document !== 'undefined') document.addEventListener('keydown', onKey);
+
     return {
       refresh: refresh,
-      stop: function () { state.stopped = true; clearTimeout(state.timer); },
+      // 본체가 개별 숫자에 붙일 수 있게 열어 둔다 (예: 연면적 셀 클릭 → openLineage('building.gfa_sqm'))
+      openLineage: openLineage,
+      closeLineage: closeLineage,
+      stop: function () {
+        state.stopped = true;
+        clearTimeout(state.timer);
+        if (typeof document !== 'undefined') document.removeEventListener('keydown', onKey);
+      },
       state: state,
     };
   }
@@ -1154,6 +1333,8 @@ window.LINKPILOT_CONFIG = {
     userActions: userActions,
     filterActivity: filterActivity,
     barWidth: barWidth,
+    // 계보 모달 — 렌더 자체를 테스트가 확인한다
+    renderLineage: renderLineage,
   };
 }));
 

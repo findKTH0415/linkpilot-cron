@@ -355,11 +355,12 @@
     {
       "id": "B-11",
       "title": "Lineage 모달을 순수 JS 판에 포팅",
-      "detail": "React 판에는 있고 vanilla 판에는 없다. 본체가 단일 HTML 이면 숫자를 눌러 출처를 확인하는 경로가 막힌다 — IM Agent 핵심 가치 중 하나다",
-      "status": "todo",
+      "detail": "control-tower.js 에 이식했다. 채택되지 않은 후보까지 보여주고, 추적이 안 되면 '추적 불가'라고 쓴다(경로를 지어내지 않는다). 값 충돌·변경 영향·재실행 순서까지. ESC·바깥 클릭·닫기 버튼 셋 다 닫히고, handle.openLineage(key) 로 본체가 개별 숫자에 붙일 수 있다. 클래스명이 React 판과 같은지 테스트가 대조한다 — 실제로 notice 기본 클래스 누락을 잡아냈다",
+      "status": "done",
       "priority": "normal",
       "assignee": "개발",
       "project": "보고서 생성",
+      "doneAt": "2026-08-15",
       "refs": [
         "B-11"
       ]
