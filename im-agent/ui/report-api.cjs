@@ -40,6 +40,7 @@ const USER_NOTE = 'user_input';
 
 // 업로드 한도는 읽기 라우터와 한 값을 쓴다 (화면이 GET /intake 로 같은 값을 받는다)
 const { MAX_FILE_BYTES, MAX_REQUEST_BYTES } = require('./api-router.cjs');
+const issuerMod = require('../core/issuer');
 const mb = (n) => Math.round(n / (1024 * 1024) * 10) / 10;
 
 /** 산출물 경로 — 파일이 실제로 있는지로 판정한다 ('생성됨' 플래그를 믿지 않는다) */
@@ -132,6 +133,23 @@ function createHandlers(deps) {
       if (r.status === STATUS.ERROR) return bad(`프로젝트 생성 실패: ${r.error}`, 500);
 
       const out = r.output;
+
+      // ★ 발행 주체 — 접수 화면에서 받은 값을 프로젝트에 저장한다.
+      //   없으면 저장하지 않는다. 저장소 기본값이 있으면 그것이 쓰이고,
+      //   그것도 없으면 문서에 '미설정'이 찍히고 승인 게이트가 배포를 막는다.
+      let issuerSaved = null;
+      if (b.issuer) {
+        const norm = issuerMod.normalize(b.issuer);
+        if (!norm.ok) return bad(norm.error);
+        store.writeJson(out.projectId, '01_Project/issuer.json', norm.value);
+        issuerSaved = norm.value;
+        // 앞으로 만드는 프로젝트에도 쓰겠다고 하면 저장소 기본값으로 남긴다
+        if (b.issuerAsDefault) {
+          const rootDir = d.agentRoot || process.env.IM_AGENT_ROOT;
+          if (rootDir) fs.writeFileSync(path.join(rootDir, issuerMod.FILE), JSON.stringify(norm.value, null, 2));
+        }
+      }
+
       const ds = new Dataset(out.projectId, FIELDS);
       ds.addMany(out.facts || []);
       ds.resolve();
@@ -148,6 +166,9 @@ function createHandlers(deps) {
             key: f.key, value: f.value, unit: f.unit || null,
             quote: f.quote || null, source: f.source, verified: false,
           })),
+          // 무엇이 발행 주체로 쓰이는지 돌려준다. 화면이 '미설정'을 띄울 수 있어야 한다
+          issuer: issuerMod.resolve(out.projectId),
+          issuerSaved: !!issuerSaved,
           at: kstStamp(new Date()),
         },
       };
@@ -231,6 +252,36 @@ function createHandlers(deps) {
       }
 
       return ok({ saved, rejected, at: kstStamp(new Date()) });
+    },
+
+    /**
+     * PUT /projects/:id/issuer — 발행 주체를 나중에 고친다.
+     *
+     * 접수 때 안 넣었거나 잘못 넣었을 때 쓴다. 문서를 다시 만들어야 반영되므로
+     * 그 사실을 응답에 적어 돌려준다 — 고쳤는데 옛 문서가 그대로면 고친 줄 안다.
+     */
+    async saveIssuer(ctx, projectId, body) {
+      const g = gate(ctx, 'pro'); if (g.error) return g.error;
+      const e = checkId(projectId); if (e) return e;
+
+      const norm = issuerMod.normalize(body && body.issuer);
+      if (!norm.ok) return bad(norm.error);
+
+      const store = load('core/store');
+      if (!fs.existsSync(store.projectDir(projectId))) return bad('프로젝트를 찾을 수 없습니다', 404);
+      store.writeJson(projectId, '01_Project/issuer.json', norm.value);
+
+      if (body && body.issuerAsDefault) {
+        const rootDir = d.agentRoot || process.env.IM_AGENT_ROOT;
+        if (rootDir) fs.writeFileSync(path.join(rootDir, issuerMod.FILE), JSON.stringify(norm.value, null, 2));
+      }
+
+      return ok({
+        issuer: norm.value,
+        // 이미 만들어진 문서에는 옛 이름이 남아 있다
+        needsRegenerate: fs.existsSync(path.join(store.projectDir(projectId), '12_Final', 'im-a4.html')),
+        at: kstStamp(new Date()),
+      });
     },
 
     /** GET /projects/:id/spec */
@@ -552,6 +603,7 @@ function createRouter(deps = {}) {
 
   router.post('/projects', wrap(req => h.createProject(req, req.body)));
   router.post('/projects/:id/sources', wrap(req => h.uploadSources(req, req.params.id, req.body)));
+  router.put('/projects/:id/issuer', wrap(req => h.saveIssuer(req, req.params.id, req.body)));
   router.get('/projects/:id/spec', wrap(req => h.getSpec(req, req.params.id)));
   router.post('/projects/:id/spec', wrap(req => h.saveSpec(req, req.params.id, req.body)));
   router.post('/projects/:id/spec/confirm', wrap(req => h.confirmSpec(req, req.params.id, req.body)));

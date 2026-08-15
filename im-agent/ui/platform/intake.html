@@ -134,6 +134,14 @@ h1,h2,h3,h4 { margin: 0; }
 .file__x { margin-left: auto; font: 600 12px/1 inherit; padding: 7px 11px; border-radius: 8px;
   border: 1px solid var(--line); background: var(--surface); color: var(--ink2); cursor: pointer; }
 
+/* 발행 주체 */
+.iss-mark { width: 46px; height: 46px; border-radius: 50%; background: var(--panel);
+  border: 1px solid var(--line); display: grid; place-items: center;
+  font: 600 13px/1 'Times New Roman', serif; color: var(--bad-ink); }
+.chk { display: flex; align-items: center; gap: 9px; font-size: 13.5px;
+  color: var(--ink2); cursor: pointer; margin-top: 4px; }
+.chk input { width: 16px; height: 16px; accent-color: var(--lime); }
+
 /* 뽑힌 값 */
 .seed { display: flex; align-items: baseline; gap: 9px; padding: 10px 0;
   border-top: 1px solid var(--line); flex-wrap: wrap; }
@@ -238,6 +246,8 @@ window.LINKPILOT_INTAKE = {
     loadError: null,
     request: '',
     assetType: '',       // 빈 값 = 자동 판별
+    issuer: null,        // 발행 주체 (GET /intake 로 채운다)
+    issuerAsDefault: false,
     files: [],           // { name, size, readable, note, data }
     created: null,       // POST /projects 응답
     uploaded: null,      // POST /sources 응답
@@ -277,14 +287,26 @@ window.LINKPILOT_INTAKE = {
   function load() {
     // 미리보기: 서버 없이 화면을 보기 위해 접수 정보를 미리 심어 둔 경우.
     // ★ 값을 지어내지 않는다 — 빌드 시점에 서버가 보낼 것과 같은 값을 넣는다
-    if (C.preload) { state.info = C.preload; state.loadError = null; return render(); }
+    if (C.preload) { state.info = C.preload; adoptIssuer(); state.loadError = null; return render(); }
     if (!C.api) { state.loadError = 'API 주소가 설정되지 않았습니다'; return render(); }
     call('GET', '/intake').then(function (j) {
-      state.info = j; state.loadError = null; render();
+      state.info = j; adoptIssuer(); state.loadError = null; render();
     }).catch(function (e) {
       // ★ 못 가져온 것과 없는 것을 구분한다. 지원 형식을 모르는 채로 올리게 두지 않는다
       state.loadError = e.message; render();
     });
+  }
+
+  /**
+   * 서버가 준 발행 주체를 폼에 채운다.
+   * ★ 미설정이면 '발행 주체 미설정'이라는 문구를 회사명 칸에 넣지 않는다 —
+   *   그대로 저장하면 그 문구가 회사명이 되어 IM 에 찍힌다
+   */
+  function adoptIssuer() {
+    var i = (state.info && state.info.issuer) || null;
+    state.issuer = (i && !i.unset)
+      ? { en: i.en || '', kr: i.kr || '', tag: i.tag || '', mark: i.mark || '' }
+      : { en: '', kr: '', tag: '', mark: '' };
   }
 
   /** 확장자로 읽을 수 있는지 판정 — 목록은 서버에서 받은 것만 쓴다 */
@@ -325,6 +347,9 @@ window.LINKPILOT_INTAKE = {
     call('POST', '/projects', {
       request: state.request,
       assetType: state.assetType || undefined,
+      // 회사명을 적었을 때만 보낸다. 빈 값을 보내면 서버가 거부한다
+      issuer: (state.issuer && state.issuer.en.trim()) ? state.issuer : undefined,
+      issuerAsDefault: state.issuerAsDefault || undefined,
     }).then(function (j) {
       state.created = j; state.busy = false; render();
       if (state.files.length) uploadFiles();
@@ -436,6 +461,95 @@ window.LINKPILOT_INTAKE = {
     return box;
   }
 
+  /**
+   * 발행 주체 — IM 서명부·표지에 찍히는 회사다.
+   *
+   * ★ 사전(dictionary) 항목이 아니라 설정이다. 그래서 [가이드 필드 입력]이 아니라
+   *   여기에 있다 — 사전에 없는 key 는 보고서 본문에 들어가지 못한다.
+   * ★ 안 넣으면 문서에 '발행 주체 미설정'이 찍히고 승인 게이트가 배포를 막는다.
+   *   비워 두고 넘어갈 수는 있지만, 그 상태로는 대외 배포가 안 된다.
+   */
+  function issuerCard() {
+    var box = el('section', 'card');
+    box.appendChild(el('h2', 'card__t', '발행 주체'));
+    box.appendChild(el('p', 'card__s',
+      'IM 표지와 서명부에 찍히는 회사입니다. 비워 두면 문서에 「발행 주체 미설정」이 '
+      + '표시되고 대외 배포가 막힙니다.'));
+
+    var lim = (state.info && state.info.issuerLimits) || {};
+    var cur = (state.info && state.info.issuer) || {};
+    var iss = state.issuer;
+
+    function field(key, label, hint, ph) {
+      var f = el('div', 'f');
+      f.appendChild(el('label', null, label));
+      var inp = el('input');
+      inp.type = 'text';
+      inp.value = iss[key] || '';
+      inp.placeholder = ph || '';
+      if (lim[key]) inp.maxLength = lim[key];
+      inp.setAttribute('aria-label', label);
+      inp.disabled = !!state.created;
+      inp.addEventListener('input', function () {
+        iss[key] = inp.value;
+        // 이니셜은 회사명에서 자동으로 만든다 (직접 적으면 그것을 쓴다)
+        var m = document.getElementById('iss-mark');
+        if (m && !iss.mark) m.textContent = autoMark(iss.en) || '—';
+        var w = document.getElementById('iss-warn');
+        if (w) w.hidden = !!iss.en.trim();
+      });
+      f.appendChild(inp);
+      if (hint) f.appendChild(el('div', 'hint', hint));
+      return f;
+    }
+
+    box.appendChild(field('en', '회사명 (영문) *', '서명부 첫 줄. 대외 문서에 그대로 나갑니다.',
+      '예: Acme Capital Partners Co.,Ltd'));
+    box.appendChild(field('kr', '국문 상호', '없으면 그 줄을 만들지 않습니다.', '예: (주)에이스캐피탈파트너스'));
+    box.appendChild(field('tag', '태그라인', '대문자로 표시됩니다.', '예: REAL ASSET INVESTMENT'));
+    box.appendChild(field('mark', '로고 이니셜', '비우면 회사명에서 만듭니다 (최대 4글자).', '예: ACP'));
+
+    var prev = el('div', 'f');
+    prev.appendChild(el('label', null, '로고 자리'));
+    var mark = el('div', 'iss-mark', iss.mark || autoMark(iss.en) || '—');
+    mark.id = 'iss-mark';
+    prev.appendChild(mark);
+    box.appendChild(prev);
+
+    var chk = el('label', 'chk');
+    var cb = el('input');
+    cb.type = 'checkbox';
+    cb.checked = !!state.issuerAsDefault;
+    cb.disabled = !!state.created;
+    cb.addEventListener('change', function () { state.issuerAsDefault = cb.checked; });
+    chk.appendChild(cb);
+    chk.appendChild(el('span', null, '앞으로 만드는 보고서에도 이 주체를 씁니다'));
+    box.appendChild(chk);
+
+    if (state.info && state.info.issuerError) {
+      box.appendChild(el('div', 'note note--bad',
+        '저장된 발행 주체 설정을 읽지 못했습니다 — ' + state.info.issuerError));
+    } else if (cur.unset) {
+      var w = el('div', 'note note--warn', '아직 설정된 발행 주체가 없습니다. 지금 넣어 두면 다음부터 자동으로 채워집니다.');
+      w.id = 'iss-warn';
+      w.hidden = !!(iss.en && iss.en.trim());
+      box.appendChild(w);
+    } else {
+      box.appendChild(el('div', 'note note--ok',
+        '현재 설정: ' + cur.en + (cur.source ? ' (' + cur.source + ')' : '')));
+    }
+    return box;
+  }
+
+  /** 화면에서도 이니셜을 미리 보여준다 (규칙은 서버 core/issuer.js 와 같다) */
+  function autoMark(name) {
+    var s = String(name || '').trim();
+    if (!s) return '';
+    var words = s.replace(/[(주)㈜]/g, ' ').split(/[\s,.]+/).filter(Boolean);
+    if (words.length === 1) return words[0].slice(0, 4).toUpperCase();
+    return words.slice(0, 4).map(function (w) { return w[0]; }).join('').toUpperCase();
+  }
+
   function dropCard() {
     var box = el('section', 'card');
     box.appendChild(el('h2', 'card__t', '원본 자료'));
@@ -539,6 +653,12 @@ window.LINKPILOT_INTAKE = {
       box.appendChild(list);
     }
 
+    var iss = c.issuer || {};
+    box.appendChild(el('div', iss.unset ? 'note note--bad' : 'note note--ok',
+      iss.unset
+        ? '발행 주체 미설정 — 이대로는 대외 배포가 막힙니다. 접수 화면에서 회사명을 넣으세요.'
+        : '발행 주체: ' + iss.en + (c.issuerSaved ? ' (이 프로젝트에 저장됨)' : ' (기존 설정)')));
+
     if (state.uploaded) {
       var u = state.uploaded;
       var okN = u.saved.length;
@@ -615,6 +735,7 @@ window.LINKPILOT_INTAKE = {
     }
 
     body.appendChild(requestCard());
+    body.appendChild(issuerCard());
     body.appendChild(formatCard());
     body.appendChild(dropCard());
     body.appendChild(actionsRow());

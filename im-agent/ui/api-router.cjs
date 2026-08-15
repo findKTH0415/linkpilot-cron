@@ -92,11 +92,28 @@ function createHandlers({ agentRoot, agentModulePath }) {
     async intake() {
       const { TEMPLATES } = load('finance/templates');
       const ext = load('agents/02-extraction');
+      const issuer = load('core/issuer');
       const list = (s) => [...s].sort();
+
+      // 발행 주체 — 지금 설정된 값을 그대로 준다. 화면은 이걸 채워 놓고
+      // 고칠 수 있게 한다. 미설정이면 unset:true 가 붙어 경고를 띄운다
+      let current;
+      let issuerError = null;
+      try {
+        current = issuer.resolve();
+      } catch (e) {
+        // 설정 파일이 깨졌다. 조용히 미설정으로 넘기지 않는다
+        current = Object.assign({}, issuer.UNSET);
+        issuerError = e.message;
+      }
+
       return {
         status: 200,
         body: {
           assetTypes: Object.keys(TEMPLATES).map(id => ({ id, label: TEMPLATES[id].label })),
+          issuer: current,
+          issuerError,
+          issuerLimits: issuer.LIMITS,
           supported: {
             text: list(ext.TEXT_EXT),
             office: Object.keys(ext.ZIP_EXT).sort(),

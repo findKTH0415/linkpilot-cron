@@ -97,4 +97,44 @@ function resolve(projectId) {
   return read(projectId) || Object.assign({}, UNSET);
 }
 
-module.exports = { read, resolve, markFrom, UNSET, FILE };
+/** 길이 한도 — 서명부는 3줄이다. 넘치면 표지 레이아웃이 무너진다 */
+const LIMITS = { en: 120, kr: 120, tag: 80, mark: 4, contact: 200 };
+
+/**
+ * 사람이 입력한 값을 정리한다. 화면과 서버가 같은 규칙을 써야 하므로 여기 둔다.
+ *
+ * ★ 회사명은 설정값이지만 사람이 적는 값이다. 제어문자를 걷어내고 길이를 자른다.
+ *   이스케이프는 그리는 쪽(a4.js)이 한다 — 저장값을 미리 이스케이프하면
+ *   다시 편집할 때 `&amp;` 가 그대로 보인다.
+ *
+ * @returns {{ok:boolean, value?:object, error?:string}}
+ */
+function normalize(input) {
+  const o = input || {};
+  const clean = (v, max) => String(v === null || v === undefined ? '' : v)
+    .replace(/[\u0000-\u001f\u007f]/g, '')
+    .trim()
+    .slice(0, max);
+
+  const en = clean(o.en || o.name, LIMITS.en);
+  if (!en) return { ok: false, error: '회사명(영문)을 입력하세요 — 서명부에 들어갈 이름입니다' };
+  if (en.length < 2) return { ok: false, error: '회사명이 너무 짧습니다' };
+
+  const kr = clean(o.kr, LIMITS.kr);
+  const tag = clean(o.tag, LIMITS.tag);
+  const contact = clean(o.contact, LIMITS.contact);
+  const mark = clean(o.mark, LIMITS.mark).toUpperCase() || markFrom(en);
+
+  return {
+    ok: true,
+    value: {
+      en,
+      kr: kr || null,
+      tag: tag || null,
+      mark,
+      contact: contact || null,
+    },
+  };
+}
+
+module.exports = { read, resolve, normalize, markFrom, UNSET, LIMITS, FILE };

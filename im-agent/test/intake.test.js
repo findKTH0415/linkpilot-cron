@@ -219,3 +219,99 @@ test('★ 읽기 라우터는 여전히 쓰기가 없다', () => {
   assert.ok(!/router\.(post|put|patch|delete)\b/.test(src),
     '접수용 GET /intake 를 더하면서 쓰기가 섞이면 안 된다');
 });
+
+// ── 발행 주체 입력 ───────────────────────────────────────────
+
+test('접수 화면이 현재 발행 주체를 받아 온다', async () => {
+  const h = readHandlers({ agentModulePath: AGENT });
+  const r = await h.intake();
+  assert.ok(r.body.issuer, '화면이 폼을 채우려면 현재 값이 필요하다');
+  assert.ok(r.body.issuerLimits && r.body.issuerLimits.en > 0, '길이 한도를 화면과 서버가 같이 본다');
+});
+
+test('★ 접수할 때 넣은 발행 주체가 프로젝트에 저장된다', async () => {
+  const { h, root } = setup();
+  const r = await h.createProject({}, {
+    request: '인천 남동공단 6.5MW 데이터센터 IM',
+    issuer: { en: 'Acme Capital Partners Co.,Ltd', kr: '(주)에이스캐피탈' },
+  });
+  assert.strictEqual(r.status, 201);
+  assert.strictEqual(r.body.issuerSaved, true);
+  assert.strictEqual(r.body.issuer.en, 'Acme Capital Partners Co.,Ltd');
+
+  const saved = JSON.parse(fs.readFileSync(
+    path.join(root, r.body.projectId, '01_Project', 'issuer.json'), 'utf8'));
+  assert.strictEqual(saved.kr, '(주)에이스캐피탈');
+  assert.ok(saved.mark, '이니셜이 자동으로 만들어진다');
+});
+
+test('기본값으로 저장하면 다음 프로젝트가 물려받는다', async () => {
+  const { h, root } = setup();
+  await h.createProject({}, {
+    request: '인천 남동공단 6.5MW 데이터센터 IM',
+    issuer: { en: 'Acme Capital Partners Co.,Ltd' },
+    issuerAsDefault: true,
+  });
+  assert.ok(fs.existsSync(path.join(root, 'issuer.json')), '저장소 기본값이 생겨야 한다');
+
+  const second = await h.createProject({}, { request: '새만금 100MW 태양광 IM' });
+  assert.strictEqual(second.body.issuerSaved, false, '두 번째는 따로 저장하지 않는다');
+  assert.strictEqual(second.body.issuer.en, 'Acme Capital Partners Co.,Ltd', '기본값을 물려받는다');
+});
+
+test('★ 발행 주체를 안 넣으면 미설정으로 남는다 (지어내지 않는다)', async () => {
+  const { h } = setup();
+  const r = await h.createProject({}, { request: '인천 남동공단 6.5MW 데이터센터 IM' });
+  assert.strictEqual(r.body.issuerSaved, false);
+  assert.strictEqual(r.body.issuer.unset, true, '화면이 경고를 띄울 수 있어야 한다');
+});
+
+test('회사명 없는 발행 주체는 거부한다', async () => {
+  const { h } = setup();
+  const r = await h.createProject({}, {
+    request: '인천 남동공단 6.5MW 데이터센터 IM',
+    issuer: { kr: '국문만 있음' },
+  });
+  assert.strictEqual(r.status, 400);
+  assert.match(r.body.error, /회사명/);
+});
+
+test('나중에 발행 주체를 고칠 수 있다', async () => {
+  const { h, root } = setup();
+  const c = await h.createProject({}, { request: '인천 남동공단 6.5MW 데이터센터 IM' });
+  const id = c.body.projectId;
+
+  const r = await h.saveIssuer({}, id, { issuer: { en: 'New Owner Co.,Ltd' } });
+  assert.strictEqual(r.status, 200);
+  assert.strictEqual(r.body.issuer.en, 'New Owner Co.,Ltd');
+  assert.strictEqual(r.body.needsRegenerate, false, '아직 문서가 없으면 다시 만들 것도 없다');
+
+  const saved = JSON.parse(fs.readFileSync(path.join(root, id, '01_Project', 'issuer.json'), 'utf8'));
+  assert.strictEqual(saved.en, 'New Owner Co.,Ltd');
+});
+
+test('★ 이미 만든 문서가 있으면 다시 만들어야 한다고 알린다', async () => {
+  const { h, root } = setup();
+  const c = await h.createProject({}, { request: '인천 남동공단 6.5MW 데이터센터 IM' });
+  const id = c.body.projectId;
+  fs.mkdirSync(path.join(root, id, '12_Final'), { recursive: true });
+  fs.writeFileSync(path.join(root, id, '12_Final', 'im-a4.html'), '<html>옛 이름</html>');
+
+  const r = await h.saveIssuer({}, id, { issuer: { en: 'New Owner Co.,Ltd' } });
+  assert.strictEqual(r.body.needsRegenerate, true,
+    '고쳤는데 옛 문서가 그대로면 고친 줄 안다');
+});
+
+test('미인증은 발행 주체를 고칠 수 없다', async () => {
+  const anon = writeHandlers({ agentRoot: os.tmpdir(), agentModulePath: AGENT, authenticate: () => null });
+  assert.strictEqual((await anon.saveIssuer({}, 'LP-DC-2026-001', { issuer: { en: 'X Co' } })).status, 401);
+});
+
+test('★ 화면이 회사명 입력란을 제공한다', () => {
+  const html = read('intake.html');
+  assert.match(html, /회사명 \(영문\)/, '발행 주체를 넣을 곳이 있어야 한다');
+  assert.match(html, /국문 상호/);
+  assert.match(html, /로고 이니셜/);
+  assert.match(html, /앞으로 만드는 보고서에도/, '기본값으로 저장하는 선택지');
+  assert.match(html, /대외 배포가 막힙니다/, '안 넣으면 어떻게 되는지 미리 알린다');
+});

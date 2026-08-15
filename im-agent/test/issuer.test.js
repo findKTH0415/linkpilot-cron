@@ -122,3 +122,27 @@ test('회사명에 태그가 들어와도 그대로 그리지 않는다', () => 
   assert.ok(!/<script>alert/.test(html), '회사명은 설정값이지만 이스케이프한다');
   assert.match(html, /&lt;script&gt;/);
 });
+
+// ── 입력값 정리 (화면·서버 공통 규칙) ────────────────────────
+
+test('입력값을 다듬는다 — 앞뒤 공백·제어문자·길이', () => {
+  const r = issuer.normalize({ en: '  Acme Capital Partners  ', kr: ' (주)에이스 ', tag: ' invest ' });
+  assert.strictEqual(r.value.en, 'Acme Capital Partners');
+  assert.strictEqual(r.value.kr, '(주)에이스');
+  assert.strictEqual(r.value.tag, 'invest');
+  assert.strictEqual(issuer.normalize({ en: 'X'.repeat(500) }).value.en.length, issuer.LIMITS.en,
+    '넘치면 서명부 3줄 레이아웃이 무너진다');
+});
+
+test('★ 회사명이 없으면 저장하지 않는다', () => {
+  assert.strictEqual(issuer.normalize({}).ok, false);
+  assert.strictEqual(issuer.normalize({ kr: '국문만' }).ok, false);
+  assert.match(issuer.normalize({}).error, /회사명/);
+});
+
+test('빈 항목은 null 로 남는다 (빈 문자열이 아니다)', () => {
+  const v = issuer.normalize({ en: 'Solo Advisors' }).value;
+  assert.strictEqual(v.kr, null);
+  assert.strictEqual(v.tag, null);
+  assert.strictEqual(v.mark, 'SA', '이니셜은 이름에서 만든다');
+});
