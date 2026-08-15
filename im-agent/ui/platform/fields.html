@@ -670,8 +670,10 @@ window.LINKPILOT_FIELDS_CFG = {
       lv.appendChild(b);
     });
     f2.appendChild(lv);
+    // ★ '기본'이라고 분명히 적는다. 값이 있는 항목은 설정과 무관하게 더 보이므로,
+    //   그냥 '지금 N개'라고 하면 화면의 줄 수와 달라 보이고 버그처럼 읽힌다
     f2.appendChild(el('div', 'prog__d', F.LEVELS[state.level].hint
-      + ' — 지금 ' + scopeCount() + '개 항목'));
+      + ' — 기본 ' + scopeCount() + '개 (값이 있거나 문제가 있는 항목은 설정과 무관하게 더 보입니다)'));
     og.appendChild(f2);
 
     opt.appendChild(og);

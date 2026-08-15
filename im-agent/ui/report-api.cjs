@@ -119,6 +119,16 @@ function createHandlers(deps) {
       }
       if (request.length > 2000) return bad('요청문이 너무 깁니다 (2,000자 이내)');
 
+      // ★ 프로젝트를 만들기 **전에** 발행 주체를 검증한다.
+      //   나중에 검증하면 400 을 돌려주면서도 프로젝트 폴더는 이미 만들어져
+      //   남는다. 사용자는 실패한 줄 아는데 번호는 하나 소모되어 있다.
+      let issuerValue = null;
+      if (b.issuer) {
+        const norm = issuerMod.normalize(b.issuer);
+        if (!norm.ok) return bad(norm.error);
+        issuerValue = norm.value;
+      }
+
       const { runAgent, STATUS } = load('core/runtime');
       const { Dataset } = load('core/facts');
       const { FIELDS } = load('core/dictionary');
@@ -134,19 +144,15 @@ function createHandlers(deps) {
 
       const out = r.output;
 
-      // ★ 발행 주체 — 접수 화면에서 받은 값을 프로젝트에 저장한다.
+      // 발행 주체 저장 — 위에서 이미 검증한 값이다.
       //   없으면 저장하지 않는다. 저장소 기본값이 있으면 그것이 쓰이고,
       //   그것도 없으면 문서에 '미설정'이 찍히고 승인 게이트가 배포를 막는다.
-      let issuerSaved = null;
-      if (b.issuer) {
-        const norm = issuerMod.normalize(b.issuer);
-        if (!norm.ok) return bad(norm.error);
-        store.writeJson(out.projectId, '01_Project/issuer.json', norm.value);
-        issuerSaved = norm.value;
+      if (issuerValue) {
+        store.writeJson(out.projectId, '01_Project/issuer.json', issuerValue);
         // 앞으로 만드는 프로젝트에도 쓰겠다고 하면 저장소 기본값으로 남긴다
         if (b.issuerAsDefault) {
           const rootDir = d.agentRoot || process.env.IM_AGENT_ROOT;
-          if (rootDir) fs.writeFileSync(path.join(rootDir, issuerMod.FILE), JSON.stringify(norm.value, null, 2));
+          if (rootDir) fs.writeFileSync(path.join(rootDir, issuerMod.FILE), JSON.stringify(issuerValue, null, 2));
         }
       }
 
@@ -168,7 +174,7 @@ function createHandlers(deps) {
           })),
           // 무엇이 발행 주체로 쓰이는지 돌려준다. 화면이 '미설정'을 띄울 수 있어야 한다
           issuer: issuerMod.resolve(out.projectId),
-          issuerSaved: !!issuerSaved,
+          issuerSaved: !!issuerValue,
           at: kstStamp(new Date()),
         },
       };

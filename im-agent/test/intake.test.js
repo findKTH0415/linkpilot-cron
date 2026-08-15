@@ -266,14 +266,25 @@ test('★ 발행 주체를 안 넣으면 미설정으로 남는다 (지어내지
   assert.strictEqual(r.body.issuer.unset, true, '화면이 경고를 띄울 수 있어야 한다');
 });
 
-test('회사명 없는 발행 주체는 거부한다', async () => {
-  const { h } = setup();
+test('★ 회사명 없는 발행 주체는 거부하고 프로젝트도 만들지 않는다', async () => {
+  const { h, root } = setup();
   const r = await h.createProject({}, {
     request: '인천 남동공단 6.5MW 데이터센터 IM',
     issuer: { kr: '국문만 있음' },
   });
   assert.strictEqual(r.status, 400);
   assert.match(r.body.error, /회사명/);
+
+  // 400 을 돌려주면서 프로젝트 폴더는 남아 있으면, 사용자는 실패한 줄 아는데
+  // 번호는 하나 소모되어 있다. 다음 성공 요청이 001 이 아니라 002 를 받는다
+  assert.deepStrictEqual(fs.readdirSync(root).filter(n => n.startsWith('LP-')), [],
+    '검증에 걸린 요청이 프로젝트를 남기면 안 된다');
+
+  const ok = await h.createProject({}, {
+    request: '인천 남동공단 6.5MW 데이터센터 IM',
+    issuer: { en: 'Acme Capital Partners Co.,Ltd' },
+  });
+  assert.match(ok.body.projectId, /-001$/, '번호가 건너뛰지 않는다');
 });
 
 test('나중에 발행 주체를 고칠 수 있다', async () => {
