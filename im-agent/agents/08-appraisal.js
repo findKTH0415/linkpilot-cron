@@ -17,6 +17,7 @@
 const nsdi = require('../connectors/nsdi');
 const molit = require('../connectors/molit');
 const pnuUtil = require('../connectors/pnu');
+const reb = require('../connectors/reb');
 const cache = require('../connectors/cache');
 const { round, formatEok } = require('../core/numeric');
 const { kstDate } = require('../core/kst');
@@ -64,6 +65,57 @@ function toEok(pricePerSqm, areaSqm) {
   return round((pricePerSqm * areaSqm) / 1e8, 1);
 }
 
+/**
+ * 시점수정 — 공시지가 기준일(1월 1일)부터 평가시점까지의 지가변동률 누적.
+ *
+ * ★ 개별공시지가는 **매년 1월 1일 기준**이다. 8월에 만드는 IM 에 1월 1일 값을
+ *   그대로 쓰면 경과 기간만큼 어긋난다. 감정평가 실무의 표준 절차다.
+ * ★ 이 값은 한국부동산원 **공표 통계**라 현실화계수와 달리 가정이 아니다.
+ * ★ 지역을 특정하지 못하면 **전국 값으로 대체하지 않고 적용을 포기한다.**
+ *   전국 변동률을 쓰면 지역 편차가 사라지는데 문서에는 "시점수정 적용"만 남는다.
+ *
+ * @returns {{factor:number, percent:number, region:string, from:string, to:string}|null}
+ */
+async function timeAdjust(officialSource, ds, ctx, today, facts, src) {
+  if (!reb.isAvailable()) return null;
+
+  // 고시연도는 출처 문자열에 들어 있다 — '개별공시지가(2026년 고시)'
+  const m = /(\d{4})\s*년/.exec(String(officialSource || ''));
+  const baseYear = m ? m[1] : null;
+  if (!baseYear) {
+    ctx.warn('공시지가 고시연도를 알 수 없어 시점수정을 적용하지 못했다');
+    return null;
+  }
+
+  const locFact = ds.get('project.location');
+  const address = locFact ? String(locFact.value) : null;
+  // 색인은 지역코드용이라 최신월일 필요가 없다 — 캐시가 오래 사는 값을 쓴다
+  const region = await reb.resolveRegion(address, `${baseYear}01`);
+  if (!region.ok) {
+    ctx.warn(`시점수정 미적용: ${region.error}`);
+    return null;
+  }
+
+  const adj = await reb.timeAdjustment({
+    clsId: region.value.clsId,
+    from: `${baseYear}01`,
+    to: today.slice(0, 6).replace('-', ''),
+  });
+  if (!adj.ok) {
+    ctx.warn(`시점수정 미적용: ${adj.error}`);
+    return null;
+  }
+
+  const v = adj.value;
+  facts.push({
+    key: 'land.price_change_rate', value: v.percent, unit: '%',
+    confidence: 0.95, verified: true,
+    quote: `${v.region} 지가변동률 누적 (${v.from}~${v.to}, ${v.months}개월)`,
+    ...src(`지가변동률(한국부동산원, ${v.region})`),
+  });
+  return { factor: v.factor, percent: v.percent, region: v.region, from: v.from, to: v.to };
+}
+
 async function run(input, ctx) {
   const ds = ctx.dataset;
   if (!ds) throw new Error('ctx.dataset 필요');
@@ -105,14 +157,24 @@ async function run(input, ctx) {
 
   if (officialPrice !== null) {
     const realization = Number(process.env.IM_AGENT_LAND_REALIZATION || DEFAULT_REALIZATION);
+    const adj = await timeAdjust(officialSource, ds, ctx, today, facts, src);
+
     methods.official = {
       label: '공시지가 기준',
       pricePerSqm: officialPrice,
+      timeAdjustFactor: adj ? adj.factor : null,
+      adjustedPricePerSqm: adj ? Math.round(officialPrice * adj.factor) : officialPrice,
       realizationFactor: realization,
-      valueEok: toEok(officialPrice * realization, areaSqm),
-      basis: `${officialSource} × 현실화계수 ${realization}`,
-      assumption: `현실화계수 ${realization}는 시장 통상치 가정이다 (IM_AGENT_LAND_REALIZATION 로 조정)`,
+      valueEok: toEok(officialPrice * (adj ? adj.factor : 1) * realization, areaSqm),
+      basis: `${officialSource}`
+        + (adj ? ` × 시점수정 ${adj.percent > 0 ? '+' : ''}${adj.percent}% (${adj.region}, ${adj.from}~${adj.to})` : '')
+        + ` × 현실화계수 ${realization}`,
+      assumption: `현실화계수 ${realization}는 시장 통상치 가정이다 (IM_AGENT_LAND_REALIZATION 로 조정)`
+        + (adj ? '. 시점수정은 한국부동산원 공표 지가변동률이므로 가정이 아니다' : ''),
     };
+    if (!adj) {
+      ctx.warn('시점수정 미적용 — 공시지가는 1월 1일 기준이므로 평가시점과 어긋난다');
+    }
   }
 
   // ── ② 거래사례비교법 ───────────────────────────────────

@@ -250,6 +250,18 @@ test('REC: 개월 빼기가 연을 넘어간다', () => {
   assert.strictEqual(kpx.monthsBefore('20260101', 1), '20251201');
 });
 
+// 지가변동률은 **곱해서** 누적한다. 더하면 기간이 길수록 벌어진다.
+// 월 0.4% 씩 6개월이면 단순합 2.4% 지만 실제는 2.42% 다 — 공시지가에 곱하는
+// 계수라 이 차이가 그대로 평가액에 들어간다.
+test('시점수정 계수는 복리로 누적된다', () => {
+  const monthly = [0.333, 0.308, 0.41, 0.427, 0.42, 0.364];   // 서울 중구 2026 상반기 실측
+  const factor = monthly.reduce((f, r) => f * (1 + r / 100), 1);
+  const simple = 1 + monthly.reduce((a, b) => a + b, 0) / 100;
+
+  assert.strictEqual(Math.round(factor * 1e6) / 1e6, 1.022834);
+  assert.ok(factor > simple, '복리 누적이 단순합보다 크다');
+});
+
 test('용도지역 상한: 문자열만으로 조회된다 (API 불필요)', () => {
   assert.deepStrictEqual(nsdi.limitsForZone('일반공업지역'), { zone: '일반공업지역', far: 350, bcr: 70 });
   assert.deepStrictEqual(nsdi.limitsForZone('제3종 일반주거지역'), { zone: '제3종일반주거지역', far: 300, bcr: 50 });

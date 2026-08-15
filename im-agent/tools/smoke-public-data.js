@@ -32,6 +32,7 @@ const nsdi = require('../connectors/nsdi');
 const molit = require('../connectors/molit');
 const kma = require('../connectors/kma');
 const kpx = require('../connectors/kpx');
+const reb = require('../connectors/reb');
 const { looksUrlEncoded } = require('../connectors/http');
 const pnuUtil = require('../connectors/pnu');
 const geometry = require('../geo/geometry');
@@ -296,6 +297,28 @@ async function main() {
       }
     } else {
       report('REC 현물시장 (전력거래소)', false, rec.error);
+    }
+  }
+
+  // ── 10. 지가변동률 (한국부동산원 — 공시지가 시점수정) ────
+  if (reb.isAvailable()) {
+    const year = new Date().getFullYear();          // 공시지가 기준일 = 당해 1/1
+    const region = await reb.resolveRegion(ADDRESS, `${year}01`);
+    if (!region.ok) {
+      report('지가변동률 (부동산원)', false, region.error);
+    } else {
+      const adj = await reb.timeAdjustment({
+        clsId: region.value.clsId, from: `${year}01`,
+        to: `${year}${String(new Date().getMonth() + 1).padStart(2, '0')}`,
+      });
+      if (adj.ok) {
+        const v = adj.value;
+        report('지가변동률 (부동산원)', true,
+          `${v.region} ${v.from}~${v.to} 누적 ${v.percent > 0 ? '+' : ''}${v.percent}% `
+          + `→ 시점수정 계수 ${v.factor} (${v.months}개월)`);
+      } else {
+        report('지가변동률 (부동산원)', false, adj.error);
+      }
     }
   }
 

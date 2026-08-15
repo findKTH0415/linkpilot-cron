@@ -97,6 +97,8 @@ const FIELDS = {
   'geo.lat':             { label: '위도', category: CATEGORY.LAND, unit: null, type: 'number', aliases: [], min: 33, max: 39 },
   'geo.lon':             { label: '경도', category: CATEGORY.LAND, unit: null, type: 'number', aliases: [], min: 124, max: 132 },
   'land.official_price': { label: '개별공시지가', category: CATEGORY.LAND, unit: '원/㎡', type: 'number', aliases: ['개별공시지가', '공시지가'], min: 0, tolerance: 0.01 },
+  // 공시지가 시점수정용. 한국부동산원 공표 통계라 가정치가 아니다.
+  'land.price_change_rate': { label: '지가변동률(누적)', category: CATEGORY.LAND, unit: '%', type: 'number', aliases: ['지가변동률', '시점수정'] },
   'land.far_limit':      { label: '용적률 상한', category: CATEGORY.LAND, unit: '%', type: 'number', aliases: ['용적률'], min: 0, max: 2000 },
   'land.bcr_limit':      { label: '건폐율 상한', category: CATEGORY.LAND, unit: '%', type: 'number', aliases: ['건폐율'], min: 0, max: 100 },
   'building.footprint_sqm': { label: '건축면적', category: CATEGORY.BUILDING, unit: '㎡', type: 'number', aliases: ['건축면적'], min: 0, tolerance: 0.001 },
