@@ -115,9 +115,11 @@ async function main() {
     console.log('\n✕ 키 형식 오류 — 호출하기 전에 고쳐야 한다\n');
     if (vk.fatal) console.log(`  VWORLD_KEY     : ${vk.message}`);
     if (dk.fatal) console.log(`  DATA_GO_KR_KEY : ${dk.message}`);
-    console.log('\n  올바른 예 (꺾쇠·따옴표 없이 값만):');
-    console.log("    export VWORLD_KEY=A9C7F809-AC7C-38B2-90AF-880C060BC17A");
-    console.log("    export VWORLD_DOMAIN=nas.example.com");
+    // ★ 예시에는 실제 키를 쓰지 않는다. 한 번 그렇게 했다가 public 저장소에
+    //   개발키가 그대로 커밋됐다 (2026-08-15 발견). 모양만 보여 주면 충분하다.
+    console.log('\n  올바른 예 (꺾쇠·따옴표 없이 값만 — 아래는 형식 예시일 뿐이다):');
+    console.log("    export VWORLD_KEY=00000000-0000-0000-0000-000000000000");
+    console.log("    export VWORLD_DOMAIN=example.com");
     console.log('\n  DATA_GO_KR_KEY 는 data.go.kr 마이페이지 › 인증키의 **Decoding(일반)** 쪽이다.');
     console.log('  Encoding 쪽은 %2F·%3D 처럼 %XX 가 들어 있어 인증에 실패한다.\n');
     process.exit(1);
@@ -136,7 +138,7 @@ async function main() {
   console.log(`VWORLD_DOMAIN  : ${vworld.domain() || '미설정 ⚠ 서버 호출은 등록 도메인을 명시해야 허용된다'}`);
   console.log(`DATA_GO_KR_KEY : ${molit.isAvailable() ? dk.message : '미설정 — 실거래가/건축물대장 건너뜀'}`);
 
-  let lat = null, lon = null, parsedPnu = null;
+  let lat = null, lon = null, parsedPnu = null, polygonAreaSqm = null;
 
   // ── 1. 지오코딩 ────────────────────────────────────────
   if (vworld.isAvailable()) {
@@ -160,23 +162,38 @@ async function main() {
   if (lat !== null) {
     const p = await vworld.parcelAt(lon, lat);
     if (p.ok) {
-      const areaCalc = p.value.polygon.length >= 3 ? geometry.polygonAreaSqm(p.value.polygon) : null;
+      polygonAreaSqm = p.value.polygon.length >= 3 ? geometry.polygonAreaSqm(p.value.polygon) : null;
+      // 연속지적도에 면적 필드가 없는 것은 정상이다 (vworld.js parcelAt 주석 참고).
+      // 면적은 아래 '토지특성'이 담당하므로 여기서는 경고하지 않는다.
       report('VWorld 연속지적도', true,
-        `PNU ${p.value.pnu} · 공부면적 ${p.value.officialAreaSqm}㎡ · 폴리곤 ${p.value.polygon.length}점`
-        + (areaCalc ? ` · 실측 ${Math.round(areaCalc)}㎡` : ''));
+        `PNU ${p.value.pnu} · 폴리곤 ${p.value.polygon.length}점`
+        + (polygonAreaSqm ? ` · 실측 ${Math.round(polygonAreaSqm)}㎡` : ''));
       if (p.value.pnu) {
         parsedPnu = pnuUtil.parse(p.value.pnu);
         console.log(`  PNU 분해: 시군구 ${parsedPnu.sigunguCd} · 법정동 ${parsedPnu.bjdongCd} · 지번 ${parsedPnu.jibun}`);
-      }
-      if (!p.value.officialAreaSqm) {
-        console.log('  ⚠ 공부상 면적이 비었다 — 응답의 면적 필드명 확인 필요 (lndpcl_ar 등)');
       }
     } else {
       report('VWorld 연속지적도', false, p.error);
     }
   }
 
-  // ── 3. 개별공시지가 ────────────────────────────────────
+  // ── 3. 토지특성 (공부상 대지면적) ───────────────────────
+  // 나대지는 건축물대장이 없어 여기가 면적의 유일한 출처다.
+  if (parsedPnu && nsdi.isAvailable()) {
+    const chr = await nsdi.landCharacteristics(parsedPnu.pnu);
+    if (chr.ok) {
+      const gap = polygonAreaSqm
+        ? ` · 폴리곤 실측과 ${(Math.abs(polygonAreaSqm - chr.value.areaSqm) / chr.value.areaSqm * 100).toFixed(1)}% 차이`
+        : '';
+      report('토지특성 (VWorld NED)', true,
+        `${chr.value.year}년 공부면적 ${chr.value.areaSqm?.toLocaleString('ko-KR')}㎡ · 지목 ${chr.value.category}${gap}`);
+      if (!chr.value.areaSqm) console.log('  ⚠ 면적이 비었다 — 필드명 확인 (lndpclAr)');
+    } else {
+      report('토지특성 (VWorld NED)', false, chr.error);
+    }
+  }
+
+  // ── 4. 개별공시지가 ────────────────────────────────────
   if (parsedPnu && nsdi.isAvailable()) {
     const lp = await nsdi.landPrice(parsedPnu.pnu);
     if (lp.ok) {
@@ -189,7 +206,7 @@ async function main() {
     }
   }
 
-  // ── 4. 토지이용계획 ────────────────────────────────────
+  // ── 5. 토지이용계획 ────────────────────────────────────
   if (parsedPnu && nsdi.isAvailable()) {
     const lu = await nsdi.landUse(parsedPnu.pnu);
     if (lu.ok) {
@@ -203,7 +220,7 @@ async function main() {
     }
   }
 
-  // ── 5. 건축물대장 ──────────────────────────────────────
+  // ── 6. 건축물대장 ──────────────────────────────────────
   if (parsedPnu && molit.isAvailable()) {
     const b = await molit.buildingRegister(parsedPnu);
     if (b.ok) {
@@ -217,7 +234,7 @@ async function main() {
     }
   }
 
-  // ── 6. 실거래가 ────────────────────────────────────────
+  // ── 7. 실거래가 ────────────────────────────────────────
   if (parsedPnu && molit.isAvailable()) {
     const months = pnuUtil.recentMonths(3);
     for (const type of ['land', 'commercial']) {

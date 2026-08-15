@@ -106,13 +106,6 @@ async function run(input, ctx) {
         ...src('지적공부(VWorld)'),
       });
     }
-    // 폴리곤 실측 면적은 공부상 면적과 오차가 있을 수 있어 참고값으로만 둔다
-    if (polygonAreaSqm && parcel.value.officialAreaSqm) {
-      const diff = Math.abs(polygonAreaSqm - parcel.value.officialAreaSqm) / parcel.value.officialAreaSqm;
-      if (diff > 0.05) {
-        ctx.warn(`지적도 폴리곤 실측(${round(polygonAreaSqm, 0)}㎡)과 공부상 면적(${parcel.value.officialAreaSqm}㎡) 차이 ${round(diff * 100, 1)}%`);
-      }
-    }
   } else if (!parcel.unavailable) {
     ctx.warn(`필지 조회 실패: ${parcel.error}`);
   }
@@ -161,9 +154,47 @@ async function run(input, ctx) {
     } else if (!reg.unavailable && !/자료 없음/.test(reg.error || '')) {
       ctx.warn(`건축물대장 조회 실패: ${reg.error}`);
     }
+
+    // ── ⑤ 토지특성 — 대지면적 폴백 ─────────────────────────
+    // 연속지적도에는 면적 필드가 없고, 나대지는 건축물대장도 없다.
+    // 그 경우 공부상 면적의 출처가 여기뿐이다. 개발사업 부지는 대개 나대지다.
+    // ★ 이미 채워졌으면 부르지 않는다 — 호출 수를 늘리지 않는다 (CLAUDE.md §4).
+    if (!facts.some(f => f.key === 'land.area_sqm')) {
+      const chr = await nsdi.landCharacteristics(parsedPnu.pnu);
+      if (chr.ok) {
+        out.landCharacteristics = chr.value;
+        sources.push({ name: 'VWorld 토지특성', cached: !!chr.cached });
+        facts.push({
+          key: 'land.area_sqm', value: chr.value.areaSqm, unit: '㎡',
+          confidence: 0.95,
+          quote: `토지특성 공부상 면적 ${chr.value.areaSqm}㎡ (${chr.value.year}년 기준)`,
+          ...src('토지특성(VWorld)'),
+        });
+        if (chr.value.category) {
+          facts.push({ key: 'land.category', value: chr.value.category, unit: null, confidence: 0.9, ...src('토지특성(VWorld)') });
+        }
+      } else if (!chr.unavailable) {
+        ctx.warn(`토지특성 조회 실패: ${chr.error} — 대지면적은 직접 입력해야 한다`);
+      }
+    }
   }
 
-  // ── ⑤ 지도 이미지 (기본 비활성 — 쿼터 절약) ──────────────
+  // ── 교차검증: 지적도 폴리곤 실측 vs 공부상 면적 ────────────
+  // ★ 전에는 연속지적도 응답 안에서만 비교했는데 그 응답에는 면적이 없어
+  //   **한 번도 동작하지 않았다.** 면적 출처가 확정된 뒤로 옮긴다.
+  //   공부상 면적과 실측이 크게 어긋나면 필지가 잘못 잡혔다는 신호다.
+  const areaFact = facts.find(f => f.key === 'land.area_sqm');
+  if (areaFact && out.parcel && out.parcel.polygonAreaSqm) {
+    const official = areaFact.value;
+    const diff = Math.abs(out.parcel.polygonAreaSqm - official) / official;
+    if (diff > 0.05) {
+      ctx.warn(`지적도 폴리곤 실측(${round(out.parcel.polygonAreaSqm, 0)}㎡)과 `
+        + `공부상 면적(${official}㎡, ${areaFact.source}) 차이 ${round(diff * 100, 1)}% `
+        + '— 필지 특정이 잘못됐을 수 있다');
+    }
+  }
+
+  // ── ⑥ 지도 이미지 (기본 비활성 — 쿼터 절약) ──────────────
   if (process.env.IM_AGENT_FETCH_IMAGES === '1' && out.geo) {
     const saved = await saveSatelliteImage(input.projectId, out.geo.lat, out.geo.lon, ctx);
     if (saved) out.geo.satelliteImage = saved;

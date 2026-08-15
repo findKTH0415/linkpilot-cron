@@ -124,6 +124,28 @@ test('실거래 조회월: 연초에도 전년으로 정확히 넘어간다', ()
   assert.deepStrictEqual(months, ['202602', '202601', '202512', '202511']);
 });
 
+// ★ 이 저장소가 두 번 걸린 함정이다. NED 응답은 최초 고시연도부터 **오름차순**이라
+//   앞에서부터 집으면 20년 전 값을 '최신'으로 쓴다. 실제로 공시지가가 2015년 값
+//   (46,100,000원/㎡)으로 들어가 있었다 — 진짜 최신은 2026년 65,730,000원/㎡ 다.
+//   출처 표시는 정상이라 눈으로는 안 잡힌다. 그래서 테스트로 고정한다.
+test('연도 이력은 최신이 먼저 온다 (응답은 오름차순으로 도착한다)', () => {
+  const ascending = [
+    { year: 2006, pricePerSqm: 36600000 },
+    { year: 2015, pricePerSqm: 46100000 },
+    { year: 2025, pricePerSqm: 62570000 },
+    { year: 2026, pricePerSqm: 65730000 },
+  ];
+  const sorted = nsdi.latestFirst(ascending);
+  assert.strictEqual(sorted[0].year, 2026, '최신 고시연도를 골라야 한다');
+  assert.strictEqual(sorted[0].pricePerSqm, 65730000);
+  assert.strictEqual(ascending[0].year, 2006, '입력 배열을 변형하지 않는다');
+});
+
+test('연도가 없는 행은 최신으로 뽑히지 않는다', () => {
+  const rows = [{ year: null, areaSqm: 1 }, { year: 2024, areaSqm: 2 }];
+  assert.strictEqual(nsdi.latestFirst(rows)[0].year, 2024);
+});
+
 test('용도지역 상한: 문자열만으로 조회된다 (API 불필요)', () => {
   assert.deepStrictEqual(nsdi.limitsForZone('일반공업지역'), { zone: '일반공업지역', far: 350, bcr: 70 });
   assert.deepStrictEqual(nsdi.limitsForZone('제3종 일반주거지역'), { zone: '제3종일반주거지역', far: 300, bcr: 50 });

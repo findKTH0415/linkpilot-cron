@@ -28,13 +28,19 @@ function apiKey() {
  * VWorld 키는 신청 시 등록한 도메인에서만 동작한다.
  * 브라우저 호출은 Referer 로 판정하지만 서버 호출은 Referer 가 없으므로
  * 등록한 도메인을 `domain` 파라미터로 명시해야 한다.
- *   예: VWORLD_DOMAIN=nas.example.com   (스킴·경로 없이 호스트만)
+ *
+ * ★ **콘솔의 서비스URL 을 글자 그대로 넣는다** (스킴·경로 포함).
+ *   예: VWORLD_DOMAIN=https://nas.example.com/app.html
+ *
+ *   전에는 여기서 스킴·경로를 벗겨 호스트만 보냈다. `req/*` 계열은 그래도
+ *   통과하지만 **`ned/*` 계열(개별공시지가·토지이용계획)은 간헐적으로
+ *   INCORRECT_KEY 를 돌려준다** — 2026-08-15 실측에서 호스트만 보낸 경우
+ *   5회 중 2회 실패, 등록 URL 그대로 보낸 경우 5회 중 0회 실패였다.
+ *   간헐적이라 "가끔 값이 안 들어오는" 형태로만 드러나 원인을 찾기 어렵다.
+ *   등록값을 가공하지 않는 것이 유일하게 안전한 쪽이다.
  */
 function domain() {
-  return (process.env.VWORLD_DOMAIN || '')
-    .replace(/^https?:\/\//, '')   // 스킴 제거
-    .replace(/\/.*$/, '')           // 경로 제거
-    .trim();
+  return (process.env.VWORLD_DOMAIN || '').trim();
 }
 
 /**
@@ -179,6 +185,11 @@ async function parcelAt(lon, lat) {
     value: {
       pnu: props.pnu || props.PNU || null,
       jibun: props.addr || props.jibun || null,
+      // ★ 연속지적도에는 **면적 필드가 없다.** 실측 응답 속성은
+      //   pnu·jibun·bonbun·bubun·addr·jiga·gosi_year·gosi_month 8개뿐이다
+      //   (2026-08-15 확인). 따라서 이 값은 사실상 항상 null 이고,
+      //   대지면적은 건축물대장 platArea 또는 nsdi.landCharacteristics 가 채운다.
+      //   필드명을 바꾼다고 채워지지 않는다 — 그 헛수고를 막으려고 남긴다.
       officialAreaSqm: num(props.lndpcl_ar ?? props.LNDPCL_AR ?? props.area),
       polygon,
     },

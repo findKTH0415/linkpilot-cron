@@ -154,15 +154,17 @@ test('★ 지오코딩 type 이 덮어써지지 않는다 (ROAD/PARCEL → json 
   if (saved) process.env.VWORLD_KEY = saved; else delete process.env.VWORLD_KEY;
 });
 
-test('VWORLD_DOMAIN 은 스킴·경로를 제거해 호스트만 보낸다', () => {
+// 등록된 서비스URL 을 가공하면 ned/* 계열이 간헐적으로 INCORRECT_KEY 를 낸다.
+// 간헐적이라 회귀해도 테스트 없이는 안 드러난다 — 그래서 여기서 고정한다.
+test('VWORLD_DOMAIN 은 등록값을 가공하지 않고 그대로 보낸다', () => {
   const vworld = require('../connectors/vworld');
   const saved = process.env.VWORLD_DOMAIN;
 
   process.env.VWORLD_DOMAIN = 'https://nas.example.com/app.html';
-  assert.strictEqual(vworld.domain(), 'nas.example.com');
+  assert.strictEqual(vworld.domain(), 'https://nas.example.com/app.html');
 
-  process.env.VWORLD_DOMAIN = 'nas.example.com';
-  assert.strictEqual(vworld.domain(), 'nas.example.com');
+  process.env.VWORLD_DOMAIN = '  nas.example.com  ';
+  assert.strictEqual(vworld.domain(), 'nas.example.com', '앞뒤 공백만 다듬는다');
 
   delete process.env.VWORLD_DOMAIN;
   assert.strictEqual(vworld.domain(), '');

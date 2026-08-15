@@ -141,7 +141,10 @@ async function buildingRegister({ sigunguCd, bjdongCd, bun, ji }) {
   const bad = keyFormatError(); if (bad) return bad;
   if (!sigunguCd || !bjdongCd) return { ok: false, error: '법정동코드 없음' };
 
-  const r = await call('BldRgstService_v2/getBrTitleInfo', {
+  // ★ 엔드포인트는 `BldRgstHubService` 다. 구 `BldRgstService_v2` 는 폐기되어
+  //   NO_OPENAPI_SERVICE_ERROR(코드 12) 만 돌아온다 — 2026-08-15 실측 확인.
+  //   키 문제와 증상이 달라서(403 vs 400) 응답 본문을 봐야 구분된다.
+  const r = await call('BldRgstHubService/getBrTitleInfo', {
     sigunguCd, bjdongCd, bun, ji, numOfRows: 10, pageNo: 1,
   }, 'building', { sigunguCd, bjdongCd, bun, ji });
 
