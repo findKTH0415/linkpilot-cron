@@ -381,8 +381,9 @@
     {
       "id": "B-7",
       "title": "업무지시 보드 데이터 저장 붙이기",
-      "detail": "지금은 api: null 로 데모 데이터만 돈다. 카드를 옮겨도 새로고침하면 되돌아간다. report-api 와 같은 방식으로 쓰기 라우터 추가",
-      "status": "todo",
+      "detail": "ui/board-api.cjs 를 만들었다. GET /board · POST /board/tasks · PATCH·DELETE /board/tasks/:id. rev 로 경합을 막는다 — 마지막에 저장한 사람이 이기면 남이 옮긴 카드가 이유 없이 되돌아간다. 완료일은 서버가 KST 로 찍는다(브라우저 시계를 믿지 않는다). 읽을 수 없는 보드는 빈 보드로 덮지 않는다. 화면은 저장이 실패하면 카드를 되돌리고 사유를 적는다",
+      "status": "done",
+      "doneAt": "2026-08-15",
       "priority": "normal",
       "assignee": "개발",
       "project": "보고서 생성",

@@ -1274,8 +1274,9 @@ window.LINKPILOT_BOARD = {
     {
       "id": "B-7",
       "title": "업무지시 보드 데이터 저장 붙이기",
-      "detail": "지금은 api: null 로 데모 데이터만 돈다. 카드를 옮겨도 새로고침하면 되돌아간다. report-api 와 같은 방식으로 쓰기 라우터 추가",
-      "status": "todo",
+      "detail": "ui/board-api.cjs 를 만들었다. GET /board · POST /board/tasks · PATCH·DELETE /board/tasks/:id. rev 로 경합을 막는다 — 마지막에 저장한 사람이 이기면 남이 옮긴 카드가 이유 없이 되돌아간다. 완료일은 서버가 KST 로 찍는다(브라우저 시계를 믿지 않는다). 읽을 수 없는 보드는 빈 보드로 덮지 않는다. 화면은 저장이 실패하면 카드를 되돌리고 사유를 적는다",
+      "status": "done",
+      "doneAt": "2026-08-15",
       "priority": "normal",
       "assignee": "개발",
       "project": "보고서 생성",
@@ -1434,7 +1435,50 @@ window.LINKPILOT_BOARD = {
   var B = window.LinkPilotBoard;
   var view = document.getElementById('view');
 
-  var state = { tasks: (C.tasks || []).slice(), filter: {}, today: B.kstYmd() };
+  var state = { tasks: (C.tasks || []).slice(), filter: {}, today: B.kstYmd(), rev: null, saving: false };
+
+  // ── 서버 저장 (B-7) ──────────────────────────────
+  //
+  // ★ 카드를 옮겨도 새로고침하면 되돌아가던 화면이었다. **옮겼다고 믿은 채로
+  //   옮겨지지 않은 것**이 이 화면의 가장 나쁜 실패라서, 저장이 실패하면
+  //   화면을 되돌리고 이유를 적는다 — 조용히 두지 않는다.
+  function apiUrl(p) { return String(C.api).replace(/\/$/, '') + p; }
+
+  function req(method, p, body) {
+    return fetch(apiUrl(p), {
+      method: method,
+      credentials: 'same-origin',
+      headers: body ? { 'Content-Type': 'application/json' } : {},
+      body: body ? JSON.stringify(body) : undefined,
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (j) {
+        if (!r.ok) throw Object.assign(new Error(j.error || ('HTTP ' + r.status)), { status: r.status, payload: j });
+        return j;
+      });
+    });
+  }
+
+  /** 저장 실패를 화면 맨 위에 적는다. 409 면 서버 상태로 맞춘 뒤 알린다 */
+  function saveFailed(e, what) {
+    if (e && e.status === 409 && e.payload && e.payload.board) {
+      state.tasks = e.payload.board.tasks || [];
+      state.rev = e.payload.board.rev;
+    }
+    draw();
+    var n = el('p', 'late', what + ' 저장하지 못했습니다 — ' + (e && e.message ? e.message : '알 수 없는 오류'));
+    view.insertBefore(n, view.firstChild);
+  }
+
+  function load() {
+    if (!C.api) return;   // 데모 데이터로 화면만 확인하는 모드
+    req('GET', '/board').then(function (j) {
+      state.tasks = j.tasks || [];
+      state.rev = j.rev;
+      if (j.people && j.people.length) C.people = j.people;
+      if (j.projects && j.projects.length) C.projects = j.projects;
+      draw();
+    }).catch(function (e) { saveFailed(e, '보드를'); });
+  }
 
   function el(t, c, x) {
     var n = document.createElement(t);
@@ -1561,11 +1605,26 @@ window.LINKPILOT_BOARD = {
   function move(task, toIdx) {
     var s = B.STATUSES[toIdx];
     if (!s) return;
+
+    // 되돌릴 수 있게 이전 상태를 들고 간다 — 저장이 실패하면 화면도 되돌린다
+    var before = { status: task.status, doneAt: task.doneAt };
     task.status = s.id;
     if (s.id === 'done') task.doneAt = state.today;
     else delete task.doneAt;
-    // 서버 저장은 본체 API 에 연결한다. 여기서는 화면만 갱신한다
     draw();
+
+    if (!C.api) return;   // 데모 모드
+    req('PATCH', '/board/tasks/' + encodeURIComponent(task.id), { status: s.id, rev: state.rev })
+      .then(function (j) {
+        state.rev = j.rev;
+        // 완료일은 서버가 KST 로 찍는다 — 브라우저 시계와 다를 수 있다
+        if (j.task) { task.doneAt = j.task.doneAt; task.updatedAt = j.task.updatedAt; }
+      })
+      .catch(function (e) {
+        task.status = before.status;
+        if (before.doneAt) task.doneAt = before.doneAt; else delete task.doneAt;
+        saveFailed(e, '카드 이동을');
+      });
   }
 
   function board() {
@@ -1658,17 +1717,34 @@ window.LINKPILOT_BOARD = {
         err.style.display = '';
         return;
       }
-      state.tasks.push({
-        id: 'n' + state.tasks.length + 1,
+      var draft = {
         title: title.value.trim(), detail: detail.value.trim(),
-        status: 'todo', priority: pri.value,
-        due: due.value || null, assignee: who.value, project: prj.value || null,
+        priority: pri.value, due: due.value || null,
+        assignee: who.value, project: prj.value || null,
+      };
+
+      if (!C.api) {
+        // 데모 모드 — 화면에만 남는다는 것을 감추지 않는다
+        state.tasks.push(Object.assign({ id: 'n' + (state.tasks.length + 1), status: 'todo' }, draft));
+        shut();
+        draw();
+        view.appendChild(el('p', 'note', '화면에만 추가되었습니다 — 서버(api)가 연결되어 있지 않습니다.'));
+        return;
+      }
+
+      // ★ 등록은 낙관적으로 그리지 않는다. id 를 서버가 만들기 때문이다 —
+      //   화면이 임의 id 로 먼저 그리면 그 카드의 이동이 엉뚱한 지시에 붙는다
+      save.disabled = true;
+      req('POST', '/board/tasks', draft).then(function (j) {
+        state.tasks.push(j.task);
+        state.rev = j.rev;
+        shut();
+        draw();
+      }).catch(function (e) {
+        save.disabled = false;
+        err.textContent = '저장하지 못했습니다 — ' + (e && e.message ? e.message : '알 수 없는 오류');
+        err.style.display = '';
       });
-      shut();
-      draw();
-      // 저장은 본체 API 에 연결해야 한다. 지금은 화면에만 남는다는 것을 밝힌다
-      var n = el('p', 'note', '화면에만 추가되었습니다 — 서버 저장은 본체 API 연결이 필요합니다.');
-      view.appendChild(n);
     });
     bd.appendChild(save);
     box.appendChild(bd);
@@ -1701,6 +1777,7 @@ window.LINKPILOT_BOARD = {
   }
 
   draw();
+  load();
 
   // ── 지침 반영 ────────────────────────────────────
   // §2 유료 메뉴는 무료 계정에서도 보이되 잠긴다 (숨기면 승급할 이유를 모른다)
