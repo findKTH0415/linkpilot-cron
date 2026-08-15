@@ -418,7 +418,7 @@ HANDOVER.md 읽고 이어서 진행
 cd ~/linkpilot-cron
 git fetch origin
 git checkout claude/linkpilot-agent-github-plan-0af7xs
-git pull                                   # 최신 = 7c6ac02
+git pull                                   # 최신 커밋 해시는 PR #3 에서 확인한다
 npm test                                   # 467 pass / 0 fail 이어야 한다
 ```
 
@@ -439,6 +439,7 @@ open im-agent/ui/platform/preview.html     # Windows 는 start, Linux 는 xdg-op
 | `c368386` | 개별공시지가는 07 이 아니라 08 이 채운다 — FILLS 선언 정정 (B-19) |
 | `2270181` | 페이지·출처일을 뜻 있는 항목에만 (B-21 전반부) |
 | `7c6ac02` | 자동으로 채워지는 줄에는 출처를 묻지 않는다 (B-21 후반부) |
+| `97dace8` | 이 인수인계 절차 + 미리보기 산출물 gitignore |
 
 뒤 둘은 **모바일 화면을 보고 지적해 주신 것**이다. 데스크탑 폭에서 칸이
 `n1`/`n2`/`n3` 로 갈릴 때 레이아웃이 어색하지 않은지 한 번 더 보는 게 좋다.
