@@ -238,8 +238,86 @@
     },
     {
       "id": "D-15",
-      "title": "시장조사 Connector 붙이기",
-      "detail": "03_research 는 Connector 가 없어 LLM 기억에 의존한다. 산출물은 전부 verified=false 라 재무모델에 들어가지 않지만, 운영 투입 전 URL 출처를 강제해야 한다",
+      "title": "시장조사 Connector 붙이기 — 승인",
+      "detail": "03_research 가 LLM 기억에 의존하던 것을 출처 있는 통계로 바꾼다. 2026-08-15 사용자 승인. 1차로 한국은행 ECOS(시장금리)를 connectors/ecos.js 로 붙였다(4ce35fc). 나머지 연결 5종은 C-01~C-05 로 쪼개 두었다",
+      "status": "done",
+      "priority": "normal",
+      "assignee": "개발",
+      "project": "보고서 생성",
+      "doneAt": "2026-08-15",
+      "refs": [
+        "D-15"
+      ]
+    },
+    {
+      "id": "D-23",
+      "title": "새로 붙이는 연결의 값은 기준선인가 실측치인가",
+      "detail": "공공 통계는 그 딜의 값이 아니다. SMP 는 계통한계가격이지 그 발전소의 PPA 단가가 아니고, 지역 평균 임대료는 그 건물의 임대료가 아니다. 실측치로 쓰면 출처가 있으니 아무도 의심하지 않은 채로 틀린다. 정해지기 전까지는 전부 기준선(별도 항목, 재무모델 미투입)으로 만든다",
+      "status": "todo",
+      "priority": "urgent",
+      "assignee": "의사결정",
+      "project": "보고서 생성",
+      "refs": [
+        "D-23",
+        "D-22"
+      ]
+    },
+    {
+      "id": "C-01",
+      "title": "DART 전자공시 Connector — 시행사 실재 확인",
+      "detail": "직접 입력 8칸 중 시행사(project.sponsor)를 채운다. opendart.fss.or.kr 무료 키. 법인명으로 고유번호를 찾아 법인 실재·최근 재무제표를 붙인다. 값의 성격은 D-23 을 따른다 — 신용 판단이 아니라 '이 법인이 실재하고 이런 규모다' 까지",
+      "status": "todo",
+      "priority": "normal",
+      "assignee": "개발",
+      "project": "보고서 생성",
+      "refs": [
+        "D-15",
+        "D-23"
+      ]
+    },
+    {
+      "id": "C-02",
+      "title": "인허가 Connector — 건축인허가 기록",
+      "detail": "직접 입력 8칸 중 인허가 현황(legal.permit_status)을 채운다. data.go.kr 건축인허가 정보서비스라 DATA_GO_KR_KEY 를 그대로 쓴다(새 키 불필요). 주의: 기록이 없는 것과 허가가 없는 것은 다르다 — 없으면 '기록 없음'이라고만 적고 '미허가'로 단정하지 않는다",
+      "status": "todo",
+      "priority": "normal",
+      "assignee": "개발",
+      "project": "보고서 생성",
+      "refs": [
+        "D-15",
+        "D-23"
+      ]
+    },
+    {
+      "id": "C-03",
+      "title": "SMP·REC Connector — 태양광 매출단가 기준선",
+      "detail": "revenue.unit_price 의 기준선을 세운다. 전력거래소 SMP·REC 가중평균가 (data.go.kr, 기존 키). ECOS 와 같은 함정이 있다 — SMP 는 계통한계가격이고 실제 매출은 장기 PPA·고정계약이다. debt.benchmark_rate 와 같은 방식으로 별도 항목에 둔다(D-23)",
+      "status": "todo",
+      "priority": "normal",
+      "assignee": "개발",
+      "project": "보고서 생성",
+      "refs": [
+        "D-15",
+        "D-23"
+      ]
+    },
+    {
+      "id": "C-04",
+      "title": "임대료·수익률 Connector — 부동산 통계(R-ONE)",
+      "detail": "부동산 템플릿의 revenue.unit_price·exit.cap_rate 기준선. 한국부동산원 R-ONE 별도 키가 필요하다. 지역 평균이라 개별 건물 값이 아니다 — 기준선으로만 둔다(D-23)",
+      "status": "todo",
+      "priority": "normal",
+      "assignee": "개발",
+      "project": "보고서 생성",
+      "refs": [
+        "D-15",
+        "D-23"
+      ]
+    },
+    {
+      "id": "C-05",
+      "title": "지구단위계획·토지이용규제 Connector",
+      "detail": "land.zoning 은 VWorld 로 이미 채워지지만 '무엇을 지을 수 있는가'(지구단위계획 지침·행위제한)는 아직 없다. 토지이음(LURIS) 계열. 07 Geo 에 얹는다",
       "status": "todo",
       "priority": "normal",
       "assignee": "개발",
