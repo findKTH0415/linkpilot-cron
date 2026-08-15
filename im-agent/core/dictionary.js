@@ -68,6 +68,9 @@ const FIELDS = {
   'debt.ltc':            { label: 'LTC(총사업비 대비 차입비율)', category: CATEGORY.DEBT, unit: '%', type: 'number', aliases: ['LTC', '차입비율'], min: 0, max: 100 },
   'debt.ltv':            { label: 'LTV', category: CATEGORY.DEBT, unit: '%', type: 'number', aliases: ['LTV', '담보인정비율'], min: 0, max: 100 },
   'debt.rate':           { label: '차입금리', category: CATEGORY.DEBT, unit: '%', type: 'number', aliases: ['금리', '이자율', '차입금리', 'Interest Rate'], min: 0, max: 30, requiredFor: ['financial'] },
+  // ★ 차입금리가 아니라 **기준선**이다. PF 금리 = 기준금리 + 스프레드이고 스프레드는
+  //   딜마다 다르다. 이 값으로 debt.rate 를 대체하면 IRR 이 통째로 부풀려진다 (ecos.js)
+  'debt.benchmark_rate': { label: '기준금리(시장)', category: CATEGORY.DEBT, unit: '%', type: 'number', min: 0, max: 30 },
   'debt.tenor_years':    { label: '대출기간', category: CATEGORY.DEBT, unit: '년', type: 'number', aliases: ['대출기간', '만기', 'Tenor', 'Maturity'], min: 0, max: 50 },
   'debt.grace_years':    { label: '거치기간', category: CATEGORY.DEBT, unit: '년', type: 'number', aliases: ['거치기간', 'Grace Period'], min: 0, max: 20 },
   'debt.fee_pct':        { label: '취급수수료', category: CATEGORY.DEBT, unit: '%', type: 'number', aliases: ['취급수수료', '주선수수료', 'Arrangement Fee'], min: 0, max: 10 },

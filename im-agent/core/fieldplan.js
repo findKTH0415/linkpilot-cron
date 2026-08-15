@@ -13,7 +13,7 @@
  *
  * 채움 경로(fill):
  *   request    요청문 한 줄에서 뽑는다        (01 Project)
- *   public     소재지만 있으면 공공데이터가   (07 Geo)
+ *   public     공공데이터가 채운다            (07 Geo · 08 Appraisal · 03 Research)
  *   derived    다른 값에서 계산된다           (재무모델)
  *   default    산업 통상치로 채우고 가정치로 표시한다 (템플릿 defaults)
  *   extract    올린 자료에서 뽑을 수 있다     (02 Extraction · 별칭이 있는 항목)
@@ -42,7 +42,7 @@ const LABEL = {
 
 const WHY = {
   request: '요청문 한 줄에서 뽑습니다',
-  public: '소재지만 있으면 공부(公簿)에서 가져옵니다',
+  public: '공공데이터에서 가져옵니다 (공부 · 시장통계)',
   derived: '다른 값에서 계산됩니다',
   default: '산업 통상치를 넣고 가정치로 표시합니다 — 문서값이 들어오면 그것이 이깁니다',
   extract: '올린 자료에서 뽑습니다. 못 뽑으면 직접 넣어야 합니다',
@@ -58,21 +58,29 @@ function agentFills(rel) {
 }
 
 /**
- * 공공데이터 인증키가 실제로 있는가.
+ * 공공데이터를 부르는 Agent 와 **그 Agent 가 기대는 키**.
  *
- * ★ 키가 없으면 07 Geo 는 통째로 건너뛴다. 그런데도 화면이 "공공데이터가
- *   채웁니다"라고 말하면 **안 물어보고 빈 채로 남는다** — 사람은 물어보지
- *   않았으니 그 항목이 있는 줄도 모른다. 키 없는 환경에서는 직접 입력이다.
- *   (`VWORLD_KEY`·`DATA_GO_KR_KEY` 는 등록부 D-12 로 아직 미등록 상태다)
+ * 키가 없으면 그 Agent 는 통째로 건너뛴다. 그런데도 화면이 "공공데이터가
+ * 채웁니다"라고 말하면 **안 물어보고 빈 채로 남는다** — 사람은 물어보지
+ * 않았으니 그 항목이 있는 줄도 모른다 (B-18).
+ *
+ * ★ 키가 하나가 아니다. 공부(公簿)는 VWorld·국토부 키로, 시장금리는 ECOS 키로
+ *   움직인다. 하나만 보고 "공공데이터 있음"으로 판정하면, ECOS 키가 없는데도
+ *   화면이 기준금리를 안 물어보고 빈 채로 둔다 (B-18 과 같은 실패다).
  */
+const PUBLIC_SOURCES = [
+  { agent: '../agents/07-geo', keys: ['vworld', 'nsdi', 'molit'] },
+  { agent: '../agents/08-appraisal', keys: ['nsdi', 'molit'] },
+  { agent: '../agents/03-research', keys: ['ecos'] },
+];
+
+function connectorReady(name) {
+  try { return require(`../connectors/${name}`).isAvailable(); } catch (_) { return false; }
+}
+
+/** 어느 공공데이터든 하나라도 쓸 수 있는가 (화면이 사유를 띄울 때 쓴다) */
 function publicDataAvailable() {
-  try {
-    return require('../connectors/vworld').isAvailable()
-      || require('../connectors/nsdi').isAvailable()
-      || require('../connectors/molit').isAvailable();
-  } catch (_) {
-    return false;   // 커넥터를 못 읽으면 없는 것으로 본다 — 있다고 단정하는 쪽이 위험하다
-  }
+  return PUBLIC_SOURCES.some(s => s.keys.some(connectorReady));
 }
 
 /**
@@ -82,12 +90,11 @@ function publicDataAvailable() {
 function plan(templateId) {
   const t = templates.getTemplate(templateId) || templates.getTemplate('generic');
   const fromRequest = agentFills('../agents/01-project');
-  // 공공데이터를 부르는 Agent 는 07 하나가 아니다 — 08 이 개별공시지가를 받아 온다.
-  // 한 Agent 만 보면 다른 Agent 가 채우는 항목을 사람에게 또 물어보게 된다
-  const hasPublic = publicDataAvailable();
-  const fromPublic = hasPublic
-    ? [].concat(agentFills('../agents/07-geo'), agentFills('../agents/08-appraisal'))
-    : [];
+  // ★ Agent 마다 기대는 키가 다르다. 그 Agent 의 키가 있을 때만 그 Agent 의
+  //   FILLS 를 자동으로 친다 — 없는 키의 항목을 자동이라고 하면 안 물어보고 빈다
+  const fromPublic = PUBLIC_SOURCES
+    .filter(s => s.keys.some(connectorReady))
+    .reduce((acc, s) => acc.concat(agentFills(s.agent)), []);
 
   // 템플릿 기본값이 있는 dictionary key (map: field→key, defaults: field→value)
   const defaulted = new Set();
@@ -129,4 +136,4 @@ function summary(templateId) {
   return counts;
 }
 
-module.exports = { plan, summary, publicDataAvailable, DERIVED, LABEL, WHY };
+module.exports = { plan, summary, publicDataAvailable, PUBLIC_SOURCES, connectorReady, DERIVED, LABEL, WHY };

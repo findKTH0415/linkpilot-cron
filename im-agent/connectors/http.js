@@ -80,11 +80,28 @@ function looksUrlEncoded(value) {
   try { return decodeURIComponent(s) !== s; } catch (_) { return false; }
 }
 
-/** 로그·에러 메시지에서 서비스키를 가린다 (시크릿 평문 노출 금지) */
-function redact(text) {
-  return String(text)
+/**
+ * 로그·에러 메시지에서 서비스키를 가린다 (시크릿 평문 노출 금지).
+ *
+ * ★ 규칙 두 개로는 부족한 경우가 있다. ECOS 는 키를 **URL 경로**에 넣고 길이도
+ *   20자쯤이라 `key=` 패턴에도, 40자 이상 규칙에도 안 걸린다. 그런 커넥터는
+ *   자기 키를 `extra` 로 넘겨 명시적으로 가린다 — 우연히 가려지는 데 기대지 않는다.
+ *
+ * @param {string} text
+ * @param {string[]} [extra] 반드시 가려야 하는 값 (빈 문자열은 무시한다)
+ */
+function redact(text, extra) {
+  let out = String(text)
     .replace(/(serviceKey|key|apiKey|authKey)=[^&\s]+/gi, '$1=***')
     .replace(/[A-Za-z0-9%+/=]{40,}/g, '***');
+
+  (extra || []).forEach((secret) => {
+    const s = String(secret || '');
+    if (s.length < 8) return;   // 너무 짧으면 본문을 통째로 망가뜨린다
+    out = out.split(s).join('***');
+    out = out.split(encodeURIComponent(s)).join('***');
+  });
+  return out;
 }
 
 module.exports = { request, buildUrl, redact, sleep, looksUrlEncoded, DEFAULT_TIMEOUT };

@@ -127,7 +127,16 @@ async function run(opts = {}) {
     projectName: nameFact ? String(nameFact.value) : projectId,
   }, ctx);
   results['03_research'] = res;
-  if (res.output) store.writeJson(projectId, '05_Market/research.json', res.output);
+  if (res.output) {
+    // ★ 서술은 verified=false 라 Dataset 에 안 들어가지만, ECOS 시장금리는
+    //   출처가 확실해 facts 로 들어온다. 없으면 빈 배열이라 그냥 통과한다
+    if (res.output.facts && res.output.facts.length) {
+      dataset.addMany(res.output.facts);
+      dataset.resolve();
+      saveDataset(projectId, dataset);
+    }
+    store.writeJson(projectId, '05_Market/research.json', res.output);
+  }
 
   // ── 04 Financial ──────────────────────────────────────────
   const fin = await runAgent('04_financial', { projectId, templateId: templateId || 'generic' }, ctx);

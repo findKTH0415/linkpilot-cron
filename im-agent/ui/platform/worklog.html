@@ -1154,6 +1154,18 @@ window.LINKPILOT_BOARD = {
       ]
     },
     {
+      "id": "D-22",
+      "title": "차입금리를 기준금리 + 스프레드로 바꿀지 결정",
+      "detail": "connectors/ecos.js 를 붙여 기준금리(국고채 3년)는 출처 있는 값이 되었다. 재무모델이 쓰는 debt.rate 는 여전히 산업 통상치다. 둘을 잇는 자산유형별 스프레드는 시장 판단이라 정할 수 없다 — 지어내면 '출처 있는 기준금리 + 지어낸 스프레드'가 되어 숫자가 정확해 보이는 만큼 더 나쁘다",
+      "status": "todo",
+      "priority": "normal",
+      "assignee": "의사결정",
+      "project": "보고서 생성",
+      "refs": [
+        "D-22"
+      ]
+    },
+    {
       "id": "B-11",
       "title": "Lineage 모달을 순수 JS 판에 포팅",
       "detail": "React 판에는 있고 vanilla 판에는 없다. 본체가 단일 HTML 이면 숫자를 눌러 출처를 확인하는 경로가 막힌다 — IM Agent 핵심 가치 중 하나다",

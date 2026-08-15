@@ -30,6 +30,7 @@ const envFile = require('../core/env').load();
 const vworld = require('../connectors/vworld');
 const nsdi = require('../connectors/nsdi');
 const molit = require('../connectors/molit');
+const ecos = require('../connectors/ecos');
 const { looksUrlEncoded } = require('../connectors/http');
 const pnuUtil = require('../connectors/pnu');
 const geometry = require('../geo/geometry');
@@ -138,6 +139,20 @@ async function main() {
   console.log(`VWORLD_KEY     : ${vworld.isAvailable() ? vk.message : '미설정 — 지오코딩/지적/공시지가 건너뜀'}`);
   console.log(`VWORLD_DOMAIN  : ${vworld.domain() || '미설정 ⚠ 서버 호출은 등록 도메인을 명시해야 허용된다'}`);
   console.log(`DATA_GO_KR_KEY : ${molit.isAvailable() ? dk.message : '미설정 — 실거래가/건축물대장 건너뜀'}`);
+  console.log(`ECOS_API_KEY   : ${ecos.isAvailable() ? '설정됨' : '미설정 — 시장금리 건너뜀 (금리가 가정치로 남는다)'}`);
+
+  // ── 0-2. 시장금리 (주소와 무관 — 먼저 확인한다) ──────────
+  if (ecos.isAvailable()) {
+    const mr = await ecos.marketRate();
+    if (mr.ok) {
+      report('한국은행 ECOS 시장금리', true,
+        `${mr.value.label} ${mr.value.rate}${mr.value.unit} (${mr.value.date} 고시)`);
+      console.log('  ※ 이 값은 기준선(debt.benchmark_rate)이다 — 차입금리를 대체하지 않는다');
+    } else {
+      report('한국은행 ECOS 시장금리', false, mr.error);
+      console.log('  → 통계표코드(817Y002)·항목코드가 바뀌었을 수 있다. 응답 필드명 DATA_VALUE·TIME 확인');
+    }
+  }
 
   let lat = null, lon = null, parsedPnu = null;
 

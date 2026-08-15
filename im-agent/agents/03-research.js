@@ -9,9 +9,16 @@
  *
  * 실제 운영에서는 Connector Layer(웹검색/통계API)를 붙여 URL 출처를 강제해야 한다.
  * 현재는 그 자리를 명시적으로 비워두고, 근거 URL이 없는 항목을 YELLOW로 표시한다.
+ *
+ * ★ 예외가 하나 생겼다: **시장금리**는 한국은행 ECOS 에서 직접 받아 온다.
+ *   LLM 서술과 달리 출처가 확실하므로 `facts` 로 Dataset 에 들어간다 —
+ *   이 Agent 에서 유일하게 재무·검증이 믿어도 되는 숫자다.
+ *   단 채우는 것은 `debt.benchmark_rate`(기준선)이지 `debt.rate`(차입금리)가
+ *   아니다. 이유는 connectors/ecos.js 머리말에 적었다.
  */
 
 const llm = require('../core/llm');
+const ecos = require('../connectors/ecos');
 const { round } = require('../core/numeric');
 
 const inputSchema = {
@@ -27,10 +34,11 @@ const inputSchema = {
 
 const outputSchema = {
   type: 'object',
-  required: ['sections', 'sources'],
+  required: ['sections', 'sources', 'facts'],
   properties: {
     sections: { type: 'array' },
     sources: { type: 'array' },
+    facts: { type: 'array' },
     confidence: { type: 'number', minimum: 0, maximum: 1 },
     offline: { type: 'boolean' },
   },
@@ -70,7 +78,7 @@ async function run(input, ctx) {
     ctx.warn('LLM 오프라인 — 시장조사 생략. IM의 시장분석 절은 자리표시자로 출력된다');
     return {
       sections: TOPICS.map(t => ({ id: t.id, label: t.label, text: '(시장조사 미실행 — LLM 오프라인)', sources: [], certainty: 'low', verified: false })),
-      sources: [], confidence: 0, offline: true,
+      sources: [], facts: await marketFacts(ctx), confidence: 0, offline: true,
     };
   }
 
@@ -114,7 +122,41 @@ ${TOPICS.map(t => `- ${t.id}: ${t.label}`).join('\n')}
     : 0;
 
   const sources = [...new Set(sections.flatMap(s => s.sources))];
-  return { sections, sources, confidence: round(confidence, 3), offline: false };
+  return {
+    sections, sources, facts: await marketFacts(ctx),
+    confidence: round(confidence, 3), offline: false,
+  };
 }
 
-module.exports = { id: '03_research', label: 'Market Research Agent', inputSchema, outputSchema, run, TOPICS };
+/**
+ * 시장금리를 출처와 함께 가져온다.
+ *
+ * ★ 실패해도 Agent 를 죽이지 않는다 (CLAUDE.md §4). 한 소스가 없다고 시장조사
+ *   전체가 사라지면 IM 이 통째로 빈다. 경고만 남기고 빈 배열을 돌려준다.
+ */
+async function marketFacts(ctx) {
+  if (!ecos.isAvailable()) {
+    if (ctx && ctx.warn) ctx.warn('ECOS_API_KEY 미설정 — 시장금리를 가정치로 둔다');
+    return [];
+  }
+  const r = await ecos.marketRate();
+  if (!r.ok) {
+    if (ctx && ctx.warn) ctx.warn(`시장금리 조회 실패: ${r.error}`);
+    return [];
+  }
+  return [{
+    key: 'debt.benchmark_rate',
+    value: r.value.rate,
+    unit: r.value.unit === '%' ? '%' : r.value.unit,
+    confidence: 0.95,
+    source: `한국은행 ECOS ${r.value.label}`,
+    sourceDate: r.value.date,
+    page: null,
+    note: '기준선이다 — 차입금리(debt.rate)가 아니다. PF 금리 = 기준금리 + 스프레드',
+  }];
+}
+
+/** 이 Agent 가 공공데이터로 채우는 항목 (ECOS 키가 있을 때만) */
+const FILLS = ['debt.benchmark_rate'];
+
+module.exports = { id: '03_research', label: 'Market Research Agent', inputSchema, outputSchema, run, TOPICS, FILLS, marketFacts };
