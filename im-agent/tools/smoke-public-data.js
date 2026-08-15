@@ -31,6 +31,7 @@ const vworld = require('../connectors/vworld');
 const nsdi = require('../connectors/nsdi');
 const molit = require('../connectors/molit');
 const kma = require('../connectors/kma');
+const kpx = require('../connectors/kpx');
 const { looksUrlEncoded } = require('../connectors/http');
 const pnuUtil = require('../connectors/pnu');
 const geometry = require('../geo/geometry');
@@ -278,6 +279,23 @@ async function main() {
       } else {
         report('일사량 (기상청)', false, s.error);
       }
+    }
+  }
+
+  // ── 9. REC 현물시장 (전력거래소 — 태양광 딜) ────────────
+  if (kpx.isAvailable()) {
+    const rec = await kpx.recAverage({ months: 12, area: 'land' });
+    if (rec.ok) {
+      const v = rec.value;
+      report('REC 현물시장 (전력거래소)', true,
+        `최근 ${v.months}개월 육지 가중평균 ${v.weightedAvg?.toLocaleString('ko-KR')}원/REC `
+        + `(${v.sessions}회 개장) · 최근가 ${v.latestPrice?.toLocaleString('ko-KR')}원 (${v.latestDate})`);
+      const gap = Math.abs(v.weightedAvg - v.simpleAvg) / v.simpleAvg;
+      if (gap > 0.05) {
+        console.log(`  ⚠ 단순평균 ${v.simpleAvg?.toLocaleString('ko-KR')}원과 ${Math.round(gap * 100)}% 차이 — 거래가 얇다`);
+      }
+    } else {
+      report('REC 현물시장 (전력거래소)', false, rec.error);
     }
   }
 

@@ -123,11 +123,24 @@ async function run(opts = {}) {
   const res = await runAgent('03_research', {
     projectId,
     assetType: assetTypeFact ? String(assetTypeFact.value) : (templateId || 'generic'),
+    templateId: templateId || null,
     location: locationFact ? String(locationFact.value) : null,
     projectName: nameFact ? String(nameFact.value) : projectId,
   }, ctx);
   results['03_research'] = res;
-  if (res.output) store.writeJson(projectId, '05_Market/research.json', res.output);
+  if (res.output) {
+    store.writeJson(projectId, '05_Market/research.json', res.output);
+    // ★ 서술(sections)이 아니라 **실측 지표만** Dataset 에 들어간다.
+    //   LLM 기억은 여기로 오지 않는다 — 03-research.js 머리말의 ①/② 구분 참고.
+    if (res.output.facts && res.output.facts.length) {
+      dataset.dropSource('REC 현물시장(한국전력거래소)');
+      for (const f of res.output.facts) dataset.dropSource(f.source);
+      dataset.addMany(res.output.facts);
+      dataset.resolve();
+      saveDataset(projectId, dataset);
+      log(`  시장지표: ${res.output.facts.length}건 (출처 있는 실측값)`);
+    }
+  }
 
   // ── 04 Financial ──────────────────────────────────────────
   const fin = await runAgent('04_financial', { projectId, templateId: templateId || 'generic' }, ctx);

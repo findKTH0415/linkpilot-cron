@@ -46,6 +46,9 @@ const FIELDS = {
   'capacity.it_load_mw': { label: 'IT Load', category: CATEGORY.CAPACITY, unit: 'MW', type: 'number', aliases: ['IT Load', 'IT부하', 'IT 용량', '전산부하'], min: 0, requiredFor: ['im', 'teaser'] },
   'capacity.power_mw':   { label: '수전용량', category: CATEGORY.CAPACITY, unit: 'MW', type: 'number', aliases: ['수전용량', '계약전력', '총 전력', 'Power Capacity'], min: 0 },
   'capacity.pue':        { label: 'PUE', category: CATEGORY.CAPACITY, unit: null, type: 'number', aliases: ['PUE'], min: 1.0, max: 2.5 },
+  // REC 현물시장 실거래 단가. 시장가격이라 가정치가 아니다 — 사용자가 넣은
+  // 매출 가정을 교차검증하는 근거로 쓴다. 매출 자동 산출은 하지 않는다(D-25).
+  'market.rec_price':      { label: 'REC 단가', category: CATEGORY.REVENUE, unit: '원/REC', type: 'number', aliases: ['REC단가', 'REC가격', 'REC 현물가'], min: 0 },
   // 태양광 전용. 발전량이 아니라 **일사량까지만** 둔다 — 발전량은 시스템효율(PR)
   // 가정이 들어가고, 가정치는 IM 에 넣지 않는다 (2026-08-15 결정, 등록부 D-25).
   'site.solar_irradiance': { label: '연간 일사량', category: CATEGORY.CAPACITY, unit: 'kWh/㎡·년', type: 'number', aliases: ['일사량', '연간일사량', 'Irradiance', 'GHI'], min: 0 },

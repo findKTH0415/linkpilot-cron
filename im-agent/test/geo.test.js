@@ -242,6 +242,14 @@ test('API허브 오류 본문을 알아본다', () => {
   assert.strictEqual(kma.errorOf(KMA_SAMPLE), null, '정상 응답을 오류로 보지 않는다');
 });
 
+// ── REC 현물시장 ─────────────────────────────────────────────
+test('REC: 개월 빼기가 연을 넘어간다', () => {
+  const kpx = require('../connectors/kpx');
+  assert.strictEqual(kpx.monthsBefore('20260813', 12), '20250813');
+  assert.strictEqual(kpx.monthsBefore('20260213', 3), '20251113', '해를 넘겨도 맞아야 한다');
+  assert.strictEqual(kpx.monthsBefore('20260101', 1), '20251201');
+});
+
 test('용도지역 상한: 문자열만으로 조회된다 (API 불필요)', () => {
   assert.deepStrictEqual(nsdi.limitsForZone('일반공업지역'), { zone: '일반공업지역', far: 350, bcr: 70 });
   assert.deepStrictEqual(nsdi.limitsForZone('제3종 일반주거지역'), { zone: '제3종일반주거지역', far: 300, bcr: 50 });

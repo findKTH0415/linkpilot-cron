@@ -2,17 +2,23 @@
 /**
  * 03 Market Research Agent
  *
- * ★ 이 Agent의 산출물은 전부 verified=false 다.
- *   LLM이 기억으로 만들어낸 시장 수치는 출처가 검증되지 않았으므로
- *   - 재무모델에 절대 투입되지 않고 (Financial Agent는 Dataset만 읽는다)
- *   - IM 본문에서는 "출처 확인 필요" 표시와 함께 서술 근거로만 쓰인다.
+ * ★ 이 Agent 의 산출물은 **두 갈래**다. 섞이면 안 된다.
  *
- * 실제 운영에서는 Connector Layer(웹검색/통계API)를 붙여 URL 출처를 강제해야 한다.
- * 현재는 그 자리를 명시적으로 비워두고, 근거 URL이 없는 항목을 YELLOW로 표시한다.
+ *   ① 서술(sections) — LLM 이 기억으로 쓴다. 전부 verified=false 다.
+ *      재무모델에 절대 투입되지 않고(Financial 은 Dataset 만 읽는다),
+ *      IM 본문에서 "출처 확인 필요" 표시와 함께 서술 근거로만 쓰인다.
+ *
+ *   ② 실측 지표(facts) — Connector 가 낸다. 출처가 있으므로 Dataset 에 들어간다.
+ *      현재: REC 현물시장 단가(전력거래소). 태양광 딜에서만.
+ *
+ * ②가 D-15 가 "Connector 를 붙여 URL 출처를 강제해야 한다"고 적어 둔 자리다.
+ * 아직 첫 칸만 찼다 — 나머지 서술 항목은 여전히 LLM 기억이다.
  */
 
 const llm = require('../core/llm');
+const kpx = require('../connectors/kpx');
 const { round } = require('../core/numeric');
+const { kstDate } = require('../core/kst');
 
 const inputSchema = {
   type: 'object',
@@ -20,6 +26,7 @@ const inputSchema = {
   properties: {
     projectId: { type: 'string' },
     assetType: { type: 'string' },
+    templateId: { type: 'string', nullable: true },
     location: { type: 'string', nullable: true },
     projectName: { type: 'string' },
   },
@@ -31,6 +38,7 @@ const outputSchema = {
   properties: {
     sections: { type: 'array' },
     sources: { type: 'array' },
+    facts: { type: 'array' },
     confidence: { type: 'number', minimum: 0, maximum: 1 },
     offline: { type: 'boolean' },
   },
@@ -65,12 +73,69 @@ const SCHEMA = {
   },
 };
 
+/**
+ * 실측 시장지표 — LLM 이 아니라 Connector 가 낸다.
+ *
+ * ★ 이 Agent 의 나머지 산출물은 전부 `verified=false` 다(LLM 기억). 여기만
+ *   다르다 — 전력거래소 실거래 통계라 출처가 있고 재무모델에 들어갈 수 있다.
+ *   D-15 가 "Connector 를 붙여 URL 출처를 강제해야 한다"고 적어 둔 자리의 첫 칸이다.
+ *
+ * ★ REC 단가까지만 낸다. 매출(= 발전량 × (SMP + REC × 가중치))은 계산하지
+ *   않는다 — 발전량과 REC 가중치가 가정치다 (등록부 D-25).
+ */
+async function marketFacts(input, ctx, today) {
+  const facts = [];
+  const sources = [];
+  if (!isSolar(input) || !kpx.isAvailable()) return { facts, sources };
+
+  const rec = await kpx.recAverage({ months: 12, area: 'land' });
+  if (!rec.ok) {
+    if (!rec.unavailable) ctx.warn(`REC 시장 조회 실패: ${rec.error}`);
+    return { facts, sources };
+  }
+
+  const v = rec.value;
+  sources.push('REC 현물시장(한국전력거래소)');
+
+  // 가중평균과 단순평균이 크게 벌어지면 거래가 얇다는 뜻이다 — 그 시세는 덜 믿는다
+  const gap = v.weightedAvg && v.simpleAvg
+    ? Math.abs(v.weightedAvg - v.simpleAvg) / v.simpleAvg : 0;
+  if (gap > 0.05) {
+    ctx.warn(`REC 거래량 가중평균(${v.weightedAvg?.toLocaleString('ko-KR')})과 `
+      + `단순평균(${v.simpleAvg?.toLocaleString('ko-KR')})이 ${Math.round(gap * 100)}% 차이 — `
+      + '거래가 얇은 구간이다. 시세를 단정하지 않는다');
+  }
+
+  facts.push({
+    key: 'market.rec_price',
+    value: v.weightedAvg ?? v.simpleAvg,
+    unit: '원/REC',
+    confidence: 0.9,
+    quote: `최근 ${v.months}개월 육지 거래량 가중평균 (${v.sessions}회 개장, `
+      + `${v.from.slice(0, 6)}~${v.latestDate.slice(0, 6)}, 최근가 ${v.latestPrice?.toLocaleString('ko-KR')}원)`,
+    source: `REC 현물시장(한국전력거래소, 기준일 ${v.latestDate})`,
+    sourceDate: today,
+    page: null,
+  });
+  return { facts, sources };
+}
+
+/** 태양광 딜인지 — assetType 문자열과 템플릿 id 를 모두 본다 */
+function isSolar(input) {
+  const s = `${input.assetType || ''} ${input.templateId || ''}`.toLowerCase();
+  return /solar|태양광|pv/.test(s);
+}
+
 async function run(input, ctx) {
+  const today = kstDate();
+  const market = await marketFacts(input, ctx, today);
+
   if (llm.isOffline()) {
     ctx.warn('LLM 오프라인 — 시장조사 생략. IM의 시장분석 절은 자리표시자로 출력된다');
     return {
       sections: TOPICS.map(t => ({ id: t.id, label: t.label, text: '(시장조사 미실행 — LLM 오프라인)', sources: [], certainty: 'low', verified: false })),
-      sources: [], confidence: 0, offline: true,
+      // ★ LLM 이 죽어도 실측 지표는 살아 있다 — 출처가 LLM 이 아니기 때문이다
+      sources: market.sources, facts: market.facts, confidence: 0, offline: true,
     };
   }
 
@@ -113,8 +178,8 @@ ${TOPICS.map(t => `- ${t.id}: ${t.label}`).join('\n')}
     ? sections.reduce((a, s) => a + (certScore[s.certainty] || 0.35), 0) / sections.length
     : 0;
 
-  const sources = [...new Set(sections.flatMap(s => s.sources))];
-  return { sections, sources, confidence: round(confidence, 3), offline: false };
+  const sources = [...new Set([...sections.flatMap(s => s.sources), ...market.sources])];
+  return { sections, sources, facts: market.facts, confidence: round(confidence, 3), offline: false };
 }
 
 module.exports = { id: '03_research', label: 'Market Research Agent', inputSchema, outputSchema, run, TOPICS };
