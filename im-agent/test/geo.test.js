@@ -308,6 +308,17 @@ test('업력은 기준일을 받아 계산한다 (서버 시각에 의존하지 
   assert.strictEqual(fsc.yearsSince('', '2026-08-16'), null);
 });
 
+// ★ slice(0,6) 이면 '2026-08-16' 이 '20260' 이 된다. 조회는 통째로 비는데
+//   시점수정만 조용히 빠지고 평가액은 그럴듯하게 나와, 로그를 안 보면 모른다.
+//   실제로 그렇게 한 번 나갔다 (2026-08-16 데모 파이프라인).
+test('평가시점을 YYYYMM 으로 자를 때 자릿수를 세지 않는다', () => {
+  const { yyyymm } = require('../agents/08-appraisal');
+  assert.strictEqual(yyyymm('2026-08-16'), '202608');
+  assert.strictEqual(yyyymm('2026-12-01'), '202612');
+  assert.strictEqual(yyyymm('2026-1-5'), null, '형식이 다르면 지어내지 않는다');
+  assert.strictEqual(yyyymm(null), null);
+});
+
 test('용도지역 상한: 문자열만으로 조회된다 (API 불필요)', () => {
   assert.deepStrictEqual(nsdi.limitsForZone('일반공업지역'), { zone: '일반공업지역', far: 350, bcr: 70 });
   assert.deepStrictEqual(nsdi.limitsForZone('제3종 일반주거지역'), { zone: '제3종일반주거지역', far: 300, bcr: 50 });

@@ -7,7 +7,7 @@
  *   내부 검토·타당성 판단용 참고 수치다. 모든 산출물에 이 문구가 따라붙는다.
  *
  * 3방식 병행 (전부 결정적 계산 — LLM 미사용):
- *   ① 공시지가 기준   개별공시지가 × 면적 × 현실화계수
+ *   ① 공시지가 기준   개별공시지가 × **시점수정** × 면적 × 현실화계수
  *   ② 거래사례비교법   인근 실거래 ㎡단가 중앙값 × 면적
  *   ③ 수익환원법      (안정화 NOI ÷ Cap Rate) − 건물가치
  *
@@ -59,6 +59,12 @@ function median(values) {
   return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
 }
 
+/** `YYYY-MM-DD` → `YYYYMM`. 자릿수를 세지 않고 구분자로 자른다. */
+function yyyymm(isoDate) {
+  const m = /^(\d{4})-(\d{2})/.exec(String(isoDate || ''));
+  return m ? `${m[1]}${m[2]}` : null;
+}
+
 /** 원/㎡ × ㎡ → 억원 */
 function toEok(pricePerSqm, areaSqm) {
   if (!pricePerSqm || !areaSqm) return null;
@@ -96,10 +102,14 @@ async function timeAdjust(officialSource, ds, ctx, today, facts, src) {
     return null;
   }
 
+  // ★ `2026-08-16` → `202608`. slice(0,6) 이면 `20260` 이 나와 조회가 통째로
+  //   빈다. 그래도 시점수정만 조용히 빠지고 평가액은 그럴듯하게 나오므로
+  //   **로그를 안 보면 모른다.** 실제로 그렇게 한 번 나갔다 (2026-08-16 데모).
   const adj = await reb.timeAdjustment({
     clsId: region.value.clsId,
     from: `${baseYear}01`,
-    to: today.slice(0, 6).replace('-', ''),
+    to: yyyymm(today),
+    expectRegion: region.value.full,   // 고른 지역과 조회된 지역이 다르면 적용하지 않는다
   });
   if (!adj.ok) {
     ctx.warn(`시점수정 미적용: ${adj.error}`);
@@ -334,6 +344,7 @@ async function run(input, ctx) {
 const FILLS = ['land.official_price'];
 
 module.exports = {
+  yyyymm,
   id: '08_appraisal', label: 'Appraisal Agent (감정평가)',
   inputSchema, outputSchema, run, median, toEok, DISCLAIMER, FILLS,
 };

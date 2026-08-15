@@ -172,7 +172,7 @@ async function landIndex({ clsId = CLS_NATIONWIDE, from, to } = {}) {
  * @param {string} to   평가시점 (YYYYMM)
  * @returns factor 는 공시지가에 곱할 계수 (1.0 이면 변동 없음)
  */
-async function timeAdjustment({ clsId = CLS_NATIONWIDE, from, to } = {}) {
+async function timeAdjustment({ clsId = CLS_NATIONWIDE, from, to, expectRegion = null } = {}) {
   const r = await landIndex({ clsId, from, to });
   if (!r.ok) return r;
 
@@ -182,6 +182,18 @@ async function timeAdjustment({ clsId = CLS_NATIONWIDE, from, to } = {}) {
 
   if (base.month !== from) {
     return { ok: false, error: `공시지가 기준월(${from})의 지가지수가 없다 — 시점수정 불가` };
+  }
+
+  // ★ 고른 지역과 실제로 조회된 지역이 같은지 대조한다.
+  //   통계표마다 지역코드 체계가 달라, 다른 표의 색인을 쓰면 엉뚱한 지역 지수로
+  //   보정하고도 값이 그럴듯해 아무도 모른다 (2026-08-16 실제 발생).
+  //   틀리면 **적용하지 않는다** — 잘못 보정하느니 안 하는 편이 낫다.
+  if (expectRegion && base.region && base.region !== expectRegion) {
+    return {
+      ok: false,
+      error: `지역이 어긋난다 — '${expectRegion}' 를 고랐는데 지가지수는 `
+        + `'${base.region}' 를 돌려줬다 (CLS_ID ${clsId}). 통계표별 지역코드 체계 확인 필요`,
+    };
   }
 
   const factor = last.index / base.index;
@@ -207,23 +219,31 @@ async function timeAdjustment({ clsId = CLS_NATIONWIDE, from, to } = {}) {
 /**
  * 지역 색인 — CLS_FULLNM → CLS_ID.
  *
+ * ★ **통계표마다 지역코드 체계가 다르다.** 같은 `CLS_ID=510088` 이
+ *   변동률표(A_2024_00903)에서는 `인천>남동구`, 지수표(A_2024_00901)에서는
+ *   `울산>북구` 다 — 실측 확인(2026-08-16). 한쪽 표로 만든 색인을 다른 표에
+ *   쓰면 **엉뚱한 지역 값으로 보정하고도 결과가 그럴듯해 아무도 모른다.**
+ *   실제로 그렇게 한 번 나갔다.
+ *
+ *   그래서 색인은 **조회할 표와 같은 표에서** 만든다. `table` 인자를 필수로 둔다.
+ *
  * ★ 한 달치 전량을 받아 만든다(약 10,700건, 페이지 11회). 지역코드는 거의
  *   변하지 않으므로 180일 캐시한다 — 프로젝트마다 다시 받지 않는다.
  * ★ **시도>시군구 2단계만 남긴다.** 읍면동까지 두면 "중구"처럼 흔한 이름이
  *   여러 시도에서 겹쳐 잘못 매칭된다.
  */
-async function regionIndex(month) {
+async function regionIndex(month, table = TBL_LAND_INDEX) {
   if (!isAvailable()) return unavailable('지역 색인');
 
-  return cache.through(PROVIDER, 'regionindex', { month }, async () => {
+  return cache.through(PROVIDER, 'regionindex', { month, table: table.id }, async () => {
     const out = [];
     let total = null;
 
     for (let p = 1; p <= 20; p++) {
       const r = await page({
-        STATBL_ID: TBL_LAND_PRICE.id,
-        DTACYCLE_CD: TBL_LAND_PRICE.cycle,
-        ITM_ID: TBL_LAND_PRICE.item,
+        STATBL_ID: table.id,
+        DTACYCLE_CD: table.cycle,
+        ITM_ID: table.item,
         START_WRTTIME: month,
         END_WRTTIME: month,
         pIndex: p,
@@ -256,10 +276,10 @@ async function regionIndex(month) {
  *
  * @param {string} address 예: '서울특별시 중구 세종대로 110'
  */
-async function resolveRegion(address, month) {
+async function resolveRegion(address, month, table = TBL_LAND_INDEX) {
   if (!address) return { ok: false, error: '주소 없음' };
 
-  const idx = await regionIndex(month);
+  const idx = await regionIndex(month, table);
   if (!idx.ok) return idx;
 
   // '서울특별시' → '서울', '경기도' → '경기' 로 줄여 맞춘다 (R-ONE 표기가 축약형이다)
