@@ -155,6 +155,58 @@ async function landCharacteristics(pnu) {
   return { ok: true, cached: r.cached, value: sorted[0], history: sorted };
 }
 
+/**
+ * 지역·지구 중 **딜 조건이 되는 것**의 분류표.
+ *
+ * ★ 왜 필요한가: `landUse()` 는 지역·지구를 전부 받아 오는데(서울 중구 표본은
+ *   19건) 그중 대표 용도지역 하나만 IM 에 실려 왔다. 나머지에 토지거래허가구역·
+ *   고도제한이 섞여 있어도 문서에는 "일반상업지역, 용적률 상한 1300%" 만 남는다.
+ *   1300% 를 실제로 못 쓰는 부지인데 그 근거가 조회는 됐고 버려진 것이다.
+ *
+ * ★ RED 는 **거래·개발의 성립 자체에 조건이 붙는 것**만 둔다. 절차가 늘거나
+ *   수치가 깎이는 것은 YELLOW 다. 여기를 넓히면 전부 RED 가 되어 승인 게이트가
+ *   의미를 잃는다 (RED 는 배포를 차단한다 — core/gate.js).
+ *
+ * ★ 이 목록이 맞는지는 아직 사람이 확인하지 않았다 — 등록부 D-24.
+ *   확정 전까지 **없는 규제를 지어내지 않고, 매칭된 것만** 올린다.
+ */
+const REGULATIONS = [
+  // ── RED: 거래 또는 개발 가능성 자체에 조건이 붙는다 ─────────
+  { match: /토지거래계약.*허가구역/, severity: 'RED', why: '매매에 관청 허가가 필요하다 — 거래 성사의 선행조건이다' },
+  { match: /개발제한구역/, severity: 'RED', why: '원칙적으로 건축·형질변경이 제한된다' },
+  { match: /군사기지|군사시설보호|비행안전구역/, severity: 'RED', why: '국방부 협의 없이는 건축 가능 여부를 확정할 수 없다' },
+  { match: /상수원보호구역|수질보전특별대책/, severity: 'RED', why: '입지 가능 업종이 법으로 제한된다' },
+  { match: /문화재보호구역|국가유산보호구역/, severity: 'RED', why: '현상변경 허가 대상이다' },
+
+  // ── YELLOW: 계획 수치를 깎거나 절차를 늘린다 ────────────────
+  { match: /대공방어협조구역/, severity: 'YELLOW', why: '고도제한 — 용적률 상한을 다 쓰지 못할 수 있다' },
+  { match: /최고높이 제한|고도지구/, severity: 'YELLOW', why: '고도제한 — 용적률 상한을 다 쓰지 못할 수 있다' },
+  { match: /지구단위계획구역/, severity: 'YELLOW', why: '개별 필지 기준이 아니라 지구단위계획의 규정을 따른다' },
+  { match: /역사문화환경보존지역|등록문화유산/, severity: 'YELLOW', why: '심의 대상 — 인허가 일정이 늘어난다' },
+  { match: /경관지구|중점경관관리구역/, severity: 'YELLOW', why: '높이·외관 심의 대상이다' },
+  { match: /과밀억제권역/, severity: 'YELLOW', why: '취득세 중과 대상일 수 있다 — 사업비에 영향' },
+  { match: /정비구역|재정비촉진/, severity: 'YELLOW', why: '정비사업 절차를 따라야 한다' },
+  { match: /교육환경보호구역|학교환경위생/, severity: 'YELLOW', why: '입지 가능 업종이 제한된다' },
+];
+
+/**
+ * 지역·지구 목록에서 딜 조건이 되는 것을 골라낸다.
+ * @param {string[]} zones `landUse().value.allZones`
+ * @returns {{zone:string, severity:string, why:string}[]} 매칭된 것만. 중복은 제거한다.
+ */
+function classifyZones(zones) {
+  const seen = new Set();
+  const out = [];
+  for (const zone of zones || []) {
+    const rule = REGULATIONS.find(r => r.match.test(zone));
+    if (!rule || seen.has(zone)) continue;
+    seen.add(zone);
+    out.push({ zone, severity: rule.severity, why: rule.why });
+  }
+  // RED 를 먼저 보여 준다
+  return out.sort((a, b) => (a.severity === 'RED' ? -1 : 1) - (b.severity === 'RED' ? -1 : 1));
+}
+
 // ── 용도지역별 용적률/건폐율 상한 (국토계획법 시행령) ──────────────
 // 지자체 조례가 더 강할 수 있다. 반드시 '참고 상한'으로만 쓴다.
 const ZONE_LIMITS = {
@@ -187,4 +239,4 @@ function limitsForZone(zoneText) {
   return ZONE_LIMITS[key] ? { zone: key, ...ZONE_LIMITS[key] } : null;
 }
 
-module.exports = { landPrice, landUse, landCharacteristics, latestFirst, limitsForZone, normalizeZone, isAvailable, ZONE_LIMITS, PROVIDER };
+module.exports = { landPrice, landUse, landCharacteristics, latestFirst, classifyZones, limitsForZone, normalizeZone, isAvailable, ZONE_LIMITS, REGULATIONS, PROVIDER };

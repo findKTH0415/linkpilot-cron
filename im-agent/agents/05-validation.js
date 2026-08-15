@@ -27,6 +27,7 @@ const inputSchema = {
     projectId: { type: 'string' },
     financial: { type: 'object', nullable: true },
     research: { type: 'object', nullable: true },
+    geo: { type: 'object', nullable: true },
     appraisal: { type: 'object', nullable: true },
     massing: { type: 'object', nullable: true },
   },
@@ -276,9 +277,9 @@ async function run(input, ctx) {
     flags.push(flag('YELLOW', 'MISSING', `IM 필수 항목 ${missingIm.length}건 미확인: ${missingIm.map(k => FIELDS[k].label).join(', ')}`, { keys: missingIm }));
   }
 
-  // ⑧ 감정평가 / 매스 검토 Agent가 올린 플래그 병합
+  // ⑧ 입지 / 감정평가 / 매스 검토 Agent가 올린 플래그 병합
   //    (판정은 각 Agent가 하고, 승인 게이트에 노출하는 책임은 여기에 모은다)
-  for (const [agent, out] of [['08_appraisal', input.appraisal], ['09_massing', input.massing]]) {
+  for (const [agent, out] of [['07_geo', input.geo], ['08_appraisal', input.appraisal], ['09_massing', input.massing]]) {
     for (const f of (out && out.flags) || []) {
       flags.push({ ...f, agent });
     }

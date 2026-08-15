@@ -37,6 +37,7 @@ const outputSchema = {
   properties: {
     facts: { type: 'array' },
     sources: { type: 'array' },
+    flags: { type: 'array' },
     geo: { type: 'object', nullable: true },
     parcel: { type: 'object', nullable: true },
     landUse: { type: 'object', nullable: true },
@@ -51,6 +52,7 @@ async function run(input, ctx) {
   const today = kstDate();
   const facts = [];
   const sources = [];
+  const flags = [];
   const out = { geo: null, parcel: null, landUse: null, building: null };
 
   const addrFact = ds && ds.get('project.location');
@@ -58,18 +60,18 @@ async function run(input, ctx) {
 
   if (!address) {
     ctx.warn('소재지가 확인되지 않아 위성지도·지적 조회를 생략한다');
-    return { facts, sources, ...out, quota: cache.stats(), confidence: 0 };
+    return { facts, sources, flags, ...out, quota: cache.stats(), confidence: 0 };
   }
   if (!vworld.isAvailable()) {
     ctx.warn('VWORLD_KEY 미설정 — 위성지도·지적·공시지가 조회 전체 생략');
-    return { facts, sources, ...out, quota: cache.stats(), confidence: 0 };
+    return { facts, sources, flags, ...out, quota: cache.stats(), confidence: 0 };
   }
 
   // ── ① 지오코딩 ──────────────────────────────────────────
   const geo = await vworld.geocode(address);
   if (!geo.ok) {
     ctx.warn(`지오코딩 실패: ${geo.error}`);
-    return { facts, sources, ...out, quota: cache.stats(), confidence: 0 };
+    return { facts, sources, flags, ...out, quota: cache.stats(), confidence: 0 };
   }
   out.geo = { ...geo.value, mapLink: vworld.mapLink(geo.value.lat, geo.value.lon) };
   sources.push({ name: 'VWorld 지오코딩', cached: !!geo.cached });
@@ -117,6 +119,27 @@ async function run(input, ctx) {
       out.landUse = landUse.value;
       sources.push({ name: 'VWorld 토지이용계획', cached: !!landUse.cached });
       facts.push({ key: 'land.zoning', value: landUse.value.zone, unit: null, confidence: 0.9, ...src('토지이용계획(VWorld)') });
+
+      // ★ 대표 용도지역 하나만 싣던 것을 고친다. 조회는 지역·지구를 전부
+      //   받아 오는데(표본 19건) 나머지를 버리면 토지거래허가·고도제한 같은
+      //   딜 조건이 IM 에서 통째로 사라진다.
+      const districts = [...new Set(landUse.value.allZones || [])];
+      if (districts.length) {
+        facts.push({
+          key: 'land.use_districts', value: districts.join(', '), unit: null,
+          confidence: 0.9, quote: `지역·지구 ${districts.length}건`,
+          ...src('토지이용계획(VWorld)'),
+        });
+      }
+
+      // 그중 딜 조건이 되는 것은 승인 게이트까지 올린다 (분류표: nsdi.REGULATIONS)
+      for (const r of nsdi.classifyZones(districts)) {
+        flags.push({
+          severity: r.severity, type: 'LAND_USE_REGULATION',
+          message: `${r.zone} — ${r.why}`,
+          keys: ['land.use_districts'],
+        });
+      }
 
       if (landUse.value.limits) {
         facts.push({
@@ -170,9 +193,8 @@ async function run(input, ctx) {
           quote: `토지특성 공부상 면적 ${chr.value.areaSqm}㎡ (${chr.value.year}년 기준)`,
           ...src('토지특성(VWorld)'),
         });
-        if (chr.value.category) {
-          facts.push({ key: 'land.category', value: chr.value.category, unit: null, confidence: 0.9, ...src('토지특성(VWorld)') });
-        }
+        // 지목은 out.landCharacteristics 에만 남긴다 — 이 경로에서만 나오므로
+        // 사실(fact)로 올리면 "있을 때만 있는 항목"이 되어 화면이 거짓말한다.
       } else if (!chr.unavailable) {
         ctx.warn(`토지특성 조회 실패: ${chr.error} — 대지면적은 직접 입력해야 한다`);
       }
@@ -203,7 +225,7 @@ async function run(input, ctx) {
   }
 
   const confidence = out.parcel ? (out.landUse ? 0.9 : 0.75) : 0.5;
-  return { facts, sources, ...out, quota: cache.stats(), confidence };
+  return { facts, sources, flags, ...out, quota: cache.stats(), confidence };
 }
 
 /** 위성영상 저장. 이미지 URL에는 인증키가 들어가므로 URL 자체는 산출물에 남기지 않는다. */
@@ -245,7 +267,13 @@ async function saveSatelliteImage(projectId, lat, lon, ctx) {
  *   돌렸을 때 조용히 빈칸이 남는다. 개별공시지가는 08 Appraisal 이 채운다.
  *   (`fieldplan.test.js` 가 FILLS 와 실제 push 를 대조한다)
  */
+// ★ `land.use_districts` 는 `land.zoning` 과 **같은 조회·같은 조건**에서 채워진다.
+//   따라서 zoning 을 선언하면서 이것만 빼면 그것도 거짓말이 된다.
+//
+// ★ 지목(`land.category`)은 여기 없다. 토지특성 폴백 경로에서만 채워지고,
+//   그 경로는 건축물대장이 면적을 채우면 아예 호출되지 않는다. "공공데이터가
+//   채운다"고 적어 두면 건물이 있는 필지에서 조용히 빈칸이 남는다.
 const FILLS = ['geo.pnu', 'geo.lat', 'geo.lon',
-  'land.area_sqm', 'land.zoning', 'land.far_limit', 'land.bcr_limit'];
+  'land.area_sqm', 'land.zoning', 'land.use_districts', 'land.far_limit', 'land.bcr_limit'];
 
 module.exports = { id: '07_geo', label: 'Geo / Satellite Agent', inputSchema, outputSchema, run, FILLS };

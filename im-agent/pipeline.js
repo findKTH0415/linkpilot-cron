@@ -177,6 +177,7 @@ async function run(opts = {}) {
     projectId,
     financial: fin.output || null,
     research: res.output || null,
+    geo: geo.output || null,
     appraisal: appraisal.output || null,
     massing: massing.output || null,
   }, ctx);

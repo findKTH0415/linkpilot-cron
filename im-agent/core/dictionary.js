@@ -36,6 +36,9 @@ const FIELDS = {
   'land.area_sqm':       { label: '대지면적', category: CATEGORY.LAND, unit: '㎡', type: 'number', aliases: ['대지면적', '토지면적', '부지면적', 'Site Area', 'Land Area'], min: 0, tolerance: 0.001, requiredFor: ['im'] },
   'land.ownership':      { label: '토지 확보상태', category: CATEGORY.LAND, unit: null, type: 'string', aliases: ['토지소유', '소유권', '토지확보', 'Ownership'], requiredFor: ['im'] },
   'land.zoning':         { label: '용도지역', category: CATEGORY.LAND, unit: null, type: 'string', aliases: ['용도지역', '지목', 'Zoning'] },
+  // 토지이용계획확인서의 지역·지구 전체. 대표 용도지역 하나만 보면 고도제한·
+  // 토지거래허가 같은 조건이 통째로 사라진다 — 그것들이 딜을 좌우한다.
+  'land.use_districts':  { label: '지역·지구 지정 현황', category: CATEGORY.LAND, unit: null, type: 'string', aliases: ['지역지구', '토지이용계획', '지역·지구'] },
   'building.gfa_sqm':    { label: '연면적', category: CATEGORY.BUILDING, unit: '㎡', type: 'number', aliases: ['연면적', '총연면적', 'GFA', 'Gross Floor Area'], min: 0, tolerance: 0.001, requiredFor: ['im'] },
   'building.floors':     { label: '층수', category: CATEGORY.BUILDING, unit: '층', type: 'number', aliases: ['층수', '규모', 'Floors'], min: 0 },
 

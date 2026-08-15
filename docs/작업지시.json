@@ -449,6 +449,18 @@
       "refs": [
         "D-23"
       ]
+    },
+    {
+      "id": "D-24",
+      "title": "지역·지구 RED/YELLOW 분류표 확인",
+      "detail": "connectors/nsdi.js 의 REGULATIONS 는 회사 기준이 아니라 제안이다. RED 는 승인 게이트에서 배포를 차단하므로 잘못 잡으면 멀쩡한 딜이 막히고, 넓게 잡으면 게이트가 의미를 잃는다. 현재 RED 5종(토지거래허가·개발제한·군사기지·상수원보호·문화재보호), YELLOW 8종. 서울 중구 표본 17건 중 8건 매칭. 이 분류가 맞는지 확인이 필요하다",
+      "status": "todo",
+      "priority": "normal",
+      "assignee": "의사결정",
+      "project": "보고서 생성",
+      "refs": [
+        "D-24"
+      ]
     }
   ]
 }

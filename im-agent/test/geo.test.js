@@ -146,6 +146,44 @@ test('연도가 없는 행은 최신으로 뽑히지 않는다', () => {
   assert.strictEqual(nsdi.latestFirst(rows)[0].year, 2024);
 });
 
+// ★ 지역·지구는 조회는 다 해 놓고 대표 하나만 IM 에 실려 왔다. 서울 중구 표본은
+//   19건 중 8건이 딜 조건이었다 — 토지거래허가구역과 고도제한 두 겹이 포함된다.
+//   그것들이 빠지면 "용적률 상한 1300%"만 남아, 실제로 못 쓰는 숫자를 근거로 쓴다.
+test('딜 조건이 되는 지역·지구를 골라낸다', () => {
+  const 실측 = [
+    '일반상업지역', '광장', '도로', '토지거래계약에관한허가구역',
+    '대공방어협조구역(위탁고도:77-257m)', '가로구역별 최고높이 제한지역',
+    '제1종지구단위계획구역', '등록문화유산구역', '과밀억제권역', '가축사육제한구역',
+  ];
+  const hits = nsdi.classifyZones(실측);
+  const zones = hits.map(h => h.zone);
+
+  assert.ok(zones.includes('토지거래계약에관한허가구역'), '거래 허가는 딜 조건이다');
+  assert.ok(zones.includes('대공방어협조구역(위탁고도:77-257m)'), '고도제한은 용적률을 깎는다');
+  assert.ok(!zones.includes('일반상업지역'), '용도지역 자체는 land.zoning 이 맡는다');
+  assert.ok(!zones.includes('도로'), '기반시설은 규제가 아니다');
+  assert.ok(!zones.includes('가축사육제한구역'), '이 딜과 무관한 것까지 올리면 신호가 묻힌다');
+
+  assert.strictEqual(hits[0].severity, 'RED', 'RED 를 먼저 보여 준다');
+  assert.strictEqual(hits.filter(h => h.severity === 'RED').length, 1);
+});
+
+// RED 는 승인 게이트에서 배포를 막는다 (core/gate.js). 넓히면 게이트가 의미를 잃는다.
+test('RED 는 거래·개발 성립에 조건이 붙는 것만이다', () => {
+  const yellowOnly = nsdi.classifyZones(['과밀억제권역', '중점경관관리구역', '제1종지구단위계획구역']);
+  assert.strictEqual(yellowOnly.filter(h => h.severity === 'RED').length, 0);
+  assert.strictEqual(yellowOnly.length, 3);
+
+  assert.strictEqual(nsdi.classifyZones(['개발제한구역'])[0].severity, 'RED');
+  assert.deepStrictEqual(nsdi.classifyZones([]), [], '없으면 아무것도 지어내지 않는다');
+});
+
+test('같은 지역·지구가 두 번 와도 한 번만 올린다', () => {
+  // 실측 응답에 '토지거래계약에관한허가구역' 이 두 줄로 들어 있었다
+  const hits = nsdi.classifyZones(['토지거래계약에관한허가구역', '토지거래계약에관한허가구역']);
+  assert.strictEqual(hits.length, 1);
+});
+
 test('용도지역 상한: 문자열만으로 조회된다 (API 불필요)', () => {
   assert.deepStrictEqual(nsdi.limitsForZone('일반공업지역'), { zone: '일반공업지역', far: 350, bcr: 70 });
   assert.deepStrictEqual(nsdi.limitsForZone('제3종 일반주거지역'), { zone: '제3종일반주거지역', far: 300, bcr: 50 });
