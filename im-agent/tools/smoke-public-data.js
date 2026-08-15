@@ -301,12 +301,12 @@ async function main() {
     }
   }
 
-  // ── 10. 지가변동률 (한국부동산원 — 공시지가 시점수정) ────
+  // ── 10. 지가지수 (한국부동산원 — 공시지가 시점수정) ──────
   if (reb.isAvailable()) {
     const year = new Date().getFullYear();          // 공시지가 기준일 = 당해 1/1
     const region = await reb.resolveRegion(ADDRESS, `${year}01`);
     if (!region.ok) {
-      report('지가변동률 (부동산원)', false, region.error);
+      report('지가지수 (부동산원)', false, region.error);
     } else {
       const adj = await reb.timeAdjustment({
         clsId: region.value.clsId, from: `${year}01`,
@@ -314,11 +314,11 @@ async function main() {
       });
       if (adj.ok) {
         const v = adj.value;
-        report('지가변동률 (부동산원)', true,
-          `${v.region} ${v.from}~${v.to} 누적 ${v.percent > 0 ? '+' : ''}${v.percent}% `
-          + `→ 시점수정 계수 ${v.factor} (${v.months}개월)`);
+        report('지가지수 (부동산원)', true,
+          `${v.region} 지수 ${v.baseIndex} → ${v.lastIndex} (${v.from}~${v.to}, ${v.months}개월 경과) `
+          + `→ 시점수정 계수 ${v.factor} (${v.percent > 0 ? '+' : ''}${v.percent}%)`);
       } else {
-        report('지가변동률 (부동산원)', false, adj.error);
+        report('지가지수 (부동산원)', false, adj.error);
       }
     }
   }

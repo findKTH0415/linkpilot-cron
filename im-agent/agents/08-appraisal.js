@@ -110,8 +110,8 @@ async function timeAdjust(officialSource, ds, ctx, today, facts, src) {
   facts.push({
     key: 'land.price_change_rate', value: v.percent, unit: '%',
     confidence: 0.95, verified: true,
-    quote: `${v.region} 지가변동률 누적 (${v.from}~${v.to}, ${v.months}개월)`,
-    ...src(`지가변동률(한국부동산원, ${v.region})`),
+    quote: `${v.region} 지가지수 ${v.baseIndex} → ${v.lastIndex} (${v.from}~${v.to}, ${v.months}개월 경과)`,
+    ...src(`지가지수(한국부동산원, ${v.region})`),
   });
   return { factor: v.factor, percent: v.percent, region: v.region, from: v.from, to: v.to };
 }
@@ -170,7 +170,7 @@ async function run(input, ctx) {
         + (adj ? ` × 시점수정 ${adj.percent > 0 ? '+' : ''}${adj.percent}% (${adj.region}, ${adj.from}~${adj.to})` : '')
         + ` × 현실화계수 ${realization}`,
       assumption: `현실화계수 ${realization}는 시장 통상치 가정이다 (IM_AGENT_LAND_REALIZATION 로 조정)`
-        + (adj ? '. 시점수정은 한국부동산원 공표 지가변동률이므로 가정이 아니다' : ''),
+        + (adj ? '. 시점수정은 한국부동산원 공표 지가지수이므로 가정이 아니다' : ''),
     };
     if (!adj) {
       ctx.warn('시점수정 미적용 — 공시지가는 1월 1일 기준이므로 평가시점과 어긋난다');
