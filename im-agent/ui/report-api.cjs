@@ -35,6 +35,9 @@ const PLAN_RANK = { free: 0, basic: 1, pro: 2, business: 3 };
  */
 const DOC_PLANS = { im: 'pro', teaser: 'pro', summary: 'pro', validation: 'pro' };
 
+/** 화면에서 사람이 넣은 값의 표시. 다시 저장할 때 이전 입력을 찾아 지우는 데 쓴다 */
+const USER_NOTE = 'user_input';
+
 /** 산출물 경로 — 파일이 실제로 있는지로 판정한다 ('생성됨' 플래그를 믿지 않는다) */
 const OUTPUTS = [
   { id: 'im', name: 'IM 원문', rel: '09_IM/im.md' },
@@ -183,6 +186,9 @@ function createHandlers(deps) {
           values[key] = {
             value: f.value, source: f.source, sourceDate: f.sourceDate,
             page: f.page, confidence: f.confidence, verified: f.verified,
+            // ★ 값이 갈리고 있으면 그대로 알려준다. 이긴 값만 보여주면
+            //   화면에서는 멀쩡해 보이고, 충돌은 검증 단계에 가서야 드러난다
+            alternatives: (f.alternatives && f.alternatives.length) ? f.alternatives : null,
           };
         });
       }
@@ -275,6 +281,7 @@ function createHandlers(deps) {
           page: (raw.page === '' || raw.page === undefined) ? null : raw.page,
           confidence: typeof raw.confidence === 'number' ? raw.confidence : 0.9,
           verified: false,           // 사람이 적었다고 검증된 것이 아니다
+          note: USER_NOTE,           // 이전 입력을 찾아 지우려면 표시가 있어야 한다
         });
       });
 
@@ -282,6 +289,14 @@ function createHandlers(deps) {
 
       const json = store.readJson(projectId, '01_Project/dataset.json', null);
       const ds = json ? Dataset.fromJSON(json, dict.FIELDS) : new Dataset(projectId, dict.FIELDS);
+
+      // ★ 같은 항목의 **이전 화면 입력만** 지우고 새로 넣는다.
+      //   지우지 않으면 5000 을 5500 으로 고쳐도 둘 다 후보로 남아 옛 값이 이긴다.
+      //   저장은 성공했다고 나오는데 화면 값은 그대로다 — 가장 나쁜 실패다.
+      //   추출·공공데이터가 넣은 값은 건드리지 않는다. 그것과 값이 갈리는 것은
+      //   버그가 아니라 이 시스템이 잡아내야 할 신호다.
+      const touched = new Set(clean.map(f => f.key));
+      ds.dropWhere((f, key) => touched.has(key) && f.note === USER_NOTE);
 
       const failed = [];
       clean.forEach((f) => {

@@ -453,6 +453,15 @@ window.LINKPILOT_FIELDS_CFG = {
     if (s) {
       var cite = s.source + (s.page ? ' p.' + s.page : '') + (s.verified ? ' · 검증됨' : '');
       row.appendChild(el('div', 'row__msg', '저장됨: ' + cite));
+
+      // ★ 다른 출처가 다른 값을 말하고 있으면 여기서 보여준다.
+      //   이긴 값만 보여주면 화면에서는 멀쩡해 보이고 검증 단계에 가서야 드러난다
+      if (s.alternatives && s.alternatives.length) {
+        var alt = s.alternatives.map(function (a) {
+          return a.value + ' (' + (a.sources || []).join(', ') + ')';
+        }).join(' · ');
+        row.appendChild(el('div', 'row__msg e', '⛔ 출처마다 값이 다릅니다 — ' + alt));
+      }
     }
     return row;
   }

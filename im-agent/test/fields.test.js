@@ -250,6 +250,78 @@ test('정상 입력은 저장되고 다시 읽힌다', async () => {
   assert.strictEqual(r.body.values['project.name'].value, '용인 데이터센터');
 });
 
+test('★ 값을 고치면 고친 값이 남는다 (옛 값이 이기지 않는다)', async () => {
+  const { h, id } = setup();
+  await h.saveFacts({}, id, { facts: [{ key: 'land.area_sqm', value: 5000, source: '사업계획서.pdf', page: 10 }] });
+  await h.saveFacts({}, id, { facts: [{ key: 'land.area_sqm', value: 5500, source: '사업계획서.pdf', page: 10 }] });
+
+  const r = await h.getFacts({}, id);
+  assert.strictEqual(r.body.values['land.area_sqm'].value, 5500,
+    '고친 값이 후보로만 쌓이면 저장은 성공했다는데 화면 값은 그대로다 — 가장 나쁜 실패다');
+});
+
+test('★ 화면 입력을 고쳐도 다른 출처의 값은 지우지 않는다', async () => {
+  const { root, h, id } = setup();
+  const store = require('../core/store');
+  const { Dataset } = require('../core/facts');
+
+  await h.saveFacts({}, id, { facts: [{ key: 'land.area_sqm', value: 5000, source: '사업계획서.pdf', page: 10 }] });
+
+  // 추출 Agent 가 다른 문서에서 뽑은 값
+  const ds = Dataset.fromJSON(store.readJson(id, '01_Project/dataset.json'), dict.FIELDS);
+  ds.add({ key: 'land.area_sqm', value: 9999, source: '기술제안서.pdf', page: 3, confidence: 0.8 });
+  ds.resolve();
+  store.writeJson(id, '01_Project/dataset.json', ds.toJSON());
+
+  await h.saveFacts({}, id, { facts: [{ key: 'land.area_sqm', value: 5600, source: '사업계획서.pdf', page: 10 }] });
+
+  const saved = store.readJson(id, '01_Project/dataset.json');
+  const sources = (saved.candidates['land.area_sqm'] || []).map(c => c.source).sort();
+  assert.deepStrictEqual(sources, ['기술제안서.pdf', '사업계획서.pdf'],
+    '출처가 다른 값이 갈리는 것은 버그가 아니라 잡아내야 할 신호다 — 지우면 안 된다');
+  assert.ok(saved.conflicts.some(c => c.key === 'land.area_sqm'), '충돌은 그대로 기록되어야 한다');
+  assert.ok(root);
+});
+
+test('★ 값이 갈리면 화면에도 알려준다 (이긴 값만 보여주지 않는다)', async () => {
+  const { h, id } = setup();
+  const store = require('../core/store');
+  const { Dataset } = require('../core/facts');
+
+  await h.saveFacts({}, id, { facts: [{ key: 'building.gfa_sqm', value: 52822, source: '사업계획서.pdf', page: 10 }] });
+  const ds = Dataset.fromJSON(store.readJson(id, '01_Project/dataset.json'), dict.FIELDS);
+  ds.add({ key: 'building.gfa_sqm', value: 54822, source: '기술제안서.pdf', page: 10, confidence: 0.9 });
+  ds.resolve();
+  store.writeJson(id, '01_Project/dataset.json', ds.toJSON());
+
+  const r = await h.getFacts({}, id);
+  const v = r.body.values['building.gfa_sqm'];
+  assert.ok(v.alternatives && v.alternatives.length,
+    '이긴 값만 내보내면 화면에서는 멀쩡해 보이고 충돌은 검증 단계에 가서야 드러난다');
+  assert.ok(v.alternatives.some(a => a.value === 54822 || a.value === 52822));
+});
+
+test('갈리지 않는 값에는 대안 목록을 달지 않는다', async () => {
+  const { h, id } = setup();
+  await h.saveFacts({}, id, { facts: [{ key: 'building.gfa_sqm', value: 52822, source: 'a.pdf' }] });
+  const r = await h.getFacts({}, id);
+  assert.strictEqual(r.body.values['building.gfa_sqm'].alternatives, null);
+});
+
+test('dropWhere 는 조건에 맞는 후보만 지운다', () => {
+  const { Dataset } = require('../core/facts');
+  const ds = new Dataset('LP-DC-2026-001', dict.FIELDS);
+  ds.add({ key: 'land.area_sqm', value: 1, source: 'a.pdf', note: 'user_input' });
+  ds.add({ key: 'land.area_sqm', value: 2, source: 'b.pdf' });
+  ds.add({ key: 'project.name', value: 'X', source: 'a.pdf', note: 'user_input' });
+
+  const removed = ds.dropWhere((f, key) => key === 'land.area_sqm' && f.note === 'user_input');
+  assert.strictEqual(removed, 1);
+  ds.resolve();
+  assert.strictEqual(ds.get('land.area_sqm').value, 2);
+  assert.strictEqual(ds.get('project.name').value, 'X', '조건 밖 항목은 건드리지 않는다');
+});
+
 test('사람이 넣은 값이 verified 로 올라가지 않는다', async () => {
   const { h, id } = setup();
   await h.saveFacts({}, id, { facts: [{ key: 'land.area_sqm', value: 5000, source: 'a.pdf' }] });
@@ -323,4 +395,18 @@ test('화면에 내부 호스트가 들어가지 않는다', () => {
 test('화면이 innerHTML 을 쓰지 않는다 (입력값이 그대로 들어온다)', () => {
   const html = read('fields.html');
   assert.ok(!/\.innerHTML\s*=/.test(html), '자료명·값은 사용자 입력이다');
+});
+
+test('★ 커밋된 단일 HTML 이 소스와 같다 (빌드 산출물 최신 여부)', () => {
+  const { execFileSync } = require('child_process');
+  const os = require('os');
+  const committed = read('linkpilot-platform.html');
+  const tmp = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'im-build-')), 'out.html');
+
+  execFileSync(process.execPath, [path.join(PLATFORM, 'build.js'), '--out', tmp], { stdio: 'ignore' });
+  const fresh = fs.readFileSync(tmp, 'utf8');
+
+  assert.strictEqual(fresh, committed,
+    '커밋된 linkpilot-platform.html 이 소스와 다르다 — `npm run im:platform` 로 다시 만들어라. '
+    + '산출물이 소스와 갈리면 화면에서만 옛 동작이 계속 살아 있고 아무도 눈치채지 못한다');
 });

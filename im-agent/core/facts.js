@@ -120,6 +120,28 @@ class Dataset {
     return removed;
   }
 
+  /**
+   * 조건에 맞는 후보만 제거한다.
+   *
+   * dropSource 는 한 출처의 값을 통째로 지운다. 사람이 화면에서 값 하나를 고칠 때는
+   * 그렇게 넓게 지우면 같은 문서에서 뽑은 다른 항목까지 사라진다.
+   *
+   * ★ 이 메서드로 **다른 출처의 후보를 지우면 안 된다.** 출처가 다른 값이 갈리는 것은
+   *   버그가 아니라 이 시스템이 잡아내야 할 신호다. 좁게 쓴다.
+   *
+   * @param {(fact: Fact, key: string) => boolean} predicate 참이면 제거
+   */
+  dropWhere(predicate) {
+    let removed = 0;
+    for (const [key, list] of this.candidates) {
+      const kept = list.filter(f => !predicate(f, key));
+      removed += list.length - kept.length;
+      if (kept.length) this.candidates.set(key, kept);
+      else this.candidates.delete(key);
+    }
+    return removed;
+  }
+
   addMany(facts) {
     return facts.map(f => {
       try {
