@@ -181,9 +181,19 @@
    *   틀린 값이 남아 있으면 고칠 방법이 없다 (isVisible 참조).
    */
   var LEVELS = {
-    basic:  { id: 'basic',  label: '일반용',   hint: '보고서에 꼭 필요한 항목만' },
+    manual: { id: 'manual', label: '직접 입력', hint: '자동으로 못 채우는 것만' },
+    basic:  { id: 'basic',  label: '일반용',   hint: '보고서에 꼭 필요한 항목' },
     expert: { id: 'expert', label: '전문가용', hint: '사전의 모든 항목' },
   };
+
+  /** 자동으로 채워지는 경로 — 이 경로가 붙은 항목은 사람이 칠 필요가 없다 */
+  var AUTO_FILLS = ['request', 'public', 'derived', 'default'];
+
+  /** 이 항목이 자동으로 채워지는가 (plan 이 없으면 모른다 → 자동이 아니라고 본다) */
+  function isAuto(key, plan) {
+    var p = (plan || {})[key];
+    return !!(p && AUTO_FILLS.indexOf(p.fill) !== -1);
+  }
 
   /**
    * 이 판·산업에서 보여줄 key 인가 (값 유무·오류와 무관한 '기본 노출' 판정).
@@ -202,10 +212,15 @@
 
     if (o.level === 'expert') return true;
 
+    var isRequired = (def.requiredFor || []).length
+      && requiredKeys(fields, o.docType).indexOf(key) !== -1;
+
+    // 직접 입력 — 필수인데 **자동으로 못 채우는 것**만 남긴다.
+    // 52칸을 내밀면 사람은 알지도 못하는 값을 지어내서 채운다
+    if (o.level === 'manual') return !!isRequired && !isAuto(key, o.plan);
+
     // 일반용 — 이 보고서 종류에 필요한 항목 + 이 산업의 핵심 지표
-    if ((def.requiredFor || []).length) {
-      return requiredKeys(fields, o.docType).indexOf(key) !== -1;
-    }
+    if ((def.requiredFor || []).length) return !!isRequired;
     return !!(ind && ind.own && ind.own.indexOf(key) !== -1 && (def.category === 'Capacity'));
   }
 
@@ -249,6 +264,30 @@
     return hay.indexOf(q) !== -1;
   }
 
+  /**
+   * 이 보고서에 필요한 항목 중 자동으로 채워지는 것의 내역.
+   * 화면이 "몇 개나 안 물어봐도 되는지"를 근거와 함께 보여줄 때 쓴다.
+   */
+  function autoBreakdown(fields, plan, docType) {
+    var keys = requiredKeys(fields, docType);
+    var by = {};
+    var manual = [];
+    keys.forEach(function (k) {
+      var p = (plan || {})[k];
+      if (p && AUTO_FILLS.indexOf(p.fill) !== -1) {
+        if (!by[p.fill]) by[p.fill] = { fill: p.fill, label: p.label, why: p.why, keys: [] };
+        by[p.fill].keys.push(k);
+      } else {
+        manual.push(k);
+      }
+    });
+    return {
+      total: keys.length,
+      manual: manual,
+      groups: AUTO_FILLS.filter(function (f) { return by[f]; }).map(function (f) { return by[f]; }),
+    };
+  }
+
   /** 저장 대상만 추린다 — 값이 있는 것만. 빈 칸을 보내면 기존 값이 지워진다 */
   function changedEntries(values) {
     var out = [];
@@ -277,6 +316,9 @@
     parseNumber: parseNumber,
     toEokwon: toEokwon,
     LEVELS: LEVELS,
+    AUTO_FILLS: AUTO_FILLS,
+    isAuto: isAuto,
+    autoBreakdown: autoBreakdown,
     inScope: inScope,
     isComputed: isComputed,
     hasProblem: hasProblem,

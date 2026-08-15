@@ -479,8 +479,13 @@ test('산업을 안 고르면 산업으로 거르지 않는다', () => {
 });
 
 test('판 정의가 화면과 서버에서 같은 이름을 쓴다', () => {
-  assert.deepStrictEqual(Object.keys(F.LEVELS).sort(), ['basic', 'expert']);
-  assert.ok(F.LEVELS.basic.label && F.LEVELS.expert.label);
+  // 좁은 것부터 넓은 것 순. 화면이 이 순서로 버튼을 놓으므로 순서까지 검사한다
+  assert.deepStrictEqual(Object.keys(F.LEVELS), ['manual', 'basic', 'expert']);
+  Object.keys(F.LEVELS).forEach((id) => {
+    assert.strictEqual(F.LEVELS[id].id, id);
+    assert.ok(F.LEVELS[id].label, `${id}: 이름이 없다`);
+    assert.ok(F.LEVELS[id].hint, `${id}: 설명이 없다`);
+  });
 });
 
 test('★ 화면이 산업 목록을 복사해 두지 않는다', () => {

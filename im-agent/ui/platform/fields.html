@@ -130,6 +130,19 @@ ul { margin: 0; padding: 0; list-style: none; }
 .seg__b.on { background: var(--ink); color: #fff; }
 .seg__b:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
 
+/* 자동 채움 */
+.auto__h { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; width: 100%;
+  background: none; border: 0; padding: 0; cursor: pointer; text-align: left; font: inherit; }
+.auto__t { font-size: 15px; font-weight: 800; color: var(--lime-deep); }
+.auto__s { font-size: 13px; color: var(--ink2); }
+.auto__x { margin-left: auto; font-size: 12.5px; font-weight: 700; color: var(--ink2); }
+.auto__h:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.auto__g { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.auto__gl { font-size: 13px; font-weight: 800; }
+.auto__gw { font-size: 12.5px; color: var(--ink2); margin: 3px 0 7px; }
+.row__auto { font-size: 11px; font-weight: 700; color: var(--lime-deep);
+  background: var(--lime-soft); padding: 2px 8px; border-radius: 999px; }
+
 /* 필드 행 */
 .cat { font-size: 13px; font-weight: 800; color: var(--lime-deep); background: var(--lime-soft);
   padding: 8px 13px; border-radius: 9px; margin: 18px 0 10px; }
@@ -261,8 +274,10 @@ window.LINKPILOT_FIELDS_CFG = {
   var state = {
     fields: null, computedKeys: [], sources: [],
     industries: [],      // 서버가 준 산업분야 정의
+    plan: null,          // 채움 계획 (어떤 항목이 자동으로 채워지는가)
     industryId: '',      // 빈 값 = 전체 (거르지 않는다)
-    level: 'basic',      // basic | expert
+    level: 'manual',     // manual | basic | expert — 기본은 '직접 입력'
+    showAuto: false,     // 자동으로 채워지는 항목 펼치기
     values: {},          // key → {value, source, sourceDate, page}
     server: {},          // 서버에 저장돼 있는 값 (되돌리기용)
     filter: 'required',  // required | all | empty
@@ -298,6 +313,7 @@ window.LINKPILOT_FIELDS_CFG = {
       state.fields = C.preload.fields || {};
       state.computedKeys = C.preload.computedKeys || [];
       state.industries = C.preload.industries || [];
+      state.plan = C.preload.plan || null;
       state.loadError = null;
       return render();
     }
@@ -310,6 +326,7 @@ window.LINKPILOT_FIELDS_CFG = {
       state.fields = res[0].fields || {};
       state.computedKeys = res[0].computedKeys || [];
       state.industries = res[0].industries || [];
+      state.plan = res[0].plan || null;
       if (res[1]) {
         state.server = res[1].values || {};
         state.sources = res[1].sources || [];
@@ -370,11 +387,17 @@ window.LINKPILOT_FIELDS_CFG = {
     return null;
   }
 
+  /**
+   * 채움 계획 — 산업과 무관하다 (네 템플릿이 같은 기본값 집합을 쓴다).
+   * 그래서 산업을 고르기 전에도 입력란을 줄일 수 있다.
+   */
+  function currentPlan() { return state.plan; }
+
   // 판정은 fields-core 가 한다 (테스트가 이 규칙을 지킨다)
   function visibleItems(group) {
     var opts = {
       filter: state.filter, q: state.q, docType: C.docType,
-      level: state.level, industry: currentIndustry(),
+      level: state.level, industry: currentIndustry(), plan: currentPlan(),
     };
     return group.items.filter(function (it) {
       return F.isVisible(it.key, state.fields, state.values, state.computedKeys, opts);
@@ -390,6 +413,12 @@ window.LINKPILOT_FIELDS_CFG = {
     h.appendChild(el('span', 'row__l', def.label));
     if (def.unit) h.appendChild(el('span', 'row__u', def.unit));
     if (required.indexOf(key) !== -1) h.appendChild(el('span', 'row__req', '필수'));
+    var pl = currentPlan();
+    if (pl && pl[key] && F.isAuto(key, pl)) {
+      var badge = el('span', 'row__auto', '자동 · ' + pl[key].label);
+      badge.title = pl[key].why;
+      h.appendChild(badge);
+    }
     h.appendChild(el('span', 'row__k', key));
     row.appendChild(h);
 
@@ -502,7 +531,7 @@ window.LINKPILOT_FIELDS_CFG = {
 
   /** 지금 설정에서 기본 노출되는 항목 수 */
   function scopeCount() {
-    var o = { level: state.level, industry: currentIndustry(), docType: C.docType };
+    var o = { level: state.level, industry: currentIndustry(), plan: currentPlan(), docType: C.docType };
     var n = 0;
     Object.keys(state.fields || {}).forEach(function (k) {
       if (F.inScope(k, state.fields, o)) n++;
@@ -661,7 +690,7 @@ window.LINKPILOT_FIELDS_CFG = {
     var f2 = el('div', 'f');
     f2.appendChild(el('label', null, '판'));
     var lv = el('div', 'seg');
-    ['basic', 'expert'].forEach(function (id) {
+    ['manual', 'basic', 'expert'].forEach(function (id) {
       var L = F.LEVELS[id];
       var b = el('button', 'seg__b' + (state.level === id ? ' on' : ''), L.label);
       b.type = 'button';
@@ -678,6 +707,54 @@ window.LINKPILOT_FIELDS_CFG = {
 
     opt.appendChild(og);
     body.appendChild(opt);
+
+    // ★ 자동으로 채워지는 항목을 근거와 함께 보여준다.
+    //   그냥 감추면 "왜 필수인데 안 보이지" 하고 다른 데서 찾는다
+    var plan = currentPlan();
+    if (plan) {
+      var b = F.autoBreakdown(state.fields, plan, C.docType);
+      var ac = el('div', 'card');
+      var head = el('button', 'auto__h');
+      head.type = 'button';
+      head.setAttribute('aria-expanded', state.showAuto ? 'true' : 'false');
+      head.appendChild(el('span', 'auto__t',
+        '자동으로 채워지는 항목 ' + (b.total - b.manual.length) + '개'));
+      head.appendChild(el('span', 'auto__s',
+        '필수 ' + b.total + '개 중 직접 넣을 것은 ' + b.manual.length + '개입니다'));
+      head.appendChild(el('span', 'auto__x', state.showAuto ? '접기 ▲' : '펼치기 ▼'));
+      head.addEventListener('click', function () { state.showAuto = !state.showAuto; render(); });
+      ac.appendChild(head);
+
+      // ★ 남은 것들도 '아무도 못 채운다'는 뜻은 아니다. 대부분은 올린 자료에서
+      //   뽑히고, 못 뽑은 것만 여기 남는다. 그 말을 안 하면 자료를 올려 놓고도
+      //   같은 값을 손으로 다시 친다
+      var byExtract = b.manual.filter(function (k) {
+        return (plan[k] || {}).fill === 'extract';
+      });
+      if (byExtract.length) {
+        ac.appendChild(el('p', 'card__s',
+          '남은 ' + b.manual.length + '개 중 ' + byExtract.length + '개는 '
+          + plan[byExtract[0]].label + ' 대상입니다 — ' + plan[byExtract[0]].why));
+      }
+
+      if (state.showAuto) {
+        b.groups.forEach(function (g) {
+          var row = el('div', 'auto__g');
+          row.appendChild(el('div', 'auto__gl', g.label + ' · ' + g.keys.length + '개'));
+          row.appendChild(el('div', 'auto__gw', g.why));
+          var chips = el('div', 'ext');
+          g.keys.forEach(function (k) {
+            chips.appendChild(el('span', null, (state.fields[k] || {}).label || k));
+          });
+          row.appendChild(chips);
+          ac.appendChild(row);
+        });
+        ac.appendChild(el('p', 'card__s',
+          '자동으로 채워진 값도 화면에서 고칠 수 있습니다 — [일반용]이나 [전문가용]으로 바꾸면 나옵니다. '
+          + '산업 통상치는 가정치로 표시되고, 문서에서 값이 나오면 그것이 이깁니다.'));
+      }
+      body.appendChild(ac);
+    }
 
     // 도구
     var tools = el('div', 'tools');

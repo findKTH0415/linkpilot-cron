@@ -204,4 +204,12 @@ async function saveSatelliteImage(projectId, lat, lon, ctx) {
   }
 }
 
-module.exports = { id: '07_geo', label: 'Geo / Satellite Agent', inputSchema, outputSchema, run };
+/**
+ * 이 Agent 가 **소재지만 있으면** 공공데이터로 채우는 key.
+ * ★ 사람에게 물어보지 않아도 되는 항목이다 — 물어보면 공부(公簿)와 다른 값을
+ *   손으로 적게 되고, 그 순간 독립된 두 번째 출처라는 가치가 사라진다.
+ */
+const FILLS = ['geo.pnu', 'geo.lat', 'geo.lon',
+  'land.area_sqm', 'land.zoning', 'land.far_limit', 'land.bcr_limit', 'land.official_price'];
+
+module.exports = { id: '07_geo', label: 'Geo / Satellite Agent', inputSchema, outputSchema, run, FILLS };

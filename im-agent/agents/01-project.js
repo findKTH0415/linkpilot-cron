@@ -103,4 +103,12 @@ async function run(input, ctx) {
   return { projectId, templateId: template.id, name, dir, facts, confidence: 0.7 };
 }
 
-module.exports = { id: '01_project', label: 'Project Manager Agent', inputSchema, outputSchema, run, seedFromRequest, deriveName };
+/**
+ * 이 Agent 가 요청문만으로 채우는 key.
+ * ★ 입력 화면이 '무엇을 안 물어봐도 되는가'를 판단하는 근거다 (core/fieldplan.js).
+ *   여기와 실제 seedFromRequest 가 갈리면 화면이 물어보지 않는데 값도 안 들어온다.
+ */
+const FILLS = ['project.name', 'project.assetType', 'project.location',
+  'capacity.it_load_mw', 'capacity.dc_kw'];
+
+module.exports = { id: '01_project', label: 'Project Manager Agent', inputSchema, outputSchema, run, seedFromRequest, deriveName, FILLS };

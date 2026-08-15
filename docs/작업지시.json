@@ -12,139 +12,419 @@
     "담당(assignee)은 사람 이름이 아니라 역할이다. 결재가 필요한 일과",
     "코드로 끝나는 일을 섞으면 서로 상대를 기다린다."
   ],
-
   "updatedAt": "2026-08-15",
-
-  "people": ["의사결정", "개발", "외부확인"],
-  "projects": ["보고서 생성", "운영·보안", "요금제·권한", "크론 이관", "외부 지침"],
-
+  "people": [
+    "의사결정",
+    "개발",
+    "외부확인"
+  ],
+  "projects": [
+    "보고서 생성",
+    "운영·보안",
+    "요금제·권한",
+    "크론 이관",
+    "외부 지침"
+  ],
   "tasks": [
-    { "id": "D-20", "title": "배포된 지침이 약속한 기능이 저장소에서 사라졌다",
+    {
+      "id": "D-20",
+      "title": "배포된 지침이 약속한 기능이 저장소에서 사라졌다",
       "detail": "catalog.js·지침 §2 는 아침브리핑·오늘의 한줄생각을 유료 기능으로 적어 두었는데 구현은 삭제됐다. main 의 크론이 도는 동안은 살아 있고, PR #3 병합 시점부터 갈린다. 이관하지 않으면 카탈로그를 고치고 지침을 재발행해야 한다",
-      "status": "todo", "priority": "urgent", "assignee": "의사결정", "project": "크론 이관", "refs": ["D-20", "B-15"] },
-
-    { "id": "D-19", "title": "아침 크론을 어디로 옮기는가",
+      "status": "todo",
+      "priority": "urgent",
+      "assignee": "의사결정",
+      "project": "크론 이관",
+      "refs": [
+        "D-20",
+        "B-15"
+      ]
+    },
+    {
+      "id": "D-19",
+      "title": "아침 크론을 어디로 옮기는가",
       "detail": "삭제일 뿐 이관이 아니다. 옮길 곳이 없으면 브리핑 기능 자체가 사라진다. 새 저장소 / 이관 안 함 / NAS n8n 복귀 중 하나",
-      "status": "todo", "priority": "urgent", "assignee": "의사결정", "project": "크론 이관", "refs": ["D-19"] },
-
-    { "id": "D-10", "title": "저장소 공개 범위 결정",
+      "status": "todo",
+      "priority": "urgent",
+      "assignee": "의사결정",
+      "project": "크론 이관",
+      "refs": [
+        "D-19"
+      ]
+    },
+    {
+      "id": "D-10",
+      "title": "저장소 공개 범위 결정",
       "detail": "본문의 내부 주소·개인정보는 제거했으나 git 이력에 남아 있다. private 전환 / public 유지 / 이력 재작성 중 하나. CLAUDE.md §2 위반 상태가 해소되지 않았다",
-      "status": "todo", "priority": "urgent", "assignee": "의사결정", "project": "운영·보안", "refs": ["D-10", "B-2"] },
-
-    { "id": "D-12", "title": "GitHub Secret 등록",
+      "status": "todo",
+      "priority": "urgent",
+      "assignee": "의사결정",
+      "project": "운영·보안",
+      "refs": [
+        "D-10",
+        "B-2"
+      ]
+    },
+    {
+      "id": "D-12",
+      "title": "GitHub Secret 등록",
       "detail": "TS_OAUTH_CLIENT_ID/SECRET · NAS_SSH_HOST/USER/KEY · ALERT_PHONE · VWORLD_KEY · DATA_GO_KR_KEY. 값은 Secrets 에만 넣는다 — 채팅·문서·커밋에 붙여넣지 않는다",
-      "status": "todo", "priority": "urgent", "assignee": "의사결정", "project": "운영·보안", "refs": ["D-12"] },
-
-    { "id": "D-11", "title": "PR #4 를 병합할지 닫을지 정한다",
+      "status": "todo",
+      "priority": "urgent",
+      "assignee": "의사결정",
+      "project": "운영·보안",
+      "refs": [
+        "D-12"
+      ]
+    },
+    {
+      "id": "D-11",
+      "title": "PR #4 를 병합할지 닫을지 정한다",
       "detail": "크론이 빠지면서 ①실패 알림·②NAS 장애 대응은 대상이 없어졌다. 남은 가치는 ③ NAS 배포 워크플로뿐이다. 그대로 병합 / deploy-nas 만 PR #3 으로 옮기고 닫기",
-      "status": "todo", "priority": "urgent", "assignee": "의사결정", "project": "운영·보안", "refs": ["D-11"] },
-
-    { "id": "D-06", "title": "유료 기능 3종의 등급 확정",
+      "status": "todo",
+      "priority": "urgent",
+      "assignee": "의사결정",
+      "project": "운영·보안",
+      "refs": [
+        "D-11"
+      ]
+    },
+    {
+      "id": "D-06",
+      "title": "유료 기능 3종의 등급 확정",
       "detail": "통화음성분석·프리미엄 투자소스 DB·신재생에너지 분석. 지금은 추정치다. Basic 회원이 써야 할 것이 Pro 로 잠겨 있으면 결제한 사람이 못 쓴다",
-      "status": "todo", "priority": "normal", "assignee": "의사결정", "project": "요금제·권한", "refs": ["D-06", "B-6"] },
-
-    { "id": "D-07", "title": "Free 플랜 사용 한도 확정",
+      "status": "todo",
+      "priority": "normal",
+      "assignee": "의사결정",
+      "project": "요금제·권한",
+      "refs": [
+        "D-06",
+        "B-6"
+      ]
+    },
+    {
+      "id": "D-07",
+      "title": "Free 플랜 사용 한도 확정",
       "detail": "근거 없는 '프로젝트 3건' 문구는 지웠다. 한도를 둘 것인지, 둔다면 항목과 수치를 정해야 한다. 앱에만 있고 지침에 없으면 협력사가 예고 없이 막힌다",
-      "status": "todo", "priority": "normal", "assignee": "의사결정", "project": "요금제·권한", "refs": ["D-07"] },
-
-    { "id": "D-09", "title": "결제대행사 선정",
+      "status": "todo",
+      "priority": "normal",
+      "assignee": "의사결정",
+      "project": "요금제·권한",
+      "refs": [
+        "D-07"
+      ]
+    },
+    {
+      "id": "D-09",
+      "title": "결제대행사 선정",
       "detail": "billingUrl 한 줄이면 연결된다. 카드정보는 화면에서 받지 않는다 (PCI 범위 회피)",
-      "status": "todo", "priority": "normal", "assignee": "의사결정", "project": "요금제·권한", "refs": ["D-09", "B-9"] },
-
-    { "id": "D-08", "title": "요금 표기 통화 확인",
+      "status": "todo",
+      "priority": "normal",
+      "assignee": "의사결정",
+      "project": "요금제·권한",
+      "refs": [
+        "D-09",
+        "B-9"
+      ]
+    },
+    {
+      "id": "D-08",
+      "title": "요금 표기 통화 확인",
       "detail": "현재 USD (Basic 25 / Pro 55 / Business 130). 국내 협력사 대상이면 원화가 자연스럽다",
-      "status": "todo", "priority": "normal", "assignee": "의사결정", "project": "요금제·권한", "refs": ["D-08"] },
-
-    { "id": "D-14", "title": "건설이자(IDC) 자본화 기준 확정",
+      "status": "todo",
+      "priority": "normal",
+      "assignee": "의사결정",
+      "project": "요금제·권한",
+      "refs": [
+        "D-08"
+      ]
+    },
+    {
+      "id": "D-14",
+      "title": "건설이자(IDC) 자본화 기준 확정",
       "detail": "모델 총사업비가 문서값보다 크다 (2,846 → 2,962억원). 지금은 TPC_GAP 경고만 뜬다. 사내 기준을 정해야 상수화할 수 있다",
-      "status": "todo", "priority": "normal", "assignee": "의사결정", "project": "보고서 생성", "refs": ["D-14", "B-12"] },
-
-    { "id": "D-13", "title": "PDF·PPTX 서버 생성용 의존성 승인",
+      "status": "todo",
+      "priority": "normal",
+      "assignee": "의사결정",
+      "project": "보고서 생성",
+      "refs": [
+        "D-14",
+        "B-12"
+      ]
+    },
+    {
+      "id": "D-13",
+      "title": "PDF·PPTX 서버 생성용 의존성 승인",
       "detail": "미승인이라 목록에는 두되 비활성 + 사유 표시. 대안(브라우저 인쇄)은 동작한다. HWP 는 승인과 무관하게 사실상 불가",
-      "status": "todo", "priority": "normal", "assignee": "의사결정", "project": "보고서 생성", "refs": ["D-13", "B-10"] },
-
-    { "id": "D-16", "title": "지침 §4 「서버 자동 변환 준비 중」 사실 확인",
+      "status": "todo",
+      "priority": "normal",
+      "assignee": "의사결정",
+      "project": "보고서 생성",
+      "refs": [
+        "D-13",
+        "B-10"
+      ]
+    },
+    {
+      "id": "D-16",
+      "title": "지침 §4 「서버 자동 변환 준비 중」 사실 확인",
       "detail": "H.265 변환 기능이 이 저장소에 없다. 본체에 있는지 계획만 있는지 확인이 필요하다. 계획만 있다면 지침 문구를 조정해야 한다",
-      "status": "todo", "priority": "normal", "assignee": "외부확인", "project": "외부 지침", "refs": ["D-16"] },
-
-    { "id": "D-17", "title": "지침 §3 「이어서 올라갑니다」 동작 확인",
+      "status": "todo",
+      "priority": "normal",
+      "assignee": "외부확인",
+      "project": "외부 지침",
+      "refs": [
+        "D-16"
+      ]
+    },
+    {
+      "id": "D-17",
+      "title": "지침 §3 「이어서 올라갑니다」 동작 확인",
       "detail": "업로드 재개는 본체 기능이라 이 저장소에서 검증할 수 없었다. 지침이 명시적으로 약속한 동작이다",
-      "status": "todo", "priority": "normal", "assignee": "외부확인", "project": "외부 지침", "refs": ["D-17"] },
-
-    { "id": "B-3", "title": "VWorld 지오코딩 실패 원인 진단",
+      "status": "todo",
+      "priority": "normal",
+      "assignee": "외부확인",
+      "project": "외부 지침",
+      "refs": [
+        "D-17"
+      ]
+    },
+    {
+      "id": "B-3",
+      "title": "VWorld 지오코딩 실패 원인 진단",
       "detail": "IM_AGENT_DEBUG_HTTP=1 npm run im:smoke 를 ~/linkpilot-cron 안에서 실행하고 attempts[] 확인. 키 문제인지 미매칭인지 아직 구분 못 한다",
-      "status": "todo", "priority": "normal", "assignee": "외부확인", "project": "보고서 생성", "refs": ["B-3"] },
-
-    { "id": "B-4", "title": "공공데이터 응답 스키마 실키 검증",
+      "status": "todo",
+      "priority": "normal",
+      "assignee": "외부확인",
+      "project": "보고서 생성",
+      "refs": [
+        "B-3"
+      ]
+    },
+    {
+      "id": "B-4",
+      "title": "공공데이터 응답 스키마 실키 검증",
       "detail": "파서는 JSON/XML 양쪽을 흡수하도록 만들었지만 실물 확인이 없다. 키 등록 후 cli.js quota + 실거래 1건 조회. 필드명이 다르면 조용히 빈 값이 된다",
-      "status": "todo", "priority": "normal", "assignee": "외부확인", "project": "보고서 생성", "refs": ["B-4"] },
-
-    { "id": "B-5", "title": "NAS 배포 경로 첫 실행 (dry_run)",
+      "status": "todo",
+      "priority": "normal",
+      "assignee": "외부확인",
+      "project": "보고서 생성",
+      "refs": [
+        "B-4"
+      ]
+    },
+    {
+      "id": "B-5",
+      "title": "NAS 배포 경로 첫 실행 (dry_run)",
       "detail": "한 번도 실행되지 않았다. tailscale 인증·SSH·백업 중 어디서 막힐지 모른다. 첫 실행을 실배포로 하지 말 것 — dry_run 기본값이 true 인 이유다",
-      "status": "todo", "priority": "normal", "assignee": "외부확인", "project": "운영·보안", "refs": ["B-5"] },
-
-    { "id": "SRC", "title": "본체 앱 소스를 linkpilot-platform 저장소에 올린다",
+      "status": "todo",
+      "priority": "normal",
+      "assignee": "외부확인",
+      "project": "운영·보안",
+      "refs": [
+        "B-5"
+      ]
+    },
+    {
+      "id": "SRC",
+      "title": "본체 앱 소스를 linkpilot-platform 저장소에 올린다",
       "detail": "이것 하나가 서버 배선·인증 연결·인쇄 경로·보드 저장·화면 편입을 전부 막고 있다. 지금 화면들은 스크린샷과 지침으로 테마만 맞춘 것이라 실제 컴포넌트로 다시 맞춰야 한다",
-      "status": "todo", "priority": "urgent", "assignee": "외부확인", "project": "보고서 생성", "refs": ["HANDOVER §3-5"] },
-
-    { "id": "D-15", "title": "시장조사 Connector 붙이기",
+      "status": "todo",
+      "priority": "urgent",
+      "assignee": "외부확인",
+      "project": "보고서 생성",
+      "refs": [
+        "HANDOVER §3-5"
+      ]
+    },
+    {
+      "id": "D-15",
+      "title": "시장조사 Connector 붙이기",
       "detail": "03_research 는 Connector 가 없어 LLM 기억에 의존한다. 산출물은 전부 verified=false 라 재무모델에 들어가지 않지만, 운영 투입 전 URL 출처를 강제해야 한다",
-      "status": "todo", "priority": "normal", "assignee": "개발", "project": "보고서 생성", "refs": ["D-15"] },
-
-    { "id": "B-11", "title": "Lineage 모달을 순수 JS 판에 포팅",
+      "status": "todo",
+      "priority": "normal",
+      "assignee": "개발",
+      "project": "보고서 생성",
+      "refs": [
+        "D-15"
+      ]
+    },
+    {
+      "id": "D-21",
+      "title": "자료 추출 성공률 측정 (실제 자료 5~10건)",
+      "detail": "입력란을 52칸에서 8칸으로 줄인 근거가 core/fieldplan.js 의 채움 계획이다. 직접 입력으로 남긴 8개는 전부 extract 경로 — 자료에서 뽑히면 안 쳐도 되고 못 뽑으면 쳐야 한다. 그 비율을 실제 자료로 재 본 적이 없다. 실제 사업계획서·감정평가서로 8개 항목의 추출 성공률을 측정해야 화면이 얼마나 편한지 알 수 있다",
+      "status": "todo",
+      "priority": "normal",
+      "assignee": "개발",
+      "project": "보고서 생성",
+      "refs": [
+        "D-21"
+      ]
+    },
+    {
+      "id": "B-11",
+      "title": "Lineage 모달을 순수 JS 판에 포팅",
       "detail": "React 판에는 있고 vanilla 판에는 없다. 본체가 단일 HTML 이면 숫자를 눌러 출처를 확인하는 경로가 막힌다 — IM Agent 핵심 가치 중 하나다",
-      "status": "todo", "priority": "normal", "assignee": "개발", "project": "보고서 생성", "refs": ["B-11"] },
-
-    { "id": "B-8", "title": "[인쇄 · PDF 저장] 실제 연결",
+      "status": "todo",
+      "priority": "normal",
+      "assignee": "개발",
+      "project": "보고서 생성",
+      "refs": [
+        "B-11"
+      ]
+    },
+    {
+      "id": "B-8",
+      "title": "[인쇄 · PDF 저장] 실제 연결",
       "detail": "fileUrl 이 null 이라 안내만 뜬다. 본체가 12_Final/*.html 을 서빙하는 경로 규칙만 알려주면 즉시 연결된다. 지침 §7-3 이 안내하므로 협력사 눈에는 이미 있는 기능이다",
-      "status": "todo", "priority": "normal", "assignee": "개발", "project": "보고서 생성", "refs": ["B-8"] },
-
-    { "id": "B-7", "title": "업무지시 보드 데이터 저장 붙이기",
+      "status": "todo",
+      "priority": "normal",
+      "assignee": "개발",
+      "project": "보고서 생성",
+      "refs": [
+        "B-8"
+      ]
+    },
+    {
+      "id": "B-7",
+      "title": "업무지시 보드 데이터 저장 붙이기",
       "detail": "지금은 api: null 로 데모 데이터만 돈다. 카드를 옮겨도 새로고침하면 되돌아간다. report-api 와 같은 방식으로 쓰기 라우터 추가",
-      "status": "todo", "priority": "normal", "assignee": "개발", "project": "보고서 생성", "refs": ["B-7"] },
-
-    { "id": "PR3", "title": "PR #3 리뷰·병합",
+      "status": "todo",
+      "priority": "normal",
+      "assignee": "개발",
+      "project": "보고서 생성",
+      "refs": [
+        "B-7"
+      ]
+    },
+    {
+      "id": "PR3",
+      "title": "PR #3 리뷰·병합",
       "detail": "IM Agent + 부동산 Agent 3종 + Connector + 플랫폼 화면 + 가이드 필드 입력. 140파일 / +27,972. CI 통과, mergeable clean. ★ 병합하는 순간 아침 크론이 멈춘다 (D-19 먼저)",
-      "status": "review", "priority": "urgent", "assignee": "의사결정", "project": "보고서 생성", "refs": ["PR #3"] },
-
-    { "id": "PR4", "title": "PR #4 리뷰",
+      "status": "review",
+      "priority": "urgent",
+      "assignee": "의사결정",
+      "project": "보고서 생성",
+      "refs": [
+        "PR #3"
+      ]
+    },
+    {
+      "id": "PR4",
+      "title": "PR #4 리뷰",
       "detail": "실패 알림 + NAS 장애 대응 + 배포 워크플로. CI 통과, clean. 크론 삭제로 ①②가 대상을 잃어 처리 방향을 정해야 한다 (D-11)",
-      "status": "review", "priority": "normal", "assignee": "의사결정", "project": "운영·보안", "refs": ["PR #4", "D-11"] },
-
-    { "id": "W-01", "title": "IM Agent 파이프라인 11단계 구축",
+      "status": "review",
+      "priority": "normal",
+      "assignee": "의사결정",
+      "project": "운영·보안",
+      "refs": [
+        "PR #4",
+        "D-11"
+      ]
+    },
+    {
+      "id": "W-01",
+      "title": "IM Agent 파이프라인 11단계 구축",
       "detail": "출처 없는 숫자는 Fact 생성 자체가 예외로 막힌다. IRR·NPV·DSCR 은 결정적 함수만 계산하고 Writer 는 자리표시자만 쓴다. 11개 중 8개는 LLM 을 부르지 않는다",
-      "status": "done", "priority": "normal", "assignee": "개발", "project": "보고서 생성", "doneAt": "2026-08-13", "refs": [] },
-
-    { "id": "W-02", "title": "공공데이터 Connector + 쿼터 캐시",
+      "status": "done",
+      "priority": "normal",
+      "assignee": "개발",
+      "project": "보고서 생성",
+      "doneAt": "2026-08-13",
+      "refs": []
+    },
+    {
+      "id": "W-02",
+      "title": "공공데이터 Connector + 쿼터 캐시",
       "detail": "일 10,000건 한도를 cache.js 가 강제한다. 재실행 시 호출 0건. 쿼터 카운터는 KST 기준 리셋. 키가 없으면 데이터를 지어내지 않고 unavailable 을 반환한다",
-      "status": "done", "priority": "normal", "assignee": "개발", "project": "보고서 생성", "doneAt": "2026-08-13", "refs": [] },
-
-    { "id": "W-03", "title": "Control Tower 화면 (React · 순수 JS 두 판)",
+      "status": "done",
+      "priority": "normal",
+      "assignee": "개발",
+      "project": "보고서 생성",
+      "doneAt": "2026-08-13",
+      "refs": []
+    },
+    {
+      "id": "W-03",
+      "title": "Control Tower 화면 (React · 순수 JS 두 판)",
       "detail": "두 판의 표시 로직이 글자 단위로 같은지 ui-parity.test.js 가 검사한다. 갈리면 한쪽 화면에서만 배포 경고가 사라진다",
-      "status": "done", "priority": "normal", "assignee": "개발", "project": "보고서 생성", "doneAt": "2026-08-13", "refs": [] },
-
-    { "id": "W-04", "title": "외부 업무지침 대조 — 어긋난 4건 수정",
+      "status": "done",
+      "priority": "normal",
+      "assignee": "개발",
+      "project": "보고서 생성",
+      "doneAt": "2026-08-13",
+      "refs": []
+    },
+    {
+      "id": "W-04",
+      "title": "외부 업무지침 대조 — 어긋난 4건 수정",
       "detail": "검증 보고서 등급 business→pro, Free 근거 없는 한도 제거, 잠금 표시 통일, 인앱 브라우저 배너 신설. catalog.js 를 등급의 단일 출처로 만들고 대조 테스트 17건 추가",
-      "status": "done", "priority": "normal", "assignee": "개발", "project": "외부 지침", "doneAt": "2026-08-14", "refs": [] },
-
-    { "id": "W-05", "title": "보고서 생성 API + 실행 큐",
+      "status": "done",
+      "priority": "normal",
+      "assignee": "개발",
+      "project": "외부 지침",
+      "doneAt": "2026-08-14",
+      "refs": []
+    },
+    {
+      "id": "W-05",
+      "title": "보고서 생성 API + 실행 큐",
       "detail": "authenticate 없이는 마운트 자체가 거부된다. 사양 확정 전 생성 409, 같은 프로젝트 중복 실행 409, 20분 초과 시 죽이고 실패 기록. 파이프라인은 자식 프로세스로 분리해 웹 서버가 멈추지 않는다",
-      "status": "done", "priority": "normal", "assignee": "개발", "project": "보고서 생성", "doneAt": "2026-08-14", "refs": [] },
-
-    { "id": "D-18", "title": "아침 크론 삭제 — 저장소를 보고서 생성으로 한정",
+      "status": "done",
+      "priority": "normal",
+      "assignee": "개발",
+      "project": "보고서 생성",
+      "doneAt": "2026-08-14",
+      "refs": []
+    },
+    {
+      "id": "D-18",
+      "title": "아침 크론 삭제 — 저장소를 보고서 생성으로 한정",
       "detail": "1,304줄 + 폰트 6.6MB 제거. alert-failure 는 deploy-nas 가 써서 존치. README 재작성 과정에서 내부 주소·개인 휴대폰번호·실명이 함께 제거됐다. CLAUDE.md §1·§3·§4 는 이관용으로 남겼다",
-      "status": "done", "priority": "urgent", "assignee": "개발", "project": "크론 이관", "doneAt": "2026-08-14", "refs": ["D-18"] },
-
-    { "id": "W-06", "title": "가이드 필드 입력값 화면",
+      "status": "done",
+      "priority": "urgent",
+      "assignee": "개발",
+      "project": "크론 이관",
+      "doneAt": "2026-08-14",
+      "refs": [
+        "D-18"
+      ]
+    },
+    {
+      "id": "W-06",
+      "title": "가이드 필드 입력값 화면",
       "detail": "필드 목록을 화면에 복사하지 않고 GET /fields 로 받는다. 출처 없으면 저장 버튼이 열리지 않고, 계산 항목은 입력란을 만들지 않는다. 범위 위반은 막지 않고 경고만 한다",
-      "status": "done", "priority": "normal", "assignee": "개발", "project": "보고서 생성", "doneAt": "2026-08-15", "refs": [] },
-
-    { "id": "B-13", "title": "값을 고쳐도 옛 값이 이기던 결함 수정",
+      "status": "done",
+      "priority": "normal",
+      "assignee": "개발",
+      "project": "보고서 생성",
+      "doneAt": "2026-08-15",
+      "refs": []
+    },
+    {
+      "id": "B-13",
+      "title": "값을 고쳐도 옛 값이 이기던 결함 수정",
       "detail": "5000→5500 으로 고치면 응답은 saved:1 인데 화면 값은 그대로였다. facts.js 에 dropWhere 를 더해 이전 화면 입력만 지운다. 출처 간 충돌 감지는 그대로 살아 있는지 테스트로 확인했다",
-      "status": "done", "priority": "urgent", "assignee": "개발", "project": "보고서 생성", "doneAt": "2026-08-15", "refs": ["B-13"] },
-
-    { "id": "B-14", "title": "빌드 산출물이 소스와 어긋나던 것 수정",
+      "status": "done",
+      "priority": "urgent",
+      "assignee": "개발",
+      "project": "보고서 생성",
+      "doneAt": "2026-08-15",
+      "refs": [
+        "B-13"
+      ]
+    },
+    {
+      "id": "B-14",
+      "title": "빌드 산출물이 소스와 어긋나던 것 수정",
       "detail": "커밋된 linkpilot-platform.html 이 옛 내용이었고 잡아내는 장치가 없었다. 재빌드 결과가 커밋본과 같은지 검사하는 테스트를 넣고, 일부러 어긋내어 실패하는 것까지 확인했다",
-      "status": "done", "priority": "normal", "assignee": "개발", "project": "보고서 생성", "doneAt": "2026-08-15", "refs": ["B-14"] }
+      "status": "done",
+      "priority": "normal",
+      "assignee": "개발",
+      "project": "보고서 생성",
+      "doneAt": "2026-08-15",
+      "refs": [
+        "B-14"
+      ]
+    }
   ]
 }

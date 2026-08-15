@@ -81,6 +81,13 @@ function createHandlers({ agentRoot, agentModulePath }) {
         return { id, label: tpl.TEMPLATES[id].label, own: k.own, foreign: k.foreign };
       });
 
+      // 채움 계획 — 어떤 항목을 사람이 안 쳐도 되는가.
+      // ★ 산업 밖에 둔다. 네 템플릿이 같은 COMMON_MAP·defaults 집합을 쓰므로
+      //   경로가 산업마다 다르지 않고, 산업을 고르기 전에도 입력란을 줄일 수 있다.
+      //   (fieldplan.test.js 가 '템플릿마다 다르지 않다'를 검사한다 —
+      //    달라지는 날 이 구조를 바꿔야 한다)
+      const fieldplan = load('core/fieldplan');
+
       return {
         status: 200,
         body: {
@@ -88,6 +95,8 @@ function createHandlers({ agentRoot, agentModulePath }) {
           computedKeys: dict.COMPUTED_KEYS,
           categories: dict.CATEGORY,
           industries,
+          plan: fieldplan.plan('generic'),
+          planSummary: fieldplan.summary('generic'),
         },
       };
     },
