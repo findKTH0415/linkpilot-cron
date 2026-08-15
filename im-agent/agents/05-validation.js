@@ -17,6 +17,7 @@
  */
 
 const { FIELDS, labelFor, rangeViolation, requiredFor } = require('../core/dictionary');
+const fsc = require('../connectors/fsc');
 const { round, formatEok } = require('../core/numeric');
 const { kstDate, daysBetween } = require('../core/kst');
 
@@ -172,6 +173,65 @@ function checkLegal(ds) {
   return flags;
 }
 
+/**
+ * 시행사 실체 확인 — 금융위원회 기업기본정보와 대조한다.
+ *
+ * ★ `project.sponsor` 는 사람이 손으로 적는 8칸 중 하나다. 오타든 실재하지 않는
+ *   이름이든 지금까지는 그대로 IM 에 실렸다. 독립된 출처로 대조한다.
+ *
+ * ★ **판정만 하고 값을 Dataset 에 넣지는 않는다.** 이 Agent 의 역할은 검증이다.
+ *   조회 결과를 사실로 등록하면 출처 계보가 검증 Agent 로 뒤엉킨다.
+ *
+ * ★ 동명 법인이 있으면 **고르지 않고 YELLOW** 로 올린다. '삼성물산' 은 실제로
+ *   법인이 둘이다(1952년·1963년 설립). 하나를 자동으로 집으면 틀렸을 때
+ *   문서만 보고는 못 잡는다.
+ *
+ * ★ 대표자 성명은 Connector 가 아예 가져오지 않는다 (개인정보 — CLAUDE.md §6).
+ */
+async function checkSponsor(ds, ctx, today) {
+  const flags = [];
+  const sponsor = ds.get('project.sponsor');
+  if (!sponsor || !fsc.isAvailable()) return flags;
+
+  const r = await fsc.corpOutline(String(sponsor.value));
+
+  if (!r.ok) {
+    if (r.unavailable) return flags;
+    flags.push(flag('YELLOW', 'SPONSOR',
+      `시행사 '${sponsor.value}' 를 법인 등록정보에서 확인하지 못했다 — ${r.error}`,
+      { keys: ['project.sponsor'] }));
+    return flags;
+  }
+
+  if (r.ambiguous) {
+    const list = r.candidates.slice(0, 3)
+      .map(c => `${c.name}(${c.corpRegNo}, ${String(c.establishedOn).slice(0, 4)}년 설립)`).join(' / ');
+    flags.push(flag('YELLOW', 'SPONSOR',
+      `시행사 '${sponsor.value}' 와 같은 이름의 법인이 여럿이다 — 어느 곳인지 특정해야 한다: ${list}`,
+      { keys: ['project.sponsor'] }));
+    return flags;
+  }
+
+  const c = r.value;
+  const years = fsc.yearsSince(c.establishedOn, today);
+  const parts = [
+    c.name,
+    `법인등록번호 ${c.corpRegNo}`,
+    years !== null ? `업력 ${years}년` : null,
+    c.market ? `${c.market} 상장` : '비상장',
+    c.auditOpinion ? `감사의견 ${c.auditOpinion}` : null,
+  ].filter(Boolean);
+
+  // 감사의견이 적정이 아니면 그 자체가 투자 검토 대상이다
+  const badOpinion = c.auditOpinion && !/적정/.test(c.auditOpinion);
+  flags.push(flag(badOpinion ? 'YELLOW' : 'GREEN', 'SPONSOR',
+    `시행사 확인: ${parts.join(' · ')}`
+    + (badOpinion ? ' — 감사의견이 적정이 아니다' : ''),
+    { keys: ['project.sponsor'] }));
+
+  return flags;
+}
+
 async function run(input, ctx) {
   const ds = ctx.dataset;
   if (!ds) throw new Error('ctx.dataset 필요');
@@ -201,6 +261,7 @@ async function run(input, ctx) {
   // ③ 내부 정합성 + 법률
   flags.push(...checkConsistency(ds));
   flags.push(...checkLegal(ds));
+  flags.push(...await checkSponsor(ds, ctx, kstDate()));
 
   // ④ 미검증 값 (독립출처 1개)
   const single = ds.keys().filter(k => {
@@ -331,4 +392,4 @@ async function run(input, ctx) {
 
 function clamp(n) { return Math.max(0, Math.min(100, Math.round(n))); }
 
-module.exports = { id: '05_validation', label: 'Cross Validation Agent', inputSchema, outputSchema, run, checkConsistency, checkLegal };
+module.exports = { id: '05_validation', label: 'Cross Validation Agent', inputSchema, outputSchema, run, checkConsistency, checkLegal, checkSponsor };

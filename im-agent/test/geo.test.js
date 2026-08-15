@@ -262,6 +262,45 @@ test('시점수정 계수는 복리로 누적된다', () => {
   assert.ok(factor > simple, '복리 누적이 단순합보다 크다');
 });
 
+// ── 기업기본정보 ─────────────────────────────────────────────
+// '롯데케미칼' 로 22건이 오는데 법인등록번호는 하나다 — 전부 같은 회사의
+// 개정 이력이다. 이걸 서로 다른 법인으로 세면 있지도 않은 모호성을 경고한다.
+test('같은 법인의 개정 이력은 하나로 합친다 (최신 리비전)', () => {
+  const fsc = require('../connectors/fsc');
+  const rows = [
+    { corpRegNo: '1101110193196', name: '롯데케미칼(주)', market: '유가', revisedOn: '20260101' },
+    { corpRegNo: '1101110193196', name: '롯데케미칼(주)', market: '', revisedOn: '20260814' },
+    { corpRegNo: '1101110193196', name: '롯데케미칼(주)', market: '유가', revisedOn: '20260814' },
+  ];
+  const out = fsc.dedupeByCorp(rows);
+  assert.strictEqual(out.length, 1, '법인등록번호가 같으면 한 곳이다');
+  assert.strictEqual(out[0].revisedOn, '20260814', '최신 리비전을 남긴다');
+});
+
+test('법인명 표기 차이를 흡수한다', () => {
+  const fsc = require('../connectors/fsc');
+  const a = fsc.normalizeName('롯데케미칼(주)');
+  assert.strictEqual(a, fsc.normalizeName('주식회사 롯데케미칼'));
+  assert.strictEqual(a, fsc.normalizeName('롯데케미칼㈜'));
+  assert.notStrictEqual(a, fsc.normalizeName('롯데케미칼건설'), '다른 회사까지 같게 만들면 안 된다');
+});
+
+// ★ 대표자 성명은 개인정보다 (CLAUDE.md §6 — 대외 문서에 개인 성명 미표기).
+//   응답에는 들어 있으므로 Connector 경계에서 확실히 버려야 한다.
+test('대표자 성명을 담지 않는다', () => {
+  const fsc = require('../connectors/fsc');
+  const corp = fsc.toCorp({ crno: '1', corpNm: 'X', enpRprFnm: '홍길동, 김철수' });
+  assert.strictEqual(JSON.stringify(corp).includes('홍길동'), false, '개인 성명이 새어 나가면 안 된다');
+  assert.strictEqual(corp.enpRprFnm, undefined);
+});
+
+test('업력은 기준일을 받아 계산한다 (서버 시각에 의존하지 않는다)', () => {
+  const fsc = require('../connectors/fsc');
+  assert.strictEqual(fsc.yearsSince('19760316', '2026-08-16'), 50);
+  assert.strictEqual(fsc.yearsSince('19760316', null), null, '기준일이 없으면 지어내지 않는다');
+  assert.strictEqual(fsc.yearsSince('', '2026-08-16'), null);
+});
+
 test('용도지역 상한: 문자열만으로 조회된다 (API 불필요)', () => {
   assert.deepStrictEqual(nsdi.limitsForZone('일반공업지역'), { zone: '일반공업지역', far: 350, bcr: 70 });
   assert.deepStrictEqual(nsdi.limitsForZone('제3종 일반주거지역'), { zone: '제3종일반주거지역', far: 300, bcr: 50 });

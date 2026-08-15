@@ -33,6 +33,7 @@ const molit = require('../connectors/molit');
 const kma = require('../connectors/kma');
 const kpx = require('../connectors/kpx');
 const reb = require('../connectors/reb');
+const fsc = require('../connectors/fsc');
 const { looksUrlEncoded } = require('../connectors/http');
 const pnuUtil = require('../connectors/pnu');
 const geometry = require('../geo/geometry');
@@ -318,6 +319,26 @@ async function main() {
           + `→ 시점수정 계수 ${v.factor} (${v.months}개월)`);
       } else {
         report('지가변동률 (부동산원)', false, adj.error);
+      }
+    }
+  }
+
+  // ── 11. 기업기본정보 (금융위 — 시행사 실체 확인) ─────────
+  if (fsc.isAvailable()) {
+    const NAME = argOf('--sponsor') || '롯데케미칼';
+    const r = await fsc.corpOutline(NAME);
+    if (!r.ok) {
+      report('기업기본정보 (금융위)', false, r.error);
+    } else if (r.ambiguous) {
+      // 동명 법인이 실제로 있는 경우다 — 실패가 아니라 정상 동작이다
+      report('기업기본정보 (금융위)', true, `'${NAME}' 동명 법인 ${r.candidates.length}곳 — 자동 선택하지 않는다 (정상)`);
+    } else {
+      const c = r.value;
+      report('기업기본정보 (금융위)', true,
+        `${c.name} · 법인번호 ${c.corpRegNo} · 설립 ${c.establishedOn} · `
+        + `${c.market || '비상장'} · 감사의견 ${c.auditOpinion || '-'}`);
+      if (JSON.stringify(c).includes('enpRprFnm')) {
+        console.log('  ⚠ 대표자 성명이 응답 객체에 남아 있다 — 개인정보가 새어 나간다');
       }
     }
   }
