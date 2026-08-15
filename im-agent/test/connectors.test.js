@@ -154,6 +154,37 @@ test('★ 지오코딩 type 이 덮어써지지 않는다 (ROAD/PARCEL → json 
   if (saved) process.env.VWORLD_KEY = saved; else delete process.env.VWORLD_KEY;
 });
 
+// ★ 패턴만으로는 못 가린다. 길이 규칙(40자↑)은 VWorld UUID(36자)·기상청(22자)·
+//   부동산원(32자)을 놓치고, key= 규칙은 값이 URL 밖에 나타나면 못 잡는다.
+//   실제 환경변수 값을 직접 지우는 경로가 살아 있는지 고정한다 (CLAUDE.md §2).
+test('로그에서 인증키가 가려진다 — 길이·위치와 무관하게', () => {
+  const http = require('../connectors/http');
+  const saved = {};
+  // ★ 실제 키를 쓰지 않는다. **길이와 모양만** 같으면 이 테스트의 목적을 채운다.
+  //   한 번 실제 개발키를 '예시' 로 커밋했다가 public 저장소에 노출됐다 (D-12).
+  const fake = {
+    VWORLD_KEY: '00000000-1111-2222-3333-444444444444',   // 36자 UUID 모양
+    KMA_APIHUB_KEY: 'AaBbCcDdEeFfGgHhIiJjKk',             // 22자
+    REB_API_KEY: '00112233445566778899aabbccddeeff',      // 32자 hex 모양
+  };
+  Object.keys(fake).forEach((k) => { saved[k] = process.env[k]; process.env[k] = fake[k]; });
+
+  try {
+    for (const [name, v] of Object.entries(fake)) {
+      // URL 안 (key= 형태)
+      assert.ok(!http.redact(`https://x/api?key=${v}&a=1`).includes(v), `${name}: URL 안에서 새어 나간다`);
+      // URL 밖 — 응답 본문이나 예외 메시지에 값만 실려 오는 경우
+      assert.ok(!http.redact(`인증 실패: ${v} 는 등록되지 않았습니다`).includes(v),
+        `${name}: 본문에서 새어 나간다`);
+    }
+    assert.strictEqual(http.redact('오류 없음'), '오류 없음', '평범한 문자열은 건드리지 않는다');
+  } finally {
+    Object.keys(fake).forEach((k) => {
+      if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k];
+    });
+  }
+});
+
 // 등록된 서비스URL 을 가공하면 ned/* 계열이 간헐적으로 INCORRECT_KEY 를 낸다.
 // 간헐적이라 회귀해도 테스트 없이는 안 드러난다 — 그래서 여기서 고정한다.
 test('VWORLD_DOMAIN 은 등록값을 가공하지 않고 그대로 보낸다', () => {

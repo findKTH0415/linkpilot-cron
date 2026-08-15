@@ -80,11 +80,35 @@ function looksUrlEncoded(value) {
   try { return decodeURIComponent(s) !== s; } catch (_) { return false; }
 }
 
-/** 로그·에러 메시지에서 서비스키를 가린다 (시크릿 평문 노출 금지) */
-function redact(text) {
-  return String(text)
-    .replace(/(serviceKey|key|apiKey|authKey)=[^&\s]+/gi, '$1=***')
-    .replace(/[A-Za-z0-9%+/=]{40,}/g, '***');
+/** 실제 키 값이 들어 있는 환경변수. 새 Connector 를 붙이면 여기에 추가한다. */
+const SECRET_ENV = [
+  'VWORLD_KEY', 'DATA_GO_KR_KEY', 'KMA_APIHUB_KEY', 'REB_API_KEY',
+  'GEMINI_API_KEY', 'LAW_OC',
+];
+
+function escapeRe(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-module.exports = { request, buildUrl, redact, sleep, looksUrlEncoded, DEFAULT_TIMEOUT };
+/**
+ * 로그·오류 메시지에서 인증키를 가린다.
+ *
+ * ★ 패턴만으로는 부족하다. 길이 규칙(40자 이상)은 VWorld UUID(36자)·
+ *   기상청 API허브 키(22자)·부동산원 키(32자)를 놓치고, `key=` 규칙은 값이
+ *   URL 밖(응답 본문·예외 메시지)에 나타나면 못 잡는다.
+ *   그래서 **실제 환경변수 값 자체**를 마지막에 한 번 더 지운다.
+ *   CLAUDE.md §2 — 시크릿은 코드·로그·커밋에 평문으로 남지 않는다.
+ */
+function redact(text) {
+  let out = String(text)
+    .replace(/(serviceKey|key|apiKey|authKey|OC)=[^&\s]+/gi, '$1=***')
+    .replace(/[A-Za-z0-9%+/=]{40,}/g, '***');
+
+  for (const name of SECRET_ENV) {
+    const v = (process.env[name] || '').trim();
+    if (v.length >= 8) out = out.replace(new RegExp(escapeRe(v), 'g'), '***');
+  }
+  return out;
+}
+
+module.exports = { request, buildUrl, redact, sleep, looksUrlEncoded, SECRET_ENV, DEFAULT_TIMEOUT };

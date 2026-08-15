@@ -12,8 +12,13 @@
  *   ⑤ 가정치 비중  — 재무모델 입력 중 문서 미확인 비율
  *   ⑥ 자료 신선도  — 출처 일자가 1년 이상 경과
  *   ⑦ 필수 누락    — IM 필수 항목 결측
+ *   ⑧ 시행사 실체  — 사람이 적은 시행사명을 법인 등록정보와 대조 (금융위)
+ *   ⑨ 인허가 대조  — 공부상 인허가 이력과 대조 (건축법·주택법 두 트랙)
  *
- * 출력: RED / YELLOW / GREEN 플래그 + QC Score + PASS/CONDITIONAL/REJECT
+ * ⑧⑨ 는 외부 조회라 다른 검사와 달리 비동기다. **판정만 하고 값을 Dataset 에
+ * 넣지 않는다** — 조회 결과를 사실로 등록하면 출처 계보가 검증 Agent 로 뒤엉킨다.
+ *
+ * 출력: RED / YELLOW / GREEN / INFO 플래그 + QC Score + PASS/CONDITIONAL/REJECT
  */
 
 const { FIELDS, labelFor, rangeViolation, requiredFor } = require('../core/dictionary');
