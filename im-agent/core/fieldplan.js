@@ -82,8 +82,12 @@ function publicDataAvailable() {
 function plan(templateId) {
   const t = templates.getTemplate(templateId) || templates.getTemplate('generic');
   const fromRequest = agentFills('../agents/01-project');
+  // 공공데이터를 부르는 Agent 는 07 하나가 아니다 — 08 이 개별공시지가를 받아 온다.
+  // 한 Agent 만 보면 다른 Agent 가 채우는 항목을 사람에게 또 물어보게 된다
   const hasPublic = publicDataAvailable();
-  const fromPublic = hasPublic ? agentFills('../agents/07-geo') : [];
+  const fromPublic = hasPublic
+    ? [].concat(agentFills('../agents/07-geo'), agentFills('../agents/08-appraisal'))
+    : [];
 
   // 템플릿 기본값이 있는 dictionary key (map: field→key, defaults: field→value)
   const defaulted = new Set();

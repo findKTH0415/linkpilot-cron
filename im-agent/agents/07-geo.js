@@ -208,8 +208,13 @@ async function saveSatelliteImage(projectId, lat, lon, ctx) {
  * 이 Agent 가 **소재지만 있으면** 공공데이터로 채우는 key.
  * ★ 사람에게 물어보지 않아도 되는 항목이다 — 물어보면 공부(公簿)와 다른 값을
  *   손으로 적게 되고, 그 순간 독립된 두 번째 출처라는 가치가 사라진다.
+ *
+ * ★ 여기 적는 것은 **이 파일이 실제로 facts.push 하는 key 뿐이다.**
+ *   다른 Agent 가 채우는 것을 적어 두면 화면은 "07 이 채운다"고 믿고, 07 만
+ *   돌렸을 때 조용히 빈칸이 남는다. 개별공시지가는 08 Appraisal 이 채운다.
+ *   (`fieldplan.test.js` 가 FILLS 와 실제 push 를 대조한다)
  */
 const FILLS = ['geo.pnu', 'geo.lat', 'geo.lon',
-  'land.area_sqm', 'land.zoning', 'land.far_limit', 'land.bcr_limit', 'land.official_price'];
+  'land.area_sqm', 'land.zoning', 'land.far_limit', 'land.bcr_limit'];
 
 module.exports = { id: '07_geo', label: 'Geo / Satellite Agent', inputSchema, outputSchema, run, FILLS };

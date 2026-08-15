@@ -80,6 +80,48 @@ test('요청문·공공데이터 목록을 여기서 새로 적지 않는다 —
   });
 });
 
+/**
+ * ★ FILLS 는 선언일 뿐이다. 선언과 실제 코드가 갈리면 화면이 조용히 거짓말한다 —
+ *   07 Geo 의 FILLS 에 개별공시지가가 적혀 있었지만 07 은 그 값을 한 번도
+ *   push 하지 않았다 (실제로는 08 Appraisal 이 채운다). 그런 항목은 화면이
+ *   "공공데이터가 채웁니다"라고 말해 놓고 아무도 안 채운다.
+ */
+test('FILLS 에 적힌 key 를 그 Agent 가 실제로 push 한다', () => {
+  const AGENTS = ['01-project', '07-geo', '08-appraisal'];
+  AGENTS.forEach((name) => {
+    const mod = require(`../agents/${name}`);
+    const src = fs.readFileSync(path.join(__dirname, '..', 'agents', `${name}.js`), 'utf8');
+    (mod.FILLS || []).forEach((key) => {
+      // facts.push({ key: 'x' ... }) 또는 push('x', ...) 두 형태를 모두 본다
+      const written = src.includes(`key: '${key}'`) || src.includes(`push('${key}'`)
+        || src.includes(`'${key}':`);
+      assert.ok(written,
+        `${name}: FILLS 에 ${key} 가 있는데 이 파일이 그 값을 만들지 않는다 — ` +
+        '화면은 자동으로 채워진다고 믿고 안 물어본다');
+    });
+  });
+});
+
+test('공공데이터로 채워지는 항목은 그 경로를 부르는 Agent 가 전부 반영된다', () => {
+  const declared = new Set([].concat(
+    require('../agents/07-geo').FILLS || [],
+    require('../agents/08-appraisal').FILLS || [],
+  ));
+  withPublicKeys(() => {
+    const p = fieldplan.plan('generic');
+    Object.keys(p).forEach((k) => {
+      if (p[k].fill === 'public') {
+        assert.ok(declared.has(k), `${k}: 어느 Agent 도 채운다고 선언하지 않았는데 공공데이터로 잡혔다`);
+      }
+    });
+    declared.forEach((k) => {
+      if (!dict.FIELDS[k]) return;
+      assert.strictEqual(p[k].fill, 'public',
+        `${k}: Agent 가 채운다고 선언했는데 계획이 모른다 — fieldplan 이 그 Agent 를 안 읽는다`);
+    });
+  });
+});
+
 test('계산 항목(DERIVED)은 사전에 있는 입력 항목이고, 근거가 되는 key 도 사전에 있다', () => {
   Object.keys(fieldplan.DERIVED).forEach((k) => {
     assert.ok(dict.FIELDS[k], `${k}: 사전에 없다`);

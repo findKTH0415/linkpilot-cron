@@ -260,7 +260,18 @@ async function run(input, ctx) {
   return { methods, concluded, facts, flags, comparables, disclaimer: DISCLAIMER, quota: cache.stats(), confidence };
 }
 
+/**
+ * 이 Agent 가 공공데이터로 채우는 입력 항목.
+ *
+ * 개별공시지가는 07 Geo 가 아니라 **여기서** 받아 온다 (`nsdi.landPrice`).
+ * 평가 3방식 중 공시지가 기준을 세우려고 어차피 부르므로, 같은 값을 07 에서
+ * 한 번 더 부르면 일 10,000건 한도만 축낸다 (CLAUDE.md §4).
+ *
+ * `appraisal.*` 는 계산 결과라 여기 넣지 않는다 — 입력 대상이 아니다.
+ */
+const FILLS = ['land.official_price'];
+
 module.exports = {
   id: '08_appraisal', label: 'Appraisal Agent (감정평가)',
-  inputSchema, outputSchema, run, median, toEok, DISCLAIMER,
+  inputSchema, outputSchema, run, median, toEok, DISCLAIMER, FILLS,
 };
