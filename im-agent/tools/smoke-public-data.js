@@ -31,6 +31,7 @@ const vworld = require('../connectors/vworld');
 const nsdi = require('../connectors/nsdi');
 const molit = require('../connectors/molit');
 const ecos = require('../connectors/ecos');
+const dart = require('../connectors/dart');
 const { looksUrlEncoded } = require('../connectors/http');
 const pnuUtil = require('../connectors/pnu');
 const geometry = require('../geo/geometry');
@@ -140,6 +141,7 @@ async function main() {
   console.log(`VWORLD_DOMAIN  : ${vworld.domain() || '미설정 ⚠ 서버 호출은 등록 도메인을 명시해야 허용된다'}`);
   console.log(`DATA_GO_KR_KEY : ${molit.isAvailable() ? dk.message : '미설정 — 실거래가/건축물대장 건너뜀'}`);
   console.log(`ECOS_API_KEY   : ${ecos.isAvailable() ? '설정됨' : '미설정 — 시장금리 건너뜀 (금리가 가정치로 남는다)'}`);
+  console.log(`DART_API_KEY   : ${dart.isAvailable() ? '설정됨' : '미설정 — 시행사 대조 건너뜀'}`);
 
   // ── 0-2. 시장금리 (주소와 무관 — 먼저 확인한다) ──────────
   if (ecos.isAvailable()) {
@@ -151,6 +153,26 @@ async function main() {
     } else {
       report('한국은행 ECOS 시장금리', false, mr.error);
       console.log('  → 통계표코드(817Y002)·항목코드가 바뀌었을 수 있다. 응답 필드명 DATA_VALUE·TIME 확인');
+    }
+  }
+
+  // ── 0-3. 시행사 대조 (주소와 무관) ───────────────────────
+  //   ★ 값을 채우는 것이 아니라 **대조**다. 못 찾는 것이 정상인 경우가 많다
+  if (dart.isAvailable()) {
+    const name = argOf('--sponsor') || '삼성물산';
+    const f = await dart.findCompany(name);
+    if (f.ok) {
+      const c = await dart.company(f.value.corpCode);
+      report(`DART 시행사 대조 (${name})`, true,
+        `${f.value.corpName} · 법인코드 ${f.value.corpCode}`
+        + (c.ok ? ` · ${c.value.corpClass || ''} · 설립 ${c.value.establishedAt || '-'}` : ''),
+        ['corp_name', 'jurir_no', 'adres', 'est_dt'], c.ok ? c.raw : null);
+    } else if (f.notFound) {
+      report(`DART 시행사 대조 (${name})`, true, '공시대상회사가 아니다 — 법인이 없다는 뜻이 아니다');
+    } else if (f.ambiguous) {
+      report(`DART 시행사 대조 (${name})`, true, `동명 법인 ${f.candidates.length}건 — 고르지 않는다`);
+    } else {
+      report(`DART 시행사 대조 (${name})`, false, f.error);
     }
   }
 

@@ -19,6 +19,7 @@
 
 const llm = require('../core/llm');
 const ecos = require('../connectors/ecos');
+const dart = require('../connectors/dart');
 const { round } = require('../core/numeric');
 
 const inputSchema = {
@@ -39,6 +40,7 @@ const outputSchema = {
     sections: { type: 'array' },
     sources: { type: 'array' },
     facts: { type: 'array' },
+    sponsor: { type: 'object', nullable: true },
     confidence: { type: 'number', minimum: 0, maximum: 1 },
     offline: { type: 'boolean' },
   },
@@ -78,7 +80,8 @@ async function run(input, ctx) {
     ctx.warn('LLM 오프라인 — 시장조사 생략. IM의 시장분석 절은 자리표시자로 출력된다');
     return {
       sections: TOPICS.map(t => ({ id: t.id, label: t.label, text: '(시장조사 미실행 — LLM 오프라인)', sources: [], certainty: 'low', verified: false })),
-      sources: [], facts: await marketFacts(ctx), confidence: 0, offline: true,
+      sources: [], facts: await marketFacts(ctx), sponsor: await sponsorCheck(ctx),
+      confidence: 0, offline: true,
     };
   }
 
@@ -123,8 +126,54 @@ ${TOPICS.map(t => `- ${t.id}: ${t.label}`).join('\n')}
 
   const sources = [...new Set(sections.flatMap(s => s.sources))];
   return {
-    sections, sources, facts: await marketFacts(ctx),
+    sections, sources, facts: await marketFacts(ctx), sponsor: await sponsorCheck(ctx),
     confidence: round(confidence, 3), offline: false,
+  };
+}
+
+/**
+ * 시행사가 실재하는 법인인지 DART 로 대조한다. 〈C-01〉
+ *
+ * ★ 값을 **채우지 않는다.** 시행사 이름은 요청문·자료에서 오고, 여기서는 그 이름을
+ *   확인만 한다. 채우면 화면이 시행사를 안 물어보게 되고, 그러면 대조할 원본이
+ *   사라진다.
+ *
+ * ★ 못 찾는 것이 정상인 경우가 많다 — DART 는 공시대상회사만 수록하므로 SPC 는
+ *   원래 없다. 그걸 경고로 띄우면 매 딜마다 뜨는 경고가 되어 아무도 안 읽는다.
+ *   경고는 **동명 법인이 여러 건일 때만** 낸다 (사람이 골라야 하는 순간이다).
+ */
+async function sponsorCheck(ctx) {
+  const ds = ctx && ctx.dataset;
+  const fact = ds && ds.get && ds.get('project.sponsor');
+  const name = fact ? String(fact.value || '').trim() : '';
+  if (!name) return null;
+
+  if (!dart.isAvailable()) {
+    return { name, status: 'unchecked', note: 'DART_API_KEY 미설정 — 시행사 실재 확인 생략' };
+  }
+
+  const r = await dart.findCompany(name);
+  if (r.ambiguous) {
+    if (ctx.warn) ctx.warn(`'${name}' 과 같은 이름의 공시대상 법인이 ${r.candidates.length}건 — 어느 법인인지 확인이 필요하다`);
+    return { name, status: 'ambiguous', candidates: r.candidates.map(c => ({ corpCode: c.corpCode, corpName: c.corpName, stockCode: c.stockCode })) };
+  }
+  if (r.notFound) {
+    // 정상적인 경우가 많다. 경고하지 않고 사실만 남긴다
+    return { name, status: 'not_in_dart', note: 'DART 공시대상회사가 아니다 — SPC·비상장 시행사는 원래 조회되지 않는다' };
+  }
+  if (!r.ok) {
+    if (ctx.warn) ctx.warn(`시행사 조회 실패: ${r.error}`);
+    return { name, status: 'error', note: r.error };
+  }
+
+  const detail = await dart.company(r.value.corpCode);
+  return {
+    name, status: 'found',
+    corpCode: r.value.corpCode,
+    corpName: r.value.corpName,
+    stockCode: r.value.stockCode,
+    profile: detail.ok ? detail.value : null,
+    note: detail.ok ? null : detail.error,
   };
 }
 
@@ -159,4 +208,4 @@ async function marketFacts(ctx) {
 /** 이 Agent 가 공공데이터로 채우는 항목 (ECOS 키가 있을 때만) */
 const FILLS = ['debt.benchmark_rate'];
 
-module.exports = { id: '03_research', label: 'Market Research Agent', inputSchema, outputSchema, run, TOPICS, FILLS, marketFacts };
+module.exports = { id: '03_research', label: 'Market Research Agent', inputSchema, outputSchema, run, TOPICS, FILLS, marketFacts, sponsorCheck };

@@ -22,9 +22,11 @@ function isFatalStatus(status) {
 }
 
 /**
- * @returns {Promise<{ok:boolean, status?:number, body?:string, error?:string, attempts:number}>}
+ * @param {object} [opts]
+ * @param {boolean} [opts.binary] 본문을 Buffer 로 받는다 (ZIP 등 — 텍스트로 읽으면 깨진다)
+ * @returns {Promise<{ok:boolean, status?:number, body?:string|Buffer, error?:string, attempts:number}>}
  */
-async function request(url, { timeoutMs = DEFAULT_TIMEOUT, headers = {}, method = 'GET' } = {}) {
+async function request(url, { timeoutMs = DEFAULT_TIMEOUT, headers = {}, method = 'GET', binary = false } = {}) {
   let lastError = null;
 
   for (let attempt = 0; attempt <= RETRY_DELAYS.length; attempt++) {
@@ -34,7 +36,7 @@ async function request(url, { timeoutMs = DEFAULT_TIMEOUT, headers = {}, method 
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const r = await fetch(url, { method, headers, signal: controller.signal });
-      const body = await r.text();
+      const body = binary ? Buffer.from(await r.arrayBuffer()) : await r.text();
 
       if (r.ok) return { ok: true, status: r.status, body, attempts: attempt + 1 };
 

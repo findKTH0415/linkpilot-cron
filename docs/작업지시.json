@@ -265,11 +265,12 @@
     {
       "id": "C-01",
       "title": "DART 전자공시 Connector — 시행사 실재 확인",
-      "detail": "직접 입력 8칸 중 시행사(project.sponsor)를 채운다. opendart.fss.or.kr 무료 키. 법인명으로 고유번호를 찾아 법인 실재·최근 재무제표를 붙인다. 값의 성격은 D-23 을 따른다 — 신용 판단이 아니라 '이 법인이 실재하고 이런 규모다' 까지",
-      "status": "todo",
+      "detail": "connectors/dart.js. 법인코드 ZIP 을 의존성 없이 풀어 이름으로 찾고, 기업개황으로 대조한다. ★ 당초 '직접 입력 8칸을 하나 줄인다'고 했으나 틀렸다 — DART 는 공시대상회사만 수록해 시행사 SPC 는 원래 없다. 그래서 project.sponsor 를 채우지 않고 대조만 한다. 못 찾음은 '법인 없음'이 아니고, 동명 법인이 여럿이면 고르지 않는다. 대표자 성명은 가져오지 않는다(개인 성명)",
+      "status": "done",
       "priority": "normal",
       "assignee": "개발",
       "project": "보고서 생성",
+      "doneAt": "2026-08-15",
       "refs": [
         "D-15",
         "D-23"

@@ -21,9 +21,9 @@ function decodeEntities(s) {
  * ★ 태그명에 한글이 온다. 국토교통부 실거래가 API는 <거래금액>, <거래면적> 처럼
  *   한글 태그를 쓰므로 태그명 패턴을 ASCII로 제한하면 아무것도 파싱되지 않는다.
  */
-function parseItems(xml) {
+function parseItems(xml, tag = 'item') {
   const items = [];
-  for (const block of String(xml).matchAll(/<item>([\s\S]*?)<\/item>/g)) {
+  for (const block of String(xml).matchAll(new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`, 'g'))) {
     const obj = {};
     for (const f of block[1].matchAll(/<([^\s/>?!<]+)>([\s\S]*?)<\/\1>/g)) {
       const key = f[1].includes(':') ? f[1].split(':').pop() : f[1];
