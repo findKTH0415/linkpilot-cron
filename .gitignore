@@ -9,6 +9,10 @@ im-projects/
 # 미리보기는 im-projects 스냅샷에서 생성한다 (npm run im:preview)
 im-agent/ui/vanilla/preview.html
 
+# 화면 4개를 묶은 미리보기 — 소스에서 언제든 다시 만든다 (npm run im:screens).
+# 커밋하면 소스와 갈리고, 갈린 것을 아무도 눈치채지 못한다
+im-agent/ui/platform/preview.html
+
 # 브라우저 검증 시 생기는 DOM 덤프
 v-*.html
 
