@@ -213,3 +213,60 @@ test('키가 없으면 Connector 는 unavailable 로 응답한다 (죽지 않는
 });
 
 test.after(() => fs.rmSync(ROOT, { recursive: true, force: true }));
+
+/* ───────────── Encoding / Decoding 인증키 ───────────── */
+
+/**
+ * ★ data.go.kr 은 인증키를 Encoding / Decoding 두 벌로 준다.
+ *   화면 위쪽이 Encoding 이라 그냥 복사하면 그쪽을 집는다. 그런데 buildUrl 이
+ *   파라미터를 한 번 더 인코딩하므로 %2F → %252F 가 되어 **인증만 실패한다.**
+ *
+ *   실패 모습이 "키가 틀렸다"와 똑같아서, 재발급받고 다시 넣어도 같은 증상이 난다.
+ *   원인에 도달하기까지 몇 시간이 걸리는 종류의 실수다 — 부르기 전에 잡는다.
+ */
+test('Encoding 인증키를 넣으면 호출하기 전에 막는다', () => {
+  const http = require('../connectors/http');
+  const molit = require('../connectors/molit');
+  const before = process.env.DATA_GO_KR_KEY;
+  try {
+    // data.go.kr Encoding 키의 특징: %2F(/) · %3D(=) 가 들어 있다
+    process.env.DATA_GO_KR_KEY = 'abcDEF123%2Fxyz%3D%3D';
+    assert.strictEqual(http.looksUrlEncoded(process.env.DATA_GO_KR_KEY), true);
+    const bad = molit.keyFormatError();
+    assert.ok(bad, 'Encoding 키인데 통과시켰다');
+    assert.match(bad.error, /Decoding/, '어느 쪽을 써야 하는지 알려 줘야 한다');
+    assert.strictEqual(bad.unavailable, true, '데이터를 지어내지 않고 비운다');
+
+    // 같은 키의 Decoding 형태는 통과해야 한다
+    process.env.DATA_GO_KR_KEY = 'abcDEF123/xyz==';
+    assert.strictEqual(molit.keyFormatError(), null);
+  } finally {
+    if (before === undefined) delete process.env.DATA_GO_KR_KEY;
+    else process.env.DATA_GO_KR_KEY = before;
+  }
+});
+
+test('% 가 우연히 들어간 값은 Encoding 키로 오해하지 않는다', () => {
+  const { looksUrlEncoded } = require('../connectors/http');
+  assert.strictEqual(looksUrlEncoded('abc/def=='), false);
+  assert.strictEqual(looksUrlEncoded('100%'), false, '되돌려도 안 바뀌면 인코딩이 아니다');
+  assert.strictEqual(looksUrlEncoded(''), false);
+  assert.strictEqual(looksUrlEncoded(undefined), false);
+});
+
+test('★ 진단 도구도 같은 규칙으로 막는다 — 두 곳이 갈리면 안 된다', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const src = fs.readFileSync(
+    path.join(__dirname, '..', 'tools', 'smoke-public-data.js'), 'utf8');
+  assert.match(src, /looksUrlEncoded/,
+    '진단 도구가 자기만의 판정을 쓰면 커넥터와 갈린다');
+});
+
+test('키는 로그·에러에 남지 않는다', () => {
+  const { redact } = require('../connectors/http');
+  // ★ 실제 키의 일부라도 쓰지 않는다. 테스트 픽스처도 저장소에 남는다 (CLAUDE.md §2)
+  const fake = 'A'.repeat(30) + 'bcd0123456789xyz' + 'Q'.repeat(10);
+  assert.ok(!redact(`serviceKey=${fake}&x=1`).includes(fake));
+  assert.ok(!redact(`요청 실패: ${fake}`).includes(fake), '본문에 섞여 있어도 가린다');
+});

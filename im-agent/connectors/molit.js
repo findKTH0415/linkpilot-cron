@@ -12,7 +12,7 @@
  * 인증키: DATA_GO_KR_KEY (GitHub Secrets) — 디코딩된 일반 인증키를 넣는다.
  */
 
-const { request, buildUrl, redact } = require('./http');
+const { request, buildUrl, redact, looksUrlEncoded } = require('./http');
 const cache = require('./cache');
 const { normalize, num } = require('./xml');
 
@@ -32,6 +32,25 @@ function apiKey() {
 
 function isAvailable() {
   return Boolean(apiKey());
+}
+
+/**
+ * ★ Encoding 키를 넣었으면 **부르기 전에** 막는다.
+ *   data.go.kr 은 인증키를 Encoding / Decoding 두 벌로 주고, 화면 위쪽의
+ *   Encoding 을 그냥 복사하기 쉽다. buildUrl 이 한 번 더 인코딩하므로
+ *   `%2F` → `%252F` 가 되어 **인증만 실패한다.**
+ *
+ *   그대로 두면 실패 모습이 "키가 틀렸다"와 구분되지 않아, 키를 재발급받고
+ *   다시 넣어도 같은 증상이 난다. 조용히 실패하지 않는다 (CLAUDE.md §2).
+ */
+function keyFormatError() {
+  if (!looksUrlEncoded(apiKey())) return null;
+  return {
+    ok: false, unavailable: true,
+    error: 'DATA_GO_KR_KEY 가 Encoding 인증키다 — data.go.kr 마이페이지에서 '
+      + '**Decoding(일반) 인증키**를 복사해 넣어야 한다. '
+      + 'Encoding 키는 호출 시 한 번 더 인코딩되어 인증에 실패한다',
+  };
 }
 
 function unavailable(what) {
@@ -58,6 +77,7 @@ async function call(path, params, namespace, cacheParams) {
  */
 async function trades(sigunguCd, months, type = 'land') {
   if (!isAvailable()) return unavailable('실거래가');
+  const bad = keyFormatError(); if (bad) return bad;
   const endpoint = TRADE_ENDPOINTS[type];
   if (!endpoint) return { ok: false, error: `알 수 없는 거래유형: ${type}` };
   if (!sigunguCd) return { ok: false, error: '시군구코드 없음' };
@@ -118,6 +138,7 @@ function toTrade(item, ym, type) {
 /** 건축물대장 표제부 */
 async function buildingRegister({ sigunguCd, bjdongCd, bun, ji }) {
   if (!isAvailable()) return unavailable('건축물대장');
+  const bad = keyFormatError(); if (bad) return bad;
   if (!sigunguCd || !bjdongCd) return { ok: false, error: '법정동코드 없음' };
 
   const r = await call('BldRgstService_v2/getBrTitleInfo', {
@@ -148,4 +169,4 @@ async function buildingRegister({ sigunguCd, bjdongCd, bun, ji }) {
   };
 }
 
-module.exports = { trades, buildingRegister, isAvailable, TRADE_ENDPOINTS, toTrade, PROVIDER };
+module.exports = { trades, buildingRegister, isAvailable, keyFormatError, TRADE_ENDPOINTS, toTrade, PROVIDER };

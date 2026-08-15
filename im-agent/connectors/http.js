@@ -62,6 +62,24 @@ function buildUrl(base, params = {}) {
   return url.toString();
 }
 
+/**
+ * URL 인코딩된 문자열인가 — data.go.kr 의 **Encoding 인증키**를 잡아내려고 있다.
+ *
+ * data.go.kr 은 인증키를 Encoding / Decoding 두 벌로 준다. 화면 위쪽에 있는 것이
+ * Encoding 이라 그냥 복사하면 그쪽을 집는다. 그런데 `buildUrl` 은 파라미터를 한 번
+ * 더 인코딩하므로 `%2F` 가 `%252F` 가 되고 **인증만 실패한다.**
+ *
+ * 이게 나쁜 이유는 실패 모습이 "키가 틀렸다"와 똑같다는 것이다. 키를 재발급받고
+ * 다시 넣어도 같은 증상이 나서, 원인에 도달하기까지 몇 시간이 걸린다.
+ * 그래서 호출하기 전에 잡아 이름을 붙여 준다.
+ */
+function looksUrlEncoded(value) {
+  const s = String(value || '');
+  if (!/%[0-9A-Fa-f]{2}/.test(s)) return false;
+  // 되돌려서 달라지면 인코딩된 것이다 (원문에 % 가 우연히 들어간 경우와 구분)
+  try { return decodeURIComponent(s) !== s; } catch (_) { return false; }
+}
+
 /** 로그·에러 메시지에서 서비스키를 가린다 (시크릿 평문 노출 금지) */
 function redact(text) {
   return String(text)
@@ -69,4 +87,4 @@ function redact(text) {
     .replace(/[A-Za-z0-9%+/=]{40,}/g, '***');
 }
 
-module.exports = { request, buildUrl, redact, sleep, DEFAULT_TIMEOUT };
+module.exports = { request, buildUrl, redact, sleep, looksUrlEncoded, DEFAULT_TIMEOUT };

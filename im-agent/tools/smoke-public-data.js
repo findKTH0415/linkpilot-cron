@@ -25,6 +25,7 @@ process.env.IM_AGENT_CACHE = process.env.IM_AGENT_CACHE
 const vworld = require('../connectors/vworld');
 const nsdi = require('../connectors/nsdi');
 const molit = require('../connectors/molit');
+const { looksUrlEncoded } = require('../connectors/http');
 const pnuUtil = require('../connectors/pnu');
 const geometry = require('../geo/geometry');
 
@@ -52,6 +53,14 @@ function checkKeyFormat(name, raw, expect) {
     value = value.slice(1, -1);
   }
   if (/\s/.test(value)) problems.push('공백이 포함되어 있다');
+
+  // ★ data.go.kr 의 Encoding 인증키 — 가장 흔하고 가장 안 보이는 실수다.
+  //   화면 위쪽에 있는 것이 Encoding 이라 그냥 복사하면 그쪽을 집는다.
+  //   호출 시 한 번 더 인코딩되어 인증만 실패하고, 증상은 "키가 틀렸다"와 같다.
+  if (looksUrlEncoded(value)) {
+    problems.push('URL 인코딩된 값이다 — data.go.kr 의 **Encoding 인증키**를 복사한 것이다. '
+      + '마이페이지에서 바로 아래의 Decoding(일반) 인증키를 써야 한다');
+  }
 
   if (expect === 'uuid' && !/^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$/.test(value)) {
     problems.push(`VWorld 키는 UUID 형식이어야 한다 (현재 ${value.length}자)`);
@@ -103,7 +112,9 @@ async function main() {
     if (dk.fatal) console.log(`  DATA_GO_KR_KEY : ${dk.message}`);
     console.log('\n  올바른 예 (꺾쇠·따옴표 없이 값만):');
     console.log("    export VWORLD_KEY=A9C7F809-AC7C-38B2-90AF-880C060BC17A");
-    console.log("    export VWORLD_DOMAIN=nas.example.com\n");
+    console.log("    export VWORLD_DOMAIN=nas.example.com");
+    console.log('\n  DATA_GO_KR_KEY 는 data.go.kr 마이페이지 › 인증키의 **Decoding(일반)** 쪽이다.');
+    console.log('  Encoding 쪽은 %2F·%3D 처럼 %XX 가 들어 있어 인증에 실패한다.\n');
     process.exit(1);
   }
 
