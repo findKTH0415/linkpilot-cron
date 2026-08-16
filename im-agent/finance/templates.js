@@ -112,6 +112,48 @@ const TEMPLATES = {
     ],
   },
 
+  /**
+   * 제조 — 생산시설. **부동산과 성격이 다르다.**
+   *
+   * 부동산은 임대료를 받고 Cap Rate 로 판다. 제조는 물건을 팔고, 나가는 돈의
+   * 대부분이 원재료비다. 그래서 운영비율·감가상각 내용연수·운영기간이 전부
+   * 다르다 — 「일반 프로젝트」로 두면 그 차이가 통째로 사라진다.
+   *
+   * ⚠️ **아래 기본값은 추측이다** (등록부 D-40). 업종마다 크게 갈리고
+   *    (조립 vs 장치산업), 사용자 확인을 받지 못했다. 사업계획서 값이 들어오면
+   *    그쪽이 이긴다 — 기본값은 값이 아예 없을 때의 출발점일 뿐이다.
+   */
+  manufacturing: {
+    id: 'manufacturing',
+    label: '제조 (생산시설)',
+    keywords: ['제조', '생산공장', '플랜트', 'manufacturing'],
+    map: COMMON_MAP,
+    defaults: {
+      // 〈추측〉 장치 반입·시운전이 있어 부동산보다 길다
+      constructionYears: 2,
+      // 〈추측〉 설비 내용연수에 맞춰 부동산보다 길게 본다
+      opsYears: 15, exitYear: 10,
+      revenueEscalation: 2,
+      // 〈추측〉 **원재료비가 여기 들어간다** — 부동산(25%)과 가장 크게 갈리는 값이다
+      opexRatio: 75,
+      opexEscalation: 2, rampYears: 2,
+      taxRate: 22,
+      // 〈추측〉 건물 40년이 아니라 **기계장치 기준**이다
+      depreciationYears: 12,
+      ltc: 60, debtRate: 6.0, tenorYears: 10, graceYears: 2, feePct: 1.0,
+      // 〈추측〉 제조는 Cap Rate 로 팔지 않는다(EBITDA 배수). 이 값은 자리를
+      //   비워 둘 수 없어 넣은 것이고, **그대로 쓰면 안 된다**
+      exitCapRate: 10.0,
+      sellingCostPct: 1.5, discountRate: 9, contingencyPct: 7,
+    },
+    keyMetrics: ['capacity.production', 'capacity.power_mw'],
+    sensitivity: [
+      { key: 'annualRevenue', label: '매출 변동(%)', values: [-20, -15, -10, -5, 0, 5] },
+      // 원재료비가 운영비의 대부분이라 여기가 가장 민감하다
+      { key: 'opexRatio', label: '운영비율(pp)', values: [-10, -5, 0, 5, 10, 15] },
+    ],
+  },
+
   generic: {
     id: 'generic',
     label: '일반 프로젝트',
@@ -146,6 +188,8 @@ const SCALE_BANDS = {
   datacenter:  { key: 'capacity.it_load_mw', label: 'IT Load', unit: 'MW', min: 5, max: 100 },
   solar:       { key: 'capacity.dc_kw', label: '설비용량', unit: 'kW', min: 1000, max: 20000 },
   realestate:  { key: 'investment.total', label: '총사업비', unit: '억원', min: 300, max: 10000 },
+  // 〈추측 D-40〉 구간을 모르면 서술문이 어느 규모 기준인지 밝힐 수 없다
+  manufacturing: { key: 'investment.total', label: '총사업비', unit: '억원', min: 100, max: 20000 },
   generic:     null,
 };
 

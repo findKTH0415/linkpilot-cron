@@ -259,3 +259,96 @@ test('★ 화면이 자산군 목록을 베껴 쓰지 않는다', () => {
   });
   assert.match(html, /det\.assetClasses/, '서버가 준 정의를 써야 한다');
 });
+
+/* ───────────── 앱의 두 축 (산업 × 섹터) ───────────── */
+
+/**
+ * ★ **앱에는 이미 두 축이 있다** — 산업 16종 × 섹터 11종. 자산군을 세 번째
+ *   목록으로 두면 앱이 보낸 값을 엔진이 못 알아듣고, 전용 필수가 통째로 빠진 채
+ *   「다 채웠다」가 된다.
+ */
+test('★ 자산군마다 앱의 산업·섹터 대응이 있다', () => {
+  A.CLASSES.forEach((c) => {
+    assert.ok(c.app, `${c.label}: app 대응이 없다`);
+    assert.ok(c.app.industry, `${c.label}: 산업이 없다`);
+    // 섹터는 없을 수 있다 (제조·인프라는 앱 섹터 목록에 없다) — 대신 사유를 적는다
+    if (!c.app.sector) {
+      assert.ok(c.app.note, `${c.label}: 섹터가 없는데 이유가 없다`);
+    }
+  });
+});
+
+test('★ 앱이 보낸 산업·섹터로 자산군을 찾는다', () => {
+  assert.strictEqual(A.fromApp('관광·레저', '호텔').id, 'hotel');
+  assert.strictEqual(A.fromApp('데이터센터·ICT', '데이터센터').id, 'datacenter');
+  assert.strictEqual(A.fromApp('부동산·도시개발', '물류센터').id, 'logistics');
+  assert.strictEqual(A.fromApp('제조', null).id, 'manufacturing', '섹터가 없어도 산업으로 잡힌다');
+});
+
+/**
+ * ★ 한 조합에 자산군이 여럿 걸리면 **고르지 않는다.** 공장과 산업단지는 같은
+ *   섹터(산업단지)인데 받아야 할 값이 다르다 — 아무거나 고르면 엉뚱한 값을
+ *   필수라고 말한다 (CLAUDE.md §4.9).
+ */
+test('★ 조합이 여럿에 걸리면 후보만 준다', () => {
+  const a = A.fromApp('부동산·도시개발', '산업단지');
+  assert.strictEqual(a.id, null);
+  assert.deepStrictEqual(a.candidates.slice().sort(), ['factory', 'industrial_park']);
+  assert.ok(a.reason);
+
+  const b = A.fromApp('부동산·도시개발', '주거');
+  assert.strictEqual(b.id, null);
+  assert.deepStrictEqual(b.candidates.slice().sort(), ['apartment', 'officetel']);
+});
+
+/** ★ 모르는 조합을 아무 자산군으로 흘려보내지 않는다 */
+test('★ 맞는 자산군이 없으면 null 이고 사유를 준다', () => {
+  const r = A.fromApp('금융', '주거');
+  assert.strictEqual(r.id, null);
+  assert.deepStrictEqual(r.candidates, []);
+  assert.match(r.reason, /D-41/, '어디서 결정하는지 알려 줘야 한다');
+
+  assert.strictEqual(A.fromApp('', '').id, null);
+  assert.strictEqual(A.fromApp(null, null).id, null);
+});
+
+/**
+ * ★ 제조를 「일반 프로젝트」로 두면 부동산과의 차이가 통째로 사라진다.
+ *   부동산은 임대료를 받고 Cap Rate 로 팔지만, 제조는 물건을 팔고 나가는 돈의
+ *   대부분이 원재료비다 (2026-08-16 사용자 지적).
+ */
+test('★ 제조는 일반 프로젝트가 아니다', () => {
+  assert.strictEqual(A.templateOf('manufacturing'), 'manufacturing');
+  assert.notStrictEqual(A.templateOf('manufacturing'), 'generic');
+
+  const m = tpl.TEMPLATES.manufacturing;
+  const g = tpl.TEMPLATES.generic;
+  const re = tpl.TEMPLATES.realestate;
+  assert.ok(m, '제조 템플릿이 없다');
+
+  // 원재료비가 들어가는 자리 — 부동산과 가장 크게 갈린다
+  assert.ok(m.defaults.opexRatio > re.defaults.opexRatio * 2,
+    `운영비율 ${m.defaults.opexRatio}% — 원재료비가 안 들어가 있다`);
+  // 건물이 아니라 기계장치 기준
+  assert.ok(m.defaults.depreciationYears < g.defaults.depreciationYears,
+    '감가상각 내용연수가 건물 기준이다 — 제조는 기계장치가 중심이다');
+  assert.ok(m.defaults.opsYears > re.defaults.opsYears, '설비 내용연수만큼 길게 본다');
+});
+
+/** ★ 공장은 부동산이 맞다 (2026-08-16 사용자 확인) */
+test('★ 공장은 부동산 템플릿을 쓴다', () => {
+  assert.strictEqual(A.templateOf('factory'), 'realestate');
+});
+
+/**
+ * ★ 추측한 기본값을 **추측이라고 코드에 남긴다** (CLAUDE.md §9).
+ *   안 남기면 반년 뒤 이 숫자가 근거 있는 값으로 읽힌다.
+ */
+test('★ 제조 기본값이 추측임을 코드에 남겼다', () => {
+  const src = fs.readFileSync(path.join(AGENT, 'finance', 'templates.js'), 'utf8');
+  const at = src.indexOf('manufacturing: {');
+  const block = src.slice(src.lastIndexOf('/**', at), src.indexOf('generic: {', at));
+  assert.match(block, /추측이다/, '추측 표시가 없다');
+  assert.match(block, /D-40/, '등록부 번호가 없으면 어디서 확정하는지 모른다');
+  assert.match(block, /그대로 쓰면 안 된다/, 'Cap Rate 가 제조에 안 맞는다는 것을 적어야 한다');
+});

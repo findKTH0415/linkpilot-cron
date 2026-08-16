@@ -18,6 +18,13 @@
  *   전혀 다르다. 하나로 합치면 둘 중 하나가 반드시 틀린다. 그래서 각 자산군이
  *   `template` 으로 재무 템플릿을 가리키기만 한다.
  *
+ * ★ **앱에는 이미 두 축이 있다** — 산업(16종) × 섹터(11종). 자산군은 세 번째
+ *   목록이 아니라 **그 둘의 조합에 붙는 이름**이다. 그래서 각 자산군에 `app`
+ *   (industry·sector)을 달아 두었다. 앱이 보내는 값으로 자산군을 찾을 수 있어야
+ *   한다 — 못 찾으면 전용 필수가 통째로 빠진 채 「다 채웠다」가 된다.
+ *   ⚠️ 앱 목록 전체를 못 봤다(화면이 잘려 있었다). 모르는 조합은 `null` 이고
+ *      **짐작해서 채우지 않았다** (등록부 D-41).
+ *
  * ★ `requires` 의 키는 **사전에 실제로 있는 것만** 쓴다. 없는 키를 적으면
  *   화면에 입력란이 안 생기는데 필수로는 세어져, 진행률이 영원히 100%가
  *   되지 않는다 (`assetclass.test.js` 가 잡는다).
@@ -40,8 +47,9 @@
    */
   var CLASSES = [
     {
-      id: 'manufacturing', label: '제조', en: 'Manufacturing', template: 'generic',
+      id: 'manufacturing', label: '제조', en: 'Manufacturing', template: 'manufacturing',
       keywords: ['제조', '생산공장', 'manufacturing', '플랜트'],
+      app: { industry: '제조', sector: null, note: '앱 섹터에 제조가 없다 — 산업으로만 잡힌다' },
       requires: [
         { key: 'capacity.production', why: '생산능력이 매출의 분모다. 모르면 연매출을 무엇으로 나눠 검증할지 알 수 없다' },
         { key: 'capacity.power_mw', why: '수전용량이 모자라면 증설이 물리적으로 막힌다 — 증설 전제 매출이 허공에 뜬다' },
@@ -51,6 +59,7 @@
     {
       id: 'infrastructure', label: '인프라스트럭처', en: 'Infrastructure', template: 'generic',
       keywords: ['인프라', 'infrastructure', '민자', 'BTO', 'BTL', '실시협약'],
+      app: { industry: '공공인프라', sector: null, note: '앱 섹터에 인프라가 없다' },
       requires: [
         { key: 'schedule.concession_years', why: '운영권 기간이 현금흐름의 끝이다. 없으면 Exit 시점이 근거 없이 정해진다' },
         { key: 'schedule.ops_years', why: '운영권 기간과 어긋나면 협약보다 오래 버는 모델이 된다' },
@@ -60,6 +69,7 @@
     {
       id: 'logistics', label: '물류창고', en: 'Logistics Warehouse', template: 'realestate',
       keywords: ['물류', '물류창고', '물류센터', 'warehouse', 'logistics', '풀필먼트'],
+      app: { industry: '부동산·도시개발', sector: '물류센터' },
       requires: [
         { key: 'capacity.leasable_sqm', why: '임대면적이 매출의 분모다. 연면적으로 대신 계산하면 매출이 부풀려진다' },
         { key: 'building.clear_height_m', why: '층고가 랙 단수를 정하고, 랙 단수가 임대료 수준을 정한다' },
@@ -70,6 +80,7 @@
     {
       id: 'hotel', label: '호텔', en: 'Hotel', template: 'realestate',
       keywords: ['호텔', 'hotel', '숙박', '레지던스'],
+      app: { industry: '관광·레저', sector: '호텔' },
       requires: [
         { key: 'capacity.rooms', why: '객실 수 × ADR × 점유율 이 객실매출이다 — 객실 수가 그 첫 항이다' },
         { key: 'revenue.adr', why: 'ADR 이 없으면 객실 수만으로는 매출이 안 나온다. 등급·입지에 따라 배가 갈린다' },
@@ -79,6 +90,7 @@
     {
       id: 'datacenter', label: '데이터센터', en: 'Data Center', template: 'datacenter',
       keywords: ['데이터센터', 'data center', 'datacenter', 'IDC', '전산센터'],
+      app: { industry: '데이터센터·ICT', sector: '데이터센터' },
       requires: [
         { key: 'capacity.it_load_mw', why: 'IT Load 가 임대 단위다 — 데이터센터는 면적이 아니라 kW 로 판다' },
         { key: 'capacity.power_mw', why: '수전용량이 IT Load 의 상한이다. 둘이 안 맞으면 팔 수 없는 용량을 판 것이 된다' },
@@ -88,6 +100,7 @@
     {
       id: 'officetel', label: '오피스텔', en: 'Officetel', template: 'realestate',
       keywords: ['오피스텔', 'officetel'],
+      app: { industry: '부동산·도시개발', sector: '주거', note: '오피스텔이 앱 섹터에 따로 없다 — 주거로 잡았다. 확인 필요' },
       requires: [
         { key: 'capacity.units', why: '분양·임대 단위가 호실이다. 면적만으로는 분양 수입을 못 만든다' },
         { key: 'capacity.leasable_sqm', why: '전용면적이 호실 단가의 기준이다' },
@@ -97,6 +110,7 @@
     {
       id: 'mixed_use', label: '주상복합', en: 'Mixed-use Residential', template: 'realestate',
       keywords: ['주상복합', '복합개발', 'mixed use', '복합시설'],
+      app: { industry: '부동산·도시개발', sector: '복합개발' },
       requires: [
         { key: 'capacity.units', why: '주거 부분의 매출 단위다' },
         { key: 'capacity.leasable_sqm', why: '상업 부분의 매출 단위다 — 주거와 단가 체계가 다르다' },
@@ -106,6 +120,7 @@
     {
       id: 'apartment', label: '아파트', en: 'Apartment', template: 'realestate',
       keywords: ['아파트', '공동주택', 'apartment', '재건축', '재개발'],
+      app: { industry: '부동산·도시개발', sector: '주거' },
       requires: [
         { key: 'capacity.units', why: '분양가 × 세대수 가 매출이다' },
         { key: 'revenue.unit_price', why: '분양가가 없으면 세대수만으로는 매출이 안 나온다. 이 값 하나가 사업성을 뒤집는다' },
@@ -115,6 +130,7 @@
     {
       id: 'office', label: '오피스빌딩', en: 'Office Building', template: 'realestate',
       keywords: ['오피스', '업무시설', 'office', '사옥'],
+      app: { industry: '부동산·도시개발', sector: '오피스' },
       requires: [
         { key: 'capacity.leasable_sqm', why: '임대면적 × 임대료 × 임대율 이 매출이다 — 연면적으로 대신 계산하면 부풀려진다' },
         { key: 'revenue.unit_price', why: '임대료 수준이 없으면 면적만으로는 매출이 안 나온다. 권역별로 크게 갈린다' },
@@ -124,6 +140,7 @@
     {
       id: 'factory', label: '공장', en: 'Factory', template: 'realestate',
       keywords: ['공장', 'factory', '지식산업센터', '아파트형공장'],
+      app: { industry: '부동산·도시개발', sector: '산업단지', note: '공장이 앱 섹터에 따로 없다 — 산업단지로 잡았다. 확인 필요' },
       requires: [
         { key: 'land.zoning', why: '용도지역이 곧 가능 업종이다. 모르면 임차 가능한 업종을 특정할 수 없다' },
         { key: 'capacity.power_mw', why: '입주 업종이 요구하는 전력이 안 되면 그 임차 수요는 없는 것이다' },
@@ -133,6 +150,7 @@
     {
       id: 'industrial_park', label: '산업단지', en: 'Industrial Park', template: 'realestate',
       keywords: ['산업단지', '일반산업단지', '농공단지', 'industrial park', '단지조성'],
+      app: { industry: '부동산·도시개발', sector: '산업단지' },
       requires: [
         { key: 'capacity.saleable_land_sqm', why: '총면적이 아니라 분양 가능 면적이 매출의 분모다. 도로·녹지·공공용지를 빼지 않으면 매출이 통째로 부풀려진다' },
         { key: 'land.area_sqm', why: '총면적과 분양 가능 면적의 차이가 곧 조성 원가의 성격을 말해 준다' },
@@ -142,6 +160,7 @@
     {
       id: 'resort', label: '리조트', en: 'Resort', template: 'realestate',
       keywords: ['리조트', 'resort', '콘도', '골프', '워터파크'],
+      app: { industry: '관광·레저', sector: '리조트' },
       requires: [
         { key: 'capacity.rooms', why: '객실 수 × ADR × 점유율 이 숙박매출이다 — 부대시설 매출은 여기에 얹힌다' },
         { key: 'revenue.adr', why: 'ADR 이 없으면 객실 수만으로는 매출이 안 나온다. 성수기·비수기 평균인지 밝혀야 한다' },
@@ -168,6 +187,35 @@
       if (c.requires[i].key === key) return c.requires[i].why;
     }
     return null;
+  }
+
+  /**
+   * 앱이 보내는 (산업, 섹터) 로 자산군을 찾는다.
+   *
+   * ★ **못 찾으면 null 이다.** 아무거나 고르면 엉뚱한 값을 필수라고 말한다.
+   * ★ 한 섹터에 자산군이 여럿 걸리면(산업단지 = 공장·산업단지) 고르지 않고
+   *   후보를 준다 — 둘은 받아야 할 값이 다르다.
+   */
+  function fromApp(industry, sector) {
+    var ind = String(industry || '').trim();
+    var sec = String(sector || '').trim();
+    var hit = CLASSES.filter(function (c) {
+      var a = c.app || {};
+      if (sec && a.sector) return a.sector === sec && (!ind || !a.industry || a.industry === ind);
+      if (ind && a.industry) return a.industry === ind && !a.sector;
+      return false;
+    });
+    if (hit.length === 1) return { id: hit[0].id, candidates: [hit[0].id], reason: null };
+    if (hit.length > 1) {
+      return {
+        id: null, candidates: hit.map(function (c) { return c.id; }),
+        reason: '이 산업·섹터 조합이 자산군 여럿에 걸립니다 — 사람이 하나를 고릅니다',
+      };
+    }
+    return {
+      id: null, candidates: [],
+      reason: '이 산업·섹터 조합에 맞는 자산군이 없습니다 (등록부 D-41) — 자산군을 직접 고르세요',
+    };
   }
 
   /** 재무모델 템플릿 id. 자산군이 없거나 모르면 generic */
@@ -232,7 +280,7 @@
 
   return {
     CLASSES: CLASSES,
-    requiredKeys: requiredKeys, whyOf: whyOf, templateOf: templateOf,
+    requiredKeys: requiredKeys, whyOf: whyOf, templateOf: templateOf, fromApp: fromApp,
     detect: detect, classKeys: classKeys,
   };
 }));
