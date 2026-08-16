@@ -126,6 +126,24 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
   .upd__l b, .upd__p b { display: block; font-size: 14.5px; }
   .upd__l em { font-style: normal; font-size: 12px; color: #7C838C; }
   .upd__l span, .upd__p span { display: block; margin-top: 3px; font-size: 13px; color: #4A5560; }
+  .upd__see { color: #5C7A00 !important; font-weight: 600; }
+
+  /* 화면이 없는 작업의 확인 */
+  .ev { max-width: 1120px; margin: 14px auto 0; padding: 18px 20px;
+    background: #fff; border: 1px solid #E8EAEC; border-radius: 18px;
+    font: 400 14px/1.65 Arial, 'Malgun Gothic', sans-serif; color: #17181A; }
+  .ev__t { font-size: 17px; font-weight: 700; margin: 0; }
+  .ev__s { font-size: 13.5px; color: #7C838C; margin: 4px 0 14px; }
+  .ev__c { border: 1px solid #E8EAEC; border-radius: 12px; padding: 13px 15px; margin-top: 10px; }
+  .ev__c.bad { border-color: #F0DEBE; background: #FDF3E3; }
+  .ev__n { font-size: 13.5px; font-weight: 700; }
+  .ev__m { font-size: 12.5px; color: #7C838C; margin-top: 2px; }
+  .ev__o { margin: 9px 0 0; padding: 10px 12px; background: #F5F6F8; border-radius: 8px;
+    font: 400 12.5px/1.7 ui-monospace, Menlo, Consolas, monospace;
+    white-space: pre-wrap; word-break: break-all; overflow-x: auto; }
+  .ev__k { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+  .ev__k span { font: 600 11.5px/1 ui-monospace, Menlo, Consolas, monospace;
+    padding: 5px 8px; border-radius: 6px; background: #EDF7DC; color: #5C7A00; }
   .upd__pt { margin: 20px 0 0; font-size: 14px; font-weight: 700; }
   .upd__pd { margin: 3px 0 0; font-size: 12.5px; color: #7C838C; }
 </style>
@@ -143,26 +161,32 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
           <b>PDF·한글·옛 오피스를 이제 읽는다 — 스캔본은 글자로 옮겨서 읽는다</b>
           <em>1단계 보고서 생성 입력</em>
           <span>전에는 「보관만 됩니다」였다. 실무 자료의 대부분이 그 목록에 있었으니 값은 결국 손으로 쳐야 했다. 이제 pdf·hwp·hwpx·doc·xls·ppt 는 본문을 그대로 읽고, 글자가 없는 스캔본과 사진은 글자로 옮긴 뒤 읽는다. 못 읽는 것은 gif·tif·tiff 셋뿐이고, 무엇으로 바꿔 올릴지까지 적어 준다.</span>
+          <span class="upd__see">확인: 1단계 「올릴 수 있는 자료」 세 묶음 · 아래 [눈으로 확인] 의 읽기 결과</span>
         </li><li>
           <b>옮겨 적은 글자에서 뽑은 값은 신뢰도를 낮춘다</b>
           <em>1단계 · 검증</em>
           <span>이미지에 값을 바로 물어보면 근거 문구를 대조할 원문이 없다. 그래서 글자만 먼저 옮기고 평소의 규칙 추출을 돌린다. 그렇게 나온 값에는 「원본 확인」 표시가 붙는다 — 틀렸을 때 어디를 봐야 하는지 알 수 있다.</span>
+          <span class="upd__see">확인: 아래 [눈으로 확인] — 스캔본이 어떻게 처리되는지</span>
         </li><li>
           <b>자동 계산으로 만들어지는 항목 19개를 접었다 폈다 볼 수 있게 했다</b>
           <em>2단계 가이드 필드</em>
           <span>전에는 returns.min_dscr 같은 내부 key 가 19개 그대로 깔려 있었다. 이제 한글·영문 이름과 단위를 나란히 보이고, 평소에는 접어 둔다. 입력란이 없는 이유는 접어도 보이게 밖에 남겼다.</span>
+          <span class="upd__see">확인: 2단계 맨 아래 「자동 계산으로 만들어지는 항목 19개 · 펼치기」</span>
         </li><li>
           <b>이미 받아 오던 값 8개를 더 등록했다</b>
           <em>2단계 가이드 필드</em>
           <span>건축물대장·건축인허가·지적도 응답에 실려 오는데 버리고 있던 것이다 — 건폐율·용적률 실적, 지하층수, 주용도, 사용승인일, 지번, 허가 계획 연면적. 새로 부르는 호출은 하나도 없다.</span>
+          <span class="upd__see">확인: 2단계 「자동으로 채워지는 항목」 을 펼치면 지번·건폐율(실적) 등이 보인다</span>
         </li><li>
           <b>실적치와 법정 상한을 다른 칸에 둔다</b>
           <em>2단계 가이드 필드</em>
           <span>건폐율·용적률을 한 칸에 섞으면 &quot;320%&quot; 가 지어도 되는 한도인지 이미 지은 결과인지 알 수 없다. land.*_limit(상한)과 building.bcr/far(실적)로 갈랐다.</span>
+          <span class="upd__see">확인: 2단계 건축 묶음 — 건폐율(실적) 과 건폐율 상한이 다른 줄이다</span>
         </li><li>
           <b>실측으로만 드러난 결함 넷을 고쳤다</b>
           <em>2단계 · 검증</em>
           <span>공시지가가 11년 낡은 값이었고(30% 오차), 폐기된 건축물대장 엔드포인트를 부르고 있었고, VWorld 도메인을 가공해 조회가 간헐적으로 거부됐고, 짧은 인증키가 로그에 평문으로 남았다. 넷 다 결과가 그럴듯해서 문서로는 안 잡힌다.</span>
+          <span class="upd__see">확인: 화면에 안 보인다 — 커넥터 안쪽이다 (`npm run im:smoke` 로만 확인된다)</span>
         </li>
       </ul>
     </div>
@@ -173,34 +197,42 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
           <b>값 입력이 앱 안으로 들어왔다</b>
           <em>섹션 전체</em>
           <span>전에는 기반정보를 내보내고 값 입력을 바깥 AGENT 가 받았다. 그러면 출처 필수·계산 항목 입력 금지·사양 확정을 앱이 강제할 수 없다. 내보내기 경로는 아래에 그대로 남아 있다.</span>
+          <span class="upd__see">확인: 2단계 화면 자체 · 아래쪽 「기반정보 내보내기」 는 그대로 남아 있다</span>
         </li><li>
           <b>4단계 고정 · 잠긴 단계는 이유를 적는다</b>
           <em>단계 레일</em>
           <span>회색으로만 두면 고장으로 보인다. &quot;서버 미연결&quot;인지 &quot;1단계를 먼저&quot;인지 구분해서 띄운다 — 원인이 다르면 할 일도 다르다.</span>
+          <span class="upd__see">확인: 위 단계 레일 — 잠긴 칸을 누르면 사유가 뜬다</span>
         </li><li>
           <b>자동으로 채워지는 줄에는 출처를 묻지 않는다</b>
           <em>2단계 가이드 필드</em>
           <span>공부(公簿)에서 오는 값에 사람이 출처를 적으면, 독립된 두 번째 출처라는 가치가 사라진다. 값·출처·페이지·출처일 4칸이 늘 뜨던 것을 항목 성격에 맞게 줄였다.</span>
+          <span class="upd__see">확인: 2단계 입력 줄 — 항목마다 칸 수가 다르다</span>
         </li><li>
           <b>공공데이터 키가 없으면 그 항목을 직접 입력으로 내린다</b>
           <em>2단계 가이드 필드</em>
           <span>키 없이 죽는 경로를 &quot;자동으로 채워집니다&quot;라고 표시하면 안 물어보고 빈 채로 남는다. 사람은 그 항목이 있는 줄도 모른다. 지금은 사유와 함께 물어본다.</span>
+          <span class="upd__see">확인: 2단계 「자동으로 채워지는 항목」 카드의 주황색 안내</span>
         </li><li>
           <b>규제 사항이 용도지역과 따로 뜬다</b>
           <em>2단계 가이드 필드</em>
           <span>토지이용계획 응답에 개발제한구역·군사시설보호구역이 함께 오는데 버리고 있었다. 그린벨트에 걸린 땅과 아닌 땅이 &quot;자연녹지지역&quot; 하나로 똑같이 보였다.</span>
+          <span class="upd__see">확인: 2단계 토지 묶음 — 규제 사항이 별도 항목이다</span>
         </li><li>
           <b>인허가·시행사를 공부와 대조한다</b>
           <em>2단계 · 검증</em>
           <span>값을 채우는 기능이 아니라 대조 기능이다. 사업계획서가 &quot;허가 취득&quot;이라는데 기록이 없으면 드러난다. 기록이 없는 것을 &quot;미허가&quot;로 단정하지는 않는다.</span>
+          <span class="upd__see">확인: 화면에 안 보인다 — 생성할 때 값 충돌로만 드러난다</span>
         </li><li>
           <b>[인쇄 · PDF 저장]이 실제로 열린다</b>
           <em>4단계 생성 · 산출물</em>
           <span>지침 §7-3 이 안내하는 기능인데 &quot;경로를 연결하세요&quot; 안내만 떴다 — 협력사 눈에는 고장이었다. 검증을 통과하지 못한 산출물은 여전히 열리지 않는다.</span>
+          <span class="upd__see">확인: 4단계 산출물 목록의 [인쇄 · PDF 저장] 버튼</span>
         </li><li>
           <b>단계 표시가 두 번 뜨던 것을 고쳤다</b>
           <em>섹션 전체</em>
           <span>레일과 화면 안 칩이 같은 1·2·3·4 를 두 벌로 보여줬다. 미리보기를 실제로 렌더해 보고 잡았다.</span>
+          <span class="upd__see">확인: 위 레일과 각 단계 화면 — 1·2·3·4 가 한 번만 보인다</span>
         </li>
       </ul>
     </div>
@@ -217,6 +249,45 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
       <b>차입금리는 아직 산업 통상치다</b>
       <span>기준금리(국고채)는 출처가 생겼지만, 거기에 더할 자산유형별 스프레드가 시장 판단이라 정해지지 않았다. 지어내면 &quot;출처 있는 기준금리 + 지어낸 스프레드&quot;가 된다.</span>
     </li></ul>
+</section>
+<section class="ev">
+  <h2 class="ev__t">눈으로 확인 — 자료를 실제로 읽어 본 결과</h2>
+  <p class="ev__s">아래 결과는 이 미리보기를 만들 때 <b>실제 파서를 돌려</b> 그대로 옮긴 것입니다.
+    손으로 적은 예시가 아닙니다. 다만 <b>자료 자체는 합성 예시</b>입니다 — 실제 딜 자료는
+    이 저장소에 두지 않습니다.</p>
+  <div class="ev__m">본문을 그대로 읽습니다 — .csv .doc .docx .htm .html .hwp .hwpx .json .log .md .pdf .ppt .pptx .tsv .txt .xls .xlsm .xlsx .xml</div><div class="ev__m">스캔·사진은 글자로 옮겨 읽습니다 — .heic .heif .jpeg .jpg .png .webp</div><div class="ev__m">변환해서 올려야 합니다 — .gif .tif .tiff</div>
+  <div class="ev__c"><div class="ev__n">글자가 들어 있는 PDF</div><div class="ev__m">사업개요.pdf · 크로미움이 만든 예시 파일</div>
+        <div class="ev__m">읽음 · 119자 · 규칙 추출 5건 (via pdf)</div>
+        <pre class="ev__o">인천  남동  데이터센터  개발사업
+대지면적  12,345 ㎡  / 연면적  45,678 ㎡  / 총사업비  2,846 억원
+계약전력  40 MW · LTC 65% · Project IRR 은  계산으로만  만든다</pre>
+        <div class="ev__k"><span>land.area_sqm = 12345 ㎡</span><span>investment.total = 2846 억원</span><span>building.gfa_sqm = 45678 ㎡</span><span>capacity.power_mw = 40 MW</span><span>debt.ltc = 65 %</span></div>
+      </div><div class="ev__c bad"><div class="ev__n">스캔 이미지로 만든 PDF</div><div class="ev__m">감정평가서.pdf · 글자 레이어가 없는 예시 파일</div>
+      <div class="ev__m">못 읽음</div>
+      <pre class="ev__o">텍스트 레이어가 없다 — 스캔 이미지로 만든 PDF 다
+→ 실제 실행에서는 글자로 옮겨 읽는 경로로 넘어갑니다 (GEMINI_API_KEY 필요)</pre>
+    </div><div class="ev__c"><div class="ev__n">한글 (.hwp — 바이너리)</div><div class="ev__m">사업계획서.hwp · 규격대로 만든 예시 파일</div>
+        <div class="ev__m">읽음 · 71자 · 규칙 추출 4건 (via ole)</div>
+        <pre class="ev__o">인천 남동 데이터센터 개발사업
+대지면적 12,345 ㎡ / 연면적 45,678 ㎡
+총사업비 2,846억원 · 계약전력 40 MW</pre>
+        <div class="ev__k"><span>land.area_sqm = 12345 ㎡</span><span>building.gfa_sqm = 45678 ㎡</span><span>capacity.power_mw = 40 MW</span><span>investment.total = 2846 억원</span></div>
+      </div><div class="ev__c"><div class="ev__n">한글 (.hwpx — ZIP)</div><div class="ev__m">요약.hwpx · 규격대로 만든 예시 파일</div>
+        <div class="ev__m">읽음 · 20자 · 규칙 추출 2건 (via zip)</div>
+        <pre class="ev__o">총사업비 2,846억원
+LTC 65%</pre>
+        <div class="ev__k"><span>investment.total = 2846 억원</span><span>debt.ltc = 65 %</span></div>
+      </div><div class="ev__c"><div class="ev__n">옛 엑셀 (.xls)</div><div class="ev__m">수지분석.xls · 규격대로 만든 예시 파일</div>
+        <div class="ev__m">읽음 · 32자 · 규칙 추출 2건 (via ole)</div>
+        <pre class="ev__o">항목	값
+대지면적(㎡)	12345
+총사업비(억원)	2846</pre>
+        <div class="ev__k"><span>land.area_sqm = 12345 ㎡</span><span>investment.total = 2846 억원</span></div>
+      </div><div class="ev__c bad"><div class="ev__n">스캐너가 만든 TIFF</div><div class="ev__m">현장도면.tiff · 읽는 방법이 없는 형식</div>
+      <div class="ev__m">못 읽음</div>
+      <pre class="ev__o">.tiff 는 변환 없이는 못 읽습니다 — PDF 나 PNG 로 저장해서 올립니다 (스캐너 설정에서 바꿀 수 있습니다)
+→ 넘어갈 곳이 없습니다. 바꿔서 올려야 합니다</pre>
+    </div>
 </section>
 
 <div class="wrap" id="view"></div>

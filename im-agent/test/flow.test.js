@@ -193,6 +193,53 @@ test('내역마다 이유가 붙어 있다', () => {
   });
 });
 
+/**
+ * ★ "했습니다"만 적힌 목록은 확인할 방법이 없어 믿거나 말거나가 된다.
+ *   화면에 안 보이는 작업이면 **안 보인다고 적는 것**도 답이다 —
+ *   없는 것을 찾느라 헤매는 쪽이 더 나쁘다.
+ */
+test('★ 내역마다 어디를 보면 확인되는지 적혀 있다', async () => {
+  const C = require('../ui/platform/changes.js');
+  const html = await buildSection();
+  C.CHANGES.forEach((c) => {
+    assert.ok(c.shows && c.shows.length > 5, `'${c.title}' 에 확인할 곳이 없다`);
+    assert.ok(html.includes(c.shows), `'${c.title}' 의 확인 위치가 화면에 안 뜬다`);
+  });
+});
+
+/* ───────────── 눈으로 확인 패널 ───────────── */
+//
+// 파서·커넥터처럼 화면에 안 나오는 작업은 "됐습니다"라는 말밖에 남지 않는다.
+// 받은 사람이 확인할 수단이 없으면 그 말은 아무 값어치가 없다.
+
+test('★ 화면이 없는 작업도 결과를 눈으로 보여준다', async () => {
+  const html = await buildSection();
+  assert.match(html, /눈으로 확인/, '확인 패널이 없다');
+  // 실제로 읽어 낸 글자가 들어 있어야 한다
+  assert.ok(html.includes('12,345'), 'PDF 에서 읽은 글자가 안 보인다');
+  assert.ok(html.includes('land.area_sqm = 12345'), '읽은 글자에서 뽑은 값이 안 보인다');
+  assert.match(html, /텍스트 레이어가 없다/, '못 읽는 경우도 보여줘야 한다');
+  assert.match(html, /바꿔서 올립니다|PDF 나 PNG/, '못 읽으면 무엇으로 바꿀지도 보여줘야 한다');
+});
+
+/**
+ * ★ 이 패널의 값어치는 **실제로 돌린 결과라는 것** 하나다. 손으로 적으면
+ *   코드가 바뀐 날부터 화면만 옛말을 하고, 그때는 아무도 눈치채지 못한다.
+ */
+test('★ 확인 패널의 결과를 손으로 적어 두지 않는다', () => {
+  const src = fs.readFileSync(path.join(PLATFORM, 'build-preview.js'), 'utf8');
+  assert.match(src, /ex\.toText\(/, '실제 파서를 돌려야 한다');
+  assert.match(src, /ex\.extractFromLine\(/, '뽑은 값도 실제 추출 결과여야 한다');
+  ['인천  남동', 'land.area_sqm = 12345', '텍스트 레이어가 없다'].forEach((t) => {
+    assert.ok(!src.includes(t), `'${t}' 가 빌더에 박혀 있다 — 실행 결과가 아니라 적어 둔 글이다`);
+  });
+});
+
+test('★ 확인 패널의 자료가 예시임을 화면에 적는다', async () => {
+  const html = await buildSection();
+  assert.match(html, /합성 예시/, '데모 자료를 실제로 오해하면 그것을 근거로 판단한다');
+});
+
 test('★ 내역을 화면 HTML 에 손으로 적지 않는다', () => {
   const C = require('../ui/platform/changes.js');
   const src = fs.readFileSync(path.join(PLATFORM, 'build-preview.js'), 'utf8');

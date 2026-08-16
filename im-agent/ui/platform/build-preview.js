@@ -17,6 +17,7 @@
  *   프로젝트 데이터는 심지 않으므로 목록은 비어 있는 채로 뜬다.
  */
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 
 const HERE = __dirname;
@@ -324,7 +325,88 @@ Object.assign(window.LINKPILOT_REPORT_FLOW, {
   목록·저장된 값은 비어 있고, 저장·생성 버튼은 실제로 아무것도 하지 않습니다.
   제품에서는 네 단계를 하나씩 보여주지만 여기서는 <b>한 번에 펼쳐</b> 둡니다.
 </div>`;
-  return shell.replace('<body>', '<body>' + banner + changePanel());
+  return shell.replace('<body>', '<body>' + banner + changePanel() + evidencePanel());
+}
+
+/**
+ * 화면이 없는 작업을 **눈으로 확인**하게 한다.
+ *
+ * ★ 왜 필요한가: 파서·커넥터처럼 화면에 안 나오는 작업은 "됐습니다"라는 말밖에
+ *   남지 않는다. 그러면 받은 사람은 확인할 방법이 없고, 결국 믿거나 말거나가 된다.
+ *
+ * ★ **여기 적힌 결과는 손으로 쓴 것이 아니다.** 빌드할 때 실제 파서를 돌려
+ *   그 출력을 그대로 넣는다. 손으로 쓰면 코드가 바뀐 날부터 화면만 옛말을 한다.
+ *   (`flow.test.js` 가 실제 실행 결과인지 검사한다)
+ *
+ * ★ 자료는 **합성 예시**다. 실제 딜 자료는 이 저장소에 없다 (public 이다).
+ */
+function evidencePanel() {
+  const AGENT = path.join(HERE, '..', '..');
+  const ex = require(path.join(AGENT, 'agents', '02-extraction'));
+  const FIX = path.join(AGENT, 'test', 'fixtures');
+  const oleFix = require(path.join(FIX, 'ole.js'));
+  const zipFix = require(path.join(FIX, 'zip.js'));
+
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'im-evidence-'));
+  const put = (name, data) => {
+    const f = path.join(tmp, name);
+    fs.writeFileSync(f, data);
+    return { name, path: f, ext: path.extname(name).toLowerCase() };
+  };
+
+  const cases = [
+    { label: '글자가 들어 있는 PDF', note: '크로미움이 만든 예시 파일',
+      file: put('사업개요.pdf', fs.readFileSync(path.join(FIX, 'sample-text.pdf'))) },
+    { label: '스캔 이미지로 만든 PDF', note: '글자 레이어가 없는 예시 파일',
+      file: put('감정평가서.pdf', fs.readFileSync(path.join(FIX, 'sample-scan.pdf'))) },
+    { label: '한글 (.hwp — 바이너리)', note: '규격대로 만든 예시 파일',
+      file: put('사업계획서.hwp', oleFix.buildHwp([
+        '인천 남동 데이터센터 개발사업', '대지면적 12,345 ㎡ / 연면적 45,678 ㎡',
+        '총사업비 2,846억원 · 계약전력 40 MW'])) },
+    { label: '한글 (.hwpx — ZIP)', note: '규격대로 만든 예시 파일',
+      file: put('요약.hwpx', zipFix.buildHwpx(['총사업비 2,846억원', 'LTC 65%'])) },
+    { label: '옛 엑셀 (.xls)', note: '규격대로 만든 예시 파일',
+      file: put('수지분석.xls', oleFix.buildXls([['항목', '값'], ['대지면적(㎡)', 12345], ['총사업비(억원)', 2846]])) },
+    { label: '스캐너가 만든 TIFF', note: '읽는 방법이 없는 형식',
+      file: put('현장도면.tiff', Buffer.from('II*\0 (예시)')) },
+  ];
+
+  const blocks = cases.map((c) => {
+    const r = ex.toText(c.file);
+    const head = `<div class="ev__n">${esc(c.label)}</div>`
+      + `<div class="ev__m">${esc(c.file.name)} · ${esc(c.note)}</div>`;
+
+    if (r.text) {
+      const facts = [];
+      r.text.split('\n').forEach(l => ex.extractFromLine(l).forEach(f => facts.push(f)));
+      const keys = [...new Set(facts.map(f => `${f.key} = ${f.value}${f.unit ? ' ' + f.unit : ''}`))];
+      return `<div class="ev__c">${head}
+        <div class="ev__m">읽음 · ${r.text.length.toLocaleString()}자 · 규칙 추출 ${facts.length}건 (via ${esc(r.via)})</div>
+        <pre class="ev__o">${esc(r.text.slice(0, 240))}</pre>
+        ${keys.length ? `<div class="ev__k">${keys.slice(0, 6).map(k => `<span>${esc(k)}</span>`).join('')}</div>` : ''}
+      </div>`;
+    }
+    const next = r.ocr
+      ? '→ 실제 실행에서는 글자로 옮겨 읽는 경로로 넘어갑니다 (GEMINI_API_KEY 필요)'
+      : '→ 넘어갈 곳이 없습니다. 바꿔서 올려야 합니다';
+    return `<div class="ev__c bad">${head}
+      <div class="ev__m">못 읽음</div>
+      <pre class="ev__o">${esc(r.error)}\n${esc(next)}</pre>
+    </div>`;
+  }).join('');
+
+  const groups = ex.readGroups().map(g =>
+    `<div class="ev__m">${esc(g.label)} — ${esc(g.ext.join(' '))}</div>`).join('');
+
+  return `
+<section class="ev">
+  <h2 class="ev__t">눈으로 확인 — 자료를 실제로 읽어 본 결과</h2>
+  <p class="ev__s">아래 결과는 이 미리보기를 만들 때 <b>실제 파서를 돌려</b> 그대로 옮긴 것입니다.
+    손으로 적은 예시가 아닙니다. 다만 <b>자료 자체는 합성 예시</b>입니다 — 실제 딜 자료는
+    이 저장소에 두지 않습니다.</p>
+  ${groups}
+  ${blocks}
+</section>`;
 }
 
 /** HTML 로 내보낼 때 태그가 되지 않게 한다 (내역 문구는 사람이 쓴 글이다) */
@@ -352,6 +434,7 @@ function changePanel() {
           <b>${esc(i.title)}</b>
           <em>${esc(i.where)}</em>
           <span>${esc(i.why)}</span>
+          <span class="upd__see">확인: ${esc(i.shows)}</span>
         </li>`).join('')}
       </ul>
     </div>`).join('');
@@ -379,6 +462,24 @@ function changePanel() {
   .upd__l b, .upd__p b { display: block; font-size: 14.5px; }
   .upd__l em { font-style: normal; font-size: 12px; color: #7C838C; }
   .upd__l span, .upd__p span { display: block; margin-top: 3px; font-size: 13px; color: #4A5560; }
+  .upd__see { color: #5C7A00 !important; font-weight: 600; }
+
+  /* 화면이 없는 작업의 확인 */
+  .ev { max-width: 1120px; margin: 14px auto 0; padding: 18px 20px;
+    background: #fff; border: 1px solid #E8EAEC; border-radius: 18px;
+    font: 400 14px/1.65 Arial, 'Malgun Gothic', sans-serif; color: #17181A; }
+  .ev__t { font-size: 17px; font-weight: 700; margin: 0; }
+  .ev__s { font-size: 13.5px; color: #7C838C; margin: 4px 0 14px; }
+  .ev__c { border: 1px solid #E8EAEC; border-radius: 12px; padding: 13px 15px; margin-top: 10px; }
+  .ev__c.bad { border-color: #F0DEBE; background: #FDF3E3; }
+  .ev__n { font-size: 13.5px; font-weight: 700; }
+  .ev__m { font-size: 12.5px; color: #7C838C; margin-top: 2px; }
+  .ev__o { margin: 9px 0 0; padding: 10px 12px; background: #F5F6F8; border-radius: 8px;
+    font: 400 12.5px/1.7 ui-monospace, Menlo, Consolas, monospace;
+    white-space: pre-wrap; word-break: break-all; overflow-x: auto; }
+  .ev__k { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+  .ev__k span { font: 600 11.5px/1 ui-monospace, Menlo, Consolas, monospace;
+    padding: 5px 8px; border-radius: 6px; background: #EDF7DC; color: #5C7A00; }
   .upd__pt { margin: 20px 0 0; font-size: 14px; font-weight: 700; }
   .upd__pd { margin: 3px 0 0; font-size: 12.5px; color: #7C838C; }
 </style>
