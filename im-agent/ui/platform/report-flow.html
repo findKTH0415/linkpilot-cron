@@ -78,6 +78,21 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
    ★ 합계 막대를 만들지 않는다. 네 단계는 성격이 달라 하나로 뭉치면
      "80%" 가 무엇의 80% 인지 아무도 모른다. 단계마다 따로 그린다.
    ★ 모르는 것은 0% 막대가 아니라 빗금이다 — 0% 막대는 "다 안 됐다"로 읽힌다 */
+/* 큰 눈금 둘 — 「내가 채울 것」과 「기다리면 되는 것」 */
+.prog__g { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0 0; }
+@media (max-width: 720px) { .prog__g { grid-template-columns: 1fr; } }
+.prog__gi { border: 1px solid var(--line); border-radius: 16px; padding: 15px 17px; }
+.prog__gi--done { border-color: var(--lime); background: var(--lime-soft); }
+.prog__gi--doing { border-color: var(--lime); }
+.prog__gi--unknown { background: var(--panel); }
+.prog__gh { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.prog__gt { font-size: 16px; font-weight: 800; }
+.prog__gv { margin-left: auto; font-size: 26px; font-weight: 800; letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums; }
+.prog__gv--none { font-size: 17px; font-weight: 400; color: var(--ink2); }
+.prog__gw { margin: 2px 0 0; font-size: 12.5px; color: var(--ink2); }
+.prog__gi .prog__bar { height: 11px; margin: 11px 0 8px; }
+
 .prog__l { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 11px; }
 .prog__i { border: 1px solid var(--line); border-radius: 14px; padding: 13px 15px; }
 .prog__i--done { border-color: var(--lime); background: var(--lime-soft); }
@@ -449,8 +464,9 @@ window.LINKPILOT_REPORT_FLOW = {
     progBox.textContent = '';
     progBox.appendChild(el('h2', 'card__t', '세부 진행률'));
     progBox.appendChild(el('p', 'card__d',
-      '단계마다 성격이 달라 합계 %는 만들지 않습니다 — 1·2 는 사람이 채우고, '
-      + '3 은 확정했느냐이고, 4 만 기계가 도는 구간입니다.'));
+      '「내가 채울 것」과 「기다리면 되는 것」을 나눠 봅니다. 넷을 한 막대로 뭉치지 '
+      + '않는 이유는, 그 "80%" 가 더 할 일이 남았다는 뜻인지 기다리면 되는 상태인지 '
+      + '알 수 없기 때문입니다.'));
 
     var steps = L.stepProgress({
       project: state.projectId,
@@ -462,6 +478,23 @@ window.LINKPILOT_REPORT_FLOW = {
       snapshot: det.snapshot,
       complete: FC && FC.completeness,
     });
+
+    // ── 큰 눈금 둘. 아래 네 칸은 이걸 쪼개 보여주는 내역이다 ──
+    var gbox = el('div', 'prog__g');
+    L.groupProgress(steps).forEach(function (g) {
+      var gi = el('div', 'prog__gi prog__gi--' + g.state);
+      var gh = el('div', 'prog__gh');
+      gh.appendChild(el('span', 'prog__gt', g.label));
+      gh.appendChild(g.pct === null
+        ? el('span', 'prog__gv prog__gv--none', '아직')
+        : el('span', 'prog__gv', g.pct + '%'));
+      gi.appendChild(gh);
+      gi.appendChild(el('p', 'prog__gw', g.why));
+      gi.appendChild(bar(g.pct));
+      gi.appendChild(el('p', 'prog__d', g.detail));
+      gbox.appendChild(gi);
+    });
+    progBox.appendChild(gbox);
 
     var list = el('ol', 'prog__l');
     steps.forEach(function (s) {

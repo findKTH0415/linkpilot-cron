@@ -357,3 +357,110 @@ test('★ 404 를 오류로 세지 않는다 (아직 없는 것과 못 받은 �
   const html = fs.readFileSync(path.join(PLATFORM, 'report-flow.html'), 'utf8');
   assert.match(html, /r\.status === 404/, '사양 미확정·생성 전에는 404 가 정상이다');
 });
+
+/* ───────────── 큰 눈금 둘 (채우기 / 생성) ───────────── */
+
+/**
+ * ★ 넷을 하나로 뭉치지 않고 **둘로** 나눈 경계는 사람/기계 경계여야 한다.
+ *   경계가 흐려지면 "80%" 가 내가 더 할 일이 남았다는 뜻인지 기다리면 되는
+ *   상태인지 다시 알 수 없어져, 나눈 뜻이 사라진다.
+ */
+test('★ 두 눈금의 경계가 사람이 하는 일과 기계가 하는 일이다', () => {
+  assert.strictEqual(L.GROUPS.length, 2);
+  assert.deepStrictEqual(L.GROUPS[0].steps, ['intake', 'fields', 'spec']);
+  assert.deepStrictEqual(L.GROUPS[1].steps, ['make']);
+
+  // 네 단계가 빠짐없이 어느 한쪽에 든다 — 빠지면 그 단계는 큰 눈금에서 사라진다
+  const inGroups = L.GROUPS.flatMap(g => g.steps);
+  assert.deepStrictEqual(inGroups.slice().sort(), L.STEPS.map(s => s.id).sort());
+  assert.strictEqual(inGroups.length, new Set(inGroups).size, '한 단계가 두 눈금에 들었다');
+});
+
+/**
+ * ★ 채우기 % 는 **평균이 아니라 개수**다. 세 단계의 %를 평균 내면 필수 17개를
+ *   하나도 안 채운 사람과 하나만 남긴 사람이 같은 자리에 선다.
+ */
+test('★ 채우기 % 는 단계 평균이 아니라 채워야 할 개수로 센다', () => {
+  const fields = realFields();
+  const base = { project: 'P1', fields: fields, docType: 'im', complete: FC.completeness, spec: null };
+  const req = FC.completeness(fields, {}, 'im').total;
+
+  const none = L.groupProgress(L.stepProgress(Object.assign({}, base, { values: {} })))[0];
+  // 프로젝트 1 + 필수 req + 사양 1 중, 지금 된 것은 프로젝트 하나뿐이다
+  assert.strictEqual(none.units.total, req + 2);
+  assert.strictEqual(none.units.done, 1);
+  assert.strictEqual(none.pct, Math.round(1 / (req + 2) * 100));
+
+  // 단계 평균이면 1·2·3 = (100 + 0 + 0)/3 = 33% 가 된다. 그 값이 나오면 안 된다
+  assert.notStrictEqual(none.pct, 33);
+  assert.match(none.detail, new RegExp('채워야 할 ' + (req + 2) + '개 중 1개'));
+});
+
+test('★ 채우기가 다 끝나야 done 이다 (사양 확정 포함)', () => {
+  const fields = realFields();
+  const values = {};
+  FC.completeness(fields, {}, 'im').missing.forEach((k) => {
+    values[k] = { value: 1, source: '사업계획서 p.1' };
+  });
+  const filled = { project: 'P1', fields: fields, values: values, docType: 'im', complete: FC.completeness };
+
+  const beforeLock = L.groupProgress(L.stepProgress(Object.assign({}, filled, { spec: null })))[0];
+  assert.notStrictEqual(beforeLock.state, 'done', '사양을 확정 안 했는데 다 됐다고 하면 안 된다');
+
+  const afterLock = L.groupProgress(L.stepProgress(Object.assign({}, filled, { spec: { locked: true } })))[0];
+  assert.strictEqual(afterLock.pct, 100);
+  assert.strictEqual(afterLock.state, 'done');
+});
+
+/**
+ * ★ 하나라도 못 물어봤으면 **아는 것만 세지 않는다.** 분모가 줄어 진행률이
+ *   부풀고, 화면은 다 됐다고 말한다.
+ */
+test('★ 못 물어본 것이 있으면 채우기 % 를 만들지 않는다', () => {
+  const g = L.groupProgress(L.stepProgress({ project: 'P1' }))[0];
+  assert.strictEqual(g.pct, null);
+  assert.strictEqual(g.state, 'unknown');
+  assert.match(g.detail, /확인하지 못했습니다/);
+  L.STEPS.filter(s => s.id !== 'intake' && s.id !== 'make').forEach((s) => {
+    assert.ok(g.detail.indexOf(s.label) !== -1, `${s.label} 을 못 받았다고 적어야 한다`);
+  });
+});
+
+/**
+ * ★ 「아직 시작하지 않았습니다」만 적으면 사용자는 버튼을 찾는다.
+ *   버튼은 사양을 확정해야 열린다 — 무엇이 막고 있는지 함께 적는다.
+ */
+test('★ 생성 눈금은 무엇이 막고 있는지 적는다', () => {
+  const fields = realFields();
+  const blocked = L.groupProgress(L.stepProgress({
+    project: 'P1', fields: fields, values: {}, docType: 'im',
+    complete: FC.completeness, spec: null, snapshot: null,
+  }))[1];
+  assert.strictEqual(blocked.state, 'todo');
+  assert.match(blocked.detail, /채우고 사양을 확정하면/);
+
+  // 돌기 시작하면 monitor 값을 그대로 쓴다 — 화면이 다시 세지 않는다
+  const running = L.groupProgress(L.stepProgress({
+    project: 'P1', snapshot: { overall: 57, timing: {}, agents: [] },
+  }))[1];
+  assert.strictEqual(running.pct, 57);
+  assert.strictEqual(running.state, 'doing');
+});
+
+test('★ 큰 눈금 이름도 화면이 베껴 쓰지 않는다', () => {
+  const raw = fs.readFileSync(path.join(PLATFORM, 'report-flow.html'), 'utf8');
+  const html = raw.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '');
+  assert.match(html, /L\.groupProgress\(/);
+
+  // ★ 진행률을 그리는 곳만 본다. 섹션 제목(h1 「보고서 생성」)은 눈금 이름을
+  //   베낀 것이 아니라 이 화면의 이름이다 — 문서 전체로 검사하면 그게 걸린다
+  // 주석을 지운 판에는 끝 표시(주석 안에 있다)가 없다 — 자를 때는 원본을 쓴다
+  const fn = raw.slice(raw.indexOf('function renderProgress'), raw.indexOf('외부 분석 경로 ('))
+    .replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+  assert.ok(fn.length > 100 && fn.indexOf('groupProgress') !== -1, 'renderProgress 를 찾지 못했다');
+  L.GROUPS.forEach((g) => {
+    assert.ok(fn.indexOf("'" + g.label + "'") === -1,
+      `화면이 「${g.label}」 을 직접 적고 있다`);
+    assert.ok(fn.indexOf("'" + g.why + "'") === -1, '설명도 마찬가지다');
+  });
+});

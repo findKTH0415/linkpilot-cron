@@ -255,6 +255,17 @@
    *   computed  계산 전용 key 목록 (dictionary.COMPUTED_KEYS)
    *   complete  fields-core.completeness 함수 (주입 — 두 벌로 만들지 않는다)
    */
+  /**
+   * 네 단계를 성격으로 묶은 **두 눈금**. 목록을 화면에 적지 않는다 —
+   * 여기가 단일 출처다 (`groupProgress` 가 이 순서·구성을 그대로 쓴다).
+   */
+  var GROUPS = [
+    { id: 'fill', label: '정보값 채우기', why: '사람이 값과 출처를 넣습니다 (1·2·3단계)',
+      steps: ['intake', 'fields', 'spec'] },
+    { id: 'make', label: '보고서 생성', why: '기계가 돕니다 — 채우기가 끝나야 시작합니다 (4단계)',
+      steps: ['make'] },
+  ];
+
   function stepProgress(d) {
     var o = d || {};
     var steps = [];
@@ -272,6 +283,7 @@
             : '자료 없이 진행 중 — 값을 전부 직접 넣어야 합니다'))
         : '아직 프로젝트가 없습니다',
       parts: null,
+      units: { done: hasProject ? 1 : 0, total: 1 },
     });
 
     // ② 가이드 필드 — 필수 항목 중 값과 출처가 **둘 다** 있는 것만 센다
@@ -287,6 +299,7 @@
         { label: '채움', n: c.filled },
         { label: '남음', n: c.total - c.filled },
       ] : null,
+      units: c ? { done: c.filled, total: c.total } : null,
     });
 
     // ③ 출력 사양 — 눌렀느냐 아니냐다. 중간이 없다
@@ -305,6 +318,7 @@
           : '정했지만 확정 전입니다. 확정해야 생성이 시작됩니다')
         : (specAsked ? '아직 정하지 않았습니다' : '아직 확인하지 못했습니다'),
       parts: null,
+      units: specAsked ? { done: (spec && spec.locked) ? 1 : 0, total: 1 } : null,
     });
 
     // ④ 생성 — 기계가 도는 구간. monitor 가 준 값을 그대로 쓴다
@@ -321,6 +335,9 @@
       parts: snap && snap.tracks ? Object.keys(snap.tracks).map(function (k) {
         return { label: snap.tracks[k].label || k, n: snap.tracks[k].pct };
       }) : null,
+      // ★ 셀 단위가 없다. 기계가 도는 구간이라 「몇 개 중 몇 개」로 나뉘지 않는다 —
+      //   monitor 가 준 % 를 그대로 쓴다
+      units: null,
     });
 
     return steps;
@@ -333,6 +350,67 @@
    *   그 전에는 0개인 것이 정상이다. 0/19 를 빨갛게 칠하면 사람은 자기가
    *   무언가 안 한 줄 안다 — 그래서 시작 전에는 '아직'이라고만 적는다.
    */
+  /**
+   * 네 단계를 **성격으로** 둘로 나눈 큰 눈금.
+   *
+   * ★ 왜 넷을 하나로 뭉치지 않고 둘로 나누는가: 1·2·3 은 **사람이 값을 채우는
+   *   일**이고 4 는 **기계가 도는 일**이다. 성격이 다른 둘을 한 막대로 뭉치면
+   *   "80%" 가 내가 더 할 일이 남았다는 뜻인지 기다리면 되는 상태인지 알 수 없다.
+   *   나누면 그 질문에 바로 답한다 — 「내가 채울 것」과 「기다리면 되는 것」.
+   *
+   * ★ 채우기 % 는 **평균이 아니라 개수**다. 세 단계의 %를 평균 내면 필수 항목
+   *   17개를 0개 채운 사람과 1개 남긴 사람이 같은 자리에 선다. 그래서 실제로
+   *   채워야 할 것을 하나씩 세고(프로젝트 1 + 필수 N + 사양 확정 1), 그 비를 쓴다.
+   *
+   * ★ 하나라도 못 물어봤으면 **아는 것만 세지 않는다.** 분모가 줄어 진행률이
+   *   부풀기 때문이다 — 모른다고 적는다.
+   *
+   * @param {Array} steps stepProgress() 결과
+   */
+  function groupProgress(steps) {
+    var by = {};
+    (steps || []).forEach(function (s) { by[s.id] = s; });
+
+    var done = 0, total = 0, unknown = [];
+    GROUPS[0].steps.forEach(function (id) {
+      var s = by[id];
+      if (!s || !s.units) { unknown.push(s ? s.label : id); return; }
+      done += s.units.done;
+      total += s.units.total;
+    });
+
+    var fillKnown = unknown.length === 0 && total > 0;
+    var fillPct = fillKnown ? Math.round(done / total * 100) : null;
+    var fill = {
+      id: GROUPS[0].id, label: GROUPS[0].label, why: GROUPS[0].why,
+      pct: fillPct,
+      state: !fillKnown ? 'unknown'
+        : (done >= total ? 'done' : (done ? 'doing' : 'todo')),
+      detail: fillKnown
+        ? ('채워야 할 ' + total + '개 중 ' + done + '개 (' + (total - done) + '개 남음)')
+        : ('아직 확인하지 못했습니다 — ' + unknown.join(' · ')),
+      units: fillKnown ? { done: done, total: total } : null,
+      steps: GROUPS[0].steps.map(function (id) { return by[id]; }).filter(Boolean),
+    };
+
+    // ★ 생성은 채우기가 끝나야 시작한다. 「아직 시작하지 않았습니다」만 적으면
+    //   사용자는 버튼을 찾는데, 버튼은 사양을 확정해야 열린다 — 무엇이 막고
+    //   있는지 함께 적는다
+    var m = by.make || null;
+    var make = {
+      id: GROUPS[1].id, label: GROUPS[1].label, why: GROUPS[1].why,
+      pct: m ? m.pct : null,
+      state: m ? m.state : 'unknown',
+      detail: (m && m.state === 'todo' && fill.state !== 'done')
+        ? '정보값을 다 채우고 사양을 확정하면 시작됩니다'
+        : (m ? m.detail : '아직 확인하지 못했습니다'),
+      units: null,
+      steps: m ? [m] : [],
+    };
+
+    return [fill, make];
+  }
+
   function computedProgress(computedKeys, values, started) {
     var keys = computedKeys || [];
     var v = values || {};
@@ -355,7 +433,9 @@
 
   return {
     PHASES: PHASES, AGENT_STATE: AGENT_STATE, STEPS: STEPS,
-    stepProgress: stepProgress, computedProgress: computedProgress,
+    GROUPS: GROUPS,
+    stepProgress: stepProgress, groupProgress: groupProgress,
+    computedProgress: computedProgress,
     phaseOf: phaseOf, toneOf: toneOf, labelOf: labelOf,
     viewFrom: viewFrom, nextPollMs: nextPollMs, isFinal: isFinal, ms: ms,
   };
