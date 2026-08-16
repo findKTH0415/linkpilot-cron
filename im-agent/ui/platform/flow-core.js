@@ -100,9 +100,15 @@
     var c = ctx || {};
     var base = c.base || '';
     var url = base + step.file;
-    if (step.needsProject && c.projectId) {
-      url += '?project=' + encodeURIComponent(c.projectId);
-    }
+    /* ★ 2026-08-16 — api 도 함께 넘긴다.
+       [사고] project 만 넘겨 단계 화면(intake/fields/reports)이 각자 api:null 인 채 열렸다.
+              부모 report-flow 는 api 가 있어 단계를 열었는데, 안에서는 「API 주소가 설정되지
+              않았습니다」— 부모가 열어 준 문이 안에서 잠겨 있었다. reports.html 은 api 가 없으면
+              **데모 데이터**를 쓰므로 앱 안에서는 가짜 산출물이 진짜처럼 보일 수 있었다. */
+    var qs = [];
+    if (c.api) qs.push('api=' + encodeURIComponent(c.api));
+    if (step.needsProject && c.projectId) qs.push('project=' + encodeURIComponent(c.projectId));
+    if (qs.length) url += '?' + qs.join('&');
     return url;
   }
 

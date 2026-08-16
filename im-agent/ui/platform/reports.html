@@ -287,7 +287,9 @@ ul { margin: 0; padding: 0; list-style: none; }
  *   아래는 **기본값**이고, 앱이 준 값이 그 위에 얹힌다.
  */
 window.LINKPILOT_REPORTS = Object.assign({
-  session: { authenticated: true, planId: 'pro', status: 'active', name: '홍길동' },
+  /* ★ 2026-08-16 표시용 이름 하드코딩 제거 — 앱 안에서 남의 이름이 보였다.
+     부모가 세션을 넘길 때까지 비운다 */
+  session: { authenticated: true, planId: 'pro', status: 'active', name: '' },
   requiredPlan: 'pro',
   planNames: { free: 'Free', basic: 'Basic', pro: 'Pro', business: 'Business' },
 
@@ -349,6 +351,15 @@ window.LINKPILOT_REPORTS = Object.assign({
   var C = window.LINKPILOT_REPORTS;
   var G = window.LinkPilotGate;
   var view = document.getElementById('view');
+  /* ★ 2026-08-16 — 부모(report-flow)가 넘긴 api·project 를 받는다 (intake/fields 와 같은 계약).
+     api 가 오면 데모 프로젝트 목록을 버린다 — 서버가 있는데 데모 목록이 남으면 존재하지 않는
+     프로젝트로 생성을 누르게 된다. */
+  try {
+    var _qp = new URLSearchParams(window.location.search);
+    if (_qp.get('api')) { C.api = _qp.get('api'); C.projects = []; }
+    if (_qp.get('project')) { C.projects = (C.projects || []).filter(function (p) { return p.id === _qp.get('project'); });
+      if (!C.projects.length) C.projects = [{ id: _qp.get('project'), name: _qp.get('project') }]; }
+  } catch (_) {}
 
   /**
    * 어느 프로젝트를 다루는가.
