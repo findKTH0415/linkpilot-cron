@@ -267,7 +267,13 @@ window.addEventListener('message', function (e) {
  * ★ 화면을 복사하지 않는다. report-flow.html 을 읽어 스크립트만 인라인한다.
  *   복사하면 제품을 고친 날부터 미리보기가 거짓말을 한다.
  */
-async function buildSection() {
+/**
+ * 단계별 문서 넷. 단계마다 상태가 다르므로 파일이 같아도 따로 만든다.
+ *
+ * ★ 밖으로 꺼내 둔 이유: 「미리 그려 넣는 판」(build-static.js)도 **같은 문서**를
+ *   써야 한다. 두 벌이 되면 한쪽만 고치는 날 두 미리보기가 다른 화면을 보여준다.
+ */
+async function buildSectionDocs() {
   const AGENT = path.join(HERE, '..', '..');
   const { createHandlers } = require(path.join(AGENT, 'ui', 'api-router.cjs'));
   const h = createHandlers({ agentModulePath: AGENT });
@@ -280,11 +286,15 @@ async function buildSection() {
   };
   const AFTER = { CONFIRM_SPEC };
 
-  // 단계별 문서 — 단계마다 상태가 다르므로 파일이 같아도 따로 만든다
   const docs = {};
   SCREENS.forEach((s) => {
     docs[s.id] = selfContained(s.file, { inject: INJECT[s.file], after: AFTER[s.after] });
   });
+  return docs;
+}
+
+async function buildSection() {
+  const docs = await buildSectionDocs();
 
   let shell = read('report-flow.html');
   (shell.match(/<script src="([^"]+)"><\/script>/g) || []).forEach((tag) => {
@@ -522,4 +532,8 @@ async function main() {
 
 if (require.main === module) main().catch(e => { console.error(e); process.exit(1); });
 
-module.exports = { build, buildSection, SCREENS, EXTRAS };
+module.exports = {
+  build, buildSection, buildSectionDocs, SCREENS, EXTRAS,
+  // 「미리 그려 넣는 판」이 같은 패널을 쓴다 — 두 벌로 만들지 않는다
+  changePanel, evidencePanel,
+};

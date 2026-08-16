@@ -267,3 +267,48 @@ test('내역 문구가 태그로 해석되지 않는다', async () => {
   const panel = html.slice(at, html.indexOf('</section>', at));
   assert.ok(!/<script|<img|onerror=/i.test(panel), '내역 문구가 이스케이프되지 않았다');
 });
+
+/* ───────────── 미리 그려 넣은 판 ───────────── */
+//
+// 평소 미리보기는 단계 화면을 브라우저에서 스크립트로 그린다. 보는 쪽에서
+// 스크립트가 막히면 위쪽 패널만 뜨고 화면은 빈 칸이 된다 — 그때 쓰는 판이다.
+
+test('★ 미리 그려 넣은 판은 스크립트를 걷어낸다', () => {
+  const S = require('../ui/platform/build-static.js');
+  const dom = '<html><head><style>a{}</style><script>var x=1;</script></head>'
+    + '<body data-rendered-height="1234"><div onclick="go()">본문</div>'
+    + '<script src="x.js"></script></body></html>';
+  const out = S.stripScripts(dom);
+
+  assert.ok(!/<script/i.test(out), '스크립트가 남으면 다시 돌면서 그린 화면을 지운다');
+  assert.ok(!/onclick=/i.test(out), '인라인 핸들러도 걷어내야 한다');
+  assert.match(out, /<style>a\{\}<\/style>/, 'CSS 까지 걷어내면 화면이 무너진다');
+  assert.match(out, /본문/, '본문이 사라졌다');
+});
+
+test('★ 높이를 못 재면 잘라 내지 않고 넉넉히 준다', () => {
+  const S = require('../ui/platform/build-static.js');
+  assert.strictEqual(S.heightOf('<body data-rendered-height="1234">'), 1234);
+  assert.ok(S.heightOf('<body>') >= 2000, '못 쟀을 때 150px 로 잘리면 화면이 없는 것과 같다');
+  assert.ok(S.heightOf('<body data-rendered-height="999999">') <= 20000, '상한이 없으면 브라우저가 죽는다');
+});
+
+test('★ 두 미리보기가 같은 문서·같은 패널을 쓴다', () => {
+  const src = fs.readFileSync(path.join(PLATFORM, 'build-static.js'), 'utf8');
+  assert.match(src, /require\('\.\/build-preview\.js'\)/,
+    '단계 문서를 따로 만들면 두 미리보기가 다른 화면을 보여주는 날이 온다');
+  assert.match(src, /buildSectionDocs/);
+  assert.match(src, /changePanel|evidencePanel/, '변경 내역·확인 패널도 한 벌만 쓴다');
+});
+
+test('★ 접힌 것을 펴고 그린다', () => {
+  const S = require('../ui/platform/build-static.js');
+  assert.match(S.EXPAND, /aria-expanded="false"/,
+    '눌러 볼 수 없는 판인데 접힌 채로 그리면 목록이 영영 안 보인다');
+});
+
+test('★ 브라우저가 없으면 빈 파일을 내놓지 않는다', () => {
+  const src = fs.readFileSync(path.join(PLATFORM, 'build-static.js'), 'utf8');
+  assert.match(src, /process\.exit\(2\)/, '못 만들면 실패로 끝나야 한다');
+  assert.match(src, /찾지 못했다/, '왜 못 만들었는지 말해야 한다');
+});

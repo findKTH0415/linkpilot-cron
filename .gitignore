@@ -13,6 +13,11 @@ im-agent/ui/vanilla/preview.html
 # 커밋하면 소스와 갈리고, 갈린 것을 아무도 눈치채지 못한다
 im-agent/ui/platform/preview.html
 
+# 미리 그려 넣은 판 — 만들려면 헤드리스 크로미움이 있어야 한다 (npm run im:static).
+# CI 에는 브라우저가 없어 "재생성 결과가 커밋본과 같은가"를 검사할 수 없다.
+# 검사할 수 없는 산출물을 커밋하면 소스와 갈려도 아무도 눈치채지 못한다
+im-agent/ui/platform/section-static.html
+
 # 브라우저 검증 시 생기는 DOM 덤프
 v-*.html
 
