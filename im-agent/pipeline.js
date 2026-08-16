@@ -100,7 +100,7 @@ async function run(opts = {}) {
 
   // ── 07 Geo / Satellite (공공데이터 — 지적·공시지가·건축물대장) ──
   // 다른 Agent보다 먼저 돈다: 여기서 확보한 PNU/좌표가 감정평가·매스의 입력이다.
-  const geo = await runAgent('07_geo', { projectId }, ctx);
+  const geo = await runAgent('07_geo', { projectId, templateId: templateId || null }, ctx);
   results['07_geo'] = geo;
   if (geo.output) {
     dataset.dropSource('지적공부(VWorld)');
@@ -123,19 +123,23 @@ async function run(opts = {}) {
   const res = await runAgent('03_research', {
     projectId,
     assetType: assetTypeFact ? String(assetTypeFact.value) : (templateId || 'generic'),
+    templateId: templateId || null,
     location: locationFact ? String(locationFact.value) : null,
     projectName: nameFact ? String(nameFact.value) : projectId,
   }, ctx);
   results['03_research'] = res;
   if (res.output) {
-    // ★ 서술은 verified=false 라 Dataset 에 안 들어가지만, ECOS 시장금리는
-    //   출처가 확실해 facts 로 들어온다. 없으면 빈 배열이라 그냥 통과한다
+    store.writeJson(projectId, '05_Market/research.json', res.output);
+    // ★ 서술(sections)이 아니라 **실측 지표만** Dataset 에 들어간다.
+    //   LLM 기억은 여기로 오지 않는다 — 03-research.js 머리말의 ①/② 구분 참고.
     if (res.output.facts && res.output.facts.length) {
+      dataset.dropSource('REC 현물시장(한국전력거래소)');
+      for (const f of res.output.facts) dataset.dropSource(f.source);
       dataset.addMany(res.output.facts);
       dataset.resolve();
       saveDataset(projectId, dataset);
+      log(`  시장지표: ${res.output.facts.length}건 (출처 있는 실측값)`);
     }
-    store.writeJson(projectId, '05_Market/research.json', res.output);
   }
 
   // ── 04 Financial ──────────────────────────────────────────
@@ -186,6 +190,7 @@ async function run(opts = {}) {
     projectId,
     financial: fin.output || null,
     research: res.output || null,
+    geo: geo.output || null,
     appraisal: appraisal.output || null,
     massing: massing.output || null,
   }, ctx);

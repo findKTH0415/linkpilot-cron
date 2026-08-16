@@ -7,7 +7,7 @@
  *   내부 검토·타당성 판단용 참고 수치다. 모든 산출물에 이 문구가 따라붙는다.
  *
  * 3방식 병행 (전부 결정적 계산 — LLM 미사용):
- *   ① 공시지가 기준   개별공시지가 × 면적 × 현실화계수
+ *   ① 공시지가 기준   개별공시지가 × **시점수정** × 면적 × 현실화계수
  *   ② 거래사례비교법   인근 실거래 ㎡단가 중앙값 × 면적
  *   ③ 수익환원법      (안정화 NOI ÷ Cap Rate) − 건물가치
  *
@@ -17,6 +17,7 @@
 const nsdi = require('../connectors/nsdi');
 const molit = require('../connectors/molit');
 const pnuUtil = require('../connectors/pnu');
+const reb = require('../connectors/reb');
 const cache = require('../connectors/cache');
 const { round, formatEok } = require('../core/numeric');
 const { kstDate } = require('../core/kst');
@@ -58,10 +59,71 @@ function median(values) {
   return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
 }
 
+/** `YYYY-MM-DD` → `YYYYMM`. 자릿수를 세지 않고 구분자로 자른다. */
+function yyyymm(isoDate) {
+  const m = /^(\d{4})-(\d{2})/.exec(String(isoDate || ''));
+  return m ? `${m[1]}${m[2]}` : null;
+}
+
 /** 원/㎡ × ㎡ → 억원 */
 function toEok(pricePerSqm, areaSqm) {
   if (!pricePerSqm || !areaSqm) return null;
   return round((pricePerSqm * areaSqm) / 1e8, 1);
+}
+
+/**
+ * 시점수정 — 공시지가 기준일(1월 1일)부터 평가시점까지의 지가변동률 누적.
+ *
+ * ★ 개별공시지가는 **매년 1월 1일 기준**이다. 8월에 만드는 IM 에 1월 1일 값을
+ *   그대로 쓰면 경과 기간만큼 어긋난다. 감정평가 실무의 표준 절차다.
+ * ★ 이 값은 한국부동산원 **공표 통계**라 현실화계수와 달리 가정이 아니다.
+ * ★ 지역을 특정하지 못하면 **전국 값으로 대체하지 않고 적용을 포기한다.**
+ *   전국 변동률을 쓰면 지역 편차가 사라지는데 문서에는 "시점수정 적용"만 남는다.
+ *
+ * @returns {{factor:number, percent:number, region:string, from:string, to:string}|null}
+ */
+async function timeAdjust(officialSource, ds, ctx, today, facts, src) {
+  if (!reb.isAvailable()) return null;
+
+  // 고시연도는 출처 문자열에 들어 있다 — '개별공시지가(2026년 고시)'
+  const m = /(\d{4})\s*년/.exec(String(officialSource || ''));
+  const baseYear = m ? m[1] : null;
+  if (!baseYear) {
+    ctx.warn('공시지가 고시연도를 알 수 없어 시점수정을 적용하지 못했다');
+    return null;
+  }
+
+  const locFact = ds.get('project.location');
+  const address = locFact ? String(locFact.value) : null;
+  // 색인은 지역코드용이라 최신월일 필요가 없다 — 캐시가 오래 사는 값을 쓴다
+  const region = await reb.resolveRegion(address, `${baseYear}01`);
+  if (!region.ok) {
+    ctx.warn(`시점수정 미적용: ${region.error}`);
+    return null;
+  }
+
+  // ★ `2026-08-16` → `202608`. slice(0,6) 이면 `20260` 이 나와 조회가 통째로
+  //   빈다. 그래도 시점수정만 조용히 빠지고 평가액은 그럴듯하게 나오므로
+  //   **로그를 안 보면 모른다.** 실제로 그렇게 한 번 나갔다 (2026-08-16 데모).
+  const adj = await reb.timeAdjustment({
+    clsId: region.value.clsId,
+    from: `${baseYear}01`,
+    to: yyyymm(today),
+    expectRegion: region.value.full,   // 고른 지역과 조회된 지역이 다르면 적용하지 않는다
+  });
+  if (!adj.ok) {
+    ctx.warn(`시점수정 미적용: ${adj.error}`);
+    return null;
+  }
+
+  const v = adj.value;
+  facts.push({
+    key: 'land.price_change_rate', value: v.percent, unit: '%',
+    confidence: 0.95, verified: true,
+    quote: `${v.region} 지가지수 ${v.baseIndex} → ${v.lastIndex} (${v.from}~${v.to}, ${v.months}개월 경과)`,
+    ...src(`지가지수(한국부동산원, ${v.region})`),
+  });
+  return { factor: v.factor, percent: v.percent, region: v.region, from: v.from, to: v.to };
 }
 
 async function run(input, ctx) {
@@ -105,14 +167,24 @@ async function run(input, ctx) {
 
   if (officialPrice !== null) {
     const realization = Number(process.env.IM_AGENT_LAND_REALIZATION || DEFAULT_REALIZATION);
+    const adj = await timeAdjust(officialSource, ds, ctx, today, facts, src);
+
     methods.official = {
       label: '공시지가 기준',
       pricePerSqm: officialPrice,
+      timeAdjustFactor: adj ? adj.factor : null,
+      adjustedPricePerSqm: adj ? Math.round(officialPrice * adj.factor) : officialPrice,
       realizationFactor: realization,
-      valueEok: toEok(officialPrice * realization, areaSqm),
-      basis: `${officialSource} × 현실화계수 ${realization}`,
-      assumption: `현실화계수 ${realization}는 시장 통상치 가정이다 (IM_AGENT_LAND_REALIZATION 로 조정)`,
+      valueEok: toEok(officialPrice * (adj ? adj.factor : 1) * realization, areaSqm),
+      basis: `${officialSource}`
+        + (adj ? ` × 시점수정 ${adj.percent > 0 ? '+' : ''}${adj.percent}% (${adj.region}, ${adj.from}~${adj.to})` : '')
+        + ` × 현실화계수 ${realization}`,
+      assumption: `현실화계수 ${realization}는 시장 통상치 가정이다 (IM_AGENT_LAND_REALIZATION 로 조정)`
+        + (adj ? '. 시점수정은 한국부동산원 공표 지가지수이므로 가정이 아니다' : ''),
     };
+    if (!adj) {
+      ctx.warn('시점수정 미적용 — 공시지가는 1월 1일 기준이므로 평가시점과 어긋난다');
+    }
   }
 
   // ── ② 거래사례비교법 ───────────────────────────────────
@@ -271,7 +343,19 @@ async function run(input, ctx) {
  */
 const FILLS = ['land.official_price'];
 
+/**
+ * 조건이 붙는 채움 — 지가변동률은 **부동산원 키가 있고 지역코드가 잡힐 때만** 나온다.
+ *
+ * ★ FILLS 로 올리면 키가 없는 환경에서 화면이 "자동으로 채워집니다"라고 해 놓고
+ *   조용히 빈칸이 남는다. 시점수정은 8월 IM 이 1월 1일 값을 쓰는 것을 막는
+ *   장치라 빠지면 값이 낡은 채로 실린다 — 안 물어보는 쪽이 더 나쁘다.
+ */
+const CONDITIONAL_FILLS = {
+  '지가변동률(한국부동산원 키가 있을 때만)': ['land.price_change_rate'],
+};
+
 module.exports = {
+  yyyymm,
   id: '08_appraisal', label: 'Appraisal Agent (감정평가)',
-  inputSchema, outputSchema, run, median, toEok, DISCLAIMER, FILLS,
+  inputSchema, outputSchema, run, median, toEok, DISCLAIMER, FILLS, CONDITIONAL_FILLS,
 };

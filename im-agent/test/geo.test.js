@@ -124,6 +124,201 @@ test('실거래 조회월: 연초에도 전년으로 정확히 넘어간다', ()
   assert.deepStrictEqual(months, ['202602', '202601', '202512', '202511']);
 });
 
+// ★ 이 저장소가 두 번 걸린 함정이다. NED 응답은 최초 고시연도부터 **오름차순**이라
+//   앞에서부터 집으면 20년 전 값을 '최신'으로 쓴다. 실제로 공시지가가 2015년 값
+//   (46,100,000원/㎡)으로 들어가 있었다 — 진짜 최신은 2026년 65,730,000원/㎡ 다.
+//   출처 표시는 정상이라 눈으로는 안 잡힌다. 그래서 테스트로 고정한다.
+test('연도 이력은 최신이 먼저 온다 (응답은 오름차순으로 도착한다)', () => {
+  const ascending = [
+    { year: 2006, pricePerSqm: 36600000 },
+    { year: 2015, pricePerSqm: 46100000 },
+    { year: 2025, pricePerSqm: 62570000 },
+    { year: 2026, pricePerSqm: 65730000 },
+  ];
+  const sorted = nsdi.latestFirst(ascending);
+  assert.strictEqual(sorted[0].year, 2026, '최신 고시연도를 골라야 한다');
+  assert.strictEqual(sorted[0].pricePerSqm, 65730000);
+  assert.strictEqual(ascending[0].year, 2006, '입력 배열을 변형하지 않는다');
+});
+
+test('연도가 없는 행은 최신으로 뽑히지 않는다', () => {
+  const rows = [{ year: null, areaSqm: 1 }, { year: 2024, areaSqm: 2 }];
+  assert.strictEqual(nsdi.latestFirst(rows)[0].year, 2024);
+});
+
+// ★ 지역·지구는 조회는 다 해 놓고 대표 하나만 IM 에 실려 왔다. 서울 중구 표본은
+//   19건 중 8건이 딜 조건이었다 — 토지거래허가구역과 고도제한 두 겹이 포함된다.
+//   그것들이 빠지면 "용적률 상한 1300%"만 남아, 실제로 못 쓰는 숫자를 근거로 쓴다.
+test('딜 조건이 되는 지역·지구를 골라낸다', () => {
+  const 실측 = [
+    '일반상업지역', '광장', '도로', '토지거래계약에관한허가구역',
+    '대공방어협조구역(위탁고도:77-257m)', '가로구역별 최고높이 제한지역',
+    '제1종지구단위계획구역', '등록문화유산구역', '과밀억제권역', '가축사육제한구역',
+  ];
+  const hits = nsdi.classifyZones(실측);
+  const zones = hits.map(h => h.zone);
+
+  assert.ok(zones.includes('토지거래계약에관한허가구역'), '거래 허가는 딜 조건이다');
+  assert.ok(zones.includes('대공방어협조구역(위탁고도:77-257m)'), '고도제한은 용적률을 깎는다');
+  assert.ok(!zones.includes('일반상업지역'), '용도지역 자체는 land.zoning 이 맡는다');
+  assert.ok(!zones.includes('도로'), '기반시설은 규제가 아니다');
+  assert.ok(!zones.includes('가축사육제한구역'), '이 딜과 무관한 것까지 올리면 신호가 묻힌다');
+
+  assert.strictEqual(hits[0].severity, 'RED', 'RED 를 먼저 보여 준다');
+  assert.strictEqual(hits.filter(h => h.severity === 'RED').length, 1);
+});
+
+// RED 는 승인 게이트에서 배포를 막는다 (core/gate.js). 넓히면 게이트가 의미를 잃는다.
+test('RED 는 거래·개발 성립에 조건이 붙는 것만이다', () => {
+  const yellowOnly = nsdi.classifyZones(['과밀억제권역', '중점경관관리구역', '제1종지구단위계획구역']);
+  assert.strictEqual(yellowOnly.filter(h => h.severity === 'RED').length, 0);
+  assert.strictEqual(yellowOnly.length, 3);
+
+  assert.strictEqual(nsdi.classifyZones(['개발제한구역'])[0].severity, 'RED');
+  assert.deepStrictEqual(nsdi.classifyZones([]), [], '없으면 아무것도 지어내지 않는다');
+});
+
+test('같은 지역·지구가 두 번 와도 한 번만 올린다', () => {
+  // 실측 응답에 '토지거래계약에관한허가구역' 이 두 줄로 들어 있었다
+  const hits = nsdi.classifyZones(['토지거래계약에관한허가구역', '토지거래계약에관한허가구역']);
+  assert.strictEqual(hits.length, 1);
+});
+
+// ── 기상청 일사량 ────────────────────────────────────────────
+// 응답이 JSON 이 아니라 주석 헤더가 붙은 CSV 라 열 위치로 읽는다. 기상청이 열을
+// 늘리면 조용히 다른 값을 일사량으로 읽게 되므로 실측 표본을 그대로 고정한다.
+const KMA_SAMPLE = [
+  '#START7777',
+  '# YYMMDD STN    TA      TA      TA      TA      TA      HM      HM      HM      CA      SS      SS       SI       SI',
+  '20250801,108,31.0,35.1,1213,27.8,538,66.9,49.0,1358,8.4,4.5,14.1,16.09,2.80,',
+  '20250802,108,31.2,36.2,1600,27.3,605,62.1,45.0,1519,5.4,8.7,14.1,20.88,2.73,',
+  '20250803,108,28.8,32.5,1348,24.0,2359,69.0,52.0,1748,9.0,0.2,14.0,8.08,1.56,',
+  '#7777END',
+].join('\n');
+
+test('일통계: 일사량·일조시간을 올바른 열에서 읽는다', () => {
+  const kma = require('../connectors/kma');
+  const { rows, malformed } = kma.parseDaily(KMA_SAMPLE);
+
+  assert.strictEqual(rows.length, 3, '주석줄(#)은 세지 않는다');
+  assert.strictEqual(malformed, 0);
+  assert.deepStrictEqual(rows[0], {
+    date: '20250801', stn: '108', solarMJ: 16.09, sunshineHr: 4.5, cloud: 8.4,
+  });
+  // 흐린 날(전운량 9.0)에 일사량이 3분의 1로 떨어진다 — 열을 잘못 읽으면 이 관계가 깨진다
+  assert.ok(rows[2].solarMJ < rows[1].solarMJ / 2 && rows[2].cloud > rows[1].cloud);
+});
+
+test('일통계: 결측(-9 계열)은 0 이 아니라 null 이다', () => {
+  const kma = require('../connectors/kma');
+  // 흐린 날의 0 은 실측값이고, -9 는 관측이 없었다는 뜻이다. 섞으면 합계가 조용히 틀어진다.
+  const text = [
+    '20250804,108,28.1,33.9,1647,23.7,522,75.5,53.0,1638,7.1,0.0,14.0,0.0,0.0,',
+    '20250805,108,29.1,33.5,1505,25.4,558,67.4,47.0,1451,-9.0,-9.0,14.0,-9.0,-9.0,',
+  ].join('\n');
+  const { rows } = kma.parseDaily(text);
+
+  assert.strictEqual(rows[0].solarMJ, 0, '흐린 날의 0 은 값이다');
+  assert.strictEqual(rows[1].solarMJ, null, '-9 는 결측이다');
+});
+
+test('일통계: 열이 모자란 줄은 값으로 세지 않는다', () => {
+  const kma = require('../connectors/kma');
+  const { rows, malformed } = kma.parseDaily('20250801,108,31.0\n#주석\n');
+  assert.strictEqual(rows.length, 0);
+  assert.strictEqual(malformed, 1, '조용히 버리지 않고 센다');
+});
+
+test('MJ→kWh 환산이 맞다', () => {
+  const kma = require('../connectors/kma');
+  // 서울 2025년 실측 합계 5,179.1 MJ/㎡ → 1,438.6 kWh/㎡ (국내 통상 1,200~1,500)
+  assert.strictEqual(Math.round(5179.1 * kma.MJ_TO_KWH * 10) / 10, 1438.6);
+});
+
+test('API허브 오류 본문을 알아본다', () => {
+  const kma = require('../connectors/kma');
+  assert.match(kma.errorOf('{"result":{"status":401,"message":"유효한 인증키가 아닙니다."}}'), /인증키/);
+  assert.match(kma.errorOf('{"result":{"status":403,"message":"활용신청이 필요한 API 입니다."}}'), /활용신청/);
+  assert.strictEqual(kma.errorOf(KMA_SAMPLE), null, '정상 응답을 오류로 보지 않는다');
+});
+
+// ── REC 현물시장 ─────────────────────────────────────────────
+test('REC: 개월 빼기가 연을 넘어간다', () => {
+  const kpx = require('../connectors/kpx');
+  assert.strictEqual(kpx.monthsBefore('20260813', 12), '20250813');
+  assert.strictEqual(kpx.monthsBefore('20260213', 3), '20251113', '해를 넘겨도 맞아야 한다');
+  assert.strictEqual(kpx.monthsBefore('20260101', 1), '20251201');
+});
+
+// ★ 처음에는 월별 변동률을 곱해 누적했는데 한 달을 더 셌다. 202601 변동률은
+//   2025-12 → 2026-01 구간인데 공시지가 기준일이 2026-01-01 이라 그건 기준일
+//   이전이다. 그 결과 +2.28% 로 나왔고 지수 비로 낸 정답은 +1.94% 였다.
+//   0.34%p 차이가 표본 필지 기준 평가액 28억원을 움직였다.
+test('시점수정은 지수의 비다 — 변동률 누적은 경계를 한 달 더 센다', () => {
+  const 실측지수 = { '202601': 100, '202606': 101.943584586 };
+  const 지수비 = 실측지수['202606'] / 실측지수['202601'];
+
+  const 월변동률 = [0.333, 0.308, 0.41, 0.427, 0.42, 0.364];   // 202601~202606
+  const 누적 = 월변동률.reduce((f, r) => f * (1 + r / 100), 1);
+
+  assert.strictEqual(Math.round(지수비 * 1e6) / 1e6, 1.019436);
+  assert.ok(누적 > 지수비, '변동률 누적이 과대계상된다');
+  // 기준월(202601) 변동률을 빼면 지수 비와 맞는다 — 원인이 그것임을 고정한다.
+  // 공표 변동률 자체가 소수 셋째 자리에서 반올림된 값이라 정확히 일치하지는 않는다.
+  assert.ok(Math.abs(누적 / 1.00333 - 지수비) < 1e-5,
+    `기준월 변동률을 제거하면 지수 비와 만나야 한다 (차이 ${Math.abs(누적 / 1.00333 - 지수비)})`);
+});
+
+// ── 기업기본정보 ─────────────────────────────────────────────
+// '롯데케미칼' 로 22건이 오는데 법인등록번호는 하나다 — 전부 같은 회사의
+// 개정 이력이다. 이걸 서로 다른 법인으로 세면 있지도 않은 모호성을 경고한다.
+test('같은 법인의 개정 이력은 하나로 합친다 (최신 리비전)', () => {
+  const fsc = require('../connectors/fsc');
+  const rows = [
+    { corpRegNo: '1101110193196', name: '롯데케미칼(주)', market: '유가', revisedOn: '20260101' },
+    { corpRegNo: '1101110193196', name: '롯데케미칼(주)', market: '', revisedOn: '20260814' },
+    { corpRegNo: '1101110193196', name: '롯데케미칼(주)', market: '유가', revisedOn: '20260814' },
+  ];
+  const out = fsc.dedupeByCorp(rows);
+  assert.strictEqual(out.length, 1, '법인등록번호가 같으면 한 곳이다');
+  assert.strictEqual(out[0].revisedOn, '20260814', '최신 리비전을 남긴다');
+});
+
+test('법인명 표기 차이를 흡수한다', () => {
+  const fsc = require('../connectors/fsc');
+  const a = fsc.normalizeName('롯데케미칼(주)');
+  assert.strictEqual(a, fsc.normalizeName('주식회사 롯데케미칼'));
+  assert.strictEqual(a, fsc.normalizeName('롯데케미칼㈜'));
+  assert.notStrictEqual(a, fsc.normalizeName('롯데케미칼건설'), '다른 회사까지 같게 만들면 안 된다');
+});
+
+// ★ 대표자 성명은 개인정보다 (CLAUDE.md §6 — 대외 문서에 개인 성명 미표기).
+//   응답에는 들어 있으므로 Connector 경계에서 확실히 버려야 한다.
+test('대표자 성명을 담지 않는다', () => {
+  const fsc = require('../connectors/fsc');
+  const corp = fsc.toCorp({ crno: '1', corpNm: 'X', enpRprFnm: '홍길동, 김철수' });
+  assert.strictEqual(JSON.stringify(corp).includes('홍길동'), false, '개인 성명이 새어 나가면 안 된다');
+  assert.strictEqual(corp.enpRprFnm, undefined);
+});
+
+test('업력은 기준일을 받아 계산한다 (서버 시각에 의존하지 않는다)', () => {
+  const fsc = require('../connectors/fsc');
+  assert.strictEqual(fsc.yearsSince('19760316', '2026-08-16'), 50);
+  assert.strictEqual(fsc.yearsSince('19760316', null), null, '기준일이 없으면 지어내지 않는다');
+  assert.strictEqual(fsc.yearsSince('', '2026-08-16'), null);
+});
+
+// ★ slice(0,6) 이면 '2026-08-16' 이 '20260' 이 된다. 조회는 통째로 비는데
+//   시점수정만 조용히 빠지고 평가액은 그럴듯하게 나와, 로그를 안 보면 모른다.
+//   실제로 그렇게 한 번 나갔다 (2026-08-16 데모 파이프라인).
+test('평가시점을 YYYYMM 으로 자를 때 자릿수를 세지 않는다', () => {
+  const { yyyymm } = require('../agents/08-appraisal');
+  assert.strictEqual(yyyymm('2026-08-16'), '202608');
+  assert.strictEqual(yyyymm('2026-12-01'), '202612');
+  assert.strictEqual(yyyymm('2026-1-5'), null, '형식이 다르면 지어내지 않는다');
+  assert.strictEqual(yyyymm(null), null);
+});
+
 test('용도지역 상한: 문자열만으로 조회된다 (API 불필요)', () => {
   assert.deepStrictEqual(nsdi.limitsForZone('일반공업지역'), { zone: '일반공업지역', far: 350, bcr: 70 });
   assert.deepStrictEqual(nsdi.limitsForZone('제3종 일반주거지역'), { zone: '제3종일반주거지역', far: 300, bcr: 50 });

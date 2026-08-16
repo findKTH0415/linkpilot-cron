@@ -2,25 +2,27 @@
 /**
  * 03 Market Research Agent
  *
- * ★ 이 Agent의 산출물은 전부 verified=false 다.
- *   LLM이 기억으로 만들어낸 시장 수치는 출처가 검증되지 않았으므로
- *   - 재무모델에 절대 투입되지 않고 (Financial Agent는 Dataset만 읽는다)
- *   - IM 본문에서는 "출처 확인 필요" 표시와 함께 서술 근거로만 쓰인다.
+ * ★ 이 Agent 의 산출물은 **두 갈래**다. 섞이면 안 된다.
  *
- * 실제 운영에서는 Connector Layer(웹검색/통계API)를 붙여 URL 출처를 강제해야 한다.
- * 현재는 그 자리를 명시적으로 비워두고, 근거 URL이 없는 항목을 YELLOW로 표시한다.
+ *   ① 서술(sections) — LLM 이 기억으로 쓴다. 전부 verified=false 다.
+ *      재무모델에 절대 투입되지 않고(Financial 은 Dataset 만 읽는다),
+ *      IM 본문에서 "출처 확인 필요" 표시와 함께 서술 근거로만 쓰인다.
  *
- * ★ 예외가 하나 생겼다: **시장금리**는 한국은행 ECOS 에서 직접 받아 온다.
- *   LLM 서술과 달리 출처가 확실하므로 `facts` 로 Dataset 에 들어간다 —
- *   이 Agent 에서 유일하게 재무·검증이 믿어도 되는 숫자다.
- *   단 채우는 것은 `debt.benchmark_rate`(기준선)이지 `debt.rate`(차입금리)가
- *   아니다. 이유는 connectors/ecos.js 머리말에 적었다.
+ *   ② 실측 지표(facts) — Connector 가 낸다. 출처가 있으므로 Dataset 에 들어간다.
+ *      지금 셋이다 — REC 현물시장 단가(전력거래소, 태양광 딜만) ·
+ *      시장금리(한국은행 ECOS) · 시행사 실재 대조(금감원 DART).
+ *
+ * ★ 시장금리가 채우는 것은 `debt.benchmark_rate`(기준선)이지 `debt.rate`
+ *   (차입금리)가 아니다. 이유는 connectors/ecos.js 머리말에 적었다.
+ * ★ 시행사 대조는 **값을 채우지 않는다.** 동명 법인이 여러 건이면 고르지 않는다.
  */
 
 const llm = require('../core/llm');
+const kpx = require('../connectors/kpx');
 const ecos = require('../connectors/ecos');
 const dart = require('../connectors/dart');
 const { round } = require('../core/numeric');
+const { kstDate } = require('../core/kst');
 
 const inputSchema = {
   type: 'object',
@@ -28,6 +30,7 @@ const inputSchema = {
   properties: {
     projectId: { type: 'string' },
     assetType: { type: 'string' },
+    templateId: { type: 'string', nullable: true },
     location: { type: 'string', nullable: true },
     projectName: { type: 'string' },
   },
@@ -75,12 +78,79 @@ const SCHEMA = {
   },
 };
 
+/**
+ * 실측 시장지표 — LLM 이 아니라 Connector 가 낸다.
+ *
+ * ★ 이 Agent 의 나머지 산출물은 전부 `verified=false` 다(LLM 기억). 여기만
+ *   다르다 — 전력거래소 실거래 통계라 출처가 있고 재무모델에 들어갈 수 있다.
+ *   D-15 가 "Connector 를 붙여 URL 출처를 강제해야 한다"고 적어 둔 자리의 첫 칸이다.
+ *
+ * ★ REC 단가까지만 낸다. 매출(= 발전량 × (SMP + REC × 가중치))은 계산하지
+ *   않는다 — 발전량과 REC 가중치가 가정치다 (등록부 D-25).
+ */
+async function marketFacts(input, ctx, today) {
+  const facts = [];
+  const sources = [];
+
+  // ★ 금리는 딜 종류를 안 가린다 — 태양광이든 부동산이든 차입은 한다.
+  //   REC 는 태양광에서만 부른다. 두 소스를 한 함수에 모아 두는 이유는
+  //   부르는 쪽이 "실측 지표는 여기서 다 온다"고 믿을 수 있어야 하기 때문이다.
+  const rates = await rateFacts(ctx);
+  if (rates.length) {
+    facts.push(...rates);
+    sources.push(...rates.map(f => f.source));
+  }
+
+  if (!isSolar(input) || !kpx.isAvailable()) return { facts, sources };
+
+  const rec = await kpx.recAverage({ months: 12, area: 'land' });
+  if (!rec.ok) {
+    if (!rec.unavailable) ctx.warn(`REC 시장 조회 실패: ${rec.error}`);
+    return { facts, sources };   // 금리는 이미 담겨 있다
+  }
+
+  const v = rec.value;
+  sources.push('REC 현물시장(한국전력거래소)');
+
+  // 가중평균과 단순평균이 크게 벌어지면 거래가 얇다는 뜻이다 — 그 시세는 덜 믿는다
+  const gap = v.weightedAvg && v.simpleAvg
+    ? Math.abs(v.weightedAvg - v.simpleAvg) / v.simpleAvg : 0;
+  if (gap > 0.05) {
+    ctx.warn(`REC 거래량 가중평균(${v.weightedAvg?.toLocaleString('ko-KR')})과 `
+      + `단순평균(${v.simpleAvg?.toLocaleString('ko-KR')})이 ${Math.round(gap * 100)}% 차이 — `
+      + '거래가 얇은 구간이다. 시세를 단정하지 않는다');
+  }
+
+  facts.push({
+    key: 'market.rec_price',
+    value: v.weightedAvg ?? v.simpleAvg,
+    unit: '원/REC',
+    confidence: 0.9,
+    quote: `최근 ${v.months}개월 육지 거래량 가중평균 (${v.sessions}회 개장, `
+      + `${v.from.slice(0, 6)}~${v.latestDate.slice(0, 6)}, 최근가 ${v.latestPrice?.toLocaleString('ko-KR')}원)`,
+    source: `REC 현물시장(한국전력거래소, 기준일 ${v.latestDate})`,
+    sourceDate: today,
+    page: null,
+  });
+  return { facts, sources };
+}
+
+/** 태양광 딜인지 — assetType 문자열과 템플릿 id 를 모두 본다 */
+function isSolar(input) {
+  const s = `${input.assetType || ''} ${input.templateId || ''}`.toLowerCase();
+  return /solar|태양광|pv/.test(s);
+}
+
 async function run(input, ctx) {
+  const today = kstDate();
+  const market = await marketFacts(input, ctx, today);
+
   if (llm.isOffline()) {
     ctx.warn('LLM 오프라인 — 시장조사 생략. IM의 시장분석 절은 자리표시자로 출력된다');
     return {
       sections: TOPICS.map(t => ({ id: t.id, label: t.label, text: '(시장조사 미실행 — LLM 오프라인)', sources: [], certainty: 'low', verified: false })),
-      sources: [], facts: await marketFacts(ctx), sponsor: await sponsorCheck(ctx),
+      // ★ LLM 이 죽어도 실측 지표는 살아 있다 — 출처가 LLM 이 아니기 때문이다
+      sources: market.sources, facts: market.facts, sponsor: await sponsorCheck(ctx),
       confidence: 0, offline: true,
     };
   }
@@ -124,9 +194,9 @@ ${TOPICS.map(t => `- ${t.id}: ${t.label}`).join('\n')}
     ? sections.reduce((a, s) => a + (certScore[s.certainty] || 0.35), 0) / sections.length
     : 0;
 
-  const sources = [...new Set(sections.flatMap(s => s.sources))];
+  const sources = [...new Set([...sections.flatMap(s => s.sources), ...market.sources])];
   return {
-    sections, sources, facts: await marketFacts(ctx), sponsor: await sponsorCheck(ctx),
+    sections, sources, facts: market.facts, sponsor: await sponsorCheck(ctx),
     confidence: round(confidence, 3), offline: false,
   };
 }
@@ -183,7 +253,7 @@ async function sponsorCheck(ctx) {
  * ★ 실패해도 Agent 를 죽이지 않는다 (CLAUDE.md §4). 한 소스가 없다고 시장조사
  *   전체가 사라지면 IM 이 통째로 빈다. 경고만 남기고 빈 배열을 돌려준다.
  */
-async function marketFacts(ctx) {
+async function rateFacts(ctx) {
   if (!ecos.isAvailable()) {
     if (ctx && ctx.warn) ctx.warn('ECOS_API_KEY 미설정 — 시장금리를 가정치로 둔다');
     return [];
@@ -205,7 +275,15 @@ async function marketFacts(ctx) {
   }];
 }
 
-/** 이 Agent 가 공공데이터로 채우는 항목 (ECOS 키가 있을 때만) */
+/**
+ * 이 Agent 가 공공데이터로 채우는 항목 (ECOS 키가 있을 때만).
+ *
+ * ★ `market.rec_price` 는 여기 없다. **태양광 딜에서만** 나오므로 FILLS 에 넣으면
+ *   부동산 딜에서 "자동으로 채워집니다"라고 해 놓고 조용히 빈칸이 남는다.
+ */
 const FILLS = ['debt.benchmark_rate'];
 
-module.exports = { id: '03_research', label: 'Market Research Agent', inputSchema, outputSchema, run, TOPICS, FILLS, marketFacts, sponsorCheck };
+module.exports = {
+  id: '03_research', label: 'Market Research Agent',
+  inputSchema, outputSchema, run, TOPICS, FILLS, marketFacts, rateFacts, sponsorCheck,
+};

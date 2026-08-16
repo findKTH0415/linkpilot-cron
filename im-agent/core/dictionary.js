@@ -36,9 +36,12 @@ const FIELDS = {
   'land.area_sqm':       { label: '대지면적', category: CATEGORY.LAND, unit: '㎡', type: 'number', aliases: ['대지면적', '토지면적', '부지면적', 'Site Area', 'Land Area'], min: 0, tolerance: 0.001, requiredFor: ['im'] },
   'land.ownership':      { label: '토지 확보상태', category: CATEGORY.LAND, unit: null, type: 'string', aliases: ['토지소유', '소유권', '토지확보', 'Ownership'], requiredFor: ['im'] },
   'land.zoning':         { label: '용도지역', category: CATEGORY.LAND, unit: null, type: 'string', aliases: ['용도지역', '지목', 'Zoning'] },
-  // ★ 용도지역과 따로 둔다. 개발제한구역에 걸린 땅과 아닌 땅이 '자연녹지지역'
-  //   하나로 똑같이 보이면 안 된다 — 용적률보다 먼저 봐야 하는 정보다
-  'land.restrictions':   { label: '규제 사항', category: CATEGORY.LAND, unit: null, type: 'string', aliases: ['규제사항', '행위제한', '지구단위계획', '개발제한', 'Restrictions'] },
+  // 토지이용계획확인서의 지역·지구 전체. 대표 용도지역 하나만 보면 고도제한·
+  // 토지거래허가 같은 조건이 통째로 사라진다 — 그것들이 딜을 좌우한다.
+  //
+  // ★ 두 작업선이 같은 것을 서로 다른 이름으로 담고 있었다 (`land.restrictions`).
+  //   **실제 응답을 보고 만든 이쪽 이름으로 통일한다** (2026-08-16 병합).
+  'land.use_districts':  { label: '지역·지구 지정 현황', category: CATEGORY.LAND, unit: null, type: 'string', aliases: ['지역지구', '토지이용계획', '지역·지구', '규제사항', '행위제한', '지구단위계획', '개발제한', 'Restrictions'] },
   'building.gfa_sqm':    { label: '연면적', category: CATEGORY.BUILDING, unit: '㎡', type: 'number', aliases: ['연면적', '총연면적', 'GFA', 'Gross Floor Area'], min: 0, tolerance: 0.001, requiredFor: ['im'] },
   'building.floors':     { label: '층수', category: CATEGORY.BUILDING, unit: '층', type: 'number', aliases: ['층수', '규모', 'Floors'], min: 0 },
 
@@ -46,6 +49,13 @@ const FIELDS = {
   'capacity.it_load_mw': { label: 'IT Load', category: CATEGORY.CAPACITY, unit: 'MW', type: 'number', aliases: ['IT Load', 'IT부하', 'IT 용량', '전산부하'], min: 0, requiredFor: ['im', 'teaser'] },
   'capacity.power_mw':   { label: '수전용량', category: CATEGORY.CAPACITY, unit: 'MW', type: 'number', aliases: ['수전용량', '계약전력', '총 전력', 'Power Capacity'], min: 0 },
   'capacity.pue':        { label: 'PUE', category: CATEGORY.CAPACITY, unit: null, type: 'number', aliases: ['PUE'], min: 1.0, max: 2.5 },
+  // REC 현물시장 실거래 단가. 시장가격이라 가정치가 아니다 — 사용자가 넣은
+  // 매출 가정을 교차검증하는 근거로 쓴다. 매출 자동 산출은 하지 않는다(D-25).
+  'market.rec_price':      { label: 'REC 단가', category: CATEGORY.REVENUE, unit: '원/REC', type: 'number', aliases: ['REC단가', 'REC가격', 'REC 현물가'], min: 0 },
+  // 태양광 전용. 발전량이 아니라 **일사량까지만** 둔다 — 발전량은 시스템효율(PR)
+  // 가정이 들어가고, 가정치는 IM 에 넣지 않는다 (2026-08-15 결정, 등록부 D-25).
+  'site.solar_irradiance': { label: '연간 일사량', category: CATEGORY.CAPACITY, unit: 'kWh/㎡·년', type: 'number', aliases: ['일사량', '연간일사량', 'Irradiance', 'GHI'], min: 0 },
+  'site.sunshine_hours':   { label: '연간 일조시간', category: CATEGORY.CAPACITY, unit: 'hr', type: 'number', aliases: ['일조시간', '연간일조시간'], min: 0 },
   'capacity.dc_kw':      { label: '설비용량(DC)', category: CATEGORY.CAPACITY, unit: 'kW', type: 'number', aliases: ['설비용량', 'DC용량', '모듈용량'], min: 0 },
   'capacity.ac_kw':      { label: '설비용량(AC)', category: CATEGORY.CAPACITY, unit: 'kW', type: 'number', aliases: ['AC용량', '인버터용량', '발전용량'], min: 0 },
   'capacity.leasable_sqm': { label: '임대면적', category: CATEGORY.CAPACITY, unit: '㎡', type: 'number', aliases: ['임대면적', '전용면적', 'NLA', 'Leasable Area'], min: 0 },
@@ -93,6 +103,8 @@ const FIELDS = {
   'geo.lat':             { label: '위도', category: CATEGORY.LAND, unit: null, type: 'number', aliases: [], min: 33, max: 39 },
   'geo.lon':             { label: '경도', category: CATEGORY.LAND, unit: null, type: 'number', aliases: [], min: 124, max: 132 },
   'land.official_price': { label: '개별공시지가', category: CATEGORY.LAND, unit: '원/㎡', type: 'number', aliases: ['개별공시지가', '공시지가'], min: 0, tolerance: 0.01 },
+  // 공시지가 시점수정용. 한국부동산원 공표 통계라 가정치가 아니다.
+  'land.price_change_rate': { label: '지가변동률(누적)', category: CATEGORY.LAND, unit: '%', type: 'number', aliases: ['지가변동률', '시점수정'] },
   'land.far_limit':      { label: '용적률 상한', category: CATEGORY.LAND, unit: '%', type: 'number', aliases: ['용적률'], min: 0, max: 2000 },
   'land.bcr_limit':      { label: '건폐율 상한', category: CATEGORY.LAND, unit: '%', type: 'number', aliases: ['건폐율'], min: 0, max: 100 },
   'building.footprint_sqm': { label: '건축면적', category: CATEGORY.BUILDING, unit: '㎡', type: 'number', aliases: ['건축면적'], min: 0, tolerance: 0.001 },

@@ -94,8 +94,9 @@ const SECRET_ENV = [
   'ECOS_API_KEY',      // 20자쯤 — 안 걸린다
   'DART_API_KEY',
   'GEMINI_API_KEY',
-  'KMA_APIHUB_KEY',    // 22자쯤 — 안 걸린다 (기상청 커넥터 병합 대비)
-  'REB_API_KEY',       // 한국부동산원 (병합 대비)
+  'KMA_APIHUB_KEY',    // 22자쯤 — 안 걸린다 (기상청 API허브)
+  'REB_API_KEY',       // 32자쯤 — 안 걸린다 (한국부동산원 R-ONE)
+  'LAW_OC',            // 국가법령정보 — 아주 짧아 패턴에 절대 안 걸린다
 ];
 
 /**
@@ -110,7 +111,7 @@ const SECRET_ENV = [
  */
 function redact(text, extra) {
   let out = String(text)
-    .replace(/(serviceKey|key|apiKey|authKey)=[^&\s]+/gi, '$1=***')
+    .replace(/(serviceKey|key|apiKey|authKey|OC)=[^&\s]+/gi, '$1=***')
     .replace(/[A-Za-z0-9%+/=]{40,}/g, '***');
 
   // ★ 길이 규칙(40자 이상)에 **안 걸리는 키가 있다.** VWorld 는 36자(UUID),

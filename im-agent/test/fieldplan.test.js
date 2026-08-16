@@ -429,11 +429,17 @@ test('★ 새 값이 호출을 늘리지 않는다 (이미 받던 응답에서 �
     `공공데이터 호출이 ${calls.length}회다 — 값을 더 등록하되 호출은 그대로여야 한다`);
 });
 
-test('★ 대장이 있으면 허가 연면적을 겹쳐 넣지 않는다', () => {
+/**
+ * ★ 2026-08-16 병합으로 방침이 바뀌었다. 인허가는 07 이 **채우지 않고**
+ *   05 Validation 이 대조만 한다 — 한 필지에 인허가가 여러 건 쌓여서
+ *   최신 건을 집어 채우면 옛 건물의 허가를 이 딜의 것이라고 적게 된다.
+ *   (검사는 `permit.test.js` 로 옮겼다)
+ */
+test('★ 07 은 대장 값만 채운다 — 허가 값을 겹쳐 넣지 않는다', () => {
   const fs = require('fs');
   const path = require('path');
   const geo = fs.readFileSync(path.join(__dirname, '..', 'agents', '07-geo.js'), 'utf8');
-  assert.match(geo, /const noRegister = !out\.building/,
+  assert.ok(!/buildingPermits?\(/.test(geo),
     '허가(계획)와 대장(준공 실적)은 정상적으로도 다르다 — 둘 다 넣으면 매 딜마다 값 충돌이 뜬다');
 });
 

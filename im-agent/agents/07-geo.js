@@ -15,6 +15,7 @@
 const vworld = require('../connectors/vworld');
 const nsdi = require('../connectors/nsdi');
 const molit = require('../connectors/molit');
+const kma = require('../connectors/kma');
 const pnuUtil = require('../connectors/pnu');
 const geometry = require('../geo/geometry');
 const cache = require('../connectors/cache');
@@ -28,6 +29,7 @@ const inputSchema = {
   properties: {
     projectId: { type: 'string' },
     address: { type: 'string', nullable: true },
+    templateId: { type: 'string', nullable: true },
   },
 };
 
@@ -37,6 +39,7 @@ const outputSchema = {
   properties: {
     facts: { type: 'array' },
     sources: { type: 'array' },
+    flags: { type: 'array' },
     geo: { type: 'object', nullable: true },
     parcel: { type: 'object', nullable: true },
     landUse: { type: 'object', nullable: true },
@@ -58,25 +61,26 @@ async function run(input, ctx) {
   const today = kstDate();
   const facts = [];
   const sources = [];
-  const out = { geo: null, parcel: null, landUse: null, building: null, permit: null };
+  const flags = [];
+  const out = { geo: null, parcel: null, landUse: null, building: null };
 
   const addrFact = ds && ds.get('project.location');
   const address = input.address || (addrFact ? String(addrFact.value) : null);
 
   if (!address) {
     ctx.warn('소재지가 확인되지 않아 위성지도·지적 조회를 생략한다');
-    return { facts, sources, ...out, quota: cache.stats(), confidence: 0 };
+    return { facts, sources, flags, ...out, quota: cache.stats(), confidence: 0 };
   }
   if (!vworld.isAvailable()) {
     ctx.warn('VWORLD_KEY 미설정 — 위성지도·지적·공시지가 조회 전체 생략');
-    return { facts, sources, ...out, quota: cache.stats(), confidence: 0 };
+    return { facts, sources, flags, ...out, quota: cache.stats(), confidence: 0 };
   }
 
   // ── ① 지오코딩 ──────────────────────────────────────────
   const geo = await vworld.geocode(address);
   if (!geo.ok) {
     ctx.warn(`지오코딩 실패: ${geo.error}`);
-    return { facts, sources, ...out, quota: cache.stats(), confidence: 0 };
+    return { facts, sources, flags, ...out, quota: cache.stats(), confidence: 0 };
   }
   out.geo = { ...geo.value, mapLink: vworld.mapLink(geo.value.lat, geo.value.lon) };
   sources.push({ name: 'VWorld 지오코딩', cached: !!geo.cached });
@@ -117,13 +121,6 @@ async function run(input, ctx) {
         ...src('지적공부(VWorld)'),
       });
     }
-    // 폴리곤 실측 면적은 공부상 면적과 오차가 있을 수 있어 참고값으로만 둔다
-    if (polygonAreaSqm && parcel.value.officialAreaSqm) {
-      const diff = Math.abs(polygonAreaSqm - parcel.value.officialAreaSqm) / parcel.value.officialAreaSqm;
-      if (diff > 0.05) {
-        ctx.warn(`지적도 폴리곤 실측(${round(polygonAreaSqm, 0)}㎡)과 공부상 면적(${parcel.value.officialAreaSqm}㎡) 차이 ${round(diff * 100, 1)}%`);
-      }
-    }
   } else if (!parcel.unavailable) {
     ctx.warn(`필지 조회 실패: ${parcel.error}`);
   }
@@ -135,6 +132,27 @@ async function run(input, ctx) {
       out.landUse = landUse.value;
       sources.push({ name: 'VWorld 토지이용계획', cached: !!landUse.cached });
       facts.push({ key: 'land.zoning', value: landUse.value.zone, unit: null, confidence: 0.9, ...src('토지이용계획(VWorld)') });
+
+      // ★ 대표 용도지역 하나만 싣던 것을 고친다. 조회는 지역·지구를 전부
+      //   받아 오는데(표본 19건) 나머지를 버리면 토지거래허가·고도제한 같은
+      //   딜 조건이 IM 에서 통째로 사라진다.
+      const districts = [...new Set(landUse.value.allZones || [])];
+      if (districts.length) {
+        facts.push({
+          key: 'land.use_districts', value: districts.join(', '), unit: null,
+          confidence: 0.9, quote: `지역·지구 ${districts.length}건`,
+          ...src('토지이용계획(VWorld)'),
+        });
+      }
+
+      // 그중 딜 조건이 되는 것은 승인 게이트까지 올린다 (분류표: nsdi.REGULATIONS)
+      for (const r of nsdi.classifyZones(districts)) {
+        flags.push({
+          severity: r.severity, type: 'LAND_USE_REGULATION',
+          message: `${r.zone} — ${r.why}`,
+          keys: ['land.use_districts'],
+        });
+      }
 
       if (landUse.value.limits) {
         facts.push({
@@ -156,7 +174,7 @@ async function run(input, ctx) {
       const rst = landUse.value.restrictions || [];
       if (rst.length) {
         facts.push({
-          key: 'land.restrictions', value: rst.join(' · '), unit: null,
+          key: 'land.use_districts', value: rst.join(' · '), unit: null,
           confidence: 0.9, quote: rst.join(' · '),
           ...src('토지이용계획(VWorld)'),
         });
@@ -199,60 +217,54 @@ async function run(input, ctx) {
       ctx.warn(`건축물대장 조회 실패: ${reg.error}`);
     }
 
-    // ── ⑤ 건축인허가 (C-02) ────────────────────────────────
-    // ★ 값을 채우는 것보다 **대조**가 목적이다. 사업계획서가 "허가 취득"이라고
-    //   적었는데 공부에 기록이 없으면 그 자체가 드러나야 한다.
-    const permit = await molit.buildingPermit({
-      ...parsedPnu,
-      platGbCd: parsedPnu.isMountain ? '1' : '0',
-    });
-    if (permit.ok) {
-      out.permit = { status: permit.value, records: permit.records };
-      sources.push({ name: '건축인허가(국토교통부)', cached: !!permit.cached });
-      if (permit.value) {
+    // ── ⑥ 토지특성 — 대지면적 폴백 ─────────────────────────
+    // 연속지적도에는 면적 필드가 없고, 나대지는 건축물대장도 없다.
+    // 그 경우 공부상 면적의 출처가 여기뿐이다. 개발사업 부지는 대개 나대지다.
+    // ★ 이미 채워졌으면 부르지 않는다 — 호출 수를 늘리지 않는다 (CLAUDE.md §4).
+    if (!facts.some(f => f.key === 'land.area_sqm')) {
+      const chr = await nsdi.landCharacteristics(parsedPnu.pnu);
+      if (chr.ok) {
+        out.landCharacteristics = chr.value;
+        sources.push({ name: 'VWorld 토지특성', cached: !!chr.cached });
         facts.push({
-          key: 'legal.permit_status', value: permit.value, unit: null,
-          confidence: 0.9, quote: permit.value,
-          ...src('건축인허가(국토교통부)'),
+          key: 'land.area_sqm', value: chr.value.areaSqm, unit: '㎡',
+          confidence: 0.95,
+          quote: `토지특성 공부상 면적 ${chr.value.areaSqm}㎡ (${chr.value.year}년 기준)`,
+          ...src('토지특성(VWorld)'),
         });
+        // 지목은 out.landCharacteristics 에만 남긴다 — 이 경로에서만 나오므로
+        // 사실(fact)로 올리면 "있을 때만 있는 항목"이 되어 화면이 거짓말한다.
+      } else if (!chr.unavailable) {
+        ctx.warn(`토지특성 조회 실패: ${chr.error} — 대지면적은 직접 입력해야 한다`);
       }
-
-      // ★ 허가 기록에는 **계획 연면적·대지면적**도 들어 있다. 대장이 없을 때
-      //   (= 아직 안 지은 부지) 이 값이 유일한 공부상 근거다 — 연면적은 직접
-      //   입력으로 남겨 둔 8칸 중 하나라 여기서 채워지면 그만큼 덜 묻는다.
-      //
-      // ★ 대장이 **있으면 넣지 않는다.** 허가 연면적은 계획, 대장 연면적은 준공
-      //   실적이라 정상적으로도 다르다. 둘 다 넣으면 매 딜마다 값 충돌이 떠서
-      //   진짜 충돌이 묻힌다 — 매번 뜨는 경고는 아무도 안 읽는다.
-      const top = (permit.records || [])[0] || {};
-      const noRegister = !out.building;
-      if (noRegister) {
-        const psrc = src('건축인허가(국토교통부)');
-        if (top.totalAreaSqm) {
-          facts.push({ key: 'building.gfa_sqm', value: top.totalAreaSqm, unit: '㎡',
-            confidence: 0.85, note: '허가 시점의 계획 연면적 — 준공 실적이 아니다', ...psrc });
-        }
-        if (top.platAreaSqm) {
-          facts.push({ key: 'land.area_sqm', value: top.platAreaSqm, unit: '㎡',
-            confidence: 0.85, ...psrc });
-        }
-        if (top.mainUse) {
-          facts.push({ key: 'building.main_use', value: top.mainUse, unit: null,
-            confidence: 0.85, ...psrc });
-        }
-      } else {
-        // 기록은 있는데 단계를 알 수 없다 — 지어내지 않고 사람에게 넘긴다
-        ctx.warn('건축인허가 기록은 있으나 허가일·착공일·사용승인일이 모두 비어 있다 — 인허가 현황은 직접 확인해야 한다');
-      }
-    } else if (permit.notFound) {
-      // ★ 여기서 '미허가'라고 적으면 안 된다 (molit.buildingPermit 주석 참조)
-      ctx.warn(permit.error);
-    } else if (!permit.unavailable) {
-      ctx.warn(`건축인허가 조회 실패: ${permit.error}`);
     }
   }
 
-  // ── ⑥ 지도 이미지 (기본 비활성 — 쿼터 절약) ──────────────
+  // ── ⑥ 일사량 (태양광 딜에서만) ──────────────────────────
+  // ★ 태양광이 아닌 딜에서는 부르지 않는다. 부동산 IM 에 일사량은 쓰이지
+  //   않는데 호출만 1회 늘어난다 (CLAUDE.md §4).
+  // ★ 여기서 내는 것은 **일사량까지**다. 발전량은 시스템효율(PR) 가정이
+  //   들어가므로 사람이 넣는다 (2026-08-15 결정, 등록부 D-25).
+  if (input.templateId === 'solar' && kma.isAvailable() && out.geo) {
+    await addSolar(out.geo, facts, sources, src, ctx, out);
+  }
+
+  // ── 교차검증: 지적도 폴리곤 실측 vs 공부상 면적 ────────────
+  // ★ 전에는 연속지적도 응답 안에서만 비교했는데 그 응답에는 면적이 없어
+  //   **한 번도 동작하지 않았다.** 면적 출처가 확정된 뒤로 옮긴다.
+  //   공부상 면적과 실측이 크게 어긋나면 필지가 잘못 잡혔다는 신호다.
+  const areaFact = facts.find(f => f.key === 'land.area_sqm');
+  if (areaFact && out.parcel && out.parcel.polygonAreaSqm) {
+    const official = areaFact.value;
+    const diff = Math.abs(out.parcel.polygonAreaSqm - official) / official;
+    if (diff > 0.05) {
+      ctx.warn(`지적도 폴리곤 실측(${round(out.parcel.polygonAreaSqm, 0)}㎡)과 `
+        + `공부상 면적(${official}㎡, ${areaFact.source}) 차이 ${round(diff * 100, 1)}% `
+        + '— 필지 특정이 잘못됐을 수 있다');
+    }
+  }
+
+  // ── ⑦ 지도 이미지 (기본 비활성 — 쿼터 절약) ──────────────
   if (process.env.IM_AGENT_FETCH_IMAGES === '1' && out.geo) {
     const saved = await saveSatelliteImage(input.projectId, out.geo.lat, out.geo.lon, ctx);
     if (saved) out.geo.satelliteImage = saved;
@@ -261,7 +273,7 @@ async function run(input, ctx) {
   }
 
   const confidence = out.parcel ? (out.landUse ? 0.9 : 0.75) : 0.5;
-  return { facts, sources, ...out, quota: cache.stats(), confidence };
+  return { facts, sources, flags, ...out, quota: cache.stats(), confidence };
 }
 
 /** 위성영상 저장. 이미지 URL에는 인증키가 들어가므로 URL 자체는 산출물에 남기지 않는다. */
@@ -294,6 +306,61 @@ async function saveSatelliteImage(projectId, lat, lon, ctx) {
 }
 
 /**
+ * 일사량 조회 — 좌표에서 가장 가까운 기상청 관측지점의 최근 완결 연도 통계.
+ *
+ * ★ **어느 관측소의 값인지, 부지에서 몇 km 인지를 출처에 적는다.** 80km 떨어진
+ *   관측소 값을 "이 부지의 일사량"으로 적으면 그것도 근거 없는 숫자다.
+ * ★ 결측일이 많은 해는 합계가 조용히 작아진다 → 커버리지가 낮으면 경고한다.
+ */
+async function addSolar(geo, facts, sources, src, ctx, out) {
+  const near = await kma.nearestStation(geo.lat, geo.lon);
+  if (!near.ok) {
+    ctx.warn(`일사량 조회 생략: ${near.error}`);
+    return;
+  }
+
+  // 올해는 아직 안 끝났으므로 **직전 연도**를 쓴다. 진행 중인 해를 합치면
+  // 연간 일사량이 실제의 절반으로 나온다.
+  const year = Number(kstDate().slice(0, 4)) - 1;
+  const solar = await kma.annualSolar(near.value.stn, year);
+  if (!solar.ok) {
+    ctx.warn(`일사량 조회 실패(${near.value.stn} 지점): ${solar.error}`);
+    return;
+  }
+
+  const s = solar.value;
+  if (s.coverage < 90) {
+    ctx.warn(`${year}년 ${near.value.stn} 지점 일사량 결측 ${s.missingDays}일 `
+      + `(관측률 ${s.coverage}%) — 연간 합계가 실제보다 작다`);
+  }
+
+  out.solar = { ...s, station: near.value };
+  sources.push({ name: '기상청 지상관측 일통계', cached: !!solar.cached });
+
+  // 거리를 모르면 모른다고 적는다. 사람이 지점을 직접 지정한 경우가 그렇다.
+  const where = near.value.distanceKm === null
+    ? '거리 미상 — 지점 직접 지정'
+    : `부지에서 ${near.value.distanceKm}km`;
+  const origin = `기상청 지상관측 일통계(${near.value.name || near.value.stn} 지점, ${where}, ${year}년)`;
+
+  if (near.forced) {
+    ctx.warn(`일사량 관측지점을 KMA_STN=${near.value.stn} 로 직접 지정했다 — `
+      + '부지와의 거리가 확인되지 않는다. 지점정보 API 승인 후 자동 선택으로 돌아간다');
+  }
+
+  facts.push({
+    key: 'site.solar_irradiance', value: s.irradianceKwh, unit: 'kWh/㎡·년',
+    confidence: 0.9,
+    quote: `${year}년 일사량 합계 ${s.irradianceMJ}MJ/㎡ (일평균 ${s.dailyAvgKwh}kWh/㎡, 관측 ${s.observedDays}일)`,
+    ...src(origin),
+  });
+  facts.push({
+    key: 'site.sunshine_hours', value: s.sunshineHours, unit: 'hr',
+    confidence: 0.9, ...src(origin),
+  });
+}
+
+/**
  * 이 Agent 가 **소재지만 있으면** 공공데이터로 채우는 key.
  * ★ 사람에게 물어보지 않아도 되는 항목이다 — 물어보면 공부(公簿)와 다른 값을
  *   손으로 적게 되고, 그 순간 독립된 두 번째 출처라는 가치가 사라진다.
@@ -303,8 +370,14 @@ async function saveSatelliteImage(projectId, lat, lon, ctx) {
  *   돌렸을 때 조용히 빈칸이 남는다. 개별공시지가는 08 Appraisal 이 채운다.
  *   (`fieldplan.test.js` 가 FILLS 와 실제 push 를 대조한다)
  */
+// ★ `land.use_districts` 는 `land.zoning` 과 **같은 조회·같은 조건**에서 채워진다.
+//   따라서 zoning 을 선언하면서 이것만 빼면 그것도 거짓말이 된다.
+//
+// ★ 지목(`land.category`)은 여기 없다. 토지특성 폴백 경로에서만 채워지고,
+//   그 경로는 건축물대장이 면적을 채우면 아예 호출되지 않는다. "공공데이터가
+//   채운다"고 적어 두면 건물이 있는 필지에서 조용히 빈칸이 남는다.
 const FILLS = ['geo.pnu', 'geo.lat', 'geo.lon', 'land.jibun',
-  'land.area_sqm', 'land.zoning', 'land.far_limit', 'land.bcr_limit'];
+  'land.area_sqm', 'land.zoning', 'land.use_districts', 'land.far_limit', 'land.bcr_limit'];
 
 /**
  * **조건이 붙는** 채움 — 건축물대장은 **건물이 이미 있을 때만** 존재한다.
@@ -322,29 +395,26 @@ const CONDITIONAL_FILLS = {
   '건축물대장(기존 건물이 있는 경우에만)':
     ['building.gfa_sqm', 'building.footprint_sqm', 'building.floors', 'building.height_m'],
 
-  // ★ 인허가도 같은 이유로 조건부다. 개발사업은 대개 나대지에서 시작하고 그때는
-  //   인허가 기록 자체가 없다. FILLS 로 올리면 화면이 "자동으로 채워집니다"라며
-  //   **인허가 현황을 안 물어보고**, 값은 빈 채로 남는다 (B-18 과 똑같은 실패).
-  //   기록이 있을 때만 채워지고, 그때가 대조(사업계획서 vs 공부)가 값진 순간이다.
-  '건축인허가(허가 기록이 있는 경우에만)': ['legal.permit_status'],
-
-  // 허가 기록에 실려 오는 계획 연면적·주용도.
-  // **대장이 없을 때만** 등록한다 (허가=계획, 대장=준공 실적이라 정상적으로도 다르다).
-  //
-  // ★ 대지면적은 여기 넣지 않는다 — 지적도가 **항상** 주므로 이미 FILLS 다.
-  //   조건부로 적으면 "건물이 있을 때만 나온다"는 뜻이 되어 화면 계획이 뒤집힌다.
-  //   인허가의 대지면적은 그 위에 얹히는 **또 하나의 출처**일 뿐이다.
-  '건축인허가의 계획 제원(대장이 없을 때만)':
-    ['building.gfa_sqm', 'building.main_use'],
+  // ★ 인허가는 여기서 **채우지 않는다.** 한 필지에 인허가가 여러 건 쌓이고
+  //   (표본 11건) 과거 건물 이력이 섞여서 "최신 건 = 이 딜의 인허가" 라고
+  //   단정할 수 없다. 개발 예정지는 아직 인허가가 없는 것이 정상이고, 그때
+  //   공부에는 옛 건물 허가만 남아 있다 — 그걸 집어 채우면 없는 인허가를
+  //   있다고 적는 셈이다. 그래서 **05 Validation 이 대조만 한다.**
 
   // 건축물대장 응답에 이미 실려 오던 것 — 새 호출 없이 등록만 한다
   '건축물대장의 나머지 제원(기존 건물이 있는 경우에만)':
     ['building.bcr', 'building.far', 'building.basement_floors',
       'building.main_use', 'building.approval_date'],
 
-  // 규제가 걸려 있지 않은 필지가 대부분이다. 없을 때도 화면은 물어야 한다 —
-  // '안 물어봤으니 규제가 없는 것'이라고 읽히면 안 된다
-  '토지이용계획의 규제 사항(걸린 규제가 있는 경우에만)': ['land.restrictions'],
+  // ★ 일사량·일조시간은 **태양광 딜에서만** 부른다. FILLS 로 올리면 부동산 딜
+  //   화면이 "자동으로 채워집니다"라고 해 놓고 조용히 빈칸이 남는다.
+  //   그리고 여기서 내는 것은 일사량까지다 — 발전량은 시스템효율(PR) 가정이
+  //   들어가므로 사람이 넣는다 (2026-08-15 결정).
+  '기상청 일사량(태양광 딜에서만)': ['site.solar_irradiance', 'site.sunshine_hours'],
+
+  // ★ 지목은 **토지특성 폴백 경로에서만** 나온다. 건축물대장이 면적을 채우면
+  //   그 경로는 아예 호출되지 않는다.
+  '토지특성(대지면적을 다른 곳에서 못 채웠을 때만)': ['land.category'],
 };
 
 module.exports = {

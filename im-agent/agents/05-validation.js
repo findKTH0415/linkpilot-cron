@@ -12,11 +12,19 @@
  *   ⑤ 가정치 비중  — 재무모델 입력 중 문서 미확인 비율
  *   ⑥ 자료 신선도  — 출처 일자가 1년 이상 경과
  *   ⑦ 필수 누락    — IM 필수 항목 결측
+ *   ⑧ 시행사 실체  — 사람이 적은 시행사명을 법인 등록정보와 대조 (금융위)
+ *   ⑨ 인허가 대조  — 공부상 인허가 이력과 대조 (건축법·주택법 두 트랙)
  *
- * 출력: RED / YELLOW / GREEN 플래그 + QC Score + PASS/CONDITIONAL/REJECT
+ * ⑧⑨ 는 외부 조회라 다른 검사와 달리 비동기다. **판정만 하고 값을 Dataset 에
+ * 넣지 않는다** — 조회 결과를 사실로 등록하면 출처 계보가 검증 Agent 로 뒤엉킨다.
+ *
+ * 출력: RED / YELLOW / GREEN / INFO 플래그 + QC Score + PASS/CONDITIONAL/REJECT
  */
 
 const { FIELDS, labelFor, rangeViolation, requiredFor } = require('../core/dictionary');
+const fsc = require('../connectors/fsc');
+const molit = require('../connectors/molit');
+const pnuUtil = require('../connectors/pnu');
 const { round, formatEok } = require('../core/numeric');
 const { kstDate, daysBetween } = require('../core/kst');
 
@@ -27,6 +35,7 @@ const inputSchema = {
     projectId: { type: 'string' },
     financial: { type: 'object', nullable: true },
     research: { type: 'object', nullable: true },
+    geo: { type: 'object', nullable: true },
     appraisal: { type: 'object', nullable: true },
     massing: { type: 'object', nullable: true },
   },
@@ -171,6 +180,131 @@ function checkLegal(ds) {
   return flags;
 }
 
+/**
+ * 시행사 실체 확인 — 금융위원회 기업기본정보와 대조한다.
+ *
+ * ★ `project.sponsor` 는 사람이 손으로 적는 8칸 중 하나다. 오타든 실재하지 않는
+ *   이름이든 지금까지는 그대로 IM 에 실렸다. 독립된 출처로 대조한다.
+ *
+ * ★ **판정만 하고 값을 Dataset 에 넣지는 않는다.** 이 Agent 의 역할은 검증이다.
+ *   조회 결과를 사실로 등록하면 출처 계보가 검증 Agent 로 뒤엉킨다.
+ *
+ * ★ 동명 법인이 있으면 **고르지 않고 YELLOW** 로 올린다. '삼성물산' 은 실제로
+ *   법인이 둘이다(1952년·1963년 설립). 하나를 자동으로 집으면 틀렸을 때
+ *   문서만 보고는 못 잡는다.
+ *
+ * ★ 대표자 성명은 Connector 가 아예 가져오지 않는다 (개인정보 — CLAUDE.md §6).
+ */
+async function checkSponsor(ds, ctx, today) {
+  const flags = [];
+  const sponsor = ds.get('project.sponsor');
+  if (!sponsor || !fsc.isAvailable()) return flags;
+
+  const r = await fsc.corpOutline(String(sponsor.value));
+
+  if (!r.ok) {
+    if (r.unavailable) return flags;
+    flags.push(flag('YELLOW', 'SPONSOR',
+      `시행사 '${sponsor.value}' 를 법인 등록정보에서 확인하지 못했다 — ${r.error}`,
+      { keys: ['project.sponsor'] }));
+    return flags;
+  }
+
+  if (r.ambiguous) {
+    const list = r.candidates.slice(0, 3)
+      .map(c => `${c.name}(${c.corpRegNo}, ${String(c.establishedOn).slice(0, 4)}년 설립)`).join(' / ');
+    flags.push(flag('YELLOW', 'SPONSOR',
+      `시행사 '${sponsor.value}' 와 같은 이름의 법인이 여럿이다 — 어느 곳인지 특정해야 한다: ${list}`,
+      { keys: ['project.sponsor'] }));
+    return flags;
+  }
+
+  const c = r.value;
+  const years = fsc.yearsSince(c.establishedOn, today);
+  const parts = [
+    c.name,
+    `법인등록번호 ${c.corpRegNo}`,
+    years !== null ? `업력 ${years}년` : null,
+    c.market ? `${c.market} 상장` : '비상장',
+    c.auditOpinion ? `감사의견 ${c.auditOpinion}` : null,
+  ].filter(Boolean);
+
+  // 감사의견이 적정이 아니면 그 자체가 투자 검토 대상이다
+  const badOpinion = c.auditOpinion && !/적정/.test(c.auditOpinion);
+  flags.push(flag(badOpinion ? 'YELLOW' : 'GREEN', 'SPONSOR',
+    `시행사 확인: ${parts.join(' · ')}`
+    + (badOpinion ? ' — 감사의견이 적정이 아니다' : ''),
+    { keys: ['project.sponsor'] }));
+
+  return flags;
+}
+
+/**
+ * 인허가 현황 대조 — 건축HUB 인허가 이력과 사람이 적은 값을 맞춰 본다.
+ *
+ * ★ **자동으로 채우지 않는다.** 한 필지에 인허가가 여러 건 쌓인다(표본 11건).
+ *   과거 건물 이력이 섞이므로 "최신 건 = 이 딜의 인허가" 라고 단정할 수 없다.
+ *   개발 예정지라면 아직 인허가가 없는 것이 정상이고, 그때 공부에는 옛 건물의
+ *   허가만 남아 있다. 그걸 집어 채우면 없는 인허가를 있다고 적는 셈이다.
+ *
+ * ★ 대신 **근거를 옆에 놓는다.** 사람이 판단할 수 있게 공부상 이력을 보여 주고,
+ *   적힌 값과 어긋나는 경우에만 경고한다.
+ */
+async function checkPermitRecord(ds, ctx) {
+  const flags = [];
+  const pnu = ds.get('geo.pnu');
+  if (!pnu || !molit.isAvailable()) return flags;
+
+  const parsed = pnuUtil.parse(pnu.value);
+  if (!parsed) return flags;
+
+  // ★ **두 트랙을 다 본다.** 30세대 이상 공동주택은 건축허가가 아니라 주택법
+  //   사업계획승인을 받으므로 건축인허가에는 나오지 않는다. 한쪽만 보면 주택
+  //   개발 딜에서 "인허가 기록 없음" 으로 오판한다.
+  const [arch, house] = await Promise.all([
+    molit.buildingPermits(parsed),
+    molit.housingPermits(parsed),
+  ]);
+  if (!arch.ok && !house.ok) return flags;   // 이력이 없는 필지는 정상이다
+
+  const parts = [];
+  if (arch.ok) {
+    const a = arch.latest;
+    parts.push(`건축법 ${a.stage} ${a.date}` + (a.archType ? `(${a.archType})` : '') + ` · ${arch.count}건`);
+  }
+  if (house.ok) {
+    const h = house.latest;
+    parts.push(`주택법 ${h.stage} ${h.date}`
+      + (h.households ? `(${h.households}세대)` : '') + ` · ${house.count}건`);
+  }
+
+  const claimed = ds.get('legal.permit_status');
+  const record = `공부상 인허가 — ${parts.join(' / ')}`;
+
+  if (!claimed) {
+    // checkLegal 이 이미 RED 를 올렸다. 여기서는 채울 근거만 옆에 놓는다.
+    flags.push(flag('INFO', 'PERMIT_RECORD',
+      `인허가 현황이 비어 있다 — ${record}. 이 딜의 인허가인지 확인해 입력해야 한다`,
+      { keys: ['legal.permit_status'] }));
+    return flags;
+  }
+
+  // 사람이 '준공' 이라 적었는데 공부에 그 기록이 없으면 어긋난다.
+  // 건축법은 사용승인, 주택법은 사용검사다 — 둘 중 하나라도 있으면 준공이다.
+  const saysDone = /준공|사용승인|사용검사|완료/.test(String(claimed.value));
+  const hasApproval = (arch.ok && arch.value.some(p => p.useAprDay))
+    || (house.ok && house.value.some(p => p.useInsptDay));
+
+  if (saysDone && !hasApproval) {
+    flags.push(flag('YELLOW', 'PERMIT_RECORD',
+      `인허가를 "${claimed.value}" 로 적었으나 공부에 사용승인 기록이 없다 — ${record}`,
+      { keys: ['legal.permit_status'] }));
+  } else {
+    flags.push(flag('INFO', 'PERMIT_RECORD', record, { keys: ['legal.permit_status'] }));
+  }
+  return flags;
+}
+
 async function run(input, ctx) {
   const ds = ctx.dataset;
   if (!ds) throw new Error('ctx.dataset 필요');
@@ -200,6 +334,8 @@ async function run(input, ctx) {
   // ③ 내부 정합성 + 법률
   flags.push(...checkConsistency(ds));
   flags.push(...checkLegal(ds));
+  flags.push(...await checkSponsor(ds, ctx, kstDate()));
+  flags.push(...await checkPermitRecord(ds, ctx));
 
   // ④ 미검증 값 (독립출처 1개)
   const single = ds.keys().filter(k => {
@@ -276,9 +412,9 @@ async function run(input, ctx) {
     flags.push(flag('YELLOW', 'MISSING', `IM 필수 항목 ${missingIm.length}건 미확인: ${missingIm.map(k => FIELDS[k].label).join(', ')}`, { keys: missingIm }));
   }
 
-  // ⑧ 감정평가 / 매스 검토 Agent가 올린 플래그 병합
+  // ⑧ 입지 / 감정평가 / 매스 검토 Agent가 올린 플래그 병합
   //    (판정은 각 Agent가 하고, 승인 게이트에 노출하는 책임은 여기에 모은다)
-  for (const [agent, out] of [['08_appraisal', input.appraisal], ['09_massing', input.massing]]) {
+  for (const [agent, out] of [['07_geo', input.geo], ['08_appraisal', input.appraisal], ['09_massing', input.massing]]) {
     for (const f of (out && out.flags) || []) {
       flags.push({ ...f, agent });
     }
@@ -330,4 +466,4 @@ async function run(input, ctx) {
 
 function clamp(n) { return Math.max(0, Math.min(100, Math.round(n))); }
 
-module.exports = { id: '05_validation', label: 'Cross Validation Agent', inputSchema, outputSchema, run, checkConsistency, checkLegal };
+module.exports = { id: '05_validation', label: 'Cross Validation Agent', inputSchema, outputSchema, run, checkConsistency, checkLegal, checkSponsor, checkPermitRecord };
