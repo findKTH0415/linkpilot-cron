@@ -151,7 +151,7 @@ async function main() {
   console.log(`VWORLD_KEY     : ${vworld.isAvailable() ? vk.message : '미설정 — 지오코딩/지적/공시지가 건너뜀'}`);
   console.log(`VWORLD_DOMAIN  : ${vworld.domain() || '미설정 ⚠ 서버 호출은 등록 도메인을 명시해야 허용된다'}`);
   console.log(`DATA_GO_KR_KEY : ${molit.isAvailable() ? dk.message : '미설정 — 실거래가/건축물대장 건너뜀'}`);
-  console.log(`ECOS_API_KEY   : ${ecos.isAvailable() ? '설정됨' : '미설정 — 시장금리 건너뜀 (금리가 가정치로 남는다)'}`);
+  console.log(`ECOS_API_KEY   : ${ecos.isAvailable() ? '설정됨 (시장금리 + 생산자물가)' : '미설정 — 시장금리·생산자물가 건너뜀 (금리·단가가 가정치로 남는다)'}`);
   console.log(`DART_API_KEY   : ${dart.isAvailable() ? '설정됨' : '미설정 — 시행사 대조 건너뜀'}`);
 
   // ── 0-2. 시장금리 (주소와 무관 — 먼저 확인한다) ──────────
@@ -164,6 +164,39 @@ async function main() {
     } else {
       report('한국은행 ECOS 시장금리', false, mr.error);
       console.log('  → 통계표코드(817Y002)·항목코드가 바뀌었을 수 있다. 응답 필드명 DATA_VALUE·TIME 확인');
+    }
+
+    // ── 0-2-1. 생산자물가지수 (제조 딜의 단가 시점수정) ────
+    //   ★ 업종을 **자동으로 고르지 않는다** (§4.9). 그래서 스모크가 확인하는 것은
+    //     「통계표가 살아 있고 업종 후보가 나오는가」까지다 — 계수까지 보려면
+    //     `--ppi-item <항목코드>` 로 사람이 고른 업종을 준다.
+    const items = await ecos.ppiItems();
+    if (items.ok) {
+      const monthly = items.value.filter(x => !x.cycle || x.cycle === ecos.PPI.cycle);
+      report(`한국은행 ECOS 생산자물가 업종목록 (${ecos.PPI.stat})`, true,
+        `업종 ${items.value.length}종 (월별 ${monthly.length}종) · 예: `
+        + items.value.slice(0, 3).map(x => `${x.code} ${x.name}`).join(' / '));
+      console.log('  ※ 업종은 자동으로 고르지 않는다 — 「기타 기계 및 장비」와 「1차 금속」은 몇 년 새 두 자릿수로 갈린다');
+    } else {
+      report(`한국은행 ECOS 생산자물가 업종목록 (${ecos.PPI.stat})`, false, items.error);
+      console.log('  → 통계표코드·주기가 문서 기준이고 아직 실측되지 않았다 (등록부 D-43)');
+    }
+
+    const ppiItem = argOf('--ppi-item');
+    if (ppiItem) {
+      const from = argOf('--ppi-from') || '202401';
+      const to = argOf('--ppi-to') || ecos.month(new Date());
+      const adj = await ecos.priceAdjustment({ item: ppiItem, from, to });
+      if (adj.ok) {
+        report(`ECOS 단가 시점수정 (${ppiItem})`, true,
+          `${adj.value.label} ${adj.value.from}→${adj.value.to} `
+          + `계수 ${adj.value.factor} (${adj.value.percent >= 0 ? '+' : ''}${adj.value.percent}% · ${adj.value.months}개월)`);
+        console.log('  ※ 지수의 비다 — 변동률을 누적하지 않았다. 적용 여부는 사람이 정한다 (두 번 보정 위험)');
+      } else {
+        report(`ECOS 단가 시점수정 (${ppiItem})`, false, adj.error);
+      }
+    } else {
+      console.log('  ※ 계수까지 보려면: npm run im:smoke -- --ppi-item <항목코드> [--ppi-from YYYYMM] [--ppi-to YYYYMM]');
     }
   }
 

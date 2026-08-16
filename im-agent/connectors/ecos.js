@@ -24,7 +24,11 @@
  *   `npm run im:smoke` 가 필드명을 대조한다 (다른 커넥터와 같은 한계 — B-4).
  */
 
-const { request, redact } = require('./http');
+// ★ `request` 를 뜯어내지 않고 **모듈 객체로 붙든다.** 뜯어내면 테스트가
+//   응답을 갈아끼울 수 없어, 해석 경로가 한 번도 안 돈 채 통과한다 —
+//   M-08(테스트 733건 통과, HTTP 는 전부 죽어 있었다)이 그렇게 났다.
+const http = require('./http');
+const { redact } = http;
 const cache = require('./cache');
 const { kstDate } = require('../core/kst');
 
@@ -45,6 +49,31 @@ const SERIES = {
 /** PF 기준선으로 쓰는 계열 — 바꾸려면 여기 한 곳만 고친다 */
 const DEFAULT_SERIES = 'ktb3';
 
+/**
+ * 생산자물가지수 (제조 딜용).
+ *
+ * 왜 필요한가: 제조 IM 의 매출은 **생산능력 × 가동률 × 단가**인데, 셋 다
+ * 사업계획서가 말하는 대로 믿는 수밖에 없었다. 부동산에서 공시지가·실거래가가
+ * 하던 역할을 제조에서는 아무도 안 하고 있다. PPI 는 그중 **단가**에 붙는
+ * 독립 출처다 — 2년 전 사업계획서의 단가가 지금 시점에서 얼마인지 말해 준다.
+ *
+ * ★ **지수의 비는 가정이 아니다.** 공표 통계이고, 공시지가 시점수정과 같은
+ *   논리다 (§4.8). 그래서 계수는 자동으로 낼 수 있다.
+ * ★ 그런데 **어느 업종 지수를 쓸지는 자동으로 고르지 않는다** (§4.9).
+ *   「기타 기계 및 장비」와 「1차 금속」은 몇 년 새 두 자릿수로 갈린다 —
+ *   틀린 업종으로 보정하면 문서에는 「시점수정 적용」만 남고 무엇이 틀렸는지 사라진다.
+ * ★ **변동률을 곱해 쌓지 않는다** (§4.4). 구간 경계에서 한 달을 더 세기 쉽다.
+ *   양 끝 지수의 비만 쓴다.
+ *
+ * ⚠️ 통계표코드·주기는 공식 문서 기준이고 **실제 키로 검증하지 않았다** (D-43).
+ *    `npm run im:smoke` 가 대조한다.
+ */
+const PPI = {
+  stat: '404Y014',          // 생산자물가지수 (기본분류)
+  cycle: 'M',               // 월별
+  label: '생산자물가지수',
+};
+
 function apiKey() {
   return process.env.ECOS_API_KEY || '';
 }
@@ -53,8 +82,8 @@ function isAvailable() {
   return Boolean(apiKey());
 }
 
-function unavailable() {
-  return { ok: false, error: 'ECOS_API_KEY 미설정 — 시장금리 조회 생략', unavailable: true };
+function unavailable(what) {
+  return { ok: false, error: `ECOS_API_KEY 미설정 — ${what || '시장금리'} 조회 생략`, unavailable: true };
 }
 
 /** 이 커넥터 전용 마스킹 — 키가 경로에 있어 일반 규칙만으로는 새어 나갈 수 있다 */
@@ -97,7 +126,7 @@ async function marketRate(seriesId = DEFAULT_SERIES, lookbackDays = 14) {
   return cache.through(PROVIDER, 'rate', { seriesId, start, end }, async () => {
     const url = buildRequestUrl(s, start, end, apiKey());
 
-    const r = await request(url);
+    const r = await http.request(url);
     if (!r.ok) return { ok: false, error: mask(r.error) };
     return parseResponse(r.body, s, { start, end });
   });
@@ -161,7 +190,164 @@ function buildRequestUrl(series, start, end, key) {
   ].join('/');
 }
 
+/* ── 생산자물가지수 ──────────────────────────────────────── */
+
+const ITEM_BASE = 'https://ecos.bok.or.kr/api/StatisticItemList';
+
+/** 'YYYY-MM' · 'YYYYMM' · Date → 'YYYYMM' */
+function month(v) {
+  if (v instanceof Date) return kstDate(v).slice(0, 7).replace('-', '');
+  const t = String(v || '').replace(/-/g, '');
+  return /^\d{6}$/.test(t) ? t : '';
+}
+
+/**
+ * 이 통계표에 어떤 업종이 있는가. **사람이 고르라고 내놓는 목록이다.**
+ *
+ * ★ 자동으로 하나를 고르지 않는 이유: 업종을 잘못 잡으면 보정은 되는데
+ *   문서에는 「시점수정 적용」만 남는다 — 무엇이 틀렸는지 사라진다 (§4.9).
+ */
+async function ppiItems() {
+  if (!isAvailable()) return unavailable('생산자물가 업종목록');
+  return cache.through(PROVIDER, 'ppi-items', { stat: PPI.stat }, async () => {
+    const url = [ITEM_BASE, encodeURIComponent(apiKey()), 'json', 'kr', '1', '500', PPI.stat].join('/');
+    const r = await http.request(url);
+    if (!r.ok) return { ok: false, error: mask(r.error) };
+
+    let j;
+    try { j = JSON.parse(r.body); } catch (_) {
+      return { ok: false, error: 'ECOS 항목목록 응답이 JSON 이 아니다 (통계표코드 확인)' };
+    }
+    if (j.RESULT) return { ok: false, error: `ECOS ${j.RESULT.CODE || ''}: ${j.RESULT.MESSAGE || ''}`.trim() };
+
+    const rows = (j.StatisticItemList && j.StatisticItemList.row) || [];
+    if (!rows.length) return { ok: false, error: `ECOS ${PPI.stat}: 항목이 없다 (통계표코드 확인 — 등록부 D-43)` };
+
+    return {
+      ok: true,
+      value: rows.map(x => ({
+        code: x.ITEM_CODE,
+        name: x.ITEM_NAME,
+        cycle: x.CYCLE,
+        // 언제부터 언제까지 있는 자료인지 — 조회 구간을 사람이 정할 때 필요하다
+        from: x.START_TIME || null,
+        to: x.END_TIME || null,
+      })),
+    };
+  });
+}
+
+/**
+ * 업종별 생산자물가 시계열.
+ *
+ * @param {object} o { item, from, to } — item 은 ppiItems() 의 code
+ * @returns {{ok, value:{rows,first,last,label,unit,baseYear}, error}}
+ */
+async function ppiSeries(o) {
+  const opt = o || {};
+  if (!isAvailable()) return unavailable('생산자물가');
+  if (!opt.item) {
+    return {
+      ok: false,
+      error: '업종(항목코드)을 지정해야 한다 — 자동으로 고르지 않는다. '
+        + 'ppiItems() 로 후보를 받아 사람이 고른다 (틀린 업종으로 보정하면 '
+        + '문서에는 「시점수정 적용」만 남는다)',
+    };
+  }
+  const from = month(opt.from);
+  const to = month(opt.to);
+  if (!from || !to) return { ok: false, error: '조회 구간(YYYYMM)이 필요하다' };
+
+  return cache.through(PROVIDER, 'ppi', { item: opt.item, from, to }, async () => {
+    const url = [
+      BASE, encodeURIComponent(apiKey()), 'json', 'kr', '1', '500',
+      PPI.stat, PPI.cycle, from, to, opt.item,
+    ].join('/');
+    const r = await http.request(url);
+    if (!r.ok) return { ok: false, error: mask(r.error) };
+
+    let j;
+    try { j = JSON.parse(r.body); } catch (_) {
+      return { ok: false, error: 'ECOS 응답이 JSON 이 아니다 (키·통계표코드 확인)' };
+    }
+    if (j.RESULT) return { ok: false, error: `ECOS ${j.RESULT.CODE || ''}: ${j.RESULT.MESSAGE || ''}`.trim() };
+
+    const raw = (j.StatisticSearch && j.StatisticSearch.row) || [];
+    // ★ **빈 값을 먼저 걷어낸다.** `Number('')` 은 0 이고 `Number.isFinite(0)` 은
+    //   참이라, 걸러내지 않으면 결측이 **지수 0** 으로 들어온다. 그 달이 구간 끝이면
+    //   계수가 0 이 되고, 시작이면 0 으로 나눈다 — 둘 다 값은 나온다.
+    const rows = raw
+      .filter(x => x.DATA_VALUE !== null && x.DATA_VALUE !== undefined && String(x.DATA_VALUE).trim() !== '')
+      .map(x => ({ time: String(x.TIME || ''), value: Number(x.DATA_VALUE), name: x.ITEM_NAME1, unit: x.UNIT_NAME }))
+      .filter(x => /^\d{6}$/.test(x.time) && Number.isFinite(x.value));
+
+    if (!rows.length) {
+      return { ok: false, error: `ECOS 생산자물가 ${opt.item}: ${from}~${to} 구간에 값이 없다 (항목코드·주기 확인)` };
+    }
+    // ★ 응답 순서를 믿지 않는다 (§4.4) — 앞에서 집으면 몇 년 전 값을 최신으로 쓴다
+    rows.sort((a, b) => a.time.localeCompare(b.time));
+
+    return {
+      ok: true,
+      value: {
+        rows,
+        first: rows[0],
+        last: rows[rows.length - 1],
+        label: rows[0].name || PPI.label,
+        unit: rows[0].unit || '지수',
+      },
+    };
+  });
+}
+
+/**
+ * 단가 시점수정 계수 — **양 끝 지수의 비**.
+ *
+ * ★ 변동률을 곱해 쌓지 않는다 (§4.4). 구간 경계에서 한 달을 더 세기 쉽다.
+ * ★ 이 계수는 **가정이 아니다** — 공표 통계의 비다 (§4.8). 다만 **적용할지는**
+ *   사람이 정한다: 사업계획서 단가가 이미 최근 값이면 두 번 보정하게 된다.
+ *
+ * @returns {{ok, value:{factor,percent,from,to,fromIndex,toIndex,months,label}, error}}
+ */
+async function priceAdjustment(o) {
+  const opt = o || {};
+  const r = await ppiSeries(opt);
+  if (!r.ok) return r;
+
+  const { first, last, label, unit } = r.value;
+  if (!first.value) {
+    return { ok: false, error: `기준 시점(${first.time}) 지수가 0 이라 계수를 낼 수 없다` };
+  }
+  const factor = last.value / first.value;
+  const months = (Number(last.time.slice(0, 4)) - Number(first.time.slice(0, 4))) * 12
+    + (Number(last.time.slice(4, 6)) - Number(first.time.slice(4, 6)));
+
+  return {
+    ok: true,
+    cached: r.cached,
+    value: {
+      factor: Math.round(factor * 10000) / 10000,
+      percent: Math.round((factor - 1) * 1000) / 10,
+      from: first.time, to: last.time,
+      fromIndex: first.value, toIndex: last.value,
+      months,
+      label,
+      unit,
+      // ★ 값만 옮기지 않는다 — 어디서·언제·무엇으로 나온 계수인지 함께 남긴다 (§4.7)
+      source: {
+        provider: '한국은행 ECOS',
+        label: `생산자물가지수 · ${label}`,
+        note: `${first.time} 지수 ${first.value} → ${last.time} 지수 ${last.value} `
+          + `(${months}개월). 지수의 비이며 변동률을 누적하지 않았다. `
+          + '공표 통계라 가정계수가 아니지만, 적용할지는 사람이 정한다 — '
+          + '사업계획서 단가가 이미 최근 값이면 두 번 보정된다',
+      },
+    },
+  };
+}
+
 module.exports = {
   marketRate, isAvailable, unavailable, parseResponse, buildRequestUrl, mask,
-  SERIES, DEFAULT_SERIES, PROVIDER, BASE, compact, daysAgo,
+  ppiItems, ppiSeries, priceAdjustment, month,
+  SERIES, DEFAULT_SERIES, PPI, PROVIDER, BASE, ITEM_BASE, compact, daysAgo,
 };
