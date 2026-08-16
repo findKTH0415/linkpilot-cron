@@ -199,7 +199,9 @@ function signature(onNavy, T, issuer) {
     ? `\n    <div style="font-size:8.5px;color:${T.negative};margin-top:3px;">issuer.json 을 설정하세요 — 발행 주체 없이 배포할 수 없습니다</div>`
     : '';
   return `<div style="display:flex;align-items:center;gap:12px;margin-top:26px;text-align:left;">
-  <div style="width:44px;height:44px;border-radius:50%;background:${onNavy ? T.surface : T.surfaceAlt};border:1px solid ${onNavy ? 'transparent' : T.ruleStrong};flex:0 0 44px;display:flex;align-items:center;justify-content:center;font-family:${T.serif};font-size:13px;color:${T.brandRed};font-weight:600;">${esc(iss.mark || '')}</div>
+  ${iss.logo
+    ? `<div style="width:44px;height:44px;flex:0 0 44px;display:flex;align-items:center;justify-content:center;"><img src="${iss.logo}" alt="${esc(iss.en)} 로고" style="max-width:44px;max-height:44px;object-fit:contain;display:block;"></div>`
+    : `<div style="width:44px;height:44px;border-radius:50%;background:${onNavy ? T.surface : T.surfaceAlt};border:1px solid ${onNavy ? 'transparent' : T.ruleStrong};flex:0 0 44px;display:flex;align-items:center;justify-content:center;font-family:${T.serif};font-size:13px;color:${T.brandRed};font-weight:600;">${esc(iss.mark || '')}</div>`}
   <div>
     <div style="font-family:${T.serif};font-size:13.5px;color:${nameColor};">${esc(iss.en)}</div>${line2}${line3}${hint}
   </div>

@@ -166,7 +166,12 @@ h1,h2,h3,h4 { margin: 0; }
 /* 발행 주체 */
 .iss-mark { width: 46px; height: 46px; border-radius: 50%; background: var(--panel);
   border: 1px solid var(--line); display: grid; place-items: center;
-  font: 600 13px/1 'Times New Roman', serif; color: var(--bad-ink); }
+  font: 600 13px/1 'Times New Roman', serif; color: var(--bad-ink); overflow: hidden; }
+.iss-mark img { max-width: 44px; max-height: 44px; object-fit: contain; display: block; }
+.iss-logo { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.iss-logo .btn2 { font: inherit; font-size: 13px; padding: 7px 12px; border-radius: 9px;
+  border: 1px solid var(--line); background: var(--surface); cursor: pointer; }
+.iss-logo .btn2:disabled { opacity: .5; cursor: default; }
 .chk { display: flex; align-items: center; gap: 9px; font-size: 13.5px;
   color: var(--ink2); cursor: pointer; margin-top: 4px; }
 .chk input { width: 16px; height: 16px; accent-color: var(--lime); }
@@ -351,8 +356,8 @@ window.LINKPILOT_INTAKE = {
   function adoptIssuer() {
     var i = (state.info && state.info.issuer) || null;
     state.issuer = (i && !i.unset)
-      ? { en: i.en || '', kr: i.kr || '', tag: i.tag || '', mark: i.mark || '' }
-      : { en: '', kr: '', tag: '', mark: '' };
+      ? { en: i.en || '', kr: i.kr || '', tag: i.tag || '', mark: i.mark || '', logo: i.logo || '' }
+      : { en: '', kr: '', tag: '', mark: '', logo: '' };
   }
 
   /**
@@ -693,7 +698,7 @@ window.LINKPILOT_INTAKE = {
         iss[key] = inp.value;
         // 이니셜은 회사명에서 자동으로 만든다 (직접 적으면 그것을 쓴다)
         var m = document.getElementById('iss-mark');
-        if (m && !iss.mark) m.textContent = autoMark(iss.en) || '—';
+        if (m && !iss.logo) m.textContent = autoMark(iss.en) || '—';
         var w = document.getElementById('iss-warn');
         if (w) w.hidden = !!iss.en.trim();
       });
@@ -706,13 +711,40 @@ window.LINKPILOT_INTAKE = {
       '예: Acme Capital Partners Co.,Ltd'));
     box.appendChild(field('kr', '국문 상호', '없으면 그 줄을 만들지 않습니다.', '예: (주)에이스캐피탈파트너스'));
     box.appendChild(field('tag', '태그라인', '대문자로 표시됩니다.', '예: REAL ASSET INVESTMENT'));
-    box.appendChild(field('mark', '로고 이니셜', '비우면 회사명에서 만듭니다 (최대 4글자).', '예: ACP'));
-
+    /* ★ 로고 업로드 (요청 2026-08-16) — 이니셜 입력란을 없애고 **제출자 로고 이미지**를 받는다.
+       보고서 표지·서명부의 로고 자리에 이 그림이 찍힌다. 로고가 없으면 회사명 이니셜로 폴백(자동, 입력 안 받음).
+       PNG·JPG·SVG · 200KB — 규칙은 서버 core/issuer.js(logoFrom) 와 같고, 서버가 최종 판정한다.
+       파일이 아니라 data URL 로 보내는 이유: issuer.json 하나에 남아 프로젝트 폴더와 함께 움직인다. */
     var prev = el('div', 'f');
-    prev.appendChild(el('label', null, '로고 자리'));
-    var mark = el('div', 'iss-mark', iss.mark || autoMark(iss.en) || '—');
+    prev.appendChild(el('label', null, '로고 (보고서 표지·서명부에 찍힙니다)'));
+    var row = el('div', 'iss-logo');
+    var mark = el('div', 'iss-mark');
     mark.id = 'iss-mark';
-    prev.appendChild(mark);
+    var drawMark = function () {
+      mark.textContent = '';
+      if (iss.logo) { var im = document.createElement('img'); im.src = iss.logo; im.alt = '로고'; mark.appendChild(im); }
+      else mark.textContent = autoMark(iss.en) || '—';
+    };
+    drawMark();
+    row.appendChild(mark);
+    var file = el('input'); file.type = 'file'; file.accept = 'image/png,image/jpeg,image/svg+xml'; file.hidden = true;
+    var up = el('button', 'btn2', iss.logo ? '로고 바꾸기' : '로고 업로드'); up.type = 'button'; up.disabled = !!state.created;
+    var rm = el('button', 'btn2', '제거'); rm.type = 'button'; rm.disabled = !!state.created || !iss.logo;
+    var msg = el('div', 'hint', iss.logo ? '로고가 들어 있습니다.' : '없으면 회사명 이니셜(' + (autoMark(iss.en) || '—') + ')이 대신 찍힙니다.');
+    up.addEventListener('click', function () { file.click(); });
+    file.addEventListener('change', function () {
+      var f = file.files && file.files[0]; file.value = '';
+      if (!f) return;
+      if (!/^image\/(png|jpeg|svg\+xml)$/.test(f.type)) { msg.textContent = 'PNG·JPG·SVG 만 올릴 수 있습니다 (지금: ' + (f.type || '알 수 없음') + ')'; return; }
+      if (f.size > 200 * 1024) { msg.textContent = '200KB 이하여야 합니다 (지금 ' + Math.round(f.size / 1024) + 'KB) — 크기를 줄여 다시 올리세요'; return; }
+      var r = new FileReader();
+      r.onload = function () { iss.logo = String(r.result || ''); drawMark(); up.textContent = '로고 바꾸기'; rm.disabled = false; msg.textContent = f.name + ' · ' + Math.round(f.size / 1024) + 'KB'; };
+      r.onerror = function () { msg.textContent = '파일을 읽지 못했습니다'; };
+      r.readAsDataURL(f);
+    });
+    rm.addEventListener('click', function () { iss.logo = ''; drawMark(); up.textContent = '로고 업로드'; rm.disabled = true; msg.textContent = '없으면 회사명 이니셜(' + (autoMark(iss.en) || '—') + ')이 대신 찍힙니다.'; });
+    row.appendChild(up); row.appendChild(rm); row.appendChild(file);
+    prev.appendChild(row); prev.appendChild(msg);
     box.appendChild(prev);
 
     var chk = el('label', 'chk');

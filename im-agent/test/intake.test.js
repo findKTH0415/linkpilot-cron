@@ -368,7 +368,12 @@ test('★ 화면이 회사명 입력란을 제공한다', () => {
   const html = read('intake.html');
   assert.match(html, /회사명 \(영문\)/, '발행 주체를 넣을 곳이 있어야 한다');
   assert.match(html, /국문 상호/);
-  assert.match(html, /로고 이니셜/);
+  /* 2026-08-16 — 이니셜 입력란은 없앴다. 제출자 **로고 업로드**가 그 자리를 대신하고,
+     이니셜은 로고가 없을 때의 자동 폴백이다(입력 안 받음). */
+  assert.doesNotMatch(html, /로고 이니셜/, '이니셜 입력란은 없어야 한다 — 로고 업로드로 바뀌었다');
+  assert.match(html, /로고 업로드/, '제출자 로고를 올릴 수 있어야 한다');
+  assert.match(html, /image\/png,image\/jpeg,image\/svg\+xml/, '받는 형식이 서버 규칙(PNG·JPG·SVG)과 같아야 한다');
+  assert.match(html, /200 \* 1024/, '크기 한도(200KB)를 화면에서도 미리 막는다');
   assert.match(html, /앞으로 만드는 보고서에도/, '기본값으로 저장하는 선택지');
   assert.match(html, /대외 배포가 막힙니다/, '안 넣으면 어떻게 되는지 미리 알린다');
 });

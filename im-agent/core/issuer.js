@@ -16,8 +16,11 @@
  *   ③ 저장소 전체  <IM_AGENT_ROOT>/issuer.json
  *
  * 형식:
- *   { "en": "...", "kr": "...", "tag": "...", "mark": "PDI", "contact": "..." }
+ *   { "en": "...", "kr": "...", "tag": "...", "mark": "PDI", "logo": "data:image/png;base64,...", "contact": "..." }
  *   en 만 있어도 된다. mark 는 로고 자리 이니셜 — 없으면 en 에서 만든다.
+ *   logo 는 **제출자 로고 이미지**(data URL, PNG/JPG/SVG, 200KB 이하) — 있으면 표지·서명부의
+ *   로고 자리에 이니셜 대신 이 그림이 찍힌다(요청 2026-08-16). 파일이 아니라 data URL 로 두는
+ *   이유: issuer.json 하나로 프로젝트 폴더에 남아 배포·복사 때 그림이 따로 떨어지지 않는다.
  */
 
 const fs = require('fs');
@@ -32,6 +35,18 @@ function markFrom(name) {
   const words = s.replace(/[(주)㈜]/g, ' ').split(/[\s,.]+/).filter(Boolean);
   if (words.length === 1) return words[0].slice(0, 4).toUpperCase();
   return words.slice(0, 4).map(w => w[0]).join('').toUpperCase();
+}
+
+/** 로고 data URL 검증 — 형식(PNG/JPG/SVG)·크기(200KB) 밖이면 버린다(있는 척하지 않고 이니셜로 간다) */
+const LOGO_MAX = 200 * 1024;
+function logoFrom(v) {
+  const s = String(v || '').trim();
+  if (!s) return null;
+  const m = /^data:image\/(png|jpeg|jpg|svg\+xml);base64,([A-Za-z0-9+/=\s]+)$/.exec(s);
+  if (!m) return null;
+  const bytes = Math.floor(m[2].replace(/\s+/g, '').length * 3 / 4);
+  if (bytes > LOGO_MAX) return null;
+  return s;
 }
 
 function parse(raw, where) {
@@ -49,6 +64,7 @@ function parse(raw, where) {
     kr: String(o.kr || '').trim() || null,
     tag: String(o.tag || '').trim() || null,
     mark: (String(o.mark || '').trim() || markFrom(en)).slice(0, 4),
+    logo: logoFrom(o.logo),
     contact: String(o.contact || '').trim() || null,
     source: where,
   };
@@ -124,6 +140,12 @@ function normalize(input) {
   const tag = clean(o.tag, LIMITS.tag);
   const contact = clean(o.contact, LIMITS.contact);
   const mark = clean(o.mark, LIMITS.mark).toUpperCase() || markFrom(en);
+  /* 로고 — 형식·크기 밖이면 **거부**한다(조용히 버리면 사용자는 올린 줄 안다) */
+  let logo = null;
+  if (o.logo !== undefined && o.logo !== null && String(o.logo).trim() !== '') {
+    logo = logoFrom(o.logo);
+    if (!logo) return { ok: false, error: '로고는 PNG·JPG·SVG 이미지, 200KB 이하여야 합니다' };
+  }
 
   return {
     ok: true,
@@ -132,9 +154,10 @@ function normalize(input) {
       kr: kr || null,
       tag: tag || null,
       mark,
+      logo,
       contact: contact || null,
     },
   };
 }
 
-module.exports = { read, resolve, normalize, markFrom, UNSET, LIMITS, FILE };
+module.exports = { read, resolve, normalize, markFrom, UNSET, LIMITS, FILE, logoFrom, LOGO_MAX };
