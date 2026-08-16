@@ -88,11 +88,30 @@ function createHandlers({ agentRoot, agentModulePath }) {
       //    달라지는 날 이 구조를 바꿔야 한다)
       const fieldplan = load('core/fieldplan');
 
+      // 자산군 12종 — **재무 템플릿(4종)과 다른 축이다.** 호텔과 오피스빌딩은
+      // 같은 재무 템플릿을 쓰지만 IM 에 실려야 할 값이 전혀 다르다.
+      // 목록을 화면에 복사해 두지 않는다 (core/assetclass.js 가 단일 출처)
+      const ac = load('core/assetclass');
+      const commonKeys = Object.values(tpl.COMMON_MAP);
+      const assetClasses = ac.CLASSES.map((c) => {
+        const k = ac.classKeys(c.id, dict.FIELDS, commonKeys);
+        return {
+          id: c.id, label: c.label, en: c.en, template: c.template,
+          // 왜 묻는지까지 함께 내린다. 이유 없이 늘어난 입력란은 대충 채워지고,
+          // 대충 채운 값이 그대로 IM 에 실린다
+          requires: c.requires.map(r => ({
+            key: r.key, label: (dict.FIELDS[r.key] || {}).label || r.key, why: r.why,
+          })),
+          own: k.own, foreign: k.foreign,
+        };
+      });
+
       return {
         status: 200,
         body: {
           fields: dict.FIELDS,
           computedKeys: dict.COMPUTED_KEYS,
+          assetClasses,
           // 계산 항목의 표시 이름(한글·영문). 화면이 raw key 를 그대로 보여 주면
           // `returns.min_dscr` 같은 글자가 사용자에게 나간다. 화면에 이름을
           // 적어 두지 않고 여기서 받아 간다 — 적어 두면 사전이 바뀐 날 갈린다
@@ -117,6 +136,7 @@ function createHandlers({ agentRoot, agentModulePath }) {
      */
     async intake() {
       const { TEMPLATES } = load('finance/templates');
+      const ac = load('core/assetclass');
       const ext = load('agents/02-extraction');
       const issuer = load('core/issuer');
       const list = (s) => [...s].sort();
@@ -136,7 +156,13 @@ function createHandlers({ agentRoot, agentModulePath }) {
       return {
         status: 200,
         body: {
-          assetTypes: Object.keys(TEMPLATES).map(id => ({ id, label: TEMPLATES[id].label })),
+          // ★ 접수 화면이 고르는 것은 **자산군 12종**이다 (재무 템플릿 4종이 아니다).
+          //   재무 템플릿은 자산군이 정한다 — 사람이 둘을 따로 고르면 어긋난다
+          assetTypes: ac.CLASSES.map(c => ({
+            id: c.id, label: c.label, en: c.en, template: c.template,
+            requires: c.requires.map(r => r.key),
+          })),
+          financeTemplates: Object.keys(TEMPLATES).map(id => ({ id, label: TEMPLATES[id].label })),
           issuer: current,
           issuerError,
           issuerLimits: issuer.LIMITS,

@@ -288,14 +288,21 @@
       units: { done: hasProject ? 1 : 0, total: 1 },
     });
 
-    // ② 가이드 필드 — 필수 항목 중 값과 출처가 **둘 다** 있는 것만 센다
+    // ② 가이드 필드 — 필수 항목 중 값과 출처가 **둘 다** 있는 것만 센다.
+    //
+    // ★ 자산군 전용 필수(`classKeys`)가 함께 세어진다. 이걸 빼면 호텔 딜에서
+    //   객실 수를 안 받고도 「필수 다 채웠다」가 되고, 매출 가정을 검증할
+    //   근거가 없는 채로 생성이 열린다
     var c = (o.fields && o.values && typeof o.complete === 'function')
-      ? o.complete(o.fields, o.values, o.docType || 'im') : null;
+      ? o.complete(o.fields, o.values, o.docType || 'im', o.classKeys || null) : null;
     steps.push({
       id: 'fields', n: 2, label: STEPS[1].label,
       pct: c ? c.percent : null,
       state: !c ? 'unknown' : (c.filled >= c.total ? 'done' : (c.filled ? 'doing' : 'todo')),
-      detail: c ? ('필수 ' + c.total + '개 중 ' + c.filled + '개 (값과 출처가 모두 있어야 셉니다)')
+      detail: c
+        ? ('필수 ' + c.total + '개 중 ' + c.filled + '개 (값과 출처가 모두 있어야 셉니다)'
+          + ((o.classKeys && o.classKeys.length)
+            ? ' · ' + (o.classLabel || '자산군') + ' 전용 ' + o.classKeys.length + '개 포함' : ''))
         : '아직 확인하지 못했습니다',
       parts: c ? [
         { label: '채움', n: c.filled },

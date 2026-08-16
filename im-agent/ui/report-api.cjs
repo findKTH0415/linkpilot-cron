@@ -145,6 +145,7 @@ function createHandlers(deps) {
         request,
         projectName: b.projectName ? String(b.projectName).slice(0, 200) : undefined,
         assetType: b.assetType ? String(b.assetType) : undefined,
+        assetClass: b.assetClass ? String(b.assetClass) : undefined,
       }, { log: () => {} });
 
       if (r.status === STATUS.ERROR) return bad(`프로젝트 생성 실패: ${r.error}`, 500);
@@ -173,6 +174,9 @@ function createHandlers(deps) {
         body: {
           projectId: out.projectId,
           templateId: out.templateId,
+          // 못 정했으면 null 이다. 화면이 「자산군을 고르세요」를 띄울 수 있어야 한다
+          assetClass: out.assetClass || null,
+          assetClassCandidates: out.assetClassCandidates || [],
           name: out.name,
           // 뽑힌 값을 그대로 돌려준다. 무엇을 넘겨짚었는지 사람이 봐야 한다
           seeded: (out.facts || []).map(f => ({
@@ -411,7 +415,15 @@ function createHandlers(deps) {
         sources = [];   // 자료 폴더가 없을 수 있다. 빈 목록과 오류를 구분할 필요는 없다
       }
 
-      return ok({ values, sources, hasDataset: !!ds });
+      // ★ 이 프로젝트의 자산군을 함께 준다. 화면이 자산군을 모르면 전용 필수
+      //   항목을 셀 수 없고, 「필수 17개 중 17개」라고 다 됐다 말해 버린다
+      const meta = store.readJson(projectId, '01_Project/project.json', null) || {};
+      return ok({
+        values, sources, hasDataset: !!ds,
+        assetClass: meta.assetClass || null,
+        assetType: meta.assetType || null,
+        templateId: meta.templateId || null,
+      });
     },
 
     /**

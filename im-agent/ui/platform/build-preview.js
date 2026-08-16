@@ -313,6 +313,10 @@ async function flowPreload() {
   return {
     fields: info.fields || {},
     computedKeys: info.computedKeys || [],
+    assetClasses: info.assetClasses || [],
+    // 미리보기 프로젝트는 데이터센터다 (LP-DC-…). 지어낸 값이 아니라
+    // 프로젝트 번호가 말하는 그대로다
+    assetClass: 'datacenter',
     values: {},        // 저장된 값이 없다 (0 개 — 「모름」과 다르다)
     sources: null,     // 올린 자료 목록은 서버만 안다 → 모름
     spec: null,

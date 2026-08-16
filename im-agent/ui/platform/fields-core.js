@@ -53,21 +53,35 @@
     return order.map(function (c) { return { category: c, items: buckets[c] }; });
   }
 
-  /** 이 보고서 종류에 필수인 key 목록 */
-  function requiredKeys(fields, docType) {
+  /**
+   * 이 보고서 종류에 필수인 key 목록.
+   *
+   * @param {string[]} [classKeys] 자산군 전용 필수 키 (`core/assetclass.js` 가 준다).
+   *   **더해지기만 한다** — 문서 종류 필수를 자산군이 빼앗지 않는다. 빼면
+   *   호텔 딜에서 대지면적이 필수가 아니게 되는 식으로 규칙이 조용히 무너진다.
+   *
+   * ★ 사전에 없는 키는 넣지 않는다. 넣으면 입력란은 안 생기는데 필수로는
+   *   세어져 진행률이 영원히 100% 가 되지 않는다.
+   */
+  function requiredKeys(fields, docType, classKeys) {
     var want = DOC_REQUIRES[docType] || [];
-    return Object.keys(fields || {}).filter(function (key) {
-      var r = (fields[key] && fields[key].requiredFor) || [];
+    var f = fields || {};
+    var out = Object.keys(f).filter(function (key) {
+      var r = (f[key] && f[key].requiredFor) || [];
       return r.some(function (x) { return want.indexOf(x) !== -1; });
     });
+    (classKeys || []).forEach(function (k) {
+      if (f[k] && out.indexOf(k) === -1) out.push(k);
+    });
+    return out;
   }
 
   /**
    * 채움 정도. **값만 있고 출처가 없으면 채운 것으로 세지 않는다** —
    * 저장 자체가 안 되는 값을 진행률에 넣으면 다 됐다고 착각한다.
    */
-  function completeness(fields, values, docType) {
-    var keys = requiredKeys(fields, docType);
+  function completeness(fields, values, docType, classKeys) {
+    var keys = requiredKeys(fields, docType, classKeys);
     var missing = keys.filter(function (k) {
       var v = (values || {})[k];
       return !v || v.value === '' || v.value === null || v.value === undefined || !v.source;

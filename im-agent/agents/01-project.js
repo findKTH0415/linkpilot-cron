@@ -10,7 +10,8 @@
  */
 
 const store = require('../core/store');
-const { pickTemplate } = require('../finance/templates');
+const { pickTemplate, getTemplate } = require('../finance/templates');
+const assetclass = require('../core/assetclass');
 const { kstStamp } = require('../core/kst');
 const { parseNumber } = require('../core/numeric');
 
@@ -21,6 +22,7 @@ const inputSchema = {
     request: { type: 'string', minLength: 2 },
     projectName: { type: 'string' },
     assetType: { type: 'string' },
+    assetClass: { type: 'string' },
   },
 };
 
@@ -67,11 +69,29 @@ function deriveName(request) {
     .trim() || request.trim();
 }
 
+/**
+ * 자산군을 정한다. **못 정하면 null 을 돌려준다** — generic 으로 흘려보내면
+ * 그 자산군의 전용 필수 항목(객실 수·층고·분양가능 면적…)이 통째로
+ * 안 물어봐지는데, 화면은 「필수 다 채웠다」고 말한다.
+ */
+function resolveClass(raw, request) {
+  const s = String(raw || '').trim();
+  if (s) {
+    const hit = assetclass.CLASSES.find(c => c.id === s || c.label === s || c.en === s);
+    if (hit) return { id: hit.id, how: 'chosen', reason: null, candidates: [hit.id] };
+  }
+  const d = assetclass.detect([s, request].filter(Boolean).join(' '));
+  return { id: d.id, how: d.id ? 'detected' : null, reason: d.reason, candidates: d.candidates };
+}
+
 async function run(input, ctx) {
   const request = input.request.trim();
-  const template = input.assetType
-    ? pickTemplate(input.assetType)
-    : pickTemplate(request);
+  const cls = resolveClass(input.assetClass || input.assetType, request);
+
+  // 자산군이 정해지면 재무 템플릿도 그것이 정한다 (둘이 어긋나면 모델과 문서가 갈린다)
+  const template = cls.id
+    ? getTemplate(assetclass.templateOf(cls.id))
+    : (input.assetType ? pickTemplate(input.assetType) : pickTemplate(request));
 
   const projectId = store.nextProjectId(template.id);
   const dir = store.createProjectDirs(projectId);
@@ -82,14 +102,19 @@ async function run(input, ctx) {
     key: 'project.name', value: name, unit: null,
     source: 'user_request', sourceDate: kstStamp().slice(0, 10), confidence: 0.7, verified: false,
   });
+  const classDef = cls.id ? assetclass.CLASSES.find(c => c.id === cls.id) : null;
   facts.push({
-    key: 'project.assetType', value: template.label, unit: null,
+    // 자산군을 알면 그쪽이 더 구체적이다 — 「부동산 개발 (PF)」보다 「호텔」이
+    // IM 에 실려야 할 말이다. 모르면 템플릿 이름으로 둔다
+    key: 'project.assetType', value: classDef ? classDef.label : template.label, unit: null,
     source: 'user_request', sourceDate: kstStamp().slice(0, 10), confidence: 0.7, verified: false,
   });
 
   const project = {
     projectId, name, request,
-    templateId: template.id, assetType: template.label,
+    templateId: template.id, assetType: classDef ? classDef.label : template.label,
+    assetClass: cls.id,
+    assetClassHow: cls.how,
     createdAt: kstStamp(),
     status: 'created',
     folders: store.FOLDERS,
@@ -99,8 +124,18 @@ async function run(input, ctx) {
   if (!facts.some(f => f.key === 'project.location')) {
     ctx.warn('요청문에서 소재지를 찾지 못했다 — 원본자료 업로드 후 재추출 필요');
   }
+  // ★ 조용히 넘어가지 않는다. 자산군을 못 정하면 전용 필수 항목이 적용되지
+  //   않는 채로 진행되고, 그 사실은 화면 어디에도 안 나온다
+  if (!cls.id) {
+    ctx.warn('자산군을 정하지 못했다 — 자산군 전용 필수 항목이 적용되지 않는다'
+      + (cls.reason ? ` (${cls.reason})` : '')
+      + (cls.candidates && cls.candidates.length ? ` · 후보: ${cls.candidates.join(', ')}` : ''));
+  }
 
-  return { projectId, templateId: template.id, name, dir, facts, confidence: 0.7 };
+  return {
+    projectId, templateId: template.id, name, dir, facts, confidence: 0.7,
+    assetClass: cls.id, assetClassCandidates: cls.candidates || [],
+  };
 }
 
 /**

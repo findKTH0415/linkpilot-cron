@@ -60,6 +60,26 @@ const FIELDS = {
   'capacity.ac_kw':      { label: '설비용량(AC)', category: CATEGORY.CAPACITY, unit: 'kW', type: 'number', aliases: ['AC용량', '인버터용량', '발전용량'], min: 0 },
   'capacity.leasable_sqm': { label: '임대면적', category: CATEGORY.CAPACITY, unit: '㎡', type: 'number', aliases: ['임대면적', '전용면적', 'NLA', 'Leasable Area'], min: 0 },
 
+  // ── 자산군 전용 지표 ───────────────────────────────────────
+  //
+  // ★ **requiredFor 를 붙이지 않는다.** 여기 붙이면 태양광 딜에서도 객실 수를
+  //   묻는다. 자산군별 필수는 `core/assetclass.js` 가 정하고, 그 자산군을
+  //   고른 프로젝트에서만 필수가 된다.
+  // ★ 셋 다 있어야 뜻이 있는 값들이 있다 (객실수 × ADR × 점유율 = 매출).
+  //   하나만 받아 두면 나머지를 가정으로 메우게 되고, 그건 §4.8 위반이다.
+  'capacity.rooms':          { label: '객실 수', category: CATEGORY.CAPACITY, unit: '실', type: 'number', aliases: ['객실수', '객실 수', '실수', 'Keys', 'Rooms'], min: 0 },
+  'capacity.units':          { label: '세대수/호실수', category: CATEGORY.CAPACITY, unit: '호', type: 'number', aliases: ['세대수', '가구수', '호실수', '분양세대', 'Units'], min: 0 },
+  'capacity.dock_doors':     { label: '도크 수', category: CATEGORY.CAPACITY, unit: '개', type: 'number', aliases: ['도크', '도크수', 'Dock', 'Loading Dock'], min: 0 },
+  'capacity.saleable_land_sqm': { label: '분양가능 면적', category: CATEGORY.CAPACITY, unit: '㎡', type: 'number', aliases: ['분양면적', '분양가능면적', '유효분양면적', 'Saleable Area'], min: 0 },
+  // 단위가 업종마다 다르다 (톤·대·매). 숫자로 강제하면 단위를 잃는다 —
+  // 단위째로 받아 적고, 계산에는 쓰지 않는다
+  'capacity.production':     { label: '생산능력', category: CATEGORY.CAPACITY, unit: null, type: 'string', aliases: ['생산능력', '생산량', 'CAPA', 'Capacity', '연산'] },
+  'building.clear_height_m': { label: '유효층고', category: CATEGORY.BUILDING, unit: 'm', type: 'number', aliases: ['층고', '유효층고', '천장고', 'Clear Height'], min: 0, max: 30 },
+  'building.floor_load_kn':  { label: '바닥하중', category: CATEGORY.BUILDING, unit: 'kN/㎡', type: 'number', aliases: ['바닥하중', '적재하중', 'Floor Load'], min: 0 },
+  'revenue.adr':             { label: '평균 객실단가(ADR)', category: CATEGORY.REVENUE, unit: '원/실·박', type: 'number', aliases: ['ADR', '객실단가', '평균객실요금', 'Average Daily Rate'], min: 0 },
+  'revenue.occupancy':       { label: '점유율/임대율', category: CATEGORY.REVENUE, unit: '%', type: 'number', aliases: ['점유율', '객실점유율', '임대율', '공실률', 'Occupancy', 'OCC'], min: 0, max: 100 },
+  'schedule.concession_years': { label: '운영권 기간', category: CATEGORY.SCHEDULE, unit: '년', type: 'number', aliases: ['운영권', '관리운영권', '실시협약기간', 'Concession'], min: 0, max: 60 },
+
   // ── Investment (금액 = 억원) ────────────────────────────────
   'investment.total':        { label: '총사업비', category: CATEGORY.INVESTMENT, unit: '억원', type: 'number', aliases: ['총사업비', '총투자비', '사업비', 'Total Project Cost', 'TPC'], min: 0, tolerance: 0.005, requiredFor: ['financial', 'im', 'teaser'] },
   'investment.land':         { label: '토지비', category: CATEGORY.INVESTMENT, unit: '억원', type: 'number', aliases: ['토지비', '토지매입비', '용지비', 'Land Cost'], min: 0, tolerance: 0.005, requiredFor: ['financial'] },
