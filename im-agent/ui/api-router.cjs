@@ -93,6 +93,10 @@ function createHandlers({ agentRoot, agentModulePath }) {
         body: {
           fields: dict.FIELDS,
           computedKeys: dict.COMPUTED_KEYS,
+          // 계산 항목의 표시 이름(한글·영문). 화면이 raw key 를 그대로 보여 주면
+          // `returns.min_dscr` 같은 글자가 사용자에게 나간다. 화면에 이름을
+          // 적어 두지 않고 여기서 받아 간다 — 적어 두면 사전이 바뀐 날 갈린다
+          computedFields: dict.COMPUTED_FIELDS,
           categories: dict.CATEGORY,
           industries,
           plan: fieldplan.plan('generic'),

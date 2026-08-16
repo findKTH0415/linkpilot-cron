@@ -566,3 +566,54 @@ test('★ 화면이 산업 목록을 복사해 두지 않는다', () => {
   assert.ok(!/'일반용'|"일반용"/.test(html), 'fields.html 이 판 이름을 따로 적어 두면 갈린다');
   assert.match(html, /F\.LEVELS/, '판 정의는 fields-core 에서 가져온다');
 });
+
+// ── 계산 항목의 표시 이름 (한글·영문) ────────────────────────
+
+/**
+ * ★ `label` 은 IM 본문·출처표에 찍히는 이름이고, `ko`/`en` 은 화면 표시용이다.
+ *   셋이 제각각이면 화면에서 본 이름이 보고서에 없고, 사람은 다른 항목이라고 읽는다.
+ *   그래서 label 은 ko 나 en 중 하나와 **같아야** 한다 — 세 번째 이름을 못 만든다.
+ */
+test('★ 계산 항목은 한글·영문 이름을 둘 다 갖는다', () => {
+  const keys = dict.COMPUTED_KEYS;
+  assert.strictEqual(keys.length, 19, '개수가 바뀌면 화면 문구와 안내 문서를 같이 본다');
+  keys.forEach((k) => {
+    const d = dict.COMPUTED_FIELDS[k];
+    assert.ok(d.ko && d.ko.trim(), `${k}: 한글 이름이 없다`);
+    assert.ok(d.en && d.en.trim(), `${k}: 영문 이름이 없다`);
+    assert.ok(d.label === d.ko || d.label === d.en,
+      `${k}: label('${d.label}') 이 ko('${d.ko}') 도 en('${d.en}') 도 아니다 — 이름이 세 개가 된다`);
+    assert.ok(!/[가-힣]/.test(d.en) || /㎡/.test(d.en),
+      `${k}: 영문 이름에 한글이 섞여 있다 (${d.en})`);
+  });
+});
+
+test('GET /fields 가 계산 항목의 이름도 함께 내려준다', async () => {
+  const h = readHandlers({ agentModulePath: path.join(__dirname, '..') });
+  const r = await h.fields();
+  assert.deepStrictEqual(Object.keys(r.body.computedFields), dict.COMPUTED_KEYS,
+    '화면이 raw key(returns.min_dscr)를 그대로 보여주지 않으려면 이름이 같이 내려와야 한다');
+});
+
+test('★ 화면이 계산 항목 이름을 복사해 두지 않는다', () => {
+  const html = read('fields.html');
+  ['Minimum DSCR', 'Stabilized NOI', '순현재가치', 'Planned FAR'].forEach((n) => {
+    assert.ok(!html.includes(n), `fields.html 에 '${n}' 이 박혀 있다 — 사전이 바뀌면 갈린다`);
+  });
+  assert.match(html, /state\.computedFields\[k\]/, '이름은 서버가 준 정의에서 읽는다');
+});
+
+test('★ 계산 항목 목록은 접히지만 이유는 접히지 않는다', () => {
+  const html = read('fields.html');
+  assert.match(html, /showComputed/, '아코디언 상태가 없다');
+  assert.match(html, /state\.showComputed \? '접기 ▲' : '펼치기 ▼'/, '펼치기·접기 표시가 없다');
+  assert.match(html, /aria-expanded', state\.showComputed/, '아코디언에 aria-expanded 가 없다');
+
+  // 이유 문구(card__s)가 showComputed 블록 **밖**에 있어야 한다.
+  // 안으로 들어가면 접었을 때 입력란이 없는 이유가 화면에서 사라진다
+  const block = html.slice(html.indexOf("ch.setAttribute('aria-expanded'"));
+  const reason = block.indexOf('사람이 적어 넣으면');
+  const open = block.indexOf('if (state.showComputed)');
+  assert.ok(reason !== -1 && open !== -1 && reason < open,
+    '입력을 못 받는 이유가 아코디언 안으로 들어갔다 — 접으면 사라진다');
+});

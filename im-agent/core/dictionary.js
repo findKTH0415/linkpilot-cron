@@ -120,31 +120,39 @@ const FIELDS = {
 /**
  * 계산으로만 생성되는 key (추출/입력 금지 — Financial Agent 전용 출력).
  * 표시 라벨을 여기서 함께 관리해야 IM 본문에 raw key 가 노출되지 않는다.
+ *
+ * ★ `label` 은 **IM 본문·출처표에 찍히는 이름**이다. 화면 표시가 마음에 안 든다고
+ *   여기를 고치면 산출물 문구가 같이 바뀐다. 화면에 한글·영문을 나란히 보이려면
+ *   `ko`/`en` 을 쓴다 — `label` 은 둘 중 하나와 반드시 같아야 하고
+ *   (`fields.test.js` 가 검사한다), 세 번째 이름을 만들지 않는다.
+ *
+ * ★ 한글 이름을 억지로 번역하지 않는다. DSCR·NOI·IRR 은 실무에서 그대로 쓰는 말이라
+ *   「부채상환비율」로 바꿔 적으면 오히려 무슨 항목인지 못 알아본다.
  */
 const COMPUTED_FIELDS = {
-  'returns.project_irr':    { label: 'Project IRR', unit: '%' },
-  'returns.equity_irr':     { label: 'Equity IRR', unit: '%' },
-  'returns.project_moic':   { label: 'Project MOIC', unit: 'x' },
-  'returns.equity_moic':    { label: 'Equity Multiple', unit: 'x' },
-  'returns.npv':            { label: 'NPV', unit: '억원' },
-  'returns.min_dscr':       { label: '최소 DSCR', unit: 'x' },
-  'returns.avg_dscr':       { label: '평균 DSCR', unit: 'x' },
-  'returns.debt_yield':     { label: 'Debt Yield', unit: '%' },
-  'returns.payback_years':  { label: '자본 회수기간', unit: '년' },
-  'returns.exit_value':     { label: 'Exit Value', unit: '억원' },
-  'returns.noi_stabilized': { label: '안정화 NOI', unit: '억원' },
+  'returns.project_irr':    { label: 'Project IRR', ko: '사업 내부수익률', en: 'Project IRR', unit: '%' },
+  'returns.equity_irr':     { label: 'Equity IRR', ko: '자기자본 내부수익률', en: 'Equity IRR', unit: '%' },
+  'returns.project_moic':   { label: 'Project MOIC', ko: '사업 투자배수', en: 'Project MOIC', unit: 'x' },
+  'returns.equity_moic':    { label: 'Equity Multiple', ko: '자기자본 투자배수', en: 'Equity Multiple', unit: 'x' },
+  'returns.npv':            { label: 'NPV', ko: '순현재가치', en: 'NPV', unit: '억원' },
+  'returns.min_dscr':       { label: '최소 DSCR', ko: '최소 DSCR', en: 'Minimum DSCR', unit: 'x' },
+  'returns.avg_dscr':       { label: '평균 DSCR', ko: '평균 DSCR', en: 'Average DSCR', unit: 'x' },
+  'returns.debt_yield':     { label: 'Debt Yield', ko: '부채수익률', en: 'Debt Yield', unit: '%' },
+  'returns.payback_years':  { label: '자본 회수기간', ko: '자본 회수기간', en: 'Payback Period', unit: '년' },
+  'returns.exit_value':     { label: 'Exit Value', ko: '매각가치', en: 'Exit Value', unit: '억원' },
+  'returns.noi_stabilized': { label: '안정화 NOI', ko: '안정화 NOI', en: 'Stabilized NOI', unit: '억원' },
 
   // 감정평가 Agent 산출 (참고용 간이 평가 — 법정 감정평가 아님)
-  'appraisal.land_value_official':    { label: '토지가치(공시지가 기준)', unit: '억원' },
-  'appraisal.land_value_comparison':  { label: '토지가치(거래사례비교법)', unit: '억원' },
-  'appraisal.land_value_income':      { label: '토지가치(수익환원법)', unit: '억원' },
-  'appraisal.land_value_concluded':   { label: '토지가치(참고 결론)', unit: '억원' },
-  'appraisal.market_price_per_sqm':   { label: '인근 실거래 단가(중앙값)', unit: '원/㎡' },
+  'appraisal.land_value_official':    { label: '토지가치(공시지가 기준)', ko: '토지가치(공시지가 기준)', en: 'Land Value (Official Land Price)', unit: '억원' },
+  'appraisal.land_value_comparison':  { label: '토지가치(거래사례비교법)', ko: '토지가치(거래사례비교법)', en: 'Land Value (Sales Comparison)', unit: '억원' },
+  'appraisal.land_value_income':      { label: '토지가치(수익환원법)', ko: '토지가치(수익환원법)', en: 'Land Value (Income Capitalization)', unit: '억원' },
+  'appraisal.land_value_concluded':   { label: '토지가치(참고 결론)', ko: '토지가치(참고 결론)', en: 'Land Value (Indicated)', unit: '억원' },
+  'appraisal.market_price_per_sqm':   { label: '인근 실거래 단가(중앙값)', ko: '인근 실거래 단가(중앙값)', en: 'Median Transaction Price per ㎡', unit: '원/㎡' },
 
   // 매스 검토 Agent 산출
-  'massing.gfa_allowed_sqm': { label: '법정 허용 연면적', unit: '㎡' },
-  'massing.far_planned':     { label: '계획 용적률', unit: '%' },
-  'massing.bcr_planned':     { label: '계획 건폐율', unit: '%' },
+  'massing.gfa_allowed_sqm': { label: '법정 허용 연면적', ko: '법정 허용 연면적', en: 'Maximum Allowable GFA', unit: '㎡' },
+  'massing.far_planned':     { label: '계획 용적률', ko: '계획 용적률', en: 'Planned FAR', unit: '%' },
+  'massing.bcr_planned':     { label: '계획 건폐율', ko: '계획 건폐율', en: 'Planned BCR', unit: '%' },
 };
 
 const COMPUTED_KEYS = Object.keys(COMPUTED_FIELDS);

@@ -177,6 +177,20 @@ ul { margin: 0; padding: 0; list-style: none; }
 .computed span { font-size: 12.5px; padding: 6px 11px; border-radius: 8px;
   background: var(--panel); color: var(--ink2); }
 
+/* 계산 항목 목록 — 한글·영문을 나란히 둔다.
+   영문만 두면 실무자가 못 찾고, 한글만 두면 IM 본문(영문 표기)과 이어지지 않는다 */
+.cmp { display: grid; gap: 6px; margin-top: 12px; }
+.cmp__r { display: grid; gap: 4px 12px; align-items: baseline;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) auto;
+  padding: 8px 11px; border-radius: 9px; background: var(--panel); }
+.cmp__ko { font-size: 13px; font-weight: 600; color: var(--ink); }
+.cmp__en { font-size: 12.5px; color: var(--ink2); }
+.cmp__u  { font-size: 12px; color: var(--ink2); text-align: right; white-space: nowrap; }
+@media (max-width: 640px) {
+  .cmp__r { grid-template-columns: minmax(0, 1fr) auto; }
+  .cmp__en { grid-column: 1 / -1; }
+}
+
 .note { padding: 13px 16px; border-radius: 12px; font-size: 13.5px;
   background: var(--warn-soft); color: var(--warn-ink); margin-top: 14px; }
 .note--bad { background: var(--bad-soft); color: var(--bad-ink); }
@@ -278,13 +292,14 @@ window.LINKPILOT_FIELDS_CFG = {
   var meta = document.getElementById('meta');
 
   var state = {
-    fields: null, computedKeys: [], sources: [],
+    fields: null, computedKeys: [], computedFields: {}, sources: [],
     industries: [],      // 서버가 준 산업분야 정의
     plan: null,          // 채움 계획 (어떤 항목이 자동으로 채워지는가)
     publicData: null,    // 공공데이터 키가 서버에 있는가 (null = 모름)
     industryId: '',      // 빈 값 = 전체 (거르지 않는다)
     level: 'manual',     // manual | basic | expert — 기본은 '직접 입력'
     showAuto: false,     // 자동으로 채워지는 항목 펼치기
+    showComputed: false, // 자동 계산으로 만들어지는 항목 펼치기
     values: {},          // key → {value, source, sourceDate, page}
     server: {},          // 서버에 저장돼 있는 값 (되돌리기용)
     filter: 'required',  // required | all | empty
@@ -319,6 +334,7 @@ window.LINKPILOT_FIELDS_CFG = {
     if (C.preload) {
       state.fields = C.preload.fields || {};
       state.computedKeys = C.preload.computedKeys || [];
+      state.computedFields = C.preload.computedFields || {};
       state.industries = C.preload.industries || [];
       state.plan = C.preload.plan || null;
       state.publicData = C.preload.publicData === undefined ? null : C.preload.publicData;
@@ -333,6 +349,7 @@ window.LINKPILOT_FIELDS_CFG = {
     Promise.all(jobs).then(function (res) {
       state.fields = res[0].fields || {};
       state.computedKeys = res[0].computedKeys || [];
+      state.computedFields = res[0].computedFields || {};
       state.industries = res[0].industries || [];
       state.plan = res[0].plan || null;
       state.publicData = res[0].publicData === undefined ? null : res[0].publicData;
@@ -864,15 +881,42 @@ window.LINKPILOT_FIELDS_CFG = {
     }
 
     // 계산 항목 — 입력란을 만들지 않는다
+    //
+    // ★ 목록은 접어 두지만 **이유는 항상 펼쳐 둔다.** 목록은 19줄이라 접는 게 낫고,
+    //   "왜 못 치는가"를 같이 접으면 입력란이 없는 것을 화면 오류로 읽는다
     if (state.computedKeys.length) {
       var cc = el('div', 'card');
-      cc.appendChild(el('div', 'card__t', '계산으로 만들어지는 항목 (' + state.computedKeys.length + ')'));
+      var ch = el('button', 'auto__h');
+      ch.type = 'button';
+      ch.setAttribute('aria-expanded', state.showComputed ? 'true' : 'false');
+      ch.appendChild(el('span', 'auto__t',
+        '자동 계산으로 만들어지는 항목 ' + state.computedKeys.length + '개'));
+      ch.appendChild(el('span', 'auto__s', '입력란을 만들지 않습니다'));
+      ch.appendChild(el('span', 'auto__x', state.showComputed ? '접기 ▲' : '펼치기 ▼'));
+      ch.addEventListener('click', function () { state.showComputed = !state.showComputed; render(); });
+      cc.appendChild(ch);
+
       cc.appendChild(el('p', 'card__s',
         'IRR·NPV·DSCR·감정평가액은 입력받지 않습니다. 사람이 적어 넣으면 그 숫자가 어디서 왔는지 '
         + '추적할 수 없게 되고, 계산 결과와 다를 때 어느 쪽이 맞는지 판단할 근거가 사라집니다.'));
-      var cl = el('div', 'computed');
-      state.computedKeys.forEach(function (k) { cl.appendChild(el('span', null, k)); });
-      cc.appendChild(cl);
+
+      if (state.showComputed) {
+        var cl = el('div', 'cmp');
+        state.computedKeys.forEach(function (k) {
+          // ★ 이름은 서버(사전)가 준 것만 쓴다. 화면에 적어 두면 사전이 바뀐 날 갈린다.
+          //   못 받았으면 key 를 그대로 보인다 — 빈 줄로 감추지 않는다
+          var d = state.computedFields[k] || {};
+          var row = el('div', 'cmp__r');
+          row.appendChild(el('div', 'cmp__ko', d.ko || d.label || k));
+          row.appendChild(el('div', 'cmp__en', d.en || ''));
+          row.appendChild(el('div', 'cmp__u', d.unit ? '단위 ' + d.unit : ''));
+          cl.appendChild(row);
+        });
+        cc.appendChild(cl);
+        cc.appendChild(el('p', 'card__s',
+          '이 값들은 [3단계 사양 확정] 뒤 생성할 때 재무 Agent 가 계산해 넣습니다. '
+          + '문서에 같은 이름의 숫자가 있어도 그 값을 그대로 옮기지 않고, 다르면 값 충돌로 표시합니다.'));
+      }
       body.appendChild(cc);
     }
 
