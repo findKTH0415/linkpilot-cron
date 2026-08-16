@@ -455,3 +455,45 @@ test('★ 한 것과 아직 안 된 것을 대시보드에서도 가른다', () 
   assert.ok(done !== -1 && todo !== -1 && done < todo,
     '막힌 것이 위에 오면 다 된 것처럼 읽히거나 반대로 읽힌다');
 });
+
+/* ───────────── 인수인계서 ───────────── */
+
+/**
+ * ★ 인수인계서는 **받는 사람이 그대로 믿고 붙이는 문서**다. 숫자가 코드와
+ *   어긋나면 "커넥터가 9개라던데 13개네" 하고 문서 전체를 안 믿게 된다.
+ *   문서는 산문이라 자동 생성하지 않는다 — 대신 **핵심 숫자만 대조**한다.
+ */
+test('★ 인수인계서의 숫자가 코드와 같다', () => {
+  const dict = require('../core/dictionary');
+  const doc = fs.readFileSync(
+    path.join(__dirname, '..', '..', 'docs', '인수인계서-플랫폼-연동.md'), 'utf8');
+
+  const counts = {
+    'agents': fs.readdirSync(path.join(__dirname, '..', 'agents')).length,
+    'connectors': fs.readdirSync(path.join(__dirname, '..', 'connectors')).length,
+    'core': fs.readdirSync(path.join(__dirname, '..', 'core')).length,
+  };
+
+  assert.ok(doc.includes(`| 파이프라인 Agent | ${counts.agents} |`), 'Agent 수가 다르다');
+  assert.ok(doc.includes(`| 공공데이터 커넥터 | ${counts.connectors} |`), '커넥터 수가 다르다');
+  assert.ok(doc.includes(`| 코어 모듈 | ${counts.core} |`), '코어 모듈 수가 다르다');
+  assert.ok(doc.includes(`| 사전 항목 | ${Object.keys(dict.FIELDS).length} |`), '사전 항목 수가 다르다');
+  assert.ok(doc.includes(`계산 전용 ${dict.COMPUTED_KEYS.length}개`), '계산 항목 수가 다르다');
+});
+
+test('★ 인수인계서가 붙이는 데 필요한 것을 빠뜨리지 않는다', () => {
+  const doc = fs.readFileSync(
+    path.join(__dirname, '..', '..', 'docs', '인수인계서-플랫폼-연동.md'), 'utf8');
+
+  // 이 셋이 없으면 받는 쪽이 붙일 수 없다
+  assert.match(doc, /runningFor/, '이걸 빠뜨리면 생성 중 값 저장 금지가 조용히 꺼진다');
+  assert.match(doc, /LINKPILOT_REPORT_FLOW/, '화면 설정 블록이 없다');
+  assert.match(doc, /IM_AGENT_ROOT/, '필수 환경변수가 없다');
+
+  // 환경변수는 .env.example 과 같아야 한다 — 문서만 옛말을 하면 키가 빠진 채 뜬다
+  const env = fs.readFileSync(path.join(__dirname, '..', '..', '.env.example'), 'utf8');
+  (env.match(/^[A-Z][A-Z0-9_]*=/gm) || []).forEach((line) => {
+    const name = line.slice(0, -1);
+    assert.ok(doc.includes(name), `.env.example 의 ${name} 이 인수인계서에 없다`);
+  });
+});
