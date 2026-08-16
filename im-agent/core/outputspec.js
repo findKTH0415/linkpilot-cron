@@ -217,7 +217,11 @@ function fileName({ projectName, docType, language = 'ko', version = 'v1.0', dat
  * 사양 확정 — 사람만 할 수 있다. 확정되면 LOCKED.
  */
 function confirm(projectId, { by, notes = '' } = {}) {
-  if (!by || /agent|ai|auto|claude|gemini/i.test(by)) {
+  /* ★ 2026-08-17 — 부분 문자열이 아니라 **낱말**로 본다. 예전 /ai/ 는 'gmail.com' 의 "ai" 에 걸려
+     @gmail.com 사용자 전원이 사양을 확정할 수 없었다(앱 실측: ws.gmsc@gmail.com 이 409).
+     이메일이면 로컬파트만 보고, 낱말 경계로 agent/ai/auto/claude/gemini/bot 을 막는다. */
+  const who = String(by || '').split('@')[0];
+  if (!who || /(^|[^a-z])(agent|ai|auto|claude|gemini|bot|gpt|llm)([^a-z]|$)/i.test(who)) {
     throw new Error('출력 사양 확정은 사람만 할 수 있다 — AI는 제안만 한다');
   }
   const spec = read(projectId);
