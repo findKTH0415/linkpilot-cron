@@ -21,6 +21,7 @@
     "im:static": "node im-agent/ui/platform/build-static.js",
     "im:artifact": "node im-agent/ui/platform/build-static.js --artifact",
     "im:dashboard": "node im-agent/ui/platform/build-dashboard.js",
+    "im:themes": "node im-agent/ui/platform/build-themes.js",
     "im:result": "IM_AGENT_OFFLINE=1 node im-agent/cli.js demo >/dev/null && node im-agent/ui/platform/build-result.js"
   },
   "dependencies": {
