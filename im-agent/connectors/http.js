@@ -107,6 +107,7 @@ const SECRET_ENV = [
   'GEMINI_API_KEY',
   'KMA_APIHUB_KEY',    // 22자쯤 — 안 걸린다 (기상청 API허브)
   'REB_API_KEY',       // 32자쯤 — 안 걸린다 (한국부동산원 R-ONE)
+  'KOSIS_API_KEY',     // 40자쯤 (통계청 공유서비스) — 쿼리에 들어간다
   'LAW_OC',            // 국가법령정보 — 아주 짧아 패턴에 절대 안 걸린다
   'RHINO_COMPUTE_KEY', // Rhino.Compute 서버 접근키
   // ★ 키는 아니지만 **사내 주소**다 (§2 「NAS 접속정보」와 같은 줄).

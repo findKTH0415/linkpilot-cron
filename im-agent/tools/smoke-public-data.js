@@ -37,6 +37,7 @@ const kpx = require('../connectors/kpx');
 const reb = require('../connectors/reb');
 const g2b = require('../connectors/g2b');
 const rhino = require('../connectors/rhino');
+const kosis = require('../connectors/kosis');
 const fsc = require('../connectors/fsc');
 const { looksUrlEncoded } = require('../connectors/http');
 const pnuUtil = require('../connectors/pnu');
@@ -200,6 +201,61 @@ async function main() {
     }
   }
 
+  // ── 0-2-2. 제조업 가동률 (KOSIS) ─────────────────────────
+  //   ★ **값을 채우는 것이 아니라 대조한다.** 개별 공장의 가동률은 공적으로
+  //     나오지 않는다 — 나오는 것은 업종 평균뿐이다.
+  if (kosis.isAvailable()) {
+    const found = await kosis.tables(argOf('--kosis-search') || '가동률', { orgId: kosis.ORG_STATISTICS_KOREA });
+    if (found.ok) {
+      report('통계청 KOSIS 통계표 검색 (가동률)', true,
+        `${found.value.length}건 · 예: `
+        + found.value.slice(0, 3).map(x => `${x.tblId} ${x.name}`).join(' / '));
+      console.log('  ※ 표를 자동으로 고르지 않는다 — 같은 조사에 지수(2020=100)와 평균가동률(%)이 함께 있다');
+    } else {
+      report('통계청 KOSIS 통계표 검색 (가동률)', false, found.error);
+      console.log('  → 엔드포인트·응답 필드가 문서 기준이고 아직 실측되지 않았다 (등록부 D-44)');
+    }
+
+    const tblId = argOf('--kosis-tbl');
+    if (tblId) {
+      // ★ 항목을 먼저 보여 준다. **단위를 보고 골라야** 지수를 %로 읽지 않는다
+      const m = await kosis.meta({ tblId, type: 'ITM' });
+      if (m.ok) {
+        report(`KOSIS 항목목록 (${tblId})`, true,
+          m.value.map(x => `${x.code} ${x.name}[${x.unit || '단위?'}→${x.kind}]`).slice(0, 6).join(' / '));
+        const idx = m.value.filter(x => x.kind === 'index').length;
+        const pct = m.value.filter(x => x.kind === 'percent').length;
+        console.log(`  ※ 지수 항목 ${idx}개 · % 항목 ${pct}개 — 가동률 대조에는 **% 항목**을 고른다`);
+      } else {
+        report(`KOSIS 항목목록 (${tblId})`, false, m.error);
+      }
+
+      const itmId = argOf('--kosis-item');
+      if (itmId) {
+        const bm = await kosis.benchmark({
+          tblId, itmId, objL1: argOf('--kosis-obj') || 'ALL',
+          prdSe: argOf('--kosis-prd') || 'M',
+          from: argOf('--kosis-from') || '202401',
+          to: argOf('--kosis-to') || '202606',
+        });
+        if (bm.ok) {
+          report(`KOSIS 업종 평균 대조 (${itmId})`, true,
+            `${bm.value.item || ''} 최근 ${bm.value.latest}${bm.value.unit || ''}(${bm.value.latestPeriod}) `
+            + `· ${bm.value.n}개 시점 평균 ${bm.value.mean}${bm.value.unit || ''} [${bm.value.kind}]`);
+          // ★ 단위 성격이 안 맞으면 여기서 드러나야 한다 — 뺄셈은 태연히 성립한다
+          const c = kosis.compare(85, bm.value);
+          console.log(c.ok ? `  예시(딜 85%): ${c.value.text}` : `  ※ 견주기 거부: ${c.error}`);
+        } else {
+          report(`KOSIS 업종 평균 대조 (${itmId})`, false, bm.error);
+        }
+      } else {
+        console.log('  ※ 대조까지 보려면: --kosis-item <항목코드> [--kosis-obj <업종코드>] [--kosis-from/to]');
+      }
+    } else {
+      console.log('  ※ 항목·대조까지 보려면: npm run im:smoke -- --kosis-tbl <통계표ID>');
+    }
+  }
+
   // ── 0-3. 시행사 대조 (주소와 무관) ───────────────────────
   //   ★ 값을 채우는 것이 아니라 **대조**다. 못 찾는 것이 정상인 경우가 많다
   if (dart.isAvailable()) {
@@ -226,6 +282,7 @@ async function main() {
   console.log(`REB_API_KEY    : ${reb.isAvailable() ? '설정됨' : '미설정 — 지가지수 건너뜀 (공시지가 시점수정 불가)'}`);
   console.log(`조달청 낙찰     : ${g2b.isAvailable() ? 'DATA_GO_KR_KEY 로 조회 (⚠ 응답 필드 미검증 — 등록부 D-36)' : '미설정 — 공사비 대조 건너뜀'}`);
   console.log(`RHINO_COMPUTE  : ${rhino.isAvailable() ? '설정됨 (자체 호스팅)' : '미설정 — 매스 스터디 건너뜀 (Rhino 라이선스 필요, D-38)'}`);
+  console.log(`KOSIS_API_KEY  : ${kosis.isAvailable() ? '설정됨 (⚠ 엔드포인트 미검증 — 등록부 D-44)' : '미설정 — 가동률 대조 건너뜀 (가동률이 근거 0인 가정치로 남는다)'}`);
 
   let lat = null, lon = null, parsedPnu = null, polygonAreaSqm = null;
 
