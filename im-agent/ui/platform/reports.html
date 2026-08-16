@@ -244,7 +244,7 @@ ul { margin: 0; padding: 0; list-style: none; }
  *   session.planId 를 고쳐 화면을 열 수 있다. 화면은 열려도 생성은 거부되어야 한다.
  * ───────────────────────────────────────────────────────────────── */
 window.LINKPILOT_REPORTS = {
-  session: { authenticated: true, planId: 'pro', status: 'active', name: '홍길동' },
+  session: { authenticated: true, planId: 'pro', status: 'active', name: ''  /* ★ 2026-08-16 표시용 이름 하드코딩 제거 — 앱 안에서 남의 이름이 보였다. 부모가 세션을 넘길 때까지 비운다 */ },
   requiredPlan: 'pro',
   planNames: { free: 'Free', basic: 'Basic', pro: 'Pro', business: 'Business' },
 

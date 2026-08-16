@@ -359,6 +359,13 @@ window.LINKPILOT_INTAKE = {
       issuerAsDefault: state.issuerAsDefault || undefined,
     }).then(function (j) {
       state.created = j; state.busy = false; render();
+      /* ★ 2026-08-16 — 부모(report-flow)에 알린다. 부모는 자식 URL 의 ?project= 로만 프로젝트를
+         알아채는데, 여기서 만든 프로젝트는 URL 에 없다 → 2~4단계가 영원히 「1단계에서 프로젝트를
+         먼저 만듭니다」로 잠겨 있었다(앱 실측). 같은 출처에만 보낸다. */
+      try {
+        if (window.parent !== window && j && j.projectId)
+          window.parent.postMessage({ type: 'lp-flow-project', projectId: j.projectId }, window.location.origin);
+      } catch (_) {}
       if (state.files.length) uploadFiles();
     }).catch(function (e) {
       state.busy = false; state.error = e.message; render();
