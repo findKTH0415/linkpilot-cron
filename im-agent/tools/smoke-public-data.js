@@ -36,6 +36,7 @@ const kma = require('../connectors/kma');
 const kpx = require('../connectors/kpx');
 const reb = require('../connectors/reb');
 const g2b = require('../connectors/g2b');
+const rhino = require('../connectors/rhino');
 const fsc = require('../connectors/fsc');
 const { looksUrlEncoded } = require('../connectors/http');
 const pnuUtil = require('../connectors/pnu');
@@ -459,6 +460,21 @@ async function main() {
       if (raw.ok && raw.value.length) {
         console.log(`  참고: 조건 없이 부르면 ${raw.count}건 — 거르는 조건이 문제다`);
       }
+    }
+  }
+
+  // ── 14. Rhino.Compute (매스 스터디 — 자체 호스팅) ──────
+  //
+  // ★ 이건 공공데이터가 아니라 **우리가 세운 서버**다. 살아 있는지만 본다 —
+  //   실제 풀이는 Grasshopper 정의가 있어야 하고, 그 정의는 딜마다 다르다.
+  if (rhino.isAvailable()) {
+    const v = await rhino.version();
+    if (v.ok) {
+      report('Rhino.Compute (매스)', true,
+        `서버 응답 ${typeof v.value === 'string' ? v.value : JSON.stringify(v.value)}`);
+      console.log('  ※ 결과는 생성물이다 — fact 로 등록하지 않는다 (사람이 채택한다)');
+    } else {
+      report('Rhino.Compute (매스)', false, v.error);
     }
   }
 

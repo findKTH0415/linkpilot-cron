@@ -26,7 +26,7 @@ function isFatalStatus(status) {
  * @param {boolean} [opts.binary] 본문을 Buffer 로 받는다 (ZIP 등 — 텍스트로 읽으면 깨진다)
  * @returns {Promise<{ok:boolean, status?:number, body?:string|Buffer, error?:string, attempts:number}>}
  */
-async function request(url, { timeoutMs = DEFAULT_TIMEOUT, headers = {}, method = 'GET', binary = false } = {}) {
+async function request(url, { timeoutMs = DEFAULT_TIMEOUT, headers = {}, method = 'GET', binary = false, body = undefined } = {}) {
   let lastError = null;
 
   for (let attempt = 0; attempt <= RETRY_DELAYS.length; attempt++) {
@@ -35,7 +35,12 @@ async function request(url, { timeoutMs = DEFAULT_TIMEOUT, headers = {}, method 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const r = await fetch(url, { method, headers, signal: controller.signal });
+      // ★ body 가 있으면 POST 다. 재시도해도 되는지는 **부르는 쪽이** 판단한다 —
+      //   여기서는 같은 요청을 그대로 다시 보낸다. 부수효과가 있는 POST 라면
+      //   이 헬퍼를 쓰면 안 된다 (Rhino.Compute 의 풀이는 순수 함수라 안전하다)
+      const init = { method, headers, signal: controller.signal };
+      if (body !== undefined) init.body = body;
+      const r = await fetch(url, init);
       const body = binary ? Buffer.from(await r.arrayBuffer()) : await r.text();
 
       if (r.ok) return { ok: true, status: r.status, body, attempts: attempt + 1 };
@@ -97,6 +102,7 @@ const SECRET_ENV = [
   'KMA_APIHUB_KEY',    // 22자쯤 — 안 걸린다 (기상청 API허브)
   'REB_API_KEY',       // 32자쯤 — 안 걸린다 (한국부동산원 R-ONE)
   'LAW_OC',            // 국가법령정보 — 아주 짧아 패턴에 절대 안 걸린다
+  'RHINO_COMPUTE_KEY', // Rhino.Compute 서버 접근키
 ];
 
 /**
