@@ -441,6 +441,37 @@ test('★ 미결정 등록부를 이모지로 세되 서로게이트에 속지 �
   assert.match(src, /gmu\)/, '유니코드 플래그 없이 이모지를 다루면 안 된다');
 });
 
+/**
+ * ★ 두 작업선이 같은 번호를 서로 다른 뜻으로 쓰다가 병합에서 충돌했다
+ *   (D-22·D-23·D-24·D-25 가 두 벌씩 — 2026-08-16 재번호로 해소).
+ *   ID 가 겹치면 코드 주석·문서·커밋 메시지의 참조가 전부 모호해지고,
+ *   같은 번호가 열린 항목이면서 결정 기록에도 있으면 어느 쪽이 참인지 알 수 없다.
+ */
+test('★ 미결정 등록부의 ID 는 유일하고, 건수는 손으로 적은 숫자가 아니다', () => {
+  const text = fs.readFileSync(
+    path.join(__dirname, '..', '..', 'docs', '미결정-사항.md'), 'utf8');
+
+  const heads = [...text.matchAll(/^### (\S+)\s+(D-\d+)\./gmu)];
+  const ids = heads.map((h) => h[2]);
+  const dup = ids.filter((id, i) => ids.indexOf(id) !== i);
+  assert.deepStrictEqual(dup, [], `같은 ID 가 두 번 등록되었다: ${dup.join(', ')}`);
+
+  // 열린(✅ 아닌) 항목은 범위 외·결정 기록 표에 있으면 안 된다
+  const tabled = new Set([...text.matchAll(/^\| (D-\d+) \|/gm)].map((m) => m[1]));
+  heads.filter((h) => h[1].indexOf('✅') !== 0).forEach((h) => {
+    assert.ok(!tabled.has(h[2]), `${h[2]} 가 열린 항목이면서 표에도 있다`);
+  });
+
+  // 머리의 건수는 세어서 맞춘다 — 손으로 적은 숫자는 코드가 바뀐 날부터 옛말이 된다
+  const head = text.match(/미결정 \*\*(\d+)건\*\* · 범위 외 (\d+)건 · 결정 (\d+)건/);
+  assert.ok(head, '머리에 건수 줄이 없다');
+  const open = heads.filter((h) => h[1].indexOf('✅') !== 0).length;
+  assert.strictEqual(open, Number(head[1]), '미결정 건수가 실제 항목 수와 다르다');
+  const decSec = text.slice(text.indexOf('## 결정 기록'));
+  const decided = [...decSec.matchAll(/^\| (D-\d+) \|/gm)].length;
+  assert.strictEqual(decided, Number(head[3]), '결정 건수가 결정 기록 표와 다르다');
+});
+
 test('★ 대시보드도 그대로 올릴 수 있어야 한다', () => {
   const D = require('../ui/platform/build-dashboard.js');
   const S = require('../ui/platform/build-static.js');
