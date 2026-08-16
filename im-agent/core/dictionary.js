@@ -76,6 +76,21 @@ const FIELDS = {
   // 가중치가 이 둘로 갈린다**(연계거리·수심 복합 부여).
   'site.water_depth_m':    { label: '수심 (해상)', category: CATEGORY.CAPACITY, unit: 'm', type: 'number', aliases: ['수심', 'Water Depth'], min: 0 },
   'site.distance_to_shore_km': { label: '이안거리 (해상)', category: CATEGORY.CAPACITY, unit: 'km', type: 'number', aliases: ['이안거리', '연계거리', 'Distance to Shore'], min: 0 },
+  // ESS 전용. **발전이 아니라 저장이라 성격이 다르다** (등록부 D-56).
+  //
+  // ★ **MWh 와 MW 는 짝이다.** 「100MWh ESS」만으로는 몇 시간짜리인지 모른다 —
+  //   100MWh/100MW(1시간)와 100MWh/25MW(4시간)는 **수익모델도 사업비도 다른
+  //   사업이다.** 둘 중 하나만 받으면 나머지를 가정으로 메우게 된다.
+  // ★ **열화가 ESS 고유의 함정이다.** 배터리는 해마다 용량이 준다. 초기 용량으로
+  //   전 기간 매출을 깔면 통째로 부풀려지는데, 문서에는 그 사실이 안 남는다.
+  'capacity.ess_mwh':        { label: '저장용량', category: CATEGORY.CAPACITY, unit: 'MWh', type: 'number', aliases: ['저장용량', '배터리용량', '에너지용량', 'ESS 용량'], min: 0 },
+  'capacity.ess_mw':         { label: '출력용량(PCS)', category: CATEGORY.CAPACITY, unit: 'MW', type: 'number', aliases: ['출력용량', 'PCS용량', 'PCS 용량', '충방전 출력'], min: 0 },
+  'capacity.ess_degradation': { label: '연간 열화율', category: CATEGORY.CAPACITY, unit: '%/년', type: 'number', aliases: ['열화율', '용량저하율', 'Degradation'], min: 0, max: 20 },
+  // 국내 ESS 는 화재 이후 충전율 상한 규제를 겪었다. 상한이 걸리면 **실효 용량이
+  // 줄어드는데 사업계획서는 정격 용량으로 적혀 온다**
+  'capacity.ess_soc_limit':  { label: 'SOC 상한', category: CATEGORY.CAPACITY, unit: '%', type: 'number', aliases: ['SOC 상한', '충전율 상한', '충전상한'], min: 0, max: 100 },
+  // 무엇으로 버는 사업인지 — 이것이 안 정해지면 매출의 성격 자체를 모른다
+  'revenue.ess_model':       { label: 'ESS 수익모델', category: CATEGORY.REVENUE, unit: null, type: 'string', aliases: ['수익모델', '정산방식', 'ESS 수익구조'] },
   'capacity.dc_kw':      { label: '설비용량(DC)', category: CATEGORY.CAPACITY, unit: 'kW', type: 'number', aliases: ['설비용량', 'DC용량', '모듈용량'], min: 0 },
   'capacity.ac_kw':      { label: '설비용량(AC)', category: CATEGORY.CAPACITY, unit: 'kW', type: 'number', aliases: ['AC용량', '인버터용량', '발전용량'], min: 0 },
   'capacity.leasable_sqm': { label: '임대면적', category: CATEGORY.CAPACITY, unit: '㎡', type: 'number', aliases: ['임대면적', '전용면적', 'NLA', 'Leasable Area'], min: 0 },

@@ -139,6 +139,47 @@ const TEMPLATES = {
     ],
   },
 
+  /**
+   * ESS — **발전이 아니라 저장이다** (등록부 D-56).
+   *
+   * ★ 태양광·풍력과 한 묶음으로 보면 안 된다. 저 둘은 자원(일사량·풍속)이
+   *   매출의 출발점이고 설비 수명이 20년이다. ESS 는 자원이 없고 **배터리가
+   *   해마다 준다** — 그래서 운영기간이 짧고, 기간 중 **교체가 들어갈 수 있다.**
+   *
+   * ⚠️ **아래 기본값은 전부 추측이다** (등록부 D-56). 수익모델(주파수조정·
+   *    피크저감·재생연계)에 따라 값이 크게 갈리는데 그 모델이 딜마다 다르다.
+   */
+  ess: {
+    id: 'ess',
+    label: 'ESS (에너지저장)',
+    keywords: ['ess', '에너지저장', '배터리 저장', 'battery storage', 'bess'],
+    map: COMMON_MAP,
+    defaults: {
+      // 〈추측〉 토목이 거의 없어 짧다
+      constructionYears: 1,
+      // 〈추측〉 **발전보다 짧다.** 배터리 수명이 운영기간의 상한이다 —
+      //   태양광(20년)을 그대로 쓰면 교체 없이 20년 도는 모델이 된다
+      opsYears: 15, exitYear: 15,
+      revenueEscalation: 0,
+      // 〈추측〉 전력변환·냉방·안전관리가 든다
+      opexRatio: 20, opexEscalation: 2, rampYears: 0,
+      taxRate: 22,
+      // 〈추측〉 배터리 기준 — 건물(40년)도 발전설비(20년)도 아니다
+      depreciationYears: 15,
+      // 〈추측〉 매출이 시장가격·정산단가라 발전보다 변동이 커 차입 여력이 낮다
+      ltc: 70, debtRate: 6.0, tenorYears: 12, graceYears: 1, feePct: 1.5,
+      exitCapRate: 9, sellingCostPct: 1.0, discountRate: 8, contingencyPct: 5,
+    },
+    keyMetrics: ['capacity.ess_mwh', 'capacity.ess_mw', 'capacity.ess_degradation',
+      'capacity.ess_soc_limit', 'revenue.ess_model'],
+    sensitivity: [
+      { key: 'annualRevenue', label: '정산수익 변동(%)', values: [-30, -20, -10, 0, 10, 20] },
+      // ★ 매출 변동폭을 발전(-20~+5)보다 넓게 잡았다 — 시장가격·정산단가라
+      //   제도 변경에 그대로 노출된다
+      { key: 'debtRate', label: '차입금리(pp)', values: [-0.5, 0, 0.5, 1.0, 1.5, 2.0] },
+    ],
+  },
+
   solar: {
     id: 'solar',
     label: '태양광 발전',
@@ -258,6 +299,9 @@ const SCALE_BANDS = {
   // 〈추측 D-55〉 국내 사업 규모대를 확인하지 못했다. 구간을 모르면 서술문이
   //   어느 규모 기준인지 밝힐 수 없어, 넓게 잡고 추측임을 남긴다
   wind_onshore:  { key: 'capacity.wind_mw', label: '설비용량', unit: 'MW', min: 20, max: 300 },
+  // 〈추측 D-56〉 **저장용량(MWh)으로 잡는다.** 출력(MW)으로 잡으면 1시간짜리와
+  //   4시간짜리가 같은 규모로 읽힌다
+  ess:           { key: 'capacity.ess_mwh', label: '저장용량', unit: 'MWh', min: 10, max: 1000 },
   wind_offshore: { key: 'capacity.wind_mw', label: '설비용량', unit: 'MW', min: 100, max: 1500 },
   realestate:  { key: 'investment.total', label: '총사업비', unit: '억원', min: 300, max: 10000 },
   // 〈추측 D-40〉 구간을 모르면 서술문이 어느 규모 기준인지 밝힐 수 없다

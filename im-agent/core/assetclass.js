@@ -133,6 +133,27 @@
       crosschecks: GRID_CROSSCHECKS,
     },
     /**
+     * ESS — **발전이 아니라 저장이다** (등록부 D-56).
+     *
+     * ★ 태양광·풍력과 받아야 할 값이 다르다. 저 둘은 자원(일사량·풍속)을 묻지만
+     *   ESS 는 자원이 없다 — 대신 **용량이 둘이고(저장·출력)**, **해마다 준다.**
+     * ★ 풍력보다 **먼저** 둔다. 「재생연계 ESS」 같은 표기에서 재생에너지
+     *   키워드가 먼저 걸리면 ESS 딜이 발전 자산군으로 잡힌다.
+     */
+    {
+      id: 'ess', label: 'ESS', en: 'Energy Storage System', template: 'ess',
+      keywords: ['ess', '에너지저장', 'bess', 'battery storage', '배터리 저장'],
+      app: { industry: '에너지·발전', sector: 'ESS' },
+      requires: [
+        { key: 'capacity.ess_mwh', why: '저장용량이 매출의 분모다' },
+        { key: 'capacity.ess_mw', why: '**저장용량과 짝이다.** 「100MWh」만으로는 사업이 특정되지 않는다 — 100MWh/100MW(1시간)와 100MWh/25MW(4시간)는 수익모델도 사업비도 다른 사업이다' },
+        { key: 'capacity.ess_degradation', why: '배터리는 해마다 준다. 빠지면 초기 용량으로 전 기간 매출이 깔리고, 매출표는 매년 같은 숫자라 멀쩡해 보인다' },
+        { key: 'revenue.ess_model', why: '무엇으로 버는 사업인지가 안 정해지면 매출의 성격 자체를 모른다 — 주파수조정·피크저감·재생연계는 정산 구조가 다르다' },
+      ],
+      // 계통이 안 받아 주면 출력용량은 종이 위의 숫자다 (D-54)
+      crosschecks: GRID_CROSSCHECKS,
+    },
+    /**
      * 풍력 — **육상과 해상을 나눈다** (등록부 D-55).
      *
      * ★ 해상을 **먼저** 둔다. `detect` 는 키워드 포함으로 찾는데, 육상이 앞에
@@ -295,6 +316,7 @@
     datacenter: GRID_CROSSCHECKS,
     wind_onshore: GRID_CROSSCHECKS,
     wind_offshore: GRID_CROSSCHECKS,
+    ess: GRID_CROSSCHECKS,
   };
 
   function templateCrosscheckKeys(templateId) {
@@ -405,9 +427,42 @@
   function detect(text) {
     var t = String(text || '').toLowerCase();
     if (!t.trim()) return { id: null, candidates: [], reason: '문장이 비어 있습니다' };
-    var hit = CLASSES.filter(function (c) {
-      return c.keywords.some(function (k) { return t.indexOf(String(k).toLowerCase()) !== -1; });
-    }).map(function (c) { return c.id; });
+    // 어느 말에 걸렸는지까지 들고 있는다 — 아래에서 **더 구체적인 쪽**을 고른다
+    var matches = [];
+    CLASSES.forEach(function (c) {
+      var words = c.keywords.filter(function (k) { return t.indexOf(String(k).toLowerCase()) !== -1; });
+      if (words.length) matches.push({ id: c.id, words: words });
+    });
+    var hit = matches.map(function (m) { return m.id; });
+
+    /**
+     * ★ **한쪽 말이 다른 쪽 말에 통째로 들어 있으면 긴 쪽이 이긴다** (2026-08-16).
+     *
+     *   「해상풍력」은 안에 「풍력」을 담고 있어 육상·해상이 **둘 다** 걸렸다.
+     *   그러면 「여러 자산군이 함께 읽힙니다」가 떠서 사람이 고르게 되는데,
+     *   **고를 것이 없다** — 해상풍력은 해상풍력이다. 그렇게 자산군이 null 로
+     *   남으면 전용 필수값(수심·이안거리)이 화면에서 통째로 빠진다.
+     *
+     *   진짜 모호한 경우(「주상복합 아파트」처럼 **서로 다른 말**이 함께 나온
+     *   경우)는 그대로 후보로 남는다 — 포함 관계가 아니기 때문이다.
+     */
+    if (matches.length > 1) {
+      var survivors = matches.filter(function (m) {
+        return !matches.some(function (other) {
+          if (other.id === m.id) return false;
+          // 상대의 어떤 말이 내 말을 **포함**하면, 내 쪽은 덜 구체적이다
+          return other.words.some(function (ow) {
+            return m.words.some(function (mw) {
+              return ow.length > mw.length && ow.indexOf(mw) !== -1;
+            });
+          });
+        });
+      });
+      if (survivors.length === 1) {
+        return { id: survivors[0].id, candidates: [survivors[0].id], reason: null };
+      }
+      hit = survivors.length ? survivors.map(function (m) { return m.id; }) : hit;
+    }
 
     if (hit.length === 1) return { id: hit[0], candidates: hit, reason: null };
     if (hit.length > 1) {
