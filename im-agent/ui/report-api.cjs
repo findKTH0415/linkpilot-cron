@@ -47,10 +47,20 @@ const mb = (n) => Math.round(n / (1024 * 1024) * 10) / 10;
 const OUTPUTS = [
   { id: 'im', name: 'IM 원문', rel: '09_IM/im.md' },
   { id: 'a4', name: 'A4 인쇄본', rel: '12_Final/im-a4.html' },
+  // ★ **PDF 가 목록에 없었다** (2026-08-17 발견). D-53 으로 실제로 만들어지는데
+  //   여기 없어서 「완성 보고서」에 안 떴다 — 파일은 있고 화면에는 없는 상태다
+  { id: 'pdf', name: 'PDF', rel: '12_Final/im-a4.pdf' },
   { id: 'content', name: '뷰어 데이터', rel: '12_Final/content.json' },
   { id: 'teaser', name: 'Teaser', rel: '10_Teaser/teaser.md' },
   { id: 'validation', name: '검증 보고서', rel: '11_QC/validation-report.md' },
   { id: 'redflag', name: 'RED FLAG 보고서', rel: '11_QC/red-flag-report.md' },
+  // ★ 2026-08-17 추가 — 만들어지는데 목록에 없던 둘 (D-57 · D-59).
+  //   **이름에 「감정평가서」·「평가의견서」를 쓰지 않는다** — 목록에서 그렇게
+  //   보이면 받는 사람이 정식 평가로 읽는다. 문서 안에도 같은 이유로 안 쓴다
+  { id: 'desk_md', name: '토지가치 탁상검토', rel: '08_Appraisal/desk-review.md' },
+  { id: 'desk_pdf', name: '토지가치 탁상검토 (PDF)', rel: '08_Appraisal/desk-review-a4.pdf' },
+  { id: 'corp_md', name: '법인가치 검토', rel: '10_Corporate/corp-review.md' },
+  { id: 'corp_pdf', name: '법인가치 검토 (PDF)', rel: '10_Corporate/corp-review-a4.pdf' },
 ];
 
 /** 산출물 확장자별 MIME. 목록에 없으면 브라우저가 알아서 해석하지 못하게 둔다 */
@@ -58,6 +68,9 @@ const CONTENT_TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.md': 'text/markdown; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
+  // ★ **없어서 PDF 를 못 받고 있었다.** 목록에 없으면 브라우저가 해석하지
+  //   못하는데, 증상이 「다운로드가 안 된다」로만 보여 원인이 안 드러난다
+  '.pdf': 'application/pdf',
 };
 
 function ok(body) { return { status: 200, body }; }
