@@ -727,20 +727,80 @@ window.LINKPILOT_INTAKE = {
     };
     drawMark();
     row.appendChild(mark);
-    var file = el('input'); file.type = 'file'; file.accept = 'image/png,image/jpeg,image/svg+xml'; file.hidden = true;
+    /* ★ 로고 자동 정규화 (요청 2026-08-17) — 사용자마다 로고 파일이 제각각이다(4000px 원본, HEIC, WebP,
+       여백 큰 캔버스, 5MB JPG). 형식·크기 밖이면 거부하던 것을 **받아서 맞춘다**로 바꿨다:
+         ① 브라우저가 디코드할 수 있는 모든 이미지를 받는다(HEIC 등 못 읽는 것만 사유와 함께 거부)
+         ② 투명/흰 여백을 자동으로 잘라 로고 자체가 꽉 차게(스캔·캔버스 여백 제거)
+         ③ 긴 변 512px 로 축소(표지·서명부 44px 자리에 충분, 인쇄 2x 도 여유)
+         ④ 투명이 있으면 PNG, 없으면 JPEG — 200KB 이하가 될 때까지 품질을 낮춘다
+         ⑤ 서버 규칙(core/issuer.js: PNG/JPG/SVG · 200KB)은 그대로 — 여기서 맞춰 보내므로 거부될 일이 없다
+       SVG 는 벡터라 그대로 둔다(200KB 넘으면 거부 — 그런 SVG 는 로고가 아니라 도면이다).
+       실패는 사유를 말한다 — "읽지 못했습니다" 하나로 뭉치면 무엇을 고쳐야 할지 모른다. */
+    var file = el('input'); file.type = 'file'; file.accept = 'image/*'; file.hidden = true;
     var up = el('button', 'btn2', iss.logo ? '로고 바꾸기' : '로고 업로드'); up.type = 'button'; up.disabled = !!state.created;
     var rm = el('button', 'btn2', '제거'); rm.type = 'button'; rm.disabled = !!state.created || !iss.logo;
-    var msg = el('div', 'hint', iss.logo ? '로고가 들어 있습니다.' : '없으면 회사명 이니셜(' + (autoMark(iss.en) || '—') + ')이 대신 찍힙니다.');
+    var msg = el('div', 'hint', iss.logo ? '로고가 들어 있습니다.' : '없으면 회사명 이니셜(' + (autoMark(iss.en) || '—') + ')이 대신 찍힙니다. 어떤 크기든 올리면 자동으로 맞춥니다.');
     up.addEventListener('click', function () { file.click(); });
+
+    var LOGO_MAX_BYTES = 200 * 1024, LOGO_MAX_EDGE = 512;
+    function readAsDataUrl(f) { return new Promise(function (res, rej) { var r = new FileReader(); r.onload = function () { res(String(r.result || '')); }; r.onerror = function () { rej(new Error('파일을 읽을 수 없습니다 (권한·손상 여부 확인)')); }; r.readAsDataURL(f); }); }
+    function loadImage(src) { return new Promise(function (res, rej) { var im = new Image(); im.onload = function () { res(im); }; im.onerror = function () { rej(new Error('이 브라우저가 디코드할 수 없는 이미지입니다 (HEIC·TIFF 등은 PNG/JPG 로 바꿔 올리세요)')); }; im.src = src; }); }
+    /* 여백 트림 — 알파 0 이거나 거의 흰색(RGB 모두 245 이상)인 테두리를 잘라낸다. 여백이 곧 로고인 경우를 대비해 8px 는 남긴다 */
+    function trimBox(ctx, w, h) {
+      var d = ctx.getImageData(0, 0, w, h).data, minX = w, minY = h, maxX = -1, maxY = -1;
+      for (var y = 0; y < h; y++) for (var x = 0; x < w; x++) {
+        var i = (y * w + x) * 4, a = d[i + 3];
+        var blank = a < 8 || (d[i] > 245 && d[i + 1] > 245 && d[i + 2] > 245);
+        if (!blank) { if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y; }
+      }
+      if (maxX < 0) return null;                          // 전부 여백 = 빈 이미지
+      var pad = 8;
+      return { x: Math.max(0, minX - pad), y: Math.max(0, minY - pad), w: Math.min(w, maxX + pad + 1) - Math.max(0, minX - pad), h: Math.min(h, maxY + pad + 1) - Math.max(0, minY - pad) };
+    }
+    function hasAlpha(ctx, w, h) { var d = ctx.getImageData(0, 0, w, h).data; for (var i = 3; i < d.length; i += 4 * 7) if (d[i] < 250) return true; return false; }
+    async function normalizeLogo(f) {
+      if (f.type === 'image/svg+xml' || /\.svg$/i.test(f.name)) {
+        if (f.size > LOGO_MAX_BYTES) throw new Error('SVG 가 ' + Math.round(f.size / 1024) + 'KB 입니다 — 200KB 이하 SVG 또는 PNG 로 올려 주세요');
+        return { dataUrl: await readAsDataUrl(f), note: 'SVG · ' + Math.round(f.size / 1024) + 'KB (벡터 그대로)' };
+      }
+      var im = await loadImage(await readAsDataUrl(f));
+      var w = im.naturalWidth, h = im.naturalHeight;
+      if (!w || !h) throw new Error('이미지 크기를 알 수 없습니다');
+      var c = document.createElement('canvas'), ctx = c.getContext('2d');
+      c.width = w; c.height = h; ctx.drawImage(im, 0, 0);
+      var box = trimBox(ctx, w, h);
+      if (!box) throw new Error('빈 이미지입니다 (전부 여백)');
+      var scale = Math.min(1, LOGO_MAX_EDGE / Math.max(box.w, box.h));
+      var ow = Math.max(1, Math.round(box.w * scale)), oh = Math.max(1, Math.round(box.h * scale));
+      var o = document.createElement('canvas'), octx = o.getContext('2d');
+      o.width = ow; o.height = oh; octx.imageSmoothingQuality = 'high';
+      octx.drawImage(c, box.x, box.y, box.w, box.h, 0, 0, ow, oh);
+      var alpha = hasAlpha(octx, ow, oh);
+      var out = alpha ? o.toDataURL('image/png') : o.toDataURL('image/jpeg', 0.92);
+      var bytes = function (u) { return Math.floor((u.split(',')[1] || '').length * 3 / 4); };
+      var q = 0.92, edge = LOGO_MAX_EDGE;
+      /* 200KB 넘으면: 사진형은 품질을, 투명형은 변 길이를 줄여 가며 맞춘다 */
+      while (bytes(out) > LOGO_MAX_BYTES && (q > 0.4 || edge > 128)) {
+        if (!alpha && q > 0.4) { q -= 0.1; out = o.toDataURL('image/jpeg', q); continue; }
+        edge = Math.round(edge * 0.8); var s2 = Math.min(1, edge / Math.max(box.w, box.h));
+        o.width = Math.max(1, Math.round(box.w * s2)); o.height = Math.max(1, Math.round(box.h * s2));
+        octx = o.getContext('2d'); octx.imageSmoothingQuality = 'high'; octx.drawImage(c, box.x, box.y, box.w, box.h, 0, 0, o.width, o.height);
+        out = alpha ? o.toDataURL('image/png') : o.toDataURL('image/jpeg', q);
+      }
+      if (bytes(out) > LOGO_MAX_BYTES) throw new Error('200KB 로 줄이지 못했습니다 — 더 단순한 로고 파일로 올려 주세요');
+      var trimmed = (box.w < w - 16 || box.h < h - 16);
+      return { dataUrl: out, note: f.name + ' → ' + o.width + '×' + o.height + (alpha ? ' PNG' : ' JPG') + ' · ' + Math.round(bytes(out) / 1024) + 'KB' + (trimmed ? ' · 여백 자동 제거' : '') + (scale < 1 ? ' · 자동 축소' : '') };
+    }
     file.addEventListener('change', function () {
       var f = file.files && file.files[0]; file.value = '';
       if (!f) return;
-      if (!/^image\/(png|jpeg|svg\+xml)$/.test(f.type)) { msg.textContent = 'PNG·JPG·SVG 만 올릴 수 있습니다 (지금: ' + (f.type || '알 수 없음') + ')'; return; }
-      if (f.size > 200 * 1024) { msg.textContent = '200KB 이하여야 합니다 (지금 ' + Math.round(f.size / 1024) + 'KB) — 크기를 줄여 다시 올리세요'; return; }
-      var r = new FileReader();
-      r.onload = function () { iss.logo = String(r.result || ''); drawMark(); up.textContent = '로고 바꾸기'; rm.disabled = false; msg.textContent = f.name + ' · ' + Math.round(f.size / 1024) + 'KB'; };
-      r.onerror = function () { msg.textContent = '파일을 읽지 못했습니다'; };
-      r.readAsDataURL(f);
+      msg.textContent = '읽는 중… (' + Math.round(f.size / 1024) + 'KB)';
+      up.disabled = true;
+      normalizeLogo(f).then(function (r) {
+        iss.logo = r.dataUrl; drawMark(); up.textContent = '로고 바꾸기'; rm.disabled = false; msg.textContent = r.note;
+      }).catch(function (e) {
+        msg.textContent = (e && e.message) || '로고를 처리하지 못했습니다';
+      }).then(function () { up.disabled = !!state.created; });
     });
     rm.addEventListener('click', function () { iss.logo = ''; drawMark(); up.textContent = '로고 업로드'; rm.disabled = true; msg.textContent = '없으면 회사명 이니셜(' + (autoMark(iss.en) || '—') + ')이 대신 찍힙니다.'; });
     row.appendChild(up); row.appendChild(rm); row.appendChild(file);
