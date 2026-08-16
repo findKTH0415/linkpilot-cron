@@ -39,11 +39,15 @@ function withFake(responder, fn) {
     ECOS_API_KEY: process.env.ECOS_API_KEY,
     DATA_GO_KR_KEY: process.env.DATA_GO_KR_KEY,
     KOSIS_API_KEY: process.env.KOSIS_API_KEY,
+    KEPCO_BIGDATA_KEY: process.env.KEPCO_BIGDATA_KEY,
     IM_AGENT_CACHE: process.env.IM_AGENT_CACHE,
   };
   process.env.ECOS_API_KEY = 'K'.repeat(20);
   process.env.DATA_GO_KR_KEY = 'D'.repeat(40);
   process.env.KOSIS_API_KEY = 'S'.repeat(40);
+  // ★ **data.go.kr 키와 별개다.** 여기서 안 세우면 계통 대조가 unavailable 분기로
+  //   빠져, 배선이 끊겨 있어도 테스트가 통과한다 (M-08 과 같은 자리)
+  process.env.KEPCO_BIGDATA_KEY = 'P'.repeat(40);
   process.env.IM_AGENT_CACHE = tmp;
   return Promise.resolve(fn(calls)).finally(() => {
     http.request = real;
@@ -80,6 +84,11 @@ function responder(url) {
       { factrNo: 'F-1', fctryNm: '한빛정밀', fctryAddr: '경기도 화성시', lndarNm: '12000', manufAr: '3800', regstrDe: '20190312' },
     ] } } } });
   }
+  if (/distributionCapacity/.test(url)) {
+    return ok({ response: { header: { resultCode: '00' }, body: { items: { item: [
+      { subst_nm: '○○변전소', mtr_nm: '#1 M.Tr', dl_nm: 'DL-01', subst_cap: '50', mtr_cap: '40', dl_cap: '30', base_ym: '202608' },
+    ] } } } });
+  }
   return EMPTY_GOKR;   // 환경 인허가 — 기록 없음
 }
 
@@ -91,6 +100,13 @@ const FULL = {
   'crosscheck.hs_code': '847989',
   'crosscheck.sales_channel': '수출',
   'crosscheck.enviro_name': '한빛정밀',
+  // 전력계통 (D-54) — 지역만 조회로 나가고 나머지 셋은 사람이 넣는 값이다
+  'crosscheck.grid_region': '충청남도 보령시',
+  'crosscheck.substation_name': '○○변전소',
+  'crosscheck.substation_km': 4.5,
+  'crosscheck.substation_km_basis': '선로',
+  'crosscheck.grid_reviewed_at': '2026-07-30',
+  'capacity.power_mw': 20,
 };
 
 /* ═════════ ① 실제로 불린다 ═════════ */
@@ -218,9 +234,98 @@ test('★ 자산군이 안 정해져도 제조 템플릿이면 대조를 묻는 
     '제조 딜인데 안내가 빠진다 — 자산군은 일부러 안 정해질 수 있다');
   assert.strictEqual(assetclass.asksCrosschecks('manufacturing', null), true);
   // 묻지 않는 딜에서 매번 5줄이 뜨면 소음이고, 소음이 쌓이면 진짜 경고도 안 읽힌다
-  assert.strictEqual(assetclass.asksCrosschecks(null, 'datacenter'), false);
   assert.strictEqual(assetclass.asksCrosschecks(null, 'realestate'), false);
   assert.strictEqual(assetclass.asksCrosschecks(null, null), false);
+});
+
+/**
+ * ★ **태양광은 자산군이 없다.** `finance/templates.js` 에 `solar` 템플릿만 있고
+ *   `CLASSES` 에는 대응 항목이 없다 — 자산군에만 대조를 달면 **정작 계통이
+ *   가장 중요한 딜에서 안내가 통째로 빠진다** (등록부 D-54).
+ */
+test('★ 태양광은 자산군이 없어도 템플릿으로 계통 대조를 묻는다', () => {
+  assert.strictEqual(assetclass.asksCrosschecks(null, 'solar'), true,
+    '태양광 딜에서 계통 안내가 빠진다 — 자산군이 아예 없는 자산이다');
+  assert.strictEqual(assetclass.asksCrosschecks(null, 'datacenter'), true);
+  assert.ok(assetclass.crosschecksFor(null, 'solar').some(r => r.key === 'crosscheck.grid_region'));
+  // 태양광 딜에 제조 대조(HS 코드 등)가 딸려 오면 안 된다
+  assert.ok(!assetclass.crosschecksFor(null, 'solar').some(r => r.key === 'crosscheck.hs_code'));
+});
+
+/**
+ * ⚠️ **풍력은 아직 없다.** 자산군도 재무 템플릿도 없어 `generic` 으로 떨어진다.
+ *   그 사실을 테스트로 박아 둔다 — 「붙였다」고 적어 두고 실제로는 안 뜨는 것이
+ *   이 저장소가 한 번 겪은 일이다 (D-48).
+ */
+test('풍력은 아직 대조를 묻지 않는다 (템플릿이 없다 — D-54 에 적혀 있다)', () => {
+  assert.strictEqual(assetclass.asksCrosschecks(null, 'wind'), false);
+  assert.strictEqual(assetclass.asksCrosschecks(null, 'generic'), false);
+  const reg = fs.readFileSync(path.join(__dirname, '..', '..', 'docs', '미결정-사항.md'), 'utf8');
+  assert.match(reg, /풍력/, '못 하는 것을 등록부에 안 적으면 아무도 모른다');
+});
+
+/* ═════════ 전력계통 (D-54) ═════════ */
+
+test('★ 계통 여유가 실제로 조회되고 수전용량과 견준다', async () => {
+  await withFake(responder, async (calls) => {
+    const out = await research.crosschecks({ dataset: datasetOf(FULL), warn: () => {} });
+    const g = out.find(c => c.id === 'grid');
+    assert.strictEqual(g.status, 'ok', g.reason);
+    assert.match(g.text, /요구 20MW/);
+    // ★ 「접속 가능」으로 읽히면 안 된다 — 대기열은 이 자료에 없다
+    assert.match(g.text, /접속 가능을 뜻하지 않는다/);
+    assert.strictEqual(g.apply, 'human');
+    assert.ok(calls.some(u => /distributionCapacity/.test(u)), '계통 조회가 안 나갔다');
+  });
+});
+
+test('★ 여유가 모자라면 **실패가 아니라 needs_review** 다', async () => {
+  await withFake(responder, async () => {
+    const out = await research.crosschecks({
+      // 요구 100MW — 조회된 선로의 최소 여유는 30MW 다
+      dataset: datasetOf({ ...FULL, 'capacity.power_mw': 100 }), warn: () => {},
+    });
+    const g = out.find(c => c.id === 'grid');
+    // ★ failed 로 두면 딜브레이커가 **통신 오류처럼** 보인다
+    assert.strictEqual(g.status, 'needs_review');
+    assert.match(g.reason, /모자라다/);
+  });
+});
+
+test('★ 거리 기준을 안 밝히면 그 대조가 needs_review 로 남는다', async () => {
+  await withFake(responder, async () => {
+    const v = { ...FULL };
+    delete v['crosscheck.substation_km_basis'];
+    const out = await research.crosschecks({ dataset: datasetOf(v), warn: () => {} });
+    const s = out.find(c => c.id === 'substation');
+    // 기준 필드가 `needs` 에 있으므로 애초에 건너뛴다 — 어느 쪽이든 ok 가 아니어야 한다
+    assert.notStrictEqual(s.status, 'ok');
+  });
+});
+
+test('★ 지역만 넣고 거리를 안 넣어도 **여유용량 조회는 나간다**', async () => {
+  await withFake(responder, async (calls) => {
+    const out = await research.crosschecks({
+      dataset: datasetOf({ 'crosscheck.grid_region': '충청남도 보령시', 'capacity.power_mw': 20 }),
+      warn: () => {},
+    });
+    assert.strictEqual(out.find(c => c.id === 'grid').status, 'ok');
+    // 거리는 못 넣었다는 사실이 그대로 남는다
+    assert.strictEqual(out.find(c => c.id === 'substation').status, 'skipped');
+    assert.ok(calls.some(u => /distributionCapacity/.test(u)),
+      '거리를 못 넣었다고 여유용량 조회까지 건너뛰면 안 된다');
+  });
+});
+
+test('★ 사람이 넣은 거리는 **사람이 넣었다고 표시된다**', async () => {
+  await withFake(responder, async () => {
+    const out = await research.crosschecks({ dataset: datasetOf(FULL), warn: () => {} });
+    const s = out.find(c => c.id === 'substation');
+    assert.strictEqual(s.status, 'ok', s.reason);
+    assert.strictEqual(s.byHuman, true);
+    assert.match(s.source.note, /사람이 회신받아 입력했다/);
+    assert.match(s.note, /가정/);   // 인입 공사비를 안 낸다는 사실 (§4.8)
+  });
 });
 
 test('★ 파이프라인이 건너뛴 건수를 로그에 낸다', () => {
@@ -268,11 +373,29 @@ test('★ 대조 선택값이 사전에 있다 (없으면 입력란이 안 생�
   });
 });
 
-test('★ 에이전트가 쓰는 키와 자산군이 내놓는 키가 같다', () => {
+test('★ 에이전트가 쓰는 키와 자산군·템플릿이 내놓는 키가 같다', () => {
   const used = research.CROSSCHECKS.reduce((a, c) => a.concat(c.needs), []);
-  const offered = assetclass.crosscheckKeys('manufacturing');
-  used.forEach(k => assert.ok(offered.indexOf(k) !== -1,
+  // ★ 자산군만 보면 안 된다 — 계통 대조는 **템플릿에도 붙는다**(태양광).
+  //   한쪽만 세면 「에이전트는 쓰는데 화면에서 안 묻는」 키가 생긴다
+  const offered = new Set();
+  assetclass.CLASSES.forEach(c => assetclass.crosscheckKeys(c.id).forEach(k => offered.add(k)));
+  Object.keys(assetclass.TEMPLATE_CROSSCHECKS)
+    .forEach(t => assetclass.templateCrosscheckKeys(t).forEach(k => offered.add(k)));
+  used.forEach(k => assert.ok(offered.has(k),
     `${k} 를 에이전트가 쓰는데 화면에서 안 묻는다 — 영원히 건너뛴다`));
+});
+
+test('★ 계통 대조 선택값도 사전에 있다 (없으면 입력란이 안 생긴다)', () => {
+  assetclass.templateCrosscheckKeys('solar').forEach((k) => {
+    assert.ok(dict.FIELDS[k], `${k} 가 사전에 없다 — 화면에 입력란이 안 생긴다`);
+    assert.strictEqual(dict.FIELDS[k].category, 'Crosscheck');
+    assert.deepStrictEqual(dict.FIELDS[k].requiredFor || [], [],
+      '대조값을 필수로 두면 진행률이 안 차서 사람이 모르는 값을 지어내 채운다');
+    assert.deepStrictEqual(dict.FIELDS[k].aliases, [],
+      '별칭이 있으면 「자료 추출」로 분류돼 안 물어본다');
+    assert.ok((assetclass.whyOf('datacenter', k, 'solar') || '').length > 10,
+      `${k}: 이유 없이 늘어난 입력란은 대충 채워진다`);
+  });
 });
 
 test('★ 대조값이 필수에 섞이지 않는다 (진행률을 막지 않는다)', () => {
@@ -288,11 +411,18 @@ test('대조값마다 왜 묻는지가 붙어 있다', () => {
   });
 });
 
-test('제조가 아닌 자산군에는 대조값을 묻지 않는다', () => {
-  ['hotel', 'apartment', 'datacenter'].forEach((id) => {
+test('상관없는 자산군에는 대조값을 묻지 않는다', () => {
+  ['hotel', 'apartment', 'office', 'logistics'].forEach((id) => {
     assert.deepStrictEqual(assetclass.crosscheckKeys(id), [],
       `${id}: 쓰지도 않을 입력란이 생긴다`);
   });
+});
+
+test('데이터센터는 **계통만** 묻는다 — 제조 대조가 딸려 오지 않는다', () => {
+  const keys = assetclass.crosscheckKeys('datacenter');
+  assert.ok(keys.includes('crosscheck.grid_region'));
+  assert.ok(!keys.includes('crosscheck.hs_code'), '데이터센터에 HS 코드를 물으면 안 된다');
+  assert.ok(!keys.includes('crosscheck.kosis_table'));
 });
 
 /* ═════════ 실패 격리 ═════════ */

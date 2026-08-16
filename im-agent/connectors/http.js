@@ -122,6 +122,9 @@ const SECRET_ENV = [
   // ★ **Authorization 헤더**로 나가는 키다. `key=` 패턴에도 안 걸리고 길이도
   //   56자라 일반 규칙에는 걸리지만, 헤더 경로라 명시해 두는 편이 안전하다
   'PEXELS_API_KEY',
+  // ★ 전력데이터개방포털(bigdata.kepco.co.kr) **자체 발급키**다. data.go.kr 키와
+  //   전혀 다른 계통이라 같이 묶어 두면 어느 쪽이 새는지 구분이 안 된다 (D-54)
+  'KEPCO_BIGDATA_KEY',
 ];
 
 /**

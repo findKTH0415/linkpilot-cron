@@ -94,6 +94,17 @@ const FIELDS = {
   'crosscheck.sales_channel': { label: '판로 (수출/내수)', category: CATEGORY.CROSSCHECK, unit: null, type: 'string', aliases: [], note: '내수 딜은 수출단가와 견주지 않는다 — FOB 기준이라 기준 자체가 다르다' },
   'crosscheck.enviro_name':  { label: '환경 인허가 조회 상호', category: CATEGORY.CROSSCHECK, unit: null, type: 'string', aliases: [], note: '통합환경허가·대기·수질·배출권. **「확인되지 않음」은 「문제 없음」이 아니다**' },
 
+  // ── 전력계통 (데이터센터·태양광·풍력) — 등록부 D-54 ────────
+  //
+  // ★ 위 넷과 성격이 갈린다. `grid_region` 은 **조회를 부르는 값**이고,
+  //   나머지 셋은 **API 로 나오지 않아 사람이 받아 적는 값**이다.
+  //   변전소 좌표가 국가중요시설 사유로 비식별 처리되어 거리를 계산할 방법이 없다.
+  'crosscheck.grid_region':       { label: '계통 조회 지역', category: CATEGORY.CROSSCHECK, unit: null, type: 'string', aliases: [], note: '시·군·구. 선로별 여유용량을 부른다 — **전국 값으로 대체하지 않는다**' },
+  'crosscheck.substation_name':   { label: '변전소명 (사전검토 회신)', category: CATEGORY.CROSSCHECK, unit: null, type: 'string', aliases: [], note: '한전 지사 사전검토에서 받아 적는다. **API 로는 안 나온다** — 좌표가 비식별 처리된다' },
+  'crosscheck.substation_km':     { label: '변전소 거리', category: CATEGORY.CROSSCHECK, unit: 'km', type: 'number', aliases: [], min: 0, note: '사전검토 회신값. 자동 산출이 불가능한 자리다' },
+  'crosscheck.substation_km_basis': { label: '거리 기준 (직선/선로)', category: CATEGORY.CROSSCHECK, unit: null, type: 'string', aliases: [], note: '**밝히지 않으면 그 거리는 쓰지 않는다** — 직선과 선로가 실무상 1.3~2배 갈린다' },
+  'crosscheck.grid_reviewed_at':  { label: '사전검토 회신일', category: CATEGORY.CROSSCHECK, unit: null, type: 'string', aliases: [], note: '여유용량은 시점 스냅샷이다. 회신일이 없으면 언제 기준인지 모른다' },
+
   'building.clear_height_m': { label: '유효층고', category: CATEGORY.BUILDING, unit: 'm', type: 'number', aliases: ['층고', '유효층고', '천장고', 'Clear Height'], min: 0, max: 30 },
   'building.floor_load_kn':  { label: '바닥하중', category: CATEGORY.BUILDING, unit: 'kN/㎡', type: 'number', aliases: ['바닥하중', '적재하중', 'Floor Load'], min: 0 },
   'revenue.adr':             { label: '평균 객실단가(ADR)', category: CATEGORY.REVENUE, unit: '원/실·박', type: 'number', aliases: ['ADR', '객실단가', '평균객실요금', 'Average Daily Rate'], min: 0 },

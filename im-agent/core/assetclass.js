@@ -49,6 +49,23 @@
    *
    * template — `finance/templates.js` 의 id. 재무모델 기본 가정을 어디서 가져올지만 정한다.
    */
+  /**
+   * 전력계통 대조 (등록부 D-54).
+   *
+   * ★ **한 벌만 만들어 여러 곳이 참조한다.** 데이터센터·태양광·풍력이 같은 것을
+   *   묻는데 각자 베껴 두면 한쪽만 고쳐지는 날이 온다.
+   * ★ 아래 넷 중 **`grid_region` 만 조회를 부른다.** 나머지 셋은 API 로 나오지
+   *   않아 사람이 받아 적는다 — 변전소 좌표가 국가중요시설 사유로 비식별
+   *   처리되어 **거리를 계산할 방법이 없다.**
+   */
+  var GRID_CROSSCHECKS = [
+    { key: 'crosscheck.grid_region', why: '수전용량은 딜이 말하는 대로 들어온다 — 그 용량이 계통에 실제로 있는지 지금 확인할 방법이 없다. 지역을 넣으면 선로별 여유용량을 본다' },
+    { key: 'crosscheck.substation_name', why: '어느 변전소에 붙는지가 인입 경로를 정한다. **API 로는 안 나온다** — 한전 지사 사전검토 회신을 받아 적는다' },
+    { key: 'crosscheck.substation_km', why: '거리가 인입 공사의 규모를 좌우한다. 공개 자료로는 낼 수 없어 사람이 넣는 자리다' },
+    { key: 'crosscheck.substation_km_basis', why: '직선거리와 선로거리가 실무상 1.3~2배 갈린다 — 어느 쪽인지 모르는 거리는 쓸 수 없다' },
+    { key: 'crosscheck.grid_reviewed_at', why: '여유용량은 시점 스냅샷이고 접속 대기열이 실재한다. 언제 기준인지 없으면 그 여유가 지금도 있는지 모른다' },
+  ];
+
   var CLASSES = [
     {
       id: 'manufacturing', label: '제조', en: 'Manufacturing', template: 'manufacturing',
@@ -112,6 +129,8 @@
         { key: 'capacity.power_mw', why: '수전용량이 IT Load 의 상한이다. 둘이 안 맞으면 팔 수 없는 용량을 판 것이 된다' },
         { key: 'capacity.pue', why: 'PUE 가 전력 운영비를 좌우한다. 빠지면 OPEX 가 근거 없는 비율로 잡힌다' },
       ],
+      // 계통이 안 받아 주면 수전용량은 종이 위의 숫자다 (등록부 D-54)
+      crosschecks: GRID_CROSSCHECKS,
     },
     {
       id: 'officetel', label: '오피스텔', en: 'Officetel', template: 'realestate',
@@ -223,22 +242,78 @@
     return CLASSES.filter(function (c) { return c.template === t; }).map(function (c) { return c.id; });
   }
 
+  /**
+   * **재무 템플릿에 직접 붙는 대조** (등록부 D-54).
+   *
+   * ★ 왜 자산군이 아니라 템플릿인가: **태양광은 자산군이 없다.** `finance/templates.js`
+   *   에 `solar` 템플릿만 있고 `CLASSES` 에는 대응하는 항목이 없다. 자산군에만
+   *   달아 두면 태양광 딜에서 전력 대조가 통째로 안 뜬다 — 정작 계통이 가장
+   *   중요한 딜에서 빠진다.
+   *
+   * ⚠️ **풍력은 여기에도 없다.** 자산군도 템플릿도 없어 `generic` 으로 떨어진다.
+   *    붙이려면 재무 템플릿부터 만들어야 해서 이번 범위 밖이다 — 등록부 D-54 에
+   *    적어 두었다. **없는 것을 있는 척하지 않는다.**
+   */
+  var TEMPLATE_CROSSCHECKS = {
+    solar: GRID_CROSSCHECKS,
+    datacenter: GRID_CROSSCHECKS,
+  };
+
+  function templateCrosscheckKeys(templateId) {
+    var x = TEMPLATE_CROSSCHECKS[String(templateId || '')];
+    return x ? x.map(function (r) { return r.key; }) : [];
+  }
+
+  /**
+   * 이 딜이 물어야 할 대조 전부 (자산군 + 템플릿). **중복은 한 번만.**
+   */
+  function crosschecksFor(classId, templateId) {
+    var c = BY_ID[classId];
+    var out = [];
+    var seen = {};
+    var add = function (list) {
+      (list || []).forEach(function (r) {
+        if (seen[r.key]) return;
+        seen[r.key] = true;
+        out.push(r);
+      });
+    };
+    if (c) add(c.crosschecks);
+    add(TEMPLATE_CROSSCHECKS[String(templateId || '')]);
+    // 자산군이 안 정해졌을 때 — 그 템플릿을 쓰는 자산군들의 대조를 모은다
+    if (!c) {
+      classesForTemplate(templateId).forEach(function (id) { add((BY_ID[id] || {}).crosschecks); });
+    }
+    return out;
+  }
+
   /** 이 딜이 대조값을 묻는 딜인가 (자산군이 안 정해졌으면 템플릿으로 본다) */
   function asksCrosschecks(classId, templateId) {
     if (crosscheckKeys(classId).length) return true;
+    if (templateCrosscheckKeys(templateId).length) return true;
     return classesForTemplate(templateId).some(function (id) { return crosscheckKeys(id).length > 0; });
   }
 
-  /** 그 값을 왜 묻는지. 화면이 그대로 보여 준다 (필수·대조 양쪽을 본다) */
-  function whyOf(id, key) {
+  /**
+   * 그 값을 왜 묻는지. 화면이 그대로 보여 준다 (필수·대조 양쪽을 본다).
+   *
+   * ★ `templateId` 를 주면 **템플릿에만 붙은 대조**도 찾는다 — 안 주면 태양광
+   *   딜에서 이유가 빈칸으로 뜬다.
+   */
+  function whyOf(id, key, templateId) {
     var c = BY_ID[id];
-    if (!c) return null;
-    for (var i = 0; i < c.requires.length; i++) {
-      if (c.requires[i].key === key) return c.requires[i].why;
+    if (c) {
+      for (var i = 0; i < c.requires.length; i++) {
+        if (c.requires[i].key === key) return c.requires[i].why;
+      }
+      var x = c.crosschecks || [];
+      for (var j = 0; j < x.length; j++) {
+        if (x[j].key === key) return x[j].why;
+      }
     }
-    var x = c.crosschecks || [];
-    for (var j = 0; j < x.length; j++) {
-      if (x[j].key === key) return x[j].why;
+    var t = TEMPLATE_CROSSCHECKS[String(templateId || '')] || [];
+    for (var k = 0; k < t.length; k++) {
+      if (t[k].key === key) return t[k].why;
     }
     return null;
   }
@@ -337,7 +412,9 @@
 
   return {
     CLASSES: CLASSES,
+    GRID_CROSSCHECKS: GRID_CROSSCHECKS, TEMPLATE_CROSSCHECKS: TEMPLATE_CROSSCHECKS,
     requiredKeys: requiredKeys, crosscheckKeys: crosscheckKeys,
+    templateCrosscheckKeys: templateCrosscheckKeys, crosschecksFor: crosschecksFor,
     classesForTemplate: classesForTemplate, asksCrosschecks: asksCrosschecks,
     whyOf: whyOf, templateOf: templateOf, fromApp: fromApp,
     detect: detect, classKeys: classKeys,

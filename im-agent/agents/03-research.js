@@ -35,6 +35,7 @@ const kosis = require('../connectors/kosis');
 const factory = require('../connectors/factory');
 const customs = require('../connectors/customs');
 const enviro = require('../connectors/enviro');
+const kepco = require('../connectors/kepco');
 const { round } = require('../core/numeric');
 const { kstDate } = require('../core/kst');
 
@@ -338,6 +339,23 @@ const CROSSCHECKS = [
     needs: ['crosscheck.enviro_name'], connector: 'enviro',
     ask: '조회할 상호를 넣는다',
   },
+  // ── 전력계통 (등록부 D-54) ──
+  //
+  // ★ **둘로 나눈 이유가 있다.** 여유용량은 조회해서 나오고, 거리는 API 로
+  //   나오지 않아 사람이 받아 적는다. 한 항목으로 묶으면 거리를 못 넣었다는
+  //   이유로 여유용량 조회까지 통째로 건너뛴다 — 나오는 것은 내야 한다.
+  {
+    id: 'grid', label: '계통 여유용량',
+    needs: ['crosscheck.grid_region'], connector: 'kepco',
+    ask: '조회할 시·군·구를 넣는다 (전국 값으로 대체하지 않는다)',
+  },
+  {
+    id: 'substation', label: '변전소 거리 (사람이 넣는다)',
+    needs: ['crosscheck.substation_name', 'crosscheck.substation_km', 'crosscheck.substation_km_basis'],
+    connector: 'kepco',
+    ask: '한전 지사 사전검토 회신에서 변전소명·거리·기준(직선/선로)을 받아 적는다 '
+      + '— **변전소 좌표가 비식별 처리되어 자동으로 낼 수 없다**',
+  },
 ];
 
 /** dataset 에서 가이드 필드 값을 꺼낸다 (없으면 null — 빈 문자열도 없는 것으로 본다) */
@@ -474,6 +492,45 @@ async function runOne(c, dataset) {
       text: s.verdict.text,
       items: s.items.map(x => ({ kind: x.kind, label: x.label, status: x.status, reason: x.reason })),
       reason: s.verdict.cleared ? null : s.verdict.text,
+    };
+  }
+
+  if (c.id === 'grid') {
+    const r = await kepco.capacity({ region: pick(dataset, 'crosscheck.grid_region') });
+    if (!r.ok) return { ...base, status: r.unavailable ? 'unavailable' : 'failed', reason: r.error };
+
+    const need = pick(dataset, 'capacity.power_mw');
+    const h = need ? kepco.headroom(r.value.rows, Number(need)) : null;
+    return {
+      ...base,
+      // ★ 여유가 모자란 것은 **실패가 아니라 결과다.** failed 로 두면 「조회를
+      //   못 했다」와 섞여, 딜브레이커가 통신 오류처럼 보인다
+      status: h && h.ok && h.value.status !== kepco.STATUS.CONFIRMED ? 'needs_review' : 'ok',
+      text: h && h.ok ? h.value.text
+        : `${r.value.region} ${r.value.rows.length}개 선로 조회`
+          + (h && !h.ok ? ` — 견주지 못했다: ${h.error}` : ' — 수전용량을 넣으면 견준다'),
+      reason: h && h.ok && h.value.status !== kepco.STATUS.CONFIRMED ? h.value.text : null,
+      source: r.value.source,
+      // ★ 적용은 사람이 정한다 — 대기열이 이 자료에 없다
+      apply: 'human',
+    };
+  }
+
+  if (c.id === 'substation') {
+    // ★ 조회가 아니다. **사람이 넣은 값을 검사만 한다** — 기준(직선/선로)이
+    //   없으면 받지 않는다
+    const r = kepco.humanDistance({
+      substation: pick(dataset, 'crosscheck.substation_name'),
+      km: pick(dataset, 'crosscheck.substation_km'),
+      basis: pick(dataset, 'crosscheck.substation_km_basis'),
+      reviewedAt: pick(dataset, 'crosscheck.grid_reviewed_at'),
+    });
+    if (!r.ok) return { ...base, status: 'needs_review', reason: r.error };
+    return {
+      ...base, status: 'ok', text: r.value.text, source: r.value.source,
+      byHuman: true,
+      // ★ 공사비를 내지 않는다는 사실을 **결과에 실어 보낸다** (§4.8)
+      note: r.value.costNote,
     };
   }
 

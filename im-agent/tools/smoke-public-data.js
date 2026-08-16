@@ -41,6 +41,7 @@ const kosis = require('../connectors/kosis');
 const factory = require('../connectors/factory');
 const customs = require('../connectors/customs');
 const enviro = require('../connectors/enviro');
+const kepco = require('../connectors/kepco');
 const fsc = require('../connectors/fsc');
 const { looksUrlEncoded } = require('../connectors/http');
 const pnuUtil = require('../connectors/pnu');
@@ -372,6 +373,29 @@ async function main() {
     console.log('  ※ 환경 인허가를 보려면: npm run im:smoke -- --enviro-name <상호> [--enviro-addr <주소>]');
   }
 
+  // ── 0-2-6. 전력계통 여유 (데이터센터·태양광·풍력) ─────────
+  //   ★ **거리는 여기서 안 나온다.** 변전소 좌표가 국가중요시설 사유로
+  //     비식별 처리되어 자동으로 낼 수 없다 (등록부 D-54). 그 사실을 스모크가
+  //     매번 말해 준다 — 안 그러면 「아직 안 붙였나 보다」로 읽힌다
+  const gridRegion = argOf('--grid-region');
+  if (gridRegion) {
+    const g = await kepco.capacity({ region: gridRegion });
+    if (g.ok) {
+      const needMw = Number(argOf('--grid-mw') || 0);
+      const h = needMw > 0 ? kepco.headroom(g.value.rows, needMw) : null;
+      report(`계통 여유용량 (${gridRegion})`, true,
+        `${g.value.rows.length}개 선로` + (h && h.ok ? ` · ${h.value.text}` : ''),
+        ['subst_nm', 'mtr_nm', 'dl_nm', 'subst_cap'], null);
+      if (!h) console.log('  ※ 요구용량과 견주려면: --grid-mw <수전용량MW>');
+    } else {
+      report(`계통 여유용량 (${gridRegion})`, false, g.error);
+    }
+    const d = kepco.substationDistance();
+    console.log(`  ※ 변전소 거리: ${d.error}`);
+  } else if (kepco.isAvailable()) {
+    console.log('  ※ 계통 여유를 보려면: npm run im:smoke -- --grid-region <시·군·구> [--grid-mw <MW>]');
+  }
+
   // ── 0-3. 시행사 대조 (주소와 무관) ───────────────────────
   //   ★ 값을 채우는 것이 아니라 **대조**다. 못 찾는 것이 정상인 경우가 많다
   if (dart.isAvailable()) {
@@ -402,6 +426,10 @@ async function main() {
   console.log(`공장등록        : ${factory.isAvailable() ? 'DATA_GO_KR_KEY 로 조회 (⚠ 기관·응답 필드 미검증 — 등록부 D-45)' : '미설정 — 생산능력 상한 대조 건너뜀'}`);
   console.log(`수출입 단가     : ${customs.isAvailable() ? 'DATA_GO_KR_KEY 로 조회 (⚠ 누적 여부·응답 필드 미검증 — 등록부 D-46)' : '미설정 — 단가 실거래 대조 건너뜀'}`);
   console.log(`환경 인허가     : ${enviro.isAvailable() ? 'DATA_GO_KR_KEY 로 조회 (⚠ 세 자료 모두 미검증 — 등록부 D-47)' : '미설정 — 딜브레이커 점검 건너뜀'}`);
+  // ★ **data.go.kr 키가 아니다.** 전력데이터개방포털 자체 발급키다 — 여기를
+  //   흐리게 적으면 「키 있는데 왜 안 되지」로 몇 시간이 간다 (§4.1)
+  console.log(`KEPCO_BIGDATA  : ${kepco.isAvailable() ? '설정됨 (⚠ 응답 필드 미검증 — 등록부 D-54)' : '미설정 — 계통 여유 건너뜀 (수전용량이 계통에 있는지 확인 못 한다)'}`);
+  console.log('               ↳ 변전소 **거리는 어느 키로도 안 나온다** — 좌표가 비식별 처리된다. 사전검토 회신을 사람이 넣는다');
 
   let lat = null, lon = null, parsedPnu = null, polygonAreaSqm = null;
 
