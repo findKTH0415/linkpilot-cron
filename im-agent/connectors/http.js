@@ -26,7 +26,13 @@ function isFatalStatus(status) {
  * @param {boolean} [opts.binary] 본문을 Buffer 로 받는다 (ZIP 등 — 텍스트로 읽으면 깨진다)
  * @returns {Promise<{ok:boolean, status?:number, body?:string|Buffer, error?:string, attempts:number}>}
  */
-async function request(url, { timeoutMs = DEFAULT_TIMEOUT, headers = {}, method = 'GET', binary = false, body = undefined } = {}) {
+async function request(url, {
+  timeoutMs = DEFAULT_TIMEOUT, headers = {}, method = 'GET', binary = false,
+  // ★ 이름이 `body` 면 아래 응답 본문(`const body`)과 겹쳐 **모든 호출이 죽는다.**
+  //   섀도잉이라 문법 오류도 안 나고, `Cannot access 'body' before initialization`
+  //   이라는 엉뚱한 메시지만 남는다 (실제로 그렇게 만들었다가 교차검증에서 잡았다).
+  requestBody = undefined,
+} = {}) {
   let lastError = null;
 
   for (let attempt = 0; attempt <= RETRY_DELAYS.length; attempt++) {
@@ -39,7 +45,7 @@ async function request(url, { timeoutMs = DEFAULT_TIMEOUT, headers = {}, method 
       //   여기서는 같은 요청을 그대로 다시 보낸다. 부수효과가 있는 POST 라면
       //   이 헬퍼를 쓰면 안 된다 (Rhino.Compute 의 풀이는 순수 함수라 안전하다)
       const init = { method, headers, signal: controller.signal };
-      if (body !== undefined) init.body = body;
+      if (requestBody !== undefined) init.body = requestBody;
       const r = await fetch(url, init);
       const body = binary ? Buffer.from(await r.arrayBuffer()) : await r.text();
 
@@ -103,6 +109,10 @@ const SECRET_ENV = [
   'REB_API_KEY',       // 32자쯤 — 안 걸린다 (한국부동산원 R-ONE)
   'LAW_OC',            // 국가법령정보 — 아주 짧아 패턴에 절대 안 걸린다
   'RHINO_COMPUTE_KEY', // Rhino.Compute 서버 접근키
+  // ★ 키는 아니지만 **사내 주소**다 (§2 「NAS 접속정보」와 같은 줄).
+  //   지금 Node fetch 는 실패 메시지에 호스트를 안 넣지만, 런타임이 바뀌거나
+  //   누가 디버그 로그에 주소를 찍는 날 그대로 새어 나간다 — 미리 가려 둔다
+  'RHINO_COMPUTE_URL',
 ];
 
 /**

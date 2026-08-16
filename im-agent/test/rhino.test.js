@@ -163,10 +163,19 @@ test('★ 라이선스가 필요하다는 사실이 적혀 있다', () => {
 });
 
 /** ★ POST 를 쓰려면 http.js 가 body 를 보낼 수 있어야 한다 */
-test('★ http 헬퍼가 본문을 실어 보낸다', () => {
+/**
+ * ★ 본문 파라미터 이름을 `body` 로 두면 **응답 본문(`const body`)과 겹쳐
+ *   모든 HTTP 호출이 죽는다.** 섀도잉이라 문법 오류도 안 나고
+ *   `Cannot access 'body' before initialization` 만 남는다 — 실제로 그렇게
+ *   만들었다가 교차검증에서 잡았다. 이름을 되돌리지 못하게 못 박는다.
+ *   (실제 동작은 `http-live.test.js` 가 localhost 서버로 확인한다)
+ */
+test('★ http 헬퍼가 본문을 실어 보낸다 (이름이 응답 본문과 겹치지 않는다)', () => {
   const http = fs.readFileSync(path.join(__dirname, '..', 'connectors', 'http.js'), 'utf8');
-  assert.match(http, /body = undefined/, 'POST 본문을 못 보내면 Grasshopper 를 못 부른다');
-  assert.match(http, /if \(body !== undefined\) init\.body = body;/);
+  assert.match(http, /requestBody = undefined/, 'POST 본문을 못 보내면 Grasshopper 를 못 부른다');
+  assert.match(http, /if \(requestBody !== undefined\) init\.body = requestBody;/);
+  assert.ok(!/if \(body !== undefined\)/.test(http),
+    '파라미터 이름이 body 로 되돌아갔다 — 응답 본문과 겹쳐 모든 호출이 죽는다');
   assert.match(http, /부수효과가 있는 POST 라면/,
     '재시도해도 되는지의 판단 근거를 남겨야 한다 — 안 남기면 결제 API 에 이 헬퍼를 쓴다');
 });

@@ -187,6 +187,12 @@ async function main() {
     }
   }
   console.log(`KMA_APIHUB_KEY : ${kma.isAvailable() ? '설정됨' : '미설정 — 일사량 건너뜀 (태양광 딜에만 필요)'}`);
+  // ★ 나중에 붙인 커넥터도 **반드시 여기에 적는다.** 안 적으면 스모크를 돌린
+  //   사람은 그 커넥터가 있는 줄도 모르고, 「0/0 통과」를 다 됐다고 읽는다
+  //   (실제로 reb·g2b·rhino 셋이 한동안 목록에 없었다 — 교차검증에서 잡았다)
+  console.log(`REB_API_KEY    : ${reb.isAvailable() ? '설정됨' : '미설정 — 지가지수 건너뜀 (공시지가 시점수정 불가)'}`);
+  console.log(`조달청 낙찰     : ${g2b.isAvailable() ? 'DATA_GO_KR_KEY 로 조회 (⚠ 응답 필드 미검증 — 등록부 D-36)' : '미설정 — 공사비 대조 건너뜀'}`);
+  console.log(`RHINO_COMPUTE  : ${rhino.isAvailable() ? '설정됨 (자체 호스팅)' : '미설정 — 매스 스터디 건너뜀 (Rhino 라이선스 필요, D-38)'}`);
 
   let lat = null, lon = null, parsedPnu = null, polygonAreaSqm = null;
 

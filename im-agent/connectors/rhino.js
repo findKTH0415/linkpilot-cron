@@ -173,7 +173,7 @@ async function solve(opt) {
   const key = { definition: def.pointer || `algo:${(def.algo || '').length}`, inputs: o.inputs || {} };
   const r = await cache.through(PROVIDER, 'grasshopper', key, async () => {
     const res = await request(`${baseUrl()}/grasshopper`, {
-      method: 'POST', headers: headers(), body,
+      method: 'POST', headers: headers(), requestBody: body,
       timeoutMs: o.timeoutMs || DEFAULT_TIMEOUT,
     });
     if (!res.ok) {
