@@ -21,6 +21,7 @@ const os = require('os');
 const path = require('path');
 
 const HERE = __dirname;
+const FLOW = require('./flow-core.js');
 
 function arg(name, fallback) {
   const i = process.argv.indexOf(name);
@@ -78,6 +79,13 @@ const AUTOSIZE = `
  *   after  문서 끝에 붙일 코드 — 단계별 상태를 **실제 조작으로** 만든다
  *          (플래그를 억지로 세우지 않는다. 진짜 버튼을 누른 결과를 보여준다)
  */
+/**
+ * 앱에 끼웠을 때의 모습. 화면 파일들은 따로 열면 자기 사이드바·로고·단계 칩을
+ * 갖고 있어서, 그대로 묶으면 **로고가 두 번 나오고 단계 표시가 두 벌이 된다.**
+ * 확인하라고 보낸 화면이 실제 앱과 다른 그림이면 확인이 아니다.
+ */
+const EMBED = `<style>${FLOW.EMBED_CSS}</style>`;
+
 function selfContained(file, opt) {
   const o = opt || {};
   let html = read(file);
@@ -94,7 +102,7 @@ function selfContained(file, opt) {
     const code = `\n<script>Object.assign(window.${o.inject.global}, ${JSON.stringify(o.inject.value)});</script>`;
     html = html.slice(0, at + anchor.length) + code + html.slice(at + anchor.length);
   }
-  return html + AUTOSIZE + (o.after || '');
+  return html + (o.embed === false ? '' : EMBED) + AUTOSIZE + (o.after || '');
 }
 
 /**
@@ -120,7 +128,6 @@ const CONFIRM_SPEC = `
  * 제품 화면(report-flow.html)과 공유하는 단일 출처다. 두 벌이 되면
  * 미리보기와 제품이 다른 흐름을 보여주고, 어느 쪽이 맞는지 알 수 없게 된다.
  */
-const FLOW = require('./flow-core.js');
 const SCREENS = FLOW.STEPS;
 
 /** 흐름 밖 화면 — 순서에 끼우면 4단계가 5단계처럼 보인다. 지금은 없다 */
