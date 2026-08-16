@@ -207,3 +207,36 @@ test('★ 진짜 모호한 것은 그대로 후보로 남는다 (§4.9)', () => 
   assert.strictEqual(r.id, null);
   assert.ok(r.candidates.length > 1);
 });
+
+/* ── 파이프라인에서 실제로 불리는가 (D-62) ─────────────── */
+
+test('★ MWh/MW 짝과 열화가 05 Validation 에서 실제로 돈다', () => {
+  const V = require('../agents/05-validation');
+  const { Dataset } = require('../core/facts');
+  const dict = require('../core/dictionary');
+  const ds = new Dataset('T', dict.FIELDS);
+  ds.addMany([
+    { key: 'capacity.ess_mwh', value: 100, source: 'x', confidence: 1 },
+    { key: 'capacity.ess_mw', value: 25, source: 'x', confidence: 1 },
+    { key: 'capacity.ess_degradation', value: 2.5, source: 'x', confidence: 1 },
+    { key: 'schedule.ops_years', value: 15, source: 'x', confidence: 1 },
+  ]);
+  ds.resolve();
+
+  const flags = V.checkCapacityPairs(ds);
+  assert.ok(flags.some(f => /4시간/.test(f.message)), '지속시간이 검증에 안 뜬다');
+  assert.ok(flags.some(f => /후반이 부풀려진다/.test(f.message)), '열화 경고가 안 뜬다');
+});
+
+test('★ 열화율을 안 넣으면 **그 사실이 경고로 뜬다**', () => {
+  const V = require('../agents/05-validation');
+  const { Dataset } = require('../core/facts');
+  const dict = require('../core/dictionary');
+  const ds = new Dataset('T', dict.FIELDS);
+  ds.addMany([
+    { key: 'capacity.ess_mwh', value: 100, source: 'x', confidence: 1 },
+    { key: 'capacity.ess_mw', value: 25, source: 'x', confidence: 1 },
+  ]);
+  ds.resolve();
+  assert.ok(V.checkCapacityPairs(ds).some(f => /새 배터리가 된다/.test(f.message)));
+});

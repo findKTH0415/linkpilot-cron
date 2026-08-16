@@ -44,6 +44,7 @@ const enviro = require('../connectors/enviro');
 const kepco = require('../connectors/kepco');
 const nts = require('../connectors/nts');
 const nps = require('../connectors/nps');
+const pexels = require('../connectors/pexels');
 const fsc = require('../connectors/fsc');
 const { looksUrlEncoded } = require('../connectors/http');
 const pnuUtil = require('../connectors/pnu');
@@ -467,6 +468,9 @@ async function main() {
   console.log(`환경 인허가     : ${enviro.isAvailable() ? 'DATA_GO_KR_KEY 로 조회 (⚠ 세 자료 모두 미검증 — 등록부 D-47)' : '미설정 — 딜브레이커 점검 건너뜀'}`);
   // ★ **data.go.kr 키가 아니다.** 전력데이터개방포털 자체 발급키다 — 여기를
   //   흐리게 적으면 「키 있는데 왜 안 되지」로 몇 시간이 간다 (§4.1)
+  // ★ 별도 도구(`npm run im:image`)가 있지만 **여기 목록에 없으면 그 커넥터가
+  //   있는 줄도 모른다** — reb·g2b·rhino 가 한동안 그랬다 (이 파일 위 주석)
+  console.log(`PEXELS_API_KEY : ${pexels.isAvailable() ? '설정됨 — 참고 이미지 (점검은 npm run im:image)' : '미설정 — 표지 참고 이미지 건너뜀 (장식이라 자리를 비운다)'}`);
   console.log(`법인 실재       : ${nts.isAvailable() ? 'DATA_GO_KR_KEY 로 조회 — 휴폐업·인원 (⚠ 응답 필드 미검증 — 등록부 D-60)' : '미설정 — 법인 실재 점검 건너뜀'}`);
   console.log('               ↳ **납세증명·완납증명은 어떤 키로도 안 된다** (국세기본법 §81조의13) — 당사자에게 서류로 받는다');
   console.log(`KEPCO_BIGDATA  : ${kepco.isAvailable() ? '설정됨 (⚠ 응답 필드 미검증 — 등록부 D-54)' : '미설정 — 계통 여유 건너뜀 (수전용량이 계통에 있는지 확인 못 한다)'}`);

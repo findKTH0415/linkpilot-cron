@@ -184,3 +184,36 @@ test('★ REC 가중치 숫자가 코드에 박혀 있지 않다', () => {
   // 0.7·1.2·1.5 같은 가중치 값을 상수로 두면 고시 개정에 뒤처진다
   assert.ok(!/weight\s*[:=]\s*[0-9]/.test(src), '가중치 값이 박혀 있다');
 });
+
+/* ── 파이프라인에서 실제로 불리는가 (D-62) ─────────────── */
+
+/**
+ * ★ **D-48 과 같은 실패를 막는 테스트다.** `core/solar.js` 를 만들어 놓고
+ *   파이프라인에서 한 번도 부르지 않고 있었다 — 교차검증에서 잡았다.
+ *   「붙였다」가 사실이려면 **검증 결과에 실제로 떠야 한다.**
+ */
+test('★ DC/AC 짝 검사가 05 Validation 에서 실제로 돈다', () => {
+  const V = require('../agents/05-validation');
+  const { Dataset } = require('../core/facts');
+  const ds = new Dataset('T', dict.FIELDS);
+  ds.addMany([
+    { key: 'capacity.dc_kw', value: 1300, source: 'x', confidence: 1 },
+    { key: 'capacity.ac_kw', value: 1000, source: 'x', confidence: 1 },
+  ]);
+  ds.resolve();
+
+  const flags = V.checkCapacityPairs(ds);
+  assert.ok(flags.some(f => /클리핑/.test(f.message)), '과적인데 검증에 안 뜬다');
+  // checkConsistency 를 통해서도 나와야 한다 — 거기가 실제 호출 경로다
+  assert.ok(V.checkConsistency(ds).some(f => f.type === 'CAPACITY_PAIR'),
+    'checkConsistency 에서 안 불린다 — 만들어 놓고 안 부르는 자리다');
+});
+
+test('★ 태양광 값이 없는 딜에는 아무것도 안 뜬다 (소음을 만들지 않는다)', () => {
+  const V = require('../agents/05-validation');
+  const { Dataset } = require('../core/facts');
+  const ds = new Dataset('T', dict.FIELDS);
+  ds.addMany([{ key: 'land.area_sqm', value: 1000, source: 'x', confidence: 1 }]);
+  ds.resolve();
+  assert.strictEqual(V.checkCapacityPairs(ds).length, 0);
+});
