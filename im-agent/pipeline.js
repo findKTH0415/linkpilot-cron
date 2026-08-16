@@ -24,6 +24,8 @@ const assetclass = require('./core/assetclass');
 const pdf = require('./core/pdf');
 const deskappraisal = require('./core/deskappraisal');
 const corpreport = require('./core/corpreport');
+const nts = require('./connectors/nts');
+const nps = require('./connectors/nps');
 const a4 = require('./design/a4');
 const path = require('path');
 
@@ -267,8 +269,34 @@ async function run(opts = {}) {
     // ★ **대부분의 딜에서 안 만들어지는 것이 정상이다.** DART 는 공시대상회사만
     //   수록하고 시행사 SPC 는 원래 거기 없다 — 재무자료를 제출받아야 한다.
     //   그래서 「만들지 않았다」가 결함이 아니라는 사실을 로그가 말해 준다.
+    // ★ **재무제표와 무관한 두 번째 출처** (D-60). 휴폐업은 국세청만 알고
+    //   인원·고지금액은 공단이 부과한 값이다 — 회사가 만든 숫자가 아니다.
+    // ★ **한 쪽이 죽어도 나머지를 돌린다** (§4.6). 실재 점검이 실패했다고
+    //   법인 보고서 전체를 세우지 않는다
+    const existence = {};
+    const bizNo = strOf('corp.biz_no');
+    if (bizNo) {
+      const st = await nts.status(bizNo).catch(e => ({ ok: false, error: e.message }));
+      existence.status = st.ok ? st.value : { text: `조회하지 못했다 — ${st.error}` };
+    }
+    const corpNm = strOf('corp.name') || strOf('project.sponsor');
+    if (corpNm) {
+      const wp = await nps.findWorkplace(corpNm).catch(e => ({ ok: false, error: e.message }));
+      if (wp.ok) {
+        const d = await nps.workplaceDetail(wp.value.seq).catch(e => ({ ok: false, error: e.message }));
+        existence.workplace = d.ok ? d.value : { text: `상세를 못 받았다 — ${d.error}` };
+      } else if (wp.ambiguous) {
+        // ★ 고르지 않는다 — 엉뚱한 회사의 인원이 실사 보고서에 실리면 안 된다
+        existence.workplace = { text: `동명 사업장 ${wp.candidates.length}건 — **고르지 않았다.** 사람이 특정한다` };
+      } else if (wp.notFound) {
+        existence.workplace = { text: wp.error };
+      }
+    }
+    existence.clearance = strOf('corp.tax_clearance');
+
     const cr = corpreport.build({
       projectId,
+      existence,
       corpName: strOf('corp.name') || strOf('project.sponsor'),
       shares: dataset.num('corp.shares'),
       netAsset: dataset.num('corp.net_asset'),

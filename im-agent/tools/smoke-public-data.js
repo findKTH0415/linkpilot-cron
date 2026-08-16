@@ -42,6 +42,8 @@ const factory = require('../connectors/factory');
 const customs = require('../connectors/customs');
 const enviro = require('../connectors/enviro');
 const kepco = require('../connectors/kepco');
+const nts = require('../connectors/nts');
+const nps = require('../connectors/nps');
 const fsc = require('../connectors/fsc');
 const { looksUrlEncoded } = require('../connectors/http');
 const pnuUtil = require('../connectors/pnu');
@@ -396,6 +398,43 @@ async function main() {
     console.log('  ※ 계통 여유를 보려면: npm run im:smoke -- --grid-region <시·군·구> [--grid-mw <MW>]');
   }
 
+  // ── 0-2-7. 법인 실재 (국세청·국민연금) ───────────────────
+  //   ★ **경계가 이 스모크의 핵심이다.** 되는 것(휴폐업·인원)과 법이 막은 것
+  //     (납세증명·완납증명)을 매번 함께 찍는다 — 안 그러면 「API 붙이면 되겠지」로
+  //     기다리다 실사가 멈춘다 (등록부 D-60)
+  const bizNo = argOf('--biz-no');
+  if (bizNo) {
+    const st = await nts.status(bizNo);
+    if (st.ok) {
+      report(`사업자등록 상태 (${bizNo})`, st.value.status === nts.STATUS.ACTIVE, st.value.text,
+        ['b_stt', 'tax_type', 'end_dt'], st.value.raw);
+    } else {
+      report(`사업자등록 상태 (${bizNo})`, false, st.error);
+    }
+  } else if (nts.isAvailable()) {
+    console.log('  ※ 휴폐업을 보려면: npm run im:smoke -- --biz-no <사업자등록번호 10자리>');
+    console.log('    ↳ **법인등록번호(13자리)가 아니다** — 넣으면 거절한다');
+  }
+
+  const wkpl = argOf('--workplace');
+  if (wkpl) {
+    const f = await nps.findWorkplace(wkpl);
+    if (f.ok) {
+      const d = await nps.workplaceDetail(f.value.seq);
+      report(`국민연금 사업장 (${wkpl})`, d.ok, d.ok ? d.value.text : d.error,
+        ['jnngpCnt', 'crrmmNtcAmt', 'adptDt'], null);
+    } else if (f.ambiguous) {
+      report(`국민연금 사업장 (${wkpl})`, true, `동명 ${f.candidates.length}건 — 고르지 않는다`);
+    } else if (f.notFound) {
+      report(`국민연금 사업장 (${wkpl})`, true, f.error);
+    } else {
+      report(`국민연금 사업장 (${wkpl})`, false, f.error);
+    }
+  } else if (nps.isAvailable()) {
+    console.log('  ※ 사업장 인원을 보려면: npm run im:smoke -- --workplace <사업장명>');
+  }
+  console.log(`  ※ ${nts.taxClearance().error}`);
+
   // ── 0-3. 시행사 대조 (주소와 무관) ───────────────────────
   //   ★ 값을 채우는 것이 아니라 **대조**다. 못 찾는 것이 정상인 경우가 많다
   if (dart.isAvailable()) {
@@ -428,6 +467,8 @@ async function main() {
   console.log(`환경 인허가     : ${enviro.isAvailable() ? 'DATA_GO_KR_KEY 로 조회 (⚠ 세 자료 모두 미검증 — 등록부 D-47)' : '미설정 — 딜브레이커 점검 건너뜀'}`);
   // ★ **data.go.kr 키가 아니다.** 전력데이터개방포털 자체 발급키다 — 여기를
   //   흐리게 적으면 「키 있는데 왜 안 되지」로 몇 시간이 간다 (§4.1)
+  console.log(`법인 실재       : ${nts.isAvailable() ? 'DATA_GO_KR_KEY 로 조회 — 휴폐업·인원 (⚠ 응답 필드 미검증 — 등록부 D-60)' : '미설정 — 법인 실재 점검 건너뜀'}`);
+  console.log('               ↳ **납세증명·완납증명은 어떤 키로도 안 된다** (국세기본법 §81조의13) — 당사자에게 서류로 받는다');
   console.log(`KEPCO_BIGDATA  : ${kepco.isAvailable() ? '설정됨 (⚠ 응답 필드 미검증 — 등록부 D-54)' : '미설정 — 계통 여유 건너뜀 (수전용량이 계통에 있는지 확인 못 한다)'}`);
   console.log('               ↳ 변전소 **거리는 어느 키로도 안 나온다** — 좌표가 비식별 처리된다. 사전검토 회신을 사람이 넣는다');
 

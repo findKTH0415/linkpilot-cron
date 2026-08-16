@@ -235,6 +235,13 @@ const FIELDS = {
   'corp.shares':          { label: '발행주식총수', category: CATEGORY.EQUITY, unit: '주', type: 'number', aliases: ['발행주식수', '주식수'], min: 0 },
   // 자산총액 중 부동산 비율. **이 값 하나로 법령이 정한 가중치가 3:2 에서 2:3 으로 뒤집힌다**
   'corp.real_estate_pct': { label: '자산 중 부동산 비율', category: CATEGORY.EQUITY, unit: '%', type: 'number', aliases: ['부동산비율'], min: 0, max: 100 },
+  // ★ **법인등록번호가 아니다.** 국세청 조회는 사업자등록번호 10자리를 받는다 —
+  //   DART 가 주는 `jurir_no`(13자리)를 넣으면 조회가 실패하는데 **증상이
+  //   「없는 회사」와 똑같아서** 원인에 도달하기까지 오래 걸린다 (등록부 D-60).
+  'corp.biz_no':          { label: '사업자등록번호', category: CATEGORY.LEGAL, unit: null, type: 'string', aliases: ['사업자번호', '사업자등록번호'], note: '10자리. 휴폐업 상태를 국세청에서 확인한다' },
+  // ★ **조회할 수 없는 값이다.** 과세정보는 제3자 제공이 막혀 있어(국세기본법
+  //   §81조의13) 당사자에게 서류로 받는다. 그래서 「받았는가」를 사람이 적는다
+  'corp.tax_clearance':   { label: '납세증명 제출 (받아야 하는 서류)', category: CATEGORY.LEGAL, unit: null, type: 'string', aliases: [], note: '국세·지방세 완납증명, 4대보험 완납증명. **API 로 조회할 수 없다** — 당사자 발급분을 받아 발급일을 적는다' },
 };
 
 /**

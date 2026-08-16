@@ -44,6 +44,9 @@ const NOT_AN_OPINION = '본 문서는 「자본시장과 금융투자업에 관�
   + '제출된 재무자료를 법령이 정한 산식에 넣어 계산한 내부 검토용 참고 수치다. '
   + '거래·신고 확정 전 자격을 갖춘 평가기관의 평가가 필요하다.';
 
+/** 절 제목은 한 곳에서만 만든다 — 본문이 절 번호를 손으로 가리키면 갈린다 */
+const STATUTE_SECTION = '적용한 법령 산식';
+
 function fmtEok(v) {
   return v === null || v === undefined ? '—' : `${Number(v).toLocaleString('ko-KR')}억원`;
 }
@@ -138,7 +141,9 @@ function sectionMethods(v) {
     // ★ 장부가/시가 구분을 빼면 장부가가 그대로 평가액으로 실린다
     `**${val.asset.caution}**`,
     '',
-    '자료출처: 제출 재무자료 및 아래 6장의 법령 산식.',
+    // ★ 절 번호를 **손으로 적지 않는다.** 실재 점검이 6장으로 들어오면서
+    //   이 줄이 옛 번호를 가리키고 있었다 — 화면만 옛말을 하는 자리다
+    `자료출처: 제출 재무자료 및 「${STATUTE_SECTION}」 절의 법령 산식.`,
   ].join('\n');
 }
 
@@ -190,14 +195,61 @@ function sectionStatute(v) {
 function sectionNotDone() {
   const market = corpvalue.marketMultipleValue();
   const premium = corpvalue.controlPremium();
+  const nts = require('../connectors/nts');
+  const nps = require('../connectors/nps');
   return [
-    '아래는 **하지 않은 계산**이다. 못 해서가 아니라 **해서는 안 되기 때문**이다.',
+    '아래는 **하지 않은 계산·조회**다. 못 해서가 아니라 **해서는 안 되거나**',
+    '**법이 막고 있기 때문**이다.',
     '',
     '| 하지 않은 것 | 왜 |', '|---|---|',
     `| 유사기업 배수법 | ${market.error} |`,
     `| 최대주주 할증 | ${premium.error} |`,
+    `| 납세증명·체납 조회 | ${nts.taxClearance().error} |`,
+    `| 4대보험 완납 조회 | ${nps.insuranceClearance().error} |`,
     '',
     '자료출처: 본 자료 — 산출 범위 정의.',
+  ].join('\n');
+}
+
+/**
+ * 실재 점검 — **재무제표와 무관한 두 번째 출처** (등록부 D-60).
+ *
+ * ★ 재무제표는 회사가 만든 숫자고 등기는 껍데기만 말한다. 휴폐업은 국세청만
+ *   알고, 인원·고지금액은 공단이 부과한 값이다.
+ * ★ **판정하지 않는다.** 인원이 적은 것은 결함이 아니다 — SPC 는 직원이 없는
+ *   것이 정상이다. 낼 수 있는 말은 사실과 그 사실의 뜻까지다.
+ */
+function sectionExistence(e) {
+  if (!e || (!e.status && !e.workplace && !e.clearance)) {
+    return [
+      '실재 점검을 수행하지 않았다.',
+      '',
+      '사업자등록번호(`corp.biz_no`)를 넣으면 **휴폐업 상태**를 국세청에서 확인한다. '
+        + '**법인등록번호(13자리)가 아니라 사업자등록번호(10자리)** 다.',
+      '',
+      '자료출처: 본 자료 — 점검 범위 정의.',
+    ].join('\n');
+  }
+
+  const rows = [];
+  if (e.status) {
+    rows.push(`| 사업자등록 상태 | ${e.status.text} |`);
+  }
+  if (e.workplace) {
+    rows.push(`| 국민연금 사업장 | ${e.workplace.text} |`);
+  }
+  rows.push(`| 납세·완납증명 | ${e.clearance || '**미제출** — API 로 조회할 수 없다. 당사자 발급분을 받아야 한다'} |`);
+
+  return [
+    '재무자료와 **무관한 출처**로 회사의 실재를 본다.',
+    '',
+    '| 항목 | 결과 |', '|---|---|',
+    ...rows,
+    '',
+    '**인원이 적은 것은 결함이 아니다** — SPC 는 직원이 없는 것이 정상이고, '
+      + '국민연금 자료는 **가입자 3인 이상 법인사업장**부터 수록한다.',
+    '',
+    '자료출처: 국세청 사업자등록 상태조회 · 국민연금공단 가입 사업장 내역.',
   ].join('\n');
 }
 
@@ -259,8 +311,9 @@ function build(o) {
     { no: '03', title: '평가대상', subtitle: 'Subject', text: sectionSubject({ ...opt, asOf }) },
     { no: '04', title: '가치별 산정', subtitle: 'Methods', text: sectionMethods(v) },
     { no: '05', title: '결론', subtitle: 'Conclusion', text: sectionConclusion(c, v) },
-    { no: '06', title: '적용한 법령 산식', subtitle: 'Statute', text: sectionStatute(v) },
-    { no: '07', title: '하지 않은 계산', subtitle: 'Out of Scope', text: sectionNotDone() },
+    { no: '06', title: '실재 점검', subtitle: 'Existence', text: sectionExistence(opt.existence) },
+    { no: '07', title: STATUTE_SECTION, subtitle: 'Statute', text: sectionStatute(v) },
+    { no: '08', title: '하지 않은 계산·조회', subtitle: 'Out of Scope', text: sectionNotDone() },
   ];
 
   const markdown = [
@@ -301,4 +354,4 @@ function coverValue(c) {
   return fmtEok(c.valueEok);
 }
 
-module.exports = { build, conclusion, coverValue, NOT_CHECKED, NOT_AN_OPINION };
+module.exports = { build, conclusion, coverValue, sectionExistence, NOT_CHECKED, NOT_AN_OPINION };

@@ -154,9 +154,9 @@ test('★ 최대주주 할증을 자동으로 적용하지 않는다', () => {
 
 test('★ 하지 않은 계산이 **문서에 절로 남는다**', () => {
   const r = cr.build({ projectId: 'P1', corpName: '○○개발(주)', netAsset: 180, income1: 24, income2: 18, income3: 12, realEstatePct: 30 });
-  const s = r.sections.find(x => x.title === '하지 않은 계산');
+  const s = r.sections.find(x => x.title === '하지 않은 계산·조회');
   assert.ok(s);
-  assert.match(s.text, /해서는 안 되기 때문/);
+  assert.match(s.text, /해서는 안 되거나/);
   assert.match(s.text, /유사기업 배수법/);
   assert.match(s.text, /최대주주 할증/);
 });
