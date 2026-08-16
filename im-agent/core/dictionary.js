@@ -93,6 +93,17 @@ const FIELDS = {
   'revenue.ess_model':       { label: 'ESS 수익모델', category: CATEGORY.REVENUE, unit: null, type: 'string', aliases: ['수익모델', '정산방식', 'ESS 수익구조'] },
   'capacity.dc_kw':      { label: '설비용량(DC)', category: CATEGORY.CAPACITY, unit: 'kW', type: 'number', aliases: ['설비용량', 'DC용량', '모듈용량'], min: 0 },
   'capacity.ac_kw':      { label: '설비용량(AC)', category: CATEGORY.CAPACITY, unit: 'kW', type: 'number', aliases: ['AC용량', '인버터용량', '발전용량'], min: 0 },
+  // 태양광 전용 (등록부 D-58).
+  //
+  // ★ **부지 유형이 REC 가중치를 가른다.** 임야는 다른 부지보다 낮게 매겨진다 —
+  //   같은 용량이라도 매출이 갈리는데, 사업계획서에는 「태양광」이라고만 적혀 온다.
+  // ★ **경사각·방위각이 있어야 일사량을 발전 기준으로 옮길 수 있다.** 기상청
+  //   일사량은 **수평면(GHI)** 이고 모듈은 기울어져 있다 — 그 변환이 가정이라
+  //   우리가 하지 않는다(D-25 와 같은 자리). 다만 값은 받아 적는다.
+  'site.land_category':  { label: '부지 유형', category: CATEGORY.CAPACITY, unit: null, type: 'string', aliases: ['지목', '부지유형', '설치유형'], note: '임야·농지·잡종지·건축물·수상 — **REC 가중치가 여기서 갈린다**' },
+  'site.tilt_angle':     { label: '모듈 경사각', category: CATEGORY.CAPACITY, unit: '°', type: 'number', aliases: ['경사각', '설치각', 'Tilt'], min: 0, max: 90 },
+  'site.azimuth':        { label: '모듈 방위각', category: CATEGORY.CAPACITY, unit: '°', type: 'number', aliases: ['방위각', 'Azimuth'], min: 0, max: 360 },
+  'legal.setback_m':     { label: '이격거리 조례', category: CATEGORY.LEGAL, unit: 'm', type: 'number', aliases: ['이격거리', '이격', 'Setback'], min: 0, note: '지자체 조례. 도로·주거에서 얼마를 띄워야 하는지 — **이것 하나로 부지가 통째로 못 쓰게 된다**' },
   'capacity.leasable_sqm': { label: '임대면적', category: CATEGORY.CAPACITY, unit: '㎡', type: 'number', aliases: ['임대면적', '전용면적', 'NLA', 'Leasable Area'], min: 0 },
 
   // ── 자산군 전용 지표 ───────────────────────────────────────

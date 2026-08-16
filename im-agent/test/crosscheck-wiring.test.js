@@ -239,29 +239,41 @@ test('★ 자산군이 안 정해져도 제조 템플릿이면 대조를 묻는 
 });
 
 /**
- * ★ **태양광은 자산군이 없다.** `finance/templates.js` 에 `solar` 템플릿만 있고
- *   `CLASSES` 에는 대응 항목이 없다 — 자산군에만 대조를 달면 **정작 계통이
- *   가장 중요한 딜에서 안내가 통째로 빠진다** (등록부 D-54).
+ * ★ **자산군이 안 정해지는 경우가 정상이다** (§4.9). 육상·해상 풍력은 앱에서
+ *   섹터가 같고, 태양광도 요청문에 「발전사업」처럼만 적혀 오면 안 잡힌다.
+ *   그때도 재무 템플릿은 정해져 있으므로 **템플릿에도 같은 대조를 단다** —
+ *   없으면 정작 계통이 가장 중요한 딜에서 안내가 통째로 빠진다 (등록부 D-54).
+ *
+ * ★ 넷 다 **자산군에도** 같은 목록이 달려 있다. 한 벌(`GRID_CROSSCHECKS`)을
+ *   양쪽이 참조하므로 갈리지 않는다 — 그 사실을 아래에서 함께 본다.
  */
-test('★ 태양광은 자산군이 없어도 템플릿으로 계통 대조를 묻는다', () => {
-  assert.strictEqual(assetclass.asksCrosschecks(null, 'solar'), true,
-    '태양광 딜에서 계통 안내가 빠진다 — 자산군이 아예 없는 자산이다');
-  assert.strictEqual(assetclass.asksCrosschecks(null, 'datacenter'), true);
-  assert.ok(assetclass.crosschecksFor(null, 'solar').some(r => r.key === 'crosscheck.grid_region'));
-  // 태양광 딜에 제조 대조(HS 코드 등)가 딸려 오면 안 된다
-  assert.ok(!assetclass.crosschecksFor(null, 'solar').some(r => r.key === 'crosscheck.hs_code'));
+test('★ 발전·저장 딜은 자산군이 안 정해져도 템플릿으로 계통 대조를 묻는다', () => {
+  ['solar', 'datacenter', 'wind_onshore', 'wind_offshore', 'ess'].forEach((t) => {
+    assert.strictEqual(assetclass.asksCrosschecks(null, t), true, `${t}: 계통 안내가 빠진다`);
+    assert.ok(assetclass.crosschecksFor(null, t).some(r => r.key === 'crosscheck.grid_region'));
+    // 제조 대조(HS 코드 등)가 딸려 오면 안 된다
+    assert.ok(!assetclass.crosschecksFor(null, t).some(r => r.key === 'crosscheck.hs_code'), `${t}: 제조 대조가 딸려 왔다`);
+  });
 });
 
-/**
- * ⚠️ **풍력은 아직 없다.** 자산군도 재무 템플릿도 없어 `generic` 으로 떨어진다.
- *   그 사실을 테스트로 박아 둔다 — 「붙였다」고 적어 두고 실제로는 안 뜨는 것이
- *   이 저장소가 한 번 겪은 일이다 (D-48).
- */
-test('풍력은 아직 대조를 묻지 않는다 (템플릿이 없다 — D-54 에 적혀 있다)', () => {
-  assert.strictEqual(assetclass.asksCrosschecks(null, 'wind'), false);
+test('★ 자산군과 템플릿이 **같은 한 벌**을 본다 (두 벌이면 갈린다)', () => {
+  [['solar', 'solar'], ['wind_onshore', 'wind_onshore'],
+    ['wind_offshore', 'wind_offshore'], ['ess', 'ess'], ['datacenter', 'datacenter']]
+    .forEach(([cls, t]) => {
+      assert.deepStrictEqual(
+        assetclass.crosscheckKeys(cls).slice().sort(),
+        assetclass.templateCrosscheckKeys(t).slice().sort(),
+        `${cls}: 자산군과 템플릿의 대조 목록이 다르다`,
+      );
+    });
+});
+
+test('상관없는 템플릿은 계통 대조를 묻지 않는다', () => {
+  // 소음이 쌓이면 진짜 경고도 안 읽힌다
+  assert.strictEqual(assetclass.asksCrosschecks(null, 'realestate'), false);
   assert.strictEqual(assetclass.asksCrosschecks(null, 'generic'), false);
-  const reg = fs.readFileSync(path.join(__dirname, '..', '..', 'docs', '미결정-사항.md'), 'utf8');
-  assert.match(reg, /풍력/, '못 하는 것을 등록부에 안 적으면 아무도 모른다');
+  // 존재하지 않는 템플릿 id 에 걸리지 않는다
+  assert.strictEqual(assetclass.asksCrosschecks(null, 'wind'), false);
 });
 
 /* ═════════ 전력계통 (D-54) ═════════ */
