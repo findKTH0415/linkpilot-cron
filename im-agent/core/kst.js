@@ -6,12 +6,33 @@
 
 const TZ = 'Asia/Seoul';
 
-const DT = new Intl.DateTimeFormat('sv-SE', {
+/* ★ 2026-08-16 — 'sv-SE' 로케일 **출력 형식**에 기대지 않는다.
+   [사고] Synology NAS 의 Node 20 은 ICU 는 있지만 sv-SE 로케일 데이터가 없어 en-US 로
+          조용히 폴백했다("08/16/2026, 16:04:46"). slice(0,4) 가 "08/1" 이 되어 kstYear() 가
+          NaN → 프로젝트 ID 가 LP-SOL-NaN-001 로 만들어지고 스키마 위반으로 생성이 막혔다.
+          같은 코드가 macOS/GitHub Actions 에서는 정상이라 테스트로는 안 잡힌다.
+   [규칙] 로케일이 아니라 **부품(formatToParts)** 으로 연·월·일·시·분·초를 꺼내 직접 조립한다.
+          부품 이름(year/month/…)은 로케일과 무관하다. */
+const DT_PARTS = new Intl.DateTimeFormat('en-US', {
   timeZone: TZ,
   year: 'numeric', month: '2-digit', day: '2-digit',
   hour: '2-digit', minute: '2-digit', second: '2-digit',
-  hour12: false,
+  hourCycle: 'h23',
 });
+function kstParts(d = new Date()) {
+  const o = {};
+  for (const p of DT_PARTS.formatToParts(d)) if (p.type !== 'literal') o[p.type] = p.value;
+  // 일부 ICU 는 자정을 "24" 로 낸다 — h23 를 지정해도 방어한다
+  if (o.hour === '24') o.hour = '00';
+  return o;
+}
+/** 'YYYY-MM-DD HH:mm:ss' — 예전 sv-SE 출력과 동일한 모양 */
+const DT = {
+  format(d = new Date()) {
+    const o = kstParts(d);
+    return `${o.year}-${o.month}-${o.day} ${o.hour}:${o.minute}:${o.second}`;
+  },
+};
 
 /** '2026-08-13T06:05:00+09:00' */
 function kstStamp(d = new Date()) {

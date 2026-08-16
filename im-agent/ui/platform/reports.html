@@ -306,6 +306,15 @@ window.LINKPILOT_REPORTS = {
   var C = window.LINKPILOT_REPORTS;
   var G = window.LinkPilotGate;
   var view = document.getElementById('view');
+  /* ★ 2026-08-16 — 부모(report-flow)가 넘긴 api·project 를 받는다 (intake/fields 와 같은 계약).
+     api 가 오면 데모 프로젝트 목록을 버린다 — 서버가 있는데 데모 목록이 남으면 존재하지 않는
+     프로젝트로 생성을 누르게 된다. */
+  try {
+    var _qp = new URLSearchParams(window.location.search);
+    if (_qp.get('api')) { C.api = _qp.get('api'); C.projects = []; }
+    if (_qp.get('project')) { C.projects = (C.projects || []).filter(function (p) { return p.id === _qp.get('project'); });
+      if (!C.projects.length) C.projects = [{ id: _qp.get('project'), name: _qp.get('project') }]; }
+  } catch (_) {}
 
   var state = {
     projectId: (C.projects[0] || {}).id || null,
