@@ -20,6 +20,7 @@ const designState = require('./core/design-state');
 const reports = require('./core/reports');
 const monitor = require('./core/monitor');
 const { kstStamp } = require('./core/kst');
+const assetclass = require('./core/assetclass');
 
 function loadDataset(projectId) {
   const json = store.readJson(projectId, '01_Project/dataset.json', null);
@@ -139,6 +140,36 @@ async function run(opts = {}) {
       dataset.resolve();
       saveDataset(projectId, dataset);
       log(`  시장지표: ${res.output.facts.length}건 (출처 있는 실측값)`);
+    }
+
+    // ★ 대조는 **facts 가 아니다.** Dataset 에 넣지 않고 따로 남긴다 —
+    //   넣는 순간 대조값이 딜의 값으로 IM 에 실린다 (등록부 D-48).
+    const checks = res.output.crosschecks || [];
+    if (checks.length) {
+      store.writeJson(projectId, '05_Market/crosschecks.json', { checks });
+      const done = checks.filter(c => c.status === 'ok');
+      const skipped = checks.filter(c => c.status === 'skipped');
+      const review = checks.filter(c => c.status === 'needs_review' || c.status === 'ambiguous');
+
+      // ★ **묻는 딜에서만 「미선택」을 시끄럽게 말한다.**
+      //   제조 딜은 화면이 이 값들을 물어본다 — 비워 두면 그 사실을 알려야 한다.
+      //   데이터센터·호텔 딜은 애초에 묻지도 않으므로 매번 5줄이 뜨면 그냥 소음이고,
+      //   소음이 쌓이면 **진짜 경고도 같이 안 읽힌다.**
+      //   ★ 자산군이 **안 정해지는 것이 정상인 경우가 있다** — 「제조」와 「공장」이
+      //     함께 읽히면 고르지 않는다(§4.9). 그때 자산군만 보면 제조 딜인데도
+      //     안내가 통째로 빠진다. 재무 템플릿은 그때도 정해져 있으므로 함께 본다
+      const project = store.readJson(projectId, '01_Project/project.json', null);
+      const asks = assetclass.asksCrosschecks(project && project.assetClass, templateId);
+
+      if (done.length || review.length || asks) {
+        log(`  대조: ${done.length}건 · 확인필요 ${review.length}건 · 미선택 ${skipped.length}건`
+          + (asks && skipped.length ? ` (${skipped.map(c => c.label).join(' · ')})` : ''));
+        done.forEach(c => log(`    · ${c.label}: ${c.text}`));
+        review.forEach(c => log(`    ⚠ ${c.label}: ${c.reason || c.text || ''}`));
+        if (asks && skipped.length) {
+          log('    ※ 미선택은 「대조했는데 문제 없었다」가 아니다 — 가이드 필드에서 대상을 고르면 돈다');
+        }
+      }
     }
   }
 

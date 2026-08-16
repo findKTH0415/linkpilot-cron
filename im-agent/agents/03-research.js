@@ -15,12 +15,26 @@
  * ★ 시장금리가 채우는 것은 `debt.benchmark_rate`(기준선)이지 `debt.rate`
  *   (차입금리)가 아니다. 이유는 connectors/ecos.js 머리말에 적었다.
  * ★ 시행사 대조는 **값을 채우지 않는다.** 동명 법인이 여러 건이면 고르지 않는다.
+ *
+ *   ③ 대조(crosschecks) — 2026-08-16 추가 (등록부 D-48).
+ *      제조 딜의 생산자물가·가동률·공장등록·수출입단가·환경인허가.
+ *      **facts 가 아니다.** 사업계획서가 말하는 숫자 옆에 공표 통계를 세워
+ *      얼마나 떨어져 있는지 보여 줄 뿐, 값을 대신 채우지 않는다.
+ *
+ *      ★ 부르는 조건이 다른 둘과 다르다: **사람이 무엇을 대조할지 골라야 부른다.**
+ *        업종·통계표·상호·HS코드를 자동으로 추정하면 틀린 대상의 값이 그럴듯하게
+ *        나오고 문서에는 「대조함」만 남는다 (§4.9). 그래서 `crosscheck.*`
+ *        가이드 필드가 비어 있으면 **부르지 않고 왜 못 했는지만 남긴다.**
  */
 
 const llm = require('../core/llm');
 const kpx = require('../connectors/kpx');
 const ecos = require('../connectors/ecos');
 const dart = require('../connectors/dart');
+const kosis = require('../connectors/kosis');
+const factory = require('../connectors/factory');
+const customs = require('../connectors/customs');
+const enviro = require('../connectors/enviro');
 const { round } = require('../core/numeric');
 const { kstDate } = require('../core/kst');
 
@@ -44,6 +58,8 @@ const outputSchema = {
     sources: { type: 'array' },
     facts: { type: 'array' },
     sponsor: { type: 'object', nullable: true },
+    // ★ facts 와 **다른 칸**에 둔다. 섞이면 대조값이 딜의 값으로 실린다 (D-48)
+    crosschecks: { type: 'array' },
     confidence: { type: 'number', minimum: 0, maximum: 1 },
     offline: { type: 'boolean' },
   },
@@ -144,6 +160,8 @@ function isSolar(input) {
 async function run(input, ctx) {
   const today = kstDate();
   const market = await marketFacts(input, ctx, today);
+  // ★ LLM 보다 **먼저** 돌린다. LLM 이 죽어도 대조는 남아야 한다
+  const checks = await crosschecks(ctx);
 
   if (llm.isOffline()) {
     ctx.warn('LLM 오프라인 — 시장조사 생략. IM의 시장분석 절은 자리표시자로 출력된다');
@@ -151,6 +169,8 @@ async function run(input, ctx) {
       sections: TOPICS.map(t => ({ id: t.id, label: t.label, text: '(시장조사 미실행 — LLM 오프라인)', sources: [], certainty: 'low', verified: false })),
       // ★ LLM 이 죽어도 실측 지표는 살아 있다 — 출처가 LLM 이 아니기 때문이다
       sources: market.sources, facts: market.facts, sponsor: await sponsorCheck(ctx),
+      // ★ LLM 이 죽어도 대조는 돈다 — 출처가 LLM 이 아니다
+      crosschecks: checks,
       confidence: 0, offline: true,
     };
   }
@@ -197,6 +217,7 @@ ${TOPICS.map(t => `- ${t.id}: ${t.label}`).join('\n')}
   const sources = [...new Set([...sections.flatMap(s => s.sources), ...market.sources])];
   return {
     sections, sources, facts: market.facts, sponsor: await sponsorCheck(ctx),
+    crosschecks: checks,
     confidence: round(confidence, 3), offline: false,
   };
 }
@@ -283,7 +304,184 @@ async function rateFacts(ctx) {
  */
 const FILLS = ['debt.benchmark_rate'];
 
+/* ───────────── ③ 대조 (등록부 D-48) ───────────── */
+
+/**
+ * 대조에 쓰는 가이드 필드. **값이 있어야 그 대조를 부른다.**
+ *
+ * ★ `needs` 가 이 대조의 전제다. 하나라도 비면 **부르지 않는다** — 없는 값을
+ *   짐작해 부르면 틀린 대상의 값이 그럴듯하게 나온다 (§4.9).
+ */
+const CROSSCHECKS = [
+  {
+    id: 'ppi', label: '단가 시점수정 (생산자물가)',
+    needs: ['crosscheck.ppi_item'], connector: 'ecos',
+    ask: 'ECOS 업종 목록에서 딜 업종에 해당하는 코드를 고른다',
+  },
+  {
+    id: 'utilization', label: '가동률 (업종 평균)',
+    needs: ['crosscheck.kosis_table', 'crosscheck.kosis_item'], connector: 'kosis',
+    ask: 'KOSIS 통계표와 **% 항목**을 고른다 (지수를 고르면 「가동률 102%」가 나온다)',
+  },
+  {
+    id: 'factory', label: '생산능력 상한 (공장등록)',
+    needs: ['crosscheck.factory_name'], connector: 'factory',
+    ask: '공장등록 상호를 넣는다',
+  },
+  {
+    id: 'unitprice', label: '단가 실거래 (수출입)',
+    needs: ['crosscheck.hs_code'], connector: 'customs',
+    ask: 'HS 코드(4·6·10단위)를 넣는다',
+  },
+  {
+    id: 'enviro', label: '환경 인허가 (딜브레이커)',
+    needs: ['crosscheck.enviro_name'], connector: 'enviro',
+    ask: '조회할 상호를 넣는다',
+  },
+];
+
+/** dataset 에서 가이드 필드 값을 꺼낸다 (없으면 null — 빈 문자열도 없는 것으로 본다) */
+function pick(dataset, key) {
+  if (!dataset || typeof dataset.get !== 'function') return null;
+  const f = dataset.get(key);
+  const v = f && f.value !== undefined && f.value !== null ? String(f.value).trim() : '';
+  return v || null;
+}
+
+/**
+ * 대조 실행.
+ *
+ * ★ **한 항목이 죽어도 나머지를 돌린다** (§4.6). 그리고 **건너뛴 것도 결과에
+ *   남긴다** — 조용히 사라지면 「대조했는데 문제 없었다」로 읽힌다.
+ * ★ **facts 를 만들지 않는다.** 전부 사업계획서 숫자 옆에 세우는 값이다.
+ */
+async function crosschecks(ctx) {
+  const dataset = ctx && ctx.dataset;
+  const out = [];
+
+  for (const c of CROSSCHECKS) {
+    const missing = c.needs.filter(k => !pick(dataset, k));
+    if (missing.length) {
+      // ★ 「안 물어봐서 못 했다」와 「해 봤는데 안 나왔다」는 다르다
+      out.push({
+        id: c.id, label: c.label, status: 'skipped',
+        reason: `대조할 대상을 고르지 않았다 — ${c.ask}`,
+        needs: c.needs, missing,
+      });
+      continue;
+    }
+    // eslint-disable-next-line no-await-in-loop
+    const r = await runOne(c, dataset).catch(e => ({
+      id: c.id, label: c.label, status: 'error', reason: `대조 중 오류: ${e.message}`,
+    }));
+    out.push(r);
+    if (r.status !== 'ok' && ctx && ctx.warn) ctx.warn(`${c.label}: ${r.reason || ''}`);
+  }
+  return out;
+}
+
+async function runOne(c, dataset) {
+  const base = { id: c.id, label: c.label };
+  const months = 24;
+  const to = kstDate().slice(0, 7).replace('-', '');
+  const from = (() => {
+    const y = Number(to.slice(0, 4)); const m = Number(to.slice(4, 6));
+    const t = (y * 12 + (m - 1)) - months;
+    return `${Math.floor(t / 12)}${String((t % 12) + 1).padStart(2, '0')}`;
+  })();
+
+  if (c.id === 'ppi') {
+    const r = await ecos.priceAdjustment({ item: pick(dataset, 'crosscheck.ppi_item'), from, to });
+    if (!r.ok) return { ...base, status: r.unavailable ? 'unavailable' : 'failed', reason: r.error };
+    return {
+      ...base, status: 'ok',
+      text: `${r.value.label} ${r.value.from}→${r.value.to} 시점수정 계수 ${r.value.factor}`
+        + ` (${r.value.percent >= 0 ? '+' : ''}${r.value.percent}%)`,
+      source: r.value.source,
+      // ★ 적용 여부는 사람이 정한다 — 사업계획서 단가가 이미 최근 값이면 두 번 보정된다
+      apply: 'human',
+    };
+  }
+
+  if (c.id === 'utilization') {
+    const r = await kosis.benchmark({
+      tblId: pick(dataset, 'crosscheck.kosis_table'),
+      itmId: pick(dataset, 'crosscheck.kosis_item'),
+      from, to,
+    });
+    if (!r.ok) return { ...base, status: r.unavailable ? 'unavailable' : 'failed', reason: r.error };
+
+    const deal = pick(dataset, 'revenue.occupancy');   // 제조에서는 가동률로 쓴다
+    const cmp = deal ? kosis.compare(Number(deal), r.value) : null;
+    return {
+      ...base, status: 'ok',
+      text: cmp && cmp.ok ? cmp.value.text
+        : `업종 평균 ${r.value.mean}${r.value.unit || ''} (${r.value.from}~${r.value.to}, ${r.value.n}개 시점)`
+          + (cmp && !cmp.ok ? ` — 견주지 못했다: ${cmp.error}` : ''),
+      source: r.value.source,
+    };
+  }
+
+  if (c.id === 'factory') {
+    const r = await factory.resolve({ name: pick(dataset, 'crosscheck.factory_name') });
+    if (r.ambiguous) {
+      return { ...base, status: 'ambiguous', reason: r.error,
+        candidates: r.candidates.map(x => ({ name: x.name, address: x.address })) };
+    }
+    if (!r.ok) return { ...base, status: r.unavailable ? 'unavailable' : 'failed', reason: r.error };
+
+    const mfg = factory.areaOf(r.value, 'manufacturing');
+    const land = factory.areaOf(r.value, 'land');
+    // ★ 공부끼리 어긋나면 그 사실을 드러낸다 — 어느 쪽이 맞다고 말하지 않는다
+    const ledger = pick(dataset, 'land.area_sqm');
+    const cross = (land.ok && ledger) ? factory.crossCheckLand(land.value.sqm, Number(ledger)) : null;
+
+    return {
+      ...base, status: 'ok',
+      text: [
+        mfg.ok ? `제조시설면적 ${mfg.value.sqm}㎡` : `제조시설면적 ${mfg.error}`,
+        land.ok ? `용지면적 ${land.value.sqm}㎡` : null,
+        cross && cross.ok ? cross.value.text : null,
+      ].filter(Boolean).join(' · '),
+      source: mfg.ok ? mfg.value.source : (land.ok ? land.value.source : null),
+    };
+  }
+
+  if (c.id === 'unitprice') {
+    const r = await customs.unitPrice({ hsCode: pick(dataset, 'crosscheck.hs_code'), from, to });
+    if (!r.ok) return { ...base, status: r.unavailable ? 'unavailable' : 'failed', reason: r.error };
+
+    const channelRaw = pick(dataset, 'crosscheck.sales_channel') || '';
+    const channel = /수출|export/i.test(channelRaw) ? 'export'
+      : (/내수|domestic/i.test(channelRaw) ? 'domestic' : null);
+    return {
+      ...base, status: 'ok',
+      text: `HS ${r.value.hsCode} ${r.value.directionLabel} ${r.value.usdPerKg} ${r.value.unit}`
+        + ` (${r.value.months}개월 합계)`
+        // ★ 판로를 안 밝히면 견주지 않는다 — 내수 딜을 수출단가와 견주면 견준 것이 아니다
+        + (channel ? '' : ' — 판로(수출/내수)를 넣으면 딜 단가와 견준다'),
+      channel,
+      source: r.value.source,
+    };
+  }
+
+  if (c.id === 'enviro') {
+    const s = await enviro.screen({ name: pick(dataset, 'crosscheck.enviro_name') });
+    return {
+      ...base,
+      // ★ 하나라도 확인 안 되면 통과가 아니다. 「모름」은 「문제 없음」이 아니다
+      status: s.verdict.cleared ? 'ok' : 'needs_review',
+      text: s.verdict.text,
+      items: s.items.map(x => ({ kind: x.kind, label: x.label, status: x.status, reason: x.reason })),
+      reason: s.verdict.cleared ? null : s.verdict.text,
+    };
+  }
+
+  return { ...base, status: 'failed', reason: `모르는 대조: ${c.id}` };
+}
+
 module.exports = {
   id: '03_research', label: 'Market Research Agent',
-  inputSchema, outputSchema, run, TOPICS, FILLS, marketFacts, rateFacts, sponsorCheck,
+  inputSchema, outputSchema, run, TOPICS, FILLS,
+  marketFacts, rateFacts, sponsorCheck, crosschecks, CROSSCHECKS, pick,
 };

@@ -17,6 +17,10 @@ const CATEGORY = {
   PROJECT: 'Project', LAND: 'Land', BUILDING: 'Building', CAPACITY: 'Capacity',
   INVESTMENT: 'Investment', REVENUE: 'Revenue', OPEX: 'OPEX', DEBT: 'Debt',
   EQUITY: 'Equity', TAX: 'Tax', SCHEDULE: 'Schedule', EXIT: 'Exit', LEGAL: 'Legal',
+  // ★ 값이 아니라 **무엇을 대조할지 고르는 값**이다. 여기 있는 항목은 IM 본문에
+  //   실리지 않는다 — 공공데이터를 어느 업종·어느 품목으로 부를지만 정한다.
+  //   자동으로 고를 수 없어 사람이 넣는다 (§4.9). 등록부 D-48.
+  CROSSCHECK: 'Crosscheck',
 };
 
 /**
@@ -74,6 +78,22 @@ const FIELDS = {
   // 단위가 업종마다 다르다 (톤·대·매). 숫자로 강제하면 단위를 잃는다 —
   // 단위째로 받아 적고, 계산에는 쓰지 않는다
   'capacity.production':     { label: '생산능력', category: CATEGORY.CAPACITY, unit: null, type: 'string', aliases: ['생산능력', '생산량', 'CAPA', 'Capacity', '연산'] },
+  // ── 대조 선택값 (제조 딜) ──────────────────────────────────
+  //
+  // ★ **IM 에 실리는 값이 아니다.** 공공데이터를 어느 업종·어느 품목·어느 사업장으로
+  //   부를지만 정한다. 비워 두면 그 대조만 건너뛴다 — 보고서는 그대로 나온다.
+  // ★ **자동으로 고르지 않는다** (§4.9). 업종을 잘못 잡아도 계수는 그럴듯하게
+  //   나오고 문서에는 「대조함」만 남는다. 그래서 사람이 고른다.
+  // ★ 별칭을 두지 않는다 — 원본자료에서 뽑을 수 있는 값이 아니다.
+  //   (별칭이 있으면 `fieldplan` 이 「자료 추출」로 분류해 안 물어본다)
+  'crosscheck.ppi_item':     { label: '생산자물가 업종코드', category: CATEGORY.CROSSCHECK, unit: null, type: 'string', aliases: [], note: '단가 시점수정에 쓴다. ECOS 업종 목록에서 고른다 — 「1차 금속」과 「기타 기계 및 장비」는 몇 년 새 두 자릿수로 갈린다' },
+  'crosscheck.kosis_table':  { label: '가동률 통계표 ID', category: CATEGORY.CROSSCHECK, unit: null, type: 'string', aliases: [], note: 'KOSIS 통계표. 같은 조사에 지수(2020=100)와 평균가동률(%)이 함께 있다' },
+  'crosscheck.kosis_item':   { label: '가동률 항목코드', category: CATEGORY.CROSSCHECK, unit: null, type: 'string', aliases: [], note: '**% 항목**을 고른다. 지수를 고르면 「가동률 102%」가 나온다' },
+  'crosscheck.factory_name': { label: '공장등록 조회 상호', category: CATEGORY.CROSSCHECK, unit: null, type: 'string', aliases: [], note: '생산능력의 물리적 상한(제조시설면적)을 본다. 같은 이름이 여럿이면 고르지 않고 후보를 보여 준다' },
+  'crosscheck.hs_code':      { label: 'HS 코드', category: CATEGORY.CROSSCHECK, unit: null, type: 'string', aliases: [], note: '수출입 실거래 단가를 본다. 4·6·10단위' },
+  'crosscheck.sales_channel': { label: '판로 (수출/내수)', category: CATEGORY.CROSSCHECK, unit: null, type: 'string', aliases: [], note: '내수 딜은 수출단가와 견주지 않는다 — FOB 기준이라 기준 자체가 다르다' },
+  'crosscheck.enviro_name':  { label: '환경 인허가 조회 상호', category: CATEGORY.CROSSCHECK, unit: null, type: 'string', aliases: [], note: '통합환경허가·대기·수질·배출권. **「확인되지 않음」은 「문제 없음」이 아니다**' },
+
   'building.clear_height_m': { label: '유효층고', category: CATEGORY.BUILDING, unit: 'm', type: 'number', aliases: ['층고', '유효층고', '천장고', 'Clear Height'], min: 0, max: 30 },
   'building.floor_load_kn':  { label: '바닥하중', category: CATEGORY.BUILDING, unit: 'kN/㎡', type: 'number', aliases: ['바닥하중', '적재하중', 'Floor Load'], min: 0 },
   'revenue.adr':             { label: '평균 객실단가(ADR)', category: CATEGORY.REVENUE, unit: '원/실·박', type: 'number', aliases: ['ADR', '객실단가', '평균객실요금', 'Average Daily Rate'], min: 0 },

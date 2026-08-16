@@ -59,6 +59,18 @@
         { key: 'capacity.power_mw', why: '수전용량이 모자라면 증설이 물리적으로 막힌다 — 증설 전제 매출이 허공에 뜬다' },
         { key: 'land.area_sqm', why: '증설 여지를 판단하는 유일한 근거다' },
       ],
+      // ★ 필수가 아니다. 비워 두면 그 대조만 건너뛰고 보고서는 그대로 나온다.
+      //   대신 **건너뛴 사실이 로그와 crosschecks.json 에 남는다** — 조용히
+      //   빠지면 「대조했는데 문제 없었다」로 읽힌다 (등록부 D-48).
+      crosschecks: [
+        { key: 'crosscheck.ppi_item', why: '사업계획서 단가가 언제 기준인지 모른 채로 들어온다. 업종을 고르면 지금 시점으로 보정할 계수가 나온다' },
+        { key: 'crosscheck.kosis_table', why: '가동률은 지금 근거가 0인 숫자다. 업종 평균과 견주려면 통계표를 골라야 한다' },
+        { key: 'crosscheck.kosis_item', why: '같은 조사에 지수와 %가 함께 있다 — 지수를 고르면 「가동률 102%」가 나온다' },
+        { key: 'crosscheck.factory_name', why: '생산능력 주장이 앉을 수 있는 물리적 상한(제조시설면적)을 공부에서 본다' },
+        { key: 'crosscheck.hs_code', why: '단가의 절대 수준을 실거래로 견준다. 지수는 「얼마나 올랐나」만 말한다' },
+        { key: 'crosscheck.sales_channel', why: '내수 딜을 수출단가와 견주면 숫자는 나오지만 견준 것이 아니다' },
+        { key: 'crosscheck.enviro_name', why: '통합환경허가가 없으면 가동을 못 한다 — 숫자가 아니라 성립 여부다' },
+      ],
     },
     {
       id: 'infrastructure', label: '인프라스트럭처', en: 'Infrastructure', template: 'generic',
@@ -187,12 +199,46 @@
     return c ? c.requires.map(function (r) { return r.key; }) : [];
   }
 
-  /** 그 값을 왜 묻는지. 화면이 그대로 보여 준다 */
+  /**
+   * 대조에 쓰는 선택값 (필수 아님).
+   *
+   * ★ `requiredKeys` 와 **섞지 않는다.** 섞으면 진행률이 안 차서 사람이
+   *   모르는 값을 지어내 채운다 — 이 시스템이 막으려는 바로 그 일이다.
+   */
+  function crosscheckKeys(id) {
+    var c = BY_ID[id];
+    return c && c.crosschecks ? c.crosschecks.map(function (r) { return r.key; }) : [];
+  }
+
+  /**
+   * 이 재무 템플릿을 쓰는 자산군들.
+   *
+   * ★ 왜 필요한가: 자산군이 **정해지지 않는 경우가 정상이다** — 「제조」와 「공장」이
+   *   함께 읽히면 고르지 않는다(§4.9). 그런데 그 상태에서 자산군만 보고 판단하면
+   *   제조 딜인데도 대조 안내가 통째로 안 뜬다. 재무 템플릿은 그때도 정해져 있다.
+   */
+  function classesForTemplate(templateId) {
+    var t = String(templateId || '');
+    if (!t) return [];
+    return CLASSES.filter(function (c) { return c.template === t; }).map(function (c) { return c.id; });
+  }
+
+  /** 이 딜이 대조값을 묻는 딜인가 (자산군이 안 정해졌으면 템플릿으로 본다) */
+  function asksCrosschecks(classId, templateId) {
+    if (crosscheckKeys(classId).length) return true;
+    return classesForTemplate(templateId).some(function (id) { return crosscheckKeys(id).length > 0; });
+  }
+
+  /** 그 값을 왜 묻는지. 화면이 그대로 보여 준다 (필수·대조 양쪽을 본다) */
   function whyOf(id, key) {
     var c = BY_ID[id];
     if (!c) return null;
     for (var i = 0; i < c.requires.length; i++) {
       if (c.requires[i].key === key) return c.requires[i].why;
+    }
+    var x = c.crosschecks || [];
+    for (var j = 0; j < x.length; j++) {
+      if (x[j].key === key) return x[j].why;
     }
     return null;
   }
@@ -291,7 +337,9 @@
 
   return {
     CLASSES: CLASSES,
-    requiredKeys: requiredKeys, whyOf: whyOf, templateOf: templateOf, fromApp: fromApp,
+    requiredKeys: requiredKeys, crosscheckKeys: crosscheckKeys,
+    classesForTemplate: classesForTemplate, asksCrosschecks: asksCrosschecks,
+    whyOf: whyOf, templateOf: templateOf, fromApp: fromApp,
     detect: detect, classKeys: classKeys,
   };
 }));
