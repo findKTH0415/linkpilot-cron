@@ -352,3 +352,36 @@ test('★ 제조 기본값이 추측임을 코드에 남겼다', () => {
   assert.match(block, /D-40/, '등록부 번호가 없으면 어디서 확정하는지 모른다');
   assert.match(block, /그대로 쓰면 안 된다/, 'Cap Rate 가 제조에 안 맞는다는 것을 적어야 한다');
 });
+
+/**
+ * ★ 확정된 매핑 (2026-08-16 사용자 확인). 바꾸면 앱이 보낸 값으로 자산군을
+ *   못 찾고, 전용 필수가 통째로 빠진 채 「다 채웠다」가 된다.
+ */
+test('★ 확인받은 앱 매핑을 지킨다 (오피스텔=주거 · 공장=산업단지)', () => {
+  const by = {};
+  A.CLASSES.forEach((c) => { by[c.id] = c.app; });
+  assert.strictEqual(by.officetel.sector, '주거');
+  assert.strictEqual(by.factory.sector, '산업단지');
+  assert.strictEqual(by.apartment.sector, '주거');
+  assert.strictEqual(by.industrial_park.sector, '산업단지');
+});
+
+/**
+ * ★ **앱의 섹터가 자산군보다 굵다** — 확정된 사실이다. 그래서 한 섹터에
+ *   자산군이 둘 걸리는 것은 결함이 아니라 정상이고, 그때 자동으로 하나를
+ *   고르면 안 된다. 아파트와 오피스텔은 받아야 할 값이 다르다.
+ */
+test('★ 섹터가 자산군보다 굵은 두 자리를 자동으로 고르지 않는다', () => {
+  [['주거', ['apartment', 'officetel']], ['산업단지', ['factory', 'industrial_park']]]
+    .forEach(([sector, want]) => {
+      const r = A.fromApp('부동산·도시개발', sector);
+      assert.strictEqual(r.id, null, `${sector}: 하나를 골랐다`);
+      assert.deepStrictEqual(r.candidates.slice().sort(), want);
+      assert.match(r.reason, /받아야 할 값이 서로 달라/);
+    });
+
+  // 갈리는 섹터는 그대로 하나로 잡힌다
+  assert.strictEqual(A.fromApp('부동산·도시개발', '오피스').id, 'office');
+  assert.strictEqual(A.fromApp('부동산·도시개발', '복합개발').id, 'mixed_use');
+  assert.strictEqual(A.fromApp('부동산·도시개발', '물류센터').id, 'logistics');
+});
