@@ -37,7 +37,14 @@ const { request, buildUrl, redact, looksUrlEncoded } = require('./http');
 const cache = require('./cache');
 const { normalize, num } = require('./xml');
 
-const PROVIDER = 'data.go.kr(조달청)';
+/**
+ * ★ 쿼터 버킷은 **키 단위로 묶는다.** 한동안 `'data.go.kr(조달청)'` 으로 따로
+ *   세고 있었는데, data.go.kr 의 일 10,000건 한도는 API 별이 아니라 **인증키
+ *   전체**에 걸린다. 버킷을 쪼개면 각각 10,000 까지 세어 실제로는 두 배를 쓰고도
+ *   한도에 안 걸린 것으로 보인다 — 소진은 조회 실패로만 나타나고, 그때는 이미
+ *   그날 치가 없다.
+ */
+const PROVIDER = 'data.go.kr';
 const BASE = 'https://apis.data.go.kr/1230000';
 
 /**

@@ -38,6 +38,7 @@ const reb = require('../connectors/reb');
 const g2b = require('../connectors/g2b');
 const rhino = require('../connectors/rhino');
 const kosis = require('../connectors/kosis');
+const factory = require('../connectors/factory');
 const fsc = require('../connectors/fsc');
 const { looksUrlEncoded } = require('../connectors/http');
 const pnuUtil = require('../connectors/pnu');
@@ -256,6 +257,38 @@ async function main() {
     }
   }
 
+  // ── 0-2-3. 공장등록 (제조 딜의 생산능력 물리적 상한) ──────
+  //   ★ **면적을 뭉치지 않는다.** 용지면적은 제조시설면적의 보통 두세 배다 —
+  //     바꿔 쓰면 상한이 세 배로 부풀고 문서에는 「공장등록 기준」만 남는다.
+  const factoryName = argOf('--factory-name');
+  if (factory.isAvailable() && factoryName) {
+    const f = await factory.resolve({ name: factoryName, sido: argOf('--factory-sido') || '' });
+    if (f.ok) {
+      const kinds = ['land', 'building', 'manufacturing', 'auxiliary'];
+      const shown = kinds.map((k) => {
+        const a = factory.areaOf(f.value, k);
+        return `${factory.AREA_KINDS[k].label} ${a.ok ? `${a.value.sqm}㎡` : '없음'}`;
+      }).join(' / ');
+      report(`공장등록 (${factoryName})`, true,
+        `${f.value.name} · ${f.value.industryName || f.value.industryCode || '업종?'} · ${shown}`,
+        ['fctryNm', 'lndarNm', 'manufAr', 'regstrDe'], null);
+      console.log('  ※ 생산능력을 논할 때 봐야 하는 것은 **제조시설면적**이다 — 용지면적이 아니다');
+      console.log(`  ※ 등록 ${f.value.registeredAt || '?'} · 변경 ${f.value.changedAt || '?'} — 변경신고가 없으면 갱신되지 않는다`);
+    } else if (f.ambiguous) {
+      report(`공장등록 (${factoryName})`, true, `후보 ${f.candidates.length}건 — 고르지 않는다`);
+      f.candidates.slice(0, 5).forEach((c) => {
+        console.log(`    · ${c.name} / ${c.address || '주소?'} / 제조시설 ${c.areas.manufacturing ?? '없음'}㎡`);
+      });
+    } else if (f.notFound) {
+      report(`공장등록 (${factoryName})`, true, f.error);
+    } else {
+      report(`공장등록 (${factoryName})`, false, f.error);
+      console.log('  → 기관·엔드포인트·응답 필드가 문서 기준이고 아직 실측되지 않았다 (등록부 D-45)');
+    }
+  } else if (factory.isAvailable()) {
+    console.log('  ※ 공장등록을 보려면: npm run im:smoke -- --factory-name <상호> [--factory-sido <시도>]');
+  }
+
   // ── 0-3. 시행사 대조 (주소와 무관) ───────────────────────
   //   ★ 값을 채우는 것이 아니라 **대조**다. 못 찾는 것이 정상인 경우가 많다
   if (dart.isAvailable()) {
@@ -283,6 +316,7 @@ async function main() {
   console.log(`조달청 낙찰     : ${g2b.isAvailable() ? 'DATA_GO_KR_KEY 로 조회 (⚠ 응답 필드 미검증 — 등록부 D-36)' : '미설정 — 공사비 대조 건너뜀'}`);
   console.log(`RHINO_COMPUTE  : ${rhino.isAvailable() ? '설정됨 (자체 호스팅)' : '미설정 — 매스 스터디 건너뜀 (Rhino 라이선스 필요, D-38)'}`);
   console.log(`KOSIS_API_KEY  : ${kosis.isAvailable() ? '설정됨 (⚠ 엔드포인트 미검증 — 등록부 D-44)' : '미설정 — 가동률 대조 건너뜀 (가동률이 근거 0인 가정치로 남는다)'}`);
+  console.log(`공장등록        : ${factory.isAvailable() ? 'DATA_GO_KR_KEY 로 조회 (⚠ 기관·응답 필드 미검증 — 등록부 D-45)' : '미설정 — 생산능력 상한 대조 건너뜀'}`);
 
   let lat = null, lon = null, parsedPnu = null, polygonAreaSqm = null;
 
