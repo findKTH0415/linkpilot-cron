@@ -98,6 +98,20 @@ const FIELDS = {
   'building.footprint_sqm': { label: '건축면적', category: CATEGORY.BUILDING, unit: '㎡', type: 'number', aliases: ['건축면적'], min: 0, tolerance: 0.001 },
   'building.height_m':   { label: '최고높이', category: CATEGORY.BUILDING, unit: 'm', type: 'number', aliases: ['최고높이', '건축물높이'], min: 0, max: 700 },
 
+  // ── 이미 받아 오면서 버리고 있던 값 (2026-08-16) ──────────────
+  //
+  // ★ 새로 호출하는 것이 **하나도 없다.** 건축물대장·건축인허가·지적도 응답에
+  //   이미 실려 오던 것을 등록만 한다. 쿼터도 안 쓰고 호출도 안 는다.
+  //
+  // ★ 실적치와 법정 상한을 **다른 항목으로 둔다.** 한 칸에 섞으면 "용적률 320%"
+  //   가 지어도 되는 한도인지 이미 지은 결과인지 알 수 없다.
+  'building.bcr':        { label: '건폐율(실적)', category: CATEGORY.BUILDING, unit: '%', type: 'number', aliases: ['건폐율', '건폐율실적'], min: 0, max: 100 },
+  'building.far':        { label: '용적률(실적)', category: CATEGORY.BUILDING, unit: '%', type: 'number', aliases: ['용적률', '용적률실적'], min: 0, max: 2000 },
+  'building.basement_floors': { label: '지하층수', category: CATEGORY.BUILDING, unit: '층', type: 'number', aliases: ['지하층수', '지하층'], min: 0, max: 20 },
+  'building.main_use':   { label: '주용도', category: CATEGORY.BUILDING, unit: null, type: 'string', aliases: ['주용도', '건물용도', '주요용도'] },
+  'building.approval_date': { label: '사용승인일', category: CATEGORY.BUILDING, unit: null, type: 'string', aliases: ['사용승인일', '준공일', '준공연도'] },
+  'land.jibun':          { label: '지번', category: CATEGORY.LAND, unit: null, type: 'string', aliases: ['지번', '소재지번'] },
+
   // ── Legal ──────────────────────────────────────────────────
   'legal.permit_status': { label: '인허가 현황', category: CATEGORY.LEGAL, unit: null, type: 'string', aliases: ['인허가', '허가현황', '건축허가', 'Permit'], requiredFor: ['im'] },
   'legal.spc':           { label: 'SPC/사업시행법인', category: CATEGORY.LEGAL, unit: null, type: 'string', aliases: ['SPC', '시행법인', '특수목적법인'] },

@@ -405,3 +405,60 @@ test('화면은 채움 경로 이름을 자기가 적지 않는다', () => {
       `fields.html 이 채움 경로 이름 '${label}' 을 직접 적어 두고 있다 — 서버가 준 label 을 써야 한다`);
   });
 });
+
+/* ───────────── 이미 받아 오면서 버리던 값 (2026-08-16) ───────────── */
+
+test('★ 실적치와 법정 상한을 다른 항목으로 둔다', () => {
+  // 한 칸에 섞으면 "용적률 320%" 가 지어도 되는 한도인지 이미 지은 결과인지 모른다
+  ['building.bcr', 'building.far'].forEach((k) => {
+    assert.ok(dict.FIELDS[k], `${k} 가 사전에 없다`);
+  });
+  assert.notStrictEqual(dict.FIELDS['building.far'].label, dict.FIELDS['land.far_limit'].label);
+  assert.match(dict.FIELDS['building.far'].label, /실적/);
+  assert.match(dict.FIELDS['land.far_limit'].label, /상한/);
+});
+
+test('★ 새 값이 호출을 늘리지 않는다 (이미 받던 응답에서 꺼낸다)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const geo = fs.readFileSync(path.join(__dirname, '..', 'agents', '07-geo.js'), 'utf8');
+
+  // 07 Geo 가 부르는 커넥터 호출 횟수 — 늘어나면 쿼터가 는다
+  const calls = (geo.match(/await (vworld|nsdi|molit)\.\w+\(/g) || []);
+  assert.strictEqual(calls.length, 5,
+    `공공데이터 호출이 ${calls.length}회다 — 값을 더 등록하되 호출은 그대로여야 한다`);
+});
+
+test('★ 대장이 있으면 허가 연면적을 겹쳐 넣지 않는다', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const geo = fs.readFileSync(path.join(__dirname, '..', 'agents', '07-geo.js'), 'utf8');
+  assert.match(geo, /const noRegister = !out\.building/,
+    '허가(계획)와 대장(준공 실적)은 정상적으로도 다르다 — 둘 다 넣으면 매 딜마다 값 충돌이 뜬다');
+});
+
+/**
+ * ★ 채움 개수는 **켜져 있는 키에 따라 달라진다.** withPublicKeys 는 VWORLD 와
+ *   DATA_GO_KR 만 켠다 (ECOS 는 안 켠다) — 그래서 여기 숫자는 9 이고, ECOS 까지
+ *   넣으면 `debt.benchmark_rate` 가 붙어 10 이 된다. 키 하나를 기준으로 굳혀 두면
+ *   나중에 "왜 9 냐"로 다시 헤맨다.
+ */
+test('공공데이터가 채우는 항목이 늘었다', () => {
+  withPublicKeys(() => {
+    const p = fieldplan.plan('datacenter');
+    const pub = Object.keys(p).filter(k => p[k].fill === 'public');
+    assert.ok(pub.includes('land.jibun'), '지번은 지적도 응답에 항상 들어 있다');
+    assert.ok(pub.length >= 9, `공공데이터 채움이 ${pub.length}개 — 줄었다면 무엇이 빠졌는지 봐야 한다`);
+
+    const beforeEcos = process.env.ECOS_API_KEY;
+    process.env.ECOS_API_KEY = 'test-key';
+    try {
+      const withRate = fieldplan.plan('datacenter');
+      assert.strictEqual(withRate['debt.benchmark_rate'].fill, 'public',
+        'ECOS 키가 있으면 기준금리는 물어보지 않는다');
+    } finally {
+      if (beforeEcos === undefined) delete process.env.ECOS_API_KEY;
+      else process.env.ECOS_API_KEY = beforeEcos;
+    }
+  });
+});

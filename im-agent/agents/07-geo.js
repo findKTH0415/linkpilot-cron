@@ -47,6 +47,12 @@ const outputSchema = {
   },
 };
 
+/** 공부 날짜(YYYYMMDD)를 사람이 읽는 형식으로. 형식이 아니면 버린다 */
+function dateOf(v) {
+  const s = String(v ?? '').replace(/\D/g, '');
+  return /^\d{8}$/.test(s) ? `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6)}` : null;
+}
+
 async function run(input, ctx) {
   const ds = ctx.dataset;
   const today = kstDate();
@@ -97,6 +103,10 @@ async function run(input, ctx) {
     if (parcel.value.pnu) {
       parsedPnu = pnuUtil.parse(parcel.value.pnu);
       facts.push({ key: 'geo.pnu', value: parcel.value.pnu, unit: null, confidence: 0.95, ...src('VWorld 연속지적도') });
+    }
+    // 지번도 같은 응답에 들어 있다 — IM 물건개요가 쓰는 값이라 등록해 둔다
+    if (parcel.value.jibun) {
+      facts.push({ key: 'land.jibun', value: String(parcel.value.jibun), unit: null, confidence: 0.9, ...src('VWorld 연속지적도') });
     }
 
     // ★ 공부상 면적을 land.area_sqm 으로 등록 → 문서값과 교차검증된다
@@ -175,6 +185,16 @@ async function run(input, ctx) {
       push('building.footprint_sqm', reg.value.archAreaSqm, '㎡');
       push('building.floors', reg.value.groundFloors, '층');
       push('building.height_m', reg.value.heightM, 'm');
+
+      // ★ 여기까지는 원래 등록하던 것이고, 아래는 **같은 응답에 이미 실려 오는데
+      //   버리고 있던 값**이다. 새로 부르는 호출이 하나도 없다 — 쿼터도 안 는다.
+      //   ★ 건폐율·용적률은 **실적치**다. 법정 상한(land.*_limit)과 다른 항목에
+      //     둔다 — 한 칸에 섞으면 지어도 되는 한도인지 이미 지은 결과인지 모른다
+      push('building.bcr', reg.value.bcRatio, '%');
+      push('building.far', reg.value.vlRatio, '%');
+      push('building.basement_floors', reg.value.basementFloors, '층');
+      push('building.main_use', reg.value.mainUse, null);
+      push('building.approval_date', dateOf(reg.value.approvalDate), null);
     } else if (!reg.unavailable && !/자료 없음/.test(reg.error || '')) {
       ctx.warn(`건축물대장 조회 실패: ${reg.error}`);
     }
@@ -195,6 +215,31 @@ async function run(input, ctx) {
           confidence: 0.9, quote: permit.value,
           ...src('건축인허가(국토교통부)'),
         });
+      }
+
+      // ★ 허가 기록에는 **계획 연면적·대지면적**도 들어 있다. 대장이 없을 때
+      //   (= 아직 안 지은 부지) 이 값이 유일한 공부상 근거다 — 연면적은 직접
+      //   입력으로 남겨 둔 8칸 중 하나라 여기서 채워지면 그만큼 덜 묻는다.
+      //
+      // ★ 대장이 **있으면 넣지 않는다.** 허가 연면적은 계획, 대장 연면적은 준공
+      //   실적이라 정상적으로도 다르다. 둘 다 넣으면 매 딜마다 값 충돌이 떠서
+      //   진짜 충돌이 묻힌다 — 매번 뜨는 경고는 아무도 안 읽는다.
+      const top = (permit.records || [])[0] || {};
+      const noRegister = !out.building;
+      if (noRegister) {
+        const psrc = src('건축인허가(국토교통부)');
+        if (top.totalAreaSqm) {
+          facts.push({ key: 'building.gfa_sqm', value: top.totalAreaSqm, unit: '㎡',
+            confidence: 0.85, note: '허가 시점의 계획 연면적 — 준공 실적이 아니다', ...psrc });
+        }
+        if (top.platAreaSqm) {
+          facts.push({ key: 'land.area_sqm', value: top.platAreaSqm, unit: '㎡',
+            confidence: 0.85, ...psrc });
+        }
+        if (top.mainUse) {
+          facts.push({ key: 'building.main_use', value: top.mainUse, unit: null,
+            confidence: 0.85, ...psrc });
+        }
       } else {
         // 기록은 있는데 단계를 알 수 없다 — 지어내지 않고 사람에게 넘긴다
         ctx.warn('건축인허가 기록은 있으나 허가일·착공일·사용승인일이 모두 비어 있다 — 인허가 현황은 직접 확인해야 한다');
@@ -258,7 +303,7 @@ async function saveSatelliteImage(projectId, lat, lon, ctx) {
  *   돌렸을 때 조용히 빈칸이 남는다. 개별공시지가는 08 Appraisal 이 채운다.
  *   (`fieldplan.test.js` 가 FILLS 와 실제 push 를 대조한다)
  */
-const FILLS = ['geo.pnu', 'geo.lat', 'geo.lon',
+const FILLS = ['geo.pnu', 'geo.lat', 'geo.lon', 'land.jibun',
   'land.area_sqm', 'land.zoning', 'land.far_limit', 'land.bcr_limit'];
 
 /**
@@ -282,6 +327,20 @@ const CONDITIONAL_FILLS = {
   //   **인허가 현황을 안 물어보고**, 값은 빈 채로 남는다 (B-18 과 똑같은 실패).
   //   기록이 있을 때만 채워지고, 그때가 대조(사업계획서 vs 공부)가 값진 순간이다.
   '건축인허가(허가 기록이 있는 경우에만)': ['legal.permit_status'],
+
+  // 허가 기록에 실려 오는 계획 연면적·주용도.
+  // **대장이 없을 때만** 등록한다 (허가=계획, 대장=준공 실적이라 정상적으로도 다르다).
+  //
+  // ★ 대지면적은 여기 넣지 않는다 — 지적도가 **항상** 주므로 이미 FILLS 다.
+  //   조건부로 적으면 "건물이 있을 때만 나온다"는 뜻이 되어 화면 계획이 뒤집힌다.
+  //   인허가의 대지면적은 그 위에 얹히는 **또 하나의 출처**일 뿐이다.
+  '건축인허가의 계획 제원(대장이 없을 때만)':
+    ['building.gfa_sqm', 'building.main_use'],
+
+  // 건축물대장 응답에 이미 실려 오던 것 — 새 호출 없이 등록만 한다
+  '건축물대장의 나머지 제원(기존 건물이 있는 경우에만)':
+    ['building.bcr', 'building.far', 'building.basement_floors',
+      'building.main_use', 'building.approval_date'],
 
   // 규제가 걸려 있지 않은 필지가 대부분이다. 없을 때도 화면은 물어야 한다 —
   // '안 물어봤으니 규제가 없는 것'이라고 읽히면 안 된다
