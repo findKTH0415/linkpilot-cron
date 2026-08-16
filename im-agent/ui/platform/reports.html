@@ -138,6 +138,42 @@ ul { margin: 0; padding: 0; list-style: none; }
 
 .locked { display: flex; align-items: center; gap: 10px; padding: 13px 16px; border-radius: 12px;
   background: var(--lime-soft); font-size: 13.5px; font-weight: 600; color: var(--lime-deep); }
+/* 제작 진행 — 생성 클릭 뒤 그 자리에서 */
+.live__h { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.live__st { font: 700 12px/1 inherit; padding: 6px 10px; border-radius: 999px;
+  background: var(--panel); color: var(--ink2); }
+.live__st--running { background: var(--lime-soft); color: var(--lime-deep); }
+.live__st--queued { background: var(--panel); color: var(--ink2); }
+.live__st--done { background: var(--lime); color: var(--ink); }
+.live__st--failed, .live__st--unknown { background: var(--bad-soft); color: var(--bad-ink); }
+
+.live__meter { display: flex; align-items: center; gap: 12px; margin: 12px 0 4px; }
+.live__bar { flex: 1; height: 10px; border-radius: 999px; background: var(--panel); overflow: hidden; }
+.live__fill { height: 100%; background: var(--lime); transition: width .3s; }
+.live__pct { font: 800 14px/1 inherit; font-variant-numeric: tabular-nums; }
+.live__meta { font-size: 12.5px; color: var(--ink2); }
+
+.live__ph { display: grid; gap: 7px; margin-top: 14px; }
+.live__p { display: flex; align-items: flex-start; gap: 11px; padding: 11px 13px;
+  border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.live__p.on { border-color: var(--lime); background: var(--lime-soft); }
+.live__p--warn { border-color: #F0DEBE; background: var(--warn-soft); }
+.live__p--bad { border-color: #F3D8D8; background: var(--bad-soft); }
+.live__n { width: 22px; height: 22px; flex: none; border-radius: 50%; background: var(--ink);
+  color: #fff; display: grid; place-items: center; font: 800 11.5px/1 inherit; }
+.live__b { flex: 1; min-width: 0; }
+.live__t { font-size: 13.5px; font-weight: 700; }
+.live__w { font-size: 12.5px; color: var(--ink2); margin-top: 2px; line-height: 1.5; }
+.live__c { font: 700 12px/1.6 inherit; color: var(--ink2); white-space: nowrap; }
+
+.live__log { margin-top: 14px; padding: 11px 13px; background: var(--panel);
+  border-radius: 10px; display: grid; gap: 4px; max-height: 220px; overflow-y: auto; }
+.live__ln { font: 400 12.5px/1.6 ui-monospace, Menlo, Consolas, monospace; color: var(--ink2);
+  display: flex; gap: 9px; }
+.live__ln.warn { color: var(--warn-ink); }
+.live__ln.bad { color: var(--bad-ink); font-weight: 600; }
+.live__at { flex: none; opacity: .7; }
+
 .note { padding: 13px 16px; border-radius: 12px; font-size: 13.5px;
   background: var(--warn-soft); color: var(--warn-ink); margin-top: 14px; }
 .note--bad { background: var(--bad-soft); color: var(--bad-ink); }
@@ -235,6 +271,7 @@ ul { margin: 0; padding: 0; list-style: none; }
 <script src="gate-core.js"></script>
 <script src="catalog.js"></script>
 <script src="inapp.js"></script>
+<script src="live-core.js"></script>
 <script>
 /* ── 설정 ──────────────────────────────────────────────────────────
  * 서버가 로그인 세션을 보고 내려준다.
@@ -243,7 +280,13 @@ ul { margin: 0; padding: 0; list-style: none; }
  *   생성 API 가 세션·플랜을 다시 확인하지 않으면, 사용자가 브라우저에서
  *   session.planId 를 고쳐 화면을 열 수 있다. 화면은 열려도 생성은 거부되어야 한다.
  * ───────────────────────────────────────────────────────────────── */
-window.LINKPILOT_REPORTS = {
+/**
+ * ★ 앱이 미리 넣어 둔 설정이 **이깁니다.** 예전에는 이 블록이 그냥 덮어써서,
+ *   호스트가 `window.LINKPILOT_REPORTS` 를 채워 놓아도 조용히 데모값으로
+ *   되돌아갔다 — api 가 null 이 되어 "본체 API 에 연결하세요" 만 뜬다.
+ *   아래는 **기본값**이고, 앱이 준 값이 그 위에 얹힌다.
+ */
+window.LINKPILOT_REPORTS = Object.assign({
   session: { authenticated: true, planId: 'pro', status: 'active', name: '홍길동' },
   requiredPlan: 'pro',
   planNames: { free: 'Free', basic: 'Basic', pro: 'Pro', business: 'Business' },
@@ -299,7 +342,7 @@ window.LINKPILOT_REPORTS = {
     { name: 'A4 인쇄본', path: '12_Final/im-a4.html', at: '2026-08-13 22:41', status: 'ok' },
     { name: 'Teaser', path: '10_Teaser/teaser.md', at: '2026-08-13 22:40', status: 'ok' },
   ],
-};
+}, window.LINKPILOT_REPORTS || {});
 
 (function () {
   'use strict';
@@ -307,8 +350,25 @@ window.LINKPILOT_REPORTS = {
   var G = window.LinkPilotGate;
   var view = document.getElementById('view');
 
+  /**
+   * 어느 프로젝트를 다루는가.
+   *
+   * ★ 순서가 중요하다. 섹션에 끼우면 흐름이 `?project=` 로 넘겨 주고(flow-core 의
+   *   `urlFor`), 앱이 직접 열면 설정의 `projectId` 로 온다. **둘 다 안 보고
+   *   데모 목록의 첫 항목을 쓰면**, 2단계에서 값을 넣은 프로젝트와 4단계에서
+   *   생성하는 프로젝트가 달라진다 — 화면은 멀쩡해 보이고 산출물만 엉뚱해진다.
+   *   (2026-08-16 발견: 3·4단계가 흐름을 따라오지 않고 있었다)
+   */
+  function pickProject() {
+    try {
+      var q = new URLSearchParams(location.search).get('project');
+      if (q) return q;
+    } catch (_) { /* 옛 브라우저 */ }
+    return C.projectId || (C.projects[0] || {}).id || null;
+  }
+
   var state = {
-    projectId: (C.projects[0] || {}).id || null,
+    projectId: pickProject(),
     kindId: 'im',
     pages: null,          // 종류를 고르면 기본값이 들어온다
     size: 'A4', format: 'html', lang: 'ko',
@@ -647,8 +707,10 @@ window.LINKPILOT_REPORTS = {
       .then(function (j) {
         btn.textContent = '보고서 생성 시작';
         btn.disabled = false;
-        say('생성이 접수되었습니다' + (j.run && j.run.runId ? ' (실행 ' + j.run.runId + ')' : '')
-          + ' — 진행 상황은 IM 제작현황 화면에서 확인하세요.');
+        // ★ 화면을 옮겨 가야 보이면 사람은 안 본다. 누른 자리에서 보여준다
+        state.live = { run: j.run || null, snapshot: null, error: null, failures: 0, timer: null };
+        draw();
+        poll();
         loadReports();
       })
       .catch(function (e) {
@@ -780,6 +842,112 @@ window.LINKPILOT_REPORTS = {
   }
 
   // ── 렌더 ─────────────────────────────────────────
+  /* ── 제작 진행 (생성 클릭 뒤 그 자리에서 보여준다) ─────────
+   *
+   * ★ 전에는 "진행 상황은 IM 제작현황 화면에서 확인하세요" 로 끝났다. 화면을
+   *   옮겨 가야 보이면 사람은 안 본다 — 그리고 안 보는 동안 RED FLAG 가 떠도
+   *   모른다. 누른 자리에서 보여준다.
+   */
+  function live() {
+    var L = window.LinkPilotLive;
+    if (!L || !state.live) return null;
+    var v = L.viewFrom(state.live);
+
+    var box = el('section', 'card');
+    box.id = 'live';
+
+    var head = el('div', 'live__h');
+    head.appendChild(el('h2', 'card__t', '제작 진행'));
+    var badge = el('span', 'live__st live__st--' + v.state, v.headline);
+    head.appendChild(badge);
+    box.appendChild(head);
+    if (v.note) box.appendChild(el('p', 'card__s', v.note));
+
+    // 진행률 — ★ 모를 때는 막대를 그리지 않는다. 0% 막대는 '멈춰 있다'로 읽힌다
+    if (v.pct !== null) {
+      var bar = el('div', 'live__bar');
+      var fill = el('div', 'live__fill');
+      fill.style.width = v.pct + '%';
+      bar.appendChild(fill);
+      var line = el('div', 'live__meter');
+      line.appendChild(bar);
+      line.appendChild(el('span', 'live__pct', v.pct + '%'));
+      box.appendChild(line);
+    }
+
+    var meta = [];
+    if (v.elapsed) meta.push('경과 ' + v.elapsed);
+    if (v.remaining) meta.push('남은 예상 ' + v.remaining + ' (참고값)');
+    if (meta.length) box.appendChild(el('div', 'live__meta', meta.join(' · ')));
+
+    // 카테고리
+    var list = el('div', 'live__ph');
+    v.phases.forEach(function (p, i) {
+      var row = el('div', 'live__p live__p--' + p.tone + (p.running ? ' on' : ''));
+      row.appendChild(el('span', 'live__n', String(i + 1)));
+      var mid = el('div', 'live__b');
+      mid.appendChild(el('div', 'live__t', p.label));
+      mid.appendChild(el('div', 'live__w', p.why));
+      row.appendChild(mid);
+      row.appendChild(el('span', 'live__c',
+        p.done ? '완료' : (p.running ? '진행 중' : p.doneCount + '/' + p.total)));
+      list.appendChild(row);
+    });
+    box.appendChild(list);
+
+    // 활동 기록 — 무슨 일이 있었는지는 요약이 아니라 로그로 보여준다
+    if (v.activity.length) {
+      var log = el('div', 'live__log');
+      v.activity.forEach(function (a) {
+        var ln = el('div', 'live__ln' + (a.level === 'ERROR' ? ' bad' : (a.level === 'WARN' ? ' warn' : '')));
+        ln.appendChild(el('span', 'live__at', String(a.at || '').slice(11, 19)));
+        ln.appendChild(el('span', null, (a.agent ? a.agent + ' · ' : '') + a.message));
+        log.appendChild(ln);
+      });
+      box.appendChild(log);
+    }
+
+    v.problems.forEach(function (t) {
+      var n = el('p', 'note', t);
+      n.style.background = 'var(--warn-soft)';
+      n.style.color = 'var(--warn-ink)';
+      box.appendChild(n);
+    });
+
+    return box;
+  }
+
+  /**
+   * 진행 상황을 되풀이해 물어본다.
+   *
+   * ★ 끝나면 멈춘다. ★ 실패해도 조용히 멈추지 않는다 — 사유를 남기고 간격을
+   *   늘려 다시 시도한다. 화면이 마지막 상태로 굳으면 사용자는 생성이 멈춘 줄 안다.
+   */
+  function poll() {
+    var L = window.LinkPilotLive;
+    if (!L || !state.live || !C.api || !state.projectId) return;
+
+    call('GET', '/projects/' + encodeURIComponent(state.projectId) + '/control-tower')
+      .then(function (snap) {
+        state.live.snapshot = snap;
+        state.live.error = null;
+        state.live.failures = 0;
+      })
+      .catch(function (e) {
+        // 404 = 아직 실행 기록이 없다. 오류가 아니라 '시작 전'이다
+        if (/실행 기록이 없는/.test(e.message)) state.live.error = null;
+        else state.live.error = e.message;
+        state.live.failures = (state.live.failures || 0) + 1;
+      })
+      .then(function () {
+        draw();
+        var v = L.viewFrom(state.live);
+        var wait = L.nextPollMs(v, state.live.failures);
+        if (wait > 0) state.live.timer = setTimeout(poll, wait);
+        else if (v.state === 'done') loadReports();     // 끝났으면 산출물을 다시 받는다
+      });
+  }
+
   function draw() {
     var a = G.access(C.session, C.requiredPlan);
     view.textContent = '';
@@ -789,6 +957,8 @@ window.LINKPILOT_REPORTS = {
     view.appendChild(pick());
     view.appendChild(spec());
     view.appendChild(run());
+    var lv = live();
+    if (lv) view.appendChild(lv);
     view.appendChild(recent());
     updateLockBar();
   }
