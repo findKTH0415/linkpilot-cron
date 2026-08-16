@@ -31,7 +31,7 @@ function endpoint(model, key) {
  * 텍스트 생성. 키 × 모델 조합을 순회하며 재시도한다.
  * @returns {Promise<string>}
  */
-async function generate({ system, prompt, temperature = 0.3, maxOutputTokens = 4096, timeoutMs = 60000 }) {
+async function generate({ system, prompt, files, temperature = 0.3, maxOutputTokens = 4096, timeoutMs = 60000 }) {
   if (isOffline()) throw new OfflineError('LLM 오프라인 모드 — GEMINI_API_KEY 미설정 또는 IM_AGENT_OFFLINE=1');
 
   const errors = [];
@@ -40,8 +40,18 @@ async function generate({ system, prompt, temperature = 0.3, maxOutputTokens = 4
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeoutMs);
       try {
+        // ★ 파일은 프롬프트 **앞**에 둔다. Gemini 는 지시문이 자료 뒤에 올 때
+        //   자료를 더 성실히 읽는다 (문서 이해 가이드의 권고).
+        const parts = (files || []).map(f => ({
+          inlineData: {
+            mimeType: f.mime,
+            data: Buffer.isBuffer(f.data) ? f.data.toString('base64') : String(f.data),
+          },
+        }));
+        parts.push({ text: prompt });
+
         const body = {
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          contents: [{ role: 'user', parts }],
           generationConfig: { temperature, maxOutputTokens },
         };
         if (system) body.systemInstruction = { parts: [{ text: system }] };

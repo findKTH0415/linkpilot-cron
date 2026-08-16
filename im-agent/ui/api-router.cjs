@@ -145,6 +145,11 @@ function createHandlers({ agentRoot, agentModulePath }) {
             office: Object.keys(ext.ZIP_EXT).sort(),
           },
           unsupported: list(ext.UNSUPPORTED_EXT),
+          // 읽는 방법별 묶음 — 화면이 확장자를 나열하지 않게 서버가 만들어 내린다
+          formats: ext.readGroups(),
+          // 스캔·사진을 글자로 옮기려면 키가 있어야 한다. 없으면 화면이
+          // "지금은 꺼져 있습니다"라고 적어야 한다 — 올리고 나서 알면 늦다
+          ocrReady: !load('core/llm').isOffline(),
           maxBytesPerFile: MAX_FILE_BYTES,
           maxBytesPerRequest: MAX_REQUEST_BYTES,
         },

@@ -9,9 +9,21 @@
  *   ② LLM 보완 (선택) — 규칙이 놓친 항목만. ★ 근거 문구(quote)가 원문에 실제로
  *      존재하지 않으면 그 값은 환각으로 간주하고 폐기한다.
  *
- * 지원 포맷: txt/md/csv/json/html (직접), docx/xlsx/pptx (내장 zlib 기반 unzip)
- * 미지원: pdf/이미지 — OCR/PDF 파서는 승인된 의존성 추가가 필요하므로
- *         파일을 조용히 건너뛰지 않고 YELLOW 경고로 남긴다.
+ * 읽는 방법은 파일 형식마다 다르다 (FORMATS 가 단일 출처):
+ *   text  txt/md/csv/json/html            그대로
+ *   zip   docx/xlsx/pptx/hwpx             내장 zlib 기반 unzip (hwpx 도 ZIP 이다)
+ *   pdf   pdf                             텍스트 레이어 → 없으면 OCR
+ *   ole   hwp/doc/xls/ppt                 CFBF 파서 → 깨지면 OCR
+ *   ocr   jpg/jpeg/png/webp/heic/heif     Gemini 전사(轉寫)
+ *   convert gif/tif/tiff                  변환 없이는 못 읽는다 (아래 ★)
+ *
+ * ★ **읽은 방법을 값에 남긴다.** OCR 로 옮겨 적은 글자에서 뽑은 값과 원문에서
+ *   바로 뽑은 값을 같은 신뢰도로 두면, 나중에 값이 틀렸을 때 어디를 봐야 하는지
+ *   알 수 없다. OCR 경로는 신뢰도를 깎고 note 에 그 사실을 적는다.
+ *
+ * ★ gif/tif/tiff 는 지금 못 읽는다. Gemini 가 인라인으로 받는 이미지는
+ *   png/jpeg/webp/heic/heif 뿐이고, 이 저장소는 이미지 변환 라이브러리를
+ *   들이지 않는다. **되는 척하지 않고** 무엇으로 바꿔 올리면 되는지 말한다.
  */
 
 const fs = require('fs');
@@ -19,11 +31,74 @@ const path = require('path');
 const { FIELDS, ALIAS_INDEX } = require('../core/dictionary');
 const { parseNumber, parseMoneyToEok, normalize, round } = require('../core/numeric');
 const unzip = require('../core/unzip');
+const pdftext = require('../core/pdftext');
+const ole = require('../core/ole');
+const ocr = require('../core/ocr');
 const llm = require('../core/llm');
 
 const TEXT_EXT = new Set(['.txt', '.md', '.csv', '.tsv', '.json', '.html', '.htm', '.xml', '.log']);
-const ZIP_EXT = { '.docx': 'docxText', '.xlsx': 'xlsxText', '.xlsm': 'xlsxText', '.pptx': 'pptxText' };
-const UNSUPPORTED_EXT = new Set(['.pdf', '.jpg', '.jpeg', '.png', '.gif', '.tif', '.tiff', '.hwp', '.hwpx', '.doc', '.xls', '.ppt']);
+const ZIP_EXT = {
+  '.docx': 'docxText', '.xlsx': 'xlsxText', '.xlsm': 'xlsxText', '.pptx': 'pptxText',
+  '.hwpx': 'hwpxText',
+};
+const OLE_EXT = new Set(['.hwp', '.doc', '.xls', '.ppt']);
+const OCR_EXT = new Set(['.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif']);
+/** 변환 없이는 못 읽는 형식. **이 목록은 짧을수록 좋다** */
+const UNSUPPORTED_EXT = new Set(['.gif', '.tif', '.tiff']);
+
+/** 확장자 → 읽는 방법. 화면·서버가 같이 본다 */
+const FORMATS = (() => {
+  const m = {};
+  TEXT_EXT.forEach(e => { m[e] = 'text'; });
+  Object.keys(ZIP_EXT).forEach(e => { m[e] = 'zip'; });
+  m['.pdf'] = 'pdf';
+  OLE_EXT.forEach(e => { m[e] = 'ole'; });
+  OCR_EXT.forEach(e => { m[e] = 'ocr'; });
+  UNSUPPORTED_EXT.forEach(e => { m[e] = 'convert'; });
+  return m;
+})();
+
+/**
+ * 화면에 보여 줄 묶음. **화면이 확장자를 나열하지 않게** 여기서 만들어 내려보낸다.
+ *
+ * ★ pdf·hwp·doc·xls·ppt 는 「본문을 읽습니다」에 둔다. 대부분은 정말 그대로
+ *   읽히고, 안 읽히는 것(스캔본·규격 밖 변종)만 자동으로 2번 묶음으로 넘어간다.
+ *   반대로 두면 — 읽히는 파일을 「스캔해야 읽습니다」에 넣으면 — 사람은 키가
+ *   없다고 생각해 아예 안 올린다.
+ */
+function readGroups() {
+  const of = (kinds) => Object.keys(FORMATS).filter(e => kinds.includes(FORMATS[e])).sort();
+  return [
+    {
+      id: 'direct',
+      label: '본문을 그대로 읽습니다',
+      why: '서버가 파일을 열어 글자를 꺼냅니다. 인터넷도 인증키도 필요 없습니다.',
+      ext: of(['text', 'zip', 'pdf', 'ole']),
+    },
+    {
+      id: 'scan',
+      label: '스캔·사진은 글자로 옮겨 읽습니다',
+      why: '이미지에는 글자 정보가 없어 옮겨 적는 과정을 한 번 거칩니다. '
+        + '옮긴 글자에서 뽑은 값은 신뢰도를 낮춰 표시하고, 원본 확인 안내를 붙입니다.',
+      ext: of(['ocr']),
+      needsKey: 'GEMINI_API_KEY',
+    },
+    {
+      id: 'convert',
+      label: '변환해서 올려야 합니다',
+      why: '이 형식은 읽는 방법이 없습니다. 되는 척하지 않고 미리 말씀드립니다.',
+      ext: of(['convert']),
+      hint: CONVERT_HINT,
+    },
+  ];
+}
+
+/** 무엇으로 바꿔 올리면 되는지 — 화면이 그대로 보여 준다 */
+const CONVERT_HINT = {
+  '.gif': 'PNG 로 저장해서 올립니다',
+  '.tif': 'PDF 나 PNG 로 저장해서 올립니다 (스캐너 설정에서 바꿀 수 있습니다)',
+  '.tiff': 'PDF 나 PNG 로 저장해서 올립니다 (스캐너 설정에서 바꿀 수 있습니다)',
+};
 
 const inputSchema = {
   type: 'object',
@@ -46,24 +121,67 @@ const outputSchema = {
   },
 };
 
-/** 파일 → 평문 텍스트. 실패는 예외 대신 {error} 로 돌려 격리한다. */
+/**
+ * 파일 → 평문 텍스트 (LLM 없이 되는 것만). 실패는 예외 대신 {error} 로 돌려 격리한다.
+ * @returns {{text?:string, via?:string, error?:string, ocr?:string}}
+ *   ocr  이 붙어 오면 "규칙으로는 못 읽었지만 OCR 은 해 볼 만하다"는 뜻이고,
+ *        그 값은 사람에게 보일 사유다 (스캔본인지 규격 밖 파일인지)
+ */
 function toText(file) {
   const ext = file.ext || path.extname(file.name).toLowerCase();
   try {
     if (TEXT_EXT.has(ext)) {
       let t = fs.readFileSync(file.path, 'utf8');
       if (ext === '.html' || ext === '.htm' || ext === '.xml') t = unzip.xmlToText(t, { paragraphTags: ['p', 'div', 'tr', 'li'] });
-      return { text: t };
+      return { text: t, via: 'text' };
     }
     if (ZIP_EXT[ext]) {
-      return { text: unzip[ZIP_EXT[ext]](fs.readFileSync(file.path)) };
+      return { text: unzip[ZIP_EXT[ext]](fs.readFileSync(file.path)), via: 'zip' };
+    }
+    if (ext === '.pdf') {
+      const r = pdftext.pdfText(fs.readFileSync(file.path));
+      if (r.reliable) return { text: r.text, via: 'pdf' };
+      // ★ 여기서 '깨진 글자라도' 돌려주지 않는다. 그러면 조회는 성공하고
+      //   값만 쓰레기가 된다 — 화면에는 아무 경고도 안 뜬다
+      return { error: r.reason, ocr: r.reason, via: 'pdf' };
+    }
+    if (OLE_EXT.has(ext)) {
+      return { text: ole.oleText(ext, fs.readFileSync(file.path)), via: 'ole' };
+    }
+    if (OCR_EXT.has(ext)) {
+      return { error: '이미지는 글자로 옮겨야 읽는다', ocr: '이미지 파일', via: 'ocr' };
     }
     if (UNSUPPORTED_EXT.has(ext)) {
-      return { error: `${ext} 미지원 — PDF/이미지 OCR은 승인된 의존성 추가 필요` };
+      return { error: `${ext} 는 변환 없이는 못 읽습니다 — ${CONVERT_HINT[ext] || 'PDF 나 PNG 로 바꿔서 올립니다'}`, via: 'convert' };
     }
     return { error: `알 수 없는 확장자 ${ext}` };
   } catch (e) {
-    return { error: `읽기 실패: ${e.message}` };
+    // OLE 파서가 "규격 밖 변종"이라고 한 경우는 OCR 로 넘겨 볼 값어치가 있다
+    const retryable = OLE_EXT.has(ext);
+    return { error: `읽기 실패: ${e.message}`, ocr: retryable ? e.message : undefined, via: FORMATS[ext] };
+  }
+}
+
+/**
+ * 규칙으로 못 읽은 파일을 OCR 로 한 번 더 시도한다.
+ *
+ * ★ 실패해도 파이프라인을 죽이지 않는다. 자료 하나가 안 읽혔다고 보고서 생성이
+ *   멈추면, 사람은 무엇 때문에 멈췄는지 모른 채 처음부터 다시 한다.
+ */
+async function tryOcr(file, reason, warn) {
+  const ext = file.ext || path.extname(file.name).toLowerCase();
+  if (!ocr.isSupported(file.name)) {
+    return { error: `${reason} — ${CONVERT_HINT[ext] || '이 형식은 OCR 로도 읽을 수 없습니다'}` };
+  }
+  if (llm.isOffline()) {
+    return { error: `${reason} — 스캔본을 읽으려면 GEMINI_API_KEY 가 필요합니다 (지금은 꺼져 있습니다)` };
+  }
+  try {
+    const r = await ocr.transcribe({ buffer: fs.readFileSync(file.path), name: file.name });
+    warn(`${file.name}: ${reason} → OCR 로 ${r.chars}자를 옮겨 적었습니다 (원문이 아니라 옮긴 글자입니다)`);
+    return { text: r.text, via: 'ocr' };
+  } catch (e) {
+    return { error: `${reason} · OCR 도 실패: ${e.message}` };
   }
 }
 
@@ -242,7 +360,11 @@ async function run(input, ctx) {
   const unsupported = [];
 
   for (const file of files) {
-    const { text, error } = toText(file);
+    let r = toText(file);
+    // 규칙으로 못 읽었지만 OCR 이 해 볼 만한 파일 (스캔 PDF · 이미지 · 규격 밖 옛 문서)
+    if (r.error && r.ocr) r = await tryOcr(file, r.ocr, ctx.warn);
+
+    const { text, error, via } = r;
     if (error) {
       unsupported.push({ name: file.name, reason: error });
       ctx.warn(`${file.name}: ${error}`);
@@ -250,13 +372,22 @@ async function run(input, ctx) {
     }
     const lines = text.split('\n');
     let count = 0;
+    // ★ OCR 은 원문이 아니라 옮겨 적은 글자다. 같은 신뢰도로 두면 값이 틀렸을 때
+    //   어디를 봐야 하는지 알 수 없다 — 신뢰도를 깎고 그 사실을 값에 적어 둔다
+    const byOcr = via === 'ocr';
     lines.forEach((line, i) => {
       for (const f of extractFromLine(line)) {
-        facts.push({ ...f, source: file.name, page: i + 1 });
+        facts.push({
+          ...f,
+          confidence: byOcr ? Math.min(f.confidence, ocr.OCR_CONFIDENCE) : f.confidence,
+          note: byOcr ? 'OCR 로 옮겨 적은 글자에서 뽑았습니다 — 원본을 확인하세요' : undefined,
+          source: file.name,
+          page: i + 1,
+        });
         count++;
       }
     });
-    documents.push({ name: file.name, chars: text.length, lines: lines.length, facts: count });
+    documents.push({ name: file.name, chars: text.length, lines: lines.length, facts: count, via: via || 'text' });
 
     // LLM 보완: 이 문서에서 규칙이 못 찾은 필수 항목만
     if (input.useLlm !== false && !llm.isOffline()) {
@@ -279,9 +410,9 @@ async function run(input, ctx) {
 
 module.exports = {
   id: '02_extraction', label: 'Data Extraction Agent',
-  inputSchema, outputSchema, run, extractFromLine, toText, unitCompatible, findAliasPos,
+  inputSchema, outputSchema, run, extractFromLine, toText, tryOcr, unitCompatible, findAliasPos,
   // ★ 접수 화면이 '올리기 전에' 지원 형식을 알려주려면 이 목록이 필요하다.
   //   화면에 복사해 두면 여기가 바뀌는 날부터 갈린다 — 되는 줄 알고 올렸다가
   //   추출 단계에서야 안 된다는 걸 알게 된다.
-  TEXT_EXT, ZIP_EXT, UNSUPPORTED_EXT,
+  TEXT_EXT, ZIP_EXT, OLE_EXT, OCR_EXT, UNSUPPORTED_EXT, FORMATS, CONVERT_HINT, readGroups,
 };

@@ -123,4 +123,31 @@ function pptxText(buf) {
   return slides.map((n, i) => `# slide ${i + 1}\n${xmlToText(zip.get(n).toString('utf8'))}`).join('\n\n').trim();
 }
 
-module.exports = { readZip, xmlToText, docxText, xlsxText, pptxText };
+/**
+ * hwpx → 텍스트.
+ *
+ * ★ hwpx 는 hwp 와 이름만 비슷하고 속은 완전히 다르다 — **ZIP + XML(OWPML)** 이라
+ *   docx 와 같은 방법으로 읽힌다. 구버전 .hwp(바이너리 CFBF)와 한 덩어리로 묶어
+ *   "한글은 못 읽는다"로 처리하고 있었는데, hwpx 는 처음부터 읽을 수 있었다.
+ *
+ * 본문은 `Contents/section0.xml`, `section1.xml` … 로 나뉜다. 문단 태그는
+ * `<hp:p>`, 줄바꿈은 `<hp:lineBreak/>` 다.
+ */
+function hwpxText(buf) {
+  const zip = readZip(buf);
+  const sections = [...zip.keys()]
+    .filter(n => /^Contents\/section\d+\.xml$/i.test(n))
+    .sort((a, b) => {
+      const n = (s) => Number((s.match(/(\d+)/) || [])[1] || 0);
+      return n(a) - n(b);
+    });
+  if (!sections.length) throw new Error('Contents/section*.xml 없음 — hwpx 가 아니다');
+  return sections
+    .map(n => xmlToText(zip.get(n).toString('utf8').replace(/<hp:lineBreak\/>/g, '\n'),
+      { paragraphTags: ['hp:p'] }))
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+module.exports = { readZip, xmlToText, docxText, xlsxText, pptxText, hwpxText };

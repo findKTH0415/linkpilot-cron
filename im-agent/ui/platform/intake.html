@@ -108,8 +108,15 @@ h1,h2,h3,h4 { margin: 0; }
 .fmt { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
 .fmt__b { border: 1px solid var(--line); border-radius: 12px; padding: 13px; }
 .fmt__b.no { border-color: #F3D8D8; background: var(--bad-soft); }
+.fmt__b.warn { border-color: #F0DEBE; background: var(--warn-soft); }
 .fmt__t { font-size: 12.5px; font-weight: 800; margin-bottom: 7px; }
 .fmt__b.no .fmt__t { color: var(--bad-ink); }
+.fmt__b.warn .fmt__t { color: var(--warn-ink); }
+.fmt__w { font-size: 12px; color: var(--ink2); margin: 0 0 9px; line-height: 1.55; }
+.fmt__b.no .fmt__w { color: var(--bad-ink); }
+.fmt__b.warn .fmt__w { color: var(--warn-ink); }
+.fmt__b.warn .ext span { background: #F3E2C4; color: var(--warn-ink); }
+.fmt__hint { font-size: 12px; color: var(--warn-ink); margin-top: 9px; }
 .ext { display: flex; flex-wrap: wrap; gap: 5px; }
 .ext span { font: 600 11.5px/1 ui-monospace, Menlo, Consolas, monospace;
   padding: 5px 8px; border-radius: 6px; background: var(--panel); color: var(--ink2); }
@@ -388,34 +395,63 @@ window.LINKPILOT_INTAKE = {
     return row;
   }
 
+  /**
+   * 올릴 수 있는 자료.
+   *
+   * ★ 목록을 여기 적지 않는다. 서버(02-extraction)가 아는 것을 그대로 그린다 —
+   *   적어 두면 읽는 방법이 늘어난 날부터 화면만 옛말을 한다.
+   */
   function formatCard() {
     var box = el('section', 'card');
     box.appendChild(el('h2', 'card__t', '올릴 수 있는 자료'));
     box.appendChild(el('p', 'card__s',
-      '표에 있는 형식만 본문을 읽어 수치를 뽑습니다. 나머지도 보관은 되지만 '
-      + '수치 추출에는 쓰이지 않습니다 — 올린 뒤에 알면 늦으므로 미리 알려 드립니다.'));
+      '형식마다 읽는 방법이 다릅니다. 못 읽는 것은 올리기 전에 알려 드립니다 — '
+      + '올린 뒤에 알면 늦습니다.'));
 
     var i = state.info;
+    var groups = i.formats || [];
     var g = el('div', 'fmt');
 
-    var okBox = el('div', 'fmt__b');
-    okBox.appendChild(el('div', 'fmt__t', '본문을 읽습니다'));
-    var okList = el('div', 'ext');
-    i.supported.office.concat(i.supported.text).forEach(function (e) { okList.appendChild(el('span', null, e)); });
-    okBox.appendChild(okList);
-    g.appendChild(okBox);
+    groups.forEach(function (grp) {
+      if (!grp.ext || !grp.ext.length) return;
+      var cls = 'fmt__b' + (grp.id === 'convert' ? ' no' : (grp.id === 'scan' ? ' warn' : ''));
+      var b = el('div', cls);
 
-    var noBox = el('div', 'fmt__b no');
-    noBox.appendChild(el('div', 'fmt__t', '보관만 됩니다 (본문 못 읽음)'));
-    var noList = el('div', 'ext');
-    (i.unsupported || []).forEach(function (e) { noList.appendChild(el('span', null, e)); });
-    noBox.appendChild(noList);
-    g.appendChild(noBox);
+      var title = grp.label;
+      // ★ 키가 없으면 이 묶음은 지금 동작하지 않는다. 그 사실을 제목에 적는다 —
+      //   본문 어딘가에 적으면 안 읽고 올린다
+      if (grp.needsKey && i.ocrReady === false) title += ' — 지금은 꺼져 있습니다';
+      b.appendChild(el('div', 'fmt__t', title));
+      b.appendChild(el('p', 'fmt__w', grp.why));
+
+      var list = el('div', 'ext');
+      grp.ext.forEach(function (e) { list.appendChild(el('span', null, e)); });
+      b.appendChild(list);
+
+      if (grp.hint) {
+        var lines = grp.ext.map(function (e) { return grp.hint[e] ? e + ' → ' + grp.hint[e] : null; })
+          .filter(Boolean);
+        // 같은 안내가 여러 확장자에 붙으면 한 번만 적는다
+        var seen = {};
+        lines = lines.filter(function (t) {
+          var body = t.slice(t.indexOf('→'));
+          if (seen[body]) return false;
+          seen[body] = 1; return true;
+        });
+        lines.forEach(function (t) { b.appendChild(el('div', 'fmt__hint', t)); });
+      }
+      if (grp.needsKey && i.ocrReady === false) {
+        b.appendChild(el('div', 'fmt__hint',
+          '서버에 ' + grp.needsKey + ' 가 없어 옮겨 적기가 꺼져 있습니다. '
+          + '지금 올리면 보관만 되고 수치는 뽑히지 않습니다.'));
+      }
+      g.appendChild(b);
+    });
+
     box.appendChild(g);
-
     box.appendChild(el('div', 'note note--warn',
-      'PDF·한글(HWP)·스캔 이미지는 본문을 읽지 못합니다. 해당 내용은 '
-      + '[가이드 필드 입력] 화면에서 출처와 함께 직접 넣으시면 됩니다. '
+      'PDF·한글(HWP)은 본문을 그대로 읽습니다. 글자가 없는 스캔본은 글자로 옮겨서 읽고, '
+      + '그렇게 뽑은 값은 신뢰도를 낮춰 「원본 확인」 표시를 붙입니다. '
       + '파일 하나 ' + mb(i.maxBytesPerFile) + 'MB · 한 번에 ' + mb(i.maxBytesPerRequest) + 'MB 까지.'));
     return box;
   }

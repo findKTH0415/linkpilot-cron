@@ -54,12 +54,50 @@ test('GET /intake 가 추출기의 목록을 그대로 내려준다', async () =
   assert.ok(r.body.maxBytesPerFile > 0 && r.body.maxBytesPerRequest > r.body.maxBytesPerFile);
 });
 
-test('PDF 가 "읽을 수 있음"으로 분류되지 않는다', async () => {
+/**
+ * ★ 2026-08-16 부터 PDF·한글·옛 오피스는 본문을 읽는다 (pdftext/ole).
+ *   못 읽는 것은 gif/tif/tiff 뿐이다 — **이 목록이 길어지면 그때 다시 본다.**
+ */
+test('읽는 방법이 형식마다 정해져 있다', async () => {
   const h = readHandlers({ agentModulePath: AGENT });
   const r = await h.intake();
-  assert.ok(!r.body.supported.text.includes('.pdf'));
-  assert.ok(!r.body.supported.office.includes('.pdf'));
-  assert.ok(r.body.unsupported.includes('.pdf'), 'PDF 는 본문을 읽지 못한다고 알려야 한다');
+  const by = {};
+  r.body.formats.forEach((g) => g.ext.forEach((e) => { by[e] = g.id; }));
+
+  assert.strictEqual(by['.pdf'], 'direct', 'PDF 는 텍스트 레이어를 직접 읽는다');
+  assert.strictEqual(by['.hwp'], 'direct');
+  assert.strictEqual(by['.hwpx'], 'direct', 'hwpx 는 ZIP 이라 docx 와 같은 방법으로 읽힌다');
+  ['.doc', '.xls', '.ppt'].forEach(e => assert.strictEqual(by[e], 'direct', `${e} 가 direct 가 아니다`));
+  ['.jpg', '.jpeg', '.png'].forEach(e => assert.strictEqual(by[e], 'scan', `${e} 가 scan 이 아니다`));
+  ['.gif', '.tif', '.tiff'].forEach(e => assert.strictEqual(by[e], 'convert', `${e} 가 convert 가 아니다`));
+
+  assert.deepStrictEqual(r.body.unsupported, ['.gif', '.tif', '.tiff'],
+    '못 읽는 형식이 늘었다 — 늘릴 때는 왜인지 적는다');
+});
+
+test('★ 변환해야 하는 형식은 무엇으로 바꿀지까지 말한다', async () => {
+  const h = readHandlers({ agentModulePath: AGENT });
+  const r = await h.intake();
+  const convert = r.body.formats.find(g => g.id === 'convert');
+  assert.ok(convert.hint, '"못 읽습니다"만 말하면 사람은 무엇을 해야 할지 모른다');
+  convert.ext.forEach((e) => {
+    assert.match(convert.hint[e], /PNG|PDF/, `${e}: 무엇으로 바꿀지 안 적혀 있다`);
+  });
+});
+
+test('★ 스캔 묶음은 키가 있어야 동작한다고 밝힌다', async () => {
+  const h = readHandlers({ agentModulePath: AGENT });
+  const before = process.env.GEMINI_API_KEY;
+  delete process.env.GEMINI_API_KEY;
+  try {
+    const r = await h.intake();
+    const scan = r.body.formats.find(g => g.id === 'scan');
+    assert.strictEqual(scan.needsKey, 'GEMINI_API_KEY');
+    assert.strictEqual(r.body.ocrReady, false,
+      '키가 없는데 "스캔도 읽습니다"라고만 하면 올려 놓고 값이 안 나온 이유를 모른다');
+  } finally {
+    if (before === undefined) delete process.env.GEMINI_API_KEY; else process.env.GEMINI_API_KEY = before;
+  }
 });
 
 // ── 프로젝트 생성 ────────────────────────────────────────────
@@ -156,9 +194,17 @@ test('★ 읽지 못하는 형식도 저장하되 그렇다고 말한다', async
   const pdf = r.body.saved.find(f => f.name === '감정평가서.pdf');
   assert.strictEqual(md.readable, true);
   assert.strictEqual(md.note, null);
-  assert.strictEqual(pdf.readable, false);
-  assert.match(pdf.note, /본문을 읽지 못합니다/,
-    '추출 단계에서야 알면 늦다 — 올린 직후에 말해야 한다');
+  assert.strictEqual(pdf.readable, true, 'PDF 는 이제 본문을 읽는다');
+  assert.strictEqual(pdf.how, 'pdf');
+  assert.match(pdf.note, /스캔본이면/, '스캔본이면 어떻게 되는지 올린 직후에 말한다');
+
+  const r2 = await h.uploadSources({}, c.body.projectId, {
+    files: [{ name: '현장사진.tiff', contentBase64: b64('II*') }],
+  });
+  const tif = r2.body.saved[0];
+  assert.strictEqual(tif.readable, false);
+  assert.strictEqual(tif.how, 'convert');
+  assert.match(tif.note, /PDF 나 PNG/, '못 읽으면 무엇으로 바꿀지까지 말한다');
 });
 
 test('빈 파일과 한도 초과 파일을 거부한다', async () => {

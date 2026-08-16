@@ -253,14 +253,22 @@ function createHandlers(deps) {
           continue;
         }
 
+        // ★ 올린 **직후에** 어떻게 읽을지 말한다. 추출 단계에서야 알면 늦다
         const lower = path.extname(name).toLowerCase();
-        const readable = ext02.TEXT_EXT.has(lower) || !!ext02.ZIP_EXT[lower];
+        const how = ext02.FORMATS[lower];
+        const NOTE = {
+          text: null,
+          zip: null,
+          pdf: '본문을 읽습니다 — 글자 없는 스캔본이면 글자로 옮겨서 읽습니다',
+          ole: '옛 한글·오피스 형식입니다 — 본문을 읽고, 규격 밖이면 글자로 옮겨서 읽습니다',
+          ocr: '이미지입니다 — 글자로 옮겨서 읽습니다 (옮긴 값은 신뢰도를 낮춰 표시합니다)',
+          convert: `이 형식은 읽지 못합니다 — ${ext02.CONVERT_HINT[lower] || 'PDF 나 PNG 로 바꿔서 올립니다'}`,
+        };
         saved.push({
-          name, bytes: buf.length, readable,
-          note: readable ? null
-            : (ext02.UNSUPPORTED_EXT.has(lower)
-              ? '본문을 읽지 못합니다 — 보관은 되지만 수치 추출에는 쓰이지 않습니다'
-              : '처음 보는 형식입니다 — 본문을 읽지 못할 수 있습니다'),
+          name, bytes: buf.length,
+          readable: !!how && how !== 'convert',
+          how: how || null,
+          note: how ? NOTE[how] : '처음 보는 형식입니다 — 본문을 읽지 못할 수 있습니다',
         });
       }
 
