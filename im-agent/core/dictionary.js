@@ -60,6 +60,22 @@ const FIELDS = {
   // 가정이 들어가고, 가정치는 IM 에 넣지 않는다 (2026-08-15 결정, 등록부 D-25).
   'site.solar_irradiance': { label: '연간 일사량', category: CATEGORY.CAPACITY, unit: 'kWh/㎡·년', type: 'number', aliases: ['일사량', '연간일사량', 'Irradiance', 'GHI'], min: 0 },
   'site.sunshine_hours':   { label: '연간 일조시간', category: CATEGORY.CAPACITY, unit: 'hr', type: 'number', aliases: ['일조시간', '연간일조시간'], min: 0 },
+  // 풍력 전용. **일사량과 같은 자리다** — 풍속까지만 두고 발전량은 내지 않는다.
+  // 발전량 = ½ρAv³ × Cp × 가동률인데 Cp·가동률·손실이 전부 가정이고, 풍속은
+  // 세제곱으로 들어가 **1m/s 차이가 발전량을 30% 넘게 흔든다** (D-25 와 같은 줄).
+  //
+  // ★ 풍속은 **허브 높이 없이는 뜻이 없다.** 기상청 지상관측은 10m 기준이고
+  //   허브는 통상 80~140m다. 둘을 잇는 것은 전단지수(α)인데 그것이 가정이다 —
+  //   그래서 둘을 **짝으로** 받는다. 높이 없는 풍속은 쓰지 않는다.
+  'site.wind_speed':       { label: '연평균 풍속', category: CATEGORY.CAPACITY, unit: 'm/s', type: 'number', aliases: ['풍속', '연평균풍속', 'Wind Speed'], min: 0, max: 20 },
+  'site.hub_height_m':     { label: '허브 높이', category: CATEGORY.CAPACITY, unit: 'm', type: 'number', aliases: ['허브높이', '허브 높이', 'Hub Height'], min: 0 },
+  'capacity.turbine_count': { label: '터빈 기수', category: CATEGORY.CAPACITY, unit: '기', type: 'number', aliases: ['터빈수', '기수', '풍력기수', 'Turbines'], min: 0 },
+  'capacity.turbine_mw':   { label: '터빈 단기 용량', category: CATEGORY.CAPACITY, unit: 'MW', type: 'number', aliases: ['터빈용량', '단기용량', '기당 용량'], min: 0 },
+  'capacity.wind_mw':      { label: '설비용량(풍력)', category: CATEGORY.CAPACITY, unit: 'MW', type: 'number', aliases: ['설비용량', '발전용량', '풍력 설비용량'], min: 0 },
+  // 해상 전용. 이 둘이 해상풍력 사업비의 대부분을 정한다 — 그리고 **REC
+  // 가중치가 이 둘로 갈린다**(연계거리·수심 복합 부여).
+  'site.water_depth_m':    { label: '수심 (해상)', category: CATEGORY.CAPACITY, unit: 'm', type: 'number', aliases: ['수심', 'Water Depth'], min: 0 },
+  'site.distance_to_shore_km': { label: '이안거리 (해상)', category: CATEGORY.CAPACITY, unit: 'km', type: 'number', aliases: ['이안거리', '연계거리', 'Distance to Shore'], min: 0 },
   'capacity.dc_kw':      { label: '설비용량(DC)', category: CATEGORY.CAPACITY, unit: 'kW', type: 'number', aliases: ['설비용량', 'DC용량', '모듈용량'], min: 0 },
   'capacity.ac_kw':      { label: '설비용량(AC)', category: CATEGORY.CAPACITY, unit: 'kW', type: 'number', aliases: ['AC용량', '인버터용량', '발전용량'], min: 0 },
   'capacity.leasable_sqm': { label: '임대면적', category: CATEGORY.CAPACITY, unit: '㎡', type: 'number', aliases: ['임대면적', '전용면적', 'NLA', 'Leasable Area'], min: 0 },

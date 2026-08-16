@@ -266,11 +266,38 @@ async function nearestStation(lat, lon) {
   return { ok: true, cached: r.cached, value: best };
 }
 
+/**
+ * 관측 풍속을 **허브 높이로 환산하지 않는다** (등록부 D-55).
+ *
+ * ★ 이 함수는 값을 내려고 있는 것이 아니라 **못 내는 이유를 코드가 들고
+ *   있으려고** 있다. `kepco.substationDistance()` 와 같은 자리다.
+ *
+ * 왜 못 하는가: 기상청 지상관측 풍속은 **10m 기준**이고 풍력 터빈 허브는 통상
+ * 80~140m다. 둘을 잇는 것은 전단지수(α)인데 그 값이 지표 거칠기에 따라
+ * 0.1~0.4 로 갈리는 **가정**이다. 그런데 발전량은 풍속의 **세제곱**에 비례한다 —
+ * α 를 0.14 로 잡느냐 0.25 로 잡느냐가 발전량을 배 가까이 흔든다.
+ *
+ * 게다가 **결과가 그럴듯하다.** 10m 에서 4.5m/s 를 100m 로 올리면 6~8m/s 가
+ * 나오고, 그 값은 실제 풍황탑 측정치와 구분되지 않는다. 출처에는 「기상청」이
+ * 남아 근거 있는 값처럼 보인다 — 이 저장소가 가장 경계하는 모양이다.
+ *
+ * **풍황탑(MET mast)·라이다 측정치를 사람이 넣는다.** 그것이 실사의 핵심 문서다.
+ */
+function hubWindSpeed() {
+  return {
+    ok: false,
+    byDesign: true,
+    error: '관측 풍속(10m)을 허브 높이로 환산하지 않는다 — 전단지수(α)가 가정이고 '
+      + '발전량은 풍속의 **세제곱**에 비례해 그 가정이 결과를 배 가까이 흔든다. '
+      + '**풍황탑·라이다 측정치를 사람이 넣는다** (site.wind_speed + site.hub_height_m)',
+  };
+}
+
 function round1(n) { return n === null ? null : Math.round(n * 10) / 10; }
 function round2(n) { return n === null ? null : Math.round(n * 100) / 100; }
 
 module.exports = {
   dailySolar, annualSolar, stations, nearestStation,
-  parseDaily, distanceKm, isAvailable, errorOf,
+  parseDaily, distanceKm, isAvailable, errorOf, hubWindSpeed,
   MJ_TO_KWH, COL, PROVIDER,
 };

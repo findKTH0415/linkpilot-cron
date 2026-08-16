@@ -132,6 +132,41 @@
       // 계통이 안 받아 주면 수전용량은 종이 위의 숫자다 (등록부 D-54)
       crosschecks: GRID_CROSSCHECKS,
     },
+    /**
+     * 풍력 — **육상과 해상을 나눈다** (등록부 D-55).
+     *
+     * ★ 해상을 **먼저** 둔다. `detect` 는 키워드 포함으로 찾는데, 육상이 앞에
+     *   있으면 「해상풍력」이 육상으로 잡힌다.
+     * ★ 둘 다 **풍속과 허브 높이를 짝으로** 받는다. 기상청 지상관측은 10m
+     *   기준이고 허브는 80~140m다 — 높이 없는 풍속은 어느 높이의 값인지 알 수
+     *   없어 쓸 수 없다.
+     */
+    {
+      id: 'wind_offshore', label: '해상풍력', en: 'Offshore Wind', template: 'wind_offshore',
+      keywords: ['해상풍력', 'offshore wind', '부유식', 'floating wind'],
+      app: { industry: '에너지·발전', sector: '풍력', note: '앱 섹터가 육상·해상을 안 가른다 — 둘 다 「풍력」이다' },
+      requires: [
+        { key: 'capacity.wind_mw', why: '설비용량이 매출의 분모다. 터빈 기수만으로는 규모가 안 잡힌다' },
+        { key: 'site.wind_speed', why: '풍속이 발전량을 정하는데 **세제곱으로 들어간다** — 1m/s 차이가 발전량을 30% 넘게 흔든다' },
+        { key: 'site.hub_height_m', why: '풍속은 높이 없이는 뜻이 없다. 기상청 관측은 10m 기준이고 허브는 80~140m다 — 둘을 잇는 전단지수가 가정이라 우리가 메울 수 없다' },
+        { key: 'site.water_depth_m', why: '수심이 기초 공법을 정하고 기초가 해상풍력 사업비의 큰 몫이다. **REC 가중치도 수심으로 갈린다**' },
+        { key: 'site.distance_to_shore_km', why: '이안거리가 해저케이블 길이와 O&M 접근성을 정한다. 이것도 REC 가중치에 들어간다' },
+      ],
+      // 계통이 안 받아 주면 설비용량은 종이 위의 숫자다 (D-54)
+      crosschecks: GRID_CROSSCHECKS,
+    },
+    {
+      id: 'wind_onshore', label: '육상풍력', en: 'Onshore Wind', template: 'wind_onshore',
+      keywords: ['육상풍력', 'onshore wind', '풍력', 'wind farm'],
+      app: { industry: '에너지·발전', sector: '풍력', note: '앱 섹터가 육상·해상을 안 가른다 — 이 조합만으로는 자산군이 안 갈린다' },
+      requires: [
+        { key: 'capacity.wind_mw', why: '설비용량이 매출의 분모다. 터빈 기수만으로는 규모가 안 잡힌다' },
+        { key: 'site.wind_speed', why: '풍속이 발전량을 정하는데 **세제곱으로 들어간다** — 1m/s 차이가 발전량을 30% 넘게 흔든다' },
+        { key: 'site.hub_height_m', why: '풍속은 높이 없이는 뜻이 없다. 기상청 관측은 10m 기준이고 허브는 80~140m다 — 둘을 잇는 전단지수가 가정이라 우리가 메울 수 없다' },
+        { key: 'land.use_districts', why: '육상풍력은 입지가 곧 성립 여부다 — 백두대간·생태자연도 1등급·풍력발전 이격거리 조례가 지역·지구로 걸린다' },
+      ],
+      crosschecks: GRID_CROSSCHECKS,
+    },
     {
       id: 'officetel', label: '오피스텔', en: 'Officetel', template: 'realestate',
       keywords: ['오피스텔', 'officetel'],
@@ -250,13 +285,16 @@
    *   달아 두면 태양광 딜에서 전력 대조가 통째로 안 뜬다 — 정작 계통이 가장
    *   중요한 딜에서 빠진다.
    *
-   * ⚠️ **풍력은 여기에도 없다.** 자산군도 템플릿도 없어 `generic` 으로 떨어진다.
-   *    붙이려면 재무 템플릿부터 만들어야 해서 이번 범위 밖이다 — 등록부 D-54 에
-   *    적어 두었다. **없는 것을 있는 척하지 않는다.**
+   * ★ 풍력은 **자산군 쪽에 달려 있다** (`wind_onshore`·`wind_offshore`, D-55).
+   *   그래도 여기에 함께 두는 이유는 하나다 — 육상·해상이 앱에서 섹터가 같아
+   *   **자산군이 안 정해지는 경우가 정상이기 때문이다**(§4.9). 그때도 템플릿은
+   *   정해져 있어서, 여기에 없으면 계통 안내가 통째로 빠진다.
    */
   var TEMPLATE_CROSSCHECKS = {
     solar: GRID_CROSSCHECKS,
     datacenter: GRID_CROSSCHECKS,
+    wind_onshore: GRID_CROSSCHECKS,
+    wind_offshore: GRID_CROSSCHECKS,
   };
 
   function templateCrosscheckKeys(templateId) {
