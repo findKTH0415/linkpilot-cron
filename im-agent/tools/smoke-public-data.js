@@ -39,6 +39,7 @@ const g2b = require('../connectors/g2b');
 const rhino = require('../connectors/rhino');
 const kosis = require('../connectors/kosis');
 const factory = require('../connectors/factory');
+const customs = require('../connectors/customs');
 const fsc = require('../connectors/fsc');
 const { looksUrlEncoded } = require('../connectors/http');
 const pnuUtil = require('../connectors/pnu');
@@ -289,6 +290,41 @@ async function main() {
     console.log('  ※ 공장등록을 보려면: npm run im:smoke -- --factory-name <상호> [--factory-sido <시도>]');
   }
 
+  // ── 0-2-4. 수출입 단가 (제조 딜의 단가 실거래 대조) ───────
+  //   ★ HS 코드를 **자동으로 추정하지 않는다** — 틀린 품목의 단가는 그럴듯하다.
+  const hsCode = argOf('--hs');
+  if (customs.isAvailable() && hsCode) {
+    const from = argOf('--hs-from') || '202501';
+    const to = argOf('--hs-to') || '202512';
+    const t = await customs.trade({ hsCode, from, to });
+
+    if (t.ok) {
+      // ★ **누적인지 단월인지**를 여기서 눈으로 본다. 연초 누적이면 월이 갈수록
+      //   금액이 단조증가한다 — 단가는 거의 맞게 나와서 다른 데서는 안 잡힌다
+      const shown = t.value.rows.slice(0, 6)
+        .map(x => `${x.period} ${x.exportUsd ?? '-'}USD/${x.exportKg ?? '-'}kg`).join(' · ');
+      report(`관세청 수출입무역통계 (HS ${hsCode})`, true, `${t.value.rows.length}개월 · ${shown}`);
+      console.log('  ※ 월별 금액이 계속 커지기만 하면 **연초 누적**이다 — 단월이어야 한다 (등록부 D-46)');
+
+      const up = await customs.unitPrice({ hsCode, from, to, direction: argOf('--hs-dir') || 'export' });
+      if (up.ok) {
+        report(`수출입 단가 (HS ${hsCode})`, true,
+          `${up.value.directionLabel} ${up.value.usdPerKg} ${up.value.unit} `
+          + `(${up.value.months}개월 합계${up.value.skippedMonths ? ` · ${up.value.skippedMonths}개월 제외` : ''})`);
+        console.log('  ※ 원화로 바꾸지 않는다 — 어느 시점 환율을 쓸지가 가정이 된다');
+        const c = customs.compare({ price: up.value.usdPerKg * 1.2, unit: 'USD/kg', channel: 'export' }, up.value);
+        console.log(c.ok ? `  예시(딜이 20% 높을 때): ${c.value.text}` : `  ※ 견주기 거부: ${c.error}`);
+      } else {
+        report(`수출입 단가 (HS ${hsCode})`, false, up.error);
+      }
+    } else {
+      report(`관세청 수출입무역통계 (HS ${hsCode})`, false, t.error);
+      console.log('  → 활용신청·엔드포인트·응답 필드가 아직 실측되지 않았다 (등록부 D-46)');
+    }
+  } else if (customs.isAvailable()) {
+    console.log('  ※ 수출입 단가를 보려면: npm run im:smoke -- --hs <HS코드> [--hs-from/to YYYYMM] [--hs-dir export|import]');
+  }
+
   // ── 0-3. 시행사 대조 (주소와 무관) ───────────────────────
   //   ★ 값을 채우는 것이 아니라 **대조**다. 못 찾는 것이 정상인 경우가 많다
   if (dart.isAvailable()) {
@@ -317,6 +353,7 @@ async function main() {
   console.log(`RHINO_COMPUTE  : ${rhino.isAvailable() ? '설정됨 (자체 호스팅)' : '미설정 — 매스 스터디 건너뜀 (Rhino 라이선스 필요, D-38)'}`);
   console.log(`KOSIS_API_KEY  : ${kosis.isAvailable() ? '설정됨 (⚠ 엔드포인트 미검증 — 등록부 D-44)' : '미설정 — 가동률 대조 건너뜀 (가동률이 근거 0인 가정치로 남는다)'}`);
   console.log(`공장등록        : ${factory.isAvailable() ? 'DATA_GO_KR_KEY 로 조회 (⚠ 기관·응답 필드 미검증 — 등록부 D-45)' : '미설정 — 생산능력 상한 대조 건너뜀'}`);
+  console.log(`수출입 단가     : ${customs.isAvailable() ? 'DATA_GO_KR_KEY 로 조회 (⚠ 누적 여부·응답 필드 미검증 — 등록부 D-46)' : '미설정 — 단가 실거래 대조 건너뜀'}`);
 
   let lat = null, lon = null, parsedPnu = null, polygonAreaSqm = null;
 
