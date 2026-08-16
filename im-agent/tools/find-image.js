@@ -30,9 +30,11 @@ function usage() {
   console.log('참고 이미지 찾기 (Pexels)');
   console.log('─'.repeat(58));
   console.log('  npm run im:image -- "<검색어>" [--orientation landscape|portrait|square]');
-  console.log('  npm run im:image -- "<검색어>" --pick <번호> --project <프로젝트ID> [--note "간지용"]');
+  console.log('  npm run im:image -- "<검색어>" --pick <번호> --project <프로젝트ID> --no-people [--note "간지용"]');
   console.log('\n★ 받은 사진은 **이 사업의 현장이 아니다.** 캡션과 출처가 함께 남는다.');
-  console.log('★ 식별 가능한 인물이 있으면 대외 문서에 쓰지 않는다 (등록부 D-50).');
+  console.log('★ **인물 사진은 쓰지 않는다** (D-50). API 가 사람 유무를 알려 주지 않으므로');
+  console.log('  사진을 눈으로 확인하고 --no-people 을 붙여야 받아진다.');
+  console.log('★ **내부 검토본까지만** 쓴다 — 대외 배포본에서는 뺀다. 남아 있으면 승인이 막힌다.');
 }
 
 /** 값을 받는 플래그 — 그 **다음 인자**는 검색어가 아니다 */
@@ -78,7 +80,8 @@ async function main() {
     console.log('\n─'.repeat(1) + '─'.repeat(57));
     console.log('★ **기계가 고르지 않는다.** 눈으로 보고 --pick <번호> 로 고른다.');
     console.log('   주소를 열어 사진을 확인한 뒤 고르는 것을 권한다.');
-    console.log('★ 식별 가능한 인물이 있으면 대외 문서에 쓰지 않는다 (등록부 D-50).');
+    console.log('★ **인물 사진은 쓰지 않는다** (D-50). 사진을 열어 사람이 없는지 확인하고');
+    console.log('  --no-people 을 붙인다 — API 는 사람 유무를 알려 주지 않는다.');
     return;
   }
 
@@ -96,7 +99,11 @@ async function main() {
   }
 
   const dir = store.projectDir(projectId);
-  const d = await pexels.download({ photo, projectDir: dir, note: argOf('--note') || null });
+  // ★ 확인했다는 표시를 사람이 직접 붙인다. 기본값으로 두면 확인 없이 지나간다
+  const noPeople = process.argv.includes('--no-people');
+  const d = await pexels.download({
+    photo, projectDir: dir, note: argOf('--note') || null, confirmedNoPeople: noPeople,
+  });
   if (!d.ok) {
     console.log(`✕ ${d.error}`);
     process.exit(1);
@@ -107,6 +114,8 @@ async function main() {
   console.log(`  캡션: ${d.value.caption}`);
   console.log(`  출처는 ${path.join(pexels.STOCK_DIR, 'manifest.json')} 에 남았다`);
   console.log('\n★ 문서에 넣을 때 **캡션을 그대로 함께 넣는다.** 떼면 이 딜의 현장으로 읽힌다.');
+  console.log('★ **내부 검토본까지만** 쓴다 — 대외 배포본에서는 뺀다 (D-50).');
+  console.log(`  파일이 ${pexels.STOCK_DIR} 에 남아 있으면 **승인이 막힌다.** 뺐으면 파일도 지운다.`);
   console.log(`★ ${d.value.check}`);
 }
 

@@ -24,10 +24,17 @@
  * ★ **자동으로 고르지 않는다** (§4.9). 검색어 하나에 수천 장이 나오고,
  *   그중 무엇이 이 딜에 어울리는지는 기계가 못 정한다. 후보를 내고 사람이 고른다.
  *
- * ★ **사람이 찍힌 사진은 권하지 않는다.** Pexels 라이선스는 식별 가능한 인물을
- *   특정 맥락에 쓰는 것을 제한하고, PDI 하우스 스타일도 개인 성명·인물을 대외
- *   문서에 넣지 않는다. API 가 「사람이 있는가」를 알려 주지 않으므로
- *   **판정하지 않고 경고만 남긴다** — 고르는 사람이 보고 정한다 (등록부 D-50).
+ * ★ **인물 사진은 쓰지 않는다** (2026-08-16 결정 · D-50). Pexels 라이선스는 식별
+ *   가능한 인물을 특정 맥락에 쓰는 것을 제한하고, PDI 하우스 스타일도 대외 문서에
+ *   개인을 넣지 않는다.
+ *
+ *   **API 는 「사람이 있는가」를 알려 주지 않는다.** 그래서 기계가 판정하지 않고,
+ *   대신 **사람이 봤다고 명시해야 내려받힌다** (`confirmedNoPeople`). 경고만
+ *   띄우면 아무도 안 읽는다 — 실제로 막아야 지켜진다.
+ *
+ * ★ **대외 배포본에는 넣지 않는다** (2026-08-16 결정 · D-50). 내부 검토본과
+ *   투자자 배포본은 성격이 다르다. 캡션이 붙어 있어도 대외 문서에 남의 사진이
+ *   실리는 것은 다른 문제다 — `gate.js` 가 승인 단계에서 막는다.
  *
  * ★ **출처를 남긴다.** Pexels 라이선스는 출처 표기를 요구하지 않지만,
  *   이 시스템은 §4.7 로 「그 값이 어디서 왔는지」를 항상 남긴다. 사진도 같다 —
@@ -61,6 +68,14 @@ const STOCK_DIR = '09_IM/images/stock';
 
 /** 이 폴더에는 절대 넣지 않는다 */
 const FORBIDDEN_DIRS = ['02_Source_Data', '04_Property'];
+
+/**
+ * 이 사진을 어디까지 쓸 수 있는가 (2026-08-16 결정 · D-50).
+ *
+ * ★ **내부 검토본까지다.** 대외 배포본에서는 뺀다 — 승인 단계(`core/gate.js`)가
+ *   막는다. 여기 값을 바꾸면 그 판정도 함께 바뀐다 (한 곳에서만 정한다).
+ */
+const AUDIENCE = 'internal';
 
 /**
  * 캡션 앞머리. **떼면 남의 공장 사진이 이 딜의 현장이 된다.**
@@ -180,6 +195,16 @@ async function download(o) {
   if (!photo || !photo.files || !photo.files.large) {
     return { ok: false, error: '내려받을 사진을 지정해야 한다 — search() 후보 중에서 사람이 고른다' };
   }
+  // ★ **경고만 띄우면 아무도 안 읽는다.** 인물 여부는 API 가 안 알려 주므로
+  //   사람이 봤다고 명시해야 받을 수 있게 한다 (D-50)
+  if (opt.confirmedNoPeople !== true) {
+    return {
+      ok: false, needsPersonCheck: true,
+      error: '사진에 사람이 있는지 눈으로 확인해야 한다 — 인물 사진은 쓰지 않는다 (D-50). '
+        + 'API 는 사람이 있는지 알려 주지 않는다. 확인했으면 confirmedNoPeople 을 넘긴다 '
+        + '(도구에서는 --no-people)',
+    };
+  }
   if (!opt.projectDir) return { ok: false, error: '프로젝트 폴더가 필요하다' };
 
   const destDir = path.join(opt.projectDir, STOCK_DIR);
@@ -211,8 +236,12 @@ async function download(o) {
     // ★ 캡션을 **파일과 함께** 남긴다. 나중에 문서에 붙일 때 이걸 그대로 쓴다
     caption: caption(photo, opt.note),
     license: 'Pexels License (출처 표기 의무 없음 — 그래도 남긴다)',
-    // ★ 사람이 찍혀 있는지는 API 가 말해 주지 않는다. **판정하지 않고 남긴다**
-    check: '식별 가능한 인물이 있으면 대외 문서에 쓰지 않는다 (사람이 확인, 등록부 D-50)',
+    // ★ 여기까지만 쓴다. 대외 배포본에서는 뺀다 (D-50) — `gate.js` 가 막는다
+    audience: AUDIENCE,
+    externalUse: false,
+    // ★ 기계가 판정한 것이 아니라 **사람이 봤다고 한 것**이다. 그 구분을 남긴다
+    noPeople: 'confirmed-by-human',
+    check: '인물 사진은 쓰지 않는다 (D-50). 이 항목은 사람이 확인한 것이며 기계 판정이 아니다',
   };
   writeManifest(opt.projectDir, entry);
 
@@ -236,15 +265,30 @@ function writeManifest(projectDir, entry) {
   const m = readManifest(projectDir);
   m.images = (m.images || []).filter(x => x.file !== entry.file).concat([entry]);
   m.note = '이 폴더의 사진은 전부 **참고 이미지**다 — 이 사업의 현장이 아니다. '
-    + '받은 자료(02_Source_Data)·지적선으로 그린 그림(04_Property)과 섞지 않는다.';
+    + '받은 자료(02_Source_Data)·지적선으로 그린 그림(04_Property)과 섞지 않는다. '
+    + '**내부 검토본까지만 쓴다 — 대외 배포본에서는 뺀다** (등록부 D-50).';
   fs.mkdirSync(path.dirname(manifestPath(projectDir)), { recursive: true });
   fs.writeFileSync(manifestPath(projectDir), JSON.stringify(m, null, 2), 'utf8');
   return m;
 }
 
+/**
+ * 대외 배포를 막는 사유. **승인 단계가 이걸 부른다** (`core/gate.js`).
+ *
+ * ★ 파일이 남아 있기만 해도 막는다 — 「문서에 안 넣었다」를 코드가 알 방법이
+ *   없고, 사람이 「안 넣었다」고 믿는 것이 바로 사고가 나는 자리다.
+ *   뺐으면 파일도 지운다.
+ */
+function externalBlockers(projectDir) {
+  const imgs = (readManifest(projectDir).images || []).filter(x => x.externalUse !== true);
+  if (!imgs.length) return [];
+  return [`참고 이미지 ${imgs.length}건이 남아 있다 — 대외 배포본에서는 뺀다 (D-50). `
+    + `${STOCK_DIR} 의 파일을 지우거나 내부 검토본으로만 낸다`];
+}
+
 module.exports = {
-  search, download, caption, attribution, toPhoto,
+  search, download, caption, attribution, toPhoto, externalBlockers,
   readManifest, writeManifest, manifestPath,
   isAvailable, unavailable, mask,
-  PROVIDER, BASE, STOCK_DIR, FORBIDDEN_DIRS, CAPTION_PREFIX,
+  PROVIDER, BASE, STOCK_DIR, FORBIDDEN_DIRS, CAPTION_PREFIX, AUDIENCE,
 };

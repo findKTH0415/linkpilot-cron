@@ -86,7 +86,7 @@ test('★ 캡션에 「이 사업의 현장이 아니다」가 반드시 들어�
 
 test('★ 내려받은 결과에 캡션이 함께 온다 (따로 만들 여지를 두지 않는다)', async () => {
   await withFake(responder, async (calls, tmp) => {
-    const r = await pexels.download({ photo: pexels.toPhoto(PHOTO), projectDir: tmp });
+    const r = await pexels.download({ photo: pexels.toPhoto(PHOTO), projectDir: tmp, confirmedNoPeople: true });
     assert.strictEqual(r.ok, true, r.error);
     assert.match(r.value.caption, /이 사업의 현장이 아니다/);
     assert.ok(r.value.pageUrl && r.value.photographer, '출처가 빠졌다');
@@ -99,7 +99,7 @@ test('★ 내려받은 결과에 캡션이 함께 온다 (따로 만들 여지�
  */
 test('★ manifest 에 출처와 캡션이 남는다', async () => {
   await withFake(responder, async (calls, tmp) => {
-    await pexels.download({ photo: pexels.toPhoto(PHOTO), projectDir: tmp, note: '표지용' });
+    await pexels.download({ photo: pexels.toPhoto(PHOTO), projectDir: tmp, note: '표지용', confirmedNoPeople: true });
     const m = pexels.readManifest(tmp);
     assert.strictEqual(m.images.length, 1);
     assert.match(m.images[0].caption, /표지용/);
@@ -112,24 +112,76 @@ test('★ manifest 에 출처와 캡션이 남는다', async () => {
 test('같은 사진을 다시 받아도 manifest 가 중복되지 않는다', async () => {
   await withFake(responder, async (calls, tmp) => {
     const p = pexels.toPhoto(PHOTO);
-    await pexels.download({ photo: p, projectDir: tmp });
-    await pexels.download({ photo: p, projectDir: tmp });
+    await pexels.download({ photo: p, projectDir: tmp, confirmedNoPeople: true });
+    await pexels.download({ photo: p, projectDir: tmp, confirmedNoPeople: true });
     assert.strictEqual(pexels.readManifest(tmp).images.length, 1);
   });
 });
 
 /**
- * ★ API 는 「사람이 찍혀 있는가」를 말해 주지 않는다. **판정하지 않고 남긴다** —
- *   짐작해서 통과시키면 대외 문서에 인물 사진이 들어간다.
+ * ★ **인물 사진은 쓰지 않는다** (2026-08-16 결정 · D-50).
+ *   API 는 사람이 찍혀 있는지 알려 주지 않는다. 그래서 기계가 판정하지 않고,
+ *   **사람이 봤다고 명시해야 받아진다.** 경고만 띄우면 아무도 안 읽는다 —
+ *   실제로 막아야 지켜진다.
  */
-test('★ 인물 확인을 사람에게 넘긴다 (기계가 판정하지 않는다)', async () => {
+test('★ 확인 표시 없이는 내려받히지 않는다 (경고가 아니라 차단이다)', async () => {
   await withFake(responder, async (calls, tmp) => {
     const r = await pexels.download({ photo: pexels.toPhoto(PHOTO), projectDir: tmp });
-    assert.match(r.value.check, /식별 가능한 인물/);
-    assert.match(r.value.check, /사람이 확인/);
+    assert.strictEqual(r.ok, false, '확인 없이 받아졌다 — 인물 사진이 들어갈 수 있다');
+    assert.strictEqual(r.needsPersonCheck, true);
+    assert.match(r.error, /눈으로 확인/);
+    assert.ok(!calls.some(c => /images\.pexels\.com/.test(c.url)), '거부할 요청으로 파일을 받았다');
+  });
+});
+
+test('★ 도구가 --no-people 을 요구한다 (기본값으로 통과시키지 않는다)', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'tools', 'find-image.js'), 'utf8');
+  assert.match(src, /--no-people/);
+  assert.match(src, /confirmedNoPeople: noPeople/, '확인 표시를 그대로 넘겨야 한다');
+  assert.ok(!/confirmedNoPeople: true/.test(src), '도구가 확인을 대신 해 주고 있다');
+});
+
+test('★ 인물 확인은 사람이 한 것으로 기록된다 (기계 판정이 아니다)', async () => {
+  await withFake(responder, async (calls, tmp) => {
+    const r = await pexels.download({ photo: pexels.toPhoto(PHOTO), projectDir: tmp, confirmedNoPeople: true });
+    assert.strictEqual(r.value.noPeople, 'confirmed-by-human',
+      '기계가 판정한 것처럼 기록되면 나중에 무엇을 믿을지 알 수 없다');
+    assert.match(r.value.check, /기계 판정이 아니다/);
   });
   const src = fs.readFileSync(path.join(__dirname, '..', 'connectors', 'pexels.js'), 'utf8');
   assert.ok(!/hasPeople|detectFace|isPerson/.test(src), '기계가 인물을 판정하고 있다');
+});
+
+/* ═════════ 대외 배포본에서는 뺀다 (D-50) ═════════ */
+
+/**
+ * ★ **파일이 남아 있기만 해도 막는다.** 「문서에 안 넣었다」를 코드가 알 방법이
+ *   없고, 사람이 「안 넣었다」고 믿는 것이 바로 사고가 나는 자리다.
+ */
+test('★ 참고 이미지가 남아 있으면 대외 배포를 막는다', async () => {
+  await withFake(responder, async (calls, tmp) => {
+    assert.deepStrictEqual(pexels.externalBlockers(tmp), [], '없을 때는 막지 않는다');
+    await pexels.download({ photo: pexels.toPhoto(PHOTO), projectDir: tmp, confirmedNoPeople: true });
+    const blockers = pexels.externalBlockers(tmp);
+    assert.strictEqual(blockers.length, 1, '남아 있는데 안 막았다');
+    assert.match(blockers[0], /대외 배포본에서는 뺀다/);
+    assert.match(blockers[0], /파일을 지우거나/, '무엇을 하면 되는지 말해야 한다');
+  });
+});
+
+test('★ 승인 게이트가 그 판정을 부른다 (커넥터 안에만 있으면 아무도 안 본다)', () => {
+  const gate = fs.readFileSync(path.join(__dirname, '..', 'core', 'gate.js'), 'utf8');
+  assert.match(gate, /pexels\.externalBlockers/, '게이트에 안 걸려 있으면 그냥 나간다');
+  assert.match(gate, /내부 검토본까지만/, '왜 막는지 적어야 한다');
+});
+
+test('★ manifest 와 항목에 「내부까지」가 박혀 있다', async () => {
+  await withFake(responder, async (calls, tmp) => {
+    const r = await pexels.download({ photo: pexels.toPhoto(PHOTO), projectDir: tmp, confirmedNoPeople: true });
+    assert.strictEqual(r.value.audience, 'internal');
+    assert.strictEqual(r.value.externalUse, false);
+    assert.match(pexels.readManifest(tmp).note, /대외 배포본에서는 뺀다/);
+  });
 });
 
 /* ═════════ ② 딜 자료·현장 그림과 섞이지 않는다 ═════════ */
@@ -140,7 +192,7 @@ test('★ 인물 확인을 사람에게 넘긴다 (기계가 판정하지 않는
  */
 test('★ 스톡 폴더에만 들어간다', async () => {
   await withFake(responder, async (calls, tmp) => {
-    const r = await pexels.download({ photo: pexels.toPhoto(PHOTO), projectDir: tmp });
+    const r = await pexels.download({ photo: pexels.toPhoto(PHOTO), projectDir: tmp, confirmedNoPeople: true });
     assert.ok(r.value.file.startsWith('09_IM/images/stock/'), `엉뚱한 곳에 갔다: ${r.value.file}`);
     assert.ok(fs.existsSync(path.join(tmp, r.value.file)));
   });
@@ -149,7 +201,7 @@ test('★ 스톡 폴더에만 들어간다', async () => {
 test('★ 받은 자료·지적선 그림 폴더에는 절대 안 넣는다', async () => {
   await withFake(responder, async (calls, tmp) => {
     for (const bad of pexels.FORBIDDEN_DIRS) {
-      const r = await pexels.download({ photo: pexels.toPhoto(PHOTO), projectDir: path.join(tmp, bad, 'x') });
+      const r = await pexels.download({ photo: pexels.toPhoto(PHOTO), projectDir: path.join(tmp, bad, 'x'), confirmedNoPeople: true });
       assert.strictEqual(r.ok, false, `${bad} 에 넣는 것을 막지 못했다`);
       assert.match(r.error, /두지 않는다/);
     }

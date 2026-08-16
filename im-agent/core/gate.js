@@ -9,6 +9,7 @@
 
 const store = require('./store');
 const issuer = require('./issuer');
+const pexels = require('../connectors/pexels');
 const { kstStamp } = require('./kst');
 
 const APPROVAL_PATH = '11_QC/approval.json';
@@ -69,6 +70,12 @@ function canApprove(projectId) {
   if (!issuer.read(projectId)) {
     reasons.push('발행 주체 미설정 — issuer.json 에 회사 정보를 넣어야 대외 배포할 수 있다');
   }
+
+  // ★ 참고 이미지(스톡 사진)는 **내부 검토본까지만** 쓴다 (2026-08-16 결정 · D-50).
+  //   캡션이 붙어 있어도 대외 문서에 남의 사진이 실리는 것은 다른 문제다.
+  //   **파일이 남아 있기만 해도 막는다** — 「문서에 안 넣었다」를 코드가 알 방법이
+  //   없고, 사람이 「안 넣었다」고 믿는 것이 바로 사고가 나는 자리다.
+  reasons.push(...pexels.externalBlockers(store.projectDir(projectId)));
 
   return { allowed: reasons.length === 0, reasons };
 }
