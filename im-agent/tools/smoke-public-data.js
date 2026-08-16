@@ -40,6 +40,7 @@ const rhino = require('../connectors/rhino');
 const kosis = require('../connectors/kosis');
 const factory = require('../connectors/factory');
 const customs = require('../connectors/customs');
+const enviro = require('../connectors/enviro');
 const fsc = require('../connectors/fsc');
 const { looksUrlEncoded } = require('../connectors/http');
 const pnuUtil = require('../connectors/pnu');
@@ -325,6 +326,31 @@ async function main() {
     console.log('  ※ 수출입 단가를 보려면: npm run im:smoke -- --hs <HS코드> [--hs-from/to YYYYMM] [--hs-dir export|import]');
   }
 
+  // ── 0-2-5. 환경 인허가 (딜브레이커 점검) ──────────────────
+  //   ★ 앞의 넷과 **반대 방향**의 위험이다. 숫자는 없으면 비우면 되지만,
+  //     딜브레이커는 **없는 것이 「문제 없음」처럼 보인다.**
+  const enviroName = argOf('--enviro-name');
+  if (enviroName) {
+    const s = await enviro.screen({ name: enviroName, address: argOf('--enviro-addr') || '' });
+    const mark = { confirmed: '●', absent: '○', unknown: '?', 'n/a': '–' };
+    // ★ 판정 자체가 실패하지 않는다 — 못 본 항목도 「못 봤다」로 남는다
+    report(`환경 인허가 점검 (${enviroName})`, s.verdict.cleared,
+      s.items.map(x => `${mark[x.status] || '?'} ${x.label}`).join(' / '));
+    s.items.forEach((x) => {
+      if (x.status === 'confirmed') return;
+      console.log(`    · ${x.label}: ${x.reason || ''}`);
+      if (x.why) console.log(`      없으면 → ${x.why}`);
+    });
+    console.log(`  ※ ${s.verdict.text}`);
+    console.log('  ※ ○(기록 없음)·?(확인 못 함) 는 **「문제 없음」이 아니다** — 사람이 확인해야 한다');
+    if (s.verdict.autoNotApplicable.length) {
+      console.log(`  ⚠ 코드가 붙인 「대상 아님」이 있다: ${s.verdict.autoNotApplicable.join(', ')} — 사람만 붙일 수 있다`);
+    }
+    console.log('  → 세 자료 모두 아직 실측되지 않았다. 배출권 명단은 **고시로만** 나올 수 있다 (등록부 D-47)');
+  } else if (enviro.isAvailable()) {
+    console.log('  ※ 환경 인허가를 보려면: npm run im:smoke -- --enviro-name <상호> [--enviro-addr <주소>]');
+  }
+
   // ── 0-3. 시행사 대조 (주소와 무관) ───────────────────────
   //   ★ 값을 채우는 것이 아니라 **대조**다. 못 찾는 것이 정상인 경우가 많다
   if (dart.isAvailable()) {
@@ -354,6 +380,7 @@ async function main() {
   console.log(`KOSIS_API_KEY  : ${kosis.isAvailable() ? '설정됨 (⚠ 엔드포인트 미검증 — 등록부 D-44)' : '미설정 — 가동률 대조 건너뜀 (가동률이 근거 0인 가정치로 남는다)'}`);
   console.log(`공장등록        : ${factory.isAvailable() ? 'DATA_GO_KR_KEY 로 조회 (⚠ 기관·응답 필드 미검증 — 등록부 D-45)' : '미설정 — 생산능력 상한 대조 건너뜀'}`);
   console.log(`수출입 단가     : ${customs.isAvailable() ? 'DATA_GO_KR_KEY 로 조회 (⚠ 누적 여부·응답 필드 미검증 — 등록부 D-46)' : '미설정 — 단가 실거래 대조 건너뜀'}`);
+  console.log(`환경 인허가     : ${enviro.isAvailable() ? 'DATA_GO_KR_KEY 로 조회 (⚠ 세 자료 모두 미검증 — 등록부 D-47)' : '미설정 — 딜브레이커 점검 건너뜀'}`);
 
   let lat = null, lon = null, parsedPnu = null, polygonAreaSqm = null;
 
