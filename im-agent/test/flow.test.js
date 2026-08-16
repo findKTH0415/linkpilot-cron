@@ -151,3 +151,72 @@ test('빌드는 파일을 쓰지 않는다', async () => {
   await buildSection();
   assert.deepStrictEqual(fs.readdirSync(PLATFORM).sort(), before);
 });
+
+/* ───────────── 변경 내역 패널 ───────────── */
+//
+// 화면을 받은 사람이 **바뀐 줄도 모르고 옛 기준으로 보는 것**이 이 패널이 막는 일이다.
+
+test('★ 변경 내역이 미리보기 창에 뜬다', async () => {
+  const C = require('../ui/platform/changes.js');
+  const html = await buildSection();
+
+  assert.match(html, /이번에 바뀐 것/, '패널 자체가 없다');
+  C.CHANGES.forEach((c) => {
+    assert.ok(html.includes(c.title), `변경 '${c.title}' 이 화면에 안 뜬다`);
+  });
+  assert.ok(html.indexOf('이번에 바뀐 것') < html.indexOf('class="wrap"'),
+    '화면보다 아래 있으면 스크롤하다 놓친다');
+});
+
+test('★ 한 일과 아직 안 된 것을 갈라 놓는다', async () => {
+  const C = require('../ui/platform/changes.js');
+  const html = await buildSection();
+
+  assert.match(html, /아직 안 된 것/);
+  C.PENDING.forEach((p) => {
+    assert.ok(html.includes(p.title), `보류 '${p.title}' 이 안 뜬다`);
+    assert.ok(html.includes(p.blocked.slice(0, 20)),
+      '무엇이 막고 있는지 없으면 "곧 되겠지"로 읽힌다');
+  });
+  // 섞이면 이미 된 것으로 읽힌다
+  assert.ok(html.indexOf('아직 안 된 것') > html.indexOf(C.CHANGES[0].title),
+    '보류 항목이 변경 목록보다 앞에 있다');
+});
+
+test('내역마다 이유가 붙어 있다', () => {
+  const C = require('../ui/platform/changes.js');
+  C.CHANGES.forEach((c) => {
+    assert.ok(c.why && c.why.length > 20,
+      `'${c.title}' 에 이유가 없다 — 무엇이 달라지는지 없으면 목록이 쓸모없다`);
+    assert.match(c.at, /^\d{4}-\d{2}-\d{2}$/);
+    assert.ok(c.where, '어디가 바뀌었는지 없으면 찾아볼 수가 없다');
+  });
+});
+
+test('★ 내역을 화면 HTML 에 손으로 적지 않는다', () => {
+  const C = require('../ui/platform/changes.js');
+  const src = fs.readFileSync(path.join(PLATFORM, 'build-preview.js'), 'utf8');
+  assert.match(src, /require\('\.\/changes\.js'\)/, '단일 출처를 읽어야 한다');
+  C.CHANGES.forEach((c) => {
+    assert.ok(!src.includes(c.title),
+      `'${c.title}' 이 빌더에 복사돼 있다 — 두 벌이 되면 옛 내역을 보여주는 날이 온다`);
+  });
+});
+
+test('★ 평문에 마크다운 표시를 남기지 않는다', () => {
+  const C = require('../ui/platform/changes.js');
+  // 화면에서는 글자 그대로 뜬다. 실제로 `**강조**` 가 별표째 나온 적이 있다
+  [...C.CHANGES, ...C.PENDING].forEach((x) => {
+    [x.title, x.why, x.blocked, x.where].filter(Boolean).forEach((v) => {
+      assert.ok(!v.includes('**'), `'${v.slice(0, 24)}…' 에 ** 가 남아 있다`);
+    });
+  });
+});
+
+test('내역 문구가 태그로 해석되지 않는다', async () => {
+  const html = await buildSection();
+  // esc() 를 거치므로 꺾쇠가 살아 있으면 안 된다 (내역은 사람이 쓴 글이다)
+  const at = html.indexOf('이번에 바뀐 것');
+  const panel = html.slice(at, html.indexOf('</section>', at));
+  assert.ok(!/<script|<img|onerror=/i.test(panel), '내역 문구가 이스케이프되지 않았다');
+});

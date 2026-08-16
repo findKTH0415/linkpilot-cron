@@ -324,7 +324,76 @@ Object.assign(window.LINKPILOT_REPORT_FLOW, {
   목록·저장된 값은 비어 있고, 저장·생성 버튼은 실제로 아무것도 하지 않습니다.
   제품에서는 네 단계를 하나씩 보여주지만 여기서는 <b>한 번에 펼쳐</b> 둡니다.
 </div>`;
-  return shell.replace('<body>', '<body>' + banner);
+  return shell.replace('<body>', '<body>' + banner + changePanel());
+}
+
+/** HTML 로 내보낼 때 태그가 되지 않게 한다 (내역 문구는 사람이 쓴 글이다) */
+function esc(t) {
+  return String(t)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/**
+ * 이번에 바뀐 것 — 미리보기 창 안에 띄운다.
+ *
+ * ★ 화면을 받은 사람이 **바뀐 줄도 모르고 옛 기준으로 보는 것**이 이 패널이 막는 일이다.
+ * ★ 목록을 여기서 새로 적지 않는다. `changes.js` 하나가 출처다.
+ * ★ 한 일과 아직 안 된 것을 **갈라 놓는다.** 섞으면 이미 된 것으로 읽힌다.
+ */
+function changePanel() {
+  const C = require('./changes.js');
+
+  const groups = C.byDate().map((g) => `
+    <div class="upd__g">
+      <div class="upd__d">${esc(g.at)}</div>
+      <ul class="upd__l">
+        ${g.items.map(i => `<li>
+          <b>${esc(i.title)}</b>
+          <em>${esc(i.where)}</em>
+          <span>${esc(i.why)}</span>
+        </li>`).join('')}
+      </ul>
+    </div>`).join('');
+
+  const pending = C.PENDING.map(p => `<li>
+      <b>${esc(p.title)}</b>
+      <span>${esc(p.blocked)}</span>
+    </li>`).join('');
+
+  return `
+<style>
+  .upd { max-width: 1120px; margin: 14px auto 0; padding: 18px 20px;
+    background: #fff; border: 1px solid #E8EAEC; border-radius: 18px;
+    font: 400 14px/1.65 Arial, 'Malgun Gothic', sans-serif; color: #17181A; }
+  .upd__h { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+  .upd__t { font-size: 17px; font-weight: 700; margin: 0; }
+  .upd__at { font-size: 12.5px; color: #7C838C; }
+  .upd__s { font-size: 13.5px; color: #7C838C; margin: 0 0 14px; }
+  .upd__g { margin-top: 12px; }
+  .upd__d { font: 700 12px/1 ui-monospace, Menlo, Consolas, monospace; color: #5C7A00;
+    background: #EDF7DC; display: inline-block; padding: 5px 9px; border-radius: 6px; }
+  .upd__l, .upd__p { list-style: none; margin: 8px 0 0; padding: 0; }
+  .upd__l li, .upd__p li { padding: 9px 0 9px 13px; border-left: 2px solid #9ED700; margin-bottom: 8px; }
+  .upd__p li { border-left-color: #E8A33D; }
+  .upd__l b, .upd__p b { display: block; font-size: 14.5px; }
+  .upd__l em { font-style: normal; font-size: 12px; color: #7C838C; }
+  .upd__l span, .upd__p span { display: block; margin-top: 3px; font-size: 13px; color: #4A5560; }
+  .upd__pt { margin: 20px 0 0; font-size: 14px; font-weight: 700; }
+  .upd__pd { margin: 3px 0 0; font-size: 12.5px; color: #7C838C; }
+</style>
+<section class="upd">
+  <div class="upd__h">
+    <h2 class="upd__t">이번에 바뀐 것</h2>
+    <span class="upd__at">최근 반영 ${esc(C.latestAt())} (KST)</span>
+  </div>
+  <p class="upd__s">아래 화면에 이미 반영되어 있습니다. 무엇이 왜 바뀌었는지 함께 적습니다.</p>
+  ${groups}
+
+  <p class="upd__pt">아직 안 된 것</p>
+  <p class="upd__pd">위 목록과 섞지 않습니다 — 섞으면 이미 된 것으로 읽힙니다.</p>
+  <ul class="upd__p">${pending}</ul>
+</section>`;
 }
 
 async function main() {

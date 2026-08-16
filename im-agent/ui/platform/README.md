@@ -386,6 +386,7 @@ process.on('SIGTERM', () => queue.stop());   // 자식 프로세스를 남기지
 ```bash
 npm run im:screens     # 입력 화면 4개 나열 (preview.html)
 npm run im:section     # 앱 [보고서 생성] 섹션 그대로 (section-preview.html)
+                       #   맨 위에 '이번에 바뀐 것' 패널이 함께 뜬다 (changes.js)
 npm run im:result      # 데모 파이프라인 실행 → 결과 화면 (result.html)
 npm run im:platform    # 플랫폼 단일 HTML
 ```
