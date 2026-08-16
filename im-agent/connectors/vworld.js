@@ -31,10 +31,16 @@ function apiKey() {
  *   예: VWORLD_DOMAIN=nas.example.com   (스킴·경로 없이 호스트만)
  */
 function domain() {
-  return (process.env.VWORLD_DOMAIN || '')
-    .replace(/^https?:\/\//, '')   // 스킴 제거
-    .replace(/\/.*$/, '')           // 경로 제거
-    .trim();
+  // ★ 콘솔의 **서비스URL 을 글자 그대로** 보낸다. 스킴·경로를 벗기면 안 된다.
+  //
+  //   예전에는 여기서 `https://` 와 경로를 잘라 호스트만 남겼다. 그러면
+  //   `req/*` 계열(지오코딩·지적)은 통과하는데 `ned/*` 계열(공시지가·토지이용계획·
+  //   토지특성)이 **간헐적으로** INCORRECT_KEY 를 낸다 — 실측에서 5회 중 2회 실패.
+  //
+  //   간헐적이라는 것이 이 결함의 성질이다. "가끔 값이 안 들어온다" 로만 보여서
+  //   키를 재발급받고 도메인을 다시 등록해도 같은 증상이 반복된다.
+  //   (2026-08-16 실측으로 확인 — 사용자 환경 B-3 의 원인)
+  return (process.env.VWORLD_DOMAIN || '').trim();
 }
 
 /**

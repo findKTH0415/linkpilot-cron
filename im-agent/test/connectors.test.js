@@ -154,15 +154,20 @@ test('★ 지오코딩 type 이 덮어써지지 않는다 (ROAD/PARCEL → json 
   if (saved) process.env.VWORLD_KEY = saved; else delete process.env.VWORLD_KEY;
 });
 
-test('VWORLD_DOMAIN 은 스킴·경로를 제거해 호스트만 보낸다', () => {
+test('★ VWORLD_DOMAIN 을 가공하지 않는다 (콘솔의 서비스URL 그대로)', () => {
+  // ★ 예전에는 스킴·경로를 벗겨 호스트만 보냈다. 그러면 req/* 계열은 통과하는데
+  //   ned/* 계열(공시지가·토지이용계획·토지특성)이 **간헐적으로** 인증을 거부한다
+  //   — 실측 5회 중 2회 실패 (2026-08-16). 간헐적이라 "가끔 값이 안 들어온다"
+  //   로만 보이고, 키를 재발급받아도 같은 증상이 반복된다
   const vworld = require('../connectors/vworld');
   const saved = process.env.VWORLD_DOMAIN;
 
   process.env.VWORLD_DOMAIN = 'https://nas.example.com/app.html';
-  assert.strictEqual(vworld.domain(), 'nas.example.com');
+  assert.strictEqual(vworld.domain(), 'https://nas.example.com/app.html',
+    '스킴·경로를 벗기면 ned/* 계열이 간헐적으로 거부된다');
 
-  process.env.VWORLD_DOMAIN = 'nas.example.com';
-  assert.strictEqual(vworld.domain(), 'nas.example.com');
+  process.env.VWORLD_DOMAIN = '  nas.example.com  ';
+  assert.strictEqual(vworld.domain(), 'nas.example.com', '앞뒤 공백만 다듬는다');
 
   delete process.env.VWORLD_DOMAIN;
   assert.strictEqual(vworld.domain(), '');
@@ -446,4 +451,43 @@ test('JSON·XML 응답 모두 같은 해석을 쓴다', () => {
   const x = xml.normalize('<response><header><resultCode>30</resultCode><resultMsg>X</resultMsg></header></response>');
   assert.strictEqual(j.error, x.error, '형식에 따라 다른 사유가 나오면 대조가 안 된다');
   assert.match(j.error, /활용신청/);
+});
+
+// ── 실측으로만 드러난 결함 (2026-08-16 다른 세션 인수인계) ──────────
+//
+// 셋 다 **결과가 그럴듯했다.** 출처 표시도 멀쩡해서 문서만 봐서는 안 잡힌다.
+
+test('★ 길이 규칙에 안 걸리는 키도 가린다 (VWorld 36자 · ECOS 20자)', () => {
+  const { redact, SECRET_ENV } = require('../connectors/http');
+  const saved = { v: process.env.VWORLD_KEY, e: process.env.ECOS_API_KEY };
+  process.env.VWORLD_KEY = 'A0B1C2D3-E4F5-6789-ABCD-0123456789EF';   // 36자
+  process.env.ECOS_API_KEY = 'ABCD1234EFGH5678IJKL';                 // 20자
+  try {
+    const out = redact('실패 https://api.vworld.kr/ned/data?x=1&key=' + process.env.VWORLD_KEY
+      + ' / ECOS .../' + process.env.ECOS_API_KEY + '/json');
+    assert.ok(!out.includes(process.env.VWORLD_KEY), 'VWorld 키가 로그에 평문으로 남는다');
+    assert.ok(!out.includes(process.env.ECOS_API_KEY), 'ECOS 키가 로그에 평문으로 남는다');
+  } finally {
+    if (saved.v) process.env.VWORLD_KEY = saved.v; else delete process.env.VWORLD_KEY;
+    if (saved.e) process.env.ECOS_API_KEY = saved.e; else delete process.env.ECOS_API_KEY;
+  }
+
+  // 커넥터를 붙일 때 여기 더하지 않으면 그 키만 조용히 평문으로 남는다
+  ['VWORLD_KEY', 'DATA_GO_KR_KEY', 'ECOS_API_KEY', 'DART_API_KEY']
+    .forEach(k => assert.ok(SECRET_ENV.includes(k), `${k} 가 SECRET_ENV 에 없다`));
+});
+
+test('★ 공시지가를 넉넉히 받아 온다 (오름차순이라 앞부분만 받으면 옛 값이 최신이 된다)', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'connectors', 'nsdi.js'), 'utf8');
+  const m = src.match(/getIndvdLandPriceAttr[\s\S]{0,160}?numOfRows:\s*(\d+)/);
+  assert.ok(m, '공시지가 호출을 찾지 못했다');
+  assert.ok(Number(m[1]) >= 100,
+    `numOfRows=${m[1]} — NED 응답이 오름차순이라 10건만 받으면 2015년 값이 '최신'이 된다 (실측 30% 오차)`);
+});
+
+test('★ 폐기된 건축물대장 엔드포인트를 부르지 않는다', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'connectors', 'molit.js'), 'utf8');
+  assert.ok(!/BldRgstService_v2\/getBrTitleInfo/.test(src),
+    'BldRgstService_v2 는 폐기되었다 — 키가 멀쩡해도 자료가 안 온다');
+  assert.match(src, /BldRgstHubService/, '현행 엔드포인트를 써야 한다');
 });

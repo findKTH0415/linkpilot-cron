@@ -83,6 +83,22 @@ function looksUrlEncoded(value) {
 }
 
 /**
+ * 로그·오류에 평문으로 남으면 안 되는 환경변수 이름.
+ *
+ * ★ **커넥터를 새로 붙이면 여기에 키 이름을 더한다.** 빠뜨리면 그 키만 조용히
+ *   평문으로 남는다 — 다른 키가 다 가려져 있어서 눈에 띄지도 않는다.
+ */
+const SECRET_ENV = [
+  'VWORLD_KEY',        // 36자 (UUID) — 길이 규칙에 안 걸린다
+  'DATA_GO_KR_KEY',
+  'ECOS_API_KEY',      // 20자쯤 — 안 걸린다
+  'DART_API_KEY',
+  'GEMINI_API_KEY',
+  'KMA_APIHUB_KEY',    // 22자쯤 — 안 걸린다 (기상청 커넥터 병합 대비)
+  'REB_API_KEY',       // 한국부동산원 (병합 대비)
+];
+
+/**
  * 로그·에러 메시지에서 서비스키를 가린다 (시크릿 평문 노출 금지).
  *
  * ★ 규칙 두 개로는 부족한 경우가 있다. ECOS 는 키를 **URL 경로**에 넣고 길이도
@@ -97,6 +113,18 @@ function redact(text, extra) {
     .replace(/(serviceKey|key|apiKey|authKey)=[^&\s]+/gi, '$1=***')
     .replace(/[A-Za-z0-9%+/=]{40,}/g, '***');
 
+  // ★ 길이 규칙(40자 이상)에 **안 걸리는 키가 있다.** VWorld 는 36자(UUID),
+  //   기상청은 22자쯤, ECOS 는 20자쯤이다. 그 키들이 경로나 오류 본문에 실려
+  //   나가면 로그에 평문으로 남는다 — CLAUDE.md §2 절대 규칙 위반이다.
+  //   그래서 **환경변수에 들어 있는 값을 이름으로 찾아 직접 가린다.**
+  //   커넥터를 새로 붙이면 이 목록에 키 이름을 더한다.
+  SECRET_ENV.forEach((name) => {
+    const v = process.env[name];
+    if (!v || String(v).length < 8) return;   // 짧으면 본문을 통째로 망가뜨린다
+    out = out.split(v).join('***');
+    out = out.split(encodeURIComponent(v)).join('***');
+  });
+
   (extra || []).forEach((secret) => {
     const s = String(secret || '');
     if (s.length < 8) return;   // 너무 짧으면 본문을 통째로 망가뜨린다
@@ -106,4 +134,4 @@ function redact(text, extra) {
   return out;
 }
 
-module.exports = { request, buildUrl, redact, sleep, looksUrlEncoded, DEFAULT_TIMEOUT };
+module.exports = { request, buildUrl, redact, sleep, looksUrlEncoded, SECRET_ENV, DEFAULT_TIMEOUT };

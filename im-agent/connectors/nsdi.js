@@ -61,8 +61,13 @@ async function call(endpoint, params, namespace, cacheParams) {
 async function landPrice(pnu, year = null) {
   if (!pnu) return { ok: false, error: 'PNU 없음' };
 
+  // ★ numOfRows 를 넉넉히 준다. NED 응답이 **오름차순**이라 10건만 받으면
+  //   2006~2015 만 오고, 그중 최신을 골라도 "최신 = 2015년" 이 된다.
+  //   실측에서 2015년 46,100,000 원/㎡ 를 최신으로 잡아 **30% 오차**가 났다
+  //   (실제 2026년 65,730,000). 값도 출처도 멀쩡해 보여서 문서로는 안 잡힌다.
+  //   (2026-08-16 실측으로 확인)
   const r = await call('getIndvdLandPriceAttr', {
-    pnu, stdrYear: year || undefined, numOfRows: 10, pageNo: 1,
+    pnu, stdrYear: year || undefined, numOfRows: 100, pageNo: 1,
   }, 'landprice', { pnu, year: year || 'latest' });
 
   if (!r.ok) return r;

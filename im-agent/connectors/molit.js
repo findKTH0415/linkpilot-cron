@@ -142,7 +142,10 @@ async function buildingRegister({ sigunguCd, bjdongCd, bun, ji }) {
   const bad = keyFormatError(); if (bad) return bad;
   if (!sigunguCd || !bjdongCd) return { ok: false, error: '법정동코드 없음' };
 
-  const r = await call('BldRgstService_v2/getBrTitleInfo', {
+  // ★ `BldRgstService_v2` 는 **폐기되었다.** 현행은 BldRgstHubService 다.
+  //   폐기된 쪽을 부르면 키·활용신청이 멀쩡해도 자료가 안 온다
+  //   (2026-08-16 실측으로 확인)
+  const r = await call('BldRgstHubService/getBrTitleInfo', {
     sigunguCd, bjdongCd, bun, ji, numOfRows: 10, pageNo: 1,
   }, 'building', { sigunguCd, bjdongCd, bun, ji });
 
