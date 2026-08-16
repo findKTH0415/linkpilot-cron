@@ -146,3 +146,18 @@ test('빈 항목은 null 로 남는다 (빈 문자열이 아니다)', () => {
   assert.strictEqual(v.tag, null);
   assert.strictEqual(v.mark, 'SA', '이니셜은 이름에서 만든다');
 });
+
+/* ── 로고 업로드 (2026-08-16) — 제출자 로고가 표지·서명부의 이니셜 자리를 대신한다 ── */
+test('issuer.logo — PNG data URL 은 받고, 형식·크기 밖은 거부한다', () => {
+  const png = 'data:image/png;base64,iVBORw0KGgo=';
+  const ok = issuer.normalize({ en: 'Acme Capital', logo: png });
+  assert.equal(ok.ok, true);
+  assert.equal(ok.value.logo, png);
+  assert.equal(ok.value.mark, 'AC');            // 이니셜 폴백은 여전히 계산된다
+  const bad = issuer.normalize({ en: 'Acme Capital', logo: 'data:text/plain;base64,QUJD' });
+  assert.equal(bad.ok, false);
+  const big = issuer.normalize({ en: 'Acme Capital', logo: 'data:image/png;base64,' + 'A'.repeat(300 * 1024) });
+  assert.equal(big.ok, false);
+  const none = issuer.normalize({ en: 'Acme Capital' });
+  assert.equal(none.value.logo, null);
+});
