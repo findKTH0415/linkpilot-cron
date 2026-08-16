@@ -80,6 +80,23 @@ const PRESETS = {
     language: 'ko', resolution: 'standard', color: 'RGB',
     confidentiality: 'Strictly Confidential', watermark: false,
   },
+  /**
+   * 탁상검토 보고서 (등록부 D-57).
+   *
+   * ★ **감정평가서가 아니다.** 감정평가는 감정평가법인등만 할 수 있다 —
+   *   그래서 label 에 「Appraisal」을 쓰지 않는다. 파일 이름·표지·목차에
+   *   그 낱말이 들어가면 형식만으로 정식 평가처럼 읽힌다.
+   * ★ **워터마크를 켠다.** 이 문서는 낱장으로 굴러다니기 쉽다 — 한 장만
+   *   떨어져 나가도 참고 자료임이 남아야 한다.
+   */
+  desk_appraisal: {
+    label: 'Desk Review — Land Value',
+    pageSize: 'A4', orientation: 'portrait',
+    targetPages: 8, minPages: 5, maxPages: 15, tolerance: 2,
+    formats: ['pdf'], coverIncluded: true, appendixIncluded: false,
+    language: 'ko', resolution: 'standard', color: 'RGB',
+    confidentiality: 'Strictly Confidential', watermark: true,
+  },
   executive_summary: {
     label: 'Executive Summary',
     pageSize: 'A4', orientation: 'portrait',

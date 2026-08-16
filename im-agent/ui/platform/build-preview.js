@@ -376,7 +376,59 @@ async function buildSection() {
   목록·저장된 값은 비어 있고, 저장·생성 버튼은 실제로 아무것도 하지 않습니다.
   제품에서는 네 단계를 하나씩 보여주지만 여기서는 <b>한 번에 펼쳐</b> 둡니다.
 </div>`;
-  return shell.replace('<body>', '<body>' + banner + changePanel() + evidencePanel());
+  return shell.replace('<body>', '<body>' + banner + changePanel() + evidencePanel() + deskPanel());
+}
+
+/**
+ * 탁상검토 보고서가 **어떤 경우에 값을 안 내는지**를 눈으로 확인하게 한다 (D-57).
+ *
+ * ★ 이 문서에서 가장 중요한 동작은 「값을 낸다」가 아니라 **「안 낸다」**다.
+ *   방식이 하나뿐이거나 편차가 크면 표지에 숫자를 올리지 않는데, 그건 화면
+ *   어디에도 안 나오는 판단이라 **말로만 남으면 확인할 방법이 없다.**
+ *
+ * ★ **여기 결과는 손으로 쓴 것이 아니다.** 빌드할 때 `core/deskappraisal.js` 를
+ *   실제로 돌려 그 출력을 그대로 넣는다.
+ */
+function deskPanel() {
+  const AGENT = path.join(HERE, '..', '..');
+  const da = require(path.join(AGENT, 'core', 'deskappraisal'));
+
+  const M = (label, valueEok, extra) => Object.assign({ label, valueEok }, extra || {});
+  const cases = [
+    { label: '3방식이 모이고 편차가 작다', methods: {
+      official: M('공시지가 기준', 100), comparison: M('거래사례비교법', 120), income: M('수익환원법', 110),
+    }, concluded: { valueEok: 112, weights: { '거래사례비교법': 0.5 }, pricePerSqm: 1300000 } },
+    { label: '방식 간 편차가 3배다', methods: {
+      official: M('공시지가 기준', 50), comparison: M('거래사례비교법', 150),
+    }, concluded: { valueEok: 100, weights: {}, pricePerSqm: 1 } },
+    { label: '방식이 하나뿐이다', methods: { income: M('수익환원법', 110) }, concluded: null },
+    { label: '아무것도 산정되지 않았다', methods: {}, concluded: null },
+  ];
+
+  const rows = cases.map((c) => {
+    const con = da.conclusion({ methods: c.methods, concluded: c.concluded });
+    const cover = da.coverValue(con);
+    return `<div class="ev__c${cover ? '' : ' bad'}">
+      <div class="ev__n">${esc(c.label)}</div>
+      <div class="ev__m">결론 방식 <b>${esc(con.mode)}</b> · 표지 값 ${cover ? esc(cover) : '<b>올리지 않음</b>'}</div>
+      <pre class="ev__o">${esc(con.text)}${con.why ? '\n\n' + esc(con.why) : ''}</pre>
+    </div>`;
+  }).join('');
+
+  const notChecked = da.NOT_CHECKED
+    .map(x => `<span>${esc(x.item)}</span>`).join('');
+
+  return `
+<section class="ev">
+  <h2 class="ev__t">눈으로 확인 — 탁상검토 보고서가 값을 내지 않는 경우</h2>
+  <p class="ev__s">아래는 이 미리보기를 만들 때 <b>실제로 <code>core/deskappraisal.js</code> 를 돌려</b>
+    얻은 결과입니다. 이 문서에서 가장 중요한 동작은 「값을 낸다」가 아니라
+    <b>「안 낸다」</b>입니다 — 표지에 큰 숫자 하나가 박히면 그것만 읽히기 때문입니다.</p>
+  <div class="ev__m">문서가 <b>확인하지 않았다고 적는 것</b> — ${da.NOT_CHECKED.length}항목</div>
+  <div class="ev__k">${notChecked}</div>
+  ${rows}
+  <div class="ev__m">${esc(da.NOT_AN_APPRAISAL)}</div>
+</section>`;
 }
 
 /**

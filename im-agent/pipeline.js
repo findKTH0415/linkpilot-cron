@@ -22,6 +22,8 @@ const monitor = require('./core/monitor');
 const { kstStamp } = require('./core/kst');
 const assetclass = require('./core/assetclass');
 const pdf = require('./core/pdf');
+const deskappraisal = require('./core/deskappraisal');
+const a4 = require('./design/a4');
 const path = require('path');
 
 function loadDataset(projectId) {
@@ -202,6 +204,61 @@ async function run(opts = {}) {
     store.writeJson(projectId, '04_Property/appraisal.json', appraisal.output);
     if (appraisal.output.concluded) {
       log(`  감정평가(참고): ${appraisal.output.concluded.valueEok}억원 · ${appraisal.output.concluded.methodsUsed.join('/')}`);
+    }
+
+    // ── 탁상검토 보고서 (등록부 D-57) ──────────────────────
+    //
+    // ★ 08 은 계산까지만 하고 **문서가 없었다.** 토지가치만 따로 묻는 자리
+    //   (대주단 사전검토·투심 전 단계)에서 IM 40쪽을 통째로 돌릴 수는 없다.
+    // ★ **감정평가서가 아니다** — 표지·고지·본문 세 곳에 그 사실이 들어간다.
+    // ★ `Dataset` 에는 `num` 만 있고 문자열 접근자가 없다. **`dataset.str &&` 로
+    //   감싸 두었더니 소재지·PNU·용도지역이 통째로 빈 채로 문서가 나왔다** —
+    //   오류도 경고도 없이 「[미확인]」만 남아서 자료가 없는 것처럼 보였다
+    const strOf = (key) => {
+      const f = dataset.get(key);
+      const v = f && f.value !== undefined && f.value !== null ? String(f.value).trim() : '';
+      return v || null;
+    };
+
+    const dr = deskappraisal.build({
+      projectId,
+      projectName: (store.readJson(projectId, '01_Project/project.json', {}) || {}).name,
+      location: strOf('project.location'),
+      pnu: strOf('geo.pnu'),
+      areaSqm: dataset.num('land.area_sqm'),
+      zoning: strOf('land.zoning'),
+      useDistricts: strOf('land.use_districts'),
+      appraisal: appraisal.output,
+    });
+
+    if (dr.ok) {
+      store.writeText(projectId, '08_Appraisal/desk-review.md', dr.markdown);
+      const html = a4.render({
+        projectId,
+        projectName: (store.readJson(projectId, '01_Project/project.json', {}) || {}).name || projectId,
+        docType: 'desk_appraisal',
+        docTitle: '토지가치 탁상검토 보고서',
+        // ★ 표지가 문서의 성격을 말한다 — 여기가 IM 문구면 IM 처럼 읽힌다
+        docLabel: '탁상검토 보고서 ㅣ 감정평가서가 아님',
+        valueRange: deskappraisal.coverValue(dr.conclusion),
+        valueCaption: '참고 산정치 — 감정평가법인등의 평가가 아니다',
+        location: strOf('project.location'),
+        sections: dr.sections,
+        disclaimers: dr.disclaimers,
+      });
+      store.writeText(projectId, '08_Appraisal/desk-review-a4.html', html);
+
+      const drPdf = pdf.fromHtmlFile(
+        path.join(store.projectDir(projectId), '08_Appraisal/desk-review-a4.html'),
+        { theme: 'institutional' },
+      );
+      // ★ 표지에 숫자를 안 올린 경우가 **정상 동작**이다 — 왜 그런지 함께 찍는다
+      log(`  탁상검토: ${dr.sections.length}개 절 · 결론 ${dr.conclusion.mode}`
+        + (dr.conclusion.mode === 'point' ? '' : ` (표지에 단일 값 없음 — ${dr.conclusion.text})`)
+        + (drPdf.ok ? ` · PDF ${drPdf.pages ?? '?'}쪽` : ` · ⚠ PDF 실패: ${drPdf.reason}`));
+    } else {
+      // ★ 조용히 넘어가지 않는다. 빈 평가서를 만들지 않는 것이 의도다
+      log(`  탁상검토: 만들지 않았다 — ${dr.reason}`);
     }
   }
 
