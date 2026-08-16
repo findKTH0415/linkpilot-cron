@@ -212,15 +212,19 @@ ${panels}
  * 결과는 `<title>` + `<style>` + 본문 조각이다. 감싸는 문서(doctype·head·body)는
  * 올리는 쪽이 붙이므로 여기서 만들지 않는다.
  */
-async function buildArtifact() {
+async function buildArtifact(opt) {
+  const only = (opt && opt.only) || null;      // 한 단계만 크게 보고 싶을 때
   const browser = findBrowser();
   if (!browser) throw new Error('헤드리스 크로미움이 없어 미리 그릴 수 없다');
 
   const docs = await buildSectionDocs();
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'im-art-'));
 
+  const picked = only ? SCREENS.filter(s => s.id === only) : SCREENS;
+  if (!picked.length) throw new Error(`그런 단계가 없다: ${only} (있는 것: ${SCREENS.map(s => s.id).join(', ')})`);
+
   const css = [], body = [];
-  SCREENS.forEach((s, i) => {
+  picked.forEach((s, i) => {
     const f = path.join(tmp, `${s.id}.html`);
     fs.writeFileSync(f, docs[s.id] + EMBED + EXPAND + MEASURE);
     const dom = renderDom(browser, f);
@@ -229,7 +233,7 @@ async function buildArtifact() {
     body.push(`
   <section class="pv">
     <header class="pv__h">
-      <span class="pv__n">${i + 1}</span>
+      <span class="pv__n">${only ? SCREENS.findIndex(x => x.id === s.id) + 1 : i + 1}</span>
       <div>
         <h2 class="pv__t">${esc(s.name)}</h2>
         <p class="pv__d">${esc(s.note || '')}</p>
@@ -241,7 +245,18 @@ async function buildArtifact() {
   });
 
   const { changePanel, evidencePanel } = require('./build-preview.js');
-  const frag = `<title>보고서 생성 섹션</title>
+  const lead = only ? LEADS[only] : null;
+  const frag = only ? `<title>${esc(lead.title)}</title>
+<style>
+${WRAP_CSS}
+${css.join('\n')}
+</style>
+<div class="lead">
+  <h1 class="lead__t">${esc(lead.title)}</h1>
+  <p class="lead__d">${esc(lead.desc)}</p>
+</div>
+${body.join('')}
+` : `<title>보고서 생성 섹션</title>
 <style>
 ${WRAP_CSS}
 ${css.join('\n')}
@@ -287,6 +302,33 @@ function publishable(frag) {
   return bad;
 }
 
+/**
+ * 한 단계만 크게 볼 때의 머리말.
+ * ★ 화면이 이미 말하는 것을 되풀이하지 않는다. **화면에 안 적힌 것**만 적는다 —
+ *   왜 칸이 이것뿐인지, 무엇이 저장을 막는지.
+ */
+const LEADS = {
+  intake: {
+    title: '보고서 생성 입력',
+    desc: '요청문 한 줄과 원본 자료를 받는 곳입니다. 읽지 못하는 형식은 올리기 전에 막고, '
+      + '요청문에서 뽑은 값은 「미확인」으로 표시합니다.',
+  },
+  fields: {
+    title: '가이드 필드 입력',
+    desc: '사용자가 실제로 값을 넣는 화면입니다. 사전에 항목이 60개 있지만 대부분은 '
+      + '요청문·자료·공공데이터·계산이 채우므로, 여기에는 아무도 못 채우는 것만 나옵니다. '
+      + '출처 칸이 비면 그 줄이 빨갛게 서고 저장 버튼이 열리지 않습니다.',
+  },
+  spec: {
+    title: '출력 사양 확정',
+    desc: '무엇을 몇 부, 어떤 형식으로 만들지 정하고 잠급니다. 확정 전에는 생성이 시작되지 않습니다.',
+  },
+  make: {
+    title: '생성과 산출물',
+    desc: '검증을 통과한 산출물만 열립니다. 값 충돌이나 RED FLAG 가 남아 있으면 배포가 막힙니다.',
+  },
+};
+
 /** 감싸는 판의 스타일. 화면 자체의 색(라임 #9ED700 · 먹 #17181A)을 그대로 쓴다 */
 const WRAP_CSS = `
   :root { --pg: #F5F6F8; --sf: #FFFFFF; --ln: #E8EAEC; --ink: #17181A; --ink2: #7C838C; }
@@ -311,7 +353,8 @@ const WRAP_CSS = `
 async function run() {
   if (process.argv.includes('--artifact')) {
     const outPath = process.argv[process.argv.indexOf('--artifact') + 1] || path.join(HERE, 'section-artifact.html');
-    const frag = await buildArtifact();
+    const onlyAt = process.argv.indexOf('--only');
+    const frag = await buildArtifact({ only: onlyAt === -1 ? null : process.argv[onlyAt + 1] });
     fs.writeFileSync(outPath, frag);
     console.log(`${outPath} (${Math.round(frag.length / 1024)}KB) · 주소로 여는 조각`);
     return;
