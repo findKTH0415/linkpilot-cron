@@ -33,6 +33,7 @@ const { parseNumber, parseMoneyToEok, normalize, round } = require('../core/nume
 const unzip = require('../core/unzip');
 const pdftext = require('../core/pdftext');
 const ole = require('../core/ole');
+const ifc = require('../core/ifc');
 const ocr = require('../core/ocr');
 const llm = require('../core/llm');
 
@@ -52,6 +53,7 @@ const FORMATS = (() => {
   TEXT_EXT.forEach(e => { m[e] = 'text'; });
   Object.keys(ZIP_EXT).forEach(e => { m[e] = 'zip'; });
   m['.pdf'] = 'pdf';
+  m['.ifc'] = 'model';
   OLE_EXT.forEach(e => { m[e] = 'ole'; });
   OCR_EXT.forEach(e => { m[e] = 'ocr'; });
   UNSUPPORTED_EXT.forEach(e => { m[e] = 'convert'; });
@@ -74,6 +76,14 @@ function readGroups() {
       label: '본문을 그대로 읽습니다',
       why: '서버가 파일을 열어 글자를 꺼냅니다. 인터넷도 인증키도 필요 없습니다.',
       ext: of(['text', 'zip', 'pdf', 'ole']),
+    },
+    {
+      id: 'model',
+      label: 'BIM 모델은 수량을 읽습니다',
+      why: '모델이 내보낼 때 함께 써 넣은 수량(부재 개수·면적·부피)을 읽습니다. '
+        + '형상에서 물량을 새로 계산하지는 않습니다 — 모델에 수량이 없으면 없다고 말합니다. '
+        + '읽은 수량은 자동으로 필드에 채우지 않습니다. 모델은 근거가 아니라 대조 대상입니다.',
+      ext: of(['model']),
     },
     {
       id: 'scan',
@@ -147,6 +157,14 @@ function toText(file) {
     }
     if (OLE_EXT.has(ext)) {
       return { text: ole.oleText(ext, fs.readFileSync(file.path)), via: 'ole' };
+    }
+    if (ext === '.ifc') {
+      // ★ STEP 원문을 글자로 넘기지 않는다. 좌표·GUID 가 수만 줄이라 별칭 추출이
+      //   엉뚱한 숫자를 잡는다 — 「연면적 12.5」 같은 값이 출처까지 달고 들어온다.
+      //   대신 **읽은 수량을 사람 말로 요약해서만** 넘긴다.
+      const r = ifc.read(fs.readFileSync(file.path), { name: file.name });
+      if (!r.ok) return { error: r.reason, via: 'model' };
+      return { text: ifc.summarize(r), via: 'model', model: r };
     }
     if (OCR_EXT.has(ext)) {
       return { error: '이미지는 글자로 옮겨야 읽는다', ocr: '이미지 파일', via: 'ocr' };

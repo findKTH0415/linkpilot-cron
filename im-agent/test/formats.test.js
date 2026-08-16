@@ -140,7 +140,7 @@ test('★ 확장자마다 읽는 방법이 하나씩 정해져 있다', () => {
   assert.ok(all.length >= 25, `형식이 ${all.length}개 — 줄었다면 무엇이 빠졌는지 본다`);
   all.forEach((e) => {
     assert.match(e, /^\.[a-z0-9]+$/, `${e}: 확장자 형식이 아니다`);
-    assert.ok(['text', 'zip', 'pdf', 'ole', 'ocr', 'convert'].includes(ex.FORMATS[e]),
+    assert.ok(['text', 'zip', 'pdf', 'ole', 'ocr', 'convert', 'model'].includes(ex.FORMATS[e]),
       `${e}: 모르는 방법 ${ex.FORMATS[e]}`);
   });
   // 사용자가 적어 준 12개가 전부 들어 있는가

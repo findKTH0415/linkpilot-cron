@@ -35,6 +35,7 @@ const dart = require('../connectors/dart');
 const kma = require('../connectors/kma');
 const kpx = require('../connectors/kpx');
 const reb = require('../connectors/reb');
+const g2b = require('../connectors/g2b');
 const fsc = require('../connectors/fsc');
 const { looksUrlEncoded } = require('../connectors/http');
 const pnuUtil = require('../connectors/pnu');
@@ -431,6 +432,32 @@ async function main() {
         + `${c.market || '비상장'} · 감사의견 ${c.auditOpinion || '-'}`);
       if (JSON.stringify(c).includes('enpRprFnm')) {
         console.log('  ⚠ 대표자 성명이 응답 객체에 남아 있다 — 개인정보가 새어 나간다');
+      }
+    }
+  }
+
+  // ── 13. 조달청 공사 낙찰 (시공비 가정 대조 — 미검증 D-36) ──
+  //
+  // ★ 이 항목은 **엔드포인트·응답 필드가 아직 실제 키로 대조되지 않았다.**
+  //   조회가 되더라도 필드명이 다르면 값이 전부 비는데, 그건 "조건에 맞는
+  //   건이 없다"와 겉으로 구분이 안 된다. 그래서 원본 응답의 키를 함께 찍는다.
+  if (g2b.isAvailable()) {
+    const b = await g2b.benchmark({ region: '인천', months: 12, minEok: 10 });
+    if (b.ok) {
+      report('공사 낙찰 (조달청)', true,
+        `${b.period} · ${b.count}건 중앙값 ${b.medianAwardEok?.toLocaleString('ko-KR')}억원`
+        + (b.medianRate ? ` · 낙찰률 중앙값 ${b.medianRate}% (${b.rateCount}건)` : ' · 낙찰률 없음'));
+      console.log(`  최근 건: ${b.latest.date} ${b.latest.title || '(공고명 없음)'} — ${b.latest.awardEok}억원`);
+      if (!b.medianRate) {
+        console.log('  ⚠ 기초금액이 응답에 없다 — 낙찰률을 낼 수 없다. 필드명(bssamt) 확인 필요');
+      }
+      console.log('  ※ ㎡당 단가는 내지 않는다 — 공고에 연면적이 없다 (사람이 나눈다)');
+    } else {
+      report('공사 낙찰 (조달청)', false, b.error);
+      // 원본 키를 한 번 찍어 준다. 필드명이 달라서 빈 것인지 정말 없는 것인지 가른다
+      const raw = await g2b.awards({ months: 12, minEok: 0 });
+      if (raw.ok && raw.value.length) {
+        console.log(`  참고: 조건 없이 부르면 ${raw.count}건 — 거르는 조건이 문제다`);
       }
     }
   }

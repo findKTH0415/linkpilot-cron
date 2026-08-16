@@ -1,0 +1,22 @@
+ISO-10303-21;
+HEADER;
+FILE_DESCRIPTION((''),'2;1');
+FILE_NAME('sample.ifc','2026-08-16T00:00:00',(''),(''),'','','');
+FILE_SCHEMA(('IFC4'));
+ENDSEC;
+DATA;
+#1=IFCWALLSTANDARDCASE('0aBcDeFgHiJkLmNoPqRsT0',#2,'\X2\C678BD80BCBD\X0\ A;B',$,$,$,$,$);
+#2=IFCOWNERHISTORY($,$,$,.ADDED.,$,$,$,0);
+#3=IFCQUANTITYVOLUME('NetVolume','',$,12.5,$);
+#4=IFCQUANTITYAREA('GrossSideArea','',$,48.0,$);
+#5=IFCQUANTITYAREA('MyCustomArea','',$,3.0,$);
+#6=IFCELEMENTQUANTITY('1bBcDeFgHiJkLmNoPqRsT1',#2,'Qto_WallBaseQuantities',$,$,(#3,#4,#5));
+#7=IFCRELDEFINESBYPROPERTIES('2cBcDeFgHiJkLmNoPqRsT2',#2,$,$,(#1),#6);
+#10=IFCSLAB('3dBcDeFgHiJkLmNoPqRsT3',#2,'Floor',$,$,$,$,$,.FLOOR.);
+#11=IFCQUANTITYAREA('GrossArea','',$,320.0,$);
+#12=IFCQUANTITYVOLUME('NetVolume','',$,64.0,$);
+#13=IFCELEMENTQUANTITY('4eBcDeFgHiJkLmNoPqRsT4',#2,'Qto_SlabBaseQuantities',$,$,
+  (#11,#12));
+#14=IFCRELDEFINESBYPROPERTIES('5fBcDeFgHiJkLmNoPqRsT5',#2,$,$,(#10),#13);
+ENDSEC;
+END-ISO-10303-21;
