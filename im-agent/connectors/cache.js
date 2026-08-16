@@ -143,7 +143,11 @@ async function through(provider, namespace, params, fetcher, { ttl = null, force
   const result = await fetcher();
   consume(provider);
 
-  if (!result.ok) return { ok: false, error: result.error, cached: false };
+  // ★ 실패 응답을 **그대로 흘려보낸다.** 예전에는 `{ok, error}` 만 골라 담았는데,
+  //   커넥터가 붙여 둔 구분 플래그(`notFound`·`noData`·`unavailable` 등)가 거기서
+  //   사라졌다. 「조회가 실패했다」와 「찾았는데 없다」는 다음에 할 일이 정반대인데
+  //   부르는 쪽에서는 둘이 같아 보인다 (2026-08-16 Pexels 붙이다 발견).
+  if (!result.ok) return { ...result, cached: false };
 
   write(namespace, params, result.value);
   return { ok: true, value: result.value, cached: false };

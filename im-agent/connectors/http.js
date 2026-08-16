@@ -119,6 +119,9 @@ const SECRET_ENV = [
   //   요청의 쿼리에 실려 나간다** — RHINO_COMPUTE_URL 보다 노출 면이 넓다.
   //   CLAUDE.md §2 의 「NAS 접속정보」와 같은 줄이다 (2026-08-16 교차검증에서 발견).
   'VWORLD_DOMAIN',
+  // ★ **Authorization 헤더**로 나가는 키다. `key=` 패턴에도 안 걸리고 길이도
+  //   56자라 일반 규칙에는 걸리지만, 헤더 경로라 명시해 두는 편이 안전하다
+  'PEXELS_API_KEY',
 ];
 
 /**

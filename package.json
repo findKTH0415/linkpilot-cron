@@ -12,6 +12,7 @@
     "im:smoke": "node im-agent/tools/smoke-public-data.js",
     "im:read": "node im-agent/tools/read-file.js",
     "im:check-model": "node im-agent/tools/check-model.js",
+    "im:image": "node im-agent/tools/find-image.js",
     "im:preview": "node im-agent/ui/vanilla/build-preview.js",
     "im:page": "node im-agent/ui/vanilla/build-page.js",
     "im:platform": "node im-agent/ui/platform/build.js",
