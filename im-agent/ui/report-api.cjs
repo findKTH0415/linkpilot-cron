@@ -334,6 +334,16 @@ function createHandlers(deps) {
       if (b.language) overrides.language = String(b.language);
       if (Array.isArray(b.formats)) overrides.formats = b.formats.map(f => String(f).toLowerCase());
 
+      // 시각자료 — **참거짓만 받는다.** 아무 값이나 통과시키면 문자열 'false' 가
+      // 참이 되어 끈 줄 알았던 조감도가 계속 만들어진다
+      if (b.visuals && typeof b.visuals === 'object') {
+        const v = {};
+        ['birdseye', 'massing'].forEach((k) => {
+          if (typeof b.visuals[k] === 'boolean') v[k] = b.visuals[k];
+        });
+        if (Object.keys(v).length) overrides.visuals = v;
+      }
+
       // 만들 수 없는 형식은 저장 단계에서 거른다. 사양에 넣어도 안 만들어진다
       const unsupported = (overrides.formats || []).filter(
         f => outputspec.SUPPORTED_FORMATS[f] && !outputspec.SUPPORTED_FORMATS[f].supported);

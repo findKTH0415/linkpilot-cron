@@ -15,6 +15,22 @@ const { kstStamp, kstDate } = require('./kst');
 const PATH = '01_Project/output-spec.json';
 
 /** 문서유형별 기본 사양 (사양 §4 DOCUMENT TYPE PRESET) */
+/**
+ * 시각자료 기본값.
+ *
+ * ★ **왜 사양에 두는가:** 조감도는 「만들지 말지」를 사람이 정하는 것이고,
+ *   그 결정은 페이지 수·형식과 같은 자리에 있어야 한다. 값 입력(2단계)에 두면
+ *   「값」과 「무엇을 만들지」가 섞인다.
+ * ★ 켜 두어도 **근거가 없으면 만들지 않는다** — 지적 필지 형상이 없으면
+ *   09 Massing 이 사유를 남기고 건너뛴다. 켰다고 그림이 나오는 것이 아니다.
+ */
+const VISUAL_DEFAULT = {
+  // 지적도 + 건축개요로 그리는 검토용 조감도 (AI 이미지가 아니다)
+  birdseye: true,
+  // 용적률·건폐율 검토용 매스. 조감도와 달리 필지 형상이 없어도 만든다
+  massing: true,
+};
+
 const PRESETS = {
   im: {
     label: 'Investment Memorandum',
@@ -118,6 +134,9 @@ function propose(projectId, { docType = 'im', themeId = null, overrides = {} } =
     docType,
     ...preset,
     ...overrides,
+    // ★ 통째로 덮어쓰지 않고 **항목별로** 얹는다. 사용자가 birdseye 하나만
+    //   보내도 massing 이 사라지면 안 된다
+    visuals: { ...VISUAL_DEFAULT, ...((existing && existing.visuals) || {}), ...(overrides.visuals || {}) },
     themeId: themeId || overrides.themeId || null,
     version: existing ? existing.version : 'v1.0',
     fileName: overrides.fileName || fileName({
@@ -222,7 +241,7 @@ function change(projectId, changes, { by, reason = '' } = {}) {
   const prev = read(projectId);
   if (!prev) throw new Error('변경할 사양이 없다');
 
-  const MATERIAL = ['pageSize', 'orientation', 'targetPages', 'formats', 'language', 'themeId', 'docType'];
+  const MATERIAL = ['pageSize', 'orientation', 'targetPages', 'formats', 'language', 'themeId', 'docType', 'visuals'];
   const material = Object.keys(changes).filter(k => MATERIAL.includes(k)
     && JSON.stringify(changes[k]) !== JSON.stringify(prev[k]));
 
@@ -286,6 +305,7 @@ function save(projectId, spec) {
 }
 
 module.exports = {
+  VISUAL_DEFAULT,
   PRESETS, SUPPORTED_FORMATS, PAGE_SIZES, PATH,
   read, propose, save, confirm, change, validateSpec, buildPageBudget, fileName, bumpVersion,
 };

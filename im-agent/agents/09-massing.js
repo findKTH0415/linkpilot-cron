@@ -18,6 +18,8 @@ const fs = require('fs');
 const path = require('path');
 const geometry = require('../geo/geometry');
 const mass = require('../geo/mass');
+const birdseye = require('../geo/birdseye');
+const outputspec = require('../core/outputspec');
 const nsdi = require('../connectors/nsdi');
 const store = require('../core/store');
 const { round, fmt } = require('../core/numeric');
@@ -32,6 +34,8 @@ const inputSchema = {
     projectId: { type: 'string' },
     geo: { type: 'object', nullable: true },
     floorHeight: { type: 'number' },
+    // 출력 사양의 visuals 를 덮어쓸 때만 쓴다 (시험·재생성용)
+    visuals: { type: 'object', nullable: true },
   },
 };
 
@@ -137,8 +141,10 @@ async function run(input, ctx) {
 
   let footprint;
   let footprintBasis;
+  let parcelLocal = null;   // 조감도용 — **축소하지 않은** 실제 지적선
   if (polygon) {
     const local = geometry.toLocalMeters(polygon).slice(0, -1);
+    parcelLocal = local;
     const parcelArea = geometry.planarArea(local);
     const shrink = parcelArea > 0 ? Math.min(1, footprintArea / parcelArea) : 1;
     footprint = geometry.scaleAboutCentroid(local, shrink);
@@ -167,6 +173,34 @@ async function run(input, ctx) {
       ['massing.gltf', mass.toGltf(built)],
       ['massing.svg', mass.toSvg(built, { label })],
     ];
+
+    /* ── 조감도 ────────────────────────────────────────────
+     * ★ **사양이 켜져 있을 때만** 만든다. 「무엇을 만들지」는 출력 사양에서
+     *   사람이 정하는 것이고, 여기서 마음대로 늘리지 않는다.
+     * ★ 켜져 있어도 **지적선이 없으면 만들지 않는다.** 매스 검토는 사각형으로
+     *   근사해도 뜻이 있지만(면적·층수 검증), 조감도는 부지 형상 자체가
+     *   정보라서 근사하면 실제 땅 모양으로 읽힌다 — 그럴듯하게 틀린 그림이다.
+     * ── */
+    const spec = input.visuals ? { visuals: input.visuals } : (outputspec.read(input.projectId) || {});
+    const wantBirdseye = !((spec.visuals || {}).birdseye === false);
+    if (wantBirdseye) {
+      const src = [];
+      const parcelFact = ds.get('geo.pnu');
+      if (parcelLocal) src.push(`연속지적도${parcelFact && parcelFact.source ? `(${parcelFact.source})` : ''}`);
+      if (footprintFact !== null || gfa) src.push('건축개요(연면적·층수)');
+      if (limitSource) src.push(limitSource);
+
+      const bird = birdseye.render({
+        parcel: parcelLocal, mass: built, label, sources: src,
+      });
+      if (bird.ok) {
+        written.push(['birdseye.svg', bird.svg]);
+      } else {
+        // 조용히 건너뛰지 않는다 — 켰는데 안 나온 이유가 어디에도 없으면 고장으로 읽힌다
+        ctx.warn(`조감도 생략 — ${bird.reason}`);
+        flags.push(flag('YELLOW', 'BIRDSEYE_SKIPPED', bird.reason, { keys: ['geo.pnu'] }));
+      }
+    }
     for (const [name, content] of written) {
       fs.writeFileSync(path.join(dir, name), content, 'utf8');
       files.push(`04_Property/${name}`);

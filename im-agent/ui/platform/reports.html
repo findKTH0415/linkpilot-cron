@@ -214,6 +214,13 @@ ul { margin: 0; padding: 0; list-style: none; }
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+
+/* 시각자료 선택 */
+.chk { display: inline-flex; align-items: center; gap: 9px; cursor: pointer;
+  font-size: 14.5px; font-weight: 700; }
+.chk input { width: 17px; height: 17px; accent-color: var(--lime, #9ED700); cursor: pointer; }
+.chk input:disabled { cursor: not-allowed; }
+.chk__d { margin: 7px 0 0; font-size: 12.5px; color: var(--ink2); line-height: 1.65; max-width: 62ch; }
 </style>
 </head>
 <body>
@@ -384,6 +391,7 @@ window.LINKPILOT_REPORTS = Object.assign({
     pages: null,          // 종류를 고르면 기본값이 들어온다
     size: 'A4', format: 'html', lang: 'ko',
     themeId: 'institutional',
+    birdseye: true,       // 조감도 — 서버 사양을 받으면 그것이 이긴다
     locked: false,        // ★ 출력 사양 확정 여부
   };
 
@@ -449,6 +457,7 @@ window.LINKPILOT_REPORTS = Object.assign({
       language: state.lang,
       formats: [state.format],
       themeId: state.themeId,
+      visuals: { birdseye: state.birdseye },
     };
   }
 
@@ -607,6 +616,33 @@ window.LINKPILOT_REPORTS = Object.assign({
       field('언어', selOf(C.langs, state.lang, function (v) { state.lang = v; })));
     box.appendChild(grid);
 
+    /* ── 시각자료 ────────────────────────────────────────
+     * ★ 「무엇을 만들지」는 값 입력(2단계)이 아니라 **사양**에서 정한다.
+     *   섞어 두면 「값」과 「산출물」이 한 화면에서 뒤엉킨다.
+     * ★ 켠다고 반드시 나오는 것이 아니다 — 지적 필지 형상이 없으면
+     *   09 Massing 이 사유를 남기고 건너뛴다. 그 사실을 여기 적어 둔다. */
+    var vis = el('div');
+    vis.style.marginTop = '16px';
+    var vlab = el('label', null, '시각자료');
+    vlab.style.cssText = 'font-size:12.5px;font-weight:700;color:var(--ink2);display:block;margin-bottom:8px';
+    vis.appendChild(vlab);
+
+    var bwrap = el('label', 'chk');
+    var bchk = el('input');
+    bchk.type = 'checkbox';
+    bchk.checked = !!state.birdseye;
+    bchk.disabled = state.locked;
+    bchk.addEventListener('change', function () { state.birdseye = bchk.checked; updateLockBar(); });
+    bwrap.appendChild(bchk);
+    bwrap.appendChild(el('span', null, '조감도 만들기'));
+    vis.appendChild(bwrap);
+    vis.appendChild(el('p', 'chk__d',
+      '지적도 필지선과 건축개요로 그립니다 — AI 로 만든 이미지가 아니라 모든 선이 '
+      + '지적도와 건축개요에서 나옵니다. 방위·축척과 「설계도면이 아님」 표시가 함께 들어갑니다. '
+      + '지적 필지 형상을 못 받으면 그리지 않고 그 사유를 남깁니다 — 대지 모양을 '
+      + '근사해서 그리면 실제 땅 모양으로 읽히기 때문입니다.'));
+    box.appendChild(vis);
+
     // 디자인 테마 — 내용과 분리된 선택이다
     var th = el('div');
     th.style.marginTop = '16px';
@@ -748,6 +784,10 @@ window.LINKPILOT_REPORTS = Object.assign({
         state.lang = s.language || state.lang;
         state.format = (s.formats && s.formats[0]) || state.format;
         state.themeId = s.themeId || state.themeId;
+        // ★ 서버 값이 있으면 그것이 이긴다. 없을 때만 화면 기본값을 쓴다 —
+        //   `s.visuals.birdseye || true` 로 쓰면 false 가 true 로 되살아난다
+        state.birdseye = (s.visuals && typeof s.visuals.birdseye === 'boolean')
+          ? s.visuals.birdseye : state.birdseye;
         state.locked = !!s.locked;
         draw();
       })
