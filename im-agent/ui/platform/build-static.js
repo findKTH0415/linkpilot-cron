@@ -241,7 +241,7 @@ async function buildArtifact() {
   });
 
   const { changePanel, evidencePanel } = require('./build-preview.js');
-  return `<title>보고서 생성 섹션</title>
+  const frag = `<title>보고서 생성 섹션</title>
 <style>
 ${WRAP_CSS}
 ${css.join('\n')}
@@ -255,6 +255,36 @@ ${changePanel()}
 ${evidencePanel()}
 ${body.join('')}
 `;
+
+  // ★ 못 올릴 조각을 올리면 옆 창이 **빈 채로** 열린다. 그때는 무엇이 잘못됐는지
+  //   화면에 아무것도 안 뜨므로, 올리기 전에 여기서 막는다
+  const bad = publishable(frag);
+  if (bad.length) throw new Error('올릴 수 없는 조각이다 — ' + bad.join(' / '));
+  return frag;
+}
+
+/**
+ * 올릴 수 있는 조각인가.
+ *
+ * ★ 이 검사가 있는 이유는 **같은 실수를 네 번 했기 때문이다.** 파일로 보내면
+ *   내려받기 카드로만 뜨는 환경이 있는데, 그걸 모른 채 파일만 다시 보냈다.
+ *   주소로 여는 페이지는 감싸는 문서를 올리는 쪽이 붙이고, 스크립트·iframe·
+ *   바깥 주소가 막혀 있다. 그 조건을 어긴 조각은 조용히 빈 화면이 된다.
+ *
+ * @returns {string[]} 어긴 것들. 빈 배열이면 올려도 된다
+ */
+function publishable(frag) {
+  const bad = [];
+  const has = (re, why) => { if (re.test(frag)) bad.push(why); };
+  has(/<!doctype/i, 'doctype 가 있다 (감싸는 문서는 올리는 쪽이 붙인다)');
+  has(/<html[\s>]/i, '<html> 이 있다');
+  has(/<head[\s>]/i, '<head> 가 있다');
+  has(/<body[\s>]/i, '<body> 가 있다');
+  has(/<script/i, '<script> 가 있다 (스크립트가 막힌 곳을 전제한다)');
+  has(/<iframe/i, '<iframe> 이 있다');
+  has(/(?:src|href)="https?:/i, '바깥 주소를 부른다 (CSP 가 막는다)');
+  if (!/<title>[^<]{2,}<\/title>/i.test(frag)) bad.push('<title> 이 없다 (목록에서 이름이 안 뜬다)');
+  return bad;
 }
 
 /** 감싸는 판의 스타일. 화면 자체의 색(라임 #9ED700 · 먹 #17181A)을 그대로 쓴다 */
@@ -291,7 +321,7 @@ async function run() {
 
 if (require.main === module) run().catch((e) => { console.error(e.message || e); process.exit(1); });
 
-module.exports = { stripScripts, heightOf, findBrowser, buildArtifact, EXPAND, MEASURE };
+module.exports = { stripScripts, heightOf, findBrowser, buildArtifact, publishable, EXPAND, MEASURE };
 
 /* ── 아티팩트(URL 로 여는 판) ──────────────────────────────── */
 //

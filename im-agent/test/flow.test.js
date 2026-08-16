@@ -347,3 +347,27 @@ test('★ 앱에 끼운 모습으로 그린다', () => {
     '따로 열면 화면마다 사이드바·단계 칩이 있다 — 빼먹으면 실제 앱과 다른 그림을 보낸다');
   assert.match(src, /docs\[s\.id\] \+ EMBED/, '두 판 다 끼운 모습으로 그려야 한다');
 });
+
+/**
+ * ★ 같은 실수를 네 번 했다 — 파일로 보내면 내려받기 카드로만 뜨는 환경에서
+ *   파일만 다시 보냈다. 주소로 여는 조각은 조건을 어기면 **빈 화면**이 되고,
+ *   빈 화면은 무엇이 잘못됐는지 아무 말도 해 주지 않는다. 그래서 올리기 전에 막는다.
+ */
+test('★ 올릴 수 없는 조각을 올리기 전에 막는다', () => {
+  const S = require('../ui/platform/build-static.js');
+  assert.deepStrictEqual(S.publishable('<title>이름</title><div>본문</div>'), []);
+
+  const cases = [
+    ['<!doctype html><title>a</title>', /doctype/],
+    ['<title>a</title><body>x</body>', /<body>/],
+    ['<title>a</title><script>x</script>', /script/],
+    ['<title>a</title><iframe srcdoc="x"></iframe>', /iframe/],
+    ['<title>a</title><img src="https://x/y.png">', /바깥 주소/],
+    ['<div>제목이 없다</div>', /title/],
+  ];
+  cases.forEach(([frag, re]) => {
+    const bad = S.publishable(frag);
+    assert.ok(bad.length, `${frag.slice(0, 30)} 를 통과시켰다`);
+    assert.ok(bad.some(b => re.test(b)), `사유가 안 맞는다: ${bad.join(' / ')}`);
+  });
+});
