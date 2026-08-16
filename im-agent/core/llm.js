@@ -10,7 +10,13 @@
 
 const { assertValid } = require('./schema');
 
-const MODELS = (process.env.GEMINI_MODELS || 'gemini-2.5-flash,gemini-2.0-flash')
+/* ★ 2026-08-17 — Gemini 호출 경로가 바뀌었다 (실측).
+   새 프로젝트(gen-lang-client-…) 키로는 gemini-2.5/2.0 계열 generateContent 가 전부 404
+   "no longer available to new users" 이고, Gemini 3.x 는 **Interactions API**(POST /v1beta/interactions,
+   {model,input}) 로만 응답한다(3.7/3.5/3.1 200 확인). generateContent 로 되는 것은 gemma-4 뿐.
+   → 기본 모델을 3.x 로 바꾸고, 각 모델을 Interactions → generateContent 순으로 시도한다.
+   응답은 steps[].type==='model_output' 의 content[].text 를 잇는다. */
+const MODELS = (process.env.GEMINI_MODELS || 'gemini-3.7-flash,gemini-3.5-flash,gemini-3.1-flash-lite,gemma-4-31b-it')
   .split(',').map(s => s.trim()).filter(Boolean);
 const KEYS = (process.env.GEMINI_API_KEY || '')
   .split(',').map(s => s.trim()).filter(Boolean);
@@ -26,6 +32,33 @@ function isOffline() {
 function endpoint(model, key) {
   return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
 }
+const INTERACTIONS = 'https://generativelanguage.googleapis.com/v1beta/interactions';
+
+/** Interactions API 로 한 번 시도. 실패하면 throw — 호출부가 generateContent 로 폴백한다 */
+async function callInteractions({ model, key, system, prompt, files, temperature, maxOutputTokens, signal }) {
+  const input = (files || []).map(f => ({
+    type: (f.mime || '').startsWith('image/') ? 'image' : 'document',
+    mime_type: f.mime,
+    data: Buffer.isBuffer(f.data) ? f.data.toString('base64') : String(f.data),
+  }));
+  input.push({ type: 'text', text: prompt });
+  const body = { model, input, generation_config: { temperature, max_output_tokens: maxOutputTokens } };
+  if (system) body.system_instruction = system;
+  const r = await fetch(INTERACTIONS, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
+    body: JSON.stringify(body),
+    signal,
+  });
+  const j = await r.json().catch(() => null);
+  if (!r.ok) throw new Error((j && j.error && (j.error.message || j.error)) || `HTTP ${r.status}`);
+  const steps = Array.isArray(j?.steps) ? j.steps : [];
+  const text = steps.filter(st => st && st.type === 'model_output')
+    .flatMap(st => Array.isArray(st.content) ? st.content : [])
+    .map(c => (c && c.type === 'text' && c.text) || '').join('').trim();
+  if (!text) throw new Error('빈 응답(interactions)' + (j && j.status ? ` status=${j.status}` : ''));
+  return text;
+}
 
 /**
  * 텍스트 생성. 키 × 모델 조합을 순회하며 재시도한다.
@@ -40,6 +73,14 @@ async function generate({ system, prompt, files, temperature = 0.3, maxOutputTok
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeoutMs);
       try {
+        /* ① Interactions API (Gemini 3.x) — 되면 여기서 끝 */
+        try {
+          const t = await callInteractions({ model, key, system, prompt, files, temperature, maxOutputTokens, signal: controller.signal });
+          return t;
+        } catch (ie) {
+          errors.push(`${model}[interactions]: ${ie.message}`);
+        }
+        /* ② generateContent (구 경로 · gemma-4 등) */
         // ★ 파일은 프롬프트 **앞**에 둔다. Gemini 는 지시문이 자료 뒤에 올 때
         //   자료를 더 성실히 읽는다 (문서 이해 가이드의 권고).
         const parts = (files || []).map(f => ({
@@ -74,7 +115,7 @@ async function generate({ system, prompt, files, temperature = 0.3, maxOutputTok
       }
     }
   }
-  throw new Error(`Gemini 전체 실패 — ${errors.slice(0, 3).join(' / ')}`);
+  throw new Error(`Gemini 전체 실패 — ${errors.slice(0, 4).join(' / ')}`);
 }
 
 /** 응답에서 JSON 블록만 뽑아낸다 (```json 펜스, 앞뒤 설명문 제거) */
