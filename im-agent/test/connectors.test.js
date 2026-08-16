@@ -502,8 +502,55 @@ test('★ 길이 규칙에 안 걸리는 키도 가린다 (VWorld 36자 · ECOS 
   }
 
   // 커넥터를 붙일 때 여기 더하지 않으면 그 키만 조용히 평문으로 남는다
-  ['VWORLD_KEY', 'DATA_GO_KR_KEY', 'ECOS_API_KEY', 'DART_API_KEY']
+  ['VWORLD_KEY', 'DATA_GO_KR_KEY', 'ECOS_API_KEY', 'DART_API_KEY', 'KOSIS_API_KEY']
     .forEach(k => assert.ok(SECRET_ENV.includes(k), `${k} 가 SECRET_ENV 에 없다`));
+});
+
+/**
+ * ★ **키가 아닌데 가려야 하는 것들** — 사내 주소다 (CLAUDE.md §2 「NAS 접속정보」).
+ *
+ *   `VWORLD_DOMAIN` 은 VWorld 콘솔에 등록한 서비스URL 인데 실제 값이 NAS 주소이고
+ *   (`.env.example` 의 예시가 그렇다) **모든 VWorld 요청의 쿼리에 실려 나간다.**
+ *   `RHINO_COMPUTE_URL` 은 같은 이유로 이미 등록돼 있었는데 이쪽만 빠져 있었다 —
+ *   노출 면은 오히려 이쪽이 넓다 (2026-08-16 교차검증에서 발견).
+ */
+test('★ 키가 아니어도 사내 주소는 가린다 (VWORLD_DOMAIN · RHINO_COMPUTE_URL)', () => {
+  const { redact, SECRET_ENV } = require('../connectors/http');
+  ['VWORLD_DOMAIN', 'RHINO_COMPUTE_URL']
+    .forEach(k => assert.ok(SECRET_ENV.includes(k), `${k} 가 SECRET_ENV 에 없다 — 주소가 평문으로 남는다`));
+
+  const saved = process.env.VWORLD_DOMAIN;
+  process.env.VWORLD_DOMAIN = 'https://nas.example.com/app.html';
+  try {
+    const out = redact('실패 https://api.vworld.kr/req/data?domain='
+      + encodeURIComponent(process.env.VWORLD_DOMAIN) + '&x=1');
+    assert.ok(!out.includes('nas.example.com'), '사내 주소가 로그에 평문으로 남는다');
+  } finally {
+    if (saved === undefined) delete process.env.VWORLD_DOMAIN; else process.env.VWORLD_DOMAIN = saved;
+  }
+});
+
+/**
+ * ★ 스모크 출력은 **그대로 복사돼 대화·이슈에 붙는다.** 저장소는 public 이다(D-10).
+ *   그래서 사내 주소를 값으로 찍지 않고 **모양만** 낸다 — 진단에 필요한 것은
+ *   주소가 아니라 스킴·경로 유무다(호스트만 남기면 ned/* 가 간헐 거부한다).
+ */
+test('★ 스모크가 VWORLD_DOMAIN 값을 찍지 않는다 (모양만 낸다)', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'tools', 'smoke-public-data.js'), 'utf8');
+  assert.ok(!/VWORLD_DOMAIN  : \$\{vworld\.domain\(\)/.test(src),
+    '도메인 값을 그대로 찍고 있다 — 스모크 출력은 그대로 복사돼 붙는다');
+  assert.match(src, /domainShape\(/, '모양만 내는 함수를 거쳐야 한다');
+  assert.match(src, /function domainShape/);
+
+  // 실제로 값이 안 새는지 함수를 직접 돌려 본다 (문자열 검사만으로는 부족하다)
+  const mod = src.match(/function domainShape\(v\) \{[\s\S]*?\n\}/)[0];
+  // eslint-disable-next-line no-new-func
+  const shape = new Function(`${mod}; return domainShape;`)();
+  const out = shape('https://nas.example.com/app.html');
+  assert.ok(!out.includes('nas.example.com'), '주소가 출력에 남는다');
+  assert.match(out, /스킴 있음/);
+  assert.match(shape('nas.example.com'), /스킴 없음/, '알려진 실패 모드를 짚어 줘야 한다');
+  assert.match(shape(''), /미설정/);
 });
 
 test('★ 공시지가를 넉넉히 받아 온다 (오름차순이라 앞부분만 받으면 옛 값이 최신이 된다)', () => {

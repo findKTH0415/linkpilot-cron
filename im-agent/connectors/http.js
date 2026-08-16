@@ -114,6 +114,11 @@ const SECRET_ENV = [
   //   지금 Node fetch 는 실패 메시지에 호스트를 안 넣지만, 런타임이 바뀌거나
   //   누가 디버그 로그에 주소를 찍는 날 그대로 새어 나간다 — 미리 가려 둔다
   'RHINO_COMPUTE_URL',
+  // ★ 이것도 키가 아니라 **사내 주소**다. VWorld 콘솔에 등록한 서비스URL 인데
+  //   실제 값이 NAS 주소이고(`.env.example` 의 예시가 그렇다), **모든 VWorld
+  //   요청의 쿼리에 실려 나간다** — RHINO_COMPUTE_URL 보다 노출 면이 넓다.
+  //   CLAUDE.md §2 의 「NAS 접속정보」와 같은 줄이다 (2026-08-16 교차검증에서 발견).
+  'VWORLD_DOMAIN',
 ];
 
 /**

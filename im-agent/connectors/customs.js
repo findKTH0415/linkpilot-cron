@@ -117,7 +117,12 @@ function parseTrade(body) {
 
   const rows = (j.items || [])
     .map(x => ({
-      period: month(x.year && x.month ? `${x.year}${String(x.month).padStart(2, '0')}` : (x.statKor || x.year)),
+      // ★ 기간은 **기간 필드에서만** 만든다. 예전에 품목명(statKor)을 대체값으로
+      //   두었는데, 품목명이 기간 자리에 들어오는 길을 열어 두는 셈이었다
+      //   (month() 가 걸러 내긴 하지만, 거르는 것과 안 넣는 것은 다르다)
+      period: month(x.year && x.month
+        ? `${x.year}${String(x.month).padStart(2, '0')}`
+        : (x.prdDe || x.statMm || '')),
       hsCode: String(x.hsCd || x.hsSgn || '').replace(/[^\d]/g, '') || null,
       name: x.statKor || x.hsCdNm || null,
       exportUsd: num(x.expDlr),

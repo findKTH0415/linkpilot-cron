@@ -96,6 +96,23 @@ function argOf(flag) {
   return i > -1 ? process.argv[i + 1] : null;
 }
 
+/**
+ * VWORLD_DOMAIN 의 **모양만** 돌려준다 (값은 절대 안 찍는다).
+ *
+ * ★ 이 값은 사내 주소다. 진단에 필요한 것은 주소가 아니라 스킴·경로 유무다 —
+ *   콘솔의 서비스URL 을 글자 그대로 넣지 않고 호스트만 남기면 `ned/*` 계열이
+ *   간헐적으로 거부한다(실측 5회 중 2회). 그 상태를 이 한 줄로 가릴 수 있다.
+ */
+function domainShape(v) {
+  const s = String(v || '').trim();
+  if (!s) return '미설정 ⚠ 서버 호출은 등록 도메인을 명시해야 허용된다';
+  const scheme = /^https?:\/\//i.test(s);
+  const rest = s.replace(/^https?:\/\//i, '');
+  const hasPath = rest.includes('/');
+  return `설정됨 (${s.length}자 · 스킴 ${scheme ? '있음' : '없음'} · 경로 ${hasPath ? '있음' : '없음'})`
+    + (scheme && hasPath ? '' : ' ⚠ 콘솔의 서비스URL 을 글자 그대로 넣는다 — 호스트만 남기면 ned/* 가 간헐 거부한다');
+}
+
 function report(name, ok, detail, expectedFields = null, raw = null) {
   results.push({ name, ok });
   console.log(`\n${ok ? '●' : '✕'} ${name}`);
@@ -153,7 +170,11 @@ async function main() {
   }
   console.log(`대상 주소 : ${ADDRESS}`);
   console.log(`VWORLD_KEY     : ${vworld.isAvailable() ? vk.message : '미설정 — 지오코딩/지적/공시지가 건너뜀'}`);
-  console.log(`VWORLD_DOMAIN  : ${vworld.domain() || '미설정 ⚠ 서버 호출은 등록 도메인을 명시해야 허용된다'}`);
+  // ★ **값을 찍지 않는다.** 이 값은 실제로 NAS 주소이고(CLAUDE.md §2 「NAS 접속정보」),
+  //   스모크 출력은 그대로 복사돼 대화·이슈에 붙는다. 저장소는 public 이다 (D-10).
+  //   진단에 필요한 것은 주소 자체가 아니라 **모양**이다 — 알려진 실패 모드가
+  //   「호스트만 남기면 ned/* 가 간헐적으로 거부」라서, 스킴·경로 유무만 보면 된다.
+  console.log(`VWORLD_DOMAIN  : ${domainShape(vworld.domain())}`);
   console.log(`DATA_GO_KR_KEY : ${molit.isAvailable() ? dk.message : '미설정 — 실거래가/건축물대장 건너뜀'}`);
   console.log(`ECOS_API_KEY   : ${ecos.isAvailable() ? '설정됨 (시장금리 + 생산자물가)' : '미설정 — 시장금리·생산자물가 건너뜀 (금리·단가가 가정치로 남는다)'}`);
   console.log(`DART_API_KEY   : ${dart.isAvailable() ? '설정됨' : '미설정 — 시행사 대조 건너뜀'}`);
