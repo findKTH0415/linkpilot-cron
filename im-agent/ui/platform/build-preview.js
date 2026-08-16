@@ -300,9 +300,33 @@ async function buildSectionDocs() {
   return docs;
 }
 
-async function buildSection() {
-  const docs = await buildSectionDocs();
+/**
+ * 세부 진행률이 읽는 값. **지어내지 않는다** — 서버가 실제로 내려주는 필드 정의만
+ * 심고, 프로젝트에 딸린 값(입력값·사양·실행 스냅샷)은 없으므로 없는 채로 둔다.
+ * 그러면 화면은 「아직」이라고 적는다. 그게 사실이다.
+ */
+async function flowPreload() {
+  const AGENT = path.join(HERE, '..', '..');
+  const { createHandlers } = require(path.join(AGENT, 'ui', 'api-router.cjs'));
+  const h = createHandlers({ agentModulePath: AGENT });
+  const info = (await h.fields()).body;
+  return {
+    fields: info.fields || {},
+    computedKeys: info.computedKeys || [],
+    values: {},        // 저장된 값이 없다 (0 개 — 「모름」과 다르다)
+    sources: null,     // 올린 자료 목록은 서버만 안다 → 모름
+    spec: null,
+    snapshot: null,
+  };
+}
 
+/**
+ * 제품 껍데기(`report-flow.html`)를 파일 하나로 만든다.
+ *
+ * @param {object} docs 단계 화면 문서. `{}` 를 주면 **레일과 세부 진행률만** 나온다
+ *   (아티팩트 조각처럼 껍데기만 보여야 할 때).
+ */
+async function flowShell(docs) {
   let shell = read('report-flow.html');
   (shell.match(/<script src="([^"]+)"><\/script>/g) || []).forEach((tag) => {
     const src = tag.match(/src="([^"]+)"/)[1];
@@ -319,6 +343,7 @@ async function buildSection() {
   //   버려 뒤의 닫는 태그를 종료로 보지 않는다. 그러면 블록 전체가 문법 오류가
   //   되고 화면이 통째로 빈다 — 오류는 콘솔에만 뜬다 (실제로 그랬다).
   const embedded = JSON.stringify(docs).replace(/</g, '\\u003C');
+  const preload = JSON.stringify(await flowPreload()).replace(/</g, '\\u003C');
 
   const inject = `
 <script>
@@ -327,10 +352,15 @@ window.LINKPILOT_PREVIEW_DOCS = ${embedded};
 Object.assign(window.LINKPILOT_REPORT_FLOW, {
   api: '(미리보기 — 서버 없음)',
   projectId: 'LP-DC-2026-001',
+  preload: ${preload},
   external: { repoUrl: null, agentUrl: null },
 });
 <\/script>`;
-  shell = shell.slice(0, at + 9) + inject + shell.slice(at + 9);
+  return shell.slice(0, at + 9) + inject + shell.slice(at + 9);
+}
+
+async function buildSection() {
+  const shell = await flowShell(await buildSectionDocs());
 
   // ★ 미리보기임을 화면에 박아 둔다. 실물로 오해하면 이걸 근거로 판단한다
   const banner = `
@@ -557,7 +587,7 @@ async function main() {
 if (require.main === module) main().catch(e => { console.error(e); process.exit(1); });
 
 module.exports = {
-  build, buildSection, buildSectionDocs, SCREENS, EXTRAS,
+  build, buildSection, buildSectionDocs, flowShell, SCREENS, EXTRAS,
   // 「미리 그려 넣는 판」이 같은 패널을 쓴다 — 두 벌로 만들지 않는다
   changePanel, evidencePanel,
 };

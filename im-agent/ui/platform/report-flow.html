@@ -74,6 +74,45 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
 .st__why { display: block; margin-top: 6px; font-size: 12.5px; color: var(--warn-ink); }
 .st__note { display: block; margin-top: 6px; font-size: 12.5px; color: var(--ink2); }
 
+/* ── 세부 진행률 ──────────────────────────────────────────
+   ★ 합계 막대를 만들지 않는다. 네 단계는 성격이 달라 하나로 뭉치면
+     "80%" 가 무엇의 80% 인지 아무도 모른다. 단계마다 따로 그린다.
+   ★ 모르는 것은 0% 막대가 아니라 빗금이다 — 0% 막대는 "다 안 됐다"로 읽힌다 */
+.prog__l { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 11px; }
+.prog__i { border: 1px solid var(--line); border-radius: 14px; padding: 13px 15px; }
+.prog__i--done { border-color: var(--lime); background: var(--lime-soft); }
+.prog__i--doing { border-color: var(--lime); }
+.prog__i--unknown { background: var(--panel); }
+.prog__h { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.prog__n {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 50%; flex: none;
+  background: var(--lime); color: #23300A; font-weight: 700; font-size: 12.5px;
+}
+.prog__i--todo .prog__n, .prog__i--unknown .prog__n { background: #D5D8DC; color: #8A9099; }
+.prog__t { font-size: 15px; font-weight: 700; }
+.prog__v { margin-left: auto; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.prog__v--none { font-weight: 400; color: var(--ink2); }
+.prog__bar { height: 8px; border-radius: 999px; background: #E1E4E8; margin: 10px 0 7px; overflow: hidden; }
+.prog__bar i { display: block; height: 100%; background: var(--lime); border-radius: 999px; }
+.prog__bar--none {
+  background: repeating-linear-gradient(135deg, #E1E4E8 0 5px, #F3F4F6 5px 10px);
+}
+.prog__d { margin: 0; font-size: 13.5px; color: var(--ink2); }
+.prog__p { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+.prog__p span { font-size: 12px; padding: 4px 9px; border-radius: 8px; background: var(--panel); color: var(--ink2); }
+.prog__p span.is-ok { background: var(--lime-soft); color: var(--lime-deep); }
+.prog__p span.is-run { background: var(--lime-soft); color: var(--lime-deep); font-weight: 700; }
+.prog__p span.is-warn { background: var(--warn-soft); color: var(--warn-ink); font-weight: 700; }
+.prog__p span.is-bad { background: var(--bad-soft); color: var(--bad-ink); font-weight: 700; }
+.prog__log { margin: 9px 0 0; padding: 0; list-style: none; font-size: 12.5px; color: var(--ink2); }
+.prog__log li { padding: 2px 0; }
+.prog__log li b { color: var(--ink); font-weight: 700; }
+.prog__c { margin-top: 13px; padding: 13px 15px; border: 1px solid var(--line); border-radius: 14px; }
+.prog__ch { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.prog__ct { font-size: 15px; font-weight: 700; }
+.prog__cw { margin: 3px 0 0; font-size: 12.5px; color: var(--ink2); }
+
 /* ── 단계 화면 — 내용 높이만큼 편다 (안쪽 스크롤 없음) ────── */
 .stage { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
 .stage__bar {
@@ -116,6 +155,10 @@ window.LINKPILOT_REPORT_FLOW = {
   api: null,          // 예: '/api/linkpilot' — 없으면 단계가 전부 잠기고 사유가 뜬다
   base: '',           // 단계 화면이 놓인 경로. 같은 폴더면 빈 문자열
   projectId: null,    // 이어서 작업할 프로젝트. 1단계에서 만들면 자동으로 채워진다
+  docType: 'im',      // 세부 진행률의 「필수 항목」 판정 기준 (im / teaser / …)
+
+  // 세부 진행률용 미리 심은 값. 서버가 없을 때(미리보기)만 쓴다 — 제품에서는 null
+  preload: null,      // { fields, computedKeys, values, sources, spec, snapshot }
 
   // 지금 운영 중인 **외부 분석 경로**. 지우지 않는다 — 둘 다 쓸 수 있어야 한다
   external: {
@@ -126,6 +169,8 @@ window.LINKPILOT_REPORT_FLOW = {
 </script>
 <script src="gate-core.js"></script>
 <script src="flow-core.js"></script>
+<script src="fields-core.js"></script>
+<script src="live-core.js"></script>
 <script src="catalog.js"></script>
 <script src="inapp.js"></script>
 <script>
@@ -275,6 +320,201 @@ window.LINKPILOT_REPORT_FLOW = {
     return p;
   }
 
+  /* ── 세부 진행률 ──────────────────────────────────────────
+   *
+   * ★ **판정을 여기서 하지 않는다.** 단계별 %·문구는 전부 live-core.js 가
+   *   만든다. 화면이 자기 식으로 세기 시작하면 이 화면과 [IM 제작현황]이 서로
+   *   다른 숫자를 보여주고, 어느 쪽이 맞는지 아무도 모르게 된다.
+   *
+   * ★ 이 칸은 **다시 그려도 단계 화면(iframe)을 건드리지 않는다.** draw() 를
+   *   부르면 iframe 이 다시 실려 입력하던 것이 날아간다 — 그래서 자기 노드만 갈아끼운다.
+   * ───────────────────────────────────────────────────────── */
+
+  var L = window.LinkPilotLive;
+  var FC = window.LinkPilotFields;
+  var progBox = el('section', 'card');
+
+  var det = {
+    fields: null, computedKeys: null,
+    // ★ undefined = 아직 못 물어봤다 · null = 물어봤는데 없다. 둘을 섞으면
+    //   화면이 「못 받았다」를 「아직 안 했다」로 단정한다
+    values: null, sources: null, spec: undefined, snapshot: undefined,
+    error: null, failures: 0, timer: null, demo: false,
+  };
+
+  function api(path) {
+    return fetch(C.api + path, { headers: { Accept: 'application/json' } })
+      .then(function (r) {
+        // ★ 404 는 실패가 아니라 **아직 없다**는 뜻이다 (사양 미확정·생성 전).
+        //   이걸 오류로 세면 정상 상태에서 빨간 글씨가 뜬다
+        if (r.status === 404) return null;
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      });
+  }
+
+  function loadDetail() {
+    var pre = C.preload;
+    if (pre) {
+      // 서버가 없는 판(미리보기). 없는 값을 지어내지 않는다 — 없으면 null 그대로
+      det.demo = true;
+      det.fields = pre.fields || null;
+      det.computedKeys = pre.computedKeys || null;
+      det.values = pre.values === undefined ? null : pre.values;
+      det.sources = pre.sources === undefined ? null : pre.sources;
+      det.spec = pre.spec === undefined ? undefined : (pre.spec || null);
+      det.snapshot = pre.snapshot === undefined ? undefined : (pre.snapshot || null);
+      return renderProgress();
+    }
+    if (!C.api) { renderProgress(); return; }
+
+    var pid = state.projectId;
+    Promise.all([
+      det.fields ? Promise.resolve(null) : api('/fields'),   // 정의는 한 번만 받는다
+      pid ? api('/projects/' + encodeURIComponent(pid) + '/facts') : Promise.resolve(null),
+      pid ? api('/projects/' + encodeURIComponent(pid) + '/spec') : Promise.resolve(null),
+      pid ? api('/projects/' + encodeURIComponent(pid) + '/control-tower') : Promise.resolve(null),
+    ]).then(function (r) {
+      if (r[0]) {
+        det.fields = r[0].fields || {};
+        det.computedKeys = r[0].computedKeys || [];
+      }
+      // 프로젝트는 있는데 facts 가 없으면 「0개」다. 프로젝트가 없으면 「모름」이다
+      det.values = r[1] ? (r[1].values || {}) : (pid ? {} : null);
+      det.sources = r[1] ? (r[1].sources || []) : null;
+      det.spec = r[2] ? (r[2].spec || null) : null;
+      det.snapshot = r[3] || null;
+      det.error = null; det.failures = 0;
+      renderProgress(); schedule();
+    }).catch(function (e) {
+      // ★ 조용히 멈추지 않는다. 마지막 값으로 굳으면 사용자는 멈춘 줄 안다
+      det.failures += 1;
+      det.error = e.message;
+      renderProgress(); schedule();
+    });
+  }
+
+  function schedule() {
+    if (det.timer) { clearTimeout(det.timer); det.timer = null; }
+    if (det.demo || !C.api) return;
+    var snap = det.snapshot;
+    if (snap && snap.timing && snap.timing.finishedAt) return;   // 끝났으면 그만 묻는다
+    var wait = det.failures
+      ? Math.min(6000 * Math.pow(2, det.failures), 60000)        // 실패가 이어지면 뜸하게
+      : (snap ? L.nextPollMs({ state: 'running' }, 0) : 8000);
+    det.timer = setTimeout(loadDetail, wait);
+  }
+
+  function bar(pct) {
+    if (pct === null || pct === undefined) return el('div', 'prog__bar prog__bar--none');
+    var b = el('div', 'prog__bar');
+    var i = el('i');
+    i.style.width = Math.max(0, Math.min(100, pct)) + '%';
+    b.appendChild(i);
+    return b;
+  }
+
+  function chips(list) {
+    var row = el('div', 'prog__p');
+    list.forEach(function (c) { row.appendChild(el('span', c.cls || '', c.text)); });
+    return row;
+  }
+
+  /** 4단계는 「무엇을 하고 있는가」까지 보여준다 — 숫자만으로는 멈춘 것과 구분이 안 된다 */
+  function makeInside() {
+    if (!det.snapshot) return null;
+    var v = L.viewFrom({ snapshot: det.snapshot });
+    var box = el('div');
+    box.appendChild(chips(v.phases.map(function (p) {
+      return {
+        text: p.label + ' ' + p.doneCount + '/' + p.total,
+        cls: p.running ? 'is-run' : (p.tone === 'bad' ? 'is-bad'
+          : (p.tone === 'warn' ? 'is-warn' : (p.done ? 'is-ok' : ''))),
+      };
+    })));
+    if (v.activity.length) {
+      var ul = el('ul', 'prog__log');
+      v.activity.slice(0, 3).forEach(function (a) {
+        var li = el('li');
+        li.appendChild(el('b', null, (a.at || '').slice(11, 16) || '지금'));
+        li.appendChild(document.createTextNode(' ' + (a.message || '')));
+        ul.appendChild(li);
+      });
+      box.appendChild(ul);
+    }
+    return box;
+  }
+
+  function renderProgress() {
+    progBox.textContent = '';
+    progBox.appendChild(el('h2', 'card__t', '세부 진행률'));
+    progBox.appendChild(el('p', 'card__d',
+      '단계마다 성격이 달라 합계 %는 만들지 않습니다 — 1·2 는 사람이 채우고, '
+      + '3 은 확정했느냐이고, 4 만 기계가 도는 구간입니다.'));
+
+    var steps = L.stepProgress({
+      project: state.projectId,
+      sources: det.sources,
+      fields: det.fields,
+      values: det.values,
+      docType: C.docType || 'im',
+      spec: det.spec,
+      snapshot: det.snapshot,
+      complete: FC && FC.completeness,
+    });
+
+    var list = el('ol', 'prog__l');
+    steps.forEach(function (s) {
+      var li = el('li', 'prog__i prog__i--' + s.state);
+      var head = el('div', 'prog__h');
+      add(head, el('span', 'prog__n', s.n), el('span', 'prog__t', s.label));
+      head.appendChild(s.pct === null
+        ? el('span', 'prog__v prog__v--none', '아직')
+        : el('span', 'prog__v', s.pct + '%'));
+      li.appendChild(head);
+      li.appendChild(bar(s.pct));
+      li.appendChild(el('p', 'prog__d', s.detail));
+      if (s.id === 'fields' && s.parts) {
+        li.appendChild(chips(s.parts.map(function (p) {
+          return { text: p.label + ' ' + p.n + '개', cls: p.label === '채움' ? 'is-ok' : '' };
+        })));
+      }
+      if (s.id === 'make') { var inside = makeInside(); if (inside) li.appendChild(inside); }
+      list.appendChild(li);
+    });
+    progBox.appendChild(list);
+
+    // ── 계산 항목 — 사람이 넣지 않는 것들. 시작 전 0 개는 정상이다 ──
+    var comp = L.computedProgress(det.computedKeys, det.values, !!det.snapshot);
+    var box = el('div', 'prog__c');
+    var ch = el('div', 'prog__ch');
+    add(ch, el('span', 'prog__ct', '계산 항목'));
+    ch.appendChild(det.computedKeys === null
+      ? el('span', 'prog__v prog__v--none', '아직')
+      : el('span', 'prog__v', comp.made + ' / ' + comp.total));
+    box.appendChild(ch);
+    box.appendChild(el('p', 'prog__cw',
+      '사람이 넣지 않습니다 — 생성할 때 함수가 만듭니다. 입력란도 만들지 않습니다.'));
+    if (det.computedKeys !== null) {
+      box.appendChild(bar(comp.started ? comp.pct : null));
+      box.appendChild(el('p', 'prog__d', comp.detail));
+    }
+    progBox.appendChild(box);
+
+    if (det.error) {
+      progBox.appendChild(notice('note--bad', '진행 상황을 확인하지 못했습니다',
+        det.error + ' — 생성이 멈췄다는 뜻은 아닙니다. '
+        + (det.failures > 1 ? '확인 간격을 늘려 다시 시도하고 있습니다.' : '곧 다시 확인합니다.')));
+    } else if (det.demo) {
+      progBox.appendChild(notice('', '예시입니다',
+        '서버에 연결되어 있지 않아 저장된 값이 없습니다. 숫자는 지어내지 않고 '
+        + '「아직」으로 두었습니다.'));
+    } else if (!C.api) {
+      progBox.appendChild(notice('', '서버가 연결되어 있지 않습니다',
+        '진행률은 서버가 가진 값으로만 셉니다 — 지금은 셀 수 없습니다.'));
+    }
+  }
+
   /* ── 외부 분석 경로 (지금 운영 방식 — 지우지 않는다) ────── */
 
   function external() {
@@ -343,8 +583,25 @@ window.LINKPILOT_REPORT_FLOW = {
       steps = F.stepState(ctx());
     }
     view.appendChild(rail(steps));
+    view.appendChild(progBox);
 
-    if (window.LINKPILOT_PREVIEW_DOCS) {
+    // ★ 프로젝트가 바뀌면 진행률도 **그 프로젝트의 것**을 다시 받는다.
+    //   안 그러면 앞 프로젝트의 숫자가 그대로 남아 남의 진행률을 자기 것으로 본다
+    if (det.forProject !== state.projectId) {
+      det.forProject = state.projectId;
+      det.values = null; det.sources = null; det.spec = undefined; det.snapshot = undefined;
+      det.error = null; det.failures = 0;
+      renderProgress();
+      loadDetail();
+    }
+
+    var docs = window.LINKPILOT_PREVIEW_DOCS;
+    if (docs && !Object.keys(docs).length) {
+      // 껍데기만 보여주는 조각(레일·세부 진행률). 단계 화면을 안 심었으므로
+      // 부르러 가지 않는다 — 없는 주소를 부르면 빈 칸이 뜨고 고장으로 읽힌다
+      view.appendChild(notice('', '단계 화면은 이 조각에 넣지 않았습니다',
+        '여기서는 단계 레일과 세부 진행률만 보여줍니다. 단계 화면은 아래 칸에서 따로 봅니다.'));
+    } else if (docs) {
       // 미리보기는 **네 단계를 한 번에 편다.** 눌러 가며 확인하면 빠뜨린다
       steps.forEach(function (s) { view.appendChild(stage(s)); });
     } else {

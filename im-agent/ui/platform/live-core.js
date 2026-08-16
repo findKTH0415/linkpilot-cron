@@ -224,8 +224,138 @@
     };
   }
 
+  /* ─────────────────────────────────────────────────────────
+   * 흐름 전체의 세부 진행률
+   *
+   * ★ 4단계는 **성격이 다르다.** 1·2단계는 사람이 채우는 것이고, 3단계는
+   *   눌렀느냐 아니냐이고, 4단계만 기계가 도는 것이다. 넷을 하나의 %로 뭉개면
+   *   "80%" 가 무엇의 80% 인지 아무도 모른다 — 그래서 **단계마다 따로** 보이고,
+   *   합계는 만들지 않는다.
+   *
+   * ★ 모르는 것은 `null` 이다. 서버에 안 물어봤거나 못 받은 것을 0% 로 그리면
+   *   "아무것도 안 됐다"로 읽힌다 (M-07 옆의 같은 실패).
+   * ───────────────────────────────────────────────────────── */
+
+  var STEPS = [
+    { id: 'intake', n: 1, label: '보고서 생성 입력' },
+    { id: 'fields', n: 2, label: '가이드 필드 입력' },
+    { id: 'spec', n: 3, label: '출력 사양 확정' },
+    { id: 'make', n: 4, label: '생성' },
+  ];
+
+  /**
+   * @param {object} d
+   *   project   프로젝트가 만들어졌는가 (id 또는 null)
+   *   sources   올린 자료 이름 배열 (없으면 null = 모름)
+   *   fields    GET /fields 의 fields (없으면 null)
+   *   values    GET /facts 의 values (없으면 null)
+   *   docType   'im' 등 — 필수 항목 판정에 쓴다
+   *   spec      GET /spec 의 spec (없으면 null)
+   *   snapshot  control-tower 스냅샷 (없으면 null)
+   *   computed  계산 전용 key 목록 (dictionary.COMPUTED_KEYS)
+   *   complete  fields-core.completeness 함수 (주입 — 두 벌로 만들지 않는다)
+   */
+  function stepProgress(d) {
+    var o = d || {};
+    var steps = [];
+
+    // ① 입력 — 프로젝트가 있어야 나머지가 열린다. 자료는 있으면 좋고 없어도 된다
+    var hasProject = !!o.project;
+    var srcCount = o.sources ? o.sources.length : null;
+    steps.push({
+      id: 'intake', n: 1, label: STEPS[0].label,
+      pct: hasProject ? 100 : 0,
+      state: hasProject ? 'done' : 'todo',
+      detail: hasProject
+        ? (srcCount === null ? '프로젝트가 만들어졌습니다'
+          : (srcCount > 0 ? '자료 ' + srcCount + '건을 올렸습니다'
+            : '자료 없이 진행 중 — 값을 전부 직접 넣어야 합니다'))
+        : '아직 프로젝트가 없습니다',
+      parts: null,
+    });
+
+    // ② 가이드 필드 — 필수 항목 중 값과 출처가 **둘 다** 있는 것만 센다
+    var c = (o.fields && o.values && typeof o.complete === 'function')
+      ? o.complete(o.fields, o.values, o.docType || 'im') : null;
+    steps.push({
+      id: 'fields', n: 2, label: STEPS[1].label,
+      pct: c ? c.percent : null,
+      state: !c ? 'unknown' : (c.filled >= c.total ? 'done' : (c.filled ? 'doing' : 'todo')),
+      detail: c ? ('필수 ' + c.total + '개 중 ' + c.filled + '개 (값과 출처가 모두 있어야 셉니다)')
+        : '아직 확인하지 못했습니다',
+      parts: c ? [
+        { label: '채움', n: c.filled },
+        { label: '남음', n: c.total - c.filled },
+      ] : null,
+    });
+
+    // ③ 출력 사양 — 눌렀느냐 아니냐다. 중간이 없다
+    //
+    // ★ **「안 물어봤다」와 「물어봤는데 없다」를 가른다.** `undefined` 는 아직
+    //   서버에 못 물어본 것이고(모름 → null), `null` 은 물어봤더니 사양이 없는
+    //   것이다(0%). 둘을 같게 두면 화면이 못 받은 것을 「아직 안 정했다」로 단정한다.
+    var specAsked = o.spec !== undefined;
+    var spec = o.spec || null;
+    steps.push({
+      id: 'spec', n: 3, label: STEPS[2].label,
+      pct: spec ? (spec.locked ? 100 : 50) : (specAsked ? 0 : null),
+      state: spec ? (spec.locked ? 'done' : 'doing') : (specAsked ? 'todo' : 'unknown'),
+      detail: spec
+        ? (spec.locked ? '확정됨 — 이제 생성할 수 있습니다'
+          : '정했지만 확정 전입니다. 확정해야 생성이 시작됩니다')
+        : (specAsked ? '아직 정하지 않았습니다' : '아직 확인하지 못했습니다'),
+      parts: null,
+    });
+
+    // ④ 생성 — 기계가 도는 구간. monitor 가 준 값을 그대로 쓴다
+    var snapAsked = o.snapshot !== undefined;
+    var snap = o.snapshot || null;
+    var snapDone = !!(snap && snap.timing && snap.timing.finishedAt);
+    steps.push({
+      id: 'make', n: 4, label: STEPS[3].label,
+      pct: snap && typeof snap.overall === 'number' ? snap.overall : null,
+      state: snap ? (snapDone ? 'done' : 'doing') : (snapAsked ? 'todo' : 'unknown'),
+      detail: snap
+        ? (snapDone ? '끝났습니다' : '도는 중입니다 — 아래 [제작 진행] 에서 자세히 보입니다')
+        : (snapAsked ? '아직 시작하지 않았습니다' : '아직 확인하지 못했습니다'),
+      parts: snap && snap.tracks ? Object.keys(snap.tracks).map(function (k) {
+        return { label: snap.tracks[k].label || k, n: snap.tracks[k].pct };
+      }) : null,
+    });
+
+    return steps;
+  }
+
+  /**
+   * 계산 항목 — **사람이 넣지 않는 19개**가 지금 몇 개 만들어졌는가.
+   *
+   * ★ 여기에 "입력 진행률"을 섞지 않는다. 계산 항목은 4단계에서 만들어지고,
+   *   그 전에는 0개인 것이 정상이다. 0/19 를 빨갛게 칠하면 사람은 자기가
+   *   무언가 안 한 줄 안다 — 그래서 시작 전에는 '아직'이라고만 적는다.
+   */
+  function computedProgress(computedKeys, values, started) {
+    var keys = computedKeys || [];
+    var v = values || {};
+    var made = keys.filter(function (k) {
+      var x = v[k];
+      return x && x.value !== null && x.value !== undefined && x.value !== '';
+    });
+    return {
+      total: keys.length,
+      made: made.length,
+      pct: keys.length ? Math.round(made.length / keys.length * 100) : 0,
+      started: !!started,
+      detail: !started
+        ? '생성할 때 만들어집니다 — 지금 비어 있는 것이 정상입니다'
+        : (made.length >= keys.length ? '전부 만들어졌습니다'
+          : made.length + '개까지 만들어졌습니다'),
+      keys: made,
+    };
+  }
+
   return {
-    PHASES: PHASES, AGENT_STATE: AGENT_STATE,
+    PHASES: PHASES, AGENT_STATE: AGENT_STATE, STEPS: STEPS,
+    stepProgress: stepProgress, computedProgress: computedProgress,
     phaseOf: phaseOf, toneOf: toneOf, labelOf: labelOf,
     viewFrom: viewFrom, nextPollMs: nextPollMs, isFinal: isFinal, ms: ms,
   };

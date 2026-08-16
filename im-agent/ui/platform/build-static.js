@@ -31,8 +31,21 @@ const path = require('path');
 const { execFileSync } = require('child_process');
 
 const HERE = __dirname;
-const { SCREENS, buildSectionDocs } = require('./build-preview.js');
+const { SCREENS, buildSectionDocs, flowShell } = require('./build-preview.js');
 const FLOW = require('./flow-core.js');
+
+/**
+ * 단계 화면 넷 **밖에 있는 것** — 레일과 세부 진행률.
+ *
+ * ★ 이걸 빼고 보내면 「지금 어디까지 됐는가」가 어디에도 안 보인다. 단계 화면은
+ *   각자 자기 안만 알고, 흐름 전체의 진행은 껍데기(report-flow.html)에 있다.
+ */
+const FLOW_PANEL = {
+  id: 'flow',
+  name: '단계 레일과 세부 진행률',
+  note: '네 단계를 오가는 레일과, 단계마다 얼마나 됐는지 보여주는 칸입니다. '
+    + '합계 %는 만들지 않습니다 — 단계마다 성격이 달라 하나로 뭉치면 무엇의 몇 %인지 알 수 없습니다.',
+};
 
 /** 헤드리스 크로미움 찾기 — 환경마다 경로가 다르다 */
 function findBrowser() {
@@ -128,6 +141,21 @@ function esc(t) {
     .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+/** 조각 한 칸. 머리말 모양을 한 곳에서만 만든다 — 두 벌이면 칸마다 다르게 보인다 */
+function panelHtml(s, badge, inner) {
+  return `
+  <section class="pv">
+    <header class="pv__h">
+      <span class="pv__n">${esc(badge)}</span>
+      <div>
+        <h2 class="pv__t">${esc(s.name)}</h2>
+        <p class="pv__d">${esc(s.note || '')}</p>
+      </div>
+    </header>
+    ${inner}
+  </section>`;
+}
+
 async function main() {
   const browser = findBrowser();
   if (!browser) {
@@ -139,25 +167,25 @@ async function main() {
   const docs = await buildSectionDocs();
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'im-static-'));
 
-  const panels = SCREENS.map((s, i) => {
-    const f = path.join(tmp, `${s.id}.html`);
-    fs.writeFileSync(f, docs[s.id] + EMBED + EXPAND + MEASURE);
-    const dom = renderDom(browser, f);
+  /** 그려서 iframe 한 칸으로 만든다. 높이는 재서 박는다 (스크립트가 없으니 스스로 못 는다) */
+  const frame = (s, badge, file) => {
+    const dom = renderDom(browser, file);
     const h = heightOf(dom);
     const clean = stripScripts(dom);
-    process.stderr.write(`  ${i + 1}. ${s.name} — ${Math.round(clean.length / 1024)}KB · ${h}px\n`);
-    return `
-  <section class="pv">
-    <header class="pv__h">
-      <span class="pv__n">${i + 1}</span>
-      <div>
-        <h2 class="pv__t">${esc(s.name)}</h2>
-        <p class="pv__d">${esc(s.note || (FLOW.WHY && FLOW.WHY[s.id]) || '')}</p>
-      </div>
-    </header>
-    <iframe class="pv__f" style="height:${h}px" title="${esc(s.name)}"
-      srcdoc="${esc(clean)}"></iframe>
-  </section>`;
+    process.stderr.write(`  ${badge}. ${s.name} — ${Math.round(clean.length / 1024)}KB · ${h}px\n`);
+    return panelHtml(
+      { name: s.name, note: s.note || (FLOW.WHY && FLOW.WHY[s.id]) || '' }, badge,
+      `<iframe class="pv__f" style="height:${h}px" title="${esc(s.name)}" srcdoc="${esc(clean)}"></iframe>`);
+  };
+
+  // 흐름 전체의 진행은 단계 화면 밖(껍데기)에 있다 — 빼면 어디에도 안 보인다
+  const flowFile = path.join(tmp, 'flow.html');
+  fs.writeFileSync(flowFile, await flowShell({}) + EXPAND + MEASURE);
+
+  const panels = frame(FLOW_PANEL, '·', flowFile) + SCREENS.map((s, i) => {
+    const f = path.join(tmp, `${s.id}.html`);
+    fs.writeFileSync(f, docs[s.id] + EMBED + EXPAND + MEASURE);
+    return frame(s, String(i + 1), f);
   }).join('');
 
   const { changePanel, evidencePanel } = require('./build-preview.js');
@@ -202,7 +230,7 @@ ${panels}
 
   const out = path.join(HERE, 'section-static.html');
   fs.writeFileSync(out, html);
-  console.log(`${out} (${Math.round(html.length / 1024)}KB) · 미리 그려 넣은 화면 ${SCREENS.length}개`);
+  console.log(`${out} (${Math.round(html.length / 1024)}KB) · 미리 그려 넣은 화면 ${SCREENS.length + 1}개`);
 }
 
 /**
@@ -221,26 +249,30 @@ async function buildArtifact(opt) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'im-art-'));
 
   const picked = only ? SCREENS.filter(s => s.id === only) : SCREENS;
-  if (!picked.length) throw new Error(`그런 단계가 없다: ${only} (있는 것: ${SCREENS.map(s => s.id).join(', ')})`);
+  if (!picked.length && only !== FLOW_PANEL.id) {
+    throw new Error(`그런 단계가 없다: ${only} (있는 것: ${FLOW_PANEL.id}, ${SCREENS.map(s => s.id).join(', ')})`);
+  }
 
   const css = [], body = [];
+
+  // ★ 껍데기(레일 + 세부 진행률)를 **맨 앞에** 넣는다. 단계 화면만 보내면
+  //   「지금 어디까지 됐는가」가 어디에도 안 보인다 — 그건 화면 넷 밖에 있다
+  if (!only || only === FLOW_PANEL.id) {
+    const f = path.join(tmp, 'flow.html');
+    fs.writeFileSync(f, await flowShell({}) + EXPAND + MEASURE);
+    const part = inlineScreen(renderDom(browser, f), `scr-${FLOW_PANEL.id}`);
+    css.push(part.css);
+    body.push(panelHtml(FLOW_PANEL, '·', part.html));
+    process.stderr.write(`  0. ${FLOW_PANEL.name} — ${Math.round(part.html.length / 1024)}KB\n`);
+  }
+
   picked.forEach((s, i) => {
     const f = path.join(tmp, `${s.id}.html`);
     fs.writeFileSync(f, docs[s.id] + EMBED + EXPAND + MEASURE);
     const dom = renderDom(browser, f);
     const part = inlineScreen(dom, `scr-${s.id}`);
     css.push(part.css);
-    body.push(`
-  <section class="pv">
-    <header class="pv__h">
-      <span class="pv__n">${only ? SCREENS.findIndex(x => x.id === s.id) + 1 : i + 1}</span>
-      <div>
-        <h2 class="pv__t">${esc(s.name)}</h2>
-        <p class="pv__d">${esc(s.note || '')}</p>
-      </div>
-    </header>
-    ${part.html}
-  </section>`);
+    body.push(panelHtml(s, String(only ? SCREENS.findIndex(x => x.id === s.id) + 1 : i + 1), part.html));
     process.stderr.write(`  ${i + 1}. ${s.name} — ${Math.round(part.html.length / 1024)}KB\n`);
   });
 
@@ -308,6 +340,12 @@ function publishable(frag) {
  *   왜 칸이 이것뿐인지, 무엇이 저장을 막는지.
  */
 const LEADS = {
+  flow: {
+    title: '단계 레일과 세부 진행률',
+    desc: '단계마다 얼마나 됐는지를 따로 보여줍니다. 합계 %는 만들지 않습니다 — 1·2 는 사람이 '
+      + '채우고, 3 은 확정했느냐이고, 4 만 기계가 도는 구간이라 하나로 뭉치면 무엇의 몇 %인지 '
+      + '알 수 없습니다. 아직 못 물어본 것은 0% 가 아니라 「아직」으로 둡니다.',
+  },
   intake: {
     title: '보고서 생성 입력',
     desc: '요청문 한 줄과 원본 자료를 받는 곳입니다. 읽지 못하는 형식은 올리기 전에 막고, '
