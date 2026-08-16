@@ -403,3 +403,55 @@ test('★ 붙인 화면이 바깥 페이지의 스크롤을 잠그지 않는다'
   assert.ok(!/#scr-x\{position:relative;overflow:hidden;\}/.test(part.css),
     '칸 자체를 overflow:hidden 으로 두면 안쪽이 잘린다');
 });
+
+/* ───────────── 현황 대시보드 ───────────── */
+
+/**
+ * ★ 대시보드의 값어치는 **숫자가 지금 코드와 같다는 것** 하나다. 손으로 적으면
+ *   코드가 바뀐 날부터 이 화면만 옛말을 하고, 그때는 아무도 눈치채지 못한다.
+ */
+test('★ 대시보드 숫자를 손으로 적지 않는다', () => {
+  const D = require('../ui/platform/build-dashboard.js');
+  const dict = require('../core/dictionary');
+  const html = D.build();
+
+  assert.ok(html.includes(String(Object.keys(dict.FIELDS).length)), '사전 항목 수가 안 보인다');
+  assert.ok(html.includes(String(dict.COMPUTED_KEYS.length)), '계산 항목 수가 안 보인다');
+
+  const src = fs.readFileSync(path.join(PLATFORM, 'build-dashboard.js'), 'utf8');
+  assert.match(src, /Object\.keys\(dict\.FIELDS\)\.length/, '사전을 직접 세야 한다');
+  assert.match(src, /readdirSync/, '파일 수를 직접 세야 한다');
+  assert.ok(!/사전 6\d항목|커넥터 1\d개/.test(src), '숫자가 문장에 박혀 있다');
+});
+
+test('★ 미결정 등록부를 이모지로 세되 서로게이트에 속지 않는다', () => {
+  const D = require('../ui/platform/build-dashboard.js');
+  const p = D.pending();
+  assert.ok(p.red > 0, '🔴 를 하나도 못 셌다 — 이모지 매칭이 깨졌다');
+  assert.strictEqual(p.items.length, p.red, '센 개수와 목록이 다르다');
+  p.items.forEach((i) => assert.match(i.id, /^D-\d+$/));
+
+  // 주석은 뺀다 — 왜 그러면 안 되는지 **설명하는 문장**까지 잡으면
+  // 설명을 지우게 된다. 잡으려는 것은 실제 코드다
+  const src = fs.readFileSync(path.join(PLATFORM, 'build-dashboard.js'), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|[^:])\/\/.*$/gm, '$1');
+  assert.ok(!/\[🔴🟠/.test(src),
+    '이모지를 문자 집합으로 쓰면 u 플래그 없이는 서로게이트 반쪽들의 집합이 된다');
+  assert.match(src, /gmu\)/, '유니코드 플래그 없이 이모지를 다루면 안 된다');
+});
+
+test('★ 대시보드도 그대로 올릴 수 있어야 한다', () => {
+  const D = require('../ui/platform/build-dashboard.js');
+  const S = require('../ui/platform/build-static.js');
+  assert.deepStrictEqual(S.publishable(D.build()), []);
+});
+
+test('★ 한 것과 아직 안 된 것을 대시보드에서도 가른다', () => {
+  const D = require('../ui/platform/build-dashboard.js');
+  const html = D.build();
+  const done = html.indexOf('규모');
+  const todo = html.indexOf('지금 막혀 있는 것');
+  assert.ok(done !== -1 && todo !== -1 && done < todo,
+    '막힌 것이 위에 오면 다 된 것처럼 읽히거나 반대로 읽힌다');
+});
