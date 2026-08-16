@@ -32,6 +32,13 @@ jobs:
           node-version: '20'
       # 따옴표를 씌우지 않는다: node --test 의 자체 glob 확장은 Node 22+ 기능이라
       # Node 20 에서는 리터럴 경로로 처리되어 "Could not find" 로 죽는다. 셸이 확장하게 둔다.
+      # ★ 한글 글꼴이 없으면 브라우저가 **말없이 다른 글꼴로** 그린다 —
+      #   실제로 PDF 에 한글이 중국어 글꼴(WenQuanYiZenHei)로 박혀 있었다 (등록부 D-52).
+      #   글꼴 파일은 저장소에 넣지 않는다(4벌 약 11MB · 496파일 — 실측). 대신
+      #   **우리가 통제하는 환경에서는 설치해서 맞춘다.**
+      - name: Install Korean fonts (D-52)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-cjk
+
       - name: Run IM Agent tests
         run: node --test im-agent/test/*.test.js
       - name: Smoke run (offline demo)

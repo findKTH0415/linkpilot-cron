@@ -21,6 +21,8 @@ const reports = require('./core/reports');
 const monitor = require('./core/monitor');
 const { kstStamp } = require('./core/kst');
 const assetclass = require('./core/assetclass');
+const pdf = require('./core/pdf');
+const path = require('path');
 
 function loadDataset(projectId) {
   const json = store.readJson(projectId, '01_Project/dataset.json', null);
@@ -38,6 +40,7 @@ function saveDataset(projectId, dataset) {
 async function run(opts = {}) {
   const log = opts.log || (m => console.log(m));
   const results = {};
+  let pdfResult = null;
   let projectId = opts.projectId || null;
   let templateId = opts.templateId || null;
 
@@ -263,6 +266,35 @@ async function run(opts = {}) {
     const dv = (writer.output.designViolations || []).filter(v => v.severity === 'RED').length;
     log(`  디자인: ${writer.output.theme.label} (${writer.output.theme.id}) · ${writer.output.theme.docType}`);
     log(`  IM 생성: ${writer.output.sections.length}개 절 / 인용 ${writer.output.citations.length}건 / 출처없는숫자 ${writer.output.unsourcedNumbers.length}건 / 디자인위반 ${dv}건`);
+
+    // ── PDF (등록부 D-53) ────────────────────────────────────
+    // ★ `outputspec` 이 `formats: ['pdf']` 라고 선언해 온 것을 **실제로 만든다.**
+    //   새 의존성은 없다 — 이미 쓰는 헤드리스 크로미움에 `--print-to-pdf` 다.
+    if (writer.output.html && (!spec || (spec.formats || []).includes('pdf'))) {
+      const htmlPath = path.join(store.projectDir(projectId), '12_Final/im-a4.html');
+      const r = pdf.fromHtmlFile(htmlPath, { theme: writer.output.theme });
+      pdfResult = r;
+
+      if (r.ok) {
+        // ★ 경로를 **손으로 적지 않는다.** 파일명은 HTML 에서 파생되는데
+        //   로그에 다른 이름을 박아 두면 화면만 옛말을 한다 (실제로 그랬다)
+        const rel = path.relative(store.projectDir(projectId), r.path);
+        log(`  PDF: ${r.pages ?? '?'}쪽 · ${Math.round(r.bytes / 1024)}KB → ${rel}`);
+        // ★ 쪽수는 **막지 않는다.** 사양은 목표이고 쪽수는 내용이 정한다 —
+        //   다만 크게 벗어나면 빠진 절이 있다는 신호다
+        const pc = pdf.pageCheck(r.pages, spec);
+        if (pc) log(`    ⚠ ${pc}`);
+      } else {
+        // ★ 조용히 넘어가지 않는다. HTML 은 남아 있으므로 파이프라인은 계속 간다
+        log(`    ⚠ PDF 를 만들지 못했다: ${r.reason}`);
+      }
+
+      // ★ **글꼴은 PDF 성패와 별개다.** PDF 는 나왔는데 활자가 요청과 다를 수 있다 —
+      //   실제로 한글이 중국어 글꼴로 박혀 있었다 (D-52). 조용히 두지 않는다
+      if (r.fontOk === false) {
+        log(`    ⚠ 글꼴: ${r.fontReason}`);
+      }
+    }
   }
 
   // ── 11 Final Validation (독립 제3자 검증 · 8 GATES) ────────
