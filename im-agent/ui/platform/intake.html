@@ -572,9 +572,7 @@ window.LINKPILOT_INTAKE = {
   function formatCard() {
     var box = el('section', 'card');
     box.appendChild(el('h2', 'card__t', '올릴 수 있는 자료'));
-    box.appendChild(el('p', 'card__s',
-      '형식마다 읽는 방법이 다릅니다. 못 읽는 것은 올리기 전에 알려 드립니다 — '
-      + '올린 뒤에 알면 늦습니다.'));
+    /* (요청 2026-08-17) 부제 문구 삭제 — 세 카드가 각각 "그대로 읽음/옮겨 읽음/변환 필요" 로 이미 말한다 */
 
     var i = state.info;
     var groups = i.formats || [];
@@ -908,7 +906,7 @@ window.LINKPILOT_INTAKE = {
 
   function actionsRow() {
     var row = el('div', 'actions');
-    var go = el('button', 'btn', state.busy ? '만드는 중…' : '프로젝트 만들기');
+    var go = el('button', 'btn', state.busy ? '올리는 중…' : '자료올리기 완료');   /* (요청 2026-08-17) '프로젝트 만들기' → 사용자 관점 동사로 */
     go.id = 'go';
     go.type = 'button';
     go.disabled = !canGo();
