@@ -73,6 +73,16 @@ const EXPAND = `
 }());
 <\/script>`;
 
+/**
+ * 앱 안에 끼웠을 때의 모습으로 그린다.
+ *
+ * ★ 화면 파일들은 따로 열면 자기 사이드바·로고·단계 칩을 갖고 있다. 섹션에 끼우면
+ *   `flow-core` 의 EMBED_CSS 가 그것들을 감추는데, 미리 그릴 때 이걸 빼먹으면
+ *   미리보기에만 사이드바가 두 번 나오고 단계 표시가 두 벌로 보인다 —
+ *   실제 앱과 다른 그림을 확인용으로 보내는 셈이다.
+ */
+const EMBED = `<style>${FLOW.EMBED_CSS}</style>`;
+
 /** 높이를 재서 body 에 적어 두는 코드 — 재고 나면 스크립트는 전부 걷힌다 */
 const MEASURE = `
 <script>
@@ -131,7 +141,7 @@ async function main() {
 
   const panels = SCREENS.map((s, i) => {
     const f = path.join(tmp, `${s.id}.html`);
-    fs.writeFileSync(f, docs[s.id] + EXPAND + MEASURE);
+    fs.writeFileSync(f, docs[s.id] + EMBED + EXPAND + MEASURE);
     const dom = renderDom(browser, f);
     const h = heightOf(dom);
     const clean = stripScripts(dom);
@@ -195,6 +205,167 @@ ${panels}
   console.log(`${out} (${Math.round(html.length / 1024)}KB) · 미리 그려 넣은 화면 ${SCREENS.length}개`);
 }
 
-if (require.main === module) main().catch((e) => { console.error(e); process.exit(1); });
+/**
+ * 주소로 여는 판 (아티팩트). 파일로 보내면 다운로드 카드로만 뜨는 곳이 있어서,
+ * **한 문서로 이어 붙인** 조각을 만든다 — iframe 도 스크립트도 쓰지 않는다.
+ *
+ * 결과는 `<title>` + `<style>` + 본문 조각이다. 감싸는 문서(doctype·head·body)는
+ * 올리는 쪽이 붙이므로 여기서 만들지 않는다.
+ */
+async function buildArtifact() {
+  const browser = findBrowser();
+  if (!browser) throw new Error('헤드리스 크로미움이 없어 미리 그릴 수 없다');
 
-module.exports = { stripScripts, heightOf, findBrowser, EXPAND, MEASURE };
+  const docs = await buildSectionDocs();
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'im-art-'));
+
+  const css = [], body = [];
+  SCREENS.forEach((s, i) => {
+    const f = path.join(tmp, `${s.id}.html`);
+    fs.writeFileSync(f, docs[s.id] + EMBED + EXPAND + MEASURE);
+    const dom = renderDom(browser, f);
+    const part = inlineScreen(dom, `scr-${s.id}`);
+    css.push(part.css);
+    body.push(`
+  <section class="pv">
+    <header class="pv__h">
+      <span class="pv__n">${i + 1}</span>
+      <div>
+        <h2 class="pv__t">${esc(s.name)}</h2>
+        <p class="pv__d">${esc(s.note || '')}</p>
+      </div>
+    </header>
+    ${part.html}
+  </section>`);
+    process.stderr.write(`  ${i + 1}. ${s.name} — ${Math.round(part.html.length / 1024)}KB\n`);
+  });
+
+  const { changePanel, evidencePanel } = require('./build-preview.js');
+  return `<title>보고서 생성 섹션</title>
+<style>
+${WRAP_CSS}
+${css.join('\n')}
+</style>
+<div class="lead">
+  <h1 class="lead__t">보고서 생성 섹션</h1>
+  <p class="lead__d">LinkPilot 앱에 붙는 4단계 화면과, 지금까지 한 일을 확인하는 두 패널입니다.
+    화면은 <b>만들 때 미리 그려서</b> 넣었습니다 — 그대로 보이지만 눌리지는 않습니다.</p>
+</div>
+${changePanel()}
+${evidencePanel()}
+${body.join('')}
+`;
+}
+
+/** 감싸는 판의 스타일. 화면 자체의 색(라임 #9ED700 · 먹 #17181A)을 그대로 쓴다 */
+const WRAP_CSS = `
+  :root { --pg: #F5F6F8; --sf: #FFFFFF; --ln: #E8EAEC; --ink: #17181A; --ink2: #7C838C; }
+  :root:not([data-theme="light"]) { color-scheme: light; }
+  body { margin: 0; background: var(--pg); color: var(--ink);
+    font: 400 15px/1.6 -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
+      'Malgun Gothic', Arial, sans-serif; }
+  .lead { max-width: 1120px; margin: 0 auto; padding: 22px 20px 0; }
+  .lead__t { font-size: 21px; font-weight: 800; margin: 0; }
+  .lead__d { font-size: 13.5px; color: var(--ink2); margin: 7px 0 0; }
+  .pv { max-width: 1120px; margin: 14px auto 0; background: var(--sf);
+    border: 1px solid var(--ln); border-radius: 18px; overflow: hidden; }
+  .pv__h { display: flex; gap: 12px; align-items: flex-start; padding: 16px 20px;
+    border-bottom: 1px solid var(--ln); }
+  .pv__n { width: 26px; height: 26px; flex: none; border-radius: 50%; background: var(--ink);
+    color: #fff; display: grid; place-items: center; font: 800 13px/1 inherit; }
+  .pv__t { font-size: 16px; font-weight: 800; margin: 0; }
+  .pv__d { font-size: 13px; color: var(--ink2); margin: 3px 0 0; }
+  .scr { display: block; }
+`;
+
+async function run() {
+  if (process.argv.includes('--artifact')) {
+    const outPath = process.argv[process.argv.indexOf('--artifact') + 1] || path.join(HERE, 'section-artifact.html');
+    const frag = await buildArtifact();
+    fs.writeFileSync(outPath, frag);
+    console.log(`${outPath} (${Math.round(frag.length / 1024)}KB) · 주소로 여는 조각`);
+    return;
+  }
+  await main();
+}
+
+if (require.main === module) run().catch((e) => { console.error(e.message || e); process.exit(1); });
+
+module.exports = { stripScripts, heightOf, findBrowser, buildArtifact, EXPAND, MEASURE };
+
+/* ── 아티팩트(URL 로 여는 판) ──────────────────────────────── */
+//
+// 파일로 보내면 다운로드 카드로만 뜨는 환경이 있다. 그때는 **주소로 열리는
+// 페이지**가 유일한 길이다. 그런데 그 페이지는 iframe·스크립트가 막혀 있을 수
+// 있으므로, 화면 넷을 **한 문서에 이어 붙인다.**
+//
+// ★ 이어 붙이면 화면 넷의 CSS 가 서로 덮는다 (원래 iframe 을 쓰던 이유다).
+//   그래서 각 화면의 CSS 를 **그 화면 안으로 가둔다** — 선택자마다 `#scr-xx` 를
+//   앞에 붙이고, `html`/`body`/`:root` 는 그 칸 자체로 바꾼다.
+
+/** 선택자 하나를 한 칸 안으로 가둔다 */
+function scopeSelector(sel, scope) {
+  return sel.split(',').map((raw) => {
+    const t = raw.trim();
+    if (!t) return '';
+    if (t === '*') return `${scope}, ${scope} *`;
+    // 화면의 뿌리(html·body·:root)는 그 칸 자체가 된다
+    const m = t.match(/^(html|body|:root)\b(.*)$/i);
+    if (m) {
+      const rest = m[2].trim();
+      return rest ? `${scope}${rest.startsWith(':') || rest.startsWith('.') ? '' : ' '}${rest}` : scope;
+    }
+    return `${scope} ${t}`;
+  }).filter(Boolean).join(', ');
+}
+
+/** 규칙 단위로 훑으며 가둔다. @media·@supports 는 안쪽까지 들어간다 */
+function scopeBlocks(css, scope) {
+  let out = '', i = 0;
+  while (i < css.length) {
+    const at = css.indexOf('{', i);
+    if (at === -1) { out += css.slice(i); break; }
+    const prelude = css.slice(i, at).trim();
+    let depth = 1, j = at + 1;
+    while (j < css.length && depth > 0) {
+      if (css[j] === '{') depth++;
+      else if (css[j] === '}') depth--;
+      j++;
+    }
+    const body = css.slice(at + 1, j - 1);
+    if (prelude.startsWith('@')) {
+      const kind = prelude.split(/[\s(]/)[0].toLowerCase();
+      out += (kind === '@media' || kind === '@supports' || kind === '@layer')
+        ? `${prelude}{${scopeBlocks(body, scope)}}`
+        : `${prelude}{${body}}`;          // @keyframes·@font-face 는 그대로 둔다
+    } else {
+      out += `${scopeSelector(prelude, scope)}{${body}}`;
+    }
+    i = j;
+  }
+  return out;
+}
+
+function scopeCss(css, scope) {
+  return scopeBlocks(String(css).replace(/\/\*[\s\S]*?\*\//g, ''), scope);
+}
+
+/**
+ * 그려진 문서에서 **스타일과 본문만** 꺼낸다.
+ * ★ `position: fixed` 는 한 문서에 모으면 화면 밖으로 떠올라 다른 칸을 덮는다.
+ *   칸 안에 있어야 할 것이므로 제자리에 눕힌다.
+ */
+function inlineScreen(dom, id) {
+  const scope = `#${id}`;
+  const styles = [...dom.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)].map(m => m[1]).join('\n');
+  const bodyM = dom.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+  const body = bodyM ? bodyM[1] : dom;
+  const css = scopeCss(styles, scope)
+    + `\n${scope}{position:relative;overflow:hidden;}`
+    + `\n${scope} .save{position:static!important;left:auto!important;right:auto!important;}`;
+  return { css, html: `<div class="scr" id="${id}">${stripScripts(body)}</div>` };
+}
+
+module.exports.scopeCss = scopeCss;
+module.exports.scopeSelector = scopeSelector;
+module.exports.inlineScreen = inlineScreen;

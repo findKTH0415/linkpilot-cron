@@ -312,3 +312,38 @@ test('★ 브라우저가 없으면 빈 파일을 내놓지 않는다', () => {
   assert.match(src, /process\.exit\(2\)/, '못 만들면 실패로 끝나야 한다');
   assert.match(src, /찾지 못했다/, '왜 못 만들었는지 말해야 한다');
 });
+
+/* ───────────── 주소로 여는 판 (아티팩트) ───────────── */
+//
+// 파일로 보내면 다운로드 카드로만 뜨는 환경이 있다. 그때는 한 문서로 이어 붙인
+// 조각을 페이지로 올린다 — iframe 도 스크립트도 쓰지 못하는 곳을 전제한다.
+
+test('★ 이어 붙일 때 화면의 CSS 를 그 칸 안에 가둔다', () => {
+  const S = require('../ui/platform/build-static.js');
+  const css = S.scopeCss('body{margin:0}.card{padding:2px}*{box-sizing:border-box}'
+    + '@media (max-width:900px){.side{display:none}}'
+    + '@keyframes spin{from{opacity:0}}', '#s');
+
+  assert.match(css, /#s\{margin:0\}/, 'body 는 그 칸 자체가 되어야 한다');
+  assert.match(css, /#s \.card/, '평범한 선택자는 칸 안으로 들어가야 한다');
+  assert.match(css, /#s, #s \*/, '* 를 안 가두면 다른 칸까지 덮는다');
+  assert.match(css, /@media \(max-width:900px\)\{#s \.side/, '미디어쿼리 안쪽도 가둬야 한다');
+  assert.match(css, /@keyframes spin\{from\{opacity:0\}\}/, '@keyframes 는 건드리면 깨진다');
+});
+
+test('★ 붙인 화면이 화면 밖으로 떠오르지 않는다', () => {
+  const S = require('../ui/platform/build-static.js');
+  const part = S.inlineScreen('<html><head><style>.save{position:fixed}</style></head>'
+    + '<body><div class="save">저장</div></body></html>', 'scr-x');
+  assert.match(part.css, /#scr-x \.save\{position:static!important/,
+    'position:fixed 는 한 문서에 모으면 다른 칸을 덮는다');
+  assert.match(part.html, /id="scr-x"/);
+  assert.ok(!/<script/i.test(part.html));
+});
+
+test('★ 앱에 끼운 모습으로 그린다', () => {
+  const src = fs.readFileSync(path.join(PLATFORM, 'build-static.js'), 'utf8');
+  assert.match(src, /FLOW\.EMBED_CSS/,
+    '따로 열면 화면마다 사이드바·단계 칩이 있다 — 빼먹으면 실제 앱과 다른 그림을 보낸다');
+  assert.match(src, /docs\[s\.id\] \+ EMBED/, '두 판 다 끼운 모습으로 그려야 한다');
+});

@@ -17,6 +17,7 @@ im-agent/ui/platform/preview.html
 # CI 에는 브라우저가 없어 "재생성 결과가 커밋본과 같은가"를 검사할 수 없다.
 # 검사할 수 없는 산출물을 커밋하면 소스와 갈려도 아무도 눈치채지 못한다
 im-agent/ui/platform/section-static.html
+im-agent/ui/platform/section-artifact.html
 
 # 브라우저 검증 시 생기는 DOM 덤프
 v-*.html
