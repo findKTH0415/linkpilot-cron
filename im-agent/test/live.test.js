@@ -464,3 +464,19 @@ test('★ 큰 눈금 이름도 화면이 베껴 쓰지 않는다', () => {
     assert.ok(fn.indexOf("'" + g.why + "'") === -1, '설명도 마찬가지다');
   });
 });
+
+/**
+ * ★ 단계 번호를 두 곳에 적지 않는다. 화면의 「1·2·3단계」 칩은 GROUPS.steps 에서
+ *   뽑아 만든다 — 설명 문구에도 적어 두면 단계를 늘리는 날 한쪽만 고쳐져
+ *   같은 화면이 서로 다른 말을 한다.
+ */
+test('★ 묶음 설명에 단계 번호를 손으로 적지 않는다', () => {
+  L.GROUPS.forEach((g) => {
+    assert.ok(!/\d\s*단계/.test(g.why),
+      `「${g.label}」 설명에 단계 번호가 박혀 있다 — 화면이 steps 에서 뽑는다`);
+  });
+  const raw = fs.readFileSync(path.join(PLATFORM, 'report-flow.html'), 'utf8');
+  const fn = raw.slice(raw.indexOf('function renderProgress'), raw.indexOf('외부 분석 경로 ('));
+  assert.match(fn, /g\.steps\.map\(function \(s\) \{ return s\.n; \}\)/,
+    '칩의 번호는 단계에서 뽑아야 한다');
+});

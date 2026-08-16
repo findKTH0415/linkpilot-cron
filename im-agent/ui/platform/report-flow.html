@@ -78,22 +78,31 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
    ★ 합계 막대를 만들지 않는다. 네 단계는 성격이 달라 하나로 뭉치면
      "80%" 가 무엇의 80% 인지 아무도 모른다. 단계마다 따로 그린다.
    ★ 모르는 것은 0% 막대가 아니라 빗금이다 — 0% 막대는 "다 안 됐다"로 읽힌다 */
-/* 큰 눈금 둘 — 「내가 채울 것」과 「기다리면 되는 것」 */
-.prog__g { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0 0; }
-@media (max-width: 720px) { .prog__g { grid-template-columns: 1fr; } }
-.prog__gi { border: 1px solid var(--line); border-radius: 16px; padding: 15px 17px; }
-.prog__gi--done { border-color: var(--lime); background: var(--lime-soft); }
-.prog__gi--doing { border-color: var(--lime); }
-.prog__gi--unknown { background: var(--panel); }
-.prog__gh { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
-.prog__gt { font-size: 16px; font-weight: 800; }
-.prog__gv { margin-left: auto; font-size: 26px; font-weight: 800; letter-spacing: -.02em;
+/* 묶음 둘 — 「내가 채울 것(1·2·3)」과 「기다리면 되는 것(4)」.
+   ★ 눈금과 그 단계들을 **한 테두리 안에** 둔다. 눈금만 위에 몰아 두면
+     아래로 내려간 순간 어디까지가 한 덩어리인지 화면에서 사라진다 */
+.prog__g {
+  margin: 16px 0 0; padding: 4px; border-radius: 20px;
+  background: var(--panel); border: 2px solid var(--line);
+}
+.prog__g--done { border-color: var(--lime); }
+.prog__g--doing { border-color: var(--lime); }
+.prog__gi { border-radius: 16px; padding: 15px 17px; background: transparent; }
+.prog__gh { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.prog__gt { font-size: 17px; font-weight: 800; }
+.prog__gn {
+  font-size: 11.5px; font-weight: 700; color: var(--ink2);
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 999px; padding: 3px 9px;
+}
+.prog__gv { margin-left: auto; font-size: 28px; font-weight: 800; letter-spacing: -.02em;
   font-variant-numeric: tabular-nums; }
 .prog__gv--none { font-size: 17px; font-weight: 400; color: var(--ink2); }
-.prog__gw { margin: 2px 0 0; font-size: 12.5px; color: var(--ink2); }
-.prog__gi .prog__bar { height: 11px; margin: 11px 0 8px; }
+.prog__gw { margin: 3px 0 0; font-size: 12.5px; color: var(--ink2); }
+.prog__gi .prog__bar { height: 12px; margin: 11px 0 8px; background: #D9DDE1; }
 
-.prog__l { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 11px; }
+.prog__l { list-style: none; margin: 0; padding: 4px; display: grid; gap: 8px; }
+.prog__l .prog__i { background: var(--surface); }
 .prog__i { border: 1px solid var(--line); border-radius: 14px; padding: 13px 15px; }
 .prog__i--done { border-color: var(--lime); background: var(--lime-soft); }
 .prog__i--doing { border-color: var(--lime); }
@@ -479,25 +488,13 @@ window.LINKPILOT_REPORT_FLOW = {
       complete: FC && FC.completeness,
     });
 
-    // ── 큰 눈금 둘. 아래 네 칸은 이걸 쪼개 보여주는 내역이다 ──
-    var gbox = el('div', 'prog__g');
-    L.groupProgress(steps).forEach(function (g) {
-      var gi = el('div', 'prog__gi prog__gi--' + g.state);
-      var gh = el('div', 'prog__gh');
-      gh.appendChild(el('span', 'prog__gt', g.label));
-      gh.appendChild(g.pct === null
-        ? el('span', 'prog__gv prog__gv--none', '아직')
-        : el('span', 'prog__gv', g.pct + '%'));
-      gi.appendChild(gh);
-      gi.appendChild(el('p', 'prog__gw', g.why));
-      gi.appendChild(bar(g.pct));
-      gi.appendChild(el('p', 'prog__d', g.detail));
-      gbox.appendChild(gi);
-    });
-    progBox.appendChild(gbox);
-
-    var list = el('ol', 'prog__l');
-    steps.forEach(function (s) {
+    /* ── 묶음 둘. **각 묶음의 눈금 바로 아래에 그 단계들을 둔다.**
+     *
+     * ★ 눈금을 위에 몰아 두고 단계 넷을 따로 깔면, 아래로 내려간 순간
+     *   1·2·3 이 한 덩어리라는 것이 화면에서 사라진다 — 어디까지가 내가 채울
+     *   것이고 어디부터가 기다리면 되는 것인지 다시 알 수 없다.
+     * ── */
+    var one = function (s) {
       var li = el('li', 'prog__i prog__i--' + s.state);
       var head = el('div', 'prog__h');
       add(head, el('span', 'prog__n', s.n), el('span', 'prog__t', s.label));
@@ -513,9 +510,34 @@ window.LINKPILOT_REPORT_FLOW = {
         })));
       }
       if (s.id === 'make') { var inside = makeInside(); if (inside) li.appendChild(inside); }
-      list.appendChild(li);
+      return li;
+    };
+
+    L.groupProgress(steps).forEach(function (g) {
+      var sec = el('section', 'prog__g prog__g--' + g.state);
+
+      var gi = el('div', 'prog__gi');
+      var gh = el('div', 'prog__gh');
+      gh.appendChild(el('span', 'prog__gt', g.label));
+      // 몇 번 단계가 이 묶음인지 밝힌다 — 번호를 손으로 적지 않고 단계에서 뽑는다
+      gh.appendChild(el('span', 'prog__gn',
+        g.steps.map(function (s) { return s.n; }).join('·') + '단계'));
+      gh.appendChild(g.pct === null
+        ? el('span', 'prog__gv prog__gv--none', '아직')
+        : el('span', 'prog__gv', g.pct + '%'));
+      gi.appendChild(gh);
+      gi.appendChild(el('p', 'prog__gw', g.why));
+      gi.appendChild(bar(g.pct));
+      gi.appendChild(el('p', 'prog__d', g.detail));
+      sec.appendChild(gi);
+
+      var list = el('ol', 'prog__l');
+      list.setAttribute('start', String(g.steps.length ? g.steps[0].n : 1));
+      g.steps.forEach(function (s) { list.appendChild(one(s)); });
+      sec.appendChild(list);
+
+      progBox.appendChild(sec);
     });
-    progBox.appendChild(list);
 
     // ── 계산 항목 — 사람이 넣지 않는 것들. 시작 전 0 개는 정상이다 ──
     var comp = L.computedProgress(det.computedKeys, det.values, !!det.snapshot);
