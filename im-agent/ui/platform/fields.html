@@ -293,6 +293,7 @@ window.LINKPILOT_FIELDS_CFG = {
 
   var state = {
     fields: null, computedKeys: [], computedFields: {}, sources: [],
+    assetClasses: [], assetClass: null,   // 자산군 — 필수 항목의 분모가 달라진다
     industries: [],      // 서버가 준 산업분야 정의
     plan: null,          // 채움 계획 (어떤 항목이 자동으로 채워지는가)
     publicData: null,    // 공공데이터 키가 서버에 있는가 (null = 모름)
@@ -316,6 +317,34 @@ window.LINKPILOT_FIELDS_CFG = {
 
   /* ── 서버 ─────────────────────────────────────────────── */
 
+  /**
+   * 다음 단계 주소. **지금 화면이 받은 `api` 를 그대로 물려준다.**
+   * 안 물려주면 다음 화면이 서버를 모르는 채로 열리고, `reports.html` 은
+   * api 가 없으면 데모 데이터를 쓰므로 가짜 산출물이 진짜처럼 보인다.
+   */
+  /**
+   * 이 프로젝트의 자산군이 더 요구하는 키. **못 찾으면 null 이다** —
+   * 아무 자산군이나 기본값으로 고르면 엉뚱한 값을 필수라고 말하게 된다.
+   */
+  function classKeys() {
+    if (!state.assetClass) return null;
+    for (var i = 0; i < state.assetClasses.length; i++) {
+      if (state.assetClasses[i].id === state.assetClass) {
+        return state.assetClasses[i].requires.map(function (r) { return r.key; });
+      }
+    }
+    return null;
+  }
+
+  function stepUrl(file) {
+    var here = new URLSearchParams(window.location.search);
+    var qs = [];
+    var api = here.get('api') || (typeof C.api === 'string' ? C.api : null);
+    if (api) qs.push('api=' + encodeURIComponent(api));
+    if (C.projectId) qs.push('project=' + encodeURIComponent(C.projectId));
+    return file + (qs.length ? '?' + qs.join('&') : '');
+  }
+
   function call(method, path, payload) {
     if (!C.api) return Promise.reject(new Error('API 주소가 설정되지 않았습니다'));
     var opt = { method: method, headers: {}, credentials: 'same-origin' };
@@ -335,6 +364,7 @@ window.LINKPILOT_FIELDS_CFG = {
       state.fields = C.preload.fields || {};
       state.computedKeys = C.preload.computedKeys || [];
       state.computedFields = C.preload.computedFields || {};
+      state.assetClasses = C.preload.assetClasses || [];
       state.industries = C.preload.industries || [];
       state.plan = C.preload.plan || null;
       state.publicData = C.preload.publicData === undefined ? null : C.preload.publicData;
@@ -350,12 +380,14 @@ window.LINKPILOT_FIELDS_CFG = {
       state.fields = res[0].fields || {};
       state.computedKeys = res[0].computedKeys || [];
       state.computedFields = res[0].computedFields || {};
+      state.assetClasses = res[0].assetClasses || [];
       state.industries = res[0].industries || [];
       state.plan = res[0].plan || null;
       state.publicData = res[0].publicData === undefined ? null : res[0].publicData;
       if (res[1]) {
         state.server = res[1].values || {};
         state.sources = res[1].sources || [];
+        state.assetClass = res[1].assetClass || null;
         // 서버 값을 편집 상태로 복사한다 (원본은 되돌리기용으로 둔다)
         Object.keys(state.server).forEach(function (k) {
           var v = state.server[k];
@@ -874,6 +906,21 @@ window.LINKPILOT_FIELDS_CFG = {
           box.appendChild(el('div', null, '거부: ' + x.key + ' — ' + x.reason));
         });
         (r.warnings || []).forEach(function (w) { box.appendChild(el('div', null, '경고: ' + w)); });
+
+        // ★ 저장하고 나면 **다음 단계로 가는 길을 그 자리에 낸다.**
+        //   위쪽 단계 칩으로 돌아가 찾게 하면, 저장은 됐는데 멈춘 것으로 읽는다.
+        //   ★ 필수가 남아 있으면 그렇다고 적는다 — 사양을 확정하면 되돌리기 어렵다
+        var c = F.completeness(state.fields, state.values, C.docType, classKeys());
+        var go = el('a', 'btn', '출력 사양 확정으로 →');
+        go.href = stepUrl('reports.html');
+        go.style.marginTop = '10px';
+        go.style.display = 'inline-block';
+        box.appendChild(go);
+        if (c.total && c.filled < c.total) {
+          box.appendChild(el('div', null,
+            '필수 ' + c.total + '개 중 ' + (c.total - c.filled) + '개가 아직 비어 있습니다 — '
+            + '지금 넘어가도 되지만, 사양을 확정하면 되돌리기 어렵습니다'));
+        }
       } else {
         box.textContent = '저장하지 못했습니다 — ' + r.message;
       }

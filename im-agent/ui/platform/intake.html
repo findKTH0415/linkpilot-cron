@@ -130,6 +130,28 @@ h1,h2,h3,h4 { margin: 0; }
 .drop__s { font-size: 12.5px; color: var(--ink2); margin-top: 6px; }
 .drop input { display: none; }
 
+/* ── 업로드 진행 ──────────────────────────────────────────
+   ★ 「다 보냈다」와 「서버가 다 읽었다」는 다른 일이다. 100%% 를 찍고 멈춰
+     있으면 고장으로 읽힌다 — 단계를 나누고, 모르는 구간은 빗금으로 둔다 */
+.up { margin-top: 14px; padding: 13px 15px; border-radius: 14px;
+  border: 1px solid var(--line); background: var(--surface); }
+.up--done { border-color: var(--lime); background: var(--lime-soft); }
+.up--error { border-color: var(--bad); background: var(--bad-soft); }
+.up__h { display: flex; align-items: baseline; gap: 10px; }
+.up__h b { font-size: 14.5px; }
+.up__v { margin-left: auto; font-size: 18px; font-weight: 800;
+  font-variant-numeric: tabular-nums; }
+.up__v--none { font-size: 14px; font-weight: 400; color: var(--ink2); }
+.up__bar { height: 10px; border-radius: 999px; background: #E1E4E8;
+  margin: 10px 0 8px; overflow: hidden; }
+.up__bar i { display: block; height: 100%; background: var(--lime);
+  border-radius: 999px; transition: width .15s linear; }
+.up__bar--none {
+  background: repeating-linear-gradient(135deg, #E1E4E8 0 5px, #F3F4F6 5px 10px);
+}
+.up__d { margin: 0; font-size: 12.5px; color: var(--ink2); line-height: 1.6; }
+.up--error .up__d { color: var(--bad-ink); }
+
 .file { display: flex; align-items: center; gap: 11px; padding: 11px 0;
   border-top: 1px solid var(--line); }
 .file:first-of-type { border-top: 0; }
@@ -258,6 +280,7 @@ window.LINKPILOT_INTAKE = {
     files: [],           // { name, size, readable, note, data }
     created: null,       // POST /projects 응답
     uploaded: null,      // POST /sources 응답
+    upload: null,        // { phase, sent, total, pct, files, error } — 진행 바
     busy: false,
     error: null,
   };
@@ -275,6 +298,22 @@ window.LINKPILOT_INTAKE = {
     if (n < 1024) return n + 'B';
     if (n < 1024 * 1024) return Math.round(n / 1024) + 'KB';
     return mb(n) + 'MB';
+  }
+
+  /**
+   * 다음 단계 주소. **지금 화면이 받은 `api` 를 그대로 물려준다.**
+   *
+   * ★ 안 물려주면 다음 화면이 서버를 모르는 채로 열린다. 그리고 `reports.html`
+   *   은 api 가 없으면 **데모 데이터**를 쓰므로, 앱 안에서 가짜 산출물이
+   *   진짜처럼 보일 수 있다.
+   */
+  function stepUrl(file, projectId) {
+    var here = new URLSearchParams(window.location.search);
+    var qs = [];
+    var api = here.get('api') || (typeof C.api === 'string' ? C.api : null);
+    if (api) qs.push('api=' + encodeURIComponent(api));
+    if (projectId) qs.push('project=' + encodeURIComponent(projectId));
+    return file + (qs.length ? '?' + qs.join('&') : '');
   }
 
   /* ── 서버 ─────────────────────────────────────────────── */
@@ -316,15 +355,36 @@ window.LINKPILOT_INTAKE = {
       : { en: '', kr: '', tag: '', mark: '' };
   }
 
-  /** 확장자로 읽을 수 있는지 판정 — 목록은 서버에서 받은 것만 쓴다 */
+  /**
+   * 확장자로 읽을 수 있는지 판정.
+   *
+   * ★ **서버가 준 `formats` 묶음만 본다.** 전에는 `supported.text`·`supported.office`
+   *   둘만 봤는데, 그 둘에는 pdf·hwp·doc·이미지가 없다 — 읽을 수 있는 파일까지
+   *   전부 「처음 보는 형식입니다」로 표시됐다 (앱 실측: PDF·PNG 가 그렇게 떴다).
+   *   읽히는 파일을 못 읽는다고 말하면 사용자는 아예 안 올린다.
+   * ★ 묶음 목록을 화면에 적어 두지 않는다 — 형식이 늘면 서버만 고치면 된다.
+   */
   function readableOf(name) {
     var i = String(name).lastIndexOf('.');
     var ext = i === -1 ? '' : String(name).slice(i).toLowerCase();
-    var s = state.info && state.info.supported;
-    if (!s) return { readable: null, note: null };
-    if (s.text.indexOf(ext) !== -1 || s.office.indexOf(ext) !== -1) return { readable: true, note: null };
-    if ((state.info.unsupported || []).indexOf(ext) !== -1) {
-      return { readable: false, note: '본문을 읽지 못합니다 — 보관은 되지만 수치 추출에는 쓰이지 않습니다' };
+    var groups = state.info && state.info.formats;
+    if (!groups || !groups.length) return { readable: null, note: null };
+
+    for (var g = 0; g < groups.length; g++) {
+      if ((groups[g].ext || []).indexOf(ext) === -1) continue;
+      var grp = groups[g];
+      if (grp.id === 'convert') {
+        return {
+          readable: false,
+          note: (grp.hint && grp.hint[ext]) || '변환해서 올려야 합니다',
+        };
+      }
+      // 읽는 방법이 정해져 있으면 읽는 것이다. 방법 이름을 그대로 보여 준다
+      return {
+        readable: true,
+        note: grp.id === 'direct' ? null : grp.label,
+        needsKey: grp.needsKey || null,
+      };
     }
     return { readable: false, note: '처음 보는 형식입니다 — 본문을 읽지 못할 수 있습니다' };
   }
@@ -372,17 +432,113 @@ window.LINKPILOT_INTAKE = {
     });
   }
 
+  /**
+   * 자료를 올린다. **진행률을 보여 준다.**
+   *
+   * ★ `fetch` 는 업로드 진행을 알려 주지 않는다 (요청 본문 스트림 진행 이벤트가
+   *   없다). 그래서 여기만 XMLHttpRequest 를 쓴다 — `upload.onprogress` 가
+   *   보낸 바이트를 준다. 다른 호출은 그대로 `call()` 을 쓴다.
+   *
+   * ★ **다 보냈다고 끝난 것이 아니다.** 100%% 를 찍고 나면 서버가 파일을 열어
+   *   읽는 시간이 남아 있다(스캔본이면 더 길다). 거기서 100%% 를 그대로 두면
+   *   「다 됐는데 화면이 멈췄다」로 읽힌다. 그래서 단계를 둘로 나누고, 두 번째
+   *   단계는 **진행률을 만들지 않는다** — 얼마나 걸릴지 모르기 때문이다.
+   */
   function uploadFiles() {
     var ready = state.files.filter(function (f) { return f.data && !f.tooBig; });
     if (!ready.length || !state.created) return;
-    state.busy = true; render();
-    call('POST', '/projects/' + state.created.projectId + '/sources', {
+
+    var payload = JSON.stringify({
       files: ready.map(function (f) { return { name: f.name, contentBase64: f.data }; }),
-    }).then(function (j) {
-      state.uploaded = j; state.busy = false; render();
-    }).catch(function (e) {
-      state.busy = false; state.error = e.message; render();
     });
+
+    state.busy = true;
+    state.upload = {
+      phase: 'sending', sent: 0, total: payload.length,
+      files: ready.length, pct: 0, error: null,
+    };
+    render();
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', C.api + '/projects/' + state.created.projectId + '/sources', true);
+    xhr.withCredentials = true;
+    xhr.setRequestHeader('content-type', 'application/json');
+
+    xhr.upload.onprogress = function (ev) {
+      if (!state.upload || state.upload.phase !== 'sending') return;
+      // ★ 길이를 모르면 % 를 만들지 않는다. 지어낸 진행률은 멈춘 것처럼 보인다
+      state.upload.sent = ev.loaded;
+      state.upload.total = ev.lengthComputable ? ev.total : null;
+      state.upload.pct = ev.lengthComputable && ev.total
+        ? Math.min(99, Math.floor((ev.loaded / ev.total) * 100)) : null;
+      render();
+    };
+    // 다 보냈다 → 이제 서버가 읽는다. 여기서 100% 로 두지 않는다
+    xhr.upload.onload = function () {
+      if (state.upload) { state.upload.phase = 'reading'; state.upload.pct = null; render(); }
+    };
+
+    xhr.onload = function () {
+      var j = {};
+      try { j = JSON.parse(xhr.responseText || '{}'); } catch (_) { j = {}; }
+      state.busy = false;
+      if (xhr.status >= 200 && xhr.status < 300) {
+        state.upload = { phase: 'done', pct: 100, files: ready.length, error: null };
+        state.uploaded = j;
+      } else {
+        state.upload = { phase: 'error', pct: null, error: j.error || ('HTTP ' + xhr.status) };
+        state.error = state.upload.error;
+      }
+      render();
+    };
+    // ★ 조용히 죽지 않는다. 진행 바가 멈춘 채 남으면 사용자는 계속 기다린다
+    xhr.onerror = function () {
+      state.busy = false;
+      state.upload = { phase: 'error', pct: null, error: '전송이 끊겼습니다 — 다시 시도하세요' };
+      state.error = state.upload.error;
+      render();
+    };
+    xhr.onabort = xhr.onerror;
+
+    xhr.send(payload);
+  }
+
+  /** 진행 바 한 칸. 모르는 값은 막대가 아니라 빗금이다 */
+  function progressBar(pct) {
+    var bar = el('div', 'up__bar' + (pct === null || pct === undefined ? ' up__bar--none' : ''));
+    if (pct !== null && pct !== undefined) {
+      var i = el('i');
+      i.style.width = Math.max(0, Math.min(100, pct)) + '%';
+      bar.appendChild(i);
+    }
+    return bar;
+  }
+
+  /** 올리는 중 화면. 단계마다 **무엇을 기다리는지** 적는다 */
+  function uploadCard() {
+    var u = state.upload;
+    if (!u) return null;
+    var box = el('div', 'up up--' + u.phase);
+    var head = el('div', 'up__h');
+    head.appendChild(el('b', null,
+      u.phase === 'sending' ? '자료를 올리는 중입니다'
+        : u.phase === 'reading' ? '서버가 자료를 읽는 중입니다'
+          : u.phase === 'done' ? '자료를 다 올렸습니다' : '올리지 못했습니다'));
+    head.appendChild(el('span', 'up__v' + (u.pct === null || u.pct === undefined ? ' up__v--none' : ''),
+      u.pct === null || u.pct === undefined ? '—' : u.pct + '%'));
+    box.appendChild(head);
+    box.appendChild(progressBar(u.pct));
+    box.appendChild(el('p', 'up__d',
+      u.phase === 'sending'
+        ? ('파일 ' + u.files + '건'
+          + (u.total ? ' · ' + size(u.sent) + ' / ' + size(u.total) : ' · 크기를 알 수 없습니다'))
+        : u.phase === 'reading'
+          ? '다 보냈습니다. 이제 서버가 파일을 열어 글자를 꺼냅니다 — 스캔본이면 더 걸립니다. '
+            + '얼마나 걸릴지 알 수 없어 진행률을 만들지 않습니다.'
+          : u.phase === 'done'
+            ? '파일 ' + u.files + '건이 저장되었습니다.'
+            : (u.error || '사유를 알 수 없습니다')));
+    return box;
   }
 
   /* ── 그리기 ───────────────────────────────────────────── */
@@ -394,7 +550,7 @@ window.LINKPILOT_INTAKE = {
       var n = el(href && state.created ? 'a' : 'div',
         'step' + (i === 0 ? (state.created ? ' done' : ' on') : ''));
       if (href && state.created) {
-        n.href = href + '?project=' + encodeURIComponent(state.created.projectId);
+        n.href = stepUrl(href, state.created.projectId);
       }
       add(n, el('span', 'step__n', String(i + 1)), el('span', null, label));
       row.appendChild(n);
@@ -712,13 +868,17 @@ window.LINKPILOT_INTAKE = {
       (u.rejected || []).forEach(function (r) {
         box.appendChild(el('div', 'note note--bad', r.name + ' — ' + r.reason));
       });
-    } else if (state.files.length && state.busy) {
-      box.appendChild(el('div', 'note note--warn', '자료를 올리는 중입니다…'));
     }
+    // 「올리는 중」은 위의 진행 바가 말한다 — 두 곳에서 말하면 어느 쪽이 최신인지 모른다
 
     var row = el('div', 'actions');
-    var next = el('a', 'btn', '가이드 필드 입력으로');
-    next.href = 'fields.html?project=' + encodeURIComponent(c.projectId);
+    // ★ **api 를 함께 넘긴다.** 안 넘기면 다음 화면이 api:null 로 열려
+    //   「API 주소가 설정되지 않았습니다」가 뜬다 — 부모가 열어 준 문이
+    //   안에서 잠기는 셈이다 (flow-core.urlFor 이 같은 이유로 넘긴다)
+    var next = el('a', 'btn', '가이드 필드 입력으로 →');
+    next.href = stepUrl('fields.html', c.projectId);
+    // 올리는 중에는 못 넘어간다. 넘어가면 업로드가 중간에 끊긴다
+    if (state.busy) { next.setAttribute('aria-disabled', 'true'); next.removeAttribute('href'); }
     row.appendChild(next);
     var again = el('button', 'btn btn--ghost', '새로 만들기');
     again.type = 'button';
@@ -771,6 +931,12 @@ window.LINKPILOT_INTAKE = {
     }
 
     if (state.error) body.appendChild(el('div', 'note note--bad', state.error));
+
+    // ★ 진행 바를 **여기**서 그린다. 자료 칸 안에 두었더니 프로젝트가 만들어지는
+    //   순간 그 칸이 사라져 — 업로드가 시작되는 바로 그때 — 진행 바가 함께
+    //   사라졌다. 무엇을 기다리는지 화면이 말하지 않는 상태가 된다
+    var up = uploadCard();
+    if (up) body.appendChild(up);
 
     if (state.created) {
       body.appendChild(resultCard());
