@@ -20,6 +20,7 @@ const geometry = require('../geo/geometry');
 const mass = require('../geo/mass');
 const birdseye = require('../geo/birdseye');
 const outputspec = require('../core/outputspec');
+const raster = require('../core/raster');
 const nsdi = require('../connectors/nsdi');
 const store = require('../core/store');
 const { round, fmt } = require('../core/numeric');
@@ -204,6 +205,24 @@ async function run(input, ctx) {
     for (const [name, content] of written) {
       fs.writeFileSync(path.join(dir, name), content, 'utf8');
       files.push(`04_Property/${name}`);
+    }
+
+    /* ── SVG 는 JPEG 도 함께 낸다 (CLAUDE.md §6) ───────────
+     * SVG 는 브라우저에서만 확실히 열린다. 메일 미리보기·파워포인트·인쇄
+     * 대화상자에서는 빈 칸이 되거나 아예 안 뜬다 — 그림을 보라고 보냈는데
+     * 빈 칸이 오면 고장으로 읽힌다. SVG 는 지우지 않고 나란히 둔다.
+     * ★ 브라우저가 없는 서버가 실제로 있다. 그때 조용히 넘어가지 않고 사유를 남긴다.
+     * ── */
+    const jpg = raster.alongside(store.projectDir(input.projectId),
+      files.filter(f => /\.svg$/i.test(f)));
+    jpg.made.forEach((rel) => { files.push(rel); });
+    jpg.failed.forEach((f) => {
+      ctx.warn(`${f.rel} 의 JPEG 을 만들지 못했다 — ${f.reason}`);
+    });
+    if (jpg.failed.length) {
+      flags.push(flag('YELLOW', 'JPEG_MISSING',
+        `그림 ${jpg.failed.length}건이 SVG 로만 있다 — ${jpg.failed[0].reason}`,
+        { keys: [] }));
     }
 
     model = {
