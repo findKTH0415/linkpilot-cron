@@ -97,6 +97,21 @@ const PRESETS = {
     language: 'ko', resolution: 'standard', color: 'RGB',
     confidentiality: 'Strictly Confidential', watermark: true,
   },
+  /**
+   * 법인가치 검토 보고서 (등록부 D-59).
+   *
+   * ★ **평가의견서가 아니다** — 외부평가는 외부평가기관만, 세무 평가는
+   *   세무대리인만 할 수 있다. `desk_appraisal` 과 같은 이유로 label 에
+   *   「Valuation Opinion」·「평가의견서」를 쓰지 않고 워터마크를 켠다.
+   */
+  corp_valuation: {
+    label: 'Desk Review — Corporate',
+    pageSize: 'A4', orientation: 'portrait',
+    targetPages: 8, minPages: 5, maxPages: 15, tolerance: 2,
+    formats: ['pdf'], coverIncluded: true, appendixIncluded: false,
+    language: 'ko', resolution: 'standard', color: 'RGB',
+    confidentiality: 'Strictly Confidential', watermark: true,
+  },
   executive_summary: {
     label: 'Executive Summary',
     pageSize: 'A4', orientation: 'portrait',

@@ -23,6 +23,7 @@ const { kstStamp } = require('./core/kst');
 const assetclass = require('./core/assetclass');
 const pdf = require('./core/pdf');
 const deskappraisal = require('./core/deskappraisal');
+const corpreport = require('./core/corpreport');
 const a4 = require('./design/a4');
 const path = require('path');
 
@@ -259,6 +260,47 @@ async function run(opts = {}) {
     } else {
       // ★ 조용히 넘어가지 않는다. 빈 평가서를 만들지 않는 것이 의도다
       log(`  탁상검토: 만들지 않았다 — ${dr.reason}`);
+    }
+
+    // ── 법인가치 검토 보고서 (등록부 D-59) ────────────────
+    //
+    // ★ **대부분의 딜에서 안 만들어지는 것이 정상이다.** DART 는 공시대상회사만
+    //   수록하고 시행사 SPC 는 원래 거기 없다 — 재무자료를 제출받아야 한다.
+    //   그래서 「만들지 않았다」가 결함이 아니라는 사실을 로그가 말해 준다.
+    const cr = corpreport.build({
+      projectId,
+      corpName: strOf('corp.name') || strOf('project.sponsor'),
+      shares: dataset.num('corp.shares'),
+      netAsset: dataset.num('corp.net_asset'),
+      income1: dataset.num('corp.net_income_1'),
+      income2: dataset.num('corp.net_income_2'),
+      income3: dataset.num('corp.net_income_3'),
+      realEstatePct: dataset.num('corp.real_estate_pct'),
+    });
+
+    if (cr.ok) {
+      store.writeText(projectId, '10_Corporate/corp-review.md', cr.markdown);
+      const chtml = a4.render({
+        projectId,
+        projectName: cr.sections ? (strOf('corp.name') || strOf('project.sponsor')) : projectId,
+        docType: 'corp_valuation',
+        docTitle: '법인가치 검토 보고서',
+        docLabel: '법인가치 검토 ㅣ 평가의견서가 아님',
+        valueRange: corpreport.coverValue(cr.conclusion),
+        valueCaption: '참고 산정치 — 외부평가기관의 평가의견서가 아니다',
+        sections: cr.sections,
+        disclaimers: cr.disclaimers,
+      });
+      store.writeText(projectId, '10_Corporate/corp-review-a4.html', chtml);
+      const crPdf = pdf.fromHtmlFile(
+        path.join(store.projectDir(projectId), '10_Corporate/corp-review-a4.html'),
+        { theme: 'institutional' },
+      );
+      log(`  법인검토: ${cr.sections.length}개 절 · 결론 ${cr.conclusion.mode}`
+        + (cr.conclusion.mode === 'point' ? '' : ' (표지에 단일 값 없음)')
+        + (crPdf.ok ? ` · PDF ${crPdf.pages ?? '?'}쪽` : ` · ⚠ PDF 실패: ${crPdf.reason}`));
+    } else {
+      log(`  법인검토: 만들지 않았다 — ${cr.reason}`);
     }
   }
 

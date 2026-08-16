@@ -415,8 +415,44 @@ function deskPanel() {
     </div>`;
   }).join('');
 
+  // ── 법인평가 (D-59) — 같은 규칙이 법인 쪽에서도 도는지 ──
+  const cr = require(path.join(AGENT, 'core', 'corpreport'));
+  const CORP = { corpName: '○○개발(주)', netAsset: 180, income1: 24, income2: 18, income3: 12 };
+  const corpCases = [
+    { label: '자료가 갖춰졌다 (부동산 30%)', args: { ...CORP, realEstatePct: 30 } },
+    { label: '부동산과다보유법인이다 (62%)', args: { ...CORP, realEstatePct: 62 } },
+    { label: '부동산 비율을 모른다', args: { ...CORP } },
+    { label: '최근 3년이 손실이다', args: { corpName: CORP.corpName, netAsset: 200, income1: -30, income2: -20, income3: -10, realEstatePct: 10 } },
+  ];
+  const corpRows = corpCases.map((c) => {
+    const r = cr.build({ projectId: 'preview', ...c.args });
+    if (!r.ok) {
+      return `<div class="ev__c bad"><div class="ev__n">${esc(c.label)}</div>
+        <div class="ev__m">문서를 <b>만들지 않음</b></div><pre class="ev__o">${esc(r.reason)}</pre></div>`;
+    }
+    const cover = cr.coverValue(r.conclusion);
+    const w = r.valuation.ok ? r.valuation.value.weights : null;
+    return `<div class="ev__c${cover ? '' : ' bad'}">
+      <div class="ev__n">${esc(c.label)}</div>
+      <div class="ev__m">결론 <b>${esc(r.conclusion.mode)}</b> · 표지 값 ${cover ? esc(cover) : '<b>올리지 않음</b>'}${w ? ` · 가중치 ${w.income}:${w.asset}` : ''}</div>
+      <pre class="ev__o">${esc(r.conclusion.text)}${r.conclusion.why ? '\n\n' + esc(r.conclusion.why) : ''}</pre>
+    </div>`;
+  }).join('');
+
   const notChecked = da.NOT_CHECKED
     .map(x => `<span>${esc(x.item)}</span>`).join('');
+
+  const corpPanel = `
+<section class="ev">
+  <h2 class="ev__t">눈으로 확인 — 법인가치 검토가 값을 내지 않는 경우</h2>
+  <p class="ev__s">같은 규칙이 법인 쪽에서도 돕니다. <b>부동산 비율 하나로 법령 가중치가
+    3:2 에서 2:3 으로 뒤집히므로</b>, 모르면 계산 자체를 하지 않습니다.
+    아래는 빌드할 때 <b>실제로 <code>core/corpreport.js</code> 를 돌려</b> 얻은 결과입니다.</p>
+  <div class="ev__m">문서가 <b>확인하지 않았다고 적는 것</b> — ${cr.NOT_CHECKED.length}항목</div>
+  <div class="ev__k">${cr.NOT_CHECKED.map(x => `<span>${esc(x.item)}</span>`).join('')}</div>
+  ${corpRows}
+  <div class="ev__m">${esc(cr.NOT_AN_OPINION)}</div>
+</section>`;
 
   return `
 <section class="ev">
@@ -428,7 +464,7 @@ function deskPanel() {
   <div class="ev__k">${notChecked}</div>
   ${rows}
   <div class="ev__m">${esc(da.NOT_AN_APPRAISAL)}</div>
-</section>`;
+</section>${corpPanel}`;
 }
 
 /**

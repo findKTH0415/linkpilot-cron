@@ -220,6 +220,21 @@ const FIELDS = {
   // ── Legal ──────────────────────────────────────────────────
   'legal.permit_status': { label: '인허가 현황', category: CATEGORY.LEGAL, unit: null, type: 'string', aliases: ['인허가', '허가현황', '건축허가', 'Permit'], requiredFor: ['im'] },
   'legal.spc':           { label: 'SPC/사업시행법인', category: CATEGORY.LEGAL, unit: null, type: 'string', aliases: ['SPC', '시행법인', '특수목적법인'] },
+
+  // ── 법인평가 (등록부 D-59) ─────────────────────────────
+  //
+  // ★ **딜의 값이 아니라 법인의 값이다.** `project.sponsor` 와 이름이 같아도
+  //   평가 대상은 따로 밝힌다 — 시행사와 모회사가 다른 경우가 흔하다.
+  // ★ **순손익은 3개 연도를 다 받는다.** 한 해만 받으면 그 해가 곧 수익가치가
+  //   되는데, 법령이 3년 가중평균(3:2:1)을 쓰는 이유가 바로 그것이다.
+  'corp.name':            { label: '평가대상 법인', category: CATEGORY.LEGAL, unit: null, type: 'string', aliases: ['평가대상법인', '피평가법인'] },
+  'corp.net_asset':       { label: '순자산가액', category: CATEGORY.EQUITY, unit: '억원', type: 'number', aliases: ['순자산', '순자산가액', '자본총계'], tolerance: 0.005 },
+  'corp.net_income_1':    { label: '순손익액 (직전 1년)', category: CATEGORY.EQUITY, unit: '억원', type: 'number', aliases: ['순손익액', '당기순이익'] },
+  'corp.net_income_2':    { label: '순손익액 (직전 2년)', category: CATEGORY.EQUITY, unit: '억원', type: 'number', aliases: [] },
+  'corp.net_income_3':    { label: '순손익액 (직전 3년)', category: CATEGORY.EQUITY, unit: '억원', type: 'number', aliases: [] },
+  'corp.shares':          { label: '발행주식총수', category: CATEGORY.EQUITY, unit: '주', type: 'number', aliases: ['발행주식수', '주식수'], min: 0 },
+  // 자산총액 중 부동산 비율. **이 값 하나로 법령이 정한 가중치가 3:2 에서 2:3 으로 뒤집힌다**
+  'corp.real_estate_pct': { label: '자산 중 부동산 비율', category: CATEGORY.EQUITY, unit: '%', type: 'number', aliases: ['부동산비율'], min: 0, max: 100 },
 };
 
 /**
