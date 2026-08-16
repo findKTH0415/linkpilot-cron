@@ -434,9 +434,15 @@ function inlineScreen(dom, id) {
   const bodyM = dom.match(/<body[^>]*>([\s\S]*)<\/body>/i);
   const body = bodyM ? bodyM[1] : dom;
   const css = scopeCss(styles, scope)
-    + `\n${scope}{position:relative;overflow:hidden;}`
+    + `\n${scope}{position:relative;}`
     + `\n${scope} .save{position:static!important;left:auto!important;right:auto!important;}`;
-  return { css, html: `<div class="scr" id="${id}">${stripScripts(body)}</div>` };
+
+  // ★ 본문에 남은 <style> 을 **반드시 걷어낸다.** 문서 끝에 덧붙인 스타일은
+  //   브라우저가 body 안에 넣으므로, 그대로 두면 **가두지 않은 사본**이 함께
+  //   들어간다. 그 사본의 `body{overflow-y:hidden}` 이 바깥 페이지의 스크롤을
+  //   잠근다 — 화면은 멀쩡히 보이는데 아래로 내려가지지 않는다.
+  const inner = stripScripts(body).replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+  return { css, html: `<div class="scr" id="${id}">${inner}</div>` };
 }
 
 module.exports.scopeCss = scopeCss;

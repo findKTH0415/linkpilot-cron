@@ -371,3 +371,35 @@ test('★ 올릴 수 없는 조각을 올리기 전에 막는다', () => {
     assert.ok(bad.some(b => re.test(b)), `사유가 안 맞는다: ${bad.join(' / ')}`);
   });
 });
+
+test('★ 내역마다 전과 후가 나란히 적혀 있다', async () => {
+  const C = require('../ui/platform/changes.js');
+  const html = await buildSection();
+  C.CHANGES.forEach((c) => {
+    // 한쪽만 있으면 나아진 크기를 알 수 없다 — "19종을 읽는다"는 전이 몇이었는지 없으면 뜻이 없다
+    assert.ok(c.was && c.was.length > 5, `'${c.title}' 에 전(前)이 없다`);
+    assert.ok(c.now && c.now.length > 5, `'${c.title}' 에 후(後)가 없다`);
+    assert.notStrictEqual(c.was, c.now, `'${c.title}' 의 전과 후가 같다`);
+    assert.ok(html.includes(c.was), `'${c.title}' 의 전(前)이 화면에 안 뜬다`);
+    assert.ok(html.includes(c.now), `'${c.title}' 의 후(後)가 화면에 안 뜬다`);
+  });
+});
+
+/**
+ * ★ 실제로 겪은 사고 — 문서 끝에 덧붙인 스타일은 브라우저가 body 안에 넣는다.
+ *   본문만 꺼내 오면 **가두지 않은 사본**이 딸려 오고, 그 안의
+ *   `body{overflow-y:hidden}` 이 바깥 페이지의 스크롤을 잠근다.
+ *   화면은 멀쩡히 보이는데 아래로 내려가지지 않는다 — 고장으로 읽힌다.
+ */
+test('★ 붙인 화면이 바깥 페이지의 스크롤을 잠그지 않는다', () => {
+  const S = require('../ui/platform/build-static.js');
+  const part = S.inlineScreen(
+    '<html><head><style>.a{color:red}</style></head>'
+    + '<body><div class="a">본문</div><style>body{overflow-y:hidden!important}</style></body></html>',
+    'scr-x');
+  assert.ok(!/<style/i.test(part.html), '본문에 가두지 않은 스타일 사본이 남았다');
+  assert.ok(!/(^|\})\s*body\s*\{/.test(part.css), 'css 에 가두지 않은 body 규칙이 있다');
+  assert.match(part.css, /#scr-x\{overflow-y:hidden!important\}/, '가둔 쪽에는 남아 있어야 한다');
+  assert.ok(!/#scr-x\{position:relative;overflow:hidden;\}/.test(part.css),
+    '칸 자체를 overflow:hidden 으로 두면 안쪽이 잘린다');
+});

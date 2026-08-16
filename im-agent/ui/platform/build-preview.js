@@ -451,6 +451,10 @@ function changePanel() {
           <b>${esc(i.title)}</b>
           <em>${esc(i.where)}</em>
           <span>${esc(i.why)}</span>
+          <div class="upd__ba">
+            <div class="upd__b"><em>전</em>${esc(i.was)}</div>
+            <div class="upd__a"><em>후</em>${esc(i.now)}</div>
+          </div>
           <span class="upd__see">확인: ${esc(i.shows)}</span>
         </li>`).join('')}
       </ul>
@@ -481,6 +485,18 @@ function changePanel() {
   .upd__l span, .upd__p span { display: block; margin-top: 3px; font-size: 13px; color: #4A5560; }
   .upd__see { color: #5C7A00 !important; font-weight: 600; }
 
+  /* 어떻게 바뀌었는가 — 전과 후를 나란히 둔다. 한쪽만 적으면 비교가 안 된다 */
+  .upd__ba { display: grid; gap: 6px; margin-top: 8px; }
+  .upd__b, .upd__a { font-size: 12.5px; line-height: 1.6; padding: 8px 11px; border-radius: 8px;
+    display: grid; grid-template-columns: 26px 1fr; gap: 9px; align-items: baseline; }
+  .upd__b { background: #F5F6F8; color: #7C838C; }
+  .upd__a { background: #EDF7DC; color: #3F5400; }
+  .upd__b em, .upd__a em { font-style: normal; font-weight: 800; font-size: 11.5px;
+    text-align: center; padding: 2px 0; border-radius: 5px; }
+  .upd__b em { background: #E3E5E8; color: #5C636B; }
+  .upd__a em { background: #9ED700; color: #17181A; }
+  @media (min-width: 720px) { .upd__ba { grid-template-columns: 1fr 1fr; } }
+
   /* 화면이 없는 작업의 확인 */
   .ev { max-width: 1120px; margin: 14px auto 0; padding: 18px 20px;
     background: #fff; border: 1px solid #E8EAEC; border-radius: 18px;
@@ -505,7 +521,8 @@ function changePanel() {
     <h2 class="upd__t">이번에 바뀐 것</h2>
     <span class="upd__at">최근 반영 ${esc(C.latestAt())} (KST)</span>
   </div>
-  <p class="upd__s">아래 화면에 이미 반영되어 있습니다. 무엇이 왜 바뀌었는지 함께 적습니다.</p>
+  <p class="upd__s">아래 화면에 이미 반영되어 있습니다. <b>무엇이 · 왜 · 어떻게</b> 바뀌었는지
+    함께 적습니다 — 전과 후를 나란히 두어야 무엇이 달라졌는지 눈으로 비교됩니다.</p>
   ${groups}
 
   <p class="upd__pt">아직 안 된 것</p>

@@ -128,6 +128,18 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
   .upd__l span, .upd__p span { display: block; margin-top: 3px; font-size: 13px; color: #4A5560; }
   .upd__see { color: #5C7A00 !important; font-weight: 600; }
 
+  /* 어떻게 바뀌었는가 — 전과 후를 나란히 둔다. 한쪽만 적으면 비교가 안 된다 */
+  .upd__ba { display: grid; gap: 6px; margin-top: 8px; }
+  .upd__b, .upd__a { font-size: 12.5px; line-height: 1.6; padding: 8px 11px; border-radius: 8px;
+    display: grid; grid-template-columns: 26px 1fr; gap: 9px; align-items: baseline; }
+  .upd__b { background: #F5F6F8; color: #7C838C; }
+  .upd__a { background: #EDF7DC; color: #3F5400; }
+  .upd__b em, .upd__a em { font-style: normal; font-weight: 800; font-size: 11.5px;
+    text-align: center; padding: 2px 0; border-radius: 5px; }
+  .upd__b em { background: #E3E5E8; color: #5C636B; }
+  .upd__a em { background: #9ED700; color: #17181A; }
+  @media (min-width: 720px) { .upd__ba { grid-template-columns: 1fr 1fr; } }
+
   /* 화면이 없는 작업의 확인 */
   .ev { max-width: 1120px; margin: 14px auto 0; padding: 18px 20px;
     background: #fff; border: 1px solid #E8EAEC; border-radius: 18px;
@@ -152,7 +164,8 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
     <h2 class="upd__t">이번에 바뀐 것</h2>
     <span class="upd__at">최근 반영 2026-08-16 (KST)</span>
   </div>
-  <p class="upd__s">아래 화면에 이미 반영되어 있습니다. 무엇이 왜 바뀌었는지 함께 적습니다.</p>
+  <p class="upd__s">아래 화면에 이미 반영되어 있습니다. <b>무엇이 · 왜 · 어떻게</b> 바뀌었는지
+    함께 적습니다 — 전과 후를 나란히 두어야 무엇이 달라졌는지 눈으로 비교됩니다.</p>
   
     <div class="upd__g">
       <div class="upd__d">2026-08-16</div>
@@ -161,31 +174,55 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
           <b>PDF·한글·옛 오피스를 이제 읽는다 — 스캔본은 글자로 옮겨서 읽는다</b>
           <em>1단계 보고서 생성 입력</em>
           <span>전에는 「보관만 됩니다」였다. 실무 자료의 대부분이 그 목록에 있었으니 값은 결국 손으로 쳐야 했다. 이제 pdf·hwp·hwpx·doc·xls·ppt 는 본문을 그대로 읽고, 글자가 없는 스캔본과 사진은 글자로 옮긴 뒤 읽는다. 못 읽는 것은 gif·tif·tiff 셋뿐이고, 무엇으로 바꿔 올릴지까지 적어 준다.</span>
+          <div class="upd__ba">
+            <div class="upd__b"><em>전</em>pdf · hwp · hwpx · doc · xls · ppt · jpg · png = 「보관만 됩니다 (본문 못 읽음)」 8종</div>
+            <div class="upd__a"><em>후</em>읽는 방법이 셋으로 갈렸다 — 그대로 읽음 19종 / 옮겨 적어 읽음 6종 / 변환 필요 3종</div>
+          </div>
           <span class="upd__see">확인: 1단계 「올릴 수 있는 자료」 세 묶음 · 아래 [눈으로 확인] 의 읽기 결과</span>
         </li><li>
           <b>옮겨 적은 글자에서 뽑은 값은 신뢰도를 낮춘다</b>
           <em>1단계 · 검증</em>
           <span>이미지에 값을 바로 물어보면 근거 문구를 대조할 원문이 없다. 그래서 글자만 먼저 옮기고 평소의 규칙 추출을 돌린다. 그렇게 나온 값에는 「원본 확인」 표시가 붙는다 — 틀렸을 때 어디를 봐야 하는지 알 수 있다.</span>
+          <div class="upd__ba">
+            <div class="upd__b"><em>전</em>이미지에서 나온 값과 원문에서 나온 값이 같은 신뢰도로 섞였다</div>
+            <div class="upd__a"><em>후</em>OCR 경로는 신뢰도 0.55 상한 + 「원본을 확인하세요」가 값에 붙는다</div>
+          </div>
           <span class="upd__see">확인: 아래 [눈으로 확인] — 스캔본이 어떻게 처리되는지</span>
         </li><li>
           <b>자동 계산으로 만들어지는 항목 19개를 접었다 폈다 볼 수 있게 했다</b>
           <em>2단계 가이드 필드</em>
           <span>전에는 returns.min_dscr 같은 내부 key 가 19개 그대로 깔려 있었다. 이제 한글·영문 이름과 단위를 나란히 보이고, 평소에는 접어 둔다. 입력란이 없는 이유는 접어도 보이게 밖에 남겼다.</span>
+          <div class="upd__ba">
+            <div class="upd__b"><em>전</em>returns.min_dscr · appraisal.land_value_official … 내부 key 19개가 그대로 깔림</div>
+            <div class="upd__a"><em>후</em>「자동 계산으로 만들어지는 항목 19개 · 펼치기 ▼」 한 줄 → 펴면 최소 DSCR / Minimum DSCR / x</div>
+          </div>
           <span class="upd__see">확인: 2단계 맨 아래 「자동 계산으로 만들어지는 항목 19개 · 펼치기」</span>
         </li><li>
           <b>이미 받아 오던 값 8개를 더 등록했다</b>
           <em>2단계 가이드 필드</em>
           <span>건축물대장·건축인허가·지적도 응답에 실려 오는데 버리고 있던 것이다 — 건폐율·용적률 실적, 지하층수, 주용도, 사용승인일, 지번, 허가 계획 연면적. 새로 부르는 호출은 하나도 없다.</span>
+          <div class="upd__ba">
+            <div class="upd__b"><em>전</em>사전 54항목 · 07 Geo 가 등록하는 값 12개 (나머지는 응답에서 읽고 버림)</div>
+            <div class="upd__a"><em>후</em>사전 60항목 · 07 Geo 가 등록하는 값 19개 (공공데이터 호출 수는 5회 그대로)</div>
+          </div>
           <span class="upd__see">확인: 2단계 「자동으로 채워지는 항목」 을 펼치면 지번·건폐율(실적) 등이 보인다</span>
         </li><li>
           <b>실적치와 법정 상한을 다른 칸에 둔다</b>
           <em>2단계 가이드 필드</em>
           <span>건폐율·용적률을 한 칸에 섞으면 &quot;320%&quot; 가 지어도 되는 한도인지 이미 지은 결과인지 알 수 없다. land.*_limit(상한)과 building.bcr/far(실적)로 갈랐다.</span>
+          <div class="upd__ba">
+            <div class="upd__b"><em>전</em>건폐율 한 칸 — 「320%」가 한도인지 실적인지 알 수 없었다</div>
+            <div class="upd__a"><em>후</em>land.bcr_limit(상한) 과 building.bcr(실적) 이 다른 줄이다</div>
+          </div>
           <span class="upd__see">확인: 2단계 건축 묶음 — 건폐율(실적) 과 건폐율 상한이 다른 줄이다</span>
         </li><li>
           <b>실측으로만 드러난 결함 넷을 고쳤다</b>
           <em>2단계 · 검증</em>
           <span>공시지가가 11년 낡은 값이었고(30% 오차), 폐기된 건축물대장 엔드포인트를 부르고 있었고, VWorld 도메인을 가공해 조회가 간헐적으로 거부됐고, 짧은 인증키가 로그에 평문으로 남았다. 넷 다 결과가 그럴듯해서 문서로는 안 잡힌다.</span>
+          <div class="upd__ba">
+            <div class="upd__b"><em>전</em>공시지가 2015년 값(30% 오차) · 폐기된 대장 엔드포인트 · VWorld 도메인 가공 · 36자 키가 로그에 평문</div>
+            <div class="upd__a"><em>후</em>numOfRows 100 으로 최신 회차 · BldRgstHubService · 서비스URL 그대로 전송 · 이름 기반 마스킹</div>
+          </div>
           <span class="upd__see">확인: 화면에 안 보인다 — 커넥터 안쪽이다 (`npm run im:smoke` 로만 확인된다)</span>
         </li>
       </ul>
@@ -197,41 +234,73 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
           <b>값 입력이 앱 안으로 들어왔다</b>
           <em>섹션 전체</em>
           <span>전에는 기반정보를 내보내고 값 입력을 바깥 AGENT 가 받았다. 그러면 출처 필수·계산 항목 입력 금지·사양 확정을 앱이 강제할 수 없다. 내보내기 경로는 아래에 그대로 남아 있다.</span>
+          <div class="upd__ba">
+            <div class="upd__b"><em>전</em>기반정보를 내려받아 바깥 AGENT 에 넘기고, 값 입력은 앱 밖에서 받았다</div>
+            <div class="upd__a"><em>후</em>앱 안 2단계에서 받는다 — 출처 필수·계산 항목 차단·사양 확정을 앱이 강제한다</div>
+          </div>
           <span class="upd__see">확인: 2단계 화면 자체 · 아래쪽 「기반정보 내보내기」 는 그대로 남아 있다</span>
         </li><li>
           <b>4단계 고정 · 잠긴 단계는 이유를 적는다</b>
           <em>단계 레일</em>
           <span>회색으로만 두면 고장으로 보인다. &quot;서버 미연결&quot;인지 &quot;1단계를 먼저&quot;인지 구분해서 띄운다 — 원인이 다르면 할 일도 다르다.</span>
+          <div class="upd__ba">
+            <div class="upd__b"><em>전</em>잠긴 단계가 회색으로만 보여 고장인지 순서 문제인지 구분이 안 됐다</div>
+            <div class="upd__a"><em>후</em>「서버(api)가 연결되어 있지 않습니다」 / 「1단계에서 프로젝트를 먼저 만듭니다」로 갈라 뜬다</div>
+          </div>
           <span class="upd__see">확인: 위 단계 레일 — 잠긴 칸을 누르면 사유가 뜬다</span>
         </li><li>
           <b>자동으로 채워지는 줄에는 출처를 묻지 않는다</b>
           <em>2단계 가이드 필드</em>
           <span>공부(公簿)에서 오는 값에 사람이 출처를 적으면, 독립된 두 번째 출처라는 가치가 사라진다. 값·출처·페이지·출처일 4칸이 늘 뜨던 것을 항목 성격에 맞게 줄였다.</span>
+          <div class="upd__ba">
+            <div class="upd__b"><em>전</em>모든 줄에 값·출처·페이지·출처일 4칸이 똑같이 떴다</div>
+            <div class="upd__a"><em>후</em>항목 성격에 따라 1~4칸 — 공부에서 오는 값은 출처를 묻지 않는다</div>
+          </div>
           <span class="upd__see">확인: 2단계 입력 줄 — 항목마다 칸 수가 다르다</span>
         </li><li>
           <b>공공데이터 키가 없으면 그 항목을 직접 입력으로 내린다</b>
           <em>2단계 가이드 필드</em>
           <span>키 없이 죽는 경로를 &quot;자동으로 채워집니다&quot;라고 표시하면 안 물어보고 빈 채로 남는다. 사람은 그 항목이 있는 줄도 모른다. 지금은 사유와 함께 물어본다.</span>
+          <div class="upd__ba">
+            <div class="upd__b"><em>전</em>키가 없어도 「자동으로 채워집니다」라고 적혀 있어 아무도 안 물어봤다</div>
+            <div class="upd__a"><em>후</em>직접 입력으로 내려오고 주황색으로 사유가 뜬다 — 필수 8칸이 9칸이 된다</div>
+          </div>
           <span class="upd__see">확인: 2단계 「자동으로 채워지는 항목」 카드의 주황색 안내</span>
         </li><li>
           <b>규제 사항이 용도지역과 따로 뜬다</b>
           <em>2단계 가이드 필드</em>
           <span>토지이용계획 응답에 개발제한구역·군사시설보호구역이 함께 오는데 버리고 있었다. 그린벨트에 걸린 땅과 아닌 땅이 &quot;자연녹지지역&quot; 하나로 똑같이 보였다.</span>
+          <div class="upd__ba">
+            <div class="upd__b"><em>전</em>토지이용계획 응답에서 용도지역 하나만 쓰고 개발제한구역·군사시설보호는 버렸다</div>
+            <div class="upd__a"><em>후</em>land.restrictions 로 남기고 개발제한·군사·문화재 등 11종은 따로 표시한다</div>
+          </div>
           <span class="upd__see">확인: 2단계 토지 묶음 — 규제 사항이 별도 항목이다</span>
         </li><li>
           <b>인허가·시행사를 공부와 대조한다</b>
           <em>2단계 · 검증</em>
           <span>값을 채우는 기능이 아니라 대조 기능이다. 사업계획서가 &quot;허가 취득&quot;이라는데 기록이 없으면 드러난다. 기록이 없는 것을 &quot;미허가&quot;로 단정하지는 않는다.</span>
+          <div class="upd__ba">
+            <div class="upd__b"><em>전</em>사업계획서가 「허가 취득」이라고 적으면 그대로 실렸다</div>
+            <div class="upd__a"><em>후</em>건축인허가·DART 로 대조한다. 기록이 없는 것을 「미허가」로 단정하지는 않는다</div>
+          </div>
           <span class="upd__see">확인: 화면에 안 보인다 — 생성할 때 값 충돌로만 드러난다</span>
         </li><li>
           <b>[인쇄 · PDF 저장]이 실제로 열린다</b>
           <em>4단계 생성 · 산출물</em>
           <span>지침 §7-3 이 안내하는 기능인데 &quot;경로를 연결하세요&quot; 안내만 떴다 — 협력사 눈에는 고장이었다. 검증을 통과하지 못한 산출물은 여전히 열리지 않는다.</span>
+          <div class="upd__ba">
+            <div class="upd__b"><em>전</em>버튼을 누르면 「경로를 연결하세요」 안내만 떴다 — 협력사 눈에는 고장</div>
+            <div class="upd__a"><em>후</em>산출물이 새 창에 열리고 인쇄 대화상자가 뜬다 (검증 미통과 산출물은 여전히 안 열린다)</div>
+          </div>
           <span class="upd__see">확인: 4단계 산출물 목록의 [인쇄 · PDF 저장] 버튼</span>
         </li><li>
           <b>단계 표시가 두 번 뜨던 것을 고쳤다</b>
           <em>섹션 전체</em>
           <span>레일과 화면 안 칩이 같은 1·2·3·4 를 두 벌로 보여줬다. 미리보기를 실제로 렌더해 보고 잡았다.</span>
+          <div class="upd__ba">
+            <div class="upd__b"><em>전</em>레일의 1·2·3·4 와 화면 안 칩의 1·2·3·4 가 같이 보였다</div>
+            <div class="upd__a"><em>후</em>끼울 때만 화면 안 칩을 감춘다 (따로 열면 원래대로)</div>
+          </div>
           <span class="upd__see">확인: 위 레일과 각 단계 화면 — 1·2·3·4 가 한 번만 보인다</span>
         </li>
       </ul>
