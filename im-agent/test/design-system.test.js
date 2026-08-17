@@ -73,11 +73,43 @@ test('★ 디자인 시스템: 화면이 tokens.css 를 부른다', () => {
 
 test('★★ 디자인 시스템: 미리보기가 토큰을 인라인한다', () => {
   // 안 하면 미리보기가 **색 없이** 뜨는데 오류는 안 난다 — CSS 는 모르는 변수를
-  // 조용히 넘긴다. 확인하라고 보낸 화면이 실제와 다르면 확인이 아니다
-  ['section-preview.html', 'section-static.html', 'section-artifact.html'].forEach((f) => {
-    const s = read(f);
-    assert.ok(!s.includes('rel="stylesheet"'), `${f}: 바깥 스타일시트가 남았다`);
-    assert.ok(s.includes('--lp-brand:'), `${f}: 토큰이 안 들어갔다`);
+  // 조용히 넘긴다. 확인하라고 보낸 화면이 실제와 다르면 확인이 아니다.
+  //
+  // ★ **커밋된 산출물만 읽는다.** `section-static.html` · `section-artifact.html` 은
+  //   .gitignore 에 있어 CI 에는 없다 — 읽으면 ENOENT 로 죽는다
+  //   (2026-08-17: 실제로 그래서 CI 가 빨갰다. 내 기계에는 있으니 안 보였다).
+  // 제품 화면을 담은 미리보기 — 토큰이 통째로 들어가야 한다
+  const preview = read('section-preview.html');
+  assert.ok(!preview.includes('rel="stylesheet"'), 'section-preview.html: 바깥 스타일시트가 남았다');
+  assert.ok(preview.includes('--lp-brand'), 'section-preview.html: 토큰이 안 들어갔다');
+
+  // 탭 구성안은 **제품 화면이 아니라 설명용 페이지**라 자기 팔레트를 쓴다.
+  // 다만 바깥 파일을 부르면 주소로 열 때 빈 칸이 된다 — 그것만 본다
+  const tabs = read('tabs-artifact.html');
+  assert.ok(!tabs.includes('rel="stylesheet"'), 'tabs-artifact.html: 바깥 스타일시트가 남았다');
+
+  // ★ 안 커밋되는 산출물(section-static · section-artifact)은 **만드는 쪽**을 검사한다.
+  //   파일이 없어도 규칙은 지켜야 한다. 둘 다 build-preview 의 인라인을 거친 문서를
+  //   헤드리스로 그리므로, 인라인하는 곳은 build-preview 하나다
+  const builder = fs.readFileSync(path.join(__dirname, '../ui/platform/build-preview.js'), 'utf8');
+  const inlines = (builder.match(/rel="stylesheet" href="\(\[\^"\]\+\)"/g) || []).length;
+  assert.ok(inlines >= 2,
+    'build-preview.js: 스타일시트를 인라인하는 곳이 둘(화면·껍데기) 다 있어야 한다');
+});
+
+test('★★ 테스트가 커밋 안 된 파일에 기대지 않는다', () => {
+  // 내 기계에는 있고 CI 에는 없는 파일을 읽으면 **CI 에서만 죽는다.**
+  // 원인이 「왜 내 기계에서는 되는데」로만 보여 찾는 데 오래 걸린다 — 실제로 그랬다
+  const { execFileSync } = require('child_process');
+  const repo = path.join(__dirname, '..', '..');
+  const ignored = execFileSync('git', ['ls-files', '--others', '--ignored', '--exclude-standard',
+    '--directory', 'im-agent/'], { cwd: repo, encoding: 'utf8' })
+    .split('\n').map(s => s.trim()).filter(Boolean).map(p => path.basename(p));
+
+  const mine = fs.readFileSync(__filename, 'utf8');
+  ignored.forEach((name) => {
+    assert.ok(!mine.includes(`'${name}'`),
+      `이 테스트가 커밋 안 되는 파일을 읽는다: ${name} — CI 에는 없다`);
   });
 });
 
