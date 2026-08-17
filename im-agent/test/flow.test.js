@@ -146,6 +146,37 @@ test('★ 커밋된 section-preview.html 이 소스와 같다', async () => {
     '화면이나 단계가 바뀌었다 — `npm run im:section` 으로 다시 만들어라');
 });
 
+/**
+ * ★★ **위 검사만으로는 부족하다.** 커밋된 산출물에 「빌드한 날」이 박히면
+ *   위 검사는 **만든 그날은 통과하고 자정을 넘기는 순간 깨진다.**
+ *   그러면 **코드를 하나도 안 고친 사람이 빨간 CI 를 받는다** — 원인이
+ *   자기 변경에 있다고 믿고 한참 헤맨다.
+ *
+ *   2026-08-18 에 실제로 그랬다. 바뀐 줄은 딱 하나였다:
+ *     `… · 2026-08-17 읽음 · sha256 c43506c113d3 · 사본 보관 안 함`
+ *     `… · 2026-08-18 읽음 · sha256 c43506c113d3 · 사본 보관 안 함`
+ *   다시 만들어 커밋해도 **다음 날 또 터진다.** 그래서 시각을 고정했고
+ *   (`build-preview.js` 의 `DEMO_AT`), 여기서 그것이 유지되는지 본다.
+ *
+ * ★ 검사 시점이 중요하다 — 이 검사는 **시계를 넣은 그날** 실패한다.
+ *   자정까지 기다렸다가 남의 변경에 붙어 터지지 않는다.
+ */
+test('★★ 미리보기 산출물에 「빌드한 날」이 박히지 않는다 (자정에 깨지는 검사)', async () => {
+  const { kstStamp } = require('../core/kst');
+  const today = kstStamp().slice(0, 10);
+  const html = await buildSection();
+
+  // [눈으로 확인] 패널만 본다 — 변경이력(changes.js)의 날짜는 **손으로 적은
+  // 사실**이라 오늘과 같아도 정상이다. 실행 결과에 시계가 새는 것만 잡는다
+  const panels = [...html.matchAll(/<pre class="ev__o">([\s\S]*?)<\/pre>/g)].map(m => m[1]);
+  assert.ok(panels.length >= 4, `확인 패널을 못 찾았다 (${panels.length}개) — 선택자가 바뀌었나`);
+
+  const leaked = panels.filter(p => p.includes(today));
+  assert.deepStrictEqual(leaked, [],
+    `확인 패널에 오늘 날짜(${today})가 들어갔다 — 이 파일은 커밋되므로 **내일 CI 가 깨진다.**\n`
+    + '실행 결과를 손으로 적지 말고, 시각만 고정해서 부른다 (build-preview.js 의 DEMO_AT).');
+});
+
 test('빌드는 파일을 쓰지 않는다', async () => {
   const before = fs.readdirSync(PLATFORM).sort();
   await buildSection();

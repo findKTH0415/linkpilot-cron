@@ -89,7 +89,13 @@ function accept(projectDir, files, opts = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-oneshot-'));
   const ledger = read(projectDir);
   const accepted = [], rejected = [], out = [];
-  const at = kstStamp();
+  // ★ 시각을 밖에서 넣을 수 있게 둔다 (`store.nextProjectId(id, when)` 과 같은 꼴).
+  //   제품에서는 아무도 안 넘기고 지금 시각이 찍힌다. **미리보기 빌더만 넘긴다** —
+  //   커밋되는 산출물에 「빌드한 날」이 박히면 **자정을 넘기는 순간 재생성 결과가
+  //   커밋본과 달라져 CI 가 빨개진다.** 2026-08-18 에 실제로 그렇게 터졌다:
+  //   바뀐 줄은 `2026-08-17 읽음` → `2026-08-18 읽음` **한 곳뿐**이었고,
+  //   코드를 고친 사람이 아니라 **날짜가 바뀐 것이 원인**이었다.
+  const at = opts.at || kstStamp();
 
   for (const f of files) {
     const raw = String((f && f.name) || '');

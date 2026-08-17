@@ -23,6 +23,22 @@ const path = require('path');
 const HERE = __dirname;
 const FLOW = require('./flow-core.js');
 
+/**
+ * [눈으로 확인] 패널이 쓰는 **고정 시각**.
+ *
+ * ★★ 이 파일의 산출물은 **커밋되고, 「재생성 결과 = 커밋본」 을 테스트가 강제한다**
+ *   (CLAUDE.md §8). 그런데 패널은 실제 코드를 돌려 그 출력을 그대로 싣기 때문에,
+ *   출력에 **지금 시각**이 섞이면 산출물이 **날마다 달라진다.**
+ *
+ *   2026-08-18 에 그 일이 실제로 일어났다 — 아무도 코드를 안 고쳤는데 CI 가
+ *   빨개졌고, 바뀐 줄은 `2026-08-17 읽음` → `2026-08-18 읽음` **한 곳뿐**이었다.
+ *   **자정을 넘긴 것이 원인**이었으므로, 다시 만들어 커밋해도 다음 날 또 터진다.
+ *
+ * ★ 그래서 **시각만 고정하고 코드는 진짜로 돌린다.** 손으로 결과를 적는 것과는
+ *   다르다 — 값·지문·판정은 전부 실행 결과 그대로다.
+ */
+const DEMO_AT = '2026-08-17T09:00:00+09:00';
+
 function arg(name, fallback) {
   const i = process.argv.indexOf(name);
   return i > -1 && process.argv[i + 1] ? process.argv[i + 1] : fallback;
@@ -549,7 +565,11 @@ function linkedPanel() {
     + `출처 한 줄: ${linked.citation(linked.list(p).items[0])}`);
 
   // ④ 1회성 — 읽고 버린다. 대조는 아예 거절한다
-  const os1 = oneshot.accept(p, [{ name: '감정평가서.pdf', buf: B('토지가액 120억원') }]);
+  // ★★ **시각을 고정해서 부른다.** 코드는 진짜로 돌리지만, 결과에 「빌드한 날」이
+  //   섞이면 이 파일이 **날마다 달라진다.** 그러면 「재생성 결과 = 커밋본」 검사가
+  //   자정을 넘기는 순간 깨지고, **코드를 안 고친 사람이 빨간 CI 를 받는다.**
+  //   2026-08-18 에 실제로 그렇게 터졌다 — 바뀐 줄은 날짜 한 곳뿐이었다.
+  const os1 = oneshot.accept(p, [{ name: '감정평가서.pdf', buf: B('토지가액 120억원') }], { at: DEMO_AT });
   const kept = os1.files.map(f => fs.existsSync(f.path));
   const removed = os1.dispose().removed;
   const item = oneshot.list(p).items[0];
@@ -577,7 +597,9 @@ function linkedPanel() {
   <p class="ev__s">아래는 이 미리보기를 만들 때 임시 폴더에서 <b>실제로 <code>core/linked.js</code> ·
     <code>core/oneshot.js</code> · <code>connectors/storage.js</code> 를 돌려</b> 얻은 결과입니다.
     이 계층은 화면이 없고 <b>실패가 조용합니다</b> — 원본이 바뀌어도 문서는 그대로 멀쩡하고,
-    붙지 않은 경로는 「올렸는데 아무 일도 안 일어남」이 됩니다.</p>
+    붙지 않은 경로는 「올렸는데 아무 일도 안 일어남」이 됩니다.
+    <br><b>읽은 시각만 고정값(${DEMO_AT.slice(0, 10)})입니다</b> — 이 화면이 날마다 달라지지 않도록.
+    값·지문·판정은 전부 실제 실행 결과입니다.</p>
   ${blocks}
 </section>`;
 }
