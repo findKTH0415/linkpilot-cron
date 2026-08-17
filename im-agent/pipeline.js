@@ -420,6 +420,10 @@ async function run(opts = {}) {
       //   실제로 한글이 중국어 글꼴로 박혀 있었다 (D-52). 조용히 두지 않는다
       if (r.fontOk === false) {
         log(`    ⚠ 글꼴: ${r.fontReason}`);
+      } else if (r.fontNote) {
+        // ★ 경고가 아니다 — **어떤 활자로 나갔는지**를 남긴다. 이걸 안 적으면
+        //   같은 문서를 다른 기계에서 다시 만들었을 때 왜 달라졌는지 알 수 없다
+        log(`    · 글꼴: ${r.fontNote}`);
       }
     }
   }

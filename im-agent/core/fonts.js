@@ -80,16 +80,37 @@ function substituteFor(family) {
 }
 
 /**
+ * 스택 하나(`serif` 또는 `sans`)를 본다.
+ *
+ * ★★ **판정 단위는 글꼴 하나가 아니라 스택 전체다.** `font-family` 는 목록이고
+ *   브라우저는 **앞에서부터 실제로 있는 것**을 쓴다. 그래서 「목록의 모든
+ *   이름이 설치되어 있어야 한다」로 보면 두 가지가 한꺼번에 틀린다 —
+ *   대체가 정상 동작하는 기계에서 헛경고가 뜨고, 진짜 문제(**아무것도 없어서
+ *   브라우저가 제멋대로 고르는 것**)가 그 헛경고에 묻힌다.
+ *
+ * @returns {{role, families, used, substitute}} `used` 가 실제로 그려질 글꼴
+ */
+function stackOf(role, decl, list) {
+  const families = familiesOf(decl);
+  if (!families.length) return null;                  // 총칭만 있으면 볼 것이 없다
+  const used = families.find(f => has(f, list)) || null;
+  return { role, families, used, substitute: used ? null : substituteFor(families[0]) };
+}
+
+/**
  * 테마가 요청한 글꼴이 이 기계에 있는가.
  *
  * @param {object} theme `design/themes` 가 준 테마 (serif·sans 를 본다)
- * @returns {{ok, requested, missing, substitutes, reason}}
+ * @returns {{ok, requested, missing, substitutes, used, fallbacks, note, reason}}
  */
 function check(theme) {
   const t = theme || {};
   const requested = [...new Set([...familiesOf(t.serif), ...familiesOf(t.sans)])];
   if (!requested.length) {
-    return { ok: true, requested: [], missing: [], substitutes: {}, reason: null };
+    return {
+      ok: true, requested: [], missing: [], substitutes: {},
+      used: {}, fallbacks: [], note: null, reason: null,
+    };
   }
 
   const list = installed();
@@ -97,20 +118,39 @@ function check(theme) {
     // ★ fontconfig 이 없으면 **있다고 치지 않는다.** 모르는 것과 괜찮은 것은 다르다
     return {
       ok: false, requested, missing: requested, substitutes: {}, unknown: true,
+      used: {}, fallbacks: [], note: null,
       reason: '글꼴 목록을 확인할 수 없다 (fontconfig 없음) — 요청한 글꼴이 쓰였는지 모른다',
     };
   }
 
-  const missing = requested.filter(f => !has(f, list));
-  if (!missing.length) {
-    return { ok: true, requested, missing: [], substitutes: {}, reason: null };
+  const stacks = [stackOf('serif', t.serif, list), stackOf('sans', t.sans, list)].filter(Boolean);
+  const failed = stacks.filter(s => !s.used);
+
+  const used = {};
+  stacks.filter(s => s.used).forEach((s) => { used[s.role] = s.used; });
+
+  // ★ 1순위가 아닌 이름으로 그려지는 것은 **고장이 아니다** — 스택이 제 일을 한
+  //   것이다. 다만 「어떤 활자로 나갔는가」는 문서를 다시 만들 때 필요한 사실이라
+  //   **말은 한다.** (경고가 아니라 사실 보고 — 이 둘을 섞으면 경고가 무뎌진다)
+  const fallbacks = stacks
+    .filter(s => s.used && s.used !== s.families[0])
+    .map(s => ({ role: s.role, wanted: s.families[0], used: s.used }));
+  const note = fallbacks.length
+    ? `1순위 글꼴이 없어 선언된 대체로 그린다: ${fallbacks.map(f => `${f.wanted} → ${f.used}`).join(' · ')}`
+    : null;
+
+  if (!failed.length) {
+    return { ok: true, requested, missing: [], substitutes: {}, used, fallbacks, note, reason: null };
   }
 
+  // ★ 실패한 스택은 **목록 전체**를 못 찾은 것이다. 그중 하나만 적으면
+  //   「나머지는 있었나」를 다시 확인해야 한다
+  const missing = [...new Set(failed.flatMap(s => s.families))];
   const substitutes = {};
-  missing.forEach((f) => { substitutes[f] = substituteFor(f); });
+  failed.forEach((s) => { substitutes[s.families[0]] = s.substitute; });
 
   return {
-    ok: false, requested, missing, substitutes,
+    ok: false, requested, missing, substitutes, used, fallbacks, note,
     reason: `요청한 글꼴이 없다: ${missing.join(', ')} — `
       + `대신 ${[...new Set(Object.values(substitutes).filter(Boolean))].join(', ') || '알 수 없는 글꼴'} `
       + '로 그려진다. **만드는 기계마다 활자가 달라진다** '
@@ -150,8 +190,14 @@ function faceCss(dir = LOCAL_DIR) {
 /** 사람이 읽는 한 줄. **없으면 없다고 적는다** */
 function summarize(r) {
   if (!r) return '글꼴 확인 안 함';
-  if (r.ok) return `글꼴 정상 (${r.requested.join(', ')})`;
-  return r.reason;
+  if (!r.ok) return r.reason;
+  // ★ 실제로 그려질 이름을 낸다 — 요청 목록만 되풀이하면 「무엇으로 나갔나」에
+  //   답하지 못한다
+  const drawn = Object.values(r.used || {});
+  const base = `글꼴 정상 (${drawn.length ? drawn.join(', ') : r.requested.join(', ')})`;
+  return r.note ? `${base} — ${r.note}` : base;
 }
 
-module.exports = { check, faceCss, familiesOf, installed, has, substituteFor, summarize, LOCAL_DIR, PROBE };
+module.exports = {
+  check, faceCss, familiesOf, installed, has, stackOf, substituteFor, summarize, LOCAL_DIR, PROBE,
+};

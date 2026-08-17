@@ -38,9 +38,29 @@ const COLOR = {
   negative: '#B4453A',    // 음수·경고
 };
 
+/**
+ * 문서 글꼴 스택 (A4 인쇄용 — 플랫폼 화면 글꼴과 다른 체계다).
+ *
+ * ★★ **두 번째 이름을 지우지 않는다.** `Noto Sans KR` 만 적으면 그 이름으로
+ *   설치된 기계에서만 맞고, 없는 기계에서는 브라우저가 **말없이 아무 CJK 글꼴로
+ *   대신 그린다.** 실측(2026-08-17, CI 와 같은 조건):
+ *
+ *     'Noto Sans KR', sans-serif              → 폭 1000.00 = WenQuanYi Zen Hei (중국어)
+ *     'Noto Sans KR','Noto Sans CJK KR', …    → 폭  920.00 = Noto Sans CJK KR (한국어)
+ *
+ *   CI 는 `fonts-noto-cjk` 를 설치하는데 그 꾸러미가 심는 이름은
+ *   **`Noto Sans CJK KR`** 이지 `Noto Sans KR` 이 아니다. 그래서 「글꼴을
+ *   설치했다」는 선언은 맞는데 **문서는 계속 중국어·일본어 글꼴로 나갔다**
+ *   (2026-08-17 CI 로그에서 잡았다 — 등록부 D-52 재발).
+ *
+ * ★ 둘은 **같은 활자다.** `Noto Sans KR` 은 Noto Sans CJK 의 한국어 변형을
+ *   한글만 떼어 내 따로 배포한 것이라, 이름만 다르고 글자 모양은 같다.
+ *   그래서 이것은 「비슷한 것으로 때우기」가 아니라 **같은 글꼴의 다른 이름**이다.
+ *   (JP·SC·TC 변형은 한자 모양이 다르므로 **절대 대체로 넣지 않는다**)
+ */
 const FONT = {
-  serif: "'Noto Serif KR', serif",
-  sans: "'Noto Sans KR', sans-serif",
+  serif: "'Noto Serif KR', 'Noto Serif CJK KR', serif",
+  sans: "'Noto Sans KR', 'Noto Sans CJK KR', sans-serif",
 };
 
 /** 스케일(px) — Grand Hyatt(IM) 기준. 태양광 리포트는 H1 46/H2 26. */

@@ -199,6 +199,154 @@ test('★ CI 가 한글 글꼴을 설치한다', () => {
   assert.match(wf, /D-52/, '왜 넣었는지 남겨야 한다');
 });
 
+/* ═════════ ④ 설치했다는 선언이 실제 활자와 이어지는가 (D-52 재발) ═════════ */
+
+/**
+ * ★★ **여기가 2026-08-17 에 뚫린 자리다.** 위 「CI 가 한글 글꼴을 설치한다」는
+ *   워크플로 **문자열**만 봤고, 실제로는 이랬다:
+ *
+ *     설치한 꾸러미 `fonts-noto-cjk` 가 심는 이름 → `Noto Sans CJK KR`
+ *     문서가 요청한 이름                          → `Noto Sans KR`
+ *
+ *   이름이 달라 요청이 통하지 않았고, 브라우저는 **말없이 다른 CJK 글꼴로**
+ *   그렸다 — CI 에서는 `Noto Sans CJK JP`(일본어), CJK 글꼴이 여럿인 기계에서는
+ *   `WenQuanYi Zen Hei`(중국어). **테스트는 전부 초록이었다.**
+ *
+ *   실측(2026-08-17 · fonts-noto-cjk 만 깔린 기계에서 실제 PDF 를 만들어 확인):
+ *     고치기 전 → PDF 에 `WenQuanYiZenHei` 가 박힌다
+ *     고친 뒤   → PDF 에 `NotoSansCJKkr` · `NotoSerifCJKkr` 가 박힌다
+ *
+ *   그래서 이 묶음은 **선언이 아니라 산출물을 본다.**
+ */
+test('★★ CI 가 설치하는 꾸러미의 이름이 문서 글꼴 스택에 실제로 들어 있다', () => {
+  const wf = fs.readFileSync(
+    path.join(__dirname, '..', '..', '.github/workflows/im-agent-ci.yml'), 'utf8');
+  assert.match(wf, /fonts-noto-cjk/);
+
+  // `fonts-noto-cjk` 가 심는 한국어 변형의 **정확한 이름**
+  const tokens = fs.readFileSync(path.join(__dirname, '..', 'design', 'tokens.js'), 'utf8');
+  for (const family of ['Noto Sans CJK KR', 'Noto Serif CJK KR']) {
+    assert.ok(tokens.includes(family),
+      `설치하는 꾸러미가 심는 이름 '${family}' 이 글꼴 스택에 없다 — `
+      + '「설치했다」는 선언만 맞고 문서는 다른 활자로 나간다 (D-52)');
+  }
+});
+
+/**
+ * ★ 대체로 넣어도 되는 것은 **같은 활자의 다른 이름**뿐이다.
+ *   JP·SC·TC 는 한자 모양이 다르므로 대체가 아니라 **다른 글꼴**이다 —
+ *   나중에 경고를 없애려고 이걸 스택에 밀어 넣으면 D-52 가 그대로 돌아온다.
+ */
+test('★ 일본어·중국어 변형을 대체 글꼴로 선언하지 않는다', () => {
+  // ★ 원문이 아니라 **선언된 값**을 본다 — 주석에 「WenQuanYi 로 그려졌다」고
+  //   적어 둔 것까지 걸리면, 왜 이렇게 고쳤는지 적어 둔 글을 지우게 된다
+  const { FONT } = require('../design/tokens');
+  const declared = [...fonts.familiesOf(FONT.serif), ...fonts.familiesOf(FONT.sans)];
+  for (const bad of ['CJK JP', 'CJK SC', 'CJK TC', 'WenQuanYi']) {
+    const hit = declared.filter(f => f.includes(bad));
+    assert.deepStrictEqual(hit, [],
+      `${bad} 을 글꼴 스택에 넣었다 — 한자 모양이 달라 같은 활자가 아니다`);
+  }
+  // 한국어 변형은 **있어야** 한다 (없으면 위 검사는 통과하고 문서는 틀린다)
+  assert.ok(declared.some(f => /CJK KR$/.test(f)), '한국어 변형이 스택에 없다');
+});
+
+/**
+ * ★ 스택은 **목록**이고 브라우저는 앞에서부터 있는 것을 쓴다. 「목록의 모든
+ *   이름이 설치되어 있어야 한다」로 보면 대체가 정상 동작하는 기계에서 헛경고가
+ *   뜨고, **진짜 문제가 그 헛경고에 묻힌다.**
+ */
+test('★ 스택 판정: 하나만 있으면 정상, 하나도 없으면 경고', () => {
+  const list = ['Some Installed Face'];
+  const ok = fonts.stackOf('sans', "'Nope KR', 'Some Installed Face', sans-serif", list);
+  assert.strictEqual(ok.used, 'Some Installed Face', '뒤쪽 대체를 못 찾았다');
+
+  const dead = fonts.stackOf('sans', "'Nope KR', 'Also Nope', sans-serif", list);
+  assert.strictEqual(dead.used, null, '없는데 있다고 했다');
+
+  assert.strictEqual(fonts.stackOf('sans', 'sans-serif', list), null, '총칭만 있으면 볼 것이 없다');
+
+  // 하나도 없는 스택은 **목록 전체**를 못 찾은 것으로 보고한다
+  const r = fonts.check({ serif: "'Nope A', serif", sans: "'Nope B', sans-serif" });
+  if (!r.unknown) {
+    assert.strictEqual(r.ok, false);
+    assert.ok(r.missing.includes('Nope A') && r.missing.includes('Nope B'));
+  }
+});
+
+/**
+ * ★ 1순위가 아닌 이름으로 그린 것은 **고장이 아니다** — 스택이 제 일을 한 것이다.
+ *   다만 어떤 활자로 나갔는지는 말해야 한다. 경고와 사실보고를 섞으면 경고가 무뎌진다.
+ */
+test('★ 대체로 그렸으면 「무엇으로 그렸는지」를 남긴다 (경고가 아니라 사실)', () => {
+  const r = fonts.check(themes.get('institutional'));
+  if (!r.ok) return;                       // 글꼴이 아예 없는 기계 — 위 검사가 본다
+  assert.ok(r.used && (r.used.sans || r.used.serif), '실제로 그려질 이름을 안 낸다');
+  if (r.fallbacks.length) {
+    assert.ok(r.note, '대체로 그렸는데 아무 말이 없다');
+    assert.match(fonts.summarize(r), /대체로 그린다/);
+  }
+  // 파이프라인이 그 사실을 실제로 찍는지 — 만들어만 두고 안 부르면 없는 것과 같다
+  const pipe = fs.readFileSync(path.join(__dirname, '..', 'pipeline.js'), 'utf8');
+  assert.match(pipe, /r\.fontNote/, '파이프라인이 글꼴 기록을 안 낸다');
+});
+
+/**
+ * ★★ **이 검사가 D-52 의 최종 방어선이다.** 위 검사들이 전부 통과해도
+ *   산출물이 틀릴 수 있으므로, **실제로 나온 PDF 에 박힌 글꼴 이름**을 본다.
+ *   (한글이 안 깔린 기계에서는 판정하지 않는다 — 그건 위 ② 가 잡는다)
+ */
+test('★★ 실제 PDF 에 한국어 글꼴이 박힌다 (중국어·일본어 글꼴이 아니다)', () => {
+  const theme = themes.get('institutional');
+  if (!fonts.check(theme).ok) return;      // 선언한 글꼴이 하나도 없는 기계
+
+  const { dir, p } = tmpHtml();
+  try {
+    const r = pdf.fromHtmlFile(p, { theme });
+    assert.strictEqual(r.ok, true, r.reason || '');
+    const embedded = fs.readFileSync(r.path).toString('latin1');
+
+    for (const wrong of ['WenQuanYi', 'CJKjp', 'CJKsc', 'CJKtc']) {
+      assert.ok(!embedded.includes(wrong),
+        `PDF 에 ${wrong} 이 박혔다 — 한글이 한국어 글꼴로 그려지지 않았다 (D-52)`);
+    }
+    // 「없다」만 보면 글자가 통째로 빠져도 통과한다 — 한국어 글꼴이 **있는지**도 본다
+    assert.match(embedded, /CJKkr|NotoSansKR|NotoSerifKR/,
+      '한국어 글꼴이 하나도 안 박혔다 — 한글이 그려지지 않았을 수 있다');
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+/**
+ * ★ 글꼴 스택은 **한 곳에서만 정한다.** 13개 테마에 같은 문자열이 복붙되어
+ *   있어서, 이번 수정은 13군데를 똑같이 고쳐야 하는 일이었다 — 하나만 빠뜨리면
+ *   그 테마로 만든 문서만 조용히 다른 활자로 나간다.
+ */
+test('★ 테마가 글꼴 스택을 복붙하지 않는다 (tokens 한 곳)', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'design', 'themes.js'), 'utf8');
+  assert.ok(!/serif:\s*"'Noto/.test(src), '테마에 글꼴 문자열을 직접 적었다');
+  assert.match(src, /require\('\.\/tokens'\)/, 'tokens 에서 가져와야 한다');
+
+  // 13종 전부가 같은 스택을 쓰는지 — 원문이 아니라 **값**으로 확인한다
+  const { FONT } = require('../design/tokens');
+  const ids = themes.list().map(t => t.id);
+  assert.ok(ids.length >= 13, `테마가 ${ids.length}종뿐이다 — 목록을 못 읽었다`);
+  ids.forEach((id) => {
+    const t = themes.get(id);
+    assert.strictEqual(t.sans, FONT.sans, `${id}: sans 가 토큰과 다르다`);
+    assert.strictEqual(t.serif, FONT.serif, `${id}: serif 가 토큰과 다르다`);
+  });
+});
+
+/** ★ IM 에 들어가는 그림(SVG)도 본문과 같은 활자여야 한다 */
+test('★ 매스·조감도 SVG 도 토큰 글꼴을 쓴다', () => {
+  for (const f of ['mass.js', 'birdseye.js']) {
+    const src = fs.readFileSync(path.join(__dirname, '..', 'geo', f), 'utf8');
+    assert.ok(!/font-family="'Noto Sans KR', sans-serif"/.test(src),
+      `${f}: 글꼴 스택을 직접 적었다 — 본문만 고치면 그림 글자만 다른 활자로 남는다`);
+    assert.match(src, /font-family="\$\{FONT\.sans\}"/, `${f}: 토큰을 안 쓴다`);
+  }
+});
+
 /** ★ 파일을 직접 넣는 길도 열어 둔다 (오프라인 NAS) */
 test('글꼴 파일을 넣으면 문서에 박는다', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fontdir-'));

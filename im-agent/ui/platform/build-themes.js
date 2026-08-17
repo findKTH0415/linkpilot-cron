@@ -40,6 +40,7 @@ const themes = require(path.join(AGENT, 'design/themes'));
 const a4 = require(path.join(AGENT, 'design/a4'));
 const recommend = require(path.join(AGENT, 'design/recommend'));
 const raster = require(path.join(AGENT, 'core/raster'));
+const fonts = require(path.join(AGENT, 'core/fonts'));
 
 const OUT = path.join(__dirname, 'theme-gallery.html');
 
@@ -99,14 +100,20 @@ function shoot(themeId, browser, tmp) {
   }
 }
 
-/** 이 서버에 테마가 요구하는 한글 글꼴이 있는가 */
+/**
+ * 이 서버에 테마가 요구하는 한글 글꼴이 있는가.
+ *
+ * ★★ **직접 세지 않는다** — `core/fonts.js` 가 판정하는 그 기준을 그대로 쓴다.
+ *   전에는 여기서 `fc-list :lang=ko` 를 훑어 이름에 'Noto Sans' 가 들어가면
+ *   있다고 봤는데, **`Noto Sans CJK JP`(일본어)만 깔린 기계에서도 통과했다.**
+ *   JP 변형도 한글은 그리므로 `:lang=ko` 에 걸리기 때문이다 — 그래서 화면은
+ *   「활자 정상」이라 말하고 견본은 일본어 활자로 나갔다 (D-52 · 2026-08-17).
+ */
 function fontAvailable(family) {
-  try {
-    const out = execFileSync('fc-list', [':lang=ko', 'family'], { encoding: 'utf8', timeout: 5000 });
-    return out.split('\n').some(l => l.toLowerCase().includes(String(family).toLowerCase()));
-  } catch (_) {
-    return false;   // fontconfig 이 없으면 알 수 없다 — 없는 것으로 본다
-  }
+  const t = themes.get('institutional');
+  const decl = family && String(family).includes('Serif') ? t.serif : t.sans;
+  const r = fonts.check({ serif: decl, sans: decl });
+  return r.ok;
 }
 
 function card(t, shot, rec) {
@@ -185,7 +192,8 @@ function build() {
   :root { --ink:#1A1A1A; --sub:#6B6B6B; --line:#E4E4E4; --bg:#FAFAF8; --point:#C00000; }
   * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--ink);
-         font-family:'Noto Sans KR','Malgun Gothic',system-ui,sans-serif; line-height:1.6; }
+         font-family:'Noto Sans KR','Noto Sans CJK KR','Malgun Gothic',system-ui,sans-serif;
+         line-height:1.6; }
   header { padding:28px 20px 18px; border-bottom:1px solid var(--line); background:#fff; }
   h1 { margin:0 0 6px; font-size:20px; letter-spacing:-.01em; }
   .lead { margin:0; color:var(--sub); font-size:13px; max-width:62ch; }

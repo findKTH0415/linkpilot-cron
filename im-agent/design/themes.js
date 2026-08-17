@@ -14,6 +14,14 @@
  *   기존 Grand Hyatt IM·태양광 리포트와 나란히 놓을 문서는 이 계열을 쓴다.
  */
 
+/**
+ * ★ 글꼴 스택은 **`tokens.js` 한 곳에서만 정한다.** 13개 테마에 같은 문자열이
+ *   복붙되어 있었고, 그래서 한글 글꼴 대체 문제(D-52)를 고치려면 13군데를
+ *   똑같이 고쳐야 했다 — 하나만 빠뜨리면 그 테마로 만든 문서만 조용히 다른
+ *   활자로 나간다. 테마가 타이포를 바꿀 일이 생기면 그때 값을 적는다.
+ */
+const { FONT } = require('./tokens');
+
 /** 모든 테마가 공유하는 구조 토큰 (테마가 바꾸지 않는다) */
 const STRUCTURE = {
   ruleStrong: '#D8D2C6',
@@ -55,7 +63,7 @@ const THEMES = {
     docTypes: ['pf_proposal', 'credit_report', 'ic_memo', 'financial_report', 'dd_report'],
     primary: '#10233C', primaryMid: '#35506F', accent: '#A6813C', accentLight: '#C9A15A',
     onPrimary: '#F3E3C4', onPrimarySub: '#9FB0C4', surfaceAlt: '#F7F5F0',
-    serif: "'Noto Serif KR', serif", sans: "'Noto Sans KR', sans-serif",
+    serif: FONT.serif, sans: FONT.sans,
     cover: 'rule', density: 'normal',
     chart: ['#10233C', '#35506F', '#6E86A3', '#A6813C', '#C9A15A'],
     emphasisKpis: ['returns.min_dscr', 'debt.ltc', 'returns.project_irr', 'investment.total'],
@@ -72,7 +80,7 @@ const THEMES = {
     docTypes: ['im', 'ma_im', 'teaser', 'investor_presentation'],
     primary: '#0B1B2B', primaryMid: '#2C4257', accent: '#B08D57', accentLight: '#CFAE7B',
     onPrimary: '#EFE6D3', onPrimarySub: '#9AAABB', surfaceAlt: '#F6F4EF',
-    serif: "'Noto Serif KR', serif", sans: "'Noto Sans KR', sans-serif",
+    serif: FONT.serif, sans: FONT.sans,
     cover: 'split', density: 'normal',
     chart: ['#0B1B2B', '#2C4257', '#5E7488', '#B08D57', '#CFAE7B'],
     emphasisKpis: ['returns.equity_irr', 'returns.equity_moic', 'investment.total', 'returns.exit_value'],
@@ -88,7 +96,7 @@ const THEMES = {
     docTypes: ['im', 'ic_memo', 'investor_presentation'],
     primary: '#14213D', primaryMid: '#3A4E75', accent: '#C9A227', accentLight: '#E0BE55',
     onPrimary: '#F5EFDD', onPrimarySub: '#A3AEC6', surfaceAlt: '#F6F5F1',
-    serif: "'Noto Serif KR', serif", sans: "'Noto Sans KR', sans-serif",
+    serif: FONT.serif, sans: FONT.sans,
     cover: 'rule', density: 'compact',
     chart: ['#14213D', '#3A4E75', '#7686A8', '#C9A227', '#E0BE55'],
     emphasisKpis: ['returns.equity_irr', 'returns.equity_moic', 'returns.npv', 'returns.payback_years'],
@@ -106,7 +114,7 @@ const THEMES = {
     docTypes: ['im', 'teaser', 'feasibility', 'valuation_report'],
     primary: '#12314B', primaryMid: '#3E5C77', accent: '#A6813C', accentLight: '#C9A15A',
     onPrimary: '#F3E3C4', onPrimarySub: '#A2B3C4', surfaceAlt: '#F7F5F0',
-    serif: "'Noto Serif KR', serif", sans: "'Noto Sans KR', sans-serif",
+    serif: FONT.serif, sans: FONT.sans,
     cover: 'fullImage', density: 'normal',
     chart: ['#12314B', '#3E5C77', '#7A93A9', '#A6813C', '#C9A15A'],
     emphasisKpis: ['investment.total', 'building.gfa_sqm', 'returns.equity_irr', 'exit.cap_rate'],
@@ -123,7 +131,7 @@ const THEMES = {
     docTypes: ['business_plan', 'annual_report', 'financial_report'],
     primary: '#17457A', primaryMid: '#4571A0', accent: '#8C6D3F', accentLight: '#B08F5E',
     onPrimary: '#F0F4F8', onPrimarySub: '#A9BDD2', surfaceAlt: '#F5F7FA',
-    serif: "'Noto Serif KR', serif", sans: "'Noto Sans KR', sans-serif",
+    serif: FONT.serif, sans: FONT.sans,
     cover: 'rule', density: 'normal',
     chart: ['#17457A', '#4571A0', '#7C9DBE', '#8C6D3F', '#B08F5E'],
     emphasisKpis: ['investment.total', 'revenue.annual', 'returns.project_irr'],
@@ -140,7 +148,7 @@ const THEMES = {
     docTypes: ['teaser', 'im', 'investor_presentation'],
     primary: '#14100E', primaryMid: '#3B322C', accent: '#C9A15A', accentLight: '#DFC38C',
     onPrimary: '#F3E7D3', onPrimarySub: '#B8AA96', surfaceAlt: '#F8F5F0',
-    serif: "'Noto Serif KR', serif", sans: "'Noto Sans KR', sans-serif",
+    serif: FONT.serif, sans: FONT.sans,
     cover: 'fullImage', density: 'airy',
     chart: ['#14100E', '#3B322C', '#6E6055', '#C9A15A', '#DFC38C'],
     emphasisKpis: ['returns.exit_value', 'investment.total', 'returns.equity_irr'],
@@ -156,7 +164,7 @@ const THEMES = {
     docTypes: ['ic_memo', 'executive_summary', 'teaser'],
     primary: '#111827', primaryMid: '#4B5563', accent: '#6B7280', accentLight: '#9CA3AF',
     onPrimary: '#F9FAFB', onPrimarySub: '#C3C9D2', surfaceAlt: '#F7F7F8',
-    serif: "'Noto Serif KR', serif", sans: "'Noto Sans KR', sans-serif",
+    serif: FONT.serif, sans: FONT.sans,
     cover: 'rule', density: 'airy',
     chart: ['#111827', '#4B5563', '#9CA3AF', '#D1D5DB', '#6B7280'],
     emphasisKpis: ['returns.equity_irr', 'investment.total', 'returns.min_dscr'],
@@ -173,7 +181,7 @@ const THEMES = {
     docTypes: ['im', 'technical_report', 'investor_presentation'],
     primary: '#0E1A2B', primaryMid: '#1F7A8C', accent: '#2FA8B8', accentLight: '#67C6D2',
     onPrimary: '#E8F4F6', onPrimarySub: '#8FB3BD', surfaceAlt: '#F2F7F8',
-    serif: "'Noto Serif KR', serif", sans: "'Noto Sans KR', sans-serif",
+    serif: FONT.serif, sans: FONT.sans,
     cover: 'split', density: 'compact',
     chart: ['#0E1A2B', '#1F7A8C', '#2FA8B8', '#67C6D2', '#A6813C'],
     emphasisKpis: ['capacity.it_load_mw', 'capacity.pue', 'investment.total', 'returns.equity_irr'],
@@ -189,7 +197,7 @@ const THEMES = {
     docTypes: ['im', 'feasibility', 'technical_report'],
     primary: '#0F3D2E', primaryMid: '#2F6A52', accent: '#7FA650', accentLight: '#A7C579',
     onPrimary: '#EAF3EC', onPrimarySub: '#9BB8A8', surfaceAlt: '#F3F7F3',
-    serif: "'Noto Serif KR', serif", sans: "'Noto Sans KR', sans-serif",
+    serif: FONT.serif, sans: FONT.sans,
     cover: 'fullImage', density: 'normal',
     chart: ['#0F3D2E', '#2F6A52', '#7FA650', '#A7C579', '#A6813C'],
     emphasisKpis: ['capacity.dc_kw', 'revenue.annual', 'returns.project_irr', 'investment.total'],
@@ -205,7 +213,7 @@ const THEMES = {
     docTypes: ['pf_proposal', 'im', 'feasibility'],
     primary: '#263238', primaryMid: '#4F6470', accent: '#C07C2C', accentLight: '#D9A052',
     onPrimary: '#F0F2F3', onPrimarySub: '#A8B4BB', surfaceAlt: '#F5F6F7',
-    serif: "'Noto Serif KR', serif", sans: "'Noto Sans KR', sans-serif",
+    serif: FONT.serif, sans: FONT.sans,
     cover: 'rule', density: 'normal',
     chart: ['#263238', '#4F6470', '#8497A1', '#C07C2C', '#D9A052'],
     emphasisKpis: ['investment.total', 'debt.amount', 'returns.min_dscr', 'schedule.construction_years'],
@@ -221,7 +229,7 @@ const THEMES = {
     docTypes: ['im', 'teaser', 'investor_presentation'],
     primary: '#1B1410', primaryMid: '#4A3B31', accent: '#BFA06A', accentLight: '#D8C098',
     onPrimary: '#F5EADA', onPrimarySub: '#BCA98F', surfaceAlt: '#F9F6F1',
-    serif: "'Noto Serif KR', serif", sans: "'Noto Sans KR', sans-serif",
+    serif: FONT.serif, sans: FONT.sans,
     cover: 'fullImage', density: 'airy',
     chart: ['#1B1410', '#4A3B31', '#7D6B5C', '#BFA06A', '#D8C098'],
     emphasisKpis: ['returns.noi_stabilized', 'exit.cap_rate', 'returns.exit_value', 'returns.equity_irr'],
@@ -237,7 +245,7 @@ const THEMES = {
     docTypes: ['feasibility', 'financial_report', 'dd_report'],
     primary: '#12365E', primaryMid: '#41618A', accent: '#6E7A8C', accentLight: '#93A0B0',
     onPrimary: '#EEF3F8', onPrimarySub: '#A7B8CB', surfaceAlt: '#F4F6F9',
-    serif: "'Noto Serif KR', serif", sans: "'Noto Sans KR', sans-serif",
+    serif: FONT.serif, sans: FONT.sans,
     cover: 'rule', density: 'normal',
     chart: ['#12365E', '#41618A', '#7A8FA8', '#6E7A8C', '#93A0B0'],
     emphasisKpis: ['investment.total', 'schedule.construction_years', 'returns.project_irr'],
@@ -255,7 +263,7 @@ const THEMES = {
     inherits: 'institutional',
     primary: '#10233C', primaryMid: '#35506F', accent: '#A6813C', accentLight: '#C9A15A',
     onPrimary: '#F3E3C4', onPrimarySub: '#9FB0C4', surfaceAlt: '#F7F5F0',
-    serif: "'Noto Serif KR', serif", sans: "'Noto Sans KR', sans-serif",
+    serif: FONT.serif, sans: FONT.sans,
     cover: 'rule', density: 'normal',
     chart: ['#10233C', '#35506F', '#6E86A3', '#A6813C', '#C9A15A'],
     emphasisKpis: [],

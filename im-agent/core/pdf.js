@@ -45,7 +45,7 @@ function pageCount(buf) {
  *
  * @param {string} htmlPath 인쇄 기하(@page)를 스스로 가진 HTML
  * @param {object} [opt] { out, browser, theme }
- * @returns {{ok, path, bytes, pages, fontOk, fontReason, reason}}
+ * @returns {{ok, path, bytes, pages, fontOk, fontReason, fontNote, reason}}
  */
 function fromHtmlFile(htmlPath, opt) {
   const o = opt || {};
@@ -61,7 +61,7 @@ function fromHtmlFile(htmlPath, opt) {
   const browser = o.browser || raster.findBrowser();
   if (!browser) {
     return {
-      ok: false, path: null, fontOk: font.ok, fontReason: font.reason,
+      ok: false, path: null, fontOk: font.ok, fontReason: font.reason, fontNote: font.note || null,
       reason: '헤드리스 크로미움이 없어 PDF 를 만들지 못했다 (HTML 은 그대로 남아 있다). '
         + 'CHROME_PATH 로 알려 주거나 그 서버에 크로미움을 설치하면 된다',
     };
@@ -79,17 +79,17 @@ function fromHtmlFile(htmlPath, opt) {
       'file://' + path.resolve(htmlPath),
     ], { stdio: ['ignore', 'ignore', 'ignore'], timeout: RENDER_TIMEOUT_MS });
   } catch (e) {
-    return { ok: false, path: null, fontOk: font.ok, fontReason: font.reason, reason: `PDF 변환 실패: ${e.message}` };
+    return { ok: false, path: null, fontOk: font.ok, fontReason: font.reason, fontNote: font.note || null, reason: `PDF 변환 실패: ${e.message}` };
   }
 
   let buf;
   try { buf = fs.readFileSync(out); } catch (_) { buf = null; }
   if (!buf || !buf.length) {
     // ★ 파일이 안 생겼는데 성공으로 두면 화면에는 「PDF 있음」이 뜨고 열면 없다
-    return { ok: false, path: null, fontOk: font.ok, fontReason: font.reason, reason: 'PDF 가 만들어지지 않았다 (빈 파일)' };
+    return { ok: false, path: null, fontOk: font.ok, fontReason: font.reason, fontNote: font.note || null, reason: 'PDF 가 만들어지지 않았다 (빈 파일)' };
   }
   if (buf.slice(0, 5).toString('latin1') !== '%PDF-') {
-    return { ok: false, path: null, fontOk: font.ok, fontReason: font.reason, reason: 'PDF 형식이 아니다' };
+    return { ok: false, path: null, fontOk: font.ok, fontReason: font.reason, fontNote: font.note || null, reason: 'PDF 형식이 아니다' };
   }
 
   return {
@@ -100,6 +100,9 @@ function fromHtmlFile(htmlPath, opt) {
     // ★ PDF 는 나왔지만 **활자가 요청과 다를 수 있다.** 그 사실을 함께 낸다
     fontOk: font.ok,
     fontReason: font.reason,
+    // ★ 「고장은 아니지만 1순위가 아닌 이름으로 그렸다」 — 경고와 구분해서 낸다.
+    //   문서를 다시 만들 때 같은 활자가 나오는지는 이 값에 달려 있다
+    fontNote: font.note || null,
     reason: null,
   };
 }
