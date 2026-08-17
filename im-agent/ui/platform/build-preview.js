@@ -376,7 +376,7 @@ async function buildSection() {
   목록·저장된 값은 비어 있고, 저장·생성 버튼은 실제로 아무것도 하지 않습니다.
   제품에서는 네 단계를 하나씩 보여주지만 여기서는 <b>한 번에 펼쳐</b> 둡니다.
 </div>`;
-  return shell.replace('<body>', '<body>' + banner + changePanel() + evidencePanel() + vaultPanel() + deskPanel());
+  return shell.replace('<body>', '<body>' + banner + changePanel() + evidencePanel() + vaultPanel() + linkedPanel() + deskPanel());
 }
 
 /**
@@ -485,6 +485,85 @@ function vaultPanel() {
     얻은 결과입니다. 손으로 적은 예시가 아닙니다. 이 계층의 실패는 <b>전부 조용합니다</b> —
     덮어써도 화면에는 「저장됨」만 뜨고, 파일이 바뀌어도 보고서는 그대로 나오며 출처 표시도 멀쩡합니다.
     그래서 「되는가」가 아니라 <b>「잃지 않는가」</b>를 확인합니다.</p>
+  ${blocks}
+</section>`;
+}
+
+/**
+ * 자료를 **보관하지 않고 연결해서** 쓸 때 무엇을 잃지 않는가 (D-65 · D-66).
+ *
+ * ★ 이 계층도 화면이 없다. 그리고 실패가 조용하다 — 원본이 바뀌어도 문서는
+ *   그대로 멀쩡하고, 붙지 않은 경로는 「올렸는데 아무 일도 안 일어남」이 된다.
+ *
+ * ★ **빌드할 때 실제로 돌린 결과다.** 손으로 적지 않는다.
+ */
+function linkedPanel() {
+  const AGENT = path.join(HERE, '..', '..');
+  const linked = require(path.join(AGENT, 'core', 'linked'));
+  const oneshot = require(path.join(AGENT, 'core', 'oneshot'));
+  const storage = require(path.join(AGENT, 'connectors', 'storage'));
+
+  const p = fs.mkdtempSync(path.join(os.tmpdir(), 'im-linked-'));
+  fs.mkdirSync(path.join(p, '01_Project'), { recursive: true });
+  fs.mkdirSync(path.join(p, '02_Source_Data'), { recursive: true });
+  const B = (s) => Buffer.from(s, 'utf8');
+
+  const rows = [];
+  const row = (t, n, o, bad) => rows.push({ t, n, o, bad: !!bad });
+
+  // ① 범위는 폴더까지만 — 막는 것과 못 막는 것
+  const wide = storage.checkScope('gdrive', 'https://www.googleapis.com/auth/drive.readonly');
+  const narrow = storage.checkScope('gdrive', 'https://www.googleapis.com/auth/drive.file');
+  const dbx = storage.checkScope('dropbox', 'files.metadata.read files.content.read');
+  row('연결 범위가 드라이브 전체다', '서버가 막는가',
+    `drive.readonly → ok=${wide.ok}\n  ${wide.reason}\n`
+    + `drive.file     → ok=${narrow.ok} (verifiable=${narrow.verifiable})\n`
+    + `Dropbox        → ok=${dbx.ok} · verifiable=${dbx.verifiable}\n  ${dbx.reason}`, true);
+
+  // ② 연결만으로는 아무것도 안 가져온다
+  const ref = { provider: 'dropbox', fileId: 'id:AAA1', name: '사업계획서.pdf', rev: '0123456789ab', path: '/Deals/사업계획서.pdf' };
+  const lk = linked.link(p, ref);
+  row('자료를 연결했다', '가져와 두는가',
+    `연결됨: ${lk.item.key} · 판 ${lk.item.rev}\n`
+    + `지문: ${lk.item.fingerprint === null ? 'null (아직 안 읽음 — 지어내지 않는다)' : '?'}\n`
+    + `02_Source_Data 안의 파일: ${fs.readdirSync(path.join(p, '02_Source_Data')).length}건`);
+
+  // ③ 읽을 때만 가져오고 끝나면 지운다 (동기적으로 확인 가능한 부분만)
+  const before = fs.readdirSync(path.join(p, '01_Project'));
+  row('무엇을 남기는가', '파일 대신 무엇이 남는가',
+    `01_Project: ${before.join(' · ')}\n`
+    + `출처 한 줄: ${linked.citation(linked.list(p).items[0])}`);
+
+  // ④ 1회성 — 읽고 버린다. 대조는 아예 거절한다
+  const os1 = oneshot.accept(p, [{ name: '감정평가서.pdf', buf: B('토지가액 120억원') }]);
+  const kept = os1.files.map(f => fs.existsSync(f.path));
+  const removed = os1.dispose().removed;
+  const item = oneshot.list(p).items[0];
+  row('1회성으로 올렸다', '파일이 남는가',
+    `작업 사본 위치: 프로젝트 폴더 밖 (${os1.dir.startsWith(p) ? '안 — 문제' : '밖'})\n`
+    + `읽는 동안 존재: ${kept.join(', ')} → 지운 뒤 ${removed}건 삭제\n`
+    + `장부에 남는 것: sha256 ${item.fingerprint.value.slice(0, 12)}… · retainedCopy=${item.retainedCopy}\n`
+    + `출처 한 줄: ${oneshot.citation(item)}`);
+
+  const cv = oneshot.cannotVerify();
+  row('1회성 자료를 대조하려 했다', '「이상 없음」이 나오는가',
+    `verify() 존재: ${typeof oneshot.verify}\n`
+    + `cannotVerify → ok=${cv.ok} · byDesign=${cv.byDesign}\n  ${cv.reason}\n`
+    + `  → ${cv.insteadDo}`, true);
+
+  const blocks = rows.map(r => `<div class="ev__c${r.bad ? ' bad' : ''}">
+    <div class="ev__n">${esc(r.t)}</div>
+    <div class="ev__m">${esc(r.n)}</div>
+    <pre class="ev__o">${esc(r.o)}</pre>
+  </div>`).join('');
+
+  return `
+<section class="ev">
+  <h2 class="ev__t">눈으로 확인 — 자료를 보관하지 않고 쓰는 길</h2>
+  <p class="ev__s">아래는 이 미리보기를 만들 때 임시 폴더에서 <b>실제로 <code>core/linked.js</code> ·
+    <code>core/oneshot.js</code> · <code>connectors/storage.js</code> 를 돌려</b> 얻은 결과입니다.
+    이 계층은 화면이 없고 <b>실패가 조용합니다</b> — 원본이 바뀌어도 문서는 그대로 멀쩡하고,
+    붙지 않은 경로는 「올렸는데 아무 일도 안 일어남」이 됩니다.</p>
   ${blocks}
 </section>`;
 }
@@ -791,5 +870,5 @@ if (require.main === module) main().catch(e => { console.error(e); process.exit(
 module.exports = {
   build, buildSection, buildSectionDocs, flowShell, SCREENS, EXTRAS,
   // 「미리 그려 넣는 판」이 같은 패널을 쓴다 — 두 벌로 만들지 않는다
-  changePanel, evidencePanel, vaultPanel, deskPanel,
+  changePanel, evidencePanel, vaultPanel, linkedPanel, deskPanel,
 };

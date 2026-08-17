@@ -15,6 +15,7 @@ const path = require('path');
 
 const oneshot = require('../core/oneshot');
 const storage = require('../connectors/storage');
+const api = require('../ui/report-api.cjs');
 
 function tmpProject() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-oneshot-p-'));
@@ -186,4 +187,78 @@ test('★ 등급: 자료를 잠그지 않는 이유가 코드에 적혀 있다',
   // 자료를 못 넣으면 보고서를 만들 수도 없다 — 잠그면 유료 전환을 막는 쪽이 된다
   assert.match(src, /자료를 못 넣으면 보고서를 만들 수도 없다/);
   assert.match(src, /보관을 하지 않으므로 잴 것이 없다/);
+});
+
+/* ───────────── ★ 붙지 않은 경로를 조용히 성공시키지 않는다 ───────────── */
+
+function bareProject() {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-guard-'));
+  const id = 'LP-DC-2026-001';
+  fs.mkdirSync(path.join(root, id, '01_Project'), { recursive: true });
+  fs.mkdirSync(path.join(root, id, '02_Source_Data'), { recursive: true });
+  return { root, id };
+}
+function h(root, extra) {
+  return api.createHandlers(Object.assign({
+    agentRoot: root, agentModulePath: path.join(__dirname, '..'),
+    authenticate: () => ({ name: '테스트', planId: 'pro', status: 'active' }),
+  }, extra || {}));
+}
+
+test('★★ 1회성: 읽는 경로가 없으면 받지 않는다 (501)', async () => {
+  // 받아서 지문만 남기고 버리면 사용자는 올렸는데 보고서에 아무것도 안 실린다.
+  // 그리고 보관하지 않으므로 **다시 쓸 수도 없다** — 자료를 잃는 것과 같다
+  const p = bareProject();
+  const r = await h(p.root).oneshotUpload({}, p.id, {
+    files: [{ name: 'a.txt', contentBase64: Buffer.from('x').toString('base64') }],
+  });
+  assert.equal(r.status, 501);
+  assert.match(r.body.error, /읽는 경로가 붙어 있지 않습니다/);
+});
+
+test('★★ 연결: 내려받기가 없으면 연결을 받지 않는다 (501)', async () => {
+  // 연결만 되고 읽히지 않으면 사용자는 자료를 넣었다고 믿는데 보고서에는 안 실린다
+  const p = bareProject();
+  const r = await h(p.root).linkSource({}, p.id, {
+    ref: { provider: 'dropbox', fileId: 'id:A', name: 'a.pdf', rev: 'r1' },
+  });
+  assert.equal(r.status, 501);
+  assert.match(r.body.error, /내려받기가 붙어 있지 않습니다/);
+});
+
+test('★ 1회성: 읽는 경로가 붙어 있으면 **읽고 나서** 지운다', async () => {
+  const p = bareProject();
+  let sawFiles = null;
+  const r = await h(p.root, {
+    extractOneshot: async (id, files) => {
+      // 지우기 **전에** 불려야 한다 — 지우고 읽을 수는 없다
+      sawFiles = files.map(f => ({ name: f.name, exists: fs.existsSync(f.path) }));
+      return { facts: 3 };
+    },
+  }).oneshotUpload({}, p.id, {
+    files: [{ name: '계획서.txt', contentBase64: Buffer.from('총사업비 2,846억원').toString('base64') }],
+  });
+
+  assert.equal(r.status, 200);
+  assert.deepEqual(sawFiles, [{ name: '계획서.txt', exists: true }], '읽기 전에 파일이 지워졌다');
+  assert.equal(r.body.removed, 1, '읽은 뒤 지우지 않았다');
+  assert.deepEqual(r.body.read, { facts: 3 }, '읽은 결과를 안 돌려준다');
+  assert.equal(r.body.reusable, false);
+});
+
+test('★ 1회성: 읽다가 실패해도 파일은 지운다', async () => {
+  const p = bareProject();
+  const r = await h(p.root, {
+    extractOneshot: async () => { throw new Error('OCR 키가 없습니다'); },
+  }).oneshotUpload({}, p.id, {
+    files: [{ name: 'a.txt', contentBase64: Buffer.from('x').toString('base64') }],
+  });
+  assert.equal(r.status, 500);
+  assert.match(r.body.error, /OCR 키가 없습니다/);
+  // 임시 폴더가 남으면 「보관하지 않는다」가 거짓이 된다
+  const left = fs.readdirSync(os.tmpdir()).filter(n => n.startsWith('lp-oneshot-'));
+  left.forEach((n) => {
+    const d = path.join(os.tmpdir(), n);
+    try { assert.equal(fs.readdirSync(d).length, 0, `작업 사본이 남았다: ${n}`); } catch (_) { /* 이미 지워졌다 */ }
+  });
 });

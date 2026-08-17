@@ -869,6 +869,47 @@ LTC 65%</pre>
   </div>
 </section>
 <section class="ev">
+  <h2 class="ev__t">눈으로 확인 — 자료를 보관하지 않고 쓰는 길</h2>
+  <p class="ev__s">아래는 이 미리보기를 만들 때 임시 폴더에서 <b>실제로 <code>core/linked.js</code> ·
+    <code>core/oneshot.js</code> · <code>connectors/storage.js</code> 를 돌려</b> 얻은 결과입니다.
+    이 계층은 화면이 없고 <b>실패가 조용합니다</b> — 원본이 바뀌어도 문서는 그대로 멀쩡하고,
+    붙지 않은 경로는 「올렸는데 아무 일도 안 일어남」이 됩니다.</p>
+  <div class="ev__c bad">
+    <div class="ev__n">연결 범위가 드라이브 전체다</div>
+    <div class="ev__m">서버가 막는가</div>
+    <pre class="ev__o">drive.readonly → ok=false
+  범위가 폴더를 넘습니다 (https://www.googleapis.com/auth/drive.readonly) — 폴더까지만 받습니다
+drive.file     → ok=true (verifiable=true)
+Dropbox        → ok=true · verifiable=false
+  범위를 코드로 확인할 수 없습니다 — 등록 화면에서 사람이 확인해야 합니다</pre>
+  </div><div class="ev__c">
+    <div class="ev__n">자료를 연결했다</div>
+    <div class="ev__m">가져와 두는가</div>
+    <pre class="ev__o">연결됨: dropbox:id:AAA1 · 판 0123456789ab
+지문: null (아직 안 읽음 — 지어내지 않는다)
+02_Source_Data 안의 파일: 0건</pre>
+  </div><div class="ev__c">
+    <div class="ev__n">무엇을 남기는가</div>
+    <div class="ev__m">파일 대신 무엇이 남는가</div>
+    <pre class="ev__o">01_Project: linked-log.jsonl · linked.json
+출처 한 줄: Dropbox · /Deals/사업계획서.pdf · 판 0123456789ab · 아직 읽지 않음 · 사본 보관 안 함</pre>
+  </div><div class="ev__c">
+    <div class="ev__n">1회성으로 올렸다</div>
+    <div class="ev__m">파일이 남는가</div>
+    <pre class="ev__o">작업 사본 위치: 프로젝트 폴더 밖 (밖)
+읽는 동안 존재: true → 지운 뒤 1건 삭제
+장부에 남는 것: sha256 c43506c113d3… · retainedCopy=false
+출처 한 줄: 직접 올림 (1회성) · 감정평가서.pdf · 2026-08-17 읽음 · sha256 c43506c113d3 · 사본 보관 안 함 · 원본 재확인 불가</pre>
+  </div><div class="ev__c bad">
+    <div class="ev__n">1회성 자료를 대조하려 했다</div>
+    <div class="ev__m">「이상 없음」이 나오는가</div>
+    <pre class="ev__o">verify() 존재: undefined
+cannotVerify → ok=false · byDesign=true
+  1회성으로 올린 자료는 원본과 대조할 수 없습니다 — 우리도 원본을 갖고 있지 않고 어디 있는지도 모릅니다
+  → 같은 값을 다시 확인해야 하면 저장소를 연결하거나, 그 파일을 다시 올립니다.</pre>
+  </div>
+</section>
+<section class="ev">
   <h2 class="ev__t">눈으로 확인 — 탁상검토 보고서가 값을 내지 않는 경우</h2>
   <p class="ev__s">아래는 이 미리보기를 만들 때 <b>실제로 <code>core/deskappraisal.js</code> 를 돌려</b>
     얻은 결과입니다. 이 문서에서 가장 중요한 동작은 「값을 낸다」가 아니라

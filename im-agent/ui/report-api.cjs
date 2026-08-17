@@ -485,6 +485,14 @@ function createHandlers(deps) {
       const projectDir = store.projectDir(projectId);
       if (!fs.existsSync(projectDir)) return bad('프로젝트를 찾을 수 없습니다', 404);
 
+      // ★★ 내려받기가 안 붙어 있으면 **연결을 받지 않는다.**
+      //   연결만 되고 읽히지 않으면 사용자는 자료를 넣었다고 믿는데 보고서에는
+      //   안 실린다 — 조용한 실패다. 「받아 두고 안 쓰는」 상태를 만들지 않는다.
+      if (typeof d.fetchLinked !== 'function') {
+        return bad('저장소 내려받기가 붙어 있지 않습니다 — 연결해도 자료를 읽지 못해 '
+          + '보고서에 실리지 않습니다', 501);
+      }
+
       const r = linked.link(projectDir, body && body.ref, { by: (g.user && g.user.name) || null });
       if (!r.ok) return bad(r.reason);
       return ok({ ...r, at: kstStamp(new Date()) });
@@ -550,6 +558,15 @@ function createHandlers(deps) {
       const dirOf = store.projectDir(projectId);
       if (!fs.existsSync(dirOf)) return bad('프로젝트를 찾을 수 없습니다', 404);
 
+      // ★★ 읽는 경로가 안 붙어 있으면 **받지 않는다.**
+      //   지금 구조에서는 받아서 지문만 남기고 버리므로, 사용자는 올렸는데
+      //   보고서에는 아무것도 안 실린다. 그리고 **다시 올릴 수도 없다**(1회성) —
+      //   자료를 잃는 것과 같다. 조용히 성공을 돌려주지 않는다.
+      if (typeof d.extractOneshot !== 'function') {
+        return bad('1회성 자료를 읽는 경로가 붙어 있지 않습니다 — 올려도 보고서에 실리지 않고, '
+          + '보관하지 않으므로 다시 쓸 수도 없습니다', 501);
+      }
+
       const files = (body && Array.isArray(body.files)) ? body.files : null;
       if (!files || !files.length) return bad('올릴 파일이 없습니다');
       if (files.length > 50) return bad('한 번에 50개까지 올릴 수 있습니다');
@@ -579,15 +596,26 @@ function createHandlers(deps) {
       const r = oneshot.accept(dirOf, bufs, { by: (g.user && g.user.name) || null });
       if (!r.ok) return bad(r.reason);
 
-      // ★ **여기서 바로 지운다.** 실제 추출은 생성이 돌 때 이 목록을 받아 읽고,
-      //   그 자리에서 다시 dispose 한다. 응답을 돌려주기 전에 파일이 남아 있으면
-      //   「1회성입니다」가 그 순간부터 거짓이다
+      // ★ **읽고 나서 지운다.** 순서가 중요하다 — 지우고 읽을 수는 없고,
+      //   읽지 않고 지우면 사용자는 올렸는데 아무 일도 안 일어난다.
+      //   `extractOneshot` 이 던져도 **파일은 반드시 지운다** (finally).
+      let read = null;
+      try {
+        read = await d.extractOneshot(projectId, r.files);
+      } catch (err) {
+        r.dispose();
+        return bad(`자료를 읽지 못했습니다: ${err.message}`, 500);
+      } finally {
+        // dispose 는 두 번 불러도 안전하다
+      }
       const removed = r.dispose().removed;
 
       return ok({
         accepted: r.accepted,
         rejected: rejected.concat(r.rejected),
         removed,
+        // 읽은 결과를 그대로 돌려준다 — 무엇이 값으로 잡혔는지 사용자가 봐야 한다
+        read: read || null,
         // 화면이 올리기 전에 말해야 하는 것들
         reusable: false,
         verifiable: false,
