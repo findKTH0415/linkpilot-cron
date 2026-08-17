@@ -221,3 +221,50 @@ test('구성안: 라디오가 탭 바 밖에 있어야 탭이 바뀐다', () => 
     '라디오가 .tabs 안에 있으면 ~ 로 닿지 못해 눌러도 안 바뀐다');
   assert.match(html, /#tab-files:checked ~ \.tabs label\[for="tab-files"\]/);
 });
+
+/* ───────────── 탭으로 붙이기 (2026-08-17) ───────────── */
+
+test('★ 붙이기: 탭 이름을 화면·구성안이 복사해 적지 않는다', () => {
+  const FLOWC = require('../ui/platform/flow-core.js');
+  // 단일 출처는 flow-core.js 의 SECTION 이다
+  assert.equal(FLOWC.SECTION.tab, '새 보고서 생성');
+  assert.equal(FLOWC.SECTION.title, '보고서 생성');
+
+  const make = B.TABS.find(t => t.id === 'make');
+  assert.equal(make.name, FLOWC.SECTION.tab, '구성안이 탭 이름을 따로 적고 있다');
+  assert.equal(make.sub, FLOWC.SECTION.tabNote);
+
+  // 인수인계서도 같은 곳을 가리켜야 한다
+  const doc = fs.readFileSync(
+    path.join(__dirname, '..', '..', 'docs', '인수인계서-플랫폼-연동.md'), 'utf8');
+  assert.match(doc, /FLOW\.SECTION/);
+  assert.match(doc, /탭 이름을 복사해 적지 않는다/);
+});
+
+test('★★ 붙이기: 탭 안에서는 화면이 자체 제목을 그리지 않는다', () => {
+  const src = fs.readFileSync(
+    path.join(__dirname, '..', 'ui', 'platform', 'report-flow.html'), 'utf8');
+  // 안 끄면 「새 보고서 생성」 아래에 「보고서 생성」이 또 나온다
+  assert.match(src, /if \(!C\.inTab\) view\.appendChild\(el\('h1', null, F\.SECTION\.title\)\);/);
+  // 기본은 false — 단독으로 열 때 true 면 이름 없는 화면이 된다
+  assert.match(src, /inTab: false,/);
+  // 제목 문자열을 화면이 따로 들고 있지 않다
+  assert.ok(!/el\('h1', null, '보고서 생성'\)/.test(src), '제목이 두 벌이다');
+});
+
+test('★ 붙이기: 4단계 화면을 탭 바에 따로 달지 않는다고 적어 둔다', () => {
+  const doc = fs.readFileSync(
+    path.join(__dirname, '..', '..', 'docs', '인수인계서-플랫폼-연동.md'), 'utf8');
+  // 따로 달면 4단계가 7개 탭처럼 보인다
+  assert.match(doc, /탭 바에 따로 달지 않는다/);
+  assert.match(doc, /report-flow\.html\s+← 탭 내용/);
+});
+
+test('★ 붙이기: 이 탭은 지침 재발행을 안 기다린다는 것을 화면이 말한다', () => {
+  // 지침 §2 에 「보고서 생성 (Pro)」로 이미 배포되어 있다.
+  // 재발행을 기다리는 것은 「자료」 탭 하나뿐이다
+  const html = B.build();
+  assert.match(html, /이 탭은 지금 붙일 수 있습니다/);
+  assert.match(html, /지침을 고치지 않아도 됩니다/);
+  assert.match(html, /「자료」 탭 하나뿐/);
+});

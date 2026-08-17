@@ -933,6 +933,11 @@ window.LINKPILOT_REPORT_FLOW = {
 
   api: null,          // 예: '/api/linkpilot' — 없으면 단계가 전부 잠기고 사유가 뜬다
   base: '',           // 단계 화면이 놓인 경로. 같은 폴더면 빈 문자열
+
+  // ★ 앱의 **탭 안**에 얹을 때 true. 자체 제목을 그리지 않는다 —
+  //   탭 바가 이미 이름을 말하므로 그대로 두면 제목이 두 번 나온다.
+  //   ⚠ 단독으로 열 때 true 로 두면 **이름 없는 화면**이 된다. 기본은 false.
+  inTab: false,
   projectId: null,    // 이어서 작업할 프로젝트. 1단계에서 만들면 자동으로 채워진다
   docType: 'im',      // 세부 진행률의 「필수 항목」 판정 기준 (im / teaser / …)
 
@@ -1150,6 +1155,27 @@ Object.assign(window.LINKPILOT_REPORT_FLOW, {
     '.steps{display:none!important}',
   ].join('');
 
+  /**
+   * 이 섹션이 앱에서 불리는 이름 — **한 곳에서만 정한다.**
+   *
+   * `title` 단독으로 열었을 때 화면이 스스로 그리는 제목
+   * `tab`   앱의 탭 바에 다는 이름 (탭 안에서는 `title` 을 안 그린다)
+   *
+   * ★ 둘이 다른 이유: 탭 바에는 「완성 보고서」가 나란히 서므로 **「새」가 있어야**
+   *   구분되고, 단독 화면에는 견줄 상대가 없어 「보고서 생성」이 맞다.
+   *   지침 §2 에 배포된 이름은 **「보고서 생성 (Pro)」** 이라 그쪽이 `title` 이다.
+   *
+   * ★ 앱이 탭 이름을 **복사해서 적지 않는다.** 여기서 읽어 간다 — 두 벌이 되면
+   *   한쪽만 고치는 날 탭 이름과 문서가 갈린다.
+   */
+  var SECTION = {
+    id: 'make',
+    title: '보고서 생성',
+    tab: '새 보고서 생성',
+    tabNote: '외부 엔진(IM Agent) 4단계',
+    plan: 'pro',
+  };
+
   /** 잠긴 이유 — 화면에 그대로 띄운다. 이유 없이 회색이면 고장으로 보인다 */
   var WHY = {
     project: '1단계에서 프로젝트를 먼저 만듭니다',
@@ -1205,7 +1231,7 @@ Object.assign(window.LINKPILOT_REPORT_FLOW, {
   }
 
   return {
-    STEPS: STEPS, WHY: WHY, EMBED_CSS: EMBED_CSS,
+    STEPS: STEPS, WHY: WHY, EMBED_CSS: EMBED_CSS, SECTION: SECTION,
     stepState: stepState, urlFor: urlFor, stepOfFile: stepOfFile,
   };
 }));
@@ -2895,7 +2921,10 @@ Object.assign(window.LINKPILOT_REPORT_FLOW, {
 
   function draw() {
     view.textContent = '';
-    view.appendChild(el('h1', null, '보고서 생성'));
+    // ★ 탭 안에 얹을 때는 **제목을 그리지 않는다.** 탭 바가 이미 이름을 말하므로
+    //   그대로 두면 「새 보고서 생성」 아래에 「보고서 생성」이 또 나온다.
+    //   기본은 false — 이 화면을 단독으로 열면 이름이 없으면 안 된다.
+    if (!C.inTab) view.appendChild(el('h1', null, F.SECTION.title));
 
     var a = G.access(C.session, C.requiredPlan);
     if (!a.allowed) {

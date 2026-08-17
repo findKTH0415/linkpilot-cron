@@ -53,10 +53,12 @@ const TABS = [
     plan: 'Pro',
   },
   {
-    id: 'make', order: 2, name: '새 보고서 생성',
-    sub: '외부 엔진(IM Agent) 4단계',
+    // ★ 이름을 여기 적지 않는다. `flow-core.js` 의 SECTION 이 단일 출처다 —
+    //   앱 탭 바도 거기서 읽어 가므로, 복사해 두면 한쪽만 고치는 날 갈린다
+    id: 'make', order: 2, name: FLOW.SECTION.tab,
+    sub: FLOW.SECTION.tabNote,
     state: 'have',
-    stateText: '있다 — report-flow.html',
+    stateText: '있다 — report-flow.html (inTab: true 로 얹는다)',
     plan: 'Pro',
   },
   {
@@ -223,8 +225,15 @@ function makeBody() {
     </li>`).join('');
   return `
   <p class="body__lede">지금의 <b>4단계 화면이 통째로 이 탭의 내용</b>이 됩니다.
-    화면 자체는 손대지 않고, <b>자체 <code>&lt;h1&gt;</code> 만 뺍니다</b> — 탭 바가 이미 이름을 말하므로
-    그대로 얹으면 제목이 두 번 나옵니다.</p>
+    화면 자체는 손대지 않고 설정 한 줄(<code>inTab: true</code>)만 켭니다 —
+    그러면 <b>자체 제목을 그리지 않습니다.</b> 탭 바가 이미 이름을 말하므로
+    끄지 않으면 「${esc(FLOW.SECTION.tab)}」 아래에 「${esc(FLOW.SECTION.title)}」이 또 나옵니다.</p>
+
+  <div class="callout callout--rule">
+    <div class="callout__t">이 탭은 지금 붙일 수 있습니다</div>
+    <p>지침 §2 에 <b>「보고서 생성 (Pro)」</b> 로 이미 배포되어 있어 <b>지침을 고치지 않아도 됩니다.</b>
+      새로 지침에 실어야 하는 것은 <b>「자료」 탭 하나뿐</b>입니다 — 그것만 재발행을 기다립니다.</p>
+  </div>
   <ol class="steps">${steps}</ol>
   <p class="body__note">이 넷은 실제로 눌러 볼 수 있는 미리보기가 따로 있습니다
     (<code>section-preview.html</code>). 여기서는 <b>탭 안의 어느 자리에 놓이는지</b>만 보입니다.</p>`;

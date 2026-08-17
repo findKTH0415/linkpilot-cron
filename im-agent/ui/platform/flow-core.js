@@ -65,6 +65,27 @@
     '.steps{display:none!important}',
   ].join('');
 
+  /**
+   * 이 섹션이 앱에서 불리는 이름 — **한 곳에서만 정한다.**
+   *
+   * `title` 단독으로 열었을 때 화면이 스스로 그리는 제목
+   * `tab`   앱의 탭 바에 다는 이름 (탭 안에서는 `title` 을 안 그린다)
+   *
+   * ★ 둘이 다른 이유: 탭 바에는 「완성 보고서」가 나란히 서므로 **「새」가 있어야**
+   *   구분되고, 단독 화면에는 견줄 상대가 없어 「보고서 생성」이 맞다.
+   *   지침 §2 에 배포된 이름은 **「보고서 생성 (Pro)」** 이라 그쪽이 `title` 이다.
+   *
+   * ★ 앱이 탭 이름을 **복사해서 적지 않는다.** 여기서 읽어 간다 — 두 벌이 되면
+   *   한쪽만 고치는 날 탭 이름과 문서가 갈린다.
+   */
+  var SECTION = {
+    id: 'make',
+    title: '보고서 생성',
+    tab: '새 보고서 생성',
+    tabNote: '외부 엔진(IM Agent) 4단계',
+    plan: 'pro',
+  };
+
   /** 잠긴 이유 — 화면에 그대로 띄운다. 이유 없이 회색이면 고장으로 보인다 */
   var WHY = {
     project: '1단계에서 프로젝트를 먼저 만듭니다',
@@ -120,7 +141,7 @@
   }
 
   return {
-    STEPS: STEPS, WHY: WHY, EMBED_CSS: EMBED_CSS,
+    STEPS: STEPS, WHY: WHY, EMBED_CSS: EMBED_CSS, SECTION: SECTION,
     stepState: stepState, urlFor: urlFor, stepOfFile: stepOfFile,
   };
 }));
