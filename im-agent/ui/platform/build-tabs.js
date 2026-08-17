@@ -66,6 +66,130 @@ const TABS = [
 
 const STATE_LABEL = { have: '있다', none: '아직 없다', move: '옮겨 온다' };
 
+/* ────────────────────────── 진행 막대 ────────────────────────── */
+
+/**
+ * 탭마다 맨 위에 놓는 진행 막대.
+ *
+ * ★ **막대 하나가 세는 것은 하나뿐이다.** 탭마다 세는 대상이 다르므로 `counts` 에
+ *   무엇을 세는지 적고, 화면에도 분자/분모를 숫자로 함께 띄운다. % 만 띄우면
+ *   「무엇의 몇 %」인지 사라지고, 그 상태로도 화면은 멀쩡해 보인다.
+ *
+ * ★ **분모가 없으면 막대를 그리지 않는다.** 자료 탭의 보관 용량이 그렇다 —
+ *   등급별 상한이 미정이라 분모가 없는데, 없는 채로 막대를 그리면
+ *   「거의 찼다」·「여유 있다」가 근거 없이 보인다.
+ *
+ * ★ 스크립트를 못 쓰는 자리라 상태 전환은 **라디오 + CSS** 로 한다.
+ *   구성안에서는 그것이 오히려 낫다 — 보는 사람이 **각 구간의 문구를 직접 넘겨
+ *   가며** 확인할 수 있다. 「진행율에 따라 무엇이 뜨는가」가 이 화면의 요점이다.
+ */
+const PROGRESS = {
+  done: {
+    counts: '사양에 담은 종류 중 실제로 파일이 나온 것',
+    note: '분모는 <b>11종 전부가 아니라 이 프로젝트의 출력 사양에 담은 종류</b>입니다. '
+      + '11종을 고정 분모로 쓰면 어떤 딜도 100% 가 되지 않아 <b>다 끝났는데도 덜 된 것처럼</b> 보입니다.',
+    states: [
+      { id: 'a', tab: '시작 전', pct: 0, count: '0 / 5종',
+        say: '아직 만든 것이 없습니다. 「새 보고서 생성」 탭에서 요청문과 자료를 넣으면 시작됩니다.' },
+      { id: 'b', tab: '만드는 중', pct: 60, count: '3 / 5종', on: true,
+        say: 'IM 원문·A4 인쇄본·PDF 가 나왔습니다. Teaser 와 검증 보고서는 아직입니다 — '
+          + '생성이 끝나면 목록에 나타납니다. <b>목록은 파일이 실제로 있는지로 판정합니다.</b>' },
+      { id: 'c', tab: '끝', pct: 100, count: '5 / 5종',
+        say: '사양에 담은 것이 모두 나왔습니다. <b>내보내기 전에 배포 전 교차검증을 지나야 합니다</b> — '
+          + '100% 는 「만들어졌다」이지 「보내도 된다」가 아닙니다.' },
+    ],
+  },
+  make: {
+    counts: '4단계 중 지나온 단계',
+    ticks: 4,
+    note: '이 막대가 세는 것은 <b>4단계 중 몇 단계를 지났는가</b> 하나뿐입니다. '
+      + '단계 안의 진행(필수 칸을 몇 개 채웠는가·생성이 몇 % 돌았는가)은 <b>각 단계 화면이 따로</b> 보여 줍니다. '
+      + '하나로 뭉치지 않는 이유는 <b>1·2 는 사람이 채우고 3 은 확정 여부이며 4 만 기계가 도는 구간</b>이라, '
+      + '섞으면 무엇의 몇 % 인지 알 수 없기 때문입니다.',
+    states: [
+      { id: 'a', tab: '시작 전', pct: 0, count: '0 / 4단계',
+        say: '요청문을 한 줄 적고 자료를 올리면 1단계가 끝납니다.' },
+      { id: 'b', tab: '값 입력', pct: 50, count: '2 / 4단계', on: true,
+        say: '값을 출처와 함께 채웠습니다. 3단계에서 페이지 수·형식·언어를 확정해야 <b>생성 버튼이 열립니다.</b>' },
+      { id: 'c', tab: '사양 확정', pct: 75, count: '3 / 4단계',
+        say: '사양을 확정했습니다(LOCK). 이제 「보고서 생성 시작」을 누를 수 있습니다.' },
+      { id: 'd', tab: '생성 끝', pct: 100, count: '4 / 4단계',
+        say: '생성이 끝났습니다. 나온 문서는 「완성 보고서」 탭에 있습니다.' },
+    ],
+  },
+  files: {
+    counts: '올린 자료 중 본문을 읽을 수 있는 것',
+    note: '이 막대는 <b>읽을 수 있는 자료의 비율</b>입니다. '
+      + '<b>보관 용량 막대는 아직 만들지 않습니다</b> — 등급별 상한이 미정이라 분모가 없습니다. '
+      + '분모 없이 막대를 그리면 「거의 찼다」·「여유 있다」가 <b>근거 없이</b> 보입니다.',
+    states: [
+      { id: 'a', tab: '없음', pct: 0, count: '0건',
+        say: '아직 올린 자료가 없습니다. 여기 올려 두면 보고서를 만들 때 그대로 씁니다.' },
+      { id: 'b', tab: '변환 필요', pct: 78, count: '7 / 9건', on: true,
+        say: '2건은 읽는 방법이 없는 형식입니다(<code>.tif</code>). PDF 나 PNG 로 바꿔 올리면 100% 가 됩니다 — '
+          + '<b>그때까지 그 2건의 내용은 보고서에 들어가지 않습니다.</b>' },
+      { id: 'c', tab: '전부 읽힘', pct: 100, count: '9 / 9건',
+        say: '올린 자료를 모두 읽을 수 있습니다. 스캔본에서 옮긴 글자는 <b>신뢰도를 낮춰</b> 표시합니다.' },
+    ],
+  },
+};
+
+/** 진행 막대 한 벌. `tabId` 로 라디오 이름을 갈라 탭끼리 간섭하지 않게 한다 */
+function progressBlock(tabId) {
+  const p = PROGRESS[tabId];
+  const n = (s) => `p-${tabId}-${s.id}`;
+
+  const radios = p.states.map(s =>
+    `<input class="sr" type="radio" name="p-${tabId}" id="${n(s)}"${s.on ? ' checked' : ''}>`).join('');
+
+  const picker = p.states.map(s =>
+    `<label class="pick" for="${n(s)}">${esc(s.tab)}</label>`).join('');
+
+  const ticks = p.ticks
+    ? `<span class="bar__ticks">${Array.from({ length: p.ticks - 1 },
+      (_, i) => `<i style="left:${((i + 1) / p.ticks * 100).toFixed(4)}%"></i>`).join('')}</span>`
+    : '';
+
+  const says = p.states.map(s =>
+    `<p class="say say--${s.id}">${s.say}</p>`).join('');
+
+  return `
+  <div class="prog">
+    ${radios}
+    <div class="prog__h">
+      <span class="prog__l">진행</span>
+      <span class="prog__d"><span class="prog__dl">보기</span>${picker}</span>
+    </div>
+    <div class="bar">${ticks}<span class="bar__f"></span></div>
+    <div class="prog__n">
+      <b class="pct"></b>
+      <span class="cnt"></span>
+      <span class="of">${esc(p.counts)}</span>
+    </div>
+    <div class="says">${says}</div>
+    <p class="prog__note">${p.note}</p>
+  </div>`;
+}
+
+/** 상태마다 막대 너비·숫자·문구를 갈아 끼우는 규칙 (스크립트를 못 쓴다) */
+function progressCss() {
+  return Object.keys(PROGRESS).map((tabId) => {
+    const p = PROGRESS[tabId];
+    return p.states.map((s) => {
+      const sel = `#p-${tabId}-${s.id}:checked`;
+      return [
+        `${sel} ~ .bar .bar__f { width: ${s.pct}%; }`,
+        `${sel} ~ .prog__n .pct::after { content: '${s.pct}%'; }`,
+        `${sel} ~ .prog__n .cnt::after { content: '${s.count}'; }`,
+        `${sel} ~ .says .say--${s.id} { display: block; }`,
+        `${sel} ~ .prog__h label[for="p-${tabId}-${s.id}"] { background: #17181A; color: #FFFFFF; border-color: #17181A; }`,
+        `${sel}:focus-visible ~ .prog__h label[for="p-${tabId}-${s.id}"] { outline: 2px solid #4E6900; outline-offset: 2px; }`,
+        s.pct === 0 ? `${sel} ~ .bar .bar__f { background: #D8DCE0; }` : '',
+      ].filter(Boolean).join('\n');
+    }).join('\n');
+  }).join('\n');
+}
+
 /* ────────────────────────── 탭 안에 들어가는 것 ────────────────────────── */
 
 function doneBody() {
@@ -187,6 +311,7 @@ function appMock() {
         </div>
         <span class="plan">${esc(t.plan)}</span>
       </header>
+      ${progressBlock(t.id)}
       ${BODIES[t.id]()}
     </section>`).join('');
 
@@ -351,6 +476,38 @@ h1 { font-size: 30px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 10px
 .dot--none { background: #D08A1C; }
 .dot--move { background: #3F63A8; }
 
+/* ── 진행 막대 ────────────────────────────────────────────── */
+.prog { border: 1px solid #E8EAEC; border-radius: 12px; padding: 14px 16px 15px;
+  background: #FCFDFD; margin: 0 0 18px; position: relative; }
+.prog__h { display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; margin-bottom: 9px; }
+.prog__l { font: 700 11px/1 inherit; letter-spacing: .1em; text-transform: uppercase; color: #8B939B; }
+.prog__d { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.prog__dl { font: 400 11px/1 inherit; color: #A6ADB4; margin-right: 2px; }
+.pick { font: 600 11.5px/1 inherit; padding: 5px 9px; border-radius: 999px; cursor: pointer;
+  border: 1px solid #E0E3E6; background: #FFFFFF; color: #5C646D; white-space: nowrap; }
+.pick:hover { border-color: #B9C0C7; color: #17181A; }
+
+.bar { position: relative; height: 9px; border-radius: 999px; background: #E8EAEC; overflow: hidden; }
+.bar__f { display: block; height: 100%; width: 0; border-radius: 999px; background: #9ED700; }
+.bar__ticks { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+.bar__ticks i { position: absolute; top: 0; bottom: 0; width: 1px; background: #FFFFFF; opacity: .85; }
+
+.prog__n { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; margin-top: 9px; }
+.pct { font: 800 21px/1 inherit; color: #17181A; font-variant-numeric: tabular-nums;
+  letter-spacing: -.01em; }
+.cnt { font: 600 13px/1 inherit; color: #4E6900; background: #EDF7DC;
+  border-radius: 6px; padding: 4px 8px; font-variant-numeric: tabular-nums; }
+.of { font-size: 12px; color: #8B939B; }
+
+/* 진행율에 따라 문구가 바뀐다 — 고른 것 하나만 뜬다 */
+.says { margin-top: 11px; }
+.say { display: none; margin: 0; font-size: 13.5px; line-height: 1.7; color: #3F464D; max-width: 66ch; }
+.say b { color: #17181A; }
+.prog__note { margin: 11px 0 0; padding-top: 10px; border-top: 1px solid #EDEFF1;
+  font-size: 12px; line-height: 1.65; color: #8B939B; max-width: 72ch; }
+.prog__note b { color: #5C646D; }
+
 .body__lede { margin: 0 0 14px; font-size: 14px; color: #3F464D; max-width: 62ch; }
 .body__note { margin: 16px 0 0; padding-top: 13px; border-top: 1px solid #EDEFF1;
   font-size: 12.5px; color: #7C838C; max-width: 66ch; }
@@ -458,7 +615,8 @@ h1 { font-size: 30px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 10px
 
 function build() {
   return `<title>세 탭 구성안</title>
-<style>${CSS}</style>
+<style>${CSS}
+${progressCss()}</style>
 <div class="wrap">
   <p class="eyebrow">D-63 · 구성안</p>
   <h1>「자료」를 넣은 세 탭</h1>
@@ -551,4 +709,4 @@ function main() {
 
 if (require.main === module) main();
 
-module.exports = { build, TABS, appMock };
+module.exports = { build, TABS, PROGRESS, appMock, progressBlock, progressCss };

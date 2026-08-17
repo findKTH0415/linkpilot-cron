@@ -84,6 +84,83 @@ test('구성안: 탭 순서가 두 가지라는 것을 함께 보여 준다', ()
   assert.match(html, /개정안 §3-2 를 그 순서로 고칩니다/);
 });
 
+/* ───────────── 진행 막대 ───────────── */
+
+test('진행 막대: 탭마다 하나씩, 맨 위에 있다', () => {
+  const html = B.build();
+  B.TABS.forEach((t) => {
+    const body = html.slice(html.indexOf(`class="body body--${t.id}"`));
+    const prog = body.indexOf('class="prog"');
+    const lede = body.indexOf('class="body__lede"');
+    assert.ok(prog > 0, `${t.id}: 진행 막대가 없다`);
+    assert.ok(prog < lede, `${t.id}: 진행 막대가 본문보다 아래에 있다`);
+  });
+});
+
+test('★ 진행 막대: % 만 띄우지 않는다 — 무엇의 몇 %인지 함께 적는다', () => {
+  Object.keys(B.PROGRESS).forEach((id) => {
+    const p = B.PROGRESS[id];
+    assert.ok(p.counts && p.counts.length > 4, `${id}: 무엇을 세는지가 없다`);
+    p.states.forEach((s) => {
+      // 분자/분모를 숫자로 함께 띄운다. % 만 있으면 「무엇의 몇 %」가 사라지고
+      // 그 상태로도 화면은 멀쩡해 보인다
+      assert.ok(/\d/.test(s.count), `${id}/${s.id}: 개수 표기가 없다`);
+      assert.ok(s.pct >= 0 && s.pct <= 100, `${id}/${s.id}: % 가 범위 밖이다`);
+    });
+  });
+});
+
+test('★ 진행 막대: 진행율마다 설명이 하나씩 있고, 한 번에 하나만 뜬다', () => {
+  const html = B.build();
+  Object.keys(B.PROGRESS).forEach((id) => {
+    B.PROGRESS[id].states.forEach((s) => {
+      assert.ok(s.say && s.say.length > 10, `${id}/${s.id}: 설명이 없다`);
+      assert.ok(html.includes(`class="say say--${s.id}"`), `${id}/${s.id}: 설명 칸이 없다`);
+      assert.ok(html.includes(`#p-${id}-${s.id}:checked ~ .says .say--${s.id} { display: block; }`),
+        `${id}/${s.id}: 그 진행율에서 설명이 뜨지 않는다`);
+    });
+  });
+  // 기본은 전부 숨김이다 — 규칙이 빠지면 셋이 한꺼번에 뜬다
+  assert.ok(html.includes('.say { display: none;'), '설명이 기본으로 숨겨져 있지 않다');
+});
+
+test('★ 진행 막대: 0% 는 「아직」이지 실패가 아니다', () => {
+  Object.keys(B.PROGRESS).forEach((id) => {
+    const zero = B.PROGRESS[id].states.find(s => s.pct === 0);
+    assert.ok(zero, `${id}: 시작 전 상태가 없다`);
+    // 0% 를 빨갛게 칠하면 「잘못됐다」로 읽힌다. 회색으로 두고 무엇을 하면 되는지 적는다
+    assert.ok(B.build().includes(`#p-${id}-${zero.id}:checked ~ .bar .bar__f { background: #D8DCE0; }`),
+      `${id}: 0% 막대가 진행 색으로 칠해진다`);
+  });
+});
+
+test('★ 진행 막대: 탭마다 세는 대상이 다르다 — 한 잣대로 뭉치지 않는다', () => {
+  const what = Object.keys(B.PROGRESS).map(k => B.PROGRESS[k].counts);
+  assert.equal(new Set(what).size, what.length, '두 탭이 같은 것을 센다고 적혀 있다');
+  // 4단계는 순서라서 눈금을 둔다. 나머지는 묶음이라 눈금이 없다
+  assert.equal(B.PROGRESS.make.ticks, 4);
+  assert.ok(!B.PROGRESS.done.ticks && !B.PROGRESS.files.ticks);
+});
+
+test('★ 진행 막대: 합계 % 를 만들지 않는 이유를 화면이 말한다', () => {
+  // 이미 내린 결정이다 — 1·2 는 사람이 채우고 4 만 기계가 도는 구간이라
+  // 하나로 뭉치면 무엇의 몇 %인지 알 수 없다. 막대를 넣으면서 뒤집지 않았다
+  assert.match(B.PROGRESS.make.note, /각 단계 화면이 따로/);
+  assert.match(B.PROGRESS.make.note, /1·2 는 사람이 채우고/);
+});
+
+test('★ 진행 막대: 분모가 없는 것은 막대를 그리지 않는다', () => {
+  // 등급별 상한이 미정이라 보관 용량은 분모가 없다.
+  // 없는 채로 막대를 그리면 「거의 찼다」가 근거 없이 보인다
+  assert.match(B.PROGRESS.files.note, /보관 용량 막대는 아직 만들지 않습니다/);
+  assert.match(B.PROGRESS.files.counts, /읽을 수 있는/);
+});
+
+test('★ 진행 막대: 100% 가 「보내도 된다」로 읽히지 않게 한다', () => {
+  const full = B.PROGRESS.done.states.find(s => s.pct === 100);
+  assert.match(full.say, /배포 전 교차검증/);
+});
+
 test('구성안: 라디오가 탭 바 밖에 있어야 탭이 바뀐다', () => {
   const html = B.build();
   const radio = html.indexOf('id="tab-done"');
