@@ -21,21 +21,16 @@
   ★ 범위를 벗어난 값은 막지 않고 경고만 한다. 여기서 막으면 05 Validation 이
     RED FLAG 로 잡아야 할 이상값이 화면에서 사라진다.
 -->
+<link rel="stylesheet" href="tokens.css">
 <style>
 :root {
-  --lime: #9ED700; --lime-soft: #EDF7DC; --lime-deep: #5C7A00;
-  --ink: #17181A; --ink2: #7C838C; --line: #E8EAEC;
-  --panel: #F1F2F4; --bg: #F5F6F8; --surface: #FFFFFF;
-  --bad: #E03131; --bad-soft: #FDECEC; --bad-ink: #8F1D1D;
-  --warn: #E8A33D; --warn-soft: #FDF3E3; --warn-ink: #8A5A10;
-  --r: 18px; --side: 248px;
+  --side: 248px;
 }
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 body {
   margin: 0; background: var(--bg); color: var(--ink);
-  font: 400 15px/1.55 -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
-        'Malgun Gothic', '맑은 고딕', Arial, sans-serif;
+  font: 400 15px/1.55 var(--lp-font);
   -webkit-font-smoothing: antialiased;
 }
 h1,h2,h3,h4 { margin: 0; }

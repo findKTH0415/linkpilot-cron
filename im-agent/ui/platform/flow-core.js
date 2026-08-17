@@ -103,6 +103,28 @@
     plan: 'pro',
   };
 
+  /**
+   * **토큰이 실렸는가** (2026-08-17).
+   *
+   * ★ `tokens.css` 를 같이 안 올리면 화면이 **색 없이** 뜨는데 **오류는 안 난다** —
+   *   CSS 는 못 찾은 변수를 조용히 넘긴다. 배포에서 파일 하나를 빠뜨리면
+   *   「글꼴도 색도 없는 화면」이 되는데 콘솔에도 아무 말이 없다.
+   *   실제로 미리보기를 만들다 그 상태를 봤다.
+   *
+   * @returns {boolean|null} null = 브라우저가 아니라 판정할 수 없다
+   */
+  function tokensLoaded() {
+    if (typeof getComputedStyle !== 'function' || typeof document === 'undefined') return null;
+    try {
+      var v = getComputedStyle(document.documentElement).getPropertyValue('--lp-brand');
+      return String(v).trim().length > 0;
+    } catch (e) { return null; }
+  }
+
+  /** 안 실렸을 때 화면이 띄우는 말. 「색이 이상하다」로 끝나지 않게 원인을 적는다 */
+  var TOKENS_MISSING = '디자인 토큰(tokens.css)이 실리지 않았습니다 — '
+    + '화면 파일과 같은 폴더에 tokens.css 를 함께 올려야 합니다.';
+
   /** 잠긴 이유 — 화면에 그대로 띄운다. 이유 없이 회색이면 고장으로 보인다 */
   var WHY = {
     project: '1단계에서 프로젝트를 먼저 만듭니다',
@@ -161,5 +183,6 @@
     STEPS: STEPS, WHY: WHY, EMBED_CSS: EMBED_CSS,
     SECTION: SECTION, OUTPUTS_SECTION: OUTPUTS_SECTION,
     stepState: stepState, urlFor: urlFor, stepOfFile: stepOfFile,
+    tokensLoaded: tokensLoaded, TOKENS_MISSING: TOKENS_MISSING,
   };
 }));

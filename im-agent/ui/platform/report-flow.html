@@ -27,19 +27,13 @@
     base     단계 화면들이 놓인 경로 (예: '/im/'). 같은 폴더면 빈 문자열
     session  로그인·플랜 (gate-core.js 가 판정한다)
 -->
+<link rel="stylesheet" href="tokens.css">
 <style>
-:root {
-  --lime: #9ED700; --lime-soft: #EDF7DC; --lime-deep: #5C7A00;
-  --ink: #17181A; --ink2: #7C838C; --line: #E8EAEC;
-  --panel: #F1F2F4; --bg: #F5F6F8; --surface: #FFFFFF;
-  --bad: #E03131; --bad-soft: #FDECEC; --bad-ink: #8F1D1D;
-  --warn: #E8A33D; --warn-soft: #FDF3E3; --warn-ink: #8A5A10;
-  --r: 18px;
-}
+/* 색·간격·반경 토큰은 tokens.css 하나가 정한다 (LinkPilot Design System v1.1) */
 * { box-sizing: border-box; }
 body {
   margin: 0; background: var(--bg); color: var(--ink);
-  font: 400 15px/1.65 Arial, 'Malgun Gothic', '맑은 고딕', sans-serif;
+  font: 400 15px/1.65 var(--lp-font);
   -webkit-text-size-adjust: 100%;
 }
 .wrap { max-width: 1120px; margin: 0 auto; padding: 22px 20px 40px; }
@@ -158,7 +152,7 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
 
 .ext { display: flex; gap: 10px; flex-wrap: wrap; margin: 0 0 10px; }
 .ext__b {
-  font: 700 14px/1 Arial, 'Malgun Gothic', sans-serif; cursor: pointer;
+  font: 700 14px/1 var(--lp-font); cursor: pointer;
   padding: 13px 18px; border-radius: 12px; border: 1px solid var(--ink);
   background: var(--ink); color: #fff; text-decoration: none; display: inline-block;
 }
@@ -494,7 +488,8 @@ window.LINKPILOT_REPORT_FLOW = {
       var got = det.values && det.values[r.key]
         && det.values[r.key].value !== null && det.values[r.key].value !== undefined
         && det.values[r.key].value !== '' && det.values[r.key].source;
-      li.appendChild(el('b', got ? 'is-ok' : '', (got ? '✓ ' : '· ') + r.label));
+      // ★ 채워졌는지는 글자표시가 아니라 색·굵기로 말한다 (디자인 시스템 §5 이모지 금지)
+      li.appendChild(el('b', got ? 'is-ok' : '', r.label));
       li.appendChild(document.createTextNode(' — ' + r.why));
       ul.appendChild(li);
     });
@@ -701,6 +696,16 @@ window.LINKPILOT_REPORT_FLOW = {
     //   그대로 두면 「새 보고서 생성」 아래에 「보고서 생성」이 또 나온다.
     //   기본은 false — 이 화면을 단독으로 열면 이름이 없으면 안 된다.
     if (!C.inTab) view.appendChild(el('h1', null, F.SECTION.title));
+
+    // ★ 토큰이 안 실리면 색·글꼴이 통째로 빠지는데 **오류는 안 난다.**
+    //   「화면이 이상하다」로 끝나지 않게 원인을 화면이 말한다
+    if (F.tokensLoaded() === false) {
+      var tw = el('div', 'nostyle', F.TOKENS_MISSING);
+      tw.setAttribute('role', 'alert');
+      // 토큰이 없는 상황이므로 var() 를 쓰지 않는다 — 인라인으로 칠한다
+      tw.setAttribute('style', 'margin:0 0 14px;padding:12px 14px;border-radius:10px;background:#FFF4E5;color:#8A5A10;border:1px solid #F0DEBE;font-size:13.5px;line-height:1.6');
+      view.appendChild(tw);
+    }
 
     var a = G.access(C.session, C.requiredPlan);
     if (!a.allowed) {

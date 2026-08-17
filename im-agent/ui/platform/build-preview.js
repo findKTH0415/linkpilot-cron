@@ -89,6 +89,13 @@ const EMBED = `<style>${FLOW.EMBED_CSS}</style>`;
 function selfContained(file, opt) {
   const o = opt || {};
   let html = read(file);
+  // ★ 토큰 파일도 인라인한다. 안 하면 미리보기가 **색 없이** 뜨고 오류는 안 난다 —
+  //   CSS 는 못 찾은 변수를 조용히 넘긴다 (2026-08-17 디자인 시스템 반영)
+  const links = html.match(/<link rel="stylesheet" href="([^"]+)">/g) || [];
+  links.forEach((tag) => {
+    const href = tag.match(/href="([^"]+)"/)[1];
+    html = html.replace(tag, '<style>' + read(href) + '</style>');
+  });
   const tags = html.match(/<script src="([^"]+)"><\/script>/g) || [];
   tags.forEach((tag) => {
     const src = tag.match(/src="([^"]+)"/)[1];
@@ -181,8 +188,8 @@ async function build() {
   return `<title>보고서 생성 화면 미리보기</title>
 <style>
   :root {
-    --ink: #17181A; --ink2: #6B7280; --line: #E5E7EB;
-    --bg: #FAFAFA; --surface: #FFFFFF; --lime: #9ED700; --lime-deep: #4F6A00;
+    --ink: #0A1419; --ink2: #6B7280; --line: #E5E7EB;
+    --bg: #FAFAFA; --surface: #FFFFFF; --lime: #AAE106; --lime-deep: #7BA10F;
   }
   * { box-sizing: border-box; }
   body {
@@ -332,6 +339,11 @@ async function flowPreload() {
  */
 async function flowShell(docs) {
   let shell = read('report-flow.html');
+  // ★ 토큰 파일을 인라인한다. 놓치면 **색 없이** 뜨는데 오류는 안 난다
+  //   (`flow.test.js` 의 「파일 하나로 열린다」가 잡는다)
+  (shell.match(/<link rel="stylesheet" href="([^"]+)">/g) || []).forEach((tag) => {
+    shell = shell.replace(tag, '<style>' + read(tag.match(/href="([^"]+)"/)[1]) + '</style>');
+  });
   (shell.match(/<script src="([^"]+)"><\/script>/g) || []).forEach((tag) => {
     const src = tag.match(/src="([^"]+)"/)[1];
     shell = shell.replace(tag, '<script>' + read(src).replace(/<\/(script)/gi, '<\\/$1') + '</script>');
@@ -780,50 +792,50 @@ function changePanel() {
 <style>
   .upd { max-width: 1120px; margin: 14px auto 0; padding: 18px 20px;
     background: #fff; border: 1px solid #E8EAEC; border-radius: 18px;
-    font: 400 14px/1.65 Arial, 'Malgun Gothic', sans-serif; color: #17181A; }
+    font: 400 14px/1.65 Arial, 'Malgun Gothic', sans-serif; color: #0A1419; }
   .upd__h { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
   .upd__t { font-size: 17px; font-weight: 700; margin: 0; }
   .upd__at { font-size: 12.5px; color: #7C838C; }
   .upd__s { font-size: 13.5px; color: #7C838C; margin: 0 0 14px; }
   .upd__g { margin-top: 12px; }
-  .upd__d { font: 700 12px/1 ui-monospace, Menlo, Consolas, monospace; color: #5C7A00;
-    background: #EDF7DC; display: inline-block; padding: 5px 9px; border-radius: 6px; }
+  .upd__d { font: 700 12px/1 ui-monospace, Menlo, Consolas, monospace; color: #7BA10F;
+    background: #F0FAD8; display: inline-block; padding: 5px 9px; border-radius: 6px; }
   .upd__l, .upd__p { list-style: none; margin: 8px 0 0; padding: 0; }
-  .upd__l li, .upd__p li { padding: 9px 0 9px 13px; border-left: 2px solid #9ED700; margin-bottom: 8px; }
-  .upd__p li { border-left-color: #E8A33D; }
+  .upd__l li, .upd__p li { padding: 9px 0 9px 13px; border-left: 2px solid #AAE106; margin-bottom: 8px; }
+  .upd__p li { border-left-color: #FF9500; }
   .upd__l b, .upd__p b { display: block; font-size: 14.5px; }
   .upd__l em { font-style: normal; font-size: 12px; color: #7C838C; }
   .upd__l span, .upd__p span { display: block; margin-top: 3px; font-size: 13px; color: #4A5560; }
-  .upd__see { color: #5C7A00 !important; font-weight: 600; }
+  .upd__see { color: #7BA10F !important; font-weight: 600; }
 
   /* 어떻게 바뀌었는가 — 전과 후를 나란히 둔다. 한쪽만 적으면 비교가 안 된다 */
   .upd__ba { display: grid; gap: 6px; margin-top: 8px; }
   .upd__b, .upd__a { font-size: 12.5px; line-height: 1.6; padding: 8px 11px; border-radius: 8px;
     display: grid; grid-template-columns: 26px 1fr; gap: 9px; align-items: baseline; }
-  .upd__b { background: #F5F6F8; color: #7C838C; }
-  .upd__a { background: #EDF7DC; color: #3F5400; }
+  .upd__b { background: #F2F2F7; color: #7C838C; }
+  .upd__a { background: #F0FAD8; color: #3F5400; }
   .upd__b em, .upd__a em { font-style: normal; font-weight: 800; font-size: 11.5px;
     text-align: center; padding: 2px 0; border-radius: 5px; }
   .upd__b em { background: #E3E5E8; color: #5C636B; }
-  .upd__a em { background: #9ED700; color: #17181A; }
+  .upd__a em { background: #AAE106; color: #0A1419; }
   @media (min-width: 720px) { .upd__ba { grid-template-columns: 1fr 1fr; } }
 
   /* 화면이 없는 작업의 확인 */
   .ev { max-width: 1120px; margin: 14px auto 0; padding: 18px 20px;
     background: #fff; border: 1px solid #E8EAEC; border-radius: 18px;
-    font: 400 14px/1.65 Arial, 'Malgun Gothic', sans-serif; color: #17181A; }
+    font: 400 14px/1.65 Arial, 'Malgun Gothic', sans-serif; color: #0A1419; }
   .ev__t { font-size: 17px; font-weight: 700; margin: 0; }
   .ev__s { font-size: 13.5px; color: #7C838C; margin: 4px 0 14px; }
   .ev__c { border: 1px solid #E8EAEC; border-radius: 12px; padding: 13px 15px; margin-top: 10px; }
   .ev__c.bad { border-color: #F0DEBE; background: #FDF3E3; }
   .ev__n { font-size: 13.5px; font-weight: 700; }
   .ev__m { font-size: 12.5px; color: #7C838C; margin-top: 2px; }
-  .ev__o { margin: 9px 0 0; padding: 10px 12px; background: #F5F6F8; border-radius: 8px;
+  .ev__o { margin: 9px 0 0; padding: 10px 12px; background: #F2F2F7; border-radius: 8px;
     font: 400 12.5px/1.7 ui-monospace, Menlo, Consolas, monospace;
     white-space: pre-wrap; word-break: break-all; overflow-x: auto; }
   .ev__k { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
   .ev__k span { font: 600 11.5px/1 ui-monospace, Menlo, Consolas, monospace;
-    padding: 5px 8px; border-radius: 6px; background: #EDF7DC; color: #5C7A00; }
+    padding: 5px 8px; border-radius: 6px; background: #F0FAD8; color: #7BA10F; }
   .upd__pt { margin: 20px 0 0; font-size: 14px; font-weight: 700; }
   .upd__pd { margin: 3px 0 0; font-size: 12.5px; color: #7C838C; }
 </style>

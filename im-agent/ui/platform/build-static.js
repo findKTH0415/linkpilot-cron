@@ -197,7 +197,7 @@ async function main() {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>보고서 생성 섹션 미리보기 (미리 그려 넣은 판)</title>
 <style>
-  body { margin: 0; background: #F5F6F8; color: #17181A;
+  body { margin: 0; background: #F2F2F7; color: #0A1419;
     font: 400 15px/1.6 -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
       'Malgun Gothic', Arial, sans-serif; }
   .top { max-width: 1120px; margin: 0 auto; padding: 20px 20px 0; }
@@ -207,7 +207,7 @@ async function main() {
     border: 1px solid #E8EAEC; border-radius: 18px; overflow: hidden; }
   .pv__h { display: flex; gap: 12px; align-items: flex-start; padding: 16px 20px;
     border-bottom: 1px solid #E8EAEC; }
-  .pv__n { width: 26px; height: 26px; flex: none; border-radius: 50%; background: #17181A;
+  .pv__n { width: 26px; height: 26px; flex: none; border-radius: 50%; background: #0A1419;
     color: #fff; display: grid; place-items: center; font: 800 13px/1 inherit; }
   .pv__t { font-size: 16px; font-weight: 800; margin: 0; }
   .pv__d { font-size: 13px; color: #7C838C; margin: 3px 0 0; }
@@ -373,9 +373,9 @@ const LEADS = {
   },
 };
 
-/** 감싸는 판의 스타일. 화면 자체의 색(라임 #9ED700 · 먹 #17181A)을 그대로 쓴다 */
+/** 감싸는 판의 스타일. 화면 자체의 색(라임 #AAE106 · 먹 #0A1419)을 그대로 쓴다 */
 const WRAP_CSS = `
-  :root { --pg: #F5F6F8; --sf: #FFFFFF; --ln: #E8EAEC; --ink: #17181A; --ink2: #7C838C; }
+  :root { --pg: #F2F2F7; --sf: #FFFFFF; --ln: #E8EAEC; --ink: #0A1419; --ink2: #7C838C; }
   :root:not([data-theme="light"]) { color-scheme: light; }
   body { margin: 0; background: var(--pg); color: var(--ink);
     font: 400 15px/1.6 -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',

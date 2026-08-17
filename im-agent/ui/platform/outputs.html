@@ -28,21 +28,14 @@
 
   붙이는 법은 window.LINKPILOT_OUTPUTS 만 채운다. 다른 곳에 값을 박지 않는다.
 -->
+<link rel="stylesheet" href="tokens.css">
 <style>
-:root {
-  --lime: #9ED700; --lime-soft: #EDF7DC; --lime-deep: #5C7A00;
-  --ink: #17181A; --ink2: #7C838C; --line: #E8EAEC;
-  --panel: #F1F2F4; --bg: #F5F6F8; --surface: #FFFFFF;
-  --bad: #E03131; --bad-soft: #FDECEC; --bad-ink: #8F1D1D;
-  --warn: #E8A33D; --warn-soft: #FDF3E3; --warn-ink: #8A5A10;
-  --r: 18px;
-}
+/* 색·간격·반경 토큰은 tokens.css 하나가 정한다 (LinkPilot Design System v1.1) */
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 body {
   margin: 0; background: var(--bg); color: var(--ink);
-  font: 400 15px/1.55 -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
-        'Malgun Gothic', '맑은 고딕', Arial, sans-serif;
+  font: 400 15px/1.55 var(--lp-font);
   -webkit-font-smoothing: antialiased;
 }
 h1, h2, h3 { margin: 0; }
@@ -391,6 +384,16 @@ window.LINKPILOT_OUTPUTS = {
   function draw() {
     view.textContent = '';
     if (!C.inTab) view.appendChild(el('h1', null, '완성 보고서'));
+
+    // ★ 토큰이 안 실리면 색·글꼴이 통째로 빠지는데 **오류는 안 난다.**
+    //   「화면이 이상하다」로 끝나지 않게 원인을 화면이 말한다
+    if (F.tokensLoaded() === false) {
+      var tw = el('div', 'nostyle', F.TOKENS_MISSING);
+      tw.setAttribute('role', 'alert');
+      // 토큰이 없는 상황이므로 var() 를 쓰지 않는다 — 인라인으로 칠한다
+      tw.setAttribute('style', 'margin:0 0 14px;padding:12px 14px;border-radius:10px;background:#FFF4E5;color:#8A5A10;border:1px solid #F0DEBE;font-size:13.5px;line-height:1.6');
+      view.appendChild(tw);
+    }
 
     var a = G.access(C.session, C.requiredPlan);
     if (!a.allowed) {

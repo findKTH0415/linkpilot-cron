@@ -15,20 +15,16 @@
   ★ 미리보기는 전부 '예시'로 명시한다. 실제 데이터로 오해하면 안 된다.
   ★ 카드정보를 이 화면에서 받지 않는다. 결제 페이지로 보낸다.
 -->
+<link rel="stylesheet" href="tokens.css">
 <style>
 :root {
-  --lime: #9ED700; --lime-soft: #EDF7DC; --lime-deep: #5C7A00;
-  --ink: #17181A; --ink2: #7C838C; --line: #E8EAEC;
-  --panel: #F1F2F4; --bg: #F5F6F8; --surface: #FFFFFF;
-  --bad: #E03131; --warn: #E8A33D;
-  --r: 18px; --side: 248px;
+  --side: 248px;
 }
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 body {
   margin: 0; background: var(--bg); color: var(--ink);
-  font: 400 15px/1.55 -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
-        'Malgun Gothic', '맑은 고딕', Arial, sans-serif;
+  font: 400 15px/1.55 var(--lp-font);
   -webkit-font-smoothing: antialiased;
 }
 h1,h2,h3,h4 { margin: 0; }

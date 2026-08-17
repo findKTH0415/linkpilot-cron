@@ -194,8 +194,8 @@ function progressCss() {
         `${sel} ~ .prog__n .pct::after { content: '${s.pct}%'; }`,
         `${sel} ~ .prog__n .cnt::after { content: '${s.count}'; }`,
         `${sel} ~ .says .say--${s.id} { display: block; }`,
-        `${sel} ~ .prog__h label[for="p-${tabId}-${s.id}"] { background: #17181A; color: #FFFFFF; border-color: #17181A; }`,
-        `${sel}:focus-visible ~ .prog__h label[for="p-${tabId}-${s.id}"] { outline: 2px solid #4E6900; outline-offset: 2px; }`,
+        `${sel} ~ .prog__h label[for="p-${tabId}-${s.id}"] { background: #0A1419; color: #FFFFFF; border-color: #0A1419; }`,
+        `${sel}:focus-visible ~ .prog__h label[for="p-${tabId}-${s.id}"] { outline: 2px solid #7BA10F; outline-offset: 2px; }`,
         s.pct === 0 ? `${sel} ~ .bar .bar__f { background: #D8DCE0; }` : '',
       ].filter(Boolean).join('\n');
     }).join('\n');
@@ -399,10 +399,10 @@ function appMock() {
  */
 const CSS = `
 :root {
-  --ground: #F4F5F7; --surface: #FFFFFF; --ink: #17181A; --ink2: #6E757D;
+  --ground: #F4F5F7; --surface: #FFFFFF; --ink: #0A1419; --ink2: #6E757D;
   --line: #E3E6E9; --line2: #EDEFF1;
-  --lime: #9ED700; --lime-deep: #4E6900; --lime-soft: #EFF8DA;
-  --warn: #D08A1C; --warn-soft: #FCF3E2; --warn-ink: #7A5008;
+  --lime: #AAE106; --lime-deep: #7BA10F; --lime-soft: #EFF8DA;
+  --warn: #FF9500; --warn-soft: #FCF3E2; --warn-ink: #7A5008;
   --blue: #3F63A8; --blue-soft: #EAEFF8; --blue-ink: #2B457A;
   --red: #C92A2A; --red-soft: #FCECEC;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -459,7 +459,7 @@ h1 { font-size: 30px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 10px
 }
 .app {
   display: grid; grid-template-columns: 178px 1fr;
-  background: #F5F6F8; color: #17181A;
+  background: #F2F2F7; color: #0A1419;
   font: inherit;
 }
 .rail {
@@ -467,13 +467,13 @@ h1 { font-size: 30px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 10px
   background: #FFFFFF; border-right: 1px solid #E8EAEC; padding: 16px 10px 22px;
 }
 .rail__b {
-  font: 800 12px/1 inherit; letter-spacing: .14em; color: #17181A;
+  font: 800 12px/1 inherit; letter-spacing: .14em; color: #0A1419;
   padding: 4px 10px 14px;
 }
 .rail__i {
   font-size: 13px; color: #7C838C; padding: 7px 10px; border-radius: 8px;
 }
-.rail__i--on { background: #EDF7DC; color: #4E6900; font-weight: 700; }
+.rail__i--on { background: #F0FAD8; color: #7BA10F; font-weight: 700; }
 
 .main { padding: 16px 18px 24px; min-width: 0; position: relative; }
 .crumb { font: 700 12px/1 inherit; letter-spacing: .1em; color: #9AA1A9; text-transform: uppercase; }
@@ -491,7 +491,7 @@ h1 { font-size: 30px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 10px
 }
 .tab__n { font: 700 14px/1.3 inherit; color: #5C646D; }
 .tab__s { font: 400 11.5px/1.3 inherit; color: #9AA1A9; }
-.tab:hover .tab__n { color: #17181A; }
+.tab:hover .tab__n { color: #0A1419; }
 .tab .dot { position: absolute; top: 9px; right: 9px; }
 
 /* 라디오로 고른 탭만 살아난다 (스크립트를 못 쓰는 자리다) */
@@ -502,18 +502,18 @@ h1 { font-size: 30px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 10px
 }
 #tab-done:checked ~ .tabs label[for="tab-done"] .tab__n,
 #tab-make:checked ~ .tabs label[for="tab-make"] .tab__n,
-#tab-files:checked ~ .tabs label[for="tab-files"] .tab__n { color: #17181A; }
+#tab-files:checked ~ .tabs label[for="tab-files"] .tab__n { color: #0A1419; }
 #tab-done:checked ~ .tabs label[for="tab-done"]::after,
 #tab-make:checked ~ .tabs label[for="tab-make"]::after,
 #tab-files:checked ~ .tabs label[for="tab-files"]::after {
   content: ''; position: absolute; left: 12px; right: 12px; bottom: -1px; height: 2px;
-  background: #9ED700; border-radius: 2px;
+  background: #AAE106; border-radius: 2px;
 }
 /* 키보드로 옮길 때 어느 탭에 있는지 보여야 한다 */
 #tab-done:focus-visible ~ .tabs label[for="tab-done"],
 #tab-make:focus-visible ~ .tabs label[for="tab-make"],
 #tab-files:focus-visible ~ .tabs label[for="tab-files"] {
-  outline: 2px solid #4E6900; outline-offset: 2px;
+  outline: 2px solid #7BA10F; outline-offset: 2px;
 }
 
 .bodies { background: #FFFFFF; border: 1px solid #E8EAEC; border-top: 0;
@@ -525,15 +525,15 @@ h1 { font-size: 30px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 10px
 
 .body__h { display: flex; align-items: flex-start; justify-content: space-between;
   gap: 14px; padding-bottom: 14px; border-bottom: 1px solid #EDEFF1; margin-bottom: 16px; }
-.body__t { font: 800 19px/1.3 inherit; margin: 0; letter-spacing: -.01em; color: #17181A; }
+.body__t { font: 800 19px/1.3 inherit; margin: 0; letter-spacing: -.01em; color: #0A1419; }
 .body__st { display: flex; align-items: center; gap: 7px; margin: 5px 0 0;
   font-size: 12.5px; color: #7C838C; }
 .plan { flex: none; font: 700 11.5px/1 inherit; padding: 6px 10px; border-radius: 999px;
-  background: #EDF7DC; color: #4E6900; white-space: nowrap; }
+  background: #F0FAD8; color: #7BA10F; white-space: nowrap; }
 
 .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
-.dot--have { background: #9ED700; }
-.dot--none { background: #D08A1C; }
+.dot--have { background: #AAE106; }
+.dot--none { background: #FF9500; }
 .dot--move { background: #3F63A8; }
 
 /* ── 진행 막대 ────────────────────────────────────────────── */
@@ -546,24 +546,24 @@ h1 { font-size: 30px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 10px
 .prog__dl { font: 400 11px/1 inherit; color: #A6ADB4; margin-right: 2px; }
 .pick { font: 600 11.5px/1 inherit; padding: 5px 9px; border-radius: 999px; cursor: pointer;
   border: 1px solid #E0E3E6; background: #FFFFFF; color: #5C646D; white-space: nowrap; }
-.pick:hover { border-color: #B9C0C7; color: #17181A; }
+.pick:hover { border-color: #B9C0C7; color: #0A1419; }
 
 .bar { position: relative; height: 9px; border-radius: 999px; background: #E8EAEC; overflow: hidden; }
-.bar__f { display: block; height: 100%; width: 0; border-radius: 999px; background: #9ED700; }
+.bar__f { display: block; height: 100%; width: 0; border-radius: 999px; background: #AAE106; }
 .bar__ticks { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
 .bar__ticks i { position: absolute; top: 0; bottom: 0; width: 1px; background: #FFFFFF; opacity: .85; }
 
 .prog__n { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; margin-top: 9px; }
-.pct { font: 800 21px/1 inherit; color: #17181A; font-variant-numeric: tabular-nums;
+.pct { font: 800 21px/1 inherit; color: #0A1419; font-variant-numeric: tabular-nums;
   letter-spacing: -.01em; }
-.cnt { font: 600 13px/1 inherit; color: #4E6900; background: #EDF7DC;
+.cnt { font: 600 13px/1 inherit; color: #7BA10F; background: #F0FAD8;
   border-radius: 6px; padding: 4px 8px; font-variant-numeric: tabular-nums; }
 .of { font-size: 12px; color: #8B939B; }
 
 /* 진행율에 따라 문구가 바뀐다 — 고른 것 하나만 뜬다 */
 .says { margin-top: 11px; }
 .say { display: none; margin: 0; font-size: 13.5px; line-height: 1.7; color: #3F464D; max-width: 66ch; }
-.say b { color: #17181A; }
+.say b { color: #0A1419; }
 .prog__note { margin: 11px 0 0; padding-top: 10px; border-top: 1px solid #EDEFF1;
   font-size: 12px; line-height: 1.65; color: #8B939B; max-width: 72ch; }
 .prog__note b { color: #5C646D; }
@@ -582,7 +582,7 @@ h1 { font-size: 30px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 10px
   grid-template-columns: repeat(auto-fill, minmax(258px, 1fr)); gap: 7px; }
 .doc { display: flex; flex-direction: column; gap: 3px;
   border: 1px solid #E8EAEC; border-radius: 10px; padding: 9px 12px; background: #FCFDFD; }
-.doc__n { font: 600 13.5px/1.35 inherit; color: #17181A; }
+.doc__n { font: 600 13.5px/1.35 inherit; color: #0A1419; }
 .doc__p { font-size: 11.5px !important; background: transparent !important;
   color: #8B939B !important; padding: 0 !important; }
 
@@ -590,20 +590,20 @@ h1 { font-size: 30px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 10px
 .steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
 .step { display: flex; gap: 12px; align-items: flex-start;
   border: 1px solid #E8EAEC; border-radius: 11px; padding: 12px 14px; background: #FCFDFD; }
-.step__n { flex: none; width: 22px; height: 22px; border-radius: 50%; background: #17181A;
+.step__n { flex: none; width: 22px; height: 22px; border-radius: 50%; background: #0A1419;
   color: #FFFFFF; display: grid; place-items: center; font: 800 12px/1 inherit; margin-top: 1px; }
-.step__t { font: 700 14px/1.4 inherit; color: #17181A; }
+.step__t { font: 700 14px/1.4 inherit; color: #0A1419; }
 .step__d { margin: 3px 0 0; font-size: 12.5px; color: #7C838C; line-height: 1.6; }
 
 /* 자료 */
 .callout { border-radius: 11px; padding: 13px 15px; margin: 0 0 16px; }
-.callout--rule { background: #EDF7DC; border: 1px solid #D6E9A8; }
+.callout--rule { background: #F0FAD8; border: 1px solid #D6E9A8; }
 .callout__t { font: 700 13.5px/1.4 inherit; color: #3F5600; margin-bottom: 4px; }
-.callout p { margin: 0; font-size: 13px; color: #4E6900; line-height: 1.65; }
+.callout p { margin: 0; font-size: 13px; color: #7BA10F; line-height: 1.65; }
 
 .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(298px, 1fr)); gap: 14px; }
 .pane { border: 1px solid #E8EAEC; border-radius: 12px; padding: 14px 16px 16px; background: #FCFDFD; }
-.pane__t { font: 700 13px/1 inherit; letter-spacing: .02em; color: #17181A; margin: 0 0 11px; }
+.pane__t { font: 700 13px/1 inherit; letter-spacing: .02em; color: #0A1419; margin: 0 0 11px; }
 .pane__t--2 { margin-top: 20px; padding-top: 16px; border-top: 1px solid #EDEFF1; }
 .pane__n { margin: 11px 0 0; font-size: 12px; color: #8B939B; line-height: 1.6; }
 
@@ -613,12 +613,12 @@ h1 { font-size: 30px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 10px
 .fmt__e code { font-size: 11px !important; }
 .tag { font: 700 10px/1 inherit; padding: 3px 6px; border-radius: 5px; vertical-align: 1px; }
 .tag--warn { background: #FCF3E2; color: #7A5008; }
-.tag--ok { background: #EDF7DC; color: #4E6900; }
+.tag--ok { background: #F0FAD8; color: #7BA10F; }
 
 /* 연결할 저장소 */
 .prov { padding: 9px 0; border-top: 1px solid #EDEFF1; }
 .prov:first-of-type { border-top: 0; padding-top: 0; }
-.prov__n { font: 700 13px/1.4 inherit; color: #17181A; }
+.prov__n { font: 700 13px/1.4 inherit; color: #0A1419; }
 .prov__s { font-size: 12px; color: #7C838C; line-height: 1.6; margin-top: 2px; }
 
 /* 자료를 넣는 두 길 — 대가가 다르므로 눈에 띄게 다르다 */
@@ -626,11 +626,11 @@ h1 { font-size: 30px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 10px
 .way { border: 1px solid #E8EAEC; border-radius: 12px; padding: 13px 15px 14px; background: #FCFDFD; }
 .way--once { border-color: #F0DEBE; background: #FDF9F1; }
 .way__h { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 7px; }
-.way__n { font: 700 14px/1.4 inherit; color: #17181A; }
+.way__n { font: 700 14px/1.4 inherit; color: #0A1419; }
 .way p { margin: 0 0 7px; font-size: 12.5px; line-height: 1.7; }
 .way p:last-child { margin-bottom: 0; }
 .way__d { color: #3F464D; }
-.way__g { color: #4E6900; }
+.way__g { color: #7BA10F; }
 .way__b { color: #7A5008; }
 .pane__x { margin: 0; font-size: 12.5px; line-height: 1.7; color: #4A5158; }
 
