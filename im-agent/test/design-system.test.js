@@ -171,3 +171,39 @@ test('★ 디자인 시스템: 배포 지시서가 tokens.css 를 목록에 넣�
   const doc = fs.readFileSync(path.join(__dirname, '..', '..', 'docs', '배포-지시서.md'), 'utf8');
   assert.match(doc, /tokens\.css/, '배포할 파일 목록에 tokens.css 가 없다');
 });
+
+/* ───────────── 재생성이 기계마다 같은가 ───────────── */
+
+test('★★ 미리보기: 파일 목록 순서를 정렬한다 — 안 하면 기계마다 달라진다', () => {
+  // readdir 순서는 파일시스템이 정한다. 그 결과가 커밋되는 산출물에 들어가면
+  // **CI 에서만 재생성 결과가 어긋난다** (2026-08-17)
+  const os = require('os');
+  const store = require('../core/store');
+
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-order-'));
+  const id = 'LP-DC-2026-001';
+  fs.mkdirSync(path.join(root, id, '02_Source_Data'), { recursive: true });
+  const prev = process.env.IM_AGENT_ROOT;
+  process.env.IM_AGENT_ROOT = root;
+  try {
+    // 만든 순서를 일부러 뒤섞는다
+    ['c.txt', 'a.txt', 'b.txt'].forEach(n =>
+      fs.writeFileSync(path.join(root, id, '02_Source_Data', n), 'x'));
+    const names = store.listSourceFiles(id).map(f => f.name);
+    assert.deepEqual(names, ['a.txt', 'b.txt', 'c.txt'],
+      '만든 순서가 아니라 이름 순이어야 한다 — 추출 순서가 그대로 문서에 실린다');
+  } finally {
+    if (prev === undefined) delete process.env.IM_AGENT_ROOT; else process.env.IM_AGENT_ROOT = prev;
+  }
+});
+
+test('★ 미리보기: 산출물에 들어가는 readdir 은 전부 정렬되어 있다', () => {
+  // 정렬을 빠뜨린 곳이 하나라도 있으면 그 줄이 기계마다 달라진다
+  ['../core/store.js', '../core/vault.js', '../ui/platform/build-preview.js'].forEach((rel) => {
+    const src = fs.readFileSync(path.join(__dirname, rel), 'utf8');
+    const bare = src.split('\n').filter(l =>
+      /fs\.readdirSync\(/.test(l) && !/\.sort\(\)/.test(l) && !/^\s*\*/.test(l));
+    assert.deepEqual(bare.map(l => l.trim()), [],
+      `${rel}: 정렬 없는 readdir 이 남았다 — 그 줄의 결과가 기계마다 달라진다`);
+  });
+});

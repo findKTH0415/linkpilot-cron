@@ -179,7 +179,7 @@ function sweepTmp(projectDir) {
   const tmpDir = path.join(dir, TMP);
   if (!fs.existsSync(tmpDir)) return { removed: 0, bytes: 0 };
   let removed = 0, bytes = 0;
-  for (const n of fs.readdirSync(tmpDir)) {
+  for (const n of fs.readdirSync(tmpDir).sort()) {
     const full = path.join(tmpDir, n);
     try {
       bytes += fs.statSync(full).size;
@@ -453,7 +453,7 @@ function verify(projectDir) {
   }
 
   const unknown = [];
-  for (const name of fs.readdirSync(dir)) {
+  for (const name of fs.readdirSync(dir).sort()) {
     if (RESERVED.includes(name) || name.startsWith('.')) continue;
     if (ledger.files[name]) continue;
     let st;
@@ -479,7 +479,7 @@ function reconcile(projectDir) {
   if (!fs.existsSync(dir)) return { ok: false, reason: '프로젝트를 찾을 수 없습니다' };
   const ledger = readLedger(dir);
   const added = [];
-  for (const name of fs.readdirSync(dir)) {
+  for (const name of fs.readdirSync(dir).sort()) {
     if (RESERVED.includes(name) || name.startsWith('.')) continue;
     if (ledger.files[name]) continue;
     const full = path.join(dir, name);
@@ -518,7 +518,7 @@ function usage(projectDir) {
   const out = { live: { files: 0, bytes: 0 }, trash: { files: 0, bytes: 0 }, tmp: { files: 0, bytes: 0 }, billableBytes: 0, at: kstStamp() };
 
   // ★ 장부가 아니라 **디스크를 잰다.** 장부는 갈릴 수 있고, 디스크는 갈리지 않는다
-  for (const name of fs.readdirSync(dir)) {
+  for (const name of fs.readdirSync(dir).sort()) {
     if (name.startsWith('.')) continue;
     let st; try { st = fs.statSync(path.join(dir, name)); } catch (_) { continue; }
     if (st.isDirectory()) continue;
@@ -527,7 +527,7 @@ function usage(projectDir) {
   for (const [sub, key] of [[TRASH, 'trash'], [TMP, 'tmp']]) {
     const d = path.join(dir, sub);
     if (!fs.existsSync(d)) continue;
-    for (const name of fs.readdirSync(d)) {
+    for (const name of fs.readdirSync(d).sort()) {
       let st; try { st = fs.statSync(path.join(d, name)); } catch (_) { continue; }
       if (st.isDirectory()) continue;
       out[key].files += 1; out[key].bytes += st.size;
@@ -561,12 +561,12 @@ function reviewDue(projectDir, days) {
   //   되지 않고, 보관 기간이라는 장치가 통째로 무력해진다.
   let newest = 0;
   const touch = (p) => { try { newest = Math.max(newest, fs.statSync(p).mtimeMs); } catch (_) { /* 없으면 넘어간다 */ } };
-  for (const name of fs.readdirSync(dir)) {
+  for (const name of fs.readdirSync(dir).sort()) {
     if (name.startsWith('.')) continue;
     touch(path.join(dir, name));
   }
   const trashDir = path.join(dir, TRASH);
-  if (fs.existsSync(trashDir)) for (const n of fs.readdirSync(trashDir)) touch(path.join(trashDir, n));
+  if (fs.existsSync(trashDir)) for (const n of fs.readdirSync(trashDir).sort()) touch(path.join(trashDir, n));
 
   // 장부에 적힌 시각도 함께 본다 — NAS 에서 복사해 들어온 파일은 mtime 이
   // 원본의 것이라 실제로 여기 들어온 날보다 앞선다

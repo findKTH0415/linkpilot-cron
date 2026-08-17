@@ -31,7 +31,7 @@ function nextProjectId(templateId, when = new Date()) {
   const prefix = `LP-${code}-${year}-`;
   let max = 0;
   if (fs.existsSync(root())) {
-    for (const name of fs.readdirSync(root())) {
+    for (const name of fs.readdirSync(root()).sort()) {
       if (name.startsWith(prefix)) {
         const seq = Number(name.slice(prefix.length).split('_')[0]);
         if (Number.isFinite(seq)) max = Math.max(max, seq);
@@ -97,7 +97,10 @@ function listSourceFiles(projectId) {
   if (!fs.existsSync(dir)) return [];
   const out = [];
   const walk = d => {
-    for (const name of fs.readdirSync(d)) {
+    // ★ **정렬한다.** readdir 순서는 파일시스템이 정하고 기계마다 다르다 —
+    //   그대로 두면 추출 순서가 흔들리고, 그 순서가 그대로 문서에 실린다.
+    //   (2026-08-17: 미리보기 산출물이 CI 에서만 달라져 잡혔다)
+    for (const name of fs.readdirSync(d).sort()) {
       if (name.startsWith('.')) continue;   // 휴지통·장부·임시 — 위 주석 참조
       const full = path.join(d, name);
       const st = fs.statSync(full);
@@ -119,7 +122,7 @@ function listExcludedSourceFiles(projectId) {
   const dir = path.join(projectDir(projectId), '02_Source_Data');
   if (!fs.existsSync(dir)) return [];
   const out = [];
-  for (const name of fs.readdirSync(dir)) {
+  for (const name of fs.readdirSync(dir).sort()) {   // 순서 고정 (위와 같은 이유)
     if (!name.startsWith('.')) continue;
     const full = path.join(dir, name);
     let st; try { st = fs.statSync(full); } catch (_) { continue; }
@@ -130,7 +133,7 @@ function listExcludedSourceFiles(projectId) {
             : '숨김 파일 — 원본자료로 보지 않습니다';
     if (st.isDirectory()) {
       let files = 0, bytes = 0;
-      for (const n of fs.readdirSync(full)) {
+      for (const n of fs.readdirSync(full).sort()) {
         try { const s2 = fs.statSync(path.join(full, n)); if (s2.isFile()) { files += 1; bytes += s2.size; } } catch (_) { /* 사라졌으면 넘어간다 */ }
       }
       out.push({ name, kind: 'dir', files, size: bytes, why });
@@ -158,7 +161,9 @@ function readRunLog(projectId) {
 
 function listProjects() {
   if (!fs.existsSync(root())) return [];
-  return fs.readdirSync(root())
+  // ★ 정렬한다. 이 목록이 화면의 프로젝트 고르는 칸에 그대로 나간다 —
+  //   기계마다 순서가 다르면 「어제 본 자리」에 다른 프로젝트가 있다
+  return fs.readdirSync(root()).sort()
     .filter(n => /^LP-[A-Z]+-\d{4}-\d{3}/.test(n))
     .map(id => ({ id, project: readJson(id, '01_Project/project.json', {}) }));
 }

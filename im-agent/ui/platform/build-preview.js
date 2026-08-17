@@ -538,10 +538,12 @@ function linkedPanel() {
   row('자료를 연결했다', '가져와 두는가',
     `연결됨: ${lk.item.key} · 판 ${lk.item.rev}\n`
     + `지문: ${lk.item.fingerprint === null ? 'null (아직 안 읽음 — 지어내지 않는다)' : '?'}\n`
-    + `02_Source_Data 안의 파일: ${fs.readdirSync(path.join(p, '02_Source_Data')).length}건`);
+    + `02_Source_Data 안의 파일: ${fs.readdirSync(path.join(p, '02_Source_Data')).sort().length}건`);
 
   // ③ 읽을 때만 가져오고 끝나면 지운다 (동기적으로 확인 가능한 부분만)
-  const before = fs.readdirSync(path.join(p, '01_Project'));
+  // ★ **정렬한다.** 이 결과가 커밋되는 파일에 그대로 들어간다 —
+  //   readdir 순서는 기계마다 달라 CI 에서만 재생성 결과가 어긋난다
+  const before = fs.readdirSync(path.join(p, '01_Project')).sort();
   row('무엇을 남기는가', '파일 대신 무엇이 남는가',
     `01_Project: ${before.join(' · ')}\n`
     + `출처 한 줄: ${linked.citation(linked.list(p).items[0])}`);
