@@ -20,6 +20,7 @@ const designState = require('./core/design-state');
 const reports = require('./core/reports');
 const monitor = require('./core/monitor');
 const { kstStamp } = require('./core/kst');
+const linked = require('./core/linked');
 const assetclass = require('./core/assetclass');
 const pdf = require('./core/pdf');
 const deskappraisal = require('./core/deskappraisal');
@@ -28,6 +29,68 @@ const nts = require('./connectors/nts');
 const nps = require('./connectors/nps');
 const a4 = require('./design/a4');
 const path = require('path');
+
+/**
+ * 본체가 준 「연결 자료 내려받기」를 찾는다.
+ *   opts.fetchLinked  — 같은 프로세스에서 부를 때 (함수)
+ *   IM_LINKED_FETCHER — cli.js 가 자식 프로세스로 돌 때 (모듈 경로: `module.exports.fetchLinked`)
+ * 없으면 null — 그때 파이프라인은 연결 자료를 **읽지 않고 그 사실을 경고로 세운다.**
+ * 있는데 모양이 틀리면 조용히 null 로 두지 않고 던진다 — 붙였다고 믿는데 안 붙은 상태가 제일 나쁘다.
+ */
+function resolveLinkedFetcher(opts = {}) {
+  if (typeof opts.fetchLinked === 'function') return opts.fetchLinked;
+  const mod = process.env.IM_LINKED_FETCHER;
+  if (!mod) return null;
+  let m;
+  try { m = require(path.resolve(mod)); } catch (e) { throw new Error(`IM_LINKED_FETCHER 모듈을 읽을 수 없다 (${mod}): ${e.message}`); }
+  if (!m || typeof m.fetchLinked !== 'function') throw new Error(`IM_LINKED_FETCHER 모듈에 fetchLinked 함수가 없다 (${mod})`);
+  return m.fetchLinked;
+}
+
+/**
+ * 추출 결과를 dataset 에 넣고 저장한다 — run() 과 extractInto() 가 **같은 코드**를 쓴다 (D-68).
+ * 본체가 이 절차를 복제하면 엔진이 바뀌는 날 본체만 옛말을 한다.
+ *   옛 추출값 버리기(같은 문서) → 병합 → resolve → 저장 → 01_Project/extraction.json 갱신
+ */
+function mergeExtraction(projectId, dataset, out, opts = {}) {
+  const log = opts.log || (() => {});
+  // 재실행 시 같은 문서의 옛 추출값을 먼저 버린다 (자기 자신과의 충돌 방지)
+  for (const doc of out.documents) dataset.dropSource(doc.name);
+  dataset.addMany(out.facts);
+  dataset.resolve();
+  saveDataset(projectId, dataset);
+  // ※ 메타파일은 02_Source_Data 밖에 쓴다 — 원본자료 폴더를 오염시키면 다음 실행에서 자신을 다시 읽는다
+  // 부분 추출(extractInto)일 때 이전 문서 목록을 지우지 않는다 — 같은 이름은 새것으로 바꾼다
+  const prev = opts.merge ? (store.readJson(projectId, '01_Project/extraction.json', null) || {}) : {};
+  const byName = new Map((prev.documents || []).map(d => [d.name, d]));
+  for (const d of out.documents) byName.set(d.name, d);
+  const unsupNames = new Set(out.unsupported.map(u => u.name));
+  const unsupported = (prev.unsupported || []).filter(u => !unsupNames.has(u.name)).concat(out.unsupported);
+  const documents = Array.from(byName.values());
+  store.writeJson(projectId, '01_Project/extraction.json', {
+    at: kstStamp(), documents, unsupported,
+    factCount: opts.merge ? (prev.factCount || 0) + out.facts.length : out.facts.length,
+  });
+  log(`  추출: ${out.facts.length}건 / 문서 ${out.documents.length}건 / 미지원 ${out.unsupported.length}건`);
+  return { facts: out.facts, documents: out.documents, unsupported: out.unsupported };
+}
+
+/**
+ * 파일 목록을 읽어 이 프로젝트의 dataset 에 넣는다 — 1회성 업로드(oneshot)의 읽는 경로 (D-68 · §6-2).
+ * 본체는 `extractOneshot: (id, files) => pipeline.extractInto(id, files)` 한 줄이면 된다.
+ * files 는 {name, path, size, ext} — OS 임시 폴더의 실제 파일. **여기서는 지우지 않는다**(부른 쪽이 dispose 한다).
+ * @returns {{facts, documents, unsupported}}
+ */
+async function extractInto(projectId, files, opts = {}) {
+  if (!store.exists(projectId)) throw new Error(`프로젝트 없음: ${projectId}`);
+  const list = Array.isArray(files) ? files : [];
+  const log = opts.log || (() => {});
+  const dataset = loadDataset(projectId);
+  const ctx = { projectId, dataset, log };
+  const r = await runAgent('02_extraction', { projectId, files: list, useLlm: opts.useLlm !== false }, ctx);
+  if (!r.output || !r.output.facts) throw new Error(`추출 실패: ${(r.error && r.error.message) || r.status || 'unknown'}`);
+  return mergeExtraction(projectId, dataset, r.output, { log, merge: true });
+}
 
 function loadDataset(projectId) {
   const json = store.readJson(projectId, '01_Project/dataset.json', null);
@@ -90,21 +153,42 @@ async function run(opts = {}) {
     log(`  출력사양: ${spec.docType} · ${spec.pageSize} ${spec.orientation} · 목표 ${spec.targetPages}p · ${spec.formats.join('/')} · ${spec.locked ? `${spec.version} LOCKED` : 'DRAFT(미확정)'}`);
   }
 
+  // ── 02-0 연결 자료 — 보관하지 않는 쪽 (D-65 · 플랫폼-연결-지시서 §6-1) ────
+  //   장부(linked.json)에 연결된 자료가 있으면 **여기서 실제로 가져와** 추출기에 넘긴다.
+  //   가져오는 함수는 본체가 준다(opts.fetchLinked 또는 IM_LINKED_FETCHER 모듈) — 토큰이 그쪽에 있다.
+  //   ★ 없으면 조용히 건너뛰지 않는다: 연결은 돼 있는데 안 읽힌 채 보고서가 나가면
+  //     사용자는 「넣었다」고 믿는다. 경고를 세우고 추출기 unsupported 에도 올린다.
+  const projectDir = store.projectDir(projectId);
+  const fetchLinked = resolveLinkedFetcher(opts);
+  const linkedItems = linked.list(projectDir).items;
+  let linkedMat = null;
+  const linkedFailed = [];
+  if (linkedItems.length) {
+    if (!fetchLinked) {
+      for (const it of linkedItems) linkedFailed.push({ key: it.key, name: it.name, reason: '저장소 내려받기(fetchLinked)가 붙어 있지 않습니다' });
+      log(`  연결 자료 ${linkedItems.length}건 — 내려받기가 붙어 있지 않아 읽지 않는다 (경고로 남긴다)`);
+    } else {
+      linkedMat = await linked.materialize(projectDir, fetchLinked);
+      for (const f of linkedMat.failed) linkedFailed.push(f);
+      log(`  연결 자료: 가져옴 ${linkedMat.files.length}건 / 실패 ${linkedMat.failed.length}건 (임시 ${linkedMat.dir})`);
+    }
+  }
+
   // ── 02 Extraction ─────────────────────────────────────────
-  const ext = await runAgent('02_extraction', { projectId, useLlm: opts.useLlm !== false }, ctx);
+  let ext;
+  try {
+    ext = await runAgent('02_extraction', {
+      projectId, useLlm: opts.useLlm !== false,
+      extraFiles: linkedMat ? linkedMat.files : [],
+      linkedFailed,
+    }, ctx);
+  } finally {
+    // ★ 읽고 나면 **반드시** 지운다 — 안 지우면 그것이 곧 보관이다. 추출기가 던져도 지운다.
+    if (linkedMat) { const d = linkedMat.dispose(); log(`  연결 자료 임시 파일 정리: ${d.removed}건`); }
+  }
   results['02_extraction'] = ext;
   if (ext.output && ext.output.facts) {
-    // 재실행 시 같은 문서의 옛 추출값을 먼저 버린다 (자기 자신과의 충돌 방지)
-    for (const doc of ext.output.documents) dataset.dropSource(doc.name);
-    dataset.addMany(ext.output.facts);
-    dataset.resolve();
-    saveDataset(projectId, dataset);
-    // ※ 메타파일은 02_Source_Data 밖에 쓴다 — 원본자료 폴더를 오염시키면 다음 실행에서 자신을 다시 읽는다
-    store.writeJson(projectId, '01_Project/extraction.json', {
-      at: kstStamp(), documents: ext.output.documents, unsupported: ext.output.unsupported,
-      factCount: ext.output.facts.length,
-    });
-    log(`  추출: ${ext.output.facts.length}건 / 문서 ${ext.output.documents.length}건 / 미지원 ${ext.output.unsupported.length}건`);
+    mergeExtraction(projectId, dataset, ext.output, { log });
   }
 
   // ── 07 Geo / Satellite (공공데이터 — 지적·공시지가·건축물대장) ──
@@ -475,4 +559,4 @@ async function run(opts = {}) {
   return { projectId, templateId, results, dataset, gate: check, finalValidation: final.output || null, spec };
 }
 
-module.exports = { run, loadDataset, saveDataset };
+module.exports = { run, loadDataset, saveDataset, extractInto, mergeExtraction, resolveLinkedFetcher };

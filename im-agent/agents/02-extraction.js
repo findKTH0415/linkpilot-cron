@@ -116,6 +116,11 @@ const inputSchema = {
   properties: {
     projectId: { type: 'string' },
     files: { type: 'array' },
+    /** 02_Source_Data 밖에서 온 파일 — 연결 자료를 임시 폴더에 받은 것 ({name,path,size,ext,key}).
+     *  files 와 달리 **원본자료 목록에 더해서** 읽는다 (D-65). */
+    extraFiles: { type: 'array' },
+    /** 연결 자료 중 못 가져온 것 ({key,name,reason}) — 조용히 빠지지 않고 unsupported 로 선다 */
+    linkedFailed: { type: 'array' },
     useLlm: { type: 'boolean' },
   },
 };
@@ -372,10 +377,16 @@ ${text.slice(0, 30000)}`,
 
 async function run(input, ctx) {
   const store = require('../core/store');
-  const files = input.files || store.listSourceFiles(input.projectId);
+  const files = input.files || store.listSourceFiles(input.projectId).concat(input.extraFiles || []);
   const facts = [];
   const documents = [];
   const unsupported = [];
+  // ★ 연결 자료를 못 가져온 것은 **읽기 실패와 같은 자리**에 선다 — 값이 조용히 빠지고
+  //   문서가 멀쩡해 보이는 것이 이 시스템에서 가장 나쁜 실패다 (플랫폼-연결-지시서 §2-1)
+  for (const f of input.linkedFailed || []) {
+    unsupported.push({ name: f.name || f.key, reason: `연결 자료를 가져오지 못했습니다 — ${f.reason || '사유 없음'}` });
+    ctx.warn(`${f.name || f.key}: 연결 자료를 가져오지 못했습니다 — ${f.reason || '사유 없음'}`);
+  }
 
   for (const file of files) {
     let r = toText(file);
