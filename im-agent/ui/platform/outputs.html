@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>완성 보고서 · LINKPILOT</title>
+<!--
+  완성 보고서 — 만들어진 산출물 목록. 「새 보고서 생성」 탭의 짝이다.
+
+  ★ 목록을 **화면이 만들지 않는다.** `GET /projects/:id/reports` 가 주는 것을 그린다.
+    산출물이 하나 늘 때 화면도 같이 고쳐야 하면, 한쪽만 고치는 날 갈린다
+    (PDF·탁상검토·법인가치가 실제로 그렇게 빠져 있었다 — 2026-08-17 발견).
+
+  ★★ **진행률도 서버가 준다.** 분모를 화면이 계산하면 규칙이 두 벌이 된다.
+    분모는 「이 프로젝트에서 나와야 하는 것」이지 「나올 수 있는 전부」가 아니다 —
+    조건부 산출물(탁상검토·법인가치)을 분모에 넣으면 어떤 딜도 100% 가 되지 않아
+    다 끝났는데도 덜 된 것처럼 보인다.
+
+  ★★★ **100% 는 「만들어졌다」이지 「보내도 된다」가 아니다.**
+    배포 차단(distribution.blocked)을 목록보다 **위에** 띄운다. 아래에 두면
+    파일 목록만 보고 내보낸다.
+
+  ★ 안 나온 것을 **이유와 함께** 보여준다. 목록에서 빠지면 「없는 기능」이 되고,
+    이유 없이 회색이면 고장으로 읽힌다.
+
+  ★ 이름에 「감정평가서」·「평가의견서」를 쓰지 않는다 — 목록에서 그렇게 보이면
+    받는 사람이 정식 평가로 읽는다. 이름은 서버(OUTPUTS)가 정한다.
+
+  붙이는 법은 window.LINKPILOT_OUTPUTS 만 채운다. 다른 곳에 값을 박지 않는다.
+-->
+<style>
+:root {
+  --lime: #9ED700; --lime-soft: #EDF7DC; --lime-deep: #5C7A00;
+  --ink: #17181A; --ink2: #7C838C; --line: #E8EAEC;
+  --panel: #F1F2F4; --bg: #F5F6F8; --surface: #FFFFFF;
+  --bad: #E03131; --bad-soft: #FDECEC; --bad-ink: #8F1D1D;
+  --warn: #E8A33D; --warn-soft: #FDF3E3; --warn-ink: #8A5A10;
+  --r: 18px;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 400 15px/1.55 -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
+        'Malgun Gothic', '맑은 고딕', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3 { margin: 0; }
+ul { margin: 0; padding: 0; list-style: none; }
+.wrap { max-width: 900px; margin: 0 auto; padding: 22px 20px 60px; }
+h1 { font-size: 22px; font-weight: 800; letter-spacing: -.01em; margin-bottom: 14px; }
+
+.card { background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r); padding: 18px 20px; margin-bottom: 14px; }
+.card__t { font-size: 16px; font-weight: 800; }
+.card__d { font-size: 13px; color: var(--ink2); margin: 5px 0 0; line-height: 1.65; }
+
+/* 프로젝트 고르기 */
+.pick { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.pick label { font: 700 12px/1 inherit; color: var(--ink2); letter-spacing: .06em; text-transform: uppercase; }
+select { font: 400 14px/1 inherit; padding: 9px 11px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink); min-width: 240px; }
+select:focus-visible { outline: 2px solid var(--lime-deep); outline-offset: 2px; }
+
+/* 진행 */
+.prog__h { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; margin-bottom: 9px; }
+.pct { font: 800 26px/1 inherit; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.cnt { font: 600 13px/1 inherit; color: var(--lime-deep); background: var(--lime-soft);
+  border-radius: 6px; padding: 4px 8px; font-variant-numeric: tabular-nums; }
+.of { font-size: 12px; color: var(--ink2); }
+.bar { height: 9px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.bar__f { display: block; height: 100%; width: 0; border-radius: 999px;
+  background: var(--lime); transition: width .18s ease; }
+.bar__f.none { background: #D8DCE0; }
+.say { margin: 11px 0 0; font-size: 13.5px; line-height: 1.7; color: #3F464D; }
+.say b { color: var(--ink); }
+
+/* 배포 차단 — 목록보다 위 */
+.block { border-radius: 14px; padding: 14px 16px; margin-bottom: 14px;
+  background: var(--bad-soft); border: 1px solid #F3C6C6; color: var(--bad-ink); }
+.block__t { font: 800 15px/1.4 inherit; margin-bottom: 5px; }
+.block ul { margin-top: 7px; }
+.block li { font-size: 13px; line-height: 1.7; padding-left: 13px; position: relative; }
+.block li::before { content: '·'; position: absolute; left: 3px; }
+
+/* 목록 */
+.grp { font: 700 11.5px/1 inherit; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink2); margin: 20px 0 9px; }
+.doc { display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+  border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px;
+  margin-bottom: 8px; background: var(--surface); }
+.doc--out { background: #FCFDFD; }
+.doc--wait { background: var(--panel); border-style: dashed; }
+.doc__b { flex: 1 1 210px; min-width: 0; }
+.doc__n { font: 700 14px/1.4 inherit; }
+.doc__m { font-size: 12px; color: var(--ink2); margin-top: 3px;
+  font-variant-numeric: tabular-nums; word-break: break-all; }
+.doc__w { font-size: 12.5px; color: var(--warn-ink); margin-top: 3px; line-height: 1.6; }
+.tag { flex: none; font: 700 11px/1 inherit; padding: 5px 8px; border-radius: 6px; }
+.tag--wait { background: var(--warn-soft); color: var(--warn-ink); }
+.tag--maybe { background: var(--panel); color: var(--ink2); }
+a.btn, button.btn {
+  flex: none; font: 700 12.5px/1 inherit; padding: 9px 13px; border-radius: 9px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  text-decoration: none; cursor: pointer;
+}
+a.btn:hover, button.btn:hover { border-color: var(--lime-deep); color: var(--lime-deep); }
+a.btn[aria-disabled="true"] { opacity: .45; pointer-events: none; }
+.btn:focus-visible { outline: 2px solid var(--lime-deep); outline-offset: 2px; }
+
+.note { font-size: 12.5px; color: var(--ink2); line-height: 1.7;
+  margin-top: 16px; padding-top: 13px; border-top: 1px solid var(--line); }
+.msg { font-size: 13.5px; color: var(--ink2); line-height: 1.7; }
+.msg--bad { color: var(--bad-ink); background: var(--bad-soft);
+  border: 1px solid #F3C6C6; border-radius: 12px; padding: 13px 15px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="wrap" id="view"></div>
+
+<script>
+/* ─────────────────────────────────────────────────────────────────
+ * 앱이 채우는 설정. 여기 말고 다른 곳에 값을 박지 않는다.
+ * ───────────────────────────────────────────────────────────────── */
+window.LINKPILOT_OUTPUTS = {
+  session: { authenticated: true, planId: 'pro', status: 'active', name: '김태형' },
+  requiredPlan: 'pro',
+  planNames: { free: 'Free', basic: 'Basic', pro: 'Pro', business: 'Business' },
+
+  api: null,          // 예: '/api/linkpilot' — 없으면 목록을 못 부르고 그 사유가 뜬다
+  projectId: null,    // 정해져 있으면 고르는 칸을 감춘다
+
+  // ★ 앱의 **탭 안**에 얹을 때 true. 자체 제목을 그리지 않는다 —
+  //   탭 바가 이미 이름을 말하므로 그대로 두면 제목이 두 번 나온다.
+  //   ⚠ 단독으로 열 때 true 로 두면 이름 없는 화면이 된다. 기본은 false.
+  inTab: false,
+
+  // 서버 없이 화면만 볼 때 심는 값 (미리보기 전용). 제품에서는 null
+  preload: null,      // { projects: [...], reports: { ... } }
+};
+</script>
+<script src="gate-core.js"></script>
+<script src="flow-core.js"></script>
+<script>
+(function () {
+  'use strict';
+  var C = window.LINKPILOT_OUTPUTS;
+  var G = window.LinkPilotGate;
+  var F = window.LinkPilotFlow;
+  var view = document.getElementById('view');
+
+  var state = {
+    projects: null,       // null = 아직 안 불러옴
+    projectId: C.projectId || null,
+    data: null,           // GET /projects/:id/reports 응답 그대로
+    error: null,
+    loading: false,
+  };
+
+  function el(t, c, x) {
+    var n = document.createElement(t);
+    if (c) n.className = c;
+    if (x !== undefined && x !== null && x !== '') n.textContent = String(x);
+    return n;
+  }
+  function add(p) { for (var i = 1; i < arguments.length; i++) if (arguments[i]) p.appendChild(arguments[i]); return p; }
+
+  /** 바이트를 사람이 읽는 크기로. 0 은 '0 B' 로 — 빈칸으로 두면 못 잰 것과 구분이 안 된다 */
+  function size(b) {
+    if (!(b > 0)) return '0 B';
+    if (b < 1024) return b + ' B';
+    if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB';
+    return (b / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  function get(url) {
+    return fetch(url, { credentials: 'same-origin' }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (b) {
+        if (!r.ok) throw new Error((b && b.error) || ('서버 오류 (' + r.status + ')'));
+        return b;
+      });
+    });
+  }
+
+  /* ── 불러오기 ─────────────────────────────────────────── */
+
+  function loadProjects() {
+    if (C.preload && C.preload.projects) {
+      state.projects = C.preload.projects;
+      return Promise.resolve();
+    }
+    if (!C.api) { state.projects = []; return Promise.resolve(); }
+    return get(C.api + '/projects').then(function (b) {
+      state.projects = (b && b.projects) || [];
+    }).catch(function (e) { state.error = e.message; state.projects = []; });
+  }
+
+  function loadReports() {
+    if (!state.projectId) { state.data = null; return Promise.resolve(); }
+    if (C.preload && C.preload.reports) {
+      state.data = C.preload.reports;
+      return Promise.resolve();
+    }
+    if (!C.api) { state.data = null; return Promise.resolve(); }
+    state.loading = true;
+    return get(C.api + '/projects/' + encodeURIComponent(state.projectId) + '/reports')
+      .then(function (b) { state.data = b; state.error = null; })
+      .catch(function (e) { state.error = e.message; state.data = null; })
+      .then(function () { state.loading = false; });
+  }
+
+  /* ── 조각 ─────────────────────────────────────────────── */
+
+  function picker() {
+    var card = el('section', 'card');
+    var row = el('div', 'pick');
+    add(row, el('label', null, '프로젝트'));
+
+    var sel = document.createElement('select');
+    sel.setAttribute('aria-label', '프로젝트 고르기');
+    var none = document.createElement('option');
+    none.value = '';
+    none.textContent = state.projects && state.projects.length ? '— 고르세요 —' : '프로젝트가 없습니다';
+    sel.appendChild(none);
+    (state.projects || []).forEach(function (p) {
+      var o = document.createElement('option');
+      o.value = p.id;
+      o.textContent = p.name ? (p.name + ' · ' + p.id) : p.id;
+      if (p.id === state.projectId) o.selected = true;
+      sel.appendChild(o);
+    });
+    sel.disabled = !(state.projects && state.projects.length);
+    sel.addEventListener('change', function () {
+      state.projectId = sel.value || null;
+      state.data = null;
+      draw();
+      loadReports().then(draw);
+    });
+    add(row, sel);
+    card.appendChild(row);
+
+    if (state.projects && !state.projects.length) {
+      card.appendChild(el('p', 'card__d',
+        '아직 만든 프로젝트가 없습니다. 「' + F.SECTION.tab + '」에서 시작하세요.'));
+    }
+    return card;
+  }
+
+  /**
+   * 진행 — **서버가 준 분모를 그대로 쓴다.**
+   * 여기서 다시 계산하면 산출물이 하나 늘 때 한쪽만 고치는 날 조용히 틀린다.
+   */
+  function progress(d) {
+    var p = d.progress || {};
+    var card = el('section', 'card');
+    var head = el('div', 'prog__h');
+
+    // ★ 분모가 없으면 % 를 만들지 않는다. 0/0 을 100% 로 적으면
+    //   아무것도 안 만든 프로젝트가 「다 됐다」로 보인다
+    var hasPct = p.percent !== null && p.percent !== undefined;
+    add(head,
+      el('b', 'pct', hasPct ? (p.percent + '%') : '—'),
+      el('span', 'cnt', (p.done || 0) + ' / ' + (p.total || 0) + '종'),
+      el('span', 'of', p.countsWhat || ''));
+    card.appendChild(head);
+
+    var bar = el('div', 'bar');
+    var fill = el('span', 'bar__f' + (p.done ? '' : ' none'));
+    fill.style.width = (hasPct ? p.percent : 0) + '%';
+    bar.appendChild(fill);
+    card.appendChild(bar);
+
+    card.appendChild(say(d, p, hasPct));
+
+    // 사양을 못 읽었으면 분모가 흔들린다 — 조용히 넘기지 않는다
+    if (d.specKnown === false) {
+      card.appendChild(el('p', 'card__d',
+        '출력 사양을 읽지 못해 형식에 따라 갈리는 산출물(PDF 등)은 세지 않았습니다.'));
+    }
+    return card;
+  }
+
+  /** 진행율에 따라 다른 말을 한다. **100% 는 「보내도 된다」가 아니다** */
+  function say(d, p, hasPct) {
+    var n = el('p', 'say');
+    var blocked = d.distribution && d.distribution.blocked;
+
+    if (!p.total) {
+      n.textContent = '아직 만들 것이 정해지지 않았습니다. 「' + F.SECTION.tab
+        + '」에서 출력 사양을 확정하면 여기에 목록이 생깁니다.';
+      return n;
+    }
+    if (!p.done) {
+      n.textContent = '아직 나온 문서가 없습니다. 「' + F.SECTION.tab + '」 4단계에서 생성을 시작하세요.';
+      return n;
+    }
+    if (p.done < p.total) {
+      n.innerHTML = '<b>' + (p.total - p.done) + '종이 아직 안 나왔습니다.</b> '
+        + '아래 목록에서 무엇이 남았는지와 그 이유를 볼 수 있습니다.';
+      return n;
+    }
+    // 다 나왔다 — 여기서 「끝났다」로 끝내지 않는다
+    n.innerHTML = blocked
+      ? '<b>사양에 담은 것은 모두 나왔지만 배포가 막혀 있습니다.</b> 위의 사유를 해소해야 내보낼 수 있습니다.'
+      : '<b>사양에 담은 것이 모두 나왔습니다.</b> 100% 는 「만들어졌다」이지 「보내도 된다」가 아닙니다 — '
+        + '내보내기 전에 배포 전 교차검증을 지나세요.';
+    return n;
+  }
+
+  /** 배포 차단 — **목록보다 위**에 둔다. 아래에 두면 파일만 보고 내보낸다 */
+  function blocker(d) {
+    if (!(d.distribution && d.distribution.blocked)) return null;
+    var box = el('div', 'block');
+    add(box, el('div', 'block__t', '배포가 막혀 있습니다'));
+    box.appendChild(el('p', null,
+      '파일은 만들어졌지만 검증을 통과하지 못했습니다. 내려받기도 열리지 않습니다.'));
+    var ul = el('ul');
+    (d.distribution.reasons || []).forEach(function (r) {
+      ul.appendChild(el('li', null, typeof r === 'string' ? r : (r && (r.message || r.id)) || ''));
+    });
+    if (ul.childNodes.length) box.appendChild(ul);
+    return box;
+  }
+
+  function docRow(f, blocked) {
+    var row = el('div', 'doc ' + (f.exists ? 'doc--out' : 'doc--wait'));
+    var b = el('div', 'doc__b');
+    add(b, el('div', 'doc__n', f.name));
+
+    if (f.exists) {
+      add(b, el('div', 'doc__m', f.path + ' · ' + size(f.bytes) + (f.at ? ' · ' + f.at.slice(0, 16).replace('T', ' ') : '')));
+    } else {
+      add(b, el('div', 'doc__m', f.path));
+      // ★ 이유 없이 회색이면 고장으로 읽힌다
+      if (f.why) add(b, el('div', 'doc__w', f.why));
+    }
+    row.appendChild(b);
+
+    if (!f.exists) {
+      row.appendChild(el('span', 'tag ' + (f.expected ? 'tag--wait' : 'tag--maybe'),
+        f.expected ? '아직' : '나올 수도'));
+      return row;
+    }
+
+    var a = document.createElement('a');
+    a.className = 'btn';
+    a.textContent = '내려받기';
+    if (blocked || !C.api) {
+      // 목록에서는 「차단」인데 파일은 열린다면 검증 GATE 가 아무 의미도 없다
+      a.setAttribute('aria-disabled', 'true');
+      a.setAttribute('title', blocked ? '배포가 막혀 있습니다' : '서버가 연결되어 있지 않습니다');
+      a.href = '#';
+    } else {
+      a.href = C.api + '/projects/' + encodeURIComponent(state.projectId)
+        + '/file?rel=' + encodeURIComponent(f.path);
+      a.setAttribute('download', '');
+    }
+    row.appendChild(a);
+    return row;
+  }
+
+  function list(d) {
+    var box = document.createDocumentFragment();
+    var all = d.all || d.files || [];
+    var blocked = !!(d.distribution && d.distribution.blocked);
+
+    var out = all.filter(function (f) { return f.exists; });
+    var wait = all.filter(function (f) { return !f.exists && f.expected; });
+    var maybe = all.filter(function (f) { return !f.exists && !f.expected; });
+
+    if (out.length) {
+      box.appendChild(el('div', 'grp', '나온 문서 ' + out.length + '종'));
+      out.forEach(function (f) { box.appendChild(docRow(f, blocked)); });
+    }
+    if (wait.length) {
+      box.appendChild(el('div', 'grp', '아직 안 나온 것 ' + wait.length + '종'));
+      wait.forEach(function (f) { box.appendChild(docRow(f, blocked)); });
+    }
+    // ★ 조건부는 분모 밖이지만 **목록에서 빼지 않는다** — 빼면 「없는 기능」이 된다
+    if (maybe.length) {
+      box.appendChild(el('div', 'grp', '이 딜에서는 안 나오는 것 ' + maybe.length + '종'));
+      maybe.forEach(function (f) { box.appendChild(docRow(f, blocked)); });
+    }
+    return box;
+  }
+
+  /* ── 그리기 ───────────────────────────────────────────── */
+
+  function draw() {
+    view.textContent = '';
+    if (!C.inTab) view.appendChild(el('h1', null, '완성 보고서'));
+
+    var a = G.access(C.session, C.requiredPlan);
+    if (!a.allowed) {
+      var m = G.accessMessage(a, (C.planNames || {})[C.requiredPlan] || C.requiredPlan, '완성 보고서');
+      var g = el('section', 'card');
+      add(g, el('h2', 'card__t', (m && m.title) || '사용할 수 없습니다'),
+        el('p', 'card__d', (m && m.body) || ''));
+      view.appendChild(g);
+      return;
+    }
+
+    if (!C.api && !C.preload) {
+      var s = el('section', 'card');
+      add(s, el('h2', 'card__t', '서버가 연결되어 있지 않습니다'),
+        el('p', 'card__d', '산출물 목록은 서버에서 받아 옵니다. 화면만으로는 만들 수 없습니다 — '
+          + '「생성됨」을 화면이 기억해 두면 파일이 없어져도 있다고 말하기 때문입니다.'));
+      view.appendChild(s);
+      return;
+    }
+
+    if (!C.projectId) view.appendChild(picker());
+
+    if (state.error) {
+      view.appendChild(add(el('section', 'card'), el('p', 'msg msg--bad', state.error)));
+      return;
+    }
+    if (!state.projectId) {
+      view.appendChild(add(el('section', 'card'),
+        el('p', 'msg', '프로젝트를 고르면 그 프로젝트에서 나온 문서가 여기 뜹니다.')));
+      return;
+    }
+    if (state.loading || !state.data) {
+      view.appendChild(add(el('section', 'card'),
+        el('p', 'msg', state.loading ? '목록을 불러오는 중입니다…' : '목록이 없습니다.')));
+      return;
+    }
+
+    var d = state.data;
+    var b = blocker(d);
+    if (b) view.appendChild(b);          // ★ 목록보다 위
+    view.appendChild(progress(d));
+    view.appendChild(list(d));
+
+    view.appendChild(el('p', 'note',
+      '목록은 파일이 실제로 있는지로 판정합니다 — 「생성됨」 표시를 믿지 않습니다. '
+      + '내려받기는 검증을 통과한 산출물만 열립니다.'));
+  }
+
+  draw();
+  loadProjects().then(function () {
+    draw();
+    return loadReports();
+  }).then(draw);
+})();
+</script>
+</body>
+</html>

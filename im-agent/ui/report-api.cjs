@@ -61,25 +61,58 @@ const { MAX_FILE_BYTES, MAX_REQUEST_BYTES } = require('./api-router.cjs');
 const issuerMod = require('../core/issuer');
 const mb = (n) => Math.round(n / (1024 * 1024) * 10) / 10;
 
-/** 산출물 경로 — 파일이 실제로 있는지로 판정한다 ('생성됨' 플래그를 믿지 않는다) */
+/**
+ * 산출물 경로 — 파일이 실제로 있는지로 판정한다 ('생성됨' 플래그를 믿지 않는다).
+ *
+ * ★★ `when` 이 「완성 보고서」 화면의 **분모**를 만든다 〈2026-08-17〉.
+ *   `always`      사양과 무관하게 생성되면 나온다 → 분모에 넣는다
+ *   `format:pdf`  사양의 formats 에 그 형식이 있을 때만 나온다 → 있으면 분모
+ *   `conditional` **딜에 그 자료가 있어야** 나온다 → **분모에 넣지 않는다**
+ *
+ *   ★ conditional 을 분모에 넣으면 어떤 딜도 100% 가 되지 않아
+ *     **다 끝났는데도 덜 된 것처럼** 보인다. 반대로 목록에서 아예 빼면
+ *     「나올 수 있는 문서가 있었다」는 사실이 사라진다 — **분모 밖에 따로 낸다.**
+ *   ★ `why` 는 안 나온 이유를 화면이 **그대로** 띄운다. 이유 없이 회색이면
+ *     고장으로 읽힌다 (단계 레일에서 배운 것과 같은 자리다).
+ */
 const OUTPUTS = [
-  { id: 'im', name: 'IM 원문', rel: '09_IM/im.md' },
-  { id: 'a4', name: 'A4 인쇄본', rel: '12_Final/im-a4.html' },
+  { id: 'im', name: 'IM 원문', rel: '09_IM/im.md', when: 'always' },
+  { id: 'a4', name: 'A4 인쇄본', rel: '12_Final/im-a4.html', when: 'always' },
   // ★ **PDF 가 목록에 없었다** (2026-08-17 발견). D-53 으로 실제로 만들어지는데
   //   여기 없어서 「완성 보고서」에 안 떴다 — 파일은 있고 화면에는 없는 상태다
-  { id: 'pdf', name: 'PDF', rel: '12_Final/im-a4.pdf' },
-  { id: 'content', name: '뷰어 데이터', rel: '12_Final/content.json' },
-  { id: 'teaser', name: 'Teaser', rel: '10_Teaser/teaser.md' },
-  { id: 'validation', name: '검증 보고서', rel: '11_QC/validation-report.md' },
-  { id: 'redflag', name: 'RED FLAG 보고서', rel: '11_QC/red-flag-report.md' },
+  { id: 'pdf', name: 'PDF', rel: '12_Final/im-a4.pdf', when: 'format:pdf',
+    why: '출력 사양의 형식에 PDF 를 넣어야 나옵니다' },
+  { id: 'content', name: '뷰어 데이터', rel: '12_Final/content.json', when: 'always' },
+  { id: 'teaser', name: 'Teaser', rel: '10_Teaser/teaser.md', when: 'always' },
+  { id: 'validation', name: '검증 보고서', rel: '11_QC/validation-report.md', when: 'always' },
+  { id: 'redflag', name: 'RED FLAG 보고서', rel: '11_QC/red-flag-report.md', when: 'always' },
   // ★ 2026-08-17 추가 — 만들어지는데 목록에 없던 둘 (D-57 · D-59).
   //   **이름에 「감정평가서」·「평가의견서」를 쓰지 않는다** — 목록에서 그렇게
   //   보이면 받는 사람이 정식 평가로 읽는다. 문서 안에도 같은 이유로 안 쓴다
-  { id: 'desk_md', name: '토지가치 탁상검토', rel: '08_Appraisal/desk-review.md' },
-  { id: 'desk_pdf', name: '토지가치 탁상검토 (PDF)', rel: '08_Appraisal/desk-review-a4.pdf' },
-  { id: 'corp_md', name: '법인가치 검토', rel: '10_Corporate/corp-review.md' },
-  { id: 'corp_pdf', name: '법인가치 검토 (PDF)', rel: '10_Corporate/corp-review-a4.pdf' },
+  { id: 'desk_md', name: '토지가치 탁상검토', rel: '08_Appraisal/desk-review.md', when: 'conditional',
+    why: '토지 평가에 쓸 값(공시지가·거래사례·수익)이 있어야 나옵니다' },
+  { id: 'desk_pdf', name: '토지가치 탁상검토 (PDF)', rel: '08_Appraisal/desk-review-a4.pdf', when: 'conditional',
+    why: '토지가치 탁상검토가 나온 딜에서만 함께 나옵니다' },
+  { id: 'corp_md', name: '법인가치 검토', rel: '10_Corporate/corp-review.md', when: 'conditional',
+    why: '법인 재무자료(순손익 3개 연도·순자산)가 있어야 나옵니다' },
+  { id: 'corp_pdf', name: '법인가치 검토 (PDF)', rel: '10_Corporate/corp-review-a4.pdf', when: 'conditional',
+    why: '법인가치 검토가 나온 딜에서만 함께 나옵니다' },
 ];
+
+/**
+ * 이 프로젝트에서 **나와야 하는** 산출물인가 (분모 판정).
+ *
+ * 사양을 못 읽으면 `format:*` 를 **기대에 넣지 않는다** — 넣으면 사양에 없는
+ * 형식을 「안 나왔다」로 세어 진행률이 영영 100% 가 안 된다.
+ */
+function isExpected(out, spec) {
+  if (out.when === 'always') return true;
+  if (String(out.when || '').startsWith('format:')) {
+    const want = out.when.slice('format:'.length);
+    return !!(spec && Array.isArray(spec.formats) && spec.formats.indexOf(want) > -1);
+  }
+  return false;   // conditional — 분모에 넣지 않는다
+}
 
 /** 산출물 확장자별 MIME. 목록에 없으면 브라우저가 알아서 해석하지 못하게 둔다 */
 const CONTENT_TYPES = {
@@ -855,20 +888,46 @@ function createHandlers(deps) {
         blocked = decision && decision.blocked ? decision : null;
       } catch (_) { blocked = null; }
 
-      const files = OUTPUTS.map(o => {
+      // 사양을 읽어 **분모**를 만든다. 못 읽으면 format 조건은 기대에 넣지 않는다
+      let spec = null;
+      try { spec = load('core/outputspec').read(projectId); } catch (_) { spec = null; }
+
+      const all = OUTPUTS.map((o) => {
         const full = path.join(dir, o.rel);
         let stat = null;
         try { stat = fs.statSync(full); } catch (_) { stat = null; }
         return {
           id: o.id, name: o.name, path: o.rel,
+          when: o.when, why: o.why || null,
+          expected: isExpected(o, spec),
           exists: !!stat,
           at: stat ? kstStamp(stat.mtime) : null,
           bytes: stat ? stat.size : 0,
         };
-      }).filter(f => f.exists);
+      });
+
+      const files = all.filter(f => f.exists);
+      const expected = all.filter(f => f.expected);
+      const done = expected.filter(f => f.exists);
 
       return ok({
+        // ★ 나온 것만 (기존 호출부가 이 모양을 쓴다 — 바꾸지 않는다)
         files,
+        // ★★ 2026-08-17 — 「완성 보고서」 화면이 **분모**를 여기서 받는다.
+        //   화면이 스스로 계산하면 규칙이 두 벌이 되고, 산출물이 하나 늘 때
+        //   한쪽만 고치는 날 진행률이 조용히 틀린다
+        all,
+        progress: {
+          done: done.length,
+          total: expected.length,
+          // 분모가 0 이면 % 를 만들지 않는다 — 0/0 을 100% 로 적으면
+          // 아무것도 안 만든 프로젝트가 「다 됐다」로 보인다
+          percent: expected.length ? Math.round(done.length / expected.length * 100) : null,
+          // 분모 밖 — 나올 수도 있는 것. **있었다는 사실을 지우지 않는다**
+          conditional: all.filter(f => f.when === 'conditional' && !f.exists).length,
+          countsWhat: '이 프로젝트에서 나와야 하는 산출물 중 실제로 파일이 나온 것',
+        },
+        specKnown: !!spec,
         // ★ 차단 상태를 목록과 함께 준다. 화면이 '완료'로만 보이면 안 된다
         distribution: blocked
           ? { blocked: true, reasons: blocked.reasons || [] }
@@ -1033,6 +1092,7 @@ function createRouter(deps = {}) {
 }
 
 module.exports = {
-  createHandlers, createRouter, DOC_PLANS, OUTPUTS, PLAN_RANK, PROJECT_ID, CONTENT_TYPES,
+  createHandlers, createRouter, DOC_PLANS, OUTPUTS, isExpected, FILES_PLAN,
+  PLAN_RANK, PROJECT_ID, CONTENT_TYPES,
   MAX_FILE_BYTES, MAX_REQUEST_BYTES,
 };

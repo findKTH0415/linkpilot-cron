@@ -46,10 +46,11 @@ const plain = (t) => String(t).replace(/\*\*/g, '');
  */
 const TABS = [
   {
-    id: 'done', order: 1, name: '완성 보고서',
-    sub: '만들어진 산출물 목록',
-    state: 'none',
-    stateText: '아직 없다 — API 는 있고 그리는 화면이 없다',
+    // 이름은 flow-core.js 의 OUTPUTS_SECTION 이 단일 출처다
+    id: 'done', order: 1, name: FLOW.OUTPUTS_SECTION.tab,
+    sub: FLOW.OUTPUTS_SECTION.tabNote,
+    state: 'have',
+    stateText: '있다 — outputs.html (inTab: true 로 얹는다)',
     plan: 'Pro',
   },
   {
@@ -91,16 +92,20 @@ const STATE_LABEL = { have: '있다', none: '아직 없다', move: '옮겨 온�
  */
 const PROGRESS = {
   done: {
-    counts: '사양에 담은 종류 중 실제로 파일이 나온 것',
-    note: '분모는 <b>11종 전부가 아니라 이 프로젝트의 출력 사양에 담은 종류</b>입니다. '
-      + '11종을 고정 분모로 쓰면 어떤 딜도 100% 가 되지 않아 <b>다 끝났는데도 덜 된 것처럼</b> 보입니다.',
+    counts: '이 프로젝트에서 나와야 하는 산출물 중 실제로 파일이 나온 것',
+    note: '분모는 <b>11종 전부가 아니라 이 프로젝트에서 나와야 하는 것</b>입니다 — '
+      + '언제나 나오는 것과, 사양의 형식에 들어간 것(PDF 등)까지. '
+      + '<b>조건부 산출물(탁상검토·법인가치)은 분모에 넣지 않습니다</b>: 넣으면 어떤 딜도 100% 가 '
+      + '되지 않아 <b>다 끝났는데도 덜 된 것처럼</b> 보입니다. 그렇다고 목록에서 빼지도 않습니다 — '
+      + '빼면 「나올 수 있는 문서가 있었다」는 사실이 사라집니다. <b>분모는 서버가 줍니다</b>('
+      + '<code>progress</code>) — 화면이 계산하면 산출물이 하나 늘 때 한쪽만 고치는 날 조용히 틀립니다.',
     states: [
-      { id: 'a', tab: '시작 전', pct: 0, count: '0 / 5종',
+      { id: 'a', tab: '시작 전', pct: 0, count: '0 / 7종',
         say: '아직 만든 것이 없습니다. 「새 보고서 생성」 탭에서 요청문과 자료를 넣으면 시작됩니다.' },
-      { id: 'b', tab: '만드는 중', pct: 60, count: '3 / 5종', on: true,
-        say: 'IM 원문·A4 인쇄본·PDF 가 나왔습니다. Teaser 와 검증 보고서는 아직입니다 — '
-          + '생성이 끝나면 목록에 나타납니다. <b>목록은 파일이 실제로 있는지로 판정합니다.</b>' },
-      { id: 'c', tab: '끝', pct: 100, count: '5 / 5종',
+      { id: 'b', tab: '만드는 중', pct: 43, count: '3 / 7종', on: true,
+        say: 'IM 원문·A4 인쇄본·뷰어 데이터가 나왔습니다. PDF·Teaser·검증·RED FLAG 는 아직입니다 — '
+          + '<b>무엇이 남았는지와 그 이유가 목록에 함께 뜹니다.</b>' },
+      { id: 'c', tab: '끝', pct: 100, count: '7 / 7종',
         say: '사양에 담은 것이 모두 나왔습니다. <b>내보내기 전에 배포 전 교차검증을 지나야 합니다</b> — '
           + '100% 는 「만들어졌다」이지 「보내도 된다」가 아닙니다.' },
     ],
@@ -207,7 +212,16 @@ function doneBody() {
     </li>`).join('');
   return `
   <p class="body__lede">한 프로젝트에서 나올 수 있는 산출물 <b>${api.OUTPUTS.length}종</b>입니다.
-    목록은 <b>파일이 실제로 있는지로</b> 판정합니다 — 「생성됨」 표시를 믿지 않습니다.</p>
+    목록은 <b>파일이 실제로 있는지로</b> 판정합니다 — 「생성됨」 표시를 믿지 않습니다.
+    화면(<code>outputs.html</code>)은 이 목록을 <b>나온 것 · 아직 안 나온 것 ·
+    이 딜에서는 안 나오는 것</b> 셋으로 나눠 보여 줍니다.</p>
+
+  <div class="callout callout--rule">
+    <div class="callout__t">100% 는 「보내도 된다」가 아닙니다</div>
+    <p>다 나왔다고 배포해도 되는 것이 아닌데 목록이 꽉 차 보이면 그대로 내보냅니다.
+      그래서 <b>배포 차단을 목록보다 위</b>에 띄우고, 차단이면 <b>내려받기 자체를 열지 않습니다</b> —
+      목록에서는 「차단」인데 파일은 열린다면 검증이 아무 의미도 없습니다.</p>
+  </div>
   <p class="stamp">아래는 <b>예시 목록</b>입니다. 프로젝트를 물리지 않았으므로 상태 표시는 비어 있습니다.</p>
   <ul class="docs">${rows}</ul>
   <p class="body__note"><b>이름에 「감정평가서」·「평가의견서」를 쓰지 않습니다.</b>

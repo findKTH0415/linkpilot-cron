@@ -38,8 +38,9 @@ test('구성안: 탭이 셋이고 각각 지금 있는지를 말한다', () => {
     assert.ok(['have', 'none', 'move'].includes(t.state), `${t.id}: state 가 없다`);
     assert.ok(t.stateText && t.stateText.length > 4, `${t.id}: stateText 가 없다`);
   });
-  // 실제로 있는 화면은 「새 보고서 생성」 하나뿐이다 (실측)
-  assert.equal(B.TABS.filter(t => t.state === 'have').length, 1);
+  // 2026-08-17 — 「완성 보고서」 화면을 만들어 둘이 되었다. 남은 것은 「자료」 하나다
+  assert.deepEqual(B.TABS.filter(t => t.state === 'have').map(t => t.id), ['done', 'make']);
+  assert.deepEqual(B.TABS.filter(t => t.state !== 'have').map(t => t.id), ['files']);
 });
 
 test('구성안: 목록·단계·형식·한도를 손으로 적지 않는다', () => {

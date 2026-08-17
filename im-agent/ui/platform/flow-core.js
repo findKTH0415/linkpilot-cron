@@ -83,6 +83,23 @@
     title: '보고서 생성',
     tab: '새 보고서 생성',
     tabNote: '외부 엔진(IM Agent) 4단계',
+    file: 'report-flow.html',
+    plan: 'pro',
+  };
+
+  /**
+   * 「완성 보고서」 탭 — 만들어진 산출물 목록 〈2026-08-17〉.
+   *
+   * ★ SECTION 과 나란히 둔다. 탭 이름이 두 파일에 흩어지면 한쪽만 고치는 날
+   *   탭 바와 화면이 다른 이름을 말한다.
+   * ★ 여기는 `title` 과 `tab` 이 같다 — 「새」를 붙일 이유가 없다.
+   */
+  var OUTPUTS_SECTION = {
+    id: 'done',
+    title: '완성 보고서',
+    tab: '완성 보고서',
+    tabNote: '만들어진 산출물 목록',
+    file: 'outputs.html',
     plan: 'pro',
   };
 
@@ -141,7 +158,8 @@
   }
 
   return {
-    STEPS: STEPS, WHY: WHY, EMBED_CSS: EMBED_CSS, SECTION: SECTION,
+    STEPS: STEPS, WHY: WHY, EMBED_CSS: EMBED_CSS,
+    SECTION: SECTION, OUTPUTS_SECTION: OUTPUTS_SECTION,
     stepState: stepState, urlFor: urlFor, stepOfFile: stepOfFile,
   };
 }));
