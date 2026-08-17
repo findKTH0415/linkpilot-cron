@@ -16,6 +16,7 @@ const { publishable } = require('../ui/platform/build-static.js');
 const api = require('../ui/report-api.cjs');
 const FLOW = require('../ui/platform/flow-core.js');
 const ex = require('../agents/02-extraction');
+const storage = require('../connectors/storage');
 
 const OUT = path.join(__dirname, '..', 'ui', 'platform', 'tabs-artifact.html');
 
@@ -58,8 +59,45 @@ test('구성안: 목록·단계·형식·한도를 손으로 적지 않는다', 
   });
 
   // 크기 한도 — api-router 의 상수와 같아야 한다
-  assert.ok(html.includes(`<b>${Math.round(api.MAX_FILE_BYTES / (1024 * 1024))}MB</b>`));
-  assert.ok(html.includes(`<b>${Math.round(api.MAX_REQUEST_BYTES / (1024 * 1024))}MB</b>`));
+  assert.ok(html.includes(`${Math.round(api.MAX_FILE_BYTES / (1024 * 1024))}MB`));
+  assert.ok(html.includes(`${Math.round(api.MAX_REQUEST_BYTES / (1024 * 1024))}MB`));
+
+  // 저장소 — connectors/storage.js 가 단일 출처다
+  storage.PROVIDER_IDS.forEach((id) => {
+    assert.ok(html.includes(storage.PROVIDERS[id].name), `저장소가 빠졌다: ${id}`);
+  });
+});
+
+/* ───────────── 자료 탭 — 보관하지 않고 연결한다 ───────────── */
+
+test('★ 자료 탭: 보관하지 않는다는 것과 그 대가를 함께 말한다', () => {
+  const html = B.build();
+  assert.match(html, /파일을 우리 서버로 옮기지 않고/);
+  assert.match(html, /끝나면 지웁니다/);
+  // 「보관 안 함」만 적고 끝내면 원본이 바뀌었을 때 아무도 모른다
+  assert.match(html, /원본은 사용자가 언제든 고치거나 지울 수 있고/);
+  assert.match(html, /지문\(sha256\)/);
+});
+
+test('★ 자료 탭: 열쇠를 갖는 쪽의 대가를 화면이 적는다', () => {
+  const html = B.build();
+  // 파일을 안 갖는 대신 토큰을 갖는다 — 그쪽이 새면 드라이브 전체가 샌다
+  assert.match(html, /열쇠를 보관하지 않습니다/);
+  assert.match(html, /열쇠를 보관합니다/);
+  assert.match(html, /드라이브 전체를 읽는 권한을 받지 않습니다/);
+});
+
+test('★ 자료 탭: 보관 용량 표를 없앴다 — 보관을 안 하면 잴 것이 없다', () => {
+  const html = B.build();
+  assert.ok(!html.includes('class="cap"'), '보관 용량 표가 남아 있다');
+  // 없앴다는 사실과 다시 정해야 한다는 것을 말한다. 조용히 사라지면 안 된다
+  assert.match(html, /보관 용량 표는 없앴습니다/);
+  assert.match(html, /다시 정해야 합니다/);
+});
+
+test('★ 자료 탭: 저장소를 안 쓰는 사람 문제를 미결로 남긴다', () => {
+  // 연결만 남기면 직접 올리던 사람은 자료를 넣을 방법이 사라진다
+  assert.match(B.build(), /직접 올리는 길을 남길지/);
 });
 
 test('구성안: 배포판이 아니라는 것을 화면이 말한다', () => {
@@ -69,11 +107,12 @@ test('구성안: 배포판이 아니라는 것을 화면이 말한다', () => {
   assert.match(html, /예시 목록/, '실제 데이터가 아니라는 표시가 없다');
 });
 
-test('구성안: 아직 정해지지 않은 용량을 「미정」으로 드러낸다', () => {
+test('구성안: 아직 없는 화면을 있는 것처럼 그리지 않는다', () => {
   const html = B.build();
-  // 빈칸으로 두면 「0」이나 「없음」으로 읽힌다
-  assert.ok((html.match(/class="und"/g) || []).length >= 3, '세 등급의 미정 표시가 없다');
-  assert.match(html, /추후 예정/, 'Biz 가 추후 예정이라는 것이 안 보인다');
+  // 셋 중 둘은 아직 화면이 없다. 안 적으면 다 있는 것으로 읽힌다
+  B.TABS.filter(t => t.state !== 'have').forEach((t) => {
+    assert.ok(html.includes(t.stateText), `${t.id}: 「없다」가 화면에 안 적혀 있다`);
+  });
 });
 
 test('구성안: 탭 순서가 두 가지라는 것을 함께 보여 준다', () => {
@@ -149,11 +188,13 @@ test('★ 진행 막대: 합계 % 를 만들지 않는 이유를 화면이 말�
   assert.match(B.PROGRESS.make.note, /1·2 는 사람이 채우고/);
 });
 
-test('★ 진행 막대: 분모가 없는 것은 막대를 그리지 않는다', () => {
-  // 등급별 상한이 미정이라 보관 용량은 분모가 없다.
-  // 없는 채로 막대를 그리면 「거의 찼다」가 근거 없이 보인다
-  assert.match(B.PROGRESS.files.note, /보관 용량 막대는 아직 만들지 않습니다/);
-  assert.match(B.PROGRESS.files.counts, /읽을 수 있는/);
+test('★ 진행 막대: 잴 것이 없는 것은 막대를 그리지 않는다', () => {
+  // 보관을 하지 않으므로 용량은 잴 대상 자체가 없다.
+  // 그래도 막대를 그리면 「거의 찼다」·「여유 있다」가 근거 없이 보인다
+  assert.match(B.PROGRESS.files.note, /보관 용량 막대는 만들지 않습니다/);
+  // 대신 재는 것은 「연결이 살아 있는가」다 — 보관하지 않아서 생긴 위험이 그것이다
+  assert.match(B.PROGRESS.files.counts, /그때 그 판/);
+  assert.match(B.PROGRESS.files.note, /물어봐야만 압니다/);
 });
 
 test('★ 진행 막대: 100% 가 「보내도 된다」로 읽히지 않게 한다', () => {

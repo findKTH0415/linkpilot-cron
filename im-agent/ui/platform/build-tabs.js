@@ -30,11 +30,15 @@ const AGENT = path.join(HERE, '..', '..');
 const FLOW = require('./flow-core.js');
 const api = require('../report-api.cjs');
 const ex = require(path.join(AGENT, 'agents', '02-extraction'));
+const storage = require(path.join(AGENT, 'connectors', 'storage'));
 
 const esc = (t) => String(t)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 const mb = (n) => `${Math.round(n / (1024 * 1024))}MB`;
+
+/** 소스의 **강조 표시**는 화면에서 글자 그대로 뜬다. 떼고 넣는다 */
+const plain = (t) => String(t).replace(/\*\*/g, '');
 
 /**
  * 탭 셋. `state` 는 **지금 이 저장소에 그 화면이 있는가**다 — 구성안에서 가장
@@ -57,10 +61,10 @@ const TABS = [
   },
   {
     id: 'files', order: 3, name: '자료',
-    sub: '프로젝트별 자료 보관',
-    state: 'move',
-    stateText: '옮겨 온다 — intake.html 의 자료 부분',
-    plan: '무료 (등급별 용량)',
+    sub: '내 저장소를 연결해서 씁니다',
+    state: 'none',
+    stateText: '아직 없다 — 서버 쪽(연결 장부)은 있고 그리는 화면이 없다',
+    plan: '무료',
   },
 ];
 
@@ -118,18 +122,19 @@ const PROGRESS = {
     ],
   },
   files: {
-    counts: '올린 자료 중 본문을 읽을 수 있는 것',
-    note: '이 막대는 <b>읽을 수 있는 자료의 비율</b>입니다. '
-      + '<b>보관 용량 막대는 아직 만들지 않습니다</b> — 등급별 상한이 미정이라 분모가 없습니다. '
-      + '분모 없이 막대를 그리면 「거의 찼다」·「여유 있다」가 <b>근거 없이</b> 보입니다.',
+    counts: '연결한 자료 중 지금도 그때 그 판인 것',
+    note: '이 막대는 <b>연결이 살아 있는가</b>입니다 — 자료를 우리 서버에 두지 않으므로, '
+      + '<b>원본이 바뀌었는지는 물어봐야만 압니다.</b> 안 물으면 문서는 그대로 멀쩡하고 근거만 사라집니다. '
+      + '<b>보관 용량 막대는 만들지 않습니다</b> — 보관을 하지 않으니 잴 것이 없습니다.',
     states: [
-      { id: 'a', tab: '없음', pct: 0, count: '0건',
-        say: '아직 올린 자료가 없습니다. 여기 올려 두면 보고서를 만들 때 그대로 씁니다.' },
-      { id: 'b', tab: '변환 필요', pct: 78, count: '7 / 9건', on: true,
-        say: '2건은 읽는 방법이 없는 형식입니다(<code>.tif</code>). PDF 나 PNG 로 바꿔 올리면 100% 가 됩니다 — '
-          + '<b>그때까지 그 2건의 내용은 보고서에 들어가지 않습니다.</b>' },
-      { id: 'c', tab: '전부 읽힘', pct: 100, count: '9 / 9건',
-        say: '올린 자료를 모두 읽을 수 있습니다. 스캔본에서 옮긴 글자는 <b>신뢰도를 낮춰</b> 표시합니다.' },
+      { id: 'a', tab: '연결 전', pct: 0, count: '0건',
+        say: '아직 연결한 자료가 없습니다. Dropbox·Box·Google Drive·OneDrive 에서 <b>파일을 고르면</b> '
+          + '여기 목록에 걸립니다 — <b>가져와 두지 않고 필요할 때만 읽습니다.</b>' },
+      { id: 'b', tab: '원본이 바뀜', pct: 67, count: '6 / 9건', on: true,
+        say: '3건은 <b>연결한 뒤 원본이 바뀌었습니다</b>(판 번호가 다릅니다). '
+          + '지금 보고서를 다시 만들면 <b>그때와 다른 값이 나옵니다</b> — 바뀐 3건을 확인하고 새 판으로 다시 거세요.' },
+      { id: 'c', tab: '전부 그대로', pct: 100, count: '9 / 9건',
+        say: '연결한 자료가 모두 읽었을 때 그대로입니다. 보고서의 숫자와 원본이 어긋나 있지 않습니다.' },
     ],
   },
 };
@@ -226,60 +231,81 @@ function makeBody() {
 }
 
 function filesBody() {
+  const providers = Object.keys(storage.PROVIDERS).map((id) => {
+    const p = storage.PROVIDERS[id];
+    return `
+    <div class="prov">
+      <div class="prov__n">${esc(p.name)}</div>
+      <div class="prov__s">${esc(plain(storage.SCOPE_NOTE[id]))}</div>
+    </div>`;
+  }).join('');
+
   const groups = ex.readGroups().map(g => `
     <div class="fmt">
       <div class="fmt__t">${esc(g.label)}${g.needsKey ? ' <span class="tag tag--warn">키 필요</span>' : ''}</div>
       <div class="fmt__e">${g.ext.map(e => `<code>${esc(e)}</code>`).join('')}</div>
     </div>`).join('');
 
+  const modes = Object.keys(storage.MODES).map((id) => {
+    const m = storage.MODES[id];
+    return `
+    <div class="mode${m.keepsToken ? ' mode--key' : ''}">
+      <div class="mode__h">
+        <span class="mode__n">${esc(m.name)}</span>
+        <span class="tag ${m.keepsToken ? 'tag--warn' : 'tag--ok'}">${m.keepsToken ? '열쇠를 보관합니다' : '열쇠를 보관하지 않습니다'}</span>
+      </div>
+      <p class="mode__d">${esc(plain(m.how))}</p>
+      <p class="mode__g">좋은 점 — ${esc(plain(m.good))}</p>
+      <p class="mode__b">대가 — ${esc(plain(m.bad))}</p>
+    </div>`;
+  }).join('');
+
   return `
-  <p class="body__lede">보고서를 만들지 않아도 <b>자료를 먼저 올려 두는 자리</b>입니다.
-    지금은 보고서 생성을 시작해야만 자료를 올릴 수 있어 순서가 거꾸로입니다 —
-    실무에서 자료는 보고서보다 먼저 모이고 <b>더 오래 삽니다</b>.</p>
+  <p class="body__lede">쓰시던 저장소를 <b>연결해서 씁니다.</b> 파일을 우리 서버로 옮기지 않고,
+    <b>값을 읽어야 할 때만 가져와 읽고 곧바로 지웁니다.</b> 자료는 계속 사용자의 저장소에 있고,
+    거기서 고치면 그것이 원본입니다.</p>
 
   <div class="callout callout--rule">
-    <div class="callout__t">여기서 숫자를 넣지 않습니다</div>
-    <p>출처 없는 숫자를 막는 검사(출처 필수 · 계산 항목 입력 금지 · 사양 확정)는
-      <b>보고서 생성 안에</b> 있습니다. 이 탭은 <b>파일만</b> 받고, 값을 뽑는 것은 지금과 똑같이
-      보고서 생성이 하며 같은 검사를 그대로 지납니다.</p>
+    <div class="callout__t">보관하지 않는 대신 무엇을 남기는가</div>
+    <p>파일은 안 남기지만 <b>어디서·어느 판을·언제 읽었는지와 그때의 지문(sha256)</b>은 남깁니다.
+      그것이 없으면 나중에 「이 숫자 어디서 나왔나」에 답할 수 없습니다 —
+      <b>원본은 사용자가 언제든 고치거나 지울 수 있고, 그때 문서에는 아무 표시도 안 남습니다.</b></p>
   </div>
 
   <div class="grid2">
     <section class="pane">
-      <h4 class="pane__t">올릴 수 있는 자료</h4>
+      <h4 class="pane__t">연결할 수 있는 저장소</h4>
+      ${providers}
+      <p class="pane__n">범위를 좁히는 방법을 저장소마다 적어 둡니다.
+        <b>자료 몇 건 때문에 드라이브 전체를 읽는 권한을 받지 않습니다.</b></p>
+
+      <h4 class="pane__t pane__t--2">읽을 수 있는 형식</h4>
       ${groups}
-      <div class="limits">
-        <span>파일 하나 <b>${mb(api.MAX_FILE_BYTES)}</b></span>
-        <span>한 번에 <b>${mb(api.MAX_REQUEST_BYTES)}</b></span>
-      </div>
-      <p class="pane__n">이 블록은 <b>지우는 것이 아니라 옮기는 것</b>입니다 —
-        크기 한도를 <b>미리</b> 알려 주는 자리가 지금은 여기뿐입니다.</p>
+      <p class="pane__n">형식 제한은 <b>연결해도 그대로</b>입니다 — 우리가 읽는 방법이 없는 파일은
+        저장소가 어디든 읽지 못합니다. 크기 한도(파일 하나 ${mb(api.MAX_FILE_BYTES)} ·
+        한 번에 ${mb(api.MAX_REQUEST_BYTES)})는 <b>직접 올리는 경우에만</b> 걸립니다.</p>
     </section>
 
     <section class="pane">
-      <h4 class="pane__t">보관 용량</h4>
-      <table class="cap">
-        <thead><tr><th>등급</th><th>상한</th><th>넘으면</th></tr></thead>
-        <tbody>
-          <tr><td>무료</td><td class="und">미정</td><td>업로드 차단<span class="cap__s">기존 자료는 그대로</span></td></tr>
-          <tr><td>Pro</td><td class="und">미정</td><td>별도 계산<span class="cap__s">10GB 블록</span></td></tr>
-          <tr><td>Biz</td><td class="und">추후 예정</td><td>별도 계산<span class="cap__s">임시 적용 중엔 알림만</span></td></tr>
-        </tbody>
-      </table>
-      <p class="pane__n"><b class="und">미정</b>은 아직 숫자가 없다는 뜻입니다.
-        정해지기 전에는 이 표가 화면에 이대로 뜨면 안 됩니다.</p>
+      <h4 class="pane__t">붙이는 방법 두 가지</h4>
+      ${modes}
 
-      <h4 class="pane__t pane__t--2">보관하는 동안</h4>
+      <h4 class="pane__t pane__t--2">연결한 뒤에 일어나는 일</h4>
       <ul class="vault">
-        <li><b>덮어쓰지 않습니다</b> — 같은 이름이면 이전 판이 휴지통으로</li>
-        <li><b>지우면 휴지통까지만</b> — 되돌릴 수 있습니다</li>
-        <li><b>바뀌면 대조에서 잡힙니다</b> — 저장할 때 남긴 해시로</li>
-        <li>휴지통을 비우려면 <b>며칠 지난 것인지</b>를 지정해야 합니다</li>
+        <li><b>연결만으로는 아무것도 가져오지 않습니다</b> — 목록에 걸릴 뿐입니다</li>
+        <li>읽을 때만 가져오고 <b>끝나면 지웁니다</b> — 지웠다는 것도 기록에 남깁니다</li>
+        <li><b>원본이 바뀌면 대조에서 잡힙니다</b> — 판 번호와 지문을 남겨 뒀기 때문입니다</li>
+        <li><b>연결을 끊어도 원본은 그대로</b>입니다 — 남의 드라이브를 지우지 않습니다</li>
+        <li>연결한 원본을 <b>우리가 다시 배포하지 않습니다</b> — 읽을 권한만 받았습니다</li>
       </ul>
-      <p class="pane__n">서버 쪽은 <b>이미 동작합니다</b> (<code>core/vault.js</code>).
-        이 탭은 그것을 <b>보여 주는 화면</b>입니다.</p>
+      <p class="pane__n">서버 쪽은 <b>이미 동작합니다</b> (<code>core/linked.js</code> ·
+        <code>connectors/storage.js</code>). 이 탭은 그것을 <b>보여 주는 화면</b>입니다.</p>
     </section>
-  </div>`;
+  </div>
+
+  <p class="body__note"><b>보관 용량 표는 없앴습니다.</b> 보관을 하지 않으므로 잴 것이 없습니다 —
+    등급별 용량으로 가르기로 했던 것(D-63)은 <b>다시 정해야 합니다.</b>
+    직접 올리는 길을 남길지도 함께 정해야 합니다.</p>`;
 }
 
 const BODIES = { done: doneBody, make: makeBody, files: filesBody };
@@ -553,6 +579,23 @@ h1 { font-size: 30px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 10px
 .fmt__e code { font-size: 11px !important; }
 .tag { font: 700 10px/1 inherit; padding: 3px 6px; border-radius: 5px; vertical-align: 1px; }
 .tag--warn { background: #FCF3E2; color: #7A5008; }
+.tag--ok { background: #EDF7DC; color: #4E6900; }
+
+/* 연결할 저장소 */
+.prov { padding: 9px 0; border-top: 1px solid #EDEFF1; }
+.prov:first-of-type { border-top: 0; padding-top: 0; }
+.prov__n { font: 700 13px/1.4 inherit; color: #17181A; }
+.prov__s { font-size: 12px; color: #7C838C; line-height: 1.6; margin-top: 2px; }
+
+/* 붙이는 방법 — 열쇠를 갖는 쪽은 눈에 띄게 다르다 */
+.mode { border: 1px solid #E8EAEC; border-radius: 10px; padding: 11px 13px; margin-bottom: 9px; background: #FFFFFF; }
+.mode--key { border-color: #F0DEBE; background: #FDF9F1; }
+.mode__h { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-bottom: 5px; }
+.mode__n { font: 700 13px/1.4 inherit; color: #17181A; }
+.mode p { margin: 0; font-size: 12px; line-height: 1.6; }
+.mode__d { color: #4A5158; margin-bottom: 5px !important; }
+.mode__g { color: #4E6900; }
+.mode__b { color: #7A5008; }
 
 .limits { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .limits span { font-size: 12px; color: #5C646D; background: #F1F2F4; border-radius: 7px; padding: 5px 10px; }
@@ -675,13 +718,18 @@ ${progressCss()}</style>
       <p class="card__s">화면부터 만들면 협력사 손에 있는 지침과 또 갈립니다. 그래서 순서를 고정해 두었습니다.</p>
       <ul class="todo">
         <li><span class="todo__b"></span><div><b>탭 순서</b> — 위 두 가지 중 하나</div></li>
-        <li><span class="todo__b"></span><div><b>무료·Pro 보관 용량 숫자</b> — 프로젝트당·계정 전체.
-          지금 있는 한도는 파일 하나·한 번에 뿐이고 <b>누적 보관 용량은 없습니다</b></div></li>
+        <li><span class="todo__b"></span><div><b>저장소 앱 등록</b> — Dropbox·Box·Google·Microsoft 콘솔에서
+          각각 앱을 만들고 <b>범위를 폴더로 좁혀야</b> 합니다. 이건 사람이 하는 일이고, 여기서 잘못 고르면
+          <b>드라이브 전체 권한이 붙습니다</b></div></li>
+        <li><span class="todo__b"></span><div><b>직접 올리는 길을 남길지</b> — 연결만 남기면
+          <b>저장소를 안 쓰는 사람은 자료를 넣을 방법이 없습니다</b></div></li>
+        <li><span class="todo__b"></span><div><b>자료 탭 등급</b> — 용량으로 가르기로 했는데
+          <b>보관을 안 하면 잴 것이 없습니다.</b> 연결 건수로 가를지 그냥 무료로 열지 다시 정해야 합니다</div></li>
         <li><span class="todo__b"></span><div><b>크론 이관처</b>(D-19) — 지침에서 사라진 기능을
           「이전 중」으로 쓸지 표에서 뺄지가 여기서 갈립니다</div></li>
         <li><span class="todo__b"></span><div><b>지침 재발행 판 날짜</b> — 현행 2026-08-14</div></li>
-        <li><span class="todo__b todo__b--ok"></span><div><b>자료 탭 등급</b> — 무료부터 열고 등급별 용량 차등 <i>(정해짐)</i></div></li>
-        <li><span class="todo__b todo__b--ok"></span><div><b>상한을 넘으면</b> — 무료는 차단, 유료는 별도 계산 <i>(정해짐)</i></div></li>
+        <li><span class="todo__b todo__b--ok"></span><div><b>자료를 보관하지 않는다</b> — 사용자 저장소를
+          연결해 읽을 때만 가져온다 <i>(정해짐)</i></div></li>
       </ul>
     </section>
   </div>

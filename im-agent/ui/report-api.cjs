@@ -397,6 +397,96 @@ function createHandlers(deps) {
       return ok(vault.verify(projectDir));
     },
 
+    /* ─────────── 연결 자료 — 보관하지 않는 쪽 (D-65) ─────────── */
+
+    /**
+     * GET /projects/:id/linked — 연결된 자료 목록.
+     *
+     * ★ 파일이 없다. 어디 있는지·어느 판인지·언제 읽었는지만 있다.
+     *   `unread` 는 **한 번도 안 읽어 지문이 없는 것**이다 — 값의 근거가 될 수 없다.
+     */
+    async listLinked(ctx, projectId) {
+      const g = gate(ctx, 'pro'); if (g.error) return g.error;
+      const e = checkId(projectId); if (e) return e;
+      const store = load('core/store');
+      const linked = load('core/linked');
+      const storage = load('connectors/storage');
+      const projectDir = store.projectDir(projectId);
+      if (!fs.existsSync(projectDir)) return bad('프로젝트를 찾을 수 없습니다', 404);
+
+      const l = linked.list(projectDir);
+      return ok({
+        ...l,
+        // 화면이 「어디에 붙일 수 있나」를 여기서 받는다. 복사해 두면 갈린다
+        providers: storage.PROVIDER_IDS.map(id => ({
+          id, name: storage.PROVIDERS[id].name, scopeNote: storage.SCOPE_NOTE[id],
+        })),
+        modes: storage.MODES,
+        // ★ 우리가 사본을 갖지 않는다는 사실을 응답이 말한다
+        storesCopies: false,
+      });
+    },
+
+    /**
+     * POST /projects/:id/linked — 자료를 연결한다. **가져오지 않는다.**
+     *
+     * ★ 판(rev)이 없으면 거절한다 — 파일만 가리키면 나중에 바뀌어도 알 수 없다.
+     * ★ 토큰이 본문에 섞여 오면 거절한다 (장부에 그대로 저장될 자리다).
+     */
+    async linkSource(ctx, projectId, body) {
+      const g = gate(ctx, 'pro'); if (g.error) return g.error;
+      const e = checkId(projectId); if (e) return e;
+      const store = load('core/store');
+      const linked = load('core/linked');
+      const projectDir = store.projectDir(projectId);
+      if (!fs.existsSync(projectDir)) return bad('프로젝트를 찾을 수 없습니다', 404);
+
+      const r = linked.link(projectDir, body && body.ref, { by: (g.user && g.user.name) || null });
+      if (!r.ok) return bad(r.reason);
+      return ok({ ...r, at: kstStamp(new Date()) });
+    },
+
+    /**
+     * DELETE /projects/:id/linked/:key — 연결을 끊는다.
+     * ★ **원본을 지우지 않는다.** 남의 드라이브다 — 응답이 그 구분을 말한다.
+     */
+    async unlinkSource(ctx, projectId, key) {
+      const g = gate(ctx, 'pro'); if (g.error) return g.error;
+      const e = checkId(projectId); if (e) return e;
+      const store = load('core/store');
+      const linked = load('core/linked');
+      const projectDir = store.projectDir(projectId);
+      if (!fs.existsSync(projectDir)) return bad('프로젝트를 찾을 수 없습니다', 404);
+
+      const r = linked.unlink(projectDir, key, { by: (g.user && g.user.name) || null });
+      if (!r.ok) return bad(r.reason, 404);
+      return ok({ ...r, at: kstStamp(new Date()) });
+    },
+
+    /**
+     * POST /projects/:id/linked/verify — 원본이 그때 그대로인가.
+     *
+     * ★ 여기가 「보관하지 않는다」의 대가를 갚는 자리다. 사본이 없으므로
+     *   **원본이 바뀌었는지는 물어봐야만 안다.** 안 물으면 문서는 멀쩡하고
+     *   근거만 사라진다.
+     *
+     * ★ 실제 조회기(`headLinked`)를 안 붙이면 **501 을 돌려준다.**
+     *   조용히 「이상 없음」을 내면 그것이 가장 나쁜 답이다.
+     */
+    async verifyLinked(ctx, projectId) {
+      const g = gate(ctx, 'pro'); if (g.error) return g.error;
+      const e = checkId(projectId); if (e) return e;
+      const store = load('core/store');
+      const linked = load('core/linked');
+      const projectDir = store.projectDir(projectId);
+      if (!fs.existsSync(projectDir)) return bad('프로젝트를 찾을 수 없습니다', 404);
+
+      if (typeof d.headLinked !== 'function') {
+        return bad('저장소 조회기가 붙어 있지 않습니다 — 원본이 그대로인지 확인할 수 없습니다', 501);
+      }
+      return ok(await linked.verify(projectDir, d.headLinked));
+    },
+
     /**
      * PUT /projects/:id/issuer — 발행 주체를 나중에 고친다.
      *
@@ -822,6 +912,12 @@ function createRouter(deps = {}) {
   router.post('/projects/:id/sources/purge', wrap(req => h.purgeSources(req, req.params.id, req.body)));
   router.post('/projects/:id/sources/verify', wrap(req => h.verifySources(req, req.params.id)));
   router.delete('/projects/:id/sources/:name', wrap(req => h.deleteSource(req, req.params.id, req.params.name)));
+
+  // 연결 자료 — 보관하지 않는 쪽 (D-65). /verify 를 :key 보다 먼저 등록한다
+  router.get('/projects/:id/linked', wrap(req => h.listLinked(req, req.params.id)));
+  router.post('/projects/:id/linked', wrap(req => h.linkSource(req, req.params.id, req.body)));
+  router.post('/projects/:id/linked/verify', wrap(req => h.verifyLinked(req, req.params.id)));
+  router.delete('/projects/:id/linked/:key', wrap(req => h.unlinkSource(req, req.params.id, req.params.key)));
   router.put('/projects/:id/issuer', wrap(req => h.saveIssuer(req, req.params.id, req.body)));
   router.get('/projects/:id/spec', wrap(req => h.getSpec(req, req.params.id)));
   router.post('/projects/:id/spec', wrap(req => h.saveSpec(req, req.params.id, req.body)));
