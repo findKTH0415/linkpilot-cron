@@ -42,6 +42,17 @@ const PLAN_RANK = { free: 0, basic: 1, pro: 2, business: 3 };
  */
 const DOC_PLANS = { im: 'pro', teaser: 'pro', summary: 'pro', validation: 'pro' };
 
+/**
+ * 자료 쪽 요구 플랜 — **연결과 1회성 올리기는 무료다** 〈2026-08-17 결정〉.
+ *
+ * ★ 잠그지 않는 이유: **자료를 못 넣으면 보고서를 만들 수도 없다.**
+ *   잠그면 유료 전환을 막는 쪽으로 작용한다.
+ * ★ 용량으로 가르지 않는 이유: **보관을 하지 않으므로 잴 것이 없다.**
+ * ★ 이 값은 아직 **화면에 노출되지 않는다** — 「자료」 탭은 지침 재발행 뒤에
+ *   만든다(D-63). 지침 §2 에 「자료(무료)」가 실려야 화면이 열린다.
+ */
+const FILES_PLAN = 'free';
+
 /** 화면에서 사람이 넣은 값의 표시. 다시 저장할 때 이전 입력을 찾아 지우는 데 쓴다 */
 const USER_NOTE = 'user_input';
 
@@ -406,7 +417,7 @@ function createHandlers(deps) {
      *   `unread` 는 **한 번도 안 읽어 지문이 없는 것**이다 — 값의 근거가 될 수 없다.
      */
     async listLinked(ctx, projectId) {
-      const g = gate(ctx, 'pro'); if (g.error) return g.error;
+      const g = gate(ctx, FILES_PLAN); if (g.error) return g.error;
       const e = checkId(projectId); if (e) return e;
       const store = load('core/store');
       const linked = load('core/linked');
@@ -434,7 +445,7 @@ function createHandlers(deps) {
      * ★ 토큰이 본문에 섞여 오면 거절한다 (장부에 그대로 저장될 자리다).
      */
     async linkSource(ctx, projectId, body) {
-      const g = gate(ctx, 'pro'); if (g.error) return g.error;
+      const g = gate(ctx, FILES_PLAN); if (g.error) return g.error;
       const e = checkId(projectId); if (e) return e;
       const store = load('core/store');
       const linked = load('core/linked');
@@ -451,7 +462,7 @@ function createHandlers(deps) {
      * ★ **원본을 지우지 않는다.** 남의 드라이브다 — 응답이 그 구분을 말한다.
      */
     async unlinkSource(ctx, projectId, key) {
-      const g = gate(ctx, 'pro'); if (g.error) return g.error;
+      const g = gate(ctx, FILES_PLAN); if (g.error) return g.error;
       const e = checkId(projectId); if (e) return e;
       const store = load('core/store');
       const linked = load('core/linked');
@@ -474,7 +485,7 @@ function createHandlers(deps) {
      *   조용히 「이상 없음」을 내면 그것이 가장 나쁜 답이다.
      */
     async verifyLinked(ctx, projectId) {
-      const g = gate(ctx, 'pro'); if (g.error) return g.error;
+      const g = gate(ctx, FILES_PLAN); if (g.error) return g.error;
       const e = checkId(projectId); if (e) return e;
       const store = load('core/store');
       const linked = load('core/linked');
@@ -485,6 +496,83 @@ function createHandlers(deps) {
         return bad('저장소 조회기가 붙어 있지 않습니다 — 원본이 그대로인지 확인할 수 없습니다', 501);
       }
       return ok(await linked.verify(projectDir, d.headLinked));
+    },
+
+    /**
+     * POST /projects/:id/oneshot — **한 번 읽고 버리는** 직접 업로드 (D-66).
+     *
+     * ★ 저장소를 안 쓰는 사람을 위한 길이다. **보관하지 않는다** — 받아서 읽고
+     *   지문만 남기고 파일은 버린다.
+     *
+     * ★★ 연결과 **위험이 다르다.** 연결 자료는 원본이 사용자 저장소에 남아
+     *   나중에 대조할 수 있지만, 1회성은 **우리도 원본을 안 갖고 어디 있는지도
+     *   모른다.** 그래서 응답이 `reusable:false` · `verifiable:false` 를 말한다 —
+     *   화면이 올리기 **전에** 그것을 알려야 한다.
+     */
+    async oneshotUpload(ctx, projectId, body) {
+      const g = gate(ctx, FILES_PLAN); if (g.error) return g.error;
+      const e = checkId(projectId); if (e) return e;
+      const store = load('core/store');
+      const oneshot = load('core/oneshot');
+      const dirOf = store.projectDir(projectId);
+      if (!fs.existsSync(dirOf)) return bad('프로젝트를 찾을 수 없습니다', 404);
+
+      const files = (body && Array.isArray(body.files)) ? body.files : null;
+      if (!files || !files.length) return bad('올릴 파일이 없습니다');
+      if (files.length > 50) return bad('한 번에 50개까지 올릴 수 있습니다');
+
+      const rejected = [];
+      const bufs = [];
+      let total = 0;
+      for (const f of files) {
+        const raw = String((f && f.name) || '');
+        let buf;
+        try { buf = Buffer.from(String(f.contentBase64 || ''), 'base64'); }
+        catch (_) { rejected.push({ name: raw, reason: '내용을 읽을 수 없습니다' }); continue; }
+        if (!buf.length) { rejected.push({ name: raw, reason: '빈 파일입니다' }); continue; }
+        if (buf.length > MAX_FILE_BYTES) {
+          rejected.push({ name: raw, reason: `파일이 너무 큽니다 (${mb(buf.length)}MB · 한도 ${mb(MAX_FILE_BYTES)}MB)` });
+          continue;
+        }
+        total += buf.length;
+        if (total > MAX_REQUEST_BYTES) {
+          rejected.push({ name: raw, reason: `한 번에 올릴 수 있는 총 용량을 넘었습니다 (한도 ${mb(MAX_REQUEST_BYTES)}MB)` });
+          continue;
+        }
+        bufs.push({ name: raw, buf });
+      }
+      if (!bufs.length) return ok({ accepted: [], rejected, reusable: false, at: kstStamp(new Date()) });
+
+      const r = oneshot.accept(dirOf, bufs, { by: (g.user && g.user.name) || null });
+      if (!r.ok) return bad(r.reason);
+
+      // ★ **여기서 바로 지운다.** 실제 추출은 생성이 돌 때 이 목록을 받아 읽고,
+      //   그 자리에서 다시 dispose 한다. 응답을 돌려주기 전에 파일이 남아 있으면
+      //   「1회성입니다」가 그 순간부터 거짓이다
+      const removed = r.dispose().removed;
+
+      return ok({
+        accepted: r.accepted,
+        rejected: rejected.concat(r.rejected),
+        removed,
+        // 화면이 올리기 전에 말해야 하는 것들
+        reusable: false,
+        verifiable: false,
+        note: '보관하지 않습니다 — 보고서를 다시 만들려면 다시 올려야 하고, '
+          + '나중에 원본과 대조할 수 없습니다.',
+        at: kstStamp(new Date()),
+      });
+    },
+
+    /** GET /projects/:id/oneshot — 1회성으로 들어온 자료의 **기록**. 파일은 없다 */
+    async listOneshot(ctx, projectId) {
+      const g = gate(ctx, FILES_PLAN); if (g.error) return g.error;
+      const e = checkId(projectId); if (e) return e;
+      const store = load('core/store');
+      const oneshot = load('core/oneshot');
+      const dirOf = store.projectDir(projectId);
+      if (!fs.existsSync(dirOf)) return bad('프로젝트를 찾을 수 없습니다', 404);
+      return ok(oneshot.list(dirOf));
     },
 
     /**
@@ -918,6 +1006,10 @@ function createRouter(deps = {}) {
   router.post('/projects/:id/linked', wrap(req => h.linkSource(req, req.params.id, req.body)));
   router.post('/projects/:id/linked/verify', wrap(req => h.verifyLinked(req, req.params.id)));
   router.delete('/projects/:id/linked/:key', wrap(req => h.unlinkSource(req, req.params.id, req.params.key)));
+
+  // 1회성 직접 올리기 — 저장소를 안 쓰는 사람의 길 (D-66). 보관하지 않는다
+  router.post('/projects/:id/oneshot', wrap(req => h.oneshotUpload(req, req.params.id, req.body)));
+  router.get('/projects/:id/oneshot', wrap(req => h.listOneshot(req, req.params.id)));
   router.put('/projects/:id/issuer', wrap(req => h.saveIssuer(req, req.params.id, req.body)));
   router.get('/projects/:id/spec', wrap(req => h.getSpec(req, req.params.id)));
   router.post('/projects/:id/spec', wrap(req => h.saveSpec(req, req.params.id, req.body)));

@@ -84,6 +84,101 @@ const PROVIDERS = {
 
 const PROVIDER_IDS = Object.keys(PROVIDERS);
 
+/* ────────────────────────── 폴더까지만 ────────────────────────── */
+
+/**
+ * **범위는 폴더까지만 받는다** 〈2026-08-17 결정〉.
+ *
+ * 자료 몇 건 때문에 드라이브 전체를 읽는 권한을 받지 않는다. 넓게 받아도
+ * **동작은 똑같아서** 잘못 등록한 것이 증상으로 드러나지 않는다 — 그래서
+ * 받을 수 있는 것과 받으면 안 되는 것을 코드가 들고 있는다.
+ *
+ * ★ 토큰 응답의 `scope` 로 **막을 수 있는 것은 막는다.** 다만 넷 중 하나는
+ *   스코프로 구분되지 않는다(아래 `verifiable:false`) — 그때는 **막을 수 없다고
+ *   말한다.** 「검사했다」로 넘어가면 안 한 것보다 나쁘다.
+ */
+const SCOPES = {
+  dropbox: {
+    // Dropbox 는 **앱 타입**(App folder / Full Dropbox)이 범위를 정하는데,
+    // 그 값이 토큰 응답에 실리지 않는다 — 같은 scope 문자열로 둘 다 나온다
+    verifiable: false,
+    allow: ['files.metadata.read', 'files.content.read'],
+    deny: [],
+    checklist: '앱 등록 화면에서 **Access type = App folder** 를 고른다. '
+      + 'Full Dropbox 로 만들면 **되돌릴 수 없고** 앱을 다시 만들어야 한다.',
+  },
+  box: {
+    // Box 도 폴더 제한은 「서비스 계정을 그 폴더의 협업자로 초대」로 하는 것이라
+    // 스코프에 안 나타난다
+    verifiable: false,
+    allow: ['base_explorer', 'item_download'],
+    deny: ['root_readwrite', 'root_readonly'],
+    checklist: '서비스 계정을 **그 폴더에만 협업자(Viewer)** 로 초대한다. '
+      + '기업 계정은 관리자 승인 범위도 폴더 단위로 좁힌다.',
+  },
+  gdrive: {
+    verifiable: true,
+    allow: ['https://www.googleapis.com/auth/drive.file'],
+    // 이 둘은 **드라이브 전체**다. 하나라도 있으면 연결을 거절한다
+    deny: [
+      'https://www.googleapis.com/auth/drive',
+      'https://www.googleapis.com/auth/drive.readonly',
+      'https://www.googleapis.com/auth/drive.metadata.readonly',
+    ],
+    checklist: '`drive.file` 만 요청한다 — 사용자가 피커로 고른 것만 보인다.',
+  },
+  onedrive: {
+    verifiable: true,
+    allow: ['Files.Read.Selected', 'offline_access'],
+    deny: ['Files.Read.All', 'Files.ReadWrite.All', 'Sites.Read.All', 'Sites.ReadWrite.All'],
+    checklist: '`Files.Read.Selected` 만 요청한다. `Files.Read.All` 은 조직 드라이브 전체다.',
+  },
+};
+
+/**
+ * 토큰 응답의 범위가 「폴더까지만」인가.
+ *
+ * @param granted 공백 또는 쉼표로 갈린 scope 문자열, 또는 배열
+ * @returns {{ok:boolean, verifiable:boolean, tooWide:string[], reason?:string}}
+ *
+ * ★ `verifiable:false` 는 **통과가 아니다.** 「코드로는 확인할 수 없으니
+ *   등록 화면을 사람이 확인해야 한다」는 뜻이고, 화면이 그렇게 말해야 한다.
+ */
+function checkScope(providerId, granted) {
+  const s = SCOPES[providerId];
+  if (!s) return { ok: false, verifiable: false, tooWide: [], reason: '모르는 저장소입니다' };
+
+  const list = Array.isArray(granted)
+    ? granted.map(String)
+    : String(granted || '').split(/[\s,]+/).filter(Boolean);
+
+  const tooWide = list.filter(g => s.deny.includes(g));
+  if (tooWide.length) {
+    return {
+      ok: false, verifiable: s.verifiable, tooWide,
+      reason: `범위가 폴더를 넘습니다 (${tooWide.join(' · ')}) — 폴더까지만 받습니다`,
+    };
+  }
+  if (!s.verifiable) {
+    return {
+      ok: true, verifiable: false, tooWide: [],
+      reason: '범위를 코드로 확인할 수 없습니다 — 등록 화면에서 사람이 확인해야 합니다',
+    };
+  }
+  if (!list.length) {
+    return { ok: false, verifiable: true, tooWide: [], reason: '허용된 범위가 비어 있습니다' };
+  }
+  return { ok: true, verifiable: true, tooWide: [] };
+}
+
+/** 콘솔에서 사람이 확인해야 하는 것. 화면과 문서가 같은 문장을 쓴다 */
+const REGISTRATION = PROVIDER_IDS.map(id => ({
+  provider: id,
+  name: PROVIDERS[id].name,
+  checklist: SCOPES[id].checklist,
+  verifiable: SCOPES[id].verifiable,
+}));
+
 /**
  * 붙이는 방법 둘. **먼저 권하는 쪽이 토큰을 안 갖는 쪽이다.**
  */
@@ -228,7 +323,7 @@ const SCOPE_NOTE = PROVIDER_IDS.reduce((a, id) => {
 }, {});
 
 module.exports = {
-  PROVIDERS, PROVIDER_IDS, MODES, SCOPE_NOTE,
-  normalizeRef, refKey, fingerprint,
+  PROVIDERS, PROVIDER_IDS, MODES, SCOPE_NOTE, SCOPES, REGISTRATION,
+  normalizeRef, refKey, fingerprint, checkScope,
   keepCopy, shareOutward, exportedNote,
 };

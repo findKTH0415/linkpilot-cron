@@ -61,9 +61,9 @@ const TABS = [
   },
   {
     id: 'files', order: 3, name: '자료',
-    sub: '내 저장소를 연결해서 씁니다',
+    sub: '연결하거나 1회성으로 올립니다',
     state: 'none',
-    stateText: '아직 없다 — 서버 쪽(연결 장부)은 있고 그리는 화면이 없다',
+    stateText: '아직 없다 — 서버 쪽(연결·1회성)은 있고 그리는 화면이 없다',
     plan: '무료',
   },
 ];
@@ -231,14 +231,13 @@ function makeBody() {
 }
 
 function filesBody() {
-  const providers = Object.keys(storage.PROVIDERS).map((id) => {
-    const p = storage.PROVIDERS[id];
-    return `
+  const providers = storage.REGISTRATION.map(r => `
     <div class="prov">
-      <div class="prov__n">${esc(p.name)}</div>
-      <div class="prov__s">${esc(plain(storage.SCOPE_NOTE[id]))}</div>
-    </div>`;
-  }).join('');
+      <div class="prov__n">${esc(r.name)}
+        <span class="tag ${r.verifiable ? 'tag--ok' : 'tag--warn'}">${r.verifiable ? '서버가 막습니다' : '사람이 확인합니다'}</span>
+      </div>
+      <div class="prov__s">${esc(plain(r.checklist))}</div>
+    </div>`).join('');
 
   const groups = ex.readGroups().map(g => `
     <div class="fmt">
@@ -246,66 +245,78 @@ function filesBody() {
       <div class="fmt__e">${g.ext.map(e => `<code>${esc(e)}</code>`).join('')}</div>
     </div>`).join('');
 
-  const modes = Object.keys(storage.MODES).map((id) => {
-    const m = storage.MODES[id];
-    return `
-    <div class="mode${m.keepsToken ? ' mode--key' : ''}">
-      <div class="mode__h">
-        <span class="mode__n">${esc(m.name)}</span>
-        <span class="tag ${m.keepsToken ? 'tag--warn' : 'tag--ok'}">${m.keepsToken ? '열쇠를 보관합니다' : '열쇠를 보관하지 않습니다'}</span>
-      </div>
-      <p class="mode__d">${esc(plain(m.how))}</p>
-      <p class="mode__g">좋은 점 — ${esc(plain(m.good))}</p>
-      <p class="mode__b">대가 — ${esc(plain(m.bad))}</p>
-    </div>`;
-  }).join('');
-
   return `
-  <p class="body__lede">쓰시던 저장소를 <b>연결해서 씁니다.</b> 파일을 우리 서버로 옮기지 않고,
-    <b>값을 읽어야 할 때만 가져와 읽고 곧바로 지웁니다.</b> 자료는 계속 사용자의 저장소에 있고,
-    거기서 고치면 그것이 원본입니다.</p>
+  <p class="body__lede">자료를 넣는 길이 <b>둘</b>입니다. 둘 다 <b>무료</b>이고, 둘 다
+    <b>보관하지 않습니다.</b></p>
+
+  <div class="ways">
+    <section class="way way--link">
+      <div class="way__h"><span class="way__n">① 저장소 연결</span><span class="tag tag--ok">권합니다</span></div>
+      <p class="way__d">쓰시던 Dropbox·Box·Google Drive·OneDrive 를 연결합니다.
+        <b>값을 읽어야 할 때만 가져와 읽고 곧바로 지웁니다.</b> 자료는 계속 사용자의 저장소에 있습니다.</p>
+      <p class="way__g">원본이 사용자 저장소에 남아 있어 <b>나중에 다시 읽고 대조할 수 있습니다.</b>
+        보고서를 다시 만들 때도 다시 올릴 필요가 없습니다.</p>
+    </section>
+
+    <section class="way way--once">
+      <div class="way__h"><span class="way__n">② 직접 올리기 (1회성)</span><span class="tag tag--warn">보관하지 않습니다</span></div>
+      <p class="way__d">저장소를 안 쓰셔도 자료를 넣을 수 있습니다. 받아서 <b>그 자리에서 읽고
+        파일은 버립니다</b> — 지문(sha256)과 이름·읽은 시각만 남습니다.</p>
+      <p class="way__b">대가 — <b>보고서를 다시 만들려면 다시 올려야 합니다.</b>
+        그리고 <b>나중에 원본과 대조할 수 없습니다</b>: 우리도 원본을 갖고 있지 않고
+        어디 있는지도 모릅니다. 이것은 올리기 <b>전에</b> 알려 드립니다.</p>
+    </section>
+  </div>
 
   <div class="callout callout--rule">
     <div class="callout__t">보관하지 않는 대신 무엇을 남기는가</div>
     <p>파일은 안 남기지만 <b>어디서·어느 판을·언제 읽었는지와 그때의 지문(sha256)</b>은 남깁니다.
       그것이 없으면 나중에 「이 숫자 어디서 나왔나」에 답할 수 없습니다 —
-      <b>원본은 사용자가 언제든 고치거나 지울 수 있고, 그때 문서에는 아무 표시도 안 남습니다.</b></p>
+      <b>원본은 언제든 바뀌거나 사라질 수 있고, 그때 문서에는 아무 표시도 안 남습니다.</b>
+      출처에 두 길이 <b>다르게</b> 찍힙니다: 연결은 「사본 보관 안 함」,
+      1회성은 「사본 보관 안 함 · <b>원본 재확인 불가</b>」.</p>
   </div>
 
   <div class="grid2">
     <section class="pane">
-      <h4 class="pane__t">연결할 수 있는 저장소</h4>
+      <h4 class="pane__t">연결 등록 — 범위는 폴더까지만</h4>
       ${providers}
-      <p class="pane__n">범위를 좁히는 방법을 저장소마다 적어 둡니다.
-        <b>자료 몇 건 때문에 드라이브 전체를 읽는 권한을 받지 않습니다.</b></p>
+      <p class="pane__n"><b>자료 몇 건 때문에 드라이브 전체를 읽는 권한을 받지 않습니다.</b>
+        넓게 받아도 <b>동작은 똑같아서</b> 잘못 등록한 것이 증상으로 드러나지 않습니다 —
+        Google·OneDrive 는 서버가 토큰 범위를 보고 <b>넓으면 연결을 거절</b>하고,
+        Dropbox·Box 는 범위가 토큰에 안 실려 <b>등록 화면에서 사람이 확인</b>해야 합니다.</p>
 
       <h4 class="pane__t pane__t--2">읽을 수 있는 형식</h4>
       ${groups}
-      <p class="pane__n">형식 제한은 <b>연결해도 그대로</b>입니다 — 우리가 읽는 방법이 없는 파일은
-        저장소가 어디든 읽지 못합니다. 크기 한도(파일 하나 ${mb(api.MAX_FILE_BYTES)} ·
+      <p class="pane__n">형식 제한은 <b>두 길 모두 같습니다</b> — 우리가 읽는 방법이 없는 파일은
+        어디서 오든 읽지 못합니다. 크기 한도(파일 하나 ${mb(api.MAX_FILE_BYTES)} ·
         한 번에 ${mb(api.MAX_REQUEST_BYTES)})는 <b>직접 올리는 경우에만</b> 걸립니다.</p>
     </section>
 
     <section class="pane">
-      <h4 class="pane__t">붙이는 방법 두 가지</h4>
-      ${modes}
+      <h4 class="pane__t">여기서 숫자를 넣지 않습니다</h4>
+      <p class="pane__x">출처 없는 숫자를 막는 검사(출처 필수 · 계산 항목 입력 금지 · 사양 확정)는
+        <b>보고서 생성 안에</b> 있습니다. 이 탭은 <b>파일만</b> 받고, 값을 뽑는 것은 지금과 똑같이
+        보고서 생성이 하며 같은 검사를 그대로 지납니다.</p>
 
-      <h4 class="pane__t pane__t--2">연결한 뒤에 일어나는 일</h4>
+      <h4 class="pane__t pane__t--2">넣은 뒤에 일어나는 일</h4>
       <ul class="vault">
         <li><b>연결만으로는 아무것도 가져오지 않습니다</b> — 목록에 걸릴 뿐입니다</li>
         <li>읽을 때만 가져오고 <b>끝나면 지웁니다</b> — 지웠다는 것도 기록에 남깁니다</li>
-        <li><b>원본이 바뀌면 대조에서 잡힙니다</b> — 판 번호와 지문을 남겨 뒀기 때문입니다</li>
+        <li><b>연결한 원본이 바뀌면 대조에서 잡힙니다</b> — 판 번호와 지문을 남겨 뒀기 때문입니다</li>
+        <li><b>1회성으로 올린 것은 대조할 수 없습니다</b> — 견줄 원본이 없습니다</li>
         <li><b>연결을 끊어도 원본은 그대로</b>입니다 — 남의 드라이브를 지우지 않습니다</li>
-        <li>연결한 원본을 <b>우리가 다시 배포하지 않습니다</b> — 읽을 권한만 받았습니다</li>
+        <li>넣으신 원본을 <b>우리가 다시 배포하지 않습니다</b> — 읽을 권한만 받았습니다</li>
       </ul>
       <p class="pane__n">서버 쪽은 <b>이미 동작합니다</b> (<code>core/linked.js</code> ·
-        <code>connectors/storage.js</code>). 이 탭은 그것을 <b>보여 주는 화면</b>입니다.</p>
+        <code>core/oneshot.js</code> · <code>connectors/storage.js</code>).
+        이 탭은 그것을 <b>보여 주는 화면</b>입니다.</p>
     </section>
   </div>
 
-  <p class="body__note"><b>보관 용량 표는 없앴습니다.</b> 보관을 하지 않으므로 잴 것이 없습니다 —
-    등급별 용량으로 가르기로 했던 것(D-63)은 <b>다시 정해야 합니다.</b>
-    직접 올리는 길을 남길지도 함께 정해야 합니다.</p>`;
+  <p class="body__note"><b>등급 — 자료는 무료입니다.</b> 잠그지 않는 이유는 하나입니다:
+    <b>자료를 못 넣으면 보고서를 만들 수도 없습니다.</b>
+    보관 용량으로 가르기로 했던 것(D-63)은 <b>없앴습니다</b> — 보관을 하지 않으므로 잴 것이 없습니다.</p>`;
 }
 
 const BODIES = { done: doneBody, make: makeBody, files: filesBody };
@@ -587,15 +598,18 @@ h1 { font-size: 30px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 10px
 .prov__n { font: 700 13px/1.4 inherit; color: #17181A; }
 .prov__s { font-size: 12px; color: #7C838C; line-height: 1.6; margin-top: 2px; }
 
-/* 붙이는 방법 — 열쇠를 갖는 쪽은 눈에 띄게 다르다 */
-.mode { border: 1px solid #E8EAEC; border-radius: 10px; padding: 11px 13px; margin-bottom: 9px; background: #FFFFFF; }
-.mode--key { border-color: #F0DEBE; background: #FDF9F1; }
-.mode__h { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-bottom: 5px; }
-.mode__n { font: 700 13px/1.4 inherit; color: #17181A; }
-.mode p { margin: 0; font-size: 12px; line-height: 1.6; }
-.mode__d { color: #4A5158; margin-bottom: 5px !important; }
-.mode__g { color: #4E6900; }
-.mode__b { color: #7A5008; }
+/* 자료를 넣는 두 길 — 대가가 다르므로 눈에 띄게 다르다 */
+.ways { display: grid; grid-template-columns: repeat(auto-fit, minmax(298px, 1fr)); gap: 12px; margin: 0 0 16px; }
+.way { border: 1px solid #E8EAEC; border-radius: 12px; padding: 13px 15px 14px; background: #FCFDFD; }
+.way--once { border-color: #F0DEBE; background: #FDF9F1; }
+.way__h { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 7px; }
+.way__n { font: 700 14px/1.4 inherit; color: #17181A; }
+.way p { margin: 0 0 7px; font-size: 12.5px; line-height: 1.7; }
+.way p:last-child { margin-bottom: 0; }
+.way__d { color: #3F464D; }
+.way__g { color: #4E6900; }
+.way__b { color: #7A5008; }
+.pane__x { margin: 0; font-size: 12.5px; line-height: 1.7; color: #4A5158; }
 
 .limits { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .limits span { font-size: 12px; color: #5C646D; background: #F1F2F4; border-radius: 7px; padding: 5px 10px; }
@@ -718,18 +732,22 @@ ${progressCss()}</style>
       <p class="card__s">화면부터 만들면 협력사 손에 있는 지침과 또 갈립니다. 그래서 순서를 고정해 두었습니다.</p>
       <ul class="todo">
         <li><span class="todo__b"></span><div><b>탭 순서</b> — 위 두 가지 중 하나</div></li>
-        <li><span class="todo__b"></span><div><b>저장소 앱 등록</b> — Dropbox·Box·Google·Microsoft 콘솔에서
-          각각 앱을 만들고 <b>범위를 폴더로 좁혀야</b> 합니다. 이건 사람이 하는 일이고, 여기서 잘못 고르면
-          <b>드라이브 전체 권한이 붙습니다</b></div></li>
-        <li><span class="todo__b"></span><div><b>직접 올리는 길을 남길지</b> — 연결만 남기면
-          <b>저장소를 안 쓰는 사람은 자료를 넣을 방법이 없습니다</b></div></li>
-        <li><span class="todo__b"></span><div><b>자료 탭 등급</b> — 용량으로 가르기로 했는데
-          <b>보관을 안 하면 잴 것이 없습니다.</b> 연결 건수로 가를지 그냥 무료로 열지 다시 정해야 합니다</div></li>
+        <li><span class="todo__b"></span><div><b>저장소 앱 등록 실행</b> — Dropbox·Box·Google·Microsoft
+          콘솔에서 각각 앱을 만듭니다. <b>범위는 폴더까지만</b>으로 정했고, 무엇을 골라야 하는지는
+          위 「연결 등록」 칸에 저장소마다 적혀 있습니다</div></li>
+        <li><span class="todo__b"></span><div><b>OAuth 흐름·실제 내려받기</b> — 본체 플랫폼이 넣습니다.
+          토큰이 거기 있고, 이 저장소로 가져오면 <b>공개 저장소에 시크릿이 붙는 셈</b>입니다</div></li>
         <li><span class="todo__b"></span><div><b>크론 이관처</b>(D-19) — 지침에서 사라진 기능을
           「이전 중」으로 쓸지 표에서 뺄지가 여기서 갈립니다</div></li>
         <li><span class="todo__b"></span><div><b>지침 재발행 판 날짜</b> — 현행 2026-08-14</div></li>
         <li><span class="todo__b todo__b--ok"></span><div><b>자료를 보관하지 않는다</b> — 사용자 저장소를
           연결해 읽을 때만 가져온다 <i>(정해짐)</i></div></li>
+        <li><span class="todo__b todo__b--ok"></span><div><b>연결 범위는 폴더까지만</b> — 드라이브 전체
+          권한을 받지 않는다 <i>(정해짐)</i></div></li>
+        <li><span class="todo__b todo__b--ok"></span><div><b>직접 올리는 길을 남긴다 (1회성)</b> — 저장소를
+          안 쓰는 사람도 넣을 수 있게. 받아서 읽고 파일은 버린다 <i>(정해짐)</i></div></li>
+        <li><span class="todo__b todo__b--ok"></span><div><b>자료는 무료</b> — 용량으로 가르지 않는다
+          (보관을 안 하므로 잴 것이 없다) <i>(정해짐)</i></div></li>
       </ul>
     </section>
   </div>

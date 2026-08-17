@@ -70,34 +70,45 @@ test('구성안: 목록·단계·형식·한도를 손으로 적지 않는다', 
 
 /* ───────────── 자료 탭 — 보관하지 않고 연결한다 ───────────── */
 
-test('★ 자료 탭: 보관하지 않는다는 것과 그 대가를 함께 말한다', () => {
+test('★ 자료 탭: 넣는 길이 둘이고 둘 다 보관하지 않는다', () => {
   const html = B.build();
-  assert.match(html, /파일을 우리 서버로 옮기지 않고/);
-  assert.match(html, /끝나면 지웁니다/);
+  assert.match(html, /① 저장소 연결/);
+  assert.match(html, /② 직접 올리기 \(1회성\)/);
+  assert.match(html, /둘 다\s*<b>무료<\/b>이고, 둘 다\s*<b>보관하지 않습니다\.<\/b>/);
   // 「보관 안 함」만 적고 끝내면 원본이 바뀌었을 때 아무도 모른다
-  assert.match(html, /원본은 사용자가 언제든 고치거나 지울 수 있고/);
+  assert.match(html, /원본은 언제든 바뀌거나 사라질 수 있고/);
   assert.match(html, /지문\(sha256\)/);
 });
 
-test('★ 자료 탭: 열쇠를 갖는 쪽의 대가를 화면이 적는다', () => {
+test('★★ 자료 탭: 1회성의 대가를 올리기 전에 말한다', () => {
   const html = B.build();
-  // 파일을 안 갖는 대신 토큰을 갖는다 — 그쪽이 새면 드라이브 전체가 샌다
-  assert.match(html, /열쇠를 보관하지 않습니다/);
-  assert.match(html, /열쇠를 보관합니다/);
-  assert.match(html, /드라이브 전체를 읽는 권한을 받지 않습니다/);
+  // 연결과 위험이 다르다 — 우리도 원본을 안 갖고 어디 있는지도 모른다
+  assert.match(html, /보고서를 다시 만들려면 다시 올려야 합니다/);
+  assert.match(html, /나중에 원본과 대조할 수 없습니다/);
+  assert.match(html, /올리기 <b>전에<\/b> 알려/);
+  // 출처에서 두 길이 갈린다는 것도 말한다
+  assert.match(html, /원본 재확인 불가/);
 });
 
-test('★ 자료 탭: 보관 용량 표를 없앴다 — 보관을 안 하면 잴 것이 없다', () => {
+test('★ 자료 탭: 범위는 폴더까지만 — 서버가 막는 것과 못 막는 것을 갈라 적는다', () => {
+  const html = B.build();
+  assert.match(html, /범위는 폴더까지만/);
+  assert.match(html, /드라이브 전체를 읽는 권한을 받지 않습니다/);
+  // 못 막는 둘을 「막았다」로 읽히게 두지 않는다
+  assert.match(html, /서버가 막습니다/);
+  assert.match(html, /사람이 확인합니다/);
+  storage.REGISTRATION.forEach((r) => {
+    assert.ok(html.includes(r.name), `저장소가 빠졌다: ${r.provider}`);
+  });
+});
+
+test('★ 자료 탭: 무료이고, 보관 용량 표는 없앴다', () => {
   const html = B.build();
   assert.ok(!html.includes('class="cap"'), '보관 용량 표가 남아 있다');
-  // 없앴다는 사실과 다시 정해야 한다는 것을 말한다. 조용히 사라지면 안 된다
-  assert.match(html, /보관 용량 표는 없앴습니다/);
-  assert.match(html, /다시 정해야 합니다/);
-});
-
-test('★ 자료 탭: 저장소를 안 쓰는 사람 문제를 미결로 남긴다', () => {
-  // 연결만 남기면 직접 올리던 사람은 자료를 넣을 방법이 사라진다
-  assert.match(B.build(), /직접 올리는 길을 남길지/);
+  assert.match(html, /등급 — 자료는 무료입니다/);
+  // 잠그지 않는 이유를 적는다 — 안 적으면 다음 사람이 다시 잠근다
+  assert.match(html, /자료를 못 넣으면 보고서를 만들 수도 없습니다/);
+  assert.match(html, /보관을 하지 않으므로 잴 것이 없습니다/);
 });
 
 test('구성안: 배포판이 아니라는 것을 화면이 말한다', () => {
