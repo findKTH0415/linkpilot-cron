@@ -188,7 +188,7 @@ async function main() {
     return frame(s, String(i + 1), f);
   }).join('');
 
-  const { changePanel, evidencePanel } = require('./build-preview.js');
+  const { changePanel, evidencePanel, vaultPanel, deskPanel } = require('./build-preview.js');
 
   const html = `<!doctype html>
 <html lang="ko">
@@ -223,6 +223,8 @@ async function main() {
 </div>
 ${changePanel()}
 ${evidencePanel()}
+${vaultPanel()}
+${deskPanel()}
 ${panels}
 </body>
 </html>
@@ -276,7 +278,7 @@ async function buildArtifact(opt) {
     process.stderr.write(`  ${i + 1}. ${s.name} — ${Math.round(part.html.length / 1024)}KB\n`);
   });
 
-  const { changePanel, evidencePanel } = require('./build-preview.js');
+  const { changePanel, evidencePanel, vaultPanel, deskPanel } = require('./build-preview.js');
   const lead = only ? LEADS[only] : null;
   const frag = only ? `<title>${esc(lead.title)}</title>
 <style>
@@ -295,11 +297,13 @@ ${css.join('\n')}
 </style>
 <div class="lead">
   <h1 class="lead__t">보고서 생성 섹션</h1>
-  <p class="lead__d">LinkPilot 앱에 붙는 4단계 화면과, 지금까지 한 일을 확인하는 두 패널입니다.
+  <p class="lead__d">LinkPilot 앱에 붙는 4단계 화면과, 지금까지 한 일을 확인하는 패널들입니다.
     화면은 <b>만들 때 미리 그려서</b> 넣었습니다 — 그대로 보이지만 눌리지는 않습니다.</p>
 </div>
 ${changePanel()}
 ${evidencePanel()}
+${vaultPanel()}
+${deskPanel()}
 ${body.join('')}
 `;
 

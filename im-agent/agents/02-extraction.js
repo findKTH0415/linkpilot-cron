@@ -422,6 +422,16 @@ async function run(input, ctx) {
 
   if (!files.length) ctx.warn('02_Source_Data 에 원본자료가 없다 — 추출할 것이 없음');
 
+  // ★ 건너뛴 것을 **말한다.** 휴지통은 안 읽는 것이 맞지만, 「지웠는데도 값이
+  //   그대로다」·「올렸는데 안 읽혔다」의 원인이 여기일 때 로그가 없으면
+  //   찾을 방법이 없다. 조용히 빠지는 것이 이 시스템에서 가장 비싼 실패다.
+  if (!input.files) {
+    for (const x of store.listExcludedSourceFiles(input.projectId)) {
+      if (!x.files) continue;
+      ctx.warn(`읽지 않음: ${x.name} (${x.files}건, ${Math.round(x.size / 1024)}KB) — ${x.why}`);
+    }
+  }
+
   const avgConf = facts.length ? facts.reduce((a, f) => a + f.confidence, 0) / facts.length : 0;
   return { facts, documents, unsupported, confidence: round(avgConf, 3) };
 }

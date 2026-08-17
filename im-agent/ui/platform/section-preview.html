@@ -229,11 +229,26 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
 <section class="upd">
   <div class="upd__h">
     <h2 class="upd__t">이번에 바뀐 것</h2>
-    <span class="upd__at">최근 반영 2026-08-16 (KST)</span>
+    <span class="upd__at">최근 반영 2026-08-17 (KST)</span>
   </div>
   <p class="upd__s">아래 화면에 이미 반영되어 있습니다. <b>무엇이 · 왜 · 어떻게</b> 바뀌었는지
     함께 적습니다 — 전과 후를 나란히 두어야 무엇이 달라졌는지 눈으로 비교됩니다.</p>
   
+    <div class="upd__g">
+      <div class="upd__d">2026-08-17</div>
+      <ul class="upd__l">
+        <li>
+          <b>자료를 서버에 보관하는 계층을 만들었다 — 지금까지는 쓰기 한 줄이 전부였다</b>
+          <em>서버 · 올린 자료 보관 (core/vault.js)</em>
+          <span>올린 자료는 fs.writeFileSync(02_Source_Data/이름, 버퍼) 한 줄로 저장되고 있었다. 그 한 줄에 네 가지가 없었다. 첫째, 같은 이름을 올리면 이전 파일이 조용히 사라진다 — 되돌릴 방법이 없고 화면에는 「저장됨」만 뜬다. 둘째, 디스크가 차거나 프로세스가 죽으면 잘린 파일이 최종 이름으로 남는데 그 파일은 열리기는 해서 「원본이 이상하다」로만 보인다. 셋째, 해시가 없어 그 파일이 그때 그 파일인지 증명할 수 없다 — 이 시스템의 전제가 「출처 없는 숫자는 들어오지 못한다」인데, 출처가 되는 파일이 바뀌었는지 모르면 출처 표시는 반쪽이다. 넷째, 지울 방법이 아예 없었다. 잘못 올린 남의 딜 자료도 그대로 남는다 — 보관 리스크를 줄이는 첫 번째 수단은 덜 보관하는 것인데 그 길이 없었다. 그래서 저장을 계층으로 뺐다: 임시 파일에 쓰고 fsync 한 뒤 rename 하고(최종 이름은 다 쓴 파일로만 나타난다), sha256 을 장부에 남기고, 같은 이름이 오면 덮어쓰는 대신 이전 판을 휴지통으로 보낸다. 지우기도 휴지통까지만이고, 정말 없애려면 며칠 지난 것인지를 지정해 따로 불러야 한다 — 되돌릴 수 없는 동작에 기본값을 두지 않는다. 붙이면서 더 위험한 것을 찾았다: store.listSourceFiles() 가 02_Source_Data 를 재귀로 훑으면서 숨김 파일을 거르지 않아, 휴지통을 만들면 「버린 자료가 다시 추출되어 보고서에 실릴」 참이었다. 지운 사람은 지운 줄 알고 있으므로 아무도 눈치채지 못한다. 거르되 무엇을 걸렀는지 생성 로그에 남긴다 — 조용히 빠지면 원인이 어디에도 안 남는다.</span>
+          <div class="upd__ba">
+            <div class="upd__b"><em>전</em>같은 이름을 올리면 이전 파일이 사라지고, 지울 방법이 없고, 바뀌어도 알 수 없었다</div>
+            <div class="upd__a"><em>후</em>덮어쓴 판이 휴지통에 남고, 해시로 대조하며, 지우기는 되돌릴 수 있다</div>
+          </div>
+          <span class="upd__see">확인: 아래 [눈으로 확인 — 올린 자료를 보관하는 동안 잃지 않는가] 패널. 화면에는 아직 안 보인다 — 목록·지우기 화면은 「자료」 탭(D-63)이 생길 때 붙는다</span>
+        </li>
+      </ul>
+    </div>
     <div class="upd__g">
       <div class="upd__d">2026-08-16</div>
       <ul class="upd__l">
@@ -784,6 +799,65 @@ LTC 65%</pre>
       <pre class="ev__o">.tiff 는 변환 없이는 못 읽습니다 — PDF 나 PNG 로 저장해서 올립니다 (스캐너 설정에서 바꿀 수 있습니다)
 → 넘어갈 곳이 없습니다. 바꿔서 올려야 합니다</pre>
     </div>
+</section>
+<section class="ev">
+  <h2 class="ev__t">눈으로 확인 — 올린 자료를 보관하는 동안 잃지 않는가</h2>
+  <p class="ev__s">아래는 이 미리보기를 만들 때 임시 폴더에서 <b>실제로 <code>core/vault.js</code> 를 돌려</b>
+    얻은 결과입니다. 손으로 적은 예시가 아닙니다. 이 계층의 실패는 <b>전부 조용합니다</b> —
+    덮어써도 화면에는 「저장됨」만 뜨고, 파일이 바뀌어도 보고서는 그대로 나오며 출처 표시도 멀쩡합니다.
+    그래서 「되는가」가 아니라 <b>「잃지 않는가」</b>를 확인합니다.</p>
+  <div class="ev__c">
+    <div class="ev__n">같은 이름을 다시 올렸다</div>
+    <div class="ev__m">이전 판이 사라지는가</div>
+    <pre class="ev__o">저장: 사업계획서.pdf (85242101ff5c…)
+덮어쓴 판: 사업계획서.9f2192d08be6.pdf
+→ 휴지통에 남아 있음 1건 — 되돌릴 수 있다
+→ 이전 해시 9f2192d08be6… 와 일치: true</pre>
+  </div><div class="ev__c">
+    <div class="ev__n">같은 파일을 다시 올렸다</div>
+    <div class="ev__m">세대가 늘어나 용량만 먹는가</div>
+    <pre class="ev__o">duplicate: true · 휴지통 1건 (늘지 않는다)</pre>
+  </div><div class="ev__c bad">
+    <div class="ev__n">보관 중인 파일이 바뀌었다</div>
+    <div class="ev__m">증상이 없는 사고를 잡는가</div>
+    <pre class="ev__o">바뀌기 전: 대조 통과 true (2건 확인)
+바뀐 뒤 : 대조 통과 false · 불일치 1건
+  감정평가서.pdf
+  기대 ddf73a343559af61…
+  실제 12ecc04050cfa982…</pre>
+  </div><div class="ev__c bad">
+    <div class="ev__n">장부에 없는 파일이 있다</div>
+    <div class="ev__m">조용히 무시하는가</div>
+    <pre class="ev__o">장부 밖 파일 1건: 몰래넣은자료.xlsx
+→ 없던 것으로 치지 않는다. reconcile() 로 등록해야 대조가 통과한다</pre>
+  </div><div class="ev__c">
+    <div class="ev__n">자료를 지웠다</div>
+    <div class="ev__m">정말 없어지는가</div>
+    <pre class="ev__o">휴지통으로 이동: 몰래넣은자료.2d711642b726.xlsx
+원본 위치에 남아 있는가: false
+→ 되돌릴 수 있다. 정말 없애려면 며칠 지난 것인지를 지정해 따로 비운다</pre>
+  </div><div class="ev__c">
+    <div class="ev__n">휴지통을 비우려 했다</div>
+    <div class="ev__m">되돌릴 수 없는 동작에 기본값이 있는가</div>
+    <pre class="ev__o">날짜를 안 주면: &quot;olderThanDays 를 지정해야 합니다 (몇 일 지난 것을 없앨지)&quot;
+날짜만 주면 : dryRun=true · 지워질 것 2건 (아직 안 지운다)
+→ confirm 을 줘야 실제로 지운다</pre>
+  </div><div class="ev__c">
+    <div class="ev__n">추출기가 무엇을 읽는가</div>
+    <div class="ev__m">버린 자료가 다시 실리는가</div>
+    <pre class="ev__o">읽는 것 2건: 감정평가서.pdf, 사업계획서.pdf
+읽지 않는 것:
+  .tmp (0건) — 저장하다 만 조각
+  .trash (2건) — 휴지통 — 버린 자료라 읽지 않습니다
+  .vault-log.jsonl (1건) — 보관 기록
+  .vault.json (1건) — 보관 장부</pre>
+  </div><div class="ev__c">
+    <div class="ev__n">용량은 무엇을 세는가</div>
+    <div class="ev__m">§3-1 이 정한 대로인가</div>
+    <pre class="ev__o">원본 2건 0.06KB · 휴지통 2건 0.04KB
+청구 기준 = 원본 + 휴지통 = 0.10KB
+쓰다 만 조각(.tmp) 0건 0.00KB — 청구엔 안 넣되 합계에서 숨기지 않는다</pre>
+  </div>
 </section>
 <section class="ev">
   <h2 class="ev__t">눈으로 확인 — 탁상검토 보고서가 값을 내지 않는 경우</h2>

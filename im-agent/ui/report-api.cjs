@@ -17,6 +17,13 @@
  *   POST /projects/:id/spec/confirm    사양 확정 — 사람만
  *   GET  /projects/:id/reports         산출물 목록 (파일 존재 여부로 판정)
  *   POST /projects/:id/reports         생성 시작
+ *
+ *   POST   /projects/:id/sources          자료 보관 (core/vault.js 경유)
+ *   GET    /projects/:id/sources          보관 목록 · 휴지통 · 용량
+ *   DELETE /projects/:id/sources/:name    지우기 — **휴지통으로만**
+ *   POST   /projects/:id/sources/restore  되돌리기
+ *   POST   /projects/:id/sources/purge    휴지통 비우기 — 되돌릴 수 없다
+ *   POST   /projects/:id/sources/verify   보관한 파일이 그대로인지 대조
  */
 
 const fs = require('fs');
@@ -207,12 +214,17 @@ function createHandlers(deps) {
     /**
      * POST /projects/:id/sources — 원본 자료를 올린다.
      *
-     * ★ 파일명을 그대로 쓰지 않는다. `../` 하나로 프로젝트 폴더 밖에 쓸 수 있다.
-     *   basename 으로 자르고, 최종 경로가 02_Source_Data 안인지 다시 확인한다.
+     * ★ 저장은 **core/vault.js 를 거친다.** 직접 writeFileSync 하지 않는다 —
+     *   그러면 덮어쓰기·잘린 파일·해시 없음·지울 방법 없음이 그대로 돌아온다.
+     *   경로 조작 차단(basename + 안쪽 확인)도 vault 안에 있다.
      *
      * ★ 읽지 못하는 형식도 **거부하지 않고 저장하되 그렇다고 말한다.**
      *   PDF 원본을 보관해야 할 이유는 많다. 다만 본문이 추출되지 않는다는 사실을
      *   올린 직후에 알려야 한다 — 추출 단계에서야 알면 이미 늦다.
+     *
+     * ★ 같은 이름을 다시 올리면 **이전 파일이 휴지통으로 간다.** 응답의
+     *   `replaced` 로 그 사실을 돌려준다 — 조용히 바뀌면 사용자는 옛 파일이
+     *   아직 있다고 믿는다.
      */
     async uploadSources(ctx, projectId, body) {
       const g = gate(ctx, 'pro'); if (g.error) return g.error;
@@ -224,8 +236,9 @@ function createHandlers(deps) {
 
       const store = load('core/store');
       const ext02 = load('agents/02-extraction');
-      const dir = path.join(store.projectDir(projectId), '02_Source_Data');
-      if (!fs.existsSync(dir)) return bad('프로젝트를 찾을 수 없습니다', 404);
+      const vault = load('core/vault');
+      const projectDir = store.projectDir(projectId);
+      if (!fs.existsSync(path.join(projectDir, '02_Source_Data'))) return bad('프로젝트를 찾을 수 없습니다', 404);
 
       const saved = [];
       const rejected = [];
@@ -233,45 +246,37 @@ function createHandlers(deps) {
 
       for (const f of files) {
         const raw = String((f && f.name) || '');
-        // ★ 경로 조작 차단 — basename 으로 자른 뒤 결과 경로를 다시 확인한다
-        const name = path.basename(raw).replace(/[\u0000-\u001f\u007f]/g, '').trim();
-        if (!name || name.startsWith('.')) {
-          rejected.push({ name: raw, reason: '파일명이 올바르지 않습니다' });
-          continue;
-        }
-        const full = path.join(dir, name);
-        if (path.relative(dir, full).includes('..') || path.dirname(full) !== dir) {
-          rejected.push({ name: raw, reason: '경로가 올바르지 않습니다' });
-          continue;
-        }
 
         let buf;
         try {
           buf = Buffer.from(String(f.contentBase64 || ''), 'base64');
         } catch (_) {
-          rejected.push({ name, reason: '내용을 읽을 수 없습니다' });
+          rejected.push({ name: raw, reason: '내용을 읽을 수 없습니다' });
           continue;
         }
-        if (!buf.length) { rejected.push({ name, reason: '빈 파일입니다' }); continue; }
+        if (!buf.length) { rejected.push({ name: raw, reason: '빈 파일입니다' }); continue; }
         if (buf.length > MAX_FILE_BYTES) {
-          rejected.push({ name, reason: `파일이 너무 큽니다 (${mb(buf.length)}MB · 한도 ${mb(MAX_FILE_BYTES)}MB)` });
+          rejected.push({ name: raw, reason: `파일이 너무 큽니다 (${mb(buf.length)}MB · 한도 ${mb(MAX_FILE_BYTES)}MB)` });
           continue;
         }
         total += buf.length;
         if (total > MAX_REQUEST_BYTES) {
-          rejected.push({ name, reason: `한 번에 올릴 수 있는 총 용량을 넘었습니다 (한도 ${mb(MAX_REQUEST_BYTES)}MB)` });
+          rejected.push({ name: raw, reason: `한 번에 올릴 수 있는 총 용량을 넘었습니다 (한도 ${mb(MAX_REQUEST_BYTES)}MB)` });
           continue;
         }
 
+        // ★ 저장·해시·세대 보존·원자적 쓰기·경로 조작 차단은 전부 vault 안에 있다
+        let put;
         try {
-          fs.writeFileSync(full, buf);
+          put = vault.put(projectDir, raw, buf, { by: (g.user && g.user.name) || null });
         } catch (err) {
-          rejected.push({ name, reason: `저장 실패: ${err.message}` });
+          rejected.push({ name: raw, reason: `저장 실패: ${err.message}` });
           continue;
         }
+        if (!put.ok) { rejected.push({ name: raw, reason: put.reason }); continue; }
 
         // ★ 올린 **직후에** 어떻게 읽을지 말한다. 추출 단계에서야 알면 늦다
-        const lower = path.extname(name).toLowerCase();
+        const lower = path.extname(put.name).toLowerCase();
         const how = ext02.FORMATS[lower];
         const NOTE = {
           text: null,
@@ -282,14 +287,114 @@ function createHandlers(deps) {
           convert: `이 형식은 읽지 못합니다 — ${ext02.CONVERT_HINT[lower] || 'PDF 나 PNG 로 바꿔서 올립니다'}`,
         };
         saved.push({
-          name, bytes: buf.length,
+          name: put.name, bytes: put.bytes,
+          // 저장한 그대로인지 나중에 대조할 수 있는 값. 화면에 안 보여도 응답에는 남긴다
+          sha256: put.sha256,
+          duplicate: put.duplicate,
+          // 같은 이름을 덮었으면 **말한다.** 이전 파일은 지워진 것이 아니라 휴지통에 있다
+          replaced: put.replaced ? { as: put.replaced.as, bytes: put.replaced.bytes } : null,
           readable: !!how && how !== 'convert',
           how: how || null,
           note: how ? NOTE[how] : '처음 보는 형식입니다 — 본문을 읽지 못할 수 있습니다',
         });
       }
 
-      return ok({ saved, rejected, at: kstStamp(new Date()) });
+      return ok({ saved, rejected, usage: vault.usage(projectDir), at: kstStamp(new Date()) });
+    },
+
+    /**
+     * GET /projects/:id/sources — 보관 중인 자료 목록 · 용량.
+     *
+     * ★ 무엇을 보관하고 있는지 볼 방법이 없으면 **지울 방법도 없다.**
+     *   보관 리스크를 줄이는 첫 걸음은 목록이다.
+     */
+    async listSources(ctx, projectId) {
+      const g = gate(ctx, 'pro'); if (g.error) return g.error;
+      const e = checkId(projectId); if (e) return e;
+      const store = load('core/store');
+      const vault = load('core/vault');
+      const projectDir = store.projectDir(projectId);
+      if (!fs.existsSync(projectDir)) return bad('프로젝트를 찾을 수 없습니다', 404);
+      const listed = vault.list(projectDir);
+      return ok({ files: listed.files, trash: listed.trash, usage: vault.usage(projectDir), at: kstStamp(new Date()) });
+    },
+
+    /**
+     * DELETE /projects/:id/sources/:name — 자료를 지운다.
+     *
+     * ★ **휴지통으로 옮길 뿐 없애지 않는다.** 딜 자료는 잘못 지우면 다시 만들 수 없다.
+     *   정말 없애는 것은 purgeSources 로 따로, 며칠 지난 것인지를 지정해서만 한다.
+     */
+    async deleteSource(ctx, projectId, name) {
+      const g = gate(ctx, 'pro'); if (g.error) return g.error;
+      const e = checkId(projectId); if (e) return e;
+      const store = load('core/store');
+      const vault = load('core/vault');
+      const projectDir = store.projectDir(projectId);
+      if (!fs.existsSync(projectDir)) return bad('프로젝트를 찾을 수 없습니다', 404);
+
+      const r = vault.trash(projectDir, name, { by: (g.user && g.user.name) || null });
+      if (!r.ok) return bad(r.reason, r.reason === '그런 자료가 없습니다' ? 404 : 400);
+      return ok({
+        trashed: r.trashed,
+        // ★ 지웠다고 이미 만든 보고서가 저절로 바뀌지 않는다. 다시 만들어야 반영된다
+        needsRegenerate: fs.existsSync(path.join(projectDir, '12_Final', 'im-a4.html')),
+        usage: vault.usage(projectDir), at: kstStamp(new Date()),
+      });
+    },
+
+    /** POST /projects/:id/sources/restore — 휴지통에서 되돌린다 */
+    async restoreSource(ctx, projectId, body) {
+      const g = gate(ctx, 'pro'); if (g.error) return g.error;
+      const e = checkId(projectId); if (e) return e;
+      const store = load('core/store');
+      const vault = load('core/vault');
+      const projectDir = store.projectDir(projectId);
+      if (!fs.existsSync(projectDir)) return bad('프로젝트를 찾을 수 없습니다', 404);
+
+      const r = vault.restore(projectDir, (body && body.as) || '', { by: (g.user && g.user.name) || null });
+      if (!r.ok) return bad(r.reason, 404);
+      return ok({ restored: r.restored, displaced: r.displaced, usage: vault.usage(projectDir), at: kstStamp(new Date()) });
+    },
+
+    /**
+     * POST /projects/:id/sources/purge — 휴지통을 실제로 비운다. **되돌릴 수 없다.**
+     *
+     * ★ olderThanDays 를 반드시 받고, confirm:true 가 없으면 **무엇이 지워질지만**
+     *   돌려준다. 되돌릴 수 없는 동작에 기본값을 두지 않는다.
+     */
+    async purgeSources(ctx, projectId, body) {
+      const g = gate(ctx, 'pro'); if (g.error) return g.error;
+      const e = checkId(projectId); if (e) return e;
+      const store = load('core/store');
+      const vault = load('core/vault');
+      const projectDir = store.projectDir(projectId);
+      if (!fs.existsSync(projectDir)) return bad('프로젝트를 찾을 수 없습니다', 404);
+
+      const days = Number(body && body.olderThanDays);
+      const r = vault.purge(projectDir, {
+        olderThanDays: days,
+        dryRun: !(body && body.confirm === true),
+        by: (g.user && g.user.name) || null,
+      });
+      if (!r.ok) return bad(r.reason);
+      return ok(Object.assign({}, r, { usage: vault.usage(projectDir), at: kstStamp(new Date()) }));
+    },
+
+    /**
+     * POST /projects/:id/sources/verify — 보관한 파일이 그대로인지 대조한다.
+     *
+     * ★ 디스크가 조용히 상하거나 NAS 에서 누가 파일을 바꿔치기해도 **증상이 없다.**
+     *   보고서는 그대로 나오고 출처 표시도 멀쩡하다. 대조하지 않으면 알 수 없다.
+     */
+    async verifySources(ctx, projectId) {
+      const g = gate(ctx, 'pro'); if (g.error) return g.error;
+      const e = checkId(projectId); if (e) return e;
+      const store = load('core/store');
+      const vault = load('core/vault');
+      const projectDir = store.projectDir(projectId);
+      if (!fs.existsSync(projectDir)) return bad('프로젝트를 찾을 수 없습니다', 404);
+      return ok(vault.verify(projectDir));
     },
 
     /**
@@ -708,6 +813,15 @@ function createRouter(deps = {}) {
 
   router.post('/projects', wrap(req => h.createProject(req, req.body)));
   router.post('/projects/:id/sources', wrap(req => h.uploadSources(req, req.params.id, req.body)));
+  router.get('/projects/:id/sources', wrap(req => h.listSources(req, req.params.id)));
+  // ★ 지우기·되돌리기·비우기·대조는 **길을 따로 낸다.** 올리기와 같은 자리에 두면
+  //   실수로 지우는 요청이 올리기로 읽히거나 그 반대가 된다.
+  //   `/purge`·`/restore`·`/verify` 를 :name 보다 **먼저** 등록한다 —
+  //   나중에 두면 `sources/purge` 가 「purge 라는 이름의 파일을 지워라」로 잡힌다.
+  router.post('/projects/:id/sources/restore', wrap(req => h.restoreSource(req, req.params.id, req.body)));
+  router.post('/projects/:id/sources/purge', wrap(req => h.purgeSources(req, req.params.id, req.body)));
+  router.post('/projects/:id/sources/verify', wrap(req => h.verifySources(req, req.params.id)));
+  router.delete('/projects/:id/sources/:name', wrap(req => h.deleteSource(req, req.params.id, req.params.name)));
   router.put('/projects/:id/issuer', wrap(req => h.saveIssuer(req, req.params.id, req.body)));
   router.get('/projects/:id/spec', wrap(req => h.getSpec(req, req.params.id)));
   router.post('/projects/:id/spec', wrap(req => h.saveSpec(req, req.params.id, req.body)));

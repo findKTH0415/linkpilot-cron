@@ -376,7 +376,117 @@ async function buildSection() {
   목록·저장된 값은 비어 있고, 저장·생성 버튼은 실제로 아무것도 하지 않습니다.
   제품에서는 네 단계를 하나씩 보여주지만 여기서는 <b>한 번에 펼쳐</b> 둡니다.
 </div>`;
-  return shell.replace('<body>', '<body>' + banner + changePanel() + evidencePanel() + deskPanel());
+  return shell.replace('<body>', '<body>' + banner + changePanel() + evidencePanel() + vaultPanel() + deskPanel());
+}
+
+/**
+ * 자료를 서버에 **보관하는 동안 잃지 않는가**를 눈으로 확인하게 한다 (D-64).
+ *
+ * ★ 이 계층은 화면이 없다. 그리고 실패가 전부 조용하다 — 덮어써도 「저장됨」만
+ *   뜨고, 파일이 바뀌어도 보고서는 그대로 나온다. 말로만 남으면 확인할 방법이 없다.
+ *
+ * ★ **여기 결과는 손으로 쓴 것이 아니다.** 빌드할 때 임시 폴더를 만들어
+ *   `core/vault.js` 를 실제로 돌리고, 그 반환값을 그대로 옮긴다.
+ */
+function vaultPanel() {
+  const AGENT = path.join(HERE, '..', '..');
+  const vault = require(path.join(AGENT, 'core', 'vault'));
+  const store = require(path.join(AGENT, 'core', 'store'));
+
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'im-vault-'));
+  const id = 'LP-DC-2026-001';
+  const p = path.join(root, id);
+  fs.mkdirSync(path.join(p, '02_Source_Data'), { recursive: true });
+  const B = (s) => Buffer.from(s, 'utf8');
+
+  const rows = [];
+  const row = (title, note, out, bad) => rows.push({ title, note, out, bad: !!bad });
+
+  // ① 같은 이름을 덮어쓸 때 이전 판이 사라지는가
+  const v1 = vault.put(p, '사업계획서.pdf', B('첫 번째 판 — 총사업비 2,846억원'));
+  const v2 = vault.put(p, '사업계획서.pdf', B('두 번째 판 — 총사업비 3,120억원'));
+  const listed = vault.list(p);
+  row('같은 이름을 다시 올렸다', '이전 판이 사라지는가',
+    `저장: ${v2.name} (${v2.sha256.slice(0, 12)}…)\n`
+    + `덮어쓴 판: ${v2.replaced ? v2.replaced.as : '(없음)'}\n`
+    + `→ 휴지통에 남아 있음 ${listed.trash.length}건 — 되돌릴 수 있다\n`
+    + `→ 이전 해시 ${v1.sha256.slice(0, 12)}… 와 일치: ${v2.replaced && v2.replaced.sha256 === v1.sha256}`);
+
+  // ② 같은 파일을 두 번 올리면
+  const dup = vault.put(p, '사업계획서.pdf', B('두 번째 판 — 총사업비 3,120억원'));
+  row('같은 파일을 다시 올렸다', '세대가 늘어나 용량만 먹는가',
+    `duplicate: ${dup.duplicate} · 휴지통 ${vault.list(p).trash.length}건 (늘지 않는다)`);
+
+  // ③ 보관한 파일이 바뀌면 — NAS 공유폴더에서 누가 손댔다고 하자
+  vault.put(p, '감정평가서.pdf', B('원본 그대로'));
+  const before = vault.verify(p);
+  fs.writeFileSync(path.join(p, '02_Source_Data', '감정평가서.pdf'), '누가 바꾼 내용');
+  const after = vault.verify(p);
+  row('보관 중인 파일이 바뀌었다', '증상이 없는 사고를 잡는가',
+    `바뀌기 전: 대조 통과 ${before.ok} (${before.checked}건 확인)\n`
+    + `바뀐 뒤 : 대조 통과 ${after.ok} · 불일치 ${after.mismatched.length}건\n`
+    + (after.mismatched[0]
+      ? `  ${after.mismatched[0].name}\n  기대 ${after.mismatched[0].expected.slice(0, 16)}…\n  실제 ${after.mismatched[0].actual.slice(0, 16)}…`
+      : ''), true);
+
+  // ④ 장부에 없는 파일 — NAS 에서 직접 복사해 넣었다고 하자
+  fs.writeFileSync(path.join(p, '02_Source_Data', '몰래넣은자료.xlsx'), 'x');
+  const unknown = vault.verify(p);
+  row('장부에 없는 파일이 있다', '조용히 무시하는가',
+    `장부 밖 파일 ${unknown.unknown.length}건: ${unknown.unknown.map(u => u.name).join(', ')}\n`
+    + '→ 없던 것으로 치지 않는다. reconcile() 로 등록해야 대조가 통과한다', true);
+
+  // ⑤ 지우기 — 휴지통으로만 간다
+  const del = vault.trash(p, '몰래넣은자료.xlsx');
+  row('자료를 지웠다', '정말 없어지는가',
+    `휴지통으로 이동: ${del.trashed.as}\n`
+    + `원본 위치에 남아 있는가: ${fs.existsSync(path.join(p, '02_Source_Data', '몰래넣은자료.xlsx'))}\n`
+    + '→ 되돌릴 수 있다. 정말 없애려면 며칠 지난 것인지를 지정해 따로 비운다');
+
+  // ⑥ 비우기는 기본이 미리보기
+  const dry = vault.purge(p, { olderThanDays: 0 });
+  row('휴지통을 비우려 했다', '되돌릴 수 없는 동작에 기본값이 있는가',
+    `날짜를 안 주면: ${JSON.stringify(vault.purge(p, {}).reason)}\n`
+    + `날짜만 주면 : dryRun=${dry.dryRun} · 지워질 것 ${dry.willRemove.length}건 (아직 안 지운다)\n`
+    + '→ confirm 을 줘야 실제로 지운다');
+
+  // ⑦ 버린 자료가 다시 추출되는가 — 여기가 가장 위험한 자리다
+  const prev = process.env.IM_AGENT_ROOT;
+  process.env.IM_AGENT_ROOT = root;
+  let extracted = [], excluded = [];
+  try {
+    extracted = store.listSourceFiles(id).map(f => f.name);
+    excluded = store.listExcludedSourceFiles(id);
+  } finally {
+    if (prev === undefined) delete process.env.IM_AGENT_ROOT; else process.env.IM_AGENT_ROOT = prev;
+  }
+  row('추출기가 무엇을 읽는가', '버린 자료가 다시 실리는가',
+    `읽는 것 ${extracted.length}건: ${extracted.join(', ')}\n`
+    + '읽지 않는 것:\n' + excluded.map(x => `  ${x.name} (${x.files}건) — ${x.why}`).join('\n'));
+
+  // ⑧ 용량 — 개정안 §3-1 이 세기로 한 것
+  const u = vault.usage(p);
+  const kb = (n) => `${(n / 1024).toFixed(2)}KB`;
+  row('용량은 무엇을 세는가', '§3-1 이 정한 대로인가',
+    `원본 ${u.live.files}건 ${kb(u.live.bytes)} · 휴지통 ${u.trash.files}건 ${kb(u.trash.bytes)}\n`
+    + `청구 기준 = 원본 + 휴지통 = ${kb(u.billableBytes)}\n`
+    + `쓰다 만 조각(.tmp) ${u.tmp.files}건 ${kb(u.tmp.bytes)} — 청구엔 안 넣되 합계에서 숨기지 않는다`);
+
+  const blocks = rows.map(r => `<div class="ev__c${r.bad ? ' bad' : ''}">
+    <div class="ev__n">${esc(r.title)}</div>
+    <div class="ev__m">${esc(r.note)}</div>
+    <pre class="ev__o">${esc(r.out)}</pre>
+  </div>`).join('');
+
+  return `
+<section class="ev">
+  <h2 class="ev__t">눈으로 확인 — 올린 자료를 보관하는 동안 잃지 않는가</h2>
+  <p class="ev__s">아래는 이 미리보기를 만들 때 임시 폴더에서 <b>실제로 <code>core/vault.js</code> 를 돌려</b>
+    얻은 결과입니다. 손으로 적은 예시가 아닙니다. 이 계층의 실패는 <b>전부 조용합니다</b> —
+    덮어써도 화면에는 「저장됨」만 뜨고, 파일이 바뀌어도 보고서는 그대로 나오며 출처 표시도 멀쩡합니다.
+    그래서 「되는가」가 아니라 <b>「잃지 않는가」</b>를 확인합니다.</p>
+  ${blocks}
+</section>`;
 }
 
 /**
@@ -681,5 +791,5 @@ if (require.main === module) main().catch(e => { console.error(e); process.exit(
 module.exports = {
   build, buildSection, buildSectionDocs, flowShell, SCREENS, EXTRAS,
   // 「미리 그려 넣는 판」이 같은 패널을 쓴다 — 두 벌로 만들지 않는다
-  changePanel, evidencePanel,
+  changePanel, evidencePanel, vaultPanel, deskPanel,
 };

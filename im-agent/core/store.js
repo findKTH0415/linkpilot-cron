@@ -80,13 +80,25 @@ function writeText(projectId, relPath, text) {
   return full;
 }
 
-/** 02_Source_Data 안의 원본 파일 목록 */
+/**
+ * 02_Source_Data 안의 원본 파일 목록.
+ *
+ * ★★ **숨김 이름(`.`)은 건너뛴다.** 이 폴더에는 보관 계층(core/vault.js)이
+ *   `.trash/`(휴지통) · `.vault.json`(장부) · `.tmp/`(쓰는 중)를 둔다.
+ *   여기를 재귀로 훑으면서 걸러내지 않으면 **버린 자료가 다시 추출되어
+ *   보고서에 실린다.** 지운 사람은 지운 줄 알고 있으므로 아무도 눈치채지 못한다.
+ *   (`.DS_Store`·`._foo` 같은 macOS 부산물도 지금까지 추출 대상이었다)
+ *
+ * ★ 건너뛴 것을 **셀 수 있게** `listExcludedSourceFiles()` 를 따로 둔다 —
+ *   조용히 빠지면 「올렸는데 안 읽혔다」의 원인이 어디에도 안 남는다.
+ */
 function listSourceFiles(projectId) {
   const dir = path.join(projectDir(projectId), '02_Source_Data');
   if (!fs.existsSync(dir)) return [];
   const out = [];
   const walk = d => {
     for (const name of fs.readdirSync(d)) {
+      if (name.startsWith('.')) continue;   // 휴지통·장부·임시 — 위 주석 참조
       const full = path.join(d, name);
       const st = fs.statSync(full);
       if (st.isDirectory()) walk(full);
@@ -94,6 +106,38 @@ function listSourceFiles(projectId) {
     }
   };
   walk(dir);
+  return out;
+}
+
+/**
+ * 추출에서 빠진 것 — 왜 빠졌는지와 함께.
+ *
+ * 휴지통은 「버린 것이라 안 읽는다」가 정상이고, 그 밖의 숨김 파일은
+ * 「모르고 안 읽히고 있다」일 수 있다. **둘을 구분해서 낸다.**
+ */
+function listExcludedSourceFiles(projectId) {
+  const dir = path.join(projectDir(projectId), '02_Source_Data');
+  if (!fs.existsSync(dir)) return [];
+  const out = [];
+  for (const name of fs.readdirSync(dir)) {
+    if (!name.startsWith('.')) continue;
+    const full = path.join(dir, name);
+    let st; try { st = fs.statSync(full); } catch (_) { continue; }
+    const why = name === '.trash' ? '휴지통 — 버린 자료라 읽지 않습니다'
+      : name === '.vault.json' ? '보관 장부'
+        : name === '.vault-log.jsonl' ? '보관 기록'
+          : name === '.tmp' ? '저장하다 만 조각'
+            : '숨김 파일 — 원본자료로 보지 않습니다';
+    if (st.isDirectory()) {
+      let files = 0, bytes = 0;
+      for (const n of fs.readdirSync(full)) {
+        try { const s2 = fs.statSync(path.join(full, n)); if (s2.isFile()) { files += 1; bytes += s2.size; } } catch (_) { /* 사라졌으면 넘어간다 */ }
+      }
+      out.push({ name, kind: 'dir', files, size: bytes, why });
+    } else {
+      out.push({ name, kind: 'file', files: 1, size: st.size, why });
+    }
+  }
   return out;
 }
 
@@ -121,5 +165,6 @@ function listProjects() {
 
 module.exports = {
   FOLDERS, ASSET_CODE, root, nextProjectId, projectDir, createProjectDirs, exists,
-  writeJson, readJson, writeText, listSourceFiles, appendRunLog, readRunLog, listProjects,
+  writeJson, readJson, writeText, listSourceFiles, listExcludedSourceFiles,
+  appendRunLog, readRunLog, listProjects,
 };
