@@ -18,7 +18,7 @@
  * ★ 목록·한도·단계는 **손으로 적지 않는다.** 실제 코드에서 가져온다 —
  *   손으로 적으면 코드가 바뀐 날부터 구성안만 옛말을 하고 아무도 모른다.
  *     완성 보고서 목록 ← report-api.cjs 의 OUTPUTS
- *     새 보고서 생성   ← flow-core.js 의 STEPS
+ *     보고서 생성      ← flow-core.js 의 STEPS
  *     자료 형식·한도   ← 02-extraction 의 readGroups() · api-router 의 상한
  */
 const fs = require('fs');
@@ -101,7 +101,7 @@ const PROGRESS = {
       + '<code>progress</code>) — 화면이 계산하면 산출물이 하나 늘 때 한쪽만 고치는 날 조용히 틀립니다.',
     states: [
       { id: 'a', tab: '시작 전', pct: 0, count: '0 / 7종',
-        say: '아직 만든 것이 없습니다. 「새 보고서 생성」 탭에서 요청문과 자료를 넣으면 시작됩니다.' },
+        say: `아직 만든 것이 없습니다. 「${FLOW.SECTION.tab}」 탭에서 요청문과 자료를 넣으면 시작됩니다.` },
       { id: 'b', tab: '만드는 중', pct: 43, count: '3 / 7종', on: true,
         say: 'IM 원문·A4 인쇄본·뷰어 데이터가 나왔습니다. PDF·Teaser·검증·RED FLAG 는 아직입니다 — '
           + '<b>무엇이 남았는지와 그 이유가 목록에 함께 뜹니다.</b>' },
@@ -586,7 +586,7 @@ h1 { font-size: 30px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 10px
 .doc__p { font-size: 11.5px !important; background: transparent !important;
   color: #8B939B !important; padding: 0 !important; }
 
-/* 새 보고서 생성 */
+/* 보고서 생성 */
 .steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
 .step { display: flex; gap: 12px; align-items: flex-start;
   border: 1px solid #E8EAEC; border-radius: 11px; padding: 12px 14px; background: #FCFDFD; }
@@ -735,13 +735,13 @@ ${progressCss()}</style>
       <div class="order">
         <div class="order__c">
           <div class="order__t">지시하신 순서 <span class="tag tag--warn">위 그림</span></div>
-          <div class="order__l"><b>완성 보고서</b>→<b>새 보고서 생성</b>→<b>자료</b></div>
+          <div class="order__l"><b>완성 보고서</b>→<b>${esc(FLOW.SECTION.tab)}</b>→<b>자료</b></div>
           <p class="order__n">쓰는 빈도 순서입니다. 대개 <b>결과물을 보러</b> 들어오므로
             가장 자주 여는 것이 맨 앞에 옵니다.</p>
         </div>
         <div class="order__c">
           <div class="order__t">시간 순서 <span class="tag tag--warn">개정안 §3-2</span></div>
-          <div class="order__l"><b>자료</b>→<b>새 보고서 생성</b>→<b>완성 보고서</b></div>
+          <div class="order__l"><b>자료</b>→<b>${esc(FLOW.SECTION.tab)}</b>→<b>완성 보고서</b></div>
           <p class="order__n">일이 진행되는 순서입니다. 모으고 → 만들고 → 봅니다.
             <b>처음 쓰는 사람</b>에게는 이쪽이 다음에 무엇을 할지 알려 줍니다.</p>
         </div>

@@ -403,8 +403,25 @@ async function buildSection() {
   같은 출처에서 가져온 값이며 지어낸 것이 아닙니다. 프로젝트 데이터는 심지 않았으므로
   목록·저장된 값은 비어 있고, 저장·생성 버튼은 실제로 아무것도 하지 않습니다.
   제품에서는 네 단계를 하나씩 보여주지만 여기서는 <b>한 번에 펼쳐</b> 둡니다.
+  <br><b>「이번에 바뀐 것」과 「눈으로 확인」 패널은 이 화면 아래에 있습니다.</b>
 </div>`;
-  return shell.replace('<body>', '<body>' + banner + changePanel() + evidencePanel() + vaultPanel() + linkedPanel() + deskPanel());
+
+  // ★★ **보고서 생성 화면이 맨 위다** (2026-08-18 사용자 결정).
+  //   전에는 변경내역과 확인 패널 다섯이 먼저 오고 그 아래에 화면이 있었다.
+  //   보러 온 것이 화면인데 한참 스크롤해야 나왔다 — 미리보기를 여는 이유가
+  //   「무엇이 바뀌었나」보다 「어떻게 생겼나」인 쪽이 훨씬 많다.
+  //
+  // ★ 그래도 변경내역이 있다는 사실은 **위에서 말한다.** 아래로 내리기만 하면
+  //   그것대로 아무도 안 본다 — 원래 화면 위에 뒀던 이유가 그거였다.
+  //   그래서 배너 마지막 줄이 어디에 있는지 가리킨다.
+  const panels = changePanel() + evidencePanel() + vaultPanel() + linkedPanel() + deskPanel();
+  const withBanner = shell.replace('<body>', '<body>' + banner);
+  const end = withBanner.lastIndexOf('</body>');
+  if (end < 0) {
+    // 닫는 태그가 없으면 조용히 빼먹지 않는다 — 패널이 통째로 사라진 것을 아무도 모른다
+    throw new Error('flowShell 에 </body> 가 없다 — 확인 패널을 붙일 자리를 못 찾았다');
+  }
+  return withBanner.slice(0, end) + panels + withBanner.slice(end);
 }
 
 /**

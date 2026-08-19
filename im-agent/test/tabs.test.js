@@ -228,7 +228,7 @@ test('구성안: 라디오가 탭 바 밖에 있어야 탭이 바뀐다', () => 
 test('★ 붙이기: 탭 이름을 화면·구성안이 복사해 적지 않는다', () => {
   const FLOWC = require('../ui/platform/flow-core.js');
   // 단일 출처는 flow-core.js 의 SECTION 이다
-  assert.equal(FLOWC.SECTION.tab, '새 보고서 생성');
+  assert.equal(FLOWC.SECTION.tab, '보고서 생성');
   assert.equal(FLOWC.SECTION.title, '보고서 생성');
 
   const make = B.TABS.find(t => t.id === 'make');
@@ -245,7 +245,7 @@ test('★ 붙이기: 탭 이름을 화면·구성안이 복사해 적지 않는�
 test('★★ 붙이기: 탭 안에서는 화면이 자체 제목을 그리지 않는다', () => {
   const src = fs.readFileSync(
     path.join(__dirname, '..', 'ui', 'platform', 'report-flow.html'), 'utf8');
-  // 안 끄면 「새 보고서 생성」 아래에 「보고서 생성」이 또 나온다
+  // ★ 탭 이름과 섹션 제목이 **같아졌다**(2026-08-18) — 안 끄면 같은 글자가 두 번 나온다
   assert.match(src, /if \(!C\.inTab\) view\.appendChild\(el\('h1', null, F\.SECTION\.title\)\);/);
   // 기본은 false — 단독으로 열 때 true 면 이름 없는 화면이 된다
   assert.match(src, /inTab: false,/);

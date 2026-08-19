@@ -19,6 +19,9 @@ const { buildSection, SCREENS } = require('../ui/platform/build-preview.js');
 const PLATFORM = path.join(__dirname, '..', 'ui', 'platform');
 const read = (f) => fs.readFileSync(path.join(PLATFORM, f), 'utf8');
 
+/** 변경내역 패널의 머리말. 문자열만으로 찾으면 배너의 안내문이 먼저 걸린다 */
+const PANEL_HEAD = '<h2 class="upd__t">이번에 바뀐 것</h2>';
+
 /* ───────────── 단일 출처 ───────────── */
 
 test('★ 4단계 목록이 한 곳에만 있다', () => {
@@ -195,8 +198,22 @@ test('★ 변경 내역이 미리보기 창에 뜬다', async () => {
   C.CHANGES.forEach((c) => {
     assert.ok(html.includes(c.title), `변경 '${c.title}' 이 화면에 안 뜬다`);
   });
-  assert.ok(html.indexOf('이번에 바뀐 것') < html.indexOf('class="wrap"'),
-    '화면보다 아래 있으면 스크롤하다 놓친다');
+  // ★★ **화면이 위, 변경내역이 아래다** (2026-08-18 사용자 결정으로 뒤집었다).
+  //   전에는 반대였다 — 「스크롤하다 놓친다」는 이유로 변경내역을 화면 위에 뒀는데,
+  //   확인 패널 다섯까지 위에 쌓이면서 **보러 온 화면이 한참 아래**로 밀렸다.
+  //   미리보기를 여는 이유는 「무엇이 바뀌었나」보다 「어떻게 생겼나」인 쪽이 많다.
+  //
+  // ★ 대신 **놓치지 않게 위에서 가리킨다.** 아래로 내리기만 하고 말을 안 하면
+  //   원래 걱정하던 일이 그대로 일어난다 — 그래서 둘을 함께 검사한다.
+  // ★ **패널 머리말에 정확히 건다.** 그냥 문자열로 찾으면 위쪽 배너의 안내문
+  //   (「이번에 바뀐 것」…은 아래에 있습니다)이 먼저 걸려 순서를 거꾸로 읽는다
+  const panelAt = html.indexOf(PANEL_HEAD);
+  assert.ok(panelAt > 0, '변경내역 패널 머리말을 못 찾았다 — 마크업이 바뀌었나');
+  assert.ok(html.indexOf('class="wrap"') < panelAt,
+    '화면이 변경내역보다 아래에 있다 — 보러 온 것이 화면인데 스크롤해야 나온다');
+  assert.ok(html.indexOf('「이번에 바뀐 것」과 「눈으로 확인」 패널은 이 화면 아래에 있습니다')
+    < html.indexOf('class="wrap"'),
+    '아래에 있다는 안내가 화면 위에 없다 — 내려 두기만 하면 아무도 안 본다');
 });
 
 test('★ 한 일과 아직 안 된 것을 갈라 놓는다', async () => {
@@ -294,7 +311,8 @@ test('★ 평문에 마크다운 표시를 남기지 않는다', () => {
 test('내역 문구가 태그로 해석되지 않는다', async () => {
   const html = await buildSection();
   // esc() 를 거치므로 꺾쇠가 살아 있으면 안 된다 (내역은 사람이 쓴 글이다)
-  const at = html.indexOf('이번에 바뀐 것');
+  // 배너의 안내문이 아니라 **패널 자체**를 본다 (위 검사와 같은 이유)
+  const at = html.indexOf(PANEL_HEAD);
   const panel = html.slice(at, html.indexOf('</section>', at));
   assert.ok(!/<script|<img|onerror=/i.test(panel), '내역 문구가 이스케이프되지 않았다');
 });
