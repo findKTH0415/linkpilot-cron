@@ -421,7 +421,7 @@ async function buildSection() {
   // ★ 그래도 변경내역이 있다는 사실은 **위에서 말한다.** 아래로 내리기만 하면
   //   그것대로 아무도 안 본다 — 원래 화면 위에 뒀던 이유가 그거였다.
   //   그래서 배너 마지막 줄이 어디에 있는지 가리킨다.
-  const panels = changePanel() + evidencePanel() + vaultPanel() + linkedPanel() + deskPanel();
+  const panels = changePanel() + evidencePanel() + guardPanel() + vaultPanel() + linkedPanel() + deskPanel();
   const withBanner = shell.replace('<body>', '<body>' + banner);
   const end = withBanner.lastIndexOf('</body>');
   if (end < 0) {
@@ -794,6 +794,65 @@ function evidencePanel() {
     이 저장소에 두지 않습니다.</p>
   ${groups}
   ${blocks}
+</section>`;
+}
+
+/**
+ * 배포가 **실제로 반영됐는지 재는 장치**를 눈으로 확인하게 한다 (M-12).
+ *
+ * ★ 화면이 없는 작업이다. 그래서 「했습니다」로 끝내면 확인할 방법이 없다.
+ *   여기 숫자는 **빌드할 때 실제로 훑고 실제로 지문을 떠서** 넣는다.
+ *
+ * ★ 지문 자체를 보여 주는 이유: `verify:nas` 가 서버에서 받은 바이트와 대는 것이
+ *   **바로 이 값**이다. 화면에 나와 있으면 서버가 준 것과 사람이 직접 댈 수 있다.
+ */
+function guardPanel() {
+  const AGENT = path.join(HERE, '..', '..');
+  const embed = require(path.join(HERE, 'build-embed.js'));
+  const reach = require(path.join(AGENT, 'tools', 'reachable.js'));
+  const W = require(path.join(AGENT, 'ui', 'report-api.cjs'));
+  const A = require(path.join(AGENT, 'ui', 'api-router.cjs'));
+
+  const built = embed.build(null);
+  const scan = reach.scan();
+  const nRoutes = W.ROUTES.length + A.ROUTES.length;
+
+  const rows = built.files.map(f =>
+    `<div class="ev__m">${esc(f)} — <code>${esc(built.manifest.files[f].sha256.slice(0, 12))}</code>`
+    + ` · ${built.manifest.files[f].bytes.toLocaleString()}B</div>`).join('');
+
+  const orphans = scan.orphans.length
+    ? `<pre class="ev__o">${esc(scan.orphans.join('\n'))}</pre>`
+    : '<div class="ev__m">없음</div>';
+
+  return `
+<section class="ev">
+  <h2 class="ev__t">눈으로 확인 — 올린 것이 정말 올라갔는지 재는 장치</h2>
+  <p class="ev__s">화면에 안 보이는 작업입니다. 아래 숫자는 이 미리보기를 만들 때
+    <b>실제로 훑고 실제로 지문을 떠서</b> 넣은 것입니다.
+    <b>「200 이 온다」를 「올라갔다」로 읽지 않기 위해</b> 만들었습니다 —
+    옛 사본도 200 을 줍니다.</p>
+
+  <div class="ev__c">
+    <div class="ev__n">화면 사본 ${built.files.length}개 · 지문</div>
+    <div class="ev__m"><code>npm run verify:nas</code> 가 서버에서 받은 바이트를 이 값과 댑니다.
+      하나라도 다르면 <b>옛 판</b>으로 봅니다.</div>
+    ${rows}
+  </div>
+
+  <div class="ev__c">
+    <div class="ev__n">라우트 ${nRoutes}개 · 앱을 거쳐 닿는지</div>
+    <div class="ev__m">읽기 ${A.ROUTES.length} · 쓰기 ${W.ROUTES.length}. 스물여덟을 전부 두드립니다 —
+      프록시 목록에서 빠지면 <b>그 기능만</b> 404 가 나고 화면은 멀쩡히 뜹니다.</div>
+    <div class="ev__m">401·400 은 통과입니다. 여기서 재는 것은 권한이 아니라 <b>닿느냐</b>입니다.</div>
+  </div>
+
+  <div class="ev__c${scan.orphans.length ? ' bad' : ''}">
+    <div class="ev__n">아무도 안 부르는 모듈 — ${scan.orphans.length}개</div>
+    <div class="ev__m">모듈 ${scan.total}개 중 ${scan.reached}개가 닿습니다
+      (<code>npm run check:reachable</code>).</div>
+    ${orphans}
+  </div>
 </section>`;
 }
 

@@ -12,7 +12,16 @@
  *   이고, 요약에 그렇게 나온다. 초록이 아닌데 초록으로 보이는 것이 제일 나쁘다.
  *
  * ★ 이 스크립트는 **아무것도 고치지 않는다.** 재기만 한다.
+ *
+ * ★★ 2026-08-19 — **이 스크립트 자체가 초록을 잘못 냈다.** 화면을 `200` 인지만
+ *   보고 있었다. 옛 판을 그대로 돌려주는 서버에 대고 돌렸더니 **11통과 0실패**가
+ *   나왔다. 「초록인데 NAS 는 옛 판」은 이걸 막으려고 만든 사고인데 정작
+ *   막는 쪽이 뚫려 있었다. 그래서 **바이트 지문을 대조한다.**
+ *   라우트도 같다 — 28개 중 **둘만** 물어보고 있었다. 앱 프록시 목록에서
+ *   열한 개가 빠져 404 가 났던 그 사고를 이 스크립트로는 못 잡는다.
+ *   지금은 **28개를 전부 두드린다.**
  */
+const crypto = require('crypto');
 const platform = require('path').join(__dirname, '..', 'ui', 'platform');
 const FLOW = require(platform + '/flow-core.js');
 const W = require('../ui/report-api.cjs');
@@ -38,8 +47,14 @@ async function http(pathname, opt) {
   const t = setTimeout(() => ac.abort(), TIMEOUT);
   try {
     const r = await fetch(url, { method: o.method || 'GET', headers: o.headers, signal: ac.signal });
-    const text = await r.text();
-    return { status: r.status, text, ct: r.headers.get('content-type') || '' };
+    const buf = Buffer.from(await r.arrayBuffer());
+    return {
+      status: r.status,
+      buf,
+      text: buf.toString('utf8'),
+      ct: r.headers.get('content-type') || '',
+      sha256: crypto.createHash('sha256').update(buf).digest('hex'),
+    };
   } finally { clearTimeout(t); }
 }
 
@@ -91,14 +106,98 @@ async function remoteChecks() {
       r.status === 200 ? `${r.status} — 인증 없이 열려 있다` : String(r.status));
   });
 
-  // 화면 파일이 실제로 서빙되는가 — tokens.css 가 빠지면 색 없이 뜬다
-  for (const f of ['tokens.css', 'embed-bridge.js', ...FLOW.TABS.map(t => t.file)]) {
+  await screenChecks(tryOne);
+  await routeChecks(tryOne);
+}
+
+/**
+ * 화면 사본이 **지금 판인가.**
+ *
+ * ★★ `200` 은 「파일이 있다」이지 「그 파일이 지금 판이다」가 아니다. 옛 사본도
+ *   200 을 준다. 그래서 **바이트 지문을 댄다** — `im:embed` 가 낸 manifest 와
+ *   서버가 준 바이트의 sha256 이 같아야 한다. 이 줄이 없던 동안, 화면을 전부
+ *   3주 전 판으로 돌려주는 서버가 **11통과 0실패**로 나왔다.
+ */
+async function screenChecks(tryOne) {
+  let want;
+  try {
+    want = embed.build(null).manifest.files;   // 파일명 → { bytes, sha256 }
+  } catch (e) {
+    add('화면 사본 지문', 'skip', '사본을 못 만들어 댈 것이 없다: ' + e.message.split('\n')[0]);
+    return;
+  }
+
+  for (const f of Object.keys(want)) {
     // eslint-disable-next-line no-await-in-loop
     await tryOne('화면 ' + f, async () => {
       const r = await http('/im-flow/' + f);
-      add('화면 ' + f, r.status === 200 ? 'ok' : 'fail', String(r.status));
+      if (r.status !== 200) {
+        add('화면 ' + f, 'fail', `${r.status} — 올라가 있지 않다`);
+      } else if (r.sha256 !== want[f].sha256) {
+        // 「옛 판」과 「전송이 덜 됐다」는 여기서 구분되지 않는다. 구분할 필요도 없다 —
+        // 둘 다 서버가 저장소와 다른 것을 주고 있다는 뜻이고, 고치는 방법도 같다
+        add('화면 ' + f, 'fail',
+          `옛 판이다 — 서버 ${r.sha256.slice(0, 12)} · 저장소 ${want[f].sha256.slice(0, 12)}`);
+      } else {
+        add('화면 ' + f, 'ok', want[f].sha256.slice(0, 12));
+      }
     });
   }
+}
+
+/**
+ * 라우트 스물여덟이 **앱을 거쳐 닿는가.**
+ *
+ * ★★ 엔진에 있는 것과 앱이 넘겨 주는 것은 다르다. 프록시 목록에서 빠지면
+ *   그 라우트만 404 가 나는데, **화면은 멀쩡히 뜨고 그 기능만 없다.**
+ *   실제로 열한 개가 그렇게 빠져 있었다.
+ *
+ * ★ 판정은 「404 냐 아니냐」다. 401·400·405 는 **라우트가 있다는 뜻**이므로
+ *   통과다 — 여기서 재는 것은 권한이 아니라 **닿느냐**다.
+ *
+ * ★ 프로젝트가 없어서 나는 404 와 라우트가 없어서 나는 404 를 가른다:
+ *   엔진은 404 도 **JSON** 으로 돌려주고, 없는 길은 프록시가 HTML 로 돌려준다.
+ *
+ * ★ 쓰기는 **인증이 막는 것을 확인한 뒤에만** 두드린다. 안 막고 있으면
+ *   두드리는 것이 곧 쓰는 것이 된다.
+ */
+const PROBE = { ':id': '__lp_verify__', ':key': '__lp_verify__', ':name': '__lp_verify__.txt' };
+
+function probePath(p) {
+  return p.replace(/:[a-zA-Z]+/g, (m) => PROBE[m] || '__lp_verify__');
+}
+
+async function routeChecks(tryOne) {
+  const all = [...A.ROUTES.map(r => ({ ...r, side: '읽기' })), ...W.ROUTES.map(r => ({ ...r, side: '쓰기' }))];
+  const writesBlocked = rows.some(r => r.name === '무인증 쓰기 → 401' && r.state === 'ok');
+
+  let miss = 0; let asked = 0; const missing = [];
+  for (const route of all) {
+    const isRead = route.method === 'GET';
+    if (!isRead && !writesBlocked) continue;   // 인증이 안 막고 있으면 두드리지 않는다
+    const url = API + probePath(route.path);
+    // eslint-disable-next-line no-await-in-loop
+    try {
+      // eslint-disable-next-line no-await-in-loop
+      const r = await http(url, { method: route.method });
+      asked += 1;
+      const json = /json/i.test(r.ct);
+      if (r.status === 404 && !json) { miss += 1; missing.push(`${route.method} ${route.path}`); }
+    } catch (e) {
+      add(`라우트 ${route.method} ${route.path}`, 'skip', '못 물어봤다: ' + e.message);
+    }
+  }
+
+  const skipped = all.length - asked;
+  if (!asked) {
+    add('라우트 28개가 앱을 거쳐 닿는다', 'skip', '하나도 못 물어봤다');
+    return;
+  }
+  add('라우트 28개가 앱을 거쳐 닿는다', miss ? 'fail' : 'ok',
+    miss ? `${miss}개가 404 — ${missing.slice(0, 6).join(' · ')}${missing.length > 6 ? ' …' : ''}`
+      : `${asked}개 확인${skipped ? ` · ${skipped}개는 인증이 안 막혀 안 두드렸다` : ''}`);
+  // 인증이 안 막고 있어서 쓰기를 통째로 건너뛴 것은 **통과가 아니다**
+  if (skipped) add('쓰기 라우트를 두드리지 못했다', 'skip', `${skipped}개 — 무인증 쓰기가 401 이 아니다`);
 }
 
 (async () => {

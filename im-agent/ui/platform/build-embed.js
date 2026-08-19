@@ -23,7 +23,13 @@ const crypto = require('crypto');
 const HERE = __dirname;
 const FLOW = require('./flow-core.js');
 
-/** 화면마다 어느 전역을 쓰는지 — 브리지 태그가 맞는지 확인하는 데 쓴다 */
+/**
+ * 화면마다 어느 전역을 쓰는지 — 브리지 태그가 맞는지 확인하는 데 쓴다.
+ *
+ * ★★ 이 표는 **손으로 적는다.** 그래서 새 화면을 여기 안 적으면 `checkBridge` 가
+ *   「설정 전역이 없는 화면」이라며 **그냥 넘어간다** — 확인을 건너뛴 것이
+ *   확인을 통과한 것과 구분되지 않는다. `unlisted()` 가 그것을 막는다.
+ */
 const GLOBALS = {
   'report-flow.html': 'LINKPILOT_REPORT_FLOW',
   'outputs.html': 'LINKPILOT_OUTPUTS',
@@ -78,11 +84,29 @@ function checkBridge(file) {
   return { ok: true, why: merges ? '병합 패턴 · 브리지 앞' : '대입 패턴 · 브리지 뒤' };
 }
 
+/**
+ * 표에 없는데 **설정 전역을 쓰는** 화면을 찾는다.
+ *
+ * ★ 없는 것을 못 찾는 것이 이 종류 검사의 약점이다. `GLOBALS` 를 기준으로 돌면
+ *   표에 없는 화면은 처음부터 순회에 안 들어와 영원히 안 걸린다. 그래서
+ *   **화면 쪽에서** 전역 대입을 찾아 표와 대조한다 — 방향이 반대여야 한다.
+ */
+function unlisted(files) {
+  const out = [];
+  files.filter(f => f.endsWith('.html')).forEach((f) => {
+    const s = fs.readFileSync(path.join(HERE, f), 'utf8');
+    [...s.matchAll(/^window\.(LINKPILOT_[A-Z_0-9]+)\s*=/mg)].map(m => m[1]).forEach((g) => {
+      if (GLOBALS[f] !== g) out.push(`${f}: ${g} 가 GLOBALS 에 없다 — 브리지 확인이 통째로 건너뛰어진다`);
+    });
+  });
+  return out;
+}
+
 function sha256(buf) { return crypto.createHash('sha256').update(buf).digest('hex'); }
 
 function build(outDir) {
   const files = required();
-  const problems = [];
+  const problems = unlisted(files);
   Object.keys(GLOBALS).forEach((f) => {
     if (!files.includes(f)) return;          // 이번 목록에 없는 화면은 볼 것도 없다
     const r = checkBridge(f);
@@ -124,4 +148,4 @@ if (require.main === module) {
   r.files.forEach(f => console.log('  ' + f.padEnd(20) + r.manifest.files[f].sha256.slice(0, 12)));
 }
 
-module.exports = { build, required, checkBridge, GLOBALS };
+module.exports = { build, required, checkBridge, unlisted, GLOBALS };

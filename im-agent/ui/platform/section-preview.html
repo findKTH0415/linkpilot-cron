@@ -2613,11 +2613,26 @@ Object.assign(window.LINKPILOT_REPORT_FLOW, {
 <section class="upd">
   <div class="upd__h">
     <h2 class="upd__t">이번에 바뀐 것</h2>
-    <span class="upd__at">최근 반영 2026-08-18 (KST)</span>
+    <span class="upd__at">최근 반영 2026-08-19 (KST)</span>
   </div>
   <p class="upd__s">아래 화면에 이미 반영되어 있습니다. <b>무엇이 · 왜 · 어떻게</b> 바뀌었는지
     함께 적습니다 — 전과 후를 나란히 두어야 무엇이 달라졌는지 눈으로 비교됩니다.</p>
   
+    <div class="upd__g">
+      <div class="upd__d">2026-08-19</div>
+      <ul class="upd__l">
+        <li>
+          <b>올린 것이 정말 올라갔는지 재는 방식을 바꿨다 — 「200 이 온다」로는 옛 판과 구분이 안 된다</b>
+          <em>배포 확인 (verify:nas · build-embed · check:reachable)</em>
+          <span>배포가 반영됐는지 확인하는 스크립트가 화면 파일을 「200 이 오는가」만 보고 있었다. 그런데 3주 전 사본도 200 을 준다. 그래서 화면 열넷을 전부 옛 판으로 돌려주는 서버를 세워 돌려 봤더니 「통과 11 · 실패 0」이 나왔다. 앱도 초록, CI 도 초록, 확인 스크립트도 초록인데 실제로 도는 것은 옛 판인 상태다. 이 상태는 아무 오류도 안 낸다 — 새 기능이 그냥 없을 뿐이고, 그것을 알아채는 유일한 방법은 누가 그 기능을 써 보는 것이다. 막으라고 만든 장치가 같은 사고를 낸 셈이다. 이제는 서버가 준 바이트의 지문(sha256)을 저장소 것과 직접 댄다. 라우트도 같은 문제가 있었다 — 스물여덟 개 중 둘만 물어보고 있어서, 앱 프록시 목록에서 열한 개가 빠져 404 가 났던 사고를 이 스크립트로는 못 잡았다. 지금은 스물여덟을 전부 두드린다. 그리고 만들어 놓고 아무도 안 부르는 모듈을 찾는 검사를 새로 뒀다 — 이 저장소에서 세 번 났던 종류다.</span>
+          <div class="upd__ba">
+            <div class="upd__b"><em>전</em>화면은 200 인지만 봤다 (옛 판도 통과) · 라우트는 28개 중 2개만 물어봤다</div>
+            <div class="upd__a"><em>후</em>지문을 대서 옛 판을 잡는다 (실측: 옛 판 서버에 15실패) · 라우트 28개를 전부 두드린다</div>
+          </div>
+          <span class="upd__see">확인: 이 화면 아래 [눈으로 확인 — 올린 것이 정말 올라갔는지 재는 장치] 패널. 화면 사본 열넷의 지문과 라우트 스물여덟, 안 부르는 모듈 수가 나온다. 숫자는 이 미리보기를 만들 때 실제로 훑어서 넣는다.</span>
+        </li>
+      </ul>
+    </div>
     <div class="upd__g">
       <div class="upd__d">2026-08-18</div>
       <ul class="upd__l">
@@ -3234,6 +3249,34 @@ LTC 65%</pre>
       <pre class="ev__o">.tiff 는 변환 없이는 못 읽습니다 — PDF 나 PNG 로 저장해서 올립니다 (스캐너 설정에서 바꿀 수 있습니다)
 → 넘어갈 곳이 없습니다. 바꿔서 올려야 합니다</pre>
     </div>
+</section>
+<section class="ev">
+  <h2 class="ev__t">눈으로 확인 — 올린 것이 정말 올라갔는지 재는 장치</h2>
+  <p class="ev__s">화면에 안 보이는 작업입니다. 아래 숫자는 이 미리보기를 만들 때
+    <b>실제로 훑고 실제로 지문을 떠서</b> 넣은 것입니다.
+    <b>「200 이 온다」를 「올라갔다」로 읽지 않기 위해</b> 만들었습니다 —
+    옛 사본도 200 을 줍니다.</p>
+
+  <div class="ev__c">
+    <div class="ev__n">화면 사본 14개 · 지문</div>
+    <div class="ev__m"><code>npm run verify:nas</code> 가 서버에서 받은 바이트를 이 값과 댑니다.
+      하나라도 다르면 <b>옛 판</b>으로 봅니다.</div>
+    <div class="ev__m">catalog.js — <code>2b4e58ccbce4</code> · 7,528B</div><div class="ev__m">embed-bridge.js — <code>649d86876854</code> · 5,552B</div><div class="ev__m">fields-core.js — <code>152424266010</code> · 15,226B</div><div class="ev__m">fields.html — <code>9fe8b2a0b94f</code> · 48,397B</div><div class="ev__m">files.html — <code>f9ca21429edf</code> · 20,609B</div><div class="ev__m">flow-core.js — <code>eb1c5b19a106</code> · 11,248B</div><div class="ev__m">gate-core.js — <code>2e27fb3b0d9b</code> · 5,615B</div><div class="ev__m">inapp.js — <code>a00b1f6d351f</code> · 9,637B</div><div class="ev__m">intake.html — <code>494d0e75d502</code> · 52,897B</div><div class="ev__m">live-core.js — <code>f7674c0cb06c</code> · 21,273B</div><div class="ev__m">outputs.html — <code>c171f074d4ce</code> · 20,516B</div><div class="ev__m">report-flow.html — <code>006f3eacda31</code> · 36,958B</div><div class="ev__m">reports.html — <code>4bfe4c9879b6</code> · 49,099B</div><div class="ev__m">tokens.css — <code>923e58aaec67</code> · 5,491B</div>
+  </div>
+
+  <div class="ev__c">
+    <div class="ev__n">라우트 28개 · 앱을 거쳐 닿는지</div>
+    <div class="ev__m">읽기 6 · 쓰기 22. 스물여덟을 전부 두드립니다 —
+      프록시 목록에서 빠지면 <b>그 기능만</b> 404 가 나고 화면은 멀쩡히 뜹니다.</div>
+    <div class="ev__m">401·400 은 통과입니다. 여기서 재는 것은 권한이 아니라 <b>닿느냐</b>입니다.</div>
+  </div>
+
+  <div class="ev__c">
+    <div class="ev__n">아무도 안 부르는 모듈 — 0개</div>
+    <div class="ev__m">모듈 192개 중 192개가 닿습니다
+      (<code>npm run check:reachable</code>).</div>
+    <div class="ev__m">없음</div>
+  </div>
 </section>
 <section class="ev">
   <h2 class="ev__t">눈으로 확인 — 올린 자료를 보관하는 동안 잃지 않는가</h2>
