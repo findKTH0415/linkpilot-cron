@@ -20,6 +20,7 @@
  */
 
 const path = require('path');
+const routes = require('./routes.cjs');
 
 const PROJECT_ID = /^LP-[A-Z]+-\d{4}-\d{3}$/;
 const DICT_KEY = /^[a-z_]+\.[a-z_]+$/;
@@ -219,6 +220,19 @@ function createHandlers({ agentRoot, agentModulePath }) {
  *   const { createRouter } = require('./im-agent/ui/api-router');
  *   app.use('/api/linkpilot', createRouter({ agentRoot: '/volume1/linkpilot/im-projects' }));
  */
+/**
+ * 읽기 라우트 — **표가 단일 출처다** (`ui/routes.cjs` 참조).
+ * NAS 서버가 이 배열을 그대로 걸 수 있어야 한다. 손으로 옮기면 갈린다.
+ */
+const ROUTES = [
+  { method: 'GET', path: '/intake', handler: 'intake', call: h => h.intake() },
+  { method: 'GET', path: '/fields', handler: 'fields', call: h => h.fields() },
+  { method: 'GET', path: '/projects', handler: 'projects', call: h => h.projects() },
+  { method: 'GET', path: '/projects/:id/control-tower', handler: 'controlTower', call: (h, req, p) => h.controlTower(p.id) },
+  { method: 'GET', path: '/projects/:id/lineage/:key', handler: 'lineage', call: (h, req, p) => h.lineage(p.id, p.key) },
+  { method: 'GET', path: '/projects/:id/impact/:key', handler: 'impact', call: (h, req, p) => h.impact(p.id, p.key) },
+];
+
 function createRouter(deps = {}) {
   let express;
   try {
@@ -226,34 +240,11 @@ function createRouter(deps = {}) {
   } catch (_) {
     throw new Error('express 를 찾을 수 없다 — createHandlers() 를 직접 사용하라');
   }
-
-  const h = createHandlers(deps);
-  const router = express.Router();
-  const send = (res, r) => res.status(r.status).json(r.body);
-
-  router.get('/intake', async (req, res, next) => {
-    try { send(res, await h.intake()); } catch (e) { next(e); }
-  });
-  router.get('/fields', async (req, res, next) => {
-    try { send(res, await h.fields()); } catch (e) { next(e); }
-  });
-  router.get('/projects', async (req, res, next) => {
-    try { send(res, await h.projects()); } catch (e) { next(e); }
-  });
-  router.get('/projects/:id/control-tower', async (req, res, next) => {
-    try { send(res, await h.controlTower(req.params.id)); } catch (e) { next(e); }
-  });
-  router.get('/projects/:id/lineage/:key', async (req, res, next) => {
-    try { send(res, await h.lineage(req.params.id, req.params.key)); } catch (e) { next(e); }
-  });
-  router.get('/projects/:id/impact/:key', async (req, res, next) => {
-    try { send(res, await h.impact(req.params.id, req.params.key)); } catch (e) { next(e); }
-  });
-
-  return router;
+  // ★ 등록을 여기서 다시 적지 않는다 — 표를 건다 (routes.cjs)
+  return routes.mount(express.Router(), ROUTES, createHandlers(deps));
 }
 
 module.exports = {
-  createHandlers, createRouter, PROJECT_ID, DICT_KEY,
+  createHandlers, createRouter, ROUTES, PROJECT_ID, DICT_KEY,
   MAX_FILE_BYTES, MAX_REQUEST_BYTES,
 };

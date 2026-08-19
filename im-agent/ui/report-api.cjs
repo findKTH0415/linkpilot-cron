@@ -59,6 +59,7 @@ const USER_NOTE = 'user_input';
 // 업로드 한도는 읽기 라우터와 한 값을 쓴다 (화면이 GET /intake 로 같은 값을 받는다)
 const { MAX_FILE_BYTES, MAX_REQUEST_BYTES } = require('./api-router.cjs');
 const issuerMod = require('../core/issuer');
+const routes = require('./routes.cjs');
 const mb = (n) => Math.round(n / (1024 * 1024) * 10) / 10;
 
 /**
@@ -1061,6 +1062,54 @@ function kstStamp(date) {
  *     startRun: (id, spec, user) => queue.push({ id, spec, by: user.name }),
  *   }));
  */
+/**
+ * 쓰기 라우트 — **표가 단일 출처다** (`ui/routes.cjs` 참조).
+ *
+ * ★★ **차례가 규칙이다.** `/sources/verify` 를 `/sources/:name` 보다 먼저 두지
+ *   않으면 「verify 라는 이름의 파일을 지워라」로 잡힌다. `/linked/verify` 도 같다.
+ *   줄을 옮길 때 그 둘의 앞뒤를 반드시 지킨다 (테스트가 고정한다).
+ *
+ * ★ NAS 서버는 이 배열을 그대로 걸어야 한다. 손으로 옮기면 라우트가 늘 때
+ *   그쪽만 모르고 404 가 난다 — 실제로 11개가 빠졌다 (2026-08-18).
+ */
+const ROUTES = [
+  { method: 'POST', path: '/projects', handler: 'createProject', call: (h, req) => h.createProject(req, req.body) },
+
+  { method: 'POST', path: '/projects/:id/sources', handler: 'uploadSources', call: (h, req, p) => h.uploadSources(req, p.id, req.body) },
+  { method: 'GET', path: '/projects/:id/sources', handler: 'listSources', call: (h, req, p) => h.listSources(req, p.id) },
+  // ★ 지우기·되돌리기·비우기·대조는 **길을 따로 낸다.** 올리기와 같은 자리에 두면
+  //   실수로 지우는 요청이 올리기로 읽히거나 그 반대가 된다.
+  { method: 'POST', path: '/projects/:id/sources/restore', handler: 'restoreSource', call: (h, req, p) => h.restoreSource(req, p.id, req.body) },
+  { method: 'POST', path: '/projects/:id/sources/purge', handler: 'purgeSources', call: (h, req, p) => h.purgeSources(req, p.id, req.body) },
+  { method: 'POST', path: '/projects/:id/sources/verify', handler: 'verifySources', call: (h, req, p) => h.verifySources(req, p.id) },
+  { method: 'DELETE', path: '/projects/:id/sources/:name', handler: 'deleteSource', call: (h, req, p) => h.deleteSource(req, p.id, p.name) },
+
+  // 연결 자료 — 보관하지 않는 쪽 (D-65). /verify 를 :key 보다 먼저 둔다
+  { method: 'GET', path: '/projects/:id/linked', handler: 'listLinked', call: (h, req, p) => h.listLinked(req, p.id) },
+  { method: 'POST', path: '/projects/:id/linked', handler: 'linkSource', call: (h, req, p) => h.linkSource(req, p.id, req.body) },
+  { method: 'POST', path: '/projects/:id/linked/verify', handler: 'verifyLinked', call: (h, req, p) => h.verifyLinked(req, p.id) },
+  { method: 'DELETE', path: '/projects/:id/linked/:key', handler: 'unlinkSource', call: (h, req, p) => h.unlinkSource(req, p.id, p.key) },
+
+  // 1회성 직접 올리기 — 저장소를 안 쓰는 사람의 길 (D-66). 보관하지 않는다
+  { method: 'POST', path: '/projects/:id/oneshot', handler: 'oneshotUpload', call: (h, req, p) => h.oneshotUpload(req, p.id, req.body) },
+  { method: 'GET', path: '/projects/:id/oneshot', handler: 'listOneshot', call: (h, req, p) => h.listOneshot(req, p.id) },
+
+  { method: 'PUT', path: '/projects/:id/issuer', handler: 'saveIssuer', call: (h, req, p) => h.saveIssuer(req, p.id, req.body) },
+  { method: 'GET', path: '/projects/:id/spec', handler: 'getSpec', call: (h, req, p) => h.getSpec(req, p.id) },
+  { method: 'POST', path: '/projects/:id/spec', handler: 'saveSpec', call: (h, req, p) => h.saveSpec(req, p.id, req.body) },
+  { method: 'POST', path: '/projects/:id/spec/confirm', handler: 'confirmSpec', call: (h, req, p) => h.confirmSpec(req, p.id, req.body) },
+  { method: 'GET', path: '/projects/:id/facts', handler: 'getFacts', call: (h, req, p) => h.getFacts(req, p.id) },
+  { method: 'PUT', path: '/projects/:id/facts', handler: 'saveFacts', call: (h, req, p) => h.saveFacts(req, p.id, req.body) },
+  { method: 'GET', path: '/projects/:id/reports', handler: 'listReports', call: (h, req, p) => h.listReports(req, p.id) },
+  // ★ 파일은 JSON 이 아니다 — 성공하면 파일을, 실패하면 평소처럼 JSON 사유를 보낸다.
+  //   부르는 쪽이 그 구분을 알아야 하므로 kind 를 붙인다
+  {
+    method: 'GET', path: '/projects/:id/file', handler: 'getFile', kind: routes.KIND.FILE,
+    call: (h, req, p) => h.getFile(req, p.id, req.query && req.query.rel),
+  },
+  { method: 'POST', path: '/projects/:id/reports', handler: 'generate', call: (h, req, p) => h.generate(req, p.id, req.body) },
+];
+
 function createRouter(deps = {}) {
   let express;
   try {
@@ -1068,59 +1117,17 @@ function createRouter(deps = {}) {
   } catch (_) {
     throw new Error('express 를 찾을 수 없다 — createHandlers() 를 직접 사용하라');
   }
-
-  const h = createHandlers(deps);
-  const router = express.Router();
-  const send = (res, r) => res.status(r.status).json(r.body);
-  const wrap = (fn) => async (req, res, next) => {
-    try { send(res, await fn(req)); } catch (e) { next(e); }
-  };
-
-  router.post('/projects', wrap(req => h.createProject(req, req.body)));
-  router.post('/projects/:id/sources', wrap(req => h.uploadSources(req, req.params.id, req.body)));
-  router.get('/projects/:id/sources', wrap(req => h.listSources(req, req.params.id)));
-  // ★ 지우기·되돌리기·비우기·대조는 **길을 따로 낸다.** 올리기와 같은 자리에 두면
-  //   실수로 지우는 요청이 올리기로 읽히거나 그 반대가 된다.
-  //   `/purge`·`/restore`·`/verify` 를 :name 보다 **먼저** 등록한다 —
-  //   나중에 두면 `sources/purge` 가 「purge 라는 이름의 파일을 지워라」로 잡힌다.
-  router.post('/projects/:id/sources/restore', wrap(req => h.restoreSource(req, req.params.id, req.body)));
-  router.post('/projects/:id/sources/purge', wrap(req => h.purgeSources(req, req.params.id, req.body)));
-  router.post('/projects/:id/sources/verify', wrap(req => h.verifySources(req, req.params.id)));
-  router.delete('/projects/:id/sources/:name', wrap(req => h.deleteSource(req, req.params.id, req.params.name)));
-
-  // 연결 자료 — 보관하지 않는 쪽 (D-65). /verify 를 :key 보다 먼저 등록한다
-  router.get('/projects/:id/linked', wrap(req => h.listLinked(req, req.params.id)));
-  router.post('/projects/:id/linked', wrap(req => h.linkSource(req, req.params.id, req.body)));
-  router.post('/projects/:id/linked/verify', wrap(req => h.verifyLinked(req, req.params.id)));
-  router.delete('/projects/:id/linked/:key', wrap(req => h.unlinkSource(req, req.params.id, req.params.key)));
-
-  // 1회성 직접 올리기 — 저장소를 안 쓰는 사람의 길 (D-66). 보관하지 않는다
-  router.post('/projects/:id/oneshot', wrap(req => h.oneshotUpload(req, req.params.id, req.body)));
-  router.get('/projects/:id/oneshot', wrap(req => h.listOneshot(req, req.params.id)));
-  router.put('/projects/:id/issuer', wrap(req => h.saveIssuer(req, req.params.id, req.body)));
-  router.get('/projects/:id/spec', wrap(req => h.getSpec(req, req.params.id)));
-  router.post('/projects/:id/spec', wrap(req => h.saveSpec(req, req.params.id, req.body)));
-  router.post('/projects/:id/spec/confirm', wrap(req => h.confirmSpec(req, req.params.id, req.body)));
-  router.get('/projects/:id/facts', wrap(req => h.getFacts(req, req.params.id)));
-  router.put('/projects/:id/facts', wrap(req => h.saveFacts(req, req.params.id, req.body)));
-  router.get('/projects/:id/reports', wrap(req => h.listReports(req, req.params.id)));
-  // 파일은 JSON 이 아니다 — 성공하면 파일을, 실패하면 평소처럼 JSON 사유를 보낸다
-  router.get('/projects/:id/file', async (req, res, next) => {
-    try {
-      const r = await h.getFile(req, req.params.id, req.query && req.query.rel);
-      if (!r.file) return send(res, r);
+  // ★ 등록을 여기서 다시 적지 않는다 — 표를 건다 (routes.cjs)
+  return routes.mount(express.Router(), ROUTES, createHandlers(deps), {
+    sendFile: (res, r) => {
       res.set(r.headers || {});
-      res.type(r.contentType);
-      res.sendFile(r.file);
-    } catch (e) { next(e); }
+      return res.sendFile(r.file);
+    },
   });
-  router.post('/projects/:id/reports', wrap(req => h.generate(req, req.params.id, req.body)));
-
-  return router;
 }
 
 module.exports = {
-  createHandlers, createRouter, DOC_PLANS, OUTPUTS, isExpected, FILES_PLAN,
+  createHandlers, createRouter, ROUTES, DOC_PLANS, OUTPUTS, isExpected, FILES_PLAN,
   PLAN_RANK, PROJECT_ID, CONTENT_TYPES,
   MAX_FILE_BYTES, MAX_REQUEST_BYTES,
 };
