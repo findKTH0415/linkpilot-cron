@@ -112,10 +112,15 @@ function selfContained(file, opt) {
     const href = tag.match(/href="([^"]+)"/)[1];
     html = html.replace(tag, '<style>' + read(href) + '</style>');
   });
-  const tags = html.match(/<script src="([^"]+)"><\/script>/g) || [];
+  // ★ 속성이 붙은 것도 인라인한다 — `embed-bridge.js` 는 `data-lp-global` 을 달고
+  //   오는데, 속성 없는 것만 찾으면 **그 한 줄만 바깥 파일로 남아** 미리보기가
+  //   「파일 하나로 열린다」를 깬다. 속성은 **그대로 옮긴다** (브리지가 그걸 읽는다)
+  const tags = html.match(/<script([^>]*)\ssrc="([^"]+)"([^>]*)><\/script>/g) || [];
   tags.forEach((tag) => {
     const src = tag.match(/src="([^"]+)"/)[1];
-    html = html.replace(tag, '<script>' + read(src).replace(/<\/(script)/gi, '<\\/$1') + '</script>');
+    const attrs = tag.replace(/^<script/, '').replace(/><\/script>$/, '')
+      .replace(/\ssrc="[^"]+"/, '');
+    html = html.replace(tag, '<script' + attrs + '>' + read(src).replace(/<\/(script)/gi, '<\\/$1') + '</script>');
   });
   if (o.inject) {
     // 설정 블록이 만들어진 **직후**에 끼워 넣는다. 앞에 넣으면 덮어써진다
@@ -360,9 +365,11 @@ async function flowShell(docs) {
   (shell.match(/<link rel="stylesheet" href="([^"]+)">/g) || []).forEach((tag) => {
     shell = shell.replace(tag, '<style>' + read(tag.match(/href="([^"]+)"/)[1]) + '</style>');
   });
-  (shell.match(/<script src="([^"]+)"><\/script>/g) || []).forEach((tag) => {
+  (shell.match(/<script([^>]*)\ssrc="([^"]+)"([^>]*)><\/script>/g) || []).forEach((tag) => {
     const src = tag.match(/src="([^"]+)"/)[1];
-    shell = shell.replace(tag, '<script>' + read(src).replace(/<\/(script)/gi, '<\\/$1') + '</script>');
+    const attrs = tag.replace(/^<script/, '').replace(/><\/script>$/, '')
+      .replace(/\ssrc="[^"]+"/, '');
+    shell = shell.replace(tag, '<script' + attrs + '>' + read(src).replace(/<\/(script)/gi, '<\\/$1') + '</script>');
   });
 
   // 설정 블록 **직후**에 끼운다. 앞에 넣으면 덮어써진다
