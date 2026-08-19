@@ -2340,7 +2340,48 @@ window.LINKPILOT_CONFIG = {
     return mount(o);
   }
 
-  return { detect: detect, escapeRoute: escapeRoute, mount: mount, auto: auto,
+  /* ── 링크 가드 — about:blank#blocked 근본 차단 (2026-08-20, 앱 inapp-guard.js 이식) ──
+     [왜 여기인가] 이 화면들은 앱(iframe)과 카톡 [자세히 보기] 양쪽에서 열린다. 인앱 웹뷰는
+     target="_blank" 새 탭을 못 열어 빈 화면(about:blank#blocked)이 뜬다 — 앱 저장소에서
+     6회 재발한 사고다. 화면마다 인라인 주입하면 드리프트라 **이 모듈이 스스로 단다**.
+     [원칙] ① 인터셉터는 무조건 등록(감지가 빗나가도 안전) — 감지는 새 탭 허용 판단에만
+            ② download 앵커는 건드리지 않는다 ③ window.open 은 감싸되 원본을 보존한다. */
+  function guard(doc) {
+    var d = doc || (typeof document !== 'undefined' ? document : null);
+    if (!d || !d.defaultView) return false;
+    var w = d.defaultView;
+    if (w.__lpInAppGuard) return true;
+    w.__lpInAppGuard = true;
+    var inApp = detect(w.navigator && w.navigator.userAgent || '').inApp;
+    var route = function (url) {
+      if (!inApp) return false;               // 일반 브라우저 — 네이티브 새 탭 허용
+      var r = escapeRoute(detect(w.navigator && w.navigator.userAgent || ''), url);
+      if (r.kind === 'scheme' || r.kind === 'intent') {
+        try { w.location.href = r.url; } catch (_) {}
+        // 스킴이 처리되지 않으면 화면이 그대로 남는다 → 같은 탭 이동 폴백 (앱 가드와 같은 규칙)
+        setTimeout(function () { try { if (!w.document.hidden) w.location.href = url; } catch (_) {} }, 1200);
+      } else {
+        // iOS 인앱 — 외부 브라우저를 강제로 못 연다. 같은 탭으로 연다(빈 화면보다 낫다)
+        try { w.location.href = url; } catch (_) {}
+      }
+      return true;
+    };
+    d.addEventListener('click', function (e) {
+      var a = e.target && e.target.closest ? e.target.closest('a[target="_blank"]') : null;
+      if (!a || a.hasAttribute('download')) return;
+      var url = a.href; if (!url || /^javascript:/i.test(url)) return;
+      if (route(url)) { e.preventDefault(); e.stopPropagation(); }
+    }, true);
+    var _open = w.open;
+    w.open = function (url, name, feat) {
+      if (url && route(String(url))) return null;
+      try { return _open ? _open.call(w, url, name, feat) : null; } catch (_) { return null; }
+    };
+    return true;
+  }
+  if (typeof document !== 'undefined') { try { guard(document); } catch (_) { /* 화면이 아닌 곳(테스트)에서는 조용히 */ } }
+
+  return { guard: guard, detect: detect, escapeRoute: escapeRoute, mount: mount, auto: auto,
     injectCss: injectCss, CSS: CSS, APPS: APPS };
 }));
 
