@@ -38,9 +38,11 @@ test('구성안: 탭이 셋이고 각각 지금 있는지를 말한다', () => {
     assert.ok(['have', 'none', 'move'].includes(t.state), `${t.id}: state 가 없다`);
     assert.ok(t.stateText && t.stateText.length > 4, `${t.id}: stateText 가 없다`);
   });
-  // 2026-08-17 — 「완성 보고서」 화면을 만들어 둘이 되었다. 남은 것은 「자료」 하나다
-  assert.deepEqual(B.TABS.filter(t => t.state === 'have').map(t => t.id), ['done', 'make']);
-  assert.deepEqual(B.TABS.filter(t => t.state !== 'have').map(t => t.id), ['files']);
+  // 2026-08-17 「완성 보고서」, 2026-08-18 「자료 업로드」 화면을 만들어 **셋 다** 있다.
+  // ★ 화면이 있다는 것과 **열려 있다**는 것은 다르다 — 연결·1회성은 본체가 함수를
+  //   넘겨야 열리고, 그 전까지 화면은 501 을 「아직」으로 그린다 (files.html).
+  assert.deepEqual(B.TABS.filter(t => t.state === 'have').map(t => t.id), ['done', 'make', 'files']);
+  assert.deepEqual(B.TABS.filter(t => t.state !== 'have'), []);
 });
 
 test('구성안: 목록·단계·형식·한도를 손으로 적지 않는다', () => {

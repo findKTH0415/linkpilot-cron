@@ -110,6 +110,41 @@
   };
 
   /**
+   * 「자료 업로드」 탭 — 보고서에 쓸 자료를 넣는 곳 〈2026-08-18〉.
+   *
+   * ★ 이름은 사용자가 정했다(「자료 업로드」). 다만 이 탭이 하는 일은 **셋**이고
+   *   그중 둘은 업로드가 아니다 — 화면 안에서 그 구분을 분명히 말한다:
+   *     ① 올려서 보관   (Pro · 우리 서버에 둔다)
+   *     ② 연결해서 쓰기 (무료 · **보관하지 않는다** — 남의 드라이브를 읽기만)
+   *     ③ 1회성으로 올리기 (무료 · 읽고 **바로 버린다**)
+   *   ②를 「업로드」로 읽으면 사본이 우리 쪽에 남는 줄 안다 — 그게 D-65 가
+   *   막으려던 오해다. 그래서 탭 이름은 짧게 두고 **화면이 설명한다.**
+   *
+   * ★ 무료다. 자료를 넣는 길이 유료면 Pro 를 살지 판단할 자료조차 못 넣는다.
+   */
+  var FILES_SECTION = {
+    id: 'files',
+    title: '자료 업로드',
+    tab: '자료 업로드',
+    tabNote: '보관 · 연결 · 1회성',
+    file: 'files.html',
+    plan: 'free',
+  };
+
+  /**
+   * **탭 셋의 단일 출처.** 본체(NAS) 탭 바가 이것을 읽는다 —
+   * 이름·순서·파일·필요 플랜을 앱과 이 저장소가 **같은 곳에서** 가져가게 한다.
+   *
+   * ★ 순서는 **시간 순서가 아니라 쓰는 순서**다: 만든 것을 보고(완성 보고서),
+   *   새로 만들고(보고서 생성), 자료를 넣는다(자료 업로드).
+   *   화면 스크린샷의 탭 순서와 같다 — 앱에서 이미 그 순서로 보인다.
+   *
+   * ★ 이름을 앱 쪽에 **복사해 적지 않는다.** 복사하면 한쪽만 고치는 날 갈리고,
+   *   그때 사용자는 탭 이름과 화면 제목이 다른 것을 본다.
+   */
+  var TABS = [OUTPUTS_SECTION, SECTION, FILES_SECTION];
+
+  /**
    * **토큰이 실렸는가** (2026-08-17).
    *
    * ★ `tokens.css` 를 같이 안 올리면 화면이 **색 없이** 뜨는데 **오류는 안 난다** —
@@ -188,6 +223,7 @@
   return {
     STEPS: STEPS, WHY: WHY, EMBED_CSS: EMBED_CSS,
     SECTION: SECTION, OUTPUTS_SECTION: OUTPUTS_SECTION,
+    FILES_SECTION: FILES_SECTION, TABS: TABS,
     stepState: stepState, urlFor: urlFor, stepOfFile: stepOfFile,
     tokensLoaded: tokensLoaded, TOKENS_MISSING: TOKENS_MISSING,
   };

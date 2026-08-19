@@ -63,10 +63,11 @@ const TABS = [
     plan: 'Pro',
   },
   {
-    id: 'files', order: 3, name: '자료',
-    sub: '연결하거나 1회성으로 올립니다',
-    state: 'none',
-    stateText: '아직 없다 — 서버 쪽(연결·1회성)은 있고 그리는 화면이 없다',
+    // 이름은 flow-core.js 의 FILES_SECTION 이 단일 출처다 (2026-08-18)
+    id: 'files', order: 3, name: FLOW.FILES_SECTION.tab,
+    sub: FLOW.FILES_SECTION.tabNote,
+    state: 'have',
+    stateText: '있다 — files.html (inTab: true 로 얹는다)',
     plan: '무료',
   },
 ];
