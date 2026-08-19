@@ -88,6 +88,19 @@ test('★★ 501 을 오류로 그리지 않는다', () => {
     '닫힘 상태를 길별로 나눠 들고 있지 않다');
 });
 
+/**
+ * ★★ 401·403 도 **고장이 아니다.** 로그인 안 했거나 등급이 모자란 것은 상태다.
+ *   빨간 오류로 그리면 고장으로 읽혀 문의가 온다 — 501 은 조심했는데 이건
+ *   놓쳤었다(2026-08-18). 헤드리스로 확인: 401 판에서도 오류 상자 0개.
+ */
+test('★★ 401·403 을 오류로 그리지 않는다 (게이트로 그린다)', () => {
+  const html = read('files.html');
+  assert.match(html, /r\.status === 401 \|\| r\.status === 403/, '401·403 을 따로 다루지 않는다');
+  assert.match(html, /G\.access\(C\.session, C\.requiredPlan\)/,
+    '등급 판정을 화면이 말하지 않는다 — 목록만 비면 「자료가 없다」로 읽힌다');
+  assert.ok(html.includes("requiredPlan: 'free'"), '자료 탭이 무료가 아니다');
+});
+
 test('★ 탭 안에서는 제목을 그리지 않는다 (탭 바가 이미 이름을 말한다)', () => {
   const html = read('files.html');
   assert.match(html, /if \(!C\.inTab\) view\.appendChild\(el\('h1', null, '자료 업로드'\)\)/,

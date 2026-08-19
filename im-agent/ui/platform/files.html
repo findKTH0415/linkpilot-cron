@@ -124,6 +124,9 @@ window.LINKPILOT_FILES = {
   projectId: null,
   inTab: false,
   preload: null,
+  // 자료를 넣는 길은 **무료**다 — 유료면 Pro 를 살지 판단할 자료조차 못 넣는다
+  requiredPlan: 'free',
+  planNames: { free: 'Free', basic: 'Basic', pro: 'Pro', business: 'Business' },
 };
 </script>
 <script>
@@ -143,6 +146,8 @@ window.LINKPILOT_FILES = {
     // 닫힌 것처럼 그리면 열려 있는 길까지 못 쓴다
     closed: { kept: null, linked: null, oneshot: null },
     error: null,
+    // 서버가 「로그인이 필요합니다 / 플랜이 모자랍니다」라고 한 경우 — 오류와 구분한다
+    gate: null,
     busy: false,
   };
 
@@ -173,6 +178,13 @@ window.LINKPILOT_FILES = {
     return fetch(C.api + path, opt).then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (b) {
         if (r.status === 501) return { ok: false, closed: (b && b.error) || '아직 붙어 있지 않습니다' };
+        // ★★ 401·403 도 **고장이 아니다.** 로그인하지 않았거나 등급이 모자란 것은
+        //   상태이지 오류가 아닌데, 빨간 오류로 그리면 고장으로 읽혀 문의가 온다.
+        //   (501 은 조심했는데 이건 놓쳤었다 — 2026-08-18)
+        if (r.status === 401 || r.status === 403) {
+          state.gate = (b && b.error) || '사용할 수 없습니다';
+          return { ok: false, gated: true };
+        }
         if (!r.ok) throw new Error((b && b.error) || ('서버 오류 (' + r.status + ')'));
         return { ok: true, body: b };
       });
@@ -347,6 +359,26 @@ window.LINKPILOT_FILES = {
 
     // 토큰이 안 실리면 화면이 색 없이 뜨는데 오류는 안 난다 — 화면이 스스로 말한다
     if (F && F.tokensLoaded() === false) view.appendChild(el('div', 'nostyle', F.TOKENS_MISSING));
+
+    // ★ 등급·로그인 판정을 **화면이 먼저** 말한다. 판정 자체는 서버가 하지만,
+    //   화면이 아무 말도 안 하고 목록만 비어 있으면 「자료가 없다」로 읽힌다
+    var G = window.LinkPilotGate;
+    var a = G ? G.access(C.session, C.requiredPlan) : { allowed: true };
+    if (!a.allowed) {
+      var m = G.accessMessage(a, (C.planNames || {})[C.requiredPlan] || C.requiredPlan, '자료 업로드');
+      var g = el('section', 'card');
+      add(g, el('h2', 'card__t', (m && m.title) || '사용할 수 없습니다'),
+        el('p', 'card__d', (m && m.body) || ''));
+      view.appendChild(g);
+      return;
+    }
+    if (state.gate) {
+      var sg = el('section', 'card');
+      add(sg, el('h2', 'card__t', state.gate),
+        el('p', 'card__d', '로그인하거나 멤버십을 확인한 뒤 다시 열어 주십시오.'));
+      view.appendChild(sg);
+      return;
+    }
 
     if (state.error) view.appendChild(el('div', 'err', state.error));
 
