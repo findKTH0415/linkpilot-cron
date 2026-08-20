@@ -248,3 +248,38 @@ test('★★ 자료 업로드 탭을 미리 그리면 실제로 내용이 들어
     assert.match(html, /예시 화면입니다/, '예시라는 표시가 없다 — 실제로 오해한다');
   } finally { if (fs.existsSync(out)) fs.unlinkSync(out); }
 });
+
+/**
+ * ★★ **「보인다」와 「된다」는 다른 확인이다.**
+ *
+ * 미리 그린 판은 눌리지 않는다. 그래서 눌러 볼 수 있는 판을 따로 낸다
+ * (`npm run im:files:live`). 만들면서 둘이 나왔고 **둘 다 오류를 안 냈다**:
+ *   ① 설정 주입이 인라인한 모듈의 주석에 걸려 **로그인 안 한 화면**이 나왔다
+ *   ② 가짜 서버를 화면보다 **뒤에** 넣어 「프로젝트가 없습니다」가 그럴듯하게 떴다
+ */
+test('★★ 눌러 볼 수 있는 판이 실제로 설정을 받고 나온다', async () => {
+  const { buildLive, publishableLive } = require(path.join(PLATFORM, 'build-files.js'));
+  const out = path.join(os.tmpdir(), 'lp-files-live-test.html');
+  try {
+    await buildLive(out);
+    const html = fs.readFileSync(out, 'utf8');
+
+    // ① 주입이 **설정 블록보다 뒤에** 있어야 한다. 앞이면 덮어써진다
+    const cfg = html.search(/^window\.LINKPILOT_FILES\s*=/m);
+    const inject = html.indexOf('Object.assign(window.LINKPILOT_FILES');
+    assert.ok(cfg > 0 && inject > cfg, '설정 주입이 설정 블록보다 앞에 있다 — 덮어써진다');
+    assert.match(html, /"authenticated":true/, '세션이 안 들어갔다 — 로그인 화면이 뜬다');
+
+    // ② 가짜 서버가 **화면보다 먼저** 있어야 한다. 뒤면 첫 요청을 못 가로챈다
+    const fake = html.indexOf('window.fetch = function');
+    const screen = html.indexOf('<div class="pv">');
+    assert.ok(fake > 0 && fake < screen, '가짜 서버가 화면보다 뒤에 있다 — 목록이 빈다');
+
+    // 스크립트는 **있어야 한다** (이 판은 도는 판이다)
+    assert.match(html, /<script/, '스크립트가 없다 — 이건 미리 그린 판이다');
+    assert.deepEqual(publishableLive(html), [], '올릴 수 없는 조각이다');
+    assert.match(html, /서버는 예시입니다/, '예시라는 표시가 없다');
+    // 연결은 실제로도 안 열려 있다 — 되는 것처럼 보여 주지 않는다
+    assert.match(html, /501/, '연결 갈래를 되는 것처럼 만들었다');
+  } finally { if (fs.existsSync(out)) fs.unlinkSync(out); }
+});

@@ -123,9 +123,17 @@ function selfContained(file, opt) {
     html = html.replace(tag, '<script' + attrs + '>' + read(src).replace(/<\/(script)/gi, '<\\/$1') + '</script>');
   });
   if (o.inject) {
-    // 설정 블록이 만들어진 **직후**에 끼워 넣는다. 앞에 넣으면 덮어써진다
+    // 설정 블록이 만들어진 **직후**에 끼워 넣는다. 앞에 넣으면 덮어써진다.
+    //
+    // ★★ 이름만 찾으면 안 된다. 인라인한 다른 모듈의 **주석이나 문자열**에 같은
+    //   이름이 먼저 나오면 거기에 끼워 넣게 되고, 그러면 진짜 설정 블록이 뒤에서
+    //   **덮어써서 주입이 통째로 사라진다.** 화면은 멀쩡히 뜨고 값만 기본값이라
+    //   눈으로는 안 잡힌다 (2026-08-20 실측 — 로그인 안 한 화면이 나왔다).
+    //   그래서 **줄 첫머리의 대입**을 찾는다.
+    const assign = new RegExp('^window\\.' + o.inject.global + '\\s*=', 'm').exec(html);
+    if (!assign) throw new Error(`${file}: ${o.inject.global} 대입을 찾지 못했다`);
     const anchor = '</script>';
-    const at = html.indexOf(anchor, html.indexOf(o.inject.global));
+    const at = html.indexOf(anchor, assign.index);
     if (at === -1) throw new Error(`${file}: 설정 블록을 찾지 못했다`);
     const code = `\n<script>Object.assign(window.${o.inject.global}, ${JSON.stringify(o.inject.value)});</script>`;
     html = html.slice(0, at + anchor.length) + code + html.slice(at + anchor.length);
@@ -988,6 +996,8 @@ if (require.main === module) main().catch(e => { console.error(e); process.exit(
 
 module.exports = {
   build, buildSection, buildSectionDocs, flowShell, SCREENS, EXTRAS,
+  // 「실제로 도는 판」도 같은 인라이너를 쓴다 — 두 벌로 만들지 않는다
+  selfContained,
   // 「미리 그려 넣는 판」이 같은 패널을 쓴다 — 두 벌로 만들지 않는다
   changePanel, evidencePanel, vaultPanel, linkedPanel, deskPanel,
 };

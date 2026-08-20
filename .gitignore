@@ -37,3 +37,4 @@ im-agent/ui/platform/result.html
 #   · NAS — 시스템에 설치하거나 여기에 NotoSansKR-400.woff2 처럼 넣는다
 # 파일을 넣으면 core/fonts.js 가 @font-face 로 문서에 박는다.
 fonts/
+im-agent/ui/platform/files-live.html

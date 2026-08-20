@@ -21,6 +21,7 @@
     "im:static": "node im-agent/ui/platform/build-static.js",
     "im:artifact": "node im-agent/ui/platform/build-static.js --artifact",
     "im:files": "node im-agent/ui/platform/build-files.js",
+    "im:files:live": "node im-agent/ui/platform/build-files.js --live",
     "im:tabs": "node im-agent/ui/platform/build-tabs.js",
     "im:dashboard": "node im-agent/ui/platform/build-dashboard.js",
     "im:themes": "node im-agent/ui/platform/build-themes.js",
