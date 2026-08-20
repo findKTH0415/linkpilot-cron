@@ -100,6 +100,34 @@ select:focus-visible, button:focus-visible { outline: 2px solid var(--lime-deep)
 .drop__t { font: 700 14.5px/1.4 inherit; }
 .drop__s { font-size: 12.5px; color: var(--ink2); margin-top: 6px; }
 .drop input { display: none; }
+.drop.over { border-color: var(--lime); background: var(--lime-soft); }
+
+/* 갈래 고르기 — 세 장을 나란히 두고 **고를 수 있게** 한다 (전에는 설명만이었다) */
+.pickway { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.pw { text-align: left; font: inherit; cursor: pointer; background: var(--surface);
+  border: 1px solid var(--line); border-radius: 14px; padding: 13px 14px; }
+.pw:hover:not(:disabled) { border-color: var(--lime); }
+.pw.on { border-color: var(--lime); background: var(--lime-soft); box-shadow: inset 0 0 0 1px var(--lime); }
+.pw:disabled { cursor: not-allowed; background: var(--panel); color: var(--ink2); }
+.pw__t { font-weight: 800; font-size: 14.5px; }
+.pw__d { font-size: 12.5px; color: var(--ink2); margin-top: 6px; line-height: 1.6; }
+
+.up { margin-top: 12px; padding: 13px 15px; border-radius: 14px;
+  border: 1px solid var(--line); background: var(--surface); }
+.up--done { border-color: var(--lime); background: var(--lime-soft); }
+.up--error { border-color: var(--bad); background: var(--bad-soft); }
+.up__h { display: flex; align-items: baseline; gap: 10px; }
+.up__h b { font-size: 14.5px; }
+.up__v { margin-left: auto; font-size: 17px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.up__v--none { font-size: 13.5px; font-weight: 400; color: var(--ink2); }
+.up__bar { height: 10px; border-radius: 999px; background: #E1E4E8; margin: 10px 0 8px; overflow: hidden; }
+.up__bar i { display: block; height: 100%; background: var(--lime); border-radius: 999px; }
+.up__bar--none { background: repeating-linear-gradient(135deg, #E1E4E8 0 5px, #F3F4F6 5px 10px); }
+.up__d { margin: 0; font-size: 12.5px; color: var(--ink2); line-height: 1.65; }
+.up--error .up__d { color: var(--bad-ink); }
+.btn { padding: 12px 22px; font: 700 14px/1 inherit; border: 0; border-radius: 12px;
+  background: var(--lime); color: var(--ink); cursor: pointer; margin-top: 12px; }
+.btn:disabled { background: var(--panel); color: var(--ink2); cursor: not-allowed; }
 
 /* 토큰이 안 실렸을 때의 경고는 토큰 없이도 보여야 한다 — 색을 직접 칠한다 */
 .nostyle { border: 1px solid #F3C6C6; background: #FDECEC; color: #8F1D1D;
@@ -111,6 +139,7 @@ select:focus-visible, button:focus-visible { outline: 2px solid var(--lime-deep)
 
 <script src="gate-core.js"></script>
 <script src="flow-core.js"></script>
+<script src="upload-core.js"></script>
 <script>
 /**
  * 붙이는 쪽이 채우는 유일한 값.
@@ -136,6 +165,7 @@ window.LINKPILOT_FILES = {
   'use strict';
   var C = window.LINKPILOT_FILES;
   var F = window.LinkPilotFlow;
+  var UP = window.LinkPilotUpload;
   var view = document.getElementById('view');
 
   var state = {
@@ -151,6 +181,14 @@ window.LINKPILOT_FILES = {
     // 서버가 「로그인이 필요합니다 / 플랜이 모자랍니다」라고 한 경우 — 오류와 구분한다
     gate: null,
     busy: false,
+    // ── 첨부 (2026-08-20) ─────────────────────────────────────────────
+    // 전에는 세 갈래가 **설명만**이었다. 무엇이 다른지는 알려 주는데 정작
+    // 여기서 올릴 수는 없어서, 자료를 넣으려면 1단계로 되돌아가야 했다.
+    way: 'kept',       // 'kept' | 'linked' | 'oneshot'
+    picked: [],        // 고른 파일 — { name, size, data, error }
+    upload: null,      // 올리는 중 상태 (upload-core 가 준 그대로)
+    result: null,      // 서버 응답
+    limits: null,      // GET /intake 가 준 한도 — 화면에 박아 두지 않는다
   };
 
   function el(t, c, x) {
@@ -234,22 +272,254 @@ window.LINKPILOT_FILES = {
 
   /* ── 그리기 ───────────────────────────────────────────── */
 
-  /** 세 갈래의 차이 — 이름만 보고 다 같은 업로드로 읽지 않게 맨 위에 둔다 */
+  /**
+   * 세 갈래 — **설명이자 고르는 자리다.**
+   *
+   * ★ 이름만 보면 셋 다 「업로드」로 읽힌다. 무엇이 다른지를 **고르기 전에** 말한다.
+   *   연결은 사본을 만들지 않고, 1회성은 읽고 버린다 — 올린 뒤에 알면 늦다.
+   *
+   * ★ 전에는 이 셋이 **설명만**이었다. 그래서 차이는 알려 주는데 정작 여기서
+   *   올릴 수는 없었고, 자료를 넣으려면 1단계로 되돌아가야 했다. 지금은 고르면
+   *   그 자리에서 붙인다.
+   */
+  var WAYS = [
+    { id: 'kept', t: '올려서 보관', k: 'Pro', free: false, plan: 'pro',
+      d: '우리 서버에 둡니다. 잘못 올리면 지우고 되살릴 수 있고, 원본이 그대로인지 대조합니다.' },
+    { id: 'linked', t: '연결해서 쓰기', k: '무료', free: true, plan: 'free',
+      d: 'Dropbox·Box·구글·원드라이브의 파일을 가리킵니다. 사본을 만들지 않습니다 — 읽을 때만 잠깐 가져와 버립니다.' },
+    { id: 'oneshot', t: '1회성으로 올리기', k: '무료', free: true, plan: 'free',
+      d: '읽고 바로 버립니다. 보관하지 않으므로 다시 쓸 수 없고, 원본이 그대로인지도 확인할 수 없습니다.' },
+  ];
+
+  function wayOf(id) {
+    for (var i = 0; i < WAYS.length; i++) if (WAYS[i].id === id) return WAYS[i];
+    return WAYS[0];
+  }
+
   function ways() {
-    var box = el('div', 'ways');
-    [
-      { t: '올려서 보관', k: 'Pro', free: false,
-        d: '우리 서버에 둡니다. 잘못 올리면 지우고 되살릴 수 있고, 원본이 그대로인지 대조합니다.' },
-      { t: '연결해서 쓰기', k: '무료', free: true,
-        d: 'Dropbox·Box·구글·원드라이브의 파일을 가리킵니다. 사본을 만들지 않습니다 — 읽을 때만 잠깐 가져와 버립니다.' },
-      { t: '1회성으로 올리기', k: '무료', free: true,
-        d: '읽고 바로 버립니다. 보관하지 않으므로 다시 쓸 수 없고, 원본이 그대로인지도 확인할 수 없습니다.' },
-    ].forEach(function (w) {
-      var t = el('div', 'way__t', w.t);
+    var box = el('div', 'pickway');
+    WAYS.forEach(function (w) {
+      var b = el('button', 'pw' + (state.way === w.id ? ' on' : ''));
+      b.type = 'button';
+      var t = el('div', 'pw__t', w.t);
       t.appendChild(el('span', 'way__k way__k--' + (w.free ? 'free' : 'pro'), w.k));
-      box.appendChild(add(el('div', 'way'), t, el('p', 'way__d', w.d)));
+      add(b, t, el('p', 'pw__d', w.d));
+      b.addEventListener('click', function () {
+        // 갈래를 바꾸면 고른 파일을 버린다 — 보관하려던 것이 1회성으로
+        // 넘어가면 **되돌릴 수 없다.** 그 실수는 조용하고 되돌리기도 없다
+        if (state.way !== w.id) { state.picked = []; state.upload = null; state.result = null; }
+        state.way = w.id;
+        render();
+      });
+      box.appendChild(b);
     });
     return box;
+  }
+
+  /** 고른 파일을 읽어 둔다. 읽기·보내기는 upload-core.js 한 곳에 있다 */
+  function addFiles(list) {
+    var max = (state.limits && state.limits.maxBytesPerFile) || 0;
+    Array.prototype.forEach.call(list, function (f) {
+      if (state.picked.some(function (x) { return x.name === f.name; })) return;
+      var rec = { name: f.name, size: f.size, data: null, error: null,
+        tooBig: UP.tooBig(f, max) };
+      state.picked.push(rec);
+      UP.readOne(f, function (err, data) {
+        if (err) rec.error = err.message; else rec.data = data;
+        render();
+      });
+    });
+    render();
+  }
+
+  /** 파일을 고르는 자리. 끌어다 놓는 것도 받는다 */
+  function dropZone() {
+    var z = el('div', 'drop');
+    z.tabIndex = 0;
+    z.setAttribute('role', 'button');
+    add(z, el('div', 'drop__t', '파일을 끌어다 놓거나 눌러서 고르세요'),
+      el('div', 'drop__s', '여러 개를 한 번에 올릴 수 있습니다'));
+    var inp = el('input');
+    inp.type = 'file';
+    inp.multiple = true;
+    inp.addEventListener('change', function () { addFiles(inp.files); inp.value = ''; });
+    z.appendChild(inp);
+    z.addEventListener('click', function () { inp.click(); });
+    z.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); inp.click(); }
+    });
+    z.addEventListener('dragover', function (ev) { ev.preventDefault(); z.classList.add('over'); });
+    z.addEventListener('dragleave', function () { z.classList.remove('over'); });
+    z.addEventListener('drop', function (ev) {
+      ev.preventDefault(); z.classList.remove('over');
+      addFiles(ev.dataTransfer && ev.dataTransfer.files);
+    });
+    return z;
+  }
+
+  /** 고른 파일 목록. **못 올릴 것은 올리기 전에 그렇다고 적는다** */
+  function pickedList() {
+    var out = document.createDocumentFragment();
+    state.picked.forEach(function (f, i) {
+      var r = el('div', 'row');
+      var left = el('div');
+      left.appendChild(el('div', 'row__n', f.name));
+      var why = f.error ? f.error
+        : f.tooBig ? ('파일이 너무 큽니다 — ' + size(f.size) + ' (한도 ' + size(state.limits.maxBytesPerFile) + ')')
+        : f.data ? size(f.size) : '읽는 중…';
+      left.appendChild(el('div', 'row__m', why));
+      r.appendChild(left);
+      var x = el('button', 'btn2', '빼기');
+      x.type = 'button';
+      x.addEventListener('click', function () { state.picked.splice(i, 1); render(); });
+      r.appendChild(x);
+      out.appendChild(r);
+    });
+    return out;
+  }
+
+  /** 진행 바 한 칸. **모르는 값은 막대가 아니라 빗금이다** */
+  function progressBar(pct) {
+    var bar = el('div', 'up__bar' + (pct === null || pct === undefined ? ' up__bar--none' : ''));
+    if (pct !== null && pct !== undefined) {
+      var i = el('i');
+      i.style.width = Math.max(0, Math.min(100, pct)) + '%';
+      bar.appendChild(i);
+    }
+    return bar;
+  }
+
+  /** 올리는 중·끝난 뒤. **거절된 것을 숨기지 않는다** */
+  function uploadCard() {
+    var u = state.upload;
+    if (!u) return null;
+    var box = el('div', 'up' + (u.phase === 'done' ? ' up--done' : u.phase === 'error' ? ' up--error' : ''));
+    var h = el('div', 'up__h');
+    h.appendChild(el('b', null,
+      u.phase === 'sending' ? '보내는 중'
+        : u.phase === 'reading' ? '서버가 읽는 중'
+        : u.phase === 'done' ? '올렸습니다' : '올리지 못했습니다'));
+    h.appendChild(el('span', 'up__v' + (u.pct === null || u.pct === undefined ? ' up__v--none' : ''),
+      (u.pct === null || u.pct === undefined) ? '진행률을 알 수 없습니다' : (u.pct + '%')));
+    box.appendChild(h);
+    if (u.phase === 'sending' || u.phase === 'reading') box.appendChild(progressBar(u.pct));
+
+    if (u.phase === 'reading') {
+      box.appendChild(el('p', 'up__d',
+        '다 보냈습니다. 서버가 파일을 열어 읽는 중입니다 — 스캔본이면 더 걸립니다.'));
+    } else if (u.phase === 'error') {
+      box.appendChild(el('p', 'up__d', u.error));
+    } else if (u.phase === 'done' && state.result) {
+      box.appendChild(el('p', 'up__d', UP.summary(state.result)));
+      // ★ 거절 사유를 접어 두지 않는다. 「올렸습니다」만 보면 다 올라간 줄 안다
+      (state.result.rejected || []).forEach(function (r) {
+        box.appendChild(el('p', 'up__d', '· ' + r.name + ' — ' + r.reason));
+      });
+      if (state.result.replaced && state.result.replaced.length) {
+        box.appendChild(el('p', 'up__d',
+          '같은 이름이 있어 이전 판은 휴지통으로 보냈습니다: ' + state.result.replaced.join(' · ')));
+      }
+    }
+    return box;
+  }
+
+  /** 실제로 보낸다. 갈래마다 **주소가 다르다** */
+  function doUpload() {
+    var ready = state.picked.filter(function (f) { return f.data && !f.tooBig; });
+    if (!ready.length || !state.projectId || state.busy) return;
+    var path = state.way === 'oneshot' ? '/oneshot' : '/sources';
+
+    state.busy = true; state.result = null; state.error = null;
+    UP.send({
+      url: C.api + '/projects/' + state.projectId + path,
+      files: ready.map(function (f) { return { name: f.name, contentBase64: f.data }; }),
+      onUpdate: function (u) { state.upload = u; render(); },
+      onDone: function (j) {
+        state.busy = false; state.result = j; state.picked = [];
+        // 올린 뒤 목록을 다시 읽는다 — 안 읽으면 방금 올린 것이 안 보인다
+        loadOne(state.projectId).then(render);
+      },
+      onFail: function (why, status) {
+        state.busy = false;
+        // 401·403 은 **오류가 아니라 게이트**다 (빨간 상자로 그리면 고장으로 읽힌다)
+        if (status === 401 || status === 403) state.gate = why;
+        render();
+      },
+    });
+  }
+
+  /**
+   * 첨부 — **한 자리에서 고르고, 그 자리에서 올린다.**
+   *
+   * ★ 갈래마다 할 수 있는 것이 다르다. 연결은 여기서 올리는 것이 아니라
+   *   **가리키는 것**이라 파일 고르기가 없다 — 본체가 함수를 넘겨야 열린다.
+   */
+  function attachCard() {
+    var card = el('section', 'card');
+    add(card, el('h2', 'card__t', '자료 붙이기'),
+      el('p', 'card__d', '어떻게 둘지 먼저 고릅니다. 셋은 되돌릴 수 있는 정도가 다릅니다.'));
+    card.appendChild(ways());
+
+    var w = wayOf(state.way);
+
+    if (!state.projectId) {
+      card.appendChild(el('p', 'note', '프로젝트를 먼저 고르면 여기서 바로 올릴 수 있습니다.'));
+      return card;
+    }
+
+    // 연결 — 여기서 올리는 것이 아니다
+    if (state.way === 'linked') {
+      if (state.closed.linked) {
+        card.appendChild(waitBox('연결 갈래가 아직 열려 있지 않습니다', state.closed.linked));
+      } else {
+        card.appendChild(el('p', 'note',
+          '연결은 파일을 올리는 것이 아니라 저장소의 파일을 가리키는 것입니다. '
+          + '아래 목록에서 저장소를 연결하십시오.'));
+      }
+      return card;
+    }
+
+    // 보관 — Pro 다. **파일을 고르게 한 뒤 거절하지 않는다**
+    var G = window.LinkPilotGate;
+    if (state.way === 'kept' && G) {
+      var a = G.access(C.session, w.plan);
+      if (!a.allowed) {
+        var m = G.accessMessage(a, (C.planNames || {})[w.plan] || w.plan, '올려서 보관');
+        card.appendChild(waitBox((m && m.title) || '이 갈래는 쓸 수 없습니다', (m && m.body) || ''));
+        card.appendChild(el('p', 'note',
+          '「1회성으로 올리기」는 무료입니다 — 다만 읽고 바로 버리므로 다시 쓸 수 없습니다.'));
+        return card;
+      }
+    }
+
+    // 1회성 — **올리기 전에** 무엇을 잃는지 말한다
+    if (state.way === 'oneshot') {
+      card.appendChild(add(el('div', 'note'),
+        el('b', null, '올리기 전에 확인해 주세요'),
+        document.createTextNode(
+          '1회성 자료는 읽은 뒤 서버에서 지워집니다. 보관하지 않으므로 다시 쓸 수 없고, '
+          + '원본이 그대로인지 나중에 확인할 수도 없습니다. 계속 쓸 자료라면 「올려서 보관」을 쓰십시오.')));
+    }
+
+    card.appendChild(dropZone());
+    // ★ 한도를 **모르면 적지 않는다.** 모르는 값을 0 으로 그리면 「못 올린다」로 읽힌다
+    if (state.limits && state.limits.maxBytesPerFile > 0) {
+      card.appendChild(el('p', 'note',
+        '파일 하나 ' + size(state.limits.maxBytesPerFile)
+        + ' · 한 번에 ' + size(state.limits.maxBytesPerRequest) + ' 까지 올릴 수 있습니다.'));
+    }
+    card.appendChild(pickedList());
+
+    var ready = state.picked.filter(function (f) { return f.data && !f.tooBig; });
+    var go = el('button', 'btn', state.way === 'oneshot' ? '1회성으로 올리기' : '올려서 보관');
+    go.type = 'button';
+    go.disabled = !ready.length || state.busy;
+    go.addEventListener('click', doUpload);
+    card.appendChild(go);
+
+    var up = uploadCard();
+    if (up) card.appendChild(up);
+    return card;
   }
 
   /** 아직 안 붙은 길. **오류가 아니라 상태**로 그린다 */
@@ -384,8 +654,8 @@ window.LINKPILOT_FILES = {
 
     if (state.error) view.appendChild(el('div', 'err', state.error));
 
-    view.appendChild(ways());
-
+    // ★ 프로젝트를 **먼저** 고르게 한다. 자료는 프로젝트에 붙는 것이라
+    //   고르기 전에 파일부터 고르게 하면 올릴 곳이 없다
     // 프로젝트 고르기
     var pick = el('div', 'pick');
     pick.appendChild(el('label', null, '프로젝트'));
@@ -405,6 +675,8 @@ window.LINKPILOT_FILES = {
     pick.appendChild(sel);
     view.appendChild(add(el('div', 'card'), pick));
 
+    view.appendChild(attachCard());
+
     if (!state.projectId) {
       view.appendChild(el('p', 'card__d', '프로젝트를 고르면 그 프로젝트의 자료가 여기 뜹니다.'));
       return;
@@ -416,6 +688,12 @@ window.LINKPILOT_FILES = {
   }
 
   render();
+  // 한도는 **서버가 정한다.** 화면에 숫자를 박아 두면 서버가 바뀌는 날 화면만 옛말을 한다.
+  // ★ `call()` 은 `{ok, body}` 를 준다 — 껍데기째 넣으면 값이 `undefined` 가 되고
+  //   화면에는 **「0 B」가 그럴듯하게 찍힌다.** 실제로 그렇게 한 번 나왔다
+  call('GET', '/intake').then(function (r) {
+    if (r && r.ok && r.body) { state.limits = r.body; render(); }
+  }, function () {});
   loadProjects().then(function () {
     render();
     if (state.projectId) return loadOne(state.projectId).then(render);

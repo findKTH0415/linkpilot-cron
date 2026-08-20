@@ -17,6 +17,9 @@ const F = require('../ui/platform/flow-core.js');
 const PLATFORM = path.join(__dirname, '..', 'ui', 'platform');
 const read = (f) => fs.readFileSync(path.join(PLATFORM, f), 'utf8');
 
+/** 주석을 뺀 코드만 본다 — 설명 글이 규칙 위반으로 잡히면 안 된다 */
+const codeOf = (html) => html.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '');
+
 /* ═════════ ① 탭 셋이 한 곳에서 나온다 ═════════ */
 
 test('★ 탭 셋이 flow-core 한 곳에서 나온다 (본체가 여기서 읽어 간다)', () => {
@@ -132,4 +135,89 @@ test('★ 토큰이 안 실리면 화면이 말한다', () => {
   // 그 경고는 토큰 없이도 보여야 하므로 색을 직접 칠한다
   assert.match(html, /\.nostyle \{[^}]*background: #FDECEC/,
     '토큰 경고에 인라인 색이 없다 — 토큰이 없으면 경고까지 안 보인다');
+});
+
+/* ═════════ ⑤ 첨부 — 여기서 고르고 여기서 올린다 (2026-08-20) ═════════ */
+
+/**
+ * ★★ 세 갈래가 **설명만**이던 때가 있었다. 무엇이 다른지는 알려 주는데 정작
+ *   여기서 올릴 수는 없어서, 자료를 넣으려면 1단계로 되돌아가야 했다.
+ */
+test('★★ 세 갈래를 고를 수 있다 (설명만이 아니다)', () => {
+  const html = read('files.html');
+  assert.match(html, /var WAYS = \[/, '갈래가 데이터로 있지 않다');
+  assert.match(html, /el\('button', 'pw'/, '갈래가 눌리지 않는다 — 설명만이다');
+  assert.match(html, /addEventListener\('click'/, '고르는 동작이 없다');
+});
+
+/**
+ * ★★ 올리는 방법은 **한 곳에만** 있다. 1단계와 이 탭이 따로 쓰면 갈린다 —
+ *   이 저장소는 그 갈라짐을 색에서 한 번 겪었다.
+ */
+test('★★ 올리는 방법을 화면마다 따로 쓰지 않는다', () => {
+  const files = read('files.html');
+  const intake = read('intake.html');
+  [files, intake].forEach((h) => {
+    assert.match(h, /<script src="upload-core\.js"><\/script>/, 'upload-core.js 를 안 부른다');
+    assert.ok(!/new XMLHttpRequest\(\)/.test(codeOf(h)),
+      '화면이 직접 XHR 을 쓴다 — upload-core.js 와 갈린다');
+  });
+});
+
+/**
+ * ★ 갈래를 바꾸면 고른 파일을 **버린다.** 보관하려던 것이 1회성으로 넘어가면
+ *   읽고 지워지고, 그 실수는 **되돌릴 수 없다.**
+ */
+test('★★ 갈래를 바꾸면 고른 파일을 들고 가지 않는다', () => {
+  const code = codeOf(read('files.html'));
+  assert.match(code, /if \(state\.way !== w\.id\) \{ state\.picked = \[\]/,
+    '갈래를 바꿔도 고른 파일이 남는다 — 보관하려던 것이 1회성으로 넘어간다');
+});
+
+/** ★ 연결은 **올리는 것이 아니다.** 파일 고르기를 주면 「업로드」로 읽힌다 */
+test("★★ 연결 갈래에는 파일 고르기가 없다", () => {
+  const code = codeOf(read('files.html'));
+  const at = code.indexOf("if (state.way === 'linked')");
+  assert.ok(at > 0, '연결 갈래를 따로 다루지 않는다');
+  const upto = code.slice(at, code.indexOf('card.appendChild(dropZone())'));
+  assert.match(upto, /return card;/, '연결에서도 드롭존까지 내려간다 — 사본을 만드는 것처럼 보인다');
+});
+
+/**
+ * ★★ 서버 응답의 **껍데기를 벗겨서** 쓴다.
+ *
+ * `call()` 은 `{ok, body}` 를 준다. 껍데기째 넣었더니 값이 `undefined` 가 되어
+ * 화면에 **「파일 하나 0 B」**가 그럴듯하게 찍혔다 — 오류가 아니라 **틀린 값**이라
+ * 눈으로만 보면 「한도가 0 이라 못 올린다」로 읽힌다 (2026-08-20 실측).
+ */
+test('★★ 한도를 껍데기째 넣지 않는다 (0 B 로 찍혔다)', () => {
+  const code = codeOf(read('files.html'));
+  assert.match(code, /if \(r && r\.ok && r\.body\) \{ state\.limits = r\.body;/,
+    'call() 의 껍데기를 벗기지 않는다 — 한도가 0 B 로 찍힌다');
+  assert.match(code, /state\.limits\.maxBytesPerFile > 0/,
+    '모르는 한도를 0 으로 그린다 — 「못 올린다」로 읽힌다');
+});
+
+/**
+ * ★ 진행 상태 이름표가 **빈 채로** 뜬 적이 있다 — `el(t, c, x)` 의 둘째가
+ *   class 인데 글자를 거기 넣었다. 오류는 안 나고 글자만 사라진다.
+ */
+test('★ 진행 상태 이름표에 글자가 들어간다', () => {
+  const code = codeOf(read('files.html'));
+  assert.match(code, /el\('b', null,\s*\n?\s*u\.phase === 'sending'/,
+    "el('b', …) 둘째 자리에 글자를 넣었다 — class 가 되어 이름표가 빈다");
+});
+
+/** ★ 거절된 것을 숨기지 않는다. 「올렸습니다」만 보면 다 올라간 줄 안다 */
+test('★★ 거절 사유를 결과에 함께 적는다', () => {
+  const code = codeOf(read('files.html'));
+  assert.match(code, /\(state\.result\.rejected \|\| \[\]\)\.forEach/,
+    '거절 목록을 안 그린다 — 「올렸습니다」만 보고 다 올라간 줄 안다');
+});
+
+/** ★ 올린 뒤 목록을 다시 읽는다 — 안 읽으면 방금 올린 것이 안 보인다 */
+test('★ 올린 뒤 목록을 다시 읽는다', () => {
+  const code = codeOf(read('files.html'));
+  assert.match(code, /onDone:[\s\S]{0,220}loadOne\(state\.projectId\)/,
+    '올린 뒤 목록을 안 다시 읽는다 — 방금 올린 것이 안 보인다');
 });

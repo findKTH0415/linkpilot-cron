@@ -247,6 +247,7 @@ h1,h2,h3,h4 { margin: 0; }
 </div>
 
 <script src="gate-core.js"></script>
+<script src="upload-core.js"></script>
 <script src="catalog.js"></script>
 <script src="inapp.js"></script>
 <script>
@@ -264,6 +265,8 @@ window.LINKPILOT_INTAKE = {
 <script>
 (function () {
   'use strict';
+
+  var UP = window.LinkPilotUpload;
 
   var C = window.LINKPILOT_INTAKE;
   var Gate = window.LinkPilotGate;
@@ -398,14 +401,11 @@ window.LINKPILOT_INTAKE = {
       var v = readableOf(f.name);
       var rec = { name: f.name, size: f.size, readable: v.readable, note: v.note, data: null, tooBig: f.size > max };
       state.files.push(rec);
-      var fr = new FileReader();
-      fr.onload = function () {
-        // data:...;base64,XXXX 에서 뒤쪽만 쓴다
-        var s = String(fr.result);
-        rec.data = s.slice(s.indexOf(',') + 1);
+      // ★ 읽기·보내기는 upload-core.js 한 곳에 있다 — 화면마다 따로 쓰면 갈린다
+      UP.readOne(f, function (err, data) {
+        if (err) { rec.error = err.message; } else { rec.data = data; }
         render();
-      };
-      fr.readAsDataURL(f);
+      });
     });
     render();
   }
@@ -435,74 +435,26 @@ window.LINKPILOT_INTAKE = {
   }
 
   /**
-   * 자료를 올린다. **진행률을 보여 준다.**
+   * 자료를 올린다.
    *
-   * ★ `fetch` 는 업로드 진행을 알려 주지 않는다 (요청 본문 스트림 진행 이벤트가
-   *   없다). 그래서 여기만 XMLHttpRequest 를 쓴다 — `upload.onprogress` 가
-   *   보낸 바이트를 준다. 다른 호출은 그대로 `call()` 을 쓴다.
+   * ★ 올리는 방법 자체는 `upload-core.js` 에 있다 — 「자료 업로드」탭도 같은 것을
+   *   쓴다. 화면마다 따로 쓰면 한쪽만 고쳐지는 날이 오고, 그때 다른 쪽은
+   *   **옛 방식으로 조용히 계속 돈다.**
    *
-   * ★ **다 보냈다고 끝난 것이 아니다.** 100%% 를 찍고 나면 서버가 파일을 열어
-   *   읽는 시간이 남아 있다(스캔본이면 더 길다). 거기서 100%% 를 그대로 두면
-   *   「다 됐는데 화면이 멈췄다」로 읽힌다. 그래서 단계를 둘로 나누고, 두 번째
-   *   단계는 **진행률을 만들지 않는다** — 얼마나 걸릴지 모르기 때문이다.
+   * ★ 여기서는 그 결과를 **이 화면의 말로** 옮기기만 한다.
    */
   function uploadFiles() {
     var ready = state.files.filter(function (f) { return f.data && !f.tooBig; });
     if (!ready.length || !state.created) return;
 
-    var payload = JSON.stringify({
-      files: ready.map(function (f) { return { name: f.name, contentBase64: f.data }; }),
-    });
-
     state.busy = true;
-    state.upload = {
-      phase: 'sending', sent: 0, total: payload.length,
-      files: ready.length, pct: 0, error: null,
-    };
-    render();
-
-    var xhr = new XMLHttpRequest();
-    xhr.open('POST', C.api + '/projects/' + state.created.projectId + '/sources', true);
-    xhr.withCredentials = true;
-    xhr.setRequestHeader('content-type', 'application/json');
-
-    xhr.upload.onprogress = function (ev) {
-      if (!state.upload || state.upload.phase !== 'sending') return;
-      // ★ 길이를 모르면 % 를 만들지 않는다. 지어낸 진행률은 멈춘 것처럼 보인다
-      state.upload.sent = ev.loaded;
-      state.upload.total = ev.lengthComputable ? ev.total : null;
-      state.upload.pct = ev.lengthComputable && ev.total
-        ? Math.min(99, Math.floor((ev.loaded / ev.total) * 100)) : null;
-      render();
-    };
-    // 다 보냈다 → 이제 서버가 읽는다. 여기서 100% 로 두지 않는다
-    xhr.upload.onload = function () {
-      if (state.upload) { state.upload.phase = 'reading'; state.upload.pct = null; render(); }
-    };
-
-    xhr.onload = function () {
-      var j = {};
-      try { j = JSON.parse(xhr.responseText || '{}'); } catch (_) { j = {}; }
-      state.busy = false;
-      if (xhr.status >= 200 && xhr.status < 300) {
-        state.upload = { phase: 'done', pct: 100, files: ready.length, error: null };
-        state.uploaded = j;
-      } else {
-        state.upload = { phase: 'error', pct: null, error: j.error || ('HTTP ' + xhr.status) };
-        state.error = state.upload.error;
-      }
-      render();
-    };
-    // ★ 조용히 죽지 않는다. 진행 바가 멈춘 채 남으면 사용자는 계속 기다린다
-    xhr.onerror = function () {
-      state.busy = false;
-      state.upload = { phase: 'error', pct: null, error: '전송이 끊겼습니다 — 다시 시도하세요' };
-      state.error = state.upload.error;
-      render();
-    };
-    xhr.onabort = xhr.onerror;
-
-    xhr.send(payload);
+    UP.send({
+      url: C.api + '/projects/' + state.created.projectId + '/sources',
+      files: ready.map(function (f) { return { name: f.name, contentBase64: f.data }; }),
+      onUpdate: function (u) { state.upload = u; render(); },
+      onDone: function (j) { state.busy = false; state.uploaded = j; render(); },
+      onFail: function (why) { state.busy = false; state.error = why; render(); },
+    });
   }
 
   /** 진행 바 한 칸. 모르는 값은 막대가 아니라 빗금이다 */
