@@ -207,3 +207,27 @@ test('★ .env.example 의 콘솔 안내가 SCOPES 와 같다', () => {
     });
   });
 });
+
+/**
+ * ★★ 콘솔 등록 안내가 **코드의 범위와 갈리지 않게** 한다.
+ *
+ * 사람이 콘솔에서 고르는 값이다. 문서가 옛 범위를 적고 있으면 그대로 넓게
+ * 잡히고, **Dropbox 는 되돌릴 수 없다.** 그래서 안내에 적힌 범위가 `SCOPES` 와
+ * 같은지, 금지 범위를 빠뜨리지 않았는지 대조한다.
+ */
+test('★★ 콘솔 등록 안내의 범위가 코드와 같다 (넓게 잡히면 되돌릴 수 없다)', () => {
+  const storage = require('../connectors/storage');
+  const doc = fs.readFileSync(path.join(ROOT, 'docs', '저장소-연결-등록.md'), 'utf8');
+
+  storage.PROVIDER_IDS.forEach((id) => {
+    const p = storage.PROVIDERS[id];
+    const sc = storage.SCOPES[id];
+    assert.ok(doc.includes(p.tokenEnv), `등록 안내에 ${p.tokenEnv} 가 없다`);
+    sc.allow.forEach(a => assert.ok(doc.includes(a), `${id}: 허용 범위 '${a}' 가 안내에 없다`));
+    sc.deny.forEach(d => assert.ok(doc.includes(d),
+      `${id}: 금지 범위 '${d}' 가 안내에 없다 — 넓게 잡고도 모른다`));
+  });
+
+  // ★ secret 을 넣으라고 적으면 이 설계에서 벗어난다
+  assert.match(doc, /client secret 은 넣지 않는다/, 'secret 을 넣지 않는다는 말이 없다');
+});
