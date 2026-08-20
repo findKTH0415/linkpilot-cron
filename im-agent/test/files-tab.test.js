@@ -367,3 +367,81 @@ test('★★ 브리지가 얹혔을 때 높이를 알린다 (안쪽 스크롤을
     '넘치는 것을 숨긴다 — 부모가 안 늘려 주면 내용이 잘린다');
   assert.match(bridge, /window\.location\.origin/, '아무 출처로나 보낸다');
 });
+
+/* ═════════ ⑦ 올린 자료가 어디에 쓰이는가 (2026-08-20) ═════════ */
+
+/**
+ * ★★ **올리기 전에** 말해야 하는 둘.
+ *
+ * ① 여기서 올린 것이 4단계 생성에서 그대로 읽힌다 — 모르면 자료를 두 번 넣는다.
+ * ② 스캔본·사진은 글자로 옮겨야 읽히는데, 그 기능이 꺼져 있으면 **보관만 되고
+ *    값이 안 뽑힌다.** 1단계는 그 사실을 말하는데 이 화면은 안 말하고 있었다 —
+ *    올리고 나서 알면 늦다.
+ */
+test('★★ 올린 자료가 보고서에 어떻게 쓰이는지 말한다', () => {
+  const code = codeOf(read('files.html'));
+  assert.match(code, /4단계에서 그대로 읽힙니다/, '어디에 쓰이는지 안 말한다');
+  assert.match(code, /어느 파일 몇 쪽/, '출처가 기록된다는 말이 없다');
+});
+
+test('★★ 글자 옮기기가 꺼져 있으면 **올리기 전에** 말한다', () => {
+  const code = codeOf(read('files.html'));
+  const at = code.indexOf('ocrReady === false');
+  const drop = code.indexOf('card.appendChild(dropZone())');
+  assert.ok(at > 0, 'OCR 이 꺼졌는지 안 본다 — 올리고 나서 알게 된다');
+  assert.ok(at < drop, '경고가 파일 고르기보다 뒤에 있다');
+  // ★ 서버가 준 값을 쓴다. 화면이 판단하면 서버가 바뀌는 날 화면만 옛말을 한다
+  assert.match(code, /state\.limits && state\.limits\.ocrReady === false/,
+    '화면이 스스로 판단한다 — 서버가 준 값을 써야 한다');
+});
+
+/**
+ * ★★ 올린 자료가 **실제로 추출에 들어가는지**를 재 본다.
+ *
+ * 화면이 「4단계에서 읽힙니다」라고 적어 두고 실제로는 안 읽히면, 그 문구가
+ * 곧 거짓말이 된다. 그래서 **올려서 뽑아 본다** — 글자만 대조하지 않는다.
+ */
+test('★★ 올린 자료가 추출까지 실제로 들어간다 (출처와 함께)', async () => {
+  const os2 = require('os');
+  const root = fs.mkdtempSync(path.join(os2.tmpdir(), 'lp-updown-'));
+  const prevRoot = process.env.IM_AGENT_ROOT;
+  const prevOff = process.env.IM_AGENT_OFFLINE;
+  process.env.IM_AGENT_ROOT = root;
+  process.env.IM_AGENT_OFFLINE = '1';
+  try {
+    const AGENT = path.join(__dirname, '..');
+    const { createHandlers } = require(path.join(AGENT, 'ui', 'report-api.cjs'));
+    const store = require(path.join(AGENT, 'core', 'store'));
+    const ext = require(path.join(AGENT, 'agents', '02-extraction'));
+    const h = createHandlers({
+      agentModulePath: AGENT,
+      authenticate: () => ({ name: '테스트', planId: 'pro', status: 'active' }),
+    });
+
+    const made = await h.createProject({}, { request: '인천 데이터센터 IM' });
+    const id = made.body.projectId;
+    const up = await h.uploadSources({}, id, {
+      files: [{ name: '사업계획서.txt',
+        contentBase64: Buffer.from('총사업비 2,846억원\n대지면적 12,345 ㎡\n').toString('base64') }],
+    });
+    assert.equal(up.status, 200, JSON.stringify(up.body));
+    assert.equal((up.body.saved || []).length, 1);
+
+    // 추출기가 **그 파일을 본다**
+    const seen = store.listSourceFiles(id).map(f => f.name);
+    assert.ok(seen.includes('사업계획서.txt'), `추출기가 못 본다: ${seen.join(', ')}`);
+
+    const ctx = { warn() {}, info() {}, log() {}, error() {} };
+    const r = await ext.run({ projectId: id }, ctx);
+    const facts = r.facts || (r.output && r.output.facts) || [];
+    const one = facts.find(f => f.key === 'investment.total');
+    assert.ok(one, `값이 안 뽑혔다: ${facts.map(f => f.key).join(', ')}`);
+    // ★ 값만 오면 안 된다. **어디서 나왔는지**가 이 시스템의 전부다
+    assert.equal(one.source, '사업계획서.txt', '출처에 파일 이름이 없다');
+    assert.ok(one.quote && one.quote.length > 2, '근거 문장이 없다');
+  } finally {
+    if (prevRoot === undefined) delete process.env.IM_AGENT_ROOT; else process.env.IM_AGENT_ROOT = prevRoot;
+    if (prevOff === undefined) delete process.env.IM_AGENT_OFFLINE; else process.env.IM_AGENT_OFFLINE = prevOff;
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
