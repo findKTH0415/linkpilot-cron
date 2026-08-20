@@ -375,10 +375,16 @@ test('★★ 실제 브라우저에서 떨어뜨리면 붙고, 그래프가 끝�
       o.rows = document.querySelectorAll('.row').length;
       var go = [].slice.call(document.querySelectorAll('.btn')).filter(function (b) {
         return t(b).indexOf('파일업로드') === 0; })[0];
+      // ★ 한 번만 재면 **놓친다.** 가상 시계에서는 올리기가 표본 사이에 끝나 버리고,
+      //   그러면 「도는 중에 칸을 가리켰나」를 못 재고도 통과하거나 헛울음이 난다.
+      //   그래서 **바뀔 때마다** 받아 적는다 — 표본 간격에 기대지 않는다
+      o.seen = [];
+      new MutationObserver(function () {
+        var n = t(document.querySelector('.fx__n--now .fx__t'));
+        if (n && o.seen.indexOf(n) < 0) o.seen.push(n);
+      }).observe(document.body, { childList: true, subtree: true });
       go.click();
-      await sleep(200);
-      o.mid = t(document.querySelector('.fx__n--now .fx__t'));
-      await sleep(1600);
+      await sleep(1800);
       o.stagesDone = [].slice.call(document.querySelectorAll('.fx__n--done .fx__t')).map(t);
       o.stillRunning = !!document.querySelector('.fx__l--run');
       o.chart = !!document.querySelector('.fx__c svg');
@@ -402,7 +408,9 @@ test('★★ 실제 브라우저에서 떨어뜨리면 붙고, 그래프가 끝�
     // 카드 **바깥**에 떨어뜨려도 붙는다
     assert.equal(r.rows, 1, `카드 바깥에 떨어뜨린 파일이 안 붙었다 (${r.rows}개)`);
     // 그래프가 도는 중에 실제로 한 칸을 가리키고, 끝나면 네 칸이 다 찬다
-    assert.ok(r.mid, '올리는 중인데 그래프가 아무 칸도 안 가리킨다');
+    // 도는 동안 **가운데 칸**을 실제로 지나갔는가 (끝 칸만 보이면 그래프가 아니라 결과다)
+    assert.ok(r.seen.some(function (x) { return x === '보내는 중' || x === '서버가 읽는 중'; }),
+      '올리는 중에 가운데 칸을 한 번도 안 가리켰다 — 본 것: ' + JSON.stringify(r.seen));
     assert.deepEqual(r.stagesDone, ['고른 파일', '보내는 중', '서버가 읽는 중', '붙었습니다'],
       '끝났는데 칸이 다 안 찼다');
     assert.equal(r.stillRunning, false, '끝났는데 선이 계속 흐른다 — 도는 것처럼 보인다');
