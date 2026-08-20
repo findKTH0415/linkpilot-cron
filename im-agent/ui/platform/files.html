@@ -155,6 +155,15 @@ window.LINKPILOT_FILES = {
   preload: null,
   // 자료를 넣는 길은 **무료**다 — 유료면 Pro 를 살지 판단할 자료조차 못 넣는다
   requiredPlan: 'free',
+  /* ── 앱 프로젝트 가져오기 (2026-08-20 요청) ──────────────────────────
+     앱(LinkPilot)에 등록된 프로젝트에서 골라 엔진 프로젝트로 잇는다.
+     appProjects  [{id, title, client, owner}]  — 앱이 자기 목록을 내려준다 (이 화면은 앱 데이터를 못 읽는다)
+     appLinks     { <앱 프로젝트 id>: <엔진 프로젝트 id> } — 이미 이어진 짝. **저장은 앱이 한다**
+     이 화면은 처음 잇는 순간 부모에게 postMessage { type:'lp-app-project-linked',
+     appProjectId, imProjectId } 로 알리고, 앱이 그 짝을 기억해 다음에 내려준다.
+     — 매핑을 여기(엔진 쪽)에 저장하면 앱 데이터의 정본이 둘이 된다. */
+  appProjects: null,
+  appLinks: null,
   planNames: { free: 'Free', basic: 'Basic', pro: 'Pro', business: 'Business' },
 };
 </script>
@@ -182,6 +191,7 @@ window.LINKPILOT_FILES = {
     gate: null,
     busy: false,
     linkMsg: null,   // 연결 갈래에서 사용자가 볼 한 줄
+    appMsg: null,    // 앱 프로젝트 가져오기의 진행·실패 한 줄
     // ── 첨부 (2026-08-20) ─────────────────────────────────────────────
     // 전에는 세 갈래가 **설명만**이었다. 무엇이 다른지는 알려 주는데 정작
     // 여기서 올릴 수는 없어서, 자료를 넣으려면 1단계로 되돌아가야 했다.
@@ -294,6 +304,62 @@ window.LINKPILOT_FILES = {
     announce(state.projectId);
     render();
     if (id) loadOne(id).then(render);
+  }
+
+  /**
+   * 앱 프로젝트를 골랐다 — 엔진 프로젝트로 잇는다.
+   * 이미 이어져 있으면 그 프로젝트를 연다. 처음이면 만들어 잇고 **부모에게 알린다**
+   * (짝의 저장은 앱 몫 — 여기 저장하면 앱 데이터의 정본이 둘이 된다).
+   * ★ 실패는 조용히 두지 않는다 — 셀렉트 아래 한 줄로 사유를 말한다.
+   */
+  function pickAppProject(appId) {
+    var apps = Array.isArray(C.appProjects) ? C.appProjects : [];
+    var a = null;
+    for (var i = 0; i < apps.length; i++) if (apps[i] && String(apps[i].id) === String(appId)) { a = apps[i]; break; }
+    if (!a) { state.appMsg = '앱 프로젝트를 찾지 못했습니다 — 탭을 닫았다 다시 여세요.'; render(); return; }
+    var linkedTo = (C.appLinks || {})[String(appId)] || null;
+    if (linkedTo) {
+      var known = (state.projects || []).some(function (p) { return p.id === linkedTo; });
+      if (known) { state.appMsg = null; pickProject(linkedTo); return; }
+      /* 짝은 있는데 엔진에 그 프로젝트가 없다(지워졌다) — 아래에서 새로 만든다. 말없이 만들면
+         "전에 올린 자료가 사라졌다"로 읽히므로 사유를 남긴다 */
+      state.appMsg = '이어져 있던 보고서 프로젝트(' + linkedTo + ')가 엔진에 없어 새로 만듭니다.';
+    }
+    if (state.busy) return;
+    state.busy = true;
+    state.appMsg = '『' + (a.title || appId) + '』 보고서 프로젝트를 만드는 중…';
+    render();
+    call('POST', '/projects', {
+      name: a.title || ('앱 프로젝트 ' + appId),
+      request: '『' + (a.title || appId) + '』' + (a.client ? ' (' + a.client + ')' : '') + ' — LinkPilot 앱 프로젝트에서 가져와 만든 보고서 프로젝트',
+    }).then(function (r) {
+      state.busy = false;
+      if (r.gated) { state.appMsg = null; render(); return; }       // 로그인·플랜 안내는 gate 가 말한다
+      if (!r.ok || !r.body || !r.body.projectId) {
+        state.appMsg = '보고서 프로젝트를 만들지 못했습니다: ' + ((r.body && r.body.error) || r.closed || '사유 없음');
+        render(); return;
+      }
+      var imId = r.body.projectId;
+      state.projects = state.projects || [];
+      state.projects.unshift({ id: imId, name: a.title || imId });
+      state.appMsg = null;
+      /* 짝을 앱에 알린다 — announce() 와 같은 두 갈래(같은 출처 postMessage + 문서 이벤트) */
+      var detail = { appProjectId: String(appId), imProjectId: imId };
+      try {
+        if (window.parent !== window) {
+          window.parent.postMessage({ type: 'lp-app-project-linked', appProjectId: detail.appProjectId, imProjectId: imId },
+            window.location.origin);
+        }
+      } catch (_) { }
+      try { document.dispatchEvent(new CustomEvent('lp-app-project-linked', { detail: detail })); } catch (_) { }
+      if (!C.appLinks) C.appLinks = {};
+      C.appLinks[String(appId)] = imId;
+      pickProject(imId);
+    }, function (e) {
+      state.busy = false;
+      state.appMsg = '보고서 프로젝트를 만들지 못했습니다: ' + e.message;
+      render();
+    });
   }
 
   /* ── 그리기 ───────────────────────────────────────────── */
@@ -676,18 +742,42 @@ window.LINKPILOT_FILES = {
     pick.appendChild(el('label', null, '프로젝트'));
     var sel = el('select');
     // 없을 때 「고르세요」라고 하면 어딘가 있는 줄 알고 찾는다 (outputs.html 과 같은 문구)
+    var apps = Array.isArray(C.appProjects) ? C.appProjects : [];
     var none = el('option', null,
-      (state.projects && state.projects.length) ? '— 고르세요 —' : '프로젝트가 없습니다');
+      ((state.projects && state.projects.length) || apps.length) ? '— 고르세요 —' : '프로젝트가 없습니다');
     none.value = '';
     sel.appendChild(none);
+    /* 엔진에 이미 있는 프로젝트 */
+    var gEng = el('optgroup'); gEng.label = '보고서 프로젝트';
     (state.projects || []).forEach(function (p) {
       var o = el('option', null, p.name ? (p.name + ' · ' + p.id) : p.id);
       o.value = p.id;
       if (p.id === state.projectId) o.selected = true;
-      sel.appendChild(o);
+      gEng.appendChild(o);
     });
-    sel.addEventListener('change', function () { pickProject(sel.value); });
+    if (gEng.children.length) sel.appendChild(gEng);
+    /* ★ 앱에 등록된 프로젝트 — 고르면 엔진 프로젝트로 잇는다(이미 이어진 것은 그쪽으로 간다).
+       앱 목록은 부모가 내려준다(C.appProjects). 단독으로 열면 이 그룹은 없다 — 그게 정직하다 */
+    if (apps.length) {
+      var linked = C.appLinks || {};
+      var gApp = el('optgroup'); gApp.label = '앱 프로젝트에서 가져오기';
+      apps.forEach(function (a) {
+        if (!a || !a.id) return;
+        var tail = a.client ? (' · ' + a.client) : (a.owner ? (' · ' + a.owner) : '');
+        var mark = linked[String(a.id)] ? ' (이어짐)' : '';
+        var o = el('option', null, (a.title || '(제목 없음)') + tail + mark);
+        o.value = 'app:' + a.id;
+        gApp.appendChild(o);
+      });
+      sel.appendChild(gApp);
+    }
+    sel.addEventListener('change', function () {
+      var v = sel.value;
+      if (v && v.indexOf('app:') === 0) pickAppProject(v.slice(4));
+      else pickProject(v);
+    });
     pick.appendChild(sel);
+    if (state.appMsg) pick.appendChild(el('div', 'card__d', state.appMsg));
     view.appendChild(add(el('div', 'card'), pick));
 
     view.appendChild(attachCard());
