@@ -408,7 +408,7 @@ async function run() {
 
 if (require.main === module) run().catch((e) => { console.error(e.message || e); process.exit(1); });
 
-module.exports = { stripScripts, heightOf, findBrowser, buildArtifact, publishable, EXPAND, MEASURE };
+module.exports = { stripScripts, heightOf, findBrowser, renderDom, buildArtifact, publishable, EXPAND, MEASURE };
 
 /* ── 아티팩트(URL 로 여는 판) ──────────────────────────────── */
 //

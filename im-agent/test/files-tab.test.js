@@ -12,6 +12,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 
 const F = require('../ui/platform/flow-core.js');
 const PLATFORM = path.join(__dirname, '..', 'ui', 'platform');
@@ -220,4 +221,30 @@ test('★ 올린 뒤 목록을 다시 읽는다', () => {
   const code = codeOf(read('files.html'));
   assert.match(code, /onDone:[\s\S]{0,220}loadOne\(state\.projectId\)/,
     '올린 뒤 목록을 안 다시 읽는다 — 방금 올린 것이 안 보인다');
+});
+
+/**
+ * ★★ 미리 그린 판이 **빈 채로 나가지 않게** 한다.
+ *
+ * 처음 만들 때 설정 블록을 고쳐 쓰다가 괄호가 어긋나 스크립트가 통째로 죽었고,
+ * **화면은 빈 채로 뜨는데 오류는 어디에도 안 보였다.** 8KB 짜리 그럴듯한 파일이
+ * 나왔고 열어 봐야 비어 있다는 것을 알 수 있었다.
+ */
+test('★★ 자료 업로드 탭을 미리 그리면 실제로 내용이 들어간다', async () => {
+  const { build } = require(path.join(PLATFORM, 'build-files.js'));
+  const { findBrowser } = require(path.join(PLATFORM, 'build-static.js'));
+  if (!findBrowser()) return;   // 크로미움이 없는 서버가 실제로 있다 — 거기서는 건너뛴다
+
+  const out = path.join(os.tmpdir(), 'lp-files-artifact-test.html');
+  try {
+    await build(out);
+    const html = fs.readFileSync(out, 'utf8');
+    const body = html.slice(html.indexOf('<div class="pv">'));
+    assert.ok(body.length > 800, `미리 그린 판이 비었다 (${body.length}B) — 스크립트가 죽었다`);
+    assert.equal((body.match(/class="err"/g) || []).length, 0, '오류 상자가 그려졌다');
+    ['올려서 보관', '연결해서 쓰기', '1회성으로 올리기'].forEach((w) => {
+      assert.ok(body.includes(w), `미리 그린 판에 '${w}' 가 없다`);
+    });
+    assert.match(html, /예시 화면입니다/, '예시라는 표시가 없다 — 실제로 오해한다');
+  } finally { if (fs.existsSync(out)) fs.unlinkSync(out); }
 });

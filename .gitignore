@@ -18,6 +18,7 @@ im-agent/ui/platform/preview.html
 # 검사할 수 없는 산출물을 커밋하면 소스와 갈려도 아무도 눈치채지 못한다
 im-agent/ui/platform/section-static.html
 im-agent/ui/platform/section-artifact.html
+im-agent/ui/platform/files-artifact.html
 
 # 현황 대시보드 조각 — npm run im:dashboard 로 언제든 다시 만든다.
 # 재생성 결과를 고정하는 검사가 없어, 커밋하면 소스와 갈려도 눈치채지 못한다
