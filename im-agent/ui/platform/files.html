@@ -262,10 +262,30 @@ window.LINKPILOT_FILES = {
     return Promise.all(jobs);
   }
 
+  /**
+   * 프로젝트를 고른다. **부모(앱)에게도 알린다.**
+   *
+   * ★★ 왜 알리나: 이 탭에는 앱이 얹는 것이 하나 더 있다 —
+   *   「외부 분석 AGENT 로 만들기(기반정보 내보내기)」. 그쪽이 프로젝트를 따로
+   *   고르게 하면 **같은 탭에 프로젝트 고르기가 둘**이 되고, 둘이 다른 것을
+   *   가리키는 순간 사용자는 **어느 프로젝트의 기반정보를 받았는지 모른다.**
+   *   그래서 고르는 곳은 여기 하나로 두고, 앱은 이 알림을 따라간다.
+   *
+   * ★ 같은 출처로만 보낸다. 다른 출처면 브라우저가 막고, 그건 정상이다.
+   */
+  function announce(id) {
+    try {
+      if (window.parent === window) return;
+      window.parent.postMessage({ type: 'lp-files-project', projectId: id || null },
+        window.location.origin);
+    } catch (_) { /* 막혀 있으면 그만 — 이 화면의 동작은 그대로다 */ }
+  }
+
   function pickProject(id) {
     state.projectId = id || null;
     state.kept = state.linked = state.oneshot = null;
     state.closed = { kept: null, linked: null, oneshot: null };
+    announce(state.projectId);
     render();
     if (id) loadOne(id).then(render);
   }
@@ -691,6 +711,7 @@ window.LINKPILOT_FILES = {
   // 한도는 **서버가 정한다.** 화면에 숫자를 박아 두면 서버가 바뀌는 날 화면만 옛말을 한다.
   // ★ `call()` 은 `{ok, body}` 를 준다 — 껍데기째 넣으면 값이 `undefined` 가 되고
   //   화면에는 **「0 B」가 그럴듯하게 찍힌다.** 실제로 그렇게 한 번 나왔다
+  if (state.projectId) announce(state.projectId);   // 미리 정해져 열렸을 때도 알린다
   call('GET', '/intake').then(function (r) {
     if (r && r.ok && r.body) { state.limits = r.body; render(); }
   }, function () {});
