@@ -1,0 +1,175 @@
+name: deploy-im
+
+# 엔진·화면을 NAS 에 올린다 — **사람 손 없이** (2026-08-21).
+#
+# ★★ 왜 Actions 인가: NAS 는 Tailscale 사설망에 있어 밖에서 직접 닿지 않는다.
+#   개발 세션에서도 그 길이 막혀 있어서, 지금까지 배포는 **사람이 손으로**
+#   `npm run deploy:nas` → `deploy-filestation.py` → `verify:nas` 를 쳤다.
+#   러너는 tailnet 에 임시로 붙을 수 있다 — 그래서 여기서 돈다.
+#   접속정보는 GitHub Secrets 에만 둔다 (CLAUDE.md §2 · D-10).
+#
+# ★★ **올리기 전에 시험을 통과해야 한다.** 배포 전 교차검증을 지나지 않은 것은
+#   내보내지 않는다 (CLAUDE.md §7). 시험이 빨간 판은 여기서 멈춘다.
+#
+# ★★ **올리고 끝내지 않는다.** `verify:nas` 가 지문을 대조한다 — 「전송 성공」은
+#   내용이 같다는 뜻이 아니다. 실제로 「초록인데 NAS 는 옛 판」이 있었다 (M-12).
+#
+# ★ 자동으로 돌지 않는다 (workflow_dispatch 전용). 운영 중인 화면을 아무도 안
+#   보는 사이에 덮어쓰지 않기 위해서다.
+#
+# ★ 앱 본체(`linkpilot-platform*.html`)는 **건드리지 않는다.** 이 저장소에
+#   원본이 없고, 덮어쓰면 되돌릴 수 없다.
+
+on:
+  workflow_dispatch:
+    inputs:
+      what:
+        description: '무엇을 올리나'
+        type: choice
+        options: [screens, engine, all]
+        default: screens
+      dry_run:
+        description: '올리지 않고 무엇이 올라갈지만 본다'
+        type: boolean
+        default: true
+      skip_tests:
+        description: '시험을 건너뛴다 (급할 때만 — 되도록 쓰지 않는다)'
+        type: boolean
+        default: false
+
+concurrency:
+  group: deploy-im
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'          # NAS 가 v20 이다. 여기서만 새 것을 쓰지 않는다
+
+      - name: Install
+        run: npm ci --no-audit --no-fund
+
+      # ★★ 배포 전 교차검증. 빨간 판은 여기서 멈춘다 (CLAUDE.md §7)
+      - name: Test
+        if: ${{ !inputs.skip_tests }}
+        env:
+          IM_AGENT_OFFLINE: '1'
+        run: npm test
+
+      # 만들어 놓고 아무도 안 부르는 것이 없는지 (M-08 계열)
+      - name: Reachable
+        if: ${{ !inputs.skip_tests }}
+        run: npm run check:reachable
+
+      # ★ 화면 사본은 **엔진이 낸다.** 저장소 원본을 그대로 올리지 않는다 —
+      #   설정 주입·병합이 들어간 판이라야 앱 안에서 돈다
+      - name: Build screens
+        if: ${{ inputs.what != 'engine' }}
+        run: |
+          set -euo pipefail
+          npm run im:embed -- --out ./_deploy/im-flow
+          echo "── 올릴 화면"
+          ls -1 ./_deploy/im-flow | sed 's/^/  /'
+          echo "  합계 $(ls -1 ./_deploy/im-flow | wc -l) 개"
+
+      - name: Dry run summary
+        if: ${{ inputs.dry_run }}
+        run: |
+          echo "::notice::DRY RUN — 아무것도 올리지 않았다."
+          echo "무엇을 올리려 했나: ${{ inputs.what }}"
+          echo "실제로 올리려면 dry_run 을 끄고 다시 실행한다."
+
+      # ── 여기서부터 실제 배포 ────────────────────────────────────────
+      - name: Connect to tailnet
+        if: ${{ !inputs.dry_run }}
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Set up ssh
+        if: ${{ !inputs.dry_run }}
+        env:
+          NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+          NAS_USER: ${{ secrets.NAS_SSH_USER }}
+          NAS_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          # ★ 없는 것을 「있다」로 넘기지 않는다. 무엇이 없는지 이름으로 말한다
+          missing=""
+          for v in NAS_HOST NAS_USER NAS_KEY; do
+            [ -n "${!v}" ] || missing="$missing $v"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Secret 미설정:$missing — 저장소 Settings › Secrets 에 넣는다"
+            exit 1
+          fi
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$NAS_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          # 호스트키를 미리 받아 둔다. StrictHostKeyChecking 을 끄지 않는다
+          ssh-keyscan -H "$NAS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          echo "GIT_SSH_COMMAND=ssh -i ~/.ssh/id_deploy" >> "$GITHUB_ENV"
+
+      # ★ 화면 — 덮어쓰기 전에 **백업을 뜬다.** 되돌릴 길을 먼저 만든다
+      - name: Deploy screens
+        if: ${{ !inputs.dry_run && inputs.what != 'engine' }}
+        env:
+          NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+          NAS_USER: ${{ secrets.NAS_SSH_USER }}
+          WEB_ROOT: ${{ secrets.NAS_WEB_ROOT }}
+        run: |
+          set -euo pipefail
+          ROOT="${WEB_ROOT:-/volume1/web}"
+          STAMP=$(TZ=Asia/Seoul date +%Y%m%d-%H%M)
+          SSH="ssh -i $HOME/.ssh/id_deploy $NAS_USER@$NAS_HOST"
+          $SSH "test -d '$ROOT/im-flow' && cp -a '$ROOT/im-flow' '$ROOT/im-flow.bak-$STAMP' || mkdir -p '$ROOT/im-flow'"
+          tar czf - -C ./_deploy im-flow | $SSH "cd '$ROOT' && tar xzf -"
+          echo "화면 올림 → $ROOT/im-flow (백업: im-flow.bak-$STAMP)"
+
+      # ★ 엔진 — 스크립트가 지문 대조·기동 확인까지 한다. 여기서 다시 짜지 않는다
+      - name: Deploy engine
+        if: ${{ !inputs.dry_run && inputs.what != 'screens' }}
+        env:
+          LP_NAS_HOST: ${{ secrets.NAS_SSH_USER }}@${{ secrets.NAS_SSH_HOST }}
+          LP_NAS_ROOT: ${{ secrets.NAS_ENGINE_ROOT }}
+        run: |
+          set -euo pipefail
+          # 러너에서는 빌드 산출물 때문에 작업트리가 더럽다 — 그것 때문에 멈추지 않게
+          export LP_ALLOW_DIRTY=1
+          export GIT_SSH_COMMAND="ssh -i $HOME/.ssh/id_deploy"
+          # nas.sh 가 ssh 를 직접 부른다. 키를 기본으로 쓰게 설정에 적어 둔다
+          printf 'Host *\n  IdentityFile %s/.ssh/id_deploy\n  IdentitiesOnly yes\n' "$HOME" >> ~/.ssh/config
+          npm run deploy:nas
+
+      # ★★ **올린 것을 재 본다.** 「전송 성공」은 내용이 같다는 뜻이 아니다
+      - name: Verify
+        if: ${{ !inputs.dry_run }}
+        env:
+          LP_BASE: ${{ secrets.LP_BASE }}
+        run: |
+          set -euo pipefail
+          if [ -z "${LP_BASE:-}" ]; then
+            echo "::error::Secret 미설정: LP_BASE — 올리긴 했는데 **잰 것이 없다**"
+            exit 1
+          fi
+          npm run verify:nas -- --base "$LP_BASE"
+
+  # 배포가 실패하면 알린다 (CLAUDE.md §2 — 조용히 죽지 않는다)
+  alert:
+    needs: deploy
+    if: failure()
+    uses: ./.github/workflows/alert-failure.yml
+    permissions:
+      issues: write
+      contents: read
+    secrets: inherit
+    with:
+      workflow: deploy-im
