@@ -334,7 +334,12 @@ function appBridge() {
     'deal-9107': {
       content: { updatedAt: '2026-08-18',
         facts: [{ key: 'solar.capacity_dc_mw', value: 3.4, unit: 'MWdc' }], notes: [] },
-      files: [{ id: 'g1', name: '계통연계-회신.pdf', bytes: 410000, ref: { provider: 'linkpilot-app', fileId: 'g1', name: '계통연계-회신.pdf', rev: 'v4', kind: 'file' }, access: { url: 'https://example.invalid/g1' } }],
+      /* ★ 같은 문서의 여러 판을 일부러 넣는다 — §7 경고를 **눈으로 확인**할 수
+         있어야 한다. 안 보이면 만든 것이 아니다 (CLAUDE.md §8) */
+      files: [
+        { id: 'g1', name: '사업계획서_v2.pdf', bytes: 410000, ref: { provider: 'linkpilot-app', fileId: 'g1', name: '사업계획서_v2.pdf', rev: 'v2', kind: 'file' }, access: { url: 'https://example.invalid/g1' } },
+        { id: 'g2', name: '사업계획서_Final.pdf', bytes: 430000, ref: { provider: 'linkpilot-app', fileId: 'g2', name: '사업계획서_Final.pdf', rev: 'v1', kind: 'file' }, access: { url: 'https://example.invalid/g2' } },
+        { id: 'g3', name: '사업계획서_20260819.pdf', bytes: 428000, ref: { provider: 'linkpilot-app', fileId: 'g3', name: '사업계획서_20260819.pdf', rev: 'v1', kind: 'file' }, access: { url: 'https://example.invalid/g3' } } ],
       images: [
         { id: 'j1', name: '부지-항공.jpg', bytes: 1200000, ref: { provider: 'linkpilot-app', fileId: 'j1', name: '부지-항공.jpg', rev: 'v1', kind: 'image' }, access: { url: 'https://example.invalid/j1' } },
         { id: 'j2', name: '배치도.png', bytes: 640000, ref: { provider: 'linkpilot-app', fileId: 'j2', name: '배치도.png', rev: 'v1', kind: 'image' }, access: { url: 'https://example.invalid/j2' } } ],

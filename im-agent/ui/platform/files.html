@@ -186,6 +186,23 @@ select:focus-visible, button:focus-visible { outline: 2px solid var(--lime-deep)
   .fx__n--now .fx__dot { animation: none; }
 }
 
+/* ── 같은 문서의 여러 판 — **고르는 것은 사람이다** 〈2026-08-21〉 ────── */
+.vc { border: 1px solid #F0DEBE; background: var(--warn-soft); color: var(--warn-ink);
+  border-radius: 14px; padding: 14px 16px; margin-top: 12px; }
+.vc__t { font: 800 14px/1.45 inherit; }
+.vc__d { font-size: 12.5px; line-height: 1.7; margin: 5px 0 0; }
+.vc__g { margin-top: 11px; padding-top: 10px; border-top: 1px solid #F0DEBE; }
+.vc__n { font: 700 13px/1.4 inherit; }
+.vc__w { font-size: 12px; margin: 3px 0 7px; }
+.vc__l { margin: 0; padding: 0; list-style: none; }
+.vc__l li { display: flex; gap: 9px; align-items: baseline; font-size: 12.5px;
+  padding: 5px 0; line-height: 1.6; }
+.vc__i { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+  width: 19px; height: 19px; border-radius: 50%; background: #F0DEBE;
+  font: 700 11px/1 inherit; color: var(--warn-ink); }
+.vc__f { font-weight: 700; word-break: break-all; }
+.vc__b { color: var(--ink2); }
+
 /* 토큰이 안 실렸을 때의 경고는 토큰 없이도 보여야 한다 — 색을 직접 칠한다 */
 .nostyle { border: 1px solid #F3C6C6; background: #FDECEC; color: #8F1D1D;
   border-radius: 12px; padding: 13px 15px; margin-bottom: 12px; font-size: 13.5px; line-height: 1.7; }
@@ -197,6 +214,7 @@ select:focus-visible, button:focus-visible { outline: 2px solid var(--lime-deep)
 <script src="gate-core.js"></script>
 <script src="flow-core.js"></script>
 <script src="upload-core.js"></script>
+<script src="versions-core.js"></script>
 <script>
 /**
  * 붙이는 쪽이 채우는 유일한 값.
@@ -1325,6 +1343,57 @@ window.LINKPILOT_FILES = {
   }
 
   /**
+   * **같은 문서의 여러 판** 〈2026-08-21 · 클라우드 폴더 지시 §7〉.
+   *
+   * ★★ 폴더에서 자료를 고르면 `IM_v1.pdf` · `IM_v2.pdf` · `IM_Final.pdf` 가 함께
+   *   들어온다. 사람은 「Final 이 최신이겠지」로 넘어가는데 **그 짐작이 자주
+   *   틀린다.** 틀린 판으로 보고서를 만들면 숫자는 멀쩡해 보이고 출처도 붙어서
+   *   **문서만 봐서는 안 잡힌다.**
+   *
+   * ★★ **화면이 고르지 않는다.** 순서와 근거만 보여 주고 고르는 것은 사람이다.
+   *   근거 종류가 다르면(번호 vs 날짜) 「못 가렸다」고 그대로 말한다.
+   *
+   * ★ 출처를 가리지 않는다 — 연결한 것도, 1회성으로 올린 것도 함께 본다.
+   *   같은 문서가 두 길로 들어오는 경우가 실제로 있다.
+   */
+  function versionBox() {
+    var V = window.LinkPilotVersions;
+    if (!V) return null;
+    var all = []
+      .concat(((state.linked && state.linked.items) || []))
+      .concat(((state.oneshot && state.oneshot.items) || []));
+    if (all.length < 2) return null;
+
+    var r = V.group(all);
+    if (!r.conflicts) return null;
+
+    var box = el('div', 'vc');
+    box.appendChild(el('div', 'vc__t', '같은 문서로 보이는 것이 ' + r.conflicts + '묶음 있습니다'));
+    box.appendChild(el('p', 'vc__d',
+      '어느 판으로 보고서를 만들지 **사람이 골라야 합니다.** 화면이 대신 고르지 않습니다 — '
+      + '틀린 판으로 만들면 숫자도 출처도 멀쩡해 보여서 문서만으로는 잡히지 않습니다.'));
+
+    r.groups.forEach(function (g) {
+      var sec = el('div', 'vc__g');
+      sec.appendChild(el('div', 'vc__n', g.items.length + '개 · ' + (g.stem || '(이름 없음)') + g.ext));
+      sec.appendChild(el('div', 'vc__w', g.why));
+      var ul = el('ul', 'vc__l');
+      g.items.forEach(function (it, i) {
+        var li = el('li');
+        li.appendChild(el('span', 'vc__i', i + 1));
+        var b = el('div');
+        b.appendChild(el('div', 'vc__f', it.name));
+        b.appendChild(el('div', 'vc__b', it.basis));
+        li.appendChild(b);
+        ul.appendChild(li);
+      });
+      sec.appendChild(ul);
+      box.appendChild(sec);
+    });
+    return box;
+  }
+
+  /**
    * 1회성 기록. 비어 있으면 그리지 않는다.
    *
    * ★ 「올리기 전에 확인해 주세요」는 **붙이기 칸**에 있다 — 고르는 그 자리에서
@@ -1459,8 +1528,10 @@ window.LINKPILOT_FILES = {
       return;
     }
 
+    // ★ 여러 판 경고는 **목록보다 위**에 둔다. 아래에 두면 목록에서 아무거나
+    //   골라 쓴 뒤에 보게 된다 — 그때는 이미 늦다
     // ★ 빈 절은 아예 만들지 않는다. `null` 을 그대로 넣으면 예외가 난다
-    [oneshotBlock()].forEach(function (b) {
+    [versionBox(), oneshotBlock()].forEach(function (b) {
       if (b) view.appendChild(b);
     });
   }
