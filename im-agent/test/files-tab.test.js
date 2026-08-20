@@ -331,6 +331,67 @@ test('★ 새 프로젝트는 한 줄을 받고 만든다 (몰래 만들지 않�
 });
 
 /**
+ * ★★ **원인을 틀리게 말하지 않는다** 〈2026-08-20 실측〉.
+ *
+ * 실서버에서 제공자 단추 넷이 멀쩡히 떠 있었고, 누르면
+ * 「이 브라우저에서는 파일 고르기를 열 수 없습니다」가 떴다.
+ * **브라우저는 아무 상관이 없었다** — 앱이 고르기 창을 안 넘겼거나 제공자
+ * 콘솔 등록이 안 된 것이다. 그 문장을 읽은 사람은 브라우저를 바꾸러 간다.
+ * **틀린 원인을 말하는 것이 아무 말도 안 하는 것보다 나쁘다.**
+ */
+test('★★ 열 수 없는 제공자를 누를 수 있게 두지 않는다 (브라우저 탓을 안 한다)', () => {
+  const html = read('files.html');
+  const code = codeOf(html);
+  assert.ok(!/이 브라우저에서는/.test(code),
+    '브라우저 탓을 하는 문장이 남아 있다 — 원인이 아니다');
+  assert.match(code, /var canOpen = typeof C\.pickFrom === 'function';/,
+    '고르기 창이 붙었는지 보지 않는다');
+  assert.match(code, /b\.disabled = !open;/, '열 수 없는 단추가 눌린다');
+  // ★ 옛 서버가 `configured` 를 안 주면 **막지 않는다** — 모르는 것을 「안 된다」로
+  //   그리면 되는 것까지 못 쓰게 된다
+  assert.match(code, /p\.configured === undefined\) \? true/,
+    '모르는 것을 「안 된다」로 그린다 — 되는 것까지 막힌다');
+  // 막혔을 때 **되는 길**을 알려 준다
+  assert.match(code, /파일업로드\(1회성\)/, '지금 쓸 수 있는 길을 안 알려 준다');
+});
+
+/**
+ * ★★ **키가 있는지는 서버만 안다.** 화면이 짐작하면 위와 같은 헛다리를 짚는다.
+ * ★ 값이 아니라 **환경변수 이름**만 나간다 (CLAUDE.md §2 — 값은 절대 안 나간다).
+ */
+test('★★ 서버가 제공자마다 등록 여부를 말한다 (키 값은 안 내보낸다)', async () => {
+  const W = require(path.join(__dirname, '..', 'ui', 'report-api.cjs'));
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-prov-'));
+  process.env.IM_AGENT_ROOT = tmp;
+  const h = W.createHandlers({
+    agentRoot: tmp, agentModulePath: path.join(__dirname, '..'),
+    authenticate: () => ({ planId: 'pro', status: 'active' }),
+  });
+  const made = await h.createProject({ headers: {} }, { request: '인천 남동공단 데이터센터' });
+  const id = made.body.projectId;
+
+  const secret = 'SECRET-' + 'dropbox-key-must-not-leak';
+  const had = process.env.DROPBOX_APP_KEY;
+  process.env.DROPBOX_APP_KEY = secret;
+  delete process.env.BOX_CLIENT_ID;
+  try {
+    const r = await h.listLinked({ headers: {} }, id);
+    assert.strictEqual(r.status, 200);
+    const by = {};
+    r.body.providers.forEach((p) => { by[p.id] = p; });
+    assert.strictEqual(by.dropbox.configured, true, '키가 있는데 등록 안 됨으로 나온다');
+    assert.strictEqual(by.box.configured, false, '키가 없는데 등록됨으로 나온다');
+    assert.strictEqual(by.dropbox.keyEnv, 'DROPBOX_APP_KEY', '무엇을 넣어야 하는지 안 알려 준다');
+    // ★★ 값은 **어디에도** 안 실린다
+    assert.ok(!JSON.stringify(r.body).includes(secret), '키 값이 응답에 실렸다');
+  } finally {
+    if (had === undefined) delete process.env.DROPBOX_APP_KEY;
+    else process.env.DROPBOX_APP_KEY = had;
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+/**
  * ★★ **위 검사는 전부 소스를 들여다보는 검사다.** 실제로 도는지는 브라우저가
  *   말해 준다 — 그래서 눌러 볼 수 있는 판을 **띄워서 직접 떨어뜨려 본다.**
  *   (M-08 — 「부르지 않는 테스트」를 만들지 않는다)
@@ -371,10 +432,20 @@ test('★★ 실제 브라우저에서 떨어뜨리면 붙고, 그래프가 끝�
       d.items.add(new File([new Uint8Array(4000)], '감정평가서.pdf'));
       var far = document.querySelector('.lead') || document.body;
       far.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: d }));
-      await sleep(300);
+      // ★★ **정해진 시간을 기다리지 않는다.** 파일 읽기는 타이머가 아니라
+      //   FileReader 라서 가상 시계가 기다려 주지 않는다. 기계가 바쁘면 읽기가
+      //   덜 끝난 채로 지나가고, 그러면 버튼이 잠긴 채라 눌러도 아무 일이 없다 —
+      //   그 상태가 「그래프가 안 뜬다」로 보여서 **엉뚱한 곳을 파게 된다.**
+      //   그래서 **버튼이 풀릴 때까지** 기다린다 (실제로 한 번 이렇게 헛울었다)
+      var go = null;
+      for (var w = 0; w < 200; w++) {
+        go = [].slice.call(document.querySelectorAll('.btn')).filter(function (b) {
+          return t(b).indexOf('파일업로드') === 0; })[0];
+        if (go && !go.disabled) break;
+        await sleep(20);
+      }
       o.rows = document.querySelectorAll('.row').length;
-      var go = [].slice.call(document.querySelectorAll('.btn')).filter(function (b) {
-        return t(b).indexOf('파일업로드') === 0; })[0];
+      o.goReady = !!(go && !go.disabled);
       // ★ 한 번만 재면 **놓친다.** 가상 시계에서는 올리기가 표본 사이에 끝나 버리고,
       //   그러면 「도는 중에 칸을 가리켰나」를 못 재고도 통과하거나 헛울음이 난다.
       //   그래서 **바뀔 때마다** 받아 적는다 — 표본 간격에 기대지 않는다
@@ -407,6 +478,8 @@ test('★★ 실제 브라우저에서 떨어뜨리면 붙고, 그래프가 끝�
     assert.match(r.keptWay, /폴더를 연결해서/, '갈래를 대신 바꿨다');
     // 카드 **바깥**에 떨어뜨려도 붙는다
     assert.equal(r.rows, 1, `카드 바깥에 떨어뜨린 파일이 안 붙었다 (${r.rows}개)`);
+    // 읽기가 안 끝났으면 버튼이 잠긴 채다 — 그걸 「그래프가 없다」로 읽지 않게 먼저 가른다
+    assert.ok(r.goReady, '파일을 다 읽지 못해 올리기 버튼이 잠겨 있다');
     // 그래프가 도는 중에 실제로 한 칸을 가리키고, 끝나면 네 칸이 다 찬다
     // 도는 동안 **가운데 칸**을 실제로 지나갔는가 (끝 칸만 보이면 그래프가 아니라 결과다)
     assert.ok(r.seen.some(function (x) { return x === '보내는 중' || x === '서버가 읽는 중'; }),
@@ -415,6 +488,100 @@ test('★★ 실제 브라우저에서 떨어뜨리면 붙고, 그래프가 끝�
       '끝났는데 칸이 다 안 찼다');
     assert.equal(r.stillRunning, false, '끝났는데 선이 계속 흐른다 — 도는 것처럼 보인다');
     assert.ok(r.chart, '자취 그림이 없다');
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+/**
+ * ★★ **앱에서 가져오는 셋** 〈2026-08-20 요청〉 — 프로젝트 내용 · 첨부파일 ·
+ *   이미지파일. 실제 브라우저에서 딜을 골라 끝까지 가져와 본다.
+ *
+ * ★ 여기서 지키는 것 셋:
+ *   ① 개수를 **가져오기 전에** 보여 준다 (누르고 나서 알면 늦다)
+ *   ② 사전에 없는 항목은 **값이 되지 않고**, 그 사실이 화면에 남는다
+ *   ③ 프로젝트를 바꾸면 앞 딜의 꾸러미가 **따라오지 않는다**
+ */
+test('★★ 앱에서 셋(내용·첨부·이미지)을 가져온다 — 거절도 숨기지 않는다', async () => {
+  const { buildLive } = require(path.join(PLATFORM, 'build-files.js'));
+  const { findBrowser, renderDom } = require(path.join(PLATFORM, 'build-static.js'));
+  if (!findBrowser()) return;
+
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-app-import-'));
+  const frag = path.join(dir, 'frag.html');
+  await buildLive(frag);
+
+  const probe = `
+    <div id="probe"></div>
+    <script>
+    (async function () {
+      var sleep = function (m) { return new Promise(function (r) { setTimeout(r, m); }); };
+      var t = function (n) { return n ? (n.textContent || '').trim().replace(/\\s+/g, ' ') : null; };
+      var o = {};
+      await sleep(200);
+      var sel = document.querySelector('select');
+      o.groups = [].slice.call(sel.querySelectorAll('optgroup')).map(function (g) { return g.label; });
+      sel.value = 'app:deal-8842';
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+      // 앱이 곧바로 주지 않는다 — 카드가 뜰 때까지 기다린다
+      var go = null;
+      for (var w = 0; w < 200; w++) {
+        go = [].slice.call(document.querySelectorAll('.btn')).filter(function (b) {
+          return t(b) === '가져오기'; })[0];
+        if (go && !go.disabled) break;
+        await sleep(20);
+      }
+      o.ready = !!(go && !go.disabled);
+      o.rows = [].slice.call(document.querySelectorAll('.row')).map(t);
+      o.note = t(document.querySelector('.card .note'));
+      if (go) { go.click(); }
+      for (var k = 0; k < 250; k++) {
+        await sleep(20);
+        if (document.querySelector('.up--done, .up--error')) break;
+      }
+      o.stagesDone = [].slice.call(document.querySelectorAll('.fx__n--done .fx__t')).map(t);
+      o.report = t(document.querySelector('.up'));
+      // 프로젝트를 바꾸면 앞 딜의 꾸러미가 따라오지 않는다
+      var sel2 = document.querySelector('select');
+      sel2.value = 'LP-DC-2026-001';
+      sel2.dispatchEvent(new Event('change', { bubbles: true }));
+      await sleep(400);
+      o.afterSwitch = [].slice.call(document.querySelectorAll('.card__t')).map(t);
+      o.errBoxes = document.querySelectorAll('.err').length;
+      document.getElementById('probe').textContent = JSON.stringify(o);
+    }());
+    </script>`;
+  const page = path.join(dir, 'page.html');
+  fs.writeFileSync(page, '<!doctype html><html lang="ko"><head><meta charset="utf-8"></head><body>'
+    + fs.readFileSync(frag, 'utf8') + probe + '</body></html>');
+
+  try {
+    const dom = renderDom(findBrowser(), page);
+    const m = dom.match(/<div id="probe">([^<]*)<\/div>/);
+    assert.ok(m && m[1], '탐침이 아무것도 안 남겼다 — 스크립트가 죽었다');
+    const r = JSON.parse(m[1]);
+    assert.equal(r.errBoxes, 0, '오류 상자가 떴다');
+    assert.ok(r.groups.includes('앱 프로젝트에서 가져오기'), '앱 딜 무리가 없다');
+    // ★ 앱이 준 함수가 화면 대입에 지워지면 여기서 걸린다 (실제로 한 번 지워졌다)
+    assert.ok(r.ready, '앱에서 셋을 못 읽었다 — fetchAppProject 가 안 붙었는가');
+
+    // ① 개수를 **먼저** 보여 준다
+    ['프로젝트 내용', '첨부파일', '이미지파일'].forEach((label) => {
+      assert.ok(r.rows.some(x => x.indexOf(label) === 0), `${label} 칸이 없다`);
+    });
+    assert.ok(r.rows.some(x => /첨부파일 · 2개/.test(x)), '첨부 개수를 안 보여 준다');
+    assert.ok(r.rows.some(x => /이미지파일 · 1개/.test(x)), '이미지 개수를 안 보여 준다');
+
+    // ② 값이 될 수 없는 것은 그렇다고 적는다
+    assert.match(r.note, /가져오지 않습니다/, '값이 못 되는 것을 조용히 넘겼다');
+    assert.deepEqual(r.stagesDone, ['앱에서 읽기', '프로젝트 내용', '자료 잇기', '가져왔습니다'],
+      '가져오기가 끝까지 안 갔다');
+    assert.match(r.report, /첨부 2개/, '첨부가 안 붙었다');
+    assert.match(r.report, /이미지 1개/, '이미지가 안 붙었다');
+    // ★★ 거절을 **접어 두지 않는다** — 「가져왔습니다」만 보면 다 들어온 줄 안다
+    assert.match(r.report, /사전에 없는 항목/, '거절 사유가 화면에 없다');
+
+    // ③ 프로젝트를 바꾸면 앞 딜 꾸러미가 따라오지 않는다 (붙으면 엉뚱한 곳에 붙는다)
+    assert.ok(!r.afterSwitch.includes('앱에서 가져오기'),
+      '다른 프로젝트로 옮겼는데 앞 딜의 가져오기가 남아 있다');
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
 

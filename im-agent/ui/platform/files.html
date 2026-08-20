@@ -221,6 +221,23 @@ window.LINKPILOT_FILES = {
      — 매핑을 여기(엔진 쪽)에 저장하면 앱 데이터의 정본이 둘이 된다. */
   appProjects: null,
   appLinks: null,
+  /* ── 앱에서 가져오는 자료 셋 (2026-08-20 요청) ───────────────────────
+     앱 프로젝트 하나가 들고 있는 것을 **셋으로 나눠** 받는다. 셋은 가는 곳이
+     다르고, 되돌릴 수 있는 정도도 다르다.
+
+       ① 프로젝트 내용  content  { summary, facts:[{key,value,unit,quote}], notes }
+       ② 첨부파일       files    [{ name, bytes, mime, ref, access }]
+       ③ 이미지파일     images   [{ name, bytes, mime, ref, access }]
+
+     목록(appProjects)에는 **개수만** 실어도 된다. 실제 내용은 고른 그때
+     `fetchAppProject(appId)` 로 받는다 — 딜 54건의 첨부를 처음부터 다 내려받으면
+     탭 여는 데만 한참 걸린다.
+
+       fetchAppProject: (appId) => Promise<{ content, files, images }>
+
+     `ref`·`access` 의 뜻은 pickFrom 과 **같다** (§2-1) — `ref` 는 장부에 남고
+     `access` 는 안 남는다. 같은 규칙을 두 벌로 만들지 않는다. */
+  fetchAppProject: null,
   planNames: { free: 'Free', basic: 'Basic', pro: 'Pro', business: 'Business' },
 };
 </script>
@@ -249,6 +266,11 @@ window.LINKPILOT_FILES = {
     busy: false,
     linkMsg: null,   // 연결 갈래에서 사용자가 볼 한 줄
     appMsg: null,    // 앱 프로젝트 가져오기의 진행·실패 한 줄
+    appBundle: null, // 앱이 준 셋 — { appId, content, files, images }
+    appPick: { content: true, files: true, images: true },  // 무엇을 가져올까
+    appStage: -1,    // 가져오는 중 어느 칸인지 (-1 = 안 하는 중)
+    appDead: false,
+    appReport: null, // 가져온 결과 — **거절된 것을 숨기지 않는다**
     noFolder: false, // 앱 딜은 있는데 작업 폴더가 없는 경우
     // ── 첨부 (2026-08-20) ─────────────────────────────────────────────
     // 전에는 세 갈래가 **설명만**이었다. 무엇이 다른지는 알려 주는데 정작
@@ -388,6 +410,9 @@ window.LINKPILOT_FILES = {
     }
     state.newProj = null;
     state.dropMsg = null;
+    // ★★ 앱 꾸러미를 **반드시 버린다.** 남겨 두면 다른 프로젝트를 고른 뒤에도
+    //   앞 딜의 첨부가 「가져오기」에 남아 있고, 누르면 **엉뚱한 프로젝트에 붙는다**
+    state.appBundle = null; state.appStage = -1; state.appReport = null;
     // ★ 작업 폴더가 없는 딜을 고른 경우 — 붙일 곳이 없다는 것을 말한다
     if (id && id.indexOf('ext:') === 0) {
       state.projectId = null;
@@ -419,7 +444,11 @@ window.LINKPILOT_FILES = {
     var linkedTo = (C.appLinks || {})[String(appId)] || null;
     if (linkedTo) {
       var known = (state.projects || []).some(function (p) { return p.id === linkedTo; });
-      if (known) { state.appMsg = null; pickProject(linkedTo); return; }
+      if (known) {
+        state.appMsg = null;
+        pickProject(linkedTo);
+        return void pullBundle(appId);
+      }
       /* 짝은 있는데 엔진에 그 프로젝트가 없다(지워졌다) — 아래에서 새로 만든다. 말없이 만들면
          "전에 올린 자료가 사라졌다"로 읽히므로 사유를 남긴다 */
       state.appMsg = '이어져 있던 보고서 프로젝트(' + linkedTo + ')가 엔진에 없어 새로 만듭니다.';
@@ -454,9 +483,28 @@ window.LINKPILOT_FILES = {
       if (!C.appLinks) C.appLinks = {};
       C.appLinks[String(appId)] = imId;
       pickProject(imId);
+      pullBundle(appId);
     }, function (e) {
       state.busy = false;
       state.appMsg = '보고서 프로젝트를 만들지 못했습니다: ' + e.message;
+      render();
+    });
+  }
+
+  /**
+   * 앱이 가진 셋을 읽어 둔다. **읽기와 가져오기를 나눈다** — 읽자마자 넣으면
+   * 무엇이 들어오는지 보기 전에 들어와 있다.
+   */
+  function pullBundle(appId) {
+    state.appBundle = null;
+    state.appStage = -1; state.appDead = false; state.appReport = null;
+    return loadAppBundle(appId).then(function (b) {
+      state.appBundle = b ? { appId: String(appId), content: b.content,
+        files: b.files, images: b.images } : null;
+      render();
+    }, function (e) {
+      // 못 읽었으면 그렇다고 말한다 — 조용히 빈 화면을 두면 「자료가 없다」로 읽힌다
+      state.appMsg = '앱에서 자료 목록을 읽지 못했습니다: ' + (e && e.message ? e.message : '사유 없음');
       render();
     });
   }
@@ -856,21 +904,51 @@ window.LINKPILOT_FILES = {
   function linkPicker() {
     var box = document.createDocumentFragment();
     var names = ((state.linked && state.linked.providers) || []);
+
+    // ★★ **누를 수 없는 것을 누를 수 있게 두지 않는다** 〈2026-08-20 실측〉.
+    //   전에는 넷을 다 그려 놓고, 누르면 **브라우저 탓을 하는 문장**이 떴다.
+    //   브라우저는 아무 잘못이 없었다 — 앱이 고르기 창을 넘기지 않았거나 제공자
+    //   콘솔 등록이 안 된 것이다. 사용자는 그 문장을 읽고 브라우저를 바꾸러 간다.
+    //   원인을 틀리게 말하는 것이 아무 말도 안 하는 것보다 나쁘다.
+    //   ★ 그 문장을 **여기 주석에도 적지 않는다** — 적으면 그것을 찾는 검사가
+    //     주석에 걸려 통과하고, 막는 장치가 조용히 죽는다 (M-08 · 실제로 두 번)
+    var canOpen = typeof C.pickFrom === 'function';
+
     var row = el('div', 'ext');
     row.style.display = 'flex';
     row.style.gap = '8px';
     row.style.flexWrap = 'wrap';
     row.style.marginTop = '12px';
 
-    (names.length ? names : []).forEach(function (p) {
+    var blocked = [];
+    names.forEach(function (p) {
+      // `configured` 가 아예 안 오면(옛 서버) **막지 않는다** — 모르는 것을
+      // 「안 된다」로 그리면 되는 것까지 못 쓰게 된다
+      var registered = (p.configured === undefined) ? true : !!p.configured;
+      var open = canOpen && registered;
       var b = el('button', 'btn2', p.name);
       b.type = 'button';
+      b.disabled = !open;
       b.style.cssText = 'font:700 13px/1 inherit;padding:10px 14px;border-radius:10px;'
-        + 'border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer';
-      b.addEventListener('click', function () { pickFrom(p.id, b); });
+        + 'border:1px solid var(--line);color:var(--ink);'
+        + (open ? 'background:var(--surface);cursor:pointer'
+          : 'background:var(--panel);color:var(--ink2);cursor:not-allowed');
+      if (open) b.addEventListener('click', function () { pickFrom(p.id, b); });
+      else if (!registered) blocked.push(p.name);
       row.appendChild(b);
     });
     box.appendChild(row);
+
+    // ★ **무엇이 빠졌는지**를 말한다. 둘은 고치는 사람이 다르다 —
+    //   고르기 창은 앱이 붙이고, 등록은 제공자 콘솔에서 한다
+    if (!canOpen) {
+      box.appendChild(el('p', 'note',
+        '파일 고르기 창이 아직 연결되지 않았습니다 — 준비되면 위 단추가 열립니다. '
+        + '지금 자료를 넣으려면 「파일업로드(1회성)」를 쓰십시오.'));
+    } else if (blocked.length) {
+      box.appendChild(el('p', 'note',
+        blocked.join(' · ') + ' 는 아직 등록되지 않았습니다 — 관리자에게 저장소 등록을 요청하십시오.'));
+    }
 
     if (state.linkMsg) box.appendChild(el('p', 'note', state.linkMsg));
     return box;
@@ -892,7 +970,7 @@ window.LINKPILOT_FILES = {
     var n = state.newProj;
     if (!n) return null;
     var card = el('section', 'card');
-    add(card, el('h2', 'card__t', '새 프로젝트 만들기'),
+    add(card, el('h2', 'card__t', '신규프로젝트'),
       el('p', 'card__d', '무엇을 만들지 한 줄로 적어 주십시오. '
         + '이 문장에서 자산군과 목차가 정해집니다 — 비워 두면 정할 수 없습니다.'));
 
@@ -952,6 +1030,230 @@ window.LINKPILOT_FILES = {
       });
   }
 
+  /* ── 앱에서 가져오기 — 셋 ────────────────────────────────
+   *
+   * ★★ 앱 프로젝트 하나가 들고 있는 것을 **셋으로 나눠** 가져온다. 한 덩어리로
+   *   받으면 무엇이 들어왔는지 사람이 모르고, **틀린 것 하나 때문에 전부를
+   *   되돌려야 한다.**
+   *
+   *     ① 프로젝트 내용 → 값(fact)이 된다      `PUT /facts`
+   *     ② 첨부파일      → 연결 장부에 적는다   `POST /linked`
+   *     ③ 이미지파일    → 〃 (그림으로 표시)
+   *
+   * ★★ **엔진 라우트를 새로 내지 않았다.** 셋 다 이미 있는 길로 간다 —
+   *   길을 새로 내면 인증·한도·거절 규칙이 두 벌이 되고, 한쪽만 고치는 날이 온다.
+   *
+   * ★★ **값에는 출처가 붙는다.** 앱에서 왔다는 것 자체가 출처다 —
+   *   「LinkPilot 앱 · <딜 id> · <갱신일>」. 출처 없이 넣으면 서버가 거절하고,
+   *   그게 맞다 (「출처 없는 숫자는 들어오지 못한다」).
+   *
+   * ★ **사전에 없는 항목은 값이 되지 않는다.** 앱의 자유 입력을 억지로 사전 항목에
+   *   끼워 맞추지 않는다 — 맞춰 넣으면 문서에는 「출처 있는 값」으로 실린다.
+   *   그런 것은 `notes` 로 받아 **보여만 준다.**
+   */
+  var APP_STAGES = ['앱에서 읽기', '프로젝트 내용', '자료 잇기', '가져왔습니다'];
+
+  /** 앱 목록에서 딜 하나를 찾는다 */
+  function appEntry(appId) {
+    var apps = Array.isArray(C.appProjects) ? C.appProjects : [];
+    for (var i = 0; i < apps.length; i++) {
+      if (apps[i] && String(apps[i].id) === String(appId)) return apps[i];
+    }
+    return null;
+  }
+
+  /**
+   * 셋을 받아 온다. 앱이 함수를 주면 그것으로, 안 주면 목록에 실린 것으로.
+   *
+   * ★ 목록에 개수만 실어도 되게 둘 다 받는다 — 딜 54건의 첨부를 탭 열 때
+   *   전부 내려받으면 여는 데만 한참 걸린다.
+   */
+  function loadAppBundle(appId) {
+    var a = appEntry(appId) || {};
+    var inline = { content: a.content || null, files: a.files || null, images: a.images || null };
+    if (typeof C.fetchAppProject !== 'function') return Promise.resolve(inline);
+    return Promise.resolve()
+      .then(function () { return C.fetchAppProject(appId); })
+      .then(function (got) {
+        if (!got) return inline;
+        return {
+          content: got.content || inline.content,
+          files: got.files || inline.files,
+          images: got.images || inline.images,
+        };
+      });
+  }
+
+  function countOf(b) {
+    if (!b) return { content: 0, files: 0, images: 0, notes: 0 };
+    var c = b.content || {};
+    return {
+      content: (c.facts || []).length,
+      notes: (c.notes || []).length,
+      files: (b.files || []).length,
+      images: (b.images || []).length,
+    };
+  }
+
+  /**
+   * 무엇을 가져올지 고르는 칸. **개수를 먼저 보여 준다** — 눌러 놓고 나서
+   * 「이만큼이나 들어왔나」를 알면 늦다.
+   */
+  function appImportCard() {
+    var b = state.appBundle;
+    if (!b || !state.projectId) return null;
+    var n = countOf(b);
+    if (!n.content && !n.files && !n.images && !n.notes && !(b.content && b.content.summary)) return null;
+
+    var card = el('section', 'card');
+    add(card, el('h2', 'card__t', '앱에서 가져오기'),
+      el('p', 'card__d', '앱 프로젝트가 들고 있는 것입니다. '
+        + '가져올 것만 고르십시오 — 나중에 다시 가져올 수 있습니다.'));
+
+    var rows = [
+      { id: 'content', t: '프로젝트 내용', c: n.content,
+        d: n.content ? (n.content + '개 항목이 값으로 들어갑니다 (출처는 앱으로 적힙니다)')
+          : '값으로 넣을 항목이 없습니다' },
+      { id: 'files', t: '첨부파일', c: n.files,
+        d: n.files ? (n.files + '개를 가리킵니다 — 사본을 만들지 않습니다') : '첨부가 없습니다' },
+      { id: 'images', t: '이미지파일', c: n.images,
+        d: n.images ? (n.images + '개를 가리킵니다') : '이미지가 없습니다' },
+    ];
+    rows.forEach(function (r) {
+      var row = el('div', 'row');
+      var left = el('div', 'row__b');
+      var lab = el('label');
+      lab.style.cssText = 'display:flex;gap:9px;align-items:center;cursor:pointer';
+      var cb = el('input');
+      cb.type = 'checkbox';
+      cb.checked = !!state.appPick[r.id] && r.c > 0;
+      cb.disabled = !r.c || state.busy;
+      cb.addEventListener('change', function () { state.appPick[r.id] = cb.checked; });
+      lab.appendChild(cb);
+      lab.appendChild(el('div', 'row__n', r.t + (r.c ? ' · ' + r.c + '개' : '')));
+      left.appendChild(lab);
+      left.appendChild(el('div', 'row__m', r.d));
+      row.appendChild(left);
+      card.appendChild(row);
+    });
+
+    // ★ 사전에 없어 값이 될 수 없는 것 — **숨기지 않고 그렇다고 적는다**
+    if (n.notes) {
+      card.appendChild(el('p', 'note',
+        '값으로 넣을 수 없는 메모 ' + n.notes + '건은 가져오지 않습니다 — '
+        + '사전에 없는 항목을 값으로 넣으면 문서에 「출처 있는 값」으로 실립니다.'));
+    }
+
+    var go = el('button', 'btn', state.busy ? '가져오는 중…' : '가져오기');
+    go.type = 'button';
+    go.disabled = state.busy || !(state.appPick.content || state.appPick.files || state.appPick.images);
+    go.addEventListener('click', importFromApp);
+    card.appendChild(go);
+
+    if (state.appStage >= 0) {
+      card.appendChild(activityGraph({
+        stages: APP_STAGES, at: state.appStage, dead: state.appDead,
+        note: state.appDead ? '이 칸에서 멈췄습니다.' : '앱이 가진 것을 이 프로젝트로 옮기는 중입니다.',
+      }));
+    }
+    if (state.appReport) card.appendChild(appReportBox(state.appReport));
+    return card;
+  }
+
+  /** 가져온 결과. **거절된 것을 접어 두지 않는다** */
+  function appReportBox(rep) {
+    var box = el('div', 'up' + (rep.failed ? ' up--error' : ' up--done'));
+    box.appendChild(el('p', 'up__d',
+      '값 ' + rep.facts + '개 · 첨부 ' + rep.files + '개 · 이미지 ' + rep.images + '개를 가져왔습니다.'));
+    (rep.rejected || []).forEach(function (r) {
+      box.appendChild(el('p', 'up__d', '· ' + r.what + ' — ' + r.why));
+    });
+    return box;
+  }
+
+  /**
+   * 실제로 가져온다. **하나가 실패해도 나머지는 간다** — 한 건 때문에 전부를
+   * 되돌리면 사용자는 무엇이 들어왔는지 모르는 채 처음부터 다시 한다.
+   */
+  function importFromApp() {
+    var b = state.appBundle;
+    if (!b || state.busy || !state.projectId) return;
+    var base = '/projects/' + encodeURIComponent(state.projectId);
+    var rep = { facts: 0, files: 0, images: 0, rejected: [], failed: false };
+
+    state.busy = true; state.appReport = null; state.appDead = false;
+    state.appStage = 0; render();
+
+    // ① 프로젝트 내용 → 값. **출처를 붙여 보낸다**
+    var step1 = Promise.resolve();
+    var facts = (state.appPick.content && b.content && b.content.facts) || [];
+    if (facts.length) {
+      state.appStage = 1; render();
+      var src = 'LinkPilot 앱 · ' + (b.appId || '딜')
+        + ((b.content && b.content.updatedAt) ? ' · ' + b.content.updatedAt : '');
+      step1 = call('PUT', base + '/facts', {
+        facts: facts.map(function (f) {
+          return { key: f.key, value: f.value, unit: f.unit || null,
+            quote: f.quote || null, source: f.source || src };
+        }),
+      }, { localGate: true }).then(function (r) {
+        if (r && r.ok && r.body) {
+          rep.facts = (r.body.saved || []).length;
+          (r.body.rejected || []).forEach(function (x) {
+            rep.rejected.push({ what: x.key, why: x.reason });
+          });
+        } else {
+          rep.failed = true;
+          rep.rejected.push({ what: '프로젝트 내용', why: (r && (r.msg || r.closed)) || '넣지 못했습니다' });
+        }
+      }, function (e) {
+        rep.failed = true;
+        rep.rejected.push({ what: '프로젝트 내용', why: e.message });
+      });
+    }
+
+    // ② 첨부 · ③ 이미지 → 연결 장부. **하나씩** 보낸다 (한 건이 죽어도 나머지가 간다)
+    return step1.then(function () {
+      var jobs = [];
+      var push = function (list, kind) {
+        (list || []).forEach(function (f) {
+          jobs.push(function () {
+            var ref = f.ref || { provider: 'linkpilot-app', fileId: f.id || f.name, name: f.name,
+              rev: f.rev || null, bytes: f.bytes || null, kind: kind };
+            return call('POST', base + '/linked', { ref: ref, access: f.access || null },
+              { localGate: true }).then(function (r) {
+              if (r && r.ok) { rep[kind === 'image' ? 'images' : 'files'] += 1; return; }
+              rep.failed = true;
+              rep.rejected.push({ what: f.name || '(이름 없음)',
+                why: (r && (r.msg || r.closed)) || '잇지 못했습니다' });
+            }, function (e) {
+              rep.failed = true;
+              rep.rejected.push({ what: f.name || '(이름 없음)', why: e.message });
+            });
+          });
+        });
+      };
+      if (state.appPick.files) push(b.files, 'file');
+      if (state.appPick.images) push(b.images, 'image');
+      if (!jobs.length) return null;
+      state.appStage = 2; render();
+      return jobs.reduce(function (p, job) { return p.then(job); }, Promise.resolve());
+    }).then(function () {
+      state.busy = false;
+      state.appStage = 3;
+      state.appDead = rep.failed;
+      state.appReport = rep;
+      return loadOne(state.projectId).then(render);
+    }, function (e) {
+      state.busy = false;
+      state.appDead = true;
+      rep.failed = true;
+      rep.rejected.push({ what: '가져오기', why: e.message });
+      state.appReport = rep;
+      render();
+    });
+  }
+
   /** 연결 갈래의 칸 이름 — 한 곳에서 정한다 */
   var LINK_STAGES = ['저장소 열기', '파일 고르기', '장부에 적기', '붙었습니다'];
 
@@ -960,8 +1262,11 @@ window.LINKPILOT_FILES = {
     if (state.busy) return;
     var open = C.pickFrom;
     if (typeof open !== 'function') {
-      // ★ 앱이 창을 안 넘겨 주면 **여기서 멈춘다.** 되는 척하지 않는다
-      state.linkMsg = '이 브라우저에서는 파일 고르기를 열 수 없습니다.';
+      // ★ 앱이 창을 안 넘겨 주면 **여기서 멈춘다.** 되는 척하지 않는다.
+      //   ★★ 브라우저 탓을 하지 않는다 — 브라우저는 아무 상관이 없다.
+      //     틀린 원인을 말하면 사용자가 엉뚱한 것을 고치러 간다 (2026-08-20 실측)
+      state.linkMsg = '파일 고르기 창이 아직 연결되지 않았습니다 — '
+        + '지금은 「파일업로드(1회성)」로 넣을 수 있습니다.';
       state.linkStage = 0; state.linkDead = true;
       return render();
     }
@@ -1077,6 +1382,15 @@ window.LINKPILOT_FILES = {
       ((state.projects && state.projects.length) || apps.length) ? '— 고르세요 —' : '프로젝트가 없습니다');
     none.value = '';
     sel.appendChild(none);
+    // ★★ **만들기를 맨 위에 둔다** 〈2026-08-20 사용자 지시〉.
+    //   전에는 「1단계에서 먼저 만드십시오」라고만 했는데, 그 1단계가 다른 탭이라
+    //   자료를 손에 든 채 탭을 옮겨야 했다 — 옮기면 고른 파일이 사라진다.
+    // ★ 목록 **맨 아래**가 아니라 맨 위다. 프로젝트가 수십 개면 아래 것은
+    //   끝까지 굴려야 보이는데, 새로 만드는 사람은 목록에 볼 것이 없는 사람이다
+    var mk = el('option', null, '＋ 신규프로젝트');
+    mk.value = NEW_OPT;
+    if (state.newProj) mk.selected = true;
+    sel.appendChild(mk);
     /* 엔진에 이미 있는 프로젝트 */
     // ★ 앱 딜 중에는 **작업 폴더가 아직 없는 것**이 있다. 그때 `id` 가 비어 있다 —
     //   목록에서 빼지 않는다. 빼면 사용자는 자기 딜이 왜 없는지 모른다.
@@ -1108,13 +1422,6 @@ window.LINKPILOT_FILES = {
       });
       sel.appendChild(gApp);
     }
-    // ★★ **만들기도 고르기 자리에 둔다** 〈2026-08-20 사용자 지시〉. 전에는
-    //   「1단계에서 먼저 만드십시오」라고만 했는데, 그 1단계가 다른 탭이라
-    //   자료를 손에 든 채 탭을 옮겨야 했다 — 옮기면 고른 파일이 사라진다
-    var mk = el('option', null, '+ 새 프로젝트 만들기');
-    mk.value = NEW_OPT;
-    if (state.newProj) mk.selected = true;
-    sel.appendChild(mk);
     sel.addEventListener('change', function () {
       var v = sel.value;
       if (v && v.indexOf('app:') === 0) pickAppProject(v.slice(4));
@@ -1126,6 +1433,11 @@ window.LINKPILOT_FILES = {
 
     var mkCard = newProjectCard();
     if (mkCard) { view.appendChild(mkCard); return; }
+
+    // ★ 앱에서 가져오는 것을 **붙이기보다 먼저** 그린다. 앱 프로젝트로 들어온
+    //   사람에게는 손으로 붙이기 전에 이미 있는 것을 끌어오는 쪽이 먼저다
+    var appCard = appImportCard();
+    if (appCard) view.appendChild(appCard);
 
     view.appendChild(attachCard());
 

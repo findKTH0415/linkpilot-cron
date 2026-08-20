@@ -498,9 +498,20 @@ function createHandlers(deps) {
       return ok({
         ...l,
         // 화면이 「어디에 붙일 수 있나」를 여기서 받는다. 복사해 두면 갈린다
-        providers: storage.PROVIDER_IDS.map(id => ({
-          id, name: storage.PROVIDERS[id].name, scopeNote: storage.SCOPE_NOTE[id],
-        })),
+        // ★★ **열 수 있는지까지 말한다** 〈2026-08-20 실측〉. 전에는 넷을 그냥
+        //   내려보냈고, 화면은 그것을 「붙일 수 있는 곳」으로 읽어 **누를 수 있는
+        //   버튼 넷**을 그렸다. 실제로는 콘솔 등록이 안 되어 아무것도 안 열렸고,
+        //   화면은 「이 브라우저에서는 열 수 없습니다」라고 **브라우저 탓**을 했다 —
+        //   사용자는 브라우저를 바꾸러 간다. **키가 있는지는 서버만 안다.**
+        //   ★ 값이 아니라 **환경변수 이름**만 내보낸다 (§2 — 값은 절대 안 나간다)
+        providers: storage.PROVIDER_IDS.map((id) => {
+          const env = storage.PROVIDERS[id].tokenEnv;
+          return {
+            id, name: storage.PROVIDERS[id].name, scopeNote: storage.SCOPE_NOTE[id],
+            configured: !!String(process.env[env] || '').trim(),
+            keyEnv: env,
+          };
+        }),
         modes: storage.MODES,
         // ★ 우리가 사본을 갖지 않는다는 사실을 응답이 말한다
         storesCopies: false,

@@ -152,6 +152,7 @@ function fakeServer(limits) {
     { id: 'LP-SOL-2026-004', name: '전남 영암 태양광' },
   ];
   var made = [];
+  var linked = [];
 
   function reply(url, method, body) {
     var p = String(url).replace(/^[^]*?\\/api/, '');
@@ -182,9 +183,33 @@ function fakeServer(limits) {
       return [200, { accepted: g2.map(function (f) { return { name: f.name }; }), rejected: [], reusable: false }];
     }
     if (/\\/oneshot$/.test(p)) return [200, { items: oneshot }];
+    // 프로젝트 내용 → 값. **사전에 없는 항목은 거절한다** (실제 서버와 같다)
+    if (/\\/facts$/.test(p) && method === 'PUT') {
+      var fs2 = (body && body.facts) || [];
+      var okd = [], no = [];
+      fs2.forEach(function (f) {
+        if (!f.source) no.push({ key: f.key, reason: '출처가 없습니다' });
+        else if (String(f.key).indexOf('.') < 0) no.push({ key: f.key, reason: '사전에 없는 항목' });
+        else okd.push({ key: f.key });
+      });
+      return [200, { saved: okd, rejected: no }];
+    }
     // ★ 연결 갈래는 **실제로도 아직 안 열려 있다.** 여기서도 501 을 준다 —
     //   되는 것처럼 보여 주면 그것이 곧 거짓말이다
-    if (/\\/linked$/.test(p)) return [501, { error: '저장소 연결이 아직 열려 있지 않습니다 (본체가 함수를 넘겨야 합니다)' }];
+    if (/\\/linked$/.test(p) && method === 'POST') {
+      var ref = (body && body.ref) || {};
+      // 앱이 준 것은 받는다 — 앱은 자기 파일의 접근권을 안다
+      if (ref.provider === 'linkpilot-app') {
+        linked.push({ name: ref.name, kind: ref.kind || 'file' });
+        return [200, { key: 'app-' + linked.length, ref: ref }];
+      }
+      return [501, { error: '저장소 연결이 아직 열려 있지 않습니다 (본체가 함수를 넘겨야 합니다)' }];
+    }
+    if (/\\/linked$/.test(p)) return [200, { items: linked, storesCopies: false, providers: [
+      { id: 'dropbox', name: 'Dropbox', configured: false, keyEnv: 'DROPBOX_APP_KEY' },
+      { id: 'box', name: 'Box', configured: false, keyEnv: 'BOX_CLIENT_ID' },
+      { id: 'google', name: 'Google Drive', configured: false, keyEnv: 'GOOGLE_CLIENT_ID' },
+      { id: 'onedrive', name: 'OneDrive · SharePoint', configured: false, keyEnv: 'MS_CLIENT_ID' } ] }];
     return [404, { error: '예시 서버에 없는 길입니다' }];
   }
 
@@ -238,6 +263,59 @@ function fakeServer(limits) {
 </script>`;
 }
 
+/** 예시 앱 딜 — **실제 딜이 아니다** (public 저장소) */
+const APP_DEMO = [
+  { id: 'deal-8842', title: '잠원동 역세권개발 주상복합', client: '(주)예시개발', files: 2, images: 1 },
+  { id: 'deal-9107', title: '경기도 여주시 대신면 3MW 태양광', client: '예시에너지', files: 1, images: 2 },
+];
+
+/**
+ * 앱이 넘기는 함수를 흉내낸다.
+ *
+ * ★★ **화면보다 뒤에 둔다.** 앞에 두면 화면의 `window.LINKPILOT_FILES = {…}`
+ *   **대입**이 이 함수를 통째로 지운다 — 그러면 앱 목록은 뜨는데 고르면
+ *   아무것도 안 나온다. 오류는 없다. 실제로 그렇게 한 번 안 붙었다.
+ * ★ 대입이 아니라 **속성만 얹는다** — 화면이 이미 잡아 둔 참조를 그대로 쓴다.
+ * ★ 실제로는 본체가 자기 API 로 받아 온다. 여기서는 모양만 같게 둔다
+ */
+function appBridge() {
+  return `<script>
+(function () {
+  'use strict';
+  var BUNDLE = {
+    'deal-8842': {
+      content: { updatedAt: '2026-08-19', summary: '잠원동 역세권 주상복합 개발',
+        facts: [
+          { key: 'land.area_sqm', value: 12709, unit: '㎡' },
+          { key: 'building.gfa_sqm', value: 84300, unit: '㎡' },
+          { key: '자유입력', value: '담당자 메모' } ],
+        notes: ['현장 방문 소견 (자유 입력)'] },
+      files: [
+        { id: 'f1', name: '사업계획서.pdf', bytes: 2400000, ref: { provider: 'linkpilot-app', fileId: 'f1', name: '사업계획서.pdf', kind: 'file' }, access: { url: 'https://example.invalid/f1' } },
+        { id: 'f2', name: '감정평가서.pdf', bytes: 5100000, ref: { provider: 'linkpilot-app', fileId: 'f2', name: '감정평가서.pdf', kind: 'file' }, access: { url: 'https://example.invalid/f2' } } ],
+      images: [
+        { id: 'i1', name: '현장사진-01.jpg', bytes: 830000, ref: { provider: 'linkpilot-app', fileId: 'i1', name: '현장사진-01.jpg', kind: 'image' }, access: { url: 'https://example.invalid/i1' } } ],
+    },
+    'deal-9107': {
+      content: { updatedAt: '2026-08-18',
+        facts: [{ key: 'solar.capacity_dc_mw', value: 3.4, unit: 'MWdc' }], notes: [] },
+      files: [{ id: 'g1', name: '계통연계-회신.pdf', bytes: 410000, ref: { provider: 'linkpilot-app', fileId: 'g1', name: '계통연계-회신.pdf', kind: 'file' }, access: { url: 'https://example.invalid/g1' } }],
+      images: [
+        { id: 'j1', name: '부지-항공.jpg', bytes: 1200000, ref: { provider: 'linkpilot-app', fileId: 'j1', name: '부지-항공.jpg', kind: 'image' }, access: { url: 'https://example.invalid/j1' } },
+        { id: 'j2', name: '배치도.png', bytes: 640000, ref: { provider: 'linkpilot-app', fileId: 'j2', name: '배치도.png', kind: 'image' }, access: { url: 'https://example.invalid/j2' } } ],
+    },
+  };
+  window.LINKPILOT_FILES = window.LINKPILOT_FILES || {};
+  window.LINKPILOT_FILES.fetchAppProject = function (appId) {
+    // 실제 앱도 곧바로 주지 않는다 — 부르는 쪽이 기다릴 줄 아는지 여기서 드러난다
+    return new Promise(function (ok) {
+      setTimeout(function () { ok(BUNDLE[appId] || { content: null, files: [], images: [] }); }, 250);
+    });
+  };
+}());
+</script>`;
+}
+
 async function buildLive(outFile) {
   const { createHandlers } = require(path.join(HERE, '..', 'api-router.cjs'));
   const h = createHandlers({ agentModulePath: path.join(HERE, '..', '..') });
@@ -251,6 +329,9 @@ async function buildLive(outFile) {
       value: {
         api: '/api', inTab: true, requiredPlan: 'free',
         session: { authenticated: true, name: '예시 사용자', planId: 'pro', status: 'active' },
+        // ★ 앱이 내려주는 딜 목록 — **예시다.** 실제 딜 자료는 이 저장소에 두지 않는다
+        appProjects: APP_DEMO,
+        appLinks: {},
       },
     },
   });
@@ -273,6 +354,7 @@ ${styles}
   「폴더를 연결해서」는 <b>실제로도 아직 안 열려 있어</b> 여기서도 그렇게 나옵니다.</div>
 ${fakeServer(limits)}
 <div class="pv">${body}</div>
+${appBridge()}
 `;
 
   const bad = publishableLive(frag);
