@@ -54,28 +54,17 @@ test('★ 구성안이 탭 이름을 복사해 적지 않는다', () => {
  *   연결(D-65)은 **사본을 만들지 않는 것**이 존재 이유인데, 업로드로 읽히면
  *   사용자는 우리 서버에 사본이 남는 줄 안다 — 정확히 반대다.
  */
-test('★★ 화면이 세 갈래의 차이를 먼저 말한다 (연결 ≠ 업로드)', () => {
+test('★★ 화면이 두 갈래의 차이를 먼저 말한다 (연결 ≠ 업로드)', () => {
   const html = read('files.html');
-  ['올려서 보관', '연결해서 쓰기', '1회성으로 올리기'].forEach((w) => {
-    assert.ok(html.includes(w), `세 갈래 중 '${w}' 가 화면에 없다`);
+  ['연결해서 쓰기', '1회성으로 올리기'].forEach((w) => {
+    assert.ok(html.includes(w), `두 갈래 중 '${w}' 가 화면에 없다`);
   });
+  // ★ 「올려서 보관」은 뺐다 (2026-08-20 사용자 결정 — 불필요)
+  assert.ok(!/id: 'kept'/.test(html), '보관 갈래가 되살아났다');
   assert.ok(html.includes('사본을 만들지 않습니다'),
     '연결이 사본을 안 만든다는 말이 없다 — 「업로드」로 읽힌다');
   assert.ok(html.includes('다시 쓸 수 없'),
     '1회성이 재사용 불가라는 말이 없다 — 올린 뒤에 알면 늦다');
-});
-
-test('★★ 1회성은 올리기 **전에**, 그리고 **한 번만** 경고한다', () => {
-  const code = codeOf(read('files.html'));
-  const hits = code.split('올리기 전에 확인해 주세요').length - 1;
-  assert.equal(hits, 1, `경고가 ${hits}번 나온다 — 같은 말을 두 번 하면 읽지 않는다`);
-
-  // ★ 경고는 **고르는 자리**(붙이기 칸)에 있어야 한다. 아래 목록에 두면
-  //   이미 올린 뒤에 읽게 된다
-  const warn = code.indexOf('올리기 전에 확인해 주세요');
-  const drop = code.indexOf("card.appendChild(dropZone())");
-  assert.ok(warn > 0 && drop > 0 && warn < drop,
-    '경고가 파일 고르기보다 뒤에 있다 — 고르고 나서 읽는다');
 });
 
 /* ═════════ ③ 501 은 오류가 아니라 상태다 ═════════ */
@@ -148,7 +137,7 @@ test('★ 토큰이 안 실리면 화면이 말한다', () => {
  * ★★ 세 갈래가 **설명만**이던 때가 있었다. 무엇이 다른지는 알려 주는데 정작
  *   여기서 올릴 수는 없어서, 자료를 넣으려면 1단계로 되돌아가야 했다.
  */
-test('★★ 세 갈래를 고를 수 있다 (설명만이 아니다)', () => {
+test('★★ 두 갈래를 고를 수 있다 (설명만이 아니다)', () => {
   const html = read('files.html');
   assert.match(html, /var WAYS = \[/, '갈래가 데이터로 있지 않다');
   assert.match(html, /el\('button', 'pw'/, '갈래가 눌리지 않는다 — 설명만이다');
@@ -246,7 +235,7 @@ test('★★ 자료 업로드 탭을 미리 그리면 실제로 내용이 들어
     const body = html.slice(html.indexOf('<div class="pv">'));
     assert.ok(body.length > 800, `미리 그린 판이 비었다 (${body.length}B) — 스크립트가 죽었다`);
     assert.equal((body.match(/class="err"/g) || []).length, 0, '오류 상자가 그려졌다');
-    ['올려서 보관', '연결해서 쓰기', '1회성으로 올리기'].forEach((w) => {
+    ['연결해서 쓰기', '1회성으로 올리기'].forEach((w) => {
       assert.ok(body.includes(w), `미리 그린 판에 '${w}' 가 없다`);
     });
     assert.match(html, /예시 화면입니다/, '예시라는 표시가 없다 — 실제로 오해한다');
@@ -369,31 +358,6 @@ test('★★ 브리지가 얹혔을 때 높이를 알린다 (안쪽 스크롤을
 });
 
 /* ═════════ ⑦ 올린 자료가 어디에 쓰이는가 (2026-08-20) ═════════ */
-
-/**
- * ★★ **올리기 전에** 말해야 하는 둘.
- *
- * ① 여기서 올린 것이 4단계 생성에서 그대로 읽힌다 — 모르면 자료를 두 번 넣는다.
- * ② 스캔본·사진은 글자로 옮겨야 읽히는데, 그 기능이 꺼져 있으면 **보관만 되고
- *    값이 안 뽑힌다.** 1단계는 그 사실을 말하는데 이 화면은 안 말하고 있었다 —
- *    올리고 나서 알면 늦다.
- */
-test('★★ 올린 자료가 보고서에 어떻게 쓰이는지 말한다', () => {
-  const code = codeOf(read('files.html'));
-  assert.match(code, /4단계에서 그대로 읽힙니다/, '어디에 쓰이는지 안 말한다');
-  assert.match(code, /어느 파일 몇 쪽/, '출처가 기록된다는 말이 없다');
-});
-
-test('★★ 글자 옮기기가 꺼져 있으면 **올리기 전에** 말한다', () => {
-  const code = codeOf(read('files.html'));
-  const at = code.indexOf('ocrReady === false');
-  const drop = code.indexOf('card.appendChild(dropZone())');
-  assert.ok(at > 0, 'OCR 이 꺼졌는지 안 본다 — 올리고 나서 알게 된다');
-  assert.ok(at < drop, '경고가 파일 고르기보다 뒤에 있다');
-  // ★ 서버가 준 값을 쓴다. 화면이 판단하면 서버가 바뀌는 날 화면만 옛말을 한다
-  assert.match(code, /state\.limits && state\.limits\.ocrReady === false/,
-    '화면이 스스로 판단한다 — 서버가 준 값을 써야 한다');
-});
 
 /**
  * ★★ 올린 자료가 **실제로 추출에 들어가는지**를 재 본다.

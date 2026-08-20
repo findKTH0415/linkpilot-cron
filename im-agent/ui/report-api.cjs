@@ -147,6 +147,23 @@ function createHandlers(deps) {
     if (d.agentRoot) process.env.IM_AGENT_ROOT = d.agentRoot;
     return require(path.join(base, rel));
   };
+
+  /**
+   * 연결 자료를 읽는 함수 — **없으면 엔진 것을 쓴다** 〈2026-08-20〉.
+   *
+   * ★★ 전에는 아무도 주지 않아서 연결 갈래가 통째로 501 이었다. 등록조차
+   *   받지 않는다 — 읽을 수 없으면 받지 않는다는 설계다.
+   *
+   * ★ 엔진 기본 구현은 **토큰을 모른다.** 「그때그때 고르기」에서 제공자가 준
+   *   짧게 사는 주소를 `core/handoff.js` 가 잠깐 들고 있고, 그것으로 받아 온다.
+   *   그래서 남의 계정 열쇠가 이 저장소 어디에도 저장되지 않는다 (D-69).
+   *
+   * ★ 붙이는 쪽이 자기 구현을 주면 **그쪽이 이긴다** — 토큰을 들고 있는 곳이
+   *   따로 있으면 그쪽이 더 잘 안다.
+   */
+  const linkedIO = load('core/linked-fetch');
+  const fetchLinked = typeof d.fetchLinked === 'function' ? d.fetchLinked : linkedIO.fetchLinked;
+  const headLinked = typeof d.headLinked === 'function' ? d.headLinked : linkedIO.headLinked;
   const projectDir = (id) => path.join(d.agentRoot || process.env.IM_AGENT_ROOT || '', id);
 
   /** 인증 + 플랜. 실패 사유를 화면과 같은 어휘로 돌려준다 */
@@ -489,14 +506,38 @@ function createHandlers(deps) {
       // ★★ 내려받기가 안 붙어 있으면 **연결을 받지 않는다.**
       //   연결만 되고 읽히지 않으면 사용자는 자료를 넣었다고 믿는데 보고서에는
       //   안 실린다 — 조용한 실패다. 「받아 두고 안 쓰는」 상태를 만들지 않는다.
-      if (typeof d.fetchLinked !== 'function') {
+      //   (2026-08-20 부터 엔진 기본 구현이 있어 여기서 막히지 않는다.)
+      if (typeof fetchLinked !== 'function') {
         return bad('저장소 내려받기가 붙어 있지 않습니다 — 연결해도 자료를 읽지 못해 '
           + '보고서에 실리지 않습니다', 501);
       }
 
+      // ★★ **읽을 수단 없이 연결을 받지 않는다.**
+      //   전에는 「내려받기 함수가 붙어 있나」로 그것을 봤다. 이제 엔진 기본
+      //   구현이 늘 있으므로 그 검사는 항상 통과한다 — 그러면 안전장치가 죽는다.
+      //   지금 실제로 필요한 것은 **그 파일에 대한 접근권**이다. 그것 없이
+      //   장부에만 올리면, 만들 때가 되어서야 「가져오지 못했습니다」가 뜨고
+      //   사용자는 자료를 넣었다고 믿은 채로 보고서를 받는다 — 조용한 실패다.
+      const needsAccess = fetchLinked === linkedIO.fetchLinked;
+      if (needsAccess && !(body && body.access && body.access.url)) {
+        return bad('이 파일을 읽을 접근권이 없습니다 — 파일을 다시 골라 주세요', 400);
+      }
+
       const r = linked.link(projectDir, body && body.ref, { by: (g.user && g.user.name) || null });
       if (!r.ok) return bad(r.reason);
-      return ok({ ...r, at: kstStamp(new Date()) });
+
+      // ★★ 접근권은 **장부에 넣지 않는다.** `normalizeRef` 가 막고 있고, 그래야
+      //   맞다 — 장부는 오래 남고 오래 남는 곳에 열쇠를 두지 않는다. 대신
+      //   짧게 사는 자리에 맡긴다. 시간이 지나면 스스로 버린다 (D-69②).
+      let access = null;
+      if (body && body.access && r.item && r.item.key) {
+        const handoff = load('core/handoff');
+        const kept = handoff.put(projectId, r.item.key, body.access);
+        // ★ 맡기지 못했으면 **말한다.** 조용히 넘기면 만들 때가 되어서야
+        //   「가져오지 못했습니다」로 나타난다
+        access = kept.ok ? { expiresAt: kept.expiresAt } : { error: kept.reason };
+      }
+      return ok({ ...r, access, at: kstStamp(new Date()) });
     },
 
     /**
@@ -534,10 +575,11 @@ function createHandlers(deps) {
       const projectDir = store.projectDir(projectId);
       if (!fs.existsSync(projectDir)) return bad('프로젝트를 찾을 수 없습니다', 404);
 
-      if (typeof d.headLinked !== 'function') {
+      if (typeof headLinked !== 'function') {
         return bad('저장소 조회기가 붙어 있지 않습니다 — 원본이 그대로인지 확인할 수 없습니다', 501);
       }
-      return ok(await linked.verify(projectDir, d.headLinked));
+      // ★ 어느 프로젝트인지 함께 넘긴다 — 접근권이 프로젝트별로 보관된다
+      return ok(await linked.verify(projectDir, (it) => headLinked(it, { projectId })));
     },
 
     /**

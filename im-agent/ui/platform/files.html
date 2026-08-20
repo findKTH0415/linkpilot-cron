@@ -181,10 +181,11 @@ window.LINKPILOT_FILES = {
     // 서버가 「로그인이 필요합니다 / 플랜이 모자랍니다」라고 한 경우 — 오류와 구분한다
     gate: null,
     busy: false,
+    linkMsg: null,   // 연결 갈래에서 사용자가 볼 한 줄
     // ── 첨부 (2026-08-20) ─────────────────────────────────────────────
     // 전에는 세 갈래가 **설명만**이었다. 무엇이 다른지는 알려 주는데 정작
     // 여기서 올릴 수는 없어서, 자료를 넣으려면 1단계로 되돌아가야 했다.
-    way: 'kept',       // 'kept' | 'linked' | 'oneshot'
+    way: 'linked',     // 'linked' | 'oneshot'  (보관은 뺐다 — 2026-08-20)
     picked: [],        // 고른 파일 — { name, size, data, error }
     upload: null,      // 올리는 중 상태 (upload-core 가 준 그대로)
     result: null,      // 서버 응답
@@ -246,10 +247,6 @@ window.LINKPILOT_FILES = {
     if (!C.api || !id) return Promise.resolve();
     var base = '/projects/' + encodeURIComponent(id);
     var jobs = [
-      call('GET', base + '/sources').then(function (r) {
-        if (r.ok) { state.kept = r.body; state.closed.kept = null; }
-        else { state.kept = null; state.closed.kept = r.closed; }
-      }, function (e) { state.closed.kept = e.message; }),
       call('GET', base + '/linked').then(function (r) {
         if (r.ok) { state.linked = r.body; state.closed.linked = null; }
         else { state.linked = null; state.closed.linked = r.closed; }
@@ -292,7 +289,7 @@ window.LINKPILOT_FILES = {
 
   function pickProject(id) {
     state.projectId = id || null;
-    state.kept = state.linked = state.oneshot = null;
+    state.linked = state.oneshot = null;
     state.closed = { kept: null, linked: null, oneshot: null };
     announce(state.projectId);
     render();
@@ -311,9 +308,9 @@ window.LINKPILOT_FILES = {
    *   올릴 수는 없었고, 자료를 넣으려면 1단계로 되돌아가야 했다. 지금은 고르면
    *   그 자리에서 붙인다.
    */
+  // ★ 「올려서 보관」은 뺐다 〈2026-08-20 사용자 결정 — 불필요〉.
+  //   서버 API(`POST /sources`)는 그대로 있다. 화면에서 그 길로 들어가지 않을 뿐이다.
   var WAYS = [
-    { id: 'kept', t: '올려서 보관', k: 'Pro', free: false, plan: 'pro',
-      d: '우리 서버에 둡니다. 잘못 올리면 지우고 되살릴 수 있고, 원본이 그대로인지 대조합니다.' },
     { id: 'linked', t: '연결해서 쓰기', k: '무료', free: true, plan: 'free',
       d: 'Dropbox·Box·구글·원드라이브의 파일을 가리킵니다. 사본을 만들지 않습니다 — 읽을 때만 잠깐 가져와 버립니다.' },
     { id: 'oneshot', t: '1회성으로 올리기', k: '무료', free: true, plan: 'free',
@@ -456,7 +453,11 @@ window.LINKPILOT_FILES = {
   function doUpload() {
     var ready = state.picked.filter(function (f) { return f.data && !f.tooBig; });
     if (!ready.length || !state.projectId || state.busy) return;
-    var path = state.way === 'oneshot' ? '/oneshot' : '/sources';
+    // ★ 화면에 남은 올리는 길은 **1회성 하나뿐**이다 (보관은 뺐다).
+    //   그런데도 갈래를 확인하고 보낸다 — 나중에 길이 늘 때 조용히 엉뚱한 곳으로
+    //   가지 않게 한다
+    if (state.way !== 'oneshot') return;
+    var path = '/oneshot';
 
     state.busy = true; state.result = null; state.error = null;
     UP.send({
@@ -496,56 +497,10 @@ window.LINKPILOT_FILES = {
       return card;
     }
 
-    // 연결 — 여기서 올리는 것이 아니다
+    // 연결 — 여기서 올리는 것이 아니라 **가리키는** 것이다
     if (state.way === 'linked') {
-      if (state.closed.linked) {
-        card.appendChild(waitBox('연결 갈래가 아직 열려 있지 않습니다', state.closed.linked));
-      } else {
-        var pv = providerNames();
-        card.appendChild(el('p', 'note',
-          '연결은 파일을 올리는 것이 아니라 저장소의 파일을 가리키는 것입니다.'
-          + (pv ? ' 붙일 수 있는 곳: ' + pv + ' — 폴더 하나까지만 권한을 받습니다.' : '')));
-      }
+      card.appendChild(linkPicker());
       return card;
-    }
-
-    // 보관 — Pro 다. **파일을 고르게 한 뒤 거절하지 않는다**
-    var G = window.LinkPilotGate;
-    if (state.way === 'kept' && G) {
-      var a = G.access(C.session, w.plan);
-      if (!a.allowed) {
-        var m = G.accessMessage(a, (C.planNames || {})[w.plan] || w.plan, '올려서 보관');
-        card.appendChild(waitBox((m && m.title) || '이 갈래는 쓸 수 없습니다', (m && m.body) || ''));
-        card.appendChild(el('p', 'note',
-          '「1회성으로 올리기」는 무료입니다 — 다만 읽고 바로 버리므로 다시 쓸 수 없습니다.'));
-        return card;
-      }
-    }
-
-    // 1회성 — **올리기 전에** 무엇을 잃는지 말한다
-    if (state.way === 'oneshot') {
-      card.appendChild(add(el('div', 'note'),
-        el('b', null, '올리기 전에 확인해 주세요'),
-        document.createTextNode(
-          '1회성 자료는 읽은 뒤 서버에서 지워집니다. 보관하지 않으므로 다시 쓸 수 없고, '
-          + '원본이 그대로인지 나중에 확인할 수도 없습니다. 계속 쓸 자료라면 「올려서 보관」을 쓰십시오.')));
-    }
-
-    // ★★ 올린 자료가 **어디에 쓰이는지** 말한다. 여기서 넣은 것이 4단계 생성에서
-    //   값을 뽑는 자료가 된다 — 그걸 모르면 사용자는 자료를 두 번 넣는다
-    card.appendChild(el('p', 'note',
-      '여기서 올린 자료는 「보고서 생성」 4단계에서 그대로 읽힙니다. '
-      + '뽑은 값에는 어느 파일 몇 쪽에서 나왔는지가 함께 기록됩니다.'));
-
-    // ★★ 스캔본·사진은 **글자로 옮겨야** 읽힌다. 그 기능이 꺼져 있으면
-    //   올리기 **전에** 말한다 — 올리고 나서 알면 늦다 (1단계는 말하는데
-    //   이 화면은 안 말하고 있었다)
-    if (state.limits && state.limits.ocrReady === false) {
-      card.appendChild(add(el('div', 'note'),
-        el('b', null, '스캔본·사진은 지금 수치가 안 뽑힙니다'),
-        document.createTextNode(
-          '글자로 옮기는 기능이 서버에서 꺼져 있습니다. 지금 올리면 보관은 되지만 '
-          + '값은 뽑히지 않습니다 — 글자가 들어 있는 PDF·한글·엑셀로 올리십시오.')));
     }
 
     card.appendChild(dropZone());
@@ -578,80 +533,73 @@ window.LINKPILOT_FILES = {
   }
 
   /**
-   * 보관 목록. **비어 있으면 아무것도 그리지 않는다** 〈2026-08-20〉.
+   * 연결 — 제공자 창을 열어 **고른 파일을 가리킨다** 〈2026-08-20〉.
    *
-   * ★ 전에는 「보관된 자료가 없습니다」·「차지하는 용량 0 B」를 늘 그렸다.
-   *   자료를 넣으러 온 화면에서 **아직 아무것도 없다는 말 셋이 화면을 덮었다**
-   *   (실서버 실측). 없다는 것은 붙이기 칸이 이미 말하고 있다.
+   * ★★ 제공자 창(Dropbox·Box·구글·원드라이브)은 **앱이 연다.** 그쪽에 계정과
+   *   SDK 가 있고, 엔진은 어느 계정인지 모른다. 앱이 넘겨 주는 함수는 하나다:
    *
-   * ★ 「아직 안 열렸다」는 그대로 말한다 — 그건 없는 것과 다르다.
+   *     window.LINKPILOT_FILES.pickFrom(provider)
+   *        → Promise<{ ref:{provider,fileId,name,rev,path?,bytes?}, access:{url,expiresAt?} }>
+   *
+   * ★ `ref` 는 **장부에 남는다.** `access` 는 **남지 않는다** — 서버가 잠깐
+   *   들고 있다가 시간이 지나면 스스로 버린다 (`core/handoff.js`).
+   *   장부에 열쇠를 두지 않는다는 규칙은 그대로다.
    */
-  function keptBlock() {
-    if (state.closed.kept) {
-      var w = document.createDocumentFragment();
-      w.appendChild(el('div', 'grp', '올려서 보관'));
-      w.appendChild(waitBox('보관 경로가 아직 열려 있지 않습니다', state.closed.kept));
-      return w;
-    }
-    var files = (state.kept && state.kept.files) || [];
-    var trashN = ((state.kept && state.kept.trash) || []).length;
-    if (!files.length && !trashN) return null;   // 없으면 절 자체를 만들지 않는다
+  function linkPicker() {
+    var box = document.createDocumentFragment();
+    var names = ((state.linked && state.linked.providers) || []);
+    var row = el('div', 'ext');
+    row.style.display = 'flex';
+    row.style.gap = '8px';
+    row.style.flexWrap = 'wrap';
+    row.style.marginTop = '12px';
 
-    var out = document.createDocumentFragment();
-    out.appendChild(el('div', 'grp', '올려서 보관'));
-    files.forEach(function (f) {
-      var b = el('div', 'row__b');
-      b.appendChild(el('div', 'row__n', f.name));
-      b.appendChild(el('div', 'row__m',
-        size(f.size) + (f.sha256 ? ' · sha256 ' + String(f.sha256).slice(0, 12) : '')
-        + (f.at ? ' · ' + String(f.at).slice(0, 10) + ' 올림' : '')));
-      out.appendChild(add(el('div', 'row'), b));
+    (names.length ? names : []).forEach(function (p) {
+      var b = el('button', 'btn2', p.name);
+      b.type = 'button';
+      b.style.cssText = 'font:700 13px/1 inherit;padding:10px 14px;border-radius:10px;'
+        + 'border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer';
+      b.addEventListener('click', function () { pickFrom(p.id, b); });
+      row.appendChild(b);
     });
+    box.appendChild(row);
 
-    var trash = state.kept.trash || [];
-    if (trash.length) {
-      var n = el('p', 'note');
-      n.appendChild(el('b', null, '휴지통 ' + trash.length + '건'));
-      n.appendChild(document.createTextNode(' — 버린 자료는 보고서에 실리지 않습니다. 되살릴 수 있습니다.'));
-      out.appendChild(n);
-    }
-    // ★ 용량은 **찰 때만** 말한다. 0 B 를 늘 적으면 알림이 아니라 잡음이다
-    var u = state.kept.usage;
-    if (u && u.billableBytes > 0) {
-      out.appendChild(el('p', 'note', '차지하는 용량 ' + size(u.billableBytes)
-        + ' (버린 자료도 지우기 전까지 함께 셉니다)'));
-    }
-    return out;
+    if (state.linkMsg) box.appendChild(el('p', 'note', state.linkMsg));
+    return box;
   }
 
-  /** 연결 목록. 비어 있으면 그리지 않는다 — 어디에 붙일 수 있는지는 붙이기 칸이 말한다 */
-  function linkedBlock() {
-    if (state.closed.linked) {
-      var w = document.createDocumentFragment();
-      w.appendChild(el('div', 'grp', '연결해서 쓰기 — 사본을 만들지 않습니다'));
-      w.appendChild(waitBox('저장소 연결이 아직 열려 있지 않습니다', state.closed.linked));
-      return w;
+  /** 앱이 연 창에서 고른 결과를 서버에 넘긴다 */
+  function pickFrom(provider, btn) {
+    if (state.busy) return;
+    var open = C.pickFrom;
+    if (typeof open !== 'function') {
+      // ★ 앱이 창을 안 넘겨 주면 **여기서 멈춘다.** 되는 척하지 않는다
+      state.linkMsg = '이 브라우저에서는 파일 고르기를 열 수 없습니다.';
+      return render();
     }
-    var items = (state.linked && state.linked.items) || [];
-    if (!items.length) return null;
+    state.busy = true; state.linkMsg = null;
+    if (btn) btn.disabled = true;
+    render();
 
-    var out = document.createDocumentFragment();
-    out.appendChild(el('div', 'grp', '연결해서 쓰기 — 사본을 만들지 않습니다'));
-    items.forEach(function (it) {
-      var b = el('div', 'row__b');
-      b.appendChild(el('div', 'row__n', it.name));
-      b.appendChild(el('div', 'row__m',
-        (it.path || '') + ' · 판 ' + String(it.rev).slice(0, 12)
-        + (it.readAt ? ' · ' + String(it.readAt).slice(0, 10) + ' 읽음' : ' · 아직 읽지 않음')));
-      out.appendChild(add(el('div', 'row'), b));
-    });
-
-    var unread = (state.linked.unread || []).length;
-    if (unread) {
-      out.appendChild(el('p', 'note',
-        '아직 한 번도 읽지 않은 자료 ' + unread + '건 — 읽어야 지문이 생기고, 그래야 값의 근거가 됩니다.'));
-    }
-    return out;
+    Promise.resolve()
+      .then(function () { return open(provider); })
+      .then(function (picked) {
+        if (!picked || !picked.ref) { state.busy = false; return render(); }
+        // ★ ref 와 access 를 **따로** 보낸다. 섞어 보내면 장부에 열쇠가 들어간다
+        return call('POST', '/projects/' + state.projectId + '/linked',
+          { ref: picked.ref, access: picked.access || null })
+          .then(function (r) {
+            state.busy = false;
+            if (r && r.ok) return loadOne(state.projectId).then(render);
+            if (r && r.closed) state.linkMsg = r.closed;
+            render();
+          });
+      })
+      .catch(function (e) {
+        state.busy = false;
+        state.linkMsg = e && e.message ? e.message : '파일을 고르지 못했습니다.';
+        render();
+      });
   }
 
   /**
@@ -750,7 +698,7 @@ window.LINKPILOT_FILES = {
     }
 
     // ★ 빈 절은 아예 만들지 않는다. `null` 을 그대로 넣으면 예외가 난다
-    [keptBlock(), linkedBlock(), oneshotBlock()].forEach(function (b) {
+    [oneshotBlock()].forEach(function (b) {
       if (b) view.appendChild(b);
     });
   }

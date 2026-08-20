@@ -174,10 +174,12 @@ test('★★ express 없이 표만으로 서버가 돈다 (실제 호출)', asyn
     assert.strictEqual(made.status, 201, JSON.stringify(made.body));
     const id = (await go('GET', '/projects')).body.projects[0].id;
 
-    // 붙기 전 자료 경로는 501 — 이 문구가 화면에 그대로 뜬다
+    // ★ 접근권 없이 연결하면 받지 않는다 — 이 문구가 화면에 그대로 뜬다.
+    //   (2026-08-20 전에는 「내려받기가 안 붙어 있다」로 501 이었다. 이제 엔진
+    //   기본 구현이 있으므로, 막는 기준이 **그 파일을 읽을 접근권**으로 옮겼다.)
     const linked = await go('POST', '/projects/' + id + '/linked', 'good', { ref: {} });
-    assert.strictEqual(linked.status, 501);
-    assert.match(linked.body.error, /붙어 있지 않습니다/);
+    assert.strictEqual(linked.status, 400, JSON.stringify(linked.body));
+    assert.match(linked.body.error, /접근권이 없습니다/);
 
     // 차례가 뜻을 바꾸는 자리 — purge 가 「purge 라는 이름의 파일」로 안 잡힌다
     const purge = await go('POST', '/projects/' + id + '/sources/purge', 'good', {});

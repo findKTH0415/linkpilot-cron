@@ -216,14 +216,36 @@ test('★★ 1회성: 읽는 경로가 없으면 받지 않는다 (501)', async 
   assert.match(r.body.error, /읽는 경로가 붙어 있지 않습니다/);
 });
 
-test('★★ 연결: 내려받기가 없으면 연결을 받지 않는다 (501)', async () => {
-  // 연결만 되고 읽히지 않으면 사용자는 자료를 넣었다고 믿는데 보고서에는 안 실린다
+test('★★ 연결: **읽을 수단 없이** 연결을 받지 않는다', async () => {
+  // 연결만 되고 읽히지 않으면 사용자는 자료를 넣었다고 믿는데 보고서에는 안 실린다.
+  //
+  // ★ 전에는 「내려받기 함수가 붙어 있나」로 봤다. 이제 엔진 기본 구현이 늘
+  //   있으므로 그 검사는 **항상 통과한다** — 그대로 두면 안전장치가 죽는다.
+  //   지금 재는 것은 **그 파일에 대한 접근권**이다.
   const p = bareProject();
   const r = await h(p.root).linkSource({}, p.id, {
     ref: { provider: 'dropbox', fileId: 'id:A', name: 'a.pdf', rev: 'r1' },
   });
-  assert.equal(r.status, 501);
-  assert.match(r.body.error, /내려받기가 붙어 있지 않습니다/);
+  assert.equal(r.status, 400, JSON.stringify(r.body));
+  assert.match(r.body.error, /접근권이 없습니다/);
+});
+
+test('★★ 연결: 접근권이 오면 받고, **장부에는 안 남긴다**', async () => {
+  const p = bareProject();
+  const r = await h(p.root).linkSource({}, p.id, {
+    ref: { provider: 'dropbox', fileId: 'id:A', name: 'a.pdf', rev: 'r1' },
+    access: { url: 'https://example.invalid/tmp/abc' },
+  });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.ok(r.body.access && r.body.access.expiresAt, '언제까지 쓸 수 있는지 안 알려 준다');
+
+  // ★★ 장부 파일 어디에도 주소가 없어야 한다. 장부는 오래 남는다
+  const fs2 = require('fs');
+  const path2 = require('path');
+  const ledger = path2.join(p.root, p.id, '02_Source_Data', '.linked.json');
+  const raw = fs2.existsSync(ledger) ? fs2.readFileSync(ledger, 'utf8') : '';
+  assert.ok(!raw.includes('example.invalid'), '장부에 접근 주소가 남았다');
+  assert.ok(!/access|token|secret/i.test(raw), '장부에 열쇠 비슷한 것이 남았다');
 });
 
 test('★ 1회성: 읽는 경로가 붙어 있으면 **읽고 나서** 지운다', async () => {

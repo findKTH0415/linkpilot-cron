@@ -78,6 +78,17 @@ function pointsTo(file, byBasename) {
   for (const m of s.matchAll(/module:\s*['"]([^'"]+)['"]/g)) rel(m[1]);
   for (const m of s.matchAll(/agent:\s*['"]([^'"]+)['"]/g)) rel(m[1]);
 
+  // ★ 확장자 **없이** 부르는 것도 따라간다 — `load('core/linked-fetch')` 처럼
+  //   모듈 루트를 붙여 부르는 자리가 실제로 있다. 이걸 빼면 멀쩡히 불리는
+  //   모듈이 고아로 잡히고, 그러면 검사를 믿지 않게 된다
+  for (const m of s.matchAll(/['"]([\w-]+\/[\w./-]+)['"]/g)) {
+    const leaf = m[1].split('/').pop();
+    if (!leaf || leaf.includes('.')) continue;      // 확장자가 있으면 위에서 이미 봤다
+    ['.js', '.cjs', '.mjs'].forEach((ext) => {
+      (byBasename.get(leaf + ext) || []).forEach(f => hits.add(f));
+    });
+  }
+
   return [...hits];
 }
 
