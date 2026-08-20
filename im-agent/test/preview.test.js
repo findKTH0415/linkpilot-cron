@@ -22,7 +22,7 @@ const PLATFORM = path.join(__dirname, '..', 'ui', 'platform');
 test('단계는 4개이고 순서·이름이 고정되어 있다', () => {
   assert.deepStrictEqual(
     SCREENS.map(s => `${s.no}. ${s.name}`),
-    ['1. 보고서 생성 입력', '2. 가이드 필드 입력', '3. 출력 사양 확정', '4. 생성']);
+    ['1. 보고서 생성 입력', '2. 가이드 필드 (자동입력 + 직접입력)', '3. 출력조건', '4. 생성']);
 
   // 번호는 1..4 로 이어져야 한다 — 건너뛰면 흐름이 아니라 목록이 된다
   SCREENS.forEach((s, i) => assert.strictEqual(s.no, i + 1));

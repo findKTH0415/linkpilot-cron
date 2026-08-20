@@ -499,7 +499,7 @@ window.LINKPILOT_INTAKE = {
 
   function steps() {
     var row = el('div', 'steps');
-    ['보고서 생성 입력', '가이드 필드 입력', '출력 사양 확정', '생성'].forEach(function (label, i) {
+    ['보고서 생성 입력', '가이드 필드 (자동입력 + 직접입력)', '출력조건', '생성'].forEach(function (label, i) {
       var href = i === 1 ? 'fields.html' : (i >= 2 ? 'reports.html' : null);
       var n = el(href && state.created ? 'a' : 'div',
         'step' + (i === 0 ? (state.created ? ' done' : ' on') : ''));

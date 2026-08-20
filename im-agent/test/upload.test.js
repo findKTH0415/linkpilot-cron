@@ -150,10 +150,10 @@ test('★ 1단계가 끝나면 2단계로 가는 버튼이 그 자리에 있다'
 
 test('★ 2단계에서 저장하면 3단계로 가는 버튼이 그 자리에 뜬다', () => {
   const code = codeOf(fields);
-  assert.match(code, /출력 사양 확정으로 →/);
+  assert.match(code, /출력조건으로 →/);
   assert.match(code, /go\.href = stepUrl\('reports\.html'\)/);
   // 저장 성공 분기 안에 있어야 한다 — 실패했는데 다음으로 보내면 안 된다
-  const at = code.indexOf('출력 사양 확정으로');
+  const at = code.indexOf('출력조건으로');
   const okAt = code.lastIndexOf('if (r.ok) {', at);
   const elseAt = code.lastIndexOf('} else {', at);
   assert.ok(okAt !== -1 && okAt > elseAt, '저장 실패에도 다음 버튼이 뜬다');

@@ -499,7 +499,7 @@ window.LINKPILOT_REPORTS = Object.assign({
   // ── 단계 표시 ────────────────────────────────────
   function steps() {
     var row = el('div', 'steps');
-    ['대상·종류 선택', '가이드 필드 입력', '출력 사양 확정', '생성'].forEach(function (label, i) {
+    ['대상·종류 선택', '가이드 필드 (자동입력 + 직접입력)', '출력조건', '생성'].forEach(function (label, i) {
       var cls = 'step';
       if (i === 0) cls += ' done';
       else if (i === 1) cls += ' done';

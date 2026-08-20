@@ -46,9 +46,32 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
 .card__t { margin: 0 0 6px; font-size: 17px; }
 .card__d { margin: 0; color: var(--ink2); font-size: 14px; }
 
-/* ── 단계 레일 — 고정형. 창 안에서 또 끌지 않는다 ─────────── */
-.rail { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 0 0 16px; }
-@media (max-width: 720px) { .rail { grid-template-columns: repeat(2, 1fr); } }
+/* ── 절 넷 — 화면의 뼈대 〈2026-08-20〉 ────────────────────
+   ① 새보고서 진행률 ② 보고서 생성 입력 ③ 가이드 필드 ④ 출력조건
+   ★ 전에는 레일이 위에, 진행률이 그 아래에 따로 있어서 **어디까지 왔나**와
+     **지금 무엇을 하나**가 서로 다른 곳에서 말했다. 한 줄기로 세운다. */
+.sec { margin: 0 0 14px; }
+.sec__h { display: flex; align-items: flex-start; gap: 11px; width: 100%;
+  text-align: left; font: inherit; cursor: pointer; background: var(--surface);
+  border: 1px solid var(--line); border-radius: 16px; padding: 15px 17px; }
+.sec__h:hover:not(:disabled) { border-color: var(--lime); }
+.sec__h:disabled { cursor: not-allowed; background: var(--panel); }
+.sec--on > .sec__h { border-color: var(--lime); background: var(--lime-soft);
+  box-shadow: inset 0 0 0 1px var(--lime); }
+.sec--flat > .sec__h { cursor: default; }
+.sec__n { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 50%; background: var(--lime);
+  color: var(--lp-brand-ink); font-weight: 800; font-size: 13px; }
+.sec__h:disabled .sec__n { background: #D5D8DC; color: #8A9099; }
+.sec__b { min-width: 0; flex: 1 1 auto; }
+.sec__t { font-weight: 800; font-size: 16px; }
+.sec__d { margin: 5px 0 0; font-size: 12.5px; color: var(--ink2); line-height: 1.65; }
+.sec__why { margin: 5px 0 0; font-size: 12.5px; color: var(--warn-ink); line-height: 1.65; }
+.sec__tag { flex: 0 0 auto; margin-left: auto; align-self: center;
+  font: 700 11.5px/1 inherit; padding: 6px 10px; border-radius: 999px;
+  background: var(--panel); color: var(--ink2); }
+.sec--on .sec__tag { background: var(--lime); color: var(--lp-brand-ink); }
+.sec__body { margin-top: 10px; }
 
 .st {
   text-align: left; font: inherit; cursor: pointer;
@@ -224,22 +247,46 @@ window.LINKPILOT_REPORT_FLOW = {
     return { api: C.api, base: C.base || '', projectId: state.projectId, current: state.current };
   }
 
-  /* ── 단계 레일 ────────────────────────────────────────── */
+  /* ── 절 넷 ─────────────────────────────────────────────
+   *
+   * ★★ 목록은 `flow-core.js` 의 `SECTIONS` **한 곳**에서 나온다. 화면이 따로
+   *   적으면 한쪽만 고치는 날 갈리고, 그때 아무도 눈치채지 못한다.
+   *
+   * ★ 절 머리는 **누르면 열리는 곳**이다. 잠긴 절은 눌리지 않고 **이유를 적는다** —
+   *   회색이기만 하면 고장으로 보인다.
+   *
+   * ★ 「새보고서 진행률」은 품은 단계가 없다. 볼 수만 있는 곳이라 안 눌린다 —
+   *   눌리는 것처럼 그리면 눌러 보고 아무 일도 안 일어나는 것을 본다.
+   */
+  function section(sec, body) {
+    var box = el('section', 'sec'
+      + (sec.current ? ' sec--on' : '')
+      + (sec.steps.length ? '' : ' sec--flat'));
 
-  function rail(steps) {
-    var box = el('div', 'rail');
-    steps.forEach(function (s) {
-      var b = el('button', 'st' + (s.current ? ' on' : ''));
-      b.type = 'button';
-      b.disabled = s.locked;
-      var head = el('span');
-      add(head, el('span', 'st__n', s.no), el('span', 'st__name', s.name));
-      b.appendChild(head);
-      // ★ 잠겼으면 이유를 적는다. 회색이기만 하면 고장으로 보인다
-      b.appendChild(el('span', s.locked ? 'st__why' : 'st__note', s.locked ? s.why : s.note));
-      b.addEventListener('click', function () { go(s.id); });
-      box.appendChild(b);
-    });
+    var h = el('button', 'sec__h');
+    h.type = 'button';
+    h.disabled = sec.locked || !sec.steps.length;
+    if (!sec.steps.length) h.setAttribute('aria-disabled', 'true');
+
+    h.appendChild(el('span', 'sec__n', sec.no));
+    var b = el('div', 'sec__b');
+    b.appendChild(el('div', 'sec__t', sec.name));
+    // 잠겼으면 **왜**를 적는다. 열려 있으면 무엇을 하는 곳인지 적는다
+    b.appendChild(el('p', sec.locked ? 'sec__why' : 'sec__d',
+      sec.locked ? sec.why : sec.note));
+    h.appendChild(b);
+
+    var tag = sec.steps.length
+      ? (sec.current ? '지금' : sec.locked ? '잠김' : '열기')
+      : '';
+    if (tag) h.appendChild(el('span', 'sec__tag', tag));
+
+    if (sec.opensTo) {
+      h.addEventListener('click', function () { go(sec.opensTo); });
+    }
+    box.appendChild(h);
+
+    if (body) box.appendChild(add(el('div', 'sec__body'), body));
     return box;
   }
 
@@ -541,7 +588,8 @@ window.LINKPILOT_REPORT_FLOW = {
 
   function renderProgress() {
     progBox.textContent = '';
-    progBox.appendChild(el('h2', 'card__t', '세부 진행률'));
+    // ★ 절 머리가 이미 「새보고서 진행률」이라고 말한다. 여기서 또 적으면
+    //   같은 이름이 두 번 나온다 (탭 이름과 화면 제목에서 겪은 것과 같은 실수)
     progBox.appendChild(el('p', 'card__d',
       '「내가 채울 것」과 「기다리면 되는 것」을 나눠 봅니다. 넷을 한 막대로 뭉치지 '
       + '않는 이유는, 그 "80%" 가 더 할 일이 남았다는 뜻인지 기다리면 되는 상태인지 '
@@ -727,8 +775,6 @@ window.LINKPILOT_REPORT_FLOW = {
       state.current = first.id;
       steps = F.stepState(ctx());
     }
-    view.appendChild(rail(steps));
-    view.appendChild(progBox);
 
     // ★ 프로젝트가 바뀌면 진행률도 **그 프로젝트의 것**을 다시 받는다.
     //   안 그러면 앞 프로젝트의 숫자가 그대로 남아 남의 진행률을 자기 것으로 본다
@@ -741,23 +787,46 @@ window.LINKPILOT_REPORT_FLOW = {
       loadDetail();
     }
 
+    /* ── 절 넷을 차례로 세운다 〈2026-08-20 사용자 지시〉 ────────
+     *   ① 새보고서 진행률 ② 보고서 생성 입력
+     *   ③ 가이드 필드 (자동입력 + 직접입력) ④ 출력조건
+     *
+     * ★ 지금 단계의 화면만 절 안에 편다. 나머지는 머리만 두고 눌러서 연다 —
+     *   전부 펴 두면 「앞 단계를 건너뛸 수 없다」가 화면에서 사라진다.
+     */
     var docs = window.LINKPILOT_PREVIEW_DOCS;
-    if (docs && !Object.keys(docs).length) {
-      // 껍데기만 보여주는 조각(레일·세부 진행률). 단계 화면을 안 심었으므로
-      // 부르러 가지 않는다 — 없는 주소를 부르면 빈 칸이 뜨고 고장으로 읽힌다
-      view.appendChild(notice('', '단계 화면은 이 조각에 넣지 않았습니다',
-        '여기서는 단계 레일과 세부 진행률만 보여줍니다. 단계 화면은 아래 칸에서 따로 봅니다.'));
-    } else if (docs) {
-      // 미리보기는 **네 단계를 한 번에 편다.** 눌러 가며 확인하면 빠뜨린다
-      steps.forEach(function (s) { view.appendChild(stage(s)); });
-    } else {
-      var cur = steps.filter(function (s) { return s.current; })[0] || steps[0];
-      if (cur.locked) {
-        view.appendChild(notice('', cur.name + ' 단계를 아직 열 수 없습니다', cur.why));
-      } else {
-        view.appendChild(stage(cur));
+    var shell = !!(docs && !Object.keys(docs).length);   // 껍데기 조각
+    var byStep = {};
+    steps.forEach(function (st) { byStep[st.id] = st; });
+
+    F.sectionState(ctx()).forEach(function (sec) {
+      // ① 진행률 — 품은 단계가 없다. 늘 보이는 곳이다
+      if (!sec.steps.length) {
+        view.appendChild(section(sec, progBox));
+        return;
       }
-    }
+      // 껍데기 조각에서는 단계 화면을 안 심었다. 없는 주소를 부르면 빈 칸이 뜨고
+      // 그 빈 칸을 고장으로 읽는다 — 그래서 부르러 가지 않고 그렇다고 적는다
+      if (shell) {
+        view.appendChild(section(sec, sec.current
+          ? notice('', '단계 화면은 이 조각에 넣지 않았습니다',
+            '여기서는 절 구성과 세부 진행률만 보여줍니다.')
+          : null));
+        return;
+      }
+      // 미리보기(문서를 심은 판)는 **한 번에 편다.** 눌러 가며 확인하면 빠뜨린다
+      if (docs) {
+        var frag = document.createDocumentFragment();
+        sec.steps.forEach(function (st) { frag.appendChild(stage(st)); });
+        view.appendChild(section(sec, frag));
+        return;
+      }
+      if (!sec.current) { view.appendChild(section(sec, null)); return; }
+      var cur = byStep[state.current] || sec.steps[0];
+      view.appendChild(section(sec, cur.locked
+        ? notice('', cur.name + ' 단계를 아직 열 수 없습니다', cur.why)
+        : stage(cur)));
+    });
 
     if (!C.api) {
       view.appendChild(notice('', '서버가 연결되어 있지 않습니다',

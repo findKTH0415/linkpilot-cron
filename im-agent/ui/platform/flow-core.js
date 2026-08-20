@@ -27,13 +27,18 @@
         + '요청문에서 뽑은 값은 미확인으로 표시한다.',
     },
     {
-      id: 'fields', no: 2, name: '가이드 필드 입력', file: 'fields.html',
+      id: 'fields', no: 2, name: '가이드 필드 (자동입력 + 직접입력)', file: 'fields.html',
       needsProject: true,
-      note: '수치를 출처와 함께 넣는다. 출처가 없으면 저장 버튼이 열리지 않고, '
-        + '계산 항목은 입력란을 만들지 않는다. 자동으로 채워지는 줄에는 출처를 묻지 않는다.',
+      // ★★ **이름에 「자동입력 + 직접입력」을 박는다** 〈2026-08-20 사용자 지시〉.
+      //   전에는 「가이드 필드 입력」이라 **전부 손으로 치는 칸**으로 읽혔다.
+      //   실제로는 올린 자료를 훑어 채울 수 있는 것은 채우고, 못 채운 것만 묻는다.
+      //   그 사실을 이름에서 말하지 않으면 사용자는 자료를 올릴 이유를 모른다.
+      note: '올린 자료를 훑어 채울 수 있는 값은 **자동으로 채우고**, 못 채운 것만 '
+        + '직접 받는다. 출처가 없으면 저장 버튼이 열리지 않고, 계산 항목은 입력란을 '
+        + '만들지 않는다. 자동으로 채워지는 줄에는 출처를 묻지 않는다.',
     },
     {
-      id: 'spec', no: 3, name: '출력 사양 확정', file: 'reports.html',
+      id: 'spec', no: 3, name: '출력조건', file: 'reports.html',
       needsProject: true,
       note: '페이지 수·형식·언어를 사람이 못 박는다. 확정 전에는 생성 버튼이 열리지 않는다.',
     },
@@ -43,6 +48,82 @@
       note: '확정(LOCK) 뒤의 화면이다. 3단계와 같은 화면이며, 확정을 누르면 여기로 바뀐다.',
     },
   ];
+
+  /**
+   * **화면의 큰 뼈대 — 넷** 〈2026-08-20 사용자 지시〉.
+   *
+   * 전에는 「단계 레일 4칸 + 세부 진행률 + 지금 단계 화면」이 따로 놀았다.
+   * 레일은 위에 있고 진행률은 그 아래에 있어서, **어디까지 왔는지**와
+   * **지금 무엇을 하는지**가 서로 다른 곳에서 말하고 있었다.
+   *
+   *   ① 새보고서 진행률   — 지금 어디까지 왔나 (단계마다 따로. 합계를 만들지 않는다)
+   *   ② 보고서 생성 입력   — 요청문과 자료를 받는다
+   *   ③ 가이드 필드        — **자동입력 + 직접입력**
+   *   ④ 출력조건          — 사양을 못 박고, 확정하면 그 자리에서 생성한다
+   *
+   * ★★ ④ 가 `spec` 과 `make` **둘을 품는다.** 둘은 원래 같은 화면의 서로 다른
+   *   상태다(확정 전 / 확정 후). 화면에서까지 둘로 갈라 놓으면 사용자는 3단계를
+   *   끝내고 4단계로 「넘어가야」 하는 줄 아는데, 실제로는 같은 자리에서 버튼
+   *   하나가 바뀔 뿐이다.
+   *
+   * ★ 순서를 여기서만 정한다. 화면이 따로 적으면 한쪽만 고치는 날 갈린다.
+   */
+  var SECTIONS = [
+    {
+      no: 1, id: 'progress', name: '새보고서 진행률', steps: [],
+      note: '단계마다 따로 보여준다. 하나로 합친 「80%」는 무엇의 80% 인지 아무도 모른다.',
+    },
+    {
+      no: 2, id: 'intake', name: '보고서 생성 입력', steps: ['intake'],
+      note: '요청문과 원본 자료를 받는다.',
+    },
+    {
+      no: 3, id: 'fields', name: '가이드 필드 (자동입력 + 직접입력)', steps: ['fields'],
+      note: '올린 자료를 훑어 채울 수 있는 값은 자동으로 채우고, 못 채운 것만 직접 받는다.',
+    },
+    {
+      no: 4, id: 'output', name: '출력조건', steps: ['spec', 'make'],
+      note: '쪽수·형식·언어를 못 박는다. 확정하면 같은 자리에서 생성으로 바뀐다.',
+    },
+  ];
+
+  /** 어느 단계가 어느 절에 속하는가 — 화면이 되짚을 때 쓴다 */
+  function sectionOfStep(stepId) {
+    for (var i = 0; i < SECTIONS.length; i++) {
+      if (SECTIONS[i].steps.indexOf(stepId) !== -1) return SECTIONS[i];
+    }
+    return null;
+  }
+
+  /**
+   * 단계 상태를 **절 단위로** 묶는다. 화면은 이것을 그대로 그린다.
+   *
+   * ★ 절의 상태는 **그 절이 품은 단계들**에서 나온다:
+   *     - 하나라도 지금 단계면 `current`
+   *     - 전부 잠겼으면 `locked` (이유는 첫 잠긴 단계의 것)
+   *   진행률 절(품은 단계 없음)은 늘 열려 있다 — 볼 수만 있는 곳이다.
+   */
+  function sectionState(ctx) {
+    var steps = stepState(ctx);
+    var by = {};
+    steps.forEach(function (s) { by[s.id] = s; });
+    return SECTIONS.map(function (sec) {
+      var mine = sec.steps.map(function (id) { return by[id]; }).filter(Boolean);
+      var open = mine.filter(function (s) { return !s.locked; });
+      var cur = mine.filter(function (s) { return s.current; })[0] || null;
+      var firstLocked = mine.filter(function (s) { return s.locked; })[0] || null;
+      return {
+        no: sec.no, id: sec.id, name: sec.name, note: sec.note,
+        steps: mine,
+        // 볼 수만 있는 절은 잠기지 않는다 (품은 단계가 없다)
+        locked: mine.length > 0 && open.length === 0,
+        why: (mine.length && !open.length && firstLocked) ? firstLocked.why : null,
+        current: !!cur,
+        // 이 절을 열면 어느 단계로 가는가 — 열린 것 중 첫째
+        opensTo: (open[0] && open[0].id) || null,
+      };
+    });
+  }
 
   /**
    * 단계 화면을 **섹션 안에 끼울 때** 덮어쓰는 것.
@@ -168,7 +249,10 @@
 
   /** 잠긴 이유 — 화면에 그대로 띄운다. 이유 없이 회색이면 고장으로 보인다 */
   var WHY = {
-    project: '1단계에서 프로젝트를 먼저 만듭니다',
+    // ★★ **번호로 말하지 않는다** 〈2026-08-20〉. 화면의 절 번호(②)와 단계 번호(1)가
+    //   서로 다르다 — 「1단계에서」라고 적으면 ② 를 보고 있는 사람이 1을 찾는다.
+    //   이름은 어느 쪽에서 세든 같다
+    project: '먼저 「보고서 생성 입력」에서 프로젝트를 만듭니다',
     api: '서버(api)가 연결되어 있지 않습니다',
   };
 
@@ -222,6 +306,7 @@
 
   return {
     STEPS: STEPS, WHY: WHY, EMBED_CSS: EMBED_CSS,
+    SECTIONS: SECTIONS, sectionState: sectionState, sectionOfStep: sectionOfStep,
     SECTION: SECTION, OUTPUTS_SECTION: OUTPUTS_SECTION,
     FILES_SECTION: FILES_SECTION, TABS: TABS,
     stepState: stepState, urlFor: urlFor, stepOfFile: stepOfFile,

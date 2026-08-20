@@ -708,7 +708,7 @@ window.LINKPILOT_FIELDS_CFG = {
 
     // reports.html 과 같은 4단계를 쓴다. 화면마다 단계가 다르면 어디쯤인지 알 수 없다
     var steps = el('div', 'steps');
-    ['대상·종류 선택', '가이드 필드 입력', '출력 사양 확정', '생성'].forEach(function (label, i) {
+    ['대상·종류 선택', '가이드 필드 (자동입력 + 직접입력)', '출력조건', '생성'].forEach(function (label, i) {
       var d = el(i === 0 ? 'a' : 'div', 'step' + (i === 1 ? ' on' : (i === 0 ? ' done' : '')));
       if (i === 0) {
         d.href = 'reports.html';
@@ -908,7 +908,7 @@ window.LINKPILOT_FIELDS_CFG = {
         //   위쪽 단계 칩으로 돌아가 찾게 하면, 저장은 됐는데 멈춘 것으로 읽는다.
         //   ★ 필수가 남아 있으면 그렇다고 적는다 — 사양을 확정하면 되돌리기 어렵다
         var c = F.completeness(state.fields, state.values, C.docType, classKeys());
-        var go = el('a', 'btn', '출력 사양 확정으로 →');
+        var go = el('a', 'btn', '출력조건으로 →');
         go.href = stepUrl('reports.html');
         go.style.marginTop = '10px';
         go.style.display = 'inline-block';
