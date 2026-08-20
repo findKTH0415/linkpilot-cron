@@ -519,6 +519,10 @@ test('★★ 앱에서 셋(내용·첨부·이미지)을 가져온다 — 거절
       await sleep(200);
       var sel = document.querySelector('select');
       o.groups = [].slice.call(sel.querySelectorAll('optgroup')).map(function (g) { return g.label; });
+      // ★ 목록에서 **몇 번째**인지까지 본다. 「있다」만 보면 맨 아래로 밀려도 통과한다
+      o.first = sel.children[0] && sel.children[0].textContent;
+      o.second = sel.children[1] && sel.children[1].textContent;
+      o.lastIsNew = /신규프로젝트/.test(sel.children[sel.children.length - 1].textContent || '');
       sel.value = 'app:deal-8842';
       sel.dispatchEvent(new Event('change', { bubbles: true }));
       // 앱이 곧바로 주지 않는다 — 카드가 뜰 때까지 기다린다
@@ -560,6 +564,12 @@ test('★★ 앱에서 셋(내용·첨부·이미지)을 가져온다 — 거절
     const r = JSON.parse(m[1]);
     assert.equal(r.errBoxes, 0, '오류 상자가 떴다');
     assert.ok(r.groups.includes('앱 프로젝트에서 가져오기'), '앱 딜 무리가 없다');
+    // ★★ **맨 위여야 한다** 〈2026-08-20 사용자 지시〉. 프로젝트가 수십 개면
+    //   아래 것은 끝까지 굴려야 보이는데, 새로 만드는 사람은 목록에 볼 것이
+    //   없는 사람이다. 「있다」만 검사하면 아래로 밀려도 통과한다 — 자리를 잰다
+    assert.match(r.second, /신규프로젝트/,
+      `「＋ 신규프로젝트」가 맨 위가 아니다 — 2번째 자리에 있는 것: ${r.second}`);
+    assert.equal(r.lastIsNew, false, '맨 아래에도 하나 더 있다 — 두 번 그렸다');
     // ★ 앱이 준 함수가 화면 대입에 지워지면 여기서 걸린다 (실제로 한 번 지워졌다)
     assert.ok(r.ready, '앱에서 셋을 못 읽었다 — fetchAppProject 가 안 붙었는가');
 
