@@ -101,6 +101,38 @@ a.btn:hover, button.btn:hover { border-color: var(--lime-deep); color: var(--lim
 a.btn[aria-disabled="true"] { opacity: .45; pointer-events: none; }
 .btn:focus-visible { outline: 2px solid var(--lime-deep); outline-offset: 2px; }
 
+/* ── 네 갈래 — 고른 문서로 무엇을 할지 〈2026-08-20 사용자 지시〉 ─────
+   ★ 대상이 있어야 뜻이 있는 단추들이다. 그래서 **무엇을 고른 상태인지**를
+     바로 옆에 적는다 — 안 적으면 어느 문서를 내려받는지 모르는 채 누른다. */
+.acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.act { font: 700 13px/1 inherit; padding: 11px 16px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+.act:hover:not([aria-disabled="true"]):not(:disabled) { border-color: var(--lime-deep); color: var(--lime-deep); }
+.act.on { background: var(--lime-soft); border-color: var(--lime); color: var(--lp-brand-ink); }
+.act:disabled, .act[aria-disabled="true"] { background: var(--panel); color: var(--ink2);
+  border-color: var(--line); cursor: not-allowed; pointer-events: none; }
+.act:focus-visible { outline: 2px solid var(--lime-deep); outline-offset: 2px; }
+.acts__on { font-size: 12.5px; color: var(--ink2); margin: 10px 0 0; line-height: 1.7; }
+.acts__on b { color: var(--ink); }
+.acts__why { font-size: 12.5px; color: var(--warn-ink); background: var(--warn-soft);
+  border: 1px solid #F0DEBE; border-radius: 10px; padding: 10px 12px; margin: 10px 0 0; line-height: 1.7; }
+
+/* 고른 줄을 눈에 띄게 — 어느 것에 대고 누르는지 보여야 한다 */
+.doc { cursor: pointer; }
+.doc--on { border-color: var(--lime); box-shadow: inset 0 0 0 1px var(--lime); background: var(--lime-soft); }
+.doc--wait, .doc--maybe { cursor: default; }
+
+/* 미리보기 — 새 창을 열지 않고 **이 자리에서** 편다 */
+.pv { margin-top: 12px; border: 1px solid var(--line); border-radius: 14px;
+  overflow: hidden; background: var(--surface); }
+.pv__h { display: flex; align-items: center; gap: 10px; padding: 11px 14px;
+  border-bottom: 1px solid var(--line); font: 700 13.5px/1.4 inherit; }
+.pv__x { margin-left: auto; font: 700 13px/1 inherit; padding: 8px 12px; border-radius: 9px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+.pv iframe { display: block; width: 100%; height: 60vh; min-height: 380px; border: 0; background: #fff; }
+.pv__no { margin: 0; padding: 16px; font-size: 13px; color: var(--ink2); line-height: 1.7; }
+
 .note { font-size: 12.5px; color: var(--ink2); line-height: 1.7;
   margin-top: 16px; padding-top: 13px; border-top: 1px solid var(--line); }
 .msg { font-size: 13.5px; color: var(--ink2); line-height: 1.7; }
@@ -152,6 +184,12 @@ window.LINKPILOT_OUTPUTS = {
     data: null,           // GET /projects/:id/reports 응답 그대로
     error: null,
     loading: false,
+    // ── 네 갈래 (2026-08-20) ────────────────────────────────────
+    // 고른 문서 하나가 대상이다. 없으면 단추를 **누를 수 있게 두지 않는다** —
+    // 대상 없이 눌리면 무엇에 대고 눌렀는지 아무도 모른다
+    pickedPath: null,
+    preview: null,   // 지금 펴 놓은 문서 { path, name }
+    said: null,      // 방금 한 일을 한 줄로 (복사했다 · 앱이 안 받았다 …)
   };
 
   function el(t, c, x) {
@@ -304,6 +342,190 @@ window.LINKPILOT_OUTPUTS = {
     return n;
   }
 
+  /* ── 네 갈래 ─────────────────────────────────────────────
+   *
+   * [미리보기] [다운로드] [공유하기] [프로젝트 이동]  〈2026-08-20 사용자 지시〉
+   *
+   * ★★ 넷 다 **대상이 있어야 뜻이 있다.** 그래서 목록에서 고른 문서 하나를
+   *   대고 누른다. 아무것도 안 골랐으면 **누를 수 있게 두지 않는다** — 눌리면
+   *   무엇에 대고 눌렀는지 아무도 모르고, 그 상태로 파일이 나가면 되돌릴 수 없다.
+   *
+   * ★★ **배포가 막혔으면 셋이 다 잠긴다** (미리보기·다운로드·공유하기).
+   *   목록에서는 「차단」인데 미리보기로는 열린다면 검증 게이트가 아무 의미도 없다.
+   *   「프로젝트 이동」만 열어 둔다 — 그건 파일을 내보내는 일이 아니다.
+   *
+   * ★ **공유하기는 주소를 복사하는 것까지다.** 남에게 열어 주는 링크를 만들지
+   *   않는다 — 그런 길이 서버에 없다. 없는 것을 있는 척하면 사용자는 보냈다고
+   *   믿고, 받는 쪽은 열지 못한다. 그래서 무엇을 복사했는지 그대로 말한다.
+   */
+
+  /** 미리보기로 펼 수 있는 것 — **열어 보이지 못할 것을 열겠다고 하지 않는다** */
+  function canPreview(path) {
+    return /\.(html?|md|txt|json|csv|pdf|svg|png|jpe?g)$/i.test(String(path || ''));
+  }
+
+  function fileUrl(path) {
+    if (!C.api || !state.projectId) return null;
+    return C.api + '/projects/' + encodeURIComponent(state.projectId)
+      + '/file?rel=' + encodeURIComponent(path);
+  }
+
+  /** 지금 고른 문서. 안 골랐으면 **나온 문서 중 첫 번째**를 기본으로 삼는다 */
+  function pickedDoc(d) {
+    var out = (d.all || d.files || []).filter(function (f) { return f.exists; });
+    if (!out.length) return null;
+    for (var i = 0; i < out.length; i++) if (out[i].path === state.pickedPath) return out[i];
+    return out[0];
+  }
+
+  /**
+   * 「프로젝트 이동」 — **앱이 옮긴다.** 이 화면은 탭 하나일 뿐이라 스스로
+   * 다른 탭으로 갈 수 없다. 그래서 앱에 알리고, **앱이 안 받으면 그렇다고 말한다.**
+   * 되는 척하면 사용자는 눌러 놓고 아무 일도 안 일어나는 것을 본다.
+   */
+  function goProject() {
+    var detail = { projectId: state.projectId, section: F.SECTION.id };
+    var sent = false;
+    try {
+      if (window.parent !== window) {
+        window.parent.postMessage({ type: 'lp-open-project', projectId: detail.projectId,
+          section: detail.section }, window.location.origin);
+        sent = true;
+      }
+    } catch (_) { /* 막혀 있으면 아래 이벤트로 간다 */ }
+    try {
+      var ev = new CustomEvent('lp-open-project', { detail: detail, cancelable: true });
+      // 앱이 받아서 처리하면 `preventDefault()` 로 알려 준다 — 그게 「받았다」의 증거다
+      var ok = document.dispatchEvent(ev);
+      if (!ok) sent = true;
+    } catch (_) {}
+    state.said = sent
+      ? '「' + F.SECTION.tab + '」으로 넘겼습니다.'
+      : '이 화면은 탭 하나라 스스로 옮길 수 없습니다 — 위 탭에서 「'
+        + F.SECTION.tab + '」을 눌러 주십시오.';
+    draw();
+  }
+
+  /** 「공유하기」 — 주소를 복사한다. **무엇을 복사했는지 그대로 말한다** */
+  function share(f) {
+    var url = fileUrl(f.path);
+    if (!url) return;
+    var abs = url;
+    try { abs = new URL(url, window.location.href).href; } catch (_) {}
+    var done = function (ok) {
+      state.said = ok
+        ? '주소를 복사했습니다 — 이 주소는 **로그인한 사람만** 열 수 있습니다. '
+          + '바깥으로 보내려면 파일을 내려받아 보내십시오.'
+        : '주소를 복사하지 못했습니다 (브라우저가 막았습니다). 「다운로드」로 받아 보내십시오.';
+      draw();
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(abs).then(function () { done(true); }, function () { done(false); });
+    } else {
+      done(false);
+    }
+  }
+
+  /**
+   * 네 갈래 줄. **설명 바로 아래**에 둔다 — 무엇을 할 수 있는지가 목록보다 먼저다.
+   */
+  function actions(d) {
+    var blocked = !!(d.distribution && d.distribution.blocked);
+    var f = pickedDoc(d);
+    var box = el('section', 'card');
+
+    var row = el('div', 'acts');
+
+    // ① 미리보기 — 이 자리에서 편다 (새 창을 열면 인앱 브라우저에서 돌아오지 못한다)
+    var open = state.preview && f && state.preview.path === f.path;
+    var prev = el('button', 'act' + (open ? ' on' : ''), open ? '미리보기 닫기' : '미리보기');
+    prev.type = 'button';
+    prev.disabled = !f || blocked || !C.api || !canPreview(f && f.path);
+    prev.addEventListener('click', function () {
+      state.said = null;
+      state.preview = open ? null : { path: f.path, name: f.name };
+      draw();
+    });
+    row.appendChild(prev);
+
+    // ② 다운로드 — 목록의 것과 **같은 주소**다. 두 벌로 만들지 않는다
+    var dl = document.createElement('a');
+    dl.className = 'act';
+    dl.textContent = '다운로드';
+    if (!f || blocked || !C.api) {
+      dl.setAttribute('aria-disabled', 'true');
+      dl.href = '#';
+    } else {
+      dl.href = fileUrl(f.path);
+      dl.setAttribute('download', '');
+    }
+    row.appendChild(dl);
+
+    // ③ 공유하기 — 주소 복사까지다 (§ 위 주석)
+    var sh = el('button', 'act', '공유하기');
+    sh.type = 'button';
+    sh.disabled = !f || blocked || !C.api;
+    sh.addEventListener('click', function () { share(f); });
+    row.appendChild(sh);
+
+    // ④ 프로젝트 이동 — **막혀 있어도 열어 둔다** (파일을 내보내는 일이 아니다)
+    var go = el('button', 'act', '프로젝트 이동');
+    go.type = 'button';
+    go.disabled = !state.projectId;
+    go.addEventListener('click', goProject);
+    row.appendChild(go);
+
+    box.appendChild(row);
+
+    // ★ **무엇에 대고 누르는지**를 적는다. 안 적으면 어느 문서인지 모른 채 누른다
+    if (f) {
+      box.appendChild(add(el('p', 'acts__on'),
+        document.createTextNode('고른 문서 '), el('b', null, f.name),
+        document.createTextNode(' · ' + f.path)));
+    } else {
+      box.appendChild(el('p', 'acts__on', '아직 나온 문서가 없어 고를 것이 없습니다.'));
+    }
+
+    // ★ 잠근 이유를 **적는다.** 이유 없이 회색이면 고장으로 읽힌다
+    var why = blocked ? '배포가 막혀 있어 미리보기·다운로드·공유가 잠겼습니다. 위의 사유를 먼저 해소하십시오.'
+      : !C.api ? '서버가 연결되어 있지 않아 파일을 열 수 없습니다.'
+      : (f && !canPreview(f.path)) ? ('이 형식(' + String(f.path).split('.').pop()
+          + ')은 브라우저에서 펴 볼 수 없습니다 — 내려받아서 여십시오.')
+      : null;
+    if (why) box.appendChild(el('p', 'acts__why', why));
+    if (state.said) box.appendChild(el('p', 'acts__on', state.said));
+
+    var pv = previewBox(f, blocked);
+    if (pv) box.appendChild(pv);
+    return box;
+  }
+
+  /** 펴 놓은 문서. **새 창을 열지 않는다** — 인앱 브라우저에서는 돌아오지 못한다 */
+  function previewBox(f, blocked) {
+    if (!state.preview || !f || state.preview.path !== f.path) return null;
+    if (blocked || !C.api) return null;
+    var box = el('div', 'pv');
+    var h = el('div', 'pv__h');
+    h.appendChild(el('span', null, f.name));
+    var x = el('button', 'pv__x', '닫기');
+    x.type = 'button';
+    x.addEventListener('click', function () { state.preview = null; draw(); });
+    h.appendChild(x);
+    box.appendChild(h);
+
+    if (!canPreview(f.path)) {
+      box.appendChild(el('p', 'pv__no', '이 형식은 브라우저에서 펴 볼 수 없습니다.'));
+      return box;
+    }
+    var fr = document.createElement('iframe');
+    fr.src = fileUrl(f.path);
+    fr.setAttribute('title', f.name);
+    // ★ 산출물 안의 스크립트를 이 화면 권한으로 돌리지 않는다
+    fr.setAttribute('sandbox', '');
+    box.appendChild(fr);
+    return box;
+  }
+
   /** 배포 차단 — **목록보다 위**에 둔다. 아래에 두면 파일만 보고 내보낸다 */
   function blocker(d) {
     if (!(d.distribution && d.distribution.blocked)) return null;
@@ -319,8 +541,27 @@ window.LINKPILOT_OUTPUTS = {
     return box;
   }
 
-  function docRow(f, blocked) {
-    var row = el('div', 'doc ' + (f.exists ? 'doc--out' : 'doc--wait'));
+  function docRow(f, blocked, picked) {
+    var row = el('div', 'doc ' + (f.exists ? 'doc--out' : 'doc--wait')
+      + (picked ? ' doc--on' : ''));
+    if (f.exists) {
+      // ★ 줄을 눌러 고른다. 위 네 갈래가 **이 문서**에 대고 동작한다
+      row.setAttribute('role', 'button');
+      row.tabIndex = 0;
+      row.setAttribute('aria-pressed', picked ? 'true' : 'false');
+      var pick = function (ev) {
+        // 내려받기 링크를 누른 것은 고르기가 아니다 — 그대로 내려받게 둔다
+        if (ev.target && ev.target.closest && ev.target.closest('a')) return;
+        state.pickedPath = f.path;
+        state.said = null;
+        state.preview = null;   // 다른 문서를 골랐는데 앞 문서가 펴져 있으면 헷갈린다
+        draw();
+      };
+      row.addEventListener('click', pick);
+      row.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); pick(ev); }
+      });
+    }
     var b = el('div', 'doc__b');
     add(b, el('div', 'doc__n', f.name));
 
@@ -366,8 +607,11 @@ window.LINKPILOT_OUTPUTS = {
     var maybe = all.filter(function (f) { return !f.exists && !f.expected; });
 
     if (out.length) {
+      var on = pickedDoc(d);
       box.appendChild(el('div', 'grp', '나온 문서 ' + out.length + '종'));
-      out.forEach(function (f) { box.appendChild(docRow(f, blocked)); });
+      out.forEach(function (f) {
+        box.appendChild(docRow(f, blocked, !!(on && on.path === f.path)));
+      });
     }
     if (wait.length) {
       box.appendChild(el('div', 'grp', '아직 안 나온 것 ' + wait.length + '종'));
@@ -435,7 +679,10 @@ window.LINKPILOT_OUTPUTS = {
 
     var d = state.data;
     var b = blocker(d);
-    if (b) view.appendChild(b);          // ★ 목록보다 위
+    if (b) view.appendChild(b);          // ★ 목록보다 위 — 파일만 보고 내보내지 않게
+    // ★ 네 갈래는 **차단 안내 다음, 목록보다 먼저**다 〈2026-08-20 사용자 지시〉.
+    //   차단보다 위에 두면 잠긴 단추를 먼저 보고 왜 잠겼는지를 나중에 읽는다
+    view.appendChild(actions(d));
     view.appendChild(progress(d));
     view.appendChild(list(d));
 
