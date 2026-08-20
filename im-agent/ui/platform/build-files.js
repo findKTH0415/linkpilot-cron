@@ -88,7 +88,7 @@ ${part.css}
 </style>
 <div class="lead">
   <h1 class="lead__t">자료 업로드 — 붙이는 자리</h1>
-  <p class="lead__d">세 갈래를 고르면 그 자리에서 파일을 고르고 올립니다.
+  <p class="lead__d">두 갈래를 고르면 그 자리에서 파일을 고르고 올립니다.
     전에는 셋이 <b>설명만</b>이어서, 자료를 넣으려면 보고서 생성 1단계로 되돌아가야 했습니다.</p>
 </div>
 <div class="demo"><b>예시 화면입니다.</b> 프로젝트와 목록은 실제 자료가 아니고,
@@ -147,13 +147,24 @@ function fakeServer(limits) {
   var LIMITS = ${JSON.stringify(limits)};
   var kept = [];
   var oneshot = [];
+  var base = [
+    { id: 'LP-DC-2026-001', name: '인천 남동 데이터센터' },
+    { id: 'LP-SOL-2026-004', name: '전남 영암 태양광' },
+  ];
+  var made = [];
 
   function reply(url, method, body) {
     var p = String(url).replace(/^[^]*?\\/api/, '');
     if (p === '/intake') return [200, LIMITS];
-    if (p === '/projects') return [200, { projects: [
-      { id: 'LP-DC-2026-001', name: '인천 남동 데이터센터' },
-      { id: 'LP-SOL-2026-004', name: '전남 영암 태양광' } ] }];
+    // 새 프로젝트 만들기 — 실제 서버와 같은 모양(201 + projectId)으로 답한다
+    if (p === '/projects' && method === 'POST') {
+      var req = String((body && body.request) || '').trim();
+      if (req.length < 5) return [400, { error: '무엇을 만들지 한 줄로 적어 주세요' }];
+      var mk = { id: 'LP-GEN-2026-' + String(900 + made.length + 1), name: req.slice(0, 40) };
+      made.push(mk);
+      return [201, { projectId: mk.id, name: mk.name, assetClass: null, seeded: [] }];
+    }
+    if (p === '/projects') return [200, { projects: base.concat(made) }];
     if (/\\/sources$/.test(p) && method === 'POST') {
       var got = (body && body.files) || [];
       var saved = [], rejected = [];
@@ -259,7 +270,7 @@ ${styles}
 </div>
 <div class="demo"><b>서버는 예시입니다.</b> 이 페이지 안에 가짜 서버를 두고 화면이 그것을
   부릅니다. 프로젝트·목록·올린 결과는 <b>실제 자료가 아닙니다.</b>
-  「연결해서 쓰기」는 <b>실제로도 아직 안 열려 있어</b> 여기서도 그렇게 나옵니다.</div>
+  「폴더를 연결해서」는 <b>실제로도 아직 안 열려 있어</b> 여기서도 그렇게 나옵니다.</div>
 ${fakeServer(limits)}
 <div class="pv">${body}</div>
 `;

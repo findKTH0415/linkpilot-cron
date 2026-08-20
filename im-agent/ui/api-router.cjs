@@ -57,6 +57,9 @@ function createHandlers({ agentRoot, agentModulePath }) {
         name: (p.project && p.project.name) || null,
         assetType: (p.project && p.project.assetType) || null,
         status: (p.project && p.project.status) || null,
+        // ★ 앱의 딜 키를 함께 낸다 — 앱이 자기 목록과 맞춰 볼 수 있어야 한다.
+        //   이름으로 맞추면 이름을 바꾸는 날 끊긴다 (프로젝트-연결-규칙 §3)
+        externalId: (p.project && p.project.externalId) || null,
       }));
       return { status: 200, body: { projects: rows } };
     },

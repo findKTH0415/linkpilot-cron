@@ -9,8 +9,8 @@
 
   ★★ **탭 이름은 「자료 업로드」지만 하는 일은 셋이고, 그중 둘은 업로드가 아니다.**
     ① 올려서 보관    (Pro)  우리 서버에 둔다. 지우기·되살리기·대조가 있다
-    ② 연결해서 쓰기  (무료) **사본을 안 만든다.** 읽을 때만 잠깐 가져와 버린다
-    ③ 1회성으로 올리기(무료) 읽고 **바로 버린다.** 다시 못 쓴다
+    ② 폴더를 연결해서   (무료) **사본을 안 만든다.** 읽을 때만 잠깐 가져와 버린다
+    ③ 파일업로드(1회성) (무료) 읽고 **바로 버린다.** 다시 못 쓴다
     ②를 업로드로 읽으면 사본이 우리 쪽에 남는 줄 안다 — 그 오해를 막으려고
     만든 것이 ② 다(D-65). 그래서 **화면이 셋의 차이를 먼저 말한다.**
 
@@ -129,6 +129,63 @@ select:focus-visible, button:focus-visible { outline: 2px solid var(--lime-deep)
   background: var(--lime); color: var(--ink); cursor: pointer; margin-top: 12px; }
 .btn:disabled { background: var(--panel); color: var(--ink2); cursor: not-allowed; }
 
+/* ── 활동 그래프 — 올리는 동안 **어디까지 갔는지** 보여 준다 ─────────
+   ★ 막대 하나만 있으면 「멈춘 것 같은데 어디서 멈췄나」에 답할 수 없다.
+     보내는 중과 서버가 읽는 중은 걸리는 이유가 다르다 — 앞은 회선, 뒤는 파일.
+   ★ 움직임을 싫어하는 설정(prefers-reduced-motion)에서는 **색으로만** 말한다. */
+.fx { margin-top: 12px; border: 1px solid var(--line); border-radius: 14px;
+  background: var(--surface); padding: 15px 16px 11px; }
+.fx--done { border-color: var(--lime); background: var(--lime-soft); }
+.fx--dead { border-color: var(--bad); background: var(--bad-soft); }
+.fx__g { display: flex; align-items: flex-start; }
+.fx__n { flex: 0 0 auto; width: 76px; text-align: center; }
+.fx__dot { position: relative; width: 30px; height: 30px; margin: 0 auto 7px;
+  border-radius: 50%; border: 2px solid var(--line); background: var(--surface); }
+.fx__dot::after { content: ''; position: absolute; inset: 7px; border-radius: 50%;
+  background: transparent; transition: background .2s; }
+.fx__n--done .fx__dot { border-color: var(--lime); }
+.fx__n--done .fx__dot::after { background: var(--lime); }
+.fx__n--now .fx__dot { border-color: var(--lime); animation: fxPulse 1.2s ease-in-out infinite; }
+.fx__n--now .fx__dot::after { background: var(--lime); }
+.fx__n--dead .fx__dot { border-color: var(--bad); }
+.fx__n--dead .fx__dot::after { background: var(--bad); }
+.fx__t { font-size: 11.5px; color: var(--ink2); line-height: 1.35; word-break: keep-all; }
+.fx__n--now .fx__t, .fx__n--done .fx__t { color: var(--ink); font-weight: 700; }
+.fx__n--dead .fx__t { color: var(--bad-ink); font-weight: 700; }
+.fx__l { position: relative; flex: 1 1 auto; height: 3px; margin-top: 15px;
+  border-radius: 3px; background: var(--line); overflow: hidden; }
+.fx__l--past { background: var(--lime); }
+.fx__l--dead { background: var(--bad); }
+.fx__l i { position: absolute; top: 0; bottom: 0; left: 0; width: 45%;
+  background: linear-gradient(90deg, transparent, var(--lime), transparent); }
+.fx__l--run i { animation: fxRun 1.05s linear infinite; }
+@keyframes fxRun { from { transform: translateX(-110%); } to { transform: translateX(240%); } }
+@keyframes fxPulse { 0%, 100% { box-shadow: 0 0 0 0 var(--lime-soft); }
+  50% { box-shadow: 0 0 0 7px var(--lime-soft); } }
+/* 흘러온 자취 — 진행률을 **시간축으로** 그린다. 멈춘 구간이 평평하게 남는다 */
+.fx__c { margin-top: 11px; }
+.fx__c svg { display: block; width: 100%; height: 56px; }
+.fx__cap { margin: 5px 0 0; font-size: 11.5px; color: var(--ink2);
+  font-variant-numeric: tabular-nums; line-height: 1.6; }
+.fx__cap b { color: var(--ink); }
+
+/* 끌어다 놓는 동안 — **붙일 자리를 눈에 띄게** 한다 */
+.card--attach.dragover { border-color: var(--lime); box-shadow: 0 0 0 3px var(--lime-soft); }
+.card--attach.dragover .drop { border-color: var(--lime); background: var(--lime-soft); }
+
+/* 새 프로젝트 만들기 — 고르는 자리에서 바로 */
+.new { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 11px; }
+.new input { flex: 1 1 320px; min-width: 0; font: 400 14px/1.4 inherit;
+  padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--ink); }
+.new input:focus-visible { outline: 2px solid var(--lime-deep); outline-offset: 2px; }
+.new .btn { margin-top: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fx__l--run i { animation: none; opacity: .5; }
+  .fx__n--now .fx__dot { animation: none; }
+}
+
 /* 토큰이 안 실렸을 때의 경고는 토큰 없이도 보여야 한다 — 색을 직접 칠한다 */
 .nostyle { border: 1px solid #F3C6C6; background: #FDECEC; color: #8F1D1D;
   border-radius: 12px; padding: 13px 15px; margin-bottom: 12px; font-size: 13.5px; line-height: 1.7; }
@@ -192,6 +249,7 @@ window.LINKPILOT_FILES = {
     busy: false,
     linkMsg: null,   // 연결 갈래에서 사용자가 볼 한 줄
     appMsg: null,    // 앱 프로젝트 가져오기의 진행·실패 한 줄
+    noFolder: false, // 앱 딜은 있는데 작업 폴더가 없는 경우
     // ── 첨부 (2026-08-20) ─────────────────────────────────────────────
     // 전에는 세 갈래가 **설명만**이었다. 무엇이 다른지는 알려 주는데 정작
     // 여기서 올릴 수는 없어서, 자료를 넣으려면 1단계로 되돌아가야 했다.
@@ -200,6 +258,16 @@ window.LINKPILOT_FILES = {
     upload: null,      // 올리는 중 상태 (upload-core 가 준 그대로)
     result: null,      // 서버 응답
     limits: null,      // GET /intake 가 준 한도 — 화면에 박아 두지 않는다
+    // ── 활동 그래프 (2026-08-20) ─────────────────────────────────────
+    // 진행률을 **시간축으로** 모아 둔다. 막대만 있으면 「멈춘 것 같은데
+    // 어디서 멈췄나」에 답할 수 없다 — 평평한 구간이 그 답이다.
+    trace: [],         // [{ ms, pct }] — pct 를 모르는 순간은 담지 않는다
+    traceAt0: 0,       // 시작 시각 (성능 시계, 벽시계가 아니다)
+    failStage: 1,      // 올리다 죽었다면 **어느 칸에서** 죽었나
+    linkStage: -1,     // 연결 갈래가 지금 어느 칸인지 (-1 = 안 하는 중)
+    linkDead: false,   // 연결이 그 칸에서 멈췄나
+    dropMsg: null,     // 끌어다 놓았는데 받을 수 없을 때 하는 말
+    newProj: null,     // { text, busy, error } — 새 프로젝트 만들기
   };
 
   function el(t, c, x) {
@@ -209,6 +277,11 @@ window.LINKPILOT_FILES = {
     return n;
   }
   function add(p) { for (var i = 1; i < arguments.length; i++) if (arguments[i]) p.appendChild(arguments[i]); return p; }
+
+  /** 흐른 시간을 재는 시계. 벽시계가 아니라 **단조 시계**다 — 자정·시간대에 안 흔들린다 */
+  function now() {
+    return (window.performance && performance.now) ? performance.now() : Date.now();
+  }
 
   function size(b) {
     if (!(b > 0)) return '0 B';
@@ -223,12 +296,20 @@ window.LINKPILOT_FILES = {
    *   칠하면 사용자는 고쳐 달라고 문의한다.
    * @returns {{ok:true, body}|{ok:false, closed:string}|throws}
    */
-  function call(method, path, body) {
+  /**
+   * @param {{localGate?:boolean}} [opt2] `localGate` 면 401·403 을 **화면 전체
+   *   게이트로 올리지 않고** 부른 쪽에 돌려준다. 한 칸에서 등급이 모자란 것
+   *   때문에 탭 전체가 잠겨 버리면, 열려 있는 나머지 길까지 못 쓴다.
+   */
+  function call(method, path, body, opt2) {
     var opt = { method: method, credentials: 'same-origin' };
     if (body) { opt.headers = { 'Content-Type': 'application/json' }; opt.body = JSON.stringify(body); }
     return fetch(C.api + path, opt).then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (b) {
         if (r.status === 501) return { ok: false, closed: (b && b.error) || '아직 붙어 있지 않습니다' };
+        if ((r.status === 401 || r.status === 403) && opt2 && opt2.localGate) {
+          return { ok: false, gated: true, msg: (b && b.error) || '사용할 수 없습니다' };
+        }
         // ★★ 401·403 도 **고장이 아니다.** 로그인하지 않았거나 등급이 모자란 것은
         //   상태이지 오류가 아닌데, 빨간 오류로 그리면 고장으로 읽혀 문의가 온다.
         //   (501 은 조심했는데 이건 놓쳤었다 — 2026-08-18)
@@ -298,6 +379,24 @@ window.LINKPILOT_FILES = {
   }
 
   function pickProject(id) {
+    // ★ 「+ 새 프로젝트」를 고른 것은 **고르기가 아니라 만들기**다.
+    //   여기서 몰래 만들지 않는다 — 무엇을 만들지 사람이 한 줄 적어야
+    //   자산군이 정해진다. 안 적고 만들면 GEN 으로 굳는다 (§4)
+    if (id === NEW_OPT) {
+      state.newProj = { text: '', busy: false, error: null };
+      return render();
+    }
+    state.newProj = null;
+    state.dropMsg = null;
+    // ★ 작업 폴더가 없는 딜을 고른 경우 — 붙일 곳이 없다는 것을 말한다
+    if (id && id.indexOf('ext:') === 0) {
+      state.projectId = null;
+      state.noFolder = true;
+      state.linked = state.oneshot = null;
+      announce(null);
+      return render();
+    }
+    state.noFolder = false;
     state.projectId = id || null;
     state.linked = state.oneshot = null;
     state.closed = { kept: null, linked: null, oneshot: null };
@@ -377,9 +476,9 @@ window.LINKPILOT_FILES = {
   // ★ 「올려서 보관」은 뺐다 〈2026-08-20 사용자 결정 — 불필요〉.
   //   서버 API(`POST /sources`)는 그대로 있다. 화면에서 그 길로 들어가지 않을 뿐이다.
   var WAYS = [
-    { id: 'linked', t: '연결해서 쓰기', k: '무료', free: true, plan: 'free',
+    { id: 'linked', t: '폴더를 연결해서', k: '무료', free: true, plan: 'free',
       d: 'Dropbox·Box·구글·원드라이브의 파일을 가리킵니다. 사본을 만들지 않습니다 — 읽을 때만 잠깐 가져와 버립니다.' },
-    { id: 'oneshot', t: '1회성으로 올리기', k: '무료', free: true, plan: 'free',
+    { id: 'oneshot', t: '파일업로드(1회성)', k: '무료', free: true, plan: 'free',
       d: '읽고 바로 버립니다. 보관하지 않으므로 다시 쓸 수 없고, 원본이 그대로인지도 확인할 수 없습니다.' },
   ];
 
@@ -470,6 +569,106 @@ window.LINKPILOT_FILES = {
     return out;
   }
 
+  /* ── 활동 그래프 ─────────────────────────────────────────
+   *
+   * ★★ 왜 만들었나: 막대 하나로는 **어디서 걸렸는지** 알 수 없다. 「보내는 중」이
+   *   오래 걸리는 것과 「서버가 읽는 중」이 오래 걸리는 것은 원인이 다르다 —
+   *   앞은 회선, 뒤는 파일(스캔본이면 오래 걸린다). 둘을 같은 막대로 그리면
+   *   사용자는 고장으로 읽고 창을 닫는다. 실제로 닫으면 올린 것이 없다.
+   *
+   * ★ 두 가지를 함께 그린다:
+   *     ① **칸** — 지금 어느 단계인가 (지난 칸·도는 칸·죽은 칸)
+   *     ② **자취** — 진행률을 시간축으로. 멈춘 구간이 **평평하게 남는다**
+   *
+   * ★ 자취는 **잰 것만** 그린다. 진행률을 모르는 순간은 담지 않는다 —
+   *   모르는 값을 0 으로 이으면 그래프가 뚝 떨어지고 「되돌아갔다」로 읽힌다.
+   */
+
+  var SVGNS = 'http://www.w3.org/2000/svg';
+  function svg(tag, attrs) {
+    var n = document.createElementNS(SVGNS, tag);
+    for (var k in attrs) if (Object.prototype.hasOwnProperty.call(attrs, k)) n.setAttribute(k, attrs[k]);
+    return n;
+  }
+
+  /**
+   * 자취 그림. 점이 둘 미만이면 **그리지 않는다** — 점 하나로 그은 선은
+   * 아무 뜻이 없는데 그럴듯해 보인다.
+   */
+  function traceChart(pts) {
+    if (!pts || pts.length < 2) return null;
+    var W = 300, H = 56, PAD = 3;
+    var last = pts[pts.length - 1].ms || 1;
+    var x = function (p) { return PAD + (W - PAD * 2) * (last ? (p.ms / last) : 0); };
+    var y = function (p) { return PAD + (H - PAD * 2) * (1 - Math.max(0, Math.min(100, p.pct)) / 100); };
+    var line = pts.map(function (p, i) { return (i ? 'L' : 'M') + x(p).toFixed(1) + ' ' + y(p).toFixed(1); }).join(' ');
+
+    var box = el('div', 'fx__c');
+    var g = svg('svg', { viewBox: '0 0 ' + W + ' ' + H, preserveAspectRatio: 'none',
+      role: 'img', 'aria-label': '올린 양이 시간에 따라 어떻게 늘었는지' });
+    // 바탕 눈금 — 50% 자리 하나만. 여럿 그으면 자취가 안 보인다
+    g.appendChild(svg('line', { x1: 0, y1: (H / 2).toFixed(1), x2: W, y2: (H / 2).toFixed(1),
+      stroke: 'var(--line)', 'stroke-width': 1, 'stroke-dasharray': '3 4' }));
+    g.appendChild(svg('path', { d: line + ' L' + x(pts[pts.length - 1]).toFixed(1) + ' ' + (H - PAD)
+      + ' L' + x(pts[0]).toFixed(1) + ' ' + (H - PAD) + ' Z',
+      fill: 'var(--lime-soft)', stroke: 'none' }));
+    g.appendChild(svg('path', { d: line, fill: 'none', stroke: 'var(--lime-deep)',
+      'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round',
+      'vector-effect': 'non-scaling-stroke' }));
+    g.appendChild(svg('circle', { cx: x(pts[pts.length - 1]).toFixed(1),
+      cy: y(pts[pts.length - 1]).toFixed(1), r: 3, fill: 'var(--lime-deep)' }));
+    box.appendChild(g);
+    box.appendChild(el('p', 'fx__cap',
+      '지난 ' + (last / 1000).toFixed(1) + '초 · ' + pts.length + '번 쟀습니다'));
+    return box;
+  }
+
+  /**
+   * 칸 + 자취. `at` 은 **지금 도는 칸**, `dead` 면 그 칸에서 멈춘 것이다.
+   * @param {{stages:string[], at:number, dead?:boolean, pct?:number, note?:string, pts?:Array}} o
+   */
+  function activityGraph(o) {
+    var done = !o.dead && o.at >= o.stages.length - 1;
+    var box = el('div', 'fx' + (done ? ' fx--done' : o.dead ? ' fx--dead' : ''));
+
+    var g = el('div', 'fx__g');
+    o.stages.forEach(function (t, i) {
+      if (i) {
+        // 칸 사이의 선: 지나온 곳은 채우고, **지금 건너는 곳만** 흐른다.
+        // 다 흐르게 두면 끝난 뒤에도 도는 것처럼 보인다
+        var crossing = !o.dead && !done && i === o.at + 1;
+        var past = i <= o.at;
+        var l = el('div', 'fx__l' + (past ? ' fx__l--past' : '')
+          + (o.dead && i === o.at + 1 ? ' fx__l--dead' : '')
+          + (crossing ? ' fx__l--run' : ''));
+        if (crossing) l.appendChild(el('i'));
+        g.appendChild(l);
+      }
+      var state2 = o.dead && i === o.at ? 'dead' : i < o.at ? 'done' : i === o.at ? (done ? 'done' : 'now') : '';
+      var n = el('div', 'fx__n' + (state2 ? ' fx__n--' + state2 : ''));
+      n.appendChild(el('div', 'fx__dot'));
+      n.appendChild(el('div', 'fx__t', t));
+      g.appendChild(n);
+    });
+    box.appendChild(g);
+
+    var chart = traceChart(o.pts);
+    if (chart) box.appendChild(chart);
+    else if (o.note) box.appendChild(el('p', 'fx__cap', o.note));
+    return box;
+  }
+
+  /** 올리는 갈래의 칸 이름 — 한 곳에서 정한다 */
+  var UP_STAGES = ['고른 파일', '보내는 중', '서버가 읽는 중', '붙었습니다'];
+
+  function uploadStage(u) {
+    if (!u) return 0;
+    if (u.phase === 'sending') return 1;
+    if (u.phase === 'reading') return 2;
+    if (u.phase === 'done') return 3;
+    return -1;   // 'error' — 어느 칸에서 죽었는지는 부르는 쪽이 안다
+  }
+
   /** 진행 바 한 칸. **모르는 값은 막대가 아니라 빗금이다** */
   function progressBar(pct) {
     var bar = el('div', 'up__bar' + (pct === null || pct === undefined ? ' up__bar--none' : ''));
@@ -486,6 +685,18 @@ window.LINKPILOT_FILES = {
     var u = state.upload;
     if (!u) return null;
     var box = el('div', 'up' + (u.phase === 'done' ? ' up--done' : u.phase === 'error' ? ' up--error' : ''));
+
+    // ★ 그래프를 **맨 위에** 둔다. 「어디까지 갔나」가 먼저 보여야 한다 —
+    //   숫자만 먼저 보면 멈춘 것인지 도는 것인지 알 수 없다
+    var at = uploadStage(u);
+    box.appendChild(activityGraph({
+      stages: UP_STAGES,
+      at: at < 0 ? state.failStage : at,
+      dead: u.phase === 'error',
+      pts: state.trace,
+      note: '진행률을 잴 수 없는 회선입니다 — 자취를 그리지 않습니다.',
+    }));
+
     var h = el('div', 'up__h');
     h.appendChild(el('b', null,
       u.phase === 'sending' ? '보내는 중'
@@ -526,10 +737,24 @@ window.LINKPILOT_FILES = {
     var path = '/oneshot';
 
     state.busy = true; state.result = null; state.error = null;
+    // 자취는 **이번 올리기 것만** 모은다. 안 비우면 지난 판이 앞에 붙어
+    // 「예전에 한 번 갔다가 되돌아왔다」처럼 보인다
+    state.trace = []; state.traceAt0 = now(); state.failStage = 1;
     UP.send({
       url: C.api + '/projects/' + state.projectId + path,
       files: ready.map(function (f) { return { name: f.name, contentBase64: f.data }; }),
-      onUpdate: function (u) { state.upload = u; render(); },
+      onUpdate: function (u) {
+        state.upload = u;
+        var at = uploadStage(u);
+        if (at > 0) state.failStage = at;   // 죽으면 **여기서** 죽은 것이다
+        // ★ 모르는 값은 담지 않는다. 0 으로 이으면 선이 뚝 떨어져
+        //   「되돌아갔다」로 읽힌다 — 실제로는 못 잰 것뿐이다
+        if (u.pct !== null && u.pct !== undefined) {
+          state.trace.push({ ms: now() - state.traceAt0, pct: u.pct });
+          if (state.trace.length > 240) state.trace.shift();
+        }
+        render();
+      },
       onDone: function (j) {
         state.busy = false; state.result = j; state.picked = [];
         // 올린 뒤 목록을 다시 읽는다 — 안 읽으면 방금 올린 것이 안 보인다
@@ -551,21 +776,38 @@ window.LINKPILOT_FILES = {
    *   **가리키는 것**이라 파일 고르기가 없다 — 본체가 함수를 넘겨야 열린다.
    */
   function attachCard() {
-    var card = el('section', 'card');
+    var card = el('section', 'card card--attach');
     add(card, el('h2', 'card__t', '자료 붙이기'),
-      el('p', 'card__d', '어떻게 둘지 먼저 고릅니다. 셋은 되돌릴 수 있는 정도가 다릅니다.'));
+      el('p', 'card__d',
+        '기존 프로젝트 보고서를 만들거나 또는 신규 프로젝트로 만들 때, '
+        + '관련자료를 올리는 방법 2가지입니다.'));
     card.appendChild(ways());
+    // 끌어다 놓았는데 받을 수 없었던 이유를 **그 자리에서** 말한다.
+    // ★ 갈래보다 먼저 그린다 — 그 말이 가장 필요한 때가 「연결」 갈래에서
+    //   떨어뜨린 때인데, 갈래 안쪽에 두면 그때 안 보인다
+    if (state.dropMsg) card.appendChild(el('p', 'note', state.dropMsg));
 
     var w = wayOf(state.way);
 
     if (!state.projectId) {
-      card.appendChild(el('p', 'note', '프로젝트를 먼저 고르면 여기서 바로 올릴 수 있습니다.'));
+      card.appendChild(el('p', 'note', state.noFolder
+        // ★ 화면이 몰래 만들지 않는다 — 번호가 소모되고 자산군이 GEN 으로 굳는다 (§4)
+        ? '이 프로젝트는 작업 폴더가 아직 없습니다. 「보고서 생성」 1단계에서 먼저 만드십시오.'
+        : '프로젝트를 먼저 고르면 여기서 바로 올릴 수 있습니다.'));
       return card;
     }
 
     // 연결 — 여기서 올리는 것이 아니라 **가리키는** 것이다
     if (state.way === 'linked') {
       card.appendChild(linkPicker());
+      // 연결도 **과정이 있다.** 창을 열고, 권한을 확인하고, 장부에 적는다.
+      //   그 사이 아무 말이 없으면 눌러도 안 되는 줄 안다
+      if (state.linkStage >= 0) {
+        card.appendChild(activityGraph({
+          stages: LINK_STAGES, at: state.linkStage, dead: state.linkDead,
+          note: state.linkDead ? '이 칸에서 멈췄습니다.' : '고른 파일을 가리키는 중입니다 — 사본을 만들지 않습니다.',
+        }));
+      }
       return card;
     }
 
@@ -579,7 +821,7 @@ window.LINKPILOT_FILES = {
     card.appendChild(pickedList());
 
     var ready = state.picked.filter(function (f) { return f.data && !f.tooBig; });
-    var go = el('button', 'btn', state.way === 'oneshot' ? '1회성으로 올리기' : '올려서 보관');
+    var go = el('button', 'btn', state.way === 'oneshot' ? '파일업로드(1회성)' : '올려서 보관');
     go.type = 'button';
     go.disabled = !ready.length || state.busy;
     go.addEventListener('click', doUpload);
@@ -634,6 +876,85 @@ window.LINKPILOT_FILES = {
     return box;
   }
 
+  /**
+   * 새 프로젝트 만들기 — **고르는 자리에서 바로** 〈2026-08-20 사용자 지시〉.
+   *
+   * ★★ 화면이 몰래 만들지 않는다. 무엇을 만들지 **사람이 한 줄 적는다** —
+   *   그 문장에서 자산군이 정해지기 때문이다. 빈 채로 만들면 자산군이 GEN 으로
+   *   굳고, 굳은 뒤에는 보고서 목차가 통째로 어긋난다 (프로젝트-연결-규칙 §4).
+   *
+   * ★ 만드는 것은 **Pro 부터**다. 등급이 모자라면 그 말을 **이 칸에서** 한다 —
+   *   화면 전체를 잠그면 이미 있는 프로젝트에 자료 붙이는 것까지 막힌다.
+   */
+  var NEW_OPT = 'new:';
+
+  function newProjectCard() {
+    var n = state.newProj;
+    if (!n) return null;
+    var card = el('section', 'card');
+    add(card, el('h2', 'card__t', '새 프로젝트 만들기'),
+      el('p', 'card__d', '무엇을 만들지 한 줄로 적어 주십시오. '
+        + '이 문장에서 자산군과 목차가 정해집니다 — 비워 두면 정할 수 없습니다.'));
+
+    var row = el('div', 'new');
+    var inp = el('input');
+    inp.type = 'text';
+    inp.value = n.text;
+    inp.placeholder = '예: 인천 남동공단 6.5MW 데이터센터 IM 작성';
+    inp.disabled = !!n.busy;
+    inp.addEventListener('input', function () { n.text = inp.value; b.disabled = n.busy || inp.value.trim().length < 5; });
+    var b = el('button', 'btn', n.busy ? '만드는 중…' : '만들기');
+    b.type = 'button';
+    b.disabled = n.busy || n.text.trim().length < 5;
+    b.addEventListener('click', function () { createProject(n.text); });
+    inp.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter' && !b.disabled) { ev.preventDefault(); createProject(n.text); }
+    });
+    add(row, inp, b);
+    card.appendChild(row);
+
+    if (n.busy) {
+      card.appendChild(activityGraph({
+        stages: NEW_STAGES, at: 1, note: '요청문에서 자산군과 목차를 정하는 중입니다.',
+      }));
+    }
+    if (n.error) card.appendChild(el('p', 'note', n.error));
+    return card;
+  }
+
+  var NEW_STAGES = ['적은 문장', '자산군 정하기', '작업 폴더', '만들었습니다'];
+
+  function createProject(text) {
+    var n = state.newProj;
+    if (!n || n.busy) return;
+    n.busy = true; n.error = null;
+    render();
+    // ★ 등급 부족을 **화면 전체 게이트로 올리지 않는다** (localGate).
+    //   올리면 이미 있는 프로젝트에 자료 붙이는 것까지 같이 막힌다
+    call('POST', '/projects', { request: String(text).trim() }, { localGate: true })
+      .then(function (r) {
+        n.busy = false;
+        if (r && r.gated) { n.error = r.msg; return render(); }
+        if (!r || !r.ok || !r.body || !r.body.projectId) {
+          n.error = '만들지 못했습니다.'; return render();
+        }
+        var id = r.body.projectId;
+        state.newProj = null;
+        // 목록을 **다시 읽는다.** 안 읽으면 방금 만든 것이 고르기에 없다
+        return loadProjects().then(function () {
+          pickProject(id);
+        });
+      })
+      .catch(function (e) {
+        n.busy = false;
+        n.error = (e && e.message) || '만들지 못했습니다.';
+        render();
+      });
+  }
+
+  /** 연결 갈래의 칸 이름 — 한 곳에서 정한다 */
+  var LINK_STAGES = ['저장소 열기', '파일 고르기', '장부에 적기', '붙었습니다'];
+
   /** 앱이 연 창에서 고른 결과를 서버에 넘긴다 */
   function pickFrom(provider, btn) {
     if (state.busy) return;
@@ -641,28 +962,37 @@ window.LINKPILOT_FILES = {
     if (typeof open !== 'function') {
       // ★ 앱이 창을 안 넘겨 주면 **여기서 멈춘다.** 되는 척하지 않는다
       state.linkMsg = '이 브라우저에서는 파일 고르기를 열 수 없습니다.';
+      state.linkStage = 0; state.linkDead = true;
       return render();
     }
     state.busy = true; state.linkMsg = null;
+    state.linkStage = 0; state.linkDead = false;
     if (btn) btn.disabled = true;
     render();
 
     Promise.resolve()
-      .then(function () { return open(provider); })
+      .then(function () { state.linkStage = 1; render(); return open(provider); })
       .then(function (picked) {
-        if (!picked || !picked.ref) { state.busy = false; return render(); }
+        // 고르기 창을 그냥 닫은 경우 — 오류가 아니다. 칸을 되돌린다
+        if (!picked || !picked.ref) {
+          state.busy = false; state.linkStage = -1; return render();
+        }
+        state.linkStage = 2; render();
         // ★ ref 와 access 를 **따로** 보낸다. 섞어 보내면 장부에 열쇠가 들어간다
         return call('POST', '/projects/' + state.projectId + '/linked',
           { ref: picked.ref, access: picked.access || null })
           .then(function (r) {
             state.busy = false;
-            if (r && r.ok) return loadOne(state.projectId).then(render);
+            if (r && r.ok) { state.linkStage = 3; return loadOne(state.projectId).then(render); }
+            state.linkDead = true;
             if (r && r.closed) state.linkMsg = r.closed;
+            if (r && r.gated) state.linkMsg = r.msg;
             render();
           });
       })
       .catch(function (e) {
         state.busy = false;
+        state.linkDead = true;
         state.linkMsg = e && e.message ? e.message : '파일을 고르지 못했습니다.';
         render();
       });
@@ -685,7 +1015,7 @@ window.LINKPILOT_FILES = {
   function oneshotBlock() {
     if (state.closed.oneshot) {
       var w = document.createDocumentFragment();
-      w.appendChild(el('div', 'grp', '1회성으로 올리기 — 읽고 바로 버립니다'));
+      w.appendChild(el('div', 'grp', '파일업로드(1회성) — 읽고 바로 버립니다'));
       w.appendChild(waitBox('1회성 자료 경로가 아직 열려 있지 않습니다', state.closed.oneshot));
       return w;
     }
@@ -693,7 +1023,7 @@ window.LINKPILOT_FILES = {
     if (!items.length) return null;
 
     var out = document.createDocumentFragment();
-    out.appendChild(el('div', 'grp', '1회성으로 올리기 — 읽고 바로 버립니다'));
+    out.appendChild(el('div', 'grp', '파일업로드(1회성) — 읽고 바로 버립니다'));
     items.forEach(function (it) {
       var b = el('div', 'row__b');
       b.appendChild(el('div', 'row__n', it.name));
@@ -748,11 +1078,18 @@ window.LINKPILOT_FILES = {
     none.value = '';
     sel.appendChild(none);
     /* 엔진에 이미 있는 프로젝트 */
+    // ★ 앱 딜 중에는 **작업 폴더가 아직 없는 것**이 있다. 그때 `id` 가 비어 있다 —
+    //   목록에서 빼지 않는다. 빼면 사용자는 자기 딜이 왜 없는지 모른다.
+    //   대신 고르면 「먼저 만드십시오」라고 말한다 (프로젝트-연결-규칙 §4).
     var gEng = el('optgroup'); gEng.label = '보고서 프로젝트';
     (state.projects || []).forEach(function (p) {
-      var o = el('option', null, p.name ? (p.name + ' · ' + p.id) : p.id);
-      o.value = p.id;
-      if (p.id === state.projectId) o.selected = true;
+      var label = p.name || p.id || '(이름 없음)';
+      if (p.id) label += ' · ' + p.id;
+      else label += ' — 작업 폴더가 아직 없습니다';
+      var o = el('option', null, label);
+      // 폴더가 없는 딜은 **키로** 고른다. 이름으로 이으면 이름 바꾸는 날 끊긴다
+      o.value = p.id || ('ext:' + (p.externalId || label));
+      if (p.id && p.id === state.projectId) o.selected = true;
       gEng.appendChild(o);
     });
     if (gEng.children.length) sel.appendChild(gEng);
@@ -771,6 +1108,13 @@ window.LINKPILOT_FILES = {
       });
       sel.appendChild(gApp);
     }
+    // ★★ **만들기도 고르기 자리에 둔다** 〈2026-08-20 사용자 지시〉. 전에는
+    //   「1단계에서 먼저 만드십시오」라고만 했는데, 그 1단계가 다른 탭이라
+    //   자료를 손에 든 채 탭을 옮겨야 했다 — 옮기면 고른 파일이 사라진다
+    var mk = el('option', null, '+ 새 프로젝트 만들기');
+    mk.value = NEW_OPT;
+    if (state.newProj) mk.selected = true;
+    sel.appendChild(mk);
     sel.addEventListener('change', function () {
       var v = sel.value;
       if (v && v.indexOf('app:') === 0) pickAppProject(v.slice(4));
@@ -779,6 +1123,9 @@ window.LINKPILOT_FILES = {
     pick.appendChild(sel);
     if (state.appMsg) pick.appendChild(el('div', 'card__d', state.appMsg));
     view.appendChild(add(el('div', 'card'), pick));
+
+    var mkCard = newProjectCard();
+    if (mkCard) { view.appendChild(mkCard); return; }
 
     view.appendChild(attachCard());
 
@@ -792,6 +1139,62 @@ window.LINKPILOT_FILES = {
       if (b) view.appendChild(b);
     });
   }
+
+  /**
+   * 끌어다 놓기 — **화면 아무 데나** 받는다 〈2026-08-20〉.
+   *
+   * ★★ 왜: 점선 상자를 조금만 빗나가면 브라우저가 그 파일을 **탭에 열어 버린다.**
+   *   화면은 통째로 사라지고 올린 것은 없다. 「끌어다 놓기가 안 된다」의 대부분이
+   *   이것이다 — 아무 오류도 안 나므로 사용자는 기능이 없는 줄 안다.
+   *   그래서 문서 전체에서 `preventDefault()` 를 걸어 **먼저 브라우저를 막고**,
+   *   받을 수 있으면 받고 못 받으면 **왜 못 받는지 말한다.**
+   *
+   * ★ 갈래를 대신 바꾸지 않는다. 떨어뜨렸다고 1회성으로 넘겨 버리면 그 파일은
+   *   읽고 **버려진다** — 되돌릴 수 없는 것을 화면이 정하면 안 된다.
+   */
+  function hasFiles(ev) {
+    var t = ev.dataTransfer && ev.dataTransfer.types;
+    if (!t) return false;
+    for (var i = 0; i < t.length; i++) if (t[i] === 'Files') return true;
+    return false;
+  }
+  var dragDepth = 0;
+  function dragPaint(on) {
+    var c = view.querySelector('.card--attach');
+    if (c) { if (on) c.classList.add('dragover'); else c.classList.remove('dragover'); }
+  }
+  document.addEventListener('dragenter', function (ev) {
+    if (!hasFiles(ev)) return;
+    ev.preventDefault(); dragDepth++; dragPaint(true);
+  });
+  document.addEventListener('dragover', function (ev) {
+    if (!hasFiles(ev)) return;
+    ev.preventDefault();
+    try { ev.dataTransfer.dropEffect = 'copy'; } catch (_) {}
+  });
+  document.addEventListener('dragleave', function (ev) {
+    if (!hasFiles(ev)) return;
+    dragDepth = Math.max(0, dragDepth - 1);
+    if (!dragDepth) dragPaint(false);
+  });
+  document.addEventListener('drop', function (ev) {
+    if (!hasFiles(ev)) return;
+    ev.preventDefault();          // ★ 이것을 빼면 브라우저가 파일을 열고 화면이 사라진다
+    dragDepth = 0; dragPaint(false);
+    var f = ev.dataTransfer && ev.dataTransfer.files;
+    if (!f || !f.length) return;
+    if (!state.projectId) {
+      state.dropMsg = '프로젝트를 먼저 고르십시오 — 붙일 곳이 없습니다.';
+      return render();
+    }
+    if (state.way !== 'oneshot') {
+      state.dropMsg = '떨어뜨린 파일은 「파일업로드(1회성)」로만 올릴 수 있습니다 — '
+        + '그 갈래를 고른 뒤에 놓아 주십시오.';
+      return render();
+    }
+    state.dropMsg = null;
+    addFiles(f);
+  });
 
   render();
   // 한도는 **서버가 정한다.** 화면에 숫자를 박아 두면 서버가 바뀌는 날 화면만 옛말을 한다.

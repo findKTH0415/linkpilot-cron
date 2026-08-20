@@ -56,7 +56,7 @@ test('★ 구성안이 탭 이름을 복사해 적지 않는다', () => {
  */
 test('★★ 화면이 두 갈래의 차이를 먼저 말한다 (연결 ≠ 업로드)', () => {
   const html = read('files.html');
-  ['연결해서 쓰기', '1회성으로 올리기'].forEach((w) => {
+  ['폴더를 연결해서', '파일업로드(1회성)'].forEach((w) => {
     assert.ok(html.includes(w), `두 갈래 중 '${w}' 가 화면에 없다`);
   });
   // ★ 「올려서 보관」은 뺐다 (2026-08-20 사용자 결정 — 불필요)
@@ -235,7 +235,7 @@ test('★★ 자료 업로드 탭을 미리 그리면 실제로 내용이 들어
     const body = html.slice(html.indexOf('<div class="pv">'));
     assert.ok(body.length > 800, `미리 그린 판이 비었다 (${body.length}B) — 스크립트가 죽었다`);
     assert.equal((body.match(/class="err"/g) || []).length, 0, '오류 상자가 그려졌다');
-    ['연결해서 쓰기', '1회성으로 올리기'].forEach((w) => {
+    ['폴더를 연결해서', '파일업로드(1회성)'].forEach((w) => {
       assert.ok(body.includes(w), `미리 그린 판에 '${w}' 가 없다`);
     });
     assert.match(html, /예시 화면입니다/, '예시라는 표시가 없다 — 실제로 오해한다');
@@ -275,6 +275,139 @@ test('★★ 눌러 볼 수 있는 판이 실제로 설정을 받고 나온다',
     // 연결은 실제로도 안 열려 있다 — 되는 것처럼 보여 주지 않는다
     assert.match(html, /501/, '연결 갈래를 되는 것처럼 만들었다');
   } finally { if (fs.existsSync(out)) fs.unlinkSync(out); }
+});
+
+/* ═════════ ⑤-2 끌어다 놓기 · 활동 그래프 · 새 프로젝트 (2026-08-20) ═════════ */
+
+/**
+ * ★★ **점선 상자를 빗나가면 브라우저가 그 파일을 탭에 열어 버린다.**
+ *   화면은 통째로 사라지고 올린 것은 없다 — 아무 오류도 안 나므로 사용자는
+ *   「끌어다 놓기가 없는 기능」이라고 읽는다. 그래서 문서 전체에서 먼저 막는다.
+ */
+test('★★ 화면 아무 데나 떨어뜨려도 브라우저가 파일을 열지 않는다', () => {
+  const code = codeOf(read('files.html'));
+  assert.match(code, /document\.addEventListener\('drop'/, '문서에서 떨어뜨림을 안 받는다');
+  assert.match(code, /document\.addEventListener\('dragover'/,
+    'dragover 를 안 막으면 drop 자체가 안 온다');
+  // 갈래를 **대신 바꾸지 않는다** — 1회성은 읽고 버리는 길이라 되돌릴 수 없다
+  assert.ok(!/state\.way = 'oneshot';\s*\n\s*addFiles/.test(code),
+    '떨어뜨렸다고 갈래를 대신 바꿨다 — 되돌릴 수 없는 것을 화면이 정하면 안 된다');
+});
+
+/**
+ * ★★ **막대 하나로는 어디서 걸렸는지 알 수 없다.** 「보내는 중」이 오래 걸리는
+ *   것과 「서버가 읽는 중」이 오래 걸리는 것은 원인이 다르다 — 앞은 회선,
+ *   뒤는 파일. 같은 막대로 그리면 고장으로 읽고 창을 닫는다.
+ *
+ * ★ 자취는 **잰 것만** 그린다. 모르는 순간을 0 으로 이으면 선이 뚝 떨어져
+ *   「되돌아갔다」로 보이는데, 실제로는 못 잰 것뿐이다.
+ */
+test('★★ 활동 그래프는 잰 것만 그린다 (모르는 값을 0 으로 잇지 않는다)', () => {
+  const code = codeOf(read('files.html'));
+  assert.match(code, /function activityGraph\(/, '활동 그래프가 없다');
+  assert.match(code, /if \(u\.pct !== null && u\.pct !== undefined\) \{[\s\S]{0,200}state\.trace\.push/,
+    '진행률을 모르는 순간까지 자취에 담는다 — 선이 뚝 떨어져 「되돌아갔다」로 읽힌다');
+  assert.match(code, /if \(!pts \|\| pts\.length < 2\) return null;/,
+    '점 하나로 선을 긋는다 — 뜻이 없는데 그럴듯해 보인다');
+  // 이번 판만 그린다. 안 비우면 지난 판이 앞에 붙는다
+  assert.match(code, /state\.trace = \[\]; state\.traceAt0 = now\(\);/, '자취를 안 비우고 다시 쓴다');
+  // 움직임을 싫어하는 설정을 존중한다
+  assert.match(read('files.html'), /@media \(prefers-reduced-motion: reduce\)/,
+    '움직임 감소 설정을 무시한다');
+  // 벽시계를 쓰면 자정·시간대에 자취가 흔들린다
+  assert.match(code, /performance\.now/, '벽시계로 잰다 — 단조 시계를 쓴다');
+});
+
+/**
+ * ★ 「+ 새 프로젝트」는 **고르기가 아니라 만들기**다. 화면이 몰래 만들지 않는다 —
+ *   무엇을 만들지 적은 문장에서 자산군이 정해지기 때문이다 (프로젝트-연결-규칙 §4).
+ */
+test('★ 새 프로젝트는 한 줄을 받고 만든다 (몰래 만들지 않는다)', () => {
+  const code = codeOf(read('files.html'));
+  assert.match(code, /var NEW_OPT = 'new:';/, '새 프로젝트 항목이 없다');
+  assert.match(code, /call\('POST', '\/projects', \{ request:/, '요청문 없이 만든다');
+  assert.match(code, /\{ localGate: true \}/,
+    '등급 부족이 화면 전체를 잠근다 — 이미 있는 프로젝트에 자료 붙이는 것까지 막힌다');
+});
+
+/**
+ * ★★ **위 검사는 전부 소스를 들여다보는 검사다.** 실제로 도는지는 브라우저가
+ *   말해 준다 — 그래서 눌러 볼 수 있는 판을 **띄워서 직접 떨어뜨려 본다.**
+ *   (M-08 — 「부르지 않는 테스트」를 만들지 않는다)
+ */
+test('★★ 실제 브라우저에서 떨어뜨리면 붙고, 그래프가 끝까지 간다', async () => {
+  const { buildLive } = require(path.join(PLATFORM, 'build-files.js'));
+  const { findBrowser, renderDom } = require(path.join(PLATFORM, 'build-static.js'));
+  if (!findBrowser()) return;   // 크로미움이 없는 서버가 실제로 있다
+
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-files-drop-'));
+  const frag = path.join(dir, 'frag.html');
+  await buildLive(frag);
+
+  const probe = `
+    <div id="probe"></div>
+    <script>
+    (async function () {
+      var sleep = function (m) { return new Promise(function (r) { setTimeout(r, m); }); };
+      var t = function (n) { return n ? (n.textContent || '').trim().replace(/\\s+/g, ' ') : null; };
+      var o = {};
+      await sleep(150);
+      var sel = document.querySelector('select');
+      sel.value = 'LP-DC-2026-001';
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+      await sleep(200);
+      // 연결 갈래인 채로 떨어뜨린다 — 갈래를 대신 바꾸지 않는다
+      var d0 = new DataTransfer();
+      d0.items.add(new File([new Uint8Array(8)], 'a.pdf'));
+      document.body.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: d0 }));
+      await sleep(80);
+      o.keptWay = t(document.querySelector('.pw.on .pw__t'));
+      o.rowsWhileLinked = document.querySelectorAll('.row').length;
+      // 1회성으로 바꾸고 **카드 바깥**에 떨어뜨린다
+      [].slice.call(document.querySelectorAll('.pw')).filter(function (b) {
+        return t(b).indexOf('파일업로드') === 0; })[0].click();
+      await sleep(60);
+      var d = new DataTransfer();
+      d.items.add(new File([new Uint8Array(4000)], '감정평가서.pdf'));
+      var far = document.querySelector('.lead') || document.body;
+      far.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: d }));
+      await sleep(300);
+      o.rows = document.querySelectorAll('.row').length;
+      var go = [].slice.call(document.querySelectorAll('.btn')).filter(function (b) {
+        return t(b).indexOf('파일업로드') === 0; })[0];
+      go.click();
+      await sleep(200);
+      o.mid = t(document.querySelector('.fx__n--now .fx__t'));
+      await sleep(1600);
+      o.stagesDone = [].slice.call(document.querySelectorAll('.fx__n--done .fx__t')).map(t);
+      o.stillRunning = !!document.querySelector('.fx__l--run');
+      o.chart = !!document.querySelector('.fx__c svg');
+      o.errBoxes = document.querySelectorAll('.err').length;
+      document.getElementById('probe').textContent = JSON.stringify(o);
+    }());
+    </script>`;
+  const page = path.join(dir, 'page.html');
+  fs.writeFileSync(page, '<!doctype html><html lang="ko"><head><meta charset="utf-8"></head><body>'
+    + fs.readFileSync(frag, 'utf8') + probe + '</body></html>');
+
+  try {
+    const dom = renderDom(findBrowser(), page);
+    const m = dom.match(/<div id="probe">([^<]*)<\/div>/);
+    assert.ok(m && m[1], '탐침이 아무것도 안 남겼다 — 스크립트가 죽었다');
+    const r = JSON.parse(m[1]);
+    assert.equal(r.errBoxes, 0, '오류 상자가 떴다');
+    // 연결 갈래에서는 받지 않는다 (되돌릴 수 없는 것을 대신 정하지 않는다)
+    assert.equal(r.rowsWhileLinked, 0, '연결 갈래인데 떨어뜨린 파일을 받았다');
+    assert.match(r.keptWay, /폴더를 연결해서/, '갈래를 대신 바꿨다');
+    // 카드 **바깥**에 떨어뜨려도 붙는다
+    assert.equal(r.rows, 1, `카드 바깥에 떨어뜨린 파일이 안 붙었다 (${r.rows}개)`);
+    // 그래프가 도는 중에 실제로 한 칸을 가리키고, 끝나면 네 칸이 다 찬다
+    assert.ok(r.mid, '올리는 중인데 그래프가 아무 칸도 안 가리킨다');
+    assert.deepEqual(r.stagesDone, ['고른 파일', '보내는 중', '서버가 읽는 중', '붙었습니다'],
+      '끝났는데 칸이 다 안 찼다');
+    assert.equal(r.stillRunning, false, '끝났는데 선이 계속 흐른다 — 도는 것처럼 보인다');
+    assert.ok(r.chart, '자취 그림이 없다');
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
 
 /**

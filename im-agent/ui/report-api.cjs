@@ -246,6 +246,24 @@ function createHandlers(deps) {
         }
       }
 
+      /**
+       * ★★ **앱의 딜 키를 남긴다** 〈2026-08-20 · 프로젝트-연결-규칙 §3〉.
+       *
+       * 프로젝트를 사람이 만드는 곳은 앱의 딜파이프라인이고, 여기 `LP-…` 는
+       * 그 딜의 **작업 폴더**다. 둘을 **이름으로 이으면** 앱에서 이름을 바꾸는
+       * 날 조용히 끊긴다 — 이름은 바뀌라고 있는 것이다. 그래서 **키로 잇는다.**
+       *
+       * ★ 키는 **앱이 만든다.** 엔진은 받아 적기만 한다 — 양쪽이 만들면 어느
+       *   것이 진짜인지 알 수 없게 된다. 안 주면 `null` 이고, 그때는 앱에서
+       *   만든 딜과 이어지지 않은 폴더라는 뜻이다.
+       */
+      const externalId = b.externalId ? String(b.externalId).trim().slice(0, 128) : null;
+      if (externalId) {
+        const project = store.readJson(out.projectId, '01_Project/project.json', {});
+        project.externalId = externalId;
+        store.writeJson(out.projectId, '01_Project/project.json', project);
+      }
+
       const ds = new Dataset(out.projectId, FIELDS);
       ds.addMany(out.facts || []);
       ds.resolve();
