@@ -171,3 +171,39 @@ test('★★ 추적되는 파일에 NAS 접속정보가 없다 (public — D-10)
   assert.equal(못읽음, 0, `${못읽음}개를 못 읽었다 — 그만큼 안 본 것이다`);
   assert.ok(tracked.length > 100, `추적 파일이 ${tracked.length}개뿐이다 — 목록을 잘못 받았다`);
 });
+
+/**
+ * ★★ **키를 코드가 알고 있어도, 넣는 사람은 `.env.example` 만 본다.**
+ *
+ * 저장소 연결 4종의 키 이름은 `connectors/storage.js` 에 있었고 `SECRET_ENV`
+ * 에도 있었는데 **`.env.example` 에만 없었다**(2026-08-20 발견). 그러면 NAS 에
+ * `.env` 를 채우는 사람은 그 키가 있다는 것 자체를 모르고, 연결 갈래는
+ * 「아직 열려 있지 않습니다」로 조용히 남는다 — 아무 오류도 안 난다.
+ *
+ * ★ 위의 검사는 **한 방향만** 봤다(`.env.example` → `SECRET_ENV`). 반대 방향이
+ *   비어 있어서 이 구멍이 오래 남았다. 검사는 양쪽을 다 봐야 양쪽이 지켜진다.
+ */
+test('★★ 제공자 키가 전부 .env.example 에 있다 (넣는 사람은 이것만 본다)', () => {
+  const storage = require('../connectors/storage');
+  const env = fs.readFileSync(path.join(ROOT, '.env.example'), 'utf8');
+  const missing = storage.PROVIDER_IDS
+    .map(id => storage.PROVIDERS[id].tokenEnv)
+    .filter(k => k && !new RegExp('^' + k + '=', 'm').test(env));
+  assert.deepStrictEqual(missing, [],
+    `.env.example 에 없다: ${missing.join(', ')} — 넣어야 하는 줄 모른다`);
+});
+
+/** ★ 콘솔 설정을 사람이 베껴 적지 않는다 — SCOPES 가 단일 출처다 */
+test('★ .env.example 의 콘솔 안내가 SCOPES 와 같다', () => {
+  const storage = require('../connectors/storage');
+  const env = fs.readFileSync(path.join(ROOT, '.env.example'), 'utf8');
+  storage.PROVIDER_IDS.forEach((id) => {
+    const sc = storage.SCOPES[id];
+    sc.allow.forEach((a) => {
+      assert.ok(env.includes(a), `${id}: 허용 범위 '${a}' 가 .env.example 에 없다`);
+    });
+    sc.deny.forEach((d) => {
+      assert.ok(env.includes(d), `${id}: 금지 범위 '${d}' 가 .env.example 에 없다 — 넓게 잡고도 모른다`);
+    });
+  });
+});
