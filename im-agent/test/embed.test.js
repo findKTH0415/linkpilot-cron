@@ -109,10 +109,31 @@ test('★ deploy/nas.sh 가 문법이 맞고 되돌리는 길을 낸다', () => 
 });
 
 test('★ dry-run 이 아무것도 건드리지 않고 돈다', () => {
+  // ★ 주소는 **환경변수로만** 받는다 (D-10). 저장소에 기본값을 두지 않으므로
+  //   테스트도 넣어 줘야 한다 — 닿지 않는 주소를 준다 (dry-run 은 부르지 않는다)
   const out = execFileSync('bash', [path.join(ROOT, 'deploy', 'nas.sh'), '--dry-run'],
-    { cwd: ROOT, encoding: 'utf8' });
+    { cwd: ROOT, encoding: 'utf8', env: Object.assign({}, process.env, { LP_NAS_HOST: 'u@example.invalid' }) });
   assert.match(out, /dry-run/);
   assert.match(out, /되돌리려면/);
+});
+
+/**
+ * ★★ **접속정보를 저장소에 두지 않는다** — public 이다 (D-10 · M-13).
+ *
+ * 기본값을 두면 그 기본값이 곧 공개다. 그래서 주소가 없으면 **멈춘다.**
+ * 「없으면 알아서 되겠지」로 두면 다음 사람이 다시 기본값을 넣는다.
+ */
+test('★★ 주소가 없으면 배포 스크립트가 멈춘다 (기본값을 두지 않는다)', () => {
+  const src = fs.readFileSync(path.join(ROOT, 'deploy', 'nas.sh'), 'utf8');
+  assert.doesNotMatch(src, /LP_NAS_HOST:-[^}\s]/, '접속 주소 기본값이 다시 들어왔다 — public 이다');
+
+  let code = 0; let out = '';
+  try {
+    execFileSync('bash', [path.join(ROOT, 'deploy', 'nas.sh'), '--dry-run'],
+      { cwd: ROOT, encoding: 'utf8', env: Object.assign({}, process.env, { LP_NAS_HOST: '' }) });
+  } catch (e) { code = e.status; out = (e.stderr || '') + (e.stdout || ''); }
+  assert.notEqual(code, 0, '주소 없이도 그냥 돌았다');
+  assert.match(out, /LP_NAS_HOST/, '무엇을 넣어야 하는지 안 알려 준다');
 });
 
 /* ═════════ ④ verify:nas ═════════ */

@@ -15,7 +15,10 @@
 #   되돌리려고 다시 tar 를 말아야 하고, 그 사이 서비스가 멈춘다.
 set -euo pipefail
 
-HOST="${LP_NAS_HOST:-twomh0616@100.89.242.106}"
+# ★★ 접속정보를 이 파일에 적지 않는다. **이 저장소는 public 이다** (D-10).
+#   전에는 계정과 주소를 기본값으로 박아 두었는데, 그것이 곧 공개다.
+#   환경변수로 준다:  export LP_NAS_HOST='사용자@주소'
+HOST="${LP_NAS_HOST:-}"
 ROOT="${LP_NAS_ROOT:-/volume1/docker/linkpilot}"
 DRY=0
 
@@ -32,6 +35,13 @@ done
 
 cd "$(dirname "$0")/.."
 STAMP="$(date +%Y%m%d%H%M)"
+
+# 주소가 없으면 **여기서 멈춘다.** 기본값을 두면 그 기본값이 곧 공개 정보가 된다
+if [ -z "$HOST" ]; then
+  echo "LP_NAS_HOST 가 없다 — 접속정보는 이 저장소에 두지 않는다 (public)." >&2
+  echo "  export LP_NAS_HOST='사용자@주소'   # 필요하면 LP_NAS_ROOT 도" >&2
+  exit 64
+fi
 
 say() { printf '%s\n' "$*"; }
 run() { if [ "$DRY" = 1 ]; then say "  (dry-run) $*"; else eval "$@"; fi; }
