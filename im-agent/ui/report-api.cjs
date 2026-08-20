@@ -513,6 +513,12 @@ function createHandlers(deps) {
           };
         }),
         modes: storage.MODES,
+        // ★★ **앱이 내부로 넘길 때 쓰는 출처 이름을 서버가 알려 준다**
+        //   〈2026-08-21 · 본체 실측 보고 §3-2〉. 화면이 이 값을 손으로 적고
+        //   있었고, 검증기만 그 이름을 몰라서 첨부가 전부 거절됐다.
+        //   같은 값이 세 곳에 따로 있으면 반드시 갈린다 — 여기가 정본이다.
+        //   ★ 단추 목록(`providers`)에는 **넣지 않는다.** 고를 창이 없는 출처다
+        appProvider: storage.INTERNAL_IDS[0] || null,
         // ★ 우리가 사본을 갖지 않는다는 사실을 응답이 말한다
         storesCopies: false,
       });

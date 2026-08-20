@@ -727,3 +727,124 @@ test('★★ 올린 자료가 추출까지 실제로 들어간다 (출처와 함
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+/* ═════════ 앱이 내부로 넘기는 출처 (2026-08-21 · 본체 실측 보고) ═════════
+ *
+ * ★★ **문서·화면이 정한 값을 검증기가 거절하고 있었다.**
+ *   문서(작업인계-지시서 §2-1-2)와 화면은 `linkpilot-app` 으로 정했는데
+ *   `connectors/storage.js` 만 그 이름을 몰라 「모르는 저장소입니다」로 전부
+ *   거절했다. 실기기에서 첨부 2개를 골라 [가져오기] 했더니 **「첨부 0개」**가
+ *   떴다 (2026-08-21 08:12 본체 실측).
+ *
+ *   같은 값이 **세 곳에 따로** 적혀 있어서 생긴 일이다. 그래서 아래 셋을 고정한다:
+ *     ① 문서에 적힌 그 참조가 실제로 통과한다
+ *     ② 단추 목록에는 안 뜬다 (고를 창이 없는 출처다)
+ *     ③ 서버가 알려 주는 이름과 화면이 들고 있는 대비값이 같다
+ */
+
+test('★★ 문서(§2-1-2)에 적은 앱 참조가 그대로 통과한다', () => {
+  const storage = require('../connectors/storage.js');
+  // 문서의 예시 그대로 — provider 는 'linkpilot-app', rev 를 함께 준다
+  const r = storage.normalizeRef({
+    provider: 'linkpilot-app',
+    fileId: 'f1',
+    name: '금호클래식카 회사 소개서.pdf',
+    rev: 'v3',
+    path: '/deal/8842/회사소개서.pdf',
+    bytes: 2400000,
+  });
+  assert.strictEqual(r.ok, true,
+    `문서가 정한 참조를 검증기가 거절한다: ${r.reason}`);
+  assert.strictEqual(r.value.provider, 'linkpilot-app');
+  assert.strictEqual(storage.refKey(r.value), 'linkpilot-app:f1');
+
+  // 판(rev)이 없으면 **여전히 거절한다.** 앱이라고 봐주지 않는다 —
+  // 판을 안 남기면 원본이 바뀌어도 문서에는 아무 표시가 안 남는다
+  const noRev = storage.normalizeRef({ provider: 'linkpilot-app', fileId: 'f1', name: 'a.pdf' });
+  assert.strictEqual(noRev.ok, false);
+  assert.match(noRev.reason, /판\(rev/);
+
+  // 토큰이 섞여 오면 **여전히 거절한다** (장부에 열쇠를 두지 않는다)
+  const tok = storage.normalizeRef({
+    provider: 'linkpilot-app', fileId: 'f1', name: 'a.pdf', rev: 'v1', accessToken: 'x' });
+  assert.strictEqual(tok.ok, false);
+  assert.match(tok.reason, /토큰/);
+});
+
+test('★★ 앱 출처는 연결 단추 목록에 뜨지 않는다 (고를 창이 없다)', () => {
+  const storage = require('../connectors/storage.js');
+  assert.ok(storage.KNOWN_IDS.includes('linkpilot-app'), '아는 목록에 없다 — 참조가 거절된다');
+  assert.ok(!storage.PROVIDER_IDS.includes('linkpilot-app'),
+    '단추 목록에 앱이 떴다 — 누를 창이 없는 단추다');
+  assert.ok(!storage.REGISTRATION.some(r => r.provider === 'linkpilot-app'),
+    '콘솔 등록 목록에 앱이 들어갔다 — 등록할 콘솔이 없다');
+  // 범위 검사는 해당 없음이다. 「검사했다」로 넘기지 않고 그렇게 말한다
+  const sc = storage.checkScope('linkpilot-app', '');
+  assert.strictEqual(sc.ok, true);
+  assert.strictEqual(sc.internal, true);
+  assert.deepStrictEqual(sc.tooWide, []);
+  // 출처 한 줄이 코드값이 아니라 **사람이 읽는 이름**으로 나온다
+  const linked = require('../core/linked.js');
+  const cite = linked.citation({ provider: 'linkpilot-app', name: 'a.pdf',
+    path: '/deal/8842/a.pdf', rev: 'v3', readAt: '2026-08-21T09:00:00+09:00' });
+  assert.match(cite, /^LinkPilot 앱 · \/deal\/8842\/a\.pdf · 판 v3 · 2026-08-21 읽음/);
+  assert.match(cite, /사본 보관 안 함$/);
+  assert.ok(!/linkpilot-app/.test(cite), '출처에 코드값이 그대로 실렸다');
+});
+
+test('★★ 앱 출처 이름은 서버가 정한다 (화면의 대비값과 같아야 한다)', async () => {
+  const storage = require('../connectors/storage.js');
+  const W = require('../ui/report-api.cjs');
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-appprov-'));
+  process.env.IM_AGENT_ROOT = tmp;
+  const h = W.createHandlers({
+    agentRoot: tmp, agentModulePath: path.join(__dirname, '..'),
+    authenticate: () => ({ planId: 'pro', status: 'active' }),
+  });
+  try {
+    const made = await h.createProject({ headers: {} }, { request: '인천 남동공단 데이터센터' });
+    const r = await h.listLinked({ headers: {} }, made.body.projectId);
+    assert.strictEqual(r.status, 200);
+    assert.strictEqual(r.body.appProvider, 'linkpilot-app', '서버가 앱 출처 이름을 안 알려 준다');
+    assert.ok(!r.body.providers.some(p => p.id === 'linkpilot-app'),
+      '단추 목록 응답에 앱이 섞였다');
+
+    // ★ 화면이 들고 있는 대비값이 서버 값과 **같아야 한다.** 갈리면 옛 서버에서
+    //   조용히 거절된다 — 이번 사고가 정확히 그 모양이었다
+    const screen = read('files.html');
+    const m = screen.match(/var APP_PROVIDER = '([^']+)';/);
+    assert.ok(m, '화면에서 대비값을 못 찾았다 — 대조가 불가능해졌다');
+    assert.strictEqual(m[1], storage.INTERNAL_IDS[0],
+      '화면의 대비값이 서버가 정한 이름과 다르다');
+    // 그리고 화면은 **서버 값을 먼저** 쓴다
+    assert.match(codeOf(screen), /state\.linked && state\.linked\.appProvider\) \|\| APP_PROVIDER/,
+      '화면이 서버가 알려 준 이름을 안 쓴다');
+  } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+});
+
+/**
+ * ★★ **가짜 서버가 진짜보다 너그러우면 안 된다.**
+ *
+ * 이번 사고가 미리보기에서 안 잡힌 이유가 이것이다 — 데모 서버는
+ * `provider === 'linkpilot-app'` 이면 그냥 받아 줬고, 진짜 검증기는 거절했다.
+ * 미리보기는 초록이었고 실기기에서만 「첨부 0개」가 떴다.
+ * (심지어 데모 참조에는 `rev` 도 없었다 — 그것도 진짜였다면 거절이다.)
+ */
+test('★★ 미리보기의 가짜 서버가 진짜 검증기와 같은 기준으로 거절한다', async () => {
+  const storage = require('../connectors/storage.js');
+  const { buildLive } = require(path.join(PLATFORM, 'build-files.js'));
+  const out = path.join(os.tmpdir(), 'lp-files-strict-test.html');
+  try {
+    await buildLive(out);
+    const html = fs.readFileSync(out, 'utf8');
+    // 진짜 목록을 **심어서** 쓴다 (손으로 옮겨 적지 않는다)
+    assert.ok(html.includes(JSON.stringify(storage.KNOWN_IDS)),
+      '가짜 서버가 진짜 목록을 안 쓴다 — 데모만 초록이 될 수 있다');
+    assert.match(html, /KNOWN_IDS\.indexOf\(String\(ref\.provider/, '모르는 저장소를 안 거른다');
+    assert.match(html, /if \(!ref\.rev\)/, '판(rev) 없는 참조를 데모가 받아 준다');
+    // 데모 참조에도 판이 들어 있어야 한다 — 없으면 데모가 자기 서버에 거절당한다
+    assert.ok(!/provider: 'linkpilot-app'[^}]*name: '[^']+', kind:/.test(html),
+      '데모 참조에 판(rev)이 빠졌다');
+  } finally { if (fs.existsSync(out)) fs.unlinkSync(out); }
+});
+

@@ -84,6 +84,42 @@ const PROVIDERS = {
 
 const PROVIDER_IDS = Object.keys(PROVIDERS);
 
+/**
+ * **앱이 내부로 넘기는 출처** 〈2026-08-21 · 본체 실측 보고〉.
+ *
+ * ★★ 왜 위 표에 안 넣는가: 위 넷은 **사용자가 고르기 창에서 고르는 남의 저장소**다.
+ *   콘솔 등록·OAuth 범위·chooser 단추가 전부 거기 딸려 있다. 앱이 자기 딜의
+ *   첨부를 넘겨 주는 것은 성격이 다르다 — 고를 창이 없고, 등록할 콘솔이 없고,
+ *   넓어질 범위도 없다. 같은 표에 넣으면 **연결 단추에 「LinkPilot 앱」이 뜬다.**
+ *
+ * ★★ 그렇다고 `normalizeRef` 가 거절하면 안 된다. 실제로 그래서 한 번 막혔다:
+ *   문서(§2-1-2)와 화면은 `linkpilot-app` 으로 정했는데 **검증기만 몰라서**
+ *   「모르는 저장소입니다」로 전부 거절했고, 화면에는 「첨부 0개」가 떴다.
+ *   같은 값이 세 곳에 따로 적혀 있어서 생긴 일이다 (2026-08-21 본체 실측).
+ *
+ * ★ 그래서 **아는 목록과 고르는 목록을 가른다.** `KNOWN` 은 참조를 받아들일 때,
+ *   `PROVIDER_IDS` 는 단추를 그릴 때 쓴다.
+ */
+const INTERNAL = {
+  'linkpilot-app': {
+    id: 'linkpilot-app',
+    name: 'LinkPilot 앱',
+    internal: true,
+    chooser: false,
+    // 앱이 자기 판 번호를 준다. 우리가 정하지 않는다
+    versionField: 'rev',
+    // 제공자 해시가 없다. 지문은 **우리가 읽은 바이트로** 만든다 (fingerprint)
+    hashKind: null,
+    tokenEnv: null,
+  },
+};
+
+const INTERNAL_IDS = Object.keys(INTERNAL);
+
+/** 참조로 **받아들일 수 있는** 출처 전부. 단추 목록(`PROVIDER_IDS`)과 다르다 */
+const KNOWN = Object.assign({}, PROVIDERS, INTERNAL);
+const KNOWN_IDS = Object.keys(KNOWN);
+
 /* ────────────────────────── 폴더까지만 ────────────────────────── */
 
 /**
@@ -145,6 +181,12 @@ const SCOPES = {
  *   등록 화면을 사람이 확인해야 한다」는 뜻이고, 화면이 그렇게 말해야 한다.
  */
 function checkScope(providerId, granted) {
+  // ★ 앱이 내부로 넘기는 출처는 **OAuth 범위 자체가 없다.** 넓어질 것이 없으니
+  //   막을 것도 없다 — 「검사했다」가 아니라 「해당 없다」고 말한다
+  if (INTERNAL[providerId]) {
+    return { ok: true, verifiable: true, tooWide: [], internal: true,
+      reason: '앱이 내부로 넘기는 출처라 범위 개념이 없습니다' };
+  }
   const s = SCOPES[providerId];
   if (!s) return { ok: false, verifiable: false, tooWide: [], reason: '모르는 저장소입니다' };
 
@@ -214,8 +256,10 @@ const MODES = {
 function normalizeRef(raw) {
   const r = raw || {};
   const provider = String(r.provider || '').trim();
-  if (!PROVIDERS[provider]) {
-    return { ok: false, reason: `모르는 저장소입니다 (${PROVIDER_IDS.join(' · ')} 중 하나)` };
+  // ★ **아는 목록**으로 본다 (고르는 목록이 아니다). 앱이 내부로 넘기는 출처는
+  //   단추에 안 뜨지만 참조로는 받는다 — 둘을 같은 목록으로 보면 앱 자료가 막힌다
+  if (!KNOWN[provider]) {
+    return { ok: false, reason: `모르는 저장소입니다 (${KNOWN_IDS.join(' · ')} 중 하나)` };
   }
   const fileId = String(r.fileId || '').trim();
   if (!fileId) return { ok: false, reason: '파일 식별자가 없습니다' };
@@ -248,8 +292,10 @@ function normalizeRef(raw) {
       path: r.path ? String(r.path).slice(0, 1024) : null,
       bytes: Number.isFinite(r.bytes) ? r.bytes : null,
       // 제공자가 준 해시. **종류를 함께 적는다** — 종류를 모르면 비교가 불가능하다
-      providerHash: r.providerHash
-        ? { kind: PROVIDERS[provider].hashKind, value: String(r.providerHash).slice(0, 200) }
+      // ★ 종류를 모르는 해시는 **담지 않는다.** `kind: null` 로 적어 두면 비교할 수
+      //   없는 값이 「있는 것」처럼 남는다. 지문은 어차피 우리가 읽은 바이트로 만든다
+      providerHash: (r.providerHash && KNOWN[provider].hashKind)
+        ? { kind: KNOWN[provider].hashKind, value: String(r.providerHash).slice(0, 200) }
         : null,
       // 구글 문서처럼 **원본 바이트가 없어 내보내야 하는** 경우
       exported: !!r.exported,
@@ -324,6 +370,7 @@ const SCOPE_NOTE = PROVIDER_IDS.reduce((a, id) => {
 
 module.exports = {
   PROVIDERS, PROVIDER_IDS, MODES, SCOPE_NOTE, SCOPES, REGISTRATION,
+  INTERNAL, INTERNAL_IDS, KNOWN, KNOWN_IDS,
   normalizeRef, refKey, fingerprint, checkScope,
   keepCopy, shareOutward, exportedNote,
 };

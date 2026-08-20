@@ -22,6 +22,8 @@ const HERE = __dirname;
 const { findBrowser, publishable, renderDom } = require('./build-static.js');
 const { inlineScreen } = require('./build-static.js');
 const { selfContained } = require('./build-preview.js');
+// ★ 가짜 서버가 **진짜 목록**을 쓰게 한다 — 손으로 옮겨 적으면 갈린다
+const storage = require(path.join(HERE, '..', '..', 'connectors', 'storage.js'));
 
 /** 예시 자료 — 실제 딜 자료는 이 저장소에 두지 않는다 (public) */
 const DEMO = {
@@ -137,7 +139,16 @@ function publishableLive(frag) {
   return bad;
 }
 
-/** 화면 안에 두는 가짜 서버. **실제 응답 모양을 그대로 흉내낸다** */
+/**
+ * 화면 안에 두는 가짜 서버. **실제 응답 모양을 그대로 흉내낸다.**
+ *
+ * ★★ **가짜 서버가 진짜보다 너그러우면 안 된다** 〈2026-08-21〉. 앱 첨부를
+ *   받는 길을 만들 때 여기서는 `provider === 'linkpilot-app'` 이면 그냥 받아
+ *   줬는데, **진짜 검증기(`connectors/storage.js`)는 그 이름을 몰라 전부
+ *   거절하고 있었다.** 미리보기는 초록이었고 실기기에서만 「첨부 0개」가 떴다.
+ *   그래서 지금은 **진짜 목록을 심어서** 같은 기준으로 거절한다 — 데모가
+ *   되는데 실물이 안 되는 일이 다시 나면 여기서 먼저 빨개진다.
+ */
 function fakeServer(limits) {
   return `<script>
 (function () {
@@ -145,6 +156,13 @@ function fakeServer(limits) {
   // ★ 예시 응답. 모양은 실제 API 와 같게 둔다 — 모양이 다르면 여기서 되는 것이
   //   실제로도 된다는 뜻이 아니게 된다
   var LIMITS = ${JSON.stringify(limits)};
+  // ★ 진짜 검증기의 목록을 **그대로 심는다.** 손으로 옮겨 적으면 갈린다
+  var KNOWN_IDS = ${JSON.stringify(storage.KNOWN_IDS)};
+  var PROVIDERS_DEMO = ${JSON.stringify(storage.PROVIDER_IDS.map(id => ({
+    id, name: storage.PROVIDERS[id].name, configured: false,
+    keyEnv: storage.PROVIDERS[id].tokenEnv,
+  })))};
+  var INTERNAL_IDS = ${JSON.stringify(storage.INTERNAL_IDS)};
   var kept = [];
   var oneshot = [];
   var base = [
@@ -198,18 +216,29 @@ function fakeServer(limits) {
     //   되는 것처럼 보여 주면 그것이 곧 거짓말이다
     if (/\\/linked$/.test(p) && method === 'POST') {
       var ref = (body && body.ref) || {};
-      // 앱이 준 것은 받는다 — 앱은 자기 파일의 접근권을 안다
-      if (ref.provider === 'linkpilot-app') {
-        linked.push({ name: ref.name, kind: ref.kind || 'file' });
-        return [200, { key: 'app-' + linked.length, ref: ref }];
+      // ★★ **진짜 검증기와 같은 기준으로** 거절한다. 여기만 너그러우면
+      //   미리보기는 초록인데 실물은 「첨부 0개」가 된다 (2026-08-21 실측)
+      if (KNOWN_IDS.indexOf(String(ref.provider || '')) === -1) {
+        return [400, { error: '모르는 저장소입니다 (' + KNOWN_IDS.join(' · ') + ' 중 하나)' }];
       }
-      return [501, { error: '저장소 연결이 아직 열려 있지 않습니다 (본체가 함수를 넘겨야 합니다)' }];
+      if (!ref.rev) {
+        return [400, { error: '판(rev/version)이 없습니다 — 파일만 가리키면 나중에 바뀌어도 알 수 없습니다' }];
+      }
+      // 고르기 창으로 붙이는 저장소는 **실제로도 아직 안 열려 있다**
+      if (INTERNAL_IDS.indexOf(String(ref.provider)) === -1) {
+        return [501, { error: '저장소 연결이 아직 열려 있지 않습니다 (본체가 함수를 넘겨야 합니다)' }];
+      }
+      linked.push({ name: ref.name, kind: ref.kind || 'file' });
+      return [200, { key: 'app-' + linked.length, ref: ref }];
     }
-    if (/\\/linked$/.test(p)) return [200, { items: linked, storesCopies: false, providers: [
-      { id: 'dropbox', name: 'Dropbox', configured: false, keyEnv: 'DROPBOX_APP_KEY' },
-      { id: 'box', name: 'Box', configured: false, keyEnv: 'BOX_CLIENT_ID' },
-      { id: 'google', name: 'Google Drive', configured: false, keyEnv: 'GOOGLE_CLIENT_ID' },
-      { id: 'onedrive', name: 'OneDrive · SharePoint', configured: false, keyEnv: 'MS_CLIENT_ID' } ] }];
+    if (/\\/linked$/.test(p)) {
+      // ★ 단추 목록도 진짜 표에서 온다. 손으로 적으면 이름·개수가 갈린다.
+      //   appProvider 는 **단추에 안 뜬다** — 고를 창이 없는 출처다.
+      //   (이 주석에 역따옴표를 쓰지 않는다 — 이 블록 전체가 템플릿 문자열이라
+      //    역따옴표 한 쌍이 문자열을 끊어 버린다. 실제로 그렇게 한 번 깨졌다)
+      return [200, { items: linked, storesCopies: false,
+        appProvider: INTERNAL_IDS[0] || null, providers: PROVIDERS_DEMO }];
+    }
     return [404, { error: '예시 서버에 없는 길입니다' }];
   }
 
@@ -263,7 +292,13 @@ function fakeServer(limits) {
 </script>`;
 }
 
-/** 예시 앱 딜 — **실제 딜이 아니다** (public 저장소) */
+/**
+ * 예시 앱 딜 — **실제 딜이 아니다** (public 저장소).
+ *
+ * ★★ 예시라도 **실제 서버가 요구하는 것을 다 갖춘다.** 처음엔 `rev` 를 빼고
+ *   만들었는데, 가짜 서버가 너그러워서 그대로 초록이 났다. 진짜 검증기는
+ *   판(rev) 없는 참조를 거절한다 — 실기기에서만 「첨부 0개」로 드러났을 것이다.
+ */
 const APP_DEMO = [
   { id: 'deal-8842', title: '잠원동 역세권개발 주상복합', client: '(주)예시개발', files: 2, images: 1 },
   { id: 'deal-9107', title: '경기도 여주시 대신면 3MW 태양광', client: '예시에너지', files: 1, images: 2 },
@@ -291,18 +326,18 @@ function appBridge() {
           { key: '자유입력', value: '담당자 메모' } ],
         notes: ['현장 방문 소견 (자유 입력)'] },
       files: [
-        { id: 'f1', name: '사업계획서.pdf', bytes: 2400000, ref: { provider: 'linkpilot-app', fileId: 'f1', name: '사업계획서.pdf', kind: 'file' }, access: { url: 'https://example.invalid/f1' } },
-        { id: 'f2', name: '감정평가서.pdf', bytes: 5100000, ref: { provider: 'linkpilot-app', fileId: 'f2', name: '감정평가서.pdf', kind: 'file' }, access: { url: 'https://example.invalid/f2' } } ],
+        { id: 'f1', name: '사업계획서.pdf', bytes: 2400000, ref: { provider: 'linkpilot-app', fileId: 'f1', name: '사업계획서.pdf', rev: 'v7', path: '/deal/8842/사업계획서.pdf', kind: 'file' }, access: { url: 'https://example.invalid/f1' } },
+        { id: 'f2', name: '감정평가서.pdf', bytes: 5100000, ref: { provider: 'linkpilot-app', fileId: 'f2', name: '감정평가서.pdf', rev: 'v2', path: '/deal/8842/감정평가서.pdf', kind: 'file' }, access: { url: 'https://example.invalid/f2' } } ],
       images: [
-        { id: 'i1', name: '현장사진-01.jpg', bytes: 830000, ref: { provider: 'linkpilot-app', fileId: 'i1', name: '현장사진-01.jpg', kind: 'image' }, access: { url: 'https://example.invalid/i1' } } ],
+        { id: 'i1', name: '현장사진-01.jpg', bytes: 830000, ref: { provider: 'linkpilot-app', fileId: 'i1', name: '현장사진-01.jpg', rev: 'v1', path: '/deal/8842/현장사진-01.jpg', kind: 'image' }, access: { url: 'https://example.invalid/i1' } } ],
     },
     'deal-9107': {
       content: { updatedAt: '2026-08-18',
         facts: [{ key: 'solar.capacity_dc_mw', value: 3.4, unit: 'MWdc' }], notes: [] },
-      files: [{ id: 'g1', name: '계통연계-회신.pdf', bytes: 410000, ref: { provider: 'linkpilot-app', fileId: 'g1', name: '계통연계-회신.pdf', kind: 'file' }, access: { url: 'https://example.invalid/g1' } }],
+      files: [{ id: 'g1', name: '계통연계-회신.pdf', bytes: 410000, ref: { provider: 'linkpilot-app', fileId: 'g1', name: '계통연계-회신.pdf', rev: 'v4', kind: 'file' }, access: { url: 'https://example.invalid/g1' } }],
       images: [
-        { id: 'j1', name: '부지-항공.jpg', bytes: 1200000, ref: { provider: 'linkpilot-app', fileId: 'j1', name: '부지-항공.jpg', kind: 'image' }, access: { url: 'https://example.invalid/j1' } },
-        { id: 'j2', name: '배치도.png', bytes: 640000, ref: { provider: 'linkpilot-app', fileId: 'j2', name: '배치도.png', kind: 'image' }, access: { url: 'https://example.invalid/j2' } } ],
+        { id: 'j1', name: '부지-항공.jpg', bytes: 1200000, ref: { provider: 'linkpilot-app', fileId: 'j1', name: '부지-항공.jpg', rev: 'v1', kind: 'image' }, access: { url: 'https://example.invalid/j1' } },
+        { id: 'j2', name: '배치도.png', bytes: 640000, ref: { provider: 'linkpilot-app', fileId: 'j2', name: '배치도.png', rev: 'v1', kind: 'image' }, access: { url: 'https://example.invalid/j2' } } ],
     },
   };
   window.LINKPILOT_FILES = window.LINKPILOT_FILES || {};

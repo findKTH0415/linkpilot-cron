@@ -287,7 +287,9 @@ async function verify(projectDir, headOne) {
  */
 function citation(item) {
   if (!item) return null;
-  const p = storage.PROVIDERS[item.provider];
+  // ★ 아는 목록으로 이름을 찾는다 — 앱이 내부로 넘긴 것도 이름이 있어야
+  //   출처가 「linkpilot-app」이라는 코드값으로 문서에 실리지 않는다
+  const p = storage.KNOWN[item.provider];
   const bits = [
     `${p ? p.name : item.provider}`,
     item.path || item.name,

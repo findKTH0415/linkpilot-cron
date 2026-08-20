@@ -1053,6 +1053,12 @@ window.LINKPILOT_FILES = {
    */
   var APP_STAGES = ['앱에서 읽기', '프로젝트 내용', '자료 잇기', '가져왔습니다'];
 
+  /**
+   * 앱이 내부로 넘기는 출처 이름 — **서버가 알려 주지 않는 옛 판을 위한 대비값.**
+   * 정본은 `GET /linked` 의 `appProvider` 다. 둘이 같은 값인지는 검사가 지킨다.
+   */
+  var APP_PROVIDER = 'linkpilot-app';
+
   /** 앱 목록에서 딜 하나를 찾는다 */
   function appEntry(appId) {
     var apps = Array.isArray(C.appProjects) ? C.appProjects : [];
@@ -1218,8 +1224,15 @@ window.LINKPILOT_FILES = {
       var push = function (list, kind) {
         (list || []).forEach(function (f) {
           jobs.push(function () {
-            var ref = f.ref || { provider: 'linkpilot-app', fileId: f.id || f.name, name: f.name,
+            // ★★ 출처 이름은 **서버가 정한다** 〈2026-08-21〉. 여기 손으로 적어 두었더니
+            //   검증기만 그 이름을 몰라 첨부가 전부 거절됐고, 화면에는 「첨부 0개」가
+            //   떴다. 서버가 안 알려 주는 옛 판을 위해 같은 값을 뒤에 두되,
+            //   **둘이 같은 값인지는 검사가 지킨다**
+            var prov = (state.linked && state.linked.appProvider) || APP_PROVIDER;
+            var ref = f.ref || { provider: prov, fileId: f.id || f.name, name: f.name,
               rev: f.rev || null, bytes: f.bytes || null, kind: kind };
+            // 앱이 ref 를 통째로 줬어도 출처 이름은 **서버가 아는 것**으로 맞춘다
+            if (f.ref && !f.ref.provider) ref.provider = prov;
             return call('POST', base + '/linked', { ref: ref, access: f.access || null },
               { localGate: true }).then(function (r) {
               if (r && r.ok) { rep[kind === 'image' ? 'images' : 'files'] += 1; return; }
