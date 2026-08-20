@@ -303,3 +303,63 @@ test('★★ 고른 프로젝트를 부모에게 알린다 (앱의 기반정보 
   // 고를 때마다 알린다. 비운 것도 알려야 앱이 그 자리를 비운다
   assert.match(code, /announce\(state\.projectId\);/, '고를 때 알리지 않는다');
 });
+
+/* ═════════ ⑥ iframe 없이 앱 안에 바로 얹는 조각 (2026-08-20) ═════════ */
+
+/**
+ * ★★ iframe 으로 얹으면 앱이 높이를 정해야 하고, 안 맞으면 화면 안에
+ *   **스크롤바가 하나 더** 생긴다. 스크롤이 둘이면 바깥을 내렸는데 안이
+ *   안 내려가는 상태가 된다 — 앱처럼 안 보인다. 그래서 문서 하나로 합친다.
+ *
+ * ★ 합치면 **CSS 가 앱 전체로 샌다.** 화면 CSS 는 `.card`·`.row` 처럼 흔한
+ *   이름을 쓴다. 가두지 않은 규칙 하나가 앱의 다른 화면을 바꾼다.
+ */
+test('★★ 조각의 CSS 가 전부 갇혀 있다 (앱 전체로 새지 않는다)', () => {
+  const { build, check } = require(path.join(PLATFORM, 'build-inline.js'));
+  const r = build('files.html', null);
+  assert.equal(r.id, 'lp-files');
+  assert.equal(r.global, 'LINKPILOT_FILES');
+  assert.ok(r.bytes > 20000, `조각이 너무 작다 (${r.bytes}B) — 스크립트가 빠졌는가`);
+
+  // 가두지 않은 선택자를 **심어서** 실제로 잡는지 본다.
+  // 통과만 확인하면 check() 가 아무것도 안 하게 된 날에도 통과한다
+  const leaky = '<style>body { margin: 0; }\n#lp-files .card { color: red; }</style><div id="lp-files"></div>';
+  const hit = check(leaky, 'lp-files');
+  assert.ok(hit.some(x => /body/.test(x)), '가두지 않은 body 규칙을 못 잡았다');
+
+  // 선언부를 선택자로 잘못 읽지 않는다 (그렇게 헛울음이 났다)
+  const fine = '<style>#lp-files .row { color: var(--x); font-variant-numeric: tabular-nums; }</style><div id="lp-files"></div>';
+  assert.deepEqual(check(fine, 'lp-files'), [], '멀쩡한 규칙을 잘못 잡았다 — 헛울음이다');
+});
+
+/**
+ * ★★ 조각에서는 설정을 **덮어쓰지 않는다.** 원본의 `window.X = {…}` 대입은
+ *   앱이 미리 넣어 둔 값을 지운다 — 그러면 화면이 로그인 안 한 상태로 뜬다.
+ */
+test('★★ 조각은 앱이 먼저 넣은 설정을 지우지 않는다 (대입 → 병합)', () => {
+  const { build } = require(path.join(PLATFORM, 'build-inline.js'));
+  const r = build('files.html', path.join(os.tmpdir(), 'lp-inline-test.html'));
+  const html = fs.readFileSync(r.file, 'utf8');
+  try {
+    assert.match(html, /window\.LINKPILOT_FILES = Object\.assign\(\{/,
+      '설정이 여전히 대입이다 — 앱이 넣은 값을 지운다');
+    assert.match(html, /\}, window\.LINKPILOT_FILES \|\| \{\}\);/,
+      '병합이 닫히지 않았다');
+    // 스크립트를 걷어내면 그림이지 화면이 아니다
+    assert.match(html, /<script/, '스크립트가 없다');
+    assert.ok(!/<iframe/.test(html), 'iframe 이 들어 있다 — 빼려고 만든 조각이다');
+  } finally { fs.unlinkSync(r.file); }
+});
+
+/**
+ * ★ iframe 으로 얹는 길도 남는다. 그때는 **높이를 부모에게 알려** 안쪽
+ *   스크롤바가 안 생기게 한다 — 넘치는 것을 숨기지는 않는다(잘리면 더 나쁘다).
+ */
+test('★★ 브리지가 얹혔을 때 높이를 알린다 (안쪽 스크롤을 없앤다)', () => {
+  const bridge = read('embed-bridge.js');
+  assert.match(bridge, /type: 'lp-embed-height'/, '높이를 안 알린다 — 앱이 늘려 줄 수 없다');
+  assert.match(bridge, /height:auto!important/, '높이 고정을 안 푼다');
+  assert.ok(!/overflow[^;]*hidden/.test(bridge),
+    '넘치는 것을 숨긴다 — 부모가 안 늘려 주면 내용이 잘린다');
+  assert.match(bridge, /window\.location\.origin/, '아무 출처로나 보낸다');
+});

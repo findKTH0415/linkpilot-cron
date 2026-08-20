@@ -274,11 +274,20 @@ window.LINKPILOT_FILES = {
    * ★ 같은 출처로만 보낸다. 다른 출처면 브라우저가 막고, 그건 정상이다.
    */
   function announce(id) {
+    var detail = { projectId: id || null };
+    // ① iframe 으로 얹혔을 때 — 부모 창에 보낸다 (같은 출처로만)
     try {
-      if (window.parent === window) return;
-      window.parent.postMessage({ type: 'lp-files-project', projectId: id || null },
-        window.location.origin);
+      if (window.parent !== window) {
+        window.parent.postMessage({ type: 'lp-files-project', projectId: detail.projectId },
+          window.location.origin);
+      }
     } catch (_) { /* 막혀 있으면 그만 — 이 화면의 동작은 그대로다 */ }
+    // ② iframe 없이 앱 안에 바로 얹혔을 때 — 부모가 곧 같은 문서다.
+    //    창 너머로 보낼 것이 없으므로 **문서 이벤트**로 알린다. 두 방식 중
+    //    어느 쪽으로 얹든 앱이 받는 이름은 하나다 — 둘로 갈리면 한쪽만 고쳐진다
+    try {
+      document.dispatchEvent(new CustomEvent('lp-files-project', { detail: detail }));
+    } catch (_) { /* 오래된 브라우저 */ }
   }
 
   function pickProject(id) {

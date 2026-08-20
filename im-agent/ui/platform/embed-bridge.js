@@ -105,6 +105,51 @@
   // 부모가 「언제 준비됐나」를 알아야 높이 측정·설정 확인을 할 수 있다
   try { if (window.parent !== window) window.parent.postMessage({ type: 'lp-embed-ready', global: name, applied: state.applied }, '*'); } catch (_) { /* 막혀 있으면 그만 */ }
 
+  /**
+   * 탭 안에 얹혔을 때 **높이를 부모에게 알린다** 〈2026-08-20〉.
+   *
+   * ★★ 왜: 앱이 iframe 높이를 고정해 두면 화면 안에 **스크롤바가 하나 더** 생긴다.
+   *   탭 안에서 또 스크롤하는 것은 앱처럼 안 보이고, 스크롤이 둘이면 사용자는
+   *   바깥을 내렸는데 안이 안 내려가는 상태를 만난다.
+   *
+   * ★ 높이 고정을 푸는 것까지만 여기서 한다 (`height:100%` → 내용만큼).
+   *   **넘치는 것을 숨기지는 않는다** — 부모가 안 늘려 주면 내용이 잘리고,
+   *   잘린 화면은 스크롤바보다 나쁘다. 부모가 늘려 주면 스크롤바는 저절로 사라진다.
+   *
+   * ★ 같은 출처로만 보낸다. 값이 안 바뀌면 보내지 않는다 — 리사이즈가
+   *   서로를 부르며 도는 것을 막는다.
+   */
+  (function reportHeight() {
+    if (window.parent === window) return;
+    var st = document.createElement('style');
+    st.id = 'lp-embed-height';
+    st.textContent = 'html,body{height:auto!important;min-height:0!important}.app{min-height:0!important}';
+    (document.head || document.documentElement).appendChild(st);
+
+    var last = 0;
+    var timer = null;
+    function tell() {
+      var h = Math.max(
+        document.documentElement ? document.documentElement.scrollHeight : 0,
+        document.body ? document.body.scrollHeight : 0);
+      if (!h || Math.abs(h - last) < 4) return;    // 4px 미만은 알리지 않는다
+      last = h;
+      try {
+        window.parent.postMessage({ type: 'lp-embed-height', global: name, height: h },
+          window.location.origin);
+      } catch (_) { /* 다른 출처면 막힌다 — 그게 맞다 */ }
+    }
+    function soon() { clearTimeout(timer); timer = setTimeout(tell, 60); }
+
+    if (document.readyState === 'complete') soon();
+    window.addEventListener('load', soon);
+    window.addEventListener('resize', soon);
+    if (window.MutationObserver) {
+      new MutationObserver(soon).observe(document.documentElement,
+        { childList: true, subtree: true, attributes: true, characterData: true });
+    }
+  }());
+
   window.LinkPilotEmbed = {
     global: name,
     applied: state.applied,

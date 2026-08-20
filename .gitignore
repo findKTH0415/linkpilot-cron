@@ -38,3 +38,4 @@ im-agent/ui/platform/result.html
 # 파일을 넣으면 core/fonts.js 가 @font-face 로 문서에 박는다.
 fonts/
 im-agent/ui/platform/files-live.html
+im-agent/ui/platform/files-inline.html
