@@ -65,13 +65,17 @@ test('★★ 화면이 세 갈래의 차이를 먼저 말한다 (연결 ≠ 업�
     '1회성이 재사용 불가라는 말이 없다 — 올린 뒤에 알면 늦다');
 });
 
-test('★ 1회성은 올리기 **전에** 경고한다', () => {
-  const html = read('files.html');
-  const at = html.indexOf('올리기 전에 확인해 주세요');
-  assert.ok(at > 0, '올리기 전 경고가 없다');
-  // 목록보다 위에 있어야 한다 — 아래 있으면 이미 올린 뒤에 읽는다
-  assert.ok(at < html.indexOf('1회성으로 올린 자료가 없습니다'),
-    '경고가 목록보다 아래에 있다');
+test('★★ 1회성은 올리기 **전에**, 그리고 **한 번만** 경고한다', () => {
+  const code = codeOf(read('files.html'));
+  const hits = code.split('올리기 전에 확인해 주세요').length - 1;
+  assert.equal(hits, 1, `경고가 ${hits}번 나온다 — 같은 말을 두 번 하면 읽지 않는다`);
+
+  // ★ 경고는 **고르는 자리**(붙이기 칸)에 있어야 한다. 아래 목록에 두면
+  //   이미 올린 뒤에 읽게 된다
+  const warn = code.indexOf('올리기 전에 확인해 주세요');
+  const drop = code.indexOf("card.appendChild(dropZone())");
+  assert.ok(warn > 0 && drop > 0 && warn < drop,
+    '경고가 파일 고르기보다 뒤에 있다 — 고르고 나서 읽는다');
 });
 
 /* ═════════ ③ 501 은 오류가 아니라 상태다 ═════════ */

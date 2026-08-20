@@ -501,9 +501,10 @@ window.LINKPILOT_FILES = {
       if (state.closed.linked) {
         card.appendChild(waitBox('연결 갈래가 아직 열려 있지 않습니다', state.closed.linked));
       } else {
+        var pv = providerNames();
         card.appendChild(el('p', 'note',
-          '연결은 파일을 올리는 것이 아니라 저장소의 파일을 가리키는 것입니다. '
-          + '아래 목록에서 저장소를 연결하십시오.'));
+          '연결은 파일을 올리는 것이 아니라 저장소의 파일을 가리키는 것입니다.'
+          + (pv ? ' 붙일 수 있는 곳: ' + pv + ' — 폴더 하나까지만 권한을 받습니다.' : '')));
       }
       return card;
     }
@@ -559,17 +560,28 @@ window.LINKPILOT_FILES = {
     return b;
   }
 
+  /**
+   * 보관 목록. **비어 있으면 아무것도 그리지 않는다** 〈2026-08-20〉.
+   *
+   * ★ 전에는 「보관된 자료가 없습니다」·「차지하는 용량 0 B」를 늘 그렸다.
+   *   자료를 넣으러 온 화면에서 **아직 아무것도 없다는 말 셋이 화면을 덮었다**
+   *   (실서버 실측). 없다는 것은 붙이기 칸이 이미 말하고 있다.
+   *
+   * ★ 「아직 안 열렸다」는 그대로 말한다 — 그건 없는 것과 다르다.
+   */
   function keptBlock() {
+    if (state.closed.kept) {
+      var w = document.createDocumentFragment();
+      w.appendChild(el('div', 'grp', '올려서 보관'));
+      w.appendChild(waitBox('보관 경로가 아직 열려 있지 않습니다', state.closed.kept));
+      return w;
+    }
+    var files = (state.kept && state.kept.files) || [];
+    var trashN = ((state.kept && state.kept.trash) || []).length;
+    if (!files.length && !trashN) return null;   // 없으면 절 자체를 만들지 않는다
+
     var out = document.createDocumentFragment();
     out.appendChild(el('div', 'grp', '올려서 보관'));
-    if (state.closed.kept) {
-      out.appendChild(waitBox('보관 경로가 아직 열려 있지 않습니다', state.closed.kept));
-      return out;
-    }
-    if (!state.kept) { out.appendChild(el('p', 'empty', '불러오는 중입니다…')); return out; }
-
-    var files = state.kept.files || [];
-    if (!files.length) out.appendChild(el('p', 'empty', '보관된 자료가 없습니다.'));
     files.forEach(function (f) {
       var b = el('div', 'row__b');
       b.appendChild(el('div', 'row__n', f.name));
@@ -586,25 +598,28 @@ window.LINKPILOT_FILES = {
       n.appendChild(document.createTextNode(' — 버린 자료는 보고서에 실리지 않습니다. 되살릴 수 있습니다.'));
       out.appendChild(n);
     }
+    // ★ 용량은 **찰 때만** 말한다. 0 B 를 늘 적으면 알림이 아니라 잡음이다
     var u = state.kept.usage;
-    if (u && u.billableBytes >= 0) {
+    if (u && u.billableBytes > 0) {
       out.appendChild(el('p', 'note', '차지하는 용량 ' + size(u.billableBytes)
         + ' (버린 자료도 지우기 전까지 함께 셉니다)'));
     }
     return out;
   }
 
+  /** 연결 목록. 비어 있으면 그리지 않는다 — 어디에 붙일 수 있는지는 붙이기 칸이 말한다 */
   function linkedBlock() {
+    if (state.closed.linked) {
+      var w = document.createDocumentFragment();
+      w.appendChild(el('div', 'grp', '연결해서 쓰기 — 사본을 만들지 않습니다'));
+      w.appendChild(waitBox('저장소 연결이 아직 열려 있지 않습니다', state.closed.linked));
+      return w;
+    }
+    var items = (state.linked && state.linked.items) || [];
+    if (!items.length) return null;
+
     var out = document.createDocumentFragment();
     out.appendChild(el('div', 'grp', '연결해서 쓰기 — 사본을 만들지 않습니다'));
-    if (state.closed.linked) {
-      out.appendChild(waitBox('저장소 연결이 아직 열려 있지 않습니다', state.closed.linked));
-      return out;
-    }
-    if (!state.linked) { out.appendChild(el('p', 'empty', '불러오는 중입니다…')); return out; }
-
-    var items = state.linked.items || [];
-    if (!items.length) out.appendChild(el('p', 'empty', '연결한 자료가 없습니다.'));
     items.forEach(function (it) {
       var b = el('div', 'row__b');
       b.appendChild(el('div', 'row__n', it.name));
@@ -619,29 +634,35 @@ window.LINKPILOT_FILES = {
       out.appendChild(el('p', 'note',
         '아직 한 번도 읽지 않은 자료 ' + unread + '건 — 읽어야 지문이 생기고, 그래야 값의 근거가 됩니다.'));
     }
-    // 붙일 수 있는 저장소는 **서버가 알려 준다**. 화면에 적어 두면 늘어날 때 갈린다
-    var pv = (state.linked.providers || []).map(function (p) { return p.name; }).join(' · ');
-    if (pv) out.appendChild(el('p', 'note', '붙일 수 있는 곳: ' + pv + ' — 폴더 하나까지만 권한을 받습니다.'));
     return out;
   }
 
+  /**
+   * 붙일 수 있는 저장소 이름. **서버가 알려 준다** — 화면에 적어 두면 늘어날 때 갈린다.
+   * 연결 갈래를 골랐을 때만 쓴다 (목록 아래에 늘 깔아 두면 잡음이 된다).
+   */
+  function providerNames() {
+    return ((state.linked && state.linked.providers) || []).map(function (p) { return p.name; }).join(' · ');
+  }
+
+  /**
+   * 1회성 기록. 비어 있으면 그리지 않는다.
+   *
+   * ★ 「올리기 전에 확인해 주세요」는 **붙이기 칸**에 있다 — 고르는 그 자리에서
+   *   말해야 늦지 않는다. 여기에 또 두면 같은 경고가 화면에 두 번 나온다.
+   */
   function oneshotBlock() {
+    if (state.closed.oneshot) {
+      var w = document.createDocumentFragment();
+      w.appendChild(el('div', 'grp', '1회성으로 올리기 — 읽고 바로 버립니다'));
+      w.appendChild(waitBox('1회성 자료 경로가 아직 열려 있지 않습니다', state.closed.oneshot));
+      return w;
+    }
+    var items = (state.oneshot && state.oneshot.items) || [];
+    if (!items.length) return null;
+
     var out = document.createDocumentFragment();
     out.appendChild(el('div', 'grp', '1회성으로 올리기 — 읽고 바로 버립니다'));
-    if (state.closed.oneshot) {
-      out.appendChild(waitBox('1회성 자료 경로가 아직 열려 있지 않습니다', state.closed.oneshot));
-      return out;
-    }
-    if (!state.oneshot) { out.appendChild(el('p', 'empty', '불러오는 중입니다…')); return out; }
-
-    // ★ **올리기 전에** 다시 못 쓴다는 것을 말한다. 올린 뒤에 말하면 늦다
-    out.appendChild(waitBox('올리기 전에 확인해 주세요',
-      '1회성 자료는 읽은 뒤 서버에서 지워집니다. 보관하지 않으므로 다시 쓸 수 없고, '
-      + '원본이 그대로인지 나중에 확인할 수도 없습니다. 계속 쓸 자료라면 「올려서 보관」이나 '
-      + '「연결해서 쓰기」를 쓰십시오.'));
-
-    var items = state.oneshot.items || [];
-    if (!items.length) out.appendChild(el('p', 'empty', '1회성으로 올린 자료가 없습니다.'));
     items.forEach(function (it) {
       var b = el('div', 'row__b');
       b.appendChild(el('div', 'row__n', it.name));
@@ -711,9 +732,10 @@ window.LINKPILOT_FILES = {
       return;
     }
 
-    view.appendChild(keptBlock());
-    view.appendChild(linkedBlock());
-    view.appendChild(oneshotBlock());
+    // ★ 빈 절은 아예 만들지 않는다. `null` 을 그대로 넣으면 예외가 난다
+    [keptBlock(), linkedBlock(), oneshotBlock()].forEach(function (b) {
+      if (b) view.appendChild(b);
+    });
   }
 
   render();
