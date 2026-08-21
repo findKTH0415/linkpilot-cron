@@ -112,6 +112,66 @@ test('★★ 스캔: 값이 하나도 안 나오면 empty 로 말한다 — 화�
   assert.equal(r.body.scanned.length, 1, '무엇을 읽으려 했는지는 남아야 한다');
 });
 
+/* ═════════ ③-2 한 파일에 답은 **하나** ═════════ */
+
+/**
+ * ★★ **실제로 돌려 보고 잡았다** 〈2026-08-21〉. 시험은 다 초록이었는데,
+ *   엔진을 띄워 자료를 넣어 보니 같은 파일이 **모순된 두 줄**로 나왔다:
+ *
+ *     · 등기부.png — OCR — 글자로 옮겨 읽음
+ *     · 등기부.png — 못 읽음: GEMINI_API_KEY 가 필요합니다
+ *
+ *   `scanned` 는 「어떻게 읽을 **작정**인가」를, `unread` 는 「실제로 어떻게
+ *   됐나」를 담고 있었고 화면은 **둘 다** 그렸다. 읽을 작정이었던 것과 읽힌
+ *   것은 다르다 — 키가 없으면 OCR 은 안 돈다.
+ *
+ * ★ 사용자는 어느 줄이 사실인지 알 방법이 없다. 그래서 **결과가 작정을 이긴다.**
+ */
+test('★★ 스캔: OCR 하려다 못 했으면 「읽었다」가 남지 않는다 (한 파일 한 줄)', async () => {
+  const p = bareProject();
+  keep(p, '등기부.png', 'PNG');
+  keep(p, '계획서.txt', '총사업비 2,846억원');
+
+  const r = await h(p.root, {
+    extractFiles: async () => ({
+      facts: [{ key: 'a' }],
+      documents: [{ name: '계획서.txt' }],
+      // 실제 추출기가 키 없을 때 내는 모양 그대로
+      unsupported: [{ name: '등기부.png', reason: '이미지 파일 — 스캔본을 읽으려면 키가 필요합니다' }],
+    }),
+  }).scanSources({}, p.id, {});
+
+  assert.equal(r.status, 200);
+  const by = {};
+  r.body.scanned.forEach((f) => { by[f.name] = f; });
+
+  // ① 못 읽은 파일에 「OCR 로 읽었다」가 남아 있으면 안 된다
+  assert.equal(by['등기부.png'].read, false, '못 읽었는데 읽었다고 한다');
+  assert.equal(by['등기부.png'].ocr, false, 'OCR 이 안 돌았는데 돌았다고 한다');
+  assert.match(by['등기부.png'].why, /키가 필요합니다/, '왜 못 읽었는지 **실제 사유**가 없다');
+
+  // ② 같은 파일이 unread 에 **또** 나오면 화면에 두 줄이 된다
+  assert.ok(!(r.body.unread || []).some(u => u.name === '등기부.png'),
+    '온 파일의 실패가 unread 에도 들어가 있다 — 화면에 두 줄로 뜬다');
+
+  // ③ 읽힌 파일은 읽혔다고 한다
+  assert.equal(by['계획서.txt'].read, true);
+
+  // ④ 「OCR 몇 건」은 **실제로 돈 것**만 센다. 앱이 이 숫자를 그대로 쓴다
+  assert.equal(r.body.ocr, 0, 'OCR 이 안 돌았는데 돌았다고 센다');
+});
+
+test('★ 스캔: OCR 이 실제로 돌면 그렇게 센다', async () => {
+  const p = bareProject();
+  keep(p, '등기부.png', 'PNG');
+  const r = await h(p.root, {
+    extractFiles: async () => ({ facts: [{ key: 'a' }], documents: [{ name: '등기부.png' }], unsupported: [] }),
+  }).scanSources({}, p.id, {});
+  assert.equal(r.body.ocr, 1, '읽힌 이미지를 OCR 로 안 센다');
+  assert.equal(r.body.scanned[0].read, true);
+  assert.equal(r.body.scanned[0].ocr, true);
+});
+
 /* ═════════ ④ 실패는 격리한다 — 한 소스가 죽어도 나머지는 읽는다 ═════════ */
 
 test('★★ 스캔: 연결 자료를 못 가져와도 보관 자료는 읽고, 못 읽은 것을 이름으로 말한다', async () => {

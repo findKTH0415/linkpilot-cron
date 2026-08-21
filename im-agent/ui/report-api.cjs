@@ -792,6 +792,8 @@ function createHandlers(deps) {
           how,
           // 「OCR 스캔」이라고 뭉뚱그리지 않는다 — 실제로 옮겨 적는 것만 true 다
           ocr: how === 'ocr',
+          // ★★ `readable` 은 **읽을 작정이었나**다. 「읽혔나」가 아니다 —
+          //   아래에서 추출 결과를 보고 `read` 로 따로 답한다
           readable: !!how && how !== 'convert',
           note: how === 'ocr' ? '이미지입니다 — 글자로 옮겨서 읽습니다 (신뢰도를 낮춰 표시합니다)'
             : how === 'convert' ? `이 형식은 읽지 못합니다 — ${ext02.CONVERT_HINT[f.ext] || 'PDF 나 PNG 로 바꿔서 올립니다'}`
@@ -812,18 +814,49 @@ function createHandlers(deps) {
       }
       if (failed) return bad(`자료를 읽지 못했습니다: ${failed}`, 500);
 
-      // 추출기가 「못 읽었다」고 한 것을 합친다 (형식 밖 · 빈 파일 · OCR 실패)
+      /**
+       * ★★ **작정과 결과를 합친다** 〈2026-08-21 · 실제로 돌려 보고 잡았다〉.
+       *
+       * 전에는 `scanned` 에 「어떻게 읽을 작정인가」를, `unread` 에 「실제로
+       * 어떻게 됐나」를 따로 담아 **둘 다** 돌려줬다. 그래서 화면에 같은 파일이
+       * 모순된 두 줄로 떴다:
+       *
+       *     · 등기부.png — OCR — 글자로 옮겨 읽음
+       *     · 등기부.png — 못 읽음: GEMINI_API_KEY 가 필요합니다
+       *
+       * 읽을 작정이었던 것과 읽힌 것은 **다르다.** 키가 없으면 OCR 은 안 돈다.
+       * 파일 하나에 답은 하나여야 한다 — 그래서 결과를 작정 위에 덮는다.
+       *
+       * ★ `unread` 에는 **아예 오지도 못한 것**만 남긴다 (연결 자료 내려받기
+       *   실패 등). 온 파일의 실패는 그 파일 줄에 적힌다.
+       */
+      const byName = new Map(plan.map(x => [x.name, x]));
       for (const u of (read && read.unsupported) || []) {
-        unread.push({ name: u.name, why: u.reason || u.why || '읽지 못했습니다', from: 'extract' });
+        const why = u.reason || u.why || '읽지 못했습니다';
+        const row = byName.get(u.name);
+        if (row) {
+          // 실제로 못 읽었다 — **작정을 지운다.** 「OCR 로 읽음」이 남으면 거짓말이다
+          row.read = false;
+          row.ocr = false;
+          row.readable = false;
+          row.why = why;            // 왜 못 읽었는지는 **실제 사유**가 이긴다
+        } else {
+          unread.push({ name: u.name, why, from: 'extract' });
+        }
       }
+      // 실패로 안 잡힌 것은 읽힌 것이다
+      for (const row of plan) if (row.read === undefined) row.read = !!row.readable;
 
       const facts = ((read && read.facts) || []).length;
       const documents = ((read && read.documents) || []).length;
+      // ★ 실제로 OCR 이 **돈** 파일 수. 화면·앱이 「OCR 몇 건」을 적을 거면 이것을 쓴다
+      const ocrCount = plan.filter(x => x.ocr && x.read).length;
       return ok({
         scanned: plan,
         unread,
         facts,
         documents,
+        ocr: ocrCount,
         // ★ 값이 하나도 안 나왔으면 **그렇다고 말한다.** 화면이 다음 단계로
         //   넘어가기 전에 알아야 한다 — 넘어가면 빈 칸만 보게 된다
         empty: facts === 0,

@@ -1593,11 +1593,16 @@ window.LINKPILOT_FILES = {
       okBox.appendChild(el('p', 'up__d', res.empty && !res.scanned.length
         ? (res.note || '읽을 자료가 없습니다.')
         : ('문서 ' + res.documents + '건에서 값 ' + res.facts + '개를 만들었습니다.')));
-      // ★ 파일마다 **어떻게 읽었는지**. 「OCR 했다」로 뭉뚱그리지 않는다
+      // ★ 파일마다 **어떻게 읽었는지**. 「OCR 했다」로 뭉뚱그리지 않는다.
+      // ★★ **한 파일에 한 줄이다** 〈2026-08-21 · 실제로 돌려 보고 잡았다〉.
+      //   전에는 「읽을 작정」과 「실제 결과」를 따로 그려서, 같은 파일이
+      //   「OCR 로 읽음」과 「못 읽음」 두 줄로 떴다. 둘 다 화면에 있으면
+      //   사용자는 어느 쪽이 사실인지 알 방법이 없다
       (res.scanned || []).forEach(function (f) {
-        var how = f.ocr ? 'OCR — 글자로 옮겨 읽음'
-          : f.readable ? '본문을 읽음'
-          : (f.note || '읽지 못함');
+        // 서버가 `read` 를 안 주는 옛 판이면 `readable` 로 본다 (모르면 막지 않는다)
+        var got = (f.read === undefined) ? f.readable : f.read;
+        var how = got ? (f.ocr ? 'OCR — 글자로 옮겨 읽음' : '본문을 읽음')
+          : ('못 읽었습니다 — ' + (f.why || f.note || '사유 없음'));
         okBox.appendChild(el('p', 'up__d', '· ' + f.name + ' — ' + how));
       });
       (res.unread || []).forEach(function (u) {

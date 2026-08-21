@@ -99,6 +99,48 @@ test('★★ 인계서가 붙이라는 배선 이름을 엔진이 실제로 본�
   assert.ok(DOC.includes('POST /projects/:id/scan'), '인계서에 스캔 길 주소가 없다');
 });
 
+/* ═════════ ④-2 응답 칸 이름 — 앱이 그대로 읽는 값이다 ═════════ */
+
+/**
+ * ★★ 인계서가 「이 칸을 보세요」라고 한 이름이 서버가 실제로 내는 이름과
+ *   달라지면, 앱은 `undefined` 를 읽고 **아무 오류 없이 빈 화면**을 그린다.
+ *   그래서 칸 이름을 코드에서 확인한다.
+ *
+ * ★ `readable`(읽을 작정) 과 `read`(실제로 읽힘) 는 **다른 값**이다.
+ *   인계서가 그 차이를 말하지 않으면 앱이 엉뚱한 칸을 본다 — 실제로 처음 판이
+ *   그 둘을 안 나눠서 같은 파일이 모순된 두 줄로 떴다.
+ */
+test('★★ 인계서가 보라는 응답 칸을 서버가 실제로 낸다', () => {
+  const api = fs.readFileSync(path.join(__dirname, '..', 'ui', 'report-api.cjs'), 'utf8');
+  const at = api.indexOf('async scanSources(');
+  assert.ok(at > -1, 'scanSources 가 없다');
+  const block = api.slice(at, api.indexOf('async listOneshot(', at));
+
+  ['read', 'why', 'ocr', 'readable', 'scanned', 'unread', 'empty'].forEach((k) => {
+    assert.ok(block.includes(k), `서버가 '${k}' 칸을 안 낸다 — 문서만 그렇게 말한다`);
+    assert.ok(DOC.includes('`' + k + '`') || DOC.includes('"' + k + '"'),
+      `인계서에 '${k}' 칸 설명이 없다`);
+  });
+
+  // ★ 둘의 차이를 **말로** 설명해야 한다. 이름만 적어 두면 같은 것으로 읽는다
+  assert.ok(DOC.includes('읽을 작정') && DOC.includes('실제로 읽혔나'),
+    'readable 과 read 의 차이를 인계서가 설명하지 않는다');
+});
+
+/* ═════════ ④-3 OCR 은 키가 있어야 돈다 ═════════ */
+
+test('★ 인계서가 OCR 키 이야기를 하고, 그 이름이 실제 이름이다', () => {
+  const llm = fs.readFileSync(path.join(__dirname, '..', 'core', 'llm.js'), 'utf8');
+  const m = llm.match(/process\.env\.([A-Z_]*API_KEY)/);
+  assert.ok(m, 'llm.js 가 어떤 키를 쓰는지 못 찾았다');
+  assert.ok(DOC.includes(m[1]),
+    `인계서가 OCR 키 이름('${m[1]}')을 말하지 않는다 — 없으면 이미지만 조용히 빠진다`);
+  // ★ 값이 아니라 **이름**만이다 (CLAUDE.md §2). 값이 실렸는지는 ⑦ 이 본다
+  const http = fs.readFileSync(path.join(__dirname, '..', 'connectors', 'http.js'), 'utf8');
+  assert.ok(http.includes(`'${m[1]}'`),
+    `${m[1]} 가 SECRET_ENV 에 없다 — 로그에 값이 평문으로 남을 수 있다`);
+});
+
 /* ═════════ ⑤ 갈래 이름 — 앞 판이 여기서 갈렸다 ═════════ */
 
 test('★★ 인계서의 갈래 이름이 화면의 WAYS 와 같다', () => {
