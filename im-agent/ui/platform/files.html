@@ -92,12 +92,14 @@ select {
      고르기 칸 하나가 세로 240px 로 부풀었다.
      오류는 안 난다. 넓은 화면에서는 멀쩡하고 **좁은 화면에서만** 그런다. */
   .pick select { flex: 0 0 auto; }
+  /* ★ 좁은 화면일수록 답답하다 — 손가락이 닿는 곳이라 더 그렇다 (2026-08-21) */
+  .pick { gap: 8px; }
 }
 select:focus-visible, button:focus-visible { outline: 2px solid var(--lime-deep); outline-offset: 2px; }
 
 /* 세 갈래를 먼저 갈라 보여 준다 — 이름만 보고 다 같은 업로드로 읽지 않게 */
-.ways { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); margin-bottom: 16px; }
-.way { border: 1px solid var(--line); border-radius: 14px; padding: 13px 15px; background: var(--surface); }
+.ways { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); margin-bottom: 22px; }
+.way { border: 1px solid var(--line); border-radius: 14px; padding: 16px 16px 17px; background: var(--surface); }
 .way__t { font-weight: 800; font-size: 14px; line-height: 1.4; font-family: inherit; }
 .way__k { display: inline-block; font-weight: 700; font-size: 11px; line-height: 1; font-family: inherit; border-radius: 999px;
   padding: 4px 8px; margin-left: 6px; vertical-align: middle; }
@@ -158,10 +160,25 @@ select:focus-visible, button:focus-visible { outline: 2px solid var(--lime-deep)
      없다. 그래서 고른 갈래와 **같은 색으로 칠하고 위쪽을 붙여** 한 덩어리로 보이게 한다.
    ★ 갈래 칸(.pw.on)과 같은 테두리·바탕을 쓴다. 색을 여기서 새로 정하면
      갈래 색을 바꾸는 날 둘이 갈린다 — 토큰 하나를 같이 본다. */
-.wayin { margin-top: -6px; padding: 14px; border-radius: 0 0 14px 14px;
+/* ★ 여백 〈2026-08-21 사용자 지시 — 「위아래 여백을 넉넉히」〉
+   ★★ **위쪽 `-6px` 는 그대로 둔다.** 그것은 여백이 아니라 **갈래 칸에 이어
+     붙이는 이음매**다. 떼면 고르기가 어느 갈래에 속한 것인지 다시 안 보인다.
+     넓히는 것은 **속(padding)과 아래(margin-bottom)**다 — 답답한 것은 그쪽이었다. */
+.wayin { margin-top: -6px; margin-bottom: 20px; padding: 18px 16px 20px;
+  border-radius: 0 0 14px 14px;
   border: 1px solid var(--lime); border-top: 0; background: var(--lime-soft); }
 .wayin .pick { margin-top: 0; }
-.wayin > .note { margin-bottom: 0; }
+/* ★ 안내 한 줄이 고르기 칸에 붙어 있었다 — 한 숨 띄운다 */
+.wayin > .note { margin-top: 13px; margin-bottom: 0; }
+
+/* ★★ **좁은 화면 규칙은 기본 규칙 「뒤」에 둔다** 〈2026-08-21 · 재서 잡았다〉.
+   앞쪽 미디어 블록에 적었더니 **아래의 기본 규칙이 그대로 덮어썼다** — 힘이
+   같으면 나중에 쓴 것이 이긴다. 화면은 멀쩡히 뜨고 오류도 없어서, 재 보기
+   전에는 「적용됐다」와 구분되지 않았다. (실측: 22px 를 줬는데 20px 이 나왔다) */
+@media (max-width: 560px) {
+  .ways { gap: 12px; }
+  .wayin { padding: 18px 15px 22px; margin-bottom: 22px; }
+}
 .pw__t { font-weight: 800; font-size: 14.5px; }
 .pw__d { font-size: 12.5px; color: var(--ink2); margin-top: 6px; line-height: 1.6; }
 

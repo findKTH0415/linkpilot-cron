@@ -124,10 +124,17 @@ const MEASURE = `
  *   실제로 그렇게 한 번 속았다 (2026-08-21: 흐름이 길어져 6초를 넘겼는데,
  *   증상이 「가끔 실패」로만 보여 부하 탓인 줄 알았다).
  */
-function renderDom(browser, file, budgetMs) {
+/**
+ * ★ `width` 를 받는다 〈2026-08-21 추가〉. 좁은 화면 규칙(@media)은 **넓은 창에서
+ *   아예 걸리지 않는다** — 그 상태로 재면 「덮였다」와 「멀쩡하다」가 똑같이
+ *   통과한다. 휴대폰 너비로 재려면 창을 그 너비로 열어야 한다.
+ *   기본값은 그대로 1280 이라 부르던 곳들은 아무것도 안 바뀐다.
+ */
+function renderDom(browser, file, budgetMs, width) {
   return execFileSync(browser, [
     '--headless', '--disable-gpu', '--no-sandbox', '--hide-scrollbars',
-    '--window-size=1280,900', '--virtual-time-budget=' + (budgetMs || 6000), '--dump-dom',
+    '--window-size=' + (width || 1280) + ',900',
+    '--virtual-time-budget=' + (budgetMs || 6000), '--dump-dom',
     'file://' + file,
   ], { maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] }).toString();
 }

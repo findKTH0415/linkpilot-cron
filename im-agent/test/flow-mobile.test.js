@@ -269,3 +269,68 @@ test('★★ 실제 브라우저에서 뼈대가 보이고, 화면이 뜨면 사
   assert.ok(r2.kids > 0, '화면이 아무것도 안 그렸다 — 뼈대만 재고 끝낼 뻔했다');
   assert.strictEqual(r2.boot, false, '화면이 떴는데 뼈대가 아직 남아 있다 — 진짜 내용 위에 겹친다');
 });
+
+/* ═════════ ③ **좁은 화면 여백** — 준 값이 실제로 먹었는가 ═════════ */
+
+/**
+ * ★★ 〈2026-08-21 · 사용자 지시 「[파일 업로드] 와 위아래 여백을 넉넉히」〉
+ *
+ *   여백을 넓히고 **재 봤더니 준 값이 아니었다.** 좁은 화면용 규칙을 파일
+ *   앞쪽 미디어 블록에 적었는데, **아래에 있는 기본 규칙이 그대로 덮어썼다** —
+ *   힘이 같으면 나중에 쓴 것이 이긴다.
+ *
+ * ★ 이 종류는 **눈으로 안 잡힌다.** 화면은 멀쩡히 뜨고 오류도 없다. 여백이
+ *   22px 인지 20px 인지는 보고 알 수 없고, 「고쳤다」와 「덮였다」가 똑같아
+ *   보인다. 그래서 **소스가 아니라 그려진 결과를 잰다.**
+ */
+test('★★ 좁은 화면에서 준 여백이 실제로 먹는다 (덮이면 잡는다)', async () => {
+  const { findBrowser, renderDom } = require(path.join(PLATFORM, 'build-static.js'));
+  if (!findBrowser()) return;
+
+  const { buildLive } = require(path.join(PLATFORM, 'build-files.js'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-gap-'));
+  const frag = path.join(dir, 'frag.html');
+  await buildLive(frag);
+
+  const probe = `<div id="probe"></div><script>setTimeout(function () {
+    var w = document.querySelector('.wayin');
+    var pick = w && w.querySelector('.pick'), note = w && w.querySelector('.note');
+    var cs = w && getComputedStyle(w);
+    document.getElementById('probe').textContent = JSON.stringify({
+      found: !!w,
+      padTop: cs && parseFloat(cs.paddingTop),
+      padBottom: cs && parseFloat(cs.paddingBottom),
+      marginBottom: cs && parseFloat(cs.marginBottom),
+      noteGap: (pick && note)
+        ? Math.round(note.getBoundingClientRect().top - pick.getBoundingClientRect().bottom) : null
+    });
+  }, 900);</script>`;
+
+  const page = path.join(dir, 'p.html');
+  fs.writeFileSync(page, '<!doctype html><html lang="ko"><head><meta charset="utf-8">'
+    + '<meta name="viewport" content="width=device-width, initial-scale=1"></head><body>'
+    + fs.readFileSync(frag, 'utf8') + probe + '</body></html>');
+
+  // ★ 휴대폰 너비로 잰다. 넓은 화면에서는 이 규칙이 아예 안 걸려 통과해 버린다
+  const dom = renderDom(findBrowser(), page, 20000, 430);
+  const m = dom.match(/<div id="probe">([^<]*)<\/div>/);
+  assert.ok(m && m[1], '탐침이 아무것도 안 남겼다');
+  const r = JSON.parse(m[1]);
+
+  assert.ok(r.found, '고르기 칸을 못 찾았다 — 아무것도 재지 못했다');
+
+  // 좁은 화면 규칙이 말하는 값 (files.html 의 @media max-width:560px)
+  assert.strictEqual(r.padBottom, 22,
+    `아래 안쪽 여백이 ${r.padBottom}px 다 — 좁은 화면 규칙(22px)이 덮였다. `
+    + '기본 규칙보다 **뒤에** 두었는지 본다');
+  assert.strictEqual(r.marginBottom, 22,
+    `아래 바깥 여백이 ${r.marginBottom}px 다 — 다음 칸과 붙는다`);
+  assert.ok(r.padTop >= 18, `위 안쪽 여백이 ${r.padTop}px 다 (18px 이상이어야 한다)`);
+
+  // ★ 고르기와 안내가 붙어 있으면 한 덩어리로 읽혀 안내를 안 본다
+  assert.ok(r.noteGap >= 12,
+    `고르기와 안내 사이가 ${r.noteGap}px 다 — 붙어 있으면 안내를 안 읽는다`);
+
+  process.stderr.write(`  [여백] 위 ${r.padTop} · 아래 ${r.padBottom} · 바깥아래 `
+    + `${r.marginBottom} · 고르기↔안내 ${r.noteGap} (430px 너비)\n`);
+});
