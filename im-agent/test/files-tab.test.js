@@ -421,6 +421,12 @@ test('★★ 실제 브라우저에서 떨어뜨리면 붙고, 그래프가 끝�
       sel.value = 'LP-DC-2026-001';
       sel.dispatchEvent(new Event('change', { bubbles: true }));
       await sleep(200);
+      // ★ 처음 갈래는 **앱**이다 (2026-08-21 — 프로젝트 고르는 자리가 거기뿐이라
+      //   기본값이 바뀌었다). 여기서 재려는 것은 「연결 갈래에서 떨어뜨렸을 때
+      //   갈래를 대신 바꾸지 않는가」이므로, **연결로 옮기고 나서** 떨어뜨린다
+      [].slice.call(document.querySelectorAll('.pw')).filter(function (b) {
+        return /폴더를 연결해서/.test(t(b)); })[0].click();
+      await sleep(120);
       // 연결 갈래인 채로 떨어뜨린다 — 갈래를 대신 바꾸지 않는다
       var d0 = new DataTransfer();
       d0.items.add(new File([new Uint8Array(8)], 'a.pdf'));
@@ -1118,5 +1124,114 @@ test('★★ 읽었는데 값이 0이면 넘기지 않고 이유를 보여 준�
     // ★ **왜 안 넘어갔는지**를 말해야 한다. 아무 말 없이 안 가면 고장으로 읽힌다
     assert.match(r.box, /넘어가지 않았습니다/, `안 넘어간 이유를 안 말한다: ${r.box}`);
     assert.match(r.box, /OCR/, '무엇을 어떻게 읽었는지 안 보여 준다');
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+/* ═════════ ⑩ 프로젝트 고르는 자리는 **하나뿐**이다 (2026-08-21 사용자 지시) ═════════ */
+
+/**
+ * ★★ 전에는 **둘**이었다. 화면 맨 위에 고르기가 있고, 「＋ 앱 프로젝트에서
+ *   가져오기」 갈래 안에 앱 딜 고르기가 또 있었다. 같은 앱 딜이 두 곳에 뜨고
+ *   둘이 같은 함수를 부르니, 화면만 봐서는 **어느 쪽이 진짜인지 모른다.**
+ *   사용자가 「상단을 지우고 갈래로 병합」이라고 정했다.
+ *
+ * ★★ 자리를 하나로 모으면 **막다른 길**이 생길 수 있다 — 다른 갈래로 열었는데
+ *   프로젝트가 없으면 고를 방법이 화면에 안 보인다. 그래서 **한 번에 가는
+ *   단추**를 둔다. 이 검사는 그 단추가 실제로 데려다주는지까지 본다.
+ */
+test('★★ 프로젝트 고르기가 하나뿐이고, 다른 갈래에서 한 번에 갈 수 있다', async () => {
+  const { buildLive } = require(path.join(PLATFORM, 'build-files.js'));
+  const { findBrowser, renderDom } = require(path.join(PLATFORM, 'build-static.js'));
+  if (!findBrowser()) return;
+
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-onepick-'));
+  const frag = path.join(dir, 'frag.html');
+  await buildLive(frag);
+
+  const probe = `
+    <div id="probe"></div>
+    <script>
+    (async function () {
+      var sleep = function (m) { return new Promise(function (r) { setTimeout(r, m); }); };
+      var t = function (n) { return n ? (n.textContent || '').trim().replace(/\\s+/g, ' ') : null; };
+      var o = {};
+      await sleep(250);
+      // ① 화면 전체에 고르기는 하나다
+      o.pickers = document.querySelectorAll('.pick select').length;
+      o.firstWay = t(document.querySelector('.pw.on .pw__t'));
+      var sel = document.querySelector('.pick select');
+      o.groups = [].slice.call(sel.querySelectorAll('optgroup')).map(function (g) { return g.label; });
+      o.second = sel.children[1] && sel.children[1].textContent;
+
+      // ② 다른 갈래에는 고르기가 없고, 대신 **가는 단추**가 있다
+      [].slice.call(document.querySelectorAll('.pw')).filter(function (b) {
+        return /파일업로드/.test(t(b)); })[0].click();
+      await sleep(150);
+      o.pickersElsewhere = document.querySelectorAll('.pick select').length;
+      var back = [].slice.call(document.querySelectorAll('.btn2')).filter(function (b) {
+        return /로 가기/.test(t(b)); })[0];
+      o.hasBack = !!back;
+
+      // ③ 그 단추가 실제로 데려다준다 (있다고 적어만 두면 막다른 길이다)
+      if (back) back.click();
+      await sleep(200);
+      o.afterBackWay = t(document.querySelector('.pw.on .pw__t'));
+      o.afterBackPickers = document.querySelectorAll('.pick select').length;
+
+      // ④ 「＋ 신규프로젝트」가 **갈래 안에서** 열린다 (다른 탭으로 안 보낸다)
+      var s2 = document.querySelector('.pick select');
+      s2.value = 'new:';
+      s2.dispatchEvent(new Event('change', { bubbles: true }));
+      await sleep(250);
+      o.newInputs = document.querySelectorAll('.new input').length;
+      o.cards = document.querySelectorAll('section.card').length;
+      o.titles = [].slice.call(document.querySelectorAll('.card__t')).map(t);
+
+      // ⑤ 프로젝트를 고르면 붙이기·스캔이 열린다
+      var s3 = document.querySelector('.pick select');
+      s3.value = 'LP-DC-2026-001';
+      s3.dispatchEvent(new Event('change', { bubbles: true }));
+      await sleep(400);
+      o.afterPick = [].slice.call(document.querySelectorAll('.card__t')).map(t);
+      o.errBoxes = document.querySelectorAll('.err').length;
+      document.getElementById('probe').textContent = JSON.stringify(o);
+    }());
+    </script>`;
+  const page = path.join(dir, 'page.html');
+  fs.writeFileSync(page, '<!doctype html><html lang="ko"><head><meta charset="utf-8"></head><body>'
+    + fs.readFileSync(frag, 'utf8') + probe + '</body></html>');
+
+  try {
+    const dom = renderDom(findBrowser(), page, 30000);
+    const m = dom.match(/<div id="probe">([^<]*)<\/div>/);
+    assert.ok(m && m[1], '탐침이 아무것도 안 남겼다');
+    const r = JSON.parse(m[1]);
+    assert.equal(r.errBoxes, 0, '오류 상자가 떴다');
+
+    // ① 하나뿐
+    assert.equal(r.pickers, 1, `프로젝트 고르기가 ${r.pickers}개다 — 상단 고르기가 되살아났는가`);
+    assert.match(r.firstWay, /앱 프로젝트에서 가져오기/,
+      `처음 갈래가 고르는 자리가 아니다(${r.firstWay}) — 열자마자 아무것도 못 하는 화면이 된다`);
+    // 셋이 한 목록에 있다
+    assert.ok(r.groups.includes('보고서 프로젝트'), '보고서 프로젝트 무리가 없다');
+    assert.ok(r.groups.includes('앱 프로젝트에서 가져오기'), '앱 딜 무리가 없다');
+    assert.match(r.second, /신규프로젝트/, '「＋ 신규프로젝트」가 맨 위가 아니다');
+
+    // ② 다른 갈래에는 고르기를 또 그리지 않는다
+    assert.equal(r.pickersElsewhere, 0, '다른 갈래에도 고르기를 그린다 — 다시 둘이 됐다');
+    assert.ok(r.hasBack, '다른 갈래에서 고르는 자리로 갈 길이 없다 — 막다른 길이다');
+
+    // ③ 단추가 실제로 데려다준다
+    assert.match(r.afterBackWay, /앱 프로젝트에서 가져오기/, '단추를 눌러도 안 옮겨진다');
+    assert.equal(r.afterBackPickers, 1, '옮겨졌는데 고르기가 없다');
+
+    // ④ 만들기가 갈래 안에서 열리고, 카드가 겹치지 않는다
+    assert.equal(r.newInputs, 1, '「＋ 신규프로젝트」를 골랐는데 적는 칸이 없다');
+    assert.ok(r.titles.includes('신규프로젝트'), '만드는 칸 제목이 없다');
+    assert.equal(r.cards, 1, `카드가 ${r.cards}개다 — 갈래 안에 카드를 또 둘러 테두리가 겹친다`);
+
+    // ⑤ 고르면 붙이기·스캔이 열린다
+    assert.ok(r.afterPick.includes('자료 스캔'),
+      `프로젝트를 골랐는데 스캔 칸이 없다: ${r.afterPick.join(' | ')}`);
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });

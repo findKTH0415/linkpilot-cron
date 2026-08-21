@@ -2919,6 +2919,15 @@ Object.assign(window.LINKPILOT_REPORT_FLOW, {
       <div class="upd__d">2026-08-21</div>
       <ul class="upd__l">
         <li>
+          <b>프로젝트 고르는 자리를 하나로 합쳤다 — 상단을 지우고 갈래 안으로</b>
+          <em>화면 · 자료 업로드 탭 (files.html)</em>
+          <span>고르기가 둘이었다. 화면 맨 위에 하나, 「＋ 앱 프로젝트에서 가져오기」 갈래 안에 앱 딜 고르기가 또 하나. 같은 앱 딜이 두 곳에 뜨고 둘이 같은 함수를 부르니 화면만 봐서는 어느 쪽이 진짜인지 모른다. 상단을 지우고 갈래 안 한 목록으로 합쳤다 — ＋ 신규프로젝트(맨 위) · 보고서 프로젝트 · 앱 프로젝트에서 가져오기 세 무리다. 자리가 하나뿐이므로 처음 열릴 때 갈래도 「＋ 앱 프로젝트에서 가져오기」로 바꿨다. 다른 갈래로 열면 아무것도 못 하는 화면부터 보게 되기 때문이다. 다른 갈래에서 프로젝트가 없으면 고르는 자리로 한 번에 가는 단추를 띄운다 — 자리를 하나로 모은 대가다. 안내만 하고 길을 안 주면 막다른 길이 된다. 「＋ 신규프로젝트」로 만드는 칸도 그 갈래 안에서 열린다. 다른 탭으로 보내지 않는다.</span>
+          <div class="upd__ba">
+            <div class="upd__b"><em>전</em>고르기가 둘 · 같은 앱 딜이 두 곳에 · 만들기는 위쪽 목록에서만</div>
+            <div class="upd__a"><em>후</em>고르기 하나 · 갈래 안에 세 무리 · 만들기도 그 자리에서</div>
+          </div>
+          <span class="upd__see">확인: 자료 업로드 탭 — 화면 위쪽에 고르기가 없다. 「자료 붙이기」의 첫 갈래를 고르면 그 안에 목록 하나가 있다. 「파일업로드」로 옮기면 고르기 대신 「＋ 앱 프로젝트에서 가져오기」로 가기 단추가 뜬다.</span>
+        </li><li>
           <b>자료 붙이는 길이 셋이 되고, 넣으면 읽어서 「보고서 생성」으로 넘긴다</b>
           <em>화면 · 자료 업로드 탭 (files.html) + 엔진</em>
           <span>① 앱 프로젝트에서 가져오는 길이 프로젝트 고르기 목록 안에 숨어 있었다 — 자료를 넣으러 온 사람은 「자료 붙이기」에서 두 갈래만 보고 앱 자료는 못 가져오는 줄 알았다. 셋을 나란히 둔다. ② 더 큰 문제는 넣은 자료가 읽히지 않는 것이었다. 읽는 것은 보고서를 만드는 순간이라, 자료를 넣은 사람이 2단계에 가면 빈 칸만 봤다 — 값이 없는 것이 아니라 아직 안 읽은 것인데 화면은 그 둘을 구분해 말하지 못했다. 이제 셋 중 무엇으로 넣든 한 길(POST /projects/:id/scan)로 읽어 값으로 만들고, 값이 들어가면 2단계로 넘긴다. ★ OCR 은 이미지·스캔본에만 건다 — 글자가 든 PDF·워드를 옮겨 적으면 신뢰도만 깎인다. 그래서 「전부 OCR 했다」로 뭉뚱그리지 않고 파일마다 어떻게 읽었는지 보여 준다. ★ 값이 하나도 안 나오면 넘기지 않는다 — 넘어가면 빈 칸만 보고 자기가 뭘 잘못한 줄 안다. 대신 무엇을 못 읽었는지 그 자리에서 보여 준다 (D-76).</span>
@@ -3615,7 +3624,7 @@ LTC 65%</pre>
     <div class="ev__n">화면 사본 16개 · 지문</div>
     <div class="ev__m"><code>npm run verify:nas</code> 가 서버에서 받은 바이트를 이 값과 댑니다.
       하나라도 다르면 <b>옛 판</b>으로 봅니다.</div>
-    <div class="ev__m">catalog.js — <code>2b4e58ccbce4</code> · 7,528B</div><div class="ev__m">embed-bridge.js — <code>adfaadf5247b</code> · 7,712B</div><div class="ev__m">fields-core.js — <code>152424266010</code> · 15,226B</div><div class="ev__m">fields.html — <code>a48cadc3f049</code> · 48,780B</div><div class="ev__m">files.html — <code>261897310f89</code> · 106,141B</div><div class="ev__m">flow-core.js — <code>8038a16ec613</code> · 18,280B</div><div class="ev__m">gate-core.js — <code>2e27fb3b0d9b</code> · 5,615B</div><div class="ev__m">inapp.js — <code>1af85eb70502</code> · 12,176B</div><div class="ev__m">intake.html — <code>1b3e1e429779</code> · 51,079B</div><div class="ev__m">live-core.js — <code>221e2973ea2c</code> · 21,686B</div><div class="ev__m">outputs.html — <code>d2e24e2d3c58</code> · 33,160B</div><div class="ev__m">report-flow.html — <code>48c21a5860ce</code> · 40,658B</div><div class="ev__m">reports.html — <code>b5f9db8f1d7e</code> · 49,537B</div><div class="ev__m">tokens.css — <code>923e58aaec67</code> · 5,491B</div><div class="ev__m">upload-core.js — <code>b912c6a3a561</code> · 6,450B</div><div class="ev__m">versions-core.js — <code>aadeb4e0dff1</code> · 9,501B</div>
+    <div class="ev__m">catalog.js — <code>2b4e58ccbce4</code> · 7,528B</div><div class="ev__m">embed-bridge.js — <code>adfaadf5247b</code> · 7,712B</div><div class="ev__m">fields-core.js — <code>152424266010</code> · 15,226B</div><div class="ev__m">fields.html — <code>a48cadc3f049</code> · 48,780B</div><div class="ev__m">files.html — <code>22fcd1bb75a9</code> · 107,364B</div><div class="ev__m">flow-core.js — <code>8038a16ec613</code> · 18,280B</div><div class="ev__m">gate-core.js — <code>2e27fb3b0d9b</code> · 5,615B</div><div class="ev__m">inapp.js — <code>1af85eb70502</code> · 12,176B</div><div class="ev__m">intake.html — <code>1b3e1e429779</code> · 51,079B</div><div class="ev__m">live-core.js — <code>221e2973ea2c</code> · 21,686B</div><div class="ev__m">outputs.html — <code>d2e24e2d3c58</code> · 33,160B</div><div class="ev__m">report-flow.html — <code>48c21a5860ce</code> · 40,658B</div><div class="ev__m">reports.html — <code>b5f9db8f1d7e</code> · 49,537B</div><div class="ev__m">tokens.css — <code>923e58aaec67</code> · 5,491B</div><div class="ev__m">upload-core.js — <code>b912c6a3a561</code> · 6,450B</div><div class="ev__m">versions-core.js — <code>aadeb4e0dff1</code> · 9,501B</div>
   </div>
 
   <div class="ev__c">
