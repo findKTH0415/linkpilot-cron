@@ -73,3 +73,55 @@ test('★★ 열쇠를 먼저 재고 파일을 본다 — 파일이 틀려도 �
   assert.ok(sec < fil,
     'Check files 가 먼저다 — 파일 목록이 틀리면 열쇠 보고를 통째로 못 본다');
 });
+
+/* ═════════ **닿는지만 확인하는 판** — 올려 보는 것이 첫 확인이면 안 된다 ═════════ */
+
+/**
+ * ★★ 〈2026-08-21〉 dry run 에서 고친 잘못이 **한 단 아래에 똑같이** 있었다.
+ *
+ *   dry run 은 Secret 이 들어왔는지만 잰다. 그다음 판은 **곧바로 올리기**였다.
+ *   그러면 「이 열쇠가 실제로 통하나」를 확인하는 첫 방법이 **운영 화면을 덮는
+ *   것**이 된다. 열쇠·주소·계정·개인키 넷 중 하나만 틀려도 그때 알게 되고,
+ *   그때는 이미 NAS 를 건드린 뒤다.
+ *
+ * ★ `probe` 는 tailnet 에 붙고 ssh 로 `echo ok` 까지만 한다. **읽기만 한다.**
+ *   넷이 전부 맞아야 통과하므로 여기가 초록이면 실제 배포도 된다.
+ */
+function stepOf(yml, name) {
+  const start = yml.indexOf('      - name: ' + name);
+  if (start < 0) return null;
+  const rest = yml.slice(start + 10);
+  const next = rest.indexOf('\n      - name: ');
+  return next < 0 ? rest : rest.slice(0, next);
+}
+
+test('★★ probe 는 올리지 않는다 — 확인이 곧 덮어쓰기가 되면 안 된다', () => {
+  const y = fs.readFileSync(path.join(WF, 'deploy-nas.yml'), 'utf8');
+
+  // ① 입력이 있다
+  assert.ok(/^      probe:$/m.test(y), 'probe 입력이 없다');
+
+  // ② ★★ 올리는 단계는 probe 일 때 **돌지 않는다**
+  const up = stepOf(y, 'Upload');
+  assert.ok(up, 'Upload 단계가 없다');
+  assert.match(up, /if:.*!inputs\.dry_run.*&&.*!inputs\.probe/,
+    'Upload 가 probe 를 안 본다 — 「확인만」이 실제 배포가 된다');
+
+  // ③ ★ 파일을 실제로 옮기는 것은 Upload 안에만 있다. probe 쪽에 scp 가
+  //   섞여 들어오면 「읽기만 한다」가 거짓말이 된다
+  const ssh = stepOf(y, 'Set up ssh');
+  const probe = stepOf(y, 'Probe summary');
+  assert.ok(ssh && probe, '두 단계가 다 있어야 한다');
+  [['Set up ssh', ssh], ['Probe summary', probe]].forEach(([n, b]) => {
+    assert.ok(!/\bscp\b/.test(b), `${n} 에 scp 가 있다 — 확인만 한다더니 옮긴다`);
+    assert.ok(!/cp '/.test(b), `${n} 이 NAS 에서 파일을 만든다`);
+  });
+
+  // ④ ★ 그래도 **닿는지는 실제로 재야 한다.** 안 재면 probe 가 초록인데
+  //   실제 배포에서 죽는다 — 확인해 준 것이 아무것도 없는 셈이다
+  assert.match(ssh, /echo ok/, 'ssh 로 실제로 닿아 보지 않는다 — 재지 않은 초록이다');
+
+  // ⑤ probe 도 tailnet 을 지난다 (dry_run 이 아닐 때만 붙으므로)
+  assert.match(stepOf(y, 'Verify tailnet'), /if:.*!inputs\.dry_run/,
+    'Verify tailnet 조건이 바뀌었다 — probe 가 tailnet 을 안 지나면 재는 뜻이 없다');
+});

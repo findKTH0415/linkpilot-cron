@@ -33,9 +33,19 @@ on:
         required: true
         default: '/volume1/web'
       dry_run:
-        description: '실제로 올리지 않고 무엇이 올라갈지만 확인'
+        description: '올리지 않는다 — Secret 이 들어왔는지만 잰다 (NAS 에 손대지 않음)'
         type: boolean
         default: true
+      # ★★ 〈2026-08-21 추가〉 앞 판은 「재기」와 「올리기」 둘뿐이었다. 그래서
+      #   **열쇠가 통하는지 확인하는 첫 방법이 곧 운영 화면을 덮는 것**이었다 —
+      #   dry run 에서 고친 것과 똑같은 잘못이 한 단 아래에 또 있었다.
+      #   이 판은 tailnet 에 붙고 ssh 로 `echo ok` 까지만 한다. **읽기만 한다.**
+      #   넷(TS_AUTHKEY · HOST · USER · KEY)이 전부 맞아야 통과하므로,
+      #   여기가 초록이면 실제 배포도 된다.
+      probe:
+        description: '닿는지만 확인한다 — tailnet + ssh 까지 가고 올리지는 않는다 (dry_run 을 꺼야 뜻이 있다)'
+        type: boolean
+        default: false
 
 concurrency:
   group: deploy-nas
@@ -187,26 +197,45 @@ jobs:
             || { echo "::error::tailnet 에 안 붙었다 — 위 단계가 건너뛰어졌는지 본다"; exit 1; }
           echo "tailnet 연결 확인"
 
-      - name: Upload
+      # ★ ssh 준비와 **닿는지 확인**은 올리든 안 올리든 똑같이 한다.
+      #   여기서 `echo ok` 까지 해 두면 실패했을 때 원인이 하나로 좁혀진다 —
+      #   「붙었는데 못 올렸다」와 「애초에 못 붙었다」가 섞이지 않는다.
+      - name: Set up ssh
         if: ${{ !inputs.dry_run }}
         env:
-          FILES: ${{ inputs.files }}
-          DEST: ${{ inputs.dest }}
           NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
           NAS_USER: ${{ secrets.NAS_SSH_USER }}
           NAS_KEY: ${{ secrets.NAS_SSH_KEY }}
         run: |
           set -euo pipefail
-          for v in NAS_HOST NAS_USER NAS_KEY; do
-            [ -n "${!v}" ] || { echo "::error::Secret 미설정: $v"; exit 1; }
-          done
-
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
           printf '%s\n' "$NAS_KEY" > ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
           # 호스트키를 미리 받아둔다. StrictHostKeyChecking 을 끄지 않는다
           ssh-keyscan -H "$NAS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
 
+          # ★ 읽기만 하는 확인. 여기서 죽으면 **아무것도 안 건드린 상태**다
+          ssh -o BatchMode=yes -o ConnectTimeout=20 -i ~/.ssh/id_deploy \
+            "$NAS_USER@$NAS_HOST" 'echo ok' >/dev/null || {
+            echo "::error::NAS 에 ssh 로 못 붙었다 — NAS_SSH_HOST 가 tailnet 주소인지(사무실 안 주소·DDNS 는 안 된다), 공개키가 NAS 에 들어갔는지, ~/.ssh 권한이 700/600 인지 본다"
+            exit 1
+          }
+          echo "NAS ssh 연결 확인"
+
+      - name: Probe summary
+        if: ${{ !inputs.dry_run && inputs.probe }}
+        run: |
+          echo "::notice::닿는 것까지 확인했다 — **올리지 않았다.** 넷이 다 맞다는 뜻이다. 실제로 올리려면 probe 를 끄고 다시 실행한다."
+
+      - name: Upload
+        if: ${{ !inputs.dry_run && !inputs.probe }}
+        env:
+          FILES: ${{ inputs.files }}
+          DEST: ${{ inputs.dest }}
+          NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+          NAS_USER: ${{ secrets.NAS_SSH_USER }}
+        run: |
+          set -euo pipefail
           # 기존 파일은 날짜를 붙여 백업한 뒤 덮는다 (되돌릴 수 있게)
           STAMP=$(TZ=Asia/Seoul date +%Y%m%d-%H%M)
           for f in $FILES; do
