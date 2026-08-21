@@ -101,3 +101,56 @@ test('★ 자기 값을 어디에 넣는지 안내서가 말한다', () => {
   assert.match(g, /echo "\$NAS_USER@\$NAS_HOST"/,
     '자기 값이 맞는지 확인하는 줄이 없다 — 틀리면 그 아래가 전부 헛돈다');
 });
+
+/* ═════════ ④ tailnet 열쇠는 **두 길 다** 살아 있어야 한다 ═════════ */
+
+/**
+ * ★★ **실측으로 알았다** 〈2026-08-21〉. 콘솔 `Settings › Keys` 에 **Auth keys 와
+ *   API access tokens 둘뿐**이고 OAuth client 자리가 없었다. 워크플로가 OAuth 만
+ *   받으면, **만들 수 있는 열쇠가 있는데도 배포를 못 한다.**
+ *
+ * ★ 그래서 둘 다 받는다. 안내서와 워크플로가 **같은 이름**을 말해야 한다 —
+ *   여기서 갈리면 사용자는 넣었는데 안 읽히는 Secret 을 넣게 된다.
+ */
+test('★★ 워크플로가 OAuth 와 auth key 를 **둘 다** 받는다', () => {
+  const WF = path.join(__dirname, '..', '..', '.github', 'workflows');
+  ['deploy-nas.yml', 'deploy-im.yml'].forEach((name) => {
+    const y = fs.readFileSync(path.join(WF, name), 'utf8');
+
+    // ① 두 길이 다 있다
+    assert.ok(y.includes('TS_OAUTH_CLIENT_ID'), `${name}: OAuth 길이 없다`);
+    assert.ok(y.includes('TS_AUTHKEY'), `${name}: auth key 길이 없다`);
+
+    // ② ★ `if:` 에서 secrets 를 보지 않는다 — 그 자리에서 읽히는지 확실치 않고,
+    //   안 읽히면 **두 단계가 다 건너뛰어져 조용히 안 붙는다**
+    const ifLines = (y.match(/^\s*if:.*$/gm) || []);
+    ifLines.forEach((l) => {
+      assert.ok(!/secrets\./.test(l),
+        `${name}: if 에서 secrets 를 본다 — 조용히 건너뛸 수 있다\n    ${l.trim()}`);
+    });
+
+    // ③ ★★ **붙었는지 재는 단계**가 있다. 없으면 두 단계가 다 건너뛰어져도
+    //   워크플로는 초록으로 계속 가고, 다음 단계에서 엉뚱한 오류로 죽는다
+    assert.ok(/tailscale status/.test(y),
+      `${name}: tailnet 에 실제로 붙었는지 재지 않는다`);
+
+    // ④ 열쇠가 아예 없으면 **이름으로** 말하고 멈춘다
+    assert.ok(/TS_OAUTH_CLIENT_ID \+ TS_OAUTH_SECRET 이나 TS_AUTHKEY/.test(y),
+      `${name}: 열쇠가 없을 때 무엇을 넣어야 하는지 안 말한다`);
+  });
+});
+
+test('★ 안내서와 워크플로가 같은 Secret 이름을 말한다', () => {
+  const g = fs.readFileSync(path.join(DOCS, '자동배포-켜는-법.md'), 'utf8');
+  ['TS_OAUTH_CLIENT_ID', 'TS_OAUTH_SECRET', 'TS_AUTHKEY',
+    'NAS_SSH_HOST', 'NAS_SSH_USER', 'NAS_SSH_KEY'].forEach((k) => {
+    assert.ok(g.includes(k), `안내서에 ${k} 가 없다 — 넣어도 안 읽히는 Secret 이 생긴다`);
+  });
+  // ★ auth key 는 만료가 있다는 것을 **반드시** 말한다. 안 말하면 90일 뒤
+  //   아무도 모르는 채로 배포가 죽는다
+  assert.match(g, /만료/, 'auth key 에 만료가 있다는 것을 안 말한다');
+  // ★ 셋을 켜야 한다는 것도 (하나만 빠져도 붙고 나서 안 된다)
+  ['Reusable', 'Ephemeral'].forEach((k) => {
+    assert.ok(g.includes(k), `auth key 만들 때 ${k} 를 켜라는 말이 없다`);
+  });
+});
