@@ -98,7 +98,9 @@ test('★ 자기 값을 어디에 넣는지 안내서가 말한다', () => {
   assert.match(g, /여기에NAS계정이름/, '자기 값을 넣을 자리를 안 보여 준다');
   assert.match(g, /자기 값으로 바꾼다/, '무엇을 바꿔야 하는지 말하지 않는다');
   // 바꾼 값이 맞는지 **확인하는 줄**이 함께 있어야 한다
-  assert.match(g, /echo "\$NAS_USER@\$NAS_HOST"/,
+  // ★ 따옴표를 걷어냈다 (2-⓪-2) — 검사도 따라간다. 확인하는 **줄 자체**가
+  //   있는지를 보는 것이 요점이지 따옴표가 요점이 아니다
+  assert.match(g, /echo \$NAS_USER@\$NAS_HOST/,
     '자기 값이 맞는지 확인하는 줄이 없다 — 틀리면 그 아래가 전부 헛돈다');
 });
 
@@ -226,4 +228,56 @@ test('★ 접속 단계는 여전히 판정 결과로만 돈다', () => {
         `${name}: Connect to tailnet ${k} 가 판정 결과를 보지 않는다`);
     });
   });
+});
+
+/* ═════════ ⑥ **휘어진 따옴표** — 눈으로는 같고 셸에서는 다르다 ═════════ */
+
+/**
+ * ★★ 〈2026-08-21 · 실제로 여기 갇혔다〉 안내서 명령을 붙여 넣었더니 셸이
+ *   `dquote>` 에서 멈췄다. 따옴표 짝이 안 맞는다는 뜻이다.
+ *
+ *   원인은 **메모(Notes) 앱**이었다. 「똑똑한 따옴표」가 기본으로 켜져 있어
+ *   곧은 따옴표를 **휘어진 따옴표로 자동으로 바꾼다.** 눈으로는 거의 같은데
+ *   셸은 그것을 따옴표로 안 본다. 안내서를 메모에 옮겨 두고 거기서 복사하면
+ *   그대로 걸린다.
+ *
+ * ★ 그래서 둘을 지킨다:
+ *   ① 붙여 넣는 칸에 **휘어진 따옴표가 없다** (문서 자체가 오염되지 않는다)
+ *   ② ssh 절에는 **곧은 따옴표조차 없다** — 없앨 수 있는 함정은 설명하지
+ *      말고 없앤다. 넣을 값에 띄어쓰기가 없으니 애초에 필요가 없었다.
+ */
+const CURLY = ['“', '”', '‘', '’'];
+
+test('★★ 안내서의 붙여넣는 칸에 휘어진 따옴표가 없다 (dquote> 에 갇힌 자리)', () => {
+  const found = [];
+  GUIDES.forEach((name) => {
+    const full = path.join(DOCS, name);
+    if (!fs.existsSync(full)) return;
+    codeBlocks(fs.readFileSync(full, 'utf8')).forEach((b) => {
+      if (!PASTEABLE.has(b.lang)) return;
+      CURLY.forEach((c) => {
+        if (b.body.includes(c)) found.push(`${name} ${b.line}행 부근: ${c}`);
+      });
+    });
+  });
+  assert.deepStrictEqual(found, [],
+    '붙여 넣는 칸에 휘어진 따옴표가 있다 — 셸이 따옴표로 안 본다:\n  ' + found.join('\n  '));
+});
+
+test('★ ssh 만드는 절에는 따옴표를 아예 쓰지 않는다', () => {
+  const g = fs.readFileSync(path.join(DOCS, '자동배포-켜는-법.md'), 'utf8');
+  // ② 절만 잘라 본다 — 다른 절은 따옴표가 필요할 수 있다
+  const from = g.indexOf('#### 2-⓪-2.');
+  const to = g.indexOf('### ③ GitHub 에 넣는다');
+  assert.ok(from > 0 && to > from, 'ssh 절을 못 찾았다');
+
+  codeBlocks(g.slice(from, to)).forEach((b) => {
+    if (!PASTEABLE.has(b.lang)) return;
+    assert.ok(!/["']/.test(b.body),
+      `ssh 절의 명령에 따옴표가 있다 — 따옴표 없이 쓸 수 있는 자리다:\n    ${b.body.trim()}`);
+  });
+
+  // 함정을 **설명도** 해 둔다 — 다른 데서 만났을 때 알아볼 수 있게
+  assert.match(g, /dquote>/, 'dquote> 에 갇히는 것을 안 알려 준다');
+  assert.match(g, /Control \+ C/, '빠져나오는 법을 안 알려 준다');
 });
