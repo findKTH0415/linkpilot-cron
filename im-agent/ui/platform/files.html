@@ -47,36 +47,56 @@ h1 { font-size: 22px; font-weight: 800; letter-spacing: -.01em; margin-bottom: 1
 .card__t { font-size: 16px; font-weight: 800; }
 .card__d { font-size: 13px; color: var(--ink2); margin: 5px 0 0; line-height: 1.65; }
 
+/* ── 프로젝트 고르기 — **가로 폭을 다 쓴다** 〈2026-08-21 사용자 지시〉 ──
+   ★★ 이름이 긴 프로젝트가 실제로 있다. 좁은 칸에 두면 **세 줄로 접히고**,
+     모바일 기본 고르기 창은 그 접힘을 우리가 손댈 수 없다(브라우저가 그린다).
+     그래서 ① 칸을 넓게 쓰고 ② 글씨를 화면 폭에 맞추고 ③ **이름 자체를 줄인다.**
+     셋을 다 해야 한다 — CSS 만으로는 모바일에서 안 먹는다. */
 .pick { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-.pick label { font: 700 12px/1 inherit; color: var(--ink2); letter-spacing: .06em; text-transform: uppercase; }
-select { font: 400 14px/1 inherit; padding: 9px 11px; border-radius: 10px;
-  border: 1px solid var(--line); background: var(--surface); color: var(--ink); min-width: 240px; }
+.pick label { flex: 0 0 auto; font-weight: 700; font-size: 12px; line-height: 1; font-family: inherit; color: var(--ink2);
+  letter-spacing: .06em; text-transform: uppercase; }
+select {
+  /* 남는 폭을 전부 가져간다. `min-width:240px` 만 두면 좁은 화면에서 넘친다 */
+  flex: 1 1 240px;
+  width: 100%; max-width: 100%; min-width: 0;
+  /* 화면이 좁으면 글씨도 같이 줄인다 — 큰 글씨 + 긴 이름이 접힘의 원인이다 */
+  font-weight: 400; font-size: clamp(13px, 3.6vw, 15px); line-height: 1.3; font-family: inherit;
+  padding: 10px 11px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  /* 넘치는 글자는 말줄임으로 — 창을 밀어내지 않는다 */
+  text-overflow: ellipsis;
+}
+/* 아주 좁으면 라벨을 위로 올리고 칸이 한 줄을 다 쓴다 */
+@media (max-width: 560px) {
+  .pick { flex-direction: column; align-items: stretch; gap: 6px; }
+  .pick label { letter-spacing: .04em; }
+}
 select:focus-visible, button:focus-visible { outline: 2px solid var(--lime-deep); outline-offset: 2px; }
 
 /* 세 갈래를 먼저 갈라 보여 준다 — 이름만 보고 다 같은 업로드로 읽지 않게 */
 .ways { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); margin-bottom: 16px; }
 .way { border: 1px solid var(--line); border-radius: 14px; padding: 13px 15px; background: var(--surface); }
-.way__t { font: 800 14px/1.4 inherit; }
-.way__k { display: inline-block; font: 700 11px/1 inherit; border-radius: 999px;
+.way__t { font-weight: 800; font-size: 14px; line-height: 1.4; font-family: inherit; }
+.way__k { display: inline-block; font-weight: 700; font-size: 11px; line-height: 1; font-family: inherit; border-radius: 999px;
   padding: 4px 8px; margin-left: 6px; vertical-align: middle; }
 .way__k--free { background: var(--lime-soft); color: var(--lime-deep); }
 .way__k--pro { background: var(--panel); color: var(--ink2); }
 .way__d { font-size: 12.5px; color: var(--ink2); margin: 6px 0 0; line-height: 1.65; }
 .way__d b { color: var(--ink); }
 
-.grp { font: 700 11.5px/1 inherit; letter-spacing: .08em; text-transform: uppercase;
+.grp { font-weight: 700; font-size: 11.5px; line-height: 1; font-family: inherit; letter-spacing: .08em; text-transform: uppercase;
   color: var(--ink2); margin: 22px 0 9px; }
 
 .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
   border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px;
   margin-bottom: 8px; background: var(--surface); }
 .row__b { flex: 1 1 220px; min-width: 0; }
-.row__n { font: 700 14px/1.4 inherit; word-break: break-all; }
+.row__n { font-weight: 700; font-size: 14px; line-height: 1.4; font-family: inherit; word-break: break-all; }
 .row__m { font-size: 12px; color: var(--ink2); margin-top: 3px;
   font-variant-numeric: tabular-nums; word-break: break-all; }
 .row--gone { background: var(--panel); border-style: dashed; }
 
-.btn { font: 700 13px/1 inherit; padding: 10px 15px; border-radius: 10px;
+.btn { font-weight: 700; font-size: 13px; line-height: 1; font-family: inherit; padding: 10px 15px; border-radius: 10px;
   border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
 .btn--go { background: var(--lime); border-color: var(--lime); color: var(--lp-brand-ink); }
 .btn:disabled, .btn[aria-disabled="true"] { background: var(--panel); color: var(--ink2);
@@ -85,7 +105,7 @@ select:focus-visible, button:focus-visible { outline: 2px solid var(--lime-deep)
 /* 아직 안 붙은 길 — 오류가 아니라 상태다 */
 .wait { border: 1px solid #F0DEBE; background: var(--warn-soft); color: var(--warn-ink);
   border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; }
-.wait__t { font: 800 14px/1.45 inherit; margin-bottom: 5px; }
+.wait__t { font-weight: 800; font-size: 14px; line-height: 1.45; font-family: inherit; margin-bottom: 5px; }
 .wait__d { font-size: 13px; line-height: 1.7; }
 
 .err { border: 1px solid #F3C6C6; background: var(--bad-soft); color: var(--bad-ink);
@@ -97,7 +117,7 @@ select:focus-visible, button:focus-visible { outline: 2px solid var(--lime-deep)
 .drop { border: 2px dashed var(--line); border-radius: 14px; padding: 22px 16px;
   text-align: center; background: var(--panel); cursor: pointer; }
 .drop:focus-visible { outline: 2px solid var(--lime-deep); outline-offset: 2px; }
-.drop__t { font: 700 14.5px/1.4 inherit; }
+.drop__t { font-weight: 700; font-size: 14.5px; line-height: 1.4; font-family: inherit; }
 .drop__s { font-size: 12.5px; color: var(--ink2); margin-top: 6px; }
 .drop input { display: none; }
 .drop.over { border-color: var(--lime); background: var(--lime-soft); }
@@ -125,7 +145,7 @@ select:focus-visible, button:focus-visible { outline: 2px solid var(--lime-deep)
 .up__bar--none { background: repeating-linear-gradient(135deg, #E1E4E8 0 5px, #F3F4F6 5px 10px); }
 .up__d { margin: 0; font-size: 12.5px; color: var(--ink2); line-height: 1.65; }
 .up--error .up__d { color: var(--bad-ink); }
-.btn { padding: 12px 22px; font: 700 14px/1 inherit; border: 0; border-radius: 12px;
+.btn { padding: 12px 22px; font-weight: 700; font-size: 14px; line-height: 1; font-family: inherit; border: 0; border-radius: 12px;
   background: var(--lime); color: var(--ink); cursor: pointer; margin-top: 12px; }
 .btn:disabled { background: var(--panel); color: var(--ink2); cursor: not-allowed; }
 
@@ -175,7 +195,7 @@ select:focus-visible, button:focus-visible { outline: 2px solid var(--lime-deep)
 
 /* 새 프로젝트 만들기 — 고르는 자리에서 바로 */
 .new { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 11px; }
-.new input { flex: 1 1 320px; min-width: 0; font: 400 14px/1.4 inherit;
+.new input { flex: 1 1 320px; min-width: 0; font-weight: 400; font-size: 14px; line-height: 1.4; font-family: inherit;
   padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line);
   background: var(--surface); color: var(--ink); }
 .new input:focus-visible { outline: 2px solid var(--lime-deep); outline-offset: 2px; }
@@ -186,20 +206,37 @@ select:focus-visible, button:focus-visible { outline: 2px solid var(--lime-deep)
   .fx__n--now .fx__dot { animation: none; }
 }
 
+/* ── 원본이 그대로인가 〈2026-08-21 · D-72〉 ────────────────────────
+   폴더를 지켜보지 않기로 했으므로(토큰을 보관하지 않는다) **사람이 눌러서** 본다 */
+.chk { margin-top: 12px; }
+.chk__b { font-weight: 700; font-size: 13px; line-height: 1; font-family: inherit; padding: 10px 15px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+.chk__b:hover:not(:disabled) { border-color: var(--lime-deep); color: var(--lime-deep); }
+.chk__b:disabled { background: var(--panel); color: var(--ink2); cursor: not-allowed; }
+.chk__r { margin-top: 10px; border-radius: 14px; padding: 13px 15px;
+  border: 1px solid var(--line); background: var(--surface); }
+.chk__r--ok { border-color: var(--lime); background: var(--lime-soft); }
+.chk__r--no { border-color: #F0DEBE; background: var(--warn-soft); color: var(--warn-ink); }
+.chk__t { font-weight: 800; font-size: 13.5px; line-height: 1.45; font-family: inherit; }
+.chk__l { margin: 8px 0 0; padding: 0; list-style: none; }
+.chk__l li { font-size: 12.5px; line-height: 1.7; padding: 3px 0; word-break: break-all; }
+.chk__at { font-size: 11.5px; color: var(--ink2); margin: 8px 0 0;
+  font-variant-numeric: tabular-nums; }
+
 /* ── 같은 문서의 여러 판 — **고르는 것은 사람이다** 〈2026-08-21〉 ────── */
 .vc { border: 1px solid #F0DEBE; background: var(--warn-soft); color: var(--warn-ink);
   border-radius: 14px; padding: 14px 16px; margin-top: 12px; }
-.vc__t { font: 800 14px/1.45 inherit; }
+.vc__t { font-weight: 800; font-size: 14px; line-height: 1.45; font-family: inherit; }
 .vc__d { font-size: 12.5px; line-height: 1.7; margin: 5px 0 0; }
 .vc__g { margin-top: 11px; padding-top: 10px; border-top: 1px solid #F0DEBE; }
-.vc__n { font: 700 13px/1.4 inherit; }
+.vc__n { font-weight: 700; font-size: 13px; line-height: 1.4; font-family: inherit; }
 .vc__w { font-size: 12px; margin: 3px 0 7px; }
 .vc__l { margin: 0; padding: 0; list-style: none; }
 .vc__l li { display: flex; gap: 9px; align-items: baseline; font-size: 12.5px;
   padding: 5px 0; line-height: 1.6; }
 .vc__i { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
   width: 19px; height: 19px; border-radius: 50%; background: #F0DEBE;
-  font: 700 11px/1 inherit; color: var(--warn-ink); }
+  font-weight: 700; font-size: 11px; line-height: 1; font-family: inherit; color: var(--warn-ink); }
 .vc__f { font-weight: 700; word-break: break-all; }
 .vc__b { color: var(--ink2); }
 
@@ -289,6 +326,9 @@ window.LINKPILOT_FILES = {
     appStage: -1,    // 가져오는 중 어느 칸인지 (-1 = 안 하는 중)
     appDead: false,
     appReport: null, // 가져온 결과 — **거절된 것을 숨기지 않는다**
+    // 연결한 원본이 그대로인지 (2026-08-21 · D-72 결정에 따라)
+    checking: false,
+    checked: null,   // verify 응답 그대로
     noFolder: false, // 앱 딜은 있는데 작업 폴더가 없는 경우
     // ── 첨부 (2026-08-20) ─────────────────────────────────────────────
     // 전에는 세 갈래가 **설명만**이었다. 무엇이 다른지는 알려 주는데 정작
@@ -309,6 +349,26 @@ window.LINKPILOT_FILES = {
     dropMsg: null,     // 끌어다 놓았는데 받을 수 없을 때 하는 말
     newProj: null,     // { text, busy, error } — 새 프로젝트 만들기
   };
+
+  /**
+   * 고르기 목록에 넣을 **짧은 이름** 〈2026-08-21 사용자 지시〉.
+   *
+   * ★★ 모바일 기본 고르기 창은 **우리가 못 꾸민다.** 브라우저가 그리고, 긴 글은
+   *   그냥 접힌다. 실제로 한 줄이 세 줄이 됐다. 그래서 **글자 수를 줄인다** —
+   *   CSS 로는 손댈 수 없는 자리이기 때문이다.
+   *
+   * ★ 자르되 **무엇이 잘렸는지 보이게** 말줄임을 남기고, 전체 이름은 `title` 로
+   *   달아 둔다(데스크탑에서 올려놓으면 보인다). 그냥 잘라 버리면 비슷한 이름
+   *   둘을 구분할 수 없다.
+   *
+   * ★ 번호(`LP-…`)는 **자르지 않는다.** 그것이 프로젝트를 특정하는 값이다.
+   */
+  function shortLabel(name, id, max) {
+    var n = String(name || '').replace(/\s+/g, ' ').trim();
+    var cap = max || 28;
+    if (n.length > cap) n = n.slice(0, cap - 1).trim() + '…';
+    return id ? (n + ' · ' + id) : n;
+  }
 
   function el(t, c, x) {
     var n = document.createElement(t);
@@ -476,8 +536,17 @@ window.LINKPILOT_FILES = {
     state.appMsg = '『' + (a.title || appId) + '』 보고서 프로젝트를 만드는 중…';
     render();
     call('POST', '/projects', {
+      // ★★ **이름과 요청문을 갈라 보낸다** 〈2026-08-21〉. 전에는 `request` 만
+      //   보냈고 엔진이 그 문장에서 이름을 뽑았다 — 그래서 프로젝트 이름이
+      //   「『서창산업 / CB발행』((주)서창산업) — LinkPilot 앱 프로젝트에서
+      //   가져와 만든 보고서 프로젝트」가 됐다. 고르기 목록이 세 줄로 접혔다.
+      //   `projectName` 을 주면 엔진이 그것을 쓴다.
+      projectName: a.title || ('앱 프로젝트 ' + appId),
       name: a.title || ('앱 프로젝트 ' + appId),
-      request: '『' + (a.title || appId) + '』' + (a.client ? ' (' + a.client + ')' : '') + ' — LinkPilot 앱 프로젝트에서 가져와 만든 보고서 프로젝트',
+      // 요청문은 자산군을 정하는 데 쓰인다 — 여기에는 맥락이 있어야 한다
+      request: '『' + (a.title || appId) + '』'
+        + (a.client ? ' (' + a.client + ')' : '')
+        + ' — LinkPilot 앱 프로젝트에서 가져와 만든 보고서 프로젝트',
     }).then(function (r) {
       state.busy = false;
       if (r.gated) { state.appMsg = null; render(); return; }       // 로그인·플랜 안내는 gate 가 말한다
@@ -874,6 +943,9 @@ window.LINKPILOT_FILES = {
           note: state.linkDead ? '이 칸에서 멈췄습니다.' : '고른 파일을 가리키는 중입니다 — 사본을 만들지 않습니다.',
         }));
       }
+      // ★ 연결한 것이 있으면 **그대로인지 물어볼 수 있어야 한다** (D-72)
+      var chk = checkBox();
+      if (chk) card.appendChild(chk);
       return card;
     }
 
@@ -947,7 +1019,7 @@ window.LINKPILOT_FILES = {
       var b = el('button', 'btn2', p.name);
       b.type = 'button';
       b.disabled = !open;
-      b.style.cssText = 'font:700 13px/1 inherit;padding:10px 14px;border-radius:10px;'
+      b.style.cssText = 'font-weight: 700; font-size: 13px; line-height: 1; font-family: inherit;padding:10px 14px;border-radius:10px;'
         + 'border:1px solid var(--line);color:var(--ink);'
         + (open ? 'background:var(--surface);cursor:pointer'
           : 'background:var(--panel);color:var(--ink2);cursor:not-allowed');
@@ -1343,6 +1415,94 @@ window.LINKPILOT_FILES = {
   }
 
   /**
+   * **원본이 그대로인가** 〈2026-08-21 · D-72 결정〉.
+   *
+   * ★★ 왜 사람이 눌러야 하나: 「그때그때 고르기」로 가기로 했다. 남의 저장소
+   *   열쇠를 **보관하지 않는다** — 보관하지 않는 열쇠는 샐 수 없다. 대신
+   *   **폴더를 지켜볼 수가 없다.** 새 파일이 생기거나 원본이 바뀌어도 우리는
+   *   모른다. 그래서 「지금 확인해 줘」를 사람이 누른다.
+   *
+   * ★★ **서버 길은 처음부터 있었는데 화면이 한 번도 안 불렀다.** 만들어 놓고
+   *   아무도 안 부르는 것이었다 — 그 상태는 아무 오류도 내지 않고, 기능이
+   *   「있다」고 적혀 있는데 실제로는 안 도는 것이 전부다 (M-08 계열).
+   *
+   * ★ **접근권이 만료되면 「다시 골라 주세요」가 나온다.** 그것이 고장이 아니라
+   *   이 선택의 값이라는 것을 화면이 말한다 — 안 그러면 사용자는 고장으로 읽는다.
+   */
+  function checkLinked() {
+    if (state.checking || !state.projectId) return;
+    state.checking = true; state.checked = null; render();
+    call('POST', '/projects/' + encodeURIComponent(state.projectId) + '/linked/verify',
+      {}, { localGate: true })
+      .then(function (r) {
+        state.checking = false;
+        if (r && r.ok) state.checked = r.body;
+        else state.checked = { error: (r && (r.msg || r.closed)) || '확인하지 못했습니다' };
+        render();
+      }, function (e) {
+        state.checking = false;
+        state.checked = { error: e && e.message ? e.message : '확인하지 못했습니다' };
+        render();
+      });
+  }
+
+  /** 확인 결과. **바뀐 것·사라진 것을 접어 두지 않는다** */
+  function checkBox() {
+    var items = (state.linked && state.linked.items) || [];
+    if (!items.length) return null;
+
+    var box = el('div', 'chk');
+    var b = el('button', 'chk__b', state.checking ? '확인하는 중…' : '원본이 그대로인지 확인');
+    b.type = 'button';
+    b.disabled = state.checking;
+    b.addEventListener('click', checkLinked);
+    box.appendChild(b);
+    box.appendChild(el('p', 'note',
+      '폴더를 계속 지켜보지 않습니다 — 남의 저장소 열쇠를 보관하지 않기 때문입니다. '
+      + '대신 필요할 때 눌러서 확인합니다.'));
+
+    var c = state.checked;
+    if (!c) return box;
+
+    if (c.error) {
+      var e1 = el('div', 'chk__r chk__r--no');
+      e1.appendChild(el('div', 'chk__t', '확인하지 못했습니다'));
+      e1.appendChild(el('p', 'chk__l', c.error));
+      box.appendChild(e1);
+      return box;
+    }
+
+    var bad = (c.changed || []).length + (c.missing || []).length
+      + (c.errors || []).length + (c.unread || []).length;
+    var r = el('div', 'chk__r ' + (bad ? 'chk__r--no' : 'chk__r--ok'));
+    r.appendChild(el('div', 'chk__t', bad
+      ? ('확인이 필요한 것이 ' + bad + '건 있습니다')
+      : ('연결한 ' + (c.ok_ || []).length + '건이 모두 그대로입니다')));
+
+    var ul = el('ul', 'chk__l');
+    // ★ 종류마다 **할 일이 다르다.** 뭉쳐서 「확인 필요」로 내면 무엇을 해야 할지 모른다
+    (c.changed || []).forEach(function (x) {
+      ul.appendChild(el('li', null, '· ' + x.name
+        + ' — 원본이 바뀌었습니다 (읽은 판 ' + String(x.was).slice(0, 8)
+        + ' → 지금 ' + String(x.now).slice(0, 8) + '). 다시 읽어야 합니다'));
+    });
+    (c.missing || []).forEach(function (x) {
+      ul.appendChild(el('li', null, '· ' + x.name + ' — 원본이 없습니다 (지웠거나 옮겼습니다)'));
+    });
+    (c.unread || []).forEach(function (x) {
+      ul.appendChild(el('li', null, '· ' + x.name + ' — 아직 한 번도 읽지 않아 견줄 것이 없습니다'));
+    });
+    (c.errors || []).forEach(function (x) {
+      ul.appendChild(el('li', null, '· ' + x.name + ' — ' + x.reason));
+    });
+    if (ul.childNodes.length) r.appendChild(ul);
+
+    if (c.at) r.appendChild(el('p', 'chk__at', c.at + ' 확인'));
+    box.appendChild(r);
+    return box;
+  }
+
+  /**
    * **같은 문서의 여러 판** 〈2026-08-21 · 클라우드 폴더 지시 §7〉.
    *
    * ★★ 폴더에서 자료를 고르면 `IM_v1.pdf` · `IM_v2.pdf` · `IM_Final.pdf` 가 함께
@@ -1479,12 +1639,14 @@ window.LINKPILOT_FILES = {
     //   대신 고르면 「먼저 만드십시오」라고 말한다 (프로젝트-연결-규칙 §4).
     var gEng = el('optgroup'); gEng.label = '보고서 프로젝트';
     (state.projects || []).forEach(function (p) {
-      var label = p.name || p.id || '(이름 없음)';
-      if (p.id) label += ' · ' + p.id;
-      else label += ' — 작업 폴더가 아직 없습니다';
+      var full = p.name || p.id || '(이름 없음)';
+      var label = p.id ? shortLabel(full, p.id)
+        : (shortLabel(full, null) + ' — 작업 폴더가 아직 없습니다');
       var o = el('option', null, label);
+      // 잘린 이름을 **어디선가는 온전히** 볼 수 있어야 한다
+      o.title = full + (p.id ? (' · ' + p.id) : '');
       // 폴더가 없는 딜은 **키로** 고른다. 이름으로 이으면 이름 바꾸는 날 끊긴다
-      o.value = p.id || ('ext:' + (p.externalId || label));
+      o.value = p.id || ('ext:' + (p.externalId || full));
       if (p.id && p.id === state.projectId) o.selected = true;
       gEng.appendChild(o);
     });
@@ -1498,7 +1660,8 @@ window.LINKPILOT_FILES = {
         if (!a || !a.id) return;
         var tail = a.client ? (' · ' + a.client) : (a.owner ? (' · ' + a.owner) : '');
         var mark = linked[String(a.id)] ? ' (이어짐)' : '';
-        var o = el('option', null, (a.title || '(제목 없음)') + tail + mark);
+        var o = el('option', null, shortLabel(a.title || '(제목 없음)', null, 24) + tail + mark);
+        o.title = (a.title || '(제목 없음)') + tail + mark;
         o.value = 'app:' + a.id;
         gApp.appendChild(o);
       });

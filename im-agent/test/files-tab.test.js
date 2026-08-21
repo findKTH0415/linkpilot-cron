@@ -848,3 +848,91 @@ test('★★ 미리보기의 가짜 서버가 진짜 검증기와 같은 기준�
   } finally { if (fs.existsSync(out)) fs.unlinkSync(out); }
 });
 
+/* ═════════ 원본이 그대로인가 (2026-08-21 · D-72 결정) ═════════
+ *
+ * ★★ 「그때그때 고르기」로 가기로 했다 — 남의 저장소 열쇠를 **보관하지 않는다.**
+ *   그래서 **폴더를 지켜볼 수가 없다.** 원본이 바뀌어도 우리는 모른다.
+ *   대신 사람이 눌러서 묻는다. 그 길(`POST /linked/verify`)은 서버에 처음부터
+ *   있었는데 **화면이 한 번도 안 불렀다** — 만들어 놓고 아무도 안 부르는 것이었다.
+ */
+
+test('★★ 연결한 원본이 그대로인지 화면에서 물어볼 수 있다', () => {
+  const code = codeOf(read('files.html'));
+  assert.match(code, /\/linked\/verify/, '확인하는 길을 화면이 안 부른다');
+  assert.match(code, /function checkLinked\(/);
+  // ★ 폴더를 안 지켜보는 **이유**를 화면이 말한다. 안 말하면 「왜 자동이 아니냐」가 된다
+  assert.match(code, /열쇠를 보관하지 않기 때문입니다/,
+    '왜 사람이 눌러야 하는지 화면이 말하지 않는다');
+  // ★ 등급 부족이 화면 전체를 잠그지 않는다
+  assert.match(code, /'\/linked\/verify',\s*\n?\s*\{\},\s*\{ localGate: true \}/,
+    '확인 하나 때문에 탭 전체가 잠긴다');
+});
+
+test('★★ 확인 결과를 종류별로 갈라 말한다 (뭉치면 할 일을 모른다)', () => {
+  const code = codeOf(read('files.html'));
+  // 넷은 사용자가 할 일이 각각 다르다
+  assert.match(code, /원본이 바뀌었습니다/, '바뀐 것을 안 말한다');
+  assert.match(code, /원본이 없습니다/, '사라진 것을 안 말한다');
+  assert.match(code, /아직 한 번도 읽지 않아/, '못 견준 것을 「그대로」로 센다');
+  assert.match(code, /c\.errors \|\| \[\]/, '못 확인한 것을 숨긴다');
+  // ★ 「그대로다」는 **센 것만** 말한다
+  assert.match(code, /\(c\.ok_ \|\| \[\]\)\.length/, '센 것과 다른 수를 말한다');
+});
+
+test('★★ 실제 브라우저에서 확인이 돌고, 만료를 고장으로 그리지 않는다', () => {
+  const { findBrowser, renderDom } = require(path.join(PLATFORM, 'build-static.js'));
+  if (!findBrowser()) return;
+  const { buildLive } = require(path.join(PLATFORM, 'build-files.js'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-chk-'));
+  const frag = path.join(dir, 'frag.html');
+
+  return buildLive(frag).then(() => {
+    const probe = `
+    <div id="probe"></div>
+    <script>
+    (async function () {
+      var sleep = function (m) { return new Promise(function (r) { setTimeout(r, m); }); };
+      var t = function (n) { return n ? (n.textContent || '').trim().replace(/\\s+/g, ' ') : null; };
+      var o = {};
+      await sleep(200);
+      var sel = document.querySelector('select');
+      sel.value = 'app:deal-9107';
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+      var go = null;
+      for (var w = 0; w < 200; w++) {
+        go = [].slice.call(document.querySelectorAll('.btn')).filter(function (b) {
+          return t(b) === '가져오기'; })[0];
+        if (go && !go.disabled) break;
+        await sleep(20);
+      }
+      go.click();
+      for (var k = 0; k < 250; k++) { await sleep(20); if (document.querySelector('.up--done, .up--error')) break; }
+      await sleep(200);
+      [].slice.call(document.querySelectorAll('.pw')).filter(function (b) {
+        return t(b).indexOf('폴더를') === 0; })[0].click();
+      await sleep(150);
+      o.btn = t(document.querySelector('.chk__b'));
+      document.querySelector('.chk__b').click();
+      for (var j = 0; j < 150; j++) { await sleep(20); if (document.querySelector('.chk__r')) break; }
+      o.title = t(document.querySelector('.chk__t'));
+      o.lines = [].slice.call(document.querySelectorAll('.chk__l li')).map(t);
+      // ★ 빨간 「오류」 상자로 그리지 않는다 — 만료는 고장이 아니라 상태다
+      o.errBoxes = document.querySelectorAll('.err').length;
+      document.getElementById('probe').textContent = JSON.stringify(o);
+    }());
+    </script>`;
+    const page = path.join(dir, 'page.html');
+    fs.writeFileSync(page, '<!doctype html><html lang="ko"><head><meta charset="utf-8"></head><body>'
+      + fs.readFileSync(frag, 'utf8') + probe + '</body></html>');
+    const dom = renderDom(findBrowser(), page);
+    const m = dom.match(/<div id="probe">([^<]*)<\/div>/);
+    assert.ok(m && m[1], '탐침이 아무것도 안 남겼다');
+    const r = JSON.parse(m[1]);
+    assert.match(r.btn, /원본이 그대로인지 확인/, '확인 단추가 없다');
+    assert.match(r.title, /확인이 필요한 것이/, '결과를 안 그린다');
+    assert.ok(r.lines.some(x => /원본이 바뀌었습니다/.test(x)), '바뀐 것을 안 보여 준다');
+    assert.ok(r.lines.some(x => /다시 골라 주세요/.test(x)), '만료를 안 보여 준다');
+    // ★★ 만료를 **빨간 오류**로 그리면 고장으로 읽힌다 — 이 선택의 값일 뿐이다
+    assert.equal(r.errBoxes, 0, '만료를 오류 상자로 그렸다');
+  }).finally(() => fs.rmSync(dir, { recursive: true, force: true }));
+});

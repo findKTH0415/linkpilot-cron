@@ -141,15 +141,15 @@ h1 { font-size: 22px; font-weight: 800; letter-spacing: -.01em; margin-bottom: 1
 
 /* 프로젝트 고르기 */
 .pick { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-.pick label { font: 700 12px/1 inherit; color: var(--ink2); letter-spacing: .06em; text-transform: uppercase; }
-select { font: 400 14px/1 inherit; padding: 9px 11px; border-radius: 10px;
+.pick label { font-weight: 700; font-size: 12px; line-height: 1; font-family: inherit; color: var(--ink2); letter-spacing: .06em; text-transform: uppercase; }
+select { font-weight: 400; font-size: 14px; line-height: 1; font-family: inherit; padding: 9px 11px; border-radius: 10px;
   border: 1px solid var(--line); background: var(--surface); color: var(--ink); min-width: 240px; }
 select:focus-visible { outline: 2px solid var(--lime-deep); outline-offset: 2px; }
 
 /* 진행 */
 .prog__h { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; margin-bottom: 9px; }
-.pct { font: 800 26px/1 inherit; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
-.cnt { font: 600 13px/1 inherit; color: var(--lime-deep); background: var(--lime-soft);
+.pct { font-weight: 800; font-size: 26px; line-height: 1; font-family: inherit; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.cnt { font-weight: 600; font-size: 13px; line-height: 1; font-family: inherit; color: var(--lime-deep); background: var(--lime-soft);
   border-radius: 6px; padding: 4px 8px; font-variant-numeric: tabular-nums; }
 .of { font-size: 12px; color: var(--ink2); }
 .bar { height: 9px; border-radius: 999px; background: var(--line); overflow: hidden; }
@@ -162,13 +162,13 @@ select:focus-visible { outline: 2px solid var(--lime-deep); outline-offset: 2px;
 /* 배포 차단 — 목록보다 위 */
 .block { border-radius: 14px; padding: 14px 16px; margin-bottom: 14px;
   background: var(--bad-soft); border: 1px solid #F3C6C6; color: var(--bad-ink); }
-.block__t { font: 800 15px/1.4 inherit; margin-bottom: 5px; }
+.block__t { font-weight: 800; font-size: 15px; line-height: 1.4; font-family: inherit; margin-bottom: 5px; }
 .block ul { margin-top: 7px; }
 .block li { font-size: 13px; line-height: 1.7; padding-left: 13px; position: relative; }
 .block li::before { content: '·'; position: absolute; left: 3px; }
 
 /* 목록 */
-.grp { font: 700 11.5px/1 inherit; letter-spacing: .08em; text-transform: uppercase;
+.grp { font-weight: 700; font-size: 11.5px; line-height: 1; font-family: inherit; letter-spacing: .08em; text-transform: uppercase;
   color: var(--ink2); margin: 20px 0 9px; }
 .doc { display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
   border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px;
@@ -176,15 +176,15 @@ select:focus-visible { outline: 2px solid var(--lime-deep); outline-offset: 2px;
 .doc--out { background: #FCFDFD; }
 .doc--wait { background: var(--panel); border-style: dashed; }
 .doc__b { flex: 1 1 210px; min-width: 0; }
-.doc__n { font: 700 14px/1.4 inherit; }
+.doc__n { font-weight: 700; font-size: 14px; line-height: 1.4; font-family: inherit; }
 .doc__m { font-size: 12px; color: var(--ink2); margin-top: 3px;
   font-variant-numeric: tabular-nums; word-break: break-all; }
 .doc__w { font-size: 12.5px; color: var(--warn-ink); margin-top: 3px; line-height: 1.6; }
-.tag { flex: none; font: 700 11px/1 inherit; padding: 5px 8px; border-radius: 6px; }
+.tag { flex: none; font-weight: 700; font-size: 11px; line-height: 1; font-family: inherit; padding: 5px 8px; border-radius: 6px; }
 .tag--wait { background: var(--warn-soft); color: var(--warn-ink); }
 .tag--maybe { background: var(--panel); color: var(--ink2); }
 a.btn, button.btn {
-  flex: none; font: 700 12.5px/1 inherit; padding: 9px 13px; border-radius: 9px;
+  flex: none; font-weight: 700; font-size: 12.5px; line-height: 1; font-family: inherit; padding: 9px 13px; border-radius: 9px;
   border: 1px solid var(--line); background: var(--surface); color: var(--ink);
   text-decoration: none; cursor: pointer;
 }
@@ -196,7 +196,7 @@ a.btn[aria-disabled="true"] { opacity: .45; pointer-events: none; }
    ★ 대상이 있어야 뜻이 있는 단추들이다. 그래서 **무엇을 고른 상태인지**를
      바로 옆에 적는다 — 안 적으면 어느 문서를 내려받는지 모르는 채 누른다. */
 .acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-.act { font: 700 13px/1 inherit; padding: 11px 16px; border-radius: 999px;
+.act { font-weight: 700; font-size: 13px; line-height: 1; font-family: inherit; padding: 11px 16px; border-radius: 999px;
   border: 1px solid var(--line); background: var(--surface); color: var(--ink);
   cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
 .act:hover:not([aria-disabled="true"]):not(:disabled) { border-color: var(--lime-deep); color: var(--lime-deep); }
@@ -218,8 +218,8 @@ a.btn[aria-disabled="true"] { opacity: .45; pointer-events: none; }
 .pv { margin-top: 12px; border: 1px solid var(--line); border-radius: 14px;
   overflow: hidden; background: var(--surface); }
 .pv__h { display: flex; align-items: center; gap: 10px; padding: 11px 14px;
-  border-bottom: 1px solid var(--line); font: 700 13.5px/1.4 inherit; }
-.pv__x { margin-left: auto; font: 700 13px/1 inherit; padding: 8px 12px; border-radius: 9px;
+  border-bottom: 1px solid var(--line); font-weight: 700; font-size: 13.5px; line-height: 1.4; font-family: inherit; }
+.pv__x { margin-left: auto; font-weight: 700; font-size: 13px; line-height: 1; font-family: inherit; padding: 8px 12px; border-radius: 9px;
   border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
 .pv iframe { display: block; width: 100%; height: 60vh; min-height: 380px; border: 0; background: #fff; }
 .pv__no { margin: 0; padding: 16px; font-size: 13px; color: var(--ink2); line-height: 1.7; }

@@ -214,6 +214,19 @@ function fakeServer(limits) {
     }
     // ★ 연결 갈래는 **실제로도 아직 안 열려 있다.** 여기서도 501 을 준다 —
     //   되는 것처럼 보여 주면 그것이 곧 거짓말이다
+    // 원본이 그대로인가 — **실제 응답 모양 그대로.** 접근권 만료가 흔한 답이라
+    // 그것을 보여 준다 (그때그때 고르기의 값이다. 고장이 아니다)
+    if (/\\/linked\\/verify$/.test(p) && method === 'POST') {
+      var okd = [], chg = [], err = [];
+      linked.forEach(function (x, i) {
+        if (i === 0) chg.push({ key: 'k' + i, name: x.name, was: 'v2', now: 'v3' });
+        else if (i === 1) err.push({ key: 'k' + i, name: x.name,
+          reason: '접근권이 만료되었습니다 — 파일을 다시 골라 주세요' });
+        else okd.push({ key: 'k' + i, name: x.name });
+      });
+      return [200, { ok: !chg.length && !err.length, ok_: okd, changed: chg,
+        missing: [], unread: [], errors: err, at: '2026-08-21 09:12' }];
+    }
     if (/\\/linked$/.test(p) && method === 'POST') {
       var ref = (body && body.ref) || {};
       // ★★ **진짜 검증기와 같은 기준으로** 거절한다. 여기만 너그러우면

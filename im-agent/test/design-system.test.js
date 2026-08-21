@@ -239,3 +239,46 @@ test('★ 미리보기: 산출물에 들어가는 readdir 은 전부 정렬되�
       `${rel}: 정렬 없는 readdir 이 남았다 — 그 줄의 결과가 기계마다 달라진다`);
   });
 });
+
+/**
+ * ★★ **`font: 700 13px/1 inherit` 은 통째로 버려진다** 〈2026-08-21 실측〉.
+ *
+ * `font` 축약형의 **글꼴 이름 자리에 `inherit` 을 쓸 수 없다.** CSS-wide 키워드는
+ *   값 전체일 때만 뜻이 있다. 브라우저는 그 줄을 **조용히 버리고**, 그 요소는
+ *   크기도 굵기도 없이 브라우저 기본으로 그려진다 — **오류는 어디에도 안 뜬다.**
+ *
+ * 실측: `select` 가 15px 로 적혀 있는데 실제로는 크롬 기본 13.333px 로 나왔다.
+ *   **화면 아홉 곳에 58군데가 그 상태였다.** 「글씨가 좀 작네」로만 보여서
+ *   아무도 원인을 못 찾는다.
+ *
+ * ★ `font: inherit;` 하나만 있는 것은 **정상이다** — 값 전체가 키워드다.
+ */
+test('★★ font 축약형에 inherit 을 글꼴 이름으로 쓰지 않는다 (통째로 버려진다)', () => {
+  const bad = [];
+  // ★ `SCREENS` 에 없는 화면도 본다 — 실제로 가장 많이 걸린 곳이 files.html 이었다
+  [...SCREENS, 'files.html', 'dashboard.html'].forEach((f) => {
+    const p = path.join(PLAT, f);
+    if (!fs.existsSync(p)) return;
+    const css = fs.readFileSync(p, 'utf8');
+    [...css.matchAll(/font:\s*([^;{}]*?)\s*;/g)].forEach((m) => {
+      const v = m[1].trim();
+      if (v === 'inherit') return;                 // 값 전체가 키워드 — 정상
+      if (/\binherit\s*$/.test(v)) bad.push(`${f}: font: ${v};`);
+    });
+  });
+  assert.deepStrictEqual(bad, [],
+    '이 줄들은 브라우저가 통째로 버린다 — 크기·굵기가 안 먹는데 오류도 안 난다:\n  '
+    + bad.join('\n  '));
+});
+
+/**
+ * ★ 위 검사가 **정말 잡는지** 여기서 확인한다. 「없는 것을 찾는」 검사는
+ *   통과만 보면 검사가 죽은 날에도 통과한다 (M-08).
+ */
+test('★ 그 검사가 실제로 잡는다 (헛도는 검사가 아니다)', () => {
+  const isBad = (v) => v.trim() !== 'inherit' && /\binherit\s*$/.test(v.trim());
+  assert.ok(isBad('700 13px/1 inherit'), '틀린 것을 못 잡는다');
+  assert.ok(isBad('400 clamp(13px, 3.6vw, 15px)/1.3 inherit'), 'clamp 가 섞이면 못 잡는다');
+  assert.ok(!isBad('inherit'), '멀쩡한 것을 잡는다 — 헛울음이다');
+  assert.ok(!isBad('700 13px/1 var(--lp-font)'), '멀쩡한 것을 잡는다');
+});
