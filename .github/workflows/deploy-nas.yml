@@ -28,10 +28,20 @@ on:
         #   `embed-default.test.js` 가 이 값이 실재하는지 지킨다.
         default: 'im-agent/ui/platform/report-flow.html'
       dest:
-        description: 'NAS 대상 디렉터리'
+        # ★★ **화면 사본은 `im-flow` 로 간다** 〈2026-08-21 · 실제로 헛돌았다〉.
+        #   기본값이 웹 루트(`/volume1/web`)여서 화면을 여섯 번 올렸는데
+        #   **앱에는 하나도 반영되지 않았다.** 앱이 읽는 자리가 아니었기 때문이다.
+        #
+        #   ★ 이 종류가 가장 비싸다: 배포는 **초록**이고, 지문도 **맞고**,
+        #     파일도 **거기 있었다.** 틀린 것은 「어디에」 하나뿐인데 그 하나는
+        #     어느 화면에도 안 나온다. 사용자는 「반영이 안 된다」만 말할 수 있고,
+        #     나는 「올렸다」만 말할 수 있다 — 둘 다 맞는 말이라 겉돈다.
+        #
+        #   웹 루트에 올릴 일이 생기면 그때 손으로 바꾼다. **기본은 도는 값이다.**
+        description: 'NAS 대상 디렉터리 (화면 사본은 im-flow)'
         type: string
         required: true
-        default: '/volume1/web'
+        default: '/volume1/web/im-flow'
       dry_run:
         description: '올리지 않는다 — Secret 이 들어왔는지만 잰다 (NAS 에 손대지 않음)'
         type: boolean

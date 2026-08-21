@@ -25,6 +25,7 @@ const path = require('path');
 
 const ROOT = path.join(__dirname, '..', '..');
 const WF = path.join(ROOT, '.github', 'workflows');
+const PLATFORM_DIR = path.join(ROOT, 'im-agent', 'ui', 'platform');
 
 /** `default: '...'` 를 뽑는다 — yaml 파서를 들이지 않는다 (§5 의존성 최소) */
 function defaultOf(yml, inputName) {
@@ -210,4 +211,29 @@ test('★★ scp 가 ssh 와 같은 눈으로 본다 (-O) — 잰 것과 하는 
     assert.match(l, /\bscp\s+-O\b/,
       'scp 에 -O 가 없다 — SFTP 로 가면 ssh 가 보는 것과 다른 것을 본다:\n    ' + l.trim());
   });
+});
+
+/**
+ * ★★ 〈2026-08-21 · 화면을 여섯 번 올렸는데 하나도 반영되지 않았다〉
+ *
+ *   `dest` 기본값이 웹 루트(`/volume1/web`)였다. 그런데 앱이 읽는 화면 사본은
+ *   **`im-flow` 폴더**에 있다(`build-embed.js` 가 그 이름이 아니면 아예 만들지
+ *   않는다). 그래서 올린 파일은 **아무도 안 읽는 자리**에 쌓였다.
+ *
+ * ★ 이 종류가 가장 비싸다. 배포는 **초록**이고, 지문도 **맞고**, 파일도
+ *   **거기 있었다.** 틀린 것은 「어디에」 하나뿐인데 그것은 어느 화면에도
+ *   안 나온다 — 사용자는 「반영이 안 된다」만, 나는 「올렸다」만 말할 수 있고
+ *   **둘 다 맞는 말이라 겉돈다.**
+ */
+test('★★ 올릴 자리 기본값이 앱이 읽는 곳(im-flow)이다', () => {
+  const y = fs.readFileSync(path.join(WF, 'deploy-nas.yml'), 'utf8');
+  const dest = defaultOf(y, 'dest');
+  assert.ok(dest, 'dest 기본값을 못 찾았다');
+  assert.ok(/\/im-flow$/.test(dest),
+    `올릴 자리 기본값이 ${dest} 다 — 화면 사본은 im-flow 로 간다. `
+    + '웹 루트에 올리면 배포는 초록인데 앱에는 아무것도 안 바뀐다');
+
+  // ★ 같은 규칙을 만드는 쪽(build-embed)도 쥐고 있다. 둘이 갈리면 한쪽만 고친다
+  const be = fs.readFileSync(path.join(PLATFORM_DIR, 'build-embed.js'), 'utf8');
+  assert.match(be, /im-flow/, 'build-embed 가 im-flow 를 모른다 — 규칙이 한쪽에만 있다');
 });
