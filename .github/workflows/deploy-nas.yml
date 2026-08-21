@@ -248,7 +248,7 @@ jobs:
               echo "::error::목적지는 있는데 **쓸 수가 없다** — 그 계정에 쓰기 권한이 없다. DSM 제어판 › 공유 폴더 › 권한 에서 확인한다"
               exit 1 ;;
             *NODIR*)
-              echo "::error::목적지 폴더가 없다(또는 그 계정에서 안 보인다). 실제 경로를 확인한다 — ssh 로 붙어 ls -d /volume1/* 을 쳐 보면 무엇이 있는지 나온다"
+              echo "::error::목적지 폴더가 없다(또는 그 계정에서 안 보인다). 실제 경로를 확인한다 — ssh 로 붙어 ls /volume1 을 쳐 보면 무엇이 있는지 나온다 (별표를 쓰면 내 컴퓨터가 먼저 풀어 보려다 거부한다)"
               exit 1 ;;
             *)
               echo "::error::목적지를 확인하지 못했다: $OUT"
@@ -275,7 +275,19 @@ jobs:
             BASE=$(basename "$f")
             ssh -i ~/.ssh/id_deploy "$NAS_USER@$NAS_HOST" \
               "test -f '$DEST/$BASE' && cp '$DEST/$BASE' '$DEST/$BASE.$STAMP.bak' || true"
-            scp -i ~/.ssh/id_deploy "$f" "$NAS_USER@$NAS_HOST:$DEST/$BASE"
+            # ★★ **`-O` 를 뺄 수 없다** 〈2026-08-21 · 실제로 여기서 죽었다〉.
+            #   OpenSSH 9 부터 scp 는 속으로 **SFTP** 를 쓴다. 그런데 Synology 에는
+            #   「SFTP 사용자를 홈 폴더 안에만 가둔다」는 설정이 있어서, 그 상태면
+            #   **SFTP 쪽에서는 /volume1/web 이 아예 없는 것처럼 보인다.**
+            #
+            #     ssh  ... ls -ld /volume1/web  →  drwxrwxrwx+ (보인다)
+            #     scp  ...                      →  dest open: No such file or directory
+            #
+            #   둘 다 참이다 — **보는 창구가 다르다.** 그래서 오류가 「경로가
+            #   틀렸다」로 읽히고, 멀쩡한 경로를 몇 번이고 다시 확인하게 된다.
+            #   `-O` 는 옛 방식(셸 경유)으로 보낸다 — `ssh` 와 **같은 눈**이 된다.
+            #   위 `Check destination` 도 ssh 로 재므로, 이래야 잰 것과 하는 것이 맞다.
+            scp -O -i ~/.ssh/id_deploy "$f" "$NAS_USER@$NAS_HOST:$DEST/$BASE"
             echo "배포 완료: $BASE → $DEST/$BASE (백업: $BASE.$STAMP.bak)"
           done
 

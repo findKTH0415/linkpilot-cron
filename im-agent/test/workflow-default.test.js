@@ -169,5 +169,45 @@ test('★★ 올리기 전에 목적지를 잰다 — 반쯤 배포된 상태를
     'Check destination 이 NAS 에 무언가를 만든다 — 재기만 해야 한다');
 
   // ④ 막혔을 때 **다음에 무엇을 볼지** 말한다 (조용히 죽지 않는다 · §2)
-  assert.match(chk, /ls -d \/volume1/, '실제 경로를 어떻게 찾는지 안 알려 준다');
+  assert.match(chk, /ls \/volume1/, '실제 경로를 어떻게 찾는지 안 알려 준다');
+
+  // ⑤ ★★ 알려 주는 그 명령이 **받는 사람 셸에서 실제로 돌아야** 한다.
+  //   `ls -d /volume1/*` 을 안내했다가 zsh 가 `no matches found` 로 거부했다 —
+  //   별표를 **내 컴퓨터가 먼저** 풀어 보려 하기 때문이다. 고치라고 준 명령이
+  //   또 오류를 내면, 받는 사람은 원인이 둘로 늘어난 채로 헤맨다.
+  assert.ok(!/ls[^\n]*\/volume1\/\*/.test(chk),
+    '안내하는 명령에 별표가 있다 — zsh 가 no matches found 로 거부한다');
+});
+
+/**
+ * ★★ 〈2026-08-21 · 실제 배포 두 번째 시도에서 죽었다〉
+ *
+ *   `/volume1/web` 은 **있었다.** 권한도 `drwxrwxrwx+` 로 활짝 열려 있었다.
+ *   그런데 scp 는 「그런 폴더 없다」고 했다. **둘 다 참이었다.**
+ *
+ *     ssh ... ls -ld /volume1/web  →  drwxrwxrwx+  (보인다)
+ *     scp ...                      →  No such file or directory
+ *
+ *   OpenSSH 9 부터 scp 는 속으로 **SFTP** 를 쓴다. Synology 에는 「SFTP 사용자를
+ *   홈 폴더 안에만 가둔다」는 설정이 있고, 그러면 **SFTP 쪽 시야에서는 그
+ *   경로가 없다.** 보는 창구가 다른 것이다.
+ *
+ * ★ 이 종류가 특히 나쁜 이유: 오류가 「경로가 틀렸다」로 읽힌다. 그래서
+ *   **멀쩡한 경로를 몇 번이고 다시 확인하게 된다.** 실제로 그랬다.
+ *
+ * ★★ 그리고 `Check destination` 은 ssh 로 잰다. `-O` 가 빠지면 **재는 눈과
+ *   하는 눈이 달라져서** 확인은 통과하고 다음 단계에서 죽는다 — 확인이
+ *   확인 노릇을 못 한다.
+ */
+test('★★ scp 가 ssh 와 같은 눈으로 본다 (-O) — 잰 것과 하는 것이 어긋나지 않게', () => {
+  const y = fs.readFileSync(path.join(WF, 'deploy-nas.yml'), 'utf8');
+  const up = stepOf(y, 'Upload');
+  assert.ok(up, 'Upload 단계가 없다');
+
+  const scps = up.split('\n').filter(l => /^\s*scp\s/.test(l));
+  assert.ok(scps.length > 0, 'Upload 에 scp 가 없다');
+  scps.forEach((l) => {
+    assert.match(l, /\bscp\s+-O\b/,
+      'scp 에 -O 가 없다 — SFTP 로 가면 ssh 가 보는 것과 다른 것을 본다:\n    ' + l.trim());
+  });
 });
