@@ -99,24 +99,85 @@ jobs:
       #   읽게 해 주는지 확실치 않고, 안 되면 **조용히 빈 값으로 평가되어**
       #   두 단계가 다 건너뛰어진다 — 그러면 「붙지도 않고 오류도 없는」 판이 된다.
       #   그래서 여기서 **한 번 판정해 출력으로 넘긴다.**
-      - name: Check tailnet credentials
+      # ★★ **dry run 에서도 이 단계는 돈다** 〈2026-08-21〉. 앞 판은 여기에
+      #   `if: !inputs.dry_run` 이 붙어 있어서, **안전한 판으로는 열쇠가
+      #   들어왔는지 알 방법이 없었다.** 그래서 「확인하려면 실제로 올려
+      #   보는 수밖에 없다」가 되었다 — 확인하려고 운영 화면을 덮는 것은
+      #   순서가 거꾸로다. 이제 dry run 은 **어느 Secret 이 있고 없는지 이름으로**
+      #   알려 준다 — NAS 를 건드리지 않고.
+      #   ★ 값은 절대 찍지 않는다. **있다/없다만** 말한다 (CLAUDE.md §2).
+      - name: Check secrets
         id: ts
-        if: ${{ !inputs.dry_run }}
         env:
+          DRY: ${{ inputs.dry_run }}
           OAUTH_ID: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          OAUTH_SEC: ${{ secrets.TS_OAUTH_SECRET }}
           AUTHKEY: ${{ secrets.TS_AUTHKEY }}
+          NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+          NAS_USER: ${{ secrets.NAS_SSH_USER }}
+          NAS_KEY: ${{ secrets.NAS_SSH_KEY }}
         run: |
-          set -euo pipefail
-          # ★ 없는 것을 「있다」로 넘기지 않는다. 무엇을 넣어야 하는지 이름으로 말한다
-          if [ -n "${OAUTH_ID:-}" ]; then
-            echo "mode=oauth" >> "$GITHUB_OUTPUT"
-            echo "OAuth 클라이언트로 붙는다 (만료 없음)"
+          set -uo pipefail
+          MISSING=""
+          say() {
+            if [ -n "${!1:-}" ]; then
+              echo "  있음 — $2"
+            else
+              echo "  없음 — $2"
+              MISSING="$MISSING $2"
+            fi
+          }
+          echo "── tailnet 열쇠 (둘 중 한 길만 있으면 된다) ──"
+          say OAUTH_ID  TS_OAUTH_CLIENT_ID
+          say OAUTH_SEC TS_OAUTH_SECRET
+          say AUTHKEY   TS_AUTHKEY
+          echo "── NAS 접속 (셋 다 있어야 한다) ──"
+          say NAS_HOST  NAS_SSH_HOST
+          say NAS_USER  NAS_SSH_USER
+          say NAS_KEY   NAS_SSH_KEY
+
+          # ★ OAuth 는 **둘 다** 있어야 한다. ID 만 보고 고르면 붙는 단계까지
+          #   가서야 죽고, 그 오류는 「열쇠가 틀렸다」와 구분되지 않는다
+          MODE=""
+          if [ -n "${OAUTH_ID:-}" ] && [ -n "${OAUTH_SEC:-}" ]; then
+            MODE=oauth
           elif [ -n "${AUTHKEY:-}" ]; then
-            echo "mode=authkey" >> "$GITHUB_OUTPUT"
-            echo "auth key 로 붙는다 — **만료가 있다.** 때가 되면 다시 만든다"
-          else
+            MODE=authkey
+          elif [ -n "${OAUTH_ID:-}" ] || [ -n "${OAUTH_SEC:-}" ]; then
+            echo "::warning::OAuth 는 TS_OAUTH_CLIENT_ID 와 TS_OAUTH_SECRET 이 **둘 다** 있어야 한다 — 한쪽만 있다"
+          fi
+
+          NAS_OK=1
+          for v in NAS_HOST NAS_USER NAS_KEY; do
+            [ -n "${!v:-}" ] || NAS_OK=0
+          done
+
+          if [ "${DRY:-}" = "true" ]; then
+            # ★ dry run 에서는 **판정만 하고 mode 를 넘기지 않는다.**
+            #   넘기면 아래 접속 단계가 실제로 돌아 「올리지 않는다」가 깨진다
+            if [ -n "$MODE" ] && [ "$NAS_OK" = "1" ]; then
+              echo "::notice::여섯 자리가 다 찼다 — dry_run 을 끄면 실제로 배포된다"
+            else
+              echo "::warning::아직 못 넣은 Secret:${MISSING:- 없음} — 넣기 전에는 실제 배포가 여기서 멈춘다"
+            fi
+            exit 0
+          fi
+
+          if [ -z "$MODE" ]; then
             echo "::error::tailnet 열쇠가 없다 — TS_OAUTH_CLIENT_ID + TS_OAUTH_SECRET 이나 TS_AUTHKEY 중 하나를 Secrets 에 넣는다"
             exit 1
+          fi
+          # ★ NAS 자격증명이 없으면 **tailnet 에 붙기 전에** 멈춘다.
+          #   붙고 나서 죽으면 원인이 둘로 보인다
+          if [ "$NAS_OK" != "1" ]; then
+            echo "::error::NAS 접속 Secret 이 없다 — NAS_SSH_HOST · NAS_SSH_USER · NAS_SSH_KEY 를 넣는다"
+            exit 1
+          fi
+          echo "mode=$MODE" >> "$GITHUB_OUTPUT"
+          if [ "$MODE" = oauth ]; then
+            echo "OAuth 클라이언트로 붙는다 (만료 없음)"
+          else
+            echo "auth key 로 붙는다 — **만료가 있다.** 때가 되면 다시 만든다"
           fi
 
       - name: Connect to tailnet (OAuth)

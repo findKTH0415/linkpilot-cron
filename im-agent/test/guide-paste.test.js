@@ -154,3 +154,76 @@ test('★ 안내서와 워크플로가 같은 Secret 이름을 말한다', () =>
     assert.ok(g.includes(k), `auth key 만들 때 ${k} 를 켜라는 말이 없다`);
   });
 });
+
+/* ═════════ ⑤ **안전한 판으로도 열쇠가 들어왔는지 알 수 있어야 한다** ═════════ */
+
+/**
+ * ★★ 〈2026-08-21 · 사용자가 「지금부터 네가 자동배포할 수 있나」고 물어서 알았다〉
+ *
+ *   앞 판은 열쇠 확인 단계에 `if: !inputs.dry_run` 이 붙어 있었다. 그래서
+ *   **dry run 은 열쇠를 아예 보지 않았다.** 결과가 이랬다:
+ *
+ *     - dry run 초록 → 열쇠에 대해 아무것도 말해 주지 않는다
+ *     - 열쇠가 들어왔는지 알려면 **실제로 올려 보는 수밖에 없다**
+ *
+ *   ★ **확인하려고 운영 화면을 덮는 것은 순서가 거꾸로다.** 안전한 판이
+ *     가장 궁금한 것 하나를 못 알려 주면 그 안전한 판은 쓸모가 없다.
+ *
+ *   그래서 이제 `Check secrets` 는 **늘 돈다.** dry run 에서는 어느 Secret 이
+ *   있고 없는지 **이름으로** 말하고 NAS 는 건드리지 않는다.
+ */
+function stepBlock(yml, name) {
+  const start = yml.indexOf('      - name: ' + name);
+  if (start < 0) return null;
+  const rest = yml.slice(start + 10);
+  const next = rest.indexOf('\n      - name: ');
+  return next < 0 ? rest : rest.slice(0, next);
+}
+
+test('★★ dry run 도 열쇠를 잰다 — 안 그러면 실제로 올려 보는 수밖에 없다', () => {
+  const WF = path.join(__dirname, '..', '..', '.github', 'workflows');
+  ['deploy-nas.yml', 'deploy-im.yml'].forEach((name) => {
+    const y = fs.readFileSync(path.join(WF, name), 'utf8');
+    const b = stepBlock(y, 'Check secrets');
+    assert.ok(b, `${name}: Check secrets 단계가 없다`);
+
+    // ① ★★ 이 단계에는 `if:` 가 없다 — 붙는 순간 dry run 이 다시 눈을 감는다
+    assert.ok(!/^\s+if:/m.test(b),
+      `${name}: Check secrets 에 if 가 붙었다 — dry run 이 열쇠를 다시 안 본다`);
+
+    // ② 여섯 자리를 **전부** 본다. 하나라도 빠지면 「다 넣었다」고 믿고
+    //   그 하나 때문에 실제 배포에서 죽는다
+    ['TS_OAUTH_CLIENT_ID', 'TS_OAUTH_SECRET', 'TS_AUTHKEY',
+      'NAS_SSH_HOST', 'NAS_SSH_USER', 'NAS_SSH_KEY'].forEach((k) => {
+      assert.ok(b.includes(k), `${name}: Check secrets 가 ${k} 를 보지 않는다`);
+    });
+
+    // ③ ★ dry run 판정이 **mode 를 넘기기 전에** 온다. 뒤에 오면 dry run 인데도
+    //   tailnet 접속 단계가 돌아 「올리지 않는다」가 깨진다
+    const dryAt = b.indexOf('DRY:-');
+    const modeAt = b.indexOf('mode=$MODE');
+    assert.ok(dryAt > 0 && modeAt > dryAt,
+      `${name}: dry run 판정이 mode 를 넘긴 뒤에 온다 — dry run 이 실제로 붙는다`);
+
+    // ④ ★★ **값을 찍지 않는다** (CLAUDE.md §2). 있다/없다만 말한다
+    assert.ok(!/echo .*\$\{?(OAUTH_SEC|AUTHKEY|NAS_KEY)\b/.test(b),
+      `${name}: Secret 값을 로그에 찍는다`);
+
+    // ⑤ OAuth 는 **둘 다** 있어야 고른다. ID 만 보고 고르면 붙는 단계까지
+    //   가서야 죽고, 그 오류는 「열쇠가 틀렸다」와 구분되지 않는다
+    assert.match(b, /OAUTH_ID[^\n]*\n?[^\n]*OAUTH_SEC|OAUTH_ID:-\}" \] && \[ -n "\$\{OAUTH_SEC/,
+      `${name}: OAuth 를 ID 만 보고 고른다`);
+  });
+});
+
+test('★ 접속 단계는 여전히 판정 결과로만 돈다', () => {
+  const WF = path.join(__dirname, '..', '..', '.github', 'workflows');
+  ['deploy-nas.yml', 'deploy-im.yml'].forEach((name) => {
+    const y = fs.readFileSync(path.join(WF, name), 'utf8');
+    ['(OAuth)', '(auth key)'].forEach((k) => {
+      const b = stepBlock(y, 'Connect to tailnet ' + k);
+      assert.ok(b && /steps\.ts\.outputs\.mode/.test(b),
+        `${name}: Connect to tailnet ${k} 가 판정 결과를 보지 않는다`);
+    });
+  });
+});
