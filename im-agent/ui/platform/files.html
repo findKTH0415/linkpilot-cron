@@ -147,7 +147,19 @@ select:focus-visible, button:focus-visible { outline: 2px solid var(--lime-deep)
 .drop.over { border-color: var(--lime); background: var(--lime-soft); }
 
 /* 갈래 고르기 — 세 장을 나란히 두고 **고를 수 있게** 한다 (전에는 설명만이었다) */
-.pickway { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+/* ── 갈래를 **단으로** 〈2026-08-21 사용자 지시〉 ──
+   ★★ 앞 판은 `auto-fit` 으로 셋을 한 줄에 흘렸다. 창 너비에 따라 2+1 이 되기도
+     1+1+1 이 되기도 해서 **어느 것이 한 벌인지가 그때그때 달라졌다.**
+     단은 손으로 정한다 — 관계 있는 것끼리 같은 단에 둔다.
+   ★ 단 사이를 넉넉히 띄운다. 붙어 있으면 세 단이 한 덩어리로 읽힌다. */
+.pickway { display: grid; gap: 22px; }
+.pwrow { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+/* 1단과 그에 딸린 고르기를 **한 겹으로** 묶는다 — 사이에 단 여백이 끼면 안 된다 */
+.pwstack { display: block; }
+/* 1단 아래 고르기가 들어올 자리. 안 쓰면 지운다 — 빈 자리도 여백이 된다 */
+.pwslot { display: none; }
+/* 겹 안에서는 `.wayin` 이 위쪽 칸에 그대로 이어 붙는다 (margin-top: -6px) */
+.pwstack > .wayin { margin-bottom: 0; }
 .pw { text-align: left; font: inherit; cursor: pointer; background: var(--surface);
   border: 1px solid var(--line); border-radius: 14px; padding: 13px 14px; }
 .pw:hover:not(:disabled) { border-color: var(--lime); }
@@ -368,6 +380,9 @@ window.LINKPILOT_FILES = {
   var view = document.getElementById('view');
 
   var state = {
+    /* ★ 「파일업로드를 방금 눌렀다」는 표시. 그리기가 끝나는 자리에서 고르기
+     *   창을 열고 곧바로 지운다 — 남겨 두면 다시 그릴 때마다 창이 또 열린다. */
+    openPicker: false,
     projects: null,
     projectId: C.projectId || null,
     kept: null,        // 보관 목록 (GET /sources)
@@ -718,22 +733,58 @@ window.LINKPILOT_FILES = {
     return wayOf(id).t;
   }
 
+  /**
+   * 갈래를 **단(段)으로 나눠 그린다** 〈2026-08-21 사용자 지시〉.
+   *
+   *     1단  앱 프로젝트에서 가져오기        (+ 고르기가 이어 붙는다)
+   *     2단  폴더를 연결해서 · 파일업로드    (나란히)
+   *     3단  파일 드롭하여 놓기              (파일업로드를 누르면 함께 뜬다)
+   *
+   * ★★ 앞 판은 셋을 **한 줄에 흘려** 놓았다(auto-fit). 창 너비에 따라 2+1 이
+   *   되기도 하고 1+1+1 이 되기도 해서, **어느 것이 한 벌인지가 그때그때
+   *   달라졌다.** 「고르기는 앱 갈래에 딸린 것」이라는 관계도 폭에 따라 무너졌다.
+   * ★ 그래서 단을 **손으로 정한다.** 관계가 있는 것끼리 같은 단에 둔다.
+   */
+  var WAY_ROWS = [['app'], ['linked', 'oneshot']];
+
+  function wayTile(w) {
+    var b = el('button', 'pw' + (state.way === w.id ? ' on' : ''));
+    b.type = 'button';
+    var t = el('div', 'pw__t', w.t);
+    t.appendChild(el('span', 'way__k way__k--' + (w.free ? 'free' : 'pro'), w.k));
+    add(b, t, el('p', 'pw__d', w.d));
+    b.addEventListener('click', function () {
+      // 갈래를 바꾸면 고른 파일을 버린다 — 보관하려던 것이 1회성으로
+      // 넘어가면 **되돌릴 수 없다.** 그 실수는 조용하고 되돌리기도 없다
+      if (state.way !== w.id) { state.picked = []; state.upload = null; state.result = null; }
+      state.way = w.id;
+      /* ★★ **파일업로드는 누르는 그 자리에서 고르기 창을 연다** 〈사용자 지시〉.
+       *   창을 여는 것은 **사람이 누른 그 순간**에만 허용된다 — 그리고 난 뒤에
+       *   열려고 하면 브라우저가 조용히 막는다. 그래서 `render()` 뒤로 미루지
+       *   않고 여기서 표시만 남기고, 그리기가 끝나는 자리에서 곧바로 연다.
+       *   ★ 프로젝트가 없으면 열지 않는다 — 골라 봐야 올릴 데가 없다. */
+      state.openPicker = (w.id === 'oneshot');
+      render();
+    });
+    return b;
+  }
+
   function ways() {
     var box = el('div', 'pickway');
-    WAYS.forEach(function (w) {
-      var b = el('button', 'pw' + (state.way === w.id ? ' on' : ''));
-      b.type = 'button';
-      var t = el('div', 'pw__t', w.t);
-      t.appendChild(el('span', 'way__k way__k--' + (w.free ? 'free' : 'pro'), w.k));
-      add(b, t, el('p', 'pw__d', w.d));
-      b.addEventListener('click', function () {
-        // 갈래를 바꾸면 고른 파일을 버린다 — 보관하려던 것이 1회성으로
-        // 넘어가면 **되돌릴 수 없다.** 그 실수는 조용하고 되돌리기도 없다
-        if (state.way !== w.id) { state.picked = []; state.upload = null; state.result = null; }
-        state.way = w.id;
-        render();
-      });
-      box.appendChild(b);
+    WAY_ROWS.forEach(function (ids) {
+      var row = el('div', 'pwrow');
+      ids.forEach(function (id) { row.appendChild(wayTile(wayOf(id))); });
+      if (ids.length === 1 && ids[0] === 'app') {
+        /* ★★ 1단과 고르기는 **한 겹으로 묶는다.** 단 사이 여백(18px)이 그
+         *   둘 사이에도 끼면 「이어 붙은 칸」이 떨어져 보이고, 고르기가 어느
+         *   갈래에 딸린 것인지 다시 안 보인다 — 단을 나눈 이유가 그것이었다. */
+        var stack = el('div', 'pwstack');
+        stack.appendChild(row);
+        stack.appendChild(el('div', 'pwslot'));
+        box.appendChild(stack);
+      } else {
+        box.appendChild(row);
+      }
     });
     return box;
   }
@@ -765,6 +816,13 @@ window.LINKPILOT_FILES = {
     inp.type = 'file';
     inp.multiple = true;
     inp.addEventListener('change', function () { addFiles(inp.files); inp.value = ''; });
+    /* ★★ **창이 두 번 열렸다** 〈2026-08-21 · 재다가 잡았다〉.
+     *   `inp` 는 `z` 안에 있다. `inp.click()` 을 부르면 그 click 이 `z` 까지
+     *   올라가고, `z` 의 손잡이가 **또** `inp.click()` 을 부른다.
+     *   브라우저가 재귀를 한 번은 막아 주어 두 번에서 멈추지만, 사용자에게는
+     *   **창을 닫으면 또 뜨는** 것으로 보인다. 올라가는 것을 여기서 끊는다.
+     *   (실측: 눌렀을 때 input.click 이 2회 → 1회) */
+    inp.addEventListener('click', function (ev) { ev.stopPropagation(); });
     z.appendChild(inp);
     z.addEventListener('click', function () { inp.click(); });
     z.addEventListener('keydown', function (ev) {
@@ -776,6 +834,7 @@ window.LINKPILOT_FILES = {
       ev.preventDefault(); z.classList.remove('over');
       addFiles(ev.dataTransfer && ev.dataTransfer.files);
     });
+    z._lpInput = inp;    // 그리기가 끝난 뒤 여기서 창을 연다 (render 참고)
     return z;
   }
 
@@ -1028,7 +1087,20 @@ window.LINKPILOT_FILES = {
         '기존 프로젝트 보고서를 만들거나 또는 신규 프로젝트로 만들 때, '
         + '관련자료를 올리는 방법 3가지입니다. 어느 쪽으로 넣든 '
         + '읽어서(이미지는 OCR) 「' + F.SECTION.tab + '」으로 보냅니다.'));
-    card.appendChild(ways());
+    /* ★ 고르기는 **1단 바로 아래**에 꽂는다. 카드 끝에 붙이면 2단(연결·업로드)
+     *   뒤로 밀려 「어느 갈래에 딸린 것인지」가 다시 안 보인다 — 단을 나눈
+     *   이유가 그것이었다. 그래서 1단 뒤에 자리(`.pwslot`)를 미리 두고 갈아끼운다. */
+    var waysBox = ways();
+    card.appendChild(waysBox);
+    function putInWay(node) {
+      var slot = waysBox.querySelector('.pwslot');
+      if (slot) slot.parentNode.replaceChild(node, slot);
+      else card.appendChild(node);      // 자리가 없어졌으면 적어도 잃어버리지는 않는다
+    }
+    function dropSlot() {
+      var slot = waysBox.querySelector('.pwslot');
+      if (slot) slot.parentNode.removeChild(slot);   // 안 쓰면 **빈 자리를 남기지 않는다**
+    }
     // 끌어다 놓았는데 받을 수 없었던 이유를 **그 자리에서** 말한다.
     // ★ 갈래보다 먼저 그린다 — 그 말이 가장 필요한 때가 「연결」 갈래에서
     //   떨어뜨린 때인데, 갈래 안쪽에 두면 그때 안 보인다
@@ -1048,14 +1120,14 @@ window.LINKPILOT_FILES = {
 
       // 「＋ 신규프로젝트」를 골랐으면 만드는 칸이 여기서 열린다
       var mk = newProjectCard();
-      if (mk) { inWay.appendChild(mk); card.appendChild(inWay); return card; }
+      if (mk) { inWay.appendChild(mk); putInWay(inWay); return card; }
 
       if (!state.projectId) {
         inWay.appendChild(el('p', 'note', state.noFolder
           // ★ 화면이 몰래 만들지 않는다 — 번호가 소모되고 자산군이 GEN 으로 굳는다 (§4)
           ? '이 프로젝트는 작업 폴더가 아직 없습니다. 위에서 「＋ 신규프로젝트」로 만들어 주십시오.'
           : '프로젝트를 고르면 여기서 바로 자료를 넣을 수 있습니다.'));
-        card.appendChild(inWay);
+        putInWay(inWay);
         return card;
       }
 
@@ -1065,9 +1137,12 @@ window.LINKPILOT_FILES = {
         inWay.appendChild(el('p', 'note',
           '이 앱 프로젝트에는 가져올 내용·첨부·이미지가 없습니다.'));
       }
-      card.appendChild(inWay);
+      putInWay(inWay);
       return card;
     }
+
+    // 앱 갈래가 아니면 1단 아래 자리는 필요 없다
+    dropSlot();
 
     /* ★★ 다른 갈래는 프로젝트가 있어야 한다. 고르는 자리는 **앱 갈래 하나뿐**이므로
        「고르십시오」라고만 하면 어디로 가야 하는지 모른다 — **한 번에 가는 단추**를 준다.
@@ -2048,7 +2123,25 @@ window.LINKPILOT_FILES = {
     return out;
   }
 
-  function render() {
+  /**
+   * ★★ **고르기 창은 사람이 누른 그 순간에만 열린다** 〈2026-08-21 사용자 지시〉.
+   *   브라우저는 사용자 동작에서 이어지지 않은 `input.click()` 을 **조용히
+   *   무시한다** — 오류도 안 난다. 그래서 「눌렀다」는 표시를 남기고, 다시
+   *   그리기가 **같은 흐름 안에서** 끝나는 이 자리에서 연다.
+   *   ★ 표시는 열고 나서 **바로 지운다.** 안 지우면 화면이 갱신될 때마다
+   *     창이 또 열려 사용자가 창을 닫을 수가 없다.
+   */
+  function openPickerIfAsked() {
+    if (!state.openPicker) return;
+    state.openPicker = false;
+    var z = view.querySelector('.drop');
+    if (z && z._lpInput) z._lpInput.click();
+  }
+
+  /* ★ 그리기에는 빠져나가는 자리가 여럿이다(등급·오류·프로젝트 없음). 창 여는
+   *   일을 그 안에 두면 **어느 한 길에서만 열리고 나머지에서는 조용히 안 열린다.**
+   *   그래서 그리기는 `paint()` 로 두고, `render()` 가 그 뒤를 책임진다. */
+  function paint() {
     view.innerHTML = '';
     if (!C.inTab) view.appendChild(el('h1', null, '자료 업로드'));
 
@@ -2097,6 +2190,11 @@ window.LINKPILOT_FILES = {
     [versionBox(), oneshotBlock()].forEach(function (b) {
       if (b) view.appendChild(b);
     });
+  }
+
+  function render() {
+    paint();
+    openPickerIfAsked();
   }
 
   /**
