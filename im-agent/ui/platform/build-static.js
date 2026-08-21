@@ -61,6 +61,14 @@ function findBrowser() {
     }
   }
   candidates.push('/usr/bin/chromium', '/usr/bin/chromium-browser', '/usr/bin/google-chrome');
+  /* ★ macOS (2026-08-21) — 여기가 비어 있어서 맥에서는 **브라우저 검사가 전부 건너뛰어졌다.**
+     건너뛴 검사는 초록으로 보인다(테스트가 return 으로 끝나므로). 즉 "통과"가 아니라
+     "재지 못했다"였는데 화면에는 ✔ 로 찍혔다 — 실측 0.7ms 로 드러났다.
+     맥에서 개발하는 사람이 있는 한 후보에 넣어 둔다. */
+  candidates.push(
+    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+    '/Applications/Chromium.app/Contents/MacOS/Chromium',
+    '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge');
   return candidates.find(p => { try { return fs.statSync(p).isFile(); } catch (_) { return false; } }) || null;
 }
 
