@@ -130,9 +130,64 @@ function build(outDir) {
   return { files, manifest, outDir: outDir || null };
 }
 
+/**
+ * 어디로 낼지 정한다 — **`--out` 이 없으면 `LP_APP_DIR` 을 본다** 〈2026-08-21〉.
+ *
+ * ★★ 실제로 사고가 났다. 안내문의 `<앱 폴더>` 를 **자리표시인 줄 모르고 그대로**
+ *   붙여 넣은 것이다. 셸이 `앱 폴더` 를 찾다 죽었고, 그 뒤 두 줄도 줄줄이 죽었다.
+ *   안내가 「여기에 당신의 경로를 넣으세요」를 **말하지 않은 것**이 원인이다.
+ *
+ * ★ 그래서 여기서 **사람이 알아볼 수 있게 막는다.** 자리표시처럼 보이는 값,
+ *   없는 폴더, `im-flow` 가 아닌 곳 — 전부 **무엇이 잘못됐는지 이름으로** 말한다.
+ *   조용히 엉뚱한 곳에 16개를 쏟아 놓으면 되찾기가 훨씬 비싸다.
+ */
+function resolveOut(argv, env) {
+  const i = argv.indexOf('--out');
+  const raw = (i > -1 && argv[i + 1]) ? argv[i + 1] : (env.LP_APP_DIR || null);
+  if (!raw) return { out: null };
+
+  // ★ 자리표시를 그대로 붙여 넣은 경우. 셸이 꺽쇠를 먹어 버려 「앱」만 남기도 한다
+  // ★ 셸이 꺾쇠를 먹어 버리는 경우가 있다(zsh 리디렉션). 그때는 「앱 폴더」만
+  //   남으므로, 꺾쇠뿐 아니라 **자리표시로 쓰는 말**도 함께 본다
+  const PLACEHOLDER = /(^|[\/\s])(앱 ?폴더|앱저장소|경로|여기|your-?app|path-?to)([\/\s]|$)/i;
+  if (/[<>]/.test(raw) || PLACEHOLDER.test(raw)) {
+    return {
+      error: '--out 에 자리표시가 그대로 들어왔습니다: ' + raw + '\n'
+        + '  「<앱 폴더>」는 여기에 당신의 앱 저장소 경로를 넣으라는 뜻입니다.\n'
+        + '  예)  npm run im:embed -- --out "$LP_APP_DIR/im-flow"\n'
+        + '  경로에 빈칸이나 한글이 있으면 따옴표로 감쌉니다.',
+    };
+  }
+
+  const out = path.resolve(raw);
+  const parent = path.dirname(out);
+  if (!fs.existsSync(parent)) {
+    return {
+      error: '낼 곳의 상위 폴더가 없습니다: ' + parent + '\n'
+        + '  앱 저장소 경로가 맞는지 확인하십시오. 여기서 폴더를 만들지 않습니다 —\n'
+        + '  경로를 잘못 적었을 때 엉뚱한 곳에 16개가 쏟아지기 때문입니다.',
+    };
+  }
+  // ★ `im-flow` 로 끝나지 않으면 **묻지 않고 만들지 않는다.** 앱 웹루트에
+  //   화면 파일이 흘어지면 무엇이 우리 것인지 구분이 안 된다
+  if (path.basename(out) !== 'im-flow') {
+    return {
+      error: '낼 곳이 im-flow 가 아닙니다: ' + out + '\n'
+        + '  화면 사본은 앱 웹루트의 im-flow 폴더로 갑니다.\n'
+        + '  예)  --out "' + out + '/im-flow"',
+    };
+  }
+  if (!fs.existsSync(out)) fs.mkdirSync(out, { recursive: true });
+  return { out };
+}
+
 if (require.main === module) {
-  const i = process.argv.indexOf('--out');
-  const out = i > -1 && process.argv[i + 1] ? path.resolve(process.argv[i + 1]) : null;
+  const picked = resolveOut(process.argv, process.env);
+  if (picked.error) {
+    console.error('배포용 사본을 만들지 못했다.\n' + picked.error);
+    process.exit(2);
+  }
+  const out = picked.out;
   let r;
   try {
     r = build(out);
@@ -148,4 +203,4 @@ if (require.main === module) {
   r.files.forEach(f => console.log('  ' + f.padEnd(20) + r.manifest.files[f].sha256.slice(0, 12)));
 }
 
-module.exports = { build, required, checkBridge, unlisted, GLOBALS };
+module.exports = { resolveOut, build, required, checkBridge, unlisted, GLOBALS };
