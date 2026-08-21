@@ -222,6 +222,39 @@ jobs:
           }
           echo "NAS ssh 연결 확인"
 
+      # ★★ **목적지를 올리기 전에 본다** 〈2026-08-21 · 실제로 여기서 죽었다〉.
+      #   앞 판은 곧장 scp 를 했고 이렇게 죽었다:
+      #
+      #     scp: dest open "/volume1/web/report-flow.html": No such file or directory
+      #
+      #   **연결도 열쇠도 다 맞는데 「어디에 놓을지」가 틀린 것**인데, 오류가
+      #   scp 안에서 나와 그 둘이 섞여 보인다. 그리고 파일이 여럿이면 **앞의 몇
+      #   개만 올라간 반쯤 된 상태**로 멈춘다 — 그 상태가 제일 나쁘다.
+      #   여기서 먼저 재고, 안 되면 **무엇을 봐야 하는지 말하고** 멈춘다.
+      - name: Check destination
+        if: ${{ !inputs.dry_run }}
+        env:
+          DEST: ${{ inputs.dest }}
+          NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+          NAS_USER: ${{ secrets.NAS_SSH_USER }}
+        run: |
+          set -uo pipefail
+          OUT=$(ssh -o BatchMode=yes -i ~/.ssh/id_deploy "$NAS_USER@$NAS_HOST" \
+            "test -d '$DEST' && { test -w '$DEST' && echo OK || echo NOWRITE; } || echo NODIR" 2>&1)
+          case "$OUT" in
+            *OK*)
+              echo "목적지 확인: 있고 쓸 수 있다" ;;
+            *NOWRITE*)
+              echo "::error::목적지는 있는데 **쓸 수가 없다** — 그 계정에 쓰기 권한이 없다. DSM 제어판 › 공유 폴더 › 권한 에서 확인한다"
+              exit 1 ;;
+            *NODIR*)
+              echo "::error::목적지 폴더가 없다(또는 그 계정에서 안 보인다). 실제 경로를 확인한다 — ssh 로 붙어 ls -d /volume1/* 을 쳐 보면 무엇이 있는지 나온다"
+              exit 1 ;;
+            *)
+              echo "::error::목적지를 확인하지 못했다: $OUT"
+              exit 1 ;;
+          esac
+
       - name: Probe summary
         if: ${{ !inputs.dry_run && inputs.probe }}
         run: |

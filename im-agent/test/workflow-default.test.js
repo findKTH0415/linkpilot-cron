@@ -87,12 +87,23 @@ test('★★ 열쇠를 먼저 재고 파일을 본다 — 파일이 틀려도 �
  * ★ `probe` 는 tailnet 에 붙고 ssh 로 `echo ok` 까지만 한다. **읽기만 한다.**
  *   넷이 전부 맞아야 통과하므로 여기가 초록이면 실제 배포도 된다.
  */
+/**
+ * ★ **다음 단계의 주석까지 삼키지 않는다** 〈2026-08-21 · 실제로 헛걸렸다〉.
+ *   YAML 에서 주석은 설명하는 단계 **앞**에 온다. 그래서 단순히 다음
+ *   `- name:` 까지 자르면 **다음 단계의 주석이 이 단계 것으로 붙는다.**
+ *   `Set up ssh` 안에 `scp` 가 있다며 검사가 걸렸는데, 실제로는 그 아래
+ *   `Check destination` 의 설명에 그 낱말이 있었다 — **없는 결함을 만들어
+ *   낸 셈이다.** 끝의 주석 줄을 떼어 낸다.
+ */
 function stepOf(yml, name) {
   const start = yml.indexOf('      - name: ' + name);
   if (start < 0) return null;
   const rest = yml.slice(start + 10);
   const next = rest.indexOf('\n      - name: ');
-  return next < 0 ? rest : rest.slice(0, next);
+  const body = next < 0 ? rest : rest.slice(0, next);
+  const lines = body.split('\n');
+  while (lines.length && /^\s*(#|$)/.test(lines[lines.length - 1])) lines.pop();
+  return lines.join('\n');
 }
 
 test('★★ probe 는 올리지 않는다 — 확인이 곧 덮어쓰기가 되면 안 된다', () => {
@@ -124,4 +135,39 @@ test('★★ probe 는 올리지 않는다 — 확인이 곧 덮어쓰기가 되
   // ⑤ probe 도 tailnet 을 지난다 (dry_run 이 아닐 때만 붙으므로)
   assert.match(stepOf(y, 'Verify tailnet'), /if:.*!inputs\.dry_run/,
     'Verify tailnet 조건이 바뀌었다 — probe 가 tailnet 을 안 지나면 재는 뜻이 없다');
+});
+
+/**
+ * ★★ 〈2026-08-21 · 실제 배포 첫 시도에서 죽었다〉
+ *
+ *     scp: dest open "/volume1/web/report-flow.html": No such file or directory
+ *
+ *   **연결도 열쇠도 다 맞는데 「어디에 놓을지」가 틀렸다.** 그런데 오류가 scp
+ *   안에서 나오는 바람에 「못 붙었나?」와 섞여 보인다.
+ *
+ * ★ 더 나쁜 것은 **파일이 여럿일 때**다. 앞의 몇 개는 올라가고 중간에서 멈추면
+ *   **반쯤 배포된 상태**가 된다 — 화면 일부만 새 판이라 무엇이 깨졌는지
+ *   짚기가 가장 어렵다. 그래서 **한 개도 올리기 전에** 목적지를 잰다.
+ */
+test('★★ 올리기 전에 목적지를 잰다 — 반쯤 배포된 상태를 만들지 않는다', () => {
+  const y = fs.readFileSync(path.join(WF, 'deploy-nas.yml'), 'utf8');
+
+  const chk = stepOf(y, 'Check destination');
+  assert.ok(chk, 'Check destination 단계가 없다');
+
+  // ① 올리는 단계보다 **앞**이어야 한다. 뒤면 재는 뜻이 없다
+  assert.ok(y.indexOf('      - name: Check destination') < y.indexOf('      - name: Upload'),
+    'Check destination 이 Upload 뒤에 있다 — 반쯤 올린 뒤에 재는 셈이다');
+
+  // ② ★ 「없다」와 「쓸 수 없다」를 **가려서** 말한다. 둘을 뭉뚱그리면
+  //   경로를 고쳐야 할 때 권한을 뒤지게 된다
+  assert.match(chk, /NODIR/, '목적지가 없는 경우를 안 가린다');
+  assert.match(chk, /NOWRITE/, '쓸 수 없는 경우를 안 가린다');
+
+  // ③ ★★ **읽기만 한다.** 재려고 파일을 만들면 그것이 곧 배포다
+  assert.ok(!/\b(scp|touch|mkdir)\b/.test(chk),
+    'Check destination 이 NAS 에 무언가를 만든다 — 재기만 해야 한다');
+
+  // ④ 막혔을 때 **다음에 무엇을 볼지** 말한다 (조용히 죽지 않는다 · §2)
+  assert.match(chk, /ls -d \/volume1/, '실제 경로를 어떻게 찾는지 안 알려 준다');
 });
