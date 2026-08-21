@@ -1235,3 +1235,75 @@ test('★★ 프로젝트 고르기가 하나뿐이고, 다른 갈래에서 한 
       `프로젝트를 골랐는데 스캔 칸이 없다: ${r.afterPick.join(' | ')}`);
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
+
+/* ═════════ ⑪ 좁은 화면에서만 부푸는 것 ═════════ */
+
+/**
+ * ★★ **실측으로 잡은 버그다** 〈2026-08-21〉. 고르기 칸에 `flex: 1 1 240px` 을
+ *   줬는데, 좁은 화면에서 `flex-direction: column` 으로 바뀌면 그 240px 이
+ *   **너비가 아니라 높이**가 된다. 칸 하나가 세로 240px 로 부풀었다.
+ *
+ * ★ 오류는 안 난다. **넓은 화면에서는 멀쩡하다.** 그래서 넓은 창으로만 재는
+ *   검사는 이것을 절대 못 잡는다 — **좁혀서 재야** 잡힌다.
+ *
+ * ★ 「글씨 크기가 CSS 대로인가」와 같은 계열이다(58군데 font 축약형). 화면 치수는
+ *   **소스를 읽어서가 아니라 브라우저에게 물어서** 확인한다.
+ */
+test('★★ 좁은 화면에서 고르기 칸이 세로로 부풀지 않는다', async () => {
+  const { buildLive } = require(path.join(PLATFORM, 'build-files.js'));
+  const { findBrowser } = require(path.join(PLATFORM, 'build-static.js'));
+  const browser = findBrowser();
+  if (!browser) return;
+  const { execFileSync } = require('child_process');
+
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-narrow-'));
+  const frag = path.join(dir, 'frag.html');
+  await buildLive(frag);
+
+  const probe = `
+    <script>
+    setTimeout(function () {
+      var s = document.querySelector('.pick select');
+      var r = s ? s.getBoundingClientRect() : null;
+      var pre = document.createElement('pre');
+      pre.id = 'M';
+      pre.textContent = JSON.stringify(r ? {
+        w: Math.round(r.width), h: Math.round(r.height),
+        dir: getComputedStyle(s.parentNode).flexDirection,
+        over: document.documentElement.scrollWidth > innerWidth,
+      } : null);
+      document.body.appendChild(pre);
+    }, 700);
+    </script>`;
+  const page = path.join(dir, 'page.html');
+  fs.writeFileSync(page, '<!doctype html><html lang="ko"><head><meta charset="utf-8">'
+    + '<meta name="viewport" content="width=device-width, initial-scale=1"></head><body>'
+    + fs.readFileSync(frag, 'utf8') + probe + '</body></html>');
+
+  const measure = (w) => {
+    const dom = execFileSync(browser, ['--headless', '--disable-gpu', '--no-sandbox',
+      '--hide-scrollbars', '--window-size=' + w + ',900', '--virtual-time-budget=15000',
+      '--dump-dom', 'file://' + page], { maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] }).toString();
+    const m = dom.match(/<pre id="M">([^<]*)<\/pre>/);
+    assert.ok(m && m[1], `창 ${w}px: 탐침이 아무것도 안 남겼다`);
+    return JSON.parse(m[1]);
+  };
+
+  try {
+    const narrow = measure(430);
+    const wide = measure(1100);
+
+    assert.ok(narrow, '좁은 화면에 고르기 칸이 없다');
+    // ★ 한 줄짜리 고르기 칸이다. 두 줄을 넘으면 무언가 부푼 것이다
+    assert.ok(narrow.h < 70,
+      `좁은 화면에서 고르기 칸이 세로 ${narrow.h}px 다 — flex-basis 가 높이로 먹었는가`);
+    assert.ok(wide.h < 70, `넓은 화면에서도 세로 ${wide.h}px 다`);
+    // ★ 좁은 화면에서는 세로로 쌓이는 것이 맞다 (그건 의도한 것이다)
+    assert.equal(narrow.dir, 'column', '좁은 화면에서 라벨과 목록이 안 쌓인다');
+    assert.equal(wide.dir, 'row', '넓은 화면에서 한 줄로 안 놓인다');
+    // ★ 가로로 넘치면 본문이 좌우로 흔들린다
+    assert.equal(narrow.over, false, '좁은 화면에서 가로로 넘친다');
+    // ★ 좁을수록 칸은 좁아져야 한다 — 안 그러면 폭을 안 따라간 것이다
+    assert.ok(narrow.w < wide.w, `좁혔는데 칸이 안 좁아진다 (${narrow.w} vs ${wide.w})`);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});

@@ -71,6 +71,12 @@ select {
 @media (max-width: 560px) {
   .pick { flex-direction: column; align-items: stretch; gap: 6px; }
   .pick label { letter-spacing: .04em; }
+  /* ★★ **`flex-basis` 를 반드시 되돌린다** 〈2026-08-21 실측으로 잡음〉.
+     위에서 준 `flex: 1 1 240px` 의 240px 는 **주축 방향** 크기다. 가로로 놓였을
+     때는 너비였는데, 여기서 세로로 바꾸는 순간 그것이 **높이**가 된다 —
+     고르기 칸 하나가 세로 240px 로 부풀었다.
+     오류는 안 난다. 넓은 화면에서는 멀쩡하고 **좁은 화면에서만** 그런다. */
+  .pick select { flex: 0 0 auto; }
 }
 select:focus-visible, button:focus-visible { outline: 2px solid var(--lime-deep); outline-offset: 2px; }
 
@@ -130,6 +136,17 @@ select:focus-visible, button:focus-visible { outline: 2px solid var(--lime-deep)
 .pw:hover:not(:disabled) { border-color: var(--lime); }
 .pw.on { border-color: var(--lime); background: var(--lime-soft); box-shadow: inset 0 0 0 1px var(--lime); }
 .pw:disabled { cursor: not-allowed; background: var(--panel); color: var(--ink2); }
+
+/* ── 고른 갈래에 **이어 붙은 칸** 〈2026-08-21 사용자 지시 — 고르기를 갈래로 이동배치〉 ──
+   ★★ 고르기를 갈래 안으로 옮겼는데, 그냥 아래에 두니 **갈래에 속한 것으로 안 보였다.**
+     자리는 맞고 눈에는 안 맞는 상태다 — 사용자는 「옮겨졌나?」를 화면으로 확인할 수
+     없다. 그래서 고른 갈래와 **같은 색으로 칠하고 위쪽을 붙여** 한 덩어리로 보이게 한다.
+   ★ 갈래 칸(.pw.on)과 같은 테두리·바탕을 쓴다. 색을 여기서 새로 정하면
+     갈래 색을 바꾸는 날 둘이 갈린다 — 토큰 하나를 같이 본다. */
+.wayin { margin-top: -6px; padding: 14px; border-radius: 0 0 14px 14px;
+  border: 1px solid var(--lime); border-top: 0; background: var(--lime-soft); }
+.wayin .pick { margin-top: 0; }
+.wayin > .note { margin-bottom: 0; }
 .pw__t { font-weight: 800; font-size: 14.5px; }
 .pw__d { font-size: 12.5px; color: var(--ink2); margin-top: 6px; line-height: 1.6; }
 
@@ -981,26 +998,31 @@ window.LINKPILOT_FILES = {
        ★ 프로젝트가 없어도 이 갈래는 그린다. 여기가 **고르는 유일한 자리**라
          프로젝트가 없다고 닫아 버리면 고를 방법이 사라진다 */
     if (state.way === 'app') {
-      card.appendChild(projectPicker());
+      // ★ 고른 갈래 칸에 **이어 붙여** 그린다 — 자리만 옮기고 색이 그대로면
+      //   갈래에 속한 것으로 안 보인다 (2026-08-21 사용자 지시의 「이동배치」)
+      var inWay = el('div', 'wayin');
+      inWay.appendChild(projectPicker());
 
       // 「＋ 신규프로젝트」를 골랐으면 만드는 칸이 여기서 열린다
       var mk = newProjectCard();
-      if (mk) { card.appendChild(mk); return card; }
+      if (mk) { inWay.appendChild(mk); card.appendChild(inWay); return card; }
 
       if (!state.projectId) {
-        card.appendChild(el('p', 'note', state.noFolder
+        inWay.appendChild(el('p', 'note', state.noFolder
           // ★ 화면이 몰래 만들지 않는다 — 번호가 소모되고 자산군이 GEN 으로 굳는다 (§4)
           ? '이 프로젝트는 작업 폴더가 아직 없습니다. 위에서 「＋ 신규프로젝트」로 만들어 주십시오.'
           : '프로젝트를 고르면 여기서 바로 자료를 넣을 수 있습니다.'));
+        card.appendChild(inWay);
         return card;
       }
 
       var appBody = appImportCard();
-      if (appBody) card.appendChild(appBody);
+      if (appBody) inWay.appendChild(appBody);
       else if (state.appBundle) {
-        card.appendChild(el('p', 'note',
+        inWay.appendChild(el('p', 'note',
           '이 앱 프로젝트에는 가져올 내용·첨부·이미지가 없습니다.'));
       }
+      card.appendChild(inWay);
       return card;
     }
 
