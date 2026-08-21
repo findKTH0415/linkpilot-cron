@@ -264,7 +264,18 @@ function fakeServer(limits) {
       var all = kept.map(function (f) { return f.name; })
         .concat(linked.map(function (x) { return x.name; }));
       if (!all.length) {
+        // ★ 실제 서버와 같은 말을 한다. 1회성으로만 넣은 상태를 **탓하지 않는다**
+        //   (2026-08-21 실제 신고 — 넣은 사람에게 안 넣었다고 말하고 있었다)
+        if (oneshot.length) {
+          return [200, { scanned: [], unread: [], facts: 0, documents: 0, empty: true,
+            oneshotOnly: true, oneshotCount: oneshot.length,
+            note: '여기서 다시 읽을 자료가 없습니다 — 「파일업로드」로 넣은 '
+              + oneshot.length + '건은 올리는 그 자리에서 이미 읽었고, 보관하지 않으므로 '
+              + '원본이 남아 있지 않습니다. 다시 읽어야 하면 「폴더를 연결해서」로 넣으십시오.',
+            at: '예시' }];
+        }
         return [200, { scanned: [], unread: [], facts: 0, documents: 0, empty: true,
+          oneshotOnly: false, oneshotCount: 0,
           note: '읽을 자료가 없습니다 — 자료를 먼저 넣어 주십시오.', at: '예시' }];
       }
       var IMG = /\\.(png|jpe?g|webp|heic|heif)$/i;

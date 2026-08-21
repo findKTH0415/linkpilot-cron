@@ -311,3 +311,56 @@ test('★ 스캔: 자료가 적으면 자르지 않는다 (남은 것 0)', async
   assert.equal(r.body.remaining, 0, '자를 것이 없는데 잘랐다고 한다');
   assert.equal((r.body.unread || []).filter(u => u.from === 'limit').length, 0);
 });
+
+/* ═════════ ⑩ 「자료가 없다」고 사용자를 탓하지 않는다 ═════════ */
+
+/**
+ * ★★ **실제 신고로 고쳤다** 〈2026-08-21〉. 사용자가 「파일업로드」로 파일을 넣고
+ *   「자료 스캔」을 눌렀더니 **「읽을 자료가 없습니다 — 자료를 먼저 넣어 주십시오」**
+ *   가 빨간 칸에 떴다. **방금 넣은 사람에게 안 넣었다고 말한 것이다.**
+ *
+ * ★ 사실은 이렇다: 1회성은 **올리는 그 자리에서 읽고 파일을 버린다.** 그래서
+ *   여기서 다시 읽을 원본이 없다 — **고장이 아니라 설계다.** 그런데 장부에는
+ *   무엇을 올렸는지 남아 있다. 그것을 보고 **무슨 일이 있었는지 그대로 말한다.**
+ *
+ * ★ 「없다」와 「여기서 다시 읽을 수 없다」는 다른 말이다. 앞엣것은 넣으라고 하고,
+ *   뒤엣것은 **왜 못 읽는지와 다음 수**를 준다.
+ */
+test('★★ 스캔: 1회성으로만 넣었으면 「안 넣었다」고 하지 않는다', async () => {
+  const p = bareProject();
+  const H = h(p.root, {
+    // 1회성은 읽고 버린다 — 실제 경로 그대로
+    extractOneshot: async () => ({ facts: [], documents: [], unsupported: [] }),
+    extractFiles: async () => ({ facts: [], documents: [], unsupported: [] }),
+  });
+
+  // ① 「파일업로드」로 넣는다
+  const up = await H.oneshotUpload({}, p.id, {
+    files: [{ name: '잠원동 800평.pdf', contentBase64: Buffer.from('대지면적 2,644 m2').toString('base64') }],
+  });
+  assert.equal(up.status, 200, `올리기부터 실패했다: ${JSON.stringify(up.body)}`);
+  assert.equal(up.body.removed, 1, '1회성인데 파일이 안 지워졌다');
+
+  // ② 그다음 「자료 스캔」을 누른다 — 사용자가 겪은 그 자리
+  const r = await H.scanSources({}, p.id, {});
+  assert.equal(r.status, 200);
+  assert.equal(r.body.empty, true);
+
+  // ★★ 여기가 핵심 — **탓하지 않는다**
+  assert.equal(r.body.oneshotOnly, true, '1회성으로 넣은 것을 못 알아본다');
+  assert.equal(r.body.oneshotCount, 1, '몇 건 넣었는지 안 센다');
+  assert.ok(!/자료를 먼저 넣어/.test(r.body.note),
+    `방금 넣은 사람에게 안 넣었다고 말한다: ${r.body.note}`);
+  assert.match(r.body.note, /이미 읽었/, '올릴 때 이미 읽었다는 사실을 안 말한다');
+  assert.match(r.body.note, /보관하지 않으므로/, '왜 원본이 없는지 안 말한다');
+  // ★ **다음 수**를 준다. 「안 됩니다」만으로는 사용자가 할 수 있는 것이 없다
+  assert.match(r.body.note, /폴더를 연결해서/, '다시 읽으려면 어떻게 하는지 안 말한다');
+});
+
+test('★ 스캔: 정말 아무것도 안 넣었으면 그때는 넣으라고 한다', async () => {
+  const p = bareProject();
+  const r = await h(p.root, { extractFiles: async () => ({ facts: [], documents: [] }) })
+    .scanSources({}, p.id, {});
+  assert.equal(r.body.oneshotOnly, false, '넣은 것이 없는데 1회성이 있다고 한다');
+  assert.match(r.body.note, /자료를 먼저 넣어/, '정말 없을 때는 넣으라고 해야 한다');
+});

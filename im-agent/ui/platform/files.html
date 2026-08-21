@@ -1675,6 +1675,32 @@ window.LINKPILOT_FILES = {
         + '그 값은 신뢰도를 낮춰 표시합니다. 읽고 나면 「'
         + F.SECTION.tab + '」으로 넘어갑니다.'));
 
+    /* ★★ **여기서 읽을 수 있는 것과 없는 것을 미리 가른다** 〈2026-08-21 · 실제 신고〉.
+       「파일업로드」(1회성)는 **올리는 그 자리에서 읽고 파일을 버린다.** 그래서
+       이 단추로는 다시 읽을 원본이 없다 — 그런데 화면은 단추를 그대로 열어 두고,
+       누르면 「자료를 먼저 넣어 주십시오」라고 **사용자를 탓했다.**
+       ★ 단추를 없애지는 않는다. 보관·연결 자료가 함께 있을 수 있고, 그때는
+         눌러야 한다. 대신 **무엇이 스캔 대상인지 먼저 말한다.** */
+    var keptN = ((state.kept && state.kept.files) || []).length;
+    var linkN = ((state.linked && state.linked.items) || []).length;
+    var shotN = ((state.oneshot && state.oneshot.items) || []).length;
+    if (!keptN && !linkN && shotN) {
+      card.appendChild(el('p', 'note',
+        '「' + wayName('oneshot') + '」로 넣은 ' + shotN + '건은 여기 오지 않습니다 — '
+        + '올리는 그 자리에서 이미 읽었고, 보관하지 않으므로 원본이 남아 있지 않습니다. '
+        + '다시 읽어야 하면 「' + wayName('linked') + '」로 넣으십시오.'));
+    }
+    // ★ 아직 안 올린 파일을 손에 든 채 스캔을 누르면 **그것부터 말한다.**
+    //   「자료가 없다」로 답하면 사용자는 고른 파일이 안 보이는 줄 안다
+    var waiting = state.picked.filter(function (f) { return f.data && !f.tooBig; }).length;
+    if (waiting) {
+      card.appendChild(el('p', 'note',
+        // ★ 조사를 이름 뒤에 붙이지 않는다 — 갈래 이름은 사람이 정하는 값이라
+        //   받침을 미리 알 수 없다 (「파일업로드」을 → 를 이 어긋났다)
+        '고른 파일 ' + waiting + '개가 아직 안 올라갔습니다 — 위에서 「'
+        + wayName('oneshot') + '」 단추를 먼저 누르십시오. 스캔은 올라간 자료만 읽습니다.'));
+    }
+
     var go = el('button', 'btn', state.scan.busy ? '읽는 중…' : '자료 스캔');
     go.type = 'button';
     go.disabled = state.scan.busy || state.busy;
@@ -1692,8 +1718,14 @@ window.LINKPILOT_FILES = {
 
     var res = state.scan.result;
     if (res) {
-      var okBox = el('div', 'up' + (res.facts ? ' up--done' : ' up--error'));
-      okBox.appendChild(el('p', 'up__d', res.empty && !res.scanned.length
+      // ★★ **읽을 것이 없는 것은 오류가 아니다** 〈2026-08-21 · 실제 신고로 고침〉.
+      //   빨간 상자로 그리면 고장으로 읽힌다. 실제로 「파일업로드」로 넣고
+      //   스캔을 누른 사용자가 빨간 칸과 「자료를 먼저 넣어 주십시오」를 봤다 —
+      //   방금 넣은 사람에게 안 넣었다고 말한 셈이다.
+      //   읽었는데 값이 0 인 것만 빨갛게 둔다 (그건 확인이 필요한 상태다)
+      var nothingToRead = res.empty && !(res.scanned || []).length;
+      var okBox = el('div', 'up' + (res.facts ? ' up--done' : (nothingToRead ? '' : ' up--error')));
+      okBox.appendChild(el('p', 'up__d', nothingToRead
         ? (res.note || '읽을 자료가 없습니다.')
         : ('문서 ' + res.documents + '건에서 값 ' + res.facts + '개를 만들었습니다.')));
       // ★ 파일마다 **어떻게 읽었는지**. 「OCR 했다」로 뭉뚱그리지 않는다.

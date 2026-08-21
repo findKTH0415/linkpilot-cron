@@ -1307,3 +1307,123 @@ test('★★ 좁은 화면에서 고르기 칸이 세로로 부풀지 않는다'
     assert.ok(narrow.w < wide.w, `좁혔는데 칸이 안 좁아진다 (${narrow.w} vs ${wide.w})`);
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
+
+/* ═════════ ⑫ 신고받은 자리 — 넣었는데 「안 넣었다」고 하던 것 ═════════ */
+
+/**
+ * ★★ **사용자가 실제로 겪은 흐름을 그대로 재현한다** 〈2026-08-21 신고〉.
+ *
+ *   「자료 붙이기」에서 파일업로드 → 「자료 스캔」 → **빨간 칸 + 「자료를 먼저
+ *   넣어 주십시오」**. 방금 넣은 사람에게 안 넣었다고 말한 것이다.
+ *
+ * ★ 원인은 고장이 아니라 **설명 부족**이었다. 1회성은 올리는 그 자리에서 읽고
+ *   파일을 버리므로 스캔이 읽을 원본이 없다. 그 사실을 **미리·정확히** 말하면
+ *   사용자가 헤매지 않는다.
+ *
+ * ★ 그래서 이 검사는 세 가지를 본다:
+ *   ① 안 올린 파일을 손에 든 채면 **그것부터** 말하는가
+ *   ② 1회성으로만 넣었으면 스캔 칸이 **미리** 「여기 오지 않는다」고 말하는가
+ *   ③ 눌렀을 때 **빨간 칸이 아니고**, 「안 넣었다」로 탓하지 않는가
+ */
+test('★★ 파일업로드로 넣고 스캔을 눌러도 「안 넣었다」고 하지 않는다', async () => {
+  const { buildLive } = require(path.join(PLATFORM, 'build-files.js'));
+  const { findBrowser, renderDom } = require(path.join(PLATFORM, 'build-static.js'));
+  if (!findBrowser()) return;
+
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-blame-'));
+  const frag = path.join(dir, 'frag.html');
+  await buildLive(frag);
+
+  const probe = `
+    <div id="probe"></div>
+    <script>
+    (async function () {
+      var sleep = function (m) { return new Promise(function (r) { setTimeout(r, m); }); };
+      var t = function (n) { return n ? (n.textContent || '').trim().replace(/\\s+/g, ' ') : null; };
+      var notes = function () {
+        return [].slice.call(document.querySelectorAll('.note')).map(t).join(' // ');
+      };
+      var o = {};
+      await sleep(300);
+      var sel = document.querySelector('.pick select');
+      sel.value = 'LP-DC-2026-001';
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+      await sleep(400);
+      [].slice.call(document.querySelectorAll('.pw')).filter(function (b) {
+        return /파일업로드/.test(t(b)); })[0].click();
+      await sleep(200);
+
+      // 파일을 고르기만 한다 (아직 안 올림)
+      var inp = document.querySelector('.drop input[type=file]');
+      var dt = new DataTransfer();
+      dt.items.add(new File([new Blob(['총사업비 100억원'])], '잠원동 800평.pdf'));
+      inp.files = dt.files;
+      inp.dispatchEvent(new Event('change', { bubbles: true }));
+      var go = null;
+      for (var w = 0; w < 1200; w++) {
+        go = [].slice.call(document.querySelectorAll('.btn')).filter(function (b) {
+          return t(b) === '파일업로드'; })[0];
+        if (go && !go.disabled) break;
+        await sleep(20);
+      }
+      o.ready = !!(go && !go.disabled);
+      o.beforeUpload = notes();
+
+      // 올린다
+      go.click();
+      for (var u = 0; u < 1200; u++) {
+        await sleep(20);
+        if (/여기 오지 않습니다/.test(notes())) break;
+      }
+      o.afterUpload = notes();
+
+      // 「자료 스캔」을 누른다 — 신고된 그 자리
+      var scan = [].slice.call(document.querySelectorAll('.btn')).filter(function (b) {
+        return t(b) === '자료 스캔'; })[0];
+      o.hasScan = !!scan;
+      if (scan) scan.click();
+      for (var k = 0; k < 1200; k++) {
+        await sleep(20);
+        if (/다시 읽을 자료가 없습니다|읽을 자료가 없습니다/.test(document.body.innerText || '')) break;
+      }
+      // 스캔 결과 상자는 **스캔 칸 안**에 있다 (올리기 상자와 구분한다)
+      var boxes = [].slice.call(document.querySelectorAll('.up'));
+      var box = boxes.filter(function (b) { return /읽을 자료가 없습니다/.test(t(b)); })[0];
+      o.scanBoxClass = box ? box.className : '(못 찾음)';
+      o.scanBoxText = t(box);
+      o.errBoxes = document.querySelectorAll('.err').length;
+      document.getElementById('probe').textContent = JSON.stringify(o);
+    }());
+    </script>`;
+  const page = path.join(dir, 'page.html');
+  fs.writeFileSync(page, '<!doctype html><html lang="ko"><head><meta charset="utf-8"></head><body>'
+    + fs.readFileSync(frag, 'utf8') + probe + '</body></html>');
+
+  try {
+    const dom = renderDom(findBrowser(), page, 40000);
+    const m = dom.match(/<div id="probe">([^<]*)<\/div>/);
+    assert.ok(m && m[1], '탐침이 아무것도 안 남겼다');
+    const r = JSON.parse(m[1]);
+    assert.equal(r.errBoxes, 0, '오류 상자가 떴다');
+    assert.ok(r.ready, '파일을 읽고도 올리기 단추가 안 열렸다');
+
+    // ① 안 올린 파일을 손에 든 채면 **그것부터** 말한다
+    assert.match(r.beforeUpload, /아직 안 올라갔습니다/,
+      `고른 파일이 안 올라갔다는 것을 안 말한다: ${r.beforeUpload}`);
+    // ★ 조사를 이름 뒤에 붙이지 않는다 (「파일업로드」을 → 를 이 어긋났다)
+    assert.ok(!/」을 먼저/.test(r.beforeUpload), `조사가 어긋났다: ${r.beforeUpload}`);
+
+    // ② 올린 뒤에는 **미리** 「여기 오지 않는다」고 말한다
+    assert.match(r.afterUpload, /여기 오지 않습니다/,
+      `1회성이 스캔 대상이 아니라는 것을 미리 안 말한다: ${r.afterUpload}`);
+    assert.match(r.afterUpload, /폴더를 연결해서/, '다시 읽으려면 어떻게 하는지 안 말한다');
+
+    // ③ 눌렀을 때 — **빨간 칸이 아니고 탓하지 않는다**
+    assert.ok(r.hasScan, '스캔 단추가 없다');
+    assert.ok(!/up--error/.test(r.scanBoxClass),
+      `읽을 것이 없는 것을 오류(빨간 칸)로 그린다: ${r.scanBoxClass}`);
+    assert.ok(!/자료를 먼저 넣어/.test(r.scanBoxText || ''),
+      `방금 넣은 사람에게 안 넣었다고 말한다: ${r.scanBoxText}`);
+    assert.match(r.scanBoxText || '', /이미 읽었/, '무슨 일이 있었는지 안 말한다');
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
