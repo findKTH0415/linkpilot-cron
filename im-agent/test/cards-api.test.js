@@ -44,6 +44,20 @@ test('라우트 표 — 서버가 등록할 3개가 전부 있고 핸들러가 �
   for (const r of api.ROUTES) assert.strictEqual(typeof h[r.handler], 'function', r.handler);
 });
 
+test('라우트 표 — report-api 와 같은 계약: call(h, ctx, params) 로 디스패치된다 (NAS 500 재발 방지)', async () => {
+  // 본체 서버는 hit.route.call(h, ctx, params) 를 부른다 — call 필드가 없으면 selftest(핸들러 존재)는
+  // 통과하고 실요청만 500 이 난다(2026-08-21 실측). 표 항목마다 call 을 실제로 태워 401 까지 확인한다.
+  const h = fresh();
+  const RT = require('../ui/routes.cjs');
+  for (const r of api.ROUTES) {
+    assert.strictEqual(typeof r.call, 'function', r.path + ' 에 call 이 없다');
+    const hit = RT.match(api.ROUTES, r.method, r.path);
+    assert.ok(hit, r.path);
+    const res = await hit.route.call(h, { method: r.method, headers: {}, body: {}, query: {} }, hit.params);
+    assert.strictEqual(res.status, 401, r.path + ' 무인증은 call 경유로도 401');
+  }
+});
+
 test('인증 주입이 없으면 만들 때 던진다 — 무인증 라우트 금지', () => {
   assert.throws(() => api.createHandlers({}), /authenticate/);
 });

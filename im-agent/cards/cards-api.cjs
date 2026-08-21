@@ -252,11 +252,11 @@ function createHandlers(opts) {
   return H;
 }
 
-/* 라우트 표 — 본체 서버가 routes.match() 로 쓰는 것과 같은 모양 */
+/* 라우트 표 — report-api ROUTES 와 같은 계약: match() 가 돌려준 항목의 call(h, ctx, params) 를 서버가 부른다 */
 const ROUTES = [
-  { method: 'GET',  path: '/cards/status',  handler: 'cardsStatus' },
-  { method: 'POST', path: '/cards/parse',   handler: 'cardsParse' },
-  { method: 'POST', path: '/cards/confirm', handler: 'cardsConfirm' },
+  { method: 'GET',  path: '/cards/status',  handler: 'cardsStatus',  call: (h, ctx) => h.cardsStatus(ctx) },
+  { method: 'POST', path: '/cards/parse',   handler: 'cardsParse',   call: (h, ctx) => h.cardsParse(ctx) },
+  { method: 'POST', path: '/cards/confirm', handler: 'cardsConfirm', call: (h, ctx) => h.cardsConfirm(ctx) },
 ];
 
 module.exports = { createHandlers, ROUTES, CARD_PARSE_PROMPT };
