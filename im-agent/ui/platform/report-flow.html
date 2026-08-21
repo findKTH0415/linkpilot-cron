@@ -317,20 +317,89 @@ window.LINKPILOT_REPORT_FLOW = {
       (d.head || d.documentElement).appendChild(st);
     }
     var h = Math.max(d.documentElement.scrollHeight, d.body ? d.body.scrollHeight : 0);
-    if (h) fr.style.height = h + 'px';
+    if (!h) return;
+
+    /* ★★ **같으면 안 쓴다** 〈2026-08-21 · 모바일이 느린 진짜 이유〉.
+     *   앞 판은 잴 때마다 `style.height` 를 **무조건** 썼다. 그런데 높이를 쓰면
+     *   ⓐ 바깥이 다시 배치되고 → ⓑ 안쪽 화면의 폭·높이가 바뀌고 → ⓒ 안쪽이
+     *   다시 그려지면서 클래스·style 이 움직이고 → ⓓ 감시자가 그걸 잡아 **또
+     *   재고 또 쓴다.** 값이 그대로여도 고리가 돈다.
+     *
+     *   데스크톱에서는 한 바퀴가 순식간이라 눈에 안 띈다. 휴대폰에서는 그 한
+     *   바퀴가 비싸서 **화면이 뒤늦게 덜컥덜컥 자리를 잡는다** — 그것이
+     *   「느리게 뜬다」로 보인다.
+     *
+     *   ★ 한 글자짜리 조건이 고리를 끊는다. 안 바뀌었으면 아무것도 안 한다. */
+    if (h === fr._lpH) return;
+    fr._lpH = h;
+    fr.style.height = h + 'px';
+  }
+
+  /* ── 높이 따라가기 ─────────────────────────────────────
+   *
+   * ★★ **감시자는 언제나 하나다** 〈2026-08-21〉. 앞 판은 `watch()` 를 부를 때마다
+   *   MutationObserver 와 setInterval 을 **새로 만들고 옛것을 끄지 않았다.**
+   *   `watch()` 는 화면이 실릴 때마다·단계를 옮길 때마다 불린다 — 그래서 쓰는
+   *   동안 감시자가 **쌓인다.** 열 번 오가면 열 벌이 같은 일을 한다.
+   *   「쓸수록 느려진다」는 이 모양에서 나온다.
+   *
+   * ★ 그리고 재는 도구를 바꿨다. MutationObserver 로 **문서 전체의 속성까지**
+   *   보고 있었는데(`attributes: true`), 안쪽 화면이 제 일을 하느라 클래스 하나만
+   *   토글해도 그때마다 높이를 다시 쟀다. **높이가 궁금한 것이지 무엇이
+   *   바뀌었는지가 궁금한 것이 아니다** — ResizeObserver 가 바로 그것만 본다.
+   *   없는 브라우저에서는 MutationObserver 로 내려가되 범위를 좁힌다.
+   *
+   * ★ 재는 일은 **한 프레임에 한 번**으로 묶는다. 한 번 그리는 사이에 스무 번
+   *   재 봐야 결과는 같고 값만 치른다.
+   */
+  var watching = null;   // { fr: <iframe>, stop: fn }
+
+  function unwatch() {
+    if (!watching) return;
+    try { watching.stop(); } catch (e) {}
+    watching = null;
   }
 
   function watch(fr) {
+    if (watching && watching.fr === fr) { fit(fr); return; }
+    unwatch();
     fit(fr);
+
     var d;
     try { d = fr.contentDocument; } catch (e) { return; }
-    if (!d) return;
-    // 값을 넣거나 판을 바꾸면 높이가 달라진다 — 따라가지 않으면 아래가 잘린다
-    if (fr.contentWindow && fr.contentWindow.MutationObserver) {
-      new fr.contentWindow.MutationObserver(function () { fit(fr); })
-        .observe(d.documentElement, { childList: true, subtree: true, characterData: true, attributes: true });
+    if (!d || !d.documentElement) return;
+
+    var win = fr.contentWindow;
+    var raf = 0;
+    function soon() {
+      if (raf) return;                       // 이미 이번 프레임에 예약돼 있다
+      raf = window.requestAnimationFrame(function () { raf = 0; fit(fr); });
     }
-    var n = 0, t = setInterval(function () { fit(fr); if (++n > 20) clearInterval(t); }, 150);
+
+    var obs = null;
+    if (win && win.ResizeObserver) {
+      obs = new win.ResizeObserver(soon);
+      obs.observe(d.documentElement);
+      if (d.body) obs.observe(d.body);
+    } else if (win && win.MutationObserver) {
+      // ★ 옛 브라우저용. 속성은 **높이에 영향을 주는 것만** 본다
+      obs = new win.MutationObserver(soon);
+      obs.observe(d.documentElement, {
+        childList: true, subtree: true, characterData: true,
+        attributes: true, attributeFilter: ['style', 'class', 'hidden', 'open'],
+      });
+    }
+
+    /* ★ 그림·글꼴이 늦게 들어오면 아무 변화 없이 높이만 바뀌는 판이 있다.
+     *   그래서 잠깐만 더 지켜본다. 이제 `fit()` 은 값이 같으면 아무것도 안
+     *   하므로 이 지켜보기는 싸다. */
+    var n = 0, t = setInterval(function () { soon(); if (++n > 8) clearInterval(t); }, 250);
+
+    watching = { fr: fr, stop: function () {
+      if (obs) obs.disconnect();
+      clearInterval(t);
+      if (raf) window.cancelAnimationFrame(raf);
+    } };
   }
 
   /* ★ 2026-08-16 — 1단계 화면이 만든 프로젝트를 postMessage 로 받는다 (URL 감시의 짝).
@@ -741,6 +810,10 @@ window.LINKPILOT_REPORT_FLOW = {
   }
 
   function draw() {
+    /* ★★ 다시 그리면 **옛 화면(iframe)이 사라진다.** 그 화면을 보고 있던
+     *   감시자를 여기서 끊지 않으면, 이미 없는 것을 계속 재는 감시자가
+     *   남는다 — 그것이 쌓이는 것이 「쓸수록 느려진다」의 정체였다. */
+    unwatch();
     view.textContent = '';
     // ★ 탭 안에 얹을 때는 **제목을 그리지 않는다.** 탭 바가 이미 이름을 말하므로
     //   그대로 두면 「새 보고서 생성」 아래에 「보고서 생성」이 또 나온다.
