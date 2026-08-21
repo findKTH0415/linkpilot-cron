@@ -237,3 +237,35 @@ test('★★ 올릴 자리 기본값이 앱이 읽는 곳(im-flow)이다', () =>
   const be = fs.readFileSync(path.join(PLATFORM_DIR, 'build-embed.js'), 'utf8');
   assert.match(be, /im-flow/, 'build-embed 가 im-flow 를 모른다 — 규칙이 한쪽에만 있다');
 });
+
+/**
+ * ★★ 〈2026-08-21〉 **올린 것이 「어떻게 서빙되는지」까지 잰다.**
+ *
+ *   파일이 제자리에 있는 것과, 받는 쪽이 그것을 **어떤 모습으로** 받는지는
+ *   다른 이야기다. 특히 압축은 **켜져 있는지 밖에서는 보이지 않는데** 체감
+ *   속도를 세 배로 가른다 (122KB → 약 35KB).
+ *
+ * ★ 사람에게 「터미널에서 curl 해 보세요」라고 시키지 않는다. 러너는 이미
+ *   tailnet 안에 있다 — **잴 수 있는 쪽이 잰다.** 두 번 부탁했는데 두 번 다
+ *   확인이 안 온 뒤에 이렇게 바꿨다.
+ */
+test('★★ 서빙 상태를 재는 단계가 있고, 재기만 한다', () => {
+  const y = fs.readFileSync(path.join(WF, 'deploy-nas.yml'), 'utf8');
+  const s = stepOf(y, 'Check serving');
+  assert.ok(s, 'Check serving 단계가 없다');
+
+  // ① probe 에서만 돈다 — 실제 배포를 이것 때문에 느리게 하지 않는다
+  assert.match(s, /if:.*inputs\.probe/, 'Check serving 이 probe 조건을 안 본다');
+
+  // ② ★★ **읽기만 한다.** 헤더만 받고 아무것도 바꾸지 않는다
+  assert.match(s, /curl[^\n]*-I/, '헤더만 받지 않는다 — 본문까지 받으면 재는 값이 커진다');
+  assert.ok(!/\b(scp|ssh [^\n]*rm|curl[^\n]*(-X\s*(POST|PUT|DELETE)|--upload-file))\b/.test(s),
+    'Check serving 이 무언가를 바꾼다 — 재기만 해야 한다');
+
+  // ③ 압축 여부를 **가려서** 말한다. 「응답 왔다」로 뭉뚱그리면 아무것도 안 알려 준다
+  assert.match(s, /Accept-Encoding: gzip/, '압축을 요청하지 않는다 — 그러면 늘 「없음」이 나온다');
+  assert.match(s, /content-encoding/i, '응답의 압축 표시를 읽지 않는다');
+
+  // ④ ★ 못 쟀을 때 **조용히 넘어가지 않는다** (§2)
+  assert.match(s, /::warning::/, '못 쟀을 때 아무 말도 안 한다');
+});
