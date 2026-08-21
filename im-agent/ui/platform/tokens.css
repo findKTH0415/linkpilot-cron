@@ -105,3 +105,46 @@
 @media (prefers-reduced-motion: reduce) {
   :where(*) { transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
+
+/*
+ * ═══ 뼈대(skeleton) — **스크립트가 돌기 전에 보이는 유일한 것** ═══
+ * 〈2026-08-21 · 「모바일에서 로딩이 너무 느림」 신고에서 나왔다〉
+ *
+ * ★★ 화면 파일들은 본문에 빈 `#view` 칸 하나만 두고 나머지를 스크립트가
+ *   그린다. 그래서 파일을 다 받아 스크립트가 돌기 전까지 **흰 화면**이다.
+ *   자료 업로드 화면은 112KB 라 그 시간이 길다.
+ *
+ * ★ 이 주석에 문서 태그(꺾쇠 붙은 body·html)를 적지 않는다 — 이 파일은 조각으로
+ *   만들 때 **통째로 인라인**되므로, 적으면 「조각에 문서 태그가 있다」로 걸린다.
+ *   실제로 한 번 걸렸다. 검사가 맞았다.
+ *
+ * ★ 흰 화면은 **느린 것과 고장난 것이 똑같이 보인다.** 사용자는 기다릴지
+ *   되돌아갈지 정할 근거가 없다. 그래서 뼈대를 HTML 에 박아 둔다 —
+ *   첫 바이트가 도착하는 순간 「자리는 잡혔고 채워지는 중」이 보인다.
+ *
+ * ★ 색·반경은 토큰을 쓴다. 여기만 다른 회색을 쓰면 판이 바뀔 때 여기만 남는다.
+ */
+.boot { padding: 4px 0 2px; }
+.boot__t {
+  margin: 0 0 14px;
+  color: var(--muted, #6B7280);
+  font-size: 14px;
+}
+.boot__b {
+  height: 14px;
+  margin: 0 0 10px;
+  border-radius: var(--lp-r-sm, 6px);
+  background: var(--line, #E5E7EB);
+  animation: lp-boot 1.2s ease-in-out infinite;
+}
+.boot__b--s { width: 55%; }
+.boot__w {
+  margin: 16px 0 0;
+  padding: 12px 14px;
+  border-radius: var(--lp-r-md, 10px);
+  background: var(--warn-soft, #FFF4E5);
+  color: var(--warn-ink, #8A5A10);
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+@keyframes lp-boot { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }

@@ -167,3 +167,105 @@ window.LINKPILOT_PREVIEW_DOCS = ${JSON.stringify(stubDocs()).replace(/</g, '\\u0
  *     하고 있었던 것이다. 걸리는 것을 보고 나서야 이 검사가 재는 검사가 된다
  *     (M-08).
  */
+
+/* ═════════ ② **흰 화면** — 느린 것과 고장난 것이 똑같이 보인다 ═════════ */
+
+/**
+ * ★★ 〈2026-08-21 · 신고 화면이 통째로 비어 있었다〉
+ *
+ *   자료 업로드 탭을 열면 **흰 칸 하나**만 떠 있었다. 사용자는 그것을
+ *   「로딩이 너무 느림」이라고 불렀다 — 맞는 말이지만, 더 정확히는
+ *   **기다릴지 되돌아갈지 정할 근거가 화면에 하나도 없었다.**
+ *
+ *   이유는 구조에 있었다. 화면 파일들은 `<body>` 에 `<div id="view"></div>`
+ *   하나만 두고 나머지를 스크립트가 그린다. 그래서 **파일을 다 받고 스크립트가
+ *   돌기 전까지는 그릴 것이 아무것도 없다.** 자료 업로드 화면은 112KB 라
+ *   그 시간이 길다.
+ *
+ * ★ 그래서 뼈대를 HTML 에 박았다. 첫 바이트가 도착하는 순간
+ *   「자리는 잡혔고 채워지는 중」이 보인다. 그리고 **오래 걸리면 말한다** —
+ *   뼈대만 영원히 두면 그것도 흰 화면과 다를 바 없다.
+ */
+const BOOT_SCREENS = ['files.html', 'report-flow.html', 'outputs.html'];
+
+test('★★ 스크립트가 돌기 전에도 그릴 것이 있다 (흰 화면 금지)', () => {
+  BOOT_SCREENS.forEach((f) => {
+    const s = fs.readFileSync(path.join(PLATFORM, f), 'utf8');
+
+    // ① 뼈대가 **HTML 에** 있다. 스크립트가 만들면 이 문제를 못 푼다
+    assert.ok(/<div class="wrap" id="view">\s*<!--/.test(s),
+      `${f}: #view 가 비어 있다 — 파일을 다 받을 때까지 흰 화면이다`);
+    assert.match(s, /id="lp-boot"/, `${f}: 뼈대가 없다`);
+
+    // ② ★ 읽어 주는 기기에도 「지금 무언가 되는 중」이 전해져야 한다
+    assert.match(s, /role="status"/, `${f}: 뼈대에 role=status 가 없다`);
+
+    // ③ ★★ **오래 걸리면 말한다.** 뼈대만 두면 흰 화면과 같아진다
+    assert.match(s, /lp-boot-why/, `${f}: 오래 걸릴 때 할 말이 없다`);
+    assert.match(s, /아직 화면이 안 떴습니다/, `${f}: 무엇이 문제인지 안 말한다`);
+
+    // ④ 뼈대는 **첫 그리기에서 사라져야 한다** — 안 지우면 진짜 화면 위에 남는다
+    assert.ok(/view\.(textContent = ''|innerHTML = '')/.test(s),
+      `${f}: 첫 그리기가 #view 를 비우지 않는다 — 뼈대가 안 사라진다`);
+  });
+});
+
+test('★ 세 화면의 뼈대가 **같다** — 한쪽만 고치면 갈린다', () => {
+  const grab = (f) => {
+    const s = fs.readFileSync(path.join(PLATFORM, f), 'utf8');
+    const m = s.match(/<div class="wrap" id="view">[\s\S]*?<\/div>\n<\/div>|<div class="wrap" id="view">[\s\S]*?\n<\/div>/);
+    return m ? m[0] : null;
+  };
+  const first = grab(BOOT_SCREENS[0]);
+  assert.ok(first, '뼈대를 못 찾았다');
+  BOOT_SCREENS.slice(1).forEach((f) => {
+    assert.strictEqual(grab(f), first,
+      `${f} 의 뼈대가 ${BOOT_SCREENS[0]} 과 다르다 — 손으로 세 벌을 들고 있으므로 검사가 붙들어야 한다`);
+  });
+});
+
+/**
+ * ★★ 뼈대는 **모양만 있고 뜻이 없으면** 안 된다. 회색 막대 세 줄이 진짜로
+ *   그려지는지, 그리고 스크립트가 돌면 **정말 사라지는지**를 브라우저에서 본다.
+ *   (정적으로 훑으면 CSS 가 빠져 안 보이는 경우를 못 잡는다)
+ */
+test('★★ 실제 브라우저에서 뼈대가 보이고, 화면이 뜨면 사라진다', () => {
+  const { findBrowser, renderDom } = require(path.join(PLATFORM, 'build-static.js'));
+  if (!findBrowser()) return;
+
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-boot-'));
+  require(path.join(PLATFORM, 'build-embed.js')).build(dir);
+
+  // ① 스크립트를 막으면 **뼈대만** 남아야 한다 (= 느린 회선에서 보는 것)
+  let s = fs.readFileSync(path.join(PLATFORM, 'files.html'), 'utf8')
+    .replace(/<script src="[^"]+"><\/script>/g, '')
+    .replace(/<script>(?![\s\S]*?lp-boot-why)[\s\S]*?<\/script>/g, '');
+  const slow = path.join(dir, 'slow.html');
+  fs.writeFileSync(slow, s + '<div id="probe"></div><script>'
+    + 'var b=document.getElementById("lp-boot");'
+    + 'var bars=document.querySelectorAll(".boot__b");'
+    + 'document.getElementById("probe").textContent=JSON.stringify({'
+    + 'boot:!!b, bars:bars.length, h:b?Math.round(b.getBoundingClientRect().height):0});'
+    + '</script>');
+  const d1 = renderDom(findBrowser(), slow, 8000);
+  const m1 = d1.match(/<div id="probe">([^<]*)<\/div>/);
+  assert.ok(m1 && m1[1], '탐침이 아무것도 안 남겼다');
+  const r1 = JSON.parse(m1[1]);
+  assert.ok(r1.boot, '스크립트가 없을 때 뼈대가 안 보인다 — 그러면 흰 화면 그대로다');
+  assert.strictEqual(r1.bars, 3, `막대가 ${r1.bars}줄이다 (3줄이어야 한다)`);
+  assert.ok(r1.h > 40, `뼈대 높이가 ${r1.h}px 다 — CSS 가 안 실려 자리를 안 잡았다`);
+
+  // ② 제대로 돌면 뼈대가 **사라진다**
+  const real = path.join(dir, 'real.html');
+  fs.writeFileSync(real, fs.readFileSync(path.join(dir, 'files.html'), 'utf8')
+    .replace('</body>', '<div id="probe"></div><script>setTimeout(function(){'
+      + 'document.getElementById("probe").textContent=JSON.stringify({'
+      + 'boot:!!document.getElementById("lp-boot"),'
+      + 'kids:document.getElementById("view").children.length});},600);</script></body>'));
+  const d2 = renderDom(findBrowser(), real, 12000);
+  const m2 = d2.match(/<div id="probe">([^<]*)<\/div>/);
+  assert.ok(m2 && m2[1], '두 번째 탐침이 아무것도 안 남겼다');
+  const r2 = JSON.parse(m2[1]);
+  assert.ok(r2.kids > 0, '화면이 아무것도 안 그렸다 — 뼈대만 재고 끝낼 뻔했다');
+  assert.strictEqual(r2.boot, false, '화면이 떴는데 뼈대가 아직 남아 있다 — 진짜 내용 위에 겹친다');
+});
