@@ -433,3 +433,91 @@ test('★★ 자료 붙이기가 세 단으로 나뉘고, 파일업로드가 창
   process.stderr.write(`  [단] 1단 ${r.rows[0].length}칸 · 2단 ${r.rows[1].length}칸 · `
     + `이음매 ${r.attachGap} · 단 사이 ${r.rowGap} · 창 ${r.inputClicked}회\n`);
 });
+
+/* ═════════ ⑤ 진행 그래프 — 좁으면 **세로로 선다** ═════════ */
+
+/**
+ * ★★ 〈2026-08-21 사용자 지시 · 신고 화면에서 잘려 있었다〉
+ *   자료 스캔 진행 그래프가 가로로 늘어서 있어 **마지막 칸이 화면 밖으로
+ *   잘렸다.** 「보고서 생성으로」가 반만 보였다.
+ *
+ * ★ 잘린 칸은 **없는 것처럼 보인다.** 사용자는 단계가 셋인 줄 알고, 읽고 나면
+ *   무엇이 오는지를 모른 채로 기다린다. 「조금 안 예쁜」 문제가 아니라
+ *   **정보가 사라지는** 문제다.
+ *
+ * ★★ 그래서 이 검사는 **두 너비에서 다 잰다.** 좁은 쪽만 재면 넓은 화면을
+ *   망가뜨려도 통과하고, 넓은 쪽만 재면 원래 문제를 못 잡는다.
+ */
+test('★★ 진행 그래프가 좁으면 세로로 서고, 넓으면 그대로 가로다', async () => {
+  const { findBrowser, renderDom } = require(path.join(PLATFORM, 'build-static.js'));
+  if (!findBrowser()) return;
+
+  const { buildLive } = require(path.join(PLATFORM, 'build-files.js'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-fx-'));
+  const frag = path.join(dir, 'frag.html');
+  await buildLive(frag);
+
+  const probe = `<div id="probe"></div><script>setTimeout(function () {
+    var o = {};
+    var sel = document.querySelector('.wayin select');
+    if (sel) {
+      var opt = [].slice.call(sel.options).filter(function (x) { return /^LP-/.test(x.value); })[0];
+      if (opt) { sel.value = opt.value; sel.dispatchEvent(new Event('change', { bubbles: true })); }
+    }
+    setTimeout(function () {
+      var scan = [].slice.call(document.querySelectorAll('button')).filter(function (b) {
+        return b.textContent.trim() === '자료 스캔'; })[0];
+      o.hasScan = !!scan;
+      if (scan) scan.click();
+      setTimeout(function () {
+        var g = document.querySelector('.fx__g');
+        o.hasGraph = !!g;
+        if (g) {
+          var ns = [].slice.call(g.querySelectorAll('.fx__n'));
+          o.dir = getComputedStyle(g).flexDirection;
+          o.count = ns.length;
+          o.labels = ns.map(function (n) { return (n.querySelector('.fx__t') || {}).textContent; });
+          o.tops = ns.map(function (n) { return Math.round(n.getBoundingClientRect().top); });
+          var vw = document.documentElement.clientWidth;
+          o.cut = ns.filter(function (n) { return n.getBoundingClientRect().right > vw + 1; }).length;
+        }
+        document.getElementById('probe').textContent = JSON.stringify(o);
+      }, 700);
+    }, 500);
+  }, 900);</script>`;
+
+  const page = path.join(dir, 'p.html');
+  fs.writeFileSync(page, '<!doctype html><html lang="ko"><head><meta charset="utf-8">'
+    + '<meta name="viewport" content="width=device-width, initial-scale=1"></head><body>'
+    + fs.readFileSync(frag, 'utf8') + probe + '</body></html>');
+
+  const read = (w) => {
+    const dom = renderDom(findBrowser(), page, 22000, w);
+    const m = dom.match(/<div id="probe">([^<]*)<\/div>/);
+    assert.ok(m && m[1], `${w}px: 탐침이 아무것도 안 남겼다`);
+    return JSON.parse(m[1]);
+  };
+
+  // ── 휴대폰 너비 ────────────────────────────────
+  const p = read(430);
+  assert.ok(p.hasScan, '자료 스캔 단추를 못 찾았다 — 아무것도 재지 못했다');
+  assert.ok(p.hasGraph, '진행 그래프가 안 떴다');
+  assert.strictEqual(p.dir, 'column', `좁은 화면인데 ${p.dir} 이다 — 세로로 서야 한다`);
+  assert.ok(p.count >= 4, `칸이 ${p.count}개다 — 넷이 다 있어야 한다`);
+  // ★★ **잘린 칸이 없다.** 이것이 원래 신고된 증상이다
+  assert.strictEqual(p.cut, 0, `${p.cut}칸이 화면 밖으로 잘렸다 — 잘린 칸은 없는 것처럼 보인다`);
+  // 세로라면 칸마다 top 이 달라야 한다 (같으면 이름만 세로고 실제로는 겹친 것)
+  assert.strictEqual(new Set(p.tops).size, p.tops.length,
+    '세로라는데 칸들의 높이가 같다 — 겹쳐 있다');
+  assert.match(String(p.labels[p.labels.length - 1]), /보고서 생성/,
+    '마지막 칸이 「보고서 생성으로」가 아니다 — 다음에 무엇이 오는지가 사라진다');
+
+  // ── 넓은 화면은 **그대로** ──────────────────────
+  const d = read(1100);
+  assert.strictEqual(d.dir, 'row', `넓은 화면인데 ${d.dir} 이다 — 가로를 망가뜨렸다`);
+  assert.strictEqual(new Set(d.tops).size, 1, '넓은 화면에서 칸들이 줄이 어긋났다');
+  assert.strictEqual(d.cut, 0, '넓은 화면에서 잘린 칸이 있다');
+
+  process.stderr.write(`  [그래프] 430px ${p.dir} ${p.count}칸 잘림 ${p.cut} · `
+    + `1100px ${d.dir} 잘림 ${d.cut}\n`);
+});

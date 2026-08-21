@@ -244,6 +244,30 @@ select:focus-visible, button:focus-visible { outline: 2px solid var(--lime-deep)
 @keyframes fxRun { from { transform: translateX(-110%); } to { transform: translateX(240%); } }
 @keyframes fxPulse { 0%, 100% { box-shadow: 0 0 0 0 var(--lime-soft); }
   50% { box-shadow: 0 0 0 7px var(--lime-soft); } }
+
+/* ── 좁은 화면에서는 **세로로 세운다** 〈2026-08-21 사용자 지시〉 ──
+ *
+ * ★★ 가로로 늘어놓으면 칸이 넷일 때 마지막이 **화면 밖으로 잘린다.** 실제로
+ *   「보고서 생성으로」가 반만 보였다. 잘린 칸은 **없는 것처럼 보이므로**
+ *   사용자는 단계가 셋인 줄 안다 — 다음에 무엇이 오는지가 사라진다.
+ * ★ 줄여서 넣지 않는다. 글씨를 더 줄이면 읽히지 않고, 가로로 밀면 밀린 것을
+ *   본 사람만 안다. **세로는 아무것도 잃지 않는다.**
+ * ★★ 이 블록은 기본 규칙 **뒤에** 둔다 — 앞에 두면 힘이 같아 덮인다
+ *   (2026-08-21 실측으로 한 번 당했다).
+ */
+@media (max-width: 560px) {
+  .fx__g { flex-direction: column; align-items: stretch; }
+  /* 점과 이름을 한 줄에 — 이름을 점 아래에 두면 세로가 두 배로 길어진다 */
+  .fx__n { width: auto; text-align: left; display: flex; align-items: center; gap: 11px; }
+  .fx__dot { margin: 0; flex: 0 0 auto; }
+  .fx__t { font-size: 13px; }
+  /* 잇는 선도 세로로. 점 한가운데(30px 의 절반 − 선 두께의 절반)에 맞춘다 */
+  .fx__l { flex: 0 0 auto; width: 3px; height: 20px; margin: 3px 0 3px 13.5px; }
+  .fx__l i { left: 0; right: 0; top: 0; bottom: auto; width: auto; height: 45%;
+    background: linear-gradient(180deg, transparent, var(--lime), transparent); }
+  .fx__l--run i { animation: fxRunV 1.05s linear infinite; }
+}
+@keyframes fxRunV { from { transform: translateY(-110%); } to { transform: translateY(240%); } }
 /* 흘러온 자취 — 진행률을 **시간축으로** 그린다. 멈춘 구간이 평평하게 남는다 */
 .fx__c { margin-top: 11px; }
 .fx__c svg { display: block; width: 100%; height: 56px; }
