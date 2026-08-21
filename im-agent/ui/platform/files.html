@@ -1631,6 +1631,10 @@ window.LINKPILOT_FILES = {
       state.scan.stage = r.body.facts > 0 ? 3 : 2;
       // 값이 하나도 안 나왔으면 **여기서 멈춘다.** 넘어가면 빈 칸만 보게 된다
       if (!r.body.facts) { render(); return null; }
+      // ★ 아직 안 읽은 것이 남았으면 **자동으로 넘기지 않는다** 〈2026-08-21〉.
+      //   반만 읽은 값으로 2단계에 가면, 왜 어떤 칸만 비었는지 알 수가 없다.
+      //   사람이 한 번 더 눌러 다 읽은 뒤에 넘어가는 쪽이 싸다
+      if (r.body.remaining) { render(); return null; }
       goReport();
       return null;
     }, function (e) {
@@ -1711,6 +1715,15 @@ window.LINKPILOT_FILES = {
         okBox.appendChild(el('p', 'up__d',
           '값이 하나도 안 나와서 「' + F.SECTION.tab + '」으로 넘어가지 않았습니다 — '
           + '넘어가도 빈 칸만 보입니다. 위 목록에서 못 읽은 것을 먼저 보십시오.'));
+      }
+      // ★★ 양이 넘쳐 **남은 것**이 있으면 그 자리에서 말한다 〈2026-08-21〉.
+      //   안 말하면 화면에는 「읽었다」만 남고, 빠진 자료는 아무도 모른다.
+      //   ★ 남았으면 **넘어가지 않는다** — 반만 읽은 값으로 2단계에 가면
+      //     빈 칸을 보고 「왜 이것만 없지」를 혼자 찾게 된다
+      if (res.remaining) {
+        okBox.appendChild(el('p', 'up__d',
+          '양이 많아 ' + res.remaining + '개를 아직 안 읽었습니다 — '
+          + '「자료 스캔」을 다시 누르면 이어서 읽습니다.'));
       }
       if (res.oneshotNote) okBox.appendChild(el('p', 'up__d', res.oneshotNote));
       card.appendChild(okBox);

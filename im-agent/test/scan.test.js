@@ -264,3 +264,50 @@ test('★★ 스캔: 라우트 표에 실제로 실려 있다', () => {
   assert.equal(r[0].method, 'POST');
   assert.equal(r[0].handler, 'scanSources');
 });
+
+/* ═════════ ⑨ 한 번에 너무 많이 읽지 않는다 — 대신 **말한다** ═════════ */
+
+/**
+ * ★★ 운영 NAS 는 RAM 1.8GB 다 〈2026-08-21 · 본체 인수인계 교차검증〉.
+ *   한 프로젝트에 자료가 수십 개면 한 번에 읽다가 서버가 죽을 수 있고,
+ *   그때는 **스캔만 실패하는 것이 아니라 엔진이 멈춘다.**
+ *
+ * ★★ 그렇다고 **조용히 자르면 더 나쁘다.** 화면에는 「읽었다」만 남고 빠진
+ *   자료가 무엇인지 아무도 모른다 — 값이 반만 든 보고서가 그대로 나간다.
+ *   그래서 자른 것을 **이름으로** 돌려주고 몇 개 남았는지 함께 말한다.
+ */
+test('★★ 스캔: 양이 넘치면 잘라 읽되, 남은 것을 이름과 개수로 말한다', async () => {
+  const p = bareProject();
+  for (let i = 0; i < 45; i += 1) keep(p, `자료-${String(i).padStart(2, '0')}.txt`, '총사업비 100억원');
+
+  let sawCount = 0;
+  const r = await h(p.root, {
+    extractFiles: async (id, files) => {
+      sawCount = files.length;
+      return { facts: [{ key: 'a' }], documents: files.map(f => ({ name: f.name })), unsupported: [] };
+    },
+  }).scanSources({}, p.id, {});
+
+  assert.equal(r.status, 200);
+  // ① 한 번에 다 읽지 않는다
+  assert.ok(sawCount < 45, `45개를 한 번에 다 읽었다 (${sawCount}개) — 상한이 안 걸렸다`);
+  assert.ok(sawCount > 0, '아무것도 안 읽었다');
+  // ② 남은 것을 **개수로** 말한다
+  assert.equal(r.body.remaining, 45 - sawCount,
+    `남은 개수가 안 맞는다 (읽은 ${sawCount} · 남았다고 한 ${r.body.remaining})`);
+  // ③ 남은 것을 **이름으로도** 말한다. 개수만 주면 무엇이 빠졌는지 못 찾는다
+  const left = (r.body.unread || []).filter(u => u.from === 'limit');
+  assert.equal(left.length, r.body.remaining, '남은 것을 이름으로 안 말한다');
+  assert.match(left[0].why, /다시 누르면 이어서/,
+    '어떻게 하면 나머지를 읽는지 안 말한다 — 「안 됩니다」만으로는 다음 수가 없다');
+});
+
+test('★ 스캔: 자료가 적으면 자르지 않는다 (남은 것 0)', async () => {
+  const p = bareProject();
+  keep(p, '계획서.txt', '총사업비 2,846억원');
+  const r = await h(p.root, {
+    extractFiles: async () => ({ facts: [{ key: 'a' }], documents: [{}], unsupported: [] }),
+  }).scanSources({}, p.id, {});
+  assert.equal(r.body.remaining, 0, '자를 것이 없는데 잘랐다고 한다');
+  assert.equal((r.body.unread || []).filter(u => u.from === 'limit').length, 0);
+});

@@ -81,7 +81,10 @@ const OUTPUTS = [
   { id: 'a4', name: 'A4 인쇄본', rel: '12_Final/im-a4.html', when: 'always' },
   // ★ **PDF 가 목록에 없었다** (2026-08-17 발견). D-53 으로 실제로 만들어지는데
   //   여기 없어서 「완성 보고서」에 안 떴다 — 파일은 있고 화면에는 없는 상태다
-  { id: 'pdf', name: 'PDF', rel: '12_Final/im-a4.pdf', when: 'format:pdf',
+  // ★ `needsBrowser` — **이 서버에 크롬이 있어야 나온다** 〈2026-08-21 · 본체 인수인계 교차검증〉.
+  //   운영 NAS 에는 크롬이 없다. 없는 서버에서 이 셋은 **원리상 안 나온다** —
+  //   그것을 「아직 안 나왔다」로 그리면 사용자는 나올 때까지 기다린다.
+  { id: 'pdf', name: 'PDF', rel: '12_Final/im-a4.pdf', when: 'format:pdf', needsBrowser: true,
     why: '출력 사양의 형식에 PDF 를 넣어야 나옵니다' },
   { id: 'content', name: '뷰어 데이터', rel: '12_Final/content.json', when: 'always' },
   { id: 'teaser', name: 'Teaser', rel: '10_Teaser/teaser.md', when: 'always' },
@@ -93,11 +96,11 @@ const OUTPUTS = [
   { id: 'desk_md', name: '토지가치 탁상검토', rel: '08_Appraisal/desk-review.md', when: 'conditional',
     why: '토지 평가에 쓸 값(공시지가·거래사례·수익)이 있어야 나옵니다' },
   { id: 'desk_pdf', name: '토지가치 탁상검토 (PDF)', rel: '08_Appraisal/desk-review-a4.pdf', when: 'conditional',
-    why: '토지가치 탁상검토가 나온 딜에서만 함께 나옵니다' },
+    needsBrowser: true, why: '토지가치 탁상검토가 나온 딜에서만 함께 나옵니다' },
   { id: 'corp_md', name: '법인가치 검토', rel: '10_Corporate/corp-review.md', when: 'conditional',
     why: '법인 재무자료(순손익 3개 연도·순자산)가 있어야 나옵니다' },
   { id: 'corp_pdf', name: '법인가치 검토 (PDF)', rel: '10_Corporate/corp-review-a4.pdf', when: 'conditional',
-    why: '법인가치 검토가 나온 딜에서만 함께 나옵니다' },
+    needsBrowser: true, why: '법인가치 검토가 나온 딜에서만 함께 나옵니다' },
 ];
 
 /**
@@ -106,7 +109,16 @@ const OUTPUTS = [
  * 사양을 못 읽으면 `format:*` 를 **기대에 넣지 않는다** — 넣으면 사양에 없는
  * 형식을 「안 나왔다」로 세어 진행률이 영영 100% 가 안 된다.
  */
-function isExpected(out, spec) {
+/**
+ * @param {boolean} [hasBrowser] 이 서버가 브라우저를 갖고 있는가.
+ *   `false` 면 브라우저가 필요한 산출물은 **분모에서 뺀다** —
+ *   원리상 안 나오는 것을 분모에 두면 **어떤 딜도 100% 가 되지 않는다.**
+ *   `undefined`(모름)면 빼지 않는다 — 모르는 것을 「안 된다」로 그리지 않는다.
+ */
+function isExpected(out, spec, hasBrowser) {
+  // ★★ 크롬이 없는 서버에서는 PDF 가 **나올 수 없다.** 기다려도 안 나온다 —
+  //   분모에 두면 진행률이 영영 안 찬다 (운영 NAS 가 실제로 그렇다)
+  if (out.needsBrowser && hasBrowser === false) return false;
   if (out.when === 'always') return true;
   if (String(out.when || '').startsWith('format:')) {
     const want = out.when.slice('format:'.length);
@@ -773,7 +785,40 @@ function createHandlers(deps) {
         }
       }
 
-      const files = kept.concat(mat ? mat.files : []);
+      /**
+       * ★★ **한 번에 너무 많이 읽지 않는다** 〈2026-08-21 · 본체 인수인계 교차검증〉.
+       *
+       * 운영 NAS 는 RAM 1.8GB 다. 한 프로젝트에 자료가 수십 개면 한 번에 읽다가
+       * 서버가 죽을 수 있고, 그때는 **스캔만 실패하는 것이 아니라 엔진이 멈춘다.**
+       *
+       * ★★ **조용히 자르지 않는다.** 자른 것을 말하지 않으면 화면에는 「읽었다」만
+       *   남고, 빠진 자료가 무엇인지 아무도 모른다. 그래서 못 읽은 것을
+       *   **이름으로** 돌려주고 「다시 누르면 이어서 읽는다」를 함께 말한다.
+       */
+      const MAX_SCAN_FILES = 40;
+      const MAX_SCAN_BYTES = 200 * 1024 * 1024;
+
+      let files = kept.concat(mat ? mat.files : []);
+      const overflow = [];
+      if (files.length > MAX_SCAN_FILES || files.reduce((a, f) => a + (f.size || 0), 0) > MAX_SCAN_BYTES) {
+        const take = [];
+        let bytes = 0;
+        for (const f of files) {
+          if (take.length >= MAX_SCAN_FILES || bytes + (f.size || 0) > MAX_SCAN_BYTES) {
+            overflow.push({
+              name: f.name,
+              why: `한 번에 읽는 양을 넘었습니다 (${MAX_SCAN_FILES}개 · ${mb(MAX_SCAN_BYTES)}MB 까지) — `
+                + '다시 누르면 이어서 읽습니다',
+              from: 'limit',
+            });
+            continue;
+          }
+          take.push(f);
+          bytes += (f.size || 0);
+        }
+        files = take;
+      }
+
       if (!files.length) {
         if (mat) mat.dispose();
         return ok({
@@ -847,6 +892,9 @@ function createHandlers(deps) {
       // 실패로 안 잡힌 것은 읽힌 것이다
       for (const row of plan) if (row.read === undefined) row.read = !!row.readable;
 
+      // ★ 양이 넘쳐 못 읽은 것도 **같은 목록**에 담는다. 따로 두면 화면이 한쪽만 그린다
+      for (const o of overflow) unread.push(o);
+
       const facts = ((read && read.facts) || []).length;
       const documents = ((read && read.documents) || []).length;
       // ★ 실제로 OCR 이 **돈** 파일 수. 화면·앱이 「OCR 몇 건」을 적을 거면 이것을 쓴다
@@ -860,6 +908,9 @@ function createHandlers(deps) {
         // ★ 값이 하나도 안 나왔으면 **그렇다고 말한다.** 화면이 다음 단계로
         //   넘어가기 전에 알아야 한다 — 넘어가면 빈 칸만 보게 된다
         empty: facts === 0,
+        // ★ 남은 것이 있으면 **몇 개인지 말한다.** 「다시 누르면 이어서」가 사실이려면
+        //   사용자가 남았다는 것을 알아야 한다
+        remaining: overflow.length,
         // 1회성은 여기서 다시 못 읽는다. 그 사실을 숨기지 않는다
         oneshotNote: '1회성으로 올린 자료는 올릴 때 이미 읽었습니다 — 보관하지 않으므로 다시 읽지 않습니다.',
         at: kstStamp(new Date()),
@@ -1161,14 +1212,41 @@ function createHandlers(deps) {
       let spec = null;
       try { spec = load('core/outputspec').read(projectId); } catch (_) { spec = null; }
 
+      /**
+       * ★★ **이 서버에 브라우저가 있는가** 〈2026-08-21 · 본체 인수인계 교차검증〉.
+       *
+       * 운영 NAS 에는 크롬이 없다. 그러면 PDF 세 종은 **원리상 안 나온다** —
+       * 기다려도 안 나온다. 그런데 지금까지 화면은 그것을 「아직 안 나왔다」로
+       * 그렸고, 사용자는 나올 때까지 기다리거나 고장으로 읽었다.
+       *
+       * ★ 여기서 하는 일은 둘이다:
+       *   ① 분모에서 뺀다 — 안 그러면 **어떤 딜도 100% 가 되지 않는다**
+       *   ② 목록에는 남기고 **왜 못 나오는지 적는다** — 지우면 「나올 수 있는
+       *      문서가 있었다」는 사실까지 사라진다
+       *
+       * ★ 못 찾겠으면 `null` 로 둔다. **모르는 것을 「없다」로 그리지 않는다** —
+       *   그러면 되는 서버에서 PDF 가 목록에서 사라진다.
+       */
+      let hasBrowser = null;
+      try { hasBrowser = !!load('core/raster').findBrowser(); } catch (_) { hasBrowser = null; }
+      const NO_BROWSER = '이 서버에는 브라우저가 없어 PDF 를 만들 수 없습니다 — '
+        + '최종본은 12_Final/im-a4.html 로 나옵니다';
+
       const all = OUTPUTS.map((o) => {
         const full = path.join(dir, o.rel);
         let stat = null;
         try { stat = fs.statSync(full); } catch (_) { stat = null; }
+        // ★ 못 나오는 이유가 있으면 **그것이 이긴다.** 「사양에 PDF 를 넣으세요」라고
+        //   안내해 놓고 넣어도 안 나오면, 사용자는 자기가 잘못한 줄 안다
+        const blockedByBrowser = !!o.needsBrowser && hasBrowser === false;
         return {
           id: o.id, name: o.name, path: o.rel,
-          when: o.when, why: o.why || null,
-          expected: isExpected(o, spec),
+          when: o.when,
+          why: blockedByBrowser ? NO_BROWSER : (o.why || null),
+          // 화면이 「기다리면 나온다」와 「여기서는 안 나온다」를 갈라 그릴 수 있게 한다
+          impossible: blockedByBrowser,
+          needsBrowser: !!o.needsBrowser,
+          expected: isExpected(o, spec, hasBrowser),
           exists: !!stat,
           at: stat ? kstStamp(stat.mtime) : null,
           bytes: stat ? stat.size : 0,
@@ -1197,6 +1275,9 @@ function createHandlers(deps) {
           countsWhat: '이 프로젝트에서 나와야 하는 산출물 중 실제로 파일이 나온 것',
         },
         specKnown: !!spec,
+        // ★ 서버가 무엇을 못 하는지 화면에 그대로 넘긴다. 화면이 짐작하지 않는다.
+        //   `null` = 판정하지 못했다 (모름과 없음을 구분한다)
+        hasBrowser,
         // ★ 차단 상태를 목록과 함께 준다. 화면이 '완료'로만 보이면 안 된다
         distribution: blocked
           ? { blocked: true, reasons: blocked.reasons || [] }

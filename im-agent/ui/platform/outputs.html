@@ -562,8 +562,15 @@ window.LINKPILOT_OUTPUTS = {
     row.appendChild(b);
 
     if (!f.exists) {
-      row.appendChild(el('span', 'tag ' + (f.expected ? 'tag--wait' : 'tag--maybe'),
-        f.expected ? '아직' : '나올 수도'));
+      // ★★ **「아직」과 「여기서는 못 만든다」는 다른 말이다** 〈2026-08-21〉.
+      //   운영 서버에 브라우저가 없으면 PDF 는 기다려도 안 나온다. 그것을
+      //   「아직」으로 그리면 사용자는 **나올 때까지 기다린다.**
+      //   서버가 `impossible` 로 말해 주면 그대로 갈라 그린다 (옛 서버는 안 준다 —
+      //   그때는 지금까지처럼 둘로만 나눈다. 모르는 것을 지어내지 않는다)
+      row.appendChild(f.impossible
+        ? el('span', 'tag tag--maybe', '여기서는 못 만듦')
+        : el('span', 'tag ' + (f.expected ? 'tag--wait' : 'tag--maybe'),
+          f.expected ? '아직' : '나올 수도'));
       return row;
     }
 
@@ -590,8 +597,10 @@ window.LINKPILOT_OUTPUTS = {
     var blocked = !!(d.distribution && d.distribution.blocked);
 
     var out = all.filter(function (f) { return f.exists; });
-    var wait = all.filter(function (f) { return !f.exists && f.expected; });
-    var maybe = all.filter(function (f) { return !f.exists && !f.expected; });
+    var wait = all.filter(function (f) { return !f.exists && f.expected && !f.impossible; });
+    // ★ 이 서버가 원리상 못 만드는 것 — 「아직」 무리에 섞지 않는다 (기다려도 안 나온다)
+    var cant = all.filter(function (f) { return !f.exists && f.impossible; });
+    var maybe = all.filter(function (f) { return !f.exists && !f.expected && !f.impossible; });
 
     if (out.length) {
       var on = pickedDoc(d);
@@ -603,6 +612,12 @@ window.LINKPILOT_OUTPUTS = {
     if (wait.length) {
       box.appendChild(el('div', 'grp', '아직 안 나온 것 ' + wait.length + '종'));
       wait.forEach(function (f) { box.appendChild(docRow(f, blocked)); });
+    }
+    // ★★ 못 만드는 것을 **지우지 않는다.** 지우면 「나올 수 있었다」는 사실까지
+    //   사라져서, 다른 서버로 옮기면 나온다는 것을 아무도 모른다
+    if (cant.length) {
+      box.appendChild(el('div', 'grp', '이 서버에서는 못 만드는 것 ' + cant.length + '종'));
+      cant.forEach(function (f) { box.appendChild(docRow(f, blocked)); });
     }
     // ★ 조건부는 분모 밖이지만 **목록에서 빼지 않는다** — 빼면 「없는 기능」이 된다
     if (maybe.length) {
