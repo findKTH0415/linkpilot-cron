@@ -164,7 +164,10 @@ const run = db.transaction(() => {
       const im = contactImgs[rec.legacy_id];
       const front = im.front ? saveImg(rec.legacy_id, 'front', im.front) : null;
       const back = im.back ? saveImg(rec.legacy_id, 'back', im.back) : null;
-      if (front) { insCard.run(cid, front, back, pick(row, FIELD_MAP.raw_text) ?? null, row.createdAt ? new Date(row.createdAt).toISOString().slice(0, 10) : null); imgSaved++; }
+      // createdAt 은 실데이터에 날짜로 못 읽는 값이 섞여 있다(2026-08-21 이관 실측) — 유효할 때만
+      const rd = row.createdAt != null && Number.isFinite(new Date(row.createdAt).getTime())
+        ? new Date(row.createdAt).toISOString().slice(0, 10) : null;
+      if (front) { insCard.run(cid, front, back, pick(row, FIELD_MAP.raw_text) ?? null, rd); imgSaved++; }
     }
     ok++;
   }
