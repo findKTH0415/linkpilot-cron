@@ -160,8 +160,13 @@ async function screenChecks(tryOne) {
  * ★ 판정은 「404 냐 아니냐」다. 401·400·405 는 **라우트가 있다는 뜻**이므로
  *   통과다 — 여기서 재는 것은 권한이 아니라 **닿느냐**다.
  *
- * ★ 프로젝트가 없어서 나는 404 와 라우트가 없어서 나는 404 를 가른다:
- *   엔진은 404 도 **JSON** 으로 돌려주고, 없는 길은 프록시가 HTML 로 돌려준다.
+ * ★ 프로젝트가 없어서 나는 404 와 라우트가 없어서 나는 404 를 가른다.
+ *   ★★ 2026-08-21 — 전에는 「엔진 404 는 JSON, 없는 길은 프록시가 HTML」로 갈랐는데
+ *     **그 전제가 틀렸다.** 실측하면 없는 길도 엔진 라우터가 JSON `{"error":"not found"}` 로
+ *     돌려준다. 그래서 **JSON 404 를 전부 「있다」로 세고 있었다** — 서버에 아예 없는
+ *     `POST /projects/:id/scan` 을 두고도 「29개 확인」이 초록으로 났다(본체가 실측으로 잡음).
+ *     지금은 **대조군을 하나 두드려** 그 응답과 같은 것만 「없다」로 센다.
+ *     (이 스크립트가 초록을 잘못 낸 것은 이번이 두 번째다 — 위 2026-08-19 항목과 같은 성격)
  *
  * ★ 쓰기는 **인증이 막는 것을 확인한 뒤에만** 두드린다. 안 막고 있으면
  *   두드리는 것이 곧 쓰는 것이 된다.
@@ -176,6 +181,19 @@ async function routeChecks(tryOne) {
   const all = [...A.ROUTES.map(r => ({ ...r, side: '읽기' })), ...W.ROUTES.map(r => ({ ...r, side: '쓰기' }))];
   const writesBlocked = rows.some(r => r.name === '무인증 쓰기 → 401' && r.state === 'ok');
 
+  /* ★ 대조군 — **분명히 없는 길**을 하나 두드려 그 응답을 기억한다.
+     라우터가 「없다」고 할 때 어떻게 말하는지를 서버에게 직접 물어보는 것이다.
+     문서에 적힌 전제(HTML 이다 / JSON 이다)를 믿지 않는다 — 그 전제가 틀려서 뚫렸다. */
+  let control = null;
+  try {
+    control = await http(API + probePath('/projects/:id/__lp_no_such_route__'), { method: 'GET' });
+  } catch (_) { /* 대조군을 못 얻으면 아래에서 보수적으로 센다 */ }
+  const looksMissing = (r) => {
+    if (r.status !== 404) return false;                 // 401·400·405 는 길이 있다는 뜻
+    if (!control || control.status !== 404) return true; // 대조군이 없으면 404 는 없는 것으로
+    return r.text === control.text;                      // 라우터의 「없다」와 같은 말이면 없는 것
+  };
+
   let miss = 0; let asked = 0; const missing = [];
   for (const route of all) {
     const isRead = route.method === 'GET';
@@ -186,8 +204,7 @@ async function routeChecks(tryOne) {
       // eslint-disable-next-line no-await-in-loop
       const r = await http(url, { method: route.method });
       asked += 1;
-      const json = /json/i.test(r.ct);
-      if (r.status === 404 && !json) { miss += 1; missing.push(`${route.method} ${route.path}`); }
+      if (looksMissing(r)) { miss += 1; missing.push(`${route.method} ${route.path}`); }
     } catch (e) {
       add(`라우트 ${route.method} ${route.path}`, 'skip', '못 물어봤다: ' + e.message);
     }
