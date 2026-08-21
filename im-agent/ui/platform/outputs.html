@@ -384,21 +384,8 @@ window.LINKPILOT_OUTPUTS = {
    * 되는 척하면 사용자는 눌러 놓고 아무 일도 안 일어나는 것을 본다.
    */
   function goProject() {
-    var detail = { projectId: state.projectId, section: F.SECTION.id };
-    var sent = false;
-    try {
-      if (window.parent !== window) {
-        window.parent.postMessage({ type: 'lp-open-project', projectId: detail.projectId,
-          section: detail.section }, window.location.origin);
-        sent = true;
-      }
-    } catch (_) { /* 막혀 있으면 아래 이벤트로 간다 */ }
-    try {
-      var ev = new CustomEvent('lp-open-project', { detail: detail, cancelable: true });
-      // 앱이 받아서 처리하면 `preventDefault()` 로 알려 준다 — 그게 「받았다」의 증거다
-      var ok = document.dispatchEvent(ev);
-      if (!ok) sent = true;
-    } catch (_) {}
+    // ★ 옮기는 방법은 flow-core 한 곳에 있다 — 화면마다 복사하지 않는다 (2026-08-21)
+    var sent = F.openSection({ projectId: state.projectId, section: F.SECTION.id }).sent;
     state.said = sent
       ? '「' + F.SECTION.tab + '」으로 넘겼습니다.'
       : '이 화면은 탭 하나라 스스로 옮길 수 없습니다 — 위 탭에서 「'

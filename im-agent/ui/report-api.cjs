@@ -703,6 +703,136 @@ function createHandlers(deps) {
       });
     },
 
+
+    /**
+     * POST /projects/:id/scan — **넣은 자료를 읽어 값으로 만든다** 〈2026-08-21 사용자 지시〉.
+     *
+     * ★★ 왜 따로 있나: 지금까지 자료를 「넣는 것」과 「읽는 것」이 나뉘어 있었다.
+     *   보관·연결로 넣은 자료는 **보고서를 만드는 순간에야** 읽혔다. 그래서
+     *   자료를 넣은 사람은 2단계(가이드 필드)에 가서 **빈 칸만** 봤다 —
+     *   값이 없는 것이 아니라 **아직 안 읽은 것**인데, 화면은 그 둘을 구분해
+     *   말하지 못했다. 여기서 미리 읽어 값으로 만들어 둔다.
+     *
+     * ★ **셋을 한 길로 모은다** (사용자 지시 — 「모두 업로드된 자료는 OCR 스캔을 통해」).
+     *     ① 보관 자료   02_Source_Data 에 있는 파일 그대로
+     *     ② 연결 자료   장부에 적힌 참조를 **그때 가져와** 읽고 **버린다**
+     *     ③ 앱에서 가져온 첨부  ②와 같은 길이다 (`linkpilot-app` 도 연결 항목이다)
+     *   1회성(oneshot)은 **여기 오지 않는다** — 올리는 그 자리에서 이미 읽었고
+     *   파일을 버렸다. 다시 읽을 원본이 우리에게 없다. 그 사실을 응답에 적는다.
+     *
+     * ★★ OCR 은 **이미지·스캔본에만** 걸린다. 글자가 들어 있는 PDF·워드·엑셀은
+     *   옮겨 적을 이유가 없다(옮기면 신뢰도만 깎인다 · core/ocr.js).
+     *   그래서 「전부 OCR 한다」고 말하지 않고 **파일마다 어떻게 읽었는지** 돌려준다.
+     *
+     * ★★ 읽는 경로가 안 붙어 있으면 **성공을 돌려주지 않는다.** 0건을 성공으로
+     *   주면 화면은 「읽었는데 값이 없다」로 그리고, 사용자는 자료를 탓한다.
+     *
+     * ★ 실패는 격리한다 (CLAUDE.md §4.6) — 연결 자료 하나를 못 가져와도
+     *   나머지는 읽는다. 대신 **못 읽은 것을 이름으로 돌려준다.**
+     */
+    async scanSources(ctx, projectId, body) {
+      const g = gate(ctx, FILES_PLAN); if (g.error) return g.error;
+      const e = checkId(projectId); if (e) return e;
+      const store = load('core/store');
+      const linked = load('core/linked');
+      const ext02 = load('agents/02-extraction');
+      const projectDir = store.projectDir(projectId);
+      if (!fs.existsSync(projectDir)) return bad('프로젝트를 찾을 수 없습니다', 404);
+
+      // ★ 읽는 함수는 본체가 준다. 둘 다 `pipeline.extractInto(id, files)` 를 가리킨다 —
+      //   이름이 둘인 것은 1회성이 먼저 생겼기 때문이고, 하는 일은 같다.
+      const extract = typeof d.extractFiles === 'function' ? d.extractFiles
+        : (typeof d.extractOneshot === 'function' ? d.extractOneshot : null);
+      if (!extract) {
+        return bad('자료를 읽는 경로가 붙어 있지 않습니다 — 자료는 그대로 있으니 '
+          + '읽기가 연결된 뒤에 다시 눌러 주십시오', 501);
+      }
+
+      const wanted = (body && body.only) ? String(body.only) : 'all';
+
+      // ── ① 보관 자료 ──
+      let kept = [];
+      if (wanted === 'all' || wanted === 'kept') {
+        try { kept = store.listSourceFiles(projectId); } catch (_) { kept = []; }
+      }
+
+      // ── ②③ 연결 자료 (앱 첨부 포함) — 가져와서 읽고 **버린다** ──
+      const unread = [];
+      let mat = null;
+      if (wanted === 'all' || wanted === 'linked') {
+        const items = linked.list(projectDir).items;
+        if (items.length) {
+          try {
+            mat = await linked.materialize(projectDir, (it) => fetchLinked(it, { projectId }));
+            for (const f of mat.failed) unread.push({ name: f.name, why: f.reason, from: 'linked' });
+          } catch (err) {
+            // 한 소스가 죽어도 보관 자료 읽기는 계속한다
+            for (const it of items) unread.push({ name: it.name, why: err.message, from: 'linked' });
+            mat = null;
+          }
+        }
+      }
+
+      const files = kept.concat(mat ? mat.files : []);
+      if (!files.length) {
+        if (mat) mat.dispose();
+        return ok({
+          scanned: [], unread, facts: 0, documents: 0,
+          empty: true,
+          note: '읽을 자료가 없습니다 — 자료를 먼저 넣어 주십시오.',
+          at: kstStamp(new Date()),
+        });
+      }
+
+      // ★ 어떻게 읽을지를 **읽기 전에** 정해 둔다. 나중에 세면 못 읽은 파일이 빠진다
+      const plan = files.map((f) => {
+        const how = ext02.FORMATS[f.ext] || null;
+        return {
+          name: f.name,
+          how,
+          // 「OCR 스캔」이라고 뭉뚱그리지 않는다 — 실제로 옮겨 적는 것만 true 다
+          ocr: how === 'ocr',
+          readable: !!how && how !== 'convert',
+          note: how === 'ocr' ? '이미지입니다 — 글자로 옮겨서 읽습니다 (신뢰도를 낮춰 표시합니다)'
+            : how === 'convert' ? `이 형식은 읽지 못합니다 — ${ext02.CONVERT_HINT[f.ext] || 'PDF 나 PNG 로 바꿔서 올립니다'}`
+            : how ? null : '처음 보는 형식입니다 — 본문을 읽지 못할 수 있습니다',
+        };
+      });
+
+      let read = null;
+      let failed = null;
+      try {
+        read = await extract(projectId, files);
+      } catch (err) {
+        failed = err.message;
+      } finally {
+        // ★ 연결 자료 사본은 **반드시** 지운다. 읽다 죽어도 지운다 — 「보관하지
+        //   않는다」는 성공했을 때만 지키는 약속이 아니다
+        if (mat) mat.dispose();
+      }
+      if (failed) return bad(`자료를 읽지 못했습니다: ${failed}`, 500);
+
+      // 추출기가 「못 읽었다」고 한 것을 합친다 (형식 밖 · 빈 파일 · OCR 실패)
+      for (const u of (read && read.unsupported) || []) {
+        unread.push({ name: u.name, why: u.reason || u.why || '읽지 못했습니다', from: 'extract' });
+      }
+
+      const facts = ((read && read.facts) || []).length;
+      const documents = ((read && read.documents) || []).length;
+      return ok({
+        scanned: plan,
+        unread,
+        facts,
+        documents,
+        // ★ 값이 하나도 안 나왔으면 **그렇다고 말한다.** 화면이 다음 단계로
+        //   넘어가기 전에 알아야 한다 — 넘어가면 빈 칸만 보게 된다
+        empty: facts === 0,
+        // 1회성은 여기서 다시 못 읽는다. 그 사실을 숨기지 않는다
+        oneshotNote: '1회성으로 올린 자료는 올릴 때 이미 읽었습니다 — 보관하지 않으므로 다시 읽지 않습니다.',
+        at: kstStamp(new Date()),
+      });
+    },
+
     /** GET /projects/:id/oneshot — 1회성으로 들어온 자료의 **기록**. 파일은 없다 */
     async listOneshot(ctx, projectId) {
       const g = gate(ctx, FILES_PLAN); if (g.error) return g.error;
@@ -1170,6 +1300,8 @@ const ROUTES = [
   // 1회성 직접 올리기 — 저장소를 안 쓰는 사람의 길 (D-66). 보관하지 않는다
   { method: 'POST', path: '/projects/:id/oneshot', handler: 'oneshotUpload', call: (h, req, p) => h.oneshotUpload(req, p.id, req.body) },
   { method: 'GET', path: '/projects/:id/oneshot', handler: 'listOneshot', call: (h, req, p) => h.listOneshot(req, p.id) },
+  // ★ 넣은 자료를 **값으로** 만든다 — 셋(보관·연결·앱첨부)을 한 길로 (2026-08-21)
+  { method: 'POST', path: '/projects/:id/scan', handler: 'scanSources', call: (h, req, p) => h.scanSources(req, p.id, req.body) },
 
   { method: 'PUT', path: '/projects/:id/issuer', handler: 'saveIssuer', call: (h, req, p) => h.saveIssuer(req, p.id, req.body) },
   { method: 'GET', path: '/projects/:id/spec', handler: 'getSpec', call: (h, req, p) => h.getSpec(req, p.id) },

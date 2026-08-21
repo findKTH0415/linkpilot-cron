@@ -53,9 +53,10 @@ test('★★ 라우터가 거는 것이 표와 정확히 같다 (사본이 생�
   });
 });
 
-test('★ 라우트 수가 읽기 6 · 쓰기 22 = 28 이다', () => {
+test('★ 라우트 수가 읽기 6 · 쓰기 23 = 29 이다', () => {
   assert.strictEqual(R.ROUTES.length, 6);
-  assert.strictEqual(W.ROUTES.length, 22);
+  // 23 번째는 POST /projects/:id/scan — 넣은 자료를 값으로 만드는 길 (2026-08-21)
+  assert.strictEqual(W.ROUTES.length, 23);
 });
 
 /* ═════════ ② 이름만 적힌 handler 가 없다 ═════════ */

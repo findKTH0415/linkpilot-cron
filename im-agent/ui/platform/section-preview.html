@@ -936,6 +936,56 @@ Object.assign(window.LINKPILOT_REPORT_FLOW, {
     return null;
   }
 
+
+  /**
+   * **탭 옮기기 — 한 곳에서만 만든다** 〈2026-08-21〉.
+   *
+   * ★★ 화면들은 각자 탭 하나일 뿐이라 **스스로 다른 탭으로 갈 수 없다.** 옮기는
+   *   것은 앱(본체)이다. 그래서 알리기만 하고, **앱이 받았는지를 확인한다.**
+   *   받았는지 모르면서 「옮겼습니다」라고 하면, 사용자는 눌러 놓고 아무 일도
+   *   안 일어나는 화면을 본다 — 그때는 고장으로 읽힌다.
+   *
+   * ★ 「받았다」의 증거는 둘이다.
+   *     ① iframe 안이면 `postMessage` 가 나갔다 — 부모가 있다는 뜻이다
+   *     ② 같은 창이면 앱이 `preventDefault()` 로 **받았다고 답한다**
+   *   ②가 없으면 아무도 안 듣는 것이다. 그때는 그렇다고 말한다.
+   *
+   * ★ 이 함수를 화면마다 복사해 두지 않는다. 복사하면 한쪽만 고치는 날
+   *   두 화면이 서로 다른 방법으로 앱을 부른다 (outputs.html 이 원본이었다).
+   *
+   * @param {{projectId:string, section:string, step?:string, why?:string}} opts
+   * @returns {{sent:boolean, reason:(string|null)}}
+   */
+  var OPEN_EVENT = 'lp-open-project';
+
+  function openSection(opts) {
+    var o = opts || {};
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      return { sent: false, reason: '브라우저가 아닙니다' };
+    }
+    var detail = { projectId: o.projectId || null, section: o.section || null };
+    if (o.step) detail.step = o.step;
+    if (o.why) detail.why = o.why;
+
+    var sent = false;
+    try {
+      if (window.parent !== window) {
+        var msg = { type: OPEN_EVENT, projectId: detail.projectId, section: detail.section };
+        if (detail.step) msg.step = detail.step;
+        if (detail.why) msg.why = detail.why;
+        window.parent.postMessage(msg, window.location.origin);
+        sent = true;
+      }
+    } catch (_) { /* 막혀 있으면 아래 이벤트로 간다 */ }
+    try {
+      var ev = new CustomEvent(OPEN_EVENT, { detail: detail, cancelable: true });
+      // 앱이 받아서 처리하면 `preventDefault()` 로 알려 준다 — 그게 「받았다」의 증거다
+      if (!document.dispatchEvent(ev)) sent = true;
+    } catch (_) {}
+
+    return { sent: sent, reason: sent ? null : '받는 쪽이 없습니다' };
+  }
+
   return {
     STEPS: STEPS, WHY: WHY, EMBED_CSS: EMBED_CSS,
     SECTIONS: SECTIONS, sectionState: sectionState, sectionOfStep: sectionOfStep,
@@ -943,6 +993,7 @@ Object.assign(window.LINKPILOT_REPORT_FLOW, {
     FILES_SECTION: FILES_SECTION, TABS: TABS,
     stepState: stepState, urlFor: urlFor, stepOfFile: stepOfFile,
     tokensLoaded: tokensLoaded, TOKENS_MISSING: TOKENS_MISSING,
+    openSection: openSection, OPEN_EVENT: OPEN_EVENT,
   };
 }));
 </script>
@@ -2859,11 +2910,26 @@ Object.assign(window.LINKPILOT_REPORT_FLOW, {
 <section class="upd">
   <div class="upd__h">
     <h2 class="upd__t">이번에 바뀐 것</h2>
-    <span class="upd__at">최근 반영 2026-08-20 (KST)</span>
+    <span class="upd__at">최근 반영 2026-08-21 (KST)</span>
   </div>
   <p class="upd__s">아래 화면에 이미 반영되어 있습니다. <b>무엇이 · 왜 · 어떻게</b> 바뀌었는지
     함께 적습니다 — 전과 후를 나란히 두어야 무엇이 달라졌는지 눈으로 비교됩니다.</p>
   
+    <div class="upd__g">
+      <div class="upd__d">2026-08-21</div>
+      <ul class="upd__l">
+        <li>
+          <b>자료 붙이는 길이 셋이 되고, 넣으면 읽어서 「보고서 생성」으로 넘긴다</b>
+          <em>화면 · 자료 업로드 탭 (files.html) + 엔진</em>
+          <span>① 앱 프로젝트에서 가져오는 길이 프로젝트 고르기 목록 안에 숨어 있었다 — 자료를 넣으러 온 사람은 「자료 붙이기」에서 두 갈래만 보고 앱 자료는 못 가져오는 줄 알았다. 셋을 나란히 둔다. ② 더 큰 문제는 넣은 자료가 읽히지 않는 것이었다. 읽는 것은 보고서를 만드는 순간이라, 자료를 넣은 사람이 2단계에 가면 빈 칸만 봤다 — 값이 없는 것이 아니라 아직 안 읽은 것인데 화면은 그 둘을 구분해 말하지 못했다. 이제 셋 중 무엇으로 넣든 한 길(POST /projects/:id/scan)로 읽어 값으로 만들고, 값이 들어가면 2단계로 넘긴다. ★ OCR 은 이미지·스캔본에만 건다 — 글자가 든 PDF·워드를 옮겨 적으면 신뢰도만 깎인다. 그래서 「전부 OCR 했다」로 뭉뚱그리지 않고 파일마다 어떻게 읽었는지 보여 준다. ★ 값이 하나도 안 나오면 넘기지 않는다 — 넘어가면 빈 칸만 보고 자기가 뭘 잘못한 줄 안다. 대신 무엇을 못 읽었는지 그 자리에서 보여 준다 (D-76).</span>
+          <div class="upd__ba">
+            <div class="upd__b"><em>전</em>갈래 둘 · 넣기만 되고 안 읽혔다 · 2단계에 가면 빈 칸이었다</div>
+            <div class="upd__a"><em>후</em>갈래 셋 · 넣으면 그 자리에서 읽는다 · 값이 들어가면 2단계로 넘어간다</div>
+          </div>
+          <span class="upd__see">확인: 자료 업로드 탭 — 「자료 붙이기」 아래 갈래 셋. 프로젝트를 고르면 그 아래 「자료 스캔」 칸이 생긴다. 파일을 올리면 칸 넷이 차고 「보고서 생성」으로 넘어간다. 읽은 결과는 파일마다 「OCR — 글자로 옮겨 읽음」·「본문을 읽음」으로 적힌다.</span>
+        </li>
+      </ul>
+    </div>
     <div class="upd__g">
       <div class="upd__d">2026-08-20</div>
       <ul class="upd__l">
@@ -3549,19 +3615,19 @@ LTC 65%</pre>
     <div class="ev__n">화면 사본 16개 · 지문</div>
     <div class="ev__m"><code>npm run verify:nas</code> 가 서버에서 받은 바이트를 이 값과 댑니다.
       하나라도 다르면 <b>옛 판</b>으로 봅니다.</div>
-    <div class="ev__m">catalog.js — <code>2b4e58ccbce4</code> · 7,528B</div><div class="ev__m">embed-bridge.js — <code>adfaadf5247b</code> · 7,712B</div><div class="ev__m">fields-core.js — <code>152424266010</code> · 15,226B</div><div class="ev__m">fields.html — <code>a48cadc3f049</code> · 48,780B</div><div class="ev__m">files.html — <code>df6d119c36e2</code> · 90,577B</div><div class="ev__m">flow-core.js — <code>cf4ee7e76b21</code> · 15,873B</div><div class="ev__m">gate-core.js — <code>2e27fb3b0d9b</code> · 5,615B</div><div class="ev__m">inapp.js — <code>1af85eb70502</code> · 12,176B</div><div class="ev__m">intake.html — <code>1b3e1e429779</code> · 51,079B</div><div class="ev__m">live-core.js — <code>221e2973ea2c</code> · 21,686B</div><div class="ev__m">outputs.html — <code>d085f2c0d80e</code> · 33,656B</div><div class="ev__m">report-flow.html — <code>48c21a5860ce</code> · 40,658B</div><div class="ev__m">reports.html — <code>b5f9db8f1d7e</code> · 49,537B</div><div class="ev__m">tokens.css — <code>923e58aaec67</code> · 5,491B</div><div class="ev__m">upload-core.js — <code>b912c6a3a561</code> · 6,450B</div><div class="ev__m">versions-core.js — <code>aadeb4e0dff1</code> · 9,501B</div>
+    <div class="ev__m">catalog.js — <code>2b4e58ccbce4</code> · 7,528B</div><div class="ev__m">embed-bridge.js — <code>adfaadf5247b</code> · 7,712B</div><div class="ev__m">fields-core.js — <code>152424266010</code> · 15,226B</div><div class="ev__m">fields.html — <code>a48cadc3f049</code> · 48,780B</div><div class="ev__m">files.html — <code>d2cfec452c38</code> · 105,567B</div><div class="ev__m">flow-core.js — <code>8038a16ec613</code> · 18,280B</div><div class="ev__m">gate-core.js — <code>2e27fb3b0d9b</code> · 5,615B</div><div class="ev__m">inapp.js — <code>1af85eb70502</code> · 12,176B</div><div class="ev__m">intake.html — <code>1b3e1e429779</code> · 51,079B</div><div class="ev__m">live-core.js — <code>221e2973ea2c</code> · 21,686B</div><div class="ev__m">outputs.html — <code>d2e24e2d3c58</code> · 33,160B</div><div class="ev__m">report-flow.html — <code>48c21a5860ce</code> · 40,658B</div><div class="ev__m">reports.html — <code>b5f9db8f1d7e</code> · 49,537B</div><div class="ev__m">tokens.css — <code>923e58aaec67</code> · 5,491B</div><div class="ev__m">upload-core.js — <code>b912c6a3a561</code> · 6,450B</div><div class="ev__m">versions-core.js — <code>aadeb4e0dff1</code> · 9,501B</div>
   </div>
 
   <div class="ev__c">
-    <div class="ev__n">라우트 28개 · 앱을 거쳐 닿는지</div>
-    <div class="ev__m">읽기 6 · 쓰기 22. 스물여덟을 전부 두드립니다 —
+    <div class="ev__n">라우트 29개 · 앱을 거쳐 닿는지</div>
+    <div class="ev__m">읽기 6 · 쓰기 23. 스물여덟을 전부 두드립니다 —
       프록시 목록에서 빠지면 <b>그 기능만</b> 404 가 나고 화면은 멀쩡히 뜹니다.</div>
     <div class="ev__m">401·400 은 통과입니다. 여기서 재는 것은 권한이 아니라 <b>닿느냐</b>입니다.</div>
   </div>
 
   <div class="ev__c">
     <div class="ev__n">아무도 안 부르는 모듈 — 0개</div>
-    <div class="ev__m">모듈 202개 중 202개가 닿습니다
+    <div class="ev__m">모듈 203개 중 203개가 닿습니다
       (<code>npm run check:reachable</code>).</div>
     <div class="ev__m">없음</div>
   </div>

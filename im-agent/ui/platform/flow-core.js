@@ -304,6 +304,56 @@
     return null;
   }
 
+
+  /**
+   * **탭 옮기기 — 한 곳에서만 만든다** 〈2026-08-21〉.
+   *
+   * ★★ 화면들은 각자 탭 하나일 뿐이라 **스스로 다른 탭으로 갈 수 없다.** 옮기는
+   *   것은 앱(본체)이다. 그래서 알리기만 하고, **앱이 받았는지를 확인한다.**
+   *   받았는지 모르면서 「옮겼습니다」라고 하면, 사용자는 눌러 놓고 아무 일도
+   *   안 일어나는 화면을 본다 — 그때는 고장으로 읽힌다.
+   *
+   * ★ 「받았다」의 증거는 둘이다.
+   *     ① iframe 안이면 `postMessage` 가 나갔다 — 부모가 있다는 뜻이다
+   *     ② 같은 창이면 앱이 `preventDefault()` 로 **받았다고 답한다**
+   *   ②가 없으면 아무도 안 듣는 것이다. 그때는 그렇다고 말한다.
+   *
+   * ★ 이 함수를 화면마다 복사해 두지 않는다. 복사하면 한쪽만 고치는 날
+   *   두 화면이 서로 다른 방법으로 앱을 부른다 (outputs.html 이 원본이었다).
+   *
+   * @param {{projectId:string, section:string, step?:string, why?:string}} opts
+   * @returns {{sent:boolean, reason:(string|null)}}
+   */
+  var OPEN_EVENT = 'lp-open-project';
+
+  function openSection(opts) {
+    var o = opts || {};
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      return { sent: false, reason: '브라우저가 아닙니다' };
+    }
+    var detail = { projectId: o.projectId || null, section: o.section || null };
+    if (o.step) detail.step = o.step;
+    if (o.why) detail.why = o.why;
+
+    var sent = false;
+    try {
+      if (window.parent !== window) {
+        var msg = { type: OPEN_EVENT, projectId: detail.projectId, section: detail.section };
+        if (detail.step) msg.step = detail.step;
+        if (detail.why) msg.why = detail.why;
+        window.parent.postMessage(msg, window.location.origin);
+        sent = true;
+      }
+    } catch (_) { /* 막혀 있으면 아래 이벤트로 간다 */ }
+    try {
+      var ev = new CustomEvent(OPEN_EVENT, { detail: detail, cancelable: true });
+      // 앱이 받아서 처리하면 `preventDefault()` 로 알려 준다 — 그게 「받았다」의 증거다
+      if (!document.dispatchEvent(ev)) sent = true;
+    } catch (_) {}
+
+    return { sent: sent, reason: sent ? null : '받는 쪽이 없습니다' };
+  }
+
   return {
     STEPS: STEPS, WHY: WHY, EMBED_CSS: EMBED_CSS,
     SECTIONS: SECTIONS, sectionState: sectionState, sectionOfStep: sectionOfStep,
@@ -311,5 +361,6 @@
     FILES_SECTION: FILES_SECTION, TABS: TABS,
     stepState: stepState, urlFor: urlFor, stepOfFile: stepOfFile,
     tokensLoaded: tokensLoaded, TOKENS_MISSING: TOKENS_MISSING,
+    openSection: openSection, OPEN_EVENT: OPEN_EVENT,
   };
 }));

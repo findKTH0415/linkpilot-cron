@@ -158,5 +158,5 @@ test('★ verify:nas 가 저장소만으로 아는 것은 실제로 잰다', () 
   } catch (e) { out = e.stdout || ''; }
   assert.match(out, /탭 셋이 flow-core 한 곳에서 나온다/);
   assert.match(out, /라우트 표/);
-  assert.match(out, /읽기 6 · 쓰기 22 = 28/);
+  assert.match(out, /읽기 6 · 쓰기 23 = 29/);
 });

@@ -110,10 +110,16 @@ const MEASURE = `
 }());
 <\/script>`;
 
-function renderDom(browser, file) {
+/**
+ * @param {number} [budgetMs] 가상 시계 예산. **기다리는 탐침은 이것을 넘긴다** —
+ *   넘기면 브라우저가 도중에 DOM 을 뱉어 「탐침이 아무것도 안 남겼다」로 보인다.
+ *   실제로 그렇게 한 번 속았다 (2026-08-21: 흐름이 길어져 6초를 넘겼는데,
+ *   증상이 「가끔 실패」로만 보여 부하 탓인 줄 알았다).
+ */
+function renderDom(browser, file, budgetMs) {
   return execFileSync(browser, [
     '--headless', '--disable-gpu', '--no-sandbox', '--hide-scrollbars',
-    '--window-size=1280,900', '--virtual-time-budget=6000', '--dump-dom',
+    '--window-size=1280,900', '--virtual-time-budget=' + (budgetMs || 6000), '--dump-dom',
     'file://' + file,
   ], { maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] }).toString();
 }

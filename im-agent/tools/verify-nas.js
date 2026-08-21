@@ -74,7 +74,12 @@ function localChecks() {
   }
 
   const n = W.ROUTES.length + A.ROUTES.length;
-  add('라우트 표', n === 28 ? 'ok' : 'fail', `읽기 ${A.ROUTES.length} · 쓰기 ${W.ROUTES.length} = ${n}`);
+  // ★ 숫자를 손으로 적어 둔다 — **일부러** 그렇게 한다. 표에서 세면 길이 조용히
+  //   사라져도 통과한다. 길을 더하거나 뺄 때 여기도 같이 고치는 것이 그 확인이다.
+  //   (2026-08-21: 자료 스캔 길이 늘어 28 → 29)
+  const WANT = 29;
+  add('라우트 표', n === WANT ? 'ok' : 'fail',
+    `읽기 ${A.ROUTES.length} · 쓰기 ${W.ROUTES.length} = ${n}` + (n === WANT ? '' : ` (${WANT} 이어야 한다)`));
 }
 
 /* ── 물어봐야 아는 것 ─────────────────────────────────────────────── */

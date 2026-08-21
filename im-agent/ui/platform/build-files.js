@@ -198,7 +198,13 @@ function fakeServer(limits) {
     if (/\\/oneshot$/.test(p) && method === 'POST') {
       var g2 = (body && body.files) || [];
       g2.forEach(function (f) { oneshot.push({ name: f.name, bytes: 0, fingerprint: { value: 'demo' }, readAt: '예시' }); });
-      return [200, { accepted: g2.map(function (f) { return { name: f.name }; }), rejected: [], reusable: false }];
+      // ★ 1회성은 **올리는 그 자리에서 읽는다.** 실제 서버가 read 를 함께 주므로
+      //   여기서도 준다 — 안 주면 미리보기에서만 다음 단계로 안 넘어간다.
+      //   (이 블록은 템플릿 문자열 안이다 — 역따옴표를 쓰면 문자열이 끊긴다)
+      return [200, { accepted: g2.map(function (f) { return { name: f.name }; }), rejected: [], reusable: false,
+        read: { facts: g2.map(function (f, i) { return { key: 'demo.' + i }; }),
+          documents: g2.map(function (f) { return { name: f.name }; }), unsupported: [] },
+        note: '보관하지 않습니다 — 보고서를 다시 만들려면 다시 올려야 합니다.' }];
     }
     if (/\\/oneshot$/.test(p)) return [200, { items: oneshot }];
     // 프로젝트 내용 → 값. **사전에 없는 항목은 거절한다** (실제 서버와 같다)
@@ -251,6 +257,35 @@ function fakeServer(limits) {
       //    역따옴표 한 쌍이 문자열을 끊어 버린다. 실제로 그렇게 한 번 깨졌다)
       return [200, { items: linked, storesCopies: false,
         appProvider: INTERNAL_IDS[0] || null, providers: PROVIDERS_DEMO }];
+    }
+    // ★ 자료 스캔 — **응답 모양을 실제와 같게 둔다.** 여기만 후하면 미리보기는
+    //   초록인데 실물은 빈 칸이 된다 (연결 갈래에서 실제로 그렇게 당했다)
+    if (/\\/scan$/.test(p) && method === 'POST') {
+      var all = kept.map(function (f) { return f.name; })
+        .concat(linked.map(function (x) { return x.name; }));
+      if (!all.length) {
+        return [200, { scanned: [], unread: [], facts: 0, documents: 0, empty: true,
+          note: '읽을 자료가 없습니다 — 자료를 먼저 넣어 주십시오.', at: '예시' }];
+      }
+      var IMG = /\\.(png|jpe?g|webp|heic|heif)$/i;
+      var NOPE = /\\.(hwp|dwg|zip)$/i;
+      var scanned = all.map(function (n) {
+        var isImg = IMG.test(n), no = NOPE.test(n);
+        return { name: n, how: isImg ? 'ocr' : (no ? 'convert' : 'text'),
+          ocr: isImg, readable: !no,
+          note: isImg ? '이미지입니다 — 글자로 옮겨서 읽습니다 (신뢰도를 낮춰 표시합니다)'
+            : no ? '이 형식은 읽지 못합니다 — PDF 나 PNG 로 바꿔서 올립니다' : null };
+      });
+      var readable = scanned.filter(function (f) { return f.readable; });
+      return [200, {
+        scanned: scanned,
+        unread: scanned.filter(function (f) { return !f.readable; })
+          .map(function (f) { return { name: f.name, why: f.note, from: 'extract' }; }),
+        facts: readable.length * 3, documents: readable.length,
+        empty: !readable.length,
+        oneshotNote: '1회성으로 올린 자료는 올릴 때 이미 읽었습니다 — 보관하지 않으므로 다시 읽지 않습니다.',
+        at: '예시',
+      }];
     }
     return [404, { error: '예시 서버에 없는 길입니다' }];
   }

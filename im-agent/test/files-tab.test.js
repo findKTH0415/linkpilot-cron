@@ -54,10 +54,11 @@ test('★ 구성안이 탭 이름을 복사해 적지 않는다', () => {
  *   연결(D-65)은 **사본을 만들지 않는 것**이 존재 이유인데, 업로드로 읽히면
  *   사용자는 우리 서버에 사본이 남는 줄 안다 — 정확히 반대다.
  */
-test('★★ 화면이 두 갈래의 차이를 먼저 말한다 (연결 ≠ 업로드)', () => {
+test('★★ 화면이 세 갈래의 차이를 먼저 말한다 (연결 ≠ 업로드)', () => {
   const html = read('files.html');
-  ['폴더를 연결해서', '파일업로드(1회성)'].forEach((w) => {
-    assert.ok(html.includes(w), `두 갈래 중 '${w}' 가 화면에 없다`);
+  // ★ 2026-08-21 사용자 지시로 **셋**이 되었다 — 앱에서 가져오기가 갈래로 올라왔다
+  ['＋ 앱 프로젝트에서 가져오기', '폴더를 연결해서', '파일업로드'].forEach((w) => {
+    assert.ok(html.includes(w), `세 갈래 중 '${w}' 가 화면에 없다`);
   });
   // ★ 「올려서 보관」은 뺐다 (2026-08-20 사용자 결정 — 불필요)
   assert.ok(!/id: 'kept'/.test(html), '보관 갈래가 되살아났다');
@@ -235,7 +236,7 @@ test('★★ 자료 업로드 탭을 미리 그리면 실제로 내용이 들어
     const body = html.slice(html.indexOf('<div class="pv">'));
     assert.ok(body.length > 800, `미리 그린 판이 비었다 (${body.length}B) — 스크립트가 죽었다`);
     assert.equal((body.match(/class="err"/g) || []).length, 0, '오류 상자가 그려졌다');
-    ['폴더를 연결해서', '파일업로드(1회성)'].forEach((w) => {
+    ['＋ 앱 프로젝트에서 가져오기', '폴더를 연결해서', '파일업로드'].forEach((w) => {
       assert.ok(body.includes(w), `미리 그린 판에 '${w}' 가 없다`);
     });
     assert.match(html, /예시 화면입니다/, '예시라는 표시가 없다 — 실제로 오해한다');
@@ -351,8 +352,11 @@ test('★★ 열 수 없는 제공자를 누를 수 있게 두지 않는다 (브
   //   그리면 되는 것까지 못 쓰게 된다
   assert.match(code, /p\.configured === undefined\) \? true/,
     '모르는 것을 「안 된다」로 그린다 — 되는 것까지 막힌다');
-  // 막혔을 때 **되는 길**을 알려 준다
-  assert.match(code, /파일업로드\(1회성\)/, '지금 쓸 수 있는 길을 안 알려 준다');
+  // 막혔을 때 **되는 길**을 알려 준다.
+  // ★ 이름을 문장에 박아 두지 않고 갈래 표에서 가져오는지를 본다 — 박아 두면
+  //   갈래 제목을 바꾸는 날 안내만 옛 이름을 말한다 (2026-08-21 실제로 그랬다)
+  assert.match(code, /지금 자료를 넣으려면 「' \+ wayName\('oneshot'\) \+ '」 갈래를/,
+    '지금 쓸 수 있는 길을 안 알려 주거나, 갈래 이름을 손으로 적어 두었다');
 });
 
 /**
@@ -436,9 +440,15 @@ test('★★ 실제 브라우저에서 떨어뜨리면 붙고, 그래프가 끝�
       //   FileReader 라서 가상 시계가 기다려 주지 않는다. 기계가 바쁘면 읽기가
       //   덜 끝난 채로 지나가고, 그러면 버튼이 잠긴 채라 눌러도 아무 일이 없다 —
       //   그 상태가 「그래프가 안 뜬다」로 보여서 **엉뚱한 곳을 파게 된다.**
-      //   그래서 **버튼이 풀릴 때까지** 기다린다 (실제로 한 번 이렇게 헛울었다)
+      //   그래서 **버튼이 풀릴 때까지** 기다린다 (실제로 한 번 이렇게 헛울었다).
+      //
+      // ★★ 횟수를 넉넉히 둔다 〈2026-08-21〉. 가상 시계는 **파일 읽기를 기다려
+      //   주지 않는다** — 돌 것이 없으면 그냥 앞으로 감는다. 그래서 기계가
+      //   바쁠 때(전체 시험을 한꺼번에 돌릴 때) 200번이 실제로는 눈 깜짝할
+      //   사이에 다 소모됐다. 혼자 돌리면 늘 통과하고 **함께 돌릴 때만** 실패해서,
+      //   증상만 보면 화면이 깨진 것처럼 보인다. 한 번 헛다리를 짚었다.
       var go = null;
-      for (var w = 0; w < 200; w++) {
+      for (var w = 0; w < 1200; w++) {
         go = [].slice.call(document.querySelectorAll('.btn')).filter(function (b) {
           return t(b).indexOf('파일업로드') === 0; })[0];
         if (go && !go.disabled) break;
@@ -468,7 +478,7 @@ test('★★ 실제 브라우저에서 떨어뜨리면 붙고, 그래프가 끝�
     + fs.readFileSync(frag, 'utf8') + probe + '</body></html>');
 
   try {
-    const dom = renderDom(findBrowser(), page);
+    const dom = renderDom(findBrowser(), page, 30000);
     const m = dom.match(/<div id="probe">([^<]*)<\/div>/);
     assert.ok(m && m[1], '탐침이 아무것도 안 남겼다 — 스크립트가 죽었다');
     const r = JSON.parse(m[1]);
@@ -484,7 +494,9 @@ test('★★ 실제 브라우저에서 떨어뜨리면 붙고, 그래프가 끝�
     // 도는 동안 **가운데 칸**을 실제로 지나갔는가 (끝 칸만 보이면 그래프가 아니라 결과다)
     assert.ok(r.seen.some(function (x) { return x === '보내는 중' || x === '서버가 읽는 중'; }),
       '올리는 중에 가운데 칸을 한 번도 안 가리켰다 — 본 것: ' + JSON.stringify(r.seen));
-    assert.deepEqual(r.stagesDone, ['고른 파일', '보내는 중', '서버가 읽는 중', '붙었습니다'],
+    // ★ 앞 넷이 올리기 칸이다. 뒤에 붙는 것은 **이어서 도는 스캔**이다
+    //   (2026-08-21 지시). 넷만 기대하면 기능이 느는 날 통과가 깨진다
+    assert.deepEqual(r.stagesDone.slice(0, 4), ['고른 파일', '보내는 중', '서버가 읽는 중', '붙었습니다'],
       '끝났는데 칸이 다 안 찼다');
     assert.equal(r.stillRunning, false, '끝났는데 선이 계속 흐른다 — 도는 것처럼 보인다');
     assert.ok(r.chart, '자취 그림이 없다');
@@ -527,7 +539,7 @@ test('★★ 앱에서 셋(내용·첨부·이미지)을 가져온다 — 거절
       sel.dispatchEvent(new Event('change', { bubbles: true }));
       // 앱이 곧바로 주지 않는다 — 카드가 뜰 때까지 기다린다
       var go = null;
-      for (var w = 0; w < 200; w++) {
+      for (var w = 0; w < 1200; w++) {
         go = [].slice.call(document.querySelectorAll('.btn')).filter(function (b) {
           return t(b) === '가져오기'; })[0];
         if (go && !go.disabled) break;
@@ -549,6 +561,8 @@ test('★★ 앱에서 셋(내용·첨부·이미지)을 가져온다 — 거절
       sel2.dispatchEvent(new Event('change', { bubbles: true }));
       await sleep(400);
       o.afterSwitch = [].slice.call(document.querySelectorAll('.card__t')).map(t);
+      o.afterRows = [].slice.call(document.querySelectorAll('.row')).map(t);
+      o.afterScan = t(document.querySelector('.up--done, .up--error'));
       o.errBoxes = document.querySelectorAll('.err').length;
       document.getElementById('probe').textContent = JSON.stringify(o);
     }());
@@ -558,7 +572,7 @@ test('★★ 앱에서 셋(내용·첨부·이미지)을 가져온다 — 거절
     + fs.readFileSync(frag, 'utf8') + probe + '</body></html>');
 
   try {
-    const dom = renderDom(findBrowser(), page);
+    const dom = renderDom(findBrowser(), page, 30000);
     const m = dom.match(/<div id="probe">([^<]*)<\/div>/);
     assert.ok(m && m[1], '탐침이 아무것도 안 남겼다 — 스크립트가 죽었다');
     const r = JSON.parse(m[1]);
@@ -582,16 +596,28 @@ test('★★ 앱에서 셋(내용·첨부·이미지)을 가져온다 — 거절
 
     // ② 값이 될 수 없는 것은 그렇다고 적는다
     assert.match(r.note, /가져오지 않습니다/, '값이 못 되는 것을 조용히 넘겼다');
-    assert.deepEqual(r.stagesDone, ['앱에서 읽기', '프로젝트 내용', '자료 잇기', '가져왔습니다'],
-      '가져오기가 끝까지 안 갔다');
+    // ★ 앞 넷은 가져오기, 뒤는 **이어서 자동으로 도는 스캔**이다 (2026-08-21 지시).
+    //   `deepEqual` 로 넷만 기대하면 스캔이 붙는 날 통과가 깨지는데, 그건
+    //   기능이 는 것이지 고장이 아니다 — **앞부분이 맞는지**를 본다
+    assert.deepEqual(r.stagesDone.slice(0, 4),
+      ['앱에서 읽기', '프로젝트 내용', '자료 잇기', '가져왔습니다'], '가져오기가 끝까지 안 갔다');
+    // ★★ 가져온 뒤 **자동으로 읽어야 한다.** 안 읽으면 2단계에 가도 빈 칸뿐이다
+    assert.ok(r.stagesDone.indexOf('자료 모으기') > 3,
+      `가져온 뒤 자료 스캔이 자동으로 안 돌았다 — 칸: ${r.stagesDone.join(' · ')}`);
     assert.match(r.report, /첨부 2개/, '첨부가 안 붙었다');
     assert.match(r.report, /이미지 1개/, '이미지가 안 붙었다');
     // ★★ 거절을 **접어 두지 않는다** — 「가져왔습니다」만 보면 다 들어온 줄 안다
     assert.match(r.report, /사전에 없는 항목/, '거절 사유가 화면에 없다');
 
     // ③ 프로젝트를 바꾸면 앞 딜 꾸러미가 따라오지 않는다 (붙으면 엉뚱한 곳에 붙는다)
-    assert.ok(!r.afterSwitch.includes('앱에서 가져오기'),
-      '다른 프로젝트로 옮겼는데 앞 딜의 가져오기가 남아 있다');
+    // ★ 「앱에서 가져오기」는 이제 카드 제목이 아니라 **갈래 안쪽**이다 (2026-08-21).
+    //   제목으로만 재면 카드가 사라진 지금은 **무엇을 해도 통과한다** — 칸을 잰다
+    assert.ok(!(r.afterRows || []).some(x => /^첨부파일 · /.test(x)),
+      `다른 프로젝트로 옮겼는데 앞 딜의 가져오기 칸이 남아 있다: ${(r.afterRows || []).join(' | ')}`);
+    // ★★ 스캔 결과도 따라오면 안 된다 — 앞 프로젝트의 값 개수가 그대로 떠 있으면
+    //   그럴듯하게 틀린 화면이 된다
+    assert.equal(r.afterScan, null,
+      `다른 프로젝트로 옮겼는데 앞 프로젝트의 스캔 결과가 남아 있다: ${r.afterScan}`);
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
 
@@ -899,7 +925,7 @@ test('★★ 실제 브라우저에서 확인이 돌고, 만료를 고장으로 
       sel.value = 'app:deal-9107';
       sel.dispatchEvent(new Event('change', { bubbles: true }));
       var go = null;
-      for (var w = 0; w < 200; w++) {
+      for (var w = 0; w < 1200; w++) {
         go = [].slice.call(document.querySelectorAll('.btn')).filter(function (b) {
           return t(b) === '가져오기'; })[0];
         if (go && !go.disabled) break;
@@ -924,7 +950,7 @@ test('★★ 실제 브라우저에서 확인이 돌고, 만료를 고장으로 
     const page = path.join(dir, 'page.html');
     fs.writeFileSync(page, '<!doctype html><html lang="ko"><head><meta charset="utf-8"></head><body>'
       + fs.readFileSync(frag, 'utf8') + probe + '</body></html>');
-    const dom = renderDom(findBrowser(), page);
+    const dom = renderDom(findBrowser(), page, 30000);
     const m = dom.match(/<div id="probe">([^<]*)<\/div>/);
     assert.ok(m && m[1], '탐침이 아무것도 안 남겼다');
     const r = JSON.parse(m[1]);
@@ -935,4 +961,162 @@ test('★★ 실제 브라우저에서 확인이 돌고, 만료를 고장으로 
     // ★★ 만료를 **빨간 오류**로 그리면 고장으로 읽힌다 — 이 선택의 값일 뿐이다
     assert.equal(r.errBoxes, 0, '만료를 오류 상자로 그렸다');
   }).finally(() => fs.rmSync(dir, { recursive: true, force: true }));
+});
+
+/* ═════════ ⑨ 넣었으면 읽고, 읽었으면 넘긴다 (2026-08-21 사용자 지시) ═════════ */
+
+/**
+ * ★★ **「보인다」가 아니라 「간다」를 잰다.** 스캔 칸이 그려지는 것과 실제로
+ *   2단계로 넘어가는 것은 다른 확인이다 — 넘기는 것은 앱이고, 이 화면은
+ *   `lp-open-project` 를 쏘기만 한다. 그 신호가 실제로 나가는지를 본다.
+ *
+ * ★ 신호가 안 나가면 사용자는 「올렸는데 아무 일도 안 일어난다」를 본다.
+ *   화면은 멀쩡하고 오류도 없다 — 그래서 눈으로는 절대 안 잡힌다.
+ */
+test('★★ 파일업로드로 넣으면 읽고 「보고서 생성」으로 넘긴다', async () => {
+  const { buildLive } = require(path.join(PLATFORM, 'build-files.js'));
+  const { findBrowser, renderDom } = require(path.join(PLATFORM, 'build-static.js'));
+  if (!findBrowser()) return;
+
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-scan-move-'));
+  const frag = path.join(dir, 'frag.html');
+  await buildLive(frag);
+
+  const probe = `
+    <div id="probe"></div>
+    <script>
+    (async function () {
+      var sleep = function (m) { return new Promise(function (r) { setTimeout(r, m); }); };
+      var t = function (n) { return n ? (n.textContent || '').trim().replace(/\\s+/g, ' ') : null; };
+      var o = { moves: [] };
+      // ★ 앱 노릇을 한다 — 받았다고 답해야 화면이 「넘겼습니다」를 말할 수 있다
+      document.addEventListener('lp-open-project', function (ev) {
+        o.moves.push(ev.detail);
+        ev.preventDefault();
+      });
+      await sleep(200);
+      var sel = document.querySelector('.pick select');
+      sel.value = 'LP-DC-2026-001';
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+      await sleep(300);
+      // 「파일업로드」 갈래로 옮긴다
+      var ways = [].slice.call(document.querySelectorAll('.pw'));
+      var up = ways.filter(function (b) { return /파일업로드/.test(t(b)); })[0];
+      o.wayCount = ways.length;
+      if (up) up.click();
+      await sleep(150);
+      // 파일 하나를 떨어뜨린다 (input 에 직접 넣는다 — 고르기 창은 못 연다)
+      var inp = document.querySelector('.drop input[type=file]');
+      o.hasInput = !!inp;
+      var dt = new DataTransfer();
+      dt.items.add(new File([new Blob(['총사업비 2,846억원'])], '계획서.txt', { type: 'text/plain' }));
+      inp.files = dt.files;
+      inp.dispatchEvent(new Event('change', { bubbles: true }));
+      // FileReader 는 타이머가 아니다 — 단추가 열릴 때까지 **기다린다**
+      var go = null;
+      for (var w = 0; w < 1200; w++) {
+        go = [].slice.call(document.querySelectorAll('.btn')).filter(function (b) {
+          return /파일업로드/.test(t(b)); })[0];
+        if (go && !go.disabled) break;
+        await sleep(20);
+      }
+      o.ready = !!(go && !go.disabled);
+      if (go) go.click();
+      for (var k = 0; k < 300; k++) {
+        await sleep(20);
+        if (o.moves.length) break;
+      }
+      o.note = [].slice.call(document.querySelectorAll('.note')).map(t).join(' // ');
+      o.errBoxes = document.querySelectorAll('.err').length;
+      document.getElementById('probe').textContent = JSON.stringify(o);
+    }());
+    </script>`;
+  const page = path.join(dir, 'page.html');
+  fs.writeFileSync(page, '<!doctype html><html lang="ko"><head><meta charset="utf-8"></head><body>'
+    + fs.readFileSync(frag, 'utf8') + probe + '</body></html>');
+
+  try {
+    const dom = renderDom(findBrowser(), page, 30000);
+    const m = dom.match(/<div id="probe">([^<]*)<\/div>/);
+    assert.ok(m && m[1], '탐침이 아무것도 안 남겼다 — 스크립트가 죽었다');
+    const r = JSON.parse(m[1]);
+    assert.equal(r.errBoxes, 0, '오류 상자가 떴다');
+    assert.equal(r.wayCount, 3, `갈래가 셋이 아니다 (${r.wayCount}개)`);
+    assert.ok(r.hasInput, '파일 고르기 칸이 없다');
+    assert.ok(r.ready, '파일을 읽고도 올리기 단추가 안 열렸다');
+    // ★★ 핵심 — **실제로 넘어갔는가**
+    assert.equal(r.moves.length, 1, `「보고서 생성」으로 안 넘겼다 (신호 ${r.moves.length}건)`);
+    assert.equal(r.moves[0].section, F.SECTION.id, '엉뚱한 탭으로 넘겼다');
+    assert.equal(r.moves[0].step, 'fields', '값이 들어간 2단계가 아니라 다른 단계로 넘겼다');
+    assert.equal(r.moves[0].projectId, 'LP-DC-2026-001', '프로젝트를 안 실어 보냈다');
+    // ★ 넘겼다는 것을 화면도 말해야 한다 — 앱이 안 받았을 때와 구분이 돼야 한다
+    assert.match(r.note, new RegExp(F.SECTION.tab + '」으로 넘겼습니다'),
+      `넘긴 것을 화면이 말하지 않는다: ${r.note}`);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+/**
+ * ★★ **값이 하나도 없으면 넘기지 않는다.** 넘기면 2단계에서 빈 칸만 보게 되고,
+ *   사용자는 자기가 뭘 잘못한 줄 안다. 여기서 「무엇을 못 읽었는지」를 먼저 본다.
+ */
+test('★★ 읽었는데 값이 0이면 넘기지 않고 이유를 보여 준다', async () => {
+  const { buildLive } = require(path.join(PLATFORM, 'build-files.js'));
+  const { findBrowser, renderDom } = require(path.join(PLATFORM, 'build-static.js'));
+  if (!findBrowser()) return;
+
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-scan-stay-'));
+  const frag = path.join(dir, 'frag.html');
+  await buildLive(frag);
+
+  const probe = `
+    <div id="probe"></div>
+    <script>
+    (async function () {
+      var sleep = function (m) { return new Promise(function (r) { setTimeout(r, m); }); };
+      var t = function (n) { return n ? (n.textContent || '').trim().replace(/\\s+/g, ' ') : null; };
+      var o = { moves: [] };
+      document.addEventListener('lp-open-project', function (ev) { o.moves.push(ev.detail); ev.preventDefault(); });
+      // ★ 예시 서버 위에 한 겹 덮는다 — 「읽었는데 값이 0」은 실제로 흔하다
+      //   (글자 없는 스캔본 · OCR 키 없음). 그 답을 만들어 준다
+      var prev = window.fetch;
+      window.fetch = function (url, opt) {
+        if (/\\/scan$/.test(String(url))) {
+          return Promise.resolve({ ok: true, status: 200, json: function () {
+            return Promise.resolve({ scanned: [{ name: '스캔본.png', how: 'ocr', ocr: true, readable: true }],
+              unread: [], facts: 0, documents: 0, empty: true });
+          } });
+        }
+        return prev.apply(this, arguments);
+      };
+      await sleep(200);
+      var sel = document.querySelector('.pick select');
+      sel.value = 'LP-DC-2026-001';
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+      await sleep(300);
+      var scan = [].slice.call(document.querySelectorAll('.btn')).filter(function (b) {
+        return t(b) === '자료 스캔'; })[0];
+      o.hasScan = !!scan;
+      if (scan) scan.click();
+      for (var k = 0; k < 200; k++) { await sleep(20); if (document.querySelector('.up')) break; }
+      o.box = t(document.querySelector('.up'));
+      o.errBoxes = document.querySelectorAll('.err').length;
+      document.getElementById('probe').textContent = JSON.stringify(o);
+    }());
+    </script>`;
+  const page = path.join(dir, 'page.html');
+  fs.writeFileSync(page, '<!doctype html><html lang="ko"><head><meta charset="utf-8"></head><body>'
+    + fs.readFileSync(frag, 'utf8') + probe + '</body></html>');
+
+  try {
+    const dom = renderDom(findBrowser(), page, 30000);
+    const m = dom.match(/<div id="probe">([^<]*)<\/div>/);
+    assert.ok(m && m[1], '탐침이 아무것도 안 남겼다');
+    const r = JSON.parse(m[1]);
+    assert.equal(r.errBoxes, 0, '오류 상자가 떴다');
+    assert.ok(r.hasScan, '스캔 단추가 없다');
+    assert.equal(r.moves.length, 0, '값이 0인데 다음 단계로 넘겼다 — 빈 칸만 보게 된다');
+    // ★ **왜 안 넘어갔는지**를 말해야 한다. 아무 말 없이 안 가면 고장으로 읽힌다
+    assert.match(r.box, /넘어가지 않았습니다/, `안 넘어간 이유를 안 말한다: ${r.box}`);
+    assert.match(r.box, /OCR/, '무엇을 어떻게 읽었는지 안 보여 준다');
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });

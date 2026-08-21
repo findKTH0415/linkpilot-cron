@@ -8,9 +8,10 @@
   자료 업로드 — 보고서에 쓸 자료를 넣는 곳. 세 번째 탭 (2026-08-18).
 
   ★★ **탭 이름은 「자료 업로드」지만 하는 일은 셋이고, 그중 둘은 업로드가 아니다.**
-    ① 올려서 보관    (Pro)  우리 서버에 둔다. 지우기·되살리기·대조가 있다
-    ② 폴더를 연결해서   (무료) **사본을 안 만든다.** 읽을 때만 잠깐 가져와 버린다
-    ③ 파일업로드(1회성) (무료) 읽고 **바로 버린다.** 다시 못 쓴다
+    ① ＋ 앱 프로젝트에서 가져오기 (무료) 앱 딜이 가진 것을 끌어온다 (2026-08-21)
+    ② 폴더를 연결해서            (무료) **사본을 안 만든다.** 읽을 때만 잠깐 가져와 버린다
+    ③ 파일업로드                 (무료) 읽고 **바로 버린다**(1회성). 다시 못 쓴다
+    ※ 「올려서 보관」(Pro)은 2026-08-20 에 화면에서 뺐다. 서버 API 는 그대로 있다
     ②를 업로드로 읽으면 사본이 우리 쪽에 남는 줄 안다 — 그 오해를 막으려고
     만든 것이 ② 다(D-65). 그래서 **화면이 셋의 차이를 먼저 말한다.**
 
@@ -333,7 +334,10 @@ window.LINKPILOT_FILES = {
     // ── 첨부 (2026-08-20) ─────────────────────────────────────────────
     // 전에는 세 갈래가 **설명만**이었다. 무엇이 다른지는 알려 주는데 정작
     // 여기서 올릴 수는 없어서, 자료를 넣으려면 1단계로 되돌아가야 했다.
-    way: 'linked',     // 'linked' | 'oneshot'  (보관은 뺐다 — 2026-08-20)
+    // 'app' | 'linked' | 'oneshot'  (보관은 뺐다 — 2026-08-20 · 앱은 2026-08-21 에 갈래로 올라왔다)
+    // ★ 처음 열릴 때는 **연결**이다. 앱 갈래는 앱이 목록을 넘겨야 쓸 수 있어서,
+    //   기본값으로 두면 단독으로 열었을 때 빈 칸부터 보게 된다
+    way: 'linked',
     picked: [],        // 고른 파일 — { name, size, data, error }
     upload: null,      // 올리는 중 상태 (upload-core 가 준 그대로)
     result: null,      // 서버 응답
@@ -348,6 +352,10 @@ window.LINKPILOT_FILES = {
     linkDead: false,   // 연결이 그 칸에서 멈췄나
     dropMsg: null,     // 끌어다 놓았는데 받을 수 없을 때 하는 말
     newProj: null,     // { text, busy, error } — 새 프로젝트 만들기
+    // ── 자료 스캔 (2026-08-21 사용자 지시) ───────────────────────────
+    //   셋 중 무엇으로 넣었든 **한 길로** 읽어 값으로 만든다.
+    //   moved: null=아직 · true=앱이 받았다 · false=아무도 안 받았다
+    scan: { busy: false, stage: -1, dead: false, result: null, msg: null, auto: false, moved: null },
   };
 
   /**
@@ -491,6 +499,10 @@ window.LINKPILOT_FILES = {
     // ★★ 앱 꾸러미를 **반드시 버린다.** 남겨 두면 다른 프로젝트를 고른 뒤에도
     //   앞 딜의 첨부가 「가져오기」에 남아 있고, 누르면 **엉뚱한 프로젝트에 붙는다**
     state.appBundle = null; state.appStage = -1; state.appReport = null;
+    // ★★ 스캔 결과도 **반드시 버린다** 〈2026-08-21〉. 남겨 두면 다른 프로젝트를
+    //   고른 뒤에도 앞 프로젝트의 「값 12개를 만들었습니다」가 그대로 떠 있다 —
+    //   그럴듯하게 틀린 화면이라 아무도 눈치채지 못한다
+    state.scan = { busy: false, stage: -1, dead: false, result: null, msg: null, auto: false, moved: null };
     // ★ 작업 폴더가 없는 딜을 고른 경우 — 붙일 곳이 없다는 것을 말한다
     if (id && id.indexOf('ext:') === 0) {
       state.projectId = null;
@@ -585,6 +597,10 @@ window.LINKPILOT_FILES = {
   function pullBundle(appId) {
     state.appBundle = null;
     state.appStage = -1; state.appDead = false; state.appReport = null;
+    // ★ 앱 딜을 고른 순간 갈래도 「앱에서 가져오기」로 맞춘다 〈2026-08-21〉.
+    //   맞추지 않으면 고른 것은 앱인데 화면은 연결 갈래를 그리고 있어,
+    //   가져오기 칸이 어디 있는지 사용자가 찾아야 한다
+    state.way = 'app';
     return loadAppBundle(appId).then(function (b) {
       state.appBundle = b ? { appId: String(appId), content: b.content,
         files: b.files, images: b.images } : null;
@@ -610,16 +626,35 @@ window.LINKPILOT_FILES = {
    */
   // ★ 「올려서 보관」은 뺐다 〈2026-08-20 사용자 결정 — 불필요〉.
   //   서버 API(`POST /sources`)는 그대로 있다. 화면에서 그 길로 들어가지 않을 뿐이다.
+  // ★★ **셋이다** 〈2026-08-21 사용자 지시〉. 전에 앱에서 가져오는 길은 프로젝트
+  //   고르기 목록 안에 숨어 있었다 — 자료를 넣으러 온 사람이 「자료 붙이기」에서
+  //   두 갈래만 보고 **앱 자료는 못 가져오는 줄** 알았다. 셋을 나란히 둔다.
+  // ★ 순서는 사용자가 준 순서 그대로다. 앞의 둘은 이미 있는 자료를 **가리키고**,
+  //   마지막 하나만 실제로 올린다.
   var WAYS = [
+    { id: 'app', t: '＋ 앱 프로젝트에서 가져오기', k: '무료', free: true, plan: 'free',
+      d: 'LinkPilot 앱 딜에 붙어 있는 내용·첨부·이미지를 그대로 끌어옵니다. 사본을 만들지 않습니다.' },
     { id: 'linked', t: '폴더를 연결해서', k: '무료', free: true, plan: 'free',
       d: 'Dropbox·Box·구글·원드라이브의 파일을 가리킵니다. 사본을 만들지 않습니다 — 읽을 때만 잠깐 가져와 버립니다.' },
-    { id: 'oneshot', t: '파일업로드(1회성)', k: '무료', free: true, plan: 'free',
-      d: '읽고 바로 버립니다. 보관하지 않으므로 다시 쓸 수 없고, 원본이 그대로인지도 확인할 수 없습니다.' },
+    { id: 'oneshot', t: '파일업로드', k: '무료', free: true, plan: 'free',
+      d: '읽고 바로 버립니다(1회성). 보관하지 않으므로 다시 쓸 수 없고, 원본이 그대로인지도 확인할 수 없습니다.' },
   ];
 
   function wayOf(id) {
     for (var i = 0; i < WAYS.length; i++) if (WAYS[i].id === id) return WAYS[i];
     return WAYS[0];
+  }
+
+  /**
+   * 갈래 이름을 **문장 안에 손으로 적지 않는다** 〈2026-08-21〉.
+   *
+   * ★★ 실제로 갈렸다. 갈래 제목에서 괄호를 떼었더니 안내 문장만 옛 이름을
+   *   말했다 — 사용자는 화면에 없는 단추 이름을 찾게 된다.
+   * ★ 옛 이름을 **이 주석에도 적지 않는다.** 적으면 그것을 찾는 검사가 주석에
+   *   걸려 통과하고, 막는 장치가 조용히 죽는다 (M-08 · 이미 두 번 당했다).
+   */
+  function wayName(id) {
+    return wayOf(id).t;
   }
 
   function ways() {
@@ -893,7 +928,22 @@ window.LINKPILOT_FILES = {
       onDone: function (j) {
         state.busy = false; state.result = j; state.picked = [];
         // 올린 뒤 목록을 다시 읽는다 — 안 읽으면 방금 올린 것이 안 보인다
-        loadOne(state.projectId).then(render);
+        loadOne(state.projectId).then(function () {
+          render();
+          // ★ 1회성은 **서버가 올리는 그 자리에서 이미 읽었다.** 다시 읽을 원본이
+          //   우리에게 없다. 그래서 스캔을 또 돌리지 않고 **바로 넘긴다** —
+          //   값이 실제로 들어갔을 때만 (안 들어갔으면 빈 칸만 보게 된다)
+          var got = j && j.read && ((j.read.facts || []).length || j.read.factCount || 0);
+          if (got) {
+            state.scan = { busy: false, stage: 3, dead: false, auto: true, moved: null,
+              result: { scanned: [], unread: [], facts: got,
+                documents: (j.read.documents || []).length,
+                empty: false,
+                note: '1회성으로 올린 자료는 올리는 그 자리에서 읽었습니다.' },
+              msg: null };
+            goReport();
+          }
+        });
       },
       onFail: function (why, status) {
         state.busy = false;
@@ -915,7 +965,8 @@ window.LINKPILOT_FILES = {
     add(card, el('h2', 'card__t', '자료 붙이기'),
       el('p', 'card__d',
         '기존 프로젝트 보고서를 만들거나 또는 신규 프로젝트로 만들 때, '
-        + '관련자료를 올리는 방법 2가지입니다.'));
+        + '관련자료를 올리는 방법 3가지입니다. 어느 쪽으로 넣든 '
+        + '읽어서(이미지는 OCR) 「' + F.SECTION.tab + '」으로 보냅니다.'));
     card.appendChild(ways());
     // 끌어다 놓았는데 받을 수 없었던 이유를 **그 자리에서** 말한다.
     // ★ 갈래보다 먼저 그린다 — 그 말이 가장 필요한 때가 「연결」 갈래에서
@@ -929,6 +980,19 @@ window.LINKPILOT_FILES = {
         // ★ 화면이 몰래 만들지 않는다 — 번호가 소모되고 자산군이 GEN 으로 굳는다 (§4)
         ? '이 프로젝트는 작업 폴더가 아직 없습니다. 「보고서 생성」 1단계에서 먼저 만드십시오.'
         : '프로젝트를 먼저 고르면 여기서 바로 올릴 수 있습니다.'));
+      return card;
+    }
+
+    // 앱에서 가져오기 — 여기서 올리는 것이 아니라 **앱이 가진 것을 끌어오는** 것이다
+    if (state.way === 'app') {
+      card.appendChild(appPicker());
+      var appBody = appImportCard();
+      if (appBody) card.appendChild(appBody);
+      else if (state.appBundle) {
+        card.appendChild(el('p', 'note',
+          '이 앱 프로젝트에는 가져올 내용·첨부·이미지가 없습니다.'));
+      }
+      if (state.appMsg) card.appendChild(el('p', 'note', state.appMsg));
       return card;
     }
 
@@ -959,7 +1023,7 @@ window.LINKPILOT_FILES = {
     card.appendChild(pickedList());
 
     var ready = state.picked.filter(function (f) { return f.data && !f.tooBig; });
-    var go = el('button', 'btn', state.way === 'oneshot' ? '파일업로드(1회성)' : '올려서 보관');
+    var go = el('button', 'btn', state.way === 'oneshot' ? wayName('oneshot') : '올려서 보관');
     go.type = 'button';
     go.disabled = !ready.length || state.busy;
     go.addEventListener('click', doUpload);
@@ -1034,7 +1098,9 @@ window.LINKPILOT_FILES = {
     if (!canOpen) {
       box.appendChild(el('p', 'note',
         '파일 고르기 창이 아직 연결되지 않았습니다 — 준비되면 위 단추가 열립니다. '
-        + '지금 자료를 넣으려면 「파일업로드(1회성)」를 쓰십시오.'));
+        // ★ 조사를 이름 뒤에 붙이지 않는다 — 이름이 바뀌면 「…」을/를 이 어긋난다.
+        //   갈래 이름은 사람이 정하는 값이라 받침을 미리 알 수 없다
+        + '지금 자료를 넣으려면 「' + wayName('oneshot') + '」 갈래를 쓰십시오.'));
     } else if (blocked.length) {
       box.appendChild(el('p', 'note',
         blocked.join(' · ') + ' 는 아직 등록되지 않았습니다 — 관리자에게 저장소 등록을 요청하십시오.'));
@@ -1191,6 +1257,61 @@ window.LINKPILOT_FILES = {
     };
   }
 
+
+  /**
+   * 어느 앱 딜에서 가져올까 — **갈래 안에서 고른다** 〈2026-08-21 사용자 지시〉.
+   *
+   * ★★ 전에는 이 고르기가 위쪽 「프로젝트」 목록의 optgroup 하나로만 있었다.
+   *   자료를 넣으러 온 사람은 「자료 붙이기」에서 두 갈래만 보고 **앱 자료는
+   *   못 가져오는 줄** 알았다. 갈래로 올렸으니 고르는 자리도 여기 둔다.
+   *
+   * ★ 위쪽 목록도 그대로 둔다 — 지우면 앱 딜로 **프로젝트를 만드는** 길이 없어진다.
+   *   둘은 같은 함수(`pickAppProject`)를 부른다. 화면이 둘이지 동작이 둘이 아니다.
+   *
+   * ★ 앱이 목록을 안 넘겼으면 **그렇다고 말한다.** 빈 목록을 그려 놓으면
+   *   「내 딜이 왜 없나」를 사용자가 혼자 고민한다.
+   */
+  function appPicker() {
+    var box = document.createDocumentFragment();
+    var apps = Array.isArray(C.appProjects) ? C.appProjects : [];
+    if (!apps.length) {
+      box.appendChild(waitBox('앱 프로젝트 목록이 아직 안 넘어왔습니다',
+        '이 화면은 앱 데이터를 직접 읽지 못합니다 — 앱 안에서 열면 목록이 뜹니다. '
+        + '지금 자료를 넣으려면 「폴더를 연결해서」나 「파일업로드」를 쓰십시오.'));
+      return box;
+    }
+
+    var linkedPairs = C.appLinks || {};
+    var pick = el('div', 'pick');
+    pick.style.marginTop = '12px';
+    pick.appendChild(el('label', null, '앱 프로젝트'));
+    var sel = el('select');
+    var none = el('option', null, '— 고르세요 —');
+    none.value = '';
+    sel.appendChild(none);
+    apps.forEach(function (a) {
+      if (!a || !a.id) return;
+      var tail = a.client ? (' · ' + a.client) : (a.owner ? (' · ' + a.owner) : '');
+      var mark = linkedPairs[String(a.id)] ? ' (이어짐)' : '';
+      var o = el('option', null, shortLabel(a.title || '(제목 없음)', null, 24) + tail + mark);
+      o.title = (a.title || '(제목 없음)') + tail + mark;
+      o.value = String(a.id);
+      if (state.appBundle && String(state.appBundle.appId) === String(a.id)) o.selected = true;
+      sel.appendChild(o);
+    });
+    sel.disabled = state.busy;
+    sel.addEventListener('change', function () {
+      if (sel.value) pickAppProject(sel.value);
+    });
+    pick.appendChild(sel);
+    box.appendChild(pick);
+
+    if (state.appStage >= 0 && !state.appBundle) {
+      box.appendChild(el('p', 'note', '앱에서 읽는 중입니다…'));
+    }
+    return box;
+  }
+
   /**
    * 무엇을 가져올지 고르는 칸. **개수를 먼저 보여 준다** — 눌러 놓고 나서
    * 「이만큼이나 들어왔나」를 알면 늦다.
@@ -1201,10 +1322,12 @@ window.LINKPILOT_FILES = {
     var n = countOf(b);
     if (!n.content && !n.files && !n.images && !n.notes && !(b.content && b.content.summary)) return null;
 
-    var card = el('section', 'card');
-    add(card, el('h2', 'card__t', '앱에서 가져오기'),
-      el('p', 'card__d', '앱 프로젝트가 들고 있는 것입니다. '
-        + '가져올 것만 고르십시오 — 나중에 다시 가져올 수 있습니다.'));
+    // ★ `section.card` 가 아니라 **조각**이다 〈2026-08-21〉. 「자료 붙이기」 카드
+    //   안쪽 「앱 프로젝트에서 가져오기」 갈래에 들어가므로, 카드를 또 두르면
+    //   테두리가 겹치고 갈래 밖에 있는 것처럼 보인다
+    var card = document.createDocumentFragment();
+    add(card, el('p', 'card__d', '앱 프로젝트가 들고 있는 것입니다. '
+      + '가져올 것만 고르십시오 — 나중에 다시 가져올 수 있습니다.'));
 
     var rows = [
       { id: 'content', t: '프로젝트 내용', c: n.content,
@@ -1346,7 +1469,15 @@ window.LINKPILOT_FILES = {
       state.appStage = 3;
       state.appDead = rep.failed;
       state.appReport = rep;
-      return loadOne(state.projectId).then(render);
+      return loadOne(state.projectId).then(function () {
+        render();
+        // ★ 앱 첨부·이미지는 **연결 장부에 적힌 것**이라 아직 안 읽혔다.
+        //   앱이 준 「프로젝트 내용」은 이미 값이지만, 첨부는 여기서 읽는다.
+        //   ★ 하나라도 실패했으면 자동으로 넘기지 않는다 — 무엇이 빠졌는지
+        //     먼저 봐야 한다 (2026-08-21 사용자 지시)
+        if (rep.failed) return null;
+        return scanNow({ auto: true });
+      });
     }, function (e) {
       state.busy = false;
       state.appDead = true;
@@ -1355,6 +1486,140 @@ window.LINKPILOT_FILES = {
       state.appReport = rep;
       render();
     });
+  }
+
+
+  /* ── 자료 스캔 → 보고서 생성으로 ─────────────────────────────────────
+     〈2026-08-21 사용자 지시 — 「모두 업로드된 자료는 OCR 스캔을 통해 새보고서
+       생성으로 전달되도록」 · 「2단계 [새보고서 생성]탭으로 자동 이동」〉
+
+     ★★ 왜 필요했나: 셋 중 무엇으로 넣든 자료는 **넣기만** 되고 읽히지 않았다.
+       읽는 것은 보고서를 만드는 순간이었다. 그래서 자료를 넣은 사람이 2단계에
+       가면 **빈 칸만** 보였다 — 값이 없는 것이 아니라 아직 안 읽은 것인데,
+       화면은 그 둘을 구분해 말하지 못했다.
+
+     ★ 「OCR 스캔」은 **이미지·스캔본에만** 걸린다. 글자가 들어 있는 PDF·워드·
+       엑셀을 굳이 옮겨 적으면 신뢰도만 깎인다 (core/ocr.js). 그래서 「전부
+       OCR 했다」고 말하지 않고 **파일마다 어떻게 읽었는지** 그대로 보여 준다.
+
+     ★★ 값이 하나도 안 나왔으면 **옮기지 않는다.** 옮기면 사용자는 빈 칸을 보고
+       자기가 뭘 잘못한 줄 안다. 여기서 「무엇을 못 읽었는지」를 먼저 본다. */
+  var SCAN_STAGES = ['자료 모으기', '읽기 · OCR', '값으로 만들기', '보고서 생성으로'];
+
+  function scanNow(opts) {
+    if (!state.projectId || state.scan.busy) return Promise.resolve(null);
+    var auto = !!(opts && opts.auto);
+    state.scan = { busy: true, stage: 0, dead: false, result: null, msg: null, auto: auto, moved: null };
+    render();
+
+    return call('POST', '/projects/' + encodeURIComponent(state.projectId) + '/scan', {},
+      { localGate: true }).then(function (r) {
+      state.scan.busy = false;
+      if (r && r.gated) { state.scan.stage = -1; state.scan.msg = r.msg; return render(); }
+      if (r && r.closed) {
+        // 501 — 아직 안 붙은 길이다. **오류로 그리지 않는다** (화면 전체가 그 규칙이다)
+        state.scan.stage = -1;
+        state.scan.msg = r.closed;
+        return render();
+      }
+      if (!r || !r.ok || !r.body) {
+        state.scan.dead = true;
+        state.scan.stage = 1;
+        state.scan.msg = (r && r.body && r.body.error) || '자료를 읽지 못했습니다.';
+        return render();
+      }
+      state.scan.result = r.body;
+      state.scan.stage = r.body.facts > 0 ? 3 : 2;
+      // 값이 하나도 안 나왔으면 **여기서 멈춘다.** 넘어가면 빈 칸만 보게 된다
+      if (!r.body.facts) { render(); return null; }
+      goReport();
+      return null;
+    }, function (e) {
+      state.scan.busy = false;
+      state.scan.dead = true;
+      state.scan.stage = 1;
+      state.scan.msg = e && e.message ? e.message : '자료를 읽지 못했습니다.';
+      render();
+      return null;
+    });
+  }
+
+  /**
+   * 2단계 「보고서 생성」으로 옮긴다 — **옮기는 방법은 flow-core 한 곳에 있다.**
+   *
+   * ★ 이 화면은 탭 하나라 스스로 갈 수 없다. 앱이 옮긴다. 그래서 **받았는지**를
+   *   확인하고, 아무도 안 받았으면 「탭을 눌러 주십시오」라고 말한다.
+   *   되는 척하면 사용자는 아무 일도 안 일어나는 화면을 본다.
+   */
+  function goReport() {
+    var r = F.openSection({
+      projectId: state.projectId,
+      section: F.SECTION.id,
+      step: 'fields',        // 값이 들어간 곳이 2단계 「가이드 필드」다
+      why: 'scan',
+    });
+    state.scan.moved = r.sent;
+    render();
+  }
+
+  /** 스캔 칸. **무엇을 어떻게 읽었는지 파일마다** 보여 준다 */
+  function scanCard() {
+    if (!state.projectId) return null;
+    var card = el('section', 'card');
+    add(card, el('h2', 'card__t', '자료 스캔'),
+      el('p', 'card__d',
+        '넣은 자료를 읽어 값으로 만듭니다. 이미지·스캔본은 글자로 옮겨서(OCR) 읽고, '
+        + '그 값은 신뢰도를 낮춰 표시합니다. 읽고 나면 「'
+        + F.SECTION.tab + '」으로 넘어갑니다.'));
+
+    var go = el('button', 'btn', state.scan.busy ? '읽는 중…' : '자료 스캔');
+    go.type = 'button';
+    go.disabled = state.scan.busy || state.busy;
+    go.addEventListener('click', function () { scanNow({ auto: false }); });
+    card.appendChild(go);
+
+    if (state.scan.stage >= 0) {
+      card.appendChild(activityGraph({
+        stages: SCAN_STAGES, at: state.scan.stage, dead: state.scan.dead,
+        note: state.scan.dead ? '이 칸에서 멈췄습니다.'
+          : '자료를 읽어 값으로 만드는 중입니다 — 이미지는 글자로 옮깁니다.',
+      }));
+    }
+    if (state.scan.msg) card.appendChild(el('p', 'note', state.scan.msg));
+
+    var res = state.scan.result;
+    if (res) {
+      var okBox = el('div', 'up' + (res.facts ? ' up--done' : ' up--error'));
+      okBox.appendChild(el('p', 'up__d', res.empty && !res.scanned.length
+        ? (res.note || '읽을 자료가 없습니다.')
+        : ('문서 ' + res.documents + '건에서 값 ' + res.facts + '개를 만들었습니다.')));
+      // ★ 파일마다 **어떻게 읽었는지**. 「OCR 했다」로 뭉뚱그리지 않는다
+      (res.scanned || []).forEach(function (f) {
+        var how = f.ocr ? 'OCR — 글자로 옮겨 읽음'
+          : f.readable ? '본문을 읽음'
+          : (f.note || '읽지 못함');
+        okBox.appendChild(el('p', 'up__d', '· ' + f.name + ' — ' + how));
+      });
+      (res.unread || []).forEach(function (u) {
+        okBox.appendChild(el('p', 'up__d', '· ' + u.name + ' — 못 읽었습니다: ' + u.why));
+      });
+      if (!res.facts && (res.scanned || []).length) {
+        okBox.appendChild(el('p', 'up__d',
+          '값이 하나도 안 나와서 「' + F.SECTION.tab + '」으로 넘어가지 않았습니다 — '
+          + '넘어가도 빈 칸만 보입니다. 위 목록에서 못 읽은 것을 먼저 보십시오.'));
+      }
+      if (res.oneshotNote) okBox.appendChild(el('p', 'up__d', res.oneshotNote));
+      card.appendChild(okBox);
+    }
+
+    if (state.scan.moved === true) {
+      card.appendChild(el('p', 'note', '「' + F.SECTION.tab + '」으로 넘겼습니다.'));
+    } else if (state.scan.moved === false) {
+      card.appendChild(el('p', 'note',
+        '이 화면은 탭 하나라 스스로 옮길 수 없습니다 — 위 탭에서 「'
+        + F.SECTION.tab + '」을 눌러 주십시오. 값은 이미 들어가 있습니다.'));
+    }
+    return card;
   }
 
   /** 연결 갈래의 칸 이름 — 한 곳에서 정한다 */
@@ -1369,7 +1634,7 @@ window.LINKPILOT_FILES = {
       //   ★★ 브라우저 탓을 하지 않는다 — 브라우저는 아무 상관이 없다.
       //     틀린 원인을 말하면 사용자가 엉뚱한 것을 고치러 간다 (2026-08-20 실측)
       state.linkMsg = '파일 고르기 창이 아직 연결되지 않았습니다 — '
-        + '지금은 「파일업로드(1회성)」로 넣을 수 있습니다.';
+        + '지금은 「' + wayName('oneshot') + '」 갈래로 넣을 수 있습니다.';
       state.linkStage = 0; state.linkDead = true;
       return render();
     }
@@ -1391,7 +1656,15 @@ window.LINKPILOT_FILES = {
           { ref: picked.ref, access: picked.access || null })
           .then(function (r) {
             state.busy = false;
-            if (r && r.ok) { state.linkStage = 3; return loadOne(state.projectId).then(render); }
+            if (r && r.ok) {
+              state.linkStage = 3;
+              // ★ 연결한 자료는 **아직 안 읽힌 상태**다 — 장부에 적혔을 뿐이다.
+              //   여기서 읽어 값으로 만들고 2단계로 넘긴다 (2026-08-21 사용자 지시)
+              return loadOne(state.projectId).then(function () {
+                render();
+                return scanNow({ auto: true });
+              });
+            }
             state.linkDead = true;
             if (r && r.closed) state.linkMsg = r.closed;
             if (r && r.gated) state.linkMsg = r.msg;
@@ -1562,7 +1835,7 @@ window.LINKPILOT_FILES = {
   function oneshotBlock() {
     if (state.closed.oneshot) {
       var w = document.createDocumentFragment();
-      w.appendChild(el('div', 'grp', '파일업로드(1회성) — 읽고 바로 버립니다'));
+      w.appendChild(el('div', 'grp', wayName('oneshot') + ' — 읽고 바로 버립니다(1회성)'));
       w.appendChild(waitBox('1회성 자료 경로가 아직 열려 있지 않습니다', state.closed.oneshot));
       return w;
     }
@@ -1570,7 +1843,7 @@ window.LINKPILOT_FILES = {
     if (!items.length) return null;
 
     var out = document.createDocumentFragment();
-    out.appendChild(el('div', 'grp', '파일업로드(1회성) — 읽고 바로 버립니다'));
+    out.appendChild(el('div', 'grp', wayName('oneshot') + ' — 읽고 바로 버립니다(1회성)'));
     items.forEach(function (it) {
       var b = el('div', 'row__b');
       b.appendChild(el('div', 'row__n', it.name));
@@ -1679,17 +1952,19 @@ window.LINKPILOT_FILES = {
     var mkCard = newProjectCard();
     if (mkCard) { view.appendChild(mkCard); return; }
 
-    // ★ 앱에서 가져오는 것을 **붙이기보다 먼저** 그린다. 앱 프로젝트로 들어온
-    //   사람에게는 손으로 붙이기 전에 이미 있는 것을 끌어오는 쪽이 먼저다
-    var appCard = appImportCard();
-    if (appCard) view.appendChild(appCard);
-
+    // ★ 앱에서 가져오기는 이제 **「자료 붙이기」 안쪽 갈래**다 〈2026-08-21 사용자 지시〉.
+    //   따로 카드를 하나 더 그리지 않는다 — 두 곳에 있으면 어느 쪽이 진짜인지 모른다
     view.appendChild(attachCard());
 
     if (!state.projectId) {
       view.appendChild(el('p', 'card__d', '프로젝트를 고르면 그 프로젝트의 자료가 여기 뜹니다.'));
       return;
     }
+
+    // ★ 스캔은 **붙이기 바로 다음**이다. 넣었으면 읽는 것이 다음 할 일이고,
+    //   목록 아래에 두면 자료를 다 훑어본 뒤에야 보인다
+    var sc = scanCard();
+    if (sc) view.appendChild(sc);
 
     // ★ 여러 판 경고는 **목록보다 위**에 둔다. 아래에 두면 목록에서 아무거나
     //   골라 쓴 뒤에 보게 된다 — 그때는 이미 늦다
@@ -1747,7 +2022,7 @@ window.LINKPILOT_FILES = {
       return render();
     }
     if (state.way !== 'oneshot') {
-      state.dropMsg = '떨어뜨린 파일은 「파일업로드(1회성)」로만 올릴 수 있습니다 — '
+      state.dropMsg = '떨어뜨린 파일은 「' + wayName('oneshot') + '」 갈래에서만 올릴 수 있습니다 — '
         + '그 갈래를 고른 뒤에 놓아 주십시오.';
       return render();
     }
