@@ -281,7 +281,15 @@ jobs:
           NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
           DEST: ${{ inputs.dest }}
         run: |
-          set -uo pipefail
+          # ★★ **`set +e` 를 반드시 켠다** 〈2026-08-21 · 여기서 한 번 죽었다〉.
+          #   GitHub 의 기본 셸은 `bash -e {0}` 다 — 즉 **`-e` 가 이미 켜진 채로**
+          #   들어온다. `set -uo pipefail` 은 그것을 끄지 않는다(끄려면 `+e`).
+          #   그래서 **`grep` 이 못 찾은 순간 단계가 통째로 죽었다.**
+          #   ★ 하필 「못 찾음」이 여기서는 **정상 결과**다 — 압축 헤더가 없다는
+          #     뜻이니까. 답을 찾은 그 순간에 죽은 셈이다. 여기서는 오류를 손으로
+          #     다루므로 `-e` 를 끈다.
+          set -u
+          set +e
           # 웹 루트 아래 경로로 바꾼다 (/volume1/web/im-flow → /im-flow)
           WEBPATH=$(printf '%s' "$DEST" | sed 's|^/volume1/web||')
           FILE="${WEBPATH}/files.html"
@@ -295,8 +303,9 @@ jobs:
             echo "  ${PORT} — HTTP ${CODE}"
             [ "$CODE" = "200" ] || continue
             FOUND=1
-            ENC=$(printf '%s' "$H" | grep -i '^content-encoding:' | tr -d '\r' | cut -d' ' -f2-)
-            LEN=$(printf '%s' "$H" | grep -i '^content-length:' | tr -d '\r' | cut -d' ' -f2-)
+            # ★ 없으면 grep 이 1 을 돌려준다 — **없는 것도 답**이므로 그냥 받는다
+            ENC=$(printf '%s' "$H" | grep -i '^content-encoding:' | tr -d '\r' | cut -d' ' -f2- || true)
+            LEN=$(printf '%s' "$H" | grep -i '^content-length:' | tr -d '\r' | cut -d' ' -f2- || true)
             echo "    Content-Encoding: ${ENC:-(없음)}"
             echo "    Content-Length:   ${LEN:-(없음)}"
             if printf '%s' "$ENC" | grep -qi gzip; then

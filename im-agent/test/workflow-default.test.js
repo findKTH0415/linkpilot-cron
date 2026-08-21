@@ -269,3 +269,26 @@ test('★★ 서빙 상태를 재는 단계가 있고, 재기만 한다', () => 
   // ④ ★ 못 쟀을 때 **조용히 넘어가지 않는다** (§2)
   assert.match(s, /::warning::/, '못 쟀을 때 아무 말도 안 한다');
 });
+
+/**
+ * ★★ 〈2026-08-21 · 실제로 여기서 죽었다〉 **GitHub 의 기본 셸은 `bash -e` 다.**
+ *   단계 안에서 `set -uo pipefail` 을 써도 **`-e` 는 그대로 켜져 있다**
+ *   (끄려면 `set +e`). 그래서 `grep` 이 못 찾은 순간 단계가 통째로 죽었다.
+ *
+ * ★ 하필 「못 찾음」이 그 자리에서는 **정상 결과**였다 — 압축 헤더가 없다는
+ *   뜻이니까. **답을 찾은 그 순간에 죽은 셈이다.**
+ *
+ * ★ 재는 단계는 「없음」을 자주 만난다. 없는 것을 오류로 다루면 **가장 알고
+ *   싶은 경우에만 아무것도 못 알려 준다.**
+ */
+test('★★ 재는 단계는 「없음」에 죽지 않는다 (bash -e 를 끈다)', () => {
+  const y = fs.readFileSync(path.join(WF, 'deploy-nas.yml'), 'utf8');
+  const s = stepOf(y, 'Check serving');
+  assert.ok(s, 'Check serving 단계가 없다');
+  assert.match(s, /set \+e/,
+    'set +e 가 없다 — GitHub 기본 셸은 bash -e 라 grep 이 못 찾는 순간 죽는다');
+  // grep 결과를 값으로 받는 곳은 「없음」을 그대로 받아야 한다
+  (s.match(/^\s*\w+=\$\(printf[^\n]*grep[^\n]*$/gm) || []).forEach((l) => {
+    assert.match(l, /\|\| true/, `없음을 못 받는다:\n    ${l.trim()}`);
+  });
+});
