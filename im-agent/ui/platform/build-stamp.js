@@ -69,12 +69,13 @@ function stamp(name, value) {
   const p = path.join(HERE, name);
   const src = fs.readFileSync(p, 'utf8');
   const want = ' ' + ATTR + '="' + value + '"';
-  const cleaned = bare(src);
+  let next = bare(src);
+
   // <html …> 의 여는 태그에만 붙인다
-  const m = cleaned.match(/<html\b[^>]*>/i);
+  const m = next.match(/<html\b[^>]*>/i);
   if (!m) throw new Error(name + ': <html> 태그를 못 찾았다 — 지문을 박을 자리가 없다');
-  const tag = m[0];
-  const next = cleaned.replace(tag, tag.slice(0, -1) + want + '>');
+  next = next.replace(m[0], m[0].slice(0, -1) + want + '>');
+
   if (next === src) return false;
   fs.writeFileSync(p, next);
   return true;
@@ -92,6 +93,11 @@ function main() {
   const want = bundleHash();
   const bad = [];
 
+  /* ★ **속성만 보고 건너뛰지 않는다** 〈2026-08-22 · 실제로 빠뜨렸다〉.
+   *   앞 판은 `<html>` 의 지문이 같으면 그대로 넘어갔다. 그런데 이제 고칠 곳이
+   *   하나 더 있다 — 형제 파일 주소의 `?v=` 다. 속성만 맞고 주소는 옛 값인
+   *   판이 실제로 나왔다. `stamp()` 는 바뀔 것이 없으면 스스로 `false` 를
+   *   돌려주므로, **늘 부르고 결과를 본다.** */
   pages().forEach((n) => {
     const now = stampedAt(n);
     if (now === want) return;

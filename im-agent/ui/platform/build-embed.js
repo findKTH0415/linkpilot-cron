@@ -48,8 +48,11 @@ function required() {
     if (!fs.existsSync(full)) throw new Error(`화면이 참조하는 파일이 없다: ${f}`);
     seen.add(f);
     const s = fs.readFileSync(full, 'utf8');
+    /* ★ 주소 뒤의 판 표시(`?v=…`)를 떼고 본다 〈2026-08-22〉. 캐시를 지나가려고
+     *   붙인 것이라 **파일 이름이 아니다.** 안 떼면 「그런 파일이 없다」로 죽는다
+     *   (`build-stamp.js` 참고) */
     [...s.matchAll(/<script src="([^"]+)"|<link rel="stylesheet" href="([^"]+)"/g)]
-      .map(m => m[1] || m[2]).forEach(scan);
+      .map(m => (m[1] || m[2]).split('?')[0]).forEach(scan);
   };
   FLOW.TABS.forEach(t => scan(t.file));
   FLOW.STEPS.forEach(s => scan(s.file));
