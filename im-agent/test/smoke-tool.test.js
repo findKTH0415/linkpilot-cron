@@ -109,7 +109,29 @@ test('★★ 진단 도구가 주소를 .env 에서도 받고, 예시로 되돌�
     '.env 가 인자보다 앞에 있다 — --address 를 줘도 무시된다');
 });
 
-test('★ .env.example 이 그 자리를 알려 준다 (없으면 아무도 안 쓴다)', () => {
+/**
+ * ★★ **`.env.example` 에는 넣지 않는다** 〈2026-08-22 · 검사가 막았다〉.
+ *
+ *   처음에 거기 적었더니 검사 둘이 울었다 — 「.env.example 의 키는 전부 마스킹
+ *   대상이어야 한다」와 「인수인계서에 있어야 한다」. 둘 다 **시크릿을 위한
+ *   규칙**이고 옳다. 주소는 시크릿이 아니라서 마스킹 대상에 넣을 수 없고,
+ *   넣으면 **진단 화면에서 주소가 가려져** 도구가 쓸모없어진다.
+ *
+ * ★ 그래서 규칙을 약하게 만들지 않고, **알려 주는 자리를 옮겼다** — 예시
+ *   주소로 되돌아가는 바로 그 순간에 화면이 말한다. 필요할 때 눈앞에 뜨는
+ *   것이 목록 어딘가에 적혀 있는 것보다 낫다.
+ */
+test('★ 예시로 되돌아갈 때 .env 로 두는 법을 그 자리에서 알려 준다', () => {
+  const src = fs.readFileSync(TOOL, 'utf8');
+  const at = src.indexOf('예시 주소');
+  assert.ok(at > -1, '예시로 되돌아간 것을 안 말한다');
+  const near = src.slice(at, at + 600);
+  assert.match(near, /IM_SMOKE_ADDRESS/,
+    '되돌아갔다고만 하고 **어떻게 하면 안 되는지**를 안 알려 준다');
+  assert.match(near, /--address/, '인자로 주는 법을 안 알려 준다');
+
+  // 시크릿 목록에 섞이지 않았는지 — 주소가 마스킹되면 진단이 못 읽힌다
   const ex = fs.readFileSync(path.join(ROOT, '..', '.env.example'), 'utf8');
-  assert.match(ex, /IM_SMOKE_ADDRESS/, '.env.example 에 없다 — 있는 줄도 모른다');
+  assert.ok(!/IM_SMOKE_ADDRESS/.test(ex),
+    '.env.example 에 들어갔다 — 거기 키는 전부 마스킹 대상이라 주소가 가려진다');
 });
