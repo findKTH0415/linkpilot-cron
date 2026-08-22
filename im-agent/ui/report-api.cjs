@@ -53,6 +53,31 @@ const DOC_PLANS = { im: 'pro', teaser: 'pro', summary: 'pro', validation: 'pro' 
  */
 const FILES_PLAN = 'free';
 
+/**
+ * ★★★ **자료를 넣고 읽는 길은 로그인을 묻지 않는다** 〈2026-08-22 사용자 결정 · D-82〉.
+ *
+ * 한 곳에서만 만든다 — 길마다 `{ anon: true }` 를 손으로 적으면, 다음에 길이
+ * 하나 늘 때 **거기만 조용히 로그인을 묻는다.** 그 차이는 화면에서 안 보이고
+ * 「어떤 파일은 되고 어떤 파일은 안 된다」로만 나타난다.
+ *
+ * ★★ **연 것은 「넣는 길」 셋뿐이다.** 무엇을 열었는지가 흐려지면 다음 사람이
+ *   아무 데나 붙인다. 그래서 여기 적어 둔다.
+ *
+ * | 길 | 로그인 | 왜 |
+ * |---|:--:|---|
+ * | `linkSource`   (폴더를 연결해서) | **안 묻는다** | 자료를 **넣는** 길이다 |
+ * | `oneshotUpload`(파일업로드)      | **안 묻는다** | 실제로 막혔던 자리다 |
+ * | `scanSources`  (읽어서 값으로)   | **안 묻는다** | 넣고 나서 바로 이어지는 걸음이다 |
+ * | `listLinked` · `listOneshot` | 묻는다 | 남의 프로젝트에 **무엇이 들었는지**가 나간다 |
+ * | `verifyLinked`               | 묻는다 | 남의 저장소를 대신 두드린다 |
+ * | `unlinkSource`               | 묻는다 | **지우는** 길이다 |
+ * | 보고서 생성·산출물·값 저장   | 묻는다 | 손대지 않았다 |
+ *
+ * ★ 넣는 길만 열면 화면은 그대로 돈다 — 목록은 로그인한 사람이 보고,
+ *   자료는 로그인이 흔들려도 들어간다. 실제로 막혔던 조합이 그것이었다.
+ */
+const ANON = { anon: true };
+
 /** 화면에서 사람이 넣은 값의 표시. 다시 저장할 때 이전 입력을 찾아 지우는 데 쓴다 */
 const USER_NOTE = 'user_input';
 
@@ -178,10 +203,34 @@ function createHandlers(deps) {
   const headLinked = typeof d.headLinked === 'function' ? d.headLinked : linkedIO.headLinked;
   const projectDir = (id) => path.join(d.agentRoot || process.env.IM_AGENT_ROOT || '', id);
 
-  /** 인증 + 플랜. 실패 사유를 화면과 같은 어휘로 돌려준다 */
-  function gate(ctx, requiredPlan) {
+  /**
+   * 인증 + 플랜. 실패 사유를 화면과 같은 어휘로 돌려준다.
+   *
+   * ★★★ **자료를 넣는 길은 로그인을 묻지 않는다** 〈2026-08-22 사용자 결정 · D-82〉.
+   *
+   *   왜 바꿨나. 목록은 멀쩡히 뜨는데 **올리기만** 401 이 돌아오는 일이 실제로
+   *   났다. 로그인은 되어 있었다. 즉 이 401 은 「로그인하라」가 아니라
+   *   **「이 요청에서 세션을 못 읽었다」**였는데, 화면에는 로그인 문제로 보이고
+   *   사용자는 고칠 방법이 없다. 자료를 못 넣으면 **그다음이 통째로 막힌다.**
+   *
+   *   ★ 그래서 `anon` 을 준 길은 사람을 못 알아봐도 **그냥 받는다.** 누가 넣었는지
+   *     모르면 `by: null` 로 남는다 — 모르는 것을 지어내지 않는다.
+   *
+   *   ★★ **열어 둔 범위를 분명히 한다.** 열린 것은 **자료를 넣고 읽는 길뿐**이다.
+   *     보고서 생성·산출물 내려받기·값 저장은 **그대로 로그인을 묻는다.**
+   *     `anon` 을 새 길에 붙일 때는 그 길이 무엇을 내보내는지 먼저 본다 —
+   *     **읽어 가는 길에 붙이면 남의 자료가 열린다.**
+   *
+   *   ★ 이 파일은 **NAS 엔진이 실제로 돌리는 파일**이다. 화면 배포
+   *     (`deploy-nas` 워크플로)로는 안 올라간다 — `deploy/nas.sh` 를 돌려야
+   *     엔진에 반영된다.
+   */
+  function gate(ctx, requiredPlan, opts) {
     const user = d.authenticate(ctx);
+    if (!user && opts && opts.anon) return { user: null };
     if (!user) return { error: bad('로그인이 필요합니다', 401) };
+    // ★ 열어 둔 길은 만료·플랜도 묻지 않는다. 「로그인 조건 삭제」의 뜻이 그것이다
+    if (opts && opts.anon) return { user };
     if (user.status === 'expired') return { error: bad('멤버십이 만료되었습니다', 403) };
 
     const have = PLAN_RANK[user.planId];
@@ -543,7 +592,7 @@ function createHandlers(deps) {
      * ★ 토큰이 본문에 섞여 오면 거절한다 (장부에 그대로 저장될 자리다).
      */
     async linkSource(ctx, projectId, body) {
-      const g = gate(ctx, FILES_PLAN); if (g.error) return g.error;
+      const g = gate(ctx, FILES_PLAN, ANON); if (g.error) return g.error;
       const e = checkId(projectId); if (e) return e;
       const store = load('core/store');
       const linked = load('core/linked');
@@ -641,7 +690,7 @@ function createHandlers(deps) {
      *   화면이 올리기 **전에** 그것을 알려야 한다.
      */
     async oneshotUpload(ctx, projectId, body) {
-      const g = gate(ctx, FILES_PLAN); if (g.error) return g.error;
+      const g = gate(ctx, FILES_PLAN, ANON); if (g.error) return g.error;
       const e = checkId(projectId); if (e) return e;
       const store = load('core/store');
       const oneshot = load('core/oneshot');
@@ -743,7 +792,7 @@ function createHandlers(deps) {
      *   나머지는 읽는다. 대신 **못 읽은 것을 이름으로 돌려준다.**
      */
     async scanSources(ctx, projectId, body) {
-      const g = gate(ctx, FILES_PLAN); if (g.error) return g.error;
+      const g = gate(ctx, FILES_PLAN, ANON); if (g.error) return g.error;
       const e = checkId(projectId); if (e) return e;
       const store = load('core/store');
       const linked = load('core/linked');

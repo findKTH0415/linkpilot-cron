@@ -134,7 +134,19 @@ test('★★ 출처 없는 값은 들어오지 못한다 — 사유까지 확인
   assert.match(why, /출처/, `출처 없는 값이 다른 사유로 막혔다 (또는 통과했다) — ${why}`);
 });
 
-test('★★ 문지기 — 로그인 없으면 401 · 만료면 403', async () => {
+/**
+ * ★★★ **문지기 — 어디가 열려 있고 어디가 닫혀 있는가** 〈2026-08-22 · D-82 로 바뀜〉.
+ *
+ * ★★ 앞 판은 「올리기도 401」이었다. 그런데 실제로 난 일은 이렇다: 목록은
+ *   멀쩡히 뜨는데 **올리기만** 401 이 돌아왔다. 로그인은 되어 있었다.
+ *   즉 그 401 은 「로그인하라」가 아니라 **「이 요청에서 세션을 못 읽었다」**였고,
+ *   화면에는 로그인 문제로만 보여 사용자가 고칠 방법이 없었다.
+ *
+ * ★★ 그래서 **넣는 길 셋만** 열었다. 이 검사는 열린 것과 닫힌 것을 **둘 다**
+ *   잰다 — 열린 쪽만 재면 다음에 실수로 읽는 길까지 열려도 초록이다.
+ *   그때 새는 것은 **남의 프로젝트에 무엇이 들었는가**다.
+ */
+test('★★★ 문지기 — 넣는 길은 로그인을 안 묻고, 읽는·지우는·만드는 길은 묻는다', async () => {
   const agentRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-e2e-'));
   process.env.IM_AGENT_ROOT = agentRoot;
   let who = null;
@@ -143,12 +155,36 @@ test('★★ 문지기 — 로그인 없으면 401 · 만료면 403', async () =
     authenticate: () => who,
     extractOneshot: async () => ({ documents: [] }),
   });
-  const noAuth = await h.oneshotUpload({}, 'LP-SOL-2026-001', { files: [] });
-  assert.strictEqual(noAuth.status, 401, JSON.stringify(noAuth.body));
+  const ID = 'LP-SOL-2026-001';
 
+  /* ① 넣는 길 — 사람을 못 알아봐도 **401 이 아니다.**
+        (내용이 비어 400 이 날 수는 있다. 재는 것은 「문에서 막혔는가」다) */
+  const put = await h.oneshotUpload({}, ID, { files: [] });
+  assert.notStrictEqual(put.status, 401,
+    `로그인 없이 올리기가 막혔다 — D-82 대로면 열려 있어야 한다 ${JSON.stringify(put.body)}`);
+  const link = await h.linkSource({}, ID, {});
+  assert.notStrictEqual(link.status, 401, '로그인 없이 폴더 연결이 막혔다');
+  const scan = await h.scanSources({}, ID, {});
+  assert.notStrictEqual(scan.status, 401, '로그인 없이 읽기가 막혔다');
+
+  /* ② 읽는 길·지우는 길 — **그대로 묻는다.** 열리면 남의 자료가 나간다 */
+  assert.strictEqual((await h.listLinked({}, ID)).status, 401,
+    '연결 목록이 로그인 없이 열렸다 — 남의 프로젝트에 무엇이 들었는지가 나간다');
+  assert.strictEqual((await h.listOneshot({}, ID)).status, 401,
+    '1회성 기록이 로그인 없이 열렸다');
+  assert.strictEqual((await h.unlinkSource({}, ID, 'k')).status, 401,
+    '연결 끊기가 로그인 없이 열렸다 — 지우는 길이다');
+
+  /* ③ 만드는 길 — 손대지 않았다 */
+  assert.strictEqual((await h.createProject({}, { request: '테스트 요청문입니다' })).status, 401,
+    '보고서 생성이 로그인 없이 열렸다');
+
+  /* ④ 만료 회원 — 넣는 길은 통과, 만드는 길은 막힌다 */
   who = { name: '만료', planId: 'free', status: 'expired' };
-  const expired = await h.oneshotUpload({}, 'LP-SOL-2026-001', { files: [] });
-  assert.strictEqual(expired.status, 403, JSON.stringify(expired.body));
+  assert.notStrictEqual((await h.oneshotUpload({}, ID, { files: [] })).status, 403,
+    '만료 회원이 자료를 못 넣는다 — 넣는 길은 열어 두기로 했다');
+  assert.strictEqual((await h.createProject({}, { request: '테스트 요청문입니다' })).status, 403,
+    '만료 회원에게 보고서 생성이 열렸다');
 
   /* ★ 자료 올리기는 **무료 회원도** 된다 (FILES_PLAN). 여기가 pro 로 올라가면
      무료 회원은 자료를 못 넣는데 화면은 그 이유를 말하지 못한다 */

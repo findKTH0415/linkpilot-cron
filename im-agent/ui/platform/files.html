@@ -157,6 +157,20 @@ select:focus-visible, button:focus-visible { outline: 2px solid var(--lime-deep)
 .note { font-size: 12.5px; color: var(--ink2); margin-top: 9px; line-height: 1.7; }
 .note b { color: var(--ink); }
 
+/* 한도 표기 — **늘 보인다** 〈2026-08-22 사용자 지시〉.
+   ★ 숫자를 문장에 숨기지 않는다 (§6-3 ②). 딱지는 작게, 값은 크게, 세로를 맞춘다.
+   ★ 라임으로 면을 채우지 않는다 (§6-3) — 테두리와 활자로만 세운다. 빨강은
+     넘었을 때 **한 칸에만** 쓴다 (대비는 한 곳에). */
+.lim { margin-top: 10px; border: 1px solid var(--line); border-radius: 12px;
+  padding: 10px 12px; background: var(--surface); }
+.lim__r { display: flex; flex-wrap: wrap; gap: 8px 26px; }
+.lim__c { display: flex; flex-direction: column; gap: 2px; }
+.lim__l { font-size: 11.5px; color: var(--ink2); letter-spacing: .01em; }
+.lim__v { font-size: 17px; font-weight: 700; color: var(--ink);
+  font-variant-numeric: tabular-nums; line-height: 1.15; }
+.lim__c--bad .lim__v { color: var(--bad, #c00000); }
+.lim__n { font-size: 12px; color: var(--ink2); margin-top: 8px; line-height: 1.6; }
+
 .drop { border: 2px dashed var(--line); border-radius: 14px; padding: 22px 16px;
   text-align: center; background: var(--panel); cursor: pointer; }
 .drop:focus-visible { outline: 2px solid var(--lime-deep); outline-offset: 2px; }
@@ -940,6 +954,55 @@ window.LINKPILOT_FILES = {
    * ★ 재는 것은 **읽을 수 있는 것들의 합**이다. 너무 큰 파일과 못 읽은 파일은
    *   어차피 안 실리므로 합계에 넣으면 엉뚱하게 막힌다.
    */
+  /**
+   * **한도를 늘 보이게 둔다** 〈2026-08-22 사용자 지시 — 「제한 용량표기를 업로드
+   * 탭에 노출해줘」〉.
+   *
+   * ★★ 앞 판은 한도를 **알 때만** 적었다. 그런데 실패는 대개 **모를 때** 난다 —
+   *   `/intake` 가 아직 안 왔거나 못 왔으면 줄이 통째로 사라지고, 화면은
+   *   「한도 같은 건 없다」처럼 보인다. 그러면 3MB 가 막혀도 크기 때문이라는
+   *   생각 자체를 못 한다.
+   * ★ 그래서 **모르면 모른다고 적는다.** 0 으로 그리지 않는다 — 0 은 「못 올린다」로
+   *   읽힌다 (그 구분이 이 저장소에서 여러 번 문제였다).
+   * ★ **지금 고른 합계를 나란히 둔다.** 한도만 있으면 넘었는지 사람이 세야 한다.
+   */
+  function limitBox() {
+    var lim = state.limits || {};
+    var per = lim.maxBytesPerFile > 0 ? size(lim.maxBytesPerFile) : null;
+    var req = lim.maxBytesPerRequest > 0 ? size(lim.maxBytesPerRequest) : null;
+
+    var wrap = el('div', 'lim');
+    var row = el('div', 'lim__r');
+    row.appendChild(limCell('파일 하나', per || '확인 중'));
+    row.appendChild(limCell('한 번에', req || '확인 중'));
+
+    /* ★ **첨부한 파일의 합계를 나란히 둔다** 〈2026-08-22 사용자 지시〉.
+     *   한도만 있으면 넘었는지를 사람이 세어야 한다 — 줄이 다섯이면 아무도 안 센다.
+     *   ★ 합계는 **고른 것 전부**로 낸다(아직 읽는 중인 것 포함). 그것이 사용자가
+     *     화면에서 보고 있는 목록과 같은 수다. 다르면 「내가 붙인 건 5개인데
+     *     합계는 3개치」가 되어 숫자를 못 믿는다.
+     *   ★ 고른 것이 없으면 이 칸을 안 만든다. 0 B 를 늘 띄우면 잡음이다. */
+    var sum = state.picked.reduce(function (n, f) { return n + (f.size || 0); }, 0);
+    if (state.picked.length) {
+      row.appendChild(limCell('첨부한 파일 ' + state.picked.length + '개', '총 ' + size(sum),
+        (lim.maxBytesPerRequest > 0 && sum > lim.maxBytesPerRequest)));
+    }
+    wrap.appendChild(row);
+
+    if (!per || !req) {
+      wrap.appendChild(el('p', 'lim__n',
+        '한도를 서버에서 아직 못 받았습니다 — 올려 보기 전에는 확실하지 않습니다.'));
+    }
+    return wrap;
+  }
+
+  function limCell(label, value, bad) {
+    var c = el('div', 'lim__c' + (bad ? ' lim__c--bad' : ''));
+    c.appendChild(el('span', 'lim__l', label));
+    c.appendChild(el('span', 'lim__v', value));
+    return c;
+  }
+
   function overRequest() {
     var cap = (state.limits && state.limits.maxBytesPerRequest) || 0;
     if (!cap) return null;
@@ -1284,14 +1347,36 @@ window.LINKPILOT_FILES = {
        *   ★ 그래서 **둘 다 적는다.** 하나로 단정하면 반대쪽을 고치러 간다. */
       var uf = state.uploadFail;
       if (uf && (uf.status === 401 || uf.status === 403)) {
+        /* ★★★ **되는 것과 안 되는 것을 나눠 적는다** 〈2026-08-22 사용자 지시〉.
+         *
+         *   앞 판은 한 문단에 추측을 몰아 적었다. 그러면 읽는 사람이 무엇이
+         *   **사실**이고 무엇이 **짐작**인지 가를 수가 없고, 결국 「로그인이
+         *   필요합니다」라는 제목만 기억에 남아 엉뚱한 데를 고치러 간다.
+         *   ★ 그래서 ① 지금 되는 것 ② 안 되는 것 ③ 그래서 할 일 순으로 적는다.
+         *   ★ **추측은 추측이라고 적는다.** 「…일 수 있습니다」로 남긴다. */
         var loggedIn = !!(state.projects || (state.kept || state.linked || state.oneshot));
+        var sent = uf.bytes > 0 ? size(uf.bytes) : null;
+
+        box.appendChild(el('p', 'up__d',
+          '되는 것 — ' + (loggedIn
+            ? '로그인·목록 읽기는 됩니다. 프로젝트 목록이 실제로 떴습니다.'
+            : '아직 로그인 상태를 확인하지 못했습니다.')));
         box.appendChild(el('p', 'up__d up__d--bad',
-          loggedIn
-            ? ('목록은 떴는데 올리기만 거절당했습니다 — 로그인은 되어 있습니다. '
-              + '이번에 보낸 양이 ' + size(uf.bytes || 0) + ' 인데, 서버나 그 앞단이 '
-              + '요청 본문 크기를 제한하고 있으면 세션을 못 읽고 이 답이 나옵니다. '
-              + '관리자에게 업로드 본문 한도를 확인해 달라고 하십시오.')
-            : '로그인하거나 멤버십을 확인한 뒤 다시 시도해 주십시오.'));
+          '안 되는 것 — 이 올리기 요청만 서버가 거절했습니다 (HTTP ' + (uf.status || '?') + ').'
+          + (sent ? ' 보낸 본문은 ' + sent + ' 입니다.'
+                  : ' 보낸 양은 재지 못했습니다 — 0 이라는 뜻이 아닙니다.')));
+
+        if (loggedIn) {
+          box.appendChild(el('p', 'up__d',
+            '짐작 — 로그인은 되어 있는데 올리기만 거절당하면, 큰 본문이 서버 앞단에서 '
+            + '잘려 세션을 못 읽은 것일 수 있습니다. 확실하지는 않습니다.'));
+          box.appendChild(el('p', 'up__d',
+            '할 일 — ① 파일을 반으로 나눠 두 번 올려 보십시오. 그때 되면 크기 문제입니다. '
+            + '② 그래도 같으면 관리자에게 업로드 본문 한도와 로그인 세션을 함께 봐 달라고 하십시오.'));
+        } else {
+          box.appendChild(el('p', 'up__d',
+            '할 일 — 로그인하거나 멤버십을 확인한 뒤 다시 시도해 주십시오.'));
+        }
       }
     } else if (u.phase === 'done' && state.result) {
       box.appendChild(el('p', 'up__d', UP.summary(state.result)));
@@ -1570,12 +1655,7 @@ window.LINKPILOT_FILES = {
     box.appendChild(h);
 
     box.appendChild(dropZone());
-    // ★ 한도를 **모르면 적지 않는다.** 모르는 값을 0 으로 그리면 「못 올린다」로 읽힌다
-    if (state.limits && state.limits.maxBytesPerFile > 0) {
-      box.appendChild(el('p', 'note',
-        '파일 하나 ' + size(state.limits.maxBytesPerFile)
-        + ' · 한 번에 ' + size(state.limits.maxBytesPerRequest) + ' 까지 올릴 수 있습니다.'));
-    }
+    box.appendChild(limitBox());
     box.appendChild(pickedList());
 
     var ready = state.picked.filter(function (f) { return f.data && !f.tooBig; });

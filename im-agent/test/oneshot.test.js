@@ -173,12 +173,15 @@ test('★ 등급: 자료(연결·1회성)는 무료다', () => {
   assert.match(src, /const FILES_PLAN = 'free';/);
   // 연결·1회성 핸들러가 전부 그 상수를 쓴다 — 하나만 pro 로 남으면
   // 「무료인데 403」이 되고 원인이 화면에 안 뜬다
+  /* ★ 〈2026-08-22 · D-82〉 넣는 길 셋은 로그인도 안 묻게 되어 `ANON` 이 붙었다.
+     재는 것은 그대로다 — **전부 FILES_PLAN 을 쓰는가.** 하나만 pro 로 남으면
+     「무료인데 403」이 되고 원인이 화면에 안 뜬다. */
   ['listLinked', 'linkSource', 'unlinkSource', 'verifyLinked', 'oneshotUpload', 'listOneshot']
     .forEach((fn) => {
       const at = src.indexOf(`async ${fn}(ctx`);
       assert.ok(at > 0, `${fn} 이 없다`);
       const head = src.slice(at, at + 260);
-      assert.match(head, /gate\(ctx, FILES_PLAN\)/, `${fn}: 무료로 열려 있지 않다`);
+      assert.match(head, /gate\(ctx, FILES_PLAN[,)]/, `${fn}: 무료로 열려 있지 않다`);
     });
 });
 

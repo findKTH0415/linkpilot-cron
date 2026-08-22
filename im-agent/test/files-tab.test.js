@@ -200,8 +200,21 @@ test('★★ 한도를 껍데기째 넣지 않는다 (0 B 로 찍혔다)', () =>
   const code = codeOf(read('files.html'));
   assert.match(code, /if \(r && r\.ok && r\.body\) \{ state\.limits = r\.body;/,
     'call() 의 껍데기를 벗기지 않는다 — 한도가 0 B 로 찍힌다');
-  assert.match(code, /state\.limits\.maxBytesPerFile > 0/,
+  /* ★ 〈2026-08-22〉 한도를 늘 보이게 바꾸면서 그리는 자리가 `limitBox()` 로 옮겼다.
+     재는 것은 그대로다 — **모르는 값을 0 으로 그리지 않는가.** */
+  const box = code.slice(code.indexOf('function limitBox('),
+    code.indexOf('function limCell('));
+  assert.ok(box.length > 100, 'limitBox() 를 못 찾았다 — 한도를 그리는 자리가 사라졌다');
+  assert.match(box, /maxBytesPerFile > 0/,
     '모르는 한도를 0 으로 그린다 — 「못 올린다」로 읽힌다');
+  assert.match(box, /확인 중/,
+    '한도를 모를 때 줄이 통째로 사라진다 — 그러면 크기 때문이라는 생각을 못 한다');
+
+  /* ★★ **첨부한 파일 합계를 보여 준다** 〈2026-08-22 사용자 지시〉.
+     한도만 있으면 넘었는지를 사람이 세어야 한다 — 줄이 다섯이면 아무도 안 센다 */
+  assert.match(box, /첨부한 파일/, '첨부한 파일 합계를 안 그린다');
+  assert.match(box, /state\.picked\.reduce/,
+    '합계를 고른 것 전부로 내지 않는다 — 목록의 개수와 어긋나면 숫자를 못 믿는다');
 });
 
 /**

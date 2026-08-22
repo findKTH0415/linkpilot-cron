@@ -174,7 +174,13 @@
         if (opt.onDone) opt.onDone(j, xhr.status);
       } else {
         var why = j.error || ('HTTP ' + xhr.status);
-        say({ phase: 'error', pct: null, files: files.length, error: why });
+        /* ★★ **`bodyBytes` 를 여기서 흘리지 않는다** 〈2026-08-22 · 실제로 흘렸다〉.
+         *   `say` 는 상태를 **갈아치운다.** 이 한 줄만 `bodyBytes` 를 빼먹고 있어서,
+         *   서버가 거절하면 화면이 「이번에 보낸 양이 **0 B**」라고 말했다.
+         *   0 은 잰 값이 아니라 **잃어버린 값**이었다 — 그런데 화면에서는 둘이
+         *   똑같이 보인다. 그 숫자를 믿고 「아무것도 안 갔다」로 원인을 찾으면
+         *   엉뚱한 데를 판다. 실제로는 5MB 를 다 보내고 거절당한 것이었다. */
+        say({ phase: 'error', pct: null, files: files.length, bodyBytes: bodyBytes, error: why });
         if (opt.onFail) opt.onFail(why, xhr.status, j);
       }
     };
