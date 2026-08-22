@@ -304,10 +304,17 @@ test('★★ 좁은 화면에서 준 여백이 실제로 먹는다 (덮이면 �
        *   간격(grid gap)으로 옮겨갔다. 속성만 보면 0px 이라 「붙었다」로 읽히는데
        *   화면은 22px 떨어져 있다. (여기 안에는 역따옴표를 쓰지 않는다 —
        *   이 글은 템플릿 문자열 속이라 한 글자로 문자열이 끊긴다) */
+      /* ★ 아래 여백은 **바깥 상자(.pickway)** 가 갖는다 〈2026-08-22〉 —
+       *   상자가 overflow:hidden 이라 안쪽 칸의 margin 은 밖으로 나가지 못한다.
+       *   그래서 재는 대상도 상자로 옮긴다 (여기서 옮기지 않으면 「0px 이라
+       *   붙었다」로 잘못 잡는다 — 화면은 멀쩡한데 검사만 운다) */
       gapBelow: (function () {
-        var next = w && w.parentNode && w.parentNode.nextElementSibling;
+        var host = (w && w.closest('.pickway')) || (w && w.parentNode);
+        if (!host) return null;
+        var next = host.nextElementSibling;
         if (next) return Math.round(next.getBoundingClientRect().top - w.getBoundingClientRect().bottom);
-        return cs ? parseFloat(cs.marginBottom) : null;
+        var hcs = getComputedStyle(host);
+        return parseFloat(hcs.marginBottom);
       })(),
       noteGap: (pick && note)
         ? Math.round(note.getBoundingClientRect().top - pick.getBoundingClientRect().bottom) : null
@@ -401,6 +408,34 @@ test('★★ 자료 붙이기 셋이 한 벌의 토글이고, 파일업로드가
     if (row && wi) o.belowGap =
       Math.round(wi.getBoundingClientRect().top - row.getBoundingClientRect().bottom);
 
+    /* ★ **테두리 하나 안에 들어 있는가** 〈2026-08-22 지시 — 「하나의 통합된
+       박스라인 안에」〉. 「안에 있다」는 말은 셋으로 재야 거짓말을 못 한다:
+       ① 바깥 상자에 테두리가 있고 ② 안쪽 칸에는 테두리가 **없고**
+       ③ 고른 칸과 고르기 칸이 **같은 바탕색으로 붙어** 있다.
+       CSS 를 눈으로 읽으면 셋 중 하나만 어긋나도 못 잡는다 */
+    var box = document.querySelector('.pickway');
+    if (box) {
+      var bcs = getComputedStyle(box);
+      o.boxBorder = parseFloat(bcs.borderTopWidth);
+      o.boxRadius = parseFloat(bcs.borderTopLeftRadius);
+    }
+    o.innerBorders = [].slice.call(document.querySelectorAll('.pickway .pw, .pickway .wayin'))
+      .filter(function (n) {
+        var c = getComputedStyle(n);
+        return parseFloat(c.borderTopWidth) > 0 || parseFloat(c.borderLeftWidth) > 0
+          || parseFloat(c.borderBottomWidth) > 0 || parseFloat(c.borderRightWidth) > 0;
+      }).length;
+    var on = document.querySelector('.pw.on');
+    if (on && wi) {
+      o.sameFill = getComputedStyle(on).backgroundColor === getComputedStyle(wi).backgroundColor;
+      o.seam = Math.round(wi.getBoundingClientRect().top - on.getBoundingClientRect().bottom);
+    }
+    if (box && wi) {
+      o.wayinInsideBox = box.contains(wi);
+      var br = box.getBoundingClientRect(), wr = wi.getBoundingClientRect();
+      o.sideInset = [Math.round(wr.left - br.left), Math.round(br.right - wr.right)];
+    }
+
     /* 앱 갈래에는 설명이 없다 (2026-08-22 지시) */
     var app = tiles.filter(function (b) { return /앱 프로젝트에서 가져오기/.test(b.textContent); })[0];
     o.appHasDesc = !!(app && app.querySelector('.pw__d'));
@@ -450,6 +485,28 @@ test('★★ 자료 붙이기 셋이 한 벌의 토글이고, 파일업로드가
   assert.match(wide.rows[0][1], /폴더를 연결해서/, '둘째가 연결이 아니다');
   assert.match(wide.rows[0][2], /파일업로드/, '셋째가 파일업로드가 아니다');
 
+  /* ── 셋과 고르기가 **테두리 하나 안에** 〈2026-08-22 지시〉 ──
+     ★★ 넓은 화면에서 **먼저** 잰다. 전 판이 깨진 자리가 여기였다 — 좁은
+       화면은 한 줄로 세로로 서서 두 상자도 한 덩어리처럼 보이지만, 넓은
+       화면에서는 칸 테두리와 고르기 칸 테두리가 **따로 보인다.** */
+  for (const [w, m] of [[1100, wide]]) {
+    assert.ok(m.boxBorder >= 1, `${w}px: 바깥 상자에 테두리가 없다 — 한 벌로 안 묶인다`);
+    assert.ok(m.boxRadius >= 8, `${w}px: 바깥 상자 모서리가 ${m.boxRadius}px 다`);
+    assert.strictEqual(m.innerBorders, 0,
+      `${w}px: 상자 안쪽에 테두리를 가진 칸이 ${m.innerBorders}개 있다 — `
+      + '테두리가 둘이면 고르기가 「딸린 것」인지 「다음 단계」인지 갈린다');
+    assert.ok(m.wayinInsideBox, `${w}px: 고르기 칸이 상자 밖에 있다`);
+    assert.ok(m.sameFill,
+      `${w}px: 고른 칸과 고르기 칸의 바탕색이 다르다 — 이어져 보이지 않는다`);
+    assert.ok(Math.abs(m.seam) <= 1,
+      `${w}px: 고른 칸과 고르기 칸 사이가 ${m.seam}px 다 — 붙어 있어야 한다`);
+    /* ★ 상자 테두리 두께만큼은 물러나 있는 것이 정상이다 — getBoundingClientRect
+       가 테두리를 포함해서 잰다. 그보다 더 물러나면 「상자 안의 또 다른 칸」이다 */
+    assert.ok(m.sideInset.every((v) => v <= m.boxBorder),
+      `${w}px: 고르기 칸이 상자 안에서 ${JSON.stringify(m.sideInset)} 만큼 물러나 있다 `
+      + `(테두리 ${m.boxBorder}px 까지가 정상)`);
+  }
+
   // ── 좁은 화면: **세로로 선다.** 2+1 로 흐르지 않는다 ──
   const narrow = measure(430);
   assert.deepStrictEqual(narrow.lineSizes, [1, 1, 1],
@@ -458,8 +515,11 @@ test('★★ 자료 붙이기 셋이 한 벌의 토글이고, 파일업로드가
 
   // ── 고른 칸은 토글 **아래**에 있고, 이어져 보인다 ──
   assert.ok(!narrow.wayinInsideRow, '고른 갈래 칸이 토글 안에 끼어 있다 — 셋의 키가 어긋난다');
-  assert.ok(narrow.belowGap <= 2,
-    `토글과 고른 칸 사이가 ${narrow.belowGap}px 벌어졌다 — 어느 갈래 것인지 안 보인다`);
+  /* ★ 넓은 화면에서는 「줄 아래」로 잰다. 좁은 화면에서는 줄(`.pwrow`)이
+   *   `display: contents` 라 상자가 없어 잴 것이 없다 — 대신 **고른 칸 바로
+   *   아래**인지를 아래 `seam` 으로 잰다 (그쪽이 원래 보려던 것이다) */
+  assert.ok(wide.belowGap <= 2,
+    `토글과 고른 칸 사이가 ${wide.belowGap}px 벌어졌다 — 어느 갈래 것인지 안 보인다`);
 
   // ── 앱 갈래에는 설명이 없다 (2026-08-22 지시) ──
   assert.ok(!narrow.appHasDesc, '앱 갈래에 설명이 남아 있다');
@@ -470,8 +530,19 @@ test('★★ 자료 붙이기 셋이 한 벌의 토글이고, 파일업로드가
   assert.strictEqual(narrow.inputClicked, 1,
     `고르기 창이 ${narrow.inputClicked}번 열렸다 — 두 번이면 「닫으면 또 뜬다」로 보인다`);
 
+  // 좁은 화면에서도 상자는 하나다
+  assert.strictEqual(narrow.innerBorders, 0,
+    `좁은 화면: 상자 안쪽 테두리가 ${narrow.innerBorders}개 남았다`);
+  /* ★★ 좁은 화면에서 **고르기 칸이 고른 칸 바로 밑**인지를 잰다. 세로로만
+   *   세우면 사이에 나머지 두 칸이 끼어들어 초록·흰·흰·초록 이 된다.
+   *   넓은 화면에서는 붙어 있어서 여기서만 갈린다 — 실측 218px 이었다 */
+  assert.ok(narrow.sameFill && Math.abs(narrow.seam) <= 1,
+    `좁은 화면: 고르기 칸이 고른 칸 바로 밑이 아니다 `
+    + `(같은색 ${narrow.sameFill} · 사이 ${narrow.seam}px)`);
+
   process.stderr.write(`  [토글] 넓은 화면 ${JSON.stringify(wide.lineSizes)} · `
-    + `좁은 화면 ${JSON.stringify(narrow.lineSizes)} · 이음매 ${narrow.belowGap} · `
+    + `좁은 화면 ${JSON.stringify(narrow.lineSizes)} · 이음매 ${wide.belowGap}/${narrow.seam} · `
+    + `상자테두리 ${wide.boxBorder}px · 안쪽테두리 ${wide.innerBorders}개 · `
     + `창 ${narrow.inputClicked}회\n`);
 });
 
