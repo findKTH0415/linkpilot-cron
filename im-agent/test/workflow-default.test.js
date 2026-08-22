@@ -122,35 +122,37 @@ function stepOf(yml, name) {
   return lines.join('\n');
 }
 
-test('★★ probe 는 올리지 않는다 — 확인이 곧 덮어쓰기가 되면 안 된다', () => {
+test('★★★ 이 워크플로는 NAS 에 아무것도 쓰지 않는다 (D-84)', () => {
   const y = fs.readFileSync(path.join(WF, 'deploy-nas.yml'), 'utf8');
 
-  // ① 입력이 있다
-  assert.ok(/^      probe:$/m.test(y), 'probe 입력이 없다');
-
-  // ② ★★ 올리는 단계는 probe 일 때 **돌지 않는다**
-  const up = stepOf(y, 'Upload');
-  assert.ok(up, 'Upload 단계가 없다');
-  assert.match(up, /if:.*!inputs\.dry_run.*&&.*!inputs\.probe/,
-    'Upload 가 probe 를 안 본다 — 「확인만」이 실제 배포가 된다');
-
-  // ③ ★ 파일을 실제로 옮기는 것은 Upload 안에만 있다. probe 쪽에 scp 가
-  //   섞여 들어오면 「읽기만 한다」가 거짓말이 된다
-  const ssh = stepOf(y, 'Set up ssh');
-  const probe = stepOf(y, 'Probe summary');
-  assert.ok(ssh && probe, '두 단계가 다 있어야 한다');
-  [['Set up ssh', ssh], ['Probe summary', probe]].forEach(([n, b]) => {
-    assert.ok(!/\bscp\b/.test(b), `${n} 에 scp 가 있다 — 확인만 한다더니 옮긴다`);
-    assert.ok(!/cp '/.test(b), `${n} 이 NAS 에서 파일을 만든다`);
+  /* ① **쓰는 단계가 아예 없다.** 잠금으로 막는 것과 없는 것은 다르다 —
+     잠금은 급할 때 풀리고, 그때 다시 쓰는 이가 둘이 된다 */
+  ['Upload', 'Verify deployed', 'Write is off'].forEach((n) => {
+    assert.strictEqual(stepOf(y, n), null,
+      `${n} 단계가 되살아났다 — im-flow 에 쓰는 이는 본체 게이트 하나뿐이다 (D-84)`);
   });
 
-  // ④ ★ 그래도 **닿는지는 실제로 재야 한다.** 안 재면 probe 가 초록인데
-  //   실제 배포에서 죽는다 — 확인해 준 것이 아무것도 없는 셈이다
-  assert.match(ssh, /echo ok/, 'ssh 로 실제로 닿아 보지 않는다 — 재지 않은 초록이다');
+  /* ② 켤 수 있는 스위치도 남기지 않는다 */
+  ['allow_write', 'inputs.probe'].forEach((k) => {
+    assert.ok(y.indexOf(k) === -1, `${k} 가 남아 있다 — 쓰기를 되살릴 손잡이다`);
+  });
 
-  // ⑤ probe 도 tailnet 을 지난다 (dry_run 이 아닐 때만 붙으므로)
+  /* ③ ★★ **파일을 옮기는 명령이 어느 단계에도 없다.** 주석의 낱말은 봐준다 —
+     왜 지웠는지 적어 둔 글까지 걸리면 설명을 못 남긴다 */
+  const cmds = y.split('\n').filter(l => !/^\s*#/.test(l));
+  cmds.forEach((l) => {
+    assert.ok(!/^\s*scp\s/.test(l), `실행되는 줄에 scp 가 있다:\n    ${l.trim()}`);
+    assert.ok(!/rsync\s/.test(l), `실행되는 줄에 rsync 가 있다:\n    ${l.trim()}`);
+    assert.ok(!/ssh[^\n]*\b(cp|mv|tee|rm)\b/.test(l),
+      `ssh 로 NAS 안에서 파일을 만들거나 지운다:\n    ${l.trim()}`);
+  });
+
+  /* ④ ★ 그래도 **닿는지는 실제로 재야 한다.** 안 재면 초록이 아무 뜻이 없다 */
+  const ssh = stepOf(y, 'Set up ssh');
+  assert.ok(ssh, 'Set up ssh 단계가 없다');
+  assert.match(ssh, /echo ok/, 'ssh 로 실제로 닿아 보지 않는다 — 재지 않은 초록이다');
   assert.match(stepOf(y, 'Verify tailnet'), /if:.*!inputs\.dry_run/,
-    'Verify tailnet 조건이 바뀌었다 — probe 가 tailnet 을 안 지나면 재는 뜻이 없다');
+    'Verify tailnet 조건이 바뀌었다 — tailnet 을 안 지나면 재는 뜻이 없다');
 });
 
 /**
@@ -171,9 +173,10 @@ test('★★ 올리기 전에 목적지를 잰다 — 반쯤 배포된 상태를
   const chk = stepOf(y, 'Check destination');
   assert.ok(chk, 'Check destination 단계가 없다');
 
-  // ① 올리는 단계보다 **앞**이어야 한다. 뒤면 재는 뜻이 없다
-  assert.ok(y.indexOf('      - name: Check destination') < y.indexOf('      - name: Upload'),
-    'Check destination 이 Upload 뒤에 있다 — 반쯤 올린 뒤에 재는 셈이다');
+  /* ① 지문을 대조하는 단계보다 **앞**이어야 한다. 목적지가 없으면 지문 대조는
+     「디스크에서 못 읽었다」로만 나와, 진짜 원인(경로가 틀렸다)이 가려진다 */
+  assert.ok(y.indexOf('      - name: Check destination') < y.indexOf('      - name: Check served build'),
+    'Check destination 이 지문 대조 뒤에 있다 — 원인이 가려진다');
 
   // ② ★ 「없다」와 「쓸 수 없다」를 **가려서** 말한다. 둘을 뭉뚱그리면
   //   경로를 고쳐야 할 때 권한을 뒤지게 된다
@@ -196,37 +199,16 @@ test('★★ 올리기 전에 목적지를 잰다 — 반쯤 배포된 상태를
 });
 
 /**
- * ★★ 〈2026-08-21 · 실제 배포 두 번째 시도에서 죽었다〉
+ * ★★ 〈2026-08-22 · D-84〉 여기에 **`scp -O` 검사**가 있었다.
  *
- *   `/volume1/web` 은 **있었다.** 권한도 `drwxrwxrwx+` 로 활짝 열려 있었다.
- *   그런데 scp 는 「그런 폴더 없다」고 했다. **둘 다 참이었다.**
+ *   Synology 의 SFTP 가둠 설정 때문에 `-O`(옛 방식)가 빠지면 ssh 로는 보이는
+ *   경로가 scp 에는 없는 것처럼 보였다 — 그래서 「경로가 틀렸다」로 읽히는
+ *   오류가 났다. 그 함정 자체는 사라지지 않았지만, **이 워크플로에 scp 가
+ *   없어졌으므로** 여기서 잴 것이 없다.
  *
- *     ssh ... ls -ld /volume1/web  →  drwxrwxrwx+  (보인다)
- *     scp ...                      →  No such file or directory
- *
- *   OpenSSH 9 부터 scp 는 속으로 **SFTP** 를 쓴다. Synology 에는 「SFTP 사용자를
- *   홈 폴더 안에만 가둔다」는 설정이 있고, 그러면 **SFTP 쪽 시야에서는 그
- *   경로가 없다.** 보는 창구가 다른 것이다.
- *
- * ★ 이 종류가 특히 나쁜 이유: 오류가 「경로가 틀렸다」로 읽힌다. 그래서
- *   **멀쩡한 경로를 몇 번이고 다시 확인하게 된다.** 실제로 그랬다.
- *
- * ★★ 그리고 `Check destination` 은 ssh 로 잰다. `-O` 가 빠지면 **재는 눈과
- *   하는 눈이 달라져서** 확인은 통과하고 다음 단계에서 죽는다 — 확인이
- *   확인 노릇을 못 한다.
+ *   ★ 다시 쓰기를 넣는 날 이 검사부터 되살린다. 경위는 `MEMORY.md` 와
+ *     `deploy/nas.sh` 에 남아 있다.
  */
-test('★★ scp 가 ssh 와 같은 눈으로 본다 (-O) — 잰 것과 하는 것이 어긋나지 않게', () => {
-  const y = fs.readFileSync(path.join(WF, 'deploy-nas.yml'), 'utf8');
-  const up = stepOf(y, 'Upload');
-  assert.ok(up, 'Upload 단계가 없다');
-
-  const scps = up.split('\n').filter(l => /^\s*scp\s/.test(l));
-  assert.ok(scps.length > 0, 'Upload 에 scp 가 없다');
-  scps.forEach((l) => {
-    assert.match(l, /\bscp\s+-O\b/,
-      'scp 에 -O 가 없다 — SFTP 로 가면 ssh 가 보는 것과 다른 것을 본다:\n    ' + l.trim());
-  });
-});
 
 /**
  * ★★ 〈2026-08-21 · 화면을 여섯 번 올렸는데 하나도 반영되지 않았다〉
@@ -269,8 +251,8 @@ test('★★ 서빙 상태를 재는 단계가 있고, 재기만 한다', () => 
   const s = stepOf(y, 'Check serving');
   assert.ok(s, 'Check serving 단계가 없다');
 
-  // ① probe 에서만 돈다 — 실제 배포를 이것 때문에 느리게 하지 않는다
-  assert.match(s, /if:.*inputs\.probe/, 'Check serving 이 probe 조건을 안 본다');
+  // ① dry run 에서는 안 돈다 — 거기서는 NAS 에 닿지도 않는다
+  assert.match(s, /if:.*!inputs\.dry_run/, 'Check serving 이 dry_run 을 안 본다');
 
   // ② ★★ **읽기만 한다.** 헤더만 받고 아무것도 바꾸지 않는다
   assert.match(s, /curl[^\n]*-I/, '헤더만 받지 않는다 — 본문까지 받으면 재는 값이 커진다');
@@ -353,37 +335,32 @@ test('★ 배포 묶음의 단일 출처는 build-embed 의 required() 다', () 
 });
 
 /**
- * ★★★ **「올렸다」로 끝내지 않는다** 〈2026-08-22 사용자 지시 · M-25〉.
+ * ★★★ **탐침이 이 워크플로의 유일한 판정이다** 〈2026-08-22 · D-84〉.
  *
- * ★★ 배포는 지금까지 `scp` 가 끝나면 초록이었다. 그런데 실제로는 세 번이나
- *   **화면에 닿지 않았다**:
- *     M-22  파일 하나만 올렸다        → 초록
- *     M-20  아무것도 안 올렸다(dry)   → 초록
- *     M-25  올렸는데 웹서버가 옛것    → 초록
- *   셋 다 초록이었고, 셋 다 사용자는 「여전히 그럽니다」를 봤다.
+ *   앞 판에는 올리는 단계가 있었고, 그 뒤에 「닿았는지」를 재는 단계가 따로
+ *   있었다. 쓰기를 지운 지금은 **재는 것이 하는 일의 전부**다.
  *
- * ★ 그래서 올린 **직후에 다시 받아 보고**, 갈리면 **빨갛게 끝낸다.**
- *   이 검사는 그 단계가 ① 있고 ② 실제로 배포 때 돌고 ③ **실패를 삼키지 않는지**
- *   를 잰다. 셋째가 핵심이다 — `|| true` 하나면 장치가 통째로 없는 것과 같다.
+ *   ★ 그래서 **실패를 삼키면 안 된다.** 앞 판의 탐침에는 `|| true` 가 붙어
+ *     있었다 — 뒤에 올리는 단계가 있을 때는 그것으로 충분했지만, 지금 삼키면
+ *     이 워크플로는 **어떤 경우에도 초록**이 된다. 초록이 아무 뜻이 없어진다.
+ *
+ *   ★ 재는 목록은 `files` 에서 받는다. 스크립트 기본값 넷만 재면, 옛 판인
+ *     파일이 나머지 열둘 중에 있을 때 **초록으로 지나간다** (M-22 와 같은 결).
  */
-test('★★★ 올린 뒤 실제로 닿았는지 재고, 갈리면 빨갛게 끝낸다', () => {
+test('★★★ 탐침이 실패를 삼키지 않고, 배포 목록 전부를 잰다', () => {
   const y = fs.readFileSync(path.join(WF, 'deploy-nas.yml'), 'utf8');
+  const step = stepOf(y, 'Check served build');
+  assert.ok(step, 'Check served build 단계가 없다 — 재는 것이 이 워크플로의 일이다');
 
-  const at = y.indexOf('- name: Verify deployed');
-  assert.ok(at > -1,
-    '올린 뒤 확인하는 단계가 없다 — 「올렸다」와 「닿았다」가 다르다는 것을 세 번 겪었다');
-
-  const step = y.slice(at, y.indexOf('- name:', at + 10));
-  assert.match(step, /verify-served\.sh/,
-    '확인 스크립트를 안 부른다');
+  assert.match(step, /verify-served\.sh/, '지문 대조 스크립트를 안 쓴다');
   assert.ok(!/\|\|\s*true/.test(step),
-    '실패를 삼킨다(|| true) — 그러면 장치가 통째로 없는 것과 같다');
-  assert.match(step, /!inputs\.dry_run && !inputs\.probe/,
-    '실제로 올리는 실행에서만 재야 한다 — dry run·probe 는 올린 것이 없다');
+    '탐침이 실패를 삼킨다 (|| true) — 이제 이것 말고 판정이 없다. 초록이 거짓말을 한다');
+  assert.match(step, /FILES: \$\{\{ inputs\.files \}\}/,
+    '재는 목록을 files 에서 안 받는다 — 기본값 넷만 재면 나머지가 옛 판이어도 초록이다');
+  assert.match(step, /basename/, '경로를 파일 이름으로 바꾸지 않는다 — 스크립트가 못 읽는다');
 
-  // ★ 올리기 **뒤**에 있어야 한다. 앞에 있으면 옛 파일을 재고 통과한다
-  assert.ok(y.indexOf('- name: Upload') < at,
-    '확인이 올리기보다 앞에 있다 — 옛 파일을 재고 초록을 낸다');
+  /* ★ dry run 에서는 돌지 않는다 — 거기서는 NAS 에 닿지도 않는다 */
+  assert.match(step, /if:.*!inputs\.dry_run/, 'dry run 에서도 재려고 한다');
 });
 
 /**
@@ -393,9 +370,11 @@ test('★★★ 올린 뒤 실제로 닿았는지 재고, 갈리면 빨갛게 �
  */
 test('★★ 탐침과 배포 확인이 같은 스크립트를 쓴다 (두 벌로 갈리지 않는다)', () => {
   const y = fs.readFileSync(path.join(WF, 'deploy-nas.yml'), 'utf8');
+  /* ★ 〈2026-08-22 · D-84〉 앞 판은 **둘**이었다(탐침 + 배포 뒤 확인). 쓰기를
+     지웠으므로 이제 **한 곳**이다. 둘로 늘면 쓰기가 되살아났다는 뜻이다 */
   const uses = (y.match(/verify-served\.sh/g) || []).length;
-  assert.strictEqual(uses, 2,
-    `verify-served.sh 를 쓰는 자리가 ${uses}곳이다 — 탐침과 배포 확인 둘이어야 한다`);
+  assert.strictEqual(uses, 1,
+    `verify-served.sh 를 쓰는 자리가 ${uses}곳이다 — 탐침 한 곳이어야 한다`);
 
   const sh = fs.readFileSync(path.join(ROOT, 'deploy', 'verify-served.sh'), 'utf8');
   /* ★ 세 자리를 **각각** 재는가. 둘만 재면 「어디서 갈렸는지」가 사라진다 */
@@ -406,43 +385,22 @@ test('★★ 탐침과 배포 확인이 같은 스크립트를 쓴다 (두 벌�
 });
 
 /**
- * ★★★ **`im-flow` 에 쓰는 이는 하나여야 한다** 〈2026-08-22 · 본체 회신 · D-84〉.
+ * ★★ **손대지 않고 눌러도 NAS 는 그대로다** 〈2026-08-22 · D-84〉.
  *
- *   본체(엔진 세션)가 `deploy/nas.sh` 로 같은 폴더에 배포한다. 이 워크플로가
- *   같은 폴더에 또 쓰면 **쓰는 이가 둘**이 되고, 그러면 「저장소 = 디스크 = HTTP」
- *   가 갈렸을 때 **원인을 가릴 수가 없다** — 잰 사이에 옆에서 덮였는지,
- *   다른 파일을 봤는지, 캐시인지가 똑같이 보인다. 2026-08-22 에 그 상태에서
- *   「웹서버 캐시」로 단정했고 틀렸다 (M-25).
- *
- *   ★ 그래서 이 워크플로는 **기본이 재기**다. 쓰기는 잠금을 하나 더 지나야 한다.
- *   ★ 이 테스트가 지키는 것은 「기본값」이다. 잠금이 있어도 기본이 켜져 있으면
- *     손대지 않고 누른 사람이 그대로 덮는다.
+ *   앞 판은 이것을 `probe`·`allow_write` 두 잠금으로 지켰다. 지금은 **쓰는
+ *   단계 자체가 없어서** 지킬 잠금이 없다 — 그 사실을 여기서 못 박는다.
+ *   입력이 셋으로 줄었는지까지 재는 이유: 넷째가 생기면 그것이 대개
+ *   「쓸까 말까」를 묻는 손잡이다.
  */
-test('★★★ 기본으로 누르면 NAS 에 쓰지 않는다 (im-flow 단일 배포 경로 · D-84)', () => {
+test('★★ 입력은 셋뿐이다 — 쓸까 말까를 묻는 손잡이가 없다 (D-84)', () => {
   const y = fs.readFileSync(path.join(WF, 'deploy-nas.yml'), 'utf8');
+  const keys = [...y.matchAll(/^      (\w+):$/gm)].map(m => m[1]);
+  assert.deepStrictEqual(keys, ['files', 'dest', 'dry_run'],
+    `입력이 ${keys.join(' · ')} 다 — 쓰기를 되살리는 손잡이가 붙지 않았는지 본다`);
 
-  /* ① 잠금 입력이 있고, **꺼져 있다** */
-  const aw = /^      allow_write:$([\s\S]*?)(?=^      \w+:$|^concurrency:)/m.exec(y);
-  assert.ok(aw, 'allow_write 입력이 없다 — 쓰기에 잠금이 없다');
-  assert.match(aw[1], /default:\s*false/,
-    'allow_write 기본이 꺼져 있지 않다 — 손대지 않고 누르면 그대로 덮는다');
-
-  /* ② 탐침이 **기본**이다 */
-  const pr = /^      probe:$([\s\S]*?)(?=^      \w+:$|^concurrency:)/m.exec(y);
-  assert.ok(pr, 'probe 입력이 없다');
-  assert.match(pr[1], /default:\s*true/,
-    'probe 기본이 꺼져 있다 — dry_run 만 끄면 곧장 덮어쓰기로 간다');
-
-  /* ③ 실제로 쓰는 두 단계가 잠금을 본다 */
-  ['Upload', 'Verify deployed'].forEach((n) => {
-    const s = stepOf(y, n);
-    assert.ok(s, `${n} 단계가 없다`);
-    assert.match(s, /if:[^\n]*inputs\.allow_write/,
-      `${n} 이 allow_write 를 안 본다 — 잠금이 있으나 마나다`);
-  });
-
-  /* ④ 안 썼으면 **안 썼다고 말한다.** 조용한 초록이 가장 비쌌다 (M-20) */
-  const off = stepOf(y, 'Write is off');
-  assert.ok(off, '쓰기가 꺼진 실행에 아무 말이 없다 — 초록만 보고 「배포됐다」로 읽는다');
-  assert.match(off, /::warning::/, '알림(notice)은 안 읽힌다 — 경고여야 한다');
+  /* ★ dry run 이 기본이다. 손대지 않고 누르면 **NAS 에 닿지도 않는다**.
+     `defaultOf` 는 따옴표 친 기본값만 읽는데 이 값은 boolean 이라 직접 본다 */
+  const dr = /^      dry_run:$([\s\S]*?)(?=^ {0,6}\S)/m.exec(y);
+  assert.ok(dr, 'dry_run 입력을 못 찾았다');
+  assert.match(dr[1], /default:\s*true/, 'dry_run 기본이 꺼져 있다');
 });
