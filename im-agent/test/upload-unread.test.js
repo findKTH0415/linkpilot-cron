@@ -68,8 +68,14 @@ test('★★ 받았지만 못 읽은 자료를 화면이 말한다 (올려 보�
      *   ③ 번호가 없다며 CI 만 간헐 실패했다(로컬 3회 연속 통과).
      *   ★ 그래서 **재려는 것이 실제로 보일 때까지** 돈다. 끝내 안 나오면
      *     한도(700틱)에서 멈추고, 그때는 단언이 사실대로 실패한다. */
+    /* ★★ **되묻는 한도가 그리기 예산보다 작아야 한다** 〈2026-08-22 · 두 번째 CI 실패〉.
+     *   앞 판은 700틱(=35초 가상시간)까지 되물었는데 예산이 30초였다. 그러면
+     *   **크로미움이 먼저 화면을 뱉고 끝낸다** — 탐침은 아직 못 봤는데 그때까지
+     *   본 것만 남는다. 로컬은 손이 빨라 그 전에 끝나서 늘 통과했다.
+     *   ★ 500틱(=25초) 으로 낮추고 예산을 60초로 올린다. 이제 **먼저 멈추는 쪽이
+     *     탐침**이라, 못 본 것은 「못 봤다」로 단언에 사실대로 나온다. */
     + '  var ready = d.done && out.phase === "올렸습니다" && (out.headings || []).length >= 3;'
-    + '  if (ready || ++n > 700) clearInterval(t);'
+    + '  if (ready || ++n > 500) clearInterval(t);'
     + '}, 50);'
     + '}());<' + '/script>';
 
@@ -78,7 +84,8 @@ test('★★ 받았지만 못 읽은 자료를 화면이 말한다 (올려 보�
     + '<meta name="viewport" content="width=device-width, initial-scale=1"></head><body>'
     + fs.readFileSync(frag, 'utf8') + uploadDriver() + probe + '</body></html>');
 
-  const dom = renderDom(findBrowser(), page, 30000, 430);
+  // 예산 > 되묻는 한도(500 × 50ms = 25초). 반대면 화면이 먼저 잘린다
+  const dom = renderDom(findBrowser(), page, 60000, 430);
   const m = dom.match(/<div id="probe">([^<]*)<\/div>/);
   assert.ok(m && m[1], '탐침이 아무것도 안 남겼다 — 화면이 그 자리까지 못 갔다');
   const r = JSON.parse(m[1].replace(/&quot;/g, '"').replace(/&amp;/g, '&'));
@@ -92,7 +99,10 @@ test('★★ 받았지만 못 읽은 자료를 화면이 말한다 (올려 보�
    *   ③ 이 없으면 넘어가는 것이 말없이 일어난다 — 그것이 「화면이 사라진다」였다. */
   assert.deepStrictEqual(r.headings, ['1', '2', '3'],
     '① 자료 수집 · ② 자료 스캔 · ③ 넘기기 번호가 화면에 없다 — '
-    + '어디까지가 모으는 일이고 언제 떠나는지가 안 보인다');
+    + '어디까지가 모으는 일이고 언제 떠나는지가 안 보인다 '
+    /* ★ 걸음과 되물은 횟수를 함께 적는다 — 「아직 못 갔다」와 「가 놓고 안 그렸다」는
+     *   고치는 곳이 다른데, 숫자가 없으면 둘이 같아 보인다 */
+    + `(마지막 걸음 ${r.step} · ${r.ticks}번 되물었다 · 단계 ${r.phase})`);
 
   assert.deepStrictEqual(r.rows, ['[붙임3]산출근거.xlsx', '사업계획서(초안).pdf'],
     '고른 파일 이름이 그대로 안 나온다');

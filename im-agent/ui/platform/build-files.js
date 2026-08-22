@@ -138,7 +138,10 @@ function uploadDriver() {
   window.__lpDrove = { step: null, ticks: 0, done: false };
   var t = setInterval(function () {
     window.__lpDrove.ticks = ++n;
-    if (n > 600) { clearInterval(t); return; }        // 30초(가상)면 못 가는 것이다
+    /* ★ 되묻는 한도는 **그리기 예산보다 작아야 한다** 〈2026-08-22〉.
+       같으면 크로미움이 먼저 화면을 뱉어 「아직 안 그려진 판」이 남는다 —
+       그 상태가 아무 오류도 안 내서 산출물만 조용히 반쯤 만들어진다 */
+    if (n > 500) { clearInterval(t); return; }        // 25초(가상). 예산은 60초
     var s = steps[at];
     if (!s.ready()) return;
     window.__lpDrove.step = s.name;
@@ -210,7 +213,7 @@ async function build(outFile) {
   /* ★ 가상 시계 예산을 넉넉히 준다 〈2026-08-22〉. 14초로 뒀더니 기계가 바쁠 때
    *   이관 칸이 그려지기 **전에** DOM 을 떠서 「③ 칸이 없다」로 빌드가 멎었다 —
    *   가상 시계는 공짜이므로 아낄 이유가 없다 */
-  const part2 = inlineScreen(renderDom(browser, f2, 30000), 'scr-files2');
+  const part2 = inlineScreen(renderDom(browser, f2, 60000), 'scr-files2');
   if (!/읽지 못했습니다/.test(part2.html)) {
     throw new Error('둘째 장에 「읽지 못했습니다」가 없다 — 올리기가 그 자리까지 못 갔다');
   }
