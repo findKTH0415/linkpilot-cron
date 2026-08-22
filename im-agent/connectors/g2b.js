@@ -187,7 +187,11 @@ async function awards(opt) {
      *     기초금액은 **개찰결과 서비스** 응답에서 와야 한다. 그 서비스는 아직
      *     활용신청 전이라(403) 필드 이름을 실측하지 못했다 — 열리면 확인한다. */
     const base = toEok(x.bssamt ?? x.bsisAmt);
-    const award = toEok(x.sucsfbidAmt ?? x.opengCorpInfo ?? x.sucsfbidamt);
+    /* ★★★ **`opengCorpInfo` 를 금액 자리에서 뺐다** 〈2026-08-23 실측〉.
+     *   그것은 **개찰업체 정보**(문자열)다. 금액 대체값으로 세워 두면 숫자가
+     *   아닌 것이 분자로 들어갈 길이 생긴다 — 지금은 `toEok` 이 걸러 주지만
+     *   **걸러 준다는 사실에 기대는 배선**은 다음에 바뀌면 조용히 샌다. */
+    const award = toEok(x.sucsfbidAmt ?? x.sucsfbidamt);
     return {
       title: txt(x.bidNtceNm ?? x.ntceNm),
       agency: txt(x.dminsttNm ?? x.ntceInsttNm),
@@ -211,11 +215,37 @@ async function awards(opt) {
   rows.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
 
   if (!rows.length) {
+    /* ★★★ **「건이 없다」와 「금액이 없다」를 가른다** 〈2026-08-23 실측〉.
+     *
+     *   앞 판은 둘을 한 문장으로 뭉쳐 「조건을 넓히거나 응답 필드명을 확인」이라고
+     *   했다. 그러면 사람은 **기간부터 넓힌다** — 그쪽이 만만하기 때문이다.
+     *   그런데 2026-08-23 실측에서 나온 것은 이랬다: 응답은 왔고(`resultCode 00`)
+     *   건도 있는데, **그 응답에 금액 필드가 하나도 없다.**
+     *
+     *     필드: bidNtceNo bidNtceOrd bidClsfcNo rbidNo bidNtceNm opengDt
+     *           prtcptCnum opengCorpInfo progrsDivCdNm inptDt
+     *           rsrvtnPrceFileExistnceYn ntceInsttCd ntceInsttNm dminsttCd
+     *           dminsttNm opengRsltNtcCntnts
+     *
+     *   기간을 아무리 넓혀도 금액은 안 나온다. **오퍼레이션이 다른 것**이다.
+     *   ★ 그래서 「받은 건은 있었는가」를 세어 두 경우를 갈라 말한다.
+     */
+    const got = (r.value || []).length;
+    const withAmount = (r.value || []).filter((x) => toEok(x.sucsfbidAmt ?? x.sucsfbidamt)).length;
+    if (got && !withAmount) {
+      return {
+        ok: false, window: w, count: 0, fieldMismatch: true,
+        error: `조회는 됐고 ${got}건을 받았는데 **금액 필드가 하나도 없다** `
+          + `(받은 필드: ${Object.keys(r.value[0] || {}).join(' ')}). `
+          + '기간을 넓혀도 안 나온다 — 이 오퍼레이션에 낙찰금액이 실리지 않는 것이므로 '
+          + '「낙찰된 목록 현황 공사조회」 쪽을 확인해야 한다 (등록부 D-85)',
+      };
+    }
     return {
       ok: false, window: w, count: 0,
       error: `조회는 됐지만 조건에 맞는 낙찰 건이 없다 (기간 ${w.from.slice(0, 8)}~${w.to.slice(0, 8)}`
         + `${o.region ? ` · 지역 ${o.region}` : ''}${o.keyword ? ` · ${o.keyword}` : ''}`
-        + ` · ${minEok}억 이상). 조건을 넓히거나 응답 필드명을 확인해야 한다`,
+        + ` · ${minEok}억 이상). 조건을 넓혀 본다`,
     };
   }
 
