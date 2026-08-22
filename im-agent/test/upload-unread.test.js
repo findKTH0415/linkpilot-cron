@@ -26,6 +26,7 @@ const path = require('path');
 const os = require('os');
 
 const PLATFORM = path.join(__dirname, '..', 'ui', 'platform');
+const read = (f) => fs.readFileSync(path.join(PLATFORM, f), 'utf8');
 
 test('★★ 받았지만 못 읽은 자료를 화면이 말한다 (올려 보고 잰다)', async () => {
   const { findBrowser, renderDom } = require(path.join(PLATFORM, 'build-static.js'));
@@ -80,8 +81,11 @@ test('★★ 받았지만 못 읽은 자료를 화면이 말한다 (올려 보�
   assert.ok(r.hasDrop, '파일 고르기가 없다');
 
   // ① 번호 붙은 칸이 실제로 그려진다 — 사용자가 손으로 그려 알려 준 그 구분
-  assert.deepStrictEqual(r.headings, ['1', '2'],
-    '① 자료 수집 · ② 자료 스캔 번호가 화면에 없다 — 어디까지가 모으는 일인지 안 보인다');
+  /* ★ ①②는 늘 있고, **올린 뒤에는 ③(이관)이 붙는다** 〈2026-08-22〉.
+   *   ③ 이 없으면 넘어가는 것이 말없이 일어난다 — 그것이 「화면이 사라진다」였다. */
+  assert.deepStrictEqual(r.headings, ['1', '2', '3'],
+    '① 자료 수집 · ② 자료 스캔 · ③ 넘기기 번호가 화면에 없다 — '
+    + '어디까지가 모으는 일이고 언제 떠나는지가 안 보인다');
 
   assert.deepStrictEqual(r.rows, ['[붙임3]산출근거.xlsx', '사업계획서(초안).pdf'],
     '고른 파일 이름이 그대로 안 나온다');
@@ -106,4 +110,34 @@ test('★★ 받았지만 못 읽은 자료를 화면이 말한다 (올려 보�
   assert.match(all, /2개를 올렸습니다/, '올린 개수를 안 말한다');
 
   fs.rmSync(dir, { recursive: true, force: true });
+});
+
+/**
+ * ★★★ **올리기가 실패했다고 화면을 통째로 갈아치우지 않는다**
+ *   〈2026-08-22 · 실제 신고 「화면이 사라지는 오류」〉.
+ *
+ * 신고 순서가 결정적이었다: 목록이 멀쩡히 뜨고 → 8.7MB 를 올리다 멈추고 →
+ * **그다음에** 「로그인이 필요합니다」가 떴다. 목록이 떴다는 것은 로그인이
+ * 되어 있었다는 뜻이다. 그런데 화면은 로그인을 의심하게 만들었고, 게다가
+ * `paint()` 가 게이트에서 `return` 하는 바람에 **고른 파일도 진행 그래프도
+ * 전부 사라졌다.** 그것이 「화면이 사라진다」의 정체다.
+ */
+test('★★★ 올리기 401 을 화면 전체 게이트로 올리지 않는다', () => {
+  const code = read('files.html').replace(/\/\*[\s\S]*?\*\//g, '');
+  const m = code.match(/onFail:\s*function[\s\S]{0,700}?\n      \},/);
+  assert.ok(m, 'doUpload 의 onFail 을 못 찾았다');
+  assert.doesNotMatch(m[0], /state\.gate\s*=/,
+    '올리기 실패가 화면 전체 게이트를 세운다 — 고른 파일·그래프가 통째로 사라진다');
+  assert.match(m[0], /state\.uploadFail\s*=/,
+    '실패 사유를 올리기 칸에 남기지 않는다 — 무엇이 잘못됐는지 자리가 없다');
+  // 그리고 그 사유가 **화면에 그려져야** 한다
+  assert.match(code, /uploadFail[\s\S]{0,900}?401/,
+    '401 을 올리기 칸에서 설명하지 않는다');
+});
+
+/** ★ 멈춤은 화면까지 와야 뜻이 있다 — 모듈만 알고 있으면 사용자는 못 본다 */
+test('★★ 멈춤 경고를 화면이 그린다', () => {
+  const code = read('files.html').replace(/\/\*[\s\S]*?\*\//g, '');
+  assert.match(code, /u\.stalled/, '화면이 멈춤 표시를 안 읽는다');
+  assert.match(code, /u\.stallWhy/, '멈춘 사유를 안 그린다');
 });

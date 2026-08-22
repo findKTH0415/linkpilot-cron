@@ -226,6 +226,14 @@ select:focus-visible, button:focus-visible { outline: 2px solid var(--lime-deep)
 .up--error .up__d { color: var(--bad-ink); }
 /* 「올렸습니다」 안에 섞인 **나쁜 소식**. 초록 칸 안에서도 눈에 걸려야 한다 */
 .up__d--bad { color: var(--bad-ink); font-weight: 700; }
+
+/* ── 이관 칸 — **떠나는 일**이라 머무는 칸과 색을 달리한다 〈2026-08-22〉 ──
+   ★ 라임으로 채우지 않는다. 큰 면을 브랜드색으로 채우지 않는 것이 이 시스템의
+     규칙이고(§11), 여기서 채우면 「완료」로 읽혀 넘어간다는 뜻이 흐려진다. */
+.card--handoff { border-color: var(--lime); }
+.hand__b { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 14px; }
+.hand__b .btn { margin-top: 0; }
+.hand__b .btn2 { padding: 12px 18px; font-size: 13.5px; }
 .btn { padding: 12px 22px; font-weight: 700; font-size: 14px; line-height: 1; font-family: inherit; border: 0; border-radius: 12px;
   background: var(--lime); color: var(--ink); cursor: pointer; margin-top: 12px; }
 .btn:disabled { background: var(--panel); color: var(--ink2); cursor: not-allowed; }
@@ -437,6 +445,10 @@ window.LINKPILOT_FILES = {
     error: null,
     // 서버가 「로그인이 필요합니다 / 플랜이 모자랍니다」라고 한 경우 — 오류와 구분한다
     gate: null,
+    // 올리기가 실패한 사유. **화면 전체 게이트로 올리지 않는다** (2026-08-22)
+    uploadFail: null,
+    // 이관(넘기기) 진행. **넘어가는 것을 보여 주고 나서** 넘긴다 (2026-08-22)
+    handoff: null,
     busy: false,
     linkMsg: null,   // 연결 갈래에서 사용자가 볼 한 줄
     appMsg: null,    // 앱 프로젝트 가져오기의 진행·실패 한 줄
@@ -1040,11 +1052,36 @@ window.LINKPILOT_FILES = {
     box.appendChild(h);
     if (u.phase === 'sending' || u.phase === 'reading') box.appendChild(progressBar(u.pct));
 
+    /* ★★ **멈춘 것을 멈췄다고 말한다** 〈2026-08-22 · 실제 신고〉.
+     *   신고 화면은 「보내는 중」에서 자취가 평평한 채로 6.1초를 있었다.
+     *   화면은 아무 말도 안 했고, 그래서 기다릴지 다시 누를지 정할 수가 없었다.
+     *   ★ 빨간 칸으로 그리지 않는다 — 아직 실패한 것이 아니다. 계속 보내는 중이다. */
+    if (u.stalled && (u.phase === 'sending' || u.phase === 'reading')) {
+      box.appendChild(el('p', 'up__d up__d--bad', u.stallWhy || '진행이 멈췄습니다.'));
+    }
+
     if (u.phase === 'reading') {
       box.appendChild(el('p', 'up__d',
         '다 보냈습니다. 서버가 파일을 열어 읽는 중입니다 — 스캔본이면 더 걸립니다.'));
     } else if (u.phase === 'error') {
       box.appendChild(el('p', 'up__d', u.error));
+      /* ★★ **401 을 「로그인하세요」로 옮기지 않는다** 〈2026-08-22〉.
+       *   목록이 떴다는 것은 **이미 로그인이 되어 있다**는 뜻이다. 그런데도
+       *   올리기만 401 이면 로그인 문제가 아니라 **이 요청이 서버까지 온전히
+       *   못 갔다**는 뜻일 가능성이 높다 — 큰 본문이 앞단에서 잘리면 서버가
+       *   세션을 못 읽고 401 을 돌려준다.
+       *   ★ 그래서 **둘 다 적는다.** 하나로 단정하면 반대쪽을 고치러 간다. */
+      var uf = state.uploadFail;
+      if (uf && (uf.status === 401 || uf.status === 403)) {
+        var loggedIn = !!(state.projects || (state.kept || state.linked || state.oneshot));
+        box.appendChild(el('p', 'up__d up__d--bad',
+          loggedIn
+            ? ('목록은 떴는데 올리기만 거절당했습니다 — 로그인은 되어 있습니다. '
+              + '이번에 보낸 양이 ' + size(uf.bytes || 0) + ' 인데, 서버나 그 앞단이 '
+              + '요청 본문 크기를 제한하고 있으면 세션을 못 읽고 이 답이 나옵니다. '
+              + '관리자에게 업로드 본문 한도를 확인해 달라고 하십시오.')
+            : '로그인하거나 멤버십을 확인한 뒤 다시 시도해 주십시오.'));
+      }
     } else if (u.phase === 'done' && state.result) {
       box.appendChild(el('p', 'up__d', UP.summary(state.result)));
       // ★ 거절 사유를 접어 두지 않는다. 「올렸습니다」만 보면 다 올라간 줄 안다
@@ -1099,7 +1136,7 @@ window.LINKPILOT_FILES = {
     if (state.way !== 'oneshot') return;
     var path = '/oneshot';
 
-    state.busy = true; state.result = null; state.error = null;
+    state.busy = true; state.result = null; state.error = null; state.uploadFail = null;
     // 자취는 **이번 올리기 것만** 모은다. 안 비우면 지난 판이 앞에 붙어
     // 「예전에 한 번 갔다가 되돌아왔다」처럼 보인다
     state.trace = []; state.traceAt0 = now(); state.failStage = 1;
@@ -1134,14 +1171,46 @@ window.LINKPILOT_FILES = {
                 empty: false,
                 note: '1회성으로 올린 자료는 올리는 그 자리에서 읽었습니다.' },
               msg: null };
-            goReport();
+            /* ★★★ **넘기기 전에 넘긴다는 것을 보여 준다** 〈2026-08-22 · 사용자 지시〉.
+             *
+             *   앞 판은 여기서 곧바로 `goReport()` 를 불렀다. 실측하면 이렇다:
+             *     올리기 누름 → 905ms 에 이관 신호 발사
+             *                 → 931ms 에 「올렸습니다」 카드가 처음 그려짐
+             *   **신호가 카드보다 26ms 먼저 나간다.** 그리고 카드는 366ms 만
+             *   보이고 탭이 넘어가면서 사라진다. 사람 눈에는 「올렸더니 화면이
+             *   사라졌다」다 — 실제로 사용자가 그렇게 신고했다.
+             *
+             *   ★ 넘어가는 것 자체는 맞다. 값이 들어갔으니 다음 칸으로 가는 게
+             *     옳다. 틀린 것은 **말없이 즉시**라는 점이다. 그래서 이관을
+             *     한 칸씩 그려서 보여 주고, 다 그린 뒤에 넘긴다.
+             *   ★ 사람이 멈출 수 있어야 한다 — 「여기 그대로 있기」를 함께 둔다.
+             *     자동으로만 움직이면 무엇이 일어났는지 볼 시간이 없다. */
+            startHandoff(got, (j.read.documents || []).length);
           }
         });
       },
       onFail: function (why, status) {
         state.busy = false;
-        // 401·403 은 **오류가 아니라 게이트**다 (빨간 상자로 그리면 고장으로 읽힌다)
-        if (status === 401 || status === 403) state.gate = why;
+        /* ★★★ **올리기가 실패했다고 화면을 통째로 갈아치우지 않는다**
+         *   〈2026-08-22 · 실제 신고 「화면이 사라지는 오류」〉.
+         *
+         *   앞 판은 401·403 이면 `state.gate` 를 세웠다. 그런데 `paint()` 는
+         *   게이트가 서면 **거기서 return 한다** — 고른 파일 목록도, 진행
+         *   그래프도, 방금까지 보던 것이 **전부 사라지고** 「로그인이
+         *   필요합니다」 카드 하나만 남는다. 사용자가 본 그대로다.
+         *
+         *   ★ 그리고 그 말이 **틀렸을 수 있다.** 신고 화면의 순서는
+         *     「8.7MB 를 보내다 멈춤 → 잠시 뒤 로그인이 필요하다는 문구」였다.
+         *     목록·프로젝트는 그 직전까지 멀쩡히 떴다 — 로그인은 되어 있었다.
+         *     큰 본문이 거절되어 서버가 세션을 못 읽으면 **401 이 나온다.**
+         *     그것을 「로그인하세요」로 옮기면 사용자는 멀쩡한 로그인을
+         *     의심하며 엉뚱한 데를 고치러 간다.
+         *
+         *   ★ 그래서 올리기 실패는 **올리기 칸 안에서** 말한다. 화면은 그대로
+         *     둔다 — 무엇을 고르고 있었는지가 남아 있어야 다시 시도할 수 있다.
+         */
+        state.uploadFail = { why: why, status: status || 0,
+          bytes: (state.upload && state.upload.bodyBytes) || 0 };
         render();
       },
     });
@@ -1859,6 +1928,106 @@ window.LINKPILOT_FILES = {
     });
   }
 
+  /* ══════════ 이관 — **넘어가는 것을 눈으로 보여 준다** 〈2026-08-22〉 ══════════
+   *
+   * ★★ 왜 칸을 따로 두는가: 올리기(`UP_STAGES`)와 스캔(`SCAN_STAGES`)은 **여기서
+   *   일어나는 일**이고, 이관은 **여기를 떠나는 일**이다. 같은 그래프에 이어
+   *   붙이면 「아직 이 화면에서 뭔가 하는 중」으로 읽혀서, 탭이 바뀌는 순간이
+   *   또 갑작스러워진다. 떠난다는 것은 떠나기 전에 말해야 한다.
+   */
+  var HANDOFF_STAGES = ['올린 자료', '읽어서 값으로', '값을 넘김', '「' + F.SECTION.tab + '」에서 이어서'];
+
+  /** 칸 하나를 몇 ms 씩 보여 주는가. 짧으면 못 읽고, 길면 기다리게 된다 */
+  var HANDOFF_STEP_MS = 520;
+
+  function startHandoff(facts, documents) {
+    stopHandoff();
+    state.handoff = {
+      stage: 0, facts: facts, documents: documents,
+      moving: true, held: false, movedAt: null,
+    };
+    render();
+    state.handoff.timer = setInterval(function () {
+      var h = state.handoff;
+      if (!h || h.held) return;
+      h.stage += 1;
+      if (h.stage >= HANDOFF_STAGES.length - 1) {
+        stopHandoff();
+        h.stage = HANDOFF_STAGES.length - 1;
+        h.moving = false;
+        goReport();          // ★ 다 그린 **뒤에** 넘긴다
+        return;
+      }
+      render();
+    }, HANDOFF_STEP_MS);
+  }
+
+  function stopHandoff() {
+    if (state.handoff && state.handoff.timer) clearInterval(state.handoff.timer);
+    if (state.handoff) state.handoff.timer = null;
+  }
+
+  /** 「여기 그대로 있기」 — 사람이 멈출 수 있어야 자동이 무섭지 않다 */
+  function holdHandoff() {
+    stopHandoff();
+    if (state.handoff) { state.handoff.held = true; state.handoff.moving = false; }
+    render();
+  }
+
+  function handoffCard() {
+    var h = state.handoff;
+    if (!h) return null;
+    var card = el('section', 'card card--handoff');
+
+    var hh = el('div', 'sub__h');
+    hh.appendChild(el('span', 'sub__n', '3'));
+    var ht = el('div');
+    ht.appendChild(el('div', 'sub__t', '「' + F.SECTION.tab + '」으로 넘기기'));
+    ht.appendChild(el('div', 'sub__d',
+      '문서 ' + h.documents + '건에서 값 ' + h.facts + '개를 만들었습니다. '
+      + '값을 넣고 확인하는 자리는 이 탭이 아니라 「' + F.SECTION.tab + '」입니다.'));
+    hh.appendChild(ht);
+    card.appendChild(hh);
+
+    card.appendChild(activityGraph({
+      stages: HANDOFF_STAGES,
+      at: h.stage,
+      dead: false,
+      note: h.held
+        ? '여기 멈춰 있습니다 — 아래 단추로 언제든 넘어갈 수 있습니다.'
+        : '값은 이미 저장되어 있습니다. 넘어가도 다시 올릴 필요가 없습니다.',
+    }));
+
+    /* ★ **어디로 가는지**와 **왜 거기인지**를 적는다. 도착 화면이 「값은 앱 안에서
+     *   받습니다」로 시작하는데, 어디서 왜 왔는지를 모르면 그 문장이 뜬금없다. */
+    card.appendChild(el('p', 'note',
+      '출처 없는 숫자를 막는 검사(출처 필수 · 계산 항목 입력 금지 · 사양 확정)가 '
+      + '「' + F.SECTION.tab + '」 단계 안에 있습니다. 그래서 값 넣기를 그쪽에서 합니다.'));
+
+    var row = el('div', 'hand__b');
+    if (h.moving) {
+      var stay = el('button', 'btn2', '여기 그대로 있기');
+      stay.type = 'button';
+      stay.addEventListener('click', holdHandoff);
+      row.appendChild(stay);
+    }
+    var go = el('button', 'btn', '「' + F.SECTION.tab + '」으로 가기');
+    go.type = 'button';
+    go.addEventListener('click', function () { stopHandoff(); h.moving = false; goReport(); });
+    row.appendChild(go);
+    card.appendChild(row);
+
+    /* 넘겼는데 **아무도 안 받았으면** 그렇다고 말한다. 되는 척하지 않는다 */
+    if (h.movedAt === false) {
+      card.appendChild(el('p', 'note',
+        '이 화면은 탭 하나라 스스로 옮길 수 없습니다 — 위 탭에서 「'
+        + F.SECTION.tab + '」을 눌러 주십시오. 값은 이미 들어가 있습니다.'));
+    } else if (h.movedAt === true) {
+      card.appendChild(el('p', 'note', '「' + F.SECTION.tab + '」으로 넘겼습니다.'));
+    }
+    return card;
+  }
+
   /**
    * 2단계 「보고서 생성」으로 옮긴다 — **옮기는 방법은 flow-core 한 곳에 있다.**
    *
@@ -1874,6 +2043,7 @@ window.LINKPILOT_FILES = {
       why: 'scan',
     });
     state.scan.moved = r.sent;
+    if (state.handoff) state.handoff.movedAt = r.sent;   // 이관 칸도 같은 답을 쓴다
     render();
   }
 
@@ -2293,6 +2463,12 @@ window.LINKPILOT_FILES = {
     //   목록 아래에 두면 자료를 다 훑어본 뒤에야 보인다
     var sc = scanCard();
     if (sc) view.appendChild(sc);
+
+    /* ★ 이관 칸은 **스캔 바로 다음**이다 — ① 모으고 ② 읽고 ③ 넘긴다 의 차례다.
+     *   목록 아래에 두면 화면 밖으로 밀려 나가고, 그러면 「말없이 넘어갔다」로
+     *   되돌아간다 (이 칸을 만든 이유가 그것이었다) */
+    var hc = handoffCard();
+    if (hc) view.appendChild(hc);
 
     // ★ 여러 판 경고는 **목록보다 위**에 둔다. 아래에 두면 목록에서 아무거나
     //   골라 쓴 뒤에 보게 된다 — 그때는 이미 늦다

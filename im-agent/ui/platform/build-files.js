@@ -118,7 +118,16 @@ function uploadDriver() {
     { name: 'send', ready: function () { var g = goBtn(); return g && !g.disabled && $$('.row__n').length === 2; },
       act: function () { goBtn().click(); } },
     { name: 'done', ready: function () { var b = $('.up__h b'); return b && b.textContent === '올렸습니다'; },
-      act: function () {} }
+      act: function () {} },
+    /* ★ 이관 칸(③)에서 **멈춰 세운다** 〈2026-08-22〉. 안 세우면 1초쯤 뒤에
+     *   「보고서 생성」으로 넘어가면서 이 칸이 화면에서 사라지고, 그러면
+     *   미리보기에 **고친 것이 안 남는다** — 이 칸을 만든 이유가 그것이었다 */
+    { name: 'hold',
+      /* ★ **보이자마자** 세운다 〈2026-08-22〉. 「한 칸 지난 뒤에」로 미뤄 봤더니
+       *   그 사이에 이관이 끝나 버려서 칸 자체가 안 잡혔다 — 세우는 시점을
+       *   늦추면 세울 대상이 사라진다. 첫 칸에서 멈춘 그림도 사실 그대로다. */
+      ready: function () { return $('.card--handoff .hand__b .btn2'); },
+      act: function () { $('.card--handoff .hand__b .btn2').click(); } }
   ];
   var at = 0, n = 0;
   window.__lpDrove = { step: null, ticks: 0, done: false };
@@ -197,6 +206,9 @@ async function build(outFile) {
   if (!/읽지 못했습니다/.test(part2.html)) {
     throw new Error('둘째 장에 「읽지 못했습니다」가 없다 — 올리기가 그 자리까지 못 갔다');
   }
+  if (!/card--handoff/.test(part2.html)) {
+    throw new Error('둘째 장에 이관 칸(③)이 없다 — 넘어가는 것을 보여 주는 자리가 안 그려졌다');
+  }
 
   const frag = `<title>자료 업로드 탭</title>
 <style>
@@ -219,7 +231,10 @@ ${part2.css}
     ① <b>① 자료 수집 · ② 자료 스캔</b> — 어디까지가 모으는 일이고 어디부터가 읽는 일인지.
     ② <b>받았지만 못 읽은 자료</b> — 서버가 「못 읽었다」고 답한 것을 화면이 그대로 말하는지.
     전에는 초록 칸에 「2개를 올렸습니다」만 떠서, 값이 하나도 안 만들어진 것을
-    <b>고장으로</b> 읽었습니다.</p>
+    <b>고장으로</b> 읽었습니다.
+    ③ <b>③ 넘기기 칸</b> — 전에는 성공 카드가 뜨기 <b>26ms 전에</b> 이관 신호가 나가고
+    카드는 366ms 만 보이다 사라졌습니다. 이제 넘어가는 것을 한 칸씩 그려서 보여 주고,
+    <b>「여기 그대로 있기」</b>로 멈출 수도 있습니다. 이 그림은 그 멈춘 상태입니다.</p>
 </div>
 <div class="pv">${part2.html}</div>
 `;

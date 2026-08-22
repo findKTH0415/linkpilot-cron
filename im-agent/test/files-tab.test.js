@@ -488,7 +488,11 @@ test('★★ 실제 브라우저에서 떨어뜨리면 붙고, 그래프가 끝�
       go.click();
       await sleep(1800);
       o.stagesDone = [].slice.call(document.querySelectorAll('.fx__n--done .fx__t')).map(t);
-      o.stillRunning = !!document.querySelector('.fx__l--run');
+      /* ★★ **올리기 칸 안에서만** 본다 〈2026-08-22〉. 앞 판은 문서 전체에서
+       *   「도는 선」을 찾았는데, 올리기가 끝나면 **이관 칸(③)이 이어서 돈다** —
+       *   그건 정상인데 이 검사가 「끝났는데 선이 계속 흐른다」로 잡았다.
+       *   재는 범위가 넓으면 **멀쩡한 것을 고장이라고 말한다.** */
+      o.stillRunning = !!document.querySelector('.up .fx__l--run');
       o.chart = !!document.querySelector('.fx__c svg');
       o.errBoxes = document.querySelectorAll('.err').length;
       document.getElementById('probe').textContent = JSON.stringify(o);
