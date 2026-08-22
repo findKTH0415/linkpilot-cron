@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko">
+<html lang="ko" data-lp-build="31152290">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -170,6 +170,9 @@ select:focus-visible, button:focus-visible { outline: 2px solid var(--lime-deep)
   font-variant-numeric: tabular-nums; line-height: 1.15; }
 .lim__c--bad .lim__v { color: var(--bad, #c00000); }
 .lim__n { font-size: 12px; color: var(--ink2); margin-top: 8px; line-height: 1.6; }
+/* 판 지문 — 고치는 사람을 위한 값이다. 작고 흐리게 둔다 */
+.lim__b { font-size: 10.5px; color: var(--ink2); opacity: .6; margin-top: 8px;
+  font-variant-numeric: tabular-nums; letter-spacing: .04em; }
 
 .drop { border: 2px dashed var(--line); border-radius: 14px; padding: 22px 16px;
   text-align: center; background: var(--panel); cursor: pointer; }
@@ -993,6 +996,23 @@ window.LINKPILOT_FILES = {
       wrap.appendChild(el('p', 'lim__n',
         '한도를 서버에서 아직 못 받았습니다 — 올려 보기 전에는 확실하지 않습니다.'));
     }
+
+    /* ★★★ **판 지문을 화면에 박아 둔다** 〈2026-08-22 · 세 번 헤맨 뒤〉.
+     *
+     *   같은 신고가 왔을 때 셋 중 무엇인지 알 수가 없었다:
+     *     ① 안 올라갔다 ② 브라우저가 옛것을 들고 있다 ③ 코드가 틀렸다
+     *   **셋은 화면에서 똑같이 보인다.** 그래서 「새로고침해 보십시오」를
+     *   반복했고, 사용자는 같은 화면을 다시 찍어 보냈다.
+     *
+     *   ★ 이 여덟 글자가 있으면 **사진 한 장으로 판이 갈린다.** 작게, 흐리게
+     *     둔다 — 쓰는 사람에게 필요한 값이 아니라 **고치는 사람에게** 필요한
+     *     값이다 (§6-3 「대비는 한 곳에만」).
+     *   ★ 값은 `build-stamp.js` 가 **묶음 전체 내용**에서 만든다. 한 파일만
+     *     재면 옆 파일이 바뀐 것을 못 잡는다 — 실제로 틀렸던 것은
+     *     `embed-bridge.js` 였는데 사용자가 보는 것은 이 화면이었다. */
+    var build = document.documentElement.getAttribute('data-lp-build');
+    if (build) wrap.appendChild(el('p', 'lim__b', '판 ' + build));
+
     return wrap;
   }
 

@@ -30,6 +30,7 @@
     "im:themes": "node im-agent/ui/platform/build-themes.js",
     "im:result": "IM_AGENT_OFFLINE=1 node im-agent/cli.js demo >/dev/null && node im-agent/ui/platform/build-result.js",
     "im:embed": "node im-agent/ui/platform/build-embed.js",
+    "im:stamp": "node im-agent/ui/platform/build-stamp.js",
     "verify:nas": "node im-agent/tools/verify-nas.js",
     "check:reachable": "node im-agent/tools/reachable.js",
     "deploy:nas": "bash deploy/nas.sh"
