@@ -404,3 +404,45 @@ test('★★ 탐침과 배포 확인이 같은 스크립트를 쓴다 (두 벌�
   });
   assert.match(sh, /exit "\$BAD"/, '갈렸는데도 0 으로 끝난다 — 초록이 거짓말을 한다');
 });
+
+/**
+ * ★★★ **`im-flow` 에 쓰는 이는 하나여야 한다** 〈2026-08-22 · 본체 회신 · D-84〉.
+ *
+ *   본체(엔진 세션)가 `deploy/nas.sh` 로 같은 폴더에 배포한다. 이 워크플로가
+ *   같은 폴더에 또 쓰면 **쓰는 이가 둘**이 되고, 그러면 「저장소 = 디스크 = HTTP」
+ *   가 갈렸을 때 **원인을 가릴 수가 없다** — 잰 사이에 옆에서 덮였는지,
+ *   다른 파일을 봤는지, 캐시인지가 똑같이 보인다. 2026-08-22 에 그 상태에서
+ *   「웹서버 캐시」로 단정했고 틀렸다 (M-25).
+ *
+ *   ★ 그래서 이 워크플로는 **기본이 재기**다. 쓰기는 잠금을 하나 더 지나야 한다.
+ *   ★ 이 테스트가 지키는 것은 「기본값」이다. 잠금이 있어도 기본이 켜져 있으면
+ *     손대지 않고 누른 사람이 그대로 덮는다.
+ */
+test('★★★ 기본으로 누르면 NAS 에 쓰지 않는다 (im-flow 단일 배포 경로 · D-84)', () => {
+  const y = fs.readFileSync(path.join(WF, 'deploy-nas.yml'), 'utf8');
+
+  /* ① 잠금 입력이 있고, **꺼져 있다** */
+  const aw = /^      allow_write:$([\s\S]*?)(?=^      \w+:$|^concurrency:)/m.exec(y);
+  assert.ok(aw, 'allow_write 입력이 없다 — 쓰기에 잠금이 없다');
+  assert.match(aw[1], /default:\s*false/,
+    'allow_write 기본이 꺼져 있지 않다 — 손대지 않고 누르면 그대로 덮는다');
+
+  /* ② 탐침이 **기본**이다 */
+  const pr = /^      probe:$([\s\S]*?)(?=^      \w+:$|^concurrency:)/m.exec(y);
+  assert.ok(pr, 'probe 입력이 없다');
+  assert.match(pr[1], /default:\s*true/,
+    'probe 기본이 꺼져 있다 — dry_run 만 끄면 곧장 덮어쓰기로 간다');
+
+  /* ③ 실제로 쓰는 두 단계가 잠금을 본다 */
+  ['Upload', 'Verify deployed'].forEach((n) => {
+    const s = stepOf(y, n);
+    assert.ok(s, `${n} 단계가 없다`);
+    assert.match(s, /if:[^\n]*inputs\.allow_write/,
+      `${n} 이 allow_write 를 안 본다 — 잠금이 있으나 마나다`);
+  });
+
+  /* ④ 안 썼으면 **안 썼다고 말한다.** 조용한 초록이 가장 비쌌다 (M-20) */
+  const off = stepOf(y, 'Write is off');
+  assert.ok(off, '쓰기가 꺼진 실행에 아무 말이 없다 — 초록만 보고 「배포됐다」로 읽는다');
+  assert.match(off, /::warning::/, '알림(notice)은 안 읽힌다 — 경고여야 한다');
+});

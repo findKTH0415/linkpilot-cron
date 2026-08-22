@@ -63,6 +63,22 @@ on:
       probe:
         description: '닿는지만 확인한다 — tailnet + ssh 까지 가고 올리지는 않는다 (dry_run 을 꺼야 뜻이 있다)'
         type: boolean
+        # ★★★ **기본이 「재기」다** 〈2026-08-22 · 본체 회신〉. 앞 판 기본은 `false`
+        #   여서, dry_run 만 끄면 곧장 **덮어쓰기**로 갔다. 아래 allow_write 와
+        #   함께 「손대지 않고 누르면 아무것도 안 바뀐다」를 두 겹으로 만든다.
+        default: true
+      # ★★★ **`im-flow` 에 쓰는 길은 하나뿐이다** 〈2026-08-22 · 본체 회신 · D-84〉.
+      #
+      #   본체(엔진 세션)가 `deploy/nas.sh` 로 같은 폴더에 배포한다. 이 워크플로가
+      #   같은 폴더에 또 쓰면 **쓰는 이가 둘**이 된다. 그러면 「저장소 = 디스크」를
+      #   재는 그 순간에도 옆에서 덮일 수 있고, 결과는 **원인 없이 빨간 배포**다.
+      #   2026-08-22 에 실제로 그 상태에서 「웹서버 캐시」로 잘못 짚었다 (M-25).
+      #
+      #   ★ 그래서 이 워크플로는 **재기만 한다.** 올리려면 이 칸을 켜야 하고,
+      #     켜는 것은 **본체와 말을 맞춘 뒤**의 일이다. 끄고 눌러도 탐침은 돈다.
+      allow_write:
+        description: '★ NAS 에 실제로 쓴다 (기본 꺼짐 — im-flow 배포는 본체 게이트가 맡는다. 켜기 전에 본체와 맞춘다)'
+        type: boolean
         default: false
 
 concurrency:
@@ -467,7 +483,7 @@ jobs:
           echo "::notice::닿는 것까지 확인했다 — **올리지 않았다.** 바로 위 「Check served build」 의 세 지문(저장소·디스크·HTTP)이 같은지 먼저 본다. 다르면 새로고침으로는 안 고쳐진다."
 
       - name: Upload
-        if: ${{ !inputs.dry_run && !inputs.probe }}
+        if: ${{ !inputs.dry_run && !inputs.probe && inputs.allow_write }}
         env:
           FILES: ${{ inputs.files }}
           DEST: ${{ inputs.dest }}
@@ -518,12 +534,21 @@ jobs:
       #   ★ 캐시 때문에 빨간 것도 **빨간 것이 맞다.** 화면에 안 닿았으면 배포가
       #     제 일을 못 한 것이다. 무엇을 눌러야 하는지는 오류 문구가 적어 준다.
       - name: Verify deployed
-        if: ${{ !inputs.dry_run && !inputs.probe }}
+        if: ${{ !inputs.dry_run && !inputs.probe && inputs.allow_write }}
         env:
           NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
           NAS_USER: ${{ secrets.NAS_SSH_USER }}
           DEST: ${{ inputs.dest }}
         run: bash deploy/verify-served.sh "$NAS_HOST" "$NAS_USER" "$DEST"
+
+      # ★★ **조용히 초록으로 끝내지 않는다** (§2 · M-20). 쓰기가 꺼져 있으면
+      #   이 실행은 NAS 를 **하나도 안 바꾼다.** 그런데 dry_run 도 probe 도 아니라
+      #   요약이 하나도 안 뜨면, 초록만 보고 「배포됐다」로 읽는다 — 실제로 두 번
+      #   그렇게 보고했다.
+      - name: Write is off
+        if: ${{ !inputs.dry_run && !inputs.probe && !inputs.allow_write }}
+        run: |
+          echo "::warning::**아무것도 올리지 않았다 — 쓰기(allow_write)가 꺼져 있다.** im-flow 배포는 본체 게이트가 맡는다 (D-84). 이 워크플로로 올려야 할 사정이 있으면 본체와 맞춘 뒤 allow_write 를 켠다"
 
       - name: Dry run summary
         if: ${{ inputs.dry_run }}
