@@ -192,6 +192,53 @@ test('★ 연결: 원본이 사라진 것과 확인 실패를 구분한다', asy
   assert.equal(down.errors.length, 1);
 });
 
+/**
+ * ★★ **모르는 것을 「바뀌었다」로 만들지 않는다** 〈2026-08-22 · 실측으로 잡았다〉.
+ *
+ * 위 시험들은 전부 `rev` 를 넣어 주는 가짜 함수를 쓴다. 그런데 **실제로 실려
+ * 나가는 구현(`core/linked-fetch.js` `headLinked`)은 rev 를 안 준다** — 임시
+ * 내려받기 주소로 HEAD 를 칠 뿐이라 알 방법이 없고, 그래서 일부러 `null` 을
+ * 돌려준다("모르면 지어내지 않는다").
+ *
+ * 그 조합만 아무 시험도 안 밟고 있었다. 실제로 돌려 보니 `String(null)` 과
+ * `String('r2')` 를 비교해서 **아무것도 안 바뀐 자료가 「바뀌었다」로** 나왔다.
+ * 화면은 「원본이 달라졌으니 다시 검증하라」고 말했을 것이고, 사용자는 멀쩡한
+ * 파일을 들여다봤을 것이다. **거짓 경보는 침묵보다 나쁘다** — 두어 번 겪으면
+ * 확인 자체를 안 믿는다.
+ */
+test('★★ 연결: 판을 모르면 「바뀌었다」가 아니라 「확인 못 함」이다', async () => {
+  const p = tmpProject();
+  linked.link(p, REF);
+  (await linked.materialize(p, async () => ({ ok: true, buf: Buffer.from('x') }))).dispose();
+
+  // 실려 나가는 구현이 실제로 돌려주는 모양 그대로다
+  const v = await linked.verify(p, async () => ({ ok: true, rev: null }));
+
+  assert.equal(v.changed.length, 0,
+    '판을 모르는 것을 「바뀌었다」로 냈다 — 멀쩡한 자료에 거짓 경보가 뜬다');
+  assert.equal(v.unread.length, 1, '「확인 못 함」으로 안 갔다');
+  assert.match(v.unread[0].reason || '', /판|rev/,
+    '왜 확인 못 했는지를 안 적었다 — 사용자가 할 일을 정할 수 없다');
+  assert.equal(v.ok, false, '확인 못 한 것을 통과로 냈다 — 그것이 가장 나쁘다');
+
+  // 빈 문자열·undefined 도 같은 취급이다 (제공자마다 「없음」을 달리 준다)
+  for (const empty of [undefined, '']) {
+    const e = await linked.verify(p, async () => ({ ok: true, rev: empty }));
+    assert.equal(e.changed.length, 0, `rev=${JSON.stringify(empty)} 를 「바뀌었다」로 냈다`);
+    assert.equal(e.unread.length, 1, `rev=${JSON.stringify(empty)} 가 「확인 못 함」으로 안 갔다`);
+  }
+});
+
+test('★★ 화면이 「확인 못 함」의 두 가지를 뭉치지 않는다', () => {
+  const fs2 = require('fs');
+  const path2 = require('path');
+  const html = fs2.readFileSync(
+    path2.join(__dirname, '..', 'ui', 'platform', 'files.html'), 'utf8');
+  const code = html.replace(/\/\*[\s\S]*?\*\//g, '');
+  assert.match(code, /\(c\.unread \|\| \[\]\)[\s\S]{0,240}x\.reason/,
+    '화면이 서버가 준 사유를 안 쓴다 — 방금 읽은 사람에게 「안 읽었다」고 말하게 된다');
+});
+
 test('★ 연결: 한 번도 안 읽은 자료는 통과시키지 않는다', async () => {
   const p = tmpProject();
   linked.link(p, REF);

@@ -268,6 +268,28 @@ async function verify(projectDir, headOne) {
       else errors.push({ key: item.key, name: item.name, reason: (head && head.reason) || '확인하지 못했습니다' });
       continue;
     }
+    /* ★★ **모르는 것을 「바뀌었다」로 만들지 않는다** 〈2026-08-22 · 실측〉.
+     *
+     *   엔진 기본 구현(`core/linked-fetch.js` `headLinked`)은 임시 내려받기
+     *   주소로 HEAD 를 칠 뿐이라 **판(rev)을 알려 주지 않는다** — 그래서
+     *   일부러 `rev: null` 을 돌려준다("모르면 지어내지 않는다").
+     *
+     *   그런데 아래 비교가 `String(null) !== String('r2')` 로 참이 되어,
+     *   **아무것도 안 바뀐 자료를 「바뀌었다」로 분류하고 있었다.** 화면은
+     *   「원본이 달라졌으니 다시 검증하라」고 말하고, 사용자는 멀쩡한 파일을
+     *   들여다보게 된다. 두어 번 겪으면 이 확인 자체를 안 믿는다 —
+     *   **거짓 경보는 침묵보다 나쁘다.**
+     *
+     *   시험들이 이것을 못 잡은 이유: 전부 `rev` 를 넣어 주는 가짜 함수를
+     *   쓰고 있었다. **실제로 실려 나가는 구현만 rev 를 안 준다** (M-15 와
+     *   같은 냄새 — 재는 눈과 하는 눈이 달랐다). */
+    if (head.rev === null || head.rev === undefined || head.rev === '') {
+      unread.push({
+        key: item.key, name: item.name,
+        reason: '판(rev)을 알려 주지 않아 그때 그대로인지 비교하지 못했습니다',
+      });
+      continue;
+    }
     if (String(head.rev) !== String(item.rev)) {
       changed.push({ key: item.key, name: item.name, was: item.rev, now: String(head.rev), readAt: item.readAt });
       continue;

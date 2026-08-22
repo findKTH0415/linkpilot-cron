@@ -2133,8 +2133,14 @@ window.LINKPILOT_FILES = {
     (c.missing || []).forEach(function (x) {
       ul.appendChild(el('li', null, '· ' + x.name + ' — 원본이 없습니다 (지웠거나 옮겼습니다)'));
     });
+    /* ★★ 「확인 못 함」은 **두 가지**다 〈2026-08-22〉.
+     *     ① 아직 한 번도 안 읽었다 — 견줄 지문이 없다
+     *     ② 읽기는 읽었는데 **제공자가 판(rev)을 안 알려 준다** — 견줄 값이 없다
+     *   ②를 ①의 말로 그리면 **방금 읽은 사람에게 「안 읽었다」고 말하게 된다**
+     *   (M-14 와 같은 종류다). 서버가 사유를 주면 그것을 그대로 쓴다. */
     (c.unread || []).forEach(function (x) {
-      ul.appendChild(el('li', null, '· ' + x.name + ' — 아직 한 번도 읽지 않아 견줄 것이 없습니다'));
+      ul.appendChild(el('li', null, '· ' + x.name + ' — '
+        + (x.reason || '아직 한 번도 읽지 않아 견줄 것이 없습니다')));
     });
     (c.errors || []).forEach(function (x) {
       ul.appendChild(el('li', null, '· ' + x.name + ' — ' + x.reason));
