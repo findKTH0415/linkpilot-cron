@@ -27,12 +27,27 @@ const ROOT = path.join(__dirname, '..', '..');
 const WF = path.join(ROOT, '.github', 'workflows');
 const PLATFORM_DIR = path.join(ROOT, 'im-agent', 'ui', 'platform');
 
-/** `default: '...'` 를 뽑는다 — yaml 파서를 들이지 않는다 (§5 의존성 최소) */
+/**
+ * `default: '...'` 를 뽑는다 — yaml 파서를 들이지 않는다 (§5 의존성 최소)
+ *
+ * ★★ **고정 폭으로 잘라 보지 않는다** 〈2026-08-22 · 실제로 당했다〉.
+ *   앞 판은 이름 뒤 1200자만 훑었다. 그 자리에 주석이 길게 붙자 `default:` 가
+ *   창 밖으로 밀려나 **「기본값을 못 찾았다」**가 됐다 — 기본값은 멀쩡한데
+ *   검사만 눈이 먼 것이다. 이제 **다음 입력 키가 나올 때까지** 읽는다.
+ */
 function defaultOf(yml, inputName) {
-  const at = yml.indexOf('\n      ' + inputName + ':\n');
-  if (at < 0) return null;
-  const m = /^\s+default: '([^']*)'/m.exec(yml.slice(at, at + 1200));
-  return m ? m[1] : null;
+  const lines = yml.split('\n');
+  const head = '      ' + inputName + ':';
+  let i = lines.indexOf(head);
+  if (i < 0) return null;
+  for (i += 1; i < lines.length; i += 1) {
+    const ln = lines[i];
+    // 같은 깊이의 다음 입력(또는 더 얕은 키)을 만나면 이 입력은 끝났다
+    if (/^ {0,6}\S/.test(ln)) break;
+    const m = /^\s+default: '([^']*)'\s*$/.exec(ln);
+    if (m) return m[1];
+  }
+  return null;
 }
 
 test('★★ deploy-nas 의 기본 파일이 실제로 있다 (첫 실행에서 죽은 자리)', () => {
@@ -291,4 +306,48 @@ test('★★ 재는 단계는 「없음」에 죽지 않는다 (bash -e 를 끈�
   (s.match(/^\s*\w+=\$\(printf[^\n]*grep[^\n]*$/gm) || []).forEach((l) => {
     assert.match(l, /\|\| true/, `없음을 못 받는다:\n    ${l.trim()}`);
   });
+});
+
+/**
+ * ★★ **한 파일만 올리면 안 된다** 〈2026-08-22 · 실제로 당했다〉.
+ *
+ *   앞 기본값은 `report-flow.html` 하나였다. 손대지 않고 누르면 **그 파일만
+ *   새것이 되고 옆의 15개는 옛것**으로 남는다. 화면은 서로를 부른다 —
+ *   `report-flow.html` 하나가 코어 7개와 `tokens.css` 를 불러온다.
+ *
+ *   짝이 안 맞으면 **빈 화면**이 뜨고 오류는 안 난다. 실제로 「새 보고서 생성」이
+ *   통째로 비어서 나왔고, 그 전에는 「자료 업로드」가 계속 옛 판으로 보였다 —
+ *   그것을 캐시라고, 다음엔 dry run 이라고 두 번 잘못 짚었다. **세 번째 원인이
+ *   이것이었다.**
+ *
+ * ★ 그래서 「있는 파일인가」로는 부족하다. **묶음 전체를 덮는가**를 잰다.
+ */
+test('★★ deploy-nas 기본값이 배포 묶음 전체를 덮는다 (하나만 올리면 짝이 깨진다)', () => {
+  const y = fs.readFileSync(path.join(WF, 'deploy-nas.yml'), 'utf8');
+  const def = defaultOf(y, 'files');
+  assert.ok(def, 'files 기본값을 못 찾았다');
+
+  const have = new Set(def.split(/\s+/).filter(Boolean).map((f) => path.basename(f)));
+  const need = require('../ui/platform/build-embed.js').required();
+  const missing = need.filter((f) => !have.has(f));
+
+  assert.deepStrictEqual(missing, [],
+    `기본값이 ${missing.length}개를 빠뜨린다 — 그 파일들은 NAS 에 옛 판으로 남고, `
+    + '짝이 안 맞으면 화면이 오류 없이 빈다');
+
+  /* ★ 반대쪽도 본다: 묶음에 없는 것을 올리면 웹 루트에 쓰레기가 쌓인다 */
+  const extra = [...have].filter((f) => need.indexOf(f) === -1);
+  assert.deepStrictEqual(extra, [],
+    `묶음에 없는 파일을 올린다: ${extra.join(', ')}`);
+});
+
+/**
+ * ★ 목록을 **손으로 적어 두지 않았는지** 본다. 적어 두면 화면이 하나 늘 때
+ *   `required()` 만 늘고 기본값은 그대로 남는다 — 위 검사가 그때 울지만,
+ *   울고 나서 고치는 것보다 **애초에 한 곳에서 나오는 것**이 낫다.
+ */
+test('★ 배포 묶음의 단일 출처는 build-embed 의 required() 다', () => {
+  const y = fs.readFileSync(path.join(WF, 'deploy-nas.yml'), 'utf8');
+  assert.match(y, /required\(\)/,
+    '워크플로에 단일 출처가 어디인지 적혀 있지 않다 — 다음 사람이 손으로 고친다');
 });

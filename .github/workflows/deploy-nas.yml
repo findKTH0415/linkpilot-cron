@@ -26,7 +26,15 @@ on:
         #   `Check files` 에서 죽었다. 기본값은 「아무 값이나」가 아니라
         #   **손대지 않고 눌러도 도는 값**이어야 한다.
         #   `embed-default.test.js` 가 이 값이 실재하는지 지킨다.
-        default: 'im-agent/ui/platform/report-flow.html'
+        # ★★ **한 파일만 올리면 안 된다** 〈2026-08-22 · 실제로 당했다〉.
+        #   앞 기본값은 `report-flow.html` 하나였다. 그래서 손대지 않고 누르면
+        #   **그 파일만 새것이 되고 옆의 15개는 옛것**으로 남았다.
+        #   화면은 서로를 부른다(`report-flow.html` 만 해도 코어 7개 + tokens.css).
+        #   짝이 안 맞으면 **빈 화면**이 뜨고 오류는 안 난다 — 실제로 「새 보고서
+        #   생성」이 통째로 비어서 나왔다.
+        #   ★ 목록을 손으로 적지 않는다. `build-embed.js` 의 `required()` 가
+        #     단일 출처이고, `workflow-default.test.js` 가 둘이 같은지 지킨다.
+        default: 'im-agent/ui/platform/catalog.js im-agent/ui/platform/embed-bridge.js im-agent/ui/platform/fields-core.js im-agent/ui/platform/fields.html im-agent/ui/platform/files.html im-agent/ui/platform/flow-core.js im-agent/ui/platform/gate-core.js im-agent/ui/platform/inapp.js im-agent/ui/platform/intake.html im-agent/ui/platform/live-core.js im-agent/ui/platform/outputs.html im-agent/ui/platform/report-flow.html im-agent/ui/platform/reports.html im-agent/ui/platform/tokens.css im-agent/ui/platform/upload-core.js im-agent/ui/platform/versions-core.js'
       dest:
         # ★★ **화면 사본은 `im-flow` 로 간다** 〈2026-08-21 · 실제로 헛돌았다〉.
         #   기본값이 웹 루트(`/volume1/web`)여서 화면을 여섯 번 올렸는데
