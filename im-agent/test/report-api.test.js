@@ -60,7 +60,12 @@ test('무료 회원은 403', async () => {
   const h = handlers(root, FREE);
   const r = await h.listReports({}, ID);
   assert.strictEqual(r.status, 403);
-  assert.match(r.body.error, /pro 플랜부터/);
+  /* ★ D-71 결정(2026-08-22) 문구를 지킨다 — 「무엇이 되고 무엇이 안 되는가」와
+   *   「어디로 가면 되는가」가 한 줄에 다 있어야 한다. 앞 판은 등급 이름만
+   *   말해서, 무료로 무엇을 할 수 있는지가 화면 어디에도 없었다. */
+  assert.match(r.body.error, /무료 계정은 테스트만/);
+  assert.match(r.body.error, /Pro 플랜부터/);
+  assert.match(r.body.error, /멤버십/);
   fs.rmSync(root, { recursive: true, force: true });
 });
 
