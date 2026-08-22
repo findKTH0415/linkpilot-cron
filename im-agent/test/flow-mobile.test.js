@@ -359,7 +359,7 @@ test('★★ 좁은 화면에서 준 여백이 실제로 먹는다 (덮이면 �
 /* ═════════ ④ 자료 붙이기 — **한 벌의 토글** 〈2026-08-22 사용자 지시〉 ═════════ */
 
 /**
- *     [＋ 앱 프로젝트에서 가져오기] [폴더를 연결해서] [파일업로드]
+ *     [LinkPilot 프로젝트에서 가져오기] [폴더를 연결해서] [파일업로드]
  *      └─ 고른 갈래의 칸이 **셋 아래**에서 열린다
  *
  * ★★ 이 자리는 판이 세 번 바뀌었다. **검사도 함께 바뀌어 왔다** —
@@ -437,7 +437,7 @@ test('★★ 자료 붙이기 셋이 한 벌의 토글이고, 파일업로드가
     }
 
     /* 앱 갈래에는 설명이 없다 (2026-08-22 지시) */
-    var app = tiles.filter(function (b) { return /앱 프로젝트에서 가져오기/.test(b.textContent); })[0];
+    var app = tiles.filter(function (b) { return /LinkPilot 프로젝트에서 가져오기/.test(b.textContent); })[0];
     o.appHasDesc = !!(app && app.querySelector('.pw__d'));
 
     // 프로젝트를 먼저 고른다 — 안 고르면 문지기가 먼저 걸린다
@@ -481,7 +481,7 @@ test('★★ 자료 붙이기 셋이 한 벌의 토글이고, 파일업로드가
   assert.deepStrictEqual(wide.lineSizes, [3],
     `넓은 화면에서 ${JSON.stringify(wide.lineSizes)} 로 흘렀다 — 셋이 나란해야 한다`);
   assert.deepStrictEqual(wide.rows[0].length, 3, '한 줄에 셋이 아니다');
-  assert.match(wide.rows[0][0], /앱 프로젝트에서 가져오기/, '첫째가 앱 갈래가 아니다');
+  assert.match(wide.rows[0][0], /LinkPilot 프로젝트에서 가져오기/, '첫째가 앱 갈래가 아니다');
   assert.match(wide.rows[0][1], /폴더를 연결해서/, '둘째가 연결이 아니다');
   assert.match(wide.rows[0][2], /파일업로드/, '셋째가 파일업로드가 아니다');
 

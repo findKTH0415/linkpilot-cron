@@ -74,8 +74,13 @@ test('★★ 받았지만 못 읽은 자료를 화면이 말한다 (올려 보�
      *   본 것만 남는다. 로컬은 손이 빨라 그 전에 끝나서 늘 통과했다.
      *   ★ 500틱(=25초) 으로 낮추고 예산을 60초로 올린다. 이제 **먼저 멈추는 쪽이
      *     탐침**이라, 못 본 것은 「못 봤다」로 단언에 사실대로 나온다. */
+    /* ★★ **손이 늘어나면 탐침도 늘려야 한다** 〈2026-08-22 · 세 번째로 같은 자리〉.
+     *   `uploadDriver` 가 3600틱까지 되묻도록 늘었는데 탐침은 500틱에 멈춰 있었다.
+     *   그러면 손이 아직 일하는 중에 탐침이 먼저 끝나서 「③ 번호가 없다」가 된다.
+     *   ★ 셋의 크기는 **한 방향으로 줄 세운다** — 손(180초) ≤ 탐침(180초) < 예산(240초).
+     *     하나만 고치면 다음에 또 같은 자리에서 흔들린다. */
     + '  var ready = d.done && out.phase === "올렸습니다" && (out.headings || []).length >= 3;'
-    + '  if (ready || ++n > 500) clearInterval(t);'
+    + '  if (ready || ++n > 3600) clearInterval(t);'
     + '}, 50);'
     + '}());<' + '/script>';
 
@@ -84,8 +89,8 @@ test('★★ 받았지만 못 읽은 자료를 화면이 말한다 (올려 보�
     + '<meta name="viewport" content="width=device-width, initial-scale=1"></head><body>'
     + fs.readFileSync(frag, 'utf8') + uploadDriver() + probe + '</body></html>');
 
-  // 예산 > 되묻는 한도(500 × 50ms = 25초). 반대면 화면이 먼저 잘린다
-  const dom = renderDom(findBrowser(), page, 60000, 430);
+  // 예산 > 되묻는 한도(3600 × 50ms = 180초). 반대면 화면이 먼저 잘린다
+  const dom = renderDom(findBrowser(), page, 240000, 430);
   const m = dom.match(/<div id="probe">([^<]*)<\/div>/);
   assert.ok(m && m[1], '탐침이 아무것도 안 남겼다 — 화면이 그 자리까지 못 갔다');
   const r = JSON.parse(m[1].replace(/&quot;/g, '"').replace(/&amp;/g, '&'));

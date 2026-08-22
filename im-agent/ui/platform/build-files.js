@@ -94,6 +94,27 @@ function uploadDriver() {
     var sel = $('select');
     return sel ? [].map.call(sel.options, function (o) { return o.value; }).filter(function (v) { return /^LP-/.test(v); }) : [];
   };
+  /* ★★ **이관 칸은 폴링으로 잡으면 가끔 놓친다** 〈2026-08-22 · 실제로 흔들렸다〉.
+   *   칸이 뜨고 1초쯤 뒤에 화면이 스스로 「보고서 생성」으로 넘어가면서 칸이
+   *   사라진다. 50ms 마다 되묻는 손은 대개 그 안에 잡지만, **가상 시계에서는
+   *   여러 타이머가 같은 순간에 몰려 터지기도 해서** 순서에 따라 통째로 놓친다.
+   *   놓치면 「③ 칸이 없다」로 빌드가 멎는다 — 코드는 멀쩡한데 **가끔** 빨갛다.
+   *
+   *   ★ 그래서 시계에 기대지 않고 **뜨는 순간 바로** 세운다. 폴링은 그대로 두되
+   *     (감시자가 막힌 환경이 있다) 둘 중 먼저 닿는 쪽이 세우면 된다. */
+  var held = false, sawHand = 0;
+  function holdNow() {
+    var c = $('.card--handoff');
+    if (c) sawHand = 1;
+    if (held || !c) return;
+    held = true;
+    var b = c.querySelector('.hand__b .btn2');
+    if (b) b.click();
+  }
+  try {
+    new MutationObserver(holdNow).observe(document.documentElement, { childList: true, subtree: true });
+  } catch (_) {}
+
   var steps = [
     /* ★ 프로젝트를 먼저 고른다. 미리 그리는 판은 설정으로 이미 골라 두었지만,
      *   눌러 보는 판(시험이 쓴다)은 안 골라져 있다 — 그러면 파일 고르기가
@@ -106,9 +127,13 @@ function uploadDriver() {
         sel.dispatchEvent(new Event('change'));
       } },
     { name: 'tile', ready: tile, act: function () { tile().click(); } },
+    /* ★ 파일을 끼우는 칸. act 를 **다시 불러도 안전하게** 짰다 — 아래에서
+     *   기다리다 막히면 이 칸만 다시 두드린다 (다른 칸은 다시 두드리면 안 된다:
+     *   tile 을 또 누르면 갈래가 바뀌면서 **고른 파일을 버린다**) */
     { name: 'drop', ready: function () { return $('.drop input'); },
       act: function () {
         var inp = $('.drop input');
+        if (!inp) return;
         var dt = new DataTransfer();
         dt.items.add(new File([new Uint8Array(2048)], '[붙임3]산출근거.xlsx'));
         dt.items.add(new File([new Uint8Array(2048)], '사업계획서(초안).pdf'));
@@ -129,25 +154,69 @@ function uploadDriver() {
       /* ★ 단추가 아니라 **칸이 뜨는 것**을 기다린다. 단추는 이관이 끝나면
        *   사라지므로, 단추를 기다리면 늦게 깨어났을 때 영영 못 잡는다 */
       ready: function () { return $('.card--handoff'); },
-      act: function () {
-        var b = $('.card--handoff .hand__b .btn2');
-        if (b) b.click();               // 아직 도는 중이면 세운다
-      } }
+      act: holdNow }
   ];
   var at = 0, n = 0;
   window.__lpDrove = { step: null, ticks: 0, done: false };
+  /* ★★ 발자국을 **DOM 에 적는다** 〈2026-08-22〉. --dump-dom 은 DOM 만 떠 가므로
+   *   window.__lpDrove 는 받는 쪽에서 볼 수가 없다. 그래서 실패했을 때
+   *   (역따옴표를 못 쓴다 — 이 글은 템플릿 문자열 속이라 거기서 문자열이 끊긴다)
+   *   「안 그려졌다」밖에 못 말하고 **어디서 멈췄는지가 사라진다** (M-21).
+   *   속성으로 적어 두면 그 판이 어느 칸에서 섰는지 그대로 읽힌다. */
+  function mark() {
+    var d = document.documentElement;
+    d.setAttribute('data-drove-step', String(window.__lpDrove.step));
+    d.setAttribute('data-drove-ticks', String(window.__lpDrove.ticks));
+    d.setAttribute('data-drove-done', window.__lpDrove.done ? '1' : '0');
+    /* ★ 「한 번이라도 떴는가」와 「지금 있는가」를 **따로** 적는다. 둘을 하나로
+     *   보면 「안 떴다」와 「떴다가 사라졌다」가 구별되지 않는데, 고칠 자리가
+     *   서로 다르다 — 앞은 기다리는 문제, 뒤는 붙잡는 문제다. */
+    d.setAttribute('data-drove-saw-hand', String(sawHand));
+    var h = $('.up__h b');
+    d.setAttribute('data-drove-head', h ? h.textContent : '-');
+    /* ★ 무엇이 화면에 있는지도 적는다. 「이관 칸이 없다」만으로는 그 자리에
+     *   무엇이 대신 있는지를 모른다 — 프로젝트가 풀렸는지, 스캔 칸에서 섰는지 */
+    var sel = $('select');
+    d.setAttribute('data-drove-proj', (sel && sel.value) || '-');
+    d.setAttribute('data-drove-opts', String(opts().length));
+    d.setAttribute('data-drove-selidx', String(sel ? sel.selectedIndex : -1));
+    d.setAttribute('data-drove-drop', $('.drop input') ? '1' : '0');
+    d.setAttribute('data-drove-rows', String($$('.row__n').length));
+    d.setAttribute('data-drove-uptext', $$('.up__d').map(function (x) { return x.textContent; }).join(' // ').slice(0, 300));
+    d.setAttribute('data-drove-cards',
+      $$('.card').map(function (c) { return c.className.replace(/\s+/g, '.'); }).join(' '));
+  }
+  mark();
   var t = setInterval(function () {
     window.__lpDrove.ticks = ++n;
+    mark();
     /* ★ 되묻는 한도는 **그리기 예산보다 작아야 한다** 〈2026-08-22〉.
        같으면 크로미움이 먼저 화면을 뱉어 「아직 안 그려진 판」이 남는다 —
        그 상태가 아무 오류도 안 내서 산출물만 조용히 반쯤 만들어진다 */
-    if (n > 500) { clearInterval(t); return; }        // 25초(가상). 예산은 60초
+    if (n > 3600) { clearInterval(t); return; }       // 180초(가상). 예산은 240초
     var s = steps[at];
-    if (!s.ready()) return;
+    if (!s.ready()) {
+      /* ★★ **막히는 자리는 drop 다음이었다** 〈2026-08-22 · 발자국으로 잡았다〉.
+       *   파일을 끼우면 화면이 그 내용을 읽는데, 그 읽기는 가상 시계가 세어 주는
+       *   일이 아니라 **진짜 원반 일**이다. 기계가 바쁘면 크로미움이 가상 시계를
+       *   저 혼자 끝까지 돌려 버리고, 읽기는 그 뒤에 끝난다 — 그러면 손은
+       *   「고르기 칸이 안 채워졌다」만 보고 서 있다가 되물음을 다 쓴다.
+       *   ★ 그래서 ① 되물음 한도를 크게 늘리고(가상 시계는 공짜다)
+       *     ② 이따금 drop 칸을 **다시 두드린다.** 사이가 벌어져야 진짜 읽기가
+       *     끼어들 틈이 생긴다. */
+      /* ★★ 재두드림은 **아무것도 안 들어왔을 때만** 한다 〈2026-08-22〉.
+       *   앞 판은 조건 없이 200틱마다 다시 끼웠다. 그런데 파일이 이미 들어와
+       *   읽히는 중이면 그 재끼움이 **좋은 상태를 덮어써서**, 올리기는 끝나는데
+       *   값이 0으로 넘어가 이관 칸이 아예 안 뜨는 판이 나왔다.
+       *   ★ 되살리려던 것은 「change 가 통째로 삼켜진 경우」다. 그건 줄이 0개다. */
+      if (s.name === 'send' && n % 200 === 0 && $$('.row__n').length === 0) steps[2].act();
+      return;
+    }
     window.__lpDrove.step = s.name;
     s.act();
     at++;
     if (at >= steps.length) { window.__lpDrove.done = true; clearInterval(t); }
+    mark();
   }, 50);
 }());<` + `/script>`;
 }
@@ -212,13 +281,26 @@ async function build(outFile) {
   fs.writeFileSync(f2, src2 + drive);
   /* ★ 가상 시계 예산을 넉넉히 준다 〈2026-08-22〉. 14초로 뒀더니 기계가 바쁠 때
    *   이관 칸이 그려지기 **전에** DOM 을 떠서 「③ 칸이 없다」로 빌드가 멎었다 —
-   *   가상 시계는 공짜이므로 아낄 이유가 없다 */
-  const part2 = inlineScreen(renderDom(browser, f2, 60000), 'scr-files2');
+   *   가상 시계는 공짜이므로 아낄 이유가 없다.
+   *   ★ 60초로도 여덟 번에 한 번쯤 흔들렸다. 발자국을 찍어 보니 파일 **읽기**를
+   *     기다리다 되물음을 다 쓰고 있었다 — 그건 가상 시계가 세어 주지 않는
+   *     진짜 일이다. 그래서 240초로 올리고 손 쪽 한도도 함께 늘렸다
+   *     (한도 180초 < 예산 240초 — 같으면 크로미움이 먼저 화면을 뱉는다). */
+  const dom2 = renderDom(browser, f2, 240000);
+  /* ★ 실패했을 때 **어디서 섰는지**를 말한다. 「안 그려졌다」만 남기면 다음 사람이
+   *   같은 자리를 처음부터 다시 판다 (M-21) */
+  const drove = (k) => (dom2.match(new RegExp('data-drove-' + k + '="([^"]*)"')) || [null, '?'])[1];
+  const trace = ` (손이 선 자리: ${drove('step')} · 되물음 ${drove('ticks')}회 · 끝까지=${drove('done')}`
+    + ` · 이관칸 본 적=${drove('saw-hand')} · 올리기 머리말=${drove('head')}`
+    + ` · 고른 프로젝트=${drove('proj')}(고를 것 ${drove('opts')}개 · 자리 ${drove('selidx')})`
+    + ` · 파일칸=${drove('drop')} · 줄 ${drove('rows')}개 · 올리기 말=[${drove('uptext')}]`
+    + ` · 화면의 칸=[${drove('cards')}])`;
+  const part2 = inlineScreen(dom2, 'scr-files2');
   if (!/읽지 못했습니다/.test(part2.html)) {
-    throw new Error('둘째 장에 「읽지 못했습니다」가 없다 — 올리기가 그 자리까지 못 갔다');
+    throw new Error('둘째 장에 「읽지 못했습니다」가 없다 — 올리기가 그 자리까지 못 갔다' + trace);
   }
   if (!/card--handoff/.test(part2.html)) {
-    throw new Error('둘째 장에 이관 칸(③)이 없다 — 넘어가는 것을 보여 주는 자리가 안 그려졌다');
+    throw new Error('둘째 장에 이관 칸(③)이 없다 — 넘어가는 것을 보여 주는 자리가 안 그려졌다' + trace);
   }
 
   const frag = `<title>자료 업로드 탭</title>

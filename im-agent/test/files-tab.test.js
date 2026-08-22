@@ -16,6 +16,17 @@ const os = require('os');
 
 const F = require('../ui/platform/flow-core.js');
 const PLATFORM = path.join(__dirname, '..', 'ui', 'platform');
+
+/**
+ * 그리기 예산 〈2026-08-22 · 여덟 번에 한 번 흔들려서 올렸다〉.
+ *
+ * ★★ **탐침이 기다리는 시간보다 예산이 커야 한다.** 앞 판은 둘 다 30초였다.
+ *   탐침은 최대 1200×20ms + 300×20ms = 30초를 기다리는데 예산도 30초라,
+ *   기계가 바쁘면 **크로미움이 먼저 DOM 을 뱉고** 탐침은 아직 아무것도 못 쓴
+ *   상태로 끝났다 — 그때 나오는 말이 「탐침이 아무것도 안 남겼다」다.
+ *   코드는 멀쩡한데 **가끔** 빨갛다. 가상 시계는 공짜이므로 넉넉히 준다.
+ */
+const RENDER_BUDGET_MS = 120000;
 const read = (f) => fs.readFileSync(path.join(PLATFORM, f), 'utf8');
 
 /** 주석을 뺀 코드만 본다 — 설명 글이 규칙 위반으로 잡히면 안 된다 */
@@ -57,7 +68,7 @@ test('★ 구성안이 탭 이름을 복사해 적지 않는다', () => {
 test('★★ 화면이 세 갈래의 차이를 먼저 말한다 (연결 ≠ 업로드)', () => {
   const html = read('files.html');
   // ★ 2026-08-21 사용자 지시로 **셋**이 되었다 — 앱에서 가져오기가 갈래로 올라왔다
-  ['＋ 앱 프로젝트에서 가져오기', '폴더를 연결해서', '파일업로드'].forEach((w) => {
+  ['LinkPilot 프로젝트에서 가져오기', '폴더를 연결해서', '파일업로드'].forEach((w) => {
     assert.ok(html.includes(w), `세 갈래 중 '${w}' 가 화면에 없다`);
   });
   // ★ 「올려서 보관」은 뺐다 (2026-08-20 사용자 결정 — 불필요)
@@ -236,7 +247,7 @@ test('★★ 자료 업로드 탭을 미리 그리면 실제로 내용이 들어
     const body = html.slice(html.indexOf('<div class="pv">'));
     assert.ok(body.length > 800, `미리 그린 판이 비었다 (${body.length}B) — 스크립트가 죽었다`);
     assert.equal((body.match(/class="err"/g) || []).length, 0, '오류 상자가 그려졌다');
-    ['＋ 앱 프로젝트에서 가져오기', '폴더를 연결해서', '파일업로드'].forEach((w) => {
+    ['LinkPilot 프로젝트에서 가져오기', '폴더를 연결해서', '파일업로드'].forEach((w) => {
       assert.ok(body.includes(w), `미리 그린 판에 '${w}' 가 없다`);
     });
     assert.match(html, /예시 화면입니다/, '예시라는 표시가 없다 — 실제로 오해한다');
@@ -503,7 +514,7 @@ test('★★ 실제 브라우저에서 떨어뜨리면 붙고, 그래프가 끝�
     + fs.readFileSync(frag, 'utf8') + probe + '</body></html>');
 
   try {
-    const dom = renderDom(findBrowser(), page, 30000);
+    const dom = renderDom(findBrowser(), page, RENDER_BUDGET_MS);
     const m = dom.match(/<div id="probe">([^<]*)<\/div>/);
     assert.ok(m && m[1], '탐침이 아무것도 안 남겼다 — 스크립트가 죽었다');
     const r = JSON.parse(m[1]);
@@ -597,7 +608,7 @@ test('★★ 앱에서 셋(내용·첨부·이미지)을 가져온다 — 거절
     + fs.readFileSync(frag, 'utf8') + probe + '</body></html>');
 
   try {
-    const dom = renderDom(findBrowser(), page, 30000);
+    const dom = renderDom(findBrowser(), page, RENDER_BUDGET_MS);
     const m = dom.match(/<div id="probe">([^<]*)<\/div>/);
     assert.ok(m && m[1], '탐침이 아무것도 안 남겼다 — 스크립트가 죽었다');
     const r = JSON.parse(m[1]);
@@ -975,7 +986,7 @@ test('★★ 실제 브라우저에서 확인이 돌고, 만료를 고장으로 
     const page = path.join(dir, 'page.html');
     fs.writeFileSync(page, '<!doctype html><html lang="ko"><head><meta charset="utf-8"></head><body>'
       + fs.readFileSync(frag, 'utf8') + probe + '</body></html>');
-    const dom = renderDom(findBrowser(), page, 30000);
+    const dom = renderDom(findBrowser(), page, RENDER_BUDGET_MS);
     const m = dom.match(/<div id="probe">([^<]*)<\/div>/);
     assert.ok(m && m[1], '탐침이 아무것도 안 남겼다');
     const r = JSON.parse(m[1]);
@@ -1061,7 +1072,7 @@ test('★★ 파일업로드로 넣으면 읽고 「보고서 생성」으로 �
     + fs.readFileSync(frag, 'utf8') + probe + '</body></html>');
 
   try {
-    const dom = renderDom(findBrowser(), page, 30000);
+    const dom = renderDom(findBrowser(), page, RENDER_BUDGET_MS);
     const m = dom.match(/<div id="probe">([^<]*)<\/div>/);
     assert.ok(m && m[1], '탐침이 아무것도 안 남겼다 — 스크립트가 죽었다');
     const r = JSON.parse(m[1]);
@@ -1133,7 +1144,7 @@ test('★★ 읽었는데 값이 0이면 넘기지 않고 이유를 보여 준�
     + fs.readFileSync(frag, 'utf8') + probe + '</body></html>');
 
   try {
-    const dom = renderDom(findBrowser(), page, 30000);
+    const dom = renderDom(findBrowser(), page, RENDER_BUDGET_MS);
     const m = dom.match(/<div id="probe">([^<]*)<\/div>/);
     assert.ok(m && m[1], '탐침이 아무것도 안 남겼다');
     const r = JSON.parse(m[1]);
@@ -1221,7 +1232,7 @@ test('★★ 프로젝트 고르기가 하나뿐이고, 다른 갈래에서 한 
     + fs.readFileSync(frag, 'utf8') + probe + '</body></html>');
 
   try {
-    const dom = renderDom(findBrowser(), page, 30000);
+    const dom = renderDom(findBrowser(), page, RENDER_BUDGET_MS);
     const m = dom.match(/<div id="probe">([^<]*)<\/div>/);
     assert.ok(m && m[1], '탐침이 아무것도 안 남겼다');
     const r = JSON.parse(m[1]);
@@ -1229,7 +1240,7 @@ test('★★ 프로젝트 고르기가 하나뿐이고, 다른 갈래에서 한 
 
     // ① 하나뿐
     assert.equal(r.pickers, 1, `프로젝트 고르기가 ${r.pickers}개다 — 상단 고르기가 되살아났는가`);
-    assert.match(r.firstWay, /앱 프로젝트에서 가져오기/,
+    assert.match(r.firstWay, /LinkPilot 프로젝트에서 가져오기/,
       `처음 갈래가 고르는 자리가 아니다(${r.firstWay}) — 열자마자 아무것도 못 하는 화면이 된다`);
     // 셋이 한 목록에 있다
     assert.ok(r.groups.includes('보고서 프로젝트'), '보고서 프로젝트 무리가 없다');
@@ -1241,7 +1252,7 @@ test('★★ 프로젝트 고르기가 하나뿐이고, 다른 갈래에서 한 
     assert.ok(r.hasBack, '다른 갈래에서 고르는 자리로 갈 길이 없다 — 막다른 길이다');
 
     // ③ 단추가 실제로 데려다준다
-    assert.match(r.afterBackWay, /앱 프로젝트에서 가져오기/, '단추를 눌러도 안 옮겨진다');
+    assert.match(r.afterBackWay, /LinkPilot 프로젝트에서 가져오기/, '단추를 눌러도 안 옮겨진다');
     assert.equal(r.afterBackPickers, 1, '옮겨졌는데 고르기가 없다');
 
     // ④ 만들기가 갈래 안에서 열리고, 카드가 겹치지 않는다

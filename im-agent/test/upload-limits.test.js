@@ -146,3 +146,73 @@ test('★★ 한 번에 보낼 본문이 NAS 의 64MB 벽 안에 여유를 두�
   assert.ok(AR.MAX_FILE_BYTES * AR.BASE64_OVERHEAD < WALL,
     '파일 하나가 벽을 넘는다 — 한 개짜리 업로드가 끊긴다');
 });
+
+/**
+ * ★★★ **읽는 중인 파일을 조용히 빼고 올리지 않는다** 〈2026-08-22 · 실제로 잃었다〉.
+ *
+ * ★★ 무슨 일이 있었나. 파일을 고르면 줄은 **바로** 생기지만 내용은 `FileReader`
+ *   가 **나중에** 채운다. 앞 판은 「내용이 찬 것」이 하나라도 있으면 올리기
+ *   단추를 열었다. 그래서 둘을 골라 곧바로 누르면 **덜 읽힌 하나가 조용히 빠진
+ *   채로** 올라갔다. 화면은 「1개를 올렸습니다」라고 **맞는 말**을 하고,
+ *   사용자는 2개를 골랐다 — 어긋난 것을 화면 어디서도 말하지 않는다.
+ *
+ * ★ 사람 손으로는 거의 안 잡힌다. 읽기는 보통 눈 깜짝할 새라 기계가 바쁠 때만
+ *   재현된다. 실제로 미리보기 빌드가 45번에 한 번쯤 「이관 칸이 없다」로 멎어서
+ *   발자국을 찍어 보고서야 잡았다 — 빠진 것은 pdf 였고 값이 0이었다.
+ *
+ * ★★ 재는 방법. 화면을 통째로 띄우지 않고 **판단하는 식 두 개를 화면 소스에서
+ *   그대로 떼어 와** 값을 넣어 본다(`overRequest` 검사와 같은 방법). 브라우저를
+ *   띄우는 판도 만들어 봤지만, 헤드리스에서는 읽기가 너무 빨리 끝나 **상황이
+ *   안 만들어진 채 초록**이 되기 쉬웠다 — 그건 M-08 이 말하는 「부르지 않는
+ *   검사」다. 여기서는 「아직 안 읽힌 파일」을 손으로 만들어 넣는다.
+ */
+test('★★★ 아직 읽는 중인 파일이 있으면 올리기가 잠긴다 (조용히 빠지지 않는다)', () => {
+  const src = fs.readFileSync(path.join(ROOT, 'ui/platform/files.html'), 'utf8');
+
+  /* ① 「아직 읽는 중」을 세는 식을 화면에서 떼어 온다 — 손으로 옮겨 적지 않는다.
+        옮겨 적으면 화면이 바뀐 날 검사만 옛말을 하고, 그때는 아무도 모른다 */
+  const rd = src.match(/var reading = state\.picked\.filter\(function \(f\) \{([\s\S]*?)\}\);/);
+  assert.ok(rd, '화면에 「아직 읽는 중」을 세는 자리가 없다 — 덜 읽힌 파일이 그대로 빠진다');
+
+  /* ② 단추를 잠그는 식도 같은 자리에서 떼어 온다 */
+  const dis = src.match(/go\.disabled = ([^;]+);/);
+  assert.ok(dis, '올리기 단추를 잠그는 식을 못 찾았다');
+  assert.match(dis[1], /reading/,
+    '단추가 「읽는 중」을 안 본다 — 하나만 읽혀도 열리고, 나머지는 조용히 빠진다');
+
+  // eslint-disable-next-line no-new-func
+  const countReading = new Function('state',
+    `var reading = state.picked.filter(function (f) {${rd[1]}}); return reading.length;`);
+  // eslint-disable-next-line no-new-func
+  const locked = new Function('state', 'ready', 'over',
+    `var reading = state.picked.filter(function (f) {${rd[1]}});`
+    + `return !!(${dis[1]});`);
+
+  const st = (picked) => ({ picked, busy: false, way: 'oneshot', limits: {} });
+  const readFile = { name: 'a.pdf', size: 64, data: 'x', error: null, tooBig: false };
+  const stillReading = { name: 'b.pdf', size: 64, data: null, error: null, tooBig: false };
+  const failed = { name: 'c.pdf', size: 64, data: null, error: '못 읽음', tooBig: false };
+  const huge = { name: 'd.pdf', size: 9e9, data: null, error: null, tooBig: true };
+
+  /* ★★ 먼저 **옛 판이 실제로 걸리는지**를 잰다 — 하나는 읽혔고 하나는 읽는 중.
+     이 조합이 바로 사용자가 파일을 잃던 자리다 */
+  assert.strictEqual(countReading(st([readFile, stillReading])), 1,
+    '읽는 중인 파일을 못 세고 있다');
+  assert.strictEqual(locked(st([readFile, stillReading]), [readFile], null), true,
+    '하나가 아직 읽는 중인데 올리기가 열린다 — 누르면 그 하나가 조용히 빠진 채로 올라간다');
+
+  /* ★ 다 읽히면 열려야 한다. 안 그러면 이번엔 아무도 못 올린다 */
+  assert.strictEqual(locked(st([readFile]), [readFile], null), false,
+    '다 읽혔는데도 잠겨 있다 — 이번엔 올릴 수가 없다');
+
+  /* ★ 못 읽은 것·너무 큰 것은 **기다릴 대상이 아니다.** 그것까지 기다리면
+     영원히 안 열린다 (그 둘은 이미 화면이 이유를 말하고 있다) */
+  assert.strictEqual(countReading(st([readFile, failed, huge])), 0,
+    '못 읽은 파일이나 너무 큰 파일을 「읽는 중」으로 세고 있다 — 단추가 영영 안 열린다');
+  assert.strictEqual(locked(st([readFile, failed, huge]), [readFile], null), false,
+    '못 읽은 것·너무 큰 것 때문에 단추가 잠겼다');
+
+  /* ★ 왜 못 누르는지를 화면이 말해야 한다. 잠긴 단추만 보면 고장으로 읽는다 */
+  assert.match(src, /아직 읽는 중입니다/,
+    '기다리는 이유를 화면이 말하지 않는다');
+});
