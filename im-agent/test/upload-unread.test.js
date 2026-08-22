@@ -62,7 +62,14 @@ test('★★ 받았지만 못 읽은 자료를 화면이 말한다 (올려 보�
     + '  out.bad = $$(".up__d--bad").map(function (x) { return x.textContent; });'
     + '  out.errBox = $$(".err").length;'
     + '  document.getElementById("probe").textContent = JSON.stringify(out);'
-    + '  if (d.done || ++n > 700) clearInterval(t);'
+    /* ★★ **손이 끝났다고 화면이 다 그려진 것은 아니다** 〈2026-08-22 · CI 에서 잡혔다〉.
+     *   앞 판은 `d.done` 만 보고 멈췄다. 손과 탐침이 둘 다 50ms 마다 도는데,
+     *   같은 틱에서 **탐침이 먼저 돌면** 손이 방금 만든 칸을 못 보고 멈춘다 —
+     *   ③ 번호가 없다며 CI 만 간헐 실패했다(로컬 3회 연속 통과).
+     *   ★ 그래서 **재려는 것이 실제로 보일 때까지** 돈다. 끝내 안 나오면
+     *     한도(700틱)에서 멈추고, 그때는 단언이 사실대로 실패한다. */
+    + '  var ready = d.done && out.phase === "올렸습니다" && (out.headings || []).length >= 3;'
+    + '  if (ready || ++n > 700) clearInterval(t);'
     + '}, 50);'
     + '}());<' + '/script>';
 
