@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko">
+<html lang="ko" data-lp-build="3f9e0360">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -21,21 +21,16 @@
   ★ 범위를 벗어난 값은 막지 않고 경고만 한다. 여기서 막으면 05 Validation 이
     RED FLAG 로 잡아야 할 이상값이 화면에서 사라진다.
 -->
+<link rel="stylesheet" href="tokens.css">
 <style>
 :root {
-  --lime: #9ED700; --lime-soft: #EDF7DC; --lime-deep: #5C7A00;
-  --ink: #17181A; --ink2: #7C838C; --line: #E8EAEC;
-  --panel: #F1F2F4; --bg: #F5F6F8; --surface: #FFFFFF;
-  --bad: #E03131; --bad-soft: #FDECEC; --bad-ink: #8F1D1D;
-  --warn: #E8A33D; --warn-soft: #FDF3E3; --warn-ink: #8A5A10;
-  --r: 18px; --side: 248px;
+  --side: 248px;
 }
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 body {
   margin: 0; background: var(--bg); color: var(--ink);
-  font: 400 15px/1.55 -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
-        'Malgun Gothic', '맑은 고딕', Arial, sans-serif;
+  font: 400 15px/1.55 var(--lp-font);
   -webkit-font-smoothing: antialiased;
 }
 h1,h2,h3,h4 { margin: 0; }
@@ -81,7 +76,7 @@ ul { margin: 0; padding: 0; list-style: none; }
 .gate__t { font-size: 21px; font-weight: 800; margin-top: 18px; }
 .gate__b { font-size: 14.5px; color: var(--ink2); margin-top: 12px; line-height: 1.7; }
 .gate__cta { display: inline-block; margin-top: 24px; padding: 14px 32px;
-  font: 700 15px/1 inherit; border: 0; border-radius: 12px;
+  font-weight: 700; font-size: 15px; line-height: 1; font-family: inherit; border: 0; border-radius: 12px;
   background: var(--lime); color: var(--ink); cursor: pointer; }
 .gate__fine { font-size: 12.5px; color: var(--ink2); margin-top: 16px; }
 
@@ -100,7 +95,7 @@ ul { margin: 0; padding: 0; list-style: none; }
 .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
 .f { display: flex; flex-direction: column; gap: 6px; }
 .f label { font-size: 12.5px; font-weight: 700; color: var(--ink2); }
-.f select, .f input { font: 400 14px/1.5 inherit; padding: 11px 13px;
+.f select, .f input { font-weight: 400; font-size: 14px; line-height: 1.5; font-family: inherit; padding: 11px 13px;
   border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); }
 .f select:disabled, .f input:disabled { background: var(--panel); color: var(--ink2); }
 
@@ -114,10 +109,10 @@ ul { margin: 0; padding: 0; list-style: none; }
 
 /* 도구 막대 */
 .tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
-.tools input[type=search] { flex: 1; min-width: 170px; font: 400 14px/1.5 inherit;
+.tools input[type=search] { flex: 1; min-width: 170px; font-weight: 400; font-size: 14px; line-height: 1.5; font-family: inherit;
   padding: 10px 13px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
 .chip { padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line);
-  background: var(--surface); color: var(--ink2); font: 600 13px/1 inherit; cursor: pointer; }
+  background: var(--surface); color: var(--ink2); font-weight: 600; font-size: 13px; line-height: 1; font-family: inherit; cursor: pointer; }
 .chip.on { background: var(--ink); border-color: var(--ink); color: #fff; }
 .chip:focus-visible, .btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 
@@ -125,7 +120,7 @@ ul { margin: 0; padding: 0; list-style: none; }
 .optrow { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
 .seg { display: flex; gap: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
 .seg__b { flex: 1; padding: 11px 12px; border: 0; background: var(--surface);
-  font: 600 14px/1 inherit; color: var(--ink2); cursor: pointer; }
+  font-weight: 600; font-size: 14px; line-height: 1; font-family: inherit; color: var(--ink2); cursor: pointer; }
 .seg__b + .seg__b { border-left: 1px solid var(--line); }
 .seg__b.on { background: var(--ink); color: #fff; }
 .seg__b:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
@@ -163,14 +158,14 @@ ul { margin: 0; padding: 0; list-style: none; }
 .row__in.n1 { grid-template-columns: minmax(0, 300px); }
 .row__in.n2 { grid-template-columns: 1.1fr 1.7fr; }
 .row__in.n3 { grid-template-columns: 1.1fr 1.5fr .8fr; }
-.row__in input, .row__in select { font: 400 13.5px/1.5 inherit; padding: 9px 11px; min-width: 0;
+.row__in input, .row__in select { font-weight: 400; font-size: 13.5px; line-height: 1.5; font-family: inherit; padding: 9px 11px; min-width: 0;
   border: 1px solid var(--line); border-radius: 9px; background: var(--surface); color: var(--ink); }
 .row__in input::placeholder { color: #B6BBC1; }
 .row__in .miss { border-color: var(--bad); }
 .row__msg { font-size: 12.5px; margin-top: 7px; }
 .row__msg.e { color: var(--bad-ink); font-weight: 600; }
 .row__msg.w { color: var(--warn-ink); }
-.row__conv { font: 600 12px/1 inherit; margin-top: 7px; padding: 7px 11px; border-radius: 8px;
+.row__conv { font-weight: 600; font-size: 12px; line-height: 1; font-family: inherit; margin-top: 7px; padding: 7px 11px; border-radius: 8px;
   border: 1px solid var(--line); background: var(--surface); color: var(--ink2); cursor: pointer; }
 
 .computed { display: flex; flex-wrap: wrap; gap: 7px; }
@@ -201,7 +196,7 @@ ul { margin: 0; padding: 0; list-style: none; }
 .save { position: fixed; left: var(--side); right: 0; bottom: 0; z-index: 40;
   background: var(--surface); border-top: 1px solid var(--line);
   padding: 13px 26px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-.btn { padding: 13px 26px; font: 700 14.5px/1 inherit; border: 0; border-radius: 12px;
+.btn { padding: 13px 26px; font-weight: 700; font-size: 14.5px; line-height: 1; font-family: inherit; border: 0; border-radius: 12px;
   background: var(--lime); color: var(--ink); cursor: pointer; }
 .btn:disabled { background: var(--panel); color: var(--ink2); cursor: not-allowed; }
 .btn--ghost { background: var(--surface); border: 1px solid var(--line); color: var(--ink2); }
@@ -278,6 +273,8 @@ window.LINKPILOT_FIELDS_CFG = {
   session: { authenticated: true, planId: 'pro', status: 'active', name: '' },
 };
 </script>
+<!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
+<script src="embed-bridge.js" data-lp-global="LINKPILOT_FIELDS_CFG"></script>
 <script>
 (function () {
   'use strict';
@@ -711,7 +708,7 @@ window.LINKPILOT_FIELDS_CFG = {
 
     // reports.html 과 같은 4단계를 쓴다. 화면마다 단계가 다르면 어디쯤인지 알 수 없다
     var steps = el('div', 'steps');
-    ['대상·종류 선택', '가이드 필드 입력', '출력 사양 확정', '생성'].forEach(function (label, i) {
+    ['대상·종류 선택', '가이드 필드 (자동입력 + 직접입력)', '출력조건', '생성'].forEach(function (label, i) {
       var d = el(i === 0 ? 'a' : 'div', 'step' + (i === 1 ? ' on' : (i === 0 ? ' done' : '')));
       if (i === 0) {
         d.href = 'reports.html';
@@ -911,7 +908,7 @@ window.LINKPILOT_FIELDS_CFG = {
         //   위쪽 단계 칩으로 돌아가 찾게 하면, 저장은 됐는데 멈춘 것으로 읽는다.
         //   ★ 필수가 남아 있으면 그렇다고 적는다 — 사양을 확정하면 되돌리기 어렵다
         var c = F.completeness(state.fields, state.values, C.docType, classKeys());
-        var go = el('a', 'btn', '출력 사양 확정으로 →');
+        var go = el('a', 'btn', '출력조건으로 →');
         go.href = stepUrl('reports.html');
         go.style.marginTop = '10px';
         go.style.display = 'inline-block';

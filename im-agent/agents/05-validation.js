@@ -14,6 +14,7 @@
  *   ⑦ 필수 누락    — IM 필수 항목 결측
  *   ⑧ 시행사 실체  — 사람이 적은 시행사명을 법인 등록정보와 대조 (금융위)
  *   ⑨ 인허가 대조  — 공부상 인허가 이력과 대조 (건축법·주택법 두 트랙)
+ *   ⑩ 짝 용량      — 태양광 DC/AC · ESS MWh/MW · ESS 열화 (등록부 D-62)
  *
  * ⑧⑨ 는 외부 조회라 다른 검사와 달리 비동기다. **판정만 하고 값을 Dataset 에
  * 넣지 않는다** — 조회 결과를 사실로 등록하면 출처 계보가 검증 Agent 로 뒤엉킨다.
@@ -25,6 +26,8 @@ const { FIELDS, labelFor, rangeViolation, requiredFor } = require('../core/dicti
 const fsc = require('../connectors/fsc');
 const molit = require('../connectors/molit');
 const pnuUtil = require('../connectors/pnu');
+const solar = require('../core/solar');
+const ess = require('../core/ess');
 const { round, formatEok } = require('../core/numeric');
 const { kstDate, daysBetween } = require('../core/kst');
 
@@ -150,6 +153,74 @@ function checkConsistency(ds) {
       flags.push(flag('YELLOW', 'CAPACITY_CONFLICT',
         `수전용량/IT Load = ${round(implied, 2)} 인데 문서상 PUE는 ${pue} 다`,
         { keys: ['capacity.pue', 'capacity.power_mw', 'capacity.it_load_mw'] }));
+    }
+  }
+
+  // ⑧ 발전·저장 자산의 **짝 용량** (등록부 D-62)
+  //
+  // ★ 위 ⑦(IT Load vs 수전용량)과 **같은 종류의 검사**다. 태양광은 DC/AC 가,
+  //   ESS 는 MWh/MW 가 짝이고, **한쪽만 있으면 사업이 특정되지 않는다.**
+  //   `core/solar.js` · `core/ess.js` 가 그 판단을 갖고 있는데 **파이프라인에서
+  //   한 번도 부르지 않고 있었다** — D-48 과 같은 실패라 여기서 잇는다.
+  flags.push(...checkCapacityPairs(ds));
+
+  return flags;
+}
+
+/**
+ * 태양광 DC/AC · ESS MWh/MW 의 짝 검사.
+ *
+ * ★ **값을 만들지 않는다.** 과적률·지속시간·열화 곡선은 전부 출처값끼리의
+ *   계산이고, 여기서 하는 일은 **그 결과가 매출 가정과 어긋나는지 말하는 것**뿐이다.
+ * ★ **「적정/부적정」을 판정하지 않는다** — 과적은 설계 선택이다. 낼 수 있는
+ *   말은 「DC 로 곱하면 부풀려진다」·「초기 용량으로 깔면 후반이 부풀려진다」까지다.
+ */
+function checkCapacityPairs(ds) {
+  const flags = [];
+  const n = k => ds.num(k);
+
+  // ── 태양광 ──
+  const dc = n('capacity.dc_kw');
+  const ac = n('capacity.ac_kw');
+  if (dc !== null || ac !== null) {
+    const r = solar.overloadRatio(dc, ac);
+    if (!r.ok) {
+      // ★ 짝이 안 맞는 것 자체가 결함이다 — 나머지를 가정으로 메우게 된다
+      flags.push(flag('YELLOW', 'CAPACITY_PAIR', r.error, { keys: ['capacity.dc_kw', 'capacity.ac_kw'] }));
+    } else if (r.value.clipping) {
+      flags.push(flag('YELLOW', 'CAPACITY_PAIR', r.value.text,
+        { keys: ['capacity.dc_kw', 'capacity.ac_kw'] }));
+    } else {
+      flags.push(flag('GREEN', 'CAPACITY_PAIR', r.value.text, { keys: ['capacity.dc_kw', 'capacity.ac_kw'] }));
+    }
+  }
+
+  // ── ESS ──
+  const mwh = n('capacity.ess_mwh');
+  const mw = n('capacity.ess_mw');
+  if (mwh !== null || mw !== null) {
+    const d = ess.duration(mwh, mw);
+    if (!d.ok) {
+      flags.push(flag('YELLOW', 'CAPACITY_PAIR', d.error, { keys: ['capacity.ess_mwh', 'capacity.ess_mw'] }));
+    } else {
+      flags.push(flag('GREEN', 'CAPACITY_PAIR', d.value.text, { keys: ['capacity.ess_mwh', 'capacity.ess_mw'] }));
+    }
+
+    // ★ **열화가 ESS 고유의 함정이다.** 초기 용량으로 전 기간 매출을 깔면
+    //   후반이 통째로 부풀려지는데 **매출표는 매년 같은 숫자라 멀쩡해 보인다**
+    const deg = n('capacity.ess_degradation');
+    const ops = n('schedule.ops_years');
+    if (deg === null) {
+      flags.push(flag('YELLOW', 'ESS_DEGRADATION',
+        '연간 열화율이 없다 — **0 으로 두면 운영기간 내내 새 배터리가 된다**',
+        { keys: ['capacity.ess_degradation'] }));
+    } else if (mwh !== null && ops !== null) {
+      const c = ess.degradationCurve(mwh, deg, ops);
+      if (c.ok) {
+        const last = c.value.rows[c.value.rows.length - 1];
+        flags.push(flag(last.ratio < 80 ? 'YELLOW' : 'GREEN', 'ESS_DEGRADATION', c.value.text,
+          { keys: ['capacity.ess_degradation', 'capacity.ess_mwh', 'schedule.ops_years'] }));
+      }
     }
   }
 
@@ -466,4 +537,4 @@ async function run(input, ctx) {
 
 function clamp(n) { return Math.max(0, Math.min(100, Math.round(n))); }
 
-module.exports = { id: '05_validation', label: 'Cross Validation Agent', inputSchema, outputSchema, run, checkConsistency, checkLegal, checkSponsor, checkPermitRecord };
+module.exports = { id: '05_validation', label: 'Cross Validation Agent', inputSchema, outputSchema, run, checkConsistency, checkCapacityPairs, checkLegal, checkSponsor, checkPermitRecord };

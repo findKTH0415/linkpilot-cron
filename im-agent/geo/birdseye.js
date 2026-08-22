@@ -21,6 +21,10 @@
  *   같은 그림이 20m 건물로도 200m 건물로도 읽힌다.
  */
 
+// ★ 글꼴은 문서 토큰에서 가져온다 — 이 그림은 IM 안에 그대로 들어가므로
+//   본문과 활자가 달라지면 안 되고, 한글 대체 문제(D-52)도 한 곳에서 고쳐진다
+const { FONT } = require('../design/tokens');
+
 const COLOR = {
   sky: '#F5F7FA',
   ground: '#EDEFF2',
@@ -139,7 +143,7 @@ function render(o) {
   const sources = (opt.sources || []).filter(Boolean);
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" `
-    + `viewBox="0 0 ${width} ${height}" font-family="'Noto Sans KR', sans-serif">
+    + `viewBox="0 0 ${width} ${height}" font-family="${FONT.sans}">
   <!-- LinkPilot IM Agent — 조감도. 지적도 + 건축개요로 그린 검토용 그림이며 설계도면이 아니다 -->
   <rect width="${width}" height="${height}" fill="${COLOR.sky}"/>
   <polygon points="${poly(groundPts)}" fill="${COLOR.parcelFill}" stroke="${COLOR.parcel}" stroke-width="1.6"/>

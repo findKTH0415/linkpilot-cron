@@ -119,6 +119,20 @@ const SECRET_ENV = [
   //   요청의 쿼리에 실려 나간다** — RHINO_COMPUTE_URL 보다 노출 면이 넓다.
   //   CLAUDE.md §2 의 「NAS 접속정보」와 같은 줄이다 (2026-08-16 교차검증에서 발견).
   'VWORLD_DOMAIN',
+  // ★ **Authorization 헤더**로 나가는 키다. `key=` 패턴에도 안 걸리고 길이도
+  //   56자라 일반 규칙에는 걸리지만, 헤더 경로라 명시해 두는 편이 안전하다
+  'PEXELS_API_KEY',
+  // ★ 전력데이터개방포털(bigdata.kepco.co.kr) **자체 발급키**다. data.go.kr 키와
+  //   전혀 다른 계통이라 같이 묶어 두면 어느 쪽이 새는지 구분이 안 된다 (D-54)
+  'KEPCO_BIGDATA_KEY',
+  // ★★ 사용자 클라우드 저장소 OAuth (D-65). 여기 키들은 성격이 다르다 —
+  //   **자료 한 건이 아니라 그 사용자 드라이브 범위 전체로 가는 열쇠**다.
+  //   자료를 보관하지 않기로 했으므로 우리가 가진 것 중 가장 값나가는 것이
+  //   이것이 된다. 절대 로그에 남기지 않는다 (§2).
+  'DROPBOX_APP_KEY', 'DROPBOX_APP_SECRET',
+  'BOX_CLIENT_ID', 'BOX_CLIENT_SECRET',
+  'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET',
+  'MS_CLIENT_ID', 'MS_CLIENT_SECRET',
 ];
 
 /**

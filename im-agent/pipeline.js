@@ -20,7 +20,77 @@ const designState = require('./core/design-state');
 const reports = require('./core/reports');
 const monitor = require('./core/monitor');
 const { kstStamp } = require('./core/kst');
+const linked = require('./core/linked');
 const assetclass = require('./core/assetclass');
+const pdf = require('./core/pdf');
+const deskappraisal = require('./core/deskappraisal');
+const corpreport = require('./core/corpreport');
+const nts = require('./connectors/nts');
+const nps = require('./connectors/nps');
+const a4 = require('./design/a4');
+const path = require('path');
+
+/**
+ * 본체가 준 「연결 자료 내려받기」를 찾는다.
+ *   opts.fetchLinked  — 같은 프로세스에서 부를 때 (함수)
+ *   IM_LINKED_FETCHER — cli.js 가 자식 프로세스로 돌 때 (모듈 경로: `module.exports.fetchLinked`)
+ * 없으면 null — 그때 파이프라인은 연결 자료를 **읽지 않고 그 사실을 경고로 세운다.**
+ * 있는데 모양이 틀리면 조용히 null 로 두지 않고 던진다 — 붙였다고 믿는데 안 붙은 상태가 제일 나쁘다.
+ */
+function resolveLinkedFetcher(opts = {}) {
+  if (typeof opts.fetchLinked === 'function') return opts.fetchLinked;
+  const mod = process.env.IM_LINKED_FETCHER;
+  if (!mod) return null;
+  let m;
+  try { m = require(path.resolve(mod)); } catch (e) { throw new Error(`IM_LINKED_FETCHER 모듈을 읽을 수 없다 (${mod}): ${e.message}`); }
+  if (!m || typeof m.fetchLinked !== 'function') throw new Error(`IM_LINKED_FETCHER 모듈에 fetchLinked 함수가 없다 (${mod})`);
+  return m.fetchLinked;
+}
+
+/**
+ * 추출 결과를 dataset 에 넣고 저장한다 — run() 과 extractInto() 가 **같은 코드**를 쓴다 (D-68).
+ * 본체가 이 절차를 복제하면 엔진이 바뀌는 날 본체만 옛말을 한다.
+ *   옛 추출값 버리기(같은 문서) → 병합 → resolve → 저장 → 01_Project/extraction.json 갱신
+ */
+function mergeExtraction(projectId, dataset, out, opts = {}) {
+  const log = opts.log || (() => {});
+  // 재실행 시 같은 문서의 옛 추출값을 먼저 버린다 (자기 자신과의 충돌 방지)
+  for (const doc of out.documents) dataset.dropSource(doc.name);
+  dataset.addMany(out.facts);
+  dataset.resolve();
+  saveDataset(projectId, dataset);
+  // ※ 메타파일은 02_Source_Data 밖에 쓴다 — 원본자료 폴더를 오염시키면 다음 실행에서 자신을 다시 읽는다
+  // 부분 추출(extractInto)일 때 이전 문서 목록을 지우지 않는다 — 같은 이름은 새것으로 바꾼다
+  const prev = opts.merge ? (store.readJson(projectId, '01_Project/extraction.json', null) || {}) : {};
+  const byName = new Map((prev.documents || []).map(d => [d.name, d]));
+  for (const d of out.documents) byName.set(d.name, d);
+  const unsupNames = new Set(out.unsupported.map(u => u.name));
+  const unsupported = (prev.unsupported || []).filter(u => !unsupNames.has(u.name)).concat(out.unsupported);
+  const documents = Array.from(byName.values());
+  store.writeJson(projectId, '01_Project/extraction.json', {
+    at: kstStamp(), documents, unsupported,
+    factCount: opts.merge ? (prev.factCount || 0) + out.facts.length : out.facts.length,
+  });
+  log(`  추출: ${out.facts.length}건 / 문서 ${out.documents.length}건 / 미지원 ${out.unsupported.length}건`);
+  return { facts: out.facts, documents: out.documents, unsupported: out.unsupported };
+}
+
+/**
+ * 파일 목록을 읽어 이 프로젝트의 dataset 에 넣는다 — 1회성 업로드(oneshot)의 읽는 경로 (D-68 · §6-2).
+ * 본체는 `extractOneshot: (id, files) => pipeline.extractInto(id, files)` 한 줄이면 된다.
+ * files 는 {name, path, size, ext} — OS 임시 폴더의 실제 파일. **여기서는 지우지 않는다**(부른 쪽이 dispose 한다).
+ * @returns {{facts, documents, unsupported}}
+ */
+async function extractInto(projectId, files, opts = {}) {
+  if (!store.exists(projectId)) throw new Error(`프로젝트 없음: ${projectId}`);
+  const list = Array.isArray(files) ? files : [];
+  const log = opts.log || (() => {});
+  const dataset = loadDataset(projectId);
+  const ctx = { projectId, dataset, log };
+  const r = await runAgent('02_extraction', { projectId, files: list, useLlm: opts.useLlm !== false }, ctx);
+  if (!r.output || !r.output.facts) throw new Error(`추출 실패: ${(r.error && r.error.message) || r.status || 'unknown'}`);
+  return mergeExtraction(projectId, dataset, r.output, { log, merge: true });
+}
 
 function loadDataset(projectId) {
   const json = store.readJson(projectId, '01_Project/dataset.json', null);
@@ -38,6 +108,7 @@ function saveDataset(projectId, dataset) {
 async function run(opts = {}) {
   const log = opts.log || (m => console.log(m));
   const results = {};
+  let pdfResult = null;
   let projectId = opts.projectId || null;
   let templateId = opts.templateId || null;
 
@@ -82,21 +153,42 @@ async function run(opts = {}) {
     log(`  출력사양: ${spec.docType} · ${spec.pageSize} ${spec.orientation} · 목표 ${spec.targetPages}p · ${spec.formats.join('/')} · ${spec.locked ? `${spec.version} LOCKED` : 'DRAFT(미확정)'}`);
   }
 
+  // ── 02-0 연결 자료 — 보관하지 않는 쪽 (D-65 · 플랫폼-연결-지시서 §6-1) ────
+  //   장부(linked.json)에 연결된 자료가 있으면 **여기서 실제로 가져와** 추출기에 넘긴다.
+  //   가져오는 함수는 본체가 준다(opts.fetchLinked 또는 IM_LINKED_FETCHER 모듈) — 토큰이 그쪽에 있다.
+  //   ★ 없으면 조용히 건너뛰지 않는다: 연결은 돼 있는데 안 읽힌 채 보고서가 나가면
+  //     사용자는 「넣었다」고 믿는다. 경고를 세우고 추출기 unsupported 에도 올린다.
+  const projectDir = store.projectDir(projectId);
+  const fetchLinked = resolveLinkedFetcher(opts);
+  const linkedItems = linked.list(projectDir).items;
+  let linkedMat = null;
+  const linkedFailed = [];
+  if (linkedItems.length) {
+    if (!fetchLinked) {
+      for (const it of linkedItems) linkedFailed.push({ key: it.key, name: it.name, reason: '저장소 내려받기(fetchLinked)가 붙어 있지 않습니다' });
+      log(`  연결 자료 ${linkedItems.length}건 — 내려받기가 붙어 있지 않아 읽지 않는다 (경고로 남긴다)`);
+    } else {
+      linkedMat = await linked.materialize(projectDir, fetchLinked);
+      for (const f of linkedMat.failed) linkedFailed.push(f);
+      log(`  연결 자료: 가져옴 ${linkedMat.files.length}건 / 실패 ${linkedMat.failed.length}건 (임시 ${linkedMat.dir})`);
+    }
+  }
+
   // ── 02 Extraction ─────────────────────────────────────────
-  const ext = await runAgent('02_extraction', { projectId, useLlm: opts.useLlm !== false }, ctx);
+  let ext;
+  try {
+    ext = await runAgent('02_extraction', {
+      projectId, useLlm: opts.useLlm !== false,
+      extraFiles: linkedMat ? linkedMat.files : [],
+      linkedFailed,
+    }, ctx);
+  } finally {
+    // ★ 읽고 나면 **반드시** 지운다 — 안 지우면 그것이 곧 보관이다. 추출기가 던져도 지운다.
+    if (linkedMat) { const d = linkedMat.dispose(); log(`  연결 자료 임시 파일 정리: ${d.removed}건`); }
+  }
   results['02_extraction'] = ext;
   if (ext.output && ext.output.facts) {
-    // 재실행 시 같은 문서의 옛 추출값을 먼저 버린다 (자기 자신과의 충돌 방지)
-    for (const doc of ext.output.documents) dataset.dropSource(doc.name);
-    dataset.addMany(ext.output.facts);
-    dataset.resolve();
-    saveDataset(projectId, dataset);
-    // ※ 메타파일은 02_Source_Data 밖에 쓴다 — 원본자료 폴더를 오염시키면 다음 실행에서 자신을 다시 읽는다
-    store.writeJson(projectId, '01_Project/extraction.json', {
-      at: kstStamp(), documents: ext.output.documents, unsupported: ext.output.unsupported,
-      factCount: ext.output.facts.length,
-    });
-    log(`  추출: ${ext.output.facts.length}건 / 문서 ${ext.output.documents.length}건 / 미지원 ${ext.output.unsupported.length}건`);
+    mergeExtraction(projectId, dataset, ext.output, { log });
   }
 
   // ── 07 Geo / Satellite (공공데이터 — 지적·공시지가·건축물대장) ──
@@ -200,6 +292,128 @@ async function run(opts = {}) {
     if (appraisal.output.concluded) {
       log(`  감정평가(참고): ${appraisal.output.concluded.valueEok}억원 · ${appraisal.output.concluded.methodsUsed.join('/')}`);
     }
+
+    // ── 탁상검토 보고서 (등록부 D-57) ──────────────────────
+    //
+    // ★ 08 은 계산까지만 하고 **문서가 없었다.** 토지가치만 따로 묻는 자리
+    //   (대주단 사전검토·투심 전 단계)에서 IM 40쪽을 통째로 돌릴 수는 없다.
+    // ★ **감정평가서가 아니다** — 표지·고지·본문 세 곳에 그 사실이 들어간다.
+    // ★ `Dataset` 에는 `num` 만 있고 문자열 접근자가 없다. **`dataset.str &&` 로
+    //   감싸 두었더니 소재지·PNU·용도지역이 통째로 빈 채로 문서가 나왔다** —
+    //   오류도 경고도 없이 「[미확인]」만 남아서 자료가 없는 것처럼 보였다
+    const strOf = (key) => {
+      const f = dataset.get(key);
+      const v = f && f.value !== undefined && f.value !== null ? String(f.value).trim() : '';
+      return v || null;
+    };
+
+    const dr = deskappraisal.build({
+      projectId,
+      projectName: (store.readJson(projectId, '01_Project/project.json', {}) || {}).name,
+      location: strOf('project.location'),
+      pnu: strOf('geo.pnu'),
+      areaSqm: dataset.num('land.area_sqm'),
+      zoning: strOf('land.zoning'),
+      useDistricts: strOf('land.use_districts'),
+      appraisal: appraisal.output,
+    });
+
+    if (dr.ok) {
+      store.writeText(projectId, '08_Appraisal/desk-review.md', dr.markdown);
+      const html = a4.render({
+        projectId,
+        projectName: (store.readJson(projectId, '01_Project/project.json', {}) || {}).name || projectId,
+        docType: 'desk_appraisal',
+        docTitle: '토지가치 탁상검토 보고서',
+        // ★ 표지가 문서의 성격을 말한다 — 여기가 IM 문구면 IM 처럼 읽힌다
+        docLabel: '탁상검토 보고서 ㅣ 감정평가서가 아님',
+        valueRange: deskappraisal.coverValue(dr.conclusion),
+        valueCaption: '참고 산정치 — 감정평가법인등의 평가가 아니다',
+        location: strOf('project.location'),
+        sections: dr.sections,
+        disclaimers: dr.disclaimers,
+      });
+      store.writeText(projectId, '08_Appraisal/desk-review-a4.html', html);
+
+      const drPdf = pdf.fromHtmlFile(
+        path.join(store.projectDir(projectId), '08_Appraisal/desk-review-a4.html'),
+        { theme: 'institutional' },
+      );
+      // ★ 표지에 숫자를 안 올린 경우가 **정상 동작**이다 — 왜 그런지 함께 찍는다
+      log(`  탁상검토: ${dr.sections.length}개 절 · 결론 ${dr.conclusion.mode}`
+        + (dr.conclusion.mode === 'point' ? '' : ` (표지에 단일 값 없음 — ${dr.conclusion.text})`)
+        + (drPdf.ok ? ` · PDF ${drPdf.pages ?? '?'}쪽` : ` · ⚠ PDF 실패: ${drPdf.reason}`));
+    } else {
+      // ★ 조용히 넘어가지 않는다. 빈 평가서를 만들지 않는 것이 의도다
+      log(`  탁상검토: 만들지 않았다 — ${dr.reason}`);
+    }
+
+    // ── 법인가치 검토 보고서 (등록부 D-59) ────────────────
+    //
+    // ★ **대부분의 딜에서 안 만들어지는 것이 정상이다.** DART 는 공시대상회사만
+    //   수록하고 시행사 SPC 는 원래 거기 없다 — 재무자료를 제출받아야 한다.
+    //   그래서 「만들지 않았다」가 결함이 아니라는 사실을 로그가 말해 준다.
+    // ★ **재무제표와 무관한 두 번째 출처** (D-60). 휴폐업은 국세청만 알고
+    //   인원·고지금액은 공단이 부과한 값이다 — 회사가 만든 숫자가 아니다.
+    // ★ **한 쪽이 죽어도 나머지를 돌린다** (§4.6). 실재 점검이 실패했다고
+    //   법인 보고서 전체를 세우지 않는다
+    const existence = {};
+    const bizNo = strOf('corp.biz_no');
+    if (bizNo) {
+      const st = await nts.status(bizNo).catch(e => ({ ok: false, error: e.message }));
+      existence.status = st.ok ? st.value : { text: `조회하지 못했다 — ${st.error}` };
+    }
+    const corpNm = strOf('corp.name') || strOf('project.sponsor');
+    if (corpNm) {
+      const wp = await nps.findWorkplace(corpNm).catch(e => ({ ok: false, error: e.message }));
+      if (wp.ok) {
+        const d = await nps.workplaceDetail(wp.value.seq).catch(e => ({ ok: false, error: e.message }));
+        existence.workplace = d.ok ? d.value : { text: `상세를 못 받았다 — ${d.error}` };
+      } else if (wp.ambiguous) {
+        // ★ 고르지 않는다 — 엉뚱한 회사의 인원이 실사 보고서에 실리면 안 된다
+        existence.workplace = { text: `동명 사업장 ${wp.candidates.length}건 — **고르지 않았다.** 사람이 특정한다` };
+      } else if (wp.notFound) {
+        existence.workplace = { text: wp.error };
+      }
+    }
+    existence.clearance = strOf('corp.tax_clearance');
+
+    const cr = corpreport.build({
+      projectId,
+      existence,
+      corpName: strOf('corp.name') || strOf('project.sponsor'),
+      shares: dataset.num('corp.shares'),
+      netAsset: dataset.num('corp.net_asset'),
+      income1: dataset.num('corp.net_income_1'),
+      income2: dataset.num('corp.net_income_2'),
+      income3: dataset.num('corp.net_income_3'),
+      realEstatePct: dataset.num('corp.real_estate_pct'),
+    });
+
+    if (cr.ok) {
+      store.writeText(projectId, '10_Corporate/corp-review.md', cr.markdown);
+      const chtml = a4.render({
+        projectId,
+        projectName: cr.sections ? (strOf('corp.name') || strOf('project.sponsor')) : projectId,
+        docType: 'corp_valuation',
+        docTitle: '법인가치 검토 보고서',
+        docLabel: '법인가치 검토 ㅣ 평가의견서가 아님',
+        valueRange: corpreport.coverValue(cr.conclusion),
+        valueCaption: '참고 산정치 — 외부평가기관의 평가의견서가 아니다',
+        sections: cr.sections,
+        disclaimers: cr.disclaimers,
+      });
+      store.writeText(projectId, '10_Corporate/corp-review-a4.html', chtml);
+      const crPdf = pdf.fromHtmlFile(
+        path.join(store.projectDir(projectId), '10_Corporate/corp-review-a4.html'),
+        { theme: 'institutional' },
+      );
+      log(`  법인검토: ${cr.sections.length}개 절 · 결론 ${cr.conclusion.mode}`
+        + (cr.conclusion.mode === 'point' ? '' : ' (표지에 단일 값 없음)')
+        + (crPdf.ok ? ` · PDF ${crPdf.pages ?? '?'}쪽` : ` · ⚠ PDF 실패: ${crPdf.reason}`));
+    } else {
+      log(`  법인검토: 만들지 않았다 — ${cr.reason}`);
+    }
   }
 
   // ── 09 Massing / 3D ───────────────────────────────────────
@@ -263,6 +477,39 @@ async function run(opts = {}) {
     const dv = (writer.output.designViolations || []).filter(v => v.severity === 'RED').length;
     log(`  디자인: ${writer.output.theme.label} (${writer.output.theme.id}) · ${writer.output.theme.docType}`);
     log(`  IM 생성: ${writer.output.sections.length}개 절 / 인용 ${writer.output.citations.length}건 / 출처없는숫자 ${writer.output.unsourcedNumbers.length}건 / 디자인위반 ${dv}건`);
+
+    // ── PDF (등록부 D-53) ────────────────────────────────────
+    // ★ `outputspec` 이 `formats: ['pdf']` 라고 선언해 온 것을 **실제로 만든다.**
+    //   새 의존성은 없다 — 이미 쓰는 헤드리스 크로미움에 `--print-to-pdf` 다.
+    if (writer.output.html && (!spec || (spec.formats || []).includes('pdf'))) {
+      const htmlPath = path.join(store.projectDir(projectId), '12_Final/im-a4.html');
+      const r = pdf.fromHtmlFile(htmlPath, { theme: writer.output.theme });
+      pdfResult = r;
+
+      if (r.ok) {
+        // ★ 경로를 **손으로 적지 않는다.** 파일명은 HTML 에서 파생되는데
+        //   로그에 다른 이름을 박아 두면 화면만 옛말을 한다 (실제로 그랬다)
+        const rel = path.relative(store.projectDir(projectId), r.path);
+        log(`  PDF: ${r.pages ?? '?'}쪽 · ${Math.round(r.bytes / 1024)}KB → ${rel}`);
+        // ★ 쪽수는 **막지 않는다.** 사양은 목표이고 쪽수는 내용이 정한다 —
+        //   다만 크게 벗어나면 빠진 절이 있다는 신호다
+        const pc = pdf.pageCheck(r.pages, spec);
+        if (pc) log(`    ⚠ ${pc}`);
+      } else {
+        // ★ 조용히 넘어가지 않는다. HTML 은 남아 있으므로 파이프라인은 계속 간다
+        log(`    ⚠ PDF 를 만들지 못했다: ${r.reason}`);
+      }
+
+      // ★ **글꼴은 PDF 성패와 별개다.** PDF 는 나왔는데 활자가 요청과 다를 수 있다 —
+      //   실제로 한글이 중국어 글꼴로 박혀 있었다 (D-52). 조용히 두지 않는다
+      if (r.fontOk === false) {
+        log(`    ⚠ 글꼴: ${r.fontReason}`);
+      } else if (r.fontNote) {
+        // ★ 경고가 아니다 — **어떤 활자로 나갔는지**를 남긴다. 이걸 안 적으면
+        //   같은 문서를 다른 기계에서 다시 만들었을 때 왜 달라졌는지 알 수 없다
+        log(`    · 글꼴: ${r.fontNote}`);
+      }
+    }
   }
 
   // ── 11 Final Validation (독립 제3자 검증 · 8 GATES) ────────
@@ -312,4 +559,4 @@ async function run(opts = {}) {
   return { projectId, templateId, results, dataset, gate: check, finalValidation: final.output || null, spec };
 }
 
-module.exports = { run, loadDataset, saveDataset };
+module.exports = { run, loadDataset, saveDataset, extractInto, mergeExtraction, resolveLinkedFetcher };

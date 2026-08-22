@@ -182,9 +182,16 @@ test('GET /projects 는 선택에 필요한 항목만 내보낸다', async () =>
 
   assert.strictEqual(r.status, 200);
   assert.strictEqual(r.body.projects.length, 1);
+  // ★ `externalId` 는 **앱의 딜 키**다 — 딜 내용이 아니라 이름표다.
+  //   앱이 자기 목록과 맞춰 보려면 있어야 한다 (프로젝트-연결-규칙 §3).
   assert.deepStrictEqual(Object.keys(r.body.projects[0]).sort(),
-    ['assetType', 'id', 'name', 'status'],
+    ['assetType', 'externalId', 'id', 'name', 'status'],
     '딜 내용(금액·스폰서)이 목록 API 로 새어 나가면 안 된다');
+  // 새면 안 되는 것을 **이름으로도** 못 박아 둔다 — 키 목록만 보면
+  // 나중에 항목이 늘 때 무심코 통과시킨다
+  ['totalProjectCost', 'sponsor'].forEach((k) => {
+    assert.ok(!(k in r.body.projects[0]), `${k} 가 목록 API 로 새어 나갔다`);
+  });
 
   fs.rmSync(tmp, { recursive: true, force: true });
 });

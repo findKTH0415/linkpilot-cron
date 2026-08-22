@@ -1,0 +1,288 @@
+name: deploy-im
+
+# 엔진·화면을 NAS 에 올린다 — **사람 손 없이** (2026-08-21).
+#
+# ★★ 왜 Actions 인가: NAS 는 Tailscale 사설망에 있어 밖에서 직접 닿지 않는다.
+#   개발 세션에서도 그 길이 막혀 있어서, 지금까지 배포는 **사람이 손으로**
+#   `npm run deploy:nas` → `deploy-filestation.py` → `verify:nas` 를 쳤다.
+#   러너는 tailnet 에 임시로 붙을 수 있다 — 그래서 여기서 돈다.
+#   접속정보는 GitHub Secrets 에만 둔다 (CLAUDE.md §2 · D-10).
+#
+# ★★ **올리기 전에 시험을 통과해야 한다.** 배포 전 교차검증을 지나지 않은 것은
+#   내보내지 않는다 (CLAUDE.md §7). 시험이 빨간 판은 여기서 멈춘다.
+#
+# ★★ **올리고 끝내지 않는다.** `verify:nas` 가 지문을 대조한다 — 「전송 성공」은
+#   내용이 같다는 뜻이 아니다. 실제로 「초록인데 NAS 는 옛 판」이 있었다 (M-12).
+#
+# ★ 자동으로 돌지 않는다 (workflow_dispatch 전용). 운영 중인 화면을 아무도 안
+#   보는 사이에 덮어쓰지 않기 위해서다.
+#
+# ★ 앱 본체(`linkpilot-platform*.html`)는 **건드리지 않는다.** 이 저장소에
+#   원본이 없고, 덮어쓰면 되돌릴 수 없다.
+
+on:
+  workflow_dispatch:
+    inputs:
+      what:
+        description: '무엇을 올리나'
+        type: choice
+        options: [screens, engine, all]
+        default: screens
+      dry_run:
+        description: '올리지 않고 무엇이 올라갈지만 본다'
+        type: boolean
+        default: true
+      skip_tests:
+        description: '시험을 건너뛴다 (급할 때만 — 되도록 쓰지 않는다)'
+        type: boolean
+        default: false
+
+concurrency:
+  group: deploy-im
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'          # NAS 가 v20 이다. 여기서만 새 것을 쓰지 않는다
+
+      - name: Install
+        run: npm ci --no-audit --no-fund
+
+      # ★★ 배포 전 교차검증. 빨간 판은 여기서 멈춘다 (CLAUDE.md §7)
+      - name: Test
+        if: ${{ !inputs.skip_tests }}
+        env:
+          IM_AGENT_OFFLINE: '1'
+        run: npm test
+
+      # 만들어 놓고 아무도 안 부르는 것이 없는지 (M-08 계열)
+      - name: Reachable
+        if: ${{ !inputs.skip_tests }}
+        run: npm run check:reachable
+
+      # ★ 화면 사본은 **엔진이 낸다.** 저장소 원본을 그대로 올리지 않는다 —
+      #   설정 주입·병합이 들어간 판이라야 앱 안에서 돈다
+      - name: Build screens
+        if: ${{ inputs.what != 'engine' }}
+        run: |
+          set -euo pipefail
+          npm run im:embed -- --out ./_deploy/im-flow
+          echo "── 올릴 화면"
+          ls -1 ./_deploy/im-flow | sed 's/^/  /'
+          echo "  합계 $(ls -1 ./_deploy/im-flow | wc -l) 개"
+
+      - name: Dry run summary
+        if: ${{ inputs.dry_run }}
+        run: |
+          echo "::notice::DRY RUN — 아무것도 올리지 않았다."
+          echo "무엇을 올리려 했나: ${{ inputs.what }}"
+          echo "실제로 올리려면 dry_run 을 끄고 다시 실행한다."
+
+      # ── 여기서부터 실제 배포 ────────────────────────────────────────
+      # ★★ **둘 중 아무거나 있으면 붙는다** 〈2026-08-21 · 실제로 막혀서 고침〉.
+      #   콘솔이 새로 바뀌면서 `Settings › Keys` 에는 **auth key 밖에 없는** 경우가
+      #   있다(OAuth client 는 다른 자리로 옮겨졌거나 요금제에 따라 안 보인다).
+      #   그때 「OAuth 만 받는다」로 두면 **만들 수 있는 열쇠가 있는데도 못 쓴다.**
+      #
+      #   ★ 어느 쪽이 나은가: OAuth 는 **만료가 없다.** auth key 는 최대 90일이라
+      #     때가 되면 다시 만들어야 한다. 그래서 OAuth 를 **먼저** 본다.
+      #   ★ auth key 를 쓸 때는 만들 때 **Ephemeral · Reusable · Tag(tag:ci)** 를
+      #     켠다. 하나라도 빠지면 붙어도 권한이 없거나 기기 목록이 지저분해진다.
+      # ★ **`if:` 에서 secrets 를 보지 않는다.** GitHub 이 그 자리에서 secrets 를
+      #   읽게 해 주는지 확실치 않고, 안 되면 **조용히 빈 값으로 평가되어**
+      #   두 단계가 다 건너뛰어진다 — 그러면 「붙지도 않고 오류도 없는」 판이 된다.
+      #   그래서 여기서 **한 번 판정해 출력으로 넘긴다.**
+      # ★★ **dry run 에서도 이 단계는 돈다** 〈2026-08-21〉. 앞 판은 여기에
+      #   `if: !inputs.dry_run` 이 붙어 있어서, **안전한 판으로는 열쇠가
+      #   들어왔는지 알 방법이 없었다.** 그래서 「확인하려면 실제로 올려
+      #   보는 수밖에 없다」가 되었다 — 확인하려고 운영 화면을 덮는 것은
+      #   순서가 거꾸로다. 이제 dry run 은 **어느 Secret 이 있고 없는지 이름으로**
+      #   알려 준다 — NAS 를 건드리지 않고.
+      #   ★ 값은 절대 찍지 않는다. **있다/없다만** 말한다 (CLAUDE.md §2).
+      - name: Check secrets
+        id: ts
+        env:
+          DRY: ${{ inputs.dry_run }}
+          OAUTH_ID: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          OAUTH_SEC: ${{ secrets.TS_OAUTH_SECRET }}
+          AUTHKEY: ${{ secrets.TS_AUTHKEY }}
+          NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+          NAS_USER: ${{ secrets.NAS_SSH_USER }}
+          NAS_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          MISSING=""
+          say() {
+            if [ -n "${!1:-}" ]; then
+              echo "  있음 — $2"
+            else
+              echo "  없음 — $2"
+              MISSING="$MISSING $2"
+            fi
+          }
+          echo "── tailnet 열쇠 (둘 중 한 길만 있으면 된다) ──"
+          say OAUTH_ID  TS_OAUTH_CLIENT_ID
+          say OAUTH_SEC TS_OAUTH_SECRET
+          say AUTHKEY   TS_AUTHKEY
+          echo "── NAS 접속 (셋 다 있어야 한다) ──"
+          say NAS_HOST  NAS_SSH_HOST
+          say NAS_USER  NAS_SSH_USER
+          say NAS_KEY   NAS_SSH_KEY
+
+          # ★ OAuth 는 **둘 다** 있어야 한다. ID 만 보고 고르면 붙는 단계까지
+          #   가서야 죽고, 그 오류는 「열쇠가 틀렸다」와 구분되지 않는다
+          MODE=""
+          if [ -n "${OAUTH_ID:-}" ] && [ -n "${OAUTH_SEC:-}" ]; then
+            MODE=oauth
+          elif [ -n "${AUTHKEY:-}" ]; then
+            MODE=authkey
+          elif [ -n "${OAUTH_ID:-}" ] || [ -n "${OAUTH_SEC:-}" ]; then
+            echo "::warning::OAuth 는 TS_OAUTH_CLIENT_ID 와 TS_OAUTH_SECRET 이 **둘 다** 있어야 한다 — 한쪽만 있다"
+          fi
+
+          NAS_OK=1
+          for v in NAS_HOST NAS_USER NAS_KEY; do
+            [ -n "${!v:-}" ] || NAS_OK=0
+          done
+
+          if [ "${DRY:-}" = "true" ]; then
+            # ★ dry run 에서는 **판정만 하고 mode 를 넘기지 않는다.**
+            #   넘기면 아래 접속 단계가 실제로 돌아 「올리지 않는다」가 깨진다
+            if [ -n "$MODE" ] && [ "$NAS_OK" = "1" ]; then
+              echo "::notice::여섯 자리가 다 찼다 — dry_run 을 끄면 실제로 배포된다"
+            else
+              echo "::warning::아직 못 넣은 Secret:${MISSING:- 없음} — 넣기 전에는 실제 배포가 여기서 멈춘다"
+            fi
+            exit 0
+          fi
+
+          if [ -z "$MODE" ]; then
+            echo "::error::tailnet 열쇠가 없다 — TS_OAUTH_CLIENT_ID + TS_OAUTH_SECRET 이나 TS_AUTHKEY 중 하나를 Secrets 에 넣는다"
+            exit 1
+          fi
+          # ★ NAS 자격증명이 없으면 **tailnet 에 붙기 전에** 멈춘다.
+          #   붙고 나서 죽으면 원인이 둘로 보인다
+          if [ "$NAS_OK" != "1" ]; then
+            echo "::error::NAS 접속 Secret 이 없다 — NAS_SSH_HOST · NAS_SSH_USER · NAS_SSH_KEY 를 넣는다"
+            exit 1
+          fi
+          echo "mode=$MODE" >> "$GITHUB_OUTPUT"
+          if [ "$MODE" = oauth ]; then
+            echo "OAuth 클라이언트로 붙는다 (만료 없음)"
+          else
+            echo "auth key 로 붙는다 — **만료가 있다.** 때가 되면 다시 만든다"
+          fi
+
+      - name: Connect to tailnet (OAuth)
+        if: ${{ steps.ts.outputs.mode == 'oauth' }}
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      # ★ auth key 에는 `tags` 를 주지 않는다 — 태그는 **열쇠를 만들 때** 정해지고,
+      #   여기서 또 주면 「이미 태그가 있다」로 거부된다
+      - name: Connect to tailnet (auth key)
+        if: ${{ steps.ts.outputs.mode == 'authkey' }}
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+
+      # ★★ **붙었는지 재 본다.** 위 두 단계가 다 건너뛰어져도 워크플로는
+      #   초록으로 계속 간다 — 그러면 다음 단계에서 「연결 안 됨」이 아니라
+      #   엉뚱한 오류로 죽는다. 여기서 먼저 잡는다
+      - name: Verify tailnet
+        if: ${{ !inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          tailscale status --json >/dev/null 2>&1 \
+            || { echo "::error::tailnet 에 안 붙었다 — 위 단계가 건너뛰어졌는지 본다"; exit 1; }
+          echo "tailnet 연결 확인"
+
+      - name: Set up ssh
+        if: ${{ !inputs.dry_run }}
+        env:
+          NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+          NAS_USER: ${{ secrets.NAS_SSH_USER }}
+          NAS_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          # ★ 없는 것을 「있다」로 넘기지 않는다. 무엇이 없는지 이름으로 말한다
+          missing=""
+          for v in NAS_HOST NAS_USER NAS_KEY; do
+            [ -n "${!v}" ] || missing="$missing $v"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Secret 미설정:$missing — 저장소 Settings › Secrets 에 넣는다"
+            exit 1
+          fi
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$NAS_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          # 호스트키를 미리 받아 둔다. StrictHostKeyChecking 을 끄지 않는다
+          ssh-keyscan -H "$NAS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          echo "GIT_SSH_COMMAND=ssh -i ~/.ssh/id_deploy" >> "$GITHUB_ENV"
+
+      # ★ 화면 — 덮어쓰기 전에 **백업을 뜬다.** 되돌릴 길을 먼저 만든다
+      - name: Deploy screens
+        if: ${{ !inputs.dry_run && inputs.what != 'engine' }}
+        env:
+          NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+          NAS_USER: ${{ secrets.NAS_SSH_USER }}
+          WEB_ROOT: ${{ secrets.NAS_WEB_ROOT }}
+        run: |
+          set -euo pipefail
+          ROOT="${WEB_ROOT:-/volume1/web}"
+          STAMP=$(TZ=Asia/Seoul date +%Y%m%d-%H%M)
+          SSH="ssh -i $HOME/.ssh/id_deploy $NAS_USER@$NAS_HOST"
+          $SSH "test -d '$ROOT/im-flow' && cp -a '$ROOT/im-flow' '$ROOT/im-flow.bak-$STAMP' || mkdir -p '$ROOT/im-flow'"
+          tar czf - -C ./_deploy im-flow | $SSH "cd '$ROOT' && tar xzf -"
+          echo "화면 올림 → $ROOT/im-flow (백업: im-flow.bak-$STAMP)"
+
+      # ★ 엔진 — 스크립트가 지문 대조·기동 확인까지 한다. 여기서 다시 짜지 않는다
+      - name: Deploy engine
+        if: ${{ !inputs.dry_run && inputs.what != 'screens' }}
+        env:
+          LP_NAS_HOST: ${{ secrets.NAS_SSH_USER }}@${{ secrets.NAS_SSH_HOST }}
+          LP_NAS_ROOT: ${{ secrets.NAS_ENGINE_ROOT }}
+        run: |
+          set -euo pipefail
+          # 러너에서는 빌드 산출물 때문에 작업트리가 더럽다 — 그것 때문에 멈추지 않게
+          export LP_ALLOW_DIRTY=1
+          export GIT_SSH_COMMAND="ssh -i $HOME/.ssh/id_deploy"
+          # nas.sh 가 ssh 를 직접 부른다. 키를 기본으로 쓰게 설정에 적어 둔다
+          printf 'Host *\n  IdentityFile %s/.ssh/id_deploy\n  IdentitiesOnly yes\n' "$HOME" >> ~/.ssh/config
+          npm run deploy:nas
+
+      # ★★ **올린 것을 재 본다.** 「전송 성공」은 내용이 같다는 뜻이 아니다
+      - name: Verify
+        if: ${{ !inputs.dry_run }}
+        env:
+          LP_BASE: ${{ secrets.LP_BASE }}
+        run: |
+          set -euo pipefail
+          if [ -z "${LP_BASE:-}" ]; then
+            echo "::error::Secret 미설정: LP_BASE — 올리긴 했는데 **잰 것이 없다**"
+            exit 1
+          fi
+          npm run verify:nas -- --base "$LP_BASE"
+
+  # 배포가 실패하면 알린다 (CLAUDE.md §2 — 조용히 죽지 않는다)
+  alert:
+    needs: deploy
+    if: failure()
+    uses: ./.github/workflows/alert-failure.yml
+    permissions:
+      issues: write
+      contents: read
+    secrets: inherit
+    with:
+      workflow: deploy-im

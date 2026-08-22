@@ -20,16 +20,59 @@
  */
 
 const path = require('path');
+const routes = require('./routes.cjs');
 
 const PROJECT_ID = /^LP-[A-Z]+-\d{4}-\d{3}$/;
 const DICT_KEY = /^[a-z_]+\.[a-z_]+$/;
 
 /**
- * 업로드 한도. 화면과 서버가 같은 값을 봐야 하므로 여기서 한 번만 정한다.
- * base64 는 원본보다 약 33% 크므로 본문 크기는 이보다 더 잡아야 한다.
+ * 업로드 한도. 화면과 서버가 같은 값을 봐야 하므로 **여기서 한 번만 정한다.**
+ *
+ * 〈2026-08-22 ① 상향 — 20MB/60MB → 30MB/100MB (사용자 지시)〉
+ *   신고: 「파일이 너무 큽니다 — 23.3 MB (한도 20.0 MB)」. 실무 자료(도면 붙은
+ *   사업계획서·감사보고서 스캔본)가 20MB 를 예사로 넘긴다.
+ *
+ * 〈2026-08-22 ② **한 번에** 를 100MB → 45MB 로 내린다 (D-81 · 사용자 결정)〉
+ *
+ * ★★ **약속을 실제로 받는 값에 맞춘다.** 운영 NAS 의 엔진 서버가 본문을
+ *   **64MB** 에서 끊는다 — 실측이다(1·8·24·48MB 는 통과, 64MB 에서 벽).
+ *
+ *     const MAX_BODY = 64 * 1024 * 1024;
+ *     req.on('data', … if (size > MAX_BODY) { req.destroy(); } …)
+ *
+ *   그래서 100MB 를 약속하면 **48~100MB 묶음은 화면이 「됩니다」라고 해 놓고
+ *   조용히 끊긴다.** `req.destroy()` 라 응답이 아예 없어서 화면은 이유를 말할
+ *   재료조차 없다. 약속과 실제가 갈리는 이 상태가 가장 비싸다.
+ *
+ * ★★ **45MB 이지 48MB 가 아니다.** 64MB ÷ 1.333 ≈ 48MB 는 **벽 그 자체**라
+ *   딱 맞추면 파일 이름·JSON 껍데기 몇 바이트에 넘어간다. 45MB → 본문 60MB 로
+ *   **4MB 를 남긴다.** 「이론상 맞는 값」과 「실제로 지나가는 값」은 다르다.
+ *
+ *     파일 하나 30MB  → 본문 약 40MB   (64MB 안 · 통과)
+ *     한 번에  45MB   → 본문 약 60MB   (64MB 안 · 여유 4MB)
+ *
+ * ★ 메모리도 같은 방향을 가리킨다. 운영 NAS 는 RAM 1.8GB 이고, 133MB 본문을
+ *   파싱하면 문자열 + 디코드 버퍼로 순간 300MB 안팎을 쓴다. 한 번에 100MB 는
+ *   **여러 사람이 동시에 올리는 상황을 견디는 값이 아니었다.**
+ *
+ * ★ NAS 를 올리는 길(㉮)도 있었다. 사용자가 **내리는 쪽**을 골랐다 (D-81).
+ *   나중에 NAS `MAX_BODY` 를 올리면 여기 숫자만 다시 올리면 된다 —
+ *   `MIN_BODY_BYTES` 가 따라 계산된다. `deploy/앱-업로드-한도.md` 참고.
  */
-const MAX_FILE_BYTES = 20 * 1024 * 1024;
-const MAX_REQUEST_BYTES = 60 * 1024 * 1024;
+const MAX_FILE_BYTES = 30 * 1024 * 1024;
+const MAX_REQUEST_BYTES = 45 * 1024 * 1024;
+
+/** base64 로 부풀어 오르는 비율 — 본체가 본문 한도를 정할 때 쓰는 값 */
+const BASE64_OVERHEAD = 4 / 3;
+
+/**
+ * 서버가 받아 줘야 하는 본문 한도(바이트). 여유 8MB 를 얹는다.
+ *
+ * ★ 지금은 **NAS 의 64MB 안**에 들어온다 (45MB → 60MB + 8MB = 68MB… 가 아니라,
+ *   실제로 흐르는 본문은 60MB 다. 이 값은 「서버가 최소 이만큼은 받아야 한다」는
+ *   요구치이지 흐르는 크기가 아니다). 서버를 새로 세울 때 이 값을 쓴다.
+ */
+const MIN_BODY_BYTES = Math.ceil(MAX_REQUEST_BYTES * BASE64_OVERHEAD) + 8 * 1024 * 1024;
 
 /**
  * @param {object} deps { agentRoot } — im-agent 저장소 경로 (IM_AGENT_ROOT 와 같은 값)
@@ -56,6 +99,9 @@ function createHandlers({ agentRoot, agentModulePath }) {
         name: (p.project && p.project.name) || null,
         assetType: (p.project && p.project.assetType) || null,
         status: (p.project && p.project.status) || null,
+        // ★ 앱의 딜 키를 함께 낸다 — 앱이 자기 목록과 맞춰 볼 수 있어야 한다.
+        //   이름으로 맞추면 이름을 바꾸는 날 끊긴다 (프로젝트-연결-규칙 §3)
+        externalId: (p.project && p.project.externalId) || null,
       }));
       return { status: 200, body: { projects: rows } };
     },
@@ -219,6 +265,19 @@ function createHandlers({ agentRoot, agentModulePath }) {
  *   const { createRouter } = require('./im-agent/ui/api-router');
  *   app.use('/api/linkpilot', createRouter({ agentRoot: '/volume1/linkpilot/im-projects' }));
  */
+/**
+ * 읽기 라우트 — **표가 단일 출처다** (`ui/routes.cjs` 참조).
+ * NAS 서버가 이 배열을 그대로 걸 수 있어야 한다. 손으로 옮기면 갈린다.
+ */
+const ROUTES = [
+  { method: 'GET', path: '/intake', handler: 'intake', call: h => h.intake() },
+  { method: 'GET', path: '/fields', handler: 'fields', call: h => h.fields() },
+  { method: 'GET', path: '/projects', handler: 'projects', call: h => h.projects() },
+  { method: 'GET', path: '/projects/:id/control-tower', handler: 'controlTower', call: (h, req, p) => h.controlTower(p.id) },
+  { method: 'GET', path: '/projects/:id/lineage/:key', handler: 'lineage', call: (h, req, p) => h.lineage(p.id, p.key) },
+  { method: 'GET', path: '/projects/:id/impact/:key', handler: 'impact', call: (h, req, p) => h.impact(p.id, p.key) },
+];
+
 function createRouter(deps = {}) {
   let express;
   try {
@@ -226,34 +285,11 @@ function createRouter(deps = {}) {
   } catch (_) {
     throw new Error('express 를 찾을 수 없다 — createHandlers() 를 직접 사용하라');
   }
-
-  const h = createHandlers(deps);
-  const router = express.Router();
-  const send = (res, r) => res.status(r.status).json(r.body);
-
-  router.get('/intake', async (req, res, next) => {
-    try { send(res, await h.intake()); } catch (e) { next(e); }
-  });
-  router.get('/fields', async (req, res, next) => {
-    try { send(res, await h.fields()); } catch (e) { next(e); }
-  });
-  router.get('/projects', async (req, res, next) => {
-    try { send(res, await h.projects()); } catch (e) { next(e); }
-  });
-  router.get('/projects/:id/control-tower', async (req, res, next) => {
-    try { send(res, await h.controlTower(req.params.id)); } catch (e) { next(e); }
-  });
-  router.get('/projects/:id/lineage/:key', async (req, res, next) => {
-    try { send(res, await h.lineage(req.params.id, req.params.key)); } catch (e) { next(e); }
-  });
-  router.get('/projects/:id/impact/:key', async (req, res, next) => {
-    try { send(res, await h.impact(req.params.id, req.params.key)); } catch (e) { next(e); }
-  });
-
-  return router;
+  // ★ 등록을 여기서 다시 적지 않는다 — 표를 건다 (routes.cjs)
+  return routes.mount(express.Router(), ROUTES, createHandlers(deps));
 }
 
 module.exports = {
-  createHandlers, createRouter, PROJECT_ID, DICT_KEY,
-  MAX_FILE_BYTES, MAX_REQUEST_BYTES,
+  createHandlers, createRouter, ROUTES, PROJECT_ID, DICT_KEY,
+  MAX_FILE_BYTES, MAX_REQUEST_BYTES, BASE64_OVERHEAD, MIN_BODY_BYTES,
 };

@@ -151,6 +151,12 @@ function hwpParaRecord(text) {
  * @param {string[]} paragraphs
  * @param {{compressed?:boolean}} [opt]
  */
+/**
+ * @param {string[]} paragraphs
+ * @param {{compressed?:boolean, pictures?:Buffer[]}} [opt]
+ *   pictures — 문서 안에 든 그림. 실무 파일은 이쪽이 훨씬 크다
+ *   (실측: 8.6MB 사업계획서에서 그림 58장이 8.2MB · 글자는 3,243자)
+ */
 function buildHwp(paragraphs, opt) {
   const zlib = require('zlib');
   const compressed = !opt || opt.compressed !== false;
@@ -158,10 +164,22 @@ function buildHwp(paragraphs, opt) {
   Buffer.from('HWP Document File').copy(head, 0);
   head.writeUInt32LE(compressed ? 1 : 0, 36);
   const body = Buffer.concat(paragraphs.map(hwpParaRecord));
-  return buildOle([
+  const streams = [
     { name: 'FileHeader', data: head },
     { name: 'Section0', data: compressed ? zlib.deflateRawSync(body) : body },
-  ]);
+  ];
+  // ★ 그림은 **압축하지 않고** 넣는다 — 실무 파일에서 JPEG 은 대개 그대로 들어 있다
+  ((opt && opt.pictures) || []).forEach((buf, i) => {
+    streams.push({ name: 'BIN' + String(i + 1).padStart(4, '0') + '.jpg', data: buf });
+  });
+  return buildOle(streams);
+}
+
+/** 진짜처럼 앞머리(FFD8)만 맞춘 최소 JPEG — 내용은 보지 않는다 */
+function fakeJpeg(bytes) {
+  const b = Buffer.alloc(Math.max(4, bytes || 64), 0x20);
+  b[0] = 0xFF; b[1] = 0xD8; b[b.length - 2] = 0xFF; b[b.length - 1] = 0xD9;
+  return b;
 }
 
 /** ppt TextBytesAtom / TextCharsAtom 만 담은 최소 파일 */
@@ -250,4 +268,5 @@ function buildDoc(text, opt) {
   return buildOle([{ name: 'WordDocument', data: wd }, { name: '0Table', data: table }]);
 }
 
-module.exports = { buildOle, buildHwp, buildPpt, buildXls, buildDoc, SECTOR, MINI_CUTOFF };
+module.exports = {
+  fakeJpeg, buildOle, buildHwp, buildPpt, buildXls, buildDoc, SECTOR, MINI_CUTOFF };

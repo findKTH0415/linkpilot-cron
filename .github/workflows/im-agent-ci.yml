@@ -32,8 +32,42 @@ jobs:
           node-version: '20'
       # 따옴표를 씌우지 않는다: node --test 의 자체 glob 확장은 Node 22+ 기능이라
       # Node 20 에서는 리터럴 경로로 처리되어 "Could not find" 로 죽는다. 셸이 확장하게 둔다.
+      # ★ 한글 글꼴이 없으면 브라우저가 **말없이 다른 글꼴로** 그린다 —
+      #   실제로 PDF 에 한글이 중국어 글꼴(WenQuanYiZenHei)로 박혀 있었다 (등록부 D-52).
+      #   글꼴 파일은 저장소에 넣지 않는다(4벌 약 11MB · 496파일 — 실측). 대신
+      #   **우리가 통제하는 환경에서는 설치해서 맞춘다.**
+      - name: Install Korean fonts (D-52)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-cjk
+
+      # ★★ TAP 전문은 50만 자가 넘는다. 실패 한 줄이 그 안에 묻히면
+      #   **로그를 받아 보는 쪽에서 원인을 못 찾는다** — 실제로 그랬다
+      #   (2026-08-17: 로그 도구가 뒷부분만 주는데 실패는 앞쪽에 있었다).
+      #   그래서 전문은 파일로 남기고, 실패했을 때 **실패한 것만** 다시 찍는다.
       - name: Run IM Agent tests
-        run: node --test im-agent/test/*.test.js
+        run: |
+          set -o pipefail
+          node --test im-agent/test/*.test.js 2>&1 | tee "${RUNNER_TEMP}/tap.txt"
+
+      - name: 실패한 것만 다시 (원인이 로그에 묻히지 않게)
+        if: failure()
+        run: |
+          echo "───────── 실패한 테스트 ─────────"
+          grep -n '^not ok' "${RUNNER_TEMP}/tap.txt" || echo "(not ok 줄이 없다 — 테스트 밖에서 죽었다)"
+          echo
+          echo "───────── 실패 상세 ─────────"
+          awk '/^not ok/{p=1} p{print; n++} n>28{exit}' "${RUNNER_TEMP}/tap.txt"
+          echo
+          echo "───────── 요약 ─────────"
+          grep -E '^# (tests|pass|fail|skipped)' "${RUNNER_TEMP}/tap.txt" || true
+
+      - name: TAP 전문 보관 (앞부분까지 받아 볼 수 있게)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tap-log
+          path: ${{ runner.temp }}/tap.txt
+          retention-days: 7
+
       - name: Smoke run (offline demo)
         run: |
           IM_AGENT_ROOT="${RUNNER_TEMP}/im-projects" node im-agent/cli.js demo

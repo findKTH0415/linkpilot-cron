@@ -13,6 +13,8 @@
  * 환경변수:
  *   IM_AGENT_ROOT     프로젝트 저장 루트 (기본 ./im-projects)
  *   IM_AGENT_OFFLINE  1이면 LLM 호출 없이 결정적 경로만 실행
+ *   IM_LINKED_FETCHER 연결 자료 내려받기 모듈 경로(`module.exports.fetchLinked(item)`) — 본체가 준다.
+ *                     없으면 연결 자료를 읽지 않고 그 사실을 경고로 세운다 (플랫폼-연결-지시서 §6-1)
  *   IM_AGENT_DISABLE  끌 Agent 목록 (예: "03_research")
  *   GEMINI_API_KEY    LLM 사용 시 (GitHub Secrets)
  */

@@ -116,6 +116,11 @@ const inputSchema = {
   properties: {
     projectId: { type: 'string' },
     files: { type: 'array' },
+    /** 02_Source_Data 밖에서 온 파일 — 연결 자료를 임시 폴더에 받은 것 ({name,path,size,ext,key}).
+     *  files 와 달리 **원본자료 목록에 더해서** 읽는다 (D-65). */
+    extraFiles: { type: 'array' },
+    /** 연결 자료 중 못 가져온 것 ({key,name,reason}) — 조용히 빠지지 않고 unsupported 로 선다 */
+    linkedFailed: { type: 'array' },
     useLlm: { type: 'boolean' },
   },
 };
@@ -156,7 +161,24 @@ function toText(file) {
       return { error: r.reason, ocr: r.reason, via: 'pdf' };
     }
     if (OLE_EXT.has(ext)) {
-      return { text: ole.oleText(ext, fs.readFileSync(file.path)), via: 'ole' };
+      const raw = fs.readFileSync(file.path);
+      const out = { text: ole.oleText(ext, raw), via: 'ole' };
+      /* ★★ **글자만 읽고 「읽었다」고 하지 않는다** 〈2026-08-22 실측〉.
+       *   실무 사업계획서 하나를 재 보니 8.6MB 중 **8.2MB(95%)가 그림 58장**이고
+       *   글자는 3,243자뿐이었다. 파서는 정상으로 읽었는데 **문서 내용의
+       *   대부분은 아무도 안 본 그림 안에** 있었다 — M-16 과 같은 병이다.
+       * ★ 여기서 OCR 을 부르지 않는다(키·비용). **몇 장이 남았는지 세어서
+       *   말할 뿐이다.** 세지 않으면 아무도 그것이 있는 줄 모른다. */
+      if (ext === '.hwp' && typeof ole.hwpImages === 'function') {
+        try {
+          const pics = ole.hwpImages(raw);
+          if (pics.length) {
+            out.pictures = pics.length;
+            out.pictureBytes = pics.reduce((n, x) => n + x.buf.length, 0);
+          }
+        } catch (_) { /* 그림을 못 꺼내도 본문은 읽었다 — 여기서 죽이지 않는다 */ }
+      }
+      return out;
     }
     if (ext === '.ifc') {
       // ★ STEP 원문을 글자로 넘기지 않는다. 좌표·GUID 가 수만 줄이라 별칭 추출이
@@ -372,10 +394,16 @@ ${text.slice(0, 30000)}`,
 
 async function run(input, ctx) {
   const store = require('../core/store');
-  const files = input.files || store.listSourceFiles(input.projectId);
+  const files = input.files || store.listSourceFiles(input.projectId).concat(input.extraFiles || []);
   const facts = [];
   const documents = [];
   const unsupported = [];
+  // ★ 연결 자료를 못 가져온 것은 **읽기 실패와 같은 자리**에 선다 — 값이 조용히 빠지고
+  //   문서가 멀쩡해 보이는 것이 이 시스템에서 가장 나쁜 실패다 (플랫폼-연결-지시서 §2-1)
+  for (const f of input.linkedFailed || []) {
+    unsupported.push({ name: f.name || f.key, reason: `연결 자료를 가져오지 못했습니다 — ${f.reason || '사유 없음'}` });
+    ctx.warn(`${f.name || f.key}: 연결 자료를 가져오지 못했습니다 — ${f.reason || '사유 없음'}`);
+  }
 
   for (const file of files) {
     let r = toText(file);
@@ -405,7 +433,17 @@ async function run(input, ctx) {
         count++;
       }
     });
-    documents.push({ name: file.name, chars: text.length, lines: lines.length, facts: count, via: via || 'text' });
+    const doc = { name: file.name, chars: text.length, lines: lines.length, facts: count, via: via || 'text' };
+    /* ★ 그림이 남아 있으면 **문서 옆에 적어 둔다.** 「3,243자를 읽었습니다」만
+     *   보이면 그림 58장은 없는 것이 된다 */
+    if (r.pictures) {
+      doc.pictures = r.pictures;
+      doc.pictureBytes = r.pictureBytes || 0;
+      ctx.warn(`${file.name}: 글자 ${text.length}자를 읽었습니다. `
+        + `**그림 ${r.pictures}장(${Math.round((r.pictureBytes || 0) / 1048576)}MB)은 아직 글자로 옮기지 않았습니다** `
+        + '— 도면·표 캡처가 그 안에 있으면 그 값은 들어오지 않습니다');
+    }
+    documents.push(doc);
 
     // LLM 보완: 이 문서에서 규칙이 못 찾은 필수 항목만
     if (input.useLlm !== false && !llm.isOffline()) {
@@ -421,6 +459,16 @@ async function run(input, ctx) {
   }
 
   if (!files.length) ctx.warn('02_Source_Data 에 원본자료가 없다 — 추출할 것이 없음');
+
+  // ★ 건너뛴 것을 **말한다.** 휴지통은 안 읽는 것이 맞지만, 「지웠는데도 값이
+  //   그대로다」·「올렸는데 안 읽혔다」의 원인이 여기일 때 로그가 없으면
+  //   찾을 방법이 없다. 조용히 빠지는 것이 이 시스템에서 가장 비싼 실패다.
+  if (!input.files) {
+    for (const x of store.listExcludedSourceFiles(input.projectId)) {
+      if (!x.files) continue;
+      ctx.warn(`읽지 않음: ${x.name} (${x.files}건, ${Math.round(x.size / 1024)}KB) — ${x.why}`);
+    }
+  }
 
   const avgConf = facts.length ? facts.reduce((a, f) => a + f.confidence, 0) / facts.length : 0;
   return { facts, documents, unsupported, confidence: round(avgConf, 3) };

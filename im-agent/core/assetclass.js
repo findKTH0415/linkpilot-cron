@@ -49,6 +49,23 @@
    *
    * template — `finance/templates.js` 의 id. 재무모델 기본 가정을 어디서 가져올지만 정한다.
    */
+  /**
+   * 전력계통 대조 (등록부 D-54).
+   *
+   * ★ **한 벌만 만들어 여러 곳이 참조한다.** 데이터센터·태양광·풍력이 같은 것을
+   *   묻는데 각자 베껴 두면 한쪽만 고쳐지는 날이 온다.
+   * ★ 아래 넷 중 **`grid_region` 만 조회를 부른다.** 나머지 셋은 API 로 나오지
+   *   않아 사람이 받아 적는다 — 변전소 좌표가 국가중요시설 사유로 비식별
+   *   처리되어 **거리를 계산할 방법이 없다.**
+   */
+  var GRID_CROSSCHECKS = [
+    { key: 'crosscheck.grid_region', why: '수전용량은 딜이 말하는 대로 들어온다 — 그 용량이 계통에 실제로 있는지 지금 확인할 방법이 없다. 지역을 넣으면 선로별 여유용량을 본다' },
+    { key: 'crosscheck.substation_name', why: '어느 변전소에 붙는지가 인입 경로를 정한다. **API 로는 안 나온다** — 한전 지사 사전검토 회신을 받아 적는다' },
+    { key: 'crosscheck.substation_km', why: '거리가 인입 공사의 규모를 좌우한다. 공개 자료로는 낼 수 없어 사람이 넣는 자리다' },
+    { key: 'crosscheck.substation_km_basis', why: '직선거리와 선로거리가 실무상 1.3~2배 갈린다 — 어느 쪽인지 모르는 거리는 쓸 수 없다' },
+    { key: 'crosscheck.grid_reviewed_at', why: '여유용량은 시점 스냅샷이고 접속 대기열이 실재한다. 언제 기준인지 없으면 그 여유가 지금도 있는지 모른다' },
+  ];
+
   var CLASSES = [
     {
       id: 'manufacturing', label: '제조', en: 'Manufacturing', template: 'manufacturing',
@@ -112,6 +129,87 @@
         { key: 'capacity.power_mw', why: '수전용량이 IT Load 의 상한이다. 둘이 안 맞으면 팔 수 없는 용량을 판 것이 된다' },
         { key: 'capacity.pue', why: 'PUE 가 전력 운영비를 좌우한다. 빠지면 OPEX 가 근거 없는 비율로 잡힌다' },
       ],
+      // 계통이 안 받아 주면 수전용량은 종이 위의 숫자다 (등록부 D-54)
+      crosschecks: GRID_CROSSCHECKS,
+    },
+    /**
+     * 태양광 (등록부 D-58).
+     *
+     * ★ 재무 템플릿 `solar` 는 처음부터 있었는데 **자산군이 없었다.** 그래서
+     *   태양광 딜에서는 전용 필수값이 통째로 안 떴다 — 일사량도, DC/AC 도,
+     *   이격거리도 묻지 않았다. 계통 대조만 템플릿으로 겨우 걸려 있었다(D-54).
+     * ★ **DC 와 AC 를 짝으로 받는다.** ESS 의 MWh/MW 와 같은 자리다 —
+     *   「1MW 태양광」만으로는 사업이 특정되지 않는다.
+     */
+    {
+      id: 'solar', label: '태양광', en: 'Solar PV', template: 'solar',
+      keywords: ['태양광', 'solar', 'pv', '영농형'],
+      app: { industry: '에너지·발전', sector: '태양광' },
+      requires: [
+        { key: 'capacity.dc_kw', why: '모듈 용량이 매출의 분모다' },
+        { key: 'capacity.ac_kw', why: '**DC 와 짝이다.** DC 를 AC 보다 크게 깔면 맑은 날 정오에 인버터가 잘라 낸다 — DC 용량으로 발전량을 곱해 두면 그만큼 부풀려진다' },
+        { key: 'site.solar_irradiance', why: '일사량이 발전량의 출발점이다. 여기까지만 우리가 내고 발전량은 사람이 넣는다 (D-25)' },
+        { key: 'site.land_category', why: '**REC 가중치가 부지 유형에서 갈린다.** 임야는 가장 불리하게 매겨지는데 사업계획서에는 「태양광」이라고만 적혀 온다' },
+        { key: 'legal.setback_m', why: '지자체 이격거리 조례 하나로 부지가 통째로 못 쓰게 된다 — 숫자가 아니라 성립 여부다' },
+      ],
+      // 계통이 안 받아 주면 설비용량은 종이 위의 숫자다 (D-54)
+      crosschecks: GRID_CROSSCHECKS,
+    },
+    /**
+     * ESS — **발전이 아니라 저장이다** (등록부 D-56).
+     *
+     * ★ 태양광·풍력과 받아야 할 값이 다르다. 저 둘은 자원(일사량·풍속)을 묻지만
+     *   ESS 는 자원이 없다 — 대신 **용량이 둘이고(저장·출력)**, **해마다 준다.**
+     * ★ 풍력보다 **먼저** 둔다. 「재생연계 ESS」 같은 표기에서 재생에너지
+     *   키워드가 먼저 걸리면 ESS 딜이 발전 자산군으로 잡힌다.
+     */
+    {
+      id: 'ess', label: 'ESS', en: 'Energy Storage System', template: 'ess',
+      keywords: ['ess', '에너지저장', 'bess', 'battery storage', '배터리 저장'],
+      app: { industry: '에너지·발전', sector: 'ESS' },
+      requires: [
+        { key: 'capacity.ess_mwh', why: '저장용량이 매출의 분모다' },
+        { key: 'capacity.ess_mw', why: '**저장용량과 짝이다.** 「100MWh」만으로는 사업이 특정되지 않는다 — 100MWh/100MW(1시간)와 100MWh/25MW(4시간)는 수익모델도 사업비도 다른 사업이다' },
+        { key: 'capacity.ess_degradation', why: '배터리는 해마다 준다. 빠지면 초기 용량으로 전 기간 매출이 깔리고, 매출표는 매년 같은 숫자라 멀쩡해 보인다' },
+        { key: 'revenue.ess_model', why: '무엇으로 버는 사업인지가 안 정해지면 매출의 성격 자체를 모른다 — 주파수조정·피크저감·재생연계는 정산 구조가 다르다' },
+      ],
+      // 계통이 안 받아 주면 출력용량은 종이 위의 숫자다 (D-54)
+      crosschecks: GRID_CROSSCHECKS,
+    },
+    /**
+     * 풍력 — **육상과 해상을 나눈다** (등록부 D-55).
+     *
+     * ★ 해상을 **먼저** 둔다. `detect` 는 키워드 포함으로 찾는데, 육상이 앞에
+     *   있으면 「해상풍력」이 육상으로 잡힌다.
+     * ★ 둘 다 **풍속과 허브 높이를 짝으로** 받는다. 기상청 지상관측은 10m
+     *   기준이고 허브는 80~140m다 — 높이 없는 풍속은 어느 높이의 값인지 알 수
+     *   없어 쓸 수 없다.
+     */
+    {
+      id: 'wind_offshore', label: '해상풍력', en: 'Offshore Wind', template: 'wind_offshore',
+      keywords: ['해상풍력', 'offshore wind', '부유식', 'floating wind'],
+      app: { industry: '에너지·발전', sector: '풍력', note: '앱 섹터가 육상·해상을 안 가른다 — 둘 다 「풍력」이다' },
+      requires: [
+        { key: 'capacity.wind_mw', why: '설비용량이 매출의 분모다. 터빈 기수만으로는 규모가 안 잡힌다' },
+        { key: 'site.wind_speed', why: '풍속이 발전량을 정하는데 **세제곱으로 들어간다** — 1m/s 차이가 발전량을 30% 넘게 흔든다' },
+        { key: 'site.hub_height_m', why: '풍속은 높이 없이는 뜻이 없다. 기상청 관측은 10m 기준이고 허브는 80~140m다 — 둘을 잇는 전단지수가 가정이라 우리가 메울 수 없다' },
+        { key: 'site.water_depth_m', why: '수심이 기초 공법을 정하고 기초가 해상풍력 사업비의 큰 몫이다. **REC 가중치도 수심으로 갈린다**' },
+        { key: 'site.distance_to_shore_km', why: '이안거리가 해저케이블 길이와 O&M 접근성을 정한다. 이것도 REC 가중치에 들어간다' },
+      ],
+      // 계통이 안 받아 주면 설비용량은 종이 위의 숫자다 (D-54)
+      crosschecks: GRID_CROSSCHECKS,
+    },
+    {
+      id: 'wind_onshore', label: '육상풍력', en: 'Onshore Wind', template: 'wind_onshore',
+      keywords: ['육상풍력', 'onshore wind', '풍력', 'wind farm'],
+      app: { industry: '에너지·발전', sector: '풍력', note: '앱 섹터가 육상·해상을 안 가른다 — 이 조합만으로는 자산군이 안 갈린다' },
+      requires: [
+        { key: 'capacity.wind_mw', why: '설비용량이 매출의 분모다. 터빈 기수만으로는 규모가 안 잡힌다' },
+        { key: 'site.wind_speed', why: '풍속이 발전량을 정하는데 **세제곱으로 들어간다** — 1m/s 차이가 발전량을 30% 넘게 흔든다' },
+        { key: 'site.hub_height_m', why: '풍속은 높이 없이는 뜻이 없다. 기상청 관측은 10m 기준이고 허브는 80~140m다 — 둘을 잇는 전단지수가 가정이라 우리가 메울 수 없다' },
+        { key: 'land.use_districts', why: '육상풍력은 입지가 곧 성립 여부다 — 백두대간·생태자연도 1등급·풍력발전 이격거리 조례가 지역·지구로 걸린다' },
+      ],
+      crosschecks: GRID_CROSSCHECKS,
     },
     {
       id: 'officetel', label: '오피스텔', en: 'Officetel', template: 'realestate',
@@ -223,22 +321,81 @@
     return CLASSES.filter(function (c) { return c.template === t; }).map(function (c) { return c.id; });
   }
 
+  /**
+   * **재무 템플릿에 직접 붙는 대조** (등록부 D-54).
+   *
+   * ★ 왜 자산군이 아니라 템플릿에도 두는가: **자산군이 안 정해지는 경우가
+   *   정상이기 때문이다**(§4.9). 육상·해상 풍력은 앱에서 섹터가 같고, 태양광도
+   *   요청문에 「발전사업」처럼만 적혀 오면 자산군이 안 잡힌다. 그때도 재무
+   *   템플릿은 정해져 있어서, 여기에 없으면 계통 안내가 통째로 빠진다 —
+   *   정작 계통이 가장 중요한 딜에서.
+   *
+   * ★ 넷 다 자산군에도 같은 목록이 달려 있다 (`solar` 는 D-58 에서 자산군이
+   *   생겼다). **한 벌(`GRID_CROSSCHECKS`)을 양쪽이 참조**하므로 갈리지 않는다.
+   */
+  var TEMPLATE_CROSSCHECKS = {
+    solar: GRID_CROSSCHECKS,
+    datacenter: GRID_CROSSCHECKS,
+    wind_onshore: GRID_CROSSCHECKS,
+    wind_offshore: GRID_CROSSCHECKS,
+    ess: GRID_CROSSCHECKS,
+  };
+
+  function templateCrosscheckKeys(templateId) {
+    var x = TEMPLATE_CROSSCHECKS[String(templateId || '')];
+    return x ? x.map(function (r) { return r.key; }) : [];
+  }
+
+  /**
+   * 이 딜이 물어야 할 대조 전부 (자산군 + 템플릿). **중복은 한 번만.**
+   */
+  function crosschecksFor(classId, templateId) {
+    var c = BY_ID[classId];
+    var out = [];
+    var seen = {};
+    var add = function (list) {
+      (list || []).forEach(function (r) {
+        if (seen[r.key]) return;
+        seen[r.key] = true;
+        out.push(r);
+      });
+    };
+    if (c) add(c.crosschecks);
+    add(TEMPLATE_CROSSCHECKS[String(templateId || '')]);
+    // 자산군이 안 정해졌을 때 — 그 템플릿을 쓰는 자산군들의 대조를 모은다
+    if (!c) {
+      classesForTemplate(templateId).forEach(function (id) { add((BY_ID[id] || {}).crosschecks); });
+    }
+    return out;
+  }
+
   /** 이 딜이 대조값을 묻는 딜인가 (자산군이 안 정해졌으면 템플릿으로 본다) */
   function asksCrosschecks(classId, templateId) {
     if (crosscheckKeys(classId).length) return true;
+    if (templateCrosscheckKeys(templateId).length) return true;
     return classesForTemplate(templateId).some(function (id) { return crosscheckKeys(id).length > 0; });
   }
 
-  /** 그 값을 왜 묻는지. 화면이 그대로 보여 준다 (필수·대조 양쪽을 본다) */
-  function whyOf(id, key) {
+  /**
+   * 그 값을 왜 묻는지. 화면이 그대로 보여 준다 (필수·대조 양쪽을 본다).
+   *
+   * ★ `templateId` 를 주면 **템플릿에만 붙은 대조**도 찾는다 — 안 주면 태양광
+   *   딜에서 이유가 빈칸으로 뜬다.
+   */
+  function whyOf(id, key, templateId) {
     var c = BY_ID[id];
-    if (!c) return null;
-    for (var i = 0; i < c.requires.length; i++) {
-      if (c.requires[i].key === key) return c.requires[i].why;
+    if (c) {
+      for (var i = 0; i < c.requires.length; i++) {
+        if (c.requires[i].key === key) return c.requires[i].why;
+      }
+      var x = c.crosschecks || [];
+      for (var j = 0; j < x.length; j++) {
+        if (x[j].key === key) return x[j].why;
+      }
     }
-    var x = c.crosschecks || [];
-    for (var j = 0; j < x.length; j++) {
-      if (x[j].key === key) return x[j].why;
+    var t = TEMPLATE_CROSSCHECKS[String(templateId || '')] || [];
+    for (var k = 0; k < t.length; k++) {
+      if (t[k].key === key) return t[k].why;
     }
     return null;
   }
@@ -292,9 +449,42 @@
   function detect(text) {
     var t = String(text || '').toLowerCase();
     if (!t.trim()) return { id: null, candidates: [], reason: '문장이 비어 있습니다' };
-    var hit = CLASSES.filter(function (c) {
-      return c.keywords.some(function (k) { return t.indexOf(String(k).toLowerCase()) !== -1; });
-    }).map(function (c) { return c.id; });
+    // 어느 말에 걸렸는지까지 들고 있는다 — 아래에서 **더 구체적인 쪽**을 고른다
+    var matches = [];
+    CLASSES.forEach(function (c) {
+      var words = c.keywords.filter(function (k) { return t.indexOf(String(k).toLowerCase()) !== -1; });
+      if (words.length) matches.push({ id: c.id, words: words });
+    });
+    var hit = matches.map(function (m) { return m.id; });
+
+    /**
+     * ★ **한쪽 말이 다른 쪽 말에 통째로 들어 있으면 긴 쪽이 이긴다** (2026-08-16).
+     *
+     *   「해상풍력」은 안에 「풍력」을 담고 있어 육상·해상이 **둘 다** 걸렸다.
+     *   그러면 「여러 자산군이 함께 읽힙니다」가 떠서 사람이 고르게 되는데,
+     *   **고를 것이 없다** — 해상풍력은 해상풍력이다. 그렇게 자산군이 null 로
+     *   남으면 전용 필수값(수심·이안거리)이 화면에서 통째로 빠진다.
+     *
+     *   진짜 모호한 경우(「주상복합 아파트」처럼 **서로 다른 말**이 함께 나온
+     *   경우)는 그대로 후보로 남는다 — 포함 관계가 아니기 때문이다.
+     */
+    if (matches.length > 1) {
+      var survivors = matches.filter(function (m) {
+        return !matches.some(function (other) {
+          if (other.id === m.id) return false;
+          // 상대의 어떤 말이 내 말을 **포함**하면, 내 쪽은 덜 구체적이다
+          return other.words.some(function (ow) {
+            return m.words.some(function (mw) {
+              return ow.length > mw.length && ow.indexOf(mw) !== -1;
+            });
+          });
+        });
+      });
+      if (survivors.length === 1) {
+        return { id: survivors[0].id, candidates: [survivors[0].id], reason: null };
+      }
+      hit = survivors.length ? survivors.map(function (m) { return m.id; }) : hit;
+    }
 
     if (hit.length === 1) return { id: hit[0], candidates: hit, reason: null };
     if (hit.length > 1) {
@@ -337,7 +527,9 @@
 
   return {
     CLASSES: CLASSES,
+    GRID_CROSSCHECKS: GRID_CROSSCHECKS, TEMPLATE_CROSSCHECKS: TEMPLATE_CROSSCHECKS,
     requiredKeys: requiredKeys, crosscheckKeys: crosscheckKeys,
+    templateCrosscheckKeys: templateCrosscheckKeys, crosschecksFor: crosschecksFor,
     classesForTemplate: classesForTemplate, asksCrosschecks: asksCrosschecks,
     whyOf: whyOf, templateOf: templateOf, fromApp: fromApp,
     detect: detect, classKeys: classKeys,

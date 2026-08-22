@@ -18,30 +18,16 @@
   ★ 카드정보를 이 화면에서 받지 않는다. billingUrl 의 결제 페이지로 보낸다.
   ★ 멤버십 정보가 없으면 '무료'로 단정하지 않고 '확인 필요'로 표시한다.
 -->
+<link rel="stylesheet" href="tokens.css">
 <style>
 :root {
-  --lime: #9ED700;
-  --lime-soft: #EDF7DC;
-  --lime-deep: #5C7A00;
-  --ink: #17181A;
-  --ink2: #7C838C;
-  --line: #E8EAEC;
-  --panel: #F1F2F4;
-  --bg: #F5F6F8;
-  --surface: #FFFFFF;
-  --bad: #E03131;
-  --bad-soft: #FDECEC;
-  --bad-ink: #8F1D1D;
-  --warn: #E8A33D;
-  --r: 18px;
   --side: 248px;
 }
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 body {
   margin: 0; background: var(--bg); color: var(--ink);
-  font: 400 15px/1.55 -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
-        'Malgun Gothic', '맑은 고딕', Arial, sans-serif;
+  font: 400 15px/1.55 var(--lp-font);
   -webkit-font-smoothing: antialiased;
 }
 h1,h2,h3,h4 { margin: 0; }
@@ -106,7 +92,7 @@ ul { margin: 0; padding: 0; list-style: none; }
 
 .tabs { display: flex; gap: 10px; margin: 14px 0 0; padding-bottom: 14px; flex-wrap: wrap; }
 .tab {
-  font: 700 14px/1 inherit; padding: 13px 26px; border: 0; border-radius: 12px;
+  font-weight: 700; font-size: 14px; line-height: 1; font-family: inherit; padding: 13px 26px; border: 0; border-radius: 12px;
   background: var(--panel); color: var(--ink2); cursor: pointer;
 }
 .tab.on { background: var(--lime); color: var(--ink); }
@@ -168,7 +154,7 @@ ul { margin: 0; padding: 0; list-style: none; }
 .plan__l li::before { content: ''; position: absolute; left: 2px; top: 13px;
   width: 6px; height: 6px; border-radius: 50%; background: var(--lime); }
 .btn { display: block; width: 100%; margin-top: 18px; padding: 14px;
-  font: 700 14.5px/1 inherit; border: 0; border-radius: 12px;
+  font-weight: 700; font-size: 14.5px; line-height: 1; font-family: inherit; border: 0; border-radius: 12px;
   background: var(--lime); color: var(--ink); cursor: pointer; }
 .btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .btn--off { background: var(--panel); color: var(--ink2); cursor: default; }

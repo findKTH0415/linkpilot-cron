@@ -18,6 +18,7 @@ im-agent/ui/platform/preview.html
 # 검사할 수 없는 산출물을 커밋하면 소스와 갈려도 아무도 눈치채지 못한다
 im-agent/ui/platform/section-static.html
 im-agent/ui/platform/section-artifact.html
+im-agent/ui/platform/files-artifact.html
 
 # 현황 대시보드 조각 — npm run im:dashboard 로 언제든 다시 만든다.
 # 재생성 결과를 고정하는 검사가 없어, 커밋하면 소스와 갈려도 눈치채지 못한다
@@ -28,3 +29,13 @@ v-*.html
 
 # 결과 미리보기 — 표본 딜 IM 본문이 통째로 들어간다. 필요할 때 npm run im:result 로 만든다
 im-agent/ui/platform/result.html
+
+# 글꼴 파일 — **커밋하지 않는다** (등록부 D-52).
+# Noto Sans/Serif KR 한글 서브셋은 4벌 약 11MB · 496파일이다(2026-08-16 실측).
+# 공개 저장소에 넣을 크기가 아니라 렌더 환경에서 맞춘다:
+#   · CI  — 워크플로가 fonts-noto-cjk 를 설치한다
+#   · NAS — 시스템에 설치하거나 여기에 NotoSansKR-400.woff2 처럼 넣는다
+# 파일을 넣으면 core/fonts.js 가 @font-face 로 문서에 박는다.
+fonts/
+im-agent/ui/platform/files-live.html
+im-agent/ui/platform/files-inline.html

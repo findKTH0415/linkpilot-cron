@@ -1,0 +1,3023 @@
+<!doctype html>
+<html lang="ko" data-lp-build="3f9e0360">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>자료 업로드 · LINKPILOT</title>
+<!--
+  자료 업로드 — 보고서에 쓸 자료를 넣는 곳. 세 번째 탭 (2026-08-18).
+
+  ★★ **탭 이름은 「자료 업로드」지만 하는 일은 셋이고, 그중 둘은 업로드가 아니다.**
+    ① LinkPilot 프로젝트에서 가져오기  앱 딜이 가진 것을 끌어온다 (2026-08-21)
+    ② 폴더를 연결해서                  **사본을 안 만든다.** 읽을 때만 잠깐 가져와 버린다
+    ③ 파일업로드                       읽고 **바로 버린다**(1회성). 다시 못 쓴다
+    ★ 셋 다 무료다. 그래서 **「무료」 배지를 화면에 안 그린다** 〈2026-08-22〉 —
+      셋에 다 붙으면 아무것도 가르지 못하고 눈만 잡는다. `free`·`plan` 은 그대로다.
+    ※ 「올려서 보관」(Pro)은 2026-08-20 에 화면에서 뺐다. 서버 API 는 그대로 있다
+    ②를 업로드로 읽으면 사본이 우리 쪽에 남는 줄 안다 — 그 오해를 막으려고
+    만든 것이 ② 다(D-65). 그래서 **화면이 셋의 차이를 먼저 말한다.**
+
+  ★ 무엇이 붙어 있고 무엇이 아직인지는 **서버가 말한다.** 화면이 짐작하지 않는다.
+    연결·1회성은 본체가 함수를 넘겨야 열리고, 안 넘어왔으면 서버가 501 과 함께
+    **사람이 읽을 문장**을 준다 (플랫폼-연결-지시서 §2).
+
+  ★★ **501 을 오류로 그리지 않는다.** 빨간 「서버 오류」로 뜨면 고장으로 읽혀
+    문의가 온다. 「아직 안 붙었습니다」와 「무엇을 하면 열립니다」로 그린다 —
+    닫혀 있는 것은 사실이고, 그 이유가 사용자 잘못이 아니기 때문이다.
+
+  ★ 목록·한도·제공자는 **전부 서버 응답에서 온다.** 화면에 적어 두면
+    한도가 바뀌는 날 화면만 옛말을 한다.
+
+  붙이는 법은 window.LINKPILOT_FILES 만 채운다. 다른 곳에 값을 박지 않는다.
+-->
+<script>
+/* ★★ **오래 걸리면 말한다** 〈2026-08-21〉. 뼈대만 두고 끝나면 그것도 흰 화면과
+ *   다를 바 없다 — 「채워지는 중」이 영원히 채워지지 않는 것을 사용자가 알
+ *   방법이 없기 때문이다. 뼈대가 그대로 남아 있으면 무엇을 해야 하는지 적는다.
+ *   ★ 화면이 떴으면 `#boot` 이 통째로 사라지므로 이 글은 나오지 않는다. */
+(function () {
+  setTimeout(function () {
+    var w = document.getElementById('lp-boot-why');
+    if (!w || !document.getElementById('lp-boot')) return;
+    w.hidden = false;
+    w.textContent = '아직 화면이 안 떴습니다. 연결이 느리거나 화면 파일을 못 받은 것입니다 — '
+      + '새로고침해 보시고, 그래도 그대로면 알려 주십시오.';
+  }, 8000);
+})();
+</script>
+<link rel="stylesheet" href="tokens.css">
+<style>
+/* 색·간격·반경 토큰은 tokens.css 하나가 정한다 (LinkPilot Design System v1.1) */
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 400 15px/1.55 var(--lp-font);
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3 { margin: 0; }
+ul { margin: 0; padding: 0; list-style: none; }
+.wrap { max-width: 900px; margin: 0 auto; padding: 22px 20px 60px; }
+h1 { font-size: 22px; font-weight: 800; letter-spacing: -.01em; margin-bottom: 14px; }
+
+.card { background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r); padding: 18px 20px; margin-bottom: 14px; }
+.card__t { font-size: 16px; font-weight: 800; }
+.card__d { font-size: 13px; color: var(--ink2); margin: 5px 0 0; line-height: 1.65; }
+
+/* ── 번호 붙은 칸 — **어디까지가 모으는 일이고 어디부터가 읽는 일인가**
+   〈2026-08-21 사용자 지시 — 「1번 … 2번 … 재구성해줘」〉
+
+   ★★ 사용자가 화면을 찍어 손으로 상자를 그리고 「여기가 1번, 여기가 2번」이라고
+     알려 줬다. 그 말이 화면에 없었다는 뜻이다. 앞 판은 드롭 자리·목록·단추가
+     이름 없이 이어졌고, 그 아래 「자료 스캔」이 또 이어져서 **두 일이 한 덩어리로**
+     보였다. 번호와 이름을 주면 둘이 갈라지고, 같은 꼴을 쓰면 한 줄기로 이어진다.
+   ★ 번호는 동그라미가 아니라 **네모**다. 동그라미는 이 화면에서 이미
+     진행 그래프의 점(`.fx__dot`)이 쓰고 있다 — 같은 모양이면 진행 상태로 읽힌다. */
+.sub { margin-top: 18px; }
+.sub__h { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; }
+.sub__n { flex: 0 0 auto; width: 22px; height: 22px; border-radius: 7px;
+  background: var(--lime); color: var(--ink); font-size: 12.5px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center; margin-top: 1px; }
+.sub__t { font-size: 15px; font-weight: 800; }
+.sub__d { font-size: 12.5px; color: var(--ink2); margin-top: 3px; line-height: 1.6; }
+
+/* ── 프로젝트 고르기 — **가로 폭을 다 쓴다** 〈2026-08-21 사용자 지시〉 ──
+   ★★ 이름이 긴 프로젝트가 실제로 있다. 좁은 칸에 두면 **세 줄로 접히고**,
+     모바일 기본 고르기 창은 그 접힘을 우리가 손댈 수 없다(브라우저가 그린다).
+     그래서 ① 칸을 넓게 쓰고 ② 글씨를 화면 폭에 맞추고 ③ **이름 자체를 줄인다.**
+     셋을 다 해야 한다 — CSS 만으로는 모바일에서 안 먹는다. */
+.pick { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.pick label { flex: 0 0 auto; font-weight: 700; font-size: 12px; line-height: 1; font-family: inherit; color: var(--ink2);
+  letter-spacing: .06em; text-transform: uppercase; }
+select {
+  /* 남는 폭을 전부 가져간다. `min-width:240px` 만 두면 좁은 화면에서 넘친다 */
+  flex: 1 1 240px;
+  width: 100%; max-width: 100%; min-width: 0;
+  /* 화면이 좁으면 글씨도 같이 줄인다 — 큰 글씨 + 긴 이름이 접힘의 원인이다 */
+  font-weight: 400; font-size: clamp(13px, 3.6vw, 15px); line-height: 1.3; font-family: inherit;
+  padding: 10px 11px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  /* 넘치는 글자는 말줄임으로 — 창을 밀어내지 않는다 */
+  text-overflow: ellipsis;
+}
+/* 아주 좁으면 라벨을 위로 올리고 칸이 한 줄을 다 쓴다 */
+@media (max-width: 560px) {
+  .pick { flex-direction: column; align-items: stretch; gap: 6px; }
+  .pick label { letter-spacing: .04em; }
+  /* ★★ **`flex-basis` 를 반드시 되돌린다** 〈2026-08-21 실측으로 잡음〉.
+     위에서 준 `flex: 1 1 240px` 의 240px 는 **주축 방향** 크기다. 가로로 놓였을
+     때는 너비였는데, 여기서 세로로 바꾸는 순간 그것이 **높이**가 된다 —
+     고르기 칸 하나가 세로 240px 로 부풀었다.
+     오류는 안 난다. 넓은 화면에서는 멀쩡하고 **좁은 화면에서만** 그런다. */
+  .pick select { flex: 0 0 auto; }
+  /* ★ 좁은 화면일수록 답답하다 — 손가락이 닿는 곳이라 더 그렇다 (2026-08-21) */
+  .pick { gap: 8px; }
+}
+select:focus-visible, button:focus-visible { outline: 2px solid var(--lime-deep); outline-offset: 2px; }
+
+/* 세 갈래를 먼저 갈라 보여 준다 — 이름만 보고 다 같은 업로드로 읽지 않게 */
+.ways { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); margin-bottom: 22px; }
+.way { border: 1px solid var(--line); border-radius: 14px; padding: 16px 16px 17px; background: var(--surface); }
+.way__t { font-weight: 800; font-size: 14px; line-height: 1.4; font-family: inherit; }
+.way__k { display: inline-block; font-weight: 700; font-size: 11px; line-height: 1; font-family: inherit; border-radius: 999px;
+  padding: 4px 8px; margin-left: 6px; vertical-align: middle; }
+.way__k--free { background: var(--lime-soft); color: var(--lime-deep); }
+.way__k--pro { background: var(--panel); color: var(--ink2); }
+.way__d { font-size: 12.5px; color: var(--ink2); margin: 6px 0 0; line-height: 1.65; }
+.way__d b { color: var(--ink); }
+
+.grp { font-weight: 700; font-size: 11.5px; line-height: 1; font-family: inherit; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink2); margin: 22px 0 9px; }
+
+.row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+  border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px;
+  margin-bottom: 8px; background: var(--surface); }
+.row__b { flex: 1 1 220px; min-width: 0; }
+.row__n { font-weight: 700; font-size: 14px; line-height: 1.4; font-family: inherit; word-break: break-all; }
+.row__m { font-size: 12px; color: var(--ink2); margin-top: 3px;
+  font-variant-numeric: tabular-nums; word-break: break-all; }
+.row--gone { background: var(--panel); border-style: dashed; }
+
+.btn { font-weight: 700; font-size: 13px; line-height: 1; font-family: inherit; padding: 10px 15px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+.btn--go { background: var(--lime); border-color: var(--lime); color: var(--lp-brand-ink); }
+.btn:disabled, .btn[aria-disabled="true"] { background: var(--panel); color: var(--ink2);
+  border-color: var(--line); cursor: not-allowed; }
+
+/* 아직 안 붙은 길 — 오류가 아니라 상태다 */
+.wait { border: 1px solid #F0DEBE; background: var(--warn-soft); color: var(--warn-ink);
+  border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; }
+.wait__t { font-weight: 800; font-size: 14px; line-height: 1.45; font-family: inherit; margin-bottom: 5px; }
+.wait__d { font-size: 13px; line-height: 1.7; }
+
+.err { border: 1px solid #F3C6C6; background: var(--bad-soft); color: var(--bad-ink);
+  border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; font-size: 13.5px; line-height: 1.7; }
+.empty { font-size: 13.5px; color: var(--ink2); padding: 6px 0; }
+.note { font-size: 12.5px; color: var(--ink2); margin-top: 9px; line-height: 1.7; }
+.note b { color: var(--ink); }
+
+/* 한도 표기 — **늘 보인다** 〈2026-08-22 사용자 지시〉.
+   ★ 숫자를 문장에 숨기지 않는다 (§6-3 ②). 딱지는 작게, 값은 크게, 세로를 맞춘다.
+   ★ 라임으로 면을 채우지 않는다 (§6-3) — 테두리와 활자로만 세운다. 빨강은
+     넘었을 때 **한 칸에만** 쓴다 (대비는 한 곳에). */
+.lim { margin-top: 10px; border: 1px solid var(--line); border-radius: 12px;
+  padding: 10px 12px; background: var(--surface); }
+.lim__r { display: flex; flex-wrap: wrap; gap: 8px 26px; }
+.lim__c { display: flex; flex-direction: column; gap: 2px; }
+.lim__l { font-size: 11.5px; color: var(--ink2); letter-spacing: .01em; }
+.lim__v { font-size: 17px; font-weight: 700; color: var(--ink);
+  font-variant-numeric: tabular-nums; line-height: 1.15; }
+.lim__c--bad .lim__v { color: var(--bad, #c00000); }
+.lim__n { font-size: 12px; color: var(--ink2); margin-top: 8px; line-height: 1.6; }
+/* 판 지문 — 고치는 사람을 위한 값이다. 작고 흐리게 둔다 */
+.lim__b { font-size: 10.5px; color: var(--ink2); opacity: .6; margin-top: 8px;
+  font-variant-numeric: tabular-nums; letter-spacing: .04em; }
+
+.drop { border: 2px dashed var(--line); border-radius: 14px; padding: 22px 16px;
+  text-align: center; background: var(--panel); cursor: pointer; }
+.drop:focus-visible { outline: 2px solid var(--lime-deep); outline-offset: 2px; }
+.drop__t { font-weight: 700; font-size: 14.5px; line-height: 1.4; font-family: inherit; }
+.drop__s { font-size: 12.5px; color: var(--ink2); margin-top: 6px; }
+.drop input { display: none; }
+.drop.over { border-color: var(--lime); background: var(--lime-soft); }
+
+/* 갈래 고르기 — 세 장을 나란히 두고 **고를 수 있게** 한다 (전에는 설명만이었다) */
+/* ── 셋과 고르기를 **테두리 하나 안에** 〈2026-08-22 사용자 지시 —
+     「데스크탑에서도 라인을 구분하지 말고 하나로 통합, 선택고르기를 하나의
+     통합된 박스라인 안에」〉 ──
+   ★★ 이 자리는 판이 네 번 바뀌었다 (files.html 의 `WAY_ROWS` 주석 참고).
+     전 판은 칸마다 테두리가 있고 고르기 칸이 **또 하나의 테두리**로 아래에
+     붙었다. 테두리가 둘이면 고르기가 갈래에 **딸린 것**인지 **다음 단계**인지가
+     갈린다 — 실제로 사용자가 「넣어주기」로 그 선을 지워 달라고 했다.
+   ★★ 그래서 **테두리는 바깥 상자(`.pickway`) 하나만** 남긴다. 안쪽 칸들은
+     테두리를 갖지 않고, 고른 칸과 고르기 칸이 **같은 바탕색으로 이어진다.**
+   ★ 칸 사이 실선은 **고른 칸에 닿는 쪽만 지운다.** 전부 지우면 안 고른 두 칸이
+     한 덩어리 글자로 뭉쳐 어디까지가 한 칸인지 안 보인다.
+   ★ `auto-fit` 으로 되돌아가지는 **않는다.** 그것이 첫 판의 문제였다 — 창 너비에
+     따라 2+1 도 되고 1+1+1 도 되어서 어느 것이 한 벌인지가 그때그때 달라졌다.
+     **열은 셋으로 고정**하고, 좁아지면 흘리지 말고 **세로로 세운다.**
+   ★ 고른 갈래의 칸(`.wayin`)은 여전히 토글 **아래**에서 열린다. 토글 안(=버튼
+     안)에 끼우면 셋의 키가 어긋나고, 무엇보다 `<select>` 는 `<button>` 안에서
+     열리지 않는다. 상자를 하나로 만드는 것으로 「안에 있음」을 보인다. */
+.pickway { display: grid; gap: 0; overflow: hidden;
+  border: 1px solid var(--line); border-radius: 14px;
+  background: var(--surface); margin-bottom: 20px; }
+.pwrow { display: grid; gap: 0; grid-template-columns: repeat(3, 1fr); align-items: stretch; }
+/* ── 좁으면 **세로로 세우고, 고르기 칸을 고른 칸 바로 밑으로 옮긴다** ──
+   ★ 셋을 억지로 밀어 넣으면 글자가 두세 줄로 접혀 키가 제각각이 된다.
+   ★★ 그런데 세로로 세우기만 하면 **고른 칸과 고르기 칸 사이에 나머지 두 칸이
+     끼어든다.** 초록 · 흰 · 흰 · 초록 이 되어, 넓은 화면에서는 붙어 있던 둘이
+     휴대폰에서만 갈린다. 실측 218px 이었다.
+   ★ 그래서 줄(`.pwrow`)을 **투명하게 만들어**(`display: contents`) 네 칸을
+     상자의 직계 칸으로 세우고, `order` 로 고르기 칸을 고른 칸 뒤에 꽂는다.
+     DOM 은 그대로 둔다 — 넓은 화면의 3열 배치가 그것에 기대고 있다. */
+@media (max-width: 620px) {
+  .pickway { grid-template-columns: 1fr; }
+  .pwrow { display: contents; }
+  .pwrow .pw:nth-child(1) { order: 0; }
+  .pwrow .pw:nth-child(2) { order: 2; }
+  .pwrow .pw:nth-child(3) { order: 4; }
+  .pickway--app .wayin { order: 1; }
+  .pickway--linked .wayin { order: 3; }
+  .pickway--oneshot .wayin { order: 5; }
+}
+/* 고른 갈래의 칸이 들어올 자리. 안 쓰면 지운다 — 빈 자리도 여백이 된다 */
+.pwslot { display: none; }
+.pw { text-align: left; font: inherit; cursor: pointer; background: transparent;
+  border: 0; border-radius: 0; padding: 14px 15px; }
+/* 칸 사이 실선 — 테두리가 아니라 **상자 안쪽 칸막이**다 (가로: 왼쪽 / 세로: 위쪽) */
+.pw + .pw { box-shadow: inset 1px 0 0 var(--line); }
+@media (max-width: 620px) { .pw + .pw { box-shadow: inset 0 1px 0 var(--line); } }
+.pw:hover:not(:disabled):not(.on) { background: var(--panel); }
+.pw.on { background: var(--lime-soft); }
+/* ★ 칸막이는 고른 칸에도 그대로 둔다. 그것은 **칸과 칸 사이**를 나누는 선이라
+   고른 칸과 **아래** 고르기 칸의 이어짐을 끊지 않는다. 지웠더니 안 고른 두 칸이
+   한 덩어리 글자로 뭉쳐 어디까지가 한 칸인지가 안 보였다 */
+.pw:disabled { cursor: not-allowed; background: var(--panel); color: var(--ink2); }
+
+/* ── 고른 갈래에 **이어 붙은 칸** 〈2026-08-21 사용자 지시 — 고르기를 갈래로 이동배치〉 ──
+   ★★ 고르기를 갈래 안으로 옮겼는데, 그냥 아래에 두니 **갈래에 속한 것으로 안 보였다.**
+     자리는 맞고 눈에는 안 맞는 상태다 — 사용자는 「옮겨졌나?」를 화면으로 확인할 수
+     없다. 그래서 고른 갈래와 **같은 색으로 칠하고 위쪽을 붙여** 한 덩어리로 보이게 한다.
+   ★ 갈래 칸(.pw.on)과 같은 테두리·바탕을 쓴다. 색을 여기서 새로 정하면
+     갈래 색을 바꾸는 날 둘이 갈린다 — 토큰 하나를 같이 본다. */
+/* ★ 여백 〈2026-08-21 사용자 지시 — 「위아래 여백을 넉넉히」〉
+   ★★ 전 판의 **위쪽 `-6px`** 는 없앴다 〈2026-08-22〉. 그것은 테두리가 둘일 때
+     둘을 겹쳐 붙이던 이음매였는데, 지금은 테두리가 **바깥 상자 하나**뿐이라
+     겹칠 것이 없다. 이어져 보이는 것은 **같은 바탕색**이 맡는다.
+   ★ 아래 여백은 `.pickway` 로 옮겼다 — `.wayin` 에 두면 상자 안쪽에 바탕색이
+     다른 띠가 생긴다 (상자가 `overflow: hidden` 이라 밖으로 나가지 못한다). */
+/* ── 진행 미터 — 진행률과 걸린 시간 〈2026-08-22〉 ─────────────────
+   ★ 숫자를 **크게, 세로를 맞춰서** 둔다 (tabular-nums). 이 화면에서 잰 값은
+     걸린 시간 하나뿐이라 그것이 제일 커야 한다.
+   ★ 라임으로 큰 면을 채우지 않는다 (디자인 시스템 §11) — 막대만 라임이다. */
+.mtr { margin-top: 12px; padding: 13px 14px 14px; border-radius: 12px;
+  background: var(--panel); }
+.mtr__h { display: flex; align-items: baseline; justify-content: space-between;
+  gap: 12px; margin-bottom: 9px; }
+.mtr__pct { font-size: 25px; font-weight: 800; letter-spacing: -.03em;
+  font-variant-numeric: tabular-nums; line-height: 1; }
+.mtr__r { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+  justify-content: flex-end; }
+.mtr__t { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.mtr__s { font-size: 12px; color: var(--ink2); }
+.mtr__bar { height: 7px; border-radius: 999px; background: var(--surface);
+  overflow: hidden; box-shadow: inset 0 0 0 1px var(--line); }
+.mtr__bar i { display: block; height: 100%; border-radius: 999px;
+  background: var(--lime); transition: width .25s linear; }
+.mtr--done .mtr__bar i { background: var(--lime-deep); }
+.mtr__n { font-size: 11.5px; color: var(--ink2); margin: 9px 0 0; line-height: 1.6; }
+@media (prefers-reduced-motion: reduce) { .mtr__bar i { transition: none; } }
+
+.wayin { margin: 0; padding: 18px 16px 20px;
+  border: 0; border-radius: 0; background: var(--lime-soft); }
+.wayin .pick { margin-top: 0; }
+/* ★ 안내 한 줄이 고르기 칸에 붙어 있었다 — 한 숨 띄운다 */
+.wayin > .note { margin-top: 13px; margin-bottom: 0; }
+
+/* ★★ **좁은 화면 규칙은 기본 규칙 「뒤」에 둔다** 〈2026-08-21 · 재서 잡았다〉.
+   앞쪽 미디어 블록에 적었더니 **아래의 기본 규칙이 그대로 덮어썼다** — 힘이
+   같으면 나중에 쓴 것이 이긴다. 화면은 멀쩡히 뜨고 오류도 없어서, 재 보기
+   전에는 「적용됐다」와 구분되지 않았다. (실측: 22px 를 줬는데 20px 이 나왔다) */
+@media (max-width: 560px) {
+  .ways { gap: 12px; }
+  .wayin { padding: 18px 15px 22px; }
+  .pickway { margin-bottom: 22px; }
+}
+.pw__t { font-weight: 800; font-size: 14.5px; }
+.pw__d { font-size: 12.5px; color: var(--ink2); margin-top: 6px; line-height: 1.6; }
+
+.up { margin-top: 12px; padding: 13px 15px; border-radius: 14px;
+  border: 1px solid var(--line); background: var(--surface); }
+.up--done { border-color: var(--lime); background: var(--lime-soft); }
+.up--error { border-color: var(--bad); background: var(--bad-soft); }
+.up__h { display: flex; align-items: baseline; gap: 10px; }
+.up__h b { font-size: 14.5px; }
+.up__v { margin-left: auto; font-size: 17px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.up__v--none { font-size: 13.5px; font-weight: 400; color: var(--ink2); }
+.up__bar { height: 10px; border-radius: 999px; background: #E1E4E8; margin: 10px 0 8px; overflow: hidden; }
+.up__bar i { display: block; height: 100%; background: var(--lime); border-radius: 999px; }
+.up__bar--none { background: repeating-linear-gradient(135deg, #E1E4E8 0 5px, #F3F4F6 5px 10px); }
+.up__d { margin: 0; font-size: 12.5px; color: var(--ink2); line-height: 1.65; }
+.up--error .up__d { color: var(--bad-ink); }
+/* 「올렸습니다」 안에 섞인 **나쁜 소식**. 초록 칸 안에서도 눈에 걸려야 한다 */
+.up__d--bad { color: var(--bad-ink); font-weight: 700; }
+
+/* ── 이관 칸 — **떠나는 일**이라 머무는 칸과 색을 달리한다 〈2026-08-22〉 ──
+   ★ 라임으로 채우지 않는다. 큰 면을 브랜드색으로 채우지 않는 것이 이 시스템의
+     규칙이고(§11), 여기서 채우면 「완료」로 읽혀 넘어간다는 뜻이 흐려진다. */
+.card--handoff { border-color: var(--lime); }
+.hand__b { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 14px; }
+.hand__b .btn { margin-top: 0; }
+.hand__b .btn2 { padding: 12px 18px; font-size: 13.5px; }
+.btn { padding: 12px 22px; font-weight: 700; font-size: 14px; line-height: 1; font-family: inherit; border: 0; border-radius: 12px;
+  background: var(--lime); color: var(--ink); cursor: pointer; margin-top: 12px; }
+.btn:disabled { background: var(--panel); color: var(--ink2); cursor: not-allowed; }
+
+/* ── 활동 그래프 — 올리는 동안 **어디까지 갔는지** 보여 준다 ─────────
+   ★ 막대 하나만 있으면 「멈춘 것 같은데 어디서 멈췄나」에 답할 수 없다.
+     보내는 중과 서버가 읽는 중은 걸리는 이유가 다르다 — 앞은 회선, 뒤는 파일.
+   ★ 움직임을 싫어하는 설정(prefers-reduced-motion)에서는 **색으로만** 말한다. */
+.fx { margin-top: 12px; border: 1px solid var(--line); border-radius: 14px;
+  background: var(--surface); padding: 15px 16px 11px; }
+.fx--done { border-color: var(--lime); background: var(--lime-soft); }
+.fx--dead { border-color: var(--bad); background: var(--bad-soft); }
+.fx__g { display: flex; align-items: flex-start; }
+.fx__n { flex: 0 0 auto; width: 76px; text-align: center; }
+.fx__dot { position: relative; width: 30px; height: 30px; margin: 0 auto 7px;
+  border-radius: 50%; border: 2px solid var(--line); background: var(--surface); }
+.fx__dot::after { content: ''; position: absolute; inset: 7px; border-radius: 50%;
+  background: transparent; transition: background .2s; }
+.fx__n--done .fx__dot { border-color: var(--lime); }
+.fx__n--done .fx__dot::after { background: var(--lime); }
+.fx__n--now .fx__dot { border-color: var(--lime); animation: fxPulse 1.2s ease-in-out infinite; }
+.fx__n--now .fx__dot::after { background: var(--lime); }
+.fx__n--dead .fx__dot { border-color: var(--bad); }
+.fx__n--dead .fx__dot::after { background: var(--bad); }
+.fx__t { font-size: 11.5px; color: var(--ink2); line-height: 1.35; word-break: keep-all; }
+.fx__n--now .fx__t, .fx__n--done .fx__t { color: var(--ink); font-weight: 700; }
+.fx__n--dead .fx__t { color: var(--bad-ink); font-weight: 700; }
+.fx__l { position: relative; flex: 1 1 auto; height: 3px; margin-top: 15px;
+  border-radius: 3px; background: var(--line); overflow: hidden; }
+.fx__l--past { background: var(--lime); }
+.fx__l--dead { background: var(--bad); }
+.fx__l i { position: absolute; top: 0; bottom: 0; left: 0; width: 45%;
+  background: linear-gradient(90deg, transparent, var(--lime), transparent); }
+.fx__l--run i { animation: fxRun 1.05s linear infinite; }
+@keyframes fxRun { from { transform: translateX(-110%); } to { transform: translateX(240%); } }
+@keyframes fxPulse { 0%, 100% { box-shadow: 0 0 0 0 var(--lime-soft); }
+  50% { box-shadow: 0 0 0 7px var(--lime-soft); } }
+
+/* ── 좁은 화면에서는 **세로로 세운다** 〈2026-08-21 사용자 지시〉 ──
+ *
+ * ★★ 가로로 늘어놓으면 칸이 넷일 때 마지막이 **화면 밖으로 잘린다.** 실제로
+ *   「보고서 생성으로」가 반만 보였다. 잘린 칸은 **없는 것처럼 보이므로**
+ *   사용자는 단계가 셋인 줄 안다 — 다음에 무엇이 오는지가 사라진다.
+ * ★ 줄여서 넣지 않는다. 글씨를 더 줄이면 읽히지 않고, 가로로 밀면 밀린 것을
+ *   본 사람만 안다. **세로는 아무것도 잃지 않는다.**
+ * ★★ 이 블록은 기본 규칙 **뒤에** 둔다 — 앞에 두면 힘이 같아 덮인다
+ *   (2026-08-21 실측으로 한 번 당했다).
+ */
+@media (max-width: 560px) {
+  .fx__g { flex-direction: column; align-items: stretch; }
+  /* 점과 이름을 한 줄에 — 이름을 점 아래에 두면 세로가 두 배로 길어진다 */
+  .fx__n { width: auto; text-align: left; display: flex; align-items: center; gap: 11px; }
+  .fx__dot { margin: 0; flex: 0 0 auto; }
+  .fx__t { font-size: 13px; }
+  /* 잇는 선도 세로로. 점 한가운데(30px 의 절반 − 선 두께의 절반)에 맞춘다 */
+  .fx__l { flex: 0 0 auto; width: 3px; height: 20px; margin: 3px 0 3px 13.5px; }
+  .fx__l i { left: 0; right: 0; top: 0; bottom: auto; width: auto; height: 45%;
+    background: linear-gradient(180deg, transparent, var(--lime), transparent); }
+  .fx__l--run i { animation: fxRunV 1.05s linear infinite; }
+}
+@keyframes fxRunV { from { transform: translateY(-110%); } to { transform: translateY(240%); } }
+/* 흘러온 자취 — 진행률을 **시간축으로** 그린다. 멈춘 구간이 평평하게 남는다 */
+.fx__c { margin-top: 11px; }
+.fx__c svg { display: block; width: 100%; height: 56px; }
+.fx__cap { margin: 5px 0 0; font-size: 11.5px; color: var(--ink2);
+  font-variant-numeric: tabular-nums; line-height: 1.6; }
+.fx__cap b { color: var(--ink); }
+
+/* 끌어다 놓는 동안 — **붙일 자리를 눈에 띄게** 한다 */
+.card--attach.dragover { border-color: var(--lime); box-shadow: 0 0 0 3px var(--lime-soft); }
+.card--attach.dragover .drop { border-color: var(--lime); background: var(--lime-soft); }
+
+/* 새 프로젝트 만들기 — 고르는 자리에서 바로 */
+.new { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 11px; }
+.new input { flex: 1 1 320px; min-width: 0; font-weight: 400; font-size: 14px; line-height: 1.4; font-family: inherit;
+  padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--ink); }
+.new input:focus-visible { outline: 2px solid var(--lime-deep); outline-offset: 2px; }
+.new .btn { margin-top: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fx__l--run i { animation: none; opacity: .5; }
+  .fx__n--now .fx__dot { animation: none; }
+}
+
+/* ── 원본이 그대로인가 〈2026-08-21 · D-72〉 ────────────────────────
+   폴더를 지켜보지 않기로 했으므로(토큰을 보관하지 않는다) **사람이 눌러서** 본다 */
+.chk { margin-top: 12px; }
+.chk__b { font-weight: 700; font-size: 13px; line-height: 1; font-family: inherit; padding: 10px 15px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+.chk__b:hover:not(:disabled) { border-color: var(--lime-deep); color: var(--lime-deep); }
+.chk__b:disabled { background: var(--panel); color: var(--ink2); cursor: not-allowed; }
+.chk__r { margin-top: 10px; border-radius: 14px; padding: 13px 15px;
+  border: 1px solid var(--line); background: var(--surface); }
+.chk__r--ok { border-color: var(--lime); background: var(--lime-soft); }
+.chk__r--no { border-color: #F0DEBE; background: var(--warn-soft); color: var(--warn-ink); }
+.chk__t { font-weight: 800; font-size: 13.5px; line-height: 1.45; font-family: inherit; }
+.chk__l { margin: 8px 0 0; padding: 0; list-style: none; }
+.chk__l li { font-size: 12.5px; line-height: 1.7; padding: 3px 0; word-break: break-all; }
+.chk__at { font-size: 11.5px; color: var(--ink2); margin: 8px 0 0;
+  font-variant-numeric: tabular-nums; }
+
+/* ── 같은 문서의 여러 판 — **고르는 것은 사람이다** 〈2026-08-21〉 ────── */
+.vc { border: 1px solid #F0DEBE; background: var(--warn-soft); color: var(--warn-ink);
+  border-radius: 14px; padding: 14px 16px; margin-top: 12px; }
+.vc__t { font-weight: 800; font-size: 14px; line-height: 1.45; font-family: inherit; }
+.vc__d { font-size: 12.5px; line-height: 1.7; margin: 5px 0 0; }
+.vc__g { margin-top: 11px; padding-top: 10px; border-top: 1px solid #F0DEBE; }
+.vc__n { font-weight: 700; font-size: 13px; line-height: 1.4; font-family: inherit; }
+.vc__w { font-size: 12px; margin: 3px 0 7px; }
+.vc__l { margin: 0; padding: 0; list-style: none; }
+.vc__l li { display: flex; gap: 9px; align-items: baseline; font-size: 12.5px;
+  padding: 5px 0; line-height: 1.6; }
+.vc__i { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+  width: 19px; height: 19px; border-radius: 50%; background: #F0DEBE;
+  font-weight: 700; font-size: 11px; line-height: 1; font-family: inherit; color: var(--warn-ink); }
+.vc__f { font-weight: 700; word-break: break-all; }
+.vc__b { color: var(--ink2); }
+
+/* 토큰이 안 실렸을 때의 경고는 토큰 없이도 보여야 한다 — 색을 직접 칠한다 */
+.nostyle { border: 1px solid #F3C6C6; background: #FDECEC; color: #8F1D1D;
+  border-radius: 12px; padding: 13px 15px; margin-bottom: 12px; font-size: 13.5px; line-height: 1.7; }
+</style>
+</head>
+<body>
+<div class="wrap" id="view">
+  <!-- ★★ 뼈대 — **스크립트가 돌기 전에 보이는 유일한 것**이다. 첫 그리기에서
+       `#view` 를 비우므로 저절로 없어진다. 지우지 않는다: 지우면 파일을 다 받을
+       때까지 **흰 화면**이고, 흰 화면은 느린 것과 고장난 것이 똑같이 보인다. -->
+  <div class="boot" id="lp-boot" role="status" aria-live="polite">
+    <div class="boot__t">불러오는 중…</div>
+    <div class="boot__b"></div>
+    <div class="boot__b"></div>
+    <div class="boot__b boot__b--s"></div>
+    <p class="boot__w" id="lp-boot-why" hidden></p>
+  </div>
+</div>
+
+<script src="gate-core.js"></script>
+<script src="flow-core.js"></script>
+<script src="upload-core.js"></script>
+<script src="versions-core.js"></script>
+<script>
+/**
+ * 붙이는 쪽이 채우는 유일한 값.
+ *   api      '/api/linkpilot'
+ *   session  { name, planId, status }
+ *   inTab    탭 안이면 true — 제목을 그리지 않는다 (탭 바가 이미 이름을 말한다)
+ */
+window.LINKPILOT_FILES = {
+  api: null,
+  session: null,
+  projectId: null,
+  inTab: false,
+  preload: null,
+  // 자료를 넣는 길은 **무료**다 — 유료면 Pro 를 살지 판단할 자료조차 못 넣는다
+  requiredPlan: 'free',
+  /* ── 앱 프로젝트 가져오기 (2026-08-20 요청) ──────────────────────────
+     앱(LinkPilot)에 등록된 프로젝트에서 골라 엔진 프로젝트로 잇는다.
+     appProjects  [{id, title, client, owner}]  — 앱이 자기 목록을 내려준다 (이 화면은 앱 데이터를 못 읽는다)
+     appLinks     { <앱 프로젝트 id>: <엔진 프로젝트 id> } — 이미 이어진 짝. **저장은 앱이 한다**
+     이 화면은 처음 잇는 순간 부모에게 postMessage { type:'lp-app-project-linked',
+     appProjectId, imProjectId } 로 알리고, 앱이 그 짝을 기억해 다음에 내려준다.
+     — 매핑을 여기(엔진 쪽)에 저장하면 앱 데이터의 정본이 둘이 된다. */
+  appProjects: null,
+  appLinks: null,
+  /* ── 앱에서 가져오는 자료 셋 (2026-08-20 요청) ───────────────────────
+     앱 프로젝트 하나가 들고 있는 것을 **셋으로 나눠** 받는다. 셋은 가는 곳이
+     다르고, 되돌릴 수 있는 정도도 다르다.
+
+       ① 프로젝트 내용  content  { summary, facts:[{key,value,unit,quote}], notes }
+       ② 첨부파일       files    [{ name, bytes, mime, ref, access }]
+       ③ 이미지파일     images   [{ name, bytes, mime, ref, access }]
+
+     목록(appProjects)에는 **개수만** 실어도 된다. 실제 내용은 고른 그때
+     `fetchAppProject(appId)` 로 받는다 — 딜 54건의 첨부를 처음부터 다 내려받으면
+     탭 여는 데만 한참 걸린다.
+
+       fetchAppProject: (appId) => Promise<{ content, files, images }>
+
+     `ref`·`access` 의 뜻은 pickFrom 과 **같다** (§2-1) — `ref` 는 장부에 남고
+     `access` 는 안 남는다. 같은 규칙을 두 벌로 만들지 않는다. */
+  fetchAppProject: null,
+  planNames: { free: 'Free', basic: 'Basic', pro: 'Pro', business: 'Business' },
+};
+</script>
+<!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
+<script src="embed-bridge.js" data-lp-global="LINKPILOT_FILES"></script>
+<script>
+(function () {
+  'use strict';
+  var C = window.LINKPILOT_FILES;
+  var F = window.LinkPilotFlow;
+  var UP = window.LinkPilotUpload;
+  var view = document.getElementById('view');
+
+  var state = {
+    /* ★ 「파일업로드를 방금 눌렀다」는 표시. 그리기가 끝나는 자리에서 고르기
+     *   창을 열고 곧바로 지운다 — 남겨 두면 다시 그릴 때마다 창이 또 열린다. */
+    openPicker: false,
+    projects: null,
+    projectId: C.projectId || null,
+    kept: null,        // 보관 목록 (GET /sources)
+    linked: null,      // 연결 목록 (GET /linked)
+    oneshot: null,     // 1회성 기록 (GET /oneshot)
+    // 「아직 안 붙었다」를 길별로 따로 들고 있는다 — 하나가 닫혔다고 셋 다
+    // 닫힌 것처럼 그리면 열려 있는 길까지 못 쓴다
+    closed: { kept: null, linked: null, oneshot: null },
+    error: null,
+    // 서버가 「로그인이 필요합니다 / 플랜이 모자랍니다」라고 한 경우 — 오류와 구분한다
+    gate: null,
+    // 올리기가 실패한 사유. **화면 전체 게이트로 올리지 않는다** (2026-08-22)
+    uploadFail: null,
+    // 이관(넘기기) 진행. **넘어가는 것을 보여 주고 나서** 넘긴다 (2026-08-22)
+    handoff: null,
+    busy: false,
+    linkMsg: null,   // 연결 갈래에서 사용자가 볼 한 줄
+    appMsg: null,    // 앱 프로젝트 가져오기의 진행·실패 한 줄
+    appBundle: null, // 앱이 준 셋 — { appId, content, files, images }
+    appPick: { content: true, files: true, images: true },  // 무엇을 가져올까
+    appStage: -1,    // 가져오는 중 어느 칸인지 (-1 = 안 하는 중)
+    appDead: false,
+    appReport: null, // 가져온 결과 — **거절된 것을 숨기지 않는다**
+    // 연결한 원본이 그대로인지 (2026-08-21 · D-72 결정에 따라)
+    checking: false,
+    checked: null,   // verify 응답 그대로
+    noFolder: false, // 앱 딜은 있는데 작업 폴더가 없는 경우
+    // ── 첨부 (2026-08-20) ─────────────────────────────────────────────
+    // 전에는 세 갈래가 **설명만**이었다. 무엇이 다른지는 알려 주는데 정작
+    // 여기서 올릴 수는 없어서, 자료를 넣으려면 1단계로 되돌아가야 했다.
+    // 'app' | 'linked' | 'oneshot'  (보관은 뺐다 — 2026-08-20 · 앱은 2026-08-21 에 갈래로 올라왔다)
+    // ★★ 처음 열릴 때는 **앱**이다 〈2026-08-21 사용자 지시로 상단 고르기를 지운 뒤〉.
+    //   프로젝트를 고르거나 만드는 자리가 그 갈래 하나뿐이라, 다른 갈래로 열면
+    //   **아무것도 못 하는 화면**부터 보게 된다
+    way: 'app',
+    picked: [],        // 고른 파일 — { name, size, data, error }
+    upload: null,      // 올리는 중 상태 (upload-core 가 준 그대로)
+    result: null,      // 서버 응답
+    limits: null,      // GET /intake 가 준 한도 — 화면에 박아 두지 않는다
+    // ── 활동 그래프 (2026-08-20) ─────────────────────────────────────
+    // 진행률을 **시간축으로** 모아 둔다. 막대만 있으면 「멈춘 것 같은데
+    // 어디서 멈췄나」에 답할 수 없다 — 평평한 구간이 그 답이다.
+    trace: [],         // [{ ms, pct }] — pct 를 모르는 순간은 담지 않는다
+    traceAt0: 0,       // 시작 시각 (성능 시계, 벽시계가 아니다)
+    failStage: 1,      // 올리다 죽었다면 **어느 칸에서** 죽었나
+    linkStage: -1,     // 연결 갈래가 지금 어느 칸인지 (-1 = 안 하는 중)
+    linkDead: false,   // 연결이 그 칸에서 멈췄나
+    dropMsg: null,     // 끌어다 놓았는데 받을 수 없을 때 하는 말
+    newProj: null,     // { text, busy, error } — 새 프로젝트 만들기
+    // ── 자료 스캔 (2026-08-21 사용자 지시) ───────────────────────────
+    //   셋 중 무엇으로 넣었든 **한 길로** 읽어 값으로 만든다.
+    //   moved: null=아직 · true=앱이 받았다 · false=아무도 안 받았다
+    scan: { busy: false, stage: -1, dead: false, result: null, msg: null, auto: false, moved: null },
+  };
+
+  /**
+   * 고르기 목록에 넣을 **짧은 이름** 〈2026-08-21 사용자 지시〉.
+   *
+   * ★★ 모바일 기본 고르기 창은 **우리가 못 꾸민다.** 브라우저가 그리고, 긴 글은
+   *   그냥 접힌다. 실제로 한 줄이 세 줄이 됐다. 그래서 **글자 수를 줄인다** —
+   *   CSS 로는 손댈 수 없는 자리이기 때문이다.
+   *
+   * ★ 자르되 **무엇이 잘렸는지 보이게** 말줄임을 남기고, 전체 이름은 `title` 로
+   *   달아 둔다(데스크탑에서 올려놓으면 보인다). 그냥 잘라 버리면 비슷한 이름
+   *   둘을 구분할 수 없다.
+   *
+   * ★ 번호(`LP-…`)는 **자르지 않는다.** 그것이 프로젝트를 특정하는 값이다.
+   */
+  function shortLabel(name, id, max) {
+    var n = String(name || '').replace(/\s+/g, ' ').trim();
+    var cap = max || 28;
+    if (n.length > cap) n = n.slice(0, cap - 1).trim() + '…';
+    return id ? (n + ' · ' + id) : n;
+  }
+
+  function el(t, c, x) {
+    var n = document.createElement(t);
+    if (c) n.className = c;
+    if (x !== undefined && x !== null && x !== '') n.textContent = String(x);
+    return n;
+  }
+  function add(p) { for (var i = 1; i < arguments.length; i++) if (arguments[i]) p.appendChild(arguments[i]); return p; }
+
+  /** 흐른 시간을 재는 시계. 벽시계가 아니라 **단조 시계**다 — 자정·시간대에 안 흔들린다 */
+  function now() {
+    return (window.performance && performance.now) ? performance.now() : Date.now();
+  }
+
+  function size(b) {
+    if (!(b > 0)) return '0 B';
+    if (b < 1024) return b + ' B';
+    if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB';
+    return (b / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  /**
+   * ★★ **501 을 예외로 던지지 않는다.** 던지면 화면이 빨간 「서버 오류」를 그리는데,
+   *   그건 고장이 아니라 **아직 안 붙은 상태**다. 상태와 고장을 같은 색으로
+   *   칠하면 사용자는 고쳐 달라고 문의한다.
+   * @returns {{ok:true, body}|{ok:false, closed:string}|throws}
+   */
+  /**
+   * @param {{localGate?:boolean}} [opt2] `localGate` 면 401·403 을 **화면 전체
+   *   게이트로 올리지 않고** 부른 쪽에 돌려준다. 한 칸에서 등급이 모자란 것
+   *   때문에 탭 전체가 잠겨 버리면, 열려 있는 나머지 길까지 못 쓴다.
+   */
+  function call(method, path, body, opt2) {
+    var opt = { method: method, credentials: 'same-origin' };
+    if (body) { opt.headers = { 'Content-Type': 'application/json' }; opt.body = JSON.stringify(body); }
+    return fetch(C.api + path, opt).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (b) {
+        if (r.status === 501) return { ok: false, closed: (b && b.error) || '아직 붙어 있지 않습니다' };
+        if ((r.status === 401 || r.status === 403) && opt2 && opt2.localGate) {
+          return { ok: false, gated: true, msg: (b && b.error) || '사용할 수 없습니다' };
+        }
+        // ★★ 401·403 도 **고장이 아니다.** 로그인하지 않았거나 등급이 모자란 것은
+        //   상태이지 오류가 아닌데, 빨간 오류로 그리면 고장으로 읽혀 문의가 온다.
+        //   (501 은 조심했는데 이건 놓쳤었다 — 2026-08-18)
+        if (r.status === 401 || r.status === 403) {
+          state.gate = (b && b.error) || '사용할 수 없습니다';
+          return { ok: false, gated: true };
+        }
+        if (!r.ok) throw new Error((b && b.error) || ('서버 오류 (' + r.status + ')'));
+        return { ok: true, body: b };
+      });
+    });
+  }
+
+  /* ── 불러오기 ─────────────────────────────────────────── */
+
+  function loadProjects() {
+    if (C.preload && C.preload.projects) { state.projects = C.preload.projects; return Promise.resolve(); }
+    if (!C.api) { state.projects = []; return Promise.resolve(); }
+    return call('GET', '/projects').then(function (r) {
+      state.projects = (r.ok && r.body && r.body.projects) || [];
+    }).catch(function (e) { state.error = e.message; state.projects = []; });
+  }
+
+  /** 세 갈래를 **각각** 부른다. 하나가 닫혀도 나머지는 그린다 */
+  function loadOne(id) {
+    if (!C.api || !id) return Promise.resolve();
+    var base = '/projects/' + encodeURIComponent(id);
+    var jobs = [
+      call('GET', base + '/linked').then(function (r) {
+        if (r.ok) { state.linked = r.body; state.closed.linked = null; }
+        else { state.linked = null; state.closed.linked = r.closed; }
+      }, function (e) { state.closed.linked = e.message; }),
+      call('GET', base + '/oneshot').then(function (r) {
+        if (r.ok) { state.oneshot = r.body; state.closed.oneshot = null; }
+        else { state.oneshot = null; state.closed.oneshot = r.closed; }
+      }, function (e) { state.closed.oneshot = e.message; }),
+    ];
+    return Promise.all(jobs);
+  }
+
+  /**
+   * 프로젝트를 고른다. **부모(앱)에게도 알린다.**
+   *
+   * ★★ 왜 알리나: 이 탭에는 앱이 얹는 것이 하나 더 있다 —
+   *   「외부 분석 AGENT 로 만들기(기반정보 내보내기)」. 그쪽이 프로젝트를 따로
+   *   고르게 하면 **같은 탭에 프로젝트 고르기가 둘**이 되고, 둘이 다른 것을
+   *   가리키는 순간 사용자는 **어느 프로젝트의 기반정보를 받았는지 모른다.**
+   *   그래서 고르는 곳은 여기 하나로 두고, 앱은 이 알림을 따라간다.
+   *
+   * ★ 같은 출처로만 보낸다. 다른 출처면 브라우저가 막고, 그건 정상이다.
+   */
+  function announce(id) {
+    var detail = { projectId: id || null };
+    // ① iframe 으로 얹혔을 때 — 부모 창에 보낸다 (같은 출처로만)
+    try {
+      if (window.parent !== window) {
+        window.parent.postMessage({ type: 'lp-files-project', projectId: detail.projectId },
+          window.location.origin);
+      }
+    } catch (_) { /* 막혀 있으면 그만 — 이 화면의 동작은 그대로다 */ }
+    // ② iframe 없이 앱 안에 바로 얹혔을 때 — 부모가 곧 같은 문서다.
+    //    창 너머로 보낼 것이 없으므로 **문서 이벤트**로 알린다. 두 방식 중
+    //    어느 쪽으로 얹든 앱이 받는 이름은 하나다 — 둘로 갈리면 한쪽만 고쳐진다
+    try {
+      document.dispatchEvent(new CustomEvent('lp-files-project', { detail: detail }));
+    } catch (_) { /* 오래된 브라우저 */ }
+  }
+
+  function pickProject(id) {
+    // ★ 「+ 새 프로젝트」를 고른 것은 **고르기가 아니라 만들기**다.
+    //   여기서 몰래 만들지 않는다 — 무엇을 만들지 사람이 한 줄 적어야
+    //   자산군이 정해진다. 안 적고 만들면 GEN 으로 굳는다 (§4)
+    if (id === NEW_OPT) {
+      state.newProj = { text: '', busy: false, error: null };
+      return render();
+    }
+    state.newProj = null;
+    state.dropMsg = null;
+    // ★★ 앱 꾸러미를 **반드시 버린다.** 남겨 두면 다른 프로젝트를 고른 뒤에도
+    //   앞 딜의 첨부가 「가져오기」에 남아 있고, 누르면 **엉뚱한 프로젝트에 붙는다**
+    state.appBundle = null; state.appStage = -1; state.appReport = null;
+    // ★★ 스캔 결과도 **반드시 버린다** 〈2026-08-21〉. 남겨 두면 다른 프로젝트를
+    //   고른 뒤에도 앞 프로젝트의 「값 12개를 만들었습니다」가 그대로 떠 있다 —
+    //   그럴듯하게 틀린 화면이라 아무도 눈치채지 못한다
+    state.scan = { busy: false, stage: -1, dead: false, result: null, msg: null, auto: false, moved: null };
+    // ★ 작업 폴더가 없는 딜을 고른 경우 — 붙일 곳이 없다는 것을 말한다
+    if (id && id.indexOf('ext:') === 0) {
+      state.projectId = null;
+      state.noFolder = true;
+      state.linked = state.oneshot = null;
+      announce(null);
+      return render();
+    }
+    state.noFolder = false;
+    state.restored = false;      // 사람이 직접 골랐으면 「이어서」라고 말하지 않는다
+    state.projectId = id || null;
+    state.linked = state.oneshot = null;
+    state.closed = { kept: null, linked: null, oneshot: null };
+    announce(state.projectId);
+    remember({ projectId: state.projectId });   // 다음에 열면 이 프로젝트로 시작한다
+    render();
+    if (id) loadOne(id).then(render);
+  }
+
+  /**
+   * 앱 프로젝트를 골랐다 — 엔진 프로젝트로 잇는다.
+   * 이미 이어져 있으면 그 프로젝트를 연다. 처음이면 만들어 잇고 **부모에게 알린다**
+   * (짝의 저장은 앱 몫 — 여기 저장하면 앱 데이터의 정본이 둘이 된다).
+   * ★ 실패는 조용히 두지 않는다 — 셀렉트 아래 한 줄로 사유를 말한다.
+   */
+  function pickAppProject(appId) {
+    var apps = Array.isArray(C.appProjects) ? C.appProjects : [];
+    var a = null;
+    for (var i = 0; i < apps.length; i++) if (apps[i] && String(apps[i].id) === String(appId)) { a = apps[i]; break; }
+    if (!a) { state.appMsg = '앱 프로젝트를 찾지 못했습니다 — 탭을 닫았다 다시 여세요.'; render(); return; }
+    var linkedTo = (C.appLinks || {})[String(appId)] || null;
+    if (linkedTo) {
+      var known = (state.projects || []).some(function (p) { return p.id === linkedTo; });
+      if (known) {
+        state.appMsg = null;
+        pickProject(linkedTo);
+        return void pullBundle(appId);
+      }
+      /* 짝은 있는데 엔진에 그 프로젝트가 없다(지워졌다) — 아래에서 새로 만든다. 말없이 만들면
+         "전에 올린 자료가 사라졌다"로 읽히므로 사유를 남긴다 */
+      state.appMsg = '이어져 있던 보고서 프로젝트(' + linkedTo + ')가 엔진에 없어 새로 만듭니다.';
+    }
+    if (state.busy) return;
+    state.busy = true;
+    state.appMsg = '『' + (a.title || appId) + '』 보고서 프로젝트를 만드는 중…';
+    render();
+    call('POST', '/projects', {
+      // ★★ **이름과 요청문을 갈라 보낸다** 〈2026-08-21〉. 전에는 `request` 만
+      //   보냈고 엔진이 그 문장에서 이름을 뽑았다 — 그래서 프로젝트 이름이
+      //   「『서창산업 / CB발행』((주)서창산업) — LinkPilot 앱 프로젝트에서
+      //   가져와 만든 보고서 프로젝트」가 됐다. 고르기 목록이 세 줄로 접혔다.
+      //   `projectName` 을 주면 엔진이 그것을 쓴다.
+      projectName: a.title || ('앱 프로젝트 ' + appId),
+      name: a.title || ('앱 프로젝트 ' + appId),
+      // 요청문은 자산군을 정하는 데 쓰인다 — 여기에는 맥락이 있어야 한다
+      request: '『' + (a.title || appId) + '』'
+        + (a.client ? ' (' + a.client + ')' : '')
+        + ' — LinkPilot 앱 프로젝트에서 가져와 만든 보고서 프로젝트',
+    }).then(function (r) {
+      state.busy = false;
+      if (r.gated) { state.appMsg = null; render(); return; }       // 로그인·플랜 안내는 gate 가 말한다
+      if (!r.ok || !r.body || !r.body.projectId) {
+        state.appMsg = '보고서 프로젝트를 만들지 못했습니다: ' + ((r.body && r.body.error) || r.closed || '사유 없음');
+        render(); return;
+      }
+      var imId = r.body.projectId;
+      state.projects = state.projects || [];
+      state.projects.unshift({ id: imId, name: a.title || imId });
+      state.appMsg = null;
+      /* 짝을 앱에 알린다 — announce() 와 같은 두 갈래(같은 출처 postMessage + 문서 이벤트) */
+      var detail = { appProjectId: String(appId), imProjectId: imId };
+      try {
+        if (window.parent !== window) {
+          window.parent.postMessage({ type: 'lp-app-project-linked', appProjectId: detail.appProjectId, imProjectId: imId },
+            window.location.origin);
+        }
+      } catch (_) { }
+      try { document.dispatchEvent(new CustomEvent('lp-app-project-linked', { detail: detail })); } catch (_) { }
+      if (!C.appLinks) C.appLinks = {};
+      C.appLinks[String(appId)] = imId;
+      pickProject(imId);
+      pullBundle(appId);
+    }, function (e) {
+      state.busy = false;
+      state.appMsg = '보고서 프로젝트를 만들지 못했습니다: ' + e.message;
+      render();
+    });
+  }
+
+  /**
+   * 앱이 가진 셋을 읽어 둔다. **읽기와 가져오기를 나눈다** — 읽자마자 넣으면
+   * 무엇이 들어오는지 보기 전에 들어와 있다.
+   */
+  function pullBundle(appId) {
+    state.appBundle = null;
+    state.appStage = -1; state.appDead = false; state.appReport = null;
+    // ★ 앱 딜을 고른 순간 갈래도 「앱에서 가져오기」로 맞춘다 〈2026-08-21〉.
+    //   맞추지 않으면 고른 것은 앱인데 화면은 연결 갈래를 그리고 있어,
+    //   가져오기 칸이 어디 있는지 사용자가 찾아야 한다
+    state.way = 'app';
+    return loadAppBundle(appId).then(function (b) {
+      state.appBundle = b ? { appId: String(appId), content: b.content,
+        files: b.files, images: b.images } : null;
+      render();
+    }, function (e) {
+      // 못 읽었으면 그렇다고 말한다 — 조용히 빈 화면을 두면 「자료가 없다」로 읽힌다
+      state.appMsg = '앱에서 자료 목록을 읽지 못했습니다: ' + (e && e.message ? e.message : '사유 없음');
+      render();
+    });
+  }
+
+  /* ── 그리기 ───────────────────────────────────────────── */
+
+  /**
+   * 세 갈래 — **설명이자 고르는 자리다.**
+   *
+   * ★ 이름만 보면 셋 다 「업로드」로 읽힌다. 무엇이 다른지를 **고르기 전에** 말한다.
+   *   연결은 사본을 만들지 않고, 1회성은 읽고 버린다 — 올린 뒤에 알면 늦다.
+   *
+   * ★ 전에는 이 셋이 **설명만**이었다. 그래서 차이는 알려 주는데 정작 여기서
+   *   올릴 수는 없었고, 자료를 넣으려면 1단계로 되돌아가야 했다. 지금은 고르면
+   *   그 자리에서 붙인다.
+   */
+  // ★ 「올려서 보관」은 뺐다 〈2026-08-20 사용자 결정 — 불필요〉.
+  //   서버 API(`POST /sources`)는 그대로 있다. 화면에서 그 길로 들어가지 않을 뿐이다.
+  // ★★ **셋이다** 〈2026-08-21 사용자 지시〉. 전에 앱에서 가져오는 길은 프로젝트
+  //   고르기 목록 안에 숨어 있었다 — 자료를 넣으러 온 사람이 「자료 붙이기」에서
+  //   두 갈래만 보고 **앱 자료는 못 가져오는 줄** 알았다. 셋을 나란히 둔다.
+  // ★ 순서는 사용자가 준 순서 그대로다. 앞의 둘은 이미 있는 자료를 **가리키고**,
+  //   마지막 하나만 실제로 올린다.
+  var WAYS = [
+    /* ★ 앱 갈래는 **설명을 달지 않는다** 〈2026-08-22 사용자 지시 — 「아래 내용
+     *   설명은 삭제」〉. 이름만으로 뜻이 서고, 고르면 바로 아래에서 프로젝트를
+     *   고르게 되므로 설명이 한 번 더 말할 것이 없다.
+     *   ★ `d` 를 **빈 문자열로 둔다** — 지우면 `wayTile` 이 `undefined` 를 그린다. */
+    { id: 'app', t: 'LinkPilot 프로젝트에서 가져오기', free: true, plan: 'free', d: '' },
+    { id: 'linked', t: '폴더를 연결해서', free: true, plan: 'free',
+      d: 'Dropbox·Box·구글·원드라이브의 파일을 가리킵니다. 사본을 만들지 않습니다 — 읽을 때만 잠깐 가져와 버립니다.' },
+    { id: 'oneshot', t: '파일업로드', free: true, plan: 'free',
+      d: '읽고 바로 버립니다(1회성). 보관하지 않으므로 다시 쓸 수 없고, 원본이 그대로인지도 확인할 수 없습니다.' },
+  ];
+
+  function wayOf(id) {
+    for (var i = 0; i < WAYS.length; i++) if (WAYS[i].id === id) return WAYS[i];
+    return WAYS[0];
+  }
+
+  /**
+   * 갈래 이름을 **문장 안에 손으로 적지 않는다** 〈2026-08-21〉.
+   *
+   * ★★ 실제로 갈렸다. 갈래 제목에서 괄호를 떼었더니 안내 문장만 옛 이름을
+   *   말했다 — 사용자는 화면에 없는 단추 이름을 찾게 된다.
+   * ★ 옛 이름을 **이 주석에도 적지 않는다.** 적으면 그것을 찾는 검사가 주석에
+   *   걸려 통과하고, 막는 장치가 조용히 죽는다 (M-08 · 이미 두 번 당했다).
+   */
+  function wayName(id) {
+    return wayOf(id).t;
+  }
+
+  /**
+   * 갈래 셋을 **한 벌의 토글로** 그린다 〈2026-08-22 사용자 지시 —
+   * 「라인을 구분하지 않는 통합 토글로 만들어줘」〉.
+   *
+   *     [LinkPilot 프로젝트에서 가져오기] [폴더를 연결해서] [파일업로드]
+   *      └─ 고른 갈래의 칸이 **셋 아래**에서 열린다
+   *
+   * ★★ 이 자리는 판이 세 번 바뀌었다. 그 내력을 적어 둔다 — 안 적으면
+   *   다음 사람이 「왜 이렇게 되어 있지」로 되돌린다.
+   *
+   *     ① 처음: 셋을 `auto-fit` 으로 **흘렸다.** 창 너비에 따라 2+1 도 되고
+   *        1+1+1 도 되어서 **어느 것이 한 벌인지가 그때그때 달라졌다.**
+   *     ② 2026-08-21: 단을 손으로 나눴다(1단 앱 / 2단 연결·업로드).
+   *        고르기가 앱 갈래에 딸린 것임을 보이려고 1단과 한 겹으로 묶었다.
+   *     ③ 2026-08-22 **지금**: 단을 없애고 **셋을 한 줄로** 둔다.
+   *
+   * ★ ②에서 ③으로 온 이유: 단이 둘이면 앱 갈래만 **한 칸을 통째로 차지해**
+   *   나머지 둘보다 커 보이고, 셋이 **같은 층위의 선택지**라는 것이 흐려진다.
+   *   지시의 「라인을 구분하지 않는」이 가리키는 것이 그 선이다.
+   * ★ ①로 되돌아가는 것은 **아니다.** 열은 `auto-fit` 이 아니라 **셋으로
+   *   고정**한다 — 좁아지면 흘리지 않고 세로로 세운다. ①의 「그때그때
+   *   달라진다」는 거기서 나왔다.
+   */
+  var WAY_ROWS = [['app', 'linked', 'oneshot']];
+
+  function wayTile(w) {
+    var b = el('button', 'pw' + (state.way === w.id ? ' on' : ''));
+    b.type = 'button';
+    var t = el('div', 'pw__t', w.t);
+    // ★ 「무료」 배지를 **그리지 않는다** 〈2026-08-22 사용자 지시〉. 셋이 다 무료라
+    //   셋 다에 같은 글자가 붙어 아무것도 가르지 못했다. 무료인지 아닌지는
+    //   `free`·`plan` 이 그대로 들고 있다 — **판정은 남고 잡음만 뗀 것이다.**
+    //   ★ `w.k` 가 있으면 그때만 그린다. 유료 갈래가 생기면 거기서만 붙는다.
+    if (w.k) t.appendChild(el('span', 'way__k way__k--' + (w.free ? 'free' : 'pro'), w.k));
+    b.appendChild(t);
+    // ★ 설명이 없으면 **빈 칸을 만들지 않는다.** 빈 `p` 는 높이를 남겨서
+    //   세 칸의 키가 어긋나 보인다 (통합 토글에서는 그게 바로 눈에 띈다)
+    if (w.d) b.appendChild(el('p', 'pw__d', w.d));
+    b.addEventListener('click', function () {
+      // 갈래를 바꾸면 고른 파일을 버린다 — 보관하려던 것이 1회성으로
+      // 넘어가면 **되돌릴 수 없다.** 그 실수는 조용하고 되돌리기도 없다
+      if (state.way !== w.id) { state.picked = []; state.upload = null; state.result = null; }
+      state.way = w.id;
+      remember({ way: w.id });   // 다음에 열면 이 갈래로 시작한다
+      /* ★★ **파일업로드는 누르는 그 자리에서 고르기 창을 연다** 〈사용자 지시〉.
+       *   창을 여는 것은 **사람이 누른 그 순간**에만 허용된다 — 그리고 난 뒤에
+       *   열려고 하면 브라우저가 조용히 막는다. 그래서 `render()` 뒤로 미루지
+       *   않고 여기서 표시만 남기고, 그리기가 끝나는 자리에서 곧바로 연다.
+       *   ★ 프로젝트가 없으면 열지 않는다 — 골라 봐야 올릴 데가 없다. */
+      state.openPicker = (w.id === 'oneshot');
+      render();
+    });
+    return b;
+  }
+
+  function ways() {
+    /* ★ 고른 갈래를 **상자에 적어 둔다.** 좁은 화면에서 고르기 칸을 고른 칸
+     *   바로 밑으로 옮기는 데 쓴다 (CSS `order` — files.html 의 `.pickway--*`).
+     *   자바스크립트로 자리를 옮기지 않는 이유: 넓은 화면에서는 옮기면 안 되는데
+     *   화면 폭을 JS 가 다시 재기 시작하면 CSS 와 두 곳에서 같은 판단을 한다 */
+    var box = el('div', 'pickway pickway--' + state.way);
+    WAY_ROWS.forEach(function (ids) {
+      var row = el('div', 'pwrow');
+      ids.forEach(function (id) { row.appendChild(wayTile(wayOf(id))); });
+      box.appendChild(row);
+    });
+    /* ★ 고른 갈래의 칸은 **토글 바로 아래**에서 열린다. 토글 안(=`<button>` 안)에
+     *   끼우면 셋의 키가 서로 달라지고, 무엇보다 `<select>` 는 버튼 안에서 열리지
+     *   않는다 — 버튼이 클릭을 먼저 먹는다.
+     *   ★ 「안에 들어 있다」로 보이는 것은 **테두리 하나(`.pickway`)와 같은
+     *     바탕색**이 맡는다. 둘 다 `.pwslot` 자리 안에서 벌어진다 */
+    box.appendChild(el('div', 'pwslot'));
+    return box;
+  }
+
+  /**
+   * 한 번에 보낼 **합계**가 한도를 넘었는가 〈2026-08-22 · D-81〉.
+   *
+   * ★★ 전에는 **파일 하나씩만** 재고 합계는 아무도 안 쟀다. 화면은 「한 번에
+   *   N MB 까지」라고 적어 두기만 하고 **그대로 보냈다.** 그러면 서버가 본문을
+   *   받다가 중간에 연결을 끊는데, 응답이 아예 없어서 화면에는 「전송이
+   *   끊겼습니다」밖에 뜰 수가 없다 — 사용자는 **왜 끊겼는지 알 방법이 없다.**
+   * ★ 그래서 **보내기 전에 여기서 막는다.** 막는 것이 목적이 아니라 **이유를
+   *   말할 수 있는 자리에서 막는 것**이 목적이다.
+   * ★ 재는 것은 **읽을 수 있는 것들의 합**이다. 너무 큰 파일과 못 읽은 파일은
+   *   어차피 안 실리므로 합계에 넣으면 엉뚱하게 막힌다.
+   */
+  /**
+   * **한도를 늘 보이게 둔다** 〈2026-08-22 사용자 지시 — 「제한 용량표기를 업로드
+   * 탭에 노출해줘」〉.
+   *
+   * ★★ 앞 판은 한도를 **알 때만** 적었다. 그런데 실패는 대개 **모를 때** 난다 —
+   *   `/intake` 가 아직 안 왔거나 못 왔으면 줄이 통째로 사라지고, 화면은
+   *   「한도 같은 건 없다」처럼 보인다. 그러면 3MB 가 막혀도 크기 때문이라는
+   *   생각 자체를 못 한다.
+   * ★ 그래서 **모르면 모른다고 적는다.** 0 으로 그리지 않는다 — 0 은 「못 올린다」로
+   *   읽힌다 (그 구분이 이 저장소에서 여러 번 문제였다).
+   * ★ **지금 고른 합계를 나란히 둔다.** 한도만 있으면 넘었는지 사람이 세야 한다.
+   */
+  function limitBox() {
+    var lim = state.limits || {};
+    var per = lim.maxBytesPerFile > 0 ? size(lim.maxBytesPerFile) : null;
+    var req = lim.maxBytesPerRequest > 0 ? size(lim.maxBytesPerRequest) : null;
+
+    var wrap = el('div', 'lim');
+    var row = el('div', 'lim__r');
+    row.appendChild(limCell('파일 하나', per || '확인 중'));
+    row.appendChild(limCell('한 번에', req || '확인 중'));
+
+    /* ★ **첨부한 파일의 합계를 나란히 둔다** 〈2026-08-22 사용자 지시〉.
+     *   한도만 있으면 넘었는지를 사람이 세어야 한다 — 줄이 다섯이면 아무도 안 센다.
+     *   ★ 합계는 **고른 것 전부**로 낸다(아직 읽는 중인 것 포함). 그것이 사용자가
+     *     화면에서 보고 있는 목록과 같은 수다. 다르면 「내가 붙인 건 5개인데
+     *     합계는 3개치」가 되어 숫자를 못 믿는다.
+     *   ★ 고른 것이 없으면 이 칸을 안 만든다. 0 B 를 늘 띄우면 잡음이다. */
+    var sum = state.picked.reduce(function (n, f) { return n + (f.size || 0); }, 0);
+    if (state.picked.length) {
+      row.appendChild(limCell('첨부한 파일 ' + state.picked.length + '개', '총 ' + size(sum),
+        (lim.maxBytesPerRequest > 0 && sum > lim.maxBytesPerRequest)));
+    }
+    wrap.appendChild(row);
+
+    if (!per || !req) {
+      wrap.appendChild(el('p', 'lim__n',
+        '한도를 서버에서 아직 못 받았습니다 — 올려 보기 전에는 확실하지 않습니다.'));
+    }
+
+    /* ★★★ **판 지문을 화면에 박아 둔다** 〈2026-08-22 · 세 번 헤맨 뒤〉.
+     *
+     *   같은 신고가 왔을 때 셋 중 무엇인지 알 수가 없었다:
+     *     ① 안 올라갔다 ② 브라우저가 옛것을 들고 있다 ③ 코드가 틀렸다
+     *   **셋은 화면에서 똑같이 보인다.** 그래서 「새로고침해 보십시오」를
+     *   반복했고, 사용자는 같은 화면을 다시 찍어 보냈다.
+     *
+     *   ★ 이 여덟 글자가 있으면 **사진 한 장으로 판이 갈린다.** 작게, 흐리게
+     *     둔다 — 쓰는 사람에게 필요한 값이 아니라 **고치는 사람에게** 필요한
+     *     값이다 (§6-3 「대비는 한 곳에만」).
+     *   ★ 값은 `build-stamp.js` 가 **묶음 전체 내용**에서 만든다. 한 파일만
+     *     재면 옆 파일이 바뀐 것을 못 잡는다 — 실제로 틀렸던 것은
+     *     `embed-bridge.js` 였는데 사용자가 보는 것은 이 화면이었다. */
+    var build = document.documentElement.getAttribute('data-lp-build');
+    if (build) wrap.appendChild(el('p', 'lim__b', '판 ' + build));
+
+    return wrap;
+  }
+
+  function limCell(label, value, bad) {
+    var c = el('div', 'lim__c' + (bad ? ' lim__c--bad' : ''));
+    c.appendChild(el('span', 'lim__l', label));
+    c.appendChild(el('span', 'lim__v', value));
+    return c;
+  }
+
+  function overRequest() {
+    var cap = (state.limits && state.limits.maxBytesPerRequest) || 0;
+    if (!cap) return null;
+    var ready = state.picked.filter(function (f) { return f.data && !f.tooBig; });
+    var total = ready.reduce(function (n, f) { return n + (f.size || 0); }, 0);
+    return total > cap ? { total: total, cap: cap, files: ready.length } : null;
+  }
+
+  /** 고른 파일을 읽어 둔다. 읽기·보내기는 upload-core.js 한 곳에 있다 */
+  function addFiles(list) {
+    var max = (state.limits && state.limits.maxBytesPerFile) || 0;
+    Array.prototype.forEach.call(list, function (f) {
+      if (state.picked.some(function (x) { return x.name === f.name; })) return;
+      var rec = { name: f.name, size: f.size, data: null, error: null,
+        tooBig: UP.tooBig(f, max) };
+      state.picked.push(rec);
+      UP.readOne(f, function (err, data) {
+        if (err) rec.error = err.message; else rec.data = data;
+        render();
+      });
+    });
+    render();
+  }
+
+  /**
+   * **지난번에 고른 것을 기억한다** 〈2026-08-22 사용자 지시 —
+   * 「사용자가 파일선택을 하면 다음번에도 기억하고 연이어 편리 사용하도록」〉.
+   *
+   * ★★ **기억하는 것은 「어느 갈래·어느 프로젝트」뿐이다.** 파일 내용도,
+   *   파일 이름도 담지 않는다 — 딜 자료가 브라우저에 남는다.
+   * ★ 이 기기의 이 브라우저에만 남는다. 서버로 가지 않는다.
+   * ★ 저장이 막힌 곳이 있다(사생활 보호 창·설정으로 막아 둔 경우). 그때는
+   *   **조용히 기억하지 않을 뿐** 화면은 그대로 돈다 — try 로 감싸는 이유다.
+   *
+   * ★★ **안드로이드의 「작업 선택」 시트는 우리가 기억할 수 없다.** 그것은 웹이
+   *   아니라 운영체제 것이다. 우리가 할 수 있는 것은 `accept` 로 **고를 것을
+   *   좁혀 시트를 짧게** 만드는 것까지다 (acceptList 참고). 시트에서 매번 같은
+   *   앱으로 가고 싶으면 시트의 「항상」을 한 번 눌러 두시면 된다.
+   */
+  var MEM_KEY = 'lp.files.last';
+
+  function remember(patch) {
+    try {
+      var was = recall();
+      var now2 = { way: was.way || null, projectId: was.projectId || null };
+      Object.keys(patch || {}).forEach(function (k) { now2[k] = patch[k]; });
+      window.localStorage.setItem(MEM_KEY, JSON.stringify(now2));
+    } catch (_) { /* 못 적어도 화면은 그대로 돈다 */ }
+  }
+
+  function recall() {
+    try {
+      var raw = window.localStorage.getItem(MEM_KEY);
+      var o = raw ? JSON.parse(raw) : null;
+      return (o && typeof o === 'object') ? o : {};
+    } catch (_) { return {}; }
+  }
+
+  /**
+   * 파일 고르기 창에 **읽을 수 있는 형식만** 알려 준다 〈2026-08-22 사용자 지시〉.
+   *
+   * ★★ 왜: `accept` 가 없으면 안드로이드가 **「작업 선택」 시트를 가장 넓게**
+   *   띄운다 — 카메라·캠코더까지 나온다. 사용자는 매번 그 중에서 「사진 및
+   *   동영상」을 골라야 했다. 읽을 수 있는 형식을 적어 주면 그 시트가 짧아지고,
+   *   대개 파일 고르기로 바로 간다.
+   *
+   * ★★ **확장자를 여기 적지 않는다.** 목록은 서버(`GET /intake`)가 준다 —
+   *   추출기가 아는 것이 단일 출처다(§4). 여기 베껴 두면 형식이 하나 늘 때
+   *   화면만 옛 목록을 들고 있게 되고, 그때 증상은 「되는 파일인데 안 골라진다」다.
+   * ★ **못 읽는 형식(`convert`)은 뺀다.** 골라 봐야 거절할 것을 고르게 하지 않는다.
+   * ★ 목록을 아직 못 받았으면 **아무것도 걸지 않는다.** 빈 accept 는 「고를 수
+   *   있는 파일이 없습니다」가 되어, 모르는 것이 못 고르는 것으로 바뀐다.
+   */
+  function acceptList() {
+    var groups = (state.limits && state.limits.formats) || null;
+    if (!groups || !groups.length) return '';
+    var out = [];
+    groups.forEach(function (g) {
+      if (!g || g.id === 'convert') return;
+      (g.ext || []).forEach(function (e) { if (out.indexOf(e) === -1) out.push(e); });
+    });
+    return out.join(',');
+  }
+
+  /** 파일을 고르는 자리. 끌어다 놓는 것도 받는다 */
+  function dropZone() {
+    var z = el('div', 'drop');
+    z.tabIndex = 0;
+    z.setAttribute('role', 'button');
+    add(z, el('div', 'drop__t', '파일을 끌어다 놓거나 눌러서 고르세요'),
+      el('div', 'drop__s', '여러 개를 한 번에 올릴 수 있습니다'));
+    var inp = el('input');
+    inp.type = 'file';
+    inp.multiple = true;
+    // ★ 읽을 수 있는 형식만 — 안드로이드 「작업 선택」 시트가 짧아진다
+    var acc = acceptList();
+    if (acc) inp.accept = acc;
+    inp.addEventListener('change', function () { addFiles(inp.files); inp.value = ''; });
+    /* ★★ **창이 두 번 열렸다** 〈2026-08-21 · 재다가 잡았다〉.
+     *   `inp` 는 `z` 안에 있다. `inp.click()` 을 부르면 그 click 이 `z` 까지
+     *   올라가고, `z` 의 손잡이가 **또** `inp.click()` 을 부른다.
+     *   브라우저가 재귀를 한 번은 막아 주어 두 번에서 멈추지만, 사용자에게는
+     *   **창을 닫으면 또 뜨는** 것으로 보인다. 올라가는 것을 여기서 끊는다.
+     *   (실측: 눌렀을 때 input.click 이 2회 → 1회) */
+    inp.addEventListener('click', function (ev) { ev.stopPropagation(); });
+    z.appendChild(inp);
+    z.addEventListener('click', function () { inp.click(); });
+    z.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); inp.click(); }
+    });
+    z.addEventListener('dragover', function (ev) { ev.preventDefault(); z.classList.add('over'); });
+    z.addEventListener('dragleave', function () { z.classList.remove('over'); });
+    z.addEventListener('drop', function (ev) {
+      ev.preventDefault(); z.classList.remove('over');
+      addFiles(ev.dataTransfer && ev.dataTransfer.files);
+    });
+    z._lpInput = inp;    // 그리기가 끝난 뒤 여기서 창을 연다 (render 참고)
+    return z;
+  }
+
+  /** 고른 파일 목록. **못 올릴 것은 올리기 전에 그렇다고 적는다** */
+  function pickedList() {
+    var out = document.createDocumentFragment();
+    state.picked.forEach(function (f, i) {
+      var r = el('div', 'row');
+      var left = el('div');
+      left.appendChild(el('div', 'row__n', f.name));
+      var why = f.error ? f.error
+        : f.tooBig ? ('파일이 너무 큽니다 — ' + size(f.size) + ' (한도 ' + size(state.limits.maxBytesPerFile) + ')')
+        : f.data ? size(f.size) : '읽는 중…';
+      left.appendChild(el('div', 'row__m', why));
+      r.appendChild(left);
+      var x = el('button', 'btn2', '빼기');
+      x.type = 'button';
+      x.addEventListener('click', function () { state.picked.splice(i, 1); render(); });
+      r.appendChild(x);
+      out.appendChild(r);
+    });
+    return out;
+  }
+
+  /* ── 활동 그래프 ─────────────────────────────────────────
+   *
+   * ★★ 왜 만들었나: 막대 하나로는 **어디서 걸렸는지** 알 수 없다. 「보내는 중」이
+   *   오래 걸리는 것과 「서버가 읽는 중」이 오래 걸리는 것은 원인이 다르다 —
+   *   앞은 회선, 뒤는 파일(스캔본이면 오래 걸린다). 둘을 같은 막대로 그리면
+   *   사용자는 고장으로 읽고 창을 닫는다. 실제로 닫으면 올린 것이 없다.
+   *
+   * ★ 두 가지를 함께 그린다:
+   *     ① **칸** — 지금 어느 단계인가 (지난 칸·도는 칸·죽은 칸)
+   *     ② **자취** — 진행률을 시간축으로. 멈춘 구간이 **평평하게 남는다**
+   *
+   * ★ 자취는 **잰 것만** 그린다. 진행률을 모르는 순간은 담지 않는다 —
+   *   모르는 값을 0 으로 이으면 그래프가 뚝 떨어지고 「되돌아갔다」로 읽힌다.
+   */
+
+  var SVGNS = 'http://www.w3.org/2000/svg';
+  function svg(tag, attrs) {
+    var n = document.createElementNS(SVGNS, tag);
+    for (var k in attrs) if (Object.prototype.hasOwnProperty.call(attrs, k)) n.setAttribute(k, attrs[k]);
+    return n;
+  }
+
+  /**
+   * 자취 그림. 점이 둘 미만이면 **그리지 않는다** — 점 하나로 그은 선은
+   * 아무 뜻이 없는데 그럴듯해 보인다.
+   */
+  function traceChart(pts) {
+    if (!pts || pts.length < 2) return null;
+    var W = 300, H = 56, PAD = 3;
+    var last = pts[pts.length - 1].ms || 1;
+    var x = function (p) { return PAD + (W - PAD * 2) * (last ? (p.ms / last) : 0); };
+    var y = function (p) { return PAD + (H - PAD * 2) * (1 - Math.max(0, Math.min(100, p.pct)) / 100); };
+    var line = pts.map(function (p, i) { return (i ? 'L' : 'M') + x(p).toFixed(1) + ' ' + y(p).toFixed(1); }).join(' ');
+
+    var box = el('div', 'fx__c');
+    var g = svg('svg', { viewBox: '0 0 ' + W + ' ' + H, preserveAspectRatio: 'none',
+      role: 'img', 'aria-label': '올린 양이 시간에 따라 어떻게 늘었는지' });
+    // 바탕 눈금 — 50% 자리 하나만. 여럿 그으면 자취가 안 보인다
+    g.appendChild(svg('line', { x1: 0, y1: (H / 2).toFixed(1), x2: W, y2: (H / 2).toFixed(1),
+      stroke: 'var(--line)', 'stroke-width': 1, 'stroke-dasharray': '3 4' }));
+    g.appendChild(svg('path', { d: line + ' L' + x(pts[pts.length - 1]).toFixed(1) + ' ' + (H - PAD)
+      + ' L' + x(pts[0]).toFixed(1) + ' ' + (H - PAD) + ' Z',
+      fill: 'var(--lime-soft)', stroke: 'none' }));
+    g.appendChild(svg('path', { d: line, fill: 'none', stroke: 'var(--lime-deep)',
+      'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round',
+      'vector-effect': 'non-scaling-stroke' }));
+    g.appendChild(svg('circle', { cx: x(pts[pts.length - 1]).toFixed(1),
+      cy: y(pts[pts.length - 1]).toFixed(1), r: 3, fill: 'var(--lime-deep)' }));
+    box.appendChild(g);
+    box.appendChild(el('p', 'fx__cap',
+      '지난 ' + (last / 1000).toFixed(1) + '초 · ' + pts.length + '번 쟀습니다'));
+    return box;
+  }
+
+  /**
+   * 칸 + 자취. `at` 은 **지금 도는 칸**, `dead` 면 그 칸에서 멈춘 것이다.
+   * @param {{stages:string[], at:number, dead?:boolean, pct?:number, note?:string, pts?:Array}} o
+   */
+  function activityGraph(o) {
+    var done = !o.dead && o.at >= o.stages.length - 1;
+    var box = el('div', 'fx' + (done ? ' fx--done' : o.dead ? ' fx--dead' : ''));
+
+    var g = el('div', 'fx__g');
+    o.stages.forEach(function (t, i) {
+      if (i) {
+        // 칸 사이의 선: 지나온 곳은 채우고, **지금 건너는 곳만** 흐른다.
+        // 다 흐르게 두면 끝난 뒤에도 도는 것처럼 보인다
+        var crossing = !o.dead && !done && i === o.at + 1;
+        var past = i <= o.at;
+        var l = el('div', 'fx__l' + (past ? ' fx__l--past' : '')
+          + (o.dead && i === o.at + 1 ? ' fx__l--dead' : '')
+          + (crossing ? ' fx__l--run' : ''));
+        if (crossing) l.appendChild(el('i'));
+        g.appendChild(l);
+      }
+      var state2 = o.dead && i === o.at ? 'dead' : i < o.at ? 'done' : i === o.at ? (done ? 'done' : 'now') : '';
+      var n = el('div', 'fx__n' + (state2 ? ' fx__n--' + state2 : ''));
+      n.appendChild(el('div', 'fx__dot'));
+      n.appendChild(el('div', 'fx__t', t));
+      g.appendChild(n);
+    });
+    box.appendChild(g);
+
+    var chart = traceChart(o.pts);
+    if (chart) box.appendChild(chart);
+    else if (o.note) box.appendChild(el('p', 'fx__cap', o.note));
+    return box;
+  }
+
+  /**
+   * 진행 미터 — **진행률과 걸린 시간을 눈에 보이게** 〈2026-08-22 사용자 지시〉.
+   *
+   * ★★ 왜 필요했나: 스캔을 누르면 단추가 「읽는 중…」으로 바뀌고 **그대로 멈춰**
+   *   있었다. 칸은 첫 자리에 그대로 있고 숫자도 시간도 없었다. 실제로는 돌고
+   *   있는데 화면이 **아무 말도 안 해서** 고장으로 읽힌다.
+   *
+   * ★★ **없는 것을 그럴듯하게 그리지 않는다.** 서버는 중간 상태를 알려 주지
+   *   않는다 — 그러니 진행률은 **잰 값이 아니라 걸린 시간으로 어림한 것**이다.
+   *   그래서 ① 화면에 「예상」이라고 적고 ② **끝나기 전에는 100% 를 만들지
+   *   않는다**(90% 에서 멈춘다). 100% 는 서버가 답한 뒤에만 나온다.
+   *   가짜 100% 는 「끝났는데 화면이 안 넘어간다」로 읽혀서 더 나쁘다.
+   *
+   * ★ **걸린 시간은 진짜다.** 그것만이 여기서 유일하게 잰 값이라 크게 둔다.
+   */
+  function meter(o) {
+    var box = el('div', 'mtr' + (o.done ? ' mtr--done' : ''));
+
+    var head = el('div', 'mtr__h');
+    head.appendChild(el('span', 'mtr__pct', Math.round(o.pct) + '%'));
+    var right = el('div', 'mtr__r');
+    right.appendChild(el('span', 'mtr__t', o.secs));
+    if (o.sub) right.appendChild(el('span', 'mtr__s', o.sub));
+    head.appendChild(right);
+    box.appendChild(head);
+
+    var bar = el('div', 'mtr__bar');
+    var fill = el('i');
+    fill.style.width = Math.max(2, Math.min(100, o.pct)) + '%';
+    bar.appendChild(fill);
+    box.appendChild(bar);
+
+    if (o.note) box.appendChild(el('p', 'mtr__n', o.note));
+    return box;
+  }
+
+  /** 초를 사람 말로. 1분을 넘으면 분까지 — 「94.3초」는 안 읽힌다 */
+  function secsText(ms) {
+    var s = ms / 1000;
+    if (s < 60) return s.toFixed(1) + '초';
+    var m = Math.floor(s / 60);
+    return m + '분 ' + Math.round(s - m * 60) + '초';
+  }
+
+  /** 올리는 갈래의 칸 이름 — 한 곳에서 정한다 */
+  var UP_STAGES = ['고른 파일', '보내는 중', '서버가 읽는 중', '붙었습니다'];
+
+  function uploadStage(u) {
+    if (!u) return 0;
+    if (u.phase === 'sending') return 1;
+    if (u.phase === 'reading') return 2;
+    if (u.phase === 'done') return 3;
+    return -1;   // 'error' — 어느 칸에서 죽었는지는 부르는 쪽이 안다
+  }
+
+  /** 진행 바 한 칸. **모르는 값은 막대가 아니라 빗금이다** */
+  function progressBar(pct) {
+    var bar = el('div', 'up__bar' + (pct === null || pct === undefined ? ' up__bar--none' : ''));
+    if (pct !== null && pct !== undefined) {
+      var i = el('i');
+      i.style.width = Math.max(0, Math.min(100, pct)) + '%';
+      bar.appendChild(i);
+    }
+    return bar;
+  }
+
+  /** 올리는 중·끝난 뒤. **거절된 것을 숨기지 않는다** */
+  function uploadCard() {
+    var u = state.upload;
+    if (!u) return null;
+    var box = el('div', 'up' + (u.phase === 'done' ? ' up--done' : u.phase === 'error' ? ' up--error' : ''));
+
+    // ★ 그래프를 **맨 위에** 둔다. 「어디까지 갔나」가 먼저 보여야 한다 —
+    //   숫자만 먼저 보면 멈춘 것인지 도는 것인지 알 수 없다
+    var at = uploadStage(u);
+    box.appendChild(activityGraph({
+      stages: UP_STAGES,
+      at: at < 0 ? state.failStage : at,
+      dead: u.phase === 'error',
+      pts: state.trace,
+      note: '진행률을 잴 수 없는 회선입니다 — 자취를 그리지 않습니다.',
+    }));
+
+    var h = el('div', 'up__h');
+    h.appendChild(el('b', null,
+      u.phase === 'sending' ? '보내는 중'
+        : u.phase === 'reading' ? '서버가 읽는 중'
+        : u.phase === 'done' ? '올렸습니다' : '올리지 못했습니다'));
+    h.appendChild(el('span', 'up__v' + (u.pct === null || u.pct === undefined ? ' up__v--none' : ''),
+      (u.pct === null || u.pct === undefined) ? '진행률을 알 수 없습니다' : (u.pct + '%')));
+    box.appendChild(h);
+    if (u.phase === 'sending' || u.phase === 'reading') box.appendChild(progressBar(u.pct));
+
+    /* ★★ **멈춘 것을 멈췄다고 말한다** 〈2026-08-22 · 실제 신고〉.
+     *   신고 화면은 「보내는 중」에서 자취가 평평한 채로 6.1초를 있었다.
+     *   화면은 아무 말도 안 했고, 그래서 기다릴지 다시 누를지 정할 수가 없었다.
+     *   ★ 빨간 칸으로 그리지 않는다 — 아직 실패한 것이 아니다. 계속 보내는 중이다. */
+    if (u.stalled && (u.phase === 'sending' || u.phase === 'reading')) {
+      box.appendChild(el('p', 'up__d up__d--bad', u.stallWhy || '진행이 멈췄습니다.'));
+    }
+
+    if (u.phase === 'reading') {
+      box.appendChild(el('p', 'up__d',
+        '다 보냈습니다. 서버가 파일을 열어 읽는 중입니다 — 스캔본이면 더 걸립니다.'));
+    } else if (u.phase === 'error') {
+      box.appendChild(el('p', 'up__d', u.error));
+      /* ★★ **401 을 「로그인하세요」로 옮기지 않는다** 〈2026-08-22〉.
+       *   목록이 떴다는 것은 **이미 로그인이 되어 있다**는 뜻이다. 그런데도
+       *   올리기만 401 이면 로그인 문제가 아니라 **이 요청이 서버까지 온전히
+       *   못 갔다**는 뜻일 가능성이 높다 — 큰 본문이 앞단에서 잘리면 서버가
+       *   세션을 못 읽고 401 을 돌려준다.
+       *   ★ 그래서 **둘 다 적는다.** 하나로 단정하면 반대쪽을 고치러 간다. */
+      var uf = state.uploadFail;
+      if (uf && (uf.status === 401 || uf.status === 403)) {
+        /* ★★★ **되는 것과 안 되는 것을 나눠 적는다** 〈2026-08-22 사용자 지시〉.
+         *
+         *   앞 판은 한 문단에 추측을 몰아 적었다. 그러면 읽는 사람이 무엇이
+         *   **사실**이고 무엇이 **짐작**인지 가를 수가 없고, 결국 「로그인이
+         *   필요합니다」라는 제목만 기억에 남아 엉뚱한 데를 고치러 간다.
+         *   ★ 그래서 ① 지금 되는 것 ② 안 되는 것 ③ 그래서 할 일 순으로 적는다.
+         *   ★ **추측은 추측이라고 적는다.** 「…일 수 있습니다」로 남긴다. */
+        var loggedIn = !!(state.projects || (state.kept || state.linked || state.oneshot));
+        var sent = uf.bytes > 0 ? size(uf.bytes) : null;
+
+        box.appendChild(el('p', 'up__d',
+          '되는 것 — ' + (loggedIn
+            ? '로그인·목록 읽기는 됩니다. 프로젝트 목록이 실제로 떴습니다.'
+            : '아직 로그인 상태를 확인하지 못했습니다.')));
+        box.appendChild(el('p', 'up__d up__d--bad',
+          '안 되는 것 — 이 올리기 요청만 서버가 거절했습니다 (HTTP ' + (uf.status || '?') + ').'
+          + (sent ? ' 보낸 본문은 ' + sent + ' 입니다.'
+                  : ' 보낸 양은 재지 못했습니다 — 0 이라는 뜻이 아닙니다.')));
+
+        if (loggedIn) {
+          /* ★★★ **여기서 크기를 먼저 의심하게 만들지 않는다** 〈2026-08-22 · 실제로 틀렸다〉.
+           *
+           *   앞 판은 「큰 본문이 앞단에서 잘렸을 수 있다」고 적었다. 그래서
+           *   본문 한도를 며칠 뒤졌는데, **실제 원인은 크기가 아니라 헤더**였다 —
+           *   목록은 `fetch` 로 가서 토큰이 붙고, 올리기는 `XMLHttpRequest` 로
+           *   가서 안 붙었다 (`embed-bridge.js` 가 fetch 만 덮고 있었다).
+           *   3.8MB 를 올려도 401 이 났다. 크기와는 아무 상관이 없었다.
+           *
+           *   ★ 화면이 짐작을 적으면 사람은 그 짐작부터 판다. 그러니 **틀린 짐작을
+           *     적느니 아무 짐작도 안 적는 편이 낫다.** 대신 **가른 사실**을 준다 —
+           *     같은 화면에서 목록은 됐고 이 요청만 안 됐다는 것. */
+          box.appendChild(el('p', 'up__d',
+            '가른 사실 — 같은 화면에서 목록 읽기는 통과했고 이 올리기만 거절당했습니다. '
+            + '즉 로그인 자체가 아니라 **이 요청 하나가** 서버에 사람을 못 밝힌 것입니다.'));
+          box.appendChild(el('p', 'up__d',
+            '할 일 — 화면을 새로고침한 뒤 한 번 더 올려 보십시오. 같으면 관리자에게 '
+            + '「목록은 되는데 올리기만 401」이라고 그대로 전해 주십시오 — 그 한 줄이 자리를 좁힙니다.'));
+        } else {
+          box.appendChild(el('p', 'up__d',
+            '할 일 — 로그인하거나 멤버십을 확인한 뒤 다시 시도해 주십시오.'));
+        }
+      }
+    } else if (u.phase === 'done' && state.result) {
+      box.appendChild(el('p', 'up__d', UP.summary(state.result)));
+      // ★ 거절 사유를 접어 두지 않는다. 「올렸습니다」만 보면 다 올라간 줄 안다
+      (state.result.rejected || []).forEach(function (r) {
+        box.appendChild(el('p', 'up__d', '· ' + r.name + ' — ' + r.reason));
+      });
+      /* ★★ **받은 것과 읽은 것은 다르다** 〈2026-08-22 · 실제 신고 「올리면 깨진다」〉.
+       *
+       *   서버는 세 가지를 따로 알려 준다:
+       *     `rejected`             — 아예 안 받았다 (빈 파일·용량 초과)
+       *     `read.unsupported`     — **받았는데 못 읽었다** (xlsx·hwpx·손상된 ZIP …)
+       *     `read.facts`           — 읽어서 값이 됐다
+       *
+       *   그런데 화면은 `rejected` 만 그리고 **가운데를 통째로 빼먹고 있었다.**
+       *   그래서 xlsx·hwpx 를 올린 사용자는 초록 칸에 「2개를 올렸습니다」만 보고,
+       *   다음 칸이 텅 빈 것을 **고장으로 읽었다.** 실제로는 고장이 아니라
+       *   「못 읽었다」였는데 그 말을 아무 데서도 안 했다.
+       *
+       *   ★ 1회성(파일업로드)은 여기서 한 겹 더 나쁘다 — 서버가 읽어 보고
+       *     **원본을 이미 지웠다.** 못 읽었다는 말을 이 자리에서 안 하면
+       *     사용자는 자료가 사라진 것조차 모른 채 다음 칸을 누른다. */
+      var un = (state.result.read && state.result.read.unsupported) || [];
+      if (un.length) {
+        box.appendChild(el('p', 'up__d up__d--bad',
+          '이 중 ' + un.length + '건은 받았지만 읽지 못했습니다 — 값이 만들어지지 않았습니다.'));
+        un.forEach(function (r) {
+          box.appendChild(el('p', 'up__d up__d--bad', '· ' + r.name + ' — ' + r.reason));
+        });
+        // ★ 무엇을 해야 하는지까지 말한다. 사유만 주면 사용자는 같은 파일을 또 올린다
+        box.appendChild(el('p', 'up__d',
+          state.way === 'oneshot'
+            ? ('「' + wayName('oneshot') + '」는 읽고 나서 원본을 지웁니다 — 이 '
+              + un.length + '건은 남아 있지 않습니다. PDF 로 바꿔 다시 올리거나, '
+              + '원본을 남겨 두려면 「' + wayName('linked') + '」로 넣으십시오.')
+            : 'PDF 로 바꿔 다시 올리면 읽을 수 있습니다.'));
+      }
+      if (state.result.replaced && state.result.replaced.length) {
+        box.appendChild(el('p', 'up__d',
+          '같은 이름이 있어 이전 판은 휴지통으로 보냈습니다: ' + state.result.replaced.join(' · ')));
+      }
+    }
+    return box;
+  }
+
+  /** 실제로 보낸다. 갈래마다 **주소가 다르다** */
+  function doUpload() {
+    var ready = state.picked.filter(function (f) { return f.data && !f.tooBig; });
+    if (!ready.length || !state.projectId || state.busy) return;
+    // ★ 합계가 넘으면 **보내지 않는다.** 보내고 나서 끊기면 이유를 말할 수 없다
+    if (overRequest()) return;
+    // ★ 화면에 남은 올리는 길은 **1회성 하나뿐**이다 (보관은 뺐다).
+    //   그런데도 갈래를 확인하고 보낸다 — 나중에 길이 늘 때 조용히 엉뚱한 곳으로
+    //   가지 않게 한다
+    if (state.way !== 'oneshot') return;
+    var path = '/oneshot';
+
+    state.busy = true; state.result = null; state.error = null; state.uploadFail = null;
+    // 자취는 **이번 올리기 것만** 모은다. 안 비우면 지난 판이 앞에 붙어
+    // 「예전에 한 번 갔다가 되돌아왔다」처럼 보인다
+    state.trace = []; state.traceAt0 = now(); state.failStage = 1;
+    UP.send({
+      url: C.api + '/projects/' + state.projectId + path,
+      files: ready.map(function (f) { return { name: f.name, contentBase64: f.data }; }),
+      onUpdate: function (u) {
+        state.upload = u;
+        var at = uploadStage(u);
+        if (at > 0) state.failStage = at;   // 죽으면 **여기서** 죽은 것이다
+        // ★ 모르는 값은 담지 않는다. 0 으로 이으면 선이 뚝 떨어져
+        //   「되돌아갔다」로 읽힌다 — 실제로는 못 잰 것뿐이다
+        if (u.pct !== null && u.pct !== undefined) {
+          state.trace.push({ ms: now() - state.traceAt0, pct: u.pct });
+          if (state.trace.length > 240) state.trace.shift();
+        }
+        render();
+      },
+      onDone: function (j) {
+        state.busy = false; state.result = j; state.picked = [];
+        // 올린 뒤 목록을 다시 읽는다 — 안 읽으면 방금 올린 것이 안 보인다
+        loadOne(state.projectId).then(function () {
+          render();
+          // ★ 1회성은 **서버가 올리는 그 자리에서 이미 읽었다.** 다시 읽을 원본이
+          //   우리에게 없다. 그래서 스캔을 또 돌리지 않고 **바로 넘긴다** —
+          //   값이 실제로 들어갔을 때만 (안 들어갔으면 빈 칸만 보게 된다)
+          var got = j && j.read && ((j.read.facts || []).length || j.read.factCount || 0);
+          if (got) {
+            state.scan = { busy: false, stage: 3, dead: false, auto: true, moved: null,
+              result: { scanned: [], unread: [], facts: got,
+                documents: (j.read.documents || []).length,
+                empty: false,
+                note: '1회성으로 올린 자료는 올리는 그 자리에서 읽었습니다.' },
+              msg: null };
+            /* ★★★ **넘기기 전에 넘긴다는 것을 보여 준다** 〈2026-08-22 · 사용자 지시〉.
+             *
+             *   앞 판은 여기서 곧바로 `goReport()` 를 불렀다. 실측하면 이렇다:
+             *     올리기 누름 → 905ms 에 이관 신호 발사
+             *                 → 931ms 에 「올렸습니다」 카드가 처음 그려짐
+             *   **신호가 카드보다 26ms 먼저 나간다.** 그리고 카드는 366ms 만
+             *   보이고 탭이 넘어가면서 사라진다. 사람 눈에는 「올렸더니 화면이
+             *   사라졌다」다 — 실제로 사용자가 그렇게 신고했다.
+             *
+             *   ★ 넘어가는 것 자체는 맞다. 값이 들어갔으니 다음 칸으로 가는 게
+             *     옳다. 틀린 것은 **말없이 즉시**라는 점이다. 그래서 이관을
+             *     한 칸씩 그려서 보여 주고, 다 그린 뒤에 넘긴다.
+             *   ★ 사람이 멈출 수 있어야 한다 — 「여기 그대로 있기」를 함께 둔다.
+             *     자동으로만 움직이면 무엇이 일어났는지 볼 시간이 없다. */
+            startHandoff(got, (j.read.documents || []).length);
+          }
+        });
+      },
+      onFail: function (why, status) {
+        state.busy = false;
+        /* ★★★ **올리기가 실패했다고 화면을 통째로 갈아치우지 않는다**
+         *   〈2026-08-22 · 실제 신고 「화면이 사라지는 오류」〉.
+         *
+         *   앞 판은 401·403 이면 `state.gate` 를 세웠다. 그런데 `paint()` 는
+         *   게이트가 서면 **거기서 return 한다** — 고른 파일 목록도, 진행
+         *   그래프도, 방금까지 보던 것이 **전부 사라지고** 「로그인이
+         *   필요합니다」 카드 하나만 남는다. 사용자가 본 그대로다.
+         *
+         *   ★ 그리고 그 말이 **틀렸을 수 있다.** 신고 화면의 순서는
+         *     「8.7MB 를 보내다 멈춤 → 잠시 뒤 로그인이 필요하다는 문구」였다.
+         *     목록·프로젝트는 그 직전까지 멀쩡히 떴다 — 로그인은 되어 있었다.
+         *     큰 본문이 거절되어 서버가 세션을 못 읽으면 **401 이 나온다.**
+         *     그것을 「로그인하세요」로 옮기면 사용자는 멀쩡한 로그인을
+         *     의심하며 엉뚱한 데를 고치러 간다.
+         *
+         *   ★ 그래서 올리기 실패는 **올리기 칸 안에서** 말한다. 화면은 그대로
+         *     둔다 — 무엇을 고르고 있었는지가 남아 있어야 다시 시도할 수 있다.
+         */
+        state.uploadFail = { why: why, status: status || 0,
+          bytes: (state.upload && state.upload.bodyBytes) || 0 };
+        render();
+      },
+    });
+  }
+
+  /**
+   * 첨부 — **한 자리에서 고르고, 그 자리에서 올린다.**
+   *
+   * ★ 갈래마다 할 수 있는 것이 다르다. 연결은 여기서 올리는 것이 아니라
+   *   **가리키는 것**이라 파일 고르기가 없다 — 본체가 함수를 넘겨야 열린다.
+   */
+  function attachCard() {
+    var card = el('section', 'card card--attach');
+    add(card, el('h2', 'card__t', '자료 붙이기'),
+      el('p', 'card__d',
+        '신규 프로젝트로 만들거나 기존 프로젝트 보고서를 만들 때 '
+        + '관련자료를 올리는 방법 3가지입니다. 어느 쪽으로 넣든 '
+        + '관련자료를 분석하고 읽어서 「' + F.SECTION.tab + '」으로 보냅니다.'));
+    /* ★ 고르기는 **1단 바로 아래**에 꽂는다. 카드 끝에 붙이면 2단(연결·업로드)
+     *   뒤로 밀려 「어느 갈래에 딸린 것인지」가 다시 안 보인다 — 단을 나눈
+     *   이유가 그것이었다. 그래서 1단 뒤에 자리(`.pwslot`)를 미리 두고 갈아끼운다. */
+    var waysBox = ways();
+    card.appendChild(waysBox);
+    function putInWay(node) {
+      var slot = waysBox.querySelector('.pwslot');
+      if (slot) slot.parentNode.replaceChild(node, slot);
+      else card.appendChild(node);      // 자리가 없어졌으면 적어도 잃어버리지는 않는다
+    }
+    function dropSlot() {
+      var slot = waysBox.querySelector('.pwslot');
+      if (slot) slot.parentNode.removeChild(slot);   // 안 쓰면 **빈 자리를 남기지 않는다**
+    }
+    // 끌어다 놓았는데 받을 수 없었던 이유를 **그 자리에서** 말한다.
+    // ★ 갈래보다 먼저 그린다 — 그 말이 가장 필요한 때가 「연결」 갈래에서
+    //   떨어뜨린 때인데, 갈래 안쪽에 두면 그때 안 보인다
+    if (state.dropMsg) card.appendChild(el('p', 'note', state.dropMsg));
+
+    var w = wayOf(state.way);
+
+    /* ── 앱에서 가져오기 — **프로젝트를 고르고 만드는 자리이기도 하다** ──
+       〈2026-08-21 사용자 지시 — 상단 고르기를 지우고 이 갈래에 병합〉
+       ★ 프로젝트가 없어도 이 갈래는 그린다. 여기가 **고르는 유일한 자리**라
+         프로젝트가 없다고 닫아 버리면 고를 방법이 사라진다 */
+    if (state.way === 'app') {
+      // ★ 고른 갈래 칸에 **이어 붙여** 그린다 — 자리만 옮기고 색이 그대로면
+      //   갈래에 속한 것으로 안 보인다 (2026-08-21 사용자 지시의 「이동배치」)
+      var inWay = el('div', 'wayin');
+      inWay.appendChild(projectPicker());
+      /* ★ 되살렸으면 **그렇다고 말한다.** 안 말하면 왜 골라져 있는지 몰라서
+       *   「내가 고른 게 맞나」를 확인하러 목록을 다시 연다 */
+      if (state.restored && state.projectId) {
+        inWay.appendChild(el('p', 'note',
+          '지난번에 쓰던 프로젝트로 이어서 열었습니다 — 바꾸시려면 위에서 고르십시오.'));
+      }
+
+      // 「＋ 신규프로젝트」를 골랐으면 만드는 칸이 여기서 열린다
+      var mk = newProjectCard();
+      if (mk) { inWay.appendChild(mk); putInWay(inWay); return card; }
+
+      if (!state.projectId) {
+        /* ★★ **고르라는 말을 두 번 하지 않는다** 〈2026-08-22 사용자 지시〉.
+         *   고르기 칸에 이미 「프로젝트」라는 이름표와 「— 고르세요 —」가 있다.
+         *   그 아래에 「프로젝트를 고르면…」을 또 적으면 같은 말이 두 줄이 된다.
+         *   ★ 단, **작업 폴더가 없는 경우는 남긴다.** 그것은 안내가 아니라
+         *     경고다 — 화면이 몰래 만들지 않으므로 사람이 만들어야 한다 (§4). */
+        if (state.noFolder) {
+          inWay.appendChild(el('p', 'note',
+            '이 프로젝트는 작업 폴더가 아직 없습니다. 위에서 「＋ 신규프로젝트」로 만들어 주십시오.'));
+        }
+        putInWay(inWay);
+        return card;
+      }
+
+      var appBody = appImportCard();
+      if (appBody) inWay.appendChild(appBody);
+      else if (state.appBundle) {
+        inWay.appendChild(el('p', 'note',
+          '이 앱 프로젝트에는 가져올 내용·첨부·이미지가 없습니다.'));
+      }
+      putInWay(inWay);
+      return card;
+    }
+
+    // 앱 갈래가 아니면 1단 아래 자리는 필요 없다
+    dropSlot();
+
+    /* ★★ 다른 갈래는 프로젝트가 있어야 한다. 고르는 자리는 **앱 갈래 하나뿐**이므로
+       「고르십시오」라고만 하면 어디로 가야 하는지 모른다 — **한 번에 가는 단추**를 준다.
+       (자리를 하나로 모은 대가다. 안내만 하고 길을 안 주면 막다른 길이 된다) */
+    if (!state.projectId) {
+      card.appendChild(el('p', 'note', state.noFolder
+        ? '이 프로젝트는 작업 폴더가 아직 없습니다. 「' + wayName('app') + '」에서 만들어 주십시오.'
+        : '먼저 프로젝트를 골라야 합니다 — 고르거나 만드는 자리는 「' + wayName('app') + '」입니다.'));
+      var goPick = el('button', 'btn2', '「' + wayName('app') + '」로 가기');
+      goPick.type = 'button';
+      goPick.style.cssText = 'margin-top:10px;font-weight:700;font-size:13px;line-height:1;'
+        + 'font-family:inherit;padding:10px 14px;border-radius:10px;border:1px solid var(--line);'
+        + 'background:var(--surface);color:var(--ink);cursor:pointer';
+      goPick.addEventListener('click', function () {
+        // 갈래를 바꾸면 고른 파일을 버린다 — ways() 와 같은 규칙을 여기서도 지킨다
+        state.picked = []; state.upload = null; state.result = null;
+        state.way = 'app';
+        render();
+      });
+      card.appendChild(goPick);
+      return card;
+    }
+
+    // 연결 — 여기서 올리는 것이 아니라 **가리키는** 것이다
+    if (state.way === 'linked') {
+      card.appendChild(linkPicker());
+      // 연결도 **과정이 있다.** 창을 열고, 권한을 확인하고, 장부에 적는다.
+      //   그 사이 아무 말이 없으면 눌러도 안 되는 줄 안다
+      if (state.linkStage >= 0) {
+        card.appendChild(activityGraph({
+          stages: LINK_STAGES, at: state.linkStage, dead: state.linkDead,
+          note: state.linkDead ? '이 칸에서 멈췄습니다.' : '고른 파일을 가리키는 중입니다 — 사본을 만들지 않습니다.',
+        }));
+      }
+      // ★ 연결한 것이 있으면 **그대로인지 물어볼 수 있어야 한다** (D-72)
+      var chk = checkBox();
+      if (chk) card.appendChild(chk);
+      return card;
+    }
+
+    /* ── ① 모이는 자리 〈2026-08-21 사용자 지시 — 「재구성해줘」〉 ──────────
+     *
+     * ★★ 앞 판은 **이름이 없었다.** 갈래를 고르면 드롭 자리와 목록과 올리기
+     *   단추가 그냥 이어서 나왔고, 그 아래에 「자료 스캔」이 또 이어졌다.
+     *   그래서 **어디까지가 모으는 일이고 어디부터가 읽는 일인지**를 화면이
+     *   말하지 않았다 — 사용자가 손으로 상자를 그려 「여기가 1번, 여기가 2번」
+     *   이라고 알려 줘야 했다. 그것이 곧 화면이 못 한 말이다.
+     *
+     * ★ 그래서 번호와 이름을 준다. 다음 자리(② 자료 스캔)도 같은 꼴로 부른다 —
+     *   둘이 한 줄기임을 번호가 이어 준다.
+     */
+    var box = el('div', 'sub');
+    var h = el('div', 'sub__h');
+    h.appendChild(el('span', 'sub__n', '1'));
+    var ht = el('div');
+    ht.appendChild(el('div', 'sub__t', '자료 수집'));
+    ht.appendChild(el('div', 'sub__d', '고른 파일이 여기 모입니다. 올려야 다음 칸에서 읽습니다.'));
+    h.appendChild(ht);
+    box.appendChild(h);
+
+    box.appendChild(dropZone());
+    box.appendChild(limitBox());
+    box.appendChild(pickedList());
+
+    var ready = state.picked.filter(function (f) { return f.data && !f.tooBig; });
+
+    /* ★★★ **아직 읽는 중인 파일이 있으면 단추를 잠근다** 〈2026-08-22 · 실제로 잃었다〉.
+     *
+     *   파일을 고르면 줄은 **바로** 생기지만 내용은 `FileReader` 가 **나중에**
+     *   채운다. 앞 판은 `ready`(내용이 찬 것)만 보고 단추를 열었다. 그래서
+     *   둘을 골라 곧바로 누르면 **덜 읽힌 하나가 조용히 빠진 채로** 올라갔다.
+     *   화면은 「1개를 올렸습니다」라고 맞는 말을 하고, 사용자는 2개를 골랐다.
+     *
+     *   ★ 실측으로 잡았다: 미리보기 빌드가 45번에 한 번쯤 「이관 칸이 없다」로
+     *     멎었는데, 발자국을 찍어 보니 pdf 가 빠져 값이 0이었다. 기계가 바쁘면
+     *     읽기가 늦고, 그때만 재현된다 — **사람 손으로는 거의 안 잡힌다.**
+     *   ★ 조용히 빼는 대신 **기다리게 한다.** 몇 개를 기다리는지도 적는다. */
+    var reading = state.picked.filter(function (f) {
+      return !f.data && !f.error && !f.tooBig;
+    });
+
+    /* ★ 합계가 넘으면 **그 자리에서 말하고 단추를 잠근다.** 얼마나 넘었는지와
+     *   무엇을 하면 되는지를 함께 적는다 — 「너무 큽니다」만으로는 몇 개를 빼야
+     *   하는지 알 수 없다 */
+    var over = overRequest();
+    if (over) {
+      box.appendChild(el('p', 'up__d up__d--bad',
+        '고른 ' + over.files + '개의 합이 ' + size(over.total)
+        + ' 입니다 — 한 번에 ' + size(over.cap) + ' 까지 보낼 수 있습니다. '
+        + size(over.total - over.cap) + ' 만큼 덜어 내거나, 나눠서 두 번 올려 주십시오.'));
+    }
+
+    if (reading.length) {
+      box.appendChild(el('p', 'note',
+        '고른 파일 ' + reading.length + '개를 아직 읽는 중입니다 — 다 읽으면 올릴 수 있습니다.'));
+    }
+
+    var go = el('button', 'btn', state.way === 'oneshot' ? wayName('oneshot') : '올려서 보관');
+    go.type = 'button';
+    go.disabled = !ready.length || state.busy || !!over || !!reading.length;
+    go.addEventListener('click', doUpload);
+    box.appendChild(go);
+
+    var up = uploadCard();
+    if (up) box.appendChild(up);
+    card.appendChild(box);
+    return card;
+  }
+
+  /** 아직 안 붙은 길. **오류가 아니라 상태**로 그린다 */
+  function waitBox(title, why) {
+    var b = el('div', 'wait');
+    b.appendChild(el('div', 'wait__t', title));
+    b.appendChild(el('div', 'wait__d', why));
+    return b;
+  }
+
+  /**
+   * 연결 — 제공자 창을 열어 **고른 파일을 가리킨다** 〈2026-08-20〉.
+   *
+   * ★★ 제공자 창(Dropbox·Box·구글·원드라이브)은 **앱이 연다.** 그쪽에 계정과
+   *   SDK 가 있고, 엔진은 어느 계정인지 모른다. 앱이 넘겨 주는 함수는 하나다:
+   *
+   *     window.LINKPILOT_FILES.pickFrom(provider)
+   *        → Promise<{ ref:{provider,fileId,name,rev,path?,bytes?}, access:{url,expiresAt?} }>
+   *
+   * ★ `ref` 는 **장부에 남는다.** `access` 는 **남지 않는다** — 서버가 잠깐
+   *   들고 있다가 시간이 지나면 스스로 버린다 (`core/handoff.js`).
+   *   장부에 열쇠를 두지 않는다는 규칙은 그대로다.
+   */
+  function linkPicker() {
+    var box = document.createDocumentFragment();
+    var names = ((state.linked && state.linked.providers) || []);
+
+    // ★★ **누를 수 없는 것을 누를 수 있게 두지 않는다** 〈2026-08-20 실측〉.
+    //   전에는 넷을 다 그려 놓고, 누르면 **브라우저 탓을 하는 문장**이 떴다.
+    //   브라우저는 아무 잘못이 없었다 — 앱이 고르기 창을 넘기지 않았거나 제공자
+    //   콘솔 등록이 안 된 것이다. 사용자는 그 문장을 읽고 브라우저를 바꾸러 간다.
+    //   원인을 틀리게 말하는 것이 아무 말도 안 하는 것보다 나쁘다.
+    //   ★ 그 문장을 **여기 주석에도 적지 않는다** — 적으면 그것을 찾는 검사가
+    //     주석에 걸려 통과하고, 막는 장치가 조용히 죽는다 (M-08 · 실제로 두 번)
+    var canOpen = typeof C.pickFrom === 'function';
+
+    var row = el('div', 'ext');
+    row.style.display = 'flex';
+    row.style.gap = '8px';
+    row.style.flexWrap = 'wrap';
+    row.style.marginTop = '12px';
+
+    var blocked = [];
+    names.forEach(function (p) {
+      // `configured` 가 아예 안 오면(옛 서버) **막지 않는다** — 모르는 것을
+      // 「안 된다」로 그리면 되는 것까지 못 쓰게 된다
+      var registered = (p.configured === undefined) ? true : !!p.configured;
+      var open = canOpen && registered;
+      var b = el('button', 'btn2', p.name);
+      b.type = 'button';
+      b.disabled = !open;
+      b.style.cssText = 'font-weight: 700; font-size: 13px; line-height: 1; font-family: inherit;padding:10px 14px;border-radius:10px;'
+        + 'border:1px solid var(--line);color:var(--ink);'
+        + (open ? 'background:var(--surface);cursor:pointer'
+          : 'background:var(--panel);color:var(--ink2);cursor:not-allowed');
+      if (open) b.addEventListener('click', function () { pickFrom(p.id, b); });
+      else if (!registered) blocked.push(p.name);
+      row.appendChild(b);
+    });
+    box.appendChild(row);
+
+    // ★ **무엇이 빠졌는지**를 말한다. 둘은 고치는 사람이 다르다 —
+    //   고르기 창은 앱이 붙이고, 등록은 제공자 콘솔에서 한다
+    if (!canOpen) {
+      box.appendChild(el('p', 'note',
+        '파일 고르기 창이 아직 연결되지 않았습니다 — 준비되면 위 단추가 열립니다. '
+        // ★ 조사를 이름 뒤에 붙이지 않는다 — 이름이 바뀌면 「…」을/를 이 어긋난다.
+        //   갈래 이름은 사람이 정하는 값이라 받침을 미리 알 수 없다
+        + '지금 자료를 넣으려면 「' + wayName('oneshot') + '」 갈래를 쓰십시오.'));
+    } else if (blocked.length) {
+      box.appendChild(el('p', 'note',
+        blocked.join(' · ') + ' 는 아직 등록되지 않았습니다 — 관리자에게 저장소 등록을 요청하십시오.'));
+    }
+
+    if (state.linkMsg) box.appendChild(el('p', 'note', state.linkMsg));
+    return box;
+  }
+
+  /**
+   * 새 프로젝트 만들기 — **고르는 자리에서 바로** 〈2026-08-20 사용자 지시〉.
+   *
+   * ★★ 화면이 몰래 만들지 않는다. 무엇을 만들지 **사람이 한 줄 적는다** —
+   *   그 문장에서 자산군이 정해지기 때문이다. 빈 채로 만들면 자산군이 GEN 으로
+   *   굳고, 굳은 뒤에는 보고서 목차가 통째로 어긋난다 (프로젝트-연결-규칙 §4).
+   *
+   * ★ 만드는 것은 **Pro 부터**다. 등급이 모자라면 그 말을 **이 칸에서** 한다 —
+   *   화면 전체를 잠그면 이미 있는 프로젝트에 자료 붙이는 것까지 막힌다.
+   */
+  var NEW_OPT = 'new:';
+
+  function newProjectCard() {
+    var n = state.newProj;
+    if (!n) return null;
+    // ★ `section.card` 가 아니라 **조각**이다 〈2026-08-21〉. 「자료 붙이기」 카드
+    //   안쪽 갈래에 들어가므로, 카드를 또 두르면 테두리가 겹친다
+    var card = document.createDocumentFragment();
+    add(card, el('div', 'card__t', '신규프로젝트'),
+      el('p', 'card__d', '무엇을 만들지 한 줄로 적어 주십시오. '
+        + '이 문장에서 자산군과 목차가 정해집니다 — 비워 두면 정할 수 없습니다.'));
+
+    var row = el('div', 'new');
+    var inp = el('input');
+    inp.type = 'text';
+    inp.value = n.text;
+    inp.placeholder = '예: 인천 남동공단 6.5MW 데이터센터 IM 작성';
+    inp.disabled = !!n.busy;
+    inp.addEventListener('input', function () { n.text = inp.value; b.disabled = n.busy || inp.value.trim().length < 5; });
+    var b = el('button', 'btn', n.busy ? '만드는 중…' : '만들기');
+    b.type = 'button';
+    b.disabled = n.busy || n.text.trim().length < 5;
+    b.addEventListener('click', function () { createProject(n.text); });
+    inp.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter' && !b.disabled) { ev.preventDefault(); createProject(n.text); }
+    });
+    add(row, inp, b);
+    card.appendChild(row);
+
+    if (n.busy) {
+      card.appendChild(activityGraph({
+        stages: NEW_STAGES, at: 1, note: '요청문에서 자산군과 목차를 정하는 중입니다.',
+      }));
+    }
+    if (n.error) card.appendChild(el('p', 'note', n.error));
+    return card;
+  }
+
+  var NEW_STAGES = ['적은 문장', '자산군 정하기', '작업 폴더', '만들었습니다'];
+
+  function createProject(text) {
+    var n = state.newProj;
+    if (!n || n.busy) return;
+    n.busy = true; n.error = null;
+    render();
+    // ★ 등급 부족을 **화면 전체 게이트로 올리지 않는다** (localGate).
+    //   올리면 이미 있는 프로젝트에 자료 붙이는 것까지 같이 막힌다
+    call('POST', '/projects', { request: String(text).trim() }, { localGate: true })
+      .then(function (r) {
+        n.busy = false;
+        if (r && r.gated) { n.error = r.msg; return render(); }
+        if (!r || !r.ok || !r.body || !r.body.projectId) {
+          n.error = '만들지 못했습니다.'; return render();
+        }
+        var id = r.body.projectId;
+        state.newProj = null;
+        // 목록을 **다시 읽는다.** 안 읽으면 방금 만든 것이 고르기에 없다
+        return loadProjects().then(function () {
+          pickProject(id);
+        });
+      })
+      .catch(function (e) {
+        n.busy = false;
+        n.error = (e && e.message) || '만들지 못했습니다.';
+        render();
+      });
+  }
+
+  /* ── 앱에서 가져오기 — 셋 ────────────────────────────────
+   *
+   * ★★ 앱 프로젝트 하나가 들고 있는 것을 **셋으로 나눠** 가져온다. 한 덩어리로
+   *   받으면 무엇이 들어왔는지 사람이 모르고, **틀린 것 하나 때문에 전부를
+   *   되돌려야 한다.**
+   *
+   *     ① 프로젝트 내용 → 값(fact)이 된다      `PUT /facts`
+   *     ② 첨부파일      → 연결 장부에 적는다   `POST /linked`
+   *     ③ 이미지파일    → 〃 (그림으로 표시)
+   *
+   * ★★ **엔진 라우트를 새로 내지 않았다.** 셋 다 이미 있는 길로 간다 —
+   *   길을 새로 내면 인증·한도·거절 규칙이 두 벌이 되고, 한쪽만 고치는 날이 온다.
+   *
+   * ★★ **값에는 출처가 붙는다.** 앱에서 왔다는 것 자체가 출처다 —
+   *   「LinkPilot 앱 · <딜 id> · <갱신일>」. 출처 없이 넣으면 서버가 거절하고,
+   *   그게 맞다 (「출처 없는 숫자는 들어오지 못한다」).
+   *
+   * ★ **사전에 없는 항목은 값이 되지 않는다.** 앱의 자유 입력을 억지로 사전 항목에
+   *   끼워 맞추지 않는다 — 맞춰 넣으면 문서에는 「출처 있는 값」으로 실린다.
+   *   그런 것은 `notes` 로 받아 **보여만 준다.**
+   */
+  var APP_STAGES = ['앱에서 읽기', '프로젝트 내용', '자료 잇기', '가져왔습니다'];
+
+  /**
+   * 앱이 내부로 넘기는 출처 이름 — **서버가 알려 주지 않는 옛 판을 위한 대비값.**
+   * 정본은 `GET /linked` 의 `appProvider` 다. 둘이 같은 값인지는 검사가 지킨다.
+   */
+  var APP_PROVIDER = 'linkpilot-app';
+
+  /** 앱 목록에서 딜 하나를 찾는다 */
+  function appEntry(appId) {
+    var apps = Array.isArray(C.appProjects) ? C.appProjects : [];
+    for (var i = 0; i < apps.length; i++) {
+      if (apps[i] && String(apps[i].id) === String(appId)) return apps[i];
+    }
+    return null;
+  }
+
+  /**
+   * 셋을 받아 온다. 앱이 함수를 주면 그것으로, 안 주면 목록에 실린 것으로.
+   *
+   * ★ 목록에 개수만 실어도 되게 둘 다 받는다 — 딜 54건의 첨부를 탭 열 때
+   *   전부 내려받으면 여는 데만 한참 걸린다.
+   */
+  function loadAppBundle(appId) {
+    var a = appEntry(appId) || {};
+    var inline = { content: a.content || null, files: a.files || null, images: a.images || null };
+    if (typeof C.fetchAppProject !== 'function') return Promise.resolve(inline);
+    return Promise.resolve()
+      .then(function () { return C.fetchAppProject(appId); })
+      .then(function (got) {
+        if (!got) return inline;
+        return {
+          content: got.content || inline.content,
+          files: got.files || inline.files,
+          images: got.images || inline.images,
+        };
+      });
+  }
+
+  function countOf(b) {
+    if (!b) return { content: 0, files: 0, images: 0, notes: 0 };
+    var c = b.content || {};
+    return {
+      content: (c.facts || []).length,
+      notes: (c.notes || []).length,
+      files: (b.files || []).length,
+      images: (b.images || []).length,
+    };
+  }
+
+
+  /**
+   * **프로젝트를 고르거나 만드는 자리 — 화면에 하나뿐이다** 〈2026-08-21 사용자 지시〉.
+   *
+   * ★★ 전에는 **둘**이었다. 화면 맨 위에 고르기가 있고, 「＋ 앱 프로젝트에서
+   *   가져오기」 갈래 안에 앱 딜 고르기가 또 있었다. 같은 앱 딜이 두 곳에 뜨고
+   *   두 곳이 같은 함수를 부르니 **어느 쪽이 진짜인지** 화면만 봐서는 모른다.
+   *   사용자가 「상단을 지우고 갈래로 병합」이라고 정했다. 지금은 여기 하나다.
+   *
+   * ★ 한 목록에 셋이 들어간다. **무리(optgroup)로 갈라서** 무엇이 무엇인지
+   *   보이게 한다 — 뭉쳐 놓으면 앱 딜과 보고서 프로젝트가 구분이 안 된다:
+   *     ① ＋ 신규프로젝트          맨 위 (새로 만드는 사람은 목록에 볼 것이 없다)
+   *     ② 보고서 프로젝트          엔진에 이미 있는 것
+   *     ③ LinkPilot 프로젝트에서 가져오기  앱 딜 — 고르면 엔진 프로젝트로 잇는다
+   *
+   * ★ 자리가 여기뿐이므로 **다른 갈래에서도 여기로 올 수 있어야 한다.**
+   *   프로젝트가 없을 때 다른 갈래는 이 갈래로 오는 단추를 띄운다 (attachCard).
+   */
+  function projectPicker() {
+    var box = document.createDocumentFragment();
+    var apps = Array.isArray(C.appProjects) ? C.appProjects : [];
+
+    var pick = el('div', 'pick');
+    pick.style.marginTop = '12px';
+    // ★ 「프로젝트」 딱지를 **달지 않는다** 〈2026-08-22 사용자 지시〉. 바로 위 갈래
+    //   제목이 이미 「LinkPilot 프로젝트에서 가져오기」라서 같은 말을 두 번 한다.
+    //   ★ 딱지를 떼도 고르는 자리가 무엇인지는 목록 첫 줄(「— 고르세요 —」)이 말한다.
+    var sel = el('select');
+    // 없을 때 「고르세요」라고 하면 어딘가 있는 줄 알고 찾는다 (outputs.html 과 같은 문구)
+    var none = el('option', null,
+      ((state.projects && state.projects.length) || apps.length) ? '— 고르세요 —' : '＋ 신규프로젝트 로 시작하십시오');
+    none.value = '';
+    sel.appendChild(none);
+
+    // ★★ **만들기를 맨 위에 둔다** 〈2026-08-20 사용자 지시〉.
+    //   프로젝트가 수십 개면 아래 것은 끝까지 굴려야 보이는데,
+    //   새로 만드는 사람은 목록에 볼 것이 없는 사람이다
+    var mk = el('option', null, '＋ 신규프로젝트');
+    mk.value = NEW_OPT;
+    if (state.newProj) mk.selected = true;
+    sel.appendChild(mk);
+
+    /* ② 엔진에 이미 있는 프로젝트 */
+    // ★ 앱 딜 중에는 **작업 폴더가 아직 없는 것**이 있다. 그때 `id` 가 비어 있다 —
+    //   목록에서 빼지 않는다. 빼면 사용자는 자기 딜이 왜 없는지 모른다.
+    //   대신 고르면 「먼저 만드십시오」라고 말한다 (프로젝트-연결-규칙 §4).
+    var gEng = el('optgroup'); gEng.label = '보고서 프로젝트';
+    (state.projects || []).forEach(function (p) {
+      var full = p.name || p.id || '(이름 없음)';
+      var label = p.id ? shortLabel(full, p.id)
+        : (shortLabel(full, null) + ' — 작업 폴더가 아직 없습니다');
+      var o = el('option', null, label);
+      // 잘린 이름을 **어디선가는 온전히** 볼 수 있어야 한다
+      o.title = full + (p.id ? (' · ' + p.id) : '');
+      // 폴더가 없는 딜은 **키로** 고른다. 이름으로 이으면 이름 바꾸는 날 끊긴다
+      o.value = p.id || ('ext:' + (p.externalId || full));
+      if (p.id && p.id === state.projectId) o.selected = true;
+      gEng.appendChild(o);
+    });
+    if (gEng.children.length) sel.appendChild(gEng);
+
+    /* ③ 앱에 등록된 딜 — 고르면 엔진 프로젝트로 잇는다(이미 이어진 것은 그쪽으로 간다).
+       앱 목록은 부모가 내려준다(C.appProjects). 단독으로 열면 이 무리는 없다 — 그게 정직하다 */
+    if (apps.length) {
+      var linkedPairs = C.appLinks || {};
+      var gApp = el('optgroup'); gApp.label = '앱 프로젝트에서 가져오기';
+      apps.forEach(function (a) {
+        if (!a || !a.id) return;
+        var tail = a.client ? (' · ' + a.client) : (a.owner ? (' · ' + a.owner) : '');
+        var mark = linkedPairs[String(a.id)] ? ' (이어짐)' : '';
+        var o = el('option', null, shortLabel(a.title || '(제목 없음)', null, 24) + tail + mark);
+        o.title = (a.title || '(제목 없음)') + tail + mark;
+        o.value = 'app:' + a.id;
+        if (state.appBundle && String(state.appBundle.appId) === String(a.id)) o.selected = true;
+        gApp.appendChild(o);
+      });
+      sel.appendChild(gApp);
+    }
+
+    sel.disabled = state.busy;
+    sel.addEventListener('change', function () {
+      var v = sel.value;
+      if (v && v.indexOf('app:') === 0) pickAppProject(v.slice(4));
+      else pickProject(v);
+    });
+    pick.appendChild(sel);
+    box.appendChild(pick);
+
+    // ★ 앱이 목록을 안 넘겼으면 **그렇다고 말한다.** 빈 무리를 그려 놓으면
+    //   「내 딜이 왜 없나」를 사용자가 혼자 고민한다
+    if (!apps.length) {
+      box.appendChild(el('p', 'note',
+        '앱 프로젝트 목록은 앱 안에서 열었을 때만 뜹니다 — 이 화면은 앱 데이터를 직접 읽지 못합니다. '
+        + '여기서는 「＋ 신규프로젝트」로 만들거나 이미 있는 보고서 프로젝트를 고를 수 있습니다.'));
+    }
+    if (state.appMsg) box.appendChild(el('p', 'note', state.appMsg));
+    if (state.appStage >= 0 && !state.appBundle) {
+      box.appendChild(el('p', 'note', '앱에서 읽는 중입니다…'));
+    }
+    return box;
+  }
+
+  /**
+   * 무엇을 가져올지 고르는 칸. **개수를 먼저 보여 준다** — 눌러 놓고 나서
+   * 「이만큼이나 들어왔나」를 알면 늦다.
+   */
+  function appImportCard() {
+    var b = state.appBundle;
+    if (!b || !state.projectId) return null;
+    var n = countOf(b);
+    if (!n.content && !n.files && !n.images && !n.notes && !(b.content && b.content.summary)) return null;
+
+    // ★ `section.card` 가 아니라 **조각**이다 〈2026-08-21〉. 「자료 붙이기」 카드
+    //   안쪽 「앱 프로젝트에서 가져오기」 갈래에 들어가므로, 카드를 또 두르면
+    //   테두리가 겹치고 갈래 밖에 있는 것처럼 보인다
+    var card = document.createDocumentFragment();
+    add(card, el('p', 'card__d', '앱 프로젝트가 들고 있는 것입니다. '
+      + '가져올 것만 고르십시오 — 나중에 다시 가져올 수 있습니다.'));
+
+    var rows = [
+      { id: 'content', t: '프로젝트 내용', c: n.content,
+        d: n.content ? (n.content + '개 항목이 값으로 들어갑니다 (출처는 앱으로 적힙니다)')
+          : '값으로 넣을 항목이 없습니다' },
+      { id: 'files', t: '첨부파일', c: n.files,
+        d: n.files ? (n.files + '개를 가리킵니다 — 사본을 만들지 않습니다') : '첨부가 없습니다' },
+      { id: 'images', t: '이미지파일', c: n.images,
+        d: n.images ? (n.images + '개를 가리킵니다') : '이미지가 없습니다' },
+    ];
+    rows.forEach(function (r) {
+      var row = el('div', 'row');
+      var left = el('div', 'row__b');
+      var lab = el('label');
+      lab.style.cssText = 'display:flex;gap:9px;align-items:center;cursor:pointer';
+      var cb = el('input');
+      cb.type = 'checkbox';
+      cb.checked = !!state.appPick[r.id] && r.c > 0;
+      cb.disabled = !r.c || state.busy;
+      cb.addEventListener('change', function () { state.appPick[r.id] = cb.checked; });
+      lab.appendChild(cb);
+      lab.appendChild(el('div', 'row__n', r.t + (r.c ? ' · ' + r.c + '개' : '')));
+      left.appendChild(lab);
+      left.appendChild(el('div', 'row__m', r.d));
+      row.appendChild(left);
+      card.appendChild(row);
+    });
+
+    // ★ 사전에 없어 값이 될 수 없는 것 — **숨기지 않고 그렇다고 적는다**
+    if (n.notes) {
+      card.appendChild(el('p', 'note',
+        '값으로 넣을 수 없는 메모 ' + n.notes + '건은 가져오지 않습니다 — '
+        + '사전에 없는 항목을 값으로 넣으면 문서에 「출처 있는 값」으로 실립니다.'));
+    }
+
+    var go = el('button', 'btn', state.busy ? '가져오는 중…' : '가져오기');
+    go.type = 'button';
+    go.disabled = state.busy || !(state.appPick.content || state.appPick.files || state.appPick.images);
+    go.addEventListener('click', importFromApp);
+    card.appendChild(go);
+
+    if (state.appStage >= 0) {
+      card.appendChild(activityGraph({
+        stages: APP_STAGES, at: state.appStage, dead: state.appDead,
+        note: state.appDead ? '이 칸에서 멈췄습니다.' : '앱이 가진 것을 이 프로젝트로 옮기는 중입니다.',
+      }));
+    }
+    if (state.appReport) card.appendChild(appReportBox(state.appReport));
+    return card;
+  }
+
+  /** 가져온 결과. **거절된 것을 접어 두지 않는다** */
+  function appReportBox(rep) {
+    var box = el('div', 'up' + (rep.failed ? ' up--error' : ' up--done'));
+    box.appendChild(el('p', 'up__d',
+      '값 ' + rep.facts + '개 · 첨부 ' + rep.files + '개 · 이미지 ' + rep.images + '개를 가져왔습니다.'));
+    (rep.rejected || []).forEach(function (r) {
+      box.appendChild(el('p', 'up__d', '· ' + r.what + ' — ' + r.why));
+    });
+    return box;
+  }
+
+  /**
+   * 저장된 값의 **개수**를 센다.
+   *
+   * ★★ 서버(`PUT /facts`)는 개수를 **숫자로** 준다 (`saved: 3`). 목록이 아니다.
+   *   그런데 여기서 `.length` 로 세고 있었다 — 숫자에 `.length` 는 `undefined` 라
+   *   화면에 「값 undefined개를 가져왔습니다」가 떴다. 값은 **실제로 들어갔는데**
+   *   화면만 못 셌다. 실측으로 잡았다 (2026-08-22 · 실제 서버 응답 `saved: 1`).
+   * ★ 다른 응답(`POST /sources`)은 목록으로 준다. 그래서 **둘 다** 받는다 —
+   *   한쪽만 맞춰 두면 다음에 응답 모양이 바뀌는 날 같은 자리가 다시 빈다.
+   */
+  function savedCount(v) {
+    if (typeof v === 'number') return v;
+    return (v && v.length) || 0;
+  }
+
+  /**
+   * 실제로 가져온다. **하나가 실패해도 나머지는 간다** — 한 건 때문에 전부를
+   * 되돌리면 사용자는 무엇이 들어왔는지 모르는 채 처음부터 다시 한다.
+   */
+  function importFromApp() {
+    var b = state.appBundle;
+    if (!b || state.busy || !state.projectId) return;
+    var base = '/projects/' + encodeURIComponent(state.projectId);
+    var rep = { facts: 0, files: 0, images: 0, rejected: [], failed: false };
+
+    state.busy = true; state.appReport = null; state.appDead = false;
+    state.appStage = 0; render();
+
+    // ① 프로젝트 내용 → 값. **출처를 붙여 보낸다**
+    var step1 = Promise.resolve();
+    var facts = (state.appPick.content && b.content && b.content.facts) || [];
+    if (facts.length) {
+      state.appStage = 1; render();
+      var src = 'LinkPilot 앱 · ' + (b.appId || '딜')
+        + ((b.content && b.content.updatedAt) ? ' · ' + b.content.updatedAt : '');
+      step1 = call('PUT', base + '/facts', {
+        facts: facts.map(function (f) {
+          return { key: f.key, value: f.value, unit: f.unit || null,
+            quote: f.quote || null, source: f.source || src };
+        }),
+      }, { localGate: true }).then(function (r) {
+        if (r && r.ok && r.body) {
+          rep.facts = savedCount(r.body.saved);
+          (r.body.rejected || []).forEach(function (x) {
+            rep.rejected.push({ what: x.key, why: x.reason });
+          });
+        } else {
+          rep.failed = true;
+          rep.rejected.push({ what: '프로젝트 내용', why: (r && (r.msg || r.closed)) || '넣지 못했습니다' });
+        }
+      }, function (e) {
+        rep.failed = true;
+        rep.rejected.push({ what: '프로젝트 내용', why: e.message });
+      });
+    }
+
+    // ② 첨부 · ③ 이미지 → 연결 장부. **하나씩** 보낸다 (한 건이 죽어도 나머지가 간다)
+    return step1.then(function () {
+      var jobs = [];
+      var push = function (list, kind) {
+        (list || []).forEach(function (f) {
+          jobs.push(function () {
+            // ★★ 출처 이름은 **서버가 정한다** 〈2026-08-21〉. 여기 손으로 적어 두었더니
+            //   검증기만 그 이름을 몰라 첨부가 전부 거절됐고, 화면에는 「첨부 0개」가
+            //   떴다. 서버가 안 알려 주는 옛 판을 위해 같은 값을 뒤에 두되,
+            //   **둘이 같은 값인지는 검사가 지킨다**
+            var prov = (state.linked && state.linked.appProvider) || APP_PROVIDER;
+            var ref = f.ref || { provider: prov, fileId: f.id || f.name, name: f.name,
+              rev: f.rev || null, bytes: f.bytes || null, kind: kind };
+            // 앱이 ref 를 통째로 줬어도 출처 이름은 **서버가 아는 것**으로 맞춘다
+            if (f.ref && !f.ref.provider) ref.provider = prov;
+            return call('POST', base + '/linked', { ref: ref, access: f.access || null },
+              { localGate: true }).then(function (r) {
+              if (r && r.ok) { rep[kind === 'image' ? 'images' : 'files'] += 1; return; }
+              rep.failed = true;
+              rep.rejected.push({ what: f.name || '(이름 없음)',
+                why: (r && (r.msg || r.closed)) || '잇지 못했습니다' });
+            }, function (e) {
+              rep.failed = true;
+              rep.rejected.push({ what: f.name || '(이름 없음)', why: e.message });
+            });
+          });
+        });
+      };
+      if (state.appPick.files) push(b.files, 'file');
+      if (state.appPick.images) push(b.images, 'image');
+      if (!jobs.length) return null;
+      state.appStage = 2; render();
+      return jobs.reduce(function (p, job) { return p.then(job); }, Promise.resolve());
+    }).then(function () {
+      state.busy = false;
+      state.appStage = 3;
+      state.appDead = rep.failed;
+      state.appReport = rep;
+      return loadOne(state.projectId).then(function () {
+        render();
+        // ★ 앱 첨부·이미지는 **연결 장부에 적힌 것**이라 아직 안 읽혔다.
+        //   앱이 준 「프로젝트 내용」은 이미 값이지만, 첨부는 여기서 읽는다.
+        //   ★ 하나라도 실패했으면 자동으로 넘기지 않는다 — 무엇이 빠졌는지
+        //     먼저 봐야 한다 (2026-08-21 사용자 지시)
+        if (rep.failed) return null;
+        return scanNow({ auto: true });
+      });
+    }, function (e) {
+      state.busy = false;
+      state.appDead = true;
+      rep.failed = true;
+      rep.rejected.push({ what: '가져오기', why: e.message });
+      state.appReport = rep;
+      render();
+    });
+  }
+
+
+  /* ── 자료 스캔 → 보고서 생성으로 ─────────────────────────────────────
+     〈2026-08-21 사용자 지시 — 「모두 업로드된 자료는 OCR 스캔을 통해 새보고서
+       생성으로 전달되도록」 · 「2단계 [새보고서 생성]탭으로 자동 이동」〉
+
+     ★★ 왜 필요했나: 셋 중 무엇으로 넣든 자료는 **넣기만** 되고 읽히지 않았다.
+       읽는 것은 보고서를 만드는 순간이었다. 그래서 자료를 넣은 사람이 2단계에
+       가면 **빈 칸만** 보였다 — 값이 없는 것이 아니라 아직 안 읽은 것인데,
+       화면은 그 둘을 구분해 말하지 못했다.
+
+     ★ 「OCR 스캔」은 **이미지·스캔본에만** 걸린다. 글자가 들어 있는 PDF·워드·
+       엑셀을 굳이 옮겨 적으면 신뢰도만 깎인다 (core/ocr.js). 그래서 「전부
+       OCR 했다」고 말하지 않고 **파일마다 어떻게 읽었는지** 그대로 보여 준다.
+
+     ★★ 값이 하나도 안 나왔으면 **옮기지 않는다.** 옮기면 사용자는 빈 칸을 보고
+       자기가 뭘 잘못한 줄 안다. 여기서 「무엇을 못 읽었는지」를 먼저 본다. */
+  var SCAN_STAGES = ['자료 모으기', '읽기 · OCR', '값으로 만들기', '보고서 생성으로'];
+
+  /**
+   * 스캔이 도는 동안 **시계를 돌린다** 〈2026-08-22 사용자 지시 — 「진행율, 시간 표기」〉.
+   *
+   * ★★ 앞 판은 서버가 답할 때까지 `stage` 가 **0 에 그대로** 있었다. 단추만
+   *   「읽는 중…」으로 바뀌고 칸도 숫자도 그대로라, 도는 중인지 멈춘 건지
+   *   화면만 봐서는 알 수 없었다.
+   *
+   * ★ 칸은 **「읽기 · OCR」에서 멈춘다.** 그 뒤 칸(값으로 만들기)은 서버가
+   *   답해야 아는 것이라, 미리 넘기면 **하지도 않은 일을 했다고 그리는 것**이다.
+   * ★ 진행률은 걸린 시간으로 어림하되 **90% 를 넘기지 않는다** (meter 주석 참고).
+   */
+  var SCAN_TICK_MS = 200;
+  /** 어림의 기준. 실측 감각치다 — 대개 이 안에 끝난다 */
+  var SCAN_TYPICAL_MS = 20000;
+
+  function stopScanClock() {
+    if (state.scan && state.scan.timer) clearInterval(state.scan.timer);
+    if (state.scan) state.scan.timer = null;
+  }
+
+  function scanNow(opts) {
+    if (!state.projectId || state.scan.busy) return Promise.resolve(null);
+    var auto = !!(opts && opts.auto);
+    stopScanClock();
+    state.scan = { busy: true, stage: 0, dead: false, result: null, msg: null, auto: auto, moved: null,
+      t0: now(), ms: 0, tookMs: null, timer: null };
+    render();
+
+    state.scan.timer = setInterval(function () {
+      var sc = state.scan;
+      if (!sc || !sc.busy) return stopScanClock();
+      sc.ms = now() - sc.t0;
+      // 모으기는 실제로 곧 끝난다. 그 뒤 읽기 칸에서 **머문다** — 그게 사실이다
+      if (sc.stage < 1 && sc.ms > 700) sc.stage = 1;
+      render();
+    }, SCAN_TICK_MS);
+
+    return call('POST', '/projects/' + encodeURIComponent(state.projectId) + '/scan', {},
+      { localGate: true }).then(function (r) {
+      state.scan.busy = false;
+      state.scan.tookMs = now() - state.scan.t0;
+      stopScanClock();
+      if (r && r.gated) { state.scan.stage = -1; state.scan.msg = r.msg; return render(); }
+      if (r && r.closed) {
+        // 501 — 아직 안 붙은 길이다. **오류로 그리지 않는다** (화면 전체가 그 규칙이다)
+        state.scan.stage = -1;
+        state.scan.msg = r.closed;
+        return render();
+      }
+      if (!r || !r.ok || !r.body) {
+        state.scan.dead = true;
+        state.scan.stage = 1;
+        state.scan.msg = (r && r.body && r.body.error) || '자료를 읽지 못했습니다.';
+        return render();
+      }
+      state.scan.result = r.body;
+      state.scan.stage = r.body.facts > 0 ? 3 : 2;
+      // 값이 하나도 안 나왔으면 **여기서 멈춘다.** 넘어가면 빈 칸만 보게 된다
+      if (!r.body.facts) { render(); return null; }
+      // ★ 아직 안 읽은 것이 남았으면 **자동으로 넘기지 않는다** 〈2026-08-21〉.
+      //   반만 읽은 값으로 2단계에 가면, 왜 어떤 칸만 비었는지 알 수가 없다.
+      //   사람이 한 번 더 눌러 다 읽은 뒤에 넘어가는 쪽이 싸다
+      if (r.body.remaining) { render(); return null; }
+      goReport();
+      return null;
+    }, function (e) {
+      state.scan.busy = false;
+      state.scan.tookMs = now() - state.scan.t0;
+      stopScanClock();
+      state.scan.dead = true;
+      state.scan.stage = 1;
+      state.scan.msg = e && e.message ? e.message : '자료를 읽지 못했습니다.';
+      render();
+      return null;
+    });
+  }
+
+  /* ══════════ 이관 — **넘어가는 것을 눈으로 보여 준다** 〈2026-08-22〉 ══════════
+   *
+   * ★★ 왜 칸을 따로 두는가: 올리기(`UP_STAGES`)와 스캔(`SCAN_STAGES`)은 **여기서
+   *   일어나는 일**이고, 이관은 **여기를 떠나는 일**이다. 같은 그래프에 이어
+   *   붙이면 「아직 이 화면에서 뭔가 하는 중」으로 읽혀서, 탭이 바뀌는 순간이
+   *   또 갑작스러워진다. 떠난다는 것은 떠나기 전에 말해야 한다.
+   */
+  var HANDOFF_STAGES = ['올린 자료', '읽어서 값으로', '값을 넘김', '「' + F.SECTION.tab + '」에서 이어서'];
+
+  /** 칸 하나를 몇 ms 씩 보여 주는가. 짧으면 못 읽고, 길면 기다리게 된다 */
+  var HANDOFF_STEP_MS = 520;
+
+  function startHandoff(facts, documents) {
+    stopHandoff();
+    state.handoff = {
+      stage: 0, facts: facts, documents: documents,
+      moving: true, held: false, movedAt: null,
+    };
+    render();
+    state.handoff.timer = setInterval(function () {
+      var h = state.handoff;
+      if (!h || h.held) return;
+      h.stage += 1;
+      if (h.stage >= HANDOFF_STAGES.length - 1) {
+        stopHandoff();
+        h.stage = HANDOFF_STAGES.length - 1;
+        h.moving = false;
+        goReport();          // ★ 다 그린 **뒤에** 넘긴다
+        return;
+      }
+      render();
+    }, HANDOFF_STEP_MS);
+  }
+
+  function stopHandoff() {
+    if (state.handoff && state.handoff.timer) clearInterval(state.handoff.timer);
+    if (state.handoff) state.handoff.timer = null;
+  }
+
+  /** 「여기 그대로 있기」 — 사람이 멈출 수 있어야 자동이 무섭지 않다 */
+  function holdHandoff() {
+    stopHandoff();
+    if (state.handoff) { state.handoff.held = true; state.handoff.moving = false; }
+    render();
+  }
+
+  function handoffCard() {
+    var h = state.handoff;
+    if (!h) return null;
+    var card = el('section', 'card card--handoff');
+
+    var hh = el('div', 'sub__h');
+    hh.appendChild(el('span', 'sub__n', '3'));
+    var ht = el('div');
+    ht.appendChild(el('div', 'sub__t', '「' + F.SECTION.tab + '」으로 넘기기'));
+    ht.appendChild(el('div', 'sub__d',
+      '문서 ' + h.documents + '건에서 값 ' + h.facts + '개를 만들었습니다. '
+      + '값을 넣고 확인하는 자리는 이 탭이 아니라 「' + F.SECTION.tab + '」입니다.'));
+    hh.appendChild(ht);
+    card.appendChild(hh);
+
+    card.appendChild(activityGraph({
+      stages: HANDOFF_STAGES,
+      at: h.stage,
+      dead: false,
+      note: h.held
+        ? '여기 멈춰 있습니다 — 아래 단추로 언제든 넘어갈 수 있습니다.'
+        : '값은 이미 저장되어 있습니다. 넘어가도 다시 올릴 필요가 없습니다.',
+    }));
+
+    /* ★ **어디로 가는지**와 **왜 거기인지**를 적는다. 도착 화면이 「값은 앱 안에서
+     *   받습니다」로 시작하는데, 어디서 왜 왔는지를 모르면 그 문장이 뜬금없다. */
+    card.appendChild(el('p', 'note',
+      '출처 없는 숫자를 막는 검사(출처 필수 · 계산 항목 입력 금지 · 사양 확정)가 '
+      + '「' + F.SECTION.tab + '」 단계 안에 있습니다. 그래서 값 넣기를 그쪽에서 합니다.'));
+
+    var row = el('div', 'hand__b');
+    if (h.moving) {
+      var stay = el('button', 'btn2', '여기 그대로 있기');
+      stay.type = 'button';
+      stay.addEventListener('click', holdHandoff);
+      row.appendChild(stay);
+    }
+    var go = el('button', 'btn', '「' + F.SECTION.tab + '」으로 가기');
+    go.type = 'button';
+    go.addEventListener('click', function () { stopHandoff(); h.moving = false; goReport(); });
+    row.appendChild(go);
+    card.appendChild(row);
+
+    /* 넘겼는데 **아무도 안 받았으면** 그렇다고 말한다. 되는 척하지 않는다 */
+    if (h.movedAt === false) {
+      card.appendChild(el('p', 'note',
+        '이 화면은 탭 하나라 스스로 옮길 수 없습니다 — 위 탭에서 「'
+        + F.SECTION.tab + '」을 눌러 주십시오. 값은 이미 들어가 있습니다.'));
+    } else if (h.movedAt === true) {
+      card.appendChild(el('p', 'note', '「' + F.SECTION.tab + '」으로 넘겼습니다.'));
+    }
+    return card;
+  }
+
+  /**
+   * 2단계 「보고서 생성」으로 옮긴다 — **옮기는 방법은 flow-core 한 곳에 있다.**
+   *
+   * ★ 이 화면은 탭 하나라 스스로 갈 수 없다. 앱이 옮긴다. 그래서 **받았는지**를
+   *   확인하고, 아무도 안 받았으면 「탭을 눌러 주십시오」라고 말한다.
+   *   되는 척하면 사용자는 아무 일도 안 일어나는 화면을 본다.
+   */
+  function goReport() {
+    var r = F.openSection({
+      projectId: state.projectId,
+      section: F.SECTION.id,
+      step: 'fields',        // 값이 들어간 곳이 2단계 「가이드 필드」다
+      why: 'scan',
+    });
+    state.scan.moved = r.sent;
+    if (state.handoff) state.handoff.movedAt = r.sent;   // 이관 칸도 같은 답을 쓴다
+    render();
+  }
+
+  /** 스캔 칸. **무엇을 어떻게 읽었는지 파일마다** 보여 준다 */
+  function scanCard() {
+    if (!state.projectId) return null;
+    var card = el('section', 'card');
+    /* ★ 앞 칸(① 자료 수집)과 **같은 꼴로** 부른다. 번호가 둘을 한 줄기로 잇는다
+     *   — 「모으는 곳」과 「읽어서 보내는 곳」이 따로 보이면 어느 것을 먼저
+     *   해야 하는지가 화면에 없다 〈2026-08-21 사용자 지시〉. */
+    var sh = el('div', 'sub__h');
+    sh.appendChild(el('span', 'sub__n', '2'));
+    var sht = el('div');
+    sht.appendChild(el('h2', 'card__t sub__t', '자료 스캔'));
+    sht.appendChild(el('div', 'sub__d',
+      '① 에서 모은 자료를 읽어 「' + F.SECTION.tab + '」으로 보냅니다.'));
+    sh.appendChild(sht);
+    card.appendChild(sh);
+    card.appendChild(el('p', 'card__d',
+      '넣은 자료를 읽어 값으로 만듭니다. 이미지·스캔본은 글자로 옮겨서(OCR) 읽고, '
+      + '그 값은 신뢰도를 낮춰 표시합니다. 읽고 나면 「'
+      + F.SECTION.tab + '」으로 넘어갑니다.'));
+
+    /* ★★ **여기서 읽을 수 있는 것과 없는 것을 미리 가른다** 〈2026-08-21 · 실제 신고〉.
+       「파일업로드」(1회성)는 **올리는 그 자리에서 읽고 파일을 버린다.** 그래서
+       이 단추로는 다시 읽을 원본이 없다 — 그런데 화면은 단추를 그대로 열어 두고,
+       누르면 「자료를 먼저 넣어 주십시오」라고 **사용자를 탓했다.**
+       ★ 단추를 없애지는 않는다. 보관·연결 자료가 함께 있을 수 있고, 그때는
+         눌러야 한다. 대신 **무엇이 스캔 대상인지 먼저 말한다.** */
+    var keptN = ((state.kept && state.kept.files) || []).length;
+    var linkN = ((state.linked && state.linked.items) || []).length;
+    var shotN = ((state.oneshot && state.oneshot.items) || []).length;
+    if (!keptN && !linkN && shotN) {
+      card.appendChild(el('p', 'note',
+        '「' + wayName('oneshot') + '」로 넣은 ' + shotN + '건은 여기 오지 않습니다 — '
+        + '올리는 그 자리에서 이미 읽었고, 보관하지 않으므로 원본이 남아 있지 않습니다. '
+        + '다시 읽어야 하면 「' + wayName('linked') + '」로 넣으십시오.'));
+    }
+    // ★ 아직 안 올린 파일을 손에 든 채 스캔을 누르면 **그것부터 말한다.**
+    //   「자료가 없다」로 답하면 사용자는 고른 파일이 안 보이는 줄 안다
+    var waiting = state.picked.filter(function (f) { return f.data && !f.tooBig; }).length;
+    if (waiting) {
+      card.appendChild(el('p', 'note',
+        // ★ 조사를 이름 뒤에 붙이지 않는다 — 갈래 이름은 사람이 정하는 값이라
+        //   받침을 미리 알 수 없다 (「파일업로드」을 → 를 이 어긋났다)
+        '고른 파일 ' + waiting + '개가 아직 안 올라갔습니다 — 위에서 「'
+        + wayName('oneshot') + '」 단추를 먼저 누르십시오. 스캔은 올라간 자료만 읽습니다.'));
+    }
+
+    var go = el('button', 'btn', state.scan.busy ? '읽는 중…' : '자료 스캔');
+    go.type = 'button';
+    go.disabled = state.scan.busy || state.busy;
+    go.addEventListener('click', function () { scanNow({ auto: false }); });
+    card.appendChild(go);
+
+    if (state.scan.stage >= 0) {
+      card.appendChild(activityGraph({
+        stages: SCAN_STAGES, at: state.scan.stage, dead: state.scan.dead,
+        note: state.scan.dead ? '이 칸에서 멈췄습니다.'
+          : '자료를 읽어 값으로 만드는 중입니다 — 이미지는 글자로 옮깁니다.',
+      }));
+
+      /* ── 진행률 · 걸린 시간 〈2026-08-22 사용자 지시〉 ──────────────
+       *  ★ 도는 동안엔 **어림값**(90% 상한), 끝나면 **잰 값**을 그대로 보여 준다.
+       *  ★ 읽을 건수는 아는 값이라 함께 적는다 — 「몇 건을 읽는 중인지」가
+       *    보이면 오래 걸리는 것이 고장이 아니라는 것이 설명된다. */
+      var sc = state.scan;
+      /* ★ 보관은 `files`, 연결은 `items` 다 — 이름이 다르다. 한쪽 이름으로 둘 다
+         읽으면 **조용히 0** 이 되고, 화면에는 건수만 빠진 채 멀쩡히 뜬다.
+         (같은 카드 위쪽 `keptN`·`linkN` 과 같은 이름을 쓴다) */
+      var nRead = keptN + linkN;
+      if (sc.busy) {
+        var pct = Math.min(90, (sc.ms / SCAN_TYPICAL_MS) * 90);
+        card.appendChild(meter({
+          pct: pct,
+          secs: secsText(sc.ms),
+          sub: nRead ? nRead + '건 읽는 중' : null,
+          note: '진행률은 **어림값**입니다 — 서버가 중간 상태를 알려 주지 않아 '
+            + '걸린 시간으로 셈합니다. 끝나면 100% 가 됩니다.',
+        }));
+      } else if (sc.tookMs !== null && sc.tookMs !== undefined) {
+        card.appendChild(meter({
+          pct: sc.dead ? Math.min(90, (sc.tookMs / SCAN_TYPICAL_MS) * 90) : 100,
+          secs: secsText(sc.tookMs),
+          done: !sc.dead,
+          sub: sc.dead ? '멈춤' : (sc.result ? (sc.result.documents || 0) + '건 읽음' : null),
+          note: sc.dead ? '여기까지 걸린 시간입니다.' : null,
+        }));
+      }
+    }
+    if (state.scan.msg) card.appendChild(el('p', 'note', state.scan.msg));
+
+    var res = state.scan.result;
+    if (res) {
+      // ★★ **읽을 것이 없는 것은 오류가 아니다** 〈2026-08-21 · 실제 신고로 고침〉.
+      //   빨간 상자로 그리면 고장으로 읽힌다. 실제로 「파일업로드」로 넣고
+      //   스캔을 누른 사용자가 빨간 칸과 「자료를 먼저 넣어 주십시오」를 봤다 —
+      //   방금 넣은 사람에게 안 넣었다고 말한 셈이다.
+      //   읽었는데 값이 0 인 것만 빨갛게 둔다 (그건 확인이 필요한 상태다)
+      var nothingToRead = res.empty && !(res.scanned || []).length;
+      var okBox = el('div', 'up' + (res.facts ? ' up--done' : (nothingToRead ? '' : ' up--error')));
+      okBox.appendChild(el('p', 'up__d', nothingToRead
+        ? (res.note || '읽을 자료가 없습니다.')
+        : ('문서 ' + res.documents + '건에서 값 ' + res.facts + '개를 만들었습니다.')));
+      // ★ 파일마다 **어떻게 읽었는지**. 「OCR 했다」로 뭉뚱그리지 않는다.
+      // ★★ **한 파일에 한 줄이다** 〈2026-08-21 · 실제로 돌려 보고 잡았다〉.
+      //   전에는 「읽을 작정」과 「실제 결과」를 따로 그려서, 같은 파일이
+      //   「OCR 로 읽음」과 「못 읽음」 두 줄로 떴다. 둘 다 화면에 있으면
+      //   사용자는 어느 쪽이 사실인지 알 방법이 없다
+      (res.scanned || []).forEach(function (f) {
+        // 서버가 `read` 를 안 주는 옛 판이면 `readable` 로 본다 (모르면 막지 않는다)
+        var got = (f.read === undefined) ? f.readable : f.read;
+        var how = got ? (f.ocr ? 'OCR — 글자로 옮겨 읽음' : '본문을 읽음')
+          : ('못 읽었습니다 — ' + (f.why || f.note || '사유 없음'));
+        okBox.appendChild(el('p', 'up__d', '· ' + f.name + ' — ' + how));
+      });
+      (res.unread || []).forEach(function (u) {
+        okBox.appendChild(el('p', 'up__d', '· ' + u.name + ' — 못 읽었습니다: ' + u.why));
+      });
+      if (!res.facts && (res.scanned || []).length) {
+        okBox.appendChild(el('p', 'up__d',
+          '값이 하나도 안 나와서 「' + F.SECTION.tab + '」으로 넘어가지 않았습니다 — '
+          + '넘어가도 빈 칸만 보입니다. 위 목록에서 못 읽은 것을 먼저 보십시오.'));
+      }
+      // ★★ 양이 넘쳐 **남은 것**이 있으면 그 자리에서 말한다 〈2026-08-21〉.
+      //   안 말하면 화면에는 「읽었다」만 남고, 빠진 자료는 아무도 모른다.
+      //   ★ 남았으면 **넘어가지 않는다** — 반만 읽은 값으로 2단계에 가면
+      //     빈 칸을 보고 「왜 이것만 없지」를 혼자 찾게 된다
+      if (res.remaining) {
+        okBox.appendChild(el('p', 'up__d',
+          '양이 많아 ' + res.remaining + '개를 아직 안 읽었습니다 — '
+          + '「자료 스캔」을 다시 누르면 이어서 읽습니다.'));
+      }
+      if (res.oneshotNote) okBox.appendChild(el('p', 'up__d', res.oneshotNote));
+      card.appendChild(okBox);
+    }
+
+    if (state.scan.moved === true) {
+      card.appendChild(el('p', 'note', '「' + F.SECTION.tab + '」으로 넘겼습니다.'));
+    } else if (state.scan.moved === false) {
+      card.appendChild(el('p', 'note',
+        '이 화면은 탭 하나라 스스로 옮길 수 없습니다 — 위 탭에서 「'
+        + F.SECTION.tab + '」을 눌러 주십시오. 값은 이미 들어가 있습니다.'));
+    }
+    return card;
+  }
+
+  /** 연결 갈래의 칸 이름 — 한 곳에서 정한다 */
+  var LINK_STAGES = ['저장소 열기', '파일 고르기', '장부에 적기', '붙었습니다'];
+
+  /** 앱이 연 창에서 고른 결과를 서버에 넘긴다 */
+  function pickFrom(provider, btn) {
+    if (state.busy) return;
+    var open = C.pickFrom;
+    if (typeof open !== 'function') {
+      // ★ 앱이 창을 안 넘겨 주면 **여기서 멈춘다.** 되는 척하지 않는다.
+      //   ★★ 브라우저 탓을 하지 않는다 — 브라우저는 아무 상관이 없다.
+      //     틀린 원인을 말하면 사용자가 엉뚱한 것을 고치러 간다 (2026-08-20 실측)
+      state.linkMsg = '파일 고르기 창이 아직 연결되지 않았습니다 — '
+        + '지금은 「' + wayName('oneshot') + '」 갈래로 넣을 수 있습니다.';
+      state.linkStage = 0; state.linkDead = true;
+      return render();
+    }
+    state.busy = true; state.linkMsg = null;
+    state.linkStage = 0; state.linkDead = false;
+    if (btn) btn.disabled = true;
+    render();
+
+    Promise.resolve()
+      .then(function () { state.linkStage = 1; render(); return open(provider); })
+      .then(function (picked) {
+        // 고르기 창을 그냥 닫은 경우 — 오류가 아니다. 칸을 되돌린다
+        if (!picked || !picked.ref) {
+          state.busy = false; state.linkStage = -1; return render();
+        }
+        state.linkStage = 2; render();
+        // ★ ref 와 access 를 **따로** 보낸다. 섞어 보내면 장부에 열쇠가 들어간다
+        return call('POST', '/projects/' + state.projectId + '/linked',
+          { ref: picked.ref, access: picked.access || null })
+          .then(function (r) {
+            state.busy = false;
+            if (r && r.ok) {
+              state.linkStage = 3;
+              // ★ 연결한 자료는 **아직 안 읽힌 상태**다 — 장부에 적혔을 뿐이다.
+              //   여기서 읽어 값으로 만들고 2단계로 넘긴다 (2026-08-21 사용자 지시)
+              return loadOne(state.projectId).then(function () {
+                render();
+                return scanNow({ auto: true });
+              });
+            }
+            state.linkDead = true;
+            if (r && r.closed) state.linkMsg = r.closed;
+            if (r && r.gated) state.linkMsg = r.msg;
+            render();
+          });
+      })
+      .catch(function (e) {
+        state.busy = false;
+        state.linkDead = true;
+        state.linkMsg = e && e.message ? e.message : '파일을 고르지 못했습니다.';
+        render();
+      });
+  }
+
+  /**
+   * 붙일 수 있는 저장소 이름. **서버가 알려 준다** — 화면에 적어 두면 늘어날 때 갈린다.
+   * 연결 갈래를 골랐을 때만 쓴다 (목록 아래에 늘 깔아 두면 잡음이 된다).
+   */
+  function providerNames() {
+    return ((state.linked && state.linked.providers) || []).map(function (p) { return p.name; }).join(' · ');
+  }
+
+  /**
+   * **원본이 그대로인가** 〈2026-08-21 · D-72 결정〉.
+   *
+   * ★★ 왜 사람이 눌러야 하나: 「그때그때 고르기」로 가기로 했다. 남의 저장소
+   *   열쇠를 **보관하지 않는다** — 보관하지 않는 열쇠는 샐 수 없다. 대신
+   *   **폴더를 지켜볼 수가 없다.** 새 파일이 생기거나 원본이 바뀌어도 우리는
+   *   모른다. 그래서 「지금 확인해 줘」를 사람이 누른다.
+   *
+   * ★★ **서버 길은 처음부터 있었는데 화면이 한 번도 안 불렀다.** 만들어 놓고
+   *   아무도 안 부르는 것이었다 — 그 상태는 아무 오류도 내지 않고, 기능이
+   *   「있다」고 적혀 있는데 실제로는 안 도는 것이 전부다 (M-08 계열).
+   *
+   * ★ **접근권이 만료되면 「다시 골라 주세요」가 나온다.** 그것이 고장이 아니라
+   *   이 선택의 값이라는 것을 화면이 말한다 — 안 그러면 사용자는 고장으로 읽는다.
+   */
+  function checkLinked() {
+    if (state.checking || !state.projectId) return;
+    state.checking = true; state.checked = null; render();
+    call('POST', '/projects/' + encodeURIComponent(state.projectId) + '/linked/verify',
+      {}, { localGate: true })
+      .then(function (r) {
+        state.checking = false;
+        if (r && r.ok) state.checked = r.body;
+        else state.checked = { error: (r && (r.msg || r.closed)) || '확인하지 못했습니다' };
+        render();
+      }, function (e) {
+        state.checking = false;
+        state.checked = { error: e && e.message ? e.message : '확인하지 못했습니다' };
+        render();
+      });
+  }
+
+  /** 확인 결과. **바뀐 것·사라진 것을 접어 두지 않는다** */
+  function checkBox() {
+    var items = (state.linked && state.linked.items) || [];
+    if (!items.length) return null;
+
+    var box = el('div', 'chk');
+    var b = el('button', 'chk__b', state.checking ? '확인하는 중…' : '원본이 그대로인지 확인');
+    b.type = 'button';
+    b.disabled = state.checking;
+    b.addEventListener('click', checkLinked);
+    box.appendChild(b);
+    box.appendChild(el('p', 'note',
+      '폴더를 계속 지켜보지 않습니다 — 남의 저장소 열쇠를 보관하지 않기 때문입니다. '
+      + '대신 필요할 때 눌러서 확인합니다.'));
+
+    var c = state.checked;
+    if (!c) return box;
+
+    if (c.error) {
+      var e1 = el('div', 'chk__r chk__r--no');
+      e1.appendChild(el('div', 'chk__t', '확인하지 못했습니다'));
+      e1.appendChild(el('p', 'chk__l', c.error));
+      box.appendChild(e1);
+      return box;
+    }
+
+    var bad = (c.changed || []).length + (c.missing || []).length
+      + (c.errors || []).length + (c.unread || []).length;
+    var r = el('div', 'chk__r ' + (bad ? 'chk__r--no' : 'chk__r--ok'));
+    r.appendChild(el('div', 'chk__t', bad
+      ? ('확인이 필요한 것이 ' + bad + '건 있습니다')
+      : ('연결한 ' + (c.ok_ || []).length + '건이 모두 그대로입니다')));
+
+    var ul = el('ul', 'chk__l');
+    // ★ 종류마다 **할 일이 다르다.** 뭉쳐서 「확인 필요」로 내면 무엇을 해야 할지 모른다
+    (c.changed || []).forEach(function (x) {
+      ul.appendChild(el('li', null, '· ' + x.name
+        + ' — 원본이 바뀌었습니다 (읽은 판 ' + String(x.was).slice(0, 8)
+        + ' → 지금 ' + String(x.now).slice(0, 8) + '). 다시 읽어야 합니다'));
+    });
+    (c.missing || []).forEach(function (x) {
+      ul.appendChild(el('li', null, '· ' + x.name + ' — 원본이 없습니다 (지웠거나 옮겼습니다)'));
+    });
+    /* ★★ 「확인 못 함」은 **두 가지**다 〈2026-08-22〉.
+     *     ① 아직 한 번도 안 읽었다 — 견줄 지문이 없다
+     *     ② 읽기는 읽었는데 **제공자가 판(rev)을 안 알려 준다** — 견줄 값이 없다
+     *   ②를 ①의 말로 그리면 **방금 읽은 사람에게 「안 읽었다」고 말하게 된다**
+     *   (M-14 와 같은 종류다). 서버가 사유를 주면 그것을 그대로 쓴다. */
+    (c.unread || []).forEach(function (x) {
+      ul.appendChild(el('li', null, '· ' + x.name + ' — '
+        + (x.reason || '아직 한 번도 읽지 않아 견줄 것이 없습니다')));
+    });
+    (c.errors || []).forEach(function (x) {
+      ul.appendChild(el('li', null, '· ' + x.name + ' — ' + x.reason));
+    });
+    if (ul.childNodes.length) r.appendChild(ul);
+
+    if (c.at) r.appendChild(el('p', 'chk__at', c.at + ' 확인'));
+    box.appendChild(r);
+    return box;
+  }
+
+  /**
+   * **같은 문서의 여러 판** 〈2026-08-21 · 클라우드 폴더 지시 §7〉.
+   *
+   * ★★ 폴더에서 자료를 고르면 `IM_v1.pdf` · `IM_v2.pdf` · `IM_Final.pdf` 가 함께
+   *   들어온다. 사람은 「Final 이 최신이겠지」로 넘어가는데 **그 짐작이 자주
+   *   틀린다.** 틀린 판으로 보고서를 만들면 숫자는 멀쩡해 보이고 출처도 붙어서
+   *   **문서만 봐서는 안 잡힌다.**
+   *
+   * ★★ **화면이 고르지 않는다.** 순서와 근거만 보여 주고 고르는 것은 사람이다.
+   *   근거 종류가 다르면(번호 vs 날짜) 「못 가렸다」고 그대로 말한다.
+   *
+   * ★ 출처를 가리지 않는다 — 연결한 것도, 1회성으로 올린 것도 함께 본다.
+   *   같은 문서가 두 길로 들어오는 경우가 실제로 있다.
+   */
+  function versionBox() {
+    var V = window.LinkPilotVersions;
+    if (!V) return null;
+    var all = []
+      .concat(((state.linked && state.linked.items) || []))
+      .concat(((state.oneshot && state.oneshot.items) || []));
+    if (all.length < 2) return null;
+
+    var r = V.group(all);
+    if (!r.conflicts) return null;
+
+    var box = el('div', 'vc');
+    box.appendChild(el('div', 'vc__t', '같은 문서로 보이는 것이 ' + r.conflicts + '묶음 있습니다'));
+    box.appendChild(el('p', 'vc__d',
+      '어느 판으로 보고서를 만들지 **사람이 골라야 합니다.** 화면이 대신 고르지 않습니다 — '
+      + '틀린 판으로 만들면 숫자도 출처도 멀쩡해 보여서 문서만으로는 잡히지 않습니다.'));
+
+    r.groups.forEach(function (g) {
+      var sec = el('div', 'vc__g');
+      sec.appendChild(el('div', 'vc__n', g.items.length + '개 · ' + (g.stem || '(이름 없음)') + g.ext));
+      sec.appendChild(el('div', 'vc__w', g.why));
+      var ul = el('ul', 'vc__l');
+      g.items.forEach(function (it, i) {
+        var li = el('li');
+        li.appendChild(el('span', 'vc__i', i + 1));
+        var b = el('div');
+        b.appendChild(el('div', 'vc__f', it.name));
+        b.appendChild(el('div', 'vc__b', it.basis));
+        li.appendChild(b);
+        ul.appendChild(li);
+      });
+      sec.appendChild(ul);
+      box.appendChild(sec);
+    });
+    return box;
+  }
+
+  /**
+   * 1회성 기록. 비어 있으면 그리지 않는다.
+   *
+   * ★ 「올리기 전에 확인해 주세요」는 **붙이기 칸**에 있다 — 고르는 그 자리에서
+   *   말해야 늦지 않는다. 여기에 또 두면 같은 경고가 화면에 두 번 나온다.
+   */
+  function oneshotBlock() {
+    if (state.closed.oneshot) {
+      var w = document.createDocumentFragment();
+      w.appendChild(el('div', 'grp', wayName('oneshot') + ' — 읽고 바로 버립니다(1회성)'));
+      w.appendChild(waitBox('1회성 자료 경로가 아직 열려 있지 않습니다', state.closed.oneshot));
+      return w;
+    }
+    var items = (state.oneshot && state.oneshot.items) || [];
+    if (!items.length) return null;
+
+    var out = document.createDocumentFragment();
+    out.appendChild(el('div', 'grp', wayName('oneshot') + ' — 읽고 바로 버립니다(1회성)'));
+    items.forEach(function (it) {
+      var b = el('div', 'row__b');
+      b.appendChild(el('div', 'row__n', it.name));
+      b.appendChild(el('div', 'row__m',
+        size(it.bytes) + ' · sha256 ' + String((it.fingerprint && it.fingerprint.value) || '').slice(0, 12)
+        + (it.readAt ? ' · ' + String(it.readAt).slice(0, 10) + ' 읽음' : '')
+        + ' · 파일 없음(지웠습니다)'));
+      out.appendChild(add(el('div', 'row row--gone'), b));
+    });
+    return out;
+  }
+
+  /**
+   * ★★ **고르기 창은 사람이 누른 그 순간에만 열린다** 〈2026-08-21 사용자 지시〉.
+   *   브라우저는 사용자 동작에서 이어지지 않은 `input.click()` 을 **조용히
+   *   무시한다** — 오류도 안 난다. 그래서 「눌렀다」는 표시를 남기고, 다시
+   *   그리기가 **같은 흐름 안에서** 끝나는 이 자리에서 연다.
+   *   ★ 표시는 열고 나서 **바로 지운다.** 안 지우면 화면이 갱신될 때마다
+   *     창이 또 열려 사용자가 창을 닫을 수가 없다.
+   */
+  function openPickerIfAsked() {
+    if (!state.openPicker) return;
+    state.openPicker = false;
+    var z = view.querySelector('.drop');
+    if (z && z._lpInput) z._lpInput.click();
+  }
+
+  /* ★ 그리기에는 빠져나가는 자리가 여럿이다(등급·오류·프로젝트 없음). 창 여는
+   *   일을 그 안에 두면 **어느 한 길에서만 열리고 나머지에서는 조용히 안 열린다.**
+   *   그래서 그리기는 `paint()` 로 두고, `render()` 가 그 뒤를 책임진다. */
+  function paint() {
+    view.innerHTML = '';
+    if (!C.inTab) view.appendChild(el('h1', null, '자료 업로드'));
+
+    // 토큰이 안 실리면 화면이 색 없이 뜨는데 오류는 안 난다 — 화면이 스스로 말한다
+    if (F && F.tokensLoaded() === false) view.appendChild(el('div', 'nostyle', F.TOKENS_MISSING));
+
+    // ★ 등급·로그인 판정을 **화면이 먼저** 말한다. 판정 자체는 서버가 하지만,
+    //   화면이 아무 말도 안 하고 목록만 비어 있으면 「자료가 없다」로 읽힌다
+    var G = window.LinkPilotGate;
+    var a = G ? G.access(C.session, C.requiredPlan) : { allowed: true };
+    if (!a.allowed) {
+      var m = G.accessMessage(a, (C.planNames || {})[C.requiredPlan] || C.requiredPlan, '자료 업로드');
+      var g = el('section', 'card');
+      add(g, el('h2', 'card__t', (m && m.title) || '사용할 수 없습니다'),
+        el('p', 'card__d', (m && m.body) || ''));
+      view.appendChild(g);
+      return;
+    }
+    if (state.gate) {
+      var sg = el('section', 'card');
+      add(sg, el('h2', 'card__t', state.gate),
+        el('p', 'card__d', '로그인하거나 멤버십을 확인한 뒤 다시 열어 주십시오.'));
+      view.appendChild(sg);
+      return;
+    }
+
+    if (state.error) view.appendChild(el('div', 'err', state.error));
+
+    // ★ 앱에서 가져오기는 이제 **「자료 붙이기」 안쪽 갈래**다 〈2026-08-21 사용자 지시〉.
+    //   따로 카드를 하나 더 그리지 않는다 — 두 곳에 있으면 어느 쪽이 진짜인지 모른다
+    view.appendChild(attachCard());
+
+    if (!state.projectId) {
+      view.appendChild(el('p', 'card__d', '프로젝트를 고르면 그 프로젝트의 자료가 여기 뜹니다.'));
+      return;
+    }
+
+    // ★ 스캔은 **붙이기 바로 다음**이다. 넣었으면 읽는 것이 다음 할 일이고,
+    //   목록 아래에 두면 자료를 다 훑어본 뒤에야 보인다
+    var sc = scanCard();
+    if (sc) view.appendChild(sc);
+
+    /* ★ 이관 칸은 **스캔 바로 다음**이다 — ① 모으고 ② 읽고 ③ 넘긴다 의 차례다.
+     *   목록 아래에 두면 화면 밖으로 밀려 나가고, 그러면 「말없이 넘어갔다」로
+     *   되돌아간다 (이 칸을 만든 이유가 그것이었다) */
+    var hc = handoffCard();
+    if (hc) view.appendChild(hc);
+
+    // ★ 여러 판 경고는 **목록보다 위**에 둔다. 아래에 두면 목록에서 아무거나
+    //   골라 쓴 뒤에 보게 된다 — 그때는 이미 늦다
+    // ★ 빈 절은 아예 만들지 않는다. `null` 을 그대로 넣으면 예외가 난다
+    [versionBox(), oneshotBlock()].forEach(function (b) {
+      if (b) view.appendChild(b);
+    });
+  }
+
+  function render() {
+    paint();
+    openPickerIfAsked();
+  }
+
+  /**
+   * 끌어다 놓기 — **화면 아무 데나** 받는다 〈2026-08-20〉.
+   *
+   * ★★ 왜: 점선 상자를 조금만 빗나가면 브라우저가 그 파일을 **탭에 열어 버린다.**
+   *   화면은 통째로 사라지고 올린 것은 없다. 「끌어다 놓기가 안 된다」의 대부분이
+   *   이것이다 — 아무 오류도 안 나므로 사용자는 기능이 없는 줄 안다.
+   *   그래서 문서 전체에서 `preventDefault()` 를 걸어 **먼저 브라우저를 막고**,
+   *   받을 수 있으면 받고 못 받으면 **왜 못 받는지 말한다.**
+   *
+   * ★ 갈래를 대신 바꾸지 않는다. 떨어뜨렸다고 1회성으로 넘겨 버리면 그 파일은
+   *   읽고 **버려진다** — 되돌릴 수 없는 것을 화면이 정하면 안 된다.
+   */
+  function hasFiles(ev) {
+    var t = ev.dataTransfer && ev.dataTransfer.types;
+    if (!t) return false;
+    for (var i = 0; i < t.length; i++) if (t[i] === 'Files') return true;
+    return false;
+  }
+  var dragDepth = 0;
+  function dragPaint(on) {
+    var c = view.querySelector('.card--attach');
+    if (c) { if (on) c.classList.add('dragover'); else c.classList.remove('dragover'); }
+  }
+  document.addEventListener('dragenter', function (ev) {
+    if (!hasFiles(ev)) return;
+    ev.preventDefault(); dragDepth++; dragPaint(true);
+  });
+  document.addEventListener('dragover', function (ev) {
+    if (!hasFiles(ev)) return;
+    ev.preventDefault();
+    try { ev.dataTransfer.dropEffect = 'copy'; } catch (_) {}
+  });
+  document.addEventListener('dragleave', function (ev) {
+    if (!hasFiles(ev)) return;
+    dragDepth = Math.max(0, dragDepth - 1);
+    if (!dragDepth) dragPaint(false);
+  });
+  document.addEventListener('drop', function (ev) {
+    if (!hasFiles(ev)) return;
+    ev.preventDefault();          // ★ 이것을 빼면 브라우저가 파일을 열고 화면이 사라진다
+    dragDepth = 0; dragPaint(false);
+    var f = ev.dataTransfer && ev.dataTransfer.files;
+    if (!f || !f.length) return;
+    if (!state.projectId) {
+      state.dropMsg = '프로젝트를 먼저 고르십시오 — 붙일 곳이 없습니다.';
+      return render();
+    }
+    if (state.way !== 'oneshot') {
+      state.dropMsg = '떨어뜨린 파일은 「' + wayName('oneshot') + '」 갈래에서만 올릴 수 있습니다 — '
+        + '그 갈래를 고른 뒤에 놓아 주십시오.';
+      return render();
+    }
+    state.dropMsg = null;
+    addFiles(f);
+  });
+
+  render();
+  // 한도는 **서버가 정한다.** 화면에 숫자를 박아 두면 서버가 바뀌는 날 화면만 옛말을 한다.
+  // ★ `call()` 은 `{ok, body}` 를 준다 — 껍데기째 넣으면 값이 `undefined` 가 되고
+  //   화면에는 **「0 B」가 그럴듯하게 찍힌다.** 실제로 그렇게 한 번 나왔다
+  if (state.projectId) announce(state.projectId);   // 미리 정해져 열렸을 때도 알린다
+  call('GET', '/intake').then(function (r) {
+    if (r && r.ok && r.body) { state.limits = r.body; render(); }
+  }, function () {});
+  loadProjects().then(function () {
+    /* ── 지난번에 고른 것으로 이어서 시작한다 〈2026-08-22 사용자 지시〉 ──
+     *
+     * ★★ **목록을 받은 뒤에 되살린다.** 먼저 되살리면 **지금은 없는 프로젝트**를
+     *   고른 채로 시작할 수 있고, 그러면 「자료가 없습니다」만 뜨는 화면에서
+     *   왜 그런지 알 수가 없다. 있는 것 중에 있을 때만 고른다.
+     * ★ 앱이 프로젝트를 정해 열었으면(`state.projectId`) **그쪽이 이긴다.**
+     *   기억보다 지금 지시가 세다.
+     * ★ 갈래는 목록과 무관하니 그냥 되살린다. 단, 아는 이름일 때만 —
+     *   옛 판이 남긴 모르는 값이면 기본값으로 둔다.
+     */
+    var last = recall();
+    if (last.way && WAYS.some(function (w) { return w.id === last.way; })) state.way = last.way;
+    if (!state.projectId && last.projectId
+        && (state.projects || []).some(function (p) { return p.id === last.projectId; })) {
+      state.projectId = last.projectId;
+      state.restored = true;      // 화면이 「이어서」라고 말할 수 있게
+      announce(state.projectId);
+    }
+    render();
+    if (state.projectId) return loadOne(state.projectId).then(render);
+    return null;
+  });
+})();
+</script>
+</body>
+</html>

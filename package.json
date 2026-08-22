@@ -11,7 +11,9 @@
     "im:demo": "IM_AGENT_OFFLINE=1 node im-agent/cli.js demo",
     "im:smoke": "node im-agent/tools/smoke-public-data.js",
     "im:read": "node im-agent/tools/read-file.js",
+    "im:try-linked": "node im-agent/tools/try-linked.js",
     "im:check-model": "node im-agent/tools/check-model.js",
+    "im:image": "node im-agent/tools/find-image.js",
     "im:preview": "node im-agent/ui/vanilla/build-preview.js",
     "im:page": "node im-agent/ui/vanilla/build-page.js",
     "im:platform": "node im-agent/ui/platform/build.js",
@@ -19,8 +21,19 @@
     "im:section": "node im-agent/ui/platform/build-preview.js --section",
     "im:static": "node im-agent/ui/platform/build-static.js",
     "im:artifact": "node im-agent/ui/platform/build-static.js --artifact",
+    "im:files": "node im-agent/ui/platform/build-files.js",
+    "im:files:live": "node im-agent/ui/platform/build-files.js --live",
+    "im:outputs:live": "node im-agent/ui/platform/build-outputs.js",
+    "im:inline": "node im-agent/ui/platform/build-inline.js",
+    "im:tabs": "node im-agent/ui/platform/build-tabs.js",
     "im:dashboard": "node im-agent/ui/platform/build-dashboard.js",
-    "im:result": "IM_AGENT_OFFLINE=1 node im-agent/cli.js demo >/dev/null && node im-agent/ui/platform/build-result.js"
+    "im:themes": "node im-agent/ui/platform/build-themes.js",
+    "im:result": "IM_AGENT_OFFLINE=1 node im-agent/cli.js demo >/dev/null && node im-agent/ui/platform/build-result.js",
+    "im:embed": "node im-agent/ui/platform/build-embed.js",
+    "im:stamp": "node im-agent/ui/platform/build-stamp.js",
+    "verify:nas": "node im-agent/tools/verify-nas.js",
+    "check:reachable": "node im-agent/tools/reachable.js",
+    "deploy:nas": "bash deploy/nas.sh"
   },
   "dependencies": {
     "solapi": "^5.5.1"

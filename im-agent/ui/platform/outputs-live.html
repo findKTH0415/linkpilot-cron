@@ -1,0 +1,1593 @@
+<title>완성 보고서 탭 — 실제로 도는 판</title>
+<style>
+:root { --pg: #F2F2F7; --sf: #FFFFFF; --ln: #E8EAEC; --ink: #0A1419; --ink2: #7C838C; }
+body { margin: 0; background: var(--pg); color: var(--ink);
+  font: 400 15px/1.6 -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
+    'Malgun Gothic', Arial, sans-serif; }
+.lead { max-width: 1120px; margin: 0 auto; padding: 22px 20px 0; }
+.lead__t { font-size: 21px; font-weight: 800; margin: 0; }
+.lead__d { font-size: 13.5px; color: var(--ink2); margin: 7px 0 0; line-height: 1.7; }
+.demo { max-width: 1120px; margin: 12px auto 0; padding: 12px 16px; border-radius: 12px;
+  background: #FFF4E5; color: #8A5A10; font-size: 13px; line-height: 1.7; }
+.pv-wrap { max-width: 1120px; margin: 14px auto 24px; background: var(--sf);
+  border: 1px solid var(--ln); border-radius: 18px; padding: 6px 0 2px; }
+</style>
+<style>/*
+ * tokens.css — **LinkPilot Design System v1.1 의 토큰. 단일 출처.**
+ *
+ * 값은 디자인 시스템 문서(DESIGN_SYSTEM.md §2·§3·§4)에서 그대로 가져왔다.
+ * **여기 없는 색을 화면에 직접 적지 않는다.**
+ *
+ * ★★ 왜 파일로 뺐는가 (2026-08-17):
+ *   화면마다 `:root` 를 복붙하고 있었고 **이미 갈려 있었다** — `--lime-deep` 이
+ *   `#5C7A00` · `#4F6900` · `#4F6A00` 세 값으로 흩어져 있었다(실측).
+ *   그리고 셋 다 디자인 시스템의 `#7BA10F` 가 아니었다. 복붙은 「지금은 같다」일
+ *   뿐이고, 갈리는 날 아무도 눈치채지 못한다.
+ *
+ * ★ 옛 이름을 지우지 않고 **새 값으로 잇는다.** 화면 다섯이 `--lime`·`--ink`·`--bg`
+ *   같은 이름을 쓰고 있어서, 이름을 한꺼번에 바꾸면 한 화면만 놓쳐도 그 화면이
+ *   **색 없이 뜨고 오류는 안 난다** — CSS 는 모르는 변수를 조용히 넘긴다.
+ *   그래서 옛 이름을 `var(--lp-*)` 로 이어 두고, 새로 쓰는 곳은 `--lp-*` 를 쓴다.
+ *
+ * ★ 브랜드 라임은 **강조에만.** 큰 면을 채우지 않는다 (§11).
+ * ★ 라임 위 글자는 **네이비**다. 흰 글자는 대비가 안 나온다 (§11).
+ */
+
+:root {
+  /* ── Brand (DESIGN_SYSTEM §2) ─────────────────────────── */
+  --lp-brand:        #AAE106;   /* 로고 라임 · 칩 · 브랜드 점 */
+  --lp-brand-deep:   #7BA10F;   /* 흰 바탕 위 브랜드 글자 · 활성 탭 · 포커스 링 */
+  --lp-brand-soft:   #F0FAD8;   /* 활성 탭 채움 · 호버 배경 */
+  --lp-brand-ink:    #0A1419;   /* 라임 위의 글자/아이콘 — 흰색 금지 */
+  --lp-navy:         #0A1419;
+
+  /* ── System (iOS) — 의미로만 쓴다. 장식으로 쓰지 않는다 ─── */
+  --lp-red:    #FF3B30;   /* 지남 · 오류 · 긴급 */
+  --lp-orange: #FF9500;   /* 경고 · 마감 임박 */
+  --lp-yellow: #FFCC00;
+  --lp-green:  #34C759;   /* 완료 */
+  --lp-blue:   #007AFF;   /* 링크 · 정보 · 진행 중 */
+  --lp-purple: #AF52DE;
+
+  /* ── Surfaces (3단계만. 넷째를 만들지 않는다 §6) ────────── */
+  --lp-surface-grouped: #F2F2F7;
+  --lp-surface-card:    #FFFFFF;
+  --lp-surface-glass:   rgba(255,255,255,0.86);
+  --lp-fill-3:          rgba(120,120,128,0.12);
+  --lp-hairline:        rgba(60,60,67,0.16);
+
+  /* ── Text ─────────────────────────────────────────────── */
+  --lp-text-1: #0A1419;
+  --lp-text-2: rgba(60,60,67,0.78);
+  --lp-text-3: rgba(60,60,67,0.6);
+  --lp-text-4: rgba(60,60,67,0.45);   /* 라벨 전용 — 본문에 쓰지 않는다 */
+
+  /* ── Typography (§3) ──────────────────────────────────── */
+  --lp-font: -apple-system, "SF Pro Text", "SF Pro Display",
+             system-ui, "Apple SD Gothic Neo", sans-serif;
+  /* ★ 한글 본문은 14px 아래로 내리지 않는다. 캡션 11px 은 부수 라벨만 */
+  --lp-size-title1:   28px;
+  --lp-size-title2:   22px;   /* 모바일 제목은 여기까지 */
+  --lp-size-headline: 17px;
+  --lp-size-body:     15px;
+  --lp-size-footnote: 13px;
+  --lp-size-caption:  11px;
+
+  /* ── Spacing (8pt) · Radius (§4) ──────────────────────── */
+  --lp-sp-xs: 4px;  --lp-sp-sm: 8px;  --lp-sp-md: 12px;
+  --lp-sp-lg: 16px; --lp-sp-xl: 22px; --lp-sp-2xl: 32px; --lp-sp-3xl: 56px;
+  --lp-r-sm: 6px;  --lp-r-md: 10px; --lp-r-lg: 14px;   /* 카드 기본 */
+  --lp-r-xl: 18px; --lp-r-2xl: 28px; --lp-r-full: 9999px;
+
+  /* ── 떠 있는 것에만 그림자. 카드는 헤어라인으로 가른다 (§6) ── */
+  --lp-shadow-glass: 0 8px 24px rgba(0,0,0,0.08);
+
+  /* ══════════════════════════════════════════════════════
+   * 옛 이름 → 새 값. **화면을 한꺼번에 안 고쳐도 색이 맞는다.**
+   * 새로 쓰는 곳은 위의 `--lp-*` 를 쓴다.
+   * ══════════════════════════════════════════════════════ */
+  --lime:      var(--lp-brand);
+  --lime-deep: var(--lp-brand-deep);
+  --lime-soft: var(--lp-brand-soft);
+  --ink:       var(--lp-text-1);
+  --ink2:      var(--lp-text-3);
+  --line:      var(--lp-hairline);
+  --panel:     var(--lp-fill-3);
+  --bg:        var(--lp-surface-grouped);
+  --surface:   var(--lp-surface-card);
+  --bad:       var(--lp-red);
+  --bad-soft:  #FFEDEC;
+  --bad-ink:   #8F1D1D;
+  --warn:      var(--lp-orange);
+  --warn-soft: #FFF4E5;
+  --warn-ink:  #8A5A10;
+  --r:         var(--lp-r-xl);
+}
+
+/*
+ * 포커스 — **보이는 상태가 있어야 한다** (§10 Step 5).
+ * 화면마다 다른 색을 쓰고 있어서 여기서 한 번에 정한다.
+ */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--lp-brand-deep);
+  outline-offset: 2px;
+}
+
+/* 숫자가 줄을 맞춰야 하는 곳은 전부 tabular (§3 규칙 · §8.2) */
+:where(.num, .pct, .cnt, table td, table th) { font-variant-numeric: tabular-nums; }
+
+@media (prefers-reduced-motion: reduce) {
+  :where(*) { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}
+
+/*
+ * ═══ 뼈대(skeleton) — **스크립트가 돌기 전에 보이는 유일한 것** ═══
+ * 〈2026-08-21 · 「모바일에서 로딩이 너무 느림」 신고에서 나왔다〉
+ *
+ * ★★ 화면 파일들은 본문에 빈 `#view` 칸 하나만 두고 나머지를 스크립트가
+ *   그린다. 그래서 파일을 다 받아 스크립트가 돌기 전까지 **흰 화면**이다.
+ *   자료 업로드 화면은 112KB 라 그 시간이 길다.
+ *
+ * ★ 이 주석에 문서 태그(꺾쇠 붙은 body·html)를 적지 않는다 — 이 파일은 조각으로
+ *   만들 때 **통째로 인라인**되므로, 적으면 「조각에 문서 태그가 있다」로 걸린다.
+ *   실제로 한 번 걸렸다. 검사가 맞았다.
+ *
+ * ★ 흰 화면은 **느린 것과 고장난 것이 똑같이 보인다.** 사용자는 기다릴지
+ *   되돌아갈지 정할 근거가 없다. 그래서 뼈대를 HTML 에 박아 둔다 —
+ *   첫 바이트가 도착하는 순간 「자리는 잡혔고 채워지는 중」이 보인다.
+ *
+ * ★ 색·반경은 토큰을 쓴다. 여기만 다른 회색을 쓰면 판이 바뀔 때 여기만 남는다.
+ */
+.boot { padding: 4px 0 2px; }
+.boot__t {
+  margin: 0 0 14px;
+  color: var(--muted, #6B7280);
+  font-size: 14px;
+}
+.boot__b {
+  height: 14px;
+  margin: 0 0 10px;
+  border-radius: var(--lp-r-sm, 6px);
+  background: var(--line, #E5E7EB);
+  animation: lp-boot 1.2s ease-in-out infinite;
+}
+.boot__b--s { width: 55%; }
+.boot__w {
+  margin: 16px 0 0;
+  padding: 12px 14px;
+  border-radius: var(--lp-r-md, 10px);
+  background: var(--warn-soft, #FFF4E5);
+  color: var(--warn-ink, #8A5A10);
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+@keyframes lp-boot { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+</style>
+<style>
+/* 색·간격·반경 토큰은 tokens.css 하나가 정한다 (LinkPilot Design System v1.1) */
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 400 15px/1.55 var(--lp-font);
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3 { margin: 0; }
+ul { margin: 0; padding: 0; list-style: none; }
+.wrap { max-width: 900px; margin: 0 auto; padding: 22px 20px 60px; }
+h1 { font-size: 22px; font-weight: 800; letter-spacing: -.01em; margin-bottom: 14px; }
+
+.card { background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r); padding: 18px 20px; margin-bottom: 14px; }
+.card__t { font-size: 16px; font-weight: 800; }
+.card__d { font-size: 13px; color: var(--ink2); margin: 5px 0 0; line-height: 1.65; }
+
+/* 프로젝트 고르기 */
+.pick { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.pick label { font-weight: 700; font-size: 12px; line-height: 1; font-family: inherit; color: var(--ink2); letter-spacing: .06em; text-transform: uppercase; }
+select { font-weight: 400; font-size: 14px; line-height: 1; font-family: inherit; padding: 9px 11px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink); min-width: 240px; }
+select:focus-visible { outline: 2px solid var(--lime-deep); outline-offset: 2px; }
+
+/* 진행 */
+.prog__h { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; margin-bottom: 9px; }
+.pct { font-weight: 800; font-size: 26px; line-height: 1; font-family: inherit; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.cnt { font-weight: 600; font-size: 13px; line-height: 1; font-family: inherit; color: var(--lime-deep); background: var(--lime-soft);
+  border-radius: 6px; padding: 4px 8px; font-variant-numeric: tabular-nums; }
+.of { font-size: 12px; color: var(--ink2); }
+.bar { height: 9px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.bar__f { display: block; height: 100%; width: 0; border-radius: 999px;
+  background: var(--lime); transition: width .18s ease; }
+.bar__f.none { background: #D8DCE0; }
+.say { margin: 11px 0 0; font-size: 13.5px; line-height: 1.7; color: #3F464D; }
+.say b { color: var(--ink); }
+
+/* 배포 차단 — 목록보다 위 */
+.block { border-radius: 14px; padding: 14px 16px; margin-bottom: 14px;
+  background: var(--bad-soft); border: 1px solid #F3C6C6; color: var(--bad-ink); }
+.block__t { font-weight: 800; font-size: 15px; line-height: 1.4; font-family: inherit; margin-bottom: 5px; }
+.block ul { margin-top: 7px; }
+.block li { font-size: 13px; line-height: 1.7; padding-left: 13px; position: relative; }
+.block li::before { content: '·'; position: absolute; left: 3px; }
+
+/* 목록 */
+.grp { font-weight: 700; font-size: 11.5px; line-height: 1; font-family: inherit; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink2); margin: 20px 0 9px; }
+.doc { display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+  border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px;
+  margin-bottom: 8px; background: var(--surface); }
+.doc--out { background: #FCFDFD; }
+.doc--wait { background: var(--panel); border-style: dashed; }
+.doc__b { flex: 1 1 210px; min-width: 0; }
+.doc__n { font-weight: 700; font-size: 14px; line-height: 1.4; font-family: inherit; }
+.doc__m { font-size: 12px; color: var(--ink2); margin-top: 3px;
+  font-variant-numeric: tabular-nums; word-break: break-all; }
+.doc__w { font-size: 12.5px; color: var(--warn-ink); margin-top: 3px; line-height: 1.6; }
+.tag { flex: none; font-weight: 700; font-size: 11px; line-height: 1; font-family: inherit; padding: 5px 8px; border-radius: 6px; }
+.tag--wait { background: var(--warn-soft); color: var(--warn-ink); }
+.tag--maybe { background: var(--panel); color: var(--ink2); }
+a.btn, button.btn {
+  flex: none; font-weight: 700; font-size: 12.5px; line-height: 1; font-family: inherit; padding: 9px 13px; border-radius: 9px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  text-decoration: none; cursor: pointer;
+}
+a.btn:hover, button.btn:hover { border-color: var(--lime-deep); color: var(--lime-deep); }
+a.btn[aria-disabled="true"] { opacity: .45; pointer-events: none; }
+.btn:focus-visible { outline: 2px solid var(--lime-deep); outline-offset: 2px; }
+
+/* ── 네 갈래 — 고른 문서로 무엇을 할지 〈2026-08-20 사용자 지시〉 ─────
+   ★ 대상이 있어야 뜻이 있는 단추들이다. 그래서 **무엇을 고른 상태인지**를
+     바로 옆에 적는다 — 안 적으면 어느 문서를 내려받는지 모르는 채 누른다. */
+.acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.act { font-weight: 700; font-size: 13px; line-height: 1; font-family: inherit; padding: 11px 16px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+.act:hover:not([aria-disabled="true"]):not(:disabled) { border-color: var(--lime-deep); color: var(--lime-deep); }
+.act.on { background: var(--lime-soft); border-color: var(--lime); color: var(--lp-brand-ink); }
+.act:disabled, .act[aria-disabled="true"] { background: var(--panel); color: var(--ink2);
+  border-color: var(--line); cursor: not-allowed; pointer-events: none; }
+.act:focus-visible { outline: 2px solid var(--lime-deep); outline-offset: 2px; }
+.acts__on { font-size: 12.5px; color: var(--ink2); margin: 10px 0 0; line-height: 1.7; }
+.acts__on b { color: var(--ink); }
+.acts__why { font-size: 12.5px; color: var(--warn-ink); background: var(--warn-soft);
+  border: 1px solid #F0DEBE; border-radius: 10px; padding: 10px 12px; margin: 10px 0 0; line-height: 1.7; }
+
+/* 고른 줄을 눈에 띄게 — 어느 것에 대고 누르는지 보여야 한다 */
+.doc { cursor: pointer; }
+.doc--on { border-color: var(--lime); box-shadow: inset 0 0 0 1px var(--lime); background: var(--lime-soft); }
+.doc--wait, .doc--maybe { cursor: default; }
+
+/* 미리보기 — 새 창을 열지 않고 **이 자리에서** 편다 */
+.pv { margin-top: 12px; border: 1px solid var(--line); border-radius: 14px;
+  overflow: hidden; background: var(--surface); }
+.pv__h { display: flex; align-items: center; gap: 10px; padding: 11px 14px;
+  border-bottom: 1px solid var(--line); font-weight: 700; font-size: 13.5px; line-height: 1.4; font-family: inherit; }
+.pv__x { margin-left: auto; font-weight: 700; font-size: 13px; line-height: 1; font-family: inherit; padding: 8px 12px; border-radius: 9px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+.pv iframe { display: block; width: 100%; height: 60vh; min-height: 380px; border: 0; background: #fff; }
+.pv__no { margin: 0; padding: 16px; font-size: 13px; color: var(--ink2); line-height: 1.7; }
+
+.note { font-size: 12.5px; color: var(--ink2); line-height: 1.7;
+  margin-top: 16px; padding-top: 13px; border-top: 1px solid var(--line); }
+.msg { font-size: 13.5px; color: var(--ink2); line-height: 1.7; }
+.msg--bad { color: var(--bad-ink); background: var(--bad-soft);
+  border: 1px solid #F3C6C6; border-radius: 12px; padding: 13px 15px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+<div class="lead">
+  <h1 class="lead__t">완성 보고서 — <b>눌러 볼 수 있는 판</b></h1>
+  <p class="lead__d">문서를 골라 [미리보기] [다운로드] [공유하기] [프로젝트 이동] 을
+    실제로 눌러 보십시오. <b>배포가 막힌 판</b>으로 바꾸면 앞의 셋이 잠깁니다 —
+    그것이 이 화면에서 가장 중요한 동작입니다.</p>
+</div>
+<div class="demo">
+  <b>서버는 예시입니다.</b> 이 페이지 안에 가짜 서버를 두고 화면이 그것을 부릅니다.
+  프로젝트·목록·문서는 <b>실제 자료가 아닙니다.</b>
+  <div style="margin-top:9px">
+    <button type="button" id="lp-block" style="font:700 12.5px/1 inherit;padding:9px 13px;
+      border-radius:999px;border:1px solid #E0C48A;background:#fff;color:#8A5A10;cursor:pointer">
+      배포가 막힌 판으로 보기</button>
+    <span id="lp-block-now" style="margin-left:8px;font-size:12.5px"></span>
+  </div>
+</div>
+<script>
+(function () {
+  var b = document.getElementById('lp-block');
+  var now = document.getElementById('lp-block-now');
+  function say() {
+    now.textContent = window.__lpBlocked ? '지금: 막힌 판' : '지금: 열린 판';
+    b.textContent = window.__lpBlocked ? '열린 판으로 되돌리기' : '배포가 막힌 판으로 보기';
+  }
+  b.addEventListener('click', function () {
+    window.__lpBlocked = !window.__lpBlocked;
+    // ★ 저장해 두고 새로 고친다. 프로젝트가 미리 정해져 있으면 고르는 칸이 없어
+    //   「다시 고르기」로는 목록을 못 다시 읽는다 — 그 길만 두면 눌러도 안 바뀐다
+    try { sessionStorage.setItem('lp-demo-blocked', window.__lpBlocked ? '1' : '0'); }
+    catch (e) { /* 저장이 막힌 브라우저 — 아래 「다시 고르기」로 간다 */ }
+    say();
+    var sel = document.querySelector('#view select');
+    if (sel) { sel.dispatchEvent(new Event('change', { bubbles: true })); return; }
+    location.reload();
+  });
+  say();
+}());
+</script>
+<script>
+(function () {
+  'use strict';
+  var DEMO = {"projects":[{"id":"LP-DC-2026-001","name":"인천 남동 데이터센터"}],"reports":{"progress":{"percent":67,"done":2,"total":3,"countsWhat":"사양에 담은 것"},"distribution":{"blocked":false,"reasons":[]},"specKnown":true,"all":[{"name":"IM 본문","path":"09_IM/im.md","exists":true,"bytes":84210,"at":"2026-08-20T11:02:00"},{"name":"A4 최종본","path":"12_Final/im-a4.html","exists":true,"bytes":210400,"at":"2026-08-20T11:03:00"},{"name":"검증 보고서","path":"11_QC/validation.md","exists":false,"expected":true,"why":"검증을 아직 돌리지 않았습니다"},{"name":"탁상검토 보고서","path":"13_Desk/desk.md","exists":false,"expected":false,"why":"이 딜에서는 나오지 않습니다 (토지 단독 평가가 아닙니다)"}]}};
+  var DOCS = {"09_IM/im.md":"# 인천 남동 데이터센터 — IM 본문 (예시)\n\n이것은 **예시 문서**입니다. 실제 딜 자료가 아닙니다.\n","12_Final/im-a4.html":"<meta charset=\"utf-8\"><div style=\"font:15px/1.7 -apple-system,sans-serif;padding:28px;max-width:640px\"><h1 style=\"font-size:20px;margin:0 0 12px\">인천 남동 데이터센터 — A4 최종본 (예시)</h1><p style=\"color:#6b7280\">이것은 <b>예시 문서</b>입니다. 실제 딜 자료가 아닙니다.</p><p>미리보기는 새 창을 열지 않고 이 자리에서 폅니다 — 인앱 브라우저에서는 새 창을 열면 돌아오지 못하기 때문입니다.</p></div>"};
+  /* ★★ 다시 읽을 때까지 **살아남아야** 한다. 처음에는 그냥 변수에 두고 화면을
+     새로 고쳤는데, 새로 고치는 순간 이 파일이 다시 돌면서 값이 false 로
+     되돌아갔다 — 눌러도 아무 일이 없는 것처럼 보였다. 실제로 그랬다. */
+  try { window.__lpBlocked = sessionStorage.getItem('lp-demo-blocked') === '1'; }
+  catch (e) { window.__lpBlocked = false; }
+
+  function reports() {
+    var r = JSON.parse(JSON.stringify(DEMO.reports));
+    if (window.__lpBlocked) {
+      r.distribution = { blocked: true,
+        reasons: ['RED FLAG 2건이 해소되지 않았습니다', '출력 사양이 확정되지 않았습니다'] };
+    }
+    return r;
+  }
+
+  var realFetch = window.fetch;
+  window.fetch = function (url, opt) {
+    var u = String(url);
+    if (u.indexOf('/api') === -1) return realFetch.apply(this, arguments);
+    var p = u.replace(/^[^]*?\/api/, '');
+    var body = null, status = 200;
+    if (p === '/projects') body = { projects: DEMO.projects };
+    else if (/\/reports$/.test(p)) body = reports();
+    else { status = 404; body = { error: '예시 서버에 없는 길입니다' }; }
+    return Promise.resolve(new Response(JSON.stringify(body),
+      { status: status, headers: { 'content-type': 'application/json' } }));
+  };
+
+  /* 미리보기·내려받기는 iframe·<a> 가 **주소를 직접** 연다 — fetch 를 안 탄다.
+     그래서 그 주소를 blob 으로 바꿔 준다. 안 그러면 눌렀을 때 빈 칸이 뜨고,
+     빈 칸은 「고장」으로 읽힌다 */
+  function blobFor(rel) {
+    var t = DOCS[rel];
+    if (t === undefined) return null;
+    var type = /\.html?$/.test(rel) ? 'text/html;charset=utf-8' : 'text/plain;charset=utf-8';
+    return URL.createObjectURL(new Blob([t], { type: type }));
+  }
+  function relOf(href) {
+    var m = String(href).match(/[?&]rel=([^&]+)/);
+    return m ? decodeURIComponent(m[1]) : null;
+  }
+  new MutationObserver(function () {
+    [].slice.call(document.querySelectorAll('iframe[src*="/api/"], a[href*="/api/"]')).forEach(function (n) {
+      var attr = n.tagName === 'IFRAME' ? 'src' : 'href';
+      var rel = relOf(n.getAttribute(attr));
+      if (!rel) return;
+      var b = blobFor(rel);
+      if (b) n.setAttribute(attr, b);
+    });
+  }).observe(document.documentElement, { childList: true, subtree: true });
+}());
+</script>
+<div class="pv-wrap">
+
+<div class="wrap" id="view">
+  <!-- ★★ 뼈대 — **스크립트가 돌기 전에 보이는 유일한 것**이다. 첫 그리기에서
+       `#view` 를 비우므로 저절로 없어진다. 지우지 않는다: 지우면 파일을 다 받을
+       때까지 **흰 화면**이고, 흰 화면은 느린 것과 고장난 것이 똑같이 보인다. -->
+  <div class="boot" id="lp-boot" role="status" aria-live="polite">
+    <div class="boot__t">불러오는 중…</div>
+    <div class="boot__b"></div>
+    <div class="boot__b"></div>
+    <div class="boot__b boot__b--s"></div>
+    <p class="boot__w" id="lp-boot-why" hidden></p>
+  </div>
+</div>
+
+<script>
+/* ─────────────────────────────────────────────────────────────────
+ * 앱이 채우는 설정. 여기 말고 다른 곳에 값을 박지 않는다.
+ * ───────────────────────────────────────────────────────────────── */
+window.LINKPILOT_OUTPUTS = {
+  session: { authenticated: true, planId: 'pro', status: 'active', name: '김태형' },
+  requiredPlan: 'pro',
+  planNames: { free: 'Free', basic: 'Basic', pro: 'Pro', business: 'Business' },
+
+  api: null,          // 예: '/api/linkpilot' — 없으면 목록을 못 부르고 그 사유가 뜬다
+  projectId: null,    // 정해져 있으면 고르는 칸을 감춘다
+
+  // ★ 앱의 **탭 안**에 얹을 때 true. 자체 제목을 그리지 않는다 —
+  //   탭 바가 이미 이름을 말하므로 그대로 두면 제목이 두 번 나온다.
+  //   ⚠ 단독으로 열 때 true 로 두면 이름 없는 화면이 된다. 기본은 false.
+  inTab: false,
+
+  // 서버 없이 화면만 볼 때 심는 값 (미리보기 전용). 제품에서는 null
+  preload: null,      // { projects: [...], reports: { ... } }
+};
+</script>
+<script>Object.assign(window.LINKPILOT_OUTPUTS, {"api":"/api","inTab":true,"requiredPlan":"pro","projectId":"LP-DC-2026-001","session":{"authenticated":true,"name":"예시 사용자","planId":"pro","status":"active"}});</script>
+<!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
+<script data-lp-global="LINKPILOT_OUTPUTS">/**
+ * embed-bridge.js — 앱 안에 얹힌 화면이 **부모에게서 설정을 받는다** (2026-08-18).
+ *
+ * ★★ 왜 만들었나: 본체가 배포용 사본을 만들면서 **원본 글자를 찾아 끼워 넣고**
+ *   있었다(설정 병합·세션·토큰 래퍼 셋). 앵커가 되는 줄이 한 글자만 바뀌어도
+ *   치환이 빗나가고, 그러면 **앱 배포가 멈추거나 설정이 안 들어간 사본이 나간다.**
+ *   그리고 새 화면(`files.html`)은 그 목록에 없어서 **화면은 뜨는데 목록이 비었다.**
+ *
+ * ★ 그래서 계약을 **엔진이 갖는다.** 사본은 원본 그대로 복사하면 되고,
+ *   본체가 할 일은 iframe 을 만들기 **전에** 전역 하나를 채우는 것뿐이다.
+ *
+ *   ```js
+ *   // 부모(앱)에서 — iframe 을 붙이기 전에
+ *   window.LINKPILOT_EMBED = {
+ *     common:   { api: '/api/linkpilot', inTab: true, token: lpToken, session: user },
+ *     byScreen: { LINKPILOT_REPORT_FLOW: { base: '/im-flow/' } },   // 화면별 추가분
+ *   };
+ *   ```
+ *
+ * ★★ **같은 출처라서 읽을 수 있다.** 다른 도메인에 올리면 부모 전역을 못 읽고
+ *   (예외가 난다) 화면은 **설정 없이** 뜬다 — 그때 조용히 넘어가지 않고
+ *   `window.LinkPilotEmbed.reason` 에 이유를 남긴다. 같은 출처는 iframe 높이
+ *   측정에도 필요하므로 어차피 지켜야 하는 조건이다.
+ *
+ * ★ 단독으로 열면(부모가 없거나 전역이 없으면) **아무 일도 하지 않는다.**
+ *   화면이 심어 둔 기본값 그대로 뜬다 — 미리보기가 그대로 동작해야 한다.
+ *
+ * 의존성 없음. 화면의 **설정 블록 다음, 본체 스크립트 앞**에 놓는다.
+ */
+(function () {
+  'use strict';
+
+  var self = document.currentScript;
+  var name = self && self.getAttribute('data-lp-global');
+  if (!name) return;                       // 어느 전역인지 모르면 손대지 않는다
+
+  var state = { applied: false, reason: null, config: null };
+
+  /** 부모의 설정. **다른 출처면 예외가 난다** — 그것을 이유로 남긴다 */
+  function fromParent() {
+    if (window.parent === window) { state.reason = '단독으로 열렸습니다 (부모 없음)'; return null; }
+    try {
+      var cfg = window.parent.LINKPILOT_EMBED;
+      if (!cfg) { state.reason = '부모가 LINKPILOT_EMBED 를 채우지 않았습니다'; return null; }
+      return cfg;
+    } catch (e) {
+      // 같은 출처가 아니면 여기로 온다. 화면이 「설정 없이」 뜨는 진짜 이유다
+      state.reason = '부모를 읽을 수 없습니다 — 같은 출처가 아닙니다 (' + e.name + ')';
+      return null;
+    }
+  }
+
+  var cfg = fromParent();
+  if (cfg) {
+    var target = window[name] || (window[name] = {});
+    // ★ **대입이 아니라 병합이다.** 대입하면 화면이 심어 둔 기본값 구조가 통째로
+    //   날아가고, 부모가 안 넘긴 항목이 undefined 가 된다 (실제 사고)
+    var merge = function (src) { if (src) Object.keys(src).forEach(function (k) { target[k] = src[k]; }); };
+    merge(cfg.common);
+    merge(cfg.byScreen && cfg.byScreen[name]);
+    state.applied = true;
+    state.reason = null;
+    state.config = target;
+
+    // ★ 토큰은 **머무르지 않는다.** 설정에 담아 온 것을 헤더로만 쓰고 전역에서 지운다 —
+    //   화면 코드가 실수로 장부·로그에 실을 자리를 만들지 않는다
+    var token = target.token || null;
+    if ('token' in target) delete target.token;
+    if (token) installAuth(token);
+  }
+
+  /**
+   * 모든 호출에 `Authorization: Bearer` 를 붙인다.
+   * ★ **이미 붙어 있으면 건드리지 않는다** — 본체가 자기 래퍼를 쓰고 있을 수 있고,
+   *   그때 두 번 덮으면 어느 쪽이 이겼는지 알 수 없게 된다.
+   */
+  function installAuth(token) {
+    var orig = window.fetch;
+    if (typeof orig !== 'function') return;
+    window.fetch = function (input, init) {
+      var o = init ? Object.assign({}, init) : {};
+      var h = new Headers(o.headers || (typeof input === 'object' && input && input.headers) || {});
+      if (!h.has('Authorization')) h.set('Authorization', 'Bearer ' + token);
+      o.headers = h;
+      if (!o.credentials) o.credentials = 'same-origin';
+      return orig.call(window, input, o);
+    };
+  }
+
+  /**
+   * 로그인·등급이 **열려 있는 동안 바뀌면** 부모가 알려 준다.
+   * 화면은 표시용으로만 쓴다 — **차단은 서버가 한다**(401/403).
+   */
+  window.addEventListener('message', function (e) {
+    if (e.source !== window.parent) return;
+    var d = e.data;
+    if (!d || d.type !== 'lp-session') return;
+    var t = window[name];
+    if (!t) return;
+    t.session = d.session || { authenticated: d.authenticated, planId: d.pro ? 'pro' : 'free' };
+    // 화면이 다시 그릴 기회를 준다. 안 들어도 그만이다 — 다음 렌더에 반영된다
+    try { document.dispatchEvent(new CustomEvent('lp-session-change', { detail: t.session })); } catch (_) { /* 오래된 브라우저 */ }
+  });
+
+  // 부모가 「언제 준비됐나」를 알아야 높이 측정·설정 확인을 할 수 있다
+  try { if (window.parent !== window) window.parent.postMessage({ type: 'lp-embed-ready', global: name, applied: state.applied }, '*'); } catch (_) { /* 막혀 있으면 그만 */ }
+
+  /**
+   * 탭 안에 얹혔을 때 **높이를 부모에게 알린다** 〈2026-08-20〉.
+   *
+   * ★★ 왜: 앱이 iframe 높이를 고정해 두면 화면 안에 **스크롤바가 하나 더** 생긴다.
+   *   탭 안에서 또 스크롤하는 것은 앱처럼 안 보이고, 스크롤이 둘이면 사용자는
+   *   바깥을 내렸는데 안이 안 내려가는 상태를 만난다.
+   *
+   * ★ 높이 고정을 푸는 것까지만 여기서 한다 (`height:100%` → 내용만큼).
+   *   **넘치는 것을 숨기지는 않는다** — 부모가 안 늘려 주면 내용이 잘리고,
+   *   잘린 화면은 스크롤바보다 나쁘다. 부모가 늘려 주면 스크롤바는 저절로 사라진다.
+   *
+   * ★ 같은 출처로만 보낸다. 값이 안 바뀌면 보내지 않는다 — 리사이즈가
+   *   서로를 부르며 도는 것을 막는다.
+   */
+  (function reportHeight() {
+    if (window.parent === window) return;
+    var st = document.createElement('style');
+    st.id = 'lp-embed-height';
+    st.textContent = 'html,body{height:auto!important;min-height:0!important}.app{min-height:0!important}';
+    (document.head || document.documentElement).appendChild(st);
+
+    var last = 0;
+    var timer = null;
+    function tell() {
+      var h = Math.max(
+        document.documentElement ? document.documentElement.scrollHeight : 0,
+        document.body ? document.body.scrollHeight : 0);
+      if (!h || Math.abs(h - last) < 4) return;    // 4px 미만은 알리지 않는다
+      last = h;
+      try {
+        window.parent.postMessage({ type: 'lp-embed-height', global: name, height: h },
+          window.location.origin);
+      } catch (_) { /* 다른 출처면 막힌다 — 그게 맞다 */ }
+    }
+    function soon() { clearTimeout(timer); timer = setTimeout(tell, 60); }
+
+    if (document.readyState === 'complete') soon();
+    window.addEventListener('load', soon);
+    window.addEventListener('resize', soon);
+    if (window.MutationObserver) {
+      new MutationObserver(soon).observe(document.documentElement,
+        { childList: true, subtree: true, attributes: true, characterData: true });
+    }
+  }());
+
+  window.LinkPilotEmbed = {
+    global: name,
+    applied: state.applied,
+    reason: state.reason,
+  };
+}());
+</script>
+<script>/**
+ * gate-core.js — 유료 기능 접근 판정. 모든 유료 화면이 이것 하나를 쓴다.
+ *
+ * 화면마다 판정을 따로 두면 반드시 갈린다. 한쪽은 막고 한쪽은 여는 상태가
+ * 되면 어느 쪽이 맞는지 알 수 없고, 뚫린 쪽은 한참 뒤에 발견된다.
+ *
+ * ★★ 이 파일은 '화면을 무엇으로 그릴지'만 정한다. 권한을 강제하지 않는다.
+ *   브라우저 코드는 사용자가 고칠 수 있다. 실제 차단은 서버가 한다 —
+ *   데이터를 주는 API 가 세션과 플랜을 다시 확인해야 한다.
+ *   이 파일만 믿고 서버 검사를 생략하면 개발자도구로 뚫린다.
+ *
+ * 의존성 없음. 브라우저·Node 양쪽에서 동작한다.
+ */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.LinkPilotGate = factory();
+}(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  var PLAN_RANK = { free: 0, basic: 1, pro: 2, business: 3 };
+
+  /**
+   * 접근 판정 — 인증 먼저, 그 다음 플랜.
+   *
+   * 순서가 중요하다. 로그인 안 한 사람에게 "Pro 플랜이 필요합니다"라고 하면
+   * 무엇을 해야 할지 모른다. 로그인부터 안내한다.
+   *
+   * @param {object} session { authenticated, planId, status }
+   * @param {string} requiredPlan 기본 'pro'
+   * @returns {{allowed:boolean, reason:string|null, requiredPlan:string}}
+   */
+  function access(session, requiredPlan) {
+    var need = requiredPlan || 'pro';
+    var s = session || {};
+
+    if (!s.authenticated) {
+      return { allowed: false, reason: 'unauthenticated', requiredPlan: need };
+    }
+    // 플랜 정보를 못 받은 것과 무료인 것은 다르다. 무료로 단정하지 않는다
+    if (s.planId === null || s.planId === undefined || s.planId === '') {
+      return { allowed: false, reason: 'plan-unknown', requiredPlan: need };
+    }
+    if (s.status === 'expired') {
+      return { allowed: false, reason: 'expired', requiredPlan: need };
+    }
+    var have = PLAN_RANK[s.planId];
+    if (have === undefined) {
+      // 모르는 플랜 코드를 통과시키지 않는다 (오타 하나로 유료 화면이 열리면 안 된다)
+      return { allowed: false, reason: 'plan-unknown', requiredPlan: need };
+    }
+    if (have < (PLAN_RANK[need] === undefined ? 99 : PLAN_RANK[need])) {
+      return { allowed: false, reason: 'plan', requiredPlan: need };
+    }
+    return { allowed: true, reason: null, requiredPlan: need };
+  }
+
+  /**
+   * 판정 사유 → 화면에 띄울 문구.
+   * @param {object} a access() 결과
+   * @param {string} planName 요구 플랜의 표시 이름
+   * @param {string} featureName 기능 이름 (화면마다 다르다)
+   */
+  function accessMessage(a, planName, featureName) {
+    var what = featureName || '이 기능';
+    switch (a.reason) {
+      case 'unauthenticated':
+        return { title: '로그인이 필요합니다', body: what + '은 로그인한 사용자만 쓸 수 있습니다.', cta: '로그인' };
+      case 'expired':
+        return { title: '멤버십이 만료되었습니다',
+          body: '갱신하면 다시 사용할 수 있습니다. 기존 자료는 그대로 보관됩니다.', cta: '멤버십 갱신' };
+      case 'plan':
+        // 화면마다 '무엇을 얻는지'를 덧붙인다. 안 보여주면 살 이유를 모른다
+        return { title: (planName || a.requiredPlan) + ' 플랜부터 사용할 수 있습니다',
+          body: what + '은 유료 플랜에서 제공됩니다.', cta: '플랜 보기' };
+      case 'plan-unknown':
+        return { title: '멤버십 정보를 확인할 수 없습니다',
+          body: '잠시 후 다시 시도하거나, 문제가 계속되면 관리자에게 문의하세요.', cta: '다시 시도' };
+      default:
+        return null;
+    }
+  }
+
+  /** 게이트 화면 아이콘 */
+  function gateIcon(reason) {
+    return reason === 'unauthenticated' ? '🔑' : reason === 'expired' ? '⏳' : '🔒';
+  }
+
+  // ── 날짜 (KST) — 유료 화면들이 공통으로 쓴다 ──────────────────────
+
+  function kstYmd(date) {
+    return new Intl.DateTimeFormat('sv-SE', {
+      timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit',
+    }).format(date || new Date());
+  }
+
+  /** 'YYYY.M.D (요일)' */
+  function kstLabel(date) {
+    var p = new Intl.DateTimeFormat('ko-KR', {
+      timeZone: 'Asia/Seoul', year: 'numeric', month: 'numeric', day: 'numeric', weekday: 'short',
+    }).formatToParts(date || new Date());
+    var g = function (t) { return (p.filter(function (x) { return x.type === t; })[0] || {}).value || ''; };
+    return g('year') + '.' + g('month') + '.' + g('day') + ' (' + g('weekday') + ')';
+  }
+
+  /** 날짜 문자열끼리 비교하므로 시간대 영향을 받지 않는다 */
+  function dday(dateStr, today) {
+    if (!dateStr) return null;
+    var d = String(dateStr).slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return null;
+    var t = today || kstYmd();
+    return Math.round((Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10))
+      - Date.UTC(+t.slice(0, 4), +t.slice(5, 7) - 1, +t.slice(8, 10))) / 86400000);
+  }
+
+  function ddayLabel(n) {
+    if (n === null) return '';
+    if (n === 0) return 'D-DAY';
+    return n > 0 ? 'D-' + n : 'D+' + (-n);
+  }
+
+  return {
+    PLAN_RANK: PLAN_RANK,
+    access: access, accessMessage: accessMessage, gateIcon: gateIcon,
+    kstYmd: kstYmd, kstLabel: kstLabel, dday: dday, ddayLabel: ddayLabel,
+  };
+}));
+</script>
+<script>/**
+ * flow-core.js — 보고서 생성 **4단계의 단일 출처**.
+ *
+ * 이 목록이 두 벌이 되면 제품 화면과 미리보기가 서로 다른 흐름을 보여준다.
+ * 그래서 `report-flow.html`(제품)과 `build-preview.js`(미리보기)가 **둘 다
+ * 여기를 읽는다.** 단계를 늘리거나 순서를 바꾸려면 이 파일만 고친다.
+ *
+ * ★ 순서가 곧 강제 흐름이다. 앞 단계를 건너뛸 수 없다 —
+ *   프로젝트가 없으면 값을 넣을 곳이 없고, 사양이 확정되기 전에는 생성이 열리지 않는다.
+ *
+ * ★ 3·4 는 **같은 화면의 서로 다른 상태**다 (확정 전 / 확정 후).
+ *   파일을 나누면 확정 버튼이 두 곳에 생기고, 그때부터 어느 쪽이 진짜인지 모른다.
+ *
+ * 의존성 없음. 브라우저·Node 양쪽에서 동작한다.
+ */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.LinkPilotFlow = factory();
+}(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  var STEPS = [
+    {
+      id: 'intake', no: 1, name: '보고서 생성 입력', file: 'intake.html',
+      needsProject: false,
+      note: '요청문과 원본 자료를 받는다. 지원하지 않는 형식은 올리기 전에 막고, '
+        + '요청문에서 뽑은 값은 미확인으로 표시한다.',
+    },
+    {
+      id: 'fields', no: 2, name: '가이드 필드 (자동입력 + 직접입력)', file: 'fields.html',
+      needsProject: true,
+      // ★★ **이름에 「자동입력 + 직접입력」을 박는다** 〈2026-08-20 사용자 지시〉.
+      //   전에는 「가이드 필드 입력」이라 **전부 손으로 치는 칸**으로 읽혔다.
+      //   실제로는 올린 자료를 훑어 채울 수 있는 것은 채우고, 못 채운 것만 묻는다.
+      //   그 사실을 이름에서 말하지 않으면 사용자는 자료를 올릴 이유를 모른다.
+      note: '올린 자료를 훑어 채울 수 있는 값은 **자동으로 채우고**, 못 채운 것만 '
+        + '직접 받는다. 출처가 없으면 저장 버튼이 열리지 않고, 계산 항목은 입력란을 '
+        + '만들지 않는다. 자동으로 채워지는 줄에는 출처를 묻지 않는다.',
+    },
+    {
+      id: 'spec', no: 3, name: '출력조건', file: 'reports.html',
+      needsProject: true,
+      note: '페이지 수·형식·언어를 사람이 못 박는다. 확정 전에는 생성 버튼이 열리지 않는다.',
+    },
+    {
+      id: 'make', no: 4, name: '생성', file: 'reports.html', after: 'CONFIRM_SPEC',
+      needsProject: true,
+      note: '확정(LOCK) 뒤의 화면이다. 3단계와 같은 화면이며, 확정을 누르면 여기로 바뀐다.',
+    },
+  ];
+
+  /**
+   * **화면의 큰 뼈대 — 넷** 〈2026-08-20 사용자 지시〉.
+   *
+   * 전에는 「단계 레일 4칸 + 세부 진행률 + 지금 단계 화면」이 따로 놀았다.
+   * 레일은 위에 있고 진행률은 그 아래에 있어서, **어디까지 왔는지**와
+   * **지금 무엇을 하는지**가 서로 다른 곳에서 말하고 있었다.
+   *
+   *   ① 새보고서 진행률   — 지금 어디까지 왔나 (단계마다 따로. 합계를 만들지 않는다)
+   *   ② 보고서 생성 입력   — 요청문과 자료를 받는다
+   *   ③ 가이드 필드        — **자동입력 + 직접입력**
+   *   ④ 출력조건          — 사양을 못 박고, 확정하면 그 자리에서 생성한다
+   *
+   * ★★ ④ 가 `spec` 과 `make` **둘을 품는다.** 둘은 원래 같은 화면의 서로 다른
+   *   상태다(확정 전 / 확정 후). 화면에서까지 둘로 갈라 놓으면 사용자는 3단계를
+   *   끝내고 4단계로 「넘어가야」 하는 줄 아는데, 실제로는 같은 자리에서 버튼
+   *   하나가 바뀔 뿐이다.
+   *
+   * ★ 순서를 여기서만 정한다. 화면이 따로 적으면 한쪽만 고치는 날 갈린다.
+   */
+  var SECTIONS = [
+    {
+      no: 1, id: 'progress', name: '새보고서 진행률', steps: [],
+      note: '단계마다 따로 보여준다. 하나로 합친 「80%」는 무엇의 80% 인지 아무도 모른다.',
+    },
+    {
+      no: 2, id: 'intake', name: '보고서 생성 입력', steps: ['intake'],
+      note: '요청문과 원본 자료를 받는다.',
+    },
+    {
+      no: 3, id: 'fields', name: '가이드 필드 (자동입력 + 직접입력)', steps: ['fields'],
+      note: '올린 자료를 훑어 채울 수 있는 값은 자동으로 채우고, 못 채운 것만 직접 받는다.',
+    },
+    {
+      no: 4, id: 'output', name: '출력조건', steps: ['spec', 'make'],
+      note: '쪽수·형식·언어를 못 박는다. 확정하면 같은 자리에서 생성으로 바뀐다.',
+    },
+  ];
+
+  /** 어느 단계가 어느 절에 속하는가 — 화면이 되짚을 때 쓴다 */
+  function sectionOfStep(stepId) {
+    for (var i = 0; i < SECTIONS.length; i++) {
+      if (SECTIONS[i].steps.indexOf(stepId) !== -1) return SECTIONS[i];
+    }
+    return null;
+  }
+
+  /**
+   * 단계 상태를 **절 단위로** 묶는다. 화면은 이것을 그대로 그린다.
+   *
+   * ★ 절의 상태는 **그 절이 품은 단계들**에서 나온다:
+   *     - 하나라도 지금 단계면 `current`
+   *     - 전부 잠겼으면 `locked` (이유는 첫 잠긴 단계의 것)
+   *   진행률 절(품은 단계 없음)은 늘 열려 있다 — 볼 수만 있는 곳이다.
+   */
+  function sectionState(ctx) {
+    var steps = stepState(ctx);
+    var by = {};
+    steps.forEach(function (s) { by[s.id] = s; });
+    return SECTIONS.map(function (sec) {
+      var mine = sec.steps.map(function (id) { return by[id]; }).filter(Boolean);
+      var open = mine.filter(function (s) { return !s.locked; });
+      var cur = mine.filter(function (s) { return s.current; })[0] || null;
+      var firstLocked = mine.filter(function (s) { return s.locked; })[0] || null;
+      return {
+        no: sec.no, id: sec.id, name: sec.name, note: sec.note,
+        steps: mine,
+        // 볼 수만 있는 절은 잠기지 않는다 (품은 단계가 없다)
+        locked: mine.length > 0 && open.length === 0,
+        why: (mine.length && !open.length && firstLocked) ? firstLocked.why : null,
+        current: !!cur,
+        // 이 절을 열면 어느 단계로 가는가 — 열린 것 중 첫째
+        opensTo: (open[0] && open[0].id) || null,
+      };
+    });
+  }
+
+  /**
+   * 단계 화면을 **섹션 안에 끼울 때** 덮어쓰는 것.
+   *
+   * 화면 셋은 각자 앱 한 벌로 짜여 있다 (사이드바 + 로고 + 100% 높이). 그대로
+   * 끼우면 ① 사이드바가 두 번 뜨고 ② 안쪽에 스크롤이 또 생긴다 —
+   * 창 안을 다시 끄는 화면이 되는데, 그건 안 만들기로 한 것이다.
+   *
+   * ★ 화면 소스는 건드리지 않는다. 끼울 때만 이 규칙을 얹는다.
+   */
+  var EMBED_CSS = [
+    'html,body{height:auto!important;min-height:0!important;background:transparent!important}',
+    'body{overflow-y:hidden!important}',
+    '.app{min-height:0!important}',
+    '.side{display:none!important}',   /* 사이드바는 앱이 이미 그린다 */
+    '.top{display:none!important}',    /* 로고도 마찬가지 */
+    '.main{margin-left:0!important}',
+    // ★ 화면 안의 단계 칩도 감춘다. 셸이 이미 레일을 그리므로 그대로 두면
+    //   같은 단계 표시가 한 화면에 두 번 뜬다 — 어느 쪽을 눌러야 하는지 모른다
+    '.steps{display:none!important}',
+  ].join('');
+
+  /**
+   * 이 섹션이 앱에서 불리는 이름 — **한 곳에서만 정한다.**
+   *
+   * `title` 단독으로 열었을 때 화면이 스스로 그리는 제목
+   * `tab`   앱의 탭 바에 다는 이름 (탭 안에서는 `title` 을 안 그린다)
+   *
+   * ★ 둘이 다른 이유: 탭 바에는 「완성 보고서」가 나란히 서므로 **「새」가 있어야**
+   *   구분되고, 단독 화면에는 견줄 상대가 없어 「보고서 생성」이 맞다.
+   *   지침 §2 에 배포된 이름은 **「보고서 생성 (Pro)」** 이라 그쪽이 `title` 이다.
+   *
+   * ★ 앱이 탭 이름을 **복사해서 적지 않는다.** 여기서 읽어 간다 — 두 벌이 되면
+   *   한쪽만 고치는 날 탭 이름과 문서가 갈린다.
+   */
+  var SECTION = {
+    id: 'make',
+    title: '보고서 생성',
+    // ★ 탭 이름과 섹션 제목이 **같다** (2026-08-18 사용자 결정). 「새 보고서 생성」
+    //   이었는데, 이 화면은 앱 밖에서 불러오는 것이 아니라 앱 안의 기능이므로
+    //   탭에도 그냥 「보고서 생성」이라고 적는다. 부제에서 「외부 엔진」도 뺐다 —
+    //   붙이고 나면 사용자에게는 앱 기능이고, 어느 엔진이 도는지는 알 필요가 없다.
+    // ★ 둘이 같으므로 `inTab: true` 를 **반드시** 켠다. 안 켜면 탭 이름 바로 아래에
+    //   같은 글자가 한 번 더 나온다 (배포-지시서 §4-3).
+    tab: '보고서 생성',
+    tabNote: '입력부터 산출까지 4단계',
+    file: 'report-flow.html',
+    plan: 'pro',
+  };
+
+  /**
+   * 「완성 보고서」 탭 — 만들어진 산출물 목록 〈2026-08-17〉.
+   *
+   * ★ SECTION 과 나란히 둔다. 탭 이름이 두 파일에 흩어지면 한쪽만 고치는 날
+   *   탭 바와 화면이 다른 이름을 말한다.
+   * ★ 여기는 `title` 과 `tab` 이 같다 — 「새」를 붙일 이유가 없다.
+   */
+  var OUTPUTS_SECTION = {
+    id: 'done',
+    title: '완성 보고서',
+    tab: '완성 보고서',
+    tabNote: '만들어진 산출물 목록',
+    file: 'outputs.html',
+    plan: 'pro',
+  };
+
+  /**
+   * 「자료 업로드」 탭 — 보고서에 쓸 자료를 넣는 곳 〈2026-08-18〉.
+   *
+   * ★ 이름은 사용자가 정했다(「자료 업로드」). 다만 이 탭이 하는 일은 **셋**이고
+   *   그중 둘은 업로드가 아니다 — 화면 안에서 그 구분을 분명히 말한다:
+   *     ① 올려서 보관   (Pro · 우리 서버에 둔다)
+   *     ② 폴더를 연결해서 (무료 · **보관하지 않는다** — 남의 드라이브를 읽기만)
+   *     ③ 파일업로드(1회성) (무료 · 읽고 **바로 버린다**)
+   *   ②를 「업로드」로 읽으면 사본이 우리 쪽에 남는 줄 안다 — 그게 D-65 가
+   *   막으려던 오해다. 그래서 탭 이름은 짧게 두고 **화면이 설명한다.**
+   *
+   * ★ 무료다. 자료를 넣는 길이 유료면 Pro 를 살지 판단할 자료조차 못 넣는다.
+   */
+  var FILES_SECTION = {
+    id: 'files',
+    title: '자료 업로드',
+    tab: '자료 업로드',
+    tabNote: '보관 · 연결 · 1회성',
+    file: 'files.html',
+    plan: 'free',
+  };
+
+  /**
+   * **탭 셋의 단일 출처.** 본체(NAS) 탭 바가 이것을 읽는다 —
+   * 이름·순서·파일·필요 플랜을 앱과 이 저장소가 **같은 곳에서** 가져가게 한다.
+   *
+   * ★ 순서는 **시간 순서가 아니라 쓰는 순서**다: 만든 것을 보고(완성 보고서),
+   *   새로 만들고(보고서 생성), 자료를 넣는다(자료 업로드).
+   *   화면 스크린샷의 탭 순서와 같다 — 앱에서 이미 그 순서로 보인다.
+   *
+   * ★ 이름을 앱 쪽에 **복사해 적지 않는다.** 복사하면 한쪽만 고치는 날 갈리고,
+   *   그때 사용자는 탭 이름과 화면 제목이 다른 것을 본다.
+   */
+  var TABS = [OUTPUTS_SECTION, SECTION, FILES_SECTION];
+
+  /**
+   * **토큰이 실렸는가** (2026-08-17).
+   *
+   * ★ `tokens.css` 를 같이 안 올리면 화면이 **색 없이** 뜨는데 **오류는 안 난다** —
+   *   CSS 는 못 찾은 변수를 조용히 넘긴다. 배포에서 파일 하나를 빠뜨리면
+   *   「글꼴도 색도 없는 화면」이 되는데 콘솔에도 아무 말이 없다.
+   *   실제로 미리보기를 만들다 그 상태를 봤다.
+   *
+   * @returns {boolean|null} null = 브라우저가 아니라 판정할 수 없다
+   */
+  function tokensLoaded() {
+    if (typeof getComputedStyle !== 'function' || typeof document === 'undefined') return null;
+    try {
+      var v = getComputedStyle(document.documentElement).getPropertyValue('--lp-brand');
+      return String(v).trim().length > 0;
+    } catch (e) { return null; }
+  }
+
+  /** 안 실렸을 때 화면이 띄우는 말. 「색이 이상하다」로 끝나지 않게 원인을 적는다 */
+  var TOKENS_MISSING = '디자인 토큰(tokens.css)이 실리지 않았습니다 — '
+    + '화면 파일과 같은 폴더에 tokens.css 를 함께 올려야 합니다.';
+
+  /** 잠긴 이유 — 화면에 그대로 띄운다. 이유 없이 회색이면 고장으로 보인다 */
+  var WHY = {
+    // ★★ **번호로 말하지 않는다** 〈2026-08-20〉. 화면의 절 번호(②)와 단계 번호(1)가
+    //   서로 다르다 — 「1단계에서」라고 적으면 ② 를 보고 있는 사람이 1을 찾는다.
+    //   이름은 어느 쪽에서 세든 같다
+    project: '먼저 「보고서 생성 입력」에서 프로젝트를 만듭니다',
+    api: '서버(api)가 연결되어 있지 않습니다',
+  };
+
+  /**
+   * 단계별 상태.
+   * @param {object} ctx { projectId, api }
+   * @returns {Array} STEPS 에 { locked, why, current } 를 붙인 배열
+   */
+  function stepState(ctx) {
+    var c = ctx || {};
+    var currentId = c.current || (c.projectId ? 'fields' : 'intake');
+    return STEPS.map(function (s) {
+      var why = null;
+      // ★ 서버 미연결을 먼저 본다. 프로젝트가 없는 것은 서버가 없으면 당연한 결과라,
+      //   순서를 바꾸면 "프로젝트를 만드세요"만 뜨고 진짜 원인(미연결)이 가려진다
+      if (!c.api) why = WHY.api;
+      else if (s.needsProject && !c.projectId) why = WHY.project;
+      return {
+        id: s.id, no: s.no, name: s.name, file: s.file, note: s.note, after: s.after,
+        needsProject: s.needsProject,
+        locked: Boolean(why),
+        why: why,
+        current: s.id === currentId,
+      };
+    });
+  }
+
+  /** 단계 화면 주소. 프로젝트가 있으면 붙여 준다 (화면들이 ?project= 를 읽는다) */
+  function urlFor(step, ctx) {
+    var c = ctx || {};
+    var base = c.base || '';
+    var url = base + step.file;
+    /* ★ 2026-08-16 — api 도 함께 넘긴다.
+       [사고] project 만 넘겨 단계 화면(intake/fields/reports)이 각자 api:null 인 채 열렸다.
+              부모 report-flow 는 api 가 있어 단계를 열었는데, 안에서는 「API 주소가 설정되지
+              않았습니다」— 부모가 열어 준 문이 안에서 잠겨 있었다. reports.html 은 api 가 없으면
+              **데모 데이터**를 쓰므로 앱 안에서는 가짜 산출물이 진짜처럼 보일 수 있었다. */
+    var qs = [];
+    if (c.api) qs.push('api=' + encodeURIComponent(c.api));
+    if (step.needsProject && c.projectId) qs.push('project=' + encodeURIComponent(c.projectId));
+    if (qs.length) url += '?' + qs.join('&');
+    return url;
+  }
+
+  /** 화면 파일에서 단계를 되찾는다 (iframe 이 스스로 이동했을 때 rail 을 맞춘다) */
+  function stepOfFile(file) {
+    var f = String(file || '').split('/').pop().split('?')[0];
+    for (var i = 0; i < STEPS.length; i++) if (STEPS[i].file === f) return STEPS[i];
+    return null;
+  }
+
+
+  /**
+   * **탭 옮기기 — 한 곳에서만 만든다** 〈2026-08-21〉.
+   *
+   * ★★ 화면들은 각자 탭 하나일 뿐이라 **스스로 다른 탭으로 갈 수 없다.** 옮기는
+   *   것은 앱(본체)이다. 그래서 알리기만 하고, **앱이 받았는지를 확인한다.**
+   *   받았는지 모르면서 「옮겼습니다」라고 하면, 사용자는 눌러 놓고 아무 일도
+   *   안 일어나는 화면을 본다 — 그때는 고장으로 읽힌다.
+   *
+   * ★ 「받았다」의 증거는 둘이다.
+   *     ① iframe 안이면 `postMessage` 가 나갔다 — 부모가 있다는 뜻이다
+   *     ② 같은 창이면 앱이 `preventDefault()` 로 **받았다고 답한다**
+   *   ②가 없으면 아무도 안 듣는 것이다. 그때는 그렇다고 말한다.
+   *
+   * ★ 이 함수를 화면마다 복사해 두지 않는다. 복사하면 한쪽만 고치는 날
+   *   두 화면이 서로 다른 방법으로 앱을 부른다 (outputs.html 이 원본이었다).
+   *
+   * @param {{projectId:string, section:string, step?:string, why?:string}} opts
+   * @returns {{sent:boolean, reason:(string|null)}}
+   */
+  var OPEN_EVENT = 'lp-open-project';
+
+  function openSection(opts) {
+    var o = opts || {};
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      return { sent: false, reason: '브라우저가 아닙니다' };
+    }
+    var detail = { projectId: o.projectId || null, section: o.section || null };
+    if (o.step) detail.step = o.step;
+    if (o.why) detail.why = o.why;
+
+    var sent = false;
+    try {
+      if (window.parent !== window) {
+        var msg = { type: OPEN_EVENT, projectId: detail.projectId, section: detail.section };
+        if (detail.step) msg.step = detail.step;
+        if (detail.why) msg.why = detail.why;
+        window.parent.postMessage(msg, window.location.origin);
+        sent = true;
+      }
+    } catch (_) { /* 막혀 있으면 아래 이벤트로 간다 */ }
+    try {
+      var ev = new CustomEvent(OPEN_EVENT, { detail: detail, cancelable: true });
+      // 앱이 받아서 처리하면 `preventDefault()` 로 알려 준다 — 그게 「받았다」의 증거다
+      if (!document.dispatchEvent(ev)) sent = true;
+    } catch (_) {}
+
+    return { sent: sent, reason: sent ? null : '받는 쪽이 없습니다' };
+  }
+
+  return {
+    STEPS: STEPS, WHY: WHY, EMBED_CSS: EMBED_CSS,
+    SECTIONS: SECTIONS, sectionState: sectionState, sectionOfStep: sectionOfStep,
+    SECTION: SECTION, OUTPUTS_SECTION: OUTPUTS_SECTION,
+    FILES_SECTION: FILES_SECTION, TABS: TABS,
+    stepState: stepState, urlFor: urlFor, stepOfFile: stepOfFile,
+    tokensLoaded: tokensLoaded, TOKENS_MISSING: TOKENS_MISSING,
+    openSection: openSection, OPEN_EVENT: OPEN_EVENT,
+  };
+}));
+</script>
+<script>
+(function () {
+  'use strict';
+  var C = window.LINKPILOT_OUTPUTS;
+  var G = window.LinkPilotGate;
+  var F = window.LinkPilotFlow;
+  var view = document.getElementById('view');
+
+  var state = {
+    projects: null,       // null = 아직 안 불러옴
+    projectId: C.projectId || null,
+    data: null,           // GET /projects/:id/reports 응답 그대로
+    error: null,
+    loading: false,
+    // ── 네 갈래 (2026-08-20) ────────────────────────────────────
+    // 고른 문서 하나가 대상이다. 없으면 단추를 **누를 수 있게 두지 않는다** —
+    // 대상 없이 눌리면 무엇에 대고 눌렀는지 아무도 모른다
+    pickedPath: null,
+    preview: null,   // 지금 펴 놓은 문서 { path, name }
+    said: null,      // 방금 한 일을 한 줄로 (복사했다 · 앱이 안 받았다 …)
+  };
+
+  function el(t, c, x) {
+    var n = document.createElement(t);
+    if (c) n.className = c;
+    if (x !== undefined && x !== null && x !== '') n.textContent = String(x);
+    return n;
+  }
+  function add(p) { for (var i = 1; i < arguments.length; i++) if (arguments[i]) p.appendChild(arguments[i]); return p; }
+
+  /** 바이트를 사람이 읽는 크기로. 0 은 '0 B' 로 — 빈칸으로 두면 못 잰 것과 구분이 안 된다 */
+  function size(b) {
+    if (!(b > 0)) return '0 B';
+    if (b < 1024) return b + ' B';
+    if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB';
+    return (b / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  function get(url) {
+    return fetch(url, { credentials: 'same-origin' }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (b) {
+        if (!r.ok) throw new Error((b && b.error) || ('서버 오류 (' + r.status + ')'));
+        return b;
+      });
+    });
+  }
+
+  /* ── 불러오기 ─────────────────────────────────────────── */
+
+  function loadProjects() {
+    if (C.preload && C.preload.projects) {
+      state.projects = C.preload.projects;
+      return Promise.resolve();
+    }
+    if (!C.api) { state.projects = []; return Promise.resolve(); }
+    return get(C.api + '/projects').then(function (b) {
+      state.projects = (b && b.projects) || [];
+    }).catch(function (e) { state.error = e.message; state.projects = []; });
+  }
+
+  function loadReports() {
+    if (!state.projectId) { state.data = null; return Promise.resolve(); }
+    if (C.preload && C.preload.reports) {
+      state.data = C.preload.reports;
+      return Promise.resolve();
+    }
+    if (!C.api) { state.data = null; return Promise.resolve(); }
+    state.loading = true;
+    return get(C.api + '/projects/' + encodeURIComponent(state.projectId) + '/reports')
+      .then(function (b) { state.data = b; state.error = null; })
+      .catch(function (e) { state.error = e.message; state.data = null; })
+      .then(function () { state.loading = false; });
+  }
+
+  /* ── 조각 ─────────────────────────────────────────────── */
+
+  function picker() {
+    var card = el('section', 'card');
+    var row = el('div', 'pick');
+    add(row, el('label', null, '프로젝트'));
+
+    var sel = document.createElement('select');
+    sel.setAttribute('aria-label', '프로젝트 고르기');
+    var none = document.createElement('option');
+    none.value = '';
+    none.textContent = state.projects && state.projects.length ? '— 고르세요 —' : '프로젝트가 없습니다';
+    sel.appendChild(none);
+    (state.projects || []).forEach(function (p) {
+      var o = document.createElement('option');
+      o.value = p.id;
+      o.textContent = p.name ? (p.name + ' · ' + p.id) : p.id;
+      if (p.id === state.projectId) o.selected = true;
+      sel.appendChild(o);
+    });
+    sel.disabled = !(state.projects && state.projects.length);
+    sel.addEventListener('change', function () {
+      state.projectId = sel.value || null;
+      state.data = null;
+      draw();
+      loadReports().then(draw);
+    });
+    add(row, sel);
+    card.appendChild(row);
+
+    if (state.projects && !state.projects.length) {
+      card.appendChild(el('p', 'card__d',
+        '아직 만든 프로젝트가 없습니다. 「' + F.SECTION.tab + '」에서 시작하세요.'));
+    }
+    return card;
+  }
+
+  /**
+   * 진행 — **서버가 준 분모를 그대로 쓴다.**
+   * 여기서 다시 계산하면 산출물이 하나 늘 때 한쪽만 고치는 날 조용히 틀린다.
+   */
+  function progress(d) {
+    var p = d.progress || {};
+    var card = el('section', 'card');
+    var head = el('div', 'prog__h');
+
+    // ★ 분모가 없으면 % 를 만들지 않는다. 0/0 을 100% 로 적으면
+    //   아무것도 안 만든 프로젝트가 「다 됐다」로 보인다
+    var hasPct = p.percent !== null && p.percent !== undefined;
+    add(head,
+      el('b', 'pct', hasPct ? (p.percent + '%') : '—'),
+      el('span', 'cnt', (p.done || 0) + ' / ' + (p.total || 0) + '종'),
+      el('span', 'of', p.countsWhat || ''));
+    card.appendChild(head);
+
+    var bar = el('div', 'bar');
+    var fill = el('span', 'bar__f' + (p.done ? '' : ' none'));
+    fill.style.width = (hasPct ? p.percent : 0) + '%';
+    bar.appendChild(fill);
+    card.appendChild(bar);
+
+    card.appendChild(say(d, p, hasPct));
+
+    // 사양을 못 읽었으면 분모가 흔들린다 — 조용히 넘기지 않는다
+    if (d.specKnown === false) {
+      card.appendChild(el('p', 'card__d',
+        '출력 사양을 읽지 못해 형식에 따라 갈리는 산출물(PDF 등)은 세지 않았습니다.'));
+    }
+    return card;
+  }
+
+  /** 진행율에 따라 다른 말을 한다. **100% 는 「보내도 된다」가 아니다** */
+  function say(d, p, hasPct) {
+    var n = el('p', 'say');
+    var blocked = d.distribution && d.distribution.blocked;
+
+    if (!p.total) {
+      n.textContent = '아직 만들 것이 정해지지 않았습니다. 「' + F.SECTION.tab
+        + '」에서 출력 사양을 확정하면 여기에 목록이 생깁니다.';
+      return n;
+    }
+    if (!p.done) {
+      n.textContent = '아직 나온 문서가 없습니다. 「' + F.SECTION.tab + '」 4단계에서 생성을 시작하세요.';
+      return n;
+    }
+    if (p.done < p.total) {
+      n.innerHTML = '<b>' + (p.total - p.done) + '종이 아직 안 나왔습니다.</b> '
+        + '아래 목록에서 무엇이 남았는지와 그 이유를 볼 수 있습니다.';
+      return n;
+    }
+    // 다 나왔다 — 여기서 「끝났다」로 끝내지 않는다
+    n.innerHTML = blocked
+      ? '<b>사양에 담은 것은 모두 나왔지만 배포가 막혀 있습니다.</b> 위의 사유를 해소해야 내보낼 수 있습니다.'
+      : '<b>사양에 담은 것이 모두 나왔습니다.</b> 100% 는 「만들어졌다」이지 「보내도 된다」가 아닙니다 — '
+        + '내보내기 전에 배포 전 교차검증을 지나세요.';
+    return n;
+  }
+
+  /* ── 네 갈래 ─────────────────────────────────────────────
+   *
+   * [미리보기] [다운로드] [공유하기] [프로젝트 이동]  〈2026-08-20 사용자 지시〉
+   *
+   * ★★ 넷 다 **대상이 있어야 뜻이 있다.** 그래서 목록에서 고른 문서 하나를
+   *   대고 누른다. 아무것도 안 골랐으면 **누를 수 있게 두지 않는다** — 눌리면
+   *   무엇에 대고 눌렀는지 아무도 모르고, 그 상태로 파일이 나가면 되돌릴 수 없다.
+   *
+   * ★★ **배포가 막혔으면 셋이 다 잠긴다** (미리보기·다운로드·공유하기).
+   *   목록에서는 「차단」인데 미리보기로는 열린다면 검증 게이트가 아무 의미도 없다.
+   *   「프로젝트 이동」만 열어 둔다 — 그건 파일을 내보내는 일이 아니다.
+   *
+   * ★ **공유하기는 주소를 복사하는 것까지다.** 남에게 열어 주는 링크를 만들지
+   *   않는다 — 그런 길이 서버에 없다. 없는 것을 있는 척하면 사용자는 보냈다고
+   *   믿고, 받는 쪽은 열지 못한다. 그래서 무엇을 복사했는지 그대로 말한다.
+   */
+
+  /** 미리보기로 펼 수 있는 것 — **열어 보이지 못할 것을 열겠다고 하지 않는다** */
+  function canPreview(path) {
+    return /\.(html?|md|txt|json|csv|pdf|svg|png|jpe?g)$/i.test(String(path || ''));
+  }
+
+  function fileUrl(path) {
+    if (!C.api || !state.projectId) return null;
+    return C.api + '/projects/' + encodeURIComponent(state.projectId)
+      + '/file?rel=' + encodeURIComponent(path);
+  }
+
+  /** 지금 고른 문서. 안 골랐으면 **나온 문서 중 첫 번째**를 기본으로 삼는다 */
+  function pickedDoc(d) {
+    var out = (d.all || d.files || []).filter(function (f) { return f.exists; });
+    if (!out.length) return null;
+    for (var i = 0; i < out.length; i++) if (out[i].path === state.pickedPath) return out[i];
+    return out[0];
+  }
+
+  /**
+   * 「프로젝트 이동」 — **앱이 옮긴다.** 이 화면은 탭 하나일 뿐이라 스스로
+   * 다른 탭으로 갈 수 없다. 그래서 앱에 알리고, **앱이 안 받으면 그렇다고 말한다.**
+   * 되는 척하면 사용자는 눌러 놓고 아무 일도 안 일어나는 것을 본다.
+   */
+  function goProject() {
+    // ★ 옮기는 방법은 flow-core 한 곳에 있다 — 화면마다 복사하지 않는다 (2026-08-21)
+    var sent = F.openSection({ projectId: state.projectId, section: F.SECTION.id }).sent;
+    state.said = sent
+      ? '「' + F.SECTION.tab + '」으로 넘겼습니다.'
+      : '이 화면은 탭 하나라 스스로 옮길 수 없습니다 — 위 탭에서 「'
+        + F.SECTION.tab + '」을 눌러 주십시오.';
+    draw();
+  }
+
+  /** 「공유하기」 — 주소를 복사한다. **무엇을 복사했는지 그대로 말한다** */
+  function share(f) {
+    var url = fileUrl(f.path);
+    if (!url) return;
+    var abs = url;
+    try { abs = new URL(url, window.location.href).href; } catch (_) {}
+    var done = function (ok) {
+      state.said = ok
+        ? '주소를 복사했습니다 — 이 주소는 **로그인한 사람만** 열 수 있습니다. '
+          + '바깥으로 보내려면 파일을 내려받아 보내십시오.'
+        : '주소를 복사하지 못했습니다 (브라우저가 막았습니다). 「다운로드」로 받아 보내십시오.';
+      draw();
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(abs).then(function () { done(true); }, function () { done(false); });
+    } else {
+      done(false);
+    }
+  }
+
+  /**
+   * 네 갈래 줄. **설명 바로 아래**에 둔다 — 무엇을 할 수 있는지가 목록보다 먼저다.
+   */
+  function actions(d) {
+    var blocked = !!(d.distribution && d.distribution.blocked);
+    var f = pickedDoc(d);
+    var box = el('section', 'card');
+
+    var row = el('div', 'acts');
+
+    // ① 미리보기 — 이 자리에서 편다 (새 창을 열면 인앱 브라우저에서 돌아오지 못한다)
+    var open = state.preview && f && state.preview.path === f.path;
+    var prev = el('button', 'act' + (open ? ' on' : ''), open ? '미리보기 닫기' : '미리보기');
+    prev.type = 'button';
+    prev.disabled = !f || blocked || !C.api || !canPreview(f && f.path);
+    prev.addEventListener('click', function () {
+      state.said = null;
+      state.preview = open ? null : { path: f.path, name: f.name };
+      draw();
+    });
+    row.appendChild(prev);
+
+    // ② 다운로드 — 목록의 것과 **같은 주소**다. 두 벌로 만들지 않는다
+    var dl = document.createElement('a');
+    dl.className = 'act';
+    dl.textContent = '다운로드';
+    if (!f || blocked || !C.api) {
+      dl.setAttribute('aria-disabled', 'true');
+      dl.href = '#';
+    } else {
+      dl.href = fileUrl(f.path);
+      dl.setAttribute('download', '');
+    }
+    row.appendChild(dl);
+
+    // ③ 공유하기 — 주소 복사까지다 (§ 위 주석)
+    var sh = el('button', 'act', '공유하기');
+    sh.type = 'button';
+    sh.disabled = !f || blocked || !C.api;
+    sh.addEventListener('click', function () { share(f); });
+    row.appendChild(sh);
+
+    // ④ 프로젝트 이동 — **막혀 있어도 열어 둔다** (파일을 내보내는 일이 아니다)
+    var go = el('button', 'act', '프로젝트 이동');
+    go.type = 'button';
+    go.disabled = !state.projectId;
+    go.addEventListener('click', goProject);
+    row.appendChild(go);
+
+    box.appendChild(row);
+
+    // ★ **무엇에 대고 누르는지**를 적는다. 안 적으면 어느 문서인지 모른 채 누른다
+    if (f) {
+      box.appendChild(add(el('p', 'acts__on'),
+        document.createTextNode('고른 문서 '), el('b', null, f.name),
+        document.createTextNode(' · ' + f.path)));
+    } else {
+      box.appendChild(el('p', 'acts__on', '아직 나온 문서가 없어 고를 것이 없습니다.'));
+    }
+
+    // ★ 잠근 이유를 **적는다.** 이유 없이 회색이면 고장으로 읽힌다
+    var why = blocked ? '배포가 막혀 있어 미리보기·다운로드·공유가 잠겼습니다. 위의 사유를 먼저 해소하십시오.'
+      : !C.api ? '서버가 연결되어 있지 않아 파일을 열 수 없습니다.'
+      : (f && !canPreview(f.path)) ? ('이 형식(' + String(f.path).split('.').pop()
+          + ')은 브라우저에서 펴 볼 수 없습니다 — 내려받아서 여십시오.')
+      : null;
+    if (why) box.appendChild(el('p', 'acts__why', why));
+    if (state.said) box.appendChild(el('p', 'acts__on', state.said));
+
+    var pv = previewBox(f, blocked);
+    if (pv) box.appendChild(pv);
+    return box;
+  }
+
+  /** 펴 놓은 문서. **새 창을 열지 않는다** — 인앱 브라우저에서는 돌아오지 못한다 */
+  function previewBox(f, blocked) {
+    if (!state.preview || !f || state.preview.path !== f.path) return null;
+    if (blocked || !C.api) return null;
+    var box = el('div', 'pv');
+    var h = el('div', 'pv__h');
+    h.appendChild(el('span', null, f.name));
+    var x = el('button', 'pv__x', '닫기');
+    x.type = 'button';
+    x.addEventListener('click', function () { state.preview = null; draw(); });
+    h.appendChild(x);
+    box.appendChild(h);
+
+    if (!canPreview(f.path)) {
+      box.appendChild(el('p', 'pv__no', '이 형식은 브라우저에서 펴 볼 수 없습니다.'));
+      return box;
+    }
+    var fr = document.createElement('iframe');
+    fr.src = fileUrl(f.path);
+    fr.setAttribute('title', f.name);
+    // ★ 산출물 안의 스크립트를 이 화면 권한으로 돌리지 않는다
+    fr.setAttribute('sandbox', '');
+    box.appendChild(fr);
+    return box;
+  }
+
+  /** 배포 차단 — **목록보다 위**에 둔다. 아래에 두면 파일만 보고 내보낸다 */
+  function blocker(d) {
+    if (!(d.distribution && d.distribution.blocked)) return null;
+    var box = el('div', 'block');
+    add(box, el('div', 'block__t', '배포가 막혀 있습니다'));
+    box.appendChild(el('p', null,
+      '파일은 만들어졌지만 검증을 통과하지 못했습니다. 내려받기도 열리지 않습니다.'));
+    var ul = el('ul');
+    (d.distribution.reasons || []).forEach(function (r) {
+      ul.appendChild(el('li', null, typeof r === 'string' ? r : (r && (r.message || r.id)) || ''));
+    });
+    if (ul.childNodes.length) box.appendChild(ul);
+    return box;
+  }
+
+  function docRow(f, blocked, picked) {
+    var row = el('div', 'doc ' + (f.exists ? 'doc--out' : 'doc--wait')
+      + (picked ? ' doc--on' : ''));
+    if (f.exists) {
+      // ★ 줄을 눌러 고른다. 위 네 갈래가 **이 문서**에 대고 동작한다
+      row.setAttribute('role', 'button');
+      row.tabIndex = 0;
+      row.setAttribute('aria-pressed', picked ? 'true' : 'false');
+      var pick = function (ev) {
+        // 내려받기 링크를 누른 것은 고르기가 아니다 — 그대로 내려받게 둔다
+        if (ev.target && ev.target.closest && ev.target.closest('a')) return;
+        state.pickedPath = f.path;
+        state.said = null;
+        state.preview = null;   // 다른 문서를 골랐는데 앞 문서가 펴져 있으면 헷갈린다
+        draw();
+      };
+      row.addEventListener('click', pick);
+      row.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); pick(ev); }
+      });
+    }
+    var b = el('div', 'doc__b');
+    add(b, el('div', 'doc__n', f.name));
+
+    if (f.exists) {
+      add(b, el('div', 'doc__m', f.path + ' · ' + size(f.bytes) + (f.at ? ' · ' + f.at.slice(0, 16).replace('T', ' ') : '')));
+    } else {
+      add(b, el('div', 'doc__m', f.path));
+      // ★ 이유 없이 회색이면 고장으로 읽힌다
+      if (f.why) add(b, el('div', 'doc__w', f.why));
+    }
+    row.appendChild(b);
+
+    if (!f.exists) {
+      // ★★ **「아직」과 「여기서는 못 만든다」는 다른 말이다** 〈2026-08-21〉.
+      //   운영 서버에 브라우저가 없으면 PDF 는 기다려도 안 나온다. 그것을
+      //   「아직」으로 그리면 사용자는 **나올 때까지 기다린다.**
+      //   서버가 `impossible` 로 말해 주면 그대로 갈라 그린다 (옛 서버는 안 준다 —
+      //   그때는 지금까지처럼 둘로만 나눈다. 모르는 것을 지어내지 않는다)
+      row.appendChild(f.impossible
+        ? el('span', 'tag tag--maybe', '여기서는 못 만듦')
+        : el('span', 'tag ' + (f.expected ? 'tag--wait' : 'tag--maybe'),
+          f.expected ? '아직' : '나올 수도'));
+      return row;
+    }
+
+    var a = document.createElement('a');
+    a.className = 'btn';
+    a.textContent = '내려받기';
+    if (blocked || !C.api) {
+      // 목록에서는 「차단」인데 파일은 열린다면 검증 GATE 가 아무 의미도 없다
+      a.setAttribute('aria-disabled', 'true');
+      a.setAttribute('title', blocked ? '배포가 막혀 있습니다' : '서버가 연결되어 있지 않습니다');
+      a.href = '#';
+    } else {
+      a.href = C.api + '/projects/' + encodeURIComponent(state.projectId)
+        + '/file?rel=' + encodeURIComponent(f.path);
+      a.setAttribute('download', '');
+    }
+    row.appendChild(a);
+    return row;
+  }
+
+  function list(d) {
+    var box = document.createDocumentFragment();
+    var all = d.all || d.files || [];
+    var blocked = !!(d.distribution && d.distribution.blocked);
+
+    var out = all.filter(function (f) { return f.exists; });
+    var wait = all.filter(function (f) { return !f.exists && f.expected && !f.impossible; });
+    // ★ 이 서버가 원리상 못 만드는 것 — 「아직」 무리에 섞지 않는다 (기다려도 안 나온다)
+    var cant = all.filter(function (f) { return !f.exists && f.impossible; });
+    var maybe = all.filter(function (f) { return !f.exists && !f.expected && !f.impossible; });
+
+    if (out.length) {
+      var on = pickedDoc(d);
+      box.appendChild(el('div', 'grp', '나온 문서 ' + out.length + '종'));
+      out.forEach(function (f) {
+        box.appendChild(docRow(f, blocked, !!(on && on.path === f.path)));
+      });
+    }
+    if (wait.length) {
+      box.appendChild(el('div', 'grp', '아직 안 나온 것 ' + wait.length + '종'));
+      wait.forEach(function (f) { box.appendChild(docRow(f, blocked)); });
+    }
+    // ★★ 못 만드는 것을 **지우지 않는다.** 지우면 「나올 수 있었다」는 사실까지
+    //   사라져서, 다른 서버로 옮기면 나온다는 것을 아무도 모른다
+    if (cant.length) {
+      box.appendChild(el('div', 'grp', '이 서버에서는 못 만드는 것 ' + cant.length + '종'));
+      cant.forEach(function (f) { box.appendChild(docRow(f, blocked)); });
+    }
+    // ★ 조건부는 분모 밖이지만 **목록에서 빼지 않는다** — 빼면 「없는 기능」이 된다
+    if (maybe.length) {
+      box.appendChild(el('div', 'grp', '이 딜에서는 안 나오는 것 ' + maybe.length + '종'));
+      maybe.forEach(function (f) { box.appendChild(docRow(f, blocked)); });
+    }
+    return box;
+  }
+
+  /* ── 그리기 ───────────────────────────────────────────── */
+
+  function draw() {
+    view.textContent = '';
+    if (!C.inTab) view.appendChild(el('h1', null, '완성 보고서'));
+
+    // ★ 토큰이 안 실리면 색·글꼴이 통째로 빠지는데 **오류는 안 난다.**
+    //   「화면이 이상하다」로 끝나지 않게 원인을 화면이 말한다
+    if (F.tokensLoaded() === false) {
+      var tw = el('div', 'nostyle', F.TOKENS_MISSING);
+      tw.setAttribute('role', 'alert');
+      // 토큰이 없는 상황이므로 var() 를 쓰지 않는다 — 인라인으로 칠한다
+      tw.setAttribute('style', 'margin:0 0 14px;padding:12px 14px;border-radius:10px;background:#FFF4E5;color:#8A5A10;border:1px solid #F0DEBE;font-size:13.5px;line-height:1.6');
+      view.appendChild(tw);
+    }
+
+    var a = G.access(C.session, C.requiredPlan);
+    if (!a.allowed) {
+      var m = G.accessMessage(a, (C.planNames || {})[C.requiredPlan] || C.requiredPlan, '완성 보고서');
+      var g = el('section', 'card');
+      add(g, el('h2', 'card__t', (m && m.title) || '사용할 수 없습니다'),
+        el('p', 'card__d', (m && m.body) || ''));
+      view.appendChild(g);
+      return;
+    }
+
+    if (!C.api && !C.preload) {
+      var s = el('section', 'card');
+      add(s, el('h2', 'card__t', '서버가 연결되어 있지 않습니다'),
+        el('p', 'card__d', '산출물 목록은 서버에서 받아 옵니다. 화면만으로는 만들 수 없습니다 — '
+          + '「생성됨」을 화면이 기억해 두면 파일이 없어져도 있다고 말하기 때문입니다.'));
+      view.appendChild(s);
+      return;
+    }
+
+    if (!C.projectId) view.appendChild(picker());
+
+    if (state.error) {
+      view.appendChild(add(el('section', 'card'), el('p', 'msg msg--bad', state.error)));
+      return;
+    }
+    if (!state.projectId) {
+      view.appendChild(add(el('section', 'card'),
+        el('p', 'msg', '프로젝트를 고르면 그 프로젝트에서 나온 문서가 여기 뜹니다.')));
+      return;
+    }
+    if (state.loading || !state.data) {
+      view.appendChild(add(el('section', 'card'),
+        el('p', 'msg', state.loading ? '목록을 불러오는 중입니다…' : '목록이 없습니다.')));
+      return;
+    }
+
+    var d = state.data;
+    var b = blocker(d);
+    if (b) view.appendChild(b);          // ★ 목록보다 위 — 파일만 보고 내보내지 않게
+    // ★ 네 갈래는 **차단 안내 다음, 목록보다 먼저**다 〈2026-08-20 사용자 지시〉.
+    //   차단보다 위에 두면 잠긴 단추를 먼저 보고 왜 잠겼는지를 나중에 읽는다
+    view.appendChild(actions(d));
+    view.appendChild(progress(d));
+    view.appendChild(list(d));
+
+    view.appendChild(el('p', 'note',
+      '목록은 파일이 실제로 있는지로 판정합니다 — 「생성됨」 표시를 믿지 않습니다. '
+      + '내려받기는 검증을 통과한 산출물만 열립니다.'));
+  }
+
+  draw();
+  loadProjects().then(function () {
+    draw();
+    return loadReports();
+  }).then(draw);
+})();
+</script>
+</div>

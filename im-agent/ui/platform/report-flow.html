@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko">
+<html lang="ko" data-lp-build="3f9e0360">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -27,19 +27,28 @@
     base     단계 화면들이 놓인 경로 (예: '/im/'). 같은 폴더면 빈 문자열
     session  로그인·플랜 (gate-core.js 가 판정한다)
 -->
+<script>
+/* ★★ **오래 걸리면 말한다** 〈2026-08-21〉. 뼈대만 두고 끝나면 그것도 흰 화면과
+ *   다를 바 없다 — 「채워지는 중」이 영원히 채워지지 않는 것을 사용자가 알
+ *   방법이 없기 때문이다. 뼈대가 그대로 남아 있으면 무엇을 해야 하는지 적는다.
+ *   ★ 화면이 떴으면 `#boot` 이 통째로 사라지므로 이 글은 나오지 않는다. */
+(function () {
+  setTimeout(function () {
+    var w = document.getElementById('lp-boot-why');
+    if (!w || !document.getElementById('lp-boot')) return;
+    w.hidden = false;
+    w.textContent = '아직 화면이 안 떴습니다. 연결이 느리거나 화면 파일을 못 받은 것입니다 — '
+      + '새로고침해 보시고, 그래도 그대로면 알려 주십시오.';
+  }, 8000);
+})();
+</script>
+<link rel="stylesheet" href="tokens.css">
 <style>
-:root {
-  --lime: #9ED700; --lime-soft: #EDF7DC; --lime-deep: #5C7A00;
-  --ink: #17181A; --ink2: #7C838C; --line: #E8EAEC;
-  --panel: #F1F2F4; --bg: #F5F6F8; --surface: #FFFFFF;
-  --bad: #E03131; --bad-soft: #FDECEC; --bad-ink: #8F1D1D;
-  --warn: #E8A33D; --warn-soft: #FDF3E3; --warn-ink: #8A5A10;
-  --r: 18px;
-}
+/* 색·간격·반경 토큰은 tokens.css 하나가 정한다 (LinkPilot Design System v1.1) */
 * { box-sizing: border-box; }
 body {
   margin: 0; background: var(--bg); color: var(--ink);
-  font: 400 15px/1.65 Arial, 'Malgun Gothic', '맑은 고딕', sans-serif;
+  font: 400 15px/1.65 var(--lp-font);
   -webkit-text-size-adjust: 100%;
 }
 .wrap { max-width: 1120px; margin: 0 auto; padding: 22px 20px 40px; }
@@ -52,9 +61,33 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
 .card__t { margin: 0 0 6px; font-size: 17px; }
 .card__d { margin: 0; color: var(--ink2); font-size: 14px; }
 
-/* ── 단계 레일 — 고정형. 창 안에서 또 끌지 않는다 ─────────── */
-.rail { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 0 0 16px; }
-@media (max-width: 720px) { .rail { grid-template-columns: repeat(2, 1fr); } }
+/* ── 절 넷 — 화면의 뼈대 〈2026-08-20〉 ────────────────────
+   ① 제작 기본정보 입력 ② 무엇을 만들까요? ③ 관련자료 업로드
+   ④ 가이드 필드 ⑤ 출력조건
+   ★ 전에는 레일이 위에, 진행률이 그 아래에 따로 있어서 **어디까지 왔나**와
+     **지금 무엇을 하나**가 서로 다른 곳에서 말했다. 한 줄기로 세운다. */
+.sec { margin: 0 0 14px; }
+.sec__h { display: flex; align-items: flex-start; gap: 11px; width: 100%;
+  text-align: left; font: inherit; cursor: pointer; background: var(--surface);
+  border: 1px solid var(--line); border-radius: 16px; padding: 15px 17px; }
+.sec__h:hover:not(:disabled) { border-color: var(--lime); }
+.sec__h:disabled { cursor: not-allowed; background: var(--panel); }
+.sec--on > .sec__h { border-color: var(--lime); background: var(--lime-soft);
+  box-shadow: inset 0 0 0 1px var(--lime); }
+.sec--flat > .sec__h { cursor: default; }
+.sec__n { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 50%; background: var(--lime);
+  color: var(--lp-brand-ink); font-weight: 800; font-size: 13px; }
+.sec__h:disabled .sec__n { background: #D5D8DC; color: #8A9099; }
+.sec__b { min-width: 0; flex: 1 1 auto; }
+.sec__t { font-weight: 800; font-size: 16px; }
+.sec__d { margin: 5px 0 0; font-size: 12.5px; color: var(--ink2); line-height: 1.65; }
+.sec__why { margin: 5px 0 0; font-size: 12.5px; color: var(--warn-ink); line-height: 1.65; }
+.sec__tag { flex: 0 0 auto; margin-left: auto; align-self: center;
+  font-weight: 700; font-size: 11.5px; line-height: 1; font-family: inherit; padding: 6px 10px; border-radius: 999px;
+  background: var(--panel); color: var(--ink2); }
+.sec--on .sec__tag { background: var(--lime); color: var(--lp-brand-ink); }
+.sec__body { margin-top: 10px; }
 
 .st {
   text-align: left; font: inherit; cursor: pointer;
@@ -81,65 +114,8 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
 /* 묶음 둘 — 「내가 채울 것(1·2·3)」과 「기다리면 되는 것(4)」.
    ★ 눈금과 그 단계들을 **한 테두리 안에** 둔다. 눈금만 위에 몰아 두면
      아래로 내려간 순간 어디까지가 한 덩어리인지 화면에서 사라진다 */
-.prog__g {
-  margin: 16px 0 0; padding: 4px; border-radius: 20px;
-  background: var(--panel); border: 2px solid var(--line);
-}
-.prog__g--done { border-color: var(--lime); }
-.prog__g--doing { border-color: var(--lime); }
-.prog__gi { border-radius: 16px; padding: 15px 17px; background: transparent; }
-.prog__gh { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-.prog__gt { font-size: 17px; font-weight: 800; }
-.prog__gn {
-  font-size: 11.5px; font-weight: 700; color: var(--ink2);
-  background: var(--surface); border: 1px solid var(--line);
-  border-radius: 999px; padding: 3px 9px;
-}
-.prog__gv { margin-left: auto; font-size: 28px; font-weight: 800; letter-spacing: -.02em;
-  font-variant-numeric: tabular-nums; }
-.prog__gv--none { font-size: 17px; font-weight: 400; color: var(--ink2); }
-.prog__gw { margin: 3px 0 0; font-size: 12.5px; color: var(--ink2); }
-.prog__gi .prog__bar { height: 12px; margin: 11px 0 8px; background: #D9DDE1; }
-
-.prog__l { list-style: none; margin: 0; padding: 4px; display: grid; gap: 8px; }
-.prog__l .prog__i { background: var(--surface); }
-.prog__i { border: 1px solid var(--line); border-radius: 14px; padding: 13px 15px; }
-.prog__i--done { border-color: var(--lime); background: var(--lime-soft); }
-.prog__i--doing { border-color: var(--lime); }
-.prog__i--unknown { background: var(--panel); }
-.prog__h { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.prog__n {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 22px; height: 22px; border-radius: 50%; flex: none;
-  background: var(--lime); color: #23300A; font-weight: 700; font-size: 12.5px;
-}
-.prog__i--todo .prog__n, .prog__i--unknown .prog__n { background: #D5D8DC; color: #8A9099; }
-.prog__t { font-size: 15px; font-weight: 700; }
-.prog__v { margin-left: auto; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.prog__v--none { font-weight: 400; color: var(--ink2); }
-.prog__bar { height: 8px; border-radius: 999px; background: #E1E4E8; margin: 10px 0 7px; overflow: hidden; }
-.prog__bar i { display: block; height: 100%; background: var(--lime); border-radius: 999px; }
-.prog__bar--none {
-  background: repeating-linear-gradient(135deg, #E1E4E8 0 5px, #F3F4F6 5px 10px);
-}
-.prog__d { margin: 0; font-size: 13.5px; color: var(--ink2); }
-.prog__p { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
-.prog__p span { font-size: 12px; padding: 4px 9px; border-radius: 8px; background: var(--panel); color: var(--ink2); }
-.prog__p span.is-ok { background: var(--lime-soft); color: var(--lime-deep); }
-.prog__p span.is-run { background: var(--lime-soft); color: var(--lime-deep); font-weight: 700; }
-.prog__p span.is-warn { background: var(--warn-soft); color: var(--warn-ink); font-weight: 700; }
-.prog__p span.is-bad { background: var(--bad-soft); color: var(--bad-ink); font-weight: 700; }
-.prog__log { margin: 9px 0 0; padding: 0; list-style: none; font-size: 12.5px; color: var(--ink2); }
-.prog__log li { padding: 2px 0; }
-.prog__log li b { color: var(--ink); font-weight: 700; }
-.prog__c { margin-top: 13px; padding: 13px 15px; border: 1px solid var(--line); border-radius: 14px; }
-.prog__ch { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.prog__ct { font-size: 15px; font-weight: 700; }
-.prog__cw { margin: 3px 0 0; font-size: 12.5px; color: var(--ink2); }
-.prog__why { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; }
-.prog__why li { font-size: 12.5px; color: var(--ink2); line-height: 1.55; }
-.prog__why li b { color: var(--ink); font-weight: 700; }
-.prog__why li b.is-ok { color: var(--lime-deep); }
+/* ★ 진행률 절을 빼면서 그 칸의 CSS 도 함께 지웠다 〈2026-08-22〉 —
+   쓰지 않는 규칙을 남겨 두면 다음 사람이 「이게 어디에 붙나」를 찾는다 */
 
 /* ── 단계 화면 — 내용 높이만큼 편다 (안쪽 스크롤 없음) ────── */
 .stage { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
@@ -158,7 +134,7 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
 
 .ext { display: flex; gap: 10px; flex-wrap: wrap; margin: 0 0 10px; }
 .ext__b {
-  font: 700 14px/1 Arial, 'Malgun Gothic', sans-serif; cursor: pointer;
+  font: 700 14px/1 var(--lp-font); cursor: pointer;
   padding: 13px 18px; border-radius: 12px; border: 1px solid var(--ink);
   background: var(--ink); color: #fff; text-decoration: none; display: inline-block;
 }
@@ -169,7 +145,18 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
 </head>
 <body>
 
-<div class="wrap" id="view"></div>
+<div class="wrap" id="view">
+  <!-- ★★ 뼈대 — **스크립트가 돌기 전에 보이는 유일한 것**이다. 첫 그리기에서
+       `#view` 를 비우므로 저절로 없어진다. 지우지 않는다: 지우면 파일을 다 받을
+       때까지 **흰 화면**이고, 흰 화면은 느린 것과 고장난 것이 똑같이 보인다. -->
+  <div class="boot" id="lp-boot" role="status" aria-live="polite">
+    <div class="boot__t">불러오는 중…</div>
+    <div class="boot__b"></div>
+    <div class="boot__b"></div>
+    <div class="boot__b boot__b--s"></div>
+    <p class="boot__w" id="lp-boot-why" hidden></p>
+  </div>
+</div>
 
 <script>
 /* ─────────────────────────────────────────────────────────────────
@@ -182,6 +169,11 @@ window.LINKPILOT_REPORT_FLOW = {
 
   api: null,          // 예: '/api/linkpilot' — 없으면 단계가 전부 잠기고 사유가 뜬다
   base: '',           // 단계 화면이 놓인 경로. 같은 폴더면 빈 문자열
+
+  // ★ 앱의 **탭 안**에 얹을 때 true. 자체 제목을 그리지 않는다 —
+  //   탭 바가 이미 이름을 말하므로 그대로 두면 제목이 두 번 나온다.
+  //   ⚠ 단독으로 열 때 true 로 두면 **이름 없는 화면**이 된다. 기본은 false.
+  inTab: false,
   projectId: null,    // 이어서 작업할 프로젝트. 1단계에서 만들면 자동으로 채워진다
   docType: 'im',      // 세부 진행률의 「필수 항목」 판정 기준 (im / teaser / …)
 
@@ -195,10 +187,10 @@ window.LINKPILOT_REPORT_FLOW = {
   },
 };
 </script>
+<!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
+<script src="embed-bridge.js" data-lp-global="LINKPILOT_REPORT_FLOW"></script>
 <script src="gate-core.js"></script>
 <script src="flow-core.js"></script>
-<script src="fields-core.js"></script>
-<script src="live-core.js"></script>
 <script src="catalog.js"></script>
 <script src="inapp.js"></script>
 <script>
@@ -223,22 +215,46 @@ window.LINKPILOT_REPORT_FLOW = {
     return { api: C.api, base: C.base || '', projectId: state.projectId, current: state.current };
   }
 
-  /* ── 단계 레일 ────────────────────────────────────────── */
+  /* ── 절 넷 ─────────────────────────────────────────────
+   *
+   * ★★ 목록은 `flow-core.js` 의 `SECTIONS` **한 곳**에서 나온다. 화면이 따로
+   *   적으면 한쪽만 고치는 날 갈리고, 그때 아무도 눈치채지 못한다.
+   *
+   * ★ 절 머리는 **누르면 열리는 곳**이다. 잠긴 절은 눌리지 않고 **이유를 적는다** —
+   *   회색이기만 하면 고장으로 보인다.
+   *
+   * ★ 「새보고서 진행률」은 품은 단계가 없다. 볼 수만 있는 곳이라 안 눌린다 —
+   *   눌리는 것처럼 그리면 눌러 보고 아무 일도 안 일어나는 것을 본다.
+   */
+  function section(sec, body) {
+    var box = el('section', 'sec'
+      + (sec.current ? ' sec--on' : '')
+      + (sec.steps.length ? '' : ' sec--flat'));
 
-  function rail(steps) {
-    var box = el('div', 'rail');
-    steps.forEach(function (s) {
-      var b = el('button', 'st' + (s.current ? ' on' : ''));
-      b.type = 'button';
-      b.disabled = s.locked;
-      var head = el('span');
-      add(head, el('span', 'st__n', s.no), el('span', 'st__name', s.name));
-      b.appendChild(head);
-      // ★ 잠겼으면 이유를 적는다. 회색이기만 하면 고장으로 보인다
-      b.appendChild(el('span', s.locked ? 'st__why' : 'st__note', s.locked ? s.why : s.note));
-      b.addEventListener('click', function () { go(s.id); });
-      box.appendChild(b);
-    });
+    var h = el('button', 'sec__h');
+    h.type = 'button';
+    h.disabled = sec.locked || !sec.steps.length;
+    if (!sec.steps.length) h.setAttribute('aria-disabled', 'true');
+
+    h.appendChild(el('span', 'sec__n', sec.no));
+    var b = el('div', 'sec__b');
+    b.appendChild(el('div', 'sec__t', sec.name));
+    // 잠겼으면 **왜**를 적는다. 열려 있으면 무엇을 하는 곳인지 적는다
+    b.appendChild(el('p', sec.locked ? 'sec__why' : 'sec__d',
+      sec.locked ? sec.why : sec.note));
+    h.appendChild(b);
+
+    var tag = sec.steps.length
+      ? (sec.current ? '지금' : sec.locked ? '잠김' : '열기')
+      : '';
+    if (tag) h.appendChild(el('span', 'sec__tag', tag));
+
+    if (sec.opensTo) {
+      h.addEventListener('click', function () { go(sec.opensTo); });
+    }
+    box.appendChild(h);
+
+    if (body) box.appendChild(add(el('div', 'sec__body'), body));
     return box;
   }
 
@@ -269,20 +285,89 @@ window.LINKPILOT_REPORT_FLOW = {
       (d.head || d.documentElement).appendChild(st);
     }
     var h = Math.max(d.documentElement.scrollHeight, d.body ? d.body.scrollHeight : 0);
-    if (h) fr.style.height = h + 'px';
+    if (!h) return;
+
+    /* ★★ **같으면 안 쓴다** 〈2026-08-21 · 모바일이 느린 진짜 이유〉.
+     *   앞 판은 잴 때마다 `style.height` 를 **무조건** 썼다. 그런데 높이를 쓰면
+     *   ⓐ 바깥이 다시 배치되고 → ⓑ 안쪽 화면의 폭·높이가 바뀌고 → ⓒ 안쪽이
+     *   다시 그려지면서 클래스·style 이 움직이고 → ⓓ 감시자가 그걸 잡아 **또
+     *   재고 또 쓴다.** 값이 그대로여도 고리가 돈다.
+     *
+     *   데스크톱에서는 한 바퀴가 순식간이라 눈에 안 띈다. 휴대폰에서는 그 한
+     *   바퀴가 비싸서 **화면이 뒤늦게 덜컥덜컥 자리를 잡는다** — 그것이
+     *   「느리게 뜬다」로 보인다.
+     *
+     *   ★ 한 글자짜리 조건이 고리를 끊는다. 안 바뀌었으면 아무것도 안 한다. */
+    if (h === fr._lpH) return;
+    fr._lpH = h;
+    fr.style.height = h + 'px';
+  }
+
+  /* ── 높이 따라가기 ─────────────────────────────────────
+   *
+   * ★★ **감시자는 언제나 하나다** 〈2026-08-21〉. 앞 판은 `watch()` 를 부를 때마다
+   *   MutationObserver 와 setInterval 을 **새로 만들고 옛것을 끄지 않았다.**
+   *   `watch()` 는 화면이 실릴 때마다·단계를 옮길 때마다 불린다 — 그래서 쓰는
+   *   동안 감시자가 **쌓인다.** 열 번 오가면 열 벌이 같은 일을 한다.
+   *   「쓸수록 느려진다」는 이 모양에서 나온다.
+   *
+   * ★ 그리고 재는 도구를 바꿨다. MutationObserver 로 **문서 전체의 속성까지**
+   *   보고 있었는데(`attributes: true`), 안쪽 화면이 제 일을 하느라 클래스 하나만
+   *   토글해도 그때마다 높이를 다시 쟀다. **높이가 궁금한 것이지 무엇이
+   *   바뀌었는지가 궁금한 것이 아니다** — ResizeObserver 가 바로 그것만 본다.
+   *   없는 브라우저에서는 MutationObserver 로 내려가되 범위를 좁힌다.
+   *
+   * ★ 재는 일은 **한 프레임에 한 번**으로 묶는다. 한 번 그리는 사이에 스무 번
+   *   재 봐야 결과는 같고 값만 치른다.
+   */
+  var watching = null;   // { fr: <iframe>, stop: fn }
+
+  function unwatch() {
+    if (!watching) return;
+    try { watching.stop(); } catch (e) {}
+    watching = null;
   }
 
   function watch(fr) {
+    if (watching && watching.fr === fr) { fit(fr); return; }
+    unwatch();
     fit(fr);
+
     var d;
     try { d = fr.contentDocument; } catch (e) { return; }
-    if (!d) return;
-    // 값을 넣거나 판을 바꾸면 높이가 달라진다 — 따라가지 않으면 아래가 잘린다
-    if (fr.contentWindow && fr.contentWindow.MutationObserver) {
-      new fr.contentWindow.MutationObserver(function () { fit(fr); })
-        .observe(d.documentElement, { childList: true, subtree: true, characterData: true, attributes: true });
+    if (!d || !d.documentElement) return;
+
+    var win = fr.contentWindow;
+    var raf = 0;
+    function soon() {
+      if (raf) return;                       // 이미 이번 프레임에 예약돼 있다
+      raf = window.requestAnimationFrame(function () { raf = 0; fit(fr); });
     }
-    var n = 0, t = setInterval(function () { fit(fr); if (++n > 20) clearInterval(t); }, 150);
+
+    var obs = null;
+    if (win && win.ResizeObserver) {
+      obs = new win.ResizeObserver(soon);
+      obs.observe(d.documentElement);
+      if (d.body) obs.observe(d.body);
+    } else if (win && win.MutationObserver) {
+      // ★ 옛 브라우저용. 속성은 **높이에 영향을 주는 것만** 본다
+      obs = new win.MutationObserver(soon);
+      obs.observe(d.documentElement, {
+        childList: true, subtree: true, characterData: true,
+        attributes: true, attributeFilter: ['style', 'class', 'hidden', 'open'],
+      });
+    }
+
+    /* ★ 그림·글꼴이 늦게 들어오면 아무 변화 없이 높이만 바뀌는 판이 있다.
+     *   그래서 잠깐만 더 지켜본다. 이제 `fit()` 은 값이 같으면 아무것도 안
+     *   하므로 이 지켜보기는 싸다. */
+    var n = 0, t = setInterval(function () { soon(); if (++n > 8) clearInterval(t); }, 250);
+
+    watching = { fr: fr, stop: function () {
+      if (obs) obs.disconnect();
+      clearInterval(t);
+      if (raf) window.cancelAnimationFrame(raf);
+    } };
   }
 
   /* ★ 2026-08-16 — 1단계 화면이 만든 프로젝트를 postMessage 로 받는다 (URL 감시의 짝).
@@ -348,304 +433,17 @@ window.LINKPILOT_REPORT_FLOW = {
     return p;
   }
 
-  /* ── 세부 진행률 ──────────────────────────────────────────
+  /* ★★★ **「새보고서 진행률」 절을 뺐다** 〈2026-08-22 사용자 지시〉.
    *
-   * ★ **판정을 여기서 하지 않는다.** 단계별 %·문구는 전부 live-core.js 가
-   *   만든다. 화면이 자기 식으로 세기 시작하면 이 화면과 [IM 제작현황]이 서로
-   *   다른 숫자를 보여주고, 어느 쪽이 맞는지 아무도 모르게 된다.
+   *   화면 맨 위 「값은 앱 안에서 받습니다」 카드와 함께 지웠다. 함께 사라진 것:
+   *   단계별 진행 막대 · 자산군 · 계산 항목 개수 · 그것을 받아 오던 되풀이 조회
+   *   (`loadDetail`/`schedule`). **기능이 옮겨 간 것이 아니라 없어진 것**이므로
+   *   여기 적어 둔다 — 조용히 지우면 다음 사람이 「어디로 갔지」를 찾는다.
    *
-   * ★ 이 칸은 **다시 그려도 단계 화면(iframe)을 건드리지 않는다.** draw() 를
-   *   부르면 iframe 이 다시 실려 입력하던 것이 날아간다 — 그래서 자기 노드만 갈아끼운다.
-   * ───────────────────────────────────────────────────────── */
-
-  var L = window.LinkPilotLive;
-  var FC = window.LinkPilotFields;
-  var progBox = el('section', 'card');
-
-  var det = {
-    fields: null, computedKeys: null,
-    // ★ undefined = 아직 못 물어봤다 · null = 물어봤는데 없다. 둘을 섞으면
-    //   화면이 「못 받았다」를 「아직 안 했다」로 단정한다
-    values: null, sources: null, spec: undefined, snapshot: undefined,
-    assetClasses: null, assetClass: null,
-    error: null, failures: 0, timer: null, demo: false,
-  };
-
-  function api(path) {
-    return fetch(C.api + path, { headers: { Accept: 'application/json' } })
-      .then(function (r) {
-        // ★ 404 는 실패가 아니라 **아직 없다**는 뜻이다 (사양 미확정·생성 전).
-        //   이걸 오류로 세면 정상 상태에서 빨간 글씨가 뜬다
-        if (r.status === 404) return null;
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        return r.json();
-      });
-  }
-
-  function loadDetail() {
-    var pre = C.preload;
-    if (pre) {
-      // 서버가 없는 판(미리보기). 없는 값을 지어내지 않는다 — 없으면 null 그대로
-      det.demo = true;
-      det.fields = pre.fields || null;
-      det.computedKeys = pre.computedKeys || null;
-      det.assetClasses = pre.assetClasses || null;
-      det.assetClass = pre.assetClass || null;
-      det.values = pre.values === undefined ? null : pre.values;
-      det.sources = pre.sources === undefined ? null : pre.sources;
-      det.spec = pre.spec === undefined ? undefined : (pre.spec || null);
-      det.snapshot = pre.snapshot === undefined ? undefined : (pre.snapshot || null);
-      return renderProgress();
-    }
-    if (!C.api) { renderProgress(); return; }
-
-    var pid = state.projectId;
-    Promise.all([
-      det.fields ? Promise.resolve(null) : api('/fields'),   // 정의는 한 번만 받는다
-      pid ? api('/projects/' + encodeURIComponent(pid) + '/facts') : Promise.resolve(null),
-      pid ? api('/projects/' + encodeURIComponent(pid) + '/spec') : Promise.resolve(null),
-      pid ? api('/projects/' + encodeURIComponent(pid) + '/control-tower') : Promise.resolve(null),
-    ]).then(function (r) {
-      if (r[0]) {
-        det.fields = r[0].fields || {};
-        det.computedKeys = r[0].computedKeys || [];
-        det.assetClasses = r[0].assetClasses || [];
-      }
-      // 자산군은 프로젝트에 딸린 값이다 — 프로젝트가 바뀌면 함께 바뀐다
-      det.assetClass = r[1] ? (r[1].assetClass || null) : null;
-      // 프로젝트는 있는데 facts 가 없으면 「0개」다. 프로젝트가 없으면 「모름」이다
-      det.values = r[1] ? (r[1].values || {}) : (pid ? {} : null);
-      det.sources = r[1] ? (r[1].sources || []) : null;
-      det.spec = r[2] ? (r[2].spec || null) : null;
-      det.snapshot = r[3] || null;
-      det.error = null; det.failures = 0;
-      renderProgress(); schedule();
-    }).catch(function (e) {
-      // ★ 조용히 멈추지 않는다. 마지막 값으로 굳으면 사용자는 멈춘 줄 안다
-      det.failures += 1;
-      det.error = e.message;
-      renderProgress(); schedule();
-    });
-  }
-
-  function schedule() {
-    if (det.timer) { clearTimeout(det.timer); det.timer = null; }
-    if (det.demo || !C.api) return;
-    var snap = det.snapshot;
-    if (snap && snap.timing && snap.timing.finishedAt) return;   // 끝났으면 그만 묻는다
-    var wait = det.failures
-      ? Math.min(6000 * Math.pow(2, det.failures), 60000)        // 실패가 이어지면 뜸하게
-      : (snap ? L.nextPollMs({ state: 'running' }, 0) : 8000);
-    det.timer = setTimeout(loadDetail, wait);
-  }
-
-  /**
-   * 이 프로젝트의 자산군 정의. **못 찾으면 null 이다** — 아무 자산군이나
-   * 기본값으로 골라 주면 엉뚱한 값을 필수라고 말하게 된다 (CLAUDE.md §4.9).
+   *   되살리려면 이 파일의 삭제 커밋을 `git revert` 한다. 그때는 절 번호가
+   *   단계 번호와 다시 어긋나므로(진행률이 ①이 되면 1단계가 ②가 된다)
+   *   **번호 없는 칸**으로 두어야 한다.
    */
-  function currentClass() {
-    if (!det.assetClass || !det.assetClasses) return null;
-    for (var i = 0; i < det.assetClasses.length; i++) {
-      if (det.assetClasses[i].id === det.assetClass) return det.assetClasses[i];
-    }
-    return null;
-  }
-
-  /**
-   * 자산군이 무엇을 더 묻는지, 그리고 **왜** 묻는지.
-   *
-   * ★ 이유를 안 적으면 입력란만 늘어난 것으로 보인다. 이유 없이 늘어난 칸은
-   *   대충 채워지고, 대충 채운 값이 그대로 IM 에 실린다.
-   * ★ 자산군을 못 정했으면 조용히 넘어가지 않는다 — 그 상태로 진행하면
-   *   전용 필수가 통째로 빠진 채 「다 채웠다」가 된다.
-   */
-  function classCard() {
-    var box = el('div', 'prog__c');
-    var cls = currentClass();
-
-    if (!cls) {
-      var head = el('div', 'prog__ch');
-      add(head, el('span', 'prog__ct', '자산군'));
-      head.appendChild(el('span', 'prog__v prog__v--none',
-        det.assetClasses ? '못 정했습니다' : '아직'));
-      box.appendChild(head);
-      box.appendChild(el('p', 'prog__cw', det.assetClasses
-        ? '자산군을 정해야 그 자산군에만 필요한 값(객실 수·유효층고·분양가능 면적 …)을 '
-          + '물어봅니다. 지금은 공통 필수만 세고 있어, 다 채워도 그 자산군의 근거는 비어 있습니다.'
-        : '아직 확인하지 못했습니다.'));
-      return box;
-    }
-
-    var h = el('div', 'prog__ch');
-    add(h, el('span', 'prog__ct', cls.label), el('span', 'prog__gn', cls.en));
-    h.appendChild(el('span', 'prog__v', '+' + cls.requires.length + '개'));
-    box.appendChild(h);
-    box.appendChild(el('p', 'prog__cw',
-      '이 자산군이라서 더 받는 값입니다. 공통 필수에 더해집니다 — 빼지 않습니다.'));
-
-    var ul = el('ul', 'prog__why');
-    cls.requires.forEach(function (r) {
-      var li = el('li');
-      var got = det.values && det.values[r.key]
-        && det.values[r.key].value !== null && det.values[r.key].value !== undefined
-        && det.values[r.key].value !== '' && det.values[r.key].source;
-      li.appendChild(el('b', got ? 'is-ok' : '', (got ? '✓ ' : '· ') + r.label));
-      li.appendChild(document.createTextNode(' — ' + r.why));
-      ul.appendChild(li);
-    });
-    box.appendChild(ul);
-    return box;
-  }
-
-  function bar(pct) {
-    if (pct === null || pct === undefined) return el('div', 'prog__bar prog__bar--none');
-    var b = el('div', 'prog__bar');
-    var i = el('i');
-    i.style.width = Math.max(0, Math.min(100, pct)) + '%';
-    b.appendChild(i);
-    return b;
-  }
-
-  function chips(list) {
-    var row = el('div', 'prog__p');
-    list.forEach(function (c) { row.appendChild(el('span', c.cls || '', c.text)); });
-    return row;
-  }
-
-  /** 4단계는 「무엇을 하고 있는가」까지 보여준다 — 숫자만으로는 멈춘 것과 구분이 안 된다 */
-  function makeInside() {
-    if (!det.snapshot) return null;
-    var v = L.viewFrom({ snapshot: det.snapshot });
-    var box = el('div');
-    box.appendChild(chips(v.phases.map(function (p) {
-      return {
-        text: p.label + ' ' + p.doneCount + '/' + p.total,
-        cls: p.running ? 'is-run' : (p.tone === 'bad' ? 'is-bad'
-          : (p.tone === 'warn' ? 'is-warn' : (p.done ? 'is-ok' : ''))),
-      };
-    })));
-    if (v.activity.length) {
-      var ul = el('ul', 'prog__log');
-      v.activity.slice(0, 3).forEach(function (a) {
-        var li = el('li');
-        li.appendChild(el('b', null, (a.at || '').slice(11, 16) || '지금'));
-        li.appendChild(document.createTextNode(' ' + (a.message || '')));
-        ul.appendChild(li);
-      });
-      box.appendChild(ul);
-    }
-    return box;
-  }
-
-  function renderProgress() {
-    progBox.textContent = '';
-    progBox.appendChild(el('h2', 'card__t', '세부 진행률'));
-    progBox.appendChild(el('p', 'card__d',
-      '「내가 채울 것」과 「기다리면 되는 것」을 나눠 봅니다. 넷을 한 막대로 뭉치지 '
-      + '않는 이유는, 그 "80%" 가 더 할 일이 남았다는 뜻인지 기다리면 되는 상태인지 '
-      + '알 수 없기 때문입니다.'));
-
-    var cls = currentClass();
-    var steps = L.stepProgress({
-      project: state.projectId,
-      sources: det.sources,
-      fields: det.fields,
-      values: det.values,
-      docType: C.docType || 'im',
-      // 자산군 전용 필수. 자산군을 모르면 넘기지 않는다 — 아무 자산군의
-      // 항목이나 끼워 넣으면 엉뚱한 값을 필수라고 말하게 된다
-      classKeys: cls ? cls.requires.map(function (r) { return r.key; }) : null,
-      classLabel: cls ? cls.label : null,
-      spec: det.spec,
-      snapshot: det.snapshot,
-      complete: FC && FC.completeness,
-    });
-
-    /* ── 묶음 둘. **각 묶음의 눈금 바로 아래에 그 단계들을 둔다.**
-     *
-     * ★ 눈금을 위에 몰아 두고 단계 넷을 따로 깔면, 아래로 내려간 순간
-     *   1·2·3 이 한 덩어리라는 것이 화면에서 사라진다 — 어디까지가 내가 채울
-     *   것이고 어디부터가 기다리면 되는 것인지 다시 알 수 없다.
-     * ── */
-    var one = function (s) {
-      var li = el('li', 'prog__i prog__i--' + s.state);
-      var head = el('div', 'prog__h');
-      add(head, el('span', 'prog__n', s.n), el('span', 'prog__t', s.label));
-      head.appendChild(s.pct === null
-        ? el('span', 'prog__v prog__v--none', '아직')
-        : el('span', 'prog__v', s.pct + '%'));
-      li.appendChild(head);
-      li.appendChild(bar(s.pct));
-      li.appendChild(el('p', 'prog__d', s.detail));
-      if (s.id === 'fields' && s.parts) {
-        li.appendChild(chips(s.parts.map(function (p) {
-          return { text: p.label + ' ' + p.n + '개', cls: p.label === '채움' ? 'is-ok' : '' };
-        })));
-      }
-      if (s.id === 'make') { var inside = makeInside(); if (inside) li.appendChild(inside); }
-      return li;
-    };
-
-    L.groupProgress(steps).forEach(function (g) {
-      var sec = el('section', 'prog__g prog__g--' + g.state);
-
-      var gi = el('div', 'prog__gi');
-      var gh = el('div', 'prog__gh');
-      gh.appendChild(el('span', 'prog__gt', g.label));
-      // 몇 번 단계가 이 묶음인지 밝힌다 — 번호를 손으로 적지 않고 단계에서 뽑는다
-      gh.appendChild(el('span', 'prog__gn',
-        g.steps.map(function (s) { return s.n; }).join('·') + '단계'));
-      gh.appendChild(g.pct === null
-        ? el('span', 'prog__gv prog__gv--none', '아직')
-        : el('span', 'prog__gv', g.pct + '%'));
-      gi.appendChild(gh);
-      gi.appendChild(el('p', 'prog__gw', g.why));
-      gi.appendChild(bar(g.pct));
-      gi.appendChild(el('p', 'prog__d', g.detail));
-      sec.appendChild(gi);
-
-      var list = el('ol', 'prog__l');
-      list.setAttribute('start', String(g.steps.length ? g.steps[0].n : 1));
-      g.steps.forEach(function (s) { list.appendChild(one(s)); });
-      sec.appendChild(list);
-
-      progBox.appendChild(sec);
-    });
-
-    progBox.appendChild(classCard());
-
-    // ── 계산 항목 — 사람이 넣지 않는 것들. 시작 전 0 개는 정상이다 ──
-    var comp = L.computedProgress(det.computedKeys, det.values, !!det.snapshot);
-    var box = el('div', 'prog__c');
-    var ch = el('div', 'prog__ch');
-    add(ch, el('span', 'prog__ct', '계산 항목'));
-    ch.appendChild(det.computedKeys === null
-      ? el('span', 'prog__v prog__v--none', '아직')
-      : el('span', 'prog__v', comp.made + ' / ' + comp.total));
-    box.appendChild(ch);
-    box.appendChild(el('p', 'prog__cw',
-      '사람이 넣지 않습니다 — 생성할 때 함수가 만듭니다. 입력란도 만들지 않습니다.'));
-    if (det.computedKeys !== null) {
-      box.appendChild(bar(comp.started ? comp.pct : null));
-      box.appendChild(el('p', 'prog__d', comp.detail));
-    }
-    progBox.appendChild(box);
-
-    if (det.error) {
-      progBox.appendChild(notice('note--bad', '진행 상황을 확인하지 못했습니다',
-        det.error + ' — 생성이 멈췄다는 뜻은 아닙니다. '
-        + (det.failures > 1 ? '확인 간격을 늘려 다시 시도하고 있습니다.' : '곧 다시 확인합니다.')));
-    } else if (det.demo) {
-      progBox.appendChild(notice('', '예시입니다',
-        '서버에 연결되어 있지 않아 저장된 값이 없습니다. 숫자는 지어내지 않고 '
-        + '「아직」으로 두었습니다.'));
-    } else if (!C.api) {
-      progBox.appendChild(notice('', '서버가 연결되어 있지 않습니다',
-        '진행률은 서버가 가진 값으로만 셉니다 — 지금은 셀 수 없습니다.'));
-    }
-  }
-
-  /* ── 외부 분석 경로 (지금 운영 방식 — 지우지 않는다) ────── */
 
   function external() {
     var box = el('section', 'card');
@@ -680,19 +478,26 @@ window.LINKPILOT_REPORT_FLOW = {
 
   /* ── 그리기 ───────────────────────────────────────────── */
 
-  function intro() {
-    var box = el('section', 'card');
-    add(box,
-      el('h2', 'card__t', '값은 앱 안에서 받습니다'),
-      el('p', 'card__d',
-        '출처 없는 숫자가 들어오지 못하게 막는 검사(출처 필수 · 계산 항목 입력 금지 · '
-        + '사양 확정)는 아래 단계 안에 있습니다. 바깥에서 값을 넣으면 그 검사를 지나지 않습니다.'));
-    return box;
-  }
-
   function draw() {
+    /* ★★ 다시 그리면 **옛 화면(iframe)이 사라진다.** 그 화면을 보고 있던
+     *   감시자를 여기서 끊지 않으면, 이미 없는 것을 계속 재는 감시자가
+     *   남는다 — 그것이 쌓이는 것이 「쓸수록 느려진다」의 정체였다. */
+    unwatch();
     view.textContent = '';
-    view.appendChild(el('h1', null, '보고서 생성'));
+    // ★ 탭 안에 얹을 때는 **제목을 그리지 않는다.** 탭 바가 이미 이름을 말하므로
+    //   그대로 두면 「새 보고서 생성」 아래에 「보고서 생성」이 또 나온다.
+    //   기본은 false — 이 화면을 단독으로 열면 이름이 없으면 안 된다.
+    if (!C.inTab) view.appendChild(el('h1', null, F.SECTION.title));
+
+    // ★ 토큰이 안 실리면 색·글꼴이 통째로 빠지는데 **오류는 안 난다.**
+    //   「화면이 이상하다」로 끝나지 않게 원인을 화면이 말한다
+    if (F.tokensLoaded() === false) {
+      var tw = el('div', 'nostyle', F.TOKENS_MISSING);
+      tw.setAttribute('role', 'alert');
+      // 토큰이 없는 상황이므로 var() 를 쓰지 않는다 — 인라인으로 칠한다
+      tw.setAttribute('style', 'margin:0 0 14px;padding:12px 14px;border-radius:10px;background:#FFF4E5;color:#8A5A10;border:1px solid #F0DEBE;font-size:13.5px;line-height:1.6');
+      view.appendChild(tw);
+    }
 
     var a = G.access(C.session, C.requiredPlan);
     if (!a.allowed) {
@@ -704,45 +509,51 @@ window.LINKPILOT_REPORT_FLOW = {
       return;
     }
 
-    view.appendChild(intro());
-
     var steps = F.stepState(ctx());
     if (!state.current) {
       var first = steps.filter(function (s) { return !s.locked; })[0] || steps[0];
       state.current = first.id;
       steps = F.stepState(ctx());
     }
-    view.appendChild(rail(steps));
-    view.appendChild(progBox);
 
-    // ★ 프로젝트가 바뀌면 진행률도 **그 프로젝트의 것**을 다시 받는다.
-    //   안 그러면 앞 프로젝트의 숫자가 그대로 남아 남의 진행률을 자기 것으로 본다
-    if (det.forProject !== state.projectId) {
-      det.forProject = state.projectId;
-      det.values = null; det.sources = null; det.spec = undefined; det.snapshot = undefined;
-      det.assetClass = null;
-      det.error = null; det.failures = 0;
-      renderProgress();
-      loadDetail();
-    }
-
+    /* ── 절 다섯을 차례로 세운다 〈2026-08-22 사용자 지시〉 ────────
+     *   ① 제작 기본정보 입력 ② 무엇을 만들까요? ③ 관련자료 업로드
+     *   ④ 가이드 필드 (자동입력 + 직접입력) ⑤ 출력조건
+     *   ★ 절 번호와 단계 번호가 **같다.** 진행률 절이 ①이던 앞 판은 둘이
+     *     하나씩 어긋나 「1단계」라는 말이 어느 칸을 가리키는지 흐렸다.
+     *
+     * ★ 지금 단계의 화면만 절 안에 편다. 나머지는 머리만 두고 눌러서 연다 —
+     *   전부 펴 두면 「앞 단계를 건너뛸 수 없다」가 화면에서 사라진다.
+     */
     var docs = window.LINKPILOT_PREVIEW_DOCS;
-    if (docs && !Object.keys(docs).length) {
-      // 껍데기만 보여주는 조각(레일·세부 진행률). 단계 화면을 안 심었으므로
-      // 부르러 가지 않는다 — 없는 주소를 부르면 빈 칸이 뜨고 고장으로 읽힌다
-      view.appendChild(notice('', '단계 화면은 이 조각에 넣지 않았습니다',
-        '여기서는 단계 레일과 세부 진행률만 보여줍니다. 단계 화면은 아래 칸에서 따로 봅니다.'));
-    } else if (docs) {
-      // 미리보기는 **네 단계를 한 번에 편다.** 눌러 가며 확인하면 빠뜨린다
-      steps.forEach(function (s) { view.appendChild(stage(s)); });
-    } else {
-      var cur = steps.filter(function (s) { return s.current; })[0] || steps[0];
-      if (cur.locked) {
-        view.appendChild(notice('', cur.name + ' 단계를 아직 열 수 없습니다', cur.why));
-      } else {
-        view.appendChild(stage(cur));
+    var shell = !!(docs && !Object.keys(docs).length);   // 껍데기 조각
+    var byStep = {};
+    steps.forEach(function (st) { byStep[st.id] = st; });
+
+    F.sectionState(ctx()).forEach(function (sec) {
+      /* ★ 이제 모든 절이 단계를 품는다. 「품은 단계가 없는 절」(진행률)은 없앴다 */
+      // 껍데기 조각에서는 단계 화면을 안 심었다. 없는 주소를 부르면 빈 칸이 뜨고
+      // 그 빈 칸을 고장으로 읽는다 — 그래서 부르러 가지 않고 그렇다고 적는다
+      if (shell) {
+        view.appendChild(section(sec, sec.current
+          ? notice('', '단계 화면은 이 조각에 넣지 않았습니다',
+            '여기서는 절 구성과 세부 진행률만 보여줍니다.')
+          : null));
+        return;
       }
-    }
+      // 미리보기(문서를 심은 판)는 **한 번에 편다.** 눌러 가며 확인하면 빠뜨린다
+      if (docs) {
+        var frag = document.createDocumentFragment();
+        sec.steps.forEach(function (st) { frag.appendChild(stage(st)); });
+        view.appendChild(section(sec, frag));
+        return;
+      }
+      if (!sec.current) { view.appendChild(section(sec, null)); return; }
+      var cur = byStep[state.current] || sec.steps[0];
+      view.appendChild(section(sec, cur.locked
+        ? notice('', cur.name + ' 단계를 아직 열 수 없습니다', cur.why)
+        : stage(cur)));
+    });
 
     if (!C.api) {
       view.appendChild(notice('', '서버가 연결되어 있지 않습니다',

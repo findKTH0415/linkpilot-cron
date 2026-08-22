@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko">
+<html lang="ko" data-lp-build="3f9e0360">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -17,21 +17,16 @@
   ★ 여기서 파이프라인을 돌리지 않는다. 프로젝트만 만든다.
     자료가 없는 채로 돌리면 빈 값으로 산출물이 만들어지고 비용만 나간다.
 -->
+<link rel="stylesheet" href="tokens.css">
 <style>
 :root {
-  --lime: #9ED700; --lime-soft: #EDF7DC; --lime-deep: #5C7A00;
-  --ink: #17181A; --ink2: #7C838C; --line: #E8EAEC;
-  --panel: #F1F2F4; --bg: #F5F6F8; --surface: #FFFFFF;
-  --bad: #E03131; --bad-soft: #FDECEC; --bad-ink: #8F1D1D;
-  --warn: #E8A33D; --warn-soft: #FDF3E3; --warn-ink: #8A5A10;
-  --r: 18px; --side: 248px;
+  --side: 248px;
 }
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 body {
   margin: 0; background: var(--bg); color: var(--ink);
-  font: 400 15px/1.55 -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
-        'Malgun Gothic', '맑은 고딕', Arial, sans-serif;
+  font: 400 15px/1.55 var(--lp-font);
   -webkit-font-smoothing: antialiased;
 }
 h1,h2,h3,h4 { margin: 0; }
@@ -77,7 +72,7 @@ h1,h2,h3,h4 { margin: 0; }
 .gate__t { font-size: 21px; font-weight: 800; margin-top: 18px; }
 .gate__b { font-size: 14.5px; color: var(--ink2); margin-top: 12px; line-height: 1.7; }
 .gate__cta { display: inline-block; margin-top: 24px; padding: 14px 32px;
-  font: 700 15px/1 inherit; border: 0; border-radius: 12px;
+  font-weight: 700; font-size: 15px; line-height: 1; font-family: inherit; border: 0; border-radius: 12px;
   background: var(--lime); color: var(--ink); cursor: pointer; }
 
 .steps { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
@@ -97,7 +92,7 @@ h1,h2,h3,h4 { margin: 0; }
 .f { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
 .f label { font-size: 12.5px; font-weight: 700; color: var(--ink2); }
 .f textarea, .f select, .f input {
-  font: 400 14.5px/1.6 inherit; padding: 12px 13px; width: 100%;
+  font-weight: 400; font-size: 14.5px; line-height: 1.6; font-family: inherit; padding: 12px 13px; width: 100%;
   border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); }
 .f textarea { min-height: 92px; resize: vertical; }
 .f .hint { font-size: 12.5px; color: var(--ink2); }
@@ -160,8 +155,16 @@ h1,h2,h3,h4 { margin: 0; }
 .file__n { font-size: 13.5px; font-weight: 600; word-break: break-all; }
 .file__m { font-size: 12px; color: var(--ink2); margin-top: 2px; font-variant-numeric: tabular-nums; }
 .file__m.no { color: var(--warn-ink); }
-.file__x { margin-left: auto; font: 600 12px/1 inherit; padding: 7px 11px; border-radius: 8px;
+.file__x { margin-left: auto; font-weight: 600; font-size: 12px; line-height: 1; font-family: inherit; padding: 7px 11px; border-radius: 8px;
   border: 1px solid var(--line); background: var(--surface); color: var(--ink2); cursor: pointer; }
+
+/* 1단계가 품는 자료 업로드 화면. 테두리는 한 겹만 — 카드 안이라 두 겹이면 답답하다 */
+.sub-frame { margin-top: 4px; }
+.sub-frame__f { width: 100%; height: 720px; border: 0; display: block; }
+/* 조각(주소로 여는 페이지)에서 iframe 자리에 들어가는 안내. 앱에서는 안 쓴다 */
+.sub-frame__na { border: 1px dashed var(--line); border-radius: 12px; padding: 16px 14px;
+  font-size: 13px; line-height: 1.75; color: var(--ink2); background: var(--panel); }
+.sub-frame__na b { color: var(--ink); }
 
 /* 발행 주체 */
 .iss-mark { width: 46px; height: 46px; border-radius: 50%; background: var(--panel);
@@ -194,7 +197,7 @@ h1,h2,h3,h4 { margin: 0; }
 
 .actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
   margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); }
-.btn { padding: 13px 26px; font: 700 14.5px/1 inherit; border: 0; border-radius: 12px;
+.btn { padding: 13px 26px; font-weight: 700; font-size: 14.5px; line-height: 1; font-family: inherit; border: 0; border-radius: 12px;
   background: var(--lime); color: var(--ink); cursor: pointer; text-decoration: none;
   display: inline-block; }
 .btn:disabled { background: var(--panel); color: var(--ink2); cursor: not-allowed; }
@@ -252,6 +255,8 @@ h1,h2,h3,h4 { margin: 0; }
 </div>
 
 <script src="gate-core.js"></script>
+<script src="flow-core.js"></script>
+<script src="upload-core.js"></script>
 <script src="catalog.js"></script>
 <script src="inapp.js"></script>
 <script>
@@ -264,9 +269,13 @@ window.LINKPILOT_INTAKE = {
   session: { authenticated: true, planId: 'pro', status: 'active', name: '' },
 };
 </script>
+<!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
+<script src="embed-bridge.js" data-lp-global="LINKPILOT_INTAKE"></script>
 <script>
 (function () {
   'use strict';
+
+  var UP = window.LinkPilotUpload;
 
   var C = window.LINKPILOT_INTAKE;
   var Gate = window.LinkPilotGate;
@@ -274,6 +283,45 @@ window.LINKPILOT_INTAKE = {
 
   var body = document.getElementById('body');
   var meta = document.getElementById('meta');
+
+  /**
+   * ★★★ **어느 칸을 펴는가** 〈2026-08-22 사용자 지시 — 단계 다섯〉.
+   *
+   *   1 제작 기본정보 입력(`issuer`) · 2 무엇을 만들까요?(`ask`) ·
+   *   3 관련자료 업로드(`files`) 는 **이 한 화면의 서로 다른 칸**이다.
+   *   `?part=` 가 없으면(따로 열었을 때) 셋을 다 편다.
+   *
+   * ★ 셋을 오갈 때 화면이 다시 실린다. 그래서 **적어 둔 것을 브라우저에
+   *   저장**한다 — 없으면 2단계를 보고 온 사이에 요청문이 사라지고,
+   *   사용자는 **자기가 지운 줄 안다.** 파일은 저장하지 못하지만(브라우저가
+   *   파일 자체를 넘겨주지 않는다) 파일은 3단계에서 고르고 그 자리에서 올리므로
+   *   오가는 일이 없다.
+   */
+  var PART = null;
+  var DRAFT = 'lp.intake.draft';
+
+  function saveDraft() {
+    try {
+      window.localStorage.setItem(DRAFT, JSON.stringify({
+        request: state.request, assetType: state.assetType,
+        issuerAsDefault: state.issuerAsDefault,
+      }));
+    } catch (_) { /* 사생활 창·저장 차단 — 초안만 못 남길 뿐 화면은 그대로 돈다 */ }
+  }
+
+  function loadDraft() {
+    try {
+      var d = JSON.parse(window.localStorage.getItem(DRAFT) || 'null');
+      if (!d) return;
+      if (typeof d.request === 'string') state.request = d.request;
+      if (typeof d.assetType === 'string') state.assetType = d.assetType;
+      if (typeof d.issuerAsDefault === 'boolean') state.issuerAsDefault = d.issuerAsDefault;
+    } catch (_) {}
+  }
+
+  function clearDraft() {
+    try { window.localStorage.removeItem(DRAFT); } catch (_) {}
+  }
 
   var state = {
     info: null,          // GET /intake 응답 (자산유형·지원 형식·한도)
@@ -312,9 +360,10 @@ window.LINKPILOT_INTAKE = {
    *   은 api 가 없으면 **데모 데이터**를 쓰므로, 앱 안에서 가짜 산출물이
    *   진짜처럼 보일 수 있다.
    */
-  function stepUrl(file, projectId) {
+  function stepUrl(file, projectId, part) {
     var here = new URLSearchParams(window.location.search);
     var qs = [];
+    if (part) qs.push('part=' + encodeURIComponent(part));
     var api = here.get('api') || (typeof C.api === 'string' ? C.api : null);
     if (api) qs.push('api=' + encodeURIComponent(api));
     if (projectId) qs.push('project=' + encodeURIComponent(projectId));
@@ -401,14 +450,11 @@ window.LINKPILOT_INTAKE = {
       var v = readableOf(f.name);
       var rec = { name: f.name, size: f.size, readable: v.readable, note: v.note, data: null, tooBig: f.size > max };
       state.files.push(rec);
-      var fr = new FileReader();
-      fr.onload = function () {
-        // data:...;base64,XXXX 에서 뒤쪽만 쓴다
-        var s = String(fr.result);
-        rec.data = s.slice(s.indexOf(',') + 1);
+      // ★ 읽기·보내기는 upload-core.js 한 곳에 있다 — 화면마다 따로 쓰면 갈린다
+      UP.readOne(f, function (err, data) {
+        if (err) { rec.error = err.message; } else { rec.data = data; }
         render();
-      };
-      fr.readAsDataURL(f);
+      });
     });
     render();
   }
@@ -423,7 +469,7 @@ window.LINKPILOT_INTAKE = {
       issuer: (state.issuer && state.issuer.en.trim()) ? state.issuer : undefined,
       issuerAsDefault: state.issuerAsDefault || undefined,
     }).then(function (j) {
-      state.created = j; state.busy = false; render();
+      state.created = j; state.busy = false; clearDraft(); render();
       /* ★ 2026-08-16 — 부모(report-flow)에 알린다. 부모는 자식 URL 의 ?project= 로만 프로젝트를
          알아채는데, 여기서 만든 프로젝트는 URL 에 없다 → 2~4단계가 영원히 「1단계에서 프로젝트를
          먼저 만듭니다」로 잠겨 있었다(앱 실측). 같은 출처에만 보낸다. */
@@ -438,74 +484,26 @@ window.LINKPILOT_INTAKE = {
   }
 
   /**
-   * 자료를 올린다. **진행률을 보여 준다.**
+   * 자료를 올린다.
    *
-   * ★ `fetch` 는 업로드 진행을 알려 주지 않는다 (요청 본문 스트림 진행 이벤트가
-   *   없다). 그래서 여기만 XMLHttpRequest 를 쓴다 — `upload.onprogress` 가
-   *   보낸 바이트를 준다. 다른 호출은 그대로 `call()` 을 쓴다.
+   * ★ 올리는 방법 자체는 `upload-core.js` 에 있다 — 「자료 업로드」탭도 같은 것을
+   *   쓴다. 화면마다 따로 쓰면 한쪽만 고쳐지는 날이 오고, 그때 다른 쪽은
+   *   **옛 방식으로 조용히 계속 돈다.**
    *
-   * ★ **다 보냈다고 끝난 것이 아니다.** 100%% 를 찍고 나면 서버가 파일을 열어
-   *   읽는 시간이 남아 있다(스캔본이면 더 길다). 거기서 100%% 를 그대로 두면
-   *   「다 됐는데 화면이 멈췄다」로 읽힌다. 그래서 단계를 둘로 나누고, 두 번째
-   *   단계는 **진행률을 만들지 않는다** — 얼마나 걸릴지 모르기 때문이다.
+   * ★ 여기서는 그 결과를 **이 화면의 말로** 옮기기만 한다.
    */
   function uploadFiles() {
     var ready = state.files.filter(function (f) { return f.data && !f.tooBig; });
     if (!ready.length || !state.created) return;
 
-    var payload = JSON.stringify({
-      files: ready.map(function (f) { return { name: f.name, contentBase64: f.data }; }),
-    });
-
     state.busy = true;
-    state.upload = {
-      phase: 'sending', sent: 0, total: payload.length,
-      files: ready.length, pct: 0, error: null,
-    };
-    render();
-
-    var xhr = new XMLHttpRequest();
-    xhr.open('POST', C.api + '/projects/' + state.created.projectId + '/sources', true);
-    xhr.withCredentials = true;
-    xhr.setRequestHeader('content-type', 'application/json');
-
-    xhr.upload.onprogress = function (ev) {
-      if (!state.upload || state.upload.phase !== 'sending') return;
-      // ★ 길이를 모르면 % 를 만들지 않는다. 지어낸 진행률은 멈춘 것처럼 보인다
-      state.upload.sent = ev.loaded;
-      state.upload.total = ev.lengthComputable ? ev.total : null;
-      state.upload.pct = ev.lengthComputable && ev.total
-        ? Math.min(99, Math.floor((ev.loaded / ev.total) * 100)) : null;
-      render();
-    };
-    // 다 보냈다 → 이제 서버가 읽는다. 여기서 100% 로 두지 않는다
-    xhr.upload.onload = function () {
-      if (state.upload) { state.upload.phase = 'reading'; state.upload.pct = null; render(); }
-    };
-
-    xhr.onload = function () {
-      var j = {};
-      try { j = JSON.parse(xhr.responseText || '{}'); } catch (_) { j = {}; }
-      state.busy = false;
-      if (xhr.status >= 200 && xhr.status < 300) {
-        state.upload = { phase: 'done', pct: 100, files: ready.length, error: null };
-        state.uploaded = j;
-      } else {
-        state.upload = { phase: 'error', pct: null, error: j.error || ('HTTP ' + xhr.status) };
-        state.error = state.upload.error;
-      }
-      render();
-    };
-    // ★ 조용히 죽지 않는다. 진행 바가 멈춘 채 남으면 사용자는 계속 기다린다
-    xhr.onerror = function () {
-      state.busy = false;
-      state.upload = { phase: 'error', pct: null, error: '전송이 끊겼습니다 — 다시 시도하세요' };
-      state.error = state.upload.error;
-      render();
-    };
-    xhr.onabort = xhr.onerror;
-
-    xhr.send(payload);
+    UP.send({
+      url: C.api + '/projects/' + state.created.projectId + '/sources',
+      files: ready.map(function (f) { return { name: f.name, contentBase64: f.data }; }),
+      onUpdate: function (u) { state.upload = u; render(); },
+      onDone: function (j) { state.busy = false; state.uploaded = j; render(); },
+      onFail: function (why) { state.busy = false; state.error = why; render(); },
+    });
   }
 
   /** 진행 바 한 칸. 모르는 값은 막대가 아니라 빗금이다 */
@@ -548,19 +546,31 @@ window.LINKPILOT_INTAKE = {
 
   /* ── 그리기 ───────────────────────────────────────────── */
 
+  /**
+   * ★★★ **단계 이름을 여기서 적지 않는다** 〈2026-08-22〉. 앞 판은 넷을 손으로
+   *   적어 두었는데, 단계가 다섯이 된 날 **이 줄만 옛말**이 됐다. 화면은 새
+   *   차례로 도는데 레일만 옛 차례를 말하는 상태는 오류가 안 나서 안 잡힌다.
+   *   `flow-core.js` 가 단일 출처다.
+   */
   function steps() {
     var row = el('div', 'steps');
-    ['보고서 생성 입력', '가이드 필드 입력', '출력 사양 확정', '생성'].forEach(function (label, i) {
-      var href = i === 1 ? 'fields.html' : (i >= 2 ? 'reports.html' : null);
-      var n = el(href && state.created ? 'a' : 'div',
-        'step' + (i === 0 ? (state.created ? ' done' : ' on') : ''));
-      if (href && state.created) {
-        n.href = stepUrl(href, state.created.projectId);
-      }
-      add(n, el('span', 'step__n', String(i + 1)), el('span', null, label));
+    var F = window.LinkPilotFlow;
+    if (!F) return row;                      // 코어가 안 실렸으면 지어내지 않는다
+    F.STEPS.forEach(function (st) {
+      var mine = st.file === 'intake.html';
+      var here = mine && (!PART || st.part === PART);
+      var open = state.created ? !mine : mine;
+      var n = el(open && !here ? 'a' : 'div',
+        'step' + (here ? ' on' : (state.created && mine ? ' done' : '')));
+      if (open && !here) n.href = stepUrl(st.file, st.needsProject ? projectId() : null, st.part);
+      add(n, el('span', 'step__n', String(st.no)), el('span', null, st.name));
       row.appendChild(n);
     });
     return row;
+  }
+
+  function projectId() {
+    return (state.created && state.created.projectId) || null;
   }
 
   /**
@@ -572,9 +582,7 @@ window.LINKPILOT_INTAKE = {
   function formatCard() {
     var box = el('section', 'card');
     box.appendChild(el('h2', 'card__t', '올릴 수 있는 자료'));
-    box.appendChild(el('p', 'card__s',
-      '형식마다 읽는 방법이 다릅니다. 못 읽는 것은 올리기 전에 알려 드립니다 — '
-      + '올린 뒤에 알면 늦습니다.'));
+    /* (요청 2026-08-17) 부제 문구 삭제 — 세 카드가 각각 "그대로 읽음/옮겨 읽음/변환 필요" 로 이미 말한다 */
 
     var i = state.info;
     var groups = i.formats || [];
@@ -640,6 +648,7 @@ window.LINKPILOT_INTAKE = {
     ta.disabled = !!state.created;
     ta.addEventListener('input', function () {
       state.request = ta.value;
+      saveDraft();   /* ★ 단계를 오가도 남아 있어야 한다 */
       var b = document.getElementById('go');
       if (b) b.disabled = !canGo();
     });
@@ -658,7 +667,7 @@ window.LINKPILOT_INTAKE = {
       var o = el('option', null, t.label); o.value = t.id; sel.appendChild(o);
     });
     sel.value = state.assetType;
-    sel.addEventListener('change', function () { state.assetType = sel.value; });
+    sel.addEventListener('change', function () { state.assetType = sel.value; saveDraft(); });
     f2.appendChild(sel);
     f2.appendChild(el('div', 'hint', '자산유형에 따라 재무모델 템플릿과 프로젝트 번호가 정해집니다 (예: LP-DC-2026-001).'));
     box.appendChild(f2);
@@ -727,20 +736,80 @@ window.LINKPILOT_INTAKE = {
     };
     drawMark();
     row.appendChild(mark);
-    var file = el('input'); file.type = 'file'; file.accept = 'image/png,image/jpeg,image/svg+xml'; file.hidden = true;
+    /* ★ 로고 자동 정규화 (요청 2026-08-17) — 사용자마다 로고 파일이 제각각이다(4000px 원본, HEIC, WebP,
+       여백 큰 캔버스, 5MB JPG). 형식·크기 밖이면 거부하던 것을 **받아서 맞춘다**로 바꿨다:
+         ① 브라우저가 디코드할 수 있는 모든 이미지를 받는다(HEIC 등 못 읽는 것만 사유와 함께 거부)
+         ② 투명/흰 여백을 자동으로 잘라 로고 자체가 꽉 차게(스캔·캔버스 여백 제거)
+         ③ 긴 변 512px 로 축소(표지·서명부 44px 자리에 충분, 인쇄 2x 도 여유)
+         ④ 투명이 있으면 PNG, 없으면 JPEG — 200KB 이하가 될 때까지 품질을 낮춘다
+         ⑤ 서버 규칙(core/issuer.js: PNG/JPG/SVG · 200KB)은 그대로 — 여기서 맞춰 보내므로 거부될 일이 없다
+       SVG 는 벡터라 그대로 둔다(200KB 넘으면 거부 — 그런 SVG 는 로고가 아니라 도면이다).
+       실패는 사유를 말한다 — "읽지 못했습니다" 하나로 뭉치면 무엇을 고쳐야 할지 모른다. */
+    var file = el('input'); file.type = 'file'; file.accept = 'image/*'; file.hidden = true;
     var up = el('button', 'btn2', iss.logo ? '로고 바꾸기' : '로고 업로드'); up.type = 'button'; up.disabled = !!state.created;
     var rm = el('button', 'btn2', '제거'); rm.type = 'button'; rm.disabled = !!state.created || !iss.logo;
-    var msg = el('div', 'hint', iss.logo ? '로고가 들어 있습니다.' : '없으면 회사명 이니셜(' + (autoMark(iss.en) || '—') + ')이 대신 찍힙니다.');
+    var msg = el('div', 'hint', iss.logo ? '로고가 들어 있습니다.' : '없으면 회사명 이니셜(' + (autoMark(iss.en) || '—') + ')이 대신 찍힙니다. 어떤 크기든 올리면 자동으로 맞춥니다.');
     up.addEventListener('click', function () { file.click(); });
+
+    var LOGO_MAX_BYTES = 200 * 1024, LOGO_MAX_EDGE = 512;
+    function readAsDataUrl(f) { return new Promise(function (res, rej) { var r = new FileReader(); r.onload = function () { res(String(r.result || '')); }; r.onerror = function () { rej(new Error('파일을 읽을 수 없습니다 (권한·손상 여부 확인)')); }; r.readAsDataURL(f); }); }
+    function loadImage(src) { return new Promise(function (res, rej) { var im = new Image(); im.onload = function () { res(im); }; im.onerror = function () { rej(new Error('이 브라우저가 디코드할 수 없는 이미지입니다 (HEIC·TIFF 등은 PNG/JPG 로 바꿔 올리세요)')); }; im.src = src; }); }
+    /* 여백 트림 — 알파 0 이거나 거의 흰색(RGB 모두 245 이상)인 테두리를 잘라낸다. 여백이 곧 로고인 경우를 대비해 8px 는 남긴다 */
+    function trimBox(ctx, w, h) {
+      var d = ctx.getImageData(0, 0, w, h).data, minX = w, minY = h, maxX = -1, maxY = -1;
+      for (var y = 0; y < h; y++) for (var x = 0; x < w; x++) {
+        var i = (y * w + x) * 4, a = d[i + 3];
+        var blank = a < 8 || (d[i] > 245 && d[i + 1] > 245 && d[i + 2] > 245);
+        if (!blank) { if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y; }
+      }
+      if (maxX < 0) return null;                          // 전부 여백 = 빈 이미지
+      var pad = 8;
+      return { x: Math.max(0, minX - pad), y: Math.max(0, minY - pad), w: Math.min(w, maxX + pad + 1) - Math.max(0, minX - pad), h: Math.min(h, maxY + pad + 1) - Math.max(0, minY - pad) };
+    }
+    function hasAlpha(ctx, w, h) { var d = ctx.getImageData(0, 0, w, h).data; for (var i = 3; i < d.length; i += 4 * 7) if (d[i] < 250) return true; return false; }
+    async function normalizeLogo(f) {
+      if (f.type === 'image/svg+xml' || /\.svg$/i.test(f.name)) {
+        if (f.size > LOGO_MAX_BYTES) throw new Error('SVG 가 ' + Math.round(f.size / 1024) + 'KB 입니다 — 200KB 이하 SVG 또는 PNG 로 올려 주세요');
+        return { dataUrl: await readAsDataUrl(f), note: 'SVG · ' + Math.round(f.size / 1024) + 'KB (벡터 그대로)' };
+      }
+      var im = await loadImage(await readAsDataUrl(f));
+      var w = im.naturalWidth, h = im.naturalHeight;
+      if (!w || !h) throw new Error('이미지 크기를 알 수 없습니다');
+      var c = document.createElement('canvas'), ctx = c.getContext('2d');
+      c.width = w; c.height = h; ctx.drawImage(im, 0, 0);
+      var box = trimBox(ctx, w, h);
+      if (!box) throw new Error('빈 이미지입니다 (전부 여백)');
+      var scale = Math.min(1, LOGO_MAX_EDGE / Math.max(box.w, box.h));
+      var ow = Math.max(1, Math.round(box.w * scale)), oh = Math.max(1, Math.round(box.h * scale));
+      var o = document.createElement('canvas'), octx = o.getContext('2d');
+      o.width = ow; o.height = oh; octx.imageSmoothingQuality = 'high';
+      octx.drawImage(c, box.x, box.y, box.w, box.h, 0, 0, ow, oh);
+      var alpha = hasAlpha(octx, ow, oh);
+      var out = alpha ? o.toDataURL('image/png') : o.toDataURL('image/jpeg', 0.92);
+      var bytes = function (u) { return Math.floor((u.split(',')[1] || '').length * 3 / 4); };
+      var q = 0.92, edge = LOGO_MAX_EDGE;
+      /* 200KB 넘으면: 사진형은 품질을, 투명형은 변 길이를 줄여 가며 맞춘다 */
+      while (bytes(out) > LOGO_MAX_BYTES && (q > 0.4 || edge > 128)) {
+        if (!alpha && q > 0.4) { q -= 0.1; out = o.toDataURL('image/jpeg', q); continue; }
+        edge = Math.round(edge * 0.8); var s2 = Math.min(1, edge / Math.max(box.w, box.h));
+        o.width = Math.max(1, Math.round(box.w * s2)); o.height = Math.max(1, Math.round(box.h * s2));
+        octx = o.getContext('2d'); octx.imageSmoothingQuality = 'high'; octx.drawImage(c, box.x, box.y, box.w, box.h, 0, 0, o.width, o.height);
+        out = alpha ? o.toDataURL('image/png') : o.toDataURL('image/jpeg', q);
+      }
+      if (bytes(out) > LOGO_MAX_BYTES) throw new Error('200KB 로 줄이지 못했습니다 — 더 단순한 로고 파일로 올려 주세요');
+      var trimmed = (box.w < w - 16 || box.h < h - 16);
+      return { dataUrl: out, note: f.name + ' → ' + o.width + '×' + o.height + (alpha ? ' PNG' : ' JPG') + ' · ' + Math.round(bytes(out) / 1024) + 'KB' + (trimmed ? ' · 여백 자동 제거' : '') + (scale < 1 ? ' · 자동 축소' : '') };
+    }
     file.addEventListener('change', function () {
       var f = file.files && file.files[0]; file.value = '';
       if (!f) return;
-      if (!/^image\/(png|jpeg|svg\+xml)$/.test(f.type)) { msg.textContent = 'PNG·JPG·SVG 만 올릴 수 있습니다 (지금: ' + (f.type || '알 수 없음') + ')'; return; }
-      if (f.size > 200 * 1024) { msg.textContent = '200KB 이하여야 합니다 (지금 ' + Math.round(f.size / 1024) + 'KB) — 크기를 줄여 다시 올리세요'; return; }
-      var r = new FileReader();
-      r.onload = function () { iss.logo = String(r.result || ''); drawMark(); up.textContent = '로고 바꾸기'; rm.disabled = false; msg.textContent = f.name + ' · ' + Math.round(f.size / 1024) + 'KB'; };
-      r.onerror = function () { msg.textContent = '파일을 읽지 못했습니다'; };
-      r.readAsDataURL(f);
+      msg.textContent = '읽는 중… (' + Math.round(f.size / 1024) + 'KB)';
+      up.disabled = true;
+      normalizeLogo(f).then(function (r) {
+        iss.logo = r.dataUrl; drawMark(); up.textContent = '로고 바꾸기'; rm.disabled = false; msg.textContent = r.note;
+      }).catch(function (e) {
+        msg.textContent = (e && e.message) || '로고를 처리하지 못했습니다';
+      }).then(function () { up.disabled = !!state.created; });
     });
     rm.addEventListener('click', function () { iss.logo = ''; drawMark(); up.textContent = '로고 업로드'; rm.disabled = true; msg.textContent = '없으면 회사명 이니셜(' + (autoMark(iss.en) || '—') + ')이 대신 찍힙니다.'; });
     row.appendChild(up); row.appendChild(rm); row.appendChild(file);
@@ -752,7 +821,7 @@ window.LINKPILOT_INTAKE = {
     cb.type = 'checkbox';
     cb.checked = !!state.issuerAsDefault;
     cb.disabled = !!state.created;
-    cb.addEventListener('change', function () { state.issuerAsDefault = cb.checked; });
+    cb.addEventListener('change', function () { state.issuerAsDefault = cb.checked; saveDraft(); });
     chk.appendChild(cb);
     chk.appendChild(el('span', null, '앞으로 만드는 보고서에도 이 주체를 씁니다'));
     box.appendChild(chk);
@@ -781,9 +850,62 @@ window.LINKPILOT_INTAKE = {
     return words.slice(0, 4).map(function (w) { return w[0]; }).join('').toUpperCase();
   }
 
+  /**
+   * **자료 업로드 — 탭이 아니라 여기 있다** 〈2026-08-22 사용자 지시〉.
+   *
+   * ★★ 화면을 **베끼지 않는다.** `files.html` 을 그대로 품는다. 세 갈래
+   *   (LinkPilot 프로젝트에서 가져오기 · 폴더를 연결해서 · 파일업로드)와 한도·
+   *   합계·스캔이 전부 그 화면에 있다. 베끼면 한쪽만 고치는 날이 오고, 그때
+   *   사용자는 **같은 기능이 자리마다 다르게 도는 것**을 본다.
+   *
+   * ★ 높이는 안쪽이 알려 준다(`embed-bridge.js` 의 `lp-embed-height`). 안 들으면
+   *   iframe 이 잘린 채로 남는다 — 목록이 길어질수록 더 잘린다.
+   * ★ 못 품는 자리가 있다(파일로 열었을 때 등). 그때는 **조용히 비우지 않고**
+   *   그 화면으로 가는 길을 글자로 준다.
+   */
+  function filesFrame() {
+    var FLOW = window.LinkPilotFlow;
+    var file = (FLOW && FLOW.FILES_SECTION && FLOW.FILES_SECTION.file) || 'files.html';
+    var wrap = el('div', 'sub-frame');
+    var fr = document.createElement('iframe');
+    fr.className = 'sub-frame__f';
+    fr.title = '자료 업로드';
+    fr.loading = 'lazy';
+    var q = [];
+    if (C.api) q.push('api=' + encodeURIComponent(C.api));
+    if (state.created && state.created.projectId) {
+      q.push('project=' + encodeURIComponent(state.created.projectId));
+    }
+    fr.src = file + (q.length ? '?' + q.join('&') : '');
+    wrap.appendChild(fr);
+
+    /* 안쪽이 알려 주는 높이에 맞춘다 — 한 번만 듣는다 */
+    if (!filesFrame.wired) {
+      filesFrame.wired = true;
+      window.addEventListener('message', function (ev) {
+        var d = ev.data;
+        if (!d || d.type !== 'lp-embed-height' || !(d.height > 0)) return;
+        var f = document.querySelector('.sub-frame__f');
+        if (f) f.style.height = Math.max(320, d.height + 8) + 'px';
+      });
+    }
+    return wrap;
+  }
+
   function dropCard() {
     var box = el('section', 'card');
-    box.appendChild(el('h2', 'card__t', '원본 자료'));
+    box.appendChild(el('h2', 'card__t', '자료 업로드'));
+    box.appendChild(el('p', 'card__s',
+      '사업계획서·기술제안서·재무자료 등. 모든 수치는 여기서 뽑고 출처로 기록됩니다. '
+      + '나중에 추가로 올릴 수도 있습니다.'));
+    box.appendChild(filesFrame());
+    return box;
+  }
+
+  /** 예전 판의 1회성 올리기 칸. 자료 업로드 화면이 같은 일을 더 잘 한다 */
+  function dropCardLegacy() {
+    var box = el('section', 'card');
+    box.appendChild(el('h2', 'card__t', '자료 업로드'));
     box.appendChild(el('p', 'card__s',
       '사업계획서·기술제안서·재무자료 등. 모든 수치는 여기서 뽑고 출처로 기록됩니다. '
       + '나중에 추가로 올릴 수도 있습니다.'));
@@ -848,7 +970,7 @@ window.LINKPILOT_INTAKE = {
 
   function actionsRow() {
     var row = el('div', 'actions');
-    var go = el('button', 'btn', state.busy ? '만드는 중…' : '프로젝트 만들기');
+    var go = el('button', 'btn', state.busy ? '올리는 중…' : '자료올리기 완료');   /* (요청 2026-08-17) '프로젝트 만들기' → 사용자 관점 동사로 */
     go.id = 'go';
     go.type = 'button';
     go.disabled = !canGo();
@@ -975,17 +1097,33 @@ window.LINKPILOT_INTAKE = {
       return;
     }
 
-    body.appendChild(requestCard());
-    body.appendChild(issuerCard());
-    body.appendChild(formatCard());
-    body.appendChild(dropCard());
-    body.appendChild(actionsRow());
+    /* ★★ **차례는 사용자가 정한 그대로다** 〈2026-08-22 지시〉:
+     *     ① 발행 주체 ② 무엇을 만들까요 ③ 자료 업로드
+     *   앞 판은 「무엇을 만들까요」가 먼저였다. 발행 주체를 앞에 두는 쪽이
+     *   맞다 — **누가 내는 문서인지**가 정해져야 나머지가 그 회사 것이 된다.
+     *   (안 넣으면 문서에 「발행 주체 미설정」이 찍히고 승인이 막힌다) */
+    /* ★ `part` 가 있으면 **그 칸만** 편다. 없으면(따로 열었을 때) 다 편다 */
+    var show = function (p) { return !PART || PART === p; };
+    if (show('issuer')) body.appendChild(issuerCard());
+    if (show('ask')) { body.appendChild(requestCard()); body.appendChild(formatCard()); }
+    if (show('files')) { body.appendChild(dropCard()); body.appendChild(actionsRow()); }
+
+    /* ★★ **만드는 버튼이 없는 칸에서는 그렇다고 말한다** 〈2026-08-22〉.
+     *   1·2단계만 보고 있으면 [프로젝트 만들기] 가 화면에 없다. 아무 말도 안
+     *   해 두면 사용자는 **여기서 끝난 줄 알고 기다린다** — 기다릴 것이 없다. */
+    if (PART && PART !== 'files') {
+      body.appendChild(el('p', 'card__s',
+        '여기 적은 것은 이 브라우저에 저장됩니다. 3단계 「관련자료 업로드」에서 '
+        + '[프로젝트 만들기] 를 눌러야 1·2·3단계가 함께 서버로 갑니다.'));
+    }
   }
 
   /* ── 시작 ─────────────────────────────────────────────── */
 
   var params = new URLSearchParams(location.search);
   if (params.get('api')) C.api = params.get('api');
+  PART = params.get('part') || null;
+  loadDraft();
 
   var su = document.getElementById('side-user');
   if (su) su.textContent = (C.session && C.session.name) || '';

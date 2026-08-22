@@ -31,6 +31,23 @@ const TTL = {
   rate: 1 * 86400,        // 시장금리: 영업일마다 바뀐다 — 하루만 붙든다
   ppi: 7 * 86400,         // 생산자물가지수: 월 1회 공표 (잠정치가 다음 달 확정으로 바뀐다)
   'ppi-items': 180 * 86400, // 업종 목록: 분류 개정 때만 바뀐다 — 무거운 조회라 오래 붙든다
+  // ★ **짧게 잡는다.** 계통 여유는 접속 신청이 들어오면 줄어든다 — 오래 붙들면
+  //   이미 찬 선로를 「여유 있음」으로 보고 판단한다 (등록부 D-54)
+  grid: 1 * 86400,        // 분산전원 연계 여유용량: 시점 스냅샷이다
+  // ★ **짧게 잡는다.** 휴업·폐업은 하루 사이에 바뀌고, 그 값이 딜브레이커다.
+  //   국세청도 30분 주기로 갱신한다 — 일주일 묵은 「계속사업자」는 근거가 아니다
+  bizstatus: 1 * 86400,     // 사업자등록 상태 (등록부 D-60)
+  bizvalidate: 30 * 86400,  // 진위확인: 개업일·상호는 거의 안 바뀐다
+  npsworkplace: 30 * 86400, // 국민연금 사업장 검색(색인 성격)
+  npsdetail: 7 * 86400,     // 가입자 수·고지금액: 월 단위로 바뀐다
+  // ★ **색인은 오래 붙든다** — CLAUDE.md §4.5 가 「목록·색인처럼 큰 조회는 TTL 을
+  //   길게 잡는다 (지역 색인 180일)」라고 적어 두었는데 **아래 넷이 목록에 없어
+  //   기본 7일로 떨어지고 있었다** (2026-08-16 교차검증에서 발견 — 사양과 코드가
+  //   갈린 자리다). 색인은 개정 때만 바뀌고 조회가 무겁다
+  landindex: 180 * 86400,    // 한국부동산원 지가지수 통계표 목록
+  regionindex: 180 * 86400,  // 지역 색인 (§4.5 가 명시한 바로 그것)
+  'kosis-tables': 180 * 86400, // KOSIS 통계표 검색
+  'kosis-meta': 180 * 86400,   // KOSIS 항목·분류 메타
   corpcode: 30 * 86400,   // DART 법인코드 전체 목록: 무겁다 — 한 번 받아 오래 쓴다
   company: 30 * 86400,    // DART 기업개황
   default: 7 * 86400,
@@ -143,7 +160,11 @@ async function through(provider, namespace, params, fetcher, { ttl = null, force
   const result = await fetcher();
   consume(provider);
 
-  if (!result.ok) return { ok: false, error: result.error, cached: false };
+  // ★ 실패 응답을 **그대로 흘려보낸다.** 예전에는 `{ok, error}` 만 골라 담았는데,
+  //   커넥터가 붙여 둔 구분 플래그(`notFound`·`noData`·`unavailable` 등)가 거기서
+  //   사라졌다. 「조회가 실패했다」와 「찾았는데 없다」는 다음에 할 일이 정반대인데
+  //   부르는 쪽에서는 둘이 같아 보인다 (2026-08-16 Pexels 붙이다 발견).
+  if (!result.ok) return { ...result, cached: false };
 
   write(namespace, params, result.value);
   return { ok: true, value: result.value, cached: false };

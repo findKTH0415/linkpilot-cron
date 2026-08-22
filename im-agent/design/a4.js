@@ -158,7 +158,12 @@ function chapterOpener(no, title, subtitle, T, S) {
 </div>`;
 }
 
-function cover({ projectName, projectId, assetType, location, valueRange, kpis, scaleNotice, issuer }, T, S) {
+/**
+ * ★ `docLabel` · `valueCaption` 이 없으면 IM 문구를 쓴다 (2026-08-16, D-57).
+ *   문서 종류가 늘었는데 표지가 「Information Memorandum」으로 고정이면
+ *   **탁상검토 보고서가 IM 처럼 보인다** — 표지가 문서의 성격을 말한다.
+ */
+function cover({ projectName, projectId, assetType, location, valueRange, kpis, scaleNotice, issuer, docLabel, valueCaption }, T, S) {
   const kpiCells = (kpis || []).slice(0, 4).map(k =>
     `<div><div style="font-family:${T.serif};font-size:20px;color:${T.primary};font-variant-numeric:tabular-nums;">${esc(k.value)}</div>
      <div style="font-size:7.5px;letter-spacing:.16em;text-transform:uppercase;color:${T.faint};margin-top:4px;">${esc(k.label)}</div></div>`).join('');
@@ -170,13 +175,13 @@ function cover({ projectName, projectId, assetType, location, valueRange, kpis, 
   <h1 style="margin:14px 0 0;font-family:${T.serif};font-weight:500;font-size:${SIZE.h1}px;line-height:1.04;letter-spacing:-.02em;color:${T.primary};">${esc(projectName)}</h1>
   <div style="margin-top:10px;font-family:${T.serif};font-size:17px;color:${T.body2};">${esc(location || '')}</div>
   <div style="width:48px;height:1px;background:${T.accent};margin:18px 0 8px;"></div>
-  <div style="font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;color:${T.primary};">Information Memorandum ㅣ 투자 분석 보고서</div>
+  <div style="font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;color:${T.primary};">${esc(docLabel || 'Information Memorandum ㅣ 투자 분석 보고서')}</div>
   <div style="margin-top:20px;font-size:11.5px;color:${T.muted};">${esc(assetType || '')} ㅣ Project ID ${esc(projectId)}</div>
   ${scaleNotice ? `<div style="${S.quoteRed}margin-top:16px;"><div style="font-size:11px;line-height:1.7;color:${T.negative};">${esc(scaleNotice)}</div></div>` : ''}
   ${valueRange ? `<div style="${S.navyBox}margin-top:22px;">
     <div style="${S.navyBoxLabel}">Indicative Value</div>
     <div style="${S.navyBoxValue}margin-top:6px;">${esc(valueRange)}</div>
-    <div style="${S.navyBoxSub}margin-top:6px;">본 자료 산출치 — 법정 감정평가가 아니다</div>
+    <div style="${S.navyBoxSub}margin-top:6px;">${esc(valueCaption || '본 자료 산출치 — 법정 감정평가가 아니다')}</div>
   </div>` : ''}
   <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;border-top:1px solid ${T.primary};border-bottom:.5px solid ${T.ruleStrong};padding:16px 0;margin-top:22px;">${kpiCells}</div>
   ${signature(false, T, issuer)}
@@ -273,7 +278,7 @@ function render(doc, theme = null) {
     chapterOpener(s.no, s.title, s.subtitle, T, S) + '\n' + renderBody(s.text, T, S)).join('\n');
 
   return `<meta charset="utf-8">
-<title>${esc(doc.projectName || doc.projectId)} — Information Memorandum</title>
+<title>${esc(doc.projectName || doc.projectId)} — ${esc(doc.docTitle || 'Information Memorandum')}</title>
 <style>
   @page { size: ${PAGE.format}; margin: ${PAGE.marginMm}mm; }
   html, body { margin:0; padding:0; }

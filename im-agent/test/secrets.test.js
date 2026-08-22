@@ -125,3 +125,109 @@ test('★ .env.example 의 키가 전부 마스킹 대상이다', () => {
   assert.deepStrictEqual(missing, [],
     `SECRET_ENV 에 없다: ${missing.join(', ')} — 오류 메시지에 평문으로 남는다`);
 });
+
+/**
+ * ★★ **접속정보는 저장소에 두지 않는다.** 이 저장소는 public 이다 (D-10).
+ *
+ * 왜 이 검사가 있나: `deploy/nas.sh` 가 NAS 계정과 tailnet 주소를 **기본값으로**
+ * 박고 있었고, 지시서 본문에도 주소가 적혀 있었다 (2026-08-19 발견). 기본값은
+ * 편하려고 넣은 것인데, public 저장소에서 기본값은 **곧 공개**다.
+ *
+ * ★ 「키」만 시크릿이 아니다. §2 는 **NAS 접속정보**를 함께 금지한다 — 계정 이름과
+ *   주소가 있으면 나머지는 시도해 볼 수 있는 것이 되기 때문이다.
+ *
+ * ★ 추적되는 파일만 본다. 손에만 있는 `.env` 는 올라가지 않으므로 볼 것이 없다.
+ */
+test('★★ 추적되는 파일에 NAS 접속정보가 없다 (public — D-10)', () => {
+  const { execFileSync } = require('node:child_process');
+  // ★ `-z` 로 받는다. 기본 출력은 한글 파일 이름을 `"docs/\\354..."` 로 따옴표
+  //   이스케이프해서 내주고, 그 경로는 열리지 않아 **조용히 건너뛰어진다.**
+  //   실제로 그렇게 통과했다 — 지시서에 주소가 그대로 있는데 초록이었다
+  const tracked = execFileSync('git', ['ls-files', '-z'], { cwd: ROOT, encoding: 'utf8' })
+    .split('\0').filter(Boolean)
+    // 이 파일 자신은 「무엇을 금지하는지」를 적으므로 본보기가 들어간다
+    .filter(f => f !== 'im-agent/test/secrets.test.js');
+
+  const 금지 = [
+    { 무엇: 'tailnet 주소', re: /[a-z0-9-]+\.ts\.net/i },
+    { 무엇: 'tailnet 대역 IP', re: /\b100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.\d{1,3}\.\d{1,3}\b/ },
+    { 무엇: 'ssh 계정@주소', re: /\b[a-z][a-z0-9_.-]{2,}@(\d{1,3}\.){3}\d{1,3}\b/i },
+  ];
+
+  const hits = [];
+  let 못읽음 = 0;
+  for (const f of tracked) {
+    const full = path.join(ROOT, f);
+    let s;
+    try { s = fs.readFileSync(full, 'utf8'); } catch { 못읽음 += 1; continue; }
+    for (const g of 금지) {
+      const m = g.re.exec(s);
+      if (m) hits.push(`${f}: ${g.무엇} (${m[0]})`);
+    }
+  }
+  assert.deepStrictEqual(hits, [],
+    '접속정보가 저장소에 있다 — public 이므로 그대로 공개다 (§2 · D-10):\n  ' + hits.join('\n  '));
+  // ★ 못 읽은 것을 「깨끗하다」로 세지 않는다. 못 읽는 파일이 늘면 검사가 조용히 좁아진다
+  assert.equal(못읽음, 0, `${못읽음}개를 못 읽었다 — 그만큼 안 본 것이다`);
+  assert.ok(tracked.length > 100, `추적 파일이 ${tracked.length}개뿐이다 — 목록을 잘못 받았다`);
+});
+
+/**
+ * ★★ **키를 코드가 알고 있어도, 넣는 사람은 `.env.example` 만 본다.**
+ *
+ * 저장소 연결 4종의 키 이름은 `connectors/storage.js` 에 있었고 `SECRET_ENV`
+ * 에도 있었는데 **`.env.example` 에만 없었다**(2026-08-20 발견). 그러면 NAS 에
+ * `.env` 를 채우는 사람은 그 키가 있다는 것 자체를 모르고, 연결 갈래는
+ * 「아직 열려 있지 않습니다」로 조용히 남는다 — 아무 오류도 안 난다.
+ *
+ * ★ 위의 검사는 **한 방향만** 봤다(`.env.example` → `SECRET_ENV`). 반대 방향이
+ *   비어 있어서 이 구멍이 오래 남았다. 검사는 양쪽을 다 봐야 양쪽이 지켜진다.
+ */
+test('★★ 제공자 키가 전부 .env.example 에 있다 (넣는 사람은 이것만 본다)', () => {
+  const storage = require('../connectors/storage');
+  const env = fs.readFileSync(path.join(ROOT, '.env.example'), 'utf8');
+  const missing = storage.PROVIDER_IDS
+    .map(id => storage.PROVIDERS[id].tokenEnv)
+    .filter(k => k && !new RegExp('^' + k + '=', 'm').test(env));
+  assert.deepStrictEqual(missing, [],
+    `.env.example 에 없다: ${missing.join(', ')} — 넣어야 하는 줄 모른다`);
+});
+
+/** ★ 콘솔 설정을 사람이 베껴 적지 않는다 — SCOPES 가 단일 출처다 */
+test('★ .env.example 의 콘솔 안내가 SCOPES 와 같다', () => {
+  const storage = require('../connectors/storage');
+  const env = fs.readFileSync(path.join(ROOT, '.env.example'), 'utf8');
+  storage.PROVIDER_IDS.forEach((id) => {
+    const sc = storage.SCOPES[id];
+    sc.allow.forEach((a) => {
+      assert.ok(env.includes(a), `${id}: 허용 범위 '${a}' 가 .env.example 에 없다`);
+    });
+    sc.deny.forEach((d) => {
+      assert.ok(env.includes(d), `${id}: 금지 범위 '${d}' 가 .env.example 에 없다 — 넓게 잡고도 모른다`);
+    });
+  });
+});
+
+/**
+ * ★★ 콘솔 등록 안내가 **코드의 범위와 갈리지 않게** 한다.
+ *
+ * 사람이 콘솔에서 고르는 값이다. 문서가 옛 범위를 적고 있으면 그대로 넓게
+ * 잡히고, **Dropbox 는 되돌릴 수 없다.** 그래서 안내에 적힌 범위가 `SCOPES` 와
+ * 같은지, 금지 범위를 빠뜨리지 않았는지 대조한다.
+ */
+test('★★ 콘솔 등록 안내의 범위가 코드와 같다 (넓게 잡히면 되돌릴 수 없다)', () => {
+  const storage = require('../connectors/storage');
+  const doc = fs.readFileSync(path.join(ROOT, 'docs', '저장소-연결-등록.md'), 'utf8');
+
+  storage.PROVIDER_IDS.forEach((id) => {
+    const p = storage.PROVIDERS[id];
+    const sc = storage.SCOPES[id];
+    assert.ok(doc.includes(p.tokenEnv), `등록 안내에 ${p.tokenEnv} 가 없다`);
+    sc.allow.forEach(a => assert.ok(doc.includes(a), `${id}: 허용 범위 '${a}' 가 안내에 없다`));
+    sc.deny.forEach(d => assert.ok(doc.includes(d),
+      `${id}: 금지 범위 '${d}' 가 안내에 없다 — 넓게 잡고도 모른다`));
+  });
+
+  // ★ secret 을 넣으라고 적으면 이 설계에서 벗어난다
+  assert.match(doc, /client secret 은 넣지 않는다/, 'secret 을 넣지 않는다는 말이 없다');
+});

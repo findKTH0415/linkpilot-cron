@@ -23,6 +23,22 @@ const path = require('path');
 const HERE = __dirname;
 const FLOW = require('./flow-core.js');
 
+/**
+ * [눈으로 확인] 패널이 쓰는 **고정 시각**.
+ *
+ * ★★ 이 파일의 산출물은 **커밋되고, 「재생성 결과 = 커밋본」 을 테스트가 강제한다**
+ *   (CLAUDE.md §8). 그런데 패널은 실제 코드를 돌려 그 출력을 그대로 싣기 때문에,
+ *   출력에 **지금 시각**이 섞이면 산출물이 **날마다 달라진다.**
+ *
+ *   2026-08-18 에 그 일이 실제로 일어났다 — 아무도 코드를 안 고쳤는데 CI 가
+ *   빨개졌고, 바뀐 줄은 `2026-08-17 읽음` → `2026-08-18 읽음` **한 곳뿐**이었다.
+ *   **자정을 넘긴 것이 원인**이었으므로, 다시 만들어 커밋해도 다음 날 또 터진다.
+ *
+ * ★ 그래서 **시각만 고정하고 코드는 진짜로 돌린다.** 손으로 결과를 적는 것과는
+ *   다르다 — 값·지문·판정은 전부 실행 결과 그대로다.
+ */
+const DEMO_AT = '2026-08-17T09:00:00+09:00';
+
 function arg(name, fallback) {
   const i = process.argv.indexOf(name);
   return i > -1 && process.argv[i + 1] ? process.argv[i + 1] : fallback;
@@ -89,15 +105,35 @@ const EMBED = `<style>${FLOW.EMBED_CSS}</style>`;
 function selfContained(file, opt) {
   const o = opt || {};
   let html = read(file);
-  const tags = html.match(/<script src="([^"]+)"><\/script>/g) || [];
+  // ★ 토큰 파일도 인라인한다. 안 하면 미리보기가 **색 없이** 뜨고 오류는 안 난다 —
+  //   CSS 는 못 찾은 변수를 조용히 넘긴다 (2026-08-17 디자인 시스템 반영)
+  const links = html.match(/<link rel="stylesheet" href="([^"]+)">/g) || [];
+  links.forEach((tag) => {
+    const href = tag.match(/href="([^"]+)"/)[1];
+    html = html.replace(tag, '<style>' + read(href) + '</style>');
+  });
+  // ★ 속성이 붙은 것도 인라인한다 — `embed-bridge.js` 는 `data-lp-global` 을 달고
+  //   오는데, 속성 없는 것만 찾으면 **그 한 줄만 바깥 파일로 남아** 미리보기가
+  //   「파일 하나로 열린다」를 깬다. 속성은 **그대로 옮긴다** (브리지가 그걸 읽는다)
+  const tags = html.match(/<script([^>]*)\ssrc="([^"]+)"([^>]*)><\/script>/g) || [];
   tags.forEach((tag) => {
     const src = tag.match(/src="([^"]+)"/)[1];
-    html = html.replace(tag, '<script>' + read(src).replace(/<\/(script)/gi, '<\\/$1') + '</script>');
+    const attrs = tag.replace(/^<script/, '').replace(/><\/script>$/, '')
+      .replace(/\ssrc="[^"]+"/, '');
+    html = html.replace(tag, '<script' + attrs + '>' + read(src).replace(/<\/(script)/gi, '<\\/$1') + '</script>');
   });
   if (o.inject) {
-    // 설정 블록이 만들어진 **직후**에 끼워 넣는다. 앞에 넣으면 덮어써진다
+    // 설정 블록이 만들어진 **직후**에 끼워 넣는다. 앞에 넣으면 덮어써진다.
+    //
+    // ★★ 이름만 찾으면 안 된다. 인라인한 다른 모듈의 **주석이나 문자열**에 같은
+    //   이름이 먼저 나오면 거기에 끼워 넣게 되고, 그러면 진짜 설정 블록이 뒤에서
+    //   **덮어써서 주입이 통째로 사라진다.** 화면은 멀쩡히 뜨고 값만 기본값이라
+    //   눈으로는 안 잡힌다 (2026-08-20 실측 — 로그인 안 한 화면이 나왔다).
+    //   그래서 **줄 첫머리의 대입**을 찾는다.
+    const assign = new RegExp('^window\\.' + o.inject.global + '\\s*=', 'm').exec(html);
+    if (!assign) throw new Error(`${file}: ${o.inject.global} 대입을 찾지 못했다`);
     const anchor = '</script>';
-    const at = html.indexOf(anchor, html.indexOf(o.inject.global));
+    const at = html.indexOf(anchor, assign.index);
     if (at === -1) throw new Error(`${file}: 설정 블록을 찾지 못했다`);
     const code = `\n<script>Object.assign(window.${o.inject.global}, ${JSON.stringify(o.inject.value)});</script>`;
     html = html.slice(0, at + anchor.length) + code + html.slice(at + anchor.length);
@@ -181,8 +217,8 @@ async function build() {
   return `<title>보고서 생성 화면 미리보기</title>
 <style>
   :root {
-    --ink: #17181A; --ink2: #6B7280; --line: #E5E7EB;
-    --bg: #FAFAFA; --surface: #FFFFFF; --lime: #9ED700; --lime-deep: #4F6A00;
+    --ink: #0A1419; --ink2: #6B7280; --line: #E5E7EB;
+    --bg: #FAFAFA; --surface: #FFFFFF; --lime: #AAE106; --lime-deep: #7BA10F;
   }
   * { box-sizing: border-box; }
   body {
@@ -332,9 +368,16 @@ async function flowPreload() {
  */
 async function flowShell(docs) {
   let shell = read('report-flow.html');
-  (shell.match(/<script src="([^"]+)"><\/script>/g) || []).forEach((tag) => {
+  // ★ 토큰 파일을 인라인한다. 놓치면 **색 없이** 뜨는데 오류는 안 난다
+  //   (`flow.test.js` 의 「파일 하나로 열린다」가 잡는다)
+  (shell.match(/<link rel="stylesheet" href="([^"]+)">/g) || []).forEach((tag) => {
+    shell = shell.replace(tag, '<style>' + read(tag.match(/href="([^"]+)"/)[1]) + '</style>');
+  });
+  (shell.match(/<script([^>]*)\ssrc="([^"]+)"([^>]*)><\/script>/g) || []).forEach((tag) => {
     const src = tag.match(/src="([^"]+)"/)[1];
-    shell = shell.replace(tag, '<script>' + read(src).replace(/<\/(script)/gi, '<\\/$1') + '</script>');
+    const attrs = tag.replace(/^<script/, '').replace(/><\/script>$/, '')
+      .replace(/\ssrc="[^"]+"/, '');
+    shell = shell.replace(tag, '<script' + attrs + '>' + read(src).replace(/<\/(script)/gi, '<\\/$1') + '</script>');
   });
 
   // 설정 블록 **직후**에 끼운다. 앞에 넣으면 덮어써진다
@@ -375,8 +418,310 @@ async function buildSection() {
   같은 출처에서 가져온 값이며 지어낸 것이 아닙니다. 프로젝트 데이터는 심지 않았으므로
   목록·저장된 값은 비어 있고, 저장·생성 버튼은 실제로 아무것도 하지 않습니다.
   제품에서는 네 단계를 하나씩 보여주지만 여기서는 <b>한 번에 펼쳐</b> 둡니다.
+  <br><b>「이번에 바뀐 것」과 「눈으로 확인」 패널은 이 화면 아래에 있습니다.</b>
 </div>`;
-  return shell.replace('<body>', '<body>' + banner + changePanel() + evidencePanel());
+
+  // ★★ **보고서 생성 화면이 맨 위다** (2026-08-18 사용자 결정).
+  //   전에는 변경내역과 확인 패널 다섯이 먼저 오고 그 아래에 화면이 있었다.
+  //   보러 온 것이 화면인데 한참 스크롤해야 나왔다 — 미리보기를 여는 이유가
+  //   「무엇이 바뀌었나」보다 「어떻게 생겼나」인 쪽이 훨씬 많다.
+  //
+  // ★ 그래도 변경내역이 있다는 사실은 **위에서 말한다.** 아래로 내리기만 하면
+  //   그것대로 아무도 안 본다 — 원래 화면 위에 뒀던 이유가 그거였다.
+  //   그래서 배너 마지막 줄이 어디에 있는지 가리킨다.
+  const panels = changePanel() + evidencePanel() + guardPanel() + vaultPanel() + linkedPanel() + deskPanel();
+  const withBanner = shell.replace('<body>', '<body>' + banner);
+  const end = withBanner.lastIndexOf('</body>');
+  if (end < 0) {
+    // 닫는 태그가 없으면 조용히 빼먹지 않는다 — 패널이 통째로 사라진 것을 아무도 모른다
+    throw new Error('flowShell 에 </body> 가 없다 — 확인 패널을 붙일 자리를 못 찾았다');
+  }
+  return withBanner.slice(0, end) + panels + withBanner.slice(end);
+}
+
+/**
+ * 자료를 서버에 **보관하는 동안 잃지 않는가**를 눈으로 확인하게 한다 (D-64).
+ *
+ * ★ 이 계층은 화면이 없다. 그리고 실패가 전부 조용하다 — 덮어써도 「저장됨」만
+ *   뜨고, 파일이 바뀌어도 보고서는 그대로 나온다. 말로만 남으면 확인할 방법이 없다.
+ *
+ * ★ **여기 결과는 손으로 쓴 것이 아니다.** 빌드할 때 임시 폴더를 만들어
+ *   `core/vault.js` 를 실제로 돌리고, 그 반환값을 그대로 옮긴다.
+ */
+function vaultPanel() {
+  const AGENT = path.join(HERE, '..', '..');
+  const vault = require(path.join(AGENT, 'core', 'vault'));
+  const store = require(path.join(AGENT, 'core', 'store'));
+
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'im-vault-'));
+  const id = 'LP-DC-2026-001';
+  const p = path.join(root, id);
+  fs.mkdirSync(path.join(p, '02_Source_Data'), { recursive: true });
+  const B = (s) => Buffer.from(s, 'utf8');
+
+  const rows = [];
+  const row = (title, note, out, bad) => rows.push({ title, note, out, bad: !!bad });
+
+  // ① 같은 이름을 덮어쓸 때 이전 판이 사라지는가
+  const v1 = vault.put(p, '사업계획서.pdf', B('첫 번째 판 — 총사업비 2,846억원'));
+  const v2 = vault.put(p, '사업계획서.pdf', B('두 번째 판 — 총사업비 3,120억원'));
+  const listed = vault.list(p);
+  row('같은 이름을 다시 올렸다', '이전 판이 사라지는가',
+    `저장: ${v2.name} (${v2.sha256.slice(0, 12)}…)\n`
+    + `덮어쓴 판: ${v2.replaced ? v2.replaced.as : '(없음)'}\n`
+    + `→ 휴지통에 남아 있음 ${listed.trash.length}건 — 되돌릴 수 있다\n`
+    + `→ 이전 해시 ${v1.sha256.slice(0, 12)}… 와 일치: ${v2.replaced && v2.replaced.sha256 === v1.sha256}`);
+
+  // ② 같은 파일을 두 번 올리면
+  const dup = vault.put(p, '사업계획서.pdf', B('두 번째 판 — 총사업비 3,120억원'));
+  row('같은 파일을 다시 올렸다', '세대가 늘어나 용량만 먹는가',
+    `duplicate: ${dup.duplicate} · 휴지통 ${vault.list(p).trash.length}건 (늘지 않는다)`);
+
+  // ③ 보관한 파일이 바뀌면 — NAS 공유폴더에서 누가 손댔다고 하자
+  vault.put(p, '감정평가서.pdf', B('원본 그대로'));
+  const before = vault.verify(p);
+  fs.writeFileSync(path.join(p, '02_Source_Data', '감정평가서.pdf'), '누가 바꾼 내용');
+  const after = vault.verify(p);
+  row('보관 중인 파일이 바뀌었다', '증상이 없는 사고를 잡는가',
+    `바뀌기 전: 대조 통과 ${before.ok} (${before.checked}건 확인)\n`
+    + `바뀐 뒤 : 대조 통과 ${after.ok} · 불일치 ${after.mismatched.length}건\n`
+    + (after.mismatched[0]
+      ? `  ${after.mismatched[0].name}\n  기대 ${after.mismatched[0].expected.slice(0, 16)}…\n  실제 ${after.mismatched[0].actual.slice(0, 16)}…`
+      : ''), true);
+
+  // ④ 장부에 없는 파일 — NAS 에서 직접 복사해 넣었다고 하자
+  fs.writeFileSync(path.join(p, '02_Source_Data', '몰래넣은자료.xlsx'), 'x');
+  const unknown = vault.verify(p);
+  row('장부에 없는 파일이 있다', '조용히 무시하는가',
+    `장부 밖 파일 ${unknown.unknown.length}건: ${unknown.unknown.map(u => u.name).join(', ')}\n`
+    + '→ 없던 것으로 치지 않는다. reconcile() 로 등록해야 대조가 통과한다', true);
+
+  // ⑤ 지우기 — 휴지통으로만 간다
+  const del = vault.trash(p, '몰래넣은자료.xlsx');
+  row('자료를 지웠다', '정말 없어지는가',
+    `휴지통으로 이동: ${del.trashed.as}\n`
+    + `원본 위치에 남아 있는가: ${fs.existsSync(path.join(p, '02_Source_Data', '몰래넣은자료.xlsx'))}\n`
+    + '→ 되돌릴 수 있다. 정말 없애려면 며칠 지난 것인지를 지정해 따로 비운다');
+
+  // ⑥ 비우기는 기본이 미리보기
+  const dry = vault.purge(p, { olderThanDays: 0 });
+  row('휴지통을 비우려 했다', '되돌릴 수 없는 동작에 기본값이 있는가',
+    `날짜를 안 주면: ${JSON.stringify(vault.purge(p, {}).reason)}\n`
+    + `날짜만 주면 : dryRun=${dry.dryRun} · 지워질 것 ${dry.willRemove.length}건 (아직 안 지운다)\n`
+    + '→ confirm 을 줘야 실제로 지운다');
+
+  // ⑦ 버린 자료가 다시 추출되는가 — 여기가 가장 위험한 자리다
+  const prev = process.env.IM_AGENT_ROOT;
+  process.env.IM_AGENT_ROOT = root;
+  let extracted = [], excluded = [];
+  try {
+    extracted = store.listSourceFiles(id).map(f => f.name);
+    excluded = store.listExcludedSourceFiles(id);
+  } finally {
+    if (prev === undefined) delete process.env.IM_AGENT_ROOT; else process.env.IM_AGENT_ROOT = prev;
+  }
+  row('추출기가 무엇을 읽는가', '버린 자료가 다시 실리는가',
+    `읽는 것 ${extracted.length}건: ${extracted.join(', ')}\n`
+    + '읽지 않는 것:\n' + excluded.map(x => `  ${x.name} (${x.files}건) — ${x.why}`).join('\n'));
+
+  // ⑧ 용량 — 개정안 §3-1 이 세기로 한 것
+  const u = vault.usage(p);
+  const kb = (n) => `${(n / 1024).toFixed(2)}KB`;
+  row('용량은 무엇을 세는가', '§3-1 이 정한 대로인가',
+    `원본 ${u.live.files}건 ${kb(u.live.bytes)} · 휴지통 ${u.trash.files}건 ${kb(u.trash.bytes)}\n`
+    + `청구 기준 = 원본 + 휴지통 = ${kb(u.billableBytes)}\n`
+    + `쓰다 만 조각(.tmp) ${u.tmp.files}건 ${kb(u.tmp.bytes)} — 청구엔 안 넣되 합계에서 숨기지 않는다`);
+
+  const blocks = rows.map(r => `<div class="ev__c${r.bad ? ' bad' : ''}">
+    <div class="ev__n">${esc(r.title)}</div>
+    <div class="ev__m">${esc(r.note)}</div>
+    <pre class="ev__o">${esc(r.out)}</pre>
+  </div>`).join('');
+
+  return `
+<section class="ev">
+  <h2 class="ev__t">눈으로 확인 — 올린 자료를 보관하는 동안 잃지 않는가</h2>
+  <p class="ev__s">아래는 이 미리보기를 만들 때 임시 폴더에서 <b>실제로 <code>core/vault.js</code> 를 돌려</b>
+    얻은 결과입니다. 손으로 적은 예시가 아닙니다. 이 계층의 실패는 <b>전부 조용합니다</b> —
+    덮어써도 화면에는 「저장됨」만 뜨고, 파일이 바뀌어도 보고서는 그대로 나오며 출처 표시도 멀쩡합니다.
+    그래서 「되는가」가 아니라 <b>「잃지 않는가」</b>를 확인합니다.</p>
+  ${blocks}
+</section>`;
+}
+
+/**
+ * 자료를 **보관하지 않고 연결해서** 쓸 때 무엇을 잃지 않는가 (D-65 · D-66).
+ *
+ * ★ 이 계층도 화면이 없다. 그리고 실패가 조용하다 — 원본이 바뀌어도 문서는
+ *   그대로 멀쩡하고, 붙지 않은 경로는 「올렸는데 아무 일도 안 일어남」이 된다.
+ *
+ * ★ **빌드할 때 실제로 돌린 결과다.** 손으로 적지 않는다.
+ */
+function linkedPanel() {
+  const AGENT = path.join(HERE, '..', '..');
+  const linked = require(path.join(AGENT, 'core', 'linked'));
+  const oneshot = require(path.join(AGENT, 'core', 'oneshot'));
+  const storage = require(path.join(AGENT, 'connectors', 'storage'));
+
+  const p = fs.mkdtempSync(path.join(os.tmpdir(), 'im-linked-'));
+  fs.mkdirSync(path.join(p, '01_Project'), { recursive: true });
+  fs.mkdirSync(path.join(p, '02_Source_Data'), { recursive: true });
+  const B = (s) => Buffer.from(s, 'utf8');
+
+  const rows = [];
+  const row = (t, n, o, bad) => rows.push({ t, n, o, bad: !!bad });
+
+  // ① 범위는 폴더까지만 — 막는 것과 못 막는 것
+  const wide = storage.checkScope('gdrive', 'https://www.googleapis.com/auth/drive.readonly');
+  const narrow = storage.checkScope('gdrive', 'https://www.googleapis.com/auth/drive.file');
+  const dbx = storage.checkScope('dropbox', 'files.metadata.read files.content.read');
+  row('연결 범위가 드라이브 전체다', '서버가 막는가',
+    `drive.readonly → ok=${wide.ok}\n  ${wide.reason}\n`
+    + `drive.file     → ok=${narrow.ok} (verifiable=${narrow.verifiable})\n`
+    + `Dropbox        → ok=${dbx.ok} · verifiable=${dbx.verifiable}\n  ${dbx.reason}`, true);
+
+  // ② 연결만으로는 아무것도 안 가져온다
+  const ref = { provider: 'dropbox', fileId: 'id:AAA1', name: '사업계획서.pdf', rev: '0123456789ab', path: '/Deals/사업계획서.pdf' };
+  const lk = linked.link(p, ref);
+  row('자료를 연결했다', '가져와 두는가',
+    `연결됨: ${lk.item.key} · 판 ${lk.item.rev}\n`
+    + `지문: ${lk.item.fingerprint === null ? 'null (아직 안 읽음 — 지어내지 않는다)' : '?'}\n`
+    + `02_Source_Data 안의 파일: ${fs.readdirSync(path.join(p, '02_Source_Data')).sort().length}건`);
+
+  // ③ 읽을 때만 가져오고 끝나면 지운다 (동기적으로 확인 가능한 부분만)
+  // ★ **정렬한다.** 이 결과가 커밋되는 파일에 그대로 들어간다 —
+  //   readdir 순서는 기계마다 달라 CI 에서만 재생성 결과가 어긋난다
+  const before = fs.readdirSync(path.join(p, '01_Project')).sort();
+  row('무엇을 남기는가', '파일 대신 무엇이 남는가',
+    `01_Project: ${before.join(' · ')}\n`
+    + `출처 한 줄: ${linked.citation(linked.list(p).items[0])}`);
+
+  // ④ 1회성 — 읽고 버린다. 대조는 아예 거절한다
+  // ★★ **시각을 고정해서 부른다.** 코드는 진짜로 돌리지만, 결과에 「빌드한 날」이
+  //   섞이면 이 파일이 **날마다 달라진다.** 그러면 「재생성 결과 = 커밋본」 검사가
+  //   자정을 넘기는 순간 깨지고, **코드를 안 고친 사람이 빨간 CI 를 받는다.**
+  //   2026-08-18 에 실제로 그렇게 터졌다 — 바뀐 줄은 날짜 한 곳뿐이었다.
+  const os1 = oneshot.accept(p, [{ name: '감정평가서.pdf', buf: B('토지가액 120억원') }], { at: DEMO_AT });
+  const kept = os1.files.map(f => fs.existsSync(f.path));
+  const removed = os1.dispose().removed;
+  const item = oneshot.list(p).items[0];
+  row('1회성으로 올렸다', '파일이 남는가',
+    `작업 사본 위치: 프로젝트 폴더 밖 (${os1.dir.startsWith(p) ? '안 — 문제' : '밖'})\n`
+    + `읽는 동안 존재: ${kept.join(', ')} → 지운 뒤 ${removed}건 삭제\n`
+    + `장부에 남는 것: sha256 ${item.fingerprint.value.slice(0, 12)}… · retainedCopy=${item.retainedCopy}\n`
+    + `출처 한 줄: ${oneshot.citation(item)}`);
+
+  const cv = oneshot.cannotVerify();
+  row('1회성 자료를 대조하려 했다', '「이상 없음」이 나오는가',
+    `verify() 존재: ${typeof oneshot.verify}\n`
+    + `cannotVerify → ok=${cv.ok} · byDesign=${cv.byDesign}\n  ${cv.reason}\n`
+    + `  → ${cv.insteadDo}`, true);
+
+  const blocks = rows.map(r => `<div class="ev__c${r.bad ? ' bad' : ''}">
+    <div class="ev__n">${esc(r.t)}</div>
+    <div class="ev__m">${esc(r.n)}</div>
+    <pre class="ev__o">${esc(r.o)}</pre>
+  </div>`).join('');
+
+  return `
+<section class="ev">
+  <h2 class="ev__t">눈으로 확인 — 자료를 보관하지 않고 쓰는 길</h2>
+  <p class="ev__s">아래는 이 미리보기를 만들 때 임시 폴더에서 <b>실제로 <code>core/linked.js</code> ·
+    <code>core/oneshot.js</code> · <code>connectors/storage.js</code> 를 돌려</b> 얻은 결과입니다.
+    이 계층은 화면이 없고 <b>실패가 조용합니다</b> — 원본이 바뀌어도 문서는 그대로 멀쩡하고,
+    붙지 않은 경로는 「올렸는데 아무 일도 안 일어남」이 됩니다.
+    <br><b>읽은 시각만 고정값(${DEMO_AT.slice(0, 10)})입니다</b> — 이 화면이 날마다 달라지지 않도록.
+    값·지문·판정은 전부 실제 실행 결과입니다.</p>
+  ${blocks}
+</section>`;
+}
+
+/**
+ * 탁상검토 보고서가 **어떤 경우에 값을 안 내는지**를 눈으로 확인하게 한다 (D-57).
+ *
+ * ★ 이 문서에서 가장 중요한 동작은 「값을 낸다」가 아니라 **「안 낸다」**다.
+ *   방식이 하나뿐이거나 편차가 크면 표지에 숫자를 올리지 않는데, 그건 화면
+ *   어디에도 안 나오는 판단이라 **말로만 남으면 확인할 방법이 없다.**
+ *
+ * ★ **여기 결과는 손으로 쓴 것이 아니다.** 빌드할 때 `core/deskappraisal.js` 를
+ *   실제로 돌려 그 출력을 그대로 넣는다.
+ */
+function deskPanel() {
+  const AGENT = path.join(HERE, '..', '..');
+  const da = require(path.join(AGENT, 'core', 'deskappraisal'));
+
+  const M = (label, valueEok, extra) => Object.assign({ label, valueEok }, extra || {});
+  const cases = [
+    { label: '3방식이 모이고 편차가 작다', methods: {
+      official: M('공시지가 기준', 100), comparison: M('거래사례비교법', 120), income: M('수익환원법', 110),
+    }, concluded: { valueEok: 112, weights: { '거래사례비교법': 0.5 }, pricePerSqm: 1300000 } },
+    { label: '방식 간 편차가 3배다', methods: {
+      official: M('공시지가 기준', 50), comparison: M('거래사례비교법', 150),
+    }, concluded: { valueEok: 100, weights: {}, pricePerSqm: 1 } },
+    { label: '방식이 하나뿐이다', methods: { income: M('수익환원법', 110) }, concluded: null },
+    { label: '아무것도 산정되지 않았다', methods: {}, concluded: null },
+  ];
+
+  const rows = cases.map((c) => {
+    const con = da.conclusion({ methods: c.methods, concluded: c.concluded });
+    const cover = da.coverValue(con);
+    return `<div class="ev__c${cover ? '' : ' bad'}">
+      <div class="ev__n">${esc(c.label)}</div>
+      <div class="ev__m">결론 방식 <b>${esc(con.mode)}</b> · 표지 값 ${cover ? esc(cover) : '<b>올리지 않음</b>'}</div>
+      <pre class="ev__o">${esc(con.text)}${con.why ? '\n\n' + esc(con.why) : ''}</pre>
+    </div>`;
+  }).join('');
+
+  // ── 법인평가 (D-59) — 같은 규칙이 법인 쪽에서도 도는지 ──
+  const cr = require(path.join(AGENT, 'core', 'corpreport'));
+  const CORP = { corpName: '○○개발(주)', netAsset: 180, income1: 24, income2: 18, income3: 12 };
+  const corpCases = [
+    { label: '자료가 갖춰졌다 (부동산 30%)', args: { ...CORP, realEstatePct: 30 } },
+    { label: '부동산과다보유법인이다 (62%)', args: { ...CORP, realEstatePct: 62 } },
+    { label: '부동산 비율을 모른다', args: { ...CORP } },
+    { label: '최근 3년이 손실이다', args: { corpName: CORP.corpName, netAsset: 200, income1: -30, income2: -20, income3: -10, realEstatePct: 10 } },
+  ];
+  const corpRows = corpCases.map((c) => {
+    const r = cr.build({ projectId: 'preview', ...c.args });
+    if (!r.ok) {
+      return `<div class="ev__c bad"><div class="ev__n">${esc(c.label)}</div>
+        <div class="ev__m">문서를 <b>만들지 않음</b></div><pre class="ev__o">${esc(r.reason)}</pre></div>`;
+    }
+    const cover = cr.coverValue(r.conclusion);
+    const w = r.valuation.ok ? r.valuation.value.weights : null;
+    return `<div class="ev__c${cover ? '' : ' bad'}">
+      <div class="ev__n">${esc(c.label)}</div>
+      <div class="ev__m">결론 <b>${esc(r.conclusion.mode)}</b> · 표지 값 ${cover ? esc(cover) : '<b>올리지 않음</b>'}${w ? ` · 가중치 ${w.income}:${w.asset}` : ''}</div>
+      <pre class="ev__o">${esc(r.conclusion.text)}${r.conclusion.why ? '\n\n' + esc(r.conclusion.why) : ''}</pre>
+    </div>`;
+  }).join('');
+
+  const notChecked = da.NOT_CHECKED
+    .map(x => `<span>${esc(x.item)}</span>`).join('');
+
+  const corpPanel = `
+<section class="ev">
+  <h2 class="ev__t">눈으로 확인 — 법인가치 검토가 값을 내지 않는 경우</h2>
+  <p class="ev__s">같은 규칙이 법인 쪽에서도 돕니다. <b>부동산 비율 하나로 법령 가중치가
+    3:2 에서 2:3 으로 뒤집히므로</b>, 모르면 계산 자체를 하지 않습니다.
+    아래는 빌드할 때 <b>실제로 <code>core/corpreport.js</code> 를 돌려</b> 얻은 결과입니다.</p>
+  <div class="ev__m">문서가 <b>확인하지 않았다고 적는 것</b> — ${cr.NOT_CHECKED.length}항목</div>
+  <div class="ev__k">${cr.NOT_CHECKED.map(x => `<span>${esc(x.item)}</span>`).join('')}</div>
+  ${corpRows}
+  <div class="ev__m">${esc(cr.NOT_AN_OPINION)}</div>
+</section>`;
+
+  return `
+<section class="ev">
+  <h2 class="ev__t">눈으로 확인 — 탁상검토 보고서가 값을 내지 않는 경우</h2>
+  <p class="ev__s">아래는 이 미리보기를 만들 때 <b>실제로 <code>core/deskappraisal.js</code> 를 돌려</b>
+    얻은 결과입니다. 이 문서에서 가장 중요한 동작은 「값을 낸다」가 아니라
+    <b>「안 낸다」</b>입니다 — 표지에 큰 숫자 하나가 박히면 그것만 읽히기 때문입니다.</p>
+  <div class="ev__m">문서가 <b>확인하지 않았다고 적는 것</b> — ${da.NOT_CHECKED.length}항목</div>
+  <div class="ev__k">${notChecked}</div>
+  ${rows}
+  <div class="ev__m">${esc(da.NOT_AN_APPRAISAL)}</div>
+</section>${corpPanel}`;
 }
 
 /**
@@ -460,6 +805,65 @@ function evidencePanel() {
 </section>`;
 }
 
+/**
+ * 배포가 **실제로 반영됐는지 재는 장치**를 눈으로 확인하게 한다 (M-12).
+ *
+ * ★ 화면이 없는 작업이다. 그래서 「했습니다」로 끝내면 확인할 방법이 없다.
+ *   여기 숫자는 **빌드할 때 실제로 훑고 실제로 지문을 떠서** 넣는다.
+ *
+ * ★ 지문 자체를 보여 주는 이유: `verify:nas` 가 서버에서 받은 바이트와 대는 것이
+ *   **바로 이 값**이다. 화면에 나와 있으면 서버가 준 것과 사람이 직접 댈 수 있다.
+ */
+function guardPanel() {
+  const AGENT = path.join(HERE, '..', '..');
+  const embed = require(path.join(HERE, 'build-embed.js'));
+  const reach = require(path.join(AGENT, 'tools', 'reachable.js'));
+  const W = require(path.join(AGENT, 'ui', 'report-api.cjs'));
+  const A = require(path.join(AGENT, 'ui', 'api-router.cjs'));
+
+  const built = embed.build(null);
+  const scan = reach.scan();
+  const nRoutes = W.ROUTES.length + A.ROUTES.length;
+
+  const rows = built.files.map(f =>
+    `<div class="ev__m">${esc(f)} — <code>${esc(built.manifest.files[f].sha256.slice(0, 12))}</code>`
+    + ` · ${built.manifest.files[f].bytes.toLocaleString()}B</div>`).join('');
+
+  const orphans = scan.orphans.length
+    ? `<pre class="ev__o">${esc(scan.orphans.join('\n'))}</pre>`
+    : '<div class="ev__m">없음</div>';
+
+  return `
+<section class="ev">
+  <h2 class="ev__t">눈으로 확인 — 올린 것이 정말 올라갔는지 재는 장치</h2>
+  <p class="ev__s">화면에 안 보이는 작업입니다. 아래 숫자는 이 미리보기를 만들 때
+    <b>실제로 훑고 실제로 지문을 떠서</b> 넣은 것입니다.
+    <b>「200 이 온다」를 「올라갔다」로 읽지 않기 위해</b> 만들었습니다 —
+    옛 사본도 200 을 줍니다.</p>
+
+  <div class="ev__c">
+    <div class="ev__n">화면 사본 ${built.files.length}개 · 지문</div>
+    <div class="ev__m"><code>npm run verify:nas</code> 가 서버에서 받은 바이트를 이 값과 댑니다.
+      하나라도 다르면 <b>옛 판</b>으로 봅니다.</div>
+    ${rows}
+  </div>
+
+  <div class="ev__c">
+    <div class="ev__n">라우트 ${nRoutes}개 · 앱을 거쳐 닿는지</div>
+    <div class="ev__m">읽기 ${A.ROUTES.length} · 쓰기 ${W.ROUTES.length}. 스물여덟을 전부 두드립니다 —
+      프록시 목록에서 빠지면 <b>그 기능만</b> 404 가 나고 화면은 멀쩡히 뜹니다.</div>
+    <div class="ev__m">401·400 은 통과입니다. 여기서 재는 것은 권한이 아니라 <b>닿느냐</b>입니다.</div>
+  </div>
+
+  <div class="ev__c${scan.orphans.length ? ' bad' : ''}">
+    <div class="ev__n">아무도 안 부르는 모듈 — ${scan.orphans.length}개</div>
+    <div class="ev__m">모듈 ${scan.total}개 중 ${scan.reached}개가 닿습니다
+      (<code>npm run check:reachable</code>).</div>
+    ${orphans}
+  </div>
+</section>`;
+}
+
 /** HTML 로 내보낼 때 태그가 되지 않게 한다 (내역 문구는 사람이 쓴 글이다) */
 function esc(t) {
   return String(t)
@@ -503,50 +907,50 @@ function changePanel() {
 <style>
   .upd { max-width: 1120px; margin: 14px auto 0; padding: 18px 20px;
     background: #fff; border: 1px solid #E8EAEC; border-radius: 18px;
-    font: 400 14px/1.65 Arial, 'Malgun Gothic', sans-serif; color: #17181A; }
+    font: 400 14px/1.65 Arial, 'Malgun Gothic', sans-serif; color: #0A1419; }
   .upd__h { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
   .upd__t { font-size: 17px; font-weight: 700; margin: 0; }
   .upd__at { font-size: 12.5px; color: #7C838C; }
   .upd__s { font-size: 13.5px; color: #7C838C; margin: 0 0 14px; }
   .upd__g { margin-top: 12px; }
-  .upd__d { font: 700 12px/1 ui-monospace, Menlo, Consolas, monospace; color: #5C7A00;
-    background: #EDF7DC; display: inline-block; padding: 5px 9px; border-radius: 6px; }
+  .upd__d { font: 700 12px/1 ui-monospace, Menlo, Consolas, monospace; color: #7BA10F;
+    background: #F0FAD8; display: inline-block; padding: 5px 9px; border-radius: 6px; }
   .upd__l, .upd__p { list-style: none; margin: 8px 0 0; padding: 0; }
-  .upd__l li, .upd__p li { padding: 9px 0 9px 13px; border-left: 2px solid #9ED700; margin-bottom: 8px; }
-  .upd__p li { border-left-color: #E8A33D; }
+  .upd__l li, .upd__p li { padding: 9px 0 9px 13px; border-left: 2px solid #AAE106; margin-bottom: 8px; }
+  .upd__p li { border-left-color: #FF9500; }
   .upd__l b, .upd__p b { display: block; font-size: 14.5px; }
   .upd__l em { font-style: normal; font-size: 12px; color: #7C838C; }
   .upd__l span, .upd__p span { display: block; margin-top: 3px; font-size: 13px; color: #4A5560; }
-  .upd__see { color: #5C7A00 !important; font-weight: 600; }
+  .upd__see { color: #7BA10F !important; font-weight: 600; }
 
   /* 어떻게 바뀌었는가 — 전과 후를 나란히 둔다. 한쪽만 적으면 비교가 안 된다 */
   .upd__ba { display: grid; gap: 6px; margin-top: 8px; }
   .upd__b, .upd__a { font-size: 12.5px; line-height: 1.6; padding: 8px 11px; border-radius: 8px;
     display: grid; grid-template-columns: 26px 1fr; gap: 9px; align-items: baseline; }
-  .upd__b { background: #F5F6F8; color: #7C838C; }
-  .upd__a { background: #EDF7DC; color: #3F5400; }
+  .upd__b { background: #F2F2F7; color: #7C838C; }
+  .upd__a { background: #F0FAD8; color: #3F5400; }
   .upd__b em, .upd__a em { font-style: normal; font-weight: 800; font-size: 11.5px;
     text-align: center; padding: 2px 0; border-radius: 5px; }
   .upd__b em { background: #E3E5E8; color: #5C636B; }
-  .upd__a em { background: #9ED700; color: #17181A; }
+  .upd__a em { background: #AAE106; color: #0A1419; }
   @media (min-width: 720px) { .upd__ba { grid-template-columns: 1fr 1fr; } }
 
   /* 화면이 없는 작업의 확인 */
   .ev { max-width: 1120px; margin: 14px auto 0; padding: 18px 20px;
     background: #fff; border: 1px solid #E8EAEC; border-radius: 18px;
-    font: 400 14px/1.65 Arial, 'Malgun Gothic', sans-serif; color: #17181A; }
+    font: 400 14px/1.65 Arial, 'Malgun Gothic', sans-serif; color: #0A1419; }
   .ev__t { font-size: 17px; font-weight: 700; margin: 0; }
   .ev__s { font-size: 13.5px; color: #7C838C; margin: 4px 0 14px; }
   .ev__c { border: 1px solid #E8EAEC; border-radius: 12px; padding: 13px 15px; margin-top: 10px; }
   .ev__c.bad { border-color: #F0DEBE; background: #FDF3E3; }
   .ev__n { font-size: 13.5px; font-weight: 700; }
   .ev__m { font-size: 12.5px; color: #7C838C; margin-top: 2px; }
-  .ev__o { margin: 9px 0 0; padding: 10px 12px; background: #F5F6F8; border-radius: 8px;
+  .ev__o { margin: 9px 0 0; padding: 10px 12px; background: #F2F2F7; border-radius: 8px;
     font: 400 12.5px/1.7 ui-monospace, Menlo, Consolas, monospace;
     white-space: pre-wrap; word-break: break-all; overflow-x: auto; }
   .ev__k { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
   .ev__k span { font: 600 11.5px/1 ui-monospace, Menlo, Consolas, monospace;
-    padding: 5px 8px; border-radius: 6px; background: #EDF7DC; color: #5C7A00; }
+    padding: 5px 8px; border-radius: 6px; background: #F0FAD8; color: #7BA10F; }
   .upd__pt { margin: 20px 0 0; font-size: 14px; font-weight: 700; }
   .upd__pd { margin: 3px 0 0; font-size: 12.5px; color: #7C838C; }
 </style>
@@ -592,6 +996,8 @@ if (require.main === module) main().catch(e => { console.error(e); process.exit(
 
 module.exports = {
   build, buildSection, buildSectionDocs, flowShell, SCREENS, EXTRAS,
+  // 「실제로 도는 판」도 같은 인라이너를 쓴다 — 두 벌로 만들지 않는다
+  selfContained,
   // 「미리 그려 넣는 판」이 같은 패널을 쓴다 — 두 벌로 만들지 않는다
-  changePanel, evidencePanel,
+  changePanel, evidencePanel, vaultPanel, linkedPanel, deskPanel,
 };

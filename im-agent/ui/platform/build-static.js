@@ -61,6 +61,14 @@ function findBrowser() {
     }
   }
   candidates.push('/usr/bin/chromium', '/usr/bin/chromium-browser', '/usr/bin/google-chrome');
+  /* ★ macOS (2026-08-21) — 여기가 비어 있어서 맥에서는 **브라우저 검사가 전부 건너뛰어졌다.**
+     건너뛴 검사는 초록으로 보인다(테스트가 return 으로 끝나므로). 즉 "통과"가 아니라
+     "재지 못했다"였는데 화면에는 ✔ 로 찍혔다 — 실측 0.7ms 로 드러났다.
+     맥에서 개발하는 사람이 있는 한 후보에 넣어 둔다. */
+  candidates.push(
+    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+    '/Applications/Chromium.app/Contents/MacOS/Chromium',
+    '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge');
   return candidates.find(p => { try { return fs.statSync(p).isFile(); } catch (_) { return false; } }) || null;
 }
 
@@ -110,10 +118,23 @@ const MEASURE = `
 }());
 <\/script>`;
 
-function renderDom(browser, file) {
+/**
+ * @param {number} [budgetMs] 가상 시계 예산. **기다리는 탐침은 이것을 넘긴다** —
+ *   넘기면 브라우저가 도중에 DOM 을 뱉어 「탐침이 아무것도 안 남겼다」로 보인다.
+ *   실제로 그렇게 한 번 속았다 (2026-08-21: 흐름이 길어져 6초를 넘겼는데,
+ *   증상이 「가끔 실패」로만 보여 부하 탓인 줄 알았다).
+ */
+/**
+ * ★ `width` 를 받는다 〈2026-08-21 추가〉. 좁은 화면 규칙(@media)은 **넓은 창에서
+ *   아예 걸리지 않는다** — 그 상태로 재면 「덮였다」와 「멀쩡하다」가 똑같이
+ *   통과한다. 휴대폰 너비로 재려면 창을 그 너비로 열어야 한다.
+ *   기본값은 그대로 1280 이라 부르던 곳들은 아무것도 안 바뀐다.
+ */
+function renderDom(browser, file, budgetMs, width) {
   return execFileSync(browser, [
     '--headless', '--disable-gpu', '--no-sandbox', '--hide-scrollbars',
-    '--window-size=1280,900', '--virtual-time-budget=6000', '--dump-dom',
+    '--window-size=' + (width || 1280) + ',900',
+    '--virtual-time-budget=' + (budgetMs || 6000), '--dump-dom',
     'file://' + file,
   ], { maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] }).toString();
 }
@@ -188,7 +209,7 @@ async function main() {
     return frame(s, String(i + 1), f);
   }).join('');
 
-  const { changePanel, evidencePanel } = require('./build-preview.js');
+  const { changePanel, evidencePanel, vaultPanel, linkedPanel, deskPanel } = require('./build-preview.js');
 
   const html = `<!doctype html>
 <html lang="ko">
@@ -197,7 +218,7 @@ async function main() {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>보고서 생성 섹션 미리보기 (미리 그려 넣은 판)</title>
 <style>
-  body { margin: 0; background: #F5F6F8; color: #17181A;
+  body { margin: 0; background: #F2F2F7; color: #0A1419;
     font: 400 15px/1.6 -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
       'Malgun Gothic', Arial, sans-serif; }
   .top { max-width: 1120px; margin: 0 auto; padding: 20px 20px 0; }
@@ -207,7 +228,7 @@ async function main() {
     border: 1px solid #E8EAEC; border-radius: 18px; overflow: hidden; }
   .pv__h { display: flex; gap: 12px; align-items: flex-start; padding: 16px 20px;
     border-bottom: 1px solid #E8EAEC; }
-  .pv__n { width: 26px; height: 26px; flex: none; border-radius: 50%; background: #17181A;
+  .pv__n { width: 26px; height: 26px; flex: none; border-radius: 50%; background: #0A1419;
     color: #fff; display: grid; place-items: center; font: 800 13px/1 inherit; }
   .pv__t { font-size: 16px; font-weight: 800; margin: 0; }
   .pv__d { font-size: 13px; color: #7C838C; margin: 3px 0 0; }
@@ -223,6 +244,9 @@ async function main() {
 </div>
 ${changePanel()}
 ${evidencePanel()}
+${vaultPanel()}
+${linkedPanel()}
+${deskPanel()}
 ${panels}
 </body>
 </html>
@@ -266,17 +290,48 @@ async function buildArtifact(opt) {
     process.stderr.write(`  0. ${FLOW_PANEL.name} — ${Math.round(part.html.length / 1024)}KB\n`);
   }
 
+  /**
+   * ★★★ **조각에는 iframe 을 넣을 수 없다** 〈2026-08-22 · M-01 의 `publishable()`〉.
+   *
+   *   1단계가 자료 업로드 화면을 iframe 으로 품게 되면서, 조각을 만들려 하니
+   *   「올릴 수 없는 조각이다 — <iframe> 이 있다」로 막혔다. 주소로 여는
+   *   페이지에서는 iframe 이 안 열리기 때문이다.
+   *
+   *   ★ **구멍을 내지 않는다.** 그 자리에 「여기 화면이 들어갑니다」만 적으면
+   *     조각을 보는 사람은 **가장 중요한 칸을 못 본다.** 그래서 그 화면을
+   *     **따로 그려서 그 자리에 끼운다** — 조각에는 진짜 화면이 들어간다.
+   *   ★ CSS 는 `inlineScreen` 이 칸마다 따로 가둔다. 안 가두면 화면들의 스타일이
+   *     서로 덮는다 (원래 iframe 을 쓰던 이유가 그것이다).
+   */
+  function inlineFrames(html) {
+    if (!/<iframe[^>]*class="sub-frame__f"/.test(html)) return html;
+    /* ★ **조각에는 iframe 이 안 들어간다** (M-01 의 `publishable()`). 주소로 여는
+     *   페이지에서 iframe 이 안 열리기 때문이다.
+     *
+     * ★★ 그 화면을 **끼워 넣어 보려다 접었다** 〈2026-08-22〉. 따로 그려서 넣으면
+     *   빈 조각(2KB)만 나온다 — 자료 화면은 설정을 받아야 그려지는데, 조각을
+     *   만드는 자리에서 그 설정을 먹이는 길을 아직 못 찾았다.
+     * ★ **빈 칸으로 조용히 두지 않는다.** 여기 무엇이 들어가고, 그것을 어디서
+     *   봐야 하는지 글자로 적는다 — 없는 것을 그럴듯하게 그리지 않는다 (§8).
+     */
+    return html.replace(/<iframe[^>]*class="sub-frame__f"[^>]*>\s*<\/iframe>/g,
+      '<div class="sub-frame__na"><b>자료 업로드 화면이 여기 들어갑니다.</b>'
+      + ' 주소로 여는 조각에는 화면 안의 화면을 실을 수 없어 이 자리에만 안 보입니다 —'
+      + ' 실제 화면은 <b>자료 업로드 미리보기</b>에서 보십시오. 앱에서는 이 자리에 그대로 붙어 있습니다.</div>');
+  }
+
   picked.forEach((s, i) => {
     const f = path.join(tmp, `${s.id}.html`);
     fs.writeFileSync(f, docs[s.id] + EMBED + EXPAND + MEASURE);
     const dom = renderDom(browser, f);
     const part = inlineScreen(dom, `scr-${s.id}`);
+    part.html = inlineFrames(part.html);
     css.push(part.css);
     body.push(panelHtml(s, String(only ? SCREENS.findIndex(x => x.id === s.id) + 1 : i + 1), part.html));
     process.stderr.write(`  ${i + 1}. ${s.name} — ${Math.round(part.html.length / 1024)}KB\n`);
   });
 
-  const { changePanel, evidencePanel } = require('./build-preview.js');
+  const { changePanel, evidencePanel, vaultPanel, linkedPanel, deskPanel } = require('./build-preview.js');
   const lead = only ? LEADS[only] : null;
   const frag = only ? `<title>${esc(lead.title)}</title>
 <style>
@@ -295,11 +350,14 @@ ${css.join('\n')}
 </style>
 <div class="lead">
   <h1 class="lead__t">보고서 생성 섹션</h1>
-  <p class="lead__d">LinkPilot 앱에 붙는 4단계 화면과, 지금까지 한 일을 확인하는 두 패널입니다.
+  <p class="lead__d">LinkPilot 앱에 붙는 4단계 화면과, 지금까지 한 일을 확인하는 패널들입니다.
     화면은 <b>만들 때 미리 그려서</b> 넣었습니다 — 그대로 보이지만 눌리지는 않습니다.</p>
 </div>
 ${changePanel()}
 ${evidencePanel()}
+${vaultPanel()}
+${linkedPanel()}
+${deskPanel()}
 ${body.join('')}
 `;
 
@@ -367,9 +425,9 @@ const LEADS = {
   },
 };
 
-/** 감싸는 판의 스타일. 화면 자체의 색(라임 #9ED700 · 먹 #17181A)을 그대로 쓴다 */
+/** 감싸는 판의 스타일. 화면 자체의 색(라임 #AAE106 · 먹 #0A1419)을 그대로 쓴다 */
 const WRAP_CSS = `
-  :root { --pg: #F5F6F8; --sf: #FFFFFF; --ln: #E8EAEC; --ink: #17181A; --ink2: #7C838C; }
+  :root { --pg: #F2F2F7; --sf: #FFFFFF; --ln: #E8EAEC; --ink: #0A1419; --ink2: #7C838C; }
   :root:not([data-theme="light"]) { color-scheme: light; }
   body { margin: 0; background: var(--pg); color: var(--ink);
     font: 400 15px/1.6 -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
@@ -402,7 +460,7 @@ async function run() {
 
 if (require.main === module) run().catch((e) => { console.error(e.message || e); process.exit(1); });
 
-module.exports = { stripScripts, heightOf, findBrowser, buildArtifact, publishable, EXPAND, MEASURE };
+module.exports = { stripScripts, heightOf, findBrowser, renderDom, buildArtifact, publishable, EXPAND, MEASURE };
 
 /* ── 아티팩트(URL 로 여는 판) ──────────────────────────────── */
 //

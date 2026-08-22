@@ -41,12 +41,33 @@ const kosis = require('../connectors/kosis');
 const factory = require('../connectors/factory');
 const customs = require('../connectors/customs');
 const enviro = require('../connectors/enviro');
+const kepco = require('../connectors/kepco');
+const nts = require('../connectors/nts');
+const nps = require('../connectors/nps');
+const pexels = require('../connectors/pexels');
 const fsc = require('../connectors/fsc');
 const { looksUrlEncoded } = require('../connectors/http');
 const pnuUtil = require('../connectors/pnu');
 const geometry = require('../geo/geometry');
 
-const ADDRESS = argOf('--address') || '인천광역시 남동구 남동대로 215';
+/**
+ * 진단에 쓸 주소.
+ *
+ * ★★ **인자는 매번 다시 줘야 한다 — 그게 실제로 발을 걸었다** 〈2026-08-22〉.
+ *   `--kosis-tbl` 만 주고 돌렸더니 주소가 예시로 되돌아갔고, VWorld 가 그
+ *   예시 주소를 못 찾아 **그 뒤 필지 계열 10개가 통째로 건너뛰어졌다.**
+ *   14/16 이던 것이 5/7 로 보였다 — 나빠진 것이 아니라 **재지 않은 것**인데
+ *   숫자만 보면 구분이 안 된다.
+ *
+ * ★ 그래서 `.env` 에 `IM_SMOKE_ADDRESS` 를 두면 그것이 기본이 된다. 키를 넣는
+ *   자리와 같은 곳이라 새로 배울 것이 없고, 이 도구는 여전히 **아무것도
+ *   저장하지 않는다**(읽기만 한다).
+ * ★ 차례: 인자 > `.env` > 예시. 인자가 늘 이긴다.
+ */
+const FALLBACK_ADDRESS = '인천광역시 남동구 남동대로 215';
+const ADDRESS = argOf('--address') || (process.env.IM_SMOKE_ADDRESS || '').trim() || FALLBACK_ADDRESS;
+const ADDRESS_FROM = argOf('--address') ? '인자'
+  : ((process.env.IM_SMOKE_ADDRESS || '').trim() ? '.env 의 IM_SMOKE_ADDRESS' : '예시(자리표시)');
 const results = [];
 
 /**
@@ -372,6 +393,66 @@ async function main() {
     console.log('  ※ 환경 인허가를 보려면: npm run im:smoke -- --enviro-name <상호> [--enviro-addr <주소>]');
   }
 
+  // ── 0-2-6. 전력계통 여유 (데이터센터·태양광·풍력) ─────────
+  //   ★ **거리는 여기서 안 나온다.** 변전소 좌표가 국가중요시설 사유로
+  //     비식별 처리되어 자동으로 낼 수 없다 (등록부 D-54). 그 사실을 스모크가
+  //     매번 말해 준다 — 안 그러면 「아직 안 붙였나 보다」로 읽힌다
+  const gridRegion = argOf('--grid-region');
+  if (gridRegion) {
+    const g = await kepco.capacity({ region: gridRegion });
+    if (g.ok) {
+      const needMw = Number(argOf('--grid-mw') || 0);
+      const h = needMw > 0 ? kepco.headroom(g.value.rows, needMw) : null;
+      report(`계통 여유용량 (${gridRegion})`, true,
+        `${g.value.rows.length}개 선로` + (h && h.ok ? ` · ${h.value.text}` : ''),
+        ['subst_nm', 'mtr_nm', 'dl_nm', 'subst_cap'], null);
+      if (!h) console.log('  ※ 요구용량과 견주려면: --grid-mw <수전용량MW>');
+    } else {
+      report(`계통 여유용량 (${gridRegion})`, false, g.error);
+    }
+    const d = kepco.substationDistance();
+    console.log(`  ※ 변전소 거리: ${d.error}`);
+  } else if (kepco.isAvailable()) {
+    console.log('  ※ 계통 여유를 보려면: npm run im:smoke -- --grid-region <시·군·구> [--grid-mw <MW>]');
+  }
+
+  // ── 0-2-7. 법인 실재 (국세청·국민연금) ───────────────────
+  //   ★ **경계가 이 스모크의 핵심이다.** 되는 것(휴폐업·인원)과 법이 막은 것
+  //     (납세증명·완납증명)을 매번 함께 찍는다 — 안 그러면 「API 붙이면 되겠지」로
+  //     기다리다 실사가 멈춘다 (등록부 D-60)
+  const bizNo = argOf('--biz-no');
+  if (bizNo) {
+    const st = await nts.status(bizNo);
+    if (st.ok) {
+      report(`사업자등록 상태 (${bizNo})`, st.value.status === nts.STATUS.ACTIVE, st.value.text,
+        ['b_stt', 'tax_type', 'end_dt'], st.value.raw);
+    } else {
+      report(`사업자등록 상태 (${bizNo})`, false, st.error);
+    }
+  } else if (nts.isAvailable()) {
+    console.log('  ※ 휴폐업을 보려면: npm run im:smoke -- --biz-no <사업자등록번호 10자리>');
+    console.log('    ↳ **법인등록번호(13자리)가 아니다** — 넣으면 거절한다');
+  }
+
+  const wkpl = argOf('--workplace');
+  if (wkpl) {
+    const f = await nps.findWorkplace(wkpl);
+    if (f.ok) {
+      const d = await nps.workplaceDetail(f.value.seq);
+      report(`국민연금 사업장 (${wkpl})`, d.ok, d.ok ? d.value.text : d.error,
+        ['jnngpCnt', 'crrmmNtcAmt', 'adptDt'], null);
+    } else if (f.ambiguous) {
+      report(`국민연금 사업장 (${wkpl})`, true, `동명 ${f.candidates.length}건 — 고르지 않는다`);
+    } else if (f.notFound) {
+      report(`국민연금 사업장 (${wkpl})`, true, f.error);
+    } else {
+      report(`국민연금 사업장 (${wkpl})`, false, f.error);
+    }
+  } else if (nps.isAvailable()) {
+    console.log('  ※ 사업장 인원을 보려면: npm run im:smoke -- --workplace <사업장명>');
+  }
+  console.log(`  ※ ${nts.taxClearance().error}`);
+
   // ── 0-3. 시행사 대조 (주소와 무관) ───────────────────────
   //   ★ 값을 채우는 것이 아니라 **대조**다. 못 찾는 것이 정상인 경우가 많다
   if (dart.isAvailable()) {
@@ -402,11 +483,27 @@ async function main() {
   console.log(`공장등록        : ${factory.isAvailable() ? 'DATA_GO_KR_KEY 로 조회 (⚠ 기관·응답 필드 미검증 — 등록부 D-45)' : '미설정 — 생산능력 상한 대조 건너뜀'}`);
   console.log(`수출입 단가     : ${customs.isAvailable() ? 'DATA_GO_KR_KEY 로 조회 (⚠ 누적 여부·응답 필드 미검증 — 등록부 D-46)' : '미설정 — 단가 실거래 대조 건너뜀'}`);
   console.log(`환경 인허가     : ${enviro.isAvailable() ? 'DATA_GO_KR_KEY 로 조회 (⚠ 세 자료 모두 미검증 — 등록부 D-47)' : '미설정 — 딜브레이커 점검 건너뜀'}`);
+  // ★ **data.go.kr 키가 아니다.** 전력데이터개방포털 자체 발급키다 — 여기를
+  //   흐리게 적으면 「키 있는데 왜 안 되지」로 몇 시간이 간다 (§4.1)
+  // ★ 별도 도구(`npm run im:image`)가 있지만 **여기 목록에 없으면 그 커넥터가
+  //   있는 줄도 모른다** — reb·g2b·rhino 가 한동안 그랬다 (이 파일 위 주석)
+  console.log(`PEXELS_API_KEY : ${pexels.isAvailable() ? '설정됨 — 참고 이미지 (점검은 npm run im:image)' : '미설정 — 표지 참고 이미지 건너뜀 (장식이라 자리를 비운다)'}`);
+  console.log(`법인 실재       : ${nts.isAvailable() ? 'DATA_GO_KR_KEY 로 조회 — 휴폐업·인원 (⚠ 응답 필드 미검증 — 등록부 D-60)' : '미설정 — 법인 실재 점검 건너뜀'}`);
+  console.log('               ↳ **납세증명·완납증명은 어떤 키로도 안 된다** (국세기본법 §81조의13) — 당사자에게 서류로 받는다');
+  console.log(`KEPCO_BIGDATA  : ${kepco.isAvailable() ? '설정됨 (⚠ 응답 필드 미검증 — 등록부 D-54)' : '미설정 — 계통 여유 건너뜀 (수전용량이 계통에 있는지 확인 못 한다)'}`);
+  console.log('               ↳ 변전소 **거리는 어느 키로도 안 나온다** — 좌표가 비식별 처리된다. 사전검토 회신을 사람이 넣는다');
 
   let lat = null, lon = null, parsedPnu = null, polygonAreaSqm = null;
 
   // ── 1. 지오코딩 ────────────────────────────────────────
   if (vworld.isAvailable()) {
+    /* ★ **어디서 온 주소인지 함께 적는다.** 예시로 되돌아간 것을 모르면
+       「왜 갑자기 안 되지」로 한참 헤맨다 (실제로 그랬다) */
+    if (ADDRESS_FROM === '예시(자리표시)') {
+      console.log(`\n  ※ 주소를 안 주셔서 **예시 주소**로 잽니다 — ${ADDRESS}`);
+      console.log('     실제 부지로 재려면: npm run im:smoke -- --address "실제 주소"');
+      console.log('     매번 치기 번거로우면 .env 에 IM_SMOKE_ADDRESS=실제 주소');
+    }
     const g = await vworld.geocode(ADDRESS);
     if (g.ok) {
       ({ lat, lon } = g.value);
@@ -499,22 +596,18 @@ async function main() {
     }
   }
 
-  // ── 6. 건축인허가 ──────────────────────────────────────
-  if (parsedPnu && molit.isAvailable()) {
-    const p = await molit.buildingPermit({
-      ...parsedPnu, platGbCd: parsedPnu.isMountain ? '1' : '0',
-    });
-    if (p.ok) {
-      report('건축인허가 (국토교통부)', true,
-        `${p.records.length}건 · 현재 상태: ${p.value || '(단계 불명)'}`,
-        ['archPmsDay', 'realStcnsDay', 'useAprDay', 'archGbCdNm'], p.raw);
-    } else if (p.notFound) {
-      // ★ 기록 없음은 실패가 아니다. 나대지면 원래 없는 것이 맞다
-      report('건축인허가 (국토교통부)', true, '기록 없음 (나대지이거나 미수록 — 미허가라는 뜻이 아니다)');
-    } else {
-      report('건축인허가 (국토교통부)', false, p.error);
-    }
-  }
+  /* ── 6. 건축인허가 — **지웠다** 〈2026-08-22 실측〉 ─────────
+     여기 있던 절이 `molit.buildingPermit(...)` 를 불렀는데 **그런 함수가 없다**
+     (진짜 이름은 `buildingPermits`). 그래서 실제로 돌리면 여기서 통째로
+     터졌고, **그 뒤 절이 전부 안 돌았다** — 실거래가·조달청·공장등록·수출입·
+     환경·KOSIS 까지.
+
+     ★★ 왜 아무도 몰랐나: 이 도구는 **키가 있어야 여기까지 온다.** 키 없는
+       환경에서는 앞에서 다 건너뛰므로 죽은 줄에 닿지 않는다. 「도구가 있다」와
+       「도구가 실제로 끝까지 돈다」는 다른 일이다 (M-08 과 같은 병).
+
+     ★ 이름만 고치지 않고 **지운다.** 아래 ⑪ 이 같은 일을 제대로 한다 —
+       이력 전체와 단계 분포까지. 둘 다 두면 같은 API 를 두 번 부른다 (§4.5). */
 
   // ── 7. 실거래가 ────────────────────────────────────────
   if (parsedPnu && molit.isAvailable()) {
@@ -706,7 +799,20 @@ async function main() {
   process.exitCode = failed.length ? 1 : 0;
 }
 
+/**
+ * ★★ **한 절이 터져도 나머지는 돈다** 〈2026-08-22 · 실제로 당했다〉.
+ *
+ * 없는 함수를 부르는 죽은 줄 하나 때문에 **그 뒤 절이 전부 안 돌았다.** 그런데
+ * 화면에는 「진단 중단」 한 줄만 남아서, 무엇이 안 돌았는지조차 알 수 없었다.
+ * 진단 도구가 진단을 못 하게 만드는 자리다.
+ *
+ * ★ 그래서 여기서도 **자리를 알려 준다** — 어느 줄에서 터졌는지까지.
+ *   그것이 없으면 「is not a function」 만 보고 어디를 볼지 모른다.
+ */
 main().catch(e => {
   console.error('\n✕ 진단 중단:', e.message);
+  const at = String(e.stack || '').split('\n')[1];
+  if (at) console.error('  터진 자리:', at.trim());
+  console.error('  ※ 여기서 멈췄으므로 **이 뒤의 항목은 돌지 않았다.**');
   process.exit(1);
 });

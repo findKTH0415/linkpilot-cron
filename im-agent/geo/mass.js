@@ -12,7 +12,7 @@
  */
 
 const { triangulate, bbox, closedRing } = require('./geometry');
-const { COLOR } = require('../design/tokens');
+const { COLOR, FONT } = require('../design/tokens');
 
 /**
  * 필지 footprint를 층수만큼 압출한 매스를 만든다.
@@ -161,7 +161,7 @@ function toSvg(mass, { width = 720, height = 520, label = '' } = {}) {
     .map(f => `<polygon points="${poly(f)}" fill="none" stroke="${COLOR.navyL2}" stroke-width="0.4" stroke-opacity="0.6"/>`)
     .join('\n  ');
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" font-family="'Noto Sans KR', sans-serif">
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" font-family="${FONT.sans}">
   <!-- LinkPilot IM Agent — 검토용 건축 매스(설계안 아님) -->
   <rect width="${width}" height="${height}" fill="${COLOR.surface}"/>
   <polygon points="${poly(bottom)}" fill="${COLOR.track}" stroke="${COLOR.ruleStrong}" stroke-width="0.8" stroke-dasharray="4 3"/>

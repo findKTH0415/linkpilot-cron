@@ -314,48 +314,31 @@ test('★ 빈 값·null 을 만들어진 것으로 세지 않는다', () => {
 /* ───────────── 화면이 판정을 베끼지 않는가 ───────────── */
 
 /**
- * ★ 화면이 라벨·%를 자기 손으로 적기 시작하면 live-core 를 고쳐도 화면만 옛말을 한다.
- *   그래서 report-flow.html 은 **문구를 갖고 있지 않아야** 한다.
+ * ★★★ **「새보고서 진행률」 절은 `report-flow.html` 에서 빠졌다** 〈2026-08-22
+ *   사용자 지시〉. 함께 사라진 것: 단계별 막대 · 자산군 · 계산 항목 개수 ·
+ *   그것을 받아 오던 되풀이 조회.
+ *
+ *   ★ 그래서 앞 판의 검사 넷(이름을 베끼지 않는가 · 빗금 · 다시 싣지 않는가 ·
+ *     404)은 **잴 대상이 없다.** 지우기만 하면 다음 사람이 반쯤 되살려 놓고도
+ *     아무 검사에 안 걸리므로, **없다는 사실 자체**를 여기서 잰다.
+ *
+ *   ★ live-core 자체의 셈은 그대로 산다 — `reports.html` 이 쓴다. 아래 검사들이
+ *     계속 그것을 잰다.
  */
-test('★ 세부 진행률 화면이 단계 이름을 베껴 쓰지 않는다', () => {
+test('★★ report-flow 가 진행률을 반쯤 되살려 놓지 않았다', () => {
   const raw = fs.readFileSync(path.join(PLATFORM, 'report-flow.html'), 'utf8');
-  // 설명 주석은 검사에서 뺀다 — 왜 그런지 적어 둔 글이 규칙 위반으로 잡힌다
   const html = raw.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '');
 
-  assert.match(html, /LinkPilotLive/, 'live-core 를 안 쓰면 판정이 두 벌이 된다');
-  assert.match(html, /L\.stepProgress\(/);
-  assert.match(html, /L\.computedProgress\(/);
-  assert.match(html, /complete: FC && FC\.completeness/,
-    '2단계 셈을 주입하지 않으면 화면이 자기 식으로 센다');
+  ['renderProgress', 'stepProgress', 'groupProgress', 'prog__bar', 'LinkPilotLive']
+    .forEach((k) => {
+      assert.ok(html.indexOf(k) === -1,
+        `report-flow 에 「${k}」 가 남아 있다 — 진행률을 되살렸다면 절 번호가 `
+        + `단계 번호와 다시 어긋나지 않는지부터 본다 (flow.test.js 의 절 다섯)`);
+    });
 
-  L.STEPS.forEach((s) => {
-    assert.ok(html.indexOf("'" + s.label + "'") === -1,
-      `화면이 「${s.label}」 을 직접 적고 있다 — live-core 를 고쳐도 화면만 옛말을 한다`);
-  });
-});
-
-test('★ 모르는 값은 막대가 아니라 빗금이다', () => {
-  const html = fs.readFileSync(path.join(PLATFORM, 'report-flow.html'), 'utf8');
-  assert.match(html, /prog__bar--none/, '0% 막대를 그리면 「아무것도 안 됐다」로 읽힌다');
-  assert.match(html, /pct === null \|\| pct === undefined/);
-});
-
-/**
- * ★ 진행률 갱신이 단계 화면(iframe)을 다시 싣지 않아야 한다.
- *   draw() 를 부르면 iframe 이 새로 실려 입력하던 것이 날아간다 — 2초마다 그러면
- *   값을 아예 못 넣는다.
- */
-test('★ 진행률 갱신이 단계 화면을 다시 싣지 않는다', () => {
-  const html = fs.readFileSync(path.join(PLATFORM, 'report-flow.html'), 'utf8');
-  const fn = html.slice(html.indexOf('function renderProgress'), html.indexOf('외부 분석 경로 ('));
-  assert.ok(fn.length > 100, 'renderProgress 를 찾지 못했다');
-  assert.ok(fn.indexOf('draw()') === -1,
-    '진행률을 갱신하면서 draw() 를 부르면 입력하던 값이 날아간다');
-});
-
-test('★ 404 를 오류로 세지 않는다 (아직 없는 것과 못 받은 것은 다르다)', () => {
-  const html = fs.readFileSync(path.join(PLATFORM, 'report-flow.html'), 'utf8');
-  assert.match(html, /r\.status === 404/, '사양 미확정·생성 전에는 404 가 정상이다');
+  /* ★ 안 쓰는 스크립트를 남겨 두면 다음 사람이 「여기서 쓰나 보다」 하고 찾는다 */
+  assert.ok(html.indexOf('live-core.js') === -1,
+    'report-flow 가 안 쓰는 live-core.js 를 아직 싣고 있다');
 });
 
 /* ───────────── 큰 눈금 둘 (채우기 / 생성) ───────────── */
@@ -447,21 +430,23 @@ test('★ 생성 눈금은 무엇이 막고 있는지 적는다', () => {
   assert.strictEqual(running.state, 'doing');
 });
 
+/**
+ * ★ 큰 눈금 이름·설명은 **live-core 한 곳**에만 있어야 한다. 화면이 베끼면
+ *   눈금을 고쳐도 화면만 옛말을 한다.
+ *
+ * ★★ 〈2026-08-22〉 재는 대상이 `report-flow.html` 에서 `reports.html` 로 옮겨
+ *   왔다 — 진행률 절을 뺐기 때문이다. **화면 이름만 바꾸고 검사는 살린다.**
+ */
 test('★ 큰 눈금 이름도 화면이 베껴 쓰지 않는다', () => {
-  const raw = fs.readFileSync(path.join(PLATFORM, 'report-flow.html'), 'utf8');
-  const html = raw.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '');
-  assert.match(html, /L\.groupProgress\(/);
-
-  // ★ 진행률을 그리는 곳만 본다. 섹션 제목(h1 「보고서 생성」)은 눈금 이름을
-  //   베낀 것이 아니라 이 화면의 이름이다 — 문서 전체로 검사하면 그게 걸린다
-  // 주석을 지운 판에는 끝 표시(주석 안에 있다)가 없다 — 자를 때는 원본을 쓴다
-  const fn = raw.slice(raw.indexOf('function renderProgress'), raw.indexOf('외부 분석 경로 ('))
-    .replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
-  assert.ok(fn.length > 100 && fn.indexOf('groupProgress') !== -1, 'renderProgress 를 찾지 못했다');
+  const raw = fs.readFileSync(path.join(PLATFORM, 'reports.html'), 'utf8');
+  const html = raw.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/\/\/[^\n]*/g, '');
+  /* ★ 이름(`label`)은 재지 않는다 — 「보고서 생성」은 눈금 이름이면서 **이 화면
+     자체의 이름**이라, 문서 전체를 훑으면 베낀 것이 아닌 자리가 걸린다.
+     설명(`why`)은 눈금에만 있는 문장이라 걸리면 진짜로 베낀 것이다. */
   L.GROUPS.forEach((g) => {
-    assert.ok(fn.indexOf("'" + g.label + "'") === -1,
-      `화면이 「${g.label}」 을 직접 적고 있다`);
-    assert.ok(fn.indexOf("'" + g.why + "'") === -1, '설명도 마찬가지다');
+    assert.ok(html.indexOf("'" + g.why + "'") === -1,
+      `화면이 「${g.label}」 의 설명을 직접 적고 있다 — 눈금을 고쳐도 화면만 옛말을 한다`);
   });
 });
 
@@ -475,8 +460,7 @@ test('★ 묶음 설명에 단계 번호를 손으로 적지 않는다', () => {
     assert.ok(!/\d\s*단계/.test(g.why),
       `「${g.label}」 설명에 단계 번호가 박혀 있다 — 화면이 steps 에서 뽑는다`);
   });
-  const raw = fs.readFileSync(path.join(PLATFORM, 'report-flow.html'), 'utf8');
-  const fn = raw.slice(raw.indexOf('function renderProgress'), raw.indexOf('외부 분석 경로 ('));
-  assert.match(fn, /g\.steps\.map\(function \(s\) \{ return s\.n; \}\)/,
-    '칩의 번호는 단계에서 뽑아야 한다');
+  /* ★ 〈2026-08-22〉 화면 쪽 대조는 뺐다 — 그 칩을 그리던 진행률 절이
+     `report-flow.html` 에서 없어졌다. 남은 것은 **눈금 자체의 규칙**이고,
+     그것이 이 검사의 알맹이다. */
 });

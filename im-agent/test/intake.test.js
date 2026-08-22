@@ -372,8 +372,13 @@ test('★ 화면이 회사명 입력란을 제공한다', () => {
      이니셜은 로고가 없을 때의 자동 폴백이다(입력 안 받음). */
   assert.doesNotMatch(html, /로고 이니셜/, '이니셜 입력란은 없어야 한다 — 로고 업로드로 바뀌었다');
   assert.match(html, /로고 업로드/, '제출자 로고를 올릴 수 있어야 한다');
-  assert.match(html, /image\/png,image\/jpeg,image\/svg\+xml/, '받는 형식이 서버 규칙(PNG·JPG·SVG)과 같아야 한다');
-  assert.match(html, /200 \* 1024/, '크기 한도(200KB)를 화면에서도 미리 막는다');
+  /* 2026-08-17 — 어떤 이미지든 받아 자동 정규화(여백 트림·512px·200KB)해 서버 규칙에 맞춘다.
+     그래서 accept 는 image/* 이고, 한도는 거부가 아니라 **맞추는 목표**다. */
+  assert.match(html, /file\.accept = 'image\/\*'/, '어떤 이미지든 받는다 — 형식은 화면이 맞춘다');
+  assert.match(html, /LOGO_MAX_BYTES = 200 \* 1024/, '서버 한도(200KB)를 목표로 줄인다');
+  assert.match(html, /function trimBox/, '여백을 자동으로 잘라낸다');
+  assert.match(html, /LOGO_MAX_EDGE = 512/, '긴 변을 512px 로 맞춘다');
+  assert.doesNotMatch(html, /'파일을 읽지 못했습니다'/, '실패는 사유를 말해야 한다 — 뭉뚱그린 문구 금지');
   assert.match(html, /앞으로 만드는 보고서에도/, '기본값으로 저장하는 선택지');
   assert.match(html, /대외 배포가 막힙니다/, '안 넣으면 어떻게 되는지 미리 알린다');
 });

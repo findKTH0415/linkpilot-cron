@@ -60,8 +60,50 @@ const FIELDS = {
   // 가정이 들어가고, 가정치는 IM 에 넣지 않는다 (2026-08-15 결정, 등록부 D-25).
   'site.solar_irradiance': { label: '연간 일사량', category: CATEGORY.CAPACITY, unit: 'kWh/㎡·년', type: 'number', aliases: ['일사량', '연간일사량', 'Irradiance', 'GHI'], min: 0 },
   'site.sunshine_hours':   { label: '연간 일조시간', category: CATEGORY.CAPACITY, unit: 'hr', type: 'number', aliases: ['일조시간', '연간일조시간'], min: 0 },
+  // 풍력 전용. **일사량과 같은 자리다** — 풍속까지만 두고 발전량은 내지 않는다.
+  // 발전량 = ½ρAv³ × Cp × 가동률인데 Cp·가동률·손실이 전부 가정이고, 풍속은
+  // 세제곱으로 들어가 **1m/s 차이가 발전량을 30% 넘게 흔든다** (D-25 와 같은 줄).
+  //
+  // ★ 풍속은 **허브 높이 없이는 뜻이 없다.** 기상청 지상관측은 10m 기준이고
+  //   허브는 통상 80~140m다. 둘을 잇는 것은 전단지수(α)인데 그것이 가정이다 —
+  //   그래서 둘을 **짝으로** 받는다. 높이 없는 풍속은 쓰지 않는다.
+  'site.wind_speed':       { label: '연평균 풍속', category: CATEGORY.CAPACITY, unit: 'm/s', type: 'number', aliases: ['풍속', '연평균풍속', 'Wind Speed'], min: 0, max: 20 },
+  'site.hub_height_m':     { label: '허브 높이', category: CATEGORY.CAPACITY, unit: 'm', type: 'number', aliases: ['허브높이', '허브 높이', 'Hub Height'], min: 0 },
+  'capacity.turbine_count': { label: '터빈 기수', category: CATEGORY.CAPACITY, unit: '기', type: 'number', aliases: ['터빈수', '기수', '풍력기수', 'Turbines'], min: 0 },
+  'capacity.turbine_mw':   { label: '터빈 단기 용량', category: CATEGORY.CAPACITY, unit: 'MW', type: 'number', aliases: ['터빈용량', '단기용량', '기당 용량'], min: 0 },
+  'capacity.wind_mw':      { label: '설비용량(풍력)', category: CATEGORY.CAPACITY, unit: 'MW', type: 'number', aliases: ['설비용량', '발전용량', '풍력 설비용량'], min: 0 },
+  // 해상 전용. 이 둘이 해상풍력 사업비의 대부분을 정한다 — 그리고 **REC
+  // 가중치가 이 둘로 갈린다**(연계거리·수심 복합 부여).
+  'site.water_depth_m':    { label: '수심 (해상)', category: CATEGORY.CAPACITY, unit: 'm', type: 'number', aliases: ['수심', 'Water Depth'], min: 0 },
+  'site.distance_to_shore_km': { label: '이안거리 (해상)', category: CATEGORY.CAPACITY, unit: 'km', type: 'number', aliases: ['이안거리', '연계거리', 'Distance to Shore'], min: 0 },
+  // ESS 전용. **발전이 아니라 저장이라 성격이 다르다** (등록부 D-56).
+  //
+  // ★ **MWh 와 MW 는 짝이다.** 「100MWh ESS」만으로는 몇 시간짜리인지 모른다 —
+  //   100MWh/100MW(1시간)와 100MWh/25MW(4시간)는 **수익모델도 사업비도 다른
+  //   사업이다.** 둘 중 하나만 받으면 나머지를 가정으로 메우게 된다.
+  // ★ **열화가 ESS 고유의 함정이다.** 배터리는 해마다 용량이 준다. 초기 용량으로
+  //   전 기간 매출을 깔면 통째로 부풀려지는데, 문서에는 그 사실이 안 남는다.
+  'capacity.ess_mwh':        { label: '저장용량', category: CATEGORY.CAPACITY, unit: 'MWh', type: 'number', aliases: ['저장용량', '배터리용량', '에너지용량', 'ESS 용량'], min: 0 },
+  'capacity.ess_mw':         { label: '출력용량(PCS)', category: CATEGORY.CAPACITY, unit: 'MW', type: 'number', aliases: ['출력용량', 'PCS용량', 'PCS 용량', '충방전 출력'], min: 0 },
+  'capacity.ess_degradation': { label: '연간 열화율', category: CATEGORY.CAPACITY, unit: '%/년', type: 'number', aliases: ['열화율', '용량저하율', 'Degradation'], min: 0, max: 20 },
+  // 국내 ESS 는 화재 이후 충전율 상한 규제를 겪었다. 상한이 걸리면 **실효 용량이
+  // 줄어드는데 사업계획서는 정격 용량으로 적혀 온다**
+  'capacity.ess_soc_limit':  { label: 'SOC 상한', category: CATEGORY.CAPACITY, unit: '%', type: 'number', aliases: ['SOC 상한', '충전율 상한', '충전상한'], min: 0, max: 100 },
+  // 무엇으로 버는 사업인지 — 이것이 안 정해지면 매출의 성격 자체를 모른다
+  'revenue.ess_model':       { label: 'ESS 수익모델', category: CATEGORY.REVENUE, unit: null, type: 'string', aliases: ['수익모델', '정산방식', 'ESS 수익구조'] },
   'capacity.dc_kw':      { label: '설비용량(DC)', category: CATEGORY.CAPACITY, unit: 'kW', type: 'number', aliases: ['설비용량', 'DC용량', '모듈용량'], min: 0 },
   'capacity.ac_kw':      { label: '설비용량(AC)', category: CATEGORY.CAPACITY, unit: 'kW', type: 'number', aliases: ['AC용량', '인버터용량', '발전용량'], min: 0 },
+  // 태양광 전용 (등록부 D-58).
+  //
+  // ★ **부지 유형이 REC 가중치를 가른다.** 임야는 다른 부지보다 낮게 매겨진다 —
+  //   같은 용량이라도 매출이 갈리는데, 사업계획서에는 「태양광」이라고만 적혀 온다.
+  // ★ **경사각·방위각이 있어야 일사량을 발전 기준으로 옮길 수 있다.** 기상청
+  //   일사량은 **수평면(GHI)** 이고 모듈은 기울어져 있다 — 그 변환이 가정이라
+  //   우리가 하지 않는다(D-25 와 같은 자리). 다만 값은 받아 적는다.
+  'site.land_category':  { label: '부지 유형', category: CATEGORY.CAPACITY, unit: null, type: 'string', aliases: ['지목', '부지유형', '설치유형'], note: '임야·농지·잡종지·건축물·수상 — **REC 가중치가 여기서 갈린다**' },
+  'site.tilt_angle':     { label: '모듈 경사각', category: CATEGORY.CAPACITY, unit: '°', type: 'number', aliases: ['경사각', '설치각', 'Tilt'], min: 0, max: 90 },
+  'site.azimuth':        { label: '모듈 방위각', category: CATEGORY.CAPACITY, unit: '°', type: 'number', aliases: ['방위각', 'Azimuth'], min: 0, max: 360 },
+  'legal.setback_m':     { label: '이격거리 조례', category: CATEGORY.LEGAL, unit: 'm', type: 'number', aliases: ['이격거리', '이격', 'Setback'], min: 0, note: '지자체 조례. 도로·주거에서 얼마를 띄워야 하는지 — **이것 하나로 부지가 통째로 못 쓰게 된다**' },
   'capacity.leasable_sqm': { label: '임대면적', category: CATEGORY.CAPACITY, unit: '㎡', type: 'number', aliases: ['임대면적', '전용면적', 'NLA', 'Leasable Area'], min: 0 },
 
   // ── 자산군 전용 지표 ───────────────────────────────────────
@@ -93,6 +135,17 @@ const FIELDS = {
   'crosscheck.hs_code':      { label: 'HS 코드', category: CATEGORY.CROSSCHECK, unit: null, type: 'string', aliases: [], note: '수출입 실거래 단가를 본다. 4·6·10단위' },
   'crosscheck.sales_channel': { label: '판로 (수출/내수)', category: CATEGORY.CROSSCHECK, unit: null, type: 'string', aliases: [], note: '내수 딜은 수출단가와 견주지 않는다 — FOB 기준이라 기준 자체가 다르다' },
   'crosscheck.enviro_name':  { label: '환경 인허가 조회 상호', category: CATEGORY.CROSSCHECK, unit: null, type: 'string', aliases: [], note: '통합환경허가·대기·수질·배출권. **「확인되지 않음」은 「문제 없음」이 아니다**' },
+
+  // ── 전력계통 (데이터센터·태양광·풍력) — 등록부 D-54 ────────
+  //
+  // ★ 위 넷과 성격이 갈린다. `grid_region` 은 **조회를 부르는 값**이고,
+  //   나머지 셋은 **API 로 나오지 않아 사람이 받아 적는 값**이다.
+  //   변전소 좌표가 국가중요시설 사유로 비식별 처리되어 거리를 계산할 방법이 없다.
+  'crosscheck.grid_region':       { label: '계통 조회 지역', category: CATEGORY.CROSSCHECK, unit: null, type: 'string', aliases: [], note: '시·군·구. 선로별 여유용량을 부른다 — **전국 값으로 대체하지 않는다**' },
+  'crosscheck.substation_name':   { label: '변전소명 (사전검토 회신)', category: CATEGORY.CROSSCHECK, unit: null, type: 'string', aliases: [], note: '한전 지사 사전검토에서 받아 적는다. **API 로는 안 나온다** — 좌표가 비식별 처리된다' },
+  'crosscheck.substation_km':     { label: '변전소 거리', category: CATEGORY.CROSSCHECK, unit: 'km', type: 'number', aliases: [], min: 0, note: '사전검토 회신값. 자동 산출이 불가능한 자리다' },
+  'crosscheck.substation_km_basis': { label: '거리 기준 (직선/선로)', category: CATEGORY.CROSSCHECK, unit: null, type: 'string', aliases: [], note: '**밝히지 않으면 그 거리는 쓰지 않는다** — 직선과 선로가 실무상 1.3~2배 갈린다' },
+  'crosscheck.grid_reviewed_at':  { label: '사전검토 회신일', category: CATEGORY.CROSSCHECK, unit: null, type: 'string', aliases: [], note: '여유용량은 시점 스냅샷이다. 회신일이 없으면 언제 기준인지 모른다' },
 
   'building.clear_height_m': { label: '유효층고', category: CATEGORY.BUILDING, unit: 'm', type: 'number', aliases: ['층고', '유효층고', '천장고', 'Clear Height'], min: 0, max: 30 },
   'building.floor_load_kn':  { label: '바닥하중', category: CATEGORY.BUILDING, unit: 'kN/㎡', type: 'number', aliases: ['바닥하중', '적재하중', 'Floor Load'], min: 0 },
@@ -167,6 +220,28 @@ const FIELDS = {
   // ── Legal ──────────────────────────────────────────────────
   'legal.permit_status': { label: '인허가 현황', category: CATEGORY.LEGAL, unit: null, type: 'string', aliases: ['인허가', '허가현황', '건축허가', 'Permit'], requiredFor: ['im'] },
   'legal.spc':           { label: 'SPC/사업시행법인', category: CATEGORY.LEGAL, unit: null, type: 'string', aliases: ['SPC', '시행법인', '특수목적법인'] },
+
+  // ── 법인평가 (등록부 D-59) ─────────────────────────────
+  //
+  // ★ **딜의 값이 아니라 법인의 값이다.** `project.sponsor` 와 이름이 같아도
+  //   평가 대상은 따로 밝힌다 — 시행사와 모회사가 다른 경우가 흔하다.
+  // ★ **순손익은 3개 연도를 다 받는다.** 한 해만 받으면 그 해가 곧 수익가치가
+  //   되는데, 법령이 3년 가중평균(3:2:1)을 쓰는 이유가 바로 그것이다.
+  'corp.name':            { label: '평가대상 법인', category: CATEGORY.LEGAL, unit: null, type: 'string', aliases: ['평가대상법인', '피평가법인'] },
+  'corp.net_asset':       { label: '순자산가액', category: CATEGORY.EQUITY, unit: '억원', type: 'number', aliases: ['순자산', '순자산가액', '자본총계'], tolerance: 0.005 },
+  'corp.net_income_1':    { label: '순손익액 (직전 1년)', category: CATEGORY.EQUITY, unit: '억원', type: 'number', aliases: ['순손익액', '당기순이익'] },
+  'corp.net_income_2':    { label: '순손익액 (직전 2년)', category: CATEGORY.EQUITY, unit: '억원', type: 'number', aliases: [] },
+  'corp.net_income_3':    { label: '순손익액 (직전 3년)', category: CATEGORY.EQUITY, unit: '억원', type: 'number', aliases: [] },
+  'corp.shares':          { label: '발행주식총수', category: CATEGORY.EQUITY, unit: '주', type: 'number', aliases: ['발행주식수', '주식수'], min: 0 },
+  // 자산총액 중 부동산 비율. **이 값 하나로 법령이 정한 가중치가 3:2 에서 2:3 으로 뒤집힌다**
+  'corp.real_estate_pct': { label: '자산 중 부동산 비율', category: CATEGORY.EQUITY, unit: '%', type: 'number', aliases: ['부동산비율'], min: 0, max: 100 },
+  // ★ **법인등록번호가 아니다.** 국세청 조회는 사업자등록번호 10자리를 받는다 —
+  //   DART 가 주는 `jurir_no`(13자리)를 넣으면 조회가 실패하는데 **증상이
+  //   「없는 회사」와 똑같아서** 원인에 도달하기까지 오래 걸린다 (등록부 D-60).
+  'corp.biz_no':          { label: '사업자등록번호', category: CATEGORY.LEGAL, unit: null, type: 'string', aliases: ['사업자번호', '사업자등록번호'], note: '10자리. 휴폐업 상태를 국세청에서 확인한다' },
+  // ★ **조회할 수 없는 값이다.** 과세정보는 제3자 제공이 막혀 있어(국세기본법
+  //   §81조의13) 당사자에게 서류로 받는다. 그래서 「받았는가」를 사람이 적는다
+  'corp.tax_clearance':   { label: '납세증명 제출 (받아야 하는 서류)', category: CATEGORY.LEGAL, unit: null, type: 'string', aliases: [], note: '국세·지방세 완납증명, 4대보험 완납증명. **API 로 조회할 수 없다** — 당사자 발급분을 받아 발급일을 적는다' },
 };
 
 /**

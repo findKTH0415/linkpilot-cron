@@ -14,6 +14,13 @@ const path = require('path');
 
 const PLATFORM = path.join(__dirname, '..', 'ui', 'platform');
 const intake = fs.readFileSync(path.join(PLATFORM, 'intake.html'), 'utf8');
+/**
+ * ★ 올리는 방법 자체는 **화면이 아니라 모듈**에 있다 (2026-08-20).
+ *   1단계와 「자료 업로드」탭이 같은 것을 쓴다 — 화면마다 따로 두면 한쪽만
+ *   고쳐지는 날이 오고, 그때 다른 쪽은 옛 방식으로 조용히 계속 돈다.
+ *   그래서 아래 규칙들을 **모듈에** 건다. 한 번 걸면 두 화면이 함께 지켜진다.
+ */
+const core = fs.readFileSync(path.join(PLATFORM, 'upload-core.js'), 'utf8');
 const fields = fs.readFileSync(path.join(PLATFORM, 'fields.html'), 'utf8');
 
 /** 주석을 뺀 코드만 본다 — 설명 글이 규칙 위반으로 잡히면 안 된다 */
@@ -28,7 +35,7 @@ function codeOf(html) {
  *   XMLHttpRequest 의 `upload.onprogress` 밖에 길이 없다.
  */
 test('★ 업로드는 진행을 알려 주는 방법으로 보낸다', () => {
-  const code = codeOf(intake);
+  const code = codeOf(core);
   assert.match(code, /new XMLHttpRequest\(\)/, 'fetch 로는 업로드 진행을 알 수 없다');
   assert.match(code, /xhr\.upload\.onprogress/);
   assert.match(code, /ev\.lengthComputable/, '길이를 모를 때를 가려야 한다');
@@ -39,24 +46,24 @@ test('★ 업로드는 진행을 알려 주는 방법으로 보낸다', () => {
  *   읽는 시간이 남아 있다. 거기서 100% 로 두면 「다 됐는데 화면이 멈췄다」가 된다.
  */
 test('★ 보내는 중과 서버가 읽는 중을 가른다', () => {
-  const code = codeOf(intake);
+  const code = codeOf(core);
   assert.match(code, /phase: 'sending'/);
-  assert.match(code, /phase = 'reading'/, '다 보낸 뒤의 단계가 없다');
+  assert.match(code, /phase: 'reading'/, '다 보낸 뒤의 단계가 없다');
   assert.match(code, /xhr\.upload\.onload/, '언제 다 보냈는지 알아야 단계를 바꾼다');
   // 읽는 단계에서는 진행률을 만들지 않는다 — 얼마나 걸릴지 모른다
-  assert.match(code, /state\.upload\.phase = 'reading'; state\.upload\.pct = null/);
+  assert.match(code, /phase: 'reading', pct: null/);
 });
 
 /** ★ 모르는 값은 0% 막대가 아니라 빗금이다 (진행률을 지어내지 않는다) */
 test('★ 길이를 모르면 % 를 만들지 않는다', () => {
-  const code = codeOf(intake);
+  const code = codeOf(core);
   assert.match(code, /ev\.lengthComputable && ev\.total\s*\?[\s\S]{0,120}: null/);
   assert.match(intake, /up__bar--none/, '모를 때 그릴 빗금 막대가 없다');
 });
 
 /** ★ 100% 를 미리 찍지 않는다 — 보내는 동안 최대 99% 다 */
 test('★ 보내는 중에는 100% 를 찍지 않는다', () => {
-  assert.match(codeOf(intake), /Math\.min\(99,/,
+  assert.match(codeOf(core), /Math\.min\(99,/,
     '보내는 도중 100% 가 뜨면 서버가 읽는 시간이 「멈춘 것」으로 읽힌다');
 });
 
@@ -64,7 +71,7 @@ test('★ 보내는 중에는 100% 를 찍지 않는다', () => {
  * ★ 조용히 죽지 않는다. 진행 바가 멈춘 채 남으면 사용자는 계속 기다린다.
  */
 test('★ 전송이 끊기면 사유를 남긴다', () => {
-  const code = codeOf(intake);
+  const code = codeOf(core);
   assert.match(code, /xhr\.onerror/);
   assert.match(code, /전송이 끊겼습니다/);
   assert.match(code, /xhr\.onabort/, '중단도 같은 길로 처리해야 한다');
@@ -143,10 +150,10 @@ test('★ 1단계가 끝나면 2단계로 가는 버튼이 그 자리에 있다'
 
 test('★ 2단계에서 저장하면 3단계로 가는 버튼이 그 자리에 뜬다', () => {
   const code = codeOf(fields);
-  assert.match(code, /출력 사양 확정으로 →/);
+  assert.match(code, /출력조건으로 →/);
   assert.match(code, /go\.href = stepUrl\('reports\.html'\)/);
   // 저장 성공 분기 안에 있어야 한다 — 실패했는데 다음으로 보내면 안 된다
-  const at = code.indexOf('출력 사양 확정으로');
+  const at = code.indexOf('출력조건으로');
   const okAt = code.lastIndexOf('if (r.ok) {', at);
   const elseAt = code.lastIndexOf('} else {', at);
   assert.ok(okAt !== -1 && okAt > elseAt, '저장 실패에도 다음 버튼이 뜬다');

@@ -74,10 +74,119 @@ const TEMPLATES = {
     ],
   },
 
+  /**
+   * 풍력 — **육상과 해상을 나눈다** (등록부 D-55).
+   *
+   * ★ 하나로 두면 안 되는 이유가 명확하다. 해상은 육상 대비 사업비가 배 이상이고,
+   *   공사기간·금융조건·계약구조가 전부 다르다. 하나의 「풍력」 템플릿으로 두면
+   *   **숫자는 나오는데 어느 쪽 기준인지 알 수 없는 모델**이 된다 — 이 저장소가
+   *   가장 경계하는 「그럴듯하게 틀린 것」이다.
+   *
+   * ★ **순서가 중요하다.** `pickTemplate` 은 키워드 포함 여부를 위에서부터
+   *   본다. 해상을 먼저 두지 않으면 "해상풍력"이 육상으로 잡힌다.
+   *
+   * ⚠️ **아래 기본값은 전부 추측이다** (등록부 D-55). 제조(D-40)와 같은 처지다 —
+   *    국내 실측 근거를 확인하지 못했다. 사업계획서 값이 들어오면 그쪽이 이긴다.
+   */
+  wind_offshore: {
+    id: 'wind_offshore',
+    label: '해상풍력',
+    keywords: ['해상풍력', 'offshore wind', '부유식', 'floating wind'],
+    map: COMMON_MAP,
+    defaults: {
+      // 〈추측〉 인허가·해상공사·계통연계가 길다. 육상의 배로 본다
+      constructionYears: 4,
+      // 〈추측〉 REC 계약기간에 맞춘다
+      opsYears: 20, exitYear: 20,
+      revenueEscalation: 0,
+      // 〈추측〉 O&M 이 해상접근 비용 때문에 육상보다 크다
+      opexRatio: 25, opexEscalation: 2, rampYears: 0,
+      taxRate: 22, depreciationYears: 20,
+      // 〈추측〉 사업비가 커 자기자본 부담이 크고, 공사위험이 금리에 실린다
+      ltc: 70, debtRate: 6.2, tenorYears: 18, graceYears: 4, feePct: 2.0,
+      exitCapRate: 8, sellingCostPct: 1.0, discountRate: 8, contingencyPct: 10,
+    },
+    keyMetrics: ['capacity.wind_mw', 'capacity.turbine_count', 'capacity.turbine_mw',
+      'site.wind_speed', 'site.hub_height_m', 'site.water_depth_m', 'site.distance_to_shore_km'],
+    sensitivity: [
+      { key: 'annualRevenue', label: 'SMP+REC 변동(%)', values: [-20, -15, -10, -5, 0, 5] },
+      // 공사기간이 길어 금리가 육상보다 세게 먹는다
+      { key: 'debtRate', label: '차입금리(pp)', values: [-0.5, 0, 0.5, 1.0, 1.5, 2.0] },
+    ],
+  },
+
+  wind_onshore: {
+    id: 'wind_onshore',
+    label: '육상풍력',
+    keywords: ['육상풍력', 'onshore wind', '풍력', 'wind farm', 'wind'],
+    map: COMMON_MAP,
+    defaults: {
+      // 〈추측〉 태양광(1년)보다 길고 해상보다 짧다 — 진입로·기초공사가 있다
+      constructionYears: 2,
+      opsYears: 20, exitYear: 20,
+      revenueEscalation: 0,
+      // 〈추측〉 태양광(15%)보다 크다 — 회전기계라 정비가 든다
+      opexRatio: 20, opexEscalation: 2, rampYears: 0,
+      taxRate: 22, depreciationYears: 20,
+      ltc: 75, debtRate: 5.9, tenorYears: 15, graceYears: 2, feePct: 1.5,
+      exitCapRate: 8, sellingCostPct: 1.0, discountRate: 7.5, contingencyPct: 5,
+    },
+    keyMetrics: ['capacity.wind_mw', 'capacity.turbine_count', 'capacity.turbine_mw',
+      'site.wind_speed', 'site.hub_height_m'],
+    sensitivity: [
+      { key: 'annualRevenue', label: 'SMP+REC 변동(%)', values: [-20, -15, -10, -5, 0, 5] },
+      { key: 'debtRate', label: '차입금리(pp)', values: [-0.5, 0, 0.5, 1.0, 1.5, 2.0] },
+    ],
+  },
+
+  /**
+   * ESS — **발전이 아니라 저장이다** (등록부 D-56).
+   *
+   * ★ 태양광·풍력과 한 묶음으로 보면 안 된다. 저 둘은 자원(일사량·풍속)이
+   *   매출의 출발점이고 설비 수명이 20년이다. ESS 는 자원이 없고 **배터리가
+   *   해마다 준다** — 그래서 운영기간이 짧고, 기간 중 **교체가 들어갈 수 있다.**
+   *
+   * ⚠️ **아래 기본값은 전부 추측이다** (등록부 D-56). 수익모델(주파수조정·
+   *    피크저감·재생연계)에 따라 값이 크게 갈리는데 그 모델이 딜마다 다르다.
+   */
+  ess: {
+    id: 'ess',
+    label: 'ESS (에너지저장)',
+    keywords: ['ess', '에너지저장', '배터리 저장', 'battery storage', 'bess'],
+    map: COMMON_MAP,
+    defaults: {
+      // 〈추측〉 토목이 거의 없어 짧다
+      constructionYears: 1,
+      // 〈추측〉 **발전보다 짧다.** 배터리 수명이 운영기간의 상한이다 —
+      //   태양광(20년)을 그대로 쓰면 교체 없이 20년 도는 모델이 된다
+      opsYears: 15, exitYear: 15,
+      revenueEscalation: 0,
+      // 〈추측〉 전력변환·냉방·안전관리가 든다
+      opexRatio: 20, opexEscalation: 2, rampYears: 0,
+      taxRate: 22,
+      // 〈추측〉 배터리 기준 — 건물(40년)도 발전설비(20년)도 아니다
+      depreciationYears: 15,
+      // 〈추측〉 매출이 시장가격·정산단가라 발전보다 변동이 커 차입 여력이 낮다
+      ltc: 70, debtRate: 6.0, tenorYears: 12, graceYears: 1, feePct: 1.5,
+      exitCapRate: 9, sellingCostPct: 1.0, discountRate: 8, contingencyPct: 5,
+    },
+    keyMetrics: ['capacity.ess_mwh', 'capacity.ess_mw', 'capacity.ess_degradation',
+      'capacity.ess_soc_limit', 'revenue.ess_model'],
+    sensitivity: [
+      { key: 'annualRevenue', label: '정산수익 변동(%)', values: [-30, -20, -10, 0, 10, 20] },
+      // ★ 매출 변동폭을 발전(-20~+5)보다 넓게 잡았다 — 시장가격·정산단가라
+      //   제도 변경에 그대로 노출된다
+      { key: 'debtRate', label: '차입금리(pp)', values: [-0.5, 0, 0.5, 1.0, 1.5, 2.0] },
+    ],
+  },
+
   solar: {
     id: 'solar',
     label: '태양광 발전',
-    keywords: ['태양광', 'solar', 'PV', '발전소'],
+    // ★ `발전소` 를 뺐다 (2026-08-16). 「해상풍력 발전소」가 **태양광 템플릿으로
+    //   잡히고 있었다** — 풍력 딜이 태양광 금융조건으로 돌아간다. 자산군을
+    //   안 밝힌 「100MW 발전소」는 generic 으로 두는 편이 낫다
+    keywords: ['태양광', 'solar', 'PV'],
     map: COMMON_MAP,
     defaults: {
       constructionYears: 1, opsYears: 20, exitYear: 20,
@@ -187,6 +296,13 @@ const TEMPLATES = {
 const SCALE_BANDS = {
   datacenter:  { key: 'capacity.it_load_mw', label: 'IT Load', unit: 'MW', min: 5, max: 100 },
   solar:       { key: 'capacity.dc_kw', label: '설비용량', unit: 'kW', min: 1000, max: 20000 },
+  // 〈추측 D-55〉 국내 사업 규모대를 확인하지 못했다. 구간을 모르면 서술문이
+  //   어느 규모 기준인지 밝힐 수 없어, 넓게 잡고 추측임을 남긴다
+  wind_onshore:  { key: 'capacity.wind_mw', label: '설비용량', unit: 'MW', min: 20, max: 300 },
+  // 〈추측 D-56〉 **저장용량(MWh)으로 잡는다.** 출력(MW)으로 잡으면 1시간짜리와
+  //   4시간짜리가 같은 규모로 읽힌다
+  ess:           { key: 'capacity.ess_mwh', label: '저장용량', unit: 'MWh', min: 10, max: 1000 },
+  wind_offshore: { key: 'capacity.wind_mw', label: '설비용량', unit: 'MW', min: 100, max: 1500 },
   realestate:  { key: 'investment.total', label: '총사업비', unit: '억원', min: 300, max: 10000 },
   // 〈추측 D-40〉 구간을 모르면 서술문이 어느 규모 기준인지 밝힐 수 없다
   manufacturing: { key: 'investment.total', label: '총사업비', unit: '억원', min: 100, max: 20000 },
