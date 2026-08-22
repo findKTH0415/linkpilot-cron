@@ -220,9 +220,22 @@ async function awards(opt) {
      *   **걸러 준다는 사실에 기대는 배선**은 다음에 바뀌면 조용히 샌다. */
     const award = toEok(x.sucsfbidAmt ?? x.sucsfbidamt);
     return {
+      /* ★★★ 아래 이름은 **실측으로 확인한 것**이다 〈2026-08-23 · 한 건 전체를 떠서 대조〉.
+       *   `getScsbidListSttusCnstwkPPSSrch` 한 건이 실제로 이렇게 온다:
+       *
+       *     bidNtceNo bidNtceOrd bidClsfcNo rbidNo ntceDivCd bidNtceNm prtcptCnum
+       *     bidwinnrNm bidwinnrBizno bidwinnrCeoNm bidwinnrAdrs bidwinnrTelNo
+       *     sucsfbidAmt sucsfbidRate rlOpengDt dminsttCd dminsttNm rgstDt
+       *     fnlSucsfDate fnlSucsfCorpOfcl
+       *
+       *   ★ 앞 판은 낙찰업체를 `opengCorpNm ?? sucsfbidCorpNm` 에서 찾았다.
+       *     **둘 다 없는 이름**이라 업체명이 늘 빈칸으로 나갔다 — 빈칸은 오류가
+       *     안 나므로 화면만 봐서는 안 잡힌다. 실제 이름은 `bidwinnrNm` 이다.
+       *   ★ `opengDt` 도 이 응답엔 없다(`rlOpengDt` 가 실개찰일시다). 대체 이름은
+       *     **뒤로 물리되 지우지는 않는다** — 다른 오퍼레이션에서 쓰일 수 있다. */
       title: txt(x.bidNtceNm ?? x.ntceNm),
       agency: txt(x.dminsttNm ?? x.ntceInsttNm),
-      date: txt(x.opengDt ?? x.rlOpengDt ?? x.bidNtceDt),
+      date: txt(x.rlOpengDt ?? x.opengDt ?? x.fnlSucsfDate ?? x.bidNtceDt),
       baseEok: base,
       awardEok: award,
       /* ★★★ **낙찰률은 받아 쓴다. 우리가 나누지 않는다** 〈2026-08-23 실측〉.
@@ -234,10 +247,13 @@ async function awards(opt) {
       awardRate: rate(x) ?? ((base && award) ? Math.round((award / base) * 1000) / 10 : null),
       // 낙찰률을 어디서 얻었는지 — 출처가 다르면 그 사실이 값과 함께 다녀야 한다 (§4.7)
       rateFrom: rate(x) !== null ? 'api' : ((base && award) ? 'computed' : null),
-      winner: txt(x.opengCorpNm ?? x.sucsfbidCorpNm),
+      winner: txt(x.bidwinnrNm ?? x.opengCorpNm ?? x.sucsfbidCorpNm),
     };
   }).filter((x) => {
     if (!x.awardEok || x.awardEok < minEok) return false;
+    /* ★ 지역은 **공고명·수요기관**으로만 거른다. 응답에 `bidwinnrAdrs`(낙찰업체
+       주소)도 있지만 그건 **업체가 어디 회사인가**이지 공사가 어디인가가 아니다.
+       서울 업체가 여수 공사를 따는 일이 흔하다 — 넣으면 엉뚱한 건이 걸린다. */
     if (o.region && !(`${x.title || ''} ${x.agency || ''}`).includes(o.region)) return false;
     if (o.keyword && !(x.title || '').includes(o.keyword)) return false;
     return true;

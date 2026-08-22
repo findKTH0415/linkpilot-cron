@@ -198,3 +198,31 @@ test('★★★ 낙찰 오퍼레이션과 낙찰률 출처가 실측에 고정�
   assert.match(src, /공고명·수요기관이 전부 비어 있다/,
     '필드가 비어 0건인 경우를 조건 문제와 섞는다 — 사람이 조건만 넓히게 된다');
 });
+
+/**
+ * ★★★ **필드 이름을 실측에 고정한다** 〈2026-08-23 · 한 건 전체를 떠서 대조〉.
+ *
+ *   앞 판은 낙찰업체를 `opengCorpNm ?? sucsfbidCorpNm` 에서 찾았다. **둘 다 없는
+ *   이름**이라 업체명이 늘 빈칸으로 나갔다 — 빈칸은 오류가 안 나서 화면만 봐서는
+ *   안 잡힌다. 실제 이름은 `bidwinnrNm` 이다.
+ */
+test('★★★ 낙찰 응답의 필드 이름이 실측과 같다', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'connectors', 'g2b.js'), 'utf8');
+  const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/[^\n]*$/gm, '');
+
+  /* 실측한 한 건에 실제로 있던 이름들 */
+  ['bidNtceNm', 'dminsttNm', 'sucsfbidAmt', 'sucsfbidRate', 'rlOpengDt', 'bidwinnrNm']
+    .forEach((k) => assert.match(code, new RegExp(k), `실측에 있는 「${k}」 를 안 읽는다`));
+
+  /* ★ 낙찰업체는 **첫 자리**가 실측 이름이어야 한다. 뒤로 밀면 없는 이름을
+     먼저 보게 되고, 그건 빈칸으로 조용히 지나간다 */
+  const w = /winner: txt\(x\.(\w+)/.exec(code);
+  assert.ok(w, 'winner 를 만드는 줄을 못 찾았다');
+  assert.strictEqual(w[1], 'bidwinnrNm', `낙찰업체를 ${w[1]} 에서 먼저 찾는다 — 실측엔 없는 이름이다`);
+
+  /* ★ 지역은 업체 주소로 거르지 않는다 — 서울 업체가 여수 공사를 딴다 */
+  const f = /if \(o\.region && [^\n]*\)/.exec(code);
+  assert.ok(f, '지역 거르는 줄을 못 찾았다');
+  assert.ok(f[0].indexOf('bidwinnrAdrs') === -1,
+    '낙찰업체 주소로 지역을 거른다 — 그건 공사 위치가 아니라 업체 소재지다');
+});
