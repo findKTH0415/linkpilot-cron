@@ -37,6 +37,10 @@ const FAKE_LIMITS = {
 };
 
 /** 예시 자료 — 실제 딜 자료는 이 저장소에 두지 않는다 (public) */
+/** 자료 화면이 부르는 형제들 — 한 곳에서만 적는다 */
+const SIBLINGS = ['gate-core.js', 'flow-core.js', 'upload-core.js',
+  'embed-bridge.js', 'tokens.css', 'catalog.js', 'inapp.js'];
+
 const DEMO = {
   projects: [{ id: 'LP-DC-2026-001', name: '인천 남동 데이터센터' }],
 };
@@ -258,7 +262,7 @@ async function build(outFile) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'im-files-'));
   const f = path.join(tmp, 'files.html');
   // 화면이 참조하는 형제 파일들을 같은 곳에 둔다 (`<script src>` 로 부른다)
-  ['gate-core.js', 'flow-core.js', 'upload-core.js', 'embed-bridge.js', 'tokens.css', 'catalog.js', 'inapp.js']
+  SIBLINGS
     .filter(n => fs.existsSync(path.join(HERE, n)))
     .forEach(n => fs.copyFileSync(path.join(HERE, n), path.join(tmp, n)));
   fs.writeFileSync(f, inlineTokens(withConfig(src, cfg)));
@@ -730,4 +734,22 @@ if (require.main === module) {
   }).catch((e) => { console.error(e.message); process.exit(2); });
 }
 
-module.exports = { build, buildLive, publishableLive, DEMO, uploadDriver };
+/**
+ * 조각(`build-static.js`)이 1단계 안에 끼울 **예시 설정**. 한 곳에서만 만든다 —
+ * 두 벌이면 조각의 자료 칸만 다른 값을 보여 주는 날이 온다.
+ */
+function demoConfig() {
+  return {
+    api: null,                    // 서버를 부르지 않는다 — 예시만 보여 준다
+    session: { authenticated: true, name: '예시 사용자', planId: 'pro', status: 'active' },
+    projectId: DEMO.projects[0].id,
+    inTab: true,
+    preload: DEMO,
+    requiredPlan: 'free',
+  };
+}
+
+module.exports = {
+  build, buildLive, publishableLive, DEMO, uploadDriver,
+  demoConfig, withConfig, inlineTokens, SIBLINGS,
+};

@@ -3,7 +3,7 @@
  * files-tab.test.js — 세 번째 탭 「자료 업로드」 (2026-08-18).
  *
  * 여기서 지키는 것 넷:
- *   ① 탭 셋이 **한 곳**에서 나온다 (본체 탭 바가 그것을 읽는다)
+ *   ① 탭 둘이 **한 곳**에서 나온다 (본체 탭 바가 그것을 읽는다)
  *   ② 「업로드」라는 이름 때문에 **연결이 업로드로 읽히지 않는가**
  *   ③ **501 을 오류로 그리지 않는가** — 아직 안 붙은 것은 고장이 아니다
  *   ④ 화면이 목록·한도·제공자를 **손으로 적어 두지 않는가**
@@ -32,12 +32,21 @@ const read = (f) => fs.readFileSync(path.join(PLATFORM, f), 'utf8');
 /** 주석을 뺀 코드만 본다 — 설명 글이 규칙 위반으로 잡히면 안 된다 */
 const codeOf = (html) => html.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '');
 
-/* ═════════ ① 탭 셋이 한 곳에서 나온다 ═════════ */
+/* ═════════ ① 탭 둘이 한 곳에서 나온다 ═════════ */
 
-test('★ 탭 셋이 flow-core 한 곳에서 나온다 (본체가 여기서 읽어 간다)', () => {
+/**
+ * ★★★ 〈2026-08-22 사용자 지시 — 탭은 둘〉 앞 판은 셋이었고 「자료 업로드」가
+ *   나란히 놓여 있었다. 그런데 자료를 넣는 것은 **보고서를 만드는 일의 첫
+ *   걸음**이지 다른 일이 아니다. 탭으로 떼어 두면 「보고서를 만들려면 어느
+ *   탭부터 가야 하지?」가 된다. 그래서 **「보고서 만들기」 1단계 안**으로 넣었다.
+ *
+ * ★ 화면(`files.html`)은 그대로 살아 있다. 탭 목록에서만 빠진 것이다 —
+ *   아래 ②가 그 화면이 여전히 배포 묶음에 실리는지를 따로 잰다.
+ */
+test('★ 탭 둘이 flow-core 한 곳에서 나온다 (본체가 여기서 읽어 간다)', () => {
   assert.deepStrictEqual(F.TABS.map(t => t.tab),
-    ['완성 보고서', '보고서 생성', '자료 업로드']);
-  assert.deepStrictEqual(F.TABS.map(t => t.id), ['done', 'make', 'files']);
+    ['완성 보고서', '보고서 만들기']);
+  assert.deepStrictEqual(F.TABS.map(t => t.id), ['done', 'make']);
   F.TABS.forEach((t) => {
     assert.ok(t.file && /\.html$/.test(t.file), `${t.id}: 붙일 파일이 없다`);
     assert.ok(fs.existsSync(path.join(PLATFORM, t.file)),
@@ -46,8 +55,26 @@ test('★ 탭 셋이 flow-core 한 곳에서 나온다 (본체가 여기서 읽�
   });
 });
 
-test('★ 자료 탭은 무료다 (자료를 넣는 길이 유료면 Pro 를 살지 판단할 수가 없다)', () => {
+test('★ 자료 넣기는 무료다 (자료를 넣는 길이 유료면 Pro 를 살지 판단할 수가 없다)', () => {
   assert.strictEqual(F.FILES_SECTION.plan, 'free');
+});
+
+/**
+ * ★★★ **탭에서 빠져도 배포 묶음에는 있어야 한다** 〈2026-08-22 · 실제로 빠졌다〉.
+ *
+ *   `required()` 는 `<script src>` 를 훑어 묶음을 만든다. 그런데 자료 업로드
+ *   화면은 이제 **1단계가 iframe 으로 품고** 있어서 그 참조가 자바스크립트
+ *   안에 있다 — 훑기에 안 걸린다. 실제로 탭에서 빼자마자 묶음에서 사라졌다.
+ *   그대로 배포하면 **초록으로 끝나고 1단계 안이 404** 가 된다 (M-22 와 같은 결).
+ */
+test('★★★ 자료 업로드 화면이 탭이 아니어도 배포 묶음에 실린다', () => {
+  const need = require(path.join(PLATFORM, 'build-embed.js')).required();
+  assert.ok(need.includes(F.FILES_SECTION.file),
+    `${F.FILES_SECTION.file} 이 배포 묶음에 없다 — 1단계 안이 404 가 된다`);
+  /* ★ 그 화면이 부르는 형제들도 함께 실려야 한다. 하나만 빠져도 짝이 깨진다 */
+  ['upload-core.js', 'versions-core.js', 'tokens.css'].forEach((f) => {
+    assert.ok(need.includes(f), `${f} 이 묶음에 없다 — 자료 업로드 화면이 반쯤 뜬다`);
+  });
 });
 
 test('★ 구성안이 탭 이름을 복사해 적지 않는다', () => {

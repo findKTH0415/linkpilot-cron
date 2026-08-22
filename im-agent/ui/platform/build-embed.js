@@ -56,6 +56,13 @@ function required() {
   };
   FLOW.TABS.forEach(t => scan(t.file));
   FLOW.STEPS.forEach(s => scan(s.file));
+  /* ★★★ **탭이 아니어도 쓰이는 화면이 있다** 〈2026-08-22〉.
+   *   자료 업로드는 탭에서 빠지고 **1단계 안**으로 들어갔다(iframe). 그런데
+   *   그 참조는 자바스크립트 안에 있어서 `<script src>` 훑기에 안 걸린다.
+   *   그대로 두면 묶음에서 빠지고, **배포는 초록인데 1단계 안이 404** 가 된다
+   *   (M-22 와 같은 결의 사고 — 짝이 깨진 배포는 오류를 안 낸다).
+   *   ★ 그래서 「어디에 얹혔든 화면이면 싣는다」로 센다. */
+  [FLOW.FILES_SECTION].forEach((sec) => { if (sec && sec.file) scan(sec.file); });
   return [...seen].sort();
 }
 

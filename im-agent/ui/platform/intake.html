@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="31152290">
+<html lang="ko" data-lp-build="e26243f7">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -158,6 +158,14 @@ h1,h2,h3,h4 { margin: 0; }
 .file__x { margin-left: auto; font-weight: 600; font-size: 12px; line-height: 1; font-family: inherit; padding: 7px 11px; border-radius: 8px;
   border: 1px solid var(--line); background: var(--surface); color: var(--ink2); cursor: pointer; }
 
+/* 1단계가 품는 자료 업로드 화면. 테두리는 한 겹만 — 카드 안이라 두 겹이면 답답하다 */
+.sub-frame { margin-top: 4px; }
+.sub-frame__f { width: 100%; height: 720px; border: 0; display: block; }
+/* 조각(주소로 여는 페이지)에서 iframe 자리에 들어가는 안내. 앱에서는 안 쓴다 */
+.sub-frame__na { border: 1px dashed var(--line); border-radius: 12px; padding: 16px 14px;
+  font-size: 13px; line-height: 1.75; color: var(--ink2); background: var(--panel); }
+.sub-frame__na b { color: var(--ink); }
+
 /* 발행 주체 */
 .iss-mark { width: 46px; height: 46px; border-radius: 50%; background: var(--panel);
   border: 1px solid var(--line); display: grid; place-items: center;
@@ -247,6 +255,7 @@ h1,h2,h3,h4 { margin: 0; }
 </div>
 
 <script src="gate-core.js"></script>
+<script src="flow-core.js"></script>
 <script src="upload-core.js"></script>
 <script src="catalog.js"></script>
 <script src="inapp.js"></script>
@@ -788,9 +797,62 @@ window.LINKPILOT_INTAKE = {
     return words.slice(0, 4).map(function (w) { return w[0]; }).join('').toUpperCase();
   }
 
+  /**
+   * **자료 업로드 — 탭이 아니라 여기 있다** 〈2026-08-22 사용자 지시〉.
+   *
+   * ★★ 화면을 **베끼지 않는다.** `files.html` 을 그대로 품는다. 세 갈래
+   *   (LinkPilot 프로젝트에서 가져오기 · 폴더를 연결해서 · 파일업로드)와 한도·
+   *   합계·스캔이 전부 그 화면에 있다. 베끼면 한쪽만 고치는 날이 오고, 그때
+   *   사용자는 **같은 기능이 자리마다 다르게 도는 것**을 본다.
+   *
+   * ★ 높이는 안쪽이 알려 준다(`embed-bridge.js` 의 `lp-embed-height`). 안 들으면
+   *   iframe 이 잘린 채로 남는다 — 목록이 길어질수록 더 잘린다.
+   * ★ 못 품는 자리가 있다(파일로 열었을 때 등). 그때는 **조용히 비우지 않고**
+   *   그 화면으로 가는 길을 글자로 준다.
+   */
+  function filesFrame() {
+    var FLOW = window.LinkPilotFlow;
+    var file = (FLOW && FLOW.FILES_SECTION && FLOW.FILES_SECTION.file) || 'files.html';
+    var wrap = el('div', 'sub-frame');
+    var fr = document.createElement('iframe');
+    fr.className = 'sub-frame__f';
+    fr.title = '자료 업로드';
+    fr.loading = 'lazy';
+    var q = [];
+    if (C.api) q.push('api=' + encodeURIComponent(C.api));
+    if (state.created && state.created.projectId) {
+      q.push('project=' + encodeURIComponent(state.created.projectId));
+    }
+    fr.src = file + (q.length ? '?' + q.join('&') : '');
+    wrap.appendChild(fr);
+
+    /* 안쪽이 알려 주는 높이에 맞춘다 — 한 번만 듣는다 */
+    if (!filesFrame.wired) {
+      filesFrame.wired = true;
+      window.addEventListener('message', function (ev) {
+        var d = ev.data;
+        if (!d || d.type !== 'lp-embed-height' || !(d.height > 0)) return;
+        var f = document.querySelector('.sub-frame__f');
+        if (f) f.style.height = Math.max(320, d.height + 8) + 'px';
+      });
+    }
+    return wrap;
+  }
+
   function dropCard() {
     var box = el('section', 'card');
-    box.appendChild(el('h2', 'card__t', '원본 자료'));
+    box.appendChild(el('h2', 'card__t', '자료 업로드'));
+    box.appendChild(el('p', 'card__s',
+      '사업계획서·기술제안서·재무자료 등. 모든 수치는 여기서 뽑고 출처로 기록됩니다. '
+      + '나중에 추가로 올릴 수도 있습니다.'));
+    box.appendChild(filesFrame());
+    return box;
+  }
+
+  /** 예전 판의 1회성 올리기 칸. 자료 업로드 화면이 같은 일을 더 잘 한다 */
+  function dropCardLegacy() {
+    var box = el('section', 'card');
+    box.appendChild(el('h2', 'card__t', '자료 업로드'));
     box.appendChild(el('p', 'card__s',
       '사업계획서·기술제안서·재무자료 등. 모든 수치는 여기서 뽑고 출처로 기록됩니다. '
       + '나중에 추가로 올릴 수도 있습니다.'));
@@ -982,8 +1044,13 @@ window.LINKPILOT_INTAKE = {
       return;
     }
 
-    body.appendChild(requestCard());
+    /* ★★ **차례는 사용자가 정한 그대로다** 〈2026-08-22 지시〉:
+     *     ① 발행 주체 ② 무엇을 만들까요 ③ 자료 업로드
+     *   앞 판은 「무엇을 만들까요」가 먼저였다. 발행 주체를 앞에 두는 쪽이
+     *   맞다 — **누가 내는 문서인지**가 정해져야 나머지가 그 회사 것이 된다.
+     *   (안 넣으면 문서에 「발행 주체 미설정」이 찍히고 승인이 막힌다) */
     body.appendChild(issuerCard());
+    body.appendChild(requestCard());
     body.appendChild(formatCard());
     body.appendChild(dropCard());
     body.appendChild(actionsRow());

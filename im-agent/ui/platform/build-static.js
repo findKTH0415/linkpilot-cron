@@ -290,11 +290,42 @@ async function buildArtifact(opt) {
     process.stderr.write(`  0. ${FLOW_PANEL.name} — ${Math.round(part.html.length / 1024)}KB\n`);
   }
 
+  /**
+   * ★★★ **조각에는 iframe 을 넣을 수 없다** 〈2026-08-22 · M-01 의 `publishable()`〉.
+   *
+   *   1단계가 자료 업로드 화면을 iframe 으로 품게 되면서, 조각을 만들려 하니
+   *   「올릴 수 없는 조각이다 — <iframe> 이 있다」로 막혔다. 주소로 여는
+   *   페이지에서는 iframe 이 안 열리기 때문이다.
+   *
+   *   ★ **구멍을 내지 않는다.** 그 자리에 「여기 화면이 들어갑니다」만 적으면
+   *     조각을 보는 사람은 **가장 중요한 칸을 못 본다.** 그래서 그 화면을
+   *     **따로 그려서 그 자리에 끼운다** — 조각에는 진짜 화면이 들어간다.
+   *   ★ CSS 는 `inlineScreen` 이 칸마다 따로 가둔다. 안 가두면 화면들의 스타일이
+   *     서로 덮는다 (원래 iframe 을 쓰던 이유가 그것이다).
+   */
+  function inlineFrames(html) {
+    if (!/<iframe[^>]*class="sub-frame__f"/.test(html)) return html;
+    /* ★ **조각에는 iframe 이 안 들어간다** (M-01 의 `publishable()`). 주소로 여는
+     *   페이지에서 iframe 이 안 열리기 때문이다.
+     *
+     * ★★ 그 화면을 **끼워 넣어 보려다 접었다** 〈2026-08-22〉. 따로 그려서 넣으면
+     *   빈 조각(2KB)만 나온다 — 자료 화면은 설정을 받아야 그려지는데, 조각을
+     *   만드는 자리에서 그 설정을 먹이는 길을 아직 못 찾았다.
+     * ★ **빈 칸으로 조용히 두지 않는다.** 여기 무엇이 들어가고, 그것을 어디서
+     *   봐야 하는지 글자로 적는다 — 없는 것을 그럴듯하게 그리지 않는다 (§8).
+     */
+    return html.replace(/<iframe[^>]*class="sub-frame__f"[^>]*>\s*<\/iframe>/g,
+      '<div class="sub-frame__na"><b>자료 업로드 화면이 여기 들어갑니다.</b>'
+      + ' 주소로 여는 조각에는 화면 안의 화면을 실을 수 없어 이 자리에만 안 보입니다 —'
+      + ' 실제 화면은 <b>자료 업로드 미리보기</b>에서 보십시오. 앱에서는 이 자리에 그대로 붙어 있습니다.</div>');
+  }
+
   picked.forEach((s, i) => {
     const f = path.join(tmp, `${s.id}.html`);
     fs.writeFileSync(f, docs[s.id] + EMBED + EXPAND + MEASURE);
     const dom = renderDom(browser, f);
     const part = inlineScreen(dom, `scr-${s.id}`);
+    part.html = inlineFrames(part.html);
     css.push(part.css);
     body.push(panelHtml(s, String(only ? SCREENS.findIndex(x => x.id === s.id) + 1 : i + 1), part.html));
     process.stderr.write(`  ${i + 1}. ${s.name} — ${Math.round(part.html.length / 1024)}KB\n`);

@@ -19,12 +19,18 @@ const { build, SCREENS, EXTRAS } = require('../ui/platform/build-preview.js');
 
 const PLATFORM = path.join(__dirname, '..', 'ui', 'platform');
 
-test('단계는 4개이고 순서·이름이 고정되어 있다', () => {
+/**
+ * ★★ 〈2026-08-22 사용자 지시 — 단계는 셋〉 앞 판은 넷이었다(…·출력조건·**생성**).
+ *   넷째는 셋째와 **같은 화면**이고 확정을 누르면 그 자리에서 모습만 바뀐다.
+ *   옮겨 갈 곳이 없는 칸을 레일에 그리면 사용자는 「한 칸 더 남았다」로 읽고
+ *   다음을 찾는다 — 찾을 것이 없다.
+ */
+test('단계는 3개이고 순서·이름이 고정되어 있다', () => {
   assert.deepStrictEqual(
     SCREENS.map(s => `${s.no}. ${s.name}`),
-    ['1. 보고서 생성 입력', '2. 가이드 필드 (자동입력 + 직접입력)', '3. 출력조건', '4. 생성']);
+    ['1. 보고서 생성 입력', '2. 가이드 필드 (자동입력 + 직접입력)', '3. 출력조건']);
 
-  // 번호는 1..4 로 이어져야 한다 — 건너뛰면 흐름이 아니라 목록이 된다
+  // 번호는 1..3 으로 이어져야 한다 — 건너뛰면 흐름이 아니라 목록이 된다
   SCREENS.forEach((s, i) => assert.strictEqual(s.no, i + 1));
 });
 
@@ -37,23 +43,29 @@ test('단계 이름이 실제 화면의 단계 표시와 같다', () => {
   const m = html.match(/\[('[^']*',\s*)+'[^']*'\]\.forEach\(function \(label, i\)/);
   assert.ok(m, 'reports.html 의 단계 배열을 찾지 못했다 — 미리보기 대조가 불가능해졌다');
   const labels = [...m[0].matchAll(/'([^']+)'/g)].map(x => x[1]);
-  assert.strictEqual(labels.length, 4);
 
-  // 1·2 는 미리보기에서 별도 화면이라 이름이 다르다 (대상 선택 vs 접수).
-  // 3·4 는 같은 화면의 두 상태이므로 **이름이 같아야 한다**
+  /* ★ 화면 안의 이름표는 **넷 그대로 둔다** 〈2026-08-22〉. 레일에서 「생성」 칸을
+     뺀 것은 **옮겨 갈 곳이 없어서**이고, 확정 뒤에 그 자리에서 「생성」으로
+     바뀌는 것은 그대로다. 화면이 스스로 그 상태를 말해야 한다.
+     ★ 그래서 여기서는 **3단계 이름만** 맞춘다 — 레일에 있는 마지막 칸이다. */
+  assert.ok(labels.length >= 3, `화면의 단계 이름표가 ${labels.length}개뿐이다`);
   assert.strictEqual(SCREENS[2].name, labels[2], '3단계 이름이 화면과 다르다');
-  assert.strictEqual(SCREENS[3].name, labels[3], '4단계 이름이 화면과 다르다');
 });
 
-test('3·4 단계는 같은 파일의 서로 다른 상태다', () => {
-  assert.strictEqual(SCREENS[2].file, SCREENS[3].file);
+/**
+ * ★★ **「생성」은 3단계와 같은 화면이다** — 레일에서 뺐어도 그 사실은 남는다.
+ *   화면이 확정 뒤에 다른 것을 보여 준다는 것을 여기서 못 박아 둔다.
+ */
+test('출력조건은 확정 전 상태다 (확정하면 같은 화면이 생성으로 바뀐다)', () => {
+  assert.strictEqual(SCREENS[2].file, 'reports.html');
   assert.strictEqual(SCREENS[2].after, undefined, '3단계는 확정 전이어야 한다');
-  assert.strictEqual(SCREENS[3].after, 'CONFIRM_SPEC', '4단계는 확정을 실제로 눌러야 한다');
+  assert.ok(!SCREENS.some(x => x.after === 'CONFIRM_SPEC'),
+    '레일에 확정 뒤 칸이 남아 있다 — 옮겨 갈 곳이 없는 칸이다');
 });
 
-test('흐름 밖 화면을 4단계 안에 끼우지 않는다', () => {
+test('흐름 밖 화면을 단계 안에 끼우지 않는다', () => {
   // 지금은 비어 있다 (작업지시판을 2026-08-15 저장소에서 제거했다).
-  // 나중에 다시 생기더라도 단계 목록과 섞이면 안 된다 — 4단계가 5단계처럼 보인다
+  // 나중에 다시 생기더라도 단계 목록과 섞이면 안 된다 — 3단계가 4단계처럼 보인다
   const files = SCREENS.map(s => s.file);
   EXTRAS.forEach((x) => {
     assert.ok(!files.includes(x.file), `${x.file} 이 단계 목록에도 들어 있다`);

@@ -54,7 +54,7 @@ test('★ 잠긴 단계는 이유를 말한다', () => {
 
   const noProject = F.stepState({ api: '/api', projectId: null });
   assert.strictEqual(noProject[0].locked, false, '1단계는 프로젝트 없이도 열려야 한다');
-  [1, 2, 3].forEach((i) => {
+  [1, 2].forEach((i) => {
     assert.strictEqual(noProject[i].locked, true);
     assert.strictEqual(noProject[i].why, F.WHY.project);
   });
@@ -597,10 +597,15 @@ test('★ 인수인계서가 붙이는 데 필요한 것을 빠뜨리지 않는�
  */
 test('★★ 단계 이름이 네 곳에서 같다 (사본이 갈리지 않는다)', () => {
   const L = require('../ui/platform/live-core.js');
-  // ① live-core 는 flow-core 와 글자 그대로 같아야 한다
-  assert.deepStrictEqual(L.STEPS.map(s => [s.id, s.n, s.label]),
+  /* ① live-core 의 **앞 셋**은 flow-core 와 글자 그대로 같아야 한다.
+     ★ 넷째(`make`)는 live-core 에만 있다 〈2026-08-22〉 — 레일에는 칸이 없지만
+       **진행률은 생성을 따로 센다.** 「출력조건 100%」로 뭉치면 만들어지는
+       중인지 끝났는지가 사라지고, 기다리는 사람에게는 그것이 전부다. */
+  assert.deepStrictEqual(L.STEPS.slice(0, F.STEPS.length).map(s => [s.id, s.n, s.label]),
     F.STEPS.map(s => [s.id, s.no, s.name]),
     'live-core 의 단계 표가 flow-core 와 다르다');
+  assert.deepStrictEqual(L.STEPS.slice(F.STEPS.length).map(s => s.id), ['make'],
+    'live-core 에 레일 밖 단계가 「생성」 말고 또 있다 — 진행률에만 있는 칸은 하나여야 한다');
 
   // ② 단계 화면의 칩도 같은 이름을 쓴다 (1번 칸은 화면마다 다르다 — 대상 선택 vs 접수)
   const fs2 = require('fs');
@@ -611,8 +616,11 @@ test('★★ 단계 이름이 네 곳에서 같다 (사본이 갈리지 않는�
     const m = html.match(/\[('[^']*',\s*)+'[^']*'\]\.forEach\(function \(label, i\)/);
     assert.ok(m, `${f} 에서 단계 칩 배열을 못 찾았다 — 대조가 불가능해졌다`);
     const labels = [...m[0].matchAll(/'([^']+)'/g)].map(x => x[1]);
-    assert.strictEqual(labels.length, 4, `${f} 의 단계 칩이 4개가 아니다`);
-    [1, 2, 3].forEach((i) => {
+    /* ★ 화면 안의 칩은 **넷 그대로 둔다** 〈2026-08-22〉 — 확정 뒤에 「생성」으로
+       바뀌는 상태를 화면이 스스로 말해야 한다. 레일에서만 칸을 뺐다.
+       그래서 대조하는 것은 **레일에 있는 만큼**(2·3번)이다. */
+    assert.ok(labels.length >= F.STEPS.length, `${f} 의 단계 칩이 모자라다`);
+    [1, 2].forEach((i) => {
       assert.strictEqual(labels[i], F.STEPS[i].name,
         `${f} 의 ${i + 1}번 칩이 정본과 다르다`);
     });
@@ -630,10 +638,11 @@ test('★★ 절 넷 — 순서·이름·품은 단계가 고정되어 있다', 
     '3. 가이드 필드 (자동입력 + 직접입력)',
     '4. 출력조건',
   ]);
-  // ★ ④ 가 spec·make 둘을 품는다. 둘은 같은 화면의 서로 다른 상태다 —
-  //   화면에서까지 갈라 두면 「3을 끝내고 4로 넘어간다」로 읽힌다
+  /* ★ ④ 는 `spec` 하나를 품는다 〈2026-08-22 — 단계는 셋〉. 확정 뒤의 「생성」은
+     같은 화면의 다른 상태일 뿐 **옮겨 갈 칸이 아니다.** 칸으로 두었더니
+     「3을 끝내고 4로 넘어간다」로 읽혔다. */
   assert.deepStrictEqual(F.SECTIONS.map(s => s.steps),
-    [[], ['intake'], ['fields'], ['spec', 'make']]);
+    [[], ['intake'], ['fields'], ['spec']]);
   // 모든 단계가 **정확히 한 절**에만 속한다 (빠진 단계도, 두 번 실린 단계도 없다)
   const owned = F.SECTIONS.flatMap(s => s.steps).sort();
   assert.deepStrictEqual(owned, F.STEPS.map(s => s.id).sort(),

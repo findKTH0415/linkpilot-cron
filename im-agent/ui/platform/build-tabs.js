@@ -41,7 +41,7 @@ const mb = (n) => `${Math.round(n / (1024 * 1024))}MB`;
 const plain = (t) => String(t).replace(/\*\*/g, '');
 
 /**
- * 탭 셋. `state` 는 **지금 이 저장소에 그 화면이 있는가**다 — 구성안에서 가장
+ * 탭 목록. `state` 는 **지금 이 저장소에 그 화면이 있는가**다 — 구성안에서 가장
  * 중요한 정보이고, 안 적으면 셋 다 있는 것처럼 읽힌다.
  */
 const TABS = [
@@ -62,12 +62,22 @@ const TABS = [
     stateText: '있다 — report-flow.html (inTab: true 로 얹는다)',
     plan: 'Pro',
   },
+  /* ★★★ **자료 업로드는 더 이상 탭이 아니다** 〈2026-08-22 사용자 지시〉.
+   *   「보고서 만들기」의 **1단계 안**으로 들어갔다 — 자료를 넣는 것은 보고서를
+   *   만드는 일의 첫 걸음이지 나란히 놓인 다른 일이 아니다. 탭으로 떼어 두면
+   *   「보고서를 만들려면 어느 탭부터 가야 하지?」가 된다.
+   *
+   *   ★ 그래도 **구성안에서 칸을 빼지 않는다.** 이 칸에는 1회성의 대가·보관
+   *     범위처럼 **사용자가 반드시 읽어야 하는 말**이 적혀 있고, 검사가 그것을
+   *     지킨다. 칸을 빼면 그 말과 검사가 함께 사라진다.
+   *   ★ 대신 **탭이 아니라는 것을 칸이 스스로 말한다** (`inStep`). 탭 바에 뜨는
+   *     것은 위의 둘뿐이다. */
   {
-    // 이름은 flow-core.js 의 FILES_SECTION 이 단일 출처다 (2026-08-18)
     id: 'files', order: 3, name: FLOW.FILES_SECTION.tab,
     sub: FLOW.FILES_SECTION.tabNote,
+    inStep: '보고서 만들기 · 1단계 안',
     state: 'have',
-    stateText: '있다 — files.html (inTab: true 로 얹는다)',
+    stateText: '있다 — files.html (탭이 아니라 1단계가 iframe 으로 품는다)',
     plan: '무료',
   },
 ];
@@ -356,10 +366,12 @@ function appMock() {
   // ★ 라디오는 `.tabs` **밖**에 둔다. 안에 넣으면 `~` 로 닿지 못해 탭이 안 바뀐다
   const radios = TABS.map((t, i) => `
     <input class="sr" type="radio" name="tab" id="tab-${t.id}"${i === 0 ? ' checked' : ''}>`).join('');
+  /* ★ 탭이 아닌 칸은 **딱지를 붙여** 구분한다 〈2026-08-22〉. 안 붙이면 구성안이
+     여전히 「탭 셋」으로 읽히고, 그 오해가 앱 탭 바 작업으로 그대로 넘어간다 */
   const tabs = TABS.map(t => `
-      <label class="tab tab--${t.id}" for="tab-${t.id}">
+      <label class="tab tab--${t.id}${t.inStep ? ' tab--instep' : ''}" for="tab-${t.id}">
         <span class="tab__n">${esc(t.name)}</span>
-        <span class="tab__s">${esc(t.sub)}</span>
+        <span class="tab__s">${esc(t.inStep ? '탭 아님 · ' + t.inStep : t.sub)}</span>
         <span class="dot dot--${t.state}" title="${esc(STATE_LABEL[t.state])}"></span>
       </label>`).join('');
 
@@ -369,6 +381,7 @@ function appMock() {
         <div>
           <h3 class="body__t">${esc(t.name)}</h3>
           <p class="body__st"><span class="dot dot--${t.state}"></span>${esc(t.stateText)}</p>
+          ${t.inStep ? `<p class="body__instep"><b>탭이 아닙니다</b> — ${esc(t.inStep)} 에 들어 있습니다. 앱 탭 바에는 안 뜹니다.</p>` : ''}
         </div>
         <span class="plan">${esc(t.plan)}</span>
       </header>
@@ -492,6 +505,11 @@ h1 { font-size: 30px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 10px
 }
 .tab__n { font: 700 14px/1.3 inherit; color: #5C646D; }
 .tab__s { font: 400 11.5px/1.3 inherit; color: #9AA1A9; }
+/* 탭이 아닌 칸 — 구성안에서만 나란히 보여 준다. 앱 탭 바에는 안 뜬다 */
+.tab--instep { opacity: .78; }
+.tab--instep .tab__n::after { content: ' ↳'; color: #9AA1A9; font-weight: 400; }
+.body__instep { margin-top: 6px; font: 400 12.5px/1.6 inherit; color: #8F1D1D; }
+.body__instep b { font-weight: 700; }
 .tab:hover .tab__n { color: #0A1419; }
 .tab .dot { position: absolute; top: 9px; right: 9px; }
 
@@ -695,7 +713,7 @@ h1 { font-size: 30px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 10px
 /* ────────────────────────── 조립 ────────────────────────── */
 
 function build() {
-  return `<title>세 탭 구성안</title>
+  return `<title>탭 구성안</title>
 <style>${CSS}
 ${progressCss()}</style>
 <div class="wrap">
@@ -794,7 +812,9 @@ function main() {
   if (bad.length) throw new Error('올릴 수 없는 조각이다 — ' + bad.join(' / '));
 
   fs.writeFileSync(out, html);
-  console.log(`${out} (${Math.round(html.length / 1024)}KB) · 세 탭 구성안`);
+  const inTab = TABS.filter(t => !t.inStep).length;
+  console.log(`${out} (${Math.round(html.length / 1024)}KB) · 탭 구성안 `
+    + `(탭 ${inTab}개 + 단계 안 ${TABS.length - inTab}개)`);
 }
 
 if (require.main === module) main();

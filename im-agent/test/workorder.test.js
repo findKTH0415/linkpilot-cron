@@ -21,20 +21,16 @@ const PLATFORM = path.join(__dirname, '..', 'ui', 'platform');
 const DOC = fs.readFileSync(path.join(ROOT, 'docs', '작업지시서-플랫폼-연동.md'), 'utf8');
 const F = require('../ui/platform/flow-core.js');
 
-/** 탭 셋과 4단계가 **실제로 요구하는** 파일 — 훑어서 뽑는다 (손으로 적지 않는다) */
-function required() {
-  const seen = new Set();
-  const scan = (f) => {
-    if (seen.has(f)) return;
-    seen.add(f);
-    const s = fs.readFileSync(path.join(PLATFORM, f), 'utf8');
-    [...s.matchAll(/<script src="([^"]+)"|<link rel="stylesheet" href="([^"]+)"/g)]
-      .map(m => m[1] || m[2]).forEach(scan);
-  };
-  F.TABS.forEach(t => scan(t.file));
-  F.STEPS.forEach(s => scan(s.file));
-  return [...seen];
-}
+/**
+ * 배포가 **실제로 요구하는** 파일 — 손으로 적지 않는다.
+ *
+ * ★★★ **여기서 다시 훑지 않는다** 〈2026-08-22 · 실제로 갈렸다〉. 앞 판은 이
+ *   파일 안에 `required()` 를 **한 벌 더** 갖고 있었다. 그러다 자료 업로드가
+ *   탭에서 1단계 안(iframe)으로 옮겨 가자, 본체는 그 화면을 세는데 이 사본은
+ *   못 세서 **14개 대 16개**로 갈렸다. 사본은 이렇게 조용히 갈린다.
+ *   ★ 정본은 `build-embed.js` 의 `required()` 하나다.
+ */
+const { required } = require('../ui/platform/build-embed.js');
 
 test('★★ 작업지시서의 파일 목록이 실제로 필요한 것과 같다', () => {
   const need = required();

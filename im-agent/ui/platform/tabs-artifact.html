@@ -1,4 +1,4 @@
-<title>세 탭 구성안</title>
+<title>탭 구성안</title>
 <style>
 :root {
   --ground: #F4F5F7; --surface: #FFFFFF; --ink: #0A1419; --ink2: #6E757D;
@@ -93,6 +93,11 @@ h1 { font-size: 30px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 10px
 }
 .tab__n { font: 700 14px/1.3 inherit; color: #5C646D; }
 .tab__s { font: 400 11.5px/1.3 inherit; color: #9AA1A9; }
+/* 탭이 아닌 칸 — 구성안에서만 나란히 보여 준다. 앱 탭 바에는 안 뜬다 */
+.tab--instep { opacity: .78; }
+.tab--instep .tab__n::after { content: ' ↳'; color: #9AA1A9; font-weight: 400; }
+.body__instep { margin-top: 6px; font: 400 12.5px/1.6 inherit; color: #8F1D1D; }
+.body__instep b { font-weight: 700; }
 .tab:hover .tab__n { color: #0A1419; }
 .tab .dot { position: absolute; top: 9px; right: 9px; }
 
@@ -384,13 +389,13 @@ h1 { font-size: 30px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 10px
         <span class="dot dot--have" title="있다"></span>
       </label>
       <label class="tab tab--make" for="tab-make">
-        <span class="tab__n">보고서 생성</span>
-        <span class="tab__s">입력부터 산출까지 4단계</span>
+        <span class="tab__n">보고서 만들기</span>
+        <span class="tab__s">입력부터 산출까지 3단계</span>
         <span class="dot dot--have" title="있다"></span>
       </label>
-      <label class="tab tab--files" for="tab-files">
+      <label class="tab tab--files tab--instep" for="tab-files">
         <span class="tab__n">자료 업로드</span>
-        <span class="tab__s">보관 · 연결 · 1회성</span>
+        <span class="tab__s">탭 아님 · 보고서 만들기 · 1단계 안</span>
         <span class="dot dot--have" title="있다"></span>
       </label>
     </div>
@@ -400,6 +405,7 @@ h1 { font-size: 30px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 10px
         <div>
           <h3 class="body__t">완성 보고서</h3>
           <p class="body__st"><span class="dot dot--have"></span>있다 — outputs.html (inTab: true 로 얹는다)</p>
+          
         </div>
         <span class="plan">Pro</span>
       </header>
@@ -416,7 +422,7 @@ h1 { font-size: 30px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 10px
       <span class="cnt"></span>
       <span class="of">이 프로젝트에서 나와야 하는 산출물 중 실제로 파일이 나온 것</span>
     </div>
-    <div class="says"><p class="say say--a">아직 만든 것이 없습니다. 「보고서 생성」 탭에서 요청문과 자료를 넣으면 시작됩니다.</p><p class="say say--b">IM 원문·A4 인쇄본·뷰어 데이터가 나왔습니다. PDF·Teaser·검증·RED FLAG 는 아직입니다 — <b>무엇이 남았는지와 그 이유가 목록에 함께 뜹니다.</b></p><p class="say say--c">사양에 담은 것이 모두 나왔습니다. <b>내보내기 전에 배포 전 교차검증을 지나야 합니다</b> — 100% 는 「만들어졌다」이지 「보내도 된다」가 아닙니다.</p></div>
+    <div class="says"><p class="say say--a">아직 만든 것이 없습니다. 「보고서 만들기」 탭에서 요청문과 자료를 넣으면 시작됩니다.</p><p class="say say--b">IM 원문·A4 인쇄본·뷰어 데이터가 나왔습니다. PDF·Teaser·검증·RED FLAG 는 아직입니다 — <b>무엇이 남았는지와 그 이유가 목록에 함께 뜹니다.</b></p><p class="say say--c">사양에 담은 것이 모두 나왔습니다. <b>내보내기 전에 배포 전 교차검증을 지나야 합니다</b> — 100% 는 「만들어졌다」이지 「보내도 된다」가 아닙니다.</p></div>
     <p class="prog__note">분모는 <b>11종 전부가 아니라 이 프로젝트에서 나와야 하는 것</b>입니다 — 언제나 나오는 것과, 사양의 형식에 들어간 것(PDF 등)까지. <b>조건부 산출물(탁상검토·법인가치)은 분모에 넣지 않습니다</b>: 넣으면 어떤 딜도 100% 가 되지 않아 <b>다 끝났는데도 덜 된 것처럼</b> 보입니다. 그렇다고 목록에서 빼지도 않습니다 — 빼면 「나올 수 있는 문서가 있었다」는 사실이 사라집니다. <b>분모는 서버가 줍니다</b>(<code>progress</code>) — 화면이 계산하면 산출물이 하나 늘 때 한쪽만 고치는 날 조용히 틀립니다.</p>
   </div>
       
@@ -483,8 +489,9 @@ h1 { font-size: 30px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 10px
     <section class="body body--make">
       <header class="body__h">
         <div>
-          <h3 class="body__t">보고서 생성</h3>
+          <h3 class="body__t">보고서 만들기</h3>
           <p class="body__st"><span class="dot dot--have"></span>있다 — report-flow.html (inTab: true 로 얹는다)</p>
+          
         </div>
         <span class="plan">Pro</span>
       </header>
@@ -508,7 +515,7 @@ h1 { font-size: 30px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 10px
   <p class="body__lede">지금의 <b>4단계 화면이 통째로 이 탭의 내용</b>이 됩니다.
     화면 자체는 손대지 않고 설정 한 줄(<code>inTab: true</code>)만 켭니다 —
     그러면 <b>자체 제목을 그리지 않습니다.</b> 탭 바가 이미 이름을 말하므로
-    끄지 않으면 「보고서 생성」 아래에 「보고서 생성」이 또 나옵니다.</p>
+    끄지 않으면 「보고서 만들기」 아래에 「보고서 만들기」이 또 나옵니다.</p>
 
   <div class="callout callout--rule">
     <div class="callout__t">이 탭은 지금 붙일 수 있습니다</div>
@@ -534,14 +541,7 @@ h1 { font-size: 30px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 10px
       <span class="step__n">3</span>
       <div>
         <div class="step__t">출력조건</div>
-        <p class="step__d">페이지 수·형식·언어를 사람이 못 박는다. 확정 전에는 생성 버튼이 열리지 않는다.</p>
-      </div>
-    </li>
-    <li class="step">
-      <span class="step__n">4</span>
-      <div>
-        <div class="step__t">생성</div>
-        <p class="step__d">확정(LOCK) 뒤의 화면이다. 3단계와 같은 화면이며, 확정을 누르면 여기로 바뀐다.</p>
+        <p class="step__d">페이지 수·형식·언어를 사람이 못 박는다. 확정 전에는 생성 버튼이 열리지 않고, **확정하면 그 자리에서 생성으로 바뀐다** — 옮겨 갈 칸이 따로 없다.</p>
       </div>
     </li></ol>
   <p class="body__note">이 넷은 실제로 눌러 볼 수 있는 미리보기가 따로 있습니다
@@ -551,7 +551,8 @@ h1 { font-size: 30px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 10px
       <header class="body__h">
         <div>
           <h3 class="body__t">자료 업로드</h3>
-          <p class="body__st"><span class="dot dot--have"></span>있다 — files.html (inTab: true 로 얹는다)</p>
+          <p class="body__st"><span class="dot dot--have"></span>있다 — files.html (탭이 아니라 1단계가 iframe 으로 품는다)</p>
+          <p class="body__instep"><b>탭이 아닙니다</b> — 보고서 만들기 · 1단계 안 에 들어 있습니다. 앱 탭 바에는 안 뜹니다.</p>
         </div>
         <span class="plan">무료</span>
       </header>
@@ -710,13 +711,13 @@ h1 { font-size: 30px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 10px
       <div class="order">
         <div class="order__c">
           <div class="order__t">지시하신 순서 <span class="tag tag--warn">위 그림</span></div>
-          <div class="order__l"><b>완성 보고서</b>→<b>보고서 생성</b>→<b>자료</b></div>
+          <div class="order__l"><b>완성 보고서</b>→<b>보고서 만들기</b>→<b>자료</b></div>
           <p class="order__n">쓰는 빈도 순서입니다. 대개 <b>결과물을 보러</b> 들어오므로
             가장 자주 여는 것이 맨 앞에 옵니다.</p>
         </div>
         <div class="order__c">
           <div class="order__t">시간 순서 <span class="tag tag--warn">개정안 §3-2</span></div>
-          <div class="order__l"><b>자료</b>→<b>보고서 생성</b>→<b>완성 보고서</b></div>
+          <div class="order__l"><b>자료</b>→<b>보고서 만들기</b>→<b>완성 보고서</b></div>
           <p class="order__n">일이 진행되는 순서입니다. 모으고 → 만들고 → 봅니다.
             <b>처음 쓰는 사람</b>에게는 이쪽이 다음에 무엇을 할지 알려 줍니다.</p>
         </div>

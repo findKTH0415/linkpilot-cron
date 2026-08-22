@@ -61,9 +61,9 @@ async function http(pathname, opt) {
 /* ── 재지 않고도 아는 것 — 저장소만 보면 되는 것들 ───────────────── */
 
 function localChecks() {
-  // 탭 셋이 한 곳에서 나오는가
+  // 탭 둘이 한 곳에서 나오는가 〈2026-08-22 — 자료 업로드는 1단계 안으로 들어갔다〉
   const tabs = FLOW.TABS.map(t => t.tab).join(' · ');
-  add('탭 셋이 flow-core 한 곳에서 나온다', FLOW.TABS.length === 3 ? 'ok' : 'fail', tabs);
+  add('탭 둘이 flow-core 한 곳에서 나온다', FLOW.TABS.length === 2 ? 'ok' : 'fail', tabs);
 
   // 배포용 사본이 만들어지는가 (브리지 순서 확인 포함 — 여기서 걸리면 사본이 틀린다)
   try {

@@ -31,8 +31,26 @@ test('구성안: 주소로 올릴 수 있는 조각이다', () => {
   assert.deepEqual(publishable(B.build()), []);
 });
 
-test('구성안: 탭이 셋이고 각각 지금 있는지를 말한다', () => {
+/**
+ * ★★ 〈2026-08-22 사용자 지시〉 **탭은 둘이다.** 「자료 업로드」는 「보고서 만들기」
+ *   1단계 안으로 들어갔다. 그래도 구성안에서 **칸은 뺴지 않는다** — 1회성의
+ *   대가·보관 범위처럼 사용자가 반드시 읽어야 하는 말이 그 칸에 있고, 아래
+ *   검사들이 그것을 지킨다. 칸을 빼면 그 말과 검사가 함께 사라진다.
+ * ★ 대신 **탭이 아니라는 것을 칸이 스스로 말해야 한다**(`inStep`). 안 그러면
+ *   구성안이 여전히 「탭 셋」으로 읽히고, 그 오해가 앱 탭 바 작업으로 넘어간다.
+ */
+test('구성안: 탭은 둘이고, 단계 안에 든 칸은 그렇다고 말한다', () => {
+  const FLOWC = require('../ui/platform/flow-core.js');
   assert.deepEqual(B.TABS.map(t => t.id), ['done', 'make', 'files']);
+
+  const inTab = B.TABS.filter(t => !t.inStep).map(t => t.id);
+  assert.deepEqual(inTab, ['done', 'make'], '앱 탭 바에 뜨는 것은 둘이어야 한다');
+  assert.deepEqual(inTab, FLOWC.TABS.map(t => t.id),
+    '구성안의 탭과 flow-core 의 TABS 가 다르다 — 한쪽만 고친 것이다');
+
+  const files = B.TABS.find(t => t.id === 'files');
+  assert.ok(files.inStep && /1단계/.test(files.inStep),
+    '자료 칸이 어디에 들어 있는지를 안 적는다 — 「탭 셋」으로 읽힌다');
   // ★ 「지금 있는가」를 안 적으면 셋 다 있는 것처럼 읽힌다
   B.TABS.forEach((t) => {
     assert.ok(['have', 'none', 'move'].includes(t.state), `${t.id}: state 가 없다`);
@@ -230,8 +248,10 @@ test('구성안: 라디오가 탭 바 밖에 있어야 탭이 바뀐다', () => 
 test('★ 붙이기: 탭 이름을 화면·구성안이 복사해 적지 않는다', () => {
   const FLOWC = require('../ui/platform/flow-core.js');
   // 단일 출처는 flow-core.js 의 SECTION 이다
-  assert.equal(FLOWC.SECTION.tab, '보고서 생성');
-  assert.equal(FLOWC.SECTION.title, '보고서 생성');
+  /* ★ 〈2026-08-22 사용자 지시〉 탭 이름이 「보고서 생성」 → **「보고서 만들기」**.
+     자료 업로드 탭은 이 탭 **1단계 안**으로 들어가면서 사라졌다(탭은 둘). */
+  assert.equal(FLOWC.SECTION.tab, '보고서 만들기');
+  assert.equal(FLOWC.SECTION.title, '보고서 만들기');
 
   const make = B.TABS.find(t => t.id === 'make');
   assert.equal(make.name, FLOWC.SECTION.tab, '구성안이 탭 이름을 따로 적고 있다');
