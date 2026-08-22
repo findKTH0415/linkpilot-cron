@@ -1829,6 +1829,21 @@ window.LINKPILOT_FILES = {
   }
 
   /**
+   * 저장된 값의 **개수**를 센다.
+   *
+   * ★★ 서버(`PUT /facts`)는 개수를 **숫자로** 준다 (`saved: 3`). 목록이 아니다.
+   *   그런데 여기서 `.length` 로 세고 있었다 — 숫자에 `.length` 는 `undefined` 라
+   *   화면에 「값 undefined개를 가져왔습니다」가 떴다. 값은 **실제로 들어갔는데**
+   *   화면만 못 셌다. 실측으로 잡았다 (2026-08-22 · 실제 서버 응답 `saved: 1`).
+   * ★ 다른 응답(`POST /sources`)은 목록으로 준다. 그래서 **둘 다** 받는다 —
+   *   한쪽만 맞춰 두면 다음에 응답 모양이 바뀌는 날 같은 자리가 다시 빈다.
+   */
+  function savedCount(v) {
+    if (typeof v === 'number') return v;
+    return (v && v.length) || 0;
+  }
+
+  /**
    * 실제로 가져온다. **하나가 실패해도 나머지는 간다** — 한 건 때문에 전부를
    * 되돌리면 사용자는 무엇이 들어왔는지 모르는 채 처음부터 다시 한다.
    */
@@ -1855,7 +1870,7 @@ window.LINKPILOT_FILES = {
         }),
       }, { localGate: true }).then(function (r) {
         if (r && r.ok && r.body) {
-          rep.facts = (r.body.saved || []).length;
+          rep.facts = savedCount(r.body.saved);
           (r.body.rejected || []).forEach(function (x) {
             rep.rejected.push({ what: x.key, why: x.reason });
           });
