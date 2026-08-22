@@ -25,6 +25,11 @@ const { selfContained } = require('./build-preview.js');
 // ★ 가짜 서버가 **진짜 목록**을 쓰게 한다 — 손으로 옮겨 적으면 갈린다
 const storage = require(path.join(HERE, '..', '..', 'connectors', 'storage.js'));
 
+/* 미리 그리는 판이 쓸 한도. 눌러 보는 판은 실제 API 에서 받아 오지만, 미리
+   그리는 판에는 서버가 없다. **모양은 같게** 둔다 — 다르면 여기서 되는 것이
+   실제로도 된다는 뜻이 아니게 된다 */
+const FAKE_LIMITS = { maxBytesPerFile: 30 * 1024 * 1024, maxBytesPerRequest: 100 * 1024 * 1024 };
+
 /** 예시 자료 — 실제 딜 자료는 이 저장소에 두지 않는다 (public) */
 const DEMO = {
   projects: [{ id: 'LP-DC-2026-001', name: '인천 남동 데이터센터' }],
@@ -59,6 +64,91 @@ function withConfig(html, cfg) {
   return html.slice(0, at) + inject + html.slice(at);
 }
 
+/**
+ * 「파일업로드」를 **실제로 눌러서** 올려 보는 손 〈2026-08-22〉.
+ *
+ * ★★ **정해진 시간을 기다리지 않는다.** 처음에는 `setTimeout` 을 700ms·400ms 로
+ *   늘어놓았는데, 시험을 여럿 한꺼번에 돌리면 그 안에 못 끝나 **가끔** 빈 화면이
+ *   나왔다. 「가끔 실패하는 시험」은 곧 아무도 안 믿는 시험이 된다.
+ *   그래서 **다음 것이 나타날 때까지 짧게 되물어 본다.** 빠르면 빨리 넘어가고,
+ *   느려도 기다린다.
+ *
+ * ★ 미리 그리는 판과 시험이 **같은 손**을 쓴다. 둘로 갈리면 한쪽만 고쳐진다.
+ *   끝나면 `window.__lpDrove` 에 발자국을 남긴다 — 어디까지 갔는지 볼 수 있게.
+ *
+ * (이 글은 템플릿 문자열 속이다 — 역따옴표를 쓰면 문자열이 끊긴다)
+ */
+function uploadDriver() {
+  return `<script>(function () {
+  var $ = function (s) { return document.querySelector(s); };
+  var $$ = function (s) { return [].slice.call(document.querySelectorAll(s)); };
+  var tile = function () { return $$('.pw').filter(function (b) { return /파일업로드/.test(b.textContent); })[0]; };
+  var goBtn = function () { return $$('button.btn').filter(function (b) { return /파일업로드/.test(b.textContent); })[0]; };
+  var opts = function () {
+    var sel = $('select');
+    return sel ? [].map.call(sel.options, function (o) { return o.value; }).filter(function (v) { return /^LP-/.test(v); }) : [];
+  };
+  var steps = [
+    /* ★ 프로젝트를 먼저 고른다. 미리 그리는 판은 설정으로 이미 골라 두었지만,
+     *   눌러 보는 판(시험이 쓴다)은 안 골라져 있다 — 그러면 파일 고르기가
+     *   **아예 안 나온다.** 같은 손이 두 판을 다 몰 수 있어야 한다 */
+    { name: 'proj', ready: function () { return $('.drop input') || opts().length; },
+      act: function () {
+        if ($('.drop input')) return;              // 이미 고를 수 있는 상태다
+        var sel = $('select');
+        sel.value = opts()[0];
+        sel.dispatchEvent(new Event('change'));
+      } },
+    { name: 'tile', ready: tile, act: function () { tile().click(); } },
+    { name: 'drop', ready: function () { return $('.drop input'); },
+      act: function () {
+        var inp = $('.drop input');
+        var dt = new DataTransfer();
+        dt.items.add(new File([new Uint8Array(2048)], '[붙임3]산출근거.xlsx'));
+        dt.items.add(new File([new Uint8Array(2048)], '사업계획서(초안).pdf'));
+        inp.files = dt.files;
+        inp.dispatchEvent(new Event('change'));
+      } },
+    { name: 'send', ready: function () { var g = goBtn(); return g && !g.disabled && $$('.row__n').length === 2; },
+      act: function () { goBtn().click(); } },
+    { name: 'done', ready: function () { var b = $('.up__h b'); return b && b.textContent === '올렸습니다'; },
+      act: function () {} }
+  ];
+  var at = 0, n = 0;
+  window.__lpDrove = { step: null, ticks: 0, done: false };
+  var t = setInterval(function () {
+    window.__lpDrove.ticks = ++n;
+    if (n > 600) { clearInterval(t); return; }        // 30초(가상)면 못 가는 것이다
+    var s = steps[at];
+    if (!s.ready()) return;
+    window.__lpDrove.step = s.name;
+    s.act();
+    at++;
+    if (at >= steps.length) { window.__lpDrove.done = true; clearInterval(t); }
+  }, 50);
+}());<` + `/script>`;
+}
+
+/**
+ * 토큰을 **화면 안으로 넣는다** 〈2026-08-22〉.
+ *
+ * ★★ 미리 그리는 판은 `<style>` 만 걷어 간다(`inlineScreen`). 그런데 색·간격은
+ *   `<link rel=stylesheet href="tokens.css">` 로 들어오므로 **한 줄도 안 실렸다.**
+ *   그래서 아티팩트는 지금까지 **색 없이** 나왔고, 아무도 오류를 못 봤다 —
+ *   화면이 뜨기는 뜨니까.
+ *
+ * ★ 색이 빠지면 그냥 밋밋해지는 것으로 끝나지 않는다. SVG 는 `fill` 을
+ *   **표현 속성**으로 받는데, `var(--lime-soft)` 가 풀리지 않으면 초깃값인
+ *   **검정**으로 칠한다. 진행 자취가 검은 덩어리로 나온다 — 「깨졌다」로 읽힌다.
+ *   (실측: 토큰을 넣으면 rgb(238,247,216), 빼면 검정)
+ */
+function inlineTokens(html) {
+  const css = fs.readFileSync(path.join(HERE, 'tokens.css'), 'utf8');
+  const tag = '<link rel="stylesheet" href="tokens.css">';
+  if (!html.includes(tag)) throw new Error('tokens.css 링크를 못 찾았다 — 색 없이 나간다');
+  return html.replace(tag, `<style>\n${css}\n</style>`);
+}
+
 async function build(outFile) {
   const browser = findBrowser();
   if (!browser) throw new Error('헤드리스 크로미움이 없어 미리 그릴 수 없다');
@@ -79,14 +169,34 @@ async function build(outFile) {
   ['gate-core.js', 'flow-core.js', 'upload-core.js', 'embed-bridge.js', 'tokens.css', 'catalog.js', 'inapp.js']
     .filter(n => fs.existsSync(path.join(HERE, n)))
     .forEach(n => fs.copyFileSync(path.join(HERE, n), path.join(tmp, n)));
-  fs.writeFileSync(f, withConfig(src, cfg));
+  fs.writeFileSync(f, inlineTokens(withConfig(src, cfg)));
 
   const part = inlineScreen(renderDom(browser, f), 'scr-files');
+
+  /* ★★ **기본 화면만 그리면 새로 만든 것이 안 보인다** 〈2026-08-22〉.
+   *   ① 자료 수집 칸은 「파일업로드」를 고른 뒤에야 나오고, 「받았지만 못 읽었다」
+   *   줄은 **올려 본 뒤에야** 나온다. 기본 상태 한 장만 내면 둘 다 화면에 없고,
+   *   그러면 고쳤는지 아닌지를 미리보기로 확인할 방법이 없다 (§8).
+   *   그래서 **실제로 눌러서** 두 번째 장을 그린다 — 손으로 적지 않는다. */
+  const drive = uploadDriver();
+
+  /* 가짜 서버가 있어야 올려 볼 수 있다 — 눌러 보는 판과 **같은 것**을 쓴다.
+     ★ 화면 스크립트보다 **먼저** 끼운다. 뒤에 넣으면 첫 요청을 못 가로채고
+       「프로젝트가 없습니다」가 그럴듯하게 뜬다 (buildLive 주석 참고). */
+  const f2 = path.join(tmp, 'files-2.html');
+  const src2 = inlineTokens(withConfig(src, { ...cfg, api: '/api/report' }))
+    .replace('<script src="embed-bridge.js"', fakeServer(FAKE_LIMITS) + '\n<script src="embed-bridge.js"');
+  fs.writeFileSync(f2, src2 + drive);
+  const part2 = inlineScreen(renderDom(browser, f2, 14000), 'scr-files2');
+  if (!/읽지 못했습니다/.test(part2.html)) {
+    throw new Error('둘째 장에 「읽지 못했습니다」가 없다 — 올리기가 그 자리까지 못 갔다');
+  }
 
   const frag = `<title>자료 업로드 탭</title>
 <style>
 ${WRAP_CSS}
 ${part.css}
+${part2.css}
 </style>
 <div class="lead">
   <h1 class="lead__t">자료 업로드 — 붙이는 자리</h1>
@@ -97,6 +207,15 @@ ${part.css}
   이 판은 <b>미리 그려 넣은 것</b>이라 눌리지 않습니다 — 직접 만져 보려면 함께 보낸
   <code>files.html</code> 을 브라우저로 여십시오.</div>
 <div class="pv">${part.html}</div>
+<div class="lead">
+  <h1 class="lead__t">「파일업로드」를 고르고 실제로 올려 본 화면</h1>
+  <p class="lead__d">아래 두 가지를 여기서 확인합니다.
+    ① <b>① 자료 수집 · ② 자료 스캔</b> — 어디까지가 모으는 일이고 어디부터가 읽는 일인지.
+    ② <b>받았지만 못 읽은 자료</b> — 서버가 「못 읽었다」고 답한 것을 화면이 그대로 말하는지.
+    전에는 초록 칸에 「2개를 올렸습니다」만 떠서, 값이 하나도 안 만들어진 것을
+    <b>고장으로</b> 읽었습니다.</p>
+</div>
+<div class="pv">${part2.html}</div>
 `;
 
   const bad = publishable(frag);
@@ -201,9 +320,19 @@ function fakeServer(limits) {
       // ★ 1회성은 **올리는 그 자리에서 읽는다.** 실제 서버가 read 를 함께 주므로
       //   여기서도 준다 — 안 주면 미리보기에서만 다음 단계로 안 넘어간다.
       //   (이 블록은 템플릿 문자열 안이다 — 역따옴표를 쓰면 문자열이 끊긴다)
+      // ★★ **미리보기가 좋은 소식만 보여 주면 나쁜 소식을 그리는 코드는 안 돌아 본다.**
+      //   실제 서버는 받고 나서 못 읽는 경우가 있다(엑셀·한글 문서). 그때 화면이
+      //   한 줄도 안 그리던 것이 2026-08-22 신고였다. 그래서 여기서도 **같은 모양**을
+      //   낸다 — 읽을 수 있는 확장자만 값이 되고 나머지는 unsupported 로 간다.
+      var rd = [], no2 = [];
+      g2.forEach(function (f) {
+        if (/\\.(pdf|txt|md|csv|jpg|jpeg|png)$/i.test(f.name)) rd.push(f);
+        else no2.push({ name: f.name, reason: '읽기 실패: 이 형식은 아직 못 읽습니다 (예시)' });
+      });
       return [200, { accepted: g2.map(function (f) { return { name: f.name }; }), rejected: [], reusable: false,
-        read: { facts: g2.map(function (f, i) { return { key: 'demo.' + i }; }),
-          documents: g2.map(function (f) { return { name: f.name }; }), unsupported: [] },
+        removed: g2.length,
+        read: { facts: rd.map(function (f, i) { return { key: 'demo.' + i }; }),
+          documents: rd.map(function (f) { return { name: f.name }; }), unsupported: no2 },
         note: '보관하지 않습니다 — 보고서를 다시 만들려면 다시 올려야 합니다.' }];
     }
     if (/\\/oneshot$/.test(p)) return [200, { items: oneshot }];
@@ -487,4 +616,4 @@ if (require.main === module) {
   }).catch((e) => { console.error(e.message); process.exit(2); });
 }
 
-module.exports = { build, buildLive, publishableLive, DEMO };
+module.exports = { build, buildLive, publishableLive, DEMO, uploadDriver };

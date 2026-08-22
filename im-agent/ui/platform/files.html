@@ -63,6 +63,23 @@ h1 { font-size: 22px; font-weight: 800; letter-spacing: -.01em; margin-bottom: 1
 .card__t { font-size: 16px; font-weight: 800; }
 .card__d { font-size: 13px; color: var(--ink2); margin: 5px 0 0; line-height: 1.65; }
 
+/* ── 번호 붙은 칸 — **어디까지가 모으는 일이고 어디부터가 읽는 일인가**
+   〈2026-08-21 사용자 지시 — 「1번 … 2번 … 재구성해줘」〉
+
+   ★★ 사용자가 화면을 찍어 손으로 상자를 그리고 「여기가 1번, 여기가 2번」이라고
+     알려 줬다. 그 말이 화면에 없었다는 뜻이다. 앞 판은 드롭 자리·목록·단추가
+     이름 없이 이어졌고, 그 아래 「자료 스캔」이 또 이어져서 **두 일이 한 덩어리로**
+     보였다. 번호와 이름을 주면 둘이 갈라지고, 같은 꼴을 쓰면 한 줄기로 이어진다.
+   ★ 번호는 동그라미가 아니라 **네모**다. 동그라미는 이 화면에서 이미
+     진행 그래프의 점(`.fx__dot`)이 쓰고 있다 — 같은 모양이면 진행 상태로 읽힌다. */
+.sub { margin-top: 18px; }
+.sub__h { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; }
+.sub__n { flex: 0 0 auto; width: 22px; height: 22px; border-radius: 7px;
+  background: var(--lime); color: var(--ink); font-size: 12.5px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center; margin-top: 1px; }
+.sub__t { font-size: 15px; font-weight: 800; }
+.sub__d { font-size: 12.5px; color: var(--ink2); margin-top: 3px; line-height: 1.6; }
+
 /* ── 프로젝트 고르기 — **가로 폭을 다 쓴다** 〈2026-08-21 사용자 지시〉 ──
    ★★ 이름이 긴 프로젝트가 실제로 있다. 좁은 칸에 두면 **세 줄로 접히고**,
      모바일 기본 고르기 창은 그 접힘을 우리가 손댈 수 없다(브라우저가 그린다).
@@ -207,6 +224,8 @@ select:focus-visible, button:focus-visible { outline: 2px solid var(--lime-deep)
 .up__bar--none { background: repeating-linear-gradient(135deg, #E1E4E8 0 5px, #F3F4F6 5px 10px); }
 .up__d { margin: 0; font-size: 12.5px; color: var(--ink2); line-height: 1.65; }
 .up--error .up__d { color: var(--bad-ink); }
+/* 「올렸습니다」 안에 섞인 **나쁜 소식**. 초록 칸 안에서도 눈에 걸려야 한다 */
+.up__d--bad { color: var(--bad-ink); font-weight: 700; }
 .btn { padding: 12px 22px; font-weight: 700; font-size: 14px; line-height: 1; font-family: inherit; border: 0; border-radius: 12px;
   background: var(--lime); color: var(--ink); cursor: pointer; margin-top: 12px; }
 .btn:disabled { background: var(--panel); color: var(--ink2); cursor: not-allowed; }
@@ -1032,6 +1051,36 @@ window.LINKPILOT_FILES = {
       (state.result.rejected || []).forEach(function (r) {
         box.appendChild(el('p', 'up__d', '· ' + r.name + ' — ' + r.reason));
       });
+      /* ★★ **받은 것과 읽은 것은 다르다** 〈2026-08-22 · 실제 신고 「올리면 깨진다」〉.
+       *
+       *   서버는 세 가지를 따로 알려 준다:
+       *     `rejected`             — 아예 안 받았다 (빈 파일·용량 초과)
+       *     `read.unsupported`     — **받았는데 못 읽었다** (xlsx·hwpx·손상된 ZIP …)
+       *     `read.facts`           — 읽어서 값이 됐다
+       *
+       *   그런데 화면은 `rejected` 만 그리고 **가운데를 통째로 빼먹고 있었다.**
+       *   그래서 xlsx·hwpx 를 올린 사용자는 초록 칸에 「2개를 올렸습니다」만 보고,
+       *   다음 칸이 텅 빈 것을 **고장으로 읽었다.** 실제로는 고장이 아니라
+       *   「못 읽었다」였는데 그 말을 아무 데서도 안 했다.
+       *
+       *   ★ 1회성(파일업로드)은 여기서 한 겹 더 나쁘다 — 서버가 읽어 보고
+       *     **원본을 이미 지웠다.** 못 읽었다는 말을 이 자리에서 안 하면
+       *     사용자는 자료가 사라진 것조차 모른 채 다음 칸을 누른다. */
+      var un = (state.result.read && state.result.read.unsupported) || [];
+      if (un.length) {
+        box.appendChild(el('p', 'up__d up__d--bad',
+          '이 중 ' + un.length + '건은 받았지만 읽지 못했습니다 — 값이 만들어지지 않았습니다.'));
+        un.forEach(function (r) {
+          box.appendChild(el('p', 'up__d up__d--bad', '· ' + r.name + ' — ' + r.reason));
+        });
+        // ★ 무엇을 해야 하는지까지 말한다. 사유만 주면 사용자는 같은 파일을 또 올린다
+        box.appendChild(el('p', 'up__d',
+          state.way === 'oneshot'
+            ? ('「' + wayName('oneshot') + '」는 읽고 나서 원본을 지웁니다 — 이 '
+              + un.length + '건은 남아 있지 않습니다. PDF 로 바꿔 다시 올리거나, '
+              + '원본을 남겨 두려면 「' + wayName('linked') + '」로 넣으십시오.')
+            : 'PDF 로 바꿔 다시 올리면 읽을 수 있습니다.'));
+      }
       if (state.result.replaced && state.result.replaced.length) {
         box.appendChild(el('p', 'up__d',
           '같은 이름이 있어 이전 판은 휴지통으로 보냈습니다: ' + state.result.replaced.join(' · ')));
@@ -1207,24 +1256,45 @@ window.LINKPILOT_FILES = {
       return card;
     }
 
-    card.appendChild(dropZone());
+    /* ── ① 모이는 자리 〈2026-08-21 사용자 지시 — 「재구성해줘」〉 ──────────
+     *
+     * ★★ 앞 판은 **이름이 없었다.** 갈래를 고르면 드롭 자리와 목록과 올리기
+     *   단추가 그냥 이어서 나왔고, 그 아래에 「자료 스캔」이 또 이어졌다.
+     *   그래서 **어디까지가 모으는 일이고 어디부터가 읽는 일인지**를 화면이
+     *   말하지 않았다 — 사용자가 손으로 상자를 그려 「여기가 1번, 여기가 2번」
+     *   이라고 알려 줘야 했다. 그것이 곧 화면이 못 한 말이다.
+     *
+     * ★ 그래서 번호와 이름을 준다. 다음 자리(② 자료 스캔)도 같은 꼴로 부른다 —
+     *   둘이 한 줄기임을 번호가 이어 준다.
+     */
+    var box = el('div', 'sub');
+    var h = el('div', 'sub__h');
+    h.appendChild(el('span', 'sub__n', '1'));
+    var ht = el('div');
+    ht.appendChild(el('div', 'sub__t', '자료 수집'));
+    ht.appendChild(el('div', 'sub__d', '고른 파일이 여기 모입니다. 올려야 다음 칸에서 읽습니다.'));
+    h.appendChild(ht);
+    box.appendChild(h);
+
+    box.appendChild(dropZone());
     // ★ 한도를 **모르면 적지 않는다.** 모르는 값을 0 으로 그리면 「못 올린다」로 읽힌다
     if (state.limits && state.limits.maxBytesPerFile > 0) {
-      card.appendChild(el('p', 'note',
+      box.appendChild(el('p', 'note',
         '파일 하나 ' + size(state.limits.maxBytesPerFile)
         + ' · 한 번에 ' + size(state.limits.maxBytesPerRequest) + ' 까지 올릴 수 있습니다.'));
     }
-    card.appendChild(pickedList());
+    box.appendChild(pickedList());
 
     var ready = state.picked.filter(function (f) { return f.data && !f.tooBig; });
     var go = el('button', 'btn', state.way === 'oneshot' ? wayName('oneshot') : '올려서 보관');
     go.type = 'button';
     go.disabled = !ready.length || state.busy;
     go.addEventListener('click', doUpload);
-    card.appendChild(go);
+    box.appendChild(go);
 
     var up = uploadCard();
-    if (up) card.appendChild(up);
+    if (up) box.appendChild(up);
+    card.appendChild(box);
     return card;
   }
 
@@ -1811,11 +1881,21 @@ window.LINKPILOT_FILES = {
   function scanCard() {
     if (!state.projectId) return null;
     var card = el('section', 'card');
-    add(card, el('h2', 'card__t', '자료 스캔'),
-      el('p', 'card__d',
-        '넣은 자료를 읽어 값으로 만듭니다. 이미지·스캔본은 글자로 옮겨서(OCR) 읽고, '
-        + '그 값은 신뢰도를 낮춰 표시합니다. 읽고 나면 「'
-        + F.SECTION.tab + '」으로 넘어갑니다.'));
+    /* ★ 앞 칸(① 자료 수집)과 **같은 꼴로** 부른다. 번호가 둘을 한 줄기로 잇는다
+     *   — 「모으는 곳」과 「읽어서 보내는 곳」이 따로 보이면 어느 것을 먼저
+     *   해야 하는지가 화면에 없다 〈2026-08-21 사용자 지시〉. */
+    var sh = el('div', 'sub__h');
+    sh.appendChild(el('span', 'sub__n', '2'));
+    var sht = el('div');
+    sht.appendChild(el('h2', 'card__t sub__t', '자료 스캔'));
+    sht.appendChild(el('div', 'sub__d',
+      '① 에서 모은 자료를 읽어 「' + F.SECTION.tab + '」으로 보냅니다.'));
+    sh.appendChild(sht);
+    card.appendChild(sh);
+    card.appendChild(el('p', 'card__d',
+      '넣은 자료를 읽어 값으로 만듭니다. 이미지·스캔본은 글자로 옮겨서(OCR) 읽고, '
+      + '그 값은 신뢰도를 낮춰 표시합니다. 읽고 나면 「'
+      + F.SECTION.tab + '」으로 넘어갑니다.'));
 
     /* ★★ **여기서 읽을 수 있는 것과 없는 것을 미리 가른다** 〈2026-08-21 · 실제 신고〉.
        「파일업로드」(1회성)는 **올리는 그 자리에서 읽고 파일을 버린다.** 그래서
