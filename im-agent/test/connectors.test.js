@@ -567,3 +567,60 @@ test('★ 폐기된 건축물대장 엔드포인트를 부르지 않는다', () 
     'BldRgstService_v2 는 폐기되었다 — 키가 멀쩡해도 자료가 안 온다');
   assert.match(src, /BldRgstHubService/, '현행 엔드포인트를 써야 한다');
 });
+
+/**
+ * ★★★ **쿼터 통은 갈래마다 따로 센다** 〈2026-08-23 실측 · D-85〉.
+ *
+ *   data.go.kr 은 **상세기능(오퍼레이션)마다** 하루치를 세고, 개발계정은 1,000건이다.
+ *   앞 판은 아홉 커넥터가 `data.go.kr` **한 통**을 같이 쓰고 한도를 10,000 으로
+ *   재고 있었다 — 계량기가 「여유 있다」고 말하는 동안 상대는 이미 끊는다.
+ */
+test('★★★ 통이 갈래마다 따로 세어지고, 기본값이 1,000 이다', () => {
+  const cache = require('../connectors/cache.js');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'q-'));
+  const keep = process.env.IM_AGENT_CACHE;
+  process.env.IM_AGENT_CACHE = root;
+  try {
+    /* ① 갈래가 다르면 서로를 안 막는다 */
+    cache.consume('data.go.kr:g2b', 5);
+    assert.strictEqual(cache.used('data.go.kr:g2b'), 5);
+    assert.strictEqual(cache.used('data.go.kr:molit'), 0, '한 갈래가 다른 갈래를 물들인다');
+
+    /* ② 기관 기본값이 개발계정 한도다 */
+    assert.strictEqual(cache.remaining('data.go.kr:g2b'), 1000 - 5);
+
+    /* ③ 기관 밖은 그대로 */
+    assert.strictEqual(cache.remaining('vworld'), 10000);
+  } finally {
+    if (keep === undefined) delete process.env.IM_AGENT_CACHE;
+    else process.env.IM_AGENT_CACHE = keep;
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+/**
+ * ★ 환경변수로 올릴 수 있어야 한다 — **운영계정으로 바꾸면 한도가 커진다.**
+ *   그때 코드를 고치게 두면 결국 아무도 안 고친다.
+ *   ★ 이름에 `.` `:` 를 그대로 쓰면 **셸에서 만들 수 없는 이름**이 된다.
+ *     앞 판이 그랬고, 그래서 그 덮어쓰기는 한 번도 동작한 적이 없다.
+ */
+test('★★ 한도를 환경변수로 올릴 수 있다 (좁은 것이 넓은 것을 이긴다)', () => {
+  const cache = require('../connectors/cache.js');
+  const keep = { ...process.env };
+  try {
+    /* ★ 이미 쓴 만큼을 빼고 비교한다 — 앞선 검사가 남긴 카운트에 기대지 않는다 */
+    const g = cache.used('data.go.kr:g2b');
+    const m = cache.used('data.go.kr:molit');
+
+    process.env.IM_AGENT_QUOTA_DATA_GO_KR = '3000';
+    assert.strictEqual(cache.remaining('data.go.kr:g2b'), 3000 - g, '기관 단위 설정이 안 먹는다');
+
+    process.env.IM_AGENT_QUOTA_DATA_GO_KR_G2B = '9000';
+    assert.strictEqual(cache.remaining('data.go.kr:g2b'), 9000 - g, '갈래 설정이 기관 설정을 못 이긴다');
+    assert.strictEqual(cache.remaining('data.go.kr:molit'), 3000 - m, '갈래 설정이 옆 갈래까지 물들인다');
+  } finally {
+    delete process.env.IM_AGENT_QUOTA_DATA_GO_KR;
+    delete process.env.IM_AGENT_QUOTA_DATA_GO_KR_G2B;
+    Object.assign(process.env, keep);
+  }
+});
