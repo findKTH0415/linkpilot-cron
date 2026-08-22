@@ -701,10 +701,12 @@ window.LINKPILOT_FILES = {
       return render();
     }
     state.noFolder = false;
+    state.restored = false;      // 사람이 직접 골랐으면 「이어서」라고 말하지 않는다
     state.projectId = id || null;
     state.linked = state.oneshot = null;
     state.closed = { kept: null, linked: null, oneshot: null };
     announce(state.projectId);
+    remember({ projectId: state.projectId });   // 다음에 열면 이 프로젝트로 시작한다
     render();
     if (id) loadOne(id).then(render);
   }
@@ -888,6 +890,7 @@ window.LINKPILOT_FILES = {
       // 넘어가면 **되돌릴 수 없다.** 그 실수는 조용하고 되돌리기도 없다
       if (state.way !== w.id) { state.picked = []; state.upload = null; state.result = null; }
       state.way = w.id;
+      remember({ way: w.id });   // 다음에 열면 이 갈래로 시작한다
       /* ★★ **파일업로드는 누르는 그 자리에서 고르기 창을 연다** 〈사용자 지시〉.
        *   창을 여는 것은 **사람이 누른 그 순간**에만 허용된다 — 그리고 난 뒤에
        *   열려고 하면 브라우저가 조용히 막는다. 그래서 `render()` 뒤로 미루지
@@ -955,6 +958,66 @@ window.LINKPILOT_FILES = {
     render();
   }
 
+  /**
+   * **지난번에 고른 것을 기억한다** 〈2026-08-22 사용자 지시 —
+   * 「사용자가 파일선택을 하면 다음번에도 기억하고 연이어 편리 사용하도록」〉.
+   *
+   * ★★ **기억하는 것은 「어느 갈래·어느 프로젝트」뿐이다.** 파일 내용도,
+   *   파일 이름도 담지 않는다 — 딜 자료가 브라우저에 남는다.
+   * ★ 이 기기의 이 브라우저에만 남는다. 서버로 가지 않는다.
+   * ★ 저장이 막힌 곳이 있다(사생활 보호 창·설정으로 막아 둔 경우). 그때는
+   *   **조용히 기억하지 않을 뿐** 화면은 그대로 돈다 — try 로 감싸는 이유다.
+   *
+   * ★★ **안드로이드의 「작업 선택」 시트는 우리가 기억할 수 없다.** 그것은 웹이
+   *   아니라 운영체제 것이다. 우리가 할 수 있는 것은 `accept` 로 **고를 것을
+   *   좁혀 시트를 짧게** 만드는 것까지다 (acceptList 참고). 시트에서 매번 같은
+   *   앱으로 가고 싶으면 시트의 「항상」을 한 번 눌러 두시면 된다.
+   */
+  var MEM_KEY = 'lp.files.last';
+
+  function remember(patch) {
+    try {
+      var was = recall();
+      var now2 = { way: was.way || null, projectId: was.projectId || null };
+      Object.keys(patch || {}).forEach(function (k) { now2[k] = patch[k]; });
+      window.localStorage.setItem(MEM_KEY, JSON.stringify(now2));
+    } catch (_) { /* 못 적어도 화면은 그대로 돈다 */ }
+  }
+
+  function recall() {
+    try {
+      var raw = window.localStorage.getItem(MEM_KEY);
+      var o = raw ? JSON.parse(raw) : null;
+      return (o && typeof o === 'object') ? o : {};
+    } catch (_) { return {}; }
+  }
+
+  /**
+   * 파일 고르기 창에 **읽을 수 있는 형식만** 알려 준다 〈2026-08-22 사용자 지시〉.
+   *
+   * ★★ 왜: `accept` 가 없으면 안드로이드가 **「작업 선택」 시트를 가장 넓게**
+   *   띄운다 — 카메라·캠코더까지 나온다. 사용자는 매번 그 중에서 「사진 및
+   *   동영상」을 골라야 했다. 읽을 수 있는 형식을 적어 주면 그 시트가 짧아지고,
+   *   대개 파일 고르기로 바로 간다.
+   *
+   * ★★ **확장자를 여기 적지 않는다.** 목록은 서버(`GET /intake`)가 준다 —
+   *   추출기가 아는 것이 단일 출처다(§4). 여기 베껴 두면 형식이 하나 늘 때
+   *   화면만 옛 목록을 들고 있게 되고, 그때 증상은 「되는 파일인데 안 골라진다」다.
+   * ★ **못 읽는 형식(`convert`)은 뺀다.** 골라 봐야 거절할 것을 고르게 하지 않는다.
+   * ★ 목록을 아직 못 받았으면 **아무것도 걸지 않는다.** 빈 accept 는 「고를 수
+   *   있는 파일이 없습니다」가 되어, 모르는 것이 못 고르는 것으로 바뀐다.
+   */
+  function acceptList() {
+    var groups = (state.limits && state.limits.formats) || null;
+    if (!groups || !groups.length) return '';
+    var out = [];
+    groups.forEach(function (g) {
+      if (!g || g.id === 'convert') return;
+      (g.ext || []).forEach(function (e) { if (out.indexOf(e) === -1) out.push(e); });
+    });
+    return out.join(',');
+  }
+
   /** 파일을 고르는 자리. 끌어다 놓는 것도 받는다 */
   function dropZone() {
     var z = el('div', 'drop');
@@ -965,6 +1028,9 @@ window.LINKPILOT_FILES = {
     var inp = el('input');
     inp.type = 'file';
     inp.multiple = true;
+    // ★ 읽을 수 있는 형식만 — 안드로이드 「작업 선택」 시트가 짧아진다
+    var acc = acceptList();
+    if (acc) inp.accept = acc;
     inp.addEventListener('change', function () { addFiles(inp.files); inp.value = ''; });
     /* ★★ **창이 두 번 열렸다** 〈2026-08-21 · 재다가 잡았다〉.
      *   `inp` 는 `z` 안에 있다. `inp.click()` 을 부르면 그 click 이 `z` 까지
@@ -1400,6 +1466,12 @@ window.LINKPILOT_FILES = {
       //   갈래에 속한 것으로 안 보인다 (2026-08-21 사용자 지시의 「이동배치」)
       var inWay = el('div', 'wayin');
       inWay.appendChild(projectPicker());
+      /* ★ 되살렸으면 **그렇다고 말한다.** 안 말하면 왜 골라져 있는지 몰라서
+       *   「내가 고른 게 맞나」를 확인하러 목록을 다시 연다 */
+      if (state.restored && state.projectId) {
+        inWay.appendChild(el('p', 'note',
+          '지난번에 쓰던 프로젝트로 이어서 열었습니다 — 바꾸시려면 위에서 고르십시오.'));
+      }
 
       // 「＋ 신규프로젝트」를 골랐으면 만드는 칸이 여기서 열린다
       var mk = newProjectCard();
@@ -2784,6 +2856,24 @@ window.LINKPILOT_FILES = {
     if (r && r.ok && r.body) { state.limits = r.body; render(); }
   }, function () {});
   loadProjects().then(function () {
+    /* ── 지난번에 고른 것으로 이어서 시작한다 〈2026-08-22 사용자 지시〉 ──
+     *
+     * ★★ **목록을 받은 뒤에 되살린다.** 먼저 되살리면 **지금은 없는 프로젝트**를
+     *   고른 채로 시작할 수 있고, 그러면 「자료가 없습니다」만 뜨는 화면에서
+     *   왜 그런지 알 수가 없다. 있는 것 중에 있을 때만 고른다.
+     * ★ 앱이 프로젝트를 정해 열었으면(`state.projectId`) **그쪽이 이긴다.**
+     *   기억보다 지금 지시가 세다.
+     * ★ 갈래는 목록과 무관하니 그냥 되살린다. 단, 아는 이름일 때만 —
+     *   옛 판이 남긴 모르는 값이면 기본값으로 둔다.
+     */
+    var last = recall();
+    if (last.way && WAYS.some(function (w) { return w.id === last.way; })) state.way = last.way;
+    if (!state.projectId && last.projectId
+        && (state.projects || []).some(function (p) { return p.id === last.projectId; })) {
+      state.projectId = last.projectId;
+      state.restored = true;      // 화면이 「이어서」라고 말할 수 있게
+      announce(state.projectId);
+    }
     render();
     if (state.projectId) return loadOne(state.projectId).then(render);
     return null;
