@@ -165,18 +165,24 @@ select:focus-visible, button:focus-visible { outline: 2px solid var(--lime-deep)
 
 /* 갈래 고르기 — 세 장을 나란히 두고 **고를 수 있게** 한다 (전에는 설명만이었다) */
 /* ── 갈래를 **단으로** 〈2026-08-21 사용자 지시〉 ──
-   ★★ 앞 판은 `auto-fit` 으로 셋을 한 줄에 흘렸다. 창 너비에 따라 2+1 이 되기도
-     1+1+1 이 되기도 해서 **어느 것이 한 벌인지가 그때그때 달라졌다.**
-     단은 손으로 정한다 — 관계 있는 것끼리 같은 단에 둔다.
-   ★ 단 사이를 넉넉히 띄운다. 붙어 있으면 세 단이 한 덩어리로 읽힌다. */
-.pickway { display: grid; gap: 22px; }
-.pwrow { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
-/* 1단과 그에 딸린 고르기를 **한 겹으로** 묶는다 — 사이에 단 여백이 끼면 안 된다 */
-.pwstack { display: block; }
-/* 1단 아래 고르기가 들어올 자리. 안 쓰면 지운다 — 빈 자리도 여백이 된다 */
+   ★★ 이 자리는 판이 세 번 바뀌었다 (files.html 의 `WAY_ROWS` 주석 참고).
+     지금은 **셋을 한 줄로** 둔다 〈2026-08-22 사용자 지시 — 「라인을 구분하지
+     않는 통합 토글」〉. 단을 나누면 앱 갈래만 한 칸을 통째로 차지해 커 보이고,
+     셋이 **같은 층위의 선택지**라는 것이 흐려진다.
+   ★★ 그런데 `auto-fit` 으로 되돌아가지는 **않는다.** 그것이 첫 판의 문제였다 —
+     창 너비에 따라 2+1 도 되고 1+1+1 도 되어서 어느 것이 한 벌인지가 그때그때
+     달라졌다. **열은 셋으로 고정**하고, 좁아지면 흘리지 말고 **세로로 세운다.**
+   ★ 고른 갈래의 칸(`.wayin`)은 토글 **아래**에서 열린다. 토글 안에 끼우면
+     셋의 키가 서로 달라져서 한 벌로 안 보인다. */
+.pickway { display: grid; gap: 0; }
+.pwrow { display: grid; gap: 10px; grid-template-columns: repeat(3, 1fr); align-items: stretch; }
+/* ★ 좁으면 **세로로 세운다.** 셋을 억지로 밀어 넣으면 글자가 두세 줄로 접혀
+   키가 제각각이 되고, 그때 다시 「한 벌」로 안 보인다 */
+@media (max-width: 620px) {
+  .pwrow { grid-template-columns: 1fr; gap: 8px; }
+}
+/* 고른 갈래의 칸이 들어올 자리. 안 쓰면 지운다 — 빈 자리도 여백이 된다 */
 .pwslot { display: none; }
-/* 겹 안에서는 `.wayin` 이 위쪽 칸에 그대로 이어 붙는다 (margin-top: -6px) */
-.pwstack > .wayin { margin-bottom: 0; }
 .pw { text-align: left; font: inherit; cursor: pointer; background: var(--surface);
   border: 1px solid var(--line); border-radius: 14px; padding: 13px 14px; }
 .pw:hover:not(:disabled) { border-color: var(--lime); }
@@ -763,8 +769,11 @@ window.LINKPILOT_FILES = {
   // ★ 순서는 사용자가 준 순서 그대로다. 앞의 둘은 이미 있는 자료를 **가리키고**,
   //   마지막 하나만 실제로 올린다.
   var WAYS = [
-    { id: 'app', t: '＋ 앱 프로젝트에서 가져오기', k: '무료', free: true, plan: 'free',
-      d: 'LinkPilot 앱 딜에 붙어 있는 내용·첨부·이미지를 그대로 끌어옵니다. 사본을 만들지 않습니다.' },
+    /* ★ 앱 갈래는 **설명을 달지 않는다** 〈2026-08-22 사용자 지시 — 「아래 내용
+     *   설명은 삭제」〉. 이름만으로 뜻이 서고, 고르면 바로 아래에서 프로젝트를
+     *   고르게 되므로 설명이 한 번 더 말할 것이 없다.
+     *   ★ `d` 를 **빈 문자열로 둔다** — 지우면 `wayTile` 이 `undefined` 를 그린다. */
+    { id: 'app', t: '＋ 앱 프로젝트에서 가져오기', k: '무료', free: true, plan: 'free', d: '' },
     { id: 'linked', t: '폴더를 연결해서', k: '무료', free: true, plan: 'free',
       d: 'Dropbox·Box·구글·원드라이브의 파일을 가리킵니다. 사본을 만들지 않습니다 — 읽을 때만 잠깐 가져와 버립니다.' },
     { id: 'oneshot', t: '파일업로드', k: '무료', free: true, plan: 'free',
@@ -789,25 +798,39 @@ window.LINKPILOT_FILES = {
   }
 
   /**
-   * 갈래를 **단(段)으로 나눠 그린다** 〈2026-08-21 사용자 지시〉.
+   * 갈래 셋을 **한 벌의 토글로** 그린다 〈2026-08-22 사용자 지시 —
+   * 「라인을 구분하지 않는 통합 토글로 만들어줘」〉.
    *
-   *     1단  앱 프로젝트에서 가져오기        (+ 고르기가 이어 붙는다)
-   *     2단  폴더를 연결해서 · 파일업로드    (나란히)
-   *     3단  파일 드롭하여 놓기              (파일업로드를 누르면 함께 뜬다)
+   *     [＋ 앱 프로젝트에서 가져오기] [폴더를 연결해서] [파일업로드]
+   *      └─ 고른 갈래의 칸이 **셋 아래**에서 열린다
    *
-   * ★★ 앞 판은 셋을 **한 줄에 흘려** 놓았다(auto-fit). 창 너비에 따라 2+1 이
-   *   되기도 하고 1+1+1 이 되기도 해서, **어느 것이 한 벌인지가 그때그때
-   *   달라졌다.** 「고르기는 앱 갈래에 딸린 것」이라는 관계도 폭에 따라 무너졌다.
-   * ★ 그래서 단을 **손으로 정한다.** 관계가 있는 것끼리 같은 단에 둔다.
+   * ★★ 이 자리는 판이 세 번 바뀌었다. 그 내력을 적어 둔다 — 안 적으면
+   *   다음 사람이 「왜 이렇게 되어 있지」로 되돌린다.
+   *
+   *     ① 처음: 셋을 `auto-fit` 으로 **흘렸다.** 창 너비에 따라 2+1 도 되고
+   *        1+1+1 도 되어서 **어느 것이 한 벌인지가 그때그때 달라졌다.**
+   *     ② 2026-08-21: 단을 손으로 나눴다(1단 앱 / 2단 연결·업로드).
+   *        고르기가 앱 갈래에 딸린 것임을 보이려고 1단과 한 겹으로 묶었다.
+   *     ③ 2026-08-22 **지금**: 단을 없애고 **셋을 한 줄로** 둔다.
+   *
+   * ★ ②에서 ③으로 온 이유: 단이 둘이면 앱 갈래만 **한 칸을 통째로 차지해**
+   *   나머지 둘보다 커 보이고, 셋이 **같은 층위의 선택지**라는 것이 흐려진다.
+   *   지시의 「라인을 구분하지 않는」이 가리키는 것이 그 선이다.
+   * ★ ①로 되돌아가는 것은 **아니다.** 열은 `auto-fit` 이 아니라 **셋으로
+   *   고정**한다 — 좁아지면 흘리지 않고 세로로 세운다. ①의 「그때그때
+   *   달라진다」는 거기서 나왔다.
    */
-  var WAY_ROWS = [['app'], ['linked', 'oneshot']];
+  var WAY_ROWS = [['app', 'linked', 'oneshot']];
 
   function wayTile(w) {
     var b = el('button', 'pw' + (state.way === w.id ? ' on' : ''));
     b.type = 'button';
     var t = el('div', 'pw__t', w.t);
     t.appendChild(el('span', 'way__k way__k--' + (w.free ? 'free' : 'pro'), w.k));
-    add(b, t, el('p', 'pw__d', w.d));
+    b.appendChild(t);
+    // ★ 설명이 없으면 **빈 칸을 만들지 않는다.** 빈 `p` 는 높이를 남겨서
+    //   세 칸의 키가 어긋나 보인다 (통합 토글에서는 그게 바로 눈에 띈다)
+    if (w.d) b.appendChild(el('p', 'pw__d', w.d));
     b.addEventListener('click', function () {
       // 갈래를 바꾸면 고른 파일을 버린다 — 보관하려던 것이 1회성으로
       // 넘어가면 **되돌릴 수 없다.** 그 실수는 조용하고 되돌리기도 없다
@@ -829,18 +852,12 @@ window.LINKPILOT_FILES = {
     WAY_ROWS.forEach(function (ids) {
       var row = el('div', 'pwrow');
       ids.forEach(function (id) { row.appendChild(wayTile(wayOf(id))); });
-      if (ids.length === 1 && ids[0] === 'app') {
-        /* ★★ 1단과 고르기는 **한 겹으로 묶는다.** 단 사이 여백(18px)이 그
-         *   둘 사이에도 끼면 「이어 붙은 칸」이 떨어져 보이고, 고르기가 어느
-         *   갈래에 딸린 것인지 다시 안 보인다 — 단을 나눈 이유가 그것이었다. */
-        var stack = el('div', 'pwstack');
-        stack.appendChild(row);
-        stack.appendChild(el('div', 'pwslot'));
-        box.appendChild(stack);
-      } else {
-        box.appendChild(row);
-      }
+      box.appendChild(row);
     });
+    /* ★ 고른 갈래의 칸은 **토글 바로 아래**에서 열린다. 토글 안에 끼우면
+     *   셋의 키가 서로 달라지고, 그러면 「한 벌의 선택지」로 안 보인다.
+     *   이어져 보이는 것은 `.wayin` 의 음수 이음매가 맡는다 */
+    box.appendChild(el('div', 'pwslot'));
     return box;
   }
 
@@ -1226,9 +1243,9 @@ window.LINKPILOT_FILES = {
     var card = el('section', 'card card--attach');
     add(card, el('h2', 'card__t', '자료 붙이기'),
       el('p', 'card__d',
-        '기존 프로젝트 보고서를 만들거나 또는 신규 프로젝트로 만들 때, '
+        '신규 프로젝트로 만들거나 기존 프로젝트 보고서를 만들 때 '
         + '관련자료를 올리는 방법 3가지입니다. 어느 쪽으로 넣든 '
-        + '읽어서(이미지는 OCR) 「' + F.SECTION.tab + '」으로 보냅니다.'));
+        + '관련자료를 분석하고 읽어서 「' + F.SECTION.tab + '」으로 보냅니다.'));
     /* ★ 고르기는 **1단 바로 아래**에 꽂는다. 카드 끝에 붙이면 2단(연결·업로드)
      *   뒤로 밀려 「어느 갈래에 딸린 것인지」가 다시 안 보인다 — 단을 나눈
      *   이유가 그것이었다. 그래서 1단 뒤에 자리(`.pwslot`)를 미리 두고 갈아끼운다. */
@@ -1265,10 +1282,15 @@ window.LINKPILOT_FILES = {
       if (mk) { inWay.appendChild(mk); putInWay(inWay); return card; }
 
       if (!state.projectId) {
-        inWay.appendChild(el('p', 'note', state.noFolder
-          // ★ 화면이 몰래 만들지 않는다 — 번호가 소모되고 자산군이 GEN 으로 굳는다 (§4)
-          ? '이 프로젝트는 작업 폴더가 아직 없습니다. 위에서 「＋ 신규프로젝트」로 만들어 주십시오.'
-          : '프로젝트를 고르면 여기서 바로 자료를 넣을 수 있습니다.'));
+        /* ★★ **고르라는 말을 두 번 하지 않는다** 〈2026-08-22 사용자 지시〉.
+         *   고르기 칸에 이미 「프로젝트」라는 이름표와 「— 고르세요 —」가 있다.
+         *   그 아래에 「프로젝트를 고르면…」을 또 적으면 같은 말이 두 줄이 된다.
+         *   ★ 단, **작업 폴더가 없는 경우는 남긴다.** 그것은 안내가 아니라
+         *     경고다 — 화면이 몰래 만들지 않으므로 사람이 만들어야 한다 (§4). */
+        if (state.noFolder) {
+          inWay.appendChild(el('p', 'note',
+            '이 프로젝트는 작업 폴더가 아직 없습니다. 위에서 「＋ 신규프로젝트」로 만들어 주십시오.'));
+        }
         putInWay(inWay);
         return card;
       }

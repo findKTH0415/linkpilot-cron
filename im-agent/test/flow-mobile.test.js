@@ -335,27 +335,40 @@ test('★★ 좁은 화면에서 준 여백이 실제로 먹는다 (덮이면 �
     `고르기 칸 아래가 ${r.gapBelow}px 다 — 다음 단과 붙는다`);
   assert.ok(r.padTop >= 18, `위 안쪽 여백이 ${r.padTop}px 다 (18px 이상이어야 한다)`);
 
-  // ★ 고르기와 안내가 붙어 있으면 한 덩어리로 읽혀 안내를 안 본다
-  assert.ok(r.noteGap >= 12,
-    `고르기와 안내 사이가 ${r.noteGap}px 다 — 붙어 있으면 안내를 안 읽는다`);
+  /* ★ 고르기와 안내가 붙어 있으면 한 덩어리로 읽혀 안내를 안 본다.
+   *   ★★ 다만 **안내가 늘 있는 것은 아니다** 〈2026-08-22〉. 「프로젝트를
+   *     고르면…」은 고르기 칸이 이미 하는 말이라 지웠다(사용자 지시). 남은
+   *     안내는 작업 폴더가 없을 때뿐이다. 그래서 **있을 때만** 잰다 —
+   *     없는 것을 0 으로 재면 멀쩡한 화면을 고장이라고 말한다. */
+  if (r.noteGap !== null && r.noteGap !== undefined) {
+    assert.ok(r.noteGap >= 12,
+      `고르기와 안내 사이가 ${r.noteGap}px 다 — 붙어 있으면 안내를 안 읽는다`);
+  }
 
   process.stderr.write(`  [여백] 위 ${r.padTop} · 아래 ${r.padBottom} · 아래간격 `
-    + `${r.gapBelow} · 고르기↔안내 ${r.noteGap} (430px 너비)\n`);
+    + `${r.gapBelow} · 고르기↔안내 ${r.noteGap === null ? '안내 없음' : r.noteGap} (430px 너비)\n`);
 });
 
-/* ═════════ ④ 자료 붙이기 **단 배치** 〈2026-08-21 사용자 지시〉 ═════════ */
+/* ═════════ ④ 자료 붙이기 — **한 벌의 토글** 〈2026-08-22 사용자 지시〉 ═════════ */
 
 /**
- *     1단  앱 프로젝트에서 가져오기        (+ 고르기가 이어 붙는다)
- *     2단  폴더를 연결해서 · 파일업로드    (나란히)
- *     3단  파일 드롭하여 놓기              (파일업로드를 누르면 함께 뜬다)
+ *     [＋ 앱 프로젝트에서 가져오기] [폴더를 연결해서] [파일업로드]
+ *      └─ 고른 갈래의 칸이 **셋 아래**에서 열린다
  *
- * ★★ 앞 판은 셋을 `auto-fit` 으로 **한 줄에 흘렸다.** 창 너비에 따라 2+1 이
- *   되기도 1+1+1 이 되기도 해서 **어느 것이 한 벌인지가 그때그때 달랐다.**
- *   그래서 이 검사는 **휴대폰 너비에서** 단이 실제로 그렇게 나뉘는지 본다 —
- *   넓은 창에서 재면 흘러가는 배치도 그럴듯하게 통과한다.
+ * ★★ 이 자리는 판이 세 번 바뀌었다. **검사도 함께 바뀌어 왔다** —
+ *   그래서 무엇을 지키려는 것인지 다시 적어 둔다.
+ *
+ *     ① 처음: `auto-fit` 으로 흘렸다 → 창 너비에 따라 2+1 도 되고 1+1+1 도
+ *        되어서 **어느 것이 한 벌인지가 그때그때 달라졌다.**
+ *     ② 2026-08-21: 단을 둘로 나눴다 (1단 앱 / 2단 연결·업로드).
+ *     ③ 2026-08-22 **지금**: 단을 없애고 셋을 한 줄로.
+ *
+ * ★ ③ 은 ① 로 되돌아가는 것이 **아니다.** ① 의 문제는 「한 줄」이 아니라
+ *   **「몇 칸이 될지 모른다」**였다. 그래서 이 검사는 **열이 흐르지 않는가**를
+ *   본다 — 넓은 화면에서는 셋이 나란히, 좁으면 셋이 세로로. 어느 쪽이든
+ *   **2+1 이 되지 않는다.**
  */
-test('★★ 자료 붙이기가 세 단으로 나뉘고, 파일업로드가 창을 한 번만 연다', async () => {
+test('★★ 자료 붙이기 셋이 한 벌의 토글이고, 파일업로드가 창을 한 번만 연다', async () => {
   const { findBrowser, renderDom } = require(path.join(PLATFORM, 'build-static.js'));
   if (!findBrowser()) return;
 
@@ -370,13 +383,27 @@ test('★★ 자료 붙이기가 세 단으로 나뉘고, 파일업로드가 창
         return t.textContent.trim().replace(/\\s*무료$/, ''); }); };
     o.rows = [].slice.call(document.querySelectorAll('.pwrow')).map(nm);
 
-    var st = document.querySelector('.pwstack'), wi = document.querySelector('.wayin');
-    o.wayinInStack = !!(st && wi && st.contains(wi));
-    if (st && wi) o.attachGap =
-      Math.round(wi.getBoundingClientRect().top - st.querySelector('.pwrow').getBoundingClientRect().bottom);
-    var rows = document.querySelectorAll('.pwrow');
-    if (rows.length > 1 && wi) o.rowGap =
-      Math.round(rows[1].getBoundingClientRect().top - wi.getBoundingClientRect().bottom);
+    /* ★ 「흘렀는가」는 **줄 수를 세어** 본다. 같은 y 에 있는 칸끼리 묶으면
+       2+1 인지 3 인지 1+1+1 인지가 그대로 나온다 — CSS 속성을 읽으면
+       실제로 어떻게 놓였는지는 모른다 */
+    var tiles = [].slice.call(document.querySelectorAll('.pwrow .pw'));
+    var lines = {};
+    tiles.forEach(function (b) {
+      var y = Math.round(b.getBoundingClientRect().top);
+      lines[y] = (lines[y] || 0) + 1;
+    });
+    o.lineSizes = Object.keys(lines).map(function (k) { return lines[k]; });
+    o.tileCount = tiles.length;
+
+    /* 고른 갈래의 칸은 토글 **아래**에 있어야 한다 (안에 끼면 키가 어긋난다) */
+    var row = document.querySelector('.pwrow'), wi = document.querySelector('.wayin');
+    o.wayinInsideRow = !!(row && wi && row.contains(wi));
+    if (row && wi) o.belowGap =
+      Math.round(wi.getBoundingClientRect().top - row.getBoundingClientRect().bottom);
+
+    /* 앱 갈래에는 설명이 없다 (2026-08-22 지시) */
+    var app = tiles.filter(function (b) { return /앱 프로젝트에서 가져오기/.test(b.textContent); })[0];
+    o.appHasDesc = !!(app && app.querySelector('.pw__d'));
 
     // 프로젝트를 먼저 고른다 — 안 고르면 문지기가 먼저 걸린다
     var sel = document.querySelector('.wayin select');
@@ -404,34 +431,48 @@ test('★★ 자료 붙이기가 세 단으로 나뉘고, 파일업로드가 창
     + '<meta name="viewport" content="width=device-width, initial-scale=1"></head><body>'
     + fs.readFileSync(frag, 'utf8') + probe + '</body></html>');
 
-  const dom = renderDom(findBrowser(), page, 22000, 430);
-  const m = dom.match(/<div id="probe">([^<]*)<\/div>/);
-  assert.ok(m && m[1], '탐침이 아무것도 안 남겼다');
-  const r = JSON.parse(m[1]);
+  /** 한 너비에서 재고 돌려준다 — 넓은 쪽과 좁은 쪽을 **둘 다** 봐야 한다 */
+  const measure = (w) => {
+    const dom = renderDom(findBrowser(), page, 22000, w);
+    const m = dom.match(/<div id="probe">([^<]*)<\/div>/);
+    assert.ok(m && m[1], `탐침이 아무것도 안 남겼다 (${w}px)`);
+    return JSON.parse(m[1]);
+  };
 
-  // ① 단이 **둘**이고, 무엇이 어디에 있는지가 정해져 있다
-  assert.strictEqual(r.rows.length, 2, `단이 ${r.rows.length}개다 (2개여야 한다)`);
-  assert.strictEqual(r.rows[0].length, 1, '1단에 둘 이상이 있다 — 앱 갈래 하나여야 한다');
-  assert.match(r.rows[0][0], /앱 프로젝트에서 가져오기/, '1단이 앱 갈래가 아니다');
-  assert.strictEqual(r.rows[1].length, 2, '2단이 나란히 둘이 아니다');
-  assert.match(r.rows[1][0], /폴더를 연결해서/, '2단 왼쪽이 연결이 아니다');
-  assert.match(r.rows[1][1], /파일업로드/, '2단 오른쪽이 파일업로드가 아니다');
+  // ── 넓은 화면: 셋이 **한 줄에 나란히** ──
+  const wide = measure(1100);
+  assert.strictEqual(wide.rows.length, 1, `단이 ${wide.rows.length}개다 — 한 벌이어야 한다`);
+  assert.strictEqual(wide.tileCount, 3, '갈래가 셋이 아니다');
+  assert.deepStrictEqual(wide.lineSizes, [3],
+    `넓은 화면에서 ${JSON.stringify(wide.lineSizes)} 로 흘렀다 — 셋이 나란해야 한다`);
+  assert.deepStrictEqual(wide.rows[0].length, 3, '한 줄에 셋이 아니다');
+  assert.match(wide.rows[0][0], /앱 프로젝트에서 가져오기/, '첫째가 앱 갈래가 아니다');
+  assert.match(wide.rows[0][1], /폴더를 연결해서/, '둘째가 연결이 아니다');
+  assert.match(wide.rows[0][2], /파일업로드/, '셋째가 파일업로드가 아니다');
 
-  // ② ★ 고르기는 1단에 **이어 붙는다** — 떨어지면 어느 갈래 것인지 안 보인다
-  assert.ok(r.wayinInStack, '고르기가 1단 겹 밖에 있다');
-  assert.ok(r.attachGap <= 0, `1단과 고르기 사이가 ${r.attachGap}px 벌어졌다 — 붙어 있어야 한다`);
+  // ── 좁은 화면: **세로로 선다.** 2+1 로 흐르지 않는다 ──
+  const narrow = measure(430);
+  assert.deepStrictEqual(narrow.lineSizes, [1, 1, 1],
+    `좁은 화면에서 ${JSON.stringify(narrow.lineSizes)} 로 놓였다 — `
+    + '2+1 로 흘리면 어느 것이 한 벌인지가 폭에 따라 달라진다 (첫 판의 문제)');
 
-  // ③ 단 사이는 **넉넉히** (사용자 지시)
-  assert.ok(r.rowGap >= 20, `단 사이가 ${r.rowGap}px 다 — 붙어 있으면 한 덩어리로 읽힌다`);
+  // ── 고른 칸은 토글 **아래**에 있고, 이어져 보인다 ──
+  assert.ok(!narrow.wayinInsideRow, '고른 갈래 칸이 토글 안에 끼어 있다 — 셋의 키가 어긋난다');
+  assert.ok(narrow.belowGap <= 2,
+    `토글과 고른 칸 사이가 ${narrow.belowGap}px 벌어졌다 — 어느 갈래 것인지 안 보인다`);
 
-  // ④ ★★ 파일업로드를 누르면 **드롭 자리가 함께 뜨고, 창은 한 번만** 열린다
-  assert.ok(r.hasUpTile, '파일업로드 칸을 못 찾았다');
-  assert.ok(r.dropShown, '파일업로드를 눌렀는데 드롭 자리가 안 떴다');
-  assert.strictEqual(r.inputClicked, 1,
-    `고르기 창이 ${r.inputClicked}번 열렸다 — 두 번이면 사용자에게는 「닫으면 또 뜬다」로 보인다`);
+  // ── 앱 갈래에는 설명이 없다 (2026-08-22 지시) ──
+  assert.ok(!narrow.appHasDesc, '앱 갈래에 설명이 남아 있다');
 
-  process.stderr.write(`  [단] 1단 ${r.rows[0].length}칸 · 2단 ${r.rows[1].length}칸 · `
-    + `이음매 ${r.attachGap} · 단 사이 ${r.rowGap} · 창 ${r.inputClicked}회\n`);
+  // ── 파일업로드를 누르면 드롭 자리가 뜨고, 창은 **한 번만** 열린다 ──
+  assert.ok(narrow.hasUpTile, '파일업로드 칸을 못 찾았다');
+  assert.ok(narrow.dropShown, '파일업로드를 눌렀는데 드롭 자리가 안 떴다');
+  assert.strictEqual(narrow.inputClicked, 1,
+    `고르기 창이 ${narrow.inputClicked}번 열렸다 — 두 번이면 「닫으면 또 뜬다」로 보인다`);
+
+  process.stderr.write(`  [토글] 넓은 화면 ${JSON.stringify(wide.lineSizes)} · `
+    + `좁은 화면 ${JSON.stringify(narrow.lineSizes)} · 이음매 ${narrow.belowGap} · `
+    + `창 ${narrow.inputClicked}회\n`);
 });
 
 /* ═════════ ⑤ 진행 그래프 — 좁으면 **세로로 선다** ═════════ */
