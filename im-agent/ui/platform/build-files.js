@@ -126,8 +126,13 @@ function uploadDriver() {
       /* ★ **보이자마자** 세운다 〈2026-08-22〉. 「한 칸 지난 뒤에」로 미뤄 봤더니
        *   그 사이에 이관이 끝나 버려서 칸 자체가 안 잡혔다 — 세우는 시점을
        *   늦추면 세울 대상이 사라진다. 첫 칸에서 멈춘 그림도 사실 그대로다. */
-      ready: function () { return $('.card--handoff .hand__b .btn2'); },
-      act: function () { $('.card--handoff .hand__b .btn2').click(); } }
+      /* ★ 단추가 아니라 **칸이 뜨는 것**을 기다린다. 단추는 이관이 끝나면
+       *   사라지므로, 단추를 기다리면 늦게 깨어났을 때 영영 못 잡는다 */
+      ready: function () { return $('.card--handoff'); },
+      act: function () {
+        var b = $('.card--handoff .hand__b .btn2');
+        if (b) b.click();               // 아직 도는 중이면 세운다
+      } }
   ];
   var at = 0, n = 0;
   window.__lpDrove = { step: null, ticks: 0, done: false };
@@ -202,7 +207,10 @@ async function build(outFile) {
   const src2 = inlineTokens(withConfig(src, { ...cfg, api: '/api/report' }))
     .replace('<script src="embed-bridge.js"', fakeServer(FAKE_LIMITS) + '\n<script src="embed-bridge.js"');
   fs.writeFileSync(f2, src2 + drive);
-  const part2 = inlineScreen(renderDom(browser, f2, 14000), 'scr-files2');
+  /* ★ 가상 시계 예산을 넉넉히 준다 〈2026-08-22〉. 14초로 뒀더니 기계가 바쁠 때
+   *   이관 칸이 그려지기 **전에** DOM 을 떠서 「③ 칸이 없다」로 빌드가 멎었다 —
+   *   가상 시계는 공짜이므로 아낄 이유가 없다 */
+  const part2 = inlineScreen(renderDom(browser, f2, 30000), 'scr-files2');
   if (!/읽지 못했습니다/.test(part2.html)) {
     throw new Error('둘째 장에 「읽지 못했습니다」가 없다 — 올리기가 그 자리까지 못 갔다');
   }
