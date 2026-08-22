@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="e26243f7">
+<html lang="ko" data-lp-build="3f9e0360">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -499,17 +499,20 @@ window.LINKPILOT_REPORTS = Object.assign({
   // ── 단계 표시 ────────────────────────────────────
   function steps() {
     var row = el('div', 'steps');
-    ['대상·종류 선택', '가이드 필드 (자동입력 + 직접입력)', '출력조건', '생성'].forEach(function (label, i) {
+    /* ★ 레일이 다섯이 됐다 〈2026-08-22 사용자 지시〉. 마지막 「생성」은 레일에
+       없는 칸이지만 **이 화면 안에서는 그대로 둔다** — 확정하면 여기가 생성으로
+       바뀐다는 것을 화면이 스스로 말해야 한다. */
+    ['제작 기본정보 입력', '무엇을 만들까요?', '관련자료 업로드',
+      '가이드 필드 (자동입력 + 직접입력)', '출력조건', '생성'].forEach(function (label, i) {
       var cls = 'step';
-      if (i === 0) cls += ' done';
-      else if (i === 1) cls += ' done';
-      else if (i === 2) cls += state.locked ? ' done' : ' on';
+      if (i <= 3) cls += ' done';
+      else if (i === 4) cls += state.locked ? ' done' : ' on';
       else if (state.locked) cls += ' on';
 
-      // 2단계는 별도 화면이다. 여기서 바로 건너갈 수 있어야 한다 —
+      // 가이드 필드는 별도 화면이다. 여기서 바로 건너갈 수 있어야 한다 —
       // 값이 비어 있으면 생성해도 빈 칸투성이 보고서가 나온다
-      var n = el(i === 1 ? 'a' : 'div', cls);
-      if (i === 1) {
+      var n = el(i === 3 ? 'a' : 'div', cls);
+      if (i === 3) {
         var qs = [];
         if (state.projectId) qs.push('project=' + encodeURIComponent(state.projectId));
         if (state.kindId) qs.push('doc=' + encodeURIComponent(state.kindId));

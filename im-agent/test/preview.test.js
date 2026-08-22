@@ -25,12 +25,13 @@ const PLATFORM = path.join(__dirname, '..', 'ui', 'platform');
  *   옮겨 갈 곳이 없는 칸을 레일에 그리면 사용자는 「한 칸 더 남았다」로 읽고
  *   다음을 찾는다 — 찾을 것이 없다.
  */
-test('단계는 3개이고 순서·이름이 고정되어 있다', () => {
+test('단계는 5개이고 순서·이름이 고정되어 있다', () => {
   assert.deepStrictEqual(
     SCREENS.map(s => `${s.no}. ${s.name}`),
-    ['1. 보고서 생성 입력', '2. 가이드 필드 (자동입력 + 직접입력)', '3. 출력조건']);
+    ['1. 제작 기본정보 입력', '2. 무엇을 만들까요?', '3. 관련자료 업로드',
+      '4. 가이드 필드 (자동입력 + 직접입력)', '5. 출력조건']);
 
-  // 번호는 1..3 으로 이어져야 한다 — 건너뛰면 흐름이 아니라 목록이 된다
+  // 번호는 1..5 로 이어져야 한다 — 건너뛰면 흐름이 아니라 목록이 된다
   SCREENS.forEach((s, i) => assert.strictEqual(s.no, i + 1));
 });
 
@@ -47,18 +48,19 @@ test('단계 이름이 실제 화면의 단계 표시와 같다', () => {
   /* ★ 화면 안의 이름표는 **넷 그대로 둔다** 〈2026-08-22〉. 레일에서 「생성」 칸을
      뺀 것은 **옮겨 갈 곳이 없어서**이고, 확정 뒤에 그 자리에서 「생성」으로
      바뀌는 것은 그대로다. 화면이 스스로 그 상태를 말해야 한다.
-     ★ 그래서 여기서는 **3단계 이름만** 맞춘다 — 레일에 있는 마지막 칸이다. */
-  assert.ok(labels.length >= 3, `화면의 단계 이름표가 ${labels.length}개뿐이다`);
-  assert.strictEqual(SCREENS[2].name, labels[2], '3단계 이름이 화면과 다르다');
+     ★ 그래서 여기서는 **레일에 있는 다섯**만 맞춘다 — 여섯째 「생성」은 화면에만 있다. */
+  assert.ok(labels.length >= SCREENS.length, `화면의 단계 이름표가 ${labels.length}개뿐이다`);
+  SCREENS.forEach((sc, i) => assert.strictEqual(sc.name, labels[i],
+    `${i + 1}단계 이름이 화면과 다르다`));
 });
 
 /**
- * ★★ **「생성」은 3단계와 같은 화면이다** — 레일에서 뺐어도 그 사실은 남는다.
+ * ★★ **「생성」은 5단계와 같은 화면이다** — 레일에서 뺐어도 그 사실은 남는다.
  *   화면이 확정 뒤에 다른 것을 보여 준다는 것을 여기서 못 박아 둔다.
  */
 test('출력조건은 확정 전 상태다 (확정하면 같은 화면이 생성으로 바뀐다)', () => {
-  assert.strictEqual(SCREENS[2].file, 'reports.html');
-  assert.strictEqual(SCREENS[2].after, undefined, '3단계는 확정 전이어야 한다');
+  assert.strictEqual(SCREENS[4].file, 'reports.html');
+  assert.strictEqual(SCREENS[4].after, undefined, '마지막 단계는 확정 전이어야 한다');
   assert.ok(!SCREENS.some(x => x.after === 'CONFIRM_SPEC'),
     '레일에 확정 뒤 칸이 남아 있다 — 옮겨 갈 곳이 없는 칸이다');
 });

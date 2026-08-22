@@ -53,8 +53,11 @@ test('★ 잠긴 단계는 이유를 말한다', () => {
   noApi.forEach(s => assert.strictEqual(s.why, F.WHY.api, `${s.no}단계에 사유가 없다`));
 
   const noProject = F.stepState({ api: '/api', projectId: null });
-  assert.strictEqual(noProject[0].locked, false, '1단계는 프로젝트 없이도 열려야 한다');
-  [1, 2].forEach((i) => {
+  /* ★ 앞의 셋(제작 기본정보·무엇을·관련자료)은 **프로젝트를 만들기 전에 채우는
+     칸**이다. 잠기면 프로젝트를 만들 길이 없어져 사용자가 갇힌다 */
+  [0, 1, 2].forEach((i) => assert.strictEqual(noProject[i].locked, false,
+    `${i + 1}단계는 프로젝트 없이도 열려야 한다`));
+  [3, 4].forEach((i) => {
     assert.strictEqual(noProject[i].locked, true);
     assert.strictEqual(noProject[i].why, F.WHY.project);
   });
@@ -72,14 +75,21 @@ test('★ 서버 미연결이 프로젝트 없음보다 먼저 나온다', () =>
 
 test('단계 주소에 프로젝트가 붙는다 (화면들이 ?project= 를 읽는다)', () => {
   const ctx = { base: '/im/', projectId: 'LP-DC-2026-001' };
-  assert.strictEqual(F.urlFor(F.STEPS[0], ctx), '/im/intake.html', '1단계는 프로젝트가 없다');
-  assert.strictEqual(F.urlFor(F.STEPS[1], ctx), '/im/fields.html?project=LP-DC-2026-001');
-  assert.strictEqual(F.urlFor(F.STEPS[1], { projectId: null }), 'fields.html');
+  assert.strictEqual(F.urlFor(F.STEPS[0], ctx), '/im/intake.html?part=issuer',
+    '1단계는 프로젝트가 없다 — 대신 어느 칸을 펼지가 붙는다');
+  assert.strictEqual(F.urlFor(F.STEPS[3], ctx), '/im/fields.html?project=LP-DC-2026-001');
+  assert.strictEqual(F.urlFor(F.STEPS[3], { projectId: null }), 'fields.html');
+
+  /* ★★ **앞의 셋이 서로 다른 주소여야 한다** 〈2026-08-22〉. 같으면 번호만 다른
+     같은 화면이 되고, 2단계를 눌러도 1단계가 그대로 보인다 */
+  const three = [0, 1, 2].map(i => F.urlFor(F.STEPS[i], ctx));
+  assert.strictEqual(new Set(three).size, 3, `앞의 셋 주소가 겹친다: ${three.join(' · ')}`);
 });
 
 test('화면 파일에서 단계를 되찾는다 (화면이 스스로 넘어가도 레일이 따라간다)', () => {
   assert.strictEqual(F.stepOfFile('/im/fields.html?project=X').id, 'fields');
-  assert.strictEqual(F.stepOfFile('intake.html').id, 'intake');
+  assert.strictEqual(F.stepOfFile('intake.html').id, 'basics',
+    'intake.html 은 앞의 셋이 함께 쓴다 — 되찾으면 첫 칸이다');
   assert.strictEqual(F.stepOfFile('membership.html'), null);
 });
 
@@ -587,62 +597,96 @@ test('★ 인수인계서가 붙이는 데 필요한 것을 빠뜨리지 않는�
   });
 });
 
-/* ═════════ 절 넷 — 화면의 뼈대 (2026-08-20) ═════════ */
+/* ═════════ 절 다섯 — 화면의 뼈대 (2026-08-22) ═════════ */
 
 /**
- * ★★ **이름이 네 곳에 흩어져 있다.** `flow-core`(정본) · `live-core`(진행률) ·
- *   단계 화면 셋(intake·fields·reports)의 단계 칩. 사본은 갈린다 —
- *   이 저장소는 색(`--lime-deep` 세 값)에서 한 번 겪었다.
- *   그래서 **나란히 세워 대조한다.** 한쪽만 고치면 여기서 빨개진다.
+ * ★★ **진행률(live-core)은 레일보다 성기게 센다** 〈2026-08-22 — 단계 다섯〉.
+ *
+ *   레일은 다섯 칸인데 진행률은 넷이다. 앞의 셋은 **한 번의 「만들기」로 함께**
+ *   서버에 가므로 서버가 가진 것으로는 갈라 셀 수가 없다.
+ *
+ *   ★ 그래서 **같은지**가 아니라 **덮는지**를 잰다. 레일에 칸이 늘었는데
+ *     live-core 가 모르면 그 칸은 **진행률에서 통째로 빠진 채** 아무 오류도
+ *     안 난다 — 화면은 멀쩡하고 숫자만 조용히 틀린다.
  */
-test('★★ 단계 이름이 네 곳에서 같다 (사본이 갈리지 않는다)', () => {
+test('★★ 진행률이 레일의 칸을 하나도 빠뜨리지 않는다', () => {
   const L = require('../ui/platform/live-core.js');
-  /* ① live-core 의 **앞 셋**은 flow-core 와 글자 그대로 같아야 한다.
-     ★ 넷째(`make`)는 live-core 에만 있다 〈2026-08-22〉 — 레일에는 칸이 없지만
-       **진행률은 생성을 따로 센다.** 「출력조건 100%」로 뭉치면 만들어지는
-       중인지 끝났는지가 사라지고, 기다리는 사람에게는 그것이 전부다. */
-  assert.deepStrictEqual(L.STEPS.slice(0, F.STEPS.length).map(s => [s.id, s.n, s.label]),
-    F.STEPS.map(s => [s.id, s.no, s.name]),
-    'live-core 의 단계 표가 flow-core 와 다르다');
-  assert.deepStrictEqual(L.STEPS.slice(F.STEPS.length).map(s => s.id), ['make'],
-    'live-core 에 레일 밖 단계가 「생성」 말고 또 있다 — 진행률에만 있는 칸은 하나여야 한다');
 
-  // ② 단계 화면의 칩도 같은 이름을 쓴다 (1번 칸은 화면마다 다르다 — 대상 선택 vs 접수)
-  const fs2 = require('fs');
-  const p2 = require('path');
-  const PLATFORM = p2.join(__dirname, '..', 'ui', 'platform');
-  ['intake.html', 'fields.html', 'reports.html'].forEach((f) => {
-    const html = fs2.readFileSync(p2.join(PLATFORM, f), 'utf8');
-    const m = html.match(/\[('[^']*',\s*)+'[^']*'\]\.forEach\(function \(label, i\)/);
-    assert.ok(m, `${f} 에서 단계 칩 배열을 못 찾았다 — 대조가 불가능해졌다`);
-    const labels = [...m[0].matchAll(/'([^']+)'/g)].map(x => x[1]);
-    /* ★ 화면 안의 칩은 **넷 그대로 둔다** 〈2026-08-22〉 — 확정 뒤에 「생성」으로
-       바뀌는 상태를 화면이 스스로 말해야 한다. 레일에서만 칸을 뺐다.
-       그래서 대조하는 것은 **레일에 있는 만큼**(2·3번)이다. */
-    assert.ok(labels.length >= F.STEPS.length, `${f} 의 단계 칩이 모자라다`);
-    [1, 2].forEach((i) => {
-      assert.strictEqual(labels[i], F.STEPS[i].name,
-        `${f} 의 ${i + 1}번 칩이 정본과 다르다`);
-    });
+  const covered = L.STEPS.flatMap(s => s.covers || []);
+  assert.deepStrictEqual([...covered].sort(), F.STEPS.map(s => s.id).sort(),
+    'live-core 가 덮는 칸이 레일과 다르다 — 빠진 칸은 진행률에서 사라진다');
+  assert.strictEqual(new Set(covered).size, covered.length,
+    '한 칸을 두 곳에서 세고 있다 — 합계가 조용히 부풀어 오른다');
+
+  /* ★ 한 칸만 덮는 것은 **이름이 같아야 한다.** 다르면 같은 것을 두 이름으로
+     부르게 되고, 어느 쪽이 진짜인지 화면만 봐서는 모른다 */
+  L.STEPS.filter(s => (s.covers || []).length === 1).forEach((ls) => {
+    const rail = F.STEPS.filter(f => f.id === ls.covers[0])[0];
+    assert.strictEqual(ls.label, rail.name,
+      `「${ls.covers[0]}」 이름이 진행률과 레일에서 다르다`);
   });
+
+  /* ★ 레일에 없는 칸은 「생성」 하나뿐이다 — 진행률에만 있는 칸이 늘면
+     사용자는 레일에서 그것을 찾다가 못 찾는다 */
+  assert.deepStrictEqual(L.STEPS.filter(s => !(s.covers || []).length).map(s => s.id), ['make']);
 });
 
 /**
- * ★★ **절은 넷이고 순서가 고정이다** 〈2026-08-20 사용자 지시〉.
- *   ① 새보고서 진행률 ② 보고서 생성 입력 ③ 가이드 필드 ④ 출력조건
+ * ★★ **단계 화면의 칩도 같은 이름을 쓴다.** 사본은 갈린다 — 이 저장소는
+ *   색(`--lime-deep` 세 값)에서 한 번 겪었다.
+ *
+ *   ★ `intake.html` 은 **칩을 손으로 적지 않는다** 〈2026-08-22〉. 앞 판은 넷을
+ *     박아 두었는데 단계가 다섯이 된 날 그 줄만 옛말이 됐고, 오류는 안 났다.
+ *     이제 `flow-core.js` 를 읽는다 — 그래서 여기서는 **읽는지**를 잰다.
  */
-test('★★ 절 넷 — 순서·이름·품은 단계가 고정되어 있다', () => {
+test('★★ 단계 이름을 화면이 베껴 쓰지 않는다', () => {
+  const fs2 = require('fs');
+  const p2 = require('path');
+  const PLATFORM = p2.join(__dirname, '..', 'ui', 'platform');
+
+  const intake = fs2.readFileSync(p2.join(PLATFORM, 'intake.html'), 'utf8');
+  assert.match(intake, /F\.STEPS\.forEach/,
+    'intake.html 이 레일을 flow-core 에서 읽지 않는다 — 사본은 갈린다');
+  F.STEPS.forEach((st) => {
+    assert.ok(intake.indexOf("'" + st.name + "'") === -1,
+      `intake.html 이 「${st.name}」 을 직접 적고 있다`);
+  });
+
+  /* ★ `reports.html` 은 아직 제 목록을 갖는다(코어를 안 싣는다). 그래서
+     **레일에 있는 만큼은 글자 그대로 같은지** 잰다 */
+  const rep = fs2.readFileSync(p2.join(PLATFORM, 'reports.html'), 'utf8');
+  const m = rep.match(/\[('[^']*',\s*)+'[^']*'\]\.forEach\(function \(label, i\)/);
+  assert.ok(m, 'reports.html 에서 단계 칩 배열을 못 찾았다 — 대조가 불가능해졌다');
+  const labels = [...m[0].matchAll(/'([^']+)'/g)].map(x => x[1]);
+  assert.ok(labels.length >= F.STEPS.length, `reports.html 의 단계 칩이 모자라다`);
+  F.STEPS.forEach((st, i) => assert.strictEqual(labels[i], st.name,
+    `reports.html 의 ${i + 1}번 칩이 정본과 다르다`));
+});
+
+/**
+ * ★★ **절은 다섯이고 순서가 고정이다** 〈2026-08-22 사용자 지시〉.
+ *   ① 제작 기본정보 입력 ② 무엇을 만들까요? ③ 관련자료 업로드
+ *   ④ 가이드 필드 ⑤ 출력조건
+ *
+ * ★ 「새보고서 진행률」 절을 뺐다. 그것이 ①이던 앞 판은 **절 번호와 단계
+ *   번호가 하나씩 어긋나** 「1단계」라는 말이 어느 칸을 가리키는지 흐렸다.
+ */
+test('★★ 절 다섯 — 순서·이름·품은 단계가 고정되어 있다', () => {
   assert.deepStrictEqual(F.SECTIONS.map(s => `${s.no}. ${s.name}`), [
-    '1. 새보고서 진행률',
-    '2. 보고서 생성 입력',
-    '3. 가이드 필드 (자동입력 + 직접입력)',
-    '4. 출력조건',
+    '1. 제작 기본정보 입력',
+    '2. 무엇을 만들까요?',
+    '3. 관련자료 업로드',
+    '4. 가이드 필드 (자동입력 + 직접입력)',
+    '5. 출력조건',
   ]);
+  /* ★★ **절 번호와 단계 번호가 같다.** 어긋나면 잠금 사유·안내 문구가 가리키는
+     칸이 화면에서 한 칸씩 밀린다 */
+  assert.deepStrictEqual(F.SECTIONS.map(s => s.no), F.STEPS.map(s => s.no));
   /* ★ ④ 는 `spec` 하나를 품는다 〈2026-08-22 — 단계는 셋〉. 확정 뒤의 「생성」은
      같은 화면의 다른 상태일 뿐 **옮겨 갈 칸이 아니다.** 칸으로 두었더니
      「3을 끝내고 4로 넘어간다」로 읽혔다. */
   assert.deepStrictEqual(F.SECTIONS.map(s => s.steps),
-    [[], ['intake'], ['fields'], ['spec']]);
+    [['basics'], ['ask'], ['sources'], ['fields'], ['spec']]);
   // 모든 단계가 **정확히 한 절**에만 속한다 (빠진 단계도, 두 번 실린 단계도 없다)
   const owned = F.SECTIONS.flatMap(s => s.steps).sort();
   assert.deepStrictEqual(owned, F.STEPS.map(s => s.id).sort(),
@@ -651,21 +695,21 @@ test('★★ 절 넷 — 순서·이름·품은 단계가 고정되어 있다', 
 });
 
 test('★ 절 상태 — 잠긴 이유는 그 절이 품은 단계에서 나온다', () => {
-  // 서버가 없으면 전부 잠긴다. 「진행률」은 품은 단계가 없어 잠기지 않는다
+  // 서버가 없으면 전부 잠긴다
   const none = F.sectionState({ api: null, projectId: null });
-  assert.deepStrictEqual(none.map(s => s.locked), [false, true, true, true]);
-  assert.match(none[1].why, /서버/, '잠긴 이유를 안 적으면 고장으로 읽힌다');
+  assert.deepStrictEqual(none.map(s => s.locked), [true, true, true, true, true]);
+  assert.match(none[0].why, /서버/, '잠긴 이유를 안 적으면 고장으로 읽힌다');
 
-  // 프로젝트가 없으면 1단계만 열린다
+  // 프로젝트가 없으면 앞의 셋만 열린다 — 거기서 프로젝트를 만든다
   const fresh = F.sectionState({ api: '/x', projectId: null });
-  assert.deepStrictEqual(fresh.map(s => s.locked), [false, false, true, true]);
-  assert.match(fresh[2].why, /프로젝트/);
+  assert.deepStrictEqual(fresh.map(s => s.locked), [false, false, false, true, true]);
+  assert.match(fresh[3].why, /프로젝트/);
 
   // 다 열리면 「지금」이 하나뿐이다 — 둘이면 어디를 보는지 알 수 없다
   const open = F.sectionState({ api: '/x', projectId: 'LP-DC-2026-001', current: 'spec' });
-  assert.deepStrictEqual(open.map(s => s.locked), [false, false, false, false]);
+  assert.deepStrictEqual(open.map(s => s.locked), [false, false, false, false, false]);
   assert.strictEqual(open.filter(s => s.current).length, 1);
-  assert.strictEqual(open[3].current, true, '출력조건이 지금 절이어야 한다');
-  assert.strictEqual(open[3].opensTo, 'spec');
+  assert.strictEqual(open[4].current, true, '출력조건이 지금 절이어야 한다');
+  assert.strictEqual(open[4].opensTo, 'spec');
 });
 

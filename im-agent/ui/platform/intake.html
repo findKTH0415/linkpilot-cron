@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="e26243f7">
+<html lang="ko" data-lp-build="3f9e0360">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -284,6 +284,45 @@ window.LINKPILOT_INTAKE = {
   var body = document.getElementById('body');
   var meta = document.getElementById('meta');
 
+  /**
+   * ★★★ **어느 칸을 펴는가** 〈2026-08-22 사용자 지시 — 단계 다섯〉.
+   *
+   *   1 제작 기본정보 입력(`issuer`) · 2 무엇을 만들까요?(`ask`) ·
+   *   3 관련자료 업로드(`files`) 는 **이 한 화면의 서로 다른 칸**이다.
+   *   `?part=` 가 없으면(따로 열었을 때) 셋을 다 편다.
+   *
+   * ★ 셋을 오갈 때 화면이 다시 실린다. 그래서 **적어 둔 것을 브라우저에
+   *   저장**한다 — 없으면 2단계를 보고 온 사이에 요청문이 사라지고,
+   *   사용자는 **자기가 지운 줄 안다.** 파일은 저장하지 못하지만(브라우저가
+   *   파일 자체를 넘겨주지 않는다) 파일은 3단계에서 고르고 그 자리에서 올리므로
+   *   오가는 일이 없다.
+   */
+  var PART = null;
+  var DRAFT = 'lp.intake.draft';
+
+  function saveDraft() {
+    try {
+      window.localStorage.setItem(DRAFT, JSON.stringify({
+        request: state.request, assetType: state.assetType,
+        issuerAsDefault: state.issuerAsDefault,
+      }));
+    } catch (_) { /* 사생활 창·저장 차단 — 초안만 못 남길 뿐 화면은 그대로 돈다 */ }
+  }
+
+  function loadDraft() {
+    try {
+      var d = JSON.parse(window.localStorage.getItem(DRAFT) || 'null');
+      if (!d) return;
+      if (typeof d.request === 'string') state.request = d.request;
+      if (typeof d.assetType === 'string') state.assetType = d.assetType;
+      if (typeof d.issuerAsDefault === 'boolean') state.issuerAsDefault = d.issuerAsDefault;
+    } catch (_) {}
+  }
+
+  function clearDraft() {
+    try { window.localStorage.removeItem(DRAFT); } catch (_) {}
+  }
+
   var state = {
     info: null,          // GET /intake 응답 (자산유형·지원 형식·한도)
     loadError: null,
@@ -321,9 +360,10 @@ window.LINKPILOT_INTAKE = {
    *   은 api 가 없으면 **데모 데이터**를 쓰므로, 앱 안에서 가짜 산출물이
    *   진짜처럼 보일 수 있다.
    */
-  function stepUrl(file, projectId) {
+  function stepUrl(file, projectId, part) {
     var here = new URLSearchParams(window.location.search);
     var qs = [];
+    if (part) qs.push('part=' + encodeURIComponent(part));
     var api = here.get('api') || (typeof C.api === 'string' ? C.api : null);
     if (api) qs.push('api=' + encodeURIComponent(api));
     if (projectId) qs.push('project=' + encodeURIComponent(projectId));
@@ -429,7 +469,7 @@ window.LINKPILOT_INTAKE = {
       issuer: (state.issuer && state.issuer.en.trim()) ? state.issuer : undefined,
       issuerAsDefault: state.issuerAsDefault || undefined,
     }).then(function (j) {
-      state.created = j; state.busy = false; render();
+      state.created = j; state.busy = false; clearDraft(); render();
       /* ★ 2026-08-16 — 부모(report-flow)에 알린다. 부모는 자식 URL 의 ?project= 로만 프로젝트를
          알아채는데, 여기서 만든 프로젝트는 URL 에 없다 → 2~4단계가 영원히 「1단계에서 프로젝트를
          먼저 만듭니다」로 잠겨 있었다(앱 실측). 같은 출처에만 보낸다. */
@@ -506,19 +546,31 @@ window.LINKPILOT_INTAKE = {
 
   /* ── 그리기 ───────────────────────────────────────────── */
 
+  /**
+   * ★★★ **단계 이름을 여기서 적지 않는다** 〈2026-08-22〉. 앞 판은 넷을 손으로
+   *   적어 두었는데, 단계가 다섯이 된 날 **이 줄만 옛말**이 됐다. 화면은 새
+   *   차례로 도는데 레일만 옛 차례를 말하는 상태는 오류가 안 나서 안 잡힌다.
+   *   `flow-core.js` 가 단일 출처다.
+   */
   function steps() {
     var row = el('div', 'steps');
-    ['보고서 생성 입력', '가이드 필드 (자동입력 + 직접입력)', '출력조건', '생성'].forEach(function (label, i) {
-      var href = i === 1 ? 'fields.html' : (i >= 2 ? 'reports.html' : null);
-      var n = el(href && state.created ? 'a' : 'div',
-        'step' + (i === 0 ? (state.created ? ' done' : ' on') : ''));
-      if (href && state.created) {
-        n.href = stepUrl(href, state.created.projectId);
-      }
-      add(n, el('span', 'step__n', String(i + 1)), el('span', null, label));
+    var F = window.LinkPilotFlow;
+    if (!F) return row;                      // 코어가 안 실렸으면 지어내지 않는다
+    F.STEPS.forEach(function (st) {
+      var mine = st.file === 'intake.html';
+      var here = mine && (!PART || st.part === PART);
+      var open = state.created ? !mine : mine;
+      var n = el(open && !here ? 'a' : 'div',
+        'step' + (here ? ' on' : (state.created && mine ? ' done' : '')));
+      if (open && !here) n.href = stepUrl(st.file, st.needsProject ? projectId() : null, st.part);
+      add(n, el('span', 'step__n', String(st.no)), el('span', null, st.name));
       row.appendChild(n);
     });
     return row;
+  }
+
+  function projectId() {
+    return (state.created && state.created.projectId) || null;
   }
 
   /**
@@ -596,6 +648,7 @@ window.LINKPILOT_INTAKE = {
     ta.disabled = !!state.created;
     ta.addEventListener('input', function () {
       state.request = ta.value;
+      saveDraft();   /* ★ 단계를 오가도 남아 있어야 한다 */
       var b = document.getElementById('go');
       if (b) b.disabled = !canGo();
     });
@@ -614,7 +667,7 @@ window.LINKPILOT_INTAKE = {
       var o = el('option', null, t.label); o.value = t.id; sel.appendChild(o);
     });
     sel.value = state.assetType;
-    sel.addEventListener('change', function () { state.assetType = sel.value; });
+    sel.addEventListener('change', function () { state.assetType = sel.value; saveDraft(); });
     f2.appendChild(sel);
     f2.appendChild(el('div', 'hint', '자산유형에 따라 재무모델 템플릿과 프로젝트 번호가 정해집니다 (예: LP-DC-2026-001).'));
     box.appendChild(f2);
@@ -768,7 +821,7 @@ window.LINKPILOT_INTAKE = {
     cb.type = 'checkbox';
     cb.checked = !!state.issuerAsDefault;
     cb.disabled = !!state.created;
-    cb.addEventListener('change', function () { state.issuerAsDefault = cb.checked; });
+    cb.addEventListener('change', function () { state.issuerAsDefault = cb.checked; saveDraft(); });
     chk.appendChild(cb);
     chk.appendChild(el('span', null, '앞으로 만드는 보고서에도 이 주체를 씁니다'));
     box.appendChild(chk);
@@ -1049,17 +1102,28 @@ window.LINKPILOT_INTAKE = {
      *   앞 판은 「무엇을 만들까요」가 먼저였다. 발행 주체를 앞에 두는 쪽이
      *   맞다 — **누가 내는 문서인지**가 정해져야 나머지가 그 회사 것이 된다.
      *   (안 넣으면 문서에 「발행 주체 미설정」이 찍히고 승인이 막힌다) */
-    body.appendChild(issuerCard());
-    body.appendChild(requestCard());
-    body.appendChild(formatCard());
-    body.appendChild(dropCard());
-    body.appendChild(actionsRow());
+    /* ★ `part` 가 있으면 **그 칸만** 편다. 없으면(따로 열었을 때) 다 편다 */
+    var show = function (p) { return !PART || PART === p; };
+    if (show('issuer')) body.appendChild(issuerCard());
+    if (show('ask')) { body.appendChild(requestCard()); body.appendChild(formatCard()); }
+    if (show('files')) { body.appendChild(dropCard()); body.appendChild(actionsRow()); }
+
+    /* ★★ **만드는 버튼이 없는 칸에서는 그렇다고 말한다** 〈2026-08-22〉.
+     *   1·2단계만 보고 있으면 [프로젝트 만들기] 가 화면에 없다. 아무 말도 안
+     *   해 두면 사용자는 **여기서 끝난 줄 알고 기다린다** — 기다릴 것이 없다. */
+    if (PART && PART !== 'files') {
+      body.appendChild(el('p', 'card__s',
+        '여기 적은 것은 이 브라우저에 저장됩니다. 3단계 「관련자료 업로드」에서 '
+        + '[프로젝트 만들기] 를 눌러야 1·2·3단계가 함께 서버로 갑니다.'));
+    }
   }
 
   /* ── 시작 ─────────────────────────────────────────────── */
 
   var params = new URLSearchParams(location.search);
   if (params.get('api')) C.api = params.get('api');
+  PART = params.get('part') || null;
+  loadDraft();
 
   var su = document.getElementById('side-user');
   if (su) su.textContent = (C.session && C.session.name) || '';
