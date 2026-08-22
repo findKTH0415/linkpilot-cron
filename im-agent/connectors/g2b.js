@@ -167,7 +167,26 @@ async function awards(opt) {
 
   const minEok = o.minEok === undefined ? 10 : o.minEok;
   const rows = (r.value || []).map((x) => {
-    const base = toEok(x.bssamt ?? x.bsisAmt ?? x.presmptPrce);
+    /* ★★★ **추정가격으로 기초금액을 메우지 않는다** 〈2026-08-23 실측〉.
+     *
+     *   앞 판은 `bssamt ?? bsisAmt ?? presmptPrce` 였다. 그런데 셋은 **다른 값**이다:
+     *
+     *     기초금액(bssamt)   = 예정가격을 정하는 기준. **부가세가 들어 있다**
+     *     추정가격(presmptPrce) = 부가세·관급자재를 **뺀** 값
+     *
+     *   ★ 낙찰률은 `낙찰금액 ÷ 기초금액` 이다. 분모에 추정가격을 넣으면 **분모가
+     *     작아져 낙찰률이 부풀려진다** — 부가세 몫만 해도 10%p 가까이 뛴다.
+     *     그리고 **그 값은 그럴듯하게 나온다.** 출처 표시도 멀쩡하다.
+     *
+     *   ★ 그래서 기초금액이 없으면 **낙찰률을 내지 않는다** (§4.9 — 대체값으로
+     *     메우면 「적용됨」만 남고 무엇이 빠졌는지 사라진다). 낙찰금액 자체는
+     *     그대로 낸다 — 그건 이 응답에 실려 있다.
+     *
+     *   ★ 2026-08-23 실측으로 확인한 것: **입찰공고 서비스 응답에는
+     *     `bssamt`·`bsisAmt` 가 아예 없다**(추정가격·예산금액·관급자재금액만 있다).
+     *     기초금액은 **개찰결과 서비스** 응답에서 와야 한다. 그 서비스는 아직
+     *     활용신청 전이라(403) 필드 이름을 실측하지 못했다 — 열리면 확인한다. */
+    const base = toEok(x.bssamt ?? x.bsisAmt);
     const award = toEok(x.sucsfbidAmt ?? x.opengCorpInfo ?? x.sucsfbidamt);
     return {
       title: txt(x.bidNtceNm ?? x.ntceNm),
@@ -175,7 +194,8 @@ async function awards(opt) {
       date: txt(x.opengDt ?? x.rlOpengDt ?? x.bidNtceDt),
       baseEok: base,
       awardEok: award,
-      // 낙찰률 = 낙찰금액 ÷ 기초금액. 출처 있는 두 값의 비라 가정이 없다
+      // 낙찰률 = 낙찰금액 ÷ 기초금액. 출처 있는 두 값의 비라 가정이 없다.
+      // 기초금액이 없으면 **null 이다** — 추정가격으로 대신 나누지 않는다 (위 주석)
       awardRate: (base && award) ? Math.round((award / base) * 1000) / 10 : null,
       winner: txt(x.opengCorpNm ?? x.sucsfbidCorpNm),
     };
@@ -224,6 +244,11 @@ async function benchmark(opt) {
     medianAwardEok: median(amounts),
     medianRate: rates.length ? Math.round(median(rates) * 10) / 10 : null,
     rateCount: rates.length,
+    /* ★ **왜 못 냈는지를 값 옆에 붙인다** 〈2026-08-23〉. `medianRate: null` 만
+       두면 「0 이다」와 「못 냈다」가 화면에서 같아 보인다 (§4.7). */
+    rateReason: rates.length ? null
+      : '응답에 기초금액(bssamt)이 없어 낙찰률을 내지 않았다 — 추정가격으로 대신 '
+        + '나누면 분모가 작아져 낙찰률이 부풀려진다',
     count: r.count,
     period,
     latest: r.value[0],
