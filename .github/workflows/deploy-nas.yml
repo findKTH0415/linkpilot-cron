@@ -337,14 +337,27 @@ jobs:
           # Check serving 과 같은 이유로 -e 를 끈다 — 「못 찾음」이 정상 결과다
           set -u
           set +e
-          SRV=/volume1/docker/linkpilot/im-engine-server.cjs
-          OUT=$(ssh -o BatchMode=yes -o ConnectTimeout=20 -i ~/.ssh/id_deploy \
-            "$NAS_USER@$NAS_HOST" "test -f $SRV && grep -nE 'express\.json|bodyParser|MIN_BODY_BYTES|limit' $SRV || echo __NOFILE__" 2>&1)
+          # ★★ 문서가 적어 둔 자리(`/volume1/docker/linkpilot`)에 **없었다**
+          #   〈2026-08-22 실측〉. 그래서 「없다」로 끝내지 않고 **찾는다** —
+          #   「엔진 루트가 다른 곳이다」만 남기면 다음 사람이 또 처음부터 찾는다.
+          SRV=$(ssh -o BatchMode=yes -o ConnectTimeout=20 -i ~/.ssh/id_deploy \
+            "$NAS_USER@$NAS_HOST" \
+            "for p in /volume1/docker/linkpilot /volume1/linkpilot /volume1/web/linkpilot; do
+               [ -f \$p/im-engine-server.cjs ] && { echo \$p/im-engine-server.cjs; exit 0; }
+             done
+             find /volume1 -maxdepth 4 -name 'im-engine-server*.cjs' -not -path '*/node_modules/*' 2>/dev/null | head -1" 2>&1 | tail -1)
 
-          if printf '%s' "$OUT" | grep -q '__NOFILE__'; then
-            echo "::warning::엔진 서버 파일을 못 찾았다 ($SRV) — 엔진 루트가 다른 곳이다. ssh 로 붙어 ls /volume1/docker 를 보면 나온다"
+          if [ -z "$SRV" ]; then
+            echo "엔진 서버 파일을 못 찾았다. /volume1 아래에 무엇이 있는지 적어 둔다:"
+            ssh -o BatchMode=yes -i ~/.ssh/id_deploy "$NAS_USER@$NAS_HOST" \
+              "ls -1 /volume1 2>/dev/null; echo '--- /volume1/docker'; ls -1 /volume1/docker 2>/dev/null" 2>&1 | sed 's/^/  /'
+            echo "::warning::엔진 서버 파일(im-engine-server*.cjs)이 /volume1 아래 4단 안에 없다 — 다른 볼륨이거나, 배포 계정에서 안 보이는 자리다. 위 목록을 보고 실제 경로를 정한다"
             exit 0
           fi
+
+          echo "엔진 서버: $SRV"
+          OUT=$(ssh -o BatchMode=yes -i ~/.ssh/id_deploy "$NAS_USER@$NAS_HOST" \
+            "grep -nE 'express\.json|bodyParser|MIN_BODY_BYTES|limit' '$SRV'" 2>&1)
 
           echo "본문 파서 자리:"
           printf '%s\n' "$OUT"
