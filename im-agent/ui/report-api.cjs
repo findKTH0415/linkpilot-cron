@@ -239,7 +239,8 @@ function createHandlers(deps) {
 
     const need = PLAN_RANK[requiredPlan];
     if (need !== undefined && have < need) {
-      return { error: bad(`${requiredPlan} 플랜부터 사용할 수 있습니다`, 403) };
+      /* ★ D-71 결정(2026-08-22 사장님): 「무료 계정은 테스트만」 — 막다른 길처럼 읽히지 않게, 무엇이 되고 무엇이 Pro 인지 한 줄로 */
+      return { error: bad(user.planId === 'free' ? '무료 계정은 테스트만 가능합니다 — 보고서 생성·완성은 Pro 플랜부터 (내 정보 → 멤버십)' : `${requiredPlan} 플랜부터 사용할 수 있습니다`, 403) };
     }
     return { user };
   }

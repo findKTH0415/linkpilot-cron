@@ -54,7 +54,9 @@ const BASE = 'https://apis.data.go.kr/1230000';
 const OPS = {
   /** 공사 개찰(낙찰) 결과 목록 */
   award: {
-    path: 'ao/ScsbidInfoService/getOpengResultListInfoCnstwkPPSSrch',
+    /* ★ 2026-08-22 실측 — `ao/…` 는 NO_OPENAPI_SERVICE_ERROR(코드 12 "없거나 폐기됨"), `as/…` 는 등록되지 않은 서비스키(30).
+       즉 서비스는 `as/` 에 살아 있고 남은 것은 data.go.kr 활용신청이다. 400 의 원인은 키·기간이 아니라 경로였다. */
+    path: 'as/ScsbidInfoService/getOpengResultListInfoCnstwkPPSSrch',
     label: '공사 개찰결과',
   },
   /** 공사 입찰공고 목록 — 기초금액·공고명·지역이 여기 실린다 */
