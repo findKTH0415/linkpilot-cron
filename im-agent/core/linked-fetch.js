@@ -21,8 +21,18 @@
 const http = require('../connectors/http');
 const handoff = require('./handoff');
 
-/** 파일 하나 한도 — `ui/api-router.cjs` 와 같은 값을 쓴다 */
-const MAX_BYTES = 20 * 1024 * 1024;
+/**
+ * 파일 하나 한도.
+ *
+ * ★★ **베껴 적지 않는다** 〈2026-08-22〉. 앞 판은 `20 * 1024 * 1024` 를 여기
+ *   손으로 적고 주석에 「`ui/api-router.cjs` 와 같은 값을 쓴다」고 달아 두었다.
+ *   같은 값이었던 것은 그날뿐이다 — 한도를 30MB 로 올리는 순간 **연결 자료만
+ *   조용히 20MB 에서 잘렸을 것이다.** 그리고 화면은 「한도 30MB」라고 적혀
+ *   있으므로, 사용자는 26MB 짜리가 왜 안 들어오는지 알 방법이 없다.
+ *   ★ `api-router.cjs` 는 맨 위에서 `path` 와 `routes.cjs` 만 부른다 —
+ *     express 는 지연 로드라 여기서 끌어와도 무겁지 않다.
+ */
+const { MAX_FILE_BYTES: MAX_BYTES } = require('../ui/api-router.cjs');
 
 function mb(n) { return Math.round((n / (1024 * 1024)) * 10) / 10; }
 

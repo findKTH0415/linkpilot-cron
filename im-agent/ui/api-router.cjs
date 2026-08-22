@@ -26,11 +26,36 @@ const PROJECT_ID = /^LP-[A-Z]+-\d{4}-\d{3}$/;
 const DICT_KEY = /^[a-z_]+\.[a-z_]+$/;
 
 /**
- * 업로드 한도. 화면과 서버가 같은 값을 봐야 하므로 여기서 한 번만 정한다.
- * base64 는 원본보다 약 33% 크므로 본문 크기는 이보다 더 잡아야 한다.
+ * 업로드 한도. 화면과 서버가 같은 값을 봐야 하므로 **여기서 한 번만 정한다.**
+ *
+ * 〈2026-08-22 상향 — 사용자 지시. 20MB/60MB → 30MB/100MB〉
+ *   신고: 「파일이 너무 큽니다 — 23.3 MB (한도 20.0 MB)」. 실무 자료(도면 붙은
+ *   사업계획서·감사보고서 스캔본)가 20MB 를 예사로 넘긴다.
+ *
+ * ★★ **본체(앱)가 본문 크기를 함께 올려야 실제로 먹는다.**
+ *   파일은 base64 로 실려 온다 — 원본보다 약 **33% 크다.**
+ *
+ *     파일 하나 30MB   → 본문 약  40MB
+ *     한 번에 100MB    → 본문 약 133MB
+ *
+ *   앱의 express 는 `express.json()` 기본값이 **100KB** 다. 안 올리면 여기까지
+ *   오지도 못하고 **413 으로 끊긴다** — 그리고 그 오류는 화면이 말하는 한도와
+ *   전혀 다른 얼굴로 나타나서, 「30MB 라더니 왜 안 되나」로 헤매게 된다.
+ *   `deploy/앱-업로드-한도.md` 에 무엇을 어디에 넣는지 적어 두었다.
+ *
+ * ★ 메모리도 함께 본다. 운영 NAS 는 RAM 1.8GB 이고, 133MB 본문을 파싱하면
+ *   문자열 + 디코드 버퍼로 순간 300MB 안팎을 쓴다. 한 번에 100MB 는
+ *   **여러 사람이 동시에 올리는 상황을 견디는 값이 아니다** — 그때는
+ *   본체 쪽에서 동시 업로드를 제한해야 한다.
  */
-const MAX_FILE_BYTES = 20 * 1024 * 1024;
-const MAX_REQUEST_BYTES = 60 * 1024 * 1024;
+const MAX_FILE_BYTES = 30 * 1024 * 1024;
+const MAX_REQUEST_BYTES = 100 * 1024 * 1024;
+
+/** base64 로 부풀어 오르는 비율 — 본체가 본문 한도를 정할 때 쓰는 값 */
+const BASE64_OVERHEAD = 4 / 3;
+
+/** 본체 express 가 잡아야 하는 본문 한도(바이트). 여유 8MB 를 얹는다 */
+const MIN_BODY_BYTES = Math.ceil(MAX_REQUEST_BYTES * BASE64_OVERHEAD) + 8 * 1024 * 1024;
 
 /**
  * @param {object} deps { agentRoot } — im-agent 저장소 경로 (IM_AGENT_ROOT 와 같은 값)
@@ -249,5 +274,5 @@ function createRouter(deps = {}) {
 
 module.exports = {
   createHandlers, createRouter, ROUTES, PROJECT_ID, DICT_KEY,
-  MAX_FILE_BYTES, MAX_REQUEST_BYTES,
+  MAX_FILE_BYTES, MAX_REQUEST_BYTES, BASE64_OVERHEAD, MIN_BODY_BYTES,
 };

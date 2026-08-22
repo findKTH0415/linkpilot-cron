@@ -26,9 +26,15 @@ const { selfContained } = require('./build-preview.js');
 const storage = require(path.join(HERE, '..', '..', 'connectors', 'storage.js'));
 
 /* 미리 그리는 판이 쓸 한도. 눌러 보는 판은 실제 API 에서 받아 오지만, 미리
-   그리는 판에는 서버가 없다. **모양은 같게** 둔다 — 다르면 여기서 되는 것이
-   실제로도 된다는 뜻이 아니게 된다 */
-const FAKE_LIMITS = { maxBytesPerFile: 30 * 1024 * 1024, maxBytesPerRequest: 100 * 1024 * 1024 };
+   그리는 판에는 서버가 없다.
+   ★★ **숫자를 여기 적지 않는다** 〈2026-08-22〉. 적어 두면 한도를 올린 날
+     미리보기만 옛 숫자를 말한다 — 그리고 미리보기는 「확인하는 자리」라
+     그 거짓말을 아무도 의심하지 않는다. 진짜 한도를 그대로 가져온다. */
+const apiLimits = require(path.join(HERE, '..', 'api-router.cjs'));
+const FAKE_LIMITS = {
+  maxBytesPerFile: apiLimits.MAX_FILE_BYTES,
+  maxBytesPerRequest: apiLimits.MAX_REQUEST_BYTES,
+};
 
 /** 예시 자료 — 실제 딜 자료는 이 저장소에 두지 않는다 (public) */
 const DEMO = {
