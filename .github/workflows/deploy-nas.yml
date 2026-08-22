@@ -317,6 +317,46 @@ jobs:
           done
           [ "$FOUND" = "1" ] || echo "::warning::어느 포트에서도 200 이 안 왔다 — 이 주소로는 웹으로 안 열리는 것이다. 앱이 실제로 어느 주소에서 화면을 읽는지 확인이 필요하다"
 
+      # ★★ **업로드 본문 한도가 실제로 올라갔는지 잰다** 〈2026-08-22〉.
+      #   엔진은 파일 30MB · 한 번에 100MB 를 받도록 되어 있다. 그런데 그
+      #   검사에 닿기도 전에 **본문 파서**가 먼저 끊는다 — express 기본값은
+      #   100KB 다. 그때 증상은 「전송이 끊겼습니다」나 엉뚱한 401 이라서,
+      #   **화면만 봐서는 어디서 끊겼는지 알 수 없다.**
+      #
+      #   ★ 사람에게 「ssh 로 붙어 grep 해 보세요」라고 시키지 않는다. 러너는
+      #     이미 tailnet 안에 있다 — **잴 수 있는 쪽이 잰다** (Check serving 과 같다).
+      #   ★ **읽기만 한다.** grep 만 돌리고 아무것도 바꾸지 않는다.
+      #   ★ 파일을 못 찾는 것도 **답**이다. 「엔진 루트가 다른 곳이다」를 뜻하므로
+      #     조용히 넘기지 않고 무엇을 봐야 하는지 적는다.
+      - name: Check upload body limit
+        if: ${{ !inputs.dry_run && inputs.probe }}
+        env:
+          NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+          NAS_USER: ${{ secrets.NAS_SSH_USER }}
+        run: |
+          # Check serving 과 같은 이유로 -e 를 끈다 — 「못 찾음」이 정상 결과다
+          set -u
+          set +e
+          SRV=/volume1/docker/linkpilot/im-engine-server.cjs
+          OUT=$(ssh -o BatchMode=yes -o ConnectTimeout=20 -i ~/.ssh/id_deploy \
+            "$NAS_USER@$NAS_HOST" "test -f $SRV && grep -nE 'express\.json|bodyParser|MIN_BODY_BYTES|limit' $SRV || echo __NOFILE__" 2>&1)
+
+          if printf '%s' "$OUT" | grep -q '__NOFILE__'; then
+            echo "::warning::엔진 서버 파일을 못 찾았다 ($SRV) — 엔진 루트가 다른 곳이다. ssh 로 붙어 ls /volume1/docker 를 보면 나온다"
+            exit 0
+          fi
+
+          echo "본문 파서 자리:"
+          printf '%s\n' "$OUT"
+
+          if printf '%s' "$OUT" | grep -q 'MIN_BODY_BYTES'; then
+            echo "::notice::본문 한도가 엔진 값(MIN_BODY_BYTES · 약 141MB)으로 잡혀 있다 — 큰 파일 업로드가 열려 있다"
+          elif printf '%s' "$OUT" | grep -qE 'express\.json|bodyParser'; then
+            echo "::warning::본문 파서는 있는데 **한도가 엔진 값이 아니다.** 위 줄의 limit 을 본다 — 없으면 기본 100KB 라 8MB 도 못 올린다 (deploy/앱-업로드-한도.md)"
+          else
+            echo "::warning::본문 파서를 못 찾았다 — express 를 안 쓰고 직접 모으는 판일 수 있다. 그 자리의 길이 검사를 확인한다 (deploy/앱-업로드-한도.md ①-(나))"
+          fi
+
       - name: Probe summary
         if: ${{ !inputs.dry_run && inputs.probe }}
         run: |
