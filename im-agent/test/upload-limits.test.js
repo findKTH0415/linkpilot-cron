@@ -87,3 +87,62 @@ test('★ 본체가 할 일이 문서로 남아 있다', () => {
   assert.match(t, /역방향 프록시/,
     '앞단 프록시를 어디서 고치는지가 없다 — DSM 에서 그 자리는 잘 안 보인다');
 });
+
+/**
+ * ★★ **합계를 재고 보내기 전에 막는가** 〈2026-08-22 · D-81〉.
+ *
+ * 전에는 파일 하나씩만 재고 합계는 아무도 안 쟀다. 화면은 「한 번에 N MB 까지」를
+ * 적어 두기만 하고 그대로 보냈고, 서버는 받다가 **연결을 그냥 끊었다** — 응답이
+ * 없어서 화면에는 「전송이 끊겼습니다」밖에 뜰 수 없다.
+ *
+ * ★ 화면 코드를 **실제로 불러** 잰다. 「그런 함수가 있다」를 재면 그 함수가
+ *   아무것도 안 하게 된 날에도 통과한다 (M-08).
+ */
+test('★★ 한 번에 보낼 합계가 넘으면 화면이 보내기 전에 막는다', () => {
+  const src = fs.readFileSync(path.join(ROOT, 'ui/platform/files.html'), 'utf8');
+  const at = src.indexOf('function overRequest(');
+  assert.ok(at > -1, '화면에 합계를 재는 자리가 없다 — 넘겨도 그대로 보낸다');
+  let i = src.indexOf('{', at), depth = 0, end = -1;
+  for (; i < src.length; i += 1) {
+    if (src[i] === '{') depth += 1;
+    else if (src[i] === '}') { depth -= 1; if (!depth) { end = i + 1; break; } }
+  }
+  const mk = (picked) => {
+    const state = { limits: { maxBytesPerRequest: AR.MAX_REQUEST_BYTES }, picked };
+    // eslint-disable-next-line no-new-func
+    return new Function('state', `${src.slice(at, end)}; return overRequest();`)(state);
+  };
+  const mbFile = (n) => ({ size: n * 1024 * 1024, data: 'x', tooBig: false });
+
+  assert.strictEqual(mk([mbFile(10), mbFile(10)]), null, '한도 안인데 막았다');
+
+  const over = mk([mbFile(30), mbFile(20)]);
+  assert.ok(over, `합 50MB 인데 안 막았다 (한도 ${Math.round(mb(AR.MAX_REQUEST_BYTES))}MB)`);
+  assert.strictEqual(over.files, 2);
+  assert.ok(over.total > over.cap);
+
+  /* ★ 너무 큰 파일·못 읽은 파일은 **합계에 넣지 않는다** — 어차피 안 실린다.
+     넣으면 보낼 수 있는 묶음이 엉뚱하게 막힌다 */
+  assert.strictEqual(mk([mbFile(10), { size: 99 * 1024 * 1024, data: 'x', tooBig: true }]), null,
+    '너무 큰 파일을 합계에 넣었다');
+  assert.strictEqual(mk([mbFile(10), { size: 99 * 1024 * 1024, data: null, tooBig: false }]), null,
+    '아직 못 읽은 파일을 합계에 넣었다');
+});
+
+/**
+ * ★ 약속한 한도가 **NAS 가 실제로 받는 64MB 안에** 들어오는가 〈D-81〉.
+ *   숫자를 검사에 적어 두지 않는다 — 관계를 잰다.
+ */
+test('★★ 한 번에 보낼 본문이 NAS 의 64MB 벽 안에 여유를 두고 들어온다', () => {
+  const WALL = 64 * 1024 * 1024;                 // 실측: im-engine-server.cjs 의 MAX_BODY
+  const body = AR.MAX_REQUEST_BYTES * AR.BASE64_OVERHEAD;
+  assert.ok(body < WALL,
+    `한 번에 ${Math.round(mb(AR.MAX_REQUEST_BYTES))}MB 는 본문 ${Math.round(mb(body))}MB 라 `
+    + `벽(${Math.round(mb(WALL))}MB)을 넘는다 — 화면이 「됩니다」라고 해 놓고 조용히 끊긴다`);
+  assert.ok(WALL - body >= 2 * 1024 * 1024,
+    `벽까지 ${Math.round(mb(WALL - body))}MB 밖에 안 남았다 — 파일 이름·JSON 껍데기에 넘어간다`);
+
+  // 파일 하나만 올려도 벽 안이어야 한다
+  assert.ok(AR.MAX_FILE_BYTES * AR.BASE64_OVERHEAD < WALL,
+    '파일 하나가 벽을 넘는다 — 한 개짜리 업로드가 끊긴다');
+});

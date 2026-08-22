@@ -897,6 +897,26 @@ window.LINKPILOT_FILES = {
     return box;
   }
 
+  /**
+   * 한 번에 보낼 **합계**가 한도를 넘었는가 〈2026-08-22 · D-81〉.
+   *
+   * ★★ 전에는 **파일 하나씩만** 재고 합계는 아무도 안 쟀다. 화면은 「한 번에
+   *   N MB 까지」라고 적어 두기만 하고 **그대로 보냈다.** 그러면 서버가 본문을
+   *   받다가 중간에 연결을 끊는데, 응답이 아예 없어서 화면에는 「전송이
+   *   끊겼습니다」밖에 뜰 수가 없다 — 사용자는 **왜 끊겼는지 알 방법이 없다.**
+   * ★ 그래서 **보내기 전에 여기서 막는다.** 막는 것이 목적이 아니라 **이유를
+   *   말할 수 있는 자리에서 막는 것**이 목적이다.
+   * ★ 재는 것은 **읽을 수 있는 것들의 합**이다. 너무 큰 파일과 못 읽은 파일은
+   *   어차피 안 실리므로 합계에 넣으면 엉뚱하게 막힌다.
+   */
+  function overRequest() {
+    var cap = (state.limits && state.limits.maxBytesPerRequest) || 0;
+    if (!cap) return null;
+    var ready = state.picked.filter(function (f) { return f.data && !f.tooBig; });
+    var total = ready.reduce(function (n, f) { return n + (f.size || 0); }, 0);
+    return total > cap ? { total: total, cap: cap, files: ready.length } : null;
+  }
+
   /** 고른 파일을 읽어 둔다. 읽기·보내기는 upload-core.js 한 곳에 있다 */
   function addFiles(list) {
     var max = (state.limits && state.limits.maxBytesPerFile) || 0;
@@ -1183,6 +1203,8 @@ window.LINKPILOT_FILES = {
   function doUpload() {
     var ready = state.picked.filter(function (f) { return f.data && !f.tooBig; });
     if (!ready.length || !state.projectId || state.busy) return;
+    // ★ 합계가 넘으면 **보내지 않는다.** 보내고 나서 끊기면 이유를 말할 수 없다
+    if (overRequest()) return;
     // ★ 화면에 남은 올리는 길은 **1회성 하나뿐**이다 (보관은 뺐다).
     //   그런데도 갈래를 확인하고 보낸다 — 나중에 길이 늘 때 조용히 엉뚱한 곳으로
     //   가지 않게 한다
@@ -1413,9 +1435,21 @@ window.LINKPILOT_FILES = {
     box.appendChild(pickedList());
 
     var ready = state.picked.filter(function (f) { return f.data && !f.tooBig; });
+
+    /* ★ 합계가 넘으면 **그 자리에서 말하고 단추를 잠근다.** 얼마나 넘었는지와
+     *   무엇을 하면 되는지를 함께 적는다 — 「너무 큽니다」만으로는 몇 개를 빼야
+     *   하는지 알 수 없다 */
+    var over = overRequest();
+    if (over) {
+      box.appendChild(el('p', 'up__d up__d--bad',
+        '고른 ' + over.files + '개의 합이 ' + size(over.total)
+        + ' 입니다 — 한 번에 ' + size(over.cap) + ' 까지 보낼 수 있습니다. '
+        + size(over.total - over.cap) + ' 만큼 덜어 내거나, 나눠서 두 번 올려 주십시오.'));
+    }
+
     var go = el('button', 'btn', state.way === 'oneshot' ? wayName('oneshot') : '올려서 보관');
     go.type = 'button';
-    go.disabled = !ready.length || state.busy;
+    go.disabled = !ready.length || state.busy || !!over;
     go.addEventListener('click', doUpload);
     box.appendChild(go);
 
