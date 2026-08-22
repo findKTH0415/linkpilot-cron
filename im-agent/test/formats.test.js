@@ -95,6 +95,49 @@ test('hwp(바이너리) 본문을 읽는다 — 압축·비압축 둘 다', () =
   }
 });
 
+/**
+ * ★★ **글자만 읽고 「읽었다」고 하지 않는다** 〈2026-08-22 · 실무 파일 실측〉.
+ *
+ * 실제 사업계획서 하나를 재 보니 **8.6MB 중 8.2MB(95%)가 그림 58장**이고 글자는
+ * 3,243자뿐이었다. 파서는 정상으로 읽었는데 **문서 내용의 대부분은 아무도 안 본
+ * 그림 안에** 있었다 — 「받은 것과 읽은 것을 같은 말로 하는」 병이다 (M-16).
+ */
+test('★★ hwp 안에 든 그림을 세어서 말한다 — 글자만 읽고 다 읽었다고 하지 않는다', () => {
+  const pics = [oleFix.fakeJpeg(4096), oleFix.fakeJpeg(2048), oleFix.fakeJpeg(9000)];
+  const buf = oleFix.buildHwp(['대지면적 12,345 ㎡'], { pictures: pics });
+
+  const got = ole.hwpImages(buf);
+  assert.strictEqual(got.length, 3, `그림을 ${got.length}장만 찾았다`);
+  assert.ok(got.every((g) => ole.looksLikeImage(g.buf)), '꺼낸 것이 그림이 아니다');
+  // ★ 이름 순으로 돌려주므로 넣은 순서 그대로다. 크기가 어긋나면 잘려 나온 것이다
+  assert.deepStrictEqual(got.map((g) => g.buf.length), [4096, 2048, 9000]);
+  assert.deepStrictEqual(got.map((g) => g.name), ['BIN0001.jpg', 'BIN0002.jpg', 'BIN0003.jpg']);
+
+  // 본문은 그대로 읽힌다 — 그림을 꺼내는 것이 본문을 방해하지 않는다
+  assert.match(ole.hwpText(buf), /12,345/);
+
+  // 그림이 없는 파일에서 없는 것을 지어내지 않는다
+  assert.strictEqual(ole.hwpImages(oleFix.buildHwp(['글자뿐'])).length, 0);
+});
+
+test('★★ 추출기가 그림 장수를 문서 옆에 적는다 (안 세면 아무도 모른다)', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-hwpimg-'));
+  const f = path.join(dir, 'a.hwp');
+  fs.writeFileSync(f, oleFix.buildHwp(['총사업비 2,846억원'],
+    { pictures: [oleFix.fakeJpeg(5000), oleFix.fakeJpeg(5000)] }));
+
+  const r = ex.toText({ name: 'a.hwp', path: f, ext: '.hwp' });
+  assert.strictEqual(r.via, 'ole');
+  assert.strictEqual(r.pictures, 2, '그림 장수를 안 세었다 — 화면이 말할 수가 없다');
+  assert.ok(r.pictureBytes >= 10000, '그림 크기를 안 세었다');
+
+  // 그림이 없으면 필드를 만들지 않는다 — 0 을 적으면 「세어 봤는데 없다」와
+  // 「아예 안 세었다」가 구분되지 않는다
+  const g = path.join(dir, 'b.hwp');
+  fs.writeFileSync(g, oleFix.buildHwp(['글자뿐']));
+  assert.strictEqual(ex.toText({ name: 'b.hwp', path: g, ext: '.hwp' }).pictures, undefined);
+});
+
 test('★ 암호 걸린 hwp 는 열지 못한다고 말한다', () => {
   const buf = oleFix.buildHwp(['비밀']);
   // FileHeader 의 속성 플래그에 암호 비트를 세운다

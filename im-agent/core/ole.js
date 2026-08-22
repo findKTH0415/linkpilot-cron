@@ -204,6 +204,56 @@ function hwpText(buf) {
   return guard(out.join('\n'), 'hwp');
 }
 
+/**
+ * 한글 파일 **안에 든 그림**을 꺼낸다 〈2026-08-22 · 실측에서 나왔다〉.
+ *
+ * ★★ 왜 필요했나: 실무 사업계획서 하나를 재 보니 **8.6MB 중 8.2MB(95%)가
+ *   그림 58장**이었고, 글자는 3,243자뿐이었다. 파서는 정상으로 「읽었다」고
+ *   말하는데 **문서 내용의 대부분은 아무도 안 본 그림 안에** 있었다.
+ *   이것이 M-16 과 같은 병이다 — **받은 것과 읽은 것을 같은 말로 하는 것.**
+ *
+ * ★ 여기서 OCR 을 부르지 않는다. OCR 은 키를 쓰고 돈이 드는 경로라 파서가
+ *   몰래 부르면 안 된다. **꺼내 주기만 하고**, 부를지는 위에서 정한다.
+ *
+ * ★ `BinData/BIN0001.jpg` 는 그릇 안에서 **잎 이름(`BIN0001.jpg`)** 으로 잡힌다
+ *   (`readOle` 이 경로를 평평하게 만든다). 그래서 이름 규칙으로 고른다.
+ * ★ 압축 여부는 **본문 플래그와 별개**다 — BinData 는 저장할 때 따로 정해진다.
+ *   그래서 풀어 보고, 안 풀리면 원본 그대로 쓴다. 원본이 이미 JPEG 인 경우가 많다.
+ *
+ * @returns {Array<{name:string, ext:string, buf:Buffer}>}
+ */
+const HWP_IMG = /^(BIN[0-9A-F]{4})\.(jpg|jpeg|png|gif|bmp|tif|tiff|wmf|emf)$/i;
+
+function hwpImages(buf) {
+  const streams = readOle(buf);
+  const out = [];
+  for (const [name, raw] of streams) {
+    const m = HWP_IMG.exec(name);
+    if (!m) continue;
+    let data = raw;
+    // 압축되어 있으면 푼다. 아니면 원본이 곧 그림이다
+    if (!looksLikeImage(data)) {
+      try { data = zlib.inflateRawSync(raw); }
+      catch (_) { try { data = zlib.inflateSync(raw); } catch (e2) { data = raw; } }
+    }
+    if (!data.length) continue;
+    out.push({ name: m[1] + '.' + m[2].toLowerCase(), ext: '.' + m[2].toLowerCase(), buf: data });
+  }
+  out.sort((a, b) => a.name.localeCompare(b.name));
+  return out;
+}
+
+/** 앞머리를 보고 이미 그림인지 본다 — 아니면 압축된 것으로 보고 풀어 본다 */
+function looksLikeImage(b) {
+  if (b.length < 4) return false;
+  if (b[0] === 0xFF && b[1] === 0xD8) return true;                       // jpeg
+  if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4E) return true;      // png
+  if (b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46) return true;      // gif
+  if (b[0] === 0x42 && b[1] === 0x4D) return true;                       // bmp
+  if ((b[0] === 0x49 && b[1] === 0x49) || (b[0] === 0x4D && b[1] === 0x4D)) return true;  // tiff
+  return false;
+}
+
 function hwpRecords(data) {
   let out = '';
   let p = 0;
@@ -491,6 +541,6 @@ function oleText(ext, buf) {
 }
 
 module.exports = {
-  readOle, oleText, hwpText, docText, xlsText, pptText,
+  readOle, oleText, hwpText, hwpImages, looksLikeImage, docText, xlsText, pptText,
   readableRatio, cp1252, rkValue, readXlUnicode, BY_EXT, MIN_READABLE,
 };
