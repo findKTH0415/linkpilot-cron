@@ -356,8 +356,18 @@ jobs:
           fi
 
           echo "엔진 서버: $SRV"
+          # ★★ **한 줄에 `test -f … && grep … || echo __NOFILE__` 로 묶지 않는다**
+          #   〈2026-08-22 · 여기서 한 번 속았다〉. grep 이 **못 찾으면 1** 을
+          #   돌려주므로 `||` 가 걸려 「파일이 없다」가 찍힌다. 파일은 멀쩡히
+          #   있었는데 「엔진 루트가 다른 곳」이라고 보고했다 — 찾는 곳을
+          #   통째로 잘못 잡게 만드는 거짓말이다. 있는지와 무엇이 들었는지는
+          #   **따로** 묻는다.
+          #
+          # ★ express 계열이 안 나올 수 있다. 그때는 직접 모으는 판이므로
+          #   `req.on('data')` 쪽을 봐야 한다 — 둘 다 한 번에 긁는다.
           OUT=$(ssh -o BatchMode=yes -i ~/.ssh/id_deploy "$NAS_USER@$NAS_HOST" \
-            "grep -nE 'express\.json|bodyParser|MIN_BODY_BYTES|limit' '$SRV'" 2>&1)
+            "grep -nE \"express\\.json|bodyParser|MIN_BODY_BYTES|maxBody|payload|req\\.on\\('data'|Buffer\\.concat|content-length|1024 ?\\* ?1024|limit\" '$SRV' | head -40" 2>&1)
+          [ -z "$OUT" ] && OUT="(일치하는 줄 없음)"
 
           echo "본문 파서 자리:"
           printf '%s\n' "$OUT"
@@ -366,8 +376,10 @@ jobs:
             echo "::notice::본문 한도가 엔진 값(MIN_BODY_BYTES · 약 141MB)으로 잡혀 있다 — 큰 파일 업로드가 열려 있다"
           elif printf '%s' "$OUT" | grep -qE 'express\.json|bodyParser'; then
             echo "::warning::본문 파서는 있는데 **한도가 엔진 값이 아니다.** 위 줄의 limit 을 본다 — 없으면 기본 100KB 라 8MB 도 못 올린다 (deploy/앱-업로드-한도.md)"
+          elif printf '%s' "$OUT" | grep -qE "req\\.on\\('data'|Buffer\\.concat"; then
+            echo "::warning::express 를 안 쓰고 **직접 모으는 판**이다. 위 줄의 길이 검사를 본다 — 검사가 아예 없으면 큰 본문에서 메모리로 터진다 (deploy/앱-업로드-한도.md ①-(나))"
           else
-            echo "::warning::본문 파서를 못 찾았다 — express 를 안 쓰고 직접 모으는 판일 수 있다. 그 자리의 길이 검사를 확인한다 (deploy/앱-업로드-한도.md ①-(나))"
+            echo "::warning::본문을 어디서 받는지 못 찾았다 — 라우터를 다른 파일에서 붙이는 판일 수 있다. 위 목록과 함께 그 파일을 찾는다"
           fi
 
       - name: Probe summary
