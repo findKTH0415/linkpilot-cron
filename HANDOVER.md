@@ -225,17 +225,17 @@ Settings → Danger Zone → Change visibility → Make private.
 | **디스크 ≠ HTTP** | **셋 중 하나** — ① 잰 길이 다르다 ② 다른 이가 덮었다 ③ 캐시 | **①부터** 확인. 하나로 단정하지 않는다 (M-25) |
 | 셋이 같다 | 브라우저 | 그때 비로소 새로고침 |
 
-**재는 법** `deploy-nas` 를 `dry_run:false, probe:true` 로 실행 → `Check served build`.
+**재는 법** `deploy-nas` 를 `dry_run:false` 로 실행 → `Check served build`.
 이 셋은 화면에서 **똑같이 보인다.** 내가 세 번 틀린 자리다.
 
-### ⚠️ `deploy-nas` 는 이제 **기본으로 아무것도 안 쓴다**
+### ⚠️ `deploy-nas` 는 **재기만 한다. 아무것도 쓰지 않는다**
 
-`probe` 기본 `true` · `allow_write` 기본 `false`. 손대지 않고 누르면 **재기만**
-한다. `im-flow` 배포는 **본체 게이트**(`deploy/nas.sh`)가 맡는다 (D-84).
+쓰는 단계를 **지웠다** (D-84). 입력은 `files`·`dest`·`dry_run` 셋뿐이고 `dry_run`
+기본이 `true` 다. `im-flow` 배포는 **본체 게이트**(`deploy/nas.sh`)가 맡는다.
 
-`Verify deployed` 가 빨개지면 **로그의 「HTTP 를 받은 길」부터 본다.** 앱이 쓰는
-길과 다르면 그 값은 **다른 파일의 지문**이다. **저장소 ≠ 디스크면** 그건 진짜로
-안 올라간 것이니 고친다.
+`Check served build` 가 빨개지면 **로그의 「HTTP 를 받은 길」부터 본다.** 앱이 쓰는
+길(Funnel 443)과 다르면 그 값은 **다른 파일의 지문**일 수 있다. **저장소 ≠ 디스크면**
+그건 진짜로 안 올라간 것이니 본체 게이트로 다시 올린다.
 
 ### ⚠️ 화면 지문으로 판을 가린다
 
