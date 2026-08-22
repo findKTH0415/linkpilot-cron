@@ -260,6 +260,21 @@ function createHandlers(opts) {
   H.cardsSample = (ctx) => {
     const user = authenticate(ctx);
     if (!user) return { status: 401, body: { error: '로그인이 필요합니다' } };
+    /* 보관 기간 90일(2026-08-23 결정) — 명함 이미지(개인정보)가 무한 누적되지 않게. 하루 1회, 호출 뒤에 조용히. */
+    try {
+      const now = Date.now();
+      if (!H._sampleGcAt || now - H._sampleGcAt > 24 * 3600 * 1000) {
+        H._sampleGcAt = now;
+        const keepMs = (Number(process.env.LP_CARDS_SAMPLE_DAYS) || 90) * 24 * 3600 * 1000;
+        let removed = 0;
+        if (fs.existsSync(sampleDir)) for (const m of fs.readdirSync(sampleDir)) {
+          const md = path.join(sampleDir, m); if (!fs.statSync(md).isDirectory()) continue;
+          for (const f of fs.readdirSync(md)) { const fp = path.join(md, f); try { if (now - fs.statSync(fp).mtimeMs > keepMs) { fs.unlinkSync(fp); removed++; } } catch (_) {} }
+          try { if (!fs.readdirSync(md).length) fs.rmdirSync(md); } catch (_) {}
+        }
+        if (removed) console.log('[cards] 샘플 gc — ' + removed + '개 삭제(90일 초과)');
+      }
+    } catch (_) {}
     const { imageBase64, fixedImageBase64 = null, mediaType = 'image/jpeg', detected = null, fixed = null, rotate = 0, reason = '', meta = null } = ctx.body || {};
     if (!imageBase64) return { status: 400, body: { error: 'imageBase64 required' } };
     if (String(imageBase64).length > 3 * 1024 * 1024 * 4 / 3) return { status: 413, body: { error: 'tooBig', hint: '샘플은 3MB 이하(축소본)로 보내세요' } };

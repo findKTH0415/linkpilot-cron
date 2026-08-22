@@ -219,3 +219,17 @@ test('ROUTES 에 /cards/sample 이 call 과 함께 있다', () => {
   const r = api.ROUTES.find((x) => x.path === '/cards/sample');
   assert.ok(r && typeof r.call === 'function');
 });
+
+test('sample — 90일 지난 샘플은 다음 호출 때 지워진다(하루 1회 gc), 최근 것은 남는다', () => {
+  const h = fresh();
+  const dir = path.join(ROOT, 'cards-samples', '2026-01');
+  fs.mkdirSync(dir, { recursive: true });
+  const old = path.join(dir, 'old.json'); fs.writeFileSync(old, '{}');
+  const past = (Date.now() - 100 * 24 * 3600 * 1000) / 1000; fs.utimesSync(old, past, past);
+  const r = h.cardsSample(CTX({ imageBase64: PNG1, mediaType: 'image/png', reason: 'x' }));
+  assert.strictEqual(r.status, 200);
+  assert.ok(!fs.existsSync(old), '90일 지난 샘플이 남아 있다');
+  const found = [];
+  (function walk(d) { for (const f of fs.readdirSync(d)) { const p = path.join(d, f); fs.statSync(p).isDirectory() ? walk(p) : found.push(p); } })(path.join(ROOT, 'cards-samples'));
+  assert.ok(found.some((f) => f.endsWith(r.body.id + '.json')), '방금 샘플은 남아야 한다');
+});
