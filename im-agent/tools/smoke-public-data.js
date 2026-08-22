@@ -50,7 +50,24 @@ const { looksUrlEncoded } = require('../connectors/http');
 const pnuUtil = require('../connectors/pnu');
 const geometry = require('../geo/geometry');
 
-const ADDRESS = argOf('--address') || '인천광역시 남동구 남동대로 215';
+/**
+ * 진단에 쓸 주소.
+ *
+ * ★★ **인자는 매번 다시 줘야 한다 — 그게 실제로 발을 걸었다** 〈2026-08-22〉.
+ *   `--kosis-tbl` 만 주고 돌렸더니 주소가 예시로 되돌아갔고, VWorld 가 그
+ *   예시 주소를 못 찾아 **그 뒤 필지 계열 10개가 통째로 건너뛰어졌다.**
+ *   14/16 이던 것이 5/7 로 보였다 — 나빠진 것이 아니라 **재지 않은 것**인데
+ *   숫자만 보면 구분이 안 된다.
+ *
+ * ★ 그래서 `.env` 에 `IM_SMOKE_ADDRESS` 를 두면 그것이 기본이 된다. 키를 넣는
+ *   자리와 같은 곳이라 새로 배울 것이 없고, 이 도구는 여전히 **아무것도
+ *   저장하지 않는다**(읽기만 한다).
+ * ★ 차례: 인자 > `.env` > 예시. 인자가 늘 이긴다.
+ */
+const FALLBACK_ADDRESS = '인천광역시 남동구 남동대로 215';
+const ADDRESS = argOf('--address') || (process.env.IM_SMOKE_ADDRESS || '').trim() || FALLBACK_ADDRESS;
+const ADDRESS_FROM = argOf('--address') ? '인자'
+  : ((process.env.IM_SMOKE_ADDRESS || '').trim() ? '.env 의 IM_SMOKE_ADDRESS' : '예시(자리표시)');
 const results = [];
 
 /**
@@ -480,6 +497,13 @@ async function main() {
 
   // ── 1. 지오코딩 ────────────────────────────────────────
   if (vworld.isAvailable()) {
+    /* ★ **어디서 온 주소인지 함께 적는다.** 예시로 되돌아간 것을 모르면
+       「왜 갑자기 안 되지」로 한참 헤맨다 (실제로 그랬다) */
+    if (ADDRESS_FROM === '예시(자리표시)') {
+      console.log(`\n  ※ 주소를 안 주셔서 **예시 주소**로 잽니다 — ${ADDRESS}`);
+      console.log('     실제 부지로 재려면: npm run im:smoke -- --address "실제 주소"');
+      console.log('     매번 치기 번거로우면 .env 에 IM_SMOKE_ADDRESS=실제 주소');
+    }
     const g = await vworld.geocode(ADDRESS);
     if (g.ok) {
       ({ lat, lon } = g.value);

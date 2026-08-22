@@ -84,3 +84,32 @@ test('★ 한 절이 터져도 무엇이 안 돌았는지 말한다', () => {
   assert.match(src, /이 뒤의 항목은 돌지 않았다/,
     '멈춘 뒤가 안 돌았다는 것을 안 말한다 — 통과한 줄만 보고 「다 됐다」로 읽힌다');
 });
+
+/**
+ * ★★ **인자를 안 주면 예시 주소로 되돌아간다 — 그것을 화면이 말해야 한다**
+ *   〈2026-08-22 · 실제로 당했다〉.
+ *
+ *   `--kosis-tbl` 만 주고 돌렸더니 주소가 예시로 되돌아갔고, VWorld 가 그 예시를
+ *   못 찾아 **그 뒤 필지 계열 10여 개가 통째로 건너뛰어졌다.** 14/16 이던 것이
+ *   5/7 로 보였다 — **나빠진 것이 아니라 재지 않은 것**인데 숫자만 보면 같다.
+ */
+test('★★ 진단 도구가 주소를 .env 에서도 받고, 예시로 되돌아간 것을 말한다', () => {
+  const src = fs.readFileSync(TOOL, 'utf8');
+  assert.match(src, /IM_SMOKE_ADDRESS/,
+    '.env 로 주소를 못 준다 — 인자를 매번 다시 쳐야 하고, 한 번 빠뜨리면 조용히 예시로 돈다');
+  assert.match(src, /예시 주소\*\*로 잽니다|예시 주소/,
+    '예시로 되돌아간 것을 화면이 안 말한다 — 「왜 갑자기 안 되지」로 헤매게 된다');
+
+  /* ★ 차례가 뒤집히면 안 된다: 인자가 .env 를 이긴다. 반대면 한 번 넣은 .env
+     때문에 `--address` 가 먹지 않고, 그 증상은 「주소를 줬는데 무시된다」다 */
+  const at = src.indexOf('const ADDRESS =');
+  assert.ok(at > -1, 'ADDRESS 를 정하는 자리를 못 찾았다');
+  const line = src.slice(at, src.indexOf('\n', at));
+  assert.ok(line.indexOf("argOf('--address')") < line.indexOf('IM_SMOKE_ADDRESS'),
+    '.env 가 인자보다 앞에 있다 — --address 를 줘도 무시된다');
+});
+
+test('★ .env.example 이 그 자리를 알려 준다 (없으면 아무도 안 쓴다)', () => {
+  const ex = fs.readFileSync(path.join(ROOT, '..', '.env.example'), 'utf8');
+  assert.match(ex, /IM_SMOKE_ADDRESS/, '.env.example 에 없다 — 있는 줄도 모른다');
+});
