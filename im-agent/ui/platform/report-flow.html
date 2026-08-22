@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="3f9e0360">
+<html lang="ko" data-lp-build="fe7a4563">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -132,15 +132,7 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
 .note--bad { background: var(--bad-soft); color: var(--bad-ink); }
 .note b { display: block; margin-bottom: 3px; }
 
-.ext { display: flex; gap: 10px; flex-wrap: wrap; margin: 0 0 10px; }
-.ext__b {
-  font: 700 14px/1 var(--lp-font); cursor: pointer;
-  padding: 13px 18px; border-radius: 12px; border: 1px solid var(--ink);
-  background: var(--ink); color: #fff; text-decoration: none; display: inline-block;
-}
-.ext__b:disabled, .ext__b[aria-disabled="true"] {
-  background: var(--panel); color: var(--ink2); border-color: var(--line); cursor: not-allowed;
-}
+/* ★ 「외부 분석 환경」 카드를 지우면서 그 카드에만 쓰던 규칙도 함께 지웠다 */
 </style>
 </head>
 <body>
@@ -180,10 +172,12 @@ window.LINKPILOT_REPORT_FLOW = {
   // 세부 진행률용 미리 심은 값. 서버가 없을 때(미리보기)만 쓴다 — 제품에서는 null
   preload: null,      // { fields, computedKeys, values, sources, spec, snapshot }
 
-  // 지금 운영 중인 **외부 분석 경로**. 지우지 않는다 — 둘 다 쓸 수 있어야 한다
+  /* ★ 이 화면은 이제 이 값을 **쓰지 않는다** 〈2026-08-22 사용자 지시〉 — 「외부 분석
+     환경」 카드를 지웠다. 그래도 **설정은 남긴다:** 앱이 이 칸을 채워 넣고 있고,
+     지우면 앱 쪽에서 「모르는 설정」이 된다. 카드를 되살릴 때도 이 자리가 필요하다. */
   external: {
-    repoUrl: null,    // LinkPilot AGENT 저장소
-    agentUrl: null,   // 보고서 생성 AGENT 열기
+    repoUrl: null,    // 저장소 주소 (앱이 채운다)
+    agentUrl: null,   // 에이전트 주소 (앱이 채운다)
   },
 };
 </script>
@@ -445,36 +439,17 @@ window.LINKPILOT_REPORT_FLOW = {
    *   **번호 없는 칸**으로 두어야 한다.
    */
 
-  function external() {
-    var box = el('section', 'card');
-    add(box,
-      el('h2', 'card__t', '외부 분석 환경'),
-      el('p', 'card__d', '기반정보를 내려받아 바깥 AGENT 에 넘기는 경로입니다. '
-        + '위 단계와 별개로 그대로 쓸 수 있습니다.'));
-
-    var row = el('div', 'ext');
-    row.style.marginTop = '14px';
-    [['LinkPilot AGENT 저장소', C.external && C.external.repoUrl],
-      ['보고서 생성 AGENT 열기', C.external && C.external.agentUrl]].forEach(function (p) {
-      if (p[1]) {
-        var a = el('a', 'ext__b', p[0]);
-        a.href = p[1]; a.target = '_blank'; a.rel = 'noopener';
-        row.appendChild(a);
-      } else {
-        // ★ 주소가 없으면 눌리는 척하지 않는다
-        var b = el('button', 'ext__b', p[0]);
-        b.type = 'button'; b.disabled = true;
-        b.title = '주소가 설정되지 않았습니다';
-        row.appendChild(b);
-      }
-    });
-    box.appendChild(row);
-
-    if (!(C.external && (C.external.repoUrl || C.external.agentUrl))) {
-      box.appendChild(el('p', 'card__d', '주소가 설정되지 않아 버튼이 잠겨 있습니다 (설정의 external).'));
-    }
-    return box;
-  }
+  /* ★★★ **「외부 분석 환경」 카드를 지웠다** 〈2026-08-22 사용자 지시〉.
+   *
+   *   기반정보를 내려받아 바깥 AGENT 에 넘기는 두 버튼(LinkPilot AGENT 저장소 ·
+   *   보고서 생성 AGENT 열기)이 여기 있었다. 단계 다섯 아래에 별개 카드로 놓여
+   *   있어서 **여섯째 단계처럼 읽혔다** — 실제로는 위 흐름과 상관없는 다른 길이다.
+   *
+   *   ★ 없어진 것은 **이 화면의 카드**다. 같은 일을 하는 「외부 분석 AGENT 로
+   *     만들기 — 기반정보 내보내기」 경로는 앱에 그대로 남아 있다.
+   *   ★ 설정의 `external`(repoUrl · agentUrl)은 건드리지 않았다. 다시 띄우려면
+   *     이 파일의 삭제 커밋을 `git revert` 한다.
+   */
 
   /* ── 그리기 ───────────────────────────────────────────── */
 
@@ -560,7 +535,6 @@ window.LINKPILOT_REPORT_FLOW = {
         '설정의 api 를 채우면 단계가 열립니다. 지금은 화면만 확인할 수 있습니다.'));
     }
 
-    view.appendChild(external());
   }
 
   draw();
