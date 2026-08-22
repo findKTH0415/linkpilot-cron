@@ -168,3 +168,33 @@ test('★★★ 기초금액이 없으면 낙찰률을 내지 않는다 (추정�
   assert.match(code, /rateReason/,
     '낙찰률을 못 낸 사유가 없다 — null 만 두면 「0 이다」와 「못 냈다」가 같아 보인다');
 });
+
+/**
+ * ★★★ **낙찰률은 받아 쓴다. 우리가 나누지 않는다** 〈2026-08-23 실측〉.
+ *
+ *   실측으로 고른 오퍼레이션(`getScsbidListSttusCnstwkPPSSrch`)이 `sucsfbidRate`
+ *   를 실어 준다(90.089). 조달청이 낸 값이므로 **분모를 우리가 고를 일이 없다**
+ *   — 기초금액이냐 추정가격이냐로 헤맨 자리가 통째로 사라진다.
+ *
+ *   ★ 여기서 지키는 것은 **되돌아가지 않는 것**이다. 앞 판들은 금액이 아예 없는
+ *     오퍼레이션(`getOpengResultListInfo…`)을 부르고 있었고, 그것은 `resultCode
+ *     00` 으로 통과하기 때문에 아무 검사에도 안 걸렸다.
+ */
+test('★★★ 낙찰 오퍼레이션과 낙찰률 출처가 실측에 고정되어 있다', () => {
+  const g = require('../connectors/g2b');
+  assert.match(g.OPS.award.path, /getScsbidListSttusCnstwkPPSSrch/,
+    '금액이 실리는 오퍼레이션이 아니다 — getOpengResultListInfo… 는 200 인데 금액이 없다');
+
+  const src = fs.readFileSync(path.join(__dirname, '..', 'connectors', 'g2b.js'), 'utf8');
+  const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/[^\n]*$/gm, '');
+
+  assert.match(code, /sucsfbidRate/, '응답이 주는 낙찰률을 안 쓴다');
+  assert.match(code, /rateFrom/, '낙찰률을 어디서 얻었는지가 값과 함께 안 다닌다 (§4.7)');
+
+  /* ★ 빈 값을 0 으로 세지 않는다 — 결측을 0 으로 세면 중앙값이 조용히 내려앉는다 */
+  assert.match(code, /n > 0/, '0·빈 값을 낙찰률로 받아들인다');
+
+  /* ★ 거르는 칸이 비었을 때를 「조건에 맞는 건이 없다」와 섞지 않는다 */
+  assert.match(src, /공고명·수요기관이 전부 비어 있다/,
+    '필드가 비어 0건인 경우를 조건 문제와 섞는다 — 사람이 조건만 넓히게 된다');
+});

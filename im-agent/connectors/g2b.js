@@ -52,12 +52,27 @@ const BASE = 'https://apis.data.go.kr/1230000';
  * ★ 이름을 이 파일 밖에 적지 않는다 — 두 곳에 두면 한쪽만 고치는 날 갈린다.
  */
 const OPS = {
-  /** 공사 개찰(낙찰) 결과 목록 */
+  /**
+   * 공사 **낙찰된 목록 현황**.
+   *
+   * ★★★ **여기까지 오는 데 세 번 갈렸다** 〈2026-08-22~23 실측〉:
+   *
+   *   1) `ao/ScsbidInfoService/…`            → 코드 12 (없거나 폐기됨)
+   *   2) `as/ScsbidInfoService/…`            → 코드 30 → 403 (활용신청 안 됨)
+   *   3) `as/…/getOpengResultListInfoCnstwkPPSSrch` → **200 인데 금액이 하나도 없다**
+   *
+   *   셋째가 가장 고약했다. 권한도 경로도 맞고 `resultCode 00` 인데, 그 응답은
+   *   「개찰이 있었다」는 사실만 준다 — 금액도 낙찰률도 없다. **기간을 넓혀도
+   *   안 나온다.** 오퍼레이션이 다른 것이었다.
+   *
+   * ★ 지금 것은 실측으로 고른 것이다:
+   *     sucsfbidAmt = 67171559 · sucsfbidRate = 90.089
+   *   **낙찰률을 API 가 직접 준다.** 그래서 우리가 나누지 않는다 — 분모로 무엇을
+   *   쓸지 고를 일 자체가 없어진다 (기초금액이 이 응답에 없다는 점도 함께 해결).
+   */
   award: {
-    /* ★ 2026-08-22 실측 — `ao/…` 는 NO_OPENAPI_SERVICE_ERROR(코드 12 "없거나 폐기됨"), `as/…` 는 등록되지 않은 서비스키(30).
-       즉 서비스는 `as/` 에 살아 있고 남은 것은 data.go.kr 활용신청이다. 400 의 원인은 키·기간이 아니라 경로였다. */
-    path: 'as/ScsbidInfoService/getOpengResultListInfoCnstwkPPSSrch',
-    label: '공사 개찰결과',
+    path: 'as/ScsbidInfoService/getScsbidListSttusCnstwkPPSSrch',
+    label: '공사 낙찰현황',
   },
   /** 공사 입찰공고 목록 — 기초금액·공고명·지역이 여기 실린다 */
   notice: {
@@ -65,6 +80,18 @@ const OPS = {
     label: '공사 입찰공고',
   },
 };
+
+/**
+ * 응답이 주는 낙찰률. **문자열로 온다** (예: `"90.089"`).
+ * ★ 빈 문자열·`0` 을 「없다」와 섞지 않는다 — 0% 낙찰은 없지만, 빈 값을 0 으로
+ *   세면 중앙값이 조용히 내려앉는다 (§4.7 결측을 0 으로 세지 않는다).
+ */
+function rate(x) {
+  const v = x.sucsfbidRate ?? x.sucsfbidrate;
+  if (v === null || v === undefined || String(v).trim() === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? Math.round(n * 10) / 10 : null;
+}
 
 function apiKey() {
   return process.env.DATA_GO_KR_KEY || '';
@@ -198,9 +225,15 @@ async function awards(opt) {
       date: txt(x.opengDt ?? x.rlOpengDt ?? x.bidNtceDt),
       baseEok: base,
       awardEok: award,
-      // 낙찰률 = 낙찰금액 ÷ 기초금액. 출처 있는 두 값의 비라 가정이 없다.
-      // 기초금액이 없으면 **null 이다** — 추정가격으로 대신 나누지 않는다 (위 주석)
-      awardRate: (base && award) ? Math.round((award / base) * 1000) / 10 : null,
+      /* ★★★ **낙찰률은 받아 쓴다. 우리가 나누지 않는다** 〈2026-08-23 실측〉.
+       *   응답에 `sucsfbidRate` 가 실려 온다(예: 90.089). 조달청이 계산한 값이므로
+       *   **분모를 우리가 고를 일이 없다** — 기초금액이냐 추정가격이냐로 헤맨
+       *   자리가 통째로 사라진다 (D-85).
+       *   ★ 나눗셈은 **받아 오지 못했을 때만** 한다. 그때도 분모는 기초금액뿐이고,
+       *     그것도 없으면 낙찰률을 내지 않는다 (§4.9 — 대체값으로 메우지 않는다). */
+      awardRate: rate(x) ?? ((base && award) ? Math.round((award / base) * 1000) / 10 : null),
+      // 낙찰률을 어디서 얻었는지 — 출처가 다르면 그 사실이 값과 함께 다녀야 한다 (§4.7)
+      rateFrom: rate(x) !== null ? 'api' : ((base && award) ? 'computed' : null),
       winner: txt(x.opengCorpNm ?? x.sucsfbidCorpNm),
     };
   }).filter((x) => {
@@ -231,15 +264,34 @@ async function awards(opt) {
      *   ★ 그래서 「받은 건은 있었는가」를 세어 두 경우를 갈라 말한다.
      */
     const got = (r.value || []).length;
-    const withAmount = (r.value || []).filter((x) => toEok(x.sucsfbidAmt ?? x.sucsfbidamt)).length;
+    const withAmount = (r.value || []).filter((x) => toEok(x.sucsfbidAmt ?? x.sucsfbidamt) || rate(x)).length;
     if (got && !withAmount) {
       return {
         ok: false, window: w, count: 0, fieldMismatch: true,
         error: `조회는 됐고 ${got}건을 받았는데 **금액 필드가 하나도 없다** `
           + `(받은 필드: ${Object.keys(r.value[0] || {}).join(' ')}). `
           + '기간을 넓혀도 안 나온다 — 이 오퍼레이션에 낙찰금액이 실리지 않는 것이므로 '
-          + '「낙찰된 목록 현황 공사조회」 쪽을 확인해야 한다 (등록부 D-85)',
+          + '오퍼레이션이 다른 것이다 — 2026-08-23 에 `getOpengResultListInfoCnstwkPPSSrch` 가 '
+          + '정확히 이랬다 (등록부 D-85)',
       };
+    }
+    /* ★★★ **거르는 데 쓰는 칸이 비어 있으면 그렇다고 말한다** 〈2026-08-23〉.
+     *   지역·키워드는 `title`·`agency` 안에서 부분일치로 거른다. 그 두 칸이
+     *   **전부 비어 있으면 무엇을 넣어도 0건**이 되는데, 증상은 「조건에 맞는
+     *   건이 없다」와 똑같다. 그러면 사람은 조건을 넓히다가 시간을 버린다 —
+     *   실제 원인은 **필드 이름이 달라 값이 안 들어온 것**이다. */
+    if (got && (o.region || o.keyword)) {
+      const named = (r.value || []).filter((x) => txt(x.bidNtceNm ?? x.ntceNm)
+        || txt(x.dminsttNm ?? x.ntceInsttNm)).length;
+      if (!named) {
+        return {
+          ok: false, window: w, count: 0, fieldMismatch: true,
+          error: `${got}건을 받았는데 **공고명·수요기관이 전부 비어 있다** `
+            + `(받은 필드: ${Object.keys(r.value[0] || {}).join(' ')}). `
+            + '지역·키워드는 그 두 칸으로 거르므로 무엇을 넣어도 0건이 된다 — '
+            + '조건이 아니라 **필드 이름**을 봐야 한다',
+        };
+      }
     }
     return {
       ok: false, window: w, count: 0,
