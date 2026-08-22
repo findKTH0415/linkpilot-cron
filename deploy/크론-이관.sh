@@ -62,6 +62,8 @@ echo
 cat > "$OUT/README-이관.md" <<'EOF'
 # 아침 크론 — 이관 꾸러미
 
+**갈 곳** 새 저장소 `morning-cron` (설명: 「아침 크론」) · **Private** 〈D-19, 2026-08-22 결정〉
+
 이 폴더는 `linkpilot-cron` 의 삭제 커밋에서 **크론에 속한 파일만** 꺼낸 것이다.
 
 ## 옮기고 나서 반드시 해야 하는 것
@@ -100,7 +102,8 @@ KST/UTC 변환 실수가 이 크론의 1순위 사고 원인이다.
 EOF
 
 echo "다음에 할 일:"
-echo "  1) GitHub 에서 새 저장소를 만든다 (Private 권장)"
+echo "  1) GitHub 에서 새 저장소를 만든다 — 이름 morning-cron · 설명 「아침 크론」 (D-19)"
+echo "     ★ Private 로 만든다. 발송 대상·연락처가 지나가는 코드다"
 echo "  2) cd $OUT && git init && git add -A && git commit -m '아침 크론 이관' "
 echo "  3) git remote add origin <새 저장소 주소> && git push -u origin main"
 echo "  4) $OUT/README-이관.md 를 읽고 **Secret 을 다시 넣는다** — 이것을 빠뜨리면"

@@ -457,54 +457,9 @@ jobs:
           NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
           NAS_USER: ${{ secrets.NAS_SSH_USER }}
           DEST: ${{ inputs.dest }}
-        run: |
-          set -u
-          set +e
-          WEBPATH=$(printf '%s' "$DEST" | sed 's|^/volume1/web||')
-
-          # ★★★ **표식이 아니라 지문을 댄다** 〈2026-08-22 · 표식으로는 못 갈랐다〉.
-          #   앞 판은 「이 글자가 있나」만 봤다. 그러면 「새 판이다」라고 말해 놓고
-          #   실제로는 **두 판 전** 파일일 수 있다 — 그 글자가 두 판 전에도 있었으면
-          #   그렇다. 실제로 그렇게 속았다.
-          #
-          # ★★ 그리고 **세 자리를 각각 잰다.** 셋이 다르면 원인이 다르다:
-          #     저장소 ≠ 디스크  → 올리기가 실제로 안 됐다
-          #     디스크 ≠ HTTP    → 웹서버·앞단이 옛것을 내려준다 (캐시)
-          #     셋이 같다        → 브라우저가 들고 있는 것이다
-          #   이 셋은 화면에서 **똑같이 보인다.** 갈라 주는 것이 이 단계의 일이다.
-          for NAME in embed-bridge.js files.html report-flow.html; do
-            LOCAL=$(sha256sum "im-agent/ui/platform/$NAME" 2>/dev/null | cut -c1-12)
-            DISK=$(ssh -o BatchMode=yes -o ConnectTimeout=20 -i ~/.ssh/id_deploy \
-              "$NAS_USER@$NAS_HOST" "sha256sum '$DEST/$NAME' 2>/dev/null | cut -c1-12" 2>/dev/null | tr -d '\r')
-            HTTPH=""
-            SERVED=""
-            for PORT in 80 5000 8080; do
-              B=$(curl -sS -m 20 "http://${NAS_HOST}:${PORT}${WEBPATH}/${NAME}" 2>/dev/null)
-              [ -z "$B" ] && continue
-              SERVED=$(printf '%s' "$B" | sha256sum | cut -c1-12)
-              HTTPH=$(curl -sS -I -m 10 "http://${NAS_HOST}:${PORT}${WEBPATH}/${NAME}" 2>/dev/null)
-              break
-            done
-            CC=$(printf '%s' "$HTTPH" | grep -i '^cache-control:' | tr -d '\r' | cut -d' ' -f2-)
-            LM=$(printf '%s' "$HTTPH" | grep -i '^last-modified:' | tr -d '\r' | cut -d' ' -f2-)
-
-            echo "── ${NAME}"
-            echo "   저장소 ${LOCAL:-?} · 디스크 ${DISK:-?} · HTTP ${SERVED:-?}"
-            echo "   Cache-Control: ${CC:-(없음)} · Last-Modified: ${LM:-(없음)}"
-
-            if [ -z "$DISK" ]; then
-              echo "::warning::${NAME} — NAS 디스크에서 못 읽었다 (경로나 권한을 본다)"
-            elif [ "$LOCAL" != "$DISK" ]; then
-              echo "::error::${NAME} — **올리기가 실제로 안 됐다.** 저장소와 디스크가 다르다. 초록으로 끝난 배포가 파일을 안 바꾼 것이다"
-            elif [ -n "$SERVED" ] && [ "$SERVED" != "$DISK" ]; then
-              echo "::error::${NAME} — **디스크는 새것인데 HTTP 가 옛것을 준다.** 웹서버나 앞단이 캐시하고 있다. 브라우저를 아무리 새로고침해도 안 바뀐다"
-            elif [ -n "$SERVED" ]; then
-              echo "   ✓ 저장소 = 디스크 = HTTP — 남은 것은 브라우저 캐시뿐이다"
-            fi
-            if [ -z "$CC" ]; then
-              echo "::warning::${NAME} 에 Cache-Control 이 없다 — 브라우저가 제 마음대로 오래 들고 있을 수 있다"
-            fi
-          done
+        # ★ 배포 뒤 검사와 **같은 스크립트**를 쓴다. 두 벌로 두면 한쪽만 고쳐지고,
+        #   그때 「탐침은 초록인데 배포는 빨갛다」가 되어 어느 쪽을 믿을지 모른다
+        run: bash deploy/verify-served.sh "$NAS_HOST" "$NAS_USER" "$DEST" || true
 
       - name: Probe summary
         if: ${{ !inputs.dry_run && inputs.probe }}
@@ -550,6 +505,26 @@ jobs:
       #   말할 수 있어 겉돈다 (`dest` 기본값 사고와 같은 종류다).
       #
       #   ★ 초록 옆의 회색 알림은 안 읽힌다. **노란 경고**여야 눈에 걸린다.
+      # ★★★ **「올렸다」로 끝내지 않는다** 〈2026-08-22 사용자 지시 · M-25〉.
+      #
+      #   지금까지 배포는 `scp` 가 끝나면 초록이었다. 그런데 실제로는 세 번이나
+      #   **닿지 않았다** — 한 번은 파일 하나만 올렸고(M-22), 한 번은 아무것도
+      #   안 올렸고(M-20), 한 번은 올라갔는데 웹서버가 옛것을 줬다(M-25).
+      #   셋 다 **초록이었다.**
+      #
+      #   ★ 그래서 올린 **직후에 다시 받아 본다.** 저장소·디스크·HTTP 세 지문이
+      #     같아야 비로소 「배포됐다」이다. 다르면 **빨갛게 끝낸다** — 초록으로
+      #     끝난 배포를 믿고 다음 일을 하는 것이 가장 비쌌다.
+      #   ★ 캐시 때문에 빨간 것도 **빨간 것이 맞다.** 화면에 안 닿았으면 배포가
+      #     제 일을 못 한 것이다. 무엇을 눌러야 하는지는 오류 문구가 적어 준다.
+      - name: Verify deployed
+        if: ${{ !inputs.dry_run && !inputs.probe }}
+        env:
+          NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+          NAS_USER: ${{ secrets.NAS_SSH_USER }}
+          DEST: ${{ inputs.dest }}
+        run: bash deploy/verify-served.sh "$NAS_HOST" "$NAS_USER" "$DEST"
+
       - name: Dry run summary
         if: ${{ inputs.dry_run }}
         run: |

@@ -351,3 +351,56 @@ test('★ 배포 묶음의 단일 출처는 build-embed 의 required() 다', () 
   assert.match(y, /required\(\)/,
     '워크플로에 단일 출처가 어디인지 적혀 있지 않다 — 다음 사람이 손으로 고친다');
 });
+
+/**
+ * ★★★ **「올렸다」로 끝내지 않는다** 〈2026-08-22 사용자 지시 · M-25〉.
+ *
+ * ★★ 배포는 지금까지 `scp` 가 끝나면 초록이었다. 그런데 실제로는 세 번이나
+ *   **화면에 닿지 않았다**:
+ *     M-22  파일 하나만 올렸다        → 초록
+ *     M-20  아무것도 안 올렸다(dry)   → 초록
+ *     M-25  올렸는데 웹서버가 옛것    → 초록
+ *   셋 다 초록이었고, 셋 다 사용자는 「여전히 그럽니다」를 봤다.
+ *
+ * ★ 그래서 올린 **직후에 다시 받아 보고**, 갈리면 **빨갛게 끝낸다.**
+ *   이 검사는 그 단계가 ① 있고 ② 실제로 배포 때 돌고 ③ **실패를 삼키지 않는지**
+ *   를 잰다. 셋째가 핵심이다 — `|| true` 하나면 장치가 통째로 없는 것과 같다.
+ */
+test('★★★ 올린 뒤 실제로 닿았는지 재고, 갈리면 빨갛게 끝낸다', () => {
+  const y = fs.readFileSync(path.join(WF, 'deploy-nas.yml'), 'utf8');
+
+  const at = y.indexOf('- name: Verify deployed');
+  assert.ok(at > -1,
+    '올린 뒤 확인하는 단계가 없다 — 「올렸다」와 「닿았다」가 다르다는 것을 세 번 겪었다');
+
+  const step = y.slice(at, y.indexOf('- name:', at + 10));
+  assert.match(step, /verify-served\.sh/,
+    '확인 스크립트를 안 부른다');
+  assert.ok(!/\|\|\s*true/.test(step),
+    '실패를 삼킨다(|| true) — 그러면 장치가 통째로 없는 것과 같다');
+  assert.match(step, /!inputs\.dry_run && !inputs\.probe/,
+    '실제로 올리는 실행에서만 재야 한다 — dry run·probe 는 올린 것이 없다');
+
+  // ★ 올리기 **뒤**에 있어야 한다. 앞에 있으면 옛 파일을 재고 통과한다
+  assert.ok(y.indexOf('- name: Upload') < at,
+    '확인이 올리기보다 앞에 있다 — 옛 파일을 재고 초록을 낸다');
+});
+
+/**
+ * ★★ 재는 규칙은 **한 곳에만** 둔다. 탐침과 배포 확인이 두 벌이면 한쪽만
+ *   고쳐지고, 그때 「탐침은 초록인데 배포는 빨갛다」가 되어 어느 쪽을 믿을지
+ *   모르게 된다.
+ */
+test('★★ 탐침과 배포 확인이 같은 스크립트를 쓴다 (두 벌로 갈리지 않는다)', () => {
+  const y = fs.readFileSync(path.join(WF, 'deploy-nas.yml'), 'utf8');
+  const uses = (y.match(/verify-served\.sh/g) || []).length;
+  assert.strictEqual(uses, 2,
+    `verify-served.sh 를 쓰는 자리가 ${uses}곳이다 — 탐침과 배포 확인 둘이어야 한다`);
+
+  const sh = fs.readFileSync(path.join(ROOT, 'deploy', 'verify-served.sh'), 'utf8');
+  /* ★ 세 자리를 **각각** 재는가. 둘만 재면 「어디서 갈렸는지」가 사라진다 */
+  ['저장소', '디스크', 'HTTP'].forEach((k) => {
+    assert.ok(sh.includes(k), `확인 스크립트가 「${k}」 를 안 잰다`);
+  });
+  assert.match(sh, /exit "\$BAD"/, '갈렸는데도 0 으로 끝난다 — 초록이 거짓말을 한다');
+});
