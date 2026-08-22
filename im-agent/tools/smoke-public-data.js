@@ -572,22 +572,18 @@ async function main() {
     }
   }
 
-  // ── 6. 건축인허가 ──────────────────────────────────────
-  if (parsedPnu && molit.isAvailable()) {
-    const p = await molit.buildingPermit({
-      ...parsedPnu, platGbCd: parsedPnu.isMountain ? '1' : '0',
-    });
-    if (p.ok) {
-      report('건축인허가 (국토교통부)', true,
-        `${p.records.length}건 · 현재 상태: ${p.value || '(단계 불명)'}`,
-        ['archPmsDay', 'realStcnsDay', 'useAprDay', 'archGbCdNm'], p.raw);
-    } else if (p.notFound) {
-      // ★ 기록 없음은 실패가 아니다. 나대지면 원래 없는 것이 맞다
-      report('건축인허가 (국토교통부)', true, '기록 없음 (나대지이거나 미수록 — 미허가라는 뜻이 아니다)');
-    } else {
-      report('건축인허가 (국토교통부)', false, p.error);
-    }
-  }
+  /* ── 6. 건축인허가 — **지웠다** 〈2026-08-22 실측〉 ─────────
+     여기 있던 절이 `molit.buildingPermit(...)` 를 불렀는데 **그런 함수가 없다**
+     (진짜 이름은 `buildingPermits`). 그래서 실제로 돌리면 여기서 통째로
+     터졌고, **그 뒤 절이 전부 안 돌았다** — 실거래가·조달청·공장등록·수출입·
+     환경·KOSIS 까지.
+
+     ★★ 왜 아무도 몰랐나: 이 도구는 **키가 있어야 여기까지 온다.** 키 없는
+       환경에서는 앞에서 다 건너뛰므로 죽은 줄에 닿지 않는다. 「도구가 있다」와
+       「도구가 실제로 끝까지 돈다」는 다른 일이다 (M-08 과 같은 병).
+
+     ★ 이름만 고치지 않고 **지운다.** 아래 ⑪ 이 같은 일을 제대로 한다 —
+       이력 전체와 단계 분포까지. 둘 다 두면 같은 API 를 두 번 부른다 (§4.5). */
 
   // ── 7. 실거래가 ────────────────────────────────────────
   if (parsedPnu && molit.isAvailable()) {
@@ -779,7 +775,20 @@ async function main() {
   process.exitCode = failed.length ? 1 : 0;
 }
 
+/**
+ * ★★ **한 절이 터져도 나머지는 돈다** 〈2026-08-22 · 실제로 당했다〉.
+ *
+ * 없는 함수를 부르는 죽은 줄 하나 때문에 **그 뒤 절이 전부 안 돌았다.** 그런데
+ * 화면에는 「진단 중단」 한 줄만 남아서, 무엇이 안 돌았는지조차 알 수 없었다.
+ * 진단 도구가 진단을 못 하게 만드는 자리다.
+ *
+ * ★ 그래서 여기서도 **자리를 알려 준다** — 어느 줄에서 터졌는지까지.
+ *   그것이 없으면 「is not a function」 만 보고 어디를 볼지 모른다.
+ */
 main().catch(e => {
   console.error('\n✕ 진단 중단:', e.message);
+  const at = String(e.stack || '').split('\n')[1];
+  if (at) console.error('  터진 자리:', at.trim());
+  console.error('  ※ 여기서 멈췄으므로 **이 뒤의 항목은 돌지 않았다.**');
   process.exit(1);
 });
