@@ -732,3 +732,28 @@ test('★ 절 상태 — 잠긴 이유는 그 절이 품은 단계에서 나온�
   assert.strictEqual(open[4].opensTo, 'spec');
 });
 
+
+/**
+ * ★★★ **자기 자신을 안에 또 띄우지 않는다** 〈2026-08-23 · 실제로 그렇게 떴다〉.
+ *
+ *   1단계 칸 안에 `report-flow.html` 통째가 들어가 절 목록이 두 겹으로 겹쳐
+ *   보였다. 겹쳐 보이는 것도 나쁘지만 **더 나쁜 것은 원인이 안 보이는 것**이다
+ *   — 어느 쪽이 바깥인지조차 알 수 없어 무엇을 고칠지 판단할 근거가 화면에
+ *   남지 않는다.
+ */
+test('★★★ 단계 칸이 자기 화면을 가리키면 띄우지 않고 그렇다고 적는다', () => {
+  const flow = read('report-flow.html');
+
+  assert.match(flow, /이 화면 자신을 가리킨다/, '겹칠 때 아무 말도 안 한다');
+  assert.match(flow, /window\.location\.pathname/, '지금 화면이 무엇인지 안 본다');
+
+  /* ★ 물음표 뒤로 가르면 안 된다 — 같은 파일도 `?part=` 때문에 달라 보인다 */
+  assert.match(flow, /split\('\?'\)\[0\]/, '물음표 뒤까지 넣어 비교한다 — 같은 파일을 다르게 본다');
+
+  /* ★★ **무엇을 부르는지 화면에 적는다.** 안 적으면 「빈 칸이 떴다」에서 다음에
+     무엇을 볼지 알 수가 없다. 단, 물음표 뒤는 열쇠가 섞이므로 파일 이름만 (§2) */
+  assert.match(flow, /stage__f/, '어느 화면을 부르는지 표시가 없다');
+  const label = /var f = el\('span', 'stage__f', (\w+)\);/.exec(flow);
+  assert.ok(label, '표시를 만드는 줄을 못 찾았다');
+  assert.strictEqual(label[1], 'want', `표시에 ${label[1]} 를 넣는다 — api 키가 화면에 나갈 수 있다`);
+});
