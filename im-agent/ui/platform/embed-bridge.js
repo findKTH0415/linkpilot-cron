@@ -73,17 +73,94 @@
    * 모든 호출에 `Authorization: Bearer` 를 붙인다.
    * ★ **이미 붙어 있으면 건드리지 않는다** — 본체가 자기 래퍼를 쓰고 있을 수 있고,
    *   그때 두 번 덮으면 어느 쪽이 이겼는지 알 수 없게 된다.
+   *
+   * ★★★ **`fetch` 만 덮으면 안 된다** 〈2026-08-22 · 실제 사고, 세 번 반복됐다〉.
+   *
+   *   앞 판은 `window.fetch` 하나만 덮었다. 그런데 자료 올리기는 **진행률을
+   *   재려고 `XMLHttpRequest`** 를 쓴다(`upload-core.js`). fetch 에는 진행
+   *   이벤트가 없어서 그렇게 만든 것이다. 그래서 이렇게 갈렸다:
+   *
+   *       목록 읽기 (fetch) → Authorization 붙음 → 200
+   *       자료 올리기 (XHR) → **안 붙음**      → 401 「로그인이 필요합니다」
+   *
+   *   ★★ 증상이 **로그인 문제로 보인다는 것**이 이 결함의 진짜 값이다. 사용자는
+   *     로그인이 되어 있고 목록도 보고 있는데 「로그인이 필요합니다」를 읽는다.
+   *     그래서 로그인을 다시 하고, 세션을 의심하고, 본문 한도를 뒤진다 —
+   *     **전부 엉뚱한 자리다.** 실제로 그렇게 세 번 헤맸다.
+   *
+   *   ★ 그래서 **보내는 길 두 개를 한 함수에서 함께 덮는다.** 하나만 덮는 판을
+   *     다시 만들지 않으려면 이 둘이 갈라지지 않아야 한다.
    */
   function installAuth(token) {
+    installFetchAuth(token);
+    installXhrAuth(token);
+  }
+
+  /**
+   * 이 주소에 토큰을 붙여도 되는가 — **같은 출처일 때만** 붙인다.
+   *
+   * ★★ XHR 은 프로토타입을 덮으므로 **화면이 부르는 모든 요청**을 지나간다.
+   *   남의 서버로 가는 요청에까지 붙이면 **열쇠를 통째로 넘기는 것**이다.
+   *   상대 주소(`/api/...`)와 같은 출처만 통과시킨다.
+   */
+  function sameOrigin(url) {
+    try {
+      return new URL(String(url), window.location.href).origin === window.location.origin;
+    } catch (_) {
+      return false;   // 못 읽으면 안 붙인다 — 모를 때는 안 주는 쪽이 안전하다
+    }
+  }
+
+  function installFetchAuth(token) {
     var orig = window.fetch;
-    if (typeof orig !== 'function') return;
-    window.fetch = function (input, init) {
+    if (typeof orig !== 'function' || orig.__lpAuth) return;
+    var wrapped = function (input, init) {
       var o = init ? Object.assign({}, init) : {};
+      var url = (typeof input === 'object' && input && input.url) || input;
       var h = new Headers(o.headers || (typeof input === 'object' && input && input.headers) || {});
-      if (!h.has('Authorization')) h.set('Authorization', 'Bearer ' + token);
+      if (!h.has('Authorization') && sameOrigin(url)) h.set('Authorization', 'Bearer ' + token);
       o.headers = h;
       if (!o.credentials) o.credentials = 'same-origin';
       return orig.call(window, input, o);
+    };
+    wrapped.__lpAuth = true;
+    window.fetch = wrapped;
+  }
+
+  /**
+   * XHR 에도 같은 헤더를 붙인다.
+   *
+   * ★ `open` 에서 주소를 기억하고, `send` 직전에 붙인다. 헤더는 `open` 뒤·`send`
+   *   앞에만 넣을 수 있어서 이 순서여야 한다.
+   * ★ 화면이 이미 손으로 붙였으면 **덮지 않는다** — 어느 쪽이 이겼는지 모르게 된다.
+   */
+  function installXhrAuth(token) {
+    var X = window.XMLHttpRequest;
+    if (typeof X !== 'function' || !X.prototype || X.prototype.open.__lpAuth) return;
+    var open = X.prototype.open;
+    var send = X.prototype.send;
+    var setH = X.prototype.setRequestHeader;
+
+    var openWrap = function (method, url) {
+      this.__lpUrl = url;
+      this.__lpAuthSet = false;
+      return open.apply(this, arguments);
+    };
+    openWrap.__lpAuth = true;
+    X.prototype.open = openWrap;
+
+    X.prototype.setRequestHeader = function (k, v) {
+      if (String(k).toLowerCase() === 'authorization') this.__lpAuthSet = true;
+      return setH.apply(this, arguments);
+    };
+
+    X.prototype.send = function () {
+      try {
+        if (!this.__lpAuthSet && sameOrigin(this.__lpUrl)) {
+          setH.call(this, 'Authorization', 'Bearer ' + token);
+        }
+      } catch (_) { /* 헤더를 못 붙여도 요청 자체는 보낸다 — 서버가 사유를 말한다 */ }
+      return send.apply(this, arguments);
     };
   }
 

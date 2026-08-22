@@ -160,3 +160,114 @@ test('★ verify:nas 가 저장소만으로 아는 것은 실제로 잰다', () 
   assert.match(out, /라우트 표/);
   assert.match(out, /읽기 6 · 쓰기 23 = 29/);
 });
+
+
+
+/* ═════════ ⑤ 토큰이 **두 길 모두**에 붙는가 ═════════ */
+
+/**
+ * ★★★ **`fetch` 만 덮으면 자료 올리기가 401 이 된다** 〈2026-08-22 · 실제 사고〉.
+ *
+ * ★★ 무슨 일이 있었나. 3.8MB 를 올리는데 「**로그인이 필요합니다**」가 떴다.
+ *   로그인은 되어 있었고 프로젝트 목록도 화면에 떠 있었다.
+ *
+ *   원인은 보내는 길이 **둘**이라는 것이었다:
+ *
+ *       목록 읽기   fetch            → 브리지가 덮음 → Authorization 붙음 → 200
+ *       자료 올리기 XMLHttpRequest   → **안 덮음**   → 헤더 없음         → 401
+ *
+ *   올리기가 XHR 인 이유는 **진행률**이다 — fetch 에는 업로드 진행 이벤트가
+ *   없어서 upload-core.js 가 XHR 을 쓴다. 그 한 곳만 인증에서 빠져 있었다.
+ *
+ * ★★ 이 결함이 비싼 이유는 **증상이 로그인 문제로 보인다**는 것이다. 사용자는
+ *   로그인을 다시 하고, 세션을 의심하고, 본문 한도를 뒤진다 — 전부 엉뚱한
+ *   자리다. 실제로 세 번 헤맸고, 화면 안내문까지 「크기 문제일 수 있다」고
+ *   **틀린 방향**을 가리키고 있었다.
+ *
+ * ★★ 그래서 **실제 브라우저에서 진짜 XHR 을 보내 헤더를 받아 본다.** 소스만
+ *   훑으면 「XMLHttpRequest 라는 글자가 있다」까지밖에 못 재고, 그건 붙었다는
+ *   뜻이 아니다 (M-08).
+ *
+ * ★ file:// 끼리도 부모를 읽을 수 있어야 하므로 --allow-file-access-from-files
+ *   를 준다. 이 검사에서만 쓰는 문이고, 실제 배포와는 무관하다.
+ */
+test('★★★ 브리지 토큰이 fetch 와 XHR 둘 다에 붙는다 (올리기가 401 이던 자리)', () => {
+  const { findBrowser } = require(path.join(PLATFORM, 'build-static.js'));
+  const browser = findBrowser();
+  if (!browser) return;   // 크로미움이 없는 서버가 실제로 있다
+
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-xhr-auth-'));
+  fs.copyFileSync(path.join(PLATFORM, 'embed-bridge.js'), path.join(dir, 'embed-bridge.js'));
+
+  /* 아이 창 — 브리지를 얹기 **전에** 나가는 길 둘을 가로채 둔다.
+     실제 화면도 브리지가 나중에 덮으므로 순서가 같다. */
+  fs.writeFileSync(path.join(dir, 'child.html'), [
+    '<!doctype html><html lang="ko"><head><meta charset="utf-8">',
+    '<script>',
+    '  window.__seen = { fetch: null, xhr: null, cross: null };',
+    '  window.fetch = function (input, init) {',
+    '    var h = new Headers((init && init.headers) || {});',
+    '    window.__seen.fetch = h.get("Authorization");',
+    '    return Promise.resolve({ ok: true, status: 200 });',
+    '  };',
+    '  var RO = XMLHttpRequest.prototype.open;',
+    '  XMLHttpRequest.prototype.open = function (m, u) { this.__u = u; this.__h = {}; return RO.apply(this, arguments); };',
+    '  XMLHttpRequest.prototype.setRequestHeader = function (k, v) { this.__h[String(k).toLowerCase()] = v; };',
+    '  XMLHttpRequest.prototype.send = function () {',
+    '    var key = /^https?:\\/\\//.test(this.__u) ? "cross" : "xhr";',
+    '    window.__seen[key] = this.__h.authorization || null;',
+    '  };',
+    '</' + 'script>',
+    '<script>window.LINKPILOT_FILES = {};</' + 'script>',
+    '<script src="embed-bridge.js" data-lp-global="LINKPILOT_FILES"></' + 'script>',
+    '</head><body><script>',
+    '  fetch("/api/linkpilot/projects");',
+    '  var x = new XMLHttpRequest();',
+    '  x.open("POST", "/api/linkpilot/projects/LP-1/oneshot");',
+    '  x.setRequestHeader("content-type", "application/json");',
+    '  x.send("{}");',
+    '  var y = new XMLHttpRequest();',            // 남의 서버로 가는 요청
+    '  y.open("POST", "https://example.com/collect");',
+    '  y.send("{}");',
+    '</' + 'script></body></html>',
+  ].join('\n'));
+
+  /* 어미 창 — 앱 노릇을 한다. 토큰을 담아 두고 아이를 띄운 뒤 결과를 받아 적는다 */
+  fs.writeFileSync(path.join(dir, 'parent.html'), [
+    '<!doctype html><html lang="ko"><head><meta charset="utf-8">',
+    '<script>window.LINKPILOT_EMBED = { common: { api: "/api/linkpilot", token: "T-0000-TEST" } };</' + 'script>',
+    '</head><body><div id="out"></div>',
+    '<iframe id="f" src="child.html"></iframe>',
+    '<script>',
+    '  document.getElementById("f").addEventListener("load", function () {',
+    '    setTimeout(function () {',
+    '      var s;',
+    '      try { s = JSON.stringify(this.contentWindow.__seen); }',
+    '      catch (e) { s = JSON.stringify({ err: e.name }); }',
+    '      document.getElementById("out").textContent = s;',
+    '    }.bind(this), 60);',
+    '  });',
+    '</' + 'script></body></html>',
+  ].join('\n'));
+
+  const dom = execFileSync(browser, [
+    '--headless', '--disable-gpu', '--no-sandbox', '--hide-scrollbars',
+    '--allow-file-access-from-files',
+    '--virtual-time-budget=20000', '--dump-dom',
+    'file://' + path.join(dir, 'parent.html'),
+  ], { maxBuffer: 1 << 26, stdio: ['ignore', 'pipe', 'ignore'] }).toString();
+
+  const m = dom.match(/<div id="out">([^<]*)<\/div>/);
+  assert.ok(m && m[1], '탐침이 아무것도 안 남겼다 — 어미 창이 아이를 못 읽었다');
+  const seen = JSON.parse(m[1].replace(/&quot;/g, '"'));
+  assert.ok(!seen.err, '아이 창을 못 읽었다 (' + seen.err + ') — 같은 출처가 아니다');
+
+  assert.strictEqual(seen.fetch, 'Bearer T-0000-TEST', 'fetch 에 토큰이 안 붙는다');
+  assert.strictEqual(seen.xhr, 'Bearer T-0000-TEST',
+    'XHR 에 토큰이 안 붙는다 — 자료 올리기가 401 「로그인이 필요합니다」로 거절당한다');
+
+  /* ★★ **남의 서버에는 붙이면 안 된다.** XHR 은 프로토타입을 덮으므로 화면이
+       부르는 모든 요청을 지나간다. 아무 데나 붙이면 열쇠를 통째로 넘기는 것이다 */
+  assert.strictEqual(seen.cross, null,
+    '다른 출처로 가는 요청에도 토큰을 붙인다 — 열쇠가 남의 서버로 나간다');
+});
