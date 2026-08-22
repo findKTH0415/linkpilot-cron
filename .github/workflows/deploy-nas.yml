@@ -382,6 +382,57 @@ jobs:
             echo "::warning::본문을 어디서 받는지 못 찾았다 — 라우터를 다른 파일에서 붙이는 판일 수 있다. 위 목록과 함께 그 파일을 찾는다"
           fi
 
+      # ★★ **어디서 끊기는지 크기를 키워 가며 잰다** 〈2026-08-22〉.
+      #   앞 단계는 **파일에 적힌 한도**를 읽었다 (64MB). 그런데 사용자는
+      #   **8.7MB 에서** 멈췄다 — 파일이 말하는 것과 실제로 지나가는 것이
+      #   다르다는 뜻이다. 앞단(리버스 프록시·Funnel)이 더 낮게 잡고 있을 수 있다.
+      #
+      #   ★ **아무것도 바꾸지 않는다.** 없는 프로젝트(LP-NOPE-0000-000)로 보낸다 —
+      #     문지기와 존재 검사에서 되돌아오므로 저장도 삭제도 일어나지 않는다.
+      #   ★ 재는 것은 **본문이 끝까지 갔는가** 하나다. 401·404 여도 **응답이
+      #     왔다는 것**이 곧 본문이 통과했다는 뜻이다. 끊기면 응답이 아예 없다.
+      #   ★ 8181(엔진 직행)과 80(앞단 경유)을 **둘 다** 잰다. 둘이 갈리면
+      #     범인이 앞단이라는 것이 그 자리에서 드러난다.
+      - name: Probe body size ceiling
+        if: ${{ !inputs.dry_run && inputs.probe }}
+        env:
+          NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+        run: |
+          set -u
+          set +e
+          PATHS="/api/linkpilot/projects/LP-NOPE-0000-000/oneshot /projects/LP-NOPE-0000-000/oneshot"
+
+          for PORT in 8181 80; do
+            echo "── 포트 ${PORT} ──"
+            HIT=""
+            for P in $PATHS; do
+              C=$(curl -sS -o /dev/null -w '%{http_code}' -m 15 -X POST \
+                -H 'content-type: application/json' -d '{"files":[]}' \
+                "http://${NAS_HOST}:${PORT}${P}" 2>/dev/null)
+              echo "  ${P} → HTTP ${C:-(응답 없음)}"
+              [ -n "$C" ] && [ "$C" != "000" ] && [ "$C" != "404" ] && { HIT="$P"; break; }
+              [ -n "$C" ] && [ "$C" != "000" ] && [ -z "$HIT" ] && HIT="$P"
+            done
+            [ -z "$HIT" ] && { echo "  이 포트로는 API 가 안 열린다 — 크기 재기 건너뛴다"; continue; }
+
+            for MB in 1 8 24 48 64; do
+              BODY=/tmp/body_${MB}.json
+              # {"files":[{"name":"probe","contentBase64":"AAAA…"}]} — 딱 MB 만큼
+              { printf '{"files":[{"name":"probe","contentBase64":"'
+                head -c $((MB * 1024 * 1024)) /dev/zero | tr '\0' 'A'
+                printf '"}]}'; } > "$BODY"
+              C=$(curl -sS -o /dev/null -w '%{http_code}' -m 60 -X POST \
+                -H 'content-type: application/json' --data-binary "@$BODY" \
+                "http://${NAS_HOST}:${PORT}${HIT}" 2>/dev/null)
+              rm -f "$BODY"
+              if [ -z "$C" ] || [ "$C" = "000" ]; then
+                echo "::warning::포트 ${PORT} — ${MB}MB 에서 **응답이 끊겼다.** 여기가 한도다"
+                break
+              fi
+              echo "  ${MB}MB → HTTP ${C} (본문은 끝까지 갔다)"
+            done
+          done
+
       - name: Probe summary
         if: ${{ !inputs.dry_run && inputs.probe }}
         run: |
