@@ -38,8 +38,8 @@ function fresh(fetchImpl) {
   });
 }
 
-test('라우트 표 — 서버가 등록할 3개가 전부 있고 핸들러가 존재한다', () => {
-  assert.strictEqual(api.ROUTES.length, 3);
+test('라우트 표 — 서버가 등록할 4개가 전부 있고 핸들러가 존재한다', () => {
+  assert.strictEqual(api.ROUTES.length, 4);
   const h = fresh();
   for (const r of api.ROUTES) assert.strictEqual(typeof h[r.handler], 'function', r.handler);
 });
@@ -64,7 +64,7 @@ test('인증 주입이 없으면 만들 때 던진다 — 무인증 라우트 �
 
 test('전 라우트 무인증 401 — 8181 은 공개망에 닿는다', async () => {
   const h = fresh();
-  for (const name of ['cardsStatus', 'cardsParse', 'cardsConfirm']) {
+  for (const name of ['cardsStatus', 'cardsParse', 'cardsConfirm', 'cardsSample']) {
     const r = await h[name](CTX({}, false));
     assert.strictEqual(r.status, 401, name);
   }
@@ -190,4 +190,32 @@ test('migrate — store.php 가드·실필드(org/role/dept/workPhone)·010 재�
   assert.strictEqual(db.prepare('SELECT COUNT(*) c FROM cards').get().c, 1);
   const fts = db.prepare("SELECT rowid FROM contacts_fts WHERE contacts_fts MATCH '유로렌트카'").all();
   assert.ok(fts.length >= 2, '회사명 전문검색: ' + fts.length);
+});
+
+/* ── 2026-08-23 감지 실패 샘플 — 키·DB 없이도 저장된다(회귀 세트 축적) ── */
+test('sample — 원본+감지 박스+정답 박스를 파일로 남긴다, 잘못된 박스는 null', () => {
+  const h = fresh();
+  const r = h.cardsSample(CTX({ imageBase64: PNG1, mediaType: 'image/png', fixedImageBase64: PNG1, detected: { x: 1, y: 2, w: 3, h: 4 }, fixed: { x: 'a' }, rotate: 90, reason: '여백 손수정' }));
+  assert.strictEqual(r.status, 200, JSON.stringify(r.body));
+  const dir = path.join(ROOT, 'cards-samples');
+  const found = [];
+  (function walk(d) { for (const f of fs.readdirSync(d)) { const p = path.join(d, f); fs.statSync(p).isDirectory() ? walk(p) : found.push(p); } })(dir);
+  const json = found.find((f) => f.endsWith(r.body.id + '.json'));
+  assert.ok(json, '메타 json 없음');
+  const rec = JSON.parse(fs.readFileSync(json, 'utf8'));
+  assert.deepStrictEqual(rec.detected, { x: 1, y: 2, w: 3, h: 4 });
+  assert.strictEqual(rec.fixed, null);
+  assert.strictEqual(rec.rotate, 90);
+  assert.ok(found.some((f) => f.endsWith(r.body.id + '.png')), '이미지 없음');
+  assert.ok(found.some((f) => f.endsWith(r.body.id + '-fixed.png')), '정답 이미지 없음');
+  assert.strictEqual(rec.fixedImage, r.body.id + '-fixed.png');
+});
+test('sample — 이미지 없으면 400, 3MB 초과는 413(tooBig)', () => {
+  const h = fresh();
+  assert.strictEqual(h.cardsSample(CTX({})).status, 400);
+  assert.strictEqual(h.cardsSample(CTX({ imageBase64: 'A'.repeat(4 * 1024 * 1024 + 1) })).status, 413);
+});
+test('ROUTES 에 /cards/sample 이 call 과 함께 있다', () => {
+  const r = api.ROUTES.find((x) => x.path === '/cards/sample');
+  assert.ok(r && typeof r.call === 'function');
 });

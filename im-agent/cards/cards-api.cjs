@@ -87,6 +87,7 @@ function createHandlers(opts) {
     authenticate,                                     // 필수 — 본체와 같은 토큰 규칙
     dbPath = process.env.LINKPILOT_DB || './linkpilot.db',
     imageDir = process.env.LP_CARDS_IMAGES || path.join(path.dirname(dbPath), 'cards-images'),
+    sampleDir = process.env.LP_CARDS_SAMPLES || path.join(path.dirname(dbPath), 'cards-samples'),
     keyFile = process.env.ANTHROPIC_KEY_FILE || '/volume1/web/anthropic_key.txt',
     model = process.env.ANTHROPIC_MODEL || 'claude-sonnet-5',
     fetchImpl = fetch,
@@ -250,6 +251,32 @@ function createHandlers(opts) {
     },
   };
 
+  /* ── 2026-08-23 — 감지 실패 샘플 수집(키·DB 무관) ─────────────────────────
+     [왜] 자동 여백·방향 오류를 고칠 때마다 원본이 없어 합성으로 추정했고, 내가 만든 규칙의 반례를
+          못 만들어 두 번(V5 '두 변' 규칙) 틀렸다. 사용자가 검토 화면에서 [여백]을 손으로 고친 장은
+          "감지기가 틀린 실사례"다 — 원본(축소본)+감지 박스+정답 박스를 회귀 세트로 쌓는다.
+     [저장] <imageDir>/../cards-samples/YYYY-MM/<ts>-<rand>.{jpg,json}. 3MB 초과 413. 개인정보: 명함 이미지이므로
+          NAS 내부 경로에만 두고 응답엔 파일명만. */
+  H.cardsSample = (ctx) => {
+    const user = authenticate(ctx);
+    if (!user) return { status: 401, body: { error: '로그인이 필요합니다' } };
+    const { imageBase64, fixedImageBase64 = null, mediaType = 'image/jpeg', detected = null, fixed = null, rotate = 0, reason = '', meta = null } = ctx.body || {};
+    if (!imageBase64) return { status: 400, body: { error: 'imageBase64 required' } };
+    if (String(imageBase64).length > 3 * 1024 * 1024 * 4 / 3) return { status: 413, body: { error: 'tooBig', hint: '샘플은 3MB 이하(축소본)로 보내세요' } };
+    const box = (b) => (b && typeof b === 'object' && ['x', 'y', 'w', 'h'].every((k) => Number.isFinite(+b[k]))) ? { x: +b.x, y: +b.y, w: +b.w, h: +b.h } : null;
+    const d = new Date();
+    const dir = path.join(sampleDir, d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'));
+    fs.mkdirSync(dir, { recursive: true });
+    const base = d.toISOString().replace(/[-:T]/g, '').slice(0, 14) + '-' + crypto.randomBytes(3).toString('hex');
+    fs.writeFileSync(path.join(dir, base + extOf(mediaType)), b64ToBuf(imageBase64));
+    if (fixedImageBase64 && String(fixedImageBase64).length <= 3 * 1024 * 1024 * 4 / 3) fs.writeFileSync(path.join(dir, base + '-fixed' + extOf(mediaType)), b64ToBuf(fixedImageBase64));  // 사용자 최종본(정답 이미지)
+    const rec = { at: d.toISOString(), by: user.email || null, detected: box(detected), fixed: box(fixed),
+                  rotate: [0, 90, 180, 270].includes(+rotate) ? +rotate : 0, reason: String(reason).slice(0, 200),
+                  meta: meta && typeof meta === 'object' ? meta : null, image: base + extOf(mediaType), fixedImage: fixedImageBase64 ? base + '-fixed' + extOf(mediaType) : null };
+    fs.writeFileSync(path.join(dir, base + '.json'), JSON.stringify(rec));
+    return { status: 200, body: { ok: true, id: base } };
+  };
+
   return H;
 }
 
@@ -258,6 +285,7 @@ const ROUTES = [
   { method: 'GET',  path: '/cards/status',  handler: 'cardsStatus',  call: (h, ctx) => h.cardsStatus(ctx) },
   { method: 'POST', path: '/cards/parse',   handler: 'cardsParse',   call: (h, ctx) => h.cardsParse(ctx) },
   { method: 'POST', path: '/cards/confirm', handler: 'cardsConfirm', call: (h, ctx) => h.cardsConfirm(ctx) },
+  { method: 'POST', path: '/cards/sample',  handler: 'cardsSample',  call: (h, ctx) => h.cardsSample(ctx) },  // 2026-08-23 감지 실패 샘플(키·DB 무관)
 ];
 
 module.exports = { createHandlers, ROUTES, CARD_PARSE_PROMPT };
