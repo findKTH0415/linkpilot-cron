@@ -31,7 +31,9 @@ fi
 
 # 기본으로 재는 셋 — 화면 하나, 코어 하나, 그리고 사고가 났던 브리지
 FILES=("$@")
-[ ${#FILES[@]} -eq 0 ] && FILES=(embed-bridge.js files.html report-flow.html)
+# ★ `flow-core.js` 를 반드시 넣는다 〈2026-08-22〉 — **탭 목록·단계 목록이 여기 있다.**
+#   앱 탭 바가 이 파일을 읽어 간다. 이것이 옛 판이면 화면은 새것인데 **탭만 옛것**이다.
+[ ${#FILES[@]} -eq 0 ] && FILES=(flow-core.js embed-bridge.js files.html report-flow.html)
 
 WEBPATH=$(printf '%s' "$DEST" | sed 's|^/volume1/web||')
 KEY="${LP_SSH_KEY:-$HOME/.ssh/id_deploy}"
