@@ -229,6 +229,28 @@ select:focus-visible, button:focus-visible { outline: 2px solid var(--lime-deep)
      겹칠 것이 없다. 이어져 보이는 것은 **같은 바탕색**이 맡는다.
    ★ 아래 여백은 `.pickway` 로 옮겼다 — `.wayin` 에 두면 상자 안쪽에 바탕색이
      다른 띠가 생긴다 (상자가 `overflow: hidden` 이라 밖으로 나가지 못한다). */
+/* ── 진행 미터 — 진행률과 걸린 시간 〈2026-08-22〉 ─────────────────
+   ★ 숫자를 **크게, 세로를 맞춰서** 둔다 (tabular-nums). 이 화면에서 잰 값은
+     걸린 시간 하나뿐이라 그것이 제일 커야 한다.
+   ★ 라임으로 큰 면을 채우지 않는다 (디자인 시스템 §11) — 막대만 라임이다. */
+.mtr { margin-top: 12px; padding: 13px 14px 14px; border-radius: 12px;
+  background: var(--panel); }
+.mtr__h { display: flex; align-items: baseline; justify-content: space-between;
+  gap: 12px; margin-bottom: 9px; }
+.mtr__pct { font-size: 25px; font-weight: 800; letter-spacing: -.03em;
+  font-variant-numeric: tabular-nums; line-height: 1; }
+.mtr__r { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+  justify-content: flex-end; }
+.mtr__t { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.mtr__s { font-size: 12px; color: var(--ink2); }
+.mtr__bar { height: 7px; border-radius: 999px; background: var(--surface);
+  overflow: hidden; box-shadow: inset 0 0 0 1px var(--line); }
+.mtr__bar i { display: block; height: 100%; border-radius: 999px;
+  background: var(--lime); transition: width .25s linear; }
+.mtr--done .mtr__bar i { background: var(--lime-deep); }
+.mtr__n { font-size: 11.5px; color: var(--ink2); margin: 9px 0 0; line-height: 1.6; }
+@media (prefers-reduced-motion: reduce) { .mtr__bar i { transition: none; } }
+
 .wayin { margin: 0; padding: 18px 16px 20px;
   border: 0; border-radius: 0; background: var(--lime-soft); }
 .wayin .pick { margin-top: 0; }
@@ -1074,6 +1096,50 @@ window.LINKPILOT_FILES = {
     if (chart) box.appendChild(chart);
     else if (o.note) box.appendChild(el('p', 'fx__cap', o.note));
     return box;
+  }
+
+  /**
+   * 진행 미터 — **진행률과 걸린 시간을 눈에 보이게** 〈2026-08-22 사용자 지시〉.
+   *
+   * ★★ 왜 필요했나: 스캔을 누르면 단추가 「읽는 중…」으로 바뀌고 **그대로 멈춰**
+   *   있었다. 칸은 첫 자리에 그대로 있고 숫자도 시간도 없었다. 실제로는 돌고
+   *   있는데 화면이 **아무 말도 안 해서** 고장으로 읽힌다.
+   *
+   * ★★ **없는 것을 그럴듯하게 그리지 않는다.** 서버는 중간 상태를 알려 주지
+   *   않는다 — 그러니 진행률은 **잰 값이 아니라 걸린 시간으로 어림한 것**이다.
+   *   그래서 ① 화면에 「예상」이라고 적고 ② **끝나기 전에는 100% 를 만들지
+   *   않는다**(90% 에서 멈춘다). 100% 는 서버가 답한 뒤에만 나온다.
+   *   가짜 100% 는 「끝났는데 화면이 안 넘어간다」로 읽혀서 더 나쁘다.
+   *
+   * ★ **걸린 시간은 진짜다.** 그것만이 여기서 유일하게 잰 값이라 크게 둔다.
+   */
+  function meter(o) {
+    var box = el('div', 'mtr' + (o.done ? ' mtr--done' : ''));
+
+    var head = el('div', 'mtr__h');
+    head.appendChild(el('span', 'mtr__pct', Math.round(o.pct) + '%'));
+    var right = el('div', 'mtr__r');
+    right.appendChild(el('span', 'mtr__t', o.secs));
+    if (o.sub) right.appendChild(el('span', 'mtr__s', o.sub));
+    head.appendChild(right);
+    box.appendChild(head);
+
+    var bar = el('div', 'mtr__bar');
+    var fill = el('i');
+    fill.style.width = Math.max(2, Math.min(100, o.pct)) + '%';
+    bar.appendChild(fill);
+    box.appendChild(bar);
+
+    if (o.note) box.appendChild(el('p', 'mtr__n', o.note));
+    return box;
+  }
+
+  /** 초를 사람 말로. 1분을 넘으면 분까지 — 「94.3초」는 안 읽힌다 */
+  function secsText(ms) {
+    var s = ms / 1000;
+    if (s < 60) return s.toFixed(1) + '초';
+    var m = Math.floor(s / 60);
+    return m + '분 ' + Math.round(s - m * 60) + '초';
   }
 
   /** 올리는 갈래의 칸 이름 — 한 곳에서 정한다 */
@@ -1993,15 +2059,48 @@ window.LINKPILOT_FILES = {
        자기가 뭘 잘못한 줄 안다. 여기서 「무엇을 못 읽었는지」를 먼저 본다. */
   var SCAN_STAGES = ['자료 모으기', '읽기 · OCR', '값으로 만들기', '보고서 생성으로'];
 
+  /**
+   * 스캔이 도는 동안 **시계를 돌린다** 〈2026-08-22 사용자 지시 — 「진행율, 시간 표기」〉.
+   *
+   * ★★ 앞 판은 서버가 답할 때까지 `stage` 가 **0 에 그대로** 있었다. 단추만
+   *   「읽는 중…」으로 바뀌고 칸도 숫자도 그대로라, 도는 중인지 멈춘 건지
+   *   화면만 봐서는 알 수 없었다.
+   *
+   * ★ 칸은 **「읽기 · OCR」에서 멈춘다.** 그 뒤 칸(값으로 만들기)은 서버가
+   *   답해야 아는 것이라, 미리 넘기면 **하지도 않은 일을 했다고 그리는 것**이다.
+   * ★ 진행률은 걸린 시간으로 어림하되 **90% 를 넘기지 않는다** (meter 주석 참고).
+   */
+  var SCAN_TICK_MS = 200;
+  /** 어림의 기준. 실측 감각치다 — 대개 이 안에 끝난다 */
+  var SCAN_TYPICAL_MS = 20000;
+
+  function stopScanClock() {
+    if (state.scan && state.scan.timer) clearInterval(state.scan.timer);
+    if (state.scan) state.scan.timer = null;
+  }
+
   function scanNow(opts) {
     if (!state.projectId || state.scan.busy) return Promise.resolve(null);
     var auto = !!(opts && opts.auto);
-    state.scan = { busy: true, stage: 0, dead: false, result: null, msg: null, auto: auto, moved: null };
+    stopScanClock();
+    state.scan = { busy: true, stage: 0, dead: false, result: null, msg: null, auto: auto, moved: null,
+      t0: now(), ms: 0, tookMs: null, timer: null };
     render();
+
+    state.scan.timer = setInterval(function () {
+      var sc = state.scan;
+      if (!sc || !sc.busy) return stopScanClock();
+      sc.ms = now() - sc.t0;
+      // 모으기는 실제로 곧 끝난다. 그 뒤 읽기 칸에서 **머문다** — 그게 사실이다
+      if (sc.stage < 1 && sc.ms > 700) sc.stage = 1;
+      render();
+    }, SCAN_TICK_MS);
 
     return call('POST', '/projects/' + encodeURIComponent(state.projectId) + '/scan', {},
       { localGate: true }).then(function (r) {
       state.scan.busy = false;
+      state.scan.tookMs = now() - state.scan.t0;
+      stopScanClock();
       if (r && r.gated) { state.scan.stage = -1; state.scan.msg = r.msg; return render(); }
       if (r && r.closed) {
         // 501 — 아직 안 붙은 길이다. **오류로 그리지 않는다** (화면 전체가 그 규칙이다)
@@ -2027,6 +2126,8 @@ window.LINKPILOT_FILES = {
       return null;
     }, function (e) {
       state.scan.busy = false;
+      state.scan.tookMs = now() - state.scan.t0;
+      stopScanClock();
       state.scan.dead = true;
       state.scan.stage = 1;
       state.scan.msg = e && e.message ? e.message : '자료를 읽지 못했습니다.';
@@ -2212,6 +2313,34 @@ window.LINKPILOT_FILES = {
         note: state.scan.dead ? '이 칸에서 멈췄습니다.'
           : '자료를 읽어 값으로 만드는 중입니다 — 이미지는 글자로 옮깁니다.',
       }));
+
+      /* ── 진행률 · 걸린 시간 〈2026-08-22 사용자 지시〉 ──────────────
+       *  ★ 도는 동안엔 **어림값**(90% 상한), 끝나면 **잰 값**을 그대로 보여 준다.
+       *  ★ 읽을 건수는 아는 값이라 함께 적는다 — 「몇 건을 읽는 중인지」가
+       *    보이면 오래 걸리는 것이 고장이 아니라는 것이 설명된다. */
+      var sc = state.scan;
+      /* ★ 보관은 `files`, 연결은 `items` 다 — 이름이 다르다. 한쪽 이름으로 둘 다
+         읽으면 **조용히 0** 이 되고, 화면에는 건수만 빠진 채 멀쩡히 뜬다.
+         (같은 카드 위쪽 `keptN`·`linkN` 과 같은 이름을 쓴다) */
+      var nRead = keptN + linkN;
+      if (sc.busy) {
+        var pct = Math.min(90, (sc.ms / SCAN_TYPICAL_MS) * 90);
+        card.appendChild(meter({
+          pct: pct,
+          secs: secsText(sc.ms),
+          sub: nRead ? nRead + '건 읽는 중' : null,
+          note: '진행률은 **어림값**입니다 — 서버가 중간 상태를 알려 주지 않아 '
+            + '걸린 시간으로 셈합니다. 끝나면 100% 가 됩니다.',
+        }));
+      } else if (sc.tookMs !== null && sc.tookMs !== undefined) {
+        card.appendChild(meter({
+          pct: sc.dead ? Math.min(90, (sc.tookMs / SCAN_TYPICAL_MS) * 90) : 100,
+          secs: secsText(sc.tookMs),
+          done: !sc.dead,
+          sub: sc.dead ? '멈춤' : (sc.result ? (sc.result.documents || 0) + '건 읽음' : null),
+          note: sc.dead ? '여기까지 걸린 시간입니다.' : null,
+        }));
+      }
     }
     if (state.scan.msg) card.appendChild(el('p', 'note', state.scan.msg));
 
