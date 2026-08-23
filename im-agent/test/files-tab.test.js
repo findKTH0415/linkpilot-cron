@@ -1499,3 +1499,69 @@ test('★★ 파일업로드로 넣고 스캔을 눌러도 「안 넣었다」�
     assert.match(r.scanBoxText || '', /이미 읽었/, '무슨 일이 있었는지 안 말한다');
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
+
+/* ═════════ ⑤ 「안 알려 줬다」를 「로그아웃」으로 읽지 않는다 ═════════ */
+
+/**
+ * ★★★ 〈2026-08-23 사장님 지시 — 「로그인이 필요합니다 … 삭제 빼줘」〉
+ *
+ *   무슨 일이 있었나. 앱에 **로그인해서 쓰고 계신** 사장님이 3단계
+ *   「관련자료 업로드」를 여셨더니 이것만 있었다:
+ *
+ *       로그인이 필요합니다
+ *       자료 업로드은 로그인한 사용자만 쓸 수 있습니다.
+ *
+ *   올릴 칸은 아예 안 나왔다. 이 화면은 1단계 안에 iframe 으로 들어가는데
+ *   붙이는 쪽이 `session` 을 안 넘기면 `null` 이 온다. 앞 판은 그 `null` 을
+ *   **「로그인 안 했다」로 단정**하고 화면 전체를 막았다.
+ *
+ * ★ **모르는 것과 아닌 것은 다르다** (§4.9). 모르면 화면을 열고, 진짜 판정은
+ *   서버에 맡긴다 — 401 이 오면 그때 갈라 말하는 자리가 이미 있다.
+ * ★ 그렇다고 문을 없애지는 않는다. **알려 준 경우에는 그대로 막는다.**
+ */
+test('★★★ session 을 안 넘기면 막지 않는다 — 알려 준 경우에는 그대로 막는다', () => {
+  const { findBrowser, renderDom } = require(path.join(PLATFORM, 'build-static.js'));
+  if (!findBrowser()) return;   // 크로미움이 없는 서버가 실제로 있다
+
+  /* ★★ **화면 폴더 안에 쓴다.** `files.html` 은 옆의 `.js` 를 상대경로로 부른다 —
+     임시 폴더에 옮겨 놓으면 그것들이 통째로 안 실리고, 그러면 게이트도 안 뜨는
+     대신 **화면도 아무것도 안 뜬다.** 그 상태에서 「막지 않는다」만 재면
+     검사가 초록인데 아무것도 확인 못 한 것이 된다 — 실제로 한 번 그렇게 됐다 */
+  const dir = PLATFORM;
+  const made = [];
+  const src = read('files.html');
+
+  /** session 값을 바꿔 끼우고 그려 본 뒤, 화면에 뜬 글자만 돌려준다 */
+  function paintWith(sessionJs) {
+    const slot = /^(\s*)session: null,$/m;
+    /* ★ 바뀐 글자로 재지 않는다 — 첫 판(`null`)은 원문과 **똑같아서** 「못 찾았다」가
+       된다. 실제로 그렇게 한 번 헛짚었다. 자리가 있는지를 직접 잰다 */
+    assert.ok(slot.test(src), 'session 자리를 못 찾았다 — 검사가 눈이 멀었다');
+    const html = src.replace(slot, `$1session: ${sessionJs},`);
+    const page = path.join(dir, `.lp-gate-${Buffer.from(sessionJs).toString('hex').slice(0, 12)}.html`);
+    fs.writeFileSync(page, html);
+    made.push(page);
+    const dom = renderDom(findBrowser(), page, RENDER_BUDGET_MS);
+    // 스크립트 안의 원문(accessMessage 의 문구)이 걸리지 않게 걷어낸다
+    return dom.replace(/<script[\s\S]*?<\/script>/g, '');
+  }
+
+  /* ① 안 알려 줬다(null) → **막지 않는다.** 올리는 화면이 실제로 뜬다 */
+  const unknown = paintWith('null');
+  assert.ok(!/로그인한 사용자만/.test(unknown),
+    '로그인 여부를 안 알려 줬을 뿐인데 「로그인이 필요합니다」로 막았다 — 앱 안에서 그렇게 보였다');
+  assert.match(unknown, /자료 붙이기/,
+    '막지는 않는데 올리는 칸도 안 뜬다 — 빈 화면은 고장으로 읽힌다');
+
+  /* ② 알려 줬는데 로그아웃이다 → **그대로 막는다.** 문을 없앤 것이 아니다 */
+  const out = paintWith('{ authenticated: false }');
+  assert.match(out, /로그인한 사용자만/,
+    '로그아웃이라고 알려 줬는데도 안 막는다 — 문을 통째로 없앤 것이다');
+
+  /* ③ 알려 줬고 로그인했다 → 연다 */
+  const inn = paintWith("{ authenticated: true, planId: 'free', status: 'active' }");
+  assert.ok(!/로그인한 사용자만/.test(inn), '로그인했는데 막았다');
+  assert.match(inn, /자료 붙이기/, '로그인했는데 올리는 칸이 안 뜬다');
+
+  made.forEach((f) => fs.rmSync(f, { force: true }));
+});
