@@ -521,6 +521,9 @@ async function run(input, ctx) {
       for (const f of extractFromLine(line)) {
         mine.push({
           ...f,
+          /* ★ **올린 자료에서 읽은 값이라고 밝힌다** 〈2026-08-24〉. 안 밝히면
+           *   이름 모양으로 짐작하게 되고, 확장자 없는 이름이 오면 틀린다 */
+          origin: 'document',
           confidence: byOcr ? Math.min(f.confidence, ocr.OCR_CONFIDENCE) : f.confidence,
           note: byOcr ? 'OCR 로 옮겨 적은 글자에서 뽑았습니다 — 원본을 확인하세요' : undefined,
           source: file.name,
@@ -548,7 +551,7 @@ async function run(input, ctx) {
       const s1 = Date.now();
       try {
         const extra = await llmSupplement(text, missing, file.name, warn);
-        for (const f of extra) mine.push({ ...f, source: file.name });
+        for (const f of extra) mine.push({ ...f, source: file.name, origin: 'document' });
       } catch (e) {
         warns.push(`${file.name} LLM 보완 실패(규칙 추출 결과는 유지): ${e.message}`);
       }

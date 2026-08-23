@@ -108,6 +108,8 @@ async function run(input, ctx) {
     .map(([key, value, unit]) => ({
       key, value, unit,
       source: 'financial_model (04_financial)',
+      /* ★ 계산·가정에서 나온 값 — **자료가 없을 때만 자리를 메운다** (2026-08-24) */
+      origin: 'derived',
       page: null,
       confidence: 0.95,
       verified: true, // 계산값은 재현 가능하므로 검증됨으로 본다
