@@ -92,7 +92,9 @@ function uploadDriver() {
   return `<script>(function () {
   var $ = function (s) { return document.querySelector(s); };
   var $$ = function (s) { return [].slice.call(document.querySelectorAll(s)); };
-  var tile = function () { return $$('.pw').filter(function (b) { return /파일업로드/.test(b.textContent); })[0]; };
+  /* ★ 〈2026-08-23 병합〉 갈래 토글이 없어졌다 — 「파일업로드」 칸이 늘 보인다.
+     고를 것이 없으므로 **드롭존이 떴는지**로 준비를 잰다 */
+  var tile = function () { return $('.drop'); };
   var goBtn = function () { return $$('button.btn').filter(function (b) { return /파일업로드/.test(b.textContent); })[0]; };
   var opts = function () {
     var sel = $('select');
@@ -130,7 +132,8 @@ function uploadDriver() {
         sel.value = opts()[0];
         sel.dispatchEvent(new Event('change'));
       } },
-    { name: 'tile', ready: tile, act: function () { tile().click(); } },
+    /* 누를 것이 없다. 칸이 뜨기만 기다린다 〈2026-08-23 병합〉 */
+    { name: 'tile', ready: tile, act: function () {} },
     /* ★ 파일을 끼우는 칸. act 를 **다시 불러도 안전하게** 짰다 — 아래에서
      *   기다리다 막히면 이 칸만 다시 두드린다 (다른 칸은 다시 두드리면 안 된다:
      *   tile 을 또 누르면 갈래가 바뀌면서 **고른 파일을 버린다**) */

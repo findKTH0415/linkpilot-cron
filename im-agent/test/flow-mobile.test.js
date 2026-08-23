@@ -377,196 +377,88 @@ test('★★ 좁은 화면에서 준 여백이 실제로 먹는다 (덮이면 �
  *   본다 — 넓은 화면에서는 셋이 나란히, 좁으면 셋이 세로로. 어느 쪽이든
  *   **2+1 이 되지 않는다.**
  */
-test('★★ 자료 넣는 방법 둘이 한 벌의 토글이고, 파일업로드가 창을 한 번만 연다', async () => {
+test('★★★ 자료 넣는 방법 둘이 한 테두리 안에 나란히 있다 (고르는 단계가 없다)', async () => {
   const { findBrowser, renderDom } = require(path.join(PLATFORM, 'build-static.js'));
   if (!findBrowser()) return;
 
+  /* ★★★ 〈2026-08-23 사장님 지시 「병합」으로 이 검사가 통째로 바뀌었다〉
+   *
+   *   앞 판은 [파일업로드] [폴더 지정] **토글**이었고, 이 검사는 그 칸들이
+   *   흐르지 않는가(2+1 이 되지 않는가)를 쟀다. 이제 토글이 없다 — 둘은 한
+   *   테두리 안에 **위아래로** 있고, 고르는 단계 자체가 사라졌다.
+   *
+   *   ★ 왜 합쳤나. 둘은 **고르는 문제가 아니다** — 한 딜에서 사업계획서는
+   *     파일로 올리고 실사자료는 폴더로 가리키는 일이 그냥 있다. 토글로 두면
+   *     한쪽을 쓰는 동안 다른 쪽이 안 보이고, 그래서 「그건 못 하나 보다」가 된다.
+   *
+   *   ★ 그래서 지금 재는 것은 **둘이 함께 보이는가**와 **테두리가 하나인가**다.
+   *     테두리가 둘이면 다시 「고르는 것」으로 읽힌다.
+   */
   const { buildLive } = require(path.join(PLATFORM, 'build-files.js'));
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-rows-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-merge-'));
   const frag = path.join(dir, 'frag.html');
   await buildLive(frag);
 
-  const probe = `<div id="probe"></div><script>setTimeout(function () {
-    var o = {}, nm = function (r) {
-      return [].slice.call(r.querySelectorAll('.pw__t')).map(function (t) {
-        return t.textContent.trim().replace(/\\s*무료$/, ''); }); };
-    o.rows = [].slice.call(document.querySelectorAll('.pwrow')).map(nm);
-
-    /* ★ 「흘렀는가」는 **줄 수를 세어** 본다. 같은 y 에 있는 칸끼리 묶으면
-       2+1 인지 3 인지 1+1+1 인지가 그대로 나온다 — CSS 속성을 읽으면
-       실제로 어떻게 놓였는지는 모른다 */
-    var tiles = [].slice.call(document.querySelectorAll('.pwrow .pw'));
-    var lines = {};
-    tiles.forEach(function (b) {
-      var y = Math.round(b.getBoundingClientRect().top);
-      lines[y] = (lines[y] || 0) + 1;
-    });
-    o.lineSizes = Object.keys(lines).map(function (k) { return lines[k]; });
-    o.tileCount = tiles.length;
-
-    /* 고른 갈래의 칸은 토글 **아래**에 있어야 한다 (안에 끼면 키가 어긋난다) */
-    var row = document.querySelector('.pwrow'), wi = document.querySelector('.wayin');
-    o.wayinInsideRow = !!(row && wi && row.contains(wi));
-    if (row && wi) o.belowGap =
-      Math.round(wi.getBoundingClientRect().top - row.getBoundingClientRect().bottom);
-
-    /* ★ **테두리 하나 안에 들어 있는가** 〈2026-08-22 지시 — 「하나의 통합된
-       박스라인 안에」〉. 「안에 있다」는 말은 셋으로 재야 거짓말을 못 한다:
-       ① 바깥 상자에 테두리가 있고 ② 안쪽 칸에는 테두리가 **없고**
-       ③ 고른 칸과 고르기 칸이 **같은 바탕색으로 붙어** 있다.
-       CSS 를 눈으로 읽으면 셋 중 하나만 어긋나도 못 잡는다 */
-    var box = document.querySelector('.pickway');
-    if (box) {
-      var bcs = getComputedStyle(box);
-      o.boxBorder = parseFloat(bcs.borderTopWidth);
-      o.boxRadius = parseFloat(bcs.borderTopLeftRadius);
-    }
-    o.innerBorders = [].slice.call(document.querySelectorAll('.pickway .pw, .pickway .wayin'))
-      .filter(function (n) {
-        var c = getComputedStyle(n);
-        return parseFloat(c.borderTopWidth) > 0 || parseFloat(c.borderLeftWidth) > 0
-          || parseFloat(c.borderBottomWidth) > 0 || parseFloat(c.borderRightWidth) > 0;
-      }).length;
-    var on = document.querySelector('.pw.on');
-    if (on && wi) {
-      o.sameFill = getComputedStyle(on).backgroundColor === getComputedStyle(wi).backgroundColor;
-      o.seam = Math.round(wi.getBoundingClientRect().top - on.getBoundingClientRect().bottom);
-    }
-    if (box && wi) {
-      o.wayinInsideBox = box.contains(wi);
-      var br = box.getBoundingClientRect(), wr = wi.getBoundingClientRect();
-      o.sideInset = [Math.round(wr.left - br.left), Math.round(br.right - wr.right)];
-    }
-
-    /* 앱 갈래에는 설명이 없다 (2026-08-22 지시) */
-    var app = tiles.filter(function (b) { return /LinkPilot 프로젝트에서 가져오기/.test(b.textContent); })[0];
-    o.appHasDesc = !!(app && app.querySelector('.pw__d'));
-
-    // 프로젝트를 먼저 고른다 — 안 고르면 문지기가 먼저 걸린다
+  const probe = `<div id="probe"></div><script>(async function () {
+    var sleep = function (m) { return new Promise(function (r) { setTimeout(r, m); }); };
+    var t = function (n) { return n ? (n.textContent || '').trim() : null; };
+    var o = { err: [] };
+    window.addEventListener('error', function (e) { o.err.push(e.message); });
+    await sleep(250);
     var sel = document.querySelector('.pickone select');
     if (sel) {
       var opt = [].slice.call(sel.options).filter(function (x) { return /^LP-/.test(x.value); })[0];
       if (opt) { sel.value = opt.value; sel.dispatchEvent(new Event('change', { bubbles: true })); }
     }
-    setTimeout(function () {
-      var up = [].slice.call(document.querySelectorAll('.pw')).filter(function (b) {
-        return /파일업로드/.test(b.textContent); })[0];
-      o.hasUpTile = !!up;
-      var n = 0, orig = HTMLInputElement.prototype.click;
-      HTMLInputElement.prototype.click = function () { n++; return orig.apply(this, arguments); };
-      if (up) up.click();
-      setTimeout(function () {
-        o.inputClicked = n;
-        o.dropShown = !!document.querySelector('.drop');
-        document.getElementById('probe').textContent = JSON.stringify(o);
-      }, 400);
-    }, 500);
-  }, 900);</script>`;
+    await sleep(600);
+    o.blocks = [].slice.call(document.querySelectorAll('.ways2__t')).map(t);
+    o.or = t(document.querySelector('.ways2__or'));
+    var box = document.querySelector('.ways2');
+    if (box) {
+      o.boxBorder = Math.round(parseFloat(getComputedStyle(box).borderTopWidth));
+      /* 안쪽 칸에 테두리가 있으면 「고르는 것」으로 읽힌다 */
+      o.innerBorders = [].slice.call(box.querySelectorAll('.ways2__b')).filter(function (n) {
+        var c = getComputedStyle(n);
+        return parseFloat(c.borderTopWidth) > 0 || parseFloat(c.borderLeftWidth) > 0;
+      }).length;
+      /* 둘이 **세로로** 있다 — 같은 y 면 나란히라 「고르는 것」처럼 보인다 */
+      var bs = [].slice.call(box.querySelectorAll('.ways2__b'));
+      o.stacked = bs.length === 2
+        && Math.round(bs[1].getBoundingClientRect().top) > Math.round(bs[0].getBoundingClientRect().bottom) - 2;
+    }
+    o.tiles = document.querySelectorAll('.pw').length;
+    document.getElementById('probe').textContent = JSON.stringify(o);
+  }());<` + `/script>`;
 
   const page = path.join(dir, 'p.html');
   fs.writeFileSync(page, '<!doctype html><html lang="ko"><head><meta charset="utf-8">'
     + '<meta name="viewport" content="width=device-width, initial-scale=1"></head><body>'
     + fs.readFileSync(frag, 'utf8') + probe + '</body></html>');
 
-  /** 한 너비에서 재고 돌려준다 — 넓은 쪽과 좁은 쪽을 **둘 다** 봐야 한다 */
   const measure = (w) => {
-    const dom = renderDom(findBrowser(), page, 22000, w);
+    const dom = renderDom(findBrowser(), page, 40000, w);
     const m = dom.match(/<div id="probe">([^<]*)<\/div>/);
     assert.ok(m && m[1], `탐침이 아무것도 안 남겼다 (${w}px)`);
     return JSON.parse(m[1]);
   };
 
-  // ── 넓은 화면: 셋이 **한 줄에 나란히** ──
-  const wide = measure(1100);
-  assert.strictEqual(wide.rows.length, 1, `단이 ${wide.rows.length}개다 — 한 벌이어야 한다`);
-  /* ★ 〈2026-08-23 사장님 지시〉 갈래는 **둘**이다 — 프로젝트 지정이 ① 로 올라갔다.
-     지키려는 것은 개수가 아니라 **흐르지 않는가**이므로 그대로 잰다 */
-  assert.strictEqual(wide.tileCount, 2, '갈래가 둘이 아니다');
-  assert.deepStrictEqual(wide.lineSizes, [2],
-    `넓은 화면에서 ${JSON.stringify(wide.lineSizes)} 로 흘렀다 — 둘이 나란해야 한다`);
-  assert.deepStrictEqual(wide.rows[0].length, 2, '한 줄에 둘이 아니다');
-  assert.match(wide.rows[0][0], /파일업로드/, '첫째가 파일업로드가 아니다');
-  assert.match(wide.rows[0][1], /폴더 지정/, '둘째가 폴더 지정이 아니다');
-
-  /* ── 셋과 고르기가 **테두리 하나 안에** 〈2026-08-22 지시〉 ──
-     ★★ 넓은 화면에서 **먼저** 잰다. 전 판이 깨진 자리가 여기였다 — 좁은
-       화면은 한 줄로 세로로 서서 두 상자도 한 덩어리처럼 보이지만, 넓은
-       화면에서는 칸 테두리와 고르기 칸 테두리가 **따로 보인다.** */
-  for (const [w, m] of [[1100, wide]]) {
-    assert.ok(m.boxBorder >= 1, `${w}px: 바깥 상자에 테두리가 없다 — 한 벌로 안 묶인다`);
-    assert.ok(m.boxRadius >= 8, `${w}px: 바깥 상자 모서리가 ${m.boxRadius}px 다`);
-    assert.strictEqual(m.innerBorders, 0,
-      `${w}px: 상자 안쪽에 테두리를 가진 칸이 ${m.innerBorders}개 있다 — `
-      + '테두리가 둘이면 고르기가 「딸린 것」인지 「다음 단계」인지 갈린다');
-    /* ★★ 〈2026-08-23 사장님 지시로 없어진 검사〉 앞 판은 **고르기 칸이 갈래
-       상자 안에 있는가**를 쟀다. 이제 고르기는 갈래가 아니라 ① 이고 상자 밖에
-       있다 — 그러니 이 자리에서 잴 것이 없다. 대신 **①이 갈래보다 위에
-       있는가**를 `files-tab.test.js` 가 잰다 (차례 ①②③).
-       ★ 지우지 않고 남기는 이유: 되돌아갔을 때 무엇이 달라졌는지 알게. */
-
-    /* ★ 상자 안에 열리는 칸이 없으므로 물러난 정도를 잴 것이 없다.
-       **다시 생기면** 그때는 테두리 두께 안쪽이어야 한다 */
-    if (m.sideInset) {
-      assert.ok(m.sideInset.every((v) => v <= m.boxBorder),
-        `${w}px: 상자 안 칸이 ${JSON.stringify(m.sideInset)} 만큼 물러나 있다 `
-        + `(테두리 ${m.boxBorder}px 까지가 정상)`);
-    }
+  for (const w of [1100, 430]) {
+    const r = measure(w);
+    assert.deepStrictEqual(r.err, [], `${w}px: 그리는 동안 예외가 났다`);
+    assert.deepStrictEqual(r.blocks, ['파일업로드', '폴더 지정'],
+      `${w}px: 자료 넣는 칸이 둘이 아니다 — ${JSON.stringify(r.blocks)}`);
+    assert.strictEqual(r.tiles, 0,
+      `${w}px: 갈래 토글이 되살아났다 (${r.tiles}개) — 합친 뜻이 사라진다`);
+    assert.match(String(r.or), /또는/,
+      `${w}px: 「또는」이 없다 — 붙여만 두면 아래쪽이 위쪽에 딸린 것으로 읽힌다`);
+    assert.ok(r.boxBorder >= 1, `${w}px: 바깥 테두리가 없다 — 한 벌로 안 묶인다`);
+    assert.strictEqual(r.innerBorders, 0,
+      `${w}px: 안쪽 칸에 테두리가 ${r.innerBorders}개 있다 — 다시 「고르는 것」으로 읽힌다`);
+    assert.ok(r.stacked, `${w}px: 둘이 나란히 놓였다 — 세로로 서야 고르는 것으로 안 보인다`);
   }
-
-  // ── 좁은 화면: **세로로 선다.** 2+1 로 흐르지 않는다 ──
-  const narrow = measure(430);
-  assert.deepStrictEqual(narrow.lineSizes, [1, 1],
-    `좁은 화면에서 ${JSON.stringify(narrow.lineSizes)} 로 놓였다 — `
-    + '흘리면 어느 것이 한 벌인지가 폭에 따라 달라진다 (첫 판의 문제)');
-
-  /* ── 갈래 상자 안에 열리는 칸 ──
-     ★★ 〈2026-08-23 사장님 지시로 없어졌다〉 앞 판은 고른 갈래의 칸(`.wayin`)이
-       토글 바로 아래에 붙어 있는지를 쟀다. 그 칸은 **프로젝트 고르기**였고,
-       이제 그것은 갈래가 아니라 ① 로 올라갔다 — 갈래 상자 안에 열리는 칸이
-       없으므로 `wayinInsideRow`·`belowGap` 이 `undefined` 다.
-     ★ 그 사실을 그대로 잰다: **없어야 한다.** 다시 생기면 되돌아간 것이다. */
-  assert.strictEqual(narrow.wayinInsideRow, false,
-    '갈래 상자 안에 칸이 다시 생겼다 — 고르기가 갈래 안으로 되돌아갔는가');
-
-  // ── 앱 갈래에는 설명이 없다 (2026-08-22 지시) ──
-
-  // ── 파일업로드를 누르면 드롭 자리가 뜨고, 창은 **한 번만** 열린다 ──
-  assert.ok(narrow.hasUpTile, '파일업로드 칸을 못 찾았다');
-  assert.ok(narrow.dropShown, '파일업로드를 눌렀는데 드롭 자리가 안 떴다');
-  assert.strictEqual(narrow.inputClicked, 1,
-    `고르기 창이 ${narrow.inputClicked}번 열렸다 — 두 번이면 「닫으면 또 뜬다」로 보인다`);
-
-  // 좁은 화면에서도 상자는 하나다
-  assert.strictEqual(narrow.innerBorders, 0,
-    `좁은 화면: 상자 안쪽 테두리가 ${narrow.innerBorders}개 남았다`);
-  /* ★★ 좁은 화면에서 **고르기 칸이 고른 칸 바로 밑**인지를 잰다. 세로로만
-   *   세우면 사이에 나머지 두 칸이 끼어들어 초록·흰·흰·초록 이 된다.
-   *   넓은 화면에서는 붙어 있어서 여기서만 갈린다 — 실측 218px 이었다 */
-  /* ★ 〈2026-08-23〉 갈래 상자 안에 열리는 칸이 이제 없다 — 이음매를 잴 것이
-     없으므로 `seam`/`sameFill` 이 `undefined` 다. 그 사실을 그대로 잰다:
-     **없어야 한다.** 다시 생기면 고르기가 갈래 안으로 되돌아간 것이다 */
-  assert.strictEqual(narrow.seam, undefined,
-    '갈래 상자 안에 칸이 다시 생겼다 — 고르기가 갈래 안으로 되돌아갔는가');
-  process.stderr.write(`  [토글] 넓은 화면 ${JSON.stringify(wide.lineSizes)} · `
-    + `좁은 화면 ${JSON.stringify(narrow.lineSizes)} · 이음매 ${wide.belowGap}/${narrow.seam} · `
-    + `상자테두리 ${wide.boxBorder}px · 안쪽테두리 ${wide.innerBorders}개 · `
-    + `창 ${narrow.inputClicked}회\n`);
+  fs.rmSync(dir, { recursive: true, force: true });
 });
 
-/* ═════════ ⑤ 진행 그래프 — 좁으면 **세로로 선다** ═════════ */
-
-/**
- * ★★ 〈2026-08-21 사용자 지시 · 신고 화면에서 잘려 있었다〉
- *   자료 스캔 진행 그래프가 가로로 늘어서 있어 **마지막 칸이 화면 밖으로
- *   잘렸다.** 「보고서 생성으로」가 반만 보였다.
- *
- * ★ 잘린 칸은 **없는 것처럼 보인다.** 사용자는 단계가 셋인 줄 알고, 읽고 나면
- *   무엇이 오는지를 모른 채로 기다린다. 「조금 안 예쁜」 문제가 아니라
- *   **정보가 사라지는** 문제다.
- *
- * ★★ 그래서 이 검사는 **두 너비에서 다 잰다.** 좁은 쪽만 재면 넓은 화면을
- *   망가뜨려도 통과하고, 넓은 쪽만 재면 원래 문제를 못 잡는다.
- */
 test('★★ 진행 그래프가 좁으면 세로로 서고, 넓으면 그대로 가로다', async () => {
   const { findBrowser, renderDom } = require(path.join(PLATFORM, 'build-static.js'));
   if (!findBrowser()) return;

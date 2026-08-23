@@ -210,12 +210,23 @@ test('★★ 갈래를 바꾸면 고른 파일을 들고 가지 않는다', () =
 });
 
 /** ★ 연결은 **올리는 것이 아니다.** 파일 고르기를 주면 「업로드」로 읽힌다 */
-test("★★ 연결 갈래에는 파일 고르기가 없다", () => {
+test('★★ 폴더 지정 칸에는 파일 고르기가 없다 (사본을 만드는 것처럼 보이면 안 된다)', () => {
   const code = codeOf(read('files.html'));
-  const at = code.indexOf("if (state.way === 'linked')");
-  assert.ok(at > 0, '연결 갈래를 따로 다루지 않는다');
-  const upto = code.slice(at, code.indexOf('card.appendChild(dropZone())'));
-  assert.match(upto, /return card;/, '연결에서도 드롭존까지 내려간다 — 사본을 만드는 것처럼 보인다');
+  /* ★ 〈2026-08-23 사장님 지시 「병합」으로 바뀜〉 앞 판은 갈래 토글이라
+     「연결 갈래로 내려가면 드롭존까지 가는가」를 쟀다. 이제 둘은 한 테두리
+     안에 **나란히** 있으므로, 재는 것은 **각 칸이 제 것만 그리는가**다. */
+  const at = code.indexOf('function linkedBlock');
+  assert.ok(at > 0, '폴더 지정 칸을 따로 그리지 않는다');
+  const block = code.slice(at, code.indexOf('function uploadBlock'));
+  assert.ok(!/dropZone\(\)/.test(block),
+    '폴더 지정 칸이 드롭존을 그린다 — 사본을 만드는 것처럼 보인다');
+  assert.ok(!/pickedList\(\)/.test(block), '폴더 지정 칸이 고른 파일 목록을 그린다');
+  assert.match(block, /linkPicker\(\)/, '폴더 지정 칸이 제공자를 안 그린다');
+
+  /* ★ 파일업로드 칸은 반대로 **제 것을 다 그린다** */
+  const up = code.slice(code.indexOf('function uploadBlock'));
+  assert.match(up, /dropZone\(\)/, '파일업로드 칸에 드롭존이 없다');
+  assert.match(up, /doUpload/, '파일업로드 칸에 올리기 단추가 없다');
 });
 
 /**
@@ -492,23 +503,11 @@ test('★★ 실제 브라우저에서 떨어뜨리면 붙고, 그래프가 끝�
       sel.value = 'LP-DC-2026-001';
       sel.dispatchEvent(new Event('change', { bubbles: true }));
       await sleep(200);
-      // ★ 처음 갈래는 **앱**이다 (2026-08-21 — 프로젝트 고르는 자리가 거기뿐이라
-      //   기본값이 바뀌었다). 여기서 재려는 것은 「연결 갈래에서 떨어뜨렸을 때
-      //   갈래를 대신 바꾸지 않는가」이므로, **연결로 옮기고 나서** 떨어뜨린다
-      [].slice.call(document.querySelectorAll('.pw')).filter(function (b) {
-        return /폴더 지정/.test(t(b)); })[0].click();
-      await sleep(120);
-      // 연결 갈래인 채로 떨어뜨린다 — 갈래를 대신 바꾸지 않는다
-      var d0 = new DataTransfer();
-      d0.items.add(new File([new Uint8Array(8)], 'a.pdf'));
-      document.body.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: d0 }));
-      await sleep(80);
-      o.keptWay = t(document.querySelector('.pw.on .pw__t'));
-      o.rowsWhileLinked = document.querySelectorAll('.row').length;
-      // 1회성으로 바꾸고 **카드 바깥**에 떨어뜨린다
-      [].slice.call(document.querySelectorAll('.pw')).filter(function (b) {
-        return t(b).indexOf('파일업로드') === 0; })[0].click();
-      await sleep(60);
+      /* 2026-08-23: 갈래 토글이 없어졌다 (둘을 한 칸에 병합). 옮길 갈래가
+         없으므로 곧바로 카드 바깥에 떨어뜨린다 — 이 검사가 원래 보려던 것은
+         「카드 바깥에 떨어뜨려도 붙는가」다 */
+      o.keptWay = t(document.querySelector('.ways2__t'));
+      o.rowsWhileLinked = 0;
       var d = new DataTransfer();
       d.items.add(new File([new Uint8Array(4000)], '감정평가서.pdf'));
       var far = document.querySelector('.lead') || document.body;
@@ -564,9 +563,10 @@ test('★★ 실제 브라우저에서 떨어뜨리면 붙고, 그래프가 끝�
     assert.ok(m && m[1], '탐침이 아무것도 안 남겼다 — 스크립트가 죽었다');
     const r = JSON.parse(m[1]);
     assert.equal(r.errBoxes, 0, '오류 상자가 떴다');
-    // 연결 갈래에서는 받지 않는다 (되돌릴 수 없는 것을 대신 정하지 않는다)
-    assert.equal(r.rowsWhileLinked, 0, '연결 갈래인데 떨어뜨린 파일을 받았다');
-    assert.match(r.keptWay, /폴더 지정/, '갈래를 대신 바꿨다');
+    /* ★ 〈2026-08-23 병합으로 바뀜〉 갈래 토글이 없어져 「갈래를 대신 바꾼다」가
+       성립하지 않는다. 대신 **두 칸이 늘 함께 있는지**를 잰다 — 병합이 지키려는
+       것이 그것이다 */
+    assert.match(r.keptWay, /파일업로드|폴더 지정/, '자료 넣는 칸이 안 뜬다');
     // 카드 **바깥**에 떨어뜨려도 붙는다
     assert.equal(r.rows, 1, `카드 바깥에 떨어뜨린 파일이 안 붙었다 (${r.rows}개)`);
     // 읽기가 안 끝났으면 버튼이 잠긴 채다 — 그걸 「그래프가 없다」로 읽지 않게 먼저 가른다
@@ -1015,9 +1015,7 @@ test('★★ 실제 브라우저에서 확인이 돌고, 만료를 고장으로 
       go.click();
       for (var k = 0; k < 250; k++) { await sleep(20); if (document.querySelector('.up--done, .up--error')) break; }
       await sleep(200);
-      [].slice.call(document.querySelectorAll('.pw')).filter(function (b) {
-        return t(b).indexOf('폴더 지정') === 0; })[0].click();
-      await sleep(150);
+      /* 2026-08-23: 폴더 지정 칸이 늘 보인다 — 옮길 필요가 없다 */
       o.btn = t(document.querySelector('.chk__b'));
       document.querySelector('.chk__b').click();
       for (var j = 0; j < 150; j++) { await sleep(20); if (document.querySelector('.chk__r')) break; }
@@ -1080,12 +1078,8 @@ test('★★ 파일업로드로 넣으면 읽고 「보고서 생성」으로 �
       sel.value = 'LP-DC-2026-001';
       sel.dispatchEvent(new Event('change', { bubbles: true }));
       await sleep(300);
-      // 「파일업로드」 갈래로 옮긴다
-      var ways = [].slice.call(document.querySelectorAll('.pw'));
-      var up = ways.filter(function (b) { return /파일업로드/.test(t(b)); })[0];
-      o.wayCount = ways.length;
-      if (up) up.click();
-      await sleep(150);
+      /* 2026-08-23: 갈래 토글이 없어졌다. 두 칸이 늘 함께 보인다 */
+      o.wayCount = document.querySelectorAll('.ways2__b').length;
       // 파일 하나를 떨어뜨린다 (input 에 직접 넣는다 — 고르기 창은 못 연다)
       var inp = document.querySelector('.drop input[type=file]');
       o.hasInput = !!inp;
@@ -1244,15 +1238,13 @@ test('★★★ 프로젝트 지정이 ① 로 늘 맨 위에 있다 (갈래 안
       // ① 화면 전체에 고르기는 하나다
       o.pickers = document.querySelectorAll('.pick select').length;
       o.heads = [].slice.call(document.querySelectorAll('.ah__t')).map(t);
-      o.wayCount = document.querySelectorAll('.pw').length;
+      /* ★ 자료 넣는 칸은 **프로젝트를 고른 뒤**에 뜬다 — 여기서 세면 늘 0 이다 */
       var sel = document.querySelector('.pick select');
       o.groups = [].slice.call(sel.querySelectorAll('optgroup')).map(function (g) { return g.label; });
       o.second = sel.children[1] && sel.children[1].textContent;
 
-      // ② **갈래를 바꿔도 고르기가 사라지지 않는다** — 이것이 이번 지시의 핵심이다
-      [].slice.call(document.querySelectorAll('.pw')).filter(function (b) {
-        return /폴더 지정/.test(t(b)); })[0].click();
-      await sleep(150);
+      /* ② 2026-08-23: 갈래 토글이 없어져 바꿀 것이 없다. 두 칸이 늘 함께
+         보이는지를 대신 잰다 — 그것이 이번 병합이 지키려는 것이다 */
       o.pickersAfterWay = document.querySelectorAll('.pick select').length;
       o.headsAfterWay = [].slice.call(document.querySelectorAll('.ah__t')).map(t);
       // 「가는 단추」는 더 이상 필요 없다 — 있으면 자리가 또 갈렸다는 뜻이다
@@ -1275,6 +1267,8 @@ test('★★★ 프로젝트 지정이 ① 로 늘 맨 위에 있다 (갈래 안
       await sleep(400);
       o.afterPick = [].slice.call(document.querySelectorAll('.card__t')).map(t);
       o.headsAfterPick = [].slice.call(document.querySelectorAll('.ah__t')).map(t);
+      o.blocks = [].slice.call(document.querySelectorAll('.ways2__t')).map(t);
+      o.wayCount = document.querySelectorAll('.ways2__b').length;
       o.errBoxes = document.querySelectorAll('.err').length;
       document.getElementById('probe').textContent = JSON.stringify(o);
     }());
@@ -1295,7 +1289,7 @@ test('★★★ 프로젝트 지정이 ① 로 늘 맨 위에 있다 (갈래 안
     assert.deepStrictEqual(r.heads, ['프로젝트 지정', '자료 넣는 방법', '첨부 진행율'],
       `카드 안 차례가 다르다: ${JSON.stringify(r.heads)}`);
     assert.equal(r.pickers, 1, `프로젝트 고르기가 ${r.pickers}개다 — 상단 고르기가 되살아났는가`);
-    assert.equal(r.wayCount, 2, `갈래가 둘이 아니다 (${r.wayCount}개) — 프로젝트 지정이 갈래로 되돌아갔는가`);
+    assert.equal(r.wayCount, 2, `자료 넣는 칸이 둘이 아니다 (${r.wayCount}개)`);
     assert.ok(r.groups.includes('보고서 프로젝트'), '보고서 프로젝트 무리가 없다');
     assert.ok(r.groups.includes('앱 프로젝트에서 가져오기'), '앱 딜 무리가 없다');
     assert.match(r.second, /신규프로젝트/, '「＋ 신규프로젝트」가 맨 위가 아니다');
@@ -1303,8 +1297,9 @@ test('★★★ 프로젝트 지정이 ① 로 늘 맨 위에 있다 (갈래 안
     /* ② ★★ 갈래를 바꿔도 ①은 그대로 있다 */
     assert.equal(r.pickersAfterWay, 1,
       '갈래를 바꾸니 프로젝트 고르기가 사라졌다 — 고르는 자리가 다시 갈래 안으로 들어갔다');
-    assert.deepStrictEqual(r.headsAfterWay, ['프로젝트 지정', '자료 넣는 방법', '첨부 진행율'],
-      `갈래를 바꾸니 차례가 무너졌다: ${JSON.stringify(r.headsAfterWay)}`);
+    /* ★ 두 칸이 **함께** 보인다 — 고르는 단계 없이 둘 다 쓸 수 있다 */
+    assert.deepStrictEqual(r.blocks, ['파일업로드', '폴더 지정'],
+      `자료 넣는 칸이 둘이 아니다: ${JSON.stringify(r.blocks)}`);
     assert.ok(!r.hasBack,
       '「…로 가기」 단추가 있다 — 고르는 자리가 또 어딘가로 옮겨 갔다는 뜻이다');
 
@@ -1434,9 +1429,7 @@ test('★★ 파일업로드로 넣고 스캔을 눌러도 「안 넣었다」�
       sel.value = 'LP-DC-2026-001';
       sel.dispatchEvent(new Event('change', { bubbles: true }));
       await sleep(400);
-      [].slice.call(document.querySelectorAll('.pw')).filter(function (b) {
-        return /파일업로드/.test(t(b)); })[0].click();
-      await sleep(200);
+      /* 2026-08-23: 갈래 토글이 없어졌다 — 파일업로드 칸이 늘 보인다 */
 
       // 파일을 고르기만 한다 (아직 안 올림)
       var inp = document.querySelector('.drop input[type=file]');

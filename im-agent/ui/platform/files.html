@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="61ca8f68">
+<html lang="ko" data-lp-build="0853a02a">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -284,6 +284,24 @@ select:focus-visible, button:focus-visible { outline: 2px solid var(--lime-deep)
 
 /* ① 프로젝트 지정 — **갈래 상자 밖**이다 〈2026-08-23〉. 안쪽 칸(`.wayin`)과
    같은 여백을 쓰되, 테두리로 묶지 않는다 — 갈래에 딸린 것이 아니기 때문이다 */
+/* ② 자료 넣는 방법 — **둘을 한 테두리 안에** 〈2026-08-23 사장님 지시 「병합」〉.
+   ★ 테두리는 바깥 하나만. 안쪽 둘에 또 두르면 「고르는 것」으로 보인다 —
+     고르는 단계를 없애려고 합친 것이라 뜻이 뒤집힌다 (§6-3 「대비는 한 곳에만」) */
+.ways2 { border: 1px solid var(--line); border-radius: 16px;
+  background: var(--surface); overflow: hidden; }
+.ways2__b { padding: 17px 16px 19px; }
+.ways2__t { font-weight: 800; font-size: 14.5px; letter-spacing: -.01em; }
+.ways2__d { margin: 5px 0 13px; font-size: 12.5px; color: var(--ink2); line-height: 1.65; }
+/* 「또는」 — 붙여만 두면 아래쪽이 위쪽에 딸린 것으로 읽힌다 */
+.ways2__or { display: flex; align-items: center; gap: 10px;
+  margin: 0 16px; font-size: 11.5px; font-weight: 700; color: var(--ink2);
+  letter-spacing: .06em; }
+.ways2__or::before, .ways2__or::after { content: ''; flex: 1 1 auto;
+  height: 1px; background: var(--line); }
+@media (max-width: 560px) {
+  .ways2__b { padding: 17px 15px 19px; }
+}
+
 .pickone { margin: 0; padding: 18px 16px 20px;
   border-radius: 14px; background: var(--lime-soft); }
 .pickone .pick { margin-top: 0; }
@@ -1635,36 +1653,20 @@ window.LINKPILOT_FILES = {
     if (appBody) pick.appendChild(appBody);
     card.appendChild(pick);
 
-    /* ── ② 자료 넣는 방법 ─────────────────────────────────── */
+    /* ── ② 자료 넣는 방법 — **둘을 한 칸에 병합** 〈2026-08-23 사장님 지시〉 ──
+     *
+     * ★★ 앞 판은 [파일업로드] [폴더 지정] 두 칸의 **토글**이었다. 그런데 둘은
+     *   **고르는 문제가 아니다** — 한 딜에서 사업계획서는 파일로 올리고 실사자료는
+     *   폴더로 가리키는 일이 그냥 있다. 토글로 두면 한쪽을 쓰는 동안 다른 쪽이
+     *   **안 보이고**, 그래서 「그건 못 하나 보다」가 된다.
+     * ★ 그래서 둘을 **한 테두리 안에 위아래로** 편다. 고르는 단계가 사라진다.
+     * ★ 사이에 「또는」을 둔다 — 붙여만 두면 아래쪽이 위쪽에 딸린 것으로 읽힌다.
+     */
     card.appendChild(stepHead(2, '자료 넣는 방법',
-      '파일을 올리거나, 폴더를 가리킵니다.'));
-    /* ★ 고르기는 **1단 바로 아래**에 꽂는다. 카드 끝에 붙이면 2단(연결·업로드)
-     *   뒤로 밀려 「어느 갈래에 딸린 것인지」가 다시 안 보인다 — 단을 나눈
-     *   이유가 그것이었다. 그래서 1단 뒤에 자리(`.pwslot`)를 미리 두고 갈아끼운다. */
-    var waysBox = ways();
-    card.appendChild(waysBox);
-    function putInWay(node) {
-      var slot = waysBox.querySelector('.pwslot');
-      if (slot) slot.parentNode.replaceChild(node, slot);
-      else card.appendChild(node);      // 자리가 없어졌으면 적어도 잃어버리지는 않는다
-    }
-    function dropSlot() {
-      var slot = waysBox.querySelector('.pwslot');
-      if (slot) slot.parentNode.removeChild(slot);   // 안 쓰면 **빈 자리를 남기지 않는다**
-    }
-    // 끌어다 놓았는데 받을 수 없었던 이유를 **그 자리에서** 말한다.
-    // ★ 갈래보다 먼저 그린다 — 그 말이 가장 필요한 때가 「연결」 갈래에서
-    //   떨어뜨린 때인데, 갈래 안쪽에 두면 그때 안 보인다
+      '파일을 올리거나, 폴더를 가리킵니다. 한 프로젝트에서 둘 다 쓸 수 있습니다.'));
+
+    // 끌어다 놓았는데 받을 수 없었던 이유를 **그 자리에서** 말한다
     if (state.dropMsg) card.appendChild(el('p', 'note', state.dropMsg));
-
-    var w = wayOf(state.way);
-
-    /* ── 앱에서 가져오기 — **프로젝트를 고르고 만드는 자리이기도 하다** ──
-       〈2026-08-21 사용자 지시 — 상단 고르기를 지우고 이 갈래에 병합〉
-       ★ 프로젝트가 없어도 이 갈래는 그린다. 여기가 **고르는 유일한 자리**라
-         프로젝트가 없다고 닫아 버리면 고를 방법이 사라진다 */
-    // 앱 갈래가 아니면 1단 아래 자리는 필요 없다
-    dropSlot();
 
     /* ★ 프로젝트가 없으면 여기서 멈춘다. **어디로 가라고 하지 않는다** —
        고르는 자리(①)가 바로 위에 있다 〈2026-08-23〉 */
@@ -1674,26 +1676,38 @@ window.LINKPILOT_FILES = {
       return card;
     }
 
-    // 연결 — 여기서 올리는 것이 아니라 **가리키는** 것이다
-    if (state.way === 'linked') {
-      card.appendChild(linkPicker());
-      // 연결도 **과정이 있다.** 창을 열고, 권한을 확인하고, 장부에 적는다.
-      //   그 사이 아무 말이 없으면 눌러도 안 되는 줄 안다
-      if (state.linkStage >= 0) {
-        card.appendChild(activityGraph({
-          stages: LINK_STAGES, at: state.linkStage, dead: state.linkDead,
-          note: state.linkDead ? '이 칸에서 멈췄습니다.' : '고른 파일을 가리키는 중입니다 — 사본을 만들지 않습니다.',
-        }));
-      }
-      // ★ 연결한 것이 있으면 **그대로인지 물어볼 수 있어야 한다** (D-72)
-      var chk = checkBox();
-      if (chk) card.appendChild(chk);
-      /* ★ 이 길로 끝날 때도 ③ 을 붙인다 — 번호가 ①② 로 끝나면 사람은 ③ 이
-         없어진 줄 안다 〈2026-08-23〉 */
-      putProgress(card);
-      return card;
-    }
+    var both = el('div', 'ways2');
+    both.appendChild(uploadBlock());
+    both.appendChild(el('div', 'ways2__or', '또는'));
+    both.appendChild(linkedBlock());
+    card.appendChild(both);
 
+    putProgress(card);
+    return card;
+  }
+
+  /** 폴더 지정 — 여기서 올리는 것이 아니라 **가리키는** 것이다 */
+  function linkedBlock() {
+    var box = el('div', 'ways2__b');
+    box.appendChild(el('div', 'ways2__t', wayName('linked')));
+    box.appendChild(el('p', 'ways2__d', wayOf('linked').d));
+    box.appendChild(linkPicker());
+    /* 연결도 **과정이 있다.** 창을 열고, 권한을 확인하고, 장부에 적는다.
+       그 사이 아무 말이 없으면 눌러도 안 되는 줄 안다 */
+    if (state.linkStage >= 0) {
+      box.appendChild(activityGraph({
+        stages: LINK_STAGES, at: state.linkStage, dead: state.linkDead,
+        note: state.linkDead ? '이 칸에서 멈췄습니다.' : '고른 파일을 가리키는 중입니다 — 사본을 만들지 않습니다.',
+      }));
+    }
+    // ★ 연결한 것이 있으면 **그대로인지 물어볼 수 있어야 한다** (D-72)
+    var chk = checkBox();
+    if (chk) box.appendChild(chk);
+    return box;
+  }
+
+  /** 파일업로드 — 고른 파일이 모이고, 올린다 */
+  function uploadBlock() {
     /* ── ① 모이는 자리 〈2026-08-21 사용자 지시 — 「재구성해줘」〉 ──────────
      *
      * ★★ 앞 판은 **이름이 없었다.** 갈래를 고르면 드롭 자리와 목록과 올리기
@@ -1705,7 +1719,16 @@ window.LINKPILOT_FILES = {
      * ★ 그래서 번호와 이름을 준다. 다음 자리(② 자료 스캔)도 같은 꼴로 부른다 —
      *   둘이 한 줄기임을 번호가 이어 준다.
      */
-    var box = el('div', 'sub');
+    var box = el('div', 'ways2__b');
+    box.appendChild(el('div', 'ways2__t', wayName('oneshot')));
+    box.appendChild(el('p', 'ways2__d',
+      '파일을 고르거나 아래에 끌어다 놓습니다. ' + wayOf('oneshot').d));
+
+    /* ★★ 「1 자료 수집」 머리를 **남긴다** 〈2026-08-23〉. 카드 안의 ①②③ 과
+     *   번호가 겹쳐 보이지만, 이 1 은 **카드 셋에 걸친 줄기**다:
+     *     1 자료 수집(이 칸) → 2 자료 스캔(다음 카드) → 3 보고서로 이관(그다음)
+     *   떼면 그 줄기가 2 부터 시작해 **1 이 어디 갔는지** 모르게 된다.
+     *   사용자가 손으로 상자를 그려 「여기가 1번」이라고 알려 준 그 번호다. */
     var h = el('div', 'sub__h');
     h.appendChild(el('span', 'sub__n', '1'));
     var ht = el('div');
@@ -1756,11 +1779,7 @@ window.LINKPILOT_FILES = {
     go.disabled = !ready.length || state.busy || !!over || !!reading.length;
     go.addEventListener('click', doUpload);
     box.appendChild(go);
-
-    card.appendChild(box);
-
-    putProgress(card);
-    return card;
+    return box;
   }
 
   /**
