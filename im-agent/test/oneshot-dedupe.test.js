@@ -148,7 +148,67 @@ test('★★★ 화면이 **접었다고 말한다** — 말 없이 줄이 줄�
   assert.ok(src.indexOf('state.oneshot && state.oneshot.collapsed') !== -1,
     '접은 줄 수를 안 읽는다');
   assert.ok(src.indexOf('한 줄로 접었습니다') !== -1, '접었다는 말이 화면에 없다');
-  assert.ok(src.indexOf("it.times > 1") !== -1, '몇 번 올렸는지를 줄에 안 적는다');
+  assert.ok(src.indexOf('it.copies || it.times') !== -1, '몇 번 올렸는지를 줄에 안 적는다');
   assert.ok(src.indexOf('다른 이름으로도 올라왔습니다') !== -1,
     '다른 이름을 화면이 안 보여 준다');
+});
+
+/* ── 화면 쪽에서도 접히는가 ───────────────────────────────── */
+
+/**
+ * ★★★ **서버가 접어 줘도 화면이 스스로 접어야 한다** 〈2026-08-23 · 두 번째 신고〉.
+ *
+ *   서버에 접기를 넣고 배포한 뒤에도 사장님 화면에는 **같은 그림이 여덟 줄**이
+ *   그대로 떴다 (`…인세티브(1).png` · `(2).png` 가 번갈아 넷씩).
+ *
+ * ★ 화면과 서버는 **판이 어긋날 수 있다** (M-29). 그때 화면이 스스로 옳으려면
+ *   같은 규칙을 화면도 들고 있어야 한다. 그리고 보관·연결·1회성이 **섞이는
+ *   곳은 화면뿐**이라, 서버만으로는 애초에 다 못 접는다.
+ */
+const V = require('../ui/platform/versions-core.js');
+
+const vfp = (v) => ({ algo: 'sha256', value: v });
+const vit = (name, sha) => ({ name, fingerprint: vfp(sha), readAt: T('10') });
+
+test('★★★ 지문이 같으면 화면도 한 벌로 본다 — 이름이 달라도', () => {
+  const r = V.group([vit('a(1).png', 'X'), vit('a(2).png', 'X'),
+    vit('a(1).png', 'X'), vit('a(2).png', 'X')]);
+  assert.strictEqual(r.conflicts, 0,
+    '같은 바이트를 「어느 판으로 만들지 고르십시오」로 보여 준다 — 고를 것이 없다');
+});
+
+test('★★★ 내용이 다르면 화면은 여전히 고르라고 한다', () => {
+  const r = V.group([vit('b(1).png', 'X'), vit('b(2).png', 'Y')]);
+  assert.strictEqual(r.conflicts, 1, '진짜 판 충돌을 접었다 — 틀린 판으로 만들게 된다');
+});
+
+test('★★ 접은 수와 다른 이름을 남긴다 — 접은 것이지 지운 것이 아니다', () => {
+  const r = V.sameFile([vit('a(1).png', 'X'), vit('a(2).png', 'X'), vit('a(1).png', 'X')]);
+  assert.strictEqual(r.length, 1);
+  assert.strictEqual(r[0].copies, 3);
+  assert.deepStrictEqual(r[0].alsoNamed, ['a(2).png']);
+});
+
+test('★★ 지문이 없으면 화면도 안 접는다', () => {
+  const r = V.sameFile([{ name: 'x.pdf' }, { name: 'x.pdf' }]);
+  assert.strictEqual(r.length, 2);
+});
+
+test('★★ 보관본과 1회성 기록이 같은 파일이면 한 벌로 본다 (이중 표시의 뿌리)', () => {
+  const r = V.sameFile([
+    Object.assign(vit('IM.pdf', 'X'), { where: 'kept' }),
+    Object.assign(vit('IM.pdf', 'X'), { where: 'oneshot' }),
+  ]);
+  assert.strictEqual(r.length, 1);
+  assert.strictEqual(r[0].where, 'kept', '보관본이 살아남아야 한다 — 그것이 실제로 쓰인다');
+});
+
+test('★★★ 화면이 서버 판과 무관하게 접는다 (files.html 이 sameFile 을 부른다)', () => {
+  const src = fs.readFileSync(
+    path.join(__dirname, '..', 'ui', 'platform', 'files.html'), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  assert.ok(/VS\.sameFile\(items\)/.test(src),
+    '화면이 스스로 안 접는다 — 서버 판이 옛것이면 여덟 줄이 그대로 뜬다');
+  assert.ok(src.indexOf('it.copies || it.times') !== -1,
+    '몇 번 올렸는지를 줄에 안 적는다');
 });

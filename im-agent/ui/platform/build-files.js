@@ -160,8 +160,14 @@ function uploadDriver() {
         var inp = $('.drop input');
         if (!inp) return;
         var dt = new DataTransfer();
+        /* ★★ **둘의 내용이 달라야 한다** 〈2026-08-23 · 접기를 넣고 걸렸다〉.
+         *   앞 판은 둘 다 길이 2048 짜리 0 바이트였다. 바이트가 같으니
+         *   지문도 같고, **같은 파일 접기가 둘을 한 줄로 접었다** — 시험은
+         *   「이름 하나가 없다」로 빨개졌는데 **접기는 옳게 돌고 있었다.**
+         *   ★ 표본이 실제와 다르면 잡히는 것도 실제가 아니다. 크기는 그대로
+         *     두고 내용만 가른다. */
         dt.items.add(new File([new Uint8Array(2048)], '[붙임3]산출근거.xlsx'));
-        dt.items.add(new File([new Uint8Array(2048)], '사업계획서(초안).pdf'));
+        dt.items.add(new File([new Uint8Array(2048).fill(7)], '사업계획서(초안).pdf'));
         inp.files = dt.files;
         inp.dispatchEvent(new Event('change'));
       } },
@@ -458,7 +464,19 @@ function fakeServer(limits) {
     if (/\\/sources$/.test(p)) return [200, { files: kept, trash: [], usage: { billableBytes: kept.reduce(function (a, b) { return a + b.bytes; }, 0) } }];
     if (/\\/oneshot$/.test(p) && method === 'POST') {
       var g2 = (body && body.files) || [];
-      g2.forEach(function (f) { oneshot.push({ name: f.name, bytes: 0, fingerprint: { value: 'demo' }, readAt: '예시' }); });
+      /* ★★ **가짜 서버도 진짜와 같은 기준이어야 한다** 〈2026-08-23 · 실제로 걸렸다〉.
+       *   앞 판은 파일마다 지문을 똑같이 'demo' 로 줬다. 그런데 진짜 서버는
+       *   내용의 sha256 을 준다 — 지문이 같으면 **같은 파일**이라는 뜻이다.
+       *   그래서 같은 파일 접기를 넣자 미리보기에서 서로 다른 두 파일이
+       *   한 줄로 접혔다. **접기는 옳게 돌고 있었고 표본이 거짓말을 했다.**
+       *   ★ 이름마다 다른 값을 준다. 진짜 지문은 아니지만 **다른 파일은
+       *     다른 값**이라는 성질은 지킨다 — 그것이 여기서 재는 것이다. */
+      g2.forEach(function (f, i) {
+        oneshot.push({
+          name: f.name, bytes: 0, readAt: '예시',
+          fingerprint: { value: 'demo-' + (oneshot.length + i) + '-' + f.name.length },
+        });
+      });
       // ★ 1회성은 **올리는 그 자리에서 읽는다.** 실제 서버가 read 를 함께 주므로
       //   여기서도 준다 — 안 주면 미리보기에서만 다음 단계로 안 넘어간다.
       //   (이 블록은 템플릿 문자열 안이다 — 역따옴표를 쓰면 문자열이 끊긴다)
