@@ -964,6 +964,32 @@ jobs:
       # ★★ **라우트가 빨개도 이 줄은 남는다** 〈2026-08-23〉. 앞 판은 앞 단계가
       #   죽으면 이 요약이 건너뛰어져 **「올리기가 됐는지」가 통째로 사라졌다** —
       #   그러면 화면 배포까지 실패한 줄로 읽힌다. 둘은 다른 사실이다.
+      # ★★★ **자료를 읽는 힘이 켜져 있는가** 〈2026-08-23 · 사장님 화면〉.
+      #
+      #   자료 11건 중 7건이 「못 읽었습니다 — GEMINI_API_KEY 가 필요합니다」로
+      #   끝났다. 스캔 이미지와, 글자가 코드값으로만 든 PDF 둘이 거기 있었다 —
+      #   **딜의 핵심 자료가 그쪽이었다.**
+      #
+      #   ★ 배포는 초록이고 화면도 멀쩡하다. 빠진 것은 **품질**뿐이라 아무도
+      #     오류를 안 본다. 그래서 **배포할 때마다 이 자리에서 말한다.**
+      #   ★ 키 값은 절대 찍지 않는다 (CLAUDE.md §2) — 켜졌는지만 본다.
+      - name: Check reading power (OCR)
+        if: ${{ always() && needs.plan.outputs.dry_run != 'true' }}
+        env:
+          NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+        run: |
+          set -uo pipefail
+          RAW=$(curl -sS -m 20 "http://${NAS_HOST}/api/linkpilot/intake" 2>/dev/null || true)
+          case "$RAW" in
+            *'"ocrReady":true'*)
+              echo "OCR: 켜짐 — 스캔본·이미지·코드값 PDF 를 글자로 옮겨 읽는다" >> "$GITHUB_STEP_SUMMARY" ;;
+            *'"ocrReady":false'*)
+              echo "::warning::**OCR 이 꺼져 있다.** 스캔 이미지와 글자가 코드값으로만 든 PDF 는 **한 글자도 안 읽힌다** — 그 자료의 값은 보고서에 안 실리고, 재무 항목은 통상치로 대체된다. 엔진 루트의 .env 에 GEMINI_API_KEY 를 넣으면 켜진다."
+              echo "OCR: **꺼짐** — 스캔본·이미지는 안 읽힌다" >> "$GITHUB_STEP_SUMMARY" ;;
+            *)
+              echo "OCR: 못 쟀다 (앞단이 /intake 를 안 넘겨준다 — 엔진 문제가 아니다)" >> "$GITHUB_STEP_SUMMARY" ;;
+          esac
+
       - name: Probe summary
         if: ${{ always() && needs.plan.outputs.dry_run != 'true' }}
         run: |

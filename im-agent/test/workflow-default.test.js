@@ -925,3 +925,45 @@ test('★★★ NAS 가 안 붙으면 왜인지 말하고 죽는다 (안내가 �
   const said = body.split('아무것도 안 건드렸다').length - 1;
   assert.ok(said >= 2, `안 건드렸다는 말이 ${said}곳에만 있다 — 두 갈래 다 있어야 한다`);
 });
+
+/**
+ * ★★★ **자료를 읽는 힘이 켜져 있는지 배포가 말한다** 〈2026-08-23 · 사장님 화면〉.
+ *
+ *   자료 11건 중 7건이 「못 읽었습니다 — GEMINI_API_KEY 가 필요합니다」로
+ *   끝났다. 스캔 이미지와, 글자가 코드값으로만 든 PDF 둘이 거기 있었고
+ *   **딜의 핵심 자료가 그쪽이었다.**
+ *
+ * ★ 배포는 초록이고 화면도 멀쩡하다. 빠진 것은 **품질**뿐이라 아무도 오류를
+ *   안 본다 — 그래서 배포할 때마다 이 자리에서 말하게 했다.
+ */
+test('★★★ 배포가 OCR 이 켜져 있는지 말한다 (품질은 조용히 빠진다)', () => {
+  const wf = fs.readFileSync(path.join(WF, 'deploy-nas.yml'), 'utf8');
+  const at = wf.indexOf('- name: Check reading power (OCR)');
+  assert.ok(at > -1, 'OCR 확인 단계가 없다 — 꺼져 있어도 아무도 모른다');
+  const step = wf.slice(at, wf.indexOf('- name: Probe summary'));
+
+  assert.ok(/ocrReady/.test(step), '엔진이 주는 값을 안 본다');
+  assert.ok(step.indexOf('꺼짐') !== -1 && step.indexOf('켜짐') !== -1,
+    '켜짐·꺼짐을 갈라 말하지 않는다');
+  assert.ok(/::warning::/.test(step),
+    '꺼져 있는데 경고를 안 낸다 — 요약 줄만으로는 안 읽힌다');
+  /* ★ 못 잰 것을 **꺼진 것으로 세지 않는다** — 앞단이 /intake 를 안 넘겨줄 수 있다 */
+  assert.ok(step.indexOf('못 쟀다') !== -1,
+    '못 잰 것과 꺼진 것을 안 가른다 — 엔진 탓으로 읽힌다');
+  /* ★ 키 값은 절대 찍지 않는다 (CLAUDE.md §2) */
+  assert.ok(!/\$\{\{ secrets\.GEMINI/.test(step),
+    '키 값이 워크플로에 들어왔다 — 로그에 남을 수 있다');
+});
+
+test('★★ OCR 켜는 법이 문서로 있다 (사장님이 손으로 하실 일이다)', () => {
+  const doc = fs.readFileSync(
+    path.join(ROOT, 'docs', '자료를-더-읽게-하는-법-OCR-켜기.md'), 'utf8');
+  /* ★ 낯선 말은 풀어 준다 · 어디를 눌러야 하는지 적는다 (CLAUDE.md §5) */
+  assert.ok(doc.indexOf('File Station') !== -1, '마우스로 되는 길을 안 준다');
+  assert.ok(doc.indexOf('숨김 파일 표시') !== -1,
+    '점으로 시작하는 파일이 안 보이는 것을 미리 안 짚는다 — 여기서 대개 막힌다');
+  assert.ok(doc.indexOf('따옴표로 감싸지 않습니다') !== -1,
+    '따옴표를 감싸면 인증만 실패하고 이유가 안 보인다');
+  /* ★ 붙여 넣을 명령에 「바꿔 넣을 자리」를 두지 않는다 — 터미널 명령이 없어야 한다 */
+  assert.ok(!/^\s*ssh /m.test(doc), '터미널 명령이 들어 있다 — 마우스 길만 준다');
+});
