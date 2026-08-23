@@ -474,8 +474,12 @@ test('★★★ 배포는 교차검증을 통과해야만 시작한다 (기억�
   const block = y.slice(guard.index + guard[0].length).split(/^  \w[\w-]*:$/m)[0];
 
   /* ① 테스트 전체를 다시 돈다 — 내 손의 결과가 아니라 **러너가 잰 것**이라야 뜻이 있다 */
-  assert.match(block, /node --test im-agent\/test\/\*\.test\.js/,
-    'guard 가 테스트를 안 돌린다');
+  /* ★ 목록을 워크플로에 옮겨 적지 않는다. 손으로 적으면 테스트 폴더가 하나
+     늘어난 날 이 판만 옛 목록을 돈다 — `test/alert.test.js`(실패 알림 경로)가
+     실제로 그 밖에 있었다. `npm test` 한 곳에서 나오게 둔다 */
+  assert.match(block, /npm test/, 'guard 가 테스트를 안 돌린다');
+  assert.ok(!/node --test im-agent\/test/.test(block),
+    'guard 가 테스트 목록을 손으로 옮겨 적었다 — 폴더가 늘면 이 판만 옛 목록을 돈다');
 
   /* ② 지문을 맞춰 본다. 화면을 고치고 지문을 다시 안 찍으면 배포는 새 파일을
      올리는데 화면은 옛 판을 말한다 — 그러면 M-25 를 지문으로 가릴 수가 없다 */

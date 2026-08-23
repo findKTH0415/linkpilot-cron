@@ -110,10 +110,14 @@ jobs:
       - name: Install Korean fonts (D-52)
         run: sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-cjk
 
+      # ★ **`npm test` 를 쓴다 — 목록을 여기 옮겨 적지 않는다.** 손으로 적으면
+      #   테스트 폴더가 하나 늘어난 날 이 판만 옛 목록을 돈다. 실제로 그럴 뻔했다:
+      #   `test/alert.test.js`(실패 알림 경로)가 `im-agent/test/*` 밖에 있다 —
+      #   하필 **조용히 죽지 않는지를 재는 검사**가 빠질 자리였다 (§2).
       - name: Run tests
         run: |
           set -o pipefail
-          node --test im-agent/test/*.test.js 2>&1 | tee "${RUNNER_TEMP}/tap.txt"
+          npm test 2>&1 | tee "${RUNNER_TEMP}/tap.txt"
 
       - name: 실패한 것만 다시 (원인이 로그에 묻히지 않게)
         if: failure()
