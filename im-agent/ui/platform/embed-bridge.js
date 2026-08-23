@@ -215,10 +215,37 @@
 
     var last = 0;
     var timer = null;
+    /**
+     * ★★★ **`scrollHeight` 는 화면 높이보다 작아지지 않는다** 〈2026-08-23 · 실제 사고〉.
+     *
+     *   사장님 화면이 **조금씩 계속 내려갔다.** 빈 칸이 끝없이 늘어났다.
+     *
+     *   왜: 부모가 이 값에 여백을 더해 iframe 높이를 잡는다. 그러면 자식의
+     *   **화면(viewport)이 그만큼 커지고**, `documentElement.scrollHeight` 는
+     *   **화면 높이 아래로 내려가지 않으므로** 다음 번에 그 커진 값을 그대로
+     *   되돌려준다. 부모가 또 여백을 더한다 — **한 바퀴에 여백만큼씩 영원히 자란다.**
+     *
+     *   ★ 「값이 안 바뀌면 안 보낸다」는 이 고리를 **못 막는다.** 매번 여백만큼
+     *     **진짜로 바뀌기** 때문이다. 막는 장치가 있었는데 이 결에는 안 들었다.
+     *
+     * ★ 그래서 **내용 높이**를 잰다. `height:auto` 인 문서 뿌리(`documentElement`)의
+     *   테두리 상자는 내용만큼이고 **화면 높이에 눌리지 않는다.**
+     *   못 재면 옛 방식으로 물러선다.
+     *
+     *   ※ 이 주석에 **여는 html 태그를 글자 그대로 적지 않는다.** 조각
+     *     검사(`build-files.js`)가 주석을 가리지 않고 보기 때문에 진짜
+     *     문서로 오인해 올리기를 거부한다 (CLAUDE.md §8).
+     */
+    function contentHeight() {
+      var el = document.documentElement;
+      if (el && el.getBoundingClientRect) {
+        var r = el.getBoundingClientRect();
+        if (r && r.height > 0) return Math.ceil(r.height);
+      }
+      return Math.max(el ? el.scrollHeight : 0, document.body ? document.body.scrollHeight : 0);
+    }
     function tell() {
-      var h = Math.max(
-        document.documentElement ? document.documentElement.scrollHeight : 0,
-        document.body ? document.body.scrollHeight : 0);
+      var h = contentHeight();
       if (!h || Math.abs(h - last) < 4) return;    // 4px 미만은 알리지 않는다
       last = h;
       try {

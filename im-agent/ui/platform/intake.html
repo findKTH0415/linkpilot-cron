@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="1bf9db35">
+<html lang="ko" data-lp-build="f2317ce6">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -1059,7 +1059,12 @@ window.LINKPILOT_INTAKE = {
         var d = ev.data;
         if (!d || d.type !== 'lp-embed-height' || !(d.height > 0)) return;
         var f = document.querySelector('.sub-frame__f');
-        if (f) f.style.height = Math.max(320, d.height + 8) + 'px';
+        /* ★★★ **여백을 더하지 않는다** 〈2026-08-23 · 실제 사고〉.
+         *   앞 판은 `d.height + 8` 이었다. 그 8px 이 자식의 화면을 키우고,
+         *   자식은 커진 화면 높이를 그대로 되돌려주고, 여기서 또 8 을 더한다 —
+         *   **한 바퀴에 8px 씩 영원히 자란다.** 사장님 화면이 실제로 그랬다.
+         *   ★ 자식이 이제 **내용 높이**를 보내므로 여백이 필요 없다. */
+        if (f) f.style.height = Math.max(320, d.height) + 'px';
       });
     }
     return wrap;
