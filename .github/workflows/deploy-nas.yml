@@ -989,14 +989,23 @@ jobs:
           RAW=$(ssh -o BatchMode=yes -o ConnectTimeout=20 -i ~/.ssh/id_deploy \
             "$NAS_USER@$NAS_HOST" \
             "curl -s -m 10 'http://127.0.0.1:8181/api/linkpilot/intake'" 2>/dev/null | tr -d '\r')
+          # ★★ **세 갈래를 전부 로그에도 찍는다** 〈2026-08-23 · 실제로 답답했다〉.
+          #   앞 판은 「꺼짐」만 `::warning::` 으로 나가고 나머지 둘은 요약에만
+          #   적었다. 그래서 **경고가 없을 때 「켜졌다」인지 「못 쟀다」인지
+          #   구분이 안 됐다** — 재는 장치인데 결과를 못 읽는다.
           case "$RAW" in
             *'"ocrReady":true'*)
+              echo "OCR: 켜짐 — 스캔본·이미지·코드값 PDF 를 글자로 옮겨 읽는다"
+              echo "::notice::**OCR 이 켜져 있다.** 스캔본·이미지·코드값 PDF 를 글자로 옮겨 읽는다 — 옮긴 값은 신뢰도를 낮춰 표시한다."
               echo "OCR: 켜짐 — 스캔본·이미지·코드값 PDF 를 글자로 옮겨 읽는다" >> "$GITHUB_STEP_SUMMARY" ;;
             *'"ocrReady":false'*)
-              echo "::warning::**OCR 이 꺼져 있다.** 스캔 이미지와 글자가 코드값으로만 든 PDF 는 **한 글자도 안 읽힌다** — 그 자료의 값은 보고서에 안 실리고, 재무 항목은 통상치로 대체된다. 엔진 루트의 .env 에 GEMINI_API_KEY 를 넣으면 켜진다."
+              echo "OCR: 꺼짐"
+              echo "::warning::**OCR 이 꺼져 있다.** 스캔 이미지와 글자가 코드값으로만 든 PDF 는 **한 글자도 안 읽힌다** — 그 자료의 값은 보고서에 안 실리고, 재무 항목은 통상치로 대체된다. 엔진 루트의 .env(또는 linkpilot.env)에 GEMINI_API_KEY 를 넣으면 켜진다."
               echo "OCR: **꺼짐** — 스캔본·이미지는 안 읽힌다" >> "$GITHUB_STEP_SUMMARY" ;;
             *)
-              echo "OCR: 못 쟀다 (앞단이 /intake 를 안 넘겨준다 — 엔진 문제가 아니다)" >> "$GITHUB_STEP_SUMMARY" ;;
+              echo "OCR: 못 쟀다 — 엔진이 /intake 에 답하지 않았다"
+              echo "::warning::**OCR 상태를 못 쟀다.** 엔진(8181)이 /api/linkpilot/intake 에 답하지 않았다 — 꺼진 것과 **다른 사실**이다. 엔진이 떠 있는지 먼저 본다."
+              echo "OCR: 못 쟀다 (엔진이 답하지 않았다 — 꺼진 것과 다르다)" >> "$GITHUB_STEP_SUMMARY" ;;
           esac
 
       - name: Probe summary
