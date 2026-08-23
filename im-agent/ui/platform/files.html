@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="09647d13">
+<html lang="ko" data-lp-build="20ec1438">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -580,6 +580,7 @@ window.LINKPILOT_FILES = {
     projects: null,
     projectId: C.projectId || null,
     listLocked: false, // 보고서 프로젝트 목록이 401·403 이었나 (카드 전체를 잠그지 않는다)
+    gateWhere: null,   // 화면 전체를 잠근 부름이 무엇이었나 (없으면 뒤져야 한다)
     kept: null,        // 보관 목록 (GET /sources)
     linked: null,      // 연결 목록 (GET /linked)
     oneshot: null,     // 1회성 기록 (GET /oneshot)
@@ -733,6 +734,13 @@ window.LINKPILOT_FILES = {
         //   (501 은 조심했는데 이건 놓쳤었다 — 2026-08-18)
         if (r.status === 401 || r.status === 403) {
           state.gate = (b && b.error) || '사용할 수 없습니다';
+          /* ★★★ **어느 부름이 잠갔는지 적어 둔다** 〈2026-08-23 · 이걸 몰라서 헤맸다〉.
+           *   칸 전체가 「로그인이 필요합니다」로 덮였는데, **어느 길이 그랬는지가
+           *   화면 어디에도 없었다.** 그래서 코드를 뒤져 후보를 셋으로 좁히고
+           *   사장님께 지문을 여쭤 보는 데까지 갔다 — 화면이 한 줄만 적어 줬으면
+           *   그 자리에서 끝났다.
+           *   ★ 주소만 적는다. 본문·토큰은 안 적는다 (§2). */
+          state.gateWhere = method + ' ' + path;
           return { ok: false, gated: true };
         }
         if (!r.ok) throw new Error((b && b.error) || ('서버 오류 (' + r.status + ')'));
@@ -769,18 +777,28 @@ window.LINKPILOT_FILES = {
     }).catch(function (e) { state.error = e.message; state.projects = []; });
   }
 
-  /** 세 갈래를 **각각** 부른다. 하나가 닫혀도 나머지는 그린다 */
+  /**
+   * 세 갈래를 **각각** 부른다. 하나가 닫혀도 나머지는 그린다.
+   *
+   * ★★★ **이 둘도 `localGate` 로 간다** 〈2026-08-23 · 두 번째로 같은 자리에 걸렸다〉.
+   *   `GET …/linked` 와 `…/oneshot` 은 **일부러 로그인을 묻는다** — 남의
+   *   프로젝트에 무엇이 들었는지가 나가는 자리다(D-82 표). 그런데 그 401 이
+   *   `state.gate` 를 세우면 **칸 전체가 「로그인이 필요합니다」로 덮인다.**
+   *   ★ 앞서 목록 조회(`GET /projects`) 하나만 고쳤는데 **여기가 남아 있었다.**
+   *     한 곳만 고치면 다음 자리가 조용히 같은 일을 한다 (M-24).
+   */
   function loadOne(id) {
     if (!C.api || !id) return Promise.resolve();
     var base = '/projects/' + encodeURIComponent(id);
+    var LG = { localGate: true };
     var jobs = [
-      call('GET', base + '/linked').then(function (r) {
+      call('GET', base + '/linked', null, LG).then(function (r) {
         if (r.ok) { state.linked = r.body; state.closed.linked = null; }
-        else { state.linked = null; state.closed.linked = r.closed; }
+        else { state.linked = null; state.closed.linked = r.closed || r.msg; }
       }, function (e) { state.closed.linked = e.message; }),
-      call('GET', base + '/oneshot').then(function (r) {
+      call('GET', base + '/oneshot', null, LG).then(function (r) {
         if (r.ok) { state.oneshot = r.body; state.closed.oneshot = null; }
-        else { state.oneshot = null; state.closed.oneshot = r.closed; }
+        else { state.oneshot = null; state.closed.oneshot = r.closed || r.msg; }
       }, function (e) { state.closed.oneshot = e.message; }),
     ];
     return Promise.all(jobs);
@@ -3091,6 +3109,10 @@ window.LINKPILOT_FILES = {
       var sg = el('section', 'card');
       add(sg, el('h2', 'card__t', state.gate),
         el('p', 'card__d', '로그인하거나 멤버십을 확인한 뒤 다시 열어 주십시오.'));
+      /* ★ 어느 길에서 막혔는지 **화면에 적는다.** 없으면 코드를 뒤져야 한다 */
+      if (state.gateWhere) {
+        add(sg, el('p', 'note', '막힌 자리: ' + state.gateWhere));
+      }
       view.appendChild(sg);
       return;
     }
@@ -3191,7 +3213,10 @@ window.LINKPILOT_FILES = {
   // ★ `call()` 은 `{ok, body}` 를 준다 — 껍데기째 넣으면 값이 `undefined` 가 되고
   //   화면에는 **「0 B」가 그럴듯하게 찍힌다.** 실제로 그렇게 한 번 나왔다
   if (state.projectId) announce(state.projectId);   // 미리 정해져 열렸을 때도 알린다
-  call('GET', '/intake').then(function (r) {
+  /* ★★ **한도 하나 못 받았다고 화면을 잠그지 않는다** 〈2026-08-23〉.
+     이건 「한 번에 몇 MB 까지」를 물어보는 것뿐이다. 401 이 와도 `state.gate` 로
+     올리면 **칸 전체가 로그인 안내로 덮인다** — 못 받은 것은 숫자 하나인데. */
+  call('GET', '/intake', null, { localGate: true }).then(function (r) {
     if (r && r.ok && r.body) { state.limits = r.body; render(); }
   }, function () {});
   loadProjects().then(function () {
