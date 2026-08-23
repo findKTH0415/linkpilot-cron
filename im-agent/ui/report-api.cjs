@@ -1178,6 +1178,18 @@ function createHandlers(deps) {
       const meta = store.readJson(projectId, '01_Project/project.json', null) || {};
       return ok({
         values, sources, hasDataset: !!ds,
+        /**
+         * ★★ **언제 읽었는지 함께 준다** 〈2026-08-23 사장님: 「데이터를 정말
+         *   스캔했는지 모르겠다 알수 있는 방법이 좋을듯」〉.
+         *
+         *   값만 주면 화면은 「이 값이 지금 자료에서 나온 것인지, 지난주에
+         *   나온 것인지」를 말할 수 없다. 자료를 새로 올린 뒤에도 옛 값이
+         *   그대로 떠 있으면 **읽은 것으로 보인다.**
+         *   `resolvedAt` 은 Dataset 이 저장될 때 KST 로 찍힌다.
+         */
+        readAt: (json && json.resolvedAt) || null,
+        // ★ 값이 갈린 항목 수. 0 이 아니면 화면이 그 사실을 적는다
+        conflicts: (json && Array.isArray(json.conflicts)) ? json.conflicts.length : 0,
         assetClass: meta.assetClass || null,
         assetType: meta.assetType || null,
         templateId: meta.templateId || null,

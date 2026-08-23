@@ -112,6 +112,42 @@ const PRESETS = {
     language: 'ko', resolution: 'standard', color: 'RGB',
     confidentiality: 'Strictly Confidential', watermark: true,
   },
+  /**
+   * 요약 보고서 · 검증 보고서 〈2026-08-23 추가 — 실제 사고〉.
+   *
+   * ★★ **없어서 조용히 `im` 으로 떨어지고 있었다.** 화면(`reports.html` 의
+   *   `kinds`)과 서버 문지기(`DOC_PLANS`)는 넷을 아는데 여기만 둘이었다.
+   *   그래서 「요약 보고서 · 10페이지」를 확정하면 `PRESETS.im` 이 얹혀
+   *   `minPages` 가 30 이 되고 **「목표 페이지가 최소값보다 작다」**로 막혔다.
+   *
+   * ★ 막힌 것이 그나마 다행이다 — 통과했으면 표지·파일이름·기밀등급이
+   *   **전부 Investment Memorandum 으로** 나갔다. 사양은 요약인데 문서는
+   *   IM 인 상태이고, 문서만 봐서는 잡히지 않는다 (§4.9).
+   *
+   * ★ 페이지 수는 화면이 이미 쓰던 값을 그대로 가져왔다 (요약 10 · 검증 12).
+   *   `test/outputspec-doctype.test.js` 가 화면과 여기를 대 본다.
+   */
+  summary: {
+    label: 'Summary Report',
+    pageSize: 'A4', orientation: 'portrait',
+    targetPages: 10, minPages: 5, maxPages: 20, tolerance: 2,
+    formats: ['pdf'], coverIncluded: true, appendixIncluded: false,
+    language: 'ko', resolution: 'standard', color: 'RGB',
+    confidentiality: 'Strictly Confidential', watermark: false,
+  },
+  /**
+   * 검증 보고서 — RED FLAG · 값 충돌 · 독립 재계산.
+   * ★ **워터마크를 켠다.** 낱장으로 돌아다니면 「이 딜은 문제가 있다」로만
+   *   읽히기 쉬운 문서다 — 어느 문서의 부속인지가 장마다 남아야 한다.
+   */
+  validation: {
+    label: 'Validation Report',
+    pageSize: 'A4', orientation: 'portrait',
+    targetPages: 12, minPages: 6, maxPages: 30, tolerance: 2,
+    formats: ['pdf'], coverIncluded: true, appendixIncluded: true,
+    language: 'ko', resolution: 'standard', color: 'RGB',
+    confidentiality: 'Strictly Confidential', watermark: true,
+  },
   executive_summary: {
     label: 'Executive Summary',
     pageSize: 'A4', orientation: 'portrait',
@@ -157,7 +193,21 @@ function read(projectId) {
  * @returns {object} confirmed=false 상태의 사양
  */
 function propose(projectId, { docType = 'im', themeId = null, overrides = {} } = {}) {
-  const preset = PRESETS[docType] || PRESETS.im;
+  /**
+   * ★★ **대신 쓴 것은 대신 썼다고 남긴다** 〈2026-08-23 · 실제 사고〉.
+   *
+   *   앞 판은 `PRESETS[docType] || PRESETS.im` 한 줄이었다. 모르는 종류가 오면
+   *   조용히 IM 사양이 얹히고, 그 뒤로는 **아무 데도 그 사실이 없었다.**
+   *   실제로 `summary`·`validation` 이 여기 없어서 「요약 보고서 · 10페이지」가
+   *   IM 의 `minPages: 30` 에 걸려 확정이 안 됐다. 막혀서 알았지, 안 막혔으면
+   *   표지도 파일이름도 IM 으로 나갔을 것이다.
+   *
+   *   ★ 그래서 되돌아가지 않는다 — 대신 쓴 사실을 `presetFor` 에 적고
+   *     `validateSpec` 이 그것을 문제로 잡는다. 대체값으로 메우면 문서에는
+   *     「적용됨」만 남는다 (CLAUDE.md §4.9).
+   */
+  const known = Object.prototype.hasOwnProperty.call(PRESETS, docType);
+  const preset = known ? PRESETS[docType] : PRESETS.im;
   const project = store.readJson(projectId, '01_Project/project.json', {});
   const existing = read(projectId);
 
@@ -165,6 +215,8 @@ function propose(projectId, { docType = 'im', themeId = null, overrides = {} } =
     projectId,
     docType,
     ...preset,
+    // 어느 preset 을 썼는가. 종류와 다르면 대신 쓴 것이다
+    presetFor: known ? docType : 'im',
     ...overrides,
     // ★ 통째로 덮어쓰지 않고 **항목별로** 얹는다. 사용자가 birdseye 하나만
     //   보내도 massing 이 사라지면 안 된다
@@ -321,8 +373,18 @@ function validateSpec(spec) {
   }
   if (spec.pageSize && !PAGE_SIZES[spec.pageSize]) problems.push(`알 수 없는 페이지 크기: ${spec.pageSize}`);
   if (!['portrait', 'landscape'].includes(spec.orientation)) problems.push(`알 수 없는 방향: ${spec.orientation}`);
-  if (spec.targetPages && spec.minPages && spec.targetPages < spec.minPages) problems.push('목표 페이지가 최소값보다 작다');
-  if (spec.targetPages && spec.maxPages && spec.targetPages > spec.maxPages) problems.push('목표 페이지가 최대값보다 크다');
+  /* ★ 대신 쓴 사양은 **문제로 잡는다.** 여기서 조용히 통과시키면 요약 보고서가
+   *   IM 표지·IM 파일이름으로 나가고, 문서만 봐서는 잡히지 않는다 (§4.9) */
+  if (spec.presetFor && spec.docType && spec.presetFor !== spec.docType) {
+    problems.push(`「${spec.docType}」 사양이 없어 「${spec.presetFor}」 사양을 대신 썼다`
+      + ' — 표지·파일이름·기밀등급이 다른 문서의 것이 된다');
+  }
+  if (spec.targetPages && spec.minPages && spec.targetPages < spec.minPages) {
+    problems.push(`목표 페이지가 최소값보다 작다 (${spec.targetPages} < ${spec.minPages})`);
+  }
+  if (spec.targetPages && spec.maxPages && spec.targetPages > spec.maxPages) {
+    problems.push(`목표 페이지가 최대값보다 크다 (${spec.targetPages} > ${spec.maxPages})`);
+  }
 
   // 생성 불가 형식을 요구하면 사양 단계에서 막는다
   const unsupported = (spec.formats || []).filter(f => SUPPORTED_FORMATS[f] && !SUPPORTED_FORMATS[f].supported);

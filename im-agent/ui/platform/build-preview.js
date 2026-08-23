@@ -181,7 +181,8 @@ async function build() {
 
   const INJECT = {
     'intake.html': { global: 'LINKPILOT_INTAKE', value: { preload: intakeInfo } },
-    'fields.html': { global: 'LINKPILOT_FIELDS_CFG', value: { preload: fieldsInfo } },
+    'fields.html': { global: 'LINKPILOT_FIELDS_CFG',
+      value: { preload: fieldsInfo, preloadFacts: previewFacts() } },
   };
 
   const AFTER = { CONFIRM_SPEC };
@@ -325,7 +326,8 @@ async function buildSectionDocs() {
   const fieldsInfo = (await h.fields()).body;
   const INJECT = {
     'intake.html': { global: 'LINKPILOT_INTAKE', value: { preload: intakeInfo } },
-    'fields.html': { global: 'LINKPILOT_FIELDS_CFG', value: { preload: fieldsInfo } },
+    'fields.html': { global: 'LINKPILOT_FIELDS_CFG',
+      value: { preload: fieldsInfo, preloadFacts: previewFacts() } },
   };
   const AFTER = { CONFIRM_SPEC };
 
@@ -736,6 +738,67 @@ function deskPanel() {
  *
  * ★ 자료는 **합성 예시**다. 실제 딜 자료는 이 저장소에 없다 (public 이다).
  */
+/**
+ * ★★★ **4단계 미리보기에 실제로 읽은 값을 심는다**
+ *   〈2026-08-23 사장님: 「데이터를 정말 스캔했는지 모르겠다」 · §8〉.
+ *
+ *   값이 없으면 4단계는 「아직 읽은 자료가 없습니다」만 그린다 — 맞는 말이지만
+ *   **바꾼 것을 미리보기에서 확인할 수가 없다.** §8 은 「한 일은 전부 미리보기
+ *   안에서 확인되어야 한다」고 한다.
+ *
+ * ★ 그래서 **손으로 값을 적지 않고** 위 `evidencePanel` 과 **같은 합성 자료에
+ *   같은 파서를 돌려** 그 결과를 그대로 심는다. 코드가 바뀌면 이 값도 같이
+ *   바뀐다 — 손으로 적으면 그날부터 화면만 옛말을 한다.
+ * ★ 자료 자체는 **합성 예시**다. 화면이 그 사실을 적는다 (§8).
+ */
+function previewFacts() {
+  const AGENT = path.join(HERE, '..', '..');
+  const ex = require(path.join(AGENT, 'agents', '02-extraction'));
+  const FIX = path.join(AGENT, 'test', 'fixtures');
+  const oleFix = require(path.join(FIX, 'ole.js'));
+  const zipFix = require(path.join(FIX, 'zip.js'));
+
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'im-prefacts-'));
+  const put = (name, data) => {
+    const f = path.join(tmp, name);
+    fs.writeFileSync(f, data);
+    return { name, path: f, ext: path.extname(name).toLowerCase() };
+  };
+
+  const files = [
+    put('사업계획서.hwp', oleFix.buildHwp([
+      '인천 남동 데이터센터 개발사업', '대지면적 12,345 ㎡ / 연면적 45,678 ㎡',
+      '총사업비 2,846억원 · 계약전력 40 MW'])),
+    put('요약.hwpx', zipFix.buildHwpx(['총사업비 2,846억원', 'LTC 65%'])),
+    // ★ 읽는 방법이 없는 형식을 **하나 남긴다.** 값이 0 인 자료가 화면에
+    //   어떻게 보이는지가 이 판에서 확인해야 할 것 중 하나다
+    put('현장도면.tiff', Buffer.from('II*\0 (예시)')),
+  ];
+
+  const values = {};
+  files.forEach((f, i) => {
+    const r = ex.toText(f);
+    if (!r.text) return;
+    r.text.split('\n').forEach((line) => {
+      ex.extractFromLine(line).forEach((fact) => {
+        if (values[fact.key]) return;      // 먼저 읽은 자료가 이긴다
+        values[fact.key] = {
+          value: fact.value, source: f.name,
+          page: i + 1, sourceDate: null, confidence: fact.confidence,
+        };
+      });
+    });
+  });
+
+  return {
+    values,
+    sources: files.map(f => f.name),
+    readAt: null,     // ★ 시각은 지어내지 않는다 — 미리보기는 지금 읽은 것이 아니다
+    conflicts: 0,
+    sample: true,
+  };
+}
+
 function evidencePanel() {
   const AGENT = path.join(HERE, '..', '..');
   const ex = require(path.join(AGENT, 'agents', '02-extraction'));

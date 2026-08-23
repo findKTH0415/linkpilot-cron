@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="f2317ce6">
+<html lang="ko" data-lp-build="3028a388">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -168,6 +168,47 @@ ul { margin: 0; padding: 0; list-style: none; }
 .row__conv { font-weight: 600; font-size: 12px; line-height: 1; font-family: inherit; margin-top: 7px; padding: 7px 11px; border-radius: 8px;
   border: 1px solid var(--line); background: var(--surface); color: var(--ink2); cursor: pointer; }
 
+/* ── 읽은 값 표기 〈2026-08-23 사장님: 입력필드를 없애고 분석값으로〉 ──
+   ★ 입력 상자를 기본으로 두면 **자료에서 읽은 값과 빈 칸이 똑같이 생긴다.**
+     그래서 읽은 값은 **글자로** 놓고, 고칠 때만 상자를 연다. */
+.rd { display: grid; gap: 3px 12px; grid-template-columns: minmax(0,auto) 1fr auto;
+  align-items: baseline; }
+.rd__v { font-size: 17px; font-weight: 800; font-variant-numeric: tabular-nums;
+  letter-spacing: -.01em; }
+.rd__v.none { font-size: 14px; font-weight: 600; color: var(--ink2); }
+.rd__u { font-size: 12.5px; color: var(--ink2); }
+.rd__src { grid-column: 1 / -1; font-size: 12.5px; color: var(--ink2); }
+.rd__src b { font-weight: 700; color: var(--ink); }
+.rd__edit { font-weight: 700; font-size: 12px; line-height: 1; font-family: inherit;
+  padding: 7px 12px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--ink2); cursor: pointer; }
+.rd__edit:hover { color: var(--ink); }
+
+/* 어디서 온 값인가 — 한 곳에만 대비를 준다 (§6-3 ④) */
+.org { font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px;
+  white-space: nowrap; }
+.org.read { background: var(--lime-soft); color: var(--lime-deep); }
+.org.auto { background: var(--panel); color: var(--ink2); }
+.org.typed { background: var(--warn-soft); color: var(--warn-ink); }
+.org.empty { background: var(--panel); color: var(--ink2); }
+
+/* 읽은 자료 패널 — 첫 화면이 판정을 한다 (§6-3 ①) */
+.ev { background: var(--surface); border-radius: var(--r); padding: 20px 22px; margin-bottom: 16px; }
+.ev__hd { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.ev__n { font-size: 34px; font-weight: 900; line-height: 1;
+  font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.ev__t { font-size: 15px; font-weight: 700; }
+.ev__when { margin-left: auto; font-size: 12.5px; color: var(--ink2); }
+.ev__none { font-size: 15px; font-weight: 700; color: var(--warn-ink); }
+.ev__b { margin-top: 14px; display: grid; gap: 6px; }
+.ev__r { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 4px 12px;
+  align-items: baseline; padding: 9px 12px; border-radius: 9px; background: var(--panel); }
+.ev__f { font-size: 13px; font-weight: 600; overflow-wrap: anywhere; }
+.ev__c { font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ev__p { grid-column: 1 / -1; font-size: 11.5px; color: var(--ink2); }
+.ev__r.zero .ev__c { color: var(--warn-ink); }
+.ev__note { margin-top: 12px; font-size: 12.5px; color: var(--ink2); }
+
 .computed { display: flex; flex-wrap: wrap; gap: 7px; }
 .computed span { font-size: 12.5px; padding: 6px 11px; border-radius: 8px;
   background: var(--panel); color: var(--ink2); }
@@ -245,8 +286,8 @@ ul { margin: 0; padding: 0; list-style: none; }
       <div class="head__row">
         <div class="head__ic">✎</div>
         <div>
-          <div class="head__t">가이드 필드 입력값</div>
-          <div class="card__s" style="margin:2px 0 0">보고서에 들어갈 수치를 출처와 함께 입력합니다</div>
+          <div class="head__t">자료에서 읽은 값</div>
+          <div class="card__s" style="margin:2px 0 0">올린 자료를 읽어 만든 값입니다. 값마다 어느 자료 몇 페이지에서 나왔는지 함께 적습니다</div>
         </div>
         <div class="head__meta" id="meta"></div>
       </div>
@@ -293,6 +334,14 @@ window.LINKPILOT_FIELDS_CFG = {
   var state = {
     /* ★ 값만 잠긴 것 — **항목 목록을 못 받은 것과 다르다** (2026-08-23) */
     factsLocked: null,
+    readAt: null,
+    conflicts: 0,
+    sample: false,
+    /* ★ **고치는 중인 줄만** 입력 상자를 연다 〈2026-08-23 사장님 지시:
+     *   「입력필드를 삭제하고 자동으로 분석된 입력 값으로 표기」〉.
+     *   입력 상자를 늘 열어 두면 읽은 값과 빈 칸이 똑같이 생겨서
+     *   **자료를 읽었는지 화면만 봐서는 알 수 없다.** */
+    editing: {},
     fields: null, computedKeys: [], computedFields: {}, sources: [],
     assetClasses: [], assetClass: null,   // 자산군 — 필수 항목의 분모가 달라진다
     industries: [],      // 서버가 준 산업분야 정의
@@ -369,6 +418,23 @@ window.LINKPILOT_FIELDS_CFG = {
       state.industries = C.preload.industries || [];
       state.plan = C.preload.plan || null;
       state.publicData = C.preload.publicData === undefined ? null : C.preload.publicData;
+      /* ★ 미리보기에 심어 준 값이 있으면 함께 그린다. **지어낸 값이 아니라**
+       *   빌드할 때 합성 자료에 실제 파서를 돌린 결과다 (`build-preview.js` 의
+       *   `previewFacts`). 화면은 그것이 예시임을 아래에 적는다 (§8) */
+      if (C.preloadFacts) {
+        state.server = C.preloadFacts.values || {};
+        state.sources = C.preloadFacts.sources || [];
+        state.readAt = C.preloadFacts.readAt || null;
+        state.conflicts = C.preloadFacts.conflicts || 0;
+        state.sample = !!C.preloadFacts.sample;
+        Object.keys(state.server).forEach(function (k) {
+          var v = state.server[k];
+          state.values[k] = {
+            value: v.value, source: v.source,
+            sourceDate: v.sourceDate || '', page: v.page === null ? '' : v.page,
+          };
+        });
+      }
       state.loadError = null;
       return render();
     }
@@ -405,6 +471,8 @@ window.LINKPILOT_FIELDS_CFG = {
       if (res[1]) {
         state.server = res[1].values || {};
         state.sources = res[1].sources || [];
+        state.readAt = res[1].readAt || null;
+        state.conflicts = res[1].conflicts || 0;
         state.assetClass = res[1].assetClass || null;
         // 서버 값을 편집 상태로 복사한다 (원본은 되돌리기용으로 둔다)
         Object.keys(state.server).forEach(function (k) {
@@ -509,7 +577,58 @@ window.LINKPILOT_FIELDS_CFG = {
       h.appendChild(badge);
     }
     h.appendChild(el('span', 'row__k', key));
+
+    /* ★★★ **읽은 값은 글자로 놓는다** 〈2026-08-23 사장님 지시〉.
+     *   어디서 온 값인지를 줄머리에 한 마디로 적는다 — 「자료」와 「자동」과
+     *   「직접 입력」은 **믿는 정도가 다르다.** 뭉뚱그리면 규칙으로 채운 값을
+     *   자료에 있는 값으로 읽는다. */
+    var org = F.originOf(key, e, pl, state.computedKeys);
+    h.appendChild(el('span', 'org ' + org.kind, F.ORIGIN_LABEL[org.kind] || org.kind));
     row.appendChild(h);
+
+    /* 고치는 중이 아니면 **읽는 판**을 그린다 */
+    if (!state.editing[key]) {
+      var rd = el('div', 'rd');
+      var has = e.value !== '' && e.value !== null && e.value !== undefined;
+      rd.appendChild(el('span', 'rd__v' + (has ? '' : ' none'),
+        has ? String(e.value) : '자료에서 안 나왔습니다'));
+      if (has && def.unit) rd.appendChild(el('span', 'rd__u', def.unit));
+      else rd.appendChild(el('span', 'rd__u', ''));
+
+      var edit = el('button', 'rd__edit', has ? '고치기' : '직접 넣기');
+      edit.type = 'button';
+      edit.addEventListener('click', function () {
+        state.editing[key] = true;
+        render();
+        focusValue(key);
+      });
+      rd.appendChild(edit);
+
+      /* ★ 출처를 **값 바로 아래**에 적는다. 접어 두면 아무도 안 편다 —
+       *   그러면 「출처 있는 값만 쓴다」가 화면에서는 안 보인다 */
+      var line = null;
+      if (org.kind === 'read') {
+        line = el('span', 'rd__src');
+        line.appendChild(document.createTextNode('출처 '));
+        line.appendChild(el('b', null, org.label));
+        if (org.page !== null && org.page !== undefined && org.page !== '') {
+          line.appendChild(document.createTextNode(' · p.' + org.page));
+        }
+        if (e.sourceDate) line.appendChild(document.createTextNode(' · ' + e.sourceDate));
+      } else if (org.kind === 'auto') {
+        line = el('span', 'rd__src', '자동으로 채운 값 — ' + org.label);
+      } else if (org.kind === 'typed') {
+        /* ★ 출처 없는 값은 **저장되지 않는다.** 그것을 여기서 말하지 않으면
+         *   저장 버튼을 누른 뒤에야 알게 된다 */
+        line = el('span', 'rd__src', '출처가 없습니다 — 이대로는 저장되지 않습니다');
+      }
+      if (line) rd.appendChild(line);
+      row.appendChild(rd);
+
+      v.errors.forEach(function (m) { row.appendChild(el('p', 'row__msg e', m)); });
+      v.warnings.forEach(function (m) { row.appendChild(el('p', 'row__msg w', m)); });
+      return row;
+    }
 
     var box = el('div', 'row__in');
 
@@ -613,6 +732,13 @@ window.LINKPILOT_FIELDS_CFG = {
     box.className = 'row__in n' + box.childNodes.length;
     row.appendChild(box);
 
+    /* ★ 고치기를 **닫는 길**을 준다. 없으면 한 번 연 줄이 영영 입력 상자로
+     *   남아 화면이 다시 옛날 모습으로 돌아간다 */
+    var done = el('button', 'row__conv', '고치기 닫기');
+    done.type = 'button';
+    done.addEventListener('click', function () { delete state.editing[key]; render(); });
+    row.appendChild(done);
+
     // 억원 필드는 단위 실수가 재무모델을 통째로 틀리게 만든다. 환산을 도와주되
     // 자동으로 바꾸지는 않는다 — 바뀐 값을 사람이 보고 누른다
     if (def.unit === '억원') {
@@ -709,6 +835,81 @@ window.LINKPILOT_FIELDS_CFG = {
     return f;
   }
 
+  /**
+   * ★★★ **자료를 정말 읽었는지 첫 화면에서 보이게 한다**
+   *   〈2026-08-23 사장님: 「데이터를 정말 스캔했는지 모르겠다」〉.
+   *
+   *   앞 판은 빈 입력칸 목록으로 시작했다. 값이 들어와 있어도 화면은 똑같이
+   *   생겨서 **읽었는지 안 읽었는지 가릴 방법이 없었다.** 「스캔했습니다」라는
+   *   말은 확인이 아니다 — 확인은 **몇 개가 어느 파일에서 나왔는지**다.
+   *
+   *   ★ 세는 것은 **값 자체**다. 스캔 기록을 따로 믿지 않는다 — 기록은 값과
+   *     갈릴 수 있지만, 값에 붙은 출처는 그 값의 출처다.
+   *   ★ **값이 하나도 안 나온 자료를 따로 적는다.** 안 적으면 「10개 올렸는데
+   *     값 3개」일 때 어느 자료가 헛돌았는지 알 수 없다.
+   */
+  function evidenceCard() {
+    var ev = F.readEvidence(state.values, state.sources);
+    var card = el('div', 'ev');
+
+    var hd = el('div', 'ev__hd');
+    if (!ev.total) {
+      /* ★ 없으면 **없다고 크게 적는다.** 0 을 작게 적으면 「아직 안 그려졌나」로 읽힌다 */
+      hd.appendChild(el('span', 'ev__none',
+        state.sources.length
+          ? '올린 자료 ' + state.sources.length + '건에서 값이 하나도 안 나왔습니다'
+          : '아직 읽은 자료가 없습니다'));
+    } else {
+      hd.appendChild(el('span', 'ev__n', String(ev.total)));
+      hd.appendChild(el('span', 'ev__t', '개의 값을 자료에서 읽었습니다'
+        + (ev.bySource.length ? ' · 자료 ' + ev.bySource.length + '건' : '')));
+    }
+    if (state.readAt) hd.appendChild(el('span', 'ev__when', '읽은 시각 ' + state.readAt));
+    card.appendChild(hd);
+
+    if (ev.bySource.length) {
+      var b = el('div', 'ev__b');
+      ev.bySource.forEach(function (r) {
+        var row = el('div', 'ev__r');
+        row.appendChild(el('span', 'ev__f', r.source));
+        row.appendChild(el('span', 'ev__c', r.count + '개'));
+        if (r.pages.length) {
+          row.appendChild(el('span', 'ev__p', 'p.' + r.pages.slice(0, 8).join(', ')
+            + (r.pages.length > 8 ? ' 외 ' + (r.pages.length - 8) + '곳' : '')));
+        }
+        b.appendChild(row);
+      });
+      ev.unusedFiles.forEach(function (f) {
+        var row = el('div', 'ev__r zero');
+        row.appendChild(el('span', 'ev__f', f));
+        row.appendChild(el('span', 'ev__c', '0개'));
+        row.appendChild(el('span', 'ev__p', '이 자료에서는 값이 안 나왔습니다'));
+        b.appendChild(row);
+      });
+      card.appendChild(b);
+    }
+
+    if (ev.noSource) {
+      card.appendChild(el('div', 'ev__note',
+        '출처가 없는 값 ' + ev.noSource + '개 — 이대로는 저장되지 않습니다.'));
+    }
+    if (state.conflicts) {
+      card.appendChild(el('div', 'ev__note',
+        '값이 갈린 항목 ' + state.conflicts + '건 — 자료마다 다른 숫자가 나왔습니다.'));
+    }
+    /* ★ **예시면 예시라고 화면에 박는다** (§8). 데모 값을 실제로 오해하면
+     *   그것을 근거로 판단한다 */
+    if (state.sample) {
+      card.appendChild(el('div', 'ev__note',
+        '이 화면은 미리보기입니다 — 위 값은 합성 예시 자료에 실제 파서를 돌린 결과입니다.'));
+    }
+    if (!ev.total && state.sources.length) {
+      card.appendChild(el('div', 'ev__note',
+        '3단계 「관련자료 업로드」에서 자료를 읽어야 값이 만들어집니다.'));
+    }
+    return card;
+  }
+
   function render() {
     body.textContent = '';
     meta.textContent = '';
@@ -776,6 +977,8 @@ window.LINKPILOT_FIELDS_CFG = {
     meta.appendChild(b);
 
     var required = F.requiredKeys(state.fields, C.docType);
+
+    body.appendChild(evidenceCard());
 
     // 진행률
     var pc = el('div', 'card');
