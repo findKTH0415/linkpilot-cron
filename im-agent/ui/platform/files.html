@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="5865840a">
+<html lang="ko" data-lp-build="a133a59d">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -7,13 +7,22 @@
 <!--
   자료 업로드 — 보고서에 쓸 자료를 넣는 곳. 세 번째 탭 (2026-08-18).
 
-  ★★ **탭 이름은 「자료 업로드」지만 하는 일은 셋이고, 그중 둘은 업로드가 아니다.**
+  ★★ **탭 이름은 「자료 업로드」지만 하는 일은 넷이고, 그중 둘은 업로드가 아니다.**
     ① LinkPilot 프로젝트에서 가져오기  앱 딜이 가진 것을 끌어온다 (2026-08-21)
     ② 폴더를 연결해서                  **사본을 안 만든다.** 읽을 때만 잠깐 가져와 버린다
-    ③ 파일업로드                       읽고 **바로 버린다**(1회성). 다시 못 쓴다
-    ★ 셋 다 무료다. 그래서 **「무료」 배지를 화면에 안 그린다** 〈2026-08-22〉 —
-      셋에 다 붙으면 아무것도 가르지 못하고 눈만 잡는다. `free`·`plan` 은 그대로다.
-    ※ 「올려서 보관」(Pro)은 2026-08-20 에 화면에서 뺐다. 서버 API 는 그대로 있다
+    ③ 파일업로드 (보관)                프로젝트에 저장한다. **다시 만들 때 다시 읽는다**
+    ④ 파일업로드 (1회성)               읽고 **바로 버린다.** 다시 만들면 안 실린다
+
+  ★★★ **③ 이 없어서 사고가 났다** 〈2026-08-23 사장님: 「자료를 업로드 했는데
+    전혀 반영이 안되었음」〉. 「올려서 보관」(Pro)을 2026-08-20 에 화면에서 뺐고,
+    그 뒤로 **모든 업로드가 1회성**이었다. 1회성은 읽고 파일을 버리므로
+    `02_Source_Data` 가 언제나 비었고, 보고서를 만들 때 `02_extraction` 이
+    「원본자료가 없다」로 끝났다 — **숫자가 전부 통상치로 나갔다.**
+    ★ 화면에서 길 하나를 빼면 **서버 API 가 살아 있어도 그 기능은 없는 것**이다.
+      그리고 없어진 것이 「품질」이면 아무도 오류를 안 본다.
+    ★ 그래서 ③ 을 되돌리고 **기본으로** 둔다. ④ 는 남긴다(D-65) — 사본을
+      남기기 싫은 사람의 길이다.
+    ★ 셋(①②④)은 무료, ③ 은 Pro 다.
     ②를 업로드로 읽으면 사본이 우리 쪽에 남는 줄 안다 — 그 오해를 막으려고
     만든 것이 ② 다(D-65). 그래서 **화면이 셋의 차이를 먼저 말한다.**
 
@@ -45,7 +54,7 @@
   }, 8000);
 })();
 </script>
-<link rel="stylesheet" href="tokens.css?v=5865840a">
+<link rel="stylesheet" href="tokens.css?v=a133a59d">
 <style>
 /* 색·간격·반경 토큰은 tokens.css 하나가 정한다 (LinkPilot Design System v1.1) */
 * { box-sizing: border-box; }
@@ -293,6 +302,16 @@ select:focus-visible, button:focus-visible { outline: 2px solid var(--lime-deep)
 .ways2__t { font-weight: 800; font-size: 14.5px; letter-spacing: -.01em; }
 .ways2__d { margin: 5px 0 13px; font-size: 12.5px; color: var(--ink2); line-height: 1.65; }
 /* 「또는」 — 붙여만 두면 아래쪽이 위쪽에 딸린 것으로 읽힌다 */
+/* 보관 / 1회성 고르기 — 올리기 칸 **안**에 둔다 (고르는 단계를 새로 만들지 않는다) */
+.keepway { display: grid; gap: 8px; grid-template-columns: 1fr 1fr; margin: 0 0 14px; }
+.keepway__b { text-align: left; font-family: inherit; cursor: pointer;
+  border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
+  padding: 11px 13px; display: grid; gap: 4px; }
+.keepway__b.on { border-color: var(--lime-deep); background: var(--lime-soft); }
+.keepway__t { font-size: 13.5px; font-weight: 800; color: var(--ink); }
+.keepway__b.on .keepway__t { color: var(--lime-deep); }
+.keepway__d { font-size: 11.5px; line-height: 1.6; color: var(--ink2); }
+@media (max-width: 560px) { .keepway { grid-template-columns: 1fr; } }
 .ways2__or { display: flex; align-items: center; gap: 10px;
   margin: 0 16px; font-size: 11.5px; font-weight: 700; color: var(--ink2);
   letter-spacing: .06em; }
@@ -488,10 +507,10 @@ select:focus-visible, button:focus-visible { outline: 2px solid var(--lime-deep)
   </div>
 </div>
 
-<script src="gate-core.js?v=5865840a"></script>
-<script src="flow-core.js?v=5865840a"></script>
-<script src="upload-core.js?v=5865840a"></script>
-<script src="versions-core.js?v=5865840a"></script>
+<script src="gate-core.js?v=a133a59d"></script>
+<script src="flow-core.js?v=a133a59d"></script>
+<script src="upload-core.js?v=a133a59d"></script>
+<script src="versions-core.js?v=a133a59d"></script>
 <script>
 /**
  * 붙이는 쪽이 채우는 유일한 값.
@@ -537,7 +556,7 @@ window.LINKPILOT_FILES = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=5865840a" data-lp-global="LINKPILOT_FILES"></script>
+<script src="embed-bridge.js?v=a133a59d" data-lp-global="LINKPILOT_FILES"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -655,7 +674,9 @@ window.LINKPILOT_FILES = {
     // ★★ 처음 열릴 때는 **앱**이다 〈2026-08-21 사용자 지시로 상단 고르기를 지운 뒤〉.
     //   프로젝트를 고르거나 만드는 자리가 그 갈래 하나뿐이라, 다른 갈래로 열면
     //   **아무것도 못 하는 화면**부터 보게 된다
-    way: 'oneshot',   /* 〈2026-08-23〉 `app` 은 갈래에서 빠졌다 — 프로젝트 지정은 ① 이다 */
+    /* ★ 기본은 **보관**이다 〈2026-08-23〉. 앞 판은 1회성이 기본이라, 올린
+     *   자료가 보고서에 안 실리는 것이 **기본 동작**이었다 */
+    way: 'keep',      /* 〈2026-08-23〉 `app` 은 갈래에서 빠졌다 — 프로젝트 지정은 ① 이다 */
     picked: [],        // 고른 파일 — { name, size, data, error }
     upload: null,      // 올리는 중 상태 (upload-core 가 준 그대로)
     result: null,      // 서버 응답
@@ -1036,8 +1057,23 @@ window.LINKPILOT_FILES = {
     { id: 'app', t: 'LinkPilot 프로젝트에서 가져오기', free: true, plan: 'free', d: '' },
     { id: 'linked', t: '폴더 지정', free: true, plan: 'free',
       d: 'Dropbox·Box·구글·원드라이브의 파일을 가리킵니다. 사본을 만들지 않습니다 — 읽을 때만 잠깐 가져와 버립니다.' },
-    { id: 'oneshot', t: '파일업로드', free: true, plan: 'free',
-      d: '읽고 바로 버립니다(1회성). 보관하지 않으므로 다시 쓸 수 없고, 원본이 그대로인지도 확인할 수 없습니다.' },
+    /* ★★★ **보관하는 길이 화면에 없었다** 〈2026-08-23 사장님: 「자료를 업로드
+     *   했는데 전혀 반영이 안되었음」〉.
+     *
+     *   3단계의 「파일업로드」는 `/oneshot` 한 곳으로만 갔다. 1회성은 **읽고
+     *   파일을 버린다.** 그래서 `02_Source_Data` 가 언제나 비었고, 보고서를
+     *   만들 때 `02_extraction` 이 「원본자료가 없다」로 끝났다 —
+     *   **숫자가 전부 통상치로 나갔다.**
+     *
+     *   ★ 보관하는 길(`POST /projects/:id/sources`)은 **서버에 이미 있었다.**
+     *     화면에서 부르는 곳만 없었다. 1단계에 남아 있었는데 그 자리가
+     *     3단계로 옮겨지면서 같이 오지 않았다.
+     *   ★ 1회성은 **지우지 않는다** (D-65) — 사본을 남기기 싫은 사람의 길이다.
+     *     다만 **기본을 보관으로** 바꾼다. 다시 만들 수 있는 쪽이 기본이어야 한다. */
+    { id: 'keep', t: '파일업로드 (보관)', free: false, plan: 'pro',
+      d: '프로젝트에 저장합니다. 보고서를 다시 만들 때 이 자료를 다시 읽고, 나중에 원본과 대조할 수 있습니다.' },
+    { id: 'oneshot', t: '파일업로드 (1회성)', free: true, plan: 'free',
+      d: '읽고 바로 버립니다. 보관하지 않으므로 **보고서를 다시 만들면 이 자료는 안 실립니다** — 그때 다시 올려야 합니다.' },
   ];
 
   function wayOf(id) {
@@ -1108,7 +1144,7 @@ window.LINKPILOT_FILES = {
        *   열려고 하면 브라우저가 조용히 막는다. 그래서 `render()` 뒤로 미루지
        *   않고 여기서 표시만 남기고, 그리기가 끝나는 자리에서 곧바로 연다.
        *   ★ 프로젝트가 없으면 열지 않는다 — 골라 봐야 올릴 데가 없다. */
-      state.openPicker = (w.id === 'oneshot');
+      state.openPicker = (w.id === 'oneshot' || w.id === 'keep');
       render();
     });
     return b;
@@ -1650,10 +1686,9 @@ window.LINKPILOT_FILES = {
     if (!ready.length || !state.projectId || state.busy) return;
     // ★ 합계가 넘으면 **보내지 않는다.** 보내고 나서 끊기면 이유를 말할 수 없다
     if (overRequest()) return;
-    // ★ 화면에 남은 올리는 길은 **1회성 하나뿐**이다 (보관은 뺐다).
-    //   그런데도 갈래를 확인하고 보낸다 — 나중에 길이 늘 때 조용히 엉뚱한 곳으로
-    //   가지 않게 한다
-    if (state.way !== 'oneshot') return;
+    /* ★ 보관·1회성 **둘 다** 여기로 온다. 보내는 주소만 다르다 —
+     *   길이 둘로 갈라지면 한쪽만 고쳐지는 날이 온다 (M-24) */
+    if (state.way !== 'oneshot' && state.way !== 'keep') return;
     /* ★★ **올리기는 `fetch` 가 아니라 XHR 로 간다** — 그래서 `call()` 의 문지기를
      *   안 거친다. 같은 일을 하는 길이 둘이면 **둘 다 막아야 한다** (M-24).
      *   막지 않으면 주소가 `"null/projects/…"` 가 되어 404 로 죽고, 화면에는
@@ -1663,7 +1698,9 @@ window.LINKPILOT_FILES = {
         + (bridgeReason() ? ' (' + bridgeReason() + ')' : '');
       return render();
     }
-    var path = '/oneshot';
+    /* ★ 보관은 `/sources`, 1회성은 `/oneshot`. **이 한 줄이 품질을 가른다** —
+     *   `/oneshot` 은 읽고 버리므로 보고서를 다시 만들 때 아무것도 안 실린다 */
+    var path = state.way === 'keep' ? '/sources' : '/oneshot';
 
     state.busy = true; state.result = null; state.error = null; state.uploadFail = null;
     // 자취는 **이번 올리기 것만** 모은다. 안 비우면 지난 판이 앞에 붙어
@@ -1689,6 +1726,11 @@ window.LINKPILOT_FILES = {
         // 올린 뒤 목록을 다시 읽는다 — 안 읽으면 방금 올린 것이 안 보인다
         loadOne(state.projectId).then(function () {
           render();
+          /* ★★★ **보관은 올린 것만으로는 값이 안 생긴다** 〈2026-08-23〉.
+           *   `/sources` 는 파일을 저장할 뿐 읽지 않는다 — 읽는 것은 스캔이다.
+           *   여기서 안 돌리면 **올렸는데 값이 0개**이고, 사람은 「반영이 안
+           *   된다」고 말한다. 연결 자료가 이미 같은 자리에서 그렇게 하고 있다. */
+          if (state.way === 'keep') return scanNow({ auto: true });
           // ★ 1회성은 **서버가 올리는 그 자리에서 이미 읽었다.** 다시 읽을 원본이
           //   우리에게 없다. 그래서 스캔을 또 돌리지 않고 **바로 넘긴다** —
           //   값이 실제로 들어갔을 때만 (안 들어갔으면 빈 칸만 보게 된다)
@@ -1872,9 +1914,43 @@ window.LINKPILOT_FILES = {
      *   둘이 한 줄기임을 번호가 이어 준다.
      */
     var box = el('div', 'ways2__b');
-    box.appendChild(el('div', 'ways2__t', wayName('oneshot')));
-    box.appendChild(el('p', 'ways2__d',
-      '파일을 고르거나 아래에 끌어다 놓습니다. ' + wayOf('oneshot').d));
+    box.appendChild(el('div', 'ways2__t', '파일업로드'));
+    box.appendChild(el('p', 'ways2__d', '파일을 고르거나 아래에 끌어다 놓습니다.'));
+
+    /**
+     * ★★★ **올린 자료를 남길 것인가** 〈2026-08-23 사장님: 「자료를 업로드
+     *   했는데 전혀 반영이 안되었음. 매우 중요함. 최종결과물 품질이 달라짐」〉.
+     *
+     *   앞 판은 이 칸이 **1회성 한 길뿐**이었다. 1회성은 읽고 파일을 버리므로
+     *   `02_Source_Data` 가 언제나 비었고, 보고서를 만들 때 추출기가
+     *   「원본자료가 없다」로 끝났다 — **숫자가 전부 통상치로 나갔다.**
+     *   보관하는 길(`POST /projects/:id/sources`)은 **서버에 살아 있었는데**
+     *   2026-08-20 에 화면에서 뺀 뒤로 부르는 곳이 없었다.
+     *
+     * ★ 고르는 단계를 새로 만들지 않는다 — **이 칸 안에서** 고른다.
+     * ★ 기본은 **보관**이다. 다시 만들 수 있는 쪽이 기본이어야 한다.
+     * ★ 1회성은 남긴다 (D-65) — 사본을 남기기 싫은 사람의 길이다.
+     */
+    var KEEPS = [
+      { id: 'keep', t: '보관합니다', d: '보고서를 다시 만들 때 이 자료를 다시 읽습니다. 나중에 원본과 대조할 수 있습니다.' },
+      { id: 'oneshot', t: '읽고 버립니다', d: '사본을 남기지 않습니다. 보고서를 다시 만들면 이 자료는 안 실립니다 — 그때 다시 올려야 합니다.' },
+    ];
+    var kb = el('div', 'keepway');
+    KEEPS.forEach(function (k) {
+      var b = el('button', 'keepway__b' + (state.way === k.id ? ' on' : ''));
+      b.type = 'button';
+      b.appendChild(el('span', 'keepway__t', k.t));
+      b.appendChild(el('span', 'keepway__d', k.d));
+      b.setAttribute('aria-pressed', state.way === k.id ? 'true' : 'false');
+      b.addEventListener('click', function () {
+        if (state.way === k.id) return;
+        state.way = k.id;
+        remember({ way: k.id });
+        render();
+      });
+      kb.appendChild(b);
+    });
+    box.appendChild(kb);
 
     /* ★★ 「1 자료 수집」 머리를 **남긴다** 〈2026-08-23〉. 카드 안의 ①②③ 과
      *   번호가 겹쳐 보이지만, 이 1 은 **카드 셋에 걸친 줄기**다:
@@ -1926,7 +2002,8 @@ window.LINKPILOT_FILES = {
         '고른 파일 ' + reading.length + '개를 아직 읽는 중입니다 — 다 읽으면 올릴 수 있습니다.'));
     }
 
-    var go = el('button', 'btn', state.way === 'oneshot' ? wayName('oneshot') : '올려서 보관');
+    var go = el('button', 'btn',
+      state.way === 'oneshot' ? '파일업로드 — 읽고 버리기' : '파일업로드 — 보관');
     go.type = 'button';
     go.disabled = !ready.length || state.busy || !!over || !!reading.length;
     go.addEventListener('click', doUpload);
@@ -3263,9 +3340,10 @@ window.LINKPILOT_FILES = {
       state.dropMsg = '프로젝트를 먼저 고르십시오 — 붙일 곳이 없습니다.';
       return render();
     }
-    if (state.way !== 'oneshot') {
-      state.dropMsg = '떨어뜨린 파일은 「' + wayName('oneshot') + '」 갈래에서만 올릴 수 있습니다 — '
-        + '그 갈래를 고른 뒤에 놓아 주십시오.';
+    /* ★ 보관·1회성 **둘 다** 떨어뜨려 올릴 수 있다 〈2026-08-23〉 */
+    if (state.way !== 'oneshot' && state.way !== 'keep') {
+      state.dropMsg = '떨어뜨린 파일은 「' + wayName('keep') + '」·「' + wayName('oneshot')
+        + '」 갈래에서만 올릴 수 있습니다 — 그 갈래를 고른 뒤에 놓아 주십시오.';
       return render();
     }
     state.dropMsg = null;

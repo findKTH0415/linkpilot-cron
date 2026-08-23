@@ -94,18 +94,37 @@ test('★ 구성안이 탭 이름을 복사해 적지 않는다', () => {
  *   연결(D-65)은 **사본을 만들지 않는 것**이 존재 이유인데, 업로드로 읽히면
  *   사용자는 우리 서버에 사본이 남는 줄 안다 — 정확히 반대다.
  */
-test('★★ 화면이 세 갈래의 차이를 먼저 말한다 (연결 ≠ 업로드)', () => {
+test('★★ 화면이 갈래의 차이를 먼저 말한다 (보관 ≠ 1회성 ≠ 연결)', () => {
   const html = read('files.html');
-  // ★ 2026-08-21 사용자 지시로 **셋**이 되었다 — 앱에서 가져오기가 갈래로 올라왔다
-  ['LinkPilot 프로젝트에서 가져오기', '폴더를 연결해서', '파일업로드'].forEach((w) => {
-    assert.ok(html.includes(w), `세 갈래 중 '${w}' 가 화면에 없다`);
+  /* ★★★ 〈2026-08-23 사장님 사고로 되돌렸다〉 「올려서 보관」을 2026-08-20 에
+   *   화면에서 뺐고, 그 뒤로 **모든 업로드가 1회성**이었다. 1회성은 읽고 파일을
+   *   버리므로 보고서를 만들 때 원본이 없어 **숫자가 전부 통상치로 나갔다.**
+   *   ★ 화면에서 길 하나를 빼면 **서버 API 가 살아 있어도 그 기능은 없는 것**이다. */
+  ['LinkPilot 프로젝트에서 가져오기', '폴더를 연결해서',
+    '파일업로드 (보관)', '파일업로드 (1회성)'].forEach((w) => {
+    assert.ok(html.includes(w), `갈래 '${w}' 가 화면에 없다`);
   });
-  // ★ 「올려서 보관」은 뺐다 (2026-08-20 사용자 결정 — 불필요)
-  assert.ok(!/id: 'kept'/.test(html), '보관 갈래가 되살아났다');
+  assert.ok(/id: 'keep'/.test(html), '보관 갈래가 없다 — 올린 자료가 보고서에 안 실린다');
   assert.ok(html.includes('사본을 만들지 않습니다'),
     '연결이 사본을 안 만든다는 말이 없다 — 「업로드」로 읽힌다');
-  assert.ok(html.includes('다시 쓸 수 없'),
-    '1회성이 재사용 불가라는 말이 없다 — 올린 뒤에 알면 늦다');
+  assert.ok(html.includes('보고서를 다시 만들면 이 자료는 안 실립니다'),
+    '1회성이 다음 실행에 안 실린다는 말이 없다 — 올린 뒤에 알면 늦다');
+  assert.ok(html.includes('다시 읽고'),
+    '보관이 다시 읽힌다는 말이 없다 — 두 갈래의 차이가 안 보인다');
+});
+
+/**
+ * ★★★ **보관과 1회성이 서로 다른 주소로 간다** 〈2026-08-23〉.
+ *   한 줄이 품질을 가른다 — `/oneshot` 은 읽고 버리므로 보고서를 다시 만들 때
+ *   아무것도 안 실린다.
+ */
+test('★★★ 보관은 /sources 로, 1회성은 /oneshot 으로 간다', () => {
+  const code = read('files.html')
+    .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  assert.match(code, /state\.way === 'keep' \? '\/sources' : '\/oneshot'/,
+    '보내는 주소를 갈래로 안 가른다 — 보관을 골라도 1회성으로 간다');
+  assert.match(code, /way: 'keep'/,
+    '기본이 보관이 아니다 — 올린 자료가 안 실리는 것이 기본 동작이 된다');
 });
 
 /* ═════════ ③ 501 은 오류가 아니라 상태다 ═════════ */
@@ -1439,6 +1458,20 @@ test('★★ 파일업로드로 넣고 스캔을 눌러도 「안 넣었다」�
       sel.dispatchEvent(new Event('change', { bubbles: true }));
       await sleep(400);
       /* 2026-08-23: 갈래 토글이 없어졌다 — 파일업로드 칸이 늘 보인다 */
+      /* ★ 이 검사는 **1회성** 갈래의 동작을 잰다 〈2026-08-23〉 — 기본은 보관으로
+         바뀌었으므로 여기서 갈래를 눌러 고른다 */
+      var kwHit = null;
+      for (var kw = 0; kw < 60; kw++) {
+        var kws = document.querySelectorAll('.keepway__b');
+        for (var ki = 0; ki < kws.length; ki++) {
+          if (t(kws[ki]).indexOf('버립니다') !== -1) { kwHit = kws[ki]; break; }
+        }
+        if (kwHit) break;
+        await sleep(20);
+      }
+      o.kw = !!kwHit;
+      if (kwHit) kwHit.click();
+      await sleep(200);
 
       // 파일을 고르기만 한다 (아직 안 올림)
       var inp = document.querySelector('.drop input[type=file]');
@@ -1448,8 +1481,10 @@ test('★★ 파일업로드로 넣고 스캔을 눌러도 「안 넣었다」�
       inp.dispatchEvent(new Event('change', { bubbles: true }));
       var go = null;
       for (var w = 0; w < 1200; w++) {
+        /* ★ 이름이 「파일업로드 — 보관」·「파일업로드 — 읽고 버리기」로 갈렸다
+           〈2026-08-23〉. 정확히 일치로 찾으면 못 찾고 아래에서 던진다 */
         go = [].slice.call(document.querySelectorAll('.btn')).filter(function (b) {
-          return t(b) === '파일업로드'; })[0];
+          return t(b).indexOf('파일업로드') === 0; })[0];
         if (go && !go.disabled) break;
         await sleep(20);
       }

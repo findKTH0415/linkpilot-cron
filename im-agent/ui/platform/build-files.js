@@ -97,6 +97,14 @@ function uploadDriver() {
      고를 것이 없으므로 **드롭존이 떴는지**로 준비를 잰다 */
   var tile = function () { return $('.drop'); };
   var goBtn = function () { return $$('button.btn').filter(function (b) { return /파일업로드/.test(b.textContent); })[0]; };
+  /* ★★ 이 판이 보여 주려는 것은 **「받았지만 못 읽었다」**이고, 그것은
+   *   1회성(읽고 버리기)에서만 나온다 — 보관은 올린 뒤 스캔이 따로 읽는다.
+   *   기본이 보관으로 바뀌었으므로(2026-08-23) 여기서 갈래를 눌러 고른다. */
+  var pickOneshot = function () {
+    var b = $$('.keepway__b').filter(function (x) { return /버립니다/.test(x.textContent); })[0];
+    if (b && b.getAttribute('aria-pressed') !== 'true') { b.click(); return true; }
+    return false;
+  };
   var opts = function () {
     var sel = $('select');
     return sel ? [].map.call(sel.options, function (o) { return o.value; }).filter(function (v) { return /^LP-/.test(v); }) : [];
@@ -135,6 +143,15 @@ function uploadDriver() {
       } },
     /* 누를 것이 없다. 칸이 뜨기만 기다린다 〈2026-08-23 병합〉 */
     { name: 'tile', ready: tile, act: function () {} },
+    /* ★ 1회성을 고른다 — 이 판이 보여 주려는 「받았지만 못 읽었다」가
+     *   그쪽에서만 나온다 (2026-08-23) */
+    /* ★ ready 는 「이미 됐는가」가 아니라 **「지금 누를 수 있는가」**다
+     *   (위 proj·drop 과 같은 뜻). 「됐는가」로 적으면 영영 안 넘어간다.
+     *   ※ 이 블록은 템플릿 문자열 안이다 — 역따옴표를 쓰면 문자열이 끊긴다 */
+    { name: 'oneshot',
+      ready: function () { return $$('.keepway__b').filter(function (x) {
+        return /버립니다/.test(x.textContent); })[0]; },
+      act: pickOneshot },
     /* ★ 파일을 끼우는 칸. act 를 **다시 불러도 안전하게** 짰다 — 아래에서
      *   기다리다 막히면 이 칸만 다시 두드린다 (다른 칸은 다시 두드리면 안 된다:
      *   tile 을 또 누르면 갈래가 바뀌면서 **고른 파일을 버린다**) */

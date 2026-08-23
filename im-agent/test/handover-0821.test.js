@@ -148,7 +148,10 @@ test('★★ 인계서의 갈래 이름이 화면의 WAYS 와 같다', () => {
   // 화면에서 갈래 제목을 뽑아 온다 — 손으로 적지 않는다
   const block = html.slice(html.indexOf('var WAYS = ['), html.indexOf('function wayOf'));
   const names = (block.match(/t: '([^']+)'/g) || []).map(x => x.slice(4, -1));
-  assert.equal(names.length, 3, `갈래가 셋이 아니다: ${names.join(' · ')}`);
+  /* ★ 개수를 못 박지 않는다 〈2026-08-23〉 — 2026-08-20 에 뺀 「보관」이
+   *   되살아나 넷이 되었다. 재려는 것은 **개수**가 아니라 **문서와 화면이
+   *   같은가**다. 개수를 박아 두면 갈래가 늘 때마다 여기부터 빨개진다 */
+  assert.ok(names.length >= 3, `갈래를 못 읽었다: ${names.join(' · ')}`);
 
   // ★★ `includes` 로만 재면 **못 잡는다** 〈2026-08-21 실측〉. 문서가
   //   「파일업로드(1회성)」이라고 옛 이름을 말해도 「파일업로드」를 품고 있어
