@@ -395,7 +395,13 @@ test('★★ 탐침과 배포 확인이 같은 스크립트를 쓴다 (두 벌�
   const y = fs.readFileSync(path.join(WF, 'deploy-nas.yml'), 'utf8');
   /* ★ 〈2026-08-22 · D-84〉 앞 판은 **둘**이었다(탐침 + 배포 뒤 확인). 쓰기를
      지웠으므로 이제 **한 곳**이다. 둘로 늘면 쓰기가 되살아났다는 뜻이다 */
-  const uses = (y.match(/verify-served\.sh/g) || []).length;
+  /* ★★ **주석을 떼고 센다** 〈2026-08-23 · 이 검사에 두 번째로 걸렸다〉.
+     주석에서 「`verify-served.sh` 가 …라고 적어 둔 그 이유다」라고 **인용만
+     했는데** 셋으로 세어 빨개졌다. 세는 것은 **쓰는 자리**이지 언급이 아니다.
+     같은 결함을 `fetch-depth` 검사에서도 만났다 — **경위를 잘 적어 둘수록
+     검사가 눈이 머는** 구조다. */
+  const code = y.split('\n').filter(l => !/^\s*#/.test(l)).join('\n');
+  const uses = (code.match(/verify-served\.sh/g) || []).length;
   assert.strictEqual(uses, 2,
     `verify-served.sh 를 쓰는 자리가 ${uses}곳이다 — 탐침과 배포 뒤 확인 둘이어야 한다`);
 
@@ -829,4 +835,59 @@ test('★★★ 404 가 엔진 탓인지 앞단 탓인지 갈라 놓는다 (D-87
   const iRt = y.indexOf('- name: Check routes');
   assert.ok(iEng < iSplit && iSplit < iRt,
     '갈라 재기가 엔진 배포와 라우트 재기 사이에 없다');
+});
+
+/**
+ * ★★★ **잰 길이 앱이 쓰는 길이 아니면 빨갛게 끝내지 않는다** 〈2026-08-23 · 실행 #57〉.
+ *
+ *   갈라 재기가 답을 줬다 — 실측:
+ *     엔진 직행 8181  /api/linkpilot/intake → **200**
+ *     엔진 직행 8181  /intake               → 404  (접두사로 붙어 있다 · 정상)
+ *     바깥 포트 80    /api/linkpilot/intake → 404
+ *
+ *   **엔진에는 길이 있다.** 404 는 앞단(포트 80 가상호스트)이 그 길을 8181 로
+ *   안 넘겨서 나는 것이고, 앱은 Funnel 443 으로 들어온다.
+ *
+ * ★ 그러면 여기서 빨갛게 끝내는 것은 **멀쩡한 배포를 늘 빨갛게 만드는 것**이다.
+ *   그리고 늘 빨가면 **빨간 것을 아무도 안 보게 된다** — `verify-served.sh` 가
+ *   HTTP 경고를 두고 똑같이 적어 둔 그 이유다 (M-25).
+ *
+ * ★★ 다만 **무르게 하는 자리가 하나뿐**이어야 한다. 「404 면 넘어간다」가 되면
+ *   이 단계가 통째로 있으나 마나다.
+ */
+test('★★★ 404 를 무르게 하는 자리는 「앞단」 하나뿐이다', () => {
+  const y = fs.readFileSync(path.join(WF, 'deploy-nas.yml'), 'utf8');
+  const s = stepOf(y, 'Check routes');
+  assert.ok(s, 'Check routes 단계가 없다');
+
+  /* ① 갈라 재기의 판정을 **받아야** 한다. 안 받으면 스스로 짐작하게 된다 */
+  assert.match(s, /WHERE: \$\{\{ steps\.split\.outputs\.where \}\}/,
+    '갈라 재기의 판정을 안 받는다 — 그러면 404 의 자리를 여기서 또 짐작한다');
+
+  /* ② ★★ 무르는 조건이 **「앞단」이고 LP_BASE 가 없을 때**로 좁혀져 있어야 한다.
+     넓히면 엔진에 길이 없는 날도 초록으로 지나간다 */
+  assert.match(s, /if \[ "\$\{WHERE:-\}" = "front" \] && \[ -z "\$\{LP_BASE:-\}" \]/,
+    '무르는 조건이 「앞단 ＋ LP_BASE 없음」으로 좁혀져 있지 않다');
+  ['engine', 'prefix', 'unknown'].forEach((w) => {
+    assert.ok(!new RegExp('"\\$\\{WHERE:-\\}" = "' + w + '"').test(s),
+      `${w} 도 무르게 한다 — 그 자리는 그대로 치명이어야 한다`);
+  });
+
+  /* ③ ★ **조용히 넘어가지 않는다.** 크게 적고 요약에도 남긴다 (§2) */
+  const soft = s.slice(s.indexOf('= "front"'), s.indexOf('echo "::error::'));
+  assert.match(soft, /::warning::/, '무르게 넘어가면서 아무 말도 안 한다');
+  assert.match(soft, /LP_BASE/, '어떻게 하면 제대로 재는지 안 알려 준다');
+  assert.match(soft, /GITHUB_STEP_SUMMARY/, '요약에 안 남긴다 — 로그는 안 열어 본다');
+
+  /* ④ ★ 치명 갈래가 **살아 있어야** 한다 */
+  assert.match(s, /::error::/, '404 를 오류로 낼 길이 아예 없어졌다');
+  assert.match(s, /exit 1/, '어떤 경우에도 빨갛게 끝나지 않는다 — 있으나 마나다');
+
+  /* ⑤ ★ 갈라 재기가 판정을 **실제로 내보내야** 이 모든 것이 돈다 */
+  const sp = stepOf(y, 'Split inside vs outside (D-87 · M-25)');
+  assert.match(sp, /id: split/, '갈라 재기에 id 가 없다 — 판정을 받을 수가 없다');
+  ['front', 'prefix', 'engine', 'ok', 'unknown'].forEach((w) => {
+    assert.ok(sp.includes('echo "where=' + w + '" >> "$GITHUB_OUTPUT"'),
+      `갈라 재기가 ${w} 판정을 안 내보낸다 — 그 갈래만 판정이 빈다`);
+  });
 });

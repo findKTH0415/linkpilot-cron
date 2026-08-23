@@ -830,6 +830,7 @@ jobs:
       #     여기서 갈라 두지 않으면 또 엉뚱한 곳(엔진)을 판다 — 오늘 그랬다.
       #   ★ **읽기만 한다.** 안팎에서 같은 주소를 두드려 응답 코드만 받는다.
       - name: Split inside vs outside (D-87 · M-25)
+        id: split
         if: ${{ needs.plan.outputs.dry_run != 'true' }}
         env:
           NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
@@ -860,18 +861,23 @@ jobs:
           if alive "$IN_API" && [ "${OUT_API:-404}" = "404" ]; then
             echo "::warning::**엔진에는 길이 있는데 바깥에서는 404 다.** 엔진(8181)은 /api/linkpilot/intake 에 ${IN_API} 로 답하는데 포트 80 은 404 를 준다 → **앞단이 그 길을 8181 로 안 넘긴다.** 엔진을 더 올려도 안 바뀐다. ① 앱이 실제로 쓰는 주소를 LP_BASE 에 넣어 다시 재거나 ② DSM 웹서비스의 리버스 프록시 규칙을 본다"
             echo "404 의 자리: **앞단** — 엔진은 ${IN_API}, 포트 80 은 404" >> "$GITHUB_STEP_SUMMARY"
+            echo "where=front" >> "$GITHUB_OUTPUT"
           elif [ "${IN_API:-404}" = "404" ] && alive "$IN_BARE"; then
             echo "::warning::**엔진이 접두사 없이 붙어 있다.** /intake 는 ${IN_BARE} 인데 /api/linkpilot/intake 는 404 다 → 앞단이 `/api/linkpilot` 을 떼고 넘겨야 하는 구조다. 지금은 그 규칙이 없거나 다르다"
             echo "404 의 자리: **접두사** — /intake 는 ${IN_BARE}, /api/linkpilot/intake 는 404" >> "$GITHUB_STEP_SUMMARY"
+            echo "where=prefix" >> "$GITHUB_OUTPUT"
           elif [ "${IN_API:-404}" = "404" ] && [ "${IN_BARE:-404}" = "404" ]; then
             echo "::error::**엔진에 그 길이 정말 없다.** 방금 올린 판으로도 8181 직행이 두 주소 다 404 다 — 이건 저장소 쪽 일이다 (라우터를 안 걸고 있다)"
             echo "404 의 자리: **엔진** — 8181 직행도 404 다" >> "$GITHUB_STEP_SUMMARY"
+            echo "where=engine" >> "$GITHUB_OUTPUT"
           elif alive "$OUT_API"; then
             echo "::notice::바깥에서도 길이 있다 (${OUT_API}) — 404 는 사라졌다"
             echo "404 없음 — 바깥 ${OUT_API}" >> "$GITHUB_STEP_SUMMARY"
+            echo "where=ok" >> "$GITHUB_OUTPUT"
           else
             echo "::warning::**갈라 내지 못했다** — 응답을 못 받은 자리가 있다. 위 네 줄을 그대로 본다"
             echo "404 의 자리: **못 갈랐다**" >> "$GITHUB_STEP_SUMMARY"
+            echo "where=unknown" >> "$GITHUB_OUTPUT"
           fi
 
       # ★★★ **라우트가 앱을 거쳐 닿는지 잰다** 〈2026-08-23 · M-11 · M-12〉.
@@ -891,6 +897,8 @@ jobs:
         env:
           LP_BASE: ${{ secrets.LP_BASE }}
           NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+          # ★★★ 앞 단계가 갈라 놓은 판정을 받는다 〈2026-08-23 · 실행 #57〉
+          WHERE: ${{ steps.split.outputs.where }}
         run: |
           set -uo pipefail
           if [ -n "${LP_BASE:-}" ]; then
@@ -912,8 +920,27 @@ jobs:
             echo "라우트 확인: 다 못 쟀다 (${VIA})" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          echo "::error::**라우트가 404 다.** 화면은 올라갔고(위 Verify deployed 초록) 서버가 **옛 라우팅 표**를 들고 있다 — 화면에서는 「서버 오류 (404)」로만 보인다 (M-11 · D-87). ★ 이제 엔진도 이 워크플로가 올린다(D-88) — 위 「Deploy engine」 단계가 **돌았는지** 먼저 본다. 건너뛰었으면 바뀐 것이 화면뿐이라 옛 엔진 그대로다. 돌았는데도 404 면 새 엔진에 그 라우트가 정말 없는 것이다."
-          echo "라우트 확인: 404 있음 (${VIA}) — **화면 올리기는 성공했다.** 엔진 단계가 돌았는지 본다 (D-88)" >> "$GITHUB_STEP_SUMMARY"
+          # ★★★ **잰 길이 앱이 쓰는 길이 아니면 빨갛게 끝내지 않는다** 〈2026-08-23 · 실행 #57〉.
+          #
+          #   앞 단계가 갈라 놓은 결과가 실측으로 이렇게 나왔다:
+          #     엔진 직행 8181  /api/linkpilot/intake → **200**
+          #     바깥 포트 80    /api/linkpilot/intake → 404
+          #   즉 **엔진에는 길이 있다.** 404 는 앞단(포트 80 가상호스트)이 그 길을
+          #   8181 로 안 넘겨서 나는 것이고, 앱은 Funnel 443 으로 들어온다.
+          #
+          #   ★ 그러면 여기서 빨갛게 끝내는 것은 **멀쩡한 배포를 늘 빨갛게 만드는
+          #     것**이다. 그리고 늘 빨가면 **빨간 것을 아무도 안 보게 된다** —
+          #     `verify-served.sh` 가 HTTP 경고를 두고 똑같이 적어 둔 그 이유다 (M-25).
+          #   ★ **조용히 넘어가는 것이 아니다.** 경고로 크게 적고 요약에도 남긴다.
+          #     그리고 **엔진 자리(`engine`)면 그대로 치명이다** — 거기서 무르면
+          #     이 단계가 있으나 마나가 된다.
+          if [ "${WHERE:-}" = "front" ] && [ -z "${LP_BASE:-}" ]; then
+            echo "::warning::**라우트 404 는 앞단에서 난다 — 엔진이 아니다.** 바로 위 갈라 재기에서 엔진(8181)은 이 길에 정상으로 답했다. 잰 길(${VIA})이 앱이 쓰는 길(Funnel 443)과 달라서 나는 404 다. **LP_BASE 를 넣으면 앱이 쓰는 길로 재서 이 경고가 사라진다.** 여기서 빨갛게 끝내면 멀쩡한 배포가 늘 빨갛고, 그러면 진짜 사고가 났을 때도 안 보인다 (M-25)."
+            echo "라우트 확인: **앞단에서 404** — 엔진은 정상. LP_BASE 를 넣으면 갈린다" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "::error::**라우트가 404 다.** 화면은 올라갔고(위 Verify deployed 초록) 서버가 **옛 라우팅 표**를 들고 있다 — 화면에서는 「서버 오류 (404)」로만 보인다 (M-11 · D-87). ★ 바로 위 「Split inside vs outside」 가 **404 의 자리를 이름으로 적어 두었다** — 그것부터 본다. `엔진` 이면 저장소 쪽 일이고, `접두사` 면 앞단 규칙이 어긋난 것이다."
+          echo "라우트 확인: 404 있음 (${VIA}) — **화면 올리기는 성공했다.** 404 의 자리는 위 갈라 재기를 본다" >> "$GITHUB_STEP_SUMMARY"
           exit 1
 
       # ★★ **라우트가 빨개도 이 줄은 남는다** 〈2026-08-23〉. 앞 판은 앞 단계가
