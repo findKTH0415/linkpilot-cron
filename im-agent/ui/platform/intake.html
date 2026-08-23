@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="0853a02a">
+<html lang="ko" data-lp-build="da55ee52">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -1050,10 +1050,13 @@ window.LINKPILOT_INTAKE = {
 
   function dropCard() {
     var box = el('section', 'card');
-    box.appendChild(el('h2', 'card__t', '자료 업로드'));
-    box.appendChild(el('p', 'card__s',
+    /* ★★ **제목을 손으로 적지 않는다** 〈2026-08-23 사장님 지시 — 「자료 업로드
+     *   타이틀 중복 표기」〉. `cardHead` 는 머리(`fillHead`)가 이미 그 이름을
+     *   말했으면 붙이지 않는다. 앞 판은 이 자리만 `cardHead` 를 안 거치고
+     *   직접 붙여서 **머리와 카드가 같은 말을 두 번** 했다. */
+    cardHead(box, 'files', HEADS.files.t,
       '사업계획서·기술제안서·재무자료 등. 모든 수치는 여기서 뽑고 출처로 기록됩니다. '
-      + '나중에 추가로 올릴 수도 있습니다.'));
+      + '나중에 추가로 올릴 수도 있습니다.');
     box.appendChild(filesFrame());
     return box;
   }

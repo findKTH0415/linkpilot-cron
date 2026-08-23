@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="0853a02a">
+<html lang="ko" data-lp-build="da55ee52">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -2942,7 +2942,16 @@ window.LINKPILOT_FILES = {
    *   그래서 그리기는 `paint()` 로 두고, `render()` 가 그 뒤를 책임진다. */
   function paint() {
     view.innerHTML = '';
-    if (!C.inTab) view.appendChild(el('h1', null, '자료 업로드'));
+    /* ★★★ **품어졌으면 제 이름을 말하지 않는다** 〈2026-08-23 사장님 지시 —
+     *   「자료 업로드 타이틀 중복 표기」〉.
+     *
+     *   이 화면은 1단계 안에 창으로 들어간다. 그때 바깥이 이미 「자료 업로드」를
+     *   말하고 있는데 여기서 또 그리면 **같은 말이 세 번** 나온다(머리 · 카드 ·
+     *   이 제목). 앞 판은 `inTab` 만 봤는데, 그 값은 **앱이 탭으로 얹을 때만**
+     *   들어온다 — 창 안에 품어진 경우는 아무도 안 알려 줬다.
+     *   ★ 그래서 **부모가 우리 화면인지**로도 가른다 (`flow-core` 의 판단을 쓴다). */
+    var embedded = C.inTab || !!(F && F.insideLinkPilot && F.insideLinkPilot());
+    if (!embedded) view.appendChild(el('h1', null, '자료 업로드'));
 
     // 토큰이 안 실리면 화면이 색 없이 뜨는데 오류는 안 난다 — 화면이 스스로 말한다
     if (F && F.tokensLoaded() === false) view.appendChild(el('div', 'nostyle', F.TOKENS_MISSING));
@@ -3104,6 +3113,25 @@ window.LINKPILOT_FILES = {
     if (state.projectId) return loadOne(state.projectId).then(render);
     return null;
   });
+
+  /* ★★★ **품어졌으면 제 바탕을 칠하지 않는다** 〈2026-08-23 사장님 지시 —
+   *   「쓸데없이 박스라인을 만들면서 발생된 것 같음 … 빼줘 삭제해」〉.
+   *
+   *   이 화면은 단독으로 열릴 때를 위해 제 바탕색(`--bg`)과 바깥 여백을 갖는다.
+   *   그런데 1단계 안에 창으로 들어가면 그 바탕이 **카드 안의 회색 띠**로
+   *   보인다 — 아무 뜻도 없는 상자가 하나 더 생기는 것이다.
+   *   ★ 바깥이 고쳐 주기를 기다리지 않는다. **이 화면이 스스로 안다** —
+   *     부모가 우리 화면이면 바탕을 비우고 여백을 0 으로 둔다. */
+  if (F && F.insideLinkPilot && F.insideLinkPilot()) {
+    try {
+      document.documentElement.style.background = 'transparent';
+      document.body.style.background = 'transparent';
+      /* `.wrap` 의 바깥 여백도 뺀다 — 품은 카드가 이미 여백을 갖고 있어서
+         두 벌이 되면 화면이 안쪽으로 한 번 더 밀린다 */
+      var wrap = document.querySelector('.wrap');
+      if (wrap) { wrap.style.background = 'transparent'; wrap.style.padding = '0'; wrap.style.maxWidth = 'none'; }
+    } catch (_) {}
+  }
 
   /* ★ **판 지문을 화면에 보이게 남긴다** (CLAUDE.md §8) — 조건 없이.
      서버가 닫혀 있을 때야말로 판을 알고 싶은 때다 */

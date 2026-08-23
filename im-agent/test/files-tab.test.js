@@ -139,10 +139,17 @@ test('★★ 401·403 을 오류로 그리지 않는다 (게이트로 그린다)
   assert.ok(html.includes("requiredPlan: 'free'"), '자료 탭이 무료가 아니다');
 });
 
-test('★ 탭 안에서는 제목을 그리지 않는다 (탭 바가 이미 이름을 말한다)', () => {
+test('★ 탭 안·창 안에서는 제목을 그리지 않는다 (바깥이 이미 이름을 말한다)', () => {
   const html = read('files.html');
-  assert.match(html, /if \(!C\.inTab\) view\.appendChild\(el\('h1', null, '자료 업로드'\)\)/,
-    'inTab 을 안 보고 제목을 그린다 — 탭 이름 아래에 같은 말이 또 나온다');
+  /* ★ 〈2026-08-23〉 `inTab` **하나만으로는 모자랐다.** 그 값은 앱이 탭으로
+     얹을 때만 들어오고, 1단계 안에 **창으로 품어진** 경우는 아무도 안 알려
+     줬다 — 그래서 「자료 업로드」가 세 번 나왔다. 둘 다 보는지 잰다 */
+  assert.match(html, /var embedded = C\.inTab \|\|/,
+    'inTab 만 본다 — 창 안에 품어진 경우를 못 가린다');
+  assert.match(html, /insideLinkPilot\(\)/,
+    '부모가 우리 화면인지 안 본다');
+  assert.match(html, /if \(!embedded\) view\.appendChild\(el\('h1', null, '자료 업로드'\)\)/,
+    '품어졌는지 안 보고 제목을 그린다 — 바깥 이름 아래에 같은 말이 또 나온다');
 });
 
 /* ═════════ ④ 손으로 적어 두지 않는다 ═════════ */
@@ -1570,4 +1577,102 @@ test('★★★ session 을 안 넘기면 막지 않는다 — 알려 준 경우
   assert.match(inn, /관련자료 제공/, '로그인했는데 올리는 칸이 안 뜬다');
 
   made.forEach((f) => fs.rmSync(f, { force: true }));
+});
+
+/* ═════════ ⑥ 품어졌을 때는 제 이름·바탕을 내지 않는다 ═════════ */
+
+/**
+ * ★★★ 〈2026-08-23 사장님 지시 — 「자료 업로드 타이틀 중복 표기 노출됨 …
+ *   쓸데없이 박스라인을 만들면서 발생된 것 같음 … 빼줘 삭제해」〉
+ *
+ *   한 화면에 「자료 업로드」가 **세 번** 나왔다:
+ *     ① 1단계 머리(`fillHead`) ② 그 아래 카드 제목 ③ 품은 화면의 자기 `h1`
+ *   그리고 품은 화면의 **제 바탕색**이 카드 안에서 회색 띠로 보였다 —
+ *   아무 뜻도 없는 상자가 하나 더 생긴 것이다.
+ *
+ * ★ 셋 다 원인이 같다: **품어졌다는 것을 화면이 몰랐다.** `inTab` 은 앱이
+ *   탭으로 얹을 때만 들어오고, 창 안에 품어진 경우는 아무도 안 알려 줬다.
+ * ★ 그래서 **부모가 우리 화면인지**로 가른다 — 바깥이 고쳐 주기를 기다리지
+ *   않고 이 화면이 스스로 안다.
+ * ★ **단독으로 열 때는 그대로 둔다.** 이름 없는 화면을 만들면 안 된다.
+ */
+test('★★★ 품은 창 안에서는 제 이름·바탕·여백을 내지 않는다 (단독일 때는 낸다)', () => {
+  const { findBrowser, renderDom } = require(path.join(PLATFORM, 'build-static.js'));
+  if (!findBrowser()) return;   // 크로미움이 없는 서버가 실제로 있다
+
+  /* ★★ **`file://` 에서 창 안을 읽으려면 깃발이 하나 더 필요하다**
+   *   〈2026-08-23 · 실제로 여기서 한 번 죽었다〉. 없으면 브라우저가 창을
+   *   **다른 출처**로 보고 `contentDocument` 를 `null` 로 준다 — 그러면
+   *   「창 안을 못 읽었다」가 되어 **아무것도 못 재고** 검사가 멎는다.
+   *   `renderDom` 은 그 깃발을 안 붙이므로 이 검사에서만 직접 부른다. */
+  const { execFileSync } = require('child_process');
+  const renderNested = (file) => execFileSync(findBrowser(), [
+    '--headless', '--disable-gpu', '--no-sandbox', '--hide-scrollbars',
+    '--allow-file-access-from-files', '--window-size=1280,900',
+    '--virtual-time-budget=60000', '--dump-dom', 'file://' + file,
+  ], { maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] }).toString();
+
+  /* ── ① 품은 창 안 ── 부모가 `LinkPilotFlow` 를 가진 화면이다 */
+  const host = `<div id="probe"></div>
+    <script src="flow-core.js"></script>
+    <iframe id="f" src="files.html" style="width:900px;height:900px;border:0"></iframe>
+    <script>
+    setTimeout(function () {
+      var o = {};
+      try {
+        var d = document.getElementById('f').contentDocument;
+        var t = function (n) { return (n.textContent || '').trim(); };
+        o.titles = [].slice.call(d.querySelectorAll('h1,h2,.card__t')).map(t)
+          .filter(function (x) { return /자료 업로드/.test(x); });
+        o.bodyBg = d.defaultView.getComputedStyle(d.body).backgroundColor;
+        var w = d.querySelector('.wrap');
+        o.wrapPad = w ? d.defaultView.getComputedStyle(w).paddingTop : null;
+        o.stamps = d.querySelectorAll('[data-lp-stamp]').length;
+      } catch (e) { o.err = String(e); }
+      document.getElementById('probe').textContent = JSON.stringify(o);
+    }, 2000);
+    </script>`;
+
+  /* ★ 화면 폴더 안에 쓴다 — 옆의 `.js` 와 `files.html` 을 상대경로로 부른다 */
+  const name = '.lp-embed-probe.html';
+  const at = path.join(PLATFORM, name);
+  fs.writeFileSync(at, '<!doctype html><html lang="ko" data-lp-build="test1234">'
+    + '<head><meta charset="utf-8"><link rel="stylesheet" href="tokens.css"></head>'
+    + '<body>' + host + '</body></html>');
+  try {
+    const dom = renderNested(at);
+    const m = /<div id="probe">([^<]*)<\/div>/.exec(dom);
+    assert.ok(m && m[1], '탐침이 아무것도 안 남겼다');
+    const r = JSON.parse(m[1]);
+    assert.ok(!r.err, `창 안을 못 읽었다: ${r.err}`);
+
+    assert.deepStrictEqual(r.titles, [],
+      `품은 창 안에서 제 이름을 또 말한다 — 같은 말이 두 번 나온다: ${JSON.stringify(r.titles)}`);
+    /* 「투명」은 rgba(0,0,0,0) 로 잰다 — 이름으로 재면 브라우저마다 다르다 */
+    assert.match(String(r.bodyBg), /rgba\(0, 0, 0, 0\)|transparent/,
+      `품은 창이 제 바탕을 칠한다 (${r.bodyBg}) — 카드 안에 뜻 없는 회색 띠가 생긴다`);
+    assert.strictEqual(r.wrapPad, '0px',
+      `품은 창이 제 여백을 둔다 (${r.wrapPad}) — 품은 카드의 여백과 두 벌이 된다`);
+    assert.strictEqual(r.stamps, 0, '품은 창이 판 지문을 또 찍는다');
+  } finally {
+    fs.rmSync(at, { force: true });
+  }
+
+  /* ── ② 단독 ── 이름이 없으면 안 된다 */
+  const alone = renderDom(findBrowser(), path.join(PLATFORM, 'files.html'), 60000)
+    .replace(/<script[\s\S]*?<\/script>/g, '');
+  assert.match(alone, /<h1[^>]*>자료 업로드<\/h1>/,
+    '단독으로 열었는데 이름이 없다 — 무슨 화면인지 알 수 없다');
+  assert.match(alone, /판 [0-9a-f]{8}/, '단독으로 열었는데 판 지문이 없다');
+});
+
+test('★★ 「자료 업로드」 제목을 손으로 적지 않는다 (머리와 두 벌이 된다)', () => {
+  const code = codeOf(read('intake.html'));
+  /* ★ `dropCard` 만 `cardHead` 를 안 거치고 직접 붙여서 머리와 겹쳤다.
+     같은 실수가 다시 생기면 여기서 잡는다 */
+  const at = code.indexOf('function dropCard');
+  assert.ok(at > 0, 'dropCard 가 없다');
+  const fn = code.slice(at, code.indexOf('function dropCardLegacy'));
+  assert.match(fn, /cardHead\(box, 'files'/, '머리와 겹치는지 안 보고 제목을 붙인다');
+  assert.ok(!/card__t', '자료 업로드'/.test(fn), '제목을 손으로 적었다');
 });
