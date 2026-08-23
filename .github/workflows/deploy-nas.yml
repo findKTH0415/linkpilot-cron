@@ -1008,6 +1008,40 @@ jobs:
               echo "OCR: 못 쟀다 (엔진이 답하지 않았다 — 꺼진 것과 다르다)" >> "$GITHUB_STEP_SUMMARY" ;;
           esac
 
+      - name: Why is the key not read (열쇠 파일 진단)
+        if: ${{ always() && needs.plan.outputs.dry_run != 'true' }}
+        env:
+          NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+          NAS_USER: ${{ secrets.NAS_SSH_USER }}
+          ENGINE_ROOT: ${{ vars.LP_ENGINE_ROOT || '/volume1/docker/linkpilot' }}
+        run: |
+          set -u
+          set +e
+          # ★★★ **「꺼짐」은 원인을 하나도 안 말한다** 〈2026-08-23 · 실제로 막혔다〉.
+          #   파일이 없는 것 · 폴더인 것 · 서식 문서로 저장된 것 · 따옴표가 섞인
+          #   것이 전부 같은 「꺼짐」으로 보인다. 그래서 **엔진 자신에게 묻는다** —
+          #   같은 파서(core/env.js)로 읽어 보고 무엇이 걸렸는지 말하게 한다.
+          # ★ 값은 한 글자도 안 찍는다 (§2). 이름·길이·앞 네 글자 여부뿐이다.
+          OUT=$(ssh -o BatchMode=yes -o ConnectTimeout=20 -i ~/.ssh/id_deploy \
+            "$NAS_USER@$NAS_HOST" \
+            "cd '$ENGINE_ROOT' 2>/dev/null || exit 9
+             for N in node /usr/local/bin/node \
+                      /volume1/@appstore/Node.js_v20/usr/local/bin/node \
+                      /volume1/@appstore/Node.js_v18/usr/local/bin/node; do
+               command -v \"\$N\" >/dev/null 2>&1 && exec \"\$N\" im-agent/tools/env-doctor.js
+             done
+             echo 'NONODE'" 2>&1 | tr -d '\r')
+          case "$OUT" in
+            *NONODE*)
+              echo "진단: node 를 못 찾았다 — 진단만 못 돈 것이고 엔진과는 무관하다" ;;
+            '')
+              echo "진단: 아무 답이 없다 (ssh 가 안 붙었거나 엔진 루트가 다르다)" ;;
+            *)
+              printf '%s\n' "$OUT" ;;
+          esac
+          printf '%s\n' "$OUT" | grep -q 'OCR 켜짐' \
+            || echo "::notice::**열쇠 파일 진단이 로그에 있다.** 「OCR: 꺼짐」의 원인은 위 줄에 적혀 있다 — 파일이 폴더인지, 서식 문서로 저장됐는지, 값에 따옴표가 섞였는지까지 나온다."
+
       - name: Probe summary
         if: ${{ always() && needs.plan.outputs.dry_run != 'true' }}
         run: |

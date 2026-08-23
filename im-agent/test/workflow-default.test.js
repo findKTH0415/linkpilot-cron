@@ -771,6 +771,13 @@ test('★★★ 엔진도 올린다 — 그리고 안 살아나면 스스로 되
   assert.ok(prune > 0, '옛 백업을 지우지 않는다 — 스무 개가 쌓여 있던 자리다');
   assert.ok(alive > 0 && prune > alive,
     '백업 정리가 살아났는지 묻기보다 앞이다 — 되돌릴 자리를 먼저 지운다');
+  /* ★★ **지웠다고 말하기 전에 다시 센다** 〈2026-08-23 · 실제로 안 지워지고 있었다〉.
+     앞 판은 결과를 안 보고 「N개 지움」이라고 적었는데 NAS 에는 열여섯 개가
+     그대로 남아 있었다 — 재는 장치가 아무것도 안 재고 초록으로 끝났다 (M-11) */
+  assert.ok(/ls -1d im-agent\.bak-\* 2>\/dev\/null \| wc -l/.test(sh),
+    '지운 뒤 다시 세지 않는다 — 안 지워져도 「지움」이라고 말한다');
+  assert.ok(sh.indexOf('아직 ${LEFT}개가 남아 있다') !== -1,
+    '남아 있는데도 조용히 넘어간다');
 
   /* ⑥ ★ 자리부터 본다. 없는 자리에 tar 를 풀면 반쯤 풀린 상태가 남는다 */
   assert.match(sh, /NOSTART/,
@@ -940,7 +947,7 @@ test('★★★ 배포가 OCR 이 켜져 있는지 말한다 (품질은 조용�
   const wf = fs.readFileSync(path.join(WF, 'deploy-nas.yml'), 'utf8');
   const at = wf.indexOf('- name: Check reading power (OCR)');
   assert.ok(at > -1, 'OCR 확인 단계가 없다 — 꺼져 있어도 아무도 모른다');
-  const step = wf.slice(at, wf.indexOf('- name: Probe summary'));
+  const step = wf.slice(at, wf.indexOf('- name: Why is the key not read'));
 
   assert.ok(/ocrReady/.test(step), '엔진이 주는 값을 안 본다');
   assert.ok(step.indexOf('꺼짐') !== -1 && step.indexOf('켜짐') !== -1,
@@ -964,6 +971,51 @@ test('★★★ 배포가 OCR 이 켜져 있는지 말한다 (품질은 조용�
   /* ★ 키 값은 절대 찍지 않는다 (CLAUDE.md §2) */
   assert.ok(!/\$\{\{ secrets\.GEMINI/.test(step),
     '키 값이 워크플로에 들어왔다 — 로그에 남을 수 있다');
+});
+
+/**
+ * ★★★ **「꺼짐」은 원인을 하나도 안 말한다** 〈2026-08-23 · 실제로 막혔다〉.
+ *
+ *   사장님이 `linkpilot.env` 를 엔진 루트에 제대로 놓으셨는데도 배포 #75 는
+ *   **「OCR: 꺼짐」**이었다. 그런데 그 한 마디로는 **다음에 무엇을 봐야 할지
+ *   알 수가 없다** — 파일이 폴더인 것, 서식 문서(RTF)로 저장된 것, 값에
+ *   따옴표가 섞인 것, BOM 이 붙은 것이 전부 같은 「꺼짐」이다.
+ *
+ * ★ 오늘 이 결로만 세 번 헤맸다. **재는 장치는 만들었는데 「그래서 왜」를
+ *   안 말했다.** 그래서 배포가 엔진 자신에게 같은 파서로 묻게 했다.
+ */
+test('★★★ 꺼져 있으면 **왜 꺼졌는지**까지 배포가 말한다', () => {
+  const wf = fs.readFileSync(path.join(WF, 'deploy-nas.yml'), 'utf8');
+  const at = wf.indexOf('- name: Why is the key not read');
+  assert.ok(at > -1, '원인 진단 단계가 없다 — 「꺼짐」만 보고 사람이 다시 손으로 뒤진다');
+  const step = wf.slice(at, wf.indexOf('- name: Probe summary'));
+
+  assert.ok(step.indexOf('env-doctor.js') !== -1,
+    '엔진의 파서로 안 묻는다 — 워크플로가 따로 판 것은 본문과 갈린다');
+  /* ★ node 가 PATH 에 없을 수 있다. 그때 「진단이 못 돈 것」과 「꺼진 것」을 가른다 */
+  assert.ok(step.indexOf('NONODE') !== -1,
+    'node 를 못 찾은 것을 안 가른다 — 진단 실패가 꺼짐으로 읽힌다');
+  /* ★ 진단이 배포를 죽이면 안 된다 */
+  assert.ok(/set \+e/.test(step), '진단이 실패하면 배포가 죽는다');
+  /* ★★ 키 값은 한 글자도 워크플로에 안 들어온다 (CLAUDE.md §2) */
+  assert.ok(!/secrets\.GEMINI/.test(step), '키가 워크플로에 들어왔다');
+});
+
+test('★★★ 진단이 **값을 안 찍는다** — 로그는 남는다 (§2)', () => {
+  const src = fs.readFileSync(
+    path.join(ROOT, 'im-agent', 'tools', 'env-doctor.js'), 'utf8');
+  /* ★ 주석은 떼고 본다 (CLAUDE.md §8) */
+  const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  /* ★ 찍는 줄(`say(...)`)에 열쇠 변수가 통째로 실리면 안 된다.
+   *   길이·앞 네 글자를 재는 것은 값이 아니므로 먼저 지우고 본다 */
+  const printed = (code.match(/say\([^\n]*\)/g) || [])
+    .map((l) => l.replace(/key\.length|key\.slice\(0, 4\)/g, 'X'));
+  const leaks = printed.filter((l) => /\bkey\b/.test(l));
+  assert.deepStrictEqual(leaks, [], `열쇠 값을 그대로 찍는 줄이 있다: ${leaks.join(' / ')}`);
+  assert.ok(code.indexOf('key.slice(0, 4)') !== -1,
+    '앞 네 글자만 보는 검사가 없다 — 자리표시자·따옴표를 못 가른다');
+  assert.ok(code.indexOf('IM_AGENT_OFFLINE') !== -1,
+    '강제 오프라인을 안 본다 — 열쇠가 멀쩡해도 꺼져 있을 수 있다');
 });
 
 test('★★ OCR 켜는 법이 문서로 있다 (사장님이 손으로 하실 일이다)', () => {

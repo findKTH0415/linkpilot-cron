@@ -10,6 +10,7 @@
     "im": "node im-agent/cli.js",
     "im:demo": "IM_AGENT_OFFLINE=1 node im-agent/cli.js demo",
     "im:smoke": "node im-agent/tools/smoke-public-data.js",
+    "im:env-doctor": "node im-agent/tools/env-doctor.js",
     "im:read": "node im-agent/tools/read-file.js",
     "im:try-linked": "node im-agent/tools/try-linked.js",
     "im:check-model": "node im-agent/tools/check-model.js",

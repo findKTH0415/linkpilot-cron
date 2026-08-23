@@ -138,10 +138,25 @@ if [ "$ALIVE" = "1" ]; then
          2>/dev/null | tr -d '\r')
   if [ -n "$GONE" ]; then
     N=$(printf '%s\n' "$GONE" | wc -l | tr -d ' ')
-    printf '%s\n' "$GONE" | while read -r d; do
-      [ -n "$d" ] && $SSH "cd '$ROOT' && rm -rf './$d'" >/dev/null 2>&1
-    done
-    say "  옛 백업 ${N}개 지움 (최근 ${KEEP}개는 남긴다)"
+    # ★★ **지웠다고 말하기 전에 다시 센다** 〈2026-08-23 · 실제로 안 지워지고 있었다〉.
+    #   앞 판은 목록을 만들고 `rm -rf` 를 던진 뒤 **결과를 안 보고** 「N개 지움」
+    #   이라고 적었다. 그런데 NAS 에는 백업이 열여섯 개 그대로 남아 있었다 —
+    #   한 건에 ssh 를 한 번씩 새로 붙이느라 느렸고, 실패해도 `>/dev/null` 이
+    #   전부 삼켰다. **재는 장치가 아무것도 안 재고 초록으로 끝나는 결**이다
+    #   (M-11 · M-12 와 같다).
+    # ★ 그래서 ① ssh 한 번으로 몰아 지우고 ② **다시 세어** 남은 수로 말한다.
+    LIST=$(printf '%s\n' "$GONE" | sed "s|^|'|; s|$|'|" | tr '\n' ' ')
+    LEFT=$($SSH "cd '$ROOT' && rm -rf $LIST; ls -1d im-agent.bak-* 2>/dev/null | wc -l" \
+           2>/dev/null | tr -d '\r' | tail -1)
+    case "$LEFT" in
+      ''|*[!0-9]*) say "  옛 백업을 지웠는지 **못 쟀다** — 남은 수를 세지 못했다" ;;
+      *)
+        if [ "$LEFT" -le "$KEEP" ]; then
+          say "  옛 백업 ${N}개 지움 · 남은 것 ${LEFT}개 (최근 ${KEEP}개는 남긴다)"
+        else
+          say "  ⚠️  ${N}개를 지우라고 했는데 아직 ${LEFT}개가 남아 있다 — 권한을 본다"
+        fi ;;
+    esac
   fi
   say ""
   say "끝났다. 되돌릴 자리: $ROOT/$BAK"
