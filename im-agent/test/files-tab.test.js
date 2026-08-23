@@ -289,7 +289,10 @@ test('★★ 자료 업로드 탭을 미리 그리면 실제로 내용이 들어
     const body = html.slice(html.indexOf('<div class="pv">'));
     assert.ok(body.length > 800, `미리 그린 판이 비었다 (${body.length}B) — 스크립트가 죽었다`);
     assert.equal((body.match(/class="err"/g) || []).length, 0, '오류 상자가 그려졌다');
-    ['LinkPilot 프로젝트에서 가져오기', '폴더를 연결해서', '파일업로드'].forEach((w) => {
+    /* ★ 〈2026-08-23 사장님 지시로 바뀜〉 프로젝트 지정은 **갈래가 아니라 ①** 이다.
+       갈래는 둘 — 파일업로드 · 폴더 지정 */
+    ['관련자료 제공', '프로젝트 지정', '자료 넣는 방법', '첨부 진행율',
+      '폴더 지정', '파일업로드'].forEach((w) => {
       assert.ok(body.includes(w), `미리 그린 판에 '${w}' 가 없다`);
     });
     assert.match(html, /예시 화면입니다/, '예시라는 표시가 없다 — 실제로 오해한다');
@@ -493,7 +496,7 @@ test('★★ 실제 브라우저에서 떨어뜨리면 붙고, 그래프가 끝�
       //   기본값이 바뀌었다). 여기서 재려는 것은 「연결 갈래에서 떨어뜨렸을 때
       //   갈래를 대신 바꾸지 않는가」이므로, **연결로 옮기고 나서** 떨어뜨린다
       [].slice.call(document.querySelectorAll('.pw')).filter(function (b) {
-        return /폴더를 연결해서/.test(t(b)); })[0].click();
+        return /폴더 지정/.test(t(b)); })[0].click();
       await sleep(120);
       // 연결 갈래인 채로 떨어뜨린다 — 갈래를 대신 바꾸지 않는다
       var d0 = new DataTransfer();
@@ -563,7 +566,7 @@ test('★★ 실제 브라우저에서 떨어뜨리면 붙고, 그래프가 끝�
     assert.equal(r.errBoxes, 0, '오류 상자가 떴다');
     // 연결 갈래에서는 받지 않는다 (되돌릴 수 없는 것을 대신 정하지 않는다)
     assert.equal(r.rowsWhileLinked, 0, '연결 갈래인데 떨어뜨린 파일을 받았다');
-    assert.match(r.keptWay, /폴더를 연결해서/, '갈래를 대신 바꿨다');
+    assert.match(r.keptWay, /폴더 지정/, '갈래를 대신 바꿨다');
     // 카드 **바깥**에 떨어뜨려도 붙는다
     assert.equal(r.rows, 1, `카드 바깥에 떨어뜨린 파일이 안 붙었다 (${r.rows}개)`);
     // 읽기가 안 끝났으면 버튼이 잠긴 채다 — 그걸 「그래프가 없다」로 읽지 않게 먼저 가른다
@@ -1013,7 +1016,7 @@ test('★★ 실제 브라우저에서 확인이 돌고, 만료를 고장으로 
       for (var k = 0; k < 250; k++) { await sleep(20); if (document.querySelector('.up--done, .up--error')) break; }
       await sleep(200);
       [].slice.call(document.querySelectorAll('.pw')).filter(function (b) {
-        return t(b).indexOf('폴더를') === 0; })[0].click();
+        return t(b).indexOf('폴더 지정') === 0; })[0].click();
       await sleep(150);
       o.btn = t(document.querySelector('.chk__b'));
       document.querySelector('.chk__b').click();
@@ -1119,7 +1122,8 @@ test('★★ 파일업로드로 넣으면 읽고 「보고서 생성」으로 �
     assert.ok(m && m[1], '탐침이 아무것도 안 남겼다 — 스크립트가 죽었다');
     const r = JSON.parse(m[1]);
     assert.equal(r.errBoxes, 0, '오류 상자가 떴다');
-    assert.equal(r.wayCount, 3, `갈래가 셋이 아니다 (${r.wayCount}개)`);
+    /* ★ 〈2026-08-23 사장님 지시〉 갈래는 **둘**이다 — 프로젝트 지정이 ①로 올라갔다 */
+    assert.equal(r.wayCount, 2, `갈래가 둘이 아니다 (${r.wayCount}개)`);
     assert.ok(r.hasInput, '파일 고르기 칸이 없다');
     assert.ok(r.ready, '파일을 읽고도 올리기 단추가 안 열렸다');
     // ★★ 핵심 — **실제로 넘어갔는가**
@@ -1211,11 +1215,20 @@ test('★★ 읽었는데 값이 0이면 넘기지 않고 이유를 보여 준�
  *   프로젝트가 없으면 고를 방법이 화면에 안 보인다. 그래서 **한 번에 가는
  *   단추**를 둔다. 이 검사는 그 단추가 실제로 데려다주는지까지 본다.
  */
-test('★★ 프로젝트 고르기가 하나뿐이고, 다른 갈래에서 한 번에 갈 수 있다', async () => {
+test('★★★ 프로젝트 지정이 ① 로 늘 맨 위에 있다 (갈래 안에 숨지 않는다)', async () => {
   const { buildLive } = require(path.join(PLATFORM, 'build-files.js'));
   const { findBrowser, renderDom } = require(path.join(PLATFORM, 'build-static.js'));
   if (!findBrowser()) return;
 
+  /* ★★★ 〈2026-08-23 사장님 지시로 뒤집혔다〉
+   *     「1.앱 프로젝트에서 호출 또는 신규 프로젝트 지정
+   *       2.[파일업로드] / [폴더 지정]  3.첨부과정 진행율」
+   *
+   *   앞 판은 **고르는 자리가 갈래 셋 중 하나**였다. 그래서 다른 갈래에 있으면
+   *   고를 수가 없어 「고르는 자리로 가기」 단추를 하나 더 달았고, 이 검사는
+   *   그 단추가 도는지를 쟀다. **단추가 필요했다는 것 자체가 자리가 틀렸다는
+   *   표시였다.** 이제 ①은 갈래와 무관하게 늘 맨 위에 있다.
+   */
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-onepick-'));
   const frag = path.join(dir, 'frag.html');
   await buildLive(frag);
@@ -1230,27 +1243,23 @@ test('★★ 프로젝트 고르기가 하나뿐이고, 다른 갈래에서 한 
       await sleep(250);
       // ① 화면 전체에 고르기는 하나다
       o.pickers = document.querySelectorAll('.pick select').length;
-      o.firstWay = t(document.querySelector('.pw.on .pw__t'));
+      o.heads = [].slice.call(document.querySelectorAll('.ah__t')).map(t);
+      o.wayCount = document.querySelectorAll('.pw').length;
       var sel = document.querySelector('.pick select');
       o.groups = [].slice.call(sel.querySelectorAll('optgroup')).map(function (g) { return g.label; });
       o.second = sel.children[1] && sel.children[1].textContent;
 
-      // ② 다른 갈래에는 고르기가 없고, 대신 **가는 단추**가 있다
+      // ② **갈래를 바꿔도 고르기가 사라지지 않는다** — 이것이 이번 지시의 핵심이다
       [].slice.call(document.querySelectorAll('.pw')).filter(function (b) {
-        return /파일업로드/.test(t(b)); })[0].click();
+        return /폴더 지정/.test(t(b)); })[0].click();
       await sleep(150);
-      o.pickersElsewhere = document.querySelectorAll('.pick select').length;
-      var back = [].slice.call(document.querySelectorAll('.btn2')).filter(function (b) {
-        return /로 가기/.test(t(b)); })[0];
-      o.hasBack = !!back;
+      o.pickersAfterWay = document.querySelectorAll('.pick select').length;
+      o.headsAfterWay = [].slice.call(document.querySelectorAll('.ah__t')).map(t);
+      // 「가는 단추」는 더 이상 필요 없다 — 있으면 자리가 또 갈렸다는 뜻이다
+      o.hasBack = [].slice.call(document.querySelectorAll('.btn2')).some(function (b) {
+        return /로 가기/.test(t(b)); });
 
-      // ③ 그 단추가 실제로 데려다준다 (있다고 적어만 두면 막다른 길이다)
-      if (back) back.click();
-      await sleep(200);
-      o.afterBackWay = t(document.querySelector('.pw.on .pw__t'));
-      o.afterBackPickers = document.querySelectorAll('.pick select').length;
-
-      // ④ 「＋ 신규프로젝트」가 **갈래 안에서** 열린다 (다른 탭으로 안 보낸다)
+      // ③ 「＋ 신규프로젝트」가 ① 안에서 열린다 (다른 탭으로 안 보낸다)
       var s2 = document.querySelector('.pick select');
       s2.value = 'new:';
       s2.dispatchEvent(new Event('change', { bubbles: true }));
@@ -1259,16 +1268,18 @@ test('★★ 프로젝트 고르기가 하나뿐이고, 다른 갈래에서 한 
       o.cards = document.querySelectorAll('section.card').length;
       o.titles = [].slice.call(document.querySelectorAll('.card__t')).map(t);
 
-      // ⑤ 프로젝트를 고르면 붙이기·스캔이 열린다
+      // ④ 프로젝트를 고르면 붙이기·스캔이 열린다
       var s3 = document.querySelector('.pick select');
       s3.value = 'LP-DC-2026-001';
       s3.dispatchEvent(new Event('change', { bubbles: true }));
       await sleep(400);
       o.afterPick = [].slice.call(document.querySelectorAll('.card__t')).map(t);
+      o.headsAfterPick = [].slice.call(document.querySelectorAll('.ah__t')).map(t);
       o.errBoxes = document.querySelectorAll('.err').length;
       document.getElementById('probe').textContent = JSON.stringify(o);
     }());
     </script>`;
+
   const page = path.join(dir, 'page.html');
   fs.writeFileSync(page, '<!doctype html><html lang="ko"><head><meta charset="utf-8"></head><body>'
     + fs.readFileSync(frag, 'utf8') + probe + '</body></html>');
@@ -1280,31 +1291,33 @@ test('★★ 프로젝트 고르기가 하나뿐이고, 다른 갈래에서 한 
     const r = JSON.parse(m[1]);
     assert.equal(r.errBoxes, 0, '오류 상자가 떴다');
 
-    // ① 하나뿐
+    /* ① 차례가 ①②③ 로 선다 — 번호만 있고 칸이 없으면 사람은 빠진 줄 안다 */
+    assert.deepStrictEqual(r.heads, ['프로젝트 지정', '자료 넣는 방법', '첨부 진행율'],
+      `카드 안 차례가 다르다: ${JSON.stringify(r.heads)}`);
     assert.equal(r.pickers, 1, `프로젝트 고르기가 ${r.pickers}개다 — 상단 고르기가 되살아났는가`);
-    assert.match(r.firstWay, /LinkPilot 프로젝트에서 가져오기/,
-      `처음 갈래가 고르는 자리가 아니다(${r.firstWay}) — 열자마자 아무것도 못 하는 화면이 된다`);
-    // 셋이 한 목록에 있다
+    assert.equal(r.wayCount, 2, `갈래가 둘이 아니다 (${r.wayCount}개) — 프로젝트 지정이 갈래로 되돌아갔는가`);
     assert.ok(r.groups.includes('보고서 프로젝트'), '보고서 프로젝트 무리가 없다');
     assert.ok(r.groups.includes('앱 프로젝트에서 가져오기'), '앱 딜 무리가 없다');
     assert.match(r.second, /신규프로젝트/, '「＋ 신규프로젝트」가 맨 위가 아니다');
 
-    // ② 다른 갈래에는 고르기를 또 그리지 않는다
-    assert.equal(r.pickersElsewhere, 0, '다른 갈래에도 고르기를 그린다 — 다시 둘이 됐다');
-    assert.ok(r.hasBack, '다른 갈래에서 고르는 자리로 갈 길이 없다 — 막다른 길이다');
+    /* ② ★★ 갈래를 바꿔도 ①은 그대로 있다 */
+    assert.equal(r.pickersAfterWay, 1,
+      '갈래를 바꾸니 프로젝트 고르기가 사라졌다 — 고르는 자리가 다시 갈래 안으로 들어갔다');
+    assert.deepStrictEqual(r.headsAfterWay, ['프로젝트 지정', '자료 넣는 방법', '첨부 진행율'],
+      `갈래를 바꾸니 차례가 무너졌다: ${JSON.stringify(r.headsAfterWay)}`);
+    assert.ok(!r.hasBack,
+      '「…로 가기」 단추가 있다 — 고르는 자리가 또 어딘가로 옮겨 갔다는 뜻이다');
 
-    // ③ 단추가 실제로 데려다준다
-    assert.match(r.afterBackWay, /LinkPilot 프로젝트에서 가져오기/, '단추를 눌러도 안 옮겨진다');
-    assert.equal(r.afterBackPickers, 1, '옮겨졌는데 고르기가 없다');
-
-    // ④ 만들기가 갈래 안에서 열리고, 카드가 겹치지 않는다
+    /* ③ 만들기가 ① 안에서 열리고, 카드가 겹치지 않는다 */
     assert.equal(r.newInputs, 1, '「＋ 신규프로젝트」를 골랐는데 적는 칸이 없다');
     assert.ok(r.titles.includes('신규프로젝트'), '만드는 칸 제목이 없다');
     assert.equal(r.cards, 1, `카드가 ${r.cards}개다 — 갈래 안에 카드를 또 둘러 테두리가 겹친다`);
 
-    // ⑤ 고르면 붙이기·스캔이 열린다
+    /* ④ 고르면 붙이기·스캔이 열린다 */
     assert.ok(r.afterPick.includes('자료 스캔'),
       `프로젝트를 골랐는데 스캔 칸이 없다: ${r.afterPick.join(' | ')}`);
+    assert.ok(r.headsAfterPick.indexOf('첨부 진행율') !== -1,
+      '프로젝트를 골랐더니 ③ 첨부 진행율 칸이 사라졌다');
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
 
@@ -1488,7 +1501,7 @@ test('★★ 파일업로드로 넣고 스캔을 눌러도 「안 넣었다」�
     // ② 올린 뒤에는 **미리** 「여기 오지 않는다」고 말한다
     assert.match(r.afterUpload, /여기 오지 않습니다/,
       `1회성이 스캔 대상이 아니라는 것을 미리 안 말한다: ${r.afterUpload}`);
-    assert.match(r.afterUpload, /폴더를 연결해서/, '다시 읽으려면 어떻게 하는지 안 말한다');
+    assert.match(r.afterUpload, /폴더 지정/, '다시 읽으려면 어떻게 하는지 안 말한다');
 
     // ③ 눌렀을 때 — **빨간 칸이 아니고 탓하지 않는다**
     assert.ok(r.hasScan, '스캔 단추가 없다');
@@ -1550,7 +1563,7 @@ test('★★★ session 을 안 넘기면 막지 않는다 — 알려 준 경우
   const unknown = paintWith('null');
   assert.ok(!/로그인한 사용자만/.test(unknown),
     '로그인 여부를 안 알려 줬을 뿐인데 「로그인이 필요합니다」로 막았다 — 앱 안에서 그렇게 보였다');
-  assert.match(unknown, /자료 붙이기/,
+  assert.match(unknown, /관련자료 제공/,
     '막지는 않는데 올리는 칸도 안 뜬다 — 빈 화면은 고장으로 읽힌다');
 
   /* ② 알려 줬는데 로그아웃이다 → **그대로 막는다.** 문을 없앤 것이 아니다 */
@@ -1561,7 +1574,7 @@ test('★★★ session 을 안 넘기면 막지 않는다 — 알려 준 경우
   /* ③ 알려 줬고 로그인했다 → 연다 */
   const inn = paintWith("{ authenticated: true, planId: 'free', status: 'active' }");
   assert.ok(!/로그인한 사용자만/.test(inn), '로그인했는데 막았다');
-  assert.match(inn, /자료 붙이기/, '로그인했는데 올리는 칸이 안 뜬다');
+  assert.match(inn, /관련자료 제공/, '로그인했는데 올리는 칸이 안 뜬다');
 
   made.forEach((f) => fs.rmSync(f, { force: true }));
 });

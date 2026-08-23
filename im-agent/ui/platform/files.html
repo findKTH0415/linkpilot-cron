@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="0abf676e">
+<html lang="ko" data-lp-build="6a6f5201">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -256,6 +256,18 @@ select:focus-visible, button:focus-visible { outline: 2px solid var(--lime-deep)
   background: var(--panel); }
 .mtr__h { display: flex; align-items: baseline; justify-content: space-between;
   gap: 12px; margin-bottom: 9px; }
+
+/* 관련자료 제공 — 카드 안의 차례표 ①②③ 〈2026-08-23〉 */
+.ah { display: flex; align-items: flex-start; gap: 10px; margin: 22px 0 11px; }
+.ah:first-of-type { margin-top: 14px; }
+.ah__n { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 50%; background: var(--lime);
+  color: var(--lp-brand-ink); font-weight: 800; font-size: 12px; font-variant-numeric: tabular-nums; }
+.ah__b { min-width: 0; flex: 1 1 auto; }
+.ah__t { font-weight: 800; font-size: 14.5px; letter-spacing: -.01em; }
+.ah__w { margin: 3px 0 0; font-size: 12.5px; color: var(--ink2); line-height: 1.6; }
+.ah--idle .ah__n { background: var(--line); color: var(--ink2); }
+.ah__idle { margin: 0; font-size: 12.5px; color: var(--ink2); line-height: 1.65; }
 .mtr__pct { font-size: 25px; font-weight: 800; letter-spacing: -.03em;
   font-variant-numeric: tabular-nums; line-height: 1; }
 .mtr__r { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
@@ -270,6 +282,13 @@ select:focus-visible, button:focus-visible { outline: 2px solid var(--lime-deep)
 .mtr__n { font-size: 11.5px; color: var(--ink2); margin: 9px 0 0; line-height: 1.6; }
 @media (prefers-reduced-motion: reduce) { .mtr__bar i { transition: none; } }
 
+/* ① 프로젝트 지정 — **갈래 상자 밖**이다 〈2026-08-23〉. 안쪽 칸(`.wayin`)과
+   같은 여백을 쓰되, 테두리로 묶지 않는다 — 갈래에 딸린 것이 아니기 때문이다 */
+.pickone { margin: 0; padding: 18px 16px 20px;
+  border-radius: 14px; background: var(--lime-soft); }
+.pickone .pick { margin-top: 0; }
+.pickone > .note { margin-top: 13px; margin-bottom: 0; }
+
 .wayin { margin: 0; padding: 18px 16px 20px;
   border: 0; border-radius: 0; background: var(--lime-soft); }
 .wayin .pick { margin-top: 0; }
@@ -283,6 +302,8 @@ select:focus-visible, button:focus-visible { outline: 2px solid var(--lime-deep)
 @media (max-width: 560px) {
   .ways { gap: 12px; }
   .wayin { padding: 18px 15px 22px; }
+  /* ★ ① 도 같은 규칙을 받는다 — 좁은 화면에서 글자가 테두리에 붙지 않게 */
+  .pickone { padding: 18px 15px 22px; }
   .pickway { margin-bottom: 22px; }
 }
 .pw__t { font-weight: 800; font-size: 14.5px; }
@@ -545,7 +566,7 @@ window.LINKPILOT_FILES = {
     // ★★ 처음 열릴 때는 **앱**이다 〈2026-08-21 사용자 지시로 상단 고르기를 지운 뒤〉.
     //   프로젝트를 고르거나 만드는 자리가 그 갈래 하나뿐이라, 다른 갈래로 열면
     //   **아무것도 못 하는 화면**부터 보게 된다
-    way: 'app',
+    way: 'oneshot',   /* 〈2026-08-23〉 `app` 은 갈래에서 빠졌다 — 프로젝트 지정은 ① 이다 */
     picked: [],        // 고른 파일 — { name, size, data, error }
     upload: null,      // 올리는 중 상태 (upload-core 가 준 그대로)
     result: null,      // 서버 응답
@@ -846,8 +867,13 @@ window.LINKPILOT_FILES = {
      *   설명은 삭제」〉. 이름만으로 뜻이 서고, 고르면 바로 아래에서 프로젝트를
      *   고르게 되므로 설명이 한 번 더 말할 것이 없다.
      *   ★ `d` 를 **빈 문자열로 둔다** — 지우면 `wayTile` 이 `undefined` 를 그린다. */
+    /* ★★ **`app` 은 이제 갈래가 아니다** 〈2026-08-23 사장님 지시〉. 프로젝트를
+     *   고르는 일은 **자료를 넣는 방법 중 하나가 아니라 그 앞의 일**이다. 그래서
+     *   ①로 올려 카드 맨 위에 늘 둔다 — 앞 판은 셋 중 하나로 숨어 있어서,
+     *   프로젝트가 없으면 「고르는 자리로 가기」 단추를 한 번 더 눌러야 했다.
+     *   ★ 목록에는 남긴다 — 안내 문장들이 `wayName('app')` 으로 이 이름을 부른다. */
     { id: 'app', t: 'LinkPilot 프로젝트에서 가져오기', free: true, plan: 'free', d: '' },
-    { id: 'linked', t: '폴더를 연결해서', free: true, plan: 'free',
+    { id: 'linked', t: '폴더 지정', free: true, plan: 'free',
       d: 'Dropbox·Box·구글·원드라이브의 파일을 가리킵니다. 사본을 만들지 않습니다 — 읽을 때만 잠깐 가져와 버립니다.' },
     { id: 'oneshot', t: '파일업로드', free: true, plan: 'free',
       d: '읽고 바로 버립니다(1회성). 보관하지 않으므로 다시 쓸 수 없고, 원본이 그대로인지도 확인할 수 없습니다.' },
@@ -893,7 +919,9 @@ window.LINKPILOT_FILES = {
    *   고정**한다 — 좁아지면 흘리지 않고 세로로 세운다. ①의 「그때그때
    *   달라진다」는 거기서 나왔다.
    */
-  var WAY_ROWS = [['app', 'linked', 'oneshot']];
+  /* ★ 〈2026-08-23 사장님 지시〉 「2.[파일업로드] → 파일선택 + 파일 끌어다 놓기
+   *    / [폴더 지정] → 폴더선택 지정」 — **둘**이다. 적으신 차례를 그대로 쓴다. */
+  var WAY_ROWS = [['oneshot', 'linked']];
 
   function wayTile(w) {
     var b = el('button', 'pw' + (state.way === w.id ? ' on' : ''));
@@ -1553,13 +1581,63 @@ window.LINKPILOT_FILES = {
    * ★ 갈래마다 할 수 있는 것이 다르다. 연결은 여기서 올리는 것이 아니라
    *   **가리키는 것**이라 파일 고르기가 없다 — 본체가 함수를 넘겨야 열린다.
    */
+  /**
+   * 카드 안의 작은 차례표 〈2026-08-23 사장님 지시 — ①②③〉.
+   *
+   * ★ 번호를 **글자로 적지 않는다** — 동그라미 하나로 둔다. 「1.」 처럼 적으면
+   *   바깥 단계 번호(3. 관련자료 업로드)와 섞여 어느 번호인지 흐려진다.
+   * ★ 라임으로 큰 면을 채우지 않는다 (§6-3) — 동그라미만 라임이다.
+   */
+  function stepHead(no, title, why) {
+    var h = el('div', 'ah');
+    h.appendChild(el('span', 'ah__n', String(no)));
+    var b = el('div', 'ah__b');
+    b.appendChild(el('div', 'ah__t', title));
+    if (why) b.appendChild(el('p', 'ah__w', why));
+    h.appendChild(b);
+    return h;
+  }
+
   function attachCard() {
     var card = el('section', 'card card--attach');
-    add(card, el('h2', 'card__t', '자료 붙이기'),
+    /* ★★★ 〈2026-08-23 사장님 지시〉 세 칸으로 세운다:
+     *     ① 앱 프로젝트에서 호출 또는 신규 프로젝트 지정
+     *     ② [파일업로드] 파일선택 + 끌어다 놓기 / [폴더 지정] 폴더선택
+     *     ③ 첨부 진행율
+     *   ★ 앞 판은 ①이 ②의 갈래 셋 중 하나로 숨어 있었다. 그래서 프로젝트가
+     *     없으면 「고르는 자리로 가기」 단추를 한 번 더 눌러야 했고, 그 단추가
+     *     있다는 것 자체가 자리가 틀렸다는 표시였다. */
+    add(card, el('h2', 'card__t', '관련자료 제공'),
       el('p', 'card__d',
-        '신규 프로젝트로 만들거나 기존 프로젝트 보고서를 만들 때 '
-        + '관련자료를 올리는 방법 3가지입니다. 어느 쪽으로 넣든 '
-        + '관련자료를 분석하고 읽어서 「' + F.SECTION.tab + '」으로 보냅니다.'));
+        '어느 쪽으로 넣든 관련자료를 분석하고 읽어서 「' + F.SECTION.tab + '」으로 보냅니다.'));
+
+    /* ── ① 프로젝트 지정 — **늘 맨 위에 있다** ───────────────── */
+    card.appendChild(stepHead(1, '프로젝트 지정',
+      '앱 프로젝트에서 불러오거나, 새로 만듭니다.'));
+    /* ★ 클래스를 `wayin` 으로 쓰지 않는다 — 그 이름은 **갈래 상자 안쪽 칸**을
+       뜻하고, 검사가 「그것이 상자 안에 있는가」를 잰다. ①은 상자 밖이다 */
+    var pick = el('div', 'pickone');
+    pick.appendChild(projectPicker());
+    /* ★ 되살렸으면 **그렇다고 말한다.** 안 말하면 왜 골라져 있는지 몰라서
+     *   「내가 고른 게 맞나」를 확인하러 목록을 다시 연다 */
+    if (state.restored && state.projectId) {
+      pick.appendChild(el('p', 'note',
+        '지난번에 쓰던 프로젝트로 이어서 열었습니다 — 바꾸시려면 위에서 고르십시오.'));
+    }
+    var mk0 = newProjectCard();
+    if (mk0) pick.appendChild(mk0);
+    else if (!state.projectId && state.noFolder) {
+      /* 안내가 아니라 **경고**다 — 화면이 몰래 만들지 않으므로 사람이 만들어야 한다 */
+      pick.appendChild(el('p', 'note',
+        '이 프로젝트는 작업 폴더가 아직 없습니다. 위에서 「＋ 신규프로젝트」로 만들어 주십시오.'));
+    }
+    var appBody = state.projectId ? appImportCard() : null;
+    if (appBody) pick.appendChild(appBody);
+    card.appendChild(pick);
+
+    /* ── ② 자료 넣는 방법 ─────────────────────────────────── */
+    card.appendChild(stepHead(2, '자료 넣는 방법',
+      '파일을 올리거나, 폴더를 가리킵니다.'));
     /* ★ 고르기는 **1단 바로 아래**에 꽂는다. 카드 끝에 붙이면 2단(연결·업로드)
      *   뒤로 밀려 「어느 갈래에 딸린 것인지」가 다시 안 보인다 — 단을 나눈
      *   이유가 그것이었다. 그래서 1단 뒤에 자리(`.pwslot`)를 미리 두고 갈아끼운다. */
@@ -1585,68 +1663,14 @@ window.LINKPILOT_FILES = {
        〈2026-08-21 사용자 지시 — 상단 고르기를 지우고 이 갈래에 병합〉
        ★ 프로젝트가 없어도 이 갈래는 그린다. 여기가 **고르는 유일한 자리**라
          프로젝트가 없다고 닫아 버리면 고를 방법이 사라진다 */
-    if (state.way === 'app') {
-      // ★ 고른 갈래 칸에 **이어 붙여** 그린다 — 자리만 옮기고 색이 그대로면
-      //   갈래에 속한 것으로 안 보인다 (2026-08-21 사용자 지시의 「이동배치」)
-      var inWay = el('div', 'wayin');
-      inWay.appendChild(projectPicker());
-      /* ★ 되살렸으면 **그렇다고 말한다.** 안 말하면 왜 골라져 있는지 몰라서
-       *   「내가 고른 게 맞나」를 확인하러 목록을 다시 연다 */
-      if (state.restored && state.projectId) {
-        inWay.appendChild(el('p', 'note',
-          '지난번에 쓰던 프로젝트로 이어서 열었습니다 — 바꾸시려면 위에서 고르십시오.'));
-      }
-
-      // 「＋ 신규프로젝트」를 골랐으면 만드는 칸이 여기서 열린다
-      var mk = newProjectCard();
-      if (mk) { inWay.appendChild(mk); putInWay(inWay); return card; }
-
-      if (!state.projectId) {
-        /* ★★ **고르라는 말을 두 번 하지 않는다** 〈2026-08-22 사용자 지시〉.
-         *   고르기 칸에 이미 「프로젝트」라는 이름표와 「— 고르세요 —」가 있다.
-         *   그 아래에 「프로젝트를 고르면…」을 또 적으면 같은 말이 두 줄이 된다.
-         *   ★ 단, **작업 폴더가 없는 경우는 남긴다.** 그것은 안내가 아니라
-         *     경고다 — 화면이 몰래 만들지 않으므로 사람이 만들어야 한다 (§4). */
-        if (state.noFolder) {
-          inWay.appendChild(el('p', 'note',
-            '이 프로젝트는 작업 폴더가 아직 없습니다. 위에서 「＋ 신규프로젝트」로 만들어 주십시오.'));
-        }
-        putInWay(inWay);
-        return card;
-      }
-
-      var appBody = appImportCard();
-      if (appBody) inWay.appendChild(appBody);
-      else if (state.appBundle) {
-        inWay.appendChild(el('p', 'note',
-          '이 앱 프로젝트에는 가져올 내용·첨부·이미지가 없습니다.'));
-      }
-      putInWay(inWay);
-      return card;
-    }
-
     // 앱 갈래가 아니면 1단 아래 자리는 필요 없다
     dropSlot();
 
-    /* ★★ 다른 갈래는 프로젝트가 있어야 한다. 고르는 자리는 **앱 갈래 하나뿐**이므로
-       「고르십시오」라고만 하면 어디로 가야 하는지 모른다 — **한 번에 가는 단추**를 준다.
-       (자리를 하나로 모은 대가다. 안내만 하고 길을 안 주면 막다른 길이 된다) */
+    /* ★ 프로젝트가 없으면 여기서 멈춘다. **어디로 가라고 하지 않는다** —
+       고르는 자리(①)가 바로 위에 있다 〈2026-08-23〉 */
     if (!state.projectId) {
-      card.appendChild(el('p', 'note', state.noFolder
-        ? '이 프로젝트는 작업 폴더가 아직 없습니다. 「' + wayName('app') + '」에서 만들어 주십시오.'
-        : '먼저 프로젝트를 골라야 합니다 — 고르거나 만드는 자리는 「' + wayName('app') + '」입니다.'));
-      var goPick = el('button', 'btn2', '「' + wayName('app') + '」로 가기');
-      goPick.type = 'button';
-      goPick.style.cssText = 'margin-top:10px;font-weight:700;font-size:13px;line-height:1;'
-        + 'font-family:inherit;padding:10px 14px;border-radius:10px;border:1px solid var(--line);'
-        + 'background:var(--surface);color:var(--ink);cursor:pointer';
-      goPick.addEventListener('click', function () {
-        // 갈래를 바꾸면 고른 파일을 버린다 — ways() 와 같은 규칙을 여기서도 지킨다
-        state.picked = []; state.upload = null; state.result = null;
-        state.way = 'app';
-        render();
-      });
-      card.appendChild(goPick);
+      card.appendChild(el('p', 'note', '위 ① 에서 프로젝트를 먼저 지정해 주십시오.'));
+      putProgress(card);
       return card;
     }
 
@@ -1664,6 +1688,9 @@ window.LINKPILOT_FILES = {
       // ★ 연결한 것이 있으면 **그대로인지 물어볼 수 있어야 한다** (D-72)
       var chk = checkBox();
       if (chk) card.appendChild(chk);
+      /* ★ 이 길로 끝날 때도 ③ 을 붙인다 — 번호가 ①② 로 끝나면 사람은 ③ 이
+         없어진 줄 안다 〈2026-08-23〉 */
+      putProgress(card);
       return card;
     }
 
@@ -1730,10 +1757,34 @@ window.LINKPILOT_FILES = {
     go.addEventListener('click', doUpload);
     box.appendChild(go);
 
-    var up = uploadCard();
-    if (up) box.appendChild(up);
     card.appendChild(box);
+
+    putProgress(card);
     return card;
+  }
+
+  /**
+   * ③ 첨부 진행율 〈2026-08-23 사장님 지시 — 「첨부과정 진행율 % 그래프 바 노출해줘」〉.
+   *
+   * ★★ **어느 길로 끝나든 붙인다.** 앞 판은 카드 끝에만 뒀는데, 프로젝트가
+   *   없을 때는 그 앞에서 되돌아가서 ③이 통째로 사라졌다 — 번호가 ①②로 끝나면
+   *   사람은 ③이 없어진 줄 안다.
+   * ★ **없는 진행을 그리지 않는다** (§8). 올리는 중이 아니면 막대를 0% 로 그리지
+   *   않고 어디에 뜨는지만 한 줄로 알린다 — 0% 막대는 「멈춰 있다」로 읽힌다.
+   */
+  function putProgress(card) {
+    var up = uploadCard();
+    if (up) {
+      card.appendChild(stepHead(3, '첨부 진행율',
+        '보내는 중 · 서버가 읽는 중 · 끝남 — 지금 어디인지 % 와 그래프로 보입니다.'));
+      card.appendChild(up);
+      return;
+    }
+    var idle = stepHead(3, '첨부 진행율', null);
+    idle.className = 'ah ah--idle';
+    card.appendChild(idle);
+    card.appendChild(el('p', 'ah__idle',
+      '자료를 올리기 시작하면 여기에 % 와 진행 그래프가 뜹니다.'));
   }
 
   /** 아직 안 붙은 길. **오류가 아니라 상태**로 그린다 */

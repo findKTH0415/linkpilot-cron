@@ -44,7 +44,8 @@ test('★★ 스캔이 도는 동안 진행률과 시간이 실제로 커진다'
          (flow-mobile 검사와 같은 방식) */
     + 'var picked = false;'
     + 'var pickProj = function () {'
-    + '  var sel = document.querySelector(".wayin select"); if (!sel) return false;'
+    /* 2026-08-23: 고르기는 갈래 안(.wayin)이 아니라 1(.pickone) 에 있다 */
+    + '  var sel = document.querySelector(".pickone select"); if (!sel) return false;'
     + '  var o = [].slice.call(sel.options).filter(function (x) { return /^LP-/.test(x.value); })[0];'
     + '  if (!o) return false;'
     + '  sel.value = o.value; sel.dispatchEvent(new Event("change", { bubbles: true })); return true; };'

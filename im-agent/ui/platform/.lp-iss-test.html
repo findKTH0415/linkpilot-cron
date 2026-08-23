@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="6a6f5201">
+<html lang="ko" data-lp-build="0abf676e">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -277,6 +277,16 @@ h1,h2,h3,h4 { margin: 0; }
   </main>
 </div>
 
+<script>
+try {
+  localStorage.setItem('lp.intake.issuers', JSON.stringify([
+    { en: 'Acme Capital Partners Co.,Ltd', kr: '(주)에이스', tag: 'REAL ASSET', logo: '' }
+  ]));
+  localStorage.setItem('lp.intake.draft', JSON.stringify({
+    request: '', assetType: '', issuer: { en: '적다 만 회사', kr: '', tag: '' }
+  }));
+} catch (e) {}
+</script>
 <script src="gate-core.js"></script>
 <script src="flow-core.js"></script>
 <script src="upload-core.js"></script>
@@ -288,6 +298,7 @@ h1,h2,h3,h4 { margin: 0; }
  * 화면에 박아 두면 사람이 바뀔 때마다 파일을 고쳐야 한다.
  */
 window.LINKPILOT_INTAKE = {
+  preload: { formats: [], issuer: { unset: true }, issuerLimits: {}, maxBytesPerFile: 52428800, maxBytesPerRequest: 104857600, assetTypes: [] },
   api: null,                       // 예: '/api/linkpilot'
   session: { authenticated: true, planId: 'pro', status: 'active', name: '' },
 };
@@ -1364,6 +1375,25 @@ window.LINKPILOT_INTAKE = {
   render();
   load();
 }());
+</script>
+
+<div id="lpprobe"></div>
+<script>
+setTimeout(function () {
+  var o = {};
+  var ins = [].slice.call(document.querySelectorAll('input[type=text]'));
+  o.values = ins.map(function (n) { return n.value; }).filter(Boolean);
+  var chip = document.querySelector('.iss-chip__b');
+  o.chip = chip ? chip.textContent : null;
+  if (chip) {
+    chip.click();
+    setTimeout(function () {
+      var after = [].slice.call(document.querySelectorAll('input[type=text]')).map(function (n) { return n.value; });
+      o.afterPick = after.filter(Boolean);
+      document.getElementById('lpprobe').textContent = JSON.stringify(o);
+    }, 250);
+  } else { document.getElementById('lpprobe').textContent = JSON.stringify(o); }
+}, 500);
 </script>
 </body>
 </html>
