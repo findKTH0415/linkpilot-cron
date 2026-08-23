@@ -435,12 +435,84 @@
     return { sent: sent, reason: sent ? null : '받는 쪽이 없습니다' };
   }
 
+  /**
+   * 절마다 「끝났는가 · 얼마나 왔는가」 — **한 곳에서만 정한다**
+   * 〈2026-08-23 사장님 지시: 1·2·5 완료 표기 / 3·4 진행율 + 완료 표기〉.
+   *
+   * 순수 함수다. 부르는 쪽이 서버에서 받아 온 사실만 넣는다 — 이 함수는
+   * 아무것도 부르지 않는다. 그래야 검사가 서버 없이 전부 잴 수 있다.
+   *
+   * @param {object} f 잰 사실
+   *   issuerSet   {boolean|null} 발행 주체가 정해졌나 (GET /intake 의 issuer.unset 반대)
+   *   request     {string|null}  2단계 요청문 (초안 또는 만들어진 프로젝트의 것)
+   *   projectId   {string|null}
+   *   sources     {{total:number, read:number}|null} 올린 자료 / 그중 읽기 끝난 것
+   *   fields      {{filled:number, total:number}|null} 필수 항목 채움
+   *   specLocked  {boolean|null} 출력조건을 확정했나
+   *
+   * @returns {object} 절 id → { known, done, pct, detail }
+   *
+   * ★★★ **모르는 것을 0% 로 적지 않는다** (§4.9). 0% 는 「아직 아무것도 안 했다」로
+   *   읽히는데 실제로는 「못 쟀다」다 — 둘은 다른 말이고, 섞으면 사용자는 다 해
+   *   놓고도 처음부터 다시 한다. 못 쟀으면 `known:false` 로 두고 화면은 아무
+   *   표시도 하지 않는다.
+   *
+   * ★ **3·4 만 진행율이 있다.** 나머지 셋은 「했다/안 했다」뿐이라 중간이 없다 —
+   *   없는 중간을 지어내면 47% 같은 숫자가 아무 뜻도 없이 돈다.
+   */
+  function sectionProgress(f) {
+    var o = f || {};
+    var out = {};
+
+    function put(id, known, done, pct, detail) {
+      out[id] = { known: !!known, done: !!(known && done), pct: known ? pct : null, detail: detail || null };
+    }
+
+    /* ① 제작 기본정보 — 발행 주체가 정해졌는가. 중간이 없다 */
+    put('basics', o.issuerSet !== null && o.issuerSet !== undefined, o.issuerSet, null,
+      o.issuerSet ? '발행 주체가 정해졌습니다' : '발행 주체가 아직 없습니다');
+
+    /* ② 무엇을 만들까요 — 요청문이 있는가.
+       ★ 프로젝트가 있으면 이 칸은 이미 지나온 것이다 — 요청문 없이는 만들 수 없다 */
+    var asked = !!o.projectId || !!(o.request && String(o.request).trim());
+    put('ask', true, asked, null,
+      asked ? '요청문을 받았습니다' : '아직 무엇을 만들지 안 적었습니다');
+
+    /* ③ 관련자료 업로드 — **프로젝트를 만들면 이 칸의 목적은 끝난다.**
+       진행율은 그다음 일(올린 자료를 읽었는가)을 말한다. 자료를 안 올려도
+       진행은 되므로, 자료가 0건인 것을 「0%」로 적지 않는다 */
+    var src = o.sources;
+    var pct3 = (src && src.total > 0) ? Math.round((src.read / src.total) * 100) : null;
+    put('sources', true, !!o.projectId, pct3,
+      !o.projectId ? '아직 프로젝트가 없습니다'
+        : (!src ? '프로젝트가 만들어졌습니다'
+          : (src.total === 0 ? '자료 없이 진행 중 — 값을 전부 직접 넣어야 합니다'
+            : '자료 ' + src.total + '건 중 ' + src.read + '건을 읽었습니다')));
+
+    /* ④ 가이드 필드 — 필수 항목 중 **값과 출처가 둘 다** 있는 것만 센다
+       (`fields-core.js` 의 `completeness`). 값만 있고 출처가 없으면 저장 자체가
+       안 되므로, 세어 주면 다 됐다고 착각한다 */
+    var fl = o.fields;
+    var pct4 = (fl && fl.total > 0) ? Math.round((fl.filled / fl.total) * 100) : null;
+    put('fields', !!fl, !!(fl && fl.total > 0 && fl.filled >= fl.total), pct4,
+      !fl ? null
+        : (fl.total === 0 ? '필수 항목이 없습니다'
+          : '필수 ' + fl.total + '개 중 ' + fl.filled + '개 (값과 출처가 모두 있어야 셉니다)'));
+
+    /* ⑤ 출력조건 — 확정했느냐 아니냐다. 중간이 없다 */
+    put('output', o.specLocked !== null && o.specLocked !== undefined, o.specLocked, null,
+      o.specLocked ? '출력조건을 확정했습니다' : '아직 확정하지 않았습니다');
+
+    return out;
+  }
+
   return {
     STEPS: STEPS, WHY: WHY, EMBED_CSS: EMBED_CSS,
     SECTIONS: SECTIONS, sectionState: sectionState, sectionOfStep: sectionOfStep,
     SECTION: SECTION, OUTPUTS_SECTION: OUTPUTS_SECTION,
     FILES_SECTION: FILES_SECTION, TABS: TABS,
     stepState: stepState, urlFor: urlFor, stepOfFile: stepOfFile,
+    sectionProgress: sectionProgress,
     tokensLoaded: tokensLoaded, TOKENS_MISSING: TOKENS_MISSING,
     openSection: openSection, OPEN_EVENT: OPEN_EVENT,
   };

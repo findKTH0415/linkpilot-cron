@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="94556b0b">
+<html lang="ko" data-lp-build="b76a7fb3">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -87,6 +87,24 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
   font-weight: 700; font-size: 11.5px; line-height: 1; font-family: inherit; padding: 6px 10px; border-radius: 999px;
   background: var(--panel); color: var(--ink2); }
 .sec--on .sec__tag { background: var(--lime); color: var(--lp-brand-ink); }
+
+/* ★★ **끝난 칸은 한눈에 갈린다** 〈2026-08-23 사장님 지시〉. 「열기」와 「완료」가
+   같은 회색이면 목록을 위에서부터 다시 읽어야 어디까지 왔는지 안다.
+   ★ 라임으로 **큰 면을 채우지 않는다** (§6-3) — 테두리와 글자만 라임이다.
+     채우면 「지금」 칸과 구분이 사라지고, 둘 다 죽는다 */
+.sec__tag--done { background: transparent; color: var(--lp-brand-ink);
+  box-shadow: inset 0 0 0 1.5px var(--lime); }
+.sec--on .sec__tag--done { background: var(--lime); }
+
+/* 진행율 — **숫자를 문장에 숨기지 않는다** (§6-3 ②). 자릿수가 흔들리지 않게
+   `tabular-nums` 로 세로를 맞춘다 */
+.sec__pct { font-variant-numeric: tabular-nums; }
+.sec__bar { margin: 8px 0 0; height: 4px; border-radius: 999px;
+  background: var(--line); overflow: hidden; }
+.sec__bar > i { display: block; height: 100%; background: var(--lime);
+  border-radius: 999px; transition: width .25s ease; }
+@media (prefers-reduced-motion: reduce) { .sec__bar > i { transition: none; } }
+
 .sec__body { margin-top: 10px; }
 
 .st {
@@ -180,6 +198,9 @@ window.LINKPILOT_REPORT_FLOW = {
 <script src="embed-bridge.js" data-lp-global="LINKPILOT_REPORT_FLOW"></script>
 <script src="gate-core.js"></script>
 <script src="flow-core.js"></script>
+<!-- ★ 4단계 진행율(필수 항목 채움)을 재는 데 쓴다. **값과 출처가 둘 다**
+     있어야 세는 규칙이 여기 있다 — 화면이 따로 세면 두 벌이 된다 -->
+<script src="fields-core.js"></script>
 <script src="catalog.js"></script>
 <script src="inapp.js"></script>
 <script>
@@ -191,6 +212,24 @@ window.LINKPILOT_REPORT_FLOW = {
   var view = document.getElementById('view');
 
   var state = { current: null, projectId: C.projectId || null, embedBlocked: false };
+
+  /**
+   * 절마다의 「완료·진행율」에 쓰는 **잰 사실**.
+   *
+   * ★★★ **처음 값은 전부 `null` 이다 — 「아직 못 쟀다」는 뜻이다** 〈2026-08-23〉.
+   *   `false` 나 `0` 으로 시작하면 서버 대답이 오기 전 한순간 「아무것도 안 했다」가
+   *   화면에 뜨고, 다 해 놓은 사람이 그것을 본다. 모르는 것과 아닌 것은 다르다 (§4.9).
+   */
+  var facts = { issuerSet: null, request: null, sources: null, fields: null, specLocked: null };
+  var progress = null;
+
+  /** 잰 것만으로 절 상태를 다시 센다. 판정 규칙은 `flow-core` 한 곳에 있다 */
+  function recount() {
+    progress = F.sectionProgress({
+      issuerSet: facts.issuerSet, request: facts.request, projectId: state.projectId,
+      sources: facts.sources, fields: facts.fields, specLocked: facts.specLocked,
+    });
+  }
 
   function el(t, c, x) {
     var n = document.createElement(t);
@@ -233,10 +272,40 @@ window.LINKPILOT_REPORT_FLOW = {
       sec.locked ? sec.why : sec.note));
     h.appendChild(b);
 
-    var tag = sec.steps.length
-      ? (sec.current ? '지금' : sec.locked ? '잠김' : '열기')
-      : '';
-    if (tag) h.appendChild(el('span', 'sec__tag', tag));
+    /* ★★★ **완료·진행율을 여기서 말한다** 〈2026-08-23 사장님 지시〉.
+     *
+     *   차례가 있다: **완료 → 진행율 → 지금 → 잠김 → 열기.**
+     *   ★ 끝난 칸은 「지금」보다 「완료」가 먼저다 — 지금 보고 있어도 끝난 것은
+     *     끝난 것이고, 지금 어디인지는 테두리(`sec--on`)가 이미 말한다.
+     *   ★ **못 쟀으면 아무 숫자도 안 적는다** (`known:false`). 0% 로 적으면
+     *     「아직 아무것도 안 했다」로 읽히는데 실제로는 「못 쟀다」다.
+     */
+    var pg = (progress && progress[sec.id]) || null;
+    var tag = '';
+    if (sec.steps.length) {
+      if (pg && pg.done) tag = '완료';
+      else if (pg && pg.known && pg.pct !== null) tag = pg.pct + '%';
+      else if (sec.current) tag = '지금';
+      else if (sec.locked) tag = '잠김';
+      else tag = '열기';
+    }
+    if (tag) {
+      var tg = el('span', 'sec__tag' + (tag === '완료' ? ' sec__tag--done' : '')
+        + (/%$/.test(tag) ? ' sec__pct' : ''), tag);
+      h.appendChild(tg);
+    }
+
+    /* 잰 사실을 **한 줄로** 덧붙인다. 「60%」만 있으면 무엇의 60% 인지 모른다 */
+    if (pg && pg.known && pg.detail && !sec.locked) {
+      b.appendChild(el('p', 'sec__d', pg.detail));
+    }
+    if (pg && pg.known && pg.pct !== null && !sec.locked) {
+      var bar = el('div', 'sec__bar');
+      var fill = document.createElement('i');
+      fill.style.width = Math.max(0, Math.min(100, pg.pct)) + '%';
+      bar.appendChild(fill);
+      b.appendChild(bar);
+    }
 
     if (sec.opensTo) {
       h.addEventListener('click', function () { go(sec.opensTo); });
@@ -528,6 +597,8 @@ window.LINKPILOT_REPORT_FLOW = {
       return;
     }
 
+    recount();
+
     var steps = F.stepState(ctx());
     if (!state.current) {
       var first = steps.filter(function (s) { return !s.locked; })[0] || steps[0];
@@ -581,7 +652,102 @@ window.LINKPILOT_REPORT_FLOW = {
 
   }
 
+  /* ═══════════ 잰다 — 완료·진행율은 **실제로 물어본 것**만 말한다 ═══════════
+   *
+   * ★★★ 여기서 아무것도 지어내지 않는다. 못 물어봤으면 `null` 로 두고 화면은
+   *   아무 표시도 안 한다. **「0%」는 「못 쟀다」가 아니다** (§4.9).
+   *
+   * ★ 다섯 갈래를 **각각** 부른다. 하나가 닫혀 있어도 나머지는 그린다 —
+   *   `Promise.all` 로 묶으면 하나가 죽을 때 다섯이 다 빈칸이 된다.
+   * ★ 대답이 올 때마다 다시 그린다. 다 모아서 한 번에 그리면, 느린 하나 때문에
+   *   빠른 넷이 함께 늦는다.
+   */
+  function call(path) {
+    return fetch(C.api + path, { credentials: 'same-origin' }).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    });
+  }
+
+  /** 자료 목록에서 **올린 건수와 그중 읽은 건수**를 센다 (`readAt` 이 읽은 표시다) */
+  function countSources(lists) {
+    var total = 0, read = 0;
+    lists.forEach(function (items) {
+      (items || []).forEach(function (it) {
+        total += 1;
+        if (it && it.readAt) read += 1;
+      });
+    });
+    return { total: total, read: read };
+  }
+
+  function measure() {
+    /* 미리보기(서버 없이 심어 둔 판)에서는 심어 준 값을 쓴다 — 지어내지 않는다 */
+    if (C.preload) {
+      var pl = C.preload;
+      if (pl.issuerSet !== undefined) facts.issuerSet = pl.issuerSet;
+      if (pl.sources) facts.sources = countSources([pl.sources]);
+      if (pl.fields && pl.values && window.LinkPilotFields) {
+        var c0 = window.LinkPilotFields.completeness(pl.fields, pl.values, C.docType || 'im', pl.classKeys || null);
+        facts.fields = { filled: c0.filled, total: c0.total };
+      }
+      if (pl.spec) facts.specLocked = !!pl.spec.locked;
+      draw();
+      return;
+    }
+    if (!C.api) return;   // 서버가 없다 — 못 쟀다고 두는 것이 맞다
+
+    var pid = state.projectId;
+
+    /* ① 발행 주체 — 프로젝트가 없어도 잰다 (이 값은 계정 설정이다) */
+    call('/intake').then(function (j) {
+      var iss = j && j.issuer;
+      facts.issuerSet = !!(iss && !iss.unset && String(iss.en || '').trim());
+      draw();
+    }, function () { /* 못 쟀다 — null 로 둔다 */ });
+
+    if (!pid) return;
+
+    /* ② 자료 — 두 갈래를 각각 부르고, 받은 것만 센다 */
+    Promise.all([
+      call('/projects/' + encodeURIComponent(pid) + '/linked').then(
+        function (j) { return (j && j.items) || []; }, function () { return null; }),
+      call('/projects/' + encodeURIComponent(pid) + '/oneshot').then(
+        function (j) { return (j && j.items) || []; }, function () { return null; }),
+    ]).then(function (rs) {
+      /* 둘 다 못 받았으면 **0건이라고 말하지 않는다.** 0건과 못 쟀다는 다르다 */
+      if (rs[0] === null && rs[1] === null) return;
+      facts.sources = countSources(rs.filter(function (x) { return x !== null; }));
+      draw();
+    });
+
+    /* ③ 가이드 필드 — 필수 항목 채움. 판정은 `fields-core` 가 한다 */
+    if (window.LinkPilotFields) {
+      Promise.all([
+        call('/fields'),
+        call('/projects/' + encodeURIComponent(pid) + '/facts'),
+      ]).then(function (rs) {
+        var def = rs[0] || {}, got = rs[1] || {};
+        var c = window.LinkPilotFields.completeness(
+          def.fields || def, got.values || got.facts || {},
+          C.docType || 'im', got.classKeys || null);
+        facts.fields = { filled: c.filled, total: c.total };
+        draw();
+      }, function () {});
+    }
+
+    /* ④ 출력조건 — 확정했나 */
+    call('/projects/' + encodeURIComponent(pid) + '/spec').then(function (j) {
+      var sp = j && j.spec;
+      /* ★ 못 읽었으면 **잠긴 척도 안 잠긴 척도 하지 않는다.** `spec` 이 없다는
+         대답을 받은 것은 「아직 확정 안 했다」가 맞다 */
+      facts.specLocked = !!(sp && sp.locked);
+      draw();
+    }, function () {});
+  }
+
   draw();
+  measure();
 
   // 지침 §2 유료 메뉴 잠금 · §1 인앱 브라우저 배너
   if (window.LinkPilotCatalog) window.LinkPilotCatalog.applyLocks(document, C.session);

@@ -850,3 +850,86 @@ test('★★★ 머리 글자가 칸을 따라가고, 제목이 두 번 나오�
   assert.match(intake, /if \(PART && PART === part\) return box;/,
     '머리에 있는데 카드에도 또 붙인다');
 });
+
+/* ═════════ 완료·진행율 표기 〈2026-08-23 사장님 지시〉 ═════════ */
+
+/**
+ * ★★★ 사장님 지시 그대로:
+ *     1 제작 기본정보 입력 → [완료] · 2 무엇을 만들까요? → [완료]
+ *     3 관련자료 업로드 → 진행율 + [완료] · 4 가이드 필드 → 진행율 + [완료]
+ *     5 출력조건 → [완료]
+ *
+ * ★ 여기서 지키는 것은 **표기가 아니라 정직함**이다. 「완료」는 잰 결과라야
+ *   하고, **못 쟀으면 아무 말도 안 해야 한다.** 0% 로 적으면 다 해 놓은 사람이
+ *   「아직 아무것도 안 했다」를 보고 처음부터 다시 한다 (§4.9).
+ */
+test('★★★ 못 쟀으면 완료도 진행율도 말하지 않는다', () => {
+  const F = require('../ui/platform/flow-core.js');
+  const p = F.sectionProgress({});          // 아무것도 못 쟀다
+
+  assert.strictEqual(p.basics.known, false, '발행 주체를 못 쟀는데 안다고 한다');
+  assert.strictEqual(p.basics.done, false, '못 쟀는데 완료라고 한다');
+  assert.strictEqual(p.basics.pct, null, '못 쟀는데 숫자를 적었다 — 0% 는 「안 했다」로 읽힌다');
+  assert.strictEqual(p.fields.known, false, '필드를 못 쟀는데 안다고 한다');
+  assert.strictEqual(p.fields.pct, null, '필드를 못 쟀는데 숫자를 적었다');
+  assert.strictEqual(p.output.known, false, '출력조건을 못 쟀는데 안다고 한다');
+});
+
+test('★★★ 다섯 절이 각자 맞는 표기를 낸다 (완료 / 진행율)', () => {
+  const F = require('../ui/platform/flow-core.js');
+  const p = F.sectionProgress({
+    issuerSet: true, projectId: 'LP-DC-2026-001',
+    sources: { total: 5, read: 3 }, fields: { filled: 7, total: 10 }, specLocked: true,
+  });
+
+  assert.strictEqual(p.basics.done, true, '① 발행 주체를 정했는데 완료가 아니다');
+  assert.strictEqual(p.ask.done, true, '② 프로젝트가 있으면 요청문은 이미 받은 것이다');
+  assert.strictEqual(p.sources.done, true, '③ 프로젝트를 만들었는데 완료가 아니다');
+  assert.strictEqual(p.sources.pct, 60, `③ 5건 중 3건이면 60% 여야 한다 (${p.sources.pct})`);
+  assert.strictEqual(p.fields.done, false, '④ 7/10 인데 완료라고 한다');
+  assert.strictEqual(p.fields.pct, 70, `④ 7/10 이면 70% 여야 한다 (${p.fields.pct})`);
+  assert.strictEqual(p.output.done, true, '⑤ 확정했는데 완료가 아니다');
+
+  /* ★ 진행율은 **셋과 넷에만** 있다. 나머지는 중간이 없다 —
+     없는 중간을 지어내면 뜻 없는 숫자가 돈다 */
+  assert.strictEqual(p.basics.pct, null, '①에 없는 진행율을 지어냈다');
+  assert.strictEqual(p.ask.pct, null, '②에 없는 진행율을 지어냈다');
+  assert.strictEqual(p.output.pct, null, '⑤에 없는 진행율을 지어냈다');
+
+  /* ★ 숫자만 있으면 무엇의 60% 인지 모른다 — 잰 사실을 함께 낸다 */
+  assert.match(p.sources.detail, /5건 중 3건/, '③ 무엇을 셌는지 안 적었다');
+  assert.match(p.fields.detail, /10개 중 7개/, '④ 무엇을 셌는지 안 적었다');
+  assert.match(p.fields.detail, /출처/, '④ 출처가 있어야 센다는 규칙을 안 알려 준다');
+});
+
+test('★★ 자료가 0건인 것을 0% 로 적지 않는다', () => {
+  const F = require('../ui/platform/flow-core.js');
+  const p = F.sectionProgress({ projectId: 'LP-1', sources: { total: 0, read: 0 } });
+  /* 자료 없이도 진행은 된다(값을 직접 넣는 길). 0% 로 적으면 막힌 것으로 읽힌다 */
+  assert.strictEqual(p.sources.pct, null, '자료 0건을 0% 로 적었다 — 막힌 것으로 읽힌다');
+  assert.strictEqual(p.sources.done, true, '프로젝트가 있으면 이 칸은 지나온 것이다');
+  assert.match(p.sources.detail, /직접/, '자료 없이 갈 때 무엇을 해야 하는지 안 알려 준다');
+});
+
+test('★★ 화면이 완료·진행율을 실제로 그린다 (규칙은 flow-core 한 곳)', () => {
+  const html = fs.readFileSync(path.join(PLATFORM, 'report-flow.html'), 'utf8');
+
+  /* ★ 판정을 화면이 다시 적지 않는다 — 두 벌이 되면 한쪽만 고치는 날이 온다 */
+  assert.match(html, /F\.sectionProgress\(/, '화면이 판정을 flow-core 에서 안 가져온다');
+  assert.match(html, /'완료'/, '완료 표기가 없다');
+  assert.match(html, /sec__bar/, '진행율 막대가 없다');
+
+  /* ★ 재는 값은 **서버에 물어본 것**이라야 한다. 손으로 적으면 코드가 바뀐 날부터
+     화면만 옛말을 하고 아무도 눈치채지 못한다 (§8) */
+  assert.match(html, /\/intake/, '발행 주체를 안 물어본다');
+  assert.match(html, /\/spec/, '출력조건 확정 여부를 안 물어본다');
+  assert.match(html, /completeness\(/, '필드 채움을 fields-core 로 안 센다');
+  assert.match(html, /fields-core\.js/, 'fields-core 를 안 싣는다 — 부르면 죽는다');
+
+  /* ★★ 처음 값은 전부 null 이어야 한다. false/0 으로 시작하면 대답이 오기 전
+     한순간 「아무것도 안 했다」가 뜨고, 다 해 놓은 사람이 그것을 본다 */
+  const init = /var facts = \{([^}]*)\}/.exec(html);
+  assert.ok(init, 'facts 초기값을 못 찾았다');
+  assert.ok(!/:\s*(false|0)\b/.test(init[1]),
+    `잰 적 없는 값을 false/0 으로 시작했다 — 「못 쟀다」가 「안 했다」로 보인다: ${init[1]}`);
+});
