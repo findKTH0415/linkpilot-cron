@@ -25,6 +25,13 @@
   'use strict';
 
   /**
+   * ★ **이 스크립트가 어느 판인가** 〈2026-08-23 · D-93 사고〉.
+   *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다. 화면이 자기
+   *   지문과 대 보고 다르면 「함수가 없다」로 죽기 전에 사람 말로 알린다.
+   */
+  var LP_BUILD = 'a74fcffc';
+
+  /**
    * 제작 과정을 사람이 아는 말로 묶은 카테고리.
    *
    * ★ Agent 이름(`07_geo`)을 그대로 보여주지 않는다. 사용자는 그것이 무엇인지
@@ -466,6 +473,7 @@
   }
 
   return {
+    BUILD: LP_BUILD,
     PHASES: PHASES, AGENT_STATE: AGENT_STATE, STEPS: STEPS,
     GROUPS: GROUPS,
     stepProgress: stepProgress, groupProgress: groupProgress,

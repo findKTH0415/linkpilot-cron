@@ -20,6 +20,13 @@
   'use strict';
 
   /**
+   * ★ **이 스크립트가 어느 판인가** 〈2026-08-23 · D-93 사고〉.
+   *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다. 화면이 자기
+   *   지문과 대 보고 다르면 「함수가 없다」로 죽기 전에 사람 말로 알린다.
+   */
+  var LP_BUILD = 'a74fcffc';
+
+  /**
    * ★★★ **단계는 다섯이다** 〈2026-08-22 사용자 지시〉.
    *
    *   1 제작 기본정보 입력 · 2 무엇을 만들까요? · 3 관련자료 업로드
@@ -634,6 +641,7 @@
   }
 
   return {
+    BUILD: LP_BUILD,
     STEPS: STEPS, WHY: WHY, EMBED_CSS: EMBED_CSS,
     SECTIONS: SECTIONS, sectionState: sectionState, sectionOfStep: sectionOfStep,
     SECTION: SECTION, OUTPUTS_SECTION: OUTPUTS_SECTION,

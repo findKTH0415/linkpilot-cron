@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="106cb2e2">
+<html lang="ko" data-lp-build="a74fcffc">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -42,7 +42,7 @@
   }, 8000);
 })();
 </script>
-<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="tokens.css?v=a74fcffc">
 <style>
 /* 색·간격·반경 토큰은 tokens.css 하나가 정한다 (LinkPilot Design System v1.1) */
 * { box-sizing: border-box; }
@@ -195,14 +195,54 @@ window.LINKPILOT_REPORT_FLOW = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js" data-lp-global="LINKPILOT_REPORT_FLOW"></script>
-<script src="gate-core.js"></script>
-<script src="flow-core.js"></script>
+<script src="embed-bridge.js?v=a74fcffc" data-lp-global="LINKPILOT_REPORT_FLOW"></script>
+<script src="gate-core.js?v=a74fcffc"></script>
+<script src="flow-core.js?v=a74fcffc"></script>
 <!-- ★ 4단계 진행율(필수 항목 채움)을 재는 데 쓴다. **값과 출처가 둘 다**
      있어야 세는 규칙이 여기 있다 — 화면이 따로 세면 두 벌이 된다 -->
-<script src="fields-core.js"></script>
-<script src="catalog.js"></script>
-<script src="inapp.js"></script>
+<script src="fields-core.js?v=a74fcffc"></script>
+<script src="catalog.js?v=a74fcffc"></script>
+<script src="inapp.js?v=a74fcffc"></script>
+<!--
+  ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
+
+  사장님 화면이 「F.readEvidence is not a function」으로 죽었다. 배포는 초록이었고
+  디스크도 HTTP 도 새 판이었다. **브라우저가 형제 스크립트만 아침 것을 들고 있었다.**
+
+  ★ 이 결의 사고는 화면이 안 뜨는 것보다 나쁘다 — 화면은 멀쩡히 뜨고 아래 지문도
+    새 판으로 찍혀 있는데 기능만 죽는다. 나오는 말은 「… is not a function」뿐이라
+    **캐시가 원인이라는 생각 자체가 안 든다.**
+
+  ★ 그래서 여기서 **먼저 잡는다.** 표를 두지 않는다 — `window` 의 LinkPilot* 전역을
+    훑어 자기 판을 말하는 것만 골라 문서 지문과 댄다. 스크립트가 늘어도 안 갈린다.
+  ★ 이 조각은 **화면 안에** 있어야 한다. 따로 파일로 빼면 그 파일도 옛것일 수 있다.
+-->
+<script>
+(function () {
+  var want = document.documentElement.getAttribute('data-lp-build');
+  if (!want) return;                       /* 지문이 없는 판 — 잴 것이 없다 */
+  var bad = [];
+  try {
+    Object.keys(window).forEach(function (k) {
+      if (k.indexOf('LinkPilot') !== 0) return;
+      var v = window[k];
+      if (v && typeof v === 'object' && typeof v.BUILD === 'string'
+        && v.BUILD !== want) bad.push(k + ' (' + v.BUILD + ')');
+    });
+  } catch (_) { return; }                  /* 훑다 막히면 조용히 — 검사가 화면을 죽이지 않는다 */
+  if (!bad.length) return;
+
+  var n = document.createElement('div');
+  n.setAttribute('data-lp-pair', '');
+  n.setAttribute('style', 'position:fixed;left:0;right:0;top:0;z-index:99999;'
+    + 'background:#C00000;color:#fff;padding:14px 18px;font:700 14px/1.5 system-ui,sans-serif');
+  n.textContent = '화면과 스크립트의 판이 다릅니다 — 브라우저가 옛 파일을 들고 있습니다. '
+    + '새로고침(Windows Ctrl+Shift+R · Mac ⌘⇧R)해 주십시오. 화면 ' + want
+    + ' · 옛 판 ' + bad.join(', ');
+  var put = function () { if (document.body) document.body.appendChild(n); };
+  if (document.body) put(); else document.addEventListener('DOMContentLoaded', put);
+}());
+</script>
 <script>
 (function () {
   'use strict';

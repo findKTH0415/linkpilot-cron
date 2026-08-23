@@ -21,6 +21,13 @@
 }(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
+  /**
+   * ★ **이 스크립트가 어느 판인가** 〈2026-08-23 · D-93 사고〉.
+   *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다. 화면이 자기
+   *   지문과 대 보고 다르면 「함수가 없다」로 죽기 전에 사람 말로 알린다.
+   */
+  var LP_BUILD = 'a74fcffc';
+
   /** 지침 판(版). 지침을 고치면 이 값도 같이 올린다 */
   var GUIDE = { title: 'LinkPilot 외부 업무지침', asOf: '2026-08-14' };
 
@@ -148,6 +155,7 @@
   function planName(id) { return PLAN_NAMES[id] || id; }
 
   return {
+    BUILD: LP_BUILD,
     GUIDE: GUIDE, FEATURES: FEATURES, PLAN_RANK: PLAN_RANK, PLAN_NAMES: PLAN_NAMES,
     GUIDE_FREE: GUIDE_FREE, GUIDE_PAID: GUIDE_PAID,
     free: free, paid: paid, byName: byName, unlocked: unlocked,

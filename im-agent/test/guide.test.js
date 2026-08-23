@@ -180,8 +180,9 @@ test('★ 등급표를 손으로 적지 않는다 (카탈로그가 그린다)', 
 test('유료 화면들이 카탈로그·인앱 배너를 싣는다', () => {
   ['guide.html', 'reports.html', 'membership.html', 'upgrade.html'].forEach((f) => {
     const html = read(f);
-    assert.ok(/src="catalog\.js"/.test(html), f + ' 에 catalog.js 가 없다');
-    assert.ok(/src="inapp\.js"/.test(html), f + ' 에 inapp.js 가 없다');
+    /* ★ 주소 뒤의 판 표시(`?v=…`)를 허용한다 〈2026-08-23 · D-93〉 */
+    assert.ok(/src="catalog\.js(\?v=[0-9a-f]*)?"/.test(html), f + ' 에 catalog.js 가 없다');
+    assert.ok(/src="inapp\.js(\?v=[0-9a-f]*)?"/.test(html), f + ' 에 inapp.js 가 없다');
     assert.ok(/applyLocks/.test(html), f + ' 이 메뉴 잠금을 적용하지 않는다');
   });
 });

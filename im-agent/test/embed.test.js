@@ -96,7 +96,10 @@ test('★★ 브리지가 어긋나면 사본을 만들지 않는다', () => {
   const f = path.join(PLATFORM, 'outputs.html');
   const keep = fs.readFileSync(f, 'utf8');
   try {
-    fs.writeFileSync(f, keep.replace(/<script src="embed-bridge\.js"[^>]*><\/script>/, ''), 'utf8');
+    /* ★ 주소 뒤의 판 표시(`?v=…`)를 허용한다 〈2026-08-23 · D-93〉 — 안 그러면
+     *   지우려던 태그를 못 찾아 **떼어 내지도 못하고** 검사가 헛돈다 */
+    fs.writeFileSync(f,
+      keep.replace(/<script src="embed-bridge\.js(\?v=[0-9a-f]*)?"[^>]*><\/script>/, ''), 'utf8');
     assert.throws(() => embed.build(null), /브리지 확인 실패/);
   } finally { fs.writeFileSync(f, keep, 'utf8'); }
 });

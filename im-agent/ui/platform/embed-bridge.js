@@ -30,6 +30,12 @@
 (function () {
   'use strict';
 
+  /**
+   * ★ **이 스크립트가 어느 판인가** 〈2026-08-23 · D-93 사고〉.
+   *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다.
+   */
+  var LP_BUILD = 'a74fcffc';
+
   var self = document.currentScript;
   var name = self && self.getAttribute('data-lp-global');
   if (!name) return;                       // 어느 전역인지 모르면 손대지 않는다
@@ -265,6 +271,7 @@
   }());
 
   window.LinkPilotEmbed = {
+    BUILD: LP_BUILD,
     global: name,
     applied: state.applied,
     reason: state.reason,

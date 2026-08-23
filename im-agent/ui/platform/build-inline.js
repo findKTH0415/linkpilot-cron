@@ -35,7 +35,8 @@ function read(f) { return fs.readFileSync(path.join(HERE, f), 'utf8'); }
 function inlineScripts(html) {
   const tags = html.match(/<script([^>]*)\ssrc="([^"]+)"([^>]*)><\/script>/g) || [];
   tags.forEach((tag) => {
-    const src = tag.match(/src="([^"]+)"/)[1];
+    /* ★ 주소 뒤의 판 표시(`?v=…`)를 뗀다 — **파일 이름이 아니다** 〈2026-08-23 · D-93〉 */
+    const src = tag.match(/src="([^"]+)"/)[1].split('?')[0];
     const attrs = tag.replace(/^<script/, '').replace(/><\/script>$/, '').replace(/\ssrc="[^"]+"/, '');
     html = html.replace(tag, '<script' + attrs + '>'
       + read(src).replace(/<\/(script)/gi, '<\\/$1') + '</script>');

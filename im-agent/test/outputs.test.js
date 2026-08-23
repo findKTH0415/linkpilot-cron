@@ -206,7 +206,8 @@ function stage(reports) {
     session: { authenticated: true, planId: 'pro', status: 'active' },
     preload: { projects: [{ id: 'LP-DC-2026-001', name: '인천 남동 데이터센터' }], reports },
   })});</script>\n`;
-  const at = src.indexOf('<script src="embed-bridge.js"');
+  /* ★ 주소 뒤의 판 표시(`?v=…`)를 허용한다 〈2026-08-23 · D-93〉 */
+  const at = src.search(/<script src="embed-bridge\.js(\?v=[0-9a-f]*)?"/);
   fs.writeFileSync(path.join(dir, 'outputs.html'), src.slice(0, at) + cfg + src.slice(at));
   return dir;
 }

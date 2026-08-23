@@ -69,7 +69,8 @@ body { margin: 0; background: var(--pg); color: var(--ink);
  */
 function withConfig(html, cfg) {
   const inject = `<script>Object.assign(window.LINKPILOT_FILES, ${JSON.stringify(cfg)});</script>\n`;
-  const at = html.indexOf('<script src="embed-bridge.js"');
+  /* ★ 주소에 판 표시(`?v=…`)가 붙어 있다 — 이름만으로 찾으면 못 찾는다 〈2026-08-23〉 */
+  const at = html.search(/<script src="embed-bridge\.js(\?v=[0-9a-f]*)?"/);
   if (at < 0) throw new Error('브리지 태그를 못 찾았다 — 설정을 넣을 자리가 없다');
   return html.slice(0, at) + inject + html.slice(at);
 }
@@ -243,9 +244,11 @@ function uploadDriver() {
  */
 function inlineTokens(html) {
   const css = fs.readFileSync(path.join(HERE, 'tokens.css'), 'utf8');
-  const tag = '<link rel="stylesheet" href="tokens.css">';
-  if (!html.includes(tag)) throw new Error('tokens.css 링크를 못 찾았다 — 색 없이 나간다');
-  return html.replace(tag, `<style>\n${css}\n</style>`);
+  /* ★ 주소 뒤에 판 표시(`?v=…`)가 붙는다 〈2026-08-23 · D-93〉 — 글자 그대로 찾으면
+   *   **링크가 있는데 없다고** 죽는다 */
+  const re = /<link rel="stylesheet" href="tokens\.css(\?v=[0-9a-f]*)?">/;
+  if (!re.test(html)) throw new Error('tokens.css 링크를 못 찾았다 — 색 없이 나간다');
+  return html.replace(re, `<style>\n${css}\n</style>`);
 }
 
 async function build(outFile) {
@@ -284,7 +287,8 @@ async function build(outFile) {
        「프로젝트가 없습니다」가 그럴듯하게 뜬다 (buildLive 주석 참고). */
   const f2 = path.join(tmp, 'files-2.html');
   const src2 = inlineTokens(withConfig(src, { ...cfg, api: '/api/report' }))
-    .replace('<script src="embed-bridge.js"', fakeServer(FAKE_LIMITS) + '\n<script src="embed-bridge.js"');
+    .replace(/<script src="embed-bridge\.js(\?v=[0-9a-f]*)?"/,
+      (m) => fakeServer(FAKE_LIMITS) + '\n' + m);
   fs.writeFileSync(f2, src2 + drive);
   /* ★ 가상 시계 예산을 넉넉히 준다 〈2026-08-22〉. 14초로 뒀더니 기계가 바쁠 때
    *   이관 칸이 그려지기 **전에** DOM 을 떠서 「③ 칸이 없다」로 빌드가 멎었다 —

@@ -109,7 +109,9 @@ function selfContained(file, opt) {
   //   CSS 는 못 찾은 변수를 조용히 넘긴다 (2026-08-17 디자인 시스템 반영)
   const links = html.match(/<link rel="stylesheet" href="([^"]+)">/g) || [];
   links.forEach((tag) => {
-    const href = tag.match(/href="([^"]+)"/)[1];
+    /* ★ 주소 뒤의 판 표시(`?v=…`)를 뗀다 — **파일 이름이 아니다** 〈2026-08-23〉.
+     *   안 떼면 「그런 파일이 없다」로 죽는다 (build-embed.js 와 같은 규칙) */
+    const href = tag.match(/href="([^"]+)"/)[1].split('?')[0];
     html = html.replace(tag, '<style>' + read(href) + '</style>');
   });
   // ★ 속성이 붙은 것도 인라인한다 — `embed-bridge.js` 는 `data-lp-global` 을 달고
@@ -117,7 +119,7 @@ function selfContained(file, opt) {
   //   「파일 하나로 열린다」를 깬다. 속성은 **그대로 옮긴다** (브리지가 그걸 읽는다)
   const tags = html.match(/<script([^>]*)\ssrc="([^"]+)"([^>]*)><\/script>/g) || [];
   tags.forEach((tag) => {
-    const src = tag.match(/src="([^"]+)"/)[1];
+    const src = tag.match(/src="([^"]+)"/)[1].split('?')[0];   /* ?v= 는 파일 이름이 아니다 */
     const attrs = tag.replace(/^<script/, '').replace(/><\/script>$/, '')
       .replace(/\ssrc="[^"]+"/, '');
     html = html.replace(tag, '<script' + attrs + '>' + read(src).replace(/<\/(script)/gi, '<\\/$1') + '</script>');
@@ -383,10 +385,10 @@ async function flowShell(docs) {
   // ★ 토큰 파일을 인라인한다. 놓치면 **색 없이** 뜨는데 오류는 안 난다
   //   (`flow.test.js` 의 「파일 하나로 열린다」가 잡는다)
   (shell.match(/<link rel="stylesheet" href="([^"]+)">/g) || []).forEach((tag) => {
-    shell = shell.replace(tag, '<style>' + read(tag.match(/href="([^"]+)"/)[1]) + '</style>');
+    shell = shell.replace(tag, '<style>' + read(tag.match(/href="([^"]+)"/)[1].split('?')[0]) + '</style>');
   });
   (shell.match(/<script([^>]*)\ssrc="([^"]+)"([^>]*)><\/script>/g) || []).forEach((tag) => {
-    const src = tag.match(/src="([^"]+)"/)[1];
+    const src = tag.match(/src="([^"]+)"/)[1].split('?')[0];   /* ?v= 는 파일 이름이 아니다 */
     const attrs = tag.replace(/^<script/, '').replace(/><\/script>$/, '')
       .replace(/\ssrc="[^"]+"/, '');
     shell = shell.replace(tag, '<script' + attrs + '>' + read(src).replace(/<\/(script)/gi, '<\\/$1') + '</script>');

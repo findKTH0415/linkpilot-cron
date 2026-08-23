@@ -200,7 +200,9 @@ test('★★ 올리는 방법을 화면마다 따로 쓰지 않는다', () => {
   const files = read('files.html');
   const intake = read('intake.html');
   [files, intake].forEach((h) => {
-    assert.match(h, /<script src="upload-core\.js"><\/script>/, 'upload-core.js 를 안 부른다');
+    /* ★ 주소 뒤의 판 표시(`?v=…`)를 허용한다 〈2026-08-23 · D-93〉 */
+    assert.match(h, /<script src="upload-core\.js(\?v=[0-9a-f]*)?"><\/script>/,
+      'upload-core.js 를 안 부른다');
     assert.ok(!/new XMLHttpRequest\(\)/.test(codeOf(h)),
       '화면이 직접 XHR 을 쓴다 — upload-core.js 와 갈린다');
   });
