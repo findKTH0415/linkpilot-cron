@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="1c49608f">
+<html lang="ko" data-lp-build="192713f6">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -579,6 +579,7 @@ window.LINKPILOT_FILES = {
     openPicker: false,
     projects: null,
     projectId: C.projectId || null,
+    listLocked: false, // 보고서 프로젝트 목록이 401·403 이었나 (카드 전체를 잠그지 않는다)
     kept: null,        // 보관 목록 (GET /sources)
     linked: null,      // 연결 목록 (GET /linked)
     oneshot: null,     // 1회성 기록 (GET /oneshot)
@@ -745,8 +746,26 @@ window.LINKPILOT_FILES = {
   function loadProjects() {
     if (C.preload && C.preload.projects) { state.projects = C.preload.projects; return Promise.resolve(); }
     if (!C.api) { state.projects = []; return Promise.resolve(); }
-    return call('GET', '/projects').then(function (r) {
+    /* ★★★ **목록이 잠겼다고 카드 전체를 잠그지 않는다** 〈2026-08-23 · 사장님 화면〉.
+     *
+     *   앞 판은 그냥 `call('GET','/projects')` 였다. 그 길은 **로그인을 묻는다** —
+     *   남의 프로젝트에 무엇이 들었는지가 나가는 자리라서 일부러 그렇게 뒀다.
+     *   그런데 401 이 오면 `call()` 이 `state.gate` 를 세우고, `paint()` 는
+     *   **카드를 통째로 「로그인이 필요합니다」로 바꿔** 버린다.
+     *
+     *   ★ 그래서 **열려 있는 길까지 못 쓰게 됐다.** ＋ 신규프로젝트 만들기도,
+     *     파일업로드도 무인증으로 열려 있는데(D-82 · D-94) 화면이 먼저 닫혔다.
+     *     실제로 사장님이 그 화면을 보셨다.
+     *
+     *   ★★ `localGate` 는 이런 자리를 위해 이미 있던 손잡이다 — 401·403 을
+     *     **부른 쪽에 돌려주고** 화면 전체 게이트로 올리지 않는다.
+     *     「한 칸이 잠겼다고 방 전체를 잠그지 않는다.」
+     */
+    return call('GET', '/projects', null, { localGate: true }).then(function (r) {
       state.projects = (r.ok && r.body && r.body.projects) || [];
+      // ★ 잠긴 것을 **잠겼다고 말한다.** 빈 목록으로 두면 「내 프로젝트가 왜
+      //   없나」를 사용자가 혼자 고민한다 (§2 — 조용히 넘어가지 않는다)
+      state.listLocked = !!(r && r.gated);
     }).catch(function (e) { state.error = e.message; state.projects = []; });
   }
 
@@ -2202,6 +2221,14 @@ window.LINKPILOT_FILES = {
         '앱 프로젝트 목록을 못 받았습니다 — 이 화면은 앱 데이터를 직접 읽지 못하고 앱이 넘겨줘야 합니다'
         + (why ? ' (' + why + ')' : '') + '. '
         + '여기서는 「＋ 신규프로젝트」로 만들거나 이미 있는 보고서 프로젝트를 고를 수 있습니다.'));
+    }
+    /* ★ 보고서 프로젝트 목록이 잠겼으면 **잠겼다고 말한다.** 빈 목록으로 두면
+       「내 프로젝트가 왜 없나」를 사용자가 혼자 고민한다. 그리고 **여기서 할 수
+       있는 일**을 함께 적는다 — 막다른 길처럼 읽히지 않게 */
+    if (state.listLocked) {
+      box.appendChild(el('p', 'note',
+        '이미 있는 보고서 프로젝트 목록은 로그인해야 보입니다 — 「＋ 신규프로젝트」로 '
+        + '새로 만들고 자료를 올리는 것은 지금 그대로 됩니다.'));
     }
     if (state.appMsg) box.appendChild(el('p', 'note', state.appMsg));
     if (state.appStage >= 0 && !state.appBundle) {

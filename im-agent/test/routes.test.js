@@ -169,8 +169,17 @@ test('★★ express 없이 표만으로 서버가 돈다 (실제 호출)', asyn
 
   try {
     assert.strictEqual((await go('GET', '/intake')).status, 200, '읽기 라우트가 안 잡힌다');
-    // 인증은 **서버가** 막는다 — 화면이 아니다
-    assert.strictEqual((await go('POST', '/projects', null, { request: 'x' })).status, 401);
+    /* 인증은 **서버가** 막는다 — 화면이 아니다.
+       ★ 〈2026-08-23 · D-94〉 접수(`POST /projects`)는 이제 **로그인을 안 묻는다.**
+         그래서 여기서 재는 것은 「막혔는가」가 아니라 **「문을 지나 검증까지
+         갔는가」**다 — 요청문이 한 글자라 400 이 온다. 401 이 오면 문이 다시
+         닫힌 것이고, 200/201 이 오면 검증이 사라진 것이다. 둘 다 잡는다. */
+    const anonMake = await go('POST', '/projects', null, { request: 'x' });
+    assert.notStrictEqual(anonMake.status, 401, '접수가 로그인 없이 막혔다 (D-94)');
+    assert.strictEqual(anonMake.status, 400, '문은 지났는데 요청문 검증이 안 걸렸다');
+    // ★ 값 저장은 **그대로 묻는다** — 연 선이 「만드는 것까지」임을 여기서도 잰다
+    assert.strictEqual((await go('POST', '/projects/LP-DC-2026-001/spec', null, {})).status, 401,
+      '출력조건 저장이 로그인 없이 열렸다');
     const made = await go('POST', '/projects', 'good', { request: '인천 남동공단 데이터센터' });
     assert.strictEqual(made.status, 201, JSON.stringify(made.body));
     const id = (await go('GET', '/projects')).body.projects[0].id;

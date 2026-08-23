@@ -1826,3 +1826,67 @@ test('★★★ 주소를 못 받고 눌러도 이유를 말한다 — 벌거벗
     fs.rmSync(at, { force: true });
   }
 });
+
+/**
+ * ★★★ **한 칸이 잠겼다고 방 전체를 잠그지 않는다** 〈2026-08-23 · 사장님 화면〉.
+ *
+ *   사장님 화면이 통째로 「로그인이 필요합니다 / 로그인하거나 멤버십을 확인한 뒤
+ *   다시 열어 주십시오」로 덮여 있었다. 그런데 그 아래에서 하려던 일들 —
+ *   ＋ 신규프로젝트 만들기(D-94)와 파일업로드(D-82) — 는 **무인증으로 열려 있다.**
+ *
+ * ★ 무엇이 덮었나: 화면이 처음에 `GET /projects`(보고서 프로젝트 목록)를 부른다.
+ *   그 길은 **일부러 로그인을 묻는다** — 남의 프로젝트에 무엇이 들었는지가 나가는
+ *   자리라서다. 그 401 이 `state.gate` 를 세우고 `paint()` 가 카드를 통째로 바꿨다.
+ *
+ * ★★ 그래서 **열린 길까지 못 쓰게 됐다.** `localGate` 는 이런 자리를 위해
+ *   이미 있던 손잡이인데 여기서만 안 쓰고 있었다.
+ */
+test('★★★ 목록이 잠겨도 만들기·올리기는 열려 있다 (localGate)', () => {
+  const code = codeOf(read('files.html'));
+
+  /* ① 목록 조회가 `localGate` 로 간다 — 안 그러면 401 하나가 카드를 통째로 덮는다 */
+  const at = code.indexOf('function loadProjects');
+  assert.ok(at > 0, 'loadProjects 를 못 찾았다');
+  const fn = code.slice(at, code.indexOf('\n  }', at));
+  assert.match(fn, /call\('GET', '\/projects', null, \{ localGate: true \}\)/,
+    '목록 조회가 화면 전체 게이트를 세운다 — 열려 있는 길까지 못 쓰게 된다');
+
+  /* ② ★ 잠긴 것을 **잠겼다고 말한다.** 빈 목록으로 두면 「내 프로젝트가 왜
+     없나」를 사용자가 혼자 고민한다 (§2 — 조용히 넘어가지 않는다) */
+  assert.match(fn, /state\.listLocked = /, '잠긴 사실을 기록하지 않는다');
+  assert.match(code, /이미 있는 보고서 프로젝트 목록은 로그인해야 보입니다/,
+    '잠겼다고 화면에서 말하지 않는다');
+  /* ★ 막다른 길처럼 읽히지 않게 **여기서 되는 일**을 함께 적는다 */
+  assert.match(code, /새로 만들고 자료를 올리는 것은 지금 그대로 됩니다/,
+    '무엇이 되는지는 안 알려 준다 — 막다른 길로 읽힌다');
+
+  /* ③ ★★ `localGate` 갈래가 `call()` 에 **실제로 살아 있어야** 한다 */
+  assert.match(code, /opt2 && opt2\.localGate/,
+    'call() 에 localGate 갈래가 없다 — 손잡이만 있고 도는 곳이 없다');
+});
+
+/**
+ * ★★★ **엔진이 연 것과 화면이 여는 것이 같아야 한다** 〈2026-08-23 · D-94〉.
+ *   엔진에서 `createProject` 를 열어 놓고 화면이 로그인을 물으면 아무것도 안 바뀐다.
+ *   반대로 화면만 열면 눌렀을 때 401 을 받는다 — **양쪽이 갈리면 둘 다 틀린다.**
+ */
+test('★★★ 엔진에서 연 길 넷이 그대로다 (D-82 · D-94)', () => {
+  const src = fs.readFileSync(path.join(PLATFORM, '..', 'report-api.cjs'), 'utf8');
+  /* 주석을 떼고 **부르는 자리**만 센다 — 경위를 적을수록 검사가 눈이 머는 것을
+     이 저장소에서 세 번 겪었다 */
+  const code = src.split('\n')
+    .filter(l => !/^\s*(\*|\/\*|\/\/)/.test(l)).join('\n');
+  const uses = (code.match(/gate\([^)]*ANON\)/g) || []).length;
+  assert.strictEqual(uses, 4,
+    `무인증으로 연 길이 ${uses}곳이다 — 넷이어야 한다`
+    + ' (createProject · linkSource · oneshotUpload · scanSources)');
+
+  /* ★ 연 선은 「만드는 것까지」다. 그 뒤는 그대로 묻는다 */
+  ['saveSpec', 'generate', 'uploadSources'].forEach((name) => {
+    const i = code.indexOf('async ' + name + '(ctx');
+    assert.ok(i > 0, name + ' 을 못 찾았다');
+    const head = code.slice(i, i + 200);
+    assert.ok(!/ANON/.test(head),
+      `${name} 이 무인증으로 열렸다 — 연 선은 「만드는 것까지」다`);
+  });
+});

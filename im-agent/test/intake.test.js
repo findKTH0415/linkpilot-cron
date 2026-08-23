@@ -232,16 +232,28 @@ test('잘못된 프로젝트 ID 는 파일을 건드리기 전에 막는다', as
 
 // ── 권한 ─────────────────────────────────────────────────────
 
-test('미인증·무료 회원은 접수할 수 없다', async () => {
+/**
+ * ★★★ 〈2026-08-23 · D-94 로 뒤집혔다〉 앞 판 이름은 「미인증·무료 회원은
+ *   **접수할 수 없다**」였다. 이제 **접수는 된다** — 자료를 넣을 그릇을 못 만들면
+ *   D-82 로 열어 둔 「넣는 길」 셋이 통째로 못 쓰이기 때문이다.
+ *
+ * ★★ 대신 **여는 선을 여기서 못 박는다**: 만드는 것과 넣는 것까지만이고,
+ *   **보관 업로드(`uploadSources`)는 그대로 묻는다** — 그쪽은 우리 서버에
+ *   남기는 길이다. 열린 쪽과 닫힌 쪽을 **둘 다** 재야 다음에 실수로 넓어져도 잡힌다.
+ */
+test('미인증·무료 회원도 접수는 되고, 보관 업로드는 여전히 묻는다 (D-94)', async () => {
   const anon = writeHandlers({ agentRoot: os.tmpdir(), agentModulePath: AGENT, authenticate: () => null });
-  assert.strictEqual((await anon.createProject({}, { request: '데이터센터 IM 작성' })).status, 401);
-  assert.strictEqual((await anon.uploadSources({}, 'LP-DC-2026-001', { files: [] })).status, 401);
+  assert.notStrictEqual((await anon.createProject({}, { request: '데이터센터 IM 작성' })).status, 401,
+    '로그인 없이 접수가 막혔다 — D-94 대로면 열려 있어야 한다');
+  assert.strictEqual((await anon.uploadSources({}, 'LP-DC-2026-001', { files: [] })).status, 401,
+    '보관 업로드가 로그인 없이 열렸다 — 연 것은 1회성까지다');
 
   const free = writeHandlers({
     agentRoot: os.tmpdir(), agentModulePath: AGENT,
     authenticate: () => ({ planId: 'free', status: 'active' }),
   });
-  assert.strictEqual((await free.createProject({}, { request: '데이터센터 IM 작성' })).status, 403);
+  assert.notStrictEqual((await free.createProject({}, { request: '데이터센터 IM 작성' })).status, 403,
+    '무료 회원이 접수를 못 한다 — 접수는 무료다 (FILES_PLAN)');
 });
 
 // ── 화면 규약 ────────────────────────────────────────────────

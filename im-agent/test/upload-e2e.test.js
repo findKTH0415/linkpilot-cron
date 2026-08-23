@@ -145,8 +145,13 @@ test('★★ 출처 없는 값은 들어오지 못한다 — 사유까지 확인
  * ★★ 그래서 **넣는 길 셋만** 열었다. 이 검사는 열린 것과 닫힌 것을 **둘 다**
  *   잰다 — 열린 쪽만 재면 다음에 실수로 읽는 길까지 열려도 초록이다.
  *   그때 새는 것은 **남의 프로젝트에 무엇이 들었는가**다.
+ *
+ * ★★★ 〈2026-08-23 · D-94〉 **넷째로 `createProject` 가 열렸다.** 셋만 열어 두면
+ *   자료를 넣을 그릇을 못 만들어 **셋이 통째로 못 쓰인다.** 대신 그 뒤 — 값
+ *   저장(`saveSpec`)·보고서 생성(`generate`) — 는 **그대로 묻는다.**
+ *   여는 선을 「만드는 것까지」로 못 박고, 아래에서 양쪽을 다 잰다.
  */
-test('★★★ 문지기 — 넣는 길은 로그인을 안 묻고, 읽는·지우는·만드는 길은 묻는다', async () => {
+test('★★★ 문지기 — 넣고 만드는 길은 로그인을 안 묻고, 읽는·지우는 길은 묻는다', async () => {
   const agentRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-e2e-'));
   process.env.IM_AGENT_ROOT = agentRoot;
   let who = null;
@@ -175,15 +180,28 @@ test('★★★ 문지기 — 넣는 길은 로그인을 안 묻고, 읽는·지
   assert.strictEqual((await h.unlinkSource({}, ID, 'k')).status, 401,
     '연결 끊기가 로그인 없이 열렸다 — 지우는 길이다');
 
-  /* ③ 만드는 길 — 손대지 않았다 */
-  assert.strictEqual((await h.createProject({}, { request: '테스트 요청문입니다' })).status, 401,
-    '보고서 생성이 로그인 없이 열렸다');
+  /* ③ ★★★ **프로젝트 만들기도 열렸다** 〈2026-08-23 사장님 결정 · D-94〉.
+     앞 판은 여기서 401 을 요구했다. 그런데 그러면 **자료를 넣을 그릇을 만들 수가
+     없어서** ①에서 열어 둔 셋이 통째로 못 쓰인다 — 사장님 화면에서 실제로
+     그 자리에서 막혔다(「＋ 신규프로젝트 → 만들기」 401).
+     ★ 검사를 지우지 않고 **뒤집는다.** 지우면 다음 사람이 왜 열렸는지 모른다 */
+  assert.notStrictEqual((await h.createProject({}, { request: '테스트 요청문입니다' })).status, 401,
+    '로그인 없이 프로젝트를 못 만든다 — D-94 대로면 열려 있어야 한다');
 
-  /* ④ 만료 회원 — 넣는 길은 통과, 만드는 길은 막힌다 */
+  /* ④ ★★ **연 것은 「만드는 것」까지다.** 값을 저장하고 보고서를 생성하는 길은
+     그대로 묻는다 — 여기가 열리면 돈이 드는 자리가 무인증이 된다 */
+  assert.strictEqual((await h.saveSpec({}, ID, {})).status, 401,
+    '출력조건 저장이 로그인 없이 열렸다 — 만드는 것까지만 열기로 했다');
+  assert.strictEqual((await h.generate({}, ID, {})).status, 401,
+    '보고서 생성이 로그인 없이 열렸다 — 만드는 것까지만 열기로 했다');
+
+  /* ⑤ 만료 회원 — 넣는 길·만드는 길은 통과, 생성은 막힌다 */
   who = { name: '만료', planId: 'free', status: 'expired' };
   assert.notStrictEqual((await h.oneshotUpload({}, ID, { files: [] })).status, 403,
     '만료 회원이 자료를 못 넣는다 — 넣는 길은 열어 두기로 했다');
-  assert.strictEqual((await h.createProject({}, { request: '테스트 요청문입니다' })).status, 403,
+  assert.notStrictEqual((await h.createProject({}, { request: '테스트 요청문입니다' })).status, 403,
+    '만료 회원이 프로젝트를 못 만든다 — 만드는 길도 열어 두기로 했다 (D-94)');
+  assert.strictEqual((await h.generate({}, ID, {})).status, 403,
     '만료 회원에게 보고서 생성이 열렸다');
 
   /* ★ 자료 올리기는 **무료 회원도** 된다 (FILES_PLAN). 여기가 pro 로 올라가면
