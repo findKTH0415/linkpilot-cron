@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="b76a7fb3">
+<html lang="ko" data-lp-build="0abf676e">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -260,6 +260,8 @@ ul { margin: 0; padding: 0; list-style: none; }
 <script src="catalog.js"></script>
 <script src="inapp.js"></script>
 <script src="fields-core.js"></script>
+<!-- ★ 판 지문을 화면에 보이게 찍는 것이 여기 있다 (§8) — 묶음에 이미 실리는 파일이다 -->
+<script src="flow-core.js"></script>
 <script>
 /**
  * 설정 — 서버가 세션을 보고 이 블록을 만들어 내려주는 것이 정석이다.
@@ -1007,6 +1009,12 @@ window.LINKPILOT_FIELDS_CFG = {
 
   if (window.LinkPilotInApp && window.LinkPilotInApp.mount) {
     try { window.LinkPilotInApp.mount(); } catch (_) {}
+  }
+
+  /* ★ **판 지문을 화면에 보이게 남긴다** (CLAUDE.md §8). 속성만 있으면
+     사진에 안 찍히고, 그러면 「이것이 그 판인가」를 가릴 수가 없다 */
+  if (window.LinkPilotFlow && window.LinkPilotFlow.stampInto) {
+    try { window.LinkPilotFlow.stampInto(document); } catch (_) {}
   }
 
   render();

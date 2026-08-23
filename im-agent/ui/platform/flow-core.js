@@ -506,6 +506,60 @@
     return out;
   }
 
+  /* ═══════ 판 지문을 **화면에 보이게** 한다 〈2026-08-23〉 ═══════
+   *
+   * ★ 이 주석에 여는 태그를 글자 그대로 쓰지 않는다 — 이 파일은 조각(fragment)
+   *   안으로 통째로 실리고, 조각 검사기가 그것을 진짜 태그로 읽고 거절한다.
+   *   실제로 검사 19개가 그렇게 깨졌다 〈2026-08-23〉.
+   *
+   * ★★★ 무슨 일이 있었나. `build-stamp.js` 는 묶음 지문을 뿌리 태그의
+   *   `data-lp-build` **속성**에만 박고 있었다. 속성은 **사진에 안 찍힌다.** 그래서 사장님이
+   *   화면을 찍어 보내셔도 「이것이 그 판인가」를 가릴 수가 없었고, 나는
+   *   「반영했습니다」, 사장님은 옛 화면 — 둘 다 그 사실을 모른 채로
+   *   같은 왕복을 **다섯 번** 했다 (M-20 · M-22 · M-25 · M-26).
+   *
+   *   ★ CLAUDE.md §8 은 「화면 아래에 작게 `판 xxxxxxxx` 가 찍혀 있다」고
+   *     적고 있었다. **사양이 맞고 코드가 빠져 있었다.**
+   *
+   * ★ 글자꼴을 요란하게 하지 않는다. 이건 **주장이 아니라 물증**이다 —
+   *   작고 흐리게, 대신 **반드시 보이게**.
+   */
+  var BUILD_ATTR = 'data-lp-build';
+
+  /** 이 화면이 실린 묶음의 지문. 없으면 null */
+  function buildOf(doc) {
+    try {
+      var d = doc || document;
+      var v = d.documentElement.getAttribute(BUILD_ATTR);
+      return v || null;
+    } catch (_) { return null; }
+  }
+
+  /** 화면에 적는 말 — **한 곳에서만 만든다.** 두 벌이면 자리마다 다르게 적힌다 */
+  function buildLabel(build) {
+    return build ? '판 ' + build : null;
+  }
+
+  /**
+   * 화면 맨 아래에 지문을 붙인다. 이미 붙어 있으면 아무것도 안 한다.
+   * ★ 두 번 부르는 자리가 실제로 있다(다시 그리기) — 그때 둘이 되면 안 된다.
+   */
+  function stampInto(doc) {
+    var d = doc || document;
+    var b = buildOf(d);
+    if (!b || !d.body) return null;
+    var had = d.querySelector('[data-lp-stamp]');
+    if (had) { had.textContent = buildLabel(b); return had; }
+    var n = d.createElement('p');
+    n.setAttribute('data-lp-stamp', '');
+    n.textContent = buildLabel(b);
+    n.setAttribute('style', 'margin:22px 0 6px;text-align:center;font-size:11px;'
+      + 'line-height:1;letter-spacing:.06em;font-variant-numeric:tabular-nums;'
+      + 'color:#98A0A8;user-select:text');
+    d.body.appendChild(n);
+    return n;
+  }
+
   return {
     STEPS: STEPS, WHY: WHY, EMBED_CSS: EMBED_CSS,
     SECTIONS: SECTIONS, sectionState: sectionState, sectionOfStep: sectionOfStep,
@@ -513,6 +567,7 @@
     FILES_SECTION: FILES_SECTION, TABS: TABS,
     stepState: stepState, urlFor: urlFor, stepOfFile: stepOfFile,
     sectionProgress: sectionProgress,
+    BUILD_ATTR: BUILD_ATTR, buildOf: buildOf, buildLabel: buildLabel, stampInto: stampInto,
     tokensLoaded: tokensLoaded, TOKENS_MISSING: TOKENS_MISSING,
     openSection: openSection, OPEN_EVENT: OPEN_EVENT,
   };

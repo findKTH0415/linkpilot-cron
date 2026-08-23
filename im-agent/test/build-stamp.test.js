@@ -66,9 +66,57 @@ test('★★ 지문을 다시 찍어도 값이 흔들리지 않는다 (자기 �
 });
 
 /** ★ 화면이 그 값을 **실제로 그리는지** 본다. 박아만 두고 안 보이면 소용이 없다 */
-test('★★ 자료 화면이 판 지문을 눈에 보이게 그린다', () => {
-  const src = fs.readFileSync(path.join(PLATFORM, 'files.html'), 'utf8');
-  assert.match(src, /getAttribute\('data-lp-build'\)/,
-    '화면이 판 지문을 읽지 않는다 — 박아 두기만 하면 사진에 안 나온다');
-  assert.match(src, /'판 ' \+ build/, '판 지문을 그리지 않는다');
+/**
+ * ★★★ **속성은 사진에 안 찍힌다** 〈2026-08-23 · 다섯 번째 왕복에서 잡았다〉.
+ *
+ *   앞 판 이 검사는 `files.html` **하나만**, 그것도 **소스를 문자열로 훑어서**
+ *   봤다. 그래서 나머지 다섯 화면이 지문을 **속성에만** 두고 있는 것을
+ *   여섯 달 동안 아무도 몰랐다 — 그리고 그 다섯 중 하나가 사장님이 실제로
+ *   찍어 보내시는 화면(`report-flow.html`)이었다.
+ *
+ *   ★ 그동안 나는 「판 b76a7fb3 입니다」라고 적고, 사장님은 그 값을 화면 어디에서도
+ *     찾을 수 없으셨다. **판을 가리라고 만든 장치를 아무도 못 보고 있었다.**
+ *
+ * ★ 그래서 **실제로 그려 본다.** 소스에 그리는 코드가 있는 것과 화면에 글자가
+ *   뜨는 것은 다른 말이다 — 이 저장소는 그 차이로 여러 번 속았다.
+ */
+test('★★★ 배포되는 화면 전부가 판 지문을 눈에 보이게 그린다', () => {
+  const os = require('os');
+  const { findBrowser, renderDom } = require(path.join(PLATFORM, 'build-static.js'));
+  if (!findBrowser()) return;   // 크로미움이 없는 서버가 실제로 있다
+
+  const want = stampMod.bundleHash();
+  const missing = [];
+
+  stampMod.pages().forEach((name) => {
+    /* ★ 미리보기 산출물은 빼고 **배포되는 화면**만 본다 */
+    if (/-(preview|static|artifact|inline|live)\.html$/.test(name)) return;
+    const dom = renderDom(findBrowser(), path.join(PLATFORM, name), 60000);
+    /* 스크립트 안의 글자가 아니라 **화면에 뜬 글자**를 본다 */
+    const body = dom.replace(/<script[\s\S]*?<\/script>/g, '');
+    if (body.indexOf('판 ' + want) === -1) missing.push(name);
+  });
+
+  assert.deepStrictEqual(missing, [],
+    `이 화면들이 판 지문을 화면에 안 보여 준다 — 사진으로 판을 가릴 수가 없다: ${missing.join(' · ')}`);
+});
+
+/**
+ * ★ 적는 말은 **한 곳에서만 만든다.** 두 벌이면 화면마다 다르게 적히고,
+ *   그러면 사장님이 두 화면을 비교하실 때 같은 판인지도 헷갈린다.
+ */
+test('★★ 지문 문구가 한 곳에서 나온다 (flow-core)', () => {
+  const F = require(path.join(PLATFORM, 'flow-core.js'));
+  assert.strictEqual(F.buildLabel('deadbeef'), '판 deadbeef');
+  assert.strictEqual(F.buildLabel(null), null, '지문이 없으면 아무 말도 하지 않는다');
+
+  /* ★ 화면들은 제 손으로 문구를 적지 않는다 — `stampInto` 한 곳을 거친다 */
+  ['files.html', 'report-flow.html', 'intake.html', 'fields.html', 'reports.html', 'outputs.html']
+    .forEach((n) => {
+      const src = fs.readFileSync(path.join(PLATFORM, n), 'utf8');
+      assert.match(src, /stampInto\(/, `${n} 이 판 지문을 안 찍는다`);
+      const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '');
+      assert.ok(!/'판 ' \+/.test(code),
+        `${n} 이 제 문구를 따로 적는다 — 두 벌이면 화면마다 다르게 적힌다`);
+    });
 });
