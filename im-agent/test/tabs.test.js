@@ -41,10 +41,11 @@ test('구성안: 주소로 올릴 수 있는 조각이다', () => {
  */
 test('구성안: 탭은 둘이고, 단계 안에 든 칸은 그렇다고 말한다', () => {
   const FLOWC = require('../ui/platform/flow-core.js');
-  assert.deepEqual(B.TABS.map(t => t.id), ['done', 'make', 'files']);
+  /* ★ 차례는 flow-core 를 따른다 — 만들기가 먼저다 〈2026-08-23 사장님 지시〉 */
+  assert.deepEqual(B.TABS.map(t => t.id), ['make', 'done', 'files']);
 
   const inTab = B.TABS.filter(t => !t.inStep).map(t => t.id);
-  assert.deepEqual(inTab, ['done', 'make'], '앱 탭 바에 뜨는 것은 둘이어야 한다');
+  assert.deepEqual(inTab, ['make', 'done'], '앱 탭 바에 뜨는 것은 둘이어야 한다');
   assert.deepEqual(inTab, FLOWC.TABS.map(t => t.id),
     '구성안의 탭과 flow-core 의 TABS 가 다르다 — 한쪽만 고친 것이다');
 
@@ -59,7 +60,7 @@ test('구성안: 탭은 둘이고, 단계 안에 든 칸은 그렇다고 말한�
   // 2026-08-17 「완성 보고서」, 2026-08-18 「자료 업로드」 화면을 만들어 **셋 다** 있다.
   // ★ 화면이 있다는 것과 **열려 있다**는 것은 다르다 — 연결·1회성은 본체가 함수를
   //   넘겨야 열리고, 그 전까지 화면은 501 을 「아직」으로 그린다 (files.html).
-  assert.deepEqual(B.TABS.filter(t => t.state === 'have').map(t => t.id), ['done', 'make', 'files']);
+  assert.deepEqual(B.TABS.filter(t => t.state === 'have').map(t => t.id), ['make', 'done', 'files']);
   assert.deepEqual(B.TABS.filter(t => t.state !== 'have'), []);
 });
 

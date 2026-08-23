@@ -44,9 +44,11 @@ const codeOf = (html) => html.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\
  *   아래 ②가 그 화면이 여전히 배포 묶음에 실리는지를 따로 잰다.
  */
 test('★ 탭 둘이 flow-core 한 곳에서 나온다 (본체가 여기서 읽어 간다)', () => {
+  /* ★ 차례도 잰다 〈2026-08-23 사장님 지시〉 — **만들기가 먼저**다. 이 화면에
+     처음 오는 사람이 할 일은 만드는 것이고, 완성본은 그다음에 보는 곳이다 */
   assert.deepStrictEqual(F.TABS.map(t => t.tab),
-    ['완성 보고서', '보고서 만들기']);
-  assert.deepStrictEqual(F.TABS.map(t => t.id), ['done', 'make']);
+    ['보고서 만들기', '완성 보고서']);
+  assert.deepStrictEqual(F.TABS.map(t => t.id), ['make', 'done']);
   F.TABS.forEach((t) => {
     assert.ok(t.file && /\.html$/.test(t.file), `${t.id}: 붙일 파일이 없다`);
     assert.ok(fs.existsSync(path.join(PLATFORM, t.file)),
