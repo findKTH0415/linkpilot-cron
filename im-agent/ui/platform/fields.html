@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="92adc0d7">
+<html lang="ko" data-lp-build="aa04f6b4">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -21,7 +21,7 @@
   ★ 범위를 벗어난 값은 막지 않고 경고만 한다. 여기서 막으면 05 Validation 이
     RED FLAG 로 잡아야 할 이상값이 화면에서 사라진다.
 -->
-<link rel="stylesheet" href="tokens.css?v=92adc0d7">
+<link rel="stylesheet" href="tokens.css?v=aa04f6b4">
 <style>
 :root {
   --side: 248px;
@@ -297,12 +297,12 @@ ul { margin: 0; padding: 0; list-style: none; }
   </main>
 </div>
 
-<script src="gate-core.js?v=92adc0d7"></script>
-<script src="catalog.js?v=92adc0d7"></script>
-<script src="inapp.js?v=92adc0d7"></script>
-<script src="fields-core.js?v=92adc0d7"></script>
+<script src="gate-core.js?v=aa04f6b4"></script>
+<script src="catalog.js?v=aa04f6b4"></script>
+<script src="inapp.js?v=aa04f6b4"></script>
+<script src="fields-core.js?v=aa04f6b4"></script>
 <!-- ★ 판 지문을 화면에 보이게 찍는 것이 여기 있다 (§8) — 묶음에 이미 실리는 파일이다 -->
-<script src="flow-core.js?v=92adc0d7"></script>
+<script src="flow-core.js?v=aa04f6b4"></script>
 <script>
 /**
  * 설정 — 서버가 세션을 보고 이 블록을 만들어 내려주는 것이 정석이다.
@@ -317,7 +317,7 @@ window.LINKPILOT_FIELDS_CFG = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=92adc0d7" data-lp-global="LINKPILOT_FIELDS_CFG"></script>
+<script src="embed-bridge.js?v=aa04f6b4" data-lp-global="LINKPILOT_FIELDS_CFG"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -376,6 +376,10 @@ window.LINKPILOT_FIELDS_CFG = {
     factsLocked: null,
     readAt: null,
     conflicts: 0,
+    /* ★ 3단계가 뽑은 값의 수 — 이 표에 들어온 수와 **나란히 적어야** 어디서
+     *   없어졌는지 물어볼 수 있다 〈2026-08-24〉 */
+    extraction: null,
+    rejected: 0,
     sample: false,
     /* ★ **고치는 중인 줄만** 입력 상자를 연다 〈2026-08-23 사장님 지시:
      *   「입력필드를 삭제하고 자동으로 분석된 입력 값으로 표기」〉.
@@ -466,6 +470,8 @@ window.LINKPILOT_FIELDS_CFG = {
         state.sources = C.preloadFacts.sources || [];
         state.readAt = C.preloadFacts.readAt || null;
         state.conflicts = C.preloadFacts.conflicts || 0;
+        state.extraction = C.preloadFacts.extraction || null;
+        state.rejected = C.preloadFacts.rejected || 0;
         state.sample = !!C.preloadFacts.sample;
         Object.keys(state.server).forEach(function (k) {
           var v = state.server[k];
@@ -513,6 +519,8 @@ window.LINKPILOT_FIELDS_CFG = {
         state.sources = res[1].sources || [];
         state.readAt = res[1].readAt || null;
         state.conflicts = res[1].conflicts || 0;
+        state.extraction = res[1].extraction || null;
+        state.rejected = res[1].rejected || 0;
         state.assetClass = res[1].assetClass || null;
         // 서버 값을 편집 상태로 복사한다 (원본은 되돌리기용으로 둔다)
         Object.keys(state.server).forEach(function (k) {
@@ -929,6 +937,27 @@ window.LINKPILOT_FIELDS_CFG = {
       card.appendChild(b);
     }
 
+    /* ★★★ **읽은 것과 표에 들어온 것을 나란히 적는다** 〈2026-08-24 사장님 화면〉.
+     *
+     *   3단계는 「문서 15건에서 값 87개」라고 했는데 이 화면은 **「2개」**만
+     *   보여 줬다. 두 숫자가 같은 자리에 없으니 **어디서 없어졌는지 물어볼
+     *   수조차 없었다** — 「안 읽혔나」와 「읽었는데 표에 안 들어왔나」가
+     *   구분이 안 된다.
+     *
+     * ★ 값 87개는 **항목 87개가 아니다.** 같은 항목을 여러 문서에서 뽑으면
+     *   표에서는 한 줄이 되고, 항목표에 없는 값은 애초에 안 들어온다.
+     *   그 셈을 여기서 말한다 — 그래야 다음에 무엇을 볼지 정해진다. */
+    var ex = state.extraction;
+    if (ex && ex.factCount) {
+      var gap = el('div', 'ev__note');
+      gap.textContent = '자료 ' + ex.documents + '건을 읽어 값 ' + ex.factCount + '개를 뽑았고, '
+        + '그중 이 표의 항목이 된 것은 ' + ev.total + '개입니다'
+        + (ex.at ? ' (읽은 시각 ' + String(ex.at).slice(0, 16).replace('T', ' ') + ')' : '')
+        + '. 같은 항목을 여러 자료에서 뽑으면 표에서는 한 줄이 되고, '
+        + '항목표에 없는 값은 들어오지 않습니다.'
+        + (state.rejected ? ' 규칙에 안 맞아 버려진 값이 ' + state.rejected + '개 있습니다.' : '');
+      card.appendChild(gap);
+    }
     if (ev.noSource) {
       card.appendChild(el('div', 'ev__note',
         '출처가 없는 값 ' + ev.noSource + '개 — 이대로는 저장되지 않습니다.'));

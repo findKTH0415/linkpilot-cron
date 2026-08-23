@@ -131,3 +131,41 @@ test('★★ 서버가 읽은 시각과 충돌 건수를 준다', () => {
   assert.ok(api.indexOf('readAt:') !== -1, 'getFacts 가 읽은 시각을 안 준다');
   assert.ok(api.indexOf('conflicts:') !== -1, 'getFacts 가 충돌 건수를 안 준다');
 });
+
+/* ── 읽은 것과 표에 들어온 것을 나란히 말하는가 ───────────── */
+
+/**
+ * ★★★ **두 숫자가 같은 자리에 없어서 물어볼 수조차 없었다** 〈2026-08-24 사장님 화면〉.
+ *
+ *   3단계는 「문서 15건에서 값 87개를 만들었습니다」라고 했는데
+ *   4단계는 **「2개」**만 보여 줬다. 그 상태로는 「안 읽혔나」와
+ *   「읽었는데 표에 안 들어왔나」가 구분이 안 된다 — 고칠 곳이 다른데.
+ *
+ * ★ 값 87개는 **항목 87개가 아니다.** 같은 항목을 여러 자료에서 뽑으면
+ *   표에서는 한 줄이 되고, 항목표에 없는 값은 애초에 안 들어온다.
+ *   그 셈을 화면이 말해야 다음에 무엇을 볼지 정해진다.
+ */
+const path2 = require('node:path');
+const fs2 = require('node:fs');
+
+test('★★★ 서버가 3단계의 셈(문서 수·값 수)을 함께 준다', () => {
+  /* ★ 주석은 떼고 본다 (CLAUDE.md §8) */
+  const src = fs2.readFileSync(path2.join(__dirname, '..', 'ui', 'report-api.cjs'), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  assert.ok(/extraction: \(\(\) => \{/.test(src), '3단계의 셈을 안 준다');
+  assert.ok(src.indexOf("'01_Project/extraction.json'") !== -1, '추출 기록을 안 읽는다');
+  assert.ok(/rejected: \(json && Array\.isArray\(json\.conflicts\)\)/.test(src),
+    '버려진 값을 안 센다 — 조용히 버려지는 것이 가장 나쁘다');
+});
+
+test('★★★ 화면이 두 숫자를 **나란히** 적는다', () => {
+  const src = fs2.readFileSync(path2.join(__dirname, '..', 'ui', 'platform', 'fields.html'), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  assert.ok(src.indexOf('그중 이 표의 항목이 된 것은') !== -1,
+    '읽은 값과 표에 들어온 값을 나란히 안 적는다 — 어디서 없어졌는지 물어볼 수가 없다');
+  assert.ok(src.indexOf('항목표에 없는 값은 들어오지 않습니다') !== -1,
+    '왜 줄어드는지를 안 말한다 — 고장으로 읽힌다');
+  assert.ok(/state\.extraction = res\[1\]\.extraction/.test(src), '서버가 준 셈을 안 받는다');
+  assert.ok(/state\.extraction = C\.preloadFacts\.extraction/.test(src),
+    '앱이 미리 넘겨준 경우에 안 받는다 — 그 길로 들어오면 여전히 안 보인다');
+});

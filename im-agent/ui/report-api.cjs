@@ -1205,6 +1205,31 @@ function createHandlers(deps) {
         readAt: (json && json.resolvedAt) || null,
         // ★ 값이 갈린 항목 수. 0 이 아니면 화면이 그 사실을 적는다
         conflicts: (json && Array.isArray(json.conflicts)) ? json.conflicts.length : 0,
+        /**
+         * ★★★ **읽은 것과 표에 들어온 것을 **둘 다** 준다** 〈2026-08-24 사장님 화면〉.
+         *
+         *   3단계는 「문서 15건에서 값 87개를 만들었습니다」라고 했는데
+         *   4단계는 **「2개」**만 보여 줬다. 그 둘이 같은 화면에 없으니
+         *   **어디서 없어졌는지 물어볼 수조차 없다** — 「안 읽혔나」와
+         *   「읽었는데 표에 안 들어왔나」가 구분이 안 된다.
+         *
+         * ★ 값 87개는 **항목 87개가 아니다.** 같은 항목을 여러 문서에서
+         *   뽑으면 표에서는 한 줄이 되고, 항목표(FIELDS)에 없는 값은
+         *   애초에 들어오지 않는다. 그 셈을 화면이 말할 수 있어야 한다.
+         * ★ 버려진 값(REJECTED)도 센다 — 조용히 버려지는 것이 가장 나쁘다.
+         */
+        extraction: (() => {
+          const ex = store.readJson(projectId, '01_Project/extraction.json', null);
+          if (!ex) return null;
+          return {
+            at: ex.at || null,
+            documents: Array.isArray(ex.documents) ? ex.documents.length : 0,
+            factCount: ex.factCount || 0,
+            unsupported: Array.isArray(ex.unsupported) ? ex.unsupported.length : 0,
+          };
+        })(),
+        rejected: (json && Array.isArray(json.conflicts))
+          ? json.conflicts.filter((c) => c && c.type === 'REJECTED').length : 0,
         assetClass: meta.assetClass || null,
         assetType: meta.assetType || null,
         templateId: meta.templateId || null,

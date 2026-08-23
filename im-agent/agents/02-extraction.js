@@ -490,10 +490,21 @@ async function run(input, ctx) {
   const perFile = await mapLimited(dd.keep, CONCURRENCY, async (file) => {
     const warns = [];
     const warn = (m) => warns.push(m);
+    /* ★★★ **시간이 어디로 가는지 잰다** 〈2026-08-23 사장님: 「너무 오래걸려」〉.
+     *   앞 판은 **총 시간만** 알 수 있었다. 8분이라는 것은 알겠는데 그 8분이
+     *   OCR 인지 LLM 보완인지 알 수가 없으니, 다음에 무엇을 줄일지 정할 수가 없다.
+     *   ★ 재는 장치를 넣을 때는 **「빨간색이 나오면 다음에 무엇을 보는가」**를
+     *     함께 정한다 (MEMORY M-30). 여기서는 걸음마다 초를 남긴다. */
+    const t0 = Date.now();
+    let msOcr = 0;
 
     let r = toText(file);
     // 규칙으로 못 읽었지만 OCR 이 해 볼 만한 파일 (스캔 PDF · 이미지 · 규격 밖 옛 문서)
-    if (r.error && r.ocr) r = await tryOcr(file, r.ocr, warn);
+    if (r.error && r.ocr) {
+      const s0 = Date.now();
+      r = await tryOcr(file, r.ocr, warn);
+      msOcr = Date.now() - s0;
+    }
 
     const { text, error, via } = r;
     if (error) {
@@ -530,18 +541,24 @@ async function run(input, ctx) {
     }
 
     // LLM 보완: 이 문서에서 규칙이 못 찾은 필수 항목만
+    let msLlm = 0;
     if (input.useLlm !== false && !llm.isOffline()) {
       const got = new Set(mine.map(f => f.key));
       const missing = Object.keys(FIELDS).filter(k => !got.has(k)).slice(0, 25);
+      const s1 = Date.now();
       try {
         const extra = await llmSupplement(text, missing, file.name, warn);
         for (const f of extra) mine.push({ ...f, source: file.name });
       } catch (e) {
         warns.push(`${file.name} LLM 보완 실패(규칙 추출 결과는 유지): ${e.message}`);
       }
+      msLlm = Date.now() - s1;
     }
     doc.facts = mine.length;
-    return { warns, doc, facts: mine };
+    doc.ms = Date.now() - t0;
+    doc.msOcr = msOcr;
+    doc.msLlm = msLlm;
+    return { warns, doc, facts: mine, ms: doc.ms };
   });
 
   /* ★ 넣은 차례 그대로 편다 */
@@ -552,6 +569,19 @@ async function run(input, ctx) {
     if (r.doc) documents.push(r.doc);
     if (r.facts) facts.push(...r.facts);
   });
+
+  /* ★★ **어디에 시간이 갔는지 한 줄로 말한다.** 총 시간만 알면 다음에 무엇을
+   *   줄일지 정할 수가 없다. 걸린 순서대로 가장 오래 걸린 셋을 적는다 */
+  const timed = documents.filter((d) => d.ms >= 0);
+  if (timed.length) {
+    const sum = (k) => timed.reduce((a, d) => a + (d[k] || 0), 0);
+    const sec = (ms) => (ms / 1000).toFixed(1) + '초';
+    const slow = timed.slice().sort((a, b) => (b.ms || 0) - (a.ms || 0)).slice(0, 3)
+      .map((d) => `${d.name} ${sec(d.ms)}`).join(' · ');
+    ctx.warn(`읽는 데 걸린 시간: 합계 ${sec(sum('ms'))} `
+      + `(OCR ${sec(sum('msOcr'))} · LLM 보완 ${sec(sum('msLlm'))}) `
+      + `· 한 번에 ${CONCURRENCY}개씩 읽었다 · 오래 걸린 것: ${slow}`);
+  }
 
   if (!files.length) ctx.warn('02_Source_Data 에 원본자료가 없다 — 추출할 것이 없음');
 
