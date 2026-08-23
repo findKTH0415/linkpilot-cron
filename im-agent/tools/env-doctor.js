@@ -33,6 +33,9 @@ const env = require('../core/env.js');
 
 const say = (s) => process.stdout.write(s + '\n');
 
+/** 구글이 실제로 내주는 열쇠 앞머리들. 새 모양이 나오면 여기에 더한다 */
+const KEY_SHAPES = ['AIza', 'AQ.'];
+
 /** 사람이 읽는 한 줄 진단. 값은 안 담는다 */
 function inspect(file) {
   const out = { file, kind: '없다' };
@@ -104,10 +107,17 @@ function main() {
     say('GEMINI_API_KEY: **비어 있다** → OCR 은 꺼진 채로 돈다');
   } else {
     const marks = [`길이 ${key.length}`];
-    marks.push(key.slice(0, 4) === 'AIza' ? '앞 네 글자 AIza (맞는 모양)' : '**앞 네 글자가 AIza 가 아니다**');
+    /* ★★ **열쇠 모양은 하나가 아니다** 〈2026-08-23 · 하마터면 멀쩡한 열쇠를
+     *   틀렸다고 할 뻔했다〉. 구글 AI 스튜디오는 예전 `AIza…` 말고 `AQ.…` 로
+     *   시작하는 열쇠도 준다. 아는 모양이 아니라고 **틀렸다고 단정하지 않는다**
+     *   (§4.9) — 모르는 것은 모른다고만 적는다. */
+    const shape = KEY_SHAPES.find((k) => key.slice(0, k.length) === k);
+    marks.push(shape ? `${shape}… 로 시작 (아는 모양)` : '앞머리가 아는 모양이 아니다 (틀렸다는 뜻은 아니다)');
     if (/^["']|["']$/.test(key)) marks.push('**따옴표가 값에 섞였다**');
     if (/\s/.test(key)) marks.push('**빈칸·줄바꿈이 값에 섞였다**');
-    if (/여기에|붙여넣|YOUR|xxx/i.test(key)) marks.push('**자리표시자가 그대로 들어 있다**');
+    /* ★ 「xxx」 하나로 잡으면 진짜 열쇠에 그 세 글자가 들어 있을 때 멀쩡한 것을
+     *   틀렸다고 한다. 안내문에 실제로 쓰는 말만 본다 */
+    if (/여기에|붙여넣|YOUR_|_HERE/i.test(key)) marks.push('**자리표시자가 그대로 들어 있다**');
     say(`GEMINI_API_KEY: ${marks.join(' · ')}`);
   }
 

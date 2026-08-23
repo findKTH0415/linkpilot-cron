@@ -1012,8 +1012,15 @@ test('★★★ 진단이 **값을 안 찍는다** — 로그는 남는다 (§2)
     .map((l) => l.replace(/key\.length|key\.slice\(0, 4\)/g, 'X'));
   const leaks = printed.filter((l) => /\bkey\b/.test(l));
   assert.deepStrictEqual(leaks, [], `열쇠 값을 그대로 찍는 줄이 있다: ${leaks.join(' / ')}`);
-  assert.ok(code.indexOf('key.slice(0, 4)') !== -1,
-    '앞 네 글자만 보는 검사가 없다 — 자리표시자·따옴표를 못 가른다');
+  assert.ok(code.indexOf('KEY_SHAPES') !== -1,
+    '앞머리를 보는 검사가 없다 — 자리표시자·따옴표를 못 가른다');
+  /* ★★ 아는 모양이 아니라고 **틀렸다고 단정하지 않는다** 〈2026-08-23 · §4.9〉.
+     구글은 `AIza…` 말고 `AQ.…` 열쇠도 준다. 하나만 알고 있으면 멀쩡한 열쇠를
+     틀렸다고 말하고, 사장님은 맞는 것을 다시 만드느라 시간을 쓴다 */
+  assert.ok(/KEY_SHAPES = \['AIza', 'AQ\.'\]/.test(code),
+    '아는 열쇠 모양이 하나뿐이다 — 새 모양 열쇠를 틀렸다고 말한다');
+  assert.ok(code.indexOf('틀렸다는 뜻은 아니다') !== -1,
+    '모르는 모양을 「틀렸다」로 적는다 (§4.9)');
   assert.ok(code.indexOf('IM_AGENT_OFFLINE') !== -1,
     '강제 오프라인을 안 본다 — 열쇠가 멀쩡해도 꺼져 있을 수 있다');
 });
