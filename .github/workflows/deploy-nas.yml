@@ -803,6 +803,59 @@ jobs:
           echo "앱 경로 확인: ${OK} 개 일치" >> "$GITHUB_STEP_SUMMARY"
           exit "$BAD"
 
+      # ★★★ **열쇠를 배포가 놓는다** 〈2026-08-23 · 사람 손으로 세 번 실패했다〉.
+      #
+      #   OCR 열쇠를 사장님이 손으로 NAS 에 놓으시게 했다. **세 번 다 실패했다:**
+      #     ① `.env` 라는 **폴더**가 만들어졌다 (File Station 의 [생성] 에는
+      #        폴더밖에 없다 — 없는 메뉴를 안내하고 있었다)
+      #     ② 파일 이름이 `linkpilot.env.env` 가 됐다 (맥이 확장자를 또 붙인다)
+      #     ③ **서식 문서(RTF)로 저장됐다.** 그리고 고치신 뒤에도 NAS 의 파일은
+      #        지문까지 그대로였다 — 새 파일이 아예 안 올라갔다
+      #
+      #   ★★ 실패한 자리가 매번 달랐다. **길 자체가 함정이 넷**이기 때문이다
+      #     (서식 모드 · 확장자 · 업로드 건너뛰기 · 숨김 파일). 안내를 더 잘
+      #     쓰는 것으로 될 일이 아니다 — **그 길을 안 쓰게 하는 것이 고치는 것**이다.
+      #
+      #   ★ 그래서 GitHub Secret 에 넣으신 값을 **배포가 파일로 놓는다.**
+      #     Secret 칸은 그냥 글자 상자다 — 서식도 확장자도 업로드 대화상자도 없다.
+      #     CLAUDE.md §2 가 원래 말하던 자리이기도 하다 (「GitHub Secrets만 사용한다」).
+      #
+      #   ★ Secret 이 **없으면 아무것도 안 건드린다.** 손으로 놓아 둔 파일을
+      #     빈 값으로 덮는 일은 만들지 않는다.
+      #   ★ 덮기 전에 **되돌릴 자리를 만든다** (`linkpilot.env.bak-<시각>`).
+      #   ★ 값은 파이프로만 흐른다 — `echo` 로 찍지 않고 명령줄 인자로도 안 넘긴다
+      #     (인자는 NAS 의 프로세스 목록에 잠깐 뜬다). §2.
+      #   ★ **엔진 배포보다 앞**이다. 엔진은 뜰 때 열쇠를 읽으므로, 뒤에 두면
+      #     이번 판이 아니라 **다음 배포부터** 켜진다.
+      - name: Write engine key (GEMINI_API_KEY)
+        if: ${{ needs.plan.outputs.dry_run != 'true' && needs.plan.outputs.engine == 'true' }}
+        env:
+          NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+          NAS_USER: ${{ secrets.NAS_SSH_USER }}
+          ENGINE_ROOT: ${{ vars.LP_ENGINE_ROOT || '/volume1/docker/linkpilot' }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          set -u
+          if [ -z "${GEMINI_API_KEY:-}" ]; then
+            echo "열쇠 Secret 이 없다 — NAS 의 열쇠 파일을 **안 건드렸다**"
+            echo "::notice::**GEMINI_API_KEY Secret 이 비어 있다.** 그래서 NAS 의 열쇠 파일은 그대로 두었다. Secret 에 넣으면 배포가 파일을 대신 놓는다 — 손으로 만들 필요가 없다."
+            exit 0
+          fi
+          STAMP=$(TZ=Asia/Seoul date +%Y%m%d%H%M)
+          # ★ 값은 stdin 으로만 간다. 원격 셸은 그것을 그대로 파일에 붓는다
+          if printf 'GEMINI_API_KEY=%s\n' "$GEMINI_API_KEY" | ssh -o BatchMode=yes -o ConnectTimeout=20 \
+              -i ~/.ssh/id_deploy "$NAS_USER@$NAS_HOST" \
+              "cd '$ENGINE_ROOT' || exit 9
+               [ -f linkpilot.env ] && cp -p linkpilot.env 'linkpilot.env.bak-$STAMP'
+               umask 177 && cat > linkpilot.env
+               ls -l linkpilot.env | awk '{print \$1, \$5\"바이트\"}'"; then
+            echo "::notice::**열쇠 파일을 배포가 놓았다.** 엔진 루트의 linkpilot.env 를 Secret 값으로 새로 썼다 — 손으로 만드실 필요가 없다. 앞 판은 linkpilot.env.bak-$STAMP 로 남겼다."
+            echo "열쇠 파일: 배포가 새로 놓았다 (앞 판은 linkpilot.env.bak-$STAMP)" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::error::**열쇠 파일을 못 놓았다.** 엔진 루트에 쓸 수 없거나 ssh 가 안 붙었다 — 아래 진단이 옛 파일을 그대로 말할 것이다"
+            exit 1
+          fi
+
       # ★★★ **엔진을 올린다** 〈2026-08-23 · D-88 — 「모든 파일과 구조를 정립해줘」〉.
       #
       #   여기가 이 저장소에 **없던 자리**다. 화면 열여섯은 위에서 올렸고,

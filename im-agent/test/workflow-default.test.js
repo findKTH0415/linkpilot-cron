@@ -1025,15 +1025,73 @@ test('★★★ 진단이 **값을 안 찍는다** — 로그는 남는다 (§2)
     '강제 오프라인을 안 본다 — 열쇠가 멀쩡해도 꺼져 있을 수 있다');
 });
 
+/**
+ * ★★★ **열쇠를 배포가 놓는다** 〈2026-08-23 · 사람 손으로 세 번 실패했다〉.
+ *
+ *   ① `.env` 라는 **폴더**가 만들어졌다 (File Station 의 [생성] 에는 폴더뿐)
+ *   ② 이름이 `linkpilot.env.env` 가 됐다 (맥이 확장자를 또 붙인다)
+ *   ③ **서식 문서(RTF)로 저장됐고**, 고치신 뒤에도 NAS 의 파일은 지문까지
+ *      그대로였다 — 새 파일이 아예 안 올라갔다
+ *
+ * ★ 실패한 자리가 매번 달랐다. **길 자체에 함정이 넷**이라서다. 안내를 더 잘
+ *   쓰는 것으로 될 일이 아니고, **그 길을 안 쓰게 하는 것이 고치는 것**이다.
+ */
+test('★★★ Secret 이 있으면 배포가 열쇠 파일을 대신 놓는다', () => {
+  const wf = fs.readFileSync(path.join(WF, 'deploy-nas.yml'), 'utf8');
+  const at = wf.indexOf('- name: Write engine key (GEMINI_API_KEY)');
+  assert.ok(at > -1, '열쇠를 놓는 단계가 없다 — 사람이 File Station 과 싸우게 된다');
+  const step = wf.slice(at, wf.indexOf('- name: Deploy engine'));
+
+  /* ★★ **엔진보다 앞이어야 한다.** 엔진은 뜰 때 열쇠를 읽으므로, 뒤에 두면
+   *   이번 판이 아니라 다음 배포부터 켜진다 */
+  assert.ok(at < wf.indexOf('- name: Deploy engine (D-87'),
+    '열쇠를 엔진 재시작 뒤에 놓는다 — 이번 판에는 안 켜진다');
+
+  /* ★★★ **값이 로그로도 프로세스 목록으로도 안 샌다** (CLAUDE.md §2) */
+  assert.deepStrictEqual(step.match(/echo[^\n]*\$GEMINI_API_KEY/g) || [], [],
+    '열쇠 값을 로그에 찍는다');
+  assert.deepStrictEqual(step.match(/ssh[^\n|]*\$GEMINI_API_KEY/g) || [], [],
+    '열쇠를 명령줄 인자로 넘긴다 — NAS 의 프로세스 목록에 잠깐 뜬다');
+  assert.ok(/printf[^\n]*\|\s*ssh/.test(step),
+    '값이 stdin 으로 흐르지 않는다');
+
+  /* ★★ Secret 이 없으면 **아무것도 안 건드린다** — 빈 값으로 덮으면 손으로
+   *   놓아 둔 파일이 사라진다 (§4.9) */
+  assert.ok(/if \[ -z "\$\{GEMINI_API_KEY:-\}" \]/.test(step),
+    'Secret 이 비었는지 안 본다 — 빈 값으로 덮는다');
+  assert.ok(step.indexOf('안 건드렸다') !== -1, '안 건드렸다는 것을 말하지 않는다');
+
+  /* ★ 되돌릴 자리를 먼저 만든다 */
+  assert.ok(step.indexOf('linkpilot.env.bak-') !== -1,
+    '덮기 전에 되돌릴 자리를 안 만든다');
+  /* ★ 남이 읽으면 안 되는 파일이다 */
+  assert.ok(step.indexOf('umask 177') !== -1, '파일 권한을 안 좁힌다');
+  /* ★ 못 놓았으면 **빨갛게 끝난다** — 조용히 넘어가면 진단이 옛 파일을 말한다 */
+  assert.ok(step.indexOf('::error::') !== -1, '못 놓아도 초록으로 끝난다');
+});
+
 test('★★ OCR 켜는 법이 문서로 있다 (사장님이 손으로 하실 일이다)', () => {
   const doc = fs.readFileSync(
     path.join(ROOT, 'docs', '자료를-더-읽게-하는-법-OCR-켜기.md'), 'utf8');
   /* ★ 낯선 말은 풀어 준다 · 어디를 눌러야 하는지 적는다 (CLAUDE.md §5) */
   assert.ok(doc.indexOf('File Station') !== -1, '마우스로 되는 길을 안 준다');
-  assert.ok(doc.indexOf('숨김 파일 표시') !== -1,
-    '점으로 시작하는 파일이 안 보이는 것을 미리 안 짚는다 — 여기서 대개 막힌다');
+  /* ★★★ **손으로 파일을 만드는 길은 폐기했다** 〈2026-08-23 · 세 번 실패〉.
+     이제 Secret 칸에 붙여 넣으면 배포가 파일을 대신 놓는다. 문서가 그 길을
+     **어디를 눌러야 하는지까지** 적어야 한다 (§5) */
+  assert.ok(doc.indexOf('Secrets and variables') !== -1,
+    'Secret 을 어디서 넣는지 메뉴 이름으로 안 적었다');
+  assert.ok(doc.indexOf('New repository secret') !== -1, '누를 단추 이름이 없다');
+  assert.ok(/Name.*칸에 정확히: `GEMINI_API_KEY`/.test(doc),
+    '이름을 정확히 무엇으로 적어야 하는지가 없다 — 한 글자만 달라도 안 읽힌다');
+  /* ★★ **여기서 실제로 한 번 헛돌았다** — dry_run 기본값이 true 라 그냥 누르면
+     아무것도 안 올라간다. 미리 짚지 않으면 「했는데 안 된다」가 된다 */
+  assert.ok(/`dry_run` 을 `false` 로/.test(doc),
+    'dry_run 기본값이 true 인 것을 안 짚는다 — 눌러도 아무것도 안 올라간다');
   assert.ok(doc.indexOf('따옴표로 감싸지 않습니다') !== -1,
     '따옴표를 감싸면 인증만 실패하고 이유가 안 보인다');
+  /* ★ 왜 길을 바꿨는지를 남긴다 — 안 적으면 반년 뒤에 손으로 놓는 길로 되돌린다 */
+  assert.ok(doc.indexOf('세 번 다 실패했습니다') !== -1,
+    '앞 길이 왜 폐기됐는지가 없다');
   /* ★ 붙여 넣을 명령에 「바꿔 넣을 자리」를 두지 않는다 — 터미널 명령이 없어야 한다 */
   assert.ok(!/^\s*ssh /m.test(doc), '터미널 명령이 들어 있다 — 마우스 길만 준다');
 });
