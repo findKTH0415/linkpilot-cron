@@ -329,6 +329,19 @@ function createHandlers(deps) {
           const rootDir = d.agentRoot || process.env.IM_AGENT_ROOT;
           if (rootDir) fs.writeFileSync(path.join(rootDir, issuerMod.FILE), JSON.stringify(issuerValue, null, 2));
         }
+        /**
+         * ★★ **쓴 주체는 자동으로 기억한다** 〈2026-08-23 사장님 지시:
+         *   「자동 저장된 기업은 선택시 자동 노출」〉.
+         *
+         *   따로 「저장」을 누르게 하지 않는다 — 누르는 장치는 안 눌린다
+         *   (D-86 에서 배운 것과 같은 결이다). 「앞으로도 이 주체를 씁니다」
+         *   체크와는 **다른 것**이다: 저쪽은 기본값 하나를 바꾸는 것이고
+         *   이쪽은 고를 수 있는 목록에 얹는 것이다.
+         *
+         *   ★ 실패해도 던지지 않는다. 목록은 편의 기능이고, 이것 때문에
+         *     프로젝트 생성이 죽으면 안 된다 (§4.6).
+         */
+        issuerMod.remember(issuerValue, kstStamp(new Date()));
       }
 
       /**
@@ -1043,6 +1056,8 @@ function createHandlers(deps) {
       const store = load('core/store');
       if (!fs.existsSync(store.projectDir(projectId))) return bad('프로젝트를 찾을 수 없습니다', 404);
       store.writeJson(projectId, '01_Project/issuer.json', norm.value);
+      // ★ 여기서도 목록에 얹는다 — 고쳐 쓴 주체가 다음번에 안 뜨면 이상하다
+      issuerMod.remember(norm.value, kstStamp(new Date()));
 
       if (body && body.issuerAsDefault) {
         const rootDir = d.agentRoot || process.env.IM_AGENT_ROOT;

@@ -198,6 +198,17 @@ function createHandlers({ agentRoot, agentModulePath }) {
         current = Object.assign({}, issuer.UNSET);
         issuerError = e.message;
       }
+      /**
+       * ★★ **전에 쓴 발행 주체 목록** 〈2026-08-23 사장님 지시: 「저장된 회사를
+       *   선택할수 있도록 · 자동 저장된 기업은 선택시 자동 노출」〉.
+       *
+       *   `listForClient()` 는 로고를 **총량 한도 안에서만** 싣는다 —
+       *   `/intake` 는 화면이 열릴 때마다 부르는 길이라, 로고 8건을 그대로
+       *   실으면 화면이 늦게 뜬다. 뺀 항목에는 `logoOmitted:true` 가 붙고
+       *   화면이 그 사실을 적는다 (조용히 빼면 지워진 줄 안다).
+       */
+      let issuers = [];
+      try { issuers = issuer.listForClient(); } catch (_) { issuers = []; }
 
       return {
         status: 200,
@@ -210,6 +221,7 @@ function createHandlers({ agentRoot, agentModulePath }) {
           })),
           financeTemplates: Object.keys(TEMPLATES).map(id => ({ id, label: TEMPLATES[id].label })),
           issuer: current,
+          issuers,
           issuerError,
           issuerLimits: issuer.LIMITS,
           supported: {

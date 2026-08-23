@@ -180,7 +180,12 @@ async function build() {
   const fieldsInfo = (await h.fields()).body;
 
   const INJECT = {
-    'intake.html': { global: 'LINKPILOT_INTAKE', value: { preload: intakeInfo } },
+    'intake.html': { global: 'LINKPILOT_INTAKE',
+      /* ★ 저장된 발행 주체 목록은 미리보기 서버에 없다(im-projects 가 없다).
+       *   비워 두면 「저장된 회사 고르기」가 화면에 아예 안 나와 **바꾼 것을
+       *   확인할 수 없다** (§8). 그래서 예시 둘을 심고 **예시라고 화면에
+       *   박는다** — `issuersSample` 을 화면이 읽어 그 줄을 적는다. */
+      value: { preload: { ...intakeInfo, issuers: SAMPLE_ISSUERS, issuersSample: true } } },
     'fields.html': { global: 'LINKPILOT_FIELDS_CFG',
       value: { preload: fieldsInfo, preloadFacts: previewFacts() } },
   };
@@ -325,7 +330,12 @@ async function buildSectionDocs() {
   const intakeInfo = (await h.intake()).body;
   const fieldsInfo = (await h.fields()).body;
   const INJECT = {
-    'intake.html': { global: 'LINKPILOT_INTAKE', value: { preload: intakeInfo } },
+    'intake.html': { global: 'LINKPILOT_INTAKE',
+      /* ★ 저장된 발행 주체 목록은 미리보기 서버에 없다(im-projects 가 없다).
+       *   비워 두면 「저장된 회사 고르기」가 화면에 아예 안 나와 **바꾼 것을
+       *   확인할 수 없다** (§8). 그래서 예시 둘을 심고 **예시라고 화면에
+       *   박는다** — `issuersSample` 을 화면이 읽어 그 줄을 적는다. */
+      value: { preload: { ...intakeInfo, issuers: SAMPLE_ISSUERS, issuersSample: true } } },
     'fields.html': { global: 'LINKPILOT_FIELDS_CFG',
       value: { preload: fieldsInfo, preloadFacts: previewFacts() } },
   };
@@ -751,6 +761,18 @@ function deskPanel() {
  *   바뀐다 — 손으로 적으면 그날부터 화면만 옛말을 한다.
  * ★ 자료 자체는 **합성 예시**다. 화면이 그 사실을 적는다 (§8).
  */
+/**
+ * 미리보기용 발행 주체 예시 둘. **실제 회사 자료가 아니다** — 화면이 그
+ * 사실을 적는다 (§8). 로고는 넣지 않는다: 이 판에서 확인할 것은 「목록이
+ * 나오고 눌러서 칸이 채워지는가」이지 로고 처리가 아니다.
+ */
+const SAMPLE_ISSUERS = [
+  { en: 'Acme Capital Partners Co.,Ltd', kr: '(주)에이스캐피탈파트너스', tag: 'REAL ASSET INVESTMENT',
+    mark: 'ACP', logo: null, contact: null, savedAt: null, logoOmitted: false },
+  { en: 'Nordic Infra Advisors', kr: null, tag: 'ADVISORY',
+    mark: 'NIA', logo: null, contact: null, savedAt: null, logoOmitted: false },
+];
+
 function previewFacts() {
   const AGENT = path.join(HERE, '..', '..');
   const ex = require(path.join(AGENT, 'agents', '02-extraction'));

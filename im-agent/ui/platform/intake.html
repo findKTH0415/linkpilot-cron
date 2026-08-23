@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="3028a388">
+<html lang="ko" data-lp-build="106cb2e2">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -381,6 +381,47 @@ window.LINKPILOT_INTAKE = {
     writeIssuers(loadIssuers().filter(function (x) {
       return String(x.en || '').trim().toLowerCase() !== String(en || '').trim().toLowerCase();
     }));
+  }
+
+  /**
+   * ★★★ **고를 수 있는 발행 주체 목록** 〈2026-08-23 사장님 지시: 「저장된
+   *   회사를 선택할수 있도록 · 자동 저장된 기업은 선택시 자동 노출」〉.
+   *
+   *   두 곳에서 온다. **둘 다 필요하다:**
+   *   ① 서버(`/intake` 의 `issuers`) — 프로젝트를 만들 때 자동으로 얹힌다.
+   *      **다른 기기·다른 브라우저에서도 보인다.**
+   *   ② 이 브라우저(localStorage) — 서버에 아직 안 간 것까지 잡는다.
+   *      앞 판은 이것 하나뿐이라 **기기를 바꾸면 목록이 통째로 비었다.**
+   *
+   *   ★ 같은 회사가 양쪽에 있으면 **서버가 이긴다.** 서버 것이 실제로 문서에
+   *     쓰인 값이고, 브라우저 것은 보내기 전 사본일 수 있다.
+   *   ★ `logoOmitted` 는 서버가 **응답 크기 때문에 로고만 뺐다**는 뜻이다.
+   *     「로고 없는 회사」와 다르다 — 화면이 그 사실을 적는다.
+   */
+  function issuerChoices() {
+    var out = [];
+    var seen = {};
+    var key = function (v) { return String((v && v.en) || '').trim().toLowerCase(); };
+
+    ((state.info && state.info.issuers) || []).forEach(function (v) {
+      var k = key(v);
+      if (!k || seen[k]) return;
+      seen[k] = true;
+      out.push({
+        en: v.en, kr: v.kr || '', tag: v.tag || '', logo: v.logo || '',
+        logoOmitted: !!v.logoOmitted, savedAt: v.savedAt || null, where: 'server',
+      });
+    });
+    loadIssuers().forEach(function (v) {
+      var k = key(v);
+      if (!k || seen[k]) return;
+      seen[k] = true;
+      out.push({
+        en: v.en, kr: v.kr || '', tag: v.tag || '', logo: v.logo || '',
+        logoOmitted: false, savedAt: null, where: 'local',
+      });
+    });
+    return out;
   }
 
   /**
@@ -794,11 +835,11 @@ window.LINKPILOT_INTAKE = {
    *   읽지 않게 (§4.9).
    */
   function pastIssuers() {
-    var list = loadIssuers();
+    var list = issuerChoices();
     if (!list.length) return null;
 
     var box = el('div', 'iss-past');
-    box.appendChild(el('p', 'iss-past__h', '쓰던 발행 주체 — 누르면 아래 칸이 채워집니다'));
+    box.appendChild(el('p', 'iss-past__h', '저장된 발행 주체 — 누르면 아래 칸이 채워집니다'));
     var row = el('div', 'iss-past__l');
 
     list.forEach(function (it) {
@@ -807,13 +848,19 @@ window.LINKPILOT_INTAKE = {
 
       var pick = el('button', 'iss-chip__b', it.en + (it.kr ? ' · ' + it.kr : ''));
       pick.type = 'button';
-      pick.title = it.en + (it.kr ? ' · ' + it.kr : '') + (it.tag ? ' · ' + it.tag : '');
+      pick.title = it.en + (it.kr ? ' · ' + it.kr : '') + (it.tag ? ' · ' + it.tag : '')
+        + (it.savedAt ? ' · ' + it.savedAt + ' 저장' : '');
       pick.disabled = !!state.created;
       pick.addEventListener('click', function () {
+        /* ★ **다섯 칸을 한 번에 채운다.** 앞 판은 로고를 「있을 때만」 덮었는데,
+         *   그러면 로고 없는 회사를 골라도 **앞 회사 로고가 남는다** — 표지에
+         *   다른 회사 로고가 찍힌다. 고른 회사의 것으로 통째로 바꾼다.
+         *   ★ 단 `logoOmitted`(서버가 크기 때문에 로고만 뺀 것)면 **지우지
+         *     않는다** — 그건 「로고가 없다」가 아니라 「지금 안 보내 준다」다. */
         state.issuer.en = it.en || '';
         state.issuer.kr = it.kr || '';
         state.issuer.tag = it.tag || '';
-        if (it.logo) state.issuer.logo = it.logo;
+        if (!it.logoOmitted) state.issuer.logo = it.logo || '';
         saveDraft();      /* 고른 것도 「적은 것」이다 — 단계를 오가도 남아야 한다 */
         render();
       });
@@ -823,7 +870,10 @@ window.LINKPILOT_INTAKE = {
       x.type = 'button';
       x.title = it.en + ' 를 이 목록에서 지웁니다 (문서에는 영향이 없습니다)';
       x.setAttribute('aria-label', it.en + ' 를 목록에서 지움');
-      x.disabled = !!state.created;
+      /* ★ 서버에 저장된 것은 이 화면에서 못 지운다. **지워진 척하지 않는다** —
+       *   눌러서 사라졌다가 새로고침하면 다시 나오는 것이 더 나쁘다 */
+      x.disabled = !!state.created || it.where === 'server';
+      if (it.where === 'server') x.title = it.en + ' 는 서버에 저장되어 있어 여기서 지울 수 없습니다';
       x.addEventListener('click', function () { forgetIssuer(it.en); render(); });
       chip.appendChild(x);
 
@@ -831,9 +881,22 @@ window.LINKPILOT_INTAKE = {
     });
 
     box.appendChild(row);
-    box.appendChild(el('p', 'iss-past__n',
-      '이 목록은 이 브라우저에만 남습니다 — 다른 기기·다른 브라우저에서는 보이지 않습니다. '
-      + '[지움] 은 목록에서만 지우고, 이미 만든 문서는 그대로입니다.'));
+
+    /* ★ 로고를 못 실어 보낸 것이 있으면 **그렇다고 적는다.** 안 적으면
+     *   「로고가 지워졌다」로 읽고 다시 올린다 */
+    /* ★ **예시면 예시라고 화면에 박는다** (§8). 데모 목록을 실제로 오해하면
+     *   「내가 전에 이 회사를 썼구나」로 읽는다 */
+    if (state.info && state.info.issuersSample) {
+      box.appendChild(el('p', 'iss-past__n',
+        '이 화면은 미리보기입니다 — 위 두 곳은 예시이고 실제로 저장된 회사가 아닙니다.'));
+    }
+
+    var omitted = list.filter(function (it) { return it.logoOmitted; });
+    if (omitted.length) {
+      box.appendChild(el('p', 'iss-past__n',
+        '로고가 큰 ' + omitted.length + '건은 목록에 로고를 함께 싣지 않았습니다 — '
+        + '고르면 이름만 채워지고 로고는 그대로 둡니다.'));
+    }
     return box;
   }
 
@@ -982,6 +1045,12 @@ window.LINKPILOT_INTAKE = {
     chk.appendChild(el('span', null, '앞으로 만드는 보고서에도 이 주체를 씁니다'));
     box.appendChild(chk);
 
+    /* ★ 「현재 설정: … (저장소 설정 issuer.json)」 줄은 **뺐다**
+     *   〈2026-08-23 사장님 지시: 「아래 부연설명은 삭제해줘」〉.
+     *   위 칸이 이미 그 값으로 채워져 있으므로 같은 것을 두 번 말하고 있었고,
+     *   `issuer.json` 같은 **파일 이름은 쓰는 사람에게 뜻이 없다.**
+     *   ★ 대신 **못 읽은 경우와 아직 없는 경우는 그대로 남긴다** — 그 둘은
+     *     부연이 아니라 **지금 무엇이 잘못됐는지**를 말하는 줄이다. */
     if (state.info && state.info.issuerError) {
       box.appendChild(el('div', 'note note--bad',
         '저장된 발행 주체 설정을 읽지 못했습니다 — ' + state.info.issuerError));
@@ -990,9 +1059,6 @@ window.LINKPILOT_INTAKE = {
       w.id = 'iss-warn';
       w.hidden = !!(iss.en && iss.en.trim());
       box.appendChild(w);
-    } else {
-      box.appendChild(el('div', 'note note--ok',
-        '현재 설정: ' + cur.en + (cur.source ? ' (' + cur.source + ')' : '')));
     }
     return box;
   }
@@ -1353,15 +1419,13 @@ window.LINKPILOT_INTAKE = {
     if (show('ask')) body.appendChild(requestCard());
     if (show('files')) { body.appendChild(dropCard()); body.appendChild(actionsRow()); }
 
-    /* ★★ **만드는 버튼이 없는 칸에서는 그렇다고 말한다** 〈2026-08-22〉.
-     *   1·2단계만 보고 있으면 [프로젝트 만들기] 가 화면에 없다. 아무 말도 안
-     *   해 두면 사용자는 **여기서 끝난 줄 알고 기다린다** — 기다릴 것이 없다. */
-    if (PART && PART !== 'files') {
-      body.appendChild(el('p', 'card__s',
-        '여기 적은 것은 이 브라우저에 남습니다 — 단계를 오가도 지워지지 않습니다. '
-        + '서버로는 3단계 「관련자료 업로드」에서 [자료올리기 완료] 를 누를 때 '
-        + '1·2·3단계가 함께 갑니다.'));
-    }
+    /* ★ 「여기 적은 것은 이 브라우저에 남습니다 …」 줄은 **뺐다**
+     *   〈2026-08-23 사장님 지시: 「아래 부연설명은 삭제해줘」〉.
+     *
+     *   앞 판(2026-08-22)의 뜻은 「만드는 버튼이 없는 칸에서 기다리지 않게」
+     *   였다. 그 일은 **아래 [다음 — 무엇을 만들까요?] 단추가 이미 하고 있다** —
+     *   다음으로 가는 길이 눈앞에 있으면 기다릴 이유가 없다. 남은 것은
+     *   저장 구조 설명뿐이었고, 그건 쓰는 사람이 알 필요가 없다. */
     var nav = partNav();
     if (nav) body.appendChild(nav);
   }
