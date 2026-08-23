@@ -25,6 +25,18 @@
  *   가 갈린다. 그러면서 열쇠 자체는 로그에 안 남는다.
  *
  * ★ 되돌아오는 값은 늘 0 이다. **진단이 배포를 죽이면 안 된다.**
+ *
+ * ★★★ `--live` 를 주면 **열쇠가 실제로 살아 있는지 한 번 물어본다**
+ *   〈2026-08-23 · 마지막으로 남은 구멍이었다〉.
+ *
+ *   지금까지 「OCR 켜짐」은 **글자가 들어 있다**는 뜻일 뿐이었다. 폐기된
+ *   열쇠·지워진 프로젝트의 열쇠도 똑같이 「켜짐」으로 나온다 — 그러면
+ *   자료를 올리는 그 순간에야 실패하고, 화면에는 「못 읽었습니다」만 남는다.
+ *   **재는 장치가 아무것도 안 재는** 그 결이다 (M-11 · M-12 · M-30).
+ *
+ *   ★ 그래서 아주 작은 요청을 한 번 던져 본다. 실패하면 **왜 실패했는지**를
+ *     사람 말로 적는다 — 401/403(열쇠가 죽었다)과 그물이 안 닿는 것을 가른다.
+ *   ★ 못 물어본 것을 **죽은 것으로 세지 않는다.** 그물이 막혀 있을 수 있다.
  */
 
 const fs = require('fs');
@@ -130,8 +142,56 @@ function main() {
 
   let offline = null;
   try { offline = require('../core/llm.js').isOffline(); } catch (_) { /* 진단이 죽으면 안 된다 */ }
-  if (offline !== null) say(`엔진이 보는 상태: ${offline ? 'OCR 꺼짐' : 'OCR 켜짐'}`);
+  if (offline !== null) {
+    say(`엔진이 보는 상태: ${offline ? 'OCR 꺼짐' : 'OCR 켜짐 (열쇠가 들어 있다는 뜻이다)'}`);
+  }
+  return { offline, hasKey: !!key };
 }
 
-if (require.main === module) main();
-module.exports = { inspect, describe };
+/**
+ * 열쇠가 **실제로 받아들여지는지** 한 번 물어본다. 값은 안 찍는다.
+ *
+ * ★ 가장 가벼운 요청을 쓴다 — 모델 목록. 생성 요청은 돈과 시간이 든다.
+ * ★ 10초 안에 답이 없으면 **「못 물어봤다」**로 끝낸다. 진단이 배포를 붙잡으면
+ *   안 되고, 못 물어본 것은 죽은 것과 **다른 사실**이다.
+ */
+async function live() {
+  const key = process.env.GEMINI_API_KEY || '';
+  if (!key) { say('열쇠 확인: 안 해 봤다 — 열쇠가 비어 있다'); return; }
+
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 10000);
+  try {
+    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models', {
+      headers: { 'x-goog-api-key': key }, signal: ctl.signal,
+    });
+    if (r.ok) {
+      const j = await r.json().catch(() => null);
+      const n = Array.isArray(j && j.models) ? j.models.length : null;
+      say(`열쇠 확인: **살아 있다** — 구글이 받아들였다${n === null ? '' : ` (모델 ${n}개 보인다)`}`);
+      return;
+    }
+    /* ★ 본문에 이유가 들어 있다. 상태코드만 보면 「열쇠가 죽었다」와
+     *   「그 API 를 안 켰다」가 같아 보인다 (§4.2 와 같은 결) */
+    const t = (await r.text().catch(() => '')).slice(0, 300);
+    const why = /API_KEY_INVALID|API key not valid/i.test(t) ? '**열쇠가 유효하지 않다** — 새로 만들어야 한다'
+      : /SERVICE_DISABLED|has not been used|is disabled/i.test(t) ? '**그 프로젝트에서 Generative Language API 가 꺼져 있다**'
+        : /PERMISSION_DENIED/i.test(t) ? '**권한이 없다** — 열쇠가 다른 프로젝트 것이거나 제한이 걸려 있다'
+          : /quota|RESOURCE_EXHAUSTED/i.test(t) ? '**한도를 넘었다** — 열쇠 자체는 살아 있다'
+            : `HTTP ${r.status}`;
+    say(`열쇠 확인: **거절당했다** — ${why}`);
+  } catch (e) {
+    /* ★ 못 물어본 것을 죽은 것으로 세지 않는다 */
+    say(`열쇠 확인: **못 물어봤다** — ${e && e.name === 'AbortError' ? '10초 안에 답이 없다' : '그물이 안 닿는다'}. `
+      + '열쇠가 죽었다는 뜻이 **아니다**');
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+if (require.main === module) {
+  const r = main();
+  /* ★ `--live` 일 때만 그물을 탄다. 기본은 파일만 본다 — 빠르고 조용하다 */
+  if (process.argv.includes('--live') && r && r.hasKey) live();
+}
+module.exports = { inspect, describe, live };
