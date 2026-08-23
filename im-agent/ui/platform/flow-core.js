@@ -560,6 +560,43 @@
    *     없다 / 읽을 수 없다(다른 출처)  → 앱 셸이거나 단독이다 → 찍는다
    *   읽을 수 없을 때 **찍는 쪽으로 기운다** — 없는 것보다 둘이 나은 자리다.
    */
+  /**
+   * 서버 주소를 정한다 — **한 곳에서만.**
+   *
+   * ★★★ 〈2026-08-23 사장님 화면에서 잡혔다〉 사장님이 **앱 안에서** 여셨는데
+   *   화면이 「앱 밖에서 열면 …」이라고 말하고 있었다. `api` 가 비는 이유는
+   *   셋인데(부모 없음 · 앱이 안 채움 · 다른 출처) 문구가 그중 하나로 단정한
+   *   것이다 — **틀린 짐작을 적으면 사람이 그 짐작부터 판다** (M-24).
+   *
+   * ★★ 그리고 더 나쁜 것은 **안 부르고 끝낸 것**이다. 안 부르면 서버가 401 을
+   *   주는지 404 를 주는지조차 모른 채로 「안 됩니다」만 남는다.
+   *
+   * ★ 이 화면들은 앱과 **같은 출처**에 얹혀 있다(`/im-flow/*.html`). 그러면
+   *   `/api/linkpilot` 은 앱이 부르는 바로 그 주소이고, `embed-bridge.js` 의
+   *   계약 예시에 적힌 값과 **글자 그대로 같다.** 그러니 못 받았으면 그것으로
+   *   부르고, **짐작으로 부른 사실을 함께 말한다.**
+   *
+   * ★ 화면마다 따로 짐작하지 않는다 — 세 화면이 각자 정하면 갈리고, 그때는
+   *   「어느 화면은 되고 어느 화면은 안 된다」가 되어 원인이 안 보인다.
+   *
+   * @param {{api?:string}} cfg 화면 설정 전역
+   * @returns {{api:string, guessed:boolean, why:(string|null)}}
+   */
+  var API_FALLBACK = '/api/linkpilot';
+  function resolveApi(cfg) {
+    var c = cfg || {};
+    if (c.api) return { api: c.api, guessed: false, why: null };
+    var b = (typeof window !== 'undefined' && window.LinkPilotEmbed) || null;
+    return { api: API_FALLBACK, guessed: true, why: (b && b.reason) || null };
+  }
+
+  /** 짐작으로 부른 판이면 **그 사실을 문장에 붙인다.** 안 붙이면 서버 탓으로 읽힌다 */
+  function apiNote(r, base) {
+    if (!r || !r.guessed) return base;
+    return base + ' (앱이 서버 주소를 넘기지 않아 ' + r.api + ' 로 불렀습니다'
+      + (r.why ? ' — ' + r.why : '') + ')';
+  }
+
   function insideLinkPilot() {
     try {
       if (window.parent === window) return false;
@@ -593,6 +630,9 @@
     sectionProgress: sectionProgress,
     BUILD_ATTR: BUILD_ATTR, buildOf: buildOf, buildLabel: buildLabel, stampInto: stampInto,
     insideLinkPilot: insideLinkPilot,
+    resolveApi: resolveApi,
+    apiNote: apiNote,
+    API_FALLBACK: API_FALLBACK,
     tokensLoaded: tokensLoaded, TOKENS_MISSING: TOKENS_MISSING,
     openSection: openSection, OPEN_EVENT: OPEN_EVENT,
   };

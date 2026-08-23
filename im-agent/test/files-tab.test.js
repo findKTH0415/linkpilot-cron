@@ -1696,38 +1696,71 @@ test('★★ 「자료 업로드」 제목을 손으로 적지 않는다 (머리
  * ★ 그리고 **올리기는 XHR 로 간다** — `call()` 을 안 거친다. 같은 일을 하는
  *   길이 둘이면 둘 다 막아야 한다 (M-24).
  */
-test('★★★ api 가 없으면 부르지 않는다 — null 을 주소에 붙이지 않는다', () => {
+test('★★★ 주소를 못 받아도 부른다 — 다만 null 을 주소에 붙이지 않는다', () => {
   const code = codeOf(read('files.html'));
 
-  /* ① `call()` 한 곳에서 막는다 */
+  /* ★★★ **이 검사는 2026-08-23 오후에 뒤집혔다.** 앞 판은 「api 가 없으면
+     **부르지 않는다**」였다. M-28(`"null/projects"`)을 막으려고 그렇게 했는데,
+     사장님 화면에서 **앱 안에서 열었는데도** 그 문지기에 걸렸다 —
+     앱이 `LINKPILOT_EMBED` 를 안 채웠기 때문이다.
+
+     ★ 그때 화면이 한 말은 「앱 밖에서 열면 …」이었다. **틀린 짐작이다** (M-24).
+       그리고 안 불렀으므로 서버가 401 을 주는지 404 를 주는지조차 알 수 없었다 —
+       **「안 됩니다」만 남고 왜인지가 영영 안 나온다.**
+
+     ★★ M-28 이 막은 것은 **`null` 을 이어 붙이는 것**이지 부르는 것 자체가
+       아니다. 그러니 못 받았으면 **같은 출처의 `/api/linkpilot`** 으로 채워서
+       부르고, **짐작으로 불렀다는 사실을 말한다.** */
+
+  /* ① 주소를 정하는 자리는 **`flow-core.js` 한 곳**이다. 화면마다 짐작하면
+     「어느 화면은 되고 어느 화면은 안 된다」가 되어 원인이 안 보인다 */
+  assert.match(code, /F\.resolveApi\(C\)/,
+    '화면이 주소를 스스로 짐작한다 — 정하는 자리는 flow-core 한 곳이어야 한다');
+  const F = require(path.join(PLATFORM, 'flow-core.js'));
+  assert.strictEqual(F.API_FALLBACK, '/api/linkpilot',
+    '기본 주소가 앱이 부르는 것과 다르다 (embed-bridge 계약의 값이어야 한다)');
+  assert.ok(F.API_FALLBACK.charAt(0) === '/',
+    '기본 주소가 상대경로다 — 지금 페이지 옆을 찾게 되어 M-28 이 그대로 재현된다');
+  assert.deepStrictEqual(F.resolveApi({ api: '/준것' }),
+    { api: '/준것', guessed: false, why: null },
+    '앱이 준 주소를 안 쓴다 — 준 것이 언제나 이긴다');
+  assert.strictEqual(F.resolveApi({}).guessed, true, '짐작한 것을 짐작이라고 안 적는다');
+
+  /* ② ★★ **그래도 빈 주소는 안 붙인다.** 여기가 M-28 의 알맹이다 */
   const at = code.indexOf('function call(method, path, body, opt2)');
   assert.ok(at > 0, 'call 을 못 찾았다');
-  const fn = code.slice(at, at + 900);
-  assert.match(fn, /if \(!C\.api\)/, 'api 가 없어도 부른다 — 주소가 "null/…" 이 된다');
+  const fn = code.slice(at, at + 1600);
   const guardAt = fn.indexOf('if (!C.api)');
   const fetchAt = fn.indexOf('fetch(C.api + path');
   assert.ok(guardAt > -1 && fetchAt > -1 && guardAt < fetchAt,
-    '문지기가 fetch 뒤에 있다 — 막기 전에 이미 불렀다');
+    '빈 주소 문지기가 fetch 뒤에 있다 — 막기 전에 이미 불렀다');
+  assert.ok(!/null/.test(fn.slice(guardAt, fetchAt).replace(/\/\*[\s\S]*?\*\//g, '')),
+    'null 을 문장에 그대로 흘린다');
 
-  /* ② 올리기(XHR)도 막는다 — `call()` 을 안 거치는 두 번째 길이다 (M-24) */
+  /* ③ 올리기(XHR)도 같은 문지기를 지난다 — `call()` 을 안 거치는 둘째 길 (M-24) */
   const up = code.indexOf('function doUpload');
   assert.ok(up > 0, 'doUpload 를 못 찾았다');
   const upFn = code.slice(up, code.indexOf("url: C.api + '/projects/'", up));
   assert.match(upFn, /if \(!C\.api\)/,
-    '올리기가 api 없이도 간다 — XHR 은 call() 의 문지기를 안 거친다 (M-24)');
+    '올리기가 빈 주소로도 간다 — XHR 은 call() 의 문지기를 안 거친다 (M-24)');
 
-  /* ③ ★★ **두 404 를 가른다** — 안 가르면 「서버 오류(404)」 한 줄이 되어
-     어디를 봐야 하는지 알 수가 없다 (M-12 가 적어 둔 구분) */
+  /* ④ ★★ **짐작으로 불렀으면 그 사실을 말한다.** 안 말하면 서버 탓으로 읽힌다 */
+  assert.match(code, /whyBlocked\(/, '막힌 이유에 짐작 여부를 안 붙인다');
   assert.match(code, /r\.status === 404 && !\(b && b\.error\)/,
-    '길 없음 404 와 자원 없음 404 를 안 가른다');
-  assert.match(code, /옛 라우팅 표/, '길 없음 404 일 때 어디를 봐야 하는지 안 알려 준다');
+    '길 없음 404 와 자원 없음 404 를 안 가른다 (M-12)');
+  assert.match(code, /서버에 닿지 못했습니다/,
+    '요청이 아예 못 나간 것을 서버 오류로 적는다 — 「Failed to fetch」 한 줄만 남는다');
 
-  /* ④ 완성 보고서 화면도 같은 구멍이 있었다 */
-  const out = codeOf(read('outputs.html'));
-  assert.match(out, /null\//, 'outputs 가 null 주소를 그대로 부른다');
+  /* ⑤ ★★★ **「앱 밖에서 열었다」고 단정하지 않는다.** 사장님은 앱 안에 계셨다 */
+  assert.ok(!/앱 밖에서 열면/.test(code),
+    '아직도 「앱 밖에서 열면」이라고 단정한다 — 앱 안에서도 이 문구가 떴다 (M-24)');
+  assert.ok(!/앱 안에서 열었을 때만 뜹니다/.test(code),
+    '앱 안에 있는 사람에게 「앱 안에서 열었을 때만」이라고 말한다');
+  assert.match(code, /bridgeReason\(\)/,
+    '다리가 남긴 진짜 이유를 안 읽는다 — 이유는 셋인데 하나로 단정하게 된다');
 });
 
-test('★★★ api 없이 열면 만들기가 404 가 아니라 이유를 말한다 (실제로 눌러 본다)', () => {
+test('★★★ 주소를 못 받고 눌러도 이유를 말한다 — 벌거벗은 404 를 안 남긴다 (실제로 눌러 본다)', () => {
   const { findBrowser, renderDom } = require(path.join(PLATFORM, 'build-static.js'));
   if (!findBrowser()) return;   // 크로미움이 없는 서버가 실제로 있다
 
@@ -1755,7 +1788,7 @@ test('★★★ api 없이 열면 만들기가 404 가 아니라 이유를 말�
         setTimeout(function () {
           o.said = [].slice.call(document.querySelectorAll('.new, .card'))
             .map(function (n) { return (n.textContent || '').trim(); })
-            .filter(function (x) { return /404|서버|연결/.test(x); }).join(' | ');
+            .filter(function (x) { return /404|서버|연결|주소|닿지/.test(x); }).join(' | ');
           document.getElementById('probe').textContent = JSON.stringify(o);
         }, 700);
       }, 300);
@@ -1776,11 +1809,19 @@ test('★★★ api 없이 열면 만들기가 404 가 아니라 이유를 말�
     assert.deepStrictEqual(r.err, [], `누르는 동안 예외가 났다: ${JSON.stringify(r.err)}`);
     assert.ok(!r.no, `여기까지 못 갔다: ${r.no}`);
 
-    /* ★ 404 라고 말하면 안 된다 — 서버를 뒤지게 된다 */
-    assert.ok(!/404/.test(String(r.said)),
-      `api 가 없는데 404 라고 말한다 — 원인이 화면 안에 있는데 서버를 뒤지게 된다: ${r.said}`);
-    assert.match(String(r.said), /연결/,
-      `무엇이 문제인지 안 말한다: ${r.said}`);
+    /* ★★★ 〈2026-08-23 오후 · 이 검사도 함께 뒤집혔다〉 이제는 **부른다.**
+       그러니 「404 라고 말하면 안 된다」가 아니라 **「404 만 남기면 안 된다」**이다.
+       `file://` 로 열린 이 탐침에서는 요청이 아예 못 나가므로, 화면은 그 사실과
+       **짐작으로 불렀다는 것**을 함께 말해야 한다.
+       ★ 벌거벗은 404 한 줄이면 사람이 서버를 뒤진다 — 그것이 실제로 났던 사고다 */
+    const said = String(r.said || '');
+    assert.ok(said, `아무 말도 안 한다: ${JSON.stringify(r)}`);
+    assert.ok(!/^\s*서버 오류 \(404\)\s*$/.test(said),
+      `벌거벗은 404 한 줄만 남긴다 — 원인이 화면 안에 있는데 서버를 뒤지게 된다: ${said}`);
+    assert.match(said, /서버 주소를 넘기지 않아|닿지 못했습니다|주소가 서버에 없습니다/,
+      `왜 막혔는지 안 말한다: ${said}`);
+    /* ★ 앱 안에 있는 사람에게 「앱 밖에서 열면」이라고 하지 않는다 (M-24) */
+    assert.ok(!/앱 밖에서 열면/.test(said), `틀린 짐작을 적는다: ${said}`);
   } finally {
     fs.rmSync(at, { force: true });
   }

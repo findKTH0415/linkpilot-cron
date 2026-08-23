@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="c7e3b3e0">
+<html lang="ko" data-lp-build="1c49608f">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -210,6 +210,14 @@ window.LINKPILOT_REPORT_FLOW = {
   var F = window.LinkPilotFlow;
   var G = window.LinkPilotGate;
   var view = document.getElementById('view');
+
+  /* ★★★ **주소를 안 받았다고 다섯 단계를 통째로 잠그지 않는다** 〈2026-08-23 사장님 화면〉.
+   *   앞 판은 `api` 가 비면 「서버가 연결되어 있지 않습니다」만 띄우고 끝났다.
+   *   그런데 이 화면은 앱과 **같은 출처**에 얹혀 있어 `/api/linkpilot` 이 앱이
+   *   부르는 바로 그 주소다 — 부르고 나서 결과를 말하는 쪽이 언제나 낫다.
+   *   ★ 정하는 자리는 `flow-core.js` 한 곳이다 (files.html 과 같은 함수). */
+  var APIR = F.resolveApi(C);
+  C.api = APIR.api;
 
   var state = { current: null, projectId: C.projectId || null, embedBlocked: false };
 
@@ -645,9 +653,11 @@ window.LINKPILOT_REPORT_FLOW = {
         : stage(cur)));
     });
 
-    if (!C.api) {
-      view.appendChild(notice('', '서버가 연결되어 있지 않습니다',
-        '설정의 api 를 채우면 단계가 열립니다. 지금은 화면만 확인할 수 있습니다.'));
+    /* ★ 짐작으로 부른 판이면 **그 사실만 조용히 알린다.** 단계를 잠그지 않는다 —
+       잠그면 「왜 안 되는지」를 확인할 길까지 함께 닫힌다 */
+    if (APIR.guessed) {
+      view.appendChild(notice('', '앱이 서버 주소를 넘기지 않았습니다',
+        F.apiNote(APIR, '그래도 단계는 열어 둡니다 — 눌러 보시면 서버가 무엇이라고 답하는지 그 자리에 적힙니다.')));
     }
 
   }
