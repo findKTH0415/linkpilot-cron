@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="44f04eb1">
+<html lang="ko" data-lp-build="06ad6b74">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -54,7 +54,7 @@
   }, 8000);
 })();
 </script>
-<link rel="stylesheet" href="tokens.css?v=44f04eb1">
+<link rel="stylesheet" href="tokens.css?v=06ad6b74">
 <style>
 /* 색·간격·반경 토큰은 tokens.css 하나가 정한다 (LinkPilot Design System v1.1) */
 * { box-sizing: border-box; }
@@ -507,10 +507,10 @@ select:focus-visible, button:focus-visible { outline: 2px solid var(--lime-deep)
   </div>
 </div>
 
-<script src="gate-core.js?v=44f04eb1"></script>
-<script src="flow-core.js?v=44f04eb1"></script>
-<script src="upload-core.js?v=44f04eb1"></script>
-<script src="versions-core.js?v=44f04eb1"></script>
+<script src="gate-core.js?v=06ad6b74"></script>
+<script src="flow-core.js?v=06ad6b74"></script>
+<script src="upload-core.js?v=06ad6b74"></script>
+<script src="versions-core.js?v=06ad6b74"></script>
 <script>
 /**
  * 붙이는 쪽이 채우는 유일한 값.
@@ -556,7 +556,7 @@ window.LINKPILOT_FILES = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=44f04eb1" data-lp-global="LINKPILOT_FILES"></script>
+<script src="embed-bridge.js?v=06ad6b74" data-lp-global="LINKPILOT_FILES"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -3101,31 +3101,74 @@ window.LINKPILOT_FILES = {
   function versionBox() {
     var V = window.LinkPilotVersions;
     if (!V) return null;
+    /* ★★★ **보관 자료가 빠져 있었다** 〈2026-08-23 사장님: 「이중으로 과거 앞서
+     *   올렸던 자료와 겹쳐서 중복으로 보임」〉.
+     *
+     *   앞 판은 연결·1회성만 봤다. 그때는 보관 업로드가 화면에 없었으니 맞는
+     *   목록이었다. 그런데 오늘 보관을 되살리면서 **같은 문서가 「보관」과
+     *   「1회성 기록」 양쪽에 남게** 되었고, 화면은 그것을 두 자료로 보여 줬다.
+     *
+     * ★ 어디 있는 것인지를 함께 담는다(`where`) — 「같은 이름이 둘」과
+     *   「올린 기록이 남아 있을 뿐」은 사람이 할 일이 다르다. */
+    var tag = function (list, where) {
+      return (list || []).map(function (it) { return Object.assign({}, it, { where: where }); });
+    };
     var all = []
-      .concat(((state.linked && state.linked.items) || []))
-      .concat(((state.oneshot && state.oneshot.items) || []));
+      .concat(tag((state.kept && state.kept.files) || [], 'kept'))
+      .concat(tag((state.linked && state.linked.items) || [], 'linked'))
+      .concat(tag((state.oneshot && state.oneshot.items) || [], 'oneshot'));
     if (all.length < 2) return null;
 
     var r = V.group(all);
     if (!r.conflicts) return null;
 
+    /* ★★ **「기록만 겹친 것」과 「진짜 판이 둘인 것」을 가른다** 〈2026-08-23〉.
+     *   1회성으로 올렸다가 다시 보관으로 올린 경우는 **같은 문서 하나**다 —
+     *   그것을 「골라야 합니다」로 말하면 고를 것이 없는데 고르라는 말이 된다. */
+    var onlyRecord = r.groups.filter(function (g) {
+      var kinds = {};
+      g.items.forEach(function (it) { kinds[it.where] = true; });
+      /* 보관본이 있고 나머지가 1회성 기록뿐이면, 겹친 것이 아니라 기록이 남은 것이다 */
+      return kinds.kept && !kinds.linked
+        && g.items.filter(function (it) { return it.where === 'kept'; }).length === 1;
+    }).length;
+
     var box = el('div', 'vc');
-    box.appendChild(el('div', 'vc__t', '같은 문서로 보이는 것이 ' + r.conflicts + '묶음 있습니다'));
+    box.appendChild(el('div', 'vc__t', '같은 이름의 자료가 ' + r.conflicts + '묶음 있습니다'));
     box.appendChild(el('p', 'vc__d',
-      '어느 판으로 보고서를 만들지 **사람이 골라야 합니다.** 화면이 대신 고르지 않습니다 — '
-      + '틀린 판으로 만들면 숫자도 출처도 멀쩡해 보여서 문서만으로는 잡히지 않습니다.'));
+      onlyRecord === r.conflicts
+        /* ★ **없는 길을 있다고 적지 않는다.** 1회성 기록을 지우는 길은 아직
+         *   없다(서버에 DELETE 가 없다) — 「지우실 수 있습니다」라고 적으면
+         *   찾다가 못 찾고 고장으로 읽는다 */
+        ? '전에 1회성으로 올린 **기록**이 남아 있어 두 번 보이는 것입니다 — '
+          .replace(/\*\*/g, '')
+          + '자료가 두 벌인 것이 아닙니다. 보고서에 쓰이는 것은 보관 중인 한 벌뿐이고, '
+          + '스캔도 그것만 읽습니다. (1회성 기록은 아직 지우는 길이 없습니다 — '
+          + '남아 있어도 보고서에는 영향이 없습니다.)'
+        : '어느 판으로 보고서를 만들지 사람이 골라야 합니다. 화면이 대신 고르지 않습니다 — '
+          + '틀린 판으로 만들면 숫자도 출처도 멀쩡해 보여서 문서만으로는 잡히지 않습니다.'));
 
     r.groups.forEach(function (g) {
       var sec = el('div', 'vc__g');
       sec.appendChild(el('div', 'vc__n', g.items.length + '개 · ' + (g.stem || '(이름 없음)') + g.ext));
       sec.appendChild(el('div', 'vc__w', g.why));
       var ul = el('ul', 'vc__l');
+      /* ★ **어디 있는 것인지**를 함께 적는다 〈2026-08-23〉. 「보관본과 1회성
+       *   기록이 같은 문서」인지 「진짜 판이 둘」인지가 여기서 갈린다 —
+       *   사람이 할 일이 다르다 */
+      var WHERE = {
+        kept: '보관 중',
+        linked: '연결된 자료',
+        oneshot: '올린 기록만 (원본은 남아 있지 않습니다)',
+      };
       g.items.forEach(function (it, i) {
         var li = el('li');
         li.appendChild(el('span', 'vc__i', i + 1));
         var b = el('div');
         b.appendChild(el('div', 'vc__f', it.name));
-        b.appendChild(el('div', 'vc__b', it.basis));
+        var meta = el('div', 'vc__b');
+        meta.textContent = (WHERE[it.where] || '') + (it.basis ? ' · ' + it.basis : '');
+        b.appendChild(meta);
         li.appendChild(b);
         ul.appendChild(li);
       });
