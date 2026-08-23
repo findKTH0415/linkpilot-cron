@@ -815,6 +815,65 @@ jobs:
           echo "엔진: **안 올렸다** — 바뀐 것이 화면뿐이거나 손으로 no 를 골랐다" >> "$GITHUB_STEP_SUMMARY"
           echo "::notice::엔진(im-agent)은 이번에 안 올렸다. 서버는 지금 돌고 있는 판 그대로다"
 
+      # ★★★ **404 가 엔진 탓인지 앞단 탓인지 갈라 놓는다** 〈2026-08-23 · D-87 정정〉.
+      #
+      #   실행 #56 에서 둘이 **동시에** 성립했다:
+      #     · 엔진 배포 성공 — 새 판을 갈아 끼우고 **1초 만에 HTTP 200** (8181 직행)
+      #     · 그런데 바깥(tailnet 포트 80)에서 `/api/linkpilot/intake` 는 **여전히 404**
+      #
+      #   ★ 그러면 「서버가 옛 라우팅 표를 들고 있다」는 **더 이상 유일한 설명이
+      #     아니다.** 앞단(DSM 웹서비스·리버스 프록시)이 그 길을 8181 로 안
+      #     넘기고 있을 수도 있다 — M-25 가 말한 「잰 길이 앱이 쓰는 길과 다르다」의
+      #     API 판이다.
+      #
+      #   ★★ **둘은 화면에서 똑같이 404 로 보인다.** 그래서 갈라 놓고 말한다.
+      #     여기서 갈라 두지 않으면 또 엉뚱한 곳(엔진)을 판다 — 오늘 그랬다.
+      #   ★ **읽기만 한다.** 안팎에서 같은 주소를 두드려 응답 코드만 받는다.
+      - name: Split inside vs outside (D-87 · M-25)
+        if: ${{ needs.plan.outputs.dry_run != 'true' }}
+        env:
+          NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+          NAS_USER: ${{ secrets.NAS_SSH_USER }}
+        run: |
+          set -u
+          set +e   # 「못 받음」이 여기서는 정상 결과다 (bash -e 를 끈다)
+          probe_in() {
+            ssh -o BatchMode=yes -o ConnectTimeout=20 -i ~/.ssh/id_deploy \
+              "$NAS_USER@$NAS_HOST" \
+              "curl -s -o /dev/null -w '%{http_code}' -m 8 'http://127.0.0.1:8181$1'" \
+              2>/dev/null | tr -d '\r' | tail -1
+          }
+          IN_API=$(probe_in /api/linkpilot/intake)
+          IN_BARE=$(probe_in /intake)
+          IN_HEALTH=$(probe_in /healthz)
+          OUT_API=$(curl -s -o /dev/null -w '%{http_code}' -m 10 "http://${NAS_HOST}/api/linkpilot/intake" 2>/dev/null)
+
+          echo "── 같은 주소를 안팎에서 두드렸다 ──"
+          echo "  엔진 직행 8181  /healthz               → ${IN_HEALTH:-(못 받음)}"
+          echo "  엔진 직행 8181  /api/linkpilot/intake  → ${IN_API:-(못 받음)}"
+          echo "  엔진 직행 8181  /intake                → ${IN_BARE:-(못 받음)}"
+          echo "  바깥 포트 80    /api/linkpilot/intake  → ${OUT_API:-(못 받음)}"
+
+          # ★ 404 가 아니면 **길은 있는 것**이다 (401·400·405 는 통과 — verify:nas 와 같은 잣대)
+          alive() { [ -n "$1" ] && [ "$1" != "000" ] && [ "$1" != "404" ]; }
+
+          if alive "$IN_API" && [ "${OUT_API:-404}" = "404" ]; then
+            echo "::warning::**엔진에는 길이 있는데 바깥에서는 404 다.** 엔진(8181)은 /api/linkpilot/intake 에 ${IN_API} 로 답하는데 포트 80 은 404 를 준다 → **앞단이 그 길을 8181 로 안 넘긴다.** 엔진을 더 올려도 안 바뀐다. ① 앱이 실제로 쓰는 주소를 LP_BASE 에 넣어 다시 재거나 ② DSM 웹서비스의 리버스 프록시 규칙을 본다"
+            echo "404 의 자리: **앞단** — 엔진은 ${IN_API}, 포트 80 은 404" >> "$GITHUB_STEP_SUMMARY"
+          elif [ "${IN_API:-404}" = "404" ] && alive "$IN_BARE"; then
+            echo "::warning::**엔진이 접두사 없이 붙어 있다.** /intake 는 ${IN_BARE} 인데 /api/linkpilot/intake 는 404 다 → 앞단이 `/api/linkpilot` 을 떼고 넘겨야 하는 구조다. 지금은 그 규칙이 없거나 다르다"
+            echo "404 의 자리: **접두사** — /intake 는 ${IN_BARE}, /api/linkpilot/intake 는 404" >> "$GITHUB_STEP_SUMMARY"
+          elif [ "${IN_API:-404}" = "404" ] && [ "${IN_BARE:-404}" = "404" ]; then
+            echo "::error::**엔진에 그 길이 정말 없다.** 방금 올린 판으로도 8181 직행이 두 주소 다 404 다 — 이건 저장소 쪽 일이다 (라우터를 안 걸고 있다)"
+            echo "404 의 자리: **엔진** — 8181 직행도 404 다" >> "$GITHUB_STEP_SUMMARY"
+          elif alive "$OUT_API"; then
+            echo "::notice::바깥에서도 길이 있다 (${OUT_API}) — 404 는 사라졌다"
+            echo "404 없음 — 바깥 ${OUT_API}" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning::**갈라 내지 못했다** — 응답을 못 받은 자리가 있다. 위 네 줄을 그대로 본다"
+            echo "404 의 자리: **못 갈랐다**" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       # ★★★ **라우트가 앱을 거쳐 닿는지 잰다** 〈2026-08-23 · M-11 · M-12〉.
       #
       #   이 검사를 **만들어 두고 아무도 안 돌렸다.** 2026-08-18 에 본체가 라우팅
