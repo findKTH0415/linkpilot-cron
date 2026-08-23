@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="d5cd3481">
+<html lang="ko" data-lp-build="1687842e">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -57,8 +57,7 @@ h1,h2,h3,h4 { margin: 0; }
   display: grid; place-items: center; color: var(--lime); font-size: 16px; }
 .head { background: var(--surface); padding: 16px 26px 14px; }
 .head__row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.head__ic { width: 40px; height: 40px; border-radius: 12px; background: var(--panel);
-  display: grid; place-items: center; font-size: 18px; }
+/* ★ 머리의 ＋ 아이콘은 지웠다 〈2026-08-23〉 — 뜻을 나르지 않는 그림이었다 (§6-3) */
 .head__t { font-size: 22px; font-weight: 800; }
 .head__s { font-size: 13px; color: var(--ink2); margin-top: 2px; }
 .head__meta { margin-left: auto; text-align: right; font-size: 13px; color: var(--ink2); }
@@ -239,12 +238,17 @@ h1,h2,h3,h4 { margin: 0; }
     <div class="top">
       <div class="logo"><span class="logo__mark">➤</span>LINK<em>PILOT</em></div>
     </div>
+    <!-- ★★★ **머리 글자를 여기 적지 않는다** 〈2026-08-23 사장님 지시〉.
+         앞 판은 「보고서 생성 입력 / 무엇을 만들지 적고…」가 박혀 있었다. 그런데
+         이 화면은 이제 칸이 셋(발행 주체 · 무엇을 만들까요 · 자료 업로드)이라,
+         **어느 칸을 보고 있든 같은 머리**가 떴다 — 머리가 아무것도 안 알려 준다.
+         그리고 바로 아래 카드가 제 이름을 또 달아 **같은 자리에 제목이 둘**이었다.
+         이제 지금 보고 있는 칸의 이름·설명이 머리로 올라온다 (`fillHead`). -->
     <div class="head">
       <div class="head__row">
-        <div class="head__ic">＋</div>
         <div>
-          <h1 class="head__t">보고서 생성 입력</h1>
-          <div class="head__s">무엇을 만들지 적고, 근거가 될 자료를 올립니다</div>
+          <h1 class="head__t" id="head-t"></h1>
+          <div class="head__s" id="head-s"></div>
         </div>
         <div class="head__meta" id="meta"></div>
       </div>
@@ -299,6 +303,53 @@ window.LINKPILOT_INTAKE = {
    */
   var PART = null;
   var DRAFT = 'lp.intake.draft';
+
+  /**
+   * 칸마다의 머리 글자. **카드가 쓰는 문장과 같은 것**을 쓴다 — 두 벌이 되면
+   * 한쪽만 고치는 날 머리와 본문이 다른 말을 한다.
+   * ★ 머리로 올라간 칸은 카드에서 제 이름을 **떼어 낸다** (`cardHead`).
+   *   안 그러면 같은 자리에 제목이 둘이다.
+   */
+  var HEADS = {
+    issuer: {
+      t: '발행 주체',
+      s: 'IM 표지와 서명부에 찍히는 회사입니다. 비워 두면 문서에 「발행 주체 미설정」이 '
+        + '표시되고 대외 배포가 막힙니다.',
+    },
+    ask: {
+      t: '무엇을 만들까요',
+      s: '한 줄로 적어 주세요. 용량·지역·자산유형을 알아서 뽑아내지만, '
+        + '뽑은 값은 문서로 확인된 것이 아니라 미확인으로 표시됩니다.',
+    },
+    files: {
+      t: '자료 업로드',
+      s: '원본 자료를 올립니다. 여기서 [자료올리기 완료] 를 누르면 1·2·3단계가 '
+        + '함께 서버로 갑니다.',
+    },
+  };
+
+  /** 지금 칸의 머리 글자를 채운다. 칸을 안 정했으면(따로 열었을 때) 화면 이름을 쓴다 */
+  function fillHead() {
+    var h = HEADS[PART] || { t: '보고서 생성 입력', s: '무엇을 만들지 적고, 근거가 될 자료를 올립니다' };
+    var t = document.getElementById('head-t');
+    var d = document.getElementById('head-s');
+    if (t) t.textContent = h.t;
+    if (d) d.textContent = h.s;
+  }
+
+  /**
+   * 카드의 제목·설명. **머리로 올라간 칸이면 붙이지 않는다.**
+   * @param {HTMLElement} box  카드
+   * @param {string} part      이 카드가 맡은 칸
+   * @param {string} title     제목
+   * @param {string} desc      설명
+   */
+  function cardHead(box, part, title, desc) {
+    if (PART && PART === part) return box;   // 머리에 이미 있다
+    box.appendChild(el('h2', 'card__t', title));
+    if (desc) box.appendChild(el('p', 'card__s', desc));
+    return box;
+  }
 
   function saveDraft() {
     try {
@@ -634,10 +685,7 @@ window.LINKPILOT_INTAKE = {
 
   function requestCard() {
     var box = el('section', 'card');
-    box.appendChild(el('h2', 'card__t', '무엇을 만들까요'));
-    box.appendChild(el('p', 'card__s',
-      '한 줄로 적어 주세요. 용량·지역·자산유형을 알아서 뽑아내지만, '
-      + '뽑은 값은 문서로 확인된 것이 아니라 미확인으로 표시됩니다.'));
+    cardHead(box, 'ask', HEADS.ask.t, HEADS.ask.s);
 
     var f1 = el('div', 'f');
     f1.appendChild(el('label', null, '요청문'));
@@ -684,10 +732,7 @@ window.LINKPILOT_INTAKE = {
    */
   function issuerCard() {
     var box = el('section', 'card');
-    box.appendChild(el('h2', 'card__t', '발행 주체'));
-    box.appendChild(el('p', 'card__s',
-      'IM 표지와 서명부에 찍히는 회사입니다. 비워 두면 문서에 「발행 주체 미설정」이 '
-      + '표시되고 대외 배포가 막힙니다.'));
+    cardHead(box, 'issuer', HEADS.issuer.t, HEADS.issuer.s);
 
     var lim = (state.info && state.info.issuerLimits) || {};
     var cur = (state.info && state.info.issuer) || {};
@@ -1109,6 +1154,7 @@ window.LINKPILOT_INTAKE = {
   function render() {
     body.textContent = '';
     meta.textContent = '';
+    fillHead();
 
     var acc = Gate.access(C.session, 'pro');
     if (!acc.allowed) {

@@ -760,12 +760,13 @@ test('★★★ 단계 칸이 자기 화면을 가리키면 띄우지 않고 그
   /* ★ 물음표 뒤로 가르면 안 된다 — 같은 파일도 `?part=` 때문에 달라 보인다 */
   assert.match(flow, /split\('\?'\)\[0\]/, '물음표 뒤까지 넣어 비교한다 — 같은 파일을 다르게 본다');
 
-  /* ★★ **무엇을 부르는지 화면에 적는다.** 안 적으면 「빈 칸이 떴다」에서 다음에
-     무엇을 볼지 알 수가 없다. 단, 물음표 뒤는 열쇠가 섞이므로 파일 이름만 (§2) */
-  assert.match(flow, /stage__f/, '어느 화면을 부르는지 표시가 없다');
-  const label = /var f = el\('span', 'stage__f', (\w+)\);/.exec(flow);
-  assert.ok(label, '표시를 만드는 줄을 못 찾았다');
-  assert.strictEqual(label[1], 'want', `표시에 ${label[1]} 를 넣는다 — api 키가 화면에 나갈 수 있다`);
+  /* ★★ 〈2026-08-23 사장님 지시〉 단계 칸의 머리줄을 지웠다 — 바로 위 절 카드가
+     같은 말을 하고 있어 제목이 두 줄 연달아 나왔다. 부르는 화면 이름은 iframe 의
+     title 에 남긴다. 물음표 뒤는 넣지 않는다 — 열쇠가 섞인다 (§2) */
+  assert.ok(flow.indexOf('stage__bar') === -1, '머리줄이 되살아났다 — 같은 제목이 두 줄이다');
+  const t = /fr\.title = step\.no \+ '\. ' \+ step\.name \+ ' \(' \+ (\w+) \+ '\)';/.exec(flow);
+  assert.ok(t, '부르는 화면 이름을 어디에도 안 남긴다');
+  assert.strictEqual(t[1], 'want', `title 에 ${t[1]} 를 넣는다 — api 키가 새어 나갈 수 있다`);
 });
 
 /**
@@ -814,4 +815,38 @@ test('★ 칸의 앞뒤 차례가 단계 차례와 같다', () => {
   const parts = F.STEPS.filter(s => s.file === 'intake.html');
   assert.deepStrictEqual(parts.map(s => s.part), ['issuer', 'ask', 'files']);
   assert.deepStrictEqual(parts.map(s => s.no), [1, 2, 3], '앞의 셋이 이어져 있지 않다');
+});
+
+/**
+ * ★★★ **머리 글자가 지금 보는 칸을 말한다** 〈2026-08-23 사장님 지시〉.
+ *
+ *   앞 판은 「보고서 생성 입력 / 무엇을 만들지 적고…」가 박혀 있었다. 칸이 셋이
+ *   되면서 **어느 칸을 보든 같은 머리**가 떴고, 바로 아래 카드가 제 이름을 또
+ *   달아 **같은 자리에 제목이 둘**이었다.
+ */
+test('★★★ 머리 글자가 칸을 따라가고, 제목이 두 번 나오지 않는다', () => {
+  const intake = read('intake.html');
+
+  /* ① 머리를 정적으로 박아 두지 않는다 */
+  assert.match(intake, /id="head-t"><\/h1>/, '머리 제목이 아직 박혀 있다');
+  assert.ok(intake.indexOf('<h1 class="head__t">보고서 생성 입력</h1>') === -1,
+    '옛 머리가 남아 있다 — 어느 칸을 보든 같은 말을 한다');
+
+  /* ② 칸 셋의 머리 글자가 한 곳에 모여 있다 */
+  assert.match(intake, /var HEADS = \{/, '칸별 머리 글자가 없다');
+  ['issuer:', 'ask:', 'files:'].forEach((k) => assert.match(intake, new RegExp(k),
+    `HEADS 에 「${k}」 가 없다`));
+
+  /* ③ ★ 카드가 같은 문장을 **베껴 쓰지 않는다.** 두 벌이면 한쪽만 고치는 날
+     머리와 본문이 다른 말을 한다 */
+  const code = intake.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '');
+  ['발행 주체', '무엇을 만들까요'].forEach((t) => {
+    const hits = (code.match(new RegExp(`'${t}'`, 'g')) || []).length;
+    assert.strictEqual(hits, 1, `「${t}」 가 ${hits}곳에 적혀 있다 — HEADS 한 곳이어야 한다`);
+  });
+
+  /* ④ 머리로 올라간 칸은 카드에서 제 이름을 뗀다 */
+  assert.match(intake, /function cardHead\(/, '카드 제목을 가려 붙이는 자리가 없다');
+  assert.match(intake, /if \(PART && PART === part\) return box;/,
+    '머리에 있는데 카드에도 또 붙인다');
 });

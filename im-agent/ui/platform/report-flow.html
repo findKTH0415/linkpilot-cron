@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="d5cd3481">
+<html lang="ko" data-lp-build="1687842e">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -119,16 +119,7 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
 
 /* ── 단계 화면 — 내용 높이만큼 편다 (안쪽 스크롤 없음) ────── */
 .stage { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
-.stage__f {
-  font: 500 11px/1 var(--lp-font); color: var(--ink2);
-  background: var(--panel); border-radius: 6px; padding: 4px 7px; margin-left: 8px;
-}
-.stage__bar {
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-  padding: 12px 18px; border-bottom: 1px solid var(--line); background: var(--panel);
-  font-size: 13.5px; color: var(--ink2);
-}
-.stage__bar b { color: var(--ink); }
+
 .stage iframe { display: block; width: 100%; border: 0; }
 
 .note { margin: 12px 0 0; padding: 12px 14px; border-radius: 12px;
@@ -410,10 +401,13 @@ window.LINKPILOT_REPORT_FLOW = {
   function stage(step) {
     var box = el('div', 'stage');
 
-    var bar = el('div', 'stage__bar');
-    add(bar, el('b', null, step.no + '. ' + step.name));
-    bar.appendChild(el('span', null, state.projectId ? '프로젝트 ' + state.projectId : '프로젝트 미지정'));
-    box.appendChild(bar);
+    /* ★★★ **머리줄을 지웠다** 〈2026-08-23 사장님 지시〉.
+     *   여기 「1. 제작 기본정보 입력 · 프로젝트 미지정」이 있었다. 그런데 **바로
+     *   위 절 카드가 같은 말**을 하고 있어서, 같은 제목이 두 줄 연달아 나왔다.
+     *   ★ 함께 사라진 것: 그 칸이 **어느 화면을 부르는지** 보여 주던 작은 표시.
+     *     겹침을 잡는 빨간 안내는 그대로 남아 있고, 그 안내가 파일 이름을 적는다 —
+     *     **어긋났을 때 볼 것은 그쪽**이다.
+     */
 
     var fr = document.createElement('iframe');
     fr.name = 'lp-flow-' + step.id;
@@ -452,12 +446,10 @@ window.LINKPILOT_REPORT_FLOW = {
         return box;
       }
 
-      /* ★ **무엇을 부르는지 화면에 적는다.** 안 적으면 「빈 칸이 떴다」·「엉뚱한
-         것이 떴다」에서 다음에 무엇을 볼지 알 수가 없다 — 이번에 그래서 한 번
-         돌아왔다. 물음표 뒤는 열쇠(api)가 섞이므로 **파일 이름만** 적는다 (§2). */
-      var f = el('span', 'stage__f', want);
-      f.title = '이 칸이 부르는 화면';
-      bar.appendChild(f);
+      /* ★ 부르는 화면 이름은 **iframe 의 title 에** 남긴다. 화면에 늘 띄우면
+         머리줄이 되살아나는 셈이라 지웠고(위), 어긋났을 때는 겹침 안내가
+         파일 이름을 적어 준다. 물음표 뒤는 넣지 않는다 — 열쇠가 섞인다 (§2). */
+      fr.title = step.no + '. ' + step.name + ' (' + want + ')';
 
       fr.src = url;
     }
