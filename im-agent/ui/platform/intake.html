@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="91887312">
+<html lang="ko" data-lp-build="d5cd3481">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -968,6 +968,66 @@ window.LINKPILOT_INTAKE = {
     return !!C.api && state.request.trim().length >= 5 && !state.busy && !state.created;
   }
 
+  /**
+   * ★★★ **칸을 나눴으면 옮겨 갈 단추도 있어야 한다** 〈2026-08-23 · 사장님 지적〉.
+   *
+   *   1·2단계를 나눠 놓고 단추는 3단계에만 두었다. 그래서 발행 주체를 적고 나면
+   *   **화면에 아무것도 없다** — 저장이 된 건지, 다음이 어디인지 알 수가 없다.
+   *   적는 곳을 나눴으면 **나가는 곳도 함께** 만들어야 한다.
+   *
+   * ★ 이름을 「저장」으로 하지 않는다. 이 단계에서 서버로 가는 것은 **없다** —
+   *   발행 주체·요청문은 3단계에서 [자료올리기 완료] 를 누를 때 **함께** 간다.
+   *   「저장」이라고 적으면 서버에 넣은 줄 알고 창을 닫는다. 실제로는 이 브라우저에만
+   *   남아 있다. **단추 이름이 하는 일과 달라지는 것**이 가장 비싼 거짓말이다.
+   */
+  function partNav() {
+    var F = window.LinkPilotFlow;
+    if (!F || !PART) return null;
+
+    var mine = F.STEPS.filter(function (s) { return s.file === 'intake.html'; });
+    var at = -1;
+    mine.forEach(function (s, i) { if (s.part === PART) at = i; });
+    if (at < 0) return null;
+
+    var prev = at > 0 ? mine[at - 1] : null;
+    var next = at < mine.length - 1 ? mine[at + 1] : null;
+    if (!prev && !next) return null;
+
+    var row = el('div', 'actions');
+    if (prev) {
+      var b = el('button', 'btn btn--ghost', '이전 — ' + prev.name);
+      b.type = 'button';
+      b.addEventListener('click', function () { goPart(prev); });
+      row.appendChild(b);
+    }
+    if (next) {
+      var n = el('button', 'btn', '다음 — ' + next.name);
+      n.type = 'button';
+      n.addEventListener('click', function () { goPart(next); });
+      row.appendChild(n);
+    }
+    return row;
+  }
+
+  /**
+   * 다른 칸으로 옮긴다.
+   * ★ 앱 안(iframe)에서는 **부모에게 알린다.** 안쪽에서 주소만 바꾸면 바깥 레일은
+   *   그대로여서 「지금 어느 단계인가」가 둘로 갈린다. 부모가 없으면(따로 열었을 때)
+   *   주소를 직접 바꾼다.
+   */
+  function goPart(step) {
+    saveDraft();
+    var sent = false;
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: 'lp-flow-step', step: step.id },
+          window.location.origin);
+        sent = true;
+      }
+    } catch (_) { /* 출처가 다르면 못 보낸다 — 아래로 떨어진다 */ }
+    if (!sent) window.location.href = stepUrl(step.file, null, step.part);
+  }
+
   function actionsRow() {
     var row = el('div', 'actions');
     var go = el('button', 'btn', state.busy ? '올리는 중…' : '자료올리기 완료');   /* (요청 2026-08-17) '프로젝트 만들기' → 사용자 관점 동사로 */
@@ -1113,9 +1173,12 @@ window.LINKPILOT_INTAKE = {
      *   해 두면 사용자는 **여기서 끝난 줄 알고 기다린다** — 기다릴 것이 없다. */
     if (PART && PART !== 'files') {
       body.appendChild(el('p', 'card__s',
-        '여기 적은 것은 이 브라우저에 저장됩니다. 3단계 「관련자료 업로드」에서 '
-        + '[프로젝트 만들기] 를 눌러야 1·2·3단계가 함께 서버로 갑니다.'));
+        '여기 적은 것은 이 브라우저에 남습니다 — 단계를 오가도 지워지지 않습니다. '
+        + '서버로는 3단계 「관련자료 업로드」에서 [자료올리기 완료] 를 누를 때 '
+        + '1·2·3단계가 함께 갑니다.'));
     }
+    var nav = partNav();
+    if (nav) body.appendChild(nav);
   }
 
   /* ── 시작 ─────────────────────────────────────────────── */

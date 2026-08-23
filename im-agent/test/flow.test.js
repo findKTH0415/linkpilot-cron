@@ -780,3 +780,38 @@ test('★★★ 화면 감시가 주소의 물음표 뒤까지 넘긴다', () =>
   assert.match(m[1], /loc\.search/,
     '경로만 넘긴다 — 앞의 셋이 같은 파일이라 늘 첫 칸으로 판정돼 2·3단계가 튕긴다');
 });
+
+/**
+ * ★★★ **칸을 나눴으면 나가는 곳도 있어야 한다** 〈2026-08-23 · 사장님 지적〉.
+ *
+ *   1·2단계를 나눠 놓고 단추는 3단계에만 두었다. 그래서 발행 주체를 적고 나면
+ *   **화면에 아무것도 없었다** — 저장이 된 건지, 다음이 어디인지 알 수가 없다.
+ */
+test('★★★ 1·2단계에 다음으로 가는 단추가 있다', () => {
+  const intake = read('intake.html');
+
+  assert.match(intake, /function partNav\(\)/, '칸 사이를 옮기는 단추가 없다');
+  assert.match(intake, /'다음 — '/, '다음 단추 문구가 없다');
+  assert.match(intake, /'이전 — '/, '이전 단추 문구가 없다');
+  assert.match(intake, /body\.appendChild\(nav\)/, '만들어 놓고 화면에 안 붙인다');
+
+  /* ★★ **「저장」이라고 적지 않는다.** 이 단계에서 서버로 가는 것은 없다 —
+     3단계에서 함께 간다. 단추 이름이 하는 일과 달라지는 것이 가장 비싼 거짓말이다 */
+  const nav = intake.slice(intake.indexOf('function partNav()'), intake.indexOf('function actionsRow()'));
+  assert.ok(nav.indexOf('저장') === -1,
+    '이 단계 단추에 「저장」이 들어갔다 — 서버에 넣은 줄 알고 창을 닫는다');
+
+  /* ★ 앱 안에서는 부모에게 알린다. 안쪽만 옮기면 바깥 레일과 갈린다 */
+  assert.match(intake, /lp-flow-step/, '부모에게 단계 이동을 안 알린다');
+  const flow = read('report-flow.html');
+  assert.match(flow, /lp-flow-step/, '부모가 그 알림을 안 받는다 — 한쪽만 있으면 갈린다');
+  assert.match(flow, /known && known\.id !== state\.current/,
+    '모르는 단계 이름을 걸러내지 않는다');
+});
+
+/** ★ 칸의 앞뒤는 `flow-core` 차례 그대로여야 한다 — 화면이 따로 정하면 갈린다 */
+test('★ 칸의 앞뒤 차례가 단계 차례와 같다', () => {
+  const parts = F.STEPS.filter(s => s.file === 'intake.html');
+  assert.deepStrictEqual(parts.map(s => s.part), ['issuer', 'ask', 'files']);
+  assert.deepStrictEqual(parts.map(s => s.no), [1, 2, 3], '앞의 셋이 이어져 있지 않다');
+});

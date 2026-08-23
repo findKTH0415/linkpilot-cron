@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="91887312">
+<html lang="ko" data-lp-build="d5cd3481">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -373,7 +373,18 @@ window.LINKPILOT_REPORT_FLOW = {
   window.addEventListener('message', function (e) {
     if (e.origin !== window.location.origin) return;
     var d = e.data;
-    if (!d || d.type !== 'lp-flow-project' || !d.projectId) return;
+    if (!d) return;
+
+    /* ★ 안쪽 화면이 「다음 칸으로 가자」고 알려 온다 〈2026-08-23〉. 안쪽이 주소만
+       바꾸면 바깥 레일은 그대로여서 **지금 어느 단계인가가 둘로 갈린다.**
+       ★ 모르는 단계 이름은 무시한다 — 지어내지 않는다 */
+    if (d.type === 'lp-flow-step' && d.step) {
+      var known = F.STEPS.filter(function (x) { return x.id === d.step; })[0];
+      if (known && known.id !== state.current) go(known.id);
+      return;
+    }
+
+    if (d.type !== 'lp-flow-project' || !d.projectId) return;
     if (d.projectId !== state.projectId) { state.projectId = d.projectId; draw(); }
   });
 
