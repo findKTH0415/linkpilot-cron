@@ -404,3 +404,42 @@ test('★★ 입력은 셋뿐이다 — 쓸까 말까를 묻는 손잡이가 없
   assert.ok(dr, 'dry_run 입력을 못 찾았다');
   assert.match(dr[1], /default:\s*true/, 'dry_run 기본이 꺼져 있다');
 });
+
+/**
+ * ★★★ **화면을 올리는 길을 한 줄로 만들었다** 〈2026-08-23〉.
+ *
+ *   지금까지 이 일을 손으로 세 줄에 나눠 쳤고 **세 줄 다 한 번씩 틀렸다**:
+ *   ① 맥에 없는 NAS 경로를 `--out` 에 줬다 ② 붙여넣은 주석을 zsh 가 명령으로
+ *   읽었다 ③ `사용자@주소` 예시를 그대로 넣었다. 셋 다 사람 잘못이 아니라
+ *   **안내가 나눠져 있어서** 난 일이다.
+ */
+test('★★★ 화면 올리기 스크립트가 걸려 넘어질 곳을 먼저 막는다', () => {
+  const p = path.join(ROOT, 'deploy', 'screens.sh');
+  assert.ok(fs.existsSync(p), 'deploy/screens.sh 가 없다');
+  const sh = fs.readFileSync(p, 'utf8');
+
+  /* ① 접속정보를 파일에 적지 않는다 (§2) */
+  assert.match(sh, /LP_NAS_HOST/, '접속정보를 환경변수로 안 받는다');
+  assert.ok(!/@[a-z0-9.-]+\.(ts\.net|synology|local)\b/i.test(sh.replace(/example\.local/g, '')),
+    '주소가 파일에 박혀 있다 — 이 저장소에 접속정보를 두지 않는다');
+
+  /* ② **예시를 그대로 넣은 것**을 잡는다. ssh 는 「hostname contains invalid
+     characters」라고만 말해서, 예시를 안 바꿨다는 생각이 안 든다 */
+  assert.match(sh, /grep -q '\[\^ -~\]'/, '예시(한글) 주소를 안 걸러낸다');
+  assert.match(sh, /바꿔 넣으실 자리/, '무엇이 잘못됐는지 사람 말로 안 적는다');
+
+  /* ③ `-O` 를 뺄 수 없다 — Synology 의 SFTP 가둠 설정 때문이다 */
+  const scps = sh.split('\n').filter(l => /^\s*scp\s/.test(l));
+  assert.ok(scps.length > 0, 'scp 가 없다');
+  scps.forEach(l => assert.match(l, /\bscp\s+-O\b/,
+    'scp 에 -O 가 없다 — 「그런 폴더 없음」이 나오고 멀쩡한 경로를 다시 확인하게 된다'));
+
+  /* ④ 낼 곳이 im-flow 인지 본다 — 잘못 적으면 16개가 엉뚱한 곳에 쏟아진다 */
+  assert.match(sh, /\*\/im-flow\) : ;;/, '낼 곳을 안 가린다');
+
+  /* ⑤ ★★ **올리고 끝내지 않는다.** 「올렸다」와 「닿았다」는 다른 말이고
+     이 저장소는 그 차이로 세 번 헤맸다 (M-20 · M-22 · M-25) */
+  assert.match(sh, /sha256sum/, '올린 뒤 지문을 안 잰다');
+  assert.match(sh, /exit 1/, '어긋나도 0 으로 끝난다 — 초록이 거짓말을 한다');
+  assert.match(sh, /판 \$STAMP/, '어느 판인지 안 알려 준다');
+});
