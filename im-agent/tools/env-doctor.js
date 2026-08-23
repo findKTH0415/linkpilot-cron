@@ -28,6 +28,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const env = require('../core/env.js');
 
 const say = (s) => process.stdout.write(s + '\n');
@@ -52,6 +53,13 @@ function inspect(file) {
   /* ★ 워드·페이지스로 저장하면 zip 이다 — 이것도 「서식 문서」로 묶어 말한다 */
   out.zip = buf.length >= 2 && buf[0] === 0x50 && buf[1] === 0x4B;
   out.crlf = buf.indexOf('\r\n') !== -1;
+  /* ★★★ **파일이 바뀌긴 했는지**를 말한다 〈2026-08-23 · 두 번 헛돌았다〉.
+   *   「고쳤습니다」라고 하셨는데 로그가 똑같은 말을 되풀이했다. 그때
+   *   「안 고치신 것」과 「고쳤는데 안 올라간 것」이 구분이 안 됐다 —
+   *   File Station 의 [업로드 - 건너뛰기] 는 **있던 파일을 그대로 둔다.**
+   * ★ 파일 자체의 지문을 적으면 지난번과 대 보고 **한 번에 갈린다.**
+   *   열쇠가 아니라 **파일**의 지문이므로 값이 새지 않는다 (§2). */
+  out.sha = crypto.createHash('sha256').update(buf).digest('hex').slice(0, 12);
 
   const text = buf.toString('utf8');
   const lines = text.split(/\r?\n/);
@@ -68,7 +76,7 @@ function describe(i) {
   }
   if (i.readError) return `${path.basename(i.file)} — 못 읽는다 (${i.readError}) · 권한을 본다`;
 
-  const bits = [`${i.bytes}바이트`, `${i.lines}줄`];
+  const bits = [`${i.bytes}바이트`, `${i.lines}줄`, `파일지문 ${i.sha}`];
   if (i.rtf) bits.push('**서식 문서(RTF)** — 텍스트 편집기에서 [포맷] → [일반 텍스트로 만들기] 를 안 눌렀다');
   if (i.zip) bits.push('**워드/페이지스 문서** — 일반 텍스트가 아니다');
   if (i.bom) bits.push('BOM 이 붙었다 (우리 파서는 떼고 읽는다 — 지장 없다)');
