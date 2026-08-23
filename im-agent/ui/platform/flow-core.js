@@ -544,10 +544,34 @@
    * 화면 맨 아래에 지문을 붙인다. 이미 붙어 있으면 아무것도 안 한다.
    * ★ 두 번 부르는 자리가 실제로 있다(다시 그리기) — 그때 둘이 되면 안 된다.
    */
+  /**
+   * 이 화면이 **다른 LinkPilot 화면 안에** 들어 있는가 〈2026-08-23〉.
+   *
+   * ★★ 왜 필요한가. 지문이 **두 번 찍혔다.** `report-flow` 가 찍고, 그 안의
+   *   `intake` 도 찍어서 한 화면에 같은 값이 둘이었다 (사장님 화면 실측).
+   *   같은 값이 둘이면 「왜 둘이지」부터 보게 된다 — 잡음이다.
+   *
+   * ★ 그렇다고 「창 안이면 안 찍는다」로 두면 안 된다. `report-flow` 자체가
+   *   **앱 셸의 창 안**에 들어 있어서, 그러면 지문이 통째로 사라진다 —
+   *   그것이 오늘 우리를 구한 그 여덟 글자다.
+   *
+   * ★ 그래서 **부모가 LinkPilot 화면인지**를 본다:
+   *     부모에 `LinkPilotFlow` 가 있다  → 우리 화면 안이다 → 찍지 않는다
+   *     없다 / 읽을 수 없다(다른 출처)  → 앱 셸이거나 단독이다 → 찍는다
+   *   읽을 수 없을 때 **찍는 쪽으로 기운다** — 없는 것보다 둘이 나은 자리다.
+   */
+  function insideLinkPilot() {
+    try {
+      if (window.parent === window) return false;
+      return !!window.parent.LinkPilotFlow;
+    } catch (_) { return false; }   // 다른 출처 — 앱 셸로 본다
+  }
+
   function stampInto(doc) {
     var d = doc || document;
     var b = buildOf(d);
     if (!b || !d.body) return null;
+    if (insideLinkPilot()) return null;
     var had = d.querySelector('[data-lp-stamp]');
     if (had) { had.textContent = buildLabel(b); return had; }
     var n = d.createElement('p');
@@ -568,6 +592,7 @@
     stepState: stepState, urlFor: urlFor, stepOfFile: stepOfFile,
     sectionProgress: sectionProgress,
     BUILD_ATTR: BUILD_ATTR, buildOf: buildOf, buildLabel: buildLabel, stampInto: stampInto,
+    insideLinkPilot: insideLinkPilot,
     tokensLoaded: tokensLoaded, TOKENS_MISSING: TOKENS_MISSING,
     openSection: openSection, OPEN_EVENT: OPEN_EVENT,
   };

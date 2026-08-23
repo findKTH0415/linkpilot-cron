@@ -120,3 +120,35 @@ test('★★ 지문 문구가 한 곳에서 나온다 (flow-core)', () => {
         `${n} 이 제 문구를 따로 적는다 — 두 벌이면 화면마다 다르게 적힌다`);
     });
 });
+
+/**
+ * ★★ **지문은 한 화면에 하나여야 한다** 〈2026-08-23 · 사장님 화면에서 둘로 보였다〉.
+ *
+ *   `report-flow` 가 찍고 그 안의 `intake` 도 찍어서 같은 값이 둘이었다.
+ *   같은 값이 둘이면 「왜 둘이지」부터 보게 된다 — 판을 가리라고 둔 것이
+ *   되레 한 번 멈추게 한다.
+ *
+ * ★ 그렇다고 「창 안이면 안 찍는다」로 두면 안 된다. `report-flow` 자체가
+ *   **앱 셸의 창 안**에 들어 있어서 지문이 통째로 사라진다 — 그것이 오늘
+ *   우리를 구한 그 여덟 글자다. 그래서 **부모가 우리 화면인지**로 가른다.
+ */
+test('★★ 지문은 한 화면에 하나다 (우리 화면 안에서는 안 찍는다)', () => {
+  const F = require(path.join(PLATFORM, 'flow-core.js'));
+  const src = fs.readFileSync(path.join(PLATFORM, 'flow-core.js'), 'utf8');
+
+  assert.strictEqual(typeof F.insideLinkPilot, 'function', '겹치는지 가리는 길이 없다');
+
+  /* ★ 가리는 기준이 「창 안인가」가 아니라 「부모가 우리 화면인가」여야 한다 */
+  const fn = src.slice(src.indexOf('function insideLinkPilot'),
+    src.indexOf('function stampInto'));
+  assert.match(fn, /window\.parent\.LinkPilotFlow/,
+    '부모가 우리 화면인지 안 본다 — 앱 셸 안에서도 지문이 사라진다');
+
+  /* ★ 못 읽으면(다른 출처) **찍는 쪽**이다. 없는 것보다 둘이 낫다 */
+  assert.match(fn, /catch \(_\) \{ return false; \}/,
+    '다른 출처일 때 안 찍는 쪽으로 기운다 — 앱 셸에서 지문이 사라진다');
+
+  /* ★ `stampInto` 가 실제로 그 판단을 쓴다 */
+  const st = src.slice(src.indexOf('function stampInto'), src.indexOf('function stampInto') + 500);
+  assert.match(st, /insideLinkPilot\(\)/, '판단해 놓고 안 쓴다');
+});
