@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="da55ee52">
+<html lang="ko" data-lp-build="c7e3b3e0">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -235,6 +235,14 @@ window.LINKPILOT_OUTPUTS = {
   }
 
   function get(url) {
+    /* ★★ **서버 주소가 없으면 부르지 않는다** 〈2026-08-23〉. `C.api` 가 `null`
+     *   이면 주소가 `"null/projects"` 가 되어 지금 페이지 옆의 없는 파일을
+     *   찾고, 웹서버가 404 를 준다 — 화면에는 「서버 오류 (404)」만 뜬다.
+     *   그 404 는 **서버가 라우트를 잃은 것과 똑같이 보인다.** */
+    if (/^null\//.test(String(url)) || String(url).indexOf('null/') === 0) {
+      return Promise.reject(new Error(
+        '서버가 연결되어 있지 않습니다 — 앱 안에서 열어 주십시오.'));
+    }
     return fetch(url, { credentials: 'same-origin' }).then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (b) {
         if (!r.ok) throw new Error((b && b.error) || ('서버 오류 (' + r.status + ')'));

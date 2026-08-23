@@ -1676,3 +1676,112 @@ test('★★ 「자료 업로드」 제목을 손으로 적지 않는다 (머리
   assert.match(fn, /cardHead\(box, 'files'/, '머리와 겹치는지 안 보고 제목을 붙인다');
   assert.ok(!/card__t', '자료 업로드'/.test(fn), '제목을 손으로 적었다');
 });
+
+/* ═════════ ⑦ 서버 주소가 없으면 부르지 않는다 ═════════ */
+
+/**
+ * ★★★ 〈2026-08-23 사장님 화면에서 잡혔다 — 「＋ 신규프로젝트 → 만들기」가
+ *   **서버 오류 (404)**〉
+ *
+ *   `C.api` 가 `null` 인데 그대로 이어 붙이고 있었다. 그러면 주소가
+ *   **`"null/projects"`** 가 된다 — 지금 페이지 옆의 없는 파일이라 웹서버가
+ *   404 를 주고, 화면에는 「서버 오류 (404)」 한 줄만 남는다.
+ *
+ * ★★ **그 404 는 「서버가 라우트를 잃은 것」과 똑같이 보인다.** 실제로 나는
+ *   NAS 엔진의 라우팅 표부터 의심했다 (M-11 이 그런 사고였으니까).
+ *   원인이 우리 화면 안에 있었는데 서버를 뒤졌다.
+ *
+ * ★ 그래서 **부르는 자리마다 막지 않는다.** `call()` 한 곳에서 막는다 —
+ *   자리마다 막으면 새로 생긴 자리가 조용히 빠진다(`loadProjects` 만 막고 있었다).
+ * ★ 그리고 **올리기는 XHR 로 간다** — `call()` 을 안 거친다. 같은 일을 하는
+ *   길이 둘이면 둘 다 막아야 한다 (M-24).
+ */
+test('★★★ api 가 없으면 부르지 않는다 — null 을 주소에 붙이지 않는다', () => {
+  const code = codeOf(read('files.html'));
+
+  /* ① `call()` 한 곳에서 막는다 */
+  const at = code.indexOf('function call(method, path, body, opt2)');
+  assert.ok(at > 0, 'call 을 못 찾았다');
+  const fn = code.slice(at, at + 900);
+  assert.match(fn, /if \(!C\.api\)/, 'api 가 없어도 부른다 — 주소가 "null/…" 이 된다');
+  const guardAt = fn.indexOf('if (!C.api)');
+  const fetchAt = fn.indexOf('fetch(C.api + path');
+  assert.ok(guardAt > -1 && fetchAt > -1 && guardAt < fetchAt,
+    '문지기가 fetch 뒤에 있다 — 막기 전에 이미 불렀다');
+
+  /* ② 올리기(XHR)도 막는다 — `call()` 을 안 거치는 두 번째 길이다 (M-24) */
+  const up = code.indexOf('function doUpload');
+  assert.ok(up > 0, 'doUpload 를 못 찾았다');
+  const upFn = code.slice(up, code.indexOf("url: C.api + '/projects/'", up));
+  assert.match(upFn, /if \(!C\.api\)/,
+    '올리기가 api 없이도 간다 — XHR 은 call() 의 문지기를 안 거친다 (M-24)');
+
+  /* ③ ★★ **두 404 를 가른다** — 안 가르면 「서버 오류(404)」 한 줄이 되어
+     어디를 봐야 하는지 알 수가 없다 (M-12 가 적어 둔 구분) */
+  assert.match(code, /r\.status === 404 && !\(b && b\.error\)/,
+    '길 없음 404 와 자원 없음 404 를 안 가른다');
+  assert.match(code, /옛 라우팅 표/, '길 없음 404 일 때 어디를 봐야 하는지 안 알려 준다');
+
+  /* ④ 완성 보고서 화면도 같은 구멍이 있었다 */
+  const out = codeOf(read('outputs.html'));
+  assert.match(out, /null\//, 'outputs 가 null 주소를 그대로 부른다');
+});
+
+test('★★★ api 없이 열면 만들기가 404 가 아니라 이유를 말한다 (실제로 눌러 본다)', () => {
+  const { findBrowser, renderDom } = require(path.join(PLATFORM, 'build-static.js'));
+  if (!findBrowser()) return;   // 크로미움이 없는 서버가 실제로 있다
+
+  /* ★★ **통과가 아니라 실패를 잰다** (배포 전 교차검증 10번). 「막았다」는
+   *   코드를 읽어서가 아니라 **막히는 것을 봐서** 안다. */
+  const probe = `
+    <div id="probe"></div>
+    <script>
+    setTimeout(function () {
+      var o = { err: [] };
+      window.addEventListener('error', function (e) { o.err.push(e.message); });
+      var sel = document.querySelector('.pick select');
+      if (!sel) { o.no = '고르기가 없다'; document.getElementById('probe').textContent = JSON.stringify(o); return; }
+      sel.value = 'new:';
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+      setTimeout(function () {
+        var inp = document.querySelector('.new input');
+        if (!inp) { o.no = '적는 칸이 없다'; document.getElementById('probe').textContent = JSON.stringify(o); return; }
+        inp.value = 'IM 제안서 한 건';
+        inp.dispatchEvent(new Event('input', { bubbles: true }));
+        var btn = [].slice.call(document.querySelectorAll('.new button, button'))
+          .filter(function (b) { return /만들기/.test(b.textContent || ''); })[0];
+        if (!btn) { o.no = '만들기 단추가 없다'; document.getElementById('probe').textContent = JSON.stringify(o); return; }
+        btn.click();
+        setTimeout(function () {
+          o.said = [].slice.call(document.querySelectorAll('.new, .card'))
+            .map(function (n) { return (n.textContent || '').trim(); })
+            .filter(function (x) { return /404|서버|연결/.test(x); }).join(' | ');
+          document.getElementById('probe').textContent = JSON.stringify(o);
+        }, 700);
+      }, 300);
+    }, 400);
+    </script>`;
+
+  /* ★ 화면 폴더 안에 쓴다 — 옆의 `.js` 를 상대경로로 부른다. 그리고 **api 를
+     주지 않는다** — 그것이 이 검사가 재려는 상황이다 */
+  const name = '.lp-noapi-probe.html';
+  const at = path.join(PLATFORM, name);
+  const src = read('files.html').replace('</body>', probe + '</body>');
+  fs.writeFileSync(at, src);
+  try {
+    const dom = renderDom(findBrowser(), at, 60000);
+    const m = /<div id="probe">([^<]*)<\/div>/.exec(dom);
+    assert.ok(m && m[1], '탐침이 아무것도 안 남겼다');
+    const r = JSON.parse(m[1]);
+    assert.deepStrictEqual(r.err, [], `누르는 동안 예외가 났다: ${JSON.stringify(r.err)}`);
+    assert.ok(!r.no, `여기까지 못 갔다: ${r.no}`);
+
+    /* ★ 404 라고 말하면 안 된다 — 서버를 뒤지게 된다 */
+    assert.ok(!/404/.test(String(r.said)),
+      `api 가 없는데 404 라고 말한다 — 원인이 화면 안에 있는데 서버를 뒤지게 된다: ${r.said}`);
+    assert.match(String(r.said), /연결/,
+      `무엇이 문제인지 안 말한다: ${r.said}`);
+  } finally {
+    fs.rmSync(at, { force: true });
+  }
+});

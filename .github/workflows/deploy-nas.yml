@@ -137,6 +137,11 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      # ★ 라우트 점검(`verify:nas`)이 node 로 돈다. 없으면 그 단계만 조용히
+      #   죽는데, 하필 **조용히 죽으면 안 되는** 단계다
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
       # ★★ **dry run 에서도 이 단계는 돈다** 〈2026-08-21〉. 앞 판은 여기에
       #   `if: !inputs.dry_run` 이 붙어 있어서, **안전한 판으로는 열쇠가
@@ -631,6 +636,48 @@ jobs:
           done
           echo "앱 경로 확인: ${OK} 개 일치" >> "$GITHUB_STEP_SUMMARY"
           exit "$BAD"
+
+      # ★★★ **라우트가 앱을 거쳐 닿는지 잰다** 〈2026-08-23 · M-11 · M-12〉.
+      #
+      #   이 검사를 **만들어 두고 아무도 안 돌렸다.** 2026-08-18 에 본체가 라우팅
+      #   표를 손으로 옮기다 **11개를 빠뜨려 404** 가 났고(M-11), 그것을 잡으라고
+      #   `verify:nas` 를 만들었다(M-12). 그런데 사람이 손으로 쳐야 도는 것이라
+      #   **아무도 안 쳤고**, 2026-08-23 에 같은 종류가 다시 났다 —
+      #   「＋ 신규프로젝트 → 만들기」가 `POST /projects` 에서 404.
+      #
+      #   ★ 그래서 **배포 때마다 자동으로** 스물여덟을 전부 두드린다. 판정은
+      #     「404 냐 아니냐」다 — 401·400 은 길이 있다는 뜻이므로 통과다.
+      #   ★ **못 쟀으면 초록으로 끝내지 않는다** (종료코드 2). 「초록인데 안 잰
+      #     것」이 이 저장소에서 가장 비싼 상태다.
+      - name: Check routes (M-11 · M-12)
+        if: ${{ !inputs.dry_run }}
+        env:
+          LP_BASE: ${{ secrets.LP_BASE }}
+          NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+        run: |
+          set -uo pipefail
+          if [ -n "${LP_BASE:-}" ]; then
+            BASE="$LP_BASE"; VIA="LP_BASE (앱이 쓰는 길)"
+          else
+            BASE="http://${NAS_HOST}"; VIA="tailnet 포트 80 — LP_BASE 가 없어 대신 쟀다"
+          fi
+          echo "라우트를 잰 길: ${VIA}"
+          set +e
+          npm run --silent verify:nas -- --base "$BASE"
+          CODE=$?
+          set -e
+          if [ "$CODE" = "0" ]; then
+            echo "라우트 확인: 스물여덟 모두 닿았다 (${VIA})" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if [ "$CODE" = "2" ]; then
+            echo "::warning::라우트를 **다 못 쟀다** — 위 표의 ⚠️ 줄을 본다. 잰 길: ${VIA}. LP_BASE 를 넣으면 앱이 쓰는 길로 잰다."
+            echo "라우트 확인: 다 못 쟀다 (${VIA})" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "::error::**라우트가 404 다.** 화면은 새 판인데 서버가 옛 표를 들고 있다 — 화면에서는 「서버 오류 (404)」로만 보인다 (M-11). 엔진(report-api.cjs)을 함께 올려야 한다."
+          echo "라우트 확인: 404 있음 (${VIA})" >> "$GITHUB_STEP_SUMMARY"
+          exit 1
 
       - name: Probe summary
         if: ${{ !inputs.dry_run }}
