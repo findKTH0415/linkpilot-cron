@@ -50,8 +50,32 @@ function parseLine(line) {
  *   loaded  이번에 올린 변수 이름 (값은 담지 않는다 — 로그에 찍히면 안 된다)
  *   skipped 이미 설정돼 있어 건드리지 않은 이름
  */
+/**
+ * ★★★ **점 없는 이름도 받는다** 〈2026-08-23 · 실제로 막혔다〉.
+ *
+ *   사장님께 「File Station 에서 `.env` 를 만드십시오」라고 안내했는데
+ *   **File Station 의 [생성] 에는 「폴더」밖에 없다.** 파일을 만드는 메뉴가
+ *   아예 없어서 `env` 라는 **폴더**가 만들어졌다.
+ *
+ *   ★ 점으로 시작하는 이름은 NAS 화면에서 **기본으로 숨겨지고, 만들기도
+ *     어렵다.** 사람을 탓할 자리가 아니라 우리가 받아 주어야 하는 자리다.
+ *   ★ 그래서 **`linkpilot.env` 도 읽는다.** 점이 없어 화면에 그냥 보이고,
+ *     맥에서 만들어 올리기만 하면 된다.
+ *   ★ 둘 다 있으면 **`.env` 가 이긴다** — 앞서 쓰던 사람이 놀라지 않게.
+ */
+const NAMES = ['.env', 'linkpilot.env'];
+
+/** 실제로 있는 첫 번째 파일. 없으면 첫 이름을 돌려준다(있었으면 하는 자리) */
+function pick(dir) {
+  for (const n of NAMES) {
+    const p = path.join(dir, n);
+    try { if (fs.existsSync(p) && fs.statSync(p).isFile()) return p; } catch (_) { /* 폴더일 수 있다 */ }
+  }
+  return path.join(dir, NAMES[0]);
+}
+
 function load(file) {
-  const target = file || path.join(repoRoot(), '.env');
+  const target = file || pick(repoRoot());
   const out = { loaded: [], skipped: [], file: target, exists: false };
 
   let text;
@@ -94,4 +118,4 @@ function ensure() {
   return once;
 }
 
-module.exports = { load, ensure, parseLine, repoRoot };
+module.exports = { load, ensure, parseLine, repoRoot, pick, NAMES };

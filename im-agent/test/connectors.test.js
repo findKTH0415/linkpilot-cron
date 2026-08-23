@@ -684,3 +684,63 @@ test('★★★ .env 를 놓으면 실제로 켜진다 (놓았다 지워 보고 
   }
   assert.strictEqual(run(), 'true', '.env 를 지웠는데 켜져 있다고 한다');
 });
+
+/**
+ * ★★★ **점 없는 이름도 받는다** 〈2026-08-23 · 실제로 막혔다〉.
+ *
+ *   「File Station 에서 `.env` 를 만드십시오」라고 안내했는데
+ *   **File Station 의 [생성] 에는 「폴더」밖에 없다.** 파일을 만드는 메뉴가
+ *   아예 없어서 `env` 라는 **폴더**가 만들어졌다.
+ *
+ * ★ 점으로 시작하는 이름은 NAS 화면에서 기본으로 숨겨지고 만들기도 어렵다.
+ *   사람을 탓할 자리가 아니라 **우리가 받아 주어야 하는 자리**다.
+ */
+test('★★★ .env 가 없으면 linkpilot.env 를 읽는다 (점 없는 이름)', () => {
+  const fs = require('fs');
+  const os = require('os');
+  const path = require('path');
+  const env = require('../core/env');
+
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'im-envname-'));
+  try {
+    assert.strictEqual(path.basename(env.pick(dir)), '.env',
+      '둘 다 없으면 .env 자리를 가리켜야 한다');
+
+    fs.writeFileSync(path.join(dir, 'linkpilot.env'), 'A=1\n');
+    assert.strictEqual(path.basename(env.pick(dir)), 'linkpilot.env');
+
+    fs.writeFileSync(path.join(dir, '.env'), 'A=2\n');
+    assert.strictEqual(path.basename(env.pick(dir)), '.env',
+      '둘 다 있으면 .env 가 이겨야 한다 — 앞서 쓰던 사람이 놀라면 안 된다');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('★★★ 같은 이름의 **폴더**가 있어도 넘어간다 (실제로 그렇게 만들어졌다)', () => {
+  const fs = require('fs');
+  const os = require('os');
+  const path = require('path');
+  const env = require('../core/env');
+
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'im-envdir-'));
+  try {
+    /* 사장님 화면에 실제로 만들어진 모양 — `env` 폴더 */
+    fs.mkdirSync(path.join(dir, '.env'));
+    fs.writeFileSync(path.join(dir, 'linkpilot.env'), 'A=1\n');
+    assert.strictEqual(path.basename(env.pick(dir)), 'linkpilot.env',
+      '폴더를 파일로 잡으면 읽다가 죽는다');
+
+    const r = env.load(env.pick(dir));
+    assert.deepStrictEqual(r.loaded, ['A']);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('★★ 없는 파일을 읽어도 던지지 않는다', () => {
+  const env = require('../core/env');
+  const r = env.load('/없는/경로/linkpilot.env');
+  assert.strictEqual(r.exists, false);
+  assert.deepStrictEqual(r.loaded, []);
+});
