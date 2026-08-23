@@ -86,7 +86,49 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # ★★★ **교차검증을 통과한 것만 내보낸다** 〈2026-08-23 사장님 지시 · CLAUDE.md §7〉.
+  #
+  #   지금까지 이것을 **사람이 기억해서** 했다. 그래서 잊었다 — 하루에 두 번,
+  #   검사가 빨간 채로 밀었다. 기억에 기대는 규칙은 바쁠 때 가장 먼저 빠진다.
+  #
+  #   ★ 그래서 **구조가 막는다.** 이 판이 초록이 아니면 `deploy` 는 아예 시작하지
+  #     않는다(`needs`). dry run 이어도 돈다 — 「안 올릴 거니까 건너뛰자」가 곧
+  #     「빨간 판으로 올리자」로 이어진다.
+  #   ★ 이 판이 재는 것은 **배포될 그 커밋**이다. 내 손의 결과가 아니라
+  #     러너가 다시 돌린 결과라야 뜻이 있다.
+  guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      IM_AGENT_OFFLINE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      # 한글 글꼴이 없으면 브라우저가 **말없이 다른 글꼴로** 그린다 (D-52)
+      - name: Install Korean fonts (D-52)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-cjk
+
+      - name: Run tests
+        run: |
+          set -o pipefail
+          node --test im-agent/test/*.test.js 2>&1 | tee "${RUNNER_TEMP}/tap.txt"
+
+      - name: 실패한 것만 다시 (원인이 로그에 묻히지 않게)
+        if: failure()
+        run: |
+          echo "───────── 실패한 테스트 ─────────"
+          grep -n '^not ok' "${RUNNER_TEMP}/tap.txt" || echo "(not ok 줄이 없다 — 테스트 밖에서 죽었다)"
+
+      # ★★ **산출물이 소스와 갈리지 않았는지** 본다. 화면 파일을 고치고 지문을
+      #   다시 안 찍으면, 배포는 새 파일을 올리는데 **화면은 옛 판을 말한다** —
+      #   그러면 「반영이 안 된다」를 지문으로 가릴 수가 없어진다 (M-25).
+      - name: Check build stamp
+        run: npm run im:stamp -- --check
+
   deploy:
+    needs: guard
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -477,9 +519,19 @@ jobs:
       #   ★ 재는 목록을 `files` 에서 받는다. 앞 판은 스크립트 기본값 넷만 쟀다.
       #     화면 열여섯이 서로를 부르므로 **하나만 옛것이어도 빈 화면**이 뜨는데,
       #     넷만 재면 그 하나가 나머지 열둘 중에 있을 때 초록으로 지나간다 (M-22).
+      # ★★★ **여기는 「올리기 전」이다 — 재기만 한다** 〈2026-08-23 · run #44 에서 잡혔다〉.
+      #
+      #   앞 판은 올린 뒤와 **똑같은 잣대**로 쟀다. 그래서 「저장소 ≠ 디스크」를
+      #   치명으로 보고 배포를 세웠는데, 올리기 **전에** 그 둘이 다른 것은
+      #   고장이 아니라 **올리는 이유 그 자체**다.
+      #   → **바꿀 것이 있는 날에만 배포가 막히는** 장치가 되어 있었다.
+      #     실제로 run #44 는 16개 중 4개에서 죽고 Upload 를 건너뛰었다.
+      #
+      #   ★ 잣대는 자리에 따라 다르다. **올린 뒤**(`Verify deployed`)에는 그대로 치명이다.
       - name: Check served build
         if: ${{ !inputs.dry_run }}
         env:
+          LP_BEFORE: '1'
           NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
           NAS_USER: ${{ secrets.NAS_SSH_USER }}
           DEST: ${{ inputs.dest }}
@@ -537,6 +589,45 @@ jobs:
           for f in $FILES; do NAMES="$NAMES $(basename "$f")"; done
           bash deploy/verify-served.sh "$NAS_HOST" "$NAS_USER" "$DEST" $NAMES
 
+      # ★★★ **앱이 실제로 쓰는 길로 한 번 더 잰다** 〈2026-08-23〉.
+      #
+      #   앞 단계는 tailnet 의 포트 80 으로 받는다. 그런데 앱은 **Funnel 443 → 80**
+      #   으로 들어오고, DSM 은 `Host:` 로 가상 호스트를 고르므로 **문서 루트가
+      #   다를 수 있다.** 그래서 「디스크 ≠ HTTP」가 나와도 그게 캐시인지 다른
+      #   파일인지 그 자리에서는 갈리지 않았다 — M-25 가 통째로 그 이야기다.
+      #
+      #   ★ 여기서 같은 길로 재면 그 갈림이 **없어진다.** 사장님이 보시는 그 파일을
+      #     그대로 받아서 지문을 대 보는 것이기 때문이다.
+      #   ★ 주소가 없으면 **조용히 건너뛰지 않는다.** 「못 쟀다」가 안 보이면
+      #     「쟀는데 맞았다」와 구분이 안 된다 (§2).
+      - name: Check via app path
+        if: ${{ !inputs.dry_run }}
+        env:
+          BASE: ${{ secrets.LP_PUBLIC_BASE }}
+          FILES: ${{ inputs.files }}
+        run: |
+          set -uo pipefail
+          if [ -z "${BASE:-}" ]; then
+            echo "::warning::LP_PUBLIC_BASE 가 없어 **앱이 쓰는 길로는 못 쟀다.** 위의 「디스크 ≠ HTTP」 경고가 캐시인지 다른 파일인지 여기서는 갈리지 않는다 (M-25 ①). 저장소 Settings → Secrets and variables → Actions 에서 앱 화면 폴더의 공개 주소를 넣으면 이 자리에서 갈린다."
+            echo "앱 경로 확인: 건너뜀 (주소 없음)" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          BASE="${BASE%/}"
+          BAD=0; OK=0
+          for f in $FILES; do
+            NAME=$(basename "$f")
+            WANT=$(sha256sum "$f" | cut -c1-12)
+            GOT=$(curl -sS -m 25 "$BASE/$NAME" 2>/dev/null | sha256sum | cut -c1-12)
+            if [ "$WANT" = "$GOT" ]; then
+              OK=$((OK+1))
+            else
+              echo "::error::${NAME} — **앱이 쓰는 길로 받은 것이 저장소와 다르다** (저장소 ${WANT} · 앱 ${GOT}). 사장님 화면에 닿은 것은 이 파일이다."
+              BAD=1
+            fi
+          done
+          echo "앱 경로 확인: ${OK} 개 일치" >> "$GITHUB_STEP_SUMMARY"
+          exit "$BAD"
+
       - name: Probe summary
         if: ${{ !inputs.dry_run }}
         run: |
@@ -548,8 +639,12 @@ jobs:
           echo "::warning::**아무것도 재지 않았다 (DRY RUN).** Secret 이 들어왔는지만 봤다 — NAS 에는 닿지도 않았다. 실제로 재려면 dry_run 을 끄고 다시 실행한다"
 
   # 배포가 실패하면 알린다 (CLAUDE.md §2 — 조용히 죽지 않는다)
+  # ★★ **guard 를 여기 적는 것이 핵심이다** 〈2026-08-23〉. `needs: deploy` 만
+  #   두면, guard 가 빨간 날에는 deploy 가 **실패가 아니라 건너뜀**이 되고
+  #   알림도 함께 조용히 사라진다 — 「검사가 막아 줬다」가 **아무한테도 안 간다**.
+  #   실패 알림 경로는 언제나 살아 있어야 한다 (CLAUDE.md §2).
   alert:
-    needs: deploy
+    needs: [guard, deploy]
     if: failure()
     uses: ./.github/workflows/alert-failure.yml
     permissions:

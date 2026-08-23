@@ -66,6 +66,19 @@ esac
 TMP="$(mktemp -d)/im-flow"
 trap 'rm -rf "$(dirname "$TMP")"' EXIT
 
+# ★★★ **이 길은 두 번째 길이다** 〈2026-08-23 · D-84 재결정〉.
+#
+#   쓰는 곳은 **하나여야 한다.** 오늘 그 하나는 GitHub Actions 의 `deploy-nas`
+#   워크플로다. 이 스크립트는 그 길이 못 돌 때(러너 장애·tailnet 문제) 쓰는
+#   **대비**이지, 평소에 쓰는 길이 아니다.
+#
+#   ★ 왜 굳이 적어 두나. 둘을 **같은 날 같이 쓰면** 누가 마지막에 썼는지
+#     아무도 모른다 — 그러면 「올렸는데 옛 판이 보인다」로 돌아온다.
+#     D-84 가 그래서 한 번 쓰기를 통째로 지웠던 자리다.
+printf '\033[33m%s\033[0m\n' "※ 이 길은 두 번째 길입니다 — 평소에는 GitHub Actions 의 deploy-nas 로 올립니다."
+echo "   (그 길이 못 돌 때만 여기를 씁니다. 둘을 같은 날 같이 쓰지 않습니다 — D-84)"
+echo
+
 echo "화면 → NAS"
 echo "  대상 : $HOST:$DEST"
 echo "  판   : $(git rev-parse --short HEAD)"

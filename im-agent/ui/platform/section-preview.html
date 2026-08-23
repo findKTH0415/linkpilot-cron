@@ -2043,6 +2043,33 @@ window.LINKPILOT_REPORT_FLOW = {
       <div class="upd__d">2026-08-23</div>
       <ul class="upd__l">
         <li>
+          <b>바꾼 것이 있는 날에만 배포가 막히던 것을 고쳤다</b>
+          <em>배포 (deploy-nas.yml · verify-served.sh)</em>
+          <span>올리기 「전」 탐침이 올린 「뒤」와 똑같은 잣대를 쓰고 있었다. 그래서 「저장소 파일과 NAS 디스크가 다르다」를 「올리기가 안 됐다」로 읽고 배포를 세웠다 — 그런데 올리기 전에 그 둘이 다른 것은 고장이 아니라 올리는 이유 그 자체다. 결국 「바꿀 것이 없는 날에만 초록인 장치」였고, 실제로 16개 중 4개에서 죽고 올리기를 통째로 건너뛰었다. 이제 앞 탐침은 재기만 하고(LP_BEFORE=1), 올린 뒤 확인만 치명이다.</span>
+          <div class="upd__ba">
+            <div class="upd__b"><em>전</em>바뀐 파일이 하나라도 있으면 Upload 를 건너뛰고 빨갛게 끝났다</div>
+            <div class="upd__a"><em>후</em>앞 탐침은 「이것이 올릴 이유다」로 적고 넘어간다</div>
+          </div>
+          <span class="upd__see">확인: 화면에 안 보인다 — GitHub Actions 의 deploy-nas 실행 기록에서 「Check served build」 가 초록이고 「Upload」 가 돈다</span>
+        </li><li>
+          <b>검사가 초록일 때만 배포가 시작한다</b>
+          <em>배포 (deploy-nas.yml)</em>
+          <span>「배포 전 교차검증」은 지금까지 사람이 기억해서 했다. 그래서 하루에 두 번 빨간 채로 밀었다 — 기억에 기대는 규칙은 바쁠 때 가장 먼저 빠진다. 이제 워크플로 안에서 테스트 전체와 판 지문 대조를 먼저 돌리고, 그것이 초록이 아니면 올리는 판은 아예 시작하지 않는다. 검사가 막은 날에도 실패 알림이 그대로 간다.</span>
+          <div class="upd__ba">
+            <div class="upd__b"><em>전</em>검사 없이도 올라갔다 (사람이 기억하면 돌렸다)</div>
+            <div class="upd__a"><em>후</em>guard 가 빨가면 deploy 가 시작조차 안 한다</div>
+          </div>
+          <span class="upd__see">확인: 화면에 안 보인다 — deploy-nas 실행 기록에 [guard] 판이 먼저 뜬다</span>
+        </li><li>
+          <b>앱이 실제로 쓰는 길로도 한 번 더 잰다</b>
+          <em>배포 (deploy-nas.yml)</em>
+          <span>탐침은 tailnet 의 포트 80 으로 받는데 앱은 Funnel 443 으로 들어온다. Host 가 다르면 문서 루트가 다를 수 있어서, 「디스크와 HTTP 가 다르다」가 캐시인지 다른 파일을 본 것인지 그 자리에서는 갈리지 않았다 — 그 갈림 때문에 「새로고침해 보십시오」를 세 번 반복했고 세 번 다 틀렸다. 이제 앱과 같은 주소로 받아 지문을 대 본다. 주소가 없으면 조용히 넘어가지 않고 「못 쟀다」를 경고와 요약에 남긴다.</span>
+          <div class="upd__ba">
+            <div class="upd__b"><em>전</em>앱이 보는 파일은 아무도 재지 않았다</div>
+            <div class="upd__a"><em>후</em>저장소와 앱이 받은 것을 지문으로 대조한다</div>
+          </div>
+          <span class="upd__see">확인: 화면에 안 보인다 — deploy-nas 의 「Check via app path」 단계와 실행 요약</span>
+        </li><li>
           <b>탭 차례를 바꿨다 — [보고서 만들기] 가 왼쪽</b>
           <em>탭 바 (flow-core.js)</em>
           <span>앞 판은 [완성 보고서] 가 왼쪽이었다. 그런데 이 화면에 처음 오는 사람이 할 일은 만드는 것이고, 완성본은 만든 다음에 보는 곳이다. 차례가 하는 일의 순서와 반대면 첫 화면에서 한 번 더 생각하게 된다. 탭 이름과 차례는 flow-core 한 곳에서 나오고 앱 탭 바가 그것을 읽어 간다 — 구성안도 같이 따라가는지 검사가 잰다.</span>

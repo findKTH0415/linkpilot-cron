@@ -461,3 +461,96 @@ test('★★★ 화면 올리기 스크립트가 걸려 넘어질 곳을 먼저 
   assert.match(sh, /exit 1/, '어긋나도 0 으로 끝난다 — 초록이 거짓말을 한다');
   assert.match(sh, /판 \$STAMP/, '어느 판인지 안 알려 준다');
 });
+
+test('★★★ 배포는 교차검증을 통과해야만 시작한다 (기억이 아니라 구조로)', () => {
+  const y = fs.readFileSync(path.join(WF, 'deploy-nas.yml'), 'utf8');
+
+  /* ★★ 왜 이 검사가 있나 〈2026-08-23〉. 「배포 전 교차검증」은 규칙으로만
+     있었고, 그래서 **하루에 두 번 빨간 채로 밀었다.** 기억에 기대는 규칙은
+     바쁠 때 가장 먼저 빠진다. 이제 초록이 아니면 올릴 수가 없다. */
+  const guard = /^  guard:$/m.exec(y);
+  assert.ok(guard, 'guard 판이 없다 — 검사 없이 배포가 돈다');
+
+  const block = y.slice(guard.index + guard[0].length).split(/^  \w[\w-]*:$/m)[0];
+
+  /* ① 테스트 전체를 다시 돈다 — 내 손의 결과가 아니라 **러너가 잰 것**이라야 뜻이 있다 */
+  assert.match(block, /node --test im-agent\/test\/\*\.test\.js/,
+    'guard 가 테스트를 안 돌린다');
+
+  /* ② 지문을 맞춰 본다. 화면을 고치고 지문을 다시 안 찍으면 배포는 새 파일을
+     올리는데 화면은 옛 판을 말한다 — 그러면 M-25 를 지문으로 가릴 수가 없다 */
+  assert.match(block, /im:stamp -- --check/, 'guard 가 판 지문을 안 맞춰 본다');
+
+  /* ③ 실패가 로그에 묻히지 않게 못 지나간 것만 다시 뽑는다 */
+  assert.match(block, /if: failure\(\)/, '실패했을 때 무엇이 깨졌는지 안 뽑는다');
+
+  /* ④ ★ **배포가 여기에 매달려 있어야 한다.** 판만 만들고 안 묶으면
+     초록이든 빨강이든 그대로 올라간다 — 있으나 마나다 */
+  const dep = /^  deploy:\n(?:.*\n)*?    needs: (.+)$/m.exec(y);
+  assert.ok(dep, 'deploy 에 needs 가 없다 — 검사를 건너뛰고 올린다');
+  assert.match(dep[1], /guard/, `deploy 가 guard 를 안 기다린다: ${dep[1]}`);
+
+  /* ⑤ ★★ **알림이 함께 사라지지 않는다.** guard 가 빨가면 deploy 는
+     「실패」가 아니라 「건너뜀」이 된다. 알림이 deploy 만 보고 있으면
+     그날은 아무한테도 안 간다 — 조용히 죽는 것이 이 저장소의 금기다 (§2) */
+  const al = /^  alert:\n    needs: (.+)$/m.exec(y);
+  assert.ok(al, 'alert 의 needs 를 못 찾았다');
+  assert.match(al[1], /guard/,
+    `alert 가 guard 를 안 본다: ${al[1]} — 검사가 막은 날 알림이 조용히 사라진다`);
+});
+
+test('★★★ 올리기 「전」에 재는 것은 재기만 한다 — 바뀐 파일이 배포를 막지 않는다', () => {
+  const y = fs.readFileSync(path.join(WF, 'deploy-nas.yml'), 'utf8');
+
+  /* ★★★ 무슨 일이 있었나 〈2026-08-23 · run #44〉.
+     올리기 **전** 탐침이 올린 **뒤**와 똑같은 잣대를 썼다. 그래서
+     「저장소 ≠ 디스크」를 「올리기가 안 됐다」로 읽고 배포를 세웠다.
+     그런데 올리기 전에 그 둘이 다른 것은 **올리는 이유 그 자체**다.
+     → **바꿀 것이 있는 날에만 막히는** 장치였다. 16개 중 4개에서 죽고
+       Upload·Verify 가 통째로 건너뛰어졌다 — 그리고 나는 사장님께
+       「배포했다」고 말할 뻔했다. */
+  const before = stepOf(y, 'Check served build');
+  assert.ok(before, 'Check served build 단계가 없다');
+  assert.match(before, /LP_BEFORE: '1'/,
+    '올리기 전 탐침이 「전」이라고 밝히지 않는다 — 바뀐 파일마다 배포가 막힌다');
+
+  /* ★ 올린 **뒤**에는 그대로 치명이다. 여기까지 무르면 초록이 거짓말을 한다 */
+  const after = stepOf(y, 'Verify deployed');
+  assert.ok(after, 'Verify deployed 단계가 없다');
+  assert.ok(!/LP_BEFORE/.test(after),
+    '배포 뒤 확인까지 무르게 했다 — 올리기가 안 돼도 초록으로 끝난다');
+
+  /* ★ 스크립트 쪽도 두 잣대를 실제로 가지고 있는가 */
+  const sh = fs.readFileSync(path.join(ROOT, 'deploy', 'verify-served.sh'), 'utf8');
+  assert.match(sh, /BEFORE="\$\{LP_BEFORE:-0\}"/, '스크립트가 LP_BEFORE 를 안 읽는다');
+  assert.match(sh, /LP_BEFORE=1/, '무엇으로 켜는지 파일에 안 적혀 있다');
+  assert.match(sh, /exit "\$BAD"/, '뒤 확인이 여전히 치명인지 못 잰다');
+});
+
+test('★★ 두 번째 길임을 스스로 밝힌다 (쓰는 곳이 조용히 둘이 되지 않게)', () => {
+  const sh = fs.readFileSync(path.join(ROOT, 'deploy', 'screens.sh'), 'utf8');
+  /* ★ D-84 의 핵심은 「워크플로냐 맥이냐」가 아니라 **「하나여야 한다」**였다.
+     대비 경로가 자기가 대비라고 말하지 않으면, 바쁜 날 둘 다 쓰게 된다 */
+  assert.match(sh, /두 번째 길/, '평소 길이 아님을 안 알린다');
+  assert.match(sh, /deploy-nas/, '평소에 어디로 올리는지 안 알려 준다');
+  assert.match(sh, /D-84/, '왜 하나여야 하는지 근거를 안 남긴다');
+});
+
+test('★★ 앱이 쓰는 길로도 재고, 못 쟀으면 못 쟀다고 말한다', () => {
+  const y = fs.readFileSync(path.join(WF, 'deploy-nas.yml'), 'utf8');
+  const s = stepOf(y, 'Check via app path');
+  assert.ok(s, '앱이 쓰는 길로 재는 단계가 없다 — M-25 의 갈림이 그대로 남는다');
+
+  /* ★ 올린 **뒤**라야 뜻이 있다. 앞에 두면 늘 옛 파일을 잰다 */
+  const i = y.indexOf('name: Check via app path');
+  const u = y.indexOf('name: Upload');
+  assert.ok(u !== -1 && i > u, '앱 경로 확인이 Upload 보다 앞에 있다 — 옛 파일을 잰다');
+
+  /* ★★ 주소가 없을 때 **조용히 건너뛰지 않는다.** 「못 쟀다」가 안 보이면
+     「쟀는데 맞았다」와 구분이 안 된다 (§2) */
+  assert.match(s, /::warning::/, '주소가 없을 때 아무 말도 안 한다');
+  assert.match(s, /GITHUB_STEP_SUMMARY/, '요약에 남기지 않는다 — 로그는 안 열어 본다');
+
+  /* ★ 다르면 빨갛게 끝난다 — 여기서 무르면 이 단계가 있으나 마나다 */
+  assert.match(s, /exit "\$BAD"/, '어긋나도 0 으로 끝난다');
+});
