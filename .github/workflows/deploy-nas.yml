@@ -445,12 +445,30 @@ jobs:
           printf '%s\n' "$NAS_KEY" > ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
           # 호스트키를 미리 받아둔다. StrictHostKeyChecking 을 끄지 않는다
-          ssh-keyscan -H "$NAS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          #
+          # ★★★ **`|| { ... }` 를 반드시 붙인다** 〈2026-08-23 · 실제로 당했다〉.
+          #   앞 판은 `ssh-keyscan … 2>/dev/null` 한 줄이었다. NAS 가 안 켜져
+          #   있으면 keyscan 이 실패하고 **`set -e` 가 그 자리에서 스크립트를
+          #   죽인다** — 아래 친절한 안내는 **한 글자도 안 나온다.**
+          #   로그에 남는 것은 `Process completed with exit code 1` 뿐이었다.
+          #   ★ 잘 적어 둔 안내가 **닿지 않는 자리에** 있었던 것이다.
+          if ! ssh-keyscan -H "$NAS_HOST" >> ~/.ssh/known_hosts 2>/dev/null; then
+            echo "::error::NAS 의 호스트키를 못 받았다 — **기계가 지금 안 붙는다.**"
+            echo "  ① NAS 가 켜져 있는지 (절전으로 잠들면 tailnet 에서도 사라진다)"
+            echo "  ② NAS 의 Tailscale 이 연결 상태인지 (제어판 → 패키지 센터)"
+            echo "  ③ NAS_SSH_HOST 가 **tailnet 주소**인지 (사무실 안 주소·DDNS 는 안 된다)"
+            echo "  ※ 배포는 여기서 멈췄다 — **NAS 는 아무것도 안 건드렸다.**"
+            exit 1
+          fi
 
           # ★ 읽기만 하는 확인. 여기서 죽으면 **아무것도 안 건드린 상태**다
           ssh -o BatchMode=yes -o ConnectTimeout=20 -i ~/.ssh/id_deploy \
             "$NAS_USER@$NAS_HOST" 'echo ok' >/dev/null || {
-            echo "::error::NAS 에 ssh 로 못 붙었다 — NAS_SSH_HOST 가 tailnet 주소인지(사무실 안 주소·DDNS 는 안 된다), 공개키가 NAS 에 들어갔는지, ~/.ssh 권한이 700/600 인지 본다"
+            echo "::error::NAS 에 ssh 로 못 붙었다 — 호스트키는 받았으니 **기계는 켜져 있다.**"
+            echo "  ① 공개키가 NAS 의 authorized_keys 에 들어갔는지"
+            echo "  ② NAS 쪽 ~/.ssh 권한이 700, authorized_keys 가 600 인지"
+            echo "  ③ NAS_SSH_USER 가 맞는지"
+            echo "  ※ 배포는 여기서 멈췄다 — **NAS 는 아무것도 안 건드렸다.**"
             exit 1
           }
           echo "NAS ssh 연결 확인"

@@ -891,3 +891,37 @@ test('★★★ 404 를 무르게 하는 자리는 「앞단」 하나뿐이다'
       `갈라 재기가 ${w} 판정을 안 내보낸다 — 그 갈래만 판정이 빈다`);
   });
 });
+
+/**
+ * ★★★ **NAS 가 안 붙을 때 왜인지 말하는가** 〈2026-08-23 · 실제 사고〉.
+ *
+ *   배포 #67 이 `Process completed with exit code 1` 한 줄만 남기고 죽었다.
+ *   원인은 NAS 가 안 붙은 것이었는데, **친절하게 적어 둔 안내가 한 글자도
+ *   안 나왔다** — `ssh-keyscan` 이 실패하면서 `set -e` 가 그 자리에서
+ *   스크립트를 죽였고, 안내는 그 **아래**에 있었기 때문이다.
+ *
+ * ★ 잘 적어 둔 안내가 **닿지 않는 자리에** 있으면 없는 것과 같다.
+ */
+test('★★★ NAS 가 안 붙으면 왜인지 말하고 죽는다 (안내가 닿는 자리에 있다)', () => {
+  const wf = fs.readFileSync(path.join(WF, 'deploy-nas.yml'), 'utf8');
+  const step = wf.slice(wf.indexOf('- name: Set up ssh'));
+  const body = step.slice(0, step.indexOf('- name:', 10));
+
+  assert.ok(/if ! ssh-keyscan/.test(body),
+    'ssh-keyscan 이 맨몸으로 있다 — 실패하면 set -e 가 안내 전에 죽인다');
+  assert.ok(body.indexOf('호스트키를 못 받았다') !== -1,
+    '호스트키를 못 받은 경우의 안내가 없다');
+  assert.ok(body.indexOf('ssh 로 못 붙었다') !== -1,
+    'ssh 가 막힌 경우의 안내가 없다');
+
+  /* ★ 둘을 **가려서** 말해야 한다 — 「기계가 안 켜졌다」와 「열쇠가 안 맞다」는
+   *   고치는 사람이 다르다 */
+  assert.ok(body.indexOf('기계가 지금 안 붙는다') !== -1
+    && body.indexOf('기계는 켜져 있다') !== -1,
+    '두 경우를 같은 말로 하면 어디를 봐야 할지 모른다');
+
+  /* ★ 「아무것도 안 건드렸다」를 **양쪽 다** 말한다. 이 말이 없으면 사람은
+   *   NAS 가 반쯤 덮인 줄 알고 겁을 낸다 */
+  const said = body.split('아무것도 안 건드렸다').length - 1;
+  assert.ok(said >= 2, `안 건드렸다는 말이 ${said}곳에만 있다 — 두 갈래 다 있어야 한다`);
+});
