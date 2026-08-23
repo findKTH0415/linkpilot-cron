@@ -624,3 +624,63 @@ test('★★ 한도를 환경변수로 올릴 수 있다 (좁은 것이 넓은 �
     Object.assign(process.env, keep);
   }
 });
+
+/**
+ * ★★★ **`.env` 를 놓아도 엔진이 안 읽고 있었다** 〈2026-08-23 · 실제 사고〉.
+ *
+ *   사장님께 「NAS 의 엔진 루트에 `.env` 를 만들고 GEMINI_API_KEY 를 넣으십시오」
+ *   라고 안내했다. **그렇게 해도 아무 일도 안 일어났을 것이다** —
+ *   `env.load()` 를 부르는 곳이 `cli.js` 와 스모크 도구 **둘뿐**이었고,
+ *   실제 서비스를 도는 NAS 엔진 서버는 그것을 안 불렀다.
+ *
+ * ★ 그러면 「키를 넣었는데 여전히 꺼져 있다」가 되고, **그 이유는 어디에도
+ *   안 보인다.** 사람은 키를 의심하고 다시 만들고 또 넣는다.
+ * ★ 그래서 키를 **읽는 쪽**이 스스로 올린다. 어느 입구로 들어오든 같다.
+ */
+test('★★★ 키를 읽는 쪽이 스스로 .env 를 올린다 (엔진도 읽는다)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const root = require('../core/env').repoRoot();
+
+  const llm = fs.readFileSync(path.join(root, 'im-agent', 'core', 'llm.js'), 'utf8');
+  const envAt = llm.indexOf("require('./env').ensure()");
+  const keyAt = llm.indexOf('process.env.GEMINI_API_KEY');
+  assert.ok(envAt > -1, 'llm.js 가 .env 를 안 올린다 — 엔진에서는 영영 오프라인이다');
+  assert.ok(envAt < keyAt,
+    '키를 읽은 뒤에 올린다 — KEYS 는 부르는 순간 정해지므로 소용이 없다');
+
+  const http = fs.readFileSync(path.join(root, 'im-agent', 'connectors', 'http.js'), 'utf8');
+  assert.ok(http.indexOf("require('../core/env').ensure()") > -1,
+    'connectors/http.js 가 .env 를 안 올린다 — 커넥터가 전부 「키 없음」으로 건너뛴다');
+});
+
+test('★★ 여러 번 올려도 한 번만 읽는다 (부르는 곳이 늘어도 안전하다)', () => {
+  const env = require('../core/env');
+  assert.strictEqual(typeof env.ensure, 'function');
+  assert.strictEqual(env.ensure(), env.ensure(), '부를 때마다 새로 읽는다');
+});
+
+test('★★★ .env 를 놓으면 실제로 켜진다 (놓았다 지워 보고 잰다)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const { execFileSync } = require('child_process');
+  const root = require('../core/env').repoRoot();
+  const dotenv = path.join(root, '.env');
+
+  /* ★ 이미 있으면 **건드리지 않는다** — 남의 키를 지우면 안 된다 */
+  if (fs.existsSync(dotenv)) return;
+
+  const run = () => execFileSync(process.execPath, ['-e',
+    "delete process.env.IM_AGENT_OFFLINE;"
+    + "process.stdout.write(String(require(process.argv[1]).isOffline()))",
+    path.join(root, 'im-agent', 'core', 'llm.js'),
+  ], { encoding: 'utf8' });
+
+  try {
+    fs.writeFileSync(dotenv, 'GEMINI_API_KEY=AIzaTESTONLY0000000000\n');
+    assert.strictEqual(run(), 'false', '.env 를 놓았는데 여전히 오프라인이다');
+  } finally {
+    fs.rmSync(dotenv, { force: true });
+  }
+  assert.strictEqual(run(), 'true', '.env 를 지웠는데 켜져 있다고 한다');
+});

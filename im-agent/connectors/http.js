@@ -9,6 +9,12 @@
  *  - 응답은 호출자가 캐시한다 (cache.js).
  */
 
+/* ★★★ **키를 읽기 전에 `.env` 를 올린다** 〈2026-08-23〉.
+ *   커넥터의 `isAvailable()` 은 부르는 순간 `process.env` 를 본다. 그전에
+ *   `.env` 가 안 올라와 있으면 **전부 「키 없음」으로 조용히 건너뛴다** —
+ *   NAS 엔진이 정확히 그 상태였다. 모든 커넥터가 이 파일을 거치므로 여기서 한다. */
+require('../core/env').ensure();
+
 const DEFAULT_TIMEOUT = 15000;
 const RETRY_DELAYS = [1000, 2000, 4000]; // 1s, 2s, 4s
 

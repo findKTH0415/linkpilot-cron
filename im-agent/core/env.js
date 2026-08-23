@@ -75,4 +75,23 @@ function load(file) {
   return out;
 }
 
-module.exports = { load, parseLine, repoRoot };
+/**
+ * ★★★ **한 번만 올린다** 〈2026-08-23 · 실제로 안 읽히고 있었다〉.
+ *
+ *   `.env` 를 올리는 곳이 `cli.js` 와 스모크 도구 **둘뿐**이었다. 그런데 실제
+ *   서비스를 도는 것은 NAS 의 엔진 서버이고, 그쪽은 이 함수를 안 불렀다.
+ *   그래서 **NAS 에 `.env` 를 놓아도 아무 일도 일어나지 않았다** —
+ *   「키를 넣었는데 여전히 꺼져 있다」가 되고, 그 이유는 어디에도 안 보인다.
+ *
+ * ★ 그래서 키를 **읽는 쪽**(`core/llm.js` · `connectors/http.js`)이 스스로
+ *   부른다. 어느 입구로 들어오든 같은 파일을 읽게 된다.
+ * ★ 여러 번 불려도 한 번만 읽는다 — 부르는 곳이 늘어도 안전하다.
+ * ★ 이미 설정된 값은 여전히 안 덮는다 (Secrets 가 파일보다 세다).
+ */
+let once = null;
+function ensure() {
+  if (!once) once = load();
+  return once;
+}
+
+module.exports = { load, ensure, parseLine, repoRoot };
