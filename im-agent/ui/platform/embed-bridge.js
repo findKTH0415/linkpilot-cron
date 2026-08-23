@@ -39,13 +39,23 @@
   /** 부모의 설정. **다른 출처면 예외가 난다** — 그것을 이유로 남긴다 */
   function fromParent() {
     if (window.parent === window) { state.reason = '단독으로 열렸습니다 (부모 없음)'; return null; }
+    /* ★★ 2026-08-23 D-92 실측 — 직계 부모만 보면 **중첩 화면이 빈손이다.**
+     *   3·4·5단계(files/fields/intake)는 report-flow.html 안의 iframe 이라 window.parent 가 앱이 아니라
+     *   report-flow 다. 앱은 계약대로 window.LINKPILOT_EMBED 를 채우고 있었다(앱 정본 ReportHubView, 매 렌더).
+     *   그래서 「부모가 채우지 않았습니다」가 나오고 토큰이 없어 401 → 「로그인이 필요합니다」.
+     *   → 조상을 위로 거슬러 올라가며 처음 만나는 LINKPILOT_EMBED 를 쓴다(같은 출처 안에서만). */
+    var w = window, hops = 0;
     try {
-      var cfg = window.parent.LINKPILOT_EMBED;
-      if (!cfg) { state.reason = '부모가 LINKPILOT_EMBED 를 채우지 않았습니다'; return null; }
-      return cfg;
+      while (w.parent && w.parent !== w && hops < 8) {
+        w = w.parent; hops++;
+        var cfg = w.LINKPILOT_EMBED;          // 다른 출처면 여기서 예외
+        if (cfg) return cfg;
+      }
+      state.reason = '조상 ' + hops + '단계 어디에도 LINKPILOT_EMBED 가 없습니다';
+      return null;
     } catch (e) {
       // 같은 출처가 아니면 여기로 온다. 화면이 「설정 없이」 뜨는 진짜 이유다
-      state.reason = '부모를 읽을 수 없습니다 — 같은 출처가 아닙니다 (' + e.name + ')';
+      state.reason = '부모를 읽을 수 없습니다 — 같은 출처가 아닙니다 (' + e.name + ', ' + hops + '단계)';
       return null;
     }
   }
