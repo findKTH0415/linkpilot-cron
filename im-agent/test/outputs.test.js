@@ -378,3 +378,52 @@ test('★★ 완성 보고서: 눌러 볼 수 있는 판이 실제로 설정을 
     assert.match(html, /실제 자료가 아닙니다/, '예시 자료라는 표시가 없다');
   } finally { if (fs.existsSync(out)) fs.unlinkSync(out); }
 });
+
+/**
+ * ★★★ **「열기」가 아무것도 안 열고 있었다** 〈2026-08-23 사장님 화면〉.
+ *
+ *   보고서 일곱이 다 「완료」로 나왔는데 [열기] 를 누르면
+ *   「09_IM/im.md 를 열 수 없습니다. 서버(api) 연결을 확인하세요.」
+ *
+ *   원인: 클릭 처리가 `if (printable && openPrint(r)) return;` 이었고
+ *   `printable` 은 **`.html` 일 때만 참**이다. `.md`·`.json` 은 **여는 시도조차
+ *   없이** 곧장 오류 문구로 떨어졌다. 서버는 멀쩡했다.
+ *
+ * ★ 게다가 문구가 **서버 탓으로 단정**했다. 우리가 안 부른 것을 서버 탓으로
+ *   적으면 사람은 없는 고장을 찾으러 간다 (M-24 · M-28 과 같은 결).
+ */
+test('★★★ 완성 보고서: .md·.json 도 실제로 연다 (열기가 죽은 단추가 아니다)', () => {
+  const src = fs.readFileSync(
+    path.join(__dirname, '..', 'ui', 'platform', 'reports.html'), 'utf8');
+  const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+
+  assert.ok(!/if \(printable && open/.test(code),
+    'printable 일 때만 열려고 한다 — .md·.json 은 여는 시도조차 없이 오류로 떨어진다');
+  assert.ok(/openFile\(r, printable\)/.test(code),
+    '여는 길이 하나가 아니다 — 여는 것은 같고 인쇄창만 다르다');
+  assert.ok(/r\.status !== 'blocked' && openFile/.test(code),
+    '차단된 것만 사유를 보여주고 나머지는 열어야 한다');
+});
+
+test('★★★ 완성 보고서: 못 열면 **왜인지** 말한다 — 서버 탓으로 단정하지 않는다', () => {
+  const src = fs.readFileSync(
+    path.join(__dirname, '..', 'ui', 'platform', 'reports.html'), 'utf8');
+  const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+
+  assert.ok(code.indexOf('서버(api) 연결을 확인하세요') === -1,
+    '「서버 연결을 확인하세요」로 단정하면 멀쩡한 서버를 뒤지게 된다');
+  assert.ok(/function whyCantOpen/.test(code), '이유를 가르는 함수가 없다');
+  /* 세 갈래를 다 말해야 한다 — 고치는 곳이 각각 다르다 */
+  assert.ok(code.indexOf('프로젝트가 지정되지 않았습니다') !== -1, '프로젝트 미지정을 안 가른다');
+  assert.ok(code.indexOf('서버 주소를 넘기지 않았습니다') !== -1, '설정 미전달을 안 가른다');
+});
+
+test('★★ 완성 보고서: 인쇄창은 A4 인쇄본에만 띄운다 (md 를 열자마자 인쇄창이 뜨면 안 된다)', () => {
+  const src = fs.readFileSync(
+    path.join(__dirname, '..', 'ui', 'platform', 'reports.html'), 'utf8');
+  const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  const fn = code.slice(code.indexOf('function openFile'));
+  const body = fn.slice(0, fn.indexOf('\n  }'));
+  assert.ok(/if \(print\) \{/.test(body),
+    'print 여부를 안 보고 늘 인쇄창을 띄운다');
+});

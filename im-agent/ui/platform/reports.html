@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="a74fcffc">
+<html lang="ko" data-lp-build="5865840a">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -18,7 +18,7 @@
 
   접근 판정은 gate-core.js 하나를 쓴다 (모든 유료 화면 공용, 테스트 있음).
 -->
-<link rel="stylesheet" href="tokens.css?v=a74fcffc">
+<link rel="stylesheet" href="tokens.css?v=5865840a">
 <style>
 :root {
   --side: 248px;
@@ -270,14 +270,14 @@ ul { margin: 0; padding: 0; list-style: none; }
   <a class="bot__i on" href="#"><b>☰</b>더보기</a>
 </nav>
 
-<script src="gate-core.js?v=a74fcffc"></script>
-<script src="catalog.js?v=a74fcffc"></script>
-<script src="inapp.js?v=a74fcffc"></script>
-<script src="live-core.js?v=a74fcffc"></script>
+<script src="gate-core.js?v=5865840a"></script>
+<script src="catalog.js?v=5865840a"></script>
+<script src="inapp.js?v=5865840a"></script>
+<script src="live-core.js?v=5865840a"></script>
 <!-- ★ 판 지문을 화면에 보이게 찍는 것이 여기 있다 (§8) — 묶음에 이미 실리는 파일이다 -->
-<script src="flow-core.js?v=a74fcffc"></script>
+<script src="flow-core.js?v=5865840a"></script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=a74fcffc" data-lp-global="LINKPILOT_REPORTS"></script>
+<script src="embed-bridge.js?v=5865840a" data-lp-global="LINKPILOT_REPORTS"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -870,7 +870,22 @@ window.LINKPILOT_REPORTS = Object.assign({
    *   그 자리에서 이유를 적는다. (배너는 inapp.js 가 따로 띄운다)
    * @returns {boolean} 처리했으면 true
    */
-  function openPrint(r) {
+  /**
+   * ★★★ **「열기」가 아무것도 안 열고 있었다** 〈2026-08-23 사장님 화면〉.
+   *
+   *   보고서 일곱이 다 「완료」로 나왔는데 [열기] 를 누르면
+   *   **「09_IM/im.md 를 열 수 없습니다. 서버(api) 연결을 확인하세요.」**
+   *
+   *   원인: 아래 클릭 처리가 `if (printable && openPrint(r)) return;` 이었다.
+   *   `printable` 은 **`.html` 일 때만 참**이다. 그러니 `.md`·`.json` 은
+   *   **여는 시도조차 없이** 곧장 오류 문구로 떨어졌다 — 서버는 멀쩡했다.
+   *   ★ 게다가 문구가 **서버 탓으로 단정**했다. 우리가 안 부른 것을 서버 탓으로
+   *     적으면 사람은 없는 고장을 찾으러 간다 (M-24 · M-28 과 같은 결).
+   *
+   * ★ 그래서 하나로 합친다. **여는 것은 똑같고, 인쇄창을 띄우느냐만 다르다.**
+   * @param {boolean} print 열고 나서 인쇄창까지 띄울 것인가 (A4 인쇄본만)
+   */
+  function openFile(r, print) {
     var url = fileUrlFor(r.path);
     if (!url) return false;
 
@@ -885,10 +900,24 @@ window.LINKPILOT_REPORTS = Object.assign({
       return true;
     }
     // 문서가 다 뜬 뒤 인쇄창을 띄운다. 실패해도 창은 열려 있으니 직접 인쇄할 수 있다
-    try {
-      w.addEventListener('load', function () { try { w.print(); } catch (e) { /* 사용자가 직접 */ } });
-    } catch (e) { /* 교차출처면 접근이 막힌다 — 그때는 사용자가 직접 인쇄한다 */ }
+    if (print) {
+      try {
+        w.addEventListener('load', function () { try { w.print(); } catch (e) { /* 사용자가 직접 */ } });
+      } catch (e) { /* 교차출처면 접근이 막힌다 — 그때는 사용자가 직접 인쇄한다 */ }
+    }
     return true;
+  }
+
+  /**
+   * 못 연 이유를 **갈라서** 말한다. 「서버 연결을 확인하세요」 한 줄로 두면
+   * 멀쩡한 서버를 뒤지게 된다 — 실제로 그렇게 만들었었다.
+   */
+  function whyCantOpen() {
+    if (!state.projectId) return '프로젝트가 지정되지 않았습니다 — 위에서 프로젝트를 먼저 고르십시오.';
+    if (typeof C.fileUrl !== 'function' && !C.api) {
+      return '앱이 이 화면에 서버 주소를 넘기지 않았습니다 — 화면 밖에서 열면 파일을 받아올 곳이 없습니다.';
+    }
+    return '파일 주소를 만들지 못했습니다 (경로가 비어 있습니다).';
   }
 
   function recent() {
@@ -921,10 +950,12 @@ window.LINKPILOT_REPORTS = Object.assign({
       a.addEventListener('click', function () {
         var old = document.getElementById('out-note');
         if (old) old.remove();
-        if (printable && openPrint(r)) return;
+        /* ★ 차단된 것만 사유를 보여 준다. 나머지는 **실제로 연다** —
+         *   `.html` 이든 `.md` 든 여는 길은 같고, 인쇄창을 띄우느냐만 다르다 */
+        if (r.status !== 'blocked' && openFile(r, printable)) return;
         var n = el('p', 'note', r.status === 'blocked'
           ? (r.note || '검증을 통과하지 못했습니다.') + ' — 검증 화면에서 해소해야 배포할 수 있습니다.'
-          : r.path + ' 를 열 수 없습니다. 서버(api) 연결을 확인하세요.');
+          : r.path + ' 를 열 수 없습니다 — ' + whyCantOpen());
         n.id = 'out-note';
         view.appendChild(n);
       });
