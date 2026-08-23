@@ -122,37 +122,55 @@ function stepOf(yml, name) {
   return lines.join('\n');
 }
 
-test('★★★ 이 워크플로는 NAS 에 아무것도 쓰지 않는다 (D-84)', () => {
+/**
+ * ★★★ **올리고 나서 재는 것까지가 배포다** 〈2026-08-23 사장님 지시로 되살림〉.
+ *
+ *   전날 D-84 로 쓰기를 지웠다가, 「앞으로는 네가 배포해」로 되돌렸다. 되살릴 때
+ *   **지웠던 이유가 지워지지 않게** 한다: 쓰는 이는 여전히 하나여야 하고,
+ *   올린 뒤에는 반드시 재야 한다.
+ *
+ *   ★ 저장소 ≠ **디스크** 는 치명이다 — 올리기가 실제로 안 된 것이다.
+ *   ★ 디스크 ≠ **HTTP** 는 경고다 — 잰 길(포트 80)과 앱이 쓰는 길(Funnel 443)이
+ *     달라 문서 루트가 다를 수 있다(M-25). 치명으로 두면 멀쩡한 배포가 늘 빨갛고,
+ *     **그러면 빨간 것을 아무도 안 보게 된다.**
+ */
+test('★★★ 올린 뒤 반드시 재고, 실패를 삼키지 않는다', () => {
   const y = fs.readFileSync(path.join(WF, 'deploy-nas.yml'), 'utf8');
 
-  /* ① **쓰는 단계가 아예 없다.** 잠금으로 막는 것과 없는 것은 다르다 —
-     잠금은 급할 때 풀리고, 그때 다시 쓰는 이가 둘이 된다 */
-  ['Upload', 'Verify deployed', 'Write is off'].forEach((n) => {
-    assert.strictEqual(stepOf(y, n), null,
-      `${n} 단계가 되살아났다 — im-flow 에 쓰는 이는 본체 게이트 하나뿐이다 (D-84)`);
-  });
+  const up = stepOf(y, 'Upload');
+  assert.ok(up, 'Upload 단계가 없다 — 배포가 아무것도 안 한다');
+  const scps = up.split('\n').filter(l => /^\s*scp\s/.test(l));
+  assert.ok(scps.length > 0, 'Upload 에 scp 가 없다');
+  scps.forEach(l => assert.match(l, /\bscp\s+-O\b/,
+    'scp 에 -O 가 없다 — SFTP 로 가면 ssh 가 보는 것과 다른 것을 본다'));
+  assert.match(up, /\.bak/, '덮기 전에 백업을 안 뜬다 — 되돌릴 길이 없다');
 
-  /* ② 켤 수 있는 스위치도 남기지 않는다 */
-  ['allow_write', 'inputs.probe'].forEach((k) => {
-    assert.ok(y.indexOf(k) === -1, `${k} 가 남아 있다 — 쓰기를 되살릴 손잡이다`);
-  });
+  const ver = stepOf(y, 'Verify deployed');
+  assert.ok(ver, 'Verify deployed 단계가 없다 — 「올렸다」로 끝난다');
+  assert.ok(y.indexOf('- name: Upload') < y.indexOf('- name: Verify deployed'),
+    '재는 단계가 올리기보다 앞이다 — 올리기 전 상태를 재는 셈이다');
+  assert.ok(!/\|\|\s*true/.test(ver), '재는 단계가 실패를 삼킨다 — 초록이 거짓말을 한다');
+  assert.match(ver, /FILES: \$\{\{ inputs\.files \}\}/,
+    '배포 목록 전부를 안 잰다 — 넷만 재면 나머지가 옛 판이어도 초록이다');
 
-  /* ③ ★★ **파일을 옮기는 명령이 어느 단계에도 없다.** 주석의 낱말은 봐준다 —
-     왜 지웠는지 적어 둔 글까지 걸리면 설명을 못 남긴다 */
-  const cmds = y.split('\n').filter(l => !/^\s*#/.test(l));
-  cmds.forEach((l) => {
-    assert.ok(!/^\s*scp\s/.test(l), `실행되는 줄에 scp 가 있다:\n    ${l.trim()}`);
-    assert.ok(!/rsync\s/.test(l), `실행되는 줄에 rsync 가 있다:\n    ${l.trim()}`);
-    assert.ok(!/ssh[^\n]*\b(cp|mv|tee|rm)\b/.test(l),
-      `ssh 로 NAS 안에서 파일을 만들거나 지운다:\n    ${l.trim()}`);
-  });
+  /* ★ 디스크는 치명, HTTP 는 경고 — 스크립트가 그렇게 갈라야 한다 */
+  const sh = fs.readFileSync(path.join(ROOT, 'deploy', 'verify-served.sh'), 'utf8');
+  assert.match(sh, /올리기가 실제로 안 됐다/, '디스크가 다를 때를 치명으로 안 본다');
+  assert.match(sh, /LP_HTTP_FATAL/, 'HTTP 를 경고로 낼 길이 없다');
+  assert.match(sh, /::warning::\$\{NAME\} — 디스크와 HTTP 가 다르다/,
+    'HTTP 가 달라도 경고로 말하지 않는다');
+});
 
-  /* ④ ★ 그래도 **닿는지는 실제로 재야 한다.** 안 재면 초록이 아무 뜻이 없다 */
-  const ssh = stepOf(y, 'Set up ssh');
-  assert.ok(ssh, 'Set up ssh 단계가 없다');
-  assert.match(ssh, /echo ok/, 'ssh 로 실제로 닿아 보지 않는다 — 재지 않은 초록이다');
-  assert.match(stepOf(y, 'Verify tailnet'), /if:.*!inputs\.dry_run/,
-    'Verify tailnet 조건이 바뀌었다 — tailnet 을 안 지나면 재는 뜻이 없다');
+/**
+ * ★★ **쓰는 이는 하나여야 한다** — D-84 로 배운 것은 되살린 뒤에도 유효하다.
+ *   이제 이 워크플로가 그 하나이고 `deploy/screens.sh` 는 대비다. 그 사실이
+ *   **글로 남아 있어야** 다음 사람이 둘을 같이 쓰지 않는다.
+ */
+test('★★ 왜 한때 지웠는지가 파일에 남아 있다 (D-84)', () => {
+  const y = fs.readFileSync(path.join(WF, 'deploy-nas.yml'), 'utf8');
+  assert.match(y, /D-84/, '지웠던 결정의 번호가 없다');
+  assert.match(y, /쓰는 이는 여전히 하나여야 한다/, '되살린 뒤의 약속이 없다');
+  assert.match(y, /screens\.sh/, '대비 경로가 무엇인지 안 적는다');
 });
 
 /**
@@ -175,8 +193,8 @@ test('★★ 올리기 전에 목적지를 잰다 — 반쯤 배포된 상태를
 
   /* ① 지문을 대조하는 단계보다 **앞**이어야 한다. 목적지가 없으면 지문 대조는
      「디스크에서 못 읽었다」로만 나와, 진짜 원인(경로가 틀렸다)이 가려진다 */
-  assert.ok(y.indexOf('      - name: Check destination') < y.indexOf('      - name: Check served build'),
-    'Check destination 이 지문 대조 뒤에 있다 — 원인이 가려진다');
+  assert.ok(y.indexOf('      - name: Check destination') < y.indexOf('      - name: Upload'),
+    'Check destination 이 Upload 뒤에 있다 — 반쯤 올린 뒤에 재는 셈이다');
 
   // ② ★ 「없다」와 「쓸 수 없다」를 **가려서** 말한다. 둘을 뭉뚱그리면
   //   경로를 고쳐야 할 때 권한을 뒤지게 된다
@@ -373,8 +391,8 @@ test('★★ 탐침과 배포 확인이 같은 스크립트를 쓴다 (두 벌�
   /* ★ 〈2026-08-22 · D-84〉 앞 판은 **둘**이었다(탐침 + 배포 뒤 확인). 쓰기를
      지웠으므로 이제 **한 곳**이다. 둘로 늘면 쓰기가 되살아났다는 뜻이다 */
   const uses = (y.match(/verify-served\.sh/g) || []).length;
-  assert.strictEqual(uses, 1,
-    `verify-served.sh 를 쓰는 자리가 ${uses}곳이다 — 탐침 한 곳이어야 한다`);
+  assert.strictEqual(uses, 2,
+    `verify-served.sh 를 쓰는 자리가 ${uses}곳이다 — 탐침과 배포 뒤 확인 둘이어야 한다`);
 
   const sh = fs.readFileSync(path.join(ROOT, 'deploy', 'verify-served.sh'), 'utf8');
   /* ★ 세 자리를 **각각** 재는가. 둘만 재면 「어디서 갈렸는지」가 사라진다 */
@@ -392,7 +410,7 @@ test('★★ 탐침과 배포 확인이 같은 스크립트를 쓴다 (두 벌�
  *   입력이 셋으로 줄었는지까지 재는 이유: 넷째가 생기면 그것이 대개
  *   「쓸까 말까」를 묻는 손잡이다.
  */
-test('★★ 입력은 셋뿐이다 — 쓸까 말까를 묻는 손잡이가 없다 (D-84)', () => {
+test('★★ 입력은 셋뿐이다 — 조합이 늘지 않는다', () => {
   const y = fs.readFileSync(path.join(WF, 'deploy-nas.yml'), 'utf8');
   const keys = [...y.matchAll(/^      (\w+):$/gm)].map(m => m[1]);
   assert.deepStrictEqual(keys, ['files', 'dest', 'dry_run'],
