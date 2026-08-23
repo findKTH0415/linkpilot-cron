@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="a133a59d">
+<html lang="ko" data-lp-build="44f04eb1">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -18,7 +18,7 @@
 
   접근 판정은 gate-core.js 하나를 쓴다 (모든 유료 화면 공용, 테스트 있음).
 -->
-<link rel="stylesheet" href="tokens.css?v=a133a59d">
+<link rel="stylesheet" href="tokens.css?v=44f04eb1">
 <style>
 :root {
   --side: 248px;
@@ -116,6 +116,61 @@ ul { margin: 0; padding: 0; list-style: none; }
 .kind__m { font-size: 11.5px; color: var(--lime-deep); font-weight: 700; margin-top: 7px; }
 
 /* 테마 */
+/* ── 출력 성격 네 축 + 교정 미리보기 〈2026-08-23〉 ───────────────── */
+.style { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+.style__h { font-size: 14px; font-weight: 800; }
+.style__s { margin: 5px 0 14px; font-size: 12.5px; color: var(--ink2); line-height: 1.7; }
+.style__r { margin-bottom: 13px; }
+.style__l { font-size: 12.5px; font-weight: 700; color: var(--ink2); margin-bottom: 7px; }
+.style__o { display: flex; gap: 7px; flex-wrap: wrap; }
+.style__d { margin: 7px 0 0; font-size: 12px; color: var(--ink2); line-height: 1.6; }
+.sopt { display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
+  font-weight: 600; font-size: 13px; line-height: 1; font-family: inherit;
+  padding: 9px 12px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+.sopt.on { border-color: var(--lime-deep); background: var(--lime-soft); color: var(--lime-deep); }
+.sopt:disabled { opacity: .55; cursor: default; }
+.sopt__sw { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+.style__go { margin-top: 6px; }
+
+/* 팝업 — 화면 위에 덮는다. 뒤를 눌러도 닫힌다 */
+.modal { position: fixed; inset: 0; z-index: 200; background: rgba(16,18,20,.55);
+  display: flex; align-items: center; justify-content: center; padding: 24px; }
+.modal__w { background: var(--surface); border-radius: 16px; width: min(760px, 100%);
+  max-height: 92vh; overflow: auto; padding: 20px 22px 22px; }
+.modal__h { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.modal__t { font-size: 17px; font-weight: 800; }
+.modal__s { font-size: 12.5px; color: var(--ink2); }
+.modal__x { margin-left: auto; font-weight: 700; font-size: 13px; line-height: 1;
+  font-family: inherit; cursor: pointer;
+  padding: 9px 14px; border-radius: 9px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--ink); }
+.modal__note { margin: 13px 0 0; font-size: 12px; color: var(--ink2); line-height: 1.7; }
+
+/* 견본 지면 — **실제 판형 비율을 지킨다.** 비율이 틀리면 볼 이유가 없다 */
+.sheet { --acc: #C00000; aspect-ratio: 1 / 1.414; width: 100%; max-width: 420px;
+  margin: 0 auto; background: #fff; color: #17191C; border: 1px solid var(--line);
+  border-radius: 4px; padding: 22px 20px 16px; display: flex; flex-direction: column;
+  box-shadow: 0 6px 24px rgba(0,0,0,.10); overflow: hidden; }
+.sheet--land { aspect-ratio: 16 / 9; max-width: 100%; padding: 20px 24px 14px; }
+.sheet__top { border-bottom: 3px solid var(--acc); padding-bottom: 9px; }
+.sheet__eyebrow { font-size: 8px; letter-spacing: .14em; text-transform: uppercase; color: #8A9099; }
+.sheet__t { margin: 6px 0 0; font-size: 16px; font-weight: 800; letter-spacing: -.02em; color: var(--acc); }
+.sheet--land .sheet__t { font-size: 21px; }
+.sheet__sub { margin-top: 3px; font-size: 9.5px; color: #6C737B; }
+.sheet__b { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; padding-top: 11px; }
+.sheet__b--2 { flex-direction: row; align-items: stretch; }
+.sheet__b--2 > * { flex: 1 1 0; min-width: 0; }
+.sheet__txt { display: flex; flex-direction: column; gap: 6px; }
+.sheet__p { margin: 0; font-size: 9.5px; line-height: 1.7; color: #2B2F34; }
+.sheet--land .sheet__p { font-size: 11px; }
+.sheet__p--dim { color: #8A9099; }
+.sheet__fig { border: 1px dashed #C7CCD2; border-radius: 4px; background: #F6F7F9;
+  display: grid; place-items: center; font-size: 9.5px; color: #8A9099; min-height: 44px; }
+.sheet__foot { margin-top: 8px; padding-top: 7px; border-top: 1px solid #E6E9ED;
+  font-size: 8.5px; color: #8A9099; }
+@media (max-width: 560px) { .modal { padding: 12px; } .sheet { max-width: 100%; } }
+
 .themes { display: flex; gap: 8px; flex-wrap: wrap; }
 .theme { display: flex; align-items: center; gap: 8px; padding: 9px 13px; border-radius: 10px;
   border: 2px solid transparent; background: var(--panel); cursor: pointer; font-weight: 600; font-size: 13px; line-height: 1; font-family: inherit; }
@@ -270,14 +325,14 @@ ul { margin: 0; padding: 0; list-style: none; }
   <a class="bot__i on" href="#"><b>☰</b>더보기</a>
 </nav>
 
-<script src="gate-core.js?v=a133a59d"></script>
-<script src="catalog.js?v=a133a59d"></script>
-<script src="inapp.js?v=a133a59d"></script>
-<script src="live-core.js?v=a133a59d"></script>
+<script src="gate-core.js?v=44f04eb1"></script>
+<script src="catalog.js?v=44f04eb1"></script>
+<script src="inapp.js?v=44f04eb1"></script>
+<script src="live-core.js?v=44f04eb1"></script>
 <!-- ★ 판 지문을 화면에 보이게 찍는 것이 여기 있다 (§8) — 묶음에 이미 실리는 파일이다 -->
-<script src="flow-core.js?v=a133a59d"></script>
+<script src="flow-core.js?v=44f04eb1"></script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=a133a59d" data-lp-global="LINKPILOT_REPORTS"></script>
+<script src="embed-bridge.js?v=44f04eb1" data-lp-global="LINKPILOT_REPORTS"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -380,6 +435,34 @@ window.LINKPILOT_REPORTS = Object.assign({
     { id: 'pptx', name: 'PowerPoint', supported: false, via: '의존성 추가 승인 필요' },
     { id: 'hwp', name: '한글(HWP)', supported: false, via: '생성 불가' },
   ],
+  /* ★★ 출력 성격 네 축 〈2026-08-23 사장님 지시〉.
+   *   **단일 출처는 `core/outputspec.js`** 다 — 여기는 화면이 그릴 수 있게 옮겨 둔
+   *   사본이고, `outputstyle.test.js` 가 둘을 글자로 대조한다. 갈리면 빨개진다. */
+  style: {
+    layout: [
+      { id: 'im_portrait', name: '금융권 IM (세로형)', hint: '기관 투자자에게 내는 정본. 본문이 이어지고 표·주석이 함께 간다.' },
+      { id: 'ppt_landscape', name: '발표자료 (가로형)', hint: '한 장에 한 메시지. 문장을 줄이고 도표를 키운다.' },
+    ],
+    density: [
+      { id: 'text', name: '텍스트 중심', hint: '문장으로 설명한다. 그림은 근거가 있을 때만.' },
+      { id: 'mixed', name: '혼합형', hint: '절마다 그림 하나와 문단 몇 개.' },
+      { id: 'graphic', name: '그래픽 중심', hint: '표·차트가 먼저. 문장은 그것을 읽는 법만.' },
+    ],
+    house: [
+      { id: 'gov', name: '정부', color: '#1B3A6B', hint: '표지에 문서번호·시행일. 장식을 쓰지 않고 표를 많이 쓴다.' },
+      { id: 'public', name: '공기업', color: '#0E6B5E', hint: '정부 격식에 준하되 사업 성과를 앞에 둔다.' },
+      { id: 'corp', name: '대기업', color: '#16304F', hint: '표지가 넓고 여백이 크다. 지표를 큰 활자로 보여 준다.' },
+      { id: 'research', name: '연구실', color: '#4A3A78', hint: '각주와 출처가 본문만큼 중요하다. 그림에 번호를 붙인다.' },
+      { id: 'boutique', name: '전문기업', color: '#C00000', hint: '한 가지 색만 강하게. 판형과 활자로 승부한다.' },
+    ],
+    register: [
+      { id: 'expert', name: '전문형', hint: '기관 심사역이 읽는다. 약어를 풀지 않고 판단 근거만 적는다.',
+        sample: 'Equity IRR 14.2% · Min. DSCR 1.31x · LTC 65%. 준공 후 3년차 안정화 기준이며, 민감도는 임대료 ±10% · 금리 ±100bp 구간에서 DSCR 1.15x 를 하회하지 않는다.' },
+      { id: 'plain', name: '일반형', hint: '내부 보고·의사결정자가 읽는다. 약어를 처음 나올 때 풀어 준다.',
+        sample: '투자한 돈에 대한 수익률(Equity IRR)은 연 14.2% 입니다. 대출 원리금을 갚을 여력(DSCR)은 최소 1.31배로, 1배를 넘으면 갚을 수 있다는 뜻입니다. 임대료가 10% 떨어지고 금리가 1%p 올라도 1.15배 아래로는 내려가지 않았습니다.' },
+    ],
+  },
+
   sizes: ['A4', 'Letter', '16:9'],
   langs: [{ id: 'ko', name: '한국어' }, { id: 'en', name: 'English' }, { id: 'ko-en', name: '국문+영문 병기' }],
 
@@ -430,6 +513,9 @@ window.LINKPILOT_REPORTS = Object.assign({
     pages: null,          // 종류를 고르면 기본값이 들어온다
     size: 'A4', format: 'html', lang: 'ko',
     themeId: 'institutional',
+    /* 출력 성격 네 축 — 기본은 서버(`STYLE_DEFAULT`)와 같아야 한다 */
+    layout: 'im_portrait', density: 'mixed', house: 'boutique', register: 'expert',
+    proof: false,         // 교정 미리보기 팝업이 열려 있는가
     birdseye: true,       // 조감도 — 서버 사양을 받으면 그것이 이긴다
     locked: false,        // ★ 출력 사양 확정 여부
   };
@@ -496,6 +582,8 @@ window.LINKPILOT_REPORTS = Object.assign({
       language: state.lang,
       formats: [state.format],
       themeId: state.themeId,
+      layout: state.layout, density: state.density,
+      house: state.house, register: state.register,
       visuals: { birdseye: state.birdseye },
     };
   }
@@ -704,10 +792,128 @@ window.LINKPILOT_REPORTS = Object.assign({
     th.appendChild(list);
     box.appendChild(th);
 
+    /* ── 출력 성격 네 축 〈2026-08-23 사장님 지시〉 ────────────────
+     * ★ 「어떻게 생긴 문서인가」는 페이지 수·형식과 **다른 종류의 결정**이다.
+     *   그래서 같은 격자에 끼우지 않고 아래에 따로 세운다.
+     * ★ 조합이 60가지다. 조합마다 견본을 미리 그려 두지 않고
+     *   **고른 하나를 그 자리에서** 그린다 — [교정 미리보기]. */
+    var st = el('div', 'style');
+    st.appendChild(el('div', 'style__h', '출력 성격'));
+    st.appendChild(el('p', 'style__s',
+      '판형과 어조가 바뀌면 같은 숫자라도 **읽는 사람이 다르게 읽습니다.** '
+      + '고른 뒤 아래 [교정 미리보기] 로 실제 모양을 보고 정하십시오.'));
+
+    [['layout', '판형'], ['density', '무게중심'], ['house', '기관 스타일'], ['register', '어조']]
+      .forEach(function (pair) {
+        var key = pair[0];
+        var row = el('div', 'style__r');
+        row.appendChild(el('div', 'style__l', pair[1]));
+        var opts = el('div', 'style__o');
+        (C.style[key] || []).forEach(function (o) {
+          var b = el('button', 'sopt' + (state[key] === o.id ? ' on' : ''));
+          b.type = 'button';
+          b.disabled = state.locked;
+          b.title = o.hint || '';
+          if (o.color) {
+            var sw = el('span', 'sopt__sw');
+            sw.style.background = o.color;
+            b.appendChild(sw);
+          }
+          b.appendChild(el('span', null, o.name));
+          b.addEventListener('click', function () { state[key] = o.id; draw(); });
+          opts.appendChild(b);
+        });
+        row.appendChild(opts);
+        /* ★ 고른 것의 뜻을 **그 줄 아래**에 적는다. 툴팁만 두면 아무도 안 본다 */
+        var cur = (C.style[key] || []).filter(function (o) { return o.id === state[key]; })[0];
+        if (cur && cur.hint) row.appendChild(el('p', 'style__d', cur.hint));
+        st.appendChild(row);
+      });
+
+    var proof = el('button', 'btn2 style__go', '교정 미리보기');
+    proof.type = 'button';
+    proof.addEventListener('click', function () { state.proof = true; draw(); });
+    st.appendChild(proof);
+    box.appendChild(st);
+
     var bar = el('div', 'lockbar');
     bar.id = 'lockbar';
     box.appendChild(bar);
     return box;
+  }
+
+  /**
+   * ★★★ **교정 미리보기 팝업** 〈2026-08-23 사장님 지시:
+   *   「출력조건 미리보기 팝업창을 띄워서 교정볼수 있도록」〉.
+   *
+   *   조합이 2 × 3 × 5 × 2 = **60가지**다. 조합마다 견본을 미리 그려 두면
+   *   하나를 고칠 때 예순 개가 갈린다. 그래서 **고른 하나를 그 자리에서** 그린다.
+   *
+   * ★ **예시임을 화면에 박는다** (CLAUDE.md §8). 여기 숫자는 딜의 값이 아니라
+   *   모양을 보기 위한 견본이다 — 실제 값으로 오해하면 그것으로 판단한다.
+   * ★ 어조 문구는 **손으로 적지 않는다.** `C.style.register[].sample` 에서 온다 —
+   *   그 표가 서버 `core/outputspec.js` 의 `REGISTER` 와 같은 값이고,
+   *   검사가 둘을 대조한다. 갈리면 「미리보기와 다른 문서」가 나온다.
+   */
+  function proofModal() {
+    var pick = function (key) {
+      return (C.style[key] || []).filter(function (o) { return o.id === state[key]; })[0]
+        || (C.style[key] || [])[0];
+    };
+    var L = pick('layout'), D = pick('density'), H = pick('house'), R = pick('register');
+    var land = L.id === 'ppt_landscape';
+
+    var back = el('div', 'modal');
+    back.addEventListener('click', function (e) { if (e.target === back) { state.proof = false; draw(); } });
+
+    var win = el('div', 'modal__w');
+    var hd = el('div', 'modal__h');
+    hd.appendChild(el('div', 'modal__t', '교정 미리보기'));
+    hd.appendChild(el('div', 'modal__s',
+      L.name + ' · ' + D.name + ' · ' + H.name + ' · ' + R.name));
+    var x = el('button', 'modal__x', '닫기');
+    x.type = 'button';
+    x.addEventListener('click', function () { state.proof = false; draw(); });
+    hd.appendChild(x);
+    win.appendChild(hd);
+
+    /* ★ 견본 지면. 실제 판형 비율을 지킨다 — 세로 A4(1:1.414) · 가로 16:9 */
+    var page = el('div', 'sheet' + (land ? ' sheet--land' : ''));
+    page.style.setProperty('--acc', H.color);
+
+    var top = el('div', 'sheet__top');
+    top.appendChild(el('div', 'sheet__eyebrow', 'Strictly Private and Confidential'));
+    top.appendChild(el('h3', 'sheet__t', '인천 남동 데이터센터 개발사업'));
+    top.appendChild(el('div', 'sheet__sub', 'Investment Memorandum · 20 Investment Conclusion'));
+    page.appendChild(top);
+
+    /* 무게중심 — **그림 자리의 크기가 실제로 달라진다.** 말로만 다르면 고를 이유가 없다 */
+    var share = D.id === 'text' ? 15 : D.id === 'graphic' ? 60 : 35;
+    var body = el('div', 'sheet__b' + (land ? ' sheet__b--2' : ''));
+
+    var fig = el('div', 'sheet__fig');
+    fig.style.height = (land ? 34 + share : 20 + share) + '%';
+    fig.appendChild(el('span', null, '표 · 차트 자리 (' + share + '%)'));
+    var txt = el('div', 'sheet__txt');
+    txt.appendChild(el('p', 'sheet__p', R.sample));
+    if (D.id !== 'graphic') {
+      txt.appendChild(el('p', 'sheet__p sheet__p--dim',
+        '위 문장은 어조 견본입니다. 같은 숫자를 ' + R.name + ' 으로 적으면 이렇게 나옵니다.'));
+    }
+    /* 그래픽 중심이면 그림이 먼저 온다 — 차례 자체가 무게중심이다 */
+    if (D.id === 'graphic') { body.appendChild(fig); body.appendChild(txt); }
+    else { body.appendChild(txt); body.appendChild(fig); }
+    page.appendChild(body);
+
+    page.appendChild(el('div', 'sheet__foot',
+      H.name + ' 스타일 · ' + (land ? '16:9 가로' : 'A4 세로') + ' · 견본'));
+    win.appendChild(page);
+
+    win.appendChild(el('p', 'modal__note',
+      '이 지면은 **모양을 보는 견본**입니다 — 숫자는 딜의 값이 아닙니다. '
+      + '고른 성격은 [이 사양으로 확정] 을 눌러야 문서에 적용됩니다.'));
+    back.appendChild(win);
+    return back;
   }
 
   /** 확정 전에 무엇이 모자란지 알려준다 */
@@ -826,6 +1032,11 @@ window.LINKPILOT_REPORTS = Object.assign({
         state.lang = s.language || state.lang;
         state.format = (s.formats && s.formats[0]) || state.format;
         state.themeId = s.themeId || state.themeId;
+        /* ★ 서버가 준 것이 이긴다 — 화면 기본값이 사양을 덮으면
+         *   「확정했는데 다른 성격」이 된다 */
+        ['layout', 'density', 'house', 'register'].forEach(function (k) {
+          if (s[k]) state[k] = s[k];
+        });
         // ★ 서버 값이 있으면 그것이 이긴다. 없을 때만 화면 기본값을 쓴다 —
         //   `s.visuals.birdseye || true` 로 쓰면 false 가 true 로 되살아난다
         state.birdseye = (s.visuals && typeof s.visuals.birdseye === 'boolean')
@@ -1084,6 +1295,8 @@ window.LINKPILOT_REPORTS = Object.assign({
     var lv = live();
     if (lv) view.appendChild(lv);
     view.appendChild(recent());
+    /* ★ 팝업은 **맨 뒤에** 붙인다 — 앞에 붙이면 아래 카드들이 그 위에 그려진다 */
+    if (state.proof) view.appendChild(proofModal());
     updateLockBar();
   }
 
