@@ -1,14 +1,19 @@
 name: deploy-nas
 
-# NAS 배포 — 화면 16개를 `im-flow` 로 올리고, **닿았는지 재고 끝난다.**
+# NAS 배포 — 화면 16개를 `im-flow` 로, 엔진을 `im-agent` 로 올리고,
+# **닿았는지 재고 끝난다.** `main` 에 닿으면 자동으로 돈다 (D-88).
 #
 # ★★★ **쓰기를 되살렸다** 〈2026-08-23 사장님 지시 — 「앞으로는 네가 배포해」〉.
 #   전날 D-84 로 지웠던 것을 되돌렸다. **지웠던 이유는 아래에 그대로 남긴다** —
 #   되살렸다고 그 이유가 사라지지는 않는다.
 #
 #   ★ 그래서 **쓰는 이는 여전히 하나여야 한다.** 이제 이 워크플로가 그 하나이고,
-#     `deploy/screens.sh`(사장님 맥)는 **이 길이 못 돌 때의 대비**다. 둘을 같은
-#     날 같이 쓰지 않는다 — 그러면 D-84 가 말한 상태로 그대로 돌아간다.
+#     `deploy/screens.sh`(화면) · `deploy/nas.sh`(엔진)는 **이 길이 못 돌 때의
+#     대비**다. 둘을 같은 날 같이 쓰지 않는다 — 그러면 D-84 가 말한 상태로
+#     그대로 돌아간다.
+#     ★★ 자동으로 돌게 된 뒤로는 **같이 쓸 일이 훨씬 잦아졌다** — 맥에서 손으로
+#       올리는 사이에 `main` 푸시가 들어오면 둘이 겹친다. 급하면 워크플로를
+#       먼저 보고, 그것이 못 돌 때만 손으로 간다.
 #
 # 〈아래는 D-84 로 지웠을 때의 기록 — 왜 한때 없앴는지〉
 #
@@ -32,14 +37,47 @@ name: deploy-nas
 # 접속정보는 CLAUDE.md §2 에 따라 코드·로그에 남길 수 없다.
 # 러너가 tailnet 에 임시로 붙고, 자격증명은 GitHub Secrets 에만 둔다.
 #
-# ★ 자동 실행하지 않는다 (workflow_dispatch 전용).
-#   운영 중인 화면을 아무도 안 보는 사이에 덮어쓰지 않기 위해서다.
-#   충분히 검증된 뒤 push 트리거로 바꾸는 것은 사람이 판단한다.
+# ★★★ **자동으로 돈다** 〈2026-08-23 사장님 지시 · D-88 — 「실시간 자동배포가 되도록」〉.
+#
+#   앞 판은 `workflow_dispatch` 전용이었다. 이유는 「아무도 안 보는 사이에 운영
+#   화면을 덮지 않기 위해」였는데, 실제로 일어난 일은 그 반대였다 —
+#   **눌러야 도니까 안 눌렀고, 그 사이 NAS 가 조용히 옛 판으로 남았다.**
+#   D-86 이 그 이야기다(화면이 옛것이었던 이유는 캐시도 다른 폴더도 아니라
+#   **아직 안 올라간 것**이었다).
+#
+#   ★ 그래서 **`main` 에 닿는 순간 올린다.** 작업선(`claude/**`)에서는 안 돈다 —
+#     PR 이 병합되는 그 순간이 「올려도 되는 순간」이다. 검토를 거치지 않은
+#     푸시가 곧바로 운영에 닿는 일은 만들지 않는다.
+#   ★ 앞 판이 걱정한 것은 그대로 지킨다: `guard`(교차검증 전체)가 초록이 아니면
+#     한 파일도 안 올라간다. **자동이 된 것이지 검사가 빠진 것이 아니다.**
+#   ★ 손으로 띄우는 길(`workflow_dispatch`)은 그대로 둔다. 그쪽 기본값은
+#     여전히 **dry run** 이다 — 사람이 누를 때는 「재기만」이 안전한 기본이다.
+#
+# ★★★ **엔진도 함께 올린다** 〈2026-08-23 · D-88〉.
+#   앞 판은 화면 열여섯만 올렸다. 엔진(`im-agent/**`)은 **아무도 안 올렸고**,
+#   그래서 화면은 새 판인데 서버가 옛 라우팅 표를 들고 있는 상태가 났다
+#   (D-87 · `POST /projects` 404). 화면만 자동으로 올리면 그 어긋남을 **더 빨리
+#   만들 뿐**이다.
+#   ★ 엔진은 잘못되면 **서비스가 멈춘다.** 그래서 `deploy/engine.sh` 가
+#     되돌릴 자리를 먼저 만들고, 안 살아나면 **스스로 되돌린다.**
+#   ★ 엔진 파일이 안 바뀐 날에는 **재시작하지 않는다** — 화면만 고친 커밋마다
+#     엔진을 내렸다 올리면, 그 몇 초에 걸린 보고서 생성이 죽는다.
 #
 # ★ linkpilot-platform.html 은 배포 목록에 넣지 않는다.
 #   실제 앱 본체 파일이고, 이 저장소에는 그 원본이 없다. 덮어쓰면 되돌릴 수 없다.
 
 on:
+  # ★★★ **여기가 「실시간」이다.** `main` 에 닿으면 바로 돈다.
+  #   ★ `paths` 로 좁힌다 — 문서만 고친 커밋에 NAS 를 건드릴 이유가 없다.
+  #     대신 **좁히다가 빠뜨리면 조용히 안 올라가므로**, 올릴 것이 들어 있는
+  #     자리는 전부 적는다: 화면·엔진(`im-agent/**`), 올리는 도구(`deploy/**`),
+  #     그리고 이 파일 자신.
+  push:
+    branches: ['main']
+    paths:
+      - 'im-agent/**'
+      - 'deploy/**'
+      - '.github/workflows/deploy-nas.yml'
   workflow_dispatch:
     inputs:
       files:
@@ -80,12 +118,122 @@ on:
         description: '올리지 않는다 — Secret 이 들어왔는지만 잰다 (NAS 에 손대지 않음)'
         type: boolean
         default: true
+      engine:
+        # ★★ **넷째 손잡이는 「쓸까 말까」가 아니라 「무엇까지」다** 〈2026-08-23 · D-88〉.
+        #   앞 판은 입력이 셋이었고, 검사가 「넷째가 생기면 대개 쓸까 말까를 묻는
+        #   손잡이다」라며 막고 있었다. **이것은 그 종류가 아니다** — 쓸지 말지는
+        #   `dry_run` 하나가 그대로 쥔다.
+        #   ★ `auto` 는 **바뀐 것을 보고 정한다**: `im-agent/` 아래에서
+        #     `ui/platform/` 밖이 하나라도 바뀌었으면 엔진을 올린다.
+        #   ★ 손으로 띄울 때는 「무엇이 바뀌었는지」가 없다. 그때 `auto` 는
+        #     **안 올린다** — 사람이 누른 김에 서비스가 재시작되는 일은 없어야 한다.
+        description: '엔진(im-agent)도 올릴까 — auto 는 바뀐 것을 보고 정한다'
+        type: choice
+        options: ['auto', 'yes', 'no']
+        default: 'auto'
 
 concurrency:
   group: deploy-nas
   cancel-in-progress: false
 
 jobs:
+  # ★★★ **무엇을 어디에 올릴지 한 곳에서 정한다** 〈2026-08-23 · D-88〉.
+  #
+  #   자동으로 돌게 되면서 문제가 하나 생겼다: `push` 로 들어오면
+  #   **`inputs.*` 가 통째로 빈 값**이다. 아래 단계들은 전부 `inputs.files` 를
+  #   읽고 있었으므로, 그대로 두면 **빈 목록을 빈 자리에 올리는** 판이 된다 —
+  #   그리고 그것은 오류를 안 낸다. 초록으로 끝나고 아무것도 안 바뀐다.
+  #
+  #   ★ 그래서 **여기서 한 번 정하고 출력으로 넘긴다.** 아래에서 `inputs.` 를
+  #     직접 읽는 자리가 남아 있으면 그 자리만 push 에서 빈다.
+  #   ★ 목록은 **손으로 적지 않는다.** `build-embed.js` 의 `required()` 가
+  #     단일 출처다 — 화면이 하나 늘면 여기도 저절로 는다.
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      files: ${{ steps.p.outputs.files }}
+      dest: ${{ steps.p.outputs.dest }}
+      dry_run: ${{ steps.p.outputs.dry_run }}
+      engine: ${{ steps.p.outputs.engine }}
+    steps:
+      # ★ `fetch-depth: 0` 이 필요하다. 기본은 커밋 하나만 받아 와서
+      #   `git diff <이전> <지금>` 이 「그런 커밋 없음」으로 죽는다 — 그러면
+      #   엔진을 올릴지 말지를 **못 재고**, 못 잰 채로 넘어가게 된다
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Decide what to deploy
+        id: p
+        env:
+          EV: ${{ github.event_name }}
+          IN_FILES: ${{ inputs.files }}
+          IN_DEST: ${{ inputs.dest }}
+          IN_DRY: ${{ inputs.dry_run }}
+          IN_ENGINE: ${{ inputs.engine }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          set -u
+          set +e   # grep 이 「못 찾음」으로 1 을 돌려주는 자리가 있다 (bash -e 를 끈다)
+
+          if [ "$EV" = "workflow_dispatch" ]; then
+            FILES="$IN_FILES"; DEST="$IN_DEST"; DRY="$IN_DRY"; WANT="$IN_ENGINE"
+            echo "손으로 띄운 판 — 입력을 그대로 쓴다"
+          else
+            # ★★ 화면 묶음은 `required()` 한 곳에서 나온다 (M-22 — 하나만
+            #   올리면 짝이 깨져 **오류 없이 빈 화면**이 뜬다)
+            FILES=$(node -e "process.stdout.write(require('./im-agent/ui/platform/build-embed.js').required().map(function(f){return 'im-agent/ui/platform/'+f}).join(' '))")
+            DEST='/volume1/web/im-flow'
+            DRY=false
+            WANT=auto
+            echo "자동으로 돈 판 — 화면 묶음을 required() 에서 받았다"
+          fi
+
+          if [ -z "$FILES" ]; then
+            echo "::error::올릴 목록이 비었다 — 빈 목록으로 올리면 초록인데 아무것도 안 바뀐다"
+            exit 1
+          fi
+
+          # ── 엔진을 올릴까 ────────────────────────────────────────────────
+          case "$WANT" in
+            yes) ENG=true;  WHY='손으로 yes 를 골랐다' ;;
+            no)  ENG=false; WHY='손으로 no 를 골랐다' ;;
+            *)
+              if [ "$EV" != "push" ]; then
+                ENG=false; WHY='손으로 띄운 판이라 바뀐 것을 알 수 없다 — 화면만 올린다'
+              elif [ -z "${BEFORE:-}" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+                # ★ 못 쟀으면 **올린다.** 조용히 건너뛰면 「올렸는데 서버는 옛
+                #   판」이 되고, 그 상태는 화면에서 404 로만 보인다 (D-87)
+                ENG=true; WHY='앞 커밋을 모른다(첫 푸시) — 못 쟀으므로 올린다'
+              else
+                CH=$(git diff --name-only "$BEFORE" "$GITHUB_SHA" 2>/dev/null)
+                if [ -z "$CH" ]; then
+                  ENG=true; WHY='바뀐 목록을 못 읽었다 — 못 쟀으므로 올린다'
+                elif printf '%s\n' "$CH" | grep '^im-agent/' | grep -qv '^im-agent/ui/platform/'; then
+                  ENG=true; WHY='화면 폴더 밖의 엔진 파일이 바뀌었다'
+                else
+                  ENG=false; WHY='바뀐 것이 화면뿐이다 — 엔진을 내렸다 올리지 않는다'
+                fi
+              fi ;;
+          esac
+
+          N=$(printf '%s' "$FILES" | wc -w | tr -d ' ')
+          echo "files=$FILES"   >> "$GITHUB_OUTPUT"
+          echo "dest=$DEST"     >> "$GITHUB_OUTPUT"
+          echo "dry_run=$DRY"   >> "$GITHUB_OUTPUT"
+          echo "engine=$ENG"    >> "$GITHUB_OUTPUT"
+          {
+            echo "### 무엇을 올리나"
+            echo ""
+            echo "- 화면 **${N}개** → \`${DEST}\`"
+            echo "- 엔진(im-agent) — **$([ "$ENG" = true ] && echo '올린다' || echo '안 올린다')** · ${WHY}"
+            echo "- dry run — \`${DRY}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "화면 ${N}개 → ${DEST} · 엔진 ${ENG} (${WHY}) · dry ${DRY}"
+
   # ★★★ **교차검증을 통과한 것만 내보낸다** 〈2026-08-23 사장님 지시 · CLAUDE.md §7〉.
   #
   #   지금까지 이것을 **사람이 기억해서** 했다. 그래서 잊었다 — 하루에 두 번,
@@ -132,9 +280,9 @@ jobs:
         run: npm run im:stamp -- --check
 
   deploy:
-    needs: guard
+    needs: [plan, guard]
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       # ★ 라우트 점검(`verify:nas`)이 node 로 돈다. 없으면 그 단계만 조용히
@@ -153,7 +301,7 @@ jobs:
       - name: Check secrets
         id: ts
         env:
-          DRY: ${{ inputs.dry_run }}
+          DRY: ${{ needs.plan.outputs.dry_run }}
           OAUTH_ID: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           OAUTH_SEC: ${{ secrets.TS_OAUTH_SECRET }}
           AUTHKEY: ${{ secrets.TS_AUTHKEY }}
@@ -227,7 +375,7 @@ jobs:
       # 배포 대상을 먼저 검증한다. 경로 조작·금지 파일을 여기서 막는다.
       - name: Check files
         env:
-          FILES: ${{ inputs.files }}
+          FILES: ${{ needs.plan.outputs.files }}
         run: |
           set -euo pipefail
           for f in $FILES; do
@@ -275,7 +423,7 @@ jobs:
       #   초록으로 계속 간다 — 그러면 다음 단계에서 「연결 안 됨」이 아니라
       #   엉뚱한 오류로 죽는다. 여기서 먼저 잡는다
       - name: Verify tailnet
-        if: ${{ !inputs.dry_run }}
+        if: ${{ needs.plan.outputs.dry_run != 'true' }}
         run: |
           set -euo pipefail
           tailscale status --json >/dev/null 2>&1 \
@@ -286,7 +434,7 @@ jobs:
       #   여기서 `echo ok` 까지 해 두면 실패했을 때 원인이 하나로 좁혀진다 —
       #   「붙었는데 못 올렸다」와 「애초에 못 붙었다」가 섞이지 않는다.
       - name: Set up ssh
-        if: ${{ !inputs.dry_run }}
+        if: ${{ needs.plan.outputs.dry_run != 'true' }}
         env:
           NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
           NAS_USER: ${{ secrets.NAS_SSH_USER }}
@@ -317,9 +465,9 @@ jobs:
       #   개만 올라간 반쯤 된 상태**로 멈춘다 — 그 상태가 제일 나쁘다.
       #   여기서 먼저 재고, 안 되면 **무엇을 봐야 하는지 말하고** 멈춘다.
       - name: Check destination
-        if: ${{ !inputs.dry_run }}
+        if: ${{ needs.plan.outputs.dry_run != 'true' }}
         env:
-          DEST: ${{ inputs.dest }}
+          DEST: ${{ needs.plan.outputs.dest }}
           NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
           NAS_USER: ${{ secrets.NAS_SSH_USER }}
         run: |
@@ -351,10 +499,10 @@ jobs:
       #   ★ 포트를 모른다. 흔한 것부터 차례로 두드리고, **어디서 답이 왔는지**를
       #     함께 적는다 — 「안 된다」만 남기면 다음 사람이 또 처음부터 찾는다.
       - name: Check serving
-        if: ${{ !inputs.dry_run }}
+        if: ${{ needs.plan.outputs.dry_run != 'true' }}
         env:
           NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
-          DEST: ${{ inputs.dest }}
+          DEST: ${{ needs.plan.outputs.dest }}
         run: |
           # ★★ **`set +e` 를 반드시 켠다** 〈2026-08-21 · 여기서 한 번 죽었다〉.
           #   GitHub 의 기본 셸은 `bash -e {0}` 다 — 즉 **`-e` 가 이미 켜진 채로**
@@ -414,7 +562,7 @@ jobs:
       #   ★ 파일을 못 찾는 것도 **답**이다. 「엔진 루트가 다른 곳이다」를 뜻하므로
       #     조용히 넘기지 않고 무엇을 봐야 하는지 적는다.
       - name: Check upload body limit
-        if: ${{ !inputs.dry_run }}
+        if: ${{ needs.plan.outputs.dry_run != 'true' }}
         env:
           NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
           NAS_USER: ${{ secrets.NAS_SSH_USER }}
@@ -479,7 +627,7 @@ jobs:
       #   ★ 8181(엔진 직행)과 80(앞단 경유)을 **둘 다** 잰다. 둘이 갈리면
       #     범인이 앞단이라는 것이 그 자리에서 드러난다.
       - name: Probe body size ceiling
-        if: ${{ !inputs.dry_run }}
+        if: ${{ needs.plan.outputs.dry_run != 'true' }}
         env:
           NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
         run: |
@@ -538,13 +686,13 @@ jobs:
       #
       #   ★ 잣대는 자리에 따라 다르다. **올린 뒤**(`Verify deployed`)에는 그대로 치명이다.
       - name: Check served build
-        if: ${{ !inputs.dry_run }}
+        if: ${{ needs.plan.outputs.dry_run != 'true' }}
         env:
           LP_BEFORE: '1'
           NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
           NAS_USER: ${{ secrets.NAS_SSH_USER }}
-          DEST: ${{ inputs.dest }}
-          FILES: ${{ inputs.files }}
+          DEST: ${{ needs.plan.outputs.dest }}
+          FILES: ${{ needs.plan.outputs.files }}
         run: |
           set -uo pipefail
           # 스크립트는 **파일 이름**을 받는다 (경로는 저장소 쪽에서 붙인다)
@@ -562,10 +710,10 @@ jobs:
       #     나오고, 멀쩡한 경로를 몇 번이고 다시 확인하게 된다.
       #   ★ 덮기 전에 백업을 뜬다 — 되돌릴 길을 먼저 만든다.
       - name: Upload
-        if: ${{ !inputs.dry_run }}
+        if: ${{ needs.plan.outputs.dry_run != 'true' }}
         env:
-          FILES: ${{ inputs.files }}
-          DEST: ${{ inputs.dest }}
+          FILES: ${{ needs.plan.outputs.files }}
+          DEST: ${{ needs.plan.outputs.dest }}
           NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
           NAS_USER: ${{ secrets.NAS_SSH_USER }}
         run: |
@@ -586,12 +734,12 @@ jobs:
       #   Funnel 443 으로 들어와 문서 루트가 다를 수 있다(M-25). 그걸 치명으로 두면
       #   멀쩡한 배포가 늘 빨갛고, 그러면 빨간 것을 아무도 안 보게 된다.
       - name: Verify deployed
-        if: ${{ !inputs.dry_run }}
+        if: ${{ needs.plan.outputs.dry_run != 'true' }}
         env:
           NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
           NAS_USER: ${{ secrets.NAS_SSH_USER }}
-          DEST: ${{ inputs.dest }}
-          FILES: ${{ inputs.files }}
+          DEST: ${{ needs.plan.outputs.dest }}
+          FILES: ${{ needs.plan.outputs.files }}
         run: |
           set -uo pipefail
           NAMES=""
@@ -610,10 +758,10 @@ jobs:
       #   ★ 주소가 없으면 **조용히 건너뛰지 않는다.** 「못 쟀다」가 안 보이면
       #     「쟀는데 맞았다」와 구분이 안 된다 (§2).
       - name: Check via app path
-        if: ${{ !inputs.dry_run }}
+        if: ${{ needs.plan.outputs.dry_run != 'true' }}
         env:
           BASE: ${{ secrets.LP_PUBLIC_BASE }}
-          FILES: ${{ inputs.files }}
+          FILES: ${{ needs.plan.outputs.files }}
         run: |
           set -uo pipefail
           if [ -z "${BASE:-}" ]; then
@@ -637,6 +785,36 @@ jobs:
           echo "앱 경로 확인: ${OK} 개 일치" >> "$GITHUB_STEP_SUMMARY"
           exit "$BAD"
 
+      # ★★★ **엔진을 올린다** 〈2026-08-23 · D-88 — 「모든 파일과 구조를 정립해줘」〉.
+      #
+      #   여기가 이 저장소에 **없던 자리**다. 화면 열여섯은 위에서 올렸고,
+      #   엔진(`im-agent/**`)은 **아무도 안 올렸다.** NAS 에 `im-agent.bak-*` 가
+      #   스무 개 쌓여 있는 것이 그 증거다 — 사람이 손으로 tar 를 말아 왔다.
+      #   그래서 화면은 새 판, 서버는 옛 라우팅 표인 상태가 났다 (D-87).
+      #
+      #   ★ **화면보다 뒤, 라우트 재기보다 앞**이다. 이 순서라야 바로 아래
+      #     `Check routes` 가 **방금 올린 엔진**을 잰다. 앞에 두면 옛 엔진을 재고,
+      #     뒤에 두면 라우트 결과가 한 판 늦은 이야기가 된다.
+      #   ★ 되돌리기는 `deploy/engine.sh` 안에 있다 — **여기서 하지 않는다.**
+      #     워크플로에 적으면 사장님 맥에서 돌릴 때는 되돌림이 없어진다.
+      #   ★ **실패를 삼키지 않는다.** 되돌렸어도 빨갛게 끝나야 한다 — 되돌린 것은
+      #     서비스를 살린 것이지 배포가 된 것이 아니다.
+      - name: Deploy engine (D-87 · D-88)
+        if: ${{ needs.plan.outputs.dry_run != 'true' && needs.plan.outputs.engine == 'true' }}
+        env:
+          NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+          NAS_USER: ${{ secrets.NAS_SSH_USER }}
+          LP_SSH_KEY: /home/runner/.ssh/id_deploy
+        run: bash deploy/engine.sh "$NAS_HOST" "$NAS_USER"
+
+      # ★ 안 올린 날에는 **안 올렸다고 말한다.** 아무 줄도 안 남기면 「올렸는데
+      #   조용했다」와 구분이 안 된다 (§2 — 조용히 죽지 않는다)
+      - name: Engine skipped
+        if: ${{ needs.plan.outputs.dry_run != 'true' && needs.plan.outputs.engine != 'true' }}
+        run: |
+          echo "엔진: **안 올렸다** — 바뀐 것이 화면뿐이거나 손으로 no 를 골랐다" >> "$GITHUB_STEP_SUMMARY"
+          echo "::notice::엔진(im-agent)은 이번에 안 올렸다. 서버는 지금 돌고 있는 판 그대로다"
+
       # ★★★ **라우트가 앱을 거쳐 닿는지 잰다** 〈2026-08-23 · M-11 · M-12〉.
       #
       #   이 검사를 **만들어 두고 아무도 안 돌렸다.** 2026-08-18 에 본체가 라우팅
@@ -650,7 +828,7 @@ jobs:
       #   ★ **못 쟀으면 초록으로 끝내지 않는다** (종료코드 2). 「초록인데 안 잰
       #     것」이 이 저장소에서 가장 비싼 상태다.
       - name: Check routes (M-11 · M-12)
-        if: ${{ !inputs.dry_run }}
+        if: ${{ needs.plan.outputs.dry_run != 'true' }}
         env:
           LP_BASE: ${{ secrets.LP_BASE }}
           NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
@@ -675,20 +853,20 @@ jobs:
             echo "라우트 확인: 다 못 쟀다 (${VIA})" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          echo "::error::**라우트가 404 다.** 화면은 올라갔고(위 Verify deployed 초록) 서버가 **옛 라우팅 표**를 들고 있다 — 화면에서는 「서버 오류 (404)」로만 보인다 (M-11 · D-87). 이 워크플로는 화면만 올린다(D-84) — **엔진은 본체가 따로 올려야 한다.**"
-          echo "라우트 확인: 404 있음 (${VIA}) — **화면 올리기는 성공했다.** 서버 쪽 일이다" >> "$GITHUB_STEP_SUMMARY"
+          echo "::error::**라우트가 404 다.** 화면은 올라갔고(위 Verify deployed 초록) 서버가 **옛 라우팅 표**를 들고 있다 — 화면에서는 「서버 오류 (404)」로만 보인다 (M-11 · D-87). ★ 이제 엔진도 이 워크플로가 올린다(D-88) — 위 「Deploy engine」 단계가 **돌았는지** 먼저 본다. 건너뛰었으면 바뀐 것이 화면뿐이라 옛 엔진 그대로다. 돌았는데도 404 면 새 엔진에 그 라우트가 정말 없는 것이다."
+          echo "라우트 확인: 404 있음 (${VIA}) — **화면 올리기는 성공했다.** 엔진 단계가 돌았는지 본다 (D-88)" >> "$GITHUB_STEP_SUMMARY"
           exit 1
 
       # ★★ **라우트가 빨개도 이 줄은 남는다** 〈2026-08-23〉. 앞 판은 앞 단계가
       #   죽으면 이 요약이 건너뛰어져 **「올리기가 됐는지」가 통째로 사라졌다** —
       #   그러면 화면 배포까지 실패한 줄로 읽힌다. 둘은 다른 사실이다.
       - name: Probe summary
-        if: ${{ always() && !inputs.dry_run }}
+        if: ${{ always() && needs.plan.outputs.dry_run != 'true' }}
         run: |
           echo "::notice::**올리고 재는 것까지 끝났다.** 「Verify deployed」 의 저장소·디스크가 같아야 실제로 닿은 것이다. HTTP 가 다르다는 경고는 잰 길(포트 80)이 앱이 쓰는 길(Funnel 443)과 달라서일 수 있다 — 원인 후보 셋이 로그에 적혀 있다 (M-25)."
 
       - name: Dry run summary
-        if: ${{ inputs.dry_run }}
+        if: ${{ needs.plan.outputs.dry_run == 'true' }}
         run: |
           echo "::warning::**아무것도 재지 않았다 (DRY RUN).** Secret 이 들어왔는지만 봤다 — NAS 에는 닿지도 않았다. 실제로 재려면 dry_run 을 끄고 다시 실행한다"
 
@@ -698,7 +876,7 @@ jobs:
   #   알림도 함께 조용히 사라진다 — 「검사가 막아 줬다」가 **아무한테도 안 간다**.
   #   실패 알림 경로는 언제나 살아 있어야 한다 (CLAUDE.md §2).
   alert:
-    needs: [guard, deploy]
+    needs: [plan, guard, deploy]
     if: failure()
     uses: ./.github/workflows/alert-failure.yml
     permissions:

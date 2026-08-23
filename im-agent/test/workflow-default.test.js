@@ -150,7 +150,7 @@ test('★★★ 올린 뒤 반드시 재고, 실패를 삼키지 않는다', () 
   assert.ok(y.indexOf('- name: Upload') < y.indexOf('- name: Verify deployed'),
     '재는 단계가 올리기보다 앞이다 — 올리기 전 상태를 재는 셈이다');
   assert.ok(!/\|\|\s*true/.test(ver), '재는 단계가 실패를 삼킨다 — 초록이 거짓말을 한다');
-  assert.match(ver, /FILES: \$\{\{ inputs\.files \}\}/,
+  assert.match(ver, /FILES: \$\{\{ needs\.plan\.outputs\.files \}\}/,
     '배포 목록 전부를 안 잰다 — 넷만 재면 나머지가 옛 판이어도 초록이다');
 
   /* ★ 디스크는 치명, HTTP 는 경고 — 스크립트가 그렇게 갈라야 한다 */
@@ -270,7 +270,12 @@ test('★★ 서빙 상태를 재는 단계가 있고, 재기만 한다', () => 
   assert.ok(s, 'Check serving 단계가 없다');
 
   // ① dry run 에서는 안 돈다 — 거기서는 NAS 에 닿지도 않는다
-  assert.match(s, /if:.*!inputs\.dry_run/, 'Check serving 이 dry_run 을 안 본다');
+  /* ★ 〈2026-08-23 · D-88〉 자동으로 돌게 되면서 `inputs.dry_run` 을 직접 읽으면
+     **push 에서 빈 값**이 된다. 빈 값은 거짓이라 단계가 돌긴 하지만, 그건
+     「돌기로 정해서 도는 것」이 아니라 **우연히 도는 것**이다. 판정은 `plan` 이
+     한 곳에서 한다 — 여기서도 그 출처를 읽는지 본다 */
+  assert.match(s, /if:.*needs\.plan\.outputs\.dry_run/,
+    'Check serving 이 plan 의 판정을 안 본다 — push 에서 inputs 는 비어 있다');
 
   // ② ★★ **읽기만 한다.** 헤더만 받고 아무것도 바꾸지 않는다
   assert.match(s, /curl[^\n]*-I/, '헤더만 받지 않는다 — 본문까지 받으면 재는 값이 커진다');
@@ -373,12 +378,12 @@ test('★★★ 탐침이 실패를 삼키지 않고, 배포 목록 전부를 �
   assert.match(step, /verify-served\.sh/, '지문 대조 스크립트를 안 쓴다');
   assert.ok(!/\|\|\s*true/.test(step),
     '탐침이 실패를 삼킨다 (|| true) — 이제 이것 말고 판정이 없다. 초록이 거짓말을 한다');
-  assert.match(step, /FILES: \$\{\{ inputs\.files \}\}/,
-    '재는 목록을 files 에서 안 받는다 — 기본값 넷만 재면 나머지가 옛 판이어도 초록이다');
+  assert.match(step, /FILES: \$\{\{ needs\.plan\.outputs\.files \}\}/,
+    '재는 목록을 plan 에서 안 받는다 — 기본값 넷만 재면 나머지가 옛 판이어도 초록이다');
   assert.match(step, /basename/, '경로를 파일 이름으로 바꾸지 않는다 — 스크립트가 못 읽는다');
 
   /* ★ dry run 에서는 돌지 않는다 — 거기서는 NAS 에 닿지도 않는다 */
-  assert.match(step, /if:.*!inputs\.dry_run/, 'dry run 에서도 재려고 한다');
+  assert.match(step, /if:.*needs\.plan\.outputs\.dry_run/, 'dry run 에서도 재려고 한다');
 });
 
 /**
@@ -410,10 +415,16 @@ test('★★ 탐침과 배포 확인이 같은 스크립트를 쓴다 (두 벌�
  *   입력이 셋으로 줄었는지까지 재는 이유: 넷째가 생기면 그것이 대개
  *   「쓸까 말까」를 묻는 손잡이다.
  */
-test('★★ 입력은 셋뿐이다 — 조합이 늘지 않는다', () => {
+test('★★ 입력은 넷뿐이다 — 조합이 늘지 않는다', () => {
   const y = fs.readFileSync(path.join(WF, 'deploy-nas.yml'), 'utf8');
   const keys = [...y.matchAll(/^      (\w+):$/gm)].map(m => m[1]);
-  assert.deepStrictEqual(keys, ['files', 'dest', 'dry_run'],
+  /* ★★★ 〈2026-08-23 · D-88〉 **넷째가 붙었다 — 그리고 그것이 이 검사가 잡으라던
+     바로 그 자리다.** 앞 판의 이유는 「넷째가 생기면 **대개** 쓸까 말까를 묻는
+     손잡이다」였다. `engine` 은 그 종류가 아니다: 쓸지 말지는 `dry_run` 하나가
+     그대로 쥐고, `engine` 은 **무엇까지 올릴지**를 고른다.
+     ★ 그러니 「넷이면 통과」로 무르게 두지 않는다. **이름을 못 박는다** —
+       다섯째가 붙는 날 이 검사가 다시 울어야 한다 */
+  assert.deepStrictEqual(keys, ['files', 'dest', 'dry_run', 'engine'],
     `입력이 ${keys.join(' · ')} 다 — 쓰기를 되살리는 손잡이가 붙지 않았는지 본다`);
 
   /* ★ dry run 이 기본이다. 손대지 않고 누르면 **NAS 에 닿지도 않는다**.
@@ -588,4 +599,177 @@ test('★★★ 배포가 라우트까지 잰다 (만들어 두고 안 돌린 �
   const dep = y.slice(y.indexOf('  deploy:'), y.indexOf('name: Check secrets'));
   assert.match(dep, /actions\/setup-node/,
     '배포 판에 node 가 없다 — 라우트 점검이 조용히 죽는다');
+});
+
+/* ═════════ **실시간 자동배포** 〈2026-08-23 사장님 지시 · D-88〉 ═════════ */
+
+/**
+ * ★★★ **눌러야 도는 장치는 안 돈다.**
+ *
+ *   앞 판은 `workflow_dispatch` 전용이었다. 이유는 「아무도 안 보는 사이에
+ *   운영 화면을 덮지 않기 위해」였는데, **실제로 일어난 일은 그 반대**였다 —
+ *   눌러야 도니까 안 눌렀고, 그 사이 NAS 가 조용히 옛 판으로 남았다 (D-86).
+ *   같은 결의 사고가 `verify:nas` 에도 있었다: 만들어 두고 아무도 안 쳐서
+ *   같은 404 가 다시 났다 (M-11 · M-12 · D-87).
+ *
+ * ★ 그래서 **트리거가 있는지**를 잰다. 그리고 아무 브랜치에서나 돌면 안 된다 —
+ *   검토를 안 거친 푸시가 곧바로 운영에 닿는 길은 만들지 않는다.
+ */
+test('★★★ main 에 닿으면 자동으로 돈다 — 그리고 거기서만 돈다', () => {
+  const y = fs.readFileSync(path.join(WF, 'deploy-nas.yml'), 'utf8');
+
+  const on = /^on:\n([\s\S]*?)^concurrency:/m.exec(y);
+  assert.ok(on, 'on: 블록을 못 찾았다');
+  assert.match(on[1], /^  push:$/m,
+    'push 트리거가 없다 — 눌러야 도는 장치는 안 돈다 (D-86 · D-87 이 그 이야기다)');
+
+  /* ★ 작업선에서는 돌지 않는다. `claude/**` 푸시마다 운영이 바뀌면
+     「검토 뒤에 올린다」가 없어진다 */
+  const br = /^    branches: \[([^\]]*)\]/m.exec(on[1]);
+  assert.ok(br, 'push 에 branches 제한이 없다 — 아무 작업선에서나 운영이 바뀐다');
+  assert.strictEqual(br[1].replace(/['"\s]/g, ''), 'main',
+    `자동 배포가 도는 브랜치가 ${br[1]} 다 — main 하나여야 한다`);
+
+  /* ★ 손으로 띄우는 길은 남아 있어야 한다. Actions 가 늦거나 다시 올려야 할
+     때 기댈 곳이 없어진다 */
+  assert.match(on[1], /^  workflow_dispatch:$/m, '손으로 띄우는 길이 사라졌다');
+
+  /* ★★ `paths` 로 좁히되 **올릴 것이 든 자리를 빠뜨리면 조용히 안 올라간다.**
+     빠진 자리는 오류를 안 낸다 — 그냥 배포가 안 도는 날이 된다 */
+  ['im-agent/**', 'deploy/**', '.github/workflows/deploy-nas.yml'].forEach((p) => {
+    assert.ok(on[1].includes(p), `paths 에 ${p} 가 없다 — 그 자리를 고친 날은 배포가 안 돈다`);
+  });
+
+  /* ★★★ 자동이 된 것이지 **검사가 빠진 것이 아니다.** guard 는 그대로다 */
+  assert.match(y, /^  guard:$/m, '자동으로 돌면서 교차검증 판이 사라졌다');
+});
+
+/**
+ * ★★★ **push 로 들어오면 `inputs.*` 는 통째로 빈 값이다** 〈2026-08-23 · D-88〉.
+ *
+ *   이것이 이번 작업에서 가장 조용한 함정이었다. 아래 단계들은 전부
+ *   `inputs.files` 를 읽고 있었으므로, 트리거만 붙이면 **빈 목록을 빈 자리에
+ *   올리는** 판이 된다. 그리고 그것은 **오류를 안 낸다** — 초록으로 끝나고
+ *   아무것도 안 바뀐다. 이 저장소에서 가장 비싼 상태다 (「초록인데 안 잰 것」).
+ *
+ * ★ 그래서 판정을 `plan` 한 곳으로 모았다. **`inputs.` 를 직접 읽는 자리가
+ *   plan 밖에 남아 있으면 그 자리만 push 에서 빈다.**
+ */
+test('★★★ push 에서 빈 값이 되지 않는다 — 판정은 plan 한 곳에서만 한다', () => {
+  const y = fs.readFileSync(path.join(WF, 'deploy-nas.yml'), 'utf8');
+
+  const plan = /^  plan:$/m.exec(y);
+  assert.ok(plan, 'plan 판이 없다 — push 에서 무엇을 올릴지 정하는 곳이 없다');
+  ['files', 'dest', 'dry_run', 'engine'].forEach((k) => {
+    assert.match(y, new RegExp('^      ' + k + ': \\$\\{\\{ steps\\.p\\.outputs\\.' + k + ' \\}\\}$', 'm'),
+      `plan 이 ${k} 를 출력으로 안 넘긴다`);
+  });
+
+  /* ★★ **plan 밖에서 `inputs.` 를 읽으면 그 자리가 push 에서 빈다.**
+     주석은 뺀다 — 경위를 적은 글까지 걸리면 검사가 글을 못 쓰게 만든다 */
+  const planStart = plan.index;
+  const planEnd = y.indexOf('\n  guard:');
+  assert.ok(planEnd > planStart, 'guard 판을 못 찾았다');
+  const outside = (y.slice(0, planStart) + y.slice(planEnd))
+    .split('\n').filter(l => !/^\s*#/.test(l)).join('\n');
+  const leaks = [...outside.matchAll(/\$\{\{\s*inputs\.\w+\s*\}\}/g)].map(m => m[0]);
+  assert.deepStrictEqual(leaks, [],
+    `plan 밖에서 inputs 를 직접 읽는다: ${leaks.join(' · ')} — push 로 들어오면 그 자리가 빈다`);
+
+  /* ★★★ **주석을 떼고 본다** 〈2026-08-23 · 이 검사를 만들다가 실제로 당했다〉.
+     `fetch-depth: 0` 을 검사해 놓고 값을 `1` 로 바꿔 봤더니 **여전히 초록**이었다 —
+     바로 위 주석에 「`fetch-depth: 0` 이 필요하다」라고 적어 둔 글자를 코드로
+     읽고 있었다. **경위를 잘 적어 둘수록 검사가 눈이 머는** 구조였다.
+     ★ 이 저장소의 `stepOf` 가 끝의 주석을 떼는 것과 같은 이유다. */
+  const body = y.slice(planStart, planEnd)
+    .split('\n').filter(l => !/^\s*#/.test(l)).join('\n');
+  /* ★ 「`required()` 라는 글자가 있나」로는 부족하다 — 바로 아래 `echo` 줄에도
+     그 글자가 있어서, **부르는 자리를 망가뜨려도 초록**이었다(실측).
+     `FILES=` 에 그 결과가 실제로 담기는지를 본다 */
+  assert.match(body, /FILES=\$\([^\n]*build-embed\.js'\)\.required\(\)/,
+    'plan 이 화면 묶음을 required() 에서 안 받는다 — 손으로 적으면 화면이 는 날 짝이 깨진다');
+  assert.match(body, /::error::올릴 목록이 비었다/,
+    '빈 목록을 그냥 넘긴다 — 초록으로 끝나고 아무것도 안 바뀐다');
+
+  /* ★★ `git diff <이전> <지금>` 을 하려면 이력이 있어야 한다. 기본 checkout 은
+     커밋 하나만 받아 와서 「그런 커밋 없음」으로 못 잰다 */
+  assert.match(body, /fetch-depth: 0/,
+    'plan 이 이력을 안 받아 온다 — 바뀐 것을 못 재고, 못 잰 채로 넘어간다');
+
+  /* ★ 배포가 plan 에 매달려 있어야 한다. 안 매달면 출력이 빈 채로 돈다 */
+  const dep = /^  deploy:\n(?:.*\n)*?    needs: (.+)$/m.exec(y);
+  assert.ok(dep, 'deploy 에 needs 가 없다');
+  assert.match(dep[1], /plan/, `deploy 가 plan 을 안 기다린다: ${dep[1]}`);
+});
+
+/**
+ * ★★★ **엔진을 올리는 자리가 이 저장소에 없었다** 〈2026-08-23 · D-87 · D-88〉.
+ *
+ *   화면 열여섯은 워크플로가 올렸다. 엔진(`im-agent/**`)은 **아무도 안 올렸다** —
+ *   NAS 에 `im-agent.bak-*` 가 스무 개 쌓여 있는 것이 그 증거다(사람이 손으로
+ *   tar 를 말아 왔다). 그래서 화면은 새 판, 서버는 옛 라우팅 표인 상태가 났고
+ *   「＋ 신규프로젝트 → 만들기」가 `POST /projects` 에서 404 였다.
+ *
+ * ★★ **화면만 자동으로 올리면 그 어긋남을 더 빨리 만들 뿐이다.**
+ */
+test('★★★ 엔진도 올린다 — 그리고 안 살아나면 스스로 되돌린다', () => {
+  const y = fs.readFileSync(path.join(WF, 'deploy-nas.yml'), 'utf8');
+
+  const s = stepOf(y, 'Deploy engine (D-87 · D-88)');
+  assert.ok(s, '엔진을 올리는 단계가 없다 — 화면만 새 판이 되고 서버는 옛 표를 든다 (D-87)');
+  assert.match(s, /deploy\/engine\.sh/, '엔진 배포를 워크플로 안에 손으로 짰다 — 맥에서 돌릴 때는 그 판이 없어진다');
+  assert.ok(!/\|\|\s*true/.test(s), '엔진 배포가 실패를 삼킨다 — 되돌린 것은 배포가 된 것이 아니다');
+
+  /* ★★ **화면보다 뒤, 라우트 재기보다 앞**이라야 `Check routes` 가
+     방금 올린 엔진을 잰다. 앞에 두면 옛 엔진을 재고, 뒤에 두면 한 판 늦다 */
+  const iUp = y.indexOf('- name: Upload');
+  const iEng = y.indexOf('- name: Deploy engine');
+  const iRt = y.indexOf('- name: Check routes');
+  assert.ok(iUp < iEng, '엔진을 화면보다 먼저 올린다');
+  assert.ok(iEng < iRt, '라우트를 잰 뒤에 엔진을 올린다 — 그러면 옛 엔진을 잰 것이다');
+
+  /* ★ 안 올린 날에는 **안 올렸다고 말한다.** 아무 줄도 안 남기면
+     「올렸는데 조용했다」와 구분이 안 된다 (§2) */
+  assert.ok(stepOf(y, 'Engine skipped'), '엔진을 안 올린 날 아무 말도 안 한다');
+
+  /* ── 스크립트 쪽 ── */
+  const p = path.join(ROOT, 'deploy', 'engine.sh');
+  assert.ok(fs.existsSync(p), 'deploy/engine.sh 가 없다');
+  const sh = fs.readFileSync(p, 'utf8');
+
+  /* ① 접속정보를 파일에 두지 않는다 (§2 · D-10 — 이 저장소는 public 이다) */
+  assert.ok(!/@[a-z0-9.-]+\.(ts\.net|synology|local)\b/i.test(sh),
+    '주소가 파일에 박혀 있다 — 이 저장소에 접속정보를 두지 않는다');
+
+  /* ② ★★★ **자동배포에는 지켜보는 사람이 없다.** 안 살아나면 스스로 되돌려야
+     한다 — 여기서 손을 놓으면 서비스가 멈춘 채로 아침까지 간다 */
+  assert.match(sh, /되돌린다/, '안 살아났을 때 되돌리지 않는다');
+  assert.match(sh, /mv '\$BAK' im-agent/, '되돌리는 명령이 실제로 없다');
+  assert.match(sh, /exit 5/, '되돌린 뒤 초록으로 끝난다 — 되돌린 것은 배포가 된 것이 아니다');
+  assert.match(sh, /exit 6/, '되돌린 것도 안 살 때를 안 가린다 — 그때는 사람이 봐야 한다');
+
+  /* ③ 「띄웠다」로 끝내지 않는다. 살아났는지 **묻는다** */
+  assert.match(sh, /curl[^\n]*healthz/, '살아났는지 안 묻는다');
+  assert.match(sh, /api\/linkpilot\/intake/,
+    '묻는 길이 하나뿐이다 — healthz 가 없는 판에서 멀쩡한 엔진을 되돌리게 된다');
+
+  /* ④ ★ 되돌릴 자리를 **먼저** 만든다. 갈아 끼운 뒤에 만들면 되돌릴 것이 없다 */
+  assert.ok(sh.indexOf("mv im-agent '$BAK'") < sh.indexOf('./start-engine.sh'),
+    '백업보다 재시작이 앞이다 — 되돌릴 자리가 없는 순간이 생긴다');
+
+  /* ⑤ ★★ **살아난 뒤에만** 옛 백업을 지운다. 되돌릴 자리를 지우고 죽으면 끝이다 */
+  /* ★ 경위를 적은 주석에도 `im-agent.bak-*` 가 나온다. **지우는 명령**을 찾는다 —
+     글자만 세면 주석 자리를 코드로 읽는다 */
+  const alive = sh.indexOf('if [ "$ALIVE" = "1" ]');
+  const prune = sh.indexOf('ls -1d im-agent.bak-*');
+  assert.ok(prune > 0, '옛 백업을 지우지 않는다 — 스무 개가 쌓여 있던 자리다');
+  assert.ok(alive > 0 && prune > alive,
+    '백업 정리가 살아났는지 묻기보다 앞이다 — 되돌릴 자리를 먼저 지운다');
+
+  /* ⑥ ★ 자리부터 본다. 없는 자리에 tar 를 풀면 반쯤 풀린 상태가 남는다 */
+  assert.match(sh, /NOSTART/,
+    '기동 스크립트가 있는지 안 본다 — 내려놓고 못 띄우는 자리가 생긴다');
+
+  /* ⑦ ★ 시각은 KST 로 만든다. 러너는 UTC 라 백업 이름이 아홉 시간 어긋난다 (§5) */
+  assert.match(sh, /TZ=Asia\/Seoul/, '백업 이름의 시각이 서버 로컬타임이다');
 });
