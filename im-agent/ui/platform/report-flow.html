@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="a4c8a170">
+<html lang="ko" data-lp-build="91887312">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -383,7 +383,9 @@ window.LINKPILOT_REPORT_FLOW = {
     if (window.LINKPILOT_PREVIEW_DOCS) { watch(fr); return; }
     var loc;
     try { loc = fr.contentWindow.location; } catch (e) { return; }
-    var step = F.stepOfFile(loc.pathname);
+    /* ★ **물음표 뒤까지 넘긴다** 〈2026-08-23〉. 앞의 셋은 같은 파일이고 `?part=`
+       로만 갈린다. 경로만 주면 늘 첫째로 판정돼 2·3단계가 1단계로 튕긴다. */
+    var step = F.stepOfFile(loc.pathname + (loc.search || ''));
     var pid = new URLSearchParams(loc.search).get('project');
     var changed = false;
     if (pid && pid !== state.projectId) { state.projectId = pid; changed = true; }

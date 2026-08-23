@@ -342,10 +342,43 @@
   }
 
   /** 화면 파일에서 단계를 되찾는다 (iframe 이 스스로 이동했을 때 rail 을 맞춘다) */
+  /**
+   * 주소에서 단계를 되찾는다. 화면이 스스로 넘어가도 레일이 따라가게 하는 짝이다.
+   *
+   * ★★★ **물음표 뒤를 봐야 한다** 〈2026-08-23 · 실제로 여기서 튕겼다〉.
+   *
+   *   앞의 셋(제작 기본정보·무엇을 만들까요·관련자료)은 **같은 파일**이고
+   *   `?part=` 로만 갈린다. 앞 판은 파일 이름만 보고 **늘 첫째(basics)** 를
+   *   돌려줬다. 그래서 2단계를 누르면:
+   *
+   *     누름 → 2단계로 바꾸고 `intake.html?part=ask` 를 띄운다
+   *     → 실린 뒤 다시 재는데 `basics` 가 나온다
+   *     → 「단계가 바뀌었다」고 보고 **1단계로 되돌리며 다시 그린다**
+   *
+   *   누른 사람에게는 **눌러도 안 열리는 화면**으로 보인다.
+   *
+   * ★ 가르지 못하면 **아무거나 고르지 않는다** (§4.9). `null` 을 돌려주면
+   *   부르는 쪽이 「모르겠으니 그대로 둔다」로 처리한다 — 틀린 단계로
+   *   되돌리는 것보다 그대로 두는 쪽이 언제나 낫다.
+   */
   function stepOfFile(file) {
-    var f = String(file || '').split('/').pop().split('?')[0];
-    for (var i = 0; i < STEPS.length; i++) if (STEPS[i].file === f) return STEPS[i];
-    return null;
+    var raw = String(file || '');
+    var f = raw.split('/').pop().split('?')[0];
+
+    var part = null;
+    var qi = raw.indexOf('?');
+    if (qi !== -1) {
+      var m = /(?:^|[?&])part=([^&#]*)/.exec(raw.slice(qi));
+      if (m) { try { part = decodeURIComponent(m[1]); } catch (_) { part = m[1]; } }
+    }
+
+    var same = [];
+    for (var i = 0; i < STEPS.length; i++) if (STEPS[i].file === f) same.push(STEPS[i]);
+    if (!same.length) return null;
+    if (same.length === 1) return same[0];
+
+    for (var j = 0; j < same.length; j++) if (same[j].part && same[j].part === part) return same[j];
+    return null;   // 못 가른다 — 지어내지 않는다
   }
 
 

@@ -88,8 +88,18 @@ test('단계 주소에 프로젝트가 붙는다 (화면들이 ?project= 를 읽
 
 test('화면 파일에서 단계를 되찾는다 (화면이 스스로 넘어가도 레일이 따라간다)', () => {
   assert.strictEqual(F.stepOfFile('/im/fields.html?project=X').id, 'fields');
-  assert.strictEqual(F.stepOfFile('intake.html').id, 'basics',
-    'intake.html 은 앞의 셋이 함께 쓴다 — 되찾으면 첫 칸이다');
+  /* ★★★ **물음표 뒤로 가른다** 〈2026-08-23 · 실제로 여기서 튕겼다〉.
+   *   앞의 셋은 같은 파일이고 `?part=` 로만 갈린다. 파일 이름만 보면 늘 첫째가
+   *   나와서, 2단계를 눌러도 **1단계로 되돌리며 다시 그린다** — 누른 사람에게는
+   *   눌러도 안 열리는 화면으로 보인다. */
+  assert.strictEqual(F.stepOfFile('intake.html?part=ask&api=x').id, 'ask');
+  assert.strictEqual(F.stepOfFile('/im/intake.html?api=x&part=files').id, 'sources');
+  assert.strictEqual(F.stepOfFile('intake.html?part=issuer').id, 'basics');
+
+  /* ★ 못 가르면 **아무거나 고르지 않는다** (§4.9). 틀린 단계로 되돌리는 것보다
+     「모르겠다」가 낫다 — 부르는 쪽이 그대로 둔다 */
+  assert.strictEqual(F.stepOfFile('intake.html'), null,
+    'part 가 없는데 첫 칸을 골랐다 — 그 짐작이 2·3단계를 튕겨냈다');
   assert.strictEqual(F.stepOfFile('membership.html'), null);
 });
 
@@ -756,4 +766,17 @@ test('★★★ 단계 칸이 자기 화면을 가리키면 띄우지 않고 그
   const label = /var f = el\('span', 'stage__f', (\w+)\);/.exec(flow);
   assert.ok(label, '표시를 만드는 줄을 못 찾았다');
   assert.strictEqual(label[1], 'want', `표시에 ${label[1]} 를 넣는다 — api 키가 화면에 나갈 수 있다`);
+});
+
+/**
+ * ★★★ **레일을 되짚는 쪽도 물음표 뒤를 넘겨야 한다** 〈2026-08-23〉.
+ *   `stepOfFile` 만 고치고 부르는 쪽이 경로만 넘기면 아무것도 안 달라진다 —
+ *   실제로 그렇게 되어 있었다.
+ */
+test('★★★ 화면 감시가 주소의 물음표 뒤까지 넘긴다', () => {
+  const flow = read('report-flow.html');
+  const m = /F\.stepOfFile\(([^)]*)\)/.exec(flow);
+  assert.ok(m, 'stepOfFile 을 부르는 자리를 못 찾았다');
+  assert.match(m[1], /loc\.search/,
+    '경로만 넘긴다 — 앞의 셋이 같은 파일이라 늘 첫 칸으로 판정돼 2·3단계가 튕긴다');
 });
