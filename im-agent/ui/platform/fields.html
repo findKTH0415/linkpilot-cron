@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="20ec1438">
+<html lang="ko" data-lp-build="7ad6f0c6">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -291,6 +291,8 @@ window.LINKPILOT_FIELDS_CFG = {
   var meta = document.getElementById('meta');
 
   var state = {
+    /* ★ 값만 잠긴 것 — **항목 목록을 못 받은 것과 다르다** (2026-08-23) */
+    factsLocked: null,
     fields: null, computedKeys: [], computedFields: {}, sources: [],
     assetClasses: [], assetClass: null,   // 자산군 — 필수 항목의 분모가 달라진다
     industries: [],      // 서버가 준 산업분야 정의
@@ -372,8 +374,25 @@ window.LINKPILOT_FIELDS_CFG = {
     }
     if (!C.api) { state.loadError = 'API 주소가 설정되지 않았습니다'; return render(); }
     // 필드 정의는 프로젝트와 무관하다. 값은 프로젝트별이다
+    /* ★★★ **값 하나 못 읽었다고 항목 목록까지 못 그리게 하지 않는다** 〈2026-08-23 사장님 화면〉.
+     *
+     *   앞 판은 둘을 `Promise.all` 로 묶었다. `/fields`(항목 목록)는 **로그인을
+     *   안 묻는 길**이고 `/projects/:id/facts`(저장된 값)는 **묻는 길**이다.
+     *   그래서 로그인이 안 잡히면 **둘 다 죽고** 화면은
+     *   **「필드 정의를 불러오지 못했습니다」**라고 말했다 —
+     *   **항목 목록은 멀쩡히 왔는데 엉뚱한 것을 탓한 것이다.**
+     *
+     *   ★ 이 저장소가 오늘만 세 번째로 만난 모양이다: **한 칸이 잠기면 방
+     *     전체가 잠긴다.** 그때마다 사람은 열려 있는 길까지 못 쓴다 (M-24).
+     *   ★ 그래서 **각각 받는다.** 값은 못 읽어도 항목은 그린다. */
     var jobs = [call('GET', '/fields')];
-    if (C.projectId) jobs.push(call('GET', '/projects/' + C.projectId + '/facts'));
+    if (C.projectId) {
+      jobs.push(call('GET', '/projects/' + C.projectId + '/facts').catch(function (e) {
+        // 값만 못 읽은 것이다. 항목 목록은 위에서 그대로 온다
+        state.factsLocked = e.message;
+        return null;
+      }));
+    }
 
     Promise.all(jobs).then(function (res) {
       state.fields = res[0].fields || {};
@@ -399,6 +418,7 @@ window.LINKPILOT_FIELDS_CFG = {
       state.loadError = null;
       render();
     }).catch(function (e) {
+      /* ★ 여기까지 오면 **항목 목록 자체를 못 받은 것**이다 — 그때만 못 그린다 */
       // ★ 못 가져온 것과 없는 것을 구분한다. 빈 화면을 그리지 않는다
       state.loadError = e.message;
       render();
@@ -722,6 +742,17 @@ window.LINKPILOT_FIELDS_CFG = {
     });
     body.appendChild(steps);
 
+    /* ★ 값만 잠긴 경우 — **항목은 그리고** 그 사실만 한 줄로 적는다.
+       「필드 정의를 못 불러왔다」고 하면 되는 것을 안 된다고 말하는 것이다 */
+    if (state.factsLocked && state.fields) {
+      var lk = el('div', 'card');
+      lk.appendChild(el('div', 'card__t', '저장된 값은 로그인해야 불러옵니다'));
+      lk.appendChild(el('div', 'note', state.factsLocked));
+      lk.appendChild(el('p', 'card__s',
+        '항목 목록은 그대로 나옵니다. 값을 불러오고 저장하는 것은 로그인이 필요합니다 — '
+        + '앞의 3단계(자료 올리기)까지는 로그인 없이 됩니다.'));
+      body.appendChild(lk);
+    }
     if (state.loadError) {
       var e1 = el('div', 'card');
       e1.appendChild(el('div', 'card__t', '필드 정의를 불러오지 못했습니다'));

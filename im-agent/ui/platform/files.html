@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="20ec1438">
+<html lang="ko" data-lp-build="7ad6f0c6">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -581,6 +581,8 @@ window.LINKPILOT_FILES = {
     projectId: C.projectId || null,
     listLocked: false, // 보고서 프로젝트 목록이 401·403 이었나 (카드 전체를 잠그지 않는다)
     gateWhere: null,   // 화면 전체를 잠근 부름이 무엇이었나 (없으면 뒤져야 한다)
+    /* ★ 「아직 안 붙었다(501)」와 **다르다.** 401 은 길이 열려 있고 목록만 안 보이는 것 */
+    locked: {},        // 로그인해야 보이는 목록 — 길이 막힌 것이 아니다
     kept: null,        // 보관 목록 (GET /sources)
     linked: null,      // 연결 목록 (GET /linked)
     oneshot: null,     // 1회성 기록 (GET /oneshot)
@@ -793,12 +795,14 @@ window.LINKPILOT_FILES = {
     var LG = { localGate: true };
     var jobs = [
       call('GET', base + '/linked', null, LG).then(function (r) {
-        if (r.ok) { state.linked = r.body; state.closed.linked = null; }
-        else { state.linked = null; state.closed.linked = r.closed || r.msg; }
+        if (r.ok) { state.linked = r.body; state.closed.linked = null; state.locked.linked = null; }
+        else if (r.gated) { state.linked = null; state.closed.linked = null; state.locked.linked = r.msg; }
+        else { state.linked = null; state.closed.linked = r.closed; state.locked.linked = null; }
       }, function (e) { state.closed.linked = e.message; }),
       call('GET', base + '/oneshot', null, LG).then(function (r) {
-        if (r.ok) { state.oneshot = r.body; state.closed.oneshot = null; }
-        else { state.oneshot = null; state.closed.oneshot = r.closed || r.msg; }
+        if (r.ok) { state.oneshot = r.body; state.closed.oneshot = null; state.locked.oneshot = null; }
+        else if (r.gated) { state.oneshot = null; state.closed.oneshot = null; state.locked.oneshot = r.msg; }
+        else { state.oneshot = null; state.closed.oneshot = r.closed; state.locked.oneshot = null; }
       }, function (e) { state.closed.oneshot = e.message; }),
     ];
     return Promise.all(jobs);
@@ -3021,6 +3025,26 @@ window.LINKPILOT_FILES = {
    *   말해야 늦지 않는다. 여기에 또 두면 같은 경고가 화면에 두 번 나온다.
    */
   function oneshotBlock() {
+    /* ★★★ **「길이 막혔다」와 「기록만 안 보인다」는 다른 말이다** 〈2026-08-23〉.
+     *
+     *   사장님 화면에 **「1회성 자료 경로가 아직 열려 있지 않습니다 / 로그인이
+     *   필요합니다」**가 떴다. **그런데 그 바로 위에서 문서 5건이 실제로 올라가
+     *   값 18개가 나왔다.** 길은 열려 있었다.
+     *
+     *   ★ 막힌 것은 **올리는 길이 아니라 「무엇을 올렸는지 되읽는 길」**이다
+     *     (`GET …/oneshot` — 남의 프로젝트에 무엇이 들었는지가 나가는 자리라
+     *     일부러 로그인을 묻는다). 그것을 「경로가 안 열렸다」로 적으면
+     *     **되는 일을 안 된다고 말하는 것**이다 — 사용자는 쓰기를 그만둔다.
+     *   ★ 원인은 내가 401 을 501(아직 안 붙었다) 자리에 그대로 부어 넣은 것이다.
+     */
+    if (state.locked.oneshot) {
+      var lk = document.createDocumentFragment();
+      lk.appendChild(el('div', 'grp', wayName('oneshot') + ' — 읽고 바로 버립니다(1회성)'));
+      lk.appendChild(el('p', 'note',
+        '올린 기록은 로그인해야 보입니다 — **올리는 것은 지금 그대로 됩니다.**'
+          .replace(/\*\*/g, '')));
+      return lk;
+    }
     if (state.closed.oneshot) {
       var w = document.createDocumentFragment();
       w.appendChild(el('div', 'grp', wayName('oneshot') + ' — 읽고 바로 버립니다(1회성)'));
