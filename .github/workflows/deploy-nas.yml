@@ -977,9 +977,18 @@ jobs:
         if: ${{ always() && needs.plan.outputs.dry_run != 'true' }}
         env:
           NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+          NAS_USER: ${{ secrets.NAS_SSH_USER }}
         run: |
-          set -uo pipefail
-          RAW=$(curl -sS -m 20 "http://${NAS_HOST}/api/linkpilot/intake" 2>/dev/null || true)
+          set -u
+          set +e
+          # ★★ **앞단이 아니라 엔진에 직접 묻는다** 〈2026-08-23 · 첫 판이 헛돌았다〉.
+          #   tailnet 포트 80 은 `/api/linkpilot/*` 를 404 로 돌려준다(앞단이 안
+          #   넘긴다 — D-87 에서 이미 확인한 것). 그래서 앞단으로 물으면
+          #   **늘 「못 쟀다」**가 나오고, 이 확인은 있으나 마나가 된다.
+          #   위 「Split inside vs outside」 가 쓰는 것과 **같은 길**을 쓴다.
+          RAW=$(ssh -o BatchMode=yes -o ConnectTimeout=20 -i ~/.ssh/id_deploy \
+            "$NAS_USER@$NAS_HOST" \
+            "curl -s -m 10 'http://127.0.0.1:8181/api/linkpilot/intake'" 2>/dev/null | tr -d '\r')
           case "$RAW" in
             *'"ocrReady":true'*)
               echo "OCR: 켜짐 — 스캔본·이미지·코드값 PDF 를 글자로 옮겨 읽는다" >> "$GITHUB_STEP_SUMMARY" ;;
