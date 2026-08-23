@@ -21,6 +21,24 @@
  *   바로 뽑은 값을 같은 신뢰도로 두면, 나중에 값이 틀렸을 때 어디를 봐야 하는지
  *   알 수 없다. OCR 경로는 신뢰도를 깎고 note 에 그 사실을 적는다.
  *
+ * ★★★ **파일을 나란히 읽는다** 〈2026-08-23 사장님: 「너무 오래걸려 단축방법을
+ *   찾아줘」〉. OCR 을 켠 첫날 자료 15건에 **7분 55초**가 걸렸다.
+ *
+ *   원인은 계산이 무거워서가 아니라 **한 줄로 세워 놓아서**다. 파일마다
+ *   ① OCR 전사 ② LLM 보완 — 최대 두 번의 왕복이 있고, 그것을 파일 수만큼
+ *   차례로 기다렸다. 15건이면 최대 30번을 줄 세운 셈이다.
+ *
+ *   ★ 파일끼리는 **서로 아무 상관이 없다.** 한 파일의 값이 다른 파일에
+ *     영향을 주지 않으므로 나란히 읽어도 결과가 달라지지 않는다.
+ *   ★ 그래도 **결과 차례는 그대로 둔다** — 값·문서·경고가 파일 순서대로
+ *     나와야 다시 돌렸을 때 같은 보고서가 나온다.
+ *   ★ 몇 개씩 읽을지는 `IM_EXTRACT_CONCURRENCY` 로 바꾼다. 너무 올리면
+ *     구글이 한도(429)로 막고, 그러면 **읽히던 것도 안 읽힌다.**
+ *
+ * ★★ **같은 파일을 두 번 읽지 않는다** 〈같은 날〉. 같은 자료를 여러 번 올리면
+ *   그만큼 OCR 을 다시 돌렸다. 내용이 같으면(sha256) 한 번만 읽고, **건너뛴
+ *   것은 말한다** — 조용히 빠지면 「올렸는데 안 읽혔다」가 된다.
+ *
  * ★ gif/tif/tiff 는 지금 못 읽는다. Gemini 가 인라인으로 받는 이미지는
  *   png/jpeg/webp/heic/heif 뿐이고, 이 저장소는 이미지 변환 라이브러리를
  *   들이지 않는다. **되는 척하지 않고** 무엇으로 바꿔 올리면 되는지 말한다.
@@ -28,6 +46,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { FIELDS, ALIAS_INDEX } = require('../core/dictionary');
 const { parseNumber, parseMoneyToEok, normalize, round } = require('../core/numeric');
 const unzip = require('../core/unzip');
@@ -392,6 +411,59 @@ ${text.slice(0, 30000)}`,
   return out;
 }
 
+
+/* ────────────────────── 나란히 읽기 ────────────────────── */
+
+/**
+ * 한 번에 몇 개까지 읽는가. **너무 올리면 구글이 한도로 막는다**(429) —
+ * 그러면 읽히던 것도 안 읽히므로, 기본을 낮게 두고 필요할 때 올린다.
+ */
+const CONCURRENCY = Math.max(1, Number(process.env.IM_EXTRACT_CONCURRENCY || 4) || 1);
+
+/**
+ * `items` 를 최대 `limit` 개씩 나란히 돌린다. **결과는 넣은 차례 그대로** 돌려준다.
+ *
+ * ★ `Promise.all(items.map(...))` 를 쓰지 않는다 — 그것은 한도가 없어서
+ *   파일이 쉰 개면 쉰 개를 한꺼번에 던진다.
+ */
+async function mapLimited(items, limit, fn) {
+  const out = new Array(items.length);
+  let next = 0;
+  const worker = async () => {
+    for (;;) {
+      const i = next;
+      next += 1;
+      if (i >= items.length) return;
+      out[i] = await fn(items[i], i);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return out;
+}
+
+/**
+ * 내용이 같은 파일을 하나로 줄인다. **건너뛴 것은 돌려준다** — 조용히 빠지면
+ * 「올렸는데 안 읽혔다」가 되고 원인을 찾을 수가 없다.
+ *
+ * ★ 이름이 아니라 **내용**으로 가른다. 맥이 붙이는 `(1)`·`(2)` 때문에 같은
+ *   파일이 다른 이름으로 들어온다.
+ * ★ 못 읽는 파일은 **거르지 않는다** — 읽기 실패는 아래에서 사람 말로 말해야 한다.
+ */
+function dedupeByContent(files) {
+  const keep = [];
+  const skipped = [];
+  const seen = new Map();
+  for (const f of files) {
+    let sha = null;
+    try { sha = crypto.createHash('sha256').update(fs.readFileSync(f.path)).digest('hex'); } catch (_) { /* 못 읽으면 아래에서 말한다 */ }
+    if (!sha) { keep.push(f); continue; }
+    const first = seen.get(sha);
+    if (first === undefined) { seen.set(sha, f.name); keep.push(f); continue; }
+    skipped.push({ name: f.name, sameAs: first });
+  }
+  return { keep, skipped };
+}
+
 async function run(input, ctx) {
   const store = require('../core/store');
   const files = input.files || store.listSourceFiles(input.projectId).concat(input.extraFiles || []);
@@ -405,58 +477,81 @@ async function run(input, ctx) {
     ctx.warn(`${f.name || f.key}: 연결 자료를 가져오지 못했습니다 — ${f.reason || '사유 없음'}`);
   }
 
-  for (const file of files) {
+  /* ★★ 같은 파일을 두 번 읽지 않는다. **건너뛴 것은 말한다** */
+  const dd = dedupeByContent(files);
+  dd.skipped.forEach((x) => {
+    ctx.warn(`${x.name}: 내용이 「${x.sameAs}」와 같아 한 번만 읽었습니다 (지문 일치)`);
+  });
+
+  /* ★★★ **파일끼리 나란히 읽는다.** 파일은 서로 상관이 없으므로 결과가
+   *   달라지지 않는다. 다만 **차례는 그대로 둔다** — 경고도 값도 파일 순서대로
+   *   나와야 다시 돌렸을 때 같은 보고서가 나온다. 그래서 각 파일의 경고를
+   *   모아 두었다가 아래에서 차례로 낸다. */
+  const perFile = await mapLimited(dd.keep, CONCURRENCY, async (file) => {
+    const warns = [];
+    const warn = (m) => warns.push(m);
+
     let r = toText(file);
     // 규칙으로 못 읽었지만 OCR 이 해 볼 만한 파일 (스캔 PDF · 이미지 · 규격 밖 옛 문서)
-    if (r.error && r.ocr) r = await tryOcr(file, r.ocr, ctx.warn);
+    if (r.error && r.ocr) r = await tryOcr(file, r.ocr, warn);
 
     const { text, error, via } = r;
     if (error) {
-      unsupported.push({ name: file.name, reason: error });
-      ctx.warn(`${file.name}: ${error}`);
-      continue;
+      warns.push(`${file.name}: ${error}`);
+      return { warns, unsupported: { name: file.name, reason: error } };
     }
+
     const lines = text.split('\n');
-    let count = 0;
+    const mine = [];
     // ★ OCR 은 원문이 아니라 옮겨 적은 글자다. 같은 신뢰도로 두면 값이 틀렸을 때
     //   어디를 봐야 하는지 알 수 없다 — 신뢰도를 깎고 그 사실을 값에 적어 둔다
     const byOcr = via === 'ocr';
     lines.forEach((line, i) => {
       for (const f of extractFromLine(line)) {
-        facts.push({
+        mine.push({
           ...f,
           confidence: byOcr ? Math.min(f.confidence, ocr.OCR_CONFIDENCE) : f.confidence,
           note: byOcr ? 'OCR 로 옮겨 적은 글자에서 뽑았습니다 — 원본을 확인하세요' : undefined,
           source: file.name,
           page: i + 1,
         });
-        count++;
       }
     });
-    const doc = { name: file.name, chars: text.length, lines: lines.length, facts: count, via: via || 'text' };
+
+    const doc = { name: file.name, chars: text.length, lines: lines.length, facts: mine.length, via: via || 'text' };
     /* ★ 그림이 남아 있으면 **문서 옆에 적어 둔다.** 「3,243자를 읽었습니다」만
      *   보이면 그림 58장은 없는 것이 된다 */
     if (r.pictures) {
       doc.pictures = r.pictures;
       doc.pictureBytes = r.pictureBytes || 0;
-      ctx.warn(`${file.name}: 글자 ${text.length}자를 읽었습니다. `
+      warns.push(`${file.name}: 글자 ${text.length}자를 읽었습니다. `
         + `**그림 ${r.pictures}장(${Math.round((r.pictureBytes || 0) / 1048576)}MB)은 아직 글자로 옮기지 않았습니다** `
         + '— 도면·표 캡처가 그 안에 있으면 그 값은 들어오지 않습니다');
     }
-    documents.push(doc);
 
     // LLM 보완: 이 문서에서 규칙이 못 찾은 필수 항목만
     if (input.useLlm !== false && !llm.isOffline()) {
-      const got = new Set(facts.filter(f => f.source === file.name).map(f => f.key));
+      const got = new Set(mine.map(f => f.key));
       const missing = Object.keys(FIELDS).filter(k => !got.has(k)).slice(0, 25);
       try {
-        const extra = await llmSupplement(text, missing, file.name, ctx.warn);
-        for (const f of extra) facts.push({ ...f, source: file.name });
+        const extra = await llmSupplement(text, missing, file.name, warn);
+        for (const f of extra) mine.push({ ...f, source: file.name });
       } catch (e) {
-        ctx.warn(`${file.name} LLM 보완 실패(규칙 추출 결과는 유지): ${e.message}`);
+        warns.push(`${file.name} LLM 보완 실패(규칙 추출 결과는 유지): ${e.message}`);
       }
     }
-  }
+    doc.facts = mine.length;
+    return { warns, doc, facts: mine };
+  });
+
+  /* ★ 넣은 차례 그대로 편다 */
+  perFile.forEach((r) => {
+    if (!r) return;
+    r.warns.forEach((m) => ctx.warn(m));
+    if (r.unsupported) { unsupported.push(r.unsupported); return; }
+    if (r.doc) documents.push(r.doc);
+    if (r.facts) facts.push(...r.facts);
+  });
 
   if (!files.length) ctx.warn('02_Source_Data 에 원본자료가 없다 — 추출할 것이 없음');
 
@@ -477,6 +572,8 @@ async function run(input, ctx) {
 module.exports = {
   id: '02_extraction', label: 'Data Extraction Agent',
   inputSchema, outputSchema, run, extractFromLine, toText, tryOcr, unitCompatible, findAliasPos,
+  // ★ 나란히 읽기 — 시험이 실제로 돌려 봐야 한다 (한도·차례·건너뛰기)
+  mapLimited, dedupeByContent, CONCURRENCY,
   // ★ 접수 화면이 '올리기 전에' 지원 형식을 알려주려면 이 목록이 필요하다.
   //   화면에 복사해 두면 여기가 바뀌는 날부터 갈린다 — 되는 줄 알고 올렸다가
   //   추출 단계에서야 안 된다는 걸 알게 된다.
