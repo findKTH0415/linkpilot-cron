@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="192713f6">
+<html lang="ko" data-lp-build="09647d13">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -997,11 +997,28 @@ window.LINKPILOT_INTAKE = {
     return box;
   }
 
-  /** 화면에서도 이니셜을 미리 보여준다 (규칙은 서버 core/issuer.js 와 같다) */
+  /**
+   * 화면에서도 이니셜을 미리 보여준다 — **규칙은 서버 `core/issuer.js` 와 같다.**
+   *
+   * ★★★ 〈2026-08-23 사장님 지적〉 앞 판은 셋이 틀렸다:
+   *   `주식회사 대한개발` → 식대 · `전주도시개발` → 전도 ·
+   *   `PDI Global Infra Structure …` → PGIS
+   *   원인 ① `[(주)㈜]` 가 **문자 클래스**라 「주」를 아무 데서나 지웠다
+   *   원인 ② 이미 약칭인 `PDI` 를 못 알아보고 첫 글자만 떴다
+   *
+   * ★★ 사본이 둘이라 **갈리면 화면과 문서가 다른 글자를 말한다.**
+   *   `issuer-mark.test.js` 가 같은 표로 둘을 대조한다.
+   */
   function autoMark(name) {
     var s = String(name || '').trim();
     if (!s) return '';
-    var words = s.replace(/[(주)㈜]/g, ' ').split(/[\s,.]+/).filter(Boolean);
+    var t = s
+      .replace(/\((주|유|재|사)\)|㈜/g, ' ')
+      .replace(/(주식|유한|합자|합명)회사/g, ' ')
+      .replace(/\b(Co|Ltd|Inc|Corp|Corporation|LLC|LLP|PLC|GmbH|SA|AG|Pte)\b\.?/gi, ' ');
+    var words = t.split(/[\s,.·]+/).filter(Boolean);
+    if (!words.length) return '';
+    if (/^[A-Z][A-Z0-9&]{1,3}$/.test(words[0])) return words[0].slice(0, 4);
     if (words.length === 1) return words[0].slice(0, 4).toUpperCase();
     return words.slice(0, 4).map(function (w) { return w[0]; }).join('').toUpperCase();
   }

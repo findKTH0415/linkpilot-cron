@@ -28,12 +28,50 @@ const path = require('path');
 
 const FILE = 'issuer.json';
 
-/** 이름에서 로고 자리 이니셜을 만든다 (최대 4글자) */
+/**
+ * 이름에서 로고 자리 이니셜을 만든다 (최대 4글자).
+ *
+ * ★★★ 〈2026-08-23 사장님 지적 — 「기본값 입력이 오류」〉 앞 판은 **세 가지가 틀렸다.**
+ *
+ *   `주식회사 대한개발` → **식대**   ← 「주」를 아무 데서나 지웠다
+ *   `전주도시개발`      → **전도**   ← 같은 이유로 낱말이 쪼개졌다
+ *   `PDI Global Infra Structure Development Co.,ltd` → **PGIS**
+ *                                    ← 이미 약칭인 `PDI` 를 낱말로 세어 첫 글자만 떴다
+ *
+ *   ★ 원인 하나는 `[(주)㈜]` 가 **문자 클래스**였다는 것이다. `(주)` 라는 **낱말**을
+ *     떼려던 것인데, 실제로는 `(` · `주` · `)` 를 **글자 단위로 아무 데서나** 지웠다.
+ *     한글 회사명에 「주」는 흔하다(전주·제주·주식회사) — 그래서 조용히 틀렸다.
+ *   ★ 원인 둘은 **약칭을 못 알아본 것**이다. 회사가 이미 `PDI` 라는 약칭을 이름
+ *     앞에 달고 있으면 그것이 그 회사의 표시다. 첫 글자만 떼면 아무도 모르는
+ *     글자가 나온다.
+ *
+ * ★★ 이 값은 **보고서 표지·서명부에 찍힌다.** 틀려도 오류가 안 나고 문서가
+ *   그대로 나간다 — 그래서 조용히 틀리는 종류다.
+ *
+ * ★ 화면(`intake.html` 의 `autoMark`)에 **같은 규칙의 사본**이 있다.
+ *   `issuer-mark.test.js` 가 둘을 같은 표로 대조한다 — 갈리면 거기서 잡힌다.
+ */
 function markFrom(name) {
   const s = String(name || '').trim();
   if (!s) return '';
-  const words = s.replace(/[(주)㈜]/g, ' ').split(/[\s,.]+/).filter(Boolean);
+
+  // ① 법인 표시를 **낱말 단위로** 뗀다 (글자 단위로 지우지 않는다)
+  let t = s
+    .replace(/\((주|유|재|사)\)|㈜/g, ' ')
+    .replace(/(주식|유한|합자|합명)회사/g, ' ')
+    .replace(/\b(Co|Ltd|Inc|Corp|Corporation|LLC|LLP|PLC|GmbH|SA|AG|Pte)\b\.?/gi, ' ');
+
+  const words = t.split(/[\s,.·]+/).filter(Boolean);
+  if (!words.length) return '';
+
+  // ② ★ **이미 약칭인 낱말이 앞에 있으면 그것이 표시다** (PDI · SK · GID)
+  const acronym = /^[A-Z][A-Z0-9&]{1,3}$/;
+  if (acronym.test(words[0])) return words[0].slice(0, 4);
+
+  // ③ 낱말이 하나면 앞에서 자른다 (한글 회사명이 대개 여기로 온다)
   if (words.length === 1) return words[0].slice(0, 4).toUpperCase();
+
+  // ④ 여러 낱말이면 각 첫 글자
   return words.slice(0, 4).map(w => w[0]).join('').toUpperCase();
 }
 
