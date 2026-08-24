@@ -94,6 +94,11 @@ function createHandlers({ agentRoot, agentModulePath }) {
      */
     async projects() {
       const store = load('core/store');
+      /* ★★ **접어 둔 것을 빼지 않고 표시만 한다** 〈2026-08-24〉.
+       *   여기서 빼 버리면 화면이 「몇 개를 접었는지」도, 「되돌리기」도 못 한다.
+       *   무엇을 보여 줄지는 화면이 정한다 — 서버는 사실만 준다. */
+      const hidden = load('core/hidden');
+      const folded = hidden.map();
       const rows = store.listProjects().map(p => ({
         id: p.id,
         name: (p.project && p.project.name) || null,
@@ -102,8 +107,14 @@ function createHandlers({ agentRoot, agentModulePath }) {
         // ★ 앱의 딜 키를 함께 낸다 — 앱이 자기 목록과 맞춰 볼 수 있어야 한다.
         //   이름으로 맞추면 이름을 바꾸는 날 끊긴다 (프로젝트-연결-규칙 §3)
         externalId: (p.project && p.project.externalId) || null,
+        // ★ 접혀 있는가. **지운 것이 아니다** — 폴더도 자료도 그대로 있다
+        hidden: Object.prototype.hasOwnProperty.call(folded, p.id),
+        hiddenAt: folded[p.id] || null,
       }));
-      return { status: 200, body: { projects: rows } };
+      return {
+        status: 200,
+        body: { projects: rows, hiddenCount: rows.filter(r => r.hidden).length },
+      };
     },
 
     /**

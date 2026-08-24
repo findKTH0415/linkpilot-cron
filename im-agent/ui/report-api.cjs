@@ -1029,6 +1029,32 @@ function createHandlers(deps) {
       });
     },
 
+    /**
+     * PUT /projects/:id/hidden — 목록에서 **접거나 편다** 〈2026-08-24 사장님 지시:
+     * 「지난 리스트는 삭제해줘 목록에서 혼란스러움」〉.
+     *
+     * ★★ **지우는 것이 아니다.** 폴더·자료·보고서는 그대로 있고 목록에서만
+     *   안 보이게 한다. 여쭤 보고 「숨기기」로 정했다 — 목록에는 시험용과
+     *   앱에서 가져온 **실제 딜**이 섞여 있고, 지우면 되돌릴 수 없다.
+     *
+     * ★ 쓰기다. 읽기 라우터가 아니라 **여기** 있어야 한다.
+     * ★ 실패해도 던지지 않는다 (`hidden.set` 이 false 를 돌려준다). 다만
+     *   **바뀌었는지(`changed`)를 그대로 말한다** — 「눌렀는데 아무 일도 안
+     *   났다」를 화면이 알 수 있어야 한다.
+     */
+    async hideProject(ctx, projectId, body) {
+      const e = checkId(projectId); if (e) return e;
+      const hidden = load('core/hidden');
+      const want = !(body && body.hidden === false);
+      const changed = hidden.set(projectId, want);
+      return ok({
+        id: projectId, hidden: want, changed,
+        note: want
+          ? '목록에서만 접었습니다 — 폴더·자료·보고서는 그대로 있습니다.'
+          : '목록에 다시 폈습니다.',
+      });
+    },
+
     /** GET /projects/:id/oneshot — 1회성으로 들어온 자료의 **기록**. 파일은 없다 */
     async listOneshot(ctx, projectId) {
       const g = gate(ctx, FILES_PLAN); if (g.error) return g.error;
@@ -1565,6 +1591,10 @@ const ROUTES = [
   // 1회성 직접 올리기 — 저장소를 안 쓰는 사람의 길 (D-66). 보관하지 않는다
   { method: 'POST', path: '/projects/:id/oneshot', handler: 'oneshotUpload', call: (h, req, p) => h.oneshotUpload(req, p.id, req.body) },
   { method: 'GET', path: '/projects/:id/oneshot', handler: 'listOneshot', call: (h, req, p) => h.listOneshot(req, p.id) },
+  {
+    method: 'PUT', path: '/projects/:id/hidden', handler: 'hideProject',
+    call: (h, req, p) => h.hideProject(req, p.id, req.body),
+  },
   // ★ 넣은 자료를 **값으로** 만든다 — 셋(보관·연결·앱첨부)을 한 길로 (2026-08-21)
   { method: 'POST', path: '/projects/:id/scan', handler: 'scanSources', call: (h, req, p) => h.scanSources(req, p.id, req.body) },
 
