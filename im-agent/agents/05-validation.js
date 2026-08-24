@@ -24,11 +24,12 @@
 
 const { FIELDS, labelFor, rangeViolation, requiredFor } = require('../core/dictionary');
 const fsc = require('../connectors/fsc');
+const g2b = require('../connectors/g2b');
 const molit = require('../connectors/molit');
 const pnuUtil = require('../connectors/pnu');
 const solar = require('../core/solar');
 const ess = require('../core/ess');
-const { round, formatEok } = require('../core/numeric');
+const { round, formatEok, fmt } = require('../core/numeric');
 const { kstDate, daysBetween } = require('../core/kst');
 
 const inputSchema = {
@@ -266,6 +267,100 @@ function checkLegal(ds) {
  *
  * ★ 대표자 성명은 Connector 가 아예 가져오지 않는다 (개인정보 — CLAUDE.md §6).
  */
+/**
+ * ★★★ **공사비를 두 번째 출처와 대 본다** 〈2026-08-25 사장님 지시:
+ *   「부르는곳을 만들어 · 공사비 대조해」〉.
+ *
+ *   `connectors/g2b.js`(조달청 낙찰)를 **아무 Agent 도 안 부르고 있었다.**
+ *   스모크에서만 돌았다 — 이 저장소에서 세 번째로 나온 같은 결이다
+ *   (D-48 · D-62). 만들어 두고 안 부르면 **없는 것과 같고**, 더 나쁜 것은
+ *   「붙였다」고 적혀 있어서 **아무도 없는 줄 모른다**는 점이다.
+ *
+ * ★★ **총액끼리 견주지 않는다.** 관급 낙찰 중앙값은 몇십억이고 개발사업
+ *   공사비는 몇천억이다 — 나누면 수십 배가 나오는데 그건 **규모가 다르다**는
+ *   뜻이지 공사비가 틀렸다는 뜻이 아니다. 그걸로 깃발을 세우면 **늘 노란색**이
+ *   되고, 늘 노란 검사는 아무도 안 본다.
+ *
+ * ★★★ 대신 **낙찰률**을 낸다. 낙찰금액 ÷ 기초금액은 **규모와 무관하고**
+ *   가정계수가 하나도 안 들어간다 (§4.8). 「예정가 대비 실제로 얼마에
+ *   떨어지는가」가 공사비 가정의 현실성을 재는 가장 곧은 잣대다.
+ *
+ * ★ **판정하지 않는다.** GREEN(정보)으로만 낸다 — 관급과 민간은 발주 조건·
+ *   설계 수준이 달라 어떤 문턱을 잡아도 자의적이다. 숫자와 모수를 적어 두고
+ *   **사람이 본다.**
+ * ★ **Dataset 에 넣지 않는다** (D-48 과 같은 이유). 업종 평균이 이 딜의 값으로
+ *   실리면 안 된다.
+ * ★ **건너뛰면 건너뛴 사실을 남긴다.** 조용히 빠지면 「대조했는데 문제
+ *   없었다」로 읽힌다 — D-48 이 그 이야기다.
+ */
+
+/** 시·도 17개. 행정구역 이름이라 짐작이 아니다 */
+const SIDO = [
+  ['서울', /서울/], ['부산', /부산/], ['대구', /대구/], ['인천', /인천/],
+  ['광주', /광주(광역시|시)?/], ['대전', /대전/], ['울산', /울산/], ['세종', /세종/],
+  ['경기', /경기/], ['강원', /강원/], ['충북', /충청북도|충북/], ['충남', /충청남도|충남/],
+  ['전북', /전(라)?북(도)?/], ['전남', /전(라)?남(도)?/],
+  ['경북', /경상북도|경북/], ['경남', /경상남도|경남/], ['제주', /제주/],
+];
+
+function sidoOf(address) {
+  const a = String(address || '');
+  for (const [name, re] of SIDO) if (re.test(a)) return name;
+  return null;
+}
+
+async function checkConstructionCost(ds, ctx) {
+  const flags = [];
+  const cost = ds.get('investment.construction');
+  if (!cost) return flags;                       // 공사비가 없으면 대 볼 것이 없다
+
+  const warn = (m) => { if (ctx && typeof ctx.warn === 'function') ctx.warn(m); };
+
+  if (!g2b.isAvailable()) {
+    warn('공사비 대조 생략 — DATA_GO_KR_KEY 미설정 (조달청 낙찰가를 못 받는다)');
+    return flags;
+  }
+
+  const loc = ds.get('project.location');
+  const region = loc ? sidoOf(loc.value) : null;
+  if (!region) {
+    /* ★ **전국 값으로 대체하지 않는다** (§4.9). 대체하면 문서에는 「대조함」만
+     *   남고 무엇이 빠졌는지 사라진다 */
+    warn(`공사비 대조 생략 — 소재지에서 시·도를 특정하지 못했다${loc ? `: ${loc.value}` : ' (소재지 없음)'}. 전국 값으로 대체하지 않는다`);
+    return flags;
+  }
+
+  let r;
+  try {
+    r = await g2b.benchmark({ region, months: 12, minEok: 10 });
+  } catch (e) {
+    warn(`공사비 대조 실패: ${e.message}`);
+    return flags;
+  }
+  if (!r.ok) {
+    if (!r.unavailable) warn(`공사비 대조 실패 (${region}): ${r.error}`);
+    return flags;
+  }
+
+  const parts = [
+    `${region} 지역 관급 공사 낙찰 ${r.count}건 (${r.period})`,
+    `낙찰금액 중앙값 ${fmt(r.medianAwardEok, 1)}억원`,
+  ];
+  if (r.medianRate !== null) {
+    parts.push(`**낙찰률 중앙값 ${r.medianRate}%** (${r.rateCount}건 기준)`);
+  } else if (r.rateReason) {
+    parts.push(`낙찰률은 내지 않았다 — ${r.rateReason}`);
+  }
+
+  flags.push(flag('GREEN', 'CONSTRUCTION_BENCHMARK',
+    `공사비 대조(참고): 사업계획서 ${fmt(cost.value, 1)}억원 · ${parts.join(' · ')}. `
+    + '관급 낙찰 실적이라 민간 공사비와 발주 조건·설계 수준이 다르다 — '
+    + '총액을 그대로 견주지 않고 낙찰 수준만 참고한다',
+    { keys: ['investment.construction'], benchmark: r.source }));
+
+  return flags;
+}
+
 async function checkSponsor(ds, ctx, today) {
   const flags = [];
   const sponsor = ds.get('project.sponsor');
@@ -406,6 +501,7 @@ async function run(input, ctx) {
   flags.push(...checkConsistency(ds));
   flags.push(...checkLegal(ds));
   flags.push(...await checkSponsor(ds, ctx, kstDate()));
+  flags.push(...await checkConstructionCost(ds, ctx));
   flags.push(...await checkPermitRecord(ds, ctx));
 
   // ④ 미검증 값 (독립출처 1개)
@@ -537,4 +633,4 @@ async function run(input, ctx) {
 
 function clamp(n) { return Math.max(0, Math.min(100, Math.round(n))); }
 
-module.exports = { id: '05_validation', label: 'Cross Validation Agent', inputSchema, outputSchema, run, checkConsistency, checkCapacityPairs, checkLegal, checkSponsor, checkPermitRecord };
+module.exports = { id: '05_validation', label: 'Cross Validation Agent', inputSchema, outputSchema, run, checkConsistency, checkCapacityPairs, checkLegal, checkSponsor, checkPermitRecord, checkConstructionCost, sidoOf };
