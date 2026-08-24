@@ -424,12 +424,12 @@ test('★★ 완성 보고서: 인쇄창은 A4 인쇄본에만 띄운다 (md 를
   const src = fs.readFileSync(
     path.join(__dirname, '..', 'ui', 'platform', 'reports.html'), 'utf8');
   const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-  /* ★ 2026-08-24: 인쇄창은 `openForPrint` 안으로 들어갔고, 그 함수는
-   *   **printable 일 때만** 불린다 (M-33) */
-  assert.ok(/if \(printable && openForPrint\(url\)\)/.test(code),
+  /* ★ 2026-08-25: 새 탭에 자격이 안 붙어(M-33 재발) **화면이 직접 받아 온다.**
+   *   그래서 인쇄창도 받아 온 뒤에 띄운다 — 여전히 printable 일 때만이다 */
+  assert.ok(/if \(printable\) \{/.test(code),
     'printable 을 안 보고 늘 인쇄창을 띄운다');
-  const fn = code.slice(code.indexOf('function openForPrint'), code.indexOf('function recent()'));
-  assert.ok(/w\.print\(\)/.test(fn), '인쇄창을 안 띄운다');
-  assert.ok(!/w\.print\(\)/.test(code.slice(code.indexOf('function recent()'))),
-    '카드 그리는 쪽에서도 인쇄창을 띄운다 — 두 곳이 되면 갈린다');
+  assert.ok(/w\.print\(\)/.test(code), '인쇄창을 안 띄운다');
+  /* ★ 인쇄창을 띄우는 자리는 **한 곳뿐**이어야 한다 — 두 곳이 되면 갈린다 */
+  assert.strictEqual((code.match(/w\.print\(\)/g) || []).length, 1,
+    '인쇄창을 띄우는 자리가 둘 이상이다');
 });

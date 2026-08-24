@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="7ccb1b42">
+<html lang="ko" data-lp-build="c760f626">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -93,7 +93,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=7ccb1b42">
+<link rel="stylesheet" href="tokens.css?v=c760f626">
 <style>
 :root {
   --side: 248px;
@@ -402,14 +402,14 @@ a.out__a, a.out__a:visited { display: inline-block; white-space: nowrap; color: 
   <a class="bot__i on" href="#"><b>☰</b>더보기</a>
 </nav>
 
-<script src="gate-core.js?v=7ccb1b42"></script>
-<script src="catalog.js?v=7ccb1b42"></script>
-<script src="inapp.js?v=7ccb1b42"></script>
-<script src="live-core.js?v=7ccb1b42"></script>
+<script src="gate-core.js?v=c760f626"></script>
+<script src="catalog.js?v=c760f626"></script>
+<script src="inapp.js?v=c760f626"></script>
+<script src="live-core.js?v=c760f626"></script>
 <!-- ★ 판 지문을 화면에 보이게 찍는 것이 여기 있다 (§8) — 묶음에 이미 실리는 파일이다 -->
-<script src="flow-core.js?v=7ccb1b42"></script>
+<script src="flow-core.js?v=c760f626"></script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=7ccb1b42" data-lp-global="LINKPILOT_REPORTS"></script>
+<script src="embed-bridge.js?v=c760f626" data-lp-global="LINKPILOT_REPORTS"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -1237,18 +1237,37 @@ window.LINKPILOT_REPORTS = Object.assign({
    *
    * @returns {boolean} 우리가 처리했으면 true (그러면 링크의 기본 동작을 막는다)
    */
-  function openForPrint(url) {
-    var where = whereAreWe();
-    if (where.kind === 'inapp') return false;   // 새 창 자체가 안 된다 — 링크에 맡긴다
-    var w = null;
-    try { w = window.open(url, '_blank', 'noopener'); } catch (_) { w = null; }
-    if (!w) return false;                        // 막혔다 — 링크의 기본 동작이 대신 연다
-    // 문서가 다 뜬 뒤 인쇄창을 띄운다. 실패해도 창은 열려 있으니 직접 인쇄할 수 있다
-    try {
-      w.addEventListener('load', function () { try { w.print(); } catch (e) { /* 사용자가 직접 */ } });
-    } catch (e) { /* 교차출처면 접근이 막힌다 — 그때는 사용자가 직접 인쇄한다 */ }
-    return true;
+  /**
+   * ★★★ **새 탭에는 인증이 안 붙는다** 〈2026-08-25 사장님 화면:
+   *   「로그인이 필요합니다」가 JSON 으로 그대로 떴다〉.
+   *
+   *   앞 판에서 단추를 링크로 바꿔 **열리기는 했다.** 그런데 열린 탭이
+   *   서버에 거절당했다 — 이 화면은 앱이 넘긴 자격으로 API 를 부르는데
+   *   **새 탭은 그 자격을 안 들고 간다.**
+   *
+   * ★ 그래서 **화면이 직접 받아 온다.** 화면 안에서 부르는 길은 이미 인증이
+   *   되어 있다(값·목록이 그 길로 들어온다). 받아 온 것을 blob 으로 만들어
+   *   열면 자격 문제가 아예 없어진다.
+   * ★ 실패하면 **서버가 말한 까닭을 그대로 적는다.** 앞 판처럼 「팝업이
+   *   차단됐다」로 단정하지 않는다 — 이번 것은 팝업이 아니라 인증이었다.
+   */
+  function fetchAsBlob(url) {
+    return fetch(url, { credentials: 'same-origin' }).then(function (r) {
+      if (!r.ok) {
+        return r.text().then(function (t) {
+          var msg = '';
+          try { msg = (JSON.parse(t) || {}).error || ''; } catch (_) { msg = ''; }
+          throw new Error(msg || ('HTTP ' + r.status));
+        });
+      }
+      return r.blob();
+    });
   }
+
+  /* ★ 〈2026-08-25〉 `openForPrint` 를 지웠다. 새 탭에 자격이 안 붙는 것이
+   *   드러나(M-33 재발) **화면이 직접 받아 오는 길**로 바꿨고, 인쇄창도 그
+   *   길에서 띄운다. 쓰지 않는 함수를 남겨 두면 다음 사람이 그쪽을 고친다. */
+
 
   /**
    * 못 연 이유를 **갈라서** 말한다. 「서버 연결을 확인하세요」 한 줄로 두면
@@ -1326,20 +1345,44 @@ window.LINKPILOT_REPORTS = Object.assign({
           return;
         }
 
-        /* ★ 인쇄본만 새 창을 직접 연다(인쇄창을 띄워야 해서다). 막히면
-         *   **막지 않는다** — 링크의 원래 동작이 그대로 이어져 어차피 열린다 */
-        if (printable && openForPrint(url)) {
-          if (ev && ev.preventDefault) ev.preventDefault();
-          return;
-        }
+        /* ★★★ **우리가 받아서 연다** 〈2026-08-25 · M-33 의 재발〉.
+         *   링크를 그대로 따라가면 새 탭에 자격이 안 붙어 서버가 거절한다.
+         *   화면 안에서 부르는 길은 이미 인증돼 있으므로 그쪽으로 받아 온다. */
+        if (ev && ev.preventDefault) ev.preventDefault();
 
-        /* ★ 인앱 브라우저는 링크로도 새 창이 안 열린다. 그때만 누를 수 있는
-         *   주소를 따로 적어 준다 — 글자로 적으면 아무 소용이 없다 */
-        var where = whereAreWe();
-        if (where.kind === 'inapp') {
-          if (ev && ev.preventDefault) ev.preventDefault();
-          view.appendChild(cantOpenNote(url, where));
-        }
+        var busy = el('p', 'note', r.name + ' 을 받아오는 중입니다…');
+        busy.id = 'out-note';
+        view.appendChild(busy);
+
+        fetchAsBlob(url).then(function (blob) {
+          var b = URL.createObjectURL(blob);
+          var w = null;
+          try { w = window.open(b, '_blank', 'noopener'); } catch (_) { w = null; }
+          if (w) {
+            if (printable) {
+              try {
+                w.addEventListener('load', function () { try { w.print(); } catch (e) { /* 사용자가 직접 */ } });
+              } catch (e) { /* 교차출처면 접근이 막힌다 */ }
+            }
+            var ok = document.getElementById('out-note');
+            if (ok) ok.remove();
+          } else {
+            /* ★ 새 창이 막혔다 — 이제는 **자격이 붙은 주소**라 눌러서 열린다 */
+            var n = document.getElementById('out-note');
+            if (n) n.remove();
+            view.appendChild(cantOpenNote(b, whereAreWe()));
+          }
+          /* ★ 바로 지우면 열리기 전에 사라진다. 넉넉히 두고 놓아 준다 */
+          setTimeout(function () { try { URL.revokeObjectURL(b); } catch (_) {} }, 120000);
+        }).catch(function (e) {
+          var n = document.getElementById('out-note');
+          if (n) n.remove();
+          var bad = el('p', 'note note--bad',
+            r.path + ' 을 못 받았습니다 — ' + e.message
+            + (/로그인/.test(e.message) ? ' (앱에 다시 로그인하시면 열립니다)' : ''));
+          bad.id = 'out-note';
+          view.appendChild(bad);
+        });
       });
       row.appendChild(a);
       box.appendChild(row);

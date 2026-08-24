@@ -46,14 +46,40 @@ test('★★★ 산출물 단추가 진짜 링크다 — 틀(iframe) 안에서 �
   assert.ok(/a\.rel = 'noopener';/.test(CODE), 'noopener 가 없다');
 });
 
-test('★★★ 인쇄창이 막혀도 링크의 기본 동작을 **안 막는다**', () => {
-  assert.ok(/if \(printable && openForPrint\(url\)\) \{\s*if \(ev && ev\.preventDefault\) ev\.preventDefault\(\);/.test(CODE),
-    '새 창을 실제로 연 때만 기본 동작을 막아야 한다');
-  /* ★ openForPrint 는 못 열면 false 를 돌려주고, 그러면 preventDefault 를 안 한다 */
-  const fn = CODE.slice(CODE.indexOf('function openForPrint'), CODE.indexOf('function recent()'));
-  assert.ok(/if \(!w\) return false;/.test(fn),
-    '막혔을 때 true 를 돌려주면 링크까지 막혀 아무것도 안 열린다');
-  assert.ok(/if \(where\.kind === 'inapp'\) return false;/.test(fn));
+/**
+ * ★★★ **새 탭에는 인증이 안 붙는다** 〈2026-08-25 · M-33 의 재발〉.
+ *
+ *   앞 판에서 단추를 링크로 바꿔 **열리기는 했다.** 그런데 열린 탭이
+ *   `{"error":"로그인이 필요합니다"}` 를 받았다 — 이 화면은 앱이 넘긴 자격으로
+ *   API 를 부르는데 **새 탭은 그 자격을 안 들고 간다.**
+ *
+ * ★ 그래서 **화면이 직접 받아 온다.** 화면 안에서 부르는 길은 이미 인증돼 있다.
+ */
+test('★★★ 화면이 자격을 들고 직접 받아 온다 — 새 탭에 맡기지 않는다', () => {
+  assert.ok(/function fetchAsBlob\(url\)/.test(CODE), '받아 오는 길이 없다');
+  assert.ok(/credentials: 'same-origin'/.test(CODE), '자격을 안 싣는다');
+  assert.ok(/URL\.createObjectURL\(blob\)/.test(CODE), 'blob 으로 안 만든다');
+  /* ★ 링크를 그대로 따라가면 자격 없는 탭이 열린다 — 반드시 막고 우리가 연다 */
+  assert.ok(/if \(ev && ev\.preventDefault\) ev\.preventDefault\(\);\s*\n\s*var busy/.test(CODE),
+    '링크의 기본 동작을 안 막는다 — 자격 없는 탭이 열려 거절당한다');
+});
+
+test('★★★ 못 받으면 **서버가 말한 까닭**을 그대로 적는다 — 팝업 탓으로 안 돌린다', () => {
+  assert.ok(/JSON\.parse\(t\) \|\| \{\}\)\.error/.test(CODE),
+    '서버가 준 까닭을 안 읽는다');
+  assert.ok(/을 못 받았습니다 — /.test(CODE));
+  assert.ok(/로그인\/\.test\(e\.message\)/.test(CODE),
+    '로그인 문제일 때 무엇을 하면 되는지 안 적는다');
+});
+
+test('★★ blob 주소를 바로 놓아 주지 않는다 — 열리기 전에 사라진다', () => {
+  assert.ok(/setTimeout\(function \(\) \{ try \{ URL\.revokeObjectURL/.test(CODE),
+    '만들자마자 지우면 새 창이 빈 화면이 된다');
+});
+
+test('★★ 인쇄창은 A4 인쇄본에만 띄운다', () => {
+  assert.ok(/if \(printable\) \{\s*\n\s*try \{\s*\n\s*w\.addEventListener\('load'/.test(CODE),
+    'printable 을 안 보고 늘 인쇄창을 띄운다');
 });
 
 test('★★★ 안내 주소가 **절대 주소**다 — 상대 경로는 붙여 넣어도 못 간다', () => {
