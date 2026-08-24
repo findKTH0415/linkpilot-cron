@@ -191,6 +191,26 @@ function keys() {
   ask('vworld', '지적·위성지도(VWorld)');
   ask('nsdi', '공시지가·용도지역(VWorld NED)');
 
+  /**
+   * ★★★ **파일이 깨졌는지도 본다** 〈2026-08-24 · 실제로 깨져 있었다〉.
+   *
+   *   NAS 파일이 **3개를 쓴 자리에 7줄**이었고 같은 키가 두 번 읽혔다.
+   *   Secret 값 안에 줄바꿈이 있으면 한 줄이 여러 줄이 되고, 뒤 조각은
+   *   쓰레기 줄이 되거나 **다른 키를 덮어쓴다.**
+   *
+   * ★ 이 검사가 없었으면 「비어 있다」만 보고 이름 철자를 의심했을 것이다 —
+   *   원인은 전혀 다른 곳에 있었다.
+   */
+  const i = inspect(env.pick(root));
+  const parsed = i.parsed || [];          // 파일이 없으면 parsed 자체가 없다
+  const dup = parsed.filter((k, n) => parsed.indexOf(k) !== n);
+  if (dup.length) {
+    say(`⚠️ **같은 키가 두 번 있다: ${[...new Set(dup)].join(', ')}** — 값 안에 줄바꿈이 섞였을 때 이렇게 된다`);
+  }
+  if (i.unparsed) {
+    say(`⚠️ **KEY=값 모양이 아닌 줄이 ${i.unparsed}개 있다** — 값에 줄바꿈이 딸려 들어온 자국이다`);
+  }
+
   const d = (process.env.VWORLD_DOMAIN || '').trim();
   if (!d) {
     say('VWORLD_DOMAIN: **비어 있다** — ned 계열이 간헐적으로 거부한다 (§4.1)');

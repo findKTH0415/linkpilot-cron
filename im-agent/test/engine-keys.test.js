@@ -138,3 +138,66 @@ test('★★ 안내 문서가 막히는 자리를 **미리** 짚는다 (CLAUDE.m
     '마우스로 되는 길을 먼저 준다고 안 밝혔다');
   assert.ok(/못 쟀다/.test(doc), '「꺼짐」과 「못 쟀다」를 안 가른다');
 });
+
+/* ── 값에 줄바꿈이 섞이면 파일이 깨진다 ───────────────────── */
+
+/**
+ * ★★★ **NAS 파일이 실제로 깨져 있었다** 〈2026-08-24〉.
+ *
+ *   배포가 3개를 썼는데 진단은 이렇게 말했다:
+ *
+ *     linkpilot.env — 207바이트 · **7줄** · 읽힌 키: GEMINI_API_KEY,
+ *     **VWORLD_KEY, VWORLD_KEY**, LAW_OC · **못 읽은 줄 1개**
+ *
+ *   Secret 칸에 붙여 넣을 때 줄바꿈이 딸려 오면 한 줄이 여러 줄이 된다.
+ *   뒤 조각은 쓰레기 줄이 되거나 **다른 키를 덮어쓴다.**
+ *
+ * ★ 무서운 것은 **아무도 안 죽는다**는 점이다. 배포는 초록이고 파일도 생긴다 —
+ *   값만 조용히 틀린다.
+ */
+
+test('★★★ 배포가 값의 줄바꿈을 떼고 싣는다 — 안 떼면 파일이 깨진다', () => {
+  const s = WRITE();
+  assert.ok(/tr -d '\\r\\n'/.test(s), '줄바꿈을 안 뗀다 — 한 줄이 여러 줄이 된다');
+  assert.ok(/DIRTY=/.test(s), '어느 Secret 이 더러운지 안 모은다');
+  assert.ok(/::warning::.*줄바꿈이 섞인 Secret/.test(s),
+    '조용히 떼기만 한다 — 값 자체가 틀렸을 수 있는데 아무도 모른다');
+  /* ★ 이름만 댄다. 값은 한 글자도 안 찍는다 (§2) */
+  assert.ok(!/echo.*\$clean/.test(s), '다듬은 값을 찍는다');
+});
+
+test('★★★ 진단이 **같은 키가 두 번**과 **못 읽은 줄**을 말한다', () => {
+  const fs2 = require('node:fs');
+  const os2 = require('node:os');
+  const doctor = path.join(__dirname, '..', 'tools', 'env-doctor.js');
+  /* ★ 진단은 저장소 뿌리에서 읽는다 — 거기 표본을 잠깐 둔다 */
+  const target = path.join(__dirname, '..', '..', 'linkpilot.env');
+  assert.ok(!fs2.existsSync(target), '저장소 뿌리에 진짜 열쇠 파일이 있다 — 덮지 않는다');
+  try {
+    fs2.writeFileSync(target, 'GEMINI_API_KEY=a\nVWORLD_KEY=b\n부서진줄\nVWORLD_KEY=c\n', 'utf8');
+    const { execFileSync } = require('node:child_process');
+    const out = execFileSync(process.execPath, [doctor, '--keys'], { encoding: 'utf8' });
+    assert.ok(/같은 키가 두 번 있다: VWORLD_KEY/.test(out),
+      `중복을 안 잡는다 — 이것이 이번 사고를 드러낸 단서였다:\n${out}`);
+    assert.ok(/KEY=값 모양이 아닌 줄이 1개/.test(out), out);
+  } finally {
+    fs2.rmSync(target, { force: true });
+    void os2;
+  }
+});
+
+test('★★ 멀쩡한 파일에는 아무 말도 안 붙인다 (헛울음 금지)', () => {
+  const fs2 = require('node:fs');
+  const doctor = path.join(__dirname, '..', 'tools', 'env-doctor.js');
+  const target = path.join(__dirname, '..', '..', 'linkpilot.env');
+  assert.ok(!fs2.existsSync(target));
+  try {
+    fs2.writeFileSync(target, 'GEMINI_API_KEY=a\nVWORLD_KEY=b\n', 'utf8');
+    const { execFileSync } = require('node:child_process');
+    const out = execFileSync(process.execPath, [doctor, '--keys'], { encoding: 'utf8' });
+    assert.ok(!/같은 키가 두 번/.test(out), out);
+    assert.ok(!/KEY=값 모양이 아닌 줄/.test(out), out);
+  } finally {
+    fs2.rmSync(target, { force: true });
+  }
+});
