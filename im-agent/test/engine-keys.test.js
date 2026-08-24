@@ -85,6 +85,14 @@ test('★★ 되돌릴 자리를 먼저 만들고 파일 권한을 좁힌다', (
 test('★★★ 지적도 켜짐·꺼짐·못 잼 **셋을 가른다** — 못 잰 것은 꺼진 것이 아니다', () => {
   const s = step('Check map power (지적도·공시지가)');
   assert.ok(/env-doctor\.js --keys/.test(s), '엔진 자신에게 안 묻는다');
+  /* ★★★ **진단기가 돌았는지부터 본다** 〈2026-08-25 · 실제로 틀렸다〉.
+   *   NAS 가 tailnet 에서 사라진 날 ssh 가 `Host key verification failed.` 를
+   *   돌려줬는데, 앞 판은 그것을 **「지적도 꺼짐」으로 적었다** — 열쇠는
+   *   멀쩡히 들어 있었다. `NONODE` 와 빈 답만 「못 쟀다」로 쳤기 때문이다.
+   *   ★ 이 저장소가 가장 싫어하는 종류다 (M-11 · M-12 · M-30). */
+  assert.ok(/grep -q '열쇠 파일을 찾는 곳'/.test(s),
+    '진단기가 실제로 돌았는지 안 본다 — ssh 오류를 「꺼짐」으로 적는다');
+  assert.ok(/진단기가 안 돌았다/.test(s), '못 잰 까닭을 안 적는다');
   assert.ok(/못 쟀다/.test(s), '못 잰 것을 꺼진 것으로 센다 (M-11 · M-12 · M-30)');
   assert.ok(/::notice::.*지적도가 켜져 있다/.test(s));
   assert.ok(/::warning::.*지적도가 꺼져 있다/.test(s));

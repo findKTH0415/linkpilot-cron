@@ -1204,6 +1204,23 @@ jobs:
                command -v \"\$N\" >/dev/null 2>&1 && exec \"\$N\" im-agent/tools/env-doctor.js --keys
              done
              echo 'NONODE'" 2>&1 | tr -d '\r')
+          # ★★★ **못 잰 것을 꺼진 것으로 세지 않는다** 〈2026-08-25 · 실제로 그랬다〉.
+          #
+          #   앞 판은 `NONODE` 와 빈 답만 「못 쟀다」로 쳤다. 그런데 NAS 가
+          #   tailnet 에서 사라진 날 ssh 가 **`Host key verification failed.`** 를
+          #   돌려줬고, 그것은 둘 중 어느 것도 아니라 **「지적도 꺼짐」으로 적혔다.**
+          #   열쇠는 멀쩡히 들어 있었는데 화면은 꺼졌다고 말한 것이다.
+          #
+          # ★ 그래서 **진단기가 실제로 돌았는지**를 본다. 진단기는 언제나
+          #   「열쇠 파일을 찾는 곳」으로 시작한다 — 그 줄이 없으면 **답이 진단기
+          #   것이 아니다.** 있는 것만 판정하고 나머지는 전부 「못 쟀다」다.
+          #   (M-11 · M-12 · M-30 이 같은 결이다)
+          if ! printf '%s' "$OUT" | grep -q '열쇠 파일을 찾는 곳'; then
+            OUT="${OUT:-NONODE}"
+            echo "지적도: 못 쟀다 — 진단기가 안 돌았다 (ssh 가 안 붙었거나 node 가 없다). 받은 답: ${OUT}"
+            echo "지적도: 못 쟀다 (꺼진 것과 **다른 사실**이다)" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           case "$OUT" in
             *NONODE*|'')
               echo "지적도: 못 쟀다 — node 를 못 찾았거나 ssh 가 안 붙었다 (꺼진 것과 **다른 사실**이다)"
