@@ -1053,7 +1053,7 @@ test('★★★ 진단이 **값을 안 찍는다** — 로그는 남는다 (§2)
  */
 test('★★★ Secret 이 있으면 배포가 열쇠 파일을 대신 놓는다', () => {
   const wf = fs.readFileSync(path.join(WF, 'deploy-nas.yml'), 'utf8');
-  const at = wf.indexOf('- name: Write engine key (GEMINI_API_KEY)');
+  const at = wf.indexOf('- name: Write engine keys (열쇠 파일)');
   assert.ok(at > -1, '열쇠를 놓는 단계가 없다 — 사람이 File Station 과 싸우게 된다');
   const step = wf.slice(at, wf.indexOf('- name: Deploy engine'));
 
@@ -1067,13 +1067,16 @@ test('★★★ Secret 이 있으면 배포가 열쇠 파일을 대신 놓는다
     '열쇠 값을 로그에 찍는다');
   assert.deepStrictEqual(step.match(/ssh[^\n|]*\$GEMINI_API_KEY/g) || [], [],
     '열쇠를 명령줄 인자로 넘긴다 — NAS 의 프로세스 목록에 잠깐 뜬다');
-  assert.ok(/printf[^\n]*\|\s*ssh/.test(step),
-    '값이 stdin 으로 흐르지 않는다');
+  /* ★ 값은 **임시 파일 → stdin** 으로만 흐른다. 앞 판은 printf 로 한 줄만
+   *   흘렸는데, 열쇠가 여럿이 되면서 줄바꿈이 필요해졌다 — 셸 문자열에 줄바꿈을
+   *   넣으면 YAML 블록이 거기서 끝나 버린다 〈2026-08-24 · 실제로 깨졌다〉 */
+  assert.ok(/< "\$KEYFILE"/.test(step), '값이 stdin 으로 흐르지 않는다');
+  assert.ok(/rm -f "\$KEYFILE"/.test(step), '임시 열쇠 파일을 안 지운다');
 
   /* ★★ Secret 이 없으면 **아무것도 안 건드린다** — 빈 값으로 덮으면 손으로
    *   놓아 둔 파일이 사라진다 (§4.9) */
-  assert.ok(/if \[ -z "\$\{GEMINI_API_KEY:-\}" \]/.test(step),
-    'Secret 이 비었는지 안 본다 — 빈 값으로 덮는다');
+  assert.ok(/if \[ -z "\$HAVE" \]/.test(step),
+    'Secret 이 하나도 없는지 안 본다 — 빈 값으로 덮는다');
   assert.ok(step.indexOf('안 건드렸다') !== -1, '안 건드렸다는 것을 말하지 않는다');
 
   /* ★ 되돌릴 자리를 먼저 만든다 */
@@ -1081,6 +1084,9 @@ test('★★★ Secret 이 있으면 배포가 열쇠 파일을 대신 놓는다
     '덮기 전에 되돌릴 자리를 안 만든다');
   /* ★ 남이 읽으면 안 되는 파일이다 */
   assert.ok(step.indexOf('umask 177') !== -1, '파일 권한을 안 좁힌다');
+  /* ★ umask 는 **새로 만들 때만** 먹는다. 이미 있는 파일을 자르면 모드가 그대로다 */
+  assert.ok(step.indexOf('chmod 600 linkpilot.env') !== -1,
+    '이미 있는 파일의 권한을 안 좁힌다');
   /* ★ 못 놓았으면 **빨갛게 끝난다** — 조용히 넘어가면 진단이 옛 파일을 말한다 */
   assert.ok(step.indexOf('::error::') !== -1, '못 놓아도 초록으로 끝난다');
 });

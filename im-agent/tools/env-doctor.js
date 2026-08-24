@@ -149,6 +149,60 @@ function main() {
 }
 
 /**
+ * **열쇠가 어느 것이 들어 있고 어느 것이 비어 있는지** 한 눈에 적는다
+ * 〈2026-08-24 · 지적도가 안 켜지는데 볼 곳이 없었다〉.
+ *
+ *   node im-agent/tools/env-doctor.js --keys
+ *
+ * ★★ **값은 한 글자도 안 찍는다** (§2). 찍는 것은 이름과 길이뿐이다.
+ * ★ 「OCR 켜짐」처럼 하나만 재고 있었다. 그런데 안 켜지는 것은 하나가 아니다 —
+ *   지적도·공시지가가 없으면 매스가 직사각형으로 서고 조감도가 아예 안 나온다.
+ *   **재는 곳이 없으면 「왜 안 나오지」가 그때마다 처음 보는 문제가 된다.**
+ * ★ `VWORLD_DOMAIN` 은 **주소라서 길이만으로도 실수가 보인다** — 스킴·경로를
+ *   벗기면 ned 계열이 간헐적으로 거부한다 (CLAUDE.md §4.1).
+ */
+function keys() {
+  const { SECRET_ENV } = require('../connectors/http.js');
+  const root = env.repoRoot();
+  env.load(env.pick(root));
+
+  say(`열쇠 파일을 찾는 곳: ${root}`);
+  say('');
+  const on = [];
+  const off = [];
+  SECRET_ENV.forEach((n) => {
+    const v = process.env[n] || '';
+    if (v) { on.push(`${n}(${v.length}자)`); } else { off.push(n); }
+  });
+  say(`들어 있다: ${on.length ? on.join(' · ') : '(하나도 없다)'}`);
+  say(`비어 있다: ${off.length ? off.join(' · ') : '(없다)'}`);
+  say('');
+
+  /* ★ 이름이 있는 것과 **그 기능이 켜진 것**은 다른 사실이다.
+   *   커넥터 자신에게 묻는다 — 그쪽이 무엇을 요구하는지 아는 것은 그쪽이다. */
+  const ask = (mod, label) => {
+    try {
+      const m = require(`../connectors/${mod}.js`);
+      say(`${label}: ${m.isAvailable() ? '켜짐' : '**꺼짐**'}`);
+    } catch (e) {
+      say(`${label}: 못 쟀다 (${e.message})`);
+    }
+  };
+  ask('vworld', '지적·위성지도(VWorld)');
+  ask('nsdi', '공시지가·용도지역(VWorld NED)');
+
+  const d = (process.env.VWORLD_DOMAIN || '').trim();
+  if (!d) {
+    say('VWORLD_DOMAIN: **비어 있다** — ned 계열이 간헐적으로 거부한다 (§4.1)');
+  } else if (!/^https?:\/\//.test(d)) {
+    say('VWORLD_DOMAIN: **스킴(https://)이 없다** — 콘솔의 서비스URL 을 글자 그대로 넣는다');
+  } else {
+    say(`VWORLD_DOMAIN: 모양은 맞다 (${d.length}자)`);
+  }
+  return { on: on.length, off: off.length };
+}
+
+/**
  * 열쇠가 **실제로 받아들여지는지** 한 번 물어본다. 값은 안 찍는다.
  *
  * ★ 가장 가벼운 요청을 쓴다 — 모델 목록. 생성 요청은 돈과 시간이 든다.
@@ -190,8 +244,12 @@ async function live() {
 }
 
 if (require.main === module) {
-  const r = main();
-  /* ★ `--live` 일 때만 그물을 탄다. 기본은 파일만 본다 — 빠르고 조용하다 */
-  if (process.argv.includes('--live') && r && r.hasKey) live();
+  if (process.argv.includes('--keys')) {
+    keys();
+  } else {
+    const r = main();
+    /* ★ `--live` 일 때만 그물을 탄다. 기본은 파일만 본다 — 빠르고 조용하다 */
+    if (process.argv.includes('--live') && r && r.hasKey) live();
+  }
 }
-module.exports = { inspect, describe, live };
+module.exports = { inspect, describe, live, keys };

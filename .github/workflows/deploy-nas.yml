@@ -827,34 +827,89 @@ jobs:
       #     (인자는 NAS 의 프로세스 목록에 잠깐 뜬다). §2.
       #   ★ **엔진 배포보다 앞**이다. 엔진은 뜰 때 열쇠를 읽으므로, 뒤에 두면
       #     이번 판이 아니라 **다음 배포부터** 켜진다.
-      - name: Write engine key (GEMINI_API_KEY)
+      # ★★★ **열쇠는 하나가 아니다** 〈2026-08-24 · 앞 판이 손으로 놓은 값을 지우고 있었다〉.
+      #
+      #   앞 판은 `GEMINI_API_KEY` 한 줄만 써 넣으면서 `cat > linkpilot.env` 로
+      #   **파일을 통째로 덮었다.** 그래서 NAS 에 손으로 넣어 둔 `VWORLD_KEY`
+      #   같은 값이 **배포할 때마다 조용히 사라졌다.**
+      #
+      #   ★ 증상이 고약하다 — 지적도가 없으면 매스가 직사각형으로 서고 조감도가
+      #     아예 안 나오는데, 그것이 **정상 동작처럼 보인다.** 「원래 그런가 보다」로
+      #     읽히는 실패가 이 저장소에서 가장 비싸다.
+      #
+      #   ★ 그래서 ① 아는 열쇠를 **전부** Secret 에서 받아 쓰고,
+      #     ② 덮기 전 파일에 있던 **키 이름을 읽어 두었다가**, Secret 에 없어서
+      #        사라진 것이 있으면 **이름을 대고 말한다.** 값은 안 찍는다 (§2).
+      #     ③ **배포가 이 파일의 주인이다.** 쓰는 이가 둘이면 「넣었는데 없다」의
+      #        원인을 못 가른다 (D-84 와 같은 이유).
+      - name: Write engine keys (열쇠 파일)
         if: ${{ needs.plan.outputs.dry_run != 'true' && needs.plan.outputs.engine == 'true' }}
         env:
           NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
           NAS_USER: ${{ secrets.NAS_SSH_USER }}
           ENGINE_ROOT: ${{ vars.LP_ENGINE_ROOT || '/volume1/docker/linkpilot' }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          VWORLD_KEY: ${{ secrets.VWORLD_KEY }}
+          VWORLD_DOMAIN: ${{ secrets.VWORLD_DOMAIN }}
+          DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+          ECOS_API_KEY: ${{ secrets.ECOS_API_KEY }}
+          KMA_APIHUB_KEY: ${{ secrets.KMA_APIHUB_KEY }}
+          REB_API_KEY: ${{ secrets.REB_API_KEY }}
+          KOSIS_API_KEY: ${{ secrets.KOSIS_API_KEY }}
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+          LAW_OC: ${{ secrets.LAW_OC }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
         run: |
           set -u
-          if [ -z "${GEMINI_API_KEY:-}" ]; then
-            echo "열쇠 Secret 이 없다 — NAS 의 열쇠 파일을 **안 건드렸다**"
-            echo "::notice::**GEMINI_API_KEY Secret 이 비어 있다.** 그래서 NAS 의 열쇠 파일은 그대로 두었다. Secret 에 넣으면 배포가 파일을 대신 놓는다 — 손으로 만들 필요가 없다."
+          NAMES="GEMINI_API_KEY VWORLD_KEY VWORLD_DOMAIN DATA_GO_KR_KEY ECOS_API_KEY KMA_APIHUB_KEY REB_API_KEY KOSIS_API_KEY DART_API_KEY LAW_OC PEXELS_API_KEY"
+          # ★ 임시 파일로 모은다. 셸 문자열에 줄바꿈을 넣으면 YAML 블록이 거기서 끝난다
+          KEYFILE=$(mktemp)
+          chmod 600 "$KEYFILE"
+          trap 'rm -f "$KEYFILE"' EXIT
+          HAVE=""
+          for n in $NAMES; do
+            v=$(printenv "$n" || true)
+            [ -z "$v" ] && continue
+            printf '%s=%s\n' "$n" "$v" >> "$KEYFILE"
+            HAVE="$HAVE $n"
+          done
+          if [ -z "$HAVE" ]; then
+            echo "열쇠 Secret 이 하나도 없다 — NAS 의 열쇠 파일을 **안 건드렸다**"
+            echo "::notice::**열쇠 Secret 이 하나도 없다.** 그래서 NAS 의 열쇠 파일은 그대로 두었다. Settings → Secrets and variables → Actions 에 넣으면 배포가 파일을 대신 놓는다 — 손으로 만들 필요가 없다."
             exit 0
           fi
           STAMP=$(TZ=Asia/Seoul date +%Y%m%d%H%M)
-          # ★ 값은 stdin 으로만 간다. 원격 셸은 그것을 그대로 파일에 붓는다
-          if printf 'GEMINI_API_KEY=%s\n' "$GEMINI_API_KEY" | ssh -o BatchMode=yes -o ConnectTimeout=20 \
+          # ★ 값은 stdin 으로만 간다 — 명령줄 인자는 NAS 프로세스 목록에 잠깐 뜬다 (§2)
+          OUT=$(ssh -o BatchMode=yes -o ConnectTimeout=20 \
               -i ~/.ssh/id_deploy "$NAS_USER@$NAS_HOST" \
               "cd '$ENGINE_ROOT' || exit 9
-               [ -f linkpilot.env ] && cp -p linkpilot.env 'linkpilot.env.bak-$STAMP'
+               OLD=''
+               if [ -f linkpilot.env ]; then
+                 cp -p linkpilot.env 'linkpilot.env.bak-$STAMP'
+                 OLD=\$(sed -n 's/^\\([A-Za-z_][A-Za-z0-9_]*\\)=.*/\\1/p' linkpilot.env | sort -u | tr '\\n' ' ')
+               fi
                umask 177 && cat > linkpilot.env
-               ls -l linkpilot.env | awk '{print \$1, \$5\"바이트\"}'"; then
-            echo "::notice::**열쇠 파일을 배포가 놓았다.** 엔진 루트의 linkpilot.env 를 Secret 값으로 새로 썼다 — 손으로 만드실 필요가 없다. 앞 판은 linkpilot.env.bak-$STAMP 로 남겼다."
-            echo "열쇠 파일: 배포가 새로 놓았다 (앞 판은 linkpilot.env.bak-$STAMP)" >> "$GITHUB_STEP_SUMMARY"
-          else
+               chmod 600 linkpilot.env
+               echo \"OLDKEYS=\$OLD\"
+               echo \"SIZE=\$(wc -c < linkpilot.env)\"" < "$KEYFILE")
+          if [ $? -ne 0 ]; then
             echo "::error::**열쇠 파일을 못 놓았다.** 엔진 루트에 쓸 수 없거나 ssh 가 안 붙었다 — 아래 진단이 옛 파일을 그대로 말할 것이다"
             exit 1
           fi
+          OLDKEYS=$(printf '%s\n' "$OUT" | sed -n 's/^OLDKEYS=//p')
+          NEWCOUNT=$(printf '%s' "$HAVE" | wc -w)
+          echo "써 넣은 열쇠 ${NEWCOUNT}개:${HAVE}"
+          echo "열쇠 파일: 배포가 새로 놓았다 — ${NEWCOUNT}개 (${HAVE# }) · 앞 판은 linkpilot.env.bak-$STAMP" >> "$GITHUB_STEP_SUMMARY"
+          # ★ **사라진 것이 있으면 이름을 댄다.** 조용히 없어지는 것이 가장 나쁘다
+          LOST=""
+          for o in $OLDKEYS; do
+            case " $HAVE " in *" $o "*) ;; *) LOST="$LOST $o" ;; esac
+          done
+          if [ -n "$LOST" ]; then
+            echo "::warning::**앞 파일에 있던 열쇠가 이번 판에 없다:${LOST}.** 배포가 이 파일의 주인이므로 Secret 에 없는 값은 안 실린다. 그 기능을 쓰시려면 같은 이름으로 GitHub Secret 에 넣어 주십시오 — 앞 판은 NAS 의 linkpilot.env.bak-$STAMP 에 그대로 있다."
+            echo "⚠️ 앞 파일에만 있던 열쇠:${LOST} (Secret 에 넣으면 다음 배포부터 실린다)" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "::notice::**열쇠 파일을 배포가 놓았다.** ${NEWCOUNT}개를 Secret 값으로 새로 썼다 — 손으로 만드실 필요가 없다."
 
       # ★★★ **엔진을 올린다** 〈2026-08-23 · D-88 — 「모든 파일과 구조를 정립해줘」〉.
       #
@@ -1099,6 +1154,45 @@ jobs:
           esac
           printf '%s\n' "$OUT" | grep -q 'OCR 켜짐' \
             || echo "::notice::**열쇠 파일 진단이 로그에 있다.** 「OCR: 꺼짐」의 원인은 위 줄에 적혀 있다 — 파일이 폴더인지, 서식 문서로 저장됐는지, 값에 따옴표가 섞였는지까지 나온다."
+
+      # ★★★ **지적도가 켜졌는지도 잰다** 〈2026-08-24〉.
+      #
+      #   지금까지 재는 것은 OCR 하나뿐이었다. 그런데 `VWORLD_KEY` 가 없으면
+      #   **매스가 직사각형으로 서고 조감도가 아예 안 나온다** — 그리고 그것이
+      #   정상 동작처럼 보인다. 「원래 그런가 보다」로 읽히는 실패가 가장 비싸다.
+      #   ★ 값은 한 글자도 안 찍는다 (§2). 이름과 길이, 그리고 켜짐/꺼짐뿐이다.
+      - name: Check map power (지적도·공시지가)
+        if: ${{ always() && needs.plan.outputs.dry_run != 'true' }}
+        env:
+          NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+          NAS_USER: ${{ secrets.NAS_SSH_USER }}
+          ENGINE_ROOT: ${{ vars.LP_ENGINE_ROOT || '/volume1/docker/linkpilot' }}
+        run: |
+          set -u
+          set +e
+          OUT=$(ssh -o BatchMode=yes -o ConnectTimeout=20 -i ~/.ssh/id_deploy \
+            "$NAS_USER@$NAS_HOST" \
+            "cd '$ENGINE_ROOT' 2>/dev/null || exit 9
+             for N in node /usr/local/bin/node \
+                      /volume1/@appstore/Node.js_v20/usr/local/bin/node \
+                      /volume1/@appstore/Node.js_v18/usr/local/bin/node; do
+               command -v \"\$N\" >/dev/null 2>&1 && exec \"\$N\" im-agent/tools/env-doctor.js --keys
+             done
+             echo 'NONODE'" 2>&1 | tr -d '\r')
+          case "$OUT" in
+            *NONODE*|'')
+              echo "지적도: 못 쟀다 — node 를 못 찾았거나 ssh 가 안 붙었다 (꺼진 것과 **다른 사실**이다)"
+              echo "지적도: 못 쟀다 (꺼진 것과 다르다)" >> "$GITHUB_STEP_SUMMARY" ;;
+            *)
+              printf '%s\n' "$OUT"
+              if printf '%s' "$OUT" | grep -q '지적·위성지도(VWorld): 켜짐'; then
+                echo "::notice::**지적도가 켜져 있다.** 실제 필지 형상으로 매스가 서고 조감도가 그려진다."
+                echo "지적도: 켜짐 — 실제 필지 형상으로 매스가 선다" >> "$GITHUB_STEP_SUMMARY"
+              else
+                echo "::warning::**지적도가 꺼져 있다.** 매스가 직사각형으로 근사되고 **조감도가 아예 안 그려진다** — 고장이 아니라 근거 없는 그림을 안 그리는 것이다. GitHub Secret 에 VWORLD_KEY 와 VWORLD_DOMAIN 을 넣으면 다음 배포부터 켜진다."
+                echo "지적도: **꺼짐** — 매스가 직사각형 · 조감도 없음" >> "$GITHUB_STEP_SUMMARY"
+              fi ;;
+          esac
 
       - name: Probe summary
         if: ${{ always() && needs.plan.outputs.dry_run != 'true' }}
