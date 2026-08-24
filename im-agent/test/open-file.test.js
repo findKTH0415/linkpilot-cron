@@ -56,7 +56,7 @@ test('★★★ 산출물 단추가 진짜 링크다 — 틀(iframe) 안에서 �
  * ★ 그래서 **화면이 직접 받아 온다.** 화면 안에서 부르는 길은 이미 인증돼 있다.
  */
 test('★★★ 화면이 자격을 들고 직접 받아 온다 — 새 탭에 맡기지 않는다', () => {
-  assert.ok(/function fetchAsBlob\(url\)/.test(CODE), '받아 오는 길이 없다');
+  assert.ok(/function fetchAsBlob\(url, relPath\)/.test(CODE), '받아 오는 길이 없다');
   assert.ok(/credentials: 'same-origin'/.test(CODE), '자격을 안 싣는다');
   assert.ok(/URL\.createObjectURL\(blob\)/.test(CODE), 'blob 으로 안 만든다');
   /* ★ 링크를 그대로 따라가면 자격 없는 탭이 열린다 — 반드시 막고 우리가 연다 */
@@ -172,4 +172,40 @@ test('★★ 서버 주소가 없으면 링크를 안 만든다 — 깨진 링�
   if (dom === null) { console.log('# 크로미움이 없다 — 못 쟀다'); return; }
   assert.ok(!/<a[^>]*class="out__a"/.test(dom),
     '주소도 없이 링크를 만들었다 — 누르면 엉뚱한 곳으로 간다');
+});
+
+/* ── 글자가 깨져 나왔다 ─────────────────────────────────── */
+
+/**
+ * ★★★ **내가 만든 회귀다** 〈2026-08-25 사장님 화면〉.
+ *
+ *   어제 M-33(새 탭에 자격이 안 붙는다)을 고치면서 `r.blob()` 으로 바꿨다.
+ *   그런데 **blob 으로 열면 글자표(charset)가 사라진다** — 서버는
+ *   `charset=utf-8` 을 보내는데, `text/markdown` 처럼 브라우저가 렌더 규칙을
+ *   모르는 형식은 그 딱지를 **무시하고 기본 인코딩으로 그린다.**
+ *   IM 본문이 통째로 `蹂묒뿭` 처럼 나왔다.
+ *
+ * ★★ **문서가 안 열리는 것보다 나쁘다.** 열리기는 하니 사람은 「생성이
+ *   깨졌다」고 읽는다 — 멀쩡한 문서인데 보는 길만 틀렸다.
+ */
+
+test('★★★ 글자 파일은 글자로 받아 UTF-8 로 다시 담는다', () => {
+  assert.ok(/function textTypeFor\(path\)/.test(CODE), '형식을 안 가른다');
+  assert.ok(/return r\.text\(\)\.then\(function \(t\) \{ return new Blob\(\[t\], \{ type: type \}\); \}\);/.test(CODE),
+    'blob 을 그대로 쓴다 — 글자표가 사라져 깨진다');
+  /* ★ 이진 파일은 글자로 바꾸면 깨진다 */
+  assert.ok(/if \(!type\) return r\.blob\(\);/.test(CODE), 'PDF 까지 글자로 받는다');
+});
+
+test('★★★ 딱지에 charset=utf-8 이 반드시 붙는다', () => {
+  const fn = CODE.slice(CODE.indexOf('function textTypeFor'), CODE.indexOf('function fetchAsBlob'));
+  const types = fn.match(/'[a-z/+]+; charset=utf-8'/g) || [];
+  assert.ok(types.length >= 3, `글자표를 안 붙인 형식이 있다: ${fn}`);
+  assert.ok(/\.html\?\$/.test(fn) && /text\/html/.test(fn), 'html 을 text/html 로 안 연다 — 인쇄가 안 된다');
+  assert.ok(/md\|txt/.test(fn), 'md 를 안 가른다 — IM 본문이 이 형식이다');
+});
+
+test('★★ 어느 파일인지 알려 줘야 형식을 가른다', () => {
+  assert.ok(/fetchAsBlob\(url, r\.path\)/.test(CODE),
+    '경로를 안 넘기면 형식을 못 가려 전부 이진으로 받는다');
 });

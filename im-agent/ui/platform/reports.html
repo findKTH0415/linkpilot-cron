@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="46a2e31c">
+<html lang="ko" data-lp-build="29552e91">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -93,7 +93,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=46a2e31c">
+<link rel="stylesheet" href="tokens.css?v=29552e91">
 <style>
 :root {
   --side: 248px;
@@ -402,14 +402,14 @@ a.out__a, a.out__a:visited { display: inline-block; white-space: nowrap; color: 
   <a class="bot__i on" href="#"><b>☰</b>더보기</a>
 </nav>
 
-<script src="gate-core.js?v=46a2e31c"></script>
-<script src="catalog.js?v=46a2e31c"></script>
-<script src="inapp.js?v=46a2e31c"></script>
-<script src="live-core.js?v=46a2e31c"></script>
+<script src="gate-core.js?v=29552e91"></script>
+<script src="catalog.js?v=29552e91"></script>
+<script src="inapp.js?v=29552e91"></script>
+<script src="live-core.js?v=29552e91"></script>
 <!-- ★ 판 지문을 화면에 보이게 찍는 것이 여기 있다 (§8) — 묶음에 이미 실리는 파일이다 -->
-<script src="flow-core.js?v=46a2e31c"></script>
+<script src="flow-core.js?v=29552e91"></script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=46a2e31c" data-lp-global="LINKPILOT_REPORTS"></script>
+<script src="embed-bridge.js?v=29552e91" data-lp-global="LINKPILOT_REPORTS"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -1273,7 +1273,33 @@ window.LINKPILOT_REPORTS = Object.assign({
    * ★ 실패하면 **서버가 말한 까닭을 그대로 적는다.** 앞 판처럼 「팝업이
    *   차단됐다」로 단정하지 않는다 — 이번 것은 팝업이 아니라 인증이었다.
    */
-  function fetchAsBlob(url) {
+  /**
+   * ★★★ **글자가 깨져 나왔다** 〈2026-08-25 사장님 화면 · 내가 만든 회귀〉.
+   *
+   *   어제 「새 탭에 자격이 안 붙는다」(M-33)를 고치면서 `r.blob()` 으로
+   *   바꿨다. 그런데 **blob 으로 열면 글자표(charset)가 사라진다** —
+   *   서버는 `charset=utf-8` 을 보내는데, `text/markdown` 처럼 브라우저가
+   *   렌더 규칙을 모르는 형식은 그 딱지를 **무시하고 기본 인코딩으로 그린다.**
+   *   그래서 IM 본문이 통째로 `蹂묒뿭` 처럼 나왔다.
+   *
+   * ★★ **문서가 안 열리는 것보다 나쁘다.** 열리기는 하니 사람은 「생성이
+   *   깨졌다」고 읽는다 — 실제로 사장님이 「결과물은 오류·버그 투성이」라고
+   *   하셨다. 멀쩡한 문서인데 보는 길만 틀렸다.
+   *
+   * ★ 그래서 **글자 파일은 글자로 받아 다시 담는다.** `r.text()` 는 응답의
+   *   charset 을 제대로 쓰고, `new Blob([문자열])` 은 **언제나 UTF-8 로** 넣는다.
+   *   딱지도 브라우저가 확실히 아는 것으로 바꿔 단다.
+   * ★ PDF 같은 이진 파일은 그대로 blob 으로 받는다 — 글자로 바꾸면 깨진다.
+   */
+  function textTypeFor(path) {
+    var p = String(path || '').toLowerCase();
+    if (/\.html?$/.test(p)) return 'text/html; charset=utf-8';
+    if (/\.json$/.test(p)) return 'application/json; charset=utf-8';
+    if (/\.(md|txt|csv|log|svg)$/.test(p)) return 'text/plain; charset=utf-8';
+    return null;   // 이진 파일
+  }
+
+  function fetchAsBlob(url, relPath) {
     return fetch(url, { credentials: 'same-origin' }).then(function (r) {
       if (!r.ok) {
         return r.text().then(function (t) {
@@ -1282,7 +1308,9 @@ window.LINKPILOT_REPORTS = Object.assign({
           throw new Error(msg || ('HTTP ' + r.status));
         });
       }
-      return r.blob();
+      var type = textTypeFor(relPath);
+      if (!type) return r.blob();
+      return r.text().then(function (t) { return new Blob([t], { type: type }); });
     });
   }
 
@@ -1376,7 +1404,7 @@ window.LINKPILOT_REPORTS = Object.assign({
         busy.id = 'out-note';
         view.appendChild(busy);
 
-        fetchAsBlob(url).then(function (blob) {
+        fetchAsBlob(url, r.path).then(function (blob) {
           var b = URL.createObjectURL(blob);
           var w = null;
           try { w = window.open(b, '_blank', 'noopener'); } catch (_) { w = null; }

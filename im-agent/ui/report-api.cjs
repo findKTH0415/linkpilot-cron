@@ -1197,6 +1197,7 @@ function createHandlers(deps) {
       const ds = json ? Dataset.fromJSON(json, FIELDS) : null;
 
       const values = {};
+      const factsMod = load('core/facts');
       if (ds) {
         ds.keys().forEach((key) => {
           const f = ds.get(key);
@@ -1214,7 +1215,14 @@ function createHandlers(deps) {
              *
              * ★ 이 저장소의 전부가 그 구분이다 — **사용자가 말했다는 것은
              *   문서로 확인됐다는 뜻이 아니다.** 화면이 그걸 뭉갰다. */
-            origin: f.origin || null,
+            /* ★★★ **비워 보내지 않는다** 〈2026-08-25 사장님 화면: 「0개 수집자료
+             *   + 0개 자체분석자료 · 갈리지 않은 값 3개」〉. origin 이 없으면
+             *   화면이 어느 쪽에도 못 세고 **0 + 0 인데 값은 3개**가 된다 —
+             *   숫자가 틀린 것은 아닌데 **아무 뜻이 없다.**
+             * ★ 옛 판으로 만든 dataset 에는 origin 이 없다. 그때는 **출처로
+             *   되짚는다** — 엔진이 이미 같은 규칙을 들고 있다(facts.inferOrigin).
+             *   화면에 규칙을 또 두면 두 벌이 되어 갈린다. */
+            origin: f.origin || factsMod.inferOrigin(f.source) || null,
             originGuessed: !!f.originGuessed,
             // ★ 값이 갈리고 있으면 그대로 알려준다. 이긴 값만 보여주면
             //   화면에서는 멀쩡해 보이고, 충돌은 검증 단계에 가서야 드러난다
