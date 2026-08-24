@@ -1990,7 +1990,7 @@ window.LINKPILOT_REPORT_FLOW = {
         <li>
           <b>SketchUp 모델 계획·수령 Agent 둘을 붙였다 — 엔진은 SketchUp 을 부르지 않는다</b>
           <em>파이프라인 · 12_sketchup_plan · 13_sketchup_intake (신규)</em>
-          <span>3D 모델은 SketchUp 이 켜진 사람 자리(맥북, D-95)에서 만든다. 엔진이 하는 것은 두 가지다 — 계획(04_Property/model-plan.json, mm 단위)을 내고, 사람이 만든 결과(model-result.json)를 계획과 대조한다. 층수·연면적이 어긋나면 RED, AI 렌더에 「실제 설계안이 아님」 표기가 없으면 YELLOW 가 값 검증에 합쳐진다. 모델에서 나온 수량은 fact 로 올리지 않는다(D-96) — 두 Agent 의 facts 는 스키마가 빈 배열을 강제한다.</span>
+          <span>3D 모델은 SketchUp 이 켜진 사람 자리(맥북, D-95)에서 만든다. 엔진이 하는 것은 두 가지다 — 계획(04_Property/model-plan.json, mm 단위)을 내고, 사람이 만든 결과(model-result.json)를 계획과 대조한다. 층수·연면적이 어긋나면 RED, AI 렌더에 「실제 설계안이 아님」 표기가 없으면 YELLOW 가 값 검증에 합쳐진다. 모델에서 나온 수량은 fact 로 올리지 않는다(D-96) — 두 Agent 의 facts 는 스키마가 빈 배열을 강제한다. 계획의 층수·층고·건축면적은 09_massing 모델에서 그대로 옮긴다 — 계산 자리는 하나다.</span>
           <div class="upd__ba">
             <div class="upd__b"><em>전</em>3D 는 09_massing 의 매스 검토뿐 — SketchUp 모델로 잇는 자리가 없었다</div>
             <div class="upd__a"><em>후</em>계획 → (사람이 SketchUp/Veras) → 수령·대조 → 값 검증까지 한 줄로 이어진다</div>

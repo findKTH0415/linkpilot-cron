@@ -40,16 +40,25 @@ test.after(() => { fs.rmSync(store.projectDir(PID), { recursive: true, force: tr
 
 // ── 단계 2 · 계획 ──────────────────────────────────────────
 
-test('필수값이 있으면 계획이 나온다 — mm 로, facts 는 빈 배열로 (D-96)', async () => {
-  const out = await plan.run({ projectId: PID }, {
-    dataset: ds({ 'land.area_sqm': 12500, 'building.gfa_sqm': 9600, 'building.floors': 4, 'building.height_m': 18 }),
+/** 09_massing 이 낸 것과 같은 모양의 모델 — 계산 자리는 09 하나다 */
+function massingOut(over = {}) {
+  return {
+    model: { floors: 4, floorHeight: 4.5, footprintAreaSqm: 3200, footprintBasis: '시험 픽스처', ...over },
+    flags: [],
+    confidence: 0.9,
+  };
+}
+
+test('매스 모델이 있으면 계획이 나온다 — mm 로, facts 는 빈 배열로 (D-96)', async () => {
+  const out = await plan.run({ projectId: PID, massing: massingOut() }, {
+    dataset: ds({ 'land.area_sqm': 12500, 'building.gfa_sqm': 9600, 'building.height_m': 18 }),
     warn: noop.warn,
   });
   assert.deepStrictEqual(out.facts, [], 'D-96 — 모델 값은 fact 가 되지 않는다');
   assert.ok(out.plan, '계획이 나와야 한다');
   assert.strictEqual(out.plan.units, 'mm');
-  assert.strictEqual(out.plan.building.floors, 4);
-  assert.strictEqual(out.plan.building.floor_height_mm, 4500, '18m / 4층 → 4500mm');
+  assert.strictEqual(out.plan.building.floors, 4, '층수는 매스 모델에서 그대로 온다');
+  assert.strictEqual(out.plan.building.floor_height_mm, 4500, '4.5m → 4500mm');
   assert.ok(out.plan.building.footprint.width_mm > 1000, '길이가 mm 단위여야 한다 — m 로 남으면 천 배 작다');
   assert.strictEqual(out.plan.scale_status, 'VERIFIED');
   // 파일이 실제로 남는다
@@ -57,13 +66,13 @@ test('필수값이 있으면 계획이 나온다 — mm 로, facts 는 빈 배�
   assert.strictEqual(onDisk.created, out.plan.created);
 });
 
-test('대지면적이 없으면 계획을 내지 않는다 — MISSING 으로 적는다', async () => {
-  const out = await plan.run({ projectId: PID }, {
-    dataset: ds({ 'building.floors': 4 }),
+test('매스 모델이 없으면 계획을 내지 않는다 — 층수·건축면적을 여기서 다시 계산하지 않는다', async () => {
+  const out = await plan.run({ projectId: PID, massing: null }, {
+    dataset: ds({ 'land.area_sqm': 12500, 'building.gfa_sqm': 9600, 'building.floors': 4 }),
     warn: noop.warn,
   });
-  assert.strictEqual(out.plan, null);
-  assert.ok(out.missing.includes('land.area_sqm'));
+  assert.strictEqual(out.plan, null, 'dataset 에 값이 다 있어도 매스 없이는 계획을 만들지 않는다');
+  assert.ok(out.missing.includes('massing.model'));
   assert.ok(!fs.existsSync(path.join(propertyDir(), 'model-plan.json')), '반쪽 계획 파일이 남으면 안 된다');
   assert.ok(out.flags.some(f => f.type === 'PLAN_MISSING'));
 });
@@ -71,9 +80,9 @@ test('대지면적이 없으면 계획을 내지 않는다 — MISSING 으로 �
 test('매스가 RED(용적률 초과)면 계획을 내지 않는다 — 성립하지 않는 계획은 모델이 되지 않는다', async () => {
   const out = await plan.run({
     projectId: PID,
-    massing: { flags: [{ severity: 'RED', type: 'FAR_EXCEEDED', message: '초과' }] },
+    massing: { ...massingOut(), flags: [{ severity: 'RED', type: 'FAR_EXCEEDED', message: '초과' }] },
   }, {
-    dataset: ds({ 'land.area_sqm': 12500, 'building.gfa_sqm': 96000, 'building.floors': 4, 'building.height_m': 18 }),
+    dataset: ds({ 'land.area_sqm': 12500, 'building.gfa_sqm': 96000 }),
     warn: noop.warn,
   });
   assert.strictEqual(out.plan, null);
@@ -88,8 +97,8 @@ function writeResult(result) {
 }
 
 async function planThenIntake(result) {
-  const out = await plan.run({ projectId: PID }, {
-    dataset: ds({ 'land.area_sqm': 12500, 'building.gfa_sqm': 9600, 'building.floors': 4, 'building.height_m': 18 }),
+  const out = await plan.run({ projectId: PID, massing: massingOut() }, {
+    dataset: ds({ 'land.area_sqm': 12500, 'building.gfa_sqm': 9600, 'building.height_m': 18 }),
     warn: noop.warn,
   });
   writeResult({ plan_created: out.plan.created, ...result });
@@ -152,8 +161,8 @@ test('결과가 적은 파일이 폴더에 없으면 YELLOW — 있다는 사실
 });
 
 test('옛 계획의 결과면 YELLOW — plan_created 가 지문이다', async () => {
-  const out = await plan.run({ projectId: PID }, {
-    dataset: ds({ 'land.area_sqm': 12500, 'building.gfa_sqm': 9600, 'building.floors': 4, 'building.height_m': 18 }),
+  const out = await plan.run({ projectId: PID, massing: massingOut() }, {
+    dataset: ds({ 'land.area_sqm': 12500, 'building.gfa_sqm': 9600, 'building.height_m': 18 }),
     warn: noop.warn,
   });
   writeResult({ plan_created: '2026-01-01T00:00:00+09:00', model: { floors: 4, gfa_m2: 9600 }, files: [] });

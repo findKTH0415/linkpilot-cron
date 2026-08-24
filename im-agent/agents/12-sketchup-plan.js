@@ -10,11 +10,15 @@
  * ★ facts 는 **항상 빈 배열이다** (D-96). 계획·모델에서 나온 수량은 우리가
  *   만든 값이지 근거가 아니다 — rhino.js 와 같은 규칙.
  *
- * ★ 거절 규칙 (규격 §2): 대지면적·층수·층고 중 하나라도 못 얻으면
- *   MISSING 으로 적고 **계획 파일을 내지 않는다.** 매스가 용적률 상한을
+ * ★ **계산 자리는 09_massing 하나다** 〈2026-08-24 사장님 확인〉. 층수·층고·
+ *   건축면적을 여기서 다시 계산하지 않는다 — 같은 수를 두 곳에서 만들면
+ *   두 공식이 갈라지는 날이 오고, 그날 계획과 매스가 서로 다른 건물을 말한다.
+ *   이 Agent 는 09_massing 모델을 **계획 파일로 옮겨 적을 뿐이다.**
+ *
+ * ★ 거절 규칙 (규격 §2): 매스 모델이 없으면 계획도 없다. 매스가 용적률 상한을
  *   넘겨도(RED) 내지 않는다 — 성립하지 않는 계획은 모델이 되어선 안 된다.
  *
- * 전부 결정적 계산이다. LLM 미사용. 단위 변환(m→mm)은 여기 한 곳에서만 한다.
+ * 결정적 변환이다. LLM 미사용. 단위 변환(m→mm)은 여기 한 곳에서만 한다.
  */
 
 const fs = require('fs');
@@ -22,8 +26,6 @@ const path = require('path');
 const store = require('../core/store');
 const { round } = require('../core/numeric');
 const { kstStamp } = require('../core/kst');
-
-const DEFAULT_FLOOR_HEIGHT_M = 4.5; // 09_massing 과 같은 기준 (데이터센터·물류)
 
 const inputSchema = {
   type: 'object',
@@ -73,43 +75,31 @@ async function run(input, ctx) {
     return { facts, flags, plan: null, files: [], missing, confidence: 0 };
   }
 
-  // ── 필수값 — 없으면 MISSING 으로 적고 계획을 내지 않는다 ──
-  const landArea = ds.num('land.area_sqm');
-  if (landArea === null) missing.push('land.area_sqm');
-
-  const gfa = ds.num('building.gfa_sqm');
-  const bcrLimit = ds.num('land.bcr_limit');
-  const footprintFact = ds.num('building.footprint_sqm');
-  const footprintArea = footprintFact !== null
-    ? footprintFact
-    : (landArea !== null ? round(landArea * ((bcrLimit !== null ? bcrLimit : 60) / 100), 1) : null);
-
-  const floorsFact = ds.num('building.floors');
-  const floors = floorsFact !== null
-    ? Math.max(1, Math.round(floorsFact))
-    : (gfa !== null && footprintArea ? Math.max(1, Math.ceil(gfa / footprintArea)) : null);
-  if (floors === null) missing.push('building.floors');
-
-  const heightFact = ds.num('building.height_m');
-  const floorHeightM = heightFact !== null && floors
-    ? round(heightFact / floors, 2)
-    : (floorsFact !== null || gfa !== null ? DEFAULT_FLOOR_HEIGHT_M : null);
-  if (floorHeightM === null) missing.push('building.height_m');
-
-  if (missing.length) {
-    ctx.warn(`모델 계획 필수값 결측 — 계획을 내지 않는다: ${missing.join(', ')}`);
-    flags.push(flag('YELLOW', 'PLAN_MISSING', `모델 계획 필수값 ${missing.length}건 결측 (${missing.join(', ')}) — 계획 파일을 만들지 않았다`, { keys: missing }));
+  // ── 원천은 09_massing 모델이다 — 없으면 계획도 없다 ───────
+  const m = input.massing && input.massing.model;
+  if (!m || typeof m.floors !== 'number' || typeof m.floorHeight !== 'number' || typeof m.footprintAreaSqm !== 'number') {
+    missing.push('massing.model');
+    ctx.warn('매스 모델 없음 — 계획을 내지 않는다 (계산 자리는 09_massing 하나다)');
+    flags.push(flag('YELLOW', 'PLAN_MISSING', '09_massing 모델이 없어 계획 파일을 만들지 않았다 — 층수·층고·건축면적을 여기서 다시 계산하지 않는다', { keys: ['land.area_sqm'] }));
     return { facts, flags, plan: null, files: [], missing, confidence: 0 };
   }
 
+  const floors = m.floors;
+  const floorHeightM = m.floorHeight;
+  const footprintArea = m.footprintAreaSqm;
+  const landArea = ds.num('land.area_sqm');
+  const gfa = ds.num('building.gfa_sqm');
+  const bcrLimit = ds.num('land.bcr_limit');
+
   // ── 계획 조립 — 길이는 여기서 한 번만 m→mm ────────────────
-  const notes = ['매스만 만든다 — 도면 인식(D-98) 전이므로 objects 는 비어 있다'];
+  const notes = [
+    '층수·층고·건축면적은 09_massing 모델에서 그대로 옮겼다 — 같은 수를 두 곳에서 계산하지 않는다',
+    '매스만 만든다 — 도면 인식(D-98) 전이므로 objects 는 비어 있다',
+  ];
   const side = round(Math.sqrt(footprintArea), 2); // 직사각형 근사 — 형상은 매스(SVG)가 갖는다
-  if (footprintFact === null) {
-    notes.push(`건축면적 ${footprintArea}㎡ 는 대지면적×건폐율${bcrLimit !== null ? '' : '(통상 60% 가정)'} 산정치다`);
-  }
+  if (m.footprintBasis) notes.push(`건축면적 근거: ${m.footprintBasis}`);
   notes.push('footprint 는 건축면적 기준 정사각 근사 — 실제 필지 형상은 04_Property/massing.svg 를 본다');
-  if (heightFact === null) notes.push(`층고 ${floorHeightM}m 는 통상치(ASSUMPTION)다 — 도서로 확인되면 갱신한다`);
+  if (ds.num('building.height_m') === null) notes.push(`층고 ${floorHeightM}m 는 통상치(ASSUMPTION)다 — 도서로 확인되면 갱신한다`);
 
   const zoningFact = ds.get('land.zoning');
   const plan = {
@@ -149,8 +139,9 @@ async function run(input, ctx) {
     flags.push(flag('YELLOW', 'PLAN_WRITE_FAILED', `계획을 계산했으나 파일로 남기지 못했다: ${e.message}`));
   }
 
-  flags.push(flag('GREEN', 'PLAN', `모델 계획 생성 — 지상 ${floors}층 · 층고 ${floorHeightM}m · 건축면적 ${footprintArea}㎡`));
-  return { facts, flags, plan, files, missing, confidence: heightFact !== null ? 0.8 : 0.6 };
+  flags.push(flag('GREEN', 'PLAN', `모델 계획 생성 — 지상 ${floors}층 · 층고 ${floorHeightM}m · 건축면적 ${footprintArea}㎡ (원천: 09_massing)`));
+  const conf = typeof input.massing.confidence === 'number' ? input.massing.confidence : 0.6;
+  return { facts, flags, plan, files, missing, confidence: conf };
 }
 
 module.exports = { id: '12_sketchup_plan', inputSchema, outputSchema, run };
