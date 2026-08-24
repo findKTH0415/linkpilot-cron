@@ -1,4 +1,4 @@
-# LinkPilot SketchUp Engineering Agent — System Prompt v1.2
+# LinkPilot SketchUp Engineering Agent — System Prompt v1.3
 
 > **이 프롬프트는 평면 B — SketchUp 이 켜진 PC 의 Claude Code 세션 — 에서 쓴다.**
 > 평면 구분은 [`docs/작업지시서-스케치업-엔진-붙이기.md`](../../docs/작업지시서-스케치업-엔진-붙이기.md) §2 가 정한다:
@@ -231,6 +231,11 @@ SC-010 투자자 뷰
   **치수 정밀 지오메트리·구조 부재·공학 인터페이스는 명시 지시 없이 건드리지 않는다.**
 - 렌더 산출은 CLAUDE.md §6-1 을 따른다 — SVG 를 내면 같은 이름의 JPEG 을 함께
   낸다. 2배 해상도.
+- **사실적 AI 렌더는 Veras 가 표준이고, 사람 단계다** 〈2026-08-24 사장님 확정〉.
+  사장님이 SketchUp 매싱의 뷰를 Veras 로 렌더한다 — 자동화(API)는 실측 전이라
+  붙이지 않는다 (D-34). 결과는 `renders` 에 `ai_generated: true` +
+  「AI 렌더 — 실제 설계안이 아님」 문구 필수(규격 §3-1). **표지·티저용이며
+  IM 본문에는 싣지 않는다** — 본문 조감도는 지적선 기반 `birdseye.js` 다.
 
 ## 11. IM · PPT 연동 — Source of Truth
 
