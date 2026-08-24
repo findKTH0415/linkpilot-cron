@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="29552e91">
+<html lang="ko" data-lp-build="0beefd50">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -96,7 +96,21 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=29552e91">
+<link rel="stylesheet" href="tokens.css?v=0beefd50">
+<script>
+/* ★★★ **틀 안인지를 그리기 전에 정한다** 〈2026-08-25〉.
+ *   나중에 정하면 [저장] 막대가 **아래에 한 번 붙었다가 올라온다** — 그 깜빡임이
+ *   「자리가 흔들린다」로 읽힌다. 그래서 스타일보다 먼저, 뿌리에 표시만 남긴다.
+ * ★ 교차출처면 `window.top` 을 읽는 것 자체가 던진다 — 그때도 틀 안이다.
+ * ★ 검사 자신이 죽으면 안 된다. 통째로 try 로 감싼다. */
+(function () {
+  try {
+    var framed = true;
+    try { framed = window.top !== window.self; } catch (_) { framed = true; }
+    if (framed) document.documentElement.setAttribute('data-lp-inframe', '');
+  } catch (_) { /* 표시를 못 달아도 화면은 떠야 한다 */ }
+}());
+</script>
 <style>
 :root {
   --side: 248px;
@@ -328,6 +342,30 @@ ul { margin: 0; padding: 0; list-style: none; }
 .save__why { font-size: 13px; color: var(--bad-ink); font-weight: 600; }
 .save__ok { font-size: 13px; color: var(--ink2); }
 
+/**
+ * ★★★ **틀 안에서는 아래에 붙이지 않는다** 〈2026-08-25 사장님 화면:
+ *   「[저장] 배치가 너무 아래 동떨어져 배치됨」〉.
+ *
+ *   이 화면은 앱 안의 **틀(iframe)** 에서 돌고, 틀은 내용 높이만큼 늘어난다.
+ *   그 안에서 `position: fixed; bottom: 0` 은 **「보이는 화면의 아래」가 아니라
+ *   「틀의 아래」**다 — 사장님 화면처럼 **내용과 한참 떨어진 자리**에 선다.
+ *   그리고 그 아래로 앱의 다음 카드가 이어져 더 어색해진다.
+ *
+ * ★ 그래서 틀 안에서는 **흐름 안에 둔다** — 방금 채운 표 바로 밑이 제자리다.
+ *   아래 여백도 걷어 낸다(붙박이 막대 자리로 비워 둔 것이라 이제 필요 없다).
+ * ★ 혼자 뜬 판(브라우저에서 직접 연 판)은 그대로 붙박이로 둔다 — 긴 표에서
+ *   [저장]이 늘 보여야 한다.
+ */
+:root[data-lp-inframe] .save {
+  position: static; left: auto; right: auto;
+  margin: 18px 26px 0; max-width: 1028px;
+  border: 1px solid var(--line); border-radius: 14px;
+}
+:root[data-lp-inframe] .body { padding-bottom: 0; }
+@media (max-width: 900px) {
+  :root[data-lp-inframe] .save { margin: 16px 16px 0; max-width: none; }
+}
+
 @media (max-width: 900px) {
   .side { display: none; }
   .save { left: 0; }
@@ -381,12 +419,12 @@ ul { margin: 0; padding: 0; list-style: none; }
   </main>
 </div>
 
-<script src="gate-core.js?v=29552e91"></script>
-<script src="catalog.js?v=29552e91"></script>
-<script src="inapp.js?v=29552e91"></script>
-<script src="fields-core.js?v=29552e91"></script>
+<script src="gate-core.js?v=0beefd50"></script>
+<script src="catalog.js?v=0beefd50"></script>
+<script src="inapp.js?v=0beefd50"></script>
+<script src="fields-core.js?v=0beefd50"></script>
 <!-- ★ 판 지문을 화면에 보이게 찍는 것이 여기 있다 (§8) — 묶음에 이미 실리는 파일이다 -->
-<script src="flow-core.js?v=29552e91"></script>
+<script src="flow-core.js?v=0beefd50"></script>
 <script>
 /**
  * 설정 — 서버가 세션을 보고 이 블록을 만들어 내려주는 것이 정석이다.
@@ -401,7 +439,7 @@ window.LINKPILOT_FIELDS_CFG = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=29552e91" data-lp-global="LINKPILOT_FIELDS_CFG"></script>
+<script src="embed-bridge.js?v=0beefd50" data-lp-global="LINKPILOT_FIELDS_CFG"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -921,10 +959,18 @@ window.LINKPILOT_FIELDS_CFG = {
     return n;
   }
 
+  /**
+   * ★★★ **막대를 `body` 끝에 붙이지 않는다** 〈2026-08-25〉.
+   *   `.app` 은 `min-height: 100%` 라 **항상 한 화면 높이를 채운다.**
+   *   그 뒤에 붙이면 붙박이를 떼어도 막대가 **그대로 저 아래**에 선다 —
+   *   사장님이 보신 그 빈칸이 바로 이것이다.
+   * ★ 그래서 표가 들어 있는 `.main` 안에 넣는다. 붙박이(혼자 뜬 판)는
+   *   부모가 어디든 같은 자리에 서므로 둘 다 안전하다.
+   */
   function renderFooter() {
     var old = document.querySelector('.save');
     if (old) old.remove();
-    document.body.appendChild(footer());
+    (document.querySelector('.main') || document.body).appendChild(footer());
     var bar = document.getElementById('prog-fill');
     var num = document.getElementById('prog-n');
     if (bar && num && state.fields) {

@@ -20,6 +20,10 @@
  *   서버가 실제로 있다. 그때는 「못 쟀다」로 적고 **초록으로 끝내지 않는다** —
  *   재지 못한 것과 통과한 것은 다른 사실이다.
  *
+ * ★★ **넷으로 끝나지 않는다.** §8 이 요구한 넷이 바닥이고, 같은 결로 두 번
+ *   당한 것은 여기 한 칸으로 들어온다. 2026-08-25 에 [저장] 막대 자리가
+ *   그렇게 들어왔다 — 글자 대조로는 못 잡고 **좌표로만** 잡히는 결이었다.
+ *
  * ★ 되돌아오는 값: 0 전부 통과 · 1 실패 있음 · 2 못 잰 것이 있음
  */
 
@@ -146,10 +150,32 @@ function render() {
   add('헤드리스 렌더', 'ok', `화면 ${pages.length}개 전부 그려진다`);
 }
 
+/* ── ⑤ [저장] 막대가 제자리에 서는가 ───────────────────── */
+/**
+ * ★★★ **좌표로 잰다** 〈2026-08-25 사장님 화면: 「[저장] 배치가 너무 아래
+ *   동떨어져 배치됨」〉.
+ *
+ *   글자 대조로는 못 잡는 결이다 — `position: fixed` 는 어느 쪽에서도 똑같이
+ *   생겼고, **틀(iframe) 안에서만** 자리가 틀린다. 재 보니 막대 아래로
+ *   1946px 이 더 있었다. 그래서 진짜 틀에 넣고 그려서 잰다.
+ */
+function saveBar() {
+  let out = '';
+  let code = 0;
+  try {
+    out = sh('node im-agent/tools/probe-save-bar.js 2>&1');
+  } catch (e) {
+    out = String((e.stdout || '') + (e.stderr || ''));
+    code = e.status === undefined ? 1 : e.status;
+  }
+  const line = out.trim().split('\n').pop().replace(/^\[저장\] 막대 자리: /, '');
+  add('[저장] 막대 자리', code === 0 ? 'ok' : (code === 2 ? 'unknown' : 'fail'), line || '결과를 못 읽었다');
+}
+
 /* ── 내보내기 ──────────────────────────────────────────── */
 
 function main() {
-  tests(); stamp(); previews(); render();
+  tests(); stamp(); previews(); render(); saveBar();
 
   const mark = { ok: '✅', fail: '❌', unknown: '⚠️ ' };
   const pad = (s, n) => s + ' '.repeat(Math.max(0, n - [...s].reduce((a, c) => a + (c.charCodeAt(0) > 0x1100 ? 2 : 1), 0)));
@@ -171,9 +197,9 @@ function main() {
     process.stdout.write('⚠️  못 잰 것이 있다. 내보낼 때 **무엇을 못 쟀는지 말한다** (§8).\n');
     return 2;
   }
-  process.stdout.write('✅ 넷 다 통과 — 내보내도 된다.\n');
+  process.stdout.write(`✅ ${rows.length} 가지 다 통과 — 내보내도 된다.\n`);
   return 0;
 }
 
 if (require.main === module) process.exit(main());
-module.exports = { tests, stamp, previews, render, rows };
+module.exports = { tests, stamp, previews, render, saveBar, rows };
