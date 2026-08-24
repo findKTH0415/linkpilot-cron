@@ -42,6 +42,22 @@
    */
   var CHANGES = [
     {
+      at: '2026-08-24', where: '파이프라인 · 12_sketchup_plan · 13_sketchup_intake (신규)',
+      title: 'SketchUp 모델 계획·수령 Agent 둘을 붙였다 — 엔진은 SketchUp 을 부르지 않는다',
+      why: '3D 모델은 SketchUp 이 켜진 사람 자리(맥북, D-95)에서 만든다. 엔진이 '
+        + '하는 것은 두 가지다 — 계획(04_Property/model-plan.json, mm 단위)을 내고, '
+        + '사람이 만든 결과(model-result.json)를 계획과 대조한다. 층수·연면적이 '
+        + '어긋나면 RED, AI 렌더에 「실제 설계안이 아님」 표기가 없으면 YELLOW 가 '
+        + '값 검증에 합쳐진다. 모델에서 나온 수량은 fact 로 올리지 않는다(D-96) — '
+        + '두 Agent 의 facts 는 스키마가 빈 배열을 강제한다.',
+      shows: '진행 화면 「계산·검토」 단계에 Agent 가 둘 늘어 13개가 됐다. '
+        + '계획 파일 자체는 화면에 안 보인다 — im:demo 로그의 「모델 계획:」 줄과 '
+        + '프로젝트 폴더 04_Property/model-plan.json 로 확인한다. '
+        + '결과가 없을 때는 아무 표시도 없는 것이 정상이다(unavailable)',
+      was: '3D 는 09_massing 의 매스 검토뿐 — SketchUp 모델로 잇는 자리가 없었다',
+      now: '계획 → (사람이 SketchUp/Veras) → 수령·대조 → 값 검증까지 한 줄로 이어진다',
+    },
+    {
       at: '2026-08-22', where: '보고서 만들기 · 절 구성 (flow-core.js · report-flow.html)',
       title: '단계를 다섯으로 나누고, 맨 위 「진행률」 절과 안내 카드를 지웠다',
       why: '앞 판은 맨 위에 「값은 앱 안에서 받습니다」 카드가 있고 그 아래 ①이 '

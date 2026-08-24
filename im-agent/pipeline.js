@@ -430,6 +430,20 @@ async function run(opts = {}) {
     }
   }
 
+  // ── 12 SketchUp Plan / 13 Intake ──────────────────────────
+  // 평면 A 의 두 절반 — 계획을 내고, 사람이 만든 결과가 있으면 되받아 대조한다.
+  // SketchUp MCP 는 여기서 부르지 않는다 (D-95 — 자동 실행에는 연결이 없다).
+  const skPlan = await runAgent('12_sketchup_plan', { projectId, massing: massing.output || null }, ctx);
+  results['12_sketchup_plan'] = skPlan;
+  if (skPlan.output && skPlan.output.plan) {
+    log(`  모델 계획: 지상 ${skPlan.output.plan.building.floors}층 · 층고 ${skPlan.output.plan.building.floor_height_mm}mm → 04_Property/model-plan.json`);
+  }
+  const skIntake = await runAgent('13_sketchup_intake', { projectId, plan: (skPlan.output && skPlan.output.plan) || null }, ctx);
+  results['13_sketchup_intake'] = skIntake;
+  if (skIntake.output && skIntake.output.status === 'received') {
+    log(`  모델 수령: 파일 ${skIntake.output.result.files}건 · 렌더 ${skIntake.output.result.renders}건 · solid ${skIntake.output.result.solid || '미기재'}`);
+  }
+
   // ── 05 Cross Validation ───────────────────────────────────
   const val = await runAgent('05_validation', {
     projectId,
@@ -438,6 +452,8 @@ async function run(opts = {}) {
     geo: geo.output || null,
     appraisal: appraisal.output || null,
     massing: massing.output || null,
+    sketchup: skIntake.output || null,
+    sketchupPlan: skPlan.output || null,
   }, ctx);
   results['05_validation'] = val;
   if (val.output) {

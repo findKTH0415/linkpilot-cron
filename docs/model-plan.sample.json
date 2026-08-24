@@ -1,7 +1,7 @@
 {
   "schema": "model-plan/1",
   "project_id": "LP-DEMO-2026-000",
-  "created": "2026-08-24 21:00 KST",
+  "created": "2026-08-24T21:00:00+09:00",
   "units": "mm",
   "scale_status": "VERIFIED",
   "_notice": "예시 데이터다. 실제 프로젝트 값이 아니다 — 규격 문서(docs/스케치업-모델-계획-규격.md)의 손으로 쓴 견본이며, 맥북 절차서의 첫 연습에 쓴다.",

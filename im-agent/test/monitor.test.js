@@ -112,7 +112,7 @@ test('파이프라인 실행 후 Control Tower 4개 트랙이 채워진다', asy
   assert.ok(snap.tracks.output.pct > 0, '산출 트랙');
   assert.strictEqual(snap.tracks.approval.pct, 0, '승인 전');
   assert.ok(snap.overall < snap.tracks.production.pct, '전체는 제작 진행률보다 낮아야 한다');
-  assert.strictEqual(snap.agents.length, 11);
+  assert.strictEqual(snap.agents.length, 13);
   assert.ok(snap.bottleneck, '병목이 탐지된다');
   assert.ok(fs.existsSync(path.join(store.projectDir(PID), '01_Project/control-tower.json')));
 });

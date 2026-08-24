@@ -40,7 +40,7 @@
     { id: 'public', label: '공부·시장 조회', why: '지적·건축물대장·인허가·금리·시세를 독립된 출처에서 받아옵니다',
       agents: ['07_geo', '03_research'] },
     { id: 'calc', label: '계산·검토', why: '재무모델·감정평가·매스 검토를 돌립니다 (숫자는 함수가 만듭니다)',
-      agents: ['04_financial', '08_appraisal', '09_massing'] },
+      agents: ['04_financial', '08_appraisal', '09_massing', '12_sketchup_plan', '13_sketchup_intake'] },
     { id: 'check', label: '값 검증', why: '값 충돌·범위·정합성을 봅니다 — RED 가 있으면 배포가 막힙니다',
       agents: ['05_validation'] },
     { id: 'write', label: '문서 만들기', why: 'IM 본문·Teaser·출처표를 씁니다 (숫자는 자리표시자로만)',
