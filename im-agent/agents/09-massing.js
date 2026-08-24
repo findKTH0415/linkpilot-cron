@@ -230,6 +230,10 @@ async function run(input, ctx) {
       heightM: round(built.height, 2),
       footprintAreaSqm: round(geometry.planarArea(footprint), 1),
       footprintBasis,
+      // 계산 자리는 여기 하나다 (D-99) — 12_sketchup_plan 이 이 링을 그대로 옮긴다.
+      // 로컬 미터좌표. parcelRing 은 축소하지 않은 실제 지적선, 없으면 null.
+      footprintRing: footprint.map(([x, y]) => [round(x, 2), round(y, 2)]),
+      parcelRing: parcelLocal ? parcelLocal.map(([x, y]) => [round(x, 2), round(y, 2)]) : null,
       vertices: built.meta.vertices,
       triangles: built.meta.triangles,
       note: '용적률·건폐율 검토용 매스이며 설계안이 아니다',

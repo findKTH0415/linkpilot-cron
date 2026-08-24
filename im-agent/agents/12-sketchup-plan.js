@@ -90,6 +90,7 @@ async function run(input, ctx) {
   const landArea = ds.num('land.area_sqm');
   const gfa = ds.num('building.gfa_sqm');
   const bcrLimit = ds.num('land.bcr_limit');
+  const mi = input.massing.inputs || {};
 
   // ── 계획 조립 — 길이는 여기서 한 번만 m→mm ────────────────
   const notes = [
@@ -100,6 +101,60 @@ async function run(input, ctx) {
   if (m.footprintBasis) notes.push(`건축면적 근거: ${m.footprintBasis}`);
   notes.push('footprint 는 건축면적 기준 정사각 근사 — 실제 필지 형상은 04_Property/massing.svg 를 본다');
   if (ds.num('building.height_m') === null) notes.push(`층고 ${floorHeightM}m 는 통상치(ASSUMPTION)다 — 도서로 확인되면 갱신한다`);
+
+  // ── 지적도형 — 매스가 옮겨 준 링을 mm 로 (바닥은 이 형상 그대로 그린다) ──
+  const ringMm = (ring) => ring.map(([x, y]) => [Math.round(x * 1000), Math.round(y * 1000)]);
+  const parcelPoly = m.parcelRing ? ringMm(m.parcelRing) : null;
+  const footprintPoly = m.footprintRing ? ringMm(m.footprintRing) : null;
+  if (!parcelPoly) {
+    notes.push('지적선 미확보 — 바닥은 부지 근사 형상이다 (VWORLD_KEY 설정 시 실제 필지 형상)');
+  }
+
+  // ── 법정 분석 — 09_massing 이 검토한 값을 동봉한다 (fact 아님, 표기용) ──
+  const legal = {
+    far_limit_pct: mi.farLimit !== undefined ? mi.farLimit : ds.num('land.far_limit'),
+    bcr_limit_pct: mi.bcrLimit !== undefined ? mi.bcrLimit : bcrLimit,
+    far_planned_pct: mi.farPlanned !== undefined ? mi.farPlanned : null,
+    bcr_planned_pct: mi.bcrPlanned !== undefined ? mi.bcrPlanned : null,
+    gfa_allowed_m2: mi.gfaAllowedSqm !== undefined ? mi.gfaAllowedSqm : null,
+    basis: mi.limitSource || null,
+    // RED 였으면 계획 자체를 안 냈으므로(위) 여기 오면 초과는 아니다
+    verdict: mi.farLimit !== null && mi.farLimit !== undefined ? 'WITHIN_LIMITS' : 'LIMIT_UNVERIFIED',
+  };
+
+  // ── 자산군 개념 배치 — 아파트면 요즘 판상형 배치를 그린다 〈2026-08-25 사장님 지시〉
+  // ★ 설계안이 아니다. 통상치(ASSUMPTION)로 그리는 개념 배치이고 fact 가 되지 않는다.
+  //   가정 파라미터 확정은 D-100. 통상치: 판상형 깊이 13m · 인동계수 0.8 · 폭 사용률 0.8
+  const objects = [];
+  const assetFact = ds.get('project.assetType');
+  const asset = assetFact ? String(assetFact.value) : '';
+  const isApt = /아파트|주거|공동주택|apartment|residential/i.test(asset);
+  if (isApt && footprintPoly && footprintPoly.length >= 3) {
+    const xs = footprintPoly.map(p => p[0]);
+    const ys = footprintPoly.map(p => p[1]);
+    const bbW = Math.max(...xs) - Math.min(...xs);
+    const bbH = Math.max(...ys) - Math.min(...ys);
+    const barDepth = 13000;                               // 판상형 통상 깊이 13m (ASSUMPTION)
+    const barLen = Math.round(bbW * 0.8);                 // 폭 사용률 0.8 (ASSUMPTION)
+    const spacing = Math.round(floors * floorHeightM * 1000 * 0.8); // 인동계수 0.8 (ASSUMPTION — 조례 확인 필요)
+    const byHeight = Math.max(1, Math.floor((bbH - barDepth) / (barDepth + spacing)) + 1);
+    const byArea = Math.max(1, Math.floor((footprintArea * 1e6) / (barDepth * barLen)));
+    const nBars = Math.max(1, Math.min(byHeight, byArea));
+    const x0 = Math.min(...xs) + Math.round((bbW - barLen) / 2);
+    for (let i = 0; i < nBars; i++) {
+      objects.push({
+        object_id: `BAR-${String(i + 1).padStart(3, '0')}`,
+        type: 'building_bar',
+        name: `판상형 ${String.fromCharCode(65 + i)}동 (개념 배치)`,
+        floor: 0,
+        x: x0, y: Math.min(...ys) + i * (barDepth + spacing), z: 0,
+        width: barLen, depth: barDepth, height: Math.round(floors * floorHeightM * 1000),
+        source: { fact: 'project.assetType', origin: '개념 배치 — 통상치(ASSUMPTION), 설계안 아님 (D-100)' },
+      });
+    }
+    notes.push(`아파트 개념 배치 ${nBars}개 동 — 판상형 깊이 13m·인동계수 0.8·폭 사용률 0.8 은 전부 통상치(ASSUMPTION)다. 설계안이 아니다 (D-100)`);
+    notes.push('objects 가 있으면 3D 는 단일 매스 대신 objects(동 배치)를 올린다. building 블록은 법정 총량 검토값이다');
+  }
 
   const zoningFact = ds.get('land.zoning');
   const plan = {
@@ -113,6 +168,7 @@ async function run(input, ctx) {
       zoning: zoningFact ? String(zoningFact.value) : null,
       far_limit_pct: ds.num('land.far_limit'),
       bcr_limit_pct: bcrLimit,
+      parcel_polygon_mm: parcelPoly,
       source: srcOf(ds, 'land.area_sqm'),
     },
     building: {
@@ -120,10 +176,12 @@ async function run(input, ctx) {
       basement_floors: 0,
       floor_height_mm: Math.round(floorHeightM * 1000),
       footprint: { width_mm: Math.round(side * 1000), depth_mm: Math.round(side * 1000) },
+      footprint_polygon_mm: footprintPoly,
       gfa_m2: gfa,
       source: srcOf(ds, gfa !== null ? 'building.gfa_sqm' : 'land.area_sqm'),
     },
-    objects: [],
+    legal,
+    objects,
     missing: [],
     notes,
   };

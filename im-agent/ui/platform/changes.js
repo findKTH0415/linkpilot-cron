@@ -42,6 +42,21 @@
    */
   var CHANGES = [
     {
+      at: '2026-08-25', where: '파이프라인 · 12_sketchup_plan (지적도형·법정 분석·개념 배치)',
+      title: '모델 계획이 지적도형 바닥·법정 분석·아파트 개념 배치를 담는다',
+      why: '전에는 계획이 정사각 근사 치수뿐이었다. 이제 09_massing 이 지적도'
+        + '(VWorld)에서 만든 필지·건축면적 링을 mm 폴리곤으로 옮겨 바닥을 실제 '
+        + '땅 모양으로 그리고, 용적률·건폐율 법정 분석(legal)을 동봉하며, '
+        + '자산유형이 아파트면 판상형 동 배치를 개념으로 그린다. 판상형 깊이 '
+        + '13m·인동계수 0.8·폭 사용률 0.8 은 통상치(ASSUMPTION, D-100)이고 '
+        + '설계안이 아니다. 어떤 값도 fact 가 되지 않는다(D-96).',
+      shows: '화면에 안 보인다 — 04_Property/model-plan.json 의 parcel_polygon_mm'
+        + '·legal·objects 필드와 sketchup.test.js 11건으로 확인한다. '
+        + '지적선이 없으면(키 미설정) 폴리곤은 null 이고 notes 에 사유가 적힌다',
+      was: '계획 = 정사각 근사 footprint + 층수·층고',
+      now: '계획 = 지적 폴리곤 바닥 + 법정 분석 + (아파트) 판상형 개념 배치',
+    },
+    {
       at: '2026-08-24', where: '파이프라인 · 12_sketchup_plan · 13_sketchup_intake (신규)',
       title: 'SketchUp 모델 계획·수령 Agent 둘을 붙였다 — 엔진은 SketchUp 을 부르지 않는다',
       why: '3D 모델은 SketchUp 이 켜진 사람 자리(맥북, D-95)에서 만든다. 엔진이 '

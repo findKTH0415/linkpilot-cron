@@ -89,6 +89,50 @@ test('매스가 RED(용적률 초과)면 계획을 내지 않는다 — 성립�
   assert.ok(out.flags.some(f => f.type === 'PLAN_SKIPPED'));
 });
 
+test('지적 링과 법정 분석이 계획에 옮겨진다 — mm 폴리곤·legal 블록 (2026-08-25 지시)', async () => {
+  const out = await plan.run({
+    projectId: PID,
+    massing: {
+      ...massingOut({
+        footprintRing: [[0, 0], [56.57, 0], [56.57, 56.57], [0, 56.57]],
+        parcelRing: [[-10, -5], [140, -10], [150, 80], [70, 120], [-15, 90]],
+      }),
+      inputs: { farLimit: 350, bcrLimit: 70, farPlanned: 76.8, bcrPlanned: 25.6, gfaAllowedSqm: 43750, limitSource: '국토계획법 시행령(일반공업지역)' },
+    },
+  }, {
+    dataset: ds({ 'land.area_sqm': 12500, 'building.gfa_sqm': 9600, 'building.height_m': 18 }),
+    warn: noop.warn,
+  });
+  assert.ok(out.plan.site.parcel_polygon_mm, '지적선이 계획에 실려야 한다');
+  assert.deepStrictEqual(out.plan.site.parcel_polygon_mm[1], [140000, -10000], 'm → mm 변환');
+  assert.strictEqual(out.plan.building.footprint_polygon_mm.length, 4);
+  assert.strictEqual(out.plan.legal.verdict, 'WITHIN_LIMITS');
+  assert.strictEqual(out.plan.legal.far_planned_pct, 76.8);
+  assert.deepStrictEqual(out.plan.objects, [], '데이터센터(자산유형 미지정)에는 개념 배치를 그리지 않는다');
+});
+
+test('아파트면 판상형 개념 배치가 나온다 — ASSUMPTION 표기와 함께, fact 는 여전히 빈 배열 (D-100)', async () => {
+  const out = await plan.run({
+    projectId: PID,
+    massing: massingOut({
+      floors: 20, floorHeight: 2.9,
+      footprintAreaSqm: 5000,
+      footprintRing: [[0, 0], [100, 0], [100, 180], [0, 180]],
+      parcelRing: [[-5, -5], [110, -5], [110, 190], [-5, 190]],
+    }),
+  }, {
+    dataset: ds({ 'land.area_sqm': 12500, 'building.gfa_sqm': 60000, 'project.assetType': '아파트' }),
+    warn: noop.warn,
+  });
+  assert.deepStrictEqual(out.facts, [], 'D-96 — 개념 배치도 fact 가 아니다');
+  assert.ok(out.plan.objects.length >= 1, '판상형 동이 최소 하나');
+  const bar = out.plan.objects[0];
+  assert.strictEqual(bar.type, 'building_bar');
+  assert.strictEqual(bar.depth, 13000, '판상형 통상 깊이 13m');
+  assert.ok(/ASSUMPTION/.test(bar.source.origin), '통상치임이 출처에 박혀야 한다');
+  assert.ok(out.plan.notes.some(n => /설계안이 아니다/.test(n)), '설계안 아님 표기');
+});
+
 // ── 단계 4 · 수령 ──────────────────────────────────────────
 
 function writeResult(result) {
