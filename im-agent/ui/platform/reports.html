@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="29b573ca">
+<html lang="ko" data-lp-build="c3c87417">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -93,7 +93,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=29b573ca">
+<link rel="stylesheet" href="tokens.css?v=c3c87417">
 <style>
 :root {
   --side: 248px;
@@ -400,14 +400,14 @@ ul { margin: 0; padding: 0; list-style: none; }
   <a class="bot__i on" href="#"><b>☰</b>더보기</a>
 </nav>
 
-<script src="gate-core.js?v=29b573ca"></script>
-<script src="catalog.js?v=29b573ca"></script>
-<script src="inapp.js?v=29b573ca"></script>
-<script src="live-core.js?v=29b573ca"></script>
+<script src="gate-core.js?v=c3c87417"></script>
+<script src="catalog.js?v=c3c87417"></script>
+<script src="inapp.js?v=c3c87417"></script>
+<script src="live-core.js?v=c3c87417"></script>
 <!-- ★ 판 지문을 화면에 보이게 찍는 것이 여기 있다 (§8) — 묶음에 이미 실리는 파일이다 -->
-<script src="flow-core.js?v=29b573ca"></script>
+<script src="flow-core.js?v=c3c87417"></script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=29b573ca" data-lp-global="LINKPILOT_REPORTS"></script>
+<script src="embed-bridge.js?v=c3c87417" data-lp-global="LINKPILOT_REPORTS"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -1271,7 +1271,19 @@ window.LINKPILOT_REPORTS = Object.assign({
     var badge = el('span', 'live__st live__st--' + v.state, v.headline);
     head.appendChild(badge);
     box.appendChild(head);
-    if (v.note) box.appendChild(el('p', 'card__s', v.note));
+    /* ★ 멈춘 까닭은 **빨갛게** 머리말 바로 밑에 놓는다. 회색 안내문으로 적으면
+     *   「그냥 설명」으로 읽혀 넘어간다 (2026-08-24 · 까닭이 아예 없던 자리다). */
+    if (v.note) {
+      var nt = el('p', 'card__s', v.note);
+      if (v.stopped && v.stopped.length) {
+        nt.style.background = 'var(--bad-soft, #fdecec)';
+        nt.style.color = 'var(--bad-ink, #C00000)';
+        nt.style.padding = '10px 12px';
+        nt.style.borderRadius = '8px';
+        nt.style.fontWeight = '700';
+      }
+      box.appendChild(nt);
+    }
 
     // 진행률 — ★ 모를 때는 막대를 그리지 않는다. 0% 막대는 '멈춰 있다'로 읽힌다
     if (v.pct !== null) {

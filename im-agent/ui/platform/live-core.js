@@ -29,7 +29,7 @@
    *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다. 화면이 자기
    *   지문과 대 보고 다르면 「함수가 없다」로 죽기 전에 사람 말로 알린다.
    */
-  var LP_BUILD = '29b573ca';
+  var LP_BUILD = 'c3c87417';
 
   /**
    * 제작 과정을 사람이 아는 말로 묶은 카테고리.
@@ -160,6 +160,7 @@
           tone: toneOf(a ? a.status : 'WAITING'),
           elapsed: a ? ms(a.elapsedMs) : null,
           running: !!a && a.status === 'RUNNING',
+          error: a && a.error ? String(a.error) : null,
         };
       });
       var worst = items.reduce(function (t, it) {
@@ -181,6 +182,24 @@
     var finished = !!(snap.timing && snap.timing.finishedAt);
     var hasError = phases.some(function (p) { return p.tone === 'bad'; });
 
+    /**
+     * ★★★ **어디서 멈췄는지 말한다** 〈2026-08-24 사장님 화면: 47% 에서
+     *   「생성 중 문제가 생겼습니다」 · 까닭이 한 줄도 없었다〉.
+     *
+     *   그때 화면이 준 것은 머리말 한 줄과 경고 몇 줄뿐이었다. 실패한 Agent 와
+     *   그 까닭은 **서버가 이미 들고 있었는데**(monitor 의 각 Agent 기록)
+     *   화면이 안 꺼내 썼다. 그래서 사진을 보고도 원인을 못 찾았다.
+     *
+     * ★ Agent 이름(`06_im_writer`)이 아니라 **단계 이름**으로 말한다 — 사용자가
+     *   아는 말이 그것이다. 까닭이 비어 있으면 **비었다고** 적는다.
+     */
+    var stopped = [];
+    phases.forEach(function (p) {
+      p.items.forEach(function (it) {
+        if (it.tone === 'bad') stopped.push({ phase: p.label, id: it.id, error: it.error });
+      });
+    });
+
     var state = 'running';
     if (hasError) state = 'failed';
     else if (finished) state = 'done';
@@ -192,7 +211,14 @@
         : runningPhase ? (runningPhase.label + ' 중입니다')
           : '진행 중입니다';
 
-    var problems = [];
+    /* ★ 머리말 바로 밑(note)에 첫 까닭을 놓는다 — 아래로 스크롤해야 보이면 안 본다.
+     *   나머지는 problems 로 내린다. 같은 줄을 두 곳에 적지 않는다. */
+    var stopLines = stopped.map(function (x) {
+      return x.phase + ' 에서 멈췄습니다 — '
+        + (x.error || '까닭이 기록되지 않았습니다. [IM 제작현황]의 활동 기록을 보세요.');
+    });
+
+    var problems = stopLines.slice(1);
     if (snap.bottleneck) problems.push('가장 오래 걸리는 곳: ' + String(snap.bottleneck.label || snap.bottleneck.id || snap.bottleneck));
     (snap.tracks && snap.tracks.validation && snap.tracks.validation.critical
       ? ['검증 RED ' + snap.tracks.validation.critical + '건 — 이대로는 배포가 막힙니다'] : [])
@@ -202,7 +228,9 @@
     return {
       state: state,
       headline: headline,
-      note: runningPhase ? runningPhase.why : (snap.timing && snap.timing.note) || '',
+      note: stopLines.length ? stopLines[0]
+        : (runningPhase ? runningPhase.why : (snap.timing && snap.timing.note) || ''),
+      stopped: stopped,
       pct: typeof snap.overall === 'number' ? snap.overall : null,
       current: snap.currentAgent || null,
       phases: phases,
@@ -223,11 +251,11 @@
           id: p.id, label: p.label, why: p.why, tone: 'idle',
           running: false, done: false, doneCount: 0, total: p.agents.length,
           items: p.agents.map(function (id) {
-            return { id: id, status: 'WAITING', label: '대기', tone: 'idle', elapsed: null, running: false };
+            return { id: id, status: 'WAITING', label: '대기', tone: 'idle', elapsed: null, running: false, error: null };
           }),
         };
       }),
-      activity: [], elapsed: null, remaining: null, problems: [],
+      activity: [], elapsed: null, remaining: null, problems: [], stopped: [],
     };
   }
 
