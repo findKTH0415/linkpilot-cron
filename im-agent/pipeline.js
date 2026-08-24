@@ -61,6 +61,40 @@ function mergeExtraction(projectId, dataset, out, opts = {}) {
   saveDataset(projectId, dataset);
   // ※ 메타파일은 02_Source_Data 밖에 쓴다 — 원본자료 폴더를 오염시키면 다음 실행에서 자신을 다시 읽는다
   // 부분 추출(extractInto)일 때 이전 문서 목록을 지우지 않는다 — 같은 이름은 새것으로 바꾼다
+  /**
+   * ★★★ **아무것도 안 읽었으면 기록을 덮지 않는다** 〈2026-08-25 · 실측으로 찾았다〉.
+   *
+   *   1회성으로 올린 자료를 스캔하면 값은 `dataset.json` 에 **그대로 남는다** —
+   *   실측했다(3개 뽑고 원본을 지운 뒤에도 3개가 살아 있었다). 그러니
+   *   「원본을 지워서 값이 사라진다」는 말은 **사실이 아니다.**
+   *
+   *   ★ 사라지는 것은 **읽었다는 기록**이다. 그 뒤 보고서를 생성하면
+   *     `02_Source_Data` 가 비어 있으니 02 가 0건을 돌려주고, 그 0 이
+   *     `extraction.json` 을 **`factCount: 0` 으로 덮어썼다.**
+   *
+   *   ★★ 그러면 화면이 「자료 N건을 읽어 값 M개를 뽑았다」를 **못 말한다.**
+   *     값은 멀쩡히 있는데 화면은 읽은 적이 없다고 한다 — M-32 · M-34 와
+   *     똑같은 결이다. **지울 것이 없는데 기록만 지운 것이다.**
+   *
+   * ★ 그래서 **이번 실행이 아무것도 안 읽었으면 그대로 둔다.** 덮는 것은
+   *   실제로 읽은 것이 있을 때뿐이다.
+   */
+  const readNothing = !out.documents.length && !out.facts.length;
+  const kept = readNothing ? store.readJson(projectId, '01_Project/extraction.json', null) : null;
+  if (kept) {
+    /* ★ 다만 **못 읽은 것은 새로 적는다.** 「연결 자료가 안 붙어 있다」 같은
+     *   경고는 이번 실행의 사실이라 앞 판 것을 그대로 두면 안 된다 —
+     *   조기 반환으로 이것까지 삼켰다가 검사가 잡았다 */
+    store.writeJson(projectId, '01_Project/extraction.json', {
+      at: kept.at || kstStamp(),
+      documents: kept.documents || [],
+      unsupported: out.unsupported,
+      factCount: kept.factCount || 0,
+    });
+    log(`  추출: 이번에는 읽은 것이 없다 — 앞서 읽은 기록(자료 ${(kept.documents || []).length}건 · 값 ${kept.factCount || 0}개)을 그대로 둔다`);
+    return { facts: [], documents: [], unsupported: out.unsupported };
+  }
+
   const prev = opts.merge ? (store.readJson(projectId, '01_Project/extraction.json', null) || {}) : {};
   const byName = new Map((prev.documents || []).map(d => [d.name, d]));
   for (const d of out.documents) byName.set(d.name, d);
