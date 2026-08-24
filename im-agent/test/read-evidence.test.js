@@ -61,7 +61,56 @@ test('★★ 빈 값은 세지 않는다 — 0 과 빈 칸은 다르다', () => 
 
 test('★ 자료가 없으면 0 으로 답한다 — 던지지 않는다', () => {
   const ev = F.readEvidence(null, null);
-  assert.deepStrictEqual(ev, { total: 0, bySource: [], unusedFiles: [], noSource: 0 });
+  assert.deepStrictEqual(ev, {
+    total: 0, bySource: [], unusedFiles: [], noSource: 0,
+    collected: 0, analyzed: 0, unknownOrigin: 0,
+  });
+});
+
+/**
+ * ★★★ **「자료에서 읽었다」가 거짓말이었다** 〈2026-08-25 사장님: 「스캔, 읽는
+ *   흉내만 내지 실제 판독을 하지않음 거짓」〉.
+ *
+ *   화면이 「3 개의 값을 **자료에서 읽었습니다**」라고 적고 있었는데, 그 셋은
+ *   **전부 `user_request`** — 사장님이 요청문에 쓰신 말이었다. 문서에서 읽은
+ *   값은 **하나도 없었다.**
+ *
+ * ★ 이 저장소의 존재 이유가 그 구분이다. **사용자가 말했다는 것은 문서로
+ *   확인됐다는 뜻이 아니다.** 그 구분을 화면이 뭉개면 시스템 전체가 뜻을 잃는다.
+ */
+test('★★★ 요청문에서 뽑은 값을 「자료에서 읽었다」로 세지 않는다', () => {
+  const ev = F.readEvidence({
+    a: { value: 1, source: '사업계획서.pdf', origin: 'document' },
+    b: { value: 2, source: 'user_request', origin: 'request' },
+    c: { value: 3, source: '통상치', origin: 'derived' },
+    d: { value: 4, source: '건축물대장', origin: 'public' },
+  }, []);
+  assert.strictEqual(ev.collected, 1, '문서에서 읽은 값만 수집자료로 세야 한다');
+  assert.strictEqual(ev.analyzed, 3, '요청문·통상치·공공데이터는 자체분석자료다');
+  assert.strictEqual(ev.total, 4, '합계는 그대로다');
+});
+
+test('★★★ 출처 등급을 모르면 **모른다고 둔다** — 「읽었다」로 안 센다', () => {
+  const ev = F.readEvidence({ a: { value: 1, source: 'x' } }, []);
+  assert.strictEqual(ev.collected, 0,
+    '모르는 것을 자료에서 읽은 것으로 셌다 — 지금 잡은 그 잘못이다');
+  assert.strictEqual(ev.analyzed, 0);
+  assert.strictEqual(ev.unknownOrigin, 1, '모른다는 사실을 안 남긴다');
+});
+
+test('★★ 화면이 두 숫자를 나란히 적고, 내부 이름을 노출하지 않는다', () => {
+  const fs2 = require('node:fs');
+  const path2 = require('node:path');
+  const src = fs2.readFileSync(
+    path2.join(__dirname, '..', 'ui', 'platform', 'fields.html'), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  assert.ok(src.indexOf("'개 수집자료'") !== -1, '수집자료 수를 안 적는다');
+  assert.ok(src.indexOf("'개 자체분석자료'") !== -1, '자체분석자료 수를 안 적는다');
+  assert.ok(src.indexOf('개의 값을 자료에서 읽었습니다') === -1,
+    '거짓말하던 문구가 그대로 남아 있다');
+  /* ★ 자료별 세로 나열을 뺐다 — `user_request` 같은 내부 이름이 그대로 떴다 */
+  assert.ok(!/ev\.bySource\.forEach/.test(src),
+    '자료별 줄을 아직 그린다 — 내부 이름이 그대로 노출된다');
 });
 
 test('★★★ 자료에서 읽은 값과 자동으로 채운 값을 가른다', () => {

@@ -24,7 +24,7 @@
    *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다. 화면이 자기
    *   지문과 대 보고 다르면 「함수가 없다」로 죽기 전에 사람 말로 알린다.
    */
-  var LP_BUILD = '2fd219a3';
+  var LP_BUILD = '7ccb1b42';
 
   /** 화면에 놓는 순서. 사전의 CATEGORY 값과 같은 문자열을 쓴다 */
   var CATEGORY_ORDER = [
@@ -388,7 +388,40 @@
     bySource.forEach(function (b) { used[b.source] = true; });
     var unusedFiles = (files || []).filter(function (f) { return f && !used[f]; });
 
-    return { total: total, bySource: bySource, unusedFiles: unusedFiles, noSource: noSource };
+    /**
+     * ★★★ **「자료에서 읽었다」와 「우리가 만들었다」를 가른다**
+     *   〈2026-08-25 사장님: 「스캔, 읽는 흉내만 내지 실제 판독을 하지않음 거짓」〉.
+     *
+     *   앞 판은 값이 있으면 전부 「자료에서 읽었습니다」로 셌다. 그런데 사장님
+     *   화면의 셋은 **전부 `user_request`** 였다 — 요청문에 쓰신 말이지
+     *   문서에서 읽은 것이 아니다. 자료를 한 글자도 못 읽은 상태에서
+     *   **「자료에서 3개를 읽었습니다」**라고 적고 있었다.
+     *
+     * ★ 이 저장소의 존재 이유가 그 구분이다 — **사용자가 말했다는 것은 문서로
+     *   확인됐다는 뜻이 아니다** (`intake.html` 머리 주석). 화면이 그걸 뭉갰다.
+     *
+     * ★ 그래서 둘로 센다.
+     *   - **수집자료** — 올린 문서에서 읽은 값 (`origin === 'document'`)
+     *   - **자체분석자료** — 요청문·공공데이터·계산으로 만든 값 (나머지)
+     * ★ `origin` 을 안 주는 옛 서버가 있을 수 있다. 그때는 **모른다고 둔다** —
+     *   모르는 것을 「자료에서 읽었다」로 세는 것이 지금 잡은 그 잘못이다.
+     */
+    var collected = 0;
+    var analyzed = 0;
+    var unknownOrigin = 0;
+    Object.keys(values || {}).forEach(function (key) {
+      var e = values[key];
+      if (!e || e.value === '' || e.value === null || e.value === undefined) return;
+      var o = e.origin;
+      if (o === 'document') collected++;
+      else if (o) analyzed++;
+      else unknownOrigin++;
+    });
+
+    return {
+      total: total, bySource: bySource, unusedFiles: unusedFiles, noSource: noSource,
+      collected: collected, analyzed: analyzed, unknownOrigin: unknownOrigin,
+    };
   }
 
   /**

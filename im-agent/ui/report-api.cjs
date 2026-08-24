@@ -1200,6 +1200,18 @@ function createHandlers(deps) {
           values[key] = {
             value: f.value, source: f.source, sourceDate: f.sourceDate,
             page: f.page, confidence: f.confidence, verified: f.verified,
+            /* ★★★ **어디서 온 값인지를 화면에 넘긴다** 〈2026-08-25 사장님:
+             *   「스캔, 읽는 흉내만 내지 실제 판독을 하지않음 거짓」〉.
+             *
+             *   화면이 「N 개의 값을 **자료에서 읽었습니다**」라고 적으면서
+             *   **요청문에서 뽑은 값까지 세고 있었다.** 사장님 화면의 셋은
+             *   전부 `user_request` 였다 — 자료에서 읽은 것이 하나도 없는데
+             *   「자료에서 읽었다」고 적은 것이다.
+             *
+             * ★ 이 저장소의 전부가 그 구분이다 — **사용자가 말했다는 것은
+             *   문서로 확인됐다는 뜻이 아니다.** 화면이 그걸 뭉갰다. */
+            origin: f.origin || null,
+            originGuessed: !!f.originGuessed,
             // ★ 값이 갈리고 있으면 그대로 알려준다. 이긴 값만 보여주면
             //   화면에서는 멀쩡해 보이고, 충돌은 검증 단계에 가서야 드러난다
             alternatives: (f.alternatives && f.alternatives.length) ? f.alternatives : null,

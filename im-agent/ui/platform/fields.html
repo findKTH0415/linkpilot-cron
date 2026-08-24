@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="2fd219a3">
+<html lang="ko" data-lp-build="7ccb1b42">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -96,7 +96,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=2fd219a3">
+<link rel="stylesheet" href="tokens.css?v=7ccb1b42">
 <style>
 :root {
   --side: 248px;
@@ -273,6 +273,15 @@ ul { margin: 0; padding: 0; list-style: none; }
 .ev__n { font-size: 34px; font-weight: 900; line-height: 1;
   font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
 .ev__t { font-size: 15px; font-weight: 700; }
+/* ★ 자체분석자료는 **작고 낮은 대비**로 둔다 — 수집자료와 같은 크기로 두면
+   둘이 같은 무게로 읽히는데, 이 시스템에서 그 둘은 같은 값이 아니다 */
+.ev__n2 { font-size: 26px; font-weight: 800; line-height: 1; color: var(--ink2);
+  font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.ev__plus { font-size: 18px; font-weight: 700; color: var(--ink2); margin: 0 2px; }
+.ev__save { margin-left: auto; align-self: flex-start; font-family: inherit;
+  font-size: 13px; font-weight: 700; padding: 8px 18px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  cursor: pointer; }
 .ev__when { margin-left: auto; font-size: 12.5px; color: var(--ink2); }
 .ev__none { font-size: 15px; font-weight: 700; color: var(--warn-ink); }
 .ev__b { margin-top: 14px; display: grid; gap: 6px; }
@@ -372,12 +381,12 @@ ul { margin: 0; padding: 0; list-style: none; }
   </main>
 </div>
 
-<script src="gate-core.js?v=2fd219a3"></script>
-<script src="catalog.js?v=2fd219a3"></script>
-<script src="inapp.js?v=2fd219a3"></script>
-<script src="fields-core.js?v=2fd219a3"></script>
+<script src="gate-core.js?v=7ccb1b42"></script>
+<script src="catalog.js?v=7ccb1b42"></script>
+<script src="inapp.js?v=7ccb1b42"></script>
+<script src="fields-core.js?v=7ccb1b42"></script>
 <!-- ★ 판 지문을 화면에 보이게 찍는 것이 여기 있다 (§8) — 묶음에 이미 실리는 파일이다 -->
-<script src="flow-core.js?v=2fd219a3"></script>
+<script src="flow-core.js?v=7ccb1b42"></script>
 <script>
 /**
  * 설정 — 서버가 세션을 보고 이 블록을 만들어 내려주는 것이 정석이다.
@@ -392,7 +401,7 @@ window.LINKPILOT_FIELDS_CFG = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=2fd219a3" data-lp-global="LINKPILOT_FIELDS_CFG"></script>
+<script src="embed-bridge.js?v=7ccb1b42" data-lp-global="LINKPILOT_FIELDS_CFG"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -983,34 +992,36 @@ window.LINKPILOT_FIELDS_CFG = {
           ? '올린 자료 ' + state.sources.length + '건에서 값이 하나도 안 나왔습니다'
           : '아직 읽은 자료가 없습니다'));
     } else {
-      hd.appendChild(el('span', 'ev__n', String(ev.total)));
-      hd.appendChild(el('span', 'ev__t', '개의 값을 자료에서 읽었습니다'
-        + (ev.bySource.length ? ' · 자료 ' + ev.bySource.length + '건' : '')));
+      /* ★★★ **두 숫자를 가른다** 〈2026-08-25 사장님: 「읽는 흉내만 내지
+       *   실제 판독을 하지않음 거짓」〉.
+       *
+       *   앞 판은 값이 있으면 전부 「자료에서 읽었습니다」로 셌다. 사장님
+       *   화면의 셋은 **전부 요청문에서 뽑은 값**이었는데도 그렇게 적혔다 —
+       *   자료를 한 글자도 못 읽은 상태에서 「자료에서 3개를 읽었습니다」다.
+       *
+       * ★ **수집자료**(올린 문서에서 읽은 것)와 **자체분석자료**(요청문·
+       *   공공데이터·계산으로 만든 것)를 나란히 적는다. 뭉치면 우리가 만든
+       *   값이 증거로 읽힌다. */
+      hd.appendChild(el('span', 'ev__n', String(ev.collected)));
+      hd.appendChild(el('span', 'ev__t', '개 수집자료'));
+      hd.appendChild(el('span', 'ev__plus', '+'));
+      hd.appendChild(el('span', 'ev__n2', String(ev.analyzed)));
+      hd.appendChild(el('span', 'ev__t', '개 자체분석자료'));
+      /* ★ 옛 서버는 출처 등급을 안 준다. **모르는 것을 「읽었다」로 세지 않는다** */
+      if (ev.unknownOrigin) {
+        hd.appendChild(el('span', 'ev__t', ' · 갈리지 않은 값 ' + ev.unknownOrigin + '개'));
+      }
     }
     if (state.readAt) hd.appendChild(el('span', 'ev__when', '읽은 시각 ' + state.readAt));
     card.appendChild(hd);
 
-    if (ev.bySource.length) {
-      var b = el('div', 'ev__b');
-      ev.bySource.forEach(function (r) {
-        var row = el('div', 'ev__r');
-        row.appendChild(el('span', 'ev__f', r.source));
-        row.appendChild(el('span', 'ev__c', r.count + '개'));
-        if (r.pages.length) {
-          row.appendChild(el('span', 'ev__p', 'p.' + r.pages.slice(0, 8).join(', ')
-            + (r.pages.length > 8 ? ' 외 ' + (r.pages.length - 8) + '곳' : '')));
-        }
-        b.appendChild(row);
-      });
-      ev.unusedFiles.forEach(function (f) {
-        var row = el('div', 'ev__r zero');
-        row.appendChild(el('span', 'ev__f', f));
-        row.appendChild(el('span', 'ev__c', '0개'));
-        row.appendChild(el('span', 'ev__p', '이 자료에서는 값이 안 나왔습니다'));
-        b.appendChild(row);
-      });
-      card.appendChild(b);
-    }
+    /* ★★★ **자료별 세로 나열을 뺐다** 〈2026-08-25 사장님 지시:
+     *   「아래 필드명 수직 나열된 모든 필드 빼줘 노출하지마」〉.
+     *
+     *   여기 `user_request` 같은 **내부 이름이 그대로 노출되고 있었다.**
+     *   보는 사람에게는 뜻이 없고, 게다가 그것이 「자료」로 보였다.
+     *   ★ 세는 것(`ev.bySource`)은 그대로 둔다 — 값마다 출처를 다는 데 쓴다.
+     *     화면에서만 뺀다. */
 
     /* ★★★ **읽은 것과 표에 들어온 것을 나란히 적는다** 〈2026-08-24 사장님 화면〉.
      *
@@ -1041,6 +1052,13 @@ window.LINKPILOT_FIELDS_CFG = {
       card.appendChild(el('div', 'ev__note',
         '값이 갈린 항목 ' + state.conflicts + '건 — 자료마다 다른 숫자가 나왔습니다.'));
     }
+
+    /* ★ [저장] 을 이 자리에도 둔다 〈2026-08-25 사장님 지시〉. 아래 저장 막대와
+     *   **같은 일을 한다** — 두 벌을 만들지 않고 그쪽을 부른다 (M-02 의 결) */
+    var sv = el('button', 'ev__save', '저장');
+    sv.type = 'button';
+    sv.addEventListener('click', function () { save(); });
+    card.appendChild(sv);
     /* ★ **예시면 예시라고 화면에 박는다** (§8). 데모 값을 실제로 오해하면
      *   그것을 근거로 판단한다 */
     if (state.sample) {
