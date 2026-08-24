@@ -162,7 +162,10 @@ test('★ 3단계 화면에 조감도 선택이 있다', () => {
   const html = fs.readFileSync(path.join(__dirname, '..', 'ui', 'platform', 'reports.html'), 'utf8');
   const code = html.replace(/\/\*[\s\S]*?\*\//g, '');
   assert.match(code, /조감도 만들기/);
-  assert.match(code, /visuals: \{ birdseye: state\.birdseye \}/, '저장할 때 안 보내면 선택이 사라진다');
+  /* ★ 2026-08-25: 지적도면이 옆에 붙었다. **둘 다 보내야 한다** — 하나만
+   *   보내면 안 보낸 쪽이 서버 기본값으로 되살아난다 */
+  assert.match(code, /visuals: \{ cadastral: state\.cadastral, birdseye: state\.birdseye \}/,
+    '저장할 때 안 보내면 선택이 사라진다');
   assert.match(code, /bchk\.disabled = state\.locked/, '확정된 사양을 화면에서 고칠 수 있으면 안 된다');
   // ★ 서버 값이 있으면 그것이 이긴다. `|| true` 로 쓰면 false 가 되살아난다
   assert.match(code, /typeof s\.visuals\.birdseye === 'boolean'/);
@@ -174,4 +177,9 @@ test('★ 서버가 참거짓만 받는다', () => {
   const at = src.indexOf('b.visuals && typeof b.visuals');
   assert.ok(at !== -1, '시각자료를 안 받고 있다');
   assert.match(src.slice(at, at + 400), /typeof b\.visuals\[k\] === 'boolean'/);
+  /* ★★★ **목록을 손으로 적지 않는다** 〈2026-08-25 · 실제로 갈렸다〉.
+   *   여기 이름을 따로 적어 두는 바람에 화면이 보낸 `cadastral` 이 조용히
+   *   버려졌다 — 켰는데 안 켜지고 오류도 안 났다. 사양이 아는 이름을 쓴다 */
+  assert.match(src.slice(at, at + 400), /Object\.keys\(outputspec\.VISUAL_DEFAULT\)/,
+    '시각자료 이름을 손으로 적어 두면 새 칸이 조용히 버려진다');
 });

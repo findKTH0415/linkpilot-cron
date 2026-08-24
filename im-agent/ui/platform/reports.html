@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="6edb6181">
+<html lang="ko" data-lp-build="46a2e31c">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -93,7 +93,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=6edb6181">
+<link rel="stylesheet" href="tokens.css?v=46a2e31c">
 <style>
 :root {
   --side: 248px;
@@ -402,14 +402,14 @@ a.out__a, a.out__a:visited { display: inline-block; white-space: nowrap; color: 
   <a class="bot__i on" href="#"><b>☰</b>더보기</a>
 </nav>
 
-<script src="gate-core.js?v=6edb6181"></script>
-<script src="catalog.js?v=6edb6181"></script>
-<script src="inapp.js?v=6edb6181"></script>
-<script src="live-core.js?v=6edb6181"></script>
+<script src="gate-core.js?v=46a2e31c"></script>
+<script src="catalog.js?v=46a2e31c"></script>
+<script src="inapp.js?v=46a2e31c"></script>
+<script src="live-core.js?v=46a2e31c"></script>
 <!-- ★ 판 지문을 화면에 보이게 찍는 것이 여기 있다 (§8) — 묶음에 이미 실리는 파일이다 -->
-<script src="flow-core.js?v=6edb6181"></script>
+<script src="flow-core.js?v=46a2e31c"></script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=6edb6181" data-lp-global="LINKPILOT_REPORTS"></script>
+<script src="embed-bridge.js?v=46a2e31c" data-lp-global="LINKPILOT_REPORTS"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -593,6 +593,7 @@ window.LINKPILOT_REPORTS = Object.assign({
     /* 출력 성격 네 축 — 기본은 서버(`STYLE_DEFAULT`)와 같아야 한다 */
     layout: 'im_portrait', density: 'mixed', house: 'boutique', register: 'expert',
     proof: false,         // 교정 미리보기 팝업이 열려 있는가
+    cadastral: true,      // 지적도면 — 서버 사양을 받으면 그것이 이긴다
     birdseye: true,       // 조감도 — 서버 사양을 받으면 그것이 이긴다
     locked: false,        // ★ 출력 사양 확정 여부
   };
@@ -688,7 +689,7 @@ window.LINKPILOT_REPORTS = Object.assign({
       themeId: state.themeId,
       layout: state.layout, density: state.density,
       house: state.house, register: state.register,
-      visuals: { birdseye: state.birdseye },
+      visuals: { cadastral: state.cadastral, birdseye: state.birdseye },
     };
   }
 
@@ -860,6 +861,25 @@ window.LINKPILOT_REPORTS = Object.assign({
     var vlab = el('label', null, '시각자료');
     vlab.style.cssText = 'font-size:12.5px;font-weight:700;color:var(--ink2);display:block;margin-bottom:8px';
     vis.appendChild(vlab);
+
+    /* ★★★ **지적도면과 조감도는 다른 것이다** 〈2026-08-25 사장님 지시〉.
+     *   조감도는 건물이 선 그림이고 지적도면은 **땅만** 그린 것이다. 하나로
+     *   묶으면 「땅만 필요한데 건물까지 그려진」 문서가 나온다.
+     * ★ 둘 다 **SketchUp 쪽에서 만들어 온다** — 엔진이 대신 그리면 두 벌이 되고,
+     *   그때 어느 것이 문서에 실렸는지 알 수 없게 된다 (D-95 · 평면 A/B). */
+    var cwrap = el('label', 'chk');
+    var cchk = el('input');
+    cchk.type = 'checkbox';
+    cchk.checked = !!state.cadastral;
+    cchk.disabled = state.locked;
+    cchk.addEventListener('change', function () { state.cadastral = cchk.checked; updateLockBar(); });
+    cwrap.appendChild(cchk);
+    cwrap.appendChild(el('span', null, '지적도면 만들기'));
+    vis.appendChild(cwrap);
+    vis.appendChild(el('p', 'chk__d',
+      '필지 경계·지번·면적만 그린 도면입니다 — 건물은 안 그립니다. '
+      + '지적 필지 형상을 못 받으면 만들지 않고 그 사유를 남깁니다: '
+      + '땅 모양을 지어내면 실제 지적도처럼 읽히기 때문입니다.'));
 
     var bwrap = el('label', 'chk');
     var bchk = el('input');
@@ -1145,6 +1165,8 @@ window.LINKPILOT_REPORTS = Object.assign({
         //   `s.visuals.birdseye || true` 로 쓰면 false 가 true 로 되살아난다
         state.birdseye = (s.visuals && typeof s.visuals.birdseye === 'boolean')
           ? s.visuals.birdseye : state.birdseye;
+        state.cadastral = (s.visuals && typeof s.visuals.cadastral === 'boolean')
+          ? s.visuals.cadastral : state.cadastral;
         state.locked = !!s.locked;
         draw();
       })

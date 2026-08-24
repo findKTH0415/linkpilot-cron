@@ -163,3 +163,85 @@ test('★★★ 함께 고쳐야 하는 다섯 곳이 다 맞는다 — 하나�
   assert.ok(/runAgent\('12_sketchup_plan'/.test(rd('pipeline.js')),
     'pipeline 이 안 부른다 — 만들어 두고 안 부르면 없는 것과 같다');
 });
+
+/* ── [지적도면] · [조감도] 를 SketchUp 쪽에 요청하는가 ────── */
+
+/**
+ * ★★★ 2026-08-25 사장님 지시: 「출력시 옵션이 [지적도면], [조감도] 반영할시
+ *   SketchUp Engineering Agent 로부터 불러오도록 구성해줘」.
+ *
+ * ★ **엔진이 대신 그리지 않는다.** 엔진이 그리면 SketchUp 판과 두 벌이 되고,
+ *   그때 **어느 것이 문서에 실렸는지 알 수 없게 된다.**
+ * ★ **켰다고 나오는 것이 아니다.** 근거가 없으면 `blocked` 로 적고 **왜**를
+ *   남긴다 — 켰는데 조용히 안 나오면 사람은 고장으로 읽는다.
+ */
+
+const PARCEL = { ...MODEL, parcelM: [[0, 0], [90, 0], [90, 60], [0, 60]] };
+
+test('★★★ 필지 형상이 있으면 둘 다 SketchUp 쪽에 요청한다', async () => {
+  const { out } = await plan([F('land.area_sqm', 5000, '㎡')], { model: PARCEL });
+  const d = out.plan.deliverables;
+  assert.strictEqual(d.length, 2, JSON.stringify(d));
+  const byId = Object.fromEntries(d.map((x) => [x.id, x]));
+  assert.strictEqual(byId.cadastral.status, 'requested');
+  assert.strictEqual(byId.birdseye.status, 'requested');
+  /* ★ Scene 이름으로 부른다 (마스터 프롬프트 §23·§24) */
+  assert.strictEqual(byId.cadastral.sceneId, 'SC-CAD-01');
+  assert.strictEqual(byId.birdseye.sceneId, 'SC-AERIAL-01');
+});
+
+test('★★★ 필지 형상이 없으면 **막혔다고 적고 까닭을 남긴다** — 조용히 안 만들지 않는다', async () => {
+  const { out } = await plan([F('land.area_sqm', 5000, '㎡')], { model: MODEL });
+  const d = out.plan.deliverables;
+  assert.ok(d.every((x) => x.status === 'blocked'), JSON.stringify(d));
+  assert.ok(d.every((x) => x.why && x.why.length > 20), '까닭을 안 적는다');
+  /* ★ 화면에도 뜬다 — 문서에만 남으면 사람이 안 본다 */
+  const f = out.flags.find((x) => x.type === 'VISUAL_BLOCKED');
+  assert.ok(f, '못 만드는 것을 깃발로 안 세운다');
+  assert.strictEqual(f.severity, 'YELLOW');
+  assert.ok(/지적도면/.test(f.message) && /조감도/.test(f.message), f.message);
+});
+
+test('★★ 끈 것은 요청하지 않는다 — 켠 것만 적는다', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-off-'));
+  const before = process.env.IM_AGENT_ROOT;
+  process.env.IM_AGENT_ROOT = dir;
+  try {
+    const outputspec = require('../core/outputspec.js');
+    const pid = 'LP-RE-2026-961';
+    store.createProjectDirs(pid);
+    store.writeJson(pid, '01_Project/project.json', { id: pid, name: '시험' });
+    outputspec.save(pid, { visuals: { cadastral: false, birdseye: true, massing: true } });
+
+    const ds = new Dataset(pid, FIELDS);
+    ds.addMany([F('land.area_sqm', 5000, '㎡')]);
+    ds.resolve();
+    const out = await A.run({ projectId: pid, massing: { model: PARCEL } },
+      { dataset: ds, warn: () => {}, log: () => {} });
+    const ids = out.plan.deliverables.map((x) => x.id);
+    assert.deepStrictEqual(ids, ['birdseye'], `끈 것을 요청한다: ${ids.join(',')}`);
+  } finally {
+    if (before === undefined) delete process.env.IM_AGENT_ROOT; else process.env.IM_AGENT_ROOT = before;
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('★★★ 엔진이 지적도면·조감도를 **대신 그리지 않는다** — 요청만 한다', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'agents', '12-sketchup-plan.js'), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  assert.ok(!/toSvg|birdseye\.svg|drawCadastral/.test(src),
+    '계획 Agent 가 그림을 그린다 — SketchUp 판과 두 벌이 되어 어느 것이 실렸는지 모르게 된다');
+  assert.ok(/status: w\.ready \? 'requested' : 'blocked'/.test(src), '요청 상태를 안 가른다');
+});
+
+test('★★ 출력 사양에 지적도면 칸이 있다 — 조감도와 **다른 것**이라 따로 둔다', () => {
+  const spec = require('../core/outputspec.js');
+  assert.strictEqual(spec.VISUAL_DEFAULT.cadastral, true);
+  assert.strictEqual(spec.VISUAL_DEFAULT.birdseye, true);
+  /* ★ 화면에도 칸이 있어야 한다 — 사양에만 있으면 아무도 못 끈다 */
+  const html = fs.readFileSync(
+    path.join(__dirname, '..', 'ui', 'platform', 'reports.html'), 'utf8');
+  assert.ok(html.indexOf('지적도면 만들기') !== -1, '화면에 지적도면 칸이 없다');
+  assert.ok(/visuals: \{ cadastral: state\.cadastral, birdseye: state\.birdseye \}/.test(html),
+    '화면이 지적도면 선택을 서버로 안 보낸다');
+});

@@ -32,6 +32,7 @@
 const fs = require('fs');
 const path = require('path');
 const store = require('../core/store');
+const outputspec = require('../core/outputspec');
 const { kstStamp } = require('../core/kst');
 const { round } = require('../core/numeric');
 
@@ -134,6 +135,53 @@ async function run(input, ctx) {
     });
   }
 
+  /**
+   * ★★★ **출력 옵션이 켜지면 SketchUp 쪽에 만들어 달라고 적는다**
+   *   〈2026-08-25 사장님 지시: 「출력시 옵션이 [지적도면], [조감도] 반영할시
+   *   SketchUp Engineering Agent 로부터 불러오도록」〉.
+   *
+   * ★ **엔진이 대신 그리지 않는다.** 엔진이 그리면 SketchUp 판과 두 벌이 되고,
+   *   그때 **어느 것이 문서에 실렸는지 알 수 없게 된다.** 하나만 만든다.
+   *
+   * ★★ **켰다고 나오는 것이 아니다.** 근거(필지 형상)가 없으면 `blocked` 로
+   *   적고 **왜 못 만드는지**를 함께 남긴다 — 켰는데 조용히 안 나오면
+   *   사람은 고장으로 읽는다. 그리고 그 사유가 문서에도 남아야 한다.
+   *
+   * ★ 마스터 프롬프트 §23·§24 의 Scene 규격을 따른다 — `sceneId` 로 부른다.
+   */
+  /* ★ 매스가 실제로 설 수 있는지 — deliverables 판정에 쓴다 */
+  const objectsReady = !!(model && model.footprintM);
+
+  const spec = outputspec.read(input.projectId) || {};
+  const visuals = spec.visuals || outputspec.VISUAL_DEFAULT;
+  const hasParcel = !!(model && model.parcelM);
+
+  const WANTED = [
+    {
+      id: 'cadastral', label: '지적도면', sceneId: 'SC-CAD-01',
+      on: visuals.cadastral !== false,
+      needs: '지적 필지 형상',
+      ready: hasParcel,
+      why: '필지 경계·지번·면적을 그린다. 필지 형상이 없으면 **땅 모양을 지어내야 하므로** 만들지 않는다',
+    },
+    {
+      id: 'birdseye', label: '조감도', sceneId: 'SC-AERIAL-01',
+      on: visuals.birdseye !== false,
+      needs: '지적 필지 형상 + 매스',
+      ready: hasParcel && !!objectsReady,
+      why: '필지 위에 매스를 얹어 내려다본 그림. 근사한 대지로 그리면 **실제 필지처럼 보이는 그림**이 된다',
+    },
+  ];
+
+  const deliverables = WANTED.filter((w) => w.on).map((w) => ({
+    id: w.id,
+    label: w.label,
+    sceneId: w.sceneId,
+    status: w.ready ? 'requested' : 'blocked',
+    needs: w.needs,
+    why: w.ready ? null : `${w.needs}을 못 받았다 — ${w.why}`,
+  }));
+
   const footprintMm = model && model.footprintM ? ringToMm(model.footprintM) : null;
   if (model && footprintMm) {
     objects.push({
@@ -157,6 +205,9 @@ async function run(input, ctx) {
     site,
     building,
     objects,
+    /* ★★★ **SketchUp 쪽에 만들어 달라고 적는 목록.** 이것이 「불러오도록」의
+     *   실체다 — 엔진은 요청만 하고, 만드는 것은 평면 B 다 (D-95) */
+    deliverables,
     missing,
     assumptions,
     notes: '용적률·건폐율 검토용 매스이며 설계안이 아니다. '
@@ -166,6 +217,15 @@ async function run(input, ctx) {
   const dir = path.join(store.projectDir(input.projectId), '04_Property');
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, 'model-plan.json'), JSON.stringify(plan, null, 2), 'utf8');
+
+  /* ★ 켰는데 못 만드는 것이 있으면 **그것부터 말한다.** 조용히 빠지면
+   *   사람은 고장으로 읽고, 없는 고장을 찾으러 간다 */
+  const blocked = deliverables.filter((d) => d.status === 'blocked');
+  if (blocked.length) {
+    flags.push(flag('YELLOW', 'VISUAL_BLOCKED',
+      `켜 두신 시각자료를 못 만든다: ${blocked.map((b) => `${b.label}(${b.why})`).join(' · ')}`,
+      { keys: ['land.area_sqm'] }));
+  }
 
   if (objects.length) {
     flags.push(flag('GREEN', 'MODEL_PLAN',
@@ -177,7 +237,9 @@ async function run(input, ctx) {
       `3D 계획을 만들지 못했다 — 없는 값: ${missing.join(', ') || '알 수 없음'}`));
   }
 
-  ctx.log && ctx.log(`  3D 계획: ${objects.length}개 물체 · 못 채운 값 ${missing.length}개 · 가정 ${assumptions.length}개 → ${REL}`);
+  const req = deliverables.filter((d) => d.status === 'requested').map((d) => d.label);
+  ctx.log && ctx.log(`  3D 계획: 물체 ${objects.length}개 · 요청 ${req.length}건${req.length ? ` (${req.join('·')})` : ''}`
+    + `${blocked.length ? ` · 못 만드는 것 ${blocked.length}건` : ''} · 못 채운 값 ${missing.length}개 → ${REL}`);
 
   return {
     /* ★★★ **fact 를 안 낸다** (D-33 · D-96). 우리가 만든 값이지 근거가 아니다 */

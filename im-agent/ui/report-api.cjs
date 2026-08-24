@@ -1127,7 +1127,11 @@ function createHandlers(deps) {
       // 참이 되어 끈 줄 알았던 조감도가 계속 만들어진다
       if (b.visuals && typeof b.visuals === 'object') {
         const v = {};
-        ['birdseye', 'massing'].forEach((k) => {
+        /* ★★ **목록이 한 곳에 더 있으면 갈린다** 〈2026-08-25 · 실제로 갈렸다〉.
+         *   여기 이름을 손으로 적어 두는 바람에 화면이 보낸 `cadastral` 이
+         *   **조용히 버려졌다** — 켰는데 안 켜지고, 오류도 안 난다.
+         *   그래서 **사양이 아는 이름**을 그대로 쓴다 (단일 출처). */
+        Object.keys(outputspec.VISUAL_DEFAULT).forEach((k) => {
           if (typeof b.visuals[k] === 'boolean') v[k] = b.visuals[k];
         });
         if (Object.keys(v).length) overrides.visuals = v;
