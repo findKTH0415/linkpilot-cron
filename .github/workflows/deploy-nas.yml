@@ -302,6 +302,12 @@ jobs:
         id: ts
         env:
           DRY: ${{ needs.plan.outputs.dry_run }}
+          SOLAPI_KEY: ${{ secrets.SOLAPI_API_KEY }}
+          SOLAPI_SEC: ${{ secrets.SOLAPI_API_SECRET }}
+          SENDER: ${{ secrets.SENDER_PHONE }}
+          ALERTP: ${{ secrets.ALERT_PHONE }}
+          LPB: ${{ secrets.LP_BASE }}
+          LPPB: ${{ secrets.LP_PUBLIC_BASE }}
           OAUTH_ID: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           OAUTH_SEC: ${{ secrets.TS_OAUTH_SECRET }}
           AUTHKEY: ${{ secrets.TS_AUTHKEY }}
@@ -327,6 +333,34 @@ jobs:
           say NAS_HOST  NAS_SSH_HOST
           say NAS_USER  NAS_SSH_USER
           say NAS_KEY   NAS_SSH_KEY
+
+          # ★★★ **「빠진 게 뭐냐」를 한 곳에서 답한다** 〈2026-08-24 사장님 물음〉.
+          #
+          #   Secret 이 열 몇 개가 되니 무엇이 있고 무엇이 없는지 **아무 데서도
+          #   안 보였다.** 공공데이터 열쇠는 NAS 진단이 말해 주지만, 아래 여섯은
+          #   NAS 로 안 가고 워크플로가 직접 쓰는 것이라 **재는 곳이 아예 없었다.**
+          #
+          # ★ 없어도 배포는 된다. 그래서 막지 않고 적기만 한다 — 다만 SOLAPI 넷은
+          #   **실패를 알리는 장치**라 없으면 조용히 죽는다 (CLAUDE.md §2).
+          echo "── 배포는 되지만 없으면 아쉬운 것 ──"
+          OPT=""
+          opt() { if [ -n "${!1:-}" ]; then echo "  있음 — $2"; else echo "  없음 — $2"; OPT="$OPT $2"; fi; }
+          opt SOLAPI_KEY SOLAPI_API_KEY
+          opt SOLAPI_SEC SOLAPI_API_SECRET
+          opt SENDER     SENDER_PHONE
+          opt ALERTP     ALERT_PHONE
+          opt LPB        LP_BASE
+          opt LPPB       LP_PUBLIC_BASE
+          if [ -n "$OPT" ]; then
+            echo "아직 안 넣은 것:${OPT}" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "선택 Secret 여섯 개가 다 찼다" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          ALERT_OK=1
+          for v in SOLAPI_KEY SOLAPI_SEC SENDER ALERTP; do [ -n "${!v:-}" ] || ALERT_OK=0; done
+          if [ "$ALERT_OK" != "1" ]; then
+            echo "::warning::**배포가 실패해도 아무에게도 안 알린다.** 문자 알림은 SOLAPI_API_KEY · SOLAPI_API_SECRET · SENDER_PHONE · ALERT_PHONE 넷이 다 있어야 나간다 — 하나라도 없으면 밤에 깨져도 다음 날에야 아신다 (CLAUDE.md §2)."
+          fi
 
           # ★ OAuth 는 **둘 다** 있어야 한다. ID 만 보고 고르면 붙는 단계까지
           #   가서야 죽고, 그 오류는 「열쇠가 틀렸다」와 구분되지 않는다
