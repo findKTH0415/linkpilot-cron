@@ -120,7 +120,10 @@ async function extractInto(projectId, files, opts = {}) {
   const list = Array.isArray(files) ? files : [];
   const log = opts.log || (() => {});
   const dataset = loadDataset(projectId);
-  const ctx = { projectId, dataset, log };
+  /* ★ `onFile` 은 **읽는 동안 진행을 흘리는 길**이다 (D-99 · 사장님: 「스캔하는데
+   *   너무 오래걸림」). 안 주면 아무 일도 안 한다 — 진행을 어디에 적을지는
+   *   부른 쪽이 정한다. 읽기는 그것을 모른다 */
+  const ctx = { projectId, dataset, log, onFile: opts.onFile };
   const r = await runAgent('02_extraction', { projectId, files: list, useLlm: opts.useLlm !== false }, ctx);
   if (!r.output || !r.output.facts) throw new Error(`추출 실패: ${(r.error && r.error.message) || r.status || 'unknown'}`);
   return mergeExtraction(projectId, dataset, r.output, { log, merge: true });

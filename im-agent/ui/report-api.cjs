@@ -958,16 +958,52 @@ function createHandlers(deps) {
         };
       });
 
+      /**
+       * ★★★ **읽는 동안 「몇 개 중 몇 개」를 흘린다** 〈2026-08-24 사장님:
+       *   「서버가 읽고, 스캔하는데 너무 오래걸림 / 그런데 결국 읽은 값은 0」〉.
+       *
+       *   이 요청은 **다 읽어야 답한다.** 그래서 화면이 아는 것은 「몇 초
+       *   지났나」뿐이었고, 진행률을 **걸린 시간으로 어림**하고 있었다.
+       *   자료가 30개든 1개든 같은 속도로 차올랐다.
+       *
+       * ★ 이제 파일 하나가 끝날 때마다 `01_Project/scan-progress.json` 에 적고,
+       *   화면은 `GET …/scan/progress` 로 그것을 물어본다. 어림이 아니라 **센 수**다.
+       *
+       * ★★★ **본체가 안 넘겨주면 흘릴 수 없다.** 읽는 함수는 본체가 준 것이고,
+       *   지금까지의 배선은 `(id, files) => pipeline.extractInto(id, files)` 라
+       *   **셋째 인자를 조용히 버린다.** 그러면 진행이 한 줄도 안 적히는데
+       *   화면에는 「0/0」만 뜬다 — 조용히 빠지는 실패다.
+       *   그래서 **받을 수 있는 배선인지 먼저 본다**(인자 수). 못 받으면
+       *   「모른다」라고 적는다. 0% 로 적으면 「안 되고 있다」로 읽힌다.
+       */
+      const progress = load('core/scanprogress');
+      /* ★ 분모를 **읽기 전에** 세워 둔다. 읽는 쪽이 곧 자기 목록(중복을 걸러낸
+       *   뒤의 것)으로 덮어쓴다 — 그 사이에 물어봐도 0/0 이 아니라 0/N 이 뜬다 */
+      progress.begin(projectId, plan.map((x) => x.name));
+
       let read = null;
       let failed = null;
       try {
-        read = await extract(projectId, files);
+        /* ★ 셋째 인자는 **본체 배선이 받아 줄 때만** 닿는다. 지금 배선은
+         *   인자 둘짜리라 조용히 버려진다 — 그래도 괜찮다. 진행을 적는 일은
+         *   읽는 쪽(`agents/02-extraction`)이 직접 하고 있고, 이것은 그 위에
+         *   얹는 선택이다 (본체가 받아 주면 화면 서버도 함께 들을 수 있다) */
+        read = await extract(projectId, files, {
+          onFile: (ev) => {
+            if (!ev) return;
+            if (ev.kind === 'begin') return void progress.begin(projectId, ev.names || []);
+            if (ev.kind === 'file') return void progress.fileDone(projectId, ev);
+          },
+        });
       } catch (err) {
         failed = err.message;
       } finally {
         // ★ 연결 자료 사본은 **반드시** 지운다. 읽다 죽어도 지운다 — 「보관하지
         //   않는다」는 성공했을 때만 지키는 약속이 아니다
         if (mat) mat.dispose();
+        /* ★★ **끝났다는 사실을 반드시 적는다.** 안 적으면 화면이 영원히 돈다.
+         *   읽는 쪽도 적지만, 읽다 죽으면 거기까지 못 간다 — 여기가 마지막 자리다 */
+        try { progress.finish(projectId, { failed: failed || null }); } catch (_) { /* 기록 실패가 응답을 막지 않는다 */ }
       }
       if (failed) return bad(`자료를 읽지 못했습니다: ${failed}`, 500);
 
@@ -1027,6 +1063,21 @@ function createHandlers(deps) {
         oneshotNote: '1회성으로 올린 자료는 올릴 때 이미 읽었습니다 — 보관하지 않으므로 다시 읽지 않습니다.',
         at: kstStamp(new Date()),
       });
+    },
+
+    /**
+     * GET /projects/:id/scan/progress — **읽는 중에 몇 개까지 왔는지.**
+     *
+     * ★ 스캔 요청은 다 읽어야 답하므로, 진행은 **다른 문으로** 물어야 한다.
+     * ★ **없는 것을 0 으로 답하지 않는다.** 아직 한 번도 안 돌렸으면
+     *   `known: false` 다 — 0% 로 답하면 「돌고 있는데 안 는다」로 읽힌다.
+     */
+    async scanProgress(ctx, projectId) {
+      const g = gate(ctx, FILES_PLAN, ANON); if (g.error) return g.error;
+      const e = checkId(projectId); if (e) return e;
+      const store = load('core/store');
+      if (!fs.existsSync(store.projectDir(projectId))) return bad('프로젝트를 찾을 수 없습니다', 404);
+      return ok(load('core/scanprogress').view(projectId));
     },
 
     /**
@@ -1621,6 +1672,8 @@ const ROUTES = [
   },
   // ★ 넣은 자료를 **값으로** 만든다 — 셋(보관·연결·앱첨부)을 한 길로 (2026-08-21)
   { method: 'POST', path: '/projects/:id/scan', handler: 'scanSources', call: (h, req, p) => h.scanSources(req, p.id, req.body) },
+  // ★ 읽는 중에 「몇 개 중 몇 개」를 묻는 문. 스캔 요청은 다 읽어야 답한다
+  { method: 'GET', path: '/projects/:id/scan/progress', handler: 'scanProgress', call: (h, req, p) => h.scanProgress(req, p.id) },
 
   { method: 'PUT', path: '/projects/:id/issuer', handler: 'saveIssuer', call: (h, req, p) => h.saveIssuer(req, p.id, req.body) },
   { method: 'GET', path: '/projects/:id/spec', handler: 'getSpec', call: (h, req, p) => h.getSpec(req, p.id) },

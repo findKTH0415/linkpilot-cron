@@ -1907,16 +1907,19 @@ test('★★★ 목록이 잠겨도 만들기·올리기는 열려 있다 (local
  *   엔진에서 `createProject` 를 열어 놓고 화면이 로그인을 물으면 아무것도 안 바뀐다.
  *   반대로 화면만 열면 눌렀을 때 401 을 받는다 — **양쪽이 갈리면 둘 다 틀린다.**
  */
-test('★★★ 엔진에서 연 길 넷이 그대로다 (D-82 · D-94)', () => {
+test('★★★ 엔진에서 연 길 다섯이 그대로다 (D-82 · D-94)', () => {
   const src = fs.readFileSync(path.join(PLATFORM, '..', 'report-api.cjs'), 'utf8');
   /* 주석을 떼고 **부르는 자리**만 센다 — 경위를 적을수록 검사가 눈이 머는 것을
      이 저장소에서 세 번 겪었다 */
   const code = src.split('\n')
     .filter(l => !/^\s*(\*|\/\*|\/\/)/.test(l)).join('\n');
   const uses = (code.match(/gate\([^)]*ANON\)/g) || []).length;
-  assert.strictEqual(uses, 4,
-    `무인증으로 연 길이 ${uses}곳이다 — 넷이어야 한다`
-    + ' (createProject · linkSource · oneshotUpload · scanSources)');
+  /* ★ 2026-08-24: `scanProgress` 가 붙어 다섯이 됐다. **스캔과 같은 문이어야
+   *   한다** — 스캔은 열려 있는데 그 진행만 로그인을 물으면, 눌러서 도는 중에
+   *   화면이 통째로 「로그인이 필요합니다」로 덮인다 (D-94 와 같은 결) */
+  assert.strictEqual(uses, 5,
+    `무인증으로 연 길이 ${uses}곳이다 — 다섯이어야 한다`
+    + ' (createProject · linkSource · oneshotUpload · scanSources · scanProgress)');
 
   /* ★ 연 선은 「만드는 것까지」다. 그 뒤는 그대로 묻는다 */
   ['saveSpec', 'generate', 'uploadSources'].forEach((name) => {

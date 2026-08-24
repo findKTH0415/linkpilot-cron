@@ -79,7 +79,9 @@ function localChecks() {
   //   (2026-08-21: 자료 스캔 길이 늘어 28 → 29)
   //   (2026-08-24: 목록 접기 `PUT /projects/:id/hidden` 이 늘어 29 → 30.
   //    ★ 지우는 길이 아니다 — 목록에서만 접는다)
-  const WANT = 30;
+  //   (2026-08-24: `GET /projects/:id/scan/progress` 가 늘어 30 → 31.
+  //    ★ 스캔 요청은 다 읽어야 답한다 — 진행은 다른 문으로 물어야 한다)
+  const WANT = 31;
   add('라우트 표', n === WANT ? 'ok' : 'fail',
     `읽기 ${A.ROUTES.length} · 쓰기 ${W.ROUTES.length} = ${n}` + (n === WANT ? '' : ` (${WANT} 이어야 한다)`));
 }

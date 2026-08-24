@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="0beefd50">
+<html lang="ko" data-lp-build="74d80c0a">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -129,7 +129,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=0beefd50">
+<link rel="stylesheet" href="tokens.css?v=74d80c0a">
 <style>
 /* 색·간격·반경 토큰은 tokens.css 하나가 정한다 (LinkPilot Design System v1.1) */
 * { box-sizing: border-box; }
@@ -582,10 +582,10 @@ select:focus-visible, button:focus-visible { outline: 2px solid var(--lime-deep)
   </div>
 </div>
 
-<script src="gate-core.js?v=0beefd50"></script>
-<script src="flow-core.js?v=0beefd50"></script>
-<script src="upload-core.js?v=0beefd50"></script>
-<script src="versions-core.js?v=0beefd50"></script>
+<script src="gate-core.js?v=74d80c0a"></script>
+<script src="flow-core.js?v=74d80c0a"></script>
+<script src="upload-core.js?v=74d80c0a"></script>
+<script src="versions-core.js?v=74d80c0a"></script>
 <script>
 /**
  * 붙이는 쪽이 채우는 유일한 값.
@@ -631,7 +631,7 @@ window.LINKPILOT_FILES = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=0beefd50" data-lp-global="LINKPILOT_FILES"></script>
+<script src="embed-bridge.js?v=74d80c0a" data-lp-global="LINKPILOT_FILES"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -769,7 +769,7 @@ window.LINKPILOT_FILES = {
     // ── 자료 스캔 (2026-08-21 사용자 지시) ───────────────────────────
     //   셋 중 무엇으로 넣었든 **한 길로** 읽어 값으로 만든다.
     //   moved: null=아직 · true=앱이 받았다 · false=아무도 안 받았다
-    scan: { busy: false, stage: -1, dead: false, result: null, msg: null, auto: false, moved: null },
+    scan: { busy: false, stage: -1, dead: false, result: null, msg: null, auto: false, moved: null, prog: null },
   };
 
   /**
@@ -988,7 +988,7 @@ window.LINKPILOT_FILES = {
     // ★★ 스캔 결과도 **반드시 버린다** 〈2026-08-21〉. 남겨 두면 다른 프로젝트를
     //   고른 뒤에도 앞 프로젝트의 「값 12개를 만들었습니다」가 그대로 떠 있다 —
     //   그럴듯하게 틀린 화면이라 아무도 눈치채지 못한다
-    state.scan = { busy: false, stage: -1, dead: false, result: null, msg: null, auto: false, moved: null };
+    state.scan = { busy: false, stage: -1, dead: false, result: null, msg: null, auto: false, moved: null, prog: null };
     // ★ 작업 폴더가 없는 딜을 고른 경우 — 붙일 곳이 없다는 것을 말한다
     if (id && id.indexOf('ext:') === 0) {
       state.projectId = null;
@@ -2680,12 +2680,44 @@ window.LINKPILOT_FILES = {
     if (state.scan) state.scan.timer = null;
   }
 
+  /**
+   * ★★★ **어림 대신 센 수를 받아 온다** 〈2026-08-24 사장님: 「서버가 읽고,
+   *   스캔하는데 너무 오래걸림 / 그런데 결국 읽은 값은 0」〉.
+   *
+   *   스캔 요청은 **다 읽어야 답한다.** 그래서 앞 판은 진행률을 걸린 시간으로
+   *   어림했고, 자료가 30개든 1개든 같은 속도로 차올랐다. 이제 서버가 파일
+   *   하나를 끝낼 때마다 적어 두고, 여기서 **다른 문으로** 물어본다.
+   *
+   * ★ 겹쳐 묻지 않는다. 앞의 물음이 안 왔으면 건너뛴다 — 느린 서버에 물음만
+   *   쌓이면 그것이 다시 느려지는 원인이 된다.
+   * ★ **못 물어본 것을 실패로 그리지 않는다.** 진행을 모르는 것은 불편이고,
+   *   스캔이 죽는 것은 사고다. 물음이 실패하면 그냥 앞의 값을 둔다.
+   */
+  var SCAN_ASK_MS = 700;
+
+  function askProgress() {
+    var sc = state.scan;
+    if (!sc || !sc.busy || sc.asking) return;
+    if (now() - (sc.askAt || 0) < SCAN_ASK_MS) return;
+    sc.asking = true;
+    sc.askAt = now();
+    call('GET', '/projects/' + encodeURIComponent(state.projectId) + '/scan/progress', null,
+      { localGate: true }).then(function (r) {
+      var cur = state.scan;
+      if (cur) cur.asking = false;
+      if (!cur || !cur.busy) return;
+      if (r && r.ok && r.body && r.body.known) { cur.prog = r.body; render(); }
+    }, function () {
+      if (state.scan) state.scan.asking = false;
+    });
+  }
+
   function scanNow(opts) {
     if (!state.projectId || state.scan.busy) return Promise.resolve(null);
     var auto = !!(opts && opts.auto);
     stopScanClock();
     state.scan = { busy: true, stage: 0, dead: false, result: null, msg: null, auto: auto, moved: null,
-      t0: now(), ms: 0, tookMs: null, timer: null };
+      t0: now(), ms: 0, tookMs: null, timer: null, prog: null, asking: false, askAt: 0 };
     render();
 
     state.scan.timer = setInterval(function () {
@@ -2694,6 +2726,7 @@ window.LINKPILOT_FILES = {
       sc.ms = now() - sc.t0;
       // 모으기는 실제로 곧 끝난다. 그 뒤 읽기 칸에서 **머문다** — 그게 사실이다
       if (sc.stage < 1 && sc.ms > 700) sc.stage = 1;
+      askProgress();
       render();
     }, SCAN_TICK_MS);
 
@@ -2924,13 +2957,34 @@ window.LINKPILOT_FILES = {
          읽으면 **조용히 0** 이 되고, 화면에는 건수만 빠진 채 멀쩡히 뜬다.
          (같은 카드 위쪽 `keptN`·`linkN` 과 같은 이름을 쓴다) */
       var nRead = keptN + linkN;
-      if (sc.busy) {
+      /* ★★★ **센 수가 있으면 그것이 이긴다** 〈2026-08-24〉. 서버가 파일 하나를
+       *   끝낼 때마다 적어 두고 우리가 물어본 값이다. 어림과 섞어 쓰지 않는다 —
+       *   섞으면 화면이 두 수를 말하고, 어느 쪽이 사실인지 알 수 없게 된다.
+       * ★ 분모를 모르면(`pct === null`) **모른다고 적는다.** 0% 로 적으면
+       *   「돌고 있는데 안 는다」로 읽힌다. */
+      var pg = sc.prog;
+      var counted = !!(pg && pg.total > 0 && pg.pct !== null && pg.pct !== undefined);
+      if (sc.busy && counted) {
+        card.appendChild(meter({
+          pct: pg.pct,
+          secs: secsText(sc.ms),
+          sub: pg.done + '/' + pg.total + '건 읽음',
+          note: '**센 수입니다** — 자료 ' + pg.total + '건 중 ' + pg.done + '건을 읽었습니다'
+            + (pg.failed ? ' (' + pg.failed + '건은 못 읽었습니다)' : '')
+            + (pg.last && pg.last.name ? ' · 방금 「' + pg.last.name + '」' : '') + '.',
+        }));
+        /* ★ 값이 몇 개 나왔는지도 **읽는 중에** 보여 준다. 다 끝나고 0 을 보는
+         *   것과, 도는 동안 0 인 것을 보는 것은 대응이 다르다 */
+        card.appendChild(el('p', 'up__d',
+          '지금까지 값 ' + (pg.facts || 0) + '개'
+          + (pg.ocr ? ' · 글자로 옮겨 읽은 것 ' + pg.ocr + '건' : '')));
+      } else if (sc.busy) {
         var pct = Math.min(90, (sc.ms / SCAN_TYPICAL_MS) * 90);
         card.appendChild(meter({
           pct: pct,
           secs: secsText(sc.ms),
           sub: nRead ? nRead + '건 읽는 중' : null,
-          note: '진행률은 **어림값**입니다 — 서버가 중간 상태를 알려 주지 않아 '
+          note: '진행률은 **어림값**입니다 — 서버가 아직 중간 상태를 안 알려 줘 '
             + '걸린 시간으로 셈합니다. 끝나면 100% 가 됩니다.',
         }));
       } else if (sc.tookMs !== null && sc.tookMs !== undefined) {

@@ -483,6 +483,39 @@ async function run(input, ctx) {
     ctx.warn(`${x.name}: 내용이 「${x.sameAs}」와 같아 한 번만 읽었습니다 (지문 일치)`);
   });
 
+  /* ★★★ **읽는 동안 「몇 개 중 몇 개」를 흘린다** 〈2026-08-24 사장님: 「스캔하는데
+   *   너무 오래걸림 / 그런데 결국 읽은 값은 0」〉.
+   *
+   *   부른 쪽이 `ctx.onFile` 을 주면 파일 하나가 끝날 때마다 부른다. 안 주면
+   *   아무 일도 안 한다 — 진행을 흘리는 것은 **읽기의 일이 아니다.**
+   * ★ 분모는 **읽기 전에** 정한다 (`dd.keep.length`). 나중에 세면 못 읽은 파일이
+   *   빠져 「100% 인데 빠진 것이 있는」 상태가 된다.
+   * ★ 알리다 죽으면 안 된다 — 통째로 삼킨다. 진행을 못 흘리는 것은 불편이고
+   *   읽기가 죽는 것은 사고다. */
+  const onFile = typeof ctx.onFile === 'function' ? ctx.onFile : null;
+
+  /* ★★★ **진행을 적는 일을 부른 쪽에 맡기지 않는다** 〈2026-08-24 · 재확인〉.
+   *
+   *   처음에는 `ctx.onFile` 만 두고 화면 서버가 적게 하려 했다. 그런데 읽는
+   *   함수는 **본체가 배선한다** — 지금 배선은
+   *   「인자 둘을 받아 그대로 넘기는 한 줄」이라 **셋째 인자를 조용히 버린다.**
+   *   그러면 진행이 한 줄도 안 적히는데 화면에는 아무 말도 안 뜬다.
+   *
+   * ★ 그래서 **읽는 쪽이 직접 적는다.** 배선이 어떻든 진행은 남는다.
+   *   `ctx.onFile` 은 그 위에 얹는 선택이다 (없으면 아무 일도 안 한다).
+   * ★ 적다 죽으면 안 된다 — 통째로 삼킨다. 진행을 못 적는 것은 불편이고
+   *   읽기가 죽는 것은 사고다 (§4.6 과 같은 결). */
+  const progress = require('../core/scanprogress');
+  const pid = input.projectId;
+  const note = (fn) => { try { fn(); } catch (_) { /* 기록이 읽기를 죽이지 않는다 */ } };
+
+  const tell = (row) => {
+    note(() => progress.fileDone(pid, row));
+    if (onFile) { try { onFile(row); } catch (_) { /* 알림이 읽기를 죽이지 않는다 */ } }
+  };
+  note(() => progress.begin(pid, dd.keep.map(f => f.name)));
+  if (onFile) { try { onFile({ kind: 'begin', names: dd.keep.map(f => f.name) }); } catch (_) {} }
+
   /* ★★★ **파일끼리 나란히 읽는다.** 파일은 서로 상관이 없으므로 결과가
    *   달라지지 않는다. 다만 **차례는 그대로 둔다** — 경고도 값도 파일 순서대로
    *   나와야 다시 돌렸을 때 같은 보고서가 나온다. 그래서 각 파일의 경고를
@@ -509,6 +542,7 @@ async function run(input, ctx) {
     const { text, error, via } = r;
     if (error) {
       warns.push(`${file.name}: ${error}`);
+      tell({ kind: 'file', name: file.name, ok: false, facts: 0, ms: Date.now() - t0, why: error });
       return { warns, unsupported: { name: file.name, reason: error } };
     }
 
@@ -561,8 +595,12 @@ async function run(input, ctx) {
     doc.ms = Date.now() - t0;
     doc.msOcr = msOcr;
     doc.msLlm = msLlm;
+    tell({ kind: 'file', name: file.name, ok: true, facts: mine.length, ms: doc.ms, ocr: byOcr });
     return { warns, doc, facts: mine, ms: doc.ms };
   });
+
+  /* ★ **끝났다는 사실을 반드시 적는다.** 안 적으면 화면이 영원히 돈다 */
+  note(() => progress.finish(pid, { documents: perFile.filter(x => x && x.doc).length }));
 
   /* ★ 넣은 차례 그대로 편다 */
   perFile.forEach((r) => {
