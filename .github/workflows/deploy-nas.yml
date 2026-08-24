@@ -302,12 +302,6 @@ jobs:
         id: ts
         env:
           DRY: ${{ needs.plan.outputs.dry_run }}
-          SOLAPI_KEY: ${{ secrets.SOLAPI_API_KEY }}
-          SOLAPI_SEC: ${{ secrets.SOLAPI_API_SECRET }}
-          SENDER: ${{ secrets.SENDER_PHONE }}
-          ALERTP: ${{ secrets.ALERT_PHONE }}
-          LPB: ${{ secrets.LP_BASE }}
-          LPPB: ${{ secrets.LP_PUBLIC_BASE }}
           OAUTH_ID: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           OAUTH_SEC: ${{ secrets.TS_OAUTH_SECRET }}
           AUTHKEY: ${{ secrets.TS_AUTHKEY }}
@@ -334,33 +328,16 @@ jobs:
           say NAS_USER  NAS_SSH_USER
           say NAS_KEY   NAS_SSH_KEY
 
-          # ★★★ **「빠진 게 뭐냐」를 한 곳에서 답한다** 〈2026-08-24 사장님 물음〉.
+          # ★★★ **잔소리를 지웠다** 〈2026-08-24 사장님 지시 · D-99〉.
           #
-          #   Secret 이 열 몇 개가 되니 무엇이 있고 무엇이 없는지 **아무 데서도
-          #   안 보였다.** 공공데이터 열쇠는 NAS 진단이 말해 주지만, 아래 여섯은
-          #   NAS 로 안 가고 워크플로가 직접 쓰는 것이라 **재는 곳이 아예 없었다.**
+          #   여기서 SOLAPI 넷과 LP_BASE 둘을 「없음」으로 적고 있었다. 그런데
+          #   SOLAPI 는 통째로 지웠고(위 alert 작업), LP_BASE 는 **안 넣기로**
+          #   하셨다. 안 넣기로 한 것을 배포마다 없다고 적으면 그건 재는 것이
+          #   아니라 **잔소리**다 — 그리고 잔소리가 쌓이면 진짜 경고도 안 보인다.
           #
-          # ★ 없어도 배포는 된다. 그래서 막지 않고 적기만 한다 — 다만 SOLAPI 넷은
-          #   **실패를 알리는 장치**라 없으면 조용히 죽는다 (CLAUDE.md §2).
-          echo "── 배포는 되지만 없으면 아쉬운 것 ──"
-          OPT=""
-          opt() { if [ -n "${!1:-}" ]; then echo "  있음 — $2"; else echo "  없음 — $2"; OPT="$OPT $2"; fi; }
-          opt SOLAPI_KEY SOLAPI_API_KEY
-          opt SOLAPI_SEC SOLAPI_API_SECRET
-          opt SENDER     SENDER_PHONE
-          opt ALERTP     ALERT_PHONE
-          opt LPB        LP_BASE
-          opt LPPB       LP_PUBLIC_BASE
-          if [ -n "$OPT" ]; then
-            echo "아직 안 넣은 것:${OPT}" >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "선택 Secret 여섯 개가 다 찼다" >> "$GITHUB_STEP_SUMMARY"
-          fi
-          ALERT_OK=1
-          for v in SOLAPI_KEY SOLAPI_SEC SENDER ALERTP; do [ -n "${!v:-}" ] || ALERT_OK=0; done
-          if [ "$ALERT_OK" != "1" ]; then
-            echo "::warning::**배포가 실패해도 아무에게도 안 알린다.** 문자 알림은 SOLAPI_API_KEY · SOLAPI_API_SECRET · SENDER_PHONE · ALERT_PHONE 넷이 다 있어야 나간다 — 하나라도 없으면 밤에 깨져도 다음 날에야 아신다 (CLAUDE.md §2)."
-          fi
+          # ★ LP_BASE 를 **쓰는 코드는 남겼다.** 값이 들어오는 날 그대로 돈다.
+          #   지우는 것은 언제든 되지만 되살리는 것은 비싸다 (M-25 의 진단이
+          #   거기 걸려 있다).
 
           # ★ OAuth 는 **둘 다** 있어야 한다. ID 만 보고 고르면 붙는 단계까지
           #   가서야 죽고, 그 오류는 「열쇠가 틀렸다」와 구분되지 않는다
@@ -817,7 +794,7 @@ jobs:
         run: |
           set -uo pipefail
           if [ -z "${BASE:-}" ]; then
-            echo "::warning::LP_PUBLIC_BASE 가 없어 **앱이 쓰는 길로는 못 쟀다.** 위의 「디스크 ≠ HTTP」 경고가 캐시인지 다른 파일인지 여기서는 갈리지 않는다 (M-25 ①). 저장소 Settings → Secrets and variables → Actions 에서 앱 화면 폴더의 공개 주소를 넣으면 이 자리에서 갈린다."
+            echo "::warning::**앱이 쓰는 길로는 못 쟀다.** 위의 「디스크 ≠ HTTP」 경고가 캐시인지 다른 파일인지 여기서는 안 갈린다 (M-25 ①). 〈2026-08-24 · D-99 — 주소를 안 넣기로 정하셨다. 못 쟀다는 사실만 남긴다〉"
             echo "앱 경로 확인: 건너뜀 (주소 없음)" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
@@ -1078,7 +1055,7 @@ jobs:
           if [ -n "${LP_BASE:-}" ]; then
             BASE="$LP_BASE"; VIA="LP_BASE (앱이 쓰는 길)"
           else
-            BASE="http://${NAS_HOST}"; VIA="tailnet 포트 80 — LP_BASE 가 없어 대신 쟀다"
+            BASE="http://${NAS_HOST}"; VIA="tailnet 포트 80"
           fi
           echo "라우트를 잰 길: ${VIA}"
           set +e
@@ -1090,7 +1067,7 @@ jobs:
             exit 0
           fi
           if [ "$CODE" = "2" ]; then
-            echo "::warning::라우트를 **다 못 쟀다** — 위 표의 ⚠️ 줄을 본다. 잰 길: ${VIA}. LP_BASE 를 넣으면 앱이 쓰는 길로 잰다."
+            echo "::warning::라우트를 **다 못 쟀다** — 위 표의 ⚠️ 줄을 본다. 잰 길: ${VIA}."
             echo "라우트 확인: 다 못 쟀다 (${VIA})" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
@@ -1109,8 +1086,8 @@ jobs:
           #     그리고 **엔진 자리(`engine`)면 그대로 치명이다** — 거기서 무르면
           #     이 단계가 있으나 마나가 된다.
           if [ "${WHERE:-}" = "front" ] && [ -z "${LP_BASE:-}" ]; then
-            echo "::warning::**라우트 404 는 앞단에서 난다 — 엔진이 아니다.** 바로 위 갈라 재기에서 엔진(8181)은 이 길에 정상으로 답했다. 잰 길(${VIA})이 앱이 쓰는 길(Funnel 443)과 달라서 나는 404 다. **LP_BASE 를 넣으면 앱이 쓰는 길로 재서 이 경고가 사라진다.** 여기서 빨갛게 끝내면 멀쩡한 배포가 늘 빨갛고, 그러면 진짜 사고가 났을 때도 안 보인다 (M-25)."
-            echo "라우트 확인: **앞단에서 404** — 엔진은 정상. LP_BASE 를 넣으면 갈린다" >> "$GITHUB_STEP_SUMMARY"
+            echo "::warning::**라우트 404 는 앞단에서 난다 — 엔진이 아니다.** 바로 위 갈라 재기에서 엔진(8181)은 이 길에 정상으로 답했다. 잰 길(${VIA})이 앱이 쓰는 길(Funnel 443)과 달라서 나는 404 다. 여기서 빨갛게 끝내면 멀쩡한 배포가 늘 빨갛고, 그러면 진짜 사고가 났을 때도 안 보인다 (M-25)."
+            echo "라우트 확인: **앞단에서 404** — 엔진은 정상 (잰 길이 앱이 쓰는 길과 다르다)" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
           echo "::error::**라우트가 404 다.** 화면은 올라갔고(위 Verify deployed 초록) 서버가 **옛 라우팅 표**를 들고 있다 — 화면에서는 「서버 오류 (404)」로만 보인다 (M-11 · D-87). ★ 바로 위 「Split inside vs outside」 가 **404 의 자리를 이름으로 적어 두었다** — 그것부터 본다. `엔진` 이면 저장소 쪽 일이고, `접두사` 면 앞단 규칙이 어긋난 것이다."
@@ -1252,18 +1229,12 @@ jobs:
         run: |
           echo "::warning::**아무것도 재지 않았다 (DRY RUN).** Secret 이 들어왔는지만 봤다 — NAS 에는 닿지도 않았다. 실제로 재려면 dry_run 을 끄고 다시 실행한다"
 
-  # 배포가 실패하면 알린다 (CLAUDE.md §2 — 조용히 죽지 않는다)
-  # ★★ **guard 를 여기 적는 것이 핵심이다** 〈2026-08-23〉. `needs: deploy` 만
-  #   두면, guard 가 빨간 날에는 deploy 가 **실패가 아니라 건너뜀**이 되고
-  #   알림도 함께 조용히 사라진다 — 「검사가 막아 줬다」가 **아무한테도 안 간다**.
-  #   실패 알림 경로는 언제나 살아 있어야 한다 (CLAUDE.md §2).
-  alert:
-    needs: [plan, guard, deploy]
-    if: failure()
-    uses: ./.github/workflows/alert-failure.yml
-    permissions:
-      issues: write
-      contents: read
-    secrets: inherit
-    with:
-      workflow: deploy-nas
+  # ★★★ **문자 알림을 지웠다** 〈2026-08-24 사장님 지시 · D-99〉.
+  #
+  #   여기 있던 `alert` 작업은 실패하면 SOLAPI 로 문자를 보냈다. 열쇠 넷이
+  #   한 번도 안 들어와 **한 번도 안 나간 채로** 자리만 지키고 있었고, 유료
+  #   서비스라 계정부터 만들어야 했다.
+  #
+  # ★ **알림이 아예 없어진 것은 아니다.** GitHub 이 실행이 실패하면 건 사람에게
+  #   메일을 보낸다 — 그것이 지금의 실패 통보 경로다 (CLAUDE.md §2 개정).
+  #   그 메일이 안 오는 상태가 되면 **그때가 이 자리를 다시 만들 때**다.

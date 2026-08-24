@@ -511,13 +511,13 @@ test('★★★ 배포는 교차검증을 통과해야만 시작한다 (기억�
   assert.ok(dep, 'deploy 에 needs 가 없다 — 검사를 건너뛰고 올린다');
   assert.match(dep[1], /guard/, `deploy 가 guard 를 안 기다린다: ${dep[1]}`);
 
-  /* ⑤ ★★ **알림이 함께 사라지지 않는다.** guard 가 빨가면 deploy 는
-     「실패」가 아니라 「건너뜀」이 된다. 알림이 deploy 만 보고 있으면
-     그날은 아무한테도 안 간다 — 조용히 죽는 것이 이 저장소의 금기다 (§2) */
-  const al = /^  alert:\n    needs: (.+)$/m.exec(y);
-  assert.ok(al, 'alert 의 needs 를 못 찾았다');
-  assert.match(al[1], /guard/,
-    `alert 가 guard 를 안 본다: ${al[1]} — 검사가 막은 날 알림이 조용히 사라진다`);
+  /* ⑤ ★★★ **알림 판은 지웠다** 〈2026-08-24 사장님 지시 · D-99〉.
+     앞 판은 「alert 가 guard 를 보는가」를 쟀다 — guard 가 빨가면 deploy 는
+     「실패」가 아니라 「건너뜀」이 되어 알림이 조용히 사라지기 때문이었다.
+     그 판을 통째로 지웠으니 이제 잴 것은 **자취가 안 남았는가**다.
+     ★ 반쯤 지우면 workflow_call 이 없는 파일을 찾아 배포가 그 자리에서 죽는다. */
+  assert.ok(!/^  alert:$/m.test(y), 'alert 판이 아직 있다');
+  assert.ok(!/alert-failure\.yml/.test(y), '없는 파일을 아직 부른다');
 });
 
 test('★★★ 올리기 「전」에 재는 것은 재기만 한다 — 바뀐 파일이 배포를 막지 않는다', () => {

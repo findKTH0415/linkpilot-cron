@@ -202,38 +202,33 @@ test('★★ 멀쩡한 파일에는 아무 말도 안 붙인다 (헛울음 금�
   }
 });
 
-/* ── 「빠진 게 뭐냐」에 답하는 자리가 있는가 ─────────────── */
+/* ── 지운 것이 정말 지워졌는가 ──────────────────────────── */
 
 /**
- * ★★★ 2026-08-24 사장님: 「모두 넣었어 빠진거 확인해줘」.
+ * ★★★ **문자 알림을 지웠다** 〈2026-08-24 사장님 지시 · D-99〉.
  *
- *   그런데 **답할 자리가 없었다.** 공공데이터 열쇠는 NAS 진단이 말해 주지만,
- *   SOLAPI 넷과 LP_BASE 둘은 **NAS 로 안 가고 워크플로가 직접 쓰는 것**이라
- *   어디에서도 안 보였다.
+ *   SOLAPI 열쇠 넷이 한 번도 안 들어와 알림이 **한 번도 안 나간 채로** 자리만
+ *   지키고 있었다. 유료 서비스라 계정부터 만들어야 했고, 안 쓰기로 정하셨다.
  *
- * ★ 특히 SOLAPI 넷은 **실패를 알리는 장치**다. 없으면 배포가 밤에 깨져도
- *   아무도 모른다 — 값이 아니라 **안전장치가 빠진 것**이라 평소엔 표시가 안 난다.
+ * ★ 지운 것을 **반쯤 지우면** 배포가 없는 파일을 부르다 죽는다. 그래서
+ *   「자취가 남아 있지 않은가」를 잰다.
+ * ★ 알림이 아예 없어진 것은 아니다 — GitHub 이 실패하면 메일을 보낸다.
+ *   그 사실을 **워크플로 자신이 적어 두어야** 나중에 「왜 알림이 없지」가 안 난다.
  */
-test('★★★ 배포가 「없어도 되지만 아쉬운 것」을 이름으로 적는다', () => {
-  const s = step('Check secrets');
-  ['SOLAPI_API_KEY', 'SOLAPI_API_SECRET', 'SENDER_PHONE', 'ALERT_PHONE',
-    'LP_BASE', 'LP_PUBLIC_BASE'].forEach((n) => {
-    assert.ok(s.indexOf(`secrets.${n}`) !== -1, `${n} 를 안 본다`);
-    assert.ok(new RegExp(`opt \\w+\\s+${n}`).test(s), `${n} 를 목록에 안 적는다`);
+test('★★★ 지운 알림의 자취가 남아 있지 않다 — 반쯤 지우면 배포가 죽는다', () => {
+  const wf = path.join(__dirname, '..', '..', '.github', 'workflows');
+  ['alert-failure.yml', 'alert-ci.yml'].forEach((f) => {
+    assert.ok(!fs.existsSync(path.join(wf, f)), `${f} 가 아직 있다`);
   });
+  assert.ok(!fs.existsSync(path.join(__dirname, '..', '..', 'alert-failure.js')));
+  /* ★ 부르는 쪽도 지워야 한다. 남아 있으면 workflow_call 이 없는 파일을 찾는다 */
+  assert.ok(!/uses: \.\/\.github\/workflows\/alert-failure\.yml/.test(CODE),
+    'alert 작업이 아직 없는 파일을 부른다');
+  assert.ok(!/secrets\.SOLAPI|secrets\.SENDER_PHONE|secrets\.ALERT_PHONE/.test(WF),
+    '지운 알림의 Secret 을 아직 읽는다');
 });
 
-test('★★★ 알림 열쇠가 하나라도 없으면 **경고한다** — 조용히 죽는 것과 같다 (§2)', () => {
-  const s = step('Check secrets');
-  assert.ok(/ALERT_OK=1/.test(s), '넷이 다 있는지 안 본다');
-  assert.ok(/::warning::.*배포가 실패해도 아무에게도 안 알린다/.test(s));
-});
-
-test('★★ 없다고 배포를 막지는 않는다 — 막으면 멀쩡한 배포가 늘 빨갛다', () => {
-  const s = step('Check secrets');
-  /* ★ 주석은 이미 떼어 냈으므로 **코드에 있는 표시**로 자른다 — 주석으로
-   *   자르면 못 찾아 뒤쪽 exit 까지 딸려 온다 〈검사가 실제로 헛울음을 냈다〉 */
-  const opt = s.slice(s.indexOf('배포는 되지만'), s.indexOf('MODE=""'));
-  assert.ok(opt.length > 100, '자른 구간이 비었다 — 검사가 아무것도 안 재고 있다');
-  assert.ok(!/exit 1/.test(opt), '선택 항목이 없다고 배포를 막는다');
+test('★★ 알림이 어디로 가는지를 워크플로가 적어 둔다 — 안 적으면 반년 뒤 헤맨다', () => {
+  assert.ok(/GitHub 이 실행이 실패하면 건 사람에게/.test(WF),
+    '무엇이 대신 알리는지 안 적혀 있다');
 });

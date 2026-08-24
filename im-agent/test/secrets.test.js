@@ -100,15 +100,29 @@ test('★ CI 는 오프라인으로 돈다 (이것이 ② 판단의 근거다)',
 });
 
 /**
- * ★ 실패 알림 경로에 secret 이 걸려 있다. **이게 비면 실패가 조용히 지나간다** —
- *   CLAUDE.md §2 가 금지하는 상태다.
+ * ★★★ **문자 알림을 지웠다** 〈2026-08-24 사장님 지시 · D-99〉.
+ *
+ *   앞 판은 「실패 알림이 secret 을 쓰고 있는가」를 쟀다. 그 장치를 통째로
+ *   지웠으니 그대로 두면 **영영 빨간 검사**가 된다 — 그리고 늘 빨간 검사는
+ *   아무도 안 본다.
+ *
+ * ★ 그래서 재는 것을 바꾼다. **지운 것이 정말 지워졌는가**, 그리고 **무엇이
+ *   대신 알리는지가 적혀 있는가**. 뒤엣것을 안 재면 반년 뒤에 「왜 알림이
+ *   없지」로 다시 헤맨다 — CLAUDE.md §2 는 규칙 자체는 그대로 두고 경로만
+ *   바꿔 적었다.
  */
-test('★ 실패 알림이 secret 을 쓰고, 그 사실이 등록부 ① 에 있다', () => {
+test('★★★ 지운 알림의 secret 을 아무 워크플로도 안 읽는다', () => {
   const used = workflowSecrets();
-  ['SOLAPI_API_KEY', 'SOLAPI_API_SECRET', 'ALERT_PHONE'].forEach((k) => {
-    assert.ok(used.has(k), `${k} 를 쓰는 워크플로가 없다 — 실패 알림 경로가 사라졌는가`);
-    assert.ok(used.get(k).some(f => /alert-failure/.test(f)), `${k} 가 실패 알림에서 안 쓰인다`);
+  ['SOLAPI_API_KEY', 'SOLAPI_API_SECRET', 'SENDER_PHONE', 'ALERT_PHONE'].forEach((k) => {
+    assert.ok(!used.has(k),
+      `${k} 를 아직 읽는 워크플로가 있다: ${(used.get(k) || []).join(', ')} — 반쯤 지우면 배포가 없는 파일을 부른다`);
   });
+});
+
+test('★★ 무엇이 대신 알리는지가 CLAUDE.md 에 적혀 있다', () => {
+  const md = fs.readFileSync(path.join(ROOT, 'CLAUDE.md'), 'utf8');
+  assert.ok(/GitHub 이 실행 실패 시 보내는 메일/.test(md),
+    '지운 사실만 적고 대신 무엇이 알리는지를 안 적었다 — 반년 뒤 같은 논의를 다시 한다');
 });
 
 /**
