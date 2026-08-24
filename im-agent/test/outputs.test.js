@@ -397,12 +397,14 @@ test('★★★ 완성 보고서: .md·.json 도 실제로 연다 (열기가 죽
     path.join(__dirname, '..', 'ui', 'platform', 'reports.html'), 'utf8');
   const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
-  assert.ok(!/if \(printable && open/.test(code),
+  /* ★ 2026-08-24: 여는 일을 브라우저에 넘겼다 (M-33). `.md`·`.json` 도 `.html` 과
+   *   **똑같이 링크**가 되고, 인쇄창만 `.html` 에서 더 붙는다 — 여는 길은 여전히 하나다 */
+  assert.ok(/var isLink = r\.status !== 'blocked' && !!url;/.test(code),
+    '차단된 것만 빼고 전부 링크가 되어야 한다 — 확장자를 안 가린다');
+  assert.ok(/a\.href = url;/.test(code),
+    '여는 길이 링크가 아니다 — 틀(iframe) 안에서 막힌다 (M-33)');
+  assert.ok(!/if \(printable && openFile/.test(code),
     'printable 일 때만 열려고 한다 — .md·.json 은 여는 시도조차 없이 오류로 떨어진다');
-  assert.ok(/openFile\(r, printable\)/.test(code),
-    '여는 길이 하나가 아니다 — 여는 것은 같고 인쇄창만 다르다');
-  assert.ok(/r\.status !== 'blocked' && openFile/.test(code),
-    '차단된 것만 사유를 보여주고 나머지는 열어야 한다');
 });
 
 test('★★★ 완성 보고서: 못 열면 **왜인지** 말한다 — 서버 탓으로 단정하지 않는다', () => {
@@ -422,8 +424,12 @@ test('★★ 완성 보고서: 인쇄창은 A4 인쇄본에만 띄운다 (md 를
   const src = fs.readFileSync(
     path.join(__dirname, '..', 'ui', 'platform', 'reports.html'), 'utf8');
   const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-  const fn = code.slice(code.indexOf('function openFile'));
-  const body = fn.slice(0, fn.indexOf('\n  }'));
-  assert.ok(/if \(print\) \{/.test(body),
-    'print 여부를 안 보고 늘 인쇄창을 띄운다');
+  /* ★ 2026-08-24: 인쇄창은 `openForPrint` 안으로 들어갔고, 그 함수는
+   *   **printable 일 때만** 불린다 (M-33) */
+  assert.ok(/if \(printable && openForPrint\(url\)\)/.test(code),
+    'printable 을 안 보고 늘 인쇄창을 띄운다');
+  const fn = code.slice(code.indexOf('function openForPrint'), code.indexOf('function recent()'));
+  assert.ok(/w\.print\(\)/.test(fn), '인쇄창을 안 띄운다');
+  assert.ok(!/w\.print\(\)/.test(code.slice(code.indexOf('function recent()'))),
+    '카드 그리는 쪽에서도 인쇄창을 띄운다 — 두 곳이 되면 갈린다');
 });

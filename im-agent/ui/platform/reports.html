@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="c3c87417">
+<html lang="ko" data-lp-build="2fd219a3">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -93,7 +93,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=c3c87417">
+<link rel="stylesheet" href="tokens.css?v=2fd219a3">
 <style>
 :root {
   --side: 248px;
@@ -314,6 +314,8 @@ ul { margin: 0; padding: 0; list-style: none; }
 .out__a { margin-left: auto; font-weight: 600; font-size: 13px; line-height: 1; font-family: inherit; padding: 9px 15px; border-radius: 10px;
   border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer;
   text-decoration: none; }
+/* 단추가 링크일 때도 같은 모양이어야 한다 — 링크라야 틀(iframe) 안에서 막히지 않는다 */
+a.out__a, a.out__a:visited { display: inline-block; white-space: nowrap; color: var(--ink); }
 .st { font-size: 11.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
 .st--ok { background: var(--lime-soft); color: var(--lime-deep); }
 .st--run { background: var(--warn-soft); color: var(--warn-ink); }
@@ -400,14 +402,14 @@ ul { margin: 0; padding: 0; list-style: none; }
   <a class="bot__i on" href="#"><b>☰</b>더보기</a>
 </nav>
 
-<script src="gate-core.js?v=c3c87417"></script>
-<script src="catalog.js?v=c3c87417"></script>
-<script src="inapp.js?v=c3c87417"></script>
-<script src="live-core.js?v=c3c87417"></script>
+<script src="gate-core.js?v=2fd219a3"></script>
+<script src="catalog.js?v=2fd219a3"></script>
+<script src="inapp.js?v=2fd219a3"></script>
+<script src="live-core.js?v=2fd219a3"></script>
 <!-- ★ 판 지문을 화면에 보이게 찍는 것이 여기 있다 (§8) — 묶음에 이미 실리는 파일이다 -->
-<script src="flow-core.js?v=c3c87417"></script>
+<script src="flow-core.js?v=2fd219a3"></script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=c3c87417" data-lp-global="LINKPILOT_REPORTS"></script>
+<script src="embed-bridge.js?v=2fd219a3" data-lp-global="LINKPILOT_REPORTS"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -617,6 +619,33 @@ window.LINKPILOT_REPORTS = Object.assign({
    *   예전에는 본체가 정적 경로를 붙여 줄 때까지 안내만 띄웠다 — 그런데 지침 §7-3 은
    *   [인쇄 · PDF 저장]을 이미 약속하고 있어서, 협력사 눈에는 고장으로 보인다.
    */
+  /**
+   * ★★★ **주소를 절대 주소로 만든다** 〈2026-08-24 사장님 화면: 팝업 차단〉.
+   *
+   *   못 열었을 때 화면이 「외부 브라우저에서 다시 열어 주세요. 주소:
+   *   /api/linkpilot/projects/…」 라고 적고 있었다. **그 주소로는 못 간다** —
+   *   앞에 도메인이 없다. 안내가 시키는 대로 해도 안 되는 안내였다.
+   */
+  function absUrl(u) {
+    try { return new URL(String(u), window.location.href).href; }
+    catch (_) { return String(u); }
+  }
+
+  /**
+   * **어디에 갇혀 있는가**를 가른다. 셋이 서로 다른 원인이고 할 일도 다르다.
+   *
+   * ★ 앞 판은 인앱 브라우저 하나만 봤다. 그래서 **앱 화면(iframe) 안**에서
+   *   막힌 것을 「팝업이 차단되었습니다」로 적었는데, 사장님은 사파리에 계셨다 —
+   *   **원인을 잘못 단정한 안내**다 (M-24 · M-28 과 같은 결).
+   */
+  function whereAreWe() {
+    var ia = window.LinkPilotInApp && window.LinkPilotInApp.detect(navigator.userAgent);
+    if (ia && ia.inApp) return { kind: 'inapp', name: ia.name };
+    var framed = false;
+    try { framed = window.top !== window.self; } catch (_) { framed = true; }
+    return { kind: framed ? 'framed' : 'top', name: null };
+  }
+
   function fileUrlFor(rel) {
     if (typeof C.fileUrl === 'function') return C.fileUrl(state.projectId, rel) || null;
     if (!C.api || !state.projectId || !rel) return null;
@@ -1150,13 +1179,6 @@ window.LINKPILOT_REPORTS = Object.assign({
 
   // ── 최근 생성물 ──────────────────────────────────
   /**
-   * A4 인쇄본을 새 창에 열고 인쇄창을 띄운다 (지침 §7-3).
-   *
-   * ★ 인앱 브라우저에서는 새 창이 열리지 않는다 — 조용히 실패하면 고장으로 오해하므로
-   *   그 자리에서 이유를 적는다. (배너는 inapp.js 가 따로 띄운다)
-   * @returns {boolean} 처리했으면 true
-   */
-  /**
    * ★★★ **「열기」가 아무것도 안 열고 있었다** 〈2026-08-23 사장님 화면〉.
    *
    *   보고서 일곱이 다 「완료」로 나왔는데 [열기] 를 누르면
@@ -1168,29 +1190,63 @@ window.LINKPILOT_REPORTS = Object.assign({
    *   ★ 게다가 문구가 **서버 탓으로 단정**했다. 우리가 안 부른 것을 서버 탓으로
    *     적으면 사람은 없는 고장을 찾으러 간다 (M-24 · M-28 과 같은 결).
    *
-   * ★ 그래서 하나로 합친다. **여는 것은 똑같고, 인쇄창을 띄우느냐만 다르다.**
-   * @param {boolean} print 열고 나서 인쇄창까지 띄울 것인가 (A4 인쇄본만)
+   * ★ 그래서 하나로 합쳤다. **여는 것은 똑같고, 인쇄창을 띄우느냐만 다르다.**
+   *   〈2026-08-24: 그 다음 판에서 여는 일 자체를 브라우저에 넘겼다 — 아래.〉
    */
-  function openFile(r, print) {
-    var url = fileUrlFor(r.path);
-    if (!url) return false;
+  /**
+   * ★★★ **못 열었을 때 「누를 수 있는 것」을 준다** 〈2026-08-24〉.
+   *
+   *   앞 판은 주소를 **글자로** 적어 두고 「외부 브라우저에서 다시 열어 주세요」
+   *   라고 했다. 그런데 그 주소는 상대 경로였고, 글자는 누를 수도 없다 —
+   *   **시키는 대로 해도 안 되는 안내**였다.
+   *
+   * ★ 그래서 링크를 만든다. 링크는 **사용자가 직접 누르는 것**이라 팝업
+   *   차단기가 막지 않는다. 주소는 절대 주소로 적는다.
+   */
+  function cantOpenNote(url, where) {
+    var n = el('p', 'note note--bad');
+    n.id = 'out-note';
+    var head = where.kind === 'inapp'
+      ? where.name + ' 안에서는 새 창이 안 열립니다. '
+      : where.kind === 'framed'
+        ? '앱 화면 안에서는 새 창이 막힐 수 있습니다. '
+        : '브라우저가 새 창을 막았습니다. ';
+    n.appendChild(document.createTextNode(head + '아래 주소를 눌러 여십시오.'));
+    var a = el('a', null, url);
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.style.display = 'block';
+    a.style.marginTop = '8px';
+    a.style.wordBreak = 'break-all';
+    n.appendChild(a);
+    return n;
+  }
 
-    var ia = window.LinkPilotInApp && window.LinkPilotInApp.detect(navigator.userAgent);
-    var w = ia && ia.inApp ? null : window.open(url, '_blank', 'noopener');
-    if (!w) {
-      var n = el('p', 'note note--bad',
-        (ia && ia.inApp ? ia.name + ' 안에서는 새 창이 열리지 않습니다. ' : '팝업이 차단되었습니다. ')
-        + '외부 브라우저(Chrome · Safari)에서 다시 열어 주세요. 주소: ' + url);
-      n.id = 'out-note';
-      view.appendChild(n);
-      return true;
-    }
+  /**
+   * ★★★ **여는 일을 브라우저에 맡긴다** 〈2026-08-24 사장님 화면〉.
+   *
+   *   앞 판은 `window.open` 을 불렀다. 이 화면은 앱 안의 **틀(iframe)** 에서
+   *   도는데, 틀 안에서 스크립트가 부르는 새 창은 **브라우저가 막는다.**
+   *   그러면 「팝업이 차단되었습니다」만 남고 **아무것도 안 열린다.**
+   *
+   * ★ 사람이 누른 링크는 안 막힌다. 그래서 단추를 **진짜 링크**로 만들고,
+   *   여는 것은 브라우저가 하게 둔다 — 우리가 `window.open` 을 부르는 것은
+   *   **인쇄창까지 띄워야 할 때뿐**이고, 그때도 막히면 **링크의 원래 동작이
+   *   그대로 이어진다** (막지 않는다).
+   *
+   * @returns {boolean} 우리가 처리했으면 true (그러면 링크의 기본 동작을 막는다)
+   */
+  function openForPrint(url) {
+    var where = whereAreWe();
+    if (where.kind === 'inapp') return false;   // 새 창 자체가 안 된다 — 링크에 맡긴다
+    var w = null;
+    try { w = window.open(url, '_blank', 'noopener'); } catch (_) { w = null; }
+    if (!w) return false;                        // 막혔다 — 링크의 기본 동작이 대신 연다
     // 문서가 다 뜬 뒤 인쇄창을 띄운다. 실패해도 창은 열려 있으니 직접 인쇄할 수 있다
-    if (print) {
-      try {
-        w.addEventListener('load', function () { try { w.print(); } catch (e) { /* 사용자가 직접 */ } });
-      } catch (e) { /* 교차출처면 접근이 막힌다 — 그때는 사용자가 직접 인쇄한다 */ }
-    }
+    try {
+      w.addEventListener('load', function () { try { w.print(); } catch (e) { /* 사용자가 직접 */ } });
+    } catch (e) { /* 교차출처면 접근이 막힌다 — 그때는 사용자가 직접 인쇄한다 */ }
     return true;
   }
 
@@ -1230,20 +1286,60 @@ window.LINKPILOT_REPORTS = Object.assign({
       // 지침 §7-3 은 '[인쇄 · PDF 저장]으로 저장하거나 인쇄'다.
       // PDF 를 서버에서 만들지 않으므로(형식 목록 참고) A4 인쇄본을 브라우저로 인쇄한다
       var printable = r.status !== 'blocked' && /\.html?$/i.test(r.path || '');
-      var a = el('button', 'out__a',
+      /* ★ 주소가 없을 때 빈 문자열을 절대 주소로 바꾸면 **이 페이지 자신**이
+       *   된다 — 누르면 화면이 새로고침되고 파일은 안 열린다. 없으면 없는 채로 둔다 */
+      var raw = r.status === 'blocked' ? null : fileUrlFor(r.path);
+      var url = raw ? absUrl(raw) : null;
+
+      /* ★★★ **누를 것을 진짜 링크로 만든다** 〈2026-08-24〉.
+       *   앱 화면은 틀(iframe) 안에서 돈다. 틀 안에서 스크립트가 여는 새 창은
+       *   브라우저가 막지만, **사람이 누른 링크는 안 막는다.** 그래서 여는 일을
+       *   브라우저에 맡기고, 우리는 인쇄창이 필요할 때만 끼어든다. */
+      var isLink = r.status !== 'blocked' && !!url;
+      var a = el(isLink ? 'a' : 'button', 'out__a',
         r.status === 'blocked' ? '사유 보기' : printable ? '인쇄 · PDF 저장' : '열기');
-      a.type = 'button';
-      a.addEventListener('click', function () {
+      if (isLink) {
+        a.href = url;
+        a.target = '_blank';
+        a.rel = 'noopener';
+      } else {
+        a.type = 'button';
+      }
+      a.addEventListener('click', function (ev) {
         var old = document.getElementById('out-note');
         if (old) old.remove();
-        /* ★ 차단된 것만 사유를 보여 준다. 나머지는 **실제로 연다** —
-         *   `.html` 이든 `.md` 든 여는 길은 같고, 인쇄창을 띄우느냐만 다르다 */
-        if (r.status !== 'blocked' && openFile(r, printable)) return;
-        var n = el('p', 'note', r.status === 'blocked'
-          ? (r.note || '검증을 통과하지 못했습니다.') + ' — 검증 화면에서 해소해야 배포할 수 있습니다.'
-          : r.path + ' 를 열 수 없습니다 — ' + whyCantOpen());
-        n.id = 'out-note';
-        view.appendChild(n);
+
+        if (r.status === 'blocked') {
+          var b = el('p', 'note',
+            (r.note || '검증을 통과하지 못했습니다.') + ' — 검증 화면에서 해소해야 배포할 수 있습니다.');
+          b.id = 'out-note';
+          view.appendChild(b);
+          return;
+        }
+
+        /* ★ 주소를 못 만들면 **왜 못 만들었는지**를 갈라서 적는다.
+         *   「서버 연결을 확인하세요」로 두면 멀쩡한 서버를 뒤지게 된다 */
+        if (!url) {
+          var n = el('p', 'note', r.path + ' 를 열 수 없습니다 — ' + whyCantOpen());
+          n.id = 'out-note';
+          view.appendChild(n);
+          return;
+        }
+
+        /* ★ 인쇄본만 새 창을 직접 연다(인쇄창을 띄워야 해서다). 막히면
+         *   **막지 않는다** — 링크의 원래 동작이 그대로 이어져 어차피 열린다 */
+        if (printable && openForPrint(url)) {
+          if (ev && ev.preventDefault) ev.preventDefault();
+          return;
+        }
+
+        /* ★ 인앱 브라우저는 링크로도 새 창이 안 열린다. 그때만 누를 수 있는
+         *   주소를 따로 적어 준다 — 글자로 적으면 아무 소용이 없다 */
+        var where = whereAreWe();
+        if (where.kind === 'inapp') {
+          if (ev && ev.preventDefault) ev.preventDefault();
+          view.appendChild(cantOpenNote(url, where));
+        }
       });
       row.appendChild(a);
       box.appendChild(row);
