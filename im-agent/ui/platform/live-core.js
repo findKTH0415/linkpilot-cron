@@ -29,7 +29,7 @@
    *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다. 화면이 자기
    *   지문과 대 보고 다르면 「함수가 없다」로 죽기 전에 사람 말로 알린다.
    */
-  var LP_BUILD = 'c760f626';
+  var LP_BUILD = '6edb6181';
 
   /**
    * 제작 과정을 사람이 아는 말로 묶은 카테고리.
@@ -47,7 +47,7 @@
     { id: 'public', label: '공부·시장 조회', why: '지적·건축물대장·인허가·금리·시세를 독립된 출처에서 받아옵니다',
       agents: ['07_geo', '03_research'] },
     { id: 'calc', label: '계산·검토', why: '재무모델·감정평가·매스 검토를 돌립니다 (숫자는 함수가 만듭니다)',
-      agents: ['04_financial', '08_appraisal', '09_massing'] },
+      agents: ['04_financial', '08_appraisal', '09_massing', '12_sketchup_plan'] },
     { id: 'check', label: '값 검증', why: '값 충돌·범위·정합성을 봅니다 — RED 가 있으면 배포가 막힙니다',
       agents: ['05_validation'] },
     { id: 'write', label: '문서 만들기', why: 'IM 본문·Teaser·출처표를 씁니다 (숫자는 자리표시자로만)',

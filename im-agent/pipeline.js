@@ -464,6 +464,18 @@ async function run(opts = {}) {
     }
   }
 
+  // ── 12 SketchUp Plan (평면 A — D-95) ──────────────────────
+  //   매스에서 **「무엇을 어디에 만들어라」**까지만 낸다. 실제 3D 는
+  //   SketchUp 이 켜진 사람 자리에서 만든다 — 엔진은 SketchUp 을 안 부른다.
+  const plan = await runAgent('12_sketchup_plan', {
+    projectId, geo: geo.output || null, massing: massing.output || null,
+  }, ctx);
+  results['12_sketchup_plan'] = plan;
+  if (plan.output && plan.output.plan) {
+    const p = plan.output.plan;
+    log(`  3D 계획: 물체 ${p.objects.length}개 · 못 채운 값 ${p.missing.length}개 · 가정 ${p.assumptions.length}개`);
+  }
+
   // ── 05 Cross Validation ───────────────────────────────────
   const val = await runAgent('05_validation', {
     projectId,

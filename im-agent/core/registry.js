@@ -28,13 +28,17 @@ const AGENTS = {
   '04_financial':  { order: 5, label: 'Financial Agent',          enabled: true,  confidenceThreshold: 0.9, approvalRule: 'auto',      module: '../agents/04-financial' },
   '08_appraisal':  { order: 6, label: 'Appraisal Agent (감정평가)', enabled: true,  confidenceThreshold: 0.6, approvalRule: 'threshold', module: '../agents/08-appraisal' },
   '09_massing':    { order: 7, label: 'Massing / 3D Agent',       enabled: true,  confidenceThreshold: 0.5, approvalRule: 'auto',      module: '../agents/09-massing' },
+  /* ★ 09_massing 뒤 · 05_validation 앞 〈2026-08-25 · D-95〉. 매스에서 계획이
+   *   나오고, 검증은 그 계획까지 보고 판단한다. order 를 소수로 둔 것은
+   *   **기존 번호를 안 밀기 위해서**다 — 밀면 다른 곳의 순서 검사가 흔들린다 */
+  '12_sketchup_plan': { order: 7.5, label: 'SketchUp Plan Agent', enabled: true, confidenceThreshold: 0.5, approvalRule: 'auto', module: '../agents/12-sketchup-plan' },
   '05_validation': { order: 8, label: 'Cross Validation Agent',   enabled: true,  confidenceThreshold: 0.7, approvalRule: 'auto',      module: '../agents/05-validation' },
   '06_im_writer':  { order: 9, label: 'IM Writer Agent',          enabled: true,  confidenceThreshold: 0.7, approvalRule: 'human',     module: '../agents/06-im-writer' },
   '11_final_validation': { order: 10, label: 'Final Validation Agent (독립 검증)', enabled: true, confidenceThreshold: 0.9, approvalRule: 'human', module: '../agents/11-final-validation' },
 };
 
 /** 부동산개발 전용 Agent — 다른 자산유형에서는 데이터가 없어 자동으로 건너뛴다 */
-const REAL_ESTATE_AGENTS = ['07_geo', '08_appraisal', '09_massing'];
+const REAL_ESTATE_AGENTS = ['07_geo', '08_appraisal', '09_massing', '12_sketchup_plan'];
 
 /** Phase 2/3 — 아직 구현하지 않은 Agent (Control Center에 '미구현'으로 노출) */
 const PLANNED = {
