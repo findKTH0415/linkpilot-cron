@@ -1,0 +1,26 @@
+{
+  "schema": "model-plan/1",
+  "project_id": "LP-DEMO-2026-000",
+  "created": "2026-08-24 21:00 KST",
+  "units": "mm",
+  "scale_status": "VERIFIED",
+  "_notice": "예시 데이터다. 실제 프로젝트 값이 아니다 — 규격 문서(docs/스케치업-모델-계획-규격.md)의 손으로 쓴 견본이며, 맥북 절차서의 첫 연습에 쓴다.",
+  "site": {
+    "area_m2": 12500,
+    "zoning": "일반공업지역",
+    "far_limit_pct": 350,
+    "bcr_limit_pct": 70,
+    "source": { "fact": "land.area_sqm", "origin": "예시" }
+  },
+  "building": {
+    "floors": 4,
+    "basement_floors": 0,
+    "floor_height_mm": 4500,
+    "footprint": { "width_mm": 60000, "depth_mm": 40000 },
+    "gfa_m2": 9600,
+    "source": { "fact": "building.gfa_sqm", "origin": "예시" }
+  },
+  "objects": [],
+  "missing": [],
+  "notes": ["매스만 만든다 — 도면 인식(D-98) 전이므로 objects 는 비어 있다"]
+}
