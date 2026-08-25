@@ -429,7 +429,7 @@ async function buildSection() {
   // ★ 그래도 변경내역이 있다는 사실은 **위에서 말한다.** 아래로 내리기만 하면
   //   그것대로 아무도 안 본다 — 원래 화면 위에 뒀던 이유가 그거였다.
   //   그래서 배너 마지막 줄이 어디에 있는지 가리킨다.
-  const panels = changePanel() + evidencePanel() + guardPanel() + vaultPanel() + linkedPanel() + deskPanel();
+  const panels = changePanel() + orchestratorPanel() + evidencePanel() + guardPanel() + vaultPanel() + linkedPanel() + deskPanel();
   const withBanner = shell.replace('<body>', '<body>' + banner);
   const end = withBanner.lastIndexOf('</body>');
   if (end < 0) {
@@ -805,6 +805,109 @@ function evidencePanel() {
 </section>`;
 }
 
+
+/**
+ * 지휘체계(Task 그래프)를 **눈으로 확인**하게 한다.
+ *
+ * ★ 화면이 없는 작업이다. 「업무를 자동으로 쪼개고, 동시에 돌 것을 스스로 고르고,
+ *   값이 바뀌면 영향받는 것만 다시 돌린다」는 말은 그 자체로는 확인할 방법이 없다.
+ *   그래서 **빌드할 때 실제로 계획을 세우고 재작업 계산을 돌려** 그 출력을 넣는다.
+ *
+ * ★ 키 유무에 좌우되지 않게 `assumeTools` 로 세운다 — 안 그러면 만드는 기계마다
+ *   판이 달라져 커밋본과 재생성 결과가 갈린다 (CLAUDE.md §8).
+ *   실제 실행에서는 키가 없으면 그 Task 가 BLOCKED 로 서고 이유를 적는다.
+ */
+function orchestratorPanel() {
+  const AGENT = path.join(HERE, '..', '..');
+  const taskplan = require(path.join(AGENT, 'core', 'taskplan'));
+  const tasksMod = require(path.join(AGENT, 'core', 'tasks'));
+  const lineage = require(path.join(AGENT, 'core', 'lineage'));
+  const routerMod = require(path.join(AGENT, 'core', 'router'));
+
+  const REQUEST = '전남 태양광 100MW 사전 투자검토 보고서와 투자자용 IM 을 만들어줘';
+  const p = taskplan.plan({ request: REQUEST, assumeTools: true });
+
+  const MARK = {
+    QUEUED: '·', SKIPPED: '↷', PLANNED: '✕', BLOCKED: '■',
+  };
+  const waveRows = tasksMod.waves(p.tasks).map((w, i) => {
+    const cells = w.map(t => {
+      const cls = t.status === 'PLANNED' ? ' bad' : (t.status === 'SKIPPED' ? ' dim' : '');
+      return `<span class="tg__t${cls}">${esc(MARK[t.status] || '·')} ${esc(t.id)} ${esc(t.name)}</span>`;
+    }).join('');
+    return `<div class="tg__w"><span class="tg__wn">${i + 1}회전</span>
+      <span class="tg__c">${cells}</span></div>`;
+  }).join('');
+
+  // ── 값 하나가 바뀌면 무엇이 다시 도는가 — 실제 계산 결과 ──
+  const IMPACT_KEY = 'investment.total';
+  const imp = lineage.impact('LP-PREVIEW-0000', IMPACT_KEY);
+  const byAgent = {};
+  for (const t of p.tasks) if (t.agentType) byAgent[t.agentType] = t;
+  const rerun = imp.rerunOrder.map(a => byAgent[a]).filter(Boolean);
+  const untouched = p.tasks.filter(t => t.agentType && !imp.rerunOrder.includes(t.agentType));
+
+  const chips = list => list.map(t => `<span>${esc(t.id)} ${esc(t.name)}</span>`).join('');
+
+  // ── 담당이 없는 것 — 지우지 않고 남긴 이유를 그대로 보여준다 ──
+  const gaps = p.tasks.filter(t => t.status === 'PLANNED' || t.handledBy).map(t =>
+    `<div class="ev__c${t.handledBy ? '' : ' bad'}">
+      <div class="ev__n">${esc(t.id)} ${esc(t.name)} — ${t.handledBy ? '다른 곳에서 이미 돈다' : '담당 Agent 없음'}</div>
+      <div class="ev__m">${esc(t.reason || '')}</div>
+    </div>`).join('');
+
+  // ── 능력마다 어떤 자료원을 쓰는가 (키 이름만 — 값은 절대 안 낸다) ──
+  const caps = Object.entries(routerMod.CAPABILITIES).map(([id, c]) => {
+    const tools = [...(c.tools || []), ...(c.optional || [])];
+    const keys = [...new Set(tools.flatMap(t => routerMod.CONNECTOR_KEYS[t] || []))];
+    return `<tr><td>${esc(c.label)}</td>
+      <td>${esc((c.agents || []).join(', ') || '—')}</td>
+      <td>${esc(tools.join(' · ') || '—')}</td>
+      <td>${esc(keys.join(' · ') || '—')}</td></tr>`;
+  }).join('');
+
+  return `
+<section class="ev">
+  <h2 class="ev__t">눈으로 확인 — 업무를 스스로 쪼개고, 동시에 돌 것을 고른다</h2>
+  <p class="ev__s">아래는 이 미리보기를 만들 때 <b>실제로 계획기를 돌려</b> 나온 결과입니다.
+    손으로 적은 예시가 아닙니다. 요청문은 한 줄입니다 —
+    「${esc(REQUEST)}」</p>
+
+  <div class="ev__k"><span>자산군 ${esc(p.assetClass ? p.assetClass.label : '미상')}</span><span>Task ${p.tasks.length}건</span><span>회전 ${tasksMod.waves(p.tasks).length}단</span><span>담당 없음 ${p.planned.length}건</span></div>
+
+  <div class="ev__m" style="margin-top:14px">
+    <b>같은 회전 안의 것은 동시에 돕니다.</b> 무엇을 같이 돌릴지 사람이 적지 않습니다 —
+    선행이 끝난 것을 매번 다시 세어 고릅니다.
+    <br>· 돌 수 있음 &nbsp; ↷ 다른 Agent 안에서 이미 돎 &nbsp; ✕ 담당 Agent 미구현
+  </div>
+  <div class="tg">${waveRows}</div>
+
+  <h3 class="ev__n" style="margin-top:22px">값 하나를 바꾸면 무엇이 다시 도는가</h3>
+  <div class="ev__m">${esc(imp.label || IMPACT_KEY)}(<code>${esc(IMPACT_KEY)}</code>)을 고쳤을 때입니다.
+    <b>보고서를 처음부터 다시 만들지 않습니다.</b></div>
+  <div class="ev__c">
+    <div class="ev__n">다시 도는 것 — ${rerun.length}건 (이 순서로)</div>
+    <div class="ev__k">${chips(rerun)}</div>
+  </div>
+  <div class="ev__c dim">
+    <div class="ev__n">건드리지 않는 것 — ${untouched.length}건</div>
+    <div class="ev__k">${chips(untouched)}</div>
+  </div>
+
+  <h3 class="ev__n" style="margin-top:22px">담당이 없거나 다른 곳에서 도는 것 — 지우지 않고 남깁니다</h3>
+  <div class="ev__m">계획에서 빼면 「그 검토는 원래 안 하는 것」으로 굳습니다.</div>
+  ${gaps}
+
+  <h3 class="ev__n" style="margin-top:22px">능력마다 쓸 수 있는 자료원</h3>
+  <div class="ev__m">Agent 가 스스로 고르지 않습니다 — 오케스트레이터가 이 표대로 지정해 내려보냅니다.
+    <b>키 값은 어디에도 나오지 않습니다. 키 이름만 적습니다.</b></div>
+  <div class="tg__scroll"><table class="tg__tb">
+    <tr><th>능력</th><th>담당 Agent</th><th>자료원</th><th>필요한 키</th></tr>
+    ${caps}
+  </table></div>
+</section>`;
+}
+
 /**
  * 배포가 **실제로 반영됐는지 재는 장치**를 눈으로 확인하게 한다 (M-12).
  *
@@ -949,6 +1052,19 @@ function changePanel() {
     font: 400 12.5px/1.7 ui-monospace, Menlo, Consolas, monospace;
     white-space: pre-wrap; word-break: break-all; overflow-x: auto; }
   .ev__k { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+  .ev__c.dim { opacity: .62; }
+  .tg { margin-top: 10px; border-left: 2px solid #E8EAEC; padding-left: 12px; }
+  .tg__w { display: flex; gap: 10px; align-items: flex-start; padding: 6px 0; }
+  .tg__wn { flex: 0 0 52px; font: 700 11.5px/1.7 ui-monospace, Menlo, Consolas, monospace; color: #7C838C; }
+  .tg__c { display: flex; flex-wrap: wrap; gap: 5px; }
+  .tg__t { font: 600 11.5px/1.7 ui-monospace, Menlo, Consolas, monospace;
+    background: #F2F2F7; border-radius: 6px; padding: 2px 7px; }
+  .tg__t.bad { background: #FDF3E3; color: #8A6A2F; }
+  .tg__t.dim { opacity: .55; }
+  .tg__scroll { overflow-x: auto; margin-top: 8px; }
+  .tg__tb { border-collapse: collapse; font-size: 12px; min-width: 560px; }
+  .tg__tb th, .tg__tb td { border-bottom: 1px solid #E8EAEC; padding: 5px 9px; text-align: left; vertical-align: top; }
+  .tg__tb th { color: #7C838C; font-weight: 700; white-space: nowrap; }
   .ev__k span { font: 600 11.5px/1 ui-monospace, Menlo, Consolas, monospace;
     padding: 5px 8px; border-radius: 6px; background: #F0FAD8; color: #7BA10F; }
   .upd__pt { margin: 20px 0 0; font-size: 14px; font-weight: 700; }

@@ -1971,6 +1971,19 @@ window.LINKPILOT_REPORT_FLOW = {
     font: 400 12.5px/1.7 ui-monospace, Menlo, Consolas, monospace;
     white-space: pre-wrap; word-break: break-all; overflow-x: auto; }
   .ev__k { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+  .ev__c.dim { opacity: .62; }
+  .tg { margin-top: 10px; border-left: 2px solid #E8EAEC; padding-left: 12px; }
+  .tg__w { display: flex; gap: 10px; align-items: flex-start; padding: 6px 0; }
+  .tg__wn { flex: 0 0 52px; font: 700 11.5px/1.7 ui-monospace, Menlo, Consolas, monospace; color: #7C838C; }
+  .tg__c { display: flex; flex-wrap: wrap; gap: 5px; }
+  .tg__t { font: 600 11.5px/1.7 ui-monospace, Menlo, Consolas, monospace;
+    background: #F2F2F7; border-radius: 6px; padding: 2px 7px; }
+  .tg__t.bad { background: #FDF3E3; color: #8A6A2F; }
+  .tg__t.dim { opacity: .55; }
+  .tg__scroll { overflow-x: auto; margin-top: 8px; }
+  .tg__tb { border-collapse: collapse; font-size: 12px; min-width: 560px; }
+  .tg__tb th, .tg__tb td { border-bottom: 1px solid #E8EAEC; padding: 5px 9px; text-align: left; vertical-align: top; }
+  .tg__tb th { color: #7C838C; font-weight: 700; white-space: nowrap; }
   .ev__k span { font: 600 11.5px/1 ui-monospace, Menlo, Consolas, monospace;
     padding: 5px 8px; border-radius: 6px; background: #F0FAD8; color: #7BA10F; }
   .upd__pt { margin: 20px 0 0; font-size: 14px; font-weight: 700; }
@@ -1979,11 +1992,26 @@ window.LINKPILOT_REPORT_FLOW = {
 <section class="upd">
   <div class="upd__h">
     <h2 class="upd__t">이번에 바뀐 것</h2>
-    <span class="upd__at">최근 반영 2026-08-22 (KST)</span>
+    <span class="upd__at">최근 반영 2026-08-25 (KST)</span>
   </div>
   <p class="upd__s">아래 화면에 이미 반영되어 있습니다. <b>무엇이 · 왜 · 어떻게</b> 바뀌었는지
     함께 적습니다 — 전과 후를 나란히 두어야 무엇이 달라졌는지 눈으로 비교됩니다.</p>
   
+    <div class="upd__g">
+      <div class="upd__d">2026-08-25</div>
+      <ul class="upd__l">
+        <li>
+          <b>요청문 한 줄을 Task 로 쪼개고, 동시에 돌 것을 스스로 고르고, 값이 바뀌면 영향받는 것만 다시 돌린다</b>
+          <em>엔진 · 지휘체계 (tasks · taskplan · router · orchestrator · artifacts · agent-merge)</em>
+          <span>앞 판은 Agent 11개를 고정 순서로 하나씩 돌렸다. 그래서 세 가지가 안 됐다. ① 서로 무관한 일(시장조사와 입지조회)이 앞의 것을 기다렸다. ② 총사업비 하나를 고치면 보고서를 처음부터 다시 만들어야 했다. ③ 담당이 없는 검토(인허가·기술·Risk·PPT)는 계획 어디에도 안 나와서 「원래 안 하는 일」로 읽혔다. 이제 실행 단위가 Agent 가 아니라 Task 다. 선행이 끝난 것을 매 회전마다 다시 세어 한꺼번에 돌리고, 값이 바뀌면 lineage 가 계산한 영향 범위만 REWORK 로 되돌린다. 담당이 없는 것은 지우지 않고 PLANNED 로 남기며 왜 못 도는지를 적는다. 자료원은 Agent 가 고르지 않는다 — 오케스트레이터가 지정해 내려보낸다. 엔진 본체(pipeline.js)를 대체하지 않았다. IM 을 끝까지 만드는 정식 경로는 여전히 pipeline 이고, 둘을 합칠지는 등록부 D-85 에 올렸다.</span>
+          <div class="upd__ba">
+            <div class="upd__b"><em>전</em>Agent 11개 고정 직렬 · 값 하나 바뀌면 전량 재생성 · 미구현 검토는 화면에 없음</div>
+            <div class="upd__a"><em>후</em>Task 19건 9회전(동시 최대 5건) · 총사업비 변경 시 5건만 재실행 · 미구현 4건이 이유와 함께 계획에 남음</div>
+          </div>
+          <span class="upd__see">확인: 이 화면 아래 [눈으로 확인 — 업무를 스스로 쪼개고, 동시에 돌 것을 고른다] 패널. 회전별로 무엇이 동시에 도는지, 총사업비를 고치면 어느 5건만 다시 도는지, 담당이 없는 4건이 왜 못 도는지가 실제 계산 결과로 나온다</span>
+        </li>
+      </ul>
+    </div>
     <div class="upd__g">
       <div class="upd__d">2026-08-22</div>
       <ul class="upd__l">
@@ -2695,6 +2723,129 @@ window.LINKPILOT_REPORT_FLOW = {
     </li></ul>
 </section>
 <section class="ev">
+  <h2 class="ev__t">눈으로 확인 — 업무를 스스로 쪼개고, 동시에 돌 것을 고른다</h2>
+  <p class="ev__s">아래는 이 미리보기를 만들 때 <b>실제로 계획기를 돌려</b> 나온 결과입니다.
+    손으로 적은 예시가 아닙니다. 요청문은 한 줄입니다 —
+    「전남 태양광 100MW 사전 투자검토 보고서와 투자자용 IM 을 만들어줘」</p>
+
+  <div class="ev__k"><span>자산군 태양광</span><span>Task 19건</span><span>회전 9단</span><span>담당 없음 4건</span></div>
+
+  <div class="ev__m" style="margin-top:14px">
+    <b>같은 회전 안의 것은 동시에 돕니다.</b> 무엇을 같이 돌릴지 사람이 적지 않습니다 —
+    선행이 끝난 것을 매번 다시 세어 고릅니다.
+    <br>· 돌 수 있음 &nbsp; ↷ 다른 Agent 안에서 이미 돎 &nbsp; ✕ 담당 Agent 미구현
+  </div>
+  <div class="tg"><div class="tg__w"><span class="tg__wn">1회전</span>
+      <span class="tg__c"><span class="tg__t">· T02 프로젝트 개설</span><span class="tg__t">· T01 출력사양 확정</span></span></div><div class="tg__w"><span class="tg__wn">2회전</span>
+      <span class="tg__c"><span class="tg__t">· T03 자료 추출</span><span class="tg__t">· T05 시장조사</span></span></div><div class="tg__w"><span class="tg__wn">3회전</span>
+      <span class="tg__c"><span class="tg__t">· T12 자산군 대조값 입력</span><span class="tg__t dim">↷ T15 법인 재무·신용 조회</span><span class="tg__t">· T04 입지·지적·공부 조회</span><span class="tg__t dim">↷ T14 계통 여유용량 대조</span><span class="tg__t bad">✕ T16 인허가·법률 검토</span><span class="tg__t bad">✕ T17 기술 검토</span></span></div><div class="tg__w"><span class="tg__wn">4회전</span>
+      <span class="tg__c"><span class="tg__t dim">↷ T13 일사량·일조 조회</span><span class="tg__t">· T06 재무모델</span><span class="tg__t">· T08 매스·용적률 검토</span></span></div><div class="tg__w"><span class="tg__wn">5회전</span>
+      <span class="tg__c"><span class="tg__t">· T07 감정평가 3방식</span></span></div><div class="tg__w"><span class="tg__wn">6회전</span>
+      <span class="tg__c"><span class="tg__t">· T09 교차검증</span></span></div><div class="tg__w"><span class="tg__wn">7회전</span>
+      <span class="tg__c"><span class="tg__t">· T10 IM·티저 작성</span><span class="tg__t bad">✕ T18 Risk Analysis</span></span></div><div class="tg__w"><span class="tg__wn">8회전</span>
+      <span class="tg__c"><span class="tg__t">· T11 독립 최종검증 (8 GATE)</span></span></div><div class="tg__w"><span class="tg__wn">9회전</span>
+      <span class="tg__c"><span class="tg__t bad">✕ T19 PPT 생성</span></span></div></div>
+
+  <h3 class="ev__n" style="margin-top:22px">값 하나를 바꾸면 무엇이 다시 도는가</h3>
+  <div class="ev__m">총사업비(<code>investment.total</code>)을 고쳤을 때입니다.
+    <b>보고서를 처음부터 다시 만들지 않습니다.</b></div>
+  <div class="ev__c">
+    <div class="ev__n">다시 도는 것 — 5건 (이 순서로)</div>
+    <div class="ev__k"><span>T06 재무모델</span><span>T07 감정평가 3방식</span><span>T09 교차검증</span><span>T10 IM·티저 작성</span><span>T11 독립 최종검증 (8 GATE)</span></div>
+  </div>
+  <div class="ev__c dim">
+    <div class="ev__n">건드리지 않는 것 — 6건</div>
+    <div class="ev__k"><span>T01 출력사양 확정</span><span>T02 프로젝트 개설</span><span>T03 자료 추출</span><span>T04 입지·지적·공부 조회</span><span>T05 시장조사</span><span>T08 매스·용적률 검토</span></div>
+  </div>
+
+  <h3 class="ev__n" style="margin-top:22px">담당이 없거나 다른 곳에서 도는 것 — 지우지 않고 남깁니다</h3>
+  <div class="ev__m">계획에서 빼면 「그 검토는 원래 안 하는 것」으로 굳습니다.</div>
+  <div class="ev__c">
+      <div class="ev__n">T13 일사량·일조 조회 — 다른 곳에서 이미 돈다</div>
+      <div class="ev__m">여기서는 안 돌린다 — agents/07-geo.js (templateId=solar 이고 KMA 키가 있을 때) 안에서 이미 돈다 (같은 API 를 두 번 부르지 않는다)</div>
+    </div><div class="ev__c">
+      <div class="ev__n">T14 계통 여유용량 대조 — 다른 곳에서 이미 돈다</div>
+      <div class="ev__m">여기서는 안 돌린다 — agents/03-research.js 안에서 이미 돈다 (같은 API 를 두 번 부르지 않는다)</div>
+    </div><div class="ev__c">
+      <div class="ev__n">T15 법인 재무·신용 조회 — 다른 곳에서 이미 돈다</div>
+      <div class="ev__m">여기서는 안 돌린다 — pipeline.js → core/corpreport.js 안에서 이미 돈다 (같은 API 를 두 번 부르지 않는다)</div>
+    </div><div class="ev__c bad">
+      <div class="ev__n">T16 인허가·법률 검토 — 담당 Agent 없음</div>
+      <div class="ev__m">12_legal 미구현</div>
+    </div><div class="ev__c bad">
+      <div class="ev__n">T17 기술 검토 — 담당 Agent 없음</div>
+      <div class="ev__m">13_technical 미구현</div>
+    </div><div class="ev__c bad">
+      <div class="ev__n">T18 Risk Analysis — 담당 Agent 없음</div>
+      <div class="ev__m">14_risk 미구현</div>
+    </div><div class="ev__c bad">
+      <div class="ev__n">T19 PPT 생성 — 담당 Agent 없음</div>
+      <div class="ev__m">15_design 미구현</div>
+    </div>
+
+  <h3 class="ev__n" style="margin-top:22px">능력마다 쓸 수 있는 자료원</h3>
+  <div class="ev__m">Agent 가 스스로 고르지 않습니다 — 오케스트레이터가 이 표대로 지정해 내려보냅니다.
+    <b>키 값은 어디에도 나오지 않습니다. 키 이름만 적습니다.</b></div>
+  <div class="tg__scroll"><table class="tg__tb">
+    <tr><th>능력</th><th>담당 Agent</th><th>자료원</th><th>필요한 키</th></tr>
+    <tr><td>출력사양 확정</td>
+      <td>10_output_spec</td>
+      <td>—</td>
+      <td>—</td></tr><tr><td>프로젝트 개설</td>
+      <td>01_project</td>
+      <td>—</td>
+      <td>—</td></tr><tr><td>자료 추출</td>
+      <td>02_extraction</td>
+      <td>—</td>
+      <td>—</td></tr><tr><td>입지·지적·공부</td>
+      <td>07_geo</td>
+      <td>vworld · nsdi · molit · reb</td>
+      <td>VWORLD_KEY · VWORLD_DOMAIN · DATA_GO_KR_KEY · REB_API_KEY</td></tr><tr><td>시장조사</td>
+      <td>03_research</td>
+      <td>kosis · ecos</td>
+      <td>KOSIS_API_KEY · ECOS_API_KEY</td></tr><tr><td>재무모델</td>
+      <td>04_financial</td>
+      <td>ecos</td>
+      <td>ECOS_API_KEY</td></tr><tr><td>감정평가 3방식</td>
+      <td>08_appraisal</td>
+      <td>molit · reb</td>
+      <td>DATA_GO_KR_KEY · REB_API_KEY</td></tr><tr><td>매스·용적률 검토</td>
+      <td>09_massing</td>
+      <td>rhino</td>
+      <td>RHINO_COMPUTE_URL · RHINO_COMPUTE_KEY</td></tr><tr><td>교차검증</td>
+      <td>05_validation</td>
+      <td>—</td>
+      <td>—</td></tr><tr><td>IM·티저 작성</td>
+      <td>06_im_writer</td>
+      <td>—</td>
+      <td>—</td></tr><tr><td>독립 최종검증</td>
+      <td>11_final_validation</td>
+      <td>—</td>
+      <td>—</td></tr><tr><td>법인 재무·신용</td>
+      <td>—</td>
+      <td>dart · nts · nps</td>
+      <td>DART_API_KEY · DATA_GO_KR_KEY</td></tr><tr><td>일사량·일조</td>
+      <td>—</td>
+      <td>kma</td>
+      <td>KMA_APIHUB_KEY</td></tr><tr><td>계통 여유용량</td>
+      <td>—</td>
+      <td>kepco</td>
+      <td>KEPCO_BIGDATA_KEY</td></tr><tr><td>인허가·법률 검토</td>
+      <td>12_legal</td>
+      <td>enviro · g2b</td>
+      <td>DATA_GO_KR_KEY</td></tr><tr><td>기술 검토</td>
+      <td>13_technical</td>
+      <td>—</td>
+      <td>—</td></tr><tr><td>Risk Analysis</td>
+      <td>14_risk</td>
+      <td>—</td>
+      <td>—</td></tr><tr><td>PPT 생성</td>
+      <td>15_design</td>
+      <td>—</td>
+      <td>—</td></tr>
+  </table></div>
+</section>
+<section class="ev">
   <h2 class="ev__t">눈으로 확인 — 자료를 실제로 읽어 본 결과</h2>
   <p class="ev__s">아래 결과는 이 미리보기를 만들 때 <b>실제 파서를 돌려</b> 그대로 옮긴 것입니다.
     손으로 적은 예시가 아닙니다. 다만 <b>자료 자체는 합성 예시</b>입니다 — 실제 딜 자료는
@@ -2756,7 +2907,7 @@ LTC 65%</pre>
 
   <div class="ev__c">
     <div class="ev__n">아무도 안 부르는 모듈 — 0개</div>
-    <div class="ev__m">모듈 223개 중 223개가 닿습니다
+    <div class="ev__m">모듈 231개 중 231개가 닿습니다
       (<code>npm run check:reachable</code>).</div>
     <div class="ev__m">없음</div>
   </div>
