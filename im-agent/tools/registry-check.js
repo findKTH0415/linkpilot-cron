@@ -6,6 +6,10 @@
  *   npm run d:check -- --all     원격 갈래 전부와 대조한다 (충돌·다음 빈 번호)
  *   npm run d:next               다음 빈 번호 하나만 찍는다
  *
+ * ★ **번호를 붙이는 장부가 둘이다.** 미결정(D-)과 사고기록(M-). 같은 병이 양쪽에
+ *   있다 — 2026-08-25 실측으로 D 4건·M 6건이 겹쳤다. 그래서 한 도구가 둘 다 본다.
+ *   `--registry d` · `--registry m` 으로 하나만 볼 수 있다 (기본은 둘 다).
+ *
  * ★★ 왜 만들었나 — 2026-08-25 에 **실제로 났다.**
  *
  *   갈래 넷이 각자 D-번호를 붙였고, 세 벌이 겹쳤다:
@@ -35,6 +39,23 @@ const { execFileSync } = require('child_process');
 const REPO = path.join(__dirname, '..', '..');
 const DOC = path.join('docs', '미결정-사항.md');
 
+/**
+ * 번호를 붙이는 장부들.
+ *   doc      저장소 안 경로
+ *   head     머리말 정규식 — 1군=상태(있으면) 2군=번호 3군=제목
+ *   prefix   번호 앞머리
+ *
+ * ★ **M- 은 상태 표시가 없다.** D- 처럼 ✅ 로 진도를 나타내지 않는다 —
+ *   사고는 「결정」되는 것이 아니라 일어난 것이기 때문이다. 그래서 상태 비교를
+ *   하지 않고 제목만 본다.
+ */
+const REGISTRIES = {
+  d: { key: 'd', doc: DOC, prefix: 'D',
+    head: /^###\s+(?:([🔴🟠🟡⚪✅]+)\s*)?(D-\d+)\.\s*(.*)$/, label: '미결정' },
+  m: { key: 'm', doc: 'MEMORY.md', prefix: 'M',
+    head: /^##\s+()(M-\d+)\.\s*(.*)$/, label: '사고기록' },
+};
+
 /** 이 저장소에서 동시에 도는 작업 갈래 — 원격 이름으로 찾는다 */
 function remoteBranches() {
   try {
@@ -46,13 +67,13 @@ function remoteBranches() {
   }
 }
 
-function readAt(ref) {
+function readAt(ref, doc = DOC) {
   if (ref === null) {
-    const full = path.join(REPO, DOC);
+    const full = path.join(REPO, doc);
     return fs.existsSync(full) ? fs.readFileSync(full, 'utf8') : null;
   }
   try {
-    return execFileSync('git', ['show', `${ref}:${DOC}`], { cwd: REPO, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+    return execFileSync('git', ['show', `${ref}:${doc}`], { cwd: REPO, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
   } catch (_) {
     return null;
   }
@@ -62,12 +83,11 @@ function readAt(ref) {
  * 등록부에서 항목을 뽑는다.
  * 머리말 모양: `### 🔴 D-84. 제목 …`  (상태 이모지는 있을 수도 없을 수도)
  */
-function parse(text) {
+function parse(text, reg = REGISTRIES.d) {
   if (!text) return [];
   const out = [];
-  const lines = text.split('\n');
-  lines.forEach((line, i) => {
-    const m = line.match(/^###\s+(?:([🔴🟠🟡⚪✅]+)\s*)?(D-\d+)\.\s*(.*)$/);
+  text.split('\n').forEach((line, i) => {
+    const m = line.match(reg.head);
     if (m) out.push({ id: m[2], status: m[1] || null, title: m[3].trim(), line: i + 1 });
   });
   return out;
@@ -145,39 +165,33 @@ function nextFree(byBranch) {
   return { next: max + 1, holes: [], maxUsed: max, firstUnused: n };
 }
 
-function run(argv) {
+/** 장부 하나를 본다 — 화면에 찍고 충돌 수를 돌려준다 */
+function checkOne(reg, argv) {
   const all = argv.includes('--all');
-  const quiet = argv.includes('--next');
-
   const byBranch = {};
   const notes = [];
 
-  const localItems = parse(readAt(null));
-  byBranch['(작업본)'] = localItems;
+  byBranch['(작업본)'] = parse(readAt(null, reg.doc), reg);
 
-  let branches = null;
   if (all) {
-    branches = remoteBranches();
+    const branches = remoteBranches();
     if (!branches) notes.push('원격 갈래를 못 물어봤다 — 이 결과는 이 갈래만 본 것이다');
     else {
       for (const b of branches) {
-        const items = parse(readAt(b));
+        const items = parse(readAt(b, reg.doc), reg);
         if (items.length) byBranch[b.replace(/^origin\//, '')] = items;
-        else notes.push(`${b} 에서 등록부를 못 읽었다`);
+        else notes.push(`${b} 에서 ${reg.doc} 을 못 읽었다`);
       }
     }
   }
 
   const free = nextFree(byBranch);
-  if (quiet) { console.log(`D-${free.next}`); return 0; }
-
-  const dups = localDuplicates(localItems);
-  // 뿌리는 main — 「새로 붙인 번호」와 「원래 있던 항목을 고친 것」을 가르는 기준
-  const baseItems = all ? parse(readAt('origin/main')) : null;
-  if (all && !baseItems.length) notes.push('main 을 못 읽어 충돌·개정을 제목으로만 갈랐다 (오탐이 섞인다)');
+  const dups = localDuplicates(byBranch['(작업본)']);
+  const baseItems = all ? parse(readAt('origin/main', reg.doc), reg) : null;
+  if (all && baseItems && !baseItems.length) notes.push('main 을 못 읽어 충돌·개정을 제목으로만 갈랐다 (오탐이 섞인다)');
   const { conflicts, revisions } = all ? crossConflicts(byBranch, baseItems) : { conflicts: [], revisions: [] };
 
-  console.log('\n─ 미결정 번호 대조 ─');
+  console.log(`\n─ ${reg.label} 번호 대조 (${reg.doc}) ─`);
   for (const [b, items] of Object.entries(byBranch)) {
     console.log(`  ${String(b).slice(0, 44).padEnd(44)} ${String(items.length).padStart(3)}건`);
   }
@@ -199,33 +213,70 @@ function run(argv) {
         console.log(`        └ ${g[0].title.slice(0, 62)}`);
       }
     }
-    console.log('\n   ★ 푸는 법 — **가장 늦게 붙인 쪽이 양보한다.** 먼저 붙인 번호를 코드·');
-    console.log('     커밋·다른 문서가 이미 가리키고 있을 수 있다. 옮긴 쪽은 옛 번호를 지우지');
-    console.log(`     말고 「D-xx 로 옮김」을 남긴다. 다음 빈 번호는 **D-${free.next}** 다.`);
   }
 
   if (revisions.length) {
     console.log(`\n· 같은 항목인데 갈래마다 상태가 다르다 — ${revisions.length}건 (충돌 아님 · 진도 차이)`);
-    for (const r of revisions.slice(0, 12)) {
+    for (const r of revisions.slice(0, 8)) {
       const ahead = r.rows.filter(x => x.status === '✅');
-      const who = ahead.length ? ahead.map(x => x.branch.slice(0, 30)).join(' · ') : '—';
       console.log(`   ${r.id}  ${r.rows[0].title.slice(0, 40)}`);
-      console.log(`         진도 앞선 갈래: ${who}`);
+      console.log(`         진도 앞선 갈래: ${ahead.length ? ahead.map(x => x.branch.slice(0, 30)).join(' · ') : '—'}`);
     }
-    if (revisions.length > 12) console.log(`   … 외 ${revisions.length - 12}건`);
-    console.log('   ★ 병합할 때 **진도가 앞선 쪽(✅ 이 붙은 쪽)이 이긴다.** 결정을 되돌리지 않는다.');
+    if (revisions.length > 8) console.log(`   … 외 ${revisions.length - 8}건`);
   }
 
   for (const n of notes) console.log(`\n⚠ 못 잼 — ${n}`);
 
   const bad = dups.length + conflicts.length;
-  console.log(`\n  번호 ${free.maxUsed}까지 씀 · 다음 발급 **D-${free.next}**`
+  console.log(`\n  ${reg.prefix}-${free.maxUsed} 까지 씀 · 다음 발급 **${reg.prefix}-${free.next}**`
     + ` · 충돌 ${bad}${notes.length ? ` · 못 잼 ${notes.length}` : ''}`);
   if (!bad) console.log('  겹치는 번호 없음');
+  return { bad, next: free.next, reg };
+}
+
+function pickRegistries(argv) {
+  const i = argv.indexOf('--registry');
+  const want = i > -1 ? String(argv[i + 1] || '').toLowerCase() : null;
+  if (want && REGISTRIES[want]) return [REGISTRIES[want]];
+  return [REGISTRIES.d, REGISTRIES.m];
+}
+
+function run(argv) {
+  const regs = pickRegistries(argv);
+
+  // `--next` 는 번호 하나만 찍는다 — 스크립트가 받아 쓰기 좋게
+  if (argv.includes('--next')) {
+    for (const reg of regs) {
+      const byBranch = { '(작업본)': parse(readAt(null, reg.doc), reg) };
+      if (argv.includes('--all')) {
+        for (const b of (remoteBranches() || [])) {
+          const items = parse(readAt(b, reg.doc), reg);
+          if (items.length) byBranch[b] = items;
+        }
+      }
+      console.log(`${reg.prefix}-${nextFree(byBranch).next}`);
+    }
+    return 0;
+  }
+
+  let bad = 0;
+  for (const reg of regs) bad += checkOne(reg, argv).bad;
+
+  if (bad) {
+    console.log('\n★ 푸는 법 — **가장 늦게 붙인 쪽이 양보한다.** 먼저 붙인 번호를 코드·');
+    console.log('  커밋·다른 문서가 이미 가리키고 있을 수 있다. 옮긴 쪽은 옛 번호를 지우지');
+    console.log('  말고 「…에서 옮김」을 남긴다.');
+    console.log('  ★ **한쪽이 늘 양보하는 것이 아니다** — 번호마다 선후가 다르다.');
+    console.log('    실측: D-104 는 SketchUp 이 먼저였고 M-41 은 Engine 이 먼저였다.');
+    console.log('    `git log -S"### 🔴 D-104." <갈래> -- <장부>` 로 각각 잰다.');
+  }
   console.log('');
   return bad ? 1 : 0;
 }
 
-module.exports = { parse, localDuplicates, crossConflicts, nextFree, sameSubject, run, DOC };
+module.exports = {
+  parse, localDuplicates, crossConflicts, nextFree, sameSubject, run,
+  checkOne, pickRegistries, REGISTRIES, DOC,
+};
 
 if (require.main === module) process.exit(run(process.argv.slice(2)));

@@ -86,10 +86,29 @@ test('★ 실제 등록부에 번호가 겹치지 않는다', () => {
   assert.deepStrictEqual(dups.map(d => d.id), [], '등록부 안에서 번호가 겹친다');
 });
 
+test('★ 사고기록(MEMORY)도 같은 규칙으로 본다 — 장부가 둘이다', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const M = rc.REGISTRIES.m;
+  const items = rc.parse(fs.readFileSync(path.join(__dirname, '..', '..', M.doc), 'utf8'), M);
+  assert.ok(items.length > 20, `MEMORY 를 못 읽었다 (${items.length}건)`);
+  assert.deepStrictEqual(rc.localDuplicates(items).map(d => d.id), [], 'MEMORY 안에서 번호가 겹친다');
+  assert.match(items[0].id, /^M-\d+$/);
+});
+
+test('★ 장부 둘이 기본값이고, 하나만 고를 수도 있다', () => {
+  assert.strictEqual(rc.pickRegistries([]).length, 2, '기본은 둘 다 봐야 한다');
+  assert.strictEqual(rc.pickRegistries(['--registry', 'm'])[0].prefix, 'M');
+  assert.strictEqual(rc.pickRegistries(['--registry', 'nope']).length, 2, '모르는 이름이면 둘 다');
+});
+
 test('★ 등록부에 번호 배정 규칙이 살아 있다', () => {
   const fs = require('fs');
   const path = require('path');
   const t = fs.readFileSync(path.join(__dirname, '..', '..', rc.DOC), 'utf8');
   assert.match(t, /npm run d:next/, '번호를 어디서 받는지가 등록부에 없다');
   assert.match(t, /늦게 붙인 쪽이 양보/, '충돌 푸는 규칙이 사라졌다');
+  assert.match(t, /한쪽이 늘 양보하는 것이 아니다/,
+    '「번호마다 선후가 다르다」가 사라지면 늘 같은 갈래가 양보하게 된다');
+  assert.match(t, /MEMORY\.md/, '사고기록도 같은 병을 앓는다는 말이 없다');
 });
