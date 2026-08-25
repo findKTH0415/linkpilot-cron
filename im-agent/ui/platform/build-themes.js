@@ -45,6 +45,26 @@ const fonts = require(path.join(AGENT, 'core/fonts'));
 const OUT = path.join(__dirname, 'theme-gallery.html');
 
 /**
+ * 어디에 쓸 것인가 — `--out <경로>` 가 있으면 그쪽에, 없으면 커밋된 자리에.
+ *
+ * ★★ 왜 갈랐나 (2026-08-25) — **검사가 커밋된 파일을 덮고 있었다.**
+ *   `themes-gallery.test.js` 가 이 빌더를 실제로 돌려 결과를 읽는데, 쓰는 자리가
+ *   `theme-gallery.html` 한 곳뿐이라 **`npm test` 만 돌려도 작업본이 더러워졌다.**
+ *
+ *   그것이 왜 비싼가 — 이 화면에는 **그 기계에서 실제로 그린 표지 PNG** 가
+ *   박힌다. 한글 글꼴이 없는 기계에서 검사를 돌리면 「활자가 실제와 다릅니다」
+ *   경고가 붙은 판이 만들어지고, 그 상태로 `git add -A` 하면 **아무도 의도하지
+ *   않은 판이 저장소에 들어간다.** 이번 세션에서 두 번 그럴 뻔했다.
+ *
+ *   ★ 검사는 임시 폴더에 쓴다. 커밋된 판은 **사람이 `npm run im:themes` 를
+ *     돌렸을 때만** 바뀐다.
+ */
+function outPath() {
+  const i = process.argv.indexOf('--out');
+  return i > -1 && process.argv[i + 1] ? path.resolve(process.argv[i + 1]) : OUT;
+}
+
+/**
  * 테마가 **선언했지만 렌더러가 아직 안 쓰는** 항목.
  *
  * ★ 이걸 화면에 적는 이유: 지금 13종은 **색만 다르다.** 표지 구조(rule/split/
@@ -268,20 +288,22 @@ ${cards}
 </body>
 </html>`;
 
-  fs.writeFileSync(OUT, html, 'utf8');
+  const out = outPath();
+  fs.mkdirSync(path.dirname(out), { recursive: true });
+  fs.writeFileSync(out, html, 'utf8');
   try { fs.rmSync(tmp, { recursive: true, force: true }); } catch (_) { /* 임시 폴더다 */ }
 
   const kb = Math.round(Buffer.byteLength(html, 'utf8') / 1024);
-  console.log(`${OUT} (${kb}KB) · 테마 ${list.length}종 · 표지 그림 ${made}장`);
+  console.log(`${out} (${kb}KB) · 테마 ${list.length}종 · 표지 그림 ${made}장`);
   if (!browser) console.log('  ⚠ 헤드리스 크로미움이 없어 표지를 못 그렸다 — 색 견본만 보인다');
   if (made < list.length) console.log(`  ⚠ ${list.length - made}종은 표지를 못 그렸다`);
   if (!hasKoFont) console.log('  ⚠ Noto Sans KR 이 없어 견본 활자가 실제와 다르다 (화면에 경고를 넣었다)');
   if (unused.length) {
     console.log(`  ⚠ 테마가 선언했지만 렌더러가 안 쓰는 항목: ${unused.join(', ')} — 13종이 색만 다르다 (D-51)`);
   }
-  return { out: OUT, count: list.length, made, hasKoFont, unused };
+  return { out, count: list.length, made, hasKoFont, unused };
 }
 
 if (require.main === module) build();
 
-module.exports = { build, card, shoot, fontAvailable, unusedFields, OUT, SHOT, DECLARED_BUT_UNUSED };
+module.exports = { build, card, shoot, fontAvailable, unusedFields, outPath, OUT, SHOT, DECLARED_BUT_UNUSED };
