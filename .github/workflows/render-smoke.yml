@@ -1,0 +1,52 @@
+# render-smoke — 조감도 자동 렌더(im:render)의 실키 실측 〈D-34 개정의 남은 확인〉
+#
+# ★ 왜 따로 있는가: im:render 의 이미지 모델 ID·응답 형상은 키 있는 자리에서만
+#   실측할 수 있다 (§7 — 키 없는 자리에서 실호출을 판정하지 않는다). NAS 를
+#   건드리지 않고 GitHub Secrets 의 GEMINI_API_KEY 로 한 번 돌려 보는 자리다.
+# ★ 손으로만 돈다 (workflow_dispatch) — 이미지 생성은 유료 구간이 있을 수 있어
+#   자동 스케줄에 걸지 않는다 (§4.5 와 같은 결).
+# ★ 값은 로그에 안 찍힌다 — 키는 env 로만 흐르고, 도구는 이름·모양만 말한다 (§2).
+name: render-smoke
+on:
+  workflow_dispatch: {}
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      # 원본 이미지 — 저장소의 미리 그려 둔 화면을 크롬으로 찍는다.
+      # 실측 목적(모델 ID·응답 형상 확인)에는 어떤 래스터든 충분하다.
+      - name: Make base image
+        run: |
+          google-chrome --headless --disable-gpu --no-sandbox \
+            --window-size=800,600 --screenshot=base.png \
+            "file://$PWD/im-agent/ui/platform/section-static.html" 2>/dev/null
+          ls -la base.png
+      - name: Run im:render (실키)
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          set +e
+          node im-agent/tools/render-birdseye.js --image base.png --project LP-DEMO-APT-000 | tee render.log
+          CODE=${PIPESTATUS[0]}
+          echo "exit=$CODE" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$CODE" = "0" ]; then
+            echo "✅ 렌더 성공 — 후보와 기록 JSON 이 아티팩트에 있다" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "❌ 실패 — 아래 서버 오류가 실측 기록이다 (모델 이름은 GEMINI_RENDER_MODELS 로 조정)" >> "$GITHUB_STEP_SUMMARY"
+            tail -8 render.log >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit "$CODE"
+      - name: Upload candidates
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: render-candidates
+          path: |
+            im-projects/LP-DEMO-APT-000/04_Property/render-candidates/
+            render.log
+          if-no-files-found: warn
