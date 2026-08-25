@@ -18,6 +18,7 @@
 const fs = require('fs');
 const path = require('path');
 const store = require('../core/store');
+const { RENDER_STANDARD } = require('../core/outputspec');
 
 const GFA_TOLERANCE = 0.01; // 연면적 1% — 반올림·단위 변환 오차까지만 허용한다
 
@@ -113,7 +114,20 @@ async function run(input, ctx) {
     }
     if (!r.tool || !r.tool_version) {
       flags.push(flag('YELLOW', 'RENDER_TOOL_UNKNOWN',
-        `AI 렌더 ${r.file || '(이름 없음)'} 에 도구·버전(tool/tool_version) 기록이 없다 — 세대(예: Veras 4.0 = Nano Banana Pro 기반)마다 그림이 달라, 어느 도구가 만들었는지가 출처 표기다 (§4.7)`));
+        `AI 렌더 ${r.file || '(이름 없음)'} 에 도구·버전(tool/tool_version) 기록이 없다 — 세대(예: ${RENDER_STANDARD.label})마다 그림이 달라, 어느 도구가 만들었는지가 출처 표기다 (§4.7)`));
+    } else {
+      // ★ 표준 도구 강제 〈2026-08-25 사장님 지시 — 「반드시」〉.
+      //   기록이 있는 렌더만 여기서 가른다 — 기록이 없으면 위 UNKNOWN 이 이미 잡았다.
+      //   무료 경로 예외: gemini 라도 기반 모델이 표준과 같으면 통과 (규격 §3-1).
+      const tool = String(r.tool).toLowerCase();
+      const standardVeras = tool === RENDER_STANDARD.tool
+        && String(r.tool_version) === RENDER_STANDARD.tool_version
+        && (!r.engine || r.engine === RENDER_STANDARD.engine);
+      const geminiSameEngine = tool === 'gemini' && r.engine === RENDER_STANDARD.engine;
+      if (!standardVeras && !geminiSameEngine) {
+        flags.push(flag('YELLOW', 'RENDER_TOOL_NONSTANDARD',
+          `AI 렌더 ${r.file || '(이름 없음)'} 의 도구가 표준이 아니다 — ${r.tool} ${r.tool_version}${r.engine ? ` (${r.engine})` : ''}. 표준은 ${RENDER_STANDARD.label}이고, 무료 경로는 gemini + 같은 기반 모델만 받는다`));
+      }
     }
   }
 

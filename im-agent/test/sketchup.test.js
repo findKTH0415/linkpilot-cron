@@ -266,6 +266,41 @@ test('AI 렌더에 도구·버전 기록이 없으면 YELLOW — 세대(Veras 4.
   assert.ok(/render_SC-003_veras_02/.test(y[0].message));
 });
 
+test('표준(Veras 4.0)이 아닌 렌더는 RENDER_TOOL_NONSTANDARD YELLOW — 2026-08-25 사장님 지시 「반드시」', async () => {
+  const out = await planThenIntake({
+    model: { floors: 4, gfa_m2: 9600, objects_count: 0 },
+    validation: { solid: 'SKIPPED_MASSING' },
+    files: [],
+    renders: [
+      // 표준 그대로 — 잡지 않는다
+      { file: 'render_SC-001_veras_01.png', tool: 'veras', tool_version: '4.0', engine: 'Nano Banana Pro', based_on: 'SC-001', ai_generated: true, disclaimer: 'AI 렌더 — 실제 설계안이 아님' },
+      // 무료 경로: gemini + 같은 기반 모델 — 잡지 않는다 (규격 §3-1)
+      { file: 'render_SC-001_gemini_01.png', tool: 'gemini', tool_version: 'app', engine: 'Nano Banana Pro', based_on: 'SC-001', ai_generated: true, disclaimer: 'AI 렌더 — 실제 설계안이 아님' },
+      // 구세대 Veras — 잡는다
+      { file: 'render_SC-002_veras_01.png', tool: 'veras', tool_version: '3.1', based_on: 'SC-002', ai_generated: true, disclaimer: 'AI 렌더 — 실제 설계안이 아님' },
+      // 다른 도구 — 잡는다
+      { file: 'render_SC-002_mj_01.png', tool: 'midjourney', tool_version: '7', based_on: 'SC-002', ai_generated: true, disclaimer: 'AI 렌더 — 실제 설계안이 아님' },
+    ],
+  });
+  const y = out.flags.filter(f => f.type === 'RENDER_TOOL_NONSTANDARD');
+  assert.strictEqual(y.length, 2, '표준·무료 경로는 통과하고 구세대·다른 도구만 잡는다');
+  assert.ok(y.every(f => /Veras 4\.0 \(Nano Banana Pro 기반\)/.test(f.message)), '메시지가 표준을 이름으로 말한다');
+  assert.ok(y.some(f => /render_SC-002_veras_01/.test(f.message)));
+  assert.ok(y.some(f => /render_SC-002_mj_01/.test(f.message)));
+});
+
+test('계획 파일의 조감도 항목이 렌더 표준을 나른다 — render_standard (한 곳: outputspec.RENDER_STANDARD)', async () => {
+  const out = await plan.run({ projectId: PID, massing: massingOut() }, {
+    dataset: ds({ 'land.area_sqm': 12500, 'building.gfa_sqm': 9600, 'building.height_m': 18 }),
+    warn: noop.warn,
+  });
+  const bird = (out.deliverables || []).find(d => d.id === 'birdseye');
+  assert.ok(bird, '조감도 항목이 있다');
+  assert.strictEqual(bird.render_standard, 'Veras 4.0 (Nano Banana Pro 기반)');
+  const cad = (out.deliverables || []).find(d => d.id === 'cadastral');
+  assert.ok(cad && cad.render_standard === undefined, '지적도면에는 렌더 표준을 달지 않는다 — 실사 렌더 대상이 아니다');
+});
+
 test('결과가 적은 파일이 폴더에 없으면 YELLOW — 있다는 사실만 확인하고 파싱하지 않는다', async () => {
   const out = await planThenIntake({
     model: { floors: 4, gfa_m2: 9600, objects_count: 0 },

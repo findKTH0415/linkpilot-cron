@@ -109,6 +109,11 @@ function askVisuals(projectId, { hasParcel, hasMass }) {
     status: w.ready ? 'requested' : 'blocked',
     needs: w.needs,
     why: w.ready ? null : `${w.needs}을 못 받았다 — ${w.why}`,
+    // 조감도를 실사로 뽑을 때의 표준 도구 — 계획 파일이 표준을 함께 나른다.
+    // 값은 outputspec.RENDER_STANDARD 한 곳에서 온다 (수령 Agent 도 같은 값으로 잰다).
+    ...(w.id === 'birdseye'
+      ? { render_standard: outputspec.RENDER_STANDARD.label }
+      : {}),
   }));
 }
 

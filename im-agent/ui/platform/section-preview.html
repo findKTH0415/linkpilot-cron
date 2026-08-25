@@ -3118,6 +3118,15 @@ window.LINKPILOT_REPORT_FLOW = {
       <div class="upd__d">2026-08-25</div>
       <ul class="upd__l">
         <li>
+          <b>실사 조감도 렌더의 표준을 Veras 4.0 (Nano Banana Pro 기반)으로 강제합니다</b>
+          <em>규격 §3-1 · 12_sketchup_plan · 13_sketchup_intake (렌더 표준)</em>
+          <span>지금까지는 도구·버전을 「기록했는가」만 봤고, 어느 도구든 기록만 있으면 통과였습니다. 사장님 지시(2026-08-25 「반드시」)로 표준을 코드에 박았습니다 — 값은 outputspec.js 의 RENDER_STANDARD 한 곳에만 있고, 계획 Agent 가 계획 파일의 조감도 항목에 표준을 실어 SketchUp 쪽에 알리며, 수령 Agent 는 다른 도구·구세대·다른 기반 모델로 만든 렌더에 RENDER_TOOL_NONSTANDARD 노란 딱지를 냅니다. 무료 경로는 gemini + 같은 기반 모델만 표준으로 칩니다.</span>
+          <div class="upd__ba">
+            <div class="upd__b"><em>전</em>도구·버전 기록만 강제 (RENDER_TOOL_UNKNOWN) — 어느 도구든 기록만 있으면 통과</div>
+            <div class="upd__a"><em>후</em>표준 Veras 4.0 강제 — 비표준 도구·세대는 RENDER_TOOL_NONSTANDARD YELLOW</div>
+          </div>
+          <span class="upd__see">확인: 화면에 안 보입니다 — model-plan.json 의 deliverables[].render_standard 와 sketchup.test.js 의 RENDER_TOOL_NONSTANDARD 테스트로 확인합니다</span>
+        </li><li>
           <b>개념 동의 길이를 GFA 로 자른다 — 그림과 숫자가 어긋나지 않게</b>
           <em>파이프라인 · 12_sketchup_plan (동 길이 GFA 제한 · D-104)</em>
           <span>개념 동이 건폐율·폭 사용률만으로 길이를 정해(데모 98.2m), 다 채우면 연면적이 문서 GFA 를 31% 초과했다(용적률 323% 상당). 법정 판정은 문서 GFA 로 따로 돌아 맞았지만 그림이 다른 건물을 말했다. 이제 GFA ÷ (층수 × 동수 × 깊이) 를 상한으로 자르고 notes 에 남긴다 (데모: 75.0m — 75×13×2동×20층 = 39,000㎡ = 문서 GFA).</span>

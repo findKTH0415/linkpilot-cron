@@ -44,6 +44,26 @@ const VISUAL_DEFAULT = {
   massing: true,
 };
 
+/**
+ * ★★★ 실사(AI) 조감도 렌더의 **표준 도구** 〈2026-08-25 사장님 지시:
+ *   「조감도의 표준은 Veras 4.0 (Nano Banana Pro 기반)으로 반영되도록 — 반드시」〉.
+ *
+ * ★ 여기 **한 곳**에만 둔다. 계획 Agent(12)가 이 값을 `deliverables` 에 실어
+ *   SketchUp 쪽에 표준을 알리고, 수령 Agent(13)가 같은 값으로 비표준을 잡는다.
+ *   두 곳에 따로 적으면 한쪽이 옛말을 한다.
+ * ★ 무료 경로 예외: Gemini 앱도 같은 기반 모델이라, 도구가 gemini 이고
+ *   기반 모델이 표준과 같으면 비표준으로 잡지 않는다 (규격 §3-1).
+ * ★ 도구·버전 기록 자체가 없는 렌더는 여기 오기 전에
+ *   RENDER_TOOL_UNKNOWN 이 잡는다 — 이 상수는 「기록은 있는데 표준이
+ *   아닌」 경우만 가른다.
+ */
+const RENDER_STANDARD = {
+  tool: 'veras',
+  tool_version: '4.0',
+  engine: 'Nano Banana Pro',
+  label: 'Veras 4.0 (Nano Banana Pro 기반)',
+};
+
 const PRESETS = {
   im: {
     label: 'Investment Memorandum',
@@ -582,7 +602,7 @@ function styleOf(spec) {
 
 module.exports = {
   LAYOUTS, DENSITY, HOUSES, REGISTER, STYLE_DEFAULT, styleOf,
-  VISUAL_DEFAULT,
+  VISUAL_DEFAULT, RENDER_STANDARD,
   PRESETS, SUPPORTED_FORMATS, PAGE_SIZES, PATH,
   read, propose, save, confirm, change, validateSpec, buildPageBudget, fileName, bumpVersion,
 };
