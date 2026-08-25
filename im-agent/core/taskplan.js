@@ -179,6 +179,32 @@ const PLAN = [
     capability: 'RISK_ANALYSIS', dependsOn: ['T09'],
     outputs: ['08_DD/risk.json'],
   },
+  // ── LinkPilot Platform Manager 〈2026-08-26 · D-119〉 ──
+  //
+  // ★★ **보고서가 끝나는 곳에서 시작한다.** 지침 §1 — 전문 Agent 결과를
+  //   화면에 옮기는 것까지가 한 건이다. 그래서 T11(독립 최종검증) 뒤에 온다.
+  //
+  // ★ **T22 가 먼저다.** 지침 §5 마지막 줄이 「입력값·완료조건·제외범위가 없으면
+  //   구현을 시작하지 않는다」이다. 지시서 없이 만들기 시작하면 무엇이 끝인지
+  //   아무도 모른다 — 그래서 spec 이 build 의 선행이다.
+  {
+    id: 'T22', name: '화면 작업지시서', priority: 92,
+    description: '무엇을 만들지 정한다. 지침 §5 의 20필드 — 없으면 NEEDS_INPUT',
+    capability: 'PLATFORM_SPEC', dependsOn: ['T11'],
+    outputs: ['14_Platform/spec.json'],
+  },
+  {
+    id: 'T23', name: '화면·API 구현', priority: 93,
+    description: '지시서대로 만든다. 임시 데이터가 아니라 실제 프로젝트 DB 에 붙인다',
+    capability: 'PLATFORM_BUILD', dependsOn: ['T22'],
+    outputs: ['14_Platform/build.json'],
+  },
+  {
+    id: 'T24', name: '통합검증', priority: 94,
+    description: '지침 §9 완료기준 14개 · §10 기능·데이터·UI·보안. 하나라도 못 채우면 완료가 아니다',
+    capability: 'PLATFORM_VERIFY', dependsOn: ['T23'],
+    outputs: ['14_Platform/verify.json'],
+  },
   {
     id: 'T19', name: 'PPT 생성', priority: 90,
     description: '투자심의용 발표자료',

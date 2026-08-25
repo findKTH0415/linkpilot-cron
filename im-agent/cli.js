@@ -490,6 +490,23 @@ function printPlan(snap) {
   }
 
   // ★ 못 도는 것을 목록 끝에 몰아 두지 않는다 — 이유와 함께 바로 보여준다
+  // ★★ **계획이 갈렸으면 맨 위에서 말한다** 〈2026-08-26〉. `snapshot()` 은 저장된
+  //   계획만 읽으므로, taskplan 에 Task 를 더해도 이미 계획이 잡힌 프로젝트에는
+  //   안 나타난다. 조용히 빠지면 「그 일은 원래 없는 것」으로 읽힌다.
+  const drift = snap.planDrift || { missing: [], extra: [] };
+  if (drift.missing.length || drift.extra.length) {
+    console.log('\n  ⚠ 저장된 계획이 지금의 계획과 다르다');
+    if (drift.missing.length) {
+      console.log(`   · 계획에 새로 생겼는데 이 프로젝트에는 없는 것 — ${drift.missing.length}건`);
+      for (const r of drift.missing) console.log(`     ${r.id} ${r.name}`);
+    }
+    if (drift.extra.length) {
+      console.log(`   · 계획에서 빠졌는데 이 프로젝트에는 남아 있는 것 — ${drift.extra.length}건`);
+      for (const r of drift.extra) console.log(`     ${r.id} ${r.name}`);
+    }
+    console.log('   → 반영하려면 `node im-agent/cli.js plan <PROJECT_ID>` — 끝난 일은 그대로 둔다');
+  }
+
   const trouble = [
     ['담당 Agent 가 없다', snap.planned],
     ['지금 돌 수 없다', snap.blocked],

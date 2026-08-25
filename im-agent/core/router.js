@@ -132,6 +132,33 @@ const CAPABILITIES = {
   //     영영 안 돈다.** registry 에는 있는데 그것을 가리키는 능력이 없어서다.
   //     지금은 미구현이므로 `PLANNED` 로 서고, 병합되는 날 저절로 살아난다.
   //     (MCP 갈래가 `agentsPending` 으로 같은 일을 해 둔 것과 같은 방식이다)
+  // ── LinkPilot Platform Manager 〈2026-08-26 · D-119 결정〉 ──
+  //
+  // ★★ **왜 Task 로 두는가.** 플랫폼 자동완성 지침 §1 이 「전달로 업무를 끝내지
+  //   않는다」고 정했다. 화면 일을 Task 로 두지 않으면 오케스트레이터가 그것을
+  //   **세지 않고**, 안 세는 일은 진행률에도 안 잡히고 검증에도 안 걸린다.
+  //
+  // ★★ **왜 Orchestrator 가 직접 하지 않는가.** 같은 지침 §3.1 —
+  //   「Orchestrator 는 플랫폼 코드를 직접 구현하는 개발자가 아니다」.
+  //   지금까지는 내가 직접 만들고 있었고 그것이 §14 의 「동일 기능 중복 개발」에
+  //   걸렸다. 이제 손을 뗀다.
+  //
+  // ★ 병합 전에는 `INCOMING` 에 있어 **PLANNED 로 남는다** — 지어내지 않는다.
+  PLATFORM_SPEC: {
+    label: '화면 작업지시서 (무엇을 만들지 정한다)',
+    agents: ['16_platform_spec'], tools: [],
+    note: '지침 §5 의 20필드. 입력값·완료조건·제외범위가 없으면 NEEDS_INPUT 이다',
+  },
+  PLATFORM_BUILD: {
+    label: '화면·API 구현',
+    agents: ['17_platform_build'], tools: [],
+    note: 'Platform Manager 갈래에서 오는 중 — 병합 전에는 PLANNED',
+  },
+  PLATFORM_VERIFY: {
+    label: '통합검증 (실제 데이터에 붙는가)',
+    agents: ['18_platform_verify'], tools: [],
+    note: '지침 §9 완료기준 14개 · §10 기능·데이터·UI·보안 넷. 임시 데이터면 통과가 아니다',
+  },
   SKETCHUP_PLAN: {
     label: '모델 계획 (무엇을 만들 수 있는가)', agents: ['12_sketchup_plan'], tools: [],
     note: 'SketchUp 갈래(PR #9)에서 오는 중 — 병합 전에는 PLANNED',
@@ -175,6 +202,12 @@ const CAPABILITIES = {
 const INCOMING = {
   '12_sketchup_plan': 'SketchUp 트랙 (PR #9)',
   '13_sketchup_intake': 'SketchUp 트랙 (PR #9)',
+  // ★ D-119 로 만들기로 정했다(2026-08-26). 갈래는 병합이 끝난 뒤에 붙는다 —
+  //   지금 열면 build-preview.js·changes.js 를 다섯 갈래가 문다.
+  //   여기 적어 두면 **도착하는 순간 자동으로 일감이 잡힌다**.
+  '16_platform_spec': 'Platform Manager (D-119 · 병합 후 합류)',
+  '17_platform_build': 'Platform Manager (D-119 · 병합 후 합류)',
+  '18_platform_verify': 'Platform Manager (D-119 · 병합 후 합류)',
 };
 
 /** 환경변수가 실제로 들어 있는가 — 값은 절대 로그에 내지 않는다 (CLAUDE.md §2) */

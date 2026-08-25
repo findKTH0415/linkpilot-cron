@@ -2737,7 +2737,7 @@ window.LINKPILOT_REPORT_FLOW = {
     손으로 적은 예시가 아닙니다. 요청문은 한 줄입니다 —
     「전남 태양광 100MW 사전 투자검토 보고서와 투자자용 IM 을 만들어줘」</p>
 
-  <div class="ev__k"><span>자산군 태양광</span><span>Task 21건</span><span>회전 9단</span><span>담당 없음 6건</span></div>
+  <div class="ev__k"><span>자산군 태양광</span><span>Task 24건</span><span>회전 11단</span><span>담당 없음 9건</span></div>
 
   <div class="ev__m" style="margin-top:14px">
     <b>같은 회전 안의 것은 동시에 돕니다.</b> 무엇을 같이 돌릴지 사람이 적지 않습니다 —
@@ -2753,7 +2753,9 @@ window.LINKPILOT_REPORT_FLOW = {
       <span class="tg__c"><span class="tg__t bad">✕ T21 모델 결과 수령</span><span class="tg__t">· T09 교차검증</span></span></div><div class="tg__w"><span class="tg__wn">7회전</span>
       <span class="tg__c"><span class="tg__t">· T10 IM·티저 작성</span><span class="tg__t bad">✕ T18 Risk Analysis</span></span></div><div class="tg__w"><span class="tg__wn">8회전</span>
       <span class="tg__c"><span class="tg__t">· T11 독립 최종검증 (8 GATE)</span></span></div><div class="tg__w"><span class="tg__wn">9회전</span>
-      <span class="tg__c"><span class="tg__t bad">✕ T19 PPT 생성</span></span></div></div>
+      <span class="tg__c"><span class="tg__t bad">✕ T19 PPT 생성</span><span class="tg__t bad">✕ T22 화면 작업지시서</span></span></div><div class="tg__w"><span class="tg__wn">10회전</span>
+      <span class="tg__c"><span class="tg__t bad">✕ T23 화면·API 구현</span></span></div><div class="tg__w"><span class="tg__wn">11회전</span>
+      <span class="tg__c"><span class="tg__t bad">✕ T24 통합검증</span></span></div></div>
 
   <h3 class="ev__n" style="margin-top:22px">값 하나를 바꾸면 무엇이 다시 도는가</h3>
   <div class="ev__m">총사업비(<code>investment.total</code>)을 고쳤을 때입니다.
@@ -2793,6 +2795,15 @@ window.LINKPILOT_REPORT_FLOW = {
     </div><div class="ev__c bad">
       <div class="ev__n">T18 Risk Analysis — 담당 Agent 없음</div>
       <div class="ev__m">14_risk 미구현</div>
+    </div><div class="ev__c bad">
+      <div class="ev__n">T22 화면 작업지시서 — 담당 Agent 없음</div>
+      <div class="ev__m">16_platform_spec 미구현</div>
+    </div><div class="ev__c bad">
+      <div class="ev__n">T23 화면·API 구현 — 담당 Agent 없음</div>
+      <div class="ev__m">17_platform_build 미구현</div>
+    </div><div class="ev__c bad">
+      <div class="ev__n">T24 통합검증 — 담당 Agent 없음</div>
+      <div class="ev__m">18_platform_verify 미구현</div>
     </div><div class="ev__c bad">
       <div class="ev__n">T19 PPT 생성 — 담당 Agent 없음</div>
       <div class="ev__m">15_design 미구현</div>
@@ -2845,7 +2856,16 @@ window.LINKPILOT_REPORT_FLOW = {
       <td>KMA_APIHUB_KEY</td></tr><tr><td>계통 여유용량</td>
       <td>—</td>
       <td>kepco</td>
-      <td>KEPCO_BIGDATA_KEY</td></tr><tr><td>모델 계획 (무엇을 만들 수 있는가)</td>
+      <td>KEPCO_BIGDATA_KEY</td></tr><tr><td>화면 작업지시서 (무엇을 만들지 정한다)</td>
+      <td>16_platform_spec</td>
+      <td>—</td>
+      <td>—</td></tr><tr><td>화면·API 구현</td>
+      <td>17_platform_build</td>
+      <td>—</td>
+      <td>—</td></tr><tr><td>통합검증 (실제 데이터에 붙는가)</td>
+      <td>18_platform_verify</td>
+      <td>—</td>
+      <td>—</td></tr><tr><td>모델 계획 (무엇을 만들 수 있는가)</td>
       <td>12_sketchup_plan</td>
       <td>—</td>
       <td>—</td></tr><tr><td>모델 결과 수령</td>
@@ -2928,7 +2948,7 @@ LTC 65%</pre>
 
   <div class="ev__c">
     <div class="ev__n">아무도 안 부르는 모듈 — 0개</div>
-    <div class="ev__m">모듈 235개 중 235개가 닿습니다
+    <div class="ev__m">모듈 236개 중 236개가 닿습니다
       (<code>npm run check:reachable</code>).</div>
     <div class="ev__m">없음</div>
   </div>

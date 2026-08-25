@@ -505,6 +505,50 @@ function markRework(projectId, key, opts = {}) {
 /**
  * 화면·CLI 가 함께 읽는 요약. **한 곳에서만 만든다** (CLAUDE.md §8).
  */
+/**
+ * 저장된 계획과 **지금의 계획**이 갈렸는가.
+ *
+ * ★★ **왜 필요한가** 〈2026-08-26 · D-119 작업 중 실측〉.
+ *   `snapshot()` 은 저장된 `tasks.json` 만 읽는다. 그래서 `taskplan.js` 에 Task 를
+ *   새로 더해도 **이미 계획이 잡힌 프로젝트에는 영원히 안 나타난다.**
+ *   실제로 Platform Manager Task 셋(T22·T23·T24)을 더했는데 화면에 하나도 안 떴다.
+ *
+ * ★★ **조용히 다시 계획하지 않는다.** 읽기 함수가 상태를 바꾸면 무엇 때문에
+ *   바뀌었는지 아무도 못 짚는다. **갈렸다는 사실만 말하고** 고치는 것은 사람이
+ *   `im plan <ID>` 로 한다 — `planProject()` 는 끝난 일을 지키며 다시 세운다.
+ *
+ * @returns {{missing:Array<{id,name}>, extra:Array<{id,name}>}}
+ */
+function planDrift(list, doc) {
+  // ★★ **`PLAN` 전체와 비교하면 안 된다** 〈2026-08-26 실측 — 첫 판이 그랬다〉.
+  //   자산군 전용 Task(일사량 T13·계통)는 그 자산군이 아니면 **원래 빠지는 것이 맞다.**
+  //   그것까지 「빠졌다」고 하면 데이터센터 딜마다 거짓 경고가 뜨고,
+  //   **거짓 경고가 한 번 뜨면 진짜 경고도 아무도 안 읽는다.**
+  //   그래서 이 프로젝트의 자산군·템플릿으로 **다시 계획해서** 견준다.
+  let want;
+  try {
+    const p = taskplan.plan({
+      request: (doc && doc.request) || null,
+      // ★ 저장본의 `assetClass` 는 **객체**다 (`{id,label,template}`). 그대로 넘기면
+      //   `detectAsset` 이 못 알아보고 자산군 전용 Task 가 통째로 빠져
+      //   「빠졌다」는 거짓 경고가 반대쪽에 뜬다 (2026-08-26 실측).
+      assetType: (doc && doc.assetClass && (doc.assetClass.id || doc.assetClass)) || null,
+      templateId: (doc && doc.template) || null,
+      assumeTools: true,          // 열쇠 유무로 계획이 달라지지 않게 한다
+    });
+    want = new Map(p.tasks.map(t => [t.id, t]));
+  } catch (e) {
+    // 다시 계획하지 못하면 **아무 말도 하지 않는다.** 틀린 경고보다 침묵이 낫다
+    return { missing: [], extra: [], skipped: e.message };
+  }
+  const have = new Set(list.map(t => t.id));
+  const missing = [...want.values()].filter(t => !have.has(t.id))
+    .map(t => ({ id: t.id, name: t.name }));
+  // 계획에서 빠진 Task 가 저장본에 남아 있는 경우 — 지우지 않고 알리기만 한다
+  const extra = list.filter(t => !want.has(t.id)).map(t => ({ id: t.id, name: t.name }));
+  return { missing, extra };
+}
+
 function snapshot(projectId) {
   const doc = tasks.load(projectId);
   if (!doc) return null;
@@ -520,6 +564,8 @@ function snapshot(projectId) {
     blocked: list.filter(t => t.status === tasks.STATUS.BLOCKED).map(t => ({ id: t.id, name: t.name, reason: t.reason })),
     planned: list.filter(t => t.status === tasks.STATUS.PLANNED).map(t => ({ id: t.id, name: t.name, reason: t.reason })),
     elsewhere: list.filter(t => t.handledBy).map(t => ({ id: t.id, name: t.name, handledBy: t.handledBy })),
+    // ★ 저장된 계획이 지금의 계획과 갈렸는가. 조용히 고치지 않고 말만 한다
+    planDrift: planDrift(list, doc),
     artifacts: artifacts.summary(projectId),
     tools: router.toolStatus(),
     // ★ Task 진행률과 프로젝트 진행률을 같은 것으로 말하지 않는다 (monitor.js 와 같은 규칙)
@@ -528,4 +574,4 @@ function snapshot(projectId) {
   };
 }
 
-module.exports = { planProject, execute, markRework, snapshot, runOne, validate, reconcile, INPUT };
+module.exports = { planProject, execute, markRework, snapshot, runOne, validate, reconcile, planDrift, INPUT };
