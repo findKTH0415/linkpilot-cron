@@ -9,6 +9,7 @@
     
     "im": "node im-agent/cli.js",
     "im:demo": "IM_AGENT_OFFLINE=1 node im-agent/cli.js demo",
+    "agent:check": "node im-agent/tools/agent-doctor.js",
     "im:smoke": "node im-agent/tools/smoke-public-data.js",
     "im:env-doctor": "node im-agent/tools/env-doctor.js",
     "guard": "node im-agent/tools/guard.js",
