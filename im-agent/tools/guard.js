@@ -192,10 +192,56 @@ function openFile() {
   add('[열기] 읽히는가', code === 0 ? 'ok' : (code === 2 ? 'unknown' : 'fail'), line || '결과를 못 읽었다');
 }
 
+/* ── ⑦ Agent 배선이 다섯 곳에 다 있는가 ────────────────── */
+/**
+ * ★★ **`npm test` 안에서도 돌지만 여기 한 줄로 세운다** 〈2026-08-25 사장님 지시〉.
+ *   막고는 있었는데 **표에 안 보여서** 사람이 「배선은 봤나?」를 따로 떠올려야
+ *   했다. 규칙을 기억에 얹지 않는 것이 이 도구의 존재 이유다 (M-31).
+ */
+function agents() {
+  let out = '';
+  let code = 0;
+  try {
+    out = sh('npm run --silent agent:check 2>&1');
+  } catch (e) {
+    out = String((e.stdout || '') + (e.stderr || ''));
+    code = e.status === undefined ? 1 : e.status;
+  }
+  const n = (out.match(/Agent (\d+)개 · 진행률 비중 합계 (\d+)/) || []);
+  if (!n.length) { add('Agent 배선', 'unknown', '결과를 못 읽었다'); return; }
+  const bad = (out.match(/❌ /g) || []).length;
+  add('Agent 배선', code === 0 && !bad ? 'ok' : 'fail',
+    code === 0 && !bad ? `${n[1]}개 전부 다섯 곳에 있다 · 비중 합계 ${n[2]}`
+      : `${bad}곳이 빠졌다 — **오류는 안 나지만 조용히 안 돈다**`);
+}
+
+/* ── ⑧ 다른 갈래와 같은 파일을 건드리고 있는가 ─────────── */
+/**
+ * ★★★ **D-101 이 난 자리다** 〈2026-08-25〉. 두 작업선이 같은 갈림점에서 나와
+ *   **같은 이름의 Agent 를 각자** 만들었고 같은 파일을 쓰고 있었다. 파일 이름이
+ *   같으니 병합은 「한쪽을 고르는 것」으로 끝나고, **진 쪽 설계는 오류 하나 없이
+ *   사라진다.** 그때는 사장님이 남의 문서를 넘겨 주셔서 알았다 — 안 넘겨
+ *   주셨으면 병합하는 날에야 알았을 것이다.
+ * ★ 원격을 못 보면 **「못 쟀다」**로 적는다. 없는 것과 다른 사실이다.
+ */
+function branches() {
+  let out = '';
+  let code = 0;
+  try {
+    out = sh('node im-agent/tools/branch-doctor.js 2>&1');
+  } catch (e) {
+    out = String((e.stdout || '') + (e.stderr || ''));
+    code = e.status === undefined ? 1 : e.status;
+  }
+  const line = out.trim().split('\n').pop().replace(/^겹치는 파일: /, '');
+  add('다른 갈래와 겹침', code === 0 ? 'ok' : (code === 2 ? 'unknown' : 'fail'),
+    line || '결과를 못 읽었다');
+}
+
 /* ── 내보내기 ──────────────────────────────────────────── */
 
 function main() {
-  tests(); stamp(); previews(); render(); saveBar(); openFile();
+  tests(); stamp(); previews(); render(); saveBar(); openFile(); agents(); branches();
 
   const mark = { ok: '✅', fail: '❌', unknown: '⚠️ ' };
   const pad = (s, n) => s + ' '.repeat(Math.max(0, n - [...s].reduce((a, c) => a + (c.charCodeAt(0) > 0x1100 ? 2 : 1), 0)));
@@ -222,4 +268,4 @@ function main() {
 }
 
 if (require.main === module) process.exit(main());
-module.exports = { tests, stamp, previews, render, saveBar, openFile, rows };
+module.exports = { tests, stamp, previews, render, saveBar, openFile, agents, branches, rows };

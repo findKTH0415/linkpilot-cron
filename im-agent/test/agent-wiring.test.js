@@ -95,3 +95,42 @@ test('★★ `npm run agent:check` 로 부를 수 있다', () => {
     path.join(__dirname, '..', '..', 'package.json'), 'utf8'));
   assert.strictEqual(pkg.scripts['agent:check'], 'node im-agent/tools/agent-doctor.js');
 });
+
+/* ── 다른 갈래와 같은 파일을 건드리는가 ────────────────── */
+
+/**
+ * ★★★ **D-101 이 난 자리를 재는 장치가 실재하는가** 〈2026-08-25 사장님 권고 ②〉.
+ *   실제로 부르는 것은 `npm run branch:check` 이고 **원격을 봐야** 하므로
+ *   여기서는 돌리지 않는다 — 검사가 네트워크에 걸리면 그 검사가 먼저 죽는다.
+ *   여기서 재는 것은 **셋**이다: 실재하는가 · 어림한 것을 물어본 것처럼
+ *   말하지 않는가 · 교차검증이 그것을 부르는가.
+ */
+test('★★★ 다른 갈래와 겹치는지 재는 장치가 있고, 교차검증이 부른다', () => {
+  const dir = path.join(__dirname, '..', 'tools');
+  const src = fs.readFileSync(path.join(dir, 'branch-doctor.js'), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+
+  assert.ok(/diff-filter=A/.test(src),
+    '양쪽이 새로 만든 같은 파일(add/add)을 안 가른다 — 그것이 가장 위험한 겹침이다');
+  assert.ok(/openPrBranches/.test(src), '열린 PR 로 좁히는 길이 없다');
+
+  /* ★ 어림한 판은 **못 쟀다**로 끝난다 — 닫힌 갈래가 섞여 늘 빨개지면
+   *   진짜 겹침이 났을 때도 안 보인다 (M-25) */
+  assert.ok(/code: r\.byPr \? 1 : 2/.test(src),
+    '어림한 것으로 빨갛게 끝낸다 — 멀쩡한 배포가 늘 빨개진다');
+  assert.ok(/나이로 어림했다/.test(src),
+    '어림했다는 사실을 화면에 안 적는다 — 물어본 것처럼 읽힌다');
+
+  const guard = fs.readFileSync(path.join(dir, 'guard.js'), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '');
+  assert.ok(/branch-doctor\.js/.test(guard), '교차검증이 안 부른다 — 없는 것과 같다');
+  assert.ok(/agent:check/.test(guard), '교차검증이 배선 점검을 안 부른다');
+  assert.ok(/openFile\(\); agents\(\); branches\(\);/.test(guard),
+    '만들어 놓고 안 부르는 칸이 있다 — 그게 다음에 빠질 자리다');
+});
+
+test('★★ `npm run branch:check` 로 부를 수 있다', () => {
+  const pkg = JSON.parse(fs.readFileSync(
+    path.join(__dirname, '..', '..', 'package.json'), 'utf8'));
+  assert.strictEqual(pkg.scripts['branch:check'], 'node im-agent/tools/branch-doctor.js');
+});
