@@ -489,16 +489,27 @@ async function run(opts = {}) {
     }
   }
 
-  // ── 12 SketchUp Plan (평면 A — D-95) ──────────────────────
-  //   매스에서 **「무엇을 어디에 만들어라」**까지만 낸다. 실제 3D 는
-  //   SketchUp 이 켜진 사람 자리에서 만든다 — 엔진은 SketchUp 을 안 부른다.
-  const plan = await runAgent('12_sketchup_plan', {
-    projectId, geo: geo.output || null, massing: massing.output || null,
-  }, ctx);
-  results['12_sketchup_plan'] = plan;
-  if (plan.output && plan.output.plan) {
-    const p = plan.output.plan;
-    log(`  3D 계획: 물체 ${p.objects.length}개 · 못 채운 값 ${p.missing.length}개 · 가정 ${p.assumptions.length}개`);
+  // ── 12 SketchUp Plan / 13 Intake (평면 A — D-95) ──────────
+  // 평면 A 의 두 절반 — 계획을 내고, 사람이 만든 결과가 있으면 되받아 대조한다.
+  // SketchUp MCP 는 여기서 부르지 않는다 (D-95 — 자동 실행에는 연결이 없다).
+  // ★ 계획서에는 「무엇을 만들 수 있는가」와 「무엇을 만들어 달라고 적는가」가
+  //   함께 들어간다 (D-101 합침) — 뒤엣것이 deliverables 다.
+  const skPlan = await runAgent('12_sketchup_plan', { projectId, massing: massing.output || null }, ctx);
+  results['12_sketchup_plan'] = skPlan;
+  if (skPlan.output && skPlan.output.plan) {
+    log(`  모델 계획: 지상 ${skPlan.output.plan.building.floors}층 · 층고 ${skPlan.output.plan.building.floor_height_mm}mm → 04_Property/model-plan.json`);
+  }
+  const asked = (skPlan.output && skPlan.output.deliverables) || [];
+  if (asked.length) {
+    const req = asked.filter((d) => d.status === 'requested').map((d) => d.label);
+    const blocked = asked.filter((d) => d.status === 'blocked');
+    log(`  시각자료 요청: ${req.length}건${req.length ? ` (${req.join('·')})` : ''}`
+      + `${blocked.length ? ` · 못 만드는 것 ${blocked.length}건 — ${blocked.map((b) => b.label).join('·')}` : ''}`);
+  }
+  const skIntake = await runAgent('13_sketchup_intake', { projectId, plan: (skPlan.output && skPlan.output.plan) || null }, ctx);
+  results['13_sketchup_intake'] = skIntake;
+  if (skIntake.output && skIntake.output.status === 'received') {
+    log(`  모델 수령: 파일 ${skIntake.output.result.files}건 · 렌더 ${skIntake.output.result.renders}건 · solid ${skIntake.output.result.solid || '미기재'}`);
   }
 
   // ── 05 Cross Validation ───────────────────────────────────
@@ -509,6 +520,8 @@ async function run(opts = {}) {
     geo: geo.output || null,
     appraisal: appraisal.output || null,
     massing: massing.output || null,
+    sketchup: skIntake.output || null,
+    sketchupPlan: skPlan.output || null,
   }, ctx);
   results['05_validation'] = val;
   if (val.output) {

@@ -42,6 +42,8 @@ const inputSchema = {
     geo: { type: 'object', nullable: true },
     appraisal: { type: 'object', nullable: true },
     massing: { type: 'object', nullable: true },
+    sketchup: { type: 'object', nullable: true },
+    sketchupPlan: { type: 'object', nullable: true },
   },
 };
 
@@ -581,7 +583,7 @@ async function run(input, ctx) {
 
   // ⑧ 입지 / 감정평가 / 매스 검토 Agent가 올린 플래그 병합
   //    (판정은 각 Agent가 하고, 승인 게이트에 노출하는 책임은 여기에 모은다)
-  for (const [agent, out] of [['07_geo', input.geo], ['08_appraisal', input.appraisal], ['09_massing', input.massing]]) {
+  for (const [agent, out] of [['07_geo', input.geo], ['08_appraisal', input.appraisal], ['09_massing', input.massing], ['12_sketchup_plan', input.sketchupPlan], ['13_sketchup_intake', input.sketchup]]) {
     for (const f of (out && out.flags) || []) {
       flags.push({ ...f, agent });
     }

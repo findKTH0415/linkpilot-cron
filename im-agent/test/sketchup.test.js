@@ -1,0 +1,215 @@
+'use strict';
+/**
+ * sketchup.test.js — 12 SketchUp Plan / 13 Intake
+ *
+ * 작업지시서 인수조건을 그대로 잰다:
+ *   단계 2 — 필수값이 있으면 계획이 나오고, 없으면 **내지 않는다**
+ *   단계 4 — **일부러 어긋난 결과를 넣으면 검증이 빨개진다**
+ * 그리고 D-96 을 코드로 고정한다 — facts 는 어느 경로로도 비어 있어야 한다.
+ */
+
+const test = require('node:test');
+const assert = require('node:assert');
+const fs = require('fs');
+const path = require('path');
+
+const plan = require('../agents/12-sketchup-plan');
+const intake = require('../agents/13-sketchup-intake');
+const store = require('../core/store');
+const { Dataset } = require('../core/facts');
+const { FIELDS } = require('../core/dictionary');
+
+const PID = 'LP-TEST-SKETCHUP';
+const noop = { warn: () => {} };
+
+function ds(values) {
+  const d = new Dataset(PID, FIELDS);
+  for (const [key, value] of Object.entries(values)) {
+    d.add({ key, value, unit: '', confidence: 0.9, source: '시험 픽스처', sourceDate: '2026-08-24' });
+  }
+  d.resolve();
+  return d;
+}
+
+function propertyDir() {
+  return path.join(store.projectDir(PID), '04_Property');
+}
+
+test.beforeEach(() => { fs.rmSync(store.projectDir(PID), { recursive: true, force: true }); });
+test.after(() => { fs.rmSync(store.projectDir(PID), { recursive: true, force: true }); });
+
+// ── 단계 2 · 계획 ──────────────────────────────────────────
+
+/** 09_massing 이 낸 것과 같은 모양의 모델 — 계산 자리는 09 하나다 */
+function massingOut(over = {}) {
+  return {
+    model: { floors: 4, floorHeight: 4.5, footprintAreaSqm: 3200, footprintBasis: '시험 픽스처', ...over },
+    flags: [],
+    confidence: 0.9,
+  };
+}
+
+test('매스 모델이 있으면 계획이 나온다 — mm 로, facts 는 빈 배열로 (D-96)', async () => {
+  const out = await plan.run({ projectId: PID, massing: massingOut() }, {
+    dataset: ds({ 'land.area_sqm': 12500, 'building.gfa_sqm': 9600, 'building.height_m': 18 }),
+    warn: noop.warn,
+  });
+  assert.deepStrictEqual(out.facts, [], 'D-96 — 모델 값은 fact 가 되지 않는다');
+  assert.ok(out.plan, '계획이 나와야 한다');
+  assert.strictEqual(out.plan.units, 'mm');
+  assert.strictEqual(out.plan.building.floors, 4, '층수는 매스 모델에서 그대로 온다');
+  assert.strictEqual(out.plan.building.floor_height_mm, 4500, '4.5m → 4500mm');
+  assert.ok(out.plan.building.footprint.width_mm > 1000, '길이가 mm 단위여야 한다 — m 로 남으면 천 배 작다');
+  assert.strictEqual(out.plan.scale_status, 'VERIFIED');
+  // 파일이 실제로 남는다
+  const onDisk = JSON.parse(fs.readFileSync(path.join(propertyDir(), 'model-plan.json'), 'utf8'));
+  assert.strictEqual(onDisk.created, out.plan.created);
+});
+
+test('매스 모델이 없으면 계획을 내지 않는다 — 층수·건축면적을 여기서 다시 계산하지 않는다', async () => {
+  const out = await plan.run({ projectId: PID, massing: null }, {
+    dataset: ds({ 'land.area_sqm': 12500, 'building.gfa_sqm': 9600, 'building.floors': 4 }),
+    warn: noop.warn,
+  });
+  assert.strictEqual(out.plan, null, 'dataset 에 값이 다 있어도 매스 없이는 계획을 만들지 않는다');
+  assert.ok(out.missing.includes('massing.model'));
+  assert.ok(!fs.existsSync(path.join(propertyDir(), 'model-plan.json')), '반쪽 계획 파일이 남으면 안 된다');
+  assert.ok(out.flags.some(f => f.type === 'PLAN_MISSING'));
+});
+
+test('매스가 RED(용적률 초과)면 계획을 내지 않는다 — 성립하지 않는 계획은 모델이 되지 않는다', async () => {
+  const out = await plan.run({
+    projectId: PID,
+    massing: { ...massingOut(), flags: [{ severity: 'RED', type: 'FAR_EXCEEDED', message: '초과' }] },
+  }, {
+    dataset: ds({ 'land.area_sqm': 12500, 'building.gfa_sqm': 96000 }),
+    warn: noop.warn,
+  });
+  assert.strictEqual(out.plan, null);
+  assert.ok(out.flags.some(f => f.type === 'PLAN_SKIPPED'));
+});
+
+test('지적 링과 법정 분석이 계획에 옮겨진다 — mm 폴리곤·legal 블록 (2026-08-25 지시)', async () => {
+  const out = await plan.run({
+    projectId: PID,
+    massing: {
+      ...massingOut({
+        footprintRing: [[0, 0], [56.57, 0], [56.57, 56.57], [0, 56.57]],
+        parcelRing: [[-10, -5], [140, -10], [150, 80], [70, 120], [-15, 90]],
+      }),
+      inputs: { farLimit: 350, bcrLimit: 70, farPlanned: 76.8, bcrPlanned: 25.6, gfaAllowedSqm: 43750, limitSource: '국토계획법 시행령(일반공업지역)' },
+    },
+  }, {
+    dataset: ds({ 'land.area_sqm': 12500, 'building.gfa_sqm': 9600, 'building.height_m': 18 }),
+    warn: noop.warn,
+  });
+  assert.ok(out.plan.site.parcel_polygon_mm, '지적선이 계획에 실려야 한다');
+  assert.deepStrictEqual(out.plan.site.parcel_polygon_mm[1], [140000, -10000], 'm → mm 변환');
+  assert.strictEqual(out.plan.building.footprint_polygon_mm.length, 4);
+  assert.strictEqual(out.plan.legal.verdict, 'WITHIN_LIMITS');
+  assert.strictEqual(out.plan.legal.far_planned_pct, 76.8);
+  assert.deepStrictEqual(out.plan.objects, [], '데이터센터(자산유형 미지정)에는 개념 배치를 그리지 않는다');
+});
+
+test('아파트면 판상형 개념 배치가 나온다 — ASSUMPTION 표기와 함께, fact 는 여전히 빈 배열 (D-100)', async () => {
+  const out = await plan.run({
+    projectId: PID,
+    massing: massingOut({
+      floors: 20, floorHeight: 2.9,
+      footprintAreaSqm: 5000,
+      footprintRing: [[0, 0], [100, 0], [100, 180], [0, 180]],
+      parcelRing: [[-5, -5], [110, -5], [110, 190], [-5, 190]],
+    }),
+  }, {
+    dataset: ds({ 'land.area_sqm': 12500, 'building.gfa_sqm': 60000, 'project.assetType': '아파트' }),
+    warn: noop.warn,
+  });
+  assert.deepStrictEqual(out.facts, [], 'D-96 — 개념 배치도 fact 가 아니다');
+  assert.ok(out.plan.objects.length >= 1, '판상형 동이 최소 하나');
+  const bar = out.plan.objects[0];
+  assert.strictEqual(bar.type, 'building_bar');
+  assert.strictEqual(bar.depth, 13000, '판상형 통상 깊이 13m');
+  assert.ok(/ASSUMPTION/.test(bar.source.origin), '통상치임이 출처에 박혀야 한다');
+  assert.ok(out.plan.notes.some(n => /설계안이 아니다/.test(n)), '설계안 아님 표기');
+});
+
+// ── 단계 4 · 수령 ──────────────────────────────────────────
+
+function writeResult(result) {
+  fs.mkdirSync(propertyDir(), { recursive: true });
+  fs.writeFileSync(path.join(propertyDir(), 'model-result.json'), JSON.stringify(result));
+}
+
+async function planThenIntake(result) {
+  const out = await plan.run({ projectId: PID, massing: massingOut() }, {
+    dataset: ds({ 'land.area_sqm': 12500, 'building.gfa_sqm': 9600, 'building.height_m': 18 }),
+    warn: noop.warn,
+  });
+  writeResult({ plan_created: out.plan.created, ...result });
+  return intake.run({ projectId: PID, plan: out.plan }, { warn: noop.warn });
+}
+
+test('결과가 없으면 unavailable — 지어내지도, 빨개지지도 않는다', async () => {
+  const out = await intake.run({ projectId: PID, plan: null }, { warn: noop.warn });
+  assert.strictEqual(out.status, 'unavailable');
+  assert.deepStrictEqual(out.facts, []);
+  assert.deepStrictEqual(out.flags, []);
+});
+
+test('★ 일부러 어긋난 결과를 넣으면 검증이 빨개진다 (인수조건)', async () => {
+  const out = await planThenIntake({
+    model: { floors: 7, gfa_m2: 20000, objects_count: 3 },
+    validation: { solid: 'FAIL' },
+    files: [],
+  });
+  assert.strictEqual(out.status, 'received');
+  assert.deepStrictEqual(out.facts, [], 'D-96');
+  const red = out.flags.filter(f => f.severity === 'RED');
+  assert.ok(red.some(f => f.type === 'PLAN_MISMATCH' && /층수/.test(f.message)), '층수 어긋남은 RED');
+  assert.ok(red.some(f => f.type === 'PLAN_MISMATCH' && /연면적/.test(f.message)), '연면적 어긋남은 RED');
+  assert.ok(red.some(f => f.type === 'SOLID_FAIL'), 'Solid FAIL 은 RED');
+  assert.ok(out.flags.some(f => f.type === 'OBJECT_COUNT'), '객체 수 어긋남은 YELLOW');
+});
+
+test('계획과 맞는 결과는 조용히 통과한다', async () => {
+  const out = await planThenIntake({
+    model: { floors: 4, gfa_m2: 9600, objects_count: 0 },
+    validation: { solid: 'SKIPPED_MASSING' },
+    files: [],
+  });
+  assert.strictEqual(out.flags.filter(f => f.severity === 'RED').length, 0);
+});
+
+test('AI 렌더에 disclaimer 가 없으면 YELLOW — 「실제 설계안이 아님」 없이는 싣지 않는다 (규격 §3-1)', async () => {
+  const out = await planThenIntake({
+    model: { floors: 4, gfa_m2: 9600, objects_count: 0 },
+    validation: { solid: 'SKIPPED_MASSING' },
+    files: [],
+    renders: [
+      { file: 'render_SC-001_veras_01.png', tool: 'veras', based_on: 'SC-001', ai_generated: true, disclaimer: 'AI 렌더 — 실제 설계안이 아님' },
+      { file: 'render_SC-002_gemini_01.png', tool: 'gemini' },
+    ],
+  });
+  const y = out.flags.filter(f => f.type === 'RENDER_DISCLAIMER');
+  assert.strictEqual(y.length, 1, '표기가 온전한 렌더는 잡지 않고, 없는 것만 잡는다');
+  assert.ok(/render_SC-002_gemini_01/.test(y[0].message));
+});
+
+test('결과가 적은 파일이 폴더에 없으면 YELLOW — 있다는 사실만 확인하고 파싱하지 않는다', async () => {
+  const out = await planThenIntake({
+    model: { floors: 4, gfa_m2: 9600, objects_count: 0 },
+    validation: { solid: 'PASS' },
+    files: ['project.skp'],
+  });
+  assert.ok(out.flags.some(f => f.type === 'FILE_MISSING' && /project\.skp/.test(f.message)));
+});
+
+test('옛 계획의 결과면 YELLOW — plan_created 가 지문이다', async () => {
+  const out = await plan.run({ projectId: PID, massing: massingOut() }, {
+    dataset: ds({ 'land.area_sqm': 12500, 'building.gfa_sqm': 9600, 'building.height_m': 18 }),
+    warn: noop.warn,
+  });
+  writeResult({ plan_created: '2026-01-01T00:00:00+09:00', model: { floors: 4, gfa_m2: 9600 }, files: [] });
+  const got = await intake.run({ projectId: PID, plan: out.plan }, { warn: noop.warn });
+  assert.ok(got.flags.some(f => f.type === 'STALE_RESULT'));
+});

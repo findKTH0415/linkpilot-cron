@@ -27,23 +27,9 @@ const A = require('../agents/12-sketchup-plan.js');
 
 /* ── ⑤ 단위 ─────────────────────────────────────────────── */
 
-test('★★ m → mm 는 정수다 — 소수가 남으면 SketchUp 쪽에서 반올림이 두 번 일어난다', () => {
-  assert.strictEqual(A.mm(4.5), 4500);
-  assert.strictEqual(A.mm(36), 36000);
-  assert.strictEqual(A.mm(0.0005), 1);
-});
-
-test('★★ 고리를 mm 로 옮기고 원점을 왼쪽 아래로 맞춘다', () => {
-  const r = A.ringToMm([[10, 20], [30, 20], [30, 45]]);
-  assert.deepStrictEqual(r, [[0, 0], [20000, 0], [20000, 25000]]);
-});
-
-test('★ 점이 셋보다 적으면 고리가 아니다 — null 을 돌려준다', () => {
-  assert.strictEqual(A.ringToMm([[0, 0], [1, 1]]), null);
-  assert.strictEqual(A.ringToMm(null), null);
-});
-
-/* ── ①②③④ 계획 자체 ──────────────────────────────────── */
+/* ★★ 〈2026-08-25 · D-101 합침〉 `mm()`·`ringToMm()` 을 재던 셋을 걷어냈다.
+ *   합친 판은 계획 쪽 스키마(`model-plan/1`)를 쓰고, 그 단위 변환은
+ *   `sketchup.test.js` 가 잰다. **여기서 또 재면 두 벌이 된다.** */
 
 const { Dataset } = require('../core/facts.js');
 const { FIELDS } = require('../core/dictionary.js');
@@ -73,7 +59,9 @@ const F = (key, value, unit) => ({ key, value, unit, confidence: 0.9, source: '�
 const MODEL = {
   floors: 12, floorHeight: 4.5, heightM: 54, footprintAreaSqm: 4000,
   footprintBasis: '필지 형상 미확보 — 건축면적 기준 직사각형으로 대체',
-  footprintM: [[0, 0], [80, 0], [80, 50], [0, 50]], parcelM: null,
+  /* ★ 합친 판은 09_massing 의 `footprintRing`·`parcelRing` 을 읽는다 (D-101).
+   *   이름을 안 맞추면 표본이 거짓말을 하고, 잡히는 것도 거짓이 된다 (§8) */
+  footprintRing: [[0, 0], [80, 0], [80, 50], [0, 50]], parcelRing: null,
 };
 
 test('★★★ fact 를 하나도 안 낸다 — 우리가 만든 값으로 우리 주장을 증명하면 안 된다 (D-33 · D-96)', async () => {
@@ -81,47 +69,52 @@ test('★★★ fact 를 하나도 안 낸다 — 우리가 만든 값으로 우
   assert.deepStrictEqual(out.facts, [], '계획값을 Dataset 에 등록한다 — 생성물이 근거가 된다');
 });
 
+/* ★ 아래 넷은 2026-08-25(D-101)에 **합친 스키마(`model-plan/1`)** 기준으로
+ *   다시 썼다. 재려는 뜻은 그대로다 — 없는 것을 짐작하지 않는가 · 근사를
+ *   근사라고 적는가 · 가정을 가정이라고 적는가 · 물체에 출처가 붙는가. */
+
 test('★★★ 없는 값을 짐작해 채우지 않는다 — 이름을 적는다 (§4.9)', async () => {
-  const { out, logs } = await plan([], null);
-  assert.ok(out.plan.missing.includes('land.area_sqm'), out.plan.missing.join(','));
-  assert.ok(out.plan.missing.includes('building.gfa_sqm'));
-  assert.ok(out.plan.missing.includes('09_massing.model'));
-  assert.strictEqual(out.plan.objects.length, 0, '없는 값으로 물체를 만들었다');
-  assert.ok(logs.some((m) => /매스 모델이 없어/.test(m)), '못 만든 사실을 말하지 않는다');
-  /* ★ **그래도 파일은 낸다** — 「못 냈다」와 「없다」는 다른 사실이다 */
-  assert.ok(out.plan, '계획을 못 만들면 파일도 안 낸다');
+  const { out } = await plan([F('land.area_sqm', 5000, '㎡')], { model: null });
+  assert.strictEqual(out.plan, null, '매스가 없는데 계획을 지어냈다');
+  assert.ok(out.missing.includes('massing.model'), '무엇이 없는지 이름을 안 적는다');
+  assert.ok(out.flags.some((f) => f.type === 'PLAN_MISSING'),
+    '조용히 안 만들면 사람은 고장으로 읽는다');
 });
 
 test('★★★ 근사한 것을 근사라고 적는다 — 안 적으면 실제 필지처럼 보인다', async () => {
   const { out } = await plan([F('land.area_sqm', 5000, '㎡')], { model: MODEL });
-  assert.strictEqual(out.plan.site.polygonIsApproximate, true);
-  assert.strictEqual(out.plan.site.polygonMm, null);
+  assert.strictEqual(out.plan.site.parcel_polygon_mm, null);
+  assert.ok(out.plan.notes.some((n) => /지적선 미확보/.test(n)),
+    '근사라는 사실을 계획서에 안 적는다');
 
-  const real = await plan([F('land.area_sqm', 5000, '㎡')],
-    { model: { ...MODEL, parcelM: [[0, 0], [90, 0], [90, 60], [0, 60]] } });
-  assert.strictEqual(real.out.plan.site.polygonIsApproximate, false);
-  assert.ok(real.out.plan.site.polygonMm.length === 4);
-  assert.ok(/VWorld/.test(real.out.plan.site.polygonSource));
+  const real = await plan([F('land.area_sqm', 5000, '㎡')], { model: PARCEL });
+  assert.strictEqual(real.out.plan.site.parcel_polygon_mm.length, 4);
+  assert.ok(!real.out.plan.notes.some((n) => /지적선 미확보/.test(n)),
+    '실제 필지인데 근사라고 적는다 — 헛울음이다');
 });
 
 test('★★★ 가정을 가정이라고 적는다 — 층고 기본값이 설계 조건으로 읽히면 안 된다', async () => {
   const { out } = await plan([F('land.area_sqm', 5000, '㎡')], { model: MODEL });
-  assert.strictEqual(out.plan.assumptions.length, 1);
-  assert.strictEqual(out.plan.assumptions[0].what, 'floorHeightMm');
-  assert.ok(/자산군 기본값/.test(out.plan.assumptions[0].why));
+  assert.ok(out.plan.notes.some((n) => /ASSUMPTION/.test(n) && /층고/.test(n)),
+    '층고가 통상치라는 사실을 안 적는다');
 
   /* ★ 자료에 높이가 있으면 가정이 아니다 */
   const told = await plan([F('land.area_sqm', 5000, '㎡'), F('building.height_m', 54, 'm')], { model: MODEL });
-  assert.deepStrictEqual(told.out.plan.assumptions, []);
+  assert.ok(!told.out.plan.notes.some((n) => /ASSUMPTION/.test(n) && /층고/.test(n)),
+    '자료로 확인된 값을 가정이라고 적는다');
 });
 
 test('★★ 물체마다 **어디서 나왔는지**가 붙는다 (규격 §3)', async () => {
-  const { out } = await plan([F('land.area_sqm', 5000, '㎡'), F('building.gfa_sqm', 24000, '㎡')], { model: MODEL });
+  /* 개념 배치(동)는 아파트일 때만 나온다 — 표본도 그래야 재려는 것이 재진다 */
+  const { out } = await plan([
+    F('land.area_sqm', 5000, '㎡'), F('building.gfa_sqm', 24000, '㎡'),
+    F('project.assetType', '아파트'),
+  ], { model: PARCEL });
+  assert.ok(out.plan.objects.length, '아파트인데 개념 배치를 하나도 안 그렸다');
   const o = out.plan.objects[0];
-  assert.ok(o.source && Array.isArray(o.source.keys) && o.source.keys.length);
-  assert.strictEqual(o.source.from, '09_massing');
-  assert.ok(o.source.basis, '어떻게 만든 바닥인지 안 적는다');
-  assert.strictEqual(o.heightMm, 54000);
+  assert.ok(o.source && o.source.fact, '어느 값에서 나왔는지 안 적는다');
+  assert.ok(/ASSUMPTION|설계안 아님/.test(o.source.origin || ''),
+    '통상치로 그린 개념 배치라는 사실이 물체에 안 붙는다 — 설계안으로 읽힌다');
 });
 
 /* ── ⑥⑦ 엔진이 SketchUp 을 안 부르는가 · 다섯 곳이 맞는가 ── */
@@ -151,13 +144,16 @@ test('★★★ 함께 고쳐야 하는 다섯 곳이 다 맞는다 — 하나�
   /* ① registry */
   const a = R.get('12_sketchup_plan');
   assert.ok(a, 'registry 에 없다 — 아예 안 돈다');
-  assert.ok(a.order > 7 && a.order < 8, `09_massing 뒤 · 05_validation 앞이어야 한다: ${a.order}`);
+  const v = R.get('05_validation');
+  const mass = R.get('09_massing');
+  assert.ok(mass.order < a.order && a.order < v.order,
+    `09_massing 뒤 · 05_validation 앞이어야 한다: ${a.order}`);
   /* ② monitor 비중 — 없으면 기본 5 로 잡혀 진행률이 슬쩍 틀어진다 */
-  assert.strictEqual(M.WEIGHTS['12_sketchup_plan'], 4);
+  assert.strictEqual(M.WEIGHTS['12_sketchup_plan'], 2);
   /* ③ monitor 선행 */
   assert.deepStrictEqual(M.DEPENDS['12_sketchup_plan'], ['09_massing']);
   /* ④ 화면 단계 — 빠지면 진행 화면이 이 Agent 를 영영 안 보여 준다 */
-  assert.ok(/'09_massing', '12_sketchup_plan'\]/.test(rd('ui/platform/live-core.js')),
+  assert.ok(/'12_sketchup_plan', '13_sketchup_intake'\]/.test(rd('ui/platform/live-core.js')),
     'live-core 의 계산·검토 묶음에 없다 — 화면이 이 단계를 안 그린다');
   /* ⑤ pipeline — 등록만 하고 안 부르면 없는 것과 같다 (D-48) */
   assert.ok(/runAgent\('12_sketchup_plan'/.test(rd('pipeline.js')),
@@ -176,7 +172,7 @@ test('★★★ 함께 고쳐야 하는 다섯 곳이 다 맞는다 — 하나�
  *   남긴다 — 켰는데 조용히 안 나오면 사람은 고장으로 읽는다.
  */
 
-const PARCEL = { ...MODEL, parcelM: [[0, 0], [90, 0], [90, 60], [0, 60]] };
+const PARCEL = { ...MODEL, parcelRing: [[0, 0], [90, 0], [90, 60], [0, 60]] };
 
 test('★★★ 필지 형상이 있으면 둘 다 SketchUp 쪽에 요청한다', async () => {
   const { out } = await plan([F('land.area_sqm', 5000, '㎡')], { model: PARCEL });

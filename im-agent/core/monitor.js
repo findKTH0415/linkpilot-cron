@@ -31,20 +31,16 @@ const ACTIVITY_PATH = '01_Project/activity.jsonl';
 const WEIGHTS = {
   '10_output_spec': 3,
   '01_project': 2,
-  '02_extraction': 12,
+  '02_extraction': 11,
   '07_geo': 10,
   '03_research': 6,
-  '04_financial': 15,
+  '04_financial': 13,
   '08_appraisal': 8,
-  /* ★★ **합계는 100 이어야 한다** 〈2026-08-25 · 검사가 잡았다〉. 계산은
-   *   실제 Agent 로 정규화하지만, **뜻을 읽으려면 100 이 기준이어야 한다** —
-   *   그래서 새 Agent 를 더할 때는 어디서 덜어 올지 함께 정한다.
-   * ★ 매스를 세우는 일과 그것을 계획으로 적는 일은 **한 일의 앞뒤**다.
-   *   그래서 09 의 몫을 반으로 나눠 가진다 (8 → 4 + 4). 다른 Agent 는 안 건드린다 */
-  '09_massing': 4,
-  '12_sketchup_plan': 4,
+  '09_massing': 8,
+  '12_sketchup_plan': 2,
+  '13_sketchup_intake': 2,
   '05_validation': 10,
-  '06_im_writer': 14,
+  '06_im_writer': 13,
   '11_final_validation': 12,
 };
 
@@ -62,7 +58,8 @@ const DEPENDS = {
   '08_appraisal': ['04_financial', '07_geo'],
   '09_massing': ['07_geo'],
   '12_sketchup_plan': ['09_massing'],
-  '05_validation': ['04_financial', '08_appraisal', '09_massing'],
+  '13_sketchup_intake': ['12_sketchup_plan'],
+  '05_validation': ['04_financial', '08_appraisal', '09_massing', '13_sketchup_intake'],
   '06_im_writer': ['05_validation'],
   '11_final_validation': ['06_im_writer'],
 };

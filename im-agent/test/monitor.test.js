@@ -112,11 +112,11 @@ test('파이프라인 실행 후 Control Tower 4개 트랙이 채워진다', asy
   assert.ok(snap.tracks.output.pct > 0, '산출 트랙');
   assert.strictEqual(snap.tracks.approval.pct, 0, '승인 전');
   assert.ok(snap.overall < snap.tracks.production.pct, '전체는 제작 진행률보다 낮아야 한다');
-  /* ★ 12_sketchup_plan 이 늘었다 〈2026-08-25 · D-95〉. 숫자를 손으로 적어 두면
-   *   Agent 가 늘 때마다 여기가 빨개지는데, **그게 이 검사의 일이다** —
-   *   registry 와 화면이 갈리는 것을 여기서 잡는다 */
+  /* ★ 12_sketchup_plan · 13_sketchup_intake 가 늘었다 〈2026-08-25 · D-95 · D-101〉.
+   *   숫자를 손으로 적어 두면 Agent 가 늘 때마다 여기가 빨개지는데,
+   *   **그게 이 검사의 일이다** — registry 와 화면이 갈리는 것을 여기서 잡는다 */
   assert.strictEqual(snap.agents.length, require('../core/registry').list().length);
-  assert.strictEqual(snap.agents.length, 12);
+  assert.strictEqual(snap.agents.length, 13);
   assert.ok(snap.bottleneck, '병목이 탐지된다');
   assert.ok(fs.existsSync(path.join(store.projectDir(PID), '01_Project/control-tower.json')));
 });
