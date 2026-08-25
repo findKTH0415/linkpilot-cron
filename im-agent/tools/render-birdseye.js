@@ -35,10 +35,13 @@ require('../core/env').ensure();
 const store = require('../core/store');
 
 const KEYS = (process.env.GEMINI_API_KEY || '').split(',').map(s => s.trim()).filter(Boolean);
-/* 이미지 출력 모델 후보 — NAS 실측으로 확정 전까지는 문서 기준 이름을 순서대로 시도한다.
-   (Nano Banana Pro = Gemini 3 Pro Image 계열 · Nano Banana = 2.5 Flash Image) */
+/* 이미지 출력 모델 후보 (Nano Banana Pro = Gemini 3 Pro Image · Nano Banana = 2.5 Flash Image).
+   ★ 2026-08-25 실측 (render-smoke #1, 실키): 모델 이름·인증은 이대로 통과했다 —
+     서버가 gemini-3-pro-image / gemini-2.5-flash-preview-image 로 응답했다.
+     막힌 것은 과금 하나: 「free_tier_requests, limit: 0」 — **무료 티어에는
+     이미지 생성 한도가 0** 이라 결제 연결이 있어야 돈다 (안내 문서 §5). */
 const MODELS = (process.env.GEMINI_RENDER_MODELS
-  || 'gemini-3-pro-image-preview,gemini-3-pro-image,gemini-2.5-flash-image')
+  || 'gemini-3-pro-image,gemini-2.5-flash-image')
   .split(',').map(s => s.trim()).filter(Boolean);
 
 const SCENE = 'SC-AERIAL-01';
