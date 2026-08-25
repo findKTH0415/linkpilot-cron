@@ -22,6 +22,7 @@ const birdseye = require('../geo/birdseye');
 const outputspec = require('../core/outputspec');
 const raster = require('../core/raster');
 const nsdi = require('../connectors/nsdi');
+const codecheck = require('../core/codecheck');
 const store = require('../core/store');
 const { round, fmt } = require('../core/numeric');
 const { kstDate } = require('../core/kst');
@@ -49,6 +50,9 @@ const outputSchema = {
     model: { type: 'object', nullable: true },
     files: { type: 'array' },
     inputs: { type: 'object' },
+    // ★ 법규 판정 (2026-08-25) — **fact 가 아니다.** 판정은 근거를 인용한
+    //   해석이고, 조례·심의로 뒤집힌다. 그래서 facts 가 아니라 여기로 나간다
+    codeReview: { type: 'object', nullable: true },
     confidence: { type: 'number', minimum: 0, maximum: 1 },
   },
 };
@@ -264,6 +268,58 @@ async function run(input, ctx) {
     ctx.warn(`매스 모델 생성 실패: ${e.message}`);
   }
 
+  /* ── 법규 판정 ────────────────────────────────────────────
+   * 〈2026-08-25 사장님 지시: 「③ 법규 검토가 해줘」 → 「직접 작업을 넘겨줘」〉
+   *
+   * ★★ **매스가 나온 자리에서 바로 판정한다.** 층수·높이·기준층면적이 여기서
+   *   정해지므로, 다른 Agent 로 빼면 같은 값을 두 번 만들게 된다.
+   * ★ 판정은 **fact 가 아니다** — 조례·심의로 뒤집히는 해석이다. flags 로 알리고
+   *   `codeReview` 로 내보낸다. facts 에는 한 줄도 넣지 않는다.
+   * ★ **모르는 것을 적합으로 세지 않는다** — 입력이 비면 unknown 이고,
+   *   unknown 이 남아 있으면 「검토 끝」이 아니다 (codecheck.js).
+   * ── */
+  let codeReview = null;
+  try {
+    const zoning = ds.get('land.zoning');
+    const heightM = (model && model.heightM) || heightFact || (floors * floorHeight);
+    codeReview = codecheck.review({
+      floors,
+      heightM,
+      zone: zoning ? String(zoning.value) : '',
+      typicalFloorSqm: footprintArea,
+      // 주거 층수·전용면적·승강기 대수는 이 단계에 없다 — 비워 두면 unknown 이다.
+      // 채워 넣지 않는다: 지어낸 값으로 「적합」이 나오는 것이 가장 나쁘다
+      stairs: null,
+      farPct: farPlanned,
+    });
+
+    codeReview.items.forEach((it) => {
+      if (it.verdict === 'fail') {
+        flags.push(flag('RED', 'CODE_FAIL',
+          `법규 부적합 — ${it.label}: ${it.actual} (기준: ${it.standard})`,
+          { keys: ['building.floors', 'building.height_m'], ref: it.ref }));
+      } else if (it.verdict === 'review') {
+        flags.push(flag('YELLOW', 'CODE_REVIEW', `법규 보완 — ${it.label}: ${it.note || it.actual}`, { ref: it.ref }));
+      } else if (it.verdict === 'ordinance') {
+        flags.push(flag('YELLOW', 'CODE_ORDINANCE',
+          `${it.label} — **조례**가 정한다. 시행령 상한으로 적합 판정하지 않는다`, { ref: it.ref }));
+      }
+    });
+    // ★ unknown 은 조용히 넘어가지 않는다. 「확인되지 않음」을 통과로 세지 않는다
+    const unknowns = codeReview.items.filter(i => i.verdict === 'unknown');
+    if (unknowns.length) {
+      flags.push(flag('YELLOW', 'CODE_UNKNOWN',
+        `법규 판정을 못 한 항목 ${unknowns.length}건 — ${unknowns.map(u => u.label).join(' · ')} (입력이 없어 적합으로 세지 않았다)`));
+    }
+    // ★ 조문 원문은 열쇠가 있을 때만 붙는다. 없으면 sourced:false 로 나간다
+    codeReview = await codecheck.attachSources(codeReview);
+    if (!codeReview.sourcesAttached) {
+      ctx.warn(`법규 조문 원문 미첨부 (${codeReview.reason}) — 판정은 냈으나 근거는 조문 번호까지다`);
+    }
+  } catch (e) {
+    ctx.warn(`법규 판정 실패: ${e.message}`);
+  }
+
   // ── 계산값 등록 ──────────────────────────────────────────
   const src = { source: '매스 검토 Agent (09_massing)', sourceDate: today, page: null, confidence: 0.9, verified: true };
   if (gfaAllowed !== null) facts.push({ key: 'massing.gfa_allowed_sqm', value: gfaAllowed, unit: '㎡', ...src, note: `근거: ${limitSource}` });
@@ -272,7 +328,7 @@ async function run(input, ctx) {
 
   const confidence = polygon && farLimit !== null ? 0.9 : (farLimit !== null ? 0.7 : 0.45);
   return {
-    facts, flags, model, files,
+    facts, flags, model, files, codeReview,
     inputs: {
       landAreaSqm: landArea, gfaSqm: gfa, floors, floorHeight,
       footprintAreaSqm: footprintArea, farLimit, bcrLimit, limitSource,
