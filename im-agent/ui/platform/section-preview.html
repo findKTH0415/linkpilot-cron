@@ -3136,6 +3136,15 @@ window.LINKPILOT_REPORT_FLOW = {
           </div>
           <span class="upd__see">확인: 화면에는 아직 안 보인다(실제 딜 + VWORLD_KEY 필요) — model-plan.json 의 site.road_polygons_mm 와 sketchup.test.js D-105 테스트, im:smoke 의 「연속지적도 bbox」 항목으로 확인한다</span>
         </li><li>
+          <b>AI 렌더에 도구 세대 기록(tool_version·engine·settings)을 필수화했다</b>
+          <em>규격 §3-1 · 13_sketchup_intake (AI 렌더 도구 기록)</em>
+          <span>Veras 4.0 은 Nano Banana Pro 기반이라 이전 세대와 그림이 다르다. 어느 도구의 어느 세대가 만든 그림인지가 §4.7 출처 표기와 같은 결이라, renders 에 tool_version(4.0)·engine(Nano Banana Pro)·settings(형상 유지 슬라이더·프롬프트 — 재현 조건) 필드를 더했다. 도구·버전 미기록은 수령 Agent 가 RENDER_TOOL_UNKNOWN YELLOW 로 잡는다. Gemini 무료 경로도 같은 규격이다. API 자동화는 여전히 실측 전 보류(D-34 🟡).</span>
+          <div class="upd__ba">
+            <div class="upd__b"><em>전</em>renders = tool·based_on·disclaimer 만 (세대 구분 없음)</div>
+            <div class="upd__a"><em>후</em>renders += tool_version·engine·settings — 미기록 도구·버전은 YELLOW</div>
+          </div>
+          <span class="upd__see">확인: 화면에 안 보인다 — 규격 §3-1 의 renders 예시와 sketchup.test.js 의 RENDER_TOOL_UNKNOWN 테스트로 확인한다</span>
+        </li><li>
           <b>Agent 를 붙일 때 빠뜨린 배선을 기계가 셉니다</b>
           <em>파이프라인 배선 점검 (화면에 안 보인다)</em>
           <span>Agent 하나를 붙이려면 다섯 곳을 함께 고쳐야 하는데, 하나를 빠뜨려도 아무 오류가 안 납니다. 그냥 조용히 안 돌거나, 진행률만 슬쩍 틀어지거나, 진행 화면이 그 단계를 영영 안 그립니다. 실제로 두 번 났습니다 — 커넥터 여섯이 등록만 되고 한 번도 안 불린 일, 그리고 두 작업선이 같은 이름의 Agent 를 각자 만든 일입니다. 앞 판은 이 검사가 Agent 한 개에만 있어서, 다음에 붙는 것은 또 아무도 안 세는 상태였습니다. 이제 등록된 전부를 세고, 배선을 일부러 빼 보고 실제로 빨개지는 것까지 확인합니다.</span>
