@@ -3118,6 +3118,15 @@ window.LINKPILOT_REPORT_FLOW = {
       <div class="upd__d">2026-08-25</div>
       <ul class="upd__l">
         <li>
+          <b>실사 조감도를 자동으로 만들 수 있게 됐습니다 — 생성은 자동, 채택은 사람</b>
+          <em>도구 · im:render (조감도 자동 렌더 · D-34 개정)</em>
+          <span>D-34 의 「API 실측 전 자동화 보류」를 사장님 지시로 풀었습니다. npm run im:render 가 엔진의 기하 조감도(모든 선이 지적선·건축개요에서 나온 그림)를 원본으로 Gemini(표준 Veras 4.0 과 같은 Nano Banana Pro 계열)에 「형태·층수·비례 유지, 재질·주변만 실사로」를 시켜 후보를 만듭니다. 후보는 문서에 자동으로 실리지 않습니다 — 사람이 눈으로 확인하고 --adopt 로 등록해야 renders 에 실리고, 「AI 렌더 — 실제 설계안이 아님」 표기와 도구·세대 기록은 후보 단계부터 붙습니다. 키가 없으면 만들지 않고 발급 절차를 안내합니다.</span>
+          <div class="upd__ba">
+            <div class="upd__b"><em>전</em>실사화는 사람 단계뿐 (SketchUp + Veras 수동, 자동화 보류)</div>
+            <div class="upd__a"><em>후</em>후보 생성 자동 · 채택 사람 · 표기 자동 — 남은 것: 이미지 모델 ID NAS 실측 1회</div>
+          </div>
+          <span class="upd__see">확인: 화면에 안 보입니다 — NAS(키 있는 자리)에서 npm run im:render 로 확인합니다. 절차는 docs/안내-조감도-자동-렌더.md 입니다</span>
+        </li><li>
           <b>실사 조감도 렌더의 표준을 Veras 4.0 (Nano Banana Pro 기반)으로 강제합니다</b>
           <em>규격 §3-1 · 12_sketchup_plan · 13_sketchup_intake (렌더 표준)</em>
           <span>지금까지는 도구·버전을 「기록했는가」만 봤고, 어느 도구든 기록만 있으면 통과였습니다. 사장님 지시(2026-08-25 「반드시」)로 표준을 코드에 박았습니다 — 값은 outputspec.js 의 RENDER_STANDARD 한 곳에만 있고, 계획 Agent 가 계획 파일의 조감도 항목에 표준을 실어 SketchUp 쪽에 알리며, 수령 Agent 는 다른 도구·구세대·다른 기반 모델로 만든 렌더에 RENDER_TOOL_NONSTANDARD 노란 딱지를 냅니다. 무료 경로는 gemini + 같은 기반 모델만 표준으로 칩니다.</span>
@@ -4291,7 +4300,7 @@ LTC 65%</pre>
 
   <div class="ev__c">
     <div class="ev__n">아무도 안 부르는 모듈 — 0개</div>
-    <div class="ev__m">모듈 259개 중 259개가 닿습니다
+    <div class="ev__m">모듈 260개 중 260개가 닿습니다
       (<code>npm run check:reachable</code>).</div>
     <div class="ev__m">없음</div>
   </div>
