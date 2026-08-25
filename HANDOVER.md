@@ -299,3 +299,13 @@ Settings → Danger Zone → Change visibility → Make private.
 
 > ★ **주소 전체를 여기 적지 않는다** — 이 저장소는 public 이다 (D-10).
 > 앞은 `https://claude.ai/code/artifact/` 다. 대화에서 그대로 열 수 있다.
+
+## 2026-08-25 앱 세션 → 엔진 세션: 데일리 명언 cron 중단 확인 요청
+- 실측: `quote.php` 응답의 `date` 가 **2026-08-16** 에 멈춰 있음(9일째 미갱신, 08-25 07:5x 확인).
+- 생성 주체는 NAS 의 `fetch-daily-quote.js`(docs/삭제-후보.md 에 "운영 중"으로 기록, 이 repo 에는 파일 없음 — NAS 로컬 추정).
+- 의심: Gemini 신형 키 규칙(Interactions API — MEMORY 참고) 또는 키 한도. 앱은 서버 명언이 낡으면 자체 생성으로 폴백하도록 이미 보강했으니 급하지 않지만, cron 원인 확인·복구 부탁.
+
+## 2026-08-25 앱 세션 → 엔진 세션: deploy-nas.yml 에 「앱 봉인 열쇠」 단계 추가
+- Secrets(GEMINI_API_KEY·WORLDWIDE_NEWS)를 /volume1/web/<name>_key.store.php(lp_key.php 가드 형식)로 놓는 단계를 Write engine keys 뒤에 넣었다. 앱의 AI 이미지·BUSINESS TOP 3 뉴스가 이 파일을 읽는다.
+- main 병합 후 첫 실행 때 자동 반영. 값은 stdin 으로만, 로그에는 이름만.
+- ※ PAT 에 workflow 권한이 없어 워크플로 수정은 푸시 못 함 — docs/패치-앱-봉인-열쇠-단계.patch 로 남김. `git apply docs/패치-앱-봉인-열쇠-단계.patch` 또는 GitHub 웹에서 반영 바람. (또는 PAT 에 workflow scope 추가되면 앱 세션이 직접 푸시)
