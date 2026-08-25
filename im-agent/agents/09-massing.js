@@ -143,9 +143,23 @@ async function run(input, ctx) {
   let footprint;
   let footprintBasis;
   let parcelLocal = null;   // 조감도용 — **축소하지 않은** 실제 지적선
+  let roadsLocal = null;    // 도로필지 링 (D-102) — 지적선과 **같은 원점**의 로컬 미터좌표
   if (polygon) {
-    const local = geometry.toLocalMeters(polygon).slice(0, -1);
+    // ★ 원점을 명시해 한 번만 잡는다 — 도로 링이 다른 원점으로 변환되면
+    //   배치도에서 도로가 부지 옆이 아니라 엉뚱한 자리에 그려진다.
+    const origin = geometry.centroid(geometry.closedRing(polygon));
+    const local = geometry.toLocalMeters(polygon, origin).slice(0, -1);
     parcelLocal = local;
+    const roadParcels = input.geo && Array.isArray(input.geo.roadParcels) ? input.geo.roadParcels : [];
+    if (roadParcels.length) {
+      roadsLocal = roadParcels
+        .filter(r => Array.isArray(r.polygon) && r.polygon.length >= 3)
+        .map(r => ({
+          pnu: r.pnu || null, jibun: r.jibun || null, category: r.category || null,
+          ring: geometry.toLocalMeters(r.polygon, origin).slice(0, -1).map(([x, y]) => [round(x, 2), round(y, 2)]),
+        }));
+      if (!roadsLocal.length) roadsLocal = null;
+    }
     const parcelArea = geometry.planarArea(local);
     const shrink = parcelArea > 0 ? Math.min(1, footprintArea / parcelArea) : 1;
     footprint = geometry.scaleAboutCentroid(local, shrink);
@@ -234,6 +248,8 @@ async function run(input, ctx) {
       // 로컬 미터좌표. parcelRing 은 축소하지 않은 실제 지적선, 없으면 null.
       footprintRing: footprint.map(([x, y]) => [round(x, 2), round(y, 2)]),
       parcelRing: parcelLocal ? parcelLocal.map(([x, y]) => [round(x, 2), round(y, 2)]) : null,
+      // 도로필지 (D-102) — parcelRing 과 같은 원점의 로컬 미터좌표. 없으면 null
+      roadRings: roadsLocal,
       vertices: built.meta.vertices,
       triangles: built.meta.triangles,
       note: '용적률·건폐율 검토용 매스이며 설계안이 아니다',

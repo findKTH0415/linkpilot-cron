@@ -534,6 +534,20 @@ async function main() {
         parsedPnu = pnuUtil.parse(p.value.pnu);
         console.log(`  PNU 분해: 시군구 ${parsedPnu.sigunguCd} · 법정동 ${parsedPnu.bjdongCd} · 지번 ${parsedPnu.jibun}`);
       }
+
+      // ── 2-2. 주변 필지 bbox (도로필지 후보, D-102) ─────────
+      // parcelAt 과 같은 레이어(LP_PA_CBND_BUBUN)·같은 활용신청 — 필터만 BOX 다.
+      // 지목은 이 응답에 없다. 도로 확정은 토지특성 지목(「도로」)으로 한다.
+      if (p.value.polygon.length >= 3) {
+        const near = await vworld.parcelsNear(p.value.polygon, 30);
+        if (near.ok) {
+          const others = near.value.filter(c => c.pnu && c.pnu !== p.value.pnu);
+          report('VWorld 연속지적도 bbox (도로필지 후보)', true,
+            `주변 30m 내 필지 ${others.length}건 (지목 확인은 토지특성이 한다)`);
+        } else {
+          report('VWorld 연속지적도 bbox (도로필지 후보)', false, near.error);
+        }
+      }
     } else {
       report('VWorld 연속지적도', false, p.error);
     }

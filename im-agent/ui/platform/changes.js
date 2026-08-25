@@ -42,6 +42,33 @@
    */
   var CHANGES = [
     {
+      at: '2026-08-25', where: '파이프라인 · 12_sketchup_plan (동 길이 GFA 제한 · D-101)',
+      title: '개념 동의 길이를 GFA 로 자른다 — 그림과 숫자가 어긋나지 않게',
+      why: '개념 동이 건폐율·폭 사용률만으로 길이를 정해(데모 98.2m), 다 채우면 '
+        + '연면적이 문서 GFA 를 31% 초과했다(용적률 323% 상당). 법정 판정은 문서 '
+        + 'GFA 로 따로 돌아 맞았지만 그림이 다른 건물을 말했다. 이제 '
+        + 'GFA ÷ (층수 × 동수 × 깊이) 를 상한으로 자르고 notes 에 남긴다 '
+        + '(데모: 75.0m — 75×13×2동×20층 = 39,000㎡ = 문서 GFA).',
+      shows: 'model-plan.json 의 objects[].width 와 notes 의 「동 길이를 GFA 로 제한」 '
+        + '— sketchup.test.js D-101 테스트가 총량 ≤ GFA 를 고정한다',
+      was: '동 길이 = bbW × 0.8 (건폐율 기준만) — 다 채우면 GFA 초과',
+      now: '동 길이 = min(bbW × 0.8, GFA ÷ 층수 ÷ 동수 ÷ 깊이) — 총량이 GFA 안',
+    },
+    {
+      at: '2026-08-25', where: '파이프라인 · 07_geo → 09_massing → 12_sketchup_plan (도로필지 · D-102)',
+      title: '부지에 접한 도로필지(지목 「도로」)를 계획 파일에 동봉한다',
+      why: '배치도·3D 의 진입 도로가 지금까지 예시 그림이었다. 이제 연속지적도 '
+        + 'bbox 1회로 주변 필지를 받고, 접한 것(≤3m)만 토지특성으로 지목을 확인해 '
+        + '「도로」만 site.road_polygons_mm 에 싣는다(지적선과 같은 원점). 지목을 '
+        + '확인 못 한 필지는 도로로 단정하지 않고(§4.9), 미확보면 null + notes 다. '
+        + '호출은 bbox 1 + 토지특성 ≤12 (PNU별 30일 캐시, §4.5 가드 테스트 갱신).',
+      shows: '화면에는 아직 안 보인다(실제 딜 + VWORLD_KEY 필요) — model-plan.json 의 '
+        + 'site.road_polygons_mm 와 sketchup.test.js D-102 테스트, im:smoke 의 '
+        + '「연속지적도 bbox」 항목으로 확인한다',
+      was: '도로는 미리보기의 예시 그림뿐 — 계획 파일에 도로 데이터 없음',
+      now: 'site.road_polygons_mm 에 공부 확인분만 동봉 — 없으면 null (지어내지 않음)',
+    },
+    {
       at: '2026-08-25', where: '규격 §3-1 · 13_sketchup_intake (AI 렌더 도구 기록)',
       title: 'AI 렌더에 도구 세대 기록(tool_version·engine·settings)을 필수화했다',
       why: 'Veras 4.0 은 Nano Banana Pro 기반이라 이전 세대와 그림이 다르다. '

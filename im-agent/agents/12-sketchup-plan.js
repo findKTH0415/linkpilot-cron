@@ -110,6 +110,19 @@ async function run(input, ctx) {
     notes.push('지적선 미확보 — 바닥은 부지 근사 형상이다 (VWORLD_KEY 설정 시 실제 필지 형상)');
   }
 
+  // ── 도로필지 (D-102) — 지적선과 같은 원점. 공부(지목 「도」)에서 온 형상이다 ──
+  const roadPolys = Array.isArray(m.roadRings) && m.roadRings.length
+    ? m.roadRings.map(r => ({
+        pnu: r.pnu || null, jibun: r.jibun || null, category: r.category || null,
+        polygon_mm: ringMm(r.ring),
+      }))
+    : null;
+  if (roadPolys) {
+    notes.push(`도로필지 ${roadPolys.length}필지 동봉 — 연속지적도 + 토지특성(지목 「도로」) 실측 형상이다. 진입 동선 판단은 사람이 한다 (D-102)`);
+  } else if (parcelPoly) {
+    notes.push('도로필지 미확보 — 배치도의 도로는 비워 둔다. 예시 도로를 그리면 예시임을 화면에 박는다 (D-102)');
+  }
+
   // ── 법정 분석 — 09_massing 이 검토한 값을 동봉한다 (fact 아님, 표기용) ──
   const legal = {
     far_limit_pct: mi.farLimit !== undefined ? mi.farLimit : ds.num('land.far_limit'),
@@ -135,11 +148,22 @@ async function run(input, ctx) {
     const bbW = Math.max(...xs) - Math.min(...xs);
     const bbH = Math.max(...ys) - Math.min(...ys);
     const barDepth = 13000;                               // 판상형 통상 깊이 13m (ASSUMPTION)
-    const barLen = Math.round(bbW * 0.8);                 // 폭 사용률 0.8 (ASSUMPTION)
+    let barLen = Math.round(bbW * 0.8);                   // 폭 사용률 0.8 (ASSUMPTION)
     const spacing = Math.round(floors * floorHeightM * 1000 * 0.8); // 인동계수 0.8 (ASSUMPTION — 조례 확인 필요)
     const byHeight = Math.max(1, Math.floor((bbH - barDepth) / (barDepth + spacing)) + 1);
     const byArea = Math.max(1, Math.floor((footprintArea * 1e6) / (barDepth * barLen)));
     const nBars = Math.max(1, Math.min(byHeight, byArea));
+    // ★ 동 길이는 GFA 를 넘겨 그리지 않는다 〈2026-08-25 사장님 승인〉 —
+    //   건폐율 기준(bbW×0.8)만으로 그리면 동을 다 채웠을 때 연면적이 문서
+    //   GFA 를 초과한다(실측: 데모에서 FAR 323% 상당). 형상은 개념이라도
+    //   총량은 문서 GFA 안에 있어야 「성립하는 그림」이다.
+    if (gfa) {
+      const gfaCap = Math.floor((gfa * 1e6) / (floors * nBars * barDepth));
+      if (gfaCap < barLen) {
+        barLen = gfaCap;
+        notes.push(`동 길이를 GFA 로 제한 — ${round(barLen / 1000, 1)}m (건폐율 기준 ${round(bbW * 0.8 / 1000, 1)}m 를 그대로 쓰면 연면적이 문서 GFA 를 초과한다)`);
+      }
+    }
     const x0 = Math.min(...xs) + Math.round((bbW - barLen) / 2);
     for (let i = 0; i < nBars; i++) {
       objects.push({
@@ -169,6 +193,8 @@ async function run(input, ctx) {
       far_limit_pct: ds.num('land.far_limit'),
       bcr_limit_pct: bcrLimit,
       parcel_polygon_mm: parcelPoly,
+      // 접한 도로필지 (D-102) — 지목 「도로」 확인분만. null 이면 미확보다 (지어내지 않는다)
+      road_polygons_mm: roadPolys,
       source: srcOf(ds, 'land.area_sqm'),
     },
     building: {

@@ -206,6 +206,52 @@ async function parcelAt(lon, lat) {
 }
 
 /**
+ * 필지 주변 필지들 — 연속지적도 bbox 조회 (도로필지 수집용, D-102).
+ *
+ * ★ parcelAt 과 **같은 레이어·같은 활용신청**이다(LP_PA_CBND_BUBUN). 필터만
+ *   POINT → BOX 로 바뀐다. 새 신청 없이 붙는 이유가 이것이다.
+ * ★ 연속지적도 속성에는 지목이 없다 — 지목 판정은 호출한 쪽이 토지특성
+ *   (nsdi.landCharacteristics)으로 한다. 여기서는 후보만 낸다 (§4.9).
+ *
+ * @param {Array<[lon,lat]>} ring 기준 필지 폴리곤 (위경도)
+ * @param {number} marginM bbox 여유 (m) — 접한 도로를 잡을 만큼만
+ * @returns {{ok, value:[{pnu, jibun, polygon}]}}
+ */
+async function parcelsNear(ring, marginM = 30) {
+  if (!ring || ring.length < 3) return { ok: false, error: '기준 폴리곤 없음' };
+
+  const lons = ring.map(p => p[0]);
+  const lats = ring.map(p => p[1]);
+  const midLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+  const dLat = marginM / 111320;                                   // 1° 위도 ≈ 111.32km
+  const dLon = marginM / (111320 * Math.cos(midLat * Math.PI / 180));
+  const box = [
+    round6(Math.min(...lons) - dLon), round6(Math.min(...lats) - dLat),
+    round6(Math.max(...lons) + dLon), round6(Math.max(...lats) + dLat),
+  ];
+
+  const r = await call('data', {
+    service: 'data', request: 'GetFeature', version: '2.0',
+    data: 'LP_PA_CBND_BUBUN',
+    geomFilter: `BOX(${box.join(',')})`,
+    geometry: 'true', attribute: 'true', size: 60, page: 1,
+    crs: 'EPSG:4326',
+  }, 'parcels-near', { box: box.join(',') });
+
+  if (!r.ok) return r;
+
+  const features = r.value?.result?.featureCollection?.features || [];
+  return {
+    ok: true, cached: r.cached,
+    value: features.map(f => ({
+      pnu: f.properties?.pnu || f.properties?.PNU || null,
+      jibun: f.properties?.addr || f.properties?.jibun || null,
+      polygon: extractPolygon(f.geometry),
+    })).filter(p => p.polygon.length >= 3),
+  };
+}
+
+/**
  * 실패 원인 추정 — 오류 문구로 다음 행동을 좁혀준다.
  * 확신할 수 없으면 추측하지 않고 '원문 확인 필요'라고 쓴다.
  */
@@ -261,4 +307,4 @@ function mapLink(lat, lon, zoom = 17) {
 
 function round6(n) { return Math.round(Number(n) * 1e6) / 1e6; }
 
-module.exports = { geocode, parcelAt, staticMapUrl, mapLink, isAvailable, extractPolygon, buildRequestUrl, domain, diagnoseGeocodeFailure, PROVIDER };
+module.exports = { geocode, parcelAt, parcelsNear, staticMapUrl, mapLink, isAvailable, extractPolygon, buildRequestUrl, domain, diagnoseGeocodeFailure, PROVIDER };

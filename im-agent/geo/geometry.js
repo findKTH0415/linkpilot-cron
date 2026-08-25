@@ -149,6 +149,34 @@ function scaleAboutCentroid(points, factor) {
   return pts.map(([x, y]) => [cx + (x - cx) * s, cy + (y - cy) * s]);
 }
 
+/**
+ * 두 링 사이 최단거리(m) — 접함 판정용 (D-102 도로필지).
+ * 한쪽의 꼭짓점에서 다른 쪽의 변까지 점-선분 거리를 양방향으로 잰다.
+ * 연속지적도의 접한 필지는 변을 공유해 0 에 가깝게 나온다.
+ */
+function minRingDistance(ringA, ringB) {
+  const a = closedRing(ringA);
+  const b = closedRing(ringB);
+  const ptSeg = (p, s, e) => {
+    const dx = e[0] - s[0], dy = e[1] - s[1];
+    const L2 = dx * dx + dy * dy;
+    const t = L2 === 0 ? 0 : Math.max(0, Math.min(1, ((p[0] - s[0]) * dx + (p[1] - s[1]) * dy) / L2));
+    return Math.hypot(p[0] - (s[0] + t * dx), p[1] - (s[1] + t * dy));
+  };
+  let min = Infinity;
+  const oneWay = (pts, ring) => {
+    for (const p of pts) {
+      for (let i = 0; i < ring.length - 1; i++) {
+        const d = ptSeg(p, ring[i], ring[i + 1]);
+        if (d < min) min = d;
+      }
+    }
+  };
+  oneWay(a, b);
+  oneWay(b, a);
+  return min;
+}
+
 /** 면적만 아는 경우의 대체 사각형 footprint (필지 폴리곤 미확보 시) */
 function squareFootprint(areaSqm, ratio = 1.5) {
   if (!areaSqm || areaSqm <= 0) return null;
@@ -163,4 +191,5 @@ function squareFootprint(areaSqm, ratio = 1.5) {
 module.exports = {
   centroid, closedRing, toLocalMeters, planarArea, polygonAreaSqm,
   bbox, signedArea, triangulate, scaleAboutCentroid, squareFootprint,
+  minRingDistance,
 };

@@ -133,6 +133,62 @@ test('아파트면 판상형 개념 배치가 나온다 — ASSUMPTION 표기와
   assert.ok(out.plan.notes.some(n => /설계안이 아니다/.test(n)), '설계안 아님 표기');
 });
 
+test('동 길이는 GFA 를 넘겨 그리지 않는다 — 건폐율 기준이 넘치면 GFA 로 자른다 (D-101)', async () => {
+  const gfa = 39000;
+  const out = await plan.run({
+    projectId: PID,
+    massing: massingOut({
+      floors: 20, floorHeight: 2.9,
+      footprintAreaSqm: 5530,
+      // bbW 122.7m → 건폐율 기준 동 길이 98.2m. 다 채우면 연면적이 GFA 를 한참 넘는다
+      footprintRing: [[0, 0], [122.72, 0], [122.72, 90], [0, 90]],
+    }),
+  }, {
+    dataset: ds({ 'land.area_sqm': 15800, 'building.gfa_sqm': gfa, 'project.assetType': '아파트' }),
+    warn: noop.warn,
+  });
+  const bars = out.plan.objects.filter(o => o.type === 'building_bar');
+  assert.ok(bars.length >= 1);
+  const totalGfaSqm = bars.reduce((s, b) => s + (b.width / 1000) * (b.depth / 1000), 0) * 20;
+  assert.ok(totalGfaSqm <= gfa * 1.001,
+    `동을 다 채운 연면적(${Math.round(totalGfaSqm)}㎡)이 문서 GFA(${gfa}㎡)를 넘으면 안 된다`);
+  assert.ok(bars[0].width < Math.round(122720 * 0.8), '건폐율 기준 길이가 GFA 상한으로 잘려야 한다');
+  assert.ok(out.plan.notes.some(n => /GFA 로 제한/.test(n)), '자른 사실이 notes 에 남아야 한다');
+});
+
+test('도로필지가 있으면 지적선과 같은 좌표계로 계획에 실린다 (D-102)', async () => {
+  const out = await plan.run({
+    projectId: PID,
+    massing: massingOut({
+      parcelRing: [[-10, -5], [140, -10], [150, 80], [70, 120], [-15, 90]],
+      roadRings: [
+        { pnu: '1111000000000000000', jibun: '10도', category: '도로', ring: [[-10, -13], [140, -18], [140, -10], [-10, -5]] },
+      ],
+    }),
+  }, {
+    dataset: ds({ 'land.area_sqm': 12500, 'building.gfa_sqm': 9600 }),
+    warn: noop.warn,
+  });
+  const roads = out.plan.site.road_polygons_mm;
+  assert.ok(Array.isArray(roads) && roads.length === 1, '도로필지가 계획에 실려야 한다');
+  assert.strictEqual(roads[0].category, '도로');
+  assert.deepStrictEqual(roads[0].polygon_mm[1], [140000, -18000], 'm → mm 변환 (지적선과 같은 원점)');
+  assert.ok(out.plan.notes.some(n => /도로필지 1필지 동봉/.test(n)));
+  assert.deepStrictEqual(out.facts, [], 'D-96 — 도로 형상도 fact 가 아니다');
+});
+
+test('도로필지가 없으면 null 이고 그 사실이 notes 에 남는다 — 지어내지 않는다 (D-102)', async () => {
+  const out = await plan.run({
+    projectId: PID,
+    massing: massingOut({ parcelRing: [[-10, -5], [140, -10], [150, 80], [70, 120], [-15, 90]] }),
+  }, {
+    dataset: ds({ 'land.area_sqm': 12500, 'building.gfa_sqm': 9600 }),
+    warn: noop.warn,
+  });
+  assert.strictEqual(out.plan.site.road_polygons_mm, null);
+  assert.ok(out.plan.notes.some(n => /도로필지 미확보/.test(n)));
+});
+
 // ── 단계 4 · 수령 ──────────────────────────────────────────
 
 function writeResult(result) {
