@@ -9,6 +9,7 @@
 name: render-smoke
 on:
   workflow_dispatch: {}
+  # ★ 재실행 2026-08-25 10:45Z — 사장님이 GEMINI_API_KEY 를 다시 넣으신 뒤 실측.
   # ★ dispatch 는 main 에 파일이 있어야 붙는다(실측: 404) — 병합 전 실측을 위해
   #   이 파일 자체가 바뀐 push 에서만 돈다. paths 필터라 다른 커밋에는 안 돈다.
   push:
