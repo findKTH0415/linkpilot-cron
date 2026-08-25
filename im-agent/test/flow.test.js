@@ -553,8 +553,16 @@ test('★ 미결정 등록부의 ID 는 유일하고, 건수는 손으로 적은
   const dup = ids.filter((id, i) => ids.indexOf(id) !== i);
   assert.deepStrictEqual(dup, [], `같은 ID 가 두 번 등록되었다: ${dup.join(', ')}`);
 
-  // 열린(✅ 아닌) 항목은 범위 외·결정 기록 표에 있으면 안 된다
-  const tabled = new Set([...text.matchAll(/^\| (D-\d+) \|/gm)].map((m) => m[1]));
+  /* 열린(✅ 아닌) 항목은 범위 외·결정 기록 표에 있으면 안 된다.
+   *
+   * ★★ **그 두 절만 본다** 〈2026-08-25 · 헛울음이 났다〉. 앞 판은 **문서
+   *   전체**에서 `| D-xx |` 를 찾았다. 그래서 본문에 **견주는 표**(예: 두
+   *   작업선이 같은 번호를 다르게 쓰고 있다는 대조표)를 적으면, 그 줄을
+   *   「결정 표에 있다」로 읽고 빨개졌다 — 고칠 것이 없는데 빨간 것이다.
+   * ★ 재려는 것은 「열린 항목이 **닫힌 것처럼 적혀 있는가**」이므로,
+   *   닫힌 것을 적는 두 절 안에서만 센다. */
+  const closedSec = text.slice(text.indexOf('## 범위 외'));
+  const tabled = new Set([...closedSec.matchAll(/^\| (D-\d+) \|/gm)].map((m) => m[1]));
   heads.filter((h) => h[1].indexOf('✅') !== 0).forEach((h) => {
     assert.ok(!tabled.has(h[2]), `${h[2]} 가 열린 항목이면서 표에도 있다`);
   });
