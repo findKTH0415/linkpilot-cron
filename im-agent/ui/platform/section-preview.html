@@ -1988,6 +1988,15 @@ window.LINKPILOT_REPORT_FLOW = {
       <div class="upd__d">2026-08-25</div>
       <ul class="upd__l">
         <li>
+          <b>붙어 있는 MCP 서버 14개를 길 넷으로 갈라 등록했다 — 길을 안 밝히면 등록이 안 된다</b>
+          <em>엔진 · MCP 등록부 (mcp/servers.js · tools/mcp-map.js)</em>
+          <span>MCP 서버는 붙이기가 너무 쉽다. 설정 네 줄이면 대화가 그 도구를 부른다. 그런데 이 시스템의 1순위는 「출처 없는 숫자는 못 들어온다」이고, 도구 결과가 모델을 거치면 기관·기준시점·모수가 문장 속으로 녹는다. 세어 두지 않으면 어느 날 값 하나가 출처 없이 IM 에 들어가 있고 아무도 모른다. 그래서 길을 넷으로 갈랐다 — 내보내는 길, 자료를 들여오는 길, 값을 바로 주는 길, 값의 길에 안 닿는 길. 핵심은 가운데 둘의 차이다: 파일은 이름과 페이지가 출처로 남고 값은 안 남는다. 값을 바로 주는 넷(PlayMCP·TomTom·OpenBB·Financial Datasets)은 전부 막았고, 막은 것마다 무엇 때문에 막혔는지 미결정 번호를 달았다 — 사유 없는 금지는 다음 사람이 그냥 푼다. 짝지은 Agent 이름은 registry.js 에서 확인한다.</span>
+          <div class="upd__ba">
+            <div class="upd__b"><em>전</em>MCP 서버가 붙어 있는지 어디에도 적혀 있지 않았다. 무엇이 값의 길에 닿는지 세어 본 적이 없다</div>
+            <div class="upd__a"><em>후</em>서버 14개 등록 — 내보냄 1 · 자료 2 · 값(전부 막힘) 4 · 값과 무관 7. 사람이 손봐야 하는 것 4개가 따로 나온다</div>
+          </div>
+          <span class="upd__see">확인: 이 화면 아래 [눈으로 확인 — 대화에서 LinkPilot 을 불러 본 결과 (MCP)] 패널 안에 [MCP 등록부] 칸이 있다. 서버 14개가 길별로 나뉘어 있고 위반 건수가 0 으로 나온다. 터미널에서는 npm run mcp:map</span>
+        </li><li>
           <b>LinkPilot 을 대화에서 부를 수 있게 했다 — 읽기 전용 MCP 서버</b>
           <em>엔진 · 내보내는 길 (mcp/server.js · mcp/tools.js)</em>
           <span>D-83 의 결정이다. 바깥 컨텐츠를 들여오는 길은 REST 커넥터 그대로 두고, MCP 는 LinkPilot 을 내보내는 길로만 쓴다. 들여오는 길에 놓으면 기관·기준시점·모수가 문장 속으로 녹아 Fact.source 를 채울 원본이 사라지고, 호출 한도 장부와 시크릿 마스킹 밖으로 나간다. 내보내는 길에서는 값을 만들지 않고 엔진이 이미 가진 것을 꺼내므로 출처가 그대로 따라온다. 도구 여섯은 전부 읽기 라우트(api-router.cjs) 위에 서고, 쓰기 라우트 스물셋은 하나도 열리지 않는다 — 검사가 그것을 고정한다. 포트를 열지 않고 표준입출력으로만 말한다.</span>
@@ -2771,7 +2780,7 @@ LTC 65%</pre>
 
   <div class="ev__c">
     <div class="ev__n">아무도 안 부르는 모듈 — 0개</div>
-    <div class="ev__m">모듈 226개 중 226개가 닿습니다
+    <div class="ev__m">모듈 229개 중 229개가 닿습니다
       (<code>npm run check:reachable</code>).</div>
     <div class="ev__m">없음</div>
   </div>
@@ -2804,6 +2813,18 @@ LTC 65%</pre>
 - [SOURCE] 토지대장.pdf = 12300 · 후보(탈락) · p.1 · 2026-02-10 · &quot;대지면적 12,300㎡&quot;
 - [RESOLVED] 데이터셋 확정값 = 12345 · 채택 · 등급 A · 독립출처 2건 · 검증됨
 </pre>
+  </div>
+
+  
+  <div class="ev__c">
+    <div class="ev__n">MCP 등록부 — 서버 14개 · 규칙 위반 0건</div>
+    <div class="ev__m"><b>길을 안 밝힌 서버는 등록할 수 없습니다.</b> 「자료를 들여오는 길」과
+      「값을 바로 주는 길」을 가르는 것이 핵심입니다 — 파일은 이름·페이지가 출처로 남고,
+      값은 안 남습니다. <code>npm run mcp:map</code></div>
+    <div class="ev__m">이 갈래 Agent 11 · 배포 엔진 Agent 13 ·
+      커넥터 23 (커넥터 수는 cache·http·xml(인프라 3종) 제외)</div>
+    <div class="ev__n">내보내는 길 — LinkPilot 을 꺼내 준다 — 1개</div><div class="ev__m"><code>linkpilot</code> — 값 아님 · 붙어 있음</div><div class="ev__n">자료를 들여오는 길 — 값은 02_extraction 이 만든다 — 2개</div><div class="ev__m"><code>Box</code> — 값 아님 · 붙어 있음 · 02_extraction</div><div class="ev__m"><code>Google_Drive</code> — 값 아님 · 붙어 있음 · 02_extraction</div><div class="ev__n">값을 바로 주는 길 — 값의 길에 못 꽂는다 (D-83) — 4개</div><div class="ev__m"><code>PlayMCP</code> — 막힘 · 붙어 있음 · <b>D-70</b></div><div class="ev__m"><code>TomTom_Maps</code> — 막힘 · 인증 필요 · 07_geo · <b>D-109</b></div><div class="ev__m"><code>financial-datasets</code> — 막힘 · 검토 중 · 03_research · <b>D-108</b></div><div class="ev__m"><code>openbb</code> — 막힘 · 검토 중 · 03_research · <b>D-108</b></div><div class="ev__n">값의 길에 닿지 않는다 — 7개</div><div class="ev__m"><code>Adobe_for_creativity</code> — 값 아님 · 붙어 있음 · 15_design</div><div class="ev__m"><code>Trimble_SketchUp</code> — 값 아님 · 붙어 있음 · 09_massing · 병합 대기 12_sketchup_plan, 13_sketchup_intake</div><div class="ev__m"><code>Mermaid_Chart</code> — 값 아님 · 붙어 있음</div><div class="ev__m"><code>Gmail</code> — 값 아님 · 붙어 있음</div><div class="ev__m"><code>Google_Calendar</code> — 값 아님 · 붙어 있음</div><div class="ev__m"><code>github</code> — 값 아님 · 붙어 있음</div><div class="ev__m"><code>Claude_Code_Remote</code> — 값 아님 · 붙어 있음</div>
+    
   </div>
 
   <div class="ev__c">

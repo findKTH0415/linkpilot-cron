@@ -552,6 +552,8 @@ function mcpPanel() {
     <pre class="ev__o">${esc(lineageText)}</pre>
   </div>
 
+  ${mcpRegistryBlock()}
+
   <div class="ev__c${dirty.length ? ' bad' : ''}">
     <div class="ev__n">규약 ${esc(proto)} · 통로가 깨끗한가</div>
     <div class="ev__m">알림(<code>notifications/initialized</code>)에는 답하지 않아야 하므로
@@ -567,6 +569,47 @@ function mcpPanel() {
       프로젝트를 좁힙니다. 붙이는 절차는 <code>docs/MCP-붙이는-법.md</code>.</div>
   </div>
 </section>`;
+}
+
+/**
+ * 붙어 있는 MCP 가 **어느 길에 서 있는지**를 화면에 낸다 (MCP 등록부).
+ *
+ * ★ 목록을 여기 적지 않는다 — `mcp/servers.js` 를 읽어 그린다. 두 벌이 되면
+ *   화면이 옛말을 하고, 그때는 「붙었는데 분류 안 된 서버」가 안 보인다.
+ *
+ * ★ 위반이 있으면 **빨갛게 낸다.** 조용히 지나가면 등록부가 깨진 줄 아무도 모른다.
+ */
+function mcpRegistryBlock() {
+  const S = require(path.join(HERE, '..', '..', 'mcp', 'servers.js'));
+  const M = require(path.join(HERE, '..', '..', 'tools', 'mcp-map.js'));
+  const reg = require(path.join(HERE, '..', '..', 'core', 'registry.js'));
+
+  const bad = S.check();
+  const lanes = S.byLane();
+
+  const blocks = Object.keys(lanes).filter(l => lanes[l].length).map((lane) => {
+    const rows = lanes[lane].map((x) => {
+      const pend = (x.agentsPending || []).length
+        ? ` · 병합 대기 ${x.agentsPending.join(', ')}` : '';
+      const who = (x.agents || []).length ? ' · ' + x.agents.join(', ') + pend : pend;
+      const blk = x.blockedBy ? ` · <b>${esc(x.blockedBy)}</b>` : '';
+      return `<div class="ev__m"><code>${esc(x.id)}</code> — ${esc(M.GRADE_LABEL[x.grade])}`
+        + ` · ${esc(M.STATUS_LABEL[x.status])}${esc(who)}${blk}</div>`;
+    }).join('');
+    return `<div class="ev__n">${esc(M.LANE_LABEL[lane])} — ${lanes[lane].length}개</div>${rows}`;
+  }).join('');
+
+  return `
+  <div class="ev__c${bad.length ? ' bad' : ''}">
+    <div class="ev__n">MCP 등록부 — 서버 ${S.SERVERS.length}개 · 규칙 위반 ${bad.length}건</div>
+    <div class="ev__m"><b>길을 안 밝힌 서버는 등록할 수 없습니다.</b> 「자료를 들여오는 길」과
+      「값을 바로 주는 길」을 가르는 것이 핵심입니다 — 파일은 이름·페이지가 출처로 남고,
+      값은 안 남습니다. <code>npm run mcp:map</code></div>
+    <div class="ev__m">이 갈래 Agent ${reg.list().length} · 배포 엔진 Agent ${S.ENGINE.agents} ·
+      커넥터 ${S.ENGINE.connectors} (${esc(S.ENGINE.note)})</div>
+    ${blocks}
+    ${bad.length ? `<pre class="ev__o">${esc(bad.join('\n'))}</pre>` : ''}
+  </div>`;
 }
 
 /**
