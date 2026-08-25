@@ -36,6 +36,7 @@ const kma = require('../connectors/kma');
 const kpx = require('../connectors/kpx');
 const reb = require('../connectors/reb');
 const law = require('../connectors/law');
+const kict = require('../connectors/kict');
 const g2b = require('../connectors/g2b');
 const rhino = require('../connectors/rhino');
 const kosis = require('../connectors/kosis');
@@ -494,6 +495,8 @@ async function main() {
   //   따로 있어야 돈다 (§4.2 의 「활용신청」과 같은 결이지만 기관이 다르다)
   console.log(`LAW_OC         : ${law.isAvailable() ? '설정됨 — 법령·조례 원문 (⚠ 실호출 미검증: 이 컨테이너는 law.go.kr 이 막혀 있다)' : '미설정 — 법정 한도 근거 조문 건너뜀 (한도가 사람 기억에 남는다)'}`);
   console.log('               ↳ **조례 한도는 조례에만 있다** — 시행령 상한을 조례 한도로 쓰면 그 문서는 틀린다');
+  // ★ 「미설정」과 「주소 미확정」을 갈라 찍는다 — 뭉뚱그리면 넣으신 키를 다시 넣으시게 된다 (M-40)
+  console.log(`KICT_API_KEY   : ${kict.status().text}`);
   console.log('               ↳ **납세증명·완납증명은 어떤 키로도 안 된다** (국세기본법 §81조의13) — 당사자에게 서류로 받는다');
   console.log(`KEPCO_BIGDATA  : ${kepco.isAvailable() ? '설정됨 (⚠ 응답 필드 미검증 — 등록부 D-54)' : '미설정 — 계통 여유 건너뜀 (수전용량이 계통에 있는지 확인 못 한다)'}`);
   console.log('               ↳ 변전소 **거리는 어느 키로도 안 나온다** — 좌표가 비식별 처리된다. 사전검토 회신을 사람이 넣는다');
