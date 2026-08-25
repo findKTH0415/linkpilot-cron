@@ -53,7 +53,8 @@ test('★★ 받았지만 못 읽은 자료를 화면이 말한다 (올려 보�
     + 'var t = setInterval(function () {'
     + '  var d = window.__lpDrove || {};'
     + '  out.step = d.step || null; out.ticks = d.ticks || 0;'
-    + '  out.hasTile = !!$$(".pw").filter(function (b) { return /파일업로드/.test(b.textContent); })[0];'
+    /* 2026-08-23 병합: 갈래 토글이 없어졌다. 파일업로드 칸이 늘 보인다 */
+    + '  out.hasTile = !!$$(".ways2__t").filter(function (b) { return /파일업로드/.test(b.textContent); })[0];'
     + '  out.hasDrop = !!$(".drop input");'
     + '  out.headings = $$(".sub__n").map(function (x) { return x.textContent; });'
     + '  out.rows = $$(".row__n").map(function (x) { return x.textContent; });'
@@ -96,7 +97,7 @@ test('★★ 받았지만 못 읽은 자료를 화면이 말한다 (올려 보�
   const r = JSON.parse(m[1].replace(/&quot;/g, '"').replace(/&amp;/g, '&'));
 
   assert.deepStrictEqual(r.err, [], '올리는 동안 예외가 났다');
-  assert.ok(r.hasTile, '「파일업로드」 갈래가 없다');
+  assert.ok(r.hasTile, '「파일업로드」 칸이 없다');
   assert.ok(r.hasDrop, '파일 고르기가 없다');
 
   // ① 번호 붙은 칸이 실제로 그려진다 — 사용자가 손으로 그려 알려 준 그 구분

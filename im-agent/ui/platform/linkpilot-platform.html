@@ -2152,6 +2152,13 @@ window.LINKPILOT_CONFIG = {
   'use strict';
 
   /**
+   * ★ **이 스크립트가 어느 판인가** 〈2026-08-23 · D-93 사고〉.
+   *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다. 화면이 자기
+   *   지문과 대 보고 다르면 「함수가 없다」로 죽기 전에 사람 말로 알린다.
+   */
+  var LP_BUILD = '664b0bf8';
+
+  /**
    * 확실한 인앱 서명만 넣는다. 애매한 것은 넣지 않는다 —
    * 못 잡으면 사용자가 불편한 정도지만, 잘못 잡으면 정상 사용자를 쫓아낸다.
    */
@@ -2381,7 +2388,8 @@ window.LINKPILOT_CONFIG = {
   }
   if (typeof document !== 'undefined') { try { guard(document); } catch (_) { /* 화면이 아닌 곳(테스트)에서는 조용히 */ } }
 
-  return { guard: guard, detect: detect, escapeRoute: escapeRoute, mount: mount, auto: auto,
+  return { BUILD: LP_BUILD,
+    guard: guard, detect: detect, escapeRoute: escapeRoute, mount: mount, auto: auto,
     injectCss: injectCss, CSS: CSS, APPS: APPS };
 }));
 

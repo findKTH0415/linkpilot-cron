@@ -38,6 +38,13 @@
   'use strict';
 
   /**
+   * ★ **이 스크립트가 어느 판인가** 〈2026-08-23 · D-93 사고〉.
+   *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다. 화면이 자기
+   *   지문과 대 보고 다르면 「함수가 없다」로 죽기 전에 사람 말로 알린다.
+   */
+  var LP_BUILD = '664b0bf8';
+
+  /**
    * 파일 하나를 base64 로 읽는다.
    *
    * ★ `data:...;base64,XXXX` 에서 **뒤쪽만** 쓴다. 앞의 머리말까지 보내면
@@ -221,5 +228,6 @@
     return s;
   }
 
-  return { readAll: readAll, readOne: readOne, send: send, tooBig: tooBig, summary: summary };
+  return { BUILD: LP_BUILD,
+    readAll: readAll, readOne: readOne, send: send, tooBig: tooBig, summary: summary };
 }));

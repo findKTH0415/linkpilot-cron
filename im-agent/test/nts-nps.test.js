@@ -301,10 +301,23 @@ test('★ 인원이 적은 것이 결함이 아니라는 말이 문서에 있다
 
 /* ── 공통 ───────────────────────────────────────────── */
 
-test('★ 쿼터 버킷이 data.go.kr 로 합쳐져 있다 — 같은 키다', () => {
-  // ★ 나누면 한도를 두 배로 쓰게 된다 (`g2b` 에서 실제로 그랬다)
-  assert.strictEqual(nts.PROVIDER, 'data.go.kr');
-  assert.strictEqual(nps.PROVIDER, 'data.go.kr');
+/**
+ * ★★★ **쿼터 통을 갈래로 나눴다** 〈2026-08-23 실측 · D-85〉.
+ *
+ *   앞 판의 이 검사는 「한도는 API 별이 아니라 **인증키 전체**에 걸린다」는 믿음
+ *   위에 서 있었다. **틀렸다.** data.go.kr 활용신청 화면이 「일일 트래픽」을
+ *   **상세기능(오퍼레이션)마다** 1,000 으로 적어 준다.
+ *
+ *   ★ 한 통으로 두면 계량기가 거짓말을 한다 — 우리가 「여유 있다」고 말하는 동안
+ *     상대는 이미 끊는다. 그리고 아홉 커넥터가 **한꺼번에** 막힌다.
+ *   ★ 그래서 `data.go.kr:<갈래>` 로 나눈다. 앞부분이 같으므로 기관 단위 설정
+ *     (`IM_AGENT_QUOTA_DATA_GO_KR`)은 그대로 먹는다.
+ */
+test('★★ 쿼터 통이 갈래로 나뉘어 있고, 둘이 서로를 막지 않는다', () => {
+  assert.strictEqual(nts.PROVIDER, 'data.go.kr:nts');
+  assert.strictEqual(nps.PROVIDER, 'data.go.kr:nps');
+  assert.notStrictEqual(nts.PROVIDER, nps.PROVIDER,
+    '같은 통이면 한쪽이 다 썼을 때 다른 쪽도 막힌다');
 });
 
 test('★ 키가 로그에 평문으로 남지 않는다 (§2)', async () => {

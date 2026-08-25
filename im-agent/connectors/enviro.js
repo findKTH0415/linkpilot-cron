@@ -41,7 +41,10 @@ const cache = require('./cache');
 const { normalize } = require('./xml');
 
 /** ★ 쿼터 버킷은 키 단위로 묶는다 — 한도는 API 별이 아니라 인증키 전체다 */
-const PROVIDER = 'data.go.kr';
+/* ★ 쿼터 통을 **갈래로 나눈다** 〈2026-08-23 · D-85〉. data.go.kr 은 상세기능마다
+   하루치를 세는데(개발계정 1,000), 앞 판은 아홉 커넥터가 `data.go.kr` 한 통을
+   같이 썼다 — 한 곳이 다 쓰면 나머지 여덟이 함께 막힌다. `cache.js` 참고. */
+const PROVIDER = 'data.go.kr:enviro';
 
 /** ⚠️ 미검증 — D-47 */
 const BASE = 'https://apis.data.go.kr/1480523';

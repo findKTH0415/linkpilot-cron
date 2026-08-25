@@ -29,7 +29,8 @@ test('★★ 갈래와 프로젝트를 기억해 다음에 이어서 연다', as
   const probe = '<div id="probe"></div><script>(function () {'
     + 'var out = { err: [] };'
     + 'window.onerror = function (m) { out.err.push(String(m)); };'
-    + 'var sel = function () { return document.querySelector(".wayin select"); };'
+    /* 2026-08-23: 고르기는 갈래 안(.wayin)이 아니라 1(.pickone) 에 있다 */
+    + 'var sel = function () { return document.querySelector(".pickone select"); };'
     + 'var tiles = function () { return [].slice.call(document.querySelectorAll(".pw")); };'
     + 'var onTile = function () { var t = tiles().filter(function (b) {'
     + '  return b.className.indexOf("on") > -1; })[0];'

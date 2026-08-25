@@ -19,6 +19,13 @@
 }(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
+  /**
+   * ★ **이 스크립트가 어느 판인가** 〈2026-08-23 · D-93 사고〉.
+   *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다. 화면이 자기
+   *   지문과 대 보고 다르면 「함수가 없다」로 죽기 전에 사람 말로 알린다.
+   */
+  var LP_BUILD = '664b0bf8';
+
   /** 화면에 놓는 순서. 사전의 CATEGORY 값과 같은 문자열을 쓴다 */
   var CATEGORY_ORDER = [
     'Project', 'Land', 'Building', 'Capacity', 'Investment',
@@ -340,8 +347,134 @@
     return out;
   }
 
+  /**
+   * ★★★ **자료를 정말 읽었는가** 〈2026-08-23 사장님: 「데이터를 정말 스캔했는지
+   *   모르겠다 알수 있는 방법이 좋을듯」〉.
+   *
+   *   지금까지 이 화면은 **빈 입력칸 목록**으로 시작했다. 자료를 읽어 값이
+   *   들어와 있어도 화면은 똑같이 생겼다 — 사람이 「읽긴 읽었나」를 가릴 방법이
+   *   없었다. 「스캔했습니다」라는 **말**만으로는 확인이 아니다.
+   *
+   *   ★ 그래서 **값 자체에서 증거를 만든다.** 별도 기록을 믿지 않는다 —
+   *     기록은 값과 갈릴 수 있지만, 값에 붙은 출처는 그 값의 출처다.
+   *
+   *   @param {object} values  key → {value, source, page, ...}
+   *   @param {string[]} [files] 올린 자료 이름 (읽혔는데 값이 안 나온 것을 가른다)
+   *   @returns {{total:number, bySource:Array, unusedFiles:string[], noSource:number}}
+   */
+  function readEvidence(values, files) {
+    var bucket = {};
+    var total = 0;
+    var noSource = 0;
+    Object.keys(values || {}).forEach(function (key) {
+      var e = values[key];
+      if (!e || e.value === '' || e.value === null || e.value === undefined) return;
+      total++;
+      var src = (e.source === undefined || e.source === null) ? '' : String(e.source).trim();
+      if (!src) { noSource++; return; }
+      if (!bucket[src]) bucket[src] = { source: src, count: 0, keys: [], pages: [] };
+      bucket[src].count++;
+      bucket[src].keys.push(key);
+      var pg = e.page;
+      if (pg !== '' && pg !== null && pg !== undefined
+        && bucket[src].pages.indexOf(String(pg)) === -1) bucket[src].pages.push(String(pg));
+    });
+    var bySource = Object.keys(bucket).map(function (k) { return bucket[k]; })
+      .sort(function (a, b) { return b.count - a.count || (a.source < b.source ? -1 : 1); });
+
+    /* ★ 올렸는데 **값이 하나도 안 나온 자료**를 따로 센다. 이것이 없으면
+     *   「10개 올렸는데 값 3개」일 때 어느 7개가 헛돌았는지 알 수 없다 */
+    var used = {};
+    bySource.forEach(function (b) { used[b.source] = true; });
+    var unusedFiles = (files || []).filter(function (f) { return f && !used[f]; });
+
+    /**
+     * ★★★ **「자료에서 읽었다」와 「우리가 만들었다」를 가른다**
+     *   〈2026-08-25 사장님: 「스캔, 읽는 흉내만 내지 실제 판독을 하지않음 거짓」〉.
+     *
+     *   앞 판은 값이 있으면 전부 「자료에서 읽었습니다」로 셌다. 그런데 사장님
+     *   화면의 셋은 **전부 `user_request`** 였다 — 요청문에 쓰신 말이지
+     *   문서에서 읽은 것이 아니다. 자료를 한 글자도 못 읽은 상태에서
+     *   **「자료에서 3개를 읽었습니다」**라고 적고 있었다.
+     *
+     * ★ 이 저장소의 존재 이유가 그 구분이다 — **사용자가 말했다는 것은 문서로
+     *   확인됐다는 뜻이 아니다** (`intake.html` 머리 주석). 화면이 그걸 뭉갰다.
+     *
+     * ★ 그래서 둘로 센다.
+     *   - **수집자료** — 올린 문서에서 읽은 값 (`origin === 'document'`)
+     *   - **자체분석자료** — 요청문·공공데이터·계산으로 만든 값 (나머지)
+     * ★ `origin` 을 안 주는 옛 서버가 있을 수 있다. 그때는 **모른다고 둔다** —
+     *   모르는 것을 「자료에서 읽었다」로 세는 것이 지금 잡은 그 잘못이다.
+     */
+    var collected = 0;
+    var analyzed = 0;
+    var unknownOrigin = 0;
+    Object.keys(values || {}).forEach(function (key) {
+      var e = values[key];
+      if (!e || e.value === '' || e.value === null || e.value === undefined) return;
+      var o = e.origin;
+      if (o === 'document') collected++;
+      else if (o) analyzed++;
+      else unknownOrigin++;
+    });
+
+    return {
+      total: total, bySource: bySource, unusedFiles: unusedFiles, noSource: noSource,
+      collected: collected, analyzed: analyzed, unknownOrigin: unknownOrigin,
+    };
+  }
+
+  /**
+   * 이 값이 **어디서 왔는가** — 화면이 줄마다 한 마디로 적는다.
+   *
+   * ★ 「자동」과 「자료에서 읽음」을 갈라야 한다. 둘 다 사람이 안 친 값이지만
+   *   **자동은 규칙이고 읽은 값은 증거다.** 뭉뚱그리면 규칙으로 채운 값을
+   *   자료에 있는 값으로 오해한다.
+   */
+  /**
+   * 줄머리에 붙는 한 마디. **채움 경로 이름(`fieldplan.LABEL`)과는 다른 것**이다 —
+   * 저쪽은 「무엇으로 채울 작정인가」이고 이쪽은 「지금 이 값이 어디서 왔나」다.
+   * 낱말이 겹쳐도 뜻이 다르므로 한 곳에서만 적는다.
+   */
+  var ORIGIN_LABEL = {
+    read: '자료', auto: '자동', typed: '직접 입력',
+    empty: '자료에 없음', computed: '계산',
+  };
+
+  function originOf(key, entry, plan, computedKeys) {
+    if (isComputed(key, computedKeys)) return { kind: 'computed', label: ORIGIN_LABEL.computed };
+    var e = entry || {};
+    var has = e.value !== '' && e.value !== null && e.value !== undefined;
+    if (!has) return { kind: 'empty', label: '없음' };
+    var src = (e.source === undefined || e.source === null) ? '' : String(e.source).trim();
+    if (src) return { kind: 'read', label: src, page: (e.page === '' || e.page === undefined) ? null : e.page };
+    if (isAuto(key, plan)) return { kind: 'auto', label: (plan[key] && plan[key].label) || '자동' };
+    return { kind: 'typed', label: '직접 입력' };
+  }
+
+  /**
+   * 읽은 값 / 안 나온 값으로 가른다. **안 나온 것을 감추지 않는다** —
+   * 감추면 「다 찼다」로 보이고, 빈 채로 보고서가 나간다.
+   */
+  function splitByOrigin(keys, values, plan, computedKeys) {
+    var read = [], auto = [], typed = [], empty = [];
+    (keys || []).forEach(function (key) {
+      var o = originOf(key, (values || {})[key], plan, computedKeys);
+      if (o.kind === 'read') read.push(key);
+      else if (o.kind === 'auto') auto.push(key);
+      else if (o.kind === 'typed') typed.push(key);
+      else if (o.kind === 'empty') empty.push(key);
+    });
+    return { read: read, auto: auto, typed: typed, empty: empty };
+  }
+
   return {
+    BUILD: LP_BUILD,
     CATEGORY_ORDER: CATEGORY_ORDER,
+    readEvidence: readEvidence,
+    ORIGIN_LABEL: ORIGIN_LABEL,
+    originOf: originOf,
+    splitByOrigin: splitByOrigin,
     DOC_REQUIRES: DOC_REQUIRES,
     TO_EOKWON: TO_EOKWON,
     groupByCategory: groupByCategory,

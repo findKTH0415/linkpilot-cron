@@ -1,19 +1,83 @@
 name: deploy-nas
 
-# NAS 배포 — 화면 파일을 Synology 웹 루트로 올린다.
+# NAS 배포 — 화면 16개를 `im-flow` 로, 엔진을 `im-agent` 로 올리고,
+# **닿았는지 재고 끝난다.** `main` 에 닿으면 자동으로 돈다 (D-88).
+#
+# ★★★ **쓰기를 되살렸다** 〈2026-08-23 사장님 지시 — 「앞으로는 네가 배포해」〉.
+#   전날 D-84 로 지웠던 것을 되돌렸다. **지웠던 이유는 아래에 그대로 남긴다** —
+#   되살렸다고 그 이유가 사라지지는 않는다.
+#
+#   ★ 그래서 **쓰는 이는 여전히 하나여야 한다.** 이제 이 워크플로가 그 하나이고,
+#     `deploy/screens.sh`(화면) · `deploy/nas.sh`(엔진)는 **이 길이 못 돌 때의
+#     대비**다. 둘을 같은 날 같이 쓰지 않는다 — 그러면 D-84 가 말한 상태로
+#     그대로 돌아간다.
+#     ★★ 자동으로 돌게 된 뒤로는 **같이 쓸 일이 훨씬 잦아졌다** — 맥에서 손으로
+#       올리는 사이에 `main` 푸시가 들어오면 둘이 겹친다. 급하면 워크플로를
+#       먼저 보고, 그것이 못 돌 때만 손으로 간다.
+#
+# 〈아래는 D-84 로 지웠을 때의 기록 — 왜 한때 없앴는지〉
+#
+# ★★★ ~~쓰기(scp)를 지웠다~~ 〈2026-08-22 사용자 결정 · D-84〉.
+#
+#   `/volume1/web/im-flow` 에 쓰는 길이 둘이었다 — 본체의 `deploy/nas.sh` 와
+#   이 워크플로. **쓰는 이가 둘이면 「올렸는데 다르다」의 원인을 못 가른다:**
+#   재는 그 순간에도 다른 길이 덮을 수 있어서, 「다른 이가 덮었다」를 지울
+#   방법이 영영 없다. 실제로 그 상태에서 「웹서버 캐시」로 잘못 짚었다 (M-25).
+#
+#   ★ 남겨 둔 명분은 「사장님 맥이 꺼졌을 때의 대비」였는데, 이 길은 **화면만**
+#     올린다. 엔진(`report-api.cjs` 등)은 못 올리므로 판이 어긋난 **반쪽 배포**가
+#     된다. 대비로서 값이 낮아 지웠다.
+#
+#   **배포는 본체 게이트 하나로 간다** — 사장님 맥에서 `deploy/nas.sh`.
+#   이 워크플로가 남아서 하는 일은 **닿았는지 재는 것**뿐이다.
+#
+# 이름을 `deploy-nas` 로 둔 이유: 바꾸면 지금까지의 실행 기록이 끊긴다.
 #
 # 왜 Actions 인가: NAS 는 Tailscale 사설망에 있어 외부에서 직접 닿지 않고,
 # 접속정보는 CLAUDE.md §2 에 따라 코드·로그에 남길 수 없다.
 # 러너가 tailnet 에 임시로 붙고, 자격증명은 GitHub Secrets 에만 둔다.
 #
-# ★ 자동 실행하지 않는다 (workflow_dispatch 전용).
-#   운영 중인 화면을 아무도 안 보는 사이에 덮어쓰지 않기 위해서다.
-#   충분히 검증된 뒤 push 트리거로 바꾸는 것은 사람이 판단한다.
+# ★★★ **자동으로 돈다** 〈2026-08-23 사장님 지시 · D-88 — 「실시간 자동배포가 되도록」〉.
+#
+#   앞 판은 `workflow_dispatch` 전용이었다. 이유는 「아무도 안 보는 사이에 운영
+#   화면을 덮지 않기 위해」였는데, 실제로 일어난 일은 그 반대였다 —
+#   **눌러야 도니까 안 눌렀고, 그 사이 NAS 가 조용히 옛 판으로 남았다.**
+#   D-86 이 그 이야기다(화면이 옛것이었던 이유는 캐시도 다른 폴더도 아니라
+#   **아직 안 올라간 것**이었다).
+#
+#   ★ 그래서 **`main` 에 닿는 순간 올린다.** 작업선(`claude/**`)에서는 안 돈다 —
+#     PR 이 병합되는 그 순간이 「올려도 되는 순간」이다. 검토를 거치지 않은
+#     푸시가 곧바로 운영에 닿는 일은 만들지 않는다.
+#   ★ 앞 판이 걱정한 것은 그대로 지킨다: `guard`(교차검증 전체)가 초록이 아니면
+#     한 파일도 안 올라간다. **자동이 된 것이지 검사가 빠진 것이 아니다.**
+#   ★ 손으로 띄우는 길(`workflow_dispatch`)은 그대로 둔다. 그쪽 기본값은
+#     여전히 **dry run** 이다 — 사람이 누를 때는 「재기만」이 안전한 기본이다.
+#
+# ★★★ **엔진도 함께 올린다** 〈2026-08-23 · D-88〉.
+#   앞 판은 화면 열여섯만 올렸다. 엔진(`im-agent/**`)은 **아무도 안 올렸고**,
+#   그래서 화면은 새 판인데 서버가 옛 라우팅 표를 들고 있는 상태가 났다
+#   (D-87 · `POST /projects` 404). 화면만 자동으로 올리면 그 어긋남을 **더 빨리
+#   만들 뿐**이다.
+#   ★ 엔진은 잘못되면 **서비스가 멈춘다.** 그래서 `deploy/engine.sh` 가
+#     되돌릴 자리를 먼저 만들고, 안 살아나면 **스스로 되돌린다.**
+#   ★ 엔진 파일이 안 바뀐 날에는 **재시작하지 않는다** — 화면만 고친 커밋마다
+#     엔진을 내렸다 올리면, 그 몇 초에 걸린 보고서 생성이 죽는다.
 #
 # ★ linkpilot-platform.html 은 배포 목록에 넣지 않는다.
 #   실제 앱 본체 파일이고, 이 저장소에는 그 원본이 없다. 덮어쓰면 되돌릴 수 없다.
 
 on:
+  # ★★★ **여기가 「실시간」이다.** `main` 에 닿으면 바로 돈다.
+  #   ★ `paths` 로 좁힌다 — 문서만 고친 커밋에 NAS 를 건드릴 이유가 없다.
+  #     대신 **좁히다가 빠뜨리면 조용히 안 올라가므로**, 올릴 것이 들어 있는
+  #     자리는 전부 적는다: 화면·엔진(`im-agent/**`), 올리는 도구(`deploy/**`),
+  #     그리고 이 파일 자신.
+  push:
+    branches: ['main']
+    paths:
+      - 'im-agent/**'
+      - 'deploy/**'
+      - '.github/workflows/deploy-nas.yml'
   workflow_dispatch:
     inputs:
       files:
@@ -54,43 +118,178 @@ on:
         description: '올리지 않는다 — Secret 이 들어왔는지만 잰다 (NAS 에 손대지 않음)'
         type: boolean
         default: true
-      # ★★ 〈2026-08-21 추가〉 앞 판은 「재기」와 「올리기」 둘뿐이었다. 그래서
-      #   **열쇠가 통하는지 확인하는 첫 방법이 곧 운영 화면을 덮는 것**이었다 —
-      #   dry run 에서 고친 것과 똑같은 잘못이 한 단 아래에 또 있었다.
-      #   이 판은 tailnet 에 붙고 ssh 로 `echo ok` 까지만 한다. **읽기만 한다.**
-      #   넷(TS_AUTHKEY · HOST · USER · KEY)이 전부 맞아야 통과하므로,
-      #   여기가 초록이면 실제 배포도 된다.
-      probe:
-        description: '닿는지만 확인한다 — tailnet + ssh 까지 가고 올리지는 않는다 (dry_run 을 꺼야 뜻이 있다)'
-        type: boolean
-        # ★★★ **기본이 「재기」다** 〈2026-08-22 · 본체 회신〉. 앞 판 기본은 `false`
-        #   여서, dry_run 만 끄면 곧장 **덮어쓰기**로 갔다. 아래 allow_write 와
-        #   함께 「손대지 않고 누르면 아무것도 안 바뀐다」를 두 겹으로 만든다.
-        default: true
-      # ★★★ **`im-flow` 에 쓰는 길은 하나뿐이다** 〈2026-08-22 · 본체 회신 · D-84〉.
-      #
-      #   본체(엔진 세션)가 `deploy/nas.sh` 로 같은 폴더에 배포한다. 이 워크플로가
-      #   같은 폴더에 또 쓰면 **쓰는 이가 둘**이 된다. 그러면 「저장소 = 디스크」를
-      #   재는 그 순간에도 옆에서 덮일 수 있고, 결과는 **원인 없이 빨간 배포**다.
-      #   2026-08-22 에 실제로 그 상태에서 「웹서버 캐시」로 잘못 짚었다 (M-25).
-      #
-      #   ★ 그래서 이 워크플로는 **재기만 한다.** 올리려면 이 칸을 켜야 하고,
-      #     켜는 것은 **본체와 말을 맞춘 뒤**의 일이다. 끄고 눌러도 탐침은 돈다.
-      allow_write:
-        description: '★ NAS 에 실제로 쓴다 (기본 꺼짐 — im-flow 배포는 본체 게이트가 맡는다. 켜기 전에 본체와 맞춘다)'
-        type: boolean
-        default: false
+      engine:
+        # ★★ **넷째 손잡이는 「쓸까 말까」가 아니라 「무엇까지」다** 〈2026-08-23 · D-88〉.
+        #   앞 판은 입력이 셋이었고, 검사가 「넷째가 생기면 대개 쓸까 말까를 묻는
+        #   손잡이다」라며 막고 있었다. **이것은 그 종류가 아니다** — 쓸지 말지는
+        #   `dry_run` 하나가 그대로 쥔다.
+        #   ★ `auto` 는 **바뀐 것을 보고 정한다**: `im-agent/` 아래에서
+        #     `ui/platform/` 밖이 하나라도 바뀌었으면 엔진을 올린다.
+        #   ★ 손으로 띄울 때는 「무엇이 바뀌었는지」가 없다. 그때 `auto` 는
+        #     **안 올린다** — 사람이 누른 김에 서비스가 재시작되는 일은 없어야 한다.
+        description: '엔진(im-agent)도 올릴까 — auto 는 바뀐 것을 보고 정한다'
+        type: choice
+        options: ['auto', 'yes', 'no']
+        default: 'auto'
 
 concurrency:
   group: deploy-nas
   cancel-in-progress: false
 
 jobs:
-  deploy:
+  # ★★★ **무엇을 어디에 올릴지 한 곳에서 정한다** 〈2026-08-23 · D-88〉.
+  #
+  #   자동으로 돌게 되면서 문제가 하나 생겼다: `push` 로 들어오면
+  #   **`inputs.*` 가 통째로 빈 값**이다. 아래 단계들은 전부 `inputs.files` 를
+  #   읽고 있었으므로, 그대로 두면 **빈 목록을 빈 자리에 올리는** 판이 된다 —
+  #   그리고 그것은 오류를 안 낸다. 초록으로 끝나고 아무것도 안 바뀐다.
+  #
+  #   ★ 그래서 **여기서 한 번 정하고 출력으로 넘긴다.** 아래에서 `inputs.` 를
+  #     직접 읽는 자리가 남아 있으면 그 자리만 push 에서 빈다.
+  #   ★ 목록은 **손으로 적지 않는다.** `build-embed.js` 의 `required()` 가
+  #     단일 출처다 — 화면이 하나 늘면 여기도 저절로 는다.
+  plan:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
+    outputs:
+      files: ${{ steps.p.outputs.files }}
+      dest: ${{ steps.p.outputs.dest }}
+      dry_run: ${{ steps.p.outputs.dry_run }}
+      engine: ${{ steps.p.outputs.engine }}
+    steps:
+      # ★ `fetch-depth: 0` 이 필요하다. 기본은 커밋 하나만 받아 와서
+      #   `git diff <이전> <지금>` 이 「그런 커밋 없음」으로 죽는다 — 그러면
+      #   엔진을 올릴지 말지를 **못 재고**, 못 잰 채로 넘어가게 된다
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Decide what to deploy
+        id: p
+        env:
+          EV: ${{ github.event_name }}
+          IN_FILES: ${{ inputs.files }}
+          IN_DEST: ${{ inputs.dest }}
+          IN_DRY: ${{ inputs.dry_run }}
+          IN_ENGINE: ${{ inputs.engine }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          set -u
+          set +e   # grep 이 「못 찾음」으로 1 을 돌려주는 자리가 있다 (bash -e 를 끈다)
+
+          if [ "$EV" = "workflow_dispatch" ]; then
+            FILES="$IN_FILES"; DEST="$IN_DEST"; DRY="$IN_DRY"; WANT="$IN_ENGINE"
+            echo "손으로 띄운 판 — 입력을 그대로 쓴다"
+          else
+            # ★★ 화면 묶음은 `required()` 한 곳에서 나온다 (M-22 — 하나만
+            #   올리면 짝이 깨져 **오류 없이 빈 화면**이 뜬다)
+            FILES=$(node -e "process.stdout.write(require('./im-agent/ui/platform/build-embed.js').required().map(function(f){return 'im-agent/ui/platform/'+f}).join(' '))")
+            DEST='/volume1/web/im-flow'
+            DRY=false
+            WANT=auto
+            echo "자동으로 돈 판 — 화면 묶음을 required() 에서 받았다"
+          fi
+
+          if [ -z "$FILES" ]; then
+            echo "::error::올릴 목록이 비었다 — 빈 목록으로 올리면 초록인데 아무것도 안 바뀐다"
+            exit 1
+          fi
+
+          # ── 엔진을 올릴까 ────────────────────────────────────────────────
+          case "$WANT" in
+            yes) ENG=true;  WHY='손으로 yes 를 골랐다' ;;
+            no)  ENG=false; WHY='손으로 no 를 골랐다' ;;
+            *)
+              if [ "$EV" != "push" ]; then
+                ENG=false; WHY='손으로 띄운 판이라 바뀐 것을 알 수 없다 — 화면만 올린다'
+              elif [ -z "${BEFORE:-}" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+                # ★ 못 쟀으면 **올린다.** 조용히 건너뛰면 「올렸는데 서버는 옛
+                #   판」이 되고, 그 상태는 화면에서 404 로만 보인다 (D-87)
+                ENG=true; WHY='앞 커밋을 모른다(첫 푸시) — 못 쟀으므로 올린다'
+              else
+                CH=$(git diff --name-only "$BEFORE" "$GITHUB_SHA" 2>/dev/null)
+                if [ -z "$CH" ]; then
+                  ENG=true; WHY='바뀐 목록을 못 읽었다 — 못 쟀으므로 올린다'
+                elif printf '%s\n' "$CH" | grep '^im-agent/' | grep -qv '^im-agent/ui/platform/'; then
+                  ENG=true; WHY='화면 폴더 밖의 엔진 파일이 바뀌었다'
+                else
+                  ENG=false; WHY='바뀐 것이 화면뿐이다 — 엔진을 내렸다 올리지 않는다'
+                fi
+              fi ;;
+          esac
+
+          N=$(printf '%s' "$FILES" | wc -w | tr -d ' ')
+          echo "files=$FILES"   >> "$GITHUB_OUTPUT"
+          echo "dest=$DEST"     >> "$GITHUB_OUTPUT"
+          echo "dry_run=$DRY"   >> "$GITHUB_OUTPUT"
+          echo "engine=$ENG"    >> "$GITHUB_OUTPUT"
+          {
+            echo "### 무엇을 올리나"
+            echo ""
+            echo "- 화면 **${N}개** → \`${DEST}\`"
+            echo "- 엔진(im-agent) — **$([ "$ENG" = true ] && echo '올린다' || echo '안 올린다')** · ${WHY}"
+            echo "- dry run — \`${DRY}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "화면 ${N}개 → ${DEST} · 엔진 ${ENG} (${WHY}) · dry ${DRY}"
+
+  # ★★★ **교차검증을 통과한 것만 내보낸다** 〈2026-08-23 사장님 지시 · CLAUDE.md §7〉.
+  #
+  #   지금까지 이것을 **사람이 기억해서** 했다. 그래서 잊었다 — 하루에 두 번,
+  #   검사가 빨간 채로 밀었다. 기억에 기대는 규칙은 바쁠 때 가장 먼저 빠진다.
+  #
+  #   ★ 그래서 **구조가 막는다.** 이 판이 초록이 아니면 `deploy` 는 아예 시작하지
+  #     않는다(`needs`). dry run 이어도 돈다 — 「안 올릴 거니까 건너뛰자」가 곧
+  #     「빨간 판으로 올리자」로 이어진다.
+  #   ★ 이 판이 재는 것은 **배포될 그 커밋**이다. 내 손의 결과가 아니라
+  #     러너가 다시 돌린 결과라야 뜻이 있다.
+  guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      IM_AGENT_OFFLINE: '1'
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      # 한글 글꼴이 없으면 브라우저가 **말없이 다른 글꼴로** 그린다 (D-52)
+      - name: Install Korean fonts (D-52)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-cjk
+
+      # ★ **`npm test` 를 쓴다 — 목록을 여기 옮겨 적지 않는다.** 손으로 적으면
+      #   테스트 폴더가 하나 늘어난 날 이 판만 옛 목록을 돈다. 실제로 그럴 뻔했다:
+      #   `test/alert.test.js`(실패 알림 경로)가 `im-agent/test/*` 밖에 있다 —
+      #   하필 **조용히 죽지 않는지를 재는 검사**가 빠질 자리였다 (§2).
+      - name: Run tests
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee "${RUNNER_TEMP}/tap.txt"
+
+      - name: 실패한 것만 다시 (원인이 로그에 묻히지 않게)
+        if: failure()
+        run: |
+          echo "───────── 실패한 테스트 ─────────"
+          grep -n '^not ok' "${RUNNER_TEMP}/tap.txt" || echo "(not ok 줄이 없다 — 테스트 밖에서 죽었다)"
+
+      # ★★ **산출물이 소스와 갈리지 않았는지** 본다. 화면 파일을 고치고 지문을
+      #   다시 안 찍으면, 배포는 새 파일을 올리는데 **화면은 옛 판을 말한다** —
+      #   그러면 「반영이 안 된다」를 지문으로 가릴 수가 없어진다 (M-25).
+      - name: Check build stamp
+        run: npm run im:stamp -- --check
+
+  deploy:
+    needs: [plan, guard]
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      # ★ 라우트 점검(`verify:nas`)이 node 로 돈다. 없으면 그 단계만 조용히
+      #   죽는데, 하필 **조용히 죽으면 안 되는** 단계다
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
       # ★★ **dry run 에서도 이 단계는 돈다** 〈2026-08-21〉. 앞 판은 여기에
       #   `if: !inputs.dry_run` 이 붙어 있어서, **안전한 판으로는 열쇠가
@@ -102,7 +301,7 @@ jobs:
       - name: Check secrets
         id: ts
         env:
-          DRY: ${{ inputs.dry_run }}
+          DRY: ${{ needs.plan.outputs.dry_run }}
           OAUTH_ID: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           OAUTH_SEC: ${{ secrets.TS_OAUTH_SECRET }}
           AUTHKEY: ${{ secrets.TS_AUTHKEY }}
@@ -128,6 +327,17 @@ jobs:
           say NAS_HOST  NAS_SSH_HOST
           say NAS_USER  NAS_SSH_USER
           say NAS_KEY   NAS_SSH_KEY
+
+          # ★★★ **잔소리를 지웠다** 〈2026-08-24 사장님 지시 · D-99〉.
+          #
+          #   여기서 SOLAPI 넷과 LP_BASE 둘을 「없음」으로 적고 있었다. 그런데
+          #   SOLAPI 는 통째로 지웠고(위 alert 작업), LP_BASE 는 **안 넣기로**
+          #   하셨다. 안 넣기로 한 것을 배포마다 없다고 적으면 그건 재는 것이
+          #   아니라 **잔소리**다 — 그리고 잔소리가 쌓이면 진짜 경고도 안 보인다.
+          #
+          # ★ LP_BASE 를 **쓰는 코드는 남겼다.** 값이 들어오는 날 그대로 돈다.
+          #   지우는 것은 언제든 되지만 되살리는 것은 비싸다 (M-25 의 진단이
+          #   거기 걸려 있다).
 
           # ★ OAuth 는 **둘 다** 있어야 한다. ID 만 보고 고르면 붙는 단계까지
           #   가서야 죽고, 그 오류는 「열쇠가 틀렸다」와 구분되지 않는다
@@ -176,7 +386,7 @@ jobs:
       # 배포 대상을 먼저 검증한다. 경로 조작·금지 파일을 여기서 막는다.
       - name: Check files
         env:
-          FILES: ${{ inputs.files }}
+          FILES: ${{ needs.plan.outputs.files }}
         run: |
           set -euo pipefail
           for f in $FILES; do
@@ -224,7 +434,7 @@ jobs:
       #   초록으로 계속 간다 — 그러면 다음 단계에서 「연결 안 됨」이 아니라
       #   엉뚱한 오류로 죽는다. 여기서 먼저 잡는다
       - name: Verify tailnet
-        if: ${{ !inputs.dry_run }}
+        if: ${{ needs.plan.outputs.dry_run != 'true' }}
         run: |
           set -euo pipefail
           tailscale status --json >/dev/null 2>&1 \
@@ -235,7 +445,7 @@ jobs:
       #   여기서 `echo ok` 까지 해 두면 실패했을 때 원인이 하나로 좁혀진다 —
       #   「붙었는데 못 올렸다」와 「애초에 못 붙었다」가 섞이지 않는다.
       - name: Set up ssh
-        if: ${{ !inputs.dry_run }}
+        if: ${{ needs.plan.outputs.dry_run != 'true' }}
         env:
           NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
           NAS_USER: ${{ secrets.NAS_SSH_USER }}
@@ -246,12 +456,30 @@ jobs:
           printf '%s\n' "$NAS_KEY" > ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
           # 호스트키를 미리 받아둔다. StrictHostKeyChecking 을 끄지 않는다
-          ssh-keyscan -H "$NAS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          #
+          # ★★★ **`|| { ... }` 를 반드시 붙인다** 〈2026-08-23 · 실제로 당했다〉.
+          #   앞 판은 `ssh-keyscan … 2>/dev/null` 한 줄이었다. NAS 가 안 켜져
+          #   있으면 keyscan 이 실패하고 **`set -e` 가 그 자리에서 스크립트를
+          #   죽인다** — 아래 친절한 안내는 **한 글자도 안 나온다.**
+          #   로그에 남는 것은 `Process completed with exit code 1` 뿐이었다.
+          #   ★ 잘 적어 둔 안내가 **닿지 않는 자리에** 있었던 것이다.
+          if ! ssh-keyscan -H "$NAS_HOST" >> ~/.ssh/known_hosts 2>/dev/null; then
+            echo "::error::NAS 의 호스트키를 못 받았다 — **기계가 지금 안 붙는다.**"
+            echo "  ① NAS 가 켜져 있는지 (절전으로 잠들면 tailnet 에서도 사라진다)"
+            echo "  ② NAS 의 Tailscale 이 연결 상태인지 (제어판 → 패키지 센터)"
+            echo "  ③ NAS_SSH_HOST 가 **tailnet 주소**인지 (사무실 안 주소·DDNS 는 안 된다)"
+            echo "  ※ 배포는 여기서 멈췄다 — **NAS 는 아무것도 안 건드렸다.**"
+            exit 1
+          fi
 
           # ★ 읽기만 하는 확인. 여기서 죽으면 **아무것도 안 건드린 상태**다
           ssh -o BatchMode=yes -o ConnectTimeout=20 -i ~/.ssh/id_deploy \
             "$NAS_USER@$NAS_HOST" 'echo ok' >/dev/null || {
-            echo "::error::NAS 에 ssh 로 못 붙었다 — NAS_SSH_HOST 가 tailnet 주소인지(사무실 안 주소·DDNS 는 안 된다), 공개키가 NAS 에 들어갔는지, ~/.ssh 권한이 700/600 인지 본다"
+            echo "::error::NAS 에 ssh 로 못 붙었다 — 호스트키는 받았으니 **기계는 켜져 있다.**"
+            echo "  ① 공개키가 NAS 의 authorized_keys 에 들어갔는지"
+            echo "  ② NAS 쪽 ~/.ssh 권한이 700, authorized_keys 가 600 인지"
+            echo "  ③ NAS_SSH_USER 가 맞는지"
+            echo "  ※ 배포는 여기서 멈췄다 — **NAS 는 아무것도 안 건드렸다.**"
             exit 1
           }
           echo "NAS ssh 연결 확인"
@@ -266,9 +494,9 @@ jobs:
       #   개만 올라간 반쯤 된 상태**로 멈춘다 — 그 상태가 제일 나쁘다.
       #   여기서 먼저 재고, 안 되면 **무엇을 봐야 하는지 말하고** 멈춘다.
       - name: Check destination
-        if: ${{ !inputs.dry_run }}
+        if: ${{ needs.plan.outputs.dry_run != 'true' }}
         env:
-          DEST: ${{ inputs.dest }}
+          DEST: ${{ needs.plan.outputs.dest }}
           NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
           NAS_USER: ${{ secrets.NAS_SSH_USER }}
         run: |
@@ -300,10 +528,10 @@ jobs:
       #   ★ 포트를 모른다. 흔한 것부터 차례로 두드리고, **어디서 답이 왔는지**를
       #     함께 적는다 — 「안 된다」만 남기면 다음 사람이 또 처음부터 찾는다.
       - name: Check serving
-        if: ${{ !inputs.dry_run && inputs.probe }}
+        if: ${{ needs.plan.outputs.dry_run != 'true' }}
         env:
           NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
-          DEST: ${{ inputs.dest }}
+          DEST: ${{ needs.plan.outputs.dest }}
         run: |
           # ★★ **`set +e` 를 반드시 켠다** 〈2026-08-21 · 여기서 한 번 죽었다〉.
           #   GitHub 의 기본 셸은 `bash -e {0}` 다 — 즉 **`-e` 가 이미 켜진 채로**
@@ -363,7 +591,7 @@ jobs:
       #   ★ 파일을 못 찾는 것도 **답**이다. 「엔진 루트가 다른 곳이다」를 뜻하므로
       #     조용히 넘기지 않고 무엇을 봐야 하는지 적는다.
       - name: Check upload body limit
-        if: ${{ !inputs.dry_run && inputs.probe }}
+        if: ${{ needs.plan.outputs.dry_run != 'true' }}
         env:
           NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
           NAS_USER: ${{ secrets.NAS_SSH_USER }}
@@ -428,7 +656,7 @@ jobs:
       #   ★ 8181(엔진 직행)과 80(앞단 경유)을 **둘 다** 잰다. 둘이 갈리면
       #     범인이 앞단이라는 것이 그 자리에서 드러난다.
       - name: Probe body size ceiling
-        if: ${{ !inputs.dry_run && inputs.probe }}
+        if: ${{ needs.plan.outputs.dry_run != 'true' }}
         env:
           NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
         run: |
@@ -467,103 +695,563 @@ jobs:
             done
           done
 
+      # ★★★ **이 워크플로가 하는 일의 전부다** 〈2026-08-22 · D-84〉.
+      #
+      #   쓰기를 지웠으므로 **여기가 유일한 판정**이다. 그래서 실패를 삼키지
+      #   않는다 — 앞 판은 `|| true` 가 붙어 있었다. 올리는 단계가 뒤에 있을
+      #   때는 그것으로 충분했지만, 지금은 **삼키면 이 워크플로가 아무 말도
+      #   안 하는 것**이 된다.
+      #
+      #   ★ 재는 목록을 `files` 에서 받는다. 앞 판은 스크립트 기본값 넷만 쟀다.
+      #     화면 열여섯이 서로를 부르므로 **하나만 옛것이어도 빈 화면**이 뜨는데,
+      #     넷만 재면 그 하나가 나머지 열둘 중에 있을 때 초록으로 지나간다 (M-22).
+      # ★★★ **여기는 「올리기 전」이다 — 재기만 한다** 〈2026-08-23 · run #44 에서 잡혔다〉.
+      #
+      #   앞 판은 올린 뒤와 **똑같은 잣대**로 쟀다. 그래서 「저장소 ≠ 디스크」를
+      #   치명으로 보고 배포를 세웠는데, 올리기 **전에** 그 둘이 다른 것은
+      #   고장이 아니라 **올리는 이유 그 자체**다.
+      #   → **바꿀 것이 있는 날에만 배포가 막히는** 장치가 되어 있었다.
+      #     실제로 run #44 는 16개 중 4개에서 죽고 Upload 를 건너뛰었다.
+      #
+      #   ★ 잣대는 자리에 따라 다르다. **올린 뒤**(`Verify deployed`)에는 그대로 치명이다.
       - name: Check served build
-        if: ${{ !inputs.dry_run && inputs.probe }}
+        if: ${{ needs.plan.outputs.dry_run != 'true' }}
         env:
+          LP_BEFORE: '1'
           NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
           NAS_USER: ${{ secrets.NAS_SSH_USER }}
-          DEST: ${{ inputs.dest }}
-        # ★ 배포 뒤 검사와 **같은 스크립트**를 쓴다. 두 벌로 두면 한쪽만 고쳐지고,
-        #   그때 「탐침은 초록인데 배포는 빨갛다」가 되어 어느 쪽을 믿을지 모른다
-        run: bash deploy/verify-served.sh "$NAS_HOST" "$NAS_USER" "$DEST" || true
-
-      - name: Probe summary
-        if: ${{ !inputs.dry_run && inputs.probe }}
+          DEST: ${{ needs.plan.outputs.dest }}
+          FILES: ${{ needs.plan.outputs.files }}
         run: |
-          echo "::notice::닿는 것까지 확인했다 — **올리지 않았다.** 바로 위 「Check served build」 의 세 지문(저장소·디스크·HTTP)이 같은지 먼저 본다. 다르면 새로고침으로는 안 고쳐진다."
+          set -uo pipefail
+          # 스크립트는 **파일 이름**을 받는다 (경로는 저장소 쪽에서 붙인다)
+          NAMES=""
+          for f in $FILES; do NAMES="$NAMES $(basename "$f")"; done
+          bash deploy/verify-served.sh "$NAS_HOST" "$NAS_USER" "$DEST" $NAMES
 
+      # ★★★ **올린다** 〈2026-08-23 사장님 지시 — 「앞으로는 네가 배포해」〉.
+      #   전날 D-84 로 지웠던 것을 되살렸다. 지웠던 이유는 이 파일 머리에 그대로
+      #   남아 있다 — 되살렸다고 그 이유가 사라지지는 않는다.
+      #
+      #   ★ **`-O` 를 뺄 수 없다.** OpenSSH 9 부터 scp 는 속으로 SFTP 를 쓰는데,
+      #     Synology 에 「SFTP 사용자를 홈 폴더에 가둔다」 설정이 켜져 있으면 그쪽에서
+      #     `/volume1/web` 이 **아예 없는 것처럼** 보인다. 그러면 「그런 폴더 없음」이
+      #     나오고, 멀쩡한 경로를 몇 번이고 다시 확인하게 된다.
+      #   ★ 덮기 전에 백업을 뜬다 — 되돌릴 길을 먼저 만든다.
       - name: Upload
-        if: ${{ !inputs.dry_run && !inputs.probe && inputs.allow_write }}
+        if: ${{ needs.plan.outputs.dry_run != 'true' }}
         env:
-          FILES: ${{ inputs.files }}
-          DEST: ${{ inputs.dest }}
+          FILES: ${{ needs.plan.outputs.files }}
+          DEST: ${{ needs.plan.outputs.dest }}
           NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
           NAS_USER: ${{ secrets.NAS_SSH_USER }}
         run: |
           set -euo pipefail
-          # 기존 파일은 날짜를 붙여 백업한 뒤 덮는다 (되돌릴 수 있게)
           STAMP=$(TZ=Asia/Seoul date +%Y%m%d-%H%M)
+          ssh -i ~/.ssh/id_deploy "$NAS_USER@$NAS_HOST" "mkdir -p '$DEST'"
           for f in $FILES; do
             BASE=$(basename "$f")
             ssh -i ~/.ssh/id_deploy "$NAS_USER@$NAS_HOST" \
               "test -f '$DEST/$BASE' && cp '$DEST/$BASE' '$DEST/$BASE.$STAMP.bak' || true"
-            # ★★ **`-O` 를 뺄 수 없다** 〈2026-08-21 · 실제로 여기서 죽었다〉.
-            #   OpenSSH 9 부터 scp 는 속으로 **SFTP** 를 쓴다. 그런데 Synology 에는
-            #   「SFTP 사용자를 홈 폴더 안에만 가둔다」는 설정이 있어서, 그 상태면
-            #   **SFTP 쪽에서는 /volume1/web 이 아예 없는 것처럼 보인다.**
-            #
-            #     ssh  ... ls -ld /volume1/web  →  drwxrwxrwx+ (보인다)
-            #     scp  ...                      →  dest open: No such file or directory
-            #
-            #   둘 다 참이다 — **보는 창구가 다르다.** 그래서 오류가 「경로가
-            #   틀렸다」로 읽히고, 멀쩡한 경로를 몇 번이고 다시 확인하게 된다.
-            #   `-O` 는 옛 방식(셸 경유)으로 보낸다 — `ssh` 와 **같은 눈**이 된다.
-            #   위 `Check destination` 도 ssh 로 재므로, 이래야 잰 것과 하는 것이 맞다.
             scp -O -i ~/.ssh/id_deploy "$f" "$NAS_USER@$NAS_HOST:$DEST/$BASE"
-            echo "배포 완료: $BASE → $DEST/$BASE (백업: $BASE.$STAMP.bak)"
+            echo "배포: $BASE"
           done
 
-      # ★★ **경고로 낸다. 알림(notice)이 아니다** 〈2026-08-22 · 실제로 당했다〉.
-      #   `dry_run` 기본값이 `true` 라, 입력을 안 주고 실행하면 **아무것도 안
-      #   올라간다.** 그런데 실행은 **초록**으로 끝난다. 그래서 두 번 연달아
-      #   「배포 성공」이라고 보고했는데 NAS 는 세 판 전 화면을 그대로 들고
-      #   있었다 — 사용자는 「반영이 안 된다」만 말할 수 있고 나는 「올렸다」만
-      #   말할 수 있어 겉돈다 (`dest` 기본값 사고와 같은 종류다).
-      #
-      #   ★ 초록 옆의 회색 알림은 안 읽힌다. **노란 경고**여야 눈에 걸린다.
-      # ★★★ **「올렸다」로 끝내지 않는다** 〈2026-08-22 사용자 지시 · M-25〉.
-      #
-      #   지금까지 배포는 `scp` 가 끝나면 초록이었다. 그런데 실제로는 세 번이나
-      #   **닿지 않았다** — 한 번은 파일 하나만 올렸고(M-22), 한 번은 아무것도
-      #   안 올렸고(M-20), 한 번은 올라갔는데 웹서버가 옛것을 줬다(M-25).
-      #   셋 다 **초록이었다.**
-      #
-      #   ★ 그래서 올린 **직후에 다시 받아 본다.** 저장소·디스크·HTTP 세 지문이
-      #     같아야 비로소 「배포됐다」이다. 다르면 **빨갛게 끝낸다** — 초록으로
-      #     끝난 배포를 믿고 다음 일을 하는 것이 가장 비쌌다.
-      #   ★ 캐시 때문에 빨간 것도 **빨간 것이 맞다.** 화면에 안 닿았으면 배포가
-      #     제 일을 못 한 것이다. 무엇을 눌러야 하는지는 오류 문구가 적어 준다.
+      # ★★★ **「올렸다」로 끝내지 않는다** (M-20 · M-22 · M-25).
+      #   저장소 ≠ **디스크** 는 빨갛게 끝낸다 — 그건 올리기가 실제로 안 된 것이다.
+      #   디스크 ≠ HTTP 는 **경고**다: 이 탐침은 tailnet 포트 80 으로 받는데 앱은
+      #   Funnel 443 으로 들어와 문서 루트가 다를 수 있다(M-25). 그걸 치명으로 두면
+      #   멀쩡한 배포가 늘 빨갛고, 그러면 빨간 것을 아무도 안 보게 된다.
       - name: Verify deployed
-        if: ${{ !inputs.dry_run && !inputs.probe && inputs.allow_write }}
+        if: ${{ needs.plan.outputs.dry_run != 'true' }}
         env:
           NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
           NAS_USER: ${{ secrets.NAS_SSH_USER }}
-          DEST: ${{ inputs.dest }}
-        run: bash deploy/verify-served.sh "$NAS_HOST" "$NAS_USER" "$DEST"
-
-      # ★★ **조용히 초록으로 끝내지 않는다** (§2 · M-20). 쓰기가 꺼져 있으면
-      #   이 실행은 NAS 를 **하나도 안 바꾼다.** 그런데 dry_run 도 probe 도 아니라
-      #   요약이 하나도 안 뜨면, 초록만 보고 「배포됐다」로 읽는다 — 실제로 두 번
-      #   그렇게 보고했다.
-      - name: Write is off
-        if: ${{ !inputs.dry_run && !inputs.probe && !inputs.allow_write }}
+          DEST: ${{ needs.plan.outputs.dest }}
+          FILES: ${{ needs.plan.outputs.files }}
         run: |
-          echo "::warning::**아무것도 올리지 않았다 — 쓰기(allow_write)가 꺼져 있다.** im-flow 배포는 본체 게이트가 맡는다 (D-84). 이 워크플로로 올려야 할 사정이 있으면 본체와 맞춘 뒤 allow_write 를 켠다"
+          set -uo pipefail
+          NAMES=""
+          for f in $FILES; do NAMES="$NAMES $(basename "$f")"; done
+          bash deploy/verify-served.sh "$NAS_HOST" "$NAS_USER" "$DEST" $NAMES
+
+      # ★★★ **앱이 실제로 쓰는 길로 한 번 더 잰다** 〈2026-08-23〉.
+      #
+      #   앞 단계는 tailnet 의 포트 80 으로 받는다. 그런데 앱은 **Funnel 443 → 80**
+      #   으로 들어오고, DSM 은 `Host:` 로 가상 호스트를 고르므로 **문서 루트가
+      #   다를 수 있다.** 그래서 「디스크 ≠ HTTP」가 나와도 그게 캐시인지 다른
+      #   파일인지 그 자리에서는 갈리지 않았다 — M-25 가 통째로 그 이야기다.
+      #
+      #   ★ 여기서 같은 길로 재면 그 갈림이 **없어진다.** 사장님이 보시는 그 파일을
+      #     그대로 받아서 지문을 대 보는 것이기 때문이다.
+      #   ★ 주소가 없으면 **조용히 건너뛰지 않는다.** 「못 쟀다」가 안 보이면
+      #     「쟀는데 맞았다」와 구분이 안 된다 (§2).
+      - name: Check via app path
+        if: ${{ needs.plan.outputs.dry_run != 'true' }}
+        env:
+          BASE: ${{ secrets.LP_PUBLIC_BASE }}
+          FILES: ${{ needs.plan.outputs.files }}
+        run: |
+          set -uo pipefail
+          if [ -z "${BASE:-}" ]; then
+            echo "::warning::**앱이 쓰는 길로는 못 쟀다.** 위의 「디스크 ≠ HTTP」 경고가 캐시인지 다른 파일인지 여기서는 안 갈린다 (M-25 ①). 〈2026-08-24 · D-99 — 주소를 안 넣기로 정하셨다. 못 쟀다는 사실만 남긴다〉"
+            echo "앱 경로 확인: 건너뜀 (주소 없음)" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          BASE="${BASE%/}"
+          BAD=0; OK=0
+          for f in $FILES; do
+            NAME=$(basename "$f")
+            WANT=$(sha256sum "$f" | cut -c1-12)
+            GOT=$(curl -sS -m 25 "$BASE/$NAME" 2>/dev/null | sha256sum | cut -c1-12)
+            if [ "$WANT" = "$GOT" ]; then
+              OK=$((OK+1))
+            else
+              echo "::error::${NAME} — **앱이 쓰는 길로 받은 것이 저장소와 다르다** (저장소 ${WANT} · 앱 ${GOT}). 사장님 화면에 닿은 것은 이 파일이다."
+              BAD=1
+            fi
+          done
+          echo "앱 경로 확인: ${OK} 개 일치" >> "$GITHUB_STEP_SUMMARY"
+          exit "$BAD"
+
+      # ★★★ **열쇠를 배포가 놓는다** 〈2026-08-23 · 사람 손으로 세 번 실패했다〉.
+      #
+      #   OCR 열쇠를 사장님이 손으로 NAS 에 놓으시게 했다. **세 번 다 실패했다:**
+      #     ① `.env` 라는 **폴더**가 만들어졌다 (File Station 의 [생성] 에는
+      #        폴더밖에 없다 — 없는 메뉴를 안내하고 있었다)
+      #     ② 파일 이름이 `linkpilot.env.env` 가 됐다 (맥이 확장자를 또 붙인다)
+      #     ③ **서식 문서(RTF)로 저장됐다.** 그리고 고치신 뒤에도 NAS 의 파일은
+      #        지문까지 그대로였다 — 새 파일이 아예 안 올라갔다
+      #
+      #   ★★ 실패한 자리가 매번 달랐다. **길 자체가 함정이 넷**이기 때문이다
+      #     (서식 모드 · 확장자 · 업로드 건너뛰기 · 숨김 파일). 안내를 더 잘
+      #     쓰는 것으로 될 일이 아니다 — **그 길을 안 쓰게 하는 것이 고치는 것**이다.
+      #
+      #   ★ 그래서 GitHub Secret 에 넣으신 값을 **배포가 파일로 놓는다.**
+      #     Secret 칸은 그냥 글자 상자다 — 서식도 확장자도 업로드 대화상자도 없다.
+      #     CLAUDE.md §2 가 원래 말하던 자리이기도 하다 (「GitHub Secrets만 사용한다」).
+      #
+      #   ★ Secret 이 **없으면 아무것도 안 건드린다.** 손으로 놓아 둔 파일을
+      #     빈 값으로 덮는 일은 만들지 않는다.
+      #   ★ 덮기 전에 **되돌릴 자리를 만든다** (`linkpilot.env.bak-<시각>`).
+      #   ★ 값은 파이프로만 흐른다 — `echo` 로 찍지 않고 명령줄 인자로도 안 넘긴다
+      #     (인자는 NAS 의 프로세스 목록에 잠깐 뜬다). §2.
+      #   ★ **엔진 배포보다 앞**이다. 엔진은 뜰 때 열쇠를 읽으므로, 뒤에 두면
+      #     이번 판이 아니라 **다음 배포부터** 켜진다.
+      # ★★★ **열쇠는 하나가 아니다** 〈2026-08-24 · 앞 판이 손으로 놓은 값을 지우고 있었다〉.
+      #
+      #   앞 판은 `GEMINI_API_KEY` 한 줄만 써 넣으면서 `cat > linkpilot.env` 로
+      #   **파일을 통째로 덮었다.** 그래서 NAS 에 손으로 넣어 둔 `VWORLD_KEY`
+      #   같은 값이 **배포할 때마다 조용히 사라졌다.**
+      #
+      #   ★ 증상이 고약하다 — 지적도가 없으면 매스가 직사각형으로 서고 조감도가
+      #     아예 안 나오는데, 그것이 **정상 동작처럼 보인다.** 「원래 그런가 보다」로
+      #     읽히는 실패가 이 저장소에서 가장 비싸다.
+      #
+      #   ★ 그래서 ① 아는 열쇠를 **전부** Secret 에서 받아 쓰고,
+      #     ② 덮기 전 파일에 있던 **키 이름을 읽어 두었다가**, Secret 에 없어서
+      #        사라진 것이 있으면 **이름을 대고 말한다.** 값은 안 찍는다 (§2).
+      #     ③ **배포가 이 파일의 주인이다.** 쓰는 이가 둘이면 「넣었는데 없다」의
+      #        원인을 못 가른다 (D-84 와 같은 이유).
+      - name: Write engine keys (열쇠 파일)
+        if: ${{ needs.plan.outputs.dry_run != 'true' && needs.plan.outputs.engine == 'true' }}
+        env:
+          NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+          NAS_USER: ${{ secrets.NAS_SSH_USER }}
+          ENGINE_ROOT: ${{ vars.LP_ENGINE_ROOT || '/volume1/docker/linkpilot' }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          VWORLD_KEY: ${{ secrets.VWORLD_KEY }}
+          VWORLD_DOMAIN: ${{ secrets.VWORLD_DOMAIN }}
+          DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+          ECOS_API_KEY: ${{ secrets.ECOS_API_KEY }}
+          KMA_APIHUB_KEY: ${{ secrets.KMA_APIHUB_KEY }}
+          REB_API_KEY: ${{ secrets.REB_API_KEY }}
+          KOSIS_API_KEY: ${{ secrets.KOSIS_API_KEY }}
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+          LAW_OC: ${{ secrets.LAW_OC }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+        run: |
+          set -u
+          NAMES="GEMINI_API_KEY VWORLD_KEY VWORLD_DOMAIN DATA_GO_KR_KEY ECOS_API_KEY KMA_APIHUB_KEY REB_API_KEY KOSIS_API_KEY DART_API_KEY LAW_OC PEXELS_API_KEY"
+          # ★ 임시 파일로 모은다. 셸 문자열에 줄바꿈을 넣으면 YAML 블록이 거기서 끝난다
+          KEYFILE=$(mktemp)
+          chmod 600 "$KEYFILE"
+          trap 'rm -f "$KEYFILE"' EXIT
+          HAVE=""
+          DIRTY=""
+          for n in $NAMES; do
+            v=$(printenv "$n" || true)
+            [ -z "$v" ] && continue
+            # ★★★ **값에 줄바꿈이 들어오면 파일이 깨진다** 〈2026-08-24 · 실제로 깨졌다〉.
+            #   Secret 칸에 여러 줄을 붙여 넣으면 그 줄바꿈이 그대로 실린다. 그러면
+            #   한 줄이 여러 줄이 되어 **뒤 조각이 KEY=값 모양이 아닌 쓰레기 줄**이
+            #   되고, 운이 나쁘면 **다른 키를 덮어쓴다.** 실제로 NAS 파일이
+            #   3개를 쓴 자리에 7줄이 됐고 같은 키가 두 번 읽혔다.
+            #   ★ 값은 안 찍는다 (§2). **이름만** 대고 조용히 지우지 않는다.
+            clean=$(printf '%s' "$v" | tr -d '\r\n')
+            [ "$clean" != "$v" ] && DIRTY="$DIRTY $n"
+            [ -z "$clean" ] && continue
+            printf '%s=%s\n' "$n" "$clean" >> "$KEYFILE"
+            HAVE="$HAVE $n"
+          done
+          if [ -n "$DIRTY" ]; then
+            echo "::warning::**줄바꿈이 섞인 Secret 이 있다:${DIRTY}.** 붙여 넣을 때 줄바꿈이 딸려 온 것이다 — 배포가 떼고 실었으니 이번 판은 정상이지만, **값 자체가 틀렸을 수 있다.** 그 Secret 을 다시 넣어 주십시오 (한 줄로, 앞뒤 빈칸 없이)."
+            echo "⚠️ 줄바꿈이 섞인 Secret:${DIRTY} (떼고 실었다 — 다시 넣어 주십시오)" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -z "$HAVE" ]; then
+            echo "열쇠 Secret 이 하나도 없다 — NAS 의 열쇠 파일을 **안 건드렸다**"
+            echo "::notice::**열쇠 Secret 이 하나도 없다.** 그래서 NAS 의 열쇠 파일은 그대로 두었다. Settings → Secrets and variables → Actions 에 넣으면 배포가 파일을 대신 놓는다 — 손으로 만들 필요가 없다."
+            exit 0
+          fi
+          STAMP=$(TZ=Asia/Seoul date +%Y%m%d%H%M)
+          # ★ 값은 stdin 으로만 간다 — 명령줄 인자는 NAS 프로세스 목록에 잠깐 뜬다 (§2)
+          OUT=$(ssh -o BatchMode=yes -o ConnectTimeout=20 \
+              -i ~/.ssh/id_deploy "$NAS_USER@$NAS_HOST" \
+              "cd '$ENGINE_ROOT' || exit 9
+               OLD=''
+               if [ -f linkpilot.env ]; then
+                 cp -p linkpilot.env 'linkpilot.env.bak-$STAMP'
+                 OLD=\$(sed -n 's/^\\([A-Za-z_][A-Za-z0-9_]*\\)=.*/\\1/p' linkpilot.env | sort -u | tr '\\n' ' ')
+               fi
+               umask 177 && cat > linkpilot.env
+               chmod 600 linkpilot.env
+               echo \"OLDKEYS=\$OLD\"
+               echo \"SIZE=\$(wc -c < linkpilot.env)\"" < "$KEYFILE")
+          if [ $? -ne 0 ]; then
+            echo "::error::**열쇠 파일을 못 놓았다.** 엔진 루트에 쓸 수 없거나 ssh 가 안 붙었다 — 아래 진단이 옛 파일을 그대로 말할 것이다"
+            exit 1
+          fi
+          OLDKEYS=$(printf '%s\n' "$OUT" | sed -n 's/^OLDKEYS=//p')
+          NEWCOUNT=$(printf '%s' "$HAVE" | wc -w)
+          echo "써 넣은 열쇠 ${NEWCOUNT}개:${HAVE}"
+          echo "열쇠 파일: 배포가 새로 놓았다 — ${NEWCOUNT}개 (${HAVE# }) · 앞 판은 linkpilot.env.bak-$STAMP" >> "$GITHUB_STEP_SUMMARY"
+          # ★ **사라진 것이 있으면 이름을 댄다.** 조용히 없어지는 것이 가장 나쁘다
+          LOST=""
+          for o in $OLDKEYS; do
+            case " $HAVE " in *" $o "*) ;; *) LOST="$LOST $o" ;; esac
+          done
+          if [ -n "$LOST" ]; then
+            echo "::warning::**앞 파일에 있던 열쇠가 이번 판에 없다:${LOST}.** 배포가 이 파일의 주인이므로 Secret 에 없는 값은 안 실린다. 그 기능을 쓰시려면 같은 이름으로 GitHub Secret 에 넣어 주십시오 — 앞 판은 NAS 의 linkpilot.env.bak-$STAMP 에 그대로 있다."
+            echo "⚠️ 앞 파일에만 있던 열쇠:${LOST} (Secret 에 넣으면 다음 배포부터 실린다)" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "::notice::**열쇠 파일을 배포가 놓았다.** ${NEWCOUNT}개를 Secret 값으로 새로 썼다 — 손으로 만드실 필요가 없다."
+
+      # ★★★ **엔진을 올린다** 〈2026-08-23 · D-88 — 「모든 파일과 구조를 정립해줘」〉.
+      #
+      #   여기가 이 저장소에 **없던 자리**다. 화면 열여섯은 위에서 올렸고,
+      #   엔진(`im-agent/**`)은 **아무도 안 올렸다.** NAS 에 `im-agent.bak-*` 가
+      #   스무 개 쌓여 있는 것이 그 증거다 — 사람이 손으로 tar 를 말아 왔다.
+      #   그래서 화면은 새 판, 서버는 옛 라우팅 표인 상태가 났다 (D-87).
+      #
+      #   ★ **화면보다 뒤, 라우트 재기보다 앞**이다. 이 순서라야 바로 아래
+      #     `Check routes` 가 **방금 올린 엔진**을 잰다. 앞에 두면 옛 엔진을 재고,
+      #     뒤에 두면 라우트 결과가 한 판 늦은 이야기가 된다.
+      #   ★ 되돌리기는 `deploy/engine.sh` 안에 있다 — **여기서 하지 않는다.**
+      #     워크플로에 적으면 사장님 맥에서 돌릴 때는 되돌림이 없어진다.
+      #   ★ **실패를 삼키지 않는다.** 되돌렸어도 빨갛게 끝나야 한다 — 되돌린 것은
+      #     서비스를 살린 것이지 배포가 된 것이 아니다.
+      - name: Deploy engine (D-87 · D-88)
+        if: ${{ needs.plan.outputs.dry_run != 'true' && needs.plan.outputs.engine == 'true' }}
+        env:
+          NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+          NAS_USER: ${{ secrets.NAS_SSH_USER }}
+          LP_SSH_KEY: /home/runner/.ssh/id_deploy
+        run: bash deploy/engine.sh "$NAS_HOST" "$NAS_USER"
+
+      # ★ 안 올린 날에는 **안 올렸다고 말한다.** 아무 줄도 안 남기면 「올렸는데
+      #   조용했다」와 구분이 안 된다 (§2 — 조용히 죽지 않는다)
+      - name: Engine skipped
+        if: ${{ needs.plan.outputs.dry_run != 'true' && needs.plan.outputs.engine != 'true' }}
+        run: |
+          echo "엔진: **안 올렸다** — 바뀐 것이 화면뿐이거나 손으로 no 를 골랐다" >> "$GITHUB_STEP_SUMMARY"
+          echo "::notice::엔진(im-agent)은 이번에 안 올렸다. 서버는 지금 돌고 있는 판 그대로다"
+
+      # ★★★ **404 가 엔진 탓인지 앞단 탓인지 갈라 놓는다** 〈2026-08-23 · D-87 정정〉.
+      #
+      #   실행 #56 에서 둘이 **동시에** 성립했다:
+      #     · 엔진 배포 성공 — 새 판을 갈아 끼우고 **1초 만에 HTTP 200** (8181 직행)
+      #     · 그런데 바깥(tailnet 포트 80)에서 `/api/linkpilot/intake` 는 **여전히 404**
+      #
+      #   ★ 그러면 「서버가 옛 라우팅 표를 들고 있다」는 **더 이상 유일한 설명이
+      #     아니다.** 앞단(DSM 웹서비스·리버스 프록시)이 그 길을 8181 로 안
+      #     넘기고 있을 수도 있다 — M-25 가 말한 「잰 길이 앱이 쓰는 길과 다르다」의
+      #     API 판이다.
+      #
+      #   ★★ **둘은 화면에서 똑같이 404 로 보인다.** 그래서 갈라 놓고 말한다.
+      #     여기서 갈라 두지 않으면 또 엉뚱한 곳(엔진)을 판다 — 오늘 그랬다.
+      #   ★ **읽기만 한다.** 안팎에서 같은 주소를 두드려 응답 코드만 받는다.
+      - name: Split inside vs outside (D-87 · M-25)
+        id: split
+        if: ${{ needs.plan.outputs.dry_run != 'true' }}
+        env:
+          NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+          NAS_USER: ${{ secrets.NAS_SSH_USER }}
+        run: |
+          set -u
+          set +e   # 「못 받음」이 여기서는 정상 결과다 (bash -e 를 끈다)
+          probe_in() {
+            ssh -o BatchMode=yes -o ConnectTimeout=20 -i ~/.ssh/id_deploy \
+              "$NAS_USER@$NAS_HOST" \
+              "curl -s -o /dev/null -w '%{http_code}' -m 8 'http://127.0.0.1:8181$1'" \
+              2>/dev/null | tr -d '\r' | tail -1
+          }
+          IN_API=$(probe_in /api/linkpilot/intake)
+          IN_BARE=$(probe_in /intake)
+          IN_HEALTH=$(probe_in /healthz)
+          OUT_API=$(curl -s -o /dev/null -w '%{http_code}' -m 10 "http://${NAS_HOST}/api/linkpilot/intake" 2>/dev/null)
+
+          echo "── 같은 주소를 안팎에서 두드렸다 ──"
+          echo "  엔진 직행 8181  /healthz               → ${IN_HEALTH:-(못 받음)}"
+          echo "  엔진 직행 8181  /api/linkpilot/intake  → ${IN_API:-(못 받음)}"
+          echo "  엔진 직행 8181  /intake                → ${IN_BARE:-(못 받음)}"
+          echo "  바깥 포트 80    /api/linkpilot/intake  → ${OUT_API:-(못 받음)}"
+
+          # ★ 404 가 아니면 **길은 있는 것**이다 (401·400·405 는 통과 — verify:nas 와 같은 잣대)
+          alive() { [ -n "$1" ] && [ "$1" != "000" ] && [ "$1" != "404" ]; }
+
+          if alive "$IN_API" && [ "${OUT_API:-404}" = "404" ]; then
+            echo "::warning::**엔진에는 길이 있는데 바깥에서는 404 다.** 엔진(8181)은 /api/linkpilot/intake 에 ${IN_API} 로 답하는데 포트 80 은 404 를 준다 → **앞단이 그 길을 8181 로 안 넘긴다.** 엔진을 더 올려도 안 바뀐다. ① 앱이 실제로 쓰는 주소를 LP_BASE 에 넣어 다시 재거나 ② DSM 웹서비스의 리버스 프록시 규칙을 본다"
+            echo "404 의 자리: **앞단** — 엔진은 ${IN_API}, 포트 80 은 404" >> "$GITHUB_STEP_SUMMARY"
+            echo "where=front" >> "$GITHUB_OUTPUT"
+          elif [ "${IN_API:-404}" = "404" ] && alive "$IN_BARE"; then
+            echo "::warning::**엔진이 접두사 없이 붙어 있다.** /intake 는 ${IN_BARE} 인데 /api/linkpilot/intake 는 404 다 → 앞단이 `/api/linkpilot` 을 떼고 넘겨야 하는 구조다. 지금은 그 규칙이 없거나 다르다"
+            echo "404 의 자리: **접두사** — /intake 는 ${IN_BARE}, /api/linkpilot/intake 는 404" >> "$GITHUB_STEP_SUMMARY"
+            echo "where=prefix" >> "$GITHUB_OUTPUT"
+          elif [ "${IN_API:-404}" = "404" ] && [ "${IN_BARE:-404}" = "404" ]; then
+            echo "::error::**엔진에 그 길이 정말 없다.** 방금 올린 판으로도 8181 직행이 두 주소 다 404 다 — 이건 저장소 쪽 일이다 (라우터를 안 걸고 있다)"
+            echo "404 의 자리: **엔진** — 8181 직행도 404 다" >> "$GITHUB_STEP_SUMMARY"
+            echo "where=engine" >> "$GITHUB_OUTPUT"
+          elif alive "$OUT_API"; then
+            echo "::notice::바깥에서도 길이 있다 (${OUT_API}) — 404 는 사라졌다"
+            echo "404 없음 — 바깥 ${OUT_API}" >> "$GITHUB_STEP_SUMMARY"
+            echo "where=ok" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::**갈라 내지 못했다** — 응답을 못 받은 자리가 있다. 위 네 줄을 그대로 본다"
+            echo "404 의 자리: **못 갈랐다**" >> "$GITHUB_STEP_SUMMARY"
+            echo "where=unknown" >> "$GITHUB_OUTPUT"
+          fi
+
+      # ★★★ **라우트가 앱을 거쳐 닿는지 잰다** 〈2026-08-23 · M-11 · M-12〉.
+      #
+      #   이 검사를 **만들어 두고 아무도 안 돌렸다.** 2026-08-18 에 본체가 라우팅
+      #   표를 손으로 옮기다 **11개를 빠뜨려 404** 가 났고(M-11), 그것을 잡으라고
+      #   `verify:nas` 를 만들었다(M-12). 그런데 사람이 손으로 쳐야 도는 것이라
+      #   **아무도 안 쳤고**, 2026-08-23 에 같은 종류가 다시 났다 —
+      #   「＋ 신규프로젝트 → 만들기」가 `POST /projects` 에서 404.
+      #
+      #   ★ 그래서 **배포 때마다 자동으로** 스물여덟을 전부 두드린다. 판정은
+      #     「404 냐 아니냐」다 — 401·400 은 길이 있다는 뜻이므로 통과다.
+      #   ★ **못 쟀으면 초록으로 끝내지 않는다** (종료코드 2). 「초록인데 안 잰
+      #     것」이 이 저장소에서 가장 비싼 상태다.
+      - name: Check routes (M-11 · M-12)
+        if: ${{ needs.plan.outputs.dry_run != 'true' }}
+        env:
+          LP_BASE: ${{ secrets.LP_BASE }}
+          NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+          # ★★★ 앞 단계가 갈라 놓은 판정을 받는다 〈2026-08-23 · 실행 #57〉
+          WHERE: ${{ steps.split.outputs.where }}
+        run: |
+          set -uo pipefail
+          if [ -n "${LP_BASE:-}" ]; then
+            BASE="$LP_BASE"; VIA="LP_BASE (앱이 쓰는 길)"
+          else
+            BASE="http://${NAS_HOST}"; VIA="tailnet 포트 80"
+          fi
+          echo "라우트를 잰 길: ${VIA}"
+          set +e
+          npm run --silent verify:nas -- --base "$BASE"
+          CODE=$?
+          set -e
+          if [ "$CODE" = "0" ]; then
+            echo "라우트 확인: 스물여덟 모두 닿았다 (${VIA})" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if [ "$CODE" = "2" ]; then
+            echo "::warning::라우트를 **다 못 쟀다** — 위 표의 ⚠️ 줄을 본다. 잰 길: ${VIA}."
+            echo "라우트 확인: 다 못 쟀다 (${VIA})" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          # ★★★ **잰 길이 앱이 쓰는 길이 아니면 빨갛게 끝내지 않는다** 〈2026-08-23 · 실행 #57〉.
+          #
+          #   앞 단계가 갈라 놓은 결과가 실측으로 이렇게 나왔다:
+          #     엔진 직행 8181  /api/linkpilot/intake → **200**
+          #     바깥 포트 80    /api/linkpilot/intake → 404
+          #   즉 **엔진에는 길이 있다.** 404 는 앞단(포트 80 가상호스트)이 그 길을
+          #   8181 로 안 넘겨서 나는 것이고, 앱은 Funnel 443 으로 들어온다.
+          #
+          #   ★ 그러면 여기서 빨갛게 끝내는 것은 **멀쩡한 배포를 늘 빨갛게 만드는
+          #     것**이다. 그리고 늘 빨가면 **빨간 것을 아무도 안 보게 된다** —
+          #     `verify-served.sh` 가 HTTP 경고를 두고 똑같이 적어 둔 그 이유다 (M-25).
+          #   ★ **조용히 넘어가는 것이 아니다.** 경고로 크게 적고 요약에도 남긴다.
+          #     그리고 **엔진 자리(`engine`)면 그대로 치명이다** — 거기서 무르면
+          #     이 단계가 있으나 마나가 된다.
+          if [ "${WHERE:-}" = "front" ] && [ -z "${LP_BASE:-}" ]; then
+            echo "::warning::**라우트 404 는 앞단에서 난다 — 엔진이 아니다.** 바로 위 갈라 재기에서 엔진(8181)은 이 길에 정상으로 답했다. 잰 길(${VIA})이 앱이 쓰는 길(Funnel 443)과 달라서 나는 404 다. 여기서 빨갛게 끝내면 멀쩡한 배포가 늘 빨갛고, 그러면 진짜 사고가 났을 때도 안 보인다 (M-25)."
+            echo "라우트 확인: **앞단에서 404** — 엔진은 정상 (잰 길이 앱이 쓰는 길과 다르다)" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "::error::**라우트가 404 다.** 화면은 올라갔고(위 Verify deployed 초록) 서버가 **옛 라우팅 표**를 들고 있다 — 화면에서는 「서버 오류 (404)」로만 보인다 (M-11 · D-87). ★ 바로 위 「Split inside vs outside」 가 **404 의 자리를 이름으로 적어 두었다** — 그것부터 본다. `엔진` 이면 저장소 쪽 일이고, `접두사` 면 앞단 규칙이 어긋난 것이다."
+          echo "라우트 확인: 404 있음 (${VIA}) — **화면 올리기는 성공했다.** 404 의 자리는 위 갈라 재기를 본다" >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+
+      # ★★ **라우트가 빨개도 이 줄은 남는다** 〈2026-08-23〉. 앞 판은 앞 단계가
+      #   죽으면 이 요약이 건너뛰어져 **「올리기가 됐는지」가 통째로 사라졌다** —
+      #   그러면 화면 배포까지 실패한 줄로 읽힌다. 둘은 다른 사실이다.
+      # ★★★ **자료를 읽는 힘이 켜져 있는가** 〈2026-08-23 · 사장님 화면〉.
+      #
+      #   자료 11건 중 7건이 「못 읽었습니다 — GEMINI_API_KEY 가 필요합니다」로
+      #   끝났다. 스캔 이미지와, 글자가 코드값으로만 든 PDF 둘이 거기 있었다 —
+      #   **딜의 핵심 자료가 그쪽이었다.**
+      #
+      #   ★ 배포는 초록이고 화면도 멀쩡하다. 빠진 것은 **품질**뿐이라 아무도
+      #     오류를 안 본다. 그래서 **배포할 때마다 이 자리에서 말한다.**
+      #   ★ 키 값은 절대 찍지 않는다 (CLAUDE.md §2) — 켜졌는지만 본다.
+      - name: Check reading power (OCR)
+        if: ${{ always() && needs.plan.outputs.dry_run != 'true' }}
+        env:
+          NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+          NAS_USER: ${{ secrets.NAS_SSH_USER }}
+        run: |
+          set -u
+          set +e
+          # ★★ **앞단이 아니라 엔진에 직접 묻는다** 〈2026-08-23 · 첫 판이 헛돌았다〉.
+          #   tailnet 포트 80 은 `/api/linkpilot/*` 를 404 로 돌려준다(앞단이 안
+          #   넘긴다 — D-87 에서 이미 확인한 것). 그래서 앞단으로 물으면
+          #   **늘 「못 쟀다」**가 나오고, 이 확인은 있으나 마나가 된다.
+          #   위 「Split inside vs outside」 가 쓰는 것과 **같은 길**을 쓴다.
+          RAW=$(ssh -o BatchMode=yes -o ConnectTimeout=20 -i ~/.ssh/id_deploy \
+            "$NAS_USER@$NAS_HOST" \
+            "curl -s -m 10 'http://127.0.0.1:8181/api/linkpilot/intake'" 2>/dev/null | tr -d '\r')
+          # ★★ **세 갈래를 전부 로그에도 찍는다** 〈2026-08-23 · 실제로 답답했다〉.
+          #   앞 판은 「꺼짐」만 `::warning::` 으로 나가고 나머지 둘은 요약에만
+          #   적었다. 그래서 **경고가 없을 때 「켜졌다」인지 「못 쟀다」인지
+          #   구분이 안 됐다** — 재는 장치인데 결과를 못 읽는다.
+          case "$RAW" in
+            *'"ocrReady":true'*)
+              echo "OCR: 켜짐 — 스캔본·이미지·코드값 PDF 를 글자로 옮겨 읽는다"
+              echo "::notice::**OCR 이 켜져 있다.** 스캔본·이미지·코드값 PDF 를 글자로 옮겨 읽는다 — 옮긴 값은 신뢰도를 낮춰 표시한다."
+              echo "OCR: 켜짐 — 스캔본·이미지·코드값 PDF 를 글자로 옮겨 읽는다" >> "$GITHUB_STEP_SUMMARY" ;;
+            *'"ocrReady":false'*)
+              echo "OCR: 꺼짐"
+              echo "::warning::**OCR 이 꺼져 있다.** 스캔 이미지와 글자가 코드값으로만 든 PDF 는 **한 글자도 안 읽힌다** — 그 자료의 값은 보고서에 안 실리고, 재무 항목은 통상치로 대체된다. 엔진 루트의 .env(또는 linkpilot.env)에 GEMINI_API_KEY 를 넣으면 켜진다."
+              echo "OCR: **꺼짐** — 스캔본·이미지는 안 읽힌다" >> "$GITHUB_STEP_SUMMARY" ;;
+            *)
+              echo "OCR: 못 쟀다 — 엔진이 /intake 에 답하지 않았다"
+              echo "::warning::**OCR 상태를 못 쟀다.** 엔진(8181)이 /api/linkpilot/intake 에 답하지 않았다 — 꺼진 것과 **다른 사실**이다. 엔진이 떠 있는지 먼저 본다."
+              echo "OCR: 못 쟀다 (엔진이 답하지 않았다 — 꺼진 것과 다르다)" >> "$GITHUB_STEP_SUMMARY" ;;
+          esac
+
+      - name: Why is the key not read (열쇠 파일 진단)
+        if: ${{ always() && needs.plan.outputs.dry_run != 'true' }}
+        env:
+          NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+          NAS_USER: ${{ secrets.NAS_SSH_USER }}
+          ENGINE_ROOT: ${{ vars.LP_ENGINE_ROOT || '/volume1/docker/linkpilot' }}
+        run: |
+          set -u
+          set +e
+          # ★★★ **「꺼짐」은 원인을 하나도 안 말한다** 〈2026-08-23 · 실제로 막혔다〉.
+          #   파일이 없는 것 · 폴더인 것 · 서식 문서로 저장된 것 · 따옴표가 섞인
+          #   것이 전부 같은 「꺼짐」으로 보인다. 그래서 **엔진 자신에게 묻는다** —
+          #   같은 파서(core/env.js)로 읽어 보고 무엇이 걸렸는지 말하게 한다.
+          # ★ 값은 한 글자도 안 찍는다 (§2). 이름·길이·앞머리 모양뿐이다.
+          # ★★★ `--live` — **열쇠가 실제로 받아들여지는지 한 번 물어본다**
+          #   〈2026-08-23 · 마지막 구멍이었다〉. 「OCR 켜짐」은 지금까지
+          #   **글자가 들어 있다**는 뜻일 뿐이었다. 폐기된 열쇠도 똑같이
+          #   「켜짐」으로 나오고, 그러면 자료를 올리는 그 순간에야 실패한다.
+          #   못 물어본 것은 **죽은 것과 다른 사실**로 적는다.
+          OUT=$(ssh -o BatchMode=yes -o ConnectTimeout=20 -i ~/.ssh/id_deploy \
+            "$NAS_USER@$NAS_HOST" \
+            "cd '$ENGINE_ROOT' 2>/dev/null || exit 9
+             for N in node /usr/local/bin/node \
+                      /volume1/@appstore/Node.js_v20/usr/local/bin/node \
+                      /volume1/@appstore/Node.js_v18/usr/local/bin/node; do
+               command -v \"\$N\" >/dev/null 2>&1 && exec \"\$N\" im-agent/tools/env-doctor.js --live
+             done
+             echo 'NONODE'" 2>&1 | tr -d '\r')
+          case "$OUT" in
+            *NONODE*)
+              echo "진단: node 를 못 찾았다 — 진단만 못 돈 것이고 엔진과는 무관하다" ;;
+            '')
+              echo "진단: 아무 답이 없다 (ssh 가 안 붙었거나 엔진 루트가 다르다)" ;;
+            *)
+              printf '%s\n' "$OUT" ;;
+          esac
+          printf '%s\n' "$OUT" | grep -q 'OCR 켜짐' \
+            || echo "::notice::**열쇠 파일 진단이 로그에 있다.** 「OCR: 꺼짐」의 원인은 위 줄에 적혀 있다 — 파일이 폴더인지, 서식 문서로 저장됐는지, 값에 따옴표가 섞였는지까지 나온다."
+
+      # ★★★ **지적도가 켜졌는지도 잰다** 〈2026-08-24〉.
+      #
+      #   지금까지 재는 것은 OCR 하나뿐이었다. 그런데 `VWORLD_KEY` 가 없으면
+      #   **매스가 직사각형으로 서고 조감도가 아예 안 나온다** — 그리고 그것이
+      #   정상 동작처럼 보인다. 「원래 그런가 보다」로 읽히는 실패가 가장 비싸다.
+      #   ★ 값은 한 글자도 안 찍는다 (§2). 이름과 길이, 그리고 켜짐/꺼짐뿐이다.
+      - name: Check map power (지적도·공시지가)
+        if: ${{ always() && needs.plan.outputs.dry_run != 'true' }}
+        env:
+          NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+          NAS_USER: ${{ secrets.NAS_SSH_USER }}
+          ENGINE_ROOT: ${{ vars.LP_ENGINE_ROOT || '/volume1/docker/linkpilot' }}
+        run: |
+          set -u
+          set +e
+          OUT=$(ssh -o BatchMode=yes -o ConnectTimeout=20 -i ~/.ssh/id_deploy \
+            "$NAS_USER@$NAS_HOST" \
+            "cd '$ENGINE_ROOT' 2>/dev/null || exit 9
+             for N in node /usr/local/bin/node \
+                      /volume1/@appstore/Node.js_v20/usr/local/bin/node \
+                      /volume1/@appstore/Node.js_v18/usr/local/bin/node; do
+               command -v \"\$N\" >/dev/null 2>&1 && exec \"\$N\" im-agent/tools/env-doctor.js --keys
+             done
+             echo 'NONODE'" 2>&1 | tr -d '\r')
+          # ★★★ **못 잰 것을 꺼진 것으로 세지 않는다** 〈2026-08-25 · 실제로 그랬다〉.
+          #
+          #   앞 판은 `NONODE` 와 빈 답만 「못 쟀다」로 쳤다. 그런데 NAS 가
+          #   tailnet 에서 사라진 날 ssh 가 **`Host key verification failed.`** 를
+          #   돌려줬고, 그것은 둘 중 어느 것도 아니라 **「지적도 꺼짐」으로 적혔다.**
+          #   열쇠는 멀쩡히 들어 있었는데 화면은 꺼졌다고 말한 것이다.
+          #
+          # ★ 그래서 **진단기가 실제로 돌았는지**를 본다. 진단기는 언제나
+          #   「열쇠 파일을 찾는 곳」으로 시작한다 — 그 줄이 없으면 **답이 진단기
+          #   것이 아니다.** 있는 것만 판정하고 나머지는 전부 「못 쟀다」다.
+          #   (M-11 · M-12 · M-30 이 같은 결이다)
+          if ! printf '%s' "$OUT" | grep -q '열쇠 파일을 찾는 곳'; then
+            OUT="${OUT:-NONODE}"
+            echo "지적도: 못 쟀다 — 진단기가 안 돌았다 (ssh 가 안 붙었거나 node 가 없다). 받은 답: ${OUT}"
+            echo "지적도: 못 쟀다 (꺼진 것과 **다른 사실**이다)" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          case "$OUT" in
+            *NONODE*|'')
+              echo "지적도: 못 쟀다 — node 를 못 찾았거나 ssh 가 안 붙었다 (꺼진 것과 **다른 사실**이다)"
+              echo "지적도: 못 쟀다 (꺼진 것과 다르다)" >> "$GITHUB_STEP_SUMMARY" ;;
+            *)
+              printf '%s\n' "$OUT"
+              if printf '%s' "$OUT" | grep -q '지적·위성지도(VWorld): 켜짐'; then
+                echo "::notice::**지적도가 켜져 있다.** 실제 필지 형상으로 매스가 서고 조감도가 그려진다."
+                echo "지적도: 켜짐 — 실제 필지 형상으로 매스가 선다" >> "$GITHUB_STEP_SUMMARY"
+              else
+                echo "::warning::**지적도가 꺼져 있다.** 매스가 직사각형으로 근사되고 **조감도가 아예 안 그려진다** — 고장이 아니라 근거 없는 그림을 안 그리는 것이다. GitHub Secret 에 VWORLD_KEY 와 VWORLD_DOMAIN 을 넣으면 다음 배포부터 켜진다."
+                echo "지적도: **꺼짐** — 매스가 직사각형 · 조감도 없음" >> "$GITHUB_STEP_SUMMARY"
+              fi ;;
+          esac
+
+      - name: Probe summary
+        if: ${{ always() && needs.plan.outputs.dry_run != 'true' }}
+        run: |
+          echo "::notice::**올리고 재는 것까지 끝났다.** 「Verify deployed」 의 저장소·디스크가 같아야 실제로 닿은 것이다. HTTP 가 다르다는 경고는 잰 길(포트 80)이 앱이 쓰는 길(Funnel 443)과 달라서일 수 있다 — 원인 후보 셋이 로그에 적혀 있다 (M-25)."
 
       - name: Dry run summary
-        if: ${{ inputs.dry_run }}
+        if: ${{ needs.plan.outputs.dry_run == 'true' }}
         run: |
-          echo "::warning::**아무것도 올리지 않았다 (DRY RUN).** NAS 는 그대로다 — 이 실행이 초록이어도 배포된 것이 아니다. 실제로 올리려면 dry_run 을 끄고 다시 실행한다"
-          echo "실제 배포하려면 dry_run 을 끄고 다시 실행한다."
+          echo "::warning::**아무것도 재지 않았다 (DRY RUN).** Secret 이 들어왔는지만 봤다 — NAS 에는 닿지도 않았다. 실제로 재려면 dry_run 을 끄고 다시 실행한다"
 
-  # 배포가 실패하면 알린다 (CLAUDE.md §2 — 조용히 죽지 않는다)
-  alert:
-    needs: deploy
-    if: failure()
-    uses: ./.github/workflows/alert-failure.yml
-    permissions:
-      issues: write
-      contents: read
-    secrets: inherit
-    with:
-      workflow: deploy-nas
+  # ★★★ **문자 알림을 지웠다** 〈2026-08-24 사장님 지시 · D-99〉.
+  #
+  #   여기 있던 `alert` 작업은 실패하면 SOLAPI 로 문자를 보냈다. 열쇠 넷이
+  #   한 번도 안 들어와 **한 번도 안 나간 채로** 자리만 지키고 있었고, 유료
+  #   서비스라 계정부터 만들어야 했다.
+  #
+  # ★ **알림이 아예 없어진 것은 아니다.** GitHub 이 실행이 실패하면 건 사람에게
+  #   메일을 보낸다 — 그것이 지금의 실패 통보 경로다 (CLAUDE.md §2 개정).
+  #   그 메일이 안 오는 상태가 되면 **그때가 이 자리를 다시 만들 때**다.

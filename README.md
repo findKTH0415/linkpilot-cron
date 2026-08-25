@@ -156,7 +156,6 @@ IM 필수 17개 중 **직접 넣어야 하는 것은 8개**다 (시행사 · 토
 | `DART_API_KEY` | 전자공시 — 시행사 실재 대조 | 시행사를 대조하지 않음 |
 | `TS_OAUTH_CLIENT_ID` / `TS_OAUTH_SECRET` | 배포 러너의 tailnet 접속 | 배포 불가 |
 | `NAS_SSH_HOST` / `NAS_SSH_USER` / `NAS_SSH_KEY` | NAS 배포 | 배포 불가 |
-| `ALERT_PHONE` | 배포 실패 SMS | GitHub Issue 알림만 |
 **기관마다 키가 다르다.** 넷은 서로 통용되지 않는다 — VWorld · 공공데이터포털 ·
 기상청 API허브 · 한국부동산원. 한 곳 키를 다른 곳에 넣으면 인증 오류만 나온다.
 
@@ -171,9 +170,12 @@ IM 필수 17개 중 **직접 넣어야 하는 것은 8개**다 (시행사 · 토
 | `REB_API_KEY` | reb.or.kr | 지가지수 → 공시지가 시점수정 | 시점수정 미적용 |
 | `TS_OAUTH_CLIENT_ID` / `TS_OAUTH_SECRET` | Tailscale | 배포 러너의 tailnet 접속 | 배포 불가 |
 | `NAS_SSH_HOST` / `NAS_SSH_USER` / `NAS_SSH_KEY` | — | NAS 배포 | 배포 불가 |
-| `ALERT_PHONE` | — | 배포 실패 SMS | GitHub Issue 알림만 |
 
 **키가 없으면 데이터를 지어내지 않는다.** `unavailable` 을 반환하고 해당 절을 비운다.
+
+〈2026-08-24 · D-99〉 **배포 실패 문자(SOLAPI) 알림은 지웠다.** 열쇠가 한 번도
+안 들어와 한 번도 안 나갔고, 유료 서비스라 계정부터 필요했다. **실패 통보가
+없어진 것은 아니다** — GitHub 이 실행 실패 시 건 사람에게 메일을 보낸다.
 
 ### 로컬에서 키를 넣는 법 — `.env`
 

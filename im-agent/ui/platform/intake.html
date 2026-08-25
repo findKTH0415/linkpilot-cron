@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="bbcc9fe1">
+<html lang="ko" data-lp-build="664b0bf8">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -17,7 +17,82 @@
   ★ 여기서 파이프라인을 돌리지 않는다. 프로젝트만 만든다.
     자료가 없는 채로 돌리면 빈 값으로 산출물이 만들어지고 비용만 나간다.
 -->
-<link rel="stylesheet" href="tokens.css">
+<script>
+/* ★★★ **빈 화면으로 끝나지 않는다** 〈2026-08-24 사장님: 데스크탑에서 흰 화면〉.
+ *
+ *   화면이 통째로 비어 뜬 일이 있었다. 소스는 멀쩡했고 헤드리스로 열면
+ *   정상이었다 — 즉 **그 순간의 브라우저에서만** 무언가가 안 왔다.
+ *
+ *   ★ 가장 흔한 자리: 배포가 파일을 하나씩 갈아 끼우는 동안(70초쯤) 화면은
+ *     새 판인데 형제 스크립트가 **아직 안 올라와 404** 인 순간이 있다.
+ *     그러면 전역이 아예 안 생기고, 첫 줄에서 예외가 나고, **화면은 흰 채로
+ *     아무 말도 안 한다.**
+ *   ★ 아래쪽 **짝 확인 조각**은 옛 스크립트는 잡지만 **없는 스크립트**는
+ *     못 잡는다 — 견줄 전역 자체가 없기 때문이다. 여기가 그 구멍이다.
+ *     (그 조각의 표시 이름을 여기 글자로 적지 않는다. 그것을 찾는 검사가
+ *      이 주석을 코드로 오해한다 — CLAUDE.md §8 에서 세 번째로 당한 자리다.)
+ *
+ * ★ 그래서 ① 파일이 안 온 것과 ② 코드가 던진 것을 **둘 다** 사람 말로 띄운다.
+ * ★ 이 조각은 **형제 스크립트보다 먼저** 있어야 한다. 뒤에 두면 이미 난
+ *   불러오기 실패를 못 듣는다.
+ * ★ 검사 자신이 죽으면 안 된다 — 전부 try 로 감싼다. */
+(function () {
+  var shown = false;
+  function say(msg) {
+    if (shown) return; shown = true;
+    try {
+      var n = document.createElement('div');
+      n.setAttribute('data-lp-fail', '');
+      n.setAttribute('style', 'position:fixed;left:0;right:0;top:0;z-index:99999;'
+        + 'background:#C00000;color:#fff;padding:14px 18px;font:700 14px/1.5 system-ui,sans-serif');
+      n.textContent = msg;
+      var put = function () { if (document.body) document.body.appendChild(n); };
+      if (document.body) put(); else document.addEventListener('DOMContentLoaded', put);
+    } catch (_) { /* 알리다 죽지 않는다 */ }
+  }
+  /* 불러오기 실패는 거품이 안 올라온다 — 잡기 단계(true)에서 들어야 한다 */
+  window.addEventListener('error', function (e) {
+    try {
+      var t = e && e.target;
+      if (!t || !t.tagName) return;
+      var tag = String(t.tagName).toUpperCase();
+      if (tag !== 'SCRIPT' && tag !== 'LINK') return;
+      var url = String(t.src || t.href || '').split('/').pop().split('?')[0];
+      say('화면에 필요한 파일을 못 받았습니다: ' + (url || '(이름 모름)')
+        + ' — 배포가 도는 중일 수 있습니다. 30초 뒤 새로고침(Mac ⌘⇧R · Windows Ctrl+Shift+R)해 주십시오.');
+    } catch (_) { /* 무시 */ }
+  }, true);
+  /* ★★★ **헛울음을 내지 않는다** 〈2026-08-24 · 실측에서 걸렸다〉.
+   *   `report-flow.html` 은 창을 품고 있어서 브라우저가 막는 읽기가 하나 난다
+   *   (`SecurityError: Location.pathname`). 화면은 **멀쩡히 뜬다.**
+   *   그것까지 빨간 띠로 띄우면 **멀쩡한 화면에 고장 딱지**가 붙는다.
+   * ★ 그래서 코드가 던진 것은 **화면이 실제로 비었을 때만** 알린다.
+   *   빈 화면이 이 장치가 막으려는 것이고, 그 밖은 알릴 일이 아니다. */
+  var lastErr = null;
+  function noteErr(m) {
+    lastErr = m;
+    setTimeout(function () {
+      try {
+        var b = document.body;
+        var n = b ? (b.innerText || '').trim().length : 0;
+        if (n < 40) {
+          say('화면을 그리다 멈췄습니다: ' + lastErr
+            + ' — 이 글이 보이면 고장입니다. 이대로 알려 주십시오.');
+        }
+      } catch (_) { /* 무시 */ }
+    }, 1200);
+  }
+  window.addEventListener('error', function (e) {
+    if (e && e.target && e.target.tagName) return;   // 위에서 이미 다뤘다
+    noteErr((e && e.message) || '알 수 없는 오류');
+  });
+  window.addEventListener('unhandledrejection', function (e) {
+    var r = e && e.reason;
+    noteErr((r && r.message) || r || '알 수 없는 오류');
+  });
+}());
+</script>
+<link rel="stylesheet" href="tokens.css?v=664b0bf8">
 <style>
 :root {
   --side: 248px;
@@ -57,8 +132,7 @@ h1,h2,h3,h4 { margin: 0; }
   display: grid; place-items: center; color: var(--lime); font-size: 16px; }
 .head { background: var(--surface); padding: 16px 26px 14px; }
 .head__row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.head__ic { width: 40px; height: 40px; border-radius: 12px; background: var(--panel);
-  display: grid; place-items: center; font-size: 18px; }
+/* ★ 머리의 ＋ 아이콘은 지웠다 〈2026-08-23〉 — 뜻을 나르지 않는 그림이었다 (§6-3) */
 .head__t { font-size: 22px; font-weight: 800; }
 .head__s { font-size: 13px; color: var(--ink2); margin-top: 2px; }
 .head__meta { margin-left: auto; text-align: right; font-size: 13px; color: var(--ink2); }
@@ -175,6 +249,25 @@ h1,h2,h3,h4 { margin: 0; }
 .iss-logo .btn2 { font: inherit; font-size: 13px; padding: 7px 12px; border-radius: 9px;
   border: 1px solid var(--line); background: var(--surface); cursor: pointer; }
 .iss-logo .btn2:disabled { opacity: .5; cursor: default; }
+
+/* 쓰던 발행 주체 목록 〈2026-08-23〉 — 고르면 칸이 채워진다.
+   ★ 라임으로 큰 면을 채우지 않는다 (§6-3). 테두리만 라임이다 */
+.iss-past { margin: 0 0 14px; }
+.iss-past__h { font-size: 12.5px; font-weight: 700; color: var(--ink2); margin: 0 0 7px; }
+.iss-past__l { display: flex; flex-wrap: wrap; gap: 8px; }
+.iss-chip { display: inline-flex; align-items: center; gap: 8px;
+  border: 1px solid var(--line); border-radius: 999px; background: var(--surface);
+  padding: 6px 6px 6px 12px; max-width: 100%; }
+.iss-chip__b { font: inherit; font-size: 13px; font-weight: 700; background: none;
+  border: 0; padding: 0; cursor: pointer; color: inherit; max-width: 240px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.iss-chip__b:hover { color: var(--lp-brand-ink); }
+.iss-chip--on { border-color: var(--lime); box-shadow: inset 0 0 0 1px var(--lime); }
+.iss-chip__x { font: inherit; font-size: 12px; line-height: 1; cursor: pointer;
+  border: 0; border-radius: 999px; background: var(--panel); color: var(--ink2);
+  padding: 5px 8px; }
+.iss-chip__x:hover { background: #E9ECEF; }
+.iss-past__n { margin: 7px 0 0; font-size: 11.5px; color: var(--ink2); line-height: 1.6; }
 .chk { display: flex; align-items: center; gap: 9px; font-size: 13.5px;
   color: var(--ink2); cursor: pointer; margin-top: 4px; }
 .chk input { width: 16px; height: 16px; accent-color: var(--lime); }
@@ -239,12 +332,17 @@ h1,h2,h3,h4 { margin: 0; }
     <div class="top">
       <div class="logo"><span class="logo__mark">➤</span>LINK<em>PILOT</em></div>
     </div>
+    <!-- ★★★ **머리 글자를 여기 적지 않는다** 〈2026-08-23 사장님 지시〉.
+         앞 판은 「보고서 생성 입력 / 무엇을 만들지 적고…」가 박혀 있었다. 그런데
+         이 화면은 이제 칸이 셋(발행 주체 · 무엇을 만들까요 · 자료 업로드)이라,
+         **어느 칸을 보고 있든 같은 머리**가 떴다 — 머리가 아무것도 안 알려 준다.
+         그리고 바로 아래 카드가 제 이름을 또 달아 **같은 자리에 제목이 둘**이었다.
+         이제 지금 보고 있는 칸의 이름·설명이 머리로 올라온다 (`fillHead`). -->
     <div class="head">
       <div class="head__row">
-        <div class="head__ic">＋</div>
         <div>
-          <h1 class="head__t">보고서 생성 입력</h1>
-          <div class="head__s">무엇을 만들지 적고, 근거가 될 자료를 올립니다</div>
+          <h1 class="head__t" id="head-t"></h1>
+          <div class="head__s" id="head-s"></div>
         </div>
         <div class="head__meta" id="meta"></div>
       </div>
@@ -254,11 +352,11 @@ h1,h2,h3,h4 { margin: 0; }
   </main>
 </div>
 
-<script src="gate-core.js"></script>
-<script src="flow-core.js"></script>
-<script src="upload-core.js"></script>
-<script src="catalog.js"></script>
-<script src="inapp.js"></script>
+<script src="gate-core.js?v=664b0bf8"></script>
+<script src="flow-core.js?v=664b0bf8"></script>
+<script src="upload-core.js?v=664b0bf8"></script>
+<script src="catalog.js?v=664b0bf8"></script>
+<script src="inapp.js?v=664b0bf8"></script>
 <script>
 /**
  * 설정 — 서버가 로그인 세션을 보고 내려주는 것이 정석이다.
@@ -270,7 +368,47 @@ window.LINKPILOT_INTAKE = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js" data-lp-global="LINKPILOT_INTAKE"></script>
+<script src="embed-bridge.js?v=664b0bf8" data-lp-global="LINKPILOT_INTAKE"></script>
+<!--
+  ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
+
+  사장님 화면이 「F.readEvidence is not a function」으로 죽었다. 배포는 초록이었고
+  디스크도 HTTP 도 새 판이었다. **브라우저가 형제 스크립트만 아침 것을 들고 있었다.**
+
+  ★ 이 결의 사고는 화면이 안 뜨는 것보다 나쁘다 — 화면은 멀쩡히 뜨고 아래 지문도
+    새 판으로 찍혀 있는데 기능만 죽는다. 나오는 말은 「… is not a function」뿐이라
+    **캐시가 원인이라는 생각 자체가 안 든다.**
+
+  ★ 그래서 여기서 **먼저 잡는다.** 표를 두지 않는다 — `window` 의 LinkPilot* 전역을
+    훑어 자기 판을 말하는 것만 골라 문서 지문과 댄다. 스크립트가 늘어도 안 갈린다.
+  ★ 이 조각은 **화면 안에** 있어야 한다. 따로 파일로 빼면 그 파일도 옛것일 수 있다.
+-->
+<script>
+(function () {
+  var want = document.documentElement.getAttribute('data-lp-build');
+  if (!want) return;                       /* 지문이 없는 판 — 잴 것이 없다 */
+  var bad = [];
+  try {
+    Object.keys(window).forEach(function (k) {
+      if (k.indexOf('LinkPilot') !== 0) return;
+      var v = window[k];
+      if (v && typeof v === 'object' && typeof v.BUILD === 'string'
+        && v.BUILD !== want) bad.push(k + ' (' + v.BUILD + ')');
+    });
+  } catch (_) { return; }                  /* 훑다 막히면 조용히 — 검사가 화면을 죽이지 않는다 */
+  if (!bad.length) return;
+
+  var n = document.createElement('div');
+  n.setAttribute('data-lp-pair', '');
+  n.setAttribute('style', 'position:fixed;left:0;right:0;top:0;z-index:99999;'
+    + 'background:#C00000;color:#fff;padding:14px 18px;font:700 14px/1.5 system-ui,sans-serif');
+  n.textContent = '화면과 스크립트의 판이 다릅니다 — 브라우저가 옛 파일을 들고 있습니다. '
+    + '새로고침(Windows Ctrl+Shift+R · Mac ⌘⇧R)해 주십시오. 화면 ' + want
+    + ' · 옛 판 ' + bad.join(', ');
+  var put = function () { if (document.body) document.body.appendChild(n); };
+  if (document.body) put(); else document.addEventListener('DOMContentLoaded', put);
+}());
+</script>
 <script>
 (function () {
   'use strict';
@@ -300,11 +438,166 @@ window.LINKPILOT_INTAKE = {
   var PART = null;
   var DRAFT = 'lp.intake.draft';
 
+  /**
+   * **쓰던 발행 주체를 기억한다** 〈2026-08-23 사장님 지시〉.
+   *
+   *   「신규 기본정보 입력시 삭제하지 않는 한 기억 / 기존 발행주체는 목록 만들어
+   *    사용 반영될 수 있도록」
+   *
+   * ★★ **여기 남는 것은 이 브라우저에만 남는다.** 서버에 발행 주체 목록을
+   *   두는 길은 아직 없다(API 가 하나뿐이다 — 그 계정의 기본값 하나). 그래서
+   *   **화면에 그렇게 적는다** — 다른 기기에서 안 보이는 것을 고장으로 읽지
+   *   않게 (§4.9: 모르는 것을 아는 척하지 않는다).
+   * ★ 다섯만 남긴다. 로고는 그림이 통째로 들어가 자리를 많이 먹는다 —
+   *   저장이 거부되면 **로고를 뺀 채로 다시 시도**한다. 이름이라도 남는 것이
+   *   통째로 잃는 것보다 낫다.
+   */
+  var ISSUERS = 'lp.intake.issuers';
+  var ISSUERS_MAX = 5;
+
+  /** 같은 회사인가 — 영문 회사명으로 가른다 (서명부 첫 줄이 그것이다) */
+  function sameIssuer(a, b) {
+    return String((a && a.en) || '').trim().toLowerCase()
+      === String((b && b.en) || '').trim().toLowerCase();
+  }
+
+  function loadIssuers() {
+    try {
+      var v = JSON.parse(window.localStorage.getItem(ISSUERS) || '[]');
+      return Object.prototype.toString.call(v) === '[object Array]' ? v : [];
+    } catch (_) { return []; }
+  }
+
+  function writeIssuers(list) {
+    try {
+      window.localStorage.setItem(ISSUERS, JSON.stringify(list));
+      return true;
+    } catch (_) {
+      /* 자리가 모자라면 로고를 떼고 다시 — 이름이라도 남긴다 */
+      try {
+        window.localStorage.setItem(ISSUERS, JSON.stringify(list.map(function (x) {
+          return { en: x.en, kr: x.kr, tag: x.tag, logo: '' };
+        })));
+        return true;
+      } catch (__) { return false; }
+    }
+  }
+
+  /** 쓴 발행 주체를 목록 맨 앞에 올린다. 회사명이 없으면 넣지 않는다 */
+  function rememberIssuer(iss) {
+    if (!iss || !String(iss.en || '').trim()) return;
+    var keep = { en: iss.en, kr: iss.kr || '', tag: iss.tag || '', logo: iss.logo || '' };
+    var list = loadIssuers().filter(function (x) { return !sameIssuer(x, keep); });
+    list.unshift(keep);
+    writeIssuers(list.slice(0, ISSUERS_MAX));
+  }
+
+  function forgetIssuer(en) {
+    writeIssuers(loadIssuers().filter(function (x) {
+      return String(x.en || '').trim().toLowerCase() !== String(en || '').trim().toLowerCase();
+    }));
+  }
+
+  /**
+   * ★★★ **고를 수 있는 발행 주체 목록** 〈2026-08-23 사장님 지시: 「저장된
+   *   회사를 선택할수 있도록 · 자동 저장된 기업은 선택시 자동 노출」〉.
+   *
+   *   두 곳에서 온다. **둘 다 필요하다:**
+   *   ① 서버(`/intake` 의 `issuers`) — 프로젝트를 만들 때 자동으로 얹힌다.
+   *      **다른 기기·다른 브라우저에서도 보인다.**
+   *   ② 이 브라우저(localStorage) — 서버에 아직 안 간 것까지 잡는다.
+   *      앞 판은 이것 하나뿐이라 **기기를 바꾸면 목록이 통째로 비었다.**
+   *
+   *   ★ 같은 회사가 양쪽에 있으면 **서버가 이긴다.** 서버 것이 실제로 문서에
+   *     쓰인 값이고, 브라우저 것은 보내기 전 사본일 수 있다.
+   *   ★ `logoOmitted` 는 서버가 **응답 크기 때문에 로고만 뺐다**는 뜻이다.
+   *     「로고 없는 회사」와 다르다 — 화면이 그 사실을 적는다.
+   */
+  function issuerChoices() {
+    var out = [];
+    var seen = {};
+    var key = function (v) { return String((v && v.en) || '').trim().toLowerCase(); };
+
+    ((state.info && state.info.issuers) || []).forEach(function (v) {
+      var k = key(v);
+      if (!k || seen[k]) return;
+      seen[k] = true;
+      out.push({
+        en: v.en, kr: v.kr || '', tag: v.tag || '', logo: v.logo || '',
+        logoOmitted: !!v.logoOmitted, savedAt: v.savedAt || null, where: 'server',
+      });
+    });
+    loadIssuers().forEach(function (v) {
+      var k = key(v);
+      if (!k || seen[k]) return;
+      seen[k] = true;
+      out.push({
+        en: v.en, kr: v.kr || '', tag: v.tag || '', logo: v.logo || '',
+        logoOmitted: false, savedAt: null, where: 'local',
+      });
+    });
+    return out;
+  }
+
+  /**
+   * 칸마다의 머리 글자. **카드가 쓰는 문장과 같은 것**을 쓴다 — 두 벌이 되면
+   * 한쪽만 고치는 날 머리와 본문이 다른 말을 한다.
+   * ★ 머리로 올라간 칸은 카드에서 제 이름을 **떼어 낸다** (`cardHead`).
+   *   안 그러면 같은 자리에 제목이 둘이다.
+   */
+  var HEADS = {
+    issuer: {
+      t: '발행 주체',
+      s: 'IM 표지와 서명부에 찍히는 회사입니다. 비워 두면 문서에 「발행 주체 미설정」이 '
+        + '표시되고 대외 배포가 막힙니다.',
+    },
+    ask: {
+      t: '무엇을 만들까요',
+      s: '한 줄로 적어 주세요. 용량·지역·자산유형을 알아서 뽑아내지만, '
+        + '뽑은 값은 문서로 확인된 것이 아니라 미확인으로 표시됩니다.',
+    },
+    files: {
+      t: '자료 업로드',
+      s: '원본 자료를 올립니다. 여기서 [자료올리기 완료] 를 누르면 1·2·3단계가 '
+        + '함께 서버로 갑니다.',
+    },
+  };
+
+  /** 지금 칸의 머리 글자를 채운다. 칸을 안 정했으면(따로 열었을 때) 화면 이름을 쓴다 */
+  function fillHead() {
+    var h = HEADS[PART] || { t: '보고서 생성 입력', s: '무엇을 만들지 적고, 근거가 될 자료를 올립니다' };
+    var t = document.getElementById('head-t');
+    var d = document.getElementById('head-s');
+    if (t) t.textContent = h.t;
+    if (d) d.textContent = h.s;
+  }
+
+  /**
+   * 카드의 제목·설명. **머리로 올라간 칸이면 붙이지 않는다.**
+   * @param {HTMLElement} box  카드
+   * @param {string} part      이 카드가 맡은 칸
+   * @param {string} title     제목
+   * @param {string} desc      설명
+   */
+  function cardHead(box, part, title, desc) {
+    if (PART && PART === part) return box;   // 머리에 이미 있다
+    box.appendChild(el('h2', 'card__t', title));
+    if (desc) box.appendChild(el('p', 'card__s', desc));
+    return box;
+  }
+
   function saveDraft() {
     try {
       window.localStorage.setItem(DRAFT, JSON.stringify({
         request: state.request, assetType: state.assetType,
         issuerAsDefault: state.issuerAsDefault,
+        /* ★ **적던 발행 주체도 함께 남긴다** 〈2026-08-23 사장님 지시 — 「삭제하지
+           않는 한 기억」〉. 앞 판은 이것이 빠져 있어서, 1단계에서 회사명을 적고
+           2단계로 갔다가 돌아오면 **적은 것이 사라져 있었다.** 사용자는 자기가
+           지운 줄 안다. 로고는 크니까 뺀다 — 그림은 다시 고르는 편이 낫다 */
+        issuer: state.issuer
+          ? { en: state.issuer.en, kr: state.issuer.kr, tag: state.issuer.tag }
+          : null,
       }));
     } catch (_) { /* 사생활 창·저장 차단 — 초안만 못 남길 뿐 화면은 그대로 돈다 */ }
   }
@@ -316,6 +609,10 @@ window.LINKPILOT_INTAKE = {
       if (typeof d.request === 'string') state.request = d.request;
       if (typeof d.assetType === 'string') state.assetType = d.assetType;
       if (typeof d.issuerAsDefault === 'boolean') state.issuerAsDefault = d.issuerAsDefault;
+      /* ★ 발행 주체는 여기서 얹지 않는다 — `adoptIssuer()` 가 서버 값으로
+         `state.issuer` 를 **통째로 새로 만들기** 때문이다. 순서를 잘못 두면
+         적어 둔 것이 서버 대답이 오는 순간 사라진다 (앞 판이 그랬다).
+         서버 값을 받은 **뒤에** `applyDraftIssuer()` 로 얹는다 */
     } catch (_) {}
   }
 
@@ -407,6 +704,24 @@ window.LINKPILOT_INTAKE = {
     state.issuer = (i && !i.unset)
       ? { en: i.en || '', kr: i.kr || '', tag: i.tag || '', mark: i.mark || '', logo: i.logo || '' }
       : { en: '', kr: '', tag: '', mark: '', logo: '' };
+    applyDraftIssuer();
+  }
+
+  /**
+   * 적다 만 발행 주체를 **서버 값 위에** 얹는다 〈2026-08-23〉.
+   *
+   * ★ 사람이 방금 친 것이 서버에 저장된 것보다 나중이다 — 그것이 이긴다.
+   * ★ **빈 칸으로 서버 값을 덮지 않는다.** 안 적은 것과 지운 것은 다르고,
+   *   이 자리에서는 갈리지 않는다. 지우는 것은 목록의 [지움] 으로 한다.
+   */
+  function applyDraftIssuer() {
+    try {
+      var d = JSON.parse(window.localStorage.getItem(DRAFT) || 'null');
+      if (!d || !d.issuer || !state.issuer) return;
+      ['en', 'kr', 'tag'].forEach(function (k) {
+        if (typeof d.issuer[k] === 'string' && d.issuer[k] !== '') state.issuer[k] = d.issuer[k];
+      });
+    } catch (_) {}
   }
 
   /**
@@ -469,6 +784,8 @@ window.LINKPILOT_INTAKE = {
       issuer: (state.issuer && state.issuer.en.trim()) ? state.issuer : undefined,
       issuerAsDefault: state.issuerAsDefault || undefined,
     }).then(function (j) {
+      /* ★ **쓴 것만 기억한다** — 적다 만 것을 목록에 넣으면 목록이 쓰레기가 된다 */
+      rememberIssuer(state.issuer);
       state.created = j; state.busy = false; clearDraft(); render();
       /* ★ 2026-08-16 — 부모(report-flow)에 알린다. 부모는 자식 URL 의 ?project= 로만 프로젝트를
          알아채는데, 여기서 만든 프로젝트는 URL 에 없다 → 2~4단계가 영원히 「1단계에서 프로젝트를
@@ -573,71 +890,9 @@ window.LINKPILOT_INTAKE = {
     return (state.created && state.created.projectId) || null;
   }
 
-  /**
-   * 올릴 수 있는 자료.
-   *
-   * ★ 목록을 여기 적지 않는다. 서버(02-extraction)가 아는 것을 그대로 그린다 —
-   *   적어 두면 읽는 방법이 늘어난 날부터 화면만 옛말을 한다.
-   */
-  function formatCard() {
-    var box = el('section', 'card');
-    box.appendChild(el('h2', 'card__t', '올릴 수 있는 자료'));
-    /* (요청 2026-08-17) 부제 문구 삭제 — 세 카드가 각각 "그대로 읽음/옮겨 읽음/변환 필요" 로 이미 말한다 */
-
-    var i = state.info;
-    var groups = i.formats || [];
-    var g = el('div', 'fmt');
-
-    groups.forEach(function (grp) {
-      if (!grp.ext || !grp.ext.length) return;
-      var cls = 'fmt__b' + (grp.id === 'convert' ? ' no' : (grp.id === 'scan' ? ' warn' : ''));
-      var b = el('div', cls);
-
-      var title = grp.label;
-      // ★ 키가 없으면 이 묶음은 지금 동작하지 않는다. 그 사실을 제목에 적는다 —
-      //   본문 어딘가에 적으면 안 읽고 올린다
-      if (grp.needsKey && i.ocrReady === false) title += ' — 지금은 꺼져 있습니다';
-      b.appendChild(el('div', 'fmt__t', title));
-      b.appendChild(el('p', 'fmt__w', grp.why));
-
-      var list = el('div', 'ext');
-      grp.ext.forEach(function (e) { list.appendChild(el('span', null, e)); });
-      b.appendChild(list);
-
-      if (grp.hint) {
-        var lines = grp.ext.map(function (e) { return grp.hint[e] ? e + ' → ' + grp.hint[e] : null; })
-          .filter(Boolean);
-        // 같은 안내가 여러 확장자에 붙으면 한 번만 적는다
-        var seen = {};
-        lines = lines.filter(function (t) {
-          var body = t.slice(t.indexOf('→'));
-          if (seen[body]) return false;
-          seen[body] = 1; return true;
-        });
-        lines.forEach(function (t) { b.appendChild(el('div', 'fmt__hint', t)); });
-      }
-      if (grp.needsKey && i.ocrReady === false) {
-        b.appendChild(el('div', 'fmt__hint',
-          '서버에 ' + grp.needsKey + ' 가 없어 옮겨 적기가 꺼져 있습니다. '
-          + '지금 올리면 보관만 되고 수치는 뽑히지 않습니다.'));
-      }
-      g.appendChild(b);
-    });
-
-    box.appendChild(g);
-    box.appendChild(el('div', 'note note--warn',
-      'PDF·한글(HWP)은 본문을 그대로 읽습니다. 글자가 없는 스캔본은 글자로 옮겨서 읽고, '
-      + '그렇게 뽑은 값은 신뢰도를 낮춰 「원본 확인」 표시를 붙입니다. '
-      + '파일 하나 ' + mb(i.maxBytesPerFile) + 'MB · 한 번에 ' + mb(i.maxBytesPerRequest) + 'MB 까지.'));
-    return box;
-  }
-
   function requestCard() {
     var box = el('section', 'card');
-    box.appendChild(el('h2', 'card__t', '무엇을 만들까요'));
-    box.appendChild(el('p', 'card__s',
-      '한 줄로 적어 주세요. 용량·지역·자산유형을 알아서 뽑아내지만, '
-      + '뽑은 값은 문서로 확인된 것이 아니라 미확인으로 표시됩니다.'));
+    cardHead(box, 'ask', HEADS.ask.t, HEADS.ask.s);
 
     var f1 = el('div', 'f');
     f1.appendChild(el('label', null, '요청문'));
@@ -682,12 +937,87 @@ window.LINKPILOT_INTAKE = {
    * ★ 안 넣으면 문서에 '발행 주체 미설정'이 찍히고 승인 게이트가 배포를 막는다.
    *   비워 두고 넘어갈 수는 있지만, 그 상태로는 대외 배포가 안 된다.
    */
+  /**
+   * **쓰던 발행 주체 목록** 〈2026-08-23 사장님 지시〉.
+   *
+   *   「기존 발행주체는 목록 만들어 사용 반영될 수 있도록」
+   *
+   * ★ 고르면 칸이 채워진다 — 저장까지 하지는 않는다. 서명부 첫 줄에 찍히는
+   *   값이라 **사람이 한 번 보고 [만들기] 를 눌러야** 한다.
+   * ★ **비어 있으면 아무것도 그리지 않는다.** 빈 상자를 두면 「여기 뭔가
+   *   있어야 하는데 안 나온다」로 읽힌다.
+   * ★ 어디에 남는지 화면이 말한다 — 다른 기기에서 안 보이는 것을 고장으로
+   *   읽지 않게 (§4.9).
+   */
+  function pastIssuers() {
+    var list = issuerChoices();
+    if (!list.length) return null;
+
+    var box = el('div', 'iss-past');
+    box.appendChild(el('p', 'iss-past__h', '저장된 발행 주체 — 누르면 아래 칸이 채워집니다'));
+    var row = el('div', 'iss-past__l');
+
+    list.forEach(function (it) {
+      var on = sameIssuer(it, state.issuer);
+      var chip = el('span', 'iss-chip' + (on ? ' iss-chip--on' : ''));
+
+      var pick = el('button', 'iss-chip__b', it.en + (it.kr ? ' · ' + it.kr : ''));
+      pick.type = 'button';
+      pick.title = it.en + (it.kr ? ' · ' + it.kr : '') + (it.tag ? ' · ' + it.tag : '')
+        + (it.savedAt ? ' · ' + it.savedAt + ' 저장' : '');
+      pick.disabled = !!state.created;
+      pick.addEventListener('click', function () {
+        /* ★ **다섯 칸을 한 번에 채운다.** 앞 판은 로고를 「있을 때만」 덮었는데,
+         *   그러면 로고 없는 회사를 골라도 **앞 회사 로고가 남는다** — 표지에
+         *   다른 회사 로고가 찍힌다. 고른 회사의 것으로 통째로 바꾼다.
+         *   ★ 단 `logoOmitted`(서버가 크기 때문에 로고만 뺀 것)면 **지우지
+         *     않는다** — 그건 「로고가 없다」가 아니라 「지금 안 보내 준다」다. */
+        state.issuer.en = it.en || '';
+        state.issuer.kr = it.kr || '';
+        state.issuer.tag = it.tag || '';
+        if (!it.logoOmitted) state.issuer.logo = it.logo || '';
+        saveDraft();      /* 고른 것도 「적은 것」이다 — 단계를 오가도 남아야 한다 */
+        render();
+      });
+      chip.appendChild(pick);
+
+      var x = el('button', 'iss-chip__x', '지움');
+      x.type = 'button';
+      x.title = it.en + ' 를 이 목록에서 지웁니다 (문서에는 영향이 없습니다)';
+      x.setAttribute('aria-label', it.en + ' 를 목록에서 지움');
+      /* ★ 서버에 저장된 것은 이 화면에서 못 지운다. **지워진 척하지 않는다** —
+       *   눌러서 사라졌다가 새로고침하면 다시 나오는 것이 더 나쁘다 */
+      x.disabled = !!state.created || it.where === 'server';
+      if (it.where === 'server') x.title = it.en + ' 는 서버에 저장되어 있어 여기서 지울 수 없습니다';
+      x.addEventListener('click', function () { forgetIssuer(it.en); render(); });
+      chip.appendChild(x);
+
+      row.appendChild(chip);
+    });
+
+    box.appendChild(row);
+
+    /* ★ 로고를 못 실어 보낸 것이 있으면 **그렇다고 적는다.** 안 적으면
+     *   「로고가 지워졌다」로 읽고 다시 올린다 */
+    /* ★ **예시면 예시라고 화면에 박는다** (§8). 데모 목록을 실제로 오해하면
+     *   「내가 전에 이 회사를 썼구나」로 읽는다 */
+    if (state.info && state.info.issuersSample) {
+      box.appendChild(el('p', 'iss-past__n',
+        '이 화면은 미리보기입니다 — 위 두 곳은 예시이고 실제로 저장된 회사가 아닙니다.'));
+    }
+
+    var omitted = list.filter(function (it) { return it.logoOmitted; });
+    if (omitted.length) {
+      box.appendChild(el('p', 'iss-past__n',
+        '로고가 큰 ' + omitted.length + '건은 목록에 로고를 함께 싣지 않았습니다 — '
+        + '고르면 이름만 채워지고 로고는 그대로 둡니다.'));
+    }
+    return box;
+  }
+
   function issuerCard() {
     var box = el('section', 'card');
-    box.appendChild(el('h2', 'card__t', '발행 주체'));
-    box.appendChild(el('p', 'card__s',
-      'IM 표지와 서명부에 찍히는 회사입니다. 비워 두면 문서에 「발행 주체 미설정」이 '
-      + '표시되고 대외 배포가 막힙니다.'));
+    cardHead(box, 'issuer', HEADS.issuer.t, HEADS.issuer.s);
 
     var lim = (state.info && state.info.issuerLimits) || {};
     var cur = (state.info && state.info.issuer) || {};
@@ -716,6 +1046,10 @@ window.LINKPILOT_INTAKE = {
       return f;
     }
 
+    /* ★ 목록이 비면 `null` 이다. `appendChild(null)` 은 **던진다** —
+       그러면 카드가 통째로 안 그려지고 화면이 빈다 */
+    var past = pastIssuers();
+    if (past) box.appendChild(past);
     box.appendChild(field('en', '회사명 (영문) *', '서명부 첫 줄. 대외 문서에 그대로 나갑니다.',
       '예: Acme Capital Partners Co.,Ltd'));
     box.appendChild(field('kr', '국문 상호', '없으면 그 줄을 만들지 않습니다.', '예: (주)에이스캐피탈파트너스'));
@@ -826,6 +1160,12 @@ window.LINKPILOT_INTAKE = {
     chk.appendChild(el('span', null, '앞으로 만드는 보고서에도 이 주체를 씁니다'));
     box.appendChild(chk);
 
+    /* ★ 「현재 설정: … (저장소 설정 issuer.json)」 줄은 **뺐다**
+     *   〈2026-08-23 사장님 지시: 「아래 부연설명은 삭제해줘」〉.
+     *   위 칸이 이미 그 값으로 채워져 있으므로 같은 것을 두 번 말하고 있었고,
+     *   `issuer.json` 같은 **파일 이름은 쓰는 사람에게 뜻이 없다.**
+     *   ★ 대신 **못 읽은 경우와 아직 없는 경우는 그대로 남긴다** — 그 둘은
+     *     부연이 아니라 **지금 무엇이 잘못됐는지**를 말하는 줄이다. */
     if (state.info && state.info.issuerError) {
       box.appendChild(el('div', 'note note--bad',
         '저장된 발행 주체 설정을 읽지 못했습니다 — ' + state.info.issuerError));
@@ -834,18 +1174,32 @@ window.LINKPILOT_INTAKE = {
       w.id = 'iss-warn';
       w.hidden = !!(iss.en && iss.en.trim());
       box.appendChild(w);
-    } else {
-      box.appendChild(el('div', 'note note--ok',
-        '현재 설정: ' + cur.en + (cur.source ? ' (' + cur.source + ')' : '')));
     }
     return box;
   }
 
-  /** 화면에서도 이니셜을 미리 보여준다 (규칙은 서버 core/issuer.js 와 같다) */
+  /**
+   * 화면에서도 이니셜을 미리 보여준다 — **규칙은 서버 `core/issuer.js` 와 같다.**
+   *
+   * ★★★ 〈2026-08-23 사장님 지적〉 앞 판은 셋이 틀렸다:
+   *   `주식회사 대한개발` → 식대 · `전주도시개발` → 전도 ·
+   *   `PDI Global Infra Structure …` → PGIS
+   *   원인 ① `[(주)㈜]` 가 **문자 클래스**라 「주」를 아무 데서나 지웠다
+   *   원인 ② 이미 약칭인 `PDI` 를 못 알아보고 첫 글자만 떴다
+   *
+   * ★★ 사본이 둘이라 **갈리면 화면과 문서가 다른 글자를 말한다.**
+   *   `issuer-mark.test.js` 가 같은 표로 둘을 대조한다.
+   */
   function autoMark(name) {
     var s = String(name || '').trim();
     if (!s) return '';
-    var words = s.replace(/[(주)㈜]/g, ' ').split(/[\s,.]+/).filter(Boolean);
+    var t = s
+      .replace(/\((주|유|재|사)\)|㈜/g, ' ')
+      .replace(/(주식|유한|합자|합명)회사/g, ' ')
+      .replace(/\b(Co|Ltd|Inc|Corp|Corporation|LLC|LLP|PLC|GmbH|SA|AG|Pte)\b\.?/gi, ' ');
+    var words = t.split(/[\s,.·]+/).filter(Boolean);
+    if (!words.length) return '';
+    if (/^[A-Z][A-Z0-9&]{1,3}$/.test(words[0])) return words[0].slice(0, 4);
     if (words.length === 1) return words[0].slice(0, 4).toUpperCase();
     return words.slice(0, 4).map(function (w) { return w[0]; }).join('').toUpperCase();
   }
@@ -886,7 +1240,12 @@ window.LINKPILOT_INTAKE = {
         var d = ev.data;
         if (!d || d.type !== 'lp-embed-height' || !(d.height > 0)) return;
         var f = document.querySelector('.sub-frame__f');
-        if (f) f.style.height = Math.max(320, d.height + 8) + 'px';
+        /* ★★★ **여백을 더하지 않는다** 〈2026-08-23 · 실제 사고〉.
+         *   앞 판은 `d.height + 8` 이었다. 그 8px 이 자식의 화면을 키우고,
+         *   자식은 커진 화면 높이를 그대로 되돌려주고, 여기서 또 8 을 더한다 —
+         *   **한 바퀴에 8px 씩 영원히 자란다.** 사장님 화면이 실제로 그랬다.
+         *   ★ 자식이 이제 **내용 높이**를 보내므로 여백이 필요 없다. */
+        if (f) f.style.height = Math.max(320, d.height) + 'px';
       });
     }
     return wrap;
@@ -894,10 +1253,13 @@ window.LINKPILOT_INTAKE = {
 
   function dropCard() {
     var box = el('section', 'card');
-    box.appendChild(el('h2', 'card__t', '자료 업로드'));
-    box.appendChild(el('p', 'card__s',
+    /* ★★ **제목을 손으로 적지 않는다** 〈2026-08-23 사장님 지시 — 「자료 업로드
+     *   타이틀 중복 표기」〉. `cardHead` 는 머리(`fillHead`)가 이미 그 이름을
+     *   말했으면 붙이지 않는다. 앞 판은 이 자리만 `cardHead` 를 안 거치고
+     *   직접 붙여서 **머리와 카드가 같은 말을 두 번** 했다. */
+    cardHead(box, 'files', HEADS.files.t,
       '사업계획서·기술제안서·재무자료 등. 모든 수치는 여기서 뽑고 출처로 기록됩니다. '
-      + '나중에 추가로 올릴 수도 있습니다.'));
+      + '나중에 추가로 올릴 수도 있습니다.');
     box.appendChild(filesFrame());
     return box;
   }
@@ -966,6 +1328,66 @@ window.LINKPILOT_INTAKE = {
 
   function canGo() {
     return !!C.api && state.request.trim().length >= 5 && !state.busy && !state.created;
+  }
+
+  /**
+   * ★★★ **칸을 나눴으면 옮겨 갈 단추도 있어야 한다** 〈2026-08-23 · 사장님 지적〉.
+   *
+   *   1·2단계를 나눠 놓고 단추는 3단계에만 두었다. 그래서 발행 주체를 적고 나면
+   *   **화면에 아무것도 없다** — 저장이 된 건지, 다음이 어디인지 알 수가 없다.
+   *   적는 곳을 나눴으면 **나가는 곳도 함께** 만들어야 한다.
+   *
+   * ★ 이름을 「저장」으로 하지 않는다. 이 단계에서 서버로 가는 것은 **없다** —
+   *   발행 주체·요청문은 3단계에서 [자료올리기 완료] 를 누를 때 **함께** 간다.
+   *   「저장」이라고 적으면 서버에 넣은 줄 알고 창을 닫는다. 실제로는 이 브라우저에만
+   *   남아 있다. **단추 이름이 하는 일과 달라지는 것**이 가장 비싼 거짓말이다.
+   */
+  function partNav() {
+    var F = window.LinkPilotFlow;
+    if (!F || !PART) return null;
+
+    var mine = F.STEPS.filter(function (s) { return s.file === 'intake.html'; });
+    var at = -1;
+    mine.forEach(function (s, i) { if (s.part === PART) at = i; });
+    if (at < 0) return null;
+
+    var prev = at > 0 ? mine[at - 1] : null;
+    var next = at < mine.length - 1 ? mine[at + 1] : null;
+    if (!prev && !next) return null;
+
+    var row = el('div', 'actions');
+    if (prev) {
+      var b = el('button', 'btn btn--ghost', '이전 — ' + prev.name);
+      b.type = 'button';
+      b.addEventListener('click', function () { goPart(prev); });
+      row.appendChild(b);
+    }
+    if (next) {
+      var n = el('button', 'btn', '다음 — ' + next.name);
+      n.type = 'button';
+      n.addEventListener('click', function () { goPart(next); });
+      row.appendChild(n);
+    }
+    return row;
+  }
+
+  /**
+   * 다른 칸으로 옮긴다.
+   * ★ 앱 안(iframe)에서는 **부모에게 알린다.** 안쪽에서 주소만 바꾸면 바깥 레일은
+   *   그대로여서 「지금 어느 단계인가」가 둘로 갈린다. 부모가 없으면(따로 열었을 때)
+   *   주소를 직접 바꾼다.
+   */
+  function goPart(step) {
+    saveDraft();
+    var sent = false;
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: 'lp-flow-step', step: step.id },
+          window.location.origin);
+        sent = true;
+      }
+    } catch (_) { /* 출처가 다르면 못 보낸다 — 아래로 떨어진다 */ }
+    if (!sent) window.location.href = stepUrl(step.file, null, step.part);
   }
 
   function actionsRow() {
@@ -1049,6 +1471,7 @@ window.LINKPILOT_INTAKE = {
   function render() {
     body.textContent = '';
     meta.textContent = '';
+    fillHead();
 
     var acc = Gate.access(C.session, 'pro');
     if (!acc.allowed) {
@@ -1105,17 +1528,21 @@ window.LINKPILOT_INTAKE = {
     /* ★ `part` 가 있으면 **그 칸만** 편다. 없으면(따로 열었을 때) 다 편다 */
     var show = function (p) { return !PART || PART === p; };
     if (show('issuer')) body.appendChild(issuerCard());
-    if (show('ask')) { body.appendChild(requestCard()); body.appendChild(formatCard()); }
+    /* ★ 「올릴 수 있는 자료」 카드는 뺐다 〈2026-08-23 사장님 지시〉 —
+       2단계는 **무엇을 만들지 적는 곳**이다. 무엇을 올릴 수 있는지는
+       3단계(관련자료)에서 자료를 고르는 그 자리에 있어야 읽힌다 */
+    if (show('ask')) body.appendChild(requestCard());
     if (show('files')) { body.appendChild(dropCard()); body.appendChild(actionsRow()); }
 
-    /* ★★ **만드는 버튼이 없는 칸에서는 그렇다고 말한다** 〈2026-08-22〉.
-     *   1·2단계만 보고 있으면 [프로젝트 만들기] 가 화면에 없다. 아무 말도 안
-     *   해 두면 사용자는 **여기서 끝난 줄 알고 기다린다** — 기다릴 것이 없다. */
-    if (PART && PART !== 'files') {
-      body.appendChild(el('p', 'card__s',
-        '여기 적은 것은 이 브라우저에 저장됩니다. 3단계 「관련자료 업로드」에서 '
-        + '[프로젝트 만들기] 를 눌러야 1·2·3단계가 함께 서버로 갑니다.'));
-    }
+    /* ★ 「여기 적은 것은 이 브라우저에 남습니다 …」 줄은 **뺐다**
+     *   〈2026-08-23 사장님 지시: 「아래 부연설명은 삭제해줘」〉.
+     *
+     *   앞 판(2026-08-22)의 뜻은 「만드는 버튼이 없는 칸에서 기다리지 않게」
+     *   였다. 그 일은 **아래 [다음 — 무엇을 만들까요?] 단추가 이미 하고 있다** —
+     *   다음으로 가는 길이 눈앞에 있으면 기다릴 이유가 없다. 남은 것은
+     *   저장 구조 설명뿐이었고, 그건 쓰는 사람이 알 필요가 없다. */
+    var nav = partNav();
+    if (nav) body.appendChild(nav);
   }
 
   /* ── 시작 ─────────────────────────────────────────────── */
@@ -1130,6 +1557,12 @@ window.LINKPILOT_INTAKE = {
 
   if (window.LinkPilotInApp && window.LinkPilotInApp.auto) {
     try { window.LinkPilotInApp.auto(); } catch (_) {}
+  }
+
+  /* ★ **판 지문을 화면에 보이게 남긴다** (CLAUDE.md §8). 속성만 있으면
+     사진에 안 찍히고, 그러면 「이것이 그 판인가」를 가릴 수가 없다 */
+  if (window.LinkPilotFlow && window.LinkPilotFlow.stampInto) {
+    try { window.LinkPilotFlow.stampInto(document); } catch (_) {}
   }
 
   render();

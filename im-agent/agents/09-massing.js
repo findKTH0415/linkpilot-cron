@@ -252,6 +252,12 @@ async function run(input, ctx) {
       roadRings: roadsLocal,
       vertices: built.meta.vertices,
       triangles: built.meta.triangles,
+      /* ★★ **바닥 모양을 밖으로 내놓는다** 〈2026-08-25 · 12_sketchup_plan 이 쓴다〉.
+       *   면적만 내놓으면 계획 Agent 가 **다시 사각형을 만들어야 한다** — 그러면
+       *   지적 필지로 선 매스와 계획서의 모양이 갈린다. 한 곳에서 나오게 둔다.
+       *   단위는 m (여기 전체가 m 다). mm 변환은 쓰는 쪽이 한 번만 한다. */
+      footprintM: footprint.map((p) => [round(p[0], 3), round(p[1], 3)]),
+      parcelM: parcelLocal ? parcelLocal.map((p) => [round(p[0], 3), round(p[1], 3)]) : null,
       note: '용적률·건폐율 검토용 매스이며 설계안이 아니다',
     };
   } catch (e) {

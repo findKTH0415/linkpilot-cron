@@ -69,7 +69,8 @@ body { margin: 0; background: var(--pg); color: var(--ink);
  */
 function withConfig(html, cfg) {
   const inject = `<script>Object.assign(window.LINKPILOT_FILES, ${JSON.stringify(cfg)});</script>\n`;
-  const at = html.indexOf('<script src="embed-bridge.js"');
+  /* ★ 주소에 판 표시(`?v=…`)가 붙어 있다 — 이름만으로 찾으면 못 찾는다 〈2026-08-23〉 */
+  const at = html.search(/<script src="embed-bridge\.js(\?v=[0-9a-f]*)?"/);
   if (at < 0) throw new Error('브리지 태그를 못 찾았다 — 설정을 넣을 자리가 없다');
   return html.slice(0, at) + inject + html.slice(at);
 }
@@ -92,8 +93,18 @@ function uploadDriver() {
   return `<script>(function () {
   var $ = function (s) { return document.querySelector(s); };
   var $$ = function (s) { return [].slice.call(document.querySelectorAll(s)); };
-  var tile = function () { return $$('.pw').filter(function (b) { return /파일업로드/.test(b.textContent); })[0]; };
+  /* ★ 〈2026-08-23 병합〉 갈래 토글이 없어졌다 — 「파일업로드」 칸이 늘 보인다.
+     고를 것이 없으므로 **드롭존이 떴는지**로 준비를 잰다 */
+  var tile = function () { return $('.drop'); };
   var goBtn = function () { return $$('button.btn').filter(function (b) { return /파일업로드/.test(b.textContent); })[0]; };
+  /* ★★ 이 판이 보여 주려는 것은 **「받았지만 못 읽었다」**이고, 그것은
+   *   1회성(읽고 버리기)에서만 나온다 — 보관은 올린 뒤 스캔이 따로 읽는다.
+   *   기본이 보관으로 바뀌었으므로(2026-08-23) 여기서 갈래를 눌러 고른다. */
+  var pickOneshot = function () {
+    var b = $$('.keepway__b').filter(function (x) { return /버립니다/.test(x.textContent); })[0];
+    if (b && b.getAttribute('aria-pressed') !== 'true') { b.click(); return true; }
+    return false;
+  };
   var opts = function () {
     var sel = $('select');
     return sel ? [].map.call(sel.options, function (o) { return o.value; }).filter(function (v) { return /^LP-/.test(v); }) : [];
@@ -130,7 +141,17 @@ function uploadDriver() {
         sel.value = opts()[0];
         sel.dispatchEvent(new Event('change'));
       } },
-    { name: 'tile', ready: tile, act: function () { tile().click(); } },
+    /* 누를 것이 없다. 칸이 뜨기만 기다린다 〈2026-08-23 병합〉 */
+    { name: 'tile', ready: tile, act: function () {} },
+    /* ★ 1회성을 고른다 — 이 판이 보여 주려는 「받았지만 못 읽었다」가
+     *   그쪽에서만 나온다 (2026-08-23) */
+    /* ★ ready 는 「이미 됐는가」가 아니라 **「지금 누를 수 있는가」**다
+     *   (위 proj·drop 과 같은 뜻). 「됐는가」로 적으면 영영 안 넘어간다.
+     *   ※ 이 블록은 템플릿 문자열 안이다 — 역따옴표를 쓰면 문자열이 끊긴다 */
+    { name: 'oneshot',
+      ready: function () { return $$('.keepway__b').filter(function (x) {
+        return /버립니다/.test(x.textContent); })[0]; },
+      act: pickOneshot },
     /* ★ 파일을 끼우는 칸. act 를 **다시 불러도 안전하게** 짰다 — 아래에서
      *   기다리다 막히면 이 칸만 다시 두드린다 (다른 칸은 다시 두드리면 안 된다:
      *   tile 을 또 누르면 갈래가 바뀌면서 **고른 파일을 버린다**) */
@@ -139,8 +160,14 @@ function uploadDriver() {
         var inp = $('.drop input');
         if (!inp) return;
         var dt = new DataTransfer();
+        /* ★★ **둘의 내용이 달라야 한다** 〈2026-08-23 · 접기를 넣고 걸렸다〉.
+         *   앞 판은 둘 다 길이 2048 짜리 0 바이트였다. 바이트가 같으니
+         *   지문도 같고, **같은 파일 접기가 둘을 한 줄로 접었다** — 시험은
+         *   「이름 하나가 없다」로 빨개졌는데 **접기는 옳게 돌고 있었다.**
+         *   ★ 표본이 실제와 다르면 잡히는 것도 실제가 아니다. 크기는 그대로
+         *     두고 내용만 가른다. */
         dt.items.add(new File([new Uint8Array(2048)], '[붙임3]산출근거.xlsx'));
-        dt.items.add(new File([new Uint8Array(2048)], '사업계획서(초안).pdf'));
+        dt.items.add(new File([new Uint8Array(2048).fill(7)], '사업계획서(초안).pdf'));
         inp.files = dt.files;
         inp.dispatchEvent(new Event('change'));
       } },
@@ -240,9 +267,11 @@ function uploadDriver() {
  */
 function inlineTokens(html) {
   const css = fs.readFileSync(path.join(HERE, 'tokens.css'), 'utf8');
-  const tag = '<link rel="stylesheet" href="tokens.css">';
-  if (!html.includes(tag)) throw new Error('tokens.css 링크를 못 찾았다 — 색 없이 나간다');
-  return html.replace(tag, `<style>\n${css}\n</style>`);
+  /* ★ 주소 뒤에 판 표시(`?v=…`)가 붙는다 〈2026-08-23 · D-93〉 — 글자 그대로 찾으면
+   *   **링크가 있는데 없다고** 죽는다 */
+  const re = /<link rel="stylesheet" href="tokens\.css(\?v=[0-9a-f]*)?">/;
+  if (!re.test(html)) throw new Error('tokens.css 링크를 못 찾았다 — 색 없이 나간다');
+  return html.replace(re, `<style>\n${css}\n</style>`);
 }
 
 async function build(outFile) {
@@ -281,7 +310,8 @@ async function build(outFile) {
        「프로젝트가 없습니다」가 그럴듯하게 뜬다 (buildLive 주석 참고). */
   const f2 = path.join(tmp, 'files-2.html');
   const src2 = inlineTokens(withConfig(src, { ...cfg, api: '/api/report' }))
-    .replace('<script src="embed-bridge.js"', fakeServer(FAKE_LIMITS) + '\n<script src="embed-bridge.js"');
+    .replace(/<script src="embed-bridge\.js(\?v=[0-9a-f]*)?"/,
+      (m) => fakeServer(FAKE_LIMITS) + '\n' + m);
   fs.writeFileSync(f2, src2 + drive);
   /* ★ 가상 시계 예산을 넉넉히 준다 〈2026-08-22〉. 14초로 뒀더니 기계가 바쁠 때
    *   이관 칸이 그려지기 **전에** DOM 을 떠서 「③ 칸이 없다」로 빌드가 멎었다 —
@@ -434,7 +464,19 @@ function fakeServer(limits) {
     if (/\\/sources$/.test(p)) return [200, { files: kept, trash: [], usage: { billableBytes: kept.reduce(function (a, b) { return a + b.bytes; }, 0) } }];
     if (/\\/oneshot$/.test(p) && method === 'POST') {
       var g2 = (body && body.files) || [];
-      g2.forEach(function (f) { oneshot.push({ name: f.name, bytes: 0, fingerprint: { value: 'demo' }, readAt: '예시' }); });
+      /* ★★ **가짜 서버도 진짜와 같은 기준이어야 한다** 〈2026-08-23 · 실제로 걸렸다〉.
+       *   앞 판은 파일마다 지문을 똑같이 'demo' 로 줬다. 그런데 진짜 서버는
+       *   내용의 sha256 을 준다 — 지문이 같으면 **같은 파일**이라는 뜻이다.
+       *   그래서 같은 파일 접기를 넣자 미리보기에서 서로 다른 두 파일이
+       *   한 줄로 접혔다. **접기는 옳게 돌고 있었고 표본이 거짓말을 했다.**
+       *   ★ 이름마다 다른 값을 준다. 진짜 지문은 아니지만 **다른 파일은
+       *     다른 값**이라는 성질은 지킨다 — 그것이 여기서 재는 것이다. */
+      g2.forEach(function (f, i) {
+        oneshot.push({
+          name: f.name, bytes: 0, readAt: '예시',
+          fingerprint: { value: 'demo-' + (oneshot.length + i) + '-' + f.name.length },
+        });
+      });
       // ★ 1회성은 **올리는 그 자리에서 읽는다.** 실제 서버가 read 를 함께 주므로
       //   여기서도 준다 — 안 주면 미리보기에서만 다음 단계로 안 넘어간다.
       //   (이 블록은 템플릿 문자열 안이다 — 역따옴표를 쓰면 문자열이 끊긴다)

@@ -18,6 +18,12 @@ const { assertValid } = require('./schema');
    응답은 steps[].type==='model_output' 의 content[].text 를 잇는다. */
 const MODELS = (process.env.GEMINI_MODELS || 'gemini-3.7-flash,gemini-3.5-flash,gemini-3.1-flash-lite,gemma-4-31b-it')
   .split(',').map(s => s.trim()).filter(Boolean);
+/* ★★★ **키를 읽기 전에 `.env` 를 올린다** 〈2026-08-23〉.
+ *   아래 `KEYS` 는 **이 파일을 부르는 순간** 정해진다. 그전에 `.env` 가 안
+ *   올라와 있으면 **영영 오프라인**이다 — NAS 엔진이 정확히 그 상태였고,
+ *   화면은 「GEMINI_API_KEY 가 필요합니다」만 되풀이했다. */
+require('./env').ensure();
+
 const KEYS = (process.env.GEMINI_API_KEY || '')
   .split(',').map(s => s.trim()).filter(Boolean);
 

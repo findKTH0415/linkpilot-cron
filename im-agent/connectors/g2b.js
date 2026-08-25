@@ -43,8 +43,16 @@ const { normalize, num } = require('./xml');
  *   전체**에 걸린다. 버킷을 쪼개면 각각 10,000 까지 세어 실제로는 두 배를 쓰고도
  *   한도에 안 걸린 것으로 보인다 — 소진은 조회 실패로만 나타나고, 그때는 이미
  *   그날 치가 없다.
+ 
+ * ★★ **정정 〈2026-08-23 실측 · D-85〉** — 「일 10,000건이 인증키 전체에 걸린다」는
+ *   틀렸다. data.go.kr 활용신청 화면은 **상세기능(오퍼레이션)마다** 일일 트래픽을
+ *   적어 주고, 개발계정은 **1,000건**이다. 그래서 쿼터 통을 `data.go.kr:<갈래>` 로
+ *   나눴다 (`cache.js` 의 `FAMILY_QUOTA`).
  */
-const PROVIDER = 'data.go.kr';
+/* ★ 쿼터 통을 **갈래로 나눈다** 〈2026-08-23 · D-85〉. data.go.kr 은 상세기능마다
+   하루치를 세는데(개발계정 1,000), 앞 판은 아홉 커넥터가 `data.go.kr` 한 통을
+   같이 썼다 — 한 곳이 다 쓰면 나머지 여덟이 함께 막힌다. `cache.js` 참고. */
+const PROVIDER = 'data.go.kr:g2b';
 const BASE = 'https://apis.data.go.kr/1230000';
 
 /**
@@ -52,12 +60,27 @@ const BASE = 'https://apis.data.go.kr/1230000';
  * ★ 이름을 이 파일 밖에 적지 않는다 — 두 곳에 두면 한쪽만 고치는 날 갈린다.
  */
 const OPS = {
-  /** 공사 개찰(낙찰) 결과 목록 */
+  /**
+   * 공사 **낙찰된 목록 현황**.
+   *
+   * ★★★ **여기까지 오는 데 세 번 갈렸다** 〈2026-08-22~23 실측〉:
+   *
+   *   1) `ao/ScsbidInfoService/…`            → 코드 12 (없거나 폐기됨)
+   *   2) `as/ScsbidInfoService/…`            → 코드 30 → 403 (활용신청 안 됨)
+   *   3) `as/…/getOpengResultListInfoCnstwkPPSSrch` → **200 인데 금액이 하나도 없다**
+   *
+   *   셋째가 가장 고약했다. 권한도 경로도 맞고 `resultCode 00` 인데, 그 응답은
+   *   「개찰이 있었다」는 사실만 준다 — 금액도 낙찰률도 없다. **기간을 넓혀도
+   *   안 나온다.** 오퍼레이션이 다른 것이었다.
+   *
+   * ★ 지금 것은 실측으로 고른 것이다:
+   *     sucsfbidAmt = 67171559 · sucsfbidRate = 90.089
+   *   **낙찰률을 API 가 직접 준다.** 그래서 우리가 나누지 않는다 — 분모로 무엇을
+   *   쓸지 고를 일 자체가 없어진다 (기초금액이 이 응답에 없다는 점도 함께 해결).
+   */
   award: {
-    /* ★ 2026-08-22 실측 — `ao/…` 는 NO_OPENAPI_SERVICE_ERROR(코드 12 "없거나 폐기됨"), `as/…` 는 등록되지 않은 서비스키(30).
-       즉 서비스는 `as/` 에 살아 있고 남은 것은 data.go.kr 활용신청이다. 400 의 원인은 키·기간이 아니라 경로였다. */
-    path: 'as/ScsbidInfoService/getOpengResultListInfoCnstwkPPSSrch',
-    label: '공사 개찰결과',
+    path: 'as/ScsbidInfoService/getScsbidListSttusCnstwkPPSSrch',
+    label: '공사 낙찰현황',
   },
   /** 공사 입찰공고 목록 — 기초금액·공고명·지역이 여기 실린다 */
   notice: {
@@ -65,6 +88,18 @@ const OPS = {
     label: '공사 입찰공고',
   },
 };
+
+/**
+ * 응답이 주는 낙찰률. **문자열로 온다** (예: `"90.089"`).
+ * ★ 빈 문자열·`0` 을 「없다」와 섞지 않는다 — 0% 낙찰은 없지만, 빈 값을 0 으로
+ *   세면 중앙값이 조용히 내려앉는다 (§4.7 결측을 0 으로 세지 않는다).
+ */
+function rate(x) {
+  const v = x.sucsfbidRate ?? x.sucsfbidrate;
+  if (v === null || v === undefined || String(v).trim() === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? Math.round(n * 10) / 10 : null;
+}
 
 function apiKey() {
   return process.env.DATA_GO_KR_KEY || '';
@@ -167,20 +202,66 @@ async function awards(opt) {
 
   const minEok = o.minEok === undefined ? 10 : o.minEok;
   const rows = (r.value || []).map((x) => {
-    const base = toEok(x.bssamt ?? x.bsisAmt ?? x.presmptPrce);
-    const award = toEok(x.sucsfbidAmt ?? x.opengCorpInfo ?? x.sucsfbidamt);
+    /* ★★★ **추정가격으로 기초금액을 메우지 않는다** 〈2026-08-23 실측〉.
+     *
+     *   앞 판은 `bssamt ?? bsisAmt ?? presmptPrce` 였다. 그런데 셋은 **다른 값**이다:
+     *
+     *     기초금액(bssamt)   = 예정가격을 정하는 기준. **부가세가 들어 있다**
+     *     추정가격(presmptPrce) = 부가세·관급자재를 **뺀** 값
+     *
+     *   ★ 낙찰률은 `낙찰금액 ÷ 기초금액` 이다. 분모에 추정가격을 넣으면 **분모가
+     *     작아져 낙찰률이 부풀려진다** — 부가세 몫만 해도 10%p 가까이 뛴다.
+     *     그리고 **그 값은 그럴듯하게 나온다.** 출처 표시도 멀쩡하다.
+     *
+     *   ★ 그래서 기초금액이 없으면 **낙찰률을 내지 않는다** (§4.9 — 대체값으로
+     *     메우면 「적용됨」만 남고 무엇이 빠졌는지 사라진다). 낙찰금액 자체는
+     *     그대로 낸다 — 그건 이 응답에 실려 있다.
+     *
+     *   ★ 2026-08-23 실측으로 확인한 것: **입찰공고 서비스 응답에는
+     *     `bssamt`·`bsisAmt` 가 아예 없다**(추정가격·예산금액·관급자재금액만 있다).
+     *     기초금액은 **개찰결과 서비스** 응답에서 와야 한다. 그 서비스는 아직
+     *     활용신청 전이라(403) 필드 이름을 실측하지 못했다 — 열리면 확인한다. */
+    const base = toEok(x.bssamt ?? x.bsisAmt);
+    /* ★★★ **`opengCorpInfo` 를 금액 자리에서 뺐다** 〈2026-08-23 실측〉.
+     *   그것은 **개찰업체 정보**(문자열)다. 금액 대체값으로 세워 두면 숫자가
+     *   아닌 것이 분자로 들어갈 길이 생긴다 — 지금은 `toEok` 이 걸러 주지만
+     *   **걸러 준다는 사실에 기대는 배선**은 다음에 바뀌면 조용히 샌다. */
+    const award = toEok(x.sucsfbidAmt ?? x.sucsfbidamt);
     return {
+      /* ★★★ 아래 이름은 **실측으로 확인한 것**이다 〈2026-08-23 · 한 건 전체를 떠서 대조〉.
+       *   `getScsbidListSttusCnstwkPPSSrch` 한 건이 실제로 이렇게 온다:
+       *
+       *     bidNtceNo bidNtceOrd bidClsfcNo rbidNo ntceDivCd bidNtceNm prtcptCnum
+       *     bidwinnrNm bidwinnrBizno bidwinnrCeoNm bidwinnrAdrs bidwinnrTelNo
+       *     sucsfbidAmt sucsfbidRate rlOpengDt dminsttCd dminsttNm rgstDt
+       *     fnlSucsfDate fnlSucsfCorpOfcl
+       *
+       *   ★ 앞 판은 낙찰업체를 `opengCorpNm ?? sucsfbidCorpNm` 에서 찾았다.
+       *     **둘 다 없는 이름**이라 업체명이 늘 빈칸으로 나갔다 — 빈칸은 오류가
+       *     안 나므로 화면만 봐서는 안 잡힌다. 실제 이름은 `bidwinnrNm` 이다.
+       *   ★ `opengDt` 도 이 응답엔 없다(`rlOpengDt` 가 실개찰일시다). 대체 이름은
+       *     **뒤로 물리되 지우지는 않는다** — 다른 오퍼레이션에서 쓰일 수 있다. */
       title: txt(x.bidNtceNm ?? x.ntceNm),
       agency: txt(x.dminsttNm ?? x.ntceInsttNm),
-      date: txt(x.opengDt ?? x.rlOpengDt ?? x.bidNtceDt),
+      date: txt(x.rlOpengDt ?? x.opengDt ?? x.fnlSucsfDate ?? x.bidNtceDt),
       baseEok: base,
       awardEok: award,
-      // 낙찰률 = 낙찰금액 ÷ 기초금액. 출처 있는 두 값의 비라 가정이 없다
-      awardRate: (base && award) ? Math.round((award / base) * 1000) / 10 : null,
-      winner: txt(x.opengCorpNm ?? x.sucsfbidCorpNm),
+      /* ★★★ **낙찰률은 받아 쓴다. 우리가 나누지 않는다** 〈2026-08-23 실측〉.
+       *   응답에 `sucsfbidRate` 가 실려 온다(예: 90.089). 조달청이 계산한 값이므로
+       *   **분모를 우리가 고를 일이 없다** — 기초금액이냐 추정가격이냐로 헤맨
+       *   자리가 통째로 사라진다 (D-85).
+       *   ★ 나눗셈은 **받아 오지 못했을 때만** 한다. 그때도 분모는 기초금액뿐이고,
+       *     그것도 없으면 낙찰률을 내지 않는다 (§4.9 — 대체값으로 메우지 않는다). */
+      awardRate: rate(x) ?? ((base && award) ? Math.round((award / base) * 1000) / 10 : null),
+      // 낙찰률을 어디서 얻었는지 — 출처가 다르면 그 사실이 값과 함께 다녀야 한다 (§4.7)
+      rateFrom: rate(x) !== null ? 'api' : ((base && award) ? 'computed' : null),
+      winner: txt(x.bidwinnrNm ?? x.opengCorpNm ?? x.sucsfbidCorpNm),
     };
   }).filter((x) => {
     if (!x.awardEok || x.awardEok < minEok) return false;
+    /* ★ 지역은 **공고명·수요기관**으로만 거른다. 응답에 `bidwinnrAdrs`(낙찰업체
+       주소)도 있지만 그건 **업체가 어디 회사인가**이지 공사가 어디인가가 아니다.
+       서울 업체가 여수 공사를 따는 일이 흔하다 — 넣으면 엉뚱한 건이 걸린다. */
     if (o.region && !(`${x.title || ''} ${x.agency || ''}`).includes(o.region)) return false;
     if (o.keyword && !(x.title || '').includes(o.keyword)) return false;
     return true;
@@ -191,11 +272,56 @@ async function awards(opt) {
   rows.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
 
   if (!rows.length) {
+    /* ★★★ **「건이 없다」와 「금액이 없다」를 가른다** 〈2026-08-23 실측〉.
+     *
+     *   앞 판은 둘을 한 문장으로 뭉쳐 「조건을 넓히거나 응답 필드명을 확인」이라고
+     *   했다. 그러면 사람은 **기간부터 넓힌다** — 그쪽이 만만하기 때문이다.
+     *   그런데 2026-08-23 실측에서 나온 것은 이랬다: 응답은 왔고(`resultCode 00`)
+     *   건도 있는데, **그 응답에 금액 필드가 하나도 없다.**
+     *
+     *     필드: bidNtceNo bidNtceOrd bidClsfcNo rbidNo bidNtceNm opengDt
+     *           prtcptCnum opengCorpInfo progrsDivCdNm inptDt
+     *           rsrvtnPrceFileExistnceYn ntceInsttCd ntceInsttNm dminsttCd
+     *           dminsttNm opengRsltNtcCntnts
+     *
+     *   기간을 아무리 넓혀도 금액은 안 나온다. **오퍼레이션이 다른 것**이다.
+     *   ★ 그래서 「받은 건은 있었는가」를 세어 두 경우를 갈라 말한다.
+     */
+    const got = (r.value || []).length;
+    const withAmount = (r.value || []).filter((x) => toEok(x.sucsfbidAmt ?? x.sucsfbidamt) || rate(x)).length;
+    if (got && !withAmount) {
+      return {
+        ok: false, window: w, count: 0, fieldMismatch: true,
+        error: `조회는 됐고 ${got}건을 받았는데 **금액 필드가 하나도 없다** `
+          + `(받은 필드: ${Object.keys(r.value[0] || {}).join(' ')}). `
+          + '기간을 넓혀도 안 나온다 — 이 오퍼레이션에 낙찰금액이 실리지 않는 것이므로 '
+          + '오퍼레이션이 다른 것이다 — 2026-08-23 에 `getOpengResultListInfoCnstwkPPSSrch` 가 '
+          + '정확히 이랬다 (등록부 D-85)',
+      };
+    }
+    /* ★★★ **거르는 데 쓰는 칸이 비어 있으면 그렇다고 말한다** 〈2026-08-23〉.
+     *   지역·키워드는 `title`·`agency` 안에서 부분일치로 거른다. 그 두 칸이
+     *   **전부 비어 있으면 무엇을 넣어도 0건**이 되는데, 증상은 「조건에 맞는
+     *   건이 없다」와 똑같다. 그러면 사람은 조건을 넓히다가 시간을 버린다 —
+     *   실제 원인은 **필드 이름이 달라 값이 안 들어온 것**이다. */
+    if (got && (o.region || o.keyword)) {
+      const named = (r.value || []).filter((x) => txt(x.bidNtceNm ?? x.ntceNm)
+        || txt(x.dminsttNm ?? x.ntceInsttNm)).length;
+      if (!named) {
+        return {
+          ok: false, window: w, count: 0, fieldMismatch: true,
+          error: `${got}건을 받았는데 **공고명·수요기관이 전부 비어 있다** `
+            + `(받은 필드: ${Object.keys(r.value[0] || {}).join(' ')}). `
+            + '지역·키워드는 그 두 칸으로 거르므로 무엇을 넣어도 0건이 된다 — '
+            + '조건이 아니라 **필드 이름**을 봐야 한다',
+        };
+      }
+    }
     return {
       ok: false, window: w, count: 0,
       error: `조회는 됐지만 조건에 맞는 낙찰 건이 없다 (기간 ${w.from.slice(0, 8)}~${w.to.slice(0, 8)}`
         + `${o.region ? ` · 지역 ${o.region}` : ''}${o.keyword ? ` · ${o.keyword}` : ''}`
-        + ` · ${minEok}억 이상). 조건을 넓히거나 응답 필드명을 확인해야 한다`,
+        + ` · ${minEok}억 이상). 조건을 넓혀 본다`,
     };
   }
 
@@ -224,6 +350,11 @@ async function benchmark(opt) {
     medianAwardEok: median(amounts),
     medianRate: rates.length ? Math.round(median(rates) * 10) / 10 : null,
     rateCount: rates.length,
+    /* ★ **왜 못 냈는지를 값 옆에 붙인다** 〈2026-08-23〉. `medianRate: null` 만
+       두면 「0 이다」와 「못 냈다」가 화면에서 같아 보인다 (§4.7). */
+    rateReason: rates.length ? null
+      : '응답에 기초금액(bssamt)이 없어 낙찰률을 내지 않았다 — 추정가격으로 대신 '
+        + '나누면 분모가 작아져 낙찰률이 부풀려진다',
     count: r.count,
     period,
     latest: r.value[0],

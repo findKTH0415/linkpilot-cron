@@ -232,16 +232,28 @@ test('잘못된 프로젝트 ID 는 파일을 건드리기 전에 막는다', as
 
 // ── 권한 ─────────────────────────────────────────────────────
 
-test('미인증·무료 회원은 접수할 수 없다', async () => {
+/**
+ * ★★★ 〈2026-08-23 · D-94 로 뒤집혔다〉 앞 판 이름은 「미인증·무료 회원은
+ *   **접수할 수 없다**」였다. 이제 **접수는 된다** — 자료를 넣을 그릇을 못 만들면
+ *   D-82 로 열어 둔 「넣는 길」 셋이 통째로 못 쓰이기 때문이다.
+ *
+ * ★★ 대신 **여는 선을 여기서 못 박는다**: 만드는 것과 넣는 것까지만이고,
+ *   **보관 업로드(`uploadSources`)는 그대로 묻는다** — 그쪽은 우리 서버에
+ *   남기는 길이다. 열린 쪽과 닫힌 쪽을 **둘 다** 재야 다음에 실수로 넓어져도 잡힌다.
+ */
+test('미인증·무료 회원도 접수는 되고, 보관 업로드는 여전히 묻는다 (D-94)', async () => {
   const anon = writeHandlers({ agentRoot: os.tmpdir(), agentModulePath: AGENT, authenticate: () => null });
-  assert.strictEqual((await anon.createProject({}, { request: '데이터센터 IM 작성' })).status, 401);
-  assert.strictEqual((await anon.uploadSources({}, 'LP-DC-2026-001', { files: [] })).status, 401);
+  assert.notStrictEqual((await anon.createProject({}, { request: '데이터센터 IM 작성' })).status, 401,
+    '로그인 없이 접수가 막혔다 — D-94 대로면 열려 있어야 한다');
+  assert.strictEqual((await anon.uploadSources({}, 'LP-DC-2026-001', { files: [] })).status, 401,
+    '보관 업로드가 로그인 없이 열렸다 — 연 것은 1회성까지다');
 
   const free = writeHandlers({
     agentRoot: os.tmpdir(), agentModulePath: AGENT,
     authenticate: () => ({ planId: 'free', status: 'active' }),
   });
-  assert.strictEqual((await free.createProject({}, { request: '데이터센터 IM 작성' })).status, 403);
+  assert.notStrictEqual((await free.createProject({}, { request: '데이터센터 IM 작성' })).status, 403,
+    '무료 회원이 접수를 못 한다 — 접수는 무료다 (FILES_PLAN)');
 });
 
 // ── 화면 규약 ────────────────────────────────────────────────
@@ -381,4 +393,133 @@ test('★ 화면이 회사명 입력란을 제공한다', () => {
   assert.doesNotMatch(html, /'파일을 읽지 못했습니다'/, '실패는 사유를 말해야 한다 — 뭉뚱그린 문구 금지');
   assert.match(html, /앞으로 만드는 보고서에도/, '기본값으로 저장하는 선택지');
   assert.match(html, /대외 배포가 막힙니다/, '안 넣으면 어떻게 되는지 미리 알린다');
+});
+
+/* ═════════ 발행 주체를 기억한다 〈2026-08-23 사장님 지시〉 ═════════ */
+
+/**
+ * ★★★ 사장님 지시 그대로:
+ *   「1.발행 주체 입력은 신규 기본정보 입력시 삭제하지 않는 한 기억
+ *     기존 발행주체는 목록 만들어 사용 반영될수 있도록 만들어줘」
+ *
+ * ★ 여기서 지키는 것 셋:
+ *   ① 적다 만 것이 단계를 오가도 남는가 (초안)
+ *   ② 서버 값을 받는 순간 그것이 지워지지 않는가 — **순서가 함정이다**
+ *   ③ 쓴 것만 목록에 남는가. 적다 만 것을 넣으면 목록이 쓰레기가 된다
+ */
+test('★★★ 발행 주체를 초안에 남기고, 서버 값이 그것을 지우지 않는다', () => {
+  const src = read('intake.html');
+
+  /* ① 초안에 발행 주체가 들어간다 */
+  const save = src.slice(src.indexOf('function saveDraft'), src.indexOf('function loadDraft'));
+  assert.match(save, /issuer:/, '초안에 발행 주체를 안 남긴다 — 단계를 오가면 적은 것이 사라진다');
+
+  /* ② ★★ **서버 값을 받은 뒤에 얹는다.** `adoptIssuer()` 가 `state.issuer` 를
+     통째로 새로 만들므로, 그 전에 얹으면 대답이 오는 순간 사라진다 */
+  const adopt = src.slice(src.indexOf('function adoptIssuer'), src.indexOf('function applyDraftIssuer'));
+  assert.match(adopt, /applyDraftIssuer\(\)/,
+    '서버 값을 채운 뒤 초안을 안 얹는다 — 적어 둔 것이 대답이 오는 순간 사라진다');
+
+  /* ③ 빈 칸으로 서버 값을 덮지 않는다 — 안 적은 것과 지운 것은 다르다 */
+  const apply = src.slice(src.indexOf('function applyDraftIssuer'), src.indexOf('function applyDraftIssuer') + 900);
+  assert.match(apply, /!==\s*''/, '빈 칸으로 서버 값을 덮는다');
+
+  /* ④ **쓴 것만** 기억한다 — 프로젝트를 만든 그 자리에서 */
+  const create = src.slice(src.indexOf('function createProject'), src.indexOf('function createProject') + 1400);
+  assert.match(create, /rememberIssuer\(/, '쓴 발행 주체를 목록에 안 남긴다');
+});
+
+test('★★ 쓰던 발행 주체 목록이 실제로 뜨고, 누르면 칸이 채워진다', () => {
+  const { findBrowser, renderDom } = require(path.join(PLATFORM, 'build-static.js'));
+  if (!findBrowser()) return;   // 크로미움이 없는 서버가 실제로 있다
+
+  /* ★★★ **`file://` 에서는 `localStorage` 가 막혀 있다** 〈2026-08-23 · 두 번 헛돌았다〉.
+   *   ① 그냥 재면 목록이 **늘 비어서** 검사가 아무것도 안 재고 초록이 된다.
+   *   ② http 로 띄워 보려 했더니 `execFileSync` 가 이벤트 루프를 막아 그 서버가
+   *      영영 응답을 못 하고 **검사가 멈췄다.**
+   *   ★ 그래서 **저장소를 가짜로 세워 준다.** 재려는 것은 브라우저의 저장소가
+   *     아니라 **화면이 그 값을 어떻게 쓰는가**이므로 이것으로 충분하다. */
+  const store = {
+    'lp.intake.issuers': JSON.stringify([
+      { en: 'Acme Capital Partners Co.,Ltd', kr: '(주)에이스', tag: 'REAL ASSET', logo: '' },
+    ]),
+    'lp.intake.draft': JSON.stringify({
+      request: '', assetType: '', issuer: { en: '적다 만 회사', kr: '', tag: '' },
+    }),
+  };
+
+  const seed = `<script>
+    (function () {
+      var m = ${JSON.stringify(store)};
+      var fake = {
+        getItem: function (k) { return Object.prototype.hasOwnProperty.call(m, k) ? m[k] : null; },
+        setItem: function (k, v) { m[k] = String(v); },
+        removeItem: function (k) { delete m[k]; },
+      };
+      try { Object.defineProperty(window, 'localStorage', { value: fake, configurable: true }); } catch (e) {}
+    }());
+  </script>`;
+
+  const probe = `
+    <div id="lpprobe"></div>
+    <script>
+    setTimeout(function () {
+      var o = {}, val = function () {
+        return [].slice.call(document.querySelectorAll('input[type=text]'))
+          .map(function (n) { return n.value; }).filter(Boolean);
+      };
+      o.before = val();
+      var chip = document.querySelector('.iss-chip__b');
+      o.chip = chip ? chip.textContent : null;
+      o.forget = !!document.querySelector('.iss-chip__x');
+      if (!chip) { document.getElementById('lpprobe').textContent = JSON.stringify(o); return; }
+      chip.click();
+      setTimeout(function () {
+        o.after = val();
+        document.getElementById('lpprobe').textContent = JSON.stringify(o);
+      }, 250);
+    }, 500);
+    </script>`;
+
+  const src = read('intake.html');
+  const i = src.indexOf('<script');
+  let page = src.slice(0, i) + seed + src.slice(i);
+  /* 서버 없이도 카드가 그려지게 심는다 — 값을 지어내는 것이 아니라 **빈 판**이다 */
+  page = page.replace('window.LINKPILOT_INTAKE = {',
+    'window.LINKPILOT_INTAKE = {\n  preload: { formats: [], issuer: { unset: true }, issuerLimits: {},'
+    + ' maxBytesPerFile: 52428800, maxBytesPerRequest: 104857600, assetTypes: [] },');
+  page = page.replace('</body>', probe + '</body>');
+
+  /* ★ 화면 폴더 안에 쓴다 — 옆의 `.js` 를 상대경로로 부르기 때문이다 */
+  const name = '.lp-issuer-probe.html';
+  const at = path.join(PLATFORM, name);
+  fs.writeFileSync(at, page);
+  try {
+    const dom = renderDom(findBrowser(), at, 60000);
+    const m = /<div id="lpprobe">([^<]*)<\/div>/.exec(dom);
+    assert.ok(m && m[1], '탐침이 아무것도 안 남겼다 — 화면이 그려지지 않았다');
+    const r = JSON.parse(m[1]);
+
+    /* ① 적다 만 것이 살아 있다 — 단계를 오가도 사라지지 않는다 */
+    assert.deepStrictEqual(r.before, ['적다 만 회사'],
+      `단계를 오가면 적은 것이 사라진다 — 본 것: ${JSON.stringify(r.before)}`);
+
+    /* ② 목록이 실제로 뜬다 */
+    assert.match(String(r.chip), /Acme Capital Partners/, '쓰던 발행 주체 목록이 안 뜬다');
+    assert.ok(r.forget, '목록에서 지우는 길이 없다 — 잘못 적은 것이 영영 남는다');
+
+    /* ③ 누르면 **세 칸이 다** 채워진다. 회사명만 채우면 국문·태그를 다시 쳐야 한다 */
+    assert.deepStrictEqual(r.after,
+      ['Acme Capital Partners Co.,Ltd', '(주)에이스', 'REAL ASSET'],
+      `골랐는데 칸이 다 안 채워진다 — 본 것: ${JSON.stringify(r.after)}`);
+  } finally {
+    fs.rmSync(at, { force: true });
+  }
+});
+
+test('★ 2단계에서 「올릴 수 있는 자료」 카드를 뺐다 (사장님 지시)', () => {
+  const src = read('intake.html');
+  const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '');
+  assert.ok(!/function formatCard/.test(code), '「올릴 수 있는 자료」 카드가 아직 있다');
+  assert.ok(!/formatCard\(\)/.test(code), '아직 그 카드를 부른다');
 });

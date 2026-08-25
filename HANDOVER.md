@@ -162,20 +162,17 @@ report-flow.html  저장소 65f8ad79 · 디스크 65f8ad79 · HTTP bd665124
 가능성**이 크다. 지금은 탐침이 **잰 주소를 함께 적고**(`HTTP 를 받은 길: …`),
 갈렸을 때 **후보 셋을 순서대로** 적는다. 하나로 단정하지 않는다.
 
-### 🔴 ① `im-flow` 에 **쓰는 이를 하나로** — D-84 (결정 필요)
+### ✅ ① `im-flow` 단일 배포 경로 — **결정됐다 (D-84 · 2026-08-22)**
 
-`im-flow` 폴더에 배포하는 길이 둘이었다 — 본체의 `deploy/nas.sh` 와 이 저장소의
-`deploy-nas` 워크플로. **쓰는 이가 둘이면 「올렸는데 다르다」의 원인을 영원히
-못 가른다** (잰 사이에 옆에서 덮인 것인지 알 수 없다).
+`deploy-nas` 의 쓰기(scp)를 **잠그지 않고 지웠다.** 이제 이 워크플로는 **재기만
+한다.** `im-flow` 배포는 **본체 게이트**(사장님 맥의 `deploy/nas.sh`) 하나로 간다.
 
-**이번에 한 것** `deploy-nas` 의 쓰기(scp)를 **기본 꺼짐**으로 돌렸다.
+- 입력이 셋으로 줄었다 — `files` · `dest` · `dry_run`. `probe`·`allow_write` 없음
+- `Upload` · `Verify deployed` · `Write is off` 단계가 **없다**
+- 지문 대조가 **유일한 판정**이라 `|| true` 를 뗐다 — 갈리면 빨갛게 끝난다
+- 재는 목록을 넷에서 **`files` 전부(16개)** 로 넓혔다
 
-- 새 입력 `allow_write` (기본 `false`) — 켜야만 `Upload`·`Verify deployed` 가 돈다
-- `probe` 기본을 `true` 로 — 손대지 않고 누르면 **재기만 한다**
-- 안 썼으면 **노란 경고**로 말한다 (`Write is off`) — 조용한 초록이 가장 비쌌다
-
-**남은 결정** 이 워크플로의 쓰기를 아예 지울 것인가, 잠금만 두고 남길 것인가.
-→ `docs/미결정-사항.md` **D-84**.
+★ **잠금이 아니라 삭제다.** 잠금은 급할 때 풀리고, 그때 다시 쓰는 이가 둘이 된다.
 
 ### ✅ ② ~~엔진 코드를 NAS 에 반영~~ — **본체가 했다 (2026-08-22)**
 
@@ -188,6 +185,22 @@ report-flow.html  저장소 65f8ad79 · 디스크 65f8ad79 · HTTP bd665124
 탭이 **[완성보고서] · [보고서 만들기] 둘**로 줄었고, **무료 계정에도
 [보고서 만들기] 탭이 열렸다.** `TABS` 단일 출처(`flow-core.js`)를 앱 본체가
 읽어 간다 — 앱 본체 파일(`linkpilot-platform.deploy.html`)은 이 저장소에 없다.
+
+### 🟠 앱 본체에 넘길 일 — 「외부 분석 AGENT 로 만들기」 블록 삭제 〈2026-08-23 사장님 지시〉
+
+보고서 만들기 탭 아래의 접이식 블록:
+
+> ▼ 외부 분석 AGENT 로 만들기 — 기반정보 내보내기 (예전 경로, 그대로 동작합니다)
+>   · 「기반정보를 내보낼 프로젝트」 목록
+>   · 「외부 환경」 카드 (LinkPilot AGENT 저장소 · 보고서 생성 AGENT 열기)
+
+**이 저장소에는 없다.** 문구를 전부 훑었는데 0건이다 — `linkpilot-platform.deploy.html`
+(앱 본체)이 그린다. 그 파일은 배포 목록에서 일부러 빠져 있다(원본이 여기 없다).
+
+★ `report-flow.html` 안의 **「외부 분석 환경」 카드**는 2026-08-22 에 이미 지웠다.
+  이름이 비슷해 헷갈리기 쉽다 — **다른 블록**이다.
+★ 지우기 전에 **그 경로를 아직 쓰는지** 확인한다. 「예전 경로, 그대로 동작합니다」
+  라고 적혀 있으니 살아 있는 길일 수 있다.
 
 ### 🟠 ④ D-10 저장소 private 전환 — 소유자만 가능
 
@@ -228,17 +241,17 @@ Settings → Danger Zone → Change visibility → Make private.
 | **디스크 ≠ HTTP** | **셋 중 하나** — ① 잰 길이 다르다 ② 다른 이가 덮었다 ③ 캐시 | **①부터** 확인. 하나로 단정하지 않는다 (M-25) |
 | 셋이 같다 | 브라우저 | 그때 비로소 새로고침 |
 
-**재는 법** `deploy-nas` 를 `dry_run:false, probe:true` 로 실행 → `Check served build`.
+**재는 법** `deploy-nas` 를 `dry_run:false` 로 실행 → `Check served build`.
 이 셋은 화면에서 **똑같이 보인다.** 내가 세 번 틀린 자리다.
 
-### ⚠️ `deploy-nas` 는 이제 **기본으로 아무것도 안 쓴다**
+### ⚠️ `deploy-nas` 는 **재기만 한다. 아무것도 쓰지 않는다**
 
-`probe` 기본 `true` · `allow_write` 기본 `false`. 손대지 않고 누르면 **재기만**
-한다. `im-flow` 배포는 **본체 게이트**(`deploy/nas.sh`)가 맡는다 (D-84).
+쓰는 단계를 **지웠다** (D-84). 입력은 `files`·`dest`·`dry_run` 셋뿐이고 `dry_run`
+기본이 `true` 다. `im-flow` 배포는 **본체 게이트**(`deploy/nas.sh`)가 맡는다.
 
-`Verify deployed` 가 빨개지면 **로그의 「HTTP 를 받은 길」부터 본다.** 앱이 쓰는
-길과 다르면 그 값은 **다른 파일의 지문**이다. **저장소 ≠ 디스크면** 그건 진짜로
-안 올라간 것이니 고친다.
+`Check served build` 가 빨개지면 **로그의 「HTTP 를 받은 길」부터 본다.** 앱이 쓰는
+길(Funnel 443)과 다르면 그 값은 **다른 파일의 지문**일 수 있다. **저장소 ≠ 디스크면**
+그건 진짜로 안 올라간 것이니 본체 게이트로 다시 올린다.
 
 ### ⚠️ 화면 지문으로 판을 가린다
 
@@ -286,3 +299,13 @@ Settings → Danger Zone → Change visibility → Make private.
 
 > ★ **주소 전체를 여기 적지 않는다** — 이 저장소는 public 이다 (D-10).
 > 앞은 `https://claude.ai/code/artifact/` 다. 대화에서 그대로 열 수 있다.
+
+## 2026-08-25 앱 세션 → 엔진 세션: 데일리 명언 cron 중단 확인 요청
+- 실측: `quote.php` 응답의 `date` 가 **2026-08-16** 에 멈춰 있음(9일째 미갱신, 08-25 07:5x 확인).
+- 생성 주체는 NAS 의 `fetch-daily-quote.js`(docs/삭제-후보.md 에 "운영 중"으로 기록, 이 repo 에는 파일 없음 — NAS 로컬 추정).
+- 의심: Gemini 신형 키 규칙(Interactions API — MEMORY 참고) 또는 키 한도. 앱은 서버 명언이 낡으면 자체 생성으로 폴백하도록 이미 보강했으니 급하지 않지만, cron 원인 확인·복구 부탁.
+
+## 2026-08-25 앱 세션 → 엔진 세션: deploy-nas.yml 에 「앱 봉인 열쇠」 단계 추가
+- Secrets(GEMINI_API_KEY·WORLDWIDE_NEWS)를 /volume1/web/<name>_key.store.php(lp_key.php 가드 형식)로 놓는 단계를 Write engine keys 뒤에 넣었다. 앱의 AI 이미지·BUSINESS TOP 3 뉴스가 이 파일을 읽는다.
+- main 병합 후 첫 실행 때 자동 반영. 값은 stdin 으로만, 로그에는 이름만.
+- ※ PAT 에 workflow 권한이 없어 워크플로 수정은 푸시 못 함 — docs/패치-앱-봉인-열쇠-단계.patch 로 남김. `git apply docs/패치-앱-봉인-열쇠-단계.patch` 또는 GitHub 웹에서 반영 바람. (또는 PAT 에 workflow scope 추가되면 앱 세션이 직접 푸시)

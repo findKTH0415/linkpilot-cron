@@ -30,6 +30,12 @@
 (function () {
   'use strict';
 
+  /**
+   * ★ **이 스크립트가 어느 판인가** 〈2026-08-23 · D-93 사고〉.
+   *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다.
+   */
+  var LP_BUILD = '664b0bf8';
+
   var self = document.currentScript;
   var name = self && self.getAttribute('data-lp-global');
   if (!name) return;                       // 어느 전역인지 모르면 손대지 않는다
@@ -39,13 +45,23 @@
   /** 부모의 설정. **다른 출처면 예외가 난다** — 그것을 이유로 남긴다 */
   function fromParent() {
     if (window.parent === window) { state.reason = '단독으로 열렸습니다 (부모 없음)'; return null; }
+    /* ★★ 2026-08-23 D-92 실측 — 직계 부모만 보면 **중첩 화면이 빈손이다.**
+     *   3·4·5단계(files/fields/intake)는 report-flow.html 안의 iframe 이라 window.parent 가 앱이 아니라
+     *   report-flow 다. 앱은 계약대로 window.LINKPILOT_EMBED 를 채우고 있었다(앱 정본 ReportHubView, 매 렌더).
+     *   그래서 「부모가 채우지 않았습니다」가 나오고 토큰이 없어 401 → 「로그인이 필요합니다」.
+     *   → 조상을 위로 거슬러 올라가며 처음 만나는 LINKPILOT_EMBED 를 쓴다(같은 출처 안에서만). */
+    var w = window, hops = 0;
     try {
-      var cfg = window.parent.LINKPILOT_EMBED;
-      if (!cfg) { state.reason = '부모가 LINKPILOT_EMBED 를 채우지 않았습니다'; return null; }
-      return cfg;
+      while (w.parent && w.parent !== w && hops < 8) {
+        w = w.parent; hops++;
+        var cfg = w.LINKPILOT_EMBED;          // 다른 출처면 여기서 예외
+        if (cfg) return cfg;
+      }
+      state.reason = '조상 ' + hops + '단계 어디에도 LINKPILOT_EMBED 가 없습니다';
+      return null;
     } catch (e) {
       // 같은 출처가 아니면 여기로 온다. 화면이 「설정 없이」 뜨는 진짜 이유다
-      state.reason = '부모를 읽을 수 없습니다 — 같은 출처가 아닙니다 (' + e.name + ')';
+      state.reason = '부모를 읽을 수 없습니다 — 같은 출처가 아닙니다 (' + e.name + ', ' + hops + '단계)';
       return null;
     }
   }
@@ -205,10 +221,37 @@
 
     var last = 0;
     var timer = null;
+    /**
+     * ★★★ **`scrollHeight` 는 화면 높이보다 작아지지 않는다** 〈2026-08-23 · 실제 사고〉.
+     *
+     *   사장님 화면이 **조금씩 계속 내려갔다.** 빈 칸이 끝없이 늘어났다.
+     *
+     *   왜: 부모가 이 값에 여백을 더해 iframe 높이를 잡는다. 그러면 자식의
+     *   **화면(viewport)이 그만큼 커지고**, `documentElement.scrollHeight` 는
+     *   **화면 높이 아래로 내려가지 않으므로** 다음 번에 그 커진 값을 그대로
+     *   되돌려준다. 부모가 또 여백을 더한다 — **한 바퀴에 여백만큼씩 영원히 자란다.**
+     *
+     *   ★ 「값이 안 바뀌면 안 보낸다」는 이 고리를 **못 막는다.** 매번 여백만큼
+     *     **진짜로 바뀌기** 때문이다. 막는 장치가 있었는데 이 결에는 안 들었다.
+     *
+     * ★ 그래서 **내용 높이**를 잰다. `height:auto` 인 문서 뿌리(`documentElement`)의
+     *   테두리 상자는 내용만큼이고 **화면 높이에 눌리지 않는다.**
+     *   못 재면 옛 방식으로 물러선다.
+     *
+     *   ※ 이 주석에 **여는 html 태그를 글자 그대로 적지 않는다.** 조각
+     *     검사(`build-files.js`)가 주석을 가리지 않고 보기 때문에 진짜
+     *     문서로 오인해 올리기를 거부한다 (CLAUDE.md §8).
+     */
+    function contentHeight() {
+      var el = document.documentElement;
+      if (el && el.getBoundingClientRect) {
+        var r = el.getBoundingClientRect();
+        if (r && r.height > 0) return Math.ceil(r.height);
+      }
+      return Math.max(el ? el.scrollHeight : 0, document.body ? document.body.scrollHeight : 0);
+    }
     function tell() {
-      var h = Math.max(
-        document.documentElement ? document.documentElement.scrollHeight : 0,
-        document.body ? document.body.scrollHeight : 0);
+      var h = contentHeight();
       if (!h || Math.abs(h - last) < 4) return;    // 4px 미만은 알리지 않는다
       last = h;
       try {
@@ -228,6 +271,7 @@
   }());
 
   window.LinkPilotEmbed = {
+    BUILD: LP_BUILD,
     global: name,
     applied: state.applied,
     reason: state.reason,

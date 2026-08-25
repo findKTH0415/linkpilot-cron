@@ -269,19 +269,22 @@ test('업종코드를 남긴다 (KOSIS 업종을 고를 근거가 된다)', () =
 /* ═════════ ⑤ 구조 · 쿼터 · 시크릿 ═════════ */
 
 /**
- * ★ data.go.kr 의 일 10,000건 한도는 **인증키 전체**에 걸린다. 버킷을 API 마다
- *   쪼개면 각각 10,000 까지 세어 실제로는 두 배를 쓰고도 한도에 안 걸린 것으로
- *   보인다 — 소진은 조회 실패로만 나타나고 그때는 이미 그날 치가 없다.
+ * ★★★ **쿼터 통을 갈래로 나눴다** 〈2026-08-23 실측 · D-85〉.
+ *
+ *   앞 판의 이 검사는 「한도는 API 별이 아니라 **인증키 전체**에 걸린다」는 믿음
+ *   위에 서 있었다. **틀렸다.** data.go.kr 활용신청 화면이 「일일 트래픽」을
+ *   **상세기능(오퍼레이션)마다** 1,000 으로 적어 준다.
+ *
+ *   ★ 한 통으로 두면 계량기가 거짓말을 한다 — 우리가 「여유 있다」고 말하는 동안
+ *     상대는 이미 끊는다. 그리고 아홉 커넥터가 **한꺼번에** 막힌다.
+ *   ★ 그래서 `data.go.kr:<갈래>` 로 나눈다. 앞부분이 같으므로 기관 단위 설정
+ *     (`IM_AGENT_QUOTA_DATA_GO_KR`)은 그대로 먹는다.
  */
-test('★ data.go.kr 커넥터가 쿼터 버킷을 공유한다', () => {
-  const dir = path.join(__dirname, '..', 'connectors');
-  const shared = ['molit', 'kpx', 'fsc', 'g2b', 'factory'];
-  shared.forEach((name) => {
-    const src = fs.readFileSync(path.join(dir, `${name}.js`), 'utf8');
-    const m = src.match(/^const PROVIDER = '([^']+)'/m);
-    assert.strictEqual(m && m[1], 'data.go.kr',
-      `${name}: 버킷이 갈라져 있다 — 한도는 API 별이 아니라 키 전체에 걸린다`);
-  });
+test('★★ 쿼터 통이 data.go.kr 갈래로 나뉘어 있다', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'connectors', 'factory.js'), 'utf8');
+  const m = src.match(/^const PROVIDER = '([^']+)'/m);
+  assert.strictEqual(m && m[1], 'data.go.kr:factory',
+    '한 통으로 되돌리면 아홉 커넥터가 한꺼번에 막힌다');
 });
 
 test('★ 캐시를 통과한다', async () => {

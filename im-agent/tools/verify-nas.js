@@ -77,7 +77,11 @@ function localChecks() {
   // ★ 숫자를 손으로 적어 둔다 — **일부러** 그렇게 한다. 표에서 세면 길이 조용히
   //   사라져도 통과한다. 길을 더하거나 뺄 때 여기도 같이 고치는 것이 그 확인이다.
   //   (2026-08-21: 자료 스캔 길이 늘어 28 → 29)
-  const WANT = 29;
+  //   (2026-08-24: 목록 접기 `PUT /projects/:id/hidden` 이 늘어 29 → 30.
+  //    ★ 지우는 길이 아니다 — 목록에서만 접는다)
+  //   (2026-08-24: `GET /projects/:id/scan/progress` 가 늘어 30 → 31.
+  //    ★ 스캔 요청은 다 읽어야 답한다 — 진행은 다른 문으로 물어야 한다)
+  const WANT = 31;
   add('라우트 표', n === WANT ? 'ok' : 'fail',
     `읽기 ${A.ROUTES.length} · 쓰기 ${W.ROUTES.length} = ${n}` + (n === WANT ? '' : ` (${WANT} 이어야 한다)`));
 }
@@ -104,9 +108,23 @@ async function remoteChecks() {
     add('읽기 API(intake)', r.status === 200 ? 'ok' : 'fail', String(r.status));
   });
 
-  // ★ 인증은 **서버가** 막는다. 200 이 오면 그게 사고다
+  /* ★ 인증은 **서버가** 막는다. 200 이 오면 그게 사고다.
+   *
+   * ★★★ **404 를 「인증이 안 막는다」로 적지 않는다** 〈2026-08-23 · 실제로 헷갈렸다〉.
+   *   이 줄은 `POST /projects` 를 두드린다. 404 가 오면 그것은 **인증 이야기가
+   *   아니라 그 길이 아예 없다는 뜻**이다. 앞 판은 401 이 아니면 전부
+   *   「무인증 쓰기 → 401 실패」로 적었고, 나는 그것을 읽고 **인증 설정을
+   *   의심했다** — 실제로는 쓰기 라우터가 통째로 안 걸려 있었다.
+   *   ★ 그리고 그 오해가 **번졌다**: 아래에서 쓰기 16개를 「인증이 안 막아서」
+   *     건너뛰었다고 적는데, 진짜 이유는 「길이 없어서」다. 틀린 이유를 적으면
+   *     사람이 그 이유부터 판다 (M-24 · M-28 과 같은 종류). */
   await tryOne('무인증 쓰기 → 401', async () => {
     const r = await http(API + '/projects', { method: 'POST' });
+    if (r.status === 404) {
+      add('쓰기 API(POST /projects)', 'fail',
+        '404 — **그 길이 없다.** 인증 문제가 아니라 쓰기 라우터가 안 걸렸다');
+      return;
+    }
     add('무인증 쓰기 → 401', r.status === 401 ? 'ok' : 'fail',
       r.status === 200 ? `${r.status} — 인증 없이 열려 있다` : String(r.status));
   });
@@ -180,6 +198,9 @@ function probePath(p) {
 async function routeChecks(tryOne) {
   const all = [...A.ROUTES.map(r => ({ ...r, side: '읽기' })), ...W.ROUTES.map(r => ({ ...r, side: '쓰기' }))];
   const writesBlocked = rows.some(r => r.name === '무인증 쓰기 → 401' && r.state === 'ok');
+  /* ★ **왜 못 두드리는지**를 갈라 적는다. 「인증이 안 막아서」와 「길이 없어서」는
+     고칠 곳이 다르다 — 틀린 이유를 적으면 사람이 그쪽부터 판다 〈2026-08-23〉 */
+  const writesGone = rows.some(r => r.name === '쓰기 API(POST /projects)' && r.state === 'fail');
 
   /* ★ 대조군 — **분명히 없는 길**을 하나 두드려 그 응답을 기억한다.
      라우터가 「없다」고 할 때 어떻게 말하는지를 서버에게 직접 물어보는 것이다.
@@ -219,7 +240,12 @@ async function routeChecks(tryOne) {
     miss ? `${miss}개가 404 — ${missing.slice(0, 6).join(' · ')}${missing.length > 6 ? ' …' : ''}`
       : `${asked}개 확인${skipped ? ` · ${skipped}개는 인증이 안 막혀 안 두드렸다` : ''}`);
   // 인증이 안 막고 있어서 쓰기를 통째로 건너뛴 것은 **통과가 아니다**
-  if (skipped) add('쓰기 라우트를 두드리지 못했다', 'skip', `${skipped}개 — 무인증 쓰기가 401 이 아니다`);
+  if (skipped) {
+    add('쓰기 라우트를 두드리지 못했다', 'skip', `${skipped}개 — `
+      + (writesGone
+        ? '**쓰기 라우터가 안 걸려 있다** (POST /projects 가 404). 인증 문제가 아니다'
+        : '무인증 쓰기가 401 이 아니다'));
+  }
 }
 
 (async () => {

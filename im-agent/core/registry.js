@@ -28,6 +28,11 @@ const AGENTS = {
   '04_financial':  { order: 5, label: 'Financial Agent',          enabled: true,  confidenceThreshold: 0.9, approvalRule: 'auto',      module: '../agents/04-financial' },
   '08_appraisal':  { order: 6, label: 'Appraisal Agent (감정평가)', enabled: true,  confidenceThreshold: 0.6, approvalRule: 'threshold', module: '../agents/08-appraisal' },
   '09_massing':    { order: 7, label: 'Massing / 3D Agent',       enabled: true,  confidenceThreshold: 0.5, approvalRule: 'auto',      module: '../agents/09-massing' },
+  /* ★★ **둘을 합친 자리다** 〈2026-08-25 · D-101〉. 두 갈래가 각자
+   *   `12_sketchup_plan` 을 만들었다. 계획(무엇을 만들 수 있는가)과
+   *   요청(무엇을 만들어 달라고 적는가)은 한 계획서의 두 절이라 한 Agent 로
+   *   합쳤고, 결과 수령은 `13_sketchup_intake` 가 따로 맡는다.
+   * ★ order 는 정수로 다시 매겼다 — 소수 order 는 읽는 사람이 「임시」로 읽는다 */
   '12_sketchup_plan':   { order: 8, label: 'SketchUp Plan Agent (모델 계획)',   enabled: true, confidenceThreshold: 0.5, approvalRule: 'auto', module: '../agents/12-sketchup-plan' },
   '13_sketchup_intake': { order: 9, label: 'SketchUp Intake Agent (결과 수령)', enabled: true, confidenceThreshold: 0.5, approvalRule: 'auto', module: '../agents/13-sketchup-intake' },
   '05_validation': { order: 10, label: 'Cross Validation Agent',  enabled: true,  confidenceThreshold: 0.7, approvalRule: 'auto',      module: '../agents/05-validation' },

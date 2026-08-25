@@ -58,6 +58,24 @@ async function runAgent(agentId, input, ctx) {
           activity: result.error || (result.warnings.length ? result.warnings[0] : '완료'),
         });
       } catch (_) { /* 모니터 실패가 실행을 막지 않는다 */ }
+      /**
+       * ★★★ **실패한 까닭을 활동 기록에도 남긴다** 〈2026-08-24 · 실제로 당했다〉.
+       *
+       *   화면의 활동 기록은 `activity.jsonl` 만 읽는다. 그런데 여기 쌓이는 것은
+       *   ctx.warn 과 ctx.activity 뿐이었다 — **죽은 까닭은 한 줄도 안 들어갔다.**
+       *   그래서 사장님 화면에는 「생성 중 문제가 생겼습니다」만 뜨고, 로그에는
+       *   경고 몇 줄만 남아 **무엇이 멈췄는지 아무도 알 수 없었다.**
+       *
+       * ★ 상태는 monitor 안에 있었다. 없어서 못 본 것이 아니라 **안 옮겨서**
+       *   못 본 것이다 — 조용히 죽는 것과 결과가 같다.
+       */
+      if (status === STATUS.ERROR || status === STATUS.BLOCKED) {
+        try {
+          monitor.activity(ctx.projectId, agentId,
+            `${status === STATUS.ERROR ? '실패' : '막힘'}: ${result.error || '까닭이 기록되지 않았다'}`,
+            { level: 'ERROR' });
+        } catch (_) { /* 기록 실패가 실행을 막지 않는다 */ }
+      }
     }
     if (ctx && typeof ctx.log === 'function') {
       const icon = { complete: '●', warning: '▲', needs_review: '◐', blocked: '■', skipped: '○', error: '✕' }[status] || '·';

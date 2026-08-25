@@ -184,8 +184,11 @@ test('GET /projects 는 선택에 필요한 항목만 내보낸다', async () =>
   assert.strictEqual(r.body.projects.length, 1);
   // ★ `externalId` 는 **앱의 딜 키**다 — 딜 내용이 아니라 이름표다.
   //   앱이 자기 목록과 맞춰 보려면 있어야 한다 (프로젝트-연결-규칙 §3).
+  /* ★ `hidden`·`hiddenAt` 은 **목록에서 접었는지**다 〈2026-08-24〉 — 딜 내용이
+   *   아니라 화면 정리용 표시다. 서버가 접힌 것을 빼 버리면 되돌릴 길이
+   *   없으므로, 빼지 않고 **표시만** 해서 내보낸다 */
   assert.deepStrictEqual(Object.keys(r.body.projects[0]).sort(),
-    ['assetType', 'externalId', 'id', 'name', 'status'],
+    ['assetType', 'externalId', 'hidden', 'hiddenAt', 'id', 'name', 'status'],
     '딜 내용(금액·스폰서)이 목록 API 로 새어 나가면 안 된다');
   // 새면 안 되는 것을 **이름으로도** 못 박아 둔다 — 키 목록만 보면
   // 나중에 항목이 늘 때 무심코 통과시킨다

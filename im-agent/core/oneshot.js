@@ -70,6 +70,80 @@ function log(projectDir, entry) {
   } catch (_) { return false; }
 }
 
+/* ────────────────────────── 같은 자료 겹치기 ────────────────────────── */
+
+/**
+ * ★★★ **같은 파일을 다시 올리면 줄이 하나 더 생겼다** 〈2026-08-23 사장님:
+ *   「중복파일 쌓이는 문제 해결해줘」〉.
+ *
+ *   OCR 이 꺼져 있던 동안 사장님이 같은 자료를 여러 번 올려 보셨다. 그때마다
+ *   장부에 줄이 하나씩 붙어 **같은 이름이 여덟 줄**이 되었다. 화면은 그것을
+ *   「같은 이름의 자료가 여덟 개」로 보여 주었고, **고를 것이 없는데 고르라는
+ *   말**이 되었다.
+ *
+ * ★ 지문(sha256)이 같으면 **같은 파일이다** — 판이 둘인 것이 아니다.
+ *   그러니 한 줄로 접되, **몇 번 올렸는지·처음이 언제였는지는 남긴다.**
+ *   접는 것과 지우는 것은 다르다 (§4.9 — 대체값으로 메우지 않는다).
+ *
+ * ★ 지문이 **다르면 안 접는다.** 이름만 같고 내용이 다른 것은 진짜 판 충돌이고,
+ *   그것을 접으면 틀린 판으로 보고서를 만들게 된다 — 이 장부가 막으려던 바로 그 일이다.
+ * ★ 지문이 **없으면 안 접는다.** 같은지 알 수 없는 것을 같다고 하지 않는다.
+ * ★ 낱낱의 업로드 시각은 `oneshot-log.jsonl` 에 그대로 남는다. 여기서 접어도
+ *   **일어난 일의 기록이 사라지지는 않는다.**
+ *
+ * ★★ **이름이 아니라 지문으로 가른다** 〈같은 날 · 실제 화면에서 그랬다〉.
+ *
+ *   사장님 화면에 `…인세티브(1).png` 와 `…인세티브(2).png` 가 번갈아 여덟 줄
+ *   있었다. **맥이 같은 파일을 두 번 내려받으면서 붙인 번호**였고 내용은 같은
+ *   파일이다. 이름으로 가르면 이 둘이 「판이 둘」로 남아, **고를 것이 없는데
+ *   고르라는 말**이 그대로 남는다.
+ *
+ * ★ 지문이 같으면 바이트가 같다 — 이름이 달라도 같은 파일이다.
+ *   다른 이름은 버리지 않고 `alsoNamed` 로 함께 남긴다.
+ */
+
+/** 접는 기준. **지문뿐이다** — 지문이 없으면 `null` 을 돌려 안 접게 한다 */
+function keyOf(item) {
+  const fp = item && item.fingerprint && item.fingerprint.value;
+  if (!fp) return null;
+  return String(fp);
+}
+
+/** 같은 지문을 한 줄로 접는다. **처음 나온 자리를 지킨다** */
+function mergeItems(items) {
+  const out = [];
+  const at = new Map();
+  (Array.isArray(items) ? items : []).forEach((it) => {
+    if (!it || typeof it !== 'object') return;
+    const k = keyOf(it);
+    if (k === null) { out.push(it); return; }   // 지문이 없으면 접지 않는다
+    const seen = at.get(k);
+    if (seen === undefined) {
+      at.set(k, out.length);
+      out.push(Object.assign({}, it, {
+        times: it.times || 1,
+        firstReadAt: it.firstReadAt || it.readAt || null,
+        alsoNamed: Array.isArray(it.alsoNamed) ? it.alsoNamed.slice() : [],
+      }));
+      return;
+    }
+    const prev = out[seen];
+    prev.times += (it.times || 1);
+    /* ★ 시각은 `2026-08-23T20:31:00+09:00` 로 폭이 고정이라 글자 비교로 앞뒤가 난다 */
+    const last = it.readAt || null;
+    if (last && (!prev.readAt || last > prev.readAt)) prev.readAt = last;
+    const first = it.firstReadAt || it.readAt || null;
+    if (first && (!prev.firstReadAt || first < prev.firstReadAt)) prev.firstReadAt = first;
+    if (!prev.by && it.by) prev.by = it.by;
+    /* ★ 이름이 다르면 **버리지 않고 함께 적는다.** 맥의 `(1)`·`(2)` 처럼
+     *   같은 파일이 다른 이름으로 들어온 것을 나중에도 알 수 있어야 한다 */
+    const other = it.original || it.name;
+    if (other && other !== (prev.original || prev.name)
+        && prev.alsoNamed.indexOf(other) === -1) prev.alsoNamed.push(other);
+  });
+  return out;
+}
+
 /* ────────────────────────── 받기 ────────────────────────── */
 
 /**
@@ -129,8 +203,15 @@ function accept(projectDir, files, opts = {}) {
     out.push({ name, path: full, size: buf.length, ext: path.extname(name).toLowerCase() });
   }
 
+  /* ★ 접어서 쓴다 — 안 그러면 같은 파일을 올릴 때마다 장부가 자란다.
+   *   낱낱의 업로드는 바로 아래 `log()` 가 그대로 남긴다 */
+  const before = ledger.items.length;
+  ledger.items = mergeItems(ledger.items);
   write(projectDir, ledger);
-  log(projectDir, { action: 'accept', got: accepted.length, rejected: rejected.length, by: opts.by || null });
+  log(projectDir, {
+    action: 'accept', got: accepted.length, rejected: rejected.length,
+    collapsed: before - ledger.items.length, by: opts.by || null,
+  });
 
   let disposed = false;
   const dispose = () => {
@@ -153,8 +234,13 @@ function accept(projectDir, files, opts = {}) {
 /** 이 프로젝트에 1회성으로 들어온 자료의 기록. **파일은 없다** */
 function list(projectDir) {
   const ledger = read(projectDir);
+  /* ★ 읽을 때도 접는다. 그래야 **이미 여덟 줄로 쌓여 있던 장부**도 지금 바로
+   *   한 줄로 보인다 — 다음 업로드를 기다리지 않는다 */
+  const items = mergeItems(ledger.items);
   return {
-    items: ledger.items,
+    items,
+    // 몇 줄을 접었는지 — 화면이 「기록이 여러 벌인 것이 아니다」를 말할 수 있다
+    collapsed: ledger.items.length - items.length,
     // 화면이 이 값을 보고 「다시 올려야 합니다」를 띄운다
     reusable: false,
     at: kstStamp(),
@@ -204,6 +290,16 @@ function citation(item) {
     item.readAt ? `${item.readAt.slice(0, 10)} 읽음` : '읽지 않음',
   ];
   if (item.fingerprint) bits.push(`sha256 ${item.fingerprint.value.slice(0, 12)}`);
+  /* ★ 여러 번 올린 것은 그 사실을 적는다. **같은 파일이라 한 줄로 접었다**는
+   *   것을 출처가 말해야, 화면에서 줄이 준 이유를 나중에도 알 수 있다 */
+  if (item.times > 1) {
+    bits.push(`${item.times}번 올림${item.firstReadAt ? ` · 처음 ${item.firstReadAt.slice(0, 10)}` : ''}`);
+  }
+  /* ★ 같은 파일이 다른 이름으로도 들어왔으면 그 이름을 적는다 — 나중에
+   *   「그 파일 이름이 뭐였더라」로 원본을 찾을 때 이것뿐이다 */
+  if (Array.isArray(item.alsoNamed) && item.alsoNamed.length) {
+    bits.push(`다른 이름: ${item.alsoNamed.join(' · ')}`);
+  }
   // ★ 원본을 다시 확인할 수 없다는 것을 출처가 말한다. 이것이 연결과 갈리는 점이다
   bits.push('사본 보관 안 함 · 원본 재확인 불가');
   return bits.join(' · ');
@@ -211,6 +307,6 @@ function citation(item) {
 
 module.exports = {
   LEDGER, LOG, LEDGER_VERSION, KIND,
-  read, write, accept, list, citation,
+  read, write, accept, list, citation, mergeItems, keyOf,
   cannotVerify, cannotReuse,
 };

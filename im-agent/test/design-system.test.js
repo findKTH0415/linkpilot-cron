@@ -67,7 +67,10 @@ test('★★ 디자인 시스템: 화면이 브랜드 색을 직접 적지 않�
 
 test('★ 디자인 시스템: 화면이 tokens.css 를 부른다', () => {
   SCREENS.forEach((f) => {
-    assert.match(read(f), /<link rel="stylesheet" href="tokens\.css">/, `${f}: 토큰을 안 부른다`);
+    /* ★ 주소 뒤에 판 표시(`?v=…`)가 붙는다 〈2026-08-23 · D-93〉 — 글자 그대로
+     *   대면 **부르고 있는데 안 부른다고** 말한다 */
+    assert.match(read(f), /<link rel="stylesheet" href="tokens\.css(\?v=[0-9a-f]*)?">/,
+      `${f}: 토큰을 안 부른다`);
   });
 });
 

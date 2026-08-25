@@ -3,8 +3,10 @@
  * cache.js — 공공데이터 응답 캐시 + 일일 호출 쿼터.
  *
  * CLAUDE.md 규칙:
- *   "data.go.kr 계열은 일 10,000건 호출 한도 → 호출 수를 최소화하고 결과를 캐시한다.
+ *   "data.go.kr 계열은 호출 한도가 있다 → 호출 수를 최소화하고 결과를 캐시한다.
  *    동일 데이터 재호출 금지."
+ *
+ * ★ 한도는 **기관 묶음이 아니라 그 안의 갈래마다** 센다 (아래 `FAMILY_QUOTA`).
  *
  * 이 모듈이 그 규칙을 강제한다. Connector는 반드시 이곳을 통과해야 한다.
  *  - 캐시 히트면 네트워크를 타지 않고 쿼터도 소모하지 않는다.
@@ -18,6 +20,45 @@ const crypto = require('crypto');
 const { kstDate, kstStamp } = require('../core/kst');
 
 const DEFAULT_QUOTA = 10000;
+
+/**
+ * ★★★ **한도는 기관 묶음이 아니라 그 안의 갈래마다 센다** 〈2026-08-23 결정 · D-85〉.
+ *
+ *   data.go.kr 은 **상세기능(오퍼레이션) 하나마다** 하루치를 센다. 개발계정은
+ *   대개 **1,000건**이다. 그런데 앞 판은 `data.go.kr` 을 **한 통**으로 두고
+ *   10,000 을 재고 있었다 — 그 통을 쓰는 커넥터가 **아홉**이다(실거래가·조달청·
+ *   REC·법인·공장등록·수출입·환경·국민연금·국세).
+ *
+ *   ★ 나쁜 것은 숫자가 큰 것이 아니라 **계량기가 거짓말을 하는 것**이다.
+ *     우리가 「3,000 썼다, 여유 있다」고 말하는 동안 상대는 이미 1,000 에서
+ *     끊는다. 그러면 증상은 「조회 실패」로만 뜨고 **한도 때문인지 아닌지가
+ *     화면에서 구분되지 않는다.**
+ *
+ *   ★ 그래서 통을 `data.go.kr:g2b` 처럼 **갈래로 나눈다.** 한 곳이 다 써도 다른
+ *     곳은 그대로 돈다. 진짜 단위는 오퍼레이션마다이므로 이것도 정확하지는
+ *     않지만 **우리 쪽이 더 보수적**이다 — 안전한 방향의 오차다.
+ *
+ *   ★ 운영계정으로 올리면 한도가 커진다. 그때는 `IM_AGENT_QUOTA_DATA_GO_KR_G2B`
+ *     처럼 환경변수로 올린다 — 코드는 안 건드린다.
+ */
+const FAMILY_QUOTA = {
+  'data.go.kr': 1000,   // 개발계정 기준. 운영계정이면 환경변수로 올린다
+};
+
+/** 통 이름의 앞부분(기관). `data.go.kr:g2b` → `data.go.kr` */
+function familyOf(provider) {
+  return String(provider).split(':')[0];
+}
+
+/**
+ * 환경변수 이름으로 쓸 수 있게 다듬는다.
+ * ★ `.` `:` 는 환경변수 이름에 못 쓴다. 앞 판은 `provider.toUpperCase()` 를 그대로
+ *   붙여 `IM_AGENT_QUOTA_DATA.GO.KR` 을 찾고 있었다 — **셸에서 만들 수 없는 이름**이라
+ *   그 덮어쓰기는 한 번도 동작한 적이 없다.
+ */
+function envName(provider) {
+  return String(provider).toUpperCase().replace(/[^A-Z0-9]+/g, '_');
+}
 
 /** TTL 기본값(초) — 데이터 성격별로 다르게 준다 */
 const TTL = {
@@ -106,10 +147,24 @@ function readQuota() {
   return { date: today, counts: {} };
 }
 
+/**
+ * 이 통의 하루 한도.
+ * 고르는 차례: **갈래 지정 > 기관 지정 > 전체 지정 > 기관 기본값 > 전체 기본값**.
+ * 좁은 것이 넓은 것을 이긴다 — 안 그러면 한 곳만 올리려다 전부 올라간다.
+ */
 function limitFor(provider) {
-  const envKey = `IM_AGENT_QUOTA_${provider.toUpperCase()}`;
-  const v = Number(process.env[envKey] || process.env.IM_AGENT_QUOTA || DEFAULT_QUOTA);
-  return Number.isFinite(v) && v > 0 ? v : DEFAULT_QUOTA;
+  const fam = familyOf(provider);
+  const pick = [
+    process.env[`IM_AGENT_QUOTA_${envName(provider)}`],
+    fam !== provider ? process.env[`IM_AGENT_QUOTA_${envName(fam)}`] : null,
+    process.env.IM_AGENT_QUOTA,
+  ].filter((x) => x !== null && x !== undefined && String(x).trim() !== '')[0];
+
+  if (pick !== undefined) {
+    const v = Number(pick);
+    if (Number.isFinite(v) && v > 0) return v;
+  }
+  return FAMILY_QUOTA[fam] || DEFAULT_QUOTA;
 }
 
 function used(provider) {
@@ -125,7 +180,14 @@ function checkQuota(provider, need = 1) {
   const limit = limitFor(provider);
   const current = used(provider);
   if (current + need > limit) {
-    return { allowed: false, reason: `${provider} 일일 호출 한도 소진 (${current}/${limit}, KST ${kstDate()})`, used: current, limit };
+    /* ★ **어느 통이 막혔는지**를 적는다. 「data.go.kr 한도 소진」만 적으면 아홉 중
+       어느 것을 아껴야 하는지 알 수 없다. 올리는 법도 함께 적는다 (§4.7) */
+    return {
+      allowed: false,
+      reason: `${provider} 일일 호출 한도 소진 (${current}/${limit}, KST ${kstDate()}). `
+        + `한도를 올리려면 IM_AGENT_QUOTA_${envName(provider)} 를 준다`,
+      used: current, limit,
+    };
   }
   return { allowed: true, used: current, limit };
 }

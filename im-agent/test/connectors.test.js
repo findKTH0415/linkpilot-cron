@@ -567,3 +567,180 @@ test('★ 폐기된 건축물대장 엔드포인트를 부르지 않는다', () 
     'BldRgstService_v2 는 폐기되었다 — 키가 멀쩡해도 자료가 안 온다');
   assert.match(src, /BldRgstHubService/, '현행 엔드포인트를 써야 한다');
 });
+
+/**
+ * ★★★ **쿼터 통은 갈래마다 따로 센다** 〈2026-08-23 실측 · D-85〉.
+ *
+ *   data.go.kr 은 **상세기능(오퍼레이션)마다** 하루치를 세고, 개발계정은 1,000건이다.
+ *   앞 판은 아홉 커넥터가 `data.go.kr` **한 통**을 같이 쓰고 한도를 10,000 으로
+ *   재고 있었다 — 계량기가 「여유 있다」고 말하는 동안 상대는 이미 끊는다.
+ */
+test('★★★ 통이 갈래마다 따로 세어지고, 기본값이 1,000 이다', () => {
+  const cache = require('../connectors/cache.js');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'q-'));
+  const keep = process.env.IM_AGENT_CACHE;
+  process.env.IM_AGENT_CACHE = root;
+  try {
+    /* ① 갈래가 다르면 서로를 안 막는다 */
+    cache.consume('data.go.kr:g2b', 5);
+    assert.strictEqual(cache.used('data.go.kr:g2b'), 5);
+    assert.strictEqual(cache.used('data.go.kr:molit'), 0, '한 갈래가 다른 갈래를 물들인다');
+
+    /* ② 기관 기본값이 개발계정 한도다 */
+    assert.strictEqual(cache.remaining('data.go.kr:g2b'), 1000 - 5);
+
+    /* ③ 기관 밖은 그대로 */
+    assert.strictEqual(cache.remaining('vworld'), 10000);
+  } finally {
+    if (keep === undefined) delete process.env.IM_AGENT_CACHE;
+    else process.env.IM_AGENT_CACHE = keep;
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+/**
+ * ★ 환경변수로 올릴 수 있어야 한다 — **운영계정으로 바꾸면 한도가 커진다.**
+ *   그때 코드를 고치게 두면 결국 아무도 안 고친다.
+ *   ★ 이름에 `.` `:` 를 그대로 쓰면 **셸에서 만들 수 없는 이름**이 된다.
+ *     앞 판이 그랬고, 그래서 그 덮어쓰기는 한 번도 동작한 적이 없다.
+ */
+test('★★ 한도를 환경변수로 올릴 수 있다 (좁은 것이 넓은 것을 이긴다)', () => {
+  const cache = require('../connectors/cache.js');
+  const keep = { ...process.env };
+  try {
+    /* ★ 이미 쓴 만큼을 빼고 비교한다 — 앞선 검사가 남긴 카운트에 기대지 않는다 */
+    const g = cache.used('data.go.kr:g2b');
+    const m = cache.used('data.go.kr:molit');
+
+    process.env.IM_AGENT_QUOTA_DATA_GO_KR = '3000';
+    assert.strictEqual(cache.remaining('data.go.kr:g2b'), 3000 - g, '기관 단위 설정이 안 먹는다');
+
+    process.env.IM_AGENT_QUOTA_DATA_GO_KR_G2B = '9000';
+    assert.strictEqual(cache.remaining('data.go.kr:g2b'), 9000 - g, '갈래 설정이 기관 설정을 못 이긴다');
+    assert.strictEqual(cache.remaining('data.go.kr:molit'), 3000 - m, '갈래 설정이 옆 갈래까지 물들인다');
+  } finally {
+    delete process.env.IM_AGENT_QUOTA_DATA_GO_KR;
+    delete process.env.IM_AGENT_QUOTA_DATA_GO_KR_G2B;
+    Object.assign(process.env, keep);
+  }
+});
+
+/**
+ * ★★★ **`.env` 를 놓아도 엔진이 안 읽고 있었다** 〈2026-08-23 · 실제 사고〉.
+ *
+ *   사장님께 「NAS 의 엔진 루트에 `.env` 를 만들고 GEMINI_API_KEY 를 넣으십시오」
+ *   라고 안내했다. **그렇게 해도 아무 일도 안 일어났을 것이다** —
+ *   `env.load()` 를 부르는 곳이 `cli.js` 와 스모크 도구 **둘뿐**이었고,
+ *   실제 서비스를 도는 NAS 엔진 서버는 그것을 안 불렀다.
+ *
+ * ★ 그러면 「키를 넣었는데 여전히 꺼져 있다」가 되고, **그 이유는 어디에도
+ *   안 보인다.** 사람은 키를 의심하고 다시 만들고 또 넣는다.
+ * ★ 그래서 키를 **읽는 쪽**이 스스로 올린다. 어느 입구로 들어오든 같다.
+ */
+test('★★★ 키를 읽는 쪽이 스스로 .env 를 올린다 (엔진도 읽는다)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const root = require('../core/env').repoRoot();
+
+  const llm = fs.readFileSync(path.join(root, 'im-agent', 'core', 'llm.js'), 'utf8');
+  const envAt = llm.indexOf("require('./env').ensure()");
+  const keyAt = llm.indexOf('process.env.GEMINI_API_KEY');
+  assert.ok(envAt > -1, 'llm.js 가 .env 를 안 올린다 — 엔진에서는 영영 오프라인이다');
+  assert.ok(envAt < keyAt,
+    '키를 읽은 뒤에 올린다 — KEYS 는 부르는 순간 정해지므로 소용이 없다');
+
+  const http = fs.readFileSync(path.join(root, 'im-agent', 'connectors', 'http.js'), 'utf8');
+  assert.ok(http.indexOf("require('../core/env').ensure()") > -1,
+    'connectors/http.js 가 .env 를 안 올린다 — 커넥터가 전부 「키 없음」으로 건너뛴다');
+});
+
+test('★★ 여러 번 올려도 한 번만 읽는다 (부르는 곳이 늘어도 안전하다)', () => {
+  const env = require('../core/env');
+  assert.strictEqual(typeof env.ensure, 'function');
+  assert.strictEqual(env.ensure(), env.ensure(), '부를 때마다 새로 읽는다');
+});
+
+test('★★★ .env 를 놓으면 실제로 켜진다 (놓았다 지워 보고 잰다)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const { execFileSync } = require('child_process');
+  const root = require('../core/env').repoRoot();
+  const dotenv = path.join(root, '.env');
+
+  /* ★ 이미 있으면 **건드리지 않는다** — 남의 키를 지우면 안 된다 */
+  if (fs.existsSync(dotenv)) return;
+
+  const run = () => execFileSync(process.execPath, ['-e',
+    "delete process.env.IM_AGENT_OFFLINE;"
+    + "process.stdout.write(String(require(process.argv[1]).isOffline()))",
+    path.join(root, 'im-agent', 'core', 'llm.js'),
+  ], { encoding: 'utf8' });
+
+  try {
+    fs.writeFileSync(dotenv, 'GEMINI_API_KEY=AIzaTESTONLY0000000000\n');
+    assert.strictEqual(run(), 'false', '.env 를 놓았는데 여전히 오프라인이다');
+  } finally {
+    fs.rmSync(dotenv, { force: true });
+  }
+  assert.strictEqual(run(), 'true', '.env 를 지웠는데 켜져 있다고 한다');
+});
+
+/**
+ * ★★★ **점 없는 이름도 받는다** 〈2026-08-23 · 실제로 막혔다〉.
+ *
+ *   「File Station 에서 `.env` 를 만드십시오」라고 안내했는데
+ *   **File Station 의 [생성] 에는 「폴더」밖에 없다.** 파일을 만드는 메뉴가
+ *   아예 없어서 `env` 라는 **폴더**가 만들어졌다.
+ *
+ * ★ 점으로 시작하는 이름은 NAS 화면에서 기본으로 숨겨지고 만들기도 어렵다.
+ *   사람을 탓할 자리가 아니라 **우리가 받아 주어야 하는 자리**다.
+ */
+test('★★★ .env 가 없으면 linkpilot.env 를 읽는다 (점 없는 이름)', () => {
+  const fs = require('fs');
+  const os = require('os');
+  const path = require('path');
+  const env = require('../core/env');
+
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'im-envname-'));
+  try {
+    assert.strictEqual(path.basename(env.pick(dir)), '.env',
+      '둘 다 없으면 .env 자리를 가리켜야 한다');
+
+    fs.writeFileSync(path.join(dir, 'linkpilot.env'), 'A=1\n');
+    assert.strictEqual(path.basename(env.pick(dir)), 'linkpilot.env');
+
+    fs.writeFileSync(path.join(dir, '.env'), 'A=2\n');
+    assert.strictEqual(path.basename(env.pick(dir)), '.env',
+      '둘 다 있으면 .env 가 이겨야 한다 — 앞서 쓰던 사람이 놀라면 안 된다');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('★★★ 같은 이름의 **폴더**가 있어도 넘어간다 (실제로 그렇게 만들어졌다)', () => {
+  const fs = require('fs');
+  const os = require('os');
+  const path = require('path');
+  const env = require('../core/env');
+
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'im-envdir-'));
+  try {
+    /* 사장님 화면에 실제로 만들어진 모양 — `env` 폴더 */
+    fs.mkdirSync(path.join(dir, '.env'));
+    fs.writeFileSync(path.join(dir, 'linkpilot.env'), 'A=1\n');
+    assert.strictEqual(path.basename(env.pick(dir)), 'linkpilot.env',
+      '폴더를 파일로 잡으면 읽다가 죽는다');
+
+    const r = env.load(env.pick(dir));
+    assert.deepStrictEqual(r.loaded, ['A']);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('★★ 없는 파일을 읽어도 던지지 않는다', () => {
+  const env = require('../core/env');
+  const r = env.load('/없는/경로/linkpilot.env');
+  assert.strictEqual(r.exists, false);
+  assert.deepStrictEqual(r.loaded, []);
+});
