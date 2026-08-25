@@ -1260,7 +1260,7 @@ jobs:
           LINE=$(printf '%s' "$OUT" | grep -o '실제 호출 성공 [0-9]*/[0-9]*' | tail -1)
           echo "열쇠 여덟: ${LINE:-(못 읽음)}" >> "$GITHUB_STEP_SUMMARY"
           if printf '%s' "$OUT" | grep -q 'GEMINI_ALL_KEYS_UNAVAILABLE'; then
-            echo "::warning::**Gemini 열쇠가 하나도 안 된다.** 스캔본·이미지·코드값 PDF 를 한 글자도 못 읽는다 — 그 자료의 숫자는 보고서에 안 실린다. Settings → Secrets 에서 GEMINI_KEY_01 … 06 을 확인해 주십시오."
+            echo "::warning::**Gemini 열쇠가 하나도 안 된다.** 스캔본·이미지·코드값 PDF 를 한 글자도 못 읽는다 — 그 자료의 숫자는 보고서에 안 실린다. Settings → Secrets 에서 GEMINI_API_KEY 와 GEMINI_API_KEY_2 … _8 을 확인해 주십시오."
           elif printf '%s' "$OUT" | grep -q 'INVALID'; then
             echo "::warning::**거부된 Gemini 열쇠가 있다.** 위 표에서 🔴 줄을 보십시오 — 그 슬롯만 다시 넣으면 된다."
           fi
