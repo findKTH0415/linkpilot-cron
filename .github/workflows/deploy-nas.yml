@@ -870,9 +870,25 @@ jobs:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
           LAW_OC: ${{ secrets.LAW_OC }}
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          # ★★★ 〈2026-08-25〉 **엔진이 아는데 여기 없던 열쇠 열하나를 채웠다.**
+          #   `connectors/http.js` 의 SECRET_ENV 에는 있는데 이 목록에 없으면
+          #   **Secret 에 넣어도 NAS 로 안 간다** — 넣은 사람은 넣었다고 알고,
+          #   엔진은 「키가 없다」고 하고, 둘 다 그 사실을 모른다.
+          #   실제로 KEPCO_BIGDATA_KEY 가 그 상태였다. `secrets.test.js` 가 지킨다.
+          KEPCO_BIGDATA_KEY: ${{ secrets.KEPCO_BIGDATA_KEY }}
+          RHINO_COMPUTE_KEY: ${{ secrets.RHINO_COMPUTE_KEY }}
+          RHINO_COMPUTE_URL: ${{ secrets.RHINO_COMPUTE_URL }}
+          DROPBOX_APP_KEY: ${{ secrets.DROPBOX_APP_KEY }}
+          DROPBOX_APP_SECRET: ${{ secrets.DROPBOX_APP_SECRET }}
+          BOX_CLIENT_ID: ${{ secrets.BOX_CLIENT_ID }}
+          BOX_CLIENT_SECRET: ${{ secrets.BOX_CLIENT_SECRET }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          MS_CLIENT_ID: ${{ secrets.MS_CLIENT_ID }}
+          MS_CLIENT_SECRET: ${{ secrets.MS_CLIENT_SECRET }}
         run: |
           set -u
-          NAMES="GEMINI_API_KEY VWORLD_KEY VWORLD_DOMAIN DATA_GO_KR_KEY ECOS_API_KEY KMA_APIHUB_KEY REB_API_KEY KOSIS_API_KEY DART_API_KEY LAW_OC PEXELS_API_KEY"
+          NAMES="GEMINI_API_KEY VWORLD_KEY VWORLD_DOMAIN DATA_GO_KR_KEY ECOS_API_KEY KMA_APIHUB_KEY REB_API_KEY KOSIS_API_KEY DART_API_KEY LAW_OC PEXELS_API_KEY KEPCO_BIGDATA_KEY RHINO_COMPUTE_KEY RHINO_COMPUTE_URL DROPBOX_APP_KEY DROPBOX_APP_SECRET BOX_CLIENT_ID BOX_CLIENT_SECRET GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET MS_CLIENT_ID MS_CLIENT_SECRET"
           # ★ 임시 파일로 모은다. 셸 문자열에 줄바꿈을 넣으면 YAML 블록이 거기서 끝난다
           KEYFILE=$(mktemp)
           chmod 600 "$KEYFILE"
