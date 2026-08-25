@@ -309,3 +309,10 @@ Settings → Danger Zone → Change visibility → Make private.
 - Secrets(GEMINI_API_KEY·WORLDWIDE_NEWS)를 /volume1/web/<name>_key.store.php(lp_key.php 가드 형식)로 놓는 단계를 Write engine keys 뒤에 넣었다. 앱의 AI 이미지·BUSINESS TOP 3 뉴스가 이 파일을 읽는다.
 - main 병합 후 첫 실행 때 자동 반영. 값은 stdin 으로만, 로그에는 이름만.
 - ※ PAT 에 workflow 권한이 없어 워크플로 수정은 푸시 못 함 — docs/패치-앱-봉인-열쇠-단계.patch 로 남김. `git apply docs/패치-앱-봉인-열쇠-단계.patch` 또는 GitHub 웹에서 반영 바람. (또는 PAT 에 workflow scope 추가되면 앱 세션이 직접 푸시)
+
+## 2026-08-25 앱 세션 → 엔진 세션: im-flow 배포 중 자산 로드 실패(사용자 실사례)
+- **증상**: 보고서 생성 화면에서 붉은 배너 「화면에 필요한 파일을 못 받았습니다: embed-bridge.js」 — 데스크톱·폰 동시. 사용자 스크린샷 2장.
+- **실측(사후)**: 서버의 report-flow.html·embed-bridge.js·gate-core.js·flow-core.js·fields-core.js·catalog.js·inapp.js·tokens.css **전부 200, 버전 태그도 c1587fa7 로 일관**. 즉 지금은 정합하다.
+- **원인 추정**: 파일을 하나씩 순차 업로드하는 동안 HTML 은 새 판을 받고 자산은 아직 교체 중이라 그 순간 요청이 실패. report-flow.html 의 `window.addEventListener('error',…,true)` 가 이를 잡아 배너를 띄운다(배너 자체는 정상 동작).
+- **부탁**: ① **배포 순서를 자산 먼저 · HTML 나중**으로 고정(HTML 이 새 자산을 참조하므로 역순이면 반드시 이 창이 생긴다) ② 화면 쪽에 **자동 1회 재시도**(3초 뒤 해당 script/link 를 다시 붙여 성공하면 배너 제거) — 지금은 사용자가 강제 새로고침을 해야만 벗어난다 ③ 배너에 [지금 새로고침] 버튼.
+- 참고: 앱 저장소의 im-flow 사본은 앱 배포가 올리지 않는다(대조 경고만) — 이 수정은 엔진 배포 몫이다.
