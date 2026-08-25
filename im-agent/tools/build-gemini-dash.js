@@ -1,6 +1,6 @@
 'use strict';
 /**
- * build-gemini-dash.js — Gemini 열쇠 여섯을 보는 화면을 만든다 (지시서 §16).
+ * build-gemini-dash.js — Gemini 열쇠 여덟을 보는 화면을 만든다 (지시서 §16).
  *
  * ★★★ **파일 하나로 열린다** (CLAUDE.md §8). 서버가 있어야 열리는 것은
  *   미리보기가 아니다. 그래서 만들 때의 실측값을 **구워 넣고**, 엔진 옆에서
@@ -14,7 +14,7 @@
  *
  * 쓰는 법:
  *   npm run gemini:dash            지금 상태를 구워 화면을 만든다
- *   npm run gemini:dash -- --live  실제로 여섯을 불러 보고 그 결과를 굽는다
+ *   npm run gemini:dash -- --live  실제로 여덟을 불러 보고 그 결과를 굽는다
  */
 
 const fs = require('fs');
@@ -37,7 +37,7 @@ const esc = (s) => String(s == null ? '' : s)
 function rows(snap) {
   if (!snap.keys.length) {
     return '<tr><td colspan="7" class="empty">등록된 열쇠가 없습니다 — '
-      + '<code>GEMINI_KEY_01</code> … <code>GEMINI_KEY_06</code> 을 GitHub Secrets 에 넣습니다</td></tr>';
+      + '<code>GEMINI_API_KEY</code> · <code>GEMINI_API_KEY_2</code> … <code>_8</code> 을 GitHub Secrets 에 넣습니다</td></tr>';
   }
   return snap.keys.map((k) => {
     const [icon, cls] = MARK[k.status] || ['·', 'idle'];
@@ -59,7 +59,7 @@ function render(snap, live) {
     ? `<ul class="alerts">${snap.alerts.map(a => `<li class="${a.level}">${esc(a.text)}</li>`).join('')}</ul>`
     : '<p class="fine">지금 알릴 것이 없습니다.</p>';
   const liveNote = live
-    ? `<p class="fine">아래 표는 <b>실제로 여섯을 불러 본 결과</b>입니다 (${esc(live.at)}).</p>`
+    ? `<p class="fine">아래 표는 <b>실제로 여덟을 불러 본 결과</b>입니다 (${esc(live.at)}).</p>`
     : '<p class="fine warn"><b>실제 호출로 확인한 값이 아닙니다.</b> '
       + '지금까지 쌓인 통계만 보여 줍니다 — 살아 있는지 재려면 <code>npm run gemini:keys</code> 를 돌립니다.</p>';
 
@@ -68,7 +68,7 @@ function render(snap, live) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Gemini 열쇠 여섯</title>
+<title>Gemini 열쇠 여덟</title>
 <style>
 :root{--bg:#EEF0F4;--card:#fff;--ink:#12161D;--dim:#5A6472;--line:#D9DEE6;
 --ok:#17714F;--wait:#8A6A17;--bad:#C00000;--idle:#7A8394;
@@ -107,7 +107,7 @@ footer{border-top:1px solid var(--line);padding-top:12px;font:400 12px/1.5 var(-
 </head>
 <body>
 <div class="wrap">
-  <h1>Gemini 열쇠 여섯</h1>
+  <h1>Gemini 열쇠 여덟</h1>
 
   <div class="kpi">
     <div><b id="k-active">${snap.active}</b><span>실제 호출 성공(ACTIVE)</span></div>

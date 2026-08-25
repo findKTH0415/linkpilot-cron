@@ -1,6 +1,6 @@
 'use strict';
 /**
- * gemini-doctor.js — 열쇠 여섯을 **실제로 불러 본다** (지시서 §5·§6·§25).
+ * gemini-doctor.js — 열쇠 여덟을 **실제로 불러 본다** (지시서 §5·§6·§25).
  *
  * ★★★ **「넣었다」는 「된다」가 아니다.** 2026-08-25 에 실제로 겪었다 — NAS 의
  *   열쇠 파일에 값이 들어 있어서 배포 로그는 「OCR 켜짐」으로 나왔는데,
@@ -11,13 +11,13 @@
  *   ACTIVE 의 근거가 아니다.
  *
  * ★ 가장 가벼운 요청을 쓴다 — 모델 목록(`GET /v1beta/models`). 생성 요청은
- *   돈과 한도를 쓴다. 여섯 개를 매번 생성으로 재면 재는 것이 곧 소모다.
+ *   돈과 한도를 쓴다. 여덟 개를 매번 생성으로 재면 재는 것이 곧 소모다.
  *
  * ★ **값은 한 글자도 안 찍는다** (CLAUDE.md §2). 이름·해시에서 뽑은 네 글자·
  *   상태·지연시간만 남는다. 이 저장소는 public 이고 Actions 로그도 공개다.
  *
  * 쓰는 법:
- *   npm run gemini:keys            여섯 슬롯을 전부 재고 사람 말로 적는다
+ *   npm run gemini:keys            여덟 슬롯을 전부 재고 사람 말로 적는다
  *   npm run gemini:keys -- --json  같은 결과를 JSON 으로
  *   npm run gemini:keys -- --slot 3  한 슬롯만
  */
@@ -96,11 +96,11 @@ async function checkSlot(slot) {
   return checkOne(k);
 }
 
-/** 여섯 전부 — 지시서 §6 `health-check-all` */
+/** 여덟 전부 — 지시서 §6 `health-check-all` */
 async function checkAll() {
   const list = keys.ensure();
   /* ★ 한꺼번에 던지지 않는다. 같은 프로젝트의 열쇠들이면 **재는 행위 자체가
-   *   분당 한도를 때린다** (지시서 §31). 하나씩 부른다 — 여섯이면 몇 초다. */
+   *   분당 한도를 때린다** (지시서 §31). 하나씩 부른다 — 여덟이면 몇 초다. */
   const results = [];
   for (const k of list) results.push(await checkOne(k));
   return { at: kstStamp(), slots: keys.SLOTS, registered: list.length, results };
@@ -118,7 +118,7 @@ function describe(report) {
   out.push(`Gemini 열쇠 ${report.registered}/${report.slots} — ${report.at}`);
   out.push('');
   if (!report.registered) {
-    out.push('  등록된 열쇠가 없다. GEMINI_KEY_01 … GEMINI_KEY_06 (또는 GEMINI_API_KEY) 을 넣는다.');
+    out.push('  등록된 열쇠가 없다. GEMINI_API_KEY · GEMINI_API_KEY_2 … _8 (또는 GEMINI_KEY_01 … 08) 을 넣는다.');
     return out.join('\n');
   }
   report.results.forEach((r) => {

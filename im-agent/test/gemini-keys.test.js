@@ -26,7 +26,10 @@ const keys = require('../core/gemini-keys');
 
 /** 열쇠 n 개를 넣고 풀을 다시 세운다 */
 function setKeys(list) {
-  for (let i = 1; i <= 6; i++) delete process.env[`GEMINI_KEY_${String(i).padStart(2, '0')}`];
+  for (let i = 1; i <= 8; i++) {
+    delete process.env[`GEMINI_KEY_${String(i).padStart(2, '0')}`];
+    if (i > 1) delete process.env[`GEMINI_API_KEY_${i}`];
+  }
   delete process.env.GEMINI_API_KEY;
   list.forEach((v, i) => { process.env[`GEMINI_KEY_${String(i + 1).padStart(2, '0')}`] = v; });
   try { fs.unlinkSync(keys.statePath()); } catch (_) { /* 없으면 그만 */ }
@@ -35,10 +38,27 @@ function setKeys(list) {
 
 /* ═════════ ① 슬롯 읽기 ═════════ */
 
-test('★ 여섯 슬롯을 읽는다 — 일곱째는 안 받는다', () => {
-  const pool = setKeys(['a', 'b', 'c', 'd', 'e', 'f']);
-  assert.strictEqual(pool.length, 6);
-  assert.deepStrictEqual(pool.map(k => k.slot), [1, 2, 3, 4, 5, 6]);
+test('★ 여덟 슬롯을 읽는다 — 아홉째는 안 받는다', () => {
+  const pool = setKeys(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']);
+  assert.strictEqual(pool.length, 8, '아홉째가 들어왔거나 여덟이 안 찼다');
+  assert.deepStrictEqual(pool.map(k => k.slot), [1, 2, 3, 4, 5, 6, 7, 8]);
+});
+
+/**
+ * ★★★ **사장님이 실제로 넣으신 이름을 읽는다** 〈2026-08-25 · 실제로 어긋났다〉.
+ *   나는 `GEMINI_KEY_01` 로 안내해 놓고 사장님은 `GEMINI_API_KEY_2` … `_8` 로
+ *   넣으셨다. 그 상태로 두면 여덟 개가 Secrets 에 멀쩡히 있는데 엔진은
+ *   **하나만** 본다 — 넣은 사람은 넣었다고 알고, 배포는 초록이다 (M-40 의 결).
+ */
+test('★★★ GEMINI_API_KEY_2 … _8 도 슬롯으로 읽는다 (다시 넣게 하지 않는다)', () => {
+  setKeys([]);
+  process.env.GEMINI_API_KEY = 'one';
+  for (let i = 2; i <= 8; i++) process.env[`GEMINI_API_KEY_${i}`] = `k${i}`;
+  const pool = keys.reload();
+  assert.strictEqual(pool.length, 8, `여덟이 아니다: ${pool.map(k => k.from).join(',')}`);
+  assert.strictEqual(pool[1].from, 'GEMINI_API_KEY_2');
+  assert.strictEqual(pool[7].from, 'GEMINI_API_KEY_8');
+  setKeys([]);
 });
 
 /**

@@ -1,6 +1,6 @@
 'use strict';
 /**
- * gemini-keys.js — Gemini 열쇠 여섯 개를 **하나의 문**으로 관리한다 (D-104).
+ * gemini-keys.js — Gemini 열쇠 여덟 개를 **하나의 문**으로 관리한다 (D-104).
  *
  * 〈2026-08-25 사장님 작업지시서 「Gemini 6-Key Manager」〉
  *
@@ -51,11 +51,15 @@ const { kstStamp } = require('./kst');
  *   되풀이했다. 읽는 곳은 여기 하나이므로 여기서 올린다. */
 require('./env').ensure();
 
-/** 슬롯은 여섯이다. 지시서 §3 */
-const SLOTS = 6;
+/**
+ * 슬롯 수. 지시서는 여섯이었는데 **사장님이 여덟을 넣으셨다** 〈2026-08-25〉.
+ * ★ 사람이 이미 넣어 둔 것을 「규격이 여섯이라」 두 개 버리지 않는다.
+ *   버리면 그 둘은 **넣은 사람만 넣은 줄 아는 상태**가 된다 (M-40 이 그것이었다).
+ */
+const SLOTS = 8;
 
 /** 지시서 §9 — 한 요청에서 서로 다른 열쇠를 최대 몇 개까지 시도하나 */
-const MAX_KEY_RETRY = 6;
+const MAX_KEY_RETRY = SLOTS;
 
 /**
  * 지시서 §10 — 429 를 연달아 맞을수록 더 오래 쉰다.
@@ -119,20 +123,43 @@ function label(fp) {
  *   넣는 길도 이미 쓰이고 있다. 그것을 **남은 슬롯에 채운다** — 새 이름으로
  *   옮기기 전에도 그대로 돈다.
  */
+/**
+ * 슬롯 하나가 볼 환경변수 이름들. **먼저 있는 것이 이긴다.**
+ *
+ * ★★★ **사람이 실제로 넣은 이름을 읽는다** 〈2026-08-25 · 실제로 어긋났다〉.
+ *   나는 `GEMINI_KEY_01` 로 읽게 만들어 두고 그렇게 안내했는데, 사장님은
+ *   **`GEMINI_API_KEY_2` … `_8`** 로 넣으셨다. 그 상태로 두면 여덟 개가
+ *   Secrets 에 멀쩡히 있는데 엔진은 **하나만** 본다 — 넣은 사람은 넣었다고
+ *   알고, 배포는 초록이고, 아무도 모른다 (M-40 과 같은 결).
+ *
+ * ★ 그래서 **두 이름을 다 받는다.** 사람에게 다시 넣으라고 하지 않는다.
+ *   새 이름(`GEMINI_KEY_0n`)은 앞으로 쓰기 좋고, 옛 이름은 이미 들어 있다.
+ */
+function namesFor(slot) {
+  const pad = `GEMINI_KEY_${String(slot).padStart(2, '0')}`;
+  return slot === 1 ? [pad, 'GEMINI_API_KEY'] : [pad, `GEMINI_API_KEY_${slot}`];
+}
+
 function readSlots() {
   const out = [];
+  const used = new Set();
   for (let i = 1; i <= SLOTS; i++) {
-    const name = `GEMINI_KEY_${String(i).padStart(2, '0')}`;
-    const v = (process.env[name] || '').trim();
-    if (v) out.push({ slot: i, key: v, from: name });
+    for (const name of namesFor(i)) {
+      /* ★ 옛 이름 하나에 쉼표로 여러 개를 넣던 길이 있었다 — 첫 개만 이 슬롯이
+       *   되고 나머지는 아래에서 빈 자리를 채운다 */
+      const v = (process.env[name] || '').split(',')[0].trim();
+      if (!v || out.some(x => x.key === v)) continue;   // 같은 열쇠를 두 슬롯에 두지 않는다
+      out.push({ slot: i, key: v, from: name });
+      used.add(i);
+      break;
+    }
   }
-  const used = new Set(out.map(x => x.slot));
   const legacy = (process.env.GEMINI_API_KEY || '').split(',').map(s => s.trim()).filter(Boolean);
   for (const k of legacy) {
-    if (out.some(x => x.key === k)) continue;          // 같은 열쇠를 두 슬롯에 두지 않는다
+    if (out.some(x => x.key === k)) continue;
     let slot = 1;
     while (slot <= SLOTS && used.has(slot)) slot++;
-    if (slot > SLOTS) break;                            // 여섯을 넘기지 않는다
+    if (slot > SLOTS) break;                            // 슬롯 수를 넘기지 않는다
     used.add(slot);
     out.push({ slot, key: k, from: 'GEMINI_API_KEY' });
   }
@@ -488,7 +515,7 @@ function alertsFor(keys, availN) {
 
 module.exports = {
   SLOTS, MAX_KEY_RETRY, COOLDOWN_LADDER, STATE,
-  fingerprint, label, readSlots,
+  fingerprint, label, readSlots, namesFor,
   ensure, reload, available, selectNext,
   recordSuccess, recordRateLimit, recordAuthError, recordServerError, recordUnknownError,
   setEnabled, revalidate, resetStats,

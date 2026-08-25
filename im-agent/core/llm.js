@@ -14,7 +14,7 @@
  *
  * ★★ **404·400 은 열쇠 탓이 아니다.** 아래 모델 목록에는 이 계정에서 안 열리는
  *   모델이 섞여 있다(경위는 바로 아래). 그것을 열쇠 실패로 세면 **멀쩡한 열쇠
- *   여섯이 첫 모델에서 다 죽는다.** 그래서 그 둘은 **다음 모델**로 넘긴다.
+ *   여덟이 첫 모델에서 다 죽는다.** 그래서 그 둘은 **다음 모델**로 넘긴다.
  */
 
 const { assertValid } = require('./schema');
@@ -41,7 +41,7 @@ class OfflineError extends Error {
   constructor(msg) { super(msg); this.code = 'LLM_OFFLINE'; }
 }
 
-/** 여섯 열쇠가 다 안 되는 것과, 열쇠가 아예 없는 것은 **다른 사실**이다 */
+/** 여덟 열쇠가 다 안 되는 것과, 열쇠가 아예 없는 것은 **다른 사실**이다 */
 class AllKeysUnavailableError extends Error {
   constructor(msg, detail) {
     super(msg);
@@ -52,7 +52,7 @@ class AllKeysUnavailableError extends Error {
 
 /**
  * 오프라인인가 — **등록된 열쇠가 하나도 없을 때**만 그렇다.
- * ★ 여섯이 전부 쉬는 중인 것은 오프라인이 아니다. 그건 잠깐 못 쓰는 것이고,
+ * ★ 여덟이 전부 쉬는 중인 것은 오프라인이 아니다. 그건 잠깐 못 쓰는 것이고,
  *   그 둘을 같게 다루면 「열쇠를 넣으십시오」라는 엉뚱한 안내가 나간다.
  */
 function isOffline() {
