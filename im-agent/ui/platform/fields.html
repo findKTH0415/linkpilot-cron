@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="664b0bf8">
+<html lang="ko" data-lp-build="c1587fa7">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -61,9 +61,18 @@
       if (!t || !t.tagName) return;
       var tag = String(t.tagName).toUpperCase();
       if (tag !== 'SCRIPT' && tag !== 'LINK') return;
-      var url = String(t.src || t.href || '').split('/').pop().split('?')[0];
-      say('화면에 필요한 파일을 못 받았습니다: ' + (url || '(이름 모름)')
-        + ' — 배포가 도는 중일 수 있습니다. 30초 뒤 새로고침(Mac ⌘⇧R · Windows Ctrl+Shift+R)해 주십시오.');
+      /* ★★★ **이름만으로는 갈라 낼 수 없다** 〈2026-08-25 · 실제로 못 갈랐다〉.
+       *   앱 안에서 이 띠가 떴을 때 「그 파일이 NAS 에 없다」와 「앱이 엉뚱한
+       *   자리에서 찾는다」가 **똑같이 파일 이름 하나로만** 보였다. 파일은
+       *   NAS 에 있었고 HTTP 200 이었는데도 그랬다 — 갈랐어야 할 것은
+       *   **어느 경로로 찾았나**이고, 그것이 이름을 자르면서 사라졌다.
+       * ★ 호스트는 뗀다 (CLAUDE.md §2). 경로만 있으면 갈린다. */
+      var raw = String(t.src || t.href || '');
+      var where = raw;
+      try { var u = new URL(raw, location.href); where = u.pathname + u.search; } catch (_) {}
+      say('화면에 필요한 파일을 못 받았습니다: ' + (where || '(이름 모름)')
+        + ' — 배포가 도는 중이면 30초 뒤 새로고침(Mac ⌘⇧R · Windows Ctrl+Shift+R)으로 사라집니다.'
+        + ' 한 번 하고도 그대로면 그것은 **다른 일**입니다 — 위 경로를 그대로 알려 주십시오.');
     } catch (_) { /* 무시 */ }
   }, true);
   /* ★★★ **헛울음을 내지 않는다** 〈2026-08-24 · 실측에서 걸렸다〉.
@@ -96,7 +105,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=664b0bf8">
+<link rel="stylesheet" href="tokens.css?v=c1587fa7">
 <script>
 /* ★★★ **틀 안인지를 그리기 전에 정한다** 〈2026-08-25〉.
  *   나중에 정하면 [저장] 막대가 **아래에 한 번 붙었다가 올라온다** — 그 깜빡임이
@@ -419,12 +428,12 @@ ul { margin: 0; padding: 0; list-style: none; }
   </main>
 </div>
 
-<script src="gate-core.js?v=664b0bf8"></script>
-<script src="catalog.js?v=664b0bf8"></script>
-<script src="inapp.js?v=664b0bf8"></script>
-<script src="fields-core.js?v=664b0bf8"></script>
+<script src="gate-core.js?v=c1587fa7"></script>
+<script src="catalog.js?v=c1587fa7"></script>
+<script src="inapp.js?v=c1587fa7"></script>
+<script src="fields-core.js?v=c1587fa7"></script>
 <!-- ★ 판 지문을 화면에 보이게 찍는 것이 여기 있다 (§8) — 묶음에 이미 실리는 파일이다 -->
-<script src="flow-core.js?v=664b0bf8"></script>
+<script src="flow-core.js?v=c1587fa7"></script>
 <script>
 /**
  * 설정 — 서버가 세션을 보고 이 블록을 만들어 내려주는 것이 정석이다.
@@ -439,7 +448,7 @@ window.LINKPILOT_FIELDS_CFG = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=664b0bf8" data-lp-global="LINKPILOT_FIELDS_CFG"></script>
+<script src="embed-bridge.js?v=c1587fa7" data-lp-global="LINKPILOT_FIELDS_CFG"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
