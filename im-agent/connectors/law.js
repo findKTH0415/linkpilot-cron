@@ -43,8 +43,25 @@ const BASE = 'https://www.law.go.kr/DRF';
 const TTL_LAW = 30 * 86400;
 const TTL_ORDIN = 7 * 86400;
 
+/**
+ * ★★ **이름이 둘이다** 〈2026-08-25 실측 — Secrets 화면에서 발견〉.
+ *   나는 `LAW_OC` 로 안내했는데 사장님은 신청 후 받으신 값을 `LAW_OPEN_DATA`
+ *   로도 넣으셨다. 엔진이 한 이름만 보면 **넣으신 값이 죽는다** — 넣은 사람은
+ *   넣었다고 알고, 엔진은 「키가 없다」고 하고, 배포는 초록이다 (M-40 과 같은 결).
+ *
+ *   다시 넣으시라고 하는 대신 **둘 다 읽는다.** 우선순위는 `LAW_OC` 가 먼저다
+ *   (안내 문서가 그 이름으로 되어 있다). `usedName()` 이 **어느 이름이 쓰였는지**
+ *   말해 주므로 스모크에서 한눈에 갈린다.
+ */
+const OC_NAMES = ['LAW_OC', 'LAW_OPEN_DATA'];
+
+function usedName() {
+  return OC_NAMES.find(n => (process.env[n] || '').trim()) || null;
+}
+
 function oc() {
-  return (process.env.LAW_OC || '').trim();
+  const n = usedName();
+  return n ? String(process.env[n]).trim() : '';
 }
 
 function isAvailable() {
@@ -55,7 +72,7 @@ function unavailable(what) {
   return {
     ok: false,
     unavailable: true,
-    error: `LAW_OC 미설정 — ${what} 조회 생략. 국가법령정보 공동활용(open.law.go.kr) 이용 신청 후 이메일 ID 를 LAW_OC 로 넣는다`,
+    error: `${OC_NAMES.join(' / ')} 둘 다 미설정 — ${what} 조회 생략. 국가법령정보 공동활용(open.law.go.kr) 신청 후 이메일 ID(@ 앞부분)를 넣는다`,
   };
 }
 
@@ -207,4 +224,4 @@ async function ordinance(region, name = '건축조례') {
   }, { ttl: TTL_ORDIN });
 }
 
-module.exports = { isAvailable, findLaw, article, ordinance, diagnose, PROVIDER };
+module.exports = { isAvailable, usedName, findLaw, article, ordinance, diagnose, OC_NAMES, PROVIDER };

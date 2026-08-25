@@ -869,11 +869,12 @@ jobs:
           KOSIS_API_KEY: ${{ secrets.KOSIS_API_KEY }}
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
           LAW_OC: ${{ secrets.LAW_OC }}
+          LAW_OPEN_DATA: ${{ secrets.LAW_OPEN_DATA }}
           KICT_API_KEY: ${{ secrets.KICT_API_KEY }}
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
         run: |
           set -u
-          NAMES="GEMINI_API_KEY VWORLD_KEY VWORLD_DOMAIN DATA_GO_KR_KEY ECOS_API_KEY KMA_APIHUB_KEY REB_API_KEY KOSIS_API_KEY DART_API_KEY LAW_OC KICT_API_KEY PEXELS_API_KEY"
+          NAMES="GEMINI_API_KEY VWORLD_KEY VWORLD_DOMAIN DATA_GO_KR_KEY ECOS_API_KEY KMA_APIHUB_KEY REB_API_KEY KOSIS_API_KEY DART_API_KEY LAW_OC LAW_OPEN_DATA KICT_API_KEY PEXELS_API_KEY"
           # ★ 임시 파일로 모은다. 셸 문자열에 줄바꿈을 넣으면 YAML 블록이 거기서 끝난다
           KEYFILE=$(mktemp)
           chmod 600 "$KEYFILE"

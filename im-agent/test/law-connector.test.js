@@ -16,7 +16,9 @@ const law = require('../connectors/law');
 
 test('LAW_OC 가 없으면 unavailable 을 돌려주고 값을 지어내지 않는다', async () => {
   const saved = process.env.LAW_OC;
+  const saved2 = process.env.LAW_OPEN_DATA;
   delete process.env.LAW_OC;
+  delete process.env.LAW_OPEN_DATA;
   try {
     assert.strictEqual(law.isAvailable(), false);
     const r = await law.findLaw('건축법 시행령');
@@ -32,7 +34,43 @@ test('LAW_OC 가 없으면 unavailable 을 돌려주고 값을 지어내지 않�
     assert.strictEqual(o.unavailable, true);
   } finally {
     if (saved === undefined) delete process.env.LAW_OC; else process.env.LAW_OC = saved;
+    if (saved2 === undefined) delete process.env.LAW_OPEN_DATA; else process.env.LAW_OPEN_DATA = saved2;
   }
+});
+
+/**
+ * ★★★ 2026-08-25 실측: Secrets 화면에 `LAW_OC`(한 달 전)와 `LAW_OPEN_DATA`(15분 전)가
+ *   **둘 다** 있었다. 엔진이 한 이름만 보면 넣으신 값이 조용히 죽는다 (M-40).
+ */
+test('★★ 두 이름을 다 읽는다 — LAW_OC 가 없어도 LAW_OPEN_DATA 로 돈다', () => {
+  const s1 = process.env.LAW_OC, s2 = process.env.LAW_OPEN_DATA;
+  try {
+    delete process.env.LAW_OC; delete process.env.LAW_OPEN_DATA;
+    assert.strictEqual(law.usedName(), null);
+    assert.strictEqual(law.isAvailable(), false);
+
+    process.env.LAW_OPEN_DATA = 'hong';
+    assert.strictEqual(law.usedName(), 'LAW_OPEN_DATA');
+    assert.strictEqual(law.isAvailable(), true);
+
+    // 둘 다 있으면 LAW_OC 가 이긴다 — 안내 문서가 그 이름으로 되어 있다
+    process.env.LAW_OC = 'kim';
+    assert.strictEqual(law.usedName(), 'LAW_OC');
+
+    // 빈 문자열은 「있다」로 세지 않는다
+    process.env.LAW_OC = '   ';
+    assert.strictEqual(law.usedName(), 'LAW_OPEN_DATA');
+  } finally {
+    if (s1 === undefined) delete process.env.LAW_OC; else process.env.LAW_OC = s1;
+    if (s2 === undefined) delete process.env.LAW_OPEN_DATA; else process.env.LAW_OPEN_DATA = s2;
+  }
+});
+
+test('★ 두 이름 모두 마스킹 대상이다 (§2)', () => {
+  const { SECRET_ENV } = require('../connectors/http');
+  law.OC_NAMES.forEach((n) => {
+    assert.ok(SECRET_ENV.includes(n), `${n} 이 SECRET_ENV 에 없다 — 로그에 평문으로 남는다`);
+  });
 });
 
 test('필수 인자가 없으면 조회하지 않고 그 사실을 말한다', async () => {
