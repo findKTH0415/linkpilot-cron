@@ -109,6 +109,48 @@ function candDir(projectId) {
   return path.join(store.projectDir(projectId), '04_Property', 'render-candidates');
 }
 
+/**
+ * ★★★ **실패를 사람 말로 가른다** 〈2026-08-25 · 같은 벽에 두 번 부딪혔다〉.
+ *
+ *   서버가 돌려주는 말은 전부 영어 한 덩어리라 「열쇠가 틀렸다」와
+ *   「열쇠는 맞는데 결제가 없다」가 **똑같이 보인다.** 실제로 사장님이
+ *   열쇠를 다시 넣으셨는데 **열쇠 문제가 아니었다** — 두 번 헛돌았다.
+ *
+ * ★ 그래서 셋으로 가른다: 결제(quota) · 열쇠(auth) · 모델 이름(not found).
+ *   판정 못 하는 것은 「모르겠다」로 두고 원문을 보여 준다 — 지어내지 않는다.
+ */
+function diagnose(errors) {
+  const all = errors.join(' | ').toLowerCase();
+  if (/quota|exceeded|rate.?limit|billing/.test(all)) {
+    return {
+      kind: 'billing',
+      head: '열쇠는 살아 있다 — 막힌 것은 **결제**다.',
+      body: [
+        '  구글이 열쇠를 받아들였고(인증 통과), 「무료 구간의 이미지 한도가 0」이라고 답했다.',
+        '  → **열쇠를 다시 넣어도 안 열린다.** 그 열쇠가 속한 프로젝트에 결제를 연결해야 한다:',
+        '     aistudio.google.com → 「Get API key」 → 그 키의 프로젝트 줄 → 「Set up Billing」.',
+        '  → 결제 없이 지금 시험하려면 **웹 무료 경로**를 쓴다 (안내 문서 §4-1):',
+        '     AI Studio 또는 Gemini 앱에 조감도를 올리고 같은 지시문을 준다.',
+      ],
+    };
+  }
+  if (/api[_ ]?key|unauthenticated|permission|invalid|401|403/.test(all)) {
+    return {
+      kind: 'key',
+      head: '**열쇠가 거부됐다** — 결제가 아니라 열쇠 문제다.',
+      body: ['  GitHub Secrets 의 GEMINI_API_KEY 를 다시 넣는다 (한 줄로, 앞뒤 빈칸 없이).'],
+    };
+  }
+  if (/not found|404|unsupported|no longer available/.test(all)) {
+    return {
+      kind: 'model',
+      head: '**모델 이름이 안 맞는다** — 열쇠·결제와 무관하다.',
+      body: ['  GEMINI_RENDER_MODELS 로 이름을 바꿔 다시 시도한다.'],
+    };
+  }
+  return { kind: 'unknown', head: '무엇이 막았는지 **판정하지 못했다** — 아래 원문을 그대로 본다.', body: [] };
+}
+
 /* --adopt: 후보를 사람 확인 하에 model-result.json renders 에 등록한다 */
 function adopt(projectId, file) {
   const dir = candDir(projectId);
@@ -199,10 +241,17 @@ async function main() {
       }
     }
   }
-  console.error('✗ 이미지 생성 전체 실패 — 서버가 말한 그대로 적는다 (이 출력이 실측 기록이다):');
-  errors.slice(0, 6).forEach(e => console.error('  - ' + e));
-  console.error('  모델 이름이 다르면 GEMINI_RENDER_MODELS 환경변수로 바꿔 다시 시도한다.');
+  const d = diagnose(errors);
+  console.error('✗ 이미지 생성 실패 — ' + d.head);
+  d.body.forEach(l => console.error(l));
+  console.error('');
+  console.error('  서버가 말한 그대로 (이 출력이 실측 기록이다):');
+  errors.slice(0, 4).forEach(e => console.error('    - ' + e.split('\n')[0]));
   process.exit(1);
 }
 
-main().catch(e => { console.error('✗ ' + e.message); process.exit(1); });
+module.exports = { diagnose };
+
+if (require.main === module) {
+  main().catch(e => { console.error('✗ ' + e.message); process.exit(1); });
+}

@@ -319,3 +319,34 @@ test('옛 계획의 결과면 YELLOW — plan_created 가 지문이다', async (
   const got = await intake.run({ projectId: PID, plan: out.plan }, { warn: noop.warn });
   assert.ok(got.flags.some(f => f.type === 'STALE_RESULT'));
 });
+
+/**
+ * ★ 실패를 사람 말로 가르는 판정 — 「열쇠가 틀렸다」와 「열쇠는 맞는데 결제가 없다」가
+ *   서버 말로는 똑같이 보인다. 실제로 그 구분이 없어 열쇠를 두 번 다시 넣었다
+ *   (2026-08-25 · render-smoke #1·#2 실측).
+ * ★ 표본은 **실측 원문**을 쓴다 — 지어낸 문장으로 재면 잡히는 것도 거짓이다.
+ */
+test('렌더 실패를 결제·열쇠·모델로 가른다 (im:render 진단 — 실측 원문 기준)', () => {
+  const { diagnose } = require('../tools/render-birdseye.js');
+
+  // render-smoke #1·#2 가 실제로 받은 말
+  const quota = diagnose([
+    'gemini-3-pro-image[interactions]: You exceeded your current quota, please check your plan and billing details.\n'
+      + '* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0',
+  ]);
+  assert.strictEqual(quota.kind, 'billing', '결제로 판정한다');
+  assert.ok(quota.body.some(l => /Set up Billing/.test(l)), '눌러야 할 자리를 적는다');
+  assert.ok(quota.body.some(l => /무료 경로|§4-1/.test(l)), '결제 없이 지금 할 수 있는 길도 적는다');
+  assert.match(quota.head, /결제/, '사람 말로도 결제라고 적는다');
+
+  const auth = diagnose(['gemini-3-pro-image[generateContent]: API key not valid. Please pass a valid API key.']);
+  assert.strictEqual(auth.kind, 'key', '열쇠 문제로 판정한다 — 결제로 오진하지 않는다');
+
+  const model = diagnose(['gemma-9[generateContent]: models/gemma-9 is not found for API version v1beta']);
+  assert.strictEqual(model.kind, 'model', '모델 이름 문제로 판정한다');
+
+  // ★ 막는 장치를 재는 자리 — 모르는 것은 모른다고 해야 원문을 보게 된다
+  const unknown = diagnose(['gemini-3-pro-image[interactions]: socket hang up']);
+  assert.strictEqual(unknown.kind, 'unknown', '판정 못 하는 것은 지어내지 않는다');
+  assert.match(unknown.head, /판정하지 못했다/, '모른다고 사람 말로 적는다');
+});
