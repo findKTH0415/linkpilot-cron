@@ -1988,6 +1988,15 @@ window.LINKPILOT_REPORT_FLOW = {
       <div class="upd__d">2026-08-25</div>
       <ul class="upd__l">
         <li>
+          <b>AI 렌더에 도구 세대 기록(tool_version·engine·settings)을 필수화했다</b>
+          <em>규격 §3-1 · 13_sketchup_intake (AI 렌더 도구 기록)</em>
+          <span>Veras 4.0 은 Nano Banana Pro 기반이라 이전 세대와 그림이 다르다. 어느 도구의 어느 세대가 만든 그림인지가 §4.7 출처 표기와 같은 결이라, renders 에 tool_version(4.0)·engine(Nano Banana Pro)·settings(형상 유지 슬라이더·프롬프트 — 재현 조건) 필드를 더했다. 도구·버전 미기록은 수령 Agent 가 RENDER_TOOL_UNKNOWN YELLOW 로 잡는다. Gemini 무료 경로도 같은 규격이다. API 자동화는 여전히 실측 전 보류(D-34 🟡).</span>
+          <div class="upd__ba">
+            <div class="upd__b"><em>전</em>renders = tool·based_on·disclaimer 만 (세대 구분 없음)</div>
+            <div class="upd__a"><em>후</em>renders += tool_version·engine·settings — 미기록 도구·버전은 YELLOW</div>
+          </div>
+          <span class="upd__see">확인: 화면에 안 보인다 — 규격 §3-1 의 renders 예시와 sketchup.test.js 의 RENDER_TOOL_UNKNOWN 테스트로 확인한다</span>
+        </li><li>
           <b>모델 계획이 지적도형 바닥·법정 분석·아파트 개념 배치를 담는다</b>
           <em>파이프라인 · 12_sketchup_plan (지적도형·법정 분석·개념 배치)</em>
           <span>전에는 계획이 정사각 근사 치수뿐이었다. 이제 09_massing 이 지적도(VWorld)에서 만든 필지·건축면적 링을 mm 폴리곤으로 옮겨 바닥을 실제 땅 모양으로 그리고, 용적률·건폐율 법정 분석(legal)을 동봉하며, 자산유형이 아파트면 판상형 동 배치를 개념으로 그린다. 판상형 깊이 13m·인동계수 0.8·폭 사용률 0.8 은 통상치(ASSUMPTION, D-100)이고 설계안이 아니다. 어떤 값도 fact 가 되지 않는다(D-96).</span>

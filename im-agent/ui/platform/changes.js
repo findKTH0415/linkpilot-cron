@@ -42,6 +42,20 @@
    */
   var CHANGES = [
     {
+      at: '2026-08-25', where: '규격 §3-1 · 13_sketchup_intake (AI 렌더 도구 기록)',
+      title: 'AI 렌더에 도구 세대 기록(tool_version·engine·settings)을 필수화했다',
+      why: 'Veras 4.0 은 Nano Banana Pro 기반이라 이전 세대와 그림이 다르다. '
+        + '어느 도구의 어느 세대가 만든 그림인지가 §4.7 출처 표기와 같은 결이라, '
+        + 'renders 에 tool_version(4.0)·engine(Nano Banana Pro)·settings(형상 유지 '
+        + '슬라이더·프롬프트 — 재현 조건) 필드를 더했다. 도구·버전 미기록은 수령 '
+        + 'Agent 가 RENDER_TOOL_UNKNOWN YELLOW 로 잡는다. Gemini 무료 경로도 같은 '
+        + '규격이다. API 자동화는 여전히 실측 전 보류(D-34 🟡).',
+      shows: '화면에 안 보인다 — 규격 §3-1 의 renders 예시와 sketchup.test.js 의 '
+        + 'RENDER_TOOL_UNKNOWN 테스트로 확인한다',
+      was: 'renders = tool·based_on·disclaimer 만 (세대 구분 없음)',
+      now: 'renders += tool_version·engine·settings — 미기록 도구·버전은 YELLOW',
+    },
+    {
       at: '2026-08-25', where: '파이프라인 · 12_sketchup_plan (지적도형·법정 분석·개념 배치)',
       title: '모델 계획이 지적도형 바닥·법정 분석·아파트 개념 배치를 담는다',
       why: '전에는 계획이 정사각 근사 치수뿐이었다. 이제 09_massing 이 지적도'

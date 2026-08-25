@@ -235,7 +235,8 @@ SC-010 투자자 뷰
   Veras 는 Revit·SketchUp·Rhino 등 **7개 주요 BIM/CAD 플랫폼에 직접 연동되는
   유일한 AI 렌더링 도구**이고, 4.0 은 Nano Banana Pro 기반이다. 사장님이
   SketchUp 매싱의 뷰를 Veras 로 렌더한다 — 자동화(API)는 실측 전이라
-  붙이지 않는다 (D-34). 결과는 `renders` 에 `ai_generated: true` +
+  붙이지 않는다 (D-34). 결과는 `renders` 에 `tool`/`tool_version`
+  (예: veras/4.0 — 세대마다 그림이 달라 출처 표기다) + `ai_generated: true` +
   「AI 렌더 — 실제 설계안이 아님」 문구 필수(규격 §3-1). **표지·티저용이며
   IM 본문에는 싣지 않는다** — 본문 조감도는 지적선 기반 `birdseye.js` 다.
 

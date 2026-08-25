@@ -111,6 +111,10 @@ async function run(input, ctx) {
     if (!r.based_on) {
       flags.push(flag('YELLOW', 'RENDER_NO_SCENE', `AI 렌더 ${r.file || '(이름 없음)'} 의 원본 장면(based_on)이 없다 — 어느 뷰에서 나온 그림인지가 출처다`));
     }
+    if (!r.tool || !r.tool_version) {
+      flags.push(flag('YELLOW', 'RENDER_TOOL_UNKNOWN',
+        `AI 렌더 ${r.file || '(이름 없음)'} 에 도구·버전(tool/tool_version) 기록이 없다 — 세대(예: Veras 4.0 = Nano Banana Pro 기반)마다 그림이 달라, 어느 도구가 만들었는지가 출처 표기다 (§4.7)`));
+    }
   }
 
   const red = flags.filter(f => f.severity === 'RED').length;

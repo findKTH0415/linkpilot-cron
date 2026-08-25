@@ -186,13 +186,28 @@ test('AI 렌더에 disclaimer 가 없으면 YELLOW — 「실제 설계안이 �
     validation: { solid: 'SKIPPED_MASSING' },
     files: [],
     renders: [
-      { file: 'render_SC-001_veras_01.png', tool: 'veras', based_on: 'SC-001', ai_generated: true, disclaimer: 'AI 렌더 — 실제 설계안이 아님' },
+      { file: 'render_SC-001_veras_01.png', tool: 'veras', tool_version: '4.0', engine: 'Nano Banana Pro', based_on: 'SC-001', ai_generated: true, disclaimer: 'AI 렌더 — 실제 설계안이 아님' },
       { file: 'render_SC-002_gemini_01.png', tool: 'gemini' },
     ],
   });
   const y = out.flags.filter(f => f.type === 'RENDER_DISCLAIMER');
   assert.strictEqual(y.length, 1, '표기가 온전한 렌더는 잡지 않고, 없는 것만 잡는다');
   assert.ok(/render_SC-002_gemini_01/.test(y[0].message));
+});
+
+test('AI 렌더에 도구·버전 기록이 없으면 YELLOW — 세대(Veras 4.0 = Nano Banana Pro)마다 그림이 달라 출처 표기다 (규격 §3-1)', async () => {
+  const out = await planThenIntake({
+    model: { floors: 4, gfa_m2: 9600, objects_count: 0 },
+    validation: { solid: 'SKIPPED_MASSING' },
+    files: [],
+    renders: [
+      { file: 'render_SC-001_veras_01.png', tool: 'veras', tool_version: '4.0', engine: 'Nano Banana Pro', based_on: 'SC-001', ai_generated: true, disclaimer: 'AI 렌더 — 실제 설계안이 아님' },
+      { file: 'render_SC-003_veras_02.png', tool: 'veras', based_on: 'SC-003', ai_generated: true, disclaimer: 'AI 렌더 — 실제 설계안이 아님' },
+    ],
+  });
+  const y = out.flags.filter(f => f.type === 'RENDER_TOOL_UNKNOWN');
+  assert.strictEqual(y.length, 1, 'tool_version 이 빠진 렌더만 잡는다');
+  assert.ok(/render_SC-003_veras_02/.test(y[0].message));
 });
 
 test('결과가 적은 파일이 폴더에 없으면 YELLOW — 있다는 사실만 확인하고 파싱하지 않는다', async () => {
