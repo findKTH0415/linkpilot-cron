@@ -860,6 +860,12 @@ jobs:
           NAS_USER: ${{ secrets.NAS_SSH_USER }}
           ENGINE_ROOT: ${{ vars.LP_ENGINE_ROOT || '/volume1/docker/linkpilot' }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_KEY_01: ${{ secrets.GEMINI_KEY_01 }}
+          GEMINI_KEY_02: ${{ secrets.GEMINI_KEY_02 }}
+          GEMINI_KEY_03: ${{ secrets.GEMINI_KEY_03 }}
+          GEMINI_KEY_04: ${{ secrets.GEMINI_KEY_04 }}
+          GEMINI_KEY_05: ${{ secrets.GEMINI_KEY_05 }}
+          GEMINI_KEY_06: ${{ secrets.GEMINI_KEY_06 }}
           VWORLD_KEY: ${{ secrets.VWORLD_KEY }}
           VWORLD_DOMAIN: ${{ secrets.VWORLD_DOMAIN }}
           DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
@@ -888,7 +894,7 @@ jobs:
           MS_CLIENT_SECRET: ${{ secrets.MS_CLIENT_SECRET }}
         run: |
           set -u
-          NAMES="GEMINI_API_KEY VWORLD_KEY VWORLD_DOMAIN DATA_GO_KR_KEY ECOS_API_KEY KMA_APIHUB_KEY REB_API_KEY KOSIS_API_KEY DART_API_KEY LAW_OC PEXELS_API_KEY KEPCO_BIGDATA_KEY RHINO_COMPUTE_KEY RHINO_COMPUTE_URL DROPBOX_APP_KEY DROPBOX_APP_SECRET BOX_CLIENT_ID BOX_CLIENT_SECRET GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET MS_CLIENT_ID MS_CLIENT_SECRET"
+          NAMES="GEMINI_API_KEY GEMINI_KEY_01 GEMINI_KEY_02 GEMINI_KEY_03 GEMINI_KEY_04 GEMINI_KEY_05 GEMINI_KEY_06 VWORLD_KEY VWORLD_DOMAIN DATA_GO_KR_KEY ECOS_API_KEY KMA_APIHUB_KEY REB_API_KEY KOSIS_API_KEY DART_API_KEY LAW_OC PEXELS_API_KEY KEPCO_BIGDATA_KEY RHINO_COMPUTE_KEY RHINO_COMPUTE_URL DROPBOX_APP_KEY DROPBOX_APP_SECRET BOX_CLIENT_ID BOX_CLIENT_SECRET GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET MS_CLIENT_ID MS_CLIENT_SECRET"
           # ★ 임시 파일로 모은다. 셸 문자열에 줄바꿈을 넣으면 YAML 블록이 거기서 끝난다
           KEYFILE=$(mktemp)
           chmod 600 "$KEYFILE"
@@ -1202,6 +1208,43 @@ jobs:
       #   **매스가 직사각형으로 서고 조감도가 아예 안 나온다** — 그리고 그것이
       #   정상 동작처럼 보인다. 「원래 그런가 보다」로 읽히는 실패가 가장 비싸다.
       #   ★ 값은 한 글자도 안 찍는다 (§2). 이름과 길이, 그리고 켜짐/꺼짐뿐이다.
+      # ★★★ **열쇠 여섯을 실제로 불러 본다** 〈2026-08-25 · D-104 · 지시서 §36〉.
+      #   「넣었다」는 「된다」가 아니다 — 같은 날 GEMINI 열쇠가 파일에 들어 있는
+      #   채로 401 이었다 (M-40). 그래서 상태를 **호출 결과로만** 정한다.
+      #   ★ 값은 한 글자도 안 찍는다. 슬롯·해시 네 글자·상태·지연시간뿐이다 (§2).
+      #   ★ 못 잰 것(그물이 안 닿음)을 죽은 것으로 세지 않는다 — 되돌아오는 값 2.
+      - name: Check Gemini key pool (열쇠 여섯)
+        if: ${{ always() && needs.plan.outputs.dry_run != 'true' }}
+        env:
+          NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+          NAS_USER: ${{ secrets.NAS_SSH_USER }}
+          ENGINE_ROOT: ${{ vars.LP_ENGINE_ROOT || '/volume1/docker/linkpilot' }}
+        run: |
+          set -u
+          set +e
+          OUT=$(ssh -o BatchMode=yes -o ConnectTimeout=20 -i ~/.ssh/id_deploy \
+            "$NAS_USER@$NAS_HOST" \
+            "cd '$ENGINE_ROOT' 2>/dev/null || exit 9
+             for N in node /usr/local/bin/node \
+                      /volume1/@appstore/Node.js_v20/usr/local/bin/node \
+                      /volume1/@appstore/Node.js_v18/usr/local/bin/node; do
+               command -v \"\$N\" >/dev/null 2>&1 && exec \"\$N\" im-agent/tools/gemini-doctor.js
+             done
+             echo 'NONODE'" 2>&1 | tr -d '\r')
+          if ! printf '%s' "$OUT" | grep -q 'Gemini 열쇠'; then
+            echo "열쇠 여섯: 못 쟀다 — 진단기가 안 돌았다. 받은 답: ${OUT:-NONODE}"
+            echo "열쇠 여섯: 못 쟀다 (꺼진 것과 **다른 사실**이다)" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          printf '%s\n' "$OUT"
+          LINE=$(printf '%s' "$OUT" | grep -o '실제 호출 성공 [0-9]*/[0-9]*' | tail -1)
+          echo "열쇠 여섯: ${LINE:-(못 읽음)}" >> "$GITHUB_STEP_SUMMARY"
+          if printf '%s' "$OUT" | grep -q 'GEMINI_ALL_KEYS_UNAVAILABLE'; then
+            echo "::warning::**Gemini 열쇠가 하나도 안 된다.** 스캔본·이미지·코드값 PDF 를 한 글자도 못 읽는다 — 그 자료의 숫자는 보고서에 안 실린다. Settings → Secrets 에서 GEMINI_KEY_01 … 06 을 확인해 주십시오."
+          elif printf '%s' "$OUT" | grep -q 'INVALID'; then
+            echo "::warning::**거부된 Gemini 열쇠가 있다.** 위 표에서 🔴 줄을 보십시오 — 그 슬롯만 다시 넣으면 된다."
+          fi
+
       - name: Check map power (지적도·공시지가)
         if: ${{ always() && needs.plan.outputs.dry_run != 'true' }}
         env:

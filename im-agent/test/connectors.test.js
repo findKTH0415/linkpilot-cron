@@ -644,10 +644,20 @@ test('★★★ 키를 읽는 쪽이 스스로 .env 를 올린다 (엔진도 읽
 
   const llm = fs.readFileSync(path.join(root, 'im-agent', 'core', 'llm.js'), 'utf8');
   const envAt = llm.indexOf("require('./env').ensure()");
-  const keyAt = llm.indexOf('process.env.GEMINI_API_KEY');
+  const poolAt = llm.indexOf("require('./gemini-keys')");
   assert.ok(envAt > -1, 'llm.js 가 .env 를 안 올린다 — 엔진에서는 영영 오프라인이다');
-  assert.ok(envAt < keyAt,
-    '키를 읽은 뒤에 올린다 — KEYS 는 부르는 순간 정해지므로 소용이 없다');
+  assert.ok(poolAt > -1, 'llm.js 가 열쇠 관리자를 안 쓴다 — 고르기가 다시 배열 순회로 돌아갔다');
+  assert.ok(envAt < poolAt,
+    '열쇠를 읽은 뒤에 올린다 — 풀은 부르는 순간 정해지므로 소용이 없다');
+
+  /* ★★ **읽는 곳이 옮겨 갔으면 검사도 따라간다** 〈2026-08-25 · D-104〉.
+   *   열쇠를 실제로 읽는 곳은 이제 `core/gemini-keys.js` 다. 거기가 스스로
+   *   올리지 않으면 새 입구(엔진의 상태 API 등)에서 또 「영영 오프라인」이 난다. */
+  const pool = fs.readFileSync(path.join(root, 'im-agent', 'core', 'gemini-keys.js'), 'utf8');
+  const pEnvAt = pool.indexOf("require('./env').ensure()");
+  const pKeyAt = pool.indexOf('process.env.GEMINI_API_KEY');
+  assert.ok(pEnvAt > -1, 'gemini-keys.js 가 .env 를 안 올린다');
+  assert.ok(pEnvAt < pKeyAt, 'gemini-keys.js 가 열쇠를 읽은 뒤에 .env 를 올린다');
 
   const http = fs.readFileSync(path.join(root, 'im-agent', 'connectors', 'http.js'), 'utf8');
   assert.ok(http.indexOf("require('../core/env').ensure()") > -1,

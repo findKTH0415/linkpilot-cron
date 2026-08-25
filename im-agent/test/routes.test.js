@@ -53,12 +53,13 @@ test('★★ 라우터가 거는 것이 표와 정확히 같다 (사본이 생�
   });
 });
 
-test('★ 라우트 수가 읽기 6 · 쓰기 25 = 31 이다', () => {
+test('★ 라우트 수가 읽기 6 · 쓰기 30 = 36 이다', () => {
   assert.strictEqual(R.ROUTES.length, 6);
   // 23 번째는 POST /projects/:id/scan — 넣은 자료를 값으로 만드는 길 (2026-08-21)
   // 24 번째는 PUT /projects/:id/hidden — 목록에서 접기 (2026-08-24 · 지우지 않는다)
   // 25 번째는 GET /projects/:id/scan/progress — 읽는 중에 「몇 개 중 몇 개」 (2026-08-24)
-  assert.strictEqual(W.ROUTES.length, 25);
+  // 26~30 번째는 Gemini 열쇠 관리 다섯 (2026-08-25 · D-104)
+  assert.strictEqual(W.ROUTES.length, 30);
 });
 
 /* ═════════ ② 이름만 적힌 handler 가 없다 ═════════ */

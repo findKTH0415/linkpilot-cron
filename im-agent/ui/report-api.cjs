@@ -269,6 +269,74 @@ function createHandlers(deps) {
 
   return {
     /**
+     * GET /gemini/status — **열쇠 여섯이 지금 어떤 상태인가** (D-104 · 지시서 §19).
+     *
+     * ★★★ **열쇠 값은 한 글자도 안 나간다.** 나가는 것은 슬롯 번호 · 해시에서
+     *   뽑은 네 글자 · 상태 · 통계뿐이다. 이 저장소는 public 이고, 응답은
+     *   브라우저 개발자도구에 그대로 보인다 (CLAUDE.md §2 · 지시서 §19·§23).
+     *
+     * ★ **관리자 구분은 이 엔진에 없다.** 여기 있는 것은 플랜뿐이라 가장 높은
+     *   플랜으로 막았다. 진짜 관리자 구분은 본체가 해야 한다 — 등록부 D-105.
+     */
+    async geminiStatus(ctx) {
+      const g = gate(ctx, 'business'); if (g.error) return g.error;
+      return { ok: true, ...load('core/gemini-keys').snapshot() };
+    },
+
+    /**
+     * GET /gemini/metrics — 통계만. 화면이 자주 물어도 싼 쪽 (지시서 §15·§27).
+     */
+    async geminiMetrics(ctx) {
+      const g = gate(ctx, 'business'); if (g.error) return g.error;
+      const snap = load('core/gemini-keys').snapshot();
+      return {
+        ok: true, at: snap.at,
+        active: snap.active, availableNow: snap.availableNow,
+        registered: snap.registered, slots: snap.slots,
+        invalid: snap.invalid, cooldown: snap.cooldown,
+        totalRequests: snap.totalRequests, successRate: snap.successRate,
+        alerts: snap.alerts,
+      };
+    },
+
+    /**
+     * POST /gemini/health-check-all — **실제로 불러 본다** (지시서 §6).
+     *
+     * ★ 값이 들어 있다는 사실은 ACTIVE 의 근거가 아니다. 2026-08-25 에
+     *   「OCR 켜짐」인 채로 401 이던 일이 있었다 (MEMORY M-40).
+     * ★ 오프라인 모드에서는 그물을 타지 않는다 — 시험이 진짜 호출을 내면 안 된다.
+     */
+    async geminiHealthCheckAll(ctx) {
+      const g = gate(ctx, 'business'); if (g.error) return g.error;
+      if (process.env.IM_AGENT_OFFLINE === '1') return bad('오프라인 모드에서는 실제 호출을 하지 않습니다', 409);
+      const doctor = load('tools/gemini-doctor');
+      return { ok: true, ...(await doctor.checkAll()) };
+    },
+
+    /** POST /gemini/keys/:slot/health-check — 한 슬롯만 (지시서 §6) */
+    async geminiHealthCheck(ctx, slot) {
+      const g = gate(ctx, 'business'); if (g.error) return g.error;
+      if (!/^[1-6]$/.test(String(slot))) return bad('슬롯은 1~6 입니다');
+      if (process.env.IM_AGENT_OFFLINE === '1') return bad('오프라인 모드에서는 실제 호출을 하지 않습니다', 409);
+      const doctor = load('tools/gemini-doctor');
+      return { ok: true, ...(await doctor.checkSlot(slot)) };
+    },
+
+    /**
+     * POST /gemini/keys/:slot/revalidate — 폐기된 열쇠를 다시 물어보게 한다.
+     *
+     * ★ 지시서 §12 — 401·403 이 **설정을 잠깐 바꾸는 사이**에도 난다. 사람이
+     *   되돌릴 길이 없으면, 한 번 튄 열쇠가 영영 죽은 것으로 남는다.
+     */
+    async geminiRevalidate(ctx, slot) {
+      const g = gate(ctx, 'business'); if (g.error) return g.error;
+      if (!/^[1-6]$/.test(String(slot))) return bad('슬롯은 1~6 입니다');
+      const keys = load('core/gemini-keys');
+      if (!keys.revalidate(slot)) return bad('그 슬롯에 열쇠가 없습니다', 404);
+      return { ok: true, ...keys.snapshot() };
+    },
+
+    /**
      * POST /projects — 요청문으로 프로젝트를 만든다 (보고서 생성 1단계).
      *
      * ★ 여기서 **파이프라인 전체를 돌리지 않는다.** 01_project 하나만 부른다.
@@ -1666,6 +1734,16 @@ function kstStamp(date) {
  *   그쪽만 모르고 404 가 난다 — 실제로 11개가 빠졌다 (2026-08-18).
  */
 const ROUTES = [
+  /* ★ Gemini 열쇠 관리 (D-104). **프로젝트 길보다 먼저** 둔다 — `/projects/:id`
+   *   류와 겹치지 않지만, 성격이 다른 길을 섞어 두면 나중에 옮기다 순서를 깬다.
+   *   ★★ `/keys/:slot/health-check` 를 `/health-check-all` 보다 **뒤에** 둔다.
+   *      앞에 두면 `all` 이 슬롯 이름으로 잡힌다 (`/sources/verify` 와 같은 덫). */
+  { method: 'GET', path: '/gemini/status', handler: 'geminiStatus', call: (h, req) => h.geminiStatus(req) },
+  { method: 'GET', path: '/gemini/metrics', handler: 'geminiMetrics', call: (h, req) => h.geminiMetrics(req) },
+  { method: 'POST', path: '/gemini/keys/health-check-all', handler: 'geminiHealthCheckAll', call: (h, req) => h.geminiHealthCheckAll(req) },
+  { method: 'POST', path: '/gemini/keys/:slot/health-check', handler: 'geminiHealthCheck', call: (h, req, p) => h.geminiHealthCheck(req, p.slot) },
+  { method: 'POST', path: '/gemini/keys/:slot/revalidate', handler: 'geminiRevalidate', call: (h, req, p) => h.geminiRevalidate(req, p.slot) },
+
   { method: 'POST', path: '/projects', handler: 'createProject', call: (h, req) => h.createProject(req, req.body) },
 
   { method: 'POST', path: '/projects/:id/sources', handler: 'uploadSources', call: (h, req, p) => h.uploadSources(req, p.id, req.body) },
