@@ -197,7 +197,12 @@ async function main() {
   //   「호스트만 남기면 ned/* 가 간헐적으로 거부」라서, 스킴·경로 유무만 보면 된다.
   console.log(`VWORLD_DOMAIN  : ${domainShape(vworld.domain())}`);
   console.log(`DATA_GO_KR_KEY : ${molit.isAvailable() ? dk.message : '미설정 — 실거래가/건축물대장 건너뜀'}`);
-  console.log(`ECOS_API_KEY   : ${ecos.isAvailable() ? '설정됨 (시장금리 + 생산자물가)' : '미설정 — 시장금리·생산자물가 건너뜀 (금리·단가가 가정치로 남는다)'}`);
+  // ★ **어느 이름으로 들어왔는지 말한다** 〈2026-08-26〉. 엔진은 ECOS_API_KEY 와
+  //   ECOS_BOK_KEY 를 둘 다 읽는데(ecos.js KEY_NAMES), 이름표를 하나로 고정해 두면
+  //   사장님이 다른 이름으로 넣으셨을 때 화면이 딴 이름을 말한다.
+  console.log(`ECOS 열쇠       : ${ecos.isAvailable()
+    ? `설정됨 — ${ecos.usedName()} (시장금리 + 생산자물가)`
+    : 'ECOS_API_KEY / ECOS_BOK_KEY 둘 다 미설정 — 시장금리·생산자물가 건너뜀 (금리·단가가 가정치로 남는다)'}`);
   console.log(`DART_API_KEY   : ${dart.isAvailable() ? '설정됨' : '미설정 — 시행사 대조 건너뜀'}`);
 
   // ── 0-2. 시장금리 (주소와 무관 — 먼저 확인한다) ──────────

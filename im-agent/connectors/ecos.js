@@ -74,8 +74,30 @@ const PPI = {
   label: '생산자물가지수',
 };
 
+/**
+ * ★★ **이름이 둘이다** 〈2026-08-26 실측 — 사장님이 넣으신 이름이 달랐다〉.
+ *   안내 문서(`.env.example`·CLAUDE.md §4.1)는 `ECOS_API_KEY` 인데, 실제로
+ *   넣으신 이름은 `ECOS_BOK_KEY` 였다. 엔진이 한 이름만 보면 **넣으신 값이 죽는다** —
+ *   넣은 사람은 넣었다고 알고, 스모크는 「미설정」이라고 말하고, 배포는 초록이다.
+ *
+ *   `law.js` 의 `LAW_OC` / `LAW_OPEN_DATA` 와 **글자 그대로 같은 사고**다.
+ *   그때 정한 답을 그대로 쓴다 — **다시 넣으시라고 하지 않고 둘 다 읽는다.**
+ *   우선순위는 `ECOS_API_KEY` 가 먼저다(안내 문서가 그 이름이다).
+ *   `usedName()` 이 **어느 이름이 쓰였는지** 말해 주므로 스모크에서 한눈에 갈린다.
+ *
+ *   ★ `mask()` 는 이름이 아니라 **값**을 가린다(`redact(text, [apiKey()])`).
+ *     그래서 어느 이름으로 들어왔든 가려진다 — 이름을 늘려도 새지 않는다.
+ */
+const KEY_NAMES = ['ECOS_API_KEY', 'ECOS_BOK_KEY'];
+
+/** 실제로 값이 들어 있는 이름. 없으면 null */
+function usedName() {
+  return KEY_NAMES.find(n => (process.env[n] || '').trim()) || null;
+}
+
 function apiKey() {
-  return process.env.ECOS_API_KEY || '';
+  const n = usedName();
+  return n ? String(process.env[n]).trim() : '';
 }
 
 function isAvailable() {
@@ -83,7 +105,12 @@ function isAvailable() {
 }
 
 function unavailable(what) {
-  return { ok: false, error: `ECOS_API_KEY 미설정 — ${what || '시장금리'} 조회 생략`, unavailable: true };
+  // ★ 「미설정」이라고만 하면 사장님이 넣으신 이름을 의심하지 못한다. 받는 이름을 함께 적는다.
+  return {
+    ok: false,
+    error: `${KEY_NAMES.join(' 또는 ')} 미설정 — ${what || '시장금리'} 조회 생략`,
+    unavailable: true,
+  };
 }
 
 /** 이 커넥터 전용 마스킹 — 키가 경로에 있어 일반 규칙만으로는 새어 나갈 수 있다 */
@@ -347,6 +374,7 @@ async function priceAdjustment(o) {
 }
 
 module.exports = {
+  usedName,
   marketRate, isAvailable, unavailable, parseResponse, buildRequestUrl, mask,
   ppiItems, ppiSeries, priceAdjustment, month,
   SERIES, DEFAULT_SERIES, PPI, PROVIDER, BASE, ITEM_BASE, compact, daysAgo,
