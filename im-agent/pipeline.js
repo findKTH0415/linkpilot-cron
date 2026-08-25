@@ -539,6 +539,8 @@ async function run(opts = {}) {
     geo: geo.output || null,
     appraisal: appraisal.output || null,
     massing: massing.output || null,
+    // ★ AI 렌더를 본문에 싣는다 (D-34 2차 개정) — 표기가 온전한 것만 넘어온다
+    intake: skIntake.output || null,
   }, ctx);
   results['06_im_writer'] = writer;
   if (writer.output) {

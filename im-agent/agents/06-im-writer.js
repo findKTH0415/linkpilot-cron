@@ -37,6 +37,7 @@ const inputSchema = {
     geo: { type: 'object', nullable: true },
     appraisal: { type: 'object', nullable: true },
     massing: { type: 'object', nullable: true },
+    intake: { type: 'object', nullable: true },
   },
 };
 
@@ -231,6 +232,34 @@ function massingTable(massing) {
   return table + files;
 }
 
+/**
+ * ★★★ **AI 렌더를 IM 본문에 싣는다** 〈2026-08-25 사장님 지시 — D-34 2차 개정〉.
+ *
+ *   앞 판은 「표지·티저 한정 · IM 본문에는 싣지 않는다」였다. 본문 조감도는
+ *   지적선에서 나온 기하 조감도만 쓰기로 했었기 때문이다. 사장님이 **본문에
+ *   싣기로** 정하셨으므로 그 제한을 푼다.
+ *
+ * ★ 대신 **표기가 그림을 따라간다.** 그림 바로 밑에 「AI 렌더 — 실제 설계안이
+ *   아님」과 어느 장면에서 어느 도구·세대로 만들었는지를 인쇄한다. 표기가 없는
+ *   렌더는 수령 Agent 가 `bodyRenders` 에서 이미 뺐다.
+ * ★ 기하 조감도를 **대체하지 않는다** — 나란히 둔다. 지적선에서 나온 그림이
+ *   근거이고 실사 렌더는 인상이다. 둘을 바꿔치면 근거가 사라진다.
+ * ★ 렌더의 어떤 값도 fact 가 되지 않는다 (D-96) — 그림에서 수치를 읽지 않는다.
+ */
+function renderFigures(intake) {
+  const list = (intake && intake.bodyRenders) || [];
+  if (!list.length) return '';
+  const out = ['', '**실사 조감도 (AI 렌더)**', ''];
+  list.forEach((r) => {
+    out.push(`![${r.disclaimer}](../04_Property/${r.file})`);
+    const made = [r.tool, r.tool_version].filter(Boolean).join(' ');
+    const how = [made || null, r.engine || null].filter(Boolean).join(' · ');
+    out.push('', `> **${r.disclaimer}.** 원본 장면 ${r.based_on}${how ? ` · ${how}` : ''}. `
+      + '형상은 위 매스·지적선에서 왔고, 재질과 주변은 AI 가 그린 것이다 — 설계·시공 근거로 쓰지 않는다.', '');
+  });
+  return out.join('\n');
+}
+
 /** 감정평가 3방식 요약표 (법적 고지 포함) */
 function appraisalTable(appraisal) {
   if (!appraisal || !appraisal.methods || !Object.keys(appraisal.methods).length) {
@@ -362,7 +391,12 @@ async function run(input, ctx) {
     if (section.table === 'sensitivity') text = sensitivityTable(financial);
     if (section.table === 'flags') text += `\n\n${flagsTable(validation)}`;
     if (section.table === 'geo') text += `\n\n${geoTable(geo)}`;
-    if (section.table === 'massing') text += `\n\n${massingTable(massing)}`;
+    if (section.table === 'massing') {
+      text += `\n\n${massingTable(massing)}`;
+      // ★ 실사 렌더는 매스 표 **아래**에 붙는다 (D-34 2차 개정) — 근거(표·기하)가
+      //   먼저 오고 인상(AI 그림)이 뒤에 온다. 순서를 바꾸면 그림이 근거로 읽힌다.
+      text += renderFigures(input.intake);
+    }
 
     // 데이터 요약을 서술 아래에 항상 덧붙인다 (숫자의 출처 추적성 확보)
     if (section.narrative && factSheet.length && text && !text.startsWith('- ')) {
@@ -530,5 +564,5 @@ function buildDisclaimers(appraisal, massing, financial) {
 module.exports = {
   id: '06_im_writer', label: 'IM Writer Agent',
   inputSchema, outputSchema, run,
-  findUnsourcedNumbers, substitute, displayValue, financialTable, geoTable, massingTable, appraisalTable, buildKpis, buildDisclaimers,
+  findUnsourcedNumbers, substitute, displayValue, financialTable, geoTable, massingTable, renderFigures, appraisalTable, buildKpis, buildDisclaimers,
 };

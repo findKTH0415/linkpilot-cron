@@ -350,3 +350,52 @@ test('렌더 실패를 결제·열쇠·모델로 가른다 (im:render 진단 —
   assert.strictEqual(unknown.kind, 'unknown', '판정 못 하는 것은 지어내지 않는다');
   assert.match(unknown.head, /판정하지 못했다/, '모른다고 사람 말로 적는다');
 });
+
+/**
+ * ★ D-34 2차 개정 〈2026-08-25 사장님 지시 — 「이제는 싣기 위해 개정을 바꿔서라도 진행해」〉.
+ *   앞 판은 「표지·티저 한정 · IM 본문에는 안 싣는다」였다. 이제 **싣는다.**
+ *   대신 **표기가 그림을 따라간다** — 표기 없는 렌더는 본문으로 안 넘어간다.
+ */
+test('표기가 온전한 렌더는 본문으로 넘어간다 — 표기 없는 것만 뺀다 (D-34 2차 개정)', async () => {
+  const out = await planThenIntake({
+    model: { floors: 4, gfa_m2: 9600, objects_count: 0 },
+    validation: { solid: 'SKIPPED_MASSING' },
+    files: [],
+    renders: [
+      { file: 'ok_veras.png', tool: 'veras', tool_version: '4.0', engine: 'Nano Banana Pro', based_on: 'SC-001', ai_generated: true, disclaimer: 'AI 렌더 — 실제 설계안이 아님' },
+      // 비표준 도구지만 표기는 온전 — **싣는다** (YELLOW 로 알릴 일이지 지울 일이 아니다)
+      { file: 'ok_mj.png', tool: 'midjourney', tool_version: '7', based_on: 'SC-002', ai_generated: true, disclaimer: 'AI 렌더 — 실제 설계안이 아님' },
+      { file: 'no_disclaimer.png', tool: 'gemini', tool_version: 'app', engine: 'Nano Banana Pro', based_on: 'SC-003', ai_generated: true },
+      { file: 'no_scene.png', tool: 'veras', tool_version: '4.0', engine: 'Nano Banana Pro', ai_generated: true, disclaimer: 'AI 렌더 — 실제 설계안이 아님' },
+    ],
+  });
+  const names = (out.bodyRenders || []).map(r => r.file);
+  assert.deepStrictEqual(names, ['ok_veras.png', 'ok_mj.png'], '표기가 온전한 것만 본문으로 넘긴다');
+  assert.ok(out.bodyRenders.every(r => r.disclaimer && r.based_on), '표기가 그림을 따라간다');
+  assert.deepStrictEqual(out.facts, [], 'D-96 — 렌더도 fact 가 아니다');
+});
+
+test('결과가 없으면 본문에 실을 렌더도 없다 — 지어내지 않는다 (D-34 2차 개정)', async () => {
+  const got = await intake.run({ projectId: PID, plan: null }, { warn: noop.warn });
+  assert.strictEqual(got.status, 'unavailable');
+  assert.deepStrictEqual(got.bodyRenders, []);
+});
+
+test('IM 본문이 렌더를 싣고, 표기와 순서가 함께 인쇄된다 (D-34 2차 개정)', () => {
+  const writer = require('../agents/06-im-writer');
+  const md = writer.renderFigures({
+    bodyRenders: [
+      { file: 'render_SC-AERIAL-01_gemini_01.png', based_on: 'SC-AERIAL-01',
+        disclaimer: 'AI 렌더 — 실제 설계안이 아님', tool: 'gemini', tool_version: 'app', engine: 'Nano Banana Pro' },
+    ],
+  });
+  assert.match(md, /!\[.*\]\(\.\.\/04_Property\/render_SC-AERIAL-01_gemini_01\.png\)/, '본문에 그림이 실린다');
+  assert.match(md, /AI 렌더 — 실제 설계안이 아님/, '표기가 그림과 함께 인쇄된다');
+  assert.match(md, /SC-AERIAL-01/, '어느 장면에서 왔는지 적는다');
+  assert.match(md, /Nano Banana Pro/, '어느 도구·세대가 만들었는지 적는다');
+  assert.match(md, /설계·시공 근거로 쓰지 않는다/, '근거가 아님을 못 박는다');
+
+  // ★ 막는 장치 — 없으면 아무것도 안 실린다 (빈 문자열이라 본문이 안 늘어난다)
+  assert.strictEqual(writer.renderFigures({ bodyRenders: [] }), '');
+  assert.strictEqual(writer.renderFigures(null), '');
+});

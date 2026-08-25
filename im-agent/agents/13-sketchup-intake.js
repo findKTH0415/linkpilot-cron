@@ -11,6 +11,8 @@
  * ★ facts 는 **항상 빈 배열이다** (D-96).
  * ★ AI 렌더는 disclaimer 가 없으면 YELLOW 다 (규격 §3-1) — AI 그림이
  *   설계안으로 읽히는 것이 이 파일에서 막아야 할 사고다.
+ * ★★ **표기가 온전한 렌더는 IM 본문에 실린다** 〈2026-08-25 · D-34 2차 개정〉 —
+ *   `bodyRenders` 로 06_im_writer 에 넘긴다. 표기는 그림을 따라간다.
  *
  * 전부 결정적 대조다. LLM 미사용.
  */
@@ -39,6 +41,8 @@ const outputSchema = {
     flags: { type: 'array' },
     status: { type: 'string', enum: ['received', 'unavailable'] },
     result: { type: 'object', nullable: true },
+    // 본문에 실을 렌더 (D-34 2차 개정) — 표기가 온전한 것만 담긴다
+    bodyRenders: { type: 'array' },
     confidence: { type: 'number', minimum: 0, maximum: 1 },
   },
 };
@@ -54,7 +58,7 @@ async function run(input, ctx) {
   const result = store.readJson(input.projectId, '04_Property/model-result.json', null);
   if (!result) {
     // 아직 안 만든 것은 오류가 아니다 — 평면 B 는 사람의 시간으로 돈다
-    return { facts, flags, status: 'unavailable', result: null, confidence: 1 };
+    return { facts, flags, status: 'unavailable', result: null, bodyRenders: [], confidence: 1 };
   }
 
   const plan = (input.plan && input.plan.schema === 'model-plan/1')
@@ -103,14 +107,25 @@ async function run(input, ctx) {
     flags.push(flag('YELLOW', 'FILE_MISSING', `결과가 적은 파일이 폴더에 없다: ${missingFiles.join(', ')}`));
   }
 
-  // ── AI 렌더 — disclaimer 없으면 받지 않은 것과 같다 (규격 §3-1) ──
+  /* ── AI 렌더 ────────────────────────────────────────────
+   * ★★★ **본문에 싣는다** 〈2026-08-25 사장님 지시 — D-34 2차 개정〉.
+   *   앞 판은 「표지·티저 한정, IM 본문에는 안 싣는다」였다. 사장님이
+   *   본문에 싣기로 정하셨으므로 그 제한을 푼다.
+   * ★ 대신 **표기가 그림을 따라간다** — 표기 없는 렌더는 본문에 안 실린다
+   *   (`bodyReady` 가 false 면 06_im_writer 가 건너뛴다). 막는 것이 아니라
+   *   「AI 그림임을 밝히고 싣는다」로 바뀐 것이다.
+   * ── */
+  const bodyRenders = [];
   for (const r of result.renders || []) {
+    let labeled = true;
     if (r.ai_generated !== true || !r.disclaimer) {
       flags.push(flag('YELLOW', 'RENDER_DISCLAIMER',
         `AI 렌더 ${r.file || '(이름 없음)'} 에 ai_generated/disclaimer 표기가 없다 — 「실제 설계안이 아님」 없이는 문서에 싣지 않는다`));
+      labeled = false;
     }
     if (!r.based_on) {
       flags.push(flag('YELLOW', 'RENDER_NO_SCENE', `AI 렌더 ${r.file || '(이름 없음)'} 의 원본 장면(based_on)이 없다 — 어느 뷰에서 나온 그림인지가 출처다`));
+      labeled = false;
     }
     if (!r.tool || !r.tool_version) {
       flags.push(flag('YELLOW', 'RENDER_TOOL_UNKNOWN',
@@ -129,6 +144,19 @@ async function run(input, ctx) {
           `AI 렌더 ${r.file || '(이름 없음)'} 의 도구가 표준이 아니다 — ${r.tool} ${r.tool_version}${r.engine ? ` (${r.engine})` : ''}. 표준은 ${RENDER_STANDARD.label}이고, 무료 경로는 gemini + 같은 기반 모델만 받는다`));
       }
     }
+    /* ★ 표기가 온전한 것만 본문으로 넘긴다. 도구가 비표준이어도 **싣기는 한다** —
+     *   그것은 YELLOW 로 알릴 일이지 그림을 지울 일이 아니다 (표준은 권고가 아니라
+     *   기록의 문제다). 표기(ai_generated·disclaimer·based_on)가 없는 것만 뺀다. */
+    if (labeled && r.file) {
+      bodyRenders.push({
+        file: r.file,
+        based_on: r.based_on,
+        disclaimer: r.disclaimer,
+        tool: r.tool || null,
+        tool_version: r.tool_version || null,
+        engine: r.engine || null,
+      });
+    }
   }
 
   const red = flags.filter(f => f.severity === 'RED').length;
@@ -141,6 +169,8 @@ async function run(input, ctx) {
       renders: (result.renders || []).length,
       solid: v.solid || null,
     },
+    // ★ 본문에 실을 렌더 (D-34 2차 개정) — 표기가 온전한 것만. fact 는 아니다 (D-96).
+    bodyRenders,
     confidence: red ? 0.3 : 0.8,
   };
 }
