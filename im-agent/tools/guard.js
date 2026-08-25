@@ -172,10 +172,30 @@ function saveBar() {
   add('[저장] 막대 자리', code === 0 ? 'ok' : (code === 2 ? 'unknown' : 'fail'), line || '결과를 못 읽었다');
 }
 
+/* ── ⑥ [열기]로 연 것이 실제로 읽히는가 ────────────────── */
+/**
+ * ★★★ **§8 은 「헤드리스로 실제 렌더를 확인한다」인데 파일 여는 길에는 그 검사가
+ *   없었다** 〈2026-08-25 · M-35〉. 그래서 내가 고친 자리에서 IM 본문이 통째로
+ *   깨져 나갔고, 사장님은 **엔진이 잘못 만든 줄로** 읽으셨다.
+ * ★ 소스 대조로는 못 잡는다 — 딱지가 무엇으로 붙는지는 **돌려 봐야** 안다.
+ */
+function openFile() {
+  let out = '';
+  let code = 0;
+  try {
+    out = sh('node im-agent/tools/probe-open-file.js 2>&1');
+  } catch (e) {
+    out = String((e.stdout || '') + (e.stderr || ''));
+    code = e.status === undefined ? 1 : e.status;
+  }
+  const line = out.trim().split('\n').pop().replace(/^\[열기\] 열어서 읽히는가: /, '');
+  add('[열기] 읽히는가', code === 0 ? 'ok' : (code === 2 ? 'unknown' : 'fail'), line || '결과를 못 읽었다');
+}
+
 /* ── 내보내기 ──────────────────────────────────────────── */
 
 function main() {
-  tests(); stamp(); previews(); render(); saveBar();
+  tests(); stamp(); previews(); render(); saveBar(); openFile();
 
   const mark = { ok: '✅', fail: '❌', unknown: '⚠️ ' };
   const pad = (s, n) => s + ' '.repeat(Math.max(0, n - [...s].reduce((a, c) => a + (c.charCodeAt(0) > 0x1100 ? 2 : 1), 0)));
@@ -202,4 +222,4 @@ function main() {
 }
 
 if (require.main === module) process.exit(main());
-module.exports = { tests, stamp, previews, render, saveBar, rows };
+module.exports = { tests, stamp, previews, render, saveBar, openFile, rows };

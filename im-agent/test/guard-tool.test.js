@@ -37,11 +37,12 @@ test('★★★ 교차검증 넷을 전부 돈다', () => {
  */
 test('★★★ 늘어난 칸도 실제로 부른다', () => {
   assert.ok(CODE.indexOf('function saveBar') !== -1, '[저장] 막대 자리 검사가 없다');
-  assert.ok(/render\(\); saveBar\(\);/.test(CODE),
+  assert.ok(CODE.indexOf('function openFile') !== -1, '[열기] 읽히는가 검사가 없다');
+  assert.ok(/render\(\); saveBar\(\); openFile\(\);/.test(CODE),
     '만들어 놓고 안 부른다 — 그게 다음에 빠질 자리다');
   /* ★ 못 쟀을 때(되돌아오는 값 2)를 통과로 세면 안 된다 */
-  assert.ok(/code === 2 \? 'unknown'/.test(CODE),
-    '크로미움이 없을 때 통과로 센다 — 못 잰 것은 통과가 아니다');
+  assert.strictEqual((CODE.match(/code === 2 \? 'unknown'/g) || []).length, 2,
+    '크로미움이 없을 때 통과로 세는 칸이 있다 — 못 잰 것은 통과가 아니다');
 });
 
 test('★★★ 못 잰 것을 통과로 세지 않는다', () => {

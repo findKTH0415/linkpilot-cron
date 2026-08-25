@@ -209,3 +209,55 @@ test('★★ 어느 파일인지 알려 줘야 형식을 가른다', () => {
   assert.ok(/fetchAsBlob\(url, r\.path\)/.test(CODE),
     '경로를 안 넘기면 형식을 못 가려 전부 이진으로 받는다');
 });
+
+/* ── 좌표가 아니라 **실제로 열어 본다** ─────────────────── */
+
+/**
+ * ★★★ **§8 이 요구하는 「헤드리스로 실제 렌더 확인」이 파일 여는 길에는 없었다**
+ *   〈2026-08-25 · M-35 · 사장님 권고 ②〉. 그래서 내가 고친 자리에서 IM 본문이
+ *   통째로 깨져 나갔고, 사장님은 **엔진이 잘못 만든 줄로** 읽으셨다.
+ *
+ * ★ 여기서는 그 검사가 **실재하고 불리는지**만 잰다. 실제로 여는 것은
+ *   `tools/probe-open-file.js` 이고 `npm run guard` 가 부른다 (크로미움이 필요하다).
+ */
+test('★★★ 실제로 열어 보는 검사가 있고, 교차검증이 그것을 부른다', () => {
+  const dir = path.join(__dirname, '..', 'tools');
+  const probe = fs.readFileSync(path.join(dir, 'probe-open-file.js'), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '');
+  const browser = fs.readFileSync(path.join(dir, 'probe-open-file.browser.js'), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '');
+
+  /* ★ 화면 코드를 **베끼지 않는다** — 베끼면 화면이 바뀐 날부터 검사만 옛말을 한다 */
+  assert.ok(/function fromScreen/.test(probe), '화면에서 함수를 잘라 오지 않는다');
+  assert.ok(/'textTypeFor', 'fetchAsBlob'/.test(probe), '재려는 두 함수를 안 들고 간다');
+
+  /* ★★★ 블롭을 글자로 바로 달라고 하면 **언제나 UTF-8 로 풀려** 깨지는 것을 못 본다 */
+  assert.ok(/new TextDecoder\(enc\)/.test(browser),
+    '딱지에 적힌 글자표로 안 푼다 — 깨지는 것을 못 보는 검사가 된다');
+  assert.ok(/'windows-1252'/.test(browser),
+    'charset 이 없을 때의 기본 인코딩을 안 흉내낸다 — 그 자리가 M-35 다');
+  assert.ok(/RENDERABLE/.test(browser),
+    '브라우저가 그려 주는 형식인지 안 본다 — 마크다운 딱지는 내려받기로 떨어진다');
+
+  /* ★ 서버가 실제로 정한 딱지를 쓴다 — 흉내내면 서버가 바뀌어도 초록이다 */
+  assert.ok(/h\.getFile\(/.test(probe), '진짜 핸들러에 안 물어본다');
+
+  const guard = fs.readFileSync(path.join(dir, 'guard.js'), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '');
+  assert.ok(/probe-open-file\.js/.test(guard), '교차검증이 안 부른다 — 없는 것과 같다');
+});
+
+/**
+ * ★★ **역슬래시가 먹히는 자리** 〈2026-08-25 · 그 자리에서 당했다〉.
+ *   브라우저에서 돌 코드를 노드 쪽 템플릿 문자열 안에 적었더니 정규식의
+ *   \w 가 w 로 바뀌어 그 자리에서 깨졌다. 화면은 아무 말도 안 하고 결과만
+ *   안 남겼다. 그래서 **진짜 파일**로 뺐다 — 다시 넣지 않도록 고정한다.
+ */
+test('★★ 브라우저에서 돌 코드는 문자열이 아니라 파일이다', () => {
+  const probe = fs.readFileSync(
+    path.join(__dirname, '..', 'tools', 'probe-open-file.js'), 'utf8');
+  assert.ok(/readFileSync\(path\.join\(__dirname, 'probe-open-file\.browser\.js'\)/.test(probe),
+    '브라우저 코드를 파일에서 안 읽는다 — 문자열에 넣으면 역슬래시가 먹힌다');
+  assert.ok(!/function readLikeBrowser/.test(probe),
+    '재는 코드가 두 곳에 있다 — 한 곳만 고쳐지는 날이 온다');
+});

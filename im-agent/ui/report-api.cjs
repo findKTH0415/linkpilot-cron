@@ -168,6 +168,17 @@ const CONTENT_TYPES = {
   '.pdf': 'application/pdf',
 };
 
+/**
+ * 저장된 시각을 **사람이 읽는 꼴**로 바꾼다. 꼴은 `core/kst.js` 한 곳에서 나온다.
+ * 못 읽는 값이면 원래 값을 그대로 돌려준다 — 버리면 그 사실이 통째로 사라진다.
+ */
+function readStamp(v) {
+  if (!v) return null;
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return v;
+  try { return kstStamp(d); } catch (_) { return v; }
+}
+
 function ok(body) { return { status: 200, body }; }
 function bad(message, status) { return { status: status || 400, body: { error: message } }; }
 
@@ -1302,8 +1313,17 @@ function createHandlers(deps) {
          *   나온 것인지」를 말할 수 없다. 자료를 새로 올린 뒤에도 옛 값이
          *   그대로 떠 있으면 **읽은 것으로 보인다.**
          *   `resolvedAt` 은 Dataset 이 저장될 때 KST 로 찍힌다.
+         *
+         * ★★ **사람이 읽는 꼴로 보낸다** 〈2026-08-25 · 실제 프로젝트로 따라가며 잡았다〉.
+         *   저장된 것은 `2026-08-25T08:44:19+09:00` 인데 화면은 그것을 **그대로**
+         *   찍고 있었다 — 「읽은 시각 2026-08-25T08:44:19+09:00」. 틀린 값은
+         *   아니지만 사람이 읽는 글이 아니다.
+         * ★ 꼴을 정하는 곳은 **한 곳뿐**이다 (`core/kst.js` 의 `kstStamp`) —
+         *   화면마다 자르면 화면마다 다른 꼴이 된다 (CLAUDE.md §8).
+         * ★ 못 읽는 값이면 **원래 값을 그대로** 보낸다. 버리면 「언제 읽었는지」가
+         *   통째로 사라진다.
          */
-        readAt: (json && json.resolvedAt) || null,
+        readAt: readStamp(json && json.resolvedAt),
         // ★ 값이 갈린 항목 수. 0 이 아니면 화면이 그 사실을 적는다
         conflicts: (json && Array.isArray(json.conflicts)) ? json.conflicts.length : 0,
         /**

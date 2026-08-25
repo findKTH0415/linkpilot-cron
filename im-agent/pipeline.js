@@ -117,14 +117,36 @@ function mergeExtraction(projectId, dataset, out, opts = {}) {
  */
 async function extractInto(projectId, files, opts = {}) {
   if (!store.exists(projectId)) throw new Error(`프로젝트 없음: ${projectId}`);
-  const list = Array.isArray(files) ? files : [];
+  /**
+   * ★★★ **빈 목록을 「읽을 것이 없다」로 넘기지 않는다** 〈2026-08-25 · 사장님
+   *   권고 ③ 「0개 수집자료」를 따라가다 잡았다〉.
+   *
+   *   앞 판은 `Array.isArray(files) ? files : []` 였다. 그래서 `null` 을 주면
+   *   **빈 배열**이 되어 그대로 넘어갔는데, 받는 쪽은 `input.files || 목록()` 으로
+   *   판단한다 — **빈 배열도 참**이라 목록을 안 부른다.
+   *   결과는 **「추출: 0건 / 문서 0건 / 미지원 0건」 — 성공으로 끝난다.**
+   *   자료가 폴더에 그대로 있는데도 한 글자도 안 읽고, 오류도 안 난다.
+   *
+   * ★ 그래서 **줄 것이 있을 때만 준다.** 안 주면 받는 쪽이 프로젝트 폴더를
+   *   훑고, 거기도 비었으면 그때 「원본자료가 없다」고 말한다 — 그게 사실이다.
+   * ★ 「목록을 줬는데 비어 있다」는 부른 쪽의 실수일 수 있으므로 **말한다.**
+   *   조용히 폴더를 훑으면 「0건인데 값이 나왔다」로 보여 더 헷갈린다.
+   */
+  const given = Array.isArray(files) ? files : null;
+  const list = (given && given.length) ? given : null;
   const log = opts.log || (() => {});
+  if (given && !given.length) {
+    log('  추출: 빈 목록이 왔다 — 프로젝트의 원본자료를 대신 훑는다');
+  }
   const dataset = loadDataset(projectId);
   /* ★ `onFile` 은 **읽는 동안 진행을 흘리는 길**이다 (D-99 · 사장님: 「스캔하는데
    *   너무 오래걸림」). 안 주면 아무 일도 안 한다 — 진행을 어디에 적을지는
    *   부른 쪽이 정한다. 읽기는 그것을 모른다 */
   const ctx = { projectId, dataset, log, onFile: opts.onFile };
-  const r = await runAgent('02_extraction', { projectId, files: list, useLlm: opts.useLlm !== false }, ctx);
+  /* ★ `files` 를 **아예 안 보낸다** — 빈 배열을 보내면 받는 쪽이 목록을 안 부른다 */
+  const input = { projectId, useLlm: opts.useLlm !== false };
+  if (list) input.files = list;
+  const r = await runAgent('02_extraction', input, ctx);
   if (!r.output || !r.output.facts) throw new Error(`추출 실패: ${(r.error && r.error.message) || r.status || 'unknown'}`);
   return mergeExtraction(projectId, dataset, r.output, { log, merge: true });
 }
