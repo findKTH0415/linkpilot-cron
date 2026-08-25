@@ -2737,7 +2737,7 @@ window.LINKPILOT_REPORT_FLOW = {
     손으로 적은 예시가 아닙니다. 요청문은 한 줄입니다 —
     「전남 태양광 100MW 사전 투자검토 보고서와 투자자용 IM 을 만들어줘」</p>
 
-  <div class="ev__k"><span>자산군 태양광</span><span>Task 19건</span><span>회전 9단</span><span>담당 없음 4건</span></div>
+  <div class="ev__k"><span>자산군 태양광</span><span>Task 21건</span><span>회전 9단</span><span>담당 없음 6건</span></div>
 
   <div class="ev__m" style="margin-top:14px">
     <b>같은 회전 안의 것은 동시에 돕니다.</b> 무엇을 같이 돌릴지 사람이 적지 않습니다 —
@@ -2749,8 +2749,8 @@ window.LINKPILOT_REPORT_FLOW = {
       <span class="tg__c"><span class="tg__t">· T03 자료 추출</span><span class="tg__t">· T05 시장조사</span></span></div><div class="tg__w"><span class="tg__wn">3회전</span>
       <span class="tg__c"><span class="tg__t">· T12 자산군 대조값 입력</span><span class="tg__t dim">↷ T15 법인 재무·신용 조회</span><span class="tg__t">· T04 입지·지적·공부 조회</span><span class="tg__t dim">↷ T14 계통 여유용량 대조</span><span class="tg__t bad">✕ T16 인허가·법률 검토</span><span class="tg__t bad">✕ T17 기술 검토</span></span></div><div class="tg__w"><span class="tg__wn">4회전</span>
       <span class="tg__c"><span class="tg__t dim">↷ T13 일사량·일조 조회</span><span class="tg__t">· T06 재무모델</span><span class="tg__t">· T08 매스·용적률 검토</span></span></div><div class="tg__w"><span class="tg__wn">5회전</span>
-      <span class="tg__c"><span class="tg__t">· T07 감정평가 3방식</span></span></div><div class="tg__w"><span class="tg__wn">6회전</span>
-      <span class="tg__c"><span class="tg__t">· T09 교차검증</span></span></div><div class="tg__w"><span class="tg__wn">7회전</span>
+      <span class="tg__c"><span class="tg__t bad">✕ T20 모델 계획</span><span class="tg__t">· T07 감정평가 3방식</span></span></div><div class="tg__w"><span class="tg__wn">6회전</span>
+      <span class="tg__c"><span class="tg__t bad">✕ T21 모델 결과 수령</span><span class="tg__t">· T09 교차검증</span></span></div><div class="tg__w"><span class="tg__wn">7회전</span>
       <span class="tg__c"><span class="tg__t">· T10 IM·티저 작성</span><span class="tg__t bad">✕ T18 Risk Analysis</span></span></div><div class="tg__w"><span class="tg__wn">8회전</span>
       <span class="tg__c"><span class="tg__t">· T11 독립 최종검증 (8 GATE)</span></span></div><div class="tg__w"><span class="tg__wn">9회전</span>
       <span class="tg__c"><span class="tg__t bad">✕ T19 PPT 생성</span></span></div></div>
@@ -2778,6 +2778,12 @@ window.LINKPILOT_REPORT_FLOW = {
     </div><div class="ev__c">
       <div class="ev__n">T15 법인 재무·신용 조회 — 다른 곳에서 이미 돈다</div>
       <div class="ev__m">여기서는 안 돌린다 — pipeline.js → core/corpreport.js 안에서 이미 돈다 (같은 API 를 두 번 부르지 않는다)</div>
+    </div><div class="ev__c bad">
+      <div class="ev__n">T20 모델 계획 — 담당 Agent 없음</div>
+      <div class="ev__m">12_sketchup_plan 미구현</div>
+    </div><div class="ev__c bad">
+      <div class="ev__n">T21 모델 결과 수령 — 담당 Agent 없음</div>
+      <div class="ev__m">13_sketchup_intake 미구현</div>
     </div><div class="ev__c bad">
       <div class="ev__n">T16 인허가·법률 검토 — 담당 Agent 없음</div>
       <div class="ev__m">12_legal 미구현</div>
@@ -2839,7 +2845,13 @@ window.LINKPILOT_REPORT_FLOW = {
       <td>KMA_APIHUB_KEY</td></tr><tr><td>계통 여유용량</td>
       <td>—</td>
       <td>kepco</td>
-      <td>KEPCO_BIGDATA_KEY</td></tr><tr><td>인허가·법률 검토</td>
+      <td>KEPCO_BIGDATA_KEY</td></tr><tr><td>모델 계획 (무엇을 만들 수 있는가)</td>
+      <td>12_sketchup_plan</td>
+      <td>—</td>
+      <td>—</td></tr><tr><td>모델 결과 수령</td>
+      <td>13_sketchup_intake</td>
+      <td>—</td>
+      <td>—</td></tr><tr><td>인허가·법률 검토</td>
       <td>12_legal</td>
       <td>enviro · g2b</td>
       <td>DATA_GO_KR_KEY</td></tr><tr><td>기술 검토</td>

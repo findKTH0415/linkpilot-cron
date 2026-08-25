@@ -140,6 +140,26 @@ const PLAN = [
     outputs: [],   // pipeline.js 가 10_Corporate/ 에 쓴다 — 이 Task 의 것이 아니다
   },
 
+  // ── 다른 갈래에서 오는 중 (SketchUp PR #9) ──
+  //   순서 근거: 계획은 매스(T08) 뒤 — 용적률이 성립해야 무엇을 만들지 정해진다.
+  //
+  //   ★★ **교차검증(T09)의 선행으로 걸지 않는다.** 처음엔 걸었다가 실측에서
+  //     T09 부터 아래가 전부 BLOCKED 가 됐다 — 아직 구현되지 않은 Task 를 필수
+  //     선행으로 두면 **그 갈래가 병합될 때까지 보고서가 통째로 안 나온다.**
+  //     모델 결과는 있으면 쓰고 없으면 그 절만 비우는 값이다 (CLAUDE.md §4.6).
+  {
+    id: 'T20', name: '모델 계획', priority: 46,
+    description: '무엇을 만들 수 있는지 정한다. 매스가 법적으로 성립한 뒤에 온다',
+    capability: 'SKETCHUP_PLAN', dependsOn: ['T08'],
+    outputs: ['04_Property/model-plan.json'],
+  },
+  {
+    id: 'T21', name: '모델 결과 수령', priority: 47,
+    description: '협력사·도구가 낸 결과를 받는다. 생성물이므로 fact 로 등록하지 않는다 (D-38)',
+    capability: 'SKETCHUP_INTAKE', dependsOn: ['T20'],
+    outputs: ['04_Property/model-result.json'],
+  },
+
   // ── 담당 Agent 가 아직 없는 것 — 지우지 않고 PLANNED 로 남긴다 ──
   {
     id: 'T16', name: '인허가·법률 검토', priority: 35,
@@ -334,9 +354,22 @@ function referencedAgents() {
   return Array.from(ids).sort();
 }
 
-/** 계획이 가리키는데 registry 에도 PLANNED 에도 없는 Agent — 오타를 잡는다 */
+/**
+ * 계획이 가리키는데 아무 데도 없는 Agent — 오타를 잡는다.
+ * ★ 「다른 갈래에서 오는 중」(router.INCOMING)이라고 **밝힌 것**은 뺀다.
+ *   밝히지 않은 것만 오타로 본다 — 밝히면 병합될 때 검사가 따로 짚는다.
+ */
 function unknownAgents() {
-  return referencedAgents().filter(id => !registry.AGENTS[id] && !registry.PLANNED[id]);
+  return referencedAgents().filter(id =>
+    !registry.AGENTS[id] && !registry.PLANNED[id] && !router.INCOMING[id]);
 }
 
-module.exports = { PLAN, plan, detectAsset, referencedAgents, unknownAgents, REAL_ESTATE_ONLY };
+/**
+ * 「오는 중」이라 적어 뒀는데 **이미 와 있는** Agent — 표를 지울 때가 됐다는 뜻.
+ * ★ 안 지우면 이미 와 있는 것을 아직 안 왔다고 말하는 표가 된다.
+ */
+function arrivedIncoming() {
+  return Object.keys(router.INCOMING).filter(id => registry.AGENTS[id]);
+}
+
+module.exports = { PLAN, plan, detectAsset, referencedAgents, unknownAgents, arrivedIncoming, REAL_ESTATE_ONLY };

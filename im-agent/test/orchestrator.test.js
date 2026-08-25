@@ -109,6 +109,20 @@ test('★ 계획이 가리키는 Agent 는 전부 registry 에 있다 — 오타
   assert.deepStrictEqual(taskplan.unknownAgents(), []);
 });
 
+test('★★ 「오는 중」이라 적은 Agent 가 도착하면 일부러 빨개진다', () => {
+  // 도착했는데 표를 안 지우면, 이미 와 있는 것을 아직 안 왔다고 말하는 표가 된다.
+  // 이 검사가 빨개지면 router.INCOMING 에서 그 줄을 지우면 된다 — 그것이 할 일이다.
+  assert.deepStrictEqual(taskplan.arrivedIncoming(), [],
+    '이 Agent 들이 registry 에 들어왔다 — router.INCOMING 에서 지워라');
+});
+
+test('★ 「오는 중」은 이름과 출처를 함께 적는다 — 어디서 오는지 모르면 못 기다린다', () => {
+  for (const [id, from] of Object.entries(router.INCOMING)) {
+    assert.match(id, /^\d{2}_[a-z_]+$/, `Agent id 모양이 아니다: ${id}`);
+    assert.ok(String(from).length > 4, `${id} 의 출처가 비었다`);
+  }
+});
+
 test('★ 미구현 Agent 의 Task 는 지워지지 않고 PLANNED 로 남는다 (D-20)', () => {
   const p = taskplan.plan({ request: '평택 물류창고 개발' });
   const legal = p.tasks.find(t => t.id === 'T16');

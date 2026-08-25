@@ -126,6 +126,21 @@ const CAPABILITIES = {
     note: '변전소 좌표가 비식별이라 거리는 사람이 넣는다 (D-54)',
   },
 
+  // ── 아래 둘은 **다른 갈래(SketchUp #9)에서 오는 중이다.**
+  //   ★ 왜 미리 적어 두나 — 병합 시연에서 실측했다. 자리를 안 만들어 두면
+  //     `12_sketchup_plan`·`13_sketchup_intake` 가 들어오는 순간 **계획에서
+  //     영영 안 돈다.** registry 에는 있는데 그것을 가리키는 능력이 없어서다.
+  //     지금은 미구현이므로 `PLANNED` 로 서고, 병합되는 날 저절로 살아난다.
+  //     (MCP 갈래가 `agentsPending` 으로 같은 일을 해 둔 것과 같은 방식이다)
+  SKETCHUP_PLAN: {
+    label: '모델 계획 (무엇을 만들 수 있는가)', agents: ['12_sketchup_plan'], tools: [],
+    note: 'SketchUp 갈래(PR #9)에서 오는 중 — 병합 전에는 PLANNED',
+  },
+  SKETCHUP_INTAKE: {
+    label: '모델 결과 수령', agents: ['13_sketchup_intake'], tools: [],
+    note: 'SketchUp 갈래(PR #9)에서 오는 중 — 병합 전에는 PLANNED',
+  },
+
   // ── 아래는 담당 Agent 가 **아직 없다.** 대체로 태우지 않는다 ──
   LEGAL_PERMIT: {
     label: '인허가·법률 검토', agents: ['12_legal'], tools: [], optional: ['enviro', 'g2b'],
@@ -143,6 +158,23 @@ const CAPABILITIES = {
     label: 'PPT 생성', agents: ['15_design'], tools: [],
     note: '미구현 (registry.PLANNED phase 2)',
   },
+};
+
+/**
+ * **다른 갈래에서 오는 중인 Agent** — 아직 이 갈래의 `registry.js` 에 없다.
+ *
+ * ★ 왜 이름을 적어 두나 — 병합 시연(2026-08-25)에서 실측했다. 자리를 안 만들어
+ *   두면 그 Agent 가 들어오는 순간 **계획에서 영영 안 돈다.** registry 에는
+ *   있는데 그것을 가리키는 능력이 없어서, 아무도 오류를 안 보고 그냥 안 돈다.
+ *
+ * ★ **들어오면 검사가 일부러 빨개진다** (`orchestrator.test.js`).
+ *   그때 이 표에서 지우면 된다. 안 그러면 「오는 중」이 영원히 남아
+ *   **이미 와 있는 것을 아직 안 왔다고 말하는 표**가 된다.
+ *   (MCP 갈래가 `mcp/servers.js` 의 `agentsPending` 으로 같은 일을 해 두었다)
+ */
+const INCOMING = {
+  '12_sketchup_plan': 'SketchUp 트랙 (PR #9)',
+  '13_sketchup_intake': 'SketchUp 트랙 (PR #9)',
 };
 
 /** 환경변수가 실제로 들어 있는가 — 값은 절대 로그에 내지 않는다 (CLAUDE.md §2) */
@@ -242,4 +274,4 @@ function toolStatus() {
   });
 }
 
-module.exports = { CAPABILITIES, CONNECTOR_KEYS, assign, assignAll, toolAvailable, toolStatus, hasKey };
+module.exports = { CAPABILITIES, CONNECTOR_KEYS, INCOMING, assign, assignAll, toolAvailable, toolStatus, hasKey };
