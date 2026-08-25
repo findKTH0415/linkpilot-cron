@@ -424,7 +424,7 @@ test('★ 새 값이 호출을 늘리지 않는다 (이미 받던 응답에서 �
   const geo = fs.readFileSync(path.join(__dirname, '..', 'agents', '07-geo.js'), 'utf8');
 
   // 07 Geo 가 부르는 커넥터 호출 횟수 — 늘어나면 쿼터가 는다
-  // 2026-08-25 5→7: 도로필지 (D-102, 사장님 승인) — vworld.parcelsNear(bbox 1회)
+  // 2026-08-25 5→7: 도로필지 (D-105, 사장님 승인) — vworld.parcelsNear(bbox 1회)
   // + nsdi.landCharacteristics(접한 필지만 ≤12회, PNU별 30일 캐시, unavailable 즉시 중단).
   // 승인 없이 이 수를 다시 올리지 않는다.
   const calls = (geo.match(/await (vworld|nsdi|molit)\.\w+\(/g) || []);

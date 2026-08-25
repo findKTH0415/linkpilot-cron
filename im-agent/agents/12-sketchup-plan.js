@@ -110,7 +110,7 @@ async function run(input, ctx) {
     notes.push('지적선 미확보 — 바닥은 부지 근사 형상이다 (VWORLD_KEY 설정 시 실제 필지 형상)');
   }
 
-  // ── 도로필지 (D-102) — 지적선과 같은 원점. 공부(지목 「도」)에서 온 형상이다 ──
+  // ── 도로필지 (D-105) — 지적선과 같은 원점. 공부(지목 「도」)에서 온 형상이다 ──
   const roadPolys = Array.isArray(m.roadRings) && m.roadRings.length
     ? m.roadRings.map(r => ({
         pnu: r.pnu || null, jibun: r.jibun || null, category: r.category || null,
@@ -118,9 +118,9 @@ async function run(input, ctx) {
       }))
     : null;
   if (roadPolys) {
-    notes.push(`도로필지 ${roadPolys.length}필지 동봉 — 연속지적도 + 토지특성(지목 「도로」) 실측 형상이다. 진입 동선 판단은 사람이 한다 (D-102)`);
+    notes.push(`도로필지 ${roadPolys.length}필지 동봉 — 연속지적도 + 토지특성(지목 「도로」) 실측 형상이다. 진입 동선 판단은 사람이 한다 (D-105)`);
   } else if (parcelPoly) {
-    notes.push('도로필지 미확보 — 배치도의 도로는 비워 둔다. 예시 도로를 그리면 예시임을 화면에 박는다 (D-102)');
+    notes.push('도로필지 미확보 — 배치도의 도로는 비워 둔다. 예시 도로를 그리면 예시임을 화면에 박는다 (D-105)');
   }
 
   // ── 법정 분석 — 09_massing 이 검토한 값을 동봉한다 (fact 아님, 표기용) ──
@@ -193,7 +193,7 @@ async function run(input, ctx) {
       far_limit_pct: ds.num('land.far_limit'),
       bcr_limit_pct: bcrLimit,
       parcel_polygon_mm: parcelPoly,
-      // 접한 도로필지 (D-102) — 지목 「도로」 확인분만. null 이면 미확보다 (지어내지 않는다)
+      // 접한 도로필지 (D-105) — 지목 「도로」 확인분만. null 이면 미확보다 (지어내지 않는다)
       road_polygons_mm: roadPolys,
       source: srcOf(ds, 'land.area_sqm'),
     },

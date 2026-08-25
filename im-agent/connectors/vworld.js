@@ -206,7 +206,7 @@ async function parcelAt(lon, lat) {
 }
 
 /**
- * 필지 주변 필지들 — 연속지적도 bbox 조회 (도로필지 수집용, D-102).
+ * 필지 주변 필지들 — 연속지적도 bbox 조회 (도로필지 수집용, D-105).
  *
  * ★ parcelAt 과 **같은 레이어·같은 활용신청**이다(LP_PA_CBND_BUBUN). 필터만
  *   POINT → BOX 로 바뀐다. 새 신청 없이 붙는 이유가 이것이다.

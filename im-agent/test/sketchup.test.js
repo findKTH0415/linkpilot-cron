@@ -133,7 +133,7 @@ test('아파트면 판상형 개념 배치가 나온다 — ASSUMPTION 표기와
   assert.ok(out.plan.notes.some(n => /설계안이 아니다/.test(n)), '설계안 아님 표기');
 });
 
-test('동 길이는 GFA 를 넘겨 그리지 않는다 — 건폐율 기준이 넘치면 GFA 로 자른다 (D-101)', async () => {
+test('동 길이는 GFA 를 넘겨 그리지 않는다 — 건폐율 기준이 넘치면 GFA 로 자른다 (D-104)', async () => {
   const gfa = 39000;
   const out = await plan.run({
     projectId: PID,
@@ -156,7 +156,7 @@ test('동 길이는 GFA 를 넘겨 그리지 않는다 — 건폐율 기준이 �
   assert.ok(out.plan.notes.some(n => /GFA 로 제한/.test(n)), '자른 사실이 notes 에 남아야 한다');
 });
 
-test('도로필지가 있으면 지적선과 같은 좌표계로 계획에 실린다 (D-102)', async () => {
+test('도로필지가 있으면 지적선과 같은 좌표계로 계획에 실린다 (D-105)', async () => {
   const out = await plan.run({
     projectId: PID,
     massing: massingOut({
@@ -177,7 +177,7 @@ test('도로필지가 있으면 지적선과 같은 좌표계로 계획에 실�
   assert.deepStrictEqual(out.facts, [], 'D-96 — 도로 형상도 fact 가 아니다');
 });
 
-test('도로필지가 없으면 null 이고 그 사실이 notes 에 남는다 — 지어내지 않는다 (D-102)', async () => {
+test('도로필지가 없으면 null 이고 그 사실이 notes 에 남는다 — 지어내지 않는다 (D-105)', async () => {
   const out = await plan.run({
     projectId: PID,
     massing: massingOut({ parcelRing: [[-10, -5], [140, -10], [150, 80], [70, 120], [-15, 90]] }),
