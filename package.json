@@ -33,6 +33,8 @@
     "im:stamp": "node im-agent/ui/platform/build-stamp.js",
     "verify:nas": "node im-agent/tools/verify-nas.js",
     "check:reachable": "node im-agent/tools/reachable.js",
+    "d:check": "node im-agent/tools/registry-check.js",
+    "d:next": "node im-agent/tools/registry-check.js --all --next",
     "deploy:nas": "bash deploy/nas.sh"
   },
   "dependencies": {

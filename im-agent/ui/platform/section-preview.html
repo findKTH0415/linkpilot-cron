@@ -2001,6 +2001,15 @@ window.LINKPILOT_REPORT_FLOW = {
       <div class="upd__d">2026-08-25</div>
       <ul class="upd__l">
         <li>
+          <b>미결정 번호를 한 곳에서 발급하고, 갈래끼리 겹치면 빨개진다</b>
+          <em>작업 갈래 · 번호 발급 (tools/registry-check.js · 등록부 §Z)</em>
+          <span>갈래 넷이 동시에 돌면서 각자 D-번호를 붙였고 이날 네 벌이 겹쳤다 — 같은 번호가 갈래마다 다른 항목을 가리켰다. 이것이 비싼 이유는 병합해도 조용하기 때문이다. 등록부는 사람이 읽는 마크다운이라 서로 다른 항목이 나란히 남고, 코드 주석은 「D-104 참조」라고 가리키는데 등록부에는 다른 뜻의 D-104 가 있다. 세 번째 재발이라 규칙이 아니라 검사를 붙였다 — 갈래는 서로를 못 보므로 재는 쪽이 갈래 전부를 읽어야 한다. 충돌과 개정을 가르는 기준은 뿌리(main)에 그 번호가 있느냐다. 제목만 비교하면 오탐이 섞이고, 오탐이 섞이면 아무도 안 본다.</span>
+          <div class="upd__ba">
+            <div class="upd__b"><em>전</em>갈래마다 손으로 붙임 · 겹친 줄 아무도 모름 (네 벌 겹쳐 있었다)</div>
+            <div class="upd__a"><em>후</em>한 곳에서 발급 · 겹치면 exit 1 · 늦게 붙인 쪽이 양보하는 규칙을 검사가 지킴</div>
+          </div>
+          <span class="upd__see">확인: 화면에 안 보인다 — npm run d:check -- --all 을 돌리면 갈래별 번호와 충돌이 나온다. npm run d:next 가 다음 빈 번호를 준다</span>
+        </li><li>
           <b>요청문 한 줄을 Task 로 쪼개고, 동시에 돌 것을 스스로 고르고, 값이 바뀌면 영향받는 것만 다시 돌린다</b>
           <em>엔진 · 지휘체계 (tasks · taskplan · router · orchestrator · artifacts · agent-merge)</em>
           <span>앞 판은 Agent 11개를 고정 순서로 하나씩 돌렸다. 그래서 세 가지가 안 됐다. ① 서로 무관한 일(시장조사와 입지조회)이 앞의 것을 기다렸다. ② 총사업비 하나를 고치면 보고서를 처음부터 다시 만들어야 했다. ③ 담당이 없는 검토(인허가·기술·Risk·PPT)는 계획 어디에도 안 나와서 「원래 안 하는 일」로 읽혔다. 이제 실행 단위가 Agent 가 아니라 Task 다. 선행이 끝난 것을 매 회전마다 다시 세어 한꺼번에 돌리고, 값이 바뀌면 lineage 가 계산한 영향 범위만 REWORK 로 되돌린다. 담당이 없는 것은 지우지 않고 PLANNED 로 남기며 왜 못 도는지를 적는다. 자료원은 Agent 가 고르지 않는다 — 오케스트레이터가 지정해 내려보낸다. 엔진 본체(pipeline.js)를 대체하지 않았다. IM 을 끝까지 만드는 정식 경로는 여전히 pipeline 이고, 둘을 합칠지는 등록부 D-85 에 올렸다.</span>
@@ -2907,7 +2916,7 @@ LTC 65%</pre>
 
   <div class="ev__c">
     <div class="ev__n">아무도 안 부르는 모듈 — 0개</div>
-    <div class="ev__m">모듈 231개 중 231개가 닿습니다
+    <div class="ev__m">모듈 233개 중 233개가 닿습니다
       (<code>npm run check:reachable</code>).</div>
     <div class="ev__m">없음</div>
   </div>
