@@ -1979,11 +1979,26 @@ window.LINKPILOT_REPORT_FLOW = {
 <section class="upd">
   <div class="upd__h">
     <h2 class="upd__t">이번에 바뀐 것</h2>
-    <span class="upd__at">최근 반영 2026-08-22 (KST)</span>
+    <span class="upd__at">최근 반영 2026-08-25 (KST)</span>
   </div>
   <p class="upd__s">아래 화면에 이미 반영되어 있습니다. <b>무엇이 · 왜 · 어떻게</b> 바뀌었는지
     함께 적습니다 — 전과 후를 나란히 두어야 무엇이 달라졌는지 눈으로 비교됩니다.</p>
   
+    <div class="upd__g">
+      <div class="upd__d">2026-08-25</div>
+      <ul class="upd__l">
+        <li>
+          <b>LinkPilot 을 대화에서 부를 수 있게 했다 — 읽기 전용 MCP 서버</b>
+          <em>엔진 · 내보내는 길 (mcp/server.js · mcp/tools.js)</em>
+          <span>D-83 의 결정이다. 바깥 컨텐츠를 들여오는 길은 REST 커넥터 그대로 두고, MCP 는 LinkPilot 을 내보내는 길로만 쓴다. 들여오는 길에 놓으면 기관·기준시점·모수가 문장 속으로 녹아 Fact.source 를 채울 원본이 사라지고, 호출 한도 장부와 시크릿 마스킹 밖으로 나간다. 내보내는 길에서는 값을 만들지 않고 엔진이 이미 가진 것을 꺼내므로 출처가 그대로 따라온다. 도구 여섯은 전부 읽기 라우트(api-router.cjs) 위에 서고, 쓰기 라우트 스물셋은 하나도 열리지 않는다 — 검사가 그것을 고정한다. 포트를 열지 않고 표준입출력으로만 말한다.</span>
+          <div class="upd__ba">
+            <div class="upd__b"><em>전</em>MCP 가 이 저장소에 없었다. 커넥터 21개가 전부 REST 이고, 엔진이 가진 값을 대화에서 물어볼 길이 없었다</div>
+            <div class="upd__a"><em>후</em>읽기 도구 6개 (프로젝트 목록 · 진행 · 값의 계보 · 영향 · 데이터 사전 · 접수 조건). 쓰기 0개. npm run im:mcp</div>
+          </div>
+          <span class="upd__see">확인: 화면에 안 보인다 — 대화하는 쪽(Claude Desktop 등)에서만 보인다. 대신 이 화면 아래 [눈으로 확인 — 대화에서 LinkPilot 을 불러 본 결과 (MCP)] 패널에 실제로 서버를 띄워 물어본 답이 그대로 들어 있다. 붙이는 절차는 docs/MCP-붙이는-법.md</span>
+        </li>
+      </ul>
+    </div>
     <div class="upd__g">
       <div class="upd__d">2026-08-22</div>
       <ul class="upd__l">
@@ -2756,9 +2771,54 @@ LTC 65%</pre>
 
   <div class="ev__c">
     <div class="ev__n">아무도 안 부르는 모듈 — 0개</div>
-    <div class="ev__m">모듈 223개 중 223개가 닿습니다
+    <div class="ev__m">모듈 226개 중 226개가 닿습니다
       (<code>npm run check:reachable</code>).</div>
     <div class="ev__m">없음</div>
+  </div>
+</section>
+<section class="ev">
+  <h2 class="ev__t">눈으로 확인 — 대화에서 LinkPilot 을 불러 본 결과 (MCP)</h2>
+  <p class="ev__s">화면에 안 보이는 작업입니다. 아래는 이 미리보기를 만들 때
+    <b>실제로 MCP 서버를 부른</b> 답입니다. 손으로 적은 예시가 아닙니다.
+    다만 <b>자료 자체는 합성 예시</b>입니다 — 실제 딜 자료는 이 저장소에 두지 않습니다.</p>
+
+  <div class="ev__c">
+    <div class="ev__n">도구 6개 · 읽기 표시가 붙은 것 6개</div>
+    <div class="ev__m">MCP 는 <b>값을 들여오는 길이 아니라 LinkPilot 을 내보내는 길</b>입니다 (D-83).
+      값을 만들지 않고 엔진이 이미 가진 것을 꺼냅니다.</div>
+    <div class="ev__m"><code>linkpilot_projects</code> — 프로젝트 목록 · <b>읽기 전용</b></div><div class="ev__m"><code>linkpilot_progress</code> — 보고서 생성 진행 상황 · <b>읽기 전용</b></div><div class="ev__m"><code>linkpilot_lineage</code> — 값의 출처 계보 · <b>읽기 전용</b></div><div class="ev__m"><code>linkpilot_impact</code> — 값을 고치면 무엇이 흔들리는가 · <b>읽기 전용</b></div><div class="ev__m"><code>linkpilot_fields</code> — 데이터 사전 — 어떤 항목이 있는가 · <b>읽기 전용</b></div><div class="ev__m"><code>linkpilot_intake</code> — 무엇을 올릴 수 있는가 · <b>읽기 전용</b></div>
+  </div>
+
+  <div class="ev__c">
+    <div class="ev__n">쓰기 핸들러가 섞였는가 — 0개</div>
+    <div class="ev__m">쓰기 라우트 23개 중 <b>0개</b>가 도구로 나갑니다.
+      0이 아니면 대화가 남의 프로젝트를 고칠 수 있다는 뜻입니다.</div>
+  </div>
+
+  <div class="ev__c">
+    <div class="ev__n">값 하나를 물어본 답 — <code>linkpilot_lineage</code></div>
+    <div class="ev__m">숫자만 오지 않습니다. <b>어느 자료 몇 페이지·기준시점</b>이 함께 오고,
+      <b>채택되지 않은 후보</b>도 그대로 옵니다 — 값이 갈리는 것을 숨기지 않습니다.</div>
+    <pre class="ev__o">LP-DC-2026-001 · property.site_area
+- [SOURCE] 사업계획서.pdf = 12345 · 채택 · p.12 · 2026-03-01 · &quot;대지면적 12,345㎡&quot;
+- [SOURCE] 토지대장.pdf = 12300 · 후보(탈락) · p.1 · 2026-02-10 · &quot;대지면적 12,300㎡&quot;
+- [RESOLVED] 데이터셋 확정값 = 12345 · 채택 · 등급 A · 독립출처 2건 · 검증됨
+</pre>
+  </div>
+
+  <div class="ev__c">
+    <div class="ev__n">규약 2025-06-18 · 통로가 깨끗한가</div>
+    <div class="ev__m">알림(<code>notifications/initialized</code>)에는 답하지 않아야 하므로
+      물음 넷에 <b>답은 셋</b>입니다. 실제로 받은 줄 3개 ·
+      JSON 아닌 줄 <b>0개</b>. 사람 말이 한 줄만 섞여도 대화가 통째로 끊깁니다.</div>
+    
+  </div>
+
+  <div class="ev__c">
+    <div class="ev__n">포트를 열지 않습니다</div>
+    <div class="ev__m">표준입출력으로만 말합니다. 부를 수 있는 사람은 이 프로세스를 띄울 수 있는
+      사람뿐입니다. 남을 대신해 띄울 때는 <code>LINKPILOT_MCP_PROJECTS</code> 로 보이는
+      프로젝트를 좁힙니다. 붙이는 절차는 <code>docs/MCP-붙이는-법.md</code>.</div>
   </div>
 </section>
 <section class="ev">
