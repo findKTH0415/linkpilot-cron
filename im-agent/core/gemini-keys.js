@@ -1,6 +1,6 @@
 'use strict';
 /**
- * gemini-keys.js — Gemini 열쇠 여덟 개를 **하나의 문**으로 관리한다 (D-104).
+ * gemini-keys.js — Gemini 열쇠 여덟 개를 **하나의 문**으로 관리한다 (D-110).
  *
  * 〈2026-08-25 사장님 작업지시서 「Gemini 6-Key Manager」〉
  *

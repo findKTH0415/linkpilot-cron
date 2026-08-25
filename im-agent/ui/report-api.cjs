@@ -269,14 +269,14 @@ function createHandlers(deps) {
 
   return {
     /**
-     * GET /gemini/status — **열쇠 여섯이 지금 어떤 상태인가** (D-104 · 지시서 §19).
+     * GET /gemini/status — **열쇠 여섯이 지금 어떤 상태인가** (D-110 · 지시서 §19).
      *
      * ★★★ **열쇠 값은 한 글자도 안 나간다.** 나가는 것은 슬롯 번호 · 해시에서
      *   뽑은 네 글자 · 상태 · 통계뿐이다. 이 저장소는 public 이고, 응답은
      *   브라우저 개발자도구에 그대로 보인다 (CLAUDE.md §2 · 지시서 §19·§23).
      *
      * ★ **관리자 구분은 이 엔진에 없다.** 여기 있는 것은 플랜뿐이라 가장 높은
-     *   플랜으로 막았다. 진짜 관리자 구분은 본체가 해야 한다 — 등록부 D-105.
+     *   플랜으로 막았다. 진짜 관리자 구분은 본체가 해야 한다 — 등록부 D-111.
      */
     async geminiStatus(ctx) {
       const g = gate(ctx, 'business'); if (g.error) return g.error;
@@ -1734,7 +1734,7 @@ function kstStamp(date) {
  *   그쪽만 모르고 404 가 난다 — 실제로 11개가 빠졌다 (2026-08-18).
  */
 const ROUTES = [
-  /* ★ Gemini 열쇠 관리 (D-104). **프로젝트 길보다 먼저** 둔다 — `/projects/:id`
+  /* ★ Gemini 열쇠 관리 (D-110). **프로젝트 길보다 먼저** 둔다 — `/projects/:id`
    *   류와 겹치지 않지만, 성격이 다른 길을 섞어 두면 나중에 옮기다 순서를 깬다.
    *   ★★ `/keys/:slot/health-check` 를 `/health-check-all` 보다 **뒤에** 둔다.
    *      앞에 두면 `all` 이 슬롯 이름으로 잡힌다 (`/sources/verify` 와 같은 덫). */

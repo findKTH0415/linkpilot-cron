@@ -58,7 +58,7 @@ test('★ 라우트 수가 읽기 6 · 쓰기 30 = 36 이다', () => {
   // 23 번째는 POST /projects/:id/scan — 넣은 자료를 값으로 만드는 길 (2026-08-21)
   // 24 번째는 PUT /projects/:id/hidden — 목록에서 접기 (2026-08-24 · 지우지 않는다)
   // 25 번째는 GET /projects/:id/scan/progress — 읽는 중에 「몇 개 중 몇 개」 (2026-08-24)
-  // 26~30 번째는 Gemini 열쇠 관리 다섯 (2026-08-25 · D-104)
+  // 26~30 번째는 Gemini 열쇠 관리 다섯 (2026-08-25 · D-110)
   assert.strictEqual(W.ROUTES.length, 30);
 });
 

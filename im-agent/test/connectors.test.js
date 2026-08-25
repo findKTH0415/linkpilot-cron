@@ -650,7 +650,7 @@ test('★★★ 키를 읽는 쪽이 스스로 .env 를 올린다 (엔진도 읽
   assert.ok(envAt < poolAt,
     '열쇠를 읽은 뒤에 올린다 — 풀은 부르는 순간 정해지므로 소용이 없다');
 
-  /* ★★ **읽는 곳이 옮겨 갔으면 검사도 따라간다** 〈2026-08-25 · D-104〉.
+  /* ★★ **읽는 곳이 옮겨 갔으면 검사도 따라간다** 〈2026-08-25 · D-110〉.
    *   열쇠를 실제로 읽는 곳은 이제 `core/gemini-keys.js` 다. 거기가 스스로
    *   올리지 않으면 새 입구(엔진의 상태 API 등)에서 또 「영영 오프라인」이 난다. */
   const pool = fs.readFileSync(path.join(root, 'im-agent', 'core', 'gemini-keys.js'), 'utf8');

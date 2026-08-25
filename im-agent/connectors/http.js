@@ -111,7 +111,7 @@ const SECRET_ENV = [
   'ECOS_API_KEY',      // 20자쯤 — 안 걸린다
   'DART_API_KEY',
   'GEMINI_API_KEY',
-  // ★★ 여섯 슬롯 (D-104 · 지시서 §3). `GEMINI_API_KEY` 를 지우지 않는다 —
+  // ★★ 여섯 슬롯 (D-110 · 지시서 §3). `GEMINI_API_KEY` 를 지우지 않는다 —
   //   지금 NAS 에 들어 있는 유일한 열쇠이고, 새 이름으로 옮기기 전에도 돌아야
   //   한다. 여섯을 여기 빠뜨리면 **그 여섯만** 로그에 평문으로 남는다
   'GEMINI_KEY_01', 'GEMINI_KEY_02', 'GEMINI_KEY_03', 'GEMINI_KEY_04',
