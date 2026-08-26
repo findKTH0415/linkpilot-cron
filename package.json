@@ -49,6 +49,10 @@
     "d:conflict": "node im-agent/tools/decision-conflict.js",
     "imflow:manifest": "node im-agent/tools/sync-im-flow.js --write",
     "imflow:check": "node im-agent/tools/sync-im-flow.js",
+    "handover:check": "node im-agent/tools/handover-ledger.js",
+    "backup:write": "node im-agent/tools/backup.js write",
+    "backup:drill": "node im-agent/tools/backup.js drill",
+    "backup:verify": "node im-agent/tools/backup.js verify",
     "rights:count": "node im-agent/tools/rights-count.js"
   },
   "dependencies": {
