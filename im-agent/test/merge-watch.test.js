@@ -96,6 +96,45 @@ test('★★ 「짝의 수」 계산이 맞다 — 이것이 사장님께 드리
     '갈래가 늘었는데 짝이 줄 수는 없다');
 });
 
+test('★★ 이미 합쳐진 갈래는 「견줄 짝」에서 뺀다 — 병합 직후에 잡은 거짓말이다', () => {
+  const m = mw.measure();
+  if (!m.ok) return;
+
+  // 기준보다 앞선 커밋이 0개인 갈래는 `merged` 로 가고, `branches` 에 남지 않는다.
+  // ★ 왜 재는가 — 네 갈래를 main 에 합친 **직후에** 화면을 다시 열었더니
+  //   「갈래 8개 · 짝 28개 · 7군데 부딪힘」이 나왔다. 전부 이미 푼 충돌이었다.
+  //   합쳐진 갈래는 tip 이 남아 있어 서로 merge-tree 를 하면 병합 전 충돌이
+  //   그대로 재현되기 때문이다. **끝난 일을 남은 일로 보여 주는 화면**이었다.
+  for (const b of m.branches) {
+    assert.notStrictEqual(b.ahead, 0,
+      `${b.name} 은 이미 합쳐졌는데 아직 안 합친 갈래로 세고 있다`);
+  }
+  for (const b of (m.merged || [])) {
+    assert.strictEqual(b.ahead, 0, '합쳐졌다고 분류한 갈래는 앞선 커밋이 0이어야 한다');
+  }
+
+  // 센 것과 나눈 것이 어긋나지 않는다
+  assert.strictEqual(m.summary.branchCount, m.branches.length);
+  assert.strictEqual(m.summary.mergedCount, (m.merged || []).length);
+
+  // 짝은 **안 합친 갈래끼리만** 만든다
+  const live = new Set(m.branches.map(b => b.name));
+  for (const p of m.pairs) {
+    assert.ok(live.has(p.a) && live.has(p.b),
+      `${p.a} ↔ ${p.b} — 이미 합쳐진 갈래가 짝에 들어갔다`);
+  }
+});
+
+test('★ 적어 둔 갈래가 병합됐다고 「없어졌다」로 세지 않는다', () => {
+  const m = mw.measure();
+  if (!m.ok) return;
+  const mergedNames = new Set((m.merged || []).map(b => `claude/${b.name}`));
+  for (const missing of m.summary.declaredMissing || []) {
+    assert.ok(!mergedNames.has(missing),
+      `${missing} 는 병합된 것이지 없어진 것이 아니다 — 오타와 구분이 안 된다`);
+  }
+});
+
 test('★ 실측 결과의 모양이 무너지지 않는다', () => {
   const m = mw.measure();
   if (!m.ok) return;

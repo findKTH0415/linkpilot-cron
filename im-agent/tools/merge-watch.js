@@ -173,7 +173,7 @@ function areaOf(file, areas) {
  * ★ **경계를 넘은 것이 곧 잘못은 아니다.** 공용 파일은 누구나 건드린다.
  *   다만 넘은 사실을 보이게 해서 사장님이 판단하실 수 있게 한다.
  */
-function ownership(branches) {
+function ownership(branches, allBranches) {
   const doc = readOwners();
   const areas = doc._영역 || {};
   const byBranch = new Map((doc.갈래 || []).map(x => [x.branch, x]));
@@ -182,7 +182,12 @@ function ownership(branches) {
   //   오타면 그 갈래는 **영원히 주인이 없다.** 다만 이것을 검사(test)로 두면
   //   안 된다 — CI 는 그 PR 의 갈래 하나만 받아 오므로 나머지 셋이 늘 「없다」가 된다.
   //   **환경에 따라 답이 달라지는 것은 검사가 아니라 그때그때 말할 일이다** (2026-08-26 실측).
-  const present = new Set(branches.map(b => b.ref.replace(/^origin\//, '')));
+  //   ★ **이미 합쳐진 갈래는 「없다」가 아니다** 〈2026-08-26 · 병합 직후〉.
+  //     `branches` 는 아직 안 합친 것만 담으므로, 그것만 보면 방금 합친 넷이
+  //     통째로 「적어 뒀는데 안 보인다」로 뜬다. 그래서 **원격에 있는 전부**
+  //     (`allBranches`)와 견준다. 진짜 없는 것만 남는다.
+  const scope = allBranches || branches;
+  const present = new Set(scope.map(b => b.ref.replace(/^origin\//, '')));
   const declaredMissing = (doc.갈래 || [])
     .map(x => x.branch)
     .filter(name => !present.has(name));
@@ -241,7 +246,21 @@ function measure(opts = {}) {
   }
 
   const refs = workBranches();
-  const branches = refs.map(r => branchInfo(r, base));
+  const all = refs.map(r => branchInfo(r, base));
+
+  // ★★ **이미 합쳐진 갈래를 위험으로 세지 않는다** 〈2026-08-26 · 병합 직후 실측〉.
+  //   네 갈래를 main 에 합친 **직후에 이 화면을 다시 열었더니** 「갈래 8개 ·
+  //   견줄 짝 28개 · 7군데 부딪힘」이 나왔다. 전부 거짓이다 —
+  //   합쳐진 갈래는 tip 이 그대로 남아 있어서 서로 merge-tree 를 하면 **병합 전의
+  //   충돌이 그대로 재현된다.** 이미 푼 충돌을 아직 남은 것처럼 보여 준 것이다.
+  //
+  //   ★ 그래서 **기준(main)보다 앞선 커밋이 0개인 갈래는 「합쳐짐」으로 빼고**
+  //     남은 것끼리만 견준다. 뺐다는 사실은 화면에 그대로 적는다 —
+  //     조용히 빼면 「갈래가 사라졌다」로 읽힌다.
+  //   ★ `ahead` 를 못 잰 갈래(null)는 **뺴지 않는다.** 모르는 것을 안전한
+  //     쪽으로 짐작하면 진짜 위험이 사라진다.
+  const branches = all.filter(b => b.ahead !== 0);
+  const merged = all.filter(b => b.ahead === 0);
 
   // ── 두 갈래씩 전부 — 갈래가 하나 늘면 견줄 짝이 몇 개 느는지 그대로 보인다
   const pairs = [];
@@ -257,7 +276,7 @@ function measure(opts = {}) {
   }
 
   const heat = fileHeat(branches);
-  const owners = ownership(branches);
+  const owners = ownership(branches, all);
   const totalConflicts = pairs.reduce((n, p) => n + p.conflicts, 0);
   const conflictedFiles = new Set(pairs.flatMap(p => p.files));
 
@@ -266,15 +285,18 @@ function measure(opts = {}) {
     base,
     measuredAt: new Date().toISOString(),
     branches,
+    merged,
     pairs,
     heat,
     owners,
     summary: {
       branchCount: branches.length,
+      mergedCount: merged.length,
       pairCount: pairs.length,
       totalConflicts,
       distinctConflictedFiles: conflictedFiles.size,
-      // ★ 갈래가 하나 늘면 견줄 짝이 몇 개 되는가 — n(n-1)/2 다
+      // ★ 갈래가 하나 늘면 견줄 짝이 몇 개 되는가 — n(n-1)/2 다.
+      //   n 이 0 이면 `(0+1)*0/2` 라 +0 이 나온다 (`0*-1/2` 와 달리 -0 이 아니다).
       pairsIfOneMore: (branches.length + 1) * branches.length / 2,
       // ★ 주인이 둘인 갈래 · 주인이 없는 갈래 — 사장님이 가장 먼저 보실 숫자다
       sharedOwnerBranches: owners.filter(o => o.ownerCount > 1).length,
@@ -298,12 +320,19 @@ function render(m) {
   if (!m.ok) return `✕ ${m.error}`;
   const L = [];
   L.push('');
-  L.push(`  갈래 ${m.summary.branchCount}개 · 견줄 짝 ${m.summary.pairCount}개`);
+  L.push(`  아직 안 합친 갈래 ${m.summary.branchCount}개 · 견줄 짝 ${m.summary.pairCount}개`);
   L.push(`  ★ 실제로 부딪히는 곳 — 서로 다른 파일 ${m.summary.distinctConflictedFiles}개`);
   L.push('');
-  L.push('  갈래');
+  L.push('  아직 안 합친 갈래');
+  if (!m.branches.length) L.push('   (없다 — 열려 있는 갈래가 전부 기준에 들어가 있다)');
   for (const b of m.branches) {
     L.push(`   ${pad(b.name, 40)} ${String(b.ahead).padStart(4)}커밋  ${String(b.files.length).padStart(4)}파일  ${b.head || ''}`);
+  }
+  if ((m.merged || []).length) {
+    L.push('');
+    L.push(`  이미 ${shortName(m.base)} 에 들어간 갈래 ${m.merged.length}개 — 아래 셈에서 뺐다`);
+    for (const b of m.merged) L.push(`   ● ${pad(b.name, 40)} ${b.head || ''}`);
+    L.push('   (tip 이 남아 있어 서로 견주면 **병합 전 충돌이 그대로 재현된다** — 이미 푼 것이다)');
   }
   L.push('');
   L.push('  두 갈래씩 실제로 합쳐 본 결과 (0 이면 git 이 알아서 합친다)');
@@ -439,7 +468,7 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:.88em;background:var(--s
 아무것도 바꾸지 않습니다(읽기만 합니다).</p>
 
 <div class="cards">
-  <div class="card"><h3>갈래</h3><div class="big">${m.summary.branchCount}</div><p>기준 <code>${esc(m.base)}</code></p></div>
+  <div class="card"><h3>아직 안 합친 갈래</h3><div class="big">${m.summary.branchCount}</div><p>기준 <code>${esc(m.base)}</code> · 이미 들어간 것 <b>${m.summary.mergedCount}</b>개는 뺐습니다</p></div>
   <div class="card"><h3>견줄 짝</h3><div class="big">${m.summary.pairCount}</div><p>하나 더 열면 <b>${m.summary.pairsIfOneMore}</b> 개가 됩니다</p></div>
   <div class="card"><h3>실제로 부딪히는 파일</h3><div class="big" style="color:${m.summary.distinctConflictedFiles ? 'var(--red)' : 'var(--ok)'}">${m.summary.distinctConflictedFiles}</div><p>손으로 풀어야 하는 곳</p></div>
   <div class="card"><h3>가장 나쁜 짝</h3><div class="big">${worst}</div><p>한 번에 풀 곳이 가장 많은 조합</p></div>
@@ -470,6 +499,18 @@ ${m.owners.flatMap(o => o.alerts.filter(a => a.level !== 'MEDIUM').map(a =>
   <b>보이게 해서 사장님이 판단하시게 하는 것</b>이 이 표의 목적입니다.
   <br>주인은 <code>docs/갈래-주인.json</code> 에 적혀 있고, 고치면 이 표가 따라옵니다.
 </div>
+
+${(m.merged || []).length ? `<h2>이미 ${esc(shortName(m.base))} 에 들어간 갈래 — 위 셈에서 뺐습니다</h2>
+<div class="scroll"><table>
+<tr><th>갈래</th><th>맨 위</th><th>마지막 커밋</th></tr>
+${m.merged.map(b => `<tr><td>${esc(b.name)}</td><td class="dim">${esc(b.head || '')}</td><td class="dim">${esc(b.lastSubject || '')}</td></tr>`).join('')}
+</table></div>
+<div class="note">
+  <b>합쳐진 뒤에도 갈래의 맨 위(tip)는 그대로 남습니다.</b> 그 상태로 둘을 서로 견주면
+  <b>병합 전의 충돌이 그대로 다시 나옵니다</b> — 이미 손으로 푼 것인데도 그렇습니다.
+  그래서 기준보다 앞선 커밋이 0개인 갈래는 위 셈에서 뺍니다.
+  뺐다는 사실을 여기 적어 두는 이유는, 조용히 빼면 「갈래가 사라졌다」로 읽히기 때문입니다.
+</div>` : ''}
 
 <h2>갈래별 크기</h2>
 <div class="scroll"><table>

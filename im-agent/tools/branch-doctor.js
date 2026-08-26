@@ -125,6 +125,24 @@ function check(openRefs) {
       git(`fetch --quiet origin ${b}:refs/remotes/origin/${b}`);
       base = git(`merge-base HEAD ${ref}`).trim();
     } catch (e) {
+      /**
+       * ★★ **「뿌리가 다르다」와 「못 읽었다」는 다른 사실이다**
+       *   〈2026-08-26 · 병합 뒤에 드러났다 · D-130〉.
+       *
+       *   `merge-base` 는 **공통 조상이 없으면** 아무것도 못 내놓고 1 로 끝난다.
+       *   앞 판은 그것을 「못 읽었다」로 적었는데, 이 저장소에는 아침 크론 시절의
+       *   갈래 셋이 **족보가 아예 다른 채로** 남아 있어서 **영원히 못 읽는다.**
+       *   그러면 교차검증이 **영원히 「못 잼」으로 끝나고, 늘 노란 검사는
+       *   아무도 안 본다** (M-25 와 같은 결).
+       *
+       *   ★ 그래서 공통 조상이 없는 갈래는 **「합칠 수 없는 갈래」로 갈라 적고**
+       *     판정에서 뺀다. **빼되 화면에는 남긴다** — 조용히 빼면 사라진다.
+       *   ★ 진짜로 못 읽은 것(권한·네트워크)은 그대로 「못 읽었다」로 남는다.
+       */
+      const hasBoth = (() => {
+        try { git(`rev-parse --verify --quiet ${ref}`); return true; } catch (_) { return false; }
+      })();
+      if (hasBoth) { pairs.push({ branch: b, unrelated: true }); continue; }
       pairs.push({ branch: b, unreadable: String(e.message).split('\n')[0] });
       continue;
     }
@@ -167,11 +185,16 @@ function check(openRefs) {
 function verdict(r) {
   if (!r.measured) return { code: 2, line: `못 쟀다 — ${r.why}` };
   const unread = r.pairs.filter((p) => p.unreadable);
-  const live = r.pairs.filter((p) => !p.unreadable && p.live);
-  const stale = r.pairs.filter((p) => !p.unreadable && !p.live);
+  const unrelated = r.pairs.filter((p) => p.unrelated);
+  const live = r.pairs.filter((p) => !p.unreadable && !p.unrelated && p.live);
+  const stale = r.pairs.filter((p) => !p.unreadable && !p.unrelated && !p.live);
+  // 합칠 수 없는 갈래는 판정에서 빼되 **한 줄로 남긴다** (D-130)
+  const orphan = unrelated.length
+    ? ` · 뿌리가 달라 합칠 수 없는 갈래 ${unrelated.length}개는 뺐다 (${unrelated.map((p) => p.branch).join(' · ')})`
+    : '';
   const bad = live.filter((p) => (p.addAdd || []).length || (p.hard || []).length);
   const how = r.byPr ? '' : ' · 열린 PR 을 못 물어봐 **나이로 어림했다**';
-  const tail = (stale.length ? ` (멈춘 갈래 ${stale.length}개는 참고로만 뒀다 — ${LIVE_DAYS}일 넘게 조용하다)` : '') + how;
+  const tail = (stale.length ? ` (멈춘 갈래 ${stale.length}개는 참고로만 뒀다 — ${LIVE_DAYS}일 넘게 조용하다)` : '') + orphan + how;
   if (!bad.length && !unread.length) {
     return { code: 0, line: (live.length
       ? `살아 있는 갈래 ${live.length}개 — 문서·기록만 겹친다 (합칠 때 손이 간다)`
@@ -213,6 +236,12 @@ if (require.main === module) {
     process.stdout.write(`\n지금 갈래: ${r.here}\n\n`);
     r.pairs.forEach((p) => {
       if (p.unreadable) { process.stdout.write(`  ⚠️  ${p.branch} — 못 읽었다: ${p.unreadable}\n`); return; }
+      // 뿌리가 다른 갈래 — 견줄 근거가 없다. 빼되 보이게 적는다 (D-130)
+      if (p.unrelated) {
+        process.stdout.write(`  ⊘ ${p.branch} — **뿌리가 달라 합칠 수 없다**`
+          + ' (공통 조상이 없다 · 옛 아침 크론 갈래)\n');
+        return;
+      }
       const age = p.ageDays === null ? '나이 모름' : `${p.ageDays}일 전`;
       process.stdout.write(`  ${p.live ? '·' : '⏸'} ${p.branch} (앞선 커밋 ${p.ahead}개 · 마지막 ${age}`
         + `${p.live ? '' : ' — 멈춘 갈래로 본다'})\n`);
