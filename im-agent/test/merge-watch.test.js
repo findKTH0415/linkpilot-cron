@@ -86,6 +86,15 @@ test('★ 실측 결과의 모양이 무너지지 않는다', () => {
   }
 });
 
+test('★★ 못 쟀을 때도 제목이 있는 온전한 화면이 나온다 — CI 가 잡은 것이다', () => {
+  // CI 는 얕은 체크아웃이라 origin/main 이 없다. 그때 앞 판은 제목 없는
+  // 조각 한 줄만 냈고, 그것은 **열면 흰 화면**이다.
+  const h = mw.html({ ok: false, error: '기준 갈래를 못 찾았다' });
+  assert.ok(h.includes('<title>'), '못 쟀다고 제목까지 없으면 흰 화면이 된다');
+  assert.ok(h.includes('기준 갈래를 못 찾았다'), '왜 못 쟀는지 화면에 적어야 한다');
+  assert.ok(!/<script/i.test(h));
+});
+
 test('★ 화면 한 장이 실제로 만들어진다 (자체 완결 HTML)', () => {
   const m = mw.measure();
   const h = mw.html(m);

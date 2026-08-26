@@ -342,7 +342,24 @@ function esc(s) {
 }
 
 function html(m) {
-  if (!m.ok) return `<p>✕ ${esc(m.error)}</p>`;
+  // ★★ **못 쟀을 때도 제목이 있는 온전한 화면을 낸다** 〈2026-08-26 · CI 가 잡았다〉.
+  //   앞 판은 `<p>✕ …</p>` 한 줄만 냈다. CI 는 얕은 체크아웃이라 `origin/main` 이
+  //   없고, 그래서 제목 없는 조각이 나왔다 — **열어 보면 흰 화면이다.**
+  //   못 잰 것과 「빈 화면」은 다르다. 못 잰 이유를 화면에 적는다.
+  if (!m.ok) {
+    return `<title>병합 감시</title>
+<style>body{margin:0;font:400 15px/1.6 "IBM Plex Sans KR","Apple SD Gothic Neo",sans-serif;
+ background:#F2F2F7;color:#0A1419}
+@media(prefers-color-scheme:dark){body{background:#0C1114;color:#E9EEF1}}
+.wrap{max-width:640px;margin:0 auto;padding:64px 20px}
+h1{font-size:26px;letter-spacing:-.02em;margin:0 0 12px}
+code{font-family:ui-monospace,Menlo,monospace;font-size:.9em}</style>
+<div class="wrap">
+<h1>재지 못했습니다</h1>
+<p>${esc(m.error || '알 수 없는 이유')}</p>
+<p>원격 갈래를 먼저 받아온 뒤 다시 재십시오 — <code>npm run merge:watch:html</code></p>
+</div>`;
+  }
   const worst = Math.max(0, ...m.pairs.map(p => p.conflicts));
   const rows = m.pairs.slice().sort((x, y) => y.conflicts - x.conflicts).map(p => `
     <tr>
