@@ -4,6 +4,7 @@
  *
  *   npm run backup:write   프로젝트 자료를 한 벌 떠 둔다
  *   npm run backup:drill   **복원시험** — 떠서·빈 자리에 되살리고·같은지 잰다
+ *                          `-- --max-mb 500` 을 주면 그보다 크면 **못 쟀다**로 끝낸다
  *   npm run backup:verify  떠 둔 것이 지금 자료와 같은지만 잰다
  *
  * ★★★ **왜 만들었나** 〈2026-08-26 · 인수인계 완료검증 감사 H-1〉.
@@ -40,8 +41,16 @@ const crypto = require('crypto');
 
 const REPO = path.join(__dirname, '..', '..');
 
-/** 무엇을 지키는가 — **자료**다. 코드는 git 이 지킨다 */
-const SOURCE = process.env.LP_BACKUP_SOURCE || path.join(REPO, 'im-projects');
+/**
+ * 무엇을 지키는가 — **자료**다. 코드는 git 이 지킨다.
+ *
+ * ★★★ **프로젝트 폴더가 어디인지는 `store` 가 정한다** 〈2026-08-26 · D-137〉.
+ *   운영 자리(NAS)는 `IM_AGENT_ROOT` 로 그 자리를 따로 가리킨다. 여기서
+ *   `<저장소>/im-projects` 를 박아 두면 **NAS 에서 빈 폴더를 뜨고
+ *   「되살아난다」**고 말한다 — 값도 형식도 멀쩡한 거짓말이다.
+ *   그러니 **세는 자리와 같은 곳**에서 온다.
+ */
+const SOURCE = process.env.LP_BACKUP_SOURCE || require('../core/store').root();
 /** 어디에 뜨는가 */
 const DEST = process.env.LP_BACKUP_DEST || path.join(REPO, '.backup', 'im-projects');
 
@@ -172,9 +181,28 @@ function restore({ from = DEST, to } = {}) {
  *
  * 「백업이 있다」로 끝내지 않고 **실제로 되살아나는 것**을 본다 (지침 §11-4).
  */
-function drill({ source = SOURCE } = {}) {
+function drill({ source = SOURCE, maxMb = null } = {}) {
   if (!fs.existsSync(source)) {
-    return { ok: false, code: 2, line: `잴 자료가 없다: ${path.relative(REPO, source)}` };
+    return { ok: false, code: 2, line: `잴 자료가 없다: ${source}` };
+  }
+  /**
+   * ★★ **너무 크면 조용히 줄이지 않는다** 〈2026-08-26 · D-137〉.
+   *   복원시험은 뜬 것과 되살린 것 **두 벌**을 임시 자리에 만든다. 자리가
+   *   모자랄 때 **반쯤 하고 통과**하는 것이 가장 나쁘다 — 화면에는
+   *   「되살아난다」만 남는다.
+   * ★ 그래서 넘치면 **「못 쟀다」(2)** 로 끝낸다. 표본을 몰래 줄이지 않는다.
+   */
+  if (maxMb) {
+    const bytes = Object.values(inventory(source)).reduce((a, f) => a + f.bytes, 0);
+    const mb = bytes / (1024 * 1024);
+    if (mb > maxMb) {
+      return {
+        ok: false, code: 2,
+        line: `자료가 ${Math.round(mb)}MB 로 한도(${maxMb}MB)를 넘는다 — **못 쟀다.**`
+          + ' 표본을 몰래 줄이면 「되살아난다」가 거짓이 된다. 한도를 올리거나'
+          + ' 자리를 비우고 다시 잰다',
+      };
+    }
   }
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-drill-'));
   try {
@@ -239,9 +267,11 @@ function verify({ source = SOURCE, dest = DEST } = {}) {
 
 function main(argv) {
   const mode = argv.find((a) => !a.startsWith('-')) || 'drill';
+  const mi = argv.indexOf('--max-mb');
+  const maxMb = mi !== -1 ? Number(argv[mi + 1]) || null : null;
   const r = mode === 'write' ? write()
     : mode === 'verify' ? verify()
-      : drill();
+      : drill({ maxMb });
 
   const mark = r.code === 0 ? '●' : (r.code === 2 ? '?' : '✕');
   process.stdout.write(`\n  ${mark} ${mode === 'write' ? '떴다' : mode === 'verify' ? '견줌' : '복원시험'} — ${r.line}\n`);

@@ -138,3 +138,42 @@ test('★ 지문에 시각을 섞지 않는다 — 섞으면 「어긋났다」�
   assert.ok(!/Date\.now\(\)|new Date\(/.test(src),
     '시각이 섞이면 내용이 안 바뀌어도 지문이 매번 달라진다');
 });
+
+/* ───────────── 너무 크면 몰래 줄이지 않는다 ───────────── */
+
+test('★★★ 한도를 넘으면 **못 쟀다**로 끝낸다 — 표본을 몰래 줄이지 않는다', () => {
+  // ★ 복원시험은 뜬 것과 되살린 것 두 벌을 만든다. 자리가 모자랄 때
+  //   **반쯤 하고 통과**하는 것이 가장 나쁘다 — 화면에는 「되살아난다」만 남는다.
+  const src = tmpDir(sampleStore());
+  const r = backup.drill({ source: src, maxMb: 0.000001 });
+  assert.strictEqual(r.ok, false);
+  assert.strictEqual(r.code, 2, '못 쟀다(2)여야 한다 — 실패(1)와 다른 사실이다');
+  assert.match(r.line, /한도/);
+
+  // 한도가 넉넉하면 그대로 통과한다 (늑대야가 되면 안 된다)
+  assert.strictEqual(backup.drill({ source: src, maxMb: 100 }).ok, true);
+});
+
+/* ───────────── 어디를 뜨는지 — 세는 자리와 같은가 ───────────── */
+
+test('★★★ 프로젝트 폴더를 `store` 에서 가져온다 — 박아 두면 NAS 에서 빈 폴더를 뜬다', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'tools', 'backup.js'), 'utf8')
+    // 주석을 떼고 본다 (CLAUDE.md §8)
+    .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  assert.match(src, /require\('\.\.\/core\/store'\)\.root\(\)/,
+    '자리를 박아 두면 운영 자리(IM_AGENT_ROOT)를 안 보고 **빈 폴더를 뜨고 「되살아난다」**고 말한다');
+  assert.ok(!/path\.join\(REPO, 'im-projects'\)/.test(src),
+    '옛 경로가 남아 있다 — 두 벌이 되면 한쪽이 옛말을 한다');
+});
+
+/* ───────────── 배포가 실제로 돌리는가 ───────────── */
+
+test('★★★ 배포가 나갈 때마다 복원시험을 돌린다 — 손으로 돌려야 도는 장치는 안 돈다', () => {
+  // D-88 에서 이미 겪었다: 눌러야 도는 배포는 아무도 안 눌러서 NAS 가 옛 판으로 남았다.
+  const wf = fs.readFileSync(
+    path.join(__dirname, '..', '..', '.github', 'workflows', 'deploy-nas.yml'), 'utf8');
+  assert.match(wf, /name: Restore drill/, '배포에 복원시험 단계가 없다');
+  assert.match(wf, /backup\.js drill --max-mb/, '한도 없이 돌리면 자리가 모자랄 때 무슨 일이 날지 모른다');
+  assert.match(wf, /복원시험: \*\*못 쟀다\*\*/,
+    '못 잰 것을 실패로 적으면 멀쩡한 디스크를 두고 없는 고장을 찾으러 간다');
+});

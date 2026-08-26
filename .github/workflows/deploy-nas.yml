@@ -1328,6 +1328,59 @@ jobs:
               fi ;;
           esac
 
+      - name: Restore drill (복원시험 · 지침 §11-4)
+        if: ${{ always() && needs.plan.outputs.dry_run != 'true' }}
+        env:
+          NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+          NAS_USER: ${{ secrets.NAS_SSH_USER }}
+          ENGINE_ROOT: ${{ vars.LP_ENGINE_ROOT || '/volume1/docker/linkpilot' }}
+          MAX_MB: ${{ vars.LP_BACKUP_MAX_MB || '2000' }}
+        run: |
+          set -u
+          set +e
+          # ★★★ **「백업이 있다」가 아니라 「되살아난다」를 잰다** (지침 §11-4).
+          #
+          #   인수인계 감사에서 H-1 로 잡힌 자리다. 뜨는 장치를 만들어도
+          #   **손으로 돌려야 도는 장치는 안 돈다** — D-88 에서 이미 겪었다
+          #   (눌러야 도는 배포는 아무도 안 눌러서 NAS 가 옛 판으로 남았다).
+          #   그래서 **나갈 때마다** 여기서 돈다.
+          #
+          # ★★ **운영 자리에서 재야 뜻이 있다.** 개발 컨테이너에서 통과한 것은
+          #   「이 코드가 맞다」이지 「그 디스크가 되살아난다」가 아니다.
+          #
+          # ★ 배포를 **막지 않는다.** 이것은 재는 것이지 문턱이 아니다 —
+          #   막으면 자료가 커진 날 배포가 통째로 서고, 그러면 이 검사가 꺼진다.
+          OUT=$(ssh -o BatchMode=yes -o ConnectTimeout=20 -i ~/.ssh/id_deploy \
+            "$NAS_USER@$NAS_HOST" \
+            "cd '$ENGINE_ROOT' 2>/dev/null || exit 9
+             for N in node /usr/local/bin/node \
+                      /volume1/@appstore/Node.js_v20/usr/local/bin/node \
+                      /volume1/@appstore/Node.js_v18/usr/local/bin/node; do
+               command -v \"\$N\" >/dev/null 2>&1 && exec \"\$N\" im-agent/tools/backup.js drill --max-mb $MAX_MB
+             done
+             echo 'NONODE'" 2>&1 | tr -d '\r')
+
+          # ★ **진단기가 실제로 돌았는지**부터 본다 (Check map power 와 같은 규칙).
+          #   ssh 가 못 붙은 것을 「복원 실패」로 적으면, 멀쩡한 디스크를 두고
+          #   없는 고장을 찾으러 간다. 못 잰 것과 실패한 것은 다른 사실이다.
+          if ! printf '%s' "$OUT" | grep -q '복원시험'; then
+            echo "복원시험: 못 쟀다 — 진단기가 안 돌았다 (ssh 가 안 붙었거나 node 가 없다). 받은 답: ${OUT:-NONODE}"
+            echo "복원시험: **못 쟀다** (실패한 것과 **다른 사실**이다)" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          printf '%s\n' "$OUT"
+          if printf '%s' "$OUT" | grep -q '되살아난다'; then
+            echo "::notice::**복원시험 통과.** 뜬 것을 빈 자리에 실제로 되살려 바이트까지 댔다 (지침 §11-4)."
+            printf '복원시험: **되살아난다** — %s\n' "$(printf '%s' "$OUT" | grep '되살아난다' | head -1)" >> "$GITHUB_STEP_SUMMARY"
+          elif printf '%s' "$OUT" | grep -q '못 쟀다\|한도'; then
+            echo "::warning::**복원시험을 못 쟀다.** 자료가 한도를 넘었거나 잴 자료가 없다 — 표본을 몰래 줄이지 않고 못 쟀다고 적는다. 한도는 저장소 변수 LP_BACKUP_MAX_MB 로 올린다."
+            echo "복원시험: **못 쟀다** (한도 초과 또는 자료 없음)" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::error::**안 되살아난다.** 뜬 것과 되살린 것이 다르다 — 지금 이 디스크가 죽으면 그대로 잃는다. 위 로그의 빠진/다른 파일을 본다."
+            echo "복원시험: **안 되살아난다** — 위 로그를 본다" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - name: Probe summary
         if: ${{ always() && needs.plan.outputs.dry_run != 'true' }}
         run: |
