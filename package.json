@@ -37,7 +37,8 @@
     "d:next": "node im-agent/tools/registry-check.js --all --next",
     "deploy:nas": "bash deploy/nas.sh",
     "merge:watch": "node im-agent/tools/merge-watch.js",
-    "merge:watch:html": "node im-agent/tools/merge-watch.js --fetch --html im-agent/ui/platform/merge-watch.html"
+    "merge:watch:html": "node im-agent/tools/merge-watch.js --fetch --html im-agent/ui/platform/merge-watch.html",
+    "d:conflict": "node im-agent/tools/decision-conflict.js"
   },
   "dependencies": {
     "solapi": "^5.5.1"
