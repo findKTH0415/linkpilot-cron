@@ -42,7 +42,8 @@ const outputSchema = {
 /** 요청문에서 용량/지역을 뽑는다 (규칙 기반 — LLM 불필요) */
 function seedFromRequest(request) {
   const facts = [];
-  const src = { source: 'user_request', sourceDate: kstStamp().slice(0, 10), page: null, confidence: 0.55, verified: false };
+  /* ★ 접수 화면에 사람이 적은 것 — 올린 자료보다 뒤다 (2026-08-24) */
+  const src = { source: 'user_request', origin: 'request', sourceDate: kstStamp().slice(0, 10), page: null, confidence: 0.55, verified: false };
 
   const mw = request.match(/([\d,.]+)\s*MW/i);
   if (mw) {
@@ -100,14 +101,14 @@ async function run(input, ctx) {
   const facts = seedFromRequest(request);
   facts.push({
     key: 'project.name', value: name, unit: null,
-    source: 'user_request', sourceDate: kstStamp().slice(0, 10), confidence: 0.7, verified: false,
+    source: 'user_request', origin: 'request', sourceDate: kstStamp().slice(0, 10), confidence: 0.7, verified: false,
   });
   const classDef = cls.id ? assetclass.CLASSES.find(c => c.id === cls.id) : null;
   facts.push({
     // 자산군을 알면 그쪽이 더 구체적이다 — 「부동산 개발 (PF)」보다 「호텔」이
     // IM 에 실려야 할 말이다. 모르면 템플릿 이름으로 둔다
     key: 'project.assetType', value: classDef ? classDef.label : template.label, unit: null,
-    source: 'user_request', sourceDate: kstStamp().slice(0, 10), confidence: 0.7, verified: false,
+    source: 'user_request', origin: 'request', sourceDate: kstStamp().slice(0, 10), confidence: 0.7, verified: false,
   });
 
   const project = {

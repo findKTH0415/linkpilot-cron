@@ -20,6 +20,13 @@
   'use strict';
 
   /**
+   * ★ **이 스크립트가 어느 판인가** 〈2026-08-23 · D-93 사고〉.
+   *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다. 화면이 자기
+   *   지문과 대 보고 다르면 「함수가 없다」로 죽기 전에 사람 말로 알린다.
+   */
+  var LP_BUILD = 'c1587fa7';
+
+  /**
    * ★★★ **단계는 다섯이다** 〈2026-08-22 사용자 지시〉.
    *
    *   1 제작 기본정보 입력 · 2 무엇을 만들까요? · 3 관련자료 업로드
@@ -261,10 +268,26 @@
    *   ★ 그래서 자료 업로드는 **「보고서 만들기」 1단계 안**으로 들어갔다.
    *     `FILES_SECTION` 은 지우지 않는다 — 화면(`files.html`)은 그대로 살아
    *     있고 1단계가 그것을 품는다. 탭 목록에서만 빠진 것이다.
-   *   ★ `TABS` 를 앱 탭 바가 읽는다. 여기서 빼면 앱에서도 탭이 사라진다 —
-   *     이름을 앱 쪽에 복사해 두지 않은 이유가 이것이다.
+   *   ★ ~~`TABS` 를 앱 탭 바가 읽는다. 여기서 빼면 앱에서도 탭이 사라진다 —
+   *     이름을 앱 쪽에 복사해 두지 않은 이유가 이것이다.~~
+   *
+   *   ★★★ **틀린 말이었다** 〈2026-08-23 실측〉. 저장소 전체에서 `TABS` 를 읽는
+   *     곳은 **`build-embed.js` 한 곳뿐**이고, 거기서는 **어느 파일을 배포할지**를
+   *     고르는 데만 쓴다. 배포 산출물(`manifest`)에도 탭 목록은 안 들어간다 —
+   *     **앱이 이 목록을 받아 갈 길이 아예 없다.**
+   *   ★ 그래서 **탭 이름과 차례는 앱(본체)이 자체적으로 들고 있다.** 여기서
+   *     순서를 바꿔도 앱 화면은 안 바뀐다. 실제로 사장님이 「보고서 만들기를
+   *     왼쪽으로」를 **두 번** 지시하셨는데 둘 다 안 보였다 — 나는 여기만 고치고
+   *     「했습니다」라고 말했다 (D-93).
+   *   ★ 그래도 이 목록은 지운다고 될 것이 아니다: 배포 묶음이 여기서 나오고,
+   *     `verify:nas` 가 탭 이름을 여기서 읽어 대조한다. **다만 앱 탭 바를
+   *     바꾸는 손잡이는 아니다.**
    */
-  var TABS = [OUTPUTS_SECTION, SECTION];
+  /* ★★★ **「보고서 만들기」가 먼저다** 〈2026-08-23 사장님 지시〉.
+   *   앞 판은 「완성 보고서」가 왼쪽이었다. 그런데 이 화면에 처음 오는 사람이
+   *   할 일은 **만드는 것**이고, 완성본은 만든 다음에 보는 곳이다. 순서가 하는
+   *   일의 차례와 반대면 첫 화면에서 한 번 더 생각하게 된다. */
+  var TABS = [SECTION, OUTPUTS_SECTION];
 
   /**
    * **토큰이 실렸는가** (2026-08-17).
@@ -342,10 +365,43 @@
   }
 
   /** 화면 파일에서 단계를 되찾는다 (iframe 이 스스로 이동했을 때 rail 을 맞춘다) */
+  /**
+   * 주소에서 단계를 되찾는다. 화면이 스스로 넘어가도 레일이 따라가게 하는 짝이다.
+   *
+   * ★★★ **물음표 뒤를 봐야 한다** 〈2026-08-23 · 실제로 여기서 튕겼다〉.
+   *
+   *   앞의 셋(제작 기본정보·무엇을 만들까요·관련자료)은 **같은 파일**이고
+   *   `?part=` 로만 갈린다. 앞 판은 파일 이름만 보고 **늘 첫째(basics)** 를
+   *   돌려줬다. 그래서 2단계를 누르면:
+   *
+   *     누름 → 2단계로 바꾸고 `intake.html?part=ask` 를 띄운다
+   *     → 실린 뒤 다시 재는데 `basics` 가 나온다
+   *     → 「단계가 바뀌었다」고 보고 **1단계로 되돌리며 다시 그린다**
+   *
+   *   누른 사람에게는 **눌러도 안 열리는 화면**으로 보인다.
+   *
+   * ★ 가르지 못하면 **아무거나 고르지 않는다** (§4.9). `null` 을 돌려주면
+   *   부르는 쪽이 「모르겠으니 그대로 둔다」로 처리한다 — 틀린 단계로
+   *   되돌리는 것보다 그대로 두는 쪽이 언제나 낫다.
+   */
   function stepOfFile(file) {
-    var f = String(file || '').split('/').pop().split('?')[0];
-    for (var i = 0; i < STEPS.length; i++) if (STEPS[i].file === f) return STEPS[i];
-    return null;
+    var raw = String(file || '');
+    var f = raw.split('/').pop().split('?')[0];
+
+    var part = null;
+    var qi = raw.indexOf('?');
+    if (qi !== -1) {
+      var m = /(?:^|[?&])part=([^&#]*)/.exec(raw.slice(qi));
+      if (m) { try { part = decodeURIComponent(m[1]); } catch (_) { part = m[1]; } }
+    }
+
+    var same = [];
+    for (var i = 0; i < STEPS.length; i++) if (STEPS[i].file === f) same.push(STEPS[i]);
+    if (!same.length) return null;
+    if (same.length === 1) return same[0];
+
+    for (var j = 0; j < same.length; j++) if (same[j].part && same[j].part === part) return same[j];
+    return null;   // 못 가른다 — 지어내지 않는다
   }
 
 
@@ -398,12 +454,205 @@
     return { sent: sent, reason: sent ? null : '받는 쪽이 없습니다' };
   }
 
+  /**
+   * 절마다 「끝났는가 · 얼마나 왔는가」 — **한 곳에서만 정한다**
+   * 〈2026-08-23 사장님 지시: 1·2·5 완료 표기 / 3·4 진행율 + 완료 표기〉.
+   *
+   * 순수 함수다. 부르는 쪽이 서버에서 받아 온 사실만 넣는다 — 이 함수는
+   * 아무것도 부르지 않는다. 그래야 검사가 서버 없이 전부 잴 수 있다.
+   *
+   * @param {object} f 잰 사실
+   *   issuerSet   {boolean|null} 발행 주체가 정해졌나 (GET /intake 의 issuer.unset 반대)
+   *   request     {string|null}  2단계 요청문 (초안 또는 만들어진 프로젝트의 것)
+   *   projectId   {string|null}
+   *   sources     {{total:number, read:number}|null} 올린 자료 / 그중 읽기 끝난 것
+   *   fields      {{filled:number, total:number}|null} 필수 항목 채움
+   *   specLocked  {boolean|null} 출력조건을 확정했나
+   *
+   * @returns {object} 절 id → { known, done, pct, detail }
+   *
+   * ★★★ **모르는 것을 0% 로 적지 않는다** (§4.9). 0% 는 「아직 아무것도 안 했다」로
+   *   읽히는데 실제로는 「못 쟀다」다 — 둘은 다른 말이고, 섞으면 사용자는 다 해
+   *   놓고도 처음부터 다시 한다. 못 쟀으면 `known:false` 로 두고 화면은 아무
+   *   표시도 하지 않는다.
+   *
+   * ★ **3·4 만 진행율이 있다.** 나머지 셋은 「했다/안 했다」뿐이라 중간이 없다 —
+   *   없는 중간을 지어내면 47% 같은 숫자가 아무 뜻도 없이 돈다.
+   */
+  function sectionProgress(f) {
+    var o = f || {};
+    var out = {};
+
+    function put(id, known, done, pct, detail) {
+      out[id] = { known: !!known, done: !!(known && done), pct: known ? pct : null, detail: detail || null };
+    }
+
+    /* ① 제작 기본정보 — 발행 주체가 정해졌는가. 중간이 없다 */
+    put('basics', o.issuerSet !== null && o.issuerSet !== undefined, o.issuerSet, null,
+      o.issuerSet ? '발행 주체가 정해졌습니다' : '발행 주체가 아직 없습니다');
+
+    /* ② 무엇을 만들까요 — 요청문이 있는가.
+       ★ 프로젝트가 있으면 이 칸은 이미 지나온 것이다 — 요청문 없이는 만들 수 없다 */
+    var asked = !!o.projectId || !!(o.request && String(o.request).trim());
+    put('ask', true, asked, null,
+      asked ? '요청문을 받았습니다' : '아직 무엇을 만들지 안 적었습니다');
+
+    /* ③ 관련자료 업로드 — **프로젝트를 만들면 이 칸의 목적은 끝난다.**
+       진행율은 그다음 일(올린 자료를 읽었는가)을 말한다. 자료를 안 올려도
+       진행은 되므로, 자료가 0건인 것을 「0%」로 적지 않는다 */
+    var src = o.sources;
+    var pct3 = (src && src.total > 0) ? Math.round((src.read / src.total) * 100) : null;
+    put('sources', true, !!o.projectId, pct3,
+      !o.projectId ? '아직 프로젝트가 없습니다'
+        : (!src ? '프로젝트가 만들어졌습니다'
+          : (src.total === 0 ? '자료 없이 진행 중 — 값을 전부 직접 넣어야 합니다'
+            : '자료 ' + src.total + '건 중 ' + src.read + '건을 읽었습니다')));
+
+    /* ④ 가이드 필드 — 필수 항목 중 **값과 출처가 둘 다** 있는 것만 센다
+       (`fields-core.js` 의 `completeness`). 값만 있고 출처가 없으면 저장 자체가
+       안 되므로, 세어 주면 다 됐다고 착각한다 */
+    var fl = o.fields;
+    var pct4 = (fl && fl.total > 0) ? Math.round((fl.filled / fl.total) * 100) : null;
+    put('fields', !!fl, !!(fl && fl.total > 0 && fl.filled >= fl.total), pct4,
+      !fl ? null
+        : (fl.total === 0 ? '필수 항목이 없습니다'
+          : '필수 ' + fl.total + '개 중 ' + fl.filled + '개 (값과 출처가 모두 있어야 셉니다)'));
+
+    /* ⑤ 출력조건 — 확정했느냐 아니냐다. 중간이 없다 */
+    put('output', o.specLocked !== null && o.specLocked !== undefined, o.specLocked, null,
+      o.specLocked ? '출력조건을 확정했습니다' : '아직 확정하지 않았습니다');
+
+    return out;
+  }
+
+  /* ═══════ 판 지문을 **화면에 보이게** 한다 〈2026-08-23〉 ═══════
+   *
+   * ★ 이 주석에 여는 태그를 글자 그대로 쓰지 않는다 — 이 파일은 조각(fragment)
+   *   안으로 통째로 실리고, 조각 검사기가 그것을 진짜 태그로 읽고 거절한다.
+   *   실제로 검사 19개가 그렇게 깨졌다 〈2026-08-23〉.
+   *
+   * ★★★ 무슨 일이 있었나. `build-stamp.js` 는 묶음 지문을 뿌리 태그의
+   *   `data-lp-build` **속성**에만 박고 있었다. 속성은 **사진에 안 찍힌다.** 그래서 사장님이
+   *   화면을 찍어 보내셔도 「이것이 그 판인가」를 가릴 수가 없었고, 나는
+   *   「반영했습니다」, 사장님은 옛 화면 — 둘 다 그 사실을 모른 채로
+   *   같은 왕복을 **다섯 번** 했다 (M-20 · M-22 · M-25 · M-26).
+   *
+   *   ★ CLAUDE.md §8 은 「화면 아래에 작게 `판 xxxxxxxx` 가 찍혀 있다」고
+   *     적고 있었다. **사양이 맞고 코드가 빠져 있었다.**
+   *
+   * ★ 글자꼴을 요란하게 하지 않는다. 이건 **주장이 아니라 물증**이다 —
+   *   작고 흐리게, 대신 **반드시 보이게**.
+   */
+  var BUILD_ATTR = 'data-lp-build';
+
+  /** 이 화면이 실린 묶음의 지문. 없으면 null */
+  function buildOf(doc) {
+    try {
+      var d = doc || document;
+      var v = d.documentElement.getAttribute(BUILD_ATTR);
+      return v || null;
+    } catch (_) { return null; }
+  }
+
+  /** 화면에 적는 말 — **한 곳에서만 만든다.** 두 벌이면 자리마다 다르게 적힌다 */
+  function buildLabel(build) {
+    return build ? '판 ' + build : null;
+  }
+
+  /**
+   * 화면 맨 아래에 지문을 붙인다. 이미 붙어 있으면 아무것도 안 한다.
+   * ★ 두 번 부르는 자리가 실제로 있다(다시 그리기) — 그때 둘이 되면 안 된다.
+   */
+  /**
+   * 이 화면이 **다른 LinkPilot 화면 안에** 들어 있는가 〈2026-08-23〉.
+   *
+   * ★★ 왜 필요한가. 지문이 **두 번 찍혔다.** `report-flow` 가 찍고, 그 안의
+   *   `intake` 도 찍어서 한 화면에 같은 값이 둘이었다 (사장님 화면 실측).
+   *   같은 값이 둘이면 「왜 둘이지」부터 보게 된다 — 잡음이다.
+   *
+   * ★ 그렇다고 「창 안이면 안 찍는다」로 두면 안 된다. `report-flow` 자체가
+   *   **앱 셸의 창 안**에 들어 있어서, 그러면 지문이 통째로 사라진다 —
+   *   그것이 오늘 우리를 구한 그 여덟 글자다.
+   *
+   * ★ 그래서 **부모가 LinkPilot 화면인지**를 본다:
+   *     부모에 `LinkPilotFlow` 가 있다  → 우리 화면 안이다 → 찍지 않는다
+   *     없다 / 읽을 수 없다(다른 출처)  → 앱 셸이거나 단독이다 → 찍는다
+   *   읽을 수 없을 때 **찍는 쪽으로 기운다** — 없는 것보다 둘이 나은 자리다.
+   */
+  /**
+   * 서버 주소를 정한다 — **한 곳에서만.**
+   *
+   * ★★★ 〈2026-08-23 사장님 화면에서 잡혔다〉 사장님이 **앱 안에서** 여셨는데
+   *   화면이 「앱 밖에서 열면 …」이라고 말하고 있었다. `api` 가 비는 이유는
+   *   셋인데(부모 없음 · 앱이 안 채움 · 다른 출처) 문구가 그중 하나로 단정한
+   *   것이다 — **틀린 짐작을 적으면 사람이 그 짐작부터 판다** (M-24).
+   *
+   * ★★ 그리고 더 나쁜 것은 **안 부르고 끝낸 것**이다. 안 부르면 서버가 401 을
+   *   주는지 404 를 주는지조차 모른 채로 「안 됩니다」만 남는다.
+   *
+   * ★ 이 화면들은 앱과 **같은 출처**에 얹혀 있다(`/im-flow/*.html`). 그러면
+   *   `/api/linkpilot` 은 앱이 부르는 바로 그 주소이고, `embed-bridge.js` 의
+   *   계약 예시에 적힌 값과 **글자 그대로 같다.** 그러니 못 받았으면 그것으로
+   *   부르고, **짐작으로 부른 사실을 함께 말한다.**
+   *
+   * ★ 화면마다 따로 짐작하지 않는다 — 세 화면이 각자 정하면 갈리고, 그때는
+   *   「어느 화면은 되고 어느 화면은 안 된다」가 되어 원인이 안 보인다.
+   *
+   * @param {{api?:string}} cfg 화면 설정 전역
+   * @returns {{api:string, guessed:boolean, why:(string|null)}}
+   */
+  var API_FALLBACK = '/api/linkpilot';
+  function resolveApi(cfg) {
+    var c = cfg || {};
+    if (c.api) return { api: c.api, guessed: false, why: null };
+    var b = (typeof window !== 'undefined' && window.LinkPilotEmbed) || null;
+    return { api: API_FALLBACK, guessed: true, why: (b && b.reason) || null };
+  }
+
+  /** 짐작으로 부른 판이면 **그 사실을 문장에 붙인다.** 안 붙이면 서버 탓으로 읽힌다 */
+  function apiNote(r, base) {
+    if (!r || !r.guessed) return base;
+    return base + ' (앱이 서버 주소를 넘기지 않아 ' + r.api + ' 로 불렀습니다'
+      + (r.why ? ' — ' + r.why : '') + ')';
+  }
+
+  function insideLinkPilot() {
+    try {
+      if (window.parent === window) return false;
+      return !!window.parent.LinkPilotFlow;
+    } catch (_) { return false; }   // 다른 출처 — 앱 셸로 본다
+  }
+
+  function stampInto(doc) {
+    var d = doc || document;
+    var b = buildOf(d);
+    if (!b || !d.body) return null;
+    if (insideLinkPilot()) return null;
+    var had = d.querySelector('[data-lp-stamp]');
+    if (had) { had.textContent = buildLabel(b); return had; }
+    var n = d.createElement('p');
+    n.setAttribute('data-lp-stamp', '');
+    n.textContent = buildLabel(b);
+    n.setAttribute('style', 'margin:22px 0 6px;text-align:center;font-size:11px;'
+      + 'line-height:1;letter-spacing:.06em;font-variant-numeric:tabular-nums;'
+      + 'color:#98A0A8;user-select:text');
+    d.body.appendChild(n);
+    return n;
+  }
+
   return {
+    BUILD: LP_BUILD,
     STEPS: STEPS, WHY: WHY, EMBED_CSS: EMBED_CSS,
     SECTIONS: SECTIONS, sectionState: sectionState, sectionOfStep: sectionOfStep,
     SECTION: SECTION, OUTPUTS_SECTION: OUTPUTS_SECTION,
     FILES_SECTION: FILES_SECTION, TABS: TABS,
     stepState: stepState, urlFor: urlFor, stepOfFile: stepOfFile,
+    sectionProgress: sectionProgress,
+    BUILD_ATTR: BUILD_ATTR, buildOf: buildOf, buildLabel: buildLabel, stampInto: stampInto,
+    insideLinkPilot: insideLinkPilot,
+    resolveApi: resolveApi,
+    apiNote: apiNote,
+    API_FALLBACK: API_FALLBACK,
     tokensLoaded: tokensLoaded, TOKENS_MISSING: TOKENS_MISSING,
     openSection: openSection, OPEN_EVENT: OPEN_EVENT,
   };

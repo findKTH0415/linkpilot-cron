@@ -110,7 +110,9 @@ function selfContained(file, opt) {
   //   CSS 는 못 찾은 변수를 조용히 넘긴다 (2026-08-17 디자인 시스템 반영)
   const links = html.match(/<link rel="stylesheet" href="([^"]+)">/g) || [];
   links.forEach((tag) => {
-    const href = tag.match(/href="([^"]+)"/)[1];
+    /* ★ 주소 뒤의 판 표시(`?v=…`)를 뗀다 — **파일 이름이 아니다** 〈2026-08-23〉.
+     *   안 떼면 「그런 파일이 없다」로 죽는다 (build-embed.js 와 같은 규칙) */
+    const href = tag.match(/href="([^"]+)"/)[1].split('?')[0];
     html = html.replace(tag, '<style>' + read(href) + '</style>');
   });
   // ★ 속성이 붙은 것도 인라인한다 — `embed-bridge.js` 는 `data-lp-global` 을 달고
@@ -118,7 +120,7 @@ function selfContained(file, opt) {
   //   「파일 하나로 열린다」를 깬다. 속성은 **그대로 옮긴다** (브리지가 그걸 읽는다)
   const tags = html.match(/<script([^>]*)\ssrc="([^"]+)"([^>]*)><\/script>/g) || [];
   tags.forEach((tag) => {
-    const src = tag.match(/src="([^"]+)"/)[1];
+    const src = tag.match(/src="([^"]+)"/)[1].split('?')[0];   /* ?v= 는 파일 이름이 아니다 */
     const attrs = tag.replace(/^<script/, '').replace(/><\/script>$/, '')
       .replace(/\ssrc="[^"]+"/, '');
     html = html.replace(tag, '<script' + attrs + '>' + read(src).replace(/<\/(script)/gi, '<\\/$1') + '</script>');
@@ -181,8 +183,14 @@ async function build() {
   const fieldsInfo = (await h.fields()).body;
 
   const INJECT = {
-    'intake.html': { global: 'LINKPILOT_INTAKE', value: { preload: intakeInfo } },
-    'fields.html': { global: 'LINKPILOT_FIELDS_CFG', value: { preload: fieldsInfo } },
+    'intake.html': { global: 'LINKPILOT_INTAKE',
+      /* ★ 저장된 발행 주체 목록은 미리보기 서버에 없다(im-projects 가 없다).
+       *   비워 두면 「저장된 회사 고르기」가 화면에 아예 안 나와 **바꾼 것을
+       *   확인할 수 없다** (§8). 그래서 예시 둘을 심고 **예시라고 화면에
+       *   박는다** — `issuersSample` 을 화면이 읽어 그 줄을 적는다. */
+      value: { preload: { ...intakeInfo, issuers: SAMPLE_ISSUERS, issuersSample: true } } },
+    'fields.html': { global: 'LINKPILOT_FIELDS_CFG',
+      value: { preload: fieldsInfo, preloadFacts: previewFacts() } },
   };
 
   const AFTER = { CONFIRM_SPEC };
@@ -325,8 +333,14 @@ async function buildSectionDocs() {
   const intakeInfo = (await h.intake()).body;
   const fieldsInfo = (await h.fields()).body;
   const INJECT = {
-    'intake.html': { global: 'LINKPILOT_INTAKE', value: { preload: intakeInfo } },
-    'fields.html': { global: 'LINKPILOT_FIELDS_CFG', value: { preload: fieldsInfo } },
+    'intake.html': { global: 'LINKPILOT_INTAKE',
+      /* ★ 저장된 발행 주체 목록은 미리보기 서버에 없다(im-projects 가 없다).
+       *   비워 두면 「저장된 회사 고르기」가 화면에 아예 안 나와 **바꾼 것을
+       *   확인할 수 없다** (§8). 그래서 예시 둘을 심고 **예시라고 화면에
+       *   박는다** — `issuersSample` 을 화면이 읽어 그 줄을 적는다. */
+      value: { preload: { ...intakeInfo, issuers: SAMPLE_ISSUERS, issuersSample: true } } },
+    'fields.html': { global: 'LINKPILOT_FIELDS_CFG',
+      value: { preload: fieldsInfo, preloadFacts: previewFacts() } },
   };
   const AFTER = { CONFIRM_SPEC };
 
@@ -372,10 +386,10 @@ async function flowShell(docs) {
   // ★ 토큰 파일을 인라인한다. 놓치면 **색 없이** 뜨는데 오류는 안 난다
   //   (`flow.test.js` 의 「파일 하나로 열린다」가 잡는다)
   (shell.match(/<link rel="stylesheet" href="([^"]+)">/g) || []).forEach((tag) => {
-    shell = shell.replace(tag, '<style>' + read(tag.match(/href="([^"]+)"/)[1]) + '</style>');
+    shell = shell.replace(tag, '<style>' + read(tag.match(/href="([^"]+)"/)[1].split('?')[0]) + '</style>');
   });
   (shell.match(/<script([^>]*)\ssrc="([^"]+)"([^>]*)><\/script>/g) || []).forEach((tag) => {
-    const src = tag.match(/src="([^"]+)"/)[1];
+    const src = tag.match(/src="([^"]+)"/)[1].split('?')[0];   /* ?v= 는 파일 이름이 아니다 */
     const attrs = tag.replace(/^<script/, '').replace(/><\/script>$/, '')
       .replace(/\ssrc="[^"]+"/, '');
     shell = shell.replace(tag, '<script' + attrs + '>' + read(src).replace(/<\/(script)/gi, '<\\/$1') + '</script>');
@@ -912,6 +926,79 @@ function deskPanel() {
  *
  * ★ 자료는 **합성 예시**다. 실제 딜 자료는 이 저장소에 없다 (public 이다).
  */
+/**
+ * ★★★ **4단계 미리보기에 실제로 읽은 값을 심는다**
+ *   〈2026-08-23 사장님: 「데이터를 정말 스캔했는지 모르겠다」 · §8〉.
+ *
+ *   값이 없으면 4단계는 「아직 읽은 자료가 없습니다」만 그린다 — 맞는 말이지만
+ *   **바꾼 것을 미리보기에서 확인할 수가 없다.** §8 은 「한 일은 전부 미리보기
+ *   안에서 확인되어야 한다」고 한다.
+ *
+ * ★ 그래서 **손으로 값을 적지 않고** 위 `evidencePanel` 과 **같은 합성 자료에
+ *   같은 파서를 돌려** 그 결과를 그대로 심는다. 코드가 바뀌면 이 값도 같이
+ *   바뀐다 — 손으로 적으면 그날부터 화면만 옛말을 한다.
+ * ★ 자료 자체는 **합성 예시**다. 화면이 그 사실을 적는다 (§8).
+ */
+/**
+ * 미리보기용 발행 주체 예시 둘. **실제 회사 자료가 아니다** — 화면이 그
+ * 사실을 적는다 (§8). 로고는 넣지 않는다: 이 판에서 확인할 것은 「목록이
+ * 나오고 눌러서 칸이 채워지는가」이지 로고 처리가 아니다.
+ */
+const SAMPLE_ISSUERS = [
+  { en: 'Acme Capital Partners Co.,Ltd', kr: '(주)에이스캐피탈파트너스', tag: 'REAL ASSET INVESTMENT',
+    mark: 'ACP', logo: null, contact: null, savedAt: null, logoOmitted: false },
+  { en: 'Nordic Infra Advisors', kr: null, tag: 'ADVISORY',
+    mark: 'NIA', logo: null, contact: null, savedAt: null, logoOmitted: false },
+];
+
+function previewFacts() {
+  const AGENT = path.join(HERE, '..', '..');
+  const ex = require(path.join(AGENT, 'agents', '02-extraction'));
+  const FIX = path.join(AGENT, 'test', 'fixtures');
+  const oleFix = require(path.join(FIX, 'ole.js'));
+  const zipFix = require(path.join(FIX, 'zip.js'));
+
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'im-prefacts-'));
+  const put = (name, data) => {
+    const f = path.join(tmp, name);
+    fs.writeFileSync(f, data);
+    return { name, path: f, ext: path.extname(name).toLowerCase() };
+  };
+
+  const files = [
+    put('사업계획서.hwp', oleFix.buildHwp([
+      '인천 남동 데이터센터 개발사업', '대지면적 12,345 ㎡ / 연면적 45,678 ㎡',
+      '총사업비 2,846억원 · 계약전력 40 MW'])),
+    put('요약.hwpx', zipFix.buildHwpx(['총사업비 2,846억원', 'LTC 65%'])),
+    // ★ 읽는 방법이 없는 형식을 **하나 남긴다.** 값이 0 인 자료가 화면에
+    //   어떻게 보이는지가 이 판에서 확인해야 할 것 중 하나다
+    put('현장도면.tiff', Buffer.from('II*\0 (예시)')),
+  ];
+
+  const values = {};
+  files.forEach((f, i) => {
+    const r = ex.toText(f);
+    if (!r.text) return;
+    r.text.split('\n').forEach((line) => {
+      ex.extractFromLine(line).forEach((fact) => {
+        if (values[fact.key]) return;      // 먼저 읽은 자료가 이긴다
+        values[fact.key] = {
+          value: fact.value, source: f.name,
+          page: i + 1, sourceDate: null, confidence: fact.confidence,
+        };
+      });
+    });
+  });
+
+  return {
+    values,
+    sources: files.map(f => f.name),
+    readAt: null,     // ★ 시각은 지어내지 않는다 — 미리보기는 지금 읽은 것이 아니다
+    conflicts: 0,
+    sample: true,
+  };
+}
+
 function evidencePanel() {
   const AGENT = path.join(HERE, '..', '..');
   const ex = require(path.join(AGENT, 'agents', '02-extraction'));

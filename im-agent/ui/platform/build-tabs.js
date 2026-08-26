@@ -46,17 +46,9 @@ const plain = (t) => String(t).replace(/\*\*/g, '');
  */
 const TABS = [
   {
-    // 이름은 flow-core.js 의 OUTPUTS_SECTION 이 단일 출처다
-    id: 'done', order: 1, name: FLOW.OUTPUTS_SECTION.tab,
-    sub: FLOW.OUTPUTS_SECTION.tabNote,
-    state: 'have',
-    stateText: '있다 — outputs.html (inTab: true 로 얹는다)',
-    plan: 'Pro',
-  },
-  {
     // ★ 이름을 여기 적지 않는다. `flow-core.js` 의 SECTION 이 단일 출처다 —
     //   앱 탭 바도 거기서 읽어 가므로, 복사해 두면 한쪽만 고치는 날 갈린다
-    id: 'make', order: 2, name: FLOW.SECTION.tab,
+    id: 'make', order: 1, name: FLOW.SECTION.tab,
     sub: FLOW.SECTION.tabNote,
     state: 'have',
     stateText: '있다 — report-flow.html (inTab: true 로 얹는다)',
@@ -72,6 +64,14 @@ const TABS = [
    *     지킨다. 칸을 빼면 그 말과 검사가 함께 사라진다.
    *   ★ 대신 **탭이 아니라는 것을 칸이 스스로 말한다** (`inStep`). 탭 바에 뜨는
    *     것은 위의 둘뿐이다. */
+  {
+    // 이름은 flow-core.js 의 OUTPUTS_SECTION 이 단일 출처다
+    id: 'done', order: 2, name: FLOW.OUTPUTS_SECTION.tab,
+    sub: FLOW.OUTPUTS_SECTION.tabNote,
+    state: 'have',
+    stateText: '있다 — outputs.html (inTab: true 로 얹는다)',
+    plan: 'Pro',
+  },
   {
     id: 'files', order: 3, name: FLOW.FILES_SECTION.tab,
     sub: FLOW.FILES_SECTION.tabNote,

@@ -44,9 +44,11 @@ const codeOf = (html) => html.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\
  *   아래 ②가 그 화면이 여전히 배포 묶음에 실리는지를 따로 잰다.
  */
 test('★ 탭 둘이 flow-core 한 곳에서 나온다 (본체가 여기서 읽어 간다)', () => {
+  /* ★ 차례도 잰다 〈2026-08-23 사장님 지시〉 — **만들기가 먼저**다. 이 화면에
+     처음 오는 사람이 할 일은 만드는 것이고, 완성본은 그다음에 보는 곳이다 */
   assert.deepStrictEqual(F.TABS.map(t => t.tab),
-    ['완성 보고서', '보고서 만들기']);
-  assert.deepStrictEqual(F.TABS.map(t => t.id), ['done', 'make']);
+    ['보고서 만들기', '완성 보고서']);
+  assert.deepStrictEqual(F.TABS.map(t => t.id), ['make', 'done']);
   F.TABS.forEach((t) => {
     assert.ok(t.file && /\.html$/.test(t.file), `${t.id}: 붙일 파일이 없다`);
     assert.ok(fs.existsSync(path.join(PLATFORM, t.file)),
@@ -92,18 +94,37 @@ test('★ 구성안이 탭 이름을 복사해 적지 않는다', () => {
  *   연결(D-65)은 **사본을 만들지 않는 것**이 존재 이유인데, 업로드로 읽히면
  *   사용자는 우리 서버에 사본이 남는 줄 안다 — 정확히 반대다.
  */
-test('★★ 화면이 세 갈래의 차이를 먼저 말한다 (연결 ≠ 업로드)', () => {
+test('★★ 화면이 갈래의 차이를 먼저 말한다 (보관 ≠ 1회성 ≠ 연결)', () => {
   const html = read('files.html');
-  // ★ 2026-08-21 사용자 지시로 **셋**이 되었다 — 앱에서 가져오기가 갈래로 올라왔다
-  ['LinkPilot 프로젝트에서 가져오기', '폴더를 연결해서', '파일업로드'].forEach((w) => {
-    assert.ok(html.includes(w), `세 갈래 중 '${w}' 가 화면에 없다`);
+  /* ★★★ 〈2026-08-23 사장님 사고로 되돌렸다〉 「올려서 보관」을 2026-08-20 에
+   *   화면에서 뺐고, 그 뒤로 **모든 업로드가 1회성**이었다. 1회성은 읽고 파일을
+   *   버리므로 보고서를 만들 때 원본이 없어 **숫자가 전부 통상치로 나갔다.**
+   *   ★ 화면에서 길 하나를 빼면 **서버 API 가 살아 있어도 그 기능은 없는 것**이다. */
+  ['LinkPilot 프로젝트에서 가져오기', '폴더를 연결해서',
+    '파일업로드 (보관)', '파일업로드 (1회성)'].forEach((w) => {
+    assert.ok(html.includes(w), `갈래 '${w}' 가 화면에 없다`);
   });
-  // ★ 「올려서 보관」은 뺐다 (2026-08-20 사용자 결정 — 불필요)
-  assert.ok(!/id: 'kept'/.test(html), '보관 갈래가 되살아났다');
+  assert.ok(/id: 'keep'/.test(html), '보관 갈래가 없다 — 올린 자료가 보고서에 안 실린다');
   assert.ok(html.includes('사본을 만들지 않습니다'),
     '연결이 사본을 안 만든다는 말이 없다 — 「업로드」로 읽힌다');
-  assert.ok(html.includes('다시 쓸 수 없'),
-    '1회성이 재사용 불가라는 말이 없다 — 올린 뒤에 알면 늦다');
+  assert.ok(html.includes('보고서를 다시 만들면 이 자료는 안 실립니다'),
+    '1회성이 다음 실행에 안 실린다는 말이 없다 — 올린 뒤에 알면 늦다');
+  assert.ok(html.includes('다시 읽고'),
+    '보관이 다시 읽힌다는 말이 없다 — 두 갈래의 차이가 안 보인다');
+});
+
+/**
+ * ★★★ **보관과 1회성이 서로 다른 주소로 간다** 〈2026-08-23〉.
+ *   한 줄이 품질을 가른다 — `/oneshot` 은 읽고 버리므로 보고서를 다시 만들 때
+ *   아무것도 안 실린다.
+ */
+test('★★★ 보관은 /sources 로, 1회성은 /oneshot 으로 간다', () => {
+  const code = read('files.html')
+    .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  assert.match(code, /state\.way === 'keep' \? '\/sources' : '\/oneshot'/,
+    '보내는 주소를 갈래로 안 가른다 — 보관을 골라도 1회성으로 간다');
+  assert.match(code, /way: 'keep'/,
+    '기본이 보관이 아니다 — 올린 자료가 안 실리는 것이 기본 동작이 된다');
 });
 
 /* ═════════ ③ 501 은 오류가 아니라 상태다 ═════════ */
@@ -137,10 +158,17 @@ test('★★ 401·403 을 오류로 그리지 않는다 (게이트로 그린다)
   assert.ok(html.includes("requiredPlan: 'free'"), '자료 탭이 무료가 아니다');
 });
 
-test('★ 탭 안에서는 제목을 그리지 않는다 (탭 바가 이미 이름을 말한다)', () => {
+test('★ 탭 안·창 안에서는 제목을 그리지 않는다 (바깥이 이미 이름을 말한다)', () => {
   const html = read('files.html');
-  assert.match(html, /if \(!C\.inTab\) view\.appendChild\(el\('h1', null, '자료 업로드'\)\)/,
-    'inTab 을 안 보고 제목을 그린다 — 탭 이름 아래에 같은 말이 또 나온다');
+  /* ★ 〈2026-08-23〉 `inTab` **하나만으로는 모자랐다.** 그 값은 앱이 탭으로
+     얹을 때만 들어오고, 1단계 안에 **창으로 품어진** 경우는 아무도 안 알려
+     줬다 — 그래서 「자료 업로드」가 세 번 나왔다. 둘 다 보는지 잰다 */
+  assert.match(html, /var embedded = C\.inTab \|\|/,
+    'inTab 만 본다 — 창 안에 품어진 경우를 못 가린다');
+  assert.match(html, /insideLinkPilot\(\)/,
+    '부모가 우리 화면인지 안 본다');
+  assert.match(html, /if \(!embedded\) view\.appendChild\(el\('h1', null, '자료 업로드'\)\)/,
+    '품어졌는지 안 보고 제목을 그린다 — 바깥 이름 아래에 같은 말이 또 나온다');
 });
 
 /* ═════════ ④ 손으로 적어 두지 않는다 ═════════ */
@@ -191,7 +219,9 @@ test('★★ 올리는 방법을 화면마다 따로 쓰지 않는다', () => {
   const files = read('files.html');
   const intake = read('intake.html');
   [files, intake].forEach((h) => {
-    assert.match(h, /<script src="upload-core\.js"><\/script>/, 'upload-core.js 를 안 부른다');
+    /* ★ 주소 뒤의 판 표시(`?v=…`)를 허용한다 〈2026-08-23 · D-93〉 */
+    assert.match(h, /<script src="upload-core\.js(\?v=[0-9a-f]*)?"><\/script>/,
+      'upload-core.js 를 안 부른다');
     assert.ok(!/new XMLHttpRequest\(\)/.test(codeOf(h)),
       '화면이 직접 XHR 을 쓴다 — upload-core.js 와 갈린다');
   });
@@ -208,12 +238,23 @@ test('★★ 갈래를 바꾸면 고른 파일을 들고 가지 않는다', () =
 });
 
 /** ★ 연결은 **올리는 것이 아니다.** 파일 고르기를 주면 「업로드」로 읽힌다 */
-test("★★ 연결 갈래에는 파일 고르기가 없다", () => {
+test('★★ 폴더 지정 칸에는 파일 고르기가 없다 (사본을 만드는 것처럼 보이면 안 된다)', () => {
   const code = codeOf(read('files.html'));
-  const at = code.indexOf("if (state.way === 'linked')");
-  assert.ok(at > 0, '연결 갈래를 따로 다루지 않는다');
-  const upto = code.slice(at, code.indexOf('card.appendChild(dropZone())'));
-  assert.match(upto, /return card;/, '연결에서도 드롭존까지 내려간다 — 사본을 만드는 것처럼 보인다');
+  /* ★ 〈2026-08-23 사장님 지시 「병합」으로 바뀜〉 앞 판은 갈래 토글이라
+     「연결 갈래로 내려가면 드롭존까지 가는가」를 쟀다. 이제 둘은 한 테두리
+     안에 **나란히** 있으므로, 재는 것은 **각 칸이 제 것만 그리는가**다. */
+  const at = code.indexOf('function linkedBlock');
+  assert.ok(at > 0, '폴더 지정 칸을 따로 그리지 않는다');
+  const block = code.slice(at, code.indexOf('function uploadBlock'));
+  assert.ok(!/dropZone\(\)/.test(block),
+    '폴더 지정 칸이 드롭존을 그린다 — 사본을 만드는 것처럼 보인다');
+  assert.ok(!/pickedList\(\)/.test(block), '폴더 지정 칸이 고른 파일 목록을 그린다');
+  assert.match(block, /linkPicker\(\)/, '폴더 지정 칸이 제공자를 안 그린다');
+
+  /* ★ 파일업로드 칸은 반대로 **제 것을 다 그린다** */
+  const up = code.slice(code.indexOf('function uploadBlock'));
+  assert.match(up, /dropZone\(\)/, '파일업로드 칸에 드롭존이 없다');
+  assert.match(up, /doUpload/, '파일업로드 칸에 올리기 단추가 없다');
 });
 
 /**
@@ -287,7 +328,10 @@ test('★★ 자료 업로드 탭을 미리 그리면 실제로 내용이 들어
     const body = html.slice(html.indexOf('<div class="pv">'));
     assert.ok(body.length > 800, `미리 그린 판이 비었다 (${body.length}B) — 스크립트가 죽었다`);
     assert.equal((body.match(/class="err"/g) || []).length, 0, '오류 상자가 그려졌다');
-    ['LinkPilot 프로젝트에서 가져오기', '폴더를 연결해서', '파일업로드'].forEach((w) => {
+    /* ★ 〈2026-08-23 사장님 지시로 바뀜〉 프로젝트 지정은 **갈래가 아니라 ①** 이다.
+       갈래는 둘 — 파일업로드 · 폴더 지정 */
+    ['관련자료 제공', '프로젝트 지정', '자료 넣는 방법', '첨부 진행율',
+      '폴더 지정', '파일업로드'].forEach((w) => {
       assert.ok(body.includes(w), `미리 그린 판에 '${w}' 가 없다`);
     });
     assert.match(html, /예시 화면입니다/, '예시라는 표시가 없다 — 실제로 오해한다');
@@ -487,23 +531,11 @@ test('★★ 실제 브라우저에서 떨어뜨리면 붙고, 그래프가 끝�
       sel.value = 'LP-DC-2026-001';
       sel.dispatchEvent(new Event('change', { bubbles: true }));
       await sleep(200);
-      // ★ 처음 갈래는 **앱**이다 (2026-08-21 — 프로젝트 고르는 자리가 거기뿐이라
-      //   기본값이 바뀌었다). 여기서 재려는 것은 「연결 갈래에서 떨어뜨렸을 때
-      //   갈래를 대신 바꾸지 않는가」이므로, **연결로 옮기고 나서** 떨어뜨린다
-      [].slice.call(document.querySelectorAll('.pw')).filter(function (b) {
-        return /폴더를 연결해서/.test(t(b)); })[0].click();
-      await sleep(120);
-      // 연결 갈래인 채로 떨어뜨린다 — 갈래를 대신 바꾸지 않는다
-      var d0 = new DataTransfer();
-      d0.items.add(new File([new Uint8Array(8)], 'a.pdf'));
-      document.body.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: d0 }));
-      await sleep(80);
-      o.keptWay = t(document.querySelector('.pw.on .pw__t'));
-      o.rowsWhileLinked = document.querySelectorAll('.row').length;
-      // 1회성으로 바꾸고 **카드 바깥**에 떨어뜨린다
-      [].slice.call(document.querySelectorAll('.pw')).filter(function (b) {
-        return t(b).indexOf('파일업로드') === 0; })[0].click();
-      await sleep(60);
+      /* 2026-08-23: 갈래 토글이 없어졌다 (둘을 한 칸에 병합). 옮길 갈래가
+         없으므로 곧바로 카드 바깥에 떨어뜨린다 — 이 검사가 원래 보려던 것은
+         「카드 바깥에 떨어뜨려도 붙는가」다 */
+      o.keptWay = t(document.querySelector('.ways2__t'));
+      o.rowsWhileLinked = 0;
       var d = new DataTransfer();
       d.items.add(new File([new Uint8Array(4000)], '감정평가서.pdf'));
       var far = document.querySelector('.lead') || document.body;
@@ -559,9 +591,10 @@ test('★★ 실제 브라우저에서 떨어뜨리면 붙고, 그래프가 끝�
     assert.ok(m && m[1], '탐침이 아무것도 안 남겼다 — 스크립트가 죽었다');
     const r = JSON.parse(m[1]);
     assert.equal(r.errBoxes, 0, '오류 상자가 떴다');
-    // 연결 갈래에서는 받지 않는다 (되돌릴 수 없는 것을 대신 정하지 않는다)
-    assert.equal(r.rowsWhileLinked, 0, '연결 갈래인데 떨어뜨린 파일을 받았다');
-    assert.match(r.keptWay, /폴더를 연결해서/, '갈래를 대신 바꿨다');
+    /* ★ 〈2026-08-23 병합으로 바뀜〉 갈래 토글이 없어져 「갈래를 대신 바꾼다」가
+       성립하지 않는다. 대신 **두 칸이 늘 함께 있는지**를 잰다 — 병합이 지키려는
+       것이 그것이다 */
+    assert.match(r.keptWay, /파일업로드|폴더 지정/, '자료 넣는 칸이 안 뜬다');
     // 카드 **바깥**에 떨어뜨려도 붙는다
     assert.equal(r.rows, 1, `카드 바깥에 떨어뜨린 파일이 안 붙었다 (${r.rows}개)`);
     // 읽기가 안 끝났으면 버튼이 잠긴 채다 — 그걸 「그래프가 없다」로 읽지 않게 먼저 가른다
@@ -1010,9 +1043,7 @@ test('★★ 실제 브라우저에서 확인이 돌고, 만료를 고장으로 
       go.click();
       for (var k = 0; k < 250; k++) { await sleep(20); if (document.querySelector('.up--done, .up--error')) break; }
       await sleep(200);
-      [].slice.call(document.querySelectorAll('.pw')).filter(function (b) {
-        return t(b).indexOf('폴더를') === 0; })[0].click();
-      await sleep(150);
+      /* 2026-08-23: 폴더 지정 칸이 늘 보인다 — 옮길 필요가 없다 */
       o.btn = t(document.querySelector('.chk__b'));
       document.querySelector('.chk__b').click();
       for (var j = 0; j < 150; j++) { await sleep(20); if (document.querySelector('.chk__r')) break; }
@@ -1075,12 +1106,8 @@ test('★★ 파일업로드로 넣으면 읽고 「보고서 생성」으로 �
       sel.value = 'LP-DC-2026-001';
       sel.dispatchEvent(new Event('change', { bubbles: true }));
       await sleep(300);
-      // 「파일업로드」 갈래로 옮긴다
-      var ways = [].slice.call(document.querySelectorAll('.pw'));
-      var up = ways.filter(function (b) { return /파일업로드/.test(t(b)); })[0];
-      o.wayCount = ways.length;
-      if (up) up.click();
-      await sleep(150);
+      /* 2026-08-23: 갈래 토글이 없어졌다. 두 칸이 늘 함께 보인다 */
+      o.wayCount = document.querySelectorAll('.ways2__b').length;
       // 파일 하나를 떨어뜨린다 (input 에 직접 넣는다 — 고르기 창은 못 연다)
       var inp = document.querySelector('.drop input[type=file]');
       o.hasInput = !!inp;
@@ -1117,7 +1144,8 @@ test('★★ 파일업로드로 넣으면 읽고 「보고서 생성」으로 �
     assert.ok(m && m[1], '탐침이 아무것도 안 남겼다 — 스크립트가 죽었다');
     const r = JSON.parse(m[1]);
     assert.equal(r.errBoxes, 0, '오류 상자가 떴다');
-    assert.equal(r.wayCount, 3, `갈래가 셋이 아니다 (${r.wayCount}개)`);
+    /* ★ 〈2026-08-23 사장님 지시〉 갈래는 **둘**이다 — 프로젝트 지정이 ①로 올라갔다 */
+    assert.equal(r.wayCount, 2, `갈래가 둘이 아니다 (${r.wayCount}개)`);
     assert.ok(r.hasInput, '파일 고르기 칸이 없다');
     assert.ok(r.ready, '파일을 읽고도 올리기 단추가 안 열렸다');
     // ★★ 핵심 — **실제로 넘어갔는가**
@@ -1209,11 +1237,20 @@ test('★★ 읽었는데 값이 0이면 넘기지 않고 이유를 보여 준�
  *   프로젝트가 없으면 고를 방법이 화면에 안 보인다. 그래서 **한 번에 가는
  *   단추**를 둔다. 이 검사는 그 단추가 실제로 데려다주는지까지 본다.
  */
-test('★★ 프로젝트 고르기가 하나뿐이고, 다른 갈래에서 한 번에 갈 수 있다', async () => {
+test('★★★ 프로젝트 지정이 ① 로 늘 맨 위에 있다 (갈래 안에 숨지 않는다)', async () => {
   const { buildLive } = require(path.join(PLATFORM, 'build-files.js'));
   const { findBrowser, renderDom } = require(path.join(PLATFORM, 'build-static.js'));
   if (!findBrowser()) return;
 
+  /* ★★★ 〈2026-08-23 사장님 지시로 뒤집혔다〉
+   *     「1.앱 프로젝트에서 호출 또는 신규 프로젝트 지정
+   *       2.[파일업로드] / [폴더 지정]  3.첨부과정 진행율」
+   *
+   *   앞 판은 **고르는 자리가 갈래 셋 중 하나**였다. 그래서 다른 갈래에 있으면
+   *   고를 수가 없어 「고르는 자리로 가기」 단추를 하나 더 달았고, 이 검사는
+   *   그 단추가 도는지를 쟀다. **단추가 필요했다는 것 자체가 자리가 틀렸다는
+   *   표시였다.** 이제 ①은 갈래와 무관하게 늘 맨 위에 있다.
+   */
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-onepick-'));
   const frag = path.join(dir, 'frag.html');
   await buildLive(frag);
@@ -1228,27 +1265,21 @@ test('★★ 프로젝트 고르기가 하나뿐이고, 다른 갈래에서 한 
       await sleep(250);
       // ① 화면 전체에 고르기는 하나다
       o.pickers = document.querySelectorAll('.pick select').length;
-      o.firstWay = t(document.querySelector('.pw.on .pw__t'));
+      o.heads = [].slice.call(document.querySelectorAll('.ah__t')).map(t);
+      /* ★ 자료 넣는 칸은 **프로젝트를 고른 뒤**에 뜬다 — 여기서 세면 늘 0 이다 */
       var sel = document.querySelector('.pick select');
       o.groups = [].slice.call(sel.querySelectorAll('optgroup')).map(function (g) { return g.label; });
       o.second = sel.children[1] && sel.children[1].textContent;
 
-      // ② 다른 갈래에는 고르기가 없고, 대신 **가는 단추**가 있다
-      [].slice.call(document.querySelectorAll('.pw')).filter(function (b) {
-        return /파일업로드/.test(t(b)); })[0].click();
-      await sleep(150);
-      o.pickersElsewhere = document.querySelectorAll('.pick select').length;
-      var back = [].slice.call(document.querySelectorAll('.btn2')).filter(function (b) {
-        return /로 가기/.test(t(b)); })[0];
-      o.hasBack = !!back;
+      /* ② 2026-08-23: 갈래 토글이 없어져 바꿀 것이 없다. 두 칸이 늘 함께
+         보이는지를 대신 잰다 — 그것이 이번 병합이 지키려는 것이다 */
+      o.pickersAfterWay = document.querySelectorAll('.pick select').length;
+      o.headsAfterWay = [].slice.call(document.querySelectorAll('.ah__t')).map(t);
+      // 「가는 단추」는 더 이상 필요 없다 — 있으면 자리가 또 갈렸다는 뜻이다
+      o.hasBack = [].slice.call(document.querySelectorAll('.btn2')).some(function (b) {
+        return /로 가기/.test(t(b)); });
 
-      // ③ 그 단추가 실제로 데려다준다 (있다고 적어만 두면 막다른 길이다)
-      if (back) back.click();
-      await sleep(200);
-      o.afterBackWay = t(document.querySelector('.pw.on .pw__t'));
-      o.afterBackPickers = document.querySelectorAll('.pick select').length;
-
-      // ④ 「＋ 신규프로젝트」가 **갈래 안에서** 열린다 (다른 탭으로 안 보낸다)
+      // ③ 「＋ 신규프로젝트」가 ① 안에서 열린다 (다른 탭으로 안 보낸다)
       var s2 = document.querySelector('.pick select');
       s2.value = 'new:';
       s2.dispatchEvent(new Event('change', { bubbles: true }));
@@ -1257,16 +1288,20 @@ test('★★ 프로젝트 고르기가 하나뿐이고, 다른 갈래에서 한 
       o.cards = document.querySelectorAll('section.card').length;
       o.titles = [].slice.call(document.querySelectorAll('.card__t')).map(t);
 
-      // ⑤ 프로젝트를 고르면 붙이기·스캔이 열린다
+      // ④ 프로젝트를 고르면 붙이기·스캔이 열린다
       var s3 = document.querySelector('.pick select');
       s3.value = 'LP-DC-2026-001';
       s3.dispatchEvent(new Event('change', { bubbles: true }));
       await sleep(400);
       o.afterPick = [].slice.call(document.querySelectorAll('.card__t')).map(t);
+      o.headsAfterPick = [].slice.call(document.querySelectorAll('.ah__t')).map(t);
+      o.blocks = [].slice.call(document.querySelectorAll('.ways2__t')).map(t);
+      o.wayCount = document.querySelectorAll('.ways2__b').length;
       o.errBoxes = document.querySelectorAll('.err').length;
       document.getElementById('probe').textContent = JSON.stringify(o);
     }());
     </script>`;
+
   const page = path.join(dir, 'page.html');
   fs.writeFileSync(page, '<!doctype html><html lang="ko"><head><meta charset="utf-8"></head><body>'
     + fs.readFileSync(frag, 'utf8') + probe + '</body></html>');
@@ -1278,31 +1313,34 @@ test('★★ 프로젝트 고르기가 하나뿐이고, 다른 갈래에서 한 
     const r = JSON.parse(m[1]);
     assert.equal(r.errBoxes, 0, '오류 상자가 떴다');
 
-    // ① 하나뿐
+    /* ① 차례가 ①②③ 로 선다 — 번호만 있고 칸이 없으면 사람은 빠진 줄 안다 */
+    assert.deepStrictEqual(r.heads, ['프로젝트 지정', '자료 넣는 방법', '첨부 진행율'],
+      `카드 안 차례가 다르다: ${JSON.stringify(r.heads)}`);
     assert.equal(r.pickers, 1, `프로젝트 고르기가 ${r.pickers}개다 — 상단 고르기가 되살아났는가`);
-    assert.match(r.firstWay, /LinkPilot 프로젝트에서 가져오기/,
-      `처음 갈래가 고르는 자리가 아니다(${r.firstWay}) — 열자마자 아무것도 못 하는 화면이 된다`);
-    // 셋이 한 목록에 있다
+    assert.equal(r.wayCount, 2, `자료 넣는 칸이 둘이 아니다 (${r.wayCount}개)`);
     assert.ok(r.groups.includes('보고서 프로젝트'), '보고서 프로젝트 무리가 없다');
     assert.ok(r.groups.includes('앱 프로젝트에서 가져오기'), '앱 딜 무리가 없다');
     assert.match(r.second, /신규프로젝트/, '「＋ 신규프로젝트」가 맨 위가 아니다');
 
-    // ② 다른 갈래에는 고르기를 또 그리지 않는다
-    assert.equal(r.pickersElsewhere, 0, '다른 갈래에도 고르기를 그린다 — 다시 둘이 됐다');
-    assert.ok(r.hasBack, '다른 갈래에서 고르는 자리로 갈 길이 없다 — 막다른 길이다');
+    /* ② ★★ 갈래를 바꿔도 ①은 그대로 있다 */
+    assert.equal(r.pickersAfterWay, 1,
+      '갈래를 바꾸니 프로젝트 고르기가 사라졌다 — 고르는 자리가 다시 갈래 안으로 들어갔다');
+    /* ★ 두 칸이 **함께** 보인다 — 고르는 단계 없이 둘 다 쓸 수 있다 */
+    assert.deepStrictEqual(r.blocks, ['파일업로드', '폴더 지정'],
+      `자료 넣는 칸이 둘이 아니다: ${JSON.stringify(r.blocks)}`);
+    assert.ok(!r.hasBack,
+      '「…로 가기」 단추가 있다 — 고르는 자리가 또 어딘가로 옮겨 갔다는 뜻이다');
 
-    // ③ 단추가 실제로 데려다준다
-    assert.match(r.afterBackWay, /LinkPilot 프로젝트에서 가져오기/, '단추를 눌러도 안 옮겨진다');
-    assert.equal(r.afterBackPickers, 1, '옮겨졌는데 고르기가 없다');
-
-    // ④ 만들기가 갈래 안에서 열리고, 카드가 겹치지 않는다
+    /* ③ 만들기가 ① 안에서 열리고, 카드가 겹치지 않는다 */
     assert.equal(r.newInputs, 1, '「＋ 신규프로젝트」를 골랐는데 적는 칸이 없다');
     assert.ok(r.titles.includes('신규프로젝트'), '만드는 칸 제목이 없다');
     assert.equal(r.cards, 1, `카드가 ${r.cards}개다 — 갈래 안에 카드를 또 둘러 테두리가 겹친다`);
 
-    // ⑤ 고르면 붙이기·스캔이 열린다
+    /* ④ 고르면 붙이기·스캔이 열린다 */
     assert.ok(r.afterPick.includes('자료 스캔'),
       `프로젝트를 골랐는데 스캔 칸이 없다: ${r.afterPick.join(' | ')}`);
+    assert.ok(r.headsAfterPick.indexOf('첨부 진행율') !== -1,
+      '프로젝트를 골랐더니 ③ 첨부 진행율 칸이 사라졌다');
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
 
@@ -1419,8 +1457,20 @@ test('★★ 파일업로드로 넣고 스캔을 눌러도 「안 넣었다」�
       sel.value = 'LP-DC-2026-001';
       sel.dispatchEvent(new Event('change', { bubbles: true }));
       await sleep(400);
-      [].slice.call(document.querySelectorAll('.pw')).filter(function (b) {
-        return /파일업로드/.test(t(b)); })[0].click();
+      /* 2026-08-23: 갈래 토글이 없어졌다 — 파일업로드 칸이 늘 보인다 */
+      /* ★ 이 검사는 **1회성** 갈래의 동작을 잰다 〈2026-08-23〉 — 기본은 보관으로
+         바뀌었으므로 여기서 갈래를 눌러 고른다 */
+      var kwHit = null;
+      for (var kw = 0; kw < 60; kw++) {
+        var kws = document.querySelectorAll('.keepway__b');
+        for (var ki = 0; ki < kws.length; ki++) {
+          if (t(kws[ki]).indexOf('버립니다') !== -1) { kwHit = kws[ki]; break; }
+        }
+        if (kwHit) break;
+        await sleep(20);
+      }
+      o.kw = !!kwHit;
+      if (kwHit) kwHit.click();
       await sleep(200);
 
       // 파일을 고르기만 한다 (아직 안 올림)
@@ -1431,8 +1481,10 @@ test('★★ 파일업로드로 넣고 스캔을 눌러도 「안 넣었다」�
       inp.dispatchEvent(new Event('change', { bubbles: true }));
       var go = null;
       for (var w = 0; w < 1200; w++) {
+        /* ★ 이름이 「파일업로드 — 보관」·「파일업로드 — 읽고 버리기」로 갈렸다
+           〈2026-08-23〉. 정확히 일치로 찾으면 못 찾고 아래에서 던진다 */
         go = [].slice.call(document.querySelectorAll('.btn')).filter(function (b) {
-          return t(b) === '파일업로드'; })[0];
+          return t(b).indexOf('파일업로드') === 0; })[0];
         if (go && !go.disabled) break;
         await sleep(20);
       }
@@ -1486,7 +1538,7 @@ test('★★ 파일업로드로 넣고 스캔을 눌러도 「안 넣었다」�
     // ② 올린 뒤에는 **미리** 「여기 오지 않는다」고 말한다
     assert.match(r.afterUpload, /여기 오지 않습니다/,
       `1회성이 스캔 대상이 아니라는 것을 미리 안 말한다: ${r.afterUpload}`);
-    assert.match(r.afterUpload, /폴더를 연결해서/, '다시 읽으려면 어떻게 하는지 안 말한다');
+    assert.match(r.afterUpload, /폴더 지정/, '다시 읽으려면 어떻게 하는지 안 말한다');
 
     // ③ 눌렀을 때 — **빨간 칸이 아니고 탓하지 않는다**
     assert.ok(r.hasScan, '스캔 단추가 없다');
@@ -1496,4 +1548,477 @@ test('★★ 파일업로드로 넣고 스캔을 눌러도 「안 넣었다」�
       `방금 넣은 사람에게 안 넣었다고 말한다: ${r.scanBoxText}`);
     assert.match(r.scanBoxText || '', /이미 읽었/, '무슨 일이 있었는지 안 말한다');
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+/* ═════════ ⑤ 「안 알려 줬다」를 「로그아웃」으로 읽지 않는다 ═════════ */
+
+/**
+ * ★★★ 〈2026-08-23 사장님 지시 — 「로그인이 필요합니다 … 삭제 빼줘」〉
+ *
+ *   무슨 일이 있었나. 앱에 **로그인해서 쓰고 계신** 사장님이 3단계
+ *   「관련자료 업로드」를 여셨더니 이것만 있었다:
+ *
+ *       로그인이 필요합니다
+ *       자료 업로드은 로그인한 사용자만 쓸 수 있습니다.
+ *
+ *   올릴 칸은 아예 안 나왔다. 이 화면은 1단계 안에 iframe 으로 들어가는데
+ *   붙이는 쪽이 `session` 을 안 넘기면 `null` 이 온다. 앞 판은 그 `null` 을
+ *   **「로그인 안 했다」로 단정**하고 화면 전체를 막았다.
+ *
+ * ★ **모르는 것과 아닌 것은 다르다** (§4.9). 모르면 화면을 열고, 진짜 판정은
+ *   서버에 맡긴다 — 401 이 오면 그때 갈라 말하는 자리가 이미 있다.
+ * ★ 그렇다고 문을 없애지는 않는다. **알려 준 경우에는 그대로 막는다.**
+ */
+test('★★★ session 을 안 넘기면 막지 않는다 — 알려 준 경우에는 그대로 막는다', () => {
+  const { findBrowser, renderDom } = require(path.join(PLATFORM, 'build-static.js'));
+  if (!findBrowser()) return;   // 크로미움이 없는 서버가 실제로 있다
+
+  /* ★★ **화면 폴더 안에 쓴다.** `files.html` 은 옆의 `.js` 를 상대경로로 부른다 —
+     임시 폴더에 옮겨 놓으면 그것들이 통째로 안 실리고, 그러면 게이트도 안 뜨는
+     대신 **화면도 아무것도 안 뜬다.** 그 상태에서 「막지 않는다」만 재면
+     검사가 초록인데 아무것도 확인 못 한 것이 된다 — 실제로 한 번 그렇게 됐다 */
+  const dir = PLATFORM;
+  const made = [];
+  const src = read('files.html');
+
+  /** session 값을 바꿔 끼우고 그려 본 뒤, 화면에 뜬 글자만 돌려준다 */
+  function paintWith(sessionJs) {
+    const slot = /^(\s*)session: null,$/m;
+    /* ★ 바뀐 글자로 재지 않는다 — 첫 판(`null`)은 원문과 **똑같아서** 「못 찾았다」가
+       된다. 실제로 그렇게 한 번 헛짚었다. 자리가 있는지를 직접 잰다 */
+    assert.ok(slot.test(src), 'session 자리를 못 찾았다 — 검사가 눈이 멀었다');
+    const html = src.replace(slot, `$1session: ${sessionJs},`);
+    const page = path.join(dir, `.lp-gate-${Buffer.from(sessionJs).toString('hex').slice(0, 12)}.html`);
+    fs.writeFileSync(page, html);
+    made.push(page);
+    const dom = renderDom(findBrowser(), page, RENDER_BUDGET_MS);
+    // 스크립트 안의 원문(accessMessage 의 문구)이 걸리지 않게 걷어낸다
+    return dom.replace(/<script[\s\S]*?<\/script>/g, '');
+  }
+
+  /* ① 안 알려 줬다(null) → **막지 않는다.** 올리는 화면이 실제로 뜬다 */
+  const unknown = paintWith('null');
+  assert.ok(!/로그인한 사용자만/.test(unknown),
+    '로그인 여부를 안 알려 줬을 뿐인데 「로그인이 필요합니다」로 막았다 — 앱 안에서 그렇게 보였다');
+  assert.match(unknown, /관련자료 제공/,
+    '막지는 않는데 올리는 칸도 안 뜬다 — 빈 화면은 고장으로 읽힌다');
+
+  /* ② 알려 줬는데 로그아웃이다 → **그대로 막는다.** 문을 없앤 것이 아니다 */
+  const out = paintWith('{ authenticated: false }');
+  assert.match(out, /로그인한 사용자만/,
+    '로그아웃이라고 알려 줬는데도 안 막는다 — 문을 통째로 없앤 것이다');
+
+  /* ③ 알려 줬고 로그인했다 → 연다 */
+  const inn = paintWith("{ authenticated: true, planId: 'free', status: 'active' }");
+  assert.ok(!/로그인한 사용자만/.test(inn), '로그인했는데 막았다');
+  assert.match(inn, /관련자료 제공/, '로그인했는데 올리는 칸이 안 뜬다');
+
+  made.forEach((f) => fs.rmSync(f, { force: true }));
+});
+
+/* ═════════ ⑥ 품어졌을 때는 제 이름·바탕을 내지 않는다 ═════════ */
+
+/**
+ * ★★★ 〈2026-08-23 사장님 지시 — 「자료 업로드 타이틀 중복 표기 노출됨 …
+ *   쓸데없이 박스라인을 만들면서 발생된 것 같음 … 빼줘 삭제해」〉
+ *
+ *   한 화면에 「자료 업로드」가 **세 번** 나왔다:
+ *     ① 1단계 머리(`fillHead`) ② 그 아래 카드 제목 ③ 품은 화면의 자기 `h1`
+ *   그리고 품은 화면의 **제 바탕색**이 카드 안에서 회색 띠로 보였다 —
+ *   아무 뜻도 없는 상자가 하나 더 생긴 것이다.
+ *
+ * ★ 셋 다 원인이 같다: **품어졌다는 것을 화면이 몰랐다.** `inTab` 은 앱이
+ *   탭으로 얹을 때만 들어오고, 창 안에 품어진 경우는 아무도 안 알려 줬다.
+ * ★ 그래서 **부모가 우리 화면인지**로 가른다 — 바깥이 고쳐 주기를 기다리지
+ *   않고 이 화면이 스스로 안다.
+ * ★ **단독으로 열 때는 그대로 둔다.** 이름 없는 화면을 만들면 안 된다.
+ */
+test('★★★ 품은 창 안에서는 제 이름·바탕·여백을 내지 않는다 (단독일 때는 낸다)', () => {
+  const { findBrowser, renderDom } = require(path.join(PLATFORM, 'build-static.js'));
+  if (!findBrowser()) return;   // 크로미움이 없는 서버가 실제로 있다
+
+  /* ★★ **`file://` 에서 창 안을 읽으려면 깃발이 하나 더 필요하다**
+   *   〈2026-08-23 · 실제로 여기서 한 번 죽었다〉. 없으면 브라우저가 창을
+   *   **다른 출처**로 보고 `contentDocument` 를 `null` 로 준다 — 그러면
+   *   「창 안을 못 읽었다」가 되어 **아무것도 못 재고** 검사가 멎는다.
+   *   `renderDom` 은 그 깃발을 안 붙이므로 이 검사에서만 직접 부른다. */
+  const { execFileSync } = require('child_process');
+  const renderNested = (file) => execFileSync(findBrowser(), [
+    '--headless', '--disable-gpu', '--no-sandbox', '--hide-scrollbars',
+    '--allow-file-access-from-files', '--window-size=1280,900',
+    '--virtual-time-budget=60000', '--dump-dom', 'file://' + file,
+  ], { maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] }).toString();
+
+  /* ── ① 품은 창 안 ── 부모가 `LinkPilotFlow` 를 가진 화면이다 */
+  const host = `<div id="probe"></div>
+    <script src="flow-core.js"></script>
+    <iframe id="f" src="files.html" style="width:900px;height:900px;border:0"></iframe>
+    <script>
+    setTimeout(function () {
+      var o = {};
+      try {
+        var d = document.getElementById('f').contentDocument;
+        var t = function (n) { return (n.textContent || '').trim(); };
+        o.titles = [].slice.call(d.querySelectorAll('h1,h2,.card__t')).map(t)
+          .filter(function (x) { return /자료 업로드/.test(x); });
+        o.bodyBg = d.defaultView.getComputedStyle(d.body).backgroundColor;
+        var w = d.querySelector('.wrap');
+        o.wrapPad = w ? d.defaultView.getComputedStyle(w).paddingTop : null;
+        o.stamps = d.querySelectorAll('[data-lp-stamp]').length;
+      } catch (e) { o.err = String(e); }
+      document.getElementById('probe').textContent = JSON.stringify(o);
+    }, 2000);
+    </script>`;
+
+  /* ★ 화면 폴더 안에 쓴다 — 옆의 `.js` 와 `files.html` 을 상대경로로 부른다 */
+  const name = '.lp-embed-probe.html';
+  const at = path.join(PLATFORM, name);
+  fs.writeFileSync(at, '<!doctype html><html lang="ko" data-lp-build="test1234">'
+    + '<head><meta charset="utf-8"><link rel="stylesheet" href="tokens.css"></head>'
+    + '<body>' + host + '</body></html>');
+  try {
+    const dom = renderNested(at);
+    const m = /<div id="probe">([^<]*)<\/div>/.exec(dom);
+    assert.ok(m && m[1], '탐침이 아무것도 안 남겼다');
+    const r = JSON.parse(m[1]);
+    assert.ok(!r.err, `창 안을 못 읽었다: ${r.err}`);
+
+    assert.deepStrictEqual(r.titles, [],
+      `품은 창 안에서 제 이름을 또 말한다 — 같은 말이 두 번 나온다: ${JSON.stringify(r.titles)}`);
+    /* 「투명」은 rgba(0,0,0,0) 로 잰다 — 이름으로 재면 브라우저마다 다르다 */
+    assert.match(String(r.bodyBg), /rgba\(0, 0, 0, 0\)|transparent/,
+      `품은 창이 제 바탕을 칠한다 (${r.bodyBg}) — 카드 안에 뜻 없는 회색 띠가 생긴다`);
+    assert.strictEqual(r.wrapPad, '0px',
+      `품은 창이 제 여백을 둔다 (${r.wrapPad}) — 품은 카드의 여백과 두 벌이 된다`);
+    assert.strictEqual(r.stamps, 0, '품은 창이 판 지문을 또 찍는다');
+  } finally {
+    fs.rmSync(at, { force: true });
+  }
+
+  /* ── ② 단독 ── 이름이 없으면 안 된다 */
+  const alone = renderDom(findBrowser(), path.join(PLATFORM, 'files.html'), 60000)
+    .replace(/<script[\s\S]*?<\/script>/g, '');
+  assert.match(alone, /<h1[^>]*>자료 업로드<\/h1>/,
+    '단독으로 열었는데 이름이 없다 — 무슨 화면인지 알 수 없다');
+  assert.match(alone, /판 [0-9a-f]{8}/, '단독으로 열었는데 판 지문이 없다');
+});
+
+test('★★ 「자료 업로드」 제목을 손으로 적지 않는다 (머리와 두 벌이 된다)', () => {
+  const code = codeOf(read('intake.html'));
+  /* ★ `dropCard` 만 `cardHead` 를 안 거치고 직접 붙여서 머리와 겹쳤다.
+     같은 실수가 다시 생기면 여기서 잡는다 */
+  const at = code.indexOf('function dropCard');
+  assert.ok(at > 0, 'dropCard 가 없다');
+  const fn = code.slice(at, code.indexOf('function dropCardLegacy'));
+  assert.match(fn, /cardHead\(box, 'files'/, '머리와 겹치는지 안 보고 제목을 붙인다');
+  assert.ok(!/card__t', '자료 업로드'/.test(fn), '제목을 손으로 적었다');
+});
+
+/* ═════════ ⑦ 서버 주소가 없으면 부르지 않는다 ═════════ */
+
+/**
+ * ★★★ 〈2026-08-23 사장님 화면에서 잡혔다 — 「＋ 신규프로젝트 → 만들기」가
+ *   **서버 오류 (404)**〉
+ *
+ *   `C.api` 가 `null` 인데 그대로 이어 붙이고 있었다. 그러면 주소가
+ *   **`"null/projects"`** 가 된다 — 지금 페이지 옆의 없는 파일이라 웹서버가
+ *   404 를 주고, 화면에는 「서버 오류 (404)」 한 줄만 남는다.
+ *
+ * ★★ **그 404 는 「서버가 라우트를 잃은 것」과 똑같이 보인다.** 실제로 나는
+ *   NAS 엔진의 라우팅 표부터 의심했다 (M-11 이 그런 사고였으니까).
+ *   원인이 우리 화면 안에 있었는데 서버를 뒤졌다.
+ *
+ * ★ 그래서 **부르는 자리마다 막지 않는다.** `call()` 한 곳에서 막는다 —
+ *   자리마다 막으면 새로 생긴 자리가 조용히 빠진다(`loadProjects` 만 막고 있었다).
+ * ★ 그리고 **올리기는 XHR 로 간다** — `call()` 을 안 거친다. 같은 일을 하는
+ *   길이 둘이면 둘 다 막아야 한다 (M-24).
+ */
+test('★★★ 주소를 못 받아도 부른다 — 다만 null 을 주소에 붙이지 않는다', () => {
+  const code = codeOf(read('files.html'));
+
+  /* ★★★ **이 검사는 2026-08-23 오후에 뒤집혔다.** 앞 판은 「api 가 없으면
+     **부르지 않는다**」였다. M-28(`"null/projects"`)을 막으려고 그렇게 했는데,
+     사장님 화면에서 **앱 안에서 열었는데도** 그 문지기에 걸렸다 —
+     앱이 `LINKPILOT_EMBED` 를 안 채웠기 때문이다.
+
+     ★ 그때 화면이 한 말은 「앱 밖에서 열면 …」이었다. **틀린 짐작이다** (M-24).
+       그리고 안 불렀으므로 서버가 401 을 주는지 404 를 주는지조차 알 수 없었다 —
+       **「안 됩니다」만 남고 왜인지가 영영 안 나온다.**
+
+     ★★ M-28 이 막은 것은 **`null` 을 이어 붙이는 것**이지 부르는 것 자체가
+       아니다. 그러니 못 받았으면 **같은 출처의 `/api/linkpilot`** 으로 채워서
+       부르고, **짐작으로 불렀다는 사실을 말한다.** */
+
+  /* ① 주소를 정하는 자리는 **`flow-core.js` 한 곳**이다. 화면마다 짐작하면
+     「어느 화면은 되고 어느 화면은 안 된다」가 되어 원인이 안 보인다 */
+  assert.match(code, /F\.resolveApi\(C\)/,
+    '화면이 주소를 스스로 짐작한다 — 정하는 자리는 flow-core 한 곳이어야 한다');
+  const F = require(path.join(PLATFORM, 'flow-core.js'));
+  assert.strictEqual(F.API_FALLBACK, '/api/linkpilot',
+    '기본 주소가 앱이 부르는 것과 다르다 (embed-bridge 계약의 값이어야 한다)');
+  assert.ok(F.API_FALLBACK.charAt(0) === '/',
+    '기본 주소가 상대경로다 — 지금 페이지 옆을 찾게 되어 M-28 이 그대로 재현된다');
+  assert.deepStrictEqual(F.resolveApi({ api: '/준것' }),
+    { api: '/준것', guessed: false, why: null },
+    '앱이 준 주소를 안 쓴다 — 준 것이 언제나 이긴다');
+  assert.strictEqual(F.resolveApi({}).guessed, true, '짐작한 것을 짐작이라고 안 적는다');
+
+  /* ② ★★ **그래도 빈 주소는 안 붙인다.** 여기가 M-28 의 알맹이다 */
+  const at = code.indexOf('function call(method, path, body, opt2)');
+  assert.ok(at > 0, 'call 을 못 찾았다');
+  const fn = code.slice(at, at + 1600);
+  const guardAt = fn.indexOf('if (!C.api)');
+  const fetchAt = fn.indexOf('fetch(C.api + path');
+  assert.ok(guardAt > -1 && fetchAt > -1 && guardAt < fetchAt,
+    '빈 주소 문지기가 fetch 뒤에 있다 — 막기 전에 이미 불렀다');
+  assert.ok(!/null/.test(fn.slice(guardAt, fetchAt).replace(/\/\*[\s\S]*?\*\//g, '')),
+    'null 을 문장에 그대로 흘린다');
+
+  /* ③ 올리기(XHR)도 같은 문지기를 지난다 — `call()` 을 안 거치는 둘째 길 (M-24) */
+  const up = code.indexOf('function doUpload');
+  assert.ok(up > 0, 'doUpload 를 못 찾았다');
+  const upFn = code.slice(up, code.indexOf("url: C.api + '/projects/'", up));
+  assert.match(upFn, /if \(!C\.api\)/,
+    '올리기가 빈 주소로도 간다 — XHR 은 call() 의 문지기를 안 거친다 (M-24)');
+
+  /* ④ ★★ **짐작으로 불렀으면 그 사실을 말한다.** 안 말하면 서버 탓으로 읽힌다 */
+  assert.match(code, /whyBlocked\(/, '막힌 이유에 짐작 여부를 안 붙인다');
+  assert.match(code, /r\.status === 404 && !\(b && b\.error\)/,
+    '길 없음 404 와 자원 없음 404 를 안 가른다 (M-12)');
+  assert.match(code, /서버에 닿지 못했습니다/,
+    '요청이 아예 못 나간 것을 서버 오류로 적는다 — 「Failed to fetch」 한 줄만 남는다');
+
+  /* ⑤ ★★★ **「앱 밖에서 열었다」고 단정하지 않는다.** 사장님은 앱 안에 계셨다 */
+  assert.ok(!/앱 밖에서 열면/.test(code),
+    '아직도 「앱 밖에서 열면」이라고 단정한다 — 앱 안에서도 이 문구가 떴다 (M-24)');
+  assert.ok(!/앱 안에서 열었을 때만 뜹니다/.test(code),
+    '앱 안에 있는 사람에게 「앱 안에서 열었을 때만」이라고 말한다');
+  assert.match(code, /bridgeReason\(\)/,
+    '다리가 남긴 진짜 이유를 안 읽는다 — 이유는 셋인데 하나로 단정하게 된다');
+});
+
+test('★★★ 주소를 못 받고 눌러도 이유를 말한다 — 벌거벗은 404 를 안 남긴다 (실제로 눌러 본다)', () => {
+  const { findBrowser, renderDom } = require(path.join(PLATFORM, 'build-static.js'));
+  if (!findBrowser()) return;   // 크로미움이 없는 서버가 실제로 있다
+
+  /* ★★ **통과가 아니라 실패를 잰다** (배포 전 교차검증 10번). 「막았다」는
+   *   코드를 읽어서가 아니라 **막히는 것을 봐서** 안다. */
+  const probe = `
+    <div id="probe"></div>
+    <script>
+    setTimeout(function () {
+      var o = { err: [] };
+      window.addEventListener('error', function (e) { o.err.push(e.message); });
+      var sel = document.querySelector('.pick select');
+      if (!sel) { o.no = '고르기가 없다'; document.getElementById('probe').textContent = JSON.stringify(o); return; }
+      sel.value = 'new:';
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+      setTimeout(function () {
+        var inp = document.querySelector('.new input');
+        if (!inp) { o.no = '적는 칸이 없다'; document.getElementById('probe').textContent = JSON.stringify(o); return; }
+        inp.value = 'IM 제안서 한 건';
+        inp.dispatchEvent(new Event('input', { bubbles: true }));
+        var btn = [].slice.call(document.querySelectorAll('.new button, button'))
+          .filter(function (b) { return /만들기/.test(b.textContent || ''); })[0];
+        if (!btn) { o.no = '만들기 단추가 없다'; document.getElementById('probe').textContent = JSON.stringify(o); return; }
+        btn.click();
+        setTimeout(function () {
+          o.said = [].slice.call(document.querySelectorAll('.new, .card'))
+            .map(function (n) { return (n.textContent || '').trim(); })
+            .filter(function (x) { return /404|서버|연결|주소|닿지/.test(x); }).join(' | ');
+          document.getElementById('probe').textContent = JSON.stringify(o);
+        }, 700);
+      }, 300);
+    }, 400);
+    </script>`;
+
+  /* ★ 화면 폴더 안에 쓴다 — 옆의 `.js` 를 상대경로로 부른다. 그리고 **api 를
+     주지 않는다** — 그것이 이 검사가 재려는 상황이다 */
+  const name = '.lp-noapi-probe.html';
+  const at = path.join(PLATFORM, name);
+  const src = read('files.html').replace('</body>', probe + '</body>');
+  fs.writeFileSync(at, src);
+  try {
+    const dom = renderDom(findBrowser(), at, 60000);
+    const m = /<div id="probe">([^<]*)<\/div>/.exec(dom);
+    assert.ok(m && m[1], '탐침이 아무것도 안 남겼다');
+    const r = JSON.parse(m[1]);
+    assert.deepStrictEqual(r.err, [], `누르는 동안 예외가 났다: ${JSON.stringify(r.err)}`);
+    assert.ok(!r.no, `여기까지 못 갔다: ${r.no}`);
+
+    /* ★★★ 〈2026-08-23 오후 · 이 검사도 함께 뒤집혔다〉 이제는 **부른다.**
+       그러니 「404 라고 말하면 안 된다」가 아니라 **「404 만 남기면 안 된다」**이다.
+       `file://` 로 열린 이 탐침에서는 요청이 아예 못 나가므로, 화면은 그 사실과
+       **짐작으로 불렀다는 것**을 함께 말해야 한다.
+       ★ 벌거벗은 404 한 줄이면 사람이 서버를 뒤진다 — 그것이 실제로 났던 사고다 */
+    const said = String(r.said || '');
+    assert.ok(said, `아무 말도 안 한다: ${JSON.stringify(r)}`);
+    assert.ok(!/^\s*서버 오류 \(404\)\s*$/.test(said),
+      `벌거벗은 404 한 줄만 남긴다 — 원인이 화면 안에 있는데 서버를 뒤지게 된다: ${said}`);
+    assert.match(said, /서버 주소를 넘기지 않아|닿지 못했습니다|주소가 서버에 없습니다/,
+      `왜 막혔는지 안 말한다: ${said}`);
+    /* ★ 앱 안에 있는 사람에게 「앱 밖에서 열면」이라고 하지 않는다 (M-24) */
+    assert.ok(!/앱 밖에서 열면/.test(said), `틀린 짐작을 적는다: ${said}`);
+  } finally {
+    fs.rmSync(at, { force: true });
+  }
+});
+
+/**
+ * ★★★ **한 칸이 잠겼다고 방 전체를 잠그지 않는다** 〈2026-08-23 · 사장님 화면〉.
+ *
+ *   사장님 화면이 통째로 「로그인이 필요합니다 / 로그인하거나 멤버십을 확인한 뒤
+ *   다시 열어 주십시오」로 덮여 있었다. 그런데 그 아래에서 하려던 일들 —
+ *   ＋ 신규프로젝트 만들기(D-94)와 파일업로드(D-82) — 는 **무인증으로 열려 있다.**
+ *
+ * ★ 무엇이 덮었나: 화면이 처음에 `GET /projects`(보고서 프로젝트 목록)를 부른다.
+ *   그 길은 **일부러 로그인을 묻는다** — 남의 프로젝트에 무엇이 들었는지가 나가는
+ *   자리라서다. 그 401 이 `state.gate` 를 세우고 `paint()` 가 카드를 통째로 바꿨다.
+ *
+ * ★★ 그래서 **열린 길까지 못 쓰게 됐다.** `localGate` 는 이런 자리를 위해
+ *   이미 있던 손잡이인데 여기서만 안 쓰고 있었다.
+ */
+test('★★★ 목록이 잠겨도 만들기·올리기는 열려 있다 (localGate)', () => {
+  const code = codeOf(read('files.html'));
+
+  /* ① 목록 조회가 `localGate` 로 간다 — 안 그러면 401 하나가 카드를 통째로 덮는다 */
+  const at = code.indexOf('function loadProjects');
+  assert.ok(at > 0, 'loadProjects 를 못 찾았다');
+  const fn = code.slice(at, code.indexOf('\n  }', at));
+  assert.match(fn, /call\('GET', '\/projects', null, \{ localGate: true \}\)/,
+    '목록 조회가 화면 전체 게이트를 세운다 — 열려 있는 길까지 못 쓰게 된다');
+
+  /* ② ★ 잠긴 것을 **잠겼다고 말한다.** 빈 목록으로 두면 「내 프로젝트가 왜
+     없나」를 사용자가 혼자 고민한다 (§2 — 조용히 넘어가지 않는다) */
+  assert.match(fn, /state\.listLocked = /, '잠긴 사실을 기록하지 않는다');
+  assert.match(code, /이미 있는 보고서 프로젝트 목록은 로그인해야 보입니다/,
+    '잠겼다고 화면에서 말하지 않는다');
+  /* ★ 막다른 길처럼 읽히지 않게 **여기서 되는 일**을 함께 적는다 */
+  assert.match(code, /새로 만들고 자료를 올리는 것은 지금 그대로 됩니다/,
+    '무엇이 되는지는 안 알려 준다 — 막다른 길로 읽힌다');
+
+  /* ③ ★★ `localGate` 갈래가 `call()` 에 **실제로 살아 있어야** 한다 */
+  assert.match(code, /opt2 && opt2\.localGate/,
+    'call() 에 localGate 갈래가 없다 — 손잡이만 있고 도는 곳이 없다');
+});
+
+/**
+ * ★★★ **엔진이 연 것과 화면이 여는 것이 같아야 한다** 〈2026-08-23 · D-94〉.
+ *   엔진에서 `createProject` 를 열어 놓고 화면이 로그인을 물으면 아무것도 안 바뀐다.
+ *   반대로 화면만 열면 눌렀을 때 401 을 받는다 — **양쪽이 갈리면 둘 다 틀린다.**
+ */
+test('★★★ 엔진에서 연 길 다섯이 그대로다 (D-82 · D-94)', () => {
+  const src = fs.readFileSync(path.join(PLATFORM, '..', 'report-api.cjs'), 'utf8');
+  /* 주석을 떼고 **부르는 자리**만 센다 — 경위를 적을수록 검사가 눈이 머는 것을
+     이 저장소에서 세 번 겪었다 */
+  const code = src.split('\n')
+    .filter(l => !/^\s*(\*|\/\*|\/\/)/.test(l)).join('\n');
+  const uses = (code.match(/gate\([^)]*ANON\)/g) || []).length;
+  /* ★ 2026-08-24: `scanProgress` 가 붙어 다섯이 됐다. **스캔과 같은 문이어야
+   *   한다** — 스캔은 열려 있는데 그 진행만 로그인을 물으면, 눌러서 도는 중에
+   *   화면이 통째로 「로그인이 필요합니다」로 덮인다 (D-94 와 같은 결) */
+  assert.strictEqual(uses, 5,
+    `무인증으로 연 길이 ${uses}곳이다 — 다섯이어야 한다`
+    + ' (createProject · linkSource · oneshotUpload · scanSources · scanProgress)');
+
+  /* ★ 연 선은 「만드는 것까지」다. 그 뒤는 그대로 묻는다 */
+  ['saveSpec', 'generate', 'uploadSources'].forEach((name) => {
+    const i = code.indexOf('async ' + name + '(ctx');
+    assert.ok(i > 0, name + ' 을 못 찾았다');
+    const head = code.slice(i, i + 200);
+    assert.ok(!/ANON/.test(head),
+      `${name} 이 무인증으로 열렸다 — 연 선은 「만드는 것까지」다`);
+  });
+});
+
+/**
+ * ★★★ **읽는 부름 하나가 화면 전체를 잠그지 않는다** 〈2026-08-23 · 두 번 걸렸다〉.
+ *
+ *   사장님 화면이 통째로 「로그인이 필요합니다」로 덮였다. 판 지문은 **최신**이었다 —
+ *   캐시가 아니라 코드였다.
+ *
+ *   ★ 처음에 `GET /projects` 하나만 `localGate` 로 고쳤다. 그런데 부팅에서 부르는
+ *     읽기가 **넷**이었고 셋이 그대로였다:
+ *       `GET …/linked` · `GET …/oneshot` — 일부러 로그인을 묻는 길이다 (D-82 표)
+ *       `GET /intake`                    — 한 번에 몇 MB 인지 물어보는 것뿐이다
+ *     그 중 하나만 401 이면 **칸 전체가 덮인다.** 한 곳만 고치면 다음 자리가
+ *     조용히 같은 일을 한다 (M-24).
+ *
+ * ★★ 그래서 **부팅에서 부르는 읽기는 전부** 부른 쪽에 돌려준다.
+ *   화면 전체 게이트는 **사람이 누른 쓰기**가 막혔을 때만 쓴다.
+ */
+test('★★★ 부팅에서 부르는 읽기가 전부 localGate 로 간다', () => {
+  const code = codeOf(read('files.html'));
+  const READS = [
+    ["call('GET', '/projects', null, { localGate: true })", '보고서 프로젝트 목록'],
+    ["call('GET', base + '/linked', null, LG)", '연결 목록'],
+    ["call('GET', base + '/oneshot', null, LG)", '1회성 기록'],
+    ["call('GET', '/intake', null, { localGate: true })", '올리기 한도'],
+  ];
+  READS.forEach(([snippet, what]) => {
+    assert.ok(code.includes(snippet),
+      `${what} 조회가 화면 전체를 잠근다 — 401 하나로 칸이 통째로 덮인다`);
+  });
+
+  /* ★ 반대쪽 — **화면 전체 게이트가 사라지면 안 된다.** 사람이 누른 쓰기가
+     막혔을 때는 크게 말해야 한다 */
+  assert.match(code, /state\.gate = /, '화면 전체 게이트가 통째로 없어졌다');
+});
+
+/**
+ * ★★★ **어느 부름이 잠갔는지 화면이 말한다** 〈2026-08-23〉.
+ *   칸이 덮였는데 **어느 길이 그랬는지가 화면 어디에도 없었다.** 그래서 코드를
+ *   뒤져 후보를 셋으로 좁히고 사장님께 판 지문을 여쭤 보는 데까지 갔다 —
+ *   화면이 한 줄만 적어 줬으면 그 자리에서 끝났다.
+ */
+test('★★★ 막힌 자리를 화면이 적는다 (뒤지지 않아도 되게)', () => {
+  const code = codeOf(read('files.html'));
+  assert.match(code, /state\.gateWhere = method \+ ' ' \+ path;/,
+    '어느 부름이 잠갔는지 기록하지 않는다');
+  assert.match(code, /막힌 자리: ' \+ state\.gateWhere/,
+    '기록해 놓고 화면에 안 보여 준다 — 그러면 없는 것과 같다');
+  /* ★ 주소만 적는다. 본문·토큰은 안 적는다 (§2) */
+  assert.ok(!/gateWhere = [^\n]*(body|token|Authorization)/.test(code),
+    '막힌 자리에 본문이나 토큰을 적는다 — 로그에 평문이 남는다 (§2)');
+});
+
+/**
+ * ★★★ **같은 자료가 두 번 보이던 것** 〈2026-08-23 사장님: 「이중으로 과거 앞서
+ *   올렸던 자료와 겹쳐서 중복으로 보임」〉.
+ *
+ *   같은 이름을 찾아 주는 칸(`versionBox`)이 **연결·1회성만** 보고 있었다.
+ *   그때는 보관 업로드가 화면에 없었으니 맞는 목록이었는데, 오늘 보관을
+ *   되살리면서 같은 문서가 **「보관」과 「1회성 기록」 양쪽에** 남게 되었고
+ *   화면은 그것을 두 자료로 보여 줬다.
+ *
+ * ★ 「기록만 겹친 것」과 「진짜 판이 둘인 것」은 **사람이 할 일이 다르다.**
+ *   앞의 것을 「골라야 합니다」로 말하면 고를 것이 없는데 고르라는 말이 된다.
+ */
+test('★★★ 같은 이름 찾기가 보관 자료도 본다', () => {
+  const code = read('files.html')
+    .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  const at = code.indexOf('function versionBox');
+  const fn = code.slice(at, code.indexOf('\n  }', at));
+  assert.ok(/state\.kept && state\.kept\.files/.test(fn),
+    '보관 자료를 안 본다 — 보관본과 1회성 기록이 겹쳐도 못 잡는다');
+  assert.ok(/tag\(.*'kept'\)/.test(fn) && /tag\(.*'oneshot'\)/.test(fn),
+    '어디 있는 것인지를 안 담는다 — 기록만 겹친 것인지 판이 둘인지 못 가른다');
+});
+
+test('★★★ 기록만 겹친 것을 「골라야 한다」고 말하지 않는다', () => {
+  const html = read('files.html');
+  assert.ok(html.indexOf('자료가 두 벌인 것이 아닙니다') !== -1,
+    '기록이 남은 것을 자료가 둘인 것처럼 말한다');
+  assert.ok(html.indexOf('보관 중인 한 벌뿐이고') !== -1,
+    '어느 것이 실제로 쓰이는지 말하지 않는다');
+  /* ★ 없는 길을 있다고 적지 않는다 — 1회성 기록을 지우는 서버 길은 아직 없다 */
+  assert.ok(html.indexOf('아직 지우는 길이 없습니다') !== -1,
+    '지울 수 있다고 적으면 찾다가 못 찾고 고장으로 읽는다');
+});
+
+test('★★ 어디 있는 것인지를 줄마다 적는다', () => {
+  const html = read('files.html');
+  ['보관 중', '연결된 자료', '올린 기록만'].forEach((w) => {
+    assert.ok(html.indexOf(w) !== -1, `'${w}' 표시가 없다`);
+  });
 });

@@ -61,6 +61,22 @@ test('★ 다른 출처면 조용히 넘어가지 않고 이유를 남긴다', (
   assert.match(src, /state\.reason/);
 });
 
+test('★★ 중첩 화면도 설정을 받는다 — 직계 부모가 아니라 조상을 거슬러 읽는다 (D-92 실측)', () => {
+  const src = fs.readFileSync(path.join(PLATFORM, 'embed-bridge.js'), 'utf8');
+  /* 3·4·5단계(files/fields/intake)는 report-flow 안의 iframe 이라 window.parent 가 앱이 아니다.
+     직계 부모만 보면 「부모가 채우지 않았습니다」가 나오고 토큰이 없어 401 이 난다(2026-08-23 실측). */
+  assert.ok(!/var cfg = window\.parent\.LINKPILOT_EMBED/.test(src), '직계 부모만 본다 — 중첩 화면이 빈손이 된다');
+  assert.match(src, /w = w\.parent/, '조상 탐색이 없다');
+  // 실제 동작: 2단 중첩에서 꼭대기의 설정을 찾아낸다 (fromParent 만 떼어 실행)
+  const m = src.match(/function fromParent\(\) \{[\s\S]*?\n  \}\n/);
+  assert.ok(m, 'fromParent 본문을 찾지 못했다');
+  const top = { LINKPILOT_EMBED: { common: { api: '/x', token: 't' } } }; top.parent = top;
+  const mid = { parent: top }; const leaf = { parent: mid };
+  const fn = new Function('window', 'state', m[0] + ' return fromParent();');
+  const st = {}; const got = fn(leaf, st);
+  assert.strictEqual(got, top.LINKPILOT_EMBED, '2단 중첩에서 꼭대기 설정을 못 찾았다: ' + st.reason);
+});
+
 /* ═════════ ② 배포용 사본 ═════════ */
 
 test('★ 배포용 사본 목록이 실제 참조와 같다', () => {
@@ -80,7 +96,10 @@ test('★★ 브리지가 어긋나면 사본을 만들지 않는다', () => {
   const f = path.join(PLATFORM, 'outputs.html');
   const keep = fs.readFileSync(f, 'utf8');
   try {
-    fs.writeFileSync(f, keep.replace(/<script src="embed-bridge\.js"[^>]*><\/script>/, ''), 'utf8');
+    /* ★ 주소 뒤의 판 표시(`?v=…`)를 허용한다 〈2026-08-23 · D-93〉 — 안 그러면
+     *   지우려던 태그를 못 찾아 **떼어 내지도 못하고** 검사가 헛돈다 */
+    fs.writeFileSync(f,
+      keep.replace(/<script src="embed-bridge\.js(\?v=[0-9a-f]*)?"[^>]*><\/script>/, ''), 'utf8');
     assert.throws(() => embed.build(null), /브리지 확인 실패/);
   } finally { fs.writeFileSync(f, keep, 'utf8'); }
 });
@@ -158,7 +177,7 @@ test('★ verify:nas 가 저장소만으로 아는 것은 실제로 잰다', () 
   } catch (e) { out = e.stdout || ''; }
   assert.match(out, /탭 둘이 flow-core 한 곳에서 나온다/);
   assert.match(out, /라우트 표/);
-  assert.match(out, /읽기 6 · 쓰기 23 = 29/);
+  assert.match(out, /읽기 6 · 쓰기 30 = 36/);
 });
 
 

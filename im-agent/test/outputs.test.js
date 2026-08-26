@@ -206,7 +206,8 @@ function stage(reports) {
     session: { authenticated: true, planId: 'pro', status: 'active' },
     preload: { projects: [{ id: 'LP-DC-2026-001', name: '인천 남동 데이터센터' }], reports },
   })});</script>\n`;
-  const at = src.indexOf('<script src="embed-bridge.js"');
+  /* ★ 주소 뒤의 판 표시(`?v=…`)를 허용한다 〈2026-08-23 · D-93〉 */
+  const at = src.search(/<script src="embed-bridge\.js(\?v=[0-9a-f]*)?"/);
   fs.writeFileSync(path.join(dir, 'outputs.html'), src.slice(0, at) + cfg + src.slice(at));
   return dir;
 }
@@ -376,4 +377,59 @@ test('★★ 완성 보고서: 눌러 볼 수 있는 판이 실제로 설정을 
     assert.match(html, /서버는 예시입니다/, '예시라는 표시가 없다 — 실제로 오해한다');
     assert.match(html, /실제 자료가 아닙니다/, '예시 자료라는 표시가 없다');
   } finally { if (fs.existsSync(out)) fs.unlinkSync(out); }
+});
+
+/**
+ * ★★★ **「열기」가 아무것도 안 열고 있었다** 〈2026-08-23 사장님 화면〉.
+ *
+ *   보고서 일곱이 다 「완료」로 나왔는데 [열기] 를 누르면
+ *   「09_IM/im.md 를 열 수 없습니다. 서버(api) 연결을 확인하세요.」
+ *
+ *   원인: 클릭 처리가 `if (printable && openPrint(r)) return;` 이었고
+ *   `printable` 은 **`.html` 일 때만 참**이다. `.md`·`.json` 은 **여는 시도조차
+ *   없이** 곧장 오류 문구로 떨어졌다. 서버는 멀쩡했다.
+ *
+ * ★ 게다가 문구가 **서버 탓으로 단정**했다. 우리가 안 부른 것을 서버 탓으로
+ *   적으면 사람은 없는 고장을 찾으러 간다 (M-24 · M-28 과 같은 결).
+ */
+test('★★★ 완성 보고서: .md·.json 도 실제로 연다 (열기가 죽은 단추가 아니다)', () => {
+  const src = fs.readFileSync(
+    path.join(__dirname, '..', 'ui', 'platform', 'reports.html'), 'utf8');
+  const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+
+  /* ★ 2026-08-24: 여는 일을 브라우저에 넘겼다 (M-33). `.md`·`.json` 도 `.html` 과
+   *   **똑같이 링크**가 되고, 인쇄창만 `.html` 에서 더 붙는다 — 여는 길은 여전히 하나다 */
+  assert.ok(/var isLink = r\.status !== 'blocked' && !!url;/.test(code),
+    '차단된 것만 빼고 전부 링크가 되어야 한다 — 확장자를 안 가린다');
+  assert.ok(/a\.href = url;/.test(code),
+    '여는 길이 링크가 아니다 — 틀(iframe) 안에서 막힌다 (M-33)');
+  assert.ok(!/if \(printable && openFile/.test(code),
+    'printable 일 때만 열려고 한다 — .md·.json 은 여는 시도조차 없이 오류로 떨어진다');
+});
+
+test('★★★ 완성 보고서: 못 열면 **왜인지** 말한다 — 서버 탓으로 단정하지 않는다', () => {
+  const src = fs.readFileSync(
+    path.join(__dirname, '..', 'ui', 'platform', 'reports.html'), 'utf8');
+  const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+
+  assert.ok(code.indexOf('서버(api) 연결을 확인하세요') === -1,
+    '「서버 연결을 확인하세요」로 단정하면 멀쩡한 서버를 뒤지게 된다');
+  assert.ok(/function whyCantOpen/.test(code), '이유를 가르는 함수가 없다');
+  /* 세 갈래를 다 말해야 한다 — 고치는 곳이 각각 다르다 */
+  assert.ok(code.indexOf('프로젝트가 지정되지 않았습니다') !== -1, '프로젝트 미지정을 안 가른다');
+  assert.ok(code.indexOf('서버 주소를 넘기지 않았습니다') !== -1, '설정 미전달을 안 가른다');
+});
+
+test('★★ 완성 보고서: 인쇄창은 A4 인쇄본에만 띄운다 (md 를 열자마자 인쇄창이 뜨면 안 된다)', () => {
+  const src = fs.readFileSync(
+    path.join(__dirname, '..', 'ui', 'platform', 'reports.html'), 'utf8');
+  const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  /* ★ 2026-08-25: 새 탭에 자격이 안 붙어(M-33 재발) **화면이 직접 받아 온다.**
+   *   그래서 인쇄창도 받아 온 뒤에 띄운다 — 여전히 printable 일 때만이다 */
+  assert.ok(/if \(printable\) \{/.test(code),
+    'printable 을 안 보고 늘 인쇄창을 띄운다');
+  assert.ok(/w\.print\(\)/.test(code), '인쇄창을 안 띄운다');
+  /* ★ 인쇄창을 띄우는 자리는 **한 곳뿐**이어야 한다 — 두 곳이 되면 갈린다 */
+  assert.strictEqual((code.match(/w\.print\(\)/g) || []).length, 1,
+    '인쇄창을 띄우는 자리가 둘 이상이다');
 });

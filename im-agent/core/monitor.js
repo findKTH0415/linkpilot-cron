@@ -31,14 +31,16 @@ const ACTIVITY_PATH = '01_Project/activity.jsonl';
 const WEIGHTS = {
   '10_output_spec': 3,
   '01_project': 2,
-  '02_extraction': 12,
+  '02_extraction': 11,
   '07_geo': 10,
   '03_research': 6,
-  '04_financial': 15,
+  '04_financial': 13,
   '08_appraisal': 8,
   '09_massing': 8,
+  '12_sketchup_plan': 2,
+  '13_sketchup_intake': 2,
   '05_validation': 10,
-  '06_im_writer': 14,
+  '06_im_writer': 13,
   '11_final_validation': 12,
 };
 
@@ -55,7 +57,9 @@ const DEPENDS = {
   '04_financial': ['02_extraction', '07_geo'],
   '08_appraisal': ['04_financial', '07_geo'],
   '09_massing': ['07_geo'],
-  '05_validation': ['04_financial', '08_appraisal', '09_massing'],
+  '12_sketchup_plan': ['09_massing'],
+  '13_sketchup_intake': ['12_sketchup_plan'],
+  '05_validation': ['04_financial', '08_appraisal', '09_massing', '13_sketchup_intake'],
   '06_im_writer': ['05_validation'],
   '11_final_validation': ['06_im_writer'],
 };

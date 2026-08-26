@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="3f9e0360">
+<html lang="ko" data-lp-build="c1587fa7">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -21,7 +21,105 @@
   ★ 범위를 벗어난 값은 막지 않고 경고만 한다. 여기서 막으면 05 Validation 이
     RED FLAG 로 잡아야 할 이상값이 화면에서 사라진다.
 -->
-<link rel="stylesheet" href="tokens.css">
+<script>
+/* ★★★ **빈 화면으로 끝나지 않는다** 〈2026-08-24 사장님: 데스크탑에서 흰 화면〉.
+ *
+ *   화면이 통째로 비어 뜬 일이 있었다. 소스는 멀쩡했고 헤드리스로 열면
+ *   정상이었다 — 즉 **그 순간의 브라우저에서만** 무언가가 안 왔다.
+ *
+ *   ★ 가장 흔한 자리: 배포가 파일을 하나씩 갈아 끼우는 동안(70초쯤) 화면은
+ *     새 판인데 형제 스크립트가 **아직 안 올라와 404** 인 순간이 있다.
+ *     그러면 전역이 아예 안 생기고, 첫 줄에서 예외가 나고, **화면은 흰 채로
+ *     아무 말도 안 한다.**
+ *   ★ 아래쪽 **짝 확인 조각**은 옛 스크립트는 잡지만 **없는 스크립트**는
+ *     못 잡는다 — 견줄 전역 자체가 없기 때문이다. 여기가 그 구멍이다.
+ *     (그 조각의 표시 이름을 여기 글자로 적지 않는다. 그것을 찾는 검사가
+ *      이 주석을 코드로 오해한다 — CLAUDE.md §8 에서 세 번째로 당한 자리다.)
+ *
+ * ★ 그래서 ① 파일이 안 온 것과 ② 코드가 던진 것을 **둘 다** 사람 말로 띄운다.
+ * ★ 이 조각은 **형제 스크립트보다 먼저** 있어야 한다. 뒤에 두면 이미 난
+ *   불러오기 실패를 못 듣는다.
+ * ★ 검사 자신이 죽으면 안 된다 — 전부 try 로 감싼다. */
+(function () {
+  var shown = false;
+  function say(msg) {
+    if (shown) return; shown = true;
+    try {
+      var n = document.createElement('div');
+      n.setAttribute('data-lp-fail', '');
+      n.setAttribute('style', 'position:fixed;left:0;right:0;top:0;z-index:99999;'
+        + 'background:#C00000;color:#fff;padding:14px 18px;font:700 14px/1.5 system-ui,sans-serif');
+      n.textContent = msg;
+      var put = function () { if (document.body) document.body.appendChild(n); };
+      if (document.body) put(); else document.addEventListener('DOMContentLoaded', put);
+    } catch (_) { /* 알리다 죽지 않는다 */ }
+  }
+  /* 불러오기 실패는 거품이 안 올라온다 — 잡기 단계(true)에서 들어야 한다 */
+  window.addEventListener('error', function (e) {
+    try {
+      var t = e && e.target;
+      if (!t || !t.tagName) return;
+      var tag = String(t.tagName).toUpperCase();
+      if (tag !== 'SCRIPT' && tag !== 'LINK') return;
+      /* ★★★ **이름만으로는 갈라 낼 수 없다** 〈2026-08-25 · 실제로 못 갈랐다〉.
+       *   앱 안에서 이 띠가 떴을 때 「그 파일이 NAS 에 없다」와 「앱이 엉뚱한
+       *   자리에서 찾는다」가 **똑같이 파일 이름 하나로만** 보였다. 파일은
+       *   NAS 에 있었고 HTTP 200 이었는데도 그랬다 — 갈랐어야 할 것은
+       *   **어느 경로로 찾았나**이고, 그것이 이름을 자르면서 사라졌다.
+       * ★ 호스트는 뗀다 (CLAUDE.md §2). 경로만 있으면 갈린다. */
+      var raw = String(t.src || t.href || '');
+      var where = raw;
+      try { var u = new URL(raw, location.href); where = u.pathname + u.search; } catch (_) {}
+      say('화면에 필요한 파일을 못 받았습니다: ' + (where || '(이름 모름)')
+        + ' — 배포가 도는 중이면 30초 뒤 새로고침(Mac ⌘⇧R · Windows Ctrl+Shift+R)으로 사라집니다.'
+        + ' 한 번 하고도 그대로면 그것은 **다른 일**입니다 — 위 경로를 그대로 알려 주십시오.');
+    } catch (_) { /* 무시 */ }
+  }, true);
+  /* ★★★ **헛울음을 내지 않는다** 〈2026-08-24 · 실측에서 걸렸다〉.
+   *   `report-flow.html` 은 창을 품고 있어서 브라우저가 막는 읽기가 하나 난다
+   *   (`SecurityError: Location.pathname`). 화면은 **멀쩡히 뜬다.**
+   *   그것까지 빨간 띠로 띄우면 **멀쩡한 화면에 고장 딱지**가 붙는다.
+   * ★ 그래서 코드가 던진 것은 **화면이 실제로 비었을 때만** 알린다.
+   *   빈 화면이 이 장치가 막으려는 것이고, 그 밖은 알릴 일이 아니다. */
+  var lastErr = null;
+  function noteErr(m) {
+    lastErr = m;
+    setTimeout(function () {
+      try {
+        var b = document.body;
+        var n = b ? (b.innerText || '').trim().length : 0;
+        if (n < 40) {
+          say('화면을 그리다 멈췄습니다: ' + lastErr
+            + ' — 이 글이 보이면 고장입니다. 이대로 알려 주십시오.');
+        }
+      } catch (_) { /* 무시 */ }
+    }, 1200);
+  }
+  window.addEventListener('error', function (e) {
+    if (e && e.target && e.target.tagName) return;   // 위에서 이미 다뤘다
+    noteErr((e && e.message) || '알 수 없는 오류');
+  });
+  window.addEventListener('unhandledrejection', function (e) {
+    var r = e && e.reason;
+    noteErr((r && r.message) || r || '알 수 없는 오류');
+  });
+}());
+</script>
+<link rel="stylesheet" href="tokens.css?v=c1587fa7">
+<script>
+/* ★★★ **틀 안인지를 그리기 전에 정한다** 〈2026-08-25〉.
+ *   나중에 정하면 [저장] 막대가 **아래에 한 번 붙었다가 올라온다** — 그 깜빡임이
+ *   「자리가 흔들린다」로 읽힌다. 그래서 스타일보다 먼저, 뿌리에 표시만 남긴다.
+ * ★ 교차출처면 `window.top` 을 읽는 것 자체가 던진다 — 그때도 틀 안이다.
+ * ★ 검사 자신이 죽으면 안 된다. 통째로 try 로 감싼다. */
+(function () {
+  try {
+    var framed = true;
+    try { framed = window.top !== window.self; } catch (_) { framed = true; }
+    if (framed) document.documentElement.setAttribute('data-lp-inframe', '');
+  } catch (_) { /* 표시를 못 달아도 화면은 떠야 한다 */ }
+}());
+</script>
 <style>
 :root {
   --side: 248px;
@@ -168,6 +266,56 @@ ul { margin: 0; padding: 0; list-style: none; }
 .row__conv { font-weight: 600; font-size: 12px; line-height: 1; font-family: inherit; margin-top: 7px; padding: 7px 11px; border-radius: 8px;
   border: 1px solid var(--line); background: var(--surface); color: var(--ink2); cursor: pointer; }
 
+/* ── 읽은 값 표기 〈2026-08-23 사장님: 입력필드를 없애고 분석값으로〉 ──
+   ★ 입력 상자를 기본으로 두면 **자료에서 읽은 값과 빈 칸이 똑같이 생긴다.**
+     그래서 읽은 값은 **글자로** 놓고, 고칠 때만 상자를 연다. */
+.rd { display: grid; gap: 3px 12px; grid-template-columns: minmax(0,auto) 1fr auto;
+  align-items: baseline; }
+.rd__v { font-size: 17px; font-weight: 800; font-variant-numeric: tabular-nums;
+  letter-spacing: -.01em; }
+.rd__v.none { font-size: 14px; font-weight: 600; color: var(--ink2); }
+.rd__u { font-size: 12.5px; color: var(--ink2); }
+.rd__src { grid-column: 1 / -1; font-size: 12.5px; color: var(--ink2); }
+.rd__src b { font-weight: 700; color: var(--ink); }
+.rd__edit { font-weight: 700; font-size: 12px; line-height: 1; font-family: inherit;
+  padding: 7px 12px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--ink2); cursor: pointer; }
+.rd__edit:hover { color: var(--ink); }
+
+/* 어디서 온 값인가 — 한 곳에만 대비를 준다 (§6-3 ④) */
+.org { font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px;
+  white-space: nowrap; }
+.org.read { background: var(--lime-soft); color: var(--lime-deep); }
+.org.auto { background: var(--panel); color: var(--ink2); }
+.org.typed { background: var(--warn-soft); color: var(--warn-ink); }
+.org.empty { background: var(--panel); color: var(--ink2); }
+
+/* 읽은 자료 패널 — 첫 화면이 판정을 한다 (§6-3 ①) */
+.ev { background: var(--surface); border-radius: var(--r); padding: 20px 22px; margin-bottom: 16px; }
+.ev__hd { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.ev__n { font-size: 34px; font-weight: 900; line-height: 1;
+  font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.ev__t { font-size: 15px; font-weight: 700; }
+/* ★ 자체분석자료는 **작고 낮은 대비**로 둔다 — 수집자료와 같은 크기로 두면
+   둘이 같은 무게로 읽히는데, 이 시스템에서 그 둘은 같은 값이 아니다 */
+.ev__n2 { font-size: 26px; font-weight: 800; line-height: 1; color: var(--ink2);
+  font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.ev__plus { font-size: 18px; font-weight: 700; color: var(--ink2); margin: 0 2px; }
+.ev__save { margin-left: auto; align-self: flex-start; font-family: inherit;
+  font-size: 13px; font-weight: 700; padding: 8px 18px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  cursor: pointer; }
+.ev__when { margin-left: auto; font-size: 12.5px; color: var(--ink2); }
+.ev__none { font-size: 15px; font-weight: 700; color: var(--warn-ink); }
+.ev__b { margin-top: 14px; display: grid; gap: 6px; }
+.ev__r { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 4px 12px;
+  align-items: baseline; padding: 9px 12px; border-radius: 9px; background: var(--panel); }
+.ev__f { font-size: 13px; font-weight: 600; overflow-wrap: anywhere; }
+.ev__c { font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ev__p { grid-column: 1 / -1; font-size: 11.5px; color: var(--ink2); }
+.ev__r.zero .ev__c { color: var(--warn-ink); }
+.ev__note { margin-top: 12px; font-size: 12.5px; color: var(--ink2); }
+
 .computed { display: flex; flex-wrap: wrap; gap: 7px; }
 .computed span { font-size: 12.5px; padding: 6px 11px; border-radius: 8px;
   background: var(--panel); color: var(--ink2); }
@@ -202,6 +350,30 @@ ul { margin: 0; padding: 0; list-style: none; }
 .btn--ghost { background: var(--surface); border: 1px solid var(--line); color: var(--ink2); }
 .save__why { font-size: 13px; color: var(--bad-ink); font-weight: 600; }
 .save__ok { font-size: 13px; color: var(--ink2); }
+
+/**
+ * ★★★ **틀 안에서는 아래에 붙이지 않는다** 〈2026-08-25 사장님 화면:
+ *   「[저장] 배치가 너무 아래 동떨어져 배치됨」〉.
+ *
+ *   이 화면은 앱 안의 **틀(iframe)** 에서 돌고, 틀은 내용 높이만큼 늘어난다.
+ *   그 안에서 `position: fixed; bottom: 0` 은 **「보이는 화면의 아래」가 아니라
+ *   「틀의 아래」**다 — 사장님 화면처럼 **내용과 한참 떨어진 자리**에 선다.
+ *   그리고 그 아래로 앱의 다음 카드가 이어져 더 어색해진다.
+ *
+ * ★ 그래서 틀 안에서는 **흐름 안에 둔다** — 방금 채운 표 바로 밑이 제자리다.
+ *   아래 여백도 걷어 낸다(붙박이 막대 자리로 비워 둔 것이라 이제 필요 없다).
+ * ★ 혼자 뜬 판(브라우저에서 직접 연 판)은 그대로 붙박이로 둔다 — 긴 표에서
+ *   [저장]이 늘 보여야 한다.
+ */
+:root[data-lp-inframe] .save {
+  position: static; left: auto; right: auto;
+  margin: 18px 26px 0; max-width: 1028px;
+  border: 1px solid var(--line); border-radius: 14px;
+}
+:root[data-lp-inframe] .body { padding-bottom: 0; }
+@media (max-width: 900px) {
+  :root[data-lp-inframe] .save { margin: 16px 16px 0; max-width: none; }
+}
 
 @media (max-width: 900px) {
   .side { display: none; }
@@ -245,8 +417,8 @@ ul { margin: 0; padding: 0; list-style: none; }
       <div class="head__row">
         <div class="head__ic">✎</div>
         <div>
-          <div class="head__t">가이드 필드 입력값</div>
-          <div class="card__s" style="margin:2px 0 0">보고서에 들어갈 수치를 출처와 함께 입력합니다</div>
+          <div class="head__t">자료에서 읽은 값</div>
+          <div class="card__s" style="margin:2px 0 0">올린 자료를 읽어 만든 값입니다. 값마다 어느 자료 몇 페이지에서 나왔는지 함께 적습니다</div>
         </div>
         <div class="head__meta" id="meta"></div>
       </div>
@@ -256,10 +428,12 @@ ul { margin: 0; padding: 0; list-style: none; }
   </main>
 </div>
 
-<script src="gate-core.js"></script>
-<script src="catalog.js"></script>
-<script src="inapp.js"></script>
-<script src="fields-core.js"></script>
+<script src="gate-core.js?v=c1587fa7"></script>
+<script src="catalog.js?v=c1587fa7"></script>
+<script src="inapp.js?v=c1587fa7"></script>
+<script src="fields-core.js?v=c1587fa7"></script>
+<!-- ★ 판 지문을 화면에 보이게 찍는 것이 여기 있다 (§8) — 묶음에 이미 실리는 파일이다 -->
+<script src="flow-core.js?v=c1587fa7"></script>
 <script>
 /**
  * 설정 — 서버가 세션을 보고 이 블록을 만들어 내려주는 것이 정석이다.
@@ -274,7 +448,47 @@ window.LINKPILOT_FIELDS_CFG = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js" data-lp-global="LINKPILOT_FIELDS_CFG"></script>
+<script src="embed-bridge.js?v=c1587fa7" data-lp-global="LINKPILOT_FIELDS_CFG"></script>
+<!--
+  ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
+
+  사장님 화면이 「F.readEvidence is not a function」으로 죽었다. 배포는 초록이었고
+  디스크도 HTTP 도 새 판이었다. **브라우저가 형제 스크립트만 아침 것을 들고 있었다.**
+
+  ★ 이 결의 사고는 화면이 안 뜨는 것보다 나쁘다 — 화면은 멀쩡히 뜨고 아래 지문도
+    새 판으로 찍혀 있는데 기능만 죽는다. 나오는 말은 「… is not a function」뿐이라
+    **캐시가 원인이라는 생각 자체가 안 든다.**
+
+  ★ 그래서 여기서 **먼저 잡는다.** 표를 두지 않는다 — `window` 의 LinkPilot* 전역을
+    훑어 자기 판을 말하는 것만 골라 문서 지문과 댄다. 스크립트가 늘어도 안 갈린다.
+  ★ 이 조각은 **화면 안에** 있어야 한다. 따로 파일로 빼면 그 파일도 옛것일 수 있다.
+-->
+<script>
+(function () {
+  var want = document.documentElement.getAttribute('data-lp-build');
+  if (!want) return;                       /* 지문이 없는 판 — 잴 것이 없다 */
+  var bad = [];
+  try {
+    Object.keys(window).forEach(function (k) {
+      if (k.indexOf('LinkPilot') !== 0) return;
+      var v = window[k];
+      if (v && typeof v === 'object' && typeof v.BUILD === 'string'
+        && v.BUILD !== want) bad.push(k + ' (' + v.BUILD + ')');
+    });
+  } catch (_) { return; }                  /* 훑다 막히면 조용히 — 검사가 화면을 죽이지 않는다 */
+  if (!bad.length) return;
+
+  var n = document.createElement('div');
+  n.setAttribute('data-lp-pair', '');
+  n.setAttribute('style', 'position:fixed;left:0;right:0;top:0;z-index:99999;'
+    + 'background:#C00000;color:#fff;padding:14px 18px;font:700 14px/1.5 system-ui,sans-serif');
+  n.textContent = '화면과 스크립트의 판이 다릅니다 — 브라우저가 옛 파일을 들고 있습니다. '
+    + '새로고침(Windows Ctrl+Shift+R · Mac ⌘⇧R)해 주십시오. 화면 ' + want
+    + ' · 옛 판 ' + bad.join(', ');
+  var put = function () { if (document.body) document.body.appendChild(n); };
+  if (document.body) put(); else document.addEventListener('DOMContentLoaded', put);
+}());
+</script>
 <script>
 (function () {
   'use strict';
@@ -289,6 +503,20 @@ window.LINKPILOT_FIELDS_CFG = {
   var meta = document.getElementById('meta');
 
   var state = {
+    /* ★ 값만 잠긴 것 — **항목 목록을 못 받은 것과 다르다** (2026-08-23) */
+    factsLocked: null,
+    readAt: null,
+    conflicts: 0,
+    /* ★ 3단계가 뽑은 값의 수 — 이 표에 들어온 수와 **나란히 적어야** 어디서
+     *   없어졌는지 물어볼 수 있다 〈2026-08-24〉 */
+    extraction: null,
+    rejected: 0,
+    sample: false,
+    /* ★ **고치는 중인 줄만** 입력 상자를 연다 〈2026-08-23 사장님 지시:
+     *   「입력필드를 삭제하고 자동으로 분석된 입력 값으로 표기」〉.
+     *   입력 상자를 늘 열어 두면 읽은 값과 빈 칸이 똑같이 생겨서
+     *   **자료를 읽었는지 화면만 봐서는 알 수 없다.** */
+    editing: {},
     fields: null, computedKeys: [], computedFields: {}, sources: [],
     assetClasses: [], assetClass: null,   // 자산군 — 필수 항목의 분모가 달라진다
     industries: [],      // 서버가 준 산업분야 정의
@@ -365,13 +593,49 @@ window.LINKPILOT_FIELDS_CFG = {
       state.industries = C.preload.industries || [];
       state.plan = C.preload.plan || null;
       state.publicData = C.preload.publicData === undefined ? null : C.preload.publicData;
+      /* ★ 미리보기에 심어 준 값이 있으면 함께 그린다. **지어낸 값이 아니라**
+       *   빌드할 때 합성 자료에 실제 파서를 돌린 결과다 (`build-preview.js` 의
+       *   `previewFacts`). 화면은 그것이 예시임을 아래에 적는다 (§8) */
+      if (C.preloadFacts) {
+        state.server = C.preloadFacts.values || {};
+        state.sources = C.preloadFacts.sources || [];
+        state.readAt = C.preloadFacts.readAt || null;
+        state.conflicts = C.preloadFacts.conflicts || 0;
+        state.extraction = C.preloadFacts.extraction || null;
+        state.rejected = C.preloadFacts.rejected || 0;
+        state.sample = !!C.preloadFacts.sample;
+        Object.keys(state.server).forEach(function (k) {
+          var v = state.server[k];
+          state.values[k] = {
+            value: v.value, source: v.source,
+            sourceDate: v.sourceDate || '', page: v.page === null ? '' : v.page,
+          };
+        });
+      }
       state.loadError = null;
       return render();
     }
     if (!C.api) { state.loadError = 'API 주소가 설정되지 않았습니다'; return render(); }
     // 필드 정의는 프로젝트와 무관하다. 값은 프로젝트별이다
+    /* ★★★ **값 하나 못 읽었다고 항목 목록까지 못 그리게 하지 않는다** 〈2026-08-23 사장님 화면〉.
+     *
+     *   앞 판은 둘을 `Promise.all` 로 묶었다. `/fields`(항목 목록)는 **로그인을
+     *   안 묻는 길**이고 `/projects/:id/facts`(저장된 값)는 **묻는 길**이다.
+     *   그래서 로그인이 안 잡히면 **둘 다 죽고** 화면은
+     *   **「필드 정의를 불러오지 못했습니다」**라고 말했다 —
+     *   **항목 목록은 멀쩡히 왔는데 엉뚱한 것을 탓한 것이다.**
+     *
+     *   ★ 이 저장소가 오늘만 세 번째로 만난 모양이다: **한 칸이 잠기면 방
+     *     전체가 잠긴다.** 그때마다 사람은 열려 있는 길까지 못 쓴다 (M-24).
+     *   ★ 그래서 **각각 받는다.** 값은 못 읽어도 항목은 그린다. */
     var jobs = [call('GET', '/fields')];
-    if (C.projectId) jobs.push(call('GET', '/projects/' + C.projectId + '/facts'));
+    if (C.projectId) {
+      jobs.push(call('GET', '/projects/' + C.projectId + '/facts').catch(function (e) {
+        // 값만 못 읽은 것이다. 항목 목록은 위에서 그대로 온다
+        state.factsLocked = e.message;
+        return null;
+      }));
+    }
 
     Promise.all(jobs).then(function (res) {
       state.fields = res[0].fields || {};
@@ -384,6 +648,10 @@ window.LINKPILOT_FIELDS_CFG = {
       if (res[1]) {
         state.server = res[1].values || {};
         state.sources = res[1].sources || [];
+        state.readAt = res[1].readAt || null;
+        state.conflicts = res[1].conflicts || 0;
+        state.extraction = res[1].extraction || null;
+        state.rejected = res[1].rejected || 0;
         state.assetClass = res[1].assetClass || null;
         // 서버 값을 편집 상태로 복사한다 (원본은 되돌리기용으로 둔다)
         Object.keys(state.server).forEach(function (k) {
@@ -397,6 +665,7 @@ window.LINKPILOT_FIELDS_CFG = {
       state.loadError = null;
       render();
     }).catch(function (e) {
+      /* ★ 여기까지 오면 **항목 목록 자체를 못 받은 것**이다 — 그때만 못 그린다 */
       // ★ 못 가져온 것과 없는 것을 구분한다. 빈 화면을 그리지 않는다
       state.loadError = e.message;
       render();
@@ -487,7 +756,58 @@ window.LINKPILOT_FIELDS_CFG = {
       h.appendChild(badge);
     }
     h.appendChild(el('span', 'row__k', key));
+
+    /* ★★★ **읽은 값은 글자로 놓는다** 〈2026-08-23 사장님 지시〉.
+     *   어디서 온 값인지를 줄머리에 한 마디로 적는다 — 「자료」와 「자동」과
+     *   「직접 입력」은 **믿는 정도가 다르다.** 뭉뚱그리면 규칙으로 채운 값을
+     *   자료에 있는 값으로 읽는다. */
+    var org = F.originOf(key, e, pl, state.computedKeys);
+    h.appendChild(el('span', 'org ' + org.kind, F.ORIGIN_LABEL[org.kind] || org.kind));
     row.appendChild(h);
+
+    /* 고치는 중이 아니면 **읽는 판**을 그린다 */
+    if (!state.editing[key]) {
+      var rd = el('div', 'rd');
+      var has = e.value !== '' && e.value !== null && e.value !== undefined;
+      rd.appendChild(el('span', 'rd__v' + (has ? '' : ' none'),
+        has ? String(e.value) : '자료에서 안 나왔습니다'));
+      if (has && def.unit) rd.appendChild(el('span', 'rd__u', def.unit));
+      else rd.appendChild(el('span', 'rd__u', ''));
+
+      var edit = el('button', 'rd__edit', has ? '고치기' : '직접 넣기');
+      edit.type = 'button';
+      edit.addEventListener('click', function () {
+        state.editing[key] = true;
+        render();
+        focusValue(key);
+      });
+      rd.appendChild(edit);
+
+      /* ★ 출처를 **값 바로 아래**에 적는다. 접어 두면 아무도 안 편다 —
+       *   그러면 「출처 있는 값만 쓴다」가 화면에서는 안 보인다 */
+      var line = null;
+      if (org.kind === 'read') {
+        line = el('span', 'rd__src');
+        line.appendChild(document.createTextNode('출처 '));
+        line.appendChild(el('b', null, org.label));
+        if (org.page !== null && org.page !== undefined && org.page !== '') {
+          line.appendChild(document.createTextNode(' · p.' + org.page));
+        }
+        if (e.sourceDate) line.appendChild(document.createTextNode(' · ' + e.sourceDate));
+      } else if (org.kind === 'auto') {
+        line = el('span', 'rd__src', '자동으로 채운 값 — ' + org.label);
+      } else if (org.kind === 'typed') {
+        /* ★ 출처 없는 값은 **저장되지 않는다.** 그것을 여기서 말하지 않으면
+         *   저장 버튼을 누른 뒤에야 알게 된다 */
+        line = el('span', 'rd__src', '출처가 없습니다 — 이대로는 저장되지 않습니다');
+      }
+      if (line) rd.appendChild(line);
+      row.appendChild(rd);
+
+      v.errors.forEach(function (m) { row.appendChild(el('p', 'row__msg e', m)); });
+      v.warnings.forEach(function (m) { row.appendChild(el('p', 'row__msg w', m)); });
+      return row;
+    }
 
     var box = el('div', 'row__in');
 
@@ -591,6 +911,13 @@ window.LINKPILOT_FIELDS_CFG = {
     box.className = 'row__in n' + box.childNodes.length;
     row.appendChild(box);
 
+    /* ★ 고치기를 **닫는 길**을 준다. 없으면 한 번 연 줄이 영영 입력 상자로
+     *   남아 화면이 다시 옛날 모습으로 돌아간다 */
+    var done = el('button', 'row__conv', '고치기 닫기');
+    done.type = 'button';
+    done.addEventListener('click', function () { delete state.editing[key]; render(); });
+    row.appendChild(done);
+
     // 억원 필드는 단위 실수가 재무모델을 통째로 틀리게 만든다. 환산을 도와주되
     // 자동으로 바꾸지는 않는다 — 바뀐 값을 사람이 보고 누른다
     if (def.unit === '억원') {
@@ -641,10 +968,18 @@ window.LINKPILOT_FIELDS_CFG = {
     return n;
   }
 
+  /**
+   * ★★★ **막대를 `body` 끝에 붙이지 않는다** 〈2026-08-25〉.
+   *   `.app` 은 `min-height: 100%` 라 **항상 한 화면 높이를 채운다.**
+   *   그 뒤에 붙이면 붙박이를 떼어도 막대가 **그대로 저 아래**에 선다 —
+   *   사장님이 보신 그 빈칸이 바로 이것이다.
+   * ★ 그래서 표가 들어 있는 `.main` 안에 넣는다. 붙박이(혼자 뜬 판)는
+   *   부모가 어디든 같은 자리에 서므로 둘 다 안전하다.
+   */
   function renderFooter() {
     var old = document.querySelector('.save');
     if (old) old.remove();
-    document.body.appendChild(footer());
+    (document.querySelector('.main') || document.body).appendChild(footer());
     var bar = document.getElementById('prog-fill');
     var num = document.getElementById('prog-n');
     if (bar && num && state.fields) {
@@ -687,6 +1022,111 @@ window.LINKPILOT_FIELDS_CFG = {
     return f;
   }
 
+  /**
+   * ★★★ **자료를 정말 읽었는지 첫 화면에서 보이게 한다**
+   *   〈2026-08-23 사장님: 「데이터를 정말 스캔했는지 모르겠다」〉.
+   *
+   *   앞 판은 빈 입력칸 목록으로 시작했다. 값이 들어와 있어도 화면은 똑같이
+   *   생겨서 **읽었는지 안 읽었는지 가릴 방법이 없었다.** 「스캔했습니다」라는
+   *   말은 확인이 아니다 — 확인은 **몇 개가 어느 파일에서 나왔는지**다.
+   *
+   *   ★ 세는 것은 **값 자체**다. 스캔 기록을 따로 믿지 않는다 — 기록은 값과
+   *     갈릴 수 있지만, 값에 붙은 출처는 그 값의 출처다.
+   *   ★ **값이 하나도 안 나온 자료를 따로 적는다.** 안 적으면 「10개 올렸는데
+   *     값 3개」일 때 어느 자료가 헛돌았는지 알 수 없다.
+   */
+  function evidenceCard() {
+    var ev = F.readEvidence(state.values, state.sources);
+    var card = el('div', 'ev');
+
+    var hd = el('div', 'ev__hd');
+    if (!ev.total) {
+      /* ★ 없으면 **없다고 크게 적는다.** 0 을 작게 적으면 「아직 안 그려졌나」로 읽힌다 */
+      hd.appendChild(el('span', 'ev__none',
+        state.sources.length
+          ? '올린 자료 ' + state.sources.length + '건에서 값이 하나도 안 나왔습니다'
+          : '아직 읽은 자료가 없습니다'));
+    } else {
+      /* ★★★ **두 숫자를 가른다** 〈2026-08-25 사장님: 「읽는 흉내만 내지
+       *   실제 판독을 하지않음 거짓」〉.
+       *
+       *   앞 판은 값이 있으면 전부 「자료에서 읽었습니다」로 셌다. 사장님
+       *   화면의 셋은 **전부 요청문에서 뽑은 값**이었는데도 그렇게 적혔다 —
+       *   자료를 한 글자도 못 읽은 상태에서 「자료에서 3개를 읽었습니다」다.
+       *
+       * ★ **수집자료**(올린 문서에서 읽은 것)와 **자체분석자료**(요청문·
+       *   공공데이터·계산으로 만든 것)를 나란히 적는다. 뭉치면 우리가 만든
+       *   값이 증거로 읽힌다. */
+      hd.appendChild(el('span', 'ev__n', String(ev.collected)));
+      hd.appendChild(el('span', 'ev__t', '개 수집자료'));
+      hd.appendChild(el('span', 'ev__plus', '+'));
+      hd.appendChild(el('span', 'ev__n2', String(ev.analyzed)));
+      hd.appendChild(el('span', 'ev__t', '개 자체분석자료'));
+      /* ★ 옛 서버는 출처 등급을 안 준다. **모르는 것을 「읽었다」로 세지 않는다** */
+      if (ev.unknownOrigin) {
+        hd.appendChild(el('span', 'ev__t', ' · 갈리지 않은 값 ' + ev.unknownOrigin + '개'));
+      }
+    }
+    if (state.readAt) hd.appendChild(el('span', 'ev__when', '읽은 시각 ' + state.readAt));
+    card.appendChild(hd);
+
+    /* ★★★ **자료별 세로 나열을 뺐다** 〈2026-08-25 사장님 지시:
+     *   「아래 필드명 수직 나열된 모든 필드 빼줘 노출하지마」〉.
+     *
+     *   여기 `user_request` 같은 **내부 이름이 그대로 노출되고 있었다.**
+     *   보는 사람에게는 뜻이 없고, 게다가 그것이 「자료」로 보였다.
+     *   ★ 세는 것(`ev.bySource`)은 그대로 둔다 — 값마다 출처를 다는 데 쓴다.
+     *     화면에서만 뺀다. */
+
+    /* ★★★ **읽은 것과 표에 들어온 것을 나란히 적는다** 〈2026-08-24 사장님 화면〉.
+     *
+     *   3단계는 「문서 15건에서 값 87개」라고 했는데 이 화면은 **「2개」**만
+     *   보여 줬다. 두 숫자가 같은 자리에 없으니 **어디서 없어졌는지 물어볼
+     *   수조차 없었다** — 「안 읽혔나」와 「읽었는데 표에 안 들어왔나」가
+     *   구분이 안 된다.
+     *
+     * ★ 값 87개는 **항목 87개가 아니다.** 같은 항목을 여러 문서에서 뽑으면
+     *   표에서는 한 줄이 되고, 항목표에 없는 값은 애초에 안 들어온다.
+     *   그 셈을 여기서 말한다 — 그래야 다음에 무엇을 볼지 정해진다. */
+    var ex = state.extraction;
+    if (ex && ex.factCount) {
+      var gap = el('div', 'ev__note');
+      gap.textContent = '자료 ' + ex.documents + '건을 읽어 값 ' + ex.factCount + '개를 뽑았고, '
+        + '그중 이 표의 항목이 된 것은 ' + ev.total + '개입니다'
+        + (ex.at ? ' (읽은 시각 ' + String(ex.at).slice(0, 16).replace('T', ' ') + ')' : '')
+        + '. 같은 항목을 여러 자료에서 뽑으면 표에서는 한 줄이 되고, '
+        + '항목표에 없는 값은 들어오지 않습니다.'
+        + (state.rejected ? ' 규칙에 안 맞아 버려진 값이 ' + state.rejected + '개 있습니다.' : '');
+      card.appendChild(gap);
+    }
+    if (ev.noSource) {
+      card.appendChild(el('div', 'ev__note',
+        '출처가 없는 값 ' + ev.noSource + '개 — 이대로는 저장되지 않습니다.'));
+    }
+    if (state.conflicts) {
+      card.appendChild(el('div', 'ev__note',
+        '값이 갈린 항목 ' + state.conflicts + '건 — 자료마다 다른 숫자가 나왔습니다.'));
+    }
+
+    /* ★ [저장] 을 이 자리에도 둔다 〈2026-08-25 사장님 지시〉. 아래 저장 막대와
+     *   **같은 일을 한다** — 두 벌을 만들지 않고 그쪽을 부른다 (M-02 의 결) */
+    var sv = el('button', 'ev__save', '저장');
+    sv.type = 'button';
+    sv.addEventListener('click', function () { save(); });
+    card.appendChild(sv);
+    /* ★ **예시면 예시라고 화면에 박는다** (§8). 데모 값을 실제로 오해하면
+     *   그것을 근거로 판단한다 */
+    if (state.sample) {
+      card.appendChild(el('div', 'ev__note',
+        '이 화면은 미리보기입니다 — 위 값은 합성 예시 자료에 실제 파서를 돌린 결과입니다.'));
+    }
+    if (!ev.total && state.sources.length) {
+      card.appendChild(el('div', 'ev__note',
+        '3단계 「관련자료 업로드」에서 자료를 읽어야 값이 만들어집니다.'));
+    }
+    return card;
+  }
+
   function render() {
     body.textContent = '';
     meta.textContent = '';
@@ -720,14 +1160,26 @@ window.LINKPILOT_FIELDS_CFG = {
     });
     body.appendChild(steps);
 
+    /* ★ 값만 잠긴 경우 — **항목은 그리고** 그 사실만 한 줄로 적는다.
+       「필드 정의를 못 불러왔다」고 하면 되는 것을 안 된다고 말하는 것이다 */
+    if (state.factsLocked && state.fields) {
+      var lk = el('div', 'card');
+      lk.appendChild(el('div', 'card__t', '저장된 값은 로그인해야 불러옵니다'));
+      lk.appendChild(el('div', 'note', state.factsLocked));
+      lk.appendChild(el('p', 'card__s',
+        '항목 목록은 그대로 나옵니다. 값을 불러오고 저장하는 것은 로그인이 필요합니다 — '
+        + '앞의 3단계(자료 올리기)까지는 로그인 없이 됩니다.'));
+      body.appendChild(lk);
+    }
     if (state.loadError) {
       var e1 = el('div', 'card');
       e1.appendChild(el('div', 'card__t', '필드 정의를 불러오지 못했습니다'));
       var n = el('div', 'note note--bad', state.loadError);
       e1.appendChild(n);
-      e1.appendChild(el('p', 'card__s',
-        '항목 목록은 서버의 데이터 사전에서 받아옵니다. 화면에 복사본을 두지 않기 때문에, '
-        + '불러오지 못하면 입력란을 그리지 않습니다 — 옛 항목으로 입력받아 저장하면 더 큰 문제가 됩니다.'));
+      /* ★ 「항목 목록은 서버의 데이터 사전에서 …」 부연은 **뺐다**
+       *   〈2026-08-23 사장님 지시: 「이런 부연설명은 삭제해줘」〉.
+       *   설계 이유를 화면에서 설명해도 쓰는 사람이 할 수 있는 일이 없다 —
+       *   **무엇이 잘못됐는지**(위 빨간 줄)만 남긴다. */
       body.appendChild(e1);
       renderFooter();
       return;
@@ -743,6 +1195,8 @@ window.LINKPILOT_FIELDS_CFG = {
     meta.appendChild(b);
 
     var required = F.requiredKeys(state.fields, C.docType);
+
+    body.appendChild(evidenceCard());
 
     // 진행률
     var pc = el('div', 'card');
@@ -1007,6 +1461,12 @@ window.LINKPILOT_FIELDS_CFG = {
 
   if (window.LinkPilotInApp && window.LinkPilotInApp.mount) {
     try { window.LinkPilotInApp.mount(); } catch (_) {}
+  }
+
+  /* ★ **판 지문을 화면에 보이게 남긴다** (CLAUDE.md §8). 속성만 있으면
+     사진에 안 찍히고, 그러면 「이것이 그 판인가」를 가릴 수가 없다 */
+  if (window.LinkPilotFlow && window.LinkPilotFlow.stampInto) {
+    try { window.LinkPilotFlow.stampInto(document); } catch (_) {}
   }
 
   render();

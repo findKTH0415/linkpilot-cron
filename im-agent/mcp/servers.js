@@ -103,12 +103,10 @@ const SERVERS = [
     id: 'Trimble_SketchUp',
     label: 'Trimble SketchUp (모델)',
     lane: LANE.SIDE, grade: GRADE.NONE, status: STATUS.CONNECTED,
-    agents: ['09_massing'],
-    // ★★ 배포 엔진에는 이 둘이 있고 **이 갈래에는 아직 없다** (PR #9 가 들고 있다).
-    //   그래서 짝을 여기 따로 적어 둔다 — 병합되면 검사가 「이제 있다」고 빨개지고,
-    //   그때 위 `agents` 로 옮긴다. 안 적어 두면 병합 뒤 이 줄이 09_massing 만
-    //   가리킨 채 남아 **진짜 주인을 가리키지 않는 등록부**가 된다
-    agentsPending: ['12_sketchup_plan', '13_sketchup_intake'],
+    // ★ 2026-08-26 병합 — PR #9 가 들고 있던 둘이 도착해서 `agentsPending` 에서
+    //   여기로 옮겼다. 검사가 그것을 시켰다 — 안 옮기면 이 줄이 09_massing 만
+    //   가리킨 채 남아 **진짜 주인을 가리키지 않는 등록부**가 된다.
+    agents: ['09_massing', '12_sketchup_plan', '13_sketchup_intake'],
     why: '매스·모델을 만든다. **생성물은 fact 가 아니다** — 수량을 값으로 쓰려면 '
       + '설계사가 내보낸 IFC 를 `core/ifc.js` 로 읽는다 (D-37).',
     keys: [],

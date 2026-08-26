@@ -62,6 +62,40 @@ function mergeExtraction(projectId, dataset, out, opts = {}) {
   saveDataset(projectId, dataset);
   // ※ 메타파일은 02_Source_Data 밖에 쓴다 — 원본자료 폴더를 오염시키면 다음 실행에서 자신을 다시 읽는다
   // 부분 추출(extractInto)일 때 이전 문서 목록을 지우지 않는다 — 같은 이름은 새것으로 바꾼다
+  /**
+   * ★★★ **아무것도 안 읽었으면 기록을 덮지 않는다** 〈2026-08-25 · 실측으로 찾았다〉.
+   *
+   *   1회성으로 올린 자료를 스캔하면 값은 `dataset.json` 에 **그대로 남는다** —
+   *   실측했다(3개 뽑고 원본을 지운 뒤에도 3개가 살아 있었다). 그러니
+   *   「원본을 지워서 값이 사라진다」는 말은 **사실이 아니다.**
+   *
+   *   ★ 사라지는 것은 **읽었다는 기록**이다. 그 뒤 보고서를 생성하면
+   *     `02_Source_Data` 가 비어 있으니 02 가 0건을 돌려주고, 그 0 이
+   *     `extraction.json` 을 **`factCount: 0` 으로 덮어썼다.**
+   *
+   *   ★★ 그러면 화면이 「자료 N건을 읽어 값 M개를 뽑았다」를 **못 말한다.**
+   *     값은 멀쩡히 있는데 화면은 읽은 적이 없다고 한다 — M-32 · M-34 와
+   *     똑같은 결이다. **지울 것이 없는데 기록만 지운 것이다.**
+   *
+   * ★ 그래서 **이번 실행이 아무것도 안 읽었으면 그대로 둔다.** 덮는 것은
+   *   실제로 읽은 것이 있을 때뿐이다.
+   */
+  const readNothing = !out.documents.length && !out.facts.length;
+  const kept = readNothing ? store.readJson(projectId, '01_Project/extraction.json', null) : null;
+  if (kept) {
+    /* ★ 다만 **못 읽은 것은 새로 적는다.** 「연결 자료가 안 붙어 있다」 같은
+     *   경고는 이번 실행의 사실이라 앞 판 것을 그대로 두면 안 된다 —
+     *   조기 반환으로 이것까지 삼켰다가 검사가 잡았다 */
+    store.writeJson(projectId, '01_Project/extraction.json', {
+      at: kept.at || kstStamp(),
+      documents: kept.documents || [],
+      unsupported: out.unsupported,
+      factCount: kept.factCount || 0,
+    });
+    log(`  추출: 이번에는 읽은 것이 없다 — 앞서 읽은 기록(자료 ${(kept.documents || []).length}건 · 값 ${kept.factCount || 0}개)을 그대로 둔다`);
+    return { facts: [], documents: [], unsupported: out.unsupported };
+  }
+
   const prev = opts.merge ? (store.readJson(projectId, '01_Project/extraction.json', null) || {}) : {};
   const byName = new Map((prev.documents || []).map(d => [d.name, d]));
   for (const d of out.documents) byName.set(d.name, d);
@@ -84,11 +118,36 @@ function mergeExtraction(projectId, dataset, out, opts = {}) {
  */
 async function extractInto(projectId, files, opts = {}) {
   if (!store.exists(projectId)) throw new Error(`프로젝트 없음: ${projectId}`);
-  const list = Array.isArray(files) ? files : [];
+  /**
+   * ★★★ **빈 목록을 「읽을 것이 없다」로 넘기지 않는다** 〈2026-08-25 · 사장님
+   *   권고 ③ 「0개 수집자료」를 따라가다 잡았다〉.
+   *
+   *   앞 판은 `Array.isArray(files) ? files : []` 였다. 그래서 `null` 을 주면
+   *   **빈 배열**이 되어 그대로 넘어갔는데, 받는 쪽은 `input.files || 목록()` 으로
+   *   판단한다 — **빈 배열도 참**이라 목록을 안 부른다.
+   *   결과는 **「추출: 0건 / 문서 0건 / 미지원 0건」 — 성공으로 끝난다.**
+   *   자료가 폴더에 그대로 있는데도 한 글자도 안 읽고, 오류도 안 난다.
+   *
+   * ★ 그래서 **줄 것이 있을 때만 준다.** 안 주면 받는 쪽이 프로젝트 폴더를
+   *   훑고, 거기도 비었으면 그때 「원본자료가 없다」고 말한다 — 그게 사실이다.
+   * ★ 「목록을 줬는데 비어 있다」는 부른 쪽의 실수일 수 있으므로 **말한다.**
+   *   조용히 폴더를 훑으면 「0건인데 값이 나왔다」로 보여 더 헷갈린다.
+   */
+  const given = Array.isArray(files) ? files : null;
+  const list = (given && given.length) ? given : null;
   const log = opts.log || (() => {});
+  if (given && !given.length) {
+    log('  추출: 빈 목록이 왔다 — 프로젝트의 원본자료를 대신 훑는다');
+  }
   const dataset = loadDataset(projectId);
-  const ctx = { projectId, dataset, log };
-  const r = await runAgent('02_extraction', { projectId, files: list, useLlm: opts.useLlm !== false }, ctx);
+  /* ★ `onFile` 은 **읽는 동안 진행을 흘리는 길**이다 (D-99 · 사장님: 「스캔하는데
+   *   너무 오래걸림」). 안 주면 아무 일도 안 한다 — 진행을 어디에 적을지는
+   *   부른 쪽이 정한다. 읽기는 그것을 모른다 */
+  const ctx = { projectId, dataset, log, onFile: opts.onFile };
+  /* ★ `files` 를 **아예 안 보낸다** — 빈 배열을 보내면 받는 쪽이 목록을 안 부른다 */
+  const input = { projectId, useLlm: opts.useLlm !== false };
+  if (list) input.files = list;
+  const r = await runAgent('02_extraction', input, ctx);
   if (!r.output || !r.output.facts) throw new Error(`추출 실패: ${(r.error && r.error.message) || r.status || 'unknown'}`);
   return mergeExtraction(projectId, dataset, r.output, { log, merge: true });
 }
@@ -409,6 +468,29 @@ async function run(opts = {}) {
     }
   }
 
+  // ── 12 SketchUp Plan / 13 Intake (평면 A — D-95) ──────────
+  // 평면 A 의 두 절반 — 계획을 내고, 사람이 만든 결과가 있으면 되받아 대조한다.
+  // SketchUp MCP 는 여기서 부르지 않는다 (D-95 — 자동 실행에는 연결이 없다).
+  // ★ 계획서에는 「무엇을 만들 수 있는가」와 「무엇을 만들어 달라고 적는가」가
+  //   함께 들어간다 (D-101 합침) — 뒤엣것이 deliverables 다.
+  const skPlan = await runAgent('12_sketchup_plan', { projectId, massing: massing.output || null }, ctx);
+  results['12_sketchup_plan'] = skPlan;
+  if (skPlan.output && skPlan.output.plan) {
+    log(`  모델 계획: 지상 ${skPlan.output.plan.building.floors}층 · 층고 ${skPlan.output.plan.building.floor_height_mm}mm → 04_Property/model-plan.json`);
+  }
+  const asked = (skPlan.output && skPlan.output.deliverables) || [];
+  if (asked.length) {
+    const req = asked.filter((d) => d.status === 'requested').map((d) => d.label);
+    const blocked = asked.filter((d) => d.status === 'blocked');
+    log(`  시각자료 요청: ${req.length}건${req.length ? ` (${req.join('·')})` : ''}`
+      + `${blocked.length ? ` · 못 만드는 것 ${blocked.length}건 — ${blocked.map((b) => b.label).join('·')}` : ''}`);
+  }
+  const skIntake = await runAgent('13_sketchup_intake', { projectId, plan: (skPlan.output && skPlan.output.plan) || null }, ctx);
+  results['13_sketchup_intake'] = skIntake;
+  if (skIntake.output && skIntake.output.status === 'received') {
+    log(`  모델 수령: 파일 ${skIntake.output.result.files}건 · 렌더 ${skIntake.output.result.renders}건 · solid ${skIntake.output.result.solid || '미기재'}`);
+  }
+
   // ── 05 Cross Validation ───────────────────────────────────
   const val = await runAgent('05_validation', {
     projectId,
@@ -417,6 +499,8 @@ async function run(opts = {}) {
     geo: geo.output || null,
     appraisal: appraisal.output || null,
     massing: massing.output || null,
+    sketchup: skIntake.output || null,
+    sketchupPlan: skPlan.output || null,
   }, ctx);
   results['05_validation'] = val;
   if (val.output) {
@@ -434,6 +518,8 @@ async function run(opts = {}) {
     geo: geo.output || null,
     appraisal: appraisal.output || null,
     massing: massing.output || null,
+    // ★ AI 렌더를 본문에 싣는다 (D-34 2차 개정) — 표기가 온전한 것만 넘어온다
+    intake: skIntake.output || null,
   }, ctx);
   results['06_im_writer'] = writer;
   if (writer.output) {

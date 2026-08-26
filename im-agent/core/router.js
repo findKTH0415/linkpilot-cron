@@ -59,6 +59,18 @@ const CONNECTOR_KEYS = {
  *   **다만 「다른 기관의 값으로 대신 채우는」 fallback 은 두지 않는다** —
  *   같은 값을 주는 경로들 사이에서만 넘어간다 (CLAUDE.md §4.9).
  */
+// ★★ **Agent 번호도 겹친다** 〈2026-08-26 병합에서 실제로 났다〉.
+//   `12_legal`·`13_technical` 은 아직 만들지 않은 자리표였는데, 병합으로 들어온
+//   `12_sketchup_plan`·`13_sketchup_intake` 와 번호가 겹쳤다. **실제로 구현된 쪽이
+//   번호를 지킨다** — 등록부 D-·M- 번호와 같은 규칙이다. 자리표를 19·20 으로 옮겼다.
+//   검사(`taskplan` ↔ `registry` 대조)가 이것을 잡았다 — 안 잡혔으면 두 Agent 가
+//   같은 번호를 갖고도 아무 표시 없이 지나갔다.
+//
+// ★★ **두 번 틀렸다.** 처음에 19·20 으로 옮겼는데 `registry.PLANNED` 가
+//   이미 `18_legal`·`19_technical` 을 갖고 있었다 — 지어낸 번호가 또 겹쳤다.
+//   **번호는 짐작하지 않는다. 등록부에 있는 이름을 그대로 쓴다.**
+//   Platform 셋도 같은 이유로 16·17·18 → 20·21·22 로 옮겼다
+//   (16_reviewer·17_distribution·18_legal 이 이미 있다).
 const CAPABILITIES = {
   OUTPUT_SPEC: {
     label: '출력사양 확정', agents: ['10_output_spec'], tools: [],
@@ -146,17 +158,17 @@ const CAPABILITIES = {
   // ★ 병합 전에는 `INCOMING` 에 있어 **PLANNED 로 남는다** — 지어내지 않는다.
   PLATFORM_SPEC: {
     label: '화면 작업지시서 (무엇을 만들지 정한다)',
-    agents: ['16_platform_spec'], tools: [],
+    agents: ['20_platform_spec'], tools: [],
     note: '지침 §5 의 20필드. 입력값·완료조건·제외범위가 없으면 NEEDS_INPUT 이다',
   },
   PLATFORM_BUILD: {
     label: '화면·API 구현',
-    agents: ['17_platform_build'], tools: [],
+    agents: ['21_platform_build'], tools: [],
     note: 'Platform Manager 갈래에서 오는 중 — 병합 전에는 PLANNED',
   },
   PLATFORM_VERIFY: {
     label: '통합검증 (실제 데이터에 붙는가)',
-    agents: ['18_platform_verify'], tools: [],
+    agents: ['22_platform_verify'], tools: [],
     note: '지침 §9 완료기준 14개 · §10 기능·데이터·UI·보안 넷. 임시 데이터면 통과가 아니다',
   },
   SKETCHUP_PLAN: {
@@ -170,11 +182,11 @@ const CAPABILITIES = {
 
   // ── 아래는 담당 Agent 가 **아직 없다.** 대체로 태우지 않는다 ──
   LEGAL_PERMIT: {
-    label: '인허가·법률 검토', agents: ['12_legal'], tools: [], optional: ['enviro', 'g2b'],
+    label: '인허가·법률 검토', agents: ['18_legal'], tools: [], optional: ['enviro', 'g2b'],
     note: '미구현 (registry.PLANNED phase 2)',
   },
   TECHNICAL_REVIEW: {
-    label: '기술 검토', agents: ['13_technical'], tools: [],
+    label: '기술 검토', agents: ['19_technical'], tools: [],
     note: '미구현 (registry.PLANNED phase 2)',
   },
   RISK_ANALYSIS: {
@@ -200,14 +212,16 @@ const CAPABILITIES = {
  *   (MCP 갈래가 `mcp/servers.js` 의 `agentsPending` 으로 같은 일을 해 두었다)
  */
 const INCOMING = {
-  '12_sketchup_plan': 'SketchUp 트랙 (PR #9)',
-  '13_sketchup_intake': 'SketchUp 트랙 (PR #9)',
+  // ★ 2026-08-26 병합 — SketchUp Agent 둘(12_sketchup_plan·13_sketchup_intake)이
+  //   도착해서 여기서 지웠다. 검사가 그것을 시켰다(orchestrator.test.js) —
+  //   「오는 중」이라 적어 둔 Agent 가 실제로 오면 **일부러 빨개진다.**
+  //   그래야 도착한 뒤에도 PLANNED 로 남아 조용히 안 도는 일이 없다.
   // ★ D-119 로 만들기로 정했다(2026-08-26). 갈래는 병합이 끝난 뒤에 붙는다 —
   //   지금 열면 build-preview.js·changes.js 를 다섯 갈래가 문다.
   //   여기 적어 두면 **도착하는 순간 자동으로 일감이 잡힌다**.
-  '16_platform_spec': 'Platform Manager (D-119 · 병합 후 합류)',
-  '17_platform_build': 'Platform Manager (D-119 · 병합 후 합류)',
-  '18_platform_verify': 'Platform Manager (D-119 · 병합 후 합류)',
+  '20_platform_spec': 'Platform Manager (D-119 · 병합 후 합류)',
+  '21_platform_build': 'Platform Manager (D-119 · 병합 후 합류)',
+  '22_platform_verify': 'Platform Manager (D-119 · 병합 후 합류)',
 };
 
 /** 환경변수가 실제로 들어 있는가 — 값은 절대 로그에 내지 않는다 (CLAUDE.md §2) */

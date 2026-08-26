@@ -35,6 +35,8 @@ const dart = require('../connectors/dart');
 const kma = require('../connectors/kma');
 const kpx = require('../connectors/kpx');
 const reb = require('../connectors/reb');
+const law = require('../connectors/law');
+const kict = require('../connectors/kict');
 const g2b = require('../connectors/g2b');
 const rhino = require('../connectors/rhino');
 const kosis = require('../connectors/kosis');
@@ -494,9 +496,36 @@ async function main() {
   //   있는 줄도 모른다** — reb·g2b·rhino 가 한동안 그랬다 (이 파일 위 주석)
   console.log(`PEXELS_API_KEY : ${pexels.isAvailable() ? '설정됨 — 참고 이미지 (점검은 npm run im:image)' : '미설정 — 표지 참고 이미지 건너뜀 (장식이라 자리를 비운다)'}`);
   console.log(`법인 실재       : ${nts.isAvailable() ? 'DATA_GO_KR_KEY 로 조회 — 휴폐업·인원 (⚠ 응답 필드 미검증 — 등록부 D-60)' : '미설정 — 법인 실재 점검 건너뜀'}`);
+  // ★ 이것만 **키가 아니라 OC** 다 — 신청 이메일의 @ 앞부분. 그리고 **사용 승인**이
+  //   따로 있어야 돈다 (§4.2 의 「활용신청」과 같은 결이지만 기관이 다르다)
+  console.log(`법령 OC         : ${law.isAvailable() ? `설정됨 — 읽은 이름 **${law.usedName()}**` : `미설정 (${law.OC_NAMES.join(' / ')} 둘 다 비어 있다) — 법정 한도가 사람 기억에 남는다`}`);
+  console.log('               ↳ **조례 한도는 조례에만 있다** — 시행령 상한을 조례 한도로 쓰면 그 문서는 틀린다');
+  // ★ 「미설정」과 「주소 미확정」을 갈라 찍는다 — 뭉뚱그리면 넣으신 키를 다시 넣으시게 된다 (M-40)
+  console.log(`KICT_API_KEY   : ${kict.status().text}`);
+  if (kict.hasKey() && !process.env.KICT_API_BASE) {
+    // ★ 주소를 **추측해서 박지 않는다.** 틀리면 「키가 틀렸다」로 읽혀 멀쩡한 키를
+    //   다시 받으시게 된다 (§4.9 · D-106). 대신 후보를 찍고 사람이 고른다
+    console.log('               ↳ 어디서 받으신 키입니까? ① cost.kict.re.kr (공사비원가관리센터 — 표준품셈·표준시장단가)');
+    console.log('                                        ② 공공데이터포털 「건설공사비지수」 (apis.data.go.kr 계열)');
+    console.log('               ↳ 정해지면 KICT_API_BASE 에 주소만 넣습니다. 코드는 안 건드립니다');
+  }
   console.log('               ↳ **납세증명·완납증명은 어떤 키로도 안 된다** (국세기본법 §81조의13) — 당사자에게 서류로 받는다');
   console.log(`KEPCO_BIGDATA  : ${kepco.isAvailable() ? '설정됨 (⚠ 응답 필드 미검증 — 등록부 D-54)' : '미설정 — 계통 여유 건너뜀 (수전용량이 계통에 있는지 확인 못 한다)'}`);
   console.log('               ↳ 변전소 **거리는 어느 키로도 안 나온다** — 좌표가 비식별 처리된다. 사전검토 회신을 사람이 넣는다');
+
+  // ── 0-1. 법령 API 실호출 — **승인 여부는 불러 봐야 안다** ─────────
+  // ★ 신청·승인·OC 오타가 겉으로는 똑같이 보인다. 한 번 불러서 갈라 준다
+  if (law.isAvailable()) {
+    const probe = await law.findLaw('건축법 시행령');
+    if (probe.ok) {
+      const top = probe.value[0];
+      console.log(`법령 API        : ✅ 승인됨 — 「${top.name}」 MST ${top.mst} (시행 ${top.enforcedAt || '?'})`);
+    } else {
+      console.log(`법령 API        : ❌ ${probe.error}`);
+      if (probe.kind === 'approval') console.log('               ↳ **OC 값 문제가 아닙니다.** 승인 대기 중이면 1~2일 뒤 다시 돌립니다');
+      if (probe.kind === 'oc') console.log('               ↳ 신청에 쓰신 이메일의 @ 앞부분만 넣습니다 (주소 전체 아님)');
+    }
+  }
 
   let lat = null, lon = null, parsedPnu = null, polygonAreaSqm = null;
 
@@ -538,6 +567,20 @@ async function main() {
       if (p.value.pnu) {
         parsedPnu = pnuUtil.parse(p.value.pnu);
         console.log(`  PNU 분해: 시군구 ${parsedPnu.sigunguCd} · 법정동 ${parsedPnu.bjdongCd} · 지번 ${parsedPnu.jibun}`);
+      }
+
+      // ── 2-2. 주변 필지 bbox (도로필지 후보, D-105) ─────────
+      // parcelAt 과 같은 레이어(LP_PA_CBND_BUBUN)·같은 활용신청 — 필터만 BOX 다.
+      // 지목은 이 응답에 없다. 도로 확정은 토지특성 지목(「도로」)으로 한다.
+      if (p.value.polygon.length >= 3) {
+        const near = await vworld.parcelsNear(p.value.polygon, 30);
+        if (near.ok) {
+          const others = near.value.filter(c => c.pnu && c.pnu !== p.value.pnu);
+          report('VWorld 연속지적도 bbox (도로필지 후보)', true,
+            `주변 30m 내 필지 ${others.length}건 (지목 확인은 토지특성이 한다)`);
+        } else {
+          report('VWorld 연속지적도 bbox (도로필지 후보)', false, near.error);
+        }
       }
     } else {
       report('VWorld 연속지적도', false, p.error);

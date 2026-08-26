@@ -52,27 +52,37 @@ test('★ 짝지은 Agent id 는 registry.js 에 실제로 있다 — 손으로 
 });
 
 /**
- * ★★ 배포 엔진은 Agent 13 · 커넥터 23 인데 이 갈래는 11 · 21 이다.
- *   그 차이를 **숫자로 박아 둔다** — 병합으로 수가 바뀌면 여기서 빨개지고,
- *   그때 MCP 짝을 다시 본다. 안 박아 두면 새 Agent 가 MCP 없이 조용히 늘어난다.
+ * ★★ 2026-08-26 병합으로 **차이가 사라졌다** — 이 갈래도 Agent 13 · 커넥터 23 이다.
+ *   앞 판은 11 · 21 을 박아 두고 「병합으로 수가 바뀌면 빨개진다」로 썼고,
+ *   실제로 빨개져서 여기까지 왔다. **검사가 제 일을 했다.**
+ *
+ *   숫자는 그대로 박아 둔다. 이제 뜻이 바뀌었다 —
+ *   「배포 엔진과의 차이」가 아니라 **「새 Agent 가 MCP 짝 없이 조용히 늘지 않는다」**다.
+ *   Agent 를 더하면 여기서 빨개지고, 그때 `mcp/servers.js` 의 짝을 함께 본다.
  */
 test('★ 이 갈래의 Agent·커넥터 수를 고정한다 (배포 엔진과의 차이를 잊지 않게)', () => {
-  assert.strictEqual(registry.list().length, 11,
+  assert.strictEqual(registry.list().length, 13,
     'Agent 수가 바뀌었다 — mcp/servers.js 의 짝과 ENGINE 을 다시 보라');
 
   const dir = path.join(__dirname, '..', 'connectors');
   const infra = new Set(['cache.js', 'http.js', 'xml.js']);
   const n = fs.readdirSync(dir).filter(f => f.endsWith('.js') && !infra.has(f)).length;
-  assert.strictEqual(n, 21, '커넥터 수가 바뀌었다 — 새 커넥터가 MCP 로 들어온 것은 아닌지 보라');
+  assert.strictEqual(n, 23, '커넥터 수가 바뀌었다 — 새 커넥터가 MCP 로 들어온 것은 아닌지 보라');
 
   assert.strictEqual(S.ENGINE.agents, 13);
   assert.strictEqual(S.ENGINE.connectors, 23);
 });
 
-test('★ 아직 이 갈래에 없는 Agent 짝은 병합되는 순간 빨개진다', () => {
+test('★ 「아직 없는 Agent」로 적어 둔 것이 도착하면 빨개진다', () => {
+  // ★★ **2026-08-26 병합에서 이 검사가 제 일을 했다.**
+  //   SketchUp Agent 둘을 `agentsPending` 으로 적어 두었고, 병합되는 순간
+  //   여기서 빨개져서 `agents` 로 옮겼다. 지금은 기다리는 것이 없다.
+  //
+  //   **`pending.length > 0` 을 요구하지 않는다.** 앞 판은 그렇게 썼다가
+  //   옮기고 나서 「기다리는 표시가 사라졌다」로 다시 빨개졌다 —
+  //   **일을 끝냈는데 검사가 빨간 것은 늑대야다.** 비어 있는 것이 정상이다.
   const known = new Set(registry.list().map(a => a.id).concat(Object.keys(registry.PLANNED)));
   const pending = S.SERVERS.flatMap(s => s.agentsPending || []);
-  assert.ok(pending.length > 0, 'SketchUp Agent 둘을 기다리는 표시가 사라졌다');
   pending.forEach((id) => {
     assert.ok(!known.has(id),
       `${id} 가 이 갈래에 들어왔다 — mcp/servers.js 에서 agentsPending → agents 로 옮겨라`);

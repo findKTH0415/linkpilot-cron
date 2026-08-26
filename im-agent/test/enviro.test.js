@@ -272,10 +272,23 @@ test('★ fact 를 만들지 않는다', () => {
 
 /* ═════════ ⑥ 구조 · 쿼터 · 시크릿 ═════════ */
 
-test('★ data.go.kr 쿼터 버킷을 공유한다', () => {
+/**
+ * ★★★ **쿼터 통을 갈래로 나눴다** 〈2026-08-23 실측 · D-85〉.
+ *
+ *   앞 판의 이 검사는 「한도는 API 별이 아니라 **인증키 전체**에 걸린다」는 믿음
+ *   위에 서 있었다. **틀렸다.** data.go.kr 활용신청 화면이 「일일 트래픽」을
+ *   **상세기능(오퍼레이션)마다** 1,000 으로 적어 준다.
+ *
+ *   ★ 한 통으로 두면 계량기가 거짓말을 한다 — 우리가 「여유 있다」고 말하는 동안
+ *     상대는 이미 끊는다. 그리고 아홉 커넥터가 **한꺼번에** 막힌다.
+ *   ★ 그래서 `data.go.kr:<갈래>` 로 나눈다. 앞부분이 같으므로 기관 단위 설정
+ *     (`IM_AGENT_QUOTA_DATA_GO_KR`)은 그대로 먹는다.
+ */
+test('★★ 쿼터 통이 data.go.kr 갈래로 나뉘어 있다', () => {
   const src = fs.readFileSync(path.join(__dirname, '..', 'connectors', 'enviro.js'), 'utf8');
   const m = src.match(/^const PROVIDER = '([^']+)'/m);
-  assert.strictEqual(m && m[1], 'data.go.kr');
+  assert.strictEqual(m && m[1], 'data.go.kr:enviro',
+    '한 통으로 되돌리면 아홉 커넥터가 한꺼번에 막힌다');
 });
 
 test('★ 기존 커넥터 구조를 그대로 쓴다', () => {

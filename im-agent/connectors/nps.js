@@ -30,7 +30,10 @@ const { buildUrl, redact, looksUrlEncoded } = http;
 const cache = require('./cache');
 const { normalize } = require('./xml');
 
-const PROVIDER = 'data.go.kr';
+/* ★ 쿼터 통을 **갈래로 나눈다** 〈2026-08-23 · D-85〉. data.go.kr 은 상세기능마다
+   하루치를 세는데(개발계정 1,000), 앞 판은 아홉 커넥터가 `data.go.kr` 한 통을
+   같이 썼다 — 한 곳이 다 쓰면 나머지 여덟이 함께 막힌다. `cache.js` 참고. */
+const PROVIDER = 'data.go.kr:nps';
 const BASE = 'https://apis.data.go.kr/B552015/NpsBplcInfoInqireService';
 
 function apiKey() {

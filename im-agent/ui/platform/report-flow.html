@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="3f9e0360">
+<html lang="ko" data-lp-build="c1587fa7">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -42,7 +42,91 @@
   }, 8000);
 })();
 </script>
-<link rel="stylesheet" href="tokens.css">
+<script>
+/* ★★★ **빈 화면으로 끝나지 않는다** 〈2026-08-24 사장님: 데스크탑에서 흰 화면〉.
+ *
+ *   화면이 통째로 비어 뜬 일이 있었다. 소스는 멀쩡했고 헤드리스로 열면
+ *   정상이었다 — 즉 **그 순간의 브라우저에서만** 무언가가 안 왔다.
+ *
+ *   ★ 가장 흔한 자리: 배포가 파일을 하나씩 갈아 끼우는 동안(70초쯤) 화면은
+ *     새 판인데 형제 스크립트가 **아직 안 올라와 404** 인 순간이 있다.
+ *     그러면 전역이 아예 안 생기고, 첫 줄에서 예외가 나고, **화면은 흰 채로
+ *     아무 말도 안 한다.**
+ *   ★ 아래쪽 **짝 확인 조각**은 옛 스크립트는 잡지만 **없는 스크립트**는
+ *     못 잡는다 — 견줄 전역 자체가 없기 때문이다. 여기가 그 구멍이다.
+ *     (그 조각의 표시 이름을 여기 글자로 적지 않는다. 그것을 찾는 검사가
+ *      이 주석을 코드로 오해한다 — CLAUDE.md §8 에서 세 번째로 당한 자리다.)
+ *
+ * ★ 그래서 ① 파일이 안 온 것과 ② 코드가 던진 것을 **둘 다** 사람 말로 띄운다.
+ * ★ 이 조각은 **형제 스크립트보다 먼저** 있어야 한다. 뒤에 두면 이미 난
+ *   불러오기 실패를 못 듣는다.
+ * ★ 검사 자신이 죽으면 안 된다 — 전부 try 로 감싼다. */
+(function () {
+  var shown = false;
+  function say(msg) {
+    if (shown) return; shown = true;
+    try {
+      var n = document.createElement('div');
+      n.setAttribute('data-lp-fail', '');
+      n.setAttribute('style', 'position:fixed;left:0;right:0;top:0;z-index:99999;'
+        + 'background:#C00000;color:#fff;padding:14px 18px;font:700 14px/1.5 system-ui,sans-serif');
+      n.textContent = msg;
+      var put = function () { if (document.body) document.body.appendChild(n); };
+      if (document.body) put(); else document.addEventListener('DOMContentLoaded', put);
+    } catch (_) { /* 알리다 죽지 않는다 */ }
+  }
+  /* 불러오기 실패는 거품이 안 올라온다 — 잡기 단계(true)에서 들어야 한다 */
+  window.addEventListener('error', function (e) {
+    try {
+      var t = e && e.target;
+      if (!t || !t.tagName) return;
+      var tag = String(t.tagName).toUpperCase();
+      if (tag !== 'SCRIPT' && tag !== 'LINK') return;
+      /* ★★★ **이름만으로는 갈라 낼 수 없다** 〈2026-08-25 · 실제로 못 갈랐다〉.
+       *   앱 안에서 이 띠가 떴을 때 「그 파일이 NAS 에 없다」와 「앱이 엉뚱한
+       *   자리에서 찾는다」가 **똑같이 파일 이름 하나로만** 보였다. 파일은
+       *   NAS 에 있었고 HTTP 200 이었는데도 그랬다 — 갈랐어야 할 것은
+       *   **어느 경로로 찾았나**이고, 그것이 이름을 자르면서 사라졌다.
+       * ★ 호스트는 뗀다 (CLAUDE.md §2). 경로만 있으면 갈린다. */
+      var raw = String(t.src || t.href || '');
+      var where = raw;
+      try { var u = new URL(raw, location.href); where = u.pathname + u.search; } catch (_) {}
+      say('화면에 필요한 파일을 못 받았습니다: ' + (where || '(이름 모름)')
+        + ' — 배포가 도는 중이면 30초 뒤 새로고침(Mac ⌘⇧R · Windows Ctrl+Shift+R)으로 사라집니다.'
+        + ' 한 번 하고도 그대로면 그것은 **다른 일**입니다 — 위 경로를 그대로 알려 주십시오.');
+    } catch (_) { /* 무시 */ }
+  }, true);
+  /* ★★★ **헛울음을 내지 않는다** 〈2026-08-24 · 실측에서 걸렸다〉.
+   *   `report-flow.html` 은 창을 품고 있어서 브라우저가 막는 읽기가 하나 난다
+   *   (`SecurityError: Location.pathname`). 화면은 **멀쩡히 뜬다.**
+   *   그것까지 빨간 띠로 띄우면 **멀쩡한 화면에 고장 딱지**가 붙는다.
+   * ★ 그래서 코드가 던진 것은 **화면이 실제로 비었을 때만** 알린다.
+   *   빈 화면이 이 장치가 막으려는 것이고, 그 밖은 알릴 일이 아니다. */
+  var lastErr = null;
+  function noteErr(m) {
+    lastErr = m;
+    setTimeout(function () {
+      try {
+        var b = document.body;
+        var n = b ? (b.innerText || '').trim().length : 0;
+        if (n < 40) {
+          say('화면을 그리다 멈췄습니다: ' + lastErr
+            + ' — 이 글이 보이면 고장입니다. 이대로 알려 주십시오.');
+        }
+      } catch (_) { /* 무시 */ }
+    }, 1200);
+  }
+  window.addEventListener('error', function (e) {
+    if (e && e.target && e.target.tagName) return;   // 위에서 이미 다뤘다
+    noteErr((e && e.message) || '알 수 없는 오류');
+  });
+  window.addEventListener('unhandledrejection', function (e) {
+    var r = e && e.reason;
+    noteErr((r && r.message) || r || '알 수 없는 오류');
+  });
+}());
+</script>
+<link rel="stylesheet" href="tokens.css?v=c1587fa7">
 <style>
 /* 색·간격·반경 토큰은 tokens.css 하나가 정한다 (LinkPilot Design System v1.1) */
 * { box-sizing: border-box; }
@@ -87,6 +171,24 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
   font-weight: 700; font-size: 11.5px; line-height: 1; font-family: inherit; padding: 6px 10px; border-radius: 999px;
   background: var(--panel); color: var(--ink2); }
 .sec--on .sec__tag { background: var(--lime); color: var(--lp-brand-ink); }
+
+/* ★★ **끝난 칸은 한눈에 갈린다** 〈2026-08-23 사장님 지시〉. 「열기」와 「완료」가
+   같은 회색이면 목록을 위에서부터 다시 읽어야 어디까지 왔는지 안다.
+   ★ 라임으로 **큰 면을 채우지 않는다** (§6-3) — 테두리와 글자만 라임이다.
+     채우면 「지금」 칸과 구분이 사라지고, 둘 다 죽는다 */
+.sec__tag--done { background: transparent; color: var(--lp-brand-ink);
+  box-shadow: inset 0 0 0 1.5px var(--lime); }
+.sec--on .sec__tag--done { background: var(--lime); }
+
+/* 진행율 — **숫자를 문장에 숨기지 않는다** (§6-3 ②). 자릿수가 흔들리지 않게
+   `tabular-nums` 로 세로를 맞춘다 */
+.sec__pct { font-variant-numeric: tabular-nums; }
+.sec__bar { margin: 8px 0 0; height: 4px; border-radius: 999px;
+  background: var(--line); overflow: hidden; }
+.sec__bar > i { display: block; height: 100%; background: var(--lime);
+  border-radius: 999px; transition: width .25s ease; }
+@media (prefers-reduced-motion: reduce) { .sec__bar > i { transition: none; } }
+
 .sec__body { margin-top: 10px; }
 
 .st {
@@ -119,12 +221,7 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
 
 /* ── 단계 화면 — 내용 높이만큼 편다 (안쪽 스크롤 없음) ────── */
 .stage { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
-.stage__bar {
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-  padding: 12px 18px; border-bottom: 1px solid var(--line); background: var(--panel);
-  font-size: 13.5px; color: var(--ink2);
-}
-.stage__bar b { color: var(--ink); }
+
 .stage iframe { display: block; width: 100%; border: 0; }
 
 .note { margin: 12px 0 0; padding: 12px 14px; border-radius: 12px;
@@ -132,15 +229,7 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
 .note--bad { background: var(--bad-soft); color: var(--bad-ink); }
 .note b { display: block; margin-bottom: 3px; }
 
-.ext { display: flex; gap: 10px; flex-wrap: wrap; margin: 0 0 10px; }
-.ext__b {
-  font: 700 14px/1 var(--lp-font); cursor: pointer;
-  padding: 13px 18px; border-radius: 12px; border: 1px solid var(--ink);
-  background: var(--ink); color: #fff; text-decoration: none; display: inline-block;
-}
-.ext__b:disabled, .ext__b[aria-disabled="true"] {
-  background: var(--panel); color: var(--ink2); border-color: var(--line); cursor: not-allowed;
-}
+/* ★ 「외부 분석 환경」 카드를 지우면서 그 카드에만 쓰던 규칙도 함께 지웠다 */
 </style>
 </head>
 <body>
@@ -180,19 +269,64 @@ window.LINKPILOT_REPORT_FLOW = {
   // 세부 진행률용 미리 심은 값. 서버가 없을 때(미리보기)만 쓴다 — 제품에서는 null
   preload: null,      // { fields, computedKeys, values, sources, spec, snapshot }
 
-  // 지금 운영 중인 **외부 분석 경로**. 지우지 않는다 — 둘 다 쓸 수 있어야 한다
+  /* ★ 이 화면은 이제 이 값을 **쓰지 않는다** 〈2026-08-22 사용자 지시〉 — 「외부 분석
+     환경」 카드를 지웠다. 그래도 **설정은 남긴다:** 앱이 이 칸을 채워 넣고 있고,
+     지우면 앱 쪽에서 「모르는 설정」이 된다. 카드를 되살릴 때도 이 자리가 필요하다. */
   external: {
-    repoUrl: null,    // LinkPilot AGENT 저장소
-    agentUrl: null,   // 보고서 생성 AGENT 열기
+    repoUrl: null,    // 저장소 주소 (앱이 채운다)
+    agentUrl: null,   // 에이전트 주소 (앱이 채운다)
   },
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js" data-lp-global="LINKPILOT_REPORT_FLOW"></script>
-<script src="gate-core.js"></script>
-<script src="flow-core.js"></script>
-<script src="catalog.js"></script>
-<script src="inapp.js"></script>
+<script src="embed-bridge.js?v=c1587fa7" data-lp-global="LINKPILOT_REPORT_FLOW"></script>
+<script src="gate-core.js?v=c1587fa7"></script>
+<script src="flow-core.js?v=c1587fa7"></script>
+<!-- ★ 4단계 진행율(필수 항목 채움)을 재는 데 쓴다. **값과 출처가 둘 다**
+     있어야 세는 규칙이 여기 있다 — 화면이 따로 세면 두 벌이 된다 -->
+<script src="fields-core.js?v=c1587fa7"></script>
+<script src="catalog.js?v=c1587fa7"></script>
+<script src="inapp.js?v=c1587fa7"></script>
+<!--
+  ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
+
+  사장님 화면이 「F.readEvidence is not a function」으로 죽었다. 배포는 초록이었고
+  디스크도 HTTP 도 새 판이었다. **브라우저가 형제 스크립트만 아침 것을 들고 있었다.**
+
+  ★ 이 결의 사고는 화면이 안 뜨는 것보다 나쁘다 — 화면은 멀쩡히 뜨고 아래 지문도
+    새 판으로 찍혀 있는데 기능만 죽는다. 나오는 말은 「… is not a function」뿐이라
+    **캐시가 원인이라는 생각 자체가 안 든다.**
+
+  ★ 그래서 여기서 **먼저 잡는다.** 표를 두지 않는다 — `window` 의 LinkPilot* 전역을
+    훑어 자기 판을 말하는 것만 골라 문서 지문과 댄다. 스크립트가 늘어도 안 갈린다.
+  ★ 이 조각은 **화면 안에** 있어야 한다. 따로 파일로 빼면 그 파일도 옛것일 수 있다.
+-->
+<script>
+(function () {
+  var want = document.documentElement.getAttribute('data-lp-build');
+  if (!want) return;                       /* 지문이 없는 판 — 잴 것이 없다 */
+  var bad = [];
+  try {
+    Object.keys(window).forEach(function (k) {
+      if (k.indexOf('LinkPilot') !== 0) return;
+      var v = window[k];
+      if (v && typeof v === 'object' && typeof v.BUILD === 'string'
+        && v.BUILD !== want) bad.push(k + ' (' + v.BUILD + ')');
+    });
+  } catch (_) { return; }                  /* 훑다 막히면 조용히 — 검사가 화면을 죽이지 않는다 */
+  if (!bad.length) return;
+
+  var n = document.createElement('div');
+  n.setAttribute('data-lp-pair', '');
+  n.setAttribute('style', 'position:fixed;left:0;right:0;top:0;z-index:99999;'
+    + 'background:#C00000;color:#fff;padding:14px 18px;font:700 14px/1.5 system-ui,sans-serif');
+  n.textContent = '화면과 스크립트의 판이 다릅니다 — 브라우저가 옛 파일을 들고 있습니다. '
+    + '새로고침(Windows Ctrl+Shift+R · Mac ⌘⇧R)해 주십시오. 화면 ' + want
+    + ' · 옛 판 ' + bad.join(', ');
+  var put = function () { if (document.body) document.body.appendChild(n); };
+  if (document.body) put(); else document.addEventListener('DOMContentLoaded', put);
+}());
+</script>
 <script>
 (function () {
   'use strict';
@@ -201,7 +335,33 @@ window.LINKPILOT_REPORT_FLOW = {
   var G = window.LinkPilotGate;
   var view = document.getElementById('view');
 
+  /* ★★★ **주소를 안 받았다고 다섯 단계를 통째로 잠그지 않는다** 〈2026-08-23 사장님 화면〉.
+   *   앞 판은 `api` 가 비면 「서버가 연결되어 있지 않습니다」만 띄우고 끝났다.
+   *   그런데 이 화면은 앱과 **같은 출처**에 얹혀 있어 `/api/linkpilot` 이 앱이
+   *   부르는 바로 그 주소다 — 부르고 나서 결과를 말하는 쪽이 언제나 낫다.
+   *   ★ 정하는 자리는 `flow-core.js` 한 곳이다 (files.html 과 같은 함수). */
+  var APIR = F.resolveApi(C);
+  C.api = APIR.api;
+
   var state = { current: null, projectId: C.projectId || null, embedBlocked: false };
+
+  /**
+   * 절마다의 「완료·진행율」에 쓰는 **잰 사실**.
+   *
+   * ★★★ **처음 값은 전부 `null` 이다 — 「아직 못 쟀다」는 뜻이다** 〈2026-08-23〉.
+   *   `false` 나 `0` 으로 시작하면 서버 대답이 오기 전 한순간 「아무것도 안 했다」가
+   *   화면에 뜨고, 다 해 놓은 사람이 그것을 본다. 모르는 것과 아닌 것은 다르다 (§4.9).
+   */
+  var facts = { issuerSet: null, request: null, sources: null, fields: null, specLocked: null };
+  var progress = null;
+
+  /** 잰 것만으로 절 상태를 다시 센다. 판정 규칙은 `flow-core` 한 곳에 있다 */
+  function recount() {
+    progress = F.sectionProgress({
+      issuerSet: facts.issuerSet, request: facts.request, projectId: state.projectId,
+      sources: facts.sources, fields: facts.fields, specLocked: facts.specLocked,
+    });
+  }
 
   function el(t, c, x) {
     var n = document.createElement(t);
@@ -244,10 +404,40 @@ window.LINKPILOT_REPORT_FLOW = {
       sec.locked ? sec.why : sec.note));
     h.appendChild(b);
 
-    var tag = sec.steps.length
-      ? (sec.current ? '지금' : sec.locked ? '잠김' : '열기')
-      : '';
-    if (tag) h.appendChild(el('span', 'sec__tag', tag));
+    /* ★★★ **완료·진행율을 여기서 말한다** 〈2026-08-23 사장님 지시〉.
+     *
+     *   차례가 있다: **완료 → 진행율 → 지금 → 잠김 → 열기.**
+     *   ★ 끝난 칸은 「지금」보다 「완료」가 먼저다 — 지금 보고 있어도 끝난 것은
+     *     끝난 것이고, 지금 어디인지는 테두리(`sec--on`)가 이미 말한다.
+     *   ★ **못 쟀으면 아무 숫자도 안 적는다** (`known:false`). 0% 로 적으면
+     *     「아직 아무것도 안 했다」로 읽히는데 실제로는 「못 쟀다」다.
+     */
+    var pg = (progress && progress[sec.id]) || null;
+    var tag = '';
+    if (sec.steps.length) {
+      if (pg && pg.done) tag = '완료';
+      else if (pg && pg.known && pg.pct !== null) tag = pg.pct + '%';
+      else if (sec.current) tag = '지금';
+      else if (sec.locked) tag = '잠김';
+      else tag = '열기';
+    }
+    if (tag) {
+      var tg = el('span', 'sec__tag' + (tag === '완료' ? ' sec__tag--done' : '')
+        + (/%$/.test(tag) ? ' sec__pct' : ''), tag);
+      h.appendChild(tg);
+    }
+
+    /* 잰 사실을 **한 줄로** 덧붙인다. 「60%」만 있으면 무엇의 60% 인지 모른다 */
+    if (pg && pg.known && pg.detail && !sec.locked) {
+      b.appendChild(el('p', 'sec__d', pg.detail));
+    }
+    if (pg && pg.known && pg.pct !== null && !sec.locked) {
+      var bar = el('div', 'sec__bar');
+      var fill = document.createElement('i');
+      fill.style.width = Math.max(0, Math.min(100, pg.pct)) + '%';
+      bar.appendChild(fill);
+      b.appendChild(bar);
+    }
 
     if (sec.opensTo) {
       h.addEventListener('click', function () { go(sec.opensTo); });
@@ -375,7 +565,18 @@ window.LINKPILOT_REPORT_FLOW = {
   window.addEventListener('message', function (e) {
     if (e.origin !== window.location.origin) return;
     var d = e.data;
-    if (!d || d.type !== 'lp-flow-project' || !d.projectId) return;
+    if (!d) return;
+
+    /* ★ 안쪽 화면이 「다음 칸으로 가자」고 알려 온다 〈2026-08-23〉. 안쪽이 주소만
+       바꾸면 바깥 레일은 그대로여서 **지금 어느 단계인가가 둘로 갈린다.**
+       ★ 모르는 단계 이름은 무시한다 — 지어내지 않는다 */
+    if (d.type === 'lp-flow-step' && d.step) {
+      var known = F.STEPS.filter(function (x) { return x.id === d.step; })[0];
+      if (known && known.id !== state.current) go(known.id);
+      return;
+    }
+
+    if (d.type !== 'lp-flow-project' || !d.projectId) return;
     if (d.projectId !== state.projectId) { state.projectId = d.projectId; draw(); }
   });
 
@@ -385,7 +586,9 @@ window.LINKPILOT_REPORT_FLOW = {
     if (window.LINKPILOT_PREVIEW_DOCS) { watch(fr); return; }
     var loc;
     try { loc = fr.contentWindow.location; } catch (e) { return; }
-    var step = F.stepOfFile(loc.pathname);
+    /* ★ **물음표 뒤까지 넘긴다** 〈2026-08-23〉. 앞의 셋은 같은 파일이고 `?part=`
+       로만 갈린다. 경로만 주면 늘 첫째로 판정돼 2·3단계가 1단계로 튕긴다. */
+    var step = F.stepOfFile(loc.pathname + (loc.search || ''));
     var pid = new URLSearchParams(loc.search).get('project');
     var changed = false;
     if (pid && pid !== state.projectId) { state.projectId = pid; changed = true; }
@@ -399,10 +602,13 @@ window.LINKPILOT_REPORT_FLOW = {
   function stage(step) {
     var box = el('div', 'stage');
 
-    var bar = el('div', 'stage__bar');
-    add(bar, el('b', null, step.no + '. ' + step.name));
-    bar.appendChild(el('span', null, state.projectId ? '프로젝트 ' + state.projectId : '프로젝트 미지정'));
-    box.appendChild(bar);
+    /* ★★★ **머리줄을 지웠다** 〈2026-08-23 사장님 지시〉.
+     *   여기 「1. 제작 기본정보 입력 · 프로젝트 미지정」이 있었다. 그런데 **바로
+     *   위 절 카드가 같은 말**을 하고 있어서, 같은 제목이 두 줄 연달아 나왔다.
+     *   ★ 함께 사라진 것: 그 칸이 **어느 화면을 부르는지** 보여 주던 작은 표시.
+     *     겹침을 잡는 빨간 안내는 그대로 남아 있고, 그 안내가 파일 이름을 적는다 —
+     *     **어긋났을 때 볼 것은 그쪽**이다.
+     */
 
     var fr = document.createElement('iframe');
     fr.name = 'lp-flow-' + step.id;
@@ -413,8 +619,41 @@ window.LINKPILOT_REPORT_FLOW = {
     // ★ 미리보기 전용 경로. 서버 없이 파일 하나로 열어 보려고 문서를 직접 심는다.
     //   제품에서는 이 전역이 없으므로 평소대로 화면 파일을 부른다 (CLAUDE.md §8)
     var docs = window.LINKPILOT_PREVIEW_DOCS;
-    if (docs && docs[step.id]) fr.srcdoc = docs[step.id];
-    else fr.src = F.urlFor(step, ctx());
+    if (docs && docs[step.id]) {
+      fr.srcdoc = docs[step.id];
+    } else {
+      var url = F.urlFor(step, ctx());
+
+      /* ★★★ **자기 자신을 안에 또 띄우지 않는다** 〈2026-08-23 · 실제로 그렇게 떴다〉.
+       *
+       *   1단계 칸 안에 이 화면(`report-flow.html`) 통째가 들어가서, 절 목록이
+       *   두 겹으로 겹쳐 보였다. 겹쳐 보이는 것만도 나쁘지만 **더 나쁜 것은
+       *   원인이 안 보이는 것**이다 — 겹친 화면은 어느 쪽이 바깥인지조차 알 수
+       *   없어서, 무엇을 고쳐야 하는지 판단할 근거가 화면에 남지 않는다.
+       *
+       *   ★ 그래서 **띄우지 않고, 무엇을 띄우려 했는지 글자로 적는다.** 이 칸은
+       *     배선이 어긋났을 때 **딱 한 번 보고 원인을 아는 자리**여야 한다.
+       *   ★ 파일 이름만 본다. 물음표 뒤(`?part=`·`?api=`)는 같은 파일이어도
+       *     다르게 보이므로 경로로 가른다.
+       */
+      var mine = String(window.location.pathname || '').split('/').pop();
+      var want = String(url).split('?')[0].split('/').pop();
+      if (mine && want && mine === want) {
+        box.appendChild(notice('note--bad', '이 단계 화면이 이 화면 자신을 가리킨다',
+          '「' + step.no + '. ' + step.name + '」 의 화면으로 ' + want + ' 를 부르려 했는데, '
+          + '그것은 지금 보고 계신 이 화면입니다. 그대로 띄우면 같은 화면이 안에 또 겹칩니다 — '
+          + '그래서 띄우지 않았습니다. 단계 목록(flow-core.js)의 file 값이나 앱이 넘긴 base '
+          + '설정을 봅니다.'));
+        return box;
+      }
+
+      /* ★ 부르는 화면 이름은 **iframe 의 title 에** 남긴다. 화면에 늘 띄우면
+         머리줄이 되살아나는 셈이라 지웠고(위), 어긋났을 때는 겹침 안내가
+         파일 이름을 적어 준다. 물음표 뒤는 넣지 않는다 — 열쇠가 섞인다 (§2). */
+      fr.title = step.no + '. ' + step.name + ' (' + want + ')';
+
+      fr.src = url;
+    }
 
     fr.addEventListener('load', function () { syncFromFrame(fr); });
     box.appendChild(fr);
@@ -445,36 +684,17 @@ window.LINKPILOT_REPORT_FLOW = {
    *   **번호 없는 칸**으로 두어야 한다.
    */
 
-  function external() {
-    var box = el('section', 'card');
-    add(box,
-      el('h2', 'card__t', '외부 분석 환경'),
-      el('p', 'card__d', '기반정보를 내려받아 바깥 AGENT 에 넘기는 경로입니다. '
-        + '위 단계와 별개로 그대로 쓸 수 있습니다.'));
-
-    var row = el('div', 'ext');
-    row.style.marginTop = '14px';
-    [['LinkPilot AGENT 저장소', C.external && C.external.repoUrl],
-      ['보고서 생성 AGENT 열기', C.external && C.external.agentUrl]].forEach(function (p) {
-      if (p[1]) {
-        var a = el('a', 'ext__b', p[0]);
-        a.href = p[1]; a.target = '_blank'; a.rel = 'noopener';
-        row.appendChild(a);
-      } else {
-        // ★ 주소가 없으면 눌리는 척하지 않는다
-        var b = el('button', 'ext__b', p[0]);
-        b.type = 'button'; b.disabled = true;
-        b.title = '주소가 설정되지 않았습니다';
-        row.appendChild(b);
-      }
-    });
-    box.appendChild(row);
-
-    if (!(C.external && (C.external.repoUrl || C.external.agentUrl))) {
-      box.appendChild(el('p', 'card__d', '주소가 설정되지 않아 버튼이 잠겨 있습니다 (설정의 external).'));
-    }
-    return box;
-  }
+  /* ★★★ **「외부 분석 환경」 카드를 지웠다** 〈2026-08-22 사용자 지시〉.
+   *
+   *   기반정보를 내려받아 바깥 AGENT 에 넘기는 두 버튼(LinkPilot AGENT 저장소 ·
+   *   보고서 생성 AGENT 열기)이 여기 있었다. 단계 다섯 아래에 별개 카드로 놓여
+   *   있어서 **여섯째 단계처럼 읽혔다** — 실제로는 위 흐름과 상관없는 다른 길이다.
+   *
+   *   ★ 없어진 것은 **이 화면의 카드**다. 같은 일을 하는 「외부 분석 AGENT 로
+   *     만들기 — 기반정보 내보내기」 경로는 앱에 그대로 남아 있다.
+   *   ★ 설정의 `external`(repoUrl · agentUrl)은 건드리지 않았다. 다시 띄우려면
+   *     이 파일의 삭제 커밋을 `git revert` 한다.
+   */
 
   /* ── 그리기 ───────────────────────────────────────────── */
 
@@ -508,6 +728,8 @@ window.LINKPILOT_REPORT_FLOW = {
       view.appendChild(g);
       return;
     }
+
+    recount();
 
     var steps = F.stepState(ctx());
     if (!state.current) {
@@ -555,19 +777,121 @@ window.LINKPILOT_REPORT_FLOW = {
         : stage(cur)));
     });
 
-    if (!C.api) {
-      view.appendChild(notice('', '서버가 연결되어 있지 않습니다',
-        '설정의 api 를 채우면 단계가 열립니다. 지금은 화면만 확인할 수 있습니다.'));
+    /* ★ 짐작으로 부른 판이면 **그 사실만 조용히 알린다.** 단계를 잠그지 않는다 —
+       잠그면 「왜 안 되는지」를 확인할 길까지 함께 닫힌다 */
+    if (APIR.guessed) {
+      view.appendChild(notice('', '앱이 서버 주소를 넘기지 않았습니다',
+        F.apiNote(APIR, '그래도 단계는 열어 둡니다 — 눌러 보시면 서버가 무엇이라고 답하는지 그 자리에 적힙니다.')));
     }
 
-    view.appendChild(external());
+  }
+
+  /* ═══════════ 잰다 — 완료·진행율은 **실제로 물어본 것**만 말한다 ═══════════
+   *
+   * ★★★ 여기서 아무것도 지어내지 않는다. 못 물어봤으면 `null` 로 두고 화면은
+   *   아무 표시도 안 한다. **「0%」는 「못 쟀다」가 아니다** (§4.9).
+   *
+   * ★ 다섯 갈래를 **각각** 부른다. 하나가 닫혀 있어도 나머지는 그린다 —
+   *   `Promise.all` 로 묶으면 하나가 죽을 때 다섯이 다 빈칸이 된다.
+   * ★ 대답이 올 때마다 다시 그린다. 다 모아서 한 번에 그리면, 느린 하나 때문에
+   *   빠른 넷이 함께 늦는다.
+   */
+  function call(path) {
+    return fetch(C.api + path, { credentials: 'same-origin' }).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    });
+  }
+
+  /** 자료 목록에서 **올린 건수와 그중 읽은 건수**를 센다 (`readAt` 이 읽은 표시다) */
+  function countSources(lists) {
+    var total = 0, read = 0;
+    lists.forEach(function (items) {
+      (items || []).forEach(function (it) {
+        total += 1;
+        if (it && it.readAt) read += 1;
+      });
+    });
+    return { total: total, read: read };
+  }
+
+  function measure() {
+    /* 미리보기(서버 없이 심어 둔 판)에서는 심어 준 값을 쓴다 — 지어내지 않는다 */
+    if (C.preload) {
+      var pl = C.preload;
+      if (pl.issuerSet !== undefined) facts.issuerSet = pl.issuerSet;
+      if (pl.sources) facts.sources = countSources([pl.sources]);
+      if (pl.fields && pl.values && window.LinkPilotFields) {
+        var c0 = window.LinkPilotFields.completeness(pl.fields, pl.values, C.docType || 'im', pl.classKeys || null);
+        facts.fields = { filled: c0.filled, total: c0.total };
+      }
+      if (pl.spec) facts.specLocked = !!pl.spec.locked;
+      draw();
+      return;
+    }
+    if (!C.api) return;   // 서버가 없다 — 못 쟀다고 두는 것이 맞다
+
+    var pid = state.projectId;
+
+    /* ① 발행 주체 — 프로젝트가 없어도 잰다 (이 값은 계정 설정이다) */
+    call('/intake').then(function (j) {
+      var iss = j && j.issuer;
+      facts.issuerSet = !!(iss && !iss.unset && String(iss.en || '').trim());
+      draw();
+    }, function () { /* 못 쟀다 — null 로 둔다 */ });
+
+    if (!pid) return;
+
+    /* ② 자료 — 두 갈래를 각각 부르고, 받은 것만 센다 */
+    Promise.all([
+      call('/projects/' + encodeURIComponent(pid) + '/linked').then(
+        function (j) { return (j && j.items) || []; }, function () { return null; }),
+      call('/projects/' + encodeURIComponent(pid) + '/oneshot').then(
+        function (j) { return (j && j.items) || []; }, function () { return null; }),
+    ]).then(function (rs) {
+      /* 둘 다 못 받았으면 **0건이라고 말하지 않는다.** 0건과 못 쟀다는 다르다 */
+      if (rs[0] === null && rs[1] === null) return;
+      facts.sources = countSources(rs.filter(function (x) { return x !== null; }));
+      draw();
+    });
+
+    /* ③ 가이드 필드 — 필수 항목 채움. 판정은 `fields-core` 가 한다 */
+    if (window.LinkPilotFields) {
+      Promise.all([
+        call('/fields'),
+        call('/projects/' + encodeURIComponent(pid) + '/facts'),
+      ]).then(function (rs) {
+        var def = rs[0] || {}, got = rs[1] || {};
+        var c = window.LinkPilotFields.completeness(
+          def.fields || def, got.values || got.facts || {},
+          C.docType || 'im', got.classKeys || null);
+        facts.fields = { filled: c.filled, total: c.total };
+        draw();
+      }, function () {});
+    }
+
+    /* ④ 출력조건 — 확정했나 */
+    call('/projects/' + encodeURIComponent(pid) + '/spec').then(function (j) {
+      var sp = j && j.spec;
+      /* ★ 못 읽었으면 **잠긴 척도 안 잠긴 척도 하지 않는다.** `spec` 이 없다는
+         대답을 받은 것은 「아직 확정 안 했다」가 맞다 */
+      facts.specLocked = !!(sp && sp.locked);
+      draw();
+    }, function () {});
   }
 
   draw();
+  measure();
 
   // 지침 §2 유료 메뉴 잠금 · §1 인앱 브라우저 배너
   if (window.LinkPilotCatalog) window.LinkPilotCatalog.applyLocks(document, C.session);
   if (window.LinkPilotInApp) window.LinkPilotInApp.auto();
+
+  /* ★ **판 지문을 화면에 보이게 남긴다** (CLAUDE.md §8). 속성만 있으면
+     사진에 안 찍히고, 그러면 「이것이 그 판인가」를 가릴 수가 없다 */
+  if (window.LinkPilotFlow && window.LinkPilotFlow.stampInto) {
+    try { window.LinkPilotFlow.stampInto(document); } catch (_) {}
+  }
 }());
 </script>
 </body>

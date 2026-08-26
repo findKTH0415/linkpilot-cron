@@ -88,8 +88,18 @@ test('단계 주소에 프로젝트가 붙는다 (화면들이 ?project= 를 읽
 
 test('화면 파일에서 단계를 되찾는다 (화면이 스스로 넘어가도 레일이 따라간다)', () => {
   assert.strictEqual(F.stepOfFile('/im/fields.html?project=X').id, 'fields');
-  assert.strictEqual(F.stepOfFile('intake.html').id, 'basics',
-    'intake.html 은 앞의 셋이 함께 쓴다 — 되찾으면 첫 칸이다');
+  /* ★★★ **물음표 뒤로 가른다** 〈2026-08-23 · 실제로 여기서 튕겼다〉.
+   *   앞의 셋은 같은 파일이고 `?part=` 로만 갈린다. 파일 이름만 보면 늘 첫째가
+   *   나와서, 2단계를 눌러도 **1단계로 되돌리며 다시 그린다** — 누른 사람에게는
+   *   눌러도 안 열리는 화면으로 보인다. */
+  assert.strictEqual(F.stepOfFile('intake.html?part=ask&api=x').id, 'ask');
+  assert.strictEqual(F.stepOfFile('/im/intake.html?api=x&part=files').id, 'sources');
+  assert.strictEqual(F.stepOfFile('intake.html?part=issuer').id, 'basics');
+
+  /* ★ 못 가르면 **아무거나 고르지 않는다** (§4.9). 틀린 단계로 되돌리는 것보다
+     「모르겠다」가 낫다 — 부르는 쪽이 그대로 둔다 */
+  assert.strictEqual(F.stepOfFile('intake.html'), null,
+    'part 가 없는데 첫 칸을 골랐다 — 그 짐작이 2·3단계를 튕겨냈다');
   assert.strictEqual(F.stepOfFile('membership.html'), null);
 });
 
@@ -139,13 +149,32 @@ test('미리보기임이 화면에 적혀 있다', async () => {
   assert.match(html, /지어낸 것이 아닙니다/, '심은 값의 출처를 밝힌다');
 });
 
-test('★ 외부 분석 경로를 지우지 않았다', () => {
+/**
+ * ★★ **「외부 분석 환경」 카드는 지웠다** 〈2026-08-22 사용자 지시〉.
+ *
+ *   앞 판의 이 검사는 「지우지 않았다」를 지켰다 — 운영 중인 경로였기 때문이다.
+ *   사용자가 지우라고 했으므로 **검사를 뒤집는다.** 지운 자리에 아무 검사도 안
+ *   두면 다음 사람이 **반쯤 되살려** 놓고도 아무 데도 안 걸린다.
+ *
+ *   ★ 없앤 것은 **이 화면의 카드**다. 같은 일을 하는 「외부 분석 AGENT 로 만들기
+ *     — 기반정보 내보내기」는 **앱 껍데기**에 있고 이 저장소에는 없다 — 그래서
+ *     여기서는 잴 수 없다. 그쪽까지 없어졌는지는 앱에서 눈으로 본다.
+ *   ★ 설정(`external.repoUrl`·`agentUrl`)은 **남긴다.** 앱이 채워 넣는 칸이라
+ *     지우면 앱 쪽에서 「모르는 설정」이 된다.
+ */
+test('★★ 외부 분석 환경 카드를 반쯤 되살려 놓지 않았다', () => {
   const flow = read('report-flow.html');
-  ['LinkPilot AGENT 저장소', '보고서 생성 AGENT 열기'].forEach((label) => {
-    assert.ok(flow.includes(label), `${label} 이 사라졌다 — 지금 운영 중인 경로다`);
-  });
-  // 주소가 없을 때 눌리는 척하면 안 된다
-  assert.match(flow, /b\.disabled = true/, '주소가 없으면 잠가야 한다');
+  const live = flow.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/^\s*\/\/[^\n]*$/gm, '');
+
+  ['외부 분석 환경', 'LinkPilot AGENT 저장소', '보고서 생성 AGENT 열기', 'ext__b']
+    .forEach((k) => {
+      assert.ok(live.indexOf(k) === -1,
+        `「${k}」 가 화면에 남아 있다 — 카드를 지웠으면 그 조각도 함께 지운다`);
+    });
+
+  /* ★ 설정 칸은 그대로 있어야 한다 — 앱이 채워 넣는 자리다 */
+  assert.match(flow, /external: \{/, 'external 설정 칸까지 지웠다 — 앱이 모르는 설정이 된다');
 });
 
 test('미리보기에 내부 호스트가 들어가지 않는다', async () => {
@@ -524,8 +553,16 @@ test('★ 미결정 등록부의 ID 는 유일하고, 건수는 손으로 적은
   const dup = ids.filter((id, i) => ids.indexOf(id) !== i);
   assert.deepStrictEqual(dup, [], `같은 ID 가 두 번 등록되었다: ${dup.join(', ')}`);
 
-  // 열린(✅ 아닌) 항목은 범위 외·결정 기록 표에 있으면 안 된다
-  const tabled = new Set([...text.matchAll(/^\| (D-\d+) \|/gm)].map((m) => m[1]));
+  /* 열린(✅ 아닌) 항목은 범위 외·결정 기록 표에 있으면 안 된다.
+   *
+   * ★★ **그 두 절만 본다** 〈2026-08-25 · 헛울음이 났다〉. 앞 판은 **문서
+   *   전체**에서 `| D-xx |` 를 찾았다. 그래서 본문에 **견주는 표**(예: 두
+   *   작업선이 같은 번호를 다르게 쓰고 있다는 대조표)를 적으면, 그 줄을
+   *   「결정 표에 있다」로 읽고 빨개졌다 — 고칠 것이 없는데 빨간 것이다.
+   * ★ 재려는 것은 「열린 항목이 **닫힌 것처럼 적혀 있는가**」이므로,
+   *   닫힌 것을 적는 두 절 안에서만 센다. */
+  const closedSec = text.slice(text.indexOf('## 범위 외'));
+  const tabled = new Set([...closedSec.matchAll(/^\| (D-\d+) \|/gm)].map((m) => m[1]));
   heads.filter((h) => h[1].indexOf('✅') !== 0).forEach((h) => {
     assert.ok(!tabled.has(h[2]), `${h[2]} 가 열린 항목이면서 표에도 있다`);
   });
@@ -713,3 +750,194 @@ test('★ 절 상태 — 잠긴 이유는 그 절이 품은 단계에서 나온�
   assert.strictEqual(open[4].opensTo, 'spec');
 });
 
+
+/**
+ * ★★★ **자기 자신을 안에 또 띄우지 않는다** 〈2026-08-23 · 실제로 그렇게 떴다〉.
+ *
+ *   1단계 칸 안에 `report-flow.html` 통째가 들어가 절 목록이 두 겹으로 겹쳐
+ *   보였다. 겹쳐 보이는 것도 나쁘지만 **더 나쁜 것은 원인이 안 보이는 것**이다
+ *   — 어느 쪽이 바깥인지조차 알 수 없어 무엇을 고칠지 판단할 근거가 화면에
+ *   남지 않는다.
+ */
+test('★★★ 단계 칸이 자기 화면을 가리키면 띄우지 않고 그렇다고 적는다', () => {
+  const flow = read('report-flow.html');
+
+  assert.match(flow, /이 화면 자신을 가리킨다/, '겹칠 때 아무 말도 안 한다');
+  assert.match(flow, /window\.location\.pathname/, '지금 화면이 무엇인지 안 본다');
+
+  /* ★ 물음표 뒤로 가르면 안 된다 — 같은 파일도 `?part=` 때문에 달라 보인다 */
+  assert.match(flow, /split\('\?'\)\[0\]/, '물음표 뒤까지 넣어 비교한다 — 같은 파일을 다르게 본다');
+
+  /* ★★ 〈2026-08-23 사장님 지시〉 단계 칸의 머리줄을 지웠다 — 바로 위 절 카드가
+     같은 말을 하고 있어 제목이 두 줄 연달아 나왔다. 부르는 화면 이름은 iframe 의
+     title 에 남긴다. 물음표 뒤는 넣지 않는다 — 열쇠가 섞인다 (§2) */
+  assert.ok(flow.indexOf('stage__bar') === -1, '머리줄이 되살아났다 — 같은 제목이 두 줄이다');
+  const t = /fr\.title = step\.no \+ '\. ' \+ step\.name \+ ' \(' \+ (\w+) \+ '\)';/.exec(flow);
+  assert.ok(t, '부르는 화면 이름을 어디에도 안 남긴다');
+  assert.strictEqual(t[1], 'want', `title 에 ${t[1]} 를 넣는다 — api 키가 새어 나갈 수 있다`);
+});
+
+/**
+ * ★★★ **레일을 되짚는 쪽도 물음표 뒤를 넘겨야 한다** 〈2026-08-23〉.
+ *   `stepOfFile` 만 고치고 부르는 쪽이 경로만 넘기면 아무것도 안 달라진다 —
+ *   실제로 그렇게 되어 있었다.
+ */
+test('★★★ 화면 감시가 주소의 물음표 뒤까지 넘긴다', () => {
+  const flow = read('report-flow.html');
+  const m = /F\.stepOfFile\(([^)]*)\)/.exec(flow);
+  assert.ok(m, 'stepOfFile 을 부르는 자리를 못 찾았다');
+  assert.match(m[1], /loc\.search/,
+    '경로만 넘긴다 — 앞의 셋이 같은 파일이라 늘 첫 칸으로 판정돼 2·3단계가 튕긴다');
+});
+
+/**
+ * ★★★ **칸을 나눴으면 나가는 곳도 있어야 한다** 〈2026-08-23 · 사장님 지적〉.
+ *
+ *   1·2단계를 나눠 놓고 단추는 3단계에만 두었다. 그래서 발행 주체를 적고 나면
+ *   **화면에 아무것도 없었다** — 저장이 된 건지, 다음이 어디인지 알 수가 없다.
+ */
+test('★★★ 1·2단계에 다음으로 가는 단추가 있다', () => {
+  const intake = read('intake.html');
+
+  assert.match(intake, /function partNav\(\)/, '칸 사이를 옮기는 단추가 없다');
+  assert.match(intake, /'다음 — '/, '다음 단추 문구가 없다');
+  assert.match(intake, /'이전 — '/, '이전 단추 문구가 없다');
+  assert.match(intake, /body\.appendChild\(nav\)/, '만들어 놓고 화면에 안 붙인다');
+
+  /* ★★ **「저장」이라고 적지 않는다.** 이 단계에서 서버로 가는 것은 없다 —
+     3단계에서 함께 간다. 단추 이름이 하는 일과 달라지는 것이 가장 비싼 거짓말이다 */
+  const nav = intake.slice(intake.indexOf('function partNav()'), intake.indexOf('function actionsRow()'));
+  assert.ok(nav.indexOf('저장') === -1,
+    '이 단계 단추에 「저장」이 들어갔다 — 서버에 넣은 줄 알고 창을 닫는다');
+
+  /* ★ 앱 안에서는 부모에게 알린다. 안쪽만 옮기면 바깥 레일과 갈린다 */
+  assert.match(intake, /lp-flow-step/, '부모에게 단계 이동을 안 알린다');
+  const flow = read('report-flow.html');
+  assert.match(flow, /lp-flow-step/, '부모가 그 알림을 안 받는다 — 한쪽만 있으면 갈린다');
+  assert.match(flow, /known && known\.id !== state\.current/,
+    '모르는 단계 이름을 걸러내지 않는다');
+});
+
+/** ★ 칸의 앞뒤는 `flow-core` 차례 그대로여야 한다 — 화면이 따로 정하면 갈린다 */
+test('★ 칸의 앞뒤 차례가 단계 차례와 같다', () => {
+  const parts = F.STEPS.filter(s => s.file === 'intake.html');
+  assert.deepStrictEqual(parts.map(s => s.part), ['issuer', 'ask', 'files']);
+  assert.deepStrictEqual(parts.map(s => s.no), [1, 2, 3], '앞의 셋이 이어져 있지 않다');
+});
+
+/**
+ * ★★★ **머리 글자가 지금 보는 칸을 말한다** 〈2026-08-23 사장님 지시〉.
+ *
+ *   앞 판은 「보고서 생성 입력 / 무엇을 만들지 적고…」가 박혀 있었다. 칸이 셋이
+ *   되면서 **어느 칸을 보든 같은 머리**가 떴고, 바로 아래 카드가 제 이름을 또
+ *   달아 **같은 자리에 제목이 둘**이었다.
+ */
+test('★★★ 머리 글자가 칸을 따라가고, 제목이 두 번 나오지 않는다', () => {
+  const intake = read('intake.html');
+
+  /* ① 머리를 정적으로 박아 두지 않는다 */
+  assert.match(intake, /id="head-t"><\/h1>/, '머리 제목이 아직 박혀 있다');
+  assert.ok(intake.indexOf('<h1 class="head__t">보고서 생성 입력</h1>') === -1,
+    '옛 머리가 남아 있다 — 어느 칸을 보든 같은 말을 한다');
+
+  /* ② 칸 셋의 머리 글자가 한 곳에 모여 있다 */
+  assert.match(intake, /var HEADS = \{/, '칸별 머리 글자가 없다');
+  ['issuer:', 'ask:', 'files:'].forEach((k) => assert.match(intake, new RegExp(k),
+    `HEADS 에 「${k}」 가 없다`));
+
+  /* ③ ★ 카드가 같은 문장을 **베껴 쓰지 않는다.** 두 벌이면 한쪽만 고치는 날
+     머리와 본문이 다른 말을 한다 */
+  const code = intake.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '');
+  ['발행 주체', '무엇을 만들까요'].forEach((t) => {
+    const hits = (code.match(new RegExp(`'${t}'`, 'g')) || []).length;
+    assert.strictEqual(hits, 1, `「${t}」 가 ${hits}곳에 적혀 있다 — HEADS 한 곳이어야 한다`);
+  });
+
+  /* ④ 머리로 올라간 칸은 카드에서 제 이름을 뗀다 */
+  assert.match(intake, /function cardHead\(/, '카드 제목을 가려 붙이는 자리가 없다');
+  assert.match(intake, /if \(PART && PART === part\) return box;/,
+    '머리에 있는데 카드에도 또 붙인다');
+});
+
+/* ═════════ 완료·진행율 표기 〈2026-08-23 사장님 지시〉 ═════════ */
+
+/**
+ * ★★★ 사장님 지시 그대로:
+ *     1 제작 기본정보 입력 → [완료] · 2 무엇을 만들까요? → [완료]
+ *     3 관련자료 업로드 → 진행율 + [완료] · 4 가이드 필드 → 진행율 + [완료]
+ *     5 출력조건 → [완료]
+ *
+ * ★ 여기서 지키는 것은 **표기가 아니라 정직함**이다. 「완료」는 잰 결과라야
+ *   하고, **못 쟀으면 아무 말도 안 해야 한다.** 0% 로 적으면 다 해 놓은 사람이
+ *   「아직 아무것도 안 했다」를 보고 처음부터 다시 한다 (§4.9).
+ */
+test('★★★ 못 쟀으면 완료도 진행율도 말하지 않는다', () => {
+  const F = require('../ui/platform/flow-core.js');
+  const p = F.sectionProgress({});          // 아무것도 못 쟀다
+
+  assert.strictEqual(p.basics.known, false, '발행 주체를 못 쟀는데 안다고 한다');
+  assert.strictEqual(p.basics.done, false, '못 쟀는데 완료라고 한다');
+  assert.strictEqual(p.basics.pct, null, '못 쟀는데 숫자를 적었다 — 0% 는 「안 했다」로 읽힌다');
+  assert.strictEqual(p.fields.known, false, '필드를 못 쟀는데 안다고 한다');
+  assert.strictEqual(p.fields.pct, null, '필드를 못 쟀는데 숫자를 적었다');
+  assert.strictEqual(p.output.known, false, '출력조건을 못 쟀는데 안다고 한다');
+});
+
+test('★★★ 다섯 절이 각자 맞는 표기를 낸다 (완료 / 진행율)', () => {
+  const F = require('../ui/platform/flow-core.js');
+  const p = F.sectionProgress({
+    issuerSet: true, projectId: 'LP-DC-2026-001',
+    sources: { total: 5, read: 3 }, fields: { filled: 7, total: 10 }, specLocked: true,
+  });
+
+  assert.strictEqual(p.basics.done, true, '① 발행 주체를 정했는데 완료가 아니다');
+  assert.strictEqual(p.ask.done, true, '② 프로젝트가 있으면 요청문은 이미 받은 것이다');
+  assert.strictEqual(p.sources.done, true, '③ 프로젝트를 만들었는데 완료가 아니다');
+  assert.strictEqual(p.sources.pct, 60, `③ 5건 중 3건이면 60% 여야 한다 (${p.sources.pct})`);
+  assert.strictEqual(p.fields.done, false, '④ 7/10 인데 완료라고 한다');
+  assert.strictEqual(p.fields.pct, 70, `④ 7/10 이면 70% 여야 한다 (${p.fields.pct})`);
+  assert.strictEqual(p.output.done, true, '⑤ 확정했는데 완료가 아니다');
+
+  /* ★ 진행율은 **셋과 넷에만** 있다. 나머지는 중간이 없다 —
+     없는 중간을 지어내면 뜻 없는 숫자가 돈다 */
+  assert.strictEqual(p.basics.pct, null, '①에 없는 진행율을 지어냈다');
+  assert.strictEqual(p.ask.pct, null, '②에 없는 진행율을 지어냈다');
+  assert.strictEqual(p.output.pct, null, '⑤에 없는 진행율을 지어냈다');
+
+  /* ★ 숫자만 있으면 무엇의 60% 인지 모른다 — 잰 사실을 함께 낸다 */
+  assert.match(p.sources.detail, /5건 중 3건/, '③ 무엇을 셌는지 안 적었다');
+  assert.match(p.fields.detail, /10개 중 7개/, '④ 무엇을 셌는지 안 적었다');
+  assert.match(p.fields.detail, /출처/, '④ 출처가 있어야 센다는 규칙을 안 알려 준다');
+});
+
+test('★★ 자료가 0건인 것을 0% 로 적지 않는다', () => {
+  const F = require('../ui/platform/flow-core.js');
+  const p = F.sectionProgress({ projectId: 'LP-1', sources: { total: 0, read: 0 } });
+  /* 자료 없이도 진행은 된다(값을 직접 넣는 길). 0% 로 적으면 막힌 것으로 읽힌다 */
+  assert.strictEqual(p.sources.pct, null, '자료 0건을 0% 로 적었다 — 막힌 것으로 읽힌다');
+  assert.strictEqual(p.sources.done, true, '프로젝트가 있으면 이 칸은 지나온 것이다');
+  assert.match(p.sources.detail, /직접/, '자료 없이 갈 때 무엇을 해야 하는지 안 알려 준다');
+});
+
+test('★★ 화면이 완료·진행율을 실제로 그린다 (규칙은 flow-core 한 곳)', () => {
+  const html = fs.readFileSync(path.join(PLATFORM, 'report-flow.html'), 'utf8');
+
+  /* ★ 판정을 화면이 다시 적지 않는다 — 두 벌이 되면 한쪽만 고치는 날이 온다 */
+  assert.match(html, /F\.sectionProgress\(/, '화면이 판정을 flow-core 에서 안 가져온다');
+  assert.match(html, /'완료'/, '완료 표기가 없다');
+  assert.match(html, /sec__bar/, '진행율 막대가 없다');
+
+  /* ★ 재는 값은 **서버에 물어본 것**이라야 한다. 손으로 적으면 코드가 바뀐 날부터
+     화면만 옛말을 하고 아무도 눈치채지 못한다 (§8) */
+  assert.match(html, /\/intake/, '발행 주체를 안 물어본다');
+  assert.match(html, /\/spec/, '출력조건 확정 여부를 안 물어본다');
+  assert.match(html, /completeness\(/, '필드 채움을 fields-core 로 안 센다');
+  assert.match(html, /fields-core\.js/, 'fields-core 를 안 싣는다 — 부르면 죽는다');
+
+  /* ★★ 처음 값은 전부 null 이어야 한다. false/0 으로 시작하면 대답이 오기 전
+     한순간 「아무것도 안 했다」가 뜨고, 다 해 놓은 사람이 그것을 본다 */
+  const init = /var facts = \{([^}]*)\}/.exec(html);
+  assert.ok(init, 'facts 초기값을 못 찾았다');
+  assert.ok(!/:\s*(false|0)\b/.test(init[1]),
+    `잰 적 없는 값을 false/0 으로 시작했다 — 「못 쟀다」가 「안 했다」로 보인다: ${init[1]}`);
+});

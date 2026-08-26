@@ -32,6 +32,13 @@
 }(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
+  /**
+   * ★ **이 스크립트가 어느 판인가** 〈2026-08-23 · D-93 사고〉.
+   *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다. 화면이 자기
+   *   지문과 대 보고 다르면 「함수가 없다」로 죽기 전에 사람 말로 알린다.
+   */
+  var LP_BUILD = 'c1587fa7';
+
   /** 버전으로 읽히는 꼬리표. **떼어내고 남은 것**이 같으면 같은 문서로 본다 */
   const VERSION_TOKEN = [
     /\bv(er(sion)?)?[ ._-]?\d+(\.\d+)*\b/gi,   // v1 · v03 · ver2 · version 1.2
@@ -184,7 +191,61 @@
    * ★ `conflict` 는 「하나로 정할 수 없다」는 뜻이지 「고장」이 아니다.
    *   판이 여럿인 것은 정상이고, **어느 것을 쓸지 안 정한 것**이 문제다.
    */
+  /** 지문 한 줄. 모양이 여럿이라 **아는 자리를 전부 본다** (없으면 null) */
+  function fingerprintOf(it) {
+    const f = it && it.fingerprint;
+    const v = (f && (f.value || f.sha256)) || (it && it.sha256);
+    return v ? String(v) : null;
+  }
+
+  /**
+   * 지문이 같은 것을 **한 벌로 접는다.** 접은 수(`copies`)와 다른 이름
+   * (`alsoNamed`)은 남긴다 — 접은 것이지 지운 것이 아니다.
+   */
+  function sameFile(items) {
+    const out = [];
+    const at = new Map();
+    (items || []).forEach((it) => {
+      if (!it) return;
+      const k = fingerprintOf(it);
+      if (!k) { out.push(it); return; }
+      const seen = at.get(k);
+      if (seen === undefined) {
+        at.set(k, out.length);
+        out.push(Object.assign({}, it, {
+          copies: it.times || 1,
+          alsoNamed: (it.alsoNamed || []).slice(),
+        }));
+        return;
+      }
+      const prev = out[seen];
+      prev.copies += (it.times || 1);
+      const other = it.name;
+      if (other && other !== prev.name && prev.alsoNamed.indexOf(other) === -1) {
+        prev.alsoNamed.push(other);
+      }
+    });
+    return out;
+  }
+
   function group(items) {
+    /* ★★★ **같은 바이트를 「판이 둘」이라고 하지 않는다** 〈2026-08-23 사장님:
+     *   「중복 오류 버그잡아줘」〉.
+     *
+     *   화면에 같은 그림이 여덟 줄 떴다 — `…인세티브(1).png` 와 `(2).png` 가
+     *   번갈아. **맥이 같은 파일을 두 번 내려받으며 붙인 번호**였고, 사장님이
+     *   OCR 이 꺼져 있던 동안 같은 자료를 네 번 올려 보신 것이 겹쳤다.
+     *
+     *   화면은 그것을 「어느 판으로 만들지 고르십시오」로 보여 줬다 —
+     *   **고를 것이 없는데 고르라는 말**이다.
+     *
+     * ★ 지문이 같으면 바이트가 같다. 이름이 달라도 **한 벌**이다.
+     * ★ 서버(`core/oneshot.js`)도 같은 규칙으로 접지만, 여기서도 접는다 —
+     *   보관·연결·1회성이 **섞여 들어오는 곳은 여기뿐**이고, 서버 판이
+     *   옛것이어도 화면은 맞아야 한다.
+     * ★ 지문이 없으면 **안 접는다.** 같은지 알 수 없는 것을 같다고 하지 않는다. */
+    items = sameFile(items);
+
     const by = new Map();
     (items || []).forEach((it) => {
       if (!it || !it.name) return;
@@ -218,7 +279,9 @@
   }
 
   return {
-    group: group, stem: stem, ext: ext, versionNumber: versionNumber,
+    BUILD: LP_BUILD,
+    group: group, sameFile: sameFile, fingerprintOf: fingerprintOf,
+    stem: stem, ext: ext, versionNumber: versionNumber,
     stampedDate: stampedDate, compare: compare, basisOf: basisOf,
     strength: strength, decidable: decidable, CLAIMS_FINAL: CLAIMS_FINAL,
   };

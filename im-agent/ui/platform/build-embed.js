@@ -78,8 +78,11 @@ function checkBridge(file) {
   const g = GLOBALS[file];
   if (!g) return { ok: true, why: '설정 전역이 없는 화면' };
 
-  const tag = `<script src="embed-bridge.js" data-lp-global="${g}"></script>`;
-  const at = s.indexOf(tag);
+  /* ★ 주소에 판 표시(`?v=…`)가 붙는다 〈2026-08-23 · D-93〉 — 글자 그대로 찾으면
+   *   **브리지가 있는데 없다고 말한다.** 여기서 막히면 배포가 통째로 멈춘다 */
+  const re = new RegExp('<script src="embed-bridge\\.js(\\?v=[0-9a-f]*)?" data-lp-global="'
+    + g + '"></script>');
+  const at = s.search(re);
   if (at < 0) return { ok: false, why: `브리지 태그가 없다 (${g})` };
 
   const m = new RegExp('^window\\.' + g + '\\s*=\\s*', 'm').exec(s);

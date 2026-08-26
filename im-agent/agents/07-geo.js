@@ -42,6 +42,7 @@ const outputSchema = {
     flags: { type: 'array' },
     geo: { type: 'object', nullable: true },
     parcel: { type: 'object', nullable: true },
+    roadParcels: { type: 'array', nullable: true },
     landUse: { type: 'object', nullable: true },
     building: { type: 'object', nullable: true },
     permit: { type: 'object', nullable: true },
@@ -62,7 +63,7 @@ async function run(input, ctx) {
   const facts = [];
   const sources = [];
   const flags = [];
-  const out = { geo: null, parcel: null, landUse: null, building: null };
+  const out = { geo: null, parcel: null, roadParcels: null, landUse: null, building: null };
 
   const addrFact = ds && ds.get('project.location');
   const address = input.address || (addrFact ? String(addrFact.value) : null);
@@ -123,6 +124,47 @@ async function run(input, ctx) {
     }
   } else if (!parcel.unavailable) {
     ctx.warn(`필지 조회 실패: ${parcel.error}`);
+  }
+
+  /* ── ②-2 도로필지 (D-105) — 부지에 접한 지목 「도」 필지 ─────
+   * 배치도·모델 계획의 진입 동선용. fact 가 아니라 형상 데이터다.
+   * ① 연속지적도 bbox 1회로 주변 필지 후보를 받고 (parcelAt 과 같은 활용신청)
+   * ② 부지 링과의 최단거리 3m 이내(=접함)만 남긴 뒤
+   * ③ 토지특성(PNU별 캐시 30일)으로 지목을 확인해 「도로」만 담는다.
+   *   지목을 확인하지 못한 필지는 도로로 단정하지 않는다 (§4.9).
+   * 호출 상한: bbox 1 + 토지특성 ≤ 12 (§4.5). */
+  if (out.parcel && out.parcel.polygon && out.parcel.polygon.length >= 3) {
+    const near = await vworld.parcelsNear(out.parcel.polygon, 30);
+    if (near.ok) {
+      const origin = geometry.centroid(geometry.closedRing(out.parcel.polygon));
+      const siteLocal = geometry.toLocalMeters(out.parcel.polygon, origin);
+      const touching = near.value
+        .filter(c => c.pnu && c.pnu !== out.parcel.pnu)
+        .map(c => ({ ...c, distM: geometry.minRingDistance(siteLocal, geometry.toLocalMeters(c.polygon, origin)) }))
+        .filter(c => c.distM <= 3)
+        .sort((a, b) => a.distM - b.distM)
+        .slice(0, 12);
+
+      const roads = [];
+      let jimokUnavailable = false;
+      for (const c of touching) {
+        const chr = await nsdi.landCharacteristics(c.pnu);
+        if (chr.ok && chr.value.category && /도로/.test(chr.value.category)) {
+          roads.push({ pnu: c.pnu, jibun: c.jibun, polygon: c.polygon, category: chr.value.category });
+        } else if (!chr.ok && chr.unavailable) {
+          jimokUnavailable = true;
+          break; // 키가 없으면 전부 같은 이유로 실패한다 — 반복 호출하지 않는다
+        }
+      }
+      if (jimokUnavailable) {
+        ctx.warn('도로필지 지목 확인 불가(토지특성 unavailable) — 도로를 담지 않는다 (지목 미확인 필지를 도로로 단정하지 않는다)');
+      } else if (roads.length) {
+        out.roadParcels = roads;
+        sources.push({ name: 'VWorld 연속지적도(도로필지)', cached: !!near.cached });
+      }
+    } else if (!near.unavailable) {
+      ctx.warn(`도로필지 조회 실패: ${near.error} — 배치도의 도로는 비워 둔다`);
+    }
   }
 
   // ── ③ 토지이용계획 (용도지역 → 용적률/건폐율 상한) ────────

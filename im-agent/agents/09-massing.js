@@ -22,6 +22,7 @@ const birdseye = require('../geo/birdseye');
 const outputspec = require('../core/outputspec');
 const raster = require('../core/raster');
 const nsdi = require('../connectors/nsdi');
+const codecheck = require('../core/codecheck');
 const store = require('../core/store');
 const { round, fmt } = require('../core/numeric');
 const { kstDate } = require('../core/kst');
@@ -49,6 +50,9 @@ const outputSchema = {
     model: { type: 'object', nullable: true },
     files: { type: 'array' },
     inputs: { type: 'object' },
+    // ★ 법규 판정 (2026-08-25) — **fact 가 아니다.** 판정은 근거를 인용한
+    //   해석이고, 조례·심의로 뒤집힌다. 그래서 facts 가 아니라 여기로 나간다
+    codeReview: { type: 'object', nullable: true },
     confidence: { type: 'number', minimum: 0, maximum: 1 },
   },
 };
@@ -143,9 +147,23 @@ async function run(input, ctx) {
   let footprint;
   let footprintBasis;
   let parcelLocal = null;   // 조감도용 — **축소하지 않은** 실제 지적선
+  let roadsLocal = null;    // 도로필지 링 (D-105) — 지적선과 **같은 원점**의 로컬 미터좌표
   if (polygon) {
-    const local = geometry.toLocalMeters(polygon).slice(0, -1);
+    // ★ 원점을 명시해 한 번만 잡는다 — 도로 링이 다른 원점으로 변환되면
+    //   배치도에서 도로가 부지 옆이 아니라 엉뚱한 자리에 그려진다.
+    const origin = geometry.centroid(geometry.closedRing(polygon));
+    const local = geometry.toLocalMeters(polygon, origin).slice(0, -1);
     parcelLocal = local;
+    const roadParcels = input.geo && Array.isArray(input.geo.roadParcels) ? input.geo.roadParcels : [];
+    if (roadParcels.length) {
+      roadsLocal = roadParcels
+        .filter(r => Array.isArray(r.polygon) && r.polygon.length >= 3)
+        .map(r => ({
+          pnu: r.pnu || null, jibun: r.jibun || null, category: r.category || null,
+          ring: geometry.toLocalMeters(r.polygon, origin).slice(0, -1).map(([x, y]) => [round(x, 2), round(y, 2)]),
+        }));
+      if (!roadsLocal.length) roadsLocal = null;
+    }
     const parcelArea = geometry.planarArea(local);
     const shrink = parcelArea > 0 ? Math.min(1, footprintArea / parcelArea) : 1;
     footprint = geometry.scaleAboutCentroid(local, shrink);
@@ -230,12 +248,76 @@ async function run(input, ctx) {
       heightM: round(built.height, 2),
       footprintAreaSqm: round(geometry.planarArea(footprint), 1),
       footprintBasis,
+      // 계산 자리는 여기 하나다 (D-99) — 12_sketchup_plan 이 이 링을 그대로 옮긴다.
+      // 로컬 미터좌표. parcelRing 은 축소하지 않은 실제 지적선, 없으면 null.
+      footprintRing: footprint.map(([x, y]) => [round(x, 2), round(y, 2)]),
+      parcelRing: parcelLocal ? parcelLocal.map(([x, y]) => [round(x, 2), round(y, 2)]) : null,
+      // 도로필지 (D-105) — parcelRing 과 같은 원점의 로컬 미터좌표. 없으면 null
+      roadRings: roadsLocal,
       vertices: built.meta.vertices,
       triangles: built.meta.triangles,
+      /* ★★ **바닥 모양을 밖으로 내놓는다** 〈2026-08-25 · 12_sketchup_plan 이 쓴다〉.
+       *   면적만 내놓으면 계획 Agent 가 **다시 사각형을 만들어야 한다** — 그러면
+       *   지적 필지로 선 매스와 계획서의 모양이 갈린다. 한 곳에서 나오게 둔다.
+       *   단위는 m (여기 전체가 m 다). mm 변환은 쓰는 쪽이 한 번만 한다. */
+      footprintM: footprint.map((p) => [round(p[0], 3), round(p[1], 3)]),
+      parcelM: parcelLocal ? parcelLocal.map((p) => [round(p[0], 3), round(p[1], 3)]) : null,
       note: '용적률·건폐율 검토용 매스이며 설계안이 아니다',
     };
   } catch (e) {
     ctx.warn(`매스 모델 생성 실패: ${e.message}`);
+  }
+
+  /* ── 법규 판정 ────────────────────────────────────────────
+   * 〈2026-08-25 사장님 지시: 「③ 법규 검토가 해줘」 → 「직접 작업을 넘겨줘」〉
+   *
+   * ★★ **매스가 나온 자리에서 바로 판정한다.** 층수·높이·기준층면적이 여기서
+   *   정해지므로, 다른 Agent 로 빼면 같은 값을 두 번 만들게 된다.
+   * ★ 판정은 **fact 가 아니다** — 조례·심의로 뒤집히는 해석이다. flags 로 알리고
+   *   `codeReview` 로 내보낸다. facts 에는 한 줄도 넣지 않는다.
+   * ★ **모르는 것을 적합으로 세지 않는다** — 입력이 비면 unknown 이고,
+   *   unknown 이 남아 있으면 「검토 끝」이 아니다 (codecheck.js).
+   * ── */
+  let codeReview = null;
+  try {
+    const zoning = ds.get('land.zoning');
+    const heightM = (model && model.heightM) || heightFact || (floors * floorHeight);
+    codeReview = codecheck.review({
+      floors,
+      heightM,
+      zone: zoning ? String(zoning.value) : '',
+      typicalFloorSqm: footprintArea,
+      // 주거 층수·전용면적·승강기 대수는 이 단계에 없다 — 비워 두면 unknown 이다.
+      // 채워 넣지 않는다: 지어낸 값으로 「적합」이 나오는 것이 가장 나쁘다
+      stairs: null,
+      farPct: farPlanned,
+    });
+
+    codeReview.items.forEach((it) => {
+      if (it.verdict === 'fail') {
+        flags.push(flag('RED', 'CODE_FAIL',
+          `법규 부적합 — ${it.label}: ${it.actual} (기준: ${it.standard})`,
+          { keys: ['building.floors', 'building.height_m'], ref: it.ref }));
+      } else if (it.verdict === 'review') {
+        flags.push(flag('YELLOW', 'CODE_REVIEW', `법규 보완 — ${it.label}: ${it.note || it.actual}`, { ref: it.ref }));
+      } else if (it.verdict === 'ordinance') {
+        flags.push(flag('YELLOW', 'CODE_ORDINANCE',
+          `${it.label} — **조례**가 정한다. 시행령 상한으로 적합 판정하지 않는다`, { ref: it.ref }));
+      }
+    });
+    // ★ unknown 은 조용히 넘어가지 않는다. 「확인되지 않음」을 통과로 세지 않는다
+    const unknowns = codeReview.items.filter(i => i.verdict === 'unknown');
+    if (unknowns.length) {
+      flags.push(flag('YELLOW', 'CODE_UNKNOWN',
+        `법규 판정을 못 한 항목 ${unknowns.length}건 — ${unknowns.map(u => u.label).join(' · ')} (입력이 없어 적합으로 세지 않았다)`));
+    }
+    // ★ 조문 원문은 열쇠가 있을 때만 붙는다. 없으면 sourced:false 로 나간다
+    codeReview = await codecheck.attachSources(codeReview);
+    if (!codeReview.sourcesAttached) {
+      ctx.warn(`법규 조문 원문 미첨부 (${codeReview.reason}) — 판정은 냈으나 근거는 조문 번호까지다`);
+    }
+  } catch (e) {
+    ctx.warn(`법규 판정 실패: ${e.message}`);
   }
 
   // ── 계산값 등록 ──────────────────────────────────────────
@@ -246,7 +328,7 @@ async function run(input, ctx) {
 
   const confidence = polygon && farLimit !== null ? 0.9 : (farLimit !== null ? 0.7 : 0.45);
   return {
-    facts, flags, model, files,
+    facts, flags, model, files, codeReview,
     inputs: {
       landAreaSqm: landArea, gfaSqm: gfa, floors, floorHeight,
       footprintAreaSqm: footprintArea, farLimit, bcrLimit, limitSource,

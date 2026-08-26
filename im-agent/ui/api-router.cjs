@@ -94,6 +94,11 @@ function createHandlers({ agentRoot, agentModulePath }) {
      */
     async projects() {
       const store = load('core/store');
+      /* ★★ **접어 둔 것을 빼지 않고 표시만 한다** 〈2026-08-24〉.
+       *   여기서 빼 버리면 화면이 「몇 개를 접었는지」도, 「되돌리기」도 못 한다.
+       *   무엇을 보여 줄지는 화면이 정한다 — 서버는 사실만 준다. */
+      const hidden = load('core/hidden');
+      const folded = hidden.map();
       const rows = store.listProjects().map(p => ({
         id: p.id,
         name: (p.project && p.project.name) || null,
@@ -102,8 +107,14 @@ function createHandlers({ agentRoot, agentModulePath }) {
         // ★ 앱의 딜 키를 함께 낸다 — 앱이 자기 목록과 맞춰 볼 수 있어야 한다.
         //   이름으로 맞추면 이름을 바꾸는 날 끊긴다 (프로젝트-연결-규칙 §3)
         externalId: (p.project && p.project.externalId) || null,
+        // ★ 접혀 있는가. **지운 것이 아니다** — 폴더도 자료도 그대로 있다
+        hidden: Object.prototype.hasOwnProperty.call(folded, p.id),
+        hiddenAt: folded[p.id] || null,
       }));
-      return { status: 200, body: { projects: rows } };
+      return {
+        status: 200,
+        body: { projects: rows, hiddenCount: rows.filter(r => r.hidden).length },
+      };
     },
 
     /**
@@ -198,6 +209,17 @@ function createHandlers({ agentRoot, agentModulePath }) {
         current = Object.assign({}, issuer.UNSET);
         issuerError = e.message;
       }
+      /**
+       * ★★ **전에 쓴 발행 주체 목록** 〈2026-08-23 사장님 지시: 「저장된 회사를
+       *   선택할수 있도록 · 자동 저장된 기업은 선택시 자동 노출」〉.
+       *
+       *   `listForClient()` 는 로고를 **총량 한도 안에서만** 싣는다 —
+       *   `/intake` 는 화면이 열릴 때마다 부르는 길이라, 로고 8건을 그대로
+       *   실으면 화면이 늦게 뜬다. 뺀 항목에는 `logoOmitted:true` 가 붙고
+       *   화면이 그 사실을 적는다 (조용히 빼면 지워진 줄 안다).
+       */
+      let issuers = [];
+      try { issuers = issuer.listForClient(); } catch (_) { issuers = []; }
 
       return {
         status: 200,
@@ -210,6 +232,7 @@ function createHandlers({ agentRoot, agentModulePath }) {
           })),
           financeTemplates: Object.keys(TEMPLATES).map(id => ({ id, label: TEMPLATES[id].label })),
           issuer: current,
+          issuers,
           issuerError,
           issuerLimits: issuer.LIMITS,
           supported: {

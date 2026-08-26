@@ -60,12 +60,18 @@ const FILES_PLAN = 'free';
  * 하나 늘 때 **거기만 조용히 로그인을 묻는다.** 그 차이는 화면에서 안 보이고
  * 「어떤 파일은 되고 어떤 파일은 안 된다」로만 나타난다.
  *
- * ★★ **연 것은 「넣는 길」 셋뿐이다.** 무엇을 열었는지가 흐려지면 다음 사람이
+ * ★★ **연 것은 넷뿐이다.** 무엇을 열었는지가 흐려지면 다음 사람이
  *   아무 데나 붙인다. 그래서 여기 적어 둔다.
+ *
+ * ★★★ **넷째가 늘었다** 〈2026-08-23 사장님 결정 · D-94〉 — `createProject`.
+ *   앞 판은 셋만 열려 있었는데, **자료를 넣을 프로젝트를 만들 수가 없어서**
+ *   열어 둔 셋이 통째로 못 쓰이고 있었다. 사장님 화면에서 그 자리에서 막혔다
+ *   (「＋ 신규프로젝트 → 만들기」가 401 · 「로그인이 필요합니다」).
  *
  * | 길 | 로그인 | 왜 |
  * |---|:--:|---|
- * | `linkSource`   (폴더를 연결해서) | **안 묻는다** | 자료를 **넣는** 길이다 |
+ * | `createProject`(＋ 신규프로젝트) | **안 묻는다** | 자료를 넣을 **그릇**을 만드는 자리다 (D-94) |
+ * | `linkSource`   (폴더 지정) | **안 묻는다** | 자료를 **넣는** 길이다 |
  * | `oneshotUpload`(파일업로드)      | **안 묻는다** | 실제로 막혔던 자리다 |
  * | `scanSources`  (읽어서 값으로)   | **안 묻는다** | 넣고 나서 바로 이어지는 걸음이다 |
  * | `listLinked` · `listOneshot` | 묻는다 | 남의 프로젝트에 **무엇이 들었는지**가 나간다 |
@@ -162,6 +168,17 @@ const CONTENT_TYPES = {
   '.pdf': 'application/pdf',
 };
 
+/**
+ * 저장된 시각을 **사람이 읽는 꼴**로 바꾼다. 꼴은 `core/kst.js` 한 곳에서 나온다.
+ * 못 읽는 값이면 원래 값을 그대로 돌려준다 — 버리면 그 사실이 통째로 사라진다.
+ */
+function readStamp(v) {
+  if (!v) return null;
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return v;
+  try { return kstStamp(d); } catch (_) { return v; }
+}
+
 function ok(body) { return { status: 200, body }; }
 function bad(message, status) { return { status: status || 400, body: { error: message } }; }
 
@@ -222,8 +239,9 @@ function createHandlers(deps) {
    *     **읽어 가는 길에 붙이면 남의 자료가 열린다.**
    *
    *   ★ 이 파일은 **NAS 엔진이 실제로 돌리는 파일**이다. 화면 배포
-   *     (`deploy-nas` 워크플로)로는 안 올라간다 — `deploy/nas.sh` 를 돌려야
-   *     엔진에 반영된다.
+   *     〈2026-08-23 · D-88 로 바뀌었다〉 이제 `deploy-nas` 워크플로가 **엔진도
+   *     함께 올린다**(`deploy/engine.sh`). 앞 판 주석은 「화면 배포로는 안 올라가니
+   *     `deploy/nas.sh` 를 돌려라」였는데 **더 이상 맞지 않는다.**
    */
   function gate(ctx, requiredPlan, opts) {
     const user = d.authenticate(ctx);
@@ -251,6 +269,74 @@ function createHandlers(deps) {
 
   return {
     /**
+     * GET /gemini/status — **열쇠 여섯이 지금 어떤 상태인가** (D-110 · 지시서 §19).
+     *
+     * ★★★ **열쇠 값은 한 글자도 안 나간다.** 나가는 것은 슬롯 번호 · 해시에서
+     *   뽑은 네 글자 · 상태 · 통계뿐이다. 이 저장소는 public 이고, 응답은
+     *   브라우저 개발자도구에 그대로 보인다 (CLAUDE.md §2 · 지시서 §19·§23).
+     *
+     * ★ **관리자 구분은 이 엔진에 없다.** 여기 있는 것은 플랜뿐이라 가장 높은
+     *   플랜으로 막았다. 진짜 관리자 구분은 본체가 해야 한다 — 등록부 D-111.
+     */
+    async geminiStatus(ctx) {
+      const g = gate(ctx, 'business'); if (g.error) return g.error;
+      return { ok: true, ...load('core/gemini-keys').snapshot() };
+    },
+
+    /**
+     * GET /gemini/metrics — 통계만. 화면이 자주 물어도 싼 쪽 (지시서 §15·§27).
+     */
+    async geminiMetrics(ctx) {
+      const g = gate(ctx, 'business'); if (g.error) return g.error;
+      const snap = load('core/gemini-keys').snapshot();
+      return {
+        ok: true, at: snap.at,
+        active: snap.active, availableNow: snap.availableNow,
+        registered: snap.registered, slots: snap.slots,
+        invalid: snap.invalid, cooldown: snap.cooldown,
+        totalRequests: snap.totalRequests, successRate: snap.successRate,
+        alerts: snap.alerts,
+      };
+    },
+
+    /**
+     * POST /gemini/health-check-all — **실제로 불러 본다** (지시서 §6).
+     *
+     * ★ 값이 들어 있다는 사실은 ACTIVE 의 근거가 아니다. 2026-08-25 에
+     *   「OCR 켜짐」인 채로 401 이던 일이 있었다 (MEMORY M-40).
+     * ★ 오프라인 모드에서는 그물을 타지 않는다 — 시험이 진짜 호출을 내면 안 된다.
+     */
+    async geminiHealthCheckAll(ctx) {
+      const g = gate(ctx, 'business'); if (g.error) return g.error;
+      if (process.env.IM_AGENT_OFFLINE === '1') return bad('오프라인 모드에서는 실제 호출을 하지 않습니다', 409);
+      const doctor = load('tools/gemini-doctor');
+      return { ok: true, ...(await doctor.checkAll()) };
+    },
+
+    /** POST /gemini/keys/:slot/health-check — 한 슬롯만 (지시서 §6) */
+    async geminiHealthCheck(ctx, slot) {
+      const g = gate(ctx, 'business'); if (g.error) return g.error;
+      if (!/^[1-6]$/.test(String(slot))) return bad('슬롯은 1~6 입니다');
+      if (process.env.IM_AGENT_OFFLINE === '1') return bad('오프라인 모드에서는 실제 호출을 하지 않습니다', 409);
+      const doctor = load('tools/gemini-doctor');
+      return { ok: true, ...(await doctor.checkSlot(slot)) };
+    },
+
+    /**
+     * POST /gemini/keys/:slot/revalidate — 폐기된 열쇠를 다시 물어보게 한다.
+     *
+     * ★ 지시서 §12 — 401·403 이 **설정을 잠깐 바꾸는 사이**에도 난다. 사람이
+     *   되돌릴 길이 없으면, 한 번 튄 열쇠가 영영 죽은 것으로 남는다.
+     */
+    async geminiRevalidate(ctx, slot) {
+      const g = gate(ctx, 'business'); if (g.error) return g.error;
+      if (!/^[1-6]$/.test(String(slot))) return bad('슬롯은 1~6 입니다');
+      const keys = load('core/gemini-keys');
+      if (!keys.revalidate(slot)) return bad('그 슬롯에 열쇠가 없습니다', 404);
+      return { ok: true, ...keys.snapshot() };
+    },
+
+    /**
      * POST /projects — 요청문으로 프로젝트를 만든다 (보고서 생성 1단계).
      *
      * ★ 여기서 **파이프라인 전체를 돌리지 않는다.** 01_project 하나만 부른다.
@@ -261,7 +347,23 @@ function createHandlers(deps) {
      *   사용자가 말했다는 것은 문서로 확인됐다는 뜻이 아니다 — 화면도 그렇게 표시한다.
      */
     async createProject(ctx, body) {
-      const g = gate(ctx, 'pro'); if (g.error) return g.error;
+      /* ★★★ **프로젝트 만들기도 로그인을 묻지 않는다** 〈2026-08-23 사장님 결정 · D-94〉.
+       *
+       *   앞 판은 `gate(ctx, 'pro')` 였다 — 로그인 **＋ Pro 플랜**. 그런데
+       *   `oneshotUpload`(파일업로드)는 D-82 로 이미 열려 있었다. 그래서 이런
+       *   상태가 됐다: **자료를 넣는 길은 열려 있는데, 자료를 넣을 프로젝트를
+       *   만들 수가 없다.** 열어 둔 셋이 통째로 못 쓰이고 있었던 셈이다.
+       *
+       *   ★ 사장님 화면에서 실제로 그 자리에서 막혔다 — 「＋ 신규프로젝트 →
+       *     만들기」가 401, 문구는 「로그인이 필요합니다」.
+       *
+       *   ★★ **연 것은 만드는 것까지다.** 만든 뒤에 값을 저장하고 보고서를
+       *     생성하는 길은 **그대로 로그인과 플랜을 묻는다** — 그쪽이 돈이 드는
+       *     자리이고, 여기는 「자료를 넣을 그릇」을 만드는 자리다.
+       *   ★ 누가 만들었는지 모르면 `by` 는 비워 둔다 (아래 `owner`). 모르는 것을
+       *     지어내지 않는다.
+       */
+      const g = gate(ctx, FILES_PLAN, ANON); if (g.error) return g.error;
 
       const b = body || {};
       const request = String(b.request || '').trim();
@@ -306,6 +408,19 @@ function createHandlers(deps) {
           const rootDir = d.agentRoot || process.env.IM_AGENT_ROOT;
           if (rootDir) fs.writeFileSync(path.join(rootDir, issuerMod.FILE), JSON.stringify(issuerValue, null, 2));
         }
+        /**
+         * ★★ **쓴 주체는 자동으로 기억한다** 〈2026-08-23 사장님 지시:
+         *   「자동 저장된 기업은 선택시 자동 노출」〉.
+         *
+         *   따로 「저장」을 누르게 하지 않는다 — 누르는 장치는 안 눌린다
+         *   (D-86 에서 배운 것과 같은 결이다). 「앞으로도 이 주체를 씁니다」
+         *   체크와는 **다른 것**이다: 저쪽은 기본값 하나를 바꾸는 것이고
+         *   이쪽은 고를 수 있는 목록에 얹는 것이다.
+         *
+         *   ★ 실패해도 던지지 않는다. 목록은 편의 기능이고, 이것 때문에
+         *     프로젝트 생성이 죽으면 안 된다 (§4.6).
+         */
+        issuerMod.remember(issuerValue, kstStamp(new Date()));
       }
 
       /**
@@ -899,7 +1014,7 @@ function createHandlers(deps) {
           note: shots.length
             ? `여기서 다시 읽을 자료가 없습니다 — 「파일업로드」로 넣은 ${shots.length}건은 `
               + '올리는 그 자리에서 이미 읽었고, 보관하지 않으므로 원본이 남아 있지 않습니다. '
-              + '다시 읽어야 하면 「폴더를 연결해서」로 넣으십시오.'
+              + '다시 읽어야 하면 「폴더 지정」으로 넣으십시오.'
             : '읽을 자료가 없습니다 — 자료를 먼저 넣어 주십시오.',
           at: kstStamp(new Date()),
         });
@@ -922,16 +1037,52 @@ function createHandlers(deps) {
         };
       });
 
+      /**
+       * ★★★ **읽는 동안 「몇 개 중 몇 개」를 흘린다** 〈2026-08-24 사장님:
+       *   「서버가 읽고, 스캔하는데 너무 오래걸림 / 그런데 결국 읽은 값은 0」〉.
+       *
+       *   이 요청은 **다 읽어야 답한다.** 그래서 화면이 아는 것은 「몇 초
+       *   지났나」뿐이었고, 진행률을 **걸린 시간으로 어림**하고 있었다.
+       *   자료가 30개든 1개든 같은 속도로 차올랐다.
+       *
+       * ★ 이제 파일 하나가 끝날 때마다 `01_Project/scan-progress.json` 에 적고,
+       *   화면은 `GET …/scan/progress` 로 그것을 물어본다. 어림이 아니라 **센 수**다.
+       *
+       * ★★★ **본체가 안 넘겨주면 흘릴 수 없다.** 읽는 함수는 본체가 준 것이고,
+       *   지금까지의 배선은 `(id, files) => pipeline.extractInto(id, files)` 라
+       *   **셋째 인자를 조용히 버린다.** 그러면 진행이 한 줄도 안 적히는데
+       *   화면에는 「0/0」만 뜬다 — 조용히 빠지는 실패다.
+       *   그래서 **받을 수 있는 배선인지 먼저 본다**(인자 수). 못 받으면
+       *   「모른다」라고 적는다. 0% 로 적으면 「안 되고 있다」로 읽힌다.
+       */
+      const progress = load('core/scanprogress');
+      /* ★ 분모를 **읽기 전에** 세워 둔다. 읽는 쪽이 곧 자기 목록(중복을 걸러낸
+       *   뒤의 것)으로 덮어쓴다 — 그 사이에 물어봐도 0/0 이 아니라 0/N 이 뜬다 */
+      progress.begin(projectId, plan.map((x) => x.name));
+
       let read = null;
       let failed = null;
       try {
-        read = await extract(projectId, files);
+        /* ★ 셋째 인자는 **본체 배선이 받아 줄 때만** 닿는다. 지금 배선은
+         *   인자 둘짜리라 조용히 버려진다 — 그래도 괜찮다. 진행을 적는 일은
+         *   읽는 쪽(`agents/02-extraction`)이 직접 하고 있고, 이것은 그 위에
+         *   얹는 선택이다 (본체가 받아 주면 화면 서버도 함께 들을 수 있다) */
+        read = await extract(projectId, files, {
+          onFile: (ev) => {
+            if (!ev) return;
+            if (ev.kind === 'begin') return void progress.begin(projectId, ev.names || []);
+            if (ev.kind === 'file') return void progress.fileDone(projectId, ev);
+          },
+        });
       } catch (err) {
         failed = err.message;
       } finally {
         // ★ 연결 자료 사본은 **반드시** 지운다. 읽다 죽어도 지운다 — 「보관하지
         //   않는다」는 성공했을 때만 지키는 약속이 아니다
         if (mat) mat.dispose();
+        /* ★★ **끝났다는 사실을 반드시 적는다.** 안 적으면 화면이 영원히 돈다.
+         *   읽는 쪽도 적지만, 읽다 죽으면 거기까지 못 간다 — 여기가 마지막 자리다 */
+        try { progress.finish(projectId, { failed: failed || null }); } catch (_) { /* 기록 실패가 응답을 막지 않는다 */ }
       }
       if (failed) return bad(`자료를 읽지 못했습니다: ${failed}`, 500);
 
@@ -993,6 +1144,47 @@ function createHandlers(deps) {
       });
     },
 
+    /**
+     * GET /projects/:id/scan/progress — **읽는 중에 몇 개까지 왔는지.**
+     *
+     * ★ 스캔 요청은 다 읽어야 답하므로, 진행은 **다른 문으로** 물어야 한다.
+     * ★ **없는 것을 0 으로 답하지 않는다.** 아직 한 번도 안 돌렸으면
+     *   `known: false` 다 — 0% 로 답하면 「돌고 있는데 안 는다」로 읽힌다.
+     */
+    async scanProgress(ctx, projectId) {
+      const g = gate(ctx, FILES_PLAN, ANON); if (g.error) return g.error;
+      const e = checkId(projectId); if (e) return e;
+      const store = load('core/store');
+      if (!fs.existsSync(store.projectDir(projectId))) return bad('프로젝트를 찾을 수 없습니다', 404);
+      return ok(load('core/scanprogress').view(projectId));
+    },
+
+    /**
+     * PUT /projects/:id/hidden — 목록에서 **접거나 편다** 〈2026-08-24 사장님 지시:
+     * 「지난 리스트는 삭제해줘 목록에서 혼란스러움」〉.
+     *
+     * ★★ **지우는 것이 아니다.** 폴더·자료·보고서는 그대로 있고 목록에서만
+     *   안 보이게 한다. 여쭤 보고 「숨기기」로 정했다 — 목록에는 시험용과
+     *   앱에서 가져온 **실제 딜**이 섞여 있고, 지우면 되돌릴 수 없다.
+     *
+     * ★ 쓰기다. 읽기 라우터가 아니라 **여기** 있어야 한다.
+     * ★ 실패해도 던지지 않는다 (`hidden.set` 이 false 를 돌려준다). 다만
+     *   **바뀌었는지(`changed`)를 그대로 말한다** — 「눌렀는데 아무 일도 안
+     *   났다」를 화면이 알 수 있어야 한다.
+     */
+    async hideProject(ctx, projectId, body) {
+      const e = checkId(projectId); if (e) return e;
+      const hidden = load('core/hidden');
+      const want = !(body && body.hidden === false);
+      const changed = hidden.set(projectId, want);
+      return ok({
+        id: projectId, hidden: want, changed,
+        note: want
+          ? '목록에서만 접었습니다 — 폴더·자료·보고서는 그대로 있습니다.'
+          : '목록에 다시 폈습니다.',
+      });
+    },
+
     /** GET /projects/:id/oneshot — 1회성으로 들어온 자료의 **기록**. 파일은 없다 */
     async listOneshot(ctx, projectId) {
       const g = gate(ctx, FILES_PLAN); if (g.error) return g.error;
@@ -1020,6 +1212,8 @@ function createHandlers(deps) {
       const store = load('core/store');
       if (!fs.existsSync(store.projectDir(projectId))) return bad('프로젝트를 찾을 수 없습니다', 404);
       store.writeJson(projectId, '01_Project/issuer.json', norm.value);
+      // ★ 여기서도 목록에 얹는다 — 고쳐 쓴 주체가 다음번에 안 뜨면 이상하다
+      issuerMod.remember(norm.value, kstStamp(new Date()));
 
       if (body && body.issuerAsDefault) {
         const rootDir = d.agentRoot || process.env.IM_AGENT_ROOT;
@@ -1063,7 +1257,11 @@ function createHandlers(deps) {
       // 참이 되어 끈 줄 알았던 조감도가 계속 만들어진다
       if (b.visuals && typeof b.visuals === 'object') {
         const v = {};
-        ['birdseye', 'massing'].forEach((k) => {
+        /* ★★ **목록이 한 곳에 더 있으면 갈린다** 〈2026-08-25 · 실제로 갈렸다〉.
+         *   여기 이름을 손으로 적어 두는 바람에 화면이 보낸 `cadastral` 이
+         *   **조용히 버려졌다** — 켰는데 안 켜지고, 오류도 안 난다.
+         *   그래서 **사양이 아는 이름**을 그대로 쓴다 (단일 출처). */
+        Object.keys(outputspec.VISUAL_DEFAULT).forEach((k) => {
           if (typeof b.visuals[k] === 'boolean') v[k] = b.visuals[k];
         });
         if (Object.keys(v).length) overrides.visuals = v;
@@ -1129,6 +1327,7 @@ function createHandlers(deps) {
       const ds = json ? Dataset.fromJSON(json, FIELDS) : null;
 
       const values = {};
+      const factsMod = load('core/facts');
       if (ds) {
         ds.keys().forEach((key) => {
           const f = ds.get(key);
@@ -1136,6 +1335,25 @@ function createHandlers(deps) {
           values[key] = {
             value: f.value, source: f.source, sourceDate: f.sourceDate,
             page: f.page, confidence: f.confidence, verified: f.verified,
+            /* ★★★ **어디서 온 값인지를 화면에 넘긴다** 〈2026-08-25 사장님:
+             *   「스캔, 읽는 흉내만 내지 실제 판독을 하지않음 거짓」〉.
+             *
+             *   화면이 「N 개의 값을 **자료에서 읽었습니다**」라고 적으면서
+             *   **요청문에서 뽑은 값까지 세고 있었다.** 사장님 화면의 셋은
+             *   전부 `user_request` 였다 — 자료에서 읽은 것이 하나도 없는데
+             *   「자료에서 읽었다」고 적은 것이다.
+             *
+             * ★ 이 저장소의 전부가 그 구분이다 — **사용자가 말했다는 것은
+             *   문서로 확인됐다는 뜻이 아니다.** 화면이 그걸 뭉갰다. */
+            /* ★★★ **비워 보내지 않는다** 〈2026-08-25 사장님 화면: 「0개 수집자료
+             *   + 0개 자체분석자료 · 갈리지 않은 값 3개」〉. origin 이 없으면
+             *   화면이 어느 쪽에도 못 세고 **0 + 0 인데 값은 3개**가 된다 —
+             *   숫자가 틀린 것은 아닌데 **아무 뜻이 없다.**
+             * ★ 옛 판으로 만든 dataset 에는 origin 이 없다. 그때는 **출처로
+             *   되짚는다** — 엔진이 이미 같은 규칙을 들고 있다(facts.inferOrigin).
+             *   화면에 규칙을 또 두면 두 벌이 되어 갈린다. */
+            origin: f.origin || factsMod.inferOrigin(f.source) || null,
+            originGuessed: !!f.originGuessed,
             // ★ 값이 갈리고 있으면 그대로 알려준다. 이긴 값만 보여주면
             //   화면에서는 멀쩡해 보이고, 충돌은 검증 단계에 가서야 드러난다
             alternatives: (f.alternatives && f.alternatives.length) ? f.alternatives : null,
@@ -1155,6 +1373,52 @@ function createHandlers(deps) {
       const meta = store.readJson(projectId, '01_Project/project.json', null) || {};
       return ok({
         values, sources, hasDataset: !!ds,
+        /**
+         * ★★ **언제 읽었는지 함께 준다** 〈2026-08-23 사장님: 「데이터를 정말
+         *   스캔했는지 모르겠다 알수 있는 방법이 좋을듯」〉.
+         *
+         *   값만 주면 화면은 「이 값이 지금 자료에서 나온 것인지, 지난주에
+         *   나온 것인지」를 말할 수 없다. 자료를 새로 올린 뒤에도 옛 값이
+         *   그대로 떠 있으면 **읽은 것으로 보인다.**
+         *   `resolvedAt` 은 Dataset 이 저장될 때 KST 로 찍힌다.
+         *
+         * ★★ **사람이 읽는 꼴로 보낸다** 〈2026-08-25 · 실제 프로젝트로 따라가며 잡았다〉.
+         *   저장된 것은 `2026-08-25T08:44:19+09:00` 인데 화면은 그것을 **그대로**
+         *   찍고 있었다 — 「읽은 시각 2026-08-25T08:44:19+09:00」. 틀린 값은
+         *   아니지만 사람이 읽는 글이 아니다.
+         * ★ 꼴을 정하는 곳은 **한 곳뿐**이다 (`core/kst.js` 의 `kstStamp`) —
+         *   화면마다 자르면 화면마다 다른 꼴이 된다 (CLAUDE.md §8).
+         * ★ 못 읽는 값이면 **원래 값을 그대로** 보낸다. 버리면 「언제 읽었는지」가
+         *   통째로 사라진다.
+         */
+        readAt: readStamp(json && json.resolvedAt),
+        // ★ 값이 갈린 항목 수. 0 이 아니면 화면이 그 사실을 적는다
+        conflicts: (json && Array.isArray(json.conflicts)) ? json.conflicts.length : 0,
+        /**
+         * ★★★ **읽은 것과 표에 들어온 것을 **둘 다** 준다** 〈2026-08-24 사장님 화면〉.
+         *
+         *   3단계는 「문서 15건에서 값 87개를 만들었습니다」라고 했는데
+         *   4단계는 **「2개」**만 보여 줬다. 그 둘이 같은 화면에 없으니
+         *   **어디서 없어졌는지 물어볼 수조차 없다** — 「안 읽혔나」와
+         *   「읽었는데 표에 안 들어왔나」가 구분이 안 된다.
+         *
+         * ★ 값 87개는 **항목 87개가 아니다.** 같은 항목을 여러 문서에서
+         *   뽑으면 표에서는 한 줄이 되고, 항목표(FIELDS)에 없는 값은
+         *   애초에 들어오지 않는다. 그 셈을 화면이 말할 수 있어야 한다.
+         * ★ 버려진 값(REJECTED)도 센다 — 조용히 버려지는 것이 가장 나쁘다.
+         */
+        extraction: (() => {
+          const ex = store.readJson(projectId, '01_Project/extraction.json', null);
+          if (!ex) return null;
+          return {
+            at: ex.at || null,
+            documents: Array.isArray(ex.documents) ? ex.documents.length : 0,
+            factCount: ex.factCount || 0,
+            unsupported: Array.isArray(ex.unsupported) ? ex.unsupported.length : 0,
+          };
+        })(),
+        rejected: (json && Array.isArray(json.conflicts))
+          ? json.conflicts.filter((c) => c && c.type === 'REJECTED').length : 0,
         assetClass: meta.assetClass || null,
         assetType: meta.assetType || null,
         templateId: meta.templateId || null,
@@ -1470,6 +1734,16 @@ function kstStamp(date) {
  *   그쪽만 모르고 404 가 난다 — 실제로 11개가 빠졌다 (2026-08-18).
  */
 const ROUTES = [
+  /* ★ Gemini 열쇠 관리 (D-110). **프로젝트 길보다 먼저** 둔다 — `/projects/:id`
+   *   류와 겹치지 않지만, 성격이 다른 길을 섞어 두면 나중에 옮기다 순서를 깬다.
+   *   ★★ `/keys/:slot/health-check` 를 `/health-check-all` 보다 **뒤에** 둔다.
+   *      앞에 두면 `all` 이 슬롯 이름으로 잡힌다 (`/sources/verify` 와 같은 덫). */
+  { method: 'GET', path: '/gemini/status', handler: 'geminiStatus', call: (h, req) => h.geminiStatus(req) },
+  { method: 'GET', path: '/gemini/metrics', handler: 'geminiMetrics', call: (h, req) => h.geminiMetrics(req) },
+  { method: 'POST', path: '/gemini/keys/health-check-all', handler: 'geminiHealthCheckAll', call: (h, req) => h.geminiHealthCheckAll(req) },
+  { method: 'POST', path: '/gemini/keys/:slot/health-check', handler: 'geminiHealthCheck', call: (h, req, p) => h.geminiHealthCheck(req, p.slot) },
+  { method: 'POST', path: '/gemini/keys/:slot/revalidate', handler: 'geminiRevalidate', call: (h, req, p) => h.geminiRevalidate(req, p.slot) },
+
   { method: 'POST', path: '/projects', handler: 'createProject', call: (h, req) => h.createProject(req, req.body) },
 
   { method: 'POST', path: '/projects/:id/sources', handler: 'uploadSources', call: (h, req, p) => h.uploadSources(req, p.id, req.body) },
@@ -1490,8 +1764,14 @@ const ROUTES = [
   // 1회성 직접 올리기 — 저장소를 안 쓰는 사람의 길 (D-66). 보관하지 않는다
   { method: 'POST', path: '/projects/:id/oneshot', handler: 'oneshotUpload', call: (h, req, p) => h.oneshotUpload(req, p.id, req.body) },
   { method: 'GET', path: '/projects/:id/oneshot', handler: 'listOneshot', call: (h, req, p) => h.listOneshot(req, p.id) },
+  {
+    method: 'PUT', path: '/projects/:id/hidden', handler: 'hideProject',
+    call: (h, req, p) => h.hideProject(req, p.id, req.body),
+  },
   // ★ 넣은 자료를 **값으로** 만든다 — 셋(보관·연결·앱첨부)을 한 길로 (2026-08-21)
   { method: 'POST', path: '/projects/:id/scan', handler: 'scanSources', call: (h, req, p) => h.scanSources(req, p.id, req.body) },
+  // ★ 읽는 중에 「몇 개 중 몇 개」를 묻는 문. 스캔 요청은 다 읽어야 답한다
+  { method: 'GET', path: '/projects/:id/scan/progress', handler: 'scanProgress', call: (h, req, p) => h.scanProgress(req, p.id) },
 
   { method: 'PUT', path: '/projects/:id/issuer', handler: 'saveIssuer', call: (h, req, p) => h.saveIssuer(req, p.id, req.body) },
   { method: 'GET', path: '/projects/:id/spec', handler: 'getSpec', call: (h, req, p) => h.getSpec(req, p.id) },

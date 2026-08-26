@@ -21,6 +21,43 @@ function clamp01(n) {
   return Math.min(1, Math.max(0, v));
 }
 
+/**
+ * ★★★ **올린 자료가 1순위다** 〈2026-08-24 사장님 지시:
+ *   「업로드한 자료를 100% 초점을 맞추고 + 추가자료로는 AI 자동으로 보완적
+ *    기능으로 재구성해줘」〉.
+ *
+ *   앞 판은 값이 갈릴 때 **독립 출처 수**만 봤다(`sources.size * 10`). 그래서
+ *   공공데이터·계산값이 여럿이면 **사장님이 올린 문서를 이겼다.** 자료를
+ *   올린 사람 입장에서는 「내 자료가 안 쓰였다」가 되고, 문서만 봐서는
+ *   그 사실이 안 보인다 — 출처 표시가 멀쩡하기 때문이다.
+ *
+ * ★ 그래서 **등급을 먼저 보고** 그다음에 출처 수를 본다.
+ * ★ **낮은 등급이 이기는 일은 없다. 다만 사라지지도 않는다** — 진 값은
+ *   `alternatives` 에 남고 충돌은 그대로 기록된다 (§4.9).
+ * ★ 등급은 만드는 쪽이 `origin` 으로 **밝히는 것이 원칙**이다. 안 밝히면
+ *   아래 규칙으로 짐작하되, **짐작했다는 것을 값에 적는다**(`originGuessed`).
+ */
+const ORIGIN = {
+  document: 3,   // 올린 자료에서 읽은 값 — 이 시스템의 1순위
+  public: 2,     // 공공데이터·기관 고시 (독립된 두 번째 출처)
+  request: 1,    // 사람이 접수 화면에 적은 것
+  derived: 0,    // 계산·가정·통상치 — 자료가 없을 때만 자리를 메운다
+};
+
+/** 확장자가 붙은 이름은 파일이다 — 그것이 「올린 자료」의 표시다 */
+const LOOKS_LIKE_FILE = /\.[A-Za-z0-9]{1,5}$/;
+/** 에이전트가 만든 값은 이름에 자기 번호를 적는다 (`… (04_financial)`) */
+const LOOKS_LIKE_AGENT = /\(\d{2}_[a-z]+\)/;
+
+function inferOrigin(source) {
+  const s = String(source || '');
+  if (!s) return 'derived';
+  if (s === 'user_request') return 'request';
+  if (LOOKS_LIKE_AGENT.test(s)) return 'derived';
+  if (LOOKS_LIKE_FILE.test(s)) return 'document';
+  return 'public';
+}
+
 class Fact {
   constructor(o) {
     if (!o || !o.key) throw new Error('Fact.key 필수');
@@ -40,8 +77,17 @@ class Fact {
     this.confidence = clamp01(o.confidence ?? 0.5);
     this.verified = !!o.verified;
     this.note = o.note || null;
+    /* ★ 밝힌 것이 있으면 그대로 쓰고, 없으면 짐작하되 **짐작했다고 적는다** */
+    const told = o.origin && Object.prototype.hasOwnProperty.call(ORIGIN, o.origin);
+    this.origin = told ? o.origin : inferOrigin(o.source);
+    /* ★ 다시 만들어질 때(`new Fact(f.toJSON())`) **짐작이었다는 사실을 잃지
+     *   않는다.** 잃으면 확정값이 「밝힌 값」처럼 보인다 */
+    this.originGuessed = told ? !!o.originGuessed : true;
     this.lastUpdated = o.lastUpdated || kstStamp();
   }
+
+  /** 등급. 높을수록 먼저다 */
+  get tier() { return ORIGIN[this.origin] ?? 0; }
 
   /** IM 본문에 노출할 출처 표기 */
   citation() {
@@ -56,6 +102,7 @@ class Fact {
       key: this.key, value: this.value, unit: this.unit,
       source: this.source, sourceDate: this.sourceDate, page: this.page,
       quote: this.quote, confidence: this.confidence, verified: this.verified,
+      origin: this.origin, originGuessed: this.originGuessed,
       note: this.note, lastUpdated: this.lastUpdated,
     };
   }
@@ -174,17 +221,25 @@ class Dataset {
         else groups.push({ value: f.value, facts: [f] });
       }
 
-      // 그룹 점수: 독립 출처 수 우선, 그다음 최고 신뢰도
+      /* ★★★ **등급을 먼저 본다** 〈2026-08-24 사장님 지시 — 올린 자료가 1순위〉.
+       *   앞 판은 독립 출처 수만 봤다. 그래서 공공데이터·계산값이 여럿이면
+       *   **올린 문서를 이겼다.** 자료를 올린 사람에게는 「내 자료가 안 쓰였다」가
+       *   되는데, 출처 표시가 멀쩡해서 문서만 봐서는 안 잡힌다.
+       * ★ 등급이 같을 때에만 예전 규칙(출처 수 → 신뢰도)으로 가른다.
+       * ★ **진 값은 사라지지 않는다** — `alternatives` 에 남고 충돌도 그대로다. */
+      const tierOf = g => Math.max(...g.facts.map(f => f.tier));
       const score = g => {
         const sources = new Set(g.facts.map(f => f.source));
         const maxConf = Math.max(...g.facts.map(f => f.confidence));
         const anyVerified = g.facts.some(f => f.verified);
         return sources.size * 10 + maxConf + (anyVerified ? 5 : 0);
       };
-      groups.sort((a, b) => score(b) - score(a));
+      groups.sort((a, b) => (tierOf(b) - tierOf(a)) || (score(b) - score(a)));
 
       const winnerGroup = groups[0];
-      const winner = winnerGroup.facts.slice().sort((a, b) => b.confidence - a.confidence)[0];
+      /* ★ 이긴 무리 안에서도 **등급이 높은 값**을 대표로 삼는다 */
+      const winner = winnerGroup.facts.slice()
+        .sort((a, b) => (b.tier - a.tier) || (b.confidence - a.confidence))[0];
       const independentSources = new Set(winnerGroup.facts.map(f => f.source));
 
       const chosen = new Fact(winner.toJSON());
@@ -221,6 +276,23 @@ class Dataset {
       this.resolved.set(key, chosen);
     }
     return this;
+  }
+
+  /**
+   * 확정값이 **어디서 왔는지** 센다 〈2026-08-24〉.
+   *
+   * ★ 「올린 자료 100%, 나머지는 보완」이 지켜지는지는 **세어 봐야** 안다.
+   *   화면과 보고서가 이 셈을 그대로 적는다 — 안 적으면 통상치가 몇 개
+   *   섞였는지 아무도 모른 채로 문서가 나간다.
+   */
+  tally() {
+    const out = { document: 0, public: 0, request: 0, derived: 0, guessed: 0, total: 0 };
+    this.resolved.forEach((f) => {
+      out[f.origin] = (out[f.origin] || 0) + 1;
+      if (f.originGuessed) out.guessed += 1;
+      out.total += 1;
+    });
+    return out;
   }
 
   get(key) { return this.resolved.get(key) || null; }
@@ -265,4 +337,5 @@ class Dataset {
   }
 }
 
-module.exports = { Fact, Dataset, sameValue, DEFAULT_TOLERANCE };
+module.exports = {
+  ORIGIN, inferOrigin, Fact, Dataset, sameValue, DEFAULT_TOLERANCE };
