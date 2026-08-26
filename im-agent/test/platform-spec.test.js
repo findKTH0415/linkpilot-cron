@@ -247,3 +247,18 @@ test('★ registry.list() 는 IM 파이프라인만 돌려준다 — 세는 검�
   assert.strictEqual(registry.get('20_platform_spec').id, '20_platform_spec',
     'get() 이 Task Agent 를 못 찾는다 — router 가 「미구현」으로 잡는다');
 });
+
+test('★★ Task 갈래도 「결과가 쓰이는가」를 잰다 — main 의 여섯째 칸을 비켜 가지 않는다', () => {
+  // ★ main 이 pipeline 쪽에 그 칸을 만든 날, Task 갈래는 그대로 비켜 갔다.
+  //   D-132 가 걱정한 「검사를 피하는 문」이 실제로 열린 자리다.
+  //   여기서는 「Task 가 내겠다고 적은 산출물을 모듈이 실제로 쓰는가」로 잰다.
+  const path2 = require('path');
+  const fs2 = require('fs');
+  const taskplanSrc = fs2.readFileSync(path2.join(__dirname, '..', 'core', 'taskplan.js'), 'utf8');
+  assert.ok(taskplanSrc.includes(agent.SPEC_PATH),
+    `taskplan 의 T22 가 ${agent.SPEC_PATH} 를 산출물로 안 적었다`);
+
+  const row = doctor.check().rows.find(r => r.id === '20_platform_spec');
+  assert.ok(row, 'Task Agent 가 점검 표에 없다');
+  assert.notStrictEqual(row.쓰임, '✗', '「쓰임」 칸이 비었다 — 돌기만 하고 아무것도 안 남긴다');
+});

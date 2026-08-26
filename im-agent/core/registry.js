@@ -55,8 +55,16 @@ const REAL_ESTATE_AGENTS = ['07_geo', '08_appraisal', '09_massing', '12_sketchup
  *   Legal·Technical 을 18·19 로 밀었다 — 같은 번호가 두 뜻이 되면 D-77 이 재발한다.
  */
 const PLANNED = {
-  '19_technical':    { label: 'Technical Agent', phase: 2 },
-  '14_risk':         { label: 'Risk Agent', phase: 2, note: '현재는 05_validation 이 RED/YELLOW/GREEN 을 겸한다' },
+  // ★ **만들지 않기로 확정** 〈2026-08-26 · D-113 재확정〉.
+  //   담당은 Engineering Agent 가 넓혀 맡는다 — 설비·공정·성능은 도면·구조와
+  //   **같은 자료를 본다.** 갈라 두면 같은 값을 두 곳에서 읽게 된다 (지침 §1-3).
+  //   ★ 그래도 **지우지 않는다.** 지우면 「그 검토는 원래 안 하는 것」으로 굳는다 (D-20).
+  '19_technical':    { label: 'Technical Agent', phase: 2, note: '만들지 않는다 — Engineering Agent 가 넓혀 맡는다 (D-113 재확정)' },
+  // ★ **만들지 않기로 확정** 〈2026-08-26 · D-113 재확정〉.
+  //   지침 §4.1 이 「리스크·민감도」를 Engine 몫으로 적었다. 새 Agent 를 두면
+  //   **같은 판정이 05_validation 과 두 곳에서 나오고**, 서로 다를 때 어느 쪽이
+  //   맞는지 정할 방법이 없다.
+  '14_risk':         { label: 'Risk Agent', phase: 2, note: '만들지 않는다 — Engine Agent 가 넓혀 맡는다. 지금은 05_validation 이 RED/YELLOW/GREEN 을 겸한다 (D-113 재확정)' },
   '16_reviewer':     { label: 'Reviewer Agent (QC Score)', phase: 2, note: '11_final_validation 이 대체 — 별도 구현 불필요' },
   '17_distribution': { label: 'Distribution Agent', phase: 3, note: '외부 발송 — 사람 승인 없이는 절대 실행하지 않는다' },
 };

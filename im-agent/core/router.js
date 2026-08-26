@@ -201,13 +201,18 @@ const CAPABILITIES = {
   },
 
   // ── 아래는 담당 Agent 가 **아직 없다.** 대체로 태우지 않는다 ──
+  // ★ 새 Agent 를 만들지 않기로 확정 〈2026-08-26 · D-113 재확정〉 —
+  //   Engineering Agent 가 넓혀 맡는다. 담당이 정해진 것이지 **아직 그 일을
+  //   하는 것은 아니다** — 그 둘은 다른 사실이다.
   TECHNICAL_REVIEW: {
     label: '기술 검토', agents: ['19_technical'], tools: [],
-    note: '미구현 (registry.PLANNED phase 2)',
+    note: '새 Agent 를 만들지 않는다 — Engineering Agent 가 넓혀 맡는다 (D-113 재확정). 아직 안 넓혔다',
   },
+  // ★ 같은 이유로 새 Agent 를 만들지 않는다 — 두면 같은 판정이 05_validation 과
+  //   **두 곳에서** 나오고, 서로 다를 때 어느 쪽이 맞는지 정할 방법이 없다.
   RISK_ANALYSIS: {
     label: 'Risk Analysis', agents: ['14_risk'], tools: [],
-    note: '미구현 — 지금은 05_validation 이 RED/YELLOW/GREEN 을 겸한다',
+    note: '새 Agent 를 만들지 않는다 — Engine Agent 가 넓혀 맡는다 (D-113 재확정). 지금은 05_validation 이 RED/YELLOW/GREEN 을 겸한다',
   },
   // ★★ **PPT 는 Agent 가 아니라 기능이다** 〈2026-08-26 · D-113〉.
   //   내용은 Engine 이 만들고 형식만 바꾸는 일이라 담당 Agent 를 두지 않는다.

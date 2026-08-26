@@ -1,6 +1,6 @@
 'use strict';
 /**
- * agent-doctor.js — **Agent 하나가 다섯 곳에 다 배선됐는지 센다.**
+ * agent-doctor.js — **Agent 하나가 다섯 곳에 다 배선됐는지, 그리고 그 결과가 쓰이는지 센다.**
  *
  *   npm run agent:check
  *
@@ -94,6 +94,34 @@ function check() {
     const tested = testBlob.includes(id);
     if (!tested) bad('이 Agent 를 이름으로 재는 검사가 하나도 없다');
 
+    /* ⑦ **결과가 쓰이는가** 〈2026-08-26 사장님 지시 · 권고안〉
+     *
+     * ★★★ **부르는 것과 쓰이는 것은 다른 사실이다.** ④ 는 「부르는가」만 센다.
+     *   실제로 오늘 `15_design` 이 그 자리에 걸렸다 — 배선 다섯 곳이 **전부
+     *   초록**인데 그 판정이 최종 게이트까지 안 갔다. Design Manager 가
+     *   「통과 못 했다」고 해도 문서는 그대로 나갔을 것이다.
+     *   그리고 이 칸을 만들면서 **`18_legal` 도 같은 상태인 것**을 찾았다.
+     *
+     * ★ 무엇을 「쓰인다」로 보나 — `pipeline.js` 에서 그 결과를 담은 변수의
+     *   **`.output` 이 한 번이라도 다시 나오는가.** 파일로 쓰든, 다음 Agent 의
+     *   입력으로 넘기든, 화면에 찍든 그 자리를 지난다.
+     *   `results[id] = x` 만 있는 것은 **쓰인 것이 아니다** — 그 표는 실행
+     *   기록이지 산출물이 아니다.
+     *
+     * ★ 변수에 안 담고 바로 부르는 판(`await runAgent('x', …)`)도 **쓰이지 않는
+     *   것으로 본다.** 담지 않았으면 다시 쓸 방법이 없다.
+     */
+    const bind = pipeline.match(
+      new RegExp(`(?:const|let)\\s+([A-Za-z_$][\\w$]*)\\s*=\\s*await\\s+runAgent\\('${id}'`));
+    const usedCount = bind
+      ? (pipeline.match(new RegExp(`\\b${bind[1]}\\.output\\b`, 'g')) || []).length
+      : 0;
+    const used = usedCount > 0;
+    if (called && !used) {
+      bad('결과가 아무 데도 안 간다 — 부르기만 하고 `.output` 을 쓰지 않는다.'
+        + ' 파일로 쓰거나 다음 Agent 에 넘기지 않으면 **돌기만 하고 아무것도 안 바꾼다**');
+    }
+
     return {
       id,
       order: a.order,
@@ -103,6 +131,7 @@ function check() {
       부름: called ? 'ok' : '✗',
       화면: shown ? 'ok' : '✗',
       검사: tested ? 'ok' : '✗',
+      쓰임: used ? `${usedCount}곳` : '✗',
     };
   });
 
@@ -156,7 +185,29 @@ function check() {
     const tested = testBlob.includes(id);
     if (!tested) bad('이 Agent 를 이름으로 재는 검사가 하나도 없다');
 
-    return { id, order: '(Task)', 계약: contract, 비중: '(IM 아님)', 선행: a.task || '✗', 부름: capOk ? cap : '✗', 화면: '(IM 아님)', 검사: tested ? 'ok' : '✗' };
+    /* ★★★ **결과가 쓰이는가 — Task 잣대로** 〈2026-08-26〉.
+     *
+     *   위 ⑦ 은 `pipeline.js` 만 본다. Task 전용 Agent 는 pipeline 에 없으므로
+     *   **그 칸을 그냥 비켜 간다** — 그러면 이 갈래가 「검사를 피하는 문」이 된다.
+     *   D-132 가 걱정한 바로 그 자리이고, ⑦ 이 생긴 날 실제로 그렇게 됐다.
+     *
+     * ★ Task 에서 「쓰인다」는 **그 Task 가 내겠다고 적은 산출물을 실제로 쓰는가**다.
+     *   `taskplan` 의 `outputs` 에 적힌 경로가 Agent 모듈 안에 있어야 한다.
+     *   적어만 두고 안 쓰면 그 Task 는 **돌기만 하고 아무것도 안 남긴다** —
+     *   그리고 다음 Task 는 없는 파일을 기다린다. */
+    const taskBlock = a.task
+      ? (taskplanSrc.match(new RegExp(`id: '${a.task}'[\\s\\S]*?\\}`)) || [''])[0]
+      : '';
+    const declared = [...taskBlock.matchAll(/'([\w/]+\.(?:json|md|html|svg|pptx|pdf))'/g)].map(m => m[1]);
+    const modSrc = mod ? read(a.module.replace(/^\.\.\//, '') + '.js') : '';
+    const unwritten = declared.filter(o => !modSrc.includes(o));
+    if (declared.length && unwritten.length) {
+      bad(`Task 가 내겠다고 적은 산출물을 모듈이 안 쓴다: ${unwritten.join(', ')}`
+        + ' — 돌기만 하고 아무것도 안 남긴다. 다음 Task 는 없는 파일을 기다린다');
+    }
+    const used = declared.length > 0 && unwritten.length === 0;
+
+    return { id, order: '(Task)', 계약: contract, 비중: '(IM 아님)', 선행: a.task || '✗', 부름: capOk ? cap : '✗', 화면: '(IM 아님)', 검사: tested ? 'ok' : '✗', 쓰임: used ? `${declared.length}건` : '✗' };
   });
   rows.push(...taskRows);
 
@@ -176,7 +227,7 @@ function check() {
 
 function main() {
   const { rows, problems, weightTotal } = check();
-  process.stdout.write('\nAgent 배선 점검 — 다섯 곳이 다 맞는가\n\n');
+  process.stdout.write('\nAgent 배선 점검 — 여섯 곳이 다 맞는가 (부르는가 · 그리고 **쓰이는가**)\n\n');
   // eslint-disable-next-line no-console
   console.table(rows);
   process.stdout.write(`  Agent ${rows.length}개 · 진행률 비중 합계 ${weightTotal}\n\n`);

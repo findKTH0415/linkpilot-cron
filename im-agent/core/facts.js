@@ -58,6 +58,75 @@ function inferOrigin(source) {
   return 'public';
 }
 
+/**
+ * ★★★ **출처를 세는 이름** — `source` 문자열이 아니라 이것으로 센다 (D-117).
+ *
+ *   〈2026-08-26 사장님 지시 「source_id 를 다음 것으로」〉
+ *
+ * ★★ **왜 이것이 D-117 셋 중 가장 급한가.** 나머지 둘은 「불편」이고
+ *   이것은 **거짓**이다. 아래가 그 자리다 (`resolve()`):
+ *
+ *     const independentSources = new Set(facts.map(f => f.source));
+ *     if (independentSources.size >= 2) { chosen.verified = true; … }
+ *
+ *   같은 곳을 **다르게 적으면 둘로 세어져 「검증됨」이 된다.** 그러면
+ *   「독립된 두 출처가 같은 값을 말한다」는 이 시스템의 근거가 거짓이 된다.
+ *   실제 자료에 그 꼴이 있다 — `감정평가 Agent · 수익환원법` 과
+ *   `감정평가 Agent · 1방식 가중평균` 은 **우리 Agent 가 자기 자신과 일치한 것**이다.
+ *
+ * ★★★ **덜 세는 쪽이 안전하다.** 둘을 하나로 잘못 합치면 `verified` 를 하나
+ *   놓칠 뿐이고, 문서는 **더 조심스러워진다.** 반대로 하나를 둘로 세면
+ *   **없는 근거를 만든다.** 그래서 애매하면 **합치는 쪽**으로 간다.
+ *
+ * ★ **저장하지 않고 파생한다** (`confidence.js` 와 같은 규칙 — D-116).
+ *   두 곳에 따로 적으면 반드시 어긋난다. `source` 하나만 저장하고 여기서 낸다.
+ *
+ * 무엇을 떼나 — 셋. 전부 **「같은 곳인가」에 영향을 안 주는 것**이다.
+ *   ① 뒤에 붙는 조건 괄호       `국토계획법 시행령(용도지역: 일반공업지역)`
+ *                              → 같은 법령이다. 조회 조건이 다를 뿐이다
+ *   ② 가운뎃점 뒤의 방법·갈래   `감정평가 Agent · 수익환원법`
+ *                              → 같은 Agent 다. 방법이 다르다고 독립 출처가 아니다
+ *   ③ 대소문자·군더더기 공백
+ *
+ * ★ 그리고 **기관 별칭**은 표로 둔다. 「국토교통부 실거래가」와
+ *   「MOLIT 실거래가」는 같은 곳이다. 표에 없는 것은 **합치지 않는다** —
+ *   짐작으로 합치면 진짜 독립 출처를 잃는다.
+ */
+/* ★ 별칭은 **앞머리**로만 본다. `\b` 를 쓰면 안 된다 — 자바스크립트의 낱말
+ *   경계는 영문·숫자 기준이라 **한글 뒤에서는 경계가 안 잡힌다.**
+ *   실제로 「국토교통부 실거래가」가 안 걸려서 알았다 (2026-08-26). */
+const SOURCE_ALIASES = [
+  [/^(국토교통부|국토부|molit)(?:\s|$)/i, 'molit'],
+  [/^(한국부동산원|부동산원|reb)(?:\s|$)/i, 'reb'],
+  [/^(한국은행|한은|ecos)(?:\s|$)/i, 'ecos'],
+  [/^(통계청|kosis)(?:\s|$)/i, 'kosis'],
+  [/^(기상청|kma)(?:\s|$)/i, 'kma'],
+  [/^(전력거래소|kpx)(?:\s|$)/i, 'kpx'],
+  [/^(금융위원회|fsc)(?:\s|$)/i, 'fsc'],
+  [/^(브이월드|vworld)(?:\s|$)/i, 'vworld'],
+  [/^(국가공간정보|nsdi)(?:\s|$)/i, 'nsdi'],
+  [/^(법제처|국가법령정보|law\.go\.kr)(?:\s|$)/i, 'law'],
+  [/^(금융감독원|전자공시|dart)(?:\s|$)/i, 'dart'],
+];
+
+/**
+ * 출처 문자열 → 세는 이름. 같은 곳이면 같은 값이 나온다.
+ * @param {string} source
+ * @returns {string}
+ */
+function sourceId(source) {
+  let s = String(source || '').trim();
+  if (!s) return '';
+  // ① 뒤에 붙는 조건 괄호를 뗀다 — 조회 조건이지 다른 출처가 아니다
+  s = s.replace(/\s*[(（][^)）]*[)）]\s*$/, '').trim();
+  // ② 가운뎃점 뒤의 방법·갈래를 뗀다 — 같은 곳이 방법만 달리한 것이다
+  s = s.split(/\s*[·・]\s*/)[0].trim();
+  // ③ 대소문자·군더더기 공백
+  s = s.toLowerCase().replace(/\s+/g, ' ');
+  for (const [re, id] of SOURCE_ALIASES) if (re.test(s)) return id;
+  return s;
+}
+
 class Fact {
   constructor(o) {
     if (!o || !o.key) throw new Error('Fact.key 필수');
@@ -88,6 +157,9 @@ class Fact {
 
   /** 등급. 높을수록 먼저다 */
   get tier() { return ORIGIN[this.origin] ?? 0; }
+
+  /** 출처를 **세는 이름**. 저장하지 않고 `source` 에서 낸다 (D-117) */
+  get sourceId() { return sourceId(this.source); }
 
   /** IM 본문에 노출할 출처 표기 */
   citation() {
@@ -229,7 +301,7 @@ class Dataset {
        * ★ **진 값은 사라지지 않는다** — `alternatives` 에 남고 충돌도 그대로다. */
       const tierOf = g => Math.max(...g.facts.map(f => f.tier));
       const score = g => {
-        const sources = new Set(g.facts.map(f => f.source));
+        const sources = new Set(g.facts.map(f => f.sourceId));
         const maxConf = Math.max(...g.facts.map(f => f.confidence));
         const anyVerified = g.facts.some(f => f.verified);
         return sources.size * 10 + maxConf + (anyVerified ? 5 : 0);
@@ -240,7 +312,11 @@ class Dataset {
       /* ★ 이긴 무리 안에서도 **등급이 높은 값**을 대표로 삼는다 */
       const winner = winnerGroup.facts.slice()
         .sort((a, b) => (b.tier - a.tier) || (b.confidence - a.confidence))[0];
-      const independentSources = new Set(winnerGroup.facts.map(f => f.source));
+      /* ★★★ **글자가 아니라 「세는 이름」으로 센다** (D-117).
+       *   앞 판은 `f.source` 를 그대로 셌다 — 같은 곳을 다르게 적으면 둘로
+       *   세어져 **없는 근거를 만들었다.** 바로 아래에서 그 수가 `verified` 를
+       *   켠다. 그것이 이 저장소에서 가장 비싼 종류의 거짓말이다. */
+      const independentSources = new Set(winnerGroup.facts.map(f => f.sourceId));
 
       const chosen = new Fact(winner.toJSON());
       if (independentSources.size >= 2) {
@@ -338,4 +414,4 @@ class Dataset {
 }
 
 module.exports = {
-  ORIGIN, inferOrigin, Fact, Dataset, sameValue, DEFAULT_TOLERANCE };
+  ORIGIN, inferOrigin, sourceId, SOURCE_ALIASES, Fact, Dataset, sameValue, DEFAULT_TOLERANCE };
