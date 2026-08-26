@@ -59,7 +59,24 @@ function resolveFrom(fromFile, spec) {
  *   헛울음 한 번이면 아무도 안 믿게 된다.
  */
 function pointsTo(file, byBasename) {
-  const s = fs.readFileSync(file, 'utf8');
+  /**
+   * ★★★ **읽는 사이에 사라질 수 있다** 〈2026-08-26 · CI 에서 났다〉.
+   *
+   *   이 스캔은 **살아 있는 폴더**를 걷는다. 그런데 검사들이 같은 폴더에
+   *   임시 표본을 만들었다 지운다 — `files-tab.test.js` 의 탐침이 그렇다.
+   *   `node --test` 는 파일마다 프로세스를 띄우므로 **목록을 잡은 순간과
+   *   읽는 순간 사이**에 그 파일이 사라진다.
+   *
+   *   그러면 여기서 `ENOENT` 로 죽고, 죽는 자리가 `guardPanel` → 미리보기
+   *   생성이라 **엉뚱한 검사가 빨개진다.** 실제로 CI 가 그렇게 났고,
+   *   같은 자리를 혼자 돌리면 통과해서 **원인이 안 보인다.**
+   *
+   * ★ 없어진 파일은 **가리키는 것이 없다**로 본다. 그것이 참이다 —
+   *   지어내는 것이 아니라, 없는 것에서 나올 것이 없을 뿐이다.
+   */
+  let s;
+  try { s = fs.readFileSync(file, 'utf8'); }
+  catch (e) { if (e.code === 'ENOENT') return new Set(); throw e; }
   const hits = new Set();
   const rel = (spec) => { const f = resolveFrom(file, spec); if (f) hits.add(f); };
 
@@ -120,6 +137,9 @@ function scan() {
   (function walk(dir) {
     for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
       if (e.isDirectory()) { if (!SKIP_DIR.test(e.name)) walk(path.join(dir, e.name)); continue; }
+      // ★ 숨은 이름(`.` 으로 시작)은 **검사가 만들었다 지우는 임시 표본**이다.
+      //   출발점으로 셀 것도 아니고, 세는 사이에 사라져 스캔을 죽인다 (위 주석).
+      if (e.name.startsWith('.')) continue;
       if (/\.(html|jsx|tsx)$/.test(e.name)) screens.push(path.join(dir, e.name));
     }
   }(ROOT));

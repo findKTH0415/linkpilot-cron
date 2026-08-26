@@ -273,6 +273,47 @@ function imflow() {
     line || '결과를 못 읽었다');
 }
 
+/* ── ⑩ 문서가 요청한 활자로 그려지는가 ──────────────────── */
+/**
+ * ★★★ **재는 장치는 있었는데 아무도 안 봤다** 〈2026-08-26 · 인수인계 감사에서 드러났다〉.
+ *
+ *   `core/fonts.js` 가 「요청한 글꼴이 실제로 쓰이는가」를 fontconfig 에게
+ *   직접 물어 본다 — 이미 정확하다. 그런데 그 답이 **경고 한 줄로 흘러갔다.**
+ *   `im:demo` 로그 한가운데에 ⚠ 로 찍히고 그대로 지나간다.
+ *
+ *   그래서 감사에서 **PDF 24쪽이 중국어 글꼴로 그려진 채** 「9/9 통과」로
+ *   보고될 뻔했다. 교차검증이 초록인데 산출물의 활자가 다른 상태다 —
+ *   M-25 가 막으려던 「고쳤다고 말하는데 다른 것을 보고 있는」 꼴과 같다.
+ *
+ * ★★ **실패(1)가 아니라 「못 잼」(2)으로 둔다.** 이 개발 자리에는 한글 글꼴이
+ *   없는 것이 정상이고, 여기서 빨갛게 끝내면 **늘 빨갛고 아무도 안 본다**.
+ *   문서를 실제로 만드는 자리(CI·NAS)는 `fonts-noto-cjk` 를 설치하므로
+ *   거기서는 초록이 된다 — 배포 문턱은 그대로 지켜진다.
+ *
+ * ★ 요청 글꼴은 **`design/tokens.js` 한 곳에서 온다.** 여기 다시 적으면
+ *   두 벌이 되고, 그러면 토큰을 바꾼 날부터 이 칸이 옛말을 한다.
+ */
+function typeface() {
+  let r;
+  try {
+    const fonts = require('../core/fonts.js');
+    r = fonts.check(require('../design/tokens.js').FONT);
+    if (r.ok) {
+      add('문서 활자', 'ok', require('../core/fonts.js').summarize(r));
+      return;
+    }
+  } catch (e) {
+    add('문서 활자', 'unknown', `못 쟀다 — ${String(e.message).split('\n')[0]}`);
+    return;
+  }
+  const sub = Object.entries(r.substitutes || {})
+    .map(([want, got]) => `${want} → ${got}`).join(' · ');
+  add('문서 활자', 'unknown',
+    `요청한 글꼴이 이 자리에 없다 (${sub || r.missing.join(', ')})`
+    + ' — 여기서 만든 PDF 는 **다른 활자로** 그려진다. 문서를 실제로 내보내는'
+    + ' 자리(CI·NAS)에는 fonts-noto-cjk 가 설치된다');
+}
+
 /**
  * ★★★ **재기만 하고 아무도 안 보는 숫자는 없는 숫자다** 〈2026-08-26 · D-118 후속〉.
  *
@@ -300,10 +341,63 @@ function rightsNote() {
   }
 }
 
+/**
+ * ★★★ **복원시험도 나갈 때마다 눈에 띄어야 한다** 〈2026-08-26 · 감사 H-1〉.
+ *
+ *   감사 지침 §11-4 — 「백업의 **존재가 아니라** 실제 복원시험에 성공해야 한다」.
+ *   그래서 `backup.js` 를 만들었는데, **손으로 돌려야 도는 장치는 안 돈다**
+ *   (D-88 에서 이미 겪었다: 눌러야 도는 배포는 아무도 안 눌러서 NAS 가 옛 판으로 남았다).
+ *
+ * ★★ 여기서는 **떠 둔 것이 지금 자료와 같은지**만 잰다 — 그것은 빠르다.
+ *   빈 자리에 되살리는 진짜 시험은 `npm run backup:drill` 이다.
+ *   교차검증마다 전체를 되살리면 느려지고, 느린 검사는 꺼진다.
+ *
+ * ★ 칸(통과/실패)으로 만들지 않는다. 백업이 아직 없는 자리에서 배포를 막으면
+ *   그것은 이 도구가 정할 일이 아니다 — 사람이 정한다.
+ */
+function backupNote() {
+  try {
+    const b = require('./backup.js');
+    const fs2 = require('fs');
+    if (!fs2.existsSync(b.DEST)) {
+      return '  · 자료 백업(H-1) **아직 한 벌도 안 떴다** — `npm run backup:write`'
+        + ' 로 뜨고 `npm run backup:drill` 로 되살아나는지 잰다\n';
+    }
+    const v = b.verify();
+    return `  · 자료 백업(H-1) ${v.ok ? '뜬 것이 지금 자료와 같다' : v.line}\n`;
+  } catch (e) {
+    return `  · 자료 백업(H-1) 못 쟀다 — ${String(e.message).split('\n')[0]}\n`;
+  }
+}
+
+
+/**
+ * ★★★ **채워지지 않은 장부는 배포마다 보여야 한다** 〈2026-08-26 · 감사 게이트 13〉.
+ *
+ *   지침 §6 — 「인계자 또는 인수자가 지정되지 않은 항목은 완료로 판정하지 않는다」.
+ *   그런데 **비어 있다는 사실 자체가 안 보이면** 아무도 안 채운다.
+ *   그것이 「몇 주 뒤에 정하자」가 영원히 안 정해지는 꼴이다 (D-118 과 같은 결).
+ *
+ * ★ 칸으로 만들지 않는다 — 사람 이름이 없다고 배포를 막는 것은 이 도구가
+ *   정할 일이 아니다. 표 아래 한 줄로 **세어서 보인다.**
+ */
+function ledgerNote() {
+  try {
+    const L = require('./handover-ledger.js');
+    const fs2 = require('fs');
+    if (!fs2.existsSync(L.LEDGER)) return '';
+    const rows = L.parse();
+    if (!rows) return '  · 인수인계 관리대장 표를 못 읽었다 — 머리글이 바뀌었는지 본다\n';
+    return `  · ${L.line(L.count(rows))}\n`;
+  } catch (e) {
+    return `  · 인수인계 관리대장 못 쟀다 — ${String(e.message).split('\n')[0]}\n`;
+  }
+}
+
 /* ── 내보내기 ──────────────────────────────────────────── */
 
 function main() {
-  tests(); stamp(); previews(); render(); saveBar(); openFile(); agents(); branches(); imflow();
+  tests(); stamp(); previews(); render(); saveBar(); openFile(); agents(); branches(); imflow(); typeface();
 
   const mark = { ok: '✅', fail: '❌', unknown: '⚠️ ' };
   const pad = (s, n) => s + ' '.repeat(Math.max(0, n - [...s].reduce((a, c) => a + (c.charCodeAt(0) > 0x1100 ? 2 : 1), 0)));
@@ -316,7 +410,7 @@ function main() {
   const unk = rows.filter((r) => r.state === 'unknown').length;
   process.stdout.write(`\n  통과 ${rows.length - bad - unk} · 실패 ${bad} · 못 잼 ${unk}`
     + '  ← 못 잰 것은 통과가 아니다\n');
-  process.stdout.write(rightsNote() + '\n');
+  process.stdout.write(rightsNote() + backupNote() + ledgerNote() + '\n');
 
   if (bad) {
     process.stdout.write('❌ **내보내지 않는다.** 위 실패를 먼저 고친다.\n');
@@ -331,4 +425,4 @@ function main() {
 }
 
 if (require.main === module) process.exit(main());
-module.exports = { tests, stamp, previews, render, saveBar, openFile, agents, branches, rightsNote, rows };
+module.exports = { tests, stamp, previews, render, saveBar, openFile, agents, branches, typeface, rightsNote, backupNote, ledgerNote, rows };
