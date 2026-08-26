@@ -7,7 +7,11 @@
     "★ 재는 방법은 `npm run merge:watch` 다. 주인이 둘이거나 없으면 그 자리에서 말한다.",
     "★ scope 는 그 갈래가 '주로' 건드리는 곳이다. 넘었다고 곧 잘못은 아니다 —",
     "  다만 넘은 사실을 보이게 해서 사장님이 판단하실 수 있게 한다.",
-    "★ 이 파일의 scope 는 내(Orchestrator)가 짐작으로 적은 것이 있다. D-125 로 올렸다."
+    "★ 이 파일의 scope 는 내(Orchestrator)가 짐작으로 적은 것이 있다. D-125 로 올렸다.",
+    "",
+    "★★ `합치지않음: true` 는 **main 과 뿌리가 달라 영원히 안 합쳐지는 갈래**다 (D-130).",
+    "  감시 화면의 「아직 안 합친 갈래」에서 빼고 따로 적는다. 안 빼면 그 숫자가",
+    "  0 이 되는 날이 안 오고, 0 이 안 되는 숫자는 아무도 안 본다."
   ],
 
   "_영역": {
@@ -38,6 +42,27 @@
       "owner": "MCP Manager",
       "scope": ["MCP", "공용"],
       "note": "LinkPilot 을 내보내는 MCP 서버. 의존성 0"
+    },
+    {
+      "branch": "claude/ops-cron-alerts-and-deploy",
+      "합치지않음": true,
+      "owner": "옛 아침 크론 (보존)",
+      "scope": ["공용"],
+      "note": "★ main 과 뿌리가 다르다 — 영원히 안 합쳐진다. D-130 에서 이 갈래를 **본체**로 정하고 나머지 둘을 여기에 모았다. 셋 중 유일하게 검사(test/cron.test.js)와 CI 를 갖고 있다. 아침 크론을 다른 저장소로 옮길 때 이 갈래를 통째로 가져간다 (CLAUDE.md 맨 위 범위 변경)"
+    },
+    {
+      "branch": "claude/linkpilot-deployment-setup-w8yiqz",
+      "합치지않음": true,
+      "owner": "옛 아침 크론 (합쳐짐)",
+      "scope": ["공용"],
+      "note": "D-130 — 내용이 ops-cron-alerts-and-deploy 에 전부 들어갔다(2dc8ce3). 고유했던 preflight.js 도 옮겼다. 지우지 않고 둔다 — 지우면 되돌릴 수 없다"
+    },
+    {
+      "branch": "claude/start-luizd0",
+      "합치지않음": true,
+      "owner": "옛 아침 크론 (중복)",
+      "scope": ["공용"],
+      "note": "D-130 — linkpilot-deployment-setup-w8yiqz 의 **부분집합**이라 고유한 것이 하나도 없다(git merge-base --is-ancestor 로 확인). 옮길 것이 없었다"
     },
     {
       "branch": "claude/sketchup-engineering-agent-rg04zq",

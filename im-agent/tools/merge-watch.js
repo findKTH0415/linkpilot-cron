@@ -259,8 +259,19 @@ function measure(opts = {}) {
   //     조용히 빼면 「갈래가 사라졌다」로 읽힌다.
   //   ★ `ahead` 를 못 잰 갈래(null)는 **뺴지 않는다.** 모르는 것을 안전한
   //     쪽으로 짐작하면 진짜 위험이 사라진다.
-  const branches = all.filter(b => b.ahead !== 0);
+  //   ★★ **「영원히 안 합칠 갈래」도 뺀다** 〈2026-08-26 사장님 지시 · D-130〉.
+  //     옛 아침 크론 갈래 셋은 main 과 **뿌리가 다르다** — git 이 합치기를
+  //     거절하므로 손으로 파일을 옮기지 않는 한 영영 안 합쳐진다. 그것을
+  //     「아직 안 합친 갈래」로 세면 **그 숫자가 0 이 되는 날이 안 오고,
+  //     0 이 안 되는 숫자는 아무도 안 본다.**
+  //     `docs/갈래-주인.json` 에 `합치지않음: true` 로 적어 둔 것을 뺀다.
+  const noMerge = new Set(
+    (readOwners().갈래 || []).filter(x => x.합치지않음).map(x => x.branch)
+  );
+  const nameOf = b => b.ref.replace(/^origin\//, '');
+  const branches = all.filter(b => b.ahead !== 0 && !noMerge.has(nameOf(b)));
   const merged = all.filter(b => b.ahead === 0);
+  const archived = all.filter(b => b.ahead !== 0 && noMerge.has(nameOf(b)));
 
   // ── 두 갈래씩 전부 — 갈래가 하나 늘면 견줄 짝이 몇 개 느는지 그대로 보인다
   const pairs = [];
@@ -276,7 +287,7 @@ function measure(opts = {}) {
   }
 
   const heat = fileHeat(branches);
-  const owners = ownership(branches, all);
+  const owners = ownership([...branches, ...archived], all);
   const totalConflicts = pairs.reduce((n, p) => n + p.conflicts, 0);
   const conflictedFiles = new Set(pairs.flatMap(p => p.files));
 
@@ -286,12 +297,14 @@ function measure(opts = {}) {
     measuredAt: new Date().toISOString(),
     branches,
     merged,
+    archived,
     pairs,
     heat,
     owners,
     summary: {
       branchCount: branches.length,
       mergedCount: merged.length,
+      archivedCount: archived.length,
       pairCount: pairs.length,
       totalConflicts,
       distinctConflictedFiles: conflictedFiles.size,
@@ -327,6 +340,14 @@ function render(m) {
   if (!m.branches.length) L.push('   (없다 — 열려 있는 갈래가 전부 기준에 들어가 있다)');
   for (const b of m.branches) {
     L.push(`   ${pad(b.name, 40)} ${String(b.ahead).padStart(4)}커밋  ${String(b.files.length).padStart(4)}파일  ${b.head || ''}`);
+  }
+  if ((m.archived || []).length) {
+    L.push('');
+    L.push(`  합치지 않기로 한 갈래 ${m.archived.length}개 — 아래 셈에서 뺐다 (D-130)`);
+    for (const b of m.archived) {
+      L.push(`   ⊘ ${pad(b.name, 40)} ${String(b.ahead).padStart(4)}커밋  ${b.head || ''}`);
+    }
+    L.push(`   (${shortName(m.base)} 과 뿌리가 달라 git 이 합치기를 거절한다 — 옛 아침 크론)`);
   }
   if ((m.merged || []).length) {
     L.push('');
@@ -468,7 +489,7 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:.88em;background:var(--s
 아무것도 바꾸지 않습니다(읽기만 합니다).</p>
 
 <div class="cards">
-  <div class="card"><h3>아직 안 합친 갈래</h3><div class="big">${m.summary.branchCount}</div><p>기준 <code>${esc(m.base)}</code> · 이미 들어간 것 <b>${m.summary.mergedCount}</b>개는 뺐습니다</p></div>
+  <div class="card"><h3>아직 안 합친 갈래</h3><div class="big" style="color:${m.summary.branchCount ? 'var(--ink)' : 'var(--ok)'}">${m.summary.branchCount}</div><p>기준 <code>${esc(m.base)}</code> · 이미 들어간 <b>${m.summary.mergedCount}</b>개와 합치지 않기로 한 <b>${m.summary.archivedCount}</b>개는 뺐습니다</p></div>
   <div class="card"><h3>견줄 짝</h3><div class="big">${m.summary.pairCount}</div><p>하나 더 열면 <b>${m.summary.pairsIfOneMore}</b> 개가 됩니다</p></div>
   <div class="card"><h3>실제로 부딪히는 파일</h3><div class="big" style="color:${m.summary.distinctConflictedFiles ? 'var(--red)' : 'var(--ok)'}">${m.summary.distinctConflictedFiles}</div><p>손으로 풀어야 하는 곳</p></div>
   <div class="card"><h3>가장 나쁜 짝</h3><div class="big">${worst}</div><p>한 번에 풀 곳이 가장 많은 조합</p></div>
@@ -499,6 +520,20 @@ ${m.owners.flatMap(o => o.alerts.filter(a => a.level !== 'MEDIUM').map(a =>
   <b>보이게 해서 사장님이 판단하시게 하는 것</b>이 이 표의 목적입니다.
   <br>주인은 <code>docs/갈래-주인.json</code> 에 적혀 있고, 고치면 이 표가 따라옵니다.
 </div>
+
+${(m.archived || []).length ? `<h2>합치지 않기로 한 갈래 — 위 셈에서 뺐습니다 (D-130)</h2>
+<div class="scroll"><table>
+<tr><th>갈래</th><th>커밋</th><th>맨 위</th><th>마지막 커밋</th></tr>
+${m.archived.map(b => `<tr><td>${esc(b.name)}</td><td class="n">${b.ahead}</td><td class="dim">${esc(b.head || '')}</td><td class="dim">${esc(b.lastSubject || '')}</td></tr>`).join('')}
+</table></div>
+<div class="note">
+  <b>이 셋은 <code>${esc(shortName(m.base))}</code> 과 뿌리가 다릅니다.</b> 족보가 아예 달라서 git 이
+  「뿌리가 다른 것은 안 합친다」며 거절합니다 — 손으로 파일을 옮기지 않는 한 <b>영원히 안 합쳐집니다.</b>
+  옛 아침 크론 갈래이고, 크론을 다른 저장소로 옮길 때 통째로 가져갈 원재료입니다.
+  <br><b>위 숫자에서 뺀 이유</b> — 영영 안 합쳐지는 것을 「할 일」로 세면 그 숫자가 0 이 되는 날이
+  오지 않습니다. 0 이 안 되는 숫자는 아무도 안 봅니다. 뺐다는 사실은 여기 적어 둡니다.
+  <br>표시는 <code>docs/갈래-주인.json</code> 의 <code>합치지않음</code> 에 있습니다.
+</div>` : ''}
 
 ${(m.merged || []).length ? `<h2>이미 ${esc(shortName(m.base))} 에 들어간 갈래 — 위 셈에서 뺐습니다</h2>
 <div class="scroll"><table>

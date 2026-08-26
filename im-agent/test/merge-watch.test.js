@@ -125,6 +125,36 @@ test('★★ 이미 합쳐진 갈래는 「견줄 짝」에서 뺀다 — 병합
   }
 });
 
+test('★★ 「합치지 않기로 한 갈래」는 할 일에서 빼되 화면에는 남긴다 (D-130)', () => {
+  const mw2 = require('../tools/merge-watch');
+  const doc = JSON.parse(
+    require('fs').readFileSync(require('path').join(__dirname, '..', '..', 'docs', '갈래-주인.json'), 'utf8'));
+  const noMerge = new Set((doc.갈래 || []).filter(x => x.합치지않음).map(x => x.branch));
+  assert.ok(noMerge.size >= 1, '합치지않음 표시가 하나도 없다 — 이 검사가 아무것도 재지 않는다');
+
+  const m = mw2.measure();
+  if (!m.ok) return;
+
+  // ★ 그 갈래는 「아직 안 합친 갈래」에 들어가지 않는다.
+  //   영영 안 합쳐지는 것을 할 일로 세면 그 숫자가 0 이 되는 날이 안 온다.
+  for (const b of m.branches) {
+    assert.ok(!noMerge.has(`claude/${b.name}`),
+      `${b.name} 은 합치지 않기로 한 갈래인데 할 일로 세고 있다`);
+  }
+  // ★ 그렇다고 사라지면 안 된다 — 따로 적어 둔다.
+  for (const b of (m.archived || [])) {
+    assert.ok(noMerge.has(`claude/${b.name}`), 'archived 는 표시가 있는 것만 들어간다');
+    assert.notStrictEqual(b.ahead, 0, '이미 합쳐진 것은 archived 가 아니라 merged 다');
+  }
+  assert.strictEqual(m.summary.archivedCount, (m.archived || []).length);
+
+  // ★ 주인 표에는 그대로 나온다 — 주인 없는 갈래를 놓치지 않기 위해서다
+  const shown = new Set(m.owners.map(o => o.branch));
+  for (const b of (m.archived || [])) {
+    assert.ok(shown.has(b.name), `${b.name} 이 주인 표에서 빠졌다`);
+  }
+});
+
 test('★ 적어 둔 갈래가 병합됐다고 「없어졌다」로 세지 않는다', () => {
   const m = mw.measure();
   if (!m.ok) return;
