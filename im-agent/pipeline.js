@@ -611,6 +611,9 @@ async function run(opts = {}) {
     appraisal: appraisal.output || null,
     massing: massing.output || null,
     research: res.output || null,
+    // ★ 지시서 §8.4 — 이 판정을 못 들으면 「기능은 되는데 디자인은 안 본」
+    //   문서가 완료로 나간다 (D-123)
+    design: design.output || null,
   }, ctx);
   results['11_final_validation'] = final;
   if (final.output) {

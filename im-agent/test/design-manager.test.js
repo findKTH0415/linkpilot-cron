@@ -132,3 +132,53 @@ test('★ registry 의 PLANNED 에서 빠졌다 — 구현됐는데 계획에 �
     assert.ok(reg.AGENTS[id], `${id} 가 AGENTS 에 있어야 한다`);
   }
 });
+
+/* ───────────── 판정이 최종 게이트까지 가는가 ───────────── */
+
+test('★★★ 최종 게이트가 Design Manager 의 판정을 듣는다 — 안 들으면 만든 뜻이 없다', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'agents', '11-final-validation.js'), 'utf8');
+  assert.ok(src.includes('DESIGN_VERIFIED'),
+    'GATE 07 이 DESIGN_VERIFIED 를 보지 않으면 「통과 못 했다」가 아무것도 막지 않는다');
+  assert.ok(src.includes('DESIGN_VERDICT_MISSING'),
+    '판정이 안 온 것을 통과로 넘기면 15_design 이 죽어도 아무도 모른다 (D-48 과 같은 결)');
+
+  const pipe = fs.readFileSync(path.join(__dirname, '..', 'pipeline.js'), 'utf8');
+  assert.match(pipe, /design:\s*design\.output/,
+    '파이프라인이 판정을 안 넘기면 게이트가 늘 「못 들었다」가 된다');
+});
+
+test('★★ 판정이 없으면 GATE 07 이 FAIL 이다 — 통과가 아니라 못 들은 것이다', async () => {
+  const fv = require('../agents/11-final-validation');
+  // 이 Agent 는 dataset 을 받아야 돈다. 여기서 재려는 것은 게이트 하나뿐이라
+  // **빈 dataset** 을 준다 — 값이 없으면 다른 게이트가 알아서 FAIL 로 적는다.
+  const ds = { get: () => null, num: () => null, all: () => [], keys: () => [],
+    has: () => false, list: () => [], each: () => {}, entries: () => [] };
+  const out = await fv.run({
+    projectId: 'TEST-NODESIGN',
+    writer: { unsourcedNumbers: [], designViolations: [], citations: [{}] },
+  }, { log: () => {}, warn: () => {}, dataset: ds });
+  const g7 = out.gates.find(g => g.id === 'GATE 07');
+  const c = g7.checks.find(x => x.item === 'DESIGN_VERIFIED');
+  assert.ok(c, 'DESIGN_VERIFIED 칸 자체가 없다');
+  assert.strictEqual(c.result, 'FAIL');
+  assert.ok(out.issues.some(i => i.code === 'DESIGN_VERDICT_MISSING'));
+});
+
+test('★★ 판정이 오면 그 결과를 그대로 반영한다 — 막는 장치가 정말 도는지', async () => {
+  const fv = require('../agents/11-final-validation');
+  const ds = { get: () => null, num: () => null, all: () => [], keys: () => [],
+    has: () => false, list: () => [], each: () => {}, entries: () => [] };
+  const base = { projectId: 'TEST-D', writer: { unsourcedNumbers: [], designViolations: [], citations: [{}] } };
+
+  const pass = await fv.run({ ...base, design: { verified: true, flags: [], modes: [{ mode: 'report', checked: 3 }] } },
+    { log: () => {}, warn: () => {}, dataset: ds });
+  const cPass = pass.gates.find(g => g.id === 'GATE 07').checks.find(x => x.item === 'DESIGN_VERIFIED');
+  assert.strictEqual(cPass.result, 'PASS');
+
+  const fail = await fv.run({ ...base, design: { verified: false, flags: [{ severity: 'RED', type: 'X', message: '이모지' }], modes: [{ mode: 'report', checked: 3 }] } },
+    { log: () => {}, warn: () => {}, dataset: ds });
+  const cFail = fail.gates.find(g => g.id === 'GATE 07').checks.find(x => x.item === 'DESIGN_VERIFIED');
+  assert.strictEqual(cFail.result, 'FAIL');
+  assert.ok(fail.issues.some(i => i.code === 'DESIGN_VIOLATION'),
+    'RED 를 이슈로 안 올리면 게이트만 빨갛고 무엇이 문제인지 아무 데도 안 남는다');
+});
