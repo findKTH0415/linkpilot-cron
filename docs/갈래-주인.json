@@ -14,14 +14,38 @@
     "  0 이 되는 날이 안 오고, 0 이 안 되는 숫자는 아무도 안 본다."
   ],
 
+  "_영역주의": [
+    "★★ 순서가 뜻을 정한다 — 먼저 걸린 것이 이긴다 (areaOf 는 첫 일치를 쓴다).",
+    "  그래서 **좁은 것을 먼저, 넓은 것을 뒤에** 적는다.",
+    "★★ 2026-08-26 실측으로 고쳤다 〈D-125〉. 앞 판은 `raster`·`render` 를 도면3D 에",
+    "  넣어 뒀는데 그 낱말은 화면 쪽에도 쓰인다. 그리고 `ui/` 아래 12개 파일이",
+    "  「화면」으로 안 잡히고 있었다 — 화면 패턴이 `ui/platform/` 처럼 좁았기 때문이다.",
+    "  틀린 영역 표는 「영역 밖 116파일」 같은 숫자를 **아무 뜻 없게** 만든다."
+  ],
+
   "_영역": {
-    "도면3D": ["sketchup", "massing", "ifc", "rhino", "raster", "render", "model-", "09-massing"],
-    "재무엔진": ["financial", "appraisal", "corpvalue", "corpreport", "deskappraisal", "ecos", "dart", "molit", "reb", "g2b"],
-    "자료원": ["connectors/"],
-    "화면": ["ui/platform/", "ui/vanilla/", "ui/lib.js"],
+    "화면": ["im-agent/ui/", "ui/platform/", "ui/vanilla/", "ui/lib.js"],
     "MCP": ["mcp/"],
-    "지휘": ["core/tasks.js", "core/taskplan.js", "core/router.js", "core/orchestrator.js", "core/artifacts.js", "tools/registry-check.js", "tools/merge-watch.js"],
+    "자료원": ["connectors/"],
+    "도면3D": ["sketchup", "massing", "ifc", "rhino", "core/raster.js", "render-", "model-", "09-massing"],
+    "재무엔진": ["financial", "appraisal", "corpvalue", "corpreport", "deskappraisal", "ecos", "dart", "molit", "reb", "g2b"],
+    "지휘": ["core/tasks.js", "core/taskplan.js", "core/router.js", "core/orchestrator.js", "core/artifacts.js", "tools/registry-check.js", "tools/merge-watch.js", "tools/agent-doctor.js", "tools/sync-im-flow.js"],
     "공용": ["docs/", "CLAUDE.md", "MEMORY.md", "HANDOVER.md", "README.md", "package.json", ".github/", ".env.example", "test/"]
+  },
+
+  "_앞으로": {
+    "설명": [
+      "★★★ D-125 결정 〈2026-08-26 사장님 「권고안대로」〉 — **다음부터 갈래를 나눈다.**",
+      "  지금은 나눌 것이 없으니 **비용 0**이다. 섞인 갈래는 이미 병합됐다.",
+      "★ 아래에 두 역할을 **미리 따로** 적어 둔다. 다음에 둘이 한 갈래를 쓰면",
+      "  그 순간 `merge:watch` 가 CRITICAL 을 낸다 — 사람이 기억할 일이 아니게 만든다.",
+      "★ 왜 합치지 않았나(㉡) — 두 사람이 한 이름을 쓰면 경계 다툼이 이름 안으로",
+      "  들어갈 뿐 없어지지 않는다. 오늘 하루에 그 값을 두 번 봤다 (D-113 재확정)."
+    ],
+    "역할": {
+      "Engineering Agent": { "scope": ["도면3D", "공용"], "note": "설비·공정·구조·기술검토(T17 을 넓혀 맡는다 · D-113)" },
+      "SketchUp 트랙": { "scope": ["도면3D"], "note": "모델 계획(12)·수령(13). 평면 B 는 사람 자리다 (D-95)" }
+    }
   },
 
   "갈래": [
@@ -66,10 +90,9 @@
     },
     {
       "branch": "claude/sketchup-engineering-agent-rg04zq",
-      "owner": "Engineering Agent",
-      "coOwners": ["SketchUp 트랙"],
+      "owner": "Engineering Agent · SketchUp (섞였던 갈래 · 이미 병합됨)",
       "scope": ["도면3D", "공용"],
-      "note": "★ 주인이 둘이다. 세션 이름은 「Engineering Agent」와 「SketchUp 트랙」 둘인데 밀어 넣는 곳은 이 갈래 하나다. 병합 뒤 누가 무엇을 했는지 못 가른다 — D-124"
+      "note": "★★ D-125 결정 〈2026-08-26 · 사장님 「권고안대로」〉. 이 갈래는 **이미 main 에 들어갔다** — 나눌 갈래가 남아 있지 않으므로 지금 할 조치가 없다. 잃은 것은 남는다: 149커밋 중 어느 것이 Engineering 이고 어느 것이 SketchUp 인지 **이력만 봐서는 못 가린다.** 되돌릴 수 없다. ★ 앞으로는 **둘을 다른 갈래로 연다** — 아래 `_앞으로` 를 본다"
     }
   ]
 }
