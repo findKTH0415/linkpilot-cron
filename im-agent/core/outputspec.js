@@ -129,7 +129,13 @@ const PRESETS = {
  */
 const SUPPORTED_FORMATS = {
   html: { ext: 'html', label: 'A4 인쇄용 HTML', supported: true },
-  pdf: { ext: 'pdf', label: 'PDF', supported: false, via: 'HTML을 브라우저 인쇄로 출력한다 (헤드리스 렌더러 미탑재)' },
+  // ★★ **되는 것을 안 된다고 말하고 있었다** 〈2026-08-26 · D-128〉.
+  //   `core/pdf.js`(D-53)가 헤드리스 크로미움 `--print-to-pdf` 로 PDF 를 만들고,
+  //   `pipeline.js` 가 그것을 부르고, 데모 산출물에 `12_Final/im-a4.pdf` 가 실제로 있다.
+  //   그런데 여기는 `supported: false` 로 남아 있었다 — pdf.js 는 「선언만 하고
+  //   산출은 HTML 까지였다」를 고치려고 만든 것인데, **고친 뒤 선언을 안 되돌렸다.**
+  //   화면이 「PDF 안 됩니다」라고 말하면 사용자는 되는 기능을 안 쓴다.
+  pdf: { ext: 'pdf', label: 'PDF', supported: true, via: 'core/pdf.js — 헤드리스 크로미움 --print-to-pdf (새 의존성 0 · D-53)' },
   json: { ext: 'json', label: '뷰어용 content.json', supported: true },
   md: { ext: 'md', label: '마크다운 원문', supported: true },
   pptx: { ext: 'pptx', label: 'PowerPoint', supported: false, via: '의존성 추가 승인 필요' },

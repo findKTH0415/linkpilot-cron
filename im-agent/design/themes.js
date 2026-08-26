@@ -53,12 +53,45 @@ const STRUCTURE = {
  *   layouts       절 유형별 선호 레이아웃
  *   density       'compact' | 'normal' | 'airy'  (여백 배율)
  */
+/**
+ * ★★ **문체 프로필** 〈2026-08-26 · 디자인 Agent 지시서 §11.1 · D-126〉.
+ *
+ *   지시서 §11 이 정한 것은 하나다 — 「Design Manager 는 **디자인과 문체를
+ *   분리하지 않고 하나의 프로필로 관리한다**」. 그런데 이 저장소는 절반만
+ *   갖고 있었다: 색과 활자는 테마가 정하는데 **문장은 아무도 안 정했다.**
+ *
+ * ★★ **새 모듈을 만들지 않는다.** 문체를 따로 두면 「이 문서의 테마는 A 인데
+ *   문체는 B」가 가능해지고, 그 둘이 어긋난 문서는 읽는 사람이 먼저 알아챈다.
+ *   테마 객체에 칸 하나를 더해 **한 곳에서 같이 정해진다.**
+ *
+ * ★ **13개 테마에 값을 복붙하지 않는다.** 글꼴에서 이미 겪었다(위 FONT 주석) —
+ *   13군데에 같은 문자열이 있으면 하나를 빠뜨리는 날이 온다. 여기서 정의하고
+ *   테마는 **이름만** 가리킨다.
+ *
+ * ★ **비어 있는 셋을 억지로 채우지 않는다.** 지시서의 9종 중
+ *   `research`·`legal_review`·`court` 는 **그에 맞는 테마가 아직 없다**
+ *   (연구기관·로펌·법원). 없는 테마에 문체만 붙이면 쓸 수 없는 짝이 생긴다.
+ *   테마를 만들 때 함께 붙인다 — D-129.
+ */
+const WRITING = {
+  official:     { id: 'official',     label: '공식 행정형',   traits: ['객관적', '절차적', '근거 중심'],          for: '공기업·공공기관' },
+  executive:    { id: 'executive',    label: '경영진 요약형', traits: ['결론 우선', '수치', '의사결정'],          for: '대기업·금융기관' },
+  persuasive:   { id: 'persuasive',   label: '투자설득형',    traits: ['기회', '수익', '경쟁력', '리스크'],       for: '투자자·IM·Teaser' },
+  technical:    { id: 'technical',    label: '기술전문형',    traits: ['조건', '규격', '검토방법'],               for: '전문기업·엔지니어링' },
+  research:     { id: 'research',     label: '연구학술형',    traits: ['방법론', '결과', '한계', '인용'],         for: '연구서·학술서' },
+  legal_review: { id: 'legal_review', label: '법률검토형',    traits: ['사실', '쟁점', '근거', '결론'],           for: '로펌·법률검토' },
+  court:        { id: 'court',        label: '법원제출형',    traits: ['주장', '증거', '법적 근거의 엄격한 구분'], for: '법원·중재·행정기관' },
+  plain:        { id: 'plain',        label: '쉬운 설명형',   traits: ['짧은 문장', '용어풀이', '예시'],          for: '일반 고객·소규모회사' },
+  brand:        { id: 'brand',        label: '브랜드 홍보형', traits: ['가치', '차별성', '행동유도'],             for: '영업·마케팅·브랜드' },
+};
+
 const THEMES = {
   institutional: {
     id: 'institutional', no: '01',
     label: 'Institutional',
     labelKr: '기관투자자 / PF / Credit',
     purpose: '은행·기관투자자·금융기관·Credit Committee 제출용',
+    writing: WRITING.executive.id,
     traits: ['신뢰성', '보수적', '데이터 중심', '장식 배제'],
     docTypes: ['pf_proposal', 'credit_report', 'ic_memo', 'financial_report', 'dd_report'],
     primary: '#10233C', primaryMid: '#35506F', accent: '#A6813C', accentLight: '#C9A15A',
@@ -76,6 +109,7 @@ const THEMES = {
     label: 'Global Investment Bank',
     labelKr: 'M&A / 글로벌 투자자',
     purpose: '글로벌 투자은행 및 해외 투자자용',
+    writing: WRITING.executive.id,
     traits: ['Premium', 'International', 'Data-driven', 'Executive-focused'],
     docTypes: ['im', 'ma_im', 'teaser', 'investor_presentation'],
     primary: '#0B1B2B', primaryMid: '#2C4257', accent: '#B08D57', accentLight: '#CFAE7B',
@@ -92,6 +126,7 @@ const THEMES = {
     label: 'Private Equity',
     labelKr: 'PE / VC / 대체투자',
     purpose: 'PE·VC·Alternative Investment Fund',
+    writing: WRITING.persuasive.id,
     traits: ['Investment thesis 중심', 'KPI 강조', 'IRR/MOIC 강조', 'Exit 강조'],
     docTypes: ['im', 'ic_memo', 'investor_presentation'],
     primary: '#14213D', primaryMid: '#3A4E75', accent: '#C9A227', accentLight: '#E0BE55',
@@ -110,6 +145,7 @@ const THEMES = {
     label: 'Real Estate Investment',
     labelKr: '부동산 개발 / 매입 / 매각',
     purpose: '부동산 개발·매입·매각·투자 프로젝트',
+    writing: WRITING.persuasive.id,
     traits: ['Location 강조', 'Satellite/GIS', '3D Modeling', 'Valuation', 'Feasibility'],
     docTypes: ['im', 'teaser', 'feasibility', 'valuation_report'],
     primary: '#12314B', primaryMid: '#3E5C77', accent: '#A6813C', accentLight: '#C9A15A',
@@ -127,6 +163,7 @@ const THEMES = {
     label: 'Corporate',
     labelKr: '기업 보고서 / 사업계획서',
     purpose: '기업 보고서 및 사업계획서',
+    writing: WRITING.executive.id,
     traits: ['Corporate Identity', 'Brand Color', '정돈된 표'],
     docTypes: ['business_plan', 'annual_report', 'financial_report'],
     primary: '#17457A', primaryMid: '#4571A0', accent: '#8C6D3F', accentLight: '#B08F5E',
@@ -144,6 +181,7 @@ const THEMES = {
     label: 'Premium',
     labelKr: '호텔 / 복합개발 / 랜드마크',
     purpose: '호텔·복합개발·고급 주거·랜드마크 프로젝트',
+    writing: WRITING.persuasive.id,
     traits: ['Large Image', 'Minimal Text', 'Premium Typography', 'Full-page Image'],
     docTypes: ['teaser', 'im', 'investor_presentation'],
     primary: '#14100E', primaryMid: '#3B322C', accent: '#C9A15A', accentLight: '#DFC38C',
@@ -160,6 +198,7 @@ const THEMES = {
     label: 'Minimal',
     labelKr: 'CEO / Executive 보고',
     purpose: '경영진 보고 및 Executive Presentation',
+    writing: WRITING.plain.id,
     traits: ['White Space', 'Minimal Color', 'Short Text', 'Large Number'],
     docTypes: ['ic_memo', 'executive_summary', 'teaser'],
     primary: '#111827', primaryMid: '#4B5563', accent: '#6B7280', accentLight: '#9CA3AF',
@@ -177,6 +216,7 @@ const THEMES = {
     label: 'Technology / Data Center',
     labelKr: 'Data Center / AI / ICT',
     purpose: 'Data Center·AI Infrastructure·Cloud·ICT 프로젝트',
+    writing: WRITING.technical.id,
     traits: ['Technology Visual', 'Power Flow', 'Rack/MW Visualization', 'Infrastructure Diagram'],
     docTypes: ['im', 'technical_report', 'investor_presentation'],
     primary: '#0E1A2B', primaryMid: '#1F7A8C', accent: '#2FA8B8', accentLight: '#67C6D2',
@@ -193,6 +233,7 @@ const THEMES = {
     label: 'Renewable Energy',
     labelKr: 'Solar / Wind / ESS / Hydrogen',
     purpose: '재생에너지·에너지 인프라 프로젝트',
+    writing: WRITING.technical.id,
     traits: ['Satellite Image', 'Site Map', 'Energy Flow', 'Carbon Reduction'],
     docTypes: ['im', 'feasibility', 'technical_report'],
     primary: '#0F3D2E', primaryMid: '#2F6A52', accent: '#7FA650', accentLight: '#A7C579',
@@ -209,6 +250,7 @@ const THEMES = {
     label: 'Infrastructure',
     labelKr: 'SOC / 물류 / 산업단지',
     purpose: '도로·철도·항만·발전소·산업단지·물류',
+    writing: WRITING.technical.id,
     traits: ['Master Plan', 'Infrastructure Map', 'Timeline', 'Funding Structure'],
     docTypes: ['pf_proposal', 'im', 'feasibility'],
     primary: '#263238', primaryMid: '#4F6470', accent: '#C07C2C', accentLight: '#D9A052',
@@ -225,6 +267,7 @@ const THEMES = {
     label: 'Luxury / Hospitality',
     labelKr: '호텔 / 리조트 / 복합관광',
     purpose: '호텔·리조트·복합관광개발',
+    writing: WRITING.brand.id,
     traits: ['Full-page Photography', 'Large Typography', 'Experience-oriented'],
     docTypes: ['im', 'teaser', 'investor_presentation'],
     primary: '#1B1410', primaryMid: '#4A3B31', accent: '#BFA06A', accentLight: '#D8C098',
@@ -241,6 +284,7 @@ const THEMES = {
     label: 'Government / Public',
     labelKr: '공공기관 / 지자체 / 정책사업',
     purpose: '공공기관·지자체·정책사업·공공투자',
+    writing: WRITING.official.id,
     traits: ['Formal', 'Clear', 'Accessible', 'Official'],
     docTypes: ['feasibility', 'financial_report', 'dd_report'],
     primary: '#12365E', primaryMid: '#41618A', accent: '#6E7A8C', accentLight: '#93A0B0',
@@ -257,6 +301,8 @@ const THEMES = {
     label: 'Custom',
     labelKr: '사용자 지정',
     purpose: '사용자가 직접 지정하거나 Brand Kit 을 적용',
+    // ★ 사람이 고른다 — custom 은 값을 지어내지 않는다
+    writing: null,
     traits: [],
     docTypes: [],
     // 기본값은 institutional 을 상속하고 Brand Kit 이 덮어쓴다
@@ -361,4 +407,4 @@ function toCss(theme) {
     + `\n${chart}\n}\n`;
 }
 
-module.exports = { THEMES, STRUCTURE, DENSITY, DOC_PROFILE, list, get, resolve, toCss };
+module.exports = { THEMES, WRITING, STRUCTURE, DENSITY, DOC_PROFILE, list, get, resolve, toCss };

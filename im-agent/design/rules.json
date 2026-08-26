@@ -80,6 +80,27 @@
       "why": "테마를 골라놓고 다른 색이 섞이면 '한 프로젝트 = 한 디자인'이 깨진다. IM·PPT·Dashboard가 따로 놀게 된다.",
       "applies": "a4html",
       "severity": "YELLOW"
+    },
+    {
+      "id": "D12-secret-leak",
+      "label": "산출물에 열쇠·비밀정보가 없다",
+      "why": "CLAUDE.md §2 · 지침 §8·§12·§14.5. SECRET_ENV 는 로그만 가린다 — 최종 산출물은 아무도 훑지 않았다. 첫 판은 YELLOW 다: 오탐으로 문서가 아예 안 나가는 쪽이 더 나쁠 수 있어 세어 본 뒤 RED 로 올린다 (D-118).",
+      "applies": "a4html,markdown,asset",
+      "severity": "YELLOW"
+    },
+    {
+      "id": "D13-personal-info",
+      "label": "동의 없는 개인정보가 없다",
+      "why": "디자인 지시서 §10.4 — 「개인정보는 사용자가 제공하거나 승인한 정보만 사용한다」. 전화번호·주민번호·이메일 꼴을 훑는다. 이 저장소의 git 이력에 실제로 실명·번호가 남아 있었다.",
+      "applies": "a4html,markdown,asset",
+      "severity": "YELLOW"
+    },
+    {
+      "id": "D14-rights-unchecked",
+      "label": "권리 확인이 필요한 자산에 표시가 있다",
+      "why": "디자인 지시서 §14.5·§16 — 상표·폰트·이미지 권리. 지금은 아무도 안 본다. 확정이 아니라 **표시**다: 로고·상표·스톡 이미지가 보이면 RIGHTS_CHECK_REQUIRED 로 사람에게 넘긴다. 유사성 점검만으로 상표 등록 가능성을 확정하지 않는다(§10.5).",
+      "applies": "a4html,markdown,asset",
+      "severity": "YELLOW"
     }
   ]
 }

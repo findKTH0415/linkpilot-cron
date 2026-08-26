@@ -118,12 +118,19 @@ test('경로 조작을 막는다', async () => {
 // ── 사양 ──────────────────────────────────────────────────────────
 
 test('★ 만들 수 없는 형식은 저장 단계에서 거부한다', async () => {
+  // ★★ **PDF 는 이제 통과한다** 〈2026-08-26 · D-128〉.
+  //   이 검사는 「PDF 생성 불가」를 굳혀 두고 있었는데, 그 사실이 바뀌었다.
+  //   `core/pdf.js`(D-53)가 헤드리스 크로미움으로 만들고 `pipeline.js` 가 부르고
+  //   데모 산출물에 `12_Final/im-a4.pdf` 가 실제로 있다.
+  //   **검사가 옛 사실을 지키고 있으면, 고친 사람이 검사를 의심하게 된다.**
+  //   그래서 여기서 「PDF 는 통과한다」를 함께 고정한다 — 누가 다시
+  //   `supported: false` 로 되돌리면 이 줄이 빨개진다.
   const root = tmpRoot(); makeProject(root, ID);
   const h = handlers(root, PRO);
 
   const pdf = await h.saveSpec({}, ID, { docType: 'im', formats: ['html', 'pdf'] });
-  assert.strictEqual(pdf.status, 400);
-  assert.match(pdf.body.error, /PDF 생성 불가/, '사양에 넣어도 안 만들어지는 형식을 통과시키면 안 된다');
+  assert.notStrictEqual(pdf.status, 400,
+    'PDF 는 실제로 만들어진다 — 거부하면 되는 기능을 못 쓰게 된다 (D-128)');
 
   const hwp = await h.saveSpec({}, ID, { docType: 'im', formats: ['hwp'] });
   assert.match(hwp.body.error, /HWP/);
