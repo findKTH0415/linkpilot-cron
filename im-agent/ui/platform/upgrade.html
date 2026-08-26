@@ -37,8 +37,10 @@ ul { margin: 0; padding: 0; list-style: none; }
   display: flex; flex-direction: column; gap: 4px; }
 .side__brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 12px; }
 .side__mark { width: 34px; height: 34px; border-radius: 50%; flex: none;
-  border: 2.5px solid var(--ink); display: grid; place-items: center;
-  color: var(--lime); font-size: 15px; }
+  background: var(--lp-brand); display: grid; place-items: center;
+  /* ★ 밝은 바탕에 라임 글자는 대비 1.54 라 안 보인다 — 라임은 **채움**으로 쓰고
+   *   글자는 잉크로 올린다 (11.76). 지시서 rev.B 「1단계 금지사항」과 같은 규칙 */
+  color: var(--lp-brand-ink); font-size: 15px; }
 .side__name { font-size: 15px; font-weight: 800; }
 .side__user { font-size: 12px; color: var(--ink2); }
 .side__group { margin: 14px 8px 6px; font-size: 12px; font-weight: 700; color: var(--ink2); }
@@ -55,9 +57,13 @@ ul { margin: 0; padding: 0; list-style: none; }
 .top { background: var(--surface); border-bottom: 1px solid var(--line);
   padding: 16px 26px; display: flex; align-items: center; }
 .logo { display: flex; align-items: center; gap: 12px; font-size: 24px; font-weight: 900; }
-.logo em { font-style: normal; color: var(--lime); }
+/* ★ 워드마크 강조를 라임으로 두면 흰 바탕 대비 1.54 다 — 24px 굵은 글자
+ *   기준(3.0)도 못 넘긴다. 밝은 바탕의 브랜드 글자 색은 딥(4.98)이다 */
+.logo em { font-style: normal; color: var(--lp-brand-deep); }
 .logo__mark { width: 38px; height: 38px; border-radius: 50%; border: 3px solid var(--ink);
-  display: grid; place-items: center; color: var(--lime); font-size: 16px; }
+  /* ★ 라임은 **채움**으로 쓴다 — 밝은 바탕의 라임 글자는 대비 1.54 다 */
+  display: grid; place-items: center; background: var(--lp-brand);
+  color: var(--lp-brand-ink); font-size: 16px; }
 
 .head { background: var(--surface); padding: 16px 26px 0; }
 .head__row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }

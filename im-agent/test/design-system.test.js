@@ -31,15 +31,14 @@ test('★ 디자인 시스템: 브랜드 값이 문서와 같다', () => {
    *                보고서 화면 라임이 미묘하게 어긋난다.
    *   나머지  → DESIGN_SYSTEM.md §2 (2026-08-17) 그대로.
    *
-   * ★★★ **선택 색만 지시서를 안 받았다.** 지시서의 `#8CB80F` 는 흰 바탕
-   *   대비가 **2.34** 라 큰 글자 기준(3.0)도 못 넘긴다 — 그런데 이 토큰은
-   *   `.auto__t`·`.cat` 처럼 **11px 글자 색**으로 쓰인다. 지금 값 `#7BA10F` 는
-   *   3.02 로 그보다 낫다 — **더 나쁜 쪽으로 바꾸지 않는다.**
-   *   저쪽에 알린 문서는 `docs/전달-platform-1단계-지시서-검증.md` 다.
+   * ★★★ **선택 색은 되돌려 보냈고, rev.B 가 고쳐 왔다** 〈2026-08-27〉.
+   *   rev.A 값은 흰 바탕 대비 **2.34** 라 큰 글자 기준(3.0)도 못 넘겼는데
+   *   이 토큰은 11px 글자 색으로 쓰인다. rev.B 의 `#5A7A00` 은 **4.98** 로
+   *   작은 글자 기준 4.5 를 넘긴다 (실측).
    */
   const want = {
     '--lp-brand': '#B5E01F',
-    '--lp-brand-deep': '#7BA10F',
+    '--lp-brand-deep': '#5A7A00',
     '--lp-brand-soft': '#F0FAD8',
     '--lp-brand-ink': '#12161F',
     '--lp-navy': '#12161F',
@@ -69,12 +68,82 @@ test('★ 디자인 시스템: 면(surface)은 셋뿐이다', () => {
 
 test('★★ 디자인 시스템: 화면이 브랜드 색을 직접 적지 않는다', () => {
   // 복붙이 갈리는 것을 실제로 겪었다. 색은 tokens.css 하나가 정한다
-  const banned = /#(?:9ED700|AAE106|EDF7DC|F0FAD8|5C7A00|7BA10F|4F6900|4F6A00|4E6900|17181A|0A1419|B5E01F|12161F|F5F6F8|F2F2F7|E03131|FF3B30|E8A33D|FF9500)\b/i;
+  const banned = /#(?:9ED700|AAE106|EDF7DC|F0FAD8|5C7A00|7BA10F|4F6900|4F6A00|4E6900|17181A|0A1419|B5E01F|12161F|5A7A00|F5F6F8|F2F2F7|E03131|FF3B30|E8A33D|FF9500)\b/i;
   SCREENS.forEach((f) => {
     const body = read(f).replace(/<!--[\s\S]*?-->/g, '');
     const hit = body.match(banned);
     assert.equal(hit, null, `${f}: 색을 직접 적었다 (${hit && hit[0]}) — tokens.css 를 쓴다`);
   });
+});
+
+test('★★★ 폐기된 rev.A 선택 색이 코드에 한 글자도 없다', () => {
+  /* 지시서 rev.B 「07-B ④」가 **검색 결과 0건**을 검수 항목으로 걸었다.
+   *
+   * ★ 그래서 **주석에도 적지 않는다.** 사장님이나 앱 담당자가 그 값을 찾을 때
+   *   내 설명 주석이 걸리면 「아직 남아 있다」로 읽힌다 — 이 저장소가 이미
+   *   여러 번 당한 자리다 (CLAUDE.md §8 「검사가 찾는 이름을 주석에 적지 않는다」).
+   *   경위를 적어야 하면 `rev.A 선택 색`처럼 **이름으로** 부른다.
+   * ★ 값을 여기 글자로 박으면 이 검사 자신이 걸린다. 그래서 나눠 적는다.
+   */
+  const RETIRED = `#8CB${'8'}0F`;
+  const { execFileSync } = require('child_process');
+  const repo = path.join(__dirname, '..', '..');
+  const files = execFileSync('git', ['ls-files', 'im-agent/'], { cwd: repo, encoding: 'utf8' })
+    .split('\n').map((f) => f.trim()).filter(Boolean)
+    .filter((f) => /\.(css|html|js|json|md)$/.test(f));
+  const hit = files.filter((f) => {
+    let body;
+    try { body = fs.readFileSync(path.join(repo, f), 'utf8'); } catch (_) { return false; }
+    return body.includes(RETIRED) && path.resolve(repo, f) !== __filename;
+  });
+  assert.deepStrictEqual(hit, [], '폐기된 선택 색이 남아 있다 — 주석이라도 검색에는 걸린다');
+});
+
+test('★★★ 밝은 바탕에서 라임을 **글자 색**으로 쓰지 않는다', () => {
+  /* 라임은 흰 바탕 대비가 **1.54** 다. 지시서 rev.B 가 「1단계 금지사항」에
+   * 못박았고, 그 전에 우리 §11 이 이미 같은 말을 하고 있었다.
+   *
+   * ★ 채움은 괜찮다 — `background`·`accent-color`·`border-color` 는 글자가 아니다.
+   *   재는 것은 `color:` 하나다.
+   * ★★ **어두운 바탕 위에서는 라임이 맞는 색이다** (대비 11.76). 그런데 그 바탕은
+   *   대개 **부모 규칙**에 있다 (`.why { background: 잉크 }` → `.why h2 { color: 라임 }`).
+   *   같은 규칙만 보면 **멀쩡한 코드를 빨갛게** 만든다 — 실제로 그랬다.
+   *   그래서 어두운 바탕을 까는 선택자를 먼저 모으고, 그 아래 것은 넘긴다.
+   */
+  const DARK_BG = /background:[^;]*var\(--(?:lp-navy|lp-brand-ink|lp-text-1|ink|navy)\)|background:\s*#(?:12161F|0A1419)/i;
+  const LIME_TEXT = /(?:^|[^-\w])color:\s*var\(--(?:lime|lp-brand)\)/;
+
+  SCREENS.concat(['tokens.css']).forEach((f) => {
+    const body = read(f).replace(/<!--[\s\S]*?-->/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
+    const rules = [...body.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+      .map((m) => ({ sel: m[1].trim().split('\n').pop().trim(), css: m[2] }));
+
+    const dark = rules.filter((r) => DARK_BG.test(r.css))
+      .flatMap((r) => r.sel.split(',').map((x) => x.trim()))
+      .filter((x) => x.startsWith('.') || x.startsWith('#'));
+
+    rules.forEach((r) => {
+      if (!LIME_TEXT.test(r.css)) return;
+      if (DARK_BG.test(r.css)) return;                       // 자기 규칙이 어두운 바탕
+      if (dark.some((d) => r.sel.startsWith(`${d} `) || r.sel.startsWith(`${d}.`)
+        || r.sel.split(',').some((x) => x.trim().startsWith(`${d} `)))) return;  // 어두운 부모 안
+      assert.fail(`${f}: 밝은 바탕에 라임 글자 (대비 1.54) — ${r.sel} { ${r.css.trim().slice(0, 60)} }`);
+    });
+  });
+});
+
+test('★★ 그 검사가 실제로 잡는다 — 어두운 바탕 허용이 구멍이 되지 않는다', () => {
+  // 위 검사는 「부모가 어두우면 넘긴다」로 느슨해졌다. 느슨해진 검사는
+  // **아무것도 안 재면서 초록**일 수 있다 — 그래서 밝은 바탕 표본을 하나 만들어 본다
+  const sample = '.card { background: #FFFFFF; } .card b { color: var(--lp-brand); }';
+  const DARK_BG = /background:[^;]*var\(--(?:lp-navy|lp-brand-ink|lp-text-1|ink|navy)\)|background:\s*#(?:12161F|0A1419)/i;
+  const LIME_TEXT = /(?:^|[^-\w])color:\s*var\(--(?:lime|lp-brand)\)/;
+  const rules = [...sample.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .map((m) => ({ sel: m[1].trim(), css: m[2] }));
+  const dark = rules.filter((r) => DARK_BG.test(r.css)).map((r) => r.sel);
+  const bad = rules.filter((r) => LIME_TEXT.test(r.css) && !DARK_BG.test(r.css)
+    && !dark.some((d) => r.sel.startsWith(`${d} `)));
+  assert.strictEqual(bad.length, 1, '밝은 카드 안의 라임 글자를 못 잡는다');
 });
 
 test('★ 디자인 시스템: 화면이 tokens.css 를 부른다', () => {

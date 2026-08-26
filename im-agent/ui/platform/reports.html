@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="d3ea1aaf">
+<html lang="ko" data-lp-build="6faab210">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -264,7 +264,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=d3ea1aaf">
+<link rel="stylesheet" href="tokens.css?v=6faab210">
 <style>
 :root {
   --side: 248px;
@@ -286,8 +286,10 @@ ul { margin: 0; padding: 0; list-style: none; }
   display: flex; flex-direction: column; gap: 4px; }
 .side__brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 12px; }
 .side__mark { width: 34px; height: 34px; border-radius: 50%; flex: none;
-  border: 2.5px solid var(--ink); display: grid; place-items: center;
-  color: var(--lime); font-size: 15px; }
+  background: var(--lp-brand); display: grid; place-items: center;
+  /* ★ 밝은 바탕에 라임 글자는 대비 1.54 라 안 보인다 — 라임은 **채움**으로 쓰고
+   *   글자는 잉크로 올린다 (11.76). 지시서 rev.B 「1단계 금지사항」과 같은 규칙 */
+  color: var(--lp-brand-ink); font-size: 15px; }
 .side__name { font-size: 15px; font-weight: 800; }
 .side__user { font-size: 12px; color: var(--ink2); }
 .side__group { margin: 14px 8px 6px; font-size: 12px; font-weight: 700; color: var(--ink2); }
@@ -304,9 +306,13 @@ ul { margin: 0; padding: 0; list-style: none; }
 .top { background: var(--surface); border-bottom: 1px solid var(--line);
   padding: 16px 26px; display: flex; align-items: center; }
 .logo { display: flex; align-items: center; gap: 12px; font-size: 24px; font-weight: 900; }
-.logo em { font-style: normal; color: var(--lime); }
+/* ★ 워드마크 강조를 라임으로 두면 흰 바탕 대비 1.54 다 — 24px 굵은 글자
+ *   기준(3.0)도 못 넘긴다. 밝은 바탕의 브랜드 글자 색은 딥(4.98)이다 */
+.logo em { font-style: normal; color: var(--lp-brand-deep); }
 .logo__mark { width: 38px; height: 38px; border-radius: 50%; border: 3px solid var(--ink);
-  display: grid; place-items: center; color: var(--lime); font-size: 16px; }
+  /* ★ 라임은 **채움**으로 쓴다 — 밝은 바탕의 라임 글자는 대비 1.54 다 */
+  display: grid; place-items: center; background: var(--lp-brand);
+  color: var(--lp-brand-ink); font-size: 16px; }
 .head { background: var(--surface); padding: 16px 26px 14px; }
 .head__row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .head__ic { width: 40px; height: 40px; border-radius: 12px; background: var(--panel);
@@ -573,14 +579,14 @@ a.out__a, a.out__a:visited { display: inline-block; white-space: nowrap; color: 
   <a class="bot__i on" href="#"><b>☰</b>더보기</a>
 </nav>
 
-<script src="gate-core.js?v=d3ea1aaf"></script>
-<script src="catalog.js?v=d3ea1aaf"></script>
-<script src="inapp.js?v=d3ea1aaf"></script>
-<script src="live-core.js?v=d3ea1aaf"></script>
+<script src="gate-core.js?v=6faab210"></script>
+<script src="catalog.js?v=6faab210"></script>
+<script src="inapp.js?v=6faab210"></script>
+<script src="live-core.js?v=6faab210"></script>
 <!-- ★ 판 지문을 화면에 보이게 찍는 것이 여기 있다 (§8) — 묶음에 이미 실리는 파일이다 -->
-<script src="flow-core.js?v=d3ea1aaf"></script>
+<script src="flow-core.js?v=6faab210"></script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=d3ea1aaf" data-lp-global="LINKPILOT_REPORTS"></script>
+<script src="embed-bridge.js?v=6faab210" data-lp-global="LINKPILOT_REPORTS"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
