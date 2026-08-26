@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="e20ed5d9">
+<html lang="ko" data-lp-build="4299ad77">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -63,52 +63,77 @@
  *   불러오기 실패를 못 듣는다.
  * ★ 검사 자신이 죽으면 안 된다 — 전부 try 로 감싼다. */
 (function () {
-  /* ★★★★ **겹친 경로를 「고치는」 것이 아니라 「나지 않게」 한다**
-   *   〈2026-08-26 · 같은 고장 세 번째 · D-138〉.
+  /* ★★★★ **자리를 「고치는」 것이 아니라 「틀리지 않게」 한다**
+   *   〈2026-08-26 · 같은 고장 **네 번째** · M-56〉.
    *
-   *   사장님 화면에 `/im-flow/im-flow/embed-bridge.js` 가 세 번 났다.
-   *   앞 두 번은 **띠의 글을 좋게 만드는 일**이었다 — 경로를 붙이고, 「두 번
-   *   들어 있습니다」를 붙였다. 그런데 **화면은 여전히 안 떴다.**
-   *   잘 설명하는 고장은 고장이다.
+   *   앱이 이 화면을 어디에 얹느냐에 따라 형제 파일 주소가 두 가지로 틀렸다 —
    *
-   *   ★ 실패한 뒤에 다시 부르는 것으로도 부족했다(실측: 파일은 17개 다시
-   *     받았는데 **버튼이 5개에서 0개**가 되었다). 그때는 이미 초기화가
-   *     끝나 버려서, 늦게 온 스크립트가 화면을 못 그린다.
+   *     겹침    /im-flow/im-flow/embed-bridge.js   (앞을 두 번 붙인다)
+   *     빠짐    /embed-bridge.js                   (앞을 아예 안 붙인다)
    *
-   * ★★ 그래서 **아무것도 받기 전에** 자리를 바로잡는다. 이 조각은 형제
-   *   파일들보다 **위**에 있으므로, 여기서 `<base>` 를 세우면 아래의 상대
-   *   경로들이 **처음부터 옳은 자리**를 본다 — 실패가 아예 안 난다.
+   *   ★ 3판은 **겹침만** 고쳤다. 그래서 빠짐이 나자 또 빨간 띠가 떴다.
+   *     **한 증상만 보고 고치면 남은 증상이 다음 주에 온다.**
    *
-   * ★★★ **앞을 덧붙이는 것은 앱 쪽이지만 고치는 것은 이쪽이 할 수 있다.**
-   *   저쪽 저장소에 쓰지 않기로 한 경계(§8-2)를 지키면서 화면은 산다.
-   *   근본은 여전히 저쪽이 고쳐야 하므로 **조용히 넘어가지 않고** 알린다.
+   * ★★ 그래서 「무엇이 틀렸나」를 고치지 않고 **「어디가 맞나」를 정한다.**
+   *   형제 파일들은 늘 **한 폴더에 함께** 있다. 그 폴더를 세 가지로 찾는다 —
    *
-   * ★ 한 겹만 지운다. 두 겹 이상 겹치는 자리는 본 적이 없고, 지어내면
-   *   멀쩡한 주소를 망가뜨린다. */
+   *     ① 앱이 알려 준 자리      `<meta name="lp:base">` 또는 window.LP_BASE
+   *     ② 주소에 `im-flow` 가 있으면 **첫 번째** 것까지  (겹침이 여기서 풀린다)
+   *     ③ 뿌리(`/`)에서 열렸으면 `/im-flow/`             (빠짐이 여기서 풀린다)
+   *
+   *   ①이 있는 이유: 앱이 다른 자리에 얹게 되는 날 **코드를 안 고치고**
+   *   알려 줄 길을 남겨 둔다. 없으면 그날 또 이 파일을 고치게 된다.
+   *
+   * ★★★ **파일로 열었을 때(file:)는 손대지 않는다.** 미리보기가 그 길이다 —
+   *   거기서 자리를 바꾸면 멀쩡한 화면이 깨진다 (늑대야).
+   *
+   * ★ 이 조각은 형제 파일들보다 **위**에 있으므로, 여기서 `<base>` 를 세우면
+   *   아래 상대 경로들이 **처음부터 옳은 자리**를 본다 — 실패가 아예 안 난다.
+   *   실패한 뒤에 다시 부르는 것으로는 부족했다(실측: 파일 17개를 다시 받았는데
+   *   **버튼이 5개에서 0개**가 되었다 — 이미 초기화가 끝난 뒤였다).
+   */
   try {
-    var segs = String(location.pathname).split('/');
-    var cut = -1;
-    for (var i = 0; i + 1 < segs.length; i++) {
-      if (segs[i] && segs[i] === segs[i + 1]) { cut = i; break; }
+    var FOLDER = 'im-flow';                  /* 형제 파일들이 함께 사는 폴더 이름 */
+    var base = null;
+    var why = null;
+
+    /* ① 앱이 알려 준 자리 */
+    try {
+      var meta = document.querySelector('meta[name="lp:base"]');
+      var told = (meta && meta.getAttribute('content')) || window.LP_BASE || null;
+      if (told) { base = String(told).replace(/\/*$/, '') + '/'; why = '앱이 알려 줌'; }
+    } catch (_) { /* 무시 */ }
+
+    if (!base && /^https?:$/.test(location.protocol)) {
+      var pathname = String(location.pathname);
+      var at = pathname.indexOf('/' + FOLDER + '/');
+      if (at >= 0) {
+        /* ② 첫 번째 `/im-flow/` 까지가 그 폴더다. 두 번 이어져 있어도 여기서 풀린다 */
+        base = pathname.slice(0, at + FOLDER.length + 2);
+        why = '주소에서 찾음';
+      } else if (pathname.lastIndexOf('/') === 0) {
+        /* ③ 뿌리에서 열렸다 — 형제 파일이 뿌리에 있을 리 없다 */
+        base = '/' + FOLDER + '/';
+        why = '뿌리에서 열려 폴더를 붙임';
+      }
     }
-    if (cut >= 0 && !document.querySelector('base[data-lp-base]')) {
-      var fixed = segs.slice();
-      fixed.splice(cut, 1);
-      fixed.pop();                                  /* 파일 이름을 떼고 폴더만 */
-      var dir = fixed.join('/') + '/';
+
+    /* 지금 자리와 같으면 아무것도 하지 않는다 — 멀쩡한 화면을 건드리지 않는다 */
+    var now = String(location.pathname).slice(0, String(location.pathname).lastIndexOf('/') + 1);
+    if (base && base !== now && !document.querySelector('base[data-lp-base]')) {
       var b = document.createElement('base');
-      b.setAttribute('data-lp-base', segs[cut]);    /* 무엇을 지웠는지 남긴다 */
-      b.href = location.origin === 'null' ? dir : (location.origin + dir);
+      b.setAttribute('data-lp-base', why);
+      b.href = location.origin + base;
       (document.head || document.documentElement).insertBefore(
         b, (document.head || document.documentElement).firstChild);
       /* ★★ **조용히 넘어가지는 않는다.** 화면은 살렸지만 **근본은 앱 쪽**이다
-       *   (앞을 덧붙이는 쪽). 사장님 화면에 빨간 띠를 띄우면 멀쩡히 도는
-       *   화면을 고장으로 읽으시게 되므로, 개발자 콘솔과 `data-lp-base`
-       *   표시로 남긴다 — 사람은 안 놀라고, 기계는 셀 수 있다. */
+       *   (앞을 붙이는 쪽). 사장님 화면에 빨간 띠를 띄우면 멀쩡히 도는 화면을
+       *   고장으로 읽으시게 되므로, 개발자 콘솔과 표시로만 남긴다 —
+       *   사람은 안 놀라고, 기계는 셀 수 있다. */
       try {
-        console.warn('[LinkPilot] 경로에 「' + segs[cut] + '」가 두 번 있어 자리를 바로잡았다: '
-          + location.pathname + ' → ' + dir
-          + ' — 화면은 정상이지만 **앞부분을 덧붙이는 앱 쪽**이 근본이다.');
+        console.warn('[LinkPilot] 형제 파일 자리를 바로잡았다 (' + why + '): '
+          + now + ' → ' + base
+          + ' — 화면은 정상이지만 **앞부분을 붙이는 앱 쪽**이 근본이다.');
       } catch (_) { /* 콘솔이 없어도 죽지 않는다 */ }
     }
   } catch (_) { /* 자리를 못 고쳐도 죽지 않는다 — 아래 띠가 받는다 */ }
@@ -264,7 +289,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=e20ed5d9">
+<link rel="stylesheet" href="tokens.css?v=4299ad77">
 <style>
 /* 색·간격·반경 토큰은 tokens.css 하나가 정한다 (LinkPilot Design System v1.1) */
 * { box-sizing: border-box; }
@@ -414,9 +439,9 @@ window.LINKPILOT_OUTPUTS = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=e20ed5d9" data-lp-global="LINKPILOT_OUTPUTS"></script>
-<script src="gate-core.js?v=e20ed5d9"></script>
-<script src="flow-core.js?v=e20ed5d9"></script>
+<script src="embed-bridge.js?v=4299ad77" data-lp-global="LINKPILOT_OUTPUTS"></script>
+<script src="gate-core.js?v=4299ad77"></script>
+<script src="flow-core.js?v=4299ad77"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
