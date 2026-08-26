@@ -131,6 +131,7 @@ function render() {
   const pages = required().filter((f) => f.endsWith('.html'));
   const thin = [];
   const crying = [];
+  const rot = [];
   pages.forEach((f) => {
     let dom = '';
     try { dom = renderDom(b, path.join(P, f), 30000, 430) || ''; }
@@ -140,7 +141,22 @@ function render() {
     const text = body.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
     if (text.length < 80) thin.push(`${f}(${text.length}자)`);
     if (/화면에 필요한 파일을 못 받았습니다|화면을 그리다 멈췄습니다/.test(body)) crying.push(f);
+    /* ★★★ **그럴듯하게 고장난 글자** 〈2026-08-27 · 사장님 화면에서 실제로 나왔다:
+     *   「선정릉 → [object Object]」〉.
+     *
+     *   이 셋은 오류를 안 낸다 — 화면은 멀쩡히 뜨고 **글자만 틀린다.** 그래서
+     *   렌더가 성공했는지만 보면 통과한다. 사람이 읽는 자리에 나오면
+     *   「값이 없다」가 아니라 **「값을 문장에 넣는 코드가 틀렸다」**는 뜻이다.
+     *   ★ 낱말 경계로 본다 — `undefined` 가 다른 낱말 안에 들어간 것은 아니다. */
+    const junk = text.match(/\[object [A-Z]\w+\]|\bundefined\b|\bNaN\b/);
+    if (junk) rot.push(`${f}(${junk[0]})`);
   });
+
+  if (rot.length) {
+    add('헤드리스 렌더', 'fail',
+      `화면에 **그럴듯하게 고장난 글자**가 그려졌다: ${rot.join(' · ')} — 오류는 안 나고 글자만 틀린다`);
+    return;
+  }
 
   if (thin.length) { add('헤드리스 렌더', 'fail', `거의 빈 화면: ${thin.join(' · ')}`); return; }
   if (crying.length) {

@@ -55,3 +55,6 @@ im-agent/ui/platform/merge-watch.html
 # 지키는 것이 아니라 **되살릴 수 있어야** 하는 것이고, 되살아나는지는
 # `npm run backup:drill` 이 빈 자리에 실제로 되살려 바이트로 잰다.
 .backup/
+
+# 열린 PR 기록 — 세션마다 받아 적는 임시 기록이다 (D-142)
+.lp-open-prs.json

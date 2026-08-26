@@ -46,12 +46,19 @@ test('★★ 세는 자리 앞에서 푼다 (되돌아가면 잡힌다)', () => 
 test('★★★ 못 물어봤으면 **왜**인지가 남는다 — 삼키면 두 고장이 같은 화면이 된다', async () => {
   const saved = { gh: process.env.GH_TOKEN, gt: process.env.GITHUB_TOKEN, f: process.env.LP_OPEN_PRS };
   delete process.env.GH_TOKEN; delete process.env.GITHUB_TOKEN; delete process.env.LP_OPEN_PRS;
+  /* ★ 자동으로 찾는 기록도 치운다 〈2026-08-27 · D-142 로 길이 하나 늘었다〉.
+   *   안 치우면 이 검사가 **재려는 것(열쇠가 없을 때의 까닭)을 안 재고** 그
+   *   기록으로 통과한다 — 검사가 조용히 헛돌게 되는 자리다. */
+  const auto = bd.AUTO_PRS;
+  const backup = fs.existsSync(auto) ? fs.readFileSync(auto, 'utf8') : null;
+  if (backup !== null) fs.rmSync(auto, { force: true });
   try {
     const r = await bd.openPrBranches();
     assert.strictEqual(r, null, '열쇠가 없으면 못 물어본 것이다');
     assert.match(bd.whyNoPr() || '', /열쇠/,
       '까닭이 없으면 「열쇠가 없다」와 「열쇠가 틀렸다」가 구분이 안 된다 (실측: 401)');
   } finally {
+    if (backup !== null) fs.writeFileSync(auto, backup);
     if (saved.gh !== undefined) process.env.GH_TOKEN = saved.gh;
     if (saved.gt !== undefined) process.env.GITHUB_TOKEN = saved.gt;
     if (saved.f !== undefined) process.env.LP_OPEN_PRS = saved.f;
@@ -109,4 +116,55 @@ test('★★ 잘못 적힌 파일을 **빈 목록으로 삼키지 않는다** �
     if (saved === undefined) delete process.env.LP_OPEN_PRS; else process.env.LP_OPEN_PRS = saved;
     fs.rmSync(dir, { recursive: true, force: true });
   }
+});
+
+/* ───────────── ④ 자동으로 찾은 기록은 **나이를 따진다** ───────────── */
+
+test('★★★ 낡은 기록으로 「물어봤다」고 하지 않는다 — 어제 답이 가장 비싼 거짓말이다', () => {
+  const saved = process.env.LP_OPEN_PRS;
+  delete process.env.LP_OPEN_PRS;
+  const auto = bd.AUTO_PRS;
+  const backup = fs.existsSync(auto) ? fs.readFileSync(auto, 'utf8') : null;
+  try {
+    const old = new Date(Date.now() - 30 * 3600 * 1000).toISOString();
+    fs.writeFileSync(auto, JSON.stringify({ at: old, refs: ['claude/a'] }));
+    assert.strictEqual(bd.openPrFromFile(), null, '30시간 전 기록을 그대로 썼다');
+    assert.match(bd.whyNoPr() || '', /시간 전/, '까닭에 나이가 없으면 다시 받을 생각이 안 든다');
+
+    // 시각이 아예 없으면 — 언제 것인지 모르는 답도 안 쓴다
+    fs.writeFileSync(auto, JSON.stringify(['claude/a']));
+    assert.strictEqual(bd.openPrFromFile(), null);
+    assert.match(bd.whyNoPr() || '', /시각/);
+
+    // 갓 받은 것은 쓴다 (늑대야가 되면 아무도 안 쓴다)
+    fs.writeFileSync(auto, JSON.stringify({ at: new Date().toISOString(), refs: ['claude/a'] }));
+    assert.deepStrictEqual(bd.openPrFromFile(), ['claude/a']);
+    assert.ok(bd.prAgeHours() !== null && bd.prAgeHours() < 1);
+  } finally {
+    if (backup === null) fs.rmSync(auto, { force: true });
+    else fs.writeFileSync(auto, backup);
+    if (saved !== undefined) process.env.LP_OPEN_PRS = saved;
+  }
+});
+
+test('★★ 「열린 PR 이 없다」를 **적을 수는 있어야 한다** — 다만 실수로는 안 된다', () => {
+  const openPrs = require('../tools/open-prs.js');
+  const auto = bd.AUTO_PRS;
+  const backup = fs.existsSync(auto) ? fs.readFileSync(auto, 'utf8') : null;
+  try {
+    // 이름을 안 주고 부르면 거부한다 — 그냥 빈 배열이 되면 겹침을 하나도 안 세면서
+    // 「물어봤다」고 적는다 (이 파일 ② 가 막는 것과 같은 결)
+    assert.strictEqual(openPrs.main([]), 1);
+    // 뜻을 밝히면 받는다
+    assert.strictEqual(openPrs.main(['--none']), 0);
+    assert.deepStrictEqual(JSON.parse(fs.readFileSync(auto, 'utf8')).refs, []);
+  } finally {
+    if (backup === null) fs.rmSync(auto, { force: true });
+    else fs.writeFileSync(auto, backup);
+  }
+});
+
+test('★★ 기록이 커밋되지 않는다 — 남의 세션이 내 옛 답을 물려받으면 안 된다', () => {
+  const ig = fs.readFileSync(path.join(__dirname, '..', '..', '.gitignore'), 'utf8');
+  assert.match(ig, /^\.lp-open-prs\.json$/m, '.gitignore 에 없으면 커밋되어 옛 답이 따라다닌다');
 });
