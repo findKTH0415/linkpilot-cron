@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="c5f0849e">
+<html lang="ko" data-lp-build="ec3d1270">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -70,9 +70,33 @@
       var raw = String(t.src || t.href || '');
       var where = raw;
       try { var u = new URL(raw, location.href); where = u.pathname + u.search; } catch (_) {}
-      say('화면에 필요한 파일을 못 받았습니다: ' + (where || '(이름 모름)')
-        + ' — 배포가 도는 중이면 30초 뒤 새로고침(Mac ⌘⇧R · Windows Ctrl+Shift+R)으로 사라집니다.'
-        + ' 한 번 하고도 그대로면 그것은 **다른 일**입니다 — 위 경로를 그대로 알려 주십시오.');
+      /* ★★★ **경로가 겹쳤으면 그렇다고 말한다** 〈2026-08-26 · 실제로 났다〉.
+       *   앱 안에서 `/im-flow/im-flow/tokens.css` 로 찾다가 못 받았다.
+       *   이 화면들의 링크는 **전부 상대 경로**(`tokens.css`)라 앞을 붙이지
+       *   않는다 — 즉 앞부분을 **덧붙이는 쪽은 앱**이다.
+       *
+       *   ★ 그런데 띠는 「못 받았습니다」만 말했다. 그러면 「파일이 없다」와
+       *     「엉뚱한 자리에서 찾는다」가 **같은 문장으로 보인다.** 사장님은
+       *     새로고침을 하시고, 그래도 그대로면 그때부터 원인을 못 찾는다.
+       *   ★ 같은 토막이 두 번 이어지는 것은 **새로고침으로 안 없어진다.**
+       *     그것은 배포가 도는 중이라서가 아니라 **주소를 만드는 코드**의 일이다. */
+      var dup = null;
+      try {
+        var segs = String(where).split('?')[0].split('/').filter(Boolean);
+        for (var i = 0; i + 1 < segs.length; i++) {
+          if (segs[i] === segs[i + 1]) { dup = segs[i]; break; }
+        }
+      } catch (_) { /* 무시 */ }
+      if (dup) {
+        say('화면에 필요한 파일을 못 받았습니다: ' + (where || '(이름 모름)')
+          + ' — 경로에 「' + dup + '」가 **두 번** 들어 있습니다.'
+          + ' 이 화면의 링크는 상대 경로라 앞을 붙이지 않으므로, 앞부분을 덧붙이는 것은 **앱 쪽**입니다.'
+          + ' 새로고침으로는 안 없어집니다 — 위 경로를 그대로 알려 주십시오.');
+      } else {
+        say('화면에 필요한 파일을 못 받았습니다: ' + (where || '(이름 모름)')
+          + ' — 배포가 도는 중이면 30초 뒤 새로고침(Mac ⌘⇧R · Windows Ctrl+Shift+R)으로 사라집니다.'
+          + ' 한 번 하고도 그대로면 그것은 **다른 일**입니다 — 위 경로를 그대로 알려 주십시오.');
+      }
     } catch (_) { /* 무시 */ }
   }, true);
   /* ★★★ **헛울음을 내지 않는다** 〈2026-08-24 · 실측에서 걸렸다〉.
@@ -105,7 +129,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=c5f0849e">
+<link rel="stylesheet" href="tokens.css?v=ec3d1270">
 <script>
 /* ★★★ **틀 안인지를 그리기 전에 정한다** 〈2026-08-25〉.
  *   나중에 정하면 [저장] 막대가 **아래에 한 번 붙었다가 올라온다** — 그 깜빡임이
@@ -428,12 +452,12 @@ ul { margin: 0; padding: 0; list-style: none; }
   </main>
 </div>
 
-<script src="gate-core.js?v=c5f0849e"></script>
-<script src="catalog.js?v=c5f0849e"></script>
-<script src="inapp.js?v=c5f0849e"></script>
-<script src="fields-core.js?v=c5f0849e"></script>
+<script src="gate-core.js?v=ec3d1270"></script>
+<script src="catalog.js?v=ec3d1270"></script>
+<script src="inapp.js?v=ec3d1270"></script>
+<script src="fields-core.js?v=ec3d1270"></script>
 <!-- ★ 판 지문을 화면에 보이게 찍는 것이 여기 있다 (§8) — 묶음에 이미 실리는 파일이다 -->
-<script src="flow-core.js?v=c5f0849e"></script>
+<script src="flow-core.js?v=ec3d1270"></script>
 <script>
 /**
  * 설정 — 서버가 세션을 보고 이 블록을 만들어 내려주는 것이 정석이다.
@@ -448,7 +472,7 @@ window.LINKPILOT_FIELDS_CFG = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=c5f0849e" data-lp-global="LINKPILOT_FIELDS_CFG"></script>
+<script src="embed-bridge.js?v=ec3d1270" data-lp-global="LINKPILOT_FIELDS_CFG"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 

@@ -500,6 +500,16 @@ async function run(opts = {}) {
     massing: massing.output || null,
   }, ctx);
   results['18_legal'] = legal;
+  /* ★★ **결과를 실제로 쓴다** 〈2026-08-26 · agent:check 여섯째 칸이 잡았다〉.
+   *   앞 판은 `results` 에 담기만 했다 — 그러면 **돌기만 하고 아무것도 안 바꾼다.**
+   *   `15_design` 과 똑같은 구멍이었고, 그 칸을 만들면서 이것이 드러났다. */
+  if (legal.output) {
+    store.writeJson(projectId, '03_Legal/legal.json', legal.output);
+    const st = legal.output.status === 'reviewed'
+      ? `조례 후보 ${legal.output.ordinanceCandidates.length}건`
+      : `조회 못 함 — ${legal.output.unavailableReason || '까닭 모름'}`;
+    log(`  인허가·법률 기록: 03_Legal/legal.json · ${st}`);
+  }
 
   // ── 05 Cross Validation ───────────────────────────────────
   const val = await runAgent('05_validation', {
@@ -511,6 +521,9 @@ async function run(opts = {}) {
     massing: massing.output || null,
     sketchup: skIntake.output || null,
     sketchupPlan: skPlan.output || null,
+    // ★ 조례 한도를 확인했는지를 값 검증이 받아 쓴다 — 안 넘기면 05 가
+    //   확인 안 된 시행령 값으로 판정한다 (D-113)
+    legal: legal.output || null,
   }, ctx);
   results['05_validation'] = val;
   if (val.output) {

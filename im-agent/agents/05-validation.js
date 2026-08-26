@@ -44,6 +44,8 @@ const inputSchema = {
     massing: { type: 'object', nullable: true },
     sketchup: { type: 'object', nullable: true },
     sketchupPlan: { type: 'object', nullable: true },
+    // ★ 18_legal 의 판정 (D-113). 없으면 「못 들었다」로 적는다 — 통과가 아니다
+    legal: { type: 'object', nullable: true },
   },
 };
 
@@ -230,10 +232,25 @@ function checkCapacityPairs(ds) {
   return flags;
 }
 
-function checkLegal(ds) {
+function checkLegal(ds, legal) {
   const flags = [];
   const permit = ds.get('legal.permit_status');
   const ownership = ds.get('land.ownership');
+
+  /* ★★ **18_legal 이 든 깃발을 여기서 받는다** 〈2026-08-26 · D-113〉.
+   *   용적률·건폐율 한도를 **시행령 값**으로 쓰고 있으면 그것은 확정이 아니다
+   *   (CLAUDE.md §4.1 — 실제 한도는 조례가 정한다). 그 사실이 값 검증까지
+   *   와야 「확인된 한도로 판정했다」와 「확인 안 된 한도로 판정했다」가 갈린다.
+   *
+   * ★ 판정이 아예 안 왔으면 **「통과」가 아니라 「못 들었다」**다. 조용히
+   *   넘기면 18_legal 이 죽어도 아무도 모른다 (D-48 과 같은 결). */
+  if (!legal) {
+    flags.push(flag('YELLOW', 'LEGAL', '인허가·법률 판정이 오지 않았다 — 통과가 아니라 못 들은 것이다 (18_legal 이 돌았는지 본다)'));
+  } else {
+    for (const f of (legal.flags || [])) {
+      flags.push(flag(f.severity || 'YELLOW', 'LEGAL', f.message, { from: '18_legal', type: f.type }));
+    }
+  }
 
   if (!permit) {
     flags.push(flag('RED', 'LEGAL', '인허가 현황 미확인 — 투자자료에 인허가 상태 없이 배포 불가', { keys: ['legal.permit_status'] }));
@@ -501,7 +518,7 @@ async function run(input, ctx) {
 
   // ③ 내부 정합성 + 법률
   flags.push(...checkConsistency(ds));
-  flags.push(...checkLegal(ds));
+  flags.push(...checkLegal(ds, input.legal || null));
   flags.push(...await checkSponsor(ds, ctx, kstDate()));
   flags.push(...await checkConstructionCost(ds, ctx));
   flags.push(...await checkPermitRecord(ds, ctx));

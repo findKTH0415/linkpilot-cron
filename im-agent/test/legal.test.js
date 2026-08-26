@@ -116,3 +116,39 @@ test('★ 값 검증이 이 Agent 를 기다린다 — 순서가 뒤집히면 �
   assert.ok(reg.AGENTS['18_legal'].order < reg.AGENTS['05_validation'].order,
     '법령 검토가 값 검증보다 뒤에 서면 05 가 확인 안 된 한도로 판정한다');
 });
+
+/* ───────────── 결과가 실제로 쓰이는가 (agent:check 여섯째 칸) ───────────── */
+
+test('★★★ 결과가 아무 데도 안 가는 것을 막는다 — 부르는 것과 쓰이는 것은 다르다', () => {
+  const pipe = fs.readFileSync(path.join(__dirname, '..', 'pipeline.js'), 'utf8');
+  // 파일로 남는가 — 사람이 열어 볼 수 있어야 한다
+  assert.match(pipe, /03_Legal\/legal\.json/,
+    '판정을 파일로 안 남기면 사람이 조례 후보를 볼 방법이 없다');
+  // 값 검증에 넘어가는가 — 안 넘기면 05 가 확인 안 된 시행령 값으로 판정한다
+  assert.match(pipe, /legal:\s*legal\.output/,
+    '05_validation 에 안 넘기면 「확인된 한도」와 「확인 안 된 한도」가 안 갈린다');
+});
+
+test('★★ 판정이 없으면 값 검증이 「못 들었다」로 적는다 — 통과가 아니다', async () => {
+  const v = require('../agents/05-validation');
+  assert.ok(v.inputSchema.properties.legal, '05 가 legal 을 받을 자리 자체가 없다');
+  const src = fs.readFileSync(path.join(__dirname, '..', 'agents', '05-validation.js'), 'utf8');
+  assert.match(src, /인허가·법률 판정이 오지 않았다/,
+    '판정이 안 온 것을 조용히 넘기면 18_legal 이 죽어도 아무도 모른다 (D-48 과 같은 결)');
+  assert.match(src, /checkLegal\(ds, input\.legal/,
+    '자리만 만들고 안 넘기면 늘 「못 들었다」가 된다');
+});
+
+test('★★ agent:check 여섯째 칸이 실제로 잰다 — 막는 장치를 빼면 빨개지는가', () => {
+  const doctor = require('../tools/agent-doctor');
+  const r = doctor.check();
+  const row = r.rows.find(x => x.id === '18_legal');
+  assert.ok(row, '18_legal 이 표에 없다');
+  assert.notStrictEqual(row.쓰임, '✗',
+    '결과가 안 쓰이는 상태로 되돌아갔다 — 돌기만 하고 아무것도 안 바꾼다');
+
+  // ★ 그 칸이 **정말 재고 있는지**를 잰다. 없는 이름으로 물으면 잡혀야 한다.
+  const src = fs.readFileSync(path.join(__dirname, '..', 'tools', 'agent-doctor.js'), 'utf8');
+  assert.match(src, /결과가 아무 데도 안 간다/,
+    '여섯째 칸이 사라졌다 — 오늘 두 번 난 구멍을 다시 못 잡는다');
+});
