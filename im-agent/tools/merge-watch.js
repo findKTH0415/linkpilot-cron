@@ -521,7 +521,9 @@ ${m.fetched && m.fetched.tried && !m.fetched.ok ? `<div class="note" style="bord
   <br><span class="dim">${esc(m.fetched.error || '까닭 모름')}</span>
   <br><b>「갈래가 없다」가 아니라 「못 받았다」입니다.</b> 둘은 다른 사실입니다.
 </div>` : ''}
-<h1>지금 손으로 풀어야 할 곳은 <em>${m.summary.distinctConflictedFiles}개 파일</em>입니다.</h1>
+<h1>${m.summary.branchCount === 0
+  ? `지금 손으로 풀 곳은 <em>없습니다</em>.`
+  : `지금 손으로 풀어야 할 곳은 <em>${m.summary.distinctConflictedFiles}개 파일</em>입니다.`}</h1>
 <p class="sub">「같은 파일을 둘이 건드렸다」는 부딪힘이 아닙니다 — 서로 다른 줄이면 git 이 알아서 합칩니다.
 그래서 파일 이름을 세지 않고 <b>실제로 합쳐 보고</b> 부딪힌 것만 셌습니다.
 아무것도 바꾸지 않습니다(읽기만 합니다).</p>
@@ -537,7 +539,7 @@ ${m.fetched && m.fetched.tried && !m.fetched.ok ? `<div class="note" style="bord
 <h2>두 갈래씩 실제로 합쳐 본 결과</h2>
 <div class="scroll"><table>
 <tr><th>갈래 A</th><th>갈래 B</th><th>부딪힘</th><th>어디서</th></tr>
-${rows}
+${rows || '<tr><td colspan="4" class="dim">견줄 짝이 없습니다 — 아직 안 합친 갈래가 둘 이상일 때 나옵니다</td></tr>'}
 </table></div>
 
 <h2>갈래의 주인 — 하나여야 합니다</h2>
@@ -588,7 +590,7 @@ ${m.merged.map(b => `<tr><td>${esc(b.name)}</td><td class="dim">${esc(b.head || 
 <h2>갈래별 크기</h2>
 <div class="scroll"><table>
 <tr><th>갈래</th><th>커밋</th><th>파일</th><th>맨 위</th><th>마지막 커밋</th></tr>
-${brs}
+${brs || '<tr><td colspan="5" class="dim">아직 안 합친 갈래가 없습니다 — 위의 두 표(합치지 않기로 한 것 · 이미 들어간 것)를 보십시오</td></tr>'}
 </table></div>
 
 <h2>여러 갈래가 함께 건드린 파일</h2>
@@ -602,9 +604,13 @@ ${heat || '<tr><td colspan="3" class="dim">겹치는 파일이 없습니다</td>
 </div>
 
 <div class="note">
-  <b>「갈래가 늘면 병합이 어려워진다」의 실제 내용.</b> 갈래가 ${m.summary.branchCount}개면 견줄 짝이
+${m.summary.branchCount === 0 ? `  <b>지금은 손으로 풀 곳이 없습니다.</b> 열려 있는 갈래가 전부
+  <code>${esc(shortName(m.base))}</code> 에 들어가 있습니다.
+  <br>갈래를 하나 열면 짝은 0개, 둘을 열면 1개, 셋을 열면 3개, 넷을 열면 <b>6개</b>가 됩니다.
+  어려워지는 것은 <b>갈래 수가 아니라 짝의 수</b>이고, 짝은 갈래보다 빨리 늡니다.`
+: `  <b>「갈래가 늘면 병합이 어려워진다」의 실제 내용.</b> 아직 안 합친 갈래가 ${m.summary.branchCount}개면 견줄 짝이
   ${m.summary.pairCount}개이고, 하나만 더 열면 <b>${m.summary.pairsIfOneMore}개</b>가 됩니다.
-  짝이 느는 만큼 손으로 풀 자리도 늡니다. 어려워지는 것은 <b>갈래 수가 아니라 짝의 수</b>입니다.
+  짝이 느는 만큼 손으로 풀 자리도 늡니다. 어려워지는 것은 <b>갈래 수가 아니라 짝의 수</b>입니다.`}
 </div>
 
 <div class="foot">
