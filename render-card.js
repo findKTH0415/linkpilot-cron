@@ -14,7 +14,16 @@ const BRIGHT_MORNING=[
   '1508672019048-805c876b67e2'
 ];
 const uUrl=(id,w,h)=>'https://images.unsplash.com/photo-'+id+'?w='+w+'&h='+h+'&fit=crop&crop=entropy&q=85&auto=format';
-async function dl(url){ try{ return await loadImage(url); }catch(_){ return null; } }
+// 배경 후보를 최대 4곳까지 순차 시도하므로 한 곳이 응답을 끌면 잡 전체가 멈춘다.
+// loadImage(url) 자체엔 타임아웃이 없어 직접 받아서 넘긴다.
+const DL_TIMEOUT_MS = Number(process.env.CARD_IMAGE_TIMEOUT_MS || 15000);
+async function dl(url){
+  try{
+    const r = await fetch(url, { signal: AbortSignal.timeout(DL_TIMEOUT_MS) });
+    if(!r.ok) return null;
+    return await loadImage(Buffer.from(await r.arrayBuffer()));
+  }catch(_){ return null; }
+}
 async function renderCard(text, opts){
   const W=1080,H=1440,padX=86; // 카카오 친구톡 이미지 비율(3:4) 준수
   const o=opts||{}; const name=o.name||'김태형', company=(o.company||'').trim(); const dateLabel=o.date||'';

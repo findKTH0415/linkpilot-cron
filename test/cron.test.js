@@ -41,9 +41,14 @@ test('알림: 본문에 워크플로명·실행 URL·KST 시각이 모두 들어
 });
 
 test('알림: 로그에 전화번호를 그대로 남기지 않는다', () => {
-  const masked = alert.maskPhone('01065503050');
-  assert.ok(!masked.includes('6550'), '가운데 자리가 그대로 남아 있다');
-  assert.match(masked, /3050$/, '식별용 뒷자리는 남긴다');
+  // ★ 이 검사에는 **실제 번호를 쓰지 않는다** 〈2026-08-26 · D-130 정리〉.
+  //   앞 판은 사장님 실제 번호를 그대로 적어 두고 그 자릿수로 검사했다.
+  //   저장소가 공개(D-10)라 그 자체가 §2 위반이고, 검사가 「그 번호」에
+  //   묶여 있으면 지우는 순간 빨개져서 **못 지운다.**
+  const masked = alert.maskPhone('01012345678');
+  assert.ok(!masked.includes('1234'), '가운데 자리가 그대로 남아 있다');
+  assert.match(masked, /5678$/, '식별용 뒷자리는 남긴다');
+  assert.strictEqual(masked, '010****5678');
 });
 
 test('알림: DRY RUN 은 네트워크를 타지 않는다', async () => {

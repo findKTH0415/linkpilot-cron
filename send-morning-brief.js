@@ -9,7 +9,7 @@
  *   GEMINI_API_KEY     — Google AI Studio 무료 키 (콤마로 여러 개 가능 — 자동 로테이션)
  *   SOLAPI_API_KEY / SOLAPI_API_SECRET / SOLAPI_PFID
  *   NAS_BASE_URL       — 예: https://synologynas.tail43fc79.ts.net (sync.php 호출용)
- *   ONLY_TO            — (테스트) 특정 1명만. 예: 01065503050. 없으면 FRIENDS_URL/RECIPIENTS
+ *   ONLY_TO            — (테스트) 특정 1명만. 예: 01012345678. 없으면 FRIENDS_URL/RECIPIENTS
  *   FRIENDS_URL / RECIPIENTS — 카드 cron과 동일
  *   SENDER_PHONE       — (선택) 친구톡 실패 시 SMS 대체
  */
@@ -17,6 +17,10 @@
 // solapi 는 실제 발송 시점에만 불러온다.
 // 최상단에서 require 하면 node_modules 없이는 이 파일을 불러올 수조차 없어
 // 재시도·배너 같은 발송 무관 로직을 의존성 없이 테스트할 수 없다.
+//
+// ★ preflight 는 딸린 패키지가 없는 이 저장소 파일이라 최상단에 두어도
+//   같은 문제가 안 생긴다 — 그래서 여기서 부른다.
+const { preflight, nasBase, friendsUrl, isDryRun } = require('./preflight');
 
 const GEMINI_MODELS = (process.env.GEMINI_MODELS || 'gemini-2.5-flash,gemini-2.0-flash').split(',').map(s => s.trim()).filter(Boolean);
 const GEMINI_KEYS = (process.env.GEMINI_API_KEY || '').split(',').map(s => s.trim()).filter(Boolean);
@@ -92,7 +96,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
  * @returns {{ok:boolean, data:object, error?:string}}
  */
 async function fetchData() {
-  const base = (process.env.NAS_BASE_URL || (process.env.FRIENDS_URL || '').replace(/\/friends\.php.*$/, '')).replace(/\/$/, '');
+  // 주소 계산은 preflight 의 nasBase() 한 곳에서만 한다 — 두 벌로 두면 어긋난다.
+  const base = nasBase();
   if (!base) return { ok: false, data: {}, error: 'NAS_BASE_URL 없음' };
 
   let lastError = '';
@@ -188,28 +193,38 @@ async function loadRecipients() {
     const only = process.env.ONLY_TO.split(',').map(s => s.replace(/[^0-9]/g, '')).filter(Boolean);
     if (only.length) { console.log('★ 테스트 모드: ' + only.join(',')); return only; }
   }
-  const url = process.env.FRIENDS_URL;
+  const url = friendsUrl();
   if (url) {
+    if (!process.env.FRIENDS_URL) console.log('FRIENDS_URL 미등록 → NAS_BASE_URL 기준 추론: ' + url);
     try {
       const sep = url.includes('?') ? '&' : '?';
-      const r = await fetch(url + sep + 'phones=1', { headers: { 'cache-control': 'no-cache' } });
+      const r = await fetch(url + sep + 'phones=1', { headers: { 'cache-control': 'no-cache' }, signal: AbortSignal.timeout(20000) });
       if (r.ok) { const arr = await r.json(); if (Array.isArray(arr) && arr.length) return arr; }
-    } catch (e) { console.warn('FRIENDS_URL 실패: ' + e.message); }
+    } catch (e) { console.warn('친구명단 조회 실패: ' + e.message); }
   }
   return JSON.parse(process.env.RECIPIENTS || '[]');
 }
 
 async function main() {
+  // dry-run: 브리핑 본문 생성까지만 확인. Solapi 자격증명·수신자 없이도 돌아간다.
+  const dry = isDryRun();
+  if (dry) console.log('★ DRY RUN — 실제 발송하지 않습니다 (브리핑 본문만 검증)');
+  preflight(dry ? ['GEMINI_API_KEY', 'NAS_BASE_URL'] : ['GEMINI_API_KEY', 'SOLAPI_API_KEY', 'SOLAPI_API_SECRET', 'SOLAPI_PFID', 'NAS_BASE_URL'],
+    { needRecipients: !dry });
+
   const recipients = await loadRecipients();
-  if (!recipients.length) throw new Error('수신자 없음 (ONLY_TO/FRIENDS_URL/RECIPIENTS)');
+  if (!dry && !recipients.length) throw new Error('수신자 없음 (ONLY_TO/FRIENDS_URL/RECIPIENTS)');
   const pfId = process.env.SOLAPI_PFID;
-  if (!pfId) throw new Error('SOLAPI_PFID 없음');
 
   const nas = await fetchData();
   const payload = buildPayload(nas.data);
   const text = await genBrief(payload);
   const full = '☀️ 아침업무 브리핑 — ' + dateLabel() + '\n\n' + degradedBanner(nas) + text;
   console.log('── 브리핑 ──\n' + full + '\n────────────');
+
+  // ★ 발송 없이 확인하는 판은 **solapi 를 부르기 전에** 빠져나간다.
+  //   그래야 열쇠도 node_modules 도 없이 본문·카드만 만들어 볼 수 있다.
+  if (dry) { console.log('✅ DRY RUN 완료 — 실제 발송은 하지 않았습니다.'); return; }
 
   const { SolapiMessageService } = require('solapi');
   const ms = new SolapiMessageService(process.env.SOLAPI_API_KEY, process.env.SOLAPI_API_SECRET);

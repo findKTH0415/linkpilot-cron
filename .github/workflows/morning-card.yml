@@ -8,6 +8,11 @@ on:
   schedule:
     - cron: '10 23 * * *'   # 매일 08:10 KST (친구톡 발송 가능시간 08:00~20:50 준수)
   workflow_dispatch:        # 수동 실행(테스트) 버튼
+    inputs:
+      dry_run:
+        description: '발송하지 않고 본문·카드만 생성해서 확인 (Solapi 시크릿 불필요)'
+        type: boolean
+        default: false
 
 concurrency:
   group: morning-card
@@ -18,12 +23,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '22'
       - name: Install deps
-        run: npm ci || npm install
+        run: npm install --no-audit --no-fund
       - name: Send morning card (친구톡)
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -37,7 +42,15 @@ jobs:
           CARD_NAME: ${{ secrets.CARD_NAME }}
           CARD_COMPANY: ${{ secrets.CARD_COMPANY }}
           NAS_BASE_URL: ${{ secrets.NAS_BASE_URL }}
+          DRY_RUN: ${{ inputs.dry_run }}
         run: node send-morning-card.js
+      - name: Upload dry-run card
+        if: ${{ inputs.dry_run }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: dry-run-card
+          path: dry-run/
+          if-no-files-found: warn
 
   # 발송이 실패하면 반드시 사람에게 알린다 (CLAUDE.md §2).
   alert:

@@ -8,6 +8,11 @@ on:
   schedule:
     - cron: '5 23 * * *'    # 매일 08:05 KST (지정시간 변경은 이 줄만 수정)
   workflow_dispatch:         # 수동 실행(테스트) 버튼
+    inputs:
+      dry_run:
+        description: '발송하지 않고 브리핑 본문만 생성해서 확인 (Solapi 시크릿 불필요)'
+        type: boolean
+        default: false
 
 concurrency:
   group: morning-brief
@@ -18,12 +23,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '22'
       - name: Install deps
-        run: npm ci || npm install
+        run: npm install --no-audit --no-fund
       - name: Send morning brief (친구톡)
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -36,6 +41,7 @@ jobs:
           FRIENDS_URL: ${{ secrets.FRIENDS_URL }}
           RECIPIENTS: ${{ secrets.RECIPIENTS }}
           SENDER_PHONE: ${{ secrets.SENDER_PHONE }}
+          DRY_RUN: ${{ inputs.dry_run }}
         run: node send-morning-brief.js
 
   # 발송이 실패하면 반드시 사람에게 알린다 (CLAUDE.md §2).
