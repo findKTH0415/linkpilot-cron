@@ -126,24 +126,29 @@ test('★★ 주인이 둘인 갈래를 CRITICAL 로 잡는다 — 이것이 지
   assert.ok(rows[0].alerts.some(a => a.level === 'HIGH'), '주인을 안 적었는데 조용하다');
 });
 
-test('★★ 실제 저장소에서 주인이 둘인 갈래가 잡힌다', () => {
-  const m = mw.measure();
-  if (!m.ok) return;
+test('★★ 적어 둔 공동주인이 그대로 CRITICAL 로 잡힌다', () => {
+  // ★★ **원격 상태에 기대지 않는다** 〈2026-08-26 · 두 번 데었다〉.
+  //   앞 판은 `measure()` 로 실제 원격을 읽었다. CI 는 그 PR 갈래 하나만
+  //   받아 오므로 나머지가 안 보이고, 「적어 둔 공동주인 1 vs 잰 것 0」으로 빨개졌다.
+  //   적어 둔 갈래가 **전부 보이는 상태를 만들어** 논리만 본다.
   const doc = mw.readOwners();
+  const all = (doc.갈래 || []).map(b => ({ ref: `origin/${b.branch}`, name: b.branch, files: [] }));
+  if (!all.length) return;
+  const rows = mw.ownership(all);
   const declared = (doc.갈래 || []).filter(x => Array.isArray(x.coOwners) && x.coOwners.length);
-  // 적어 둔 것과 잰 것이 같아야 한다 — 다르면 둘 중 하나가 거짓말이다
-  assert.strictEqual(m.summary.sharedOwnerBranches, declared.length,
+  assert.strictEqual(rows.filter(o => o.ownerCount > 1).length, declared.length,
     '적어 둔 공동주인 수와 잰 수가 다르다');
-  for (const o of m.owners.filter(x => x.ownerCount > 1)) {
+  for (const o of rows.filter(x => x.ownerCount > 1)) {
     assert.ok(o.alerts.some(a => a.level === 'CRITICAL'),
       `${o.branch} 의 주인이 둘인데 CRITICAL 이 안 붙었다`);
   }
 });
 
 test('★ 주인이 하나면 경보가 없다 — 늑대야 하지 않는다', () => {
-  const m = mw.measure();
-  if (!m.ok) return;
-  for (const o of m.owners.filter(x => x.ownerCount === 1)) {
+  const doc = mw.readOwners();
+  const all = (doc.갈래 || []).map(b => ({ ref: `origin/${b.branch}`, name: b.branch, files: [] }));
+  if (!all.length) return;
+  for (const o of mw.ownership(all).filter(x => x.ownerCount === 1)) {
     assert.ok(!o.alerts.some(a => a.level === 'CRITICAL' || a.level === 'HIGH'),
       `${o.branch} 은 주인이 하나인데 경보가 붙었다`);
   }
@@ -163,12 +168,25 @@ test('★ 주인 목록 파일이 깨져도 화면이 죽지 않는다', () => {
   assert.ok(Array.isArray(doc.갈래 || []));
 });
 
-test('★ 적어 둔 갈래 이름이 실제 원격 갈래와 맞다 — 오타를 잡는다', () => {
+test('★★ 적어 뒀는데 안 보이는 갈래를 **말한다** — 검사가 아니라 보고다', () => {
+  // ★★ 앞 판은 이것을 검사로 두었다가 CI 에서 빨개졌다 〈2026-08-26〉.
+  //   CI 는 그 PR 의 갈래 **하나만** 받아 온다. 나머지 셋은 늘 「없다」가 된다.
+  //   내 CI 흉내는 갈래를 **0개**로 만들어서 통과했다 — 흉내가 틀렸던 것이다.
+  //   **환경에 따라 답이 달라지는 것은 검사가 아니다.** 도구가 그때그때 말한다.
+  const rows = mw.ownership([{ ref: 'origin/claude/보이는갈래', name: '보이는갈래', files: [] }]);
+  assert.ok(Array.isArray(rows.declaredMissing), '안 보이는 갈래 목록이 없다');
+  // 적어 둔 갈래가 하나라도 있으면, 지금 안 보이는 것은 전부 여기 들어와야 한다
   const doc = mw.readOwners();
-  const real = new Set(mw.workBranches().map(r => r.replace(/^origin\//, '')));
-  if (!real.size) return;
-  for (const x of (doc.갈래 || [])) {
-    assert.ok(real.has(x.branch),
-      `docs/갈래-주인.json 에 없는 갈래가 적혀 있다: ${x.branch} — 오타면 그 갈래는 영원히 주인이 없다`);
+  const names = (doc.갈래 || []).map(x => x.branch);
+  for (const n of names) {
+    assert.ok(rows.declaredMissing.includes(n),
+      `${n} 이 안 보이는데 목록에 없다 — 조용히 빠지면 주인 없는 갈래가 생긴다`);
   }
+});
+
+test('★ 다 보이면 「안 보이는 갈래」가 비어 있다', () => {
+  const doc = mw.readOwners();
+  const all = (doc.갈래 || []).map(b => ({ ref: `origin/${b.branch}`, name: b.branch, files: [] }));
+  const rows = mw.ownership(all);
+  assert.deepStrictEqual(rows.declaredMissing, [], '다 보이는데 없다고 한다');
 });

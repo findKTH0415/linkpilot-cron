@@ -178,6 +178,14 @@ function ownership(branches) {
   const areas = doc._영역 || {};
   const byBranch = new Map((doc.갈래 || []).map(x => [x.branch, x]));
   const rows = [];
+  // ★★ **적어 뒀는데 원격에 없는 갈래** — 오타이거나, 이미 병합돼 사라진 것이다.
+  //   오타면 그 갈래는 **영원히 주인이 없다.** 다만 이것을 검사(test)로 두면
+  //   안 된다 — CI 는 그 PR 의 갈래 하나만 받아 오므로 나머지 셋이 늘 「없다」가 된다.
+  //   **환경에 따라 답이 달라지는 것은 검사가 아니라 그때그때 말할 일이다** (2026-08-26 실측).
+  const present = new Set(branches.map(b => b.ref.replace(/^origin\//, '')));
+  const declaredMissing = (doc.갈래 || [])
+    .map(x => x.branch)
+    .filter(name => !present.has(name));
 
   for (const b of branches) {
     const full = b.ref.replace(/^origin\//, '');
@@ -216,6 +224,7 @@ function ownership(branches) {
       ],
     });
   }
+  rows.declaredMissing = declaredMissing;
   return rows;
 }
 
@@ -270,6 +279,8 @@ function measure(opts = {}) {
       // ★ 주인이 둘인 갈래 · 주인이 없는 갈래 — 사장님이 가장 먼저 보실 숫자다
       sharedOwnerBranches: owners.filter(o => o.ownerCount > 1).length,
       unownedBranches: owners.filter(o => o.ownerCount === 0).length,
+      // ★ 적어 뒀는데 지금 안 보이는 갈래. 오타일 수도, 병합돼 사라진 것일 수도 있다
+      declaredMissing: owners.declaredMissing || [],
     },
   };
 }
@@ -309,6 +320,12 @@ function render(m) {
     L.push(`   ${mark} ${pad(o.branch, 40)} ${o.owner || '(안 적음)'}`
       + (o.coOwners.length ? ` + ${o.coOwners.join(' · ')}` : '')
       + (o.outsideCount ? `   영역 밖 ${o.outsideCount}파일` : ''));
+  }
+  if ((m.summary.declaredMissing || []).length) {
+    L.push('');
+    L.push(`   ? 적어 뒀는데 지금 안 보이는 갈래 ${m.summary.declaredMissing.length}개`);
+    for (const n of m.summary.declaredMissing) L.push(`     ${n}`);
+    L.push('     (오타이거나, 이미 병합돼 사라진 것이다 — 원격을 다 받아왔는지 먼저 보라)');
   }
   if (bad.length) {
     L.push('');
