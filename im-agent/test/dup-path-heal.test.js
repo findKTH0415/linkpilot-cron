@@ -250,3 +250,48 @@ test('★★★ 장치를 빼면 **화면이 안 뜬다** (통과가 아니라 �
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+/* ───────────── ★★★★ CI 를 깨뜨린 함정 ───────────── */
+
+test('★★★★ 저장소 이름이 두 번인 자리를 **겹침으로 오해하지 않는다** (CI 를 깼던 자리)', (t) => {
+  /* ★★★ 3판은 **아무 토막이나 두 번 이어지면** 겹침으로 봤다.
+   *   그런데 GitHub Actions 의 체크아웃 자리가 이렇게 생겼다 —
+   *
+   *     /home/runner/work/linkpilot-cron/linkpilot-cron/…
+   *
+   *   저장소 이름이 두 번이다. 3판은 그것을 겹침으로 읽고 자리를 바꿔
+   *   **화면 검사 일곱 개를 깼고, 배포가 막혔다.** 내 화면에서는 안 났다 —
+   *   그 자리에서만 나는 고장이다.
+   *
+   * ★ 4판이 안전한 이유는 둘이다: **`im-flow` 라는 폴더만** 찾고,
+   *   **http(s) 일 때만** 움직인다. 둘 중 하나만 빠져도 CI 가 다시 깨진다. */
+  const browser = findBrowser();
+  if (!browser) { t.skip('헤드리스 크로미움이 없어 **못 쟀다**'); return; }
+
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-ci-'));
+  const deep = path.join(dir, 'linkpilot-cron', 'linkpilot-cron');
+  fs.mkdirSync(deep, { recursive: true });
+  try {
+    for (const f of fs.readdirSync(PLATFORM)) {
+      if (!/\.(js|css)$/.test(f) || f.startsWith('build-')) continue;
+      try { fs.copyFileSync(path.join(PLATFORM, f), path.join(deep, f)); } catch (_) { /* 건너뛴다 */ }
+    }
+    fs.copyFileSync(path.join(PLATFORM, 'report-flow.html'), path.join(deep, 'report-flow.html'));
+
+    const h = render(browser, `file://${path.join(deep, 'report-flow.html')}`);
+    assert.ok(btn(h) > 0, '이름이 두 번인 자리에서 화면이 안 뜬다 — CI 가 이렇게 깨졌다');
+    assert.strictEqual(baseOf(h), null,
+      '저장소 이름이 두 번인 것을 겹침으로 오해했다 — CI 의 체크아웃 자리가 바로 이 꼴이다');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('★★★ 아무 토막이나 두 번이면 움직이지 않는다 — **`im-flow` 만** 본다', () => {
+  const s = fs.readFileSync(path.join(PLATFORM, 'report-flow.html'), 'utf8');
+  /* ★ 3판은 `segs[i] === segs[i+1]` 로 **아무 토막이나** 봤다. 그 줄이
+   *   돌아오면 CI 가 다시 깨진다. */
+  assert.ok(!/segs\[i\] === segs\[i \+ 1\]/.test(s.slice(0, s.indexOf('var shown = false;'))),
+    '아무 토막이나 겹치면 자리를 바꾼다 — CI 체크아웃 자리(이름 두 번)를 깨뜨린다');
+  assert.match(s, /FOLDER = 'im-flow'/, '찾을 폴더 이름이 정해져 있지 않다');
+});
