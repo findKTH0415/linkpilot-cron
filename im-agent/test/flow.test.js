@@ -563,36 +563,61 @@ test('★ 미결정 등록부를 이모지로 세되 서로게이트에 속지 �
  *   같은 번호가 열린 항목이면서 결정 기록에도 있으면 어느 쪽이 참인지 알 수 없다.
  */
 test('★ 미결정 등록부의 ID 는 유일하고, 건수는 손으로 적은 숫자가 아니다', () => {
-  const text = fs.readFileSync(
-    path.join(__dirname, '..', '..', 'docs', '미결정-사항.md'), 'utf8');
+  // ★ 경로도 세는 법도 `core/registry-doc.js` 한 곳에서 온다 〈2026-08-26 · D-134〉.
+  //   표를 `docs/결정-기록.md` 로 떼면서 읽는 곳이 넷이 되었다 — 각자 경로를
+  //   적으면 다음에 옮길 때 한 곳이 빠지고, **그 한 곳은 조용히 옛 파일을 읽는다.**
+  const R = require('../core/registry-doc.js');
+  const text = R.read(R.REGISTRY);
 
-  const heads = [...text.matchAll(/^### (\S+)\s+(D-\d+)\./gmu)];
-  const ids = heads.map((h) => h[2]);
+  const heads = R.items(text);
+  const ids = heads.map((h) => h.id);
   const dup = ids.filter((id, i) => ids.indexOf(id) !== i);
   assert.deepStrictEqual(dup, [], `같은 ID 가 두 번 등록되었다: ${dup.join(', ')}`);
 
   /* 열린(✅ 아닌) 항목은 범위 외·결정 기록 표에 있으면 안 된다.
    *
-   * ★★ **그 두 절만 본다** 〈2026-08-25 · 헛울음이 났다〉. 앞 판은 **문서
-   *   전체**에서 `| D-xx |` 를 찾았다. 그래서 본문에 **견주는 표**(예: 두
+   * ★★ **닫힌 것을 적는 자리만 본다** 〈2026-08-25 · 헛울음이 났다〉. 앞 판은
+   *   **문서 전체**에서 `| D-xx |` 를 찾았다. 그래서 본문에 **견주는 표**(예: 두
    *   작업선이 같은 번호를 다르게 쓰고 있다는 대조표)를 적으면, 그 줄을
    *   「결정 표에 있다」로 읽고 빨개졌다 — 고칠 것이 없는데 빨간 것이다.
-   * ★ 재려는 것은 「열린 항목이 **닫힌 것처럼 적혀 있는가**」이므로,
-   *   닫힌 것을 적는 두 절 안에서만 센다. */
-  const closedSec = text.slice(text.indexOf('## 범위 외'));
-  const tabled = new Set([...closedSec.matchAll(/^\| (D-\d+) \|/gm)].map((m) => m[1]));
-  heads.filter((h) => h[1].indexOf('✅') !== 0).forEach((h) => {
-    assert.ok(!tabled.has(h[2]), `${h[2]} 가 열린 항목이면서 표에도 있다`);
+   * ★ 이제 자리가 둘이다 — 등록부의 「범위 외」 절과 **떼어 낸 결정 표 파일**. */
+  const outSec = text.slice(text.indexOf('## 범위 외'));
+  const tabled = new Set([
+    ...[...outSec.matchAll(/^\| (D-\d+) \|/gm)].map((m) => m[1]),
+    ...R.decided(),
+  ]);
+  heads.filter((h) => !h.decided).forEach((h) => {
+    assert.ok(!tabled.has(h.id), `${h.id} 가 열린 항목이면서 표에도 있다`);
   });
 
   // 머리의 건수는 세어서 맞춘다 — 손으로 적은 숫자는 코드가 바뀐 날부터 옛말이 된다
-  const head = text.match(/미결정 \*\*(\d+)건\*\* · 범위 외 (\d+)건 · 결정 (\d+)건/);
-  assert.ok(head, '머리에 건수 줄이 없다');
-  const open = heads.filter((h) => h[1].indexOf('✅') !== 0).length;
-  assert.strictEqual(open, Number(head[1]), '미결정 건수가 실제 항목 수와 다르다');
-  const decSec = text.slice(text.indexOf('## 결정 기록'));
-  const decided = [...decSec.matchAll(/^\| (D-\d+) \|/gm)].length;
-  assert.strictEqual(decided, Number(head[3]), '결정 건수가 결정 기록 표와 다르다');
+  const stated = R.statedCounts(text);
+  assert.ok(stated, '머리에 건수 줄이 없다');
+  const actual = R.actualCounts();
+  assert.strictEqual(actual.open, stated.open, '미결정 건수가 실제 항목 수와 다르다');
+  assert.strictEqual(actual.decided, stated.decided, '결정 건수가 결정 기록 표와 다르다');
+});
+
+test('★★ 결정 표를 옮겨도 읽는 곳이 따라온다 — 경로를 두 곳에 적지 않는다', () => {
+  // ★★★ 이 검사가 막는 것: 표를 또 옮겼을 때 **읽는 곳 하나가 옛 파일을 읽고도
+  //   초록으로 남는 것.** 읽긴 읽었으니 오류가 안 난다 — 가장 안 잡히는 꼴이다.
+  const R = require('../core/registry-doc.js');
+  assert.ok(fs.existsSync(R.DECISIONS), '결정 표 파일이 없다');
+  assert.ok(R.decided().length > 0, '결정 표가 비었다 — 옮기다 잃었다');
+
+  // 등록부 본문에는 표가 **남아 있으면 안 된다** (두 벌이 되면 한쪽이 옛말을 한다)
+  const reg = R.read(R.REGISTRY);
+  const afterOut = reg.slice(reg.indexOf('## 범위 외'));
+  const strayHeading = /^## 결정 기록\s*$/m.test(afterOut);
+  assert.ok(!strayHeading, '등록부에 결정 표가 그대로 남아 있다 — 두 벌이 되었다');
+
+  // 경로를 직접 적은 곳이 없어야 한다 (주석은 떼고 본다 — CLAUDE.md §8)
+  for (const f of ['../test/flow.test.js', '../test/check-model.test.js']) {
+    const src = fs.readFileSync(path.join(__dirname, f), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    assert.ok(!/'결정-기록\.md'/.test(src),
+      `${f} 가 결정 표 경로를 직접 적었다 — registry-doc.js 를 쓴다`);
+  }
 });
 
 test('★ 대시보드도 그대로 올릴 수 있어야 한다', () => {

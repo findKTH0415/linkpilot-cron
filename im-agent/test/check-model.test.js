@@ -167,13 +167,16 @@ test('★ 커넥터를 지우지 않았다 (나중에 세우면 주소만 넣으
 });
 
 test('★ 등록부에 두 결정이 기록되어 있다', () => {
-  const reg = fs.readFileSync(path.join(__dirname, '..', '..', 'docs', '미결정-사항.md'), 'utf8');
+  // ★ 경로는 `core/registry-doc.js` 한 곳에서 온다 〈2026-08-26 · D-134〉 —
+  //   표가 `docs/결정-기록.md` 로 떨어져 나갔다. 본문(경위)은 등록부에 그대로다.
+  const R = require('../core/registry-doc.js');
+  const reg = R.read(R.REGISTRY);
   assert.match(reg, /### ✅ D-37\./, '결정된 항목을 ✅ 로 바꿔야 한다');
   assert.match(reg, /### ✅ D-38\./);
   // CLAUDE.md §9 — 결정일·결정자·반영 커밋을 결정 기록 표에 남긴다
-  const table = reg.slice(reg.indexOf('## 결정 기록'));
-  assert.match(table, /\| D-37 \|/, '결정 기록 표에 없다 (§9)');
-  assert.match(table, /\| D-38 \|/);
+  const table = R.decided();
+  assert.ok(table.includes('D-37'), '결정 기록 표에 없다 (§9)');
+  assert.ok(table.includes('D-38'));
 });
 
 test('npm 스크립트가 걸려 있다 (문서가 가리키는 명령이 실제로 있어야 한다)', () => {

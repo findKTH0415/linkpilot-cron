@@ -233,7 +233,14 @@ function branches() {
     out = String((e.stdout || '') + (e.stderr || ''));
     code = e.status === undefined ? 1 : e.status;
   }
-  const line = out.trim().split('\n').pop().replace(/^겹치는 파일: /, '');
+  /* ★★ **마지막 줄이 판정 줄이 아니다** 〈2026-08-26 · 실측〉.
+   *   겹침이 있으면 `branch-doctor` 가 판정 줄 뒤에 **왜 위험한지**를 한 문단
+   *   더 적는다. 그냥 마지막 줄을 집으면 화면에 「진 쪽 설계는 오류 하나 없이
+   *   사라진다」만 뜨고 **어느 파일이 겹쳤는지가 사라진다.**
+   * ★ 그래서 **판정 줄을 이름으로 찾는다.** 못 찾으면 마지막 줄로 내려간다. */
+  const lines = out.trim().split('\n').filter(Boolean);
+  const verdictLine = [...lines].reverse().find((l) => /^(겹치는 파일|살아 있는 갈래|견줄|못 |못읽)/.test(l.trim()));
+  const line = (verdictLine || lines[lines.length - 1] || '').trim().replace(/^겹치는 파일: /, '');
   add('다른 갈래와 겹침', code === 0 ? 'ok' : (code === 2 ? 'unknown' : 'fail'),
     line || '결과를 못 읽었다');
 }
@@ -266,6 +273,33 @@ function imflow() {
     line || '결과를 못 읽었다');
 }
 
+/**
+ * ★★★ **재기만 하고 아무도 안 보는 숫자는 없는 숫자다** 〈2026-08-26 · D-118 후속〉.
+ *
+ *   `rights:count` 는 「비밀 검사를 경고에서 막기로 올릴 때」를 정하는 근거를
+ *   쌓는다. 그런데 **손으로 돌려야 세어졌다.** 그러면 20번을 넘기는 날이
+ *   **와도 아무도 모른다** — 「몇 주 뒤에 정하자」가 영원히 안 정해지는
+ *   바로 그 꼴이다 (D-118 이 막으려던 것).
+ *
+ * ★ 그래서 **교차검증을 돌 때마다 한 줄로 찍는다.** 배포는 `guard` 를 지나므로
+ *   나갈 때마다 세어지고, 때가 되면 그 줄이 스스로 「이제 올려도 된다」로 바뀐다.
+ *
+ * ★★ **칸(통과/실패)으로 만들지 않는다.** 이것은 재는 도구이지 막는 장치가
+ *   아니다. 칸으로 넣으면 「걸린 것이 있다」가 배포를 막게 되는데, 그것이
+ *   바로 D-118 이 **아직 하지 않기로 정한 일**이다. 표 아래 한 줄로만 적는다.
+ */
+function rightsNote() {
+  try {
+    const r = require('./rights-count.js').count();
+    const rate = r.falseRate === null ? '' : ` · 오탐 ${Math.round(r.falseRate * 100)}%`;
+    return `  · 비밀 검사(D-118) ${r.ran}번 돌았다 · 걸린 것 ${r.hits}건${rate}`
+      + ` — ${r.ready ? '**이제 막기로 올려도 된다**' : r.why}\n`;
+  } catch (e) {
+    // 못 셌으면 **못 셌다고** 적는다. 조용히 빠지면 「0건」과 구분이 안 된다
+    return `  · 비밀 검사(D-118) 못 셌다 — ${String(e.message).split('\n')[0]}\n`;
+  }
+}
+
 /* ── 내보내기 ──────────────────────────────────────────── */
 
 function main() {
@@ -281,7 +315,8 @@ function main() {
   const bad = rows.filter((r) => r.state === 'fail').length;
   const unk = rows.filter((r) => r.state === 'unknown').length;
   process.stdout.write(`\n  통과 ${rows.length - bad - unk} · 실패 ${bad} · 못 잼 ${unk}`
-    + '  ← 못 잰 것은 통과가 아니다\n\n');
+    + '  ← 못 잰 것은 통과가 아니다\n');
+  process.stdout.write(rightsNote() + '\n');
 
   if (bad) {
     process.stdout.write('❌ **내보내지 않는다.** 위 실패를 먼저 고친다.\n');
@@ -296,4 +331,4 @@ function main() {
 }
 
 if (require.main === module) process.exit(main());
-module.exports = { tests, stamp, previews, render, saveBar, openFile, agents, branches, rows };
+module.exports = { tests, stamp, previews, render, saveBar, openFile, agents, branches, rightsNote, rows };

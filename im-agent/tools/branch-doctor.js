@@ -25,6 +25,7 @@
  * 되돌아오는 값: 0 겹치는 것이 없다 · 1 겹친다 · 2 못 쟀다
  */
 
+const fs = require('fs');
 const { execSync } = require('child_process');
 const path = require('path');
 
@@ -59,13 +60,29 @@ function git(cmd) {
   return execSync(`git ${cmd}`, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
 }
 
+/**
+ * ★★★ **git 이 한글 이름을 따옴표로 감싸 준다** 〈2026-08-26 · 실측〉.
+ *
+ *   `docs/미결정-사항.md` 가 `"docs/\\353\\257\\270..."` 로 나온다.
+ *   그러면 아래 `expected()` 의 `f.startsWith('docs/')` 가 **안 맞고**,
+ *   원래 여러 갈래가 함께 고치는 문서가 **「같이 고친 코드」로 세어진다.**
+ *
+ *   실측에서 `docs/미결정-사항.md` 하나 때문에 판정이 「겹친다」로 갔다 —
+ *   화면에도 알아볼 수 없는 글자로 찍혔다. **늘 빨간 검사는 아무도 안 본다**
+ *   (M-25 와 같은 결). 세는 자리 앞에서 푼다.
+ *
+ * ★ 푸는 규칙은 `merge-watch.js` 가 이미 갖고 있다 — **거기서 가져다 쓴다.**
+ *   여기 다시 적으면 두 벌이 되고, 그러면 한쪽이 옛말을 한다.
+ */
+const { unquote } = require('./merge-watch.js');
+
 function changed(base, ref) {
-  return git(`diff --name-only ${base}...${ref}`).split('\n').filter(Boolean);
+  return git(`diff --name-only ${base}...${ref}`).split('\n').filter(Boolean).map(unquote);
 }
 
 /** 그 갈래가 **새로 만든** 파일 (없던 것을 더한 것) */
 function added(base, ref) {
-  return git(`diff --name-only --diff-filter=A ${base}...${ref}`).split('\n').filter(Boolean);
+  return git(`diff --name-only --diff-filter=A ${base}...${ref}`).split('\n').filter(Boolean).map(unquote);
 }
 
 /**
@@ -77,24 +94,79 @@ function added(base, ref) {
  *   물어본 것처럼 말하지 않는다.
  * ★ 못 물어봤다고 죽지 않는다. 조용히 나이 어림으로 내려간다.
  */
+/**
+ * ★★★ **왜 못 물어봤는지를 남긴다** 〈2026-08-26 · 실측〉.
+ *
+ *   앞 판은 실패를 전부 `return null` 로 삼켰다. 그래서 화면에는
+ *   「열린 PR 을 못 물어봤다」만 남고 **까닭이 없었다.** 실제로 이 자리에서
+ *   열쇠도 있고 `fetch` 도 있고 저장소 이름도 맞는데 **401(Bad credentials)**
+ *   이 오고 있었다 — 이 환경의 열쇠는 GitHub API 열쇠가 아니다.
+ *   삼키면 「열쇠가 없다」와 「열쇠가 틀렸다」가 **같은 화면**이 된다.
+ *
+ * ★ 마지막 까닭을 여기 담아 둔다. 값은 한 글자도 안 남긴다 (§2).
+ */
+let LAST_WHY = null;
+function whyNoPr() { return LAST_WHY; }
+
+/**
+ * **밖에서 답을 넣어 줄 수 있다** 〈2026-08-26 · 같은 실측〉.
+ *
+ * 이 자리에서는 GitHub API 를 직접 못 부른다(401). 그런데 **부를 수 있는 것이
+ * 따로 있다** — 대화 쪽의 GitHub 도구다. 그쪽이 물어본 답을 파일에 적어 두면
+ * 이 검사가 **어림하지 않고 물어본 판**이 된다.
+ *
+ *   LP_OPEN_PRS=<파일>   그 파일에 열린 PR 의 갈래 이름을 JSON 배열로 적는다
+ *
+ * ★ 형식은 **배열 하나**다. 「언제 받았는지」를 같이 적고 싶으면
+ *   `{ "at": "...", "refs": [...] }` 도 받는다 — 받는 쪽을 늘리는 편이,
+ *   적는 쪽이 형식을 틀려서 조용히 빈 배열이 되는 것보다 낫다.
+ */
+function openPrFromFile() {
+  const p = process.env.LP_OPEN_PRS;
+  if (!p) return null;
+  if (!fs.existsSync(p)) { LAST_WHY = `LP_OPEN_PRS 가 가리키는 파일이 없다: ${p}`; return null; }
+  let j;
+  try { j = JSON.parse(fs.readFileSync(p, 'utf8')); }
+  catch (e) { LAST_WHY = `LP_OPEN_PRS 파일을 못 읽었다 — ${e.message}`; return null; }
+  const refs = Array.isArray(j) ? j : (j && Array.isArray(j.refs) ? j.refs : null);
+  if (!refs) { LAST_WHY = 'LP_OPEN_PRS 파일이 배열도 {refs:[…]} 도 아니다'; return null; }
+  return refs.map(String).filter(Boolean);
+}
+
 async function openPrBranches() {
+  LAST_WHY = null;
+
+  // ① 밖에서 넣어 준 답이 있으면 그것이 먼저다 — 물어본 것이지 어림한 것이 아니다
+  const given = openPrFromFile();
+  if (given) return given;
+
   const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
-  if (!token || typeof fetch !== 'function') return null;
+  if (!token) { LAST_WHY = '열쇠(GH_TOKEN·GITHUB_TOKEN)가 없다'; return null; }
+  if (typeof fetch !== 'function') { LAST_WHY = '이 런타임에 fetch 가 없다'; return null; }
   let slug;
   try {
     slug = (git('config --get remote.origin.url').trim()
       .replace(/\.git$/, '').match(/github\.com[/:]([^/]+\/[^/]+)$/) || [])[1];
   } catch (_) { slug = null; }
-  if (!slug) return null;
+  if (!slug) { LAST_WHY = 'origin 이 GitHub 저장소가 아니다'; return null; }
   try {
     const r = await fetch(`https://api.github.com/repos/${slug}/pulls?state=open&per_page=100`, {
       headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
     });
-    if (!r.ok) return null;
+    if (!r.ok) {
+      // ★ 상태코드만 적는다. 본문에는 열쇠가 섞여 올 수 있다 (§2)
+      LAST_WHY = r.status === 401
+        ? 'GitHub 가 열쇠를 안 받았다 (401) — 이 자리의 열쇠는 GitHub API 열쇠가 아니다'
+        : `GitHub 가 ${r.status} 로 답했다`;
+      return null;
+    }
     const j = await r.json();
-    if (!Array.isArray(j)) return null;
+    if (!Array.isArray(j)) { LAST_WHY = 'GitHub 답이 목록이 아니다'; return null; }
     return j.map((p) => p && p.head && p.head.ref).filter(Boolean);
-  } catch (_) { return null; }
+  } catch (e) {
+    LAST_WHY = `GitHub 를 못 불렀다 — ${String(e.message).split('\n')[0]}`;
+    return null;
+  }
 }
 
 function check(openRefs) {
@@ -193,7 +265,10 @@ function verdict(r) {
     ? ` · 뿌리가 달라 합칠 수 없는 갈래 ${unrelated.length}개는 뺐다 (${unrelated.map((p) => p.branch).join(' · ')})`
     : '';
   const bad = live.filter((p) => (p.addAdd || []).length || (p.hard || []).length);
-  const how = r.byPr ? '' : ' · 열린 PR 을 못 물어봐 **나이로 어림했다**';
+  // ★ 못 물어봤으면 **까닭까지** 적는다 — 「열쇠가 없다」와 「열쇠가 틀렸다」는
+  //   고치는 방법이 다르다. 까닭이 없으면 둘이 같은 화면이 된다 (실측: 401).
+  const how = r.byPr ? '' :
+    ` · 열린 PR 을 못 물어봐 **나이로 어림했다**${whyNoPr() ? ` (${whyNoPr()})` : ''}`;
   const tail = (stale.length ? ` (멈춘 갈래 ${stale.length}개는 참고로만 뒀다 — ${LIVE_DAYS}일 넘게 조용하다)` : '') + orphan + how;
   if (!bad.length && !unread.length) {
     return { code: 0, line: (live.length
@@ -221,7 +296,7 @@ function verdict(r) {
   return { code: r.byPr ? 1 : 2, line: parts.join(' / ') + tail };
 }
 
-module.exports = { check, verdict, expected, openPrBranches, LIVE_DAYS };
+module.exports = { check, verdict, expected, openPrBranches, openPrFromFile, whyNoPr, LIVE_DAYS };
 
 if (require.main === module) {
   (async () => {
