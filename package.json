@@ -48,7 +48,8 @@
     "merge:watch:html": "node im-agent/tools/merge-watch.js --fetch --html im-agent/ui/platform/merge-watch.html",
     "d:conflict": "node im-agent/tools/decision-conflict.js",
     "imflow:manifest": "node im-agent/tools/sync-im-flow.js --write",
-    "imflow:check": "node im-agent/tools/sync-im-flow.js"
+    "imflow:check": "node im-agent/tools/sync-im-flow.js",
+    "rights:count": "node im-agent/tools/rights-count.js"
   },
   "dependencies": {
     "solapi": "^5.5.1"

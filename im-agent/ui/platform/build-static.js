@@ -249,6 +249,7 @@ ${vaultPanel()}
 ${linkedPanel()}
 ${deskPanel()}
 ${panels}
+${require('./preview-stamp.js').html()}
 </body>
 </html>
 `;
@@ -344,6 +345,7 @@ ${css.join('\n')}
   <p class="lead__d">${esc(lead.desc)}</p>
 </div>
 ${body.join('')}
+${require('./preview-stamp.js').html()}
 ` : `<title>보고서 생성 섹션</title>
 <style>
 ${WRAP_CSS}
@@ -361,6 +363,7 @@ ${vaultPanel()}
 ${linkedPanel()}
 ${deskPanel()}
 ${body.join('')}
+${require('./preview-stamp.js').html()}
 `;
 
   // ★ 못 올릴 조각을 올리면 옆 창이 **빈 채로** 열린다. 그때는 무엇이 잘못됐는지

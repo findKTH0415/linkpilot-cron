@@ -454,7 +454,12 @@ async function buildSection() {
     // 닫는 태그가 없으면 조용히 빼먹지 않는다 — 패널이 통째로 사라진 것을 아무도 모른다
     throw new Error('flowShell 에 </body> 가 없다 — 확인 패널을 붙일 자리를 못 찾았다');
   }
-  return withBanner.slice(0, end) + panels + withBanner.slice(end);
+  /* ★★★ **미리보기가 자기 판을 스스로 말한다** 〈2026-08-26 · D-114 결정〉.
+   *   앞 판은 배포 묶음 지문만 찍혀서, **미리보기 내용이 통째로 달라져도
+   *   숫자가 안 바뀌었다.** 사장님이 아티팩트 셋을 열면 내용이 전부 다른데
+   *   지문은 하나였다 — M-25 가 막으려던 바로 그 상태다. */
+  const stamp = require('./preview-stamp.js').html();
+  return withBanner.slice(0, end) + panels + stamp + withBanner.slice(end);
 }
 
 /**
