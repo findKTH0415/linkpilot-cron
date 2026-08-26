@@ -991,6 +991,78 @@ jobs:
           fi
           echo "::notice::**열쇠 파일을 배포가 놓았다.** ${NEWCOUNT}개를 Secret 값으로 새로 썼다 — 손으로 만드실 필요가 없다."
 
+      # ★★ **앱(웹루트) 열쇠도 배포가 놓는다** 〈2026-08-27 · D-141〉.
+      #
+      #   앱은 GitHub Secrets 를 못 읽는다. 앱이 읽는 것은 웹루트의 **봉인 파일**
+      #   (`<이름>_key.store.php`)이다. 그래서 Secret 에만 넣으면 **앱에는 영영
+      #   안 닿는다** — 사장님 화면에 「서버 없음」으로 뜬다. 실측 2026-08-27:
+      #   뉴스가 그 상태였다(Secret 은 둘이나 있는데 파일이 없었다).
+      #
+      #   이 단계는 앱 세션이 만들어 `docs/패치-앱-봉인-열쇠-단계.patch` 로 넘긴
+      #   것을 **이제 실제로 적용한 것**이다. 패치는 이틀 동안 파일로만 있었고,
+      #   파일로만 있는 패치는 **아무것도 안 한다.**
+      #
+      # ★★★ **이름을 여러 개 읽는다** (MEMORY M-55 · M-40).
+      #   뉴스 열쇠가 `WORLDWIDE_NEWS` 와 `WORLD_NEWS_API` **두 이름**으로 들어와
+      #   있었다. 한 이름만 보면 다른 쪽에 넣으신 값이 **조용히 죽는다.**
+      #   둘 다 읽고, **어느 이름이 쓰였는지 로그에 댄다.**
+      # ★ 값은 stdin 으로만 간다 — 명령줄 인자는 NAS 프로세스 목록에 뜬다 (§2).
+      # ★ 덮기 전에 옛 파일을 백업한다. 이 파일이 지금 살아 있는 열쇠일 수 있다.
+      # ★ 옛 평문 `<이름>_key.txt` 는 빈 파일로 덮는다(노출 제거).
+      - name: Write webroot app keys (앱 봉인 열쇠)
+        if: ${{ needs.plan.outputs.dry_run != 'true' }}
+        env:
+          NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+          NAS_USER: ${{ secrets.NAS_SSH_USER }}
+          WEB_ROOT: ${{ vars.LP_WEB_ROOT || '/volume1/web' }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          WORLDWIDE_NEWS: ${{ secrets.WORLDWIDE_NEWS }}
+          WORLD_NEWS_API: ${{ secrets.WORLD_NEWS_API }}
+        run: |
+          set -u
+          # 파일이름:읽을 Secret 이름들(앞이 우선)
+          PAIRS="gemini:GEMINI_API_KEY worldnews:WORLDWIDE_NEWS,WORLD_NEWS_API"
+          STAMP=$(TZ=Asia/Seoul date +%Y%m%d%H%M)
+          DONE=""; SKIP=""; DUP=""; FAIL=""
+          for pair in $PAIRS; do
+            f=${pair%%:*}
+            names=$(printf '%s' "${pair##*:}" | tr ',' ' ')
+            used=""; val=""; seen=""
+            for n in $names; do
+              cand=$(printenv "$n" || true)
+              cand=$(printf '%s' "$cand" | tr -d '\r\n')
+              [ -z "$cand" ] && continue
+              seen="$seen $n"
+              if [ -z "$used" ]; then used="$n"; val="$cand"; fi
+            done
+            if [ -z "$used" ]; then SKIP="$SKIP $f"; continue; fi
+            [ "$(printf '%s' "$seen" | wc -w)" -gt 1 ] && DUP="$DUP ${f}(${seen# })"
+            if { printf '<?php http_response_code(404); exit; ?>\n'; printf '%s\n' "$val"; } \
+              | ssh -o BatchMode=yes -o ConnectTimeout=20 -i ~/.ssh/id_deploy "$NAS_USER@$NAS_HOST" \
+                  "cd '$WEB_ROOT' || exit 9
+                   [ -f '${f}_key.store.php' ] && cp -p '${f}_key.store.php' '${f}_key.store.php.bak-$STAMP'
+                   umask 022 && cat > '${f}_key.store.php'
+                   chmod 644 '${f}_key.store.php'
+                   : > '${f}_key.txt' 2>/dev/null || true
+                   echo \"BYTES=\$(wc -c < '${f}_key.store.php')\"" >/dev/null; then
+              DONE="$DONE ${f}<-${used}"
+            else
+              FAIL="$FAIL $f"
+            fi
+          done
+          [ -n "$DONE" ] && echo "앱 봉인 열쇠:${DONE} (옛 파일은 <이름>_key.store.php.bak-$STAMP)" >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "$DUP" ]; then
+            echo "::warning::**같은 열쇠가 이름 두 개로 들어와 있다:${DUP}.** 앞 이름을 썼다 — 나머지는 안 쓰인다. 헷갈리지 않게 **안 쓰는 이름은 지워** 주십시오 (Settings → Secrets and variables → Actions)."
+            echo "⚠️ 이름이 둘인 열쇠:${DUP} — 앞 이름을 썼다" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -n "$SKIP" ]; then
+            echo "::notice::**Secret 이 비어 건너뛴 앱 열쇠:${SKIP}.** 넣으면 다음 배포부터 앱에 실린다 — 앱 화면의 「서버 없음」이 그 뜻이다."
+          fi
+          if [ -n "$FAIL" ]; then
+            echo "::error::**앱 봉인 파일을 못 놓았다:${FAIL}** (ssh·권한·웹루트 경로). 앱에는 옛 값이 그대로 남는다"
+            exit 1
+          fi
+
       # ★★★ **엔진을 올린다** 〈2026-08-23 · D-88 — 「모든 파일과 구조를 정립해줘」〉.
       #
       #   여기가 이 저장소에 **없던 자리**다. 화면 열여섯은 위에서 올렸고,

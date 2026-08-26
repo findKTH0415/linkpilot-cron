@@ -1,3 +1,17 @@
+〈2026-08-27 · D-141 — 이 패치는 **적용되었다. 다시 적용하지 마십시오.**〉
+
+`deploy-nas.yml` 에 `Write webroot app keys (앱 봉인 열쇠)` 단계로 들어갔다.
+적용하면서 바꾼 것 셋 —
+
+- 뉴스 열쇠를 **두 이름**(`WORLDWIDE_NEWS` · `WORLD_NEWS_API`)으로 읽는다.
+  사장님 Secrets 에 둘 다 있었고, 한 이름만 보면 다른 쪽이 조용히 죽는다 (M-55).
+- 덮기 전에 옛 봉인 파일을 **백업**한다.
+- 웹루트 경로를 `vars.LP_WEB_ROOT` 로 받는다 (기본 `/volume1/web`).
+
+아래 원본은 **기록으로만** 남긴다 — `git apply` 하면 충돌한다.
+
+────────────────────────────────────────────────────────────
+
 commit a0f249bad3cfb8a7a7afa45d8931e4221f1b63fe
 Author: 김태형 <kimtaehyoung@gimtaehyeong-ui-MacBookAir.local>
 Date:   Tue Aug 25 09:57:08 2026 +0900
