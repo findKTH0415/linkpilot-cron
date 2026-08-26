@@ -19,6 +19,7 @@ const gate = require('./core/gate');
 const designState = require('./core/design-state');
 const designGate = require('./core/design-gate');
 const outputspec = require('./core/outputspec');
+const request = require('./core/request');
 const reports = require('./core/reports');
 const monitor = require('./core/monitor');
 const { kstStamp } = require('./core/kst');
@@ -214,6 +215,22 @@ async function run(opts = {}) {
     if (!project) throw new Error(`프로젝트 없음: ${projectId}`);
     templateId = templateId || project.templateId;
   }
+
+  /* ── 요청 한 건을 연다 (`request_id` · 감사 H-3) ─────────────
+   * ★★★ **프로젝트와 요청은 다른 것이다.** 프로젝트는 「이 딜」이고 요청은
+   *   「그 보고서를 만들어 달라고 한 그 한 번」이다. 사양을 고쳐 다시 돌리면
+   *   **같은 프로젝트의 두 번째 요청**이다.
+   * ★★ 앞 판은 이 이름이 **코드에 하나도 없었다.** 그래서 같은 프로젝트를
+   *   두 번 요청하면 run-log 가 이어 붙기만 하고 **어디까지가 첫 번째였는지
+   *   알 수 없었다** (지침 §11-1 이 완료의 첫 조건으로 삼은 자리다).
+   */
+  const req = request.open(projectId, {
+    by: opts.by || null,
+    docType: opts.docType || null,
+    note: opts.note || '',
+  });
+  store.appendRunLog(projectId, { agent: 'pipeline', status: 'request_open', requestId: req.requestId });
+  log(`  요청: ${req.requestId} (이 프로젝트의 ${req.seq}번째)`);
 
   const dataset = loadDataset(projectId);
   const ctx = { projectId, dataset, log };
@@ -731,7 +748,17 @@ async function run(opts = {}) {
     ? '  승인 대기: 사람 승인 후 배포 가능 (cli.js approve)'
     : `  배포 차단: ${check.reasons.join(' / ')}`);
 
-  return { projectId, templateId, results, dataset, gate: check, finalValidation: final.output || null, spec };
+  /* ★ 요청을 닫는다. **어떻게 끝났는지**를 함께 적는다 —
+   *   그것이 없으면 두 번째 요청에서 첫 번째가 왜 다시 돌았는지 알 수 없다. */
+  request.close(projectId, req.requestId, {
+    status: check.allowed ? 'awaiting_approval' : 'blocked',
+    note: check.allowed ? '' : check.reasons.join(' / '),
+  });
+
+  return {
+    projectId, templateId, requestId: req.requestId,
+    results, dataset, gate: check, finalValidation: final.output || null, spec,
+  };
 }
 
 module.exports = { run, loadDataset, saveDataset, extractInto, mergeExtraction, resolveLinkedFetcher };
