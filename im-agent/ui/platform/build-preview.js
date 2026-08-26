@@ -18,6 +18,7 @@
  */
 const fs = require('fs');
 const os = require('os');
+const cp = require('child_process');
 const path = require('path');
 
 const HERE = __dirname;
@@ -429,7 +430,7 @@ async function buildSection() {
   // ★ 그래도 변경내역이 있다는 사실은 **위에서 말한다.** 아래로 내리기만 하면
   //   그것대로 아무도 안 본다 — 원래 화면 위에 뒀던 이유가 그거였다.
   //   그래서 배너 마지막 줄이 어디에 있는지 가리킨다.
-  const panels = changePanel() + evidencePanel() + guardPanel() + vaultPanel() + linkedPanel() + deskPanel();
+  const panels = changePanel() + evidencePanel() + guardPanel() + mcpPanel() + vaultPanel() + linkedPanel() + deskPanel();
   const withBanner = shell.replace('<body>', '<body>' + banner);
   const end = withBanner.lastIndexOf('</body>');
   if (end < 0) {
@@ -437,6 +438,178 @@ async function buildSection() {
     throw new Error('flowShell 에 </body> 가 없다 — 확인 패널을 붙일 자리를 못 찾았다');
   }
   return withBanner.slice(0, end) + panels + withBanner.slice(end);
+}
+
+/**
+ * LinkPilot 을 **내보내는** MCP 서버를 눈으로 확인하게 한다 (D-83).
+ *
+ * ★ 화면이 없는 작업이다. 대화하는 쪽(Claude Desktop 등)에서만 보이므로,
+ *   여기 없으면 「됐습니다」라는 말밖에 남지 않는다.
+ *
+ * ★★ **여기 결과는 손으로 쓴 것이 아니다.** 빌드할 때 임시 폴더에 합성 프로젝트를
+ *   하나 만들고 `mcp/server.js` 를 **실제로 불러** 그 답을 그대로 옮긴다.
+ *
+ * ★ 시각을 싣지 않는다. 실으면 산출물이 날마다 달라져 「재생성 = 커밋본」 검사가
+ *   자정마다 빨개진다 (DEMO_AT 머리말과 같은 이유).
+ */
+function mcpPanel() {
+  const AGENT = path.join(HERE, '..', '..');
+  const tools = require(path.join(AGENT, 'mcp', 'tools.js'));
+  const write = require(path.join(AGENT, 'ui', 'report-api.cjs'));
+
+  // 합성 예시다 — 실제 딜 자료는 이 저장소에 두지 않는다 (public)
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'im-mcp-'));
+  const ID = 'LP-DC-2026-001';
+  fs.mkdirSync(path.join(root, ID, '01_Project'), { recursive: true });
+  fs.writeFileSync(path.join(root, ID, '01_Project', 'project.json'), JSON.stringify({
+    name: '합성 예시 데이터센터', assetType: 'datacenter', status: 'draft',
+  }));
+  fs.writeFileSync(path.join(root, ID, '01_Project', 'dataset.json'), JSON.stringify({
+    facts: {
+      'property.site_area': {
+        value: 12345, unit: '㎡', source: '사업계획서.pdf', sourceDate: '2026-03-01',
+        page: 12, confidence: 0.8, verified: true, corroboration: 2,
+      },
+    },
+    candidates: {
+      'property.site_area': [
+        { value: 12345, source: '사업계획서.pdf', page: 12, sourceDate: '2026-03-01', quote: '대지면적 12,345㎡' },
+        { value: 12300, source: '토지대장.pdf', page: 1, sourceDate: '2026-02-10', quote: '대지면적 12,300㎡' },
+      ],
+    },
+  }));
+
+  /**
+   * ★★ **진짜 프로세스를 띄워 진짜 통로로 묻는다.** 모듈을 직접 부르면 규약을
+   *   말하는 부분(줄바꿈 구분·알림에 답하지 않기·stdout 오염)이 검증되지 않는다.
+   *   이 빌더는 통째로 동기라서 `spawnSync` 로 한 번에 주고받는다.
+   */
+  const SERVER = path.join(AGENT, 'mcp', 'server.js');
+  const ask = [
+    { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+    { jsonrpc: '2.0', method: 'notifications/initialized' },
+    { jsonrpc: '2.0', id: 2, method: 'tools/list' },
+    {
+      jsonrpc: '2.0', id: 3, method: 'tools/call',
+      params: { name: 'linkpilot_lineage', arguments: { projectId: ID, key: 'property.site_area' } },
+    },
+  ].map(m => JSON.stringify(m)).join('\n') + '\n';
+
+  const run = cp.spawnSync(process.execPath, [SERVER], {
+    input: ask, encoding: 'utf8',
+    env: Object.assign({}, process.env, { IM_AGENT_ROOT: root, LINKPILOT_MCP_PROJECTS: '' }),
+  });
+
+  const answers = String(run.stdout || '').split('\n').filter(Boolean).map((l) => {
+    try { return JSON.parse(l); } catch (_) { return { bad: l }; }
+  });
+
+  // ★ stdout 에 JSON 아닌 줄이 섞였으면 **그것을 화면에 적는다.** 조용히 넘기면
+  //   대화가 끊기는 이유가 영영 안 보인다
+  const dirty = answers.filter(a => a.bad).map(a => a.bad);
+
+  const listed = ((answers.find(a => a.id === 2) || {}).result || {}).tools || [];
+  const called = (answers.find(a => a.id === 3) || {}).result || null;
+  const proto = (((answers.find(a => a.id === 1) || {}).result) || {}).protocolVersion || '(모름)';
+
+  const lineageText = called && called.content
+    ? called.content[0].text.split('\n' + '```')[0]
+    : '(부르지 못했다)\n' + String(run.stderr || '').trim();
+
+  const writeHandlers = new Set(write.ROUTES.map(r => r.handler));
+  const leaked = listed.filter(t => writeHandlers.has(
+    (tools.TOOLS.find(x => x.name === t.name) || {}).handler));
+  const readOnly = listed.filter(t => t.annotations && t.annotations.readOnlyHint).length;
+
+  const rows = listed.map(t =>
+    `<div class="ev__m"><code>${esc(t.name)}</code> — ${esc(t.title)}`
+    + ` · <b>읽기 전용</b></div>`).join('');
+
+  return `
+<section class="ev">
+  <h2 class="ev__t">눈으로 확인 — 대화에서 LinkPilot 을 불러 본 결과 (MCP)</h2>
+  <p class="ev__s">화면에 안 보이는 작업입니다. 아래는 이 미리보기를 만들 때
+    <b>실제로 MCP 서버를 부른</b> 답입니다. 손으로 적은 예시가 아닙니다.
+    다만 <b>자료 자체는 합성 예시</b>입니다 — 실제 딜 자료는 이 저장소에 두지 않습니다.</p>
+
+  <div class="ev__c">
+    <div class="ev__n">도구 ${listed.length}개 · 읽기 표시가 붙은 것 ${readOnly}개</div>
+    <div class="ev__m">MCP 는 <b>값을 들여오는 길이 아니라 LinkPilot 을 내보내는 길</b>입니다 (D-83).
+      값을 만들지 않고 엔진이 이미 가진 것을 꺼냅니다.</div>
+    ${rows}
+  </div>
+
+  <div class="ev__c${leaked.length ? ' bad' : ''}">
+    <div class="ev__n">쓰기 핸들러가 섞였는가 — ${leaked.length}개</div>
+    <div class="ev__m">쓰기 라우트 ${write.ROUTES.length}개 중 <b>${leaked.length}개</b>가 도구로 나갑니다.
+      0이 아니면 대화가 남의 프로젝트를 고칠 수 있다는 뜻입니다.</div>
+  </div>
+
+  <div class="ev__c">
+    <div class="ev__n">값 하나를 물어본 답 — <code>linkpilot_lineage</code></div>
+    <div class="ev__m">숫자만 오지 않습니다. <b>어느 자료 몇 페이지·기준시점</b>이 함께 오고,
+      <b>채택되지 않은 후보</b>도 그대로 옵니다 — 값이 갈리는 것을 숨기지 않습니다.</div>
+    <pre class="ev__o">${esc(lineageText)}</pre>
+  </div>
+
+  ${mcpRegistryBlock()}
+
+  <div class="ev__c${dirty.length ? ' bad' : ''}">
+    <div class="ev__n">규약 ${esc(proto)} · 통로가 깨끗한가</div>
+    <div class="ev__m">알림(<code>notifications/initialized</code>)에는 답하지 않아야 하므로
+      물음 넷에 <b>답은 셋</b>입니다. 실제로 받은 줄 ${answers.length}개 ·
+      JSON 아닌 줄 <b>${dirty.length}개</b>. 사람 말이 한 줄만 섞여도 대화가 통째로 끊깁니다.</div>
+    ${dirty.length ? `<pre class="ev__o">${esc(dirty.join('\n'))}</pre>` : ''}
+  </div>
+
+  <div class="ev__c">
+    <div class="ev__n">포트를 열지 않습니다</div>
+    <div class="ev__m">표준입출력으로만 말합니다. 부를 수 있는 사람은 이 프로세스를 띄울 수 있는
+      사람뿐입니다. 남을 대신해 띄울 때는 <code>LINKPILOT_MCP_PROJECTS</code> 로 보이는
+      프로젝트를 좁힙니다. 붙이는 절차는 <code>docs/MCP-붙이는-법.md</code>.</div>
+  </div>
+</section>`;
+}
+
+/**
+ * 붙어 있는 MCP 가 **어느 길에 서 있는지**를 화면에 낸다 (MCP 등록부).
+ *
+ * ★ 목록을 여기 적지 않는다 — `mcp/servers.js` 를 읽어 그린다. 두 벌이 되면
+ *   화면이 옛말을 하고, 그때는 「붙었는데 분류 안 된 서버」가 안 보인다.
+ *
+ * ★ 위반이 있으면 **빨갛게 낸다.** 조용히 지나가면 등록부가 깨진 줄 아무도 모른다.
+ */
+function mcpRegistryBlock() {
+  const S = require(path.join(HERE, '..', '..', 'mcp', 'servers.js'));
+  const M = require(path.join(HERE, '..', '..', 'tools', 'mcp-map.js'));
+  const reg = require(path.join(HERE, '..', '..', 'core', 'registry.js'));
+
+  const bad = S.check();
+  const lanes = S.byLane();
+
+  const blocks = Object.keys(lanes).filter(l => lanes[l].length).map((lane) => {
+    const rows = lanes[lane].map((x) => {
+      const pend = (x.agentsPending || []).length
+        ? ` · 병합 대기 ${x.agentsPending.join(', ')}` : '';
+      const who = (x.agents || []).length ? ' · ' + x.agents.join(', ') + pend : pend;
+      const blk = x.blockedBy ? ` · <b>${esc(x.blockedBy)}</b>` : '';
+      return `<div class="ev__m"><code>${esc(x.id)}</code> — ${esc(M.GRADE_LABEL[x.grade])}`
+        + ` · ${esc(M.STATUS_LABEL[x.status])}${esc(who)}${blk}</div>`;
+    }).join('');
+    return `<div class="ev__n">${esc(M.LANE_LABEL[lane])} — ${lanes[lane].length}개</div>${rows}`;
+  }).join('');
+
+  return `
+  <div class="ev__c${bad.length ? ' bad' : ''}">
+    <div class="ev__n">MCP 등록부 — 서버 ${S.SERVERS.length}개 · 규칙 위반 ${bad.length}건</div>
+    <div class="ev__m"><b>길을 안 밝힌 서버는 등록할 수 없습니다.</b> 「자료를 들여오는 길」과
+      「값을 바로 주는 길」을 가르는 것이 핵심입니다 — 파일은 이름·페이지가 출처로 남고,
+      값은 안 남습니다. <code>npm run mcp:map</code></div>
+    <div class="ev__m">이 갈래 Agent ${reg.list().length} · 배포 엔진 Agent ${S.ENGINE.agents} ·
+      커넥터 ${S.ENGINE.connectors} (${esc(S.ENGINE.note)})</div>
+    ${blocks}
+    ${bad.length ? `<pre class="ev__o">${esc(bad.join('\n'))}</pre>` : ''}
+  </div>`;
 }
 
 /**
@@ -999,5 +1172,5 @@ module.exports = {
   // 「실제로 도는 판」도 같은 인라이너를 쓴다 — 두 벌로 만들지 않는다
   selfContained,
   // 「미리 그려 넣는 판」이 같은 패널을 쓴다 — 두 벌로 만들지 않는다
-  changePanel, evidencePanel, vaultPanel, linkedPanel, deskPanel,
+  changePanel, evidencePanel, guardPanel, mcpPanel, vaultPanel, linkedPanel, deskPanel,
 };

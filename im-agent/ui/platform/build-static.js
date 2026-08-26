@@ -209,7 +209,7 @@ async function main() {
     return frame(s, String(i + 1), f);
   }).join('');
 
-  const { changePanel, evidencePanel, vaultPanel, linkedPanel, deskPanel } = require('./build-preview.js');
+  const { changePanel, evidencePanel, mcpPanel, vaultPanel, linkedPanel, deskPanel } = require('./build-preview.js');
 
   const html = `<!doctype html>
 <html lang="ko">
@@ -244,6 +244,7 @@ async function main() {
 </div>
 ${changePanel()}
 ${evidencePanel()}
+${mcpPanel()}
 ${vaultPanel()}
 ${linkedPanel()}
 ${deskPanel()}
@@ -331,7 +332,7 @@ async function buildArtifact(opt) {
     process.stderr.write(`  ${i + 1}. ${s.name} — ${Math.round(part.html.length / 1024)}KB\n`);
   });
 
-  const { changePanel, evidencePanel, vaultPanel, linkedPanel, deskPanel } = require('./build-preview.js');
+  const { changePanel, evidencePanel, mcpPanel, vaultPanel, linkedPanel, deskPanel } = require('./build-preview.js');
   const lead = only ? LEADS[only] : null;
   const frag = only ? `<title>${esc(lead.title)}</title>
 <style>
@@ -355,6 +356,7 @@ ${css.join('\n')}
 </div>
 ${changePanel()}
 ${evidencePanel()}
+${mcpPanel()}
 ${vaultPanel()}
 ${linkedPanel()}
 ${deskPanel()}
