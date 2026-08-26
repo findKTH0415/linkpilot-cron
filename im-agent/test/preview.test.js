@@ -113,8 +113,26 @@ test('4단계는 상태를 억지로 세우지 않고 실제 버튼을 누른다
     '확정 상태를 플래그로 세우고 있다 — 눌리지 않은 것을 눌린 것처럼 보이면 안 된다');
 });
 
+/**
+ * ★★★ **다른 검사가 같은 폴더에 잠깐 쓰는 파일을 세지 않는다**
+ *   〈2026-08-26 · CI 가 간헐적으로 빨갰다〉.
+ *
+ *   `node --test` 는 검사 **파일마다 딴 프로세스**로 동시에 돈다.
+ *   `files-tab.test.js` 가 이 폴더에 `.lp-gate-…​.html` 을 잠깐 만들어 그려 보는데,
+ *   그 사이에 여기서 폴더를 세면 **「빌드가 파일을 썼다」로 엉뚱한 것을 탓한다.**
+ *   빌드는 아무것도 안 썼다.
+ *
+ *   ★ 실제로 그렇게 CI 가 빨강·초록을 오갔다(839 빨강 · 840·841 초록 · 842 빨강).
+ *     **재현이 안 되는 실패는 「가끔 그러네」로 넘어가고, 그러면 진짜 실패도 묻힌다.**
+ *   ★ 커밋된 `.lp-iss-test.html` 은 **그대로 센다** — 그것은 찌꺼기가 아니라 파일이다.
+ *     지워지면 여기서 잡혀야 한다.
+ */
+function stable(dir) {
+  return fs.readdirSync(dir).filter((n) => !/^\.lp-gate-/.test(n)).sort();
+}
+
 test('빌드는 파일을 쓰지 않는다 (require 만으로 저장소가 바뀌면 안 된다)', async () => {
-  const before = fs.readdirSync(PLATFORM).sort();
+  const before = stable(PLATFORM);
   await build();
-  assert.deepStrictEqual(fs.readdirSync(PLATFORM).sort(), before);
+  assert.deepStrictEqual(stable(PLATFORM), before);
 });

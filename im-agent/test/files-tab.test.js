@@ -1596,6 +1596,10 @@ test('★★★ session 을 안 넘기면 막지 않는다 — 알려 준 경우
     return dom.replace(/<script[\s\S]*?<\/script>/g, '');
   }
 
+  /* ★ 아래는 통째로 try/finally 안에 둔다 〈2026-08-26〉. 앞 판은 마지막 줄에서
+   *   지웠는데, **중간에서 빨개지면 그 줄에 닿지 못한다.** 그러면 임시 파일이
+   *   폴더에 남고, 폴더를 세는 다른 검사가 그것을 보고 엉뚱하게 빨개진다. */
+  try {
   /* ① 안 알려 줬다(null) → **막지 않는다.** 올리는 화면이 실제로 뜬다 */
   const unknown = paintWith('null');
   assert.ok(!/로그인한 사용자만/.test(unknown),
@@ -1613,7 +1617,9 @@ test('★★★ session 을 안 넘기면 막지 않는다 — 알려 준 경우
   assert.ok(!/로그인한 사용자만/.test(inn), '로그인했는데 막았다');
   assert.match(inn, /관련자료 제공/, '로그인했는데 올리는 칸이 안 뜬다');
 
-  made.forEach((f) => fs.rmSync(f, { force: true }));
+  } finally {
+    made.forEach((f) => fs.rmSync(f, { force: true }));
+  }
 });
 
 /* ═════════ ⑥ 품어졌을 때는 제 이름·바탕을 내지 않는다 ═════════ */

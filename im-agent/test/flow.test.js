@@ -228,10 +228,28 @@ test('★★ 미리보기 산출물에 「빌드한 날」이 박히지 않는�
     + '실행 결과를 손으로 적지 말고, 시각만 고정해서 부른다 (build-preview.js 의 DEMO_AT).');
 });
 
+/**
+ * ★★★ **다른 검사가 같은 폴더에 잠깐 쓰는 파일을 세지 않는다**
+ *   〈2026-08-26 · CI 가 간헐적으로 빨갰다〉.
+ *
+ *   `node --test` 는 검사 **파일마다 딴 프로세스**로 동시에 돈다.
+ *   `files-tab.test.js` 가 이 폴더에 `.lp-gate-…​.html` 을 잠깐 만들어 그려 보는데,
+ *   그 사이에 여기서 폴더를 세면 **「빌드가 파일을 썼다」로 엉뚱한 것을 탓한다.**
+ *   빌드는 아무것도 안 썼다.
+ *
+ *   ★ 실제로 그렇게 CI 가 빨강·초록을 오갔다(839 빨강 · 840·841 초록 · 842 빨강).
+ *     **재현이 안 되는 실패는 「가끔 그러네」로 넘어가고, 그러면 진짜 실패도 묻힌다.**
+ *   ★ 커밋된 `.lp-iss-test.html` 은 **그대로 센다** — 그것은 찌꺼기가 아니라 파일이다.
+ *     지워지면 여기서 잡혀야 한다.
+ */
+function stable(dir) {
+  return fs.readdirSync(dir).filter((n) => !/^\.lp-gate-/.test(n)).sort();
+}
+
 test('빌드는 파일을 쓰지 않는다', async () => {
-  const before = fs.readdirSync(PLATFORM).sort();
+  const before = stable(PLATFORM);
   await buildSection();
-  assert.deepStrictEqual(fs.readdirSync(PLATFORM).sort(), before);
+  assert.deepStrictEqual(stable(PLATFORM), before);
 });
 
 /* ───────────── 변경 내역 패널 ───────────── */
