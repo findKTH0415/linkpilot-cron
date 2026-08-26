@@ -446,7 +446,7 @@ async function buildSection() {
   //   그래서 배너 마지막 줄이 어디에 있는지 가리킨다.
   // ★ 병합(2026-08-26) — 양쪽 패널을 **다 부른다.** 어느 한쪽만 남기면
   //   그 갈래가 만든 패널이 화면에서 조용히 사라진다 (절차서 §4-①).
-  const panels = changePanel() + orchestratorPanel() + evidencePanel() + guardPanel()
+  const panels = changePanel() + specPanel() + orchestratorPanel() + evidencePanel() + guardPanel()
                + mcpPanel() + vaultPanel() + linkedPanel() + deskPanel();
   const withBanner = shell.replace('<body>', '<body>' + banner);
   const end = withBanner.lastIndexOf('</body>');
@@ -1080,6 +1080,96 @@ function evidencePanel() {
  *   판이 달라져 커밋본과 재생성 결과가 갈린다 (CLAUDE.md §8).
  *   실제 실행에서는 키가 없으면 그 Task 가 BLOCKED 로 서고 이유를 적는다.
  */
+/**
+ * 화면 작업지시서(T22)가 **실제로 막는가**를 눈으로 확인하게 한다 (D-122 · D-130).
+ *
+ * ★ 화면이 없는 작업이다. 「지시서가 없으면 착수하지 않는다」는 말은 그 자체로는
+ *   확인할 방법이 없다 — 그래서 **빌드할 때 실제로 판정기를 돌려** 그 답을 넣는다.
+ *
+ * ★★ 가장 중요한 것은 **`null` 과 빈 목록이 다르게 판정되는가**다. 둘이 같아지면
+ *   게이트가 살아 있는 척하면서 아무것도 안 막고, 통과 로그가 초록이라 아무도
+ *   눈치채지 못한다. 그래서 그 둘을 나란히 놓고 답을 보여준다.
+ *
+ * ★ 손으로 적은 예시가 아니다. 여기 나오는 문장은 `core/platformspec.js` 가
+ *   지금 돌려주는 것 그대로다 — 코드가 바뀌면 이 패널도 따라 바뀐다.
+ */
+function specPanel() {
+  const AGENT = path.join(HERE, '..', '..');
+  const ps = require(path.join(AGENT, 'core', 'platformspec'));
+
+  /** 온전히 채워진 지시서 — 여기서 하나씩 빼 본다 */
+  const full = {
+    task_id: 'T22',
+    spec_doc: '플랫폼 자동완성 지침 §5',
+    input_data: ['GET /api/linkpilot/projects — 프로젝트 목록'],
+    scope_in: ['보고서 목록 화면에 진행률 칸을 붙인다'],
+    scope_out: ['외출모드 (D-121 로 범위에서 뺐다)'],
+    acceptance_criteria: [
+      { must: '진행률이 실제 Task 상태에서 나온다', shows: '이 미리보기의 진행 화면' },
+    ],
+  };
+
+  const cases = [
+    ['빈 지시서 — 아무것도 안 적었다', {}],
+    ['온전히 채운 지시서', full],
+    ['입력값이 null — 막지는 않는다 (D-131)', { ...full, input_data: null }],
+    ['제외범위가 [] — 뺄 것이 정말 없다', { ...full, scope_out: [] }],
+    ['범위가 [] — 만들 것이 없다', { ...full, scope_in: [] }],
+    ['완료조건에 shows 가 없다', { ...full, acceptance_criteria: [{ must: '진행률이 나온다' }] }],
+  ];
+
+  const rows = cases.map(([label, raw]) => {
+    const v = ps.judge(ps.normalize(raw, 'T22'));
+    const ok = v.status === 'READY';
+    return `<tr>
+      <td>${esc(label)}</td>
+      <td><b class="${ok ? '' : 'bad'}">${esc(v.status)}</b></td>
+      <td>${esc(v.reasons[0] || '—')}</td>
+    </tr>`;
+  }).join('');
+
+  const fields = ps.REQUIRED_FIELDS.map(f =>
+    `<tr><td><code>${esc(f)}</code></td><td>${esc(ps.FIELD_LABEL[f])}</td>
+     <td>${ps.MAY_BE_EMPTY.has(f) ? '비어도 된다' : '<b>비면 막는다</b>'}</td></tr>`).join('')
+    + ps.ADVISORY_FIELDS.map(f =>
+    `<tr><td><code>${esc(f)}</code></td><td>${esc(ps.FIELD_LABEL[f])}</td>
+     <td>막지 않는다 — 비면 말만 한다 (D-131)</td></tr>`).join('');
+
+  return `
+<section class="ev">
+  <h2 class="ev__t">눈으로 확인 — 작업지시서가 실제로 막는가</h2>
+  <p class="ev__s">아래는 이 미리보기를 만들 때 <b>실제로 판정기를 돌려</b> 나온 답입니다.
+    손으로 적은 예시가 아닙니다.</p>
+
+  <div class="ev__m" style="margin-top:14px">
+    <b>★ <code>null</code> 과 빈 목록은 다릅니다.</b>
+    <code>null</code> 은 「아직 안 정했다」라 막고, <code>[]</code> 는 「정말 없다」라 통과합니다.
+    가르지 않으면 게이트가 살아 있는 척하면서 아무것도 안 막습니다 —
+    그리고 <b>통과 로그가 초록이라 아무도 눈치채지 못합니다.</b>
+  </div>
+
+  <table class="ev__tb" style="margin-top:12px">
+    <thead><tr><th>지시서 상태</th><th>판정</th><th>왜</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+
+  <div class="ev__m" style="margin-top:18px"><b>막는 칸 셋 + 말만 하는 칸 하나</b>
+    — 지침 §5 는 20개를 정했으나 <b>착수 판정에 실제로 쓰이는 셋만</b> 먼저 넣었습니다 (등록부 D-122 결정).
+    <code>input_data</code>(입력값)는 적을 자리만 두고 <b>막지 않습니다</b> — 결정을 말없이 넓히지 않기 위해서이고,
+    막을지 말지는 등록부 D-131 에 올렸습니다.</div>
+  <table class="ev__tb" style="margin-top:8px">
+    <thead><tr><th>칸</th><th>무엇</th><th>비면</th></tr></thead>
+    <tbody>${fields}</tbody>
+  </table>
+
+  <div class="ev__m" style="margin-top:14px">
+    완료조건마다 <b>「어디를 보면 확인되나」(<code>shows</code>)</b> 를 함께 적게 했습니다.
+    이 화면의 「이번에 바뀐 것」이 쓰는 것과 <b>같은 칸</b>이라 이름을 새로 만들지 않았습니다 —
+    두 벌이 되면 서로 다른 말을 하는 날이 옵니다.
+  </div>
+</section>`;
+}
+
 function orchestratorPanel() {
   const AGENT = path.join(HERE, '..', '..');
   const taskplan = require(path.join(AGENT, 'core', 'taskplan'));

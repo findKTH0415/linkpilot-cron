@@ -1,3 +1,20 @@
+<!--
+  ⚠ 이 파일은 **시안**이다. 실제 요금·등급의 정본은 **앱**이다.
+     정본:  linkpilot-platform.deploy.html  (저장소 linkpilot-platform · 갈래 platform)
+
+  ★ 2026-08-26 실측 — 앱에서 직접 세어 확인한 것만 적었다:
+       · 등급 **Free / Pro 둘** (`plan:'Free'` · `plan:'Pro'`)
+       · Pro **₩29,000/월** · 통화 **KRW** · Toss 결제
+       · 「14일 무료 체험」은 **앱에 없다** (`14일` 0건)
+
+  ★ 못 잰 것: 무료 회원의 월 횟수 체험. 다른 시안에 「한줄생각 10회·브리핑 5회」로
+     적혀 있으나 **앱에서 확인하지 못했다.** 그래서 여기에 옮기지 않았다 —
+     지킬 수 없는 체험을 요금 화면에 적으면 그건 안내가 아니라 **약속**이 된다.
+
+  ★ 왜 이 경고가 필요한가: 이 시안이 USD 4단계(Basic 25 / Pro 55 / Business 130)로
+     적혀 있던 동안 **다른 에이전트가 그것을 실제 요금으로 읽고 등급 체계를 세웠다.**
+     가격이 바뀌면 **앱을 먼저 고치고** 이 파일을 맞춘다. 반대로 하지 않는다.
+-->
 <!doctype html>
 <html lang="ko">
 <head>
@@ -267,15 +284,15 @@ window.LINKPILOT_MEMBERSHIP = {
 
   // 사이드바 '유료 멤버십' 섹션의 기능들. 어느 플랜부터 열리는지 적는다
   features: [
-    { icon: '☆', name: '오늘의 한줄생각', from: 'basic' },
-    { icon: '☀', name: '아침브리핑', from: 'basic' },
+    { icon: '☆', name: '오늘의 한줄생각', from: 'pro' },
+    { icon: '☀', name: '아침브리핑', from: 'pro' },
     { icon: '📞', name: '통화음성분석', from: 'pro' },
     { icon: '★', name: '프리미엄 투자소스 DB', from: 'pro' },
-    { icon: '🔆', name: '신재생에너지 분석', from: 'business' },
+    { icon: '🔆', name: '신재생에너지 분석', from: 'pro' },
   ],
 
-  // 표시 통화. 원화로 받으려면 'KRW' 로 바꾸고 plans 의 price 를 원 단위로 넣는다
-  currency: 'USD',
+  // 표시 통화 — 앱이 KRW 로 청구한다 (실측 2026-08-26)
+  currency: 'KRW',
 
   // price 0 은 '무료', null 은 '문의'로 표시된다 — 없는 값을 지어내지 않는다
   //
@@ -286,12 +303,9 @@ window.LINKPILOT_MEMBERSHIP = {
   plans: [
     { id: 'free', name: 'Free', price: 0,
       features: ['할일 · 연락처 · 프로젝트', '캘린더 · Q&A', '투자소스 DB'] },
-    { id: 'basic', name: 'Basic', price: 25,
-      features: ['Free 전체', '오늘의 한줄생각', '아침브리핑'] },
-    { id: 'pro', name: 'Pro', price: 55, recommended: true,
-      features: ['Basic 전체', '통화음성분석', '프리미엄 투자소스 DB', '보고서 생성'] },
-    { id: 'business', name: 'Business', price: 130,
-      features: ['Pro 전체', '신재생에너지 분석', 'IM 자동생성'] },
+    { id: 'pro', name: 'Pro', price: 29000, recommended: true,
+      features: ['Free 전체', '오늘의 한줄생각', '아침브리핑', '통화음성분석',
+                 '프리미엄 투자소스 DB', '신재생에너지 분석', '보고서 생성'] },
   ],
 
   billingUrl: null,
@@ -301,7 +315,7 @@ window.LINKPILOT_MEMBERSHIP = {
   'use strict';
   var C = window.LINKPILOT_MEMBERSHIP;
   // 무료는 0. 유료 기능은 전부 1 이상이므로 무료에서는 하나도 열리지 않는다
-  var RANK = { free: 0, basic: 1, pro: 2, business: 3 };
+  var RANK = { free: 0, pro: 1 };   // 앱이 보내는 등급이 이 둘뿐이다 (실측 2026-08-26)
   var view = document.getElementById('view');
   var tab = 'now';
 
