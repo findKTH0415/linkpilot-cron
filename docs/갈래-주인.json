@@ -1,0 +1,50 @@
+{
+  "_설명": [
+    "갈래마다 주인이 하나여야 한다. 둘이면 병합 때 누가 무엇을 했는지 못 가른다.",
+    "2026-08-26 사장님 지시로 만들었다 — 「Engineering Agent 와 SketchUp 이 한 갈래에",
+    "섞여 있는 게 나중에 문제가 된다면 초기에 점검해 조치할 수 있게 해 달라」.",
+    "",
+    "★ 재는 방법은 `npm run merge:watch` 다. 주인이 둘이거나 없으면 그 자리에서 말한다.",
+    "★ scope 는 그 갈래가 '주로' 건드리는 곳이다. 넘었다고 곧 잘못은 아니다 —",
+    "  다만 넘은 사실을 보이게 해서 사장님이 판단하실 수 있게 한다.",
+    "★ 이 파일의 scope 는 내(Orchestrator)가 짐작으로 적은 것이 있다. D-125 로 올렸다."
+  ],
+
+  "_영역": {
+    "도면3D": ["sketchup", "massing", "ifc", "rhino", "raster", "render", "model-", "09-massing"],
+    "재무엔진": ["financial", "appraisal", "corpvalue", "corpreport", "deskappraisal", "ecos", "dart", "molit", "reb", "g2b"],
+    "자료원": ["connectors/"],
+    "화면": ["ui/platform/", "ui/vanilla/", "ui/lib.js"],
+    "MCP": ["mcp/"],
+    "지휘": ["core/tasks.js", "core/taskplan.js", "core/router.js", "core/orchestrator.js", "core/artifacts.js", "tools/registry-check.js", "tools/merge-watch.js"],
+    "공용": ["docs/", "CLAUDE.md", "MEMORY.md", "HANDOVER.md", "README.md", "package.json", ".github/", ".env.example", "test/"]
+  },
+
+  "갈래": [
+    {
+      "branch": "claude/ai-project-manager-orchestrator-o8rg8d",
+      "owner": "AI Project Manager Orchestrator",
+      "scope": ["지휘", "공용"],
+      "note": "Task 그래프·라우팅·산출물 등록부·번호 충돌 검사·병합 감시. 화면 코드는 D-119 결정 뒤로 Platform Manager 몫이다"
+    },
+    {
+      "branch": "claude/linkpilot-agent-github-plan-0af7xs",
+      "owner": "Engine Agent",
+      "scope": ["재무엔진", "자료원", "공용"],
+      "note": "배포(deploy-nas)와 Gemini 열쇠를 지금 이 갈래가 들고 있는데, 지침 §4.1 상 그것은 MCP Manager 몫이다 — 조직 점검에서 지적했다"
+    },
+    {
+      "branch": "claude/linkpilot-mcp-c4954z",
+      "owner": "MCP Manager",
+      "scope": ["MCP", "공용"],
+      "note": "LinkPilot 을 내보내는 MCP 서버. 의존성 0"
+    },
+    {
+      "branch": "claude/sketchup-engineering-agent-rg04zq",
+      "owner": "Engineering Agent",
+      "coOwners": ["SketchUp 트랙"],
+      "scope": ["도면3D", "공용"],
+      "note": "★ 주인이 둘이다. 세션 이름은 「Engineering Agent」와 「SketchUp 트랙」 둘인데 밀어 넣는 곳은 이 갈래 하나다. 병합 뒤 누가 무엇을 했는지 못 가른다 — D-124"
+    }
+  ]
+}

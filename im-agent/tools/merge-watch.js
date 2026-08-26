@@ -141,6 +141,84 @@ function fileHeat(branches) {
     .sort((a, b) => b.count - a.count || a.file.localeCompare(b.file));
 }
 
+/* ───────────────────────── 갈래의 주인 ───────────────────────── */
+
+const OWNERS_DOC = path.join(REPO, 'docs', '갈래-주인.json');
+
+/** 적어 둔 주인 목록을 읽는다. 없으면 조용히 빈 것을 돌려준다 */
+function readOwners() {
+  try {
+    return JSON.parse(fs.readFileSync(OWNERS_DOC, 'utf8'));
+  } catch (e) {
+    return { 갈래: [], _영역: {} };
+  }
+}
+
+/** 파일 하나가 어느 영역인가. 여러 곳에 걸리면 **먼저 걸린 것**을 쓴다 */
+function areaOf(file, areas) {
+  for (const [name, pats] of Object.entries(areas || {})) {
+    if (pats.some(p => file.includes(p))) return name;
+  }
+  return null;
+}
+
+/**
+ * 갈래마다 **주인이 하나인가**, 그리고 **자기 영역 밖을 얼마나 건드렸나**.
+ *
+ * ★★ **왜 재는가** 〈2026-08-26 사장님 지시〉.
+ *   Engineering Agent 와 SketchUp 트랙이 **한 갈래를 함께 쓰고 있다.**
+ *   병합하고 나면 어느 커밋이 누구 것인지 못 가른다 — 그때는 이미 늦다.
+ *   「나중에 문제가 되면」이 아니라 **지금 보이게** 한다.
+ *
+ * ★ **경계를 넘은 것이 곧 잘못은 아니다.** 공용 파일은 누구나 건드린다.
+ *   다만 넘은 사실을 보이게 해서 사장님이 판단하실 수 있게 한다.
+ */
+function ownership(branches) {
+  const doc = readOwners();
+  const areas = doc._영역 || {};
+  const byBranch = new Map((doc.갈래 || []).map(x => [x.branch, x]));
+  const rows = [];
+
+  for (const b of branches) {
+    const full = b.ref.replace(/^origin\//, '');
+    const dec = byBranch.get(full) || null;
+    const co = dec && Array.isArray(dec.coOwners) ? dec.coOwners : [];
+    const scope = dec && Array.isArray(dec.scope) ? dec.scope : null;
+
+    // 영역별로 몇 파일을 건드렸나
+    const counts = {};
+    let outside = [];
+    for (const f of b.files) {
+      const a = areaOf(f, areas) || '그 밖';
+      counts[a] = (counts[a] || 0) + 1;
+      if (scope && a !== '그 밖' && !scope.includes(a)) outside.push({ file: f, area: a });
+    }
+
+    rows.push({
+      branch: b.name,
+      owner: dec ? dec.owner : null,
+      coOwners: co,
+      ownerCount: dec ? 1 + co.length : 0,
+      scope,
+      areas: counts,
+      outside: outside.slice(0, 40),
+      outsideCount: outside.length,
+      note: dec ? dec.note || null : null,
+      // ★ 세 가지만 경보로 올린다 — 그 밖은 판단이지 사실이 아니다
+      alerts: [
+        ...(!dec ? [{ level: 'HIGH', text: '주인을 적어 두지 않았다 — 누구 책임인지 알 수 없다' }] : []),
+        ...(dec && 1 + co.length > 1
+          ? [{ level: 'CRITICAL', text: `주인이 ${1 + co.length}입니다 (${[dec.owner, ...co].join(' · ')}) — 병합 뒤 누가 무엇을 했는지 못 가른다` }]
+          : []),
+        ...(outside.length
+          ? [{ level: 'MEDIUM', text: `자기 영역 밖 ${outside.length}파일을 건드렸다` }]
+          : []),
+      ],
+    });
+  }
+  return rows;
+}
+
 /** 전부 잰다 */
 function measure(opts = {}) {
   const base = baseRef();
@@ -170,6 +248,7 @@ function measure(opts = {}) {
   }
 
   const heat = fileHeat(branches);
+  const owners = ownership(branches);
   const totalConflicts = pairs.reduce((n, p) => n + p.conflicts, 0);
   const conflictedFiles = new Set(pairs.flatMap(p => p.files));
 
@@ -180,6 +259,7 @@ function measure(opts = {}) {
     branches,
     pairs,
     heat,
+    owners,
     summary: {
       branchCount: branches.length,
       pairCount: pairs.length,
@@ -187,6 +267,9 @@ function measure(opts = {}) {
       distinctConflictedFiles: conflictedFiles.size,
       // ★ 갈래가 하나 늘면 견줄 짝이 몇 개 되는가 — n(n-1)/2 다
       pairsIfOneMore: (branches.length + 1) * branches.length / 2,
+      // ★ 주인이 둘인 갈래 · 주인이 없는 갈래 — 사장님이 가장 먼저 보실 숫자다
+      sharedOwnerBranches: owners.filter(o => o.ownerCount > 1).length,
+      unownedBranches: owners.filter(o => o.ownerCount === 0).length,
     },
   };
 }
@@ -218,6 +301,24 @@ function render(m) {
     L.push(`   ${mark} ${pad(p.a, 34)} ↔ ${pad(p.b, 34)} ${String(p.conflicts).padStart(3)}군데`
       + (p.error ? `  (${p.error})` : ''));
   }
+  const bad = m.owners.filter(o => o.alerts.some(a => a.level !== 'MEDIUM'));
+  L.push('');
+  L.push('  갈래의 주인 (하나여야 한다)');
+  for (const o of m.owners) {
+    const mark = o.ownerCount === 1 ? '●' : '✕';
+    L.push(`   ${mark} ${pad(o.branch, 40)} ${o.owner || '(안 적음)'}`
+      + (o.coOwners.length ? ` + ${o.coOwners.join(' · ')}` : '')
+      + (o.outsideCount ? `   영역 밖 ${o.outsideCount}파일` : ''));
+  }
+  if (bad.length) {
+    L.push('');
+    for (const o of bad) {
+      for (const a of o.alerts.filter(x => x.level !== 'MEDIUM')) {
+        L.push(`   ★ [${a.level}] ${o.branch} — ${a.text}`);
+      }
+    }
+  }
+
   if (m.heat.length) {
     L.push('');
     L.push('  여러 갈래가 함께 건드린 파일 (부딪힌다는 뜻은 아니다 — 같은 줄일 때만 부딪힌다)');
@@ -308,6 +409,7 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:.88em;background:var(--s
   <div class="card"><h3>견줄 짝</h3><div class="big">${m.summary.pairCount}</div><p>하나 더 열면 <b>${m.summary.pairsIfOneMore}</b> 개가 됩니다</p></div>
   <div class="card"><h3>실제로 부딪히는 파일</h3><div class="big" style="color:${m.summary.distinctConflictedFiles ? 'var(--red)' : 'var(--ok)'}">${m.summary.distinctConflictedFiles}</div><p>손으로 풀어야 하는 곳</p></div>
   <div class="card"><h3>가장 나쁜 짝</h3><div class="big">${worst}</div><p>한 번에 풀 곳이 가장 많은 조합</p></div>
+  <div class="card"><h3>주인이 둘인 갈래</h3><div class="big" style="color:${m.summary.sharedOwnerBranches ? 'var(--red)' : 'var(--ok)'}">${m.summary.sharedOwnerBranches}</div><p>병합 뒤에는 누가 무엇을 했는지 못 가릅니다</p></div>
 </div>
 
 <h2>두 갈래씩 실제로 합쳐 본 결과</h2>
@@ -315,6 +417,25 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:.88em;background:var(--s
 <tr><th>갈래 A</th><th>갈래 B</th><th>부딪힘</th><th>어디서</th></tr>
 ${rows}
 </table></div>
+
+<h2>갈래의 주인 — 하나여야 합니다</h2>
+<div class="scroll"><table>
+<tr><th></th><th>갈래</th><th>주인</th><th>맡은 영역</th><th>영역 밖</th></tr>
+${m.owners.map(o => `<tr>
+  <td class="n ${o.ownerCount === 1 ? 'good' : 'bad'}">${o.ownerCount === 1 ? '●' : '✕'}</td>
+  <td>${esc(o.branch)}</td>
+  <td>${esc(o.owner || '(안 적음)')}${o.coOwners.length ? `<br><span style="color:var(--red);font-weight:600">+ ${esc(o.coOwners.join(' · '))}</span>` : ''}</td>
+  <td class="dim">${esc((o.scope || []).join(' · ') || '—')}</td>
+  <td class="n">${o.outsideCount}</td>
+</tr>`).join('')}
+</table></div>
+${m.owners.flatMap(o => o.alerts.filter(a => a.level !== 'MEDIUM').map(a =>
+  `<div class="note"><b>[${a.level}] ${esc(o.branch)}</b> — ${esc(a.text)}${o.note ? `<br><span class="dim">${esc(o.note)}</span>` : ''}</div>`)).join('')}
+<div class="note">
+  <b>「영역 밖」이 곧 잘못은 아닙니다.</b> 문서·검사·설정 같은 공용 파일은 누구나 건드립니다.
+  <b>보이게 해서 사장님이 판단하시게 하는 것</b>이 이 표의 목적입니다.
+  <br>주인은 <code>docs/갈래-주인.json</code> 에 적혀 있고, 고치면 이 표가 따라옵니다.
+</div>
 
 <h2>갈래별 크기</h2>
 <div class="scroll"><table>
@@ -375,4 +496,4 @@ if (require.main === module) {
   process.exit(main(process.argv.slice(2)));
 }
 
-module.exports = { measure, render, html, conflictsBetween, fileHeat, unquote, shortName, workBranches, baseRef };
+module.exports = { measure, render, html, conflictsBetween, fileHeat, unquote, shortName, workBranches, baseRef, ownership, readOwners, areaOf };

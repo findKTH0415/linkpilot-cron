@@ -105,3 +105,61 @@ test('★ 읽기만 한다 — 저장소를 바꾸는 명령이 코드에 없다
   assert.ok(src.includes('--write-tree'),
     'merge-tree --write-tree 가 아니면 작업 디렉터리를 건드린다');
 });
+
+/* ───────────── 갈래의 주인 〈2026-08-26 사장님 지시〉 ───────────── */
+
+test('★★ 주인이 둘인 갈래를 CRITICAL 로 잡는다 — 이것이 지시받은 것이다', () => {
+  const rows = mw.ownership([
+    { ref: 'origin/claude/x', name: 'x', files: [] },
+  ]);
+  // 안 적힌 갈래는 HIGH
+  assert.strictEqual(rows[0].ownerCount, 0);
+  assert.ok(rows[0].alerts.some(a => a.level === 'HIGH'), '주인을 안 적었는데 조용하다');
+});
+
+test('★★ 실제 저장소에서 주인이 둘인 갈래가 잡힌다', () => {
+  const m = mw.measure();
+  if (!m.ok) return;
+  const doc = mw.readOwners();
+  const declared = (doc.갈래 || []).filter(x => Array.isArray(x.coOwners) && x.coOwners.length);
+  // 적어 둔 것과 잰 것이 같아야 한다 — 다르면 둘 중 하나가 거짓말이다
+  assert.strictEqual(m.summary.sharedOwnerBranches, declared.length,
+    '적어 둔 공동주인 수와 잰 수가 다르다');
+  for (const o of m.owners.filter(x => x.ownerCount > 1)) {
+    assert.ok(o.alerts.some(a => a.level === 'CRITICAL'),
+      `${o.branch} 의 주인이 둘인데 CRITICAL 이 안 붙었다`);
+  }
+});
+
+test('★ 주인이 하나면 경보가 없다 — 늑대야 하지 않는다', () => {
+  const m = mw.measure();
+  if (!m.ok) return;
+  for (const o of m.owners.filter(x => x.ownerCount === 1)) {
+    assert.ok(!o.alerts.some(a => a.level === 'CRITICAL' || a.level === 'HIGH'),
+      `${o.branch} 은 주인이 하나인데 경보가 붙었다`);
+  }
+});
+
+test('★ 영역 판별이 먼저 걸린 것을 쓴다 (한 파일이 두 영역에 걸릴 수 있다)', () => {
+  const areas = { 도면3D: ['massing'], 화면: ['ui/'] };
+  assert.strictEqual(mw.areaOf('im-agent/agents/09-massing.js', areas), '도면3D');
+  assert.strictEqual(mw.areaOf('im-agent/ui/platform/app.js', areas), '화면');
+  assert.strictEqual(mw.areaOf('README.md', areas), null, '안 걸리면 null 이어야 한다');
+});
+
+test('★ 주인 목록 파일이 깨져도 화면이 죽지 않는다', () => {
+  // 파일이 없거나 JSON 이 깨져도 조용히 빈 것을 돌려줘야 한다
+  const doc = mw.readOwners();
+  assert.ok(doc && typeof doc === 'object');
+  assert.ok(Array.isArray(doc.갈래 || []));
+});
+
+test('★ 적어 둔 갈래 이름이 실제 원격 갈래와 맞다 — 오타를 잡는다', () => {
+  const doc = mw.readOwners();
+  const real = new Set(mw.workBranches().map(r => r.replace(/^origin\//, '')));
+  if (!real.size) return;
+  for (const x of (doc.갈래 || [])) {
+    assert.ok(real.has(x.branch),
+      `docs/갈래-주인.json 에 없는 갈래가 적혀 있다: ${x.branch} — 오타면 그 갈래는 영원히 주인이 없다`);
+  }
+});
