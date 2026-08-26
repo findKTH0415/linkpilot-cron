@@ -17,6 +17,8 @@ const { FIELDS } = require('./core/dictionary');
 const store = require('./core/store');
 const gate = require('./core/gate');
 const designState = require('./core/design-state');
+const designGate = require('./core/design-gate');
+const outputspec = require('./core/outputspec');
 const reports = require('./core/reports');
 const monitor = require('./core/monitor');
 const { kstStamp } = require('./core/kst');
@@ -165,6 +167,27 @@ function saveDataset(projectId, dataset) {
 /**
  * @param {object} opts { request?, projectId?, log?, useLlm? }
  */
+/**
+ * 디자인 게이트를 한 칸 옮긴다 (지시서 §8.4 · 감사 H-4).
+ *
+ * ★★★ **막혔으면 막혔다고 말한다.** 조용히 넘어가면 게이트는 장식이 된다 —
+ *   그리고 문서에는 「지났다」만 남아 무엇이 안 됐는지 사라진다.
+ *
+ * ★★ 막히는 까닭은 둘이고 **뜻이 다르다.**
+ *   ① 사람이 넘겨야 하는 칸이다 (승인 대기) — **정상**이다. 기다리는 것이 맞다.
+ *   ② 칸을 건너뛰려 했다 — **잘못**이다. 앞 칸이 안 끝났다는 뜻이다.
+ *   둘을 한 덩어리로 적으면 「기다리는 중」과 「어긋났다」가 구분이 안 된다.
+ */
+function gateStep(projectId, to, why, log) {
+  const r = designGate.move(projectId, to, { actor: 'agent', note: why });
+  if (r.ok) {
+    log(`  게이트: ${designGate.summarize(designGate.read(projectId))}`);
+    return true;
+  }
+  log(`  게이트: ${to} 못 지남 — ${r.why}`);
+  return false;
+}
+
 async function run(opts = {}) {
   const log = opts.log || (m => console.log(m));
   const results = {};
@@ -512,6 +535,38 @@ async function run(opts = {}) {
   }
 
   // ── 05 Cross Validation ───────────────────────────────────
+  /* ── 디자인 게이트 (지시서 §8.4 · 감사 H-4) ─────────────────
+   * ★ 게이트는 **한 칸씩만** 간다. 여기서 세 칸을 지난다 —
+   *   요구 정리 → (뼈대 승인은 사람) → 디자인 확정 → 만드는 중.
+   * ★★ `WIREFRAME_APPROVED` 는 **사람이 넘기는 칸**이다. 사람이 아직 안
+   *   넘겼으면 여기서 멈춘다 — 그리고 **멈췄다고 말한다.** 조용히 건너뛰면
+   *   게이트가 장식이 된다.
+   */
+  gateStep(projectId, 'DESIGN_BRIEF', '출력 사양이 정해졌다', log);
+  /* ★★★ `WIREFRAME_APPROVED` 는 **사람이 넘기는 칸**이다. 그런데 이 저장소에는
+   *   그 「사람의 승인」이 이미 있다 — **출력 사양 확정**(`outputspec.confirm`)이다.
+   *   그것은 AI 가 못 하게 막혀 있고(이름에 agent·ai·bot 이 들어가면 거부),
+   *   무엇을 몇 쪽으로 어떤 형식으로 낼지를 **사람이 정해 잠그는** 일이다.
+   *
+   * ★★ 그래서 **새 승인 절차를 만들지 않고 그것을 읽는다.** 하나를 더 만들면
+   *   사람이 두 번 승인해야 하고, 그러면 둘 중 하나는 반드시 형식이 된다.
+   *   ★ 승인자는 **사양을 잠근 그 사람**으로 적는다 — `agent` 로 적으면
+   *     기계가 스스로 승인한 것이 되어 게이트가 거짓이 된다.
+   */
+  const lockedSpec = outputspec.read(projectId);
+  if (lockedSpec && lockedSpec.locked && lockedSpec.confirmedBy) {
+    const r = designGate.move(projectId, 'WIREFRAME_APPROVED',
+      { actor: lockedSpec.confirmedBy, note: `출력 사양 확정 v${lockedSpec.version || '?'}` });
+    log(r.ok
+      ? `  게이트: ${designGate.summarize(designGate.read(projectId))}`
+      : `  게이트: WIREFRAME_APPROVED 못 지남 — ${r.why}`);
+  } else {
+    log('  게이트: WIREFRAME_APPROVED 대기 — **출력 사양을 사람이 확정해야 한다**'
+      + ' (AI 는 제안만 한다)');
+  }
+  gateStep(projectId, 'DESIGN_READY', '테마가 정해졌다', log);
+  gateStep(projectId, 'DEVELOPING', '산출물을 만들기 시작했다', log);
+
   const val = await runAgent('05_validation', {
     projectId,
     financial: fin.output || null,
@@ -529,6 +584,13 @@ async function run(opts = {}) {
   if (val.output) {
     store.writeJson(projectId, '11_QC/validation.json', val.output);
     log(`  검증: ${val.output.verdict} · RED ${val.output.summary.red} / YELLOW ${val.output.summary.yellow} · Score ${val.output.score.total}/100`);
+  }
+
+  // ★ 기능 검증 칸 — 값 검증이 REJECT 가 아니면 지난다 (지시서 §8.4)
+  if (val.output && val.output.verdict !== 'REJECT') {
+    gateStep(projectId, 'FUNCTION_VERIFIED', `값 검증 ${val.output.verdict}`, log);
+  } else if (val.output) {
+    log(`  게이트: FUNCTION_VERIFIED 못 지남 — 값 검증이 ${val.output.verdict}`);
   }
 
   // ── 06 IM Writer ──────────────────────────────────────────
@@ -612,6 +674,14 @@ async function run(opts = {}) {
   results['15_design'] = design;
   if (design.output) {
     store.writeJson(projectId, '11_QC/design-verified.json', design.output);
+  }
+
+  // ★ 디자인 검증 칸. 여기까지가 **기계가 넘길 수 있는 마지막 칸**이다 —
+  //   `READY_TO_DEPLOY` 는 사람이 넘긴다 (기계가 승인하면 승인이 아니다)
+  if (design.output && design.output.verified) {
+    gateStep(projectId, 'DESIGN_VERIFIED', '디자인 검증에 RED 가 없다', log);
+  } else if (design.output) {
+    log('  게이트: DESIGN_VERIFIED 못 지남 — 디자인 검증에 RED 가 있다');
   }
 
   // ── 11 Final Validation (독립 제3자 검증 · 8 GATES) ────────
