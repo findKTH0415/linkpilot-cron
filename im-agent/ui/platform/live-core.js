@@ -29,7 +29,7 @@
    *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다. 화면이 자기
    *   지문과 대 보고 다르면 「함수가 없다」로 죽기 전에 사람 말로 알린다.
    */
-  var LP_BUILD = 'd9823d50';
+  var LP_BUILD = '638f4414';
 
   /**
    * 제작 과정을 사람이 아는 말로 묶은 카테고리.
@@ -48,12 +48,12 @@
       agents: ['07_geo', '03_research'] },
     { id: 'calc', label: '계산·검토', why: '재무모델·감정평가·매스 검토를 돌립니다 (숫자는 함수가 만듭니다)',
       agents: ['04_financial', '08_appraisal', '09_massing', '12_sketchup_plan', '13_sketchup_intake'] },
-    { id: 'check', label: '값 검증', why: '값 충돌·범위·정합성을 봅니다 — RED 가 있으면 배포가 막힙니다',
-      agents: ['05_validation'] },
+    { id: 'check', label: '값 검증', why: '법령 한도·값 충돌·범위·정합성을 봅니다 — RED 가 있으면 배포가 막힙니다',
+      agents: ['18_legal', '05_validation'] },
     { id: 'write', label: '문서 만들기', why: 'IM 본문·Teaser·출처표를 씁니다 (숫자는 자리표시자로만)',
       agents: ['06_im_writer'] },
-    { id: 'final', label: '최종 검증', why: '배포 직전에 한 번 더 독립 검증합니다',
-      agents: ['11_final_validation'] },
+    { id: 'final', label: '최종 검증', why: '디자인 규칙을 대고, 배포 직전에 한 번 더 독립 검증합니다',
+      agents: ['15_design', '11_final_validation'] },
   ];
 
   /** Agent 상태 → 사람이 읽는 말. monitor.STATUS 와 같은 값을 쓴다 */

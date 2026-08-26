@@ -96,6 +96,75 @@ test('★★ 「짝의 수」 계산이 맞다 — 이것이 사장님께 드리
     '갈래가 늘었는데 짝이 줄 수는 없다');
 });
 
+test('★★ 이미 합쳐진 갈래는 「견줄 짝」에서 뺀다 — 병합 직후에 잡은 거짓말이다', () => {
+  const m = mw.measure();
+  if (!m.ok) return;
+
+  // 기준보다 앞선 커밋이 0개인 갈래는 `merged` 로 가고, `branches` 에 남지 않는다.
+  // ★ 왜 재는가 — 네 갈래를 main 에 합친 **직후에** 화면을 다시 열었더니
+  //   「갈래 8개 · 짝 28개 · 7군데 부딪힘」이 나왔다. 전부 이미 푼 충돌이었다.
+  //   합쳐진 갈래는 tip 이 남아 있어 서로 merge-tree 를 하면 병합 전 충돌이
+  //   그대로 재현되기 때문이다. **끝난 일을 남은 일로 보여 주는 화면**이었다.
+  for (const b of m.branches) {
+    assert.notStrictEqual(b.ahead, 0,
+      `${b.name} 은 이미 합쳐졌는데 아직 안 합친 갈래로 세고 있다`);
+  }
+  for (const b of (m.merged || [])) {
+    assert.strictEqual(b.ahead, 0, '합쳐졌다고 분류한 갈래는 앞선 커밋이 0이어야 한다');
+  }
+
+  // 센 것과 나눈 것이 어긋나지 않는다
+  assert.strictEqual(m.summary.branchCount, m.branches.length);
+  assert.strictEqual(m.summary.mergedCount, (m.merged || []).length);
+
+  // 짝은 **안 합친 갈래끼리만** 만든다
+  const live = new Set(m.branches.map(b => b.name));
+  for (const p of m.pairs) {
+    assert.ok(live.has(p.a) && live.has(p.b),
+      `${p.a} ↔ ${p.b} — 이미 합쳐진 갈래가 짝에 들어갔다`);
+  }
+});
+
+test('★★ 「합치지 않기로 한 갈래」는 할 일에서 빼되 화면에는 남긴다 (D-130)', () => {
+  const mw2 = require('../tools/merge-watch');
+  const doc = JSON.parse(
+    require('fs').readFileSync(require('path').join(__dirname, '..', '..', 'docs', '갈래-주인.json'), 'utf8'));
+  const noMerge = new Set((doc.갈래 || []).filter(x => x.합치지않음).map(x => x.branch));
+  assert.ok(noMerge.size >= 1, '합치지않음 표시가 하나도 없다 — 이 검사가 아무것도 재지 않는다');
+
+  const m = mw2.measure();
+  if (!m.ok) return;
+
+  // ★ 그 갈래는 「아직 안 합친 갈래」에 들어가지 않는다.
+  //   영영 안 합쳐지는 것을 할 일로 세면 그 숫자가 0 이 되는 날이 안 온다.
+  for (const b of m.branches) {
+    assert.ok(!noMerge.has(`claude/${b.name}`),
+      `${b.name} 은 합치지 않기로 한 갈래인데 할 일로 세고 있다`);
+  }
+  // ★ 그렇다고 사라지면 안 된다 — 따로 적어 둔다.
+  for (const b of (m.archived || [])) {
+    assert.ok(noMerge.has(`claude/${b.name}`), 'archived 는 표시가 있는 것만 들어간다');
+    assert.notStrictEqual(b.ahead, 0, '이미 합쳐진 것은 archived 가 아니라 merged 다');
+  }
+  assert.strictEqual(m.summary.archivedCount, (m.archived || []).length);
+
+  // ★ 주인 표에는 그대로 나온다 — 주인 없는 갈래를 놓치지 않기 위해서다
+  const shown = new Set(m.owners.map(o => o.branch));
+  for (const b of (m.archived || [])) {
+    assert.ok(shown.has(b.name), `${b.name} 이 주인 표에서 빠졌다`);
+  }
+});
+
+test('★ 적어 둔 갈래가 병합됐다고 「없어졌다」로 세지 않는다', () => {
+  const m = mw.measure();
+  if (!m.ok) return;
+  const mergedNames = new Set((m.merged || []).map(b => `claude/${b.name}`));
+  for (const missing of m.summary.declaredMissing || []) {
+    assert.ok(!mergedNames.has(missing),
+      `${missing} 는 병합된 것이지 없어진 것이 아니다 — 오타와 구분이 안 된다`);
+  }
+});
+
 test('★ 실측 결과의 모양이 무너지지 않는다', () => {
   const m = mw.measure();
   if (!m.ok) return;
@@ -122,6 +191,44 @@ test('★ 화면 한 장이 실제로 만들어진다 (자체 완결 HTML)', () 
   assert.ok(!/<script/i.test(h), '미리보기에 스크립트를 넣지 않는다 — 안 도는 곳이 있다');
   assert.ok(!/https?:\/\//.test(h.replace(/github\.com/g, '')),
     '바깥에서 무언가를 받아오면 안 열리는 곳이 생긴다');
+});
+
+test('★★ 원격 받아오기가 기본이다 — 「없다」와 「안 받아왔다」를 가른다 (D-130)', () => {
+  const src = require('fs').readFileSync(
+    require('path').join(__dirname, '..', 'tools', 'merge-watch.js'), 'utf8');
+
+  // ★ 앞 판은 **이미 아는 갈래만** 다시 받았다. 그래서 모르는 갈래는 영영 몰랐고,
+  //   옛 크론 갈래 셋이 그렇게 숨어 있다가 손으로 --prune 을 걸고서야 나왔다.
+  //   화면은 그동안 「갈래 4개」라고 말했고 그것이 거짓인 줄 아무도 몰랐다.
+  assert.ok(src.includes("'--prune'"),
+    '--prune 없이 받으면 새 갈래도 못 보고 닫힌 갈래도 안 지워진다');
+  assert.ok(src.includes("opts.fetch !== false"),
+    '받아오기가 기본이 아니면 아무도 안 켠다');
+
+  // ★ 못 받았으면 **못 받았다고 적어야** 한다. 조용히 옛 목록을 보여 주지 않는다.
+  const m = mw.measure();
+  if (!m.ok) return;
+  assert.ok(m.fetched && typeof m.fetched.tried === 'boolean',
+    '받아왔는지를 결과에 안 실으면 화면이 그 사실을 말할 수 없다');
+  if (m.fetched.tried && !m.fetched.ok) {
+    assert.ok(m.fetched.error, '실패했으면 까닭을 적어야 한다');
+  }
+  // 화면에 그 경고 자리가 실제로 있는가
+  assert.ok(src.includes('원격을 못 받아왔'), '못 받은 사실을 화면에 적는 자리가 없다');
+});
+
+test('★ 검사 자리(IM_AGENT_OFFLINE)에서는 원격을 안 부른다', () => {
+  const saved = process.env.IM_AGENT_OFFLINE;
+  process.env.IM_AGENT_OFFLINE = '1';
+  try {
+    const m = mw.measure();
+    if (!m.ok) return;
+    assert.strictEqual(m.fetched.tried, false,
+      '검사가 돌 때마다 원격을 부르면 느리고, 원격이 없는 자리에서 흔들린다');
+  } finally {
+    if (saved === undefined) delete process.env.IM_AGENT_OFFLINE;
+    else process.env.IM_AGENT_OFFLINE = saved;
+  }
 });
 
 test('★ 읽기만 한다 — 저장소를 바꾸는 명령이 코드에 없다', () => {

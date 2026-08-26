@@ -238,10 +238,38 @@ function branches() {
     line || '결과를 못 읽었다');
 }
 
+/* ── ⑨ 보고서 화면 사본이 옛 판인가 ────────────────────── */
+/**
+ * ★★★ **D-120 이 정한 경계에서 나온 칸이다** 〈2026-08-26 사장님 결정〉.
+ *   `linkpilot-platform` 은 유저 접촉, `linkpilot-cron` 은 보고서 요청·생산.
+ *   그래서 보고서 화면 16개는 **이쪽이 본체**이고 저쪽 `im-flow/` 는 **사본**이다.
+ *
+ * ★★ **어긋나는 것이 예외가 아니라 기본값이다.** 화면마다 판 지문이 박혀 있어
+ *   이쪽이 한 번만 바뀌어도 16개 전부에 새 지문이 찍힌다. 실측에서 하루 만에
+ *   15개가 어긋났다. 그러니 「가끔 확인」으로는 못 잡는다.
+ *
+ * ★ 여기서 재는 것은 **「보냈다고 적은 기록이 지금 화면과 같은가」**다.
+ *   저쪽에 실제로 닿았는지는 이 저장소에서 잴 수 없다 — 그것까지 안다고
+ *   적으면 「닿았다」와 「적었다」가 섞인다 (M-25 와 같은 결).
+ */
+function imflow() {
+  let out = '';
+  let code = 0;
+  try {
+    out = sh('node im-agent/tools/sync-im-flow.js 2>&1');
+  } catch (e) {
+    out = String((e.stdout || '') + (e.stderr || ''));
+    code = e.status === undefined ? 1 : e.status;
+  }
+  const line = out.trim().split('\n').filter(Boolean).pop().replace(/^\s*[●✕]\s*/, '');
+  add('보고서 화면 사본', code === 0 ? 'ok' : (code === 2 ? 'unknown' : 'fail'),
+    line || '결과를 못 읽었다');
+}
+
 /* ── 내보내기 ──────────────────────────────────────────── */
 
 function main() {
-  tests(); stamp(); previews(); render(); saveBar(); openFile(); agents(); branches();
+  tests(); stamp(); previews(); render(); saveBar(); openFile(); agents(); branches(); imflow();
 
   const mark = { ok: '✅', fail: '❌', unknown: '⚠️ ' };
   const pad = (s, n) => s + ' '.repeat(Math.max(0, n - [...s].reduce((a, c) => a + (c.charCodeAt(0) > 0x1100 ? 2 : 1), 0)));

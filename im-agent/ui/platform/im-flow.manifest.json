@@ -1,0 +1,69 @@
+{
+  "at": null,
+  "files": {
+    "catalog.js": {
+      "bytes": 8799,
+      "sha256": "1910ddaa23922344fa0e2764aa00079eb38236fa779e3fa130a311b662695f10"
+    },
+    "embed-bridge.js": {
+      "bytes": 13800,
+      "sha256": "8beef559de24e3955d1179279b8697bb752d1b962e41f37318a6eaee2cb2fe5e"
+    },
+    "fields-core.js": {
+      "bytes": 21954,
+      "sha256": "7b02ee3b5125195737ca13583bdd8dc61eba1dc82aa4958d264513857484f3aa"
+    },
+    "fields.html": {
+      "bytes": 75538,
+      "sha256": "bc2265567c24682cece219710d91f1f3e3cb52e3f7755d74bcc76cb4fe09affb"
+    },
+    "files.html": {
+      "bytes": 208589,
+      "sha256": "75f3e96d851df95f5096586cab75a8c91ae626d0e1260ae4e4bb29a08759c6bb"
+    },
+    "flow-core.js": {
+      "bytes": 34614,
+      "sha256": "2957c370938adfbb373fde9b560cbea5ddca1af2d6fd967fc1f0e0189fe63f2f"
+    },
+    "gate-core.js": {
+      "bytes": 6244,
+      "sha256": "5df6cc71a7af2633b61a290680106b812f8acbc8211a5ff1487b8e991758e49a"
+    },
+    "inapp.js": {
+      "bytes": 12515,
+      "sha256": "0d1da26a344aa170d6983b2c71ab4ff5d5da18a4ffdebaec2d35f948523b06cf"
+    },
+    "intake.html": {
+      "bytes": 81582,
+      "sha256": "d036e0237ef0c16a408297fb77d305618c2143da7f2abfe89c18f1de837e3af9"
+    },
+    "live-core.js": {
+      "bytes": 25238,
+      "sha256": "24ca6bfdf186e09c24beeec09f72e1450e4c4d81fa6c76a43f7a5a02f760e129"
+    },
+    "outputs.html": {
+      "bytes": 48102,
+      "sha256": "13f1c4b1745366e09fafee9ca04c983e0432a08378aeebeb3146a72357ddc7d2"
+    },
+    "report-flow.html": {
+      "bytes": 47059,
+      "sha256": "69473606dfb2bc40111a12683d18d6ea7eca9a1b16280ff6dd8e984e28f3d79d"
+    },
+    "reports.html": {
+      "bytes": 83313,
+      "sha256": "5516c5f594c386ee9834faa79581f66297075a6b19463981a71f199237c95999"
+    },
+    "tokens.css": {
+      "bytes": 7256,
+      "sha256": "bdb4df4538494aaefae055dc56c5f1b28333ab4c72bacc9e1f57977903baac16"
+    },
+    "upload-core.js": {
+      "bytes": 12135,
+      "sha256": "49bc35d867a4ce5fc33f81ec1ce3d9cc6a6d8a143d3841b9fdf339032525844d"
+    },
+    "versions-core.js": {
+      "bytes": 12187,
+      "sha256": "15d9df4977cb088881a06c59b865c296b28907df9127d4fbd2f1e9b66443e74d"
+    }
+  }
+}

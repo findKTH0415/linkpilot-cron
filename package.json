@@ -6,7 +6,6 @@
   "main": "im-agent/cli.js",
   "scripts": {
     "test": "node --test im-agent/test/*.test.js",
-    
     "im": "node im-agent/cli.js",
     "im:demo": "IM_AGENT_OFFLINE=1 node im-agent/cli.js demo",
     "branch:check": "node im-agent/tools/branch-doctor.js",
@@ -47,7 +46,9 @@
     "deploy:nas": "bash deploy/nas.sh",
     "merge:watch": "node im-agent/tools/merge-watch.js",
     "merge:watch:html": "node im-agent/tools/merge-watch.js --fetch --html im-agent/ui/platform/merge-watch.html",
-    "d:conflict": "node im-agent/tools/decision-conflict.js"
+    "d:conflict": "node im-agent/tools/decision-conflict.js",
+    "imflow:manifest": "node im-agent/tools/sync-im-flow.js --write",
+    "imflow:check": "node im-agent/tools/sync-im-flow.js"
   },
   "dependencies": {
     "solapi": "^5.5.1"

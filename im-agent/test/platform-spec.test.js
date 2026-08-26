@@ -120,7 +120,7 @@ test('★★ 게이트는 셋이다 — 결정(D-122)을 말없이 넓히지 않
   assert.deepStrictEqual(platformspec.ADVISORY_FIELDS, ['input_data']);
 });
 
-test('★ 입력값이 비면 막지는 않되 말은 한다 (D-131)', () => {
+test('★ 입력값이 비면 막지는 않되 말은 한다 (D-133)', () => {
   const s = platformspec.normalize(fullSpec());
   s.input_data = null;
   const v = platformspec.judge(s);
@@ -187,7 +187,7 @@ test('★ 사람이 방금 준 지시서가 저장된 것을 이긴다', async (
 // ── ★ 등록 상태 ─────────────────────────────────────────────
 
 test('★ 20_platform_spec 이 registry 에 있고 켜져 있다', () => {
-  // ★ AGENTS 가 아니라 TASK_AGENTS 다 (D-130) — IM 파이프라인이 아니라 Task 그래프다
+  // ★ AGENTS 가 아니라 TASK_AGENTS 다 (D-132) — IM 파이프라인이 아니라 Task 그래프다
   const a = registry.TASK_AGENTS['20_platform_spec'];
   assert.ok(a, 'registry 에 없다');
   assert.strictEqual(a.enabled, true);
@@ -209,7 +209,7 @@ test('★ T22 는 배정되고 T23 은 아직 미구현이다', () => {
   assert.strictEqual(router.assign('PLATFORM_BUILD').implemented, false);
 });
 
-// ── ★★ 갈래를 둘로 나눈 것이 「검사를 피하는 문」이 되지 않는가 (D-130) ──
+// ── ★★ 갈래를 둘로 나눈 것이 「검사를 피하는 문」이 되지 않는가 (D-132) ──
 
 const doctor = require('../tools/agent-doctor.js');
 

@@ -124,19 +124,41 @@ test('★ 「오는 중」은 이름과 출처를 함께 적는다 — 어디서
 });
 
 test('★ 미구현 Agent 의 Task 는 지워지지 않고 PLANNED 로 남는다 (D-20)', () => {
+  /* ★★ **2026-08-26 · 대상이 바뀌었다.** T16(인허가)은 `18_legal` 이 붙어
+   *   더 이상 미구현이 아니다 (D-113). 여기서 재는 것은 「미구현이 지워지지
+   *   않는가」이므로 **아직 미구현인 것**으로 옮긴다 — T17(기술 검토).
+   *   대상이 사라졌다고 검사를 지우면 D-20 이 다시 난다. */
   const p = taskplan.plan({ request: '평택 물류창고 개발' });
-  const legal = p.tasks.find(t => t.id === 'T16');
-  assert.ok(legal, '인허가 Task 가 계획에서 사라졌다');
-  assert.strictEqual(legal.status, 'PLANNED');
-  assert.match(legal.reason, /미구현/);
+  const tech = p.tasks.find(t => t.id === 'T17');
+  assert.ok(tech, '기술 검토 Task 가 계획에서 사라졌다');
+  assert.strictEqual(tech.status, 'PLANNED');
+  assert.match(tech.reason, /미구현/);
 });
 
 test('★ 미구현을 비슷한 Agent 로 대신 태우지 않는다', () => {
   const p = taskplan.plan({ request: '평택 물류창고 개발' });
-  for (const id of ['T16', 'T17', 'T18', 'T19']) {
+  // T17·T18 은 아직 담당이 없고, T19(PPT)는 **Agent 가 아니라 기능**이다 (D-113).
+  // 셋 다 「비슷한 Agent 를 대신 태우면」 안 되는 자리다.
+  for (const id of ['T17', 'T18', 'T19']) {
     const t = p.tasks.find(x => x.id === id);
     assert.strictEqual(t.agentType, null, `${id} 에 엉뚱한 Agent 가 배정됐다: ${t.agentType}`);
   }
+});
+
+test('★★ 구현된 Task 에는 담당이 붙는다 — 붙지 않으면 만들어 놓고 안 부르는 것이다', () => {
+  const p = taskplan.plan({ request: '평택 물류창고 개발' });
+  const legal = p.tasks.find(t => t.id === 'T16');
+  assert.strictEqual(legal.agentType, '18_legal', 'D-113 으로 구현했는데 계획이 그것을 모른다');
+  const design = p.tasks.find(t => t.id === 'T25');
+  assert.ok(design, '디자인 검증 Task 가 없다 — 지시서 §8.4 가 계획에 안 보인다');
+  assert.strictEqual(design.agentType, '15_design');
+});
+
+test('★ PPT 는 Agent 가 아니라 기능이다 — 담당을 걸어 두면 「있다」로 읽힌다 (D-113)', () => {
+  const router = require('../core/router');
+  assert.deepStrictEqual(router.CAPABILITIES.PRESENTATION.agents, [],
+    '15_design 은 Design Manager 이고 PPT 를 만들지 않는다');
+  assert.match(router.CAPABILITIES.PRESENTATION.note, /기능/);
 });
 
 test('자산군을 특정 못 하면 전용 Task 를 넣지 않고 그 사실을 말한다', () => {

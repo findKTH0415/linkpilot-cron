@@ -18,7 +18,10 @@
  *   node im-agent/tools/merge-watch.js            사람이 읽는 표
  *   node im-agent/tools/merge-watch.js --json     기계가 읽는 JSON
  *   node im-agent/tools/merge-watch.js --html P   화면 한 장을 P 에 쓴다
- *   node im-agent/tools/merge-watch.js --fetch    재기 전에 원격을 먼저 받아온다
+ *   node im-agent/tools/merge-watch.js --no-fetch 원격을 안 받고 이 컴퓨터가 아는 것만 잰다
+ *
+ * ★ **원격 받아오기가 기본이다** (D-130). 안 받으면 「모르는 갈래」를 영영 모른다.
+ *   못 받았으면 화면에 그렇게 적는다 — 조용히 옛 목록을 보여 주지 않는다.
  */
 
 const { execFileSync } = require('child_process');
@@ -173,7 +176,7 @@ function areaOf(file, areas) {
  * ★ **경계를 넘은 것이 곧 잘못은 아니다.** 공용 파일은 누구나 건드린다.
  *   다만 넘은 사실을 보이게 해서 사장님이 판단하실 수 있게 한다.
  */
-function ownership(branches) {
+function ownership(branches, allBranches) {
   const doc = readOwners();
   const areas = doc._영역 || {};
   const byBranch = new Map((doc.갈래 || []).map(x => [x.branch, x]));
@@ -182,7 +185,12 @@ function ownership(branches) {
   //   오타면 그 갈래는 **영원히 주인이 없다.** 다만 이것을 검사(test)로 두면
   //   안 된다 — CI 는 그 PR 의 갈래 하나만 받아 오므로 나머지 셋이 늘 「없다」가 된다.
   //   **환경에 따라 답이 달라지는 것은 검사가 아니라 그때그때 말할 일이다** (2026-08-26 실측).
-  const present = new Set(branches.map(b => b.ref.replace(/^origin\//, '')));
+  //   ★ **이미 합쳐진 갈래는 「없다」가 아니다** 〈2026-08-26 · 병합 직후〉.
+  //     `branches` 는 아직 안 합친 것만 담으므로, 그것만 보면 방금 합친 넷이
+  //     통째로 「적어 뒀는데 안 보인다」로 뜬다. 그래서 **원격에 있는 전부**
+  //     (`allBranches`)와 견준다. 진짜 없는 것만 남는다.
+  const scope = allBranches || branches;
+  const present = new Set(scope.map(b => b.ref.replace(/^origin\//, '')));
   const declaredMissing = (doc.갈래 || [])
     .map(x => x.branch)
     .filter(name => !present.has(name));
@@ -233,15 +241,62 @@ function measure(opts = {}) {
   const base = baseRef();
   if (!base) return { ok: false, error: '기준 갈래(origin/main)를 못 찾았다' };
 
-  if (opts.fetch) {
-    for (const r of workBranches()) {
-      git(['fetch', '--quiet', 'origin', r.replace(/^origin\//, '')]);
-    }
-    git(['fetch', '--quiet', 'origin', base.replace(/^origin\//, '')]);
+  /**
+   * ★★ **먼저 원격을 통째로 받아온다** 〈2026-08-26 사장님 지시 · 권고 ③〉.
+   *
+   *   앞 판은 `opts.fetch` 일 때만, 그것도 **이미 아는 갈래만** 다시 받았다.
+   *   그러면 **모르는 갈래는 영영 모른다** — 실제로 옛 크론 갈래 셋이 그렇게
+   *   숨어 있다가, 내가 손으로 `--prune` 을 걸고 나서야 나타났다 (D-130).
+   *   그때까지 화면은 「갈래 4개」라고 말하고 있었고, **그것이 거짓인 줄
+   *   아무도 몰랐다.**
+   *
+   *   ★ **「없다」와 「안 받아왔다」는 다른 사실이다** (M-11 · M-12 와 같은 결).
+   *     그래서 받아오기를 기본으로 돌리되, **성공했는지를 결과에 싣고**
+   *     실패하면 화면에 그대로 적는다. 조용히 옛 목록을 보여 주지 않는다.
+   *   ★ CI 처럼 원격에 못 닿는 자리가 있다. 거기서도 **죽지 않는다** —
+   *     못 받았다고 적고 아는 것만으로 잰다.
+   *   ★ `--prune` 은 **원격에서 사라진 이름을 이쪽에서도 지운다.** 안 지우면
+   *     닫힌 갈래가 영원히 목록에 남아 짝 수를 부풀린다.
+   */
+  let fetched = { tried: false, ok: false, error: null };
+  // ★ 검사·CI 자리(IM_AGENT_OFFLINE)에서는 원격을 안 부른다. 이 저장소가
+  //   이미 쓰는 표시라 새 약속을 만들지 않는다. 안 불렀다는 사실은
+  //   `tried:false` 로 남으므로 「없다」와 헷갈리지 않는다.
+  const offline = String(process.env.IM_AGENT_OFFLINE || '').trim() !== '';
+  if (opts.fetch !== false && !offline) {
+    fetched.tried = true;
+    const r = git(['fetch', '--prune', '--quiet', 'origin']);
+    fetched.ok = r.ok;
+    if (!r.ok) fetched.error = (r.err || '').split('\n')[0] || `종료코드 ${r.code}`;
   }
 
   const refs = workBranches();
-  const branches = refs.map(r => branchInfo(r, base));
+  const all = refs.map(r => branchInfo(r, base));
+
+  // ★★ **이미 합쳐진 갈래를 위험으로 세지 않는다** 〈2026-08-26 · 병합 직후 실측〉.
+  //   네 갈래를 main 에 합친 **직후에 이 화면을 다시 열었더니** 「갈래 8개 ·
+  //   견줄 짝 28개 · 7군데 부딪힘」이 나왔다. 전부 거짓이다 —
+  //   합쳐진 갈래는 tip 이 그대로 남아 있어서 서로 merge-tree 를 하면 **병합 전의
+  //   충돌이 그대로 재현된다.** 이미 푼 충돌을 아직 남은 것처럼 보여 준 것이다.
+  //
+  //   ★ 그래서 **기준(main)보다 앞선 커밋이 0개인 갈래는 「합쳐짐」으로 빼고**
+  //     남은 것끼리만 견준다. 뺐다는 사실은 화면에 그대로 적는다 —
+  //     조용히 빼면 「갈래가 사라졌다」로 읽힌다.
+  //   ★ `ahead` 를 못 잰 갈래(null)는 **뺴지 않는다.** 모르는 것을 안전한
+  //     쪽으로 짐작하면 진짜 위험이 사라진다.
+  //   ★★ **「영원히 안 합칠 갈래」도 뺀다** 〈2026-08-26 사장님 지시 · D-130〉.
+  //     옛 아침 크론 갈래 셋은 main 과 **뿌리가 다르다** — git 이 합치기를
+  //     거절하므로 손으로 파일을 옮기지 않는 한 영영 안 합쳐진다. 그것을
+  //     「아직 안 합친 갈래」로 세면 **그 숫자가 0 이 되는 날이 안 오고,
+  //     0 이 안 되는 숫자는 아무도 안 본다.**
+  //     `docs/갈래-주인.json` 에 `합치지않음: true` 로 적어 둔 것을 뺀다.
+  const noMerge = new Set(
+    (readOwners().갈래 || []).filter(x => x.합치지않음).map(x => x.branch)
+  );
+  const nameOf = b => b.ref.replace(/^origin\//, '');
+  const branches = all.filter(b => b.ahead !== 0 && !noMerge.has(nameOf(b)));
+  const merged = all.filter(b => b.ahead === 0);
+  const archived = all.filter(b => b.ahead !== 0 && noMerge.has(nameOf(b)));
 
   // ── 두 갈래씩 전부 — 갈래가 하나 늘면 견줄 짝이 몇 개 느는지 그대로 보인다
   const pairs = [];
@@ -257,24 +312,30 @@ function measure(opts = {}) {
   }
 
   const heat = fileHeat(branches);
-  const owners = ownership(branches);
+  const owners = ownership([...branches, ...archived], all);
   const totalConflicts = pairs.reduce((n, p) => n + p.conflicts, 0);
   const conflictedFiles = new Set(pairs.flatMap(p => p.files));
 
   return {
     ok: true,
     base,
+    fetched,
     measuredAt: new Date().toISOString(),
     branches,
+    merged,
+    archived,
     pairs,
     heat,
     owners,
     summary: {
       branchCount: branches.length,
+      mergedCount: merged.length,
+      archivedCount: archived.length,
       pairCount: pairs.length,
       totalConflicts,
       distinctConflictedFiles: conflictedFiles.size,
-      // ★ 갈래가 하나 늘면 견줄 짝이 몇 개 되는가 — n(n-1)/2 다
+      // ★ 갈래가 하나 늘면 견줄 짝이 몇 개 되는가 — n(n-1)/2 다.
+      //   n 이 0 이면 `(0+1)*0/2` 라 +0 이 나온다 (`0*-1/2` 와 달리 -0 이 아니다).
       pairsIfOneMore: (branches.length + 1) * branches.length / 2,
       // ★ 주인이 둘인 갈래 · 주인이 없는 갈래 — 사장님이 가장 먼저 보실 숫자다
       sharedOwnerBranches: owners.filter(o => o.ownerCount > 1).length,
@@ -298,12 +359,33 @@ function render(m) {
   if (!m.ok) return `✕ ${m.error}`;
   const L = [];
   L.push('');
-  L.push(`  갈래 ${m.summary.branchCount}개 · 견줄 짝 ${m.summary.pairCount}개`);
+  if (m.fetched && m.fetched.tried && !m.fetched.ok) {
+    L.push('  ⚠️  **원격을 못 받아왔다** — 아래는 이 컴퓨터가 아는 것만이다.');
+    L.push(`     ${m.fetched.error || '까닭 모름'}`);
+    L.push('     「갈래가 없다」가 아니라 「못 받았다」다. 둘은 다른 사실이다.');
+    L.push('');
+  }
+  L.push(`  아직 안 합친 갈래 ${m.summary.branchCount}개 · 견줄 짝 ${m.summary.pairCount}개`);
   L.push(`  ★ 실제로 부딪히는 곳 — 서로 다른 파일 ${m.summary.distinctConflictedFiles}개`);
   L.push('');
-  L.push('  갈래');
+  L.push('  아직 안 합친 갈래');
+  if (!m.branches.length) L.push('   (없다 — 열려 있는 갈래가 전부 기준에 들어가 있다)');
   for (const b of m.branches) {
     L.push(`   ${pad(b.name, 40)} ${String(b.ahead).padStart(4)}커밋  ${String(b.files.length).padStart(4)}파일  ${b.head || ''}`);
+  }
+  if ((m.archived || []).length) {
+    L.push('');
+    L.push(`  합치지 않기로 한 갈래 ${m.archived.length}개 — 아래 셈에서 뺐다 (D-130)`);
+    for (const b of m.archived) {
+      L.push(`   ⊘ ${pad(b.name, 40)} ${String(b.ahead).padStart(4)}커밋  ${b.head || ''}`);
+    }
+    L.push(`   (${shortName(m.base)} 과 뿌리가 달라 git 이 합치기를 거절한다 — 옛 아침 크론)`);
+  }
+  if ((m.merged || []).length) {
+    L.push('');
+    L.push(`  이미 ${shortName(m.base)} 에 들어간 갈래 ${m.merged.length}개 — 아래 셈에서 뺐다`);
+    for (const b of m.merged) L.push(`   ● ${pad(b.name, 40)} ${b.head || ''}`);
+    L.push('   (tip 이 남아 있어 서로 견주면 **병합 전 충돌이 그대로 재현된다** — 이미 푼 것이다)');
   }
   L.push('');
   L.push('  두 갈래씩 실제로 합쳐 본 결과 (0 이면 git 이 알아서 합친다)');
@@ -433,13 +515,21 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:.88em;background:var(--s
 </style>
 <div class="wrap">
 <div class="eyebrow">병합 감시 · 실측 · ${esc(m.measuredAt.slice(0, 16).replace('T', ' '))} UTC</div>
-<h1>지금 손으로 풀어야 할 곳은 <em>${m.summary.distinctConflictedFiles}개 파일</em>입니다.</h1>
+${m.fetched && m.fetched.tried && !m.fetched.ok ? `<div class="note" style="border-color:var(--red);background:var(--redBg)">
+  <b>⚠️ 원격을 못 받아왔습니다.</b> 아래 숫자는 <b>이 컴퓨터가 아는 것만</b>입니다 —
+  그 사이에 새로 생긴 갈래는 여기에 없습니다.
+  <br><span class="dim">${esc(m.fetched.error || '까닭 모름')}</span>
+  <br><b>「갈래가 없다」가 아니라 「못 받았다」입니다.</b> 둘은 다른 사실입니다.
+</div>` : ''}
+<h1>${m.summary.branchCount === 0
+  ? `지금 손으로 풀 곳은 <em>없습니다</em>.`
+  : `지금 손으로 풀어야 할 곳은 <em>${m.summary.distinctConflictedFiles}개 파일</em>입니다.`}</h1>
 <p class="sub">「같은 파일을 둘이 건드렸다」는 부딪힘이 아닙니다 — 서로 다른 줄이면 git 이 알아서 합칩니다.
 그래서 파일 이름을 세지 않고 <b>실제로 합쳐 보고</b> 부딪힌 것만 셌습니다.
 아무것도 바꾸지 않습니다(읽기만 합니다).</p>
 
 <div class="cards">
-  <div class="card"><h3>갈래</h3><div class="big">${m.summary.branchCount}</div><p>기준 <code>${esc(m.base)}</code></p></div>
+  <div class="card"><h3>아직 안 합친 갈래</h3><div class="big" style="color:${m.summary.branchCount ? 'var(--ink)' : 'var(--ok)'}">${m.summary.branchCount}</div><p>기준 <code>${esc(m.base)}</code> · 이미 들어간 <b>${m.summary.mergedCount}</b>개와 합치지 않기로 한 <b>${m.summary.archivedCount}</b>개는 뺐습니다</p></div>
   <div class="card"><h3>견줄 짝</h3><div class="big">${m.summary.pairCount}</div><p>하나 더 열면 <b>${m.summary.pairsIfOneMore}</b> 개가 됩니다</p></div>
   <div class="card"><h3>실제로 부딪히는 파일</h3><div class="big" style="color:${m.summary.distinctConflictedFiles ? 'var(--red)' : 'var(--ok)'}">${m.summary.distinctConflictedFiles}</div><p>손으로 풀어야 하는 곳</p></div>
   <div class="card"><h3>가장 나쁜 짝</h3><div class="big">${worst}</div><p>한 번에 풀 곳이 가장 많은 조합</p></div>
@@ -449,7 +539,7 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:.88em;background:var(--s
 <h2>두 갈래씩 실제로 합쳐 본 결과</h2>
 <div class="scroll"><table>
 <tr><th>갈래 A</th><th>갈래 B</th><th>부딪힘</th><th>어디서</th></tr>
-${rows}
+${rows || '<tr><td colspan="4" class="dim">견줄 짝이 없습니다 — 아직 안 합친 갈래가 둘 이상일 때 나옵니다</td></tr>'}
 </table></div>
 
 <h2>갈래의 주인 — 하나여야 합니다</h2>
@@ -471,10 +561,36 @@ ${m.owners.flatMap(o => o.alerts.filter(a => a.level !== 'MEDIUM').map(a =>
   <br>주인은 <code>docs/갈래-주인.json</code> 에 적혀 있고, 고치면 이 표가 따라옵니다.
 </div>
 
+${(m.archived || []).length ? `<h2>합치지 않기로 한 갈래 — 위 셈에서 뺐습니다 (D-130)</h2>
+<div class="scroll"><table>
+<tr><th>갈래</th><th>커밋</th><th>맨 위</th><th>마지막 커밋</th></tr>
+${m.archived.map(b => `<tr><td>${esc(b.name)}</td><td class="n">${b.ahead}</td><td class="dim">${esc(b.head || '')}</td><td class="dim">${esc(b.lastSubject || '')}</td></tr>`).join('')}
+</table></div>
+<div class="note">
+  <b>이 셋은 <code>${esc(shortName(m.base))}</code> 과 뿌리가 다릅니다.</b> 족보가 아예 달라서 git 이
+  「뿌리가 다른 것은 안 합친다」며 거절합니다 — 손으로 파일을 옮기지 않는 한 <b>영원히 안 합쳐집니다.</b>
+  옛 아침 크론 갈래이고, 크론을 다른 저장소로 옮길 때 통째로 가져갈 원재료입니다.
+  <br><b>위 숫자에서 뺀 이유</b> — 영영 안 합쳐지는 것을 「할 일」로 세면 그 숫자가 0 이 되는 날이
+  오지 않습니다. 0 이 안 되는 숫자는 아무도 안 봅니다. 뺐다는 사실은 여기 적어 둡니다.
+  <br>표시는 <code>docs/갈래-주인.json</code> 의 <code>합치지않음</code> 에 있습니다.
+</div>` : ''}
+
+${(m.merged || []).length ? `<h2>이미 ${esc(shortName(m.base))} 에 들어간 갈래 — 위 셈에서 뺐습니다</h2>
+<div class="scroll"><table>
+<tr><th>갈래</th><th>맨 위</th><th>마지막 커밋</th></tr>
+${m.merged.map(b => `<tr><td>${esc(b.name)}</td><td class="dim">${esc(b.head || '')}</td><td class="dim">${esc(b.lastSubject || '')}</td></tr>`).join('')}
+</table></div>
+<div class="note">
+  <b>합쳐진 뒤에도 갈래의 맨 위(tip)는 그대로 남습니다.</b> 그 상태로 둘을 서로 견주면
+  <b>병합 전의 충돌이 그대로 다시 나옵니다</b> — 이미 손으로 푼 것인데도 그렇습니다.
+  그래서 기준보다 앞선 커밋이 0개인 갈래는 위 셈에서 뺍니다.
+  뺐다는 사실을 여기 적어 두는 이유는, 조용히 빼면 「갈래가 사라졌다」로 읽히기 때문입니다.
+</div>` : ''}
+
 <h2>갈래별 크기</h2>
 <div class="scroll"><table>
 <tr><th>갈래</th><th>커밋</th><th>파일</th><th>맨 위</th><th>마지막 커밋</th></tr>
-${brs}
+${brs || '<tr><td colspan="5" class="dim">아직 안 합친 갈래가 없습니다 — 위의 두 표(합치지 않기로 한 것 · 이미 들어간 것)를 보십시오</td></tr>'}
 </table></div>
 
 <h2>여러 갈래가 함께 건드린 파일</h2>
@@ -488,9 +604,13 @@ ${heat || '<tr><td colspan="3" class="dim">겹치는 파일이 없습니다</td>
 </div>
 
 <div class="note">
-  <b>「갈래가 늘면 병합이 어려워진다」의 실제 내용.</b> 갈래가 ${m.summary.branchCount}개면 견줄 짝이
+${m.summary.branchCount === 0 ? `  <b>지금은 손으로 풀 곳이 없습니다.</b> 열려 있는 갈래가 전부
+  <code>${esc(shortName(m.base))}</code> 에 들어가 있습니다.
+  <br>갈래를 하나 열면 짝은 0개, 둘을 열면 1개, 셋을 열면 3개, 넷을 열면 <b>6개</b>가 됩니다.
+  어려워지는 것은 <b>갈래 수가 아니라 짝의 수</b>이고, 짝은 갈래보다 빨리 늡니다.`
+: `  <b>「갈래가 늘면 병합이 어려워진다」의 실제 내용.</b> 아직 안 합친 갈래가 ${m.summary.branchCount}개면 견줄 짝이
   ${m.summary.pairCount}개이고, 하나만 더 열면 <b>${m.summary.pairsIfOneMore}개</b>가 됩니다.
-  짝이 느는 만큼 손으로 풀 자리도 늡니다. 어려워지는 것은 <b>갈래 수가 아니라 짝의 수</b>입니다.
+  짝이 느는 만큼 손으로 풀 자리도 늡니다. 어려워지는 것은 <b>갈래 수가 아니라 짝의 수</b>입니다.`}
 </div>
 
 <div class="foot">
@@ -505,7 +625,9 @@ ${heat || '<tr><td colspan="3" class="dim">겹치는 파일이 없습니다</td>
 function main(argv) {
   const opts = {
     json: argv.includes('--json'),
-    fetch: argv.includes('--fetch'),
+    // 받아오기가 **기본**이다 (D-130). `--no-fetch` 로만 끈다.
+    // `--fetch` 는 앞 판의 습관이라 그대로 받아 준다 — 같은 뜻이다.
+    fetch: argv.includes('--no-fetch') ? false : true,
     html: null,
   };
   const hi = argv.indexOf('--html');

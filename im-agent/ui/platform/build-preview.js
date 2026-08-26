@@ -1081,7 +1081,7 @@ function evidencePanel() {
  *   실제 실행에서는 키가 없으면 그 Task 가 BLOCKED 로 서고 이유를 적는다.
  */
 /**
- * 화면 작업지시서(T22)가 **실제로 막는가**를 눈으로 확인하게 한다 (D-122 · D-130).
+ * 화면 작업지시서(T22)가 **실제로 막는가**를 눈으로 확인하게 한다 (D-122 · D-132).
  *
  * ★ 화면이 없는 작업이다. 「지시서가 없으면 착수하지 않는다」는 말은 그 자체로는
  *   확인할 방법이 없다 — 그래서 **빌드할 때 실제로 판정기를 돌려** 그 답을 넣는다.
@@ -1112,7 +1112,7 @@ function specPanel() {
   const cases = [
     ['빈 지시서 — 아무것도 안 적었다', {}],
     ['온전히 채운 지시서', full],
-    ['입력값이 null — 막지는 않는다 (D-131)', { ...full, input_data: null }],
+    ['입력값이 null — 막지는 않는다 (D-133)', { ...full, input_data: null }],
     ['제외범위가 [] — 뺄 것이 정말 없다', { ...full, scope_out: [] }],
     ['범위가 [] — 만들 것이 없다', { ...full, scope_in: [] }],
     ['완료조건에 shows 가 없다', { ...full, acceptance_criteria: [{ must: '진행률이 나온다' }] }],
@@ -1133,7 +1133,7 @@ function specPanel() {
      <td>${ps.MAY_BE_EMPTY.has(f) ? '비어도 된다' : '<b>비면 막는다</b>'}</td></tr>`).join('')
     + ps.ADVISORY_FIELDS.map(f =>
     `<tr><td><code>${esc(f)}</code></td><td>${esc(ps.FIELD_LABEL[f])}</td>
-     <td>막지 않는다 — 비면 말만 한다 (D-131)</td></tr>`).join('');
+     <td>막지 않는다 — 비면 말만 한다 (D-133)</td></tr>`).join('');
 
   return `
 <section class="ev">
@@ -1156,7 +1156,7 @@ function specPanel() {
   <div class="ev__m" style="margin-top:18px"><b>막는 칸 셋 + 말만 하는 칸 하나</b>
     — 지침 §5 는 20개를 정했으나 <b>착수 판정에 실제로 쓰이는 셋만</b> 먼저 넣었습니다 (등록부 D-122 결정).
     <code>input_data</code>(입력값)는 적을 자리만 두고 <b>막지 않습니다</b> — 결정을 말없이 넓히지 않기 위해서이고,
-    막을지 말지는 등록부 D-131 에 올렸습니다.</div>
+    막을지 말지는 등록부 D-133 에 올렸습니다.</div>
   <table class="ev__tb" style="margin-top:8px">
     <thead><tr><th>칸</th><th>무엇</th><th>비면</th></tr></thead>
     <tbody>${fields}</tbody>

@@ -269,6 +269,6 @@ function forAgent(agentId) {
  *   Agent 둘과 커넥터 둘(kict · law)을 들고 있다. MCP 짝을 지을 때 **배포 쪽 수를
  *   기준으로 본다** — 이 갈래 수만 보면 없는 Agent 를 못 챙긴다.
  */
-const ENGINE = { agents: 13, connectors: 23, note: '커넥터 수는 cache·http·xml(인프라 3종) 제외' };
+const ENGINE = { agents: 15, connectors: 23, note: '커넥터 수는 cache·http·xml(인프라 3종) 제외' };
 
 module.exports = { SERVERS, LANE, GRADE, STATUS, ENGINE, check, byLane, needsHuman, forAgent };

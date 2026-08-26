@@ -32,6 +32,8 @@ const inputSchema = {
     appraisal: { type: 'object', nullable: true },
     massing: { type: 'object', nullable: true },
     research: { type: 'object', nullable: true },
+    // ★ Design Manager 의 판정 (D-123). 없으면 GATE 07 이 「못 들었다」고 적는다
+    design: { type: 'object', nullable: true },
   },
 };
 
@@ -314,6 +316,35 @@ async function run(input, ctx) {
     g7.checks.push({ item: '출처 없는 숫자', result: unsourced ? 'FAIL' : 'PASS', detail: `${unsourced}건` });
     g7.checks.push({ item: '디자인 규칙', result: designRed.length ? 'FAIL' : 'PASS', detail: `RED ${designRed.length}건` });
     g7.checks.push({ item: '수치 출처표', result: (writer.citations || []).length ? 'PASS' : 'FAIL', detail: `인용 ${(writer.citations || []).length}건` });
+  }
+
+  /* ★★★ **Design Manager 의 판정을 여기서 듣는다** 〈2026-08-26 · D-123〉.
+   *
+   *   붙이고 나서 바로 잡은 구멍이다 — `15_design` 을 만들고 배선 다섯 곳을
+   *   다 채웠는데, **그 결과가 최종 게이트까지 오지 않았다.** 위의 「디자인 규칙」
+   *   칸은 `writer.designViolations`(06 의 자기 점검)만 보고 있었다.
+   *   그러면 Design Manager 가 「통과 못 했다」고 해도 **문서는 그대로 나간다** —
+   *   지시서 §8.4 가 막으려던 바로 그 상태다.
+   *
+   *   ★ **판정이 안 왔으면 「통과」가 아니라 「못 들었다」다.** 안 온 것을
+   *     조용히 넘기면 15_design 이 죽어도 아무도 모른다 (D-48 과 같은 결). */
+  const design = input.design || null;
+  if (!design) {
+    g7.checks.push({ item: 'DESIGN_VERIFIED', result: 'FAIL', detail: '판정이 오지 않았다 — 15_design 이 돌지 않았거나 결과가 안 넘어왔다' });
+    issues.push(issue('DESIGN_VERDICT_MISSING', 'MAJOR', 'Design',
+      'Design Manager 의 판정이 없다 — 통과가 아니라 못 들은 것이다', '15_design 이 실제로 도는지 본다'));
+  } else {
+    const dRed = (design.flags || []).filter(f => f.severity === 'RED');
+    for (const f of dRed) {
+      issues.push(issue('DESIGN_VIOLATION', 'MAJOR', 'Design', `${f.type}: ${f.message}`, '디자인 규칙 준수'));
+    }
+    g7.checks.push({
+      item: 'DESIGN_VERIFIED',
+      result: design.verified ? 'PASS' : 'FAIL',
+      detail: design.verified
+        ? `본 것 ${(design.modes || []).reduce((n, m) => n + (m.checked || 0), 0)}건`
+        : `RED ${dRed.length}건${(design.modes || []).every(m => !m.checked) ? ' · 검사한 산출물이 없다(못 쟀다)' : ''}`,
+    });
   }
   g7.status = g7.checks.some(c => c.result === 'FAIL') ? 'FAIL' : 'PASS';
   gates.push(g7);
