@@ -65,13 +65,33 @@ test('★ 갈래 이름에서 origin/claude/ 를 뗀다', () => {
   assert.strictEqual(mw.shortName('origin/main'), 'main');
 });
 
+/**
+ * 짝의 수 — n 개에서 둘씩 고르는 경우의 수.
+ *
+ * ★ **갈래가 0개일 때 `n * (n - 1) / 2` 를 그대로 쓰면 `-0` 이 나온다**
+ *   〈2026-08-26 · CI 가 잡았다〉. `0 * -1 / 2` 는 자바스크립트에서 `-0` 이고,
+ *   `assert.strictEqual` 은 `Object.is` 로 재기 때문에 `0` 과 `-0` 을 다르다고 본다.
+ *   내 컴퓨터에는 갈래가 여럿이라 안 걸렸고, CI 는 자기 갈래 하나만 받아 와서
+ *   `main` 을 뺀 갈래가 0개였다. **환경이 다르면 결과가 다른 계산은 여기서 막는다.**
+ */
+function pairsOf(n) {
+  return n < 2 ? 0 : (n * (n - 1)) / 2;
+}
+
+test('★ 짝의 수 공식은 갈래가 0·1개여도 0을 준다 (-0 이 아니다)', () => {
+  assert.strictEqual(pairsOf(0), 0);
+  assert.strictEqual(pairsOf(1), 0);
+  assert.strictEqual(pairsOf(4), 6);
+  assert.strictEqual(pairsOf(5), 10);
+});
+
 test('★★ 「짝의 수」 계산이 맞다 — 이것이 사장님께 드리는 근거다', () => {
   const m = mw.measure();
   if (!m.ok) return;
   const n = m.summary.branchCount;
-  assert.strictEqual(m.summary.pairCount, n * (n - 1) / 2,
+  assert.strictEqual(m.summary.pairCount, pairsOf(n),
     '짝의 수가 틀리면 「하나 더 열면 이만큼 는다」가 거짓이 된다');
-  assert.strictEqual(m.summary.pairsIfOneMore, (n + 1) * n / 2);
+  assert.strictEqual(m.summary.pairsIfOneMore, pairsOf(n + 1));
   assert.ok(m.summary.pairsIfOneMore >= m.summary.pairCount,
     '갈래가 늘었는데 짝이 줄 수는 없다');
 });
