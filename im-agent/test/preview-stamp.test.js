@@ -69,3 +69,50 @@ test('★ 시각을 섞지 않는다 — 섞으면 자정마다 산출물이 달
   assert.ok(!/Date\.now\(\)|new Date\(/.test(src),
     '지문에 시각이 섞이면 내용이 안 바뀌어도 매번 달라져 「재생성 = 커밋본」 검사가 빨개진다');
 });
+
+/* ───────────── ★★★ 내보내는 셋 **전부**에 찍히는가 ───────────── */
+
+test('★★★ 주소로 나가는 판에도 찍힌다 — 한 곳만 고치면 나머지가 옛말을 한다', () => {
+  // ★ 처음 붙였을 때 `flowShell()` 한 곳에만 넣었더니 **section-preview.html
+  //   에만** 찍혔다. 그런데 §8 이 「기본 전달」로 정한 것은 **아티팩트**다 —
+  //   사장님이 실제로 여시는 주소에는 지문이 없었다.
+  //
+  // ★★ 그게 왜 빠뜨린 것보다 나쁜가: 앞 판은 **하나도 없어서** 아무도 안 봤다.
+  //   고친 뒤에는 미리보기에만 있으니 「지문이 있는 판」과 「없는 판」이 섞인다.
+  //   없는 쪽을 열면 M-25 가 막으려던 상태로 **되돌아간 줄도 모른다.**
+  // ★★ **파일이 아니라 만드는 자리를 잰다.** `section-static.html` 과
+  //   `section-artifact.html` 은 `.gitignore` 에 있어 **새로 받은 자리에는 없다.**
+  //   있는지로 재면 CI 에서만 빨개지는 검사가 된다 — 오늘 이미 한 번 그랬다.
+  const src = fs.readFileSync(path.join(HERE, 'build-static.js'), 'utf8')
+    // 주석을 떼고 본다 (CLAUDE.md §8 — 경위를 잘 적어 둘수록 글자 대조가 눈이 먼다)
+    .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  const inserts = (src.match(/preview-stamp\.js'\)\.html\(\)/g) || []).length;
+  assert.ok(inserts >= 3,
+    `build-static.js 가 지문을 ${inserts}곳에만 넣는다 — 미리 그린 판 · 아티팩트 조각 ·`
+    + ' 한 단계만 보는 조각, 셋 다 주소로 나간다');
+
+  const preview = fs.readFileSync(path.join(HERE, 'build-preview.js'), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  assert.match(preview, /preview-stamp\.js'\)\.html\(\)/,
+    'build-preview.js 에서 지문이 빠졌다');
+
+  // 만들어져 있으면 값까지 본다 (여기서 돌린 뒤라면 있다)
+  const now = fresh().previewHash();
+  for (const f of ['section-preview.html', 'section-static.html', 'section-artifact.html']) {
+    const p = path.join(HERE, f);
+    if (!fs.existsSync(p)) continue;        // 아직 안 만든 자리 — 위에서 소스로 이미 쟀다
+    const html = fs.readFileSync(p, 'utf8');
+    assert.match(html, /data-lp-preview-stamp/, `${f} 에 미리보기 지문이 없다`);
+    assert.ok(html.includes(`미리보기-${now}`),
+      `${f} 의 지문이 지금 소스와 다르다 — 다시 만들어야 한다`);
+  }
+});
+
+test('★★ 조각에 넣어도 올릴 수 있는 꼴이다 (스크립트·바깥 주소 없음)', () => {
+  // 아티팩트 조각은 `publishable()` 을 지나야 한다. 지문이 그것을 어기면
+  // **조각 만들기 자체가 막혀** 전달이 통째로 멈춘다.
+  const frag = fresh().html();
+  assert.ok(!/<script/i.test(frag), '스크립트가 들어가면 조각이 막힌다');
+  assert.ok(!/(?:src|href)="https?:/i.test(frag), '바깥 주소는 CSP 가 막는다');
+  assert.ok(!/<(?:html|head|body|iframe)[\s>]/i.test(frag), '감싸는 문서는 올리는 쪽이 붙인다');
+});
