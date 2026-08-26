@@ -36,13 +36,14 @@ test('★★★ 교차검증 넷을 전부 돈다', () => {
  *   같으므로 부르는 자리까지 함께 잰다.
  */
 test('★★★ 늘어난 칸도 실제로 부른다', () => {
-  ['function saveBar', 'function openFile', 'function agents', 'function branches']
+  ['function saveBar', 'function openFile', 'function agents', 'function branches', 'function imflow']
     .forEach((f) => assert.ok(CODE.indexOf(f) !== -1, `${f} 가 없다`));
-  assert.ok(/render\(\); saveBar\(\); openFile\(\); agents\(\); branches\(\);/.test(CODE),
+  assert.ok(/render\(\); saveBar\(\); openFile\(\); agents\(\); branches\(\); imflow\(\);/.test(CODE),
     '만들어 놓고 안 부른다 — 그게 다음에 빠질 자리다');
   /* ★ 못 쟀을 때(되돌아오는 값 2)를 통과로 세면 안 된다.
-   *   크로미움이 없는 자리 둘([저장]·[열기])과 원격을 못 보는 자리 하나(갈래 겹침) */
-  assert.strictEqual((CODE.match(/code === 2 \? 'unknown'/g) || []).length, 3,
+   *   크로미움이 없는 자리 둘([저장]·[열기]) · 원격을 못 보는 자리 하나(갈래 겹침) ·
+   *   보낸 기록이 아예 없는 자리 하나(보고서 화면 사본 · D-120) */
+  assert.strictEqual((CODE.match(/code === 2 \? 'unknown'/g) || []).length, 4,
     '못 잰 것을 통과로 세는 칸이 있다 — 못 잰 것은 통과가 아니다');
 });
 
