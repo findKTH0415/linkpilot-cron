@@ -35,7 +35,9 @@
     "check:reachable": "node im-agent/tools/reachable.js",
     "d:check": "node im-agent/tools/registry-check.js",
     "d:next": "node im-agent/tools/registry-check.js --all --next",
-    "deploy:nas": "bash deploy/nas.sh"
+    "deploy:nas": "bash deploy/nas.sh",
+    "merge:watch": "node im-agent/tools/merge-watch.js",
+    "merge:watch:html": "node im-agent/tools/merge-watch.js --fetch --html im-agent/ui/platform/merge-watch.html"
   },
   "dependencies": {
     "solapi": "^5.5.1"
