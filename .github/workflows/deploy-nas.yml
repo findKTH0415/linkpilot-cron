@@ -1453,6 +1453,34 @@ jobs:
             echo "복원시험: **안 되살아난다** — 위 로그를 본다" >> "$GITHUB_STEP_SUMMARY"
           fi
 
+      # ★★★ **어디까지 닿았고 어디부터는 사람 손인지 매 배포마다 적는다**
+      #   〈2026-08-27 · D-143〉.
+      #
+      #   오늘 실제로 이런 왕복이 있었다 — 사장님은 「디자인 반영이 아직 안 됐다」,
+      #   이쪽은 「반영했고 배포도 초록」. **둘 다 맞는 말이었다.** 이 배포가
+      #   올리는 것은 **NAS** 이고, 앱 저장소의 `im-flow/` 사본은 **사람이 올린다.**
+      #   그 경계가 어디에도 안 적혀 있어서 「초록 = 앱에 반영됨」으로 읽혔다.
+      #
+      # ★ 그래서 판 지문과 함께 **남은 손일**을 요약에 박는다. 초록 옆에 적혀야
+      #   읽힌다 — 문서에만 적으면 배포를 보는 자리에서는 안 보인다.
+      - name: What is still by hand (남은 손일)
+        if: ${{ always() && needs.plan.outputs.dry_run != 'true' }}
+        run: |
+          STAMP=$(grep -o "LP_BUILD = '[0-9a-f]*'" im-agent/ui/platform/linkpilot-platform.html \
+            | head -1 | sed "s/.*'\(.*\)'/\1/")
+          {
+            echo "### 이 배포가 닿은 곳 · 아직 사람 손인 곳"
+            echo ""
+            echo "| | 누가 | 상태 |"
+            echo "|---|---|---|"
+            echo "| NAS 의 보고서 화면 16개 | **이 배포** | 판 \`${STAMP}\` 로 올렸다 |"
+            echo "| NAS 의 엔진 | **이 배포** | 위 「Deploy engine」 참고 |"
+            echo "| 앱 저장소 \`im-flow/\` 사본 | **사람** | 안 올리면 앱에는 **옛 판**이 그대로 보인다 |"
+            echo "| 앱 자체 화면(브리핑·대시보드 등) | **앱 저장소** | 이 배포와 무관하다 |"
+            echo ""
+            echo "★ 앱에서 「보고서 만들기」를 열고 화면 맨 아래 여덟 글자가 \`${STAMP}\` 인지 보면 사본이 최신인지 갈린다."
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Probe summary
         if: ${{ always() && needs.plan.outputs.dry_run != 'true' }}
         run: |
