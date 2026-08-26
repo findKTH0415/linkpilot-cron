@@ -39,9 +39,16 @@ const WEIGHTS = {
   '09_massing': 8,
   '12_sketchup_plan': 2,
   '13_sketchup_intake': 2,
-  '05_validation': 10,
-  '06_im_writer': 13,
-  '11_final_validation': 12,
+  // ★★ **새 Agent 둘의 몫은 「덜어 온 곳」이 분명하다** 〈2026-08-26 · D-113 · D-123〉.
+  //   지침 §2-1 — 새 Agent 를 더할 때는 어디서 덜어 올지를 함께 정한다.
+  //     18_legal 5   ← 05_validation 에서 3 (법령 한도 대조가 저기서 여기로 옮겨왔다)
+  //                   + 06_im_writer 에서 2 (문체·테마 판정이 15_design 으로 갔다)
+  //     15_design 4  ← 11_final_validation 에서 4 (형식·표기 검사를 나눠 가졌다)
+  '18_legal': 5,
+  '05_validation': 7,
+  '06_im_writer': 11,
+  '15_design': 4,
+  '11_final_validation': 8,
 };
 
 /** 트랙 배분 — 합계 100 */
@@ -59,9 +66,14 @@ const DEPENDS = {
   '09_massing': ['07_geo'],
   '12_sketchup_plan': ['09_massing'],
   '13_sketchup_intake': ['12_sketchup_plan'],
-  '05_validation': ['04_financial', '08_appraisal', '09_massing', '13_sketchup_intake'],
+  // 조례는 용도지역(07_geo)과 그 한도로 세운 매스(09_massing)가 있어야 댈 수 있다
+  '18_legal': ['07_geo', '09_massing'],
+  '05_validation': ['04_financial', '08_appraisal', '09_massing', '13_sketchup_intake', '18_legal'],
   '06_im_writer': ['05_validation'],
-  '11_final_validation': ['06_im_writer'],
+  // 검사할 문서가 있어야 디자인을 잰다
+  '15_design': ['06_im_writer'],
+  // 지시서 §8.4 — DESIGN_VERIFIED 를 통과하지 못하면 완료 처리하지 않는다
+  '11_final_validation': ['06_im_writer', '15_design'],
 };
 
 const STATUS = {

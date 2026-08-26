@@ -100,10 +100,18 @@ const PLAN = [
     capability: 'IM_WRITING', dependsOn: ['T01', 'T09'],
     outputs: ['09_IM/im.md', '09_IM/im.json', '10_Teaser/teaser.md'],
   },
+  // ★ 디자인 검증은 문서가 나온 **뒤**, 최종검증 **앞**이다 〈2026-08-26 · D-123〉.
+  //   지시서 §8.4 — 기능이 돌아도 DESIGN_VERIFIED 를 통과하지 못하면 완료가 아니다.
+  {
+    id: 'T25', name: '디자인 검증', priority: 75,
+    description: '네 모드로 규칙을 댄다 — 보고서 출력 · 화면 · 건축 시각화 · 브랜드/권리',
+    capability: 'DESIGN_REVIEW', dependsOn: ['T10'],
+    outputs: ['11_QC/design-verified.json'],
+  },
   {
     id: 'T11', name: '독립 최종검증 (8 GATE)', priority: 80,
     description: '앞 Agent 결과를 다시 믿지 않는다 — 다른 알고리즘으로 역산',
-    capability: 'INDEPENDENT_VALIDATION', dependsOn: ['T10'],
+    capability: 'INDEPENDENT_VALIDATION', dependsOn: ['T10', 'T25'],
     outputs: ['11_QC/final-validation.json'],
   },
 

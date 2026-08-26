@@ -61,7 +61,15 @@ test('★ 짝지은 Agent id 는 registry.js 에 실제로 있다 — 손으로 
  *   Agent 를 더하면 여기서 빨개지고, 그때 `mcp/servers.js` 의 짝을 함께 본다.
  */
 test('★ 이 갈래의 Agent·커넥터 수를 고정한다 (배포 엔진과의 차이를 잊지 않게)', () => {
-  assert.strictEqual(registry.list().length, 13,
+  /* ★★ **2026-08-26 또 제 일을 했다** — Agent 13 → 15 (D-113 · D-123).
+   *   빨개져서 짝을 확인했고, 확인한 결과는 이렇다:
+   *     15_design  ← `Adobe_for_creativity` 가 **이미 짝으로 적혀 있었다**
+   *                  (PLANNED 일 때 미리 걸어 둔 것이 구현되면서 살아났다)
+   *     18_legal   ← **짝이 없는 것이 맞다.** 법제처는 MCP 가 아니라
+   *                  `connectors/law.js` 로 부르는 HTTP 다. MCP 짝을
+   *                  억지로 만들면 없는 서버를 있는 것처럼 적게 된다.
+   *   그 확인을 하고 숫자를 옮긴다 — 확인 없이 옮기면 이 검사가 뜻을 잃는다. */
+  assert.strictEqual(registry.list().length, 15,
     'Agent 수가 바뀌었다 — mcp/servers.js 의 짝과 ENGINE 을 다시 보라');
 
   const dir = path.join(__dirname, '..', 'connectors');
@@ -69,7 +77,7 @@ test('★ 이 갈래의 Agent·커넥터 수를 고정한다 (배포 엔진과�
   const n = fs.readdirSync(dir).filter(f => f.endsWith('.js') && !infra.has(f)).length;
   assert.strictEqual(n, 23, '커넥터 수가 바뀌었다 — 새 커넥터가 MCP 로 들어온 것은 아닌지 보라');
 
-  assert.strictEqual(S.ENGINE.agents, 13);
+  assert.strictEqual(S.ENGINE.agents, 15);
   assert.strictEqual(S.ENGINE.connectors, 23);
 });
 

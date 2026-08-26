@@ -40,7 +40,13 @@ const CONNECTOR_KEYS = {
   kepco: ['KEPCO_BIGDATA_KEY'],
   kma: ['KMA_APIHUB_KEY'],
   reb: ['REB_API_KEY'],
-  ecos: ['ECOS_API_KEY'],
+  // ★★ **이름이 여럿인 열쇠는 「하나만 있으면 된다」** 〈2026-08-26 · 실측〉.
+  //   `ecos.js` 는 ECOS_API_KEY 와 ECOS_BOK_KEY 중 **아무거나** 읽는데,
+  //   이 표는 ECOS_API_KEY 하나만 알고 있었다. 사장님이 ECOS_BOK_KEY 를
+  //   넣으신 상태에서 **커넥터는 도는데 라우터는 「키 없음」**이라고 했다 —
+  //   그러면 그 Task 가 조용히 안 돈다. 배열 안의 배열은 「그중 하나」다.
+  ecos: [['ECOS_API_KEY', 'ECOS_BOK_KEY']],
+  law: [['LAW_OC', 'LAW_OPEN_DATA']],
   kosis: ['KOSIS_API_KEY'],
   dart: ['DART_API_KEY'],
   rhino: ['RHINO_COMPUTE_URL', 'RHINO_COMPUTE_KEY'],
@@ -180,11 +186,21 @@ const CAPABILITIES = {
     note: 'SketchUp 갈래(PR #9)에서 오는 중 — 병합 전에는 PLANNED',
   },
 
-  // ── 아래는 담당 Agent 가 **아직 없다.** 대체로 태우지 않는다 ──
+  // ★ 인허가·법률 — **구현됐다** 〈2026-08-26 · D-113〉.
+  //   조례를 찾아 근거를 붙이고, 시행령 값을 쓰고 있으면 그 사실을 깃발로 든다.
+  //   한도 숫자는 짓지 않는다 (CLAUDE.md §4.1 · §4.9).
   LEGAL_PERMIT: {
-    label: '인허가·법률 검토', agents: ['18_legal'], tools: [], optional: ['enviro', 'g2b'],
-    note: '미구현 (registry.PLANNED phase 2)',
+    label: '인허가·법률 검토', agents: ['18_legal'], tools: ['law'], optional: ['enviro', 'g2b'],
+    note: '조례 후보를 찾아 근거를 붙인다. 한도 숫자는 사람이 조례 본문에서 읽는다',
   },
+  // ★ 디자인 검증 — **구현됐다** 〈2026-08-26 · D-123〉.
+  //   지시서 §8.4 — DESIGN_VERIFIED 를 통과하지 못하면 완료 처리하지 않는다.
+  DESIGN_REVIEW: {
+    label: '디자인 검증 (DESIGN_VERIFIED)', agents: ['15_design'], tools: [],
+    note: '네 모드(report·product·archviz·brand)로 규칙을 댄다. 만들지 않고 막는다',
+  },
+
+  // ── 아래는 담당 Agent 가 **아직 없다.** 대체로 태우지 않는다 ──
   TECHNICAL_REVIEW: {
     label: '기술 검토', agents: ['19_technical'], tools: [],
     note: '미구현 (registry.PLANNED phase 2)',
@@ -193,9 +209,13 @@ const CAPABILITIES = {
     label: 'Risk Analysis', agents: ['14_risk'], tools: [],
     note: '미구현 — 지금은 05_validation 이 RED/YELLOW/GREEN 을 겸한다',
   },
+  // ★★ **PPT 는 Agent 가 아니라 기능이다** 〈2026-08-26 · D-113〉.
+  //   내용은 Engine 이 만들고 형식만 바꾸는 일이라 담당 Agent 를 두지 않는다.
+  //   `15_design` 을 여기 걸어 두었었는데, 그것은 이제 **Design Manager** 이고
+  //   PPT 를 만들지 않는다 — 걸어 두면 「PPT 담당이 있다」로 읽힌다.
   PRESENTATION: {
-    label: 'PPT 생성', agents: ['15_design'], tools: [],
-    note: '미구현 (registry.PLANNED phase 2)',
+    label: 'PPT 생성', agents: [], tools: [],
+    note: 'Agent 가 아니라 기능으로 만든다 (D-113). outputspec 의 pptx 가 열리면 된다 — 새 의존성 승인이 필요하다',
   },
 };
 
@@ -234,7 +254,16 @@ function hasKey(name) {
 function toolAvailable(name) {
   const keys = CONNECTOR_KEYS[name];
   if (!keys) return { ok: false, reason: `모르는 커넥터: ${name}` };
-  const missing = keys.filter(k => !hasKey(k));
+  /* ★ 항목이 배열이면 **그중 하나만** 있으면 된다 (ecos · law 처럼 이름이
+   *   여러 개인 열쇠). 문자열이면 반드시 있어야 한다. */
+  const missing = [];
+  for (const k of keys) {
+    if (Array.isArray(k)) {
+      if (!k.some(hasKey)) missing.push(k.join(' 또는 '));
+    } else if (!hasKey(k)) {
+      missing.push(k);
+    }
+  }
   if (missing.length) return { ok: false, reason: `키 없음: ${missing.join(', ')}`, missing };
   return { ok: true };
 }

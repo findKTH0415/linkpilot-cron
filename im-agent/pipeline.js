@@ -491,6 +491,16 @@ async function run(opts = {}) {
     log(`  모델 수령: 파일 ${skIntake.output.result.files}건 · 렌더 ${skIntake.output.result.renders}건 · solid ${skIntake.output.result.solid || '미기재'}`);
   }
 
+  // ── 18 Legal & Permit (D-113) ─────────────────────────────
+  // ★ 여기가 자리인 이유: 매스가 선 뒤라야 「그 한도로 세운 것」을 댈 수 있고,
+  //   값 검증 앞이라야 05 가 그 판정을 받아 쓴다.
+  const legal = await runAgent('18_legal', {
+    projectId,
+    geo: geo.output || null,
+    massing: massing.output || null,
+  }, ctx);
+  results['18_legal'] = legal;
+
   // ── 05 Cross Validation ───────────────────────────────────
   const val = await runAgent('05_validation', {
     projectId,
@@ -575,6 +585,20 @@ async function run(opts = {}) {
         log(`    · 글꼴: ${r.fontNote}`);
       }
     }
+  }
+
+  // ── 15 Design Manager (D-123) ─────────────────────────────
+  // ★ 지시서 §8.4 — 기능이 돌아도 DESIGN_VERIFIED 를 통과하지 못하면
+  //   완료로 치지 않는다. 그래서 최종검증 **앞**에 선다.
+  const design = await runAgent('15_design', {
+    projectId,
+    writer: writer.output || null,
+    massing: massing.output || null,
+    intake: skIntake.output || null,
+  }, ctx);
+  results['15_design'] = design;
+  if (design.output) {
+    store.writeJson(projectId, '11_QC/design-verified.json', design.output);
   }
 
   // ── 11 Final Validation (독립 제3자 검증 · 8 GATES) ────────

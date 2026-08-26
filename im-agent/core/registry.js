@@ -35,9 +35,15 @@ const AGENTS = {
    * ★ order 는 정수로 다시 매겼다 — 소수 order 는 읽는 사람이 「임시」로 읽는다 */
   '12_sketchup_plan':   { order: 8, label: 'SketchUp Plan Agent (모델 계획)',   enabled: true, confidenceThreshold: 0.5, approvalRule: 'auto', module: '../agents/12-sketchup-plan' },
   '13_sketchup_intake': { order: 9, label: 'SketchUp Intake Agent (결과 수령)', enabled: true, confidenceThreshold: 0.5, approvalRule: 'auto', module: '../agents/13-sketchup-intake' },
-  '05_validation': { order: 10, label: 'Cross Validation Agent',  enabled: true,  confidenceThreshold: 0.7, approvalRule: 'auto',      module: '../agents/05-validation' },
-  '06_im_writer':  { order: 11, label: 'IM Writer Agent',         enabled: true,  confidenceThreshold: 0.7, approvalRule: 'human',     module: '../agents/06-im-writer' },
-  '11_final_validation': { order: 12, label: 'Final Validation Agent (독립 검증)', enabled: true, confidenceThreshold: 0.9, approvalRule: 'human', module: '../agents/11-final-validation' },
+  // ★ 18_legal 은 매스가 선 **뒤**, 값 검증 **앞**이다 — 조례 한도를 확인해야
+  //   05_validation 이 그 한도로 판정할 수 있다 (D-113)
+  '18_legal':      { order: 10, label: 'Legal & Permit Agent',    enabled: true,  confidenceThreshold: 0.5, approvalRule: 'auto',      module: '../agents/18-legal' },
+  '05_validation': { order: 11, label: 'Cross Validation Agent',  enabled: true,  confidenceThreshold: 0.7, approvalRule: 'auto',      module: '../agents/05-validation' },
+  '06_im_writer':  { order: 12, label: 'IM Writer Agent',         enabled: true,  confidenceThreshold: 0.7, approvalRule: 'human',     module: '../agents/06-im-writer' },
+  // ★ 15_design 은 문서가 나온 **뒤**, 최종검증 **앞**이다 — 지시서 §8.4 가
+  //   「DESIGN_VERIFIED 를 통과하지 못하면 완료 처리하지 않는다」고 정했다 (D-123)
+  '15_design':     { order: 13, label: 'Design Manager',          enabled: true,  confidenceThreshold: 0.7, approvalRule: 'auto',      module: '../agents/15-design' },
+  '11_final_validation': { order: 14, label: 'Final Validation Agent (독립 검증)', enabled: true, confidenceThreshold: 0.9, approvalRule: 'human', module: '../agents/11-final-validation' },
 };
 
 /** 부동산개발 전용 Agent — 다른 자산유형에서는 데이터가 없어 자동으로 건너뛴다 */
@@ -49,10 +55,8 @@ const REAL_ESTATE_AGENTS = ['07_geo', '08_appraisal', '09_massing', '12_sketchup
  *   Legal·Technical 을 18·19 로 밀었다 — 같은 번호가 두 뜻이 되면 D-77 이 재발한다.
  */
 const PLANNED = {
-  '18_legal':        { label: 'Legal & Permit Agent', phase: 2 },
   '19_technical':    { label: 'Technical Agent', phase: 2 },
   '14_risk':         { label: 'Risk Agent', phase: 2, note: '현재는 05_validation 이 RED/YELLOW/GREEN 을 겸한다' },
-  '15_design':       { label: 'Design Agent (PDF/PPT)', phase: 2, note: '3D 매스 SVG/glTF는 09_massing 이, 모델 계획·수령은 12·13 이 한다. 사실적 렌더는 사람 손의 Veras 다 (D-34)' },
   '16_reviewer':     { label: 'Reviewer Agent (QC Score)', phase: 2, note: '11_final_validation 이 대체 — 별도 구현 불필요' },
   '17_distribution': { label: 'Distribution Agent', phase: 3, note: '외부 발송 — 사람 승인 없이는 절대 실행하지 않는다' },
 };
