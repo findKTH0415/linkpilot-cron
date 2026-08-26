@@ -18,7 +18,10 @@
  *   node im-agent/tools/merge-watch.js            사람이 읽는 표
  *   node im-agent/tools/merge-watch.js --json     기계가 읽는 JSON
  *   node im-agent/tools/merge-watch.js --html P   화면 한 장을 P 에 쓴다
- *   node im-agent/tools/merge-watch.js --fetch    재기 전에 원격을 먼저 받아온다
+ *   node im-agent/tools/merge-watch.js --no-fetch 원격을 안 받고 이 컴퓨터가 아는 것만 잰다
+ *
+ * ★ **원격 받아오기가 기본이다** (D-130). 안 받으면 「모르는 갈래」를 영영 모른다.
+ *   못 받았으면 화면에 그렇게 적는다 — 조용히 옛 목록을 보여 주지 않는다.
  */
 
 const { execFileSync } = require('child_process');
@@ -238,11 +241,33 @@ function measure(opts = {}) {
   const base = baseRef();
   if (!base) return { ok: false, error: '기준 갈래(origin/main)를 못 찾았다' };
 
-  if (opts.fetch) {
-    for (const r of workBranches()) {
-      git(['fetch', '--quiet', 'origin', r.replace(/^origin\//, '')]);
-    }
-    git(['fetch', '--quiet', 'origin', base.replace(/^origin\//, '')]);
+  /**
+   * ★★ **먼저 원격을 통째로 받아온다** 〈2026-08-26 사장님 지시 · 권고 ③〉.
+   *
+   *   앞 판은 `opts.fetch` 일 때만, 그것도 **이미 아는 갈래만** 다시 받았다.
+   *   그러면 **모르는 갈래는 영영 모른다** — 실제로 옛 크론 갈래 셋이 그렇게
+   *   숨어 있다가, 내가 손으로 `--prune` 을 걸고 나서야 나타났다 (D-130).
+   *   그때까지 화면은 「갈래 4개」라고 말하고 있었고, **그것이 거짓인 줄
+   *   아무도 몰랐다.**
+   *
+   *   ★ **「없다」와 「안 받아왔다」는 다른 사실이다** (M-11 · M-12 와 같은 결).
+   *     그래서 받아오기를 기본으로 돌리되, **성공했는지를 결과에 싣고**
+   *     실패하면 화면에 그대로 적는다. 조용히 옛 목록을 보여 주지 않는다.
+   *   ★ CI 처럼 원격에 못 닿는 자리가 있다. 거기서도 **죽지 않는다** —
+   *     못 받았다고 적고 아는 것만으로 잰다.
+   *   ★ `--prune` 은 **원격에서 사라진 이름을 이쪽에서도 지운다.** 안 지우면
+   *     닫힌 갈래가 영원히 목록에 남아 짝 수를 부풀린다.
+   */
+  let fetched = { tried: false, ok: false, error: null };
+  // ★ 검사·CI 자리(IM_AGENT_OFFLINE)에서는 원격을 안 부른다. 이 저장소가
+  //   이미 쓰는 표시라 새 약속을 만들지 않는다. 안 불렀다는 사실은
+  //   `tried:false` 로 남으므로 「없다」와 헷갈리지 않는다.
+  const offline = String(process.env.IM_AGENT_OFFLINE || '').trim() !== '';
+  if (opts.fetch !== false && !offline) {
+    fetched.tried = true;
+    const r = git(['fetch', '--prune', '--quiet', 'origin']);
+    fetched.ok = r.ok;
+    if (!r.ok) fetched.error = (r.err || '').split('\n')[0] || `종료코드 ${r.code}`;
   }
 
   const refs = workBranches();
@@ -294,6 +319,7 @@ function measure(opts = {}) {
   return {
     ok: true,
     base,
+    fetched,
     measuredAt: new Date().toISOString(),
     branches,
     merged,
@@ -333,6 +359,12 @@ function render(m) {
   if (!m.ok) return `✕ ${m.error}`;
   const L = [];
   L.push('');
+  if (m.fetched && m.fetched.tried && !m.fetched.ok) {
+    L.push('  ⚠️  **원격을 못 받아왔다** — 아래는 이 컴퓨터가 아는 것만이다.');
+    L.push(`     ${m.fetched.error || '까닭 모름'}`);
+    L.push('     「갈래가 없다」가 아니라 「못 받았다」다. 둘은 다른 사실이다.');
+    L.push('');
+  }
   L.push(`  아직 안 합친 갈래 ${m.summary.branchCount}개 · 견줄 짝 ${m.summary.pairCount}개`);
   L.push(`  ★ 실제로 부딪히는 곳 — 서로 다른 파일 ${m.summary.distinctConflictedFiles}개`);
   L.push('');
@@ -483,6 +515,12 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:.88em;background:var(--s
 </style>
 <div class="wrap">
 <div class="eyebrow">병합 감시 · 실측 · ${esc(m.measuredAt.slice(0, 16).replace('T', ' '))} UTC</div>
+${m.fetched && m.fetched.tried && !m.fetched.ok ? `<div class="note" style="border-color:var(--red);background:var(--redBg)">
+  <b>⚠️ 원격을 못 받아왔습니다.</b> 아래 숫자는 <b>이 컴퓨터가 아는 것만</b>입니다 —
+  그 사이에 새로 생긴 갈래는 여기에 없습니다.
+  <br><span class="dim">${esc(m.fetched.error || '까닭 모름')}</span>
+  <br><b>「갈래가 없다」가 아니라 「못 받았다」입니다.</b> 둘은 다른 사실입니다.
+</div>` : ''}
 <h1>지금 손으로 풀어야 할 곳은 <em>${m.summary.distinctConflictedFiles}개 파일</em>입니다.</h1>
 <p class="sub">「같은 파일을 둘이 건드렸다」는 부딪힘이 아닙니다 — 서로 다른 줄이면 git 이 알아서 합칩니다.
 그래서 파일 이름을 세지 않고 <b>실제로 합쳐 보고</b> 부딪힌 것만 셌습니다.
@@ -581,7 +619,9 @@ ${heat || '<tr><td colspan="3" class="dim">겹치는 파일이 없습니다</td>
 function main(argv) {
   const opts = {
     json: argv.includes('--json'),
-    fetch: argv.includes('--fetch'),
+    // 받아오기가 **기본**이다 (D-130). `--no-fetch` 로만 끈다.
+    // `--fetch` 는 앞 판의 습관이라 그대로 받아 준다 — 같은 뜻이다.
+    fetch: argv.includes('--no-fetch') ? false : true,
     html: null,
   };
   const hi = argv.indexOf('--html');

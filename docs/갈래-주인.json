@@ -55,14 +55,14 @@
       "합치지않음": true,
       "owner": "옛 아침 크론 (합쳐짐)",
       "scope": ["공용"],
-      "note": "D-130 — 내용이 ops-cron-alerts-and-deploy 에 전부 들어갔다(2dc8ce3). 고유했던 preflight.js 도 옮겼다. 지우지 않고 둔다 — 지우면 되돌릴 수 없다"
+      "note": "D-130 — **지우기로 정했다** 〈사장님 지시〉. 내용은 ops-cron-alerts-and-deploy 에 전부 있고, 0cd0636 에서 부모까지 이어 붙여 **본체의 조상**이 되었다 — 잃을 커밋 0개다. 다만 이 세션은 원격 갈래를 못 지운다(403) — 사장님이 GitHub 의 Branches 목록에서 휴지통을 눌러 주셔야 한다. 그 자리에 Restore 가 잠깐 뜬다"
     },
     {
       "branch": "claude/start-luizd0",
       "합치지않음": true,
       "owner": "옛 아침 크론 (중복)",
       "scope": ["공용"],
-      "note": "D-130 — linkpilot-deployment-setup-w8yiqz 의 **부분집합**이라 고유한 것이 하나도 없다(git merge-base --is-ancestor 로 확인). 옮길 것이 없었다"
+      "note": "D-130 — linkpilot-deployment-setup-w8yiqz 의 **부분집합**이라 고유한 것이 하나도 없다. 0cd0636 이후 본체의 조상이므로 **지워도 잃을 커밋이 0개**다. w8yiqz 와 똑같은 자리 — 사장님 한 마디면 같이 정리한다"
     },
     {
       "branch": "claude/sketchup-engineering-agent-rg04zq",

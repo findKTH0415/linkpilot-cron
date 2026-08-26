@@ -193,6 +193,44 @@ test('★ 화면 한 장이 실제로 만들어진다 (자체 완결 HTML)', () 
     '바깥에서 무언가를 받아오면 안 열리는 곳이 생긴다');
 });
 
+test('★★ 원격 받아오기가 기본이다 — 「없다」와 「안 받아왔다」를 가른다 (D-130)', () => {
+  const src = require('fs').readFileSync(
+    require('path').join(__dirname, '..', 'tools', 'merge-watch.js'), 'utf8');
+
+  // ★ 앞 판은 **이미 아는 갈래만** 다시 받았다. 그래서 모르는 갈래는 영영 몰랐고,
+  //   옛 크론 갈래 셋이 그렇게 숨어 있다가 손으로 --prune 을 걸고서야 나왔다.
+  //   화면은 그동안 「갈래 4개」라고 말했고 그것이 거짓인 줄 아무도 몰랐다.
+  assert.ok(src.includes("'--prune'"),
+    '--prune 없이 받으면 새 갈래도 못 보고 닫힌 갈래도 안 지워진다');
+  assert.ok(src.includes("opts.fetch !== false"),
+    '받아오기가 기본이 아니면 아무도 안 켠다');
+
+  // ★ 못 받았으면 **못 받았다고 적어야** 한다. 조용히 옛 목록을 보여 주지 않는다.
+  const m = mw.measure();
+  if (!m.ok) return;
+  assert.ok(m.fetched && typeof m.fetched.tried === 'boolean',
+    '받아왔는지를 결과에 안 실으면 화면이 그 사실을 말할 수 없다');
+  if (m.fetched.tried && !m.fetched.ok) {
+    assert.ok(m.fetched.error, '실패했으면 까닭을 적어야 한다');
+  }
+  // 화면에 그 경고 자리가 실제로 있는가
+  assert.ok(src.includes('원격을 못 받아왔'), '못 받은 사실을 화면에 적는 자리가 없다');
+});
+
+test('★ 검사 자리(IM_AGENT_OFFLINE)에서는 원격을 안 부른다', () => {
+  const saved = process.env.IM_AGENT_OFFLINE;
+  process.env.IM_AGENT_OFFLINE = '1';
+  try {
+    const m = mw.measure();
+    if (!m.ok) return;
+    assert.strictEqual(m.fetched.tried, false,
+      '검사가 돌 때마다 원격을 부르면 느리고, 원격이 없는 자리에서 흔들린다');
+  } finally {
+    if (saved === undefined) delete process.env.IM_AGENT_OFFLINE;
+    else process.env.IM_AGENT_OFFLINE = saved;
+  }
+});
+
 test('★ 읽기만 한다 — 저장소를 바꾸는 명령이 코드에 없다', () => {
   const src = require('fs').readFileSync(
     require('path').join(__dirname, '..', 'tools', 'merge-watch.js'), 'utf8');
