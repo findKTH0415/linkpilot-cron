@@ -749,7 +749,18 @@ jobs:
           set -euo pipefail
           STAMP=$(TZ=Asia/Seoul date +%Y%m%d-%H%M)
           ssh -i ~/.ssh/id_deploy "$NAS_USER@$NAS_HOST" "mkdir -p '$DEST'"
-          for f in $FILES; do
+          # ★★★ **형제부터 올리고 화면을 마지막에 올린다** 〈2026-08-25 · 실제 사고〉.
+          #   올리는 데 70초쯤 걸리는데 그 사이에 화면을 여시면, 화면은 **새 판**인데
+          #   형제 스크립트는 **아직 옛 판이거나 없다.** 그러면 빨간 띠가 뜬다
+          #   (사장님이 데스크톱·폰에서 동시에 보셨다).
+          #   ★ 화면이 형제를 부르는 것이지 그 반대가 아니다. 그러니 형제가 먼저
+          #     자리에 있으면 그 창이 **아예 안 생긴다.** 순서 하나로 없어진다.
+          #   ★ 그래도 창이 0 이 되지는 않는다 — 옛 화면이 새 형제를 부르는 짧은
+          #     구간은 남는다. 그쪽은 판 표시(`?v=`)와 짝 확인이 잡는다 (M-29).
+          ORDER=""
+          for f in $FILES; do case "$f" in *.html) ;; *) ORDER="$ORDER $f" ;; esac; done
+          for f in $FILES; do case "$f" in *.html) ORDER="$ORDER $f" ;; esac; done
+          for f in $ORDER; do
             BASE=$(basename "$f")
             ssh -i ~/.ssh/id_deploy "$NAS_USER@$NAS_HOST" \
               "test -f '$DEST/$BASE' && cp '$DEST/$BASE' '$DEST/$BASE.$STAMP.bak' || true"
@@ -860,6 +871,21 @@ jobs:
           NAS_USER: ${{ secrets.NAS_SSH_USER }}
           ENGINE_ROOT: ${{ vars.LP_ENGINE_ROOT || '/volume1/docker/linkpilot' }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_KEY_01: ${{ secrets.GEMINI_KEY_01 }}
+          GEMINI_KEY_02: ${{ secrets.GEMINI_KEY_02 }}
+          GEMINI_KEY_03: ${{ secrets.GEMINI_KEY_03 }}
+          GEMINI_KEY_04: ${{ secrets.GEMINI_KEY_04 }}
+          GEMINI_KEY_05: ${{ secrets.GEMINI_KEY_05 }}
+          GEMINI_KEY_06: ${{ secrets.GEMINI_KEY_06 }}
+          GEMINI_KEY_07: ${{ secrets.GEMINI_KEY_07 }}
+          GEMINI_KEY_08: ${{ secrets.GEMINI_KEY_08 }}
+          GEMINI_API_KEY_2: ${{ secrets.GEMINI_API_KEY_2 }}
+          GEMINI_API_KEY_3: ${{ secrets.GEMINI_API_KEY_3 }}
+          GEMINI_API_KEY_4: ${{ secrets.GEMINI_API_KEY_4 }}
+          GEMINI_API_KEY_5: ${{ secrets.GEMINI_API_KEY_5 }}
+          GEMINI_API_KEY_6: ${{ secrets.GEMINI_API_KEY_6 }}
+          GEMINI_API_KEY_7: ${{ secrets.GEMINI_API_KEY_7 }}
+          GEMINI_API_KEY_8: ${{ secrets.GEMINI_API_KEY_8 }}
           VWORLD_KEY: ${{ secrets.VWORLD_KEY }}
           VWORLD_DOMAIN: ${{ secrets.VWORLD_DOMAIN }}
           DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
@@ -871,10 +897,37 @@ jobs:
           LAW_OC: ${{ secrets.LAW_OC }}
           LAW_OPEN_DATA: ${{ secrets.LAW_OPEN_DATA }}
           KICT_API_KEY: ${{ secrets.KICT_API_KEY }}
+          # ★ 목록(NAMES)에만 있고 여기서 안 받으면 **언제나 빈 값**이 된다
+          #   — 검사가 그것을 짚어 준다 (절차서 §5 방어장치 2)
+          KICT_API_BASE: ${{ secrets.KICT_API_BASE }}
+          # ★ 한국은행 열쇠의 다른 이름 — 사장님이 이 이름으로 넣으셨다 (ecos.js KEY_NAMES)
+          ECOS_BOK_KEY: ${{ secrets.ECOS_BOK_KEY }}
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          # ★★★ 〈2026-08-25〉 **엔진이 아는데 여기 없던 열쇠 열하나를 채웠다.**
+          #   `connectors/http.js` 의 SECRET_ENV 에는 있는데 이 목록에 없으면
+          #   **Secret 에 넣어도 NAS 로 안 간다** — 넣은 사람은 넣었다고 알고,
+          #   엔진은 「키가 없다」고 하고, 둘 다 그 사실을 모른다.
+          #   실제로 KEPCO_BIGDATA_KEY 가 그 상태였다. `secrets.test.js` 가 지킨다.
+          KEPCO_BIGDATA_KEY: ${{ secrets.KEPCO_BIGDATA_KEY }}
+          RHINO_COMPUTE_KEY: ${{ secrets.RHINO_COMPUTE_KEY }}
+          RHINO_COMPUTE_URL: ${{ secrets.RHINO_COMPUTE_URL }}
+          DROPBOX_APP_KEY: ${{ secrets.DROPBOX_APP_KEY }}
+          DROPBOX_APP_SECRET: ${{ secrets.DROPBOX_APP_SECRET }}
+          BOX_CLIENT_ID: ${{ secrets.BOX_CLIENT_ID }}
+          BOX_CLIENT_SECRET: ${{ secrets.BOX_CLIENT_SECRET }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          MS_CLIENT_ID: ${{ secrets.MS_CLIENT_ID }}
+          MS_CLIENT_SECRET: ${{ secrets.MS_CLIENT_SECRET }}
         run: |
           set -u
-          NAMES="GEMINI_API_KEY VWORLD_KEY VWORLD_DOMAIN DATA_GO_KR_KEY ECOS_API_KEY KMA_APIHUB_KEY REB_API_KEY KOSIS_API_KEY DART_API_KEY LAW_OC LAW_OPEN_DATA KICT_API_KEY PEXELS_API_KEY"
+          # ★★ **합집합이다** 〈2026-08-26 병합 · 절차서 §5〉.
+          #   어느 한쪽을 고르면 그쪽에 없는 열쇠가 **조용히** 배포에서 빠진다 —
+          #   넣은 사람은 넣었다고 알고, 엔진은 「키가 없다」고 하고, 배포는 초록으로 끝난다
+          #   (MEMORY M-40 이 기록한 사고 그대로다).
+          #   SketchUp 13 + Engine 37 → 합집합 41. KICT_API_BASE·ECOS_BOK_KEY 는
+          #   검사가 짚어 준 것이다 — 어느 갈래도 혼자서는 못 보는 결함이었다.
+          NAMES="GEMINI_API_KEY GEMINI_KEY_01 GEMINI_KEY_02 GEMINI_KEY_03 GEMINI_KEY_04 GEMINI_KEY_05 GEMINI_KEY_06 GEMINI_KEY_07 GEMINI_KEY_08 GEMINI_API_KEY_2 GEMINI_API_KEY_3 GEMINI_API_KEY_4 GEMINI_API_KEY_5 GEMINI_API_KEY_6 GEMINI_API_KEY_7 GEMINI_API_KEY_8 VWORLD_KEY VWORLD_DOMAIN DATA_GO_KR_KEY ECOS_API_KEY KMA_APIHUB_KEY REB_API_KEY KOSIS_API_KEY DART_API_KEY LAW_OC PEXELS_API_KEY KEPCO_BIGDATA_KEY RHINO_COMPUTE_KEY RHINO_COMPUTE_URL DROPBOX_APP_KEY DROPBOX_APP_SECRET BOX_CLIENT_ID BOX_CLIENT_SECRET GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET MS_CLIENT_ID MS_CLIENT_SECRET LAW_OPEN_DATA KICT_API_KEY KICT_API_BASE ECOS_BOK_KEY"
           # ★ 임시 파일로 모은다. 셸 문자열에 줄바꿈을 넣으면 YAML 블록이 거기서 끝난다
           KEYFILE=$(mktemp)
           chmod 600 "$KEYFILE"
@@ -1188,6 +1241,43 @@ jobs:
       #   **매스가 직사각형으로 서고 조감도가 아예 안 나온다** — 그리고 그것이
       #   정상 동작처럼 보인다. 「원래 그런가 보다」로 읽히는 실패가 가장 비싸다.
       #   ★ 값은 한 글자도 안 찍는다 (§2). 이름과 길이, 그리고 켜짐/꺼짐뿐이다.
+      # ★★★ **열쇠 여덟을 실제로 불러 본다** 〈2026-08-25 · D-110 · 지시서 §36〉.
+      #   「넣었다」는 「된다」가 아니다 — 같은 날 GEMINI 열쇠가 파일에 들어 있는
+      #   채로 401 이었다 (M-40). 그래서 상태를 **호출 결과로만** 정한다.
+      #   ★ 값은 한 글자도 안 찍는다. 슬롯·해시 네 글자·상태·지연시간뿐이다 (§2).
+      #   ★ 못 잰 것(그물이 안 닿음)을 죽은 것으로 세지 않는다 — 되돌아오는 값 2.
+      - name: Check Gemini key pool (열쇠 여덟)
+        if: ${{ always() && needs.plan.outputs.dry_run != 'true' }}
+        env:
+          NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+          NAS_USER: ${{ secrets.NAS_SSH_USER }}
+          ENGINE_ROOT: ${{ vars.LP_ENGINE_ROOT || '/volume1/docker/linkpilot' }}
+        run: |
+          set -u
+          set +e
+          OUT=$(ssh -o BatchMode=yes -o ConnectTimeout=20 -i ~/.ssh/id_deploy \
+            "$NAS_USER@$NAS_HOST" \
+            "cd '$ENGINE_ROOT' 2>/dev/null || exit 9
+             for N in node /usr/local/bin/node \
+                      /volume1/@appstore/Node.js_v20/usr/local/bin/node \
+                      /volume1/@appstore/Node.js_v18/usr/local/bin/node; do
+               command -v \"\$N\" >/dev/null 2>&1 && exec \"\$N\" im-agent/tools/gemini-doctor.js
+             done
+             echo 'NONODE'" 2>&1 | tr -d '\r')
+          if ! printf '%s' "$OUT" | grep -q 'Gemini 열쇠'; then
+            echo "열쇠 여덟: 못 쟀다 — 진단기가 안 돌았다. 받은 답: ${OUT:-NONODE}"
+            echo "열쇠 여덟: 못 쟀다 (꺼진 것과 **다른 사실**이다)" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          printf '%s\n' "$OUT"
+          LINE=$(printf '%s' "$OUT" | grep -o '실제 호출 성공 [0-9]*/[0-9]*' | tail -1)
+          echo "열쇠 여덟: ${LINE:-(못 읽음)}" >> "$GITHUB_STEP_SUMMARY"
+          if printf '%s' "$OUT" | grep -q 'GEMINI_ALL_KEYS_UNAVAILABLE'; then
+            echo "::warning::**Gemini 열쇠가 하나도 안 된다.** 스캔본·이미지·코드값 PDF 를 한 글자도 못 읽는다 — 그 자료의 숫자는 보고서에 안 실린다. Settings → Secrets 에서 GEMINI_API_KEY 와 GEMINI_API_KEY_2 … _8 을 확인해 주십시오."
+          elif printf '%s' "$OUT" | grep -q 'INVALID'; then
+            echo "::warning::**거부된 Gemini 열쇠가 있다.** 위 표에서 🔴 줄을 보십시오 — 그 슬롯만 다시 넣으면 된다."
+          fi
+
       - name: Check map power (지적도·공시지가)
         if: ${{ always() && needs.plan.outputs.dry_run != 'true' }}
         env:

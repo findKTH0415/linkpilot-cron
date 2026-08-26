@@ -1,0 +1,177 @@
+<title>병합 감시</title>
+<style>
+:root{--pg:#F2F2F7;--sf:#fff;--sf2:#FAFAFC;--ink:#0A1419;--ink2:#5C666E;--ink3:#8A939A;
+ --ln:#E2E5E9;--lime:#AAE106;--limeInk:#3F5400;--red:#C0392B;--redBg:#FCEDEB;--ok:#1F7A4D;--okBg:#E9F5EE}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;
+ --pg:#0C1114;--sf:#141A1E;--sf2:#101619;--ink:#E9EEF1;--ink2:#9AA5AD;--ink3:#6E797F;
+ --ln:#242D33;--lime:#C2F13B;--limeInk:#0C1114;--red:#F08476;--redBg:#2A1614;--ok:#66C795;--okBg:#0F2419}}
+:root[data-theme="dark"]{color-scheme:dark;--pg:#0C1114;--sf:#141A1E;--sf2:#101619;--ink:#E9EEF1;
+ --ink2:#9AA5AD;--ink3:#6E797F;--ln:#242D33;--lime:#C2F13B;--limeInk:#0C1114;--red:#F08476;--redBg:#2A1614;--ok:#66C795;--okBg:#0F2419}
+*{box-sizing:border-box}
+body{margin:0;background:var(--pg);color:var(--ink);
+ font:400 15px/1.6 "IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+.wrap{max-width:960px;margin:0 auto;padding:44px 20px 80px}
+.eyebrow{font:600 11px/1 ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3)}
+h1{margin:16px 0 0;font-size:clamp(28px,5vw,44px);font-weight:700;letter-spacing:-.03em;line-height:1.14}
+h1 em{font-style:normal;border-bottom:5px solid var(--lime);padding-bottom:1px}
+.sub{margin:14px 0 0;max-width:60ch;color:var(--ink2)}
+h2{margin:44px 0 10px;font-size:19px;font-weight:700;letter-spacing:-.02em}
+.scroll{overflow-x:auto;border:1px solid var(--ln);border-radius:12px;background:var(--sf)}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:13.5px}
+th,td{padding:10px 13px;text-align:left;vertical-align:top;border-bottom:1px solid var(--ln)}
+tr:last-child td{border-bottom:0}
+th{font:600 10.5px/1.4 ui-monospace,Menlo,monospace;letter-spacing:.09em;text-transform:uppercase;
+ color:var(--ink3);background:var(--sf2);white-space:nowrap}
+td.n{font-family:ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:600}
+td.n.bad{color:var(--red)}td.n.good{color:var(--ok)}
+td.f{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:var(--ink2)}
+.dim{color:var(--ink3)}
+code{font-family:ui-monospace,Menlo,monospace;font-size:.88em;background:var(--sf2);
+ border:1px solid var(--ln);border-radius:4px;padding:1px 5px}
+.cards{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));margin:26px 0 0}
+.card{background:var(--sf);border:1px solid var(--ln);border-radius:12px;padding:16px 17px}
+.card h3{margin:0 0 2px;font-size:13.5px;font-weight:600}
+.card .big{font:600 32px/1.1 ui-monospace,Menlo,monospace;letter-spacing:-.03em;margin:2px 0 0}
+.card p{margin:6px 0 0;font-size:13px;color:var(--ink2)}
+.note{margin:20px 0 0;padding:14px 16px;border-radius:10px;background:var(--sf2);
+ border:1px solid var(--ln);font-size:13.5px;color:var(--ink2)}
+.note b{color:var(--ink)}
+.foot{margin:52px 0 0;padding-top:18px;border-top:1px solid var(--ln);
+ font:400 12px/1.7 ui-monospace,Menlo,monospace;color:var(--ink3)}
+</style>
+<div class="wrap">
+<div class="eyebrow">병합 감시 · 실측 · 2026-08-26 03:17 UTC</div>
+<h1>지금 손으로 풀어야 할 곳은 <em>11개 파일</em>입니다.</h1>
+<p class="sub">「같은 파일을 둘이 건드렸다」는 부딪힘이 아닙니다 — 서로 다른 줄이면 git 이 알아서 합칩니다.
+그래서 파일 이름을 세지 않고 <b>실제로 합쳐 보고</b> 부딪힌 것만 셌습니다.
+아무것도 바꾸지 않습니다(읽기만 합니다).</p>
+
+<div class="cards">
+  <div class="card"><h3>갈래</h3><div class="big">4</div><p>기준 <code>origin/main</code></p></div>
+  <div class="card"><h3>견줄 짝</h3><div class="big">6</div><p>하나 더 열면 <b>10</b> 개가 됩니다</p></div>
+  <div class="card"><h3>실제로 부딪히는 파일</h3><div class="big" style="color:var(--red)">11</div><p>손으로 풀어야 하는 곳</p></div>
+  <div class="card"><h3>가장 나쁜 짝</h3><div class="big">7</div><p>한 번에 풀 곳이 가장 많은 조합</p></div>
+  <div class="card"><h3>주인이 둘인 갈래</h3><div class="big" style="color:var(--red)">1</div><p>병합 뒤에는 누가 무엇을 했는지 못 가릅니다</p></div>
+</div>
+
+<h2>두 갈래씩 실제로 합쳐 본 결과</h2>
+<div class="scroll"><table>
+<tr><th>갈래 A</th><th>갈래 B</th><th>부딪힘</th><th>어디서</th></tr>
+
+    <tr>
+      <td>ai-project-manager-orchestrator-o8rg8d</td><td>linkpilot-agent-github-plan-0af7xs</td>
+      <td class="n bad">7</td>
+      <td class="f">.gitignore<br>CLAUDE.md<br>MEMORY.md<br>docs/미결정-사항.md<br><span class="dim">… 3개 더</span></td>
+    </tr>
+    <tr>
+      <td>linkpilot-agent-github-plan-0af7xs</td><td>sketchup-engineering-agent-rg04zq</td>
+      <td class="n bad">7</td>
+      <td class="f">.github/workflows/deploy-nas.yml<br>HANDOVER.md<br>MEMORY.md<br>docs/미결정-사항.md<br><span class="dim">… 3개 더</span></td>
+    </tr>
+    <tr>
+      <td>ai-project-manager-orchestrator-o8rg8d</td><td>sketchup-engineering-agent-rg04zq</td>
+      <td class="n bad">6</td>
+      <td class="f">CLAUDE.md<br>MEMORY.md<br>docs/미결정-사항.md<br>docs/인수인계서-플랫폼-연동.md<br><span class="dim">… 2개 더</span></td>
+    </tr>
+    <tr>
+      <td>ai-project-manager-orchestrator-o8rg8d</td><td>linkpilot-mcp-c4954z</td>
+      <td class="n bad">4</td>
+      <td class="f">docs/미결정-사항.md<br>im-agent/ui/platform/build-preview.js<br>im-agent/ui/platform/changes.js<br>im-agent/ui/platform/section-preview.html</td>
+    </tr>
+    <tr>
+      <td>linkpilot-agent-github-plan-0af7xs</td><td>linkpilot-mcp-c4954z</td>
+      <td class="n bad">3</td>
+      <td class="f">docs/미결정-사항.md<br>im-agent/ui/platform/changes.js<br>im-agent/ui/platform/section-preview.html</td>
+    </tr>
+    <tr>
+      <td>linkpilot-mcp-c4954z</td><td>sketchup-engineering-agent-rg04zq</td>
+      <td class="n bad">3</td>
+      <td class="f">docs/미결정-사항.md<br>im-agent/ui/platform/changes.js<br>im-agent/ui/platform/section-preview.html</td>
+    </tr>
+</table></div>
+
+<h2>갈래의 주인 — 하나여야 합니다</h2>
+<div class="scroll"><table>
+<tr><th></th><th>갈래</th><th>주인</th><th>맡은 영역</th><th>영역 밖</th></tr>
+<tr>
+  <td class="n good">●</td>
+  <td>ai-project-manager-orchestrator-o8rg8d</td>
+  <td>AI Project Manager Orchestrator</td>
+  <td class="dim">지휘 · 공용</td>
+  <td class="n">7</td>
+</tr><tr>
+  <td class="n good">●</td>
+  <td>linkpilot-agent-github-plan-0af7xs</td>
+  <td>Engine Agent</td>
+  <td class="dim">재무엔진 · 자료원 · 공용</td>
+  <td class="n">33</td>
+</tr><tr>
+  <td class="n good">●</td>
+  <td>linkpilot-mcp-c4954z</td>
+  <td>MCP Manager</td>
+  <td class="dim">MCP · 공용</td>
+  <td class="n">5</td>
+</tr><tr>
+  <td class="n bad">✕</td>
+  <td>sketchup-engineering-agent-rg04zq</td>
+  <td>Engineering Agent<br><span style="color:var(--red);font-weight:600">+ SketchUp 트랙</span></td>
+  <td class="dim">도면3D · 공용</td>
+  <td class="n">44</td>
+</tr>
+</table></div>
+<div class="note"><b>[CRITICAL] sketchup-engineering-agent-rg04zq</b> — 주인이 2입니다 (Engineering Agent · SketchUp 트랙) — 병합 뒤 누가 무엇을 했는지 못 가른다<br><span class="dim">★ 주인이 둘이다. 세션 이름은 「Engineering Agent」와 「SketchUp 트랙」 둘인데 밀어 넣는 곳은 이 갈래 하나다. 병합 뒤 누가 무엇을 했는지 못 가른다 — D-124</span></div>
+<div class="note">
+  <b>「영역 밖」이 곧 잘못은 아닙니다.</b> 문서·검사·설정 같은 공용 파일은 누구나 건드립니다.
+  <b>보이게 해서 사장님이 판단하시게 하는 것</b>이 이 표의 목적입니다.
+  <br>주인은 <code>docs/갈래-주인.json</code> 에 적혀 있고, 고치면 이 표가 따라옵니다.
+</div>
+
+<h2>갈래별 크기</h2>
+<div class="scroll"><table>
+<tr><th>갈래</th><th>커밋</th><th>파일</th><th>맨 위</th><th>마지막 커밋</th></tr>
+
+    <tr><td>ai-project-manager-orchestrator-o8rg8d</td><td class="n">18</td><td class="n">39</td>
+        <td><code>5413008</code></td><td class="dim">2026-08-26 00:29</td></tr>
+    <tr><td>linkpilot-agent-github-plan-0af7xs</td><td class="n">134</td><td class="n">164</td>
+        <td><code>6bdebb4</code></td><td class="dim">2026-08-25 22:43</td></tr>
+    <tr><td>linkpilot-mcp-c4954z</td><td class="n">3</td><td class="n">14</td>
+        <td><code>aaaa69d</code></td><td class="dim">2026-08-25 15:36</td></tr>
+    <tr><td>sketchup-engineering-agent-rg04zq</td><td class="n">149</td><td class="n">175</td>
+        <td><code>8c4f008</code></td><td class="dim">2026-08-25 22:40</td></tr>
+</table></div>
+
+<h2>여러 갈래가 함께 건드린 파일</h2>
+<div class="scroll"><table>
+<tr><th>갈래 수</th><th>파일</th><th>누가</th></tr>
+
+    <tr><td class="n">4</td><td><code>docs/미결정-사항.md</code></td><td class="dim">ai-project-manager-orchestrator-o8rg8d · linkpilot-agent-github-plan-0af7xs · linkpilot-mcp-c4954z · sketchup-engineering-agent-rg04zq</td></tr>
+    <tr><td class="n">4</td><td><code>im-agent/ui/platform/build-preview.js</code></td><td class="dim">ai-project-manager-orchestrator-o8rg8d · linkpilot-agent-github-plan-0af7xs · linkpilot-mcp-c4954z · sketchup-engineering-agent-rg04zq</td></tr>
+    <tr><td class="n">4</td><td><code>im-agent/ui/platform/changes.js</code></td><td class="dim">ai-project-manager-orchestrator-o8rg8d · linkpilot-agent-github-plan-0af7xs · linkpilot-mcp-c4954z · sketchup-engineering-agent-rg04zq</td></tr>
+    <tr><td class="n">4</td><td><code>im-agent/ui/platform/section-preview.html</code></td><td class="dim">ai-project-manager-orchestrator-o8rg8d · linkpilot-agent-github-plan-0af7xs · linkpilot-mcp-c4954z · sketchup-engineering-agent-rg04zq</td></tr>
+    <tr><td class="n">4</td><td><code>package.json</code></td><td class="dim">ai-project-manager-orchestrator-o8rg8d · linkpilot-agent-github-plan-0af7xs · linkpilot-mcp-c4954z · sketchup-engineering-agent-rg04zq</td></tr>
+    <tr><td class="n">3</td><td><code>CLAUDE.md</code></td><td class="dim">ai-project-manager-orchestrator-o8rg8d · linkpilot-agent-github-plan-0af7xs · sketchup-engineering-agent-rg04zq</td></tr>
+    <tr><td class="n">3</td><td><code>docs/인수인계서-플랫폼-연동.md</code></td><td class="dim">ai-project-manager-orchestrator-o8rg8d · linkpilot-agent-github-plan-0af7xs · sketchup-engineering-agent-rg04zq</td></tr>
+    <tr><td class="n">3</td><td><code>im-agent/connectors/http.js</code></td><td class="dim">ai-project-manager-orchestrator-o8rg8d · linkpilot-agent-github-plan-0af7xs · sketchup-engineering-agent-rg04zq</td></tr>
+    <tr><td class="n">3</td><td><code>im-agent/pipeline.js</code></td><td class="dim">ai-project-manager-orchestrator-o8rg8d · linkpilot-agent-github-plan-0af7xs · sketchup-engineering-agent-rg04zq</td></tr>
+    <tr><td class="n">3</td><td><code>MEMORY.md</code></td><td class="dim">ai-project-manager-orchestrator-o8rg8d · linkpilot-agent-github-plan-0af7xs · sketchup-engineering-agent-rg04zq</td></tr>
+    <tr><td class="n">2</td><td><code>.env.example</code></td><td class="dim">ai-project-manager-orchestrator-o8rg8d · sketchup-engineering-agent-rg04zq</td></tr>
+    <tr><td class="n">2</td><td><code>.github/workflows/alert-ci.yml</code></td><td class="dim">linkpilot-agent-github-plan-0af7xs · sketchup-engineering-agent-rg04zq</td></tr>
+    <tr><td class="n">2</td><td><code>.github/workflows/alert-failure.yml</code></td><td class="dim">linkpilot-agent-github-plan-0af7xs · sketchup-engineering-agent-rg04zq</td></tr>
+    <tr><td class="n">2</td><td><code>.github/workflows/deploy-nas.yml</code></td><td class="dim">linkpilot-agent-github-plan-0af7xs · sketchup-engineering-agent-rg04zq</td></tr>
+</table></div>
+<div class="note">
+  이 표는 <b>부딪힌다는 뜻이 아닙니다.</b> 같은 파일이라도 서로 다른 줄을 고쳤으면 git 이 합칩니다.
+  <b>부딪히는 것은 위의 표</b>입니다. 이 표는 「앞으로 부딪힐 만한 자리」를 미리 보는 용도입니다.
+</div>
+
+<div class="note">
+  <b>「갈래가 늘면 병합이 어려워진다」의 실제 내용.</b> 갈래가 4개면 견줄 짝이
+  6개이고, 하나만 더 열면 <b>10개</b>가 됩니다.
+  짝이 느는 만큼 손으로 풀 자리도 늡니다. 어려워지는 것은 <b>갈래 수가 아니라 짝의 수</b>입니다.
+</div>
+
+<div class="foot">
+  잰 방법 · <code>git merge-tree --write-tree</code> — 체크아웃도 worktree 도 만들지 않고 실제로 합쳐 본다<br>
+  다시 재려면 · <code>npm run merge:watch</code>
+</div>
+</div>

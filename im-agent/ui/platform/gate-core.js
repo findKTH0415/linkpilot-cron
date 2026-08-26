@@ -22,7 +22,7 @@
    *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다. 화면이 자기
    *   지문과 대 보고 다르면 「함수가 없다」로 죽기 전에 사람 말로 알린다.
    */
-  var LP_BUILD = '664b0bf8';
+  var LP_BUILD = 'c1587fa7';
 
   var PLAN_RANK = { free: 0, basic: 1, pro: 2, business: 3 };
 

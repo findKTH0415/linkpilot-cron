@@ -130,9 +130,12 @@ test('★★ 인계서가 보라는 응답 칸을 서버가 실제로 낸다', (
 /* ═════════ ④-3 OCR 은 키가 있어야 돈다 ═════════ */
 
 test('★ 인계서가 OCR 키 이야기를 하고, 그 이름이 실제 이름이다', () => {
-  const llm = fs.readFileSync(path.join(__dirname, '..', 'core', 'llm.js'), 'utf8');
-  const m = llm.match(/process\.env\.([A-Z_]*API_KEY)/);
-  assert.ok(m, 'llm.js 가 어떤 키를 쓰는지 못 찾았다');
+  /* ★ **읽는 곳이 옮겨 갔으면 검사도 따라간다** 〈2026-08-25 · D-110〉.
+   *   열쇠를 실제로 읽는 곳은 `core/gemini-keys.js` 다. `llm.js` 는 이제
+   *   고르는 일을 그쪽에 맡기고 이름을 직접 안 본다. */
+  const pool = fs.readFileSync(path.join(__dirname, '..', 'core', 'gemini-keys.js'), 'utf8');
+  const m = pool.match(/process\.env\.([A-Z_]*API_KEY)/);
+  assert.ok(m, 'gemini-keys.js 가 어떤 키를 쓰는지 못 찾았다');
   assert.ok(DOC.includes(m[1]),
     `인계서가 OCR 키 이름('${m[1]}')을 말하지 않는다 — 없으면 이미지만 조용히 빠진다`);
   // ★ 값이 아니라 **이름**만이다 (CLAUDE.md §2). 값이 실렸는지는 ⑦ 이 본다

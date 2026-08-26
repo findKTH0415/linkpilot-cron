@@ -245,3 +245,44 @@ test('★★ 콘솔 등록 안내의 범위가 코드와 같다 (넓게 잡히�
   // ★ secret 을 넣으라고 적으면 이 설계에서 벗어난다
   assert.match(doc, /client secret 은 넣지 않는다/, 'secret 을 넣지 않는다는 말이 없다');
 });
+
+/**
+ * ★★★ **엔진이 아는 열쇠가 NAS 로 안 실리고 있었다** 〈2026-08-25 · 실측〉.
+ *
+ *   `connectors/http.js` 의 `SECRET_ENV` 에는 있는데 `deploy-nas` 의 열쇠
+ *   목록에 없으면 **Secret 에 넣어도 NAS 로 안 간다.** 그러면 이렇게 된다:
+ *
+ *     · 넣은 사람은 **넣었다고 알고 있다**
+ *     · 엔진은 **「키가 없다」**고 하고 그 절을 비운다
+ *     · 배포는 **초록으로 끝난다** — 아무 오류도 안 난다
+ *
+ *   실측했더니 **열한 개**가 그 상태였다. 그중 `KEPCO_BIGDATA_KEY` 는
+ *   사장님이 막 확보하신 것이라, 그대로 뒀으면 넣자마자 사라질 뻔했다.
+ *
+ * ★ 그래서 **두 목록이 같아야 한다**를 검사로 고정한다. 커넥터를 붙일 때
+ *   `SECRET_ENV` 에 이름을 더하는 것이 규칙(§4.1)인데, 그 규칙만으로는
+ *   배포까지 안 따라온다 — **규칙을 문서에만 적으면 사람의 기억에 얹힌다** (M-31).
+ */
+test('★★★ 엔진이 아는 열쇠를 배포가 전부 NAS 로 싣는다', () => {
+  const httpSrc = fs.readFileSync(
+    path.join(ROOT, 'im-agent', 'connectors', 'http.js'), 'utf8');
+  const at = httpSrc.indexOf('SECRET_ENV');
+  assert.ok(at > -1, 'SECRET_ENV 를 못 찾았다 — 이름이 바뀌었으면 검사도 함께 옮긴다');
+  const known = [...httpSrc.slice(at, httpSrc.indexOf(']', at))
+    .matchAll(/'([A-Z][A-Z0-9_]+)'/g)].map((m) => m[1]);
+  assert.ok(known.length >= 20, `엔진이 아는 열쇠가 ${known.length}개다 — 통째로 안 읽혔다`);
+
+  const wf = fs.readFileSync(path.join(WF_DIR, 'deploy-nas.yml'), 'utf8');
+  const lists = [...wf.matchAll(/NAMES="([A-Z][A-Z0-9_ ]+)"/g)];
+  assert.ok(lists.length, '배포에 열쇠 목록(NAMES)이 없다');
+  const shipped = lists[0][1].split(/\s+/).filter(Boolean);
+
+  const missing = known.filter((k) => !shipped.includes(k));
+  assert.deepStrictEqual(missing, [],
+    `엔진은 아는데 배포가 안 싣는 열쇠가 있다 — **Secret 에 넣어도 NAS 로 안 간다**: ${missing.join(', ')}`);
+
+  /* ★ 목록에만 있고 `env:` 로 안 받으면 **언제나 빈 값**이라 조용히 건너뛴다 */
+  const notPassed = shipped.filter((k) => !wf.includes(`${k}: \${{ secrets.${k} }}`));
+  assert.deepStrictEqual(notPassed, [],
+    `목록에는 있는데 env 로 안 받는 열쇠가 있다 — 언제나 빈 값이 된다: ${notPassed.join(', ')}`);
+});

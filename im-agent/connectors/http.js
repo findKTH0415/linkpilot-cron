@@ -111,6 +111,16 @@ const SECRET_ENV = [
   'ECOS_API_KEY',      // 20자쯤 — 안 걸린다
   'DART_API_KEY',
   'GEMINI_API_KEY',
+  // ★★ 여섯 슬롯 (D-110 · 지시서 §3). `GEMINI_API_KEY` 를 지우지 않는다 —
+  //   지금 NAS 에 들어 있는 유일한 열쇠이고, 새 이름으로 옮기기 전에도 돌아야
+  //   한다. 여섯을 여기 빠뜨리면 **그 여섯만** 로그에 평문으로 남는다
+  'GEMINI_KEY_01', 'GEMINI_KEY_02', 'GEMINI_KEY_03', 'GEMINI_KEY_04',
+  'GEMINI_KEY_05', 'GEMINI_KEY_06', 'GEMINI_KEY_07', 'GEMINI_KEY_08',
+  // ★★ **사장님이 실제로 넣으신 이름**이다 〈2026-08-25〉. 내가 안내한 이름과
+  //   달랐는데, 다시 넣으시라고 하는 대신 둘 다 읽게 했다. 여기 빠뜨리면
+  //   **이 일곱만** 로그에 평문으로 남는다
+  'GEMINI_API_KEY_2', 'GEMINI_API_KEY_3', 'GEMINI_API_KEY_4', 'GEMINI_API_KEY_5',
+  'GEMINI_API_KEY_6', 'GEMINI_API_KEY_7', 'GEMINI_API_KEY_8',
   'KMA_APIHUB_KEY',    // 22자쯤 — 안 걸린다 (기상청 API허브)
   'REB_API_KEY',       // 32자쯤 — 안 걸린다 (한국부동산원 R-ONE)
   'KOSIS_API_KEY',     // 40자쯤 (통계청 공유서비스) — 쿼리에 들어간다
