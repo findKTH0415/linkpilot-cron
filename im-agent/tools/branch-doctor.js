@@ -121,8 +121,26 @@ function whyNoPr() { return LAST_WHY; }
  *   `{ "at": "...", "refs": [...] }` 도 받는다 — 받는 쪽을 늘리는 편이,
  *   적는 쪽이 형식을 틀려서 조용히 빈 배열이 되는 것보다 낫다.
  */
+/** 자동으로 찾는 자리 — 아무도 손대지 않아도 여기 있으면 쓴다 */
+const AUTO_PRS = path.join(ROOT, '.lp-open-prs.json');
+/** ★ 이보다 낡은 기록은 **안 쓴다** (아래 까닭) */
+const MAX_AGE_H = 12;
+let LAST_AGE_H = null;
+function prAgeHours() { return LAST_AGE_H; }
+
+function ageOf(j) {
+  const at = (j && !Array.isArray(j) && j.at) ? Date.parse(j.at) : NaN;
+  if (!isFinite(at)) return null;
+  return (Date.now() - at) / 3600000;
+}
+
 function openPrFromFile() {
-  const p = process.env.LP_OPEN_PRS;
+  LAST_AGE_H = null;
+  /* ★★ **손으로 넣은 자리가 먼저다.** 밖에서 대 준 답은 그 사람이 지금
+   *   물어본 것이므로, 나이를 따지지 않고 쓴다 (다만 나이를 화면에 적는다). */
+  const given = process.env.LP_OPEN_PRS;
+  const auto = !given && fs.existsSync(AUTO_PRS);
+  const p = given || (auto ? AUTO_PRS : null);
   if (!p) return null;
   if (!fs.existsSync(p)) { LAST_WHY = `LP_OPEN_PRS 가 가리키는 파일이 없다: ${p}`; return null; }
   let j;
@@ -130,6 +148,30 @@ function openPrFromFile() {
   catch (e) { LAST_WHY = `LP_OPEN_PRS 파일을 못 읽었다 — ${e.message}`; return null; }
   const refs = Array.isArray(j) ? j : (j && Array.isArray(j.refs) ? j.refs : null);
   if (!refs) { LAST_WHY = 'LP_OPEN_PRS 파일이 배열도 {refs:[…]} 도 아니다'; return null; }
+  LAST_AGE_H = ageOf(j);
+
+  /* ★★★ **자동으로 찾은 기록은 나이를 따진다** 〈2026-08-27 · D-142〉.
+   *
+   *   이 길이 생기기 전에는 사람이 매번 파일을 대 줘야 했고, 안 대면 검사가
+   *   「나이로 어림했다」로 끝났다. 그래서 자동으로 찾게 했는데 — **그러면
+   *   낡은 파일이 남아 거짓말을 한다.** 어제 답으로 「지금 물어봤다」고 적는
+   *   것이 못 물어본 것보다 나쁘다: 화면에는 「물어봤다」만 남아 아무도
+   *   의심하지 않는다 (M-05 「옛말 하는 화면」과 같은 결).
+   *
+   *   그래서 자동 자리는 **시각이 적혀 있고 ${MAX_AGE_H}시간 안쪽**일 때만 쓴다.
+   *   아니면 안 쓰고 **까닭을 남긴다** — 그 까닭이 곧 「다시 받아 오라」는 말이다. */
+  if (auto) {
+    if (LAST_AGE_H === null) {
+      LAST_WHY = `열린 PR 기록(${path.basename(AUTO_PRS)})에 **받은 시각이 없다** — 언제 것인지 모르는 답은 안 쓴다`;
+      LAST_AGE_H = null;
+      return null;
+    }
+    if (LAST_AGE_H > MAX_AGE_H) {
+      LAST_WHY = `열린 PR 기록이 **${Math.round(LAST_AGE_H)}시간 전** 것이다 (한도 ${MAX_AGE_H}시간) — 낡은 답으로 「물어봤다」고 하지 않는다. \`npm run prs:write\` 로 다시 받는다`;
+      LAST_AGE_H = null;
+      return null;
+    }
+  }
   return refs.map(String).filter(Boolean);
 }
 
@@ -267,8 +309,9 @@ function verdict(r) {
   const bad = live.filter((p) => (p.addAdd || []).length || (p.hard || []).length);
   // ★ 못 물어봤으면 **까닭까지** 적는다 — 「열쇠가 없다」와 「열쇠가 틀렸다」는
   //   고치는 방법이 다르다. 까닭이 없으면 둘이 같은 화면이 된다 (실측: 401).
-  const how = r.byPr ? '' :
-    ` · 열린 PR 을 못 물어봐 **나이로 어림했다**${whyNoPr() ? ` (${whyNoPr()})` : ''}`;
+  const how = r.byPr
+    ? (prAgeHours() === null ? '' : ` · 열린 PR 은 **${Math.round(prAgeHours())}시간 전에 받은 기록**으로 봤다`)
+    : ` · 열린 PR 을 못 물어봐 **나이로 어림했다**${whyNoPr() ? ` (${whyNoPr()})` : ''}`;
   const tail = (stale.length ? ` (멈춘 갈래 ${stale.length}개는 참고로만 뒀다 — ${LIVE_DAYS}일 넘게 조용하다)` : '') + orphan + how;
   if (!bad.length && !unread.length) {
     return { code: 0, line: (live.length
@@ -296,7 +339,8 @@ function verdict(r) {
   return { code: r.byPr ? 1 : 2, line: parts.join(' / ') + tail };
 }
 
-module.exports = { check, verdict, expected, openPrBranches, openPrFromFile, whyNoPr, LIVE_DAYS };
+module.exports = { check, verdict, expected, openPrBranches, openPrFromFile, whyNoPr,
+  prAgeHours, AUTO_PRS, MAX_AGE_H, LIVE_DAYS };
 
 if (require.main === module) {
   (async () => {

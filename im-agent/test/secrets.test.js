@@ -286,3 +286,34 @@ test('★★★ 엔진이 아는 열쇠를 배포가 전부 NAS 로 싣는다', 
   assert.deepStrictEqual(notPassed, [],
     `목록에는 있는데 env 로 안 받는 열쇠가 있다 — 언제나 빈 값이 된다: ${notPassed.join(', ')}`);
 });
+
+/* ───────────── 앱(웹루트) 봉인 열쇠 ───────────── */
+
+test('★★★ 배포가 **앱이 읽는 봉인 파일**도 놓는다 — Secret 만 넣으면 앱에는 안 닿는다', () => {
+  /* 실측 2026-08-27: 뉴스 열쇠가 Secret 에 **둘이나** 있는데 앱 화면은
+   * 「서버 없음」이었다. 앱은 GitHub Secrets 를 못 읽는다 — 웹루트의
+   * 봉인 파일을 읽는다. 그 파일을 놓는 단계가 없으면 넣은 값이 조용히 죽는다.
+   * (M-40 과 같은 결: 넣은 사람은 넣었다고 알고, 앱은 없다고 하고, 배포는 초록)
+   */
+  const wf = fs.readFileSync(path.join(WF_DIR, 'deploy-nas.yml'), 'utf8');
+  assert.match(wf, /name: Write webroot app keys/, '앱 봉인 열쇠 단계가 없다');
+  assert.match(wf, /worldnews:WORLDWIDE_NEWS,WORLD_NEWS_API/,
+    '뉴스 열쇠를 **두 이름 다** 읽지 않는다 — 한쪽에 넣으신 값이 죽는다 (M-55)');
+  assert.match(wf, /_key\.store\.php/, '앱이 읽는 파일 이름이 아니다');
+  assert.ok(!/echo .*\$val|echo .*\$v"/.test(wf), '값을 로그에 찍으면 안 된다 (§2)');
+});
+
+test('★★ 앱 봉인 단계가 읽는 이름이 전부 `env:` 로 들어와 있다', () => {
+  // 목록에만 있고 env 로 안 받으면 **언제나 빈 값**이다 (절차서 §5 방어장치 2).
+  // 그러면 「Secret 이 비어 건너뜀」이라고 말하는데 사장님은 넣으신 상태다.
+  const wf = fs.readFileSync(path.join(WF_DIR, 'deploy-nas.yml'), 'utf8');
+  const step = wf.slice(wf.indexOf('name: Write webroot app keys'));
+  const pairs = step.match(/PAIRS="([^"]+)"/);
+  assert.ok(pairs, 'PAIRS 목록을 못 찾았다');
+  const names = pairs[1].split(/\s+/).flatMap((p) => p.split(':')[1].split(','));
+  const head = step.slice(0, step.indexOf('run: |'));
+  names.forEach((n) => {
+    assert.ok(new RegExp(`${n}: \\$\\{\\{ secrets\\.${n} \\}\\}`).test(head),
+      `${n} 을 읽는다고 적어 놓고 env 로 안 받는다 — 언제나 빈 값이 된다`);
+  });
+});
