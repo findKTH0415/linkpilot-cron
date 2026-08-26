@@ -24,13 +24,25 @@ const read = (f) => fs.readFileSync(path.join(PLAT, f), 'utf8');
 /* ───────────── 토큰 값 ───────────── */
 
 test('★ 디자인 시스템: 브랜드 값이 문서와 같다', () => {
-  // DESIGN_SYSTEM.md §2 에서 그대로 가져온 값이다. 바꾸려면 문서를 먼저 고친다
+  /* ★★ 값의 출처가 **둘**이고, 새 쪽이 이긴다 〈2026-08-26 · D-138〉.
+   *
+   *   라임·잉크 → 「1단계 작업지시서」(2026-08-26). 앱 전체에 못박은 브랜드
+   *                색이라 보고서 화면이 따라간다. 안 따라가면 사이드바 라임과
+   *                보고서 화면 라임이 미묘하게 어긋난다.
+   *   나머지  → DESIGN_SYSTEM.md §2 (2026-08-17) 그대로.
+   *
+   * ★★★ **선택 색만 지시서를 안 받았다.** 지시서의 `#8CB80F` 는 흰 바탕
+   *   대비가 **2.34** 라 큰 글자 기준(3.0)도 못 넘긴다 — 그런데 이 토큰은
+   *   `.auto__t`·`.cat` 처럼 **11px 글자 색**으로 쓰인다. 지금 값 `#7BA10F` 는
+   *   3.02 로 그보다 낫다 — **더 나쁜 쪽으로 바꾸지 않는다.**
+   *   저쪽에 알린 문서는 `docs/전달-platform-1단계-지시서-검증.md` 다.
+   */
   const want = {
-    '--lp-brand': '#AAE106',
+    '--lp-brand': '#B5E01F',
     '--lp-brand-deep': '#7BA10F',
     '--lp-brand-soft': '#F0FAD8',
-    '--lp-brand-ink': '#0A1419',
-    '--lp-navy': '#0A1419',
+    '--lp-brand-ink': '#12161F',
+    '--lp-navy': '#12161F',
   };
   Object.keys(want).forEach((k) => {
     assert.ok(new RegExp(`${k}:\\s*${want[k]};`).test(TOKENS), `${k} 가 ${want[k]} 가 아니다`);
@@ -57,7 +69,7 @@ test('★ 디자인 시스템: 면(surface)은 셋뿐이다', () => {
 
 test('★★ 디자인 시스템: 화면이 브랜드 색을 직접 적지 않는다', () => {
   // 복붙이 갈리는 것을 실제로 겪었다. 색은 tokens.css 하나가 정한다
-  const banned = /#(?:9ED700|AAE106|EDF7DC|F0FAD8|5C7A00|7BA10F|4F6900|4F6A00|4E6900|17181A|0A1419|F5F6F8|F2F2F7|E03131|FF3B30|E8A33D|FF9500)\b/i;
+  const banned = /#(?:9ED700|AAE106|EDF7DC|F0FAD8|5C7A00|7BA10F|4F6900|4F6A00|4E6900|17181A|0A1419|B5E01F|12161F|F5F6F8|F2F2F7|E03131|FF3B30|E8A33D|FF9500)\b/i;
   SCREENS.forEach((f) => {
     const body = read(f).replace(/<!--[\s\S]*?-->/g, '');
     const hit = body.match(banned);
@@ -157,7 +169,7 @@ test('★ 디자인 시스템: 움직임을 줄이는 설정을 존중한다', (
 
 test('★★ 디자인 시스템: 라임 위에 흰 글자를 올리지 않는다', () => {
   // §11 — 대비가 안 나온다. 라임 위는 네이비(--lp-brand-ink)다
-  assert.match(TOKENS, /--lp-brand-ink:\s*#0A1419/);
+  assert.match(TOKENS, /--lp-brand-ink:\s*#12161F/);   // D-138 — 지시서 확정값
   SCREENS.forEach((f) => {
     const s = read(f);
     // `background: var(--lime)` 과 `color: #fff` 이 같은 규칙 안에 있으면 안 된다
