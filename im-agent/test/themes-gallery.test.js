@@ -17,6 +17,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const { execFileSync } = require('child_process');
 
 const ROOT = path.join(__dirname, '..', '..');
@@ -30,26 +31,41 @@ const themes = require('../design/themes');
  */
 const CACHE = new Map();
 
+/**
+ * ★★ **커밋본에 쓰지 않는다** (2026-08-25 개정).
+ *
+ *   앞 판은 빌더를 그냥 돌렸고, 빌더가 쓰는 자리는 커밋된 `theme-gallery.html`
+ *   하나뿐이었다. 그래서 **`npm test` 를 돌린 것만으로 작업본이 더러워졌다.**
+ *   앞 판도 그것을 알고 끝에 「인자 없는 판으로 다시 빌드해 되돌리기」를 뒀는데,
+ *   **그 되돌리기가 되돌리지 못한다** — 다시 빌드하면 그 기계에서 실제로 그린
+ *   표지 PNG 가 들어가고, 한글 글꼴이 없는 기계에서는 「활자가 실제와 다릅니다」
+ *   경고까지 붙는다. 원본과 다른 판이 「되돌린 판」으로 남는 것이다.
+ *
+ *   그 상태로 `git add -A` 하면 **아무도 의도하지 않은 판이 저장소에 들어간다.**
+ *   (실제로 이번 세션에서 두 번 그럴 뻔했다)
+ *
+ *   ★ 이제 임시 폴더에 쓴다(`--out`). 커밋된 판은 사람이 `npm run im:themes` 를
+ *     돌렸을 때만 바뀐다. 되돌리기가 필요 없어져 빌드도 한 번 줄었다.
+ */
+const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'im-themes-'));
+
 function buildWith(args) {
   const key = (args || []).join(' ');
   if (!CACHE.has(key)) {
-    execFileSync('node', [path.join(ROOT, 'im-agent/ui/platform/build-themes.js'), ...(args || [])],
+    const out = path.join(TMP, `gallery-${CACHE.size}.html`);
+    execFileSync('node', [path.join(ROOT, 'im-agent/ui/platform/build-themes.js'), ...(args || []), '--out', out],
       { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], timeout: 180000 });
-    CACHE.set(key, fs.readFileSync(builder.OUT, 'utf8'));
+    CACHE.set(key, fs.readFileSync(out, 'utf8'));
   }
   return CACHE.get(key);
 }
 
-/**
- * ★ 이 파일은 **커밋본을 덮어쓴다** (빌드 산출물이 하나뿐이다).
- *   마지막에 인자 없는 판으로 되돌려 놓는다 — 안 그러면 `npm test` 를 돌린
- *   것만으로 `git status` 가 더러워지고, 교차검증 6번이 헛돈다.
- */
-process.on('exit', () => {
-  try {
-    execFileSync('node', [path.join(ROOT, 'im-agent/ui/platform/build-themes.js')],
-      { cwd: ROOT, stdio: 'ignore', timeout: 180000 });
-  } catch (_) { /* 되돌리기 실패는 테스트 결과를 바꾸지 않는다 */ }
+test('★ 검사가 커밋된 화면을 건드리지 않는다', () => {
+  buildWith([]);
+  const committed = execFileSync('git', ['status', '--porcelain', '--', builder.OUT],
+    { cwd: ROOT, encoding: 'utf8' }).trim();
+  assert.strictEqual(committed, '',
+    `검사가 ${path.basename(builder.OUT)} 을 고쳤다 — 이 기계에서 그린 판이 저장소로 들어간다`);
 });
 
 /* ═════════ ① 추천이 결정으로 바뀌지 않는다 ═════════ */

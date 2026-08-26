@@ -39,3 +39,7 @@ im-agent/ui/platform/result.html
 fonts/
 im-agent/ui/platform/files-live.html
 im-agent/ui/platform/files-inline.html
+
+# ★ 병합 감시 화면은 잴 때마다 달라진다 (측정 시각·갈래 상태). 커밋하면 매번 diff 가 난다.
+#   보려면 `npm run merge:watch:html` 로 그때그때 만든다.
+im-agent/ui/platform/merge-watch.html

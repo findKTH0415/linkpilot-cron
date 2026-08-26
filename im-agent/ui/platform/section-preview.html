@@ -1971,6 +1971,19 @@ window.LINKPILOT_REPORT_FLOW = {
     font: 400 12.5px/1.7 ui-monospace, Menlo, Consolas, monospace;
     white-space: pre-wrap; word-break: break-all; overflow-x: auto; }
   .ev__k { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+  .ev__c.dim { opacity: .62; }
+  .tg { margin-top: 10px; border-left: 2px solid #E8EAEC; padding-left: 12px; }
+  .tg__w { display: flex; gap: 10px; align-items: flex-start; padding: 6px 0; }
+  .tg__wn { flex: 0 0 52px; font: 700 11.5px/1.7 ui-monospace, Menlo, Consolas, monospace; color: #7C838C; }
+  .tg__c { display: flex; flex-wrap: wrap; gap: 5px; }
+  .tg__t { font: 600 11.5px/1.7 ui-monospace, Menlo, Consolas, monospace;
+    background: #F2F2F7; border-radius: 6px; padding: 2px 7px; }
+  .tg__t.bad { background: #FDF3E3; color: #8A6A2F; }
+  .tg__t.dim { opacity: .55; }
+  .tg__scroll { overflow-x: auto; margin-top: 8px; }
+  .tg__tb { border-collapse: collapse; font-size: 12px; min-width: 560px; }
+  .tg__tb th, .tg__tb td { border-bottom: 1px solid #E8EAEC; padding: 5px 9px; text-align: left; vertical-align: top; }
+  .tg__tb th { color: #7C838C; font-weight: 700; white-space: nowrap; }
   .ev__k span { font: 600 11.5px/1 ui-monospace, Menlo, Consolas, monospace;
     padding: 5px 8px; border-radius: 6px; background: #F0FAD8; color: #7BA10F; }
   .upd__pt { margin: 20px 0 0; font-size: 14px; font-weight: 700; }
@@ -1997,14 +2010,23 @@ window.LINKPILOT_REPORT_FLOW = {
           </div>
           <span class="upd__see">확인: 이 화면 아래 [눈으로 확인 — 대화에서 LinkPilot 을 불러 본 결과 (MCP)] 패널 안에 [MCP 등록부] 칸이 있다. 서버 14개가 길별로 나뉘어 있고 위반 건수가 0 으로 나온다. 터미널에서는 npm run mcp:map</span>
         </li><li>
-          <b>LinkPilot 을 대화에서 부를 수 있게 했다 — 읽기 전용 MCP 서버</b>
-          <em>엔진 · 내보내는 길 (mcp/server.js · mcp/tools.js)</em>
-          <span>D-83 의 결정이다. 바깥 컨텐츠를 들여오는 길은 REST 커넥터 그대로 두고, MCP 는 LinkPilot 을 내보내는 길로만 쓴다. 들여오는 길에 놓으면 기관·기준시점·모수가 문장 속으로 녹아 Fact.source 를 채울 원본이 사라지고, 호출 한도 장부와 시크릿 마스킹 밖으로 나간다. 내보내는 길에서는 값을 만들지 않고 엔진이 이미 가진 것을 꺼내므로 출처가 그대로 따라온다. 도구 여섯은 전부 읽기 라우트(api-router.cjs) 위에 서고, 쓰기 라우트 스물셋은 하나도 열리지 않는다 — 검사가 그것을 고정한다. 포트를 열지 않고 표준입출력으로만 말한다.</span>
+          <b>번호를 한 곳에서 발급하고, 갈래끼리 겹치면 빨개진다 — 장부 둘 다</b>
+          <em>작업 갈래 · 번호 발급 (tools/registry-check.js · 등록부 §Z)</em>
+          <span>갈래 넷이 동시에 돌면서 각자 D-번호를 붙였고 이날 네 벌이 겹쳤다 — 같은 번호가 갈래마다 다른 항목을 가리켰다. 이것이 비싼 이유는 병합해도 조용하기 때문이다. 등록부는 사람이 읽는 마크다운이라 서로 다른 항목이 나란히 남고, 코드 주석은 「D-104 참조」라고 가리키는데 등록부에는 다른 뜻의 D-104 가 있다. 세 번째 재발이라 규칙이 아니라 검사를 붙였다 — 갈래는 서로를 못 보므로 재는 쪽이 갈래 전부를 읽어야 한다. 충돌과 개정을 가르는 기준은 뿌리(main)에 그 번호가 있느냐다. 제목만 비교하면 오탐이 섞이고, 오탐이 섞이면 아무도 안 본다. 번호를 붙이는 장부가 둘이라는 것도 재고 나서 알았다 — 사고기록(MEMORY) 쪽은 여섯이 겹쳐 있었다. 그래서 한 도구가 둘 다 본다. 푸는 규칙에서 조심할 것 하나 — 한쪽 갈래가 늘 양보하는 것이 아니다. D-104 는 SketchUp 이 먼저였고 M-41 은 Engine 이 먼저였다. 번호마다 따로 잰다.</span>
           <div class="upd__ba">
-            <div class="upd__b"><em>전</em>MCP 가 이 저장소에 없었다. 커넥터 21개가 전부 REST 이고, 엔진이 가진 값을 대화에서 물어볼 길이 없었다</div>
-            <div class="upd__a"><em>후</em>읽기 도구 6개 (프로젝트 목록 · 진행 · 값의 계보 · 영향 · 데이터 사전 · 접수 조건). 쓰기 0개. npm run im:mcp</div>
+            <div class="upd__b"><em>전</em>갈래마다 손으로 붙임 · 겹친 줄 아무도 모름 (D 4건 · M 6건이 겹쳐 있었다)</div>
+            <div class="upd__a"><em>후</em>한 곳에서 발급 · 장부 둘 다 봄 · 겹치면 exit 1 · 푸는 규칙을 검사가 지킴</div>
           </div>
-          <span class="upd__see">확인: 화면에 안 보인다 — 대화하는 쪽(Claude Desktop 등)에서만 보인다. 대신 이 화면 아래 [눈으로 확인 — 대화에서 LinkPilot 을 불러 본 결과 (MCP)] 패널에 실제로 서버를 띄워 물어본 답이 그대로 들어 있다. 붙이는 절차는 docs/MCP-붙이는-법.md</span>
+          <span class="upd__see">확인: 화면에 안 보인다 — npm run d:check -- --all 을 돌리면 갈래별 번호와 충돌이 나온다. npm run d:next 가 다음 빈 번호를 D 와 M 둘 다 준다</span>
+        </li><li>
+          <b>요청문 한 줄을 Task 로 쪼개고, 동시에 돌 것을 스스로 고르고, 값이 바뀌면 영향받는 것만 다시 돌린다</b>
+          <em>엔진 · 지휘체계 (tasks · taskplan · router · orchestrator · artifacts · agent-merge)</em>
+          <span>앞 판은 Agent 11개를 고정 순서로 하나씩 돌렸다. 그래서 세 가지가 안 됐다. ① 서로 무관한 일(시장조사와 입지조회)이 앞의 것을 기다렸다. ② 총사업비 하나를 고치면 보고서를 처음부터 다시 만들어야 했다. ③ 담당이 없는 검토(인허가·기술·Risk·PPT)는 계획 어디에도 안 나와서 「원래 안 하는 일」로 읽혔다. 이제 실행 단위가 Agent 가 아니라 Task 다. 선행이 끝난 것을 매 회전마다 다시 세어 한꺼번에 돌리고, 값이 바뀌면 lineage 가 계산한 영향 범위만 REWORK 로 되돌린다. 담당이 없는 것은 지우지 않고 PLANNED 로 남기며 왜 못 도는지를 적는다. 자료원은 Agent 가 고르지 않는다 — 오케스트레이터가 지정해 내려보낸다. 엔진 본체(pipeline.js)를 대체하지 않았다. IM 을 끝까지 만드는 정식 경로는 여전히 pipeline 이고, 둘을 합칠지는 등록부 D-112 에 올렸다.</span>
+          <div class="upd__ba">
+            <div class="upd__b"><em>전</em>Agent 11개 고정 직렬 · 값 하나 바뀌면 전량 재생성 · 미구현 검토는 화면에 없음</div>
+            <div class="upd__a"><em>후</em>Task 19건 9회전(동시 최대 5건) · 총사업비 변경 시 5건만 재실행 · 미구현 4건이 이유와 함께 계획에 남음</div>
+          </div>
+          <span class="upd__see">확인: 이 화면 아래 [눈으로 확인 — 업무를 스스로 쪼개고, 동시에 돌 것을 고른다] 패널. 회전별로 무엇이 동시에 도는지, 총사업비를 고치면 어느 5건만 다시 도는지, 담당이 없는 4건이 왜 못 도는지가 실제 계산 결과로 나온다</span>
         </li>
       </ul>
     </div>
@@ -2719,6 +2741,161 @@ window.LINKPILOT_REPORT_FLOW = {
     </li></ul>
 </section>
 <section class="ev">
+  <h2 class="ev__t">눈으로 확인 — 업무를 스스로 쪼개고, 동시에 돌 것을 고른다</h2>
+  <p class="ev__s">아래는 이 미리보기를 만들 때 <b>실제로 계획기를 돌려</b> 나온 결과입니다.
+    손으로 적은 예시가 아닙니다. 요청문은 한 줄입니다 —
+    「전남 태양광 100MW 사전 투자검토 보고서와 투자자용 IM 을 만들어줘」</p>
+
+  <div class="ev__k"><span>자산군 태양광</span><span>Task 24건</span><span>회전 11단</span><span>담당 없음 9건</span></div>
+
+  <div class="ev__m" style="margin-top:14px">
+    <b>같은 회전 안의 것은 동시에 돕니다.</b> 무엇을 같이 돌릴지 사람이 적지 않습니다 —
+    선행이 끝난 것을 매번 다시 세어 고릅니다.
+    <br>· 돌 수 있음 &nbsp; ↷ 다른 Agent 안에서 이미 돎 &nbsp; ✕ 담당 Agent 미구현
+  </div>
+  <div class="tg"><div class="tg__w"><span class="tg__wn">1회전</span>
+      <span class="tg__c"><span class="tg__t">· T02 프로젝트 개설</span><span class="tg__t">· T01 출력사양 확정</span></span></div><div class="tg__w"><span class="tg__wn">2회전</span>
+      <span class="tg__c"><span class="tg__t">· T03 자료 추출</span><span class="tg__t">· T05 시장조사</span></span></div><div class="tg__w"><span class="tg__wn">3회전</span>
+      <span class="tg__c"><span class="tg__t">· T12 자산군 대조값 입력</span><span class="tg__t dim">↷ T15 법인 재무·신용 조회</span><span class="tg__t">· T04 입지·지적·공부 조회</span><span class="tg__t dim">↷ T14 계통 여유용량 대조</span><span class="tg__t bad">✕ T16 인허가·법률 검토</span><span class="tg__t bad">✕ T17 기술 검토</span></span></div><div class="tg__w"><span class="tg__wn">4회전</span>
+      <span class="tg__c"><span class="tg__t dim">↷ T13 일사량·일조 조회</span><span class="tg__t">· T06 재무모델</span><span class="tg__t">· T08 매스·용적률 검토</span></span></div><div class="tg__w"><span class="tg__wn">5회전</span>
+      <span class="tg__c"><span class="tg__t bad">✕ T20 모델 계획</span><span class="tg__t">· T07 감정평가 3방식</span></span></div><div class="tg__w"><span class="tg__wn">6회전</span>
+      <span class="tg__c"><span class="tg__t bad">✕ T21 모델 결과 수령</span><span class="tg__t">· T09 교차검증</span></span></div><div class="tg__w"><span class="tg__wn">7회전</span>
+      <span class="tg__c"><span class="tg__t">· T10 IM·티저 작성</span><span class="tg__t bad">✕ T18 Risk Analysis</span></span></div><div class="tg__w"><span class="tg__wn">8회전</span>
+      <span class="tg__c"><span class="tg__t">· T11 독립 최종검증 (8 GATE)</span></span></div><div class="tg__w"><span class="tg__wn">9회전</span>
+      <span class="tg__c"><span class="tg__t bad">✕ T19 PPT 생성</span><span class="tg__t bad">✕ T22 화면 작업지시서</span></span></div><div class="tg__w"><span class="tg__wn">10회전</span>
+      <span class="tg__c"><span class="tg__t bad">✕ T23 화면·API 구현</span></span></div><div class="tg__w"><span class="tg__wn">11회전</span>
+      <span class="tg__c"><span class="tg__t bad">✕ T24 통합검증</span></span></div></div>
+
+  <h3 class="ev__n" style="margin-top:22px">값 하나를 바꾸면 무엇이 다시 도는가</h3>
+  <div class="ev__m">총사업비(<code>investment.total</code>)을 고쳤을 때입니다.
+    <b>보고서를 처음부터 다시 만들지 않습니다.</b></div>
+  <div class="ev__c">
+    <div class="ev__n">다시 도는 것 — 5건 (이 순서로)</div>
+    <div class="ev__k"><span>T06 재무모델</span><span>T07 감정평가 3방식</span><span>T09 교차검증</span><span>T10 IM·티저 작성</span><span>T11 독립 최종검증 (8 GATE)</span></div>
+  </div>
+  <div class="ev__c dim">
+    <div class="ev__n">건드리지 않는 것 — 6건</div>
+    <div class="ev__k"><span>T01 출력사양 확정</span><span>T02 프로젝트 개설</span><span>T03 자료 추출</span><span>T04 입지·지적·공부 조회</span><span>T05 시장조사</span><span>T08 매스·용적률 검토</span></div>
+  </div>
+
+  <h3 class="ev__n" style="margin-top:22px">담당이 없거나 다른 곳에서 도는 것 — 지우지 않고 남깁니다</h3>
+  <div class="ev__m">계획에서 빼면 「그 검토는 원래 안 하는 것」으로 굳습니다.</div>
+  <div class="ev__c">
+      <div class="ev__n">T13 일사량·일조 조회 — 다른 곳에서 이미 돈다</div>
+      <div class="ev__m">여기서는 안 돌린다 — agents/07-geo.js (templateId=solar 이고 KMA 키가 있을 때) 안에서 이미 돈다 (같은 API 를 두 번 부르지 않는다)</div>
+    </div><div class="ev__c">
+      <div class="ev__n">T14 계통 여유용량 대조 — 다른 곳에서 이미 돈다</div>
+      <div class="ev__m">여기서는 안 돌린다 — agents/03-research.js 안에서 이미 돈다 (같은 API 를 두 번 부르지 않는다)</div>
+    </div><div class="ev__c">
+      <div class="ev__n">T15 법인 재무·신용 조회 — 다른 곳에서 이미 돈다</div>
+      <div class="ev__m">여기서는 안 돌린다 — pipeline.js → core/corpreport.js 안에서 이미 돈다 (같은 API 를 두 번 부르지 않는다)</div>
+    </div><div class="ev__c bad">
+      <div class="ev__n">T20 모델 계획 — 담당 Agent 없음</div>
+      <div class="ev__m">12_sketchup_plan 미구현</div>
+    </div><div class="ev__c bad">
+      <div class="ev__n">T21 모델 결과 수령 — 담당 Agent 없음</div>
+      <div class="ev__m">13_sketchup_intake 미구현</div>
+    </div><div class="ev__c bad">
+      <div class="ev__n">T16 인허가·법률 검토 — 담당 Agent 없음</div>
+      <div class="ev__m">12_legal 미구현</div>
+    </div><div class="ev__c bad">
+      <div class="ev__n">T17 기술 검토 — 담당 Agent 없음</div>
+      <div class="ev__m">13_technical 미구현</div>
+    </div><div class="ev__c bad">
+      <div class="ev__n">T18 Risk Analysis — 담당 Agent 없음</div>
+      <div class="ev__m">14_risk 미구현</div>
+    </div><div class="ev__c bad">
+      <div class="ev__n">T22 화면 작업지시서 — 담당 Agent 없음</div>
+      <div class="ev__m">16_platform_spec 미구현</div>
+    </div><div class="ev__c bad">
+      <div class="ev__n">T23 화면·API 구현 — 담당 Agent 없음</div>
+      <div class="ev__m">17_platform_build 미구현</div>
+    </div><div class="ev__c bad">
+      <div class="ev__n">T24 통합검증 — 담당 Agent 없음</div>
+      <div class="ev__m">18_platform_verify 미구현</div>
+    </div><div class="ev__c bad">
+      <div class="ev__n">T19 PPT 생성 — 담당 Agent 없음</div>
+      <div class="ev__m">15_design 미구현</div>
+    </div>
+
+  <h3 class="ev__n" style="margin-top:22px">능력마다 쓸 수 있는 자료원</h3>
+  <div class="ev__m">Agent 가 스스로 고르지 않습니다 — 오케스트레이터가 이 표대로 지정해 내려보냅니다.
+    <b>키 값은 어디에도 나오지 않습니다. 키 이름만 적습니다.</b></div>
+  <div class="tg__scroll"><table class="tg__tb">
+    <tr><th>능력</th><th>담당 Agent</th><th>자료원</th><th>필요한 키</th></tr>
+    <tr><td>출력사양 확정</td>
+      <td>10_output_spec</td>
+      <td>—</td>
+      <td>—</td></tr><tr><td>프로젝트 개설</td>
+      <td>01_project</td>
+      <td>—</td>
+      <td>—</td></tr><tr><td>자료 추출</td>
+      <td>02_extraction</td>
+      <td>—</td>
+      <td>—</td></tr><tr><td>입지·지적·공부</td>
+      <td>07_geo</td>
+      <td>vworld · nsdi · molit · reb</td>
+      <td>VWORLD_KEY · VWORLD_DOMAIN · DATA_GO_KR_KEY · REB_API_KEY</td></tr><tr><td>시장조사</td>
+      <td>03_research</td>
+      <td>kosis · ecos</td>
+      <td>KOSIS_API_KEY · ECOS_API_KEY</td></tr><tr><td>재무모델</td>
+      <td>04_financial</td>
+      <td>ecos</td>
+      <td>ECOS_API_KEY</td></tr><tr><td>감정평가 3방식</td>
+      <td>08_appraisal</td>
+      <td>molit · reb</td>
+      <td>DATA_GO_KR_KEY · REB_API_KEY</td></tr><tr><td>매스·용적률 검토</td>
+      <td>09_massing</td>
+      <td>rhino</td>
+      <td>RHINO_COMPUTE_URL · RHINO_COMPUTE_KEY</td></tr><tr><td>교차검증</td>
+      <td>05_validation</td>
+      <td>—</td>
+      <td>—</td></tr><tr><td>IM·티저 작성</td>
+      <td>06_im_writer</td>
+      <td>—</td>
+      <td>—</td></tr><tr><td>독립 최종검증</td>
+      <td>11_final_validation</td>
+      <td>—</td>
+      <td>—</td></tr><tr><td>법인 재무·신용</td>
+      <td>—</td>
+      <td>dart · nts · nps</td>
+      <td>DART_API_KEY · DATA_GO_KR_KEY</td></tr><tr><td>일사량·일조</td>
+      <td>—</td>
+      <td>kma</td>
+      <td>KMA_APIHUB_KEY</td></tr><tr><td>계통 여유용량</td>
+      <td>—</td>
+      <td>kepco</td>
+      <td>KEPCO_BIGDATA_KEY</td></tr><tr><td>화면 작업지시서 (무엇을 만들지 정한다)</td>
+      <td>16_platform_spec</td>
+      <td>—</td>
+      <td>—</td></tr><tr><td>화면·API 구현</td>
+      <td>17_platform_build</td>
+      <td>—</td>
+      <td>—</td></tr><tr><td>통합검증 (실제 데이터에 붙는가)</td>
+      <td>18_platform_verify</td>
+      <td>—</td>
+      <td>—</td></tr><tr><td>모델 계획 (무엇을 만들 수 있는가)</td>
+      <td>12_sketchup_plan</td>
+      <td>—</td>
+      <td>—</td></tr><tr><td>모델 결과 수령</td>
+      <td>13_sketchup_intake</td>
+      <td>—</td>
+      <td>—</td></tr><tr><td>인허가·법률 검토</td>
+      <td>12_legal</td>
+      <td>enviro · g2b</td>
+      <td>DATA_GO_KR_KEY</td></tr><tr><td>기술 검토</td>
+      <td>13_technical</td>
+      <td>—</td>
+      <td>—</td></tr><tr><td>Risk Analysis</td>
+      <td>14_risk</td>
+      <td>—</td>
+      <td>—</td></tr><tr><td>PPT 생성</td>
+      <td>15_design</td>
+      <td>—</td>
+      <td>—</td></tr>
+  </table></div>
+</section>
+<section class="ev">
   <h2 class="ev__t">눈으로 확인 — 자료를 실제로 읽어 본 결과</h2>
   <p class="ev__s">아래 결과는 이 미리보기를 만들 때 <b>실제 파서를 돌려</b> 그대로 옮긴 것입니다.
     손으로 적은 예시가 아닙니다. 다만 <b>자료 자체는 합성 예시</b>입니다 — 실제 딜 자료는
@@ -2780,7 +2957,7 @@ LTC 65%</pre>
 
   <div class="ev__c">
     <div class="ev__n">아무도 안 부르는 모듈 — 0개</div>
-    <div class="ev__m">모듈 229개 중 229개가 닿습니다
+    <div class="ev__m">모듈 247개 중 247개가 닿습니다
       (<code>npm run check:reachable</code>).</div>
     <div class="ev__m">없음</div>
   </div>

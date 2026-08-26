@@ -35,7 +35,12 @@
     "mcp:map": "node im-agent/tools/mcp-map.js",
     "verify:nas": "node im-agent/tools/verify-nas.js",
     "check:reachable": "node im-agent/tools/reachable.js",
-    "deploy:nas": "bash deploy/nas.sh"
+    "d:check": "node im-agent/tools/registry-check.js",
+    "d:next": "node im-agent/tools/registry-check.js --all --next",
+    "deploy:nas": "bash deploy/nas.sh",
+    "merge:watch": "node im-agent/tools/merge-watch.js",
+    "merge:watch:html": "node im-agent/tools/merge-watch.js --fetch --html im-agent/ui/platform/merge-watch.html",
+    "d:conflict": "node im-agent/tools/decision-conflict.js"
   },
   "dependencies": {
     "solapi": "^5.5.1"

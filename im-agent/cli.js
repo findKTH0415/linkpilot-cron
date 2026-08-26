@@ -27,6 +27,9 @@ const pipeline = require('./pipeline');
 const store = require('./core/store');
 const registry = require('./core/registry');
 const gate = require('./core/gate');
+const orchestrator = require('./core/orchestrator');
+const tasksMod = require('./core/tasks');
+const router = require('./core/router');
 const { formatEok, pct, fmt } = require('./core/numeric');
 
 function arg(flag, fallback = null) {
@@ -464,6 +467,124 @@ async function cmdDemo() {
   console.log(`산출물: ${path.join(store.projectDir(first.projectId), '09_IM/im.md')}`);
 }
 
+
+// ══ 지휘체계 (Task 그래프) ══════════════════════════════════
+
+const MARK = {
+  QUEUED: '·', READY: '·', RUNNING: '▶', WAITING: '◐', VALIDATING: '?',
+  PASSED: '✓', COMPLETED: '●', FAILED: '✕', REWORK: '↻',
+  BLOCKED: '■', PLANNED: '✕', SKIPPED: '↷',
+};
+
+function printPlan(snap) {
+  const s = snap.summary;
+  console.log(`\n─ ${snap.projectId} ─ Task ${s.total}건`
+    + ` · 완료 ${s.done}/${s.runnable} (${s.pct}%)`
+    + ` · 대기 ${s.waiting} · 막힘 ${s.blocked} · 담당없음 ${s.planned}`);
+  if (snap.assetClass) console.log(`  자산군: ${snap.assetClass.label}`);
+
+  console.log('\n  회전 (같은 줄은 동시에 돈다)');
+  for (const w of snap.waves) {
+    console.log(`   ${String(w.wave).padStart(2)}. `
+      + w.tasks.map(t => `${MARK[t.status] || '·'} ${t.id} ${t.name}`).join('   '));
+  }
+
+  // ★ 못 도는 것을 목록 끝에 몰아 두지 않는다 — 이유와 함께 바로 보여준다
+  // ★★ **계획이 갈렸으면 맨 위에서 말한다** 〈2026-08-26〉. `snapshot()` 은 저장된
+  //   계획만 읽으므로, taskplan 에 Task 를 더해도 이미 계획이 잡힌 프로젝트에는
+  //   안 나타난다. 조용히 빠지면 「그 일은 원래 없는 것」으로 읽힌다.
+  const drift = snap.planDrift || { missing: [], extra: [] };
+  if (drift.missing.length || drift.extra.length) {
+    console.log('\n  ⚠ 저장된 계획이 지금의 계획과 다르다');
+    if (drift.missing.length) {
+      console.log(`   · 계획에 새로 생겼는데 이 프로젝트에는 없는 것 — ${drift.missing.length}건`);
+      for (const r of drift.missing) console.log(`     ${r.id} ${r.name}`);
+    }
+    if (drift.extra.length) {
+      console.log(`   · 계획에서 빠졌는데 이 프로젝트에는 남아 있는 것 — ${drift.extra.length}건`);
+      for (const r of drift.extra) console.log(`     ${r.id} ${r.name}`);
+    }
+    console.log('   → 반영하려면 `node im-agent/cli.js plan <PROJECT_ID>` — 끝난 일은 그대로 둔다');
+  }
+
+  const trouble = [
+    ['담당 Agent 가 없다', snap.planned],
+    ['지금 돌 수 없다', snap.blocked],
+    ['사람을 기다린다', snap.waiting],
+    ['다른 곳에서 이미 돈다', snap.elsewhere],
+  ];
+  for (const [label, rows] of trouble) {
+    if (!rows || !rows.length) continue;
+    console.log(`\n  ${label} — ${rows.length}건`);
+    for (const r of rows) console.log(`   · ${r.id} ${r.name}${r.reason || r.handledBy ? ` — ${r.reason || r.handledBy}` : ''}`);
+  }
+
+  const a = snap.artifacts;
+  console.log(`\n  산출물 등록부: ${a.distinct}건 (개정 ${a.revised} · 없음 ${a.missing} · 갈림 ${a.drift})`);
+  const off = snap.tools.filter(t => !t.ok);
+  if (off.length) {
+    console.log(`  못 쓰는 자료원 ${off.length}종 — ${off.map(t => `${t.name}(${t.missing.join(',')})`).join(' · ')}`);
+  }
+  if (snap.project) {
+    const tr = snap.project.tracks;
+    console.log(`\n  ★ 프로젝트 진행률은 Task 진행률과 다르다`);
+    console.log(`     전체 ${snap.project.overall}% — 제작 ${tr.production.pct}% · 검증 ${tr.validation.pct}%`
+      + ` · 산출 ${tr.output.pct}% · 승인 ${tr.approval.pct}%`);
+  }
+}
+
+function cmdPlan(projectId) {
+  if (!projectId) return fail('PROJECT_ID 가 필요하다');
+  const request = arg('--request', null);
+  orchestrator.planProject(projectId, { request });
+  printPlan(orchestrator.snapshot(projectId));
+  console.log(`\n  다음: im orchestrate ${projectId}  (--dry-run 이면 순서만 본다)`);
+}
+
+async function cmdOrchestrate(projectId) {
+  if (!projectId) return fail('PROJECT_ID 가 필요하다');
+  if (!tasksMod.load(projectId)) {
+    console.log('계획이 없어 먼저 세운다.');
+    orchestrator.planProject(projectId, { request: arg('--request', null) });
+  }
+  const r = await orchestrator.execute(projectId, {
+    log: m => console.log(m),
+    dryRun: process.argv.includes('--dry-run'),
+  });
+  printPlan(orchestrator.snapshot(projectId));
+  if (r.stoppedBecause) console.log(`\n  멈춘 이유: ${r.stoppedBecause}`);
+}
+
+function cmdRework(projectId, key) {
+  if (!projectId || !key) return fail('사용법: im rework <PROJECT_ID> <key>');
+  const r = orchestrator.markRework(projectId, key, { apply: !process.argv.includes('--dry-run') });
+  console.log(`\n─ ${r.label || key} 를 바꾸면 ─`);
+  console.log(`  다시 도는 순서: ${r.rerunOrder.join(' → ')}`);
+  console.log(`  다시 도는 Task ${r.marked.length}건`);
+  for (const m of r.marked) console.log(`   ↻ ${m.taskId} ${m.name} (${m.agentId})`);
+  if (r.notFound.length) console.log(`  되돌리지 못한 것: ${r.notFound.join(', ')}`);
+  if (r.requiresNewVersion) {
+    console.log('\n  ★ 이미 승인된 프로젝트다 — 값을 바꾸면 승인이 풀리고 버전이 올라간다');
+  }
+  console.log(`\n  갱신될 문서: ${r.affectedDocuments.length}건`);
+  if (process.argv.includes('--dry-run')) console.log('  (dry run — 아무것도 표시하지 않았다)');
+  else console.log(`  다음: im orchestrate ${projectId}`);
+}
+
+function cmdTools() {
+  console.log('\n─ 자료원 (MCP/커넥터) ─  ★ 키 값은 표시하지 않는다. 이름만 본다');
+  for (const t of router.toolStatus()) {
+    console.log(`  ${t.ok ? '●' : '○'} ${t.name.padEnd(10)} ${t.ok ? '쓸 수 있다' : `키 없음: ${t.missing.join(', ')}`}`);
+  }
+  console.log('\n─ 능력 → 담당 ─  ★ Agent 가 도구를 고르지 않는다. 여기서 지정해 내려보낸다');
+  for (const [id, c] of Object.entries(router.CAPABILITIES)) {
+    const a = router.assign(id);
+    const who = a.agentId || (a.handledBy ? `(${a.handledBy})` : '— 담당 없음');
+    console.log(`  ${c.label.padEnd(18)} ${String(who).padEnd(34)} ${a.tools.map(x => x.name).join(' ') || '-'}`);
+    if (a.reason) console.log(`   └ ${a.reason}`);
+  }
+}
+
 function fail(msg) {
   console.error(`✕ ${msg}`);
   process.exitCode = 1;
@@ -485,6 +606,10 @@ async function main() {
     case 'impact': return cmdImpact(a1, process.argv[4]);
     case 'list': return cmdList();
     case 'approve': return cmdApprove(a1);
+    case 'plan': return cmdPlan(a1);
+    case 'orchestrate': return cmdOrchestrate(a1);
+    case 'rework': return cmdRework(a1, process.argv[4]);
+    case 'tools': return cmdTools();
     case 'demo': return cmdDemo();
     default:
       console.log(`LinkPilot IM Agent
@@ -509,6 +634,13 @@ async function main() {
   impact <ID> <key>       변경 영향 분석 (무엇을 다시 계산해야 하는가)
   design revert <ID> --version 1.0   이전 디자인으로 복원
   approve <ID> --by <이름>  사람 승인 기록
+
+  ── 지휘체계 (업무를 쪼개고 · 동시에 돌리고 · 바뀐 것만 다시) ──
+  plan <ID>               요청문을 Task 로 쪼개 계획을 세운다
+  orchestrate <ID>        계획을 돌린다 (--dry-run 이면 순서만 본다)
+  rework <ID> <key>       값 하나가 바뀌었을 때 다시 돌 것만 표시한다
+  tools                   자료원 상태와 능력별 담당 (키 값은 안 나온다)
+
   demo                    샘플 자료로 전체 흐름 시연
 `);
   }

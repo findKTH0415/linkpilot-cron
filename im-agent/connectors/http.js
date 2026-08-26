@@ -103,6 +103,7 @@ const SECRET_ENV = [
   'VWORLD_KEY',        // 36자 (UUID) — 길이 규칙에 안 걸린다
   'DATA_GO_KR_KEY',
   'ECOS_API_KEY',      // 20자쯤 — 안 걸린다
+  'ECOS_BOK_KEY',      // 같은 한국은행 키의 다른 이름 (ecos.js KEY_NAMES) — 2026-08-26
   'DART_API_KEY',
   'GEMINI_API_KEY',
   'KMA_APIHUB_KEY',    // 22자쯤 — 안 걸린다 (기상청 API허브)

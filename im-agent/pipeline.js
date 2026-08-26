@@ -21,6 +21,7 @@ const reports = require('./core/reports');
 const monitor = require('./core/monitor');
 const { kstStamp } = require('./core/kst');
 const linked = require('./core/linked');
+const agentMerge = require('./core/agent-merge');
 const assetclass = require('./core/assetclass');
 const pdf = require('./core/pdf');
 const deskappraisal = require('./core/deskappraisal');
@@ -196,12 +197,8 @@ async function run(opts = {}) {
   const geo = await runAgent('07_geo', { projectId, templateId: templateId || null }, ctx);
   results['07_geo'] = geo;
   if (geo.output) {
-    dataset.dropSource('지적공부(VWorld)');
-    dataset.dropSource('건축물대장(국토교통부)');
-    dataset.addMany(geo.output.facts);
-    dataset.resolve();
-    saveDataset(projectId, dataset);
-    store.writeJson(projectId, '04_Property/geo.json', geo.output);
+    // 병합 절차는 core/agent-merge.js 한 곳에만 있다 — 여기에 다시 적지 않는다 (D-68)
+    agentMerge.apply(projectId, '07_geo', geo.output, dataset, { save: saveDataset });
     if (geo.output.geo) {
       log(`  입지: ${geo.output.geo.refined || ''} (${geo.output.geo.lat}, ${geo.output.geo.lon})`
         + (geo.output.parcel ? ` · 지적 ${geo.output.parcel.officialAreaSqm ?? '-'}㎡` : '')
@@ -222,17 +219,11 @@ async function run(opts = {}) {
   }, ctx);
   results['03_research'] = res;
   if (res.output) {
-    store.writeJson(projectId, '05_Market/research.json', res.output);
     // ★ 서술(sections)이 아니라 **실측 지표만** Dataset 에 들어간다.
     //   LLM 기억은 여기로 오지 않는다 — 03-research.js 머리말의 ①/② 구분 참고.
-    if (res.output.facts && res.output.facts.length) {
-      dataset.dropSource('REC 현물시장(한국전력거래소)');
-      for (const f of res.output.facts) dataset.dropSource(f.source);
-      dataset.addMany(res.output.facts);
-      dataset.resolve();
-      saveDataset(projectId, dataset);
-      log(`  시장지표: ${res.output.facts.length}건 (출처 있는 실측값)`);
-    }
+    //   병합 규칙은 core/agent-merge.js 가 갖는다 (오케스트레이터와 같은 것을 쓴다)
+    const rm = agentMerge.apply(projectId, '03_research', res.output, dataset, { save: saveDataset });
+    if (rm.merged) log(`  시장지표: ${rm.merged}건 (출처 있는 실측값)`);
 
     // ★ 대조는 **facts 가 아니다.** Dataset 에 넣지 않고 따로 남긴다 —
     //   넣는 순간 대조값이 딜의 값으로 IM 에 실린다 (등록부 D-48).
@@ -269,12 +260,9 @@ async function run(opts = {}) {
   const fin = await runAgent('04_financial', { projectId, templateId: templateId || 'generic' }, ctx);
   results['04_financial'] = fin;
   if (fin.output) {
-    // 계산값은 매 실행마다 새로 산출된다 — 옛 계산값을 버리지 않으면 자기 자신과 충돌한다
-    dataset.dropSource('financial_model (04_financial)');
-    dataset.addMany(fin.output.computedFacts);
-    dataset.resolve();
-    saveDataset(projectId, dataset);
-    store.writeJson(projectId, '07_Financial/financial.json', fin.output);
+    // 계산값은 매 실행마다 새로 산출된다 — 옛 계산값을 버리지 않으면 자기 자신과 충돌한다.
+    // 버릴 출처 이름은 core/agent-merge.js 가 갖는다 (여기와 오케스트레이터가 같은 것을 쓴다)
+    agentMerge.apply(projectId, '04_financial', fin.output, dataset, { save: saveDataset });
     const base = fin.output.scenarios.base.metrics;
     log(`  재무모델: Project IRR ${base.projectIRR}% / Equity IRR ${base.equityIRR}% / minDSCR ${base.minDSCR} (가정치 ${fin.output.assumed.length}건)`);
   }
@@ -283,12 +271,7 @@ async function run(opts = {}) {
   const appraisal = await runAgent('08_appraisal', { projectId, financial: fin.output || null }, ctx);
   results['08_appraisal'] = appraisal;
   if (appraisal.output) {
-    dataset.dropSource('감정평가 Agent · 3방식 가중평균');
-    for (const label of ['공시지가 기준', '거래사례비교법', '수익환원법']) dataset.dropSource(`감정평가 Agent · ${label}`);
-    dataset.addMany(appraisal.output.facts);
-    dataset.resolve();
-    saveDataset(projectId, dataset);
-    store.writeJson(projectId, '04_Property/appraisal.json', appraisal.output);
+    agentMerge.apply(projectId, '08_appraisal', appraisal.output, dataset, { save: saveDataset });
     if (appraisal.output.concluded) {
       log(`  감정평가(참고): ${appraisal.output.concluded.valueEok}억원 · ${appraisal.output.concluded.methodsUsed.join('/')}`);
     }
@@ -420,11 +403,7 @@ async function run(opts = {}) {
   const massing = await runAgent('09_massing', { projectId, geo: geo.output || null }, ctx);
   results['09_massing'] = massing;
   if (massing.output) {
-    dataset.dropSource('매스 검토 Agent (09_massing)');
-    dataset.addMany(massing.output.facts);
-    dataset.resolve();
-    saveDataset(projectId, dataset);
-    store.writeJson(projectId, '04_Property/massing.json', massing.output);
+    agentMerge.apply(projectId, '09_massing', massing.output, dataset, { save: saveDataset });
     if (massing.output.model) {
       log(`  매스: 지상 ${massing.output.model.floors}층 · 높이 ${massing.output.model.heightM}m · ${massing.output.files.length}개 파일`);
     }

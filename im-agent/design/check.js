@@ -111,6 +111,76 @@ function checkAsset(text) {
 }
 
 /**
+ * 권리·비밀 검사 〈2026-08-26 · D-127 · 디자인 지시서 §14.5〉.
+ *
+ * ★★ **첫 판은 막지 않는다.** 셋 다 YELLOW 다. 오탐 하나에 문서가 아예 안
+ *   나가면 사람들은 검사를 꺼 버린다 — 그러면 없느니만 못하다. 오탐을 세어
+ *   본 뒤 RED 로 올린다 (D-118 에 그렇게 적어 두었다).
+ *
+ * ★★ **열쇠는 이름이 아니라 값으로 찾는다.** `SECRET_ENV` 에 적힌 환경변수의
+ *   **실제 값**이 산출물에 들어갔는지 본다. 이름만 찾으면
+ *   「ECOS_API_KEY 를 넣으세요」라는 안내문까지 걸린다.
+ *
+ * ★ **값이 짧으면 건너뛴다.** 여덟 자 미만은 아무 데나 걸린다.
+ * ★ **찾은 것을 로그에 찍지 않는다.** 어디서 걸렸는지만 말한다 (CLAUDE.md §2).
+ */
+const SECRET_NAMES = [
+  'VWORLD_KEY', 'VWORLD_DOMAIN', 'DATA_GO_KR_KEY', 'ECOS_API_KEY', 'ECOS_BOK_KEY',
+  'DART_API_KEY', 'GEMINI_API_KEY', 'KMA_APIHUB_KEY', 'REB_API_KEY', 'KOSIS_API_KEY',
+  'LAW_OC', 'LAW_OPEN_DATA', 'RHINO_COMPUTE_KEY', 'RHINO_COMPUTE_URL',
+  'KEPCO_BIGDATA_KEY', 'PEXELS_API_KEY', 'SOLAPI_API_KEY', 'SOLAPI_API_SECRET',
+];
+
+/** 개인정보 꼴 — 확정이 아니라 **표시**다 */
+const PII = [
+  { re: /\b01[016-9][-\s]?\d{3,4}[-\s]?\d{4}\b/g, what: '휴대전화 번호' },
+  { re: /\b\d{6}[-\s]?[1-4]\d{6}\b/g, what: '주민등록번호 꼴' },
+  { re: /\b[\w.+-]+@[\w-]+\.[\w.]{2,}\b/g, what: '이메일 주소' },
+];
+
+/** 권리 확인이 필요한 자산의 자취 */
+const RIGHTS = [
+  { re: /(pexels|unsplash|shutterstock|gettyimages|istockphoto)/gi, what: '스톡 이미지 출처' },
+  { re: /(®|™|\(R\)|\(TM\))/g, what: '상표 기호' },
+];
+
+/**
+ * @param {string} text 산출물 본문 (HTML·마크다운·SVG)
+ * @param {object} opts { env } — 검사용으로 환경을 주입할 수 있다
+ * @returns {{ok:boolean, violations:Array}}
+ */
+function checkRights(text, opts = {}) {
+  const v = [];
+  const s = String(text || '');
+  const env = opts.env || process.env;
+
+  // ① 열쇠 — **값**으로 찾는다
+  for (const name of SECRET_NAMES) {
+    const val = env[name];
+    if (!val || String(val).trim().length < 8) continue;
+    const raw = String(val).trim();
+    if (s.includes(raw) || s.includes(encodeURIComponent(raw))) {
+      // ★ 값을 메시지에 넣지 않는다
+      v.push(violation('D12-secret-leak', `${name} 의 값이 산출물에 들어 있다`));
+    }
+  }
+
+  // ② 개인정보 꼴
+  for (const { re, what } of PII) {
+    const hits = s.match(new RegExp(re.source, re.flags)) || [];
+    if (hits.length) v.push(violation('D13-personal-info', `${what} ${hits.length}건`));
+  }
+
+  // ③ 권리 확인이 필요한 자산
+  for (const { re, what } of RIGHTS) {
+    const hits = s.match(new RegExp(re.source, re.flags)) || [];
+    if (hits.length) v.push(violation('D14-rights-unchecked', `${what} ${hits.length}건 — 사람이 확인해야 한다`));
+  }
+
+  return { ok: v.filter(x => x.severity === 'RED').length === 0, violations: v };
+}
+
+/**
  * 테마 일관성 검사 (사양 §13 Design Consistency Check).
  * 문서에 쓰인 색이 전부 활성 테마 팔레트에서 나왔는지 확인한다.
  * 테마를 골라놓고 다른 색이 섞이면 '한 프로젝트 = 한 디자인' 이 깨진다.
@@ -153,4 +223,4 @@ function list() {
   return RULES.rules.map(r => ({ ...r }));
 }
 
-module.exports = { checkHtml, checkMarkdown, checkAsset, checkThemeConsistency, list, RULES, FORBIDDEN_COLORS, EMOJI };
+module.exports = { checkHtml, checkMarkdown, checkAsset, checkThemeConsistency, checkRights, list, RULES, FORBIDDEN_COLORS, EMOJI, SECRET_NAMES, PII, RIGHTS };
