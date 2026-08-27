@@ -58,3 +58,7 @@ im-agent/ui/platform/merge-watch.html
 
 # 열린 PR 기록 — 세션마다 받아 적는 임시 기록이다 (D-142)
 .lp-open-prs.json
+
+# 배포 확인 한 장 (`npm run deploy:report`) — 돌릴 때마다 새로 만드는 산출물이다.
+# 소스가 아니므로 커밋하지 않는다. 전달은 아티팩트 주소로 한다 (CLAUDE.md §8).
+deploy-report.html
