@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="5cedb5ff">
+<html lang="ko" data-lp-build="8f74aa48">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -267,7 +267,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=5cedb5ff">
+<link rel="stylesheet" href="tokens.css?v=8f74aa48">
 <script>
 /* ★★★ **틀 안인지를 그리기 전에 정한다** 〈2026-08-25〉.
  *   나중에 정하면 [저장] 막대가 **아래에 한 번 붙었다가 올라온다** — 그 깜빡임이
@@ -375,6 +375,36 @@ ul { margin: 0; padding: 0; list-style: none; }
 
 /* 도구 막대 */
 .tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+/* ── 근거 구성 (D-152) ─────────────────────────────────────────
+   ★ 색은 갈래를 가르는 데만 쓴다. 라임으로 큰 면을 채우지 않는다 (§6-3) */
+.ev__head { margin: 2px 0 12px; font-size: 15.5px; font-weight: 700; line-height: 1.5;
+  letter-spacing: -0.01em; color: var(--ink); }
+.ev__bar { display: flex; height: 12px; border-radius: 999px; overflow: hidden;
+  background: var(--panel); margin: 0 0 10px; }
+.ev__seg { display: block; height: 100%; }
+.ev--document { background: #2F6B2F; }
+.ev--public { background: #4A7FB5; }
+.ev--request { background: #8A6FB0; }
+.ev--derived { background: #9AA3AC; }
+.ev--assumed { background: #D89B2C; }
+.ev--manual { background: #C0632A; }
+.ev--missing { background: #E3E6E9; }
+.ev__legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0 0 12px;
+  font-size: 12.5px; color: var(--ink2); font-variant-numeric: tabular-nums; }
+.ev__lg { display: inline-flex; align-items: center; gap: 5px; }
+.ev__dot { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+.ev__wrap { overflow-x: auto; margin: 0 0 10px; }
+.ev__t { border-collapse: collapse; width: 100%; font-size: 13px; }
+.ev__t th, .ev__t td { white-space: nowrap; padding: 6px 10px; text-align: left;
+  border-bottom: 1px solid var(--line); }
+.ev__t th { font-size: 11.5px; letter-spacing: 0.04em; color: var(--ink2); font-weight: 700; }
+.ev__t td.num, .ev__t th:nth-child(n+2) { text-align: right; font-variant-numeric: tabular-nums; }
+.ev__red { color: var(--bad-ink); font-weight: 600; }
+.ev__yel { color: var(--warn-ink); }
+.ev__toggle { margin: 8px 0 0; padding: 9px 14px; border-radius: 10px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--card); color: var(--ink);
+  font-family: inherit; font-size: 13.5px; font-weight: 600; }
+.ev__toggle.on { border-color: var(--lime-deep); color: var(--lime-deep); }
 .tools input[type=search] { flex: 1; min-width: 170px; font-weight: 400; font-size: 14px; line-height: 1.5; font-family: inherit;
   padding: 10px 13px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
 .chip { padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line);
@@ -596,12 +626,15 @@ ul { margin: 0; padding: 0; list-style: none; }
   </main>
 </div>
 
-<script src="gate-core.js?v=5cedb5ff"></script>
-<script src="catalog.js?v=5cedb5ff"></script>
-<script src="inapp.js?v=5cedb5ff"></script>
-<script src="fields-core.js?v=5cedb5ff"></script>
+<script src="gate-core.js?v=8f74aa48"></script>
+<script src="catalog.js?v=8f74aa48"></script>
+<script src="inapp.js?v=8f74aa48"></script>
+<script src="fields-core.js?v=8f74aa48"></script>
+<!-- ★ 근거 기여도·품질 셈 (D-152). 엔진(core/evidence.js)이 **이 파일을**
+     그대로 받아 쓴다 — 두 벌이면 화면과 문서가 다른 수를 말한다 -->
+<script src="evidence-core.js?v=8f74aa48"></script>
 <!-- ★ 판 지문을 화면에 보이게 찍는 것이 여기 있다 (§8) — 묶음에 이미 실리는 파일이다 -->
-<script src="flow-core.js?v=5cedb5ff"></script>
+<script src="flow-core.js?v=8f74aa48"></script>
 <script>
 /**
  * 설정 — 서버가 세션을 보고 이 블록을 만들어 내려주는 것이 정석이다.
@@ -616,7 +649,7 @@ window.LINKPILOT_FIELDS_CFG = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=5cedb5ff" data-lp-global="LINKPILOT_FIELDS_CFG"></script>
+<script src="embed-bridge.js?v=8f74aa48" data-lp-global="LINKPILOT_FIELDS_CFG"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -746,6 +779,17 @@ window.LINKPILOT_FIELDS_CFG = {
      *   입력 상자를 늘 열어 두면 읽은 값과 빈 칸이 똑같이 생겨서
      *   **자료를 읽었는지 화면만 봐서는 알 수 없다.** */
     editing: {},
+    /* ★★★ **값 입력칸을 기본에서 없앴다** 〈2026-08-27 사장님 지시 · D-153:
+     *   「미리 지정된 필드값을 [자동+직접입력] 하기보다는 … 확보된 자료를
+     *   근거로」 · 「입력값 삭제해줘」〉.
+     *
+     *   ★ 왜 아주 지우지 않고 잠가 두나. 자료에도 공공 API 에도 없는 값이
+     *     실제로 있다(시행사가 아직 안 정해진 딜의 SPC 이름 같은 것). 넣을
+     *     길이 아예 없으면 **그 문서는 영영 못 끝낸다.** 대신 기본에서는
+     *     안 보이고, 켜서 넣은 값은 근거 표에 **「사람이 넣음」으로 따로** 선다.
+     *   ★ 켜는 것은 사람이 한 번 누르는 일이다 — 눌러야 열리면 「자료로 채운다」가
+     *     기본이 된다. 반대로 두면 아무도 안 끄고 예전으로 돌아간다. */
+    manualOpen: false,
     fields: null, computedKeys: [], computedFields: {}, sources: [],
     assetClasses: [], assetClass: null,   // 자산군 — 필수 항목의 분모가 달라진다
     industries: [],      // 서버가 준 산업분야 정의
@@ -1003,14 +1047,21 @@ window.LINKPILOT_FIELDS_CFG = {
       if (has && def.unit) rd.appendChild(el('span', 'rd__u', def.unit));
       else rd.appendChild(el('span', 'rd__u', ''));
 
-      var edit = el('button', 'rd__edit', has ? '고치기' : '직접 넣기');
-      edit.type = 'button';
-      edit.addEventListener('click', function () {
-        state.editing[key] = true;
-        render();
-        focusValue(key);
-      });
-      rd.appendChild(edit);
+      /* ★★★ **기본에서는 입력칸으로 가는 문을 안 연다** 〈2026-08-27 · D-153〉.
+       *   여기 [직접 넣기] 가 있으면 비어 있는 줄마다 「내가 채워야 하는구나」로
+       *   읽힌다 — 그러면 사람은 **자기가 모르는 값을 지어내서** 넣는다.
+       *   이 시스템이 막으려는 바로 그 일이다.
+       *   ★ 위쪽 근거 패널에서 [사람이 넣기] 를 켜면 그때 나온다. */
+      if (state.manualOpen) {
+        var edit = el('button', 'rd__edit', has ? '고치기' : '직접 넣기');
+        edit.type = 'button';
+        edit.addEventListener('click', function () {
+          state.editing[key] = true;
+          render();
+          focusValue(key);
+        });
+        rd.appendChild(edit);
+      }
 
       /* ★ 출처를 **값 바로 아래**에 적는다. 접어 두면 아무도 안 편다 —
        *   그러면 「출처 있는 값만 쓴다」가 화면에서는 안 보인다 */
@@ -1025,6 +1076,11 @@ window.LINKPILOT_FIELDS_CFG = {
         if (e.sourceDate) line.appendChild(document.createTextNode(' · ' + e.sourceDate));
       } else if (org.kind === 'auto') {
         line = el('span', 'rd__src', '자동으로 채운 값 — ' + org.label);
+      } else if (!has) {
+        /* ★ 「자료에서 안 나왔습니다」로 끝내면 무엇을 해야 하는지 모른다.
+         *   채움 계획이 아는 만큼 적어 준다 — 모르면 모른다고 적는다 */
+        var pw = (pl[key] || {}).why;
+        line = el('span', 'rd__src', pw || '이 값을 채울 자동 경로가 없습니다 — 자료에 있으면 그 자료를 올려 주십시오.');
       } else if (org.kind === 'typed') {
         /* ★ 출처 없는 값은 **저장되지 않는다.** 그것을 여기서 말하지 않으면
          *   저장 버튼을 누른 뒤에야 알게 된다 */
@@ -1492,6 +1548,103 @@ window.LINKPILOT_FIELDS_CFG = {
 
     opt.appendChild(og);
     body.appendChild(opt);
+
+    /* ═══ 무엇이 이 값들을 채웠는가 ═══════════════════════════════
+     *
+     * ★★★ 사장님 지시 〈2026-08-27 · D-152〉: 「업로드한 자료와 API 로 확보된
+     *   자료를 근거로, 값들의 **100% 를 놓고** 정보기여도와 품질을 측정하고
+     *   그 근원으로 보고서 생성을 완성해 달라」.
+     *
+     * ★ 셈은 `evidence-core.js` 한 곳에 있다 — **엔진이 같은 파일을 쓴다.**
+     *   두 벌이면 화면이 말하는 100% 와 문서가 말하는 100% 가 달라진다.
+     * ★ 분모는 **다른 산업 전용을 뺀 항목 전부**다. 실측으로 데이터센터 딜은
+     *   94개 — 사장님이 세어 주신 목록과 같은 수다.
+     */
+    var EV = window.LinkPilotEvidence;
+    if (EV && state.fields) {
+      var ind0 = currentIndustry();
+      var evKeys = EV.targetKeys(state.fields, ind0 && ind0.foreign);
+      var m = EV.measure({
+        keys: evKeys, fields: state.fields, facts: state.values,
+        plan: currentPlan() || {}, computedKeys: state.computedKeys,
+      });
+      var ec = el('div', 'card ev');
+      ec.appendChild(el('h2', 'card__t', '무엇이 이 값들을 채웠나'));
+      /* ★ 첫 줄은 **판정 하나**다 (§6-3 ①) — 스크롤하기 전에 답을 갖게 한다 */
+      ec.appendChild(el('p', 'ev__head', EV.headline(m)));
+
+      /* 막대 — 갈래마다 폭이 곧 비중이다. 숫자를 문장에 숨기지 않는다 (§6-3 ②) */
+      var bar = el('div', 'ev__bar');
+      m.contribution.forEach(function (c) {
+        if (!c.n) return;
+        var seg = el('span', 'ev__seg ev--' + c.id);
+        seg.style.width = c.pct + '%';
+        seg.title = c.label + ' ' + c.n + '개 (' + c.pct + '%)';
+        bar.appendChild(seg);
+      });
+      ec.appendChild(bar);
+
+      var legend = el('div', 'ev__legend');
+      m.contribution.forEach(function (c) {
+        var t = el('span', 'ev__lg');
+        t.appendChild(el('i', 'ev__dot ev--' + c.id));
+        t.appendChild(document.createTextNode(c.label + ' ' + c.n + ' (' + c.pct + '%)'));
+        t.title = c.why;
+        legend.appendChild(t);
+      });
+      ec.appendChild(legend);
+
+      /* 갈래별 표 — 「어디가 비었나」가 한눈에 보여야 다음에 무엇을 올릴지 안다.
+         셀은 한 줄로 두고 좁으면 표를 가로로 민다 (§6-3 ⑤) */
+      var wrap = el('div', 'ev__wrap');
+      var tb = el('table', 'ev__t');
+      var hr = el('tr');
+      ['분류', '항목', '자료·API', '비중', '품질'].forEach(function (h) {
+        hr.appendChild(el('th', null, h));
+      });
+      tb.appendChild(hr);
+      m.byCategory.forEach(function (c) {
+        var tr = el('tr');
+        tr.appendChild(el('td', null, c.name));
+        tr.appendChild(el('td', 'num', String(c.total)));
+        tr.appendChild(el('td', 'num', String(c.fromEvidence)));
+        tr.appendChild(el('td', 'num', c.pct + '%'));
+        tr.appendChild(el('td', 'num', c.score === null ? '-' : c.score + '점'));
+        tb.appendChild(tr);
+      });
+      wrap.appendChild(tb);
+      ec.appendChild(wrap);
+
+      if (m.bySource.length) {
+        var sl = el('p', 'card__s', '어느 자료가 냈나 — '
+          + m.bySource.slice(0, 5).map(function (x) { return x.source + ' ' + x.n + '개'; }).join(' · ')
+          + (m.bySource.length > 5 ? ' 외 ' + (m.bySource.length - 5) + '건' : ''));
+        ec.appendChild(sl);
+      }
+
+      EV.verdict(m).forEach(function (f) {
+        var w = el('p', 'card__s ' + (f.level === 'RED' ? 'ev__red' : 'ev__yel'), f.message);
+        ec.appendChild(w);
+      });
+
+      /* ★★★ **값 입력칸은 꺼져 있는 것이 기본이다** 〈D-153〉.
+       *   켜는 것은 사람이 한 번 누르는 일이다 — 눌러야 열리면 「자료로 채운다」가
+       *   기본이 되고, 반대로 두면 아무도 안 끄고 예전으로 돌아간다. */
+      var tg = el('button', 'ev__toggle' + (state.manualOpen ? ' on' : ''),
+        state.manualOpen ? '사람이 넣기 — 켜져 있음 (끄기)' : '사람이 넣기 — 자료에 없는 값만');
+      tg.type = 'button';
+      tg.setAttribute('aria-pressed', state.manualOpen ? 'true' : 'false');
+      tg.addEventListener('click', function () {
+        state.manualOpen = !state.manualOpen;
+        if (!state.manualOpen) state.editing = {};
+        render();
+      });
+      ec.appendChild(tg);
+      ec.appendChild(el('p', 'card__s', state.manualOpen
+        ? '켜져 있습니다. 여기서 넣은 값은 근거 표에 「사람이 넣음」으로 따로 섭니다 — 자료에서 읽은 값과 섞이지 않습니다.'
+        : '값은 올리신 자료와 공공 API 에서만 채웁니다. 자료에도 API 에도 없는 값(예: 아직 안 정해진 SPC 이름)이 있으면 이 단추로 여십시오.'));
+      body.appendChild(ec);
+    }
 
     // ★ 자동으로 채워지는 항목을 근거와 함께 보여준다.
     //   그냥 감추면 "왜 필수인데 안 보이지" 하고 다른 데서 찾는다

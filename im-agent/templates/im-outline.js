@@ -27,6 +27,18 @@ const IM_SECTIONS = [
   { no: '18', id: 'exit', title: 'Exit Strategy', dataKeys: ['exit.cap_rate', 'exit.year', 'returns.exit_value'], narrative: true },
   { no: '19', id: 'sensitivity', title: 'Sensitivity Analysis', dataKeys: [], table: 'sensitivity', narrative: false },
   { no: '20', id: 'conclusion', title: 'Investment Conclusion', dataKeys: ['returns.equity_irr', 'returns.project_irr', 'returns.min_dscr', 'returns.npv'], narrative: true },
+  /**
+   * ★★★ **무엇이 이 문서를 채웠는가** 〈2026-08-27 사장님 지시 · D-152〉.
+   *
+   *   「업로드한 자료와 API 로 확보된 자료를 근거로, 값들의 **100% 를 놓고**
+   *   정보기여도와 품질을 측정하고 **그 근원으로** 보고서를 완성해 달라」.
+   *
+   *   ★ 맨 뒤에 두는 이유: 이 절은 **본문의 근거를 되짚는 곳**이다. 앞에 두면
+   *     읽는 사람이 아직 보지도 않은 값의 품질부터 읽게 된다.
+   *   ★ `narrative: false` — **모델이 쓰지 않는다.** 전부 센 수다. 서술을 붙이면
+   *     그 순간 「품질이 좋습니다」 같은 말이 근거 없이 들어간다.
+   */
+  { no: '21', id: 'evidence', title: 'Evidence & Data Quality', dataKeys: [], table: 'evidence', narrative: false },
 ];
 
 const TEASER_ITEMS = [
