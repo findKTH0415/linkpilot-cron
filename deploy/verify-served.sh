@@ -131,8 +131,31 @@ for NAME in "${FILES[@]}"; do
     echo "   ✓ 저장소 = 디스크 = HTTP — 진짜로 닿았다"
   fi
 
-  [ -z "$CC" ] && [ -n "$SERVED" ] && \
-    echo "::warning::${NAME} 에 Cache-Control 이 없다 — 브라우저가 제 마음대로 오래 들고 있을 수 있다"
+  # ★★★ **화면(HTML)과 형제(스크립트·CSS)는 잣대가 다르다** 〈2026-08-27 · D-150〉.
+  #
+  #   형제는 주소에 판 표시가 붙어 불린다 — 바뀌면 주소가 바뀌므로 **캐시가 이득**이다.
+  #   화면은 그런 것이 없다. 그래서 브라우저가 옛 화면을 들고 있으면 **새 형제를 부르는
+  #   옛 화면**이 되고, 그것이 빨간 띠의 거의 유일한 원인이다 (M-29 · D-149).
+  #
+  #   ★ 그러니 화면에는 「매번 확인」이 붙어 있어야 하고, 안 붙어 있으면 **경고로 적는다.**
+  #     켜는 자리는 docs/안내-NAS-HTML-캐시-끄기.md 에 있다.
+  case "$NAME" in
+    *.html)
+      if [ -n "$SERVED" ]; then
+        if printf '%s' "$CC" | grep -qiE 'no-cache|no-store|max-age=0'; then
+          echo "   ✓ 화면은 매번 확인 — Cache-Control: ${CC}"
+        elif [ -z "$CC" ]; then
+          echo "::warning::${NAME} — **화면에 Cache-Control 이 없다.** 브라우저가 옛 화면을 제 마음대로 들고 있을 수 있다 → docs/안내-NAS-HTML-캐시-끄기.md"
+        else
+          echo "::warning::${NAME} — **화면이 캐시된다** (Cache-Control: ${CC}). 옛 화면이 새 형제를 불러 빨간 띠가 뜬다 → docs/안내-NAS-HTML-캐시-끄기.md"
+        fi
+      fi
+      ;;
+    *)
+      [ -z "$CC" ] && [ -n "$SERVED" ] && \
+        echo "::warning::${NAME} 에 Cache-Control 이 없다 — 브라우저가 제 마음대로 오래 들고 있을 수 있다"
+      ;;
+  esac
 done
 
 if [ "$BEFORE" = "1" ]; then
