@@ -14,6 +14,10 @@
 const { runAgent, STATUS } = require('./core/runtime');
 const { Dataset } = require('./core/facts');
 const { FIELDS } = require('./core/dictionary');
+const dict = require('./core/dictionary');
+const fieldplan = require('./core/fieldplan');
+const evidenceLib = require('./core/evidence');
+const templates = require('./finance/templates');
 const store = require('./core/store');
 const gate = require('./core/gate');
 const designState = require('./core/design-state');
@@ -584,6 +588,37 @@ async function run(opts = {}) {
   gateStep(projectId, 'DESIGN_READY', '테마가 정해졌다', log);
   gateStep(projectId, 'DEVELOPING', '산출물을 만들기 시작했다', log);
 
+  /* ── 근거 기여도·품질 ──────────────────────────────────────
+   *
+   * ★★★ **분모를 「필요한 항목 전부」로 둔다** 〈2026-08-27 사장님 지시 · D-152〉.
+   *   「업로드한 자료와 API 로 확보된 자료를 근거로, 값들의 **100% 를 놓고**
+   *   정보기여도와 품질을 측정하고 그 근원으로 보고서를 완성해 달라」.
+   *
+   *   ★ 지금까지 이 시스템은 **채워진 것만** 셌다(`dataset.tally()`). 그러면
+   *     열 칸 중 셋만 채워도 「문서 100%」가 나온다 — 분모가 틀리면 좋은 숫자가
+   *     그대로 거짓말이 된다.
+   *   ★ 여기서 재는 이유: 값을 만드는 Agent 가 **다 돈 뒤**라야 「무엇이 채웠나」가
+   *     확정된다. 앞에서 재면 아직 안 온 값이 전부 미확보로 세어진다.
+   *   ★ **막지 않는다. 적는다** (D-127 과 같은 결) — 막으면 사람이 검사를 끈다.
+   */
+  /* ★ 분모는 **화면이 보여주는 항목 전부**다 — 다른 산업 전용만 뺀다.
+   *   `requiredFor('im')` 은 10개뿐이라 그것으로 100% 를 잡으면 화면이 말하는
+   *   100%(94개)와 문서가 말하는 100% 가 서로 다른 수가 된다 (실측). */
+  const evidenceScope = templates.industryKeys(templateId || 'generic');
+  const evidenceKeys = evidenceLib.targetKeys(dict.FIELDS, evidenceScope.foreign);
+  const evidence = evidenceLib.measure({
+    keys: evidenceKeys,
+    fields: dict.FIELDS,
+    facts: dataset.toJSON().facts,
+    plan: fieldplan.plan(templateId || 'generic'),
+    conflicts: dataset.conflicts,
+    computedKeys: dict.COMPUTED_KEYS,
+  });
+  evidence.flags = evidenceLib.verdict(evidence);
+  store.writeJson(projectId, '11_QC/evidence.json', evidence);
+  log(`  근거: ${evidenceLib.headline(evidence)}`);
+  evidence.flags.forEach((f) => log(`  근거 ${f.level}: ${f.message}`));
+
   const val = await runAgent('05_validation', {
     projectId,
     financial: fin.output || null,
@@ -622,6 +657,8 @@ async function run(opts = {}) {
     massing: massing.output || null,
     // ★ AI 렌더를 본문에 싣는다 (D-34 2차 개정) — 표기가 온전한 것만 넘어온다
     intake: skIntake.output || null,
+    // ★ 「무엇이 이 문서를 채웠는가」 — IM 이 그 표를 그대로 싣는다 (D-152)
+    evidence,
   }, ctx);
   results['06_im_writer'] = writer;
   if (writer.output) {

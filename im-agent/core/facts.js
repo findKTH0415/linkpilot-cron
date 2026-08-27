@@ -37,26 +37,11 @@ function clamp01(n) {
  * ★ 등급은 만드는 쪽이 `origin` 으로 **밝히는 것이 원칙**이다. 안 밝히면
  *   아래 규칙으로 짐작하되, **짐작했다는 것을 값에 적는다**(`originGuessed`).
  */
-const ORIGIN = {
-  document: 3,   // 올린 자료에서 읽은 값 — 이 시스템의 1순위
-  public: 2,     // 공공데이터·기관 고시 (독립된 두 번째 출처)
-  request: 1,    // 사람이 접수 화면에 적은 것
-  derived: 0,    // 계산·가정·통상치 — 자료가 없을 때만 자리를 메운다
-};
-
-/** 확장자가 붙은 이름은 파일이다 — 그것이 「올린 자료」의 표시다 */
-const LOOKS_LIKE_FILE = /\.[A-Za-z0-9]{1,5}$/;
-/** 에이전트가 만든 값은 이름에 자기 번호를 적는다 (`… (04_financial)`) */
-const LOOKS_LIKE_AGENT = /\(\d{2}_[a-z]+\)/;
-
-function inferOrigin(source) {
-  const s = String(source || '');
-  if (!s) return 'derived';
-  if (s === 'user_request') return 'request';
-  if (LOOKS_LIKE_AGENT.test(s)) return 'derived';
-  if (LOOKS_LIKE_FILE.test(s)) return 'document';
-  return 'public';
-}
+/* ★★★ **등급 판정은 `ui/platform/evidence-core.js` 한 곳에 있다** 〈2026-08-27 · D-152〉.
+ *   화면도 같은 판정이 필요한데 이 파일은 엔진 전용이라 브라우저가 못 읽는다.
+ *   두 벌로 적으면 **화면과 문서가 같은 값을 다른 갈래로 세는 날**이 온다 —
+ *   그 순간 근거 측정이 통째로 뜻을 잃는다. 이름은 그대로 쓴다. */
+const { ORIGIN, inferOrigin } = require('../ui/platform/evidence-core.js');
 
 /**
  * ★★★ **출처를 세는 이름** — `source` 문자열이 아니라 이것으로 센다 (D-117).

@@ -38,6 +38,8 @@ const inputSchema = {
     appraisal: { type: 'object', nullable: true },
     massing: { type: 'object', nullable: true },
     intake: { type: 'object', nullable: true },
+    /* ★ 근거 기여도·품질 (D-152) — 21절이 이 수를 그대로 옮겨 적는다 */
+    evidence: { type: 'object', nullable: true },
   },
 };
 
@@ -210,6 +212,87 @@ function geoTable(geo) {
 }
 
 /** 매스 검토표 + 3D 산출물 안내 */
+/**
+ * **무엇이 이 문서를 채웠는가** 〈2026-08-27 사장님 지시 · D-152〉.
+ *
+ * ★★★ 여기서 **아무것도 지어내지 않는다.** 전부 `core/evidence.js` 가 센 수를
+ *   옮겨 적을 뿐이다. 이 절에 서술을 붙이지 않는 이유도 같다 — 서술을 붙이는
+ *   순간 「품질이 양호합니다」 같은 말이 근거 없이 들어간다.
+ *
+ * ★★ **기여도와 품질을 한 표에 뭉개지 않는다.** 「반쯤 채웠는데 아주 좋다」와
+ *   「다 채웠는데 근거가 약하다」는 할 일이 정반대인데, 한 숫자로 만들면 같아 보인다.
+ *
+ * ★ 못 채운 항목은 **수만 적고 이름은 갈래별로** 적는다. 100줄을 늘어놓으면
+ *   읽는 사람이 그 절을 통째로 건너뛴다 — 그러면 없는 것과 같다.
+ */
+function evidenceTable(ev) {
+  if (!ev || !ev.total) return '_근거 측정 미실행 — 필요한 항목 목록을 못 받았다._';
+
+  const out = [];
+  out.push(`**항목 ${ev.total}개를 100% 로 놓고 쟀다.**`);
+  out.push('');
+  out.push(`- 올린 자료 + 공공 API 가 채운 것: **${ev.evidencePct}%**`);
+  out.push(`- 채워진 값의 품질: **${ev.quality.score === null ? '잰 것 없음' : `${ev.quality.score}점 (${ev.quality.band.label})`}** — ${ev.quality.band.why}`);
+  out.push('');
+
+  out.push('**어디서 왔는가**');
+  out.push('');
+  out.push('| 갈래 | 건수 | 비중 | 뜻 |');
+  out.push('|---|---|---|---|');
+  ev.contribution.forEach((c) => {
+    out.push(`| ${c.label} | ${c.n} | ${c.pct}% | ${c.why} |`);
+  });
+  out.push('');
+
+  out.push('**갈래별 — 근거로 채운 비율과 품질**');
+  out.push('');
+  out.push('| 분류 | 항목 | 채움 | 자료·API | 비중 | 품질 |');
+  out.push('|---|---|---|---|---|---|');
+  ev.byCategory.forEach((c) => {
+    out.push(`| ${c.name} | ${c.total} | ${c.filled} | ${c.fromEvidence} | ${c.pct}% | ${c.score === null ? '-' : `${c.score}점`} |`);
+  });
+  out.push('');
+
+  if (ev.bySource.length) {
+    out.push('**어느 자료가 몇 칸을 냈는가**');
+    out.push('');
+    out.push('| 자료 | 갈래 | 채운 항목 | 비중 |');
+    out.push('|---|---|---|---|');
+    ev.bySource.slice(0, 15).forEach((s) => {
+      out.push(`| ${s.source} | ${s.cls === 'document' ? '올린 자료' : '공공 API'} | ${s.n} | ${s.pct}% |`);
+    });
+    if (ev.bySource.length > 15) out.push('');
+    if (ev.bySource.length > 15) out.push(`_위 15건만 적었다. 전체 ${ev.bySource.length}건은 11_QC/evidence.json 에 있다._`);
+    out.push('');
+  }
+
+  out.push('**품질을 어떻게 매겼는가**');
+  out.push('');
+  out.push('| 등급 | 점수 | 건수 | 뜻 |');
+  out.push('|---|---|---|---|');
+  ev.quality.grades.forEach((g) => {
+    out.push(`| ${g.label} | ${g.score} | ${g.n} | ${g.why} |`);
+  });
+  out.push('');
+
+  if (ev.computed && ev.computed.total) {
+    out.push(`계산으로 만들어지는 항목 ${ev.computed.total}개 중 ${ev.computed.ready}개가 실제로 나왔다. `
+      + '계산 항목은 입력이 아니라 결과이므로 위 100% 에는 넣지 않았다.');
+    out.push('');
+  }
+
+  const flags = ev.flags || [];
+  if (flags.length) {
+    out.push('**짚어 둘 것**');
+    out.push('');
+    flags.forEach((f) => out.push(`- ${f.level}: ${f.message}`));
+    out.push('');
+  }
+
+  out.push('_이 표의 모든 수는 `11_QC/evidence.json` 에서 그대로 옮긴 것이다. 사람이 적은 값은 없다._');
+  return out.join('\n');
+}
+
 function massingTable(massing) {
   if (!massing || !massing.inputs || !massing.inputs.landAreaSqm) return '_매스 검토 미실행 (대지면적 미확인)_';
   const i = massing.inputs;
@@ -391,6 +474,8 @@ async function run(input, ctx) {
     if (section.table === 'sensitivity') text = sensitivityTable(financial);
     if (section.table === 'flags') text += `\n\n${flagsTable(validation)}`;
     if (section.table === 'geo') text += `\n\n${geoTable(geo)}`;
+    /* ★ 근거 표는 **덧붙이지 않고 그 절 전체**다 (서술이 없는 절이다 · D-152) */
+    if (section.table === 'evidence') text = evidenceTable(input.evidence);
     if (section.table === 'massing') {
       text += `\n\n${massingTable(massing)}`;
       // ★ 실사 렌더는 매스 표 **아래**에 붙는다 (D-34 2차 개정) — 근거(표·기하)가
