@@ -910,28 +910,49 @@ jobs:
             || echo "::warning::.htaccess 를 못 올렸다 — 아래 재기가 그래서 안 켜졌다고 나올 것이다"
 
           # ★ **올린 것과 켜진 것은 다른 사실이다.** 응답 머리말로 잰다.
+          #
+          # ★★★ **「헤더가 없다」와 「못 쟀다」를 가른다** 〈2026-08-28 · 실측〉.
+          #
+          #   앞 판은 `CC`(Cache-Control 값) 가 비면 다음 길로 물러났다. 그런데
+          #   **헤더가 없는 것이 정상 결과**다 — 안 켜져 있으면 당연히 빈다.
+          #   그래서 앱이 쓰는 길을 **멀쩡히 재고도** 「못 쟀다」로 보고 8080 으로
+          #   물러났고, 판정에 `포트 8080` 이 찍혔다.
+          #
+          #   ★ 사장님이 실제로 보시는 길은 역방향 프록시(`https://*:843`)다.
+          #     거기에 헤더를 다셔도 **8080 을 재는 한 판정은 영영 「안 켜짐」**이다.
+          #     그러면 켜 두고도 안 켜졌다고 믿게 된다 — M-25 와 같은 결이다.
+          #
+          #   그래서 **응답을 받았는가**(`H`)로 갈린다. 받았으면 그것이 측정이고,
+          #   물러나지 않는다.
           WEBPATH=$(printf '%s' "$DEST" | sed 's|^/volume1/web||')
-          CC=""; VIA=""
+          CC=""; VIA=""; GOT=""
           if [ -n "${BASE:-}" ]; then
-            CC=$(curl -sS -I -m 25 "${BASE%/}/intake.html" 2>/dev/null \
-              | grep -i '^cache-control:' | tr -d '\r' | cut -d' ' -f2-)
-            VIA="앱이 쓰는 길"
+            H=$(curl -sS -I -m 25 "${BASE%/}/intake.html" 2>/dev/null)
+            if [ -n "$H" ]; then
+              CC=$(printf '%s' "$H" | grep -i '^cache-control:' | tr -d '\r' | cut -d' ' -f2-)
+              VIA="앱이 쓰는 길"; GOT=1
+            fi
           fi
-          if [ -z "$CC" ]; then
+          if [ -z "$GOT" ]; then
             for PORT in 80 5000 8080; do
               H=$(curl -sS -I -m 10 "http://${NAS_HOST}:${PORT}${WEBPATH}/intake.html" 2>/dev/null)
               [ -z "$H" ] && continue
               CC=$(printf '%s' "$H" | grep -i '^cache-control:' | tr -d '\r' | cut -d' ' -f2-)
-              VIA="포트 ${PORT}"
+              VIA="포트 ${PORT}"; GOT=1
               [ -n "$CC" ] && break
             done
+          fi
+          # ★ 앱이 쓰는 길을 못 재고 딴 포트로 갈렸으면 **그 사실을 판정에 적는다.**
+          #   「포트 8080 에서 안 켜짐」은 사장님 화면에 대한 답이 아니다.
+          if [ -n "${BASE:-}" ] && [ "$VIA" != "앱이 쓰는 길" ]; then
+            VIA="${VIA:-못 쟀다} · **앱이 쓰는 길은 못 쟀다**"
           fi
 
           if printf '%s' "$CC" | grep -qiE 'no-cache|no-store|max-age=0'; then
             echo "::notice::**화면 캐시 끄기가 켜져 있다** (${VIA} · Cache-Control: ${CC})."
             echo "화면 캐시: **매번 확인** (${VIA})" >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "::warning::**화면 캐시 끄기가 아직 안 켜졌다** (${VIA:-못 쟀다} · Cache-Control: ${CC:-없음}). 올린 .htaccess 는 Apache 일 때만 읽힌다 — DSM 을 눌러 켜는 자리는 docs/안내-NAS-HTML-캐시-끄기.md 에 있다. 안 켜져도 화면이 스스로 한 번 다시 받으므로 빨간 띠는 대개 저절로 사라진다 (D-149)."
+            echo "::warning::**화면 캐시 끄기가 아직 안 켜졌다** (${VIA:-못 쟀다} · Cache-Control: ${CC:-없음}). **이 NAS 는 Nginx 라 올린 .htaccess 는 읽히지 않는다**(2026-08-28 실측) — 켜는 자리는 제어판 → 로그인 포털 → 고급 → 역방향 프록시 → 편집 → 사용자 지정 헤더 다. 절차는 docs/안내-NAS-HTML-캐시-끄기.md. 안 켜져도 화면이 스스로 한 번 다시 받으므로 빨간 띠는 대개 저절로 사라진다 (D-149)."
             echo "화면 캐시: **아직 안 켜짐** — 사람 손 한 번 (docs/안내-NAS-HTML-캐시-끄기.md)" >> "$GITHUB_STEP_SUMMARY"
           fi
           exit 0
