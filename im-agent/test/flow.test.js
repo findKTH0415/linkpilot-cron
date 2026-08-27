@@ -770,12 +770,12 @@ test('★★ 절 셋 — 순서·이름·품은 단계가 고정되어 있다', 
    *   화면이 그 사이에 [확인] 문을 하나 더 세우고 있었다. **넣고 → 만들고 →
    *   받는다** 셋이 되었다. 없앤 것은 칸 사이의 문이지 단계가 아니다. */
   assert.deepStrictEqual(F.SECTIONS.map(s => `${s.no}. ${s.name}`), [
-    '1. 기본정보 · 무엇을 만들까요',
+    '1. 무엇을 만들까요 · 발행 주체',
     '2. 자료 업로드 · 보고서 생성',
     '3. 완성 보고서',
   ]);
   assert.deepStrictEqual(F.SECTIONS.map(s => s.steps),
-    [['basics', 'ask'], ['sources', 'fields', 'spec'], ['done']]);
+    [['ask', 'basics'], ['sources', 'fields', 'spec'], ['done']]);
   // 모든 단계가 **정확히 한 절**에만 속한다 (빠진 단계도, 두 번 실린 단계도 없다)
   const owned = F.SECTIONS.flatMap(s => s.steps).sort();
   assert.deepStrictEqual(owned, F.STEPS.map(s => s.id).sort(),
