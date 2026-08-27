@@ -101,3 +101,35 @@ test('★★ 사람이 눌러야 할 자리가 **메뉴 이름 그대로** 적�
   });
   assert.match(doc, /여기서 대개 막힙니다/, '막히기 쉬운 자리를 미리 안 짚었다');
 });
+
+/* ═══ 넣으신 값이 주소가 아닐 때 〈2026-08-27 · 실제로 그랬다〉 ═══════════
+ *
+ * 안내에 「앱이 보고서 화면을 불러오는 주소 (…/im-flow)」라고 적었더니 사장님이
+ * **그 문장을 그대로** Secret 칸에 붙여 넣으셨다. CLAUDE.md §5 가 「바꿔 넣을
+ * 자리를 두지 않는다」고 적어 둔 바로 그 사고이고, 이 저장소에서 네 번째다.
+ */
+const APP_STEP = (function () {
+  const i = WF.indexOf('- name: Check via app path');
+  if (i < 0) return '';
+  const j = WF.indexOf('\n      - name:', i + 10);
+  return WF.slice(i, j < 0 ? WF.length : j);
+}());
+
+test('★★★ 주소가 아닌 값이 오면 **사람 말로 알린다** — 17개가 빨개지는 것으로 알려 주지 않는다', () => {
+  assert.ok(APP_STEP.length > 200, '그 단계를 못 찾았다');
+  assert.match(APP_STEP, /http:\/\/\*\|https:\/\/\*/, '주소 꼴인지 보는 자리가 없다');
+  assert.match(APP_STEP, /주소가 아니다/, '무엇이 잘못됐는지 사람 말로 안 적는다');
+  assert.match(APP_STEP, /한글이 섞여/, '안내 문구가 그대로 들어온 것을 안 잡는다');
+  assert.match(APP_STEP, /안내-LP-PUBLIC-BASE-등록\.md/, '어디를 보면 되는지 안 가리킨다');
+});
+
+test('★★★ **값을 한 글자도 안 찍는다** (§2) — 길이와 무엇이 이상한지만 적는다', () => {
+  const say = APP_STEP.split('\n').filter((l) => /::warning::|GITHUB_STEP_SUMMARY/.test(l)).join('\n');
+  assert.ok(!/\$BASE"?\s*$/.test(say) && !/\$\{BASE\}/.test(say),
+    '경고 문구에 값을 그대로 넣는다 — 열쇠·주소가 로그에 남는다');
+  assert.match(APP_STEP, /\$\{#BASE\}/, '길이조차 안 적는다 — 무엇이 들어갔는지 가늠할 수 없다');
+});
+
+test('★★★ 이 단계도 **`set +e`** 다 — 파이프라인 하나가 죽으면 뒤가 통째로 건너뛴다 (M-60)', () => {
+  assert.match(APP_STEP, /set \+e/, 'bash -e 라 curl 한 번 실패에 단계가 죽는다');
+});
