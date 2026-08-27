@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="479c745f">
+<html lang="ko" data-lp-build="64478fa1">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -263,7 +263,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=479c745f">
+<link rel="stylesheet" href="tokens.css?v=64478fa1">
 <style>
 :root {
   --side: 248px;
@@ -529,11 +529,11 @@ h1,h2,h3,h4 { margin: 0; }
   </main>
 </div>
 
-<script src="gate-core.js?v=479c745f"></script>
-<script src="flow-core.js?v=479c745f"></script>
-<script src="upload-core.js?v=479c745f"></script>
-<script src="catalog.js?v=479c745f"></script>
-<script src="inapp.js?v=479c745f"></script>
+<script src="gate-core.js?v=64478fa1"></script>
+<script src="flow-core.js?v=64478fa1"></script>
+<script src="upload-core.js?v=64478fa1"></script>
+<script src="catalog.js?v=64478fa1"></script>
+<script src="inapp.js?v=64478fa1"></script>
 <script>
 /**
  * 설정 — 서버가 로그인 세션을 보고 내려주는 것이 정석이다.
@@ -545,7 +545,7 @@ window.LINKPILOT_INTAKE = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=479c745f" data-lp-global="LINKPILOT_INTAKE"></script>
+<script src="embed-bridge.js?v=64478fa1" data-lp-global="LINKPILOT_INTAKE"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -593,6 +593,29 @@ window.LINKPILOT_INTAKE = {
   var UP = window.LinkPilotUpload;
 
   var C = window.LINKPILOT_INTAKE;
+
+  /* ★★★ **서버 주소를 정하는 자리는 `flow-core.js` 한 곳이다** 〈2026-08-27 · D-148〉.
+   *
+   *   실측: 앱이 이 화면을 **통째로**(iframe 이 아니라 페이지 전체로) 열었더니
+   *   「API 주소가 설정되지 않았습니다」로 멈췄다. 그런데 **같은 저장소의
+   *   `files.html`·`report-flow.html` 은 같은 상황에서 멀쩡히 돌았다** —
+   *   그 둘만 `resolveApi()` 를 쓰고 이 화면은 `C.api` 만 봤기 때문이다.
+   *
+   *   `flow-core.js` 주석이 그 자리를 미리 경고하고 있었다:
+   *   「화면마다 따로 짐작하면 어느 화면은 되고 어느 화면은 안 된다가 되어
+   *    **원인이 안 보인다**」. 실제로 그 상태였다.
+   *
+   * ★ 짐작으로 부른 판이면 **그 사실을 문장에 붙인다** (`apiNote`). 안 붙이면
+   *   서버 탓으로 읽힌다 — 앱이 주소를 안 넘긴 것이 원인인데.
+   */
+  var FLOWAPI = window.LinkPilotFlow;
+  var APIR = (FLOWAPI && FLOWAPI.resolveApi) ? FLOWAPI.resolveApi(C)
+    : { api: C.api || null, guessed: false, why: null };
+  if (!C.api && APIR.api) C.api = APIR.api;
+  /** 막힌 문장에 **짐작으로 불렀다는 사실**을 붙인다 */
+  function apiNote(base) {
+    return (FLOWAPI && FLOWAPI.apiNote) ? FLOWAPI.apiNote(APIR, base) : base;
+  }
   var Gate = window.LinkPilotGate;
   if (!Gate) throw new Error('gate-core.js 가 필요하다');
 
@@ -847,7 +870,7 @@ window.LINKPILOT_INTAKE = {
   /* ── 서버 ─────────────────────────────────────────────── */
 
   function call(method, p, payload) {
-    if (!C.api) return Promise.reject(new Error('API 주소가 설정되지 않았습니다'));
+    if (!C.api) return Promise.reject(new Error(apiNote('서버 주소를 못 정했습니다')));
     var o = { method: method, headers: {}, credentials: 'same-origin' };
     if (payload) { o.headers['content-type'] = 'application/json'; o.body = JSON.stringify(payload); }
     return fetch(C.api + p, o).then(function (r) {
@@ -862,12 +885,15 @@ window.LINKPILOT_INTAKE = {
     // 미리보기: 서버 없이 화면을 보기 위해 접수 정보를 미리 심어 둔 경우.
     // ★ 값을 지어내지 않는다 — 빌드 시점에 서버가 보낼 것과 같은 값을 넣는다
     if (C.preload) { state.info = C.preload; adoptIssuer(); state.loadError = null; return render(); }
-    if (!C.api) { state.loadError = 'API 주소가 설정되지 않았습니다'; return render(); }
+    if (!C.api) { state.loadError = apiNote('서버 주소를 못 정했습니다'); return render(); }
     call('GET', '/intake').then(function (j) {
       state.info = j; adoptIssuer(); state.loadError = null; render();
     }).catch(function (e) {
       // ★ 못 가져온 것과 없는 것을 구분한다. 지원 형식을 모르는 채로 올리게 두지 않는다
-      state.loadError = e.message; render();
+      /* ★ **짐작으로 부른 판이면 그 사실을 붙인다** 〈2026-08-27 · D-148〉.
+       *   실측에서 이 자리가 「Failed to fetch」 한 줄로 끝났다 — 읽는 사람은
+       *   서버가 죽은 줄 안다. 실제 까닭은 **앱이 주소를 안 넘긴 것**이다. */
+      state.loadError = apiNote(e.message); render();
     });
   }
 
