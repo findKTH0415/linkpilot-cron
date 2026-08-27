@@ -54,8 +54,12 @@ test('★★ 받았지만 못 읽은 자료를 화면이 말한다 (올려 보�
     + '  var d = window.__lpDrove || {};'
     + '  out.step = d.step || null; out.ticks = d.ticks || 0;'
     /* 2026-08-23 병합: 갈래 토글이 없어졌다. 파일업로드 칸이 늘 보인다 */
-    + '  out.hasTile = !!$$(".ways2__t").filter(function (b) { return /파일업로드/.test(b.textContent); })[0];'
-    + '  out.hasDrop = !!$(".drop input");'
+    /* ★ **끈끈하게 잰다** 〈2026-08-27 · D-146〉. 올리기가 끝나면 ②칸이 접히므로
+     *   마지막 틱만 보면 「칸이 없다」가 된다 — 재려는 것은 **올리기 전에 있었는가**다.
+     *   접는 것은 일부러 한 것이고, 이 검사가 재려는 것은 그것이 아니다. */
+    + '  out.sawTile = out.sawTile || !!$$(".ways2__t").filter(function (b) { return /파일업로드/.test(b.textContent); })[0];'
+    + '  out.hasTile = out.sawTile;'
+    + '  out.hasDrop = out.hasDrop || !!$(".drop input");'   /* 같은 까닭으로 끈끈하게 */
     + '  out.headings = $$(".sub__n").map(function (x) { return x.textContent; });'
     + '  out.rows = $$(".row__n").map(function (x) { return x.textContent; });'
     + '  out.phase = ($(".up__h b") || {}).textContent || null;'

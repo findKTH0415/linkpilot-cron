@@ -441,6 +441,14 @@ function fakeServer(limits) {
 
   function reply(url, method, body) {
     var p = String(url).replace(/^[^]*?\\/api/, '');
+    /* ★★★ **일부러 고장을 낼 수 있게 둔다** 〈2026-08-27 · M-58〉.
+     *   502 가 났을 때 화면이 무엇을 그리는지는 **실제로 502 를 받아 봐야** 안다.
+     *   소스만 보는 검사는 「그리기는 하는데 그 자리까지 안 간다」를 못 잡는다.
+     *   ★ 올리는 길에만 건다 — 목록·설정까지 죽이면 「로그인도 안 되는 상태」가
+     *     되어 재려는 것과 다른 것을 재게 된다. */
+    if (window.__lpForce5xx && method === 'POST' && /\\/(sources|oneshot)$/.test(p)) {
+      return [window.__lpForce5xx, { }];
+    }
     if (p === '/intake') return [200, LIMITS];
     // 새 프로젝트 만들기 — 실제 서버와 같은 모양(201 + projectId)으로 답한다
     if (p === '/projects' && method === 'POST') {

@@ -1233,6 +1233,51 @@ jobs:
       #   ★ 배포는 초록이고 화면도 멀쩡하다. 빠진 것은 **품질**뿐이라 아무도
       #     오류를 안 본다. 그래서 **배포할 때마다 이 자리에서 말한다.**
       #   ★ 키 값은 절대 찍지 않는다 (CLAUDE.md §2) — 켜졌는지만 본다.
+      # ★★★ **엔진이 언제부터 떠 있는지 적어 둔다** 〈2026-08-27 · D-146〉.
+      #
+      #   사장님이 업로드 중 502 를 만나셨다. 502 는 앞단이 엔진에 못 붙었다는
+      #   뜻인데, **그때 엔진이 살아 있었는지를 아무도 몰랐다.** 그래서
+      #   「배포 때문인가 · 엔진이 죽었나 · 앞단 문제인가」가 갈리지 않았다.
+      #
+      # ★ 배포마다 **엔진이 뜬 시각**을 남기면, 다음에 502 가 났을 때 그 시각과
+      #   대 보는 것만으로 「그 사이에 엔진이 새로 떴다 = 죽었다 」가 갈린다.
+      # ★ 이 단계는 **배포를 막지 않는다** — 못 재도 그대로 넘어간다. 재는 장치가
+      #   배포를 세우면, 바쁜 날 그 장치부터 꺼진다.
+      - name: Engine liveness (엔진이 언제부터 떠 있나)
+        if: ${{ always() && needs.plan.outputs.dry_run != 'true' }}
+        env:
+          NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+          NAS_USER: ${{ secrets.NAS_SSH_USER }}
+        run: |
+          set -uo pipefail
+          OUT=$(ssh -o BatchMode=yes -o ConnectTimeout=20 -i ~/.ssh/id_deploy \
+            "$NAS_USER@$NAS_HOST" '
+              PID=$(pgrep -f "im-engine-server" 2>/dev/null | head -1)
+              [ -z "$PID" ] && { echo "NOPROC"; exit 0; }
+              UP=$(cut -d" " -f1 /proc/uptime 2>/dev/null | cut -d. -f1)
+              ST=$(awk "{print \$22}" /proc/$PID/stat 2>/dev/null)
+              if [ -n "$UP" ] && [ -n "$ST" ]; then
+                echo "AGE=$(( UP - ST / 100 ))"
+              else
+                echo "NOAGE"
+              fi' 2>/dev/null) || OUT="NOSSH"
+          case "$OUT" in
+            AGE=*)
+              SEC=${OUT#AGE=}
+              printf '엔진: **%s분 전에 떴다** (%s초)\n\n' "$(( SEC / 60 ))" "$SEC" >> "$GITHUB_STEP_SUMMARY"
+              echo "::notice::**엔진은 ${SEC}초 전에 떴다.** 다음에 502 를 만나면 이 시각과 대 보면 된다 — 그 사이에 새로 떴으면 엔진이 죽은 것이고, 그대로면 앞단 문제다."
+              ;;
+            NOPROC)
+              echo "엔진: **안 떠 있다**" >> "$GITHUB_STEP_SUMMARY"
+              echo "::warning::**엔진 프로세스를 못 찾았다.** 이름이 바뀌었거나 정말 안 떠 있다 — 위 「Deploy engine」 결과와 함께 본다"
+              ;;
+            *)
+              echo "엔진: 뜬 시각을 **못 쟀다** ($OUT)" >> "$GITHUB_STEP_SUMMARY"
+              echo "::notice::엔진이 뜬 시각을 못 쟀다 ($OUT) — 배포는 그대로 진행한다"
+              ;;
+          esac
+          exit 0
+
       - name: Check reading power (OCR)
         if: ${{ always() && needs.plan.outputs.dry_run != 'true' }}
         env:

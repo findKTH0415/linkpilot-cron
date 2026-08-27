@@ -37,3 +37,20 @@ test('★★ 실패해도 적는다 — 빨간 배포일수록 「어디까지 �
   assert.match(head, /always\(\)/, 'always() 가 없으면 실패한 배포에서는 안 나온다');
   assert.match(head, /dry_run != 'true'/, 'dry run 에서 적으면 안 한 일을 했다고 말한다');
 });
+
+/* ───────────── 엔진이 언제부터 떠 있나 ───────────── */
+
+test('★★★ 배포가 **엔진이 뜬 시각**을 남긴다 — 502 를 만났을 때 갈라 볼 근거다', () => {
+  const st = WF.slice(WF.indexOf('name: Engine liveness'));
+  assert.ok(st.length > 100, '그 단계가 없다 — 502 가 나도 엔진이 살아 있었는지 아무도 모른다');
+  assert.match(st, /proc\/uptime/, '뜬 시각을 재는 자리가 없다');
+  assert.match(st, /GITHUB_STEP_SUMMARY/, '요약에 안 남기면 로그에 묻힌다');
+});
+
+test('★★★ 그 단계가 **배포를 막지 않는다** — 재는 장치가 배포를 세우면 그 장치부터 꺼진다', () => {
+  const st = WF.slice(WF.indexOf('name: Engine liveness'));
+  const body = st.slice(0, st.indexOf('- name:', 10) > 0 ? st.indexOf('- name:', 10) : 3000);
+  assert.match(body, /exit 0/, '못 쟀을 때 실패로 끝나면 배포가 선다');
+  assert.match(body, /NOPROC/, '엔진이 없을 때와 못 잴 때를 안 가른다');
+  assert.match(body, /NOSSH/, 'ssh 가 안 붙을 때를 안 가른다');
+});
