@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="53c269a0">
+<html lang="ko" data-lp-build="2d09949e">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -289,7 +289,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=53c269a0">
+<link rel="stylesheet" href="tokens.css?v=2d09949e">
 <style>
 /* 색·간격·반경 토큰은 tokens.css 하나가 정한다 (LinkPilot Design System v1.1) */
 * { box-sizing: border-box; }
@@ -439,9 +439,9 @@ window.LINKPILOT_OUTPUTS = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=53c269a0" data-lp-global="LINKPILOT_OUTPUTS"></script>
-<script src="gate-core.js?v=53c269a0"></script>
-<script src="flow-core.js?v=53c269a0"></script>
+<script src="embed-bridge.js?v=2d09949e" data-lp-global="LINKPILOT_OUTPUTS"></script>
+<script src="gate-core.js?v=2d09949e"></script>
+<script src="flow-core.js?v=2d09949e"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -486,6 +486,17 @@ window.LINKPILOT_OUTPUTS = {
 (function () {
   'use strict';
   var C = window.LINKPILOT_OUTPUTS;
+
+  /* ★★ 서버 주소는 `flow-core.js` 한 곳에서 정한다 〈2026-08-27 · D-148〉.
+   *   앱이 화면을 **통째로** 열면 다리가 설정을 못 넘긴다. 그때 화면마다 다르게
+   *   굴면 「어느 화면은 되고 어느 화면은 안 된다」가 되어 원인이 안 보인다. */
+  (function () {
+    var F0 = window.LinkPilotFlow;
+    if (!C.api && F0 && F0.resolveApi) {
+      var r0 = F0.resolveApi(C);
+      if (r0 && r0.api) C.api = r0.api;
+    }
+  }());
   var G = window.LinkPilotGate;
   var F = window.LinkPilotFlow;
   var view = document.getElementById('view');

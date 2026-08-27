@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="53c269a0">
+<html lang="ko" data-lp-build="2d09949e">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -264,7 +264,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=53c269a0">
+<link rel="stylesheet" href="tokens.css?v=2d09949e">
 <style>
 :root {
   --side: 248px;
@@ -579,14 +579,14 @@ a.out__a, a.out__a:visited { display: inline-block; white-space: nowrap; color: 
   <a class="bot__i on" href="#"><b>☰</b>더보기</a>
 </nav>
 
-<script src="gate-core.js?v=53c269a0"></script>
-<script src="catalog.js?v=53c269a0"></script>
-<script src="inapp.js?v=53c269a0"></script>
-<script src="live-core.js?v=53c269a0"></script>
+<script src="gate-core.js?v=2d09949e"></script>
+<script src="catalog.js?v=2d09949e"></script>
+<script src="inapp.js?v=2d09949e"></script>
+<script src="live-core.js?v=2d09949e"></script>
 <!-- ★ 판 지문을 화면에 보이게 찍는 것이 여기 있다 (§8) — 묶음에 이미 실리는 파일이다 -->
-<script src="flow-core.js?v=53c269a0"></script>
+<script src="flow-core.js?v=2d09949e"></script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=53c269a0" data-lp-global="LINKPILOT_REPORTS"></script>
+<script src="embed-bridge.js?v=2d09949e" data-lp-global="LINKPILOT_REPORTS"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -732,6 +732,12 @@ window.LINKPILOT_REPORTS = Object.assign({
 (function () {
   'use strict';
   var C = window.LINKPILOT_REPORTS;
+
+  /* ★★★ **이 화면만은 주소를 짐작하지 않는다** 〈2026-08-27 · D-148 · 검사가 잡았다〉.
+   *   여기는 산출물 **파일 링크**를 만든다. 짐작한 주소로 링크를 만들면
+   *   **누르면 엉뚱한 곳으로 간다** — 안 만드는 편이 낫다.
+   *   (`open-file.test.js` 「서버 주소가 없으면 링크를 안 만든다」가 그 자리를 지킨다.
+   *    intake·fields 는 읽기라 짐작해도 되고, 짐작했다는 사실을 문장에 붙인다.) */
   var G = window.LinkPilotGate;
   var view = document.getElementById('view');
   /* ★ 2026-08-16 — 부모(report-flow)가 넘긴 api·project 를 받는다 (intake/fields 와 같은 계약).

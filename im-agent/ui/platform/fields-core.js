@@ -24,7 +24,7 @@
    *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다. 화면이 자기
    *   지문과 대 보고 다르면 「함수가 없다」로 죽기 전에 사람 말로 알린다.
    */
-  var LP_BUILD = '53c269a0';
+  var LP_BUILD = '2d09949e';
 
   /** 화면에 놓는 순서. 사전의 CATEGORY 값과 같은 문자열을 쓴다 */
   var CATEGORY_ORDER = [
