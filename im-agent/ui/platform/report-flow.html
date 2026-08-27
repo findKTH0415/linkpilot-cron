@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="bc1b7779">
+<html lang="ko" data-lp-build="87e5ae3f">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -288,7 +288,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=bc1b7779">
+<link rel="stylesheet" href="tokens.css?v=87e5ae3f">
 <style>
 /* 색·간격·반경 토큰은 tokens.css 하나가 정한다 (LinkPilot Design System v1.1) */
 * { box-sizing: border-box; }
@@ -394,6 +394,20 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
   background: var(--lime); color: var(--lp-brand-ink); }
 .okrow__b:hover { filter: brightness(0.96); }
 .okrow__why { font-size: 13px; color: var(--ink2); }
+
+/* 절 도구줄 — [미리보기]·[수정 요구]·[다운로드] 〈2026-08-28 · D-158〉
+   ★ [확인] 과 **줄을 나눈다.** 같은 줄에 두면 「확인」이 여럿 중 하나로 읽혀
+     어디까지 한 것인지 말해 주는 자리라는 뜻이 사라진다. */
+.tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--line); }
+.tools__t { font-size: 13px; font-weight: 700; color: var(--ink2); margin-right: 2px; }
+.tools__b { font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+  padding: 9px 15px; border-radius: 11px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--ink); text-decoration: none;
+  display: inline-block; }
+.tools__b:hover { border-color: var(--ink2); }
+.tools__b[aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
+.tools__b--go { border: 0; background: var(--lime); color: var(--lp-brand-ink); font-weight: 700; }
 .note { margin: 12px 0 0; padding: 12px 14px; border-radius: 12px;
   background: var(--warn-soft); color: var(--warn-ink); font-size: 13.5px; }
 .note--bad { background: var(--bad-soft); color: var(--bad-ink); }
@@ -449,14 +463,14 @@ window.LINKPILOT_REPORT_FLOW = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=bc1b7779" data-lp-global="LINKPILOT_REPORT_FLOW"></script>
-<script src="gate-core.js?v=bc1b7779"></script>
-<script src="flow-core.js?v=bc1b7779"></script>
+<script src="embed-bridge.js?v=87e5ae3f" data-lp-global="LINKPILOT_REPORT_FLOW"></script>
+<script src="gate-core.js?v=87e5ae3f"></script>
+<script src="flow-core.js?v=87e5ae3f"></script>
 <!-- ★ 4단계 진행율(필수 항목 채움)을 재는 데 쓴다. **값과 출처가 둘 다**
      있어야 세는 규칙이 여기 있다 — 화면이 따로 세면 두 벌이 된다 -->
-<script src="fields-core.js?v=bc1b7779"></script>
-<script src="catalog.js?v=bc1b7779"></script>
-<script src="inapp.js?v=bc1b7779"></script>
+<script src="fields-core.js?v=87e5ae3f"></script>
+<script src="catalog.js?v=87e5ae3f"></script>
+<script src="inapp.js?v=87e5ae3f"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -601,7 +615,11 @@ window.LINKPILOT_REPORT_FLOW = {
    *   `false` 나 `0` 으로 시작하면 서버 대답이 오기 전 한순간 「아무것도 안 했다」가
    *   화면에 뜨고, 다 해 놓은 사람이 그것을 본다. 모르는 것과 아닌 것은 다르다 (§4.9).
    */
-  var facts = { issuerSet: null, request: null, sources: null, fields: null, specLocked: null };
+  var facts = { issuerSet: null, request: null, sources: null, fields: null, specLocked: null,
+    /* ★ 만들어진 문서 — `null` 은 **못 쟀다**, `[]` 는 **없다**. 둘은 다르다 (§4.9) */
+    reports: null, reportsBlocked: null };
+  /* 「수정 요구」 패널이 펴져 있는가 — 절 안에서만 쓰는 상태다 */
+  var fixOpen = false;
   var progress = null;
 
   /** 잰 것만으로 절 상태를 다시 센다. 판정 규칙은 `flow-core` 한 곳에 있다 */
@@ -913,6 +931,144 @@ window.LINKPILOT_REPORT_FLOW = {
     return row;
   }
 
+  /* ══════════ 절 도구줄 — 미리보기 · 수정 요구 · 다운로드 ══════════
+   *
+   * 〈2026-08-28 사장님 지시 · D-158〉 사장님이 그리신 넷째 칸까지의 그림은
+   *   「3. …보고서 생성 · **미리보기 · 수정요구** → [확인클릭] / 4. 완성보고서
+   *   → **[다운로드]**」 였다. 앞 판(D-157)은 칸만 넷으로 묶고 이 셋을 안 붙였다.
+   *
+   * ★★★ **없는 길을 만들지 않는다** (CLAUDE.md §6-3 「없는 데이터를 그럴듯하게
+   *   그리지 않는다」). 서버에는 「수정 요구를 접수하는 창구」가 없다. 그래서
+   *   [수정 요구] 는 **고칠 수 있는 자리로 데려다주는 단추**로 만든다 —
+   *   값은 4단계, 쪽수·형식은 5단계다. 접수하는 척하면 사용자는 보냈다고 믿고
+   *   아무도 받지 않는다. 그것이 가장 비싼 고장이다.
+   *
+   * ★ [미리보기]·[다운로드] 는 **실제로 있는 길**이다 — `GET /projects/:id/file?rel=`.
+   *   `outputs.html` 이 쓰는 것과 **같은 주소**다. 두 벌로 만들지 않는다.
+   */
+
+  /** 문서 파일 주소 — `outputs.html` 과 같은 창구를 쓴다 */
+  function fileUrl(rel) {
+    if (!C.api || !state.projectId) return null;
+    return C.api + '/projects/' + encodeURIComponent(state.projectId)
+      + '/file?rel=' + encodeURIComponent(rel);
+  }
+
+  /** 지금 내려받을 수 있는 문서 — 실제로 **나온 것**만 센다 */
+  function madeDocs() {
+    if (facts.reports === null) return null;      // 못 쟀다
+    return facts.reports.filter(function (f) { return f && f.exists && f.path; });
+  }
+
+  function toolBtn(label, primary) {
+    var b = el('button', 'tools__b' + (primary ? ' tools__b--go' : ''), label);
+    b.type = 'button';
+    return b;
+  }
+
+  /** 눌렀는데 아무 일이 없는 대신 **왜인지 적는다** */
+  function whyNoDoc() {
+    if (!C.api) {
+      return notice('', '서버가 연결되어 있지 않습니다',
+        '이 화면은 앱 안에서 서버 주소를 받아 문서를 부릅니다. 지금은 그 주소가 없어 '
+        + '만들어진 문서를 찾을 수가 없습니다.');
+    }
+    if (facts.reportsBlocked) {
+      return notice('note--bad', '배포가 막혀 있어 문서를 열 수 없습니다',
+        '검증이 통과하지 못한 문서는 미리보기·다운로드가 잠깁니다. 「완성 보고서」 칸에서 '
+        + '무엇이 막고 있는지 확인하십시오.');
+    }
+    if (facts.reports === null) {
+      return notice('', '만들어진 문서를 아직 못 물어봤습니다',
+        '서버에 문서 목록을 묻는 중이거나, 물어보지 못했습니다. 잠시 뒤 다시 눌러 보십시오.');
+    }
+    return notice('', '아직 만들어진 문서가 없습니다',
+      '위의 「출력조건」에서 사양을 확정하고 [보고서 생성 시작] 을 누르면 문서가 나옵니다. '
+      + '나온 뒤에 이 단추가 그 문서를 엽니다.');
+  }
+
+  /**
+   * 「수정 요구」 — **고칠 수 있는 자리로 데려다준다.**
+   *
+   * ★ 무엇을 고치느냐에 따라 갈 곳이 다르다. 그것을 사람이 고르게 한다 —
+   *   자동으로 하나를 고르면 틀렸을 때 되돌릴 자리가 안 보인다 (§4.9 와 같은 결).
+   */
+  function fixPanel() {
+    var box = el('div', 'note');
+    box.appendChild(el('b', null, '무엇을 고칠까요?'));
+    box.appendChild(document.createTextNode(
+      '고친 뒤에 다시 만들면 됩니다. 이미 나온 문서는 지워지지 않고 그대로 남습니다. '
+      + '★ 이 단추는 누구에게 요청을 보내지 않습니다 — 고치는 자리로 데려다줄 뿐입니다.'));
+    var row = el('div', 'tools');
+    [
+      ['값을 고친다 — 4. 가이드 필드 로', 'fields'],
+      ['쪽수·형식을 고친다 — 5. 출력조건 으로', 'spec'],
+    ].forEach(function (pair) {
+      var b = toolBtn(pair[0]);
+      b.addEventListener('click', function () { fixOpen = false; go(pair[1]); });
+      row.appendChild(b);
+    });
+    box.appendChild(row);
+    return box;
+  }
+
+  /**
+   * 절 맨 아래 도구줄. 붙는 절은 **둘**이다 — `make` 와 `done`.
+   * 나머지 절에는 붙일 것이 없다(`null`) — 빈 줄을 그리면 뭔가 빠진 것처럼 보인다.
+   */
+  function toolRow(sec) {
+    if (sec.id !== 'make' && sec.id !== 'done') return null;
+    var wrap = el('div');
+    var row = el('div', 'tools');
+    /* 눌러도 안 되는 이유는 **한 번만** 적는다 — 누를 때마다 쌓으면 화면이 길어진다 */
+    var said = null;
+    function say(node) {
+      if (said) wrap.removeChild(said);
+      said = node; wrap.appendChild(said);
+    }
+    var docs = madeDocs();
+    var have = docs && docs.length ? docs[0] : null;
+    var open = !!(have && C.api && !facts.reportsBlocked);
+
+    if (sec.id === 'make') {
+      row.appendChild(el('span', 'tools__t', '만든 뒤에'));
+
+      var pv = toolBtn('미리보기');
+      pv.setAttribute('aria-disabled', open ? 'false' : 'true');
+      pv.addEventListener('click', function () {
+        if (!open) { say(whyNoDoc()); return; }
+        window.open(fileUrl(have.path), '_blank', 'noopener');
+      });
+      row.appendChild(pv);
+
+      var fx = toolBtn('수정 요구');
+      fx.addEventListener('click', function () { fixOpen = !fixOpen; draw(); });
+      row.appendChild(fx);
+      wrap.appendChild(row);
+      if (fixOpen) wrap.appendChild(fixPanel());
+      return wrap;
+    }
+
+    /* done — 사장님 지시의 마지막 칸: [다운로드] */
+    row.appendChild(el('span', 'tools__t', '완성본'));
+    if (open) {
+      var a = el('a', 'tools__b tools__b--go', '다운로드');
+      a.href = fileUrl(have.path);
+      a.setAttribute('download', '');
+      row.appendChild(a);
+      /* ★ 무엇을 받는지 적는다. 문서가 여럿이면 목록에서 골라야 한다는 것도 */
+      row.appendChild(el('span', 'okrow__why',
+        have.path + (docs.length > 1 ? ' · 문서 ' + docs.length + '건 중 첫째 — 나머지는 위 목록에서' : '')));
+    } else {
+      var d = toolBtn('다운로드', true);
+      d.setAttribute('aria-disabled', 'true');
+      d.addEventListener('click', function () { say(whyNoDoc()); });
+      row.appendChild(d);
+    }
+    wrap.appendChild(row);
+    return wrap;
+  }
+
   function stage(step) {
     var box = el('div', 'stage');
 
@@ -1085,6 +1241,8 @@ window.LINKPILOT_REPORT_FLOW = {
       if (docs) {
         var frag = document.createDocumentFragment();
         sec.steps.forEach(function (st) { frag.appendChild(stage(st)); });
+        var tw0 = toolRow(sec);
+        if (tw0) frag.appendChild(tw0);
         view.appendChild(section(sec, frag));
         return;
       }
@@ -1102,6 +1260,10 @@ window.LINKPILOT_REPORT_FLOW = {
           ? notice('', st.name + ' 단계를 아직 열 수 없습니다', st.why)
           : stage(st));
       });
+      /* ★ 도구줄이 [확인] **앞**에 온다 〈D-158〉. 미리보기·수정은 「이 칸을
+         끝내기 전에」 하는 일이고, [확인] 은 끝냈다는 말이다 — 순서가 뜻이다 */
+      var tw = toolRow(sec);
+      if (tw) frag.appendChild(tw);
       var go = confirmRow(sec);
       if (go) frag.appendChild(go);
       view.appendChild(section(sec, frag));
@@ -1156,6 +1318,12 @@ window.LINKPILOT_REPORT_FLOW = {
         facts.fields = { filled: c0.filled, total: c0.total };
       }
       if (pl.spec) facts.specLocked = !!pl.spec.locked;
+      /* ★ 심어 준 문서 목록이 있으면 쓴다. 없으면 `null` 그대로 — 미리보기에서
+         「없다」로 그리면 실제로는 있는 것을 없다고 말하게 된다 */
+      if (pl.reports) {
+        facts.reports = pl.reports.files || pl.reports.all || [];
+        facts.reportsBlocked = !!(pl.reports.distribution && pl.reports.distribution.blocked);
+      }
       draw();
       return;
     }
@@ -1206,6 +1374,16 @@ window.LINKPILOT_REPORT_FLOW = {
       /* ★ 못 읽었으면 **잠긴 척도 안 잠긴 척도 하지 않는다.** `spec` 이 없다는
          대답을 받은 것은 「아직 확정 안 했다」가 맞다 */
       facts.specLocked = !!(sp && sp.locked);
+      draw();
+    }, function () {});
+
+    /* ⑤ 만들어진 문서 — [미리보기]·[다운로드] 가 이것을 쓴다 〈D-158〉.
+     *   ★ `outputs.html` 과 **같은 창구**다. 못 받으면 `null` 로 둔다 —
+     *     「없다」가 아니라 「못 쟀다」이고, 화면이 그렇게 말한다. */
+    call('/projects/' + encodeURIComponent(pid) + '/reports').then(function (j) {
+      var d = j || {};
+      facts.reports = d.all || d.files || [];
+      facts.reportsBlocked = !!(d.distribution && d.distribution.blocked);
       draw();
     }, function () {});
   }
