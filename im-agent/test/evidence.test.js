@@ -152,3 +152,13 @@ test('★★ 점수를 말로 옮길 때 **문턱을 함께 적는다** — 안 
   assert.match(E.band(10).why, /65/);
   assert.strictEqual(E.band(null).id, 'none');
 });
+
+test('★★ 자동으로 못 채우는 갈래는 **왜 늘 0%인지** 적는다 — 안 적으면 채우려 든다', () => {
+  const m = E.measure({
+    keys: ['crosscheck.industry'], fields: { 'crosscheck.industry': { label: '업종', category: 'Crosscheck' } },
+  });
+  const c = m.byCategory[0];
+  assert.match(c.note || '', /사람이 고릅니다/, 'Crosscheck 가 왜 비는지 안 적었다');
+  // ★ 그래도 **분모에는 들어간다** — 사장님이 세신 100% 에 들어 있다
+  assert.strictEqual(m.total, 1);
+});

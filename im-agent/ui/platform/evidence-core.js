@@ -32,7 +32,7 @@
    *   손으로 고치지 않는다. 화면이 자기 지문과 대 보고 다르면 「함수가 없다」로
    *   죽기 전에 사람 말로 알린다.
    */
-  var LP_BUILD = '8f74aa48';
+  var LP_BUILD = '0075d817';
 
   /**
    * 값이 어디서 왔는가 — **갈래는 여섯이고 한 항목은 하나에만 속한다.**
@@ -96,6 +96,19 @@
     for (var i = 0; i < GRADES.length; i++) if (GRADES[i].id === id) return GRADES[i];
     return null;
   }
+
+  /**
+   * **자동으로 채워질 수 없는 갈래는 그렇다고 적는다** 〈2026-08-27 사장님 확정 · D-152〉.
+   *
+   * ★ `Crosscheck` 12개는 **값이 아니라 「무엇과 대조할지 고르는 것」**이다
+   *   (사전의 `CATEGORY.CROSSCHECK` · D-48 · §4.9). 자동으로 고르면 틀린 대상의
+   *   값이 그럴듯하게 나오고 문서에는 「대조함」만 남는다 — 그래서 사람이 고른다.
+   * ★ 분모에는 **넣는다** (사장님이 세신 100% 에 들어 있다). 대신 **왜 늘 0%인지**를
+   *   갈래 옆에 적는다 — 안 적으면 「12칸이 비었다」로만 읽히고 사람이 채우려 든다.
+   */
+  var CATEGORY_NOTE = {
+    Crosscheck: '값이 아니라 「무엇과 대조할지」를 고르는 칸입니다 — 자동으로 못 고릅니다 (사람이 고릅니다)',
+  };
 
   function pct(n, d) { return d > 0 ? Math.round((n / d) * 1000) / 10 : 0; }
 
@@ -242,7 +255,7 @@
     var byCategory = Object.keys(catMap).map(function (name) {
       var c = catMap[name];
       return {
-        name: name, total: c.total,
+        name: name, total: c.total, note: CATEGORY_NOTE[name] || null,
         filled: c.total - c.tally.missing,
         fromEvidence: c.tally.document + c.tally.public,
         pct: pct(c.tally.document + c.tally.public, c.total),

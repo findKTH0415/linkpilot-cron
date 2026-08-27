@@ -803,12 +803,42 @@ jobs:
           BASE: ${{ secrets.LP_PUBLIC_BASE }}
           FILES: ${{ needs.plan.outputs.files }}
         run: |
-          set -uo pipefail
+          set -u
+          # ★★ **`set +e` 를 켠다** 〈2026-08-27 · M-60 과 같은 결〉. 이 워크플로는
+          #   `bash -e` 로 돈다. 아래 `GOT=$(curl … | sha256sum)` 는 파이프라인이라
+          #   `pipefail` 과 겹치면 **curl 이 실패한 그 줄에서 단계가 통째로 죽는다** —
+          #   그러면 「몇 개가 다른가」를 세지도 못하고 뒤 단계까지 건너뛴다.
+          set +e
           if [ -z "${BASE:-}" ]; then
             echo "::warning::**앱이 쓰는 길로는 못 쟀다.** 위의 「디스크 ≠ HTTP」 경고가 캐시인지 다른 파일인지 여기서는 안 갈린다 (M-25 ①). 〈2026-08-24 · D-99 — 주소를 안 넣기로 정하셨다. 못 쟀다는 사실만 남긴다〉"
             echo "앱 경로 확인: 건너뜀 (주소 없음)" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
+          # ★★★ **설명 문구가 그대로 들어온 것을 여기서 잡는다** 〈2026-08-27 · 실제로 그랬다〉.
+          #
+          #   안내에 「앱이 보고서 화면을 불러오는 주소 (…/im-flow)」라고 적었더니
+          #   사장님이 **그 문장을 그대로** Secret 칸에 붙여 넣으셨다. 이 저장소에서
+          #   같은 결의 사고가 이미 세 번 났다 (CLAUDE.md §5 — 「바꿔 넣을 자리를
+          #   두지 않는다」 · `deploy/screens.sh` 가 같은 것을 잡는다).
+          #
+          #   ★ 그대로 두면 curl 이 전부 실패하고 **17개가 「앱이 쓰는 길로 받은 것이
+          #     다르다」로 빨갛게 뜬다.** 그 로그만 보면 「주소가 틀렸다」는 생각이
+          #     안 들고, 배포가 깨진 줄 안다.
+          #   ★ 그래서 **재기 전에** 값의 생김새를 보고 사람 말로 알린다.
+          #     값은 한 글자도 안 찍는다 (§2) — 길이와 「무엇이 이상한지」만 적는다.
+          case "$BASE" in
+            http://*|https://*) : ;;
+            *)
+              echo "::warning::**LP_PUBLIC_BASE 가 주소가 아니다.** http:// 나 https:// 로 시작하지 않는다 (길이 ${#BASE}자). 안내 문구를 그대로 붙여 넣으신 것 같다 — 값은 \`https://…/im-flow\` 꼴의 **주소 한 줄**이다. docs/안내-LP-PUBLIC-BASE-등록.md"
+              echo "앱 경로 확인: **건너뜀 — 넣으신 값이 주소가 아니다** (docs/안내-LP-PUBLIC-BASE-등록.md)" >> "$GITHUB_STEP_SUMMARY"
+              exit 0 ;;
+          esac
+          if printf '%s' "$BASE" | LC_ALL=C grep -q '[^ -~]'; then
+            echo "::warning::**LP_PUBLIC_BASE 에 한글이 섞여 있다.** 주소에는 한글이 들어가지 않는다 — 안내 문구가 그대로 들어간 것이다. docs/안내-LP-PUBLIC-BASE-등록.md"
+            echo "앱 경로 확인: **건너뜀 — 값에 한글이 섞여 있다**" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
           BASE="${BASE%/}"
           BAD=0; OK=0
           for f in $FILES; do
