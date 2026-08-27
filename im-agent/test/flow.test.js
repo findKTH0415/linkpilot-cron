@@ -756,7 +756,7 @@ test('★★ 단계 이름을 화면이 베껴 쓰지 않는다', () => {
  * ★ 「새보고서 진행률」 절을 뺐다. 그것이 ①이던 앞 판은 **절 번호와 단계
  *   번호가 하나씩 어긋나** 「1단계」라는 말이 어느 칸을 가리키는지 흐렸다.
  */
-test('★★ 절 넷 — 순서·이름·품은 단계가 고정되어 있다', () => {
+test('★★ 절 셋 — 순서·이름·품은 단계가 고정되어 있다', () => {
   /* ★★★ **다섯에서 넷으로 줄였다** 〈2026-08-28 사장님 지시 · D-157:
    *   「거울 미러링처럼 복잡함 혼란스러워 · 화면 전면적으로 재구성한다」〉.
    *
@@ -764,14 +764,18 @@ test('★★ 절 넷 — 순서·이름·품은 단계가 고정되어 있다', 
    *   만드는가」가 한 가지 일인데도 **한 번에 하나씩**만 보였다.
    *   ★ 이제 한 절이 여러 단계를 품는다. 절 번호와 단계 번호는 **더 이상
    *     같지 않다** — 대신 「모든 단계는 정확히 한 절에만」이 규칙으로 남는다. */
+  /* ★★★ **넷에서 셋으로 또 줄였다** 〈2026-08-28 사장님 지시 · D-162:
+   *   「2.자료 스캔 +3「보고서 만들기」으로 넘기기 → 병합해줘 / 더 헷갈림」〉.
+   *   자료를 올린 사람이 다음에 할 일은 「보고서를 만드는 것」 하나뿐인데,
+   *   화면이 그 사이에 [확인] 문을 하나 더 세우고 있었다. **넣고 → 만들고 →
+   *   받는다** 셋이 되었다. 없앤 것은 칸 사이의 문이지 단계가 아니다. */
   assert.deepStrictEqual(F.SECTIONS.map(s => `${s.no}. ${s.name}`), [
     '1. 기본정보 · 무엇을 만들까요',
-    '2. 관련자료 업로드',
-    '3. 보고서 생성',
-    '4. 완성 보고서',
+    '2. 자료 업로드 · 보고서 생성',
+    '3. 완성 보고서',
   ]);
   assert.deepStrictEqual(F.SECTIONS.map(s => s.steps),
-    [['basics', 'ask'], ['sources'], ['fields', 'spec'], ['done']]);
+    [['basics', 'ask'], ['sources', 'fields', 'spec'], ['done']]);
   // 모든 단계가 **정확히 한 절**에만 속한다 (빠진 단계도, 두 번 실린 단계도 없다)
   const owned = F.SECTIONS.flatMap(s => s.steps).sort();
   assert.deepStrictEqual(owned, F.STEPS.map(s => s.id).sort(),
@@ -787,21 +791,27 @@ test('★★ 절 넷 — 순서·이름·품은 단계가 고정되어 있다', 
 test('★ 절 상태 — 잠긴 이유는 그 절이 품은 단계에서 나온다', () => {
   // 서버가 없으면 전부 잠긴다
   const none = F.sectionState({ api: null, projectId: null });
-  assert.deepStrictEqual(none.map(s => s.locked), [true, true, true, true]);
+  assert.deepStrictEqual(none.map(s => s.locked), [true, true, true]);
   assert.match(none[0].why, /서버/, '잠긴 이유를 안 적으면 고장으로 읽힌다');
 
-  // 프로젝트가 없으면 앞의 둘만 열린다 — ②에서 프로젝트를 만든다
+  /* ★ 프로젝트가 없어도 ②는 **열려 있다** 〈D-162〉 — 그 안에서 자료를 올려
+     프로젝트를 만들기 때문이다. 잠그면 프로젝트를 만들 자리가 사라진다.
+     ★★ 대신 ②가 품은 뒤쪽 단계(fields·spec)는 여전히 잠긴다 — 절이 열렸다는
+       것과 그 안이 다 열렸다는 것은 다른 사실이다. */
   const fresh = F.sectionState({ api: '/x', projectId: null });
-  assert.deepStrictEqual(fresh.map(s => s.locked), [false, false, true, true]);
+  assert.deepStrictEqual(fresh.map(s => s.locked), [false, false, true]);
+  assert.strictEqual(fresh[1].opensTo, 'sources', '②를 열면 자료 업로드로 가야 한다');
+  assert.ok(fresh[1].steps.filter(s => s.locked).length >= 2,
+    '프로젝트가 없는데 ② 안의 값·출력조건까지 열려 있다');
   assert.match(fresh[2].why, /프로젝트/);
 
   // 다 열리면 「지금」이 하나뿐이다 — 둘이면 어디를 보는지 알 수 없다
   const open = F.sectionState({ api: '/x', projectId: 'LP-DC-2026-001', current: 'spec' });
-  assert.deepStrictEqual(open.map(s => s.locked), [false, false, false, false]);
+  assert.deepStrictEqual(open.map(s => s.locked), [false, false, false]);
   assert.strictEqual(open.filter(s => s.current).length, 1);
-  assert.strictEqual(open[2].current, true, '보고서 생성이 지금 절이어야 한다');
-  /* ★ ③ 은 단계 둘을 품는다 — 열면 **열린 것 중 첫째**로 간다 */
-  assert.strictEqual(open[2].opensTo, 'fields');
+  assert.strictEqual(open[1].current, true, '자료 업로드 · 보고서 생성이 지금 절이어야 한다');
+  /* ★ ② 는 단계 셋을 품는다 — 열면 **열린 것 중 첫째**로 간다 */
+  assert.strictEqual(open[1].opensTo, 'sources');
 });
 
 
@@ -939,7 +949,7 @@ test('★★★ 못 쟀으면 완료도 진행율도 말하지 않는다', () =>
   assert.strictEqual(p.done.known, false, '못 재는 칸을 안다고 한다');
 });
 
-test('★★★ 네 절이 각자 맞는 표기를 낸다 (완료 / 진행율)', () => {
+test('★★★ 세 절이 각자 맞는 표기를 낸다 (완료 / 진행율)', () => {
   const F = require('../ui/platform/flow-core.js');
   const p = F.sectionProgress({
     issuerSet: true, projectId: 'LP-DC-2026-001',
@@ -948,30 +958,41 @@ test('★★★ 네 절이 각자 맞는 표기를 낸다 (완료 / 진행율)',
 
   /* ① 은 **둘 다** 돼야 끝난 것이다 — 발행 주체와 요청문 */
   assert.strictEqual(p.start.done, true, '① 발행 주체·요청문이 다 있는데 완료가 아니다');
-  assert.strictEqual(p.sources.done, true, '② 프로젝트를 만들었는데 완료가 아니다');
-  assert.strictEqual(p.sources.pct, 60, `② 5건 중 3건이면 60% 여야 한다 (${p.sources.pct})`);
-  /* ③ 은 **확정했는가**로 끝난다. 진행율은 값이 얼마나 찼는지를 말한다 */
-  assert.strictEqual(p.make.done, true, '③ 출력조건을 확정했는데 완료가 아니다');
-  assert.strictEqual(p.make.pct, 70, `③ 7/10 이면 70% 여야 한다 (${p.make.pct})`);
 
-  /* ★ 진행율은 **②③에만** 있다. 나머지는 중간이 없다 —
+  /* ★★★ ② 는 자료·값·출력조건을 **한 칸에서** 본다 〈D-162〉.
+   *   끝났다고 보는 것은 **출력조건 확정**이다 — 프로젝트를 만든 것만으로
+   *   끝났다고 하면 **값을 하나도 안 넣고 칸이 초록**이 된다. */
+  assert.strictEqual(p.make.done, true, '② 출력조건을 확정했는데 완료가 아니다');
+  assert.strictEqual(p.make.pct, 70, `② 프로젝트가 있으면 값 비율이다 7/10 → 70% (${p.make.pct})`);
+  assert.match(p.make.detail, /10개 중 7개/, '② 무엇을 셌는지 안 적었다');
+  assert.match(p.make.detail, /출처/, '② 출처가 있어야 센다는 규칙을 안 알려 준다');
+  assert.match(p.make.detail, /출력조건 확정/, '② 출력조건을 확정했다는 사실을 안 적었다');
+
+  /* ★ 진행율은 **②에만** 있다. 나머지는 중간이 없다 —
      없는 중간을 지어내면 뜻 없는 숫자가 돈다 */
   assert.strictEqual(p.start.pct, null, '①에 없는 진행율을 지어냈다');
-  assert.strictEqual(p.done.pct, null, '④에 없는 진행율을 지어냈다');
+  assert.strictEqual(p.done.pct, null, '③에 없는 진행율을 지어냈다');
+});
 
-  /* ★ 숫자만 있으면 무엇의 60% 인지 모른다 — 잰 사실을 함께 낸다 */
-  assert.match(p.sources.detail, /5건 중 3건/, '② 무엇을 셌는지 안 적었다');
-  assert.match(p.make.detail, /10개 중 7개/, '③ 무엇을 셌는지 안 적었다');
-  assert.match(p.make.detail, /출처/, '③ 출처가 있어야 센다는 규칙을 안 알려 준다');
+/**
+ * ★★ **프로젝트 전에는 「자료를 읽는 중」이 진행율이다** 〈D-162〉.
+ *   합치기 전에는 그것이 딴 칸(②)의 숫자였다. 합친 뒤에도 그 사실이
+ *   보여야 한다 — 안 그러면 자료를 읽는 동안 칸이 아무 말도 안 한다.
+ */
+test('★★ 프로젝트가 생기기 전에는 자료 읽은 비율을 낸다', () => {
+  const F = require('../ui/platform/flow-core.js');
+  const p = F.sectionProgress({ sources: { total: 5, read: 3 } });
+  assert.strictEqual(p.make.pct, 60, `자료 5건 중 3건이면 60% 여야 한다 (${p.make.pct})`);
+  assert.strictEqual(p.make.done, false, '출력조건을 확정 안 했는데 완료다');
+  assert.match(p.make.detail, /5건 중 3건/, '무엇을 셌는지 안 적었다');
 });
 
 test('★★ 자료가 0건인 것을 0% 로 적지 않는다', () => {
   const F = require('../ui/platform/flow-core.js');
-  const p = F.sectionProgress({ projectId: 'LP-1', sources: { total: 0, read: 0 } });
+  const p = F.sectionProgress({ sources: { total: 0, read: 0 } });
   /* 자료 없이도 진행은 된다(값을 직접 넣는 길). 0% 로 적으면 막힌 것으로 읽힌다 */
-  assert.strictEqual(p.sources.pct, null, '자료 0건을 0% 로 적었다 — 막힌 것으로 읽힌다');
-  assert.strictEqual(p.sources.done, true, '프로젝트가 있으면 이 칸은 지나온 것이다');
-  assert.match(p.sources.detail, /직접/, '자료 없이 갈 때 무엇을 해야 하는지 안 알려 준다');
+  assert.strictEqual(p.make.pct, null, '자료 0건을 0% 로 적었다 — 막힌 것으로 읽힌다');
+  assert.match(p.make.detail, /직접/, '자료 없이 갈 때 무엇을 해야 하는지 안 알려 준다');
 });
 
 test('★★ 화면이 완료·진행율을 실제로 그린다 (규칙은 flow-core 한 곳)', () => {

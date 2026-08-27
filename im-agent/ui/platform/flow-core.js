@@ -24,7 +24,7 @@
    *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다. 화면이 자기
    *   지문과 대 보고 다르면 「함수가 없다」로 죽기 전에 사람 말로 알린다.
    */
-  var LP_BUILD = 'dc1cb713';
+  var LP_BUILD = 'cd134b06';
 
   /**
    * ★★★ **단계는 다섯이다** 〈2026-08-22 사용자 지시〉.
@@ -134,16 +134,28 @@
       no: 1, id: 'start', name: '기본정보 · 무엇을 만들까요', steps: ['basics', 'ask'],
       note: '누가 내는 문서인지와 무엇을 만들지를 한 자리에서 정한다.',
     },
+    /**
+     * ★★★ **자료 업로드와 보고서 생성을 한 칸으로 합쳤다**
+     *   〈2026-08-28 사장님 지시: 「2.자료 스캔 +3「보고서 만들기」으로 넘기기 →
+     *    병합해줘 / 더 헷갈림」 · D-162〉.
+     *
+     *   앞 판(D-157)은 자료를 올린 뒤 **[확인 — 3. 보고서 생성 으로]** 를 눌러
+     *   칸을 넘어가야 했다. 그런데 사장님이 보시기에 그 넘김이 **일이 아니라
+     *   장애물**이었다 — 자료를 올린 사람이 다음에 할 일은 「보고서를 만드는
+     *   것」 하나뿐인데, 화면이 그 사이에 문을 하나 더 세운 것이다.
+     *
+     *   ★ 그래서 셋이 되었다: **넣고 → 만들고 → 받는다.**
+     *   ★★ 없앤 것은 **칸 사이의 문**이지 단계가 아니다. `sources`·`fields`·
+     *     `spec` 은 그대로 있고 한 칸 안에서 차례로 펴진다.
+     */
     {
-      no: 2, id: 'sources', name: '관련자료 업로드', steps: ['sources'],
-      note: '원본 자료를 받고 얼마나 읽었는지 보여 준다. 여기서 프로젝트를 만든다.',
+      no: 2, id: 'make', name: '자료 업로드 · 보고서 생성',
+      steps: ['sources', 'fields', 'spec'],
+      note: '원본 자료를 받아 얼마나 읽었는지 보여 주고, 그 값으로 채운 뒤 '
+        + '쪽수·형식을 못 박고 만든다. 여기서 프로젝트가 만들어진다.',
     },
     {
-      no: 3, id: 'make', name: '보고서 생성', steps: ['fields', 'spec'],
-      note: '자료가 채운 값을 확인하고, 쪽수·형식을 못 박고, 만든다.',
-    },
-    {
-      no: 4, id: 'done', name: '완성 보고서', steps: ['done'],
+      no: 3, id: 'done', name: '완성 보고서', steps: ['done'],
       note: '만들어진 문서를 내려받는다.',
     },
   ];
@@ -514,7 +526,8 @@
       out[id] = { known: !!known, done: !!(known && done), pct: known ? pct : null, detail: detail || null };
     }
 
-    /* ★★★ **절이 넷으로 줄면서 이 셈도 넷이 되었다** 〈2026-08-28 · D-157〉.
+    /* ★★★ **절이 셋으로 줄면서 이 셈도 셋이 되었다** 〈2026-08-28 · D-162〉.
+     *   〈D-157 때는 넷이었다 — 자료 업로드가 딴 칸이었다〉
      *   열쇠는 **절 id** 다(`SECTIONS[].id`). 레일 칸 이름을 쓰면 절과 어긋난다.
      *   ★ 못 잰 것은 `known:false` 로 둔다 — 「0%」는 「못 쟀다」가 아니다. */
 
@@ -525,28 +538,42 @@
       (!o.issuerSet ? '발행 주체가 아직 없습니다'
         : (asked ? '발행 주체와 요청문이 다 있습니다' : '아직 무엇을 만들지 안 적었습니다')));
 
-    /* ② 관련자료 업로드 — **프로젝트를 만들면 이 칸의 목적은 끝난다.**
-       진행율은 그다음 일(올린 자료를 읽었는가)을 말한다. 자료를 안 올려도
-       진행은 되므로, 자료가 0건인 것을 「0%」로 적지 않는다 */
+    /* ② 자료 업로드 · 보고서 생성 — **한 칸이 셋을 품는다** 〈D-162〉.
+     *
+     * ★★ 끝났다고 보는 것은 **출력조건 확정**이다. 프로젝트를 만든 것만으로는
+     *   이 칸이 안 끝난다 — 앞 판은 그것이 딴 칸이라 「프로젝트가 생기면 끝」
+     *   이었는데, 합친 뒤에도 그렇게 두면 **값을 하나도 안 넣고 칸이 초록**이 된다.
+     *
+     * ★★★ **진행률은 「지금 어디쯤인가」를 말한다.** 자료를 읽는 중이면 그 비율,
+     *   값을 채우는 중이면 그 비율이다. 둘을 더해 평균 내지 않는다 — 서로 다른
+     *   것을 섞은 숫자는 어느 쪽이 모자란지 못 알려 준다 (§4.9 와 같은 결).
+     */
     var src = o.sources;
-    var pct2 = (src && src.total > 0) ? Math.round((src.read / src.total) * 100) : null;
-    put('sources', true, !!o.projectId, pct2,
-      !o.projectId ? '아직 프로젝트가 없습니다'
-        : (!src ? '프로젝트가 만들어졌습니다'
-          : (src.total === 0 ? '자료 없이 진행 중 — 값을 전부 직접 넣어야 합니다'
-            : '자료 ' + src.total + '건 중 ' + src.read + '건을 읽었습니다')));
-
-    /* ③ 보고서 생성 — 값이 얼마나 찼는가(진행률)와 출력조건을 확정했는가(끝났는가).
-       ★ 값은 **값과 출처가 둘 다** 있는 것만 센다 (`fields-core.completeness`) */
     var fl = o.fields;
-    var pct3 = (fl && fl.total > 0) ? Math.round((fl.filled / fl.total) * 100) : null;
-    put('make', !!fl || (o.specLocked !== null && o.specLocked !== undefined),
-      !!o.specLocked, pct3,
-      !fl ? (o.specLocked ? '출력조건을 확정했습니다' : '아직 확정하지 않았습니다')
-        : (fl.total === 0 ? '필수 항목이 없습니다'
-          : '필수 ' + fl.total + '개 중 ' + fl.filled + '개 (값과 출처가 모두 있어야 셉니다)'));
+    var pctSrc = (src && src.total > 0) ? Math.round((src.read / src.total) * 100) : null;
+    var pctFld = (fl && fl.total > 0) ? Math.round((fl.filled / fl.total) * 100) : null;
 
-    /* ④ 완성 보고서 — **여기서는 못 잰다.** 산출물 목록은 그 화면이 받아 온다.
+    /* 아직 프로젝트가 없으면 「자료를 읽는 중」, 생겼으면 「값을 채우는 중」 */
+    var early = !o.projectId;
+    var pct2 = early ? pctSrc : (pctFld !== null ? pctFld : pctSrc);
+
+    var detail2;
+    if (early) {
+      detail2 = !src ? '아직 프로젝트가 없습니다'
+        : (src.total === 0 ? '자료 없이 진행 중 — 값을 전부 직접 넣어야 합니다'
+          : '자료 ' + src.total + '건 중 ' + src.read + '건을 읽었습니다');
+    } else if (fl && fl.total > 0) {
+      detail2 = '필수 ' + fl.total + '개 중 ' + fl.filled + '개 (값과 출처가 모두 있어야 셉니다)'
+        + (o.specLocked ? ' · 출력조건 확정' : ' · 출력조건은 아직');
+    } else {
+      detail2 = o.specLocked ? '출력조건을 확정했습니다' : '아직 확정하지 않았습니다';
+    }
+
+    /* ★ 잰 것이 하나라도 있어야 「안다」고 한다 */
+    var known2 = !!src || !!fl || (o.specLocked !== null && o.specLocked !== undefined);
+    put('make', known2, !!o.specLocked, pct2, detail2);
+
+    /* ③ 완성 보고서 — **여기서는 못 잰다.** 산출물 목록은 그 화면이 받아 온다.
        못 쟀다고 두는 것이 「0건」이라고 적는 것보다 낫다 (§4.9) */
     put('done', false, false, null, null);
 
