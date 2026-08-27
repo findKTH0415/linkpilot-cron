@@ -252,6 +252,12 @@ function evidenceTable(ev) {
     out.push(`| ${c.name} | ${c.total} | ${c.filled} | ${c.fromEvidence} | ${c.pct}% | ${c.score === null ? '-' : `${c.score}점`} |`);
   });
   out.push('');
+  /* ★ 자동으로 채워질 수 없는 갈래는 **왜 늘 0%인지** 표 밖에 적는다.
+     셀에 넣으면 줄이 길어져 표가 안 읽힌다 (§6-3 ⑤) */
+  ev.byCategory.filter((c) => c.note).forEach((c) => {
+    out.push(`- **${c.name} ${c.total}개** — ${c.note}`);
+  });
+  if (ev.byCategory.some((c) => c.note)) out.push('');
 
   if (ev.bySource.length) {
     out.push('**어느 자료가 몇 칸을 냈는가**');

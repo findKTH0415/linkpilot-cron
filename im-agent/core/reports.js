@@ -29,7 +29,11 @@ function header(projectId, title) {
 }
 
 /** ② VALIDATION REPORT */
-function validationReport(projectId, final, spec) {
+/**
+ * @param {object} evidence 근거 기여도·품질 (D-152). **없으면 없다고 적는다** —
+ *   빈 자리를 두면 「쟀는데 좋았다」와 구분이 안 된다.
+ */
+function validationReport(projectId, final, spec, evidence) {
   const out = [header(projectId, 'LINKPILOT FINAL VALIDATION REPORT')];
 
   out.push('## 종합 판정', '');
@@ -41,6 +45,29 @@ function validationReport(projectId, final, spec) {
   out.push(`| Minor | ${final.summary.minor} |`);
   out.push(`| Gate 통과 | ${final.summary.gatesPassed} / ${final.summary.gatesTotal} |`);
   out.push('', '자료출처: 본 자료 최종검증 Agent(11_final_validation) 산출. 앞선 Agent 결과를 재계산·재대조한 것이다.', '');
+
+  /* ★★★ **근거가 얇은 문서를 조용히 승인하지 않는다** 〈2026-08-27 사장님 확정 · D-152〉.
+   *
+   *   막지는 않는다 — 막는 검사는 사람이 꺼 버린다(D-127). 대신 **승인하는 사람이
+   *   보는 자리**에 적는다. 생성은 그대로 되고, 승인 앞에서 한 번 걸린다.
+   *   ★ 못 쟀으면 **못 쟀다고 적는다.** 빈 자리는 「쟀는데 좋았다」와 구분이 안 된다.
+   */
+  out.push('## 근거 구성 — 무엇이 이 문서를 채웠나', '');
+  if (!evidence || !evidence.total) {
+    out.push('_근거 측정이 안 왔다 — **좋다는 뜻이 아니라 못 쟀다는 뜻이다.**_', '');
+  } else {
+    out.push(`| 항목 | 값 |`, '|---|---|');
+    out.push(`| 재는 분모 | ${evidence.total}개 (이 딜에 서는 항목 전부) |`);
+    out.push(`| 올린 자료 + 공공 API | **${evidence.evidencePct}%** |`);
+    out.push(`| 채워진 값의 품질 | **${evidence.quality.score === null ? '잰 것 없음' : `${evidence.quality.score}점 (${evidence.quality.band.label})`}** |`);
+    evidence.contribution.forEach((c) => { out.push(`| ${c.label} | ${c.n}개 (${c.pct}%) |`); });
+    out.push('');
+    (evidence.flags || []).forEach((f) => out.push(`- **${f.level}** ${f.message}`));
+    if ((evidence.flags || []).length) out.push('');
+    out.push('> **이 수치는 생성을 막지 않는다.** 막는 검사는 꺼지기 때문이다(D-127).',
+      '> 대신 승인하는 사람이 여기서 한 번 본다 — 근거가 얇은 문서를 모르고 승인하지 않게 하는 것이 이 절의 목적이다.', '');
+    out.push('자료출처: 본 자료 근거 측정(`11_QC/evidence.json`). 사람이 적은 값은 없다.', '');
+  }
 
   out.push('## 배점', '');
   out.push('| 항목 | 획득 | 배점 |', '|---|---:|---:|');

@@ -755,7 +755,7 @@ async function run(opts = {}) {
   results['11_final_validation'] = final;
   if (final.output) {
     store.writeJson(projectId, '11_QC/final-validation.json', final.output);
-    store.writeText(projectId, '11_QC/validation-report.md', reports.validationReport(projectId, final.output, spec));
+    store.writeText(projectId, '11_QC/validation-report.md', reports.validationReport(projectId, final.output, spec, evidence));
     store.writeText(projectId, '11_QC/red-flag-report.md', reports.redFlagReport(projectId, final.output));
     store.writeText(projectId, '11_QC/traceability-report.md', reports.traceabilityReport(projectId, final.output));
     store.writeJson(projectId, '12_Final/manifest.json', reports.manifest(projectId, { spec, writer: writer.output, final: final.output, theme: writer.output && writer.output.theme }));
