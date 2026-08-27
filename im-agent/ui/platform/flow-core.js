@@ -24,7 +24,7 @@
    *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다. 화면이 자기
    *   지문과 대 보고 다르면 「함수가 없다」로 죽기 전에 사람 말로 알린다.
    */
-  var LP_BUILD = 'bc50657e';
+  var LP_BUILD = '3abe5eb3';
 
   /**
    * ★★★ **단계는 다섯이다** 〈2026-08-22 사용자 지시〉.
@@ -84,6 +84,18 @@
       note: '페이지 수·형식·언어를 사람이 못 박는다. 확정 전에는 생성 버튼이 열리지 '
         + '않고, **확정하면 그 자리에서 생성으로 바뀐다** — 옮겨 갈 칸이 따로 없다.',
     },
+    /**
+     * ★★★ **완성 보고서를 흐름 안으로 들였다** 〈2026-08-28 사장님 지시 · D-157〉.
+     *
+     *   앞 판은 이것이 **딴 탭**이었다. 그래서 만들고 나면 사용자가 「이제 어디로
+     *   가지」를 스스로 찾아야 했다 — 흐름이 4단계에서 끊기고 결과가 다른 방에
+     *   있었다. 사장님 지시대로 **마지막 칸**으로 들인다.
+     */
+    {
+      id: 'done', no: 6, name: '완성 보고서', file: 'outputs.html',
+      needsProject: true,
+      note: '만들어진 문서를 여기서 내려받는다. 흐름의 마지막 칸이다.',
+    },
   ];
 
   /**
@@ -98,26 +110,41 @@
    *
    * ★ 순서를 여기서만 정한다. 화면이 따로 적으면 한쪽만 고치는 날 갈린다.
    */
+  /**
+   * **화면의 큰 뼈대 — 넷** 〈2026-08-28 사장님 지시 · D-157〉.
+   *
+   *   1 기본정보 · 무엇을 만들까요   2 관련자료 업로드
+   *   3 보고서 생성                 4 완성 보고서
+   *
+   * ★★★ **왜 다섯에서 넷으로 줄였나.** 사장님 지시 그대로다 —
+   *   「거울 미러링처럼 복잡함 혼란스러워 · 화면 전면적으로 재구성한다」.
+   *
+   *   앞 판은 절 하나에 단계 하나였다(1:1). 그래서 **한 번에 하나씩만** 보였고,
+   *   발행 주체를 적고 [다음] 을 눌러야 요청문이 나왔다. 둘 다 「누가·무엇을」
+   *   한 자리에서 정하는 일인데 화면이 둘로 갈라 놓은 것이다.
+   *
+   * ★★ 이제 **한 절이 여러 단계를 품는다.** 화면은 그 절의 단계를 **함께 펴고**
+   *   맨 아래에 [확인] 을 둔다. 아코디언 한 칸이 「한 번에 끝내는 일」이 된다.
+   *
+   * ★ 절 번호와 단계 번호는 **더 이상 같지 않다.** 대신 규칙은 그대로다 —
+   *   모든 단계는 **정확히 한 절**에만 속한다 (`flow.test.js` 가 잰다).
+   */
   var SECTIONS = [
     {
-      no: 1, id: 'basics', name: '제작 기본정보 입력', steps: ['basics'],
-      note: '누가 내는 문서인지부터 정한다.',
+      no: 1, id: 'start', name: '기본정보 · 무엇을 만들까요', steps: ['basics', 'ask'],
+      note: '누가 내는 문서인지와 무엇을 만들지를 한 자리에서 정한다.',
     },
     {
-      no: 2, id: 'ask', name: '무엇을 만들까요?', steps: ['ask'],
-      note: '요청문과 만들 산출물 종류를 받는다.',
+      no: 2, id: 'sources', name: '관련자료 업로드', steps: ['sources'],
+      note: '원본 자료를 받고 얼마나 읽었는지 보여 준다. 여기서 프로젝트를 만든다.',
     },
     {
-      no: 3, id: 'sources', name: '관련자료 업로드', steps: ['sources'],
-      note: '원본 자료를 받고, 여기서 프로젝트를 만든다.',
+      no: 3, id: 'make', name: '보고서 생성', steps: ['fields', 'spec'],
+      note: '자료가 채운 값을 확인하고, 쪽수·형식을 못 박고, 만든다.',
     },
     {
-      no: 4, id: 'fields', name: '가이드 필드 (자동입력 + 직접입력)', steps: ['fields'],
-      note: '올린 자료를 훑어 채울 수 있는 값은 자동으로 채우고, 못 채운 것만 직접 받는다.',
-    },
-    {
-      no: 5, id: 'output', name: '출력조건', steps: ['spec'],
-      note: '쪽수·형식·언어를 못 박는다. 확정하면 같은 자리에서 생성으로 바뀐다.',
+      no: 4, id: 'done', name: '완성 보고서', steps: ['done'],
+      note: '만들어진 문서를 내려받는다.',
     },
   ];
 
@@ -487,40 +514,41 @@
       out[id] = { known: !!known, done: !!(known && done), pct: known ? pct : null, detail: detail || null };
     }
 
-    /* ① 제작 기본정보 — 발행 주체가 정해졌는가. 중간이 없다 */
-    put('basics', o.issuerSet !== null && o.issuerSet !== undefined, o.issuerSet, null,
-      o.issuerSet ? '발행 주체가 정해졌습니다' : '발행 주체가 아직 없습니다');
+    /* ★★★ **절이 넷으로 줄면서 이 셈도 넷이 되었다** 〈2026-08-28 · D-157〉.
+     *   열쇠는 **절 id** 다(`SECTIONS[].id`). 레일 칸 이름을 쓰면 절과 어긋난다.
+     *   ★ 못 잰 것은 `known:false` 로 둔다 — 「0%」는 「못 쟀다」가 아니다. */
 
-    /* ② 무엇을 만들까요 — 요청문이 있는가.
-       ★ 프로젝트가 있으면 이 칸은 이미 지나온 것이다 — 요청문 없이는 만들 수 없다 */
+    /* ① 기본정보 · 무엇을 만들까요 — **둘 다** 돼야 끝난 것이다 */
+    var issuerKnown = o.issuerSet !== null && o.issuerSet !== undefined;
     var asked = !!o.projectId || !!(o.request && String(o.request).trim());
-    put('ask', true, asked, null,
-      asked ? '요청문을 받았습니다' : '아직 무엇을 만들지 안 적었습니다');
+    put('start', issuerKnown, !!o.issuerSet && asked, null,
+      (!o.issuerSet ? '발행 주체가 아직 없습니다'
+        : (asked ? '발행 주체와 요청문이 다 있습니다' : '아직 무엇을 만들지 안 적었습니다')));
 
-    /* ③ 관련자료 업로드 — **프로젝트를 만들면 이 칸의 목적은 끝난다.**
+    /* ② 관련자료 업로드 — **프로젝트를 만들면 이 칸의 목적은 끝난다.**
        진행율은 그다음 일(올린 자료를 읽었는가)을 말한다. 자료를 안 올려도
        진행은 되므로, 자료가 0건인 것을 「0%」로 적지 않는다 */
     var src = o.sources;
-    var pct3 = (src && src.total > 0) ? Math.round((src.read / src.total) * 100) : null;
-    put('sources', true, !!o.projectId, pct3,
+    var pct2 = (src && src.total > 0) ? Math.round((src.read / src.total) * 100) : null;
+    put('sources', true, !!o.projectId, pct2,
       !o.projectId ? '아직 프로젝트가 없습니다'
         : (!src ? '프로젝트가 만들어졌습니다'
           : (src.total === 0 ? '자료 없이 진행 중 — 값을 전부 직접 넣어야 합니다'
             : '자료 ' + src.total + '건 중 ' + src.read + '건을 읽었습니다')));
 
-    /* ④ 가이드 필드 — 필수 항목 중 **값과 출처가 둘 다** 있는 것만 센다
-       (`fields-core.js` 의 `completeness`). 값만 있고 출처가 없으면 저장 자체가
-       안 되므로, 세어 주면 다 됐다고 착각한다 */
+    /* ③ 보고서 생성 — 값이 얼마나 찼는가(진행률)와 출력조건을 확정했는가(끝났는가).
+       ★ 값은 **값과 출처가 둘 다** 있는 것만 센다 (`fields-core.completeness`) */
     var fl = o.fields;
-    var pct4 = (fl && fl.total > 0) ? Math.round((fl.filled / fl.total) * 100) : null;
-    put('fields', !!fl, !!(fl && fl.total > 0 && fl.filled >= fl.total), pct4,
-      !fl ? null
+    var pct3 = (fl && fl.total > 0) ? Math.round((fl.filled / fl.total) * 100) : null;
+    put('make', !!fl || (o.specLocked !== null && o.specLocked !== undefined),
+      !!o.specLocked, pct3,
+      !fl ? (o.specLocked ? '출력조건을 확정했습니다' : '아직 확정하지 않았습니다')
         : (fl.total === 0 ? '필수 항목이 없습니다'
           : '필수 ' + fl.total + '개 중 ' + fl.filled + '개 (값과 출처가 모두 있어야 셉니다)'));
 
-    /* ⑤ 출력조건 — 확정했느냐 아니냐다. 중간이 없다 */
-    put('output', o.specLocked !== null && o.specLocked !== undefined, o.specLocked, null,
-      o.specLocked ? '출력조건을 확정했습니다' : '아직 확정하지 않았습니다');
+    /* ④ 완성 보고서 — **여기서는 못 잰다.** 산출물 목록은 그 화면이 받아 온다.
+       못 쟀다고 두는 것이 「0건」이라고 적는 것보다 낫다 (§4.9) */
+    put('done', false, false, null, null);
 
     return out;
   }
