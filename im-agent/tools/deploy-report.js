@@ -65,7 +65,9 @@ function guardRows(txt) {
     while (i < rest.length && width(name) < 16) { name += rest[i]; i += 1; }
     const note = rest.slice(i).trim();
     if (!name.trim() || !note) return;
-    rows.push({ mark: m[1], name: name.trim(), note });
+    /* ★ guard 는 터미널용이라 굵게를 별표로 적는다. 화면에서는 별표가 그대로
+     *   보여 **잡음**이 된다 (§6-3 「의미 없는 기호를 넣지 않는다」) */
+    rows.push({ mark: m[1], name: name.trim(), note: note.replace(/\*\*/g, '') });
   });
   const tally = (txt.match(/통과 (\d+) · 실패 (\d+) · 못 잼 (\d+)/) || []).slice(1);
   return rows.length ? { rows, tally } : null;

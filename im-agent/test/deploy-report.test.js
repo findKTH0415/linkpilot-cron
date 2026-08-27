@@ -72,3 +72,8 @@ test('★★ 제목이 발행할 때마다 바뀌지 않는다 — 목록에서 
   assert.strictEqual(t(a), t(b), '판이 바뀌면 제목이 바뀐다 — 다른 장으로 보인다');
   assert.match(a, /aaaaaaaa/, '그래도 지문은 장 안에 있어야 한다');
 });
+
+test('★ 터미널용 별표를 화면에 그대로 내지 않는다', () => {
+  const g = guardRows('  ✅ 테스트           **2177 통과** · 0 실패\n');
+  assert.strictEqual(g.rows[0].note, '2177 통과 · 0 실패', '별표가 글자로 남았다');
+});
