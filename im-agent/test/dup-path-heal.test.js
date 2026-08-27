@@ -145,10 +145,22 @@ function serve(rootDir) {
   throw new Error('시험용 서버가 안 떴다');
 }
 
+/**
+ * ★★★ **시간을 넉넉히 준다** 〈2026-08-27 · 배포 #150 이 여기서 죽었다〉.
+ *
+ *   앞 판은 4초였다. 내 자리에서는 7/7 초록인데 **CI 에서만** 빨개졌다 —
+ *   느린 러너에서는 멀쩡한 쪽(b)이 단추를 다 그리기 전에 시간이 끝나고,
+ *   그러면 `btn(a) < btn(b)` 가 뒤집힌다.
+ *
+ *   ★ 그 한 번의 빨강이 **배포 전체를 세운다.** 실제로 #150 이 그렇게 죽어
+ *     화면도 엔진도 안 올라갔다. 재는 장치가 배포를 막은 셈이다 (M-60 의 결).
+ *   ★ 그래서 **문턱을 무르게 하지 않고 시간을 늘린다.** 재는 것(장치를 빼면
+ *     화면이 안 뜬다)은 그대로다 — 느려서 나는 빨강만 없앤다.
+ */
 function render(browser, url) {
   return execFileSync(browser, [
     '--headless', '--disable-gpu', '--no-sandbox',
-    '--virtual-time-budget=4000', '--dump-dom', url,
+    '--virtual-time-budget=12000', '--dump-dom', url,
   ], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] });
 }
 
