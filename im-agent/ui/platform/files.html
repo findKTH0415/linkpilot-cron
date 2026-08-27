@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="fb1b3b8a">
+<html lang="ko" data-lp-build="c994dd75">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -300,7 +300,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=fb1b3b8a">
+<link rel="stylesheet" href="tokens.css?v=c994dd75">
 <style>
 /* 색·간격·반경 토큰은 tokens.css 하나가 정한다 (LinkPilot Design System v1.1) */
 * { box-sizing: border-box; }
@@ -753,10 +753,10 @@ select:focus-visible, button:focus-visible { outline: 2px solid var(--lime-deep)
   </div>
 </div>
 
-<script src="gate-core.js?v=fb1b3b8a"></script>
-<script src="flow-core.js?v=fb1b3b8a"></script>
-<script src="upload-core.js?v=fb1b3b8a"></script>
-<script src="versions-core.js?v=fb1b3b8a"></script>
+<script src="gate-core.js?v=c994dd75"></script>
+<script src="flow-core.js?v=c994dd75"></script>
+<script src="upload-core.js?v=c994dd75"></script>
+<script src="versions-core.js?v=c994dd75"></script>
 <script>
 /**
  * 붙이는 쪽이 채우는 유일한 값.
@@ -802,7 +802,7 @@ window.LINKPILOT_FILES = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=fb1b3b8a" data-lp-global="LINKPILOT_FILES"></script>
+<script src="embed-bridge.js?v=c994dd75" data-lp-global="LINKPILOT_FILES"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -874,9 +874,50 @@ window.LINKPILOT_FILES = {
    *   ★ 그래도 단정하지 않는다 — 「대개」라고 적고, 새로고침해도 같으면
    *     **서버에 두 판이 섞인 것**이니 알려 달라고 한다. */
   n.textContent = '화면과 스크립트의 판이 다릅니다 — 화면(HTML)이 옛 판일 가능성이 큽니다. '
-    + '한 번 다시 받아 봤는데도 그대로입니다 — 서버에 두 판이 섞여 있을 수 있습니다. '
+    + '한 번 다시 받아 봤는데도 그대로입니다. '
     + '화면 ' + want + ' · 스크립트 ' + bad.join(', ')
-    + ' · 이 여덟 글자 두 개를 그대로 알려 주시면 어느 쪽이 안 올라갔는지 갈립니다.';
+    + ' · 어느 쪽인지 지금 확인하고 있습니다 — 잠시 뒤 이 자리에 무엇을 하면 되는지 적힙니다. '
+    + '그대로면 이 여덟 글자 두 개를 알려 주시면 저희가 봅니다.';
+
+  /* ★★★ **「둘 중 하나」로 끝내지 않는다 — 물어봐서 가른다** 〈2026-08-27 · 사장님 화면〉.
+   *
+   *   앞 판은 「서버에 두 판이 섞여 있을 수 있습니다」로 끝났다. 그런데 그 말은
+   *   **읽는 사람이 할 수 있는 일이 없다** — 캐시를 지워야 하는지, 배포가 안
+   *   된 것인지 갈리지 않기 때문이다. 오늘 그 갈림에서 세 번 헤맸다.
+   *
+   *   ★ 가르는 법은 간단하다. **이 화면의 주소를 캐시를 쓰지 말고 다시 받아**
+   *     거기 적힌 판을 본다. 받은 것이
+   *       · 지금 그려진 것과 **같으면** → 서버가 정말 옛 화면을 준다
+   *       · **다르면**               → 서버는 새 판이고 브라우저가 옛것을 들고 있다
+   *   ★ 못 받으면 **못 쟀다고 적는다.** 「둘 중 하나」로 되돌아가지 않는다.
+   *   ★ 판 표시는 문서 뿌리의 속성에 있다 — 받은 글에서 그 속성을 찾는다.
+   */
+  try {
+    var url = location.href.replace(/[?&]lpcheck=\d+/, '');
+    url += (url.indexOf('?') < 0 ? '?' : '&') + 'lpcheck=' + Date.now();
+    fetch(url, { cache: 'no-store', credentials: 'same-origin' })
+      .then(function (r) { return r.text(); })
+      .then(function (t) {
+        var m = /data-lp-build="([0-9a-f]+)"/.exec(t);
+        var fresh = m && m[1];
+        if (!fresh) {
+          n.textContent += ' — 다시 받아 봤지만 판을 읽지 못했습니다. 알려 주시면 저희가 봅니다.';
+          return;
+        }
+        if (fresh === want) {
+          n.textContent = '서버가 옛 화면을 주고 있습니다 — 브라우저 탓이 아닙니다. '
+            + '화면 ' + want + ' · 스크립트 ' + bad.join(', ')
+            + ' · 캐시를 지우셔도 그대로입니다. 이 두 글자묶음을 알려 주십시오.';
+        } else {
+          n.textContent = '브라우저가 옛 화면을 들고 있습니다 — 서버는 새 판(' + fresh + ')입니다. '
+            + '앱을 완전히 껐다 켜시고, 그래도 그대로면 앱 설정에서 **캐시 삭제**를 하십시오. '
+            + '(화면 ' + want + ' · 스크립트 ' + bad.join(', ') + ')';
+        }
+      })
+      .catch(function () {
+        n.textContent += ' — 다시 받아 보지 못했습니다(연결). 알려 주시면 저희가 봅니다.';
+      });
+  } catch (_) { /* fetch 가 없는 자리도 있다 — 그때는 위 문장으로 둔다 */ }
   var put = function () { if (document.body) document.body.appendChild(n); };
   if (document.body) put(); else document.addEventListener('DOMContentLoaded', put);
 }());
