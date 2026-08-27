@@ -58,3 +58,8 @@ im-agent/ui/platform/merge-watch.html
 
 # 열린 PR 기록 — 세션마다 받아 적는 임시 기록이다 (D-142)
 .lp-open-prs.json
+
+# 배포 확인 한 장 (D-147) — 돌린 자리의 값이 박히므로 저장소에 두지 않는다.
+# 이 컨테이너는 NAS 를 못 봐서 「배포 단계 0개」로 그려진다 — 그것이 커밋되면
+# 저장소가 옛말·거짓말을 하는 화면을 갖게 된다 (MEMORY M-05).
+deploy-report.html
