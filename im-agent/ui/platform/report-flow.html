@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="6d754efb">
+<html lang="ko" data-lp-build="40d8b711">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -288,7 +288,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=6d754efb">
+<link rel="stylesheet" href="tokens.css?v=40d8b711">
 <style>
 /* 색·간격·반경 토큰은 tokens.css 하나가 정한다 (LinkPilot Design System v1.1) */
 * { box-sizing: border-box; }
@@ -463,14 +463,14 @@ window.LINKPILOT_REPORT_FLOW = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=6d754efb" data-lp-global="LINKPILOT_REPORT_FLOW"></script>
-<script src="gate-core.js?v=6d754efb"></script>
-<script src="flow-core.js?v=6d754efb"></script>
+<script src="embed-bridge.js?v=40d8b711" data-lp-global="LINKPILOT_REPORT_FLOW"></script>
+<script src="gate-core.js?v=40d8b711"></script>
+<script src="flow-core.js?v=40d8b711"></script>
 <!-- ★ 4단계 진행율(필수 항목 채움)을 재는 데 쓴다. **값과 출처가 둘 다**
      있어야 세는 규칙이 여기 있다 — 화면이 따로 세면 두 벌이 된다 -->
-<script src="fields-core.js?v=6d754efb"></script>
-<script src="catalog.js?v=6d754efb"></script>
-<script src="inapp.js?v=6d754efb"></script>
+<script src="fields-core.js?v=40d8b711"></script>
+<script src="catalog.js?v=40d8b711"></script>
+<script src="inapp.js?v=40d8b711"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -777,17 +777,34 @@ window.LINKPILOT_REPORT_FLOW = {
    * ★ 재는 일은 **한 프레임에 한 번**으로 묶는다. 한 번 그리는 사이에 스무 번
    *   재 봐야 결과는 같고 값만 치른다.
    */
-  var watching = null;   // { fr: <iframe>, stop: fn }
+  /* ★★★ **지켜보는 틀은 여럿이다** 〈2026-08-28 · D-161 — D-157 이 남긴 둘째〉.
+   *
+   *   앞 판은 `watching` 이 **한 자리**였다. 새 틀을 지켜보기 시작하면 앞의
+   *   것을 **놓아 버렸다**(`unwatch()`). 한 절에 틀이 하나뿐이던 시절에는
+   *   그것이 맞았다.
+   *
+   *   D-157 부터 **한 절이 틀을 여럿 띄운다.** 그러자 마지막 틀만 지켜보게
+   *   되고, 앞의 틀은 **처음 잰 높이에 그대로 굳는다.** 실측: `basics` 는
+   *   320px(재기 전 임시값)에 굳고 `ask` 만 468px 로 맞았다.
+   *
+   *   ★★ 굳은 틀은 **내용이 잘린다.** 안쪽이 늦게 그려지면(서버 대답을 받은
+   *     뒤) 그 뒤로는 아무도 다시 재지 않으므로 **하얀 칸**으로 남는다.
+   *   ★★★ 여기서도 **오류가 안 난다.** 틀은 멀쩡히 실렸고 높이만 틀렸다.
+   *
+   *   ★ 그래서 **띄운 틀을 전부 지켜본다.** 다시 그릴 때 한꺼번에 놓는다.
+   */
+  var watching = [];   // [{ fr: <iframe>, stop: fn }, …]
 
   function unwatch() {
-    if (!watching) return;
-    try { watching.stop(); } catch (e) {}
-    watching = null;
+    var all = watching; watching = [];
+    all.forEach(function (w) { try { w.stop(); } catch (e) {} });
   }
 
   function watch(fr) {
-    if (watching && watching.fr === fr) { fit(fr); return; }
-    unwatch();
+    /* ★ 이미 지켜보는 틀이면 다시 걸지 않는다 — 감시자가 두 벌이 된다 */
+    for (var i = 0; i < watching.length; i++) {
+      if (watching[i].fr === fr) { fit(fr); return; }
+    }
     fit(fr);
 
     var d;
@@ -820,11 +837,11 @@ window.LINKPILOT_REPORT_FLOW = {
      *   하므로 이 지켜보기는 싸다. */
     var n = 0, t = setInterval(function () { soon(); if (++n > 8) clearInterval(t); }, 250);
 
-    watching = { fr: fr, stop: function () {
+    watching.push({ fr: fr, stop: function () {
       if (obs) obs.disconnect();
       clearInterval(t);
       if (raf) window.cancelAnimationFrame(raf);
-    } };
+    } });
   }
 
   /* ★ 2026-08-16 — 1단계 화면이 만든 프로젝트를 postMessage 로 받는다 (URL 감시의 짝).
