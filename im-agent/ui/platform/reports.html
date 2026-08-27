@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="c994dd75">
+<html lang="ko" data-lp-build="bc1b7779">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -264,7 +264,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=c994dd75">
+<link rel="stylesheet" href="tokens.css?v=bc1b7779">
 <style>
 :root {
   --side: 248px;
@@ -579,14 +579,14 @@ a.out__a, a.out__a:visited { display: inline-block; white-space: nowrap; color: 
   <a class="bot__i on" href="#"><b>☰</b>더보기</a>
 </nav>
 
-<script src="gate-core.js?v=c994dd75"></script>
-<script src="catalog.js?v=c994dd75"></script>
-<script src="inapp.js?v=c994dd75"></script>
-<script src="live-core.js?v=c994dd75"></script>
+<script src="gate-core.js?v=bc1b7779"></script>
+<script src="catalog.js?v=bc1b7779"></script>
+<script src="inapp.js?v=bc1b7779"></script>
+<script src="live-core.js?v=bc1b7779"></script>
 <!-- ★ 판 지문을 화면에 보이게 찍는 것이 여기 있다 (§8) — 묶음에 이미 실리는 파일이다 -->
-<script src="flow-core.js?v=c994dd75"></script>
+<script src="flow-core.js?v=bc1b7779"></script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=c994dd75" data-lp-global="LINKPILOT_REPORTS"></script>
+<script src="embed-bridge.js?v=bc1b7779" data-lp-global="LINKPILOT_REPORTS"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -996,11 +996,11 @@ window.LINKPILOT_REPORTS = Object.assign({
   // ── 단계 표시 ────────────────────────────────────
   function steps() {
     var row = el('div', 'steps');
-    /* ★ 레일이 다섯이 됐다 〈2026-08-22 사용자 지시〉. 마지막 「생성」은 레일에
-       없는 칸이지만 **이 화면 안에서는 그대로 둔다** — 확정하면 여기가 생성으로
-       바뀐다는 것을 화면이 스스로 말해야 한다. */
-    ['제작 기본정보 입력', '무엇을 만들까요?', '관련자료 업로드',
-      '가이드 필드 (자동입력 + 직접입력)', '출력조건', '생성'].forEach(function (label, i) {
+    /* ★★ **이름을 여기 적지 않는다** 〈2026-08-28 · D-157〉. 앞 판은 여섯을
+       손으로 적어 두었고, 레일의 마지막 칸 이름이 「생성」에서 「완성 보고서」로
+       바뀌자 **여기만 옛 이름을 말했다.** 정본은 `flow-core.js` 하나다. */
+    var FL = window.LinkPilotFlow;
+    (FL ? FL.STEPS.map(function (st) { return st.name; }) : []).forEach(function (label, i) {
       var cls = 'step';
       if (i <= 3) cls += ' done';
       else if (i === 4) cls += state.locked ? ' done' : ' on';

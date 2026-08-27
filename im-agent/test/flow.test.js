@@ -706,9 +706,12 @@ test('★★ 진행률이 레일의 칸을 하나도 빠뜨리지 않는다', ()
       `「${ls.covers[0]}」 이름이 진행률과 레일에서 다르다`);
   });
 
-  /* ★ 레일에 없는 칸은 「생성」 하나뿐이다 — 진행률에만 있는 칸이 늘면
-     사용자는 레일에서 그것을 찾다가 못 찾는다 */
-  assert.deepStrictEqual(L.STEPS.filter(s => !(s.covers || []).length).map(s => s.id), ['make']);
+  /* ★ **레일에 없는 칸이 이제 하나도 없다** 〈2026-08-28 · D-157〉.
+     「생성」은 레일에 없는 칸이었는데, 「완성 보고서」가 레일의 마지막 칸이 되면서
+     같은 자리를 덮게 됐다. 진행률에만 있는 칸이 늘면 사용자는 레일에서 그것을
+     찾다가 못 찾는다 — 그래서 **빈 `covers` 는 없어야 한다.** */
+  assert.deepStrictEqual(L.STEPS.filter(s => !(s.covers || []).length).map(s => s.id), [],
+    '진행률에만 있고 레일에는 없는 칸이 생겼다');
 });
 
 /**
@@ -732,15 +735,17 @@ test('★★ 단계 이름을 화면이 베껴 쓰지 않는다', () => {
       `intake.html 이 「${st.name}」 을 직접 적고 있다`);
   });
 
-  /* ★ `reports.html` 은 아직 제 목록을 갖는다(코어를 안 싣는다). 그래서
-     **레일에 있는 만큼은 글자 그대로 같은지** 잰다 */
+  /* ★★ `reports.html` **도 이제 베껴 쓰지 않는다** 〈2026-08-28 · D-157〉.
+     앞 판은 여섯을 손으로 적어 두었고, 레일의 마지막 이름이 바뀌자 **여기만
+     옛 이름을 말했다.** 그래서 「글자가 같은가」가 아니라 **「읽어 오는가」**를 잰다 —
+     읽어 오면 갈릴 수가 없다. */
   const rep = fs2.readFileSync(p2.join(PLATFORM, 'reports.html'), 'utf8');
-  const m = rep.match(/\[('[^']*',\s*)+'[^']*'\]\.forEach\(function \(label, i\)/);
-  assert.ok(m, 'reports.html 에서 단계 칩 배열을 못 찾았다 — 대조가 불가능해졌다');
-  const labels = [...m[0].matchAll(/'([^']+)'/g)].map(x => x[1]);
-  assert.ok(labels.length >= F.STEPS.length, `reports.html 의 단계 칩이 모자라다`);
-  F.STEPS.forEach((st, i) => assert.strictEqual(labels[i], st.name,
-    `reports.html 의 ${i + 1}번 칩이 정본과 다르다`));
+  assert.match(rep, /FL\.STEPS\.map\(function \(st\) \{ return st\.name; \}\)/,
+    'reports.html 이 단계 이름을 flow-core 에서 읽지 않는다 — 사본은 갈린다');
+  F.STEPS.forEach((st) => {
+    assert.ok(rep.indexOf("'" + st.name + "'") === -1,
+      `reports.html 이 「${st.name}」 을 직접 적고 있다`);
+  });
 });
 
 /**
@@ -751,46 +756,52 @@ test('★★ 단계 이름을 화면이 베껴 쓰지 않는다', () => {
  * ★ 「새보고서 진행률」 절을 뺐다. 그것이 ①이던 앞 판은 **절 번호와 단계
  *   번호가 하나씩 어긋나** 「1단계」라는 말이 어느 칸을 가리키는지 흐렸다.
  */
-test('★★ 절 다섯 — 순서·이름·품은 단계가 고정되어 있다', () => {
+test('★★ 절 넷 — 순서·이름·품은 단계가 고정되어 있다', () => {
+  /* ★★★ **다섯에서 넷으로 줄였다** 〈2026-08-28 사장님 지시 · D-157:
+   *   「거울 미러링처럼 복잡함 혼란스러워 · 화면 전면적으로 재구성한다」〉.
+   *
+   *   앞 판은 절 하나에 단계 하나(1:1)였다. 그래서 「누가 내는가」와 「무엇을
+   *   만드는가」가 한 가지 일인데도 **한 번에 하나씩**만 보였다.
+   *   ★ 이제 한 절이 여러 단계를 품는다. 절 번호와 단계 번호는 **더 이상
+   *     같지 않다** — 대신 「모든 단계는 정확히 한 절에만」이 규칙으로 남는다. */
   assert.deepStrictEqual(F.SECTIONS.map(s => `${s.no}. ${s.name}`), [
-    '1. 제작 기본정보 입력',
-    '2. 무엇을 만들까요?',
-    '3. 관련자료 업로드',
-    '4. 가이드 필드 (자동입력 + 직접입력)',
-    '5. 출력조건',
+    '1. 기본정보 · 무엇을 만들까요',
+    '2. 관련자료 업로드',
+    '3. 보고서 생성',
+    '4. 완성 보고서',
   ]);
-  /* ★★ **절 번호와 단계 번호가 같다.** 어긋나면 잠금 사유·안내 문구가 가리키는
-     칸이 화면에서 한 칸씩 밀린다 */
-  assert.deepStrictEqual(F.SECTIONS.map(s => s.no), F.STEPS.map(s => s.no));
-  /* ★ ④ 는 `spec` 하나를 품는다 〈2026-08-22 — 단계는 셋〉. 확정 뒤의 「생성」은
-     같은 화면의 다른 상태일 뿐 **옮겨 갈 칸이 아니다.** 칸으로 두었더니
-     「3을 끝내고 4로 넘어간다」로 읽혔다. */
   assert.deepStrictEqual(F.SECTIONS.map(s => s.steps),
-    [['basics'], ['ask'], ['sources'], ['fields'], ['spec']]);
+    [['basics', 'ask'], ['sources'], ['fields', 'spec'], ['done']]);
   // 모든 단계가 **정확히 한 절**에만 속한다 (빠진 단계도, 두 번 실린 단계도 없다)
   const owned = F.SECTIONS.flatMap(s => s.steps).sort();
   assert.deepStrictEqual(owned, F.STEPS.map(s => s.id).sort(),
     '어느 절에도 안 속한 단계가 있거나, 두 절에 실린 단계가 있다');
   F.SECTIONS.forEach((s, i) => assert.strictEqual(s.no, i + 1, '번호가 이어지지 않는다'));
+
+  /* ★ 진행률의 열쇠는 **절 id** 다. 어긋나면 절이 진행률에서 조용히 사라진다 */
+  const prog = F.sectionProgress({ issuerSet: true, projectId: 'P' });
+  assert.deepStrictEqual(Object.keys(prog).sort(), F.SECTIONS.map(s => s.id).sort(),
+    '진행률이 절과 다른 열쇠를 쓴다');
 });
 
 test('★ 절 상태 — 잠긴 이유는 그 절이 품은 단계에서 나온다', () => {
   // 서버가 없으면 전부 잠긴다
   const none = F.sectionState({ api: null, projectId: null });
-  assert.deepStrictEqual(none.map(s => s.locked), [true, true, true, true, true]);
+  assert.deepStrictEqual(none.map(s => s.locked), [true, true, true, true]);
   assert.match(none[0].why, /서버/, '잠긴 이유를 안 적으면 고장으로 읽힌다');
 
-  // 프로젝트가 없으면 앞의 셋만 열린다 — 거기서 프로젝트를 만든다
+  // 프로젝트가 없으면 앞의 둘만 열린다 — ②에서 프로젝트를 만든다
   const fresh = F.sectionState({ api: '/x', projectId: null });
-  assert.deepStrictEqual(fresh.map(s => s.locked), [false, false, false, true, true]);
-  assert.match(fresh[3].why, /프로젝트/);
+  assert.deepStrictEqual(fresh.map(s => s.locked), [false, false, true, true]);
+  assert.match(fresh[2].why, /프로젝트/);
 
   // 다 열리면 「지금」이 하나뿐이다 — 둘이면 어디를 보는지 알 수 없다
   const open = F.sectionState({ api: '/x', projectId: 'LP-DC-2026-001', current: 'spec' });
-  assert.deepStrictEqual(open.map(s => s.locked), [false, false, false, false, false]);
+  assert.deepStrictEqual(open.map(s => s.locked), [false, false, false, false]);
   assert.strictEqual(open.filter(s => s.current).length, 1);
-  assert.strictEqual(open[4].current, true, '출력조건이 지금 절이어야 한다');
-  assert.strictEqual(open[4].opensTo, 'spec');
+  assert.strictEqual(open[2].current, true, '보고서 생성이 지금 절이어야 한다');
+  /* ★ ③ 은 단계 둘을 품는다 — 열면 **열린 것 중 첫째**로 간다 */
+  assert.strictEqual(open[2].opensTo, 'fields');
 });
 
 
@@ -918,39 +929,40 @@ test('★★★ 못 쟀으면 완료도 진행율도 말하지 않는다', () =>
   const F = require('../ui/platform/flow-core.js');
   const p = F.sectionProgress({});          // 아무것도 못 쟀다
 
-  assert.strictEqual(p.basics.known, false, '발행 주체를 못 쟀는데 안다고 한다');
-  assert.strictEqual(p.basics.done, false, '못 쟀는데 완료라고 한다');
-  assert.strictEqual(p.basics.pct, null, '못 쟀는데 숫자를 적었다 — 0% 는 「안 했다」로 읽힌다');
-  assert.strictEqual(p.fields.known, false, '필드를 못 쟀는데 안다고 한다');
-  assert.strictEqual(p.fields.pct, null, '필드를 못 쟀는데 숫자를 적었다');
-  assert.strictEqual(p.output.known, false, '출력조건을 못 쟀는데 안다고 한다');
+  assert.strictEqual(p.start.known, false, '발행 주체를 못 쟀는데 안다고 한다');
+  assert.strictEqual(p.start.done, false, '못 쟀는데 완료라고 한다');
+  assert.strictEqual(p.start.pct, null, '못 쟀는데 숫자를 적었다 — 0% 는 「안 했다」로 읽힌다');
+  assert.strictEqual(p.make.known, false, '값도 출력조건도 못 쟀는데 안다고 한다');
+  assert.strictEqual(p.make.pct, null, '못 쟀는데 숫자를 적었다');
+  /* ★ 완성 보고서는 **여기서 잴 수 없다.** 산출물 목록은 그 화면이 받아 온다 —
+     못 쟀다고 두는 것이 「0건」이라고 적는 것보다 낫다 (§4.9) */
+  assert.strictEqual(p.done.known, false, '못 재는 칸을 안다고 한다');
 });
 
-test('★★★ 다섯 절이 각자 맞는 표기를 낸다 (완료 / 진행율)', () => {
+test('★★★ 네 절이 각자 맞는 표기를 낸다 (완료 / 진행율)', () => {
   const F = require('../ui/platform/flow-core.js');
   const p = F.sectionProgress({
     issuerSet: true, projectId: 'LP-DC-2026-001',
     sources: { total: 5, read: 3 }, fields: { filled: 7, total: 10 }, specLocked: true,
   });
 
-  assert.strictEqual(p.basics.done, true, '① 발행 주체를 정했는데 완료가 아니다');
-  assert.strictEqual(p.ask.done, true, '② 프로젝트가 있으면 요청문은 이미 받은 것이다');
-  assert.strictEqual(p.sources.done, true, '③ 프로젝트를 만들었는데 완료가 아니다');
-  assert.strictEqual(p.sources.pct, 60, `③ 5건 중 3건이면 60% 여야 한다 (${p.sources.pct})`);
-  assert.strictEqual(p.fields.done, false, '④ 7/10 인데 완료라고 한다');
-  assert.strictEqual(p.fields.pct, 70, `④ 7/10 이면 70% 여야 한다 (${p.fields.pct})`);
-  assert.strictEqual(p.output.done, true, '⑤ 확정했는데 완료가 아니다');
+  /* ① 은 **둘 다** 돼야 끝난 것이다 — 발행 주체와 요청문 */
+  assert.strictEqual(p.start.done, true, '① 발행 주체·요청문이 다 있는데 완료가 아니다');
+  assert.strictEqual(p.sources.done, true, '② 프로젝트를 만들었는데 완료가 아니다');
+  assert.strictEqual(p.sources.pct, 60, `② 5건 중 3건이면 60% 여야 한다 (${p.sources.pct})`);
+  /* ③ 은 **확정했는가**로 끝난다. 진행율은 값이 얼마나 찼는지를 말한다 */
+  assert.strictEqual(p.make.done, true, '③ 출력조건을 확정했는데 완료가 아니다');
+  assert.strictEqual(p.make.pct, 70, `③ 7/10 이면 70% 여야 한다 (${p.make.pct})`);
 
-  /* ★ 진행율은 **셋과 넷에만** 있다. 나머지는 중간이 없다 —
+  /* ★ 진행율은 **②③에만** 있다. 나머지는 중간이 없다 —
      없는 중간을 지어내면 뜻 없는 숫자가 돈다 */
-  assert.strictEqual(p.basics.pct, null, '①에 없는 진행율을 지어냈다');
-  assert.strictEqual(p.ask.pct, null, '②에 없는 진행율을 지어냈다');
-  assert.strictEqual(p.output.pct, null, '⑤에 없는 진행율을 지어냈다');
+  assert.strictEqual(p.start.pct, null, '①에 없는 진행율을 지어냈다');
+  assert.strictEqual(p.done.pct, null, '④에 없는 진행율을 지어냈다');
 
   /* ★ 숫자만 있으면 무엇의 60% 인지 모른다 — 잰 사실을 함께 낸다 */
-  assert.match(p.sources.detail, /5건 중 3건/, '③ 무엇을 셌는지 안 적었다');
-  assert.match(p.fields.detail, /10개 중 7개/, '④ 무엇을 셌는지 안 적었다');
-  assert.match(p.fields.detail, /출처/, '④ 출처가 있어야 센다는 규칙을 안 알려 준다');
+  assert.match(p.sources.detail, /5건 중 3건/, '② 무엇을 셌는지 안 적었다');
+  assert.match(p.make.detail, /10개 중 7개/, '③ 무엇을 셌는지 안 적었다');
+  assert.match(p.make.detail, /출처/, '③ 출처가 있어야 센다는 규칙을 안 알려 준다');
 });
 
 test('★★ 자료가 0건인 것을 0% 로 적지 않는다', () => {

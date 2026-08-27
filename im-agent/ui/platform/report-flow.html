@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="c994dd75">
+<html lang="ko" data-lp-build="bc1b7779">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -288,7 +288,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=c994dd75">
+<link rel="stylesheet" href="tokens.css?v=bc1b7779">
 <style>
 /* 색·간격·반경 토큰은 tokens.css 하나가 정한다 (LinkPilot Design System v1.1) */
 * { box-sizing: border-box; }
@@ -386,6 +386,14 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
 
 .stage iframe { display: block; width: 100%; border: 0; }
 
+/* 절 맨 아래의 [확인] — 한 칸을 끝냈다고 사람이 말해 주는 자리 (D-157) */
+.okrow { display: flex; justify-content: flex-end; align-items: center; gap: 10px;
+  margin: 14px 0 2px; flex-wrap: wrap; }
+.okrow__b { font-family: inherit; font-size: 14.5px; font-weight: 700; cursor: pointer;
+  padding: 11px 18px; border-radius: 12px; border: 0;
+  background: var(--lime); color: var(--lp-brand-ink); }
+.okrow__b:hover { filter: brightness(0.96); }
+.okrow__why { font-size: 13px; color: var(--ink2); }
 .note { margin: 12px 0 0; padding: 12px 14px; border-radius: 12px;
   background: var(--warn-soft); color: var(--warn-ink); font-size: 13.5px; }
 .note--bad { background: var(--bad-soft); color: var(--bad-ink); }
@@ -441,14 +449,14 @@ window.LINKPILOT_REPORT_FLOW = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=c994dd75" data-lp-global="LINKPILOT_REPORT_FLOW"></script>
-<script src="gate-core.js?v=c994dd75"></script>
-<script src="flow-core.js?v=c994dd75"></script>
+<script src="embed-bridge.js?v=bc1b7779" data-lp-global="LINKPILOT_REPORT_FLOW"></script>
+<script src="gate-core.js?v=bc1b7779"></script>
+<script src="flow-core.js?v=bc1b7779"></script>
 <!-- ★ 4단계 진행율(필수 항목 채움)을 재는 데 쓴다. **값과 출처가 둘 다**
      있어야 세는 규칙이 여기 있다 — 화면이 따로 세면 두 벌이 된다 -->
-<script src="fields-core.js?v=c994dd75"></script>
-<script src="catalog.js?v=c994dd75"></script>
-<script src="inapp.js?v=c994dd75"></script>
+<script src="fields-core.js?v=bc1b7779"></script>
+<script src="catalog.js?v=bc1b7779"></script>
+<script src="inapp.js?v=bc1b7779"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -873,6 +881,38 @@ window.LINKPILOT_REPORT_FLOW = {
       + '글자(판 표시)를 알려 주시면 어느 쪽이 옛것인지 갈립니다.');
   }
 
+  /**
+   * **절 맨 아래의 [확인]** 〈2026-08-28 사장님 지시 · D-157〉.
+   *
+   * ★ 사장님 지시: 「아코디언 펼치기 방식 … → [확인클릭]」. 한 칸을 끝냈다는
+   *   것을 **사람이 말해 주는 자리**다. 없으면 어디까지 한 것인지 화면이 모른다.
+   *
+   * ★★ **다음 칸이 잠겨 있으면 단추를 그리지 않고 이유를 적는다.** 눌러도
+   *   아무 일이 없는 단추가 가장 나쁘다 — 고장으로 읽힌다.
+   * ★ 마지막 칸에는 단추가 없다. 갈 곳이 없는데 [확인] 을 두면 「한 칸이 더
+   *   남았다」로 읽힌다 (D-149 · 「생성」 칸을 없앴을 때와 같은 이유).
+   */
+  function confirmRow(sec) {
+    var all = F.sectionState(ctx());
+    var at = -1;
+    all.forEach(function (x, i) { if (x.id === sec.id) at = i; });
+    var next = at >= 0 ? all[at + 1] : null;
+    if (!next) return null;
+
+    var row = el('div', 'okrow');
+    if (next.locked) {
+      row.appendChild(el('span', 'okrow__why',
+        '다음 칸(' + next.no + '. ' + next.name + ')은 아직 잠겨 있습니다 — '
+        + (next.why || '앞 칸을 먼저 끝냅니다') + '.'));
+      return row;
+    }
+    var b = el('button', 'okrow__b', '확인 — ' + next.no + '. ' + next.name + ' 으로');
+    b.type = 'button';
+    b.addEventListener('click', function () { go(next.opensTo); });
+    row.appendChild(b);
+    return row;
+  }
+
   function stage(step) {
     var box = el('div', 'stage');
 
@@ -1049,10 +1089,22 @@ window.LINKPILOT_REPORT_FLOW = {
         return;
       }
       if (!sec.current) { view.appendChild(section(sec, null)); return; }
-      var cur = byStep[state.current] || sec.steps[0];
-      view.appendChild(section(sec, cur.locked
-        ? notice('', cur.name + ' 단계를 아직 열 수 없습니다', cur.why)
-        : stage(cur)));
+      /* ★★★ **한 절이 품은 단계를 함께 편다** 〈2026-08-28 사장님 지시 · D-157〉.
+       *
+       *   앞 판은 `byStep[state.current]` 하나만 폈다. 그래서 「기본정보」와
+       *   「무엇을 만들까요」가 한 절인데도 **한 번에 하나씩** 보였고, 사용자는
+       *   같은 일을 하다가 [다음] 을 눌러야 나머지 반이 나왔다.
+       *   ★ 이제 그 절의 단계를 **차례로 다 펴고** 맨 아래에 [확인] 을 둔다 —
+       *     아코디언 한 칸이 「한 번에 끝내는 일」이 된다. */
+      var frag = document.createDocumentFragment();
+      sec.steps.forEach(function (st) {
+        frag.appendChild(st.locked
+          ? notice('', st.name + ' 단계를 아직 열 수 없습니다', st.why)
+          : stage(st));
+      });
+      var go = confirmRow(sec);
+      if (go) frag.appendChild(go);
+      view.appendChild(section(sec, frag));
     });
 
     /* ★ 짐작으로 부른 판이면 **그 사실만 조용히 알린다.** 단계를 잠그지 않는다 —
