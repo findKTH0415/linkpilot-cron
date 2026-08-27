@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="87e5ae3f">
+<html lang="ko" data-lp-build="6d754efb">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -288,7 +288,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=87e5ae3f">
+<link rel="stylesheet" href="tokens.css?v=6d754efb">
 <style>
 /* 색·간격·반경 토큰은 tokens.css 하나가 정한다 (LinkPilot Design System v1.1) */
 * { box-sizing: border-box; }
@@ -463,14 +463,14 @@ window.LINKPILOT_REPORT_FLOW = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=87e5ae3f" data-lp-global="LINKPILOT_REPORT_FLOW"></script>
-<script src="gate-core.js?v=87e5ae3f"></script>
-<script src="flow-core.js?v=87e5ae3f"></script>
+<script src="embed-bridge.js?v=6d754efb" data-lp-global="LINKPILOT_REPORT_FLOW"></script>
+<script src="gate-core.js?v=6d754efb"></script>
+<script src="flow-core.js?v=6d754efb"></script>
 <!-- ★ 4단계 진행율(필수 항목 채움)을 재는 데 쓴다. **값과 출처가 둘 다**
      있어야 세는 규칙이 여기 있다 — 화면이 따로 세면 두 벌이 된다 -->
-<script src="fields-core.js?v=87e5ae3f"></script>
-<script src="catalog.js?v=87e5ae3f"></script>
-<script src="inapp.js?v=87e5ae3f"></script>
+<script src="fields-core.js?v=6d754efb"></script>
+<script src="catalog.js?v=6d754efb"></script>
+<script src="inapp.js?v=6d754efb"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -859,8 +859,35 @@ window.LINKPILOT_REPORT_FLOW = {
     var pid = new URLSearchParams(loc.search).get('project');
     var changed = false;
     if (pid && pid !== state.projectId) { state.projectId = pid; changed = true; }
+    /* ★★★ **같은 절 안의 형제 칸은 현재 단계를 바꾸지 않는다**
+     *   〈2026-08-28 · D-160 — D-157 이 만든 되풀이〉.
+     *
+     *   D-157 부터 **한 절이 여러 단계를 함께 편다.** 1절은 `basics` 와 `ask`
+     *   두 틀을 나란히 띄운다. 그런데 여기서는 틀이 실릴 때마다 그 틀의 단계를
+     *   **현재 단계로 삼고 다시 그렸다.**
+     *
+     *     basics 실림 → 현재=basics → 그대로
+     *     ask    실림 → 현재≠ask → 현재=ask → **다시 그린다**
+     *     → 틀 둘이 새로 만들어지고 다시 실린다 → basics 가 현재를 되돌린다
+     *     → **끝없이 되풀이한다**
+     *
+     *   ★★ 다시 그릴 때마다 틀이 부서지므로 **높이를 잴 겨를이 없다.**
+     *     그래서 화면에는 **하얀 빈 칸**만 남는다 — 사장님이 보신 그 모습이다.
+     *   ★★★ **오류가 하나도 안 난다.** 틀은 정상으로 실리고 내용도 멀쩡하다.
+     *     보이는 것은 「빈 칸」뿐이라 원인을 짐작할 근거가 화면에 없다.
+     *
+     *   ★ 고침: 그 단계가 **지금 열린 절과 같은 절**이면 현재를 안 바꾼다.
+     *     한 절의 단계는 어차피 함께 펴지므로 **그중 누가 현재인지는 뜻이 없다.**
+     *     절이 다를 때만(진짜 이동일 때만) 바꾼다.
+     */
+    var sameSection = false;
+    if (step && state.current && F.sectionOfStep) {
+      var a = F.sectionOfStep(step.id), b = F.sectionOfStep(state.current);
+      sameSection = !!(a && b && a.id === b.id);
+    }
     // 3·4 는 같은 파일이라 파일명만으로는 못 가른다 — 현재 단계를 유지한다
-    if (step && step.id !== state.current && !(step.file === 'reports.html' && state.current === 'make')) {
+    if (step && step.id !== state.current && !sameSection
+        && !(step.file === 'reports.html' && state.current === 'make')) {
       state.current = step.id; changed = true;
     }
     if (changed) draw(); else watch(fr);
