@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="64478fa1">
+<html lang="ko" data-lp-build="35ce34b2">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -263,7 +263,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=64478fa1">
+<link rel="stylesheet" href="tokens.css?v=35ce34b2">
 <style>
 :root {
   --side: 248px;
@@ -529,11 +529,11 @@ h1,h2,h3,h4 { margin: 0; }
   </main>
 </div>
 
-<script src="gate-core.js?v=64478fa1"></script>
-<script src="flow-core.js?v=64478fa1"></script>
-<script src="upload-core.js?v=64478fa1"></script>
-<script src="catalog.js?v=64478fa1"></script>
-<script src="inapp.js?v=64478fa1"></script>
+<script src="gate-core.js?v=35ce34b2"></script>
+<script src="flow-core.js?v=35ce34b2"></script>
+<script src="upload-core.js?v=35ce34b2"></script>
+<script src="catalog.js?v=35ce34b2"></script>
+<script src="inapp.js?v=35ce34b2"></script>
 <script>
 /**
  * 설정 — 서버가 로그인 세션을 보고 내려주는 것이 정석이다.
@@ -545,7 +545,7 @@ window.LINKPILOT_INTAKE = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=64478fa1" data-lp-global="LINKPILOT_INTAKE"></script>
+<script src="embed-bridge.js?v=35ce34b2" data-lp-global="LINKPILOT_INTAKE"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -575,13 +575,51 @@ window.LINKPILOT_INTAKE = {
   } catch (_) { return; }                  /* 훑다 막히면 조용히 — 검사가 화면을 죽이지 않는다 */
   if (!bad.length) return;
 
+  /* ★★★ **한 번은 화면이 스스로 고친다** 〈2026-08-27 · D-149〉.
+   *
+   *   앞 판은 빨간 띠로 「새로고침해 주십시오」라고만 했다. 그 말은 맞지만
+   *   **고치는 일을 사람에게 떠넘긴다** — 사장님이 폰에서 강제 새로고침을
+   *   하시는 것은 쉬운 일이 아니다 (M-58 과 같은 결: 「잠깐 나는 고장을
+   *   사람에게 떠넘기지 않는다」).
+   *
+   *   ★ 그래서 주소에 표를 하나 붙여 **다시 받는다.** 브라우저는 주소가 다르면
+   *     캐시를 안 쓴다. 화면이 새로 오면 스크립트와 판이 맞는다.
+   *   ★★ **세션당 한 번만.** 서버에 정말 두 판이 섞여 있으면 다시 받아도 같다 —
+   *     그때 또 다시 받으면 **끝없이 돈다.** 한 번 해 보고 안 되면 띠를 띄운다.
+   *   ★ 표는 다음 새로고침에서 사라지도록 `replace` 로 바꾼다 (뒤로가기에 안 쌓인다). */
+  try {
+    var KEY = 'lp-pair-retried';
+    if (!sessionStorage.getItem(KEY)) {
+      sessionStorage.setItem(KEY, want);
+      var u = location.href.replace(/[?&]lpfix=\d+/, '');
+      location.replace(u + (u.indexOf('?') < 0 ? '?' : '&') + 'lpfix=' + Date.now());
+      return;
+    }
+  } catch (_) { /* 저장소가 막힌 자리도 있다 — 그때는 띠만 띄운다 */ }
+
   var n = document.createElement('div');
   n.setAttribute('data-lp-pair', '');
   n.setAttribute('style', 'position:fixed;left:0;right:0;top:0;z-index:99999;'
     + 'background:#C00000;color:#fff;padding:14px 18px;font:700 14px/1.5 system-ui,sans-serif');
-  n.textContent = '화면과 스크립트의 판이 다릅니다 — 브라우저가 옛 파일을 들고 있습니다. '
-    + '새로고침(Windows Ctrl+Shift+R · Mac ⌘⇧R)해 주십시오. 화면 ' + want
-    + ' · 옛 판 ' + bad.join(', ');
+  /* ★★★ **어느 쪽이 옛것인지 아는 척하지 않는다 — 다만 구조가 답을 준다**
+   *   〈2026-08-27 · D-149 · 실제 화면에서 거꾸로 말했다〉.
+   *
+   *   앞 판은 「옛 판 <스크립트 이름들>」이라고 **스크립트를 옛것으로 지목**했다.
+   *   그런데 사장님 화면은 반대였다 — 화면 479c745f(옛), 스크립트 64478fa1(새).
+   *
+   *   ★ 지문은 해시라 **그 자체로는 앞뒤가 없다.** 하지만 자리 관계가 답을 준다:
+   *     · 배포는 **자산 먼저 · HTML 나중**으로 올린다 (deploy-nas 「Upload」).
+   *     · 화면은 형제 파일을 **판 표시를 붙여** 부르는데, 서버는 그 표를
+   *       무시하고 **지금 있는 파일**을 준다.
+   *       (표 이름을 여기 글자로 적지 않는다 — 검사가 주석을 코드로 읽는다. §8)
+   *   → 그래서 어긋나면 **거의 언제나 화면(HTML)이 옛것**이다. 스크립트는
+   *     서버의 지금 판이다. 그 말을 그대로 적는다.
+   *   ★ 그래도 단정하지 않는다 — 「대개」라고 적고, 새로고침해도 같으면
+   *     **서버에 두 판이 섞인 것**이니 알려 달라고 한다. */
+  n.textContent = '화면과 스크립트의 판이 다릅니다 — 화면(HTML)이 옛 판일 가능성이 큽니다. '
+    + '한 번 다시 받아 봤는데도 그대로입니다 — 서버에 두 판이 섞여 있을 수 있습니다. '
+    + '화면 ' + want + ' · 스크립트 ' + bad.join(', ')
+    + ' · 이 여덟 글자 두 개를 그대로 알려 주시면 어느 쪽이 안 올라갔는지 갈립니다.';
   var put = function () { if (document.body) document.body.appendChild(n); };
   if (document.body) put(); else document.addEventListener('DOMContentLoaded', put);
 }());
