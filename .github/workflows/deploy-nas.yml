@@ -768,56 +768,6 @@ jobs:
             echo "배포: $BASE"
           done
 
-      # ★★★ **화면(HTML)은 캐시하지 말라고 서버에 일러둔다** 〈2026-08-27 · D-150〉.
-      #
-      #   빨간 띠(화면과 형제 스크립트의 판이 다르다)의 옛 쪽은 거의 늘 **화면**이다.
-      #   형제는 주소에 판 표시가 붙어 불려 바뀌면 주소가 바뀌지만, 화면에는 그런
-      #   것이 없어 브라우저가 마음대로 들고 있는다. D-149 로 화면이 스스로 한 번
-      #   다시 받게 했지만 그건 **띠가 뜬 뒤**의 일이다 — 애초에 안 받는 편이 낫다.
-      #
-      #   ★ 올리는 파일은 Apache 로 서비스될 때만 읽힌다. nginx 면 **조용히 무시된다.**
-      #     그래서 「올렸다」로 끝내지 않고 **실제 응답 머리말을 재서** 켜졌는지 본다.
-      #   ★ 못 켜졌다고 배포를 빨갛게 세우지 않는다 — 여기서 켜는 나머지 길은
-      #     DSM 화면을 눌러야 하는 **사람 손**이다. 대신 「안 켜졌다」를 크게 적는다.
-      - name: Do not cache HTML (화면은 매번 다시 받게)
-        if: ${{ needs.plan.outputs.dry_run != 'true' }}
-        env:
-          NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
-          NAS_USER: ${{ secrets.NAS_SSH_USER }}
-          DEST: ${{ needs.plan.outputs.dest }}
-          BASE: ${{ secrets.LP_PUBLIC_BASE }}
-        run: |
-          set -uo pipefail
-          scp -O -i ~/.ssh/id_deploy deploy/im-flow.htaccess "$NAS_USER@$NAS_HOST:$DEST/.htaccess" \
-            && echo "올림: .htaccess" \
-            || echo "::warning::.htaccess 를 못 올렸다 — 아래 재기가 그래서 안 켜졌다고 나올 것이다"
-
-          # ★ **올린 것과 켜진 것은 다른 사실이다.** 응답 머리말로 잰다.
-          WEBPATH=$(printf '%s' "$DEST" | sed 's|^/volume1/web||')
-          CC=""; VIA=""
-          if [ -n "${BASE:-}" ]; then
-            CC=$(curl -sS -I -m 25 "${BASE%/}/intake.html" 2>/dev/null \
-              | grep -i '^cache-control:' | tr -d '\r' | cut -d' ' -f2-)
-            VIA="앱이 쓰는 길"
-          fi
-          if [ -z "$CC" ]; then
-            for PORT in 80 5000 8080; do
-              H=$(curl -sS -I -m 10 "http://${NAS_HOST}:${PORT}${WEBPATH}/intake.html" 2>/dev/null)
-              [ -z "$H" ] && continue
-              CC=$(printf '%s' "$H" | grep -i '^cache-control:' | tr -d '\r' | cut -d' ' -f2-)
-              VIA="포트 ${PORT}"
-              [ -n "$CC" ] && break
-            done
-          fi
-
-          if printf '%s' "$CC" | grep -qiE 'no-cache|no-store|max-age=0'; then
-            echo "::notice::**화면 캐시 끄기가 켜져 있다** (${VIA} · Cache-Control: ${CC})."
-            echo "화면 캐시: **매번 확인** (${VIA})" >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "::warning::**화면 캐시 끄기가 아직 안 켜졌다** (${VIA:-못 쟀다} · Cache-Control: ${CC:-없음}). 올린 .htaccess 는 Apache 일 때만 읽힌다 — DSM 을 눌러 켜는 자리는 docs/안내-NAS-HTML-캐시-끄기.md 에 있다. 안 켜져도 화면이 스스로 한 번 다시 받으므로 빨간 띠는 대개 저절로 사라진다 (D-149)."
-            echo "화면 캐시: **아직 안 켜짐** — 사람 손 한 번 (docs/안내-NAS-HTML-캐시-끄기.md)" >> "$GITHUB_STEP_SUMMARY"
-          fi
-
       # ★★★ **「올렸다」로 끝내지 않는다** (M-20 · M-22 · M-25).
       #   저장소 ≠ **디스크** 는 빨갛게 끝낸다 — 그건 올리기가 실제로 안 된 것이다.
       #   디스크 ≠ HTTP 는 **경고**다: 이 탐침은 tailnet 포트 80 으로 받는데 앱은
@@ -874,6 +824,70 @@ jobs:
           done
           echo "앱 경로 확인: ${OK} 개 일치" >> "$GITHUB_STEP_SUMMARY"
           exit "$BAD"
+
+      # ★★★ **화면(HTML)은 캐시하지 말라고 서버에 일러둔다** 〈2026-08-27 · D-150〉.
+      #
+      #   빨간 띠(화면과 형제 스크립트의 판이 다르다)의 옛 쪽은 거의 늘 **화면**이다.
+      #   형제는 주소에 판 표시가 붙어 불려 바뀌면 주소가 바뀌지만, 화면에는 그런
+      #   것이 없어 브라우저가 마음대로 들고 있는다. D-149 로 화면이 스스로 한 번
+      #   다시 받게 했지만 그건 **띠가 뜬 뒤**의 일이다 — 애초에 안 받는 편이 낫다.
+      #
+      #   ★ 올리는 파일은 Apache 로 서비스될 때만 읽힌다. nginx 면 **조용히 무시된다.**
+      #     그래서 「올렸다」로 끝내지 않고 **실제 응답 머리말을 재서** 켜졌는지 본다.
+      #   ★ 못 켜졌다고 배포를 빨갛게 세우지 않는다 — 여기서 켜는 나머지 길은
+      #     DSM 화면을 눌러야 하는 **사람 손**이다. 대신 「안 켜졌다」를 크게 적는다.
+      #
+      # ★★★ **재는 단계가 배포를 세웠다** 〈2026-08-27 · run #143 · 내가 낸 사고〉.
+      #
+      #   첫 판은 이 단계를 `Upload` **바로 뒤**에 두고 `set +e` 를 안 켰다.
+      #   이 저장소의 워크플로는 `bash -e` 로 돈다 — 그래서 `[ -z "$H" ] && continue`
+      #   한 줄이 「실패」로 읽혀 단계가 죽었고, **뒤의 「Verify deployed」가 통째로
+      #   건너뛰어졌다.** 파일은 올라갔는데 **닿았는지를 아무도 안 잰 배포**가 됐다.
+      #   재려고 넣은 것이 재기를 막은 셈이다.
+      #
+      #   ★ 그래서 셋을 바꿨다: ① `set +e` ② 마지막에 `exit 0`
+      #     ③ **확인이 다 끝난 뒤로** 자리를 옮겼다(여기).
+      #   ★ 이 저장소에서 `set +e` 없는 새 단계는 **언제나 이 사고를 되풀이한다.**
+      - name: Do not cache HTML (화면은 매번 다시 받게)
+        if: ${{ needs.plan.outputs.dry_run != 'true' }}
+        env:
+          NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+          NAS_USER: ${{ secrets.NAS_SSH_USER }}
+          DEST: ${{ needs.plan.outputs.dest }}
+          BASE: ${{ secrets.LP_PUBLIC_BASE }}
+        run: |
+          set -u
+          set +e   # 「못 받음」이 여기서는 정상 결과다 (bash -e 를 끈다)
+          scp -O -i ~/.ssh/id_deploy deploy/im-flow.htaccess "$NAS_USER@$NAS_HOST:$DEST/.htaccess" \
+            && echo "올림: .htaccess" \
+            || echo "::warning::.htaccess 를 못 올렸다 — 아래 재기가 그래서 안 켜졌다고 나올 것이다"
+
+          # ★ **올린 것과 켜진 것은 다른 사실이다.** 응답 머리말로 잰다.
+          WEBPATH=$(printf '%s' "$DEST" | sed 's|^/volume1/web||')
+          CC=""; VIA=""
+          if [ -n "${BASE:-}" ]; then
+            CC=$(curl -sS -I -m 25 "${BASE%/}/intake.html" 2>/dev/null \
+              | grep -i '^cache-control:' | tr -d '\r' | cut -d' ' -f2-)
+            VIA="앱이 쓰는 길"
+          fi
+          if [ -z "$CC" ]; then
+            for PORT in 80 5000 8080; do
+              H=$(curl -sS -I -m 10 "http://${NAS_HOST}:${PORT}${WEBPATH}/intake.html" 2>/dev/null)
+              [ -z "$H" ] && continue
+              CC=$(printf '%s' "$H" | grep -i '^cache-control:' | tr -d '\r' | cut -d' ' -f2-)
+              VIA="포트 ${PORT}"
+              [ -n "$CC" ] && break
+            done
+          fi
+
+          if printf '%s' "$CC" | grep -qiE 'no-cache|no-store|max-age=0'; then
+            echo "::notice::**화면 캐시 끄기가 켜져 있다** (${VIA} · Cache-Control: ${CC})."
+            echo "화면 캐시: **매번 확인** (${VIA})" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning::**화면 캐시 끄기가 아직 안 켜졌다** (${VIA:-못 쟀다} · Cache-Control: ${CC:-없음}). 올린 .htaccess 는 Apache 일 때만 읽힌다 — DSM 을 눌러 켜는 자리는 docs/안내-NAS-HTML-캐시-끄기.md 에 있다. 안 켜져도 화면이 스스로 한 번 다시 받으므로 빨간 띠는 대개 저절로 사라진다 (D-149)."
+            echo "화면 캐시: **아직 안 켜짐** — 사람 손 한 번 (docs/안내-NAS-HTML-캐시-끄기.md)" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit 0
 
       # ★★★ **열쇠를 배포가 놓는다** 〈2026-08-23 · 사람 손으로 세 번 실패했다〉.
       #

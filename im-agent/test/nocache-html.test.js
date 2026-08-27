@@ -28,6 +28,14 @@ const HT = read('deploy/im-flow.htaccess');
 const WF = bare(read('.github/workflows/deploy-nas.yml'));
 const VS = bare(read('deploy/verify-served.sh'));
 
+/** 그 단계 한 칸만 떼어 본다 — 다음 단계(`- name:`)가 나오면 거기까지다 */
+const STEP = (function () {
+  const i = WF.indexOf('- name: Do not cache HTML');
+  if (i < 0) return '';
+  const j = WF.indexOf('\n      - name:', i + 10);
+  return WF.slice(i, j < 0 ? WF.length : j);
+}());
+
 test('★★★ 설정 파일은 **HTML 에만** 걸린다 — 형제까지 매번 받게 하면 이득이 사라진다', () => {
   const code = bare(HT);
   assert.match(code, /<FilesMatch\s+"\\\.html\$">/, 'HTML 로 좁히는 자리가 없다');
@@ -49,7 +57,7 @@ test('★★★ 배포가 그 파일을 **올린다**', () => {
 });
 
 test('★★★ **「올렸다」로 끝내지 않는다** — Apache 가 아니면 조용히 무시된다', () => {
-  const step = WF.slice(WF.indexOf('Do not cache HTML'), WF.indexOf('Verify deployed'));
+  const step = STEP;
   assert.ok(step.length > 200, '그 단계를 못 찾았다');
   assert.match(step, /cache-control:/i, '실제 응답 머리말을 재는 자리가 없다');
   assert.match(step, /no-cache\|no-store\|max-age=0/, '켜졌는지 가르는 자리가 없다');
@@ -57,10 +65,23 @@ test('★★★ **「올렸다」로 끝내지 않는다** — Apache 가 아니
   assert.match(step, /안내-NAS-HTML-캐시-끄기\.md/, '켜는 자리를 안 가리킨다');
 });
 
-test('★★ 못 켜졌다고 배포를 세우지 않는다 — 나머지는 사람이 눌러야 하는 자리다', () => {
-  const step = WF.slice(WF.indexOf('Do not cache HTML'), WF.indexOf('Verify deployed'));
+test('★★★ **재는 단계가 배포를 세우지 않는다** — 한 번 실제로 세웠다 (run #143)', () => {
+  const step = STEP;
+  /* ★ 이 워크플로는 `bash -e` 로 돈다. `set +e` 가 없으면 「못 받음」 한 줄이
+   *   단계를 죽이고, 그러면 **뒤의 확인이 통째로 건너뛰어진다.** */
+  assert.match(step, /set \+e/, 'set +e 가 없다 — bash -e 라 「못 받음」에 단계가 죽는다');
+  assert.match(step, /\n\s*exit 0\s*\n/, '마지막에 exit 0 이 없다 — 재는 단계는 문턱이 아니다');
   assert.ok(!/exit 1/.test(step), '못 켜진 것으로 배포를 빨갛게 세운다');
   assert.match(step, /::warning::/, '경고조차 안 남기면 아무도 모른다');
+});
+
+test('★★★ **확인이 끝난 뒤에 온다** — 앞에 두면 이것이 죽을 때 확인이 건너뛰어진다', () => {
+  const iVerify = WF.indexOf('name: Verify deployed');
+  const iApp = WF.indexOf('name: Check via app path');
+  const iMe = WF.indexOf('name: Do not cache HTML');
+  assert.ok(iVerify > 0 && iApp > 0 && iMe > 0, '세 단계를 다 못 찾았다');
+  assert.ok(iMe > iVerify, '「Verify deployed」 앞에 있다 — 죽으면 확인이 건너뛰어진다');
+  assert.ok(iMe > iApp, '「Check via app path」 앞에 있다 — 같은 이유다');
 });
 
 test('★★★ 배포 뒤 재기는 **화면과 형제를 다른 잣대로** 본다', () => {
