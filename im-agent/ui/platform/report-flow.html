@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="cd134b06">
+<html lang="ko" data-lp-build="3e5c4b25">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -288,7 +288,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=cd134b06">
+<link rel="stylesheet" href="tokens.css?v=3e5c4b25">
 <style>
 /* 색·간격·반경 토큰은 tokens.css 하나가 정한다 (LinkPilot Design System v1.1) */
 * { box-sizing: border-box; }
@@ -408,6 +408,19 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
 .tools__b:hover { border-color: var(--ink2); }
 .tools__b[aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
 .tools__b--go { border: 0; background: var(--lime); color: var(--lp-brand-ink); font-weight: 700; }
+
+/* 한 칸 안에 접어 두는 속칸 — 발행 주체처럼 **한 번 정하면 잘 안 바뀌는 것**
+   〈2026-08-28 · D-163〉. 늘 펴 두면 정작 할 일(요청문)이 아래로 밀린다. */
+.fold { border-top: 1px solid var(--line); }
+.fold__h { display: flex; align-items: center; gap: 10px; width: 100%;
+  font-family: inherit; text-align: left; cursor: pointer;
+  padding: 13px 2px; border: 0; background: none; color: var(--ink); }
+.fold__h:hover { color: var(--ink2); }
+.fold__t { font-size: 14.5px; font-weight: 700; }
+.fold__v { font-size: 13px; color: var(--ink2); flex: 1;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fold__m { font-size: 12.5px; font-weight: 700; color: var(--ink2); flex-shrink: 0; }
+.fold__b { padding-bottom: 2px; }
 .note { margin: 12px 0 0; padding: 12px 14px; border-radius: 12px;
   background: var(--warn-soft); color: var(--warn-ink); font-size: 13.5px; }
 .note--bad { background: var(--bad-soft); color: var(--bad-ink); }
@@ -463,14 +476,14 @@ window.LINKPILOT_REPORT_FLOW = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=cd134b06" data-lp-global="LINKPILOT_REPORT_FLOW"></script>
-<script src="gate-core.js?v=cd134b06"></script>
-<script src="flow-core.js?v=cd134b06"></script>
+<script src="embed-bridge.js?v=3e5c4b25" data-lp-global="LINKPILOT_REPORT_FLOW"></script>
+<script src="gate-core.js?v=3e5c4b25"></script>
+<script src="flow-core.js?v=3e5c4b25"></script>
 <!-- ★ 4단계 진행율(필수 항목 채움)을 재는 데 쓴다. **값과 출처가 둘 다**
      있어야 세는 규칙이 여기 있다 — 화면이 따로 세면 두 벌이 된다 -->
-<script src="fields-core.js?v=cd134b06"></script>
-<script src="catalog.js?v=cd134b06"></script>
-<script src="inapp.js?v=cd134b06"></script>
+<script src="fields-core.js?v=3e5c4b25"></script>
+<script src="catalog.js?v=3e5c4b25"></script>
+<script src="inapp.js?v=3e5c4b25"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -617,7 +630,10 @@ window.LINKPILOT_REPORT_FLOW = {
    */
   var facts = { issuerSet: null, request: null, sources: null, fields: null, specLocked: null,
     /* ★ 만들어진 문서 — `null` 은 **못 쟀다**, `[]` 는 **없다**. 둘은 다르다 (§4.9) */
-    reports: null, reportsBlocked: null };
+    reports: null, reportsBlocked: null,
+    /* ★ 접힌 줄에 **지금 값을 그대로** 적으려고 이름도 받아 둔다 〈D-163〉 —
+       「정해져 있습니다」보다 회사 이름이 보이는 쪽이 확인이 된다 */
+    issuerName: null };
   /* 「수정 요구」 패널이 펴져 있는가 — 절 안에서만 쓰는 상태다 */
   var fixOpen = false;
   var progress = null;
@@ -975,6 +991,76 @@ window.LINKPILOT_REPORT_FLOW = {
     return row;
   }
 
+  /**
+   * ══════════ 1절을 **한 창으로 합친다** 〈2026-08-28 사장님 지시 · D-163〉
+   *
+   * 사장님 지시: 「무엇을 만들까요? / 밑에 발행주체를 통합병합한 아코디언 창을
+   * 만들어줘」.
+   *
+   * ★★★ **순서가 뒤집혔다.** 앞 판은 「발행 주체」가 위, 「무엇을 만들까요」가
+   *   아래였다. 그런데 **발행 주체는 한 번 정하면 잘 안 바뀌는 설정**이고,
+   *   화면을 열 때마다 할 일은 **요청문을 적는 것**이다. 설정이 위에 있으면
+   *   정작 할 일이 아래로 밀려, 매번 회사 이름 화면을 지나쳐 내려가야 했다.
+   *
+   * ★★ 그래서 **요청문이 위, 발행 주체는 아래에 접어** 둔다. 접힌 머리줄에
+   *   **지금 값을 그대로 적어** 두므로, 펴지 않아도 무엇이 찍힐지 보인다.
+   *
+   * ★ **아직 안 정했으면 펴 둔다.** 접어 두면 비어 있는 줄 모르고 넘어가고,
+   *   그러면 문서에 「발행 주체 미설정」이 찍혀 대외 배포가 막힌다 —
+   *   막히는 이유가 화면 어디에도 안 보이는 상태가 된다.
+   */
+  var foldOpen = null;   // null = 아직 사람이 안 눌렀다 (그때는 아래 규칙이 정한다)
+
+  /** 접힌 머리에 적을 지금 값 — **못 물어봤으면 그렇다고 적는다** (§4.9) */
+  function issuerLabel() {
+    if (facts.issuerSet === null || facts.issuerSet === undefined) return '아직 못 물어봤습니다';
+    return facts.issuerSet ? (facts.issuerName || '정해져 있습니다') : '아직 정하지 않았습니다';
+  }
+
+  /**
+   * 절이 품은 단계를 **차례로** 그린다. 순서는 `sec.steps` 가 정한다.
+   * 잠긴 단계는 화면 대신 이유를 적는다 — 회색이기만 하면 고장으로 보인다.
+   */
+  function stepBody(st) {
+    return st.locked
+      ? notice('', st.name + ' 단계를 아직 열 수 없습니다', st.why)
+      : stage(st);
+  }
+
+  /**
+   * 1절 — 요청문(펴짐) + 발행 주체(접힘)를 **한 상자**에 담는다.
+   * 다른 절은 이 함수를 안 쓴다 (`null` 을 돌려준다).
+   */
+  function mergedStart(sec, byId) {
+    if (sec.id !== 'start') return null;
+    var ask = byId.ask, basics = byId.basics;
+    if (!ask || !basics) return null;   // 목록이 바뀌었다 — 평소대로 그린다
+
+    var wrap = el('div');
+    wrap.appendChild(stepBody(ask));
+
+    /* ★ 아직 안 정했으면 편다. 사람이 눌렀으면 그 뜻을 따른다 */
+    var open = (foldOpen === null) ? !facts.issuerSet : foldOpen;
+
+    var fold = el('div', 'fold');
+    var h = el('button', 'fold__h');
+    h.type = 'button';
+    h.setAttribute('aria-expanded', open ? 'true' : 'false');
+    h.appendChild(el('span', 'fold__t', '발행 주체'));
+    h.appendChild(el('span', 'fold__v', issuerLabel()));
+    h.appendChild(el('span', 'fold__m', open ? '접기 ▲' : '펴기 ▼'));
+    h.addEventListener('click', function () { foldOpen = !open; draw(); });
+    fold.appendChild(h);
+
+    if (open) {
+      var body = el('div', 'fold__b');
+      body.appendChild(stepBody(basics));
+      fold.appendChild(body);
+    }
+    wrap.appendChild(fold);
+    return wrap;
+  }
+
   /* ══════════ 절 도구줄 — 미리보기 · 수정 요구 · 다운로드 ══════════
    *
    * 〈2026-08-28 사장님 지시 · D-158〉 사장님이 그리신 넷째 칸까지의 그림은
@@ -1284,7 +1370,11 @@ window.LINKPILOT_REPORT_FLOW = {
       // 미리보기(문서를 심은 판)는 **한 번에 편다.** 눌러 가며 확인하면 빠뜨린다
       if (docs) {
         var frag = document.createDocumentFragment();
-        sec.steps.forEach(function (st) { frag.appendChild(stage(st)); });
+        var mine0 = {};
+        sec.steps.forEach(function (st) { mine0[st.id] = st; });
+        var merged0 = mergedStart(sec, mine0);
+        if (merged0) frag.appendChild(merged0);
+        else sec.steps.forEach(function (st) { frag.appendChild(stage(st)); });
         var tw0 = toolRow(sec);
         if (tw0) frag.appendChild(tw0);
         view.appendChild(section(sec, frag));
@@ -1299,11 +1389,13 @@ window.LINKPILOT_REPORT_FLOW = {
        *   ★ 이제 그 절의 단계를 **차례로 다 펴고** 맨 아래에 [확인] 을 둔다 —
        *     아코디언 한 칸이 「한 번에 끝내는 일」이 된다. */
       var frag = document.createDocumentFragment();
-      sec.steps.forEach(function (st) {
-        frag.appendChild(st.locked
-          ? notice('', st.name + ' 단계를 아직 열 수 없습니다', st.why)
-          : stage(st));
-      });
+      /* ★ 1절은 **한 창으로 합쳐** 그린다 〈D-163〉 — 요청문 위, 발행 주체는
+         아래에 접어서. 나머지 절은 품은 단계를 차례로 편다. */
+      var mine = {};
+      sec.steps.forEach(function (st) { mine[st.id] = st; });
+      var merged = mergedStart(sec, mine);
+      if (merged) frag.appendChild(merged);
+      else sec.steps.forEach(function (st) { frag.appendChild(stepBody(st)); });
       /* ★ 도구줄이 [확인] **앞**에 온다 〈D-158〉. 미리보기·수정은 「이 칸을
          끝내기 전에」 하는 일이고, [확인] 은 끝냈다는 말이다 — 순서가 뜻이다 */
       var tw = toolRow(sec);
@@ -1356,6 +1448,7 @@ window.LINKPILOT_REPORT_FLOW = {
     if (C.preload) {
       var pl = C.preload;
       if (pl.issuerSet !== undefined) facts.issuerSet = pl.issuerSet;
+      if (pl.issuerName !== undefined) facts.issuerName = pl.issuerName;
       if (pl.sources) facts.sources = countSources([pl.sources]);
       if (pl.fields && pl.values && window.LinkPilotFields) {
         var c0 = window.LinkPilotFields.completeness(pl.fields, pl.values, C.docType || 'im', pl.classKeys || null);
@@ -1379,6 +1472,7 @@ window.LINKPILOT_REPORT_FLOW = {
     call('/intake').then(function (j) {
       var iss = j && j.issuer;
       facts.issuerSet = !!(iss && !iss.unset && String(iss.en || '').trim());
+      facts.issuerName = facts.issuerSet ? String(iss.en).trim() : null;
       draw();
     }, function () { /* 못 쟀다 — null 로 둔다 */ });
 
