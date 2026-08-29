@@ -110,8 +110,13 @@ test('부모는 iframe 을 id 가 아니라 name 으로 찾는다', async () => 
 test('4단계는 상태를 억지로 세우지 않고 실제 버튼을 누른다', async () => {
   const html = await build();
   assert.match(html, /이 사양으로 확정/, '확정 버튼을 찾아 누르는 코드가 있어야 한다');
-  // locked 를 밖에서 true 로 세우는 코드가 있으면 그건 그림이지 미리보기가 아니다
-  assert.ok(!/locked['"]?\s*[:=]\s*true/.test(html.replace(/state\.locked = true;/g, '')),
+  /* locked 를 밖에서 true 로 세우는 코드가 있으면 그건 그림이지 미리보기가 아니다.
+   * ★★ **말 앞에 낱말 경계를 둔다** 〈2026-08-28 · 오탐 한 번〉. 앞 판은
+   *   `locked` 를 그냥 찾아서 **`blocked: true` 안의 `locked: true`** 를 잡았다
+   *   (`appDepth()` 가 「다른 출처라 더 못 봤다」를 그렇게 적는다 — D-164).
+   *   ★ 코드는 멀쩡했고 **검사만 빨갰다.** 글자로 대는 검사는 이렇게 눈이 먼다
+   *     (CLAUDE.md §8 과 같은 결 — 거기서는 주석이었고 여기서는 낱말이다). */
+  assert.ok(!/\blocked['"]?\s*[:=]\s*true/.test(html.replace(/state\.locked = true;/g, '')),
     '확정 상태를 플래그로 세우고 있다 — 눌리지 않은 것을 눌린 것처럼 보이면 안 된다');
 });
 

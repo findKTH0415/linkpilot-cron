@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="0eae87ae">
+<html lang="ko" data-lp-build="490881bc">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -288,7 +288,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=0eae87ae">
+<link rel="stylesheet" href="tokens.css?v=490881bc">
 <style>
 /* 색·간격·반경 토큰은 tokens.css 하나가 정한다 (LinkPilot Design System v1.1) */
 * { box-sizing: border-box; }
@@ -476,14 +476,14 @@ window.LINKPILOT_REPORT_FLOW = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=0eae87ae" data-lp-global="LINKPILOT_REPORT_FLOW"></script>
-<script src="gate-core.js?v=0eae87ae"></script>
-<script src="flow-core.js?v=0eae87ae"></script>
+<script src="embed-bridge.js?v=490881bc" data-lp-global="LINKPILOT_REPORT_FLOW"></script>
+<script src="gate-core.js?v=490881bc"></script>
+<script src="flow-core.js?v=490881bc"></script>
 <!-- ★ 4단계 진행율(필수 항목 채움)을 재는 데 쓴다. **값과 출처가 둘 다**
      있어야 세는 규칙이 여기 있다 — 화면이 따로 세면 두 벌이 된다 -->
-<script src="fields-core.js?v=0eae87ae"></script>
-<script src="catalog.js?v=0eae87ae"></script>
-<script src="inapp.js?v=0eae87ae"></script>
+<script src="fields-core.js?v=490881bc"></script>
+<script src="catalog.js?v=490881bc"></script>
+<script src="inapp.js?v=490881bc"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -1404,6 +1404,15 @@ window.LINKPILOT_REPORT_FLOW = {
       if (go) frag.appendChild(go);
       view.appendChild(section(sec, frag));
     });
+
+    /* ★★★ **앱이 앱 안에 겹쳐 있으면 말한다** 〈2026-08-28 · D-164〉.
+     *   배너·탭이 두 벌로 보이는 상태다. 이 화면이 만든 것이 아니고 이
+     *   저장소가 고칠 수도 없지만, **원인이 안 보이는 것이 더 나쁘다** —
+     *   그러면 엉뚱한 곳을 고치게 된다. 세어서 그대로 적는다. */
+    var nest = F.nestedAppNote && F.nestedAppNote();
+    if (nest) {
+      view.appendChild(notice('note--bad', '배너와 탭이 두 벌로 보입니다', nest));
+    }
 
     /* ★ 짐작으로 부른 판이면 **그 사실만 조용히 알린다.** 단계를 잠그지 않는다 —
        잠그면 「왜 안 되는지」를 확인할 길까지 함께 닫힌다 */
