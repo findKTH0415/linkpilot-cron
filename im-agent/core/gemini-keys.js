@@ -68,6 +68,36 @@ const MAX_KEY_RETRY = SLOTS;
  */
 const COOLDOWN_LADDER = [60, 120, 300, 600];
 
+/**
+ * ★★★ **403 은 열쇠를 버리는 이유가 아니다** 〈2026-08-29 · D-166 · 실측〉.
+ *
+ *   사장님 화면에 `GEMINI_ALL_KEYS_UNAVAILABLE — 전부 쉬는 중이거나 폐기됨`
+ *   이 떠서 **PDF 를 한 건도 못 읽었다.** 그런데 같은 시각 NAS 진단은
+ *   **「열쇠 확인: 살아 있다 — 구글이 받아들였다」**였다. 둘 다 사실이다.
+ *
+ *   앞 판은 `401` 과 `403` 을 **같이** 다뤄 곧바로 폐기(`INVALID`)했다.
+ *   그런데 구글은 **열쇠와 무관한 이유로도 403 을 준다** —
+ *   한도 초과(`RESOURCE_EXHAUSTED`) · 권한(`PERMISSION_DENIED`) · 지역 차단.
+ *   OCR 은 문서 한 건에도 요청을 여러 번 쓰므로, 한도에 닿는 순간
+ *   **여덟 개가 줄줄이 폐기되고 그대로 굳었다.**
+ *
+ *   ★ 그래서 403 은 **오래 쉬게** 한다. 버리지 않는다.
+ */
+const FORBIDDEN_REST_SECONDS = 900;   // 15분
+
+/**
+ * ★★★ **폐기도 영원하지 않다** 〈같은 날 · 같은 사고〉.
+ *
+ *   앞 판은 `INVALID` 가 되면 **사람이 손으로 깨우기 전까지 영원히** 죽어
+ *   있었다(`revalidate(slot)`). 그런데 **아무도 그것을 눌러야 하는 줄 모른다.**
+ *   그 사이 서비스는 멈춰 있고, 화면에는 「전부 폐기됨」만 남는다.
+ *
+ *   ★ 그래서 폐기에도 **다시 물어볼 시각**을 둔다. 진짜 죽은 열쇠라면 그때
+ *     한 번 더 거절당하고 다시 폐기될 뿐이다 — **요청 하나**가 값이다.
+ *     그 하나를 아끼려고 **서비스를 멈춰 두는 쪽이 훨씬 비싸다.**
+ */
+const RETIRE_RECHECK_SECONDS = 1800;  // 30분
+
 /** 상태 — 지시서 §4 */
 const STATE = {
   UNREGISTERED: 'UNREGISTERED',
@@ -194,6 +224,8 @@ function blank(slot, key, from) {
     lastErrorAt: null,
     lastError: null,
     cooldownUntil: 0,
+    /* 폐기된 열쇠를 **언제 다시 물어볼지** — 0 이면 물어볼 계획이 없다 */
+    revalidateAt: 0,
     consecutiveFailures: 0,
     consecutiveSuccesses: 0,
     healthScore: 100,
@@ -229,10 +261,18 @@ function restore(list) {
     /* ★ 상태는 **골라서** 되살린다. `ACTIVE` 를 그대로 믿으면 어제 죽은 열쇠가
      *   오늘 아침 살아 있는 것으로 뜬다 — 실제로 확인한 것은 아무것도 없는데.
      *   그래서 「쉬는 중」과 「폐기」만 잇고, 나머지는 **다시 물어보게** 둔다. */
-    if (r.status === STATE.INVALID) k.status = STATE.INVALID;
-    else if (r.status === STATE.DISABLED) k.status = STATE.DISABLED;
+    if (r.status === STATE.INVALID) {
+      /* ★★★ **폐기를 영원히 잇지 않는다** 〈2026-08-29 · D-166〉.
+       *   앞 판은 `INVALID` 를 그대로 되살렸고, 다시 물어볼 계획이 없었다.
+       *   그래서 한 번 굳으면 **다시 뜨나 다시 배포하나 그대로 죽어 있었다.**
+       *   ★ 기한이 지났거나 아예 없으면 **다시 물어보는 상태**로 둔다. */
+      const at = Number(r.revalidateAt) || 0;
+      if (at && at > now) { k.status = STATE.INVALID; k.revalidateAt = at; }
+      else { k.status = STATE.VALIDATING; k.revalidateAt = 0; }
+    } else if (r.status === STATE.DISABLED) k.status = STATE.DISABLED;
     else if (r.cooldownUntil && r.cooldownUntil > now) {
-      k.status = STATE.COOLDOWN;
+      /* 403(QUOTA_LIMITED)도 쉬는 상태다 — 원래 상태를 지켜 준다 */
+      k.status = (r.status === STATE.QUOTA_LIMITED) ? STATE.QUOTA_LIMITED : STATE.COOLDOWN;
       k.cooldownUntil = r.cooldownUntil;
     }
   }
@@ -254,6 +294,7 @@ function persist() {
         lastUsedAt: k.lastUsedAt, lastSuccessAt: k.lastSuccessAt,
         lastErrorAt: k.lastErrorAt, lastError: k.lastError,
         cooldownUntil: k.cooldownUntil,
+        revalidateAt: k.revalidateAt,
         consecutiveFailures: k.consecutiveFailures, consecutiveSuccesses: k.consecutiveSuccesses,
         healthScore: k.healthScore,
       })),
@@ -282,11 +323,22 @@ function reload() {
 
 /** 쉴 시간이 끝났으면 **다시 물어봐야 하는 상태**로 돌린다 (지시서 §11) */
 function thaw(k) {
-  if (k.status === STATE.COOLDOWN && k.cooldownUntil && Date.now() >= k.cooldownUntil) {
+  const now = Date.now();
+  /* ★ 쉬는 상태는 **둘**이다 — 429(COOLDOWN)와 403(QUOTA_LIMITED).
+   *   하나만 깨우면 403 맞은 열쇠가 영원히 안 깨어난다 (D-166 과 같은 결). */
+  const resting = (k.status === STATE.COOLDOWN || k.status === STATE.QUOTA_LIMITED);
+  if (resting && k.cooldownUntil && now >= k.cooldownUntil) {
     /* ★ 곧바로 ACTIVE 로 두지 않는다. 아직 아무것도 확인하지 않았다 —
      *   `VALIDATING` 은 「골라도 되지만 아직 못 믿는다」는 뜻이다. */
     k.status = STATE.VALIDATING;
     k.cooldownUntil = 0;
+  }
+  /* ★★★ **폐기도 기한이 지나면 다시 물어본다** 〈D-166〉. 사람이 누르기를
+   *   기다리면 아무도 안 누르고, 그동안 서비스가 멈춘다. */
+  if (k.status === STATE.INVALID && k.revalidateAt && now >= k.revalidateAt) {
+    k.status = STATE.VALIDATING;
+    k.revalidateAt = 0;
+    k.consecutiveFailures = 0;
   }
 }
 
@@ -309,7 +361,28 @@ function available() {
  * @param {Set<string>} skip 이번 요청에서 이미 써 본 지문
  */
 function selectNext(skip) {
-  const list = available().filter(k => !skip || !skip.has(k.fp));
+  let list = available().filter(k => !skip || !skip.has(k.fp));
+  /* ★★★ **전부 잠겨 있으면 하나를 깨워서 써 본다** 〈2026-08-29 · D-166〉.
+   *
+   *   앞 판은 여기서 `null` 을 돌려주고 끝이었다. 그러면 화면에는
+   *   `GEMINI_ALL_KEYS_UNAVAILABLE` 만 남고 **사람이 손으로 깨우기 전까지
+   *   아무 일도 안 일어난다.** 실제로 그렇게 굳어 PDF 를 한 건도 못 읽었다.
+   *
+   *   ★ 「전부 못 쓴다」는 대개 **한도**다. 한도는 시간이 지나면 풀리는데,
+   *     풀렸는지 아는 방법은 **한 번 써 보는 것**뿐이다. 그래서 가장 오래 쉰
+   *     열쇠 하나를 깨운다 — 아직 진짜로 막혀 있으면 그 요청 하나가 다시
+   *     거절될 뿐이고, 그때 다시 쉰다.
+   *   ★★ **쓸 수 있는 것이 하나라도 있으면 깨우지 않는다.** 멀쩡한 열쇠를
+   *     두고 쉬는 것을 깨우면 쉬게 한 뜻이 사라진다.
+   *   ★★★ 사람이 끈 열쇠(`DISABLED`)는 **깨우지 않는다.** 그것은 한도가
+   *     아니라 **사람의 결정**이다. */
+  /* ★★★ **한 요청에 하나만 깨운다** 〈D-166 · 스스로 잡은 결함〉.
+   *   부르는 쪽(`llm.js`)은 실패할 때마다 `skip` 을 늘려 가며 여기를 다시
+   *   부른다. 그대로 두면 **한 요청이 여덟을 전부 깨워** 쉬게 한 뜻이
+   *   통째로 사라진다 — 한도가 안 풀렸는데 여덟 번 더 두드리는 셈이다.
+   *   ★ `skip` 이 비었을 때 = **그 요청의 첫 시도**다. 그때만 깨운다. */
+  const firstTry = !skip || skip.size === 0;
+  if (!list.length && firstTry) list = wakeOldest(skip);
   if (!list.length) return null;
   /* ★ 정수 하나를 올리고 나눈다. 한 프로세스라 이것으로 원자적이다.
    *   ★★ 여러 프로세스로 늘리는 날에는 **여기만** 바꾸면 된다 — 고르는 곳이
@@ -317,6 +390,32 @@ function selectNext(skip) {
   const i = (cursor++) % list.length;
   if (cursor > 1e9) cursor = 0;
   return list[i];
+}
+
+/**
+ * 마지막 수단 — **가장 오래 쉰 열쇠 하나**를 깨운다.
+ *
+ * @returns {Array} 깨운 열쇠 하나짜리 목록 (깨울 것이 없으면 빈 목록)
+ */
+function wakeOldest(skip) {
+  const list = ensure();
+  const cand = list.filter(k => k.enabled
+    && k.status !== STATE.DISABLED
+    && (!skip || !skip.has(k.fp)));
+  if (!cand.length) return [];
+  /* 「가장 오래 쉰 것」 = 깨어날 시각이 가장 이른 것. 시각이 없으면(폐기인데
+     계획도 없는 것) 가장 먼저 깨운다 — 그것이 제일 오래 죽어 있던 것이다 */
+  const at = (k) => (k.status === STATE.INVALID
+    ? (k.revalidateAt || 0)
+    : (k.cooldownUntil || 0));
+  cand.sort((a, b) => at(a) - at(b));
+  const k = cand[0];
+  k.status = STATE.VALIDATING;
+  k.cooldownUntil = 0;
+  k.revalidateAt = 0;
+  k.wokenAt = kstStamp();   // 「깨워서 써 본 것」임을 진단이 말할 수 있게
+  persist();
+  return [k];
 }
 
 /* ── 결과 적기 ───────────────────────────────────────────── */
@@ -357,18 +456,51 @@ function recordRateLimit(k) {
   return secs;
 }
 
-/** 401·403 — 열쇠 자체가 안 먹는다. 풀에서 뺀다 (지시서 §12) */
+/**
+ * 401 — 열쇠 자체가 안 먹는다. 풀에서 뺀다 (지시서 §12).
+ *
+ * ★★★ **403 은 여기로 오지 않는다** 〈2026-08-29 · D-166〉. 위 `FORBIDDEN_REST_SECONDS`
+ *   설명 참고 — 구글은 한도·권한 문제에도 403 을 준다. 그것으로 열쇠를 버리면
+ *   **여덟 개가 줄줄이 폐기되고 그대로 굳는다.** 실제로 그렇게 굳었다.
+ *
+ * ★ 폐기하되 **다시 물어볼 시각**을 함께 적는다. 영원한 폐기는 두지 않는다.
+ */
 function recordAuthError(k, status) {
   if (!k) return;
   bump(k, 'totalRequests'); bump(k, 'failedRequests'); bump(k, 'authErrorCount');
   k.consecutiveFailures += 1;
   k.consecutiveSuccesses = 0;
   k.status = STATE.INVALID;
+  k.revalidateAt = Date.now() + RETIRE_RECHECK_SECONDS * 1000;
   k.lastUsedAt = kstStamp();
   k.lastErrorAt = k.lastUsedAt;
-  k.lastError = `${status} · 인증 거부 — 사람이 다시 확인해야 한다`;
+  k.lastError = `${status} · 인증 거부 — ${Math.round(RETIRE_RECHECK_SECONDS / 60)}분 뒤 다시 물어본다`;
   k.healthScore = 0;
   persist();
+}
+
+/**
+ * 403 — **열쇠가 틀린 것이 아니다.** 한도 초과·권한·지역 차단이 여기로 온다.
+ *
+ * ★ 그래서 **버리지 않고 오래 쉬게** 한다. 429 보다 길게 쉬는 이유: 429 는
+ *   분당 한도라 1분이면 다시 차지만, 403 은 대개 **일 한도**나 설정 문제라
+ *   금방 풀리지 않는다. 그렇다고 폐기하면 **풀려도 아무도 안 쓴다.**
+ */
+function recordForbidden(k, status, message) {
+  if (!k) return FORBIDDEN_REST_SECONDS;
+  bump(k, 'totalRequests'); bump(k, 'failedRequests'); bump(k, 'authErrorCount');
+  k.consecutiveFailures += 1;
+  k.consecutiveSuccesses = 0;
+  k.status = STATE.QUOTA_LIMITED;
+  k.cooldownUntil = Date.now() + FORBIDDEN_REST_SECONDS * 1000;
+  k.lastUsedAt = kstStamp();
+  k.lastErrorAt = k.lastUsedAt;
+  k.lastError = `${status} · 거절(한도·권한일 수 있다) — `
+    + `${Math.round(FORBIDDEN_REST_SECONDS / 60)}분 쉼`
+    + (message ? ` · ${String(message).slice(0, 120)}` : '');
+  k.healthScore = Math.max(0, k.healthScore - 5);
+  persist();
+  return FORBIDDEN_REST_SECONDS;
 }
 
 /** 5xx — 구글 쪽 일이다. **열쇠를 버리지 않는다** (지시서 §13) */
@@ -498,7 +630,10 @@ function alertsFor(keys, availN) {
   if (!registered) {
     out.push({ level: 'red', text: '등록된 Gemini 열쇠가 없습니다 — 스캔본·이미지 PDF 를 한 글자도 못 읽습니다' });
   } else if (!activeN) {
-    out.push({ level: 'red', text: '쓸 수 있는 열쇠가 하나도 없습니다 (GEMINI_ALL_KEYS_UNAVAILABLE)' });
+    out.push({ level: 'red',
+      text: '쓸 수 있는 열쇠가 하나도 없습니다 (GEMINI_ALL_KEYS_UNAVAILABLE) — '
+        + '다음 요청이 쉬던 열쇠 하나를 깨워 확인합니다. 대개 한도이고 시간이 '
+        + '지나면 풀립니다' });
   } else if (registered >= 3 && activeN < 3) {
     out.push({ level: 'yellow', text: `쓸 수 있는 열쇠가 ${activeN}개뿐입니다 — 셋 아래로 내려갔습니다` });
   }
@@ -515,9 +650,11 @@ function alertsFor(keys, availN) {
 
 module.exports = {
   SLOTS, MAX_KEY_RETRY, COOLDOWN_LADDER, STATE,
+  FORBIDDEN_REST_SECONDS, RETIRE_RECHECK_SECONDS,
   fingerprint, label, readSlots, namesFor,
-  ensure, reload, available, selectNext,
-  recordSuccess, recordRateLimit, recordAuthError, recordServerError, recordUnknownError,
+  ensure, reload, available, selectNext, wakeOldest,
+  recordSuccess, recordRateLimit, recordAuthError, recordForbidden,
+  recordServerError, recordUnknownError,
   setEnabled, revalidate, resetStats,
   snapshot, statePath, cooldownSeconds,
 };

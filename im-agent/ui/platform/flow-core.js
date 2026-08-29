@@ -24,7 +24,7 @@
    *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다. 화면이 자기
    *   지문과 대 보고 다르면 「함수가 없다」로 죽기 전에 사람 말로 알린다.
    */
-  var LP_BUILD = '490881bc';
+  var LP_BUILD = '99047fcc';
 
   /**
    * ★★★ **단계는 다섯이다** 〈2026-08-22 사용자 지시〉.
@@ -471,6 +471,31 @@
    */
   var OPEN_EVENT = 'lp-open-project';
 
+  /**
+   * **그 절 화면의 주소** — 앱이 안 받을 때 **스스로 갈 수 있게** 한다
+   * 〈2026-08-29 · D-165〉.
+   *
+   * ★★★ 왜 필요한가: `openSection()` 은 앱에 **신호를 보낼** 뿐이다. 앱이 그
+   *   신호를 안 들으면 **아무 일도 안 일어난다.** 그러면 화면에는 「눌러도
+   *   아무 일이 없는 단추」가 남는데, 이 저장소가 가장 나쁘다고 못박아 둔
+   *   바로 그것이다 — 사용자는 **고장으로 읽고 거기서 멈춘다.**
+   *
+   * ★★ 이 주소는 **상대 경로**다. 화면들은 한 폴더에 함께 있고, 각 화면이
+   *   맨 위에서 `<base>` 를 세워 두므로 어디에 얹혀 있든 같은 폴더로 닿는다
+   *   (M-56). 절대 경로를 적으면 앱이 옮겨 갈 때마다 또 틀린다.
+   *
+   * @returns {string|null} 예: `report-flow.html?project=LP-1&step=fields`
+   */
+  function sectionUrl(opts) {
+    var o = opts || {};
+    var file = (o.file || (SECTION && SECTION.file) || '');
+    if (!file) return null;
+    var qs = [];
+    if (o.projectId) qs.push('project=' + encodeURIComponent(o.projectId));
+    if (o.step) qs.push('step=' + encodeURIComponent(o.step));
+    return qs.length ? file + '?' + qs.join('&') : file;
+  }
+
   function openSection(opts) {
     var o = opts || {};
     if (typeof window === 'undefined' || typeof document === 'undefined') {
@@ -768,6 +793,6 @@
     apiNote: apiNote,
     API_FALLBACK: API_FALLBACK,
     tokensLoaded: tokensLoaded, TOKENS_MISSING: TOKENS_MISSING,
-    openSection: openSection, OPEN_EVENT: OPEN_EVENT,
+    openSection: openSection, OPEN_EVENT: OPEN_EVENT, sectionUrl: sectionUrl,
   };
 }));
