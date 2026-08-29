@@ -24,7 +24,7 @@
    *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다. 화면이 자기
    *   지문과 대 보고 다르면 「함수가 없다」로 죽기 전에 사람 말로 알린다.
    */
-  var LP_BUILD = '0e8a8c26';
+  var LP_BUILD = '8c065aa7';
 
   /**
    * ★★★ **단계는 다섯이다** 〈2026-08-22 사용자 지시〉.
@@ -684,6 +684,58 @@
     } catch (_) { return false; }   // 다른 출처 — 앱 셸로 본다
   }
 
+  /**
+   * ══════════ **앱이 앱 안에 들어 있는가** 〈2026-08-28 · D-164〉 ══════════
+   *
+   * 사장님 신고: 「오류 이중 배너」 — 사진 배너와 탭 줄이 **두 벌**로 보였다.
+   *
+   * ★★★ 그 배너·탭 문자열(`REPORT STUDIO` 등)은 **이 저장소에 하나도 없다**
+   *   (실측 — `docs/지침-개정안-§2.md`). 그러니 두 벌 다 **앱이 그린 것**이고,
+   *   그것은 **앱이 자기 페이지를 자기 안에 또 넣었다**는 뜻이다.
+   *
+   * ★★ **이 저장소는 그것을 못 고친다.** 어느 주소를 틀에 넣을지는 앱이 정한다
+   *   (CLAUDE.md §8-2 — platform 이 cron 을 부르지 그 반대가 아니다).
+   *
+   * ★ 그래도 **잠자코 있지는 않는다.** 겹쳐 보이는 것만도 나쁘지만 **더 나쁜
+   *   것은 원인이 안 보이는 것**이다 — 사장님은 「화면이 이상하다」까지밖에
+   *   말할 수 없고, 그러면 엉뚱한 곳을 고치게 된다. 그래서 **세어서 말한다.**
+   *
+   * 세는 법: 앱은 틀을 만들기 전에 `window.LINKPILOT_EMBED` 를 채운다
+   * (`embed-bridge.js` 의 계약). 조상을 거슬러 올라가며 그 전역을 **가진 창이
+   * 둘 이상**이면 앱이 겹쳐 있는 것이다.
+   *
+   * @returns {{apps:number, hops:number, blocked:boolean}}
+   *   `apps` 앱으로 보이는 조상 수 · `blocked` 다른 출처라 더 못 봤다
+   */
+  function appDepth(win) {
+    var w = win || (typeof window !== 'undefined' ? window : null);
+    if (!w) return { apps: 0, hops: 0, blocked: false };
+    var apps = 0, hops = 0;
+    try {
+      while (w.parent && w.parent !== w && hops < 8) {
+        w = w.parent; hops++;
+        if (w.LINKPILOT_EMBED) apps++;   // 다른 출처면 여기서 예외
+      }
+    } catch (e) {
+      /* ★ 다른 출처를 만나면 **거기까지가 아는 전부**다. 「겹치지 않았다」로
+         단정하지 않는다 — 못 본 것과 없는 것은 다른 사실이다 (§4.9) */
+      return { apps: apps, hops: hops, blocked: true };
+    }
+    return { apps: apps, hops: hops, blocked: false };
+  }
+
+  /** 겹쳤다고 **말할 수 있을 때만** 문장을 돌려준다. 아니면 `null` */
+  function nestedAppNote(d) {
+    var x = d || appDepth();
+    if (x.apps < 2) return null;
+    return '앱 화면이 앱 안에 ' + x.apps + '겹으로 들어 있습니다. '
+      + '그래서 배너와 탭 줄이 두 벌로 보입니다. '
+      + '이 화면이 만든 것이 아닙니다 — 배너·탭 글자는 이 저장소에 하나도 없습니다. '
+      + '앱이 「보고서 만들기」 자리에 넣을 주소로 **앱 자신의 페이지**를 넣고 '
+      + '있습니다. 넣어야 하는 것은 im-flow 폴더의 report-flow.html 입니다. '
+      + '고치는 자리는 앱 쪽이며, 근본과 방법은 전달 문서의 lp:base 절에 있습니다.';
+  }
+
   function stampInto(doc) {
     var d = doc || document;
     var b = buildOf(d);
@@ -711,6 +763,7 @@
     sectionProgress: sectionProgress,
     BUILD_ATTR: BUILD_ATTR, buildOf: buildOf, buildLabel: buildLabel, stampInto: stampInto,
     insideLinkPilot: insideLinkPilot,
+    appDepth: appDepth, nestedAppNote: nestedAppNote,
     resolveApi: resolveApi,
     apiNote: apiNote,
     API_FALLBACK: API_FALLBACK,
