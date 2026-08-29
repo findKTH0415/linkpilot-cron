@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="1b271c0c">
+<html lang="ko" data-lp-build="c7e46144">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -288,7 +288,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=1b271c0c">
+<link rel="stylesheet" href="tokens.css?v=c7e46144">
 <style>
 /* 색·간격·반경 토큰은 tokens.css 하나가 정한다 (LinkPilot Design System v1.1) */
 * { box-sizing: border-box; }
@@ -476,14 +476,14 @@ window.LINKPILOT_REPORT_FLOW = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=1b271c0c" data-lp-global="LINKPILOT_REPORT_FLOW"></script>
-<script src="gate-core.js?v=1b271c0c"></script>
-<script src="flow-core.js?v=1b271c0c"></script>
+<script src="embed-bridge.js?v=c7e46144" data-lp-global="LINKPILOT_REPORT_FLOW"></script>
+<script src="gate-core.js?v=c7e46144"></script>
+<script src="flow-core.js?v=c7e46144"></script>
 <!-- ★ 4단계 진행율(필수 항목 채움)을 재는 데 쓴다. **값과 출처가 둘 다**
      있어야 세는 규칙이 여기 있다 — 화면이 따로 세면 두 벌이 된다 -->
-<script src="fields-core.js?v=1b271c0c"></script>
-<script src="catalog.js?v=1b271c0c"></script>
-<script src="inapp.js?v=1b271c0c"></script>
+<script src="fields-core.js?v=c7e46144"></script>
+<script src="catalog.js?v=c7e46144"></script>
+<script src="inapp.js?v=c7e46144"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -714,13 +714,16 @@ window.LINKPILOT_REPORT_FLOW = {
      *     「아직 아무것도 안 했다」로 읽히는데 실제로는 「못 쟀다」다.
      */
     var pg = (progress && progress[sec.id]) || null;
+    var open = isOpen(sec);
     var tag = '';
     if (sec.steps.length) {
       if (pg && pg.done) tag = '완료';
       else if (pg && pg.known && pg.pct !== null) tag = pg.pct + '%';
-      else if (sec.current) tag = '지금';
       else if (sec.locked) tag = '잠김';
-      else tag = '열기';
+      /* ★ 잠기지 않은 칸은 **누르면 열린다**는 것을 그대로 적는다 〈D-172〉.
+       *   앞 판은 「지금」·「열기」였는데, 「지금」은 눌러도 되는지를 안 알려 주고
+       *   「열기」는 **이미 펴진 칸에도** 붙어서 눌러도 안 닫히는 것처럼 보였다. */
+      else tag = open ? '접기' : '펼치기';
     }
     if (tag) {
       var tg = el('span', 'sec__tag' + (tag === '완료' ? ' sec__tag--done' : '')
@@ -740,8 +743,20 @@ window.LINKPILOT_REPORT_FLOW = {
       b.appendChild(bar);
     }
 
-    if (sec.opensTo) {
-      h.addEventListener('click', function () { go(sec.opensTo); });
+    /* ★★★ **누르면 펴고 접는다** 〈2026-08-29 · D-172〉.
+     *   앞 판은 누르면 「지금 칸」을 그리로 옮겼다(`go`). 그래서 **지나온 칸을
+     *   잠깐 보려고 눌렀는데 앞으로 가던 자리를 잃었다.**
+     *   ★ 이제 펴고 접기만 한다. 「지금 칸」은 [완료] 를 누를 때만 움직인다 —
+     *     보는 일과 나아가는 일을 가른다. */
+    if (!sec.locked && sec.steps.length) {
+      h.setAttribute('aria-expanded', open ? 'true' : 'false');
+      h.addEventListener('click', function () {
+        openBy[sec.id] = !open;
+        /* 펴는 칸이 열린 단계를 품고 있으면 그 단계를 보고 있는 것으로 둔다 —
+           안쪽 화면이 「지금 어느 칸인지」를 알아야 하는 자리가 있다 */
+        if (!open && sec.opensTo) state.current = sec.opensTo;
+        draw();
+      });
     }
     box.appendChild(h);
 
@@ -1002,137 +1017,50 @@ window.LINKPILOT_REPORT_FLOW = {
         + (next.why || '앞 칸을 먼저 끝냅니다') + '.'));
       return row;
     }
-    var b = el('button', 'okrow__b', '확인 — ' + next.no + '. ' + next.name + ' 으로');
+    /* ★★★ 단추 이름은 **[완료]** 다 〈2026-08-29 사장님 지시 · D-172〉.
+     *   「확인 — 다음 칸으로」였는데, 그것은 **가는 일**을 말한다. 사장님이
+     *   적으신 것은 **끝냈다는 표시**다 — 이 칸에서 할 일을 마쳤다는 뜻이고,
+     *   다음 칸이 열리는 것은 그 결과다. 어디로 가는지는 옆에 작게 적는다. */
+    var b = el('button', 'okrow__b', '완료');
     b.type = 'button';
-    b.addEventListener('click', function () { go(next.opensTo); });
+    b.addEventListener('click', function () {
+      openBy[sec.id] = false;          // 끝낸 칸은 접는다 — 다음 칸이 눈에 들어온다
+      openBy[next.id] = true;          // 다음 칸을 편다
+      go(next.opensTo);
+    });
+    row.appendChild(el('span', 'okrow__why',
+      '다음: ' + next.no + '. ' + next.name));
     row.appendChild(b);
     return row;
   }
 
   /**
-   * ══════════ 1절을 **한 창으로 합친다** 〈2026-08-28 사장님 지시 · D-163〉
+   * ══════════ **펼침을 사람이 정한다** 〈2026-08-29 사장님 지시 · D-172〉
    *
-   * 사장님 지시: 「무엇을 만들까요? / 밑에 발행주체를 통합병합한 아코디언 창을
-   * 만들어줘」.
+   * 사장님 지시: 「1.기본정보 입력 → 펼치기 [완료] … 6.완성결과물」.
    *
-   * ★★★ **순서가 뒤집혔다.** 앞 판은 「발행 주체」가 위, 「무엇을 만들까요」가
-   *   아래였다. 그런데 **발행 주체는 한 번 정하면 잘 안 바뀌는 설정**이고,
-   *   화면을 열 때마다 할 일은 **요청문을 적는 것**이다. 설정이 위에 있으면
-   *   정작 할 일이 아래로 밀려, 매번 회사 이름 화면을 지나쳐 내려가야 했다.
+   * ★★★ 앞 판은 **「지금 칸」만** 펴졌다. 지나온 칸을 다시 보려면 되돌아가야
+   *   했고, 되돌아가면 「지금 칸」이 바뀌어 **앞으로 가던 자리를 잃었다.**
+   *   이제 잠기지 않은 칸은 **아무 때나 눌러서 편다.**
    *
-   * ★★ 그래서 **요청문이 위, 발행 주체는 아래에 접어** 둔다. 접힌 머리줄에
-   *   **지금 값을 그대로 적어** 두므로, 펴지 않아도 무엇이 찍힐지 보인다.
-   *
-   * ★ **아직 안 정했으면 펴 둔다.** 접어 두면 비어 있는 줄 모르고 넘어가고,
-   *   그러면 문서에 「발행 주체 미설정」이 찍혀 대외 배포가 막힌다 —
-   *   막히는 이유가 화면 어디에도 안 보이는 상태가 된다.
+   * ★ 아무것도 안 누르셨으면 **지금 칸 하나만** 펴 둔다 — 전부 펴 두면
+   *   「어디부터 하면 되는지」가 화면에서 사라진다.
+   * ★★ 눌러서 접은 것도 기억한다. `true`/`false` 를 모두 담는 이유다 —
+   *   「안 눌렀다」와 「눌러서 접었다」는 다른 사실이다 (§4.9 와 같은 결).
    */
-  var foldOpen = null;   // null = 아직 사람이 안 눌렀다 (그때는 아래 규칙이 정한다)
+  var openBy = {};   // { 절id: true|false } — 없으면 「사람이 아직 안 눌렀다」
 
-  /** 접힌 머리에 적을 지금 값 — **못 물어봤으면 그렇다고 적는다** (§4.9) */
-  function issuerLabel() {
-    if (facts.issuerSet === null || facts.issuerSet === undefined) return '아직 못 물어봤습니다';
-    return facts.issuerSet ? (facts.issuerName || '정해져 있습니다') : '아직 정하지 않았습니다';
+  function isOpen(sec) {
+    if (sec.locked) return false;
+    if (Object.prototype.hasOwnProperty.call(openBy, sec.id)) return !!openBy[sec.id];
+    return !!sec.current;
   }
 
-  /**
-   * 절이 품은 단계를 **차례로** 그린다. 순서는 `sec.steps` 가 정한다.
-   * 잠긴 단계는 화면 대신 이유를 적는다 — 회색이기만 하면 고장으로 보인다.
-   */
+  /** 절이 품은 단계를 차례로 그린다 — 잠긴 것은 화면 대신 이유를 적는다 */
   function stepBody(st) {
     return st.locked
       ? notice('', st.name + ' 단계를 아직 열 수 없습니다', st.why)
       : stage(st);
-  }
-
-  /**
-   * 1절 — 요청문(펴짐) + 발행 주체(접힘)를 **한 상자**에 담는다.
-   * 다른 절은 이 함수를 안 쓴다 (`null` 을 돌려준다).
-   */
-  function mergedStart(sec, byId) {
-    if (sec.id !== 'start') return null;
-    var ask = byId.ask, basics = byId.basics;
-    if (!ask || !basics) return null;   // 목록이 바뀌었다 — 평소대로 그린다
-
-    var wrap = el('div');
-    wrap.appendChild(stepBody(ask));
-
-    /* ★ 아직 안 정했으면 편다. 사람이 눌렀으면 그 뜻을 따른다 */
-    var open = (foldOpen === null) ? !facts.issuerSet : foldOpen;
-
-    wrap.appendChild(foldBox('발행 주체', issuerLabel(), open, function () {
-      foldOpen = !open; draw();
-    }, basics));
-    return wrap;
-  }
-
-  /**
-   * 접이 한 칸 — 머리줄에 **지금 값**을 적고, 펴면 그 단계 화면이 나온다.
-   *
-   * ★ 1절(발행 주체)과 2절(자료 업로드)이 같은 모양을 쓴다. 두 벌로 만들면
-   *   한쪽만 고치는 날 서로 다르게 보인다.
-   */
-  function foldBox(title, value, open, onToggle, step) {
-    var fold = el('div', 'fold');
-    var h = el('button', 'fold__h');
-    h.type = 'button';
-    h.setAttribute('aria-expanded', open ? 'true' : 'false');
-    h.appendChild(el('span', 'fold__t', title));
-    h.appendChild(el('span', 'fold__v', value));
-    h.appendChild(el('span', 'fold__m', open ? '접기 ▲' : '펴기 ▼'));
-    h.addEventListener('click', onToggle);
-    fold.appendChild(h);
-    if (open) {
-      var body = el('div', 'fold__b');
-      body.appendChild(stepBody(step));
-      fold.appendChild(body);
-    }
-    return fold;
-  }
-
-  /**
-   * ══════════ 2절 — **끝낸 자료 업로드는 접는다** 〈2026-08-29 · D-169〉
-   *
-   * 사장님 신고: 「스캔클릭이후 보고서 생성으로 넘어가야 하는데 이상곳으로
-   * 다시 업로드로 이동됨」.
-   *
-   * ★★★ **실제로는 옮겨 갔다.** 2절이 열렸고 그 안에 「보고서 생성」이 있다.
-   *   그런데 D-162 로 셋(자료 업로드 · 가이드 필드 · 출력조건)을 **한 칸에
-   *   합치면서**, 방금 자료를 다 올린 사람에게 **「자료 업로드」가 맨 위에
-   *   또 보였다.** 그러면 **되돌아간 것으로 읽힌다** — 화면은 맞는데 뜻이 틀렸다.
-   *
-   * ★ 고침은 1절과 같은 결이다 — **끝낸 것은 접고 값만 보인다.**
-   *   자료를 아직 안 올렸으면(프로젝트가 없으면) 펴 둔다. 그때는 그것이 할 일이다.
-   * ★★ **지운 것이 아니다.** 머리줄에 「자료 8건 중 5건 읽음」처럼 지금 값이
-   *   적히고, 눌러서 언제든 다시 편다. 접었는데 되돌릴 길이 없으면 그건 지운 것이다.
-   */
-  var foldSources = null;   // null = 사람이 아직 안 눌렀다
-
-  /** 접힌 줄에 적을 자료 요약 — **못 물어봤으면 그렇다고 적는다** (§4.9) */
-  function sourcesLabel() {
-    var s = facts.sources;
-    if (!state.projectId) return '아직 프로젝트가 없습니다';
-    if (!s) return '올린 자료를 아직 못 물어봤습니다';
-    if (!s.total) return '자료 없이 진행 중 — 값을 직접 넣습니다';
-    return '자료 ' + s.total + '건 중 ' + s.read + '건 읽음';
-  }
-
-  function mergedMake(sec, byId) {
-    if (sec.id !== 'make') return null;
-    var sources = byId.sources, fields = byId.fields, spec = byId.spec;
-    if (!sources || !fields || !spec) return null;   // 목록이 바뀌었다
-
-    /* ★ 아직 프로젝트가 없으면 자료 올리기가 **지금 할 일**이라 펴 둔다.
-     *   생겼으면 접는다 — 방금 끝낸 일을 맨 위에 다시 펴 보이지 않는다. */
-    var open = (foldSources === null) ? !state.projectId : foldSources;
-
-    var wrap = el('div');
-    wrap.appendChild(foldBox('자료 업로드', sourcesLabel(), open, function () {
-      foldSources = !open; draw();
-    }, sources));
-    wrap.appendChild(stepBody(fields));
-    wrap.appendChild(stepBody(spec));
-    return wrap;
   }
 
   /* ══════════ 절 도구줄 — 미리보기 · 수정 요구 · 다운로드 ══════════
@@ -1443,35 +1371,23 @@ window.LINKPILOT_REPORT_FLOW = {
       }
       // 미리보기(문서를 심은 판)는 **한 번에 편다.** 눌러 가며 확인하면 빠뜨린다
       if (docs) {
-        var frag = document.createDocumentFragment();
-        var mine0 = {};
-        sec.steps.forEach(function (st) { mine0[st.id] = st; });
-        var merged0 = mergedStart(sec, mine0) || mergedMake(sec, mine0);
-        if (merged0) frag.appendChild(merged0);
-        else sec.steps.forEach(function (st) { frag.appendChild(stage(st)); });
+        var frag0 = document.createDocumentFragment();
+        sec.steps.forEach(function (st) { frag0.appendChild(stage(st)); });
         var tw0 = toolRow(sec);
-        if (tw0) frag.appendChild(tw0);
-        view.appendChild(section(sec, frag));
+        if (tw0) frag0.appendChild(tw0);
+        view.appendChild(section(sec, frag0));
         return;
       }
-      if (!sec.current) { view.appendChild(section(sec, null)); return; }
-      /* ★★★ **한 절이 품은 단계를 함께 편다** 〈2026-08-28 사장님 지시 · D-157〉.
-       *
-       *   앞 판은 `byStep[state.current]` 하나만 폈다. 그래서 「기본정보」와
-       *   「무엇을 만들까요」가 한 절인데도 **한 번에 하나씩** 보였고, 사용자는
-       *   같은 일을 하다가 [다음] 을 눌러야 나머지 반이 나왔다.
-       *   ★ 이제 그 절의 단계를 **차례로 다 펴고** 맨 아래에 [확인] 을 둔다 —
-       *     아코디언 한 칸이 「한 번에 끝내는 일」이 된다. */
+
+      /* ★★★ **펴는 것을 사람이 정한다** 〈2026-08-29 사장님 지시 · D-172〉.
+       *   앞 판은 「지금 칸」만 폈다 — 지나온 칸을 다시 보려면 되돌아가야 했고,
+       *   되돌아가면 「지금 칸」이 바뀌어 앞으로 가던 자리를 잃었다. */
+      if (!isOpen(sec)) { view.appendChild(section(sec, null)); return; }
+
       var frag = document.createDocumentFragment();
-      /* ★ 1절은 **한 창으로 합쳐** 그린다 〈D-163〉 — 요청문 위, 발행 주체는
-         아래에 접어서. 나머지 절은 품은 단계를 차례로 편다. */
-      var mine = {};
-      sec.steps.forEach(function (st) { mine[st.id] = st; });
-      var merged = mergedStart(sec, mine) || mergedMake(sec, mine);
-      if (merged) frag.appendChild(merged);
-      else sec.steps.forEach(function (st) { frag.appendChild(stepBody(st)); });
-      /* ★ 도구줄이 [확인] **앞**에 온다 〈D-158〉. 미리보기·수정은 「이 칸을
-         끝내기 전에」 하는 일이고, [확인] 은 끝냈다는 말이다 — 순서가 뜻이다 */
+      sec.steps.forEach(function (st) { frag.appendChild(stepBody(st)); });
+      /* ★ 도구줄이 [완료] **앞**에 온다 〈D-158〉. 미리보기·수정은 「이 칸을
+         끝내기 전에」 하는 일이고, [완료] 는 끝냈다는 말이다 — 순서가 뜻이다 */
       var tw = toolRow(sec);
       if (tw) frag.appendChild(tw);
       var go = confirmRow(sec);

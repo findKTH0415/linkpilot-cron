@@ -33,12 +33,23 @@ const code = FLOW.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' '
  * ★ 되풀이가 나려면 **한 절에 단계가 둘 이상**이어야 한다. 그 조건이 실제로
  *   있는지부터 잰다 — 없으면 이 검사가 헛돈다.
  */
-test('한 절이 단계를 여럿 품는다 (이 되풀이가 가능한 조건)', () => {
-  const many = F.SECTIONS.filter((s) => s.steps.length > 1);
-  assert.ok(many.length >= 1,
-    '단계를 여럿 품은 절이 없다 — D-157 이 되돌려졌거나 이 검사가 옛말이다');
-  assert.ok(many.some((s) => s.id === 'start'),
-    '1절이 basics·ask 를 함께 품지 않는다');
+/**
+ * ★★★ **조건이 사라졌다 — 그래도 장치는 남긴다** 〈2026-08-29 · D-172〉.
+ *
+ *   절이 여섯이 되면서 **한 절에 한 단계**가 되었다. 그러니 형제 틀이 서로
+ *   현재 단계를 뺏는 되풀이는 **지금 구조에서는 일어날 수 없다.**
+ *
+ *   ★ 그렇다고 막는 장치를 걷어내지 않는다. 절 구성은 오늘만도 다섯 번
+ *     바뀌었고(D-157·D-162·D-163·D-169·D-172), **다음에 또 합치는 날** 이
+ *     되풀이가 그대로 돌아온다. 그때 다시 하루를 쓰지 않으려고 남긴다.
+ *   ★★ 그래서 이 검사는 「지금 여럿인가」가 아니라 **「막는 장치가 있는가」**를
+ *     잰다 — 전제가 사라져도 검사가 헛돌지 않는다.
+ */
+test('지금은 한 절에 한 단계다 (되풀이 조건이 없다)', () => {
+  F.SECTIONS.forEach((s) => {
+    assert.strictEqual(s.steps.length, 1,
+      `절 「${s.name}」 이 단계를 ${s.steps.length}개 품는다 — 아래 장치가 다시 필요해진다`);
+  });
 });
 
 test('★★★ 같은 절의 형제 틀은 현재 단계를 바꾸지 않는다 (안 그러면 끝없이 다시 그린다)', () => {
@@ -65,11 +76,15 @@ test('절이 다르면 현재 단계를 바꾼다 (진짜 이동은 막지 않�
  * ★★ 판정 자체를 `flow-core` 로 재 본다. 화면 글자만 보면 규칙이 바뀐 날
  *   검사가 옛말을 한다 (M-63 과 같은 결).
  */
-test('flow-core 가 실제로 같은 절이라고 답한다 — basics 와 ask', () => {
-  const a = F.sectionOfStep('basics');
-  const b = F.sectionOfStep('ask');
-  assert.ok(a && b, '두 단계 중 하나가 어느 절에도 안 속한다');
-  assert.strictEqual(a.id, b.id, 'basics 와 ask 가 다른 절이다 — 되풀이 조건이 사라졌다');
+test('★ 절을 되짚는 자리가 옳게 답한다', () => {
+  /* ★ 절이 여섯이 되면서 basics 와 ask 가 **다른 절**이 되었다 〈D-172〉.
+     앞 판은 둘이 한 절이었고, 이 검사가 그것을 잰다는 사실 자체가 구조가
+     바뀌었음을 알려 준다 — 검사가 옛말을 하지 않게 여기서 고친다. */
+  assert.strictEqual(F.sectionOfStep('basics').id, 'basics');
+  assert.strictEqual(F.sectionOfStep('ask').id, 'ask');
+  assert.strictEqual(F.sectionOfStep('fields').id, 'make');
+  assert.strictEqual(F.sectionOfStep('spec').id, 'spec');
+  assert.strictEqual(F.sectionOfStep('없는단계'), null, '모르는 단계를 아는 척한다');
 });
 
 test('flow-core 가 다른 절이라고 답한다 — basics 와 sources', () => {
@@ -117,99 +132,58 @@ test('★ 이미 지켜보는 틀에 감시자를 두 벌 걸지 않는다', () 
     '이미 지켜보는 틀이면 그대로 두고 높이만 맞추는 자리가 없다');
 });
 
-/* ══════════ 1절을 한 창으로 합쳤다 〈2026-08-28 · D-163〉 ══════════
+/* ══════════ 절 여섯 · 펼침을 사람이 정한다 〈2026-08-29 · D-172〉 ══════════
  *
- * 사장님 지시: 「무엇을 만들까요? / 밑에 발행주체를 통합병합한 아코디언 창을
- * 만들어줘」.
+ * 사장님 지시: 「1.기본정보 입력 → 펼치기 [완료] … 6.완성결과물」.
  *
- * ★★★ **순서가 뒤집혔다.** 발행 주체는 한 번 정하면 잘 안 바뀌는 설정이고,
- *   화면을 열 때마다 할 일은 요청문을 적는 것이다. 설정이 위에 있으면 정작
- *   할 일이 아래로 밀린다.
+ * ★★★ D-163(1절 합치기)·D-169(2절 접기) 검사는 **여기서 없앴다.** 그 둘은
+ *   「한 칸에 여러 일이 겹친 것」을 다루는 장치였는데, 절이 여섯이 되면서
+ *   겹칠 일 자체가 사라졌다. **없어진 것을 지키는 검사는 다음 사람을 헷갈리게
+ *   한다** — 그래서 남기지 않고 지웠다는 사실을 여기 적어 둔다.
  */
-test('★★★ 1절은 요청문이 먼저, 발행 주체가 뒤다', () => {
-  const s = F.SECTIONS[0];
-  assert.deepStrictEqual(s.steps, ['ask', 'basics'],
-    '발행 주체가 아직 위에 있다 — 매번 회사 이름 화면을 지나쳐 내려가야 한다');
-});
 
-test('★★ 1절은 한 상자에 합쳐 그린다 (두 칸으로 쪼개지 않는다)', () => {
-  assert.match(code, /function mergedStart\(sec, byId\) \{/, '합치는 자리가 없다');
-  assert.match(code, /if \(sec\.id !== 'start'\) return null;/,
-    '어느 절을 합치는지 못 박혀 있지 않다');
-  assert.match(code, /wrap\.appendChild\(stepBody\(ask\)\);/,
-    '요청문을 먼저 그리지 않는다');
+test('★★★ 잠기지 않은 칸은 아무 때나 펴고 접는다', () => {
+  assert.match(code, /function isOpen\(sec\)/, '펴짐을 가리는 자리가 없다');
+  assert.match(code, /if \(sec\.locked\) return false;/, '잠긴 칸이 펴진다');
+  assert.match(code, /openBy\[sec\.id\] = !open;/, '눌러도 안 펴진다');
 });
 
 /**
- * ★★★ **안 정했으면 펴 둔다.** 접어 두면 비어 있는 줄 모르고 넘어가고,
- *   그러면 문서에 「발행 주체 미설정」이 찍혀 대외 배포가 막힌다 —
- *   막히는 이유가 화면 어디에도 안 보이는 상태가 된다.
+ * ★★ **「안 눌렀다」와 「눌러서 접었다」는 다른 사실이다** (§4.9 와 같은 결).
+ *   `false` 를 못 담으면 접은 칸이 다시 그릴 때마다 펴진다.
  */
-test('★★★ 발행 주체를 아직 안 정했으면 접지 않고 펴 둔다', () => {
-  assert.match(code, /var open = \(foldOpen === null\) \? !facts\.issuerSet : foldOpen;/,
-    '안 정했을 때 펴 두는 규칙이 없다 — 비어 있는 줄 모르고 넘어간다');
+test('★★ 눌러서 접은 것도 기억한다', () => {
+  assert.match(code, /Object\.prototype\.hasOwnProperty\.call\(openBy, sec\.id\)/,
+    '안 눌렀는지와 접었는지를 못 가른다');
+  assert.match(code, /return !!sec\.current;/, '아무것도 안 눌렀을 때 지금 칸을 안 편다');
 });
 
 /**
- * ★ 접힌 줄에 **지금 값을 그대로** 적는다. 「정해져 있습니다」보다 회사 이름이
- *   보이는 쪽이 확인이 된다 — 펴지 않고도 무엇이 찍힐지 알 수 있다.
+ * ★★★ **보는 일과 나아가는 일을 가른다** 〈D-172〉.
+ *   앞 판은 머리를 누르면 「지금 칸」이 그리로 옮겨 갔다. 그래서 지나온 칸을
+ *   잠깐 보려고 눌렀다가 **앞으로 가던 자리를 잃었다.**
  */
-test('★ 접힌 머리줄이 지금 값을 적는다 (못 물어봤으면 그렇다고 적는다)', () => {
-  assert.match(code, /function issuerLabel\(\)/, '접힌 줄에 적을 값을 만드는 자리가 없다');
-  assert.match(code, /facts\.issuerName/, '회사 이름을 안 받아 둔다');
-  assert.match(code, /아직 못 물어봤습니다/,
-    '못 물어본 것을 「안 정했다」로 적고 있다 — 둘은 다른 사실이다 (§4.9)');
-  assert.match(code, /아직 정하지 않았습니다/, '정말 안 정했을 때의 말이 없다');
+test('★★★ 머리를 눌러도 「지금 칸」이 멋대로 옮겨 가지 않는다', () => {
+  const near = code.slice(code.indexOf("if (!sec.locked && sec.steps.length) {"),
+    code.indexOf('box.appendChild(h);'));
+  assert.ok(near.length > 50, '머리 누름 자리를 못 찾았다 — 검사가 헛돈다');
+  assert.ok(!/go\(sec\.opensTo\)/.test(near),
+    '머리를 누르면 지금 칸이 옮겨 간다 — 보려고 눌렀다가 자리를 잃는다');
 });
 
-/* ══════════ 2절 — 끝낸 자료 업로드는 접는다 〈2026-08-29 · D-169〉 ══════════
- *
- * 사장님 신고: 「스캔클릭이후 보고서 생성으로 넘어가야 하는데 이상곳으로
- * 다시 업로드로 이동됨」.
- *
- * ★★★ **실제로는 옮겨 갔다.** 2절이 열렸고 그 안에 보고서 생성이 있다.
- *   그런데 D-162 로 셋을 한 칸에 합치면서, 방금 자료를 다 올린 사람에게
- *   **「자료 업로드」가 맨 위에 또 보였다** — 그러면 되돌아간 것으로 읽힌다.
- *   화면은 맞는데 뜻이 틀렸다.
- */
-test('★★★ 2절도 끝낸 것을 접는다 (되돌아간 것으로 보이지 않게)', () => {
-  assert.match(code, /function mergedMake\(sec, byId\) \{/, '2절을 합치는 자리가 없다');
-  assert.match(code, /if \(sec\.id !== 'make'\) return null;/,
-    '어느 절인지 못 박혀 있지 않다');
-  assert.match(code, /var open = \(foldSources === null\) \? !state\.projectId : foldSources;/,
-    '프로젝트가 생겼는데도 자료 업로드를 펴 둔다 — 방금 끝낸 일이 맨 위에 다시 보인다');
+test('꼬리표가 펼치기·접기를 그대로 말한다', () => {
+  assert.match(code, /tag = open \? '접기' : '펼치기';/,
+    '눌러도 되는지를 꼬리표가 안 알려 준다');
 });
 
 /**
- * ★ **지운 것이 아니다.** 머리줄에 지금 값이 적히고 눌러서 다시 편다.
- *   접었는데 되돌릴 길이 없으면 그건 지운 것이다.
+ * ★ 단추 이름은 **[완료]** 다 — 사장님이 적으신 그대로. 「확인 — 다음 칸으로」는
+ *   **가는 일**을 말하는데, 사장님이 뜻하신 것은 **끝냈다는 표시**다.
  */
-test('★ 접힌 줄에 자료 요약을 적고, 눌러서 다시 편다', () => {
-  assert.match(code, /function sourcesLabel\(\)/, '접힌 줄에 적을 값이 없다');
-  assert.match(code, /'자료 ' \+ s\.total \+ '건 중 ' \+ s\.read \+ '건 읽음'/,
-    '몇 건 중 몇 건인지 안 적는다');
-  assert.match(code, /올린 자료를 아직 못 물어봤습니다/,
-    '못 물어본 것을 「없다」로 적고 있다 — 둘은 다른 사실이다 (§4.9)');
-  assert.match(code, /foldSources = !open; draw\(\);/, '다시 펴는 길이 없다');
-});
-
-/**
- * ★★ 1절과 2절이 **같은 접이 조각**을 쓴다. 두 벌로 만들면 한쪽만 고치는 날
- *   서로 다르게 보인다.
- */
-test('★★ 접이를 두 벌로 만들지 않는다', () => {
-  assert.match(code, /function foldBox\(title, value, open, onToggle, step\) \{/,
-    '접이 조각이 없다');
-  const uses = (code.match(/foldBox\(/g) || []).length;
-  assert.ok(uses >= 3, `foldBox 를 ${uses}번만 쓴다 — 1절·2절이 같은 것을 쓰는지 본다`);
-});
-
-test('2절이 가이드 필드와 출력조건은 펴 둔다', () => {
-  assert.match(code, /wrap\.appendChild\(stepBody\(fields\)\);\s*wrap\.appendChild\(stepBody\(spec\)\);/,
-    '보고서를 만드는 두 칸이 안 펴진다 — 스캔을 끝내고 온 사람이 할 일이 안 보인다');
-});
-
-test('목록이 바뀌면 평소대로 그린다 (빈 화면을 만들지 않는다)', () => {
-  assert.match(code, /if \(!sources \|\| !fields \|\| !spec\) return null;/,
-    '단계가 하나라도 없으면 빈손으로 그린다');
+test('★ [완료] 를 누르면 그 칸을 접고 다음 칸을 편다', () => {
+  assert.match(code, /el\('button', 'okrow__b', '완료'\)/, '단추 이름이 [완료] 가 아니다');
+  assert.match(code, /openBy\[sec\.id\] = false;/, '끝낸 칸을 안 접는다');
+  assert.match(code, /openBy\[next\.id\] = true;/, '다음 칸을 안 편다');
+  assert.match(code, /'다음: ' \+ next\.no \+ '\. ' \+ next\.name/,
+    '어디로 가는지 안 적는다');
 });
