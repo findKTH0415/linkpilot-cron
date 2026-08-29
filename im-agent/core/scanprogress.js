@@ -136,6 +136,11 @@ function view(projectId) {
     pct: total > 0 ? Math.min(100, Math.round((done / total) * 100)) : null,
     last: done ? cur.done[done - 1] : null,
     rows: cur.done || [],
+    /* ★★★ **읽을 차례를 그대로 넘긴다** 〈2026-08-29 사장님 지시 · D-177〉.
+     *   화면이 「한 개씩 읽는 과정」을 펴려면 **끝난 것**만으로는 모자란다 —
+     *   아직 안 읽힌 이름이 있어야 「무엇이 남았나」를 그릴 수 있다.
+     *   ★ 이것은 `begin()` 이 **읽기 전에** 정한 목록이라, 도중에 줄거나 늘지 않는다. */
+    queued: cur.queued || [],
     at: cur.at || null,
     finished: !cur.running,
   };

@@ -412,6 +412,7 @@ test('★★★ 자료 넣는 방법 둘이 한 테두리 안에 나란히 있�
     }
     await sleep(600);
     o.blocks = [].slice.call(document.querySelectorAll('.ways2__t')).map(t);
+    o.boxes = document.querySelectorAll('.ways2__b').length;
     o.or = t(document.querySelector('.ways2__or'));
     var box = document.querySelector('.ways2');
     if (box) {
@@ -445,8 +446,15 @@ test('★★★ 자료 넣는 방법 둘이 한 테두리 안에 나란히 있�
   for (const w of [1100, 430]) {
     const r = measure(w);
     assert.deepStrictEqual(r.err, [], `${w}px: 그리는 동안 예외가 났다`);
-    assert.deepStrictEqual(r.blocks, ['파일업로드', '폴더 지정'],
-      `${w}px: 자료 넣는 칸이 둘이 아니다 — ${JSON.stringify(r.blocks)}`);
+    /* ★ 〈2026-08-29 사장님 화면 「삭제」 · D-176〉 「파일업로드」 **머리를 내렸다.**
+     *   같은 말을 세 번 하고 있었다(카드 머리 · 칸 머리 · 그 안의 1 자료 수집).
+     *   ★ 재려는 것은 그대로다 — **두 칸이 한 테두리 안에 세로로 선다**.
+     *     칸의 수는 아래 `boxes` 로, 올리는 칸이 살아 있는지는 `stacked`·`or` 와
+     *     함께 이 파일의 다른 칸들이 잰다. */
+    assert.deepStrictEqual(r.blocks, ['폴더 지정'],
+      `${w}px: 자료 넣는 칸 이름표가 다르다 — ${JSON.stringify(r.blocks)}`);
+    assert.strictEqual(r.boxes, 2,
+      `${w}px: 자료 넣는 칸이 둘이 아니다 (${r.boxes}개)`);
     assert.strictEqual(r.tiles, 0,
       `${w}px: 갈래 토글이 되살아났다 (${r.tiles}개) — 합친 뜻이 사라진다`);
     assert.match(String(r.or), /또는/,
