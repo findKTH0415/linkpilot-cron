@@ -348,8 +348,13 @@ test('★★ 자료 업로드 탭을 미리 그리면 실제로 내용이 들어
        「못 읽었다」 줄은 올려 본 뒤에 나온다. 그래서 눌러 본 둘째 장을 함께 낸다 —
        그 장이 비면 고쳤는지 아닌지를 미리보기로 확인할 방법이 없다 (§8) */
     assert.ok(body.includes('자료 수집'), '① 자료 수집 칸이 미리 그린 판에 없다');
-    assert.ok(body.includes('읽지 못했습니다'),
+    /* ★ 말이 두 가지다 〈2026-08-29 · D-177〉 — 올리기 칸은 「읽지 못했습니다」,
+     *   한 줄씩 펴는 목록은 「못 읽었습니다」. **둘 중 하나면 된다.** */
+    assert.ok(/읽지 못했습니다|못 읽었습니다/.test(body),
       '「받았지만 못 읽었다」가 미리 그린 판에 없다 — 올려 본 장이 안 그려졌다');
+    /* ★★ **한 개씩 읽은 줄이 실제로 그려진다** 〈2026-08-29 사장님 지시 · D-177〉 */
+    assert.ok(/class="roll__r/.test(body),
+      '한 개씩 읽는 과정이 줄로 안 펴졌다 — 숫자만으로는 무엇이 안 읽혔는지 모른다');
   } finally { if (fs.existsSync(out)) fs.unlinkSync(out); }
 });
 
@@ -465,8 +470,13 @@ test('★★ 열 수 없는 제공자를 누를 수 있게 두지 않는다 (브
   // 막혔을 때 **되는 길**을 알려 준다.
   // ★ 이름을 문장에 박아 두지 않고 갈래 표에서 가져오는지를 본다 — 박아 두면
   //   갈래 제목을 바꾸는 날 안내만 옛 이름을 말한다 (2026-08-21 실제로 그랬다)
-  assert.match(code, /지금 자료를 넣으려면 「' \+ wayName\('oneshot'\) \+ '」 갈래를/,
-    '지금 쓸 수 있는 길을 안 알려 주거나, 갈래 이름을 손으로 적어 두었다');
+  /* ★ 〈2026-08-29 · D-176〉 보관/1회성 고르는 칸이 화면에서 내려가면서 이 안내가
+   *   부르던 갈래 이름이 **화면에 없는 이름**이 됐다. 이제 올리기 단추 이름을
+   *   부른다 — 재려는 것은 그대로다: **이름을 문장에 손으로 적지 않는다.** */
+  assert.match(code, /지금 자료를 넣으려면 위 「' \+ uploadBtnName\(\) \+ '」 로/,
+    '지금 쓸 수 있는 길을 안 알려 주거나, 단추 이름을 손으로 적어 두었다');
+  assert.match(code, /function uploadBtnName\(\)/,
+    '올리기 단추 이름을 한 곳에서 만들지 않는다');
 });
 
 /**
@@ -1297,6 +1307,8 @@ test('★★★ 프로젝트 지정이 ① 로 늘 맨 위에 있다 (갈래 안
       o.headsAfterPick = [].slice.call(document.querySelectorAll('.ah__t')).map(t);
       o.blocks = [].slice.call(document.querySelectorAll('.ways2__t')).map(t);
       o.wayCount = document.querySelectorAll('.ways2__b').length;
+      /* ★ 이름표를 내린 뒤에도 **올리는 칸이 있는지**를 잰다 (D-176) */
+      o.buttons = [].slice.call(document.querySelectorAll('.btn')).map(t);
       o.errBoxes = document.querySelectorAll('.err').length;
       document.getElementById('probe').textContent = JSON.stringify(o);
     }());
@@ -1326,8 +1338,15 @@ test('★★★ 프로젝트 지정이 ① 로 늘 맨 위에 있다 (갈래 안
     assert.equal(r.pickersAfterWay, 1,
       '갈래를 바꾸니 프로젝트 고르기가 사라졌다 — 고르는 자리가 다시 갈래 안으로 들어갔다');
     /* ★ 두 칸이 **함께** 보인다 — 고르는 단계 없이 둘 다 쓸 수 있다 */
-    assert.deepStrictEqual(r.blocks, ['파일업로드', '폴더 지정'],
-      `자료 넣는 칸이 둘이 아니다: ${JSON.stringify(r.blocks)}`);
+    /* ★ 〈2026-08-29 사장님 화면 「삭제」 · D-176〉 「파일업로드」 **머리를 내렸다.**
+     *   카드 머리(자료 넣는 방법) · 칸 머리(파일업로드) · 그 안(1 자료 수집)이
+     *   같은 말을 세 번 하고 있었다. 그래서 이름표는 하나만 남는다.
+     *   ★ 재려는 것은 그대로다 — **두 칸이 함께 보인다**(`wayCount` 2). 올리는 칸이
+     *     사라진 것이 아님은 **단추와 파일 고르기**가 있는 것으로 잰다. */
+    assert.deepStrictEqual(r.blocks, ['폴더 지정'],
+      `자료 넣는 칸 이름표가 다르다: ${JSON.stringify(r.blocks)}`);
+    assert.ok((r.buttons || []).some((b) => /^파일업로드/.test(b)),
+      `올리는 칸이 없다 — 단추 목록: ${JSON.stringify(r.buttons)}`);
     assert.ok(!r.hasBack,
       '「…로 가기」 단추가 있다 — 고르는 자리가 또 어딘가로 옮겨 갔다는 뜻이다');
 
@@ -1453,25 +1472,16 @@ test('★★ 파일업로드로 넣고 스캔을 눌러도 「안 넣었다」�
       };
       var o = {};
       await sleep(300);
+      /* ★★★ 〈2026-08-29 · D-176〉 보관/1회성 **고르는 칸이 화면에서 내려갔다**
+         (사장님 지시). 그래서 이 자리에서 1회성을 새로 만들 수는 없다.
+         그런데 재려는 것은 「새로 만들 수 있는가」가 아니라 **「전에 1회성으로
+         넣은 자료가 남아 있는 사람에게 화면이 뭐라고 하는가」**다 — 그 사람은
+         그대로 있다. 그래서 그 상태를 예시 서버에 세워 두고 잰다. */
+      window.__lpSeedOneshot = true;
       var sel = document.querySelector('.pick select');
       sel.value = 'LP-DC-2026-001';
       sel.dispatchEvent(new Event('change', { bubbles: true }));
       await sleep(400);
-      /* 2026-08-23: 갈래 토글이 없어졌다 — 파일업로드 칸이 늘 보인다 */
-      /* ★ 이 검사는 **1회성** 갈래의 동작을 잰다 〈2026-08-23〉 — 기본은 보관으로
-         바뀌었으므로 여기서 갈래를 눌러 고른다 */
-      var kwHit = null;
-      for (var kw = 0; kw < 60; kw++) {
-        var kws = document.querySelectorAll('.keepway__b');
-        for (var ki = 0; ki < kws.length; ki++) {
-          if (t(kws[ki]).indexOf('버립니다') !== -1) { kwHit = kws[ki]; break; }
-        }
-        if (kwHit) break;
-        await sleep(20);
-      }
-      o.kw = !!kwHit;
-      if (kwHit) kwHit.click();
-      await sleep(200);
 
       // 파일을 고르기만 한다 (아직 안 올림)
       var inp = document.querySelector('.drop input[type=file]');
@@ -1491,11 +1501,12 @@ test('★★ 파일업로드로 넣고 스캔을 눌러도 「안 넣었다」�
       o.ready = !!(go && !go.disabled);
       o.beforeUpload = notes();
 
-      // 올린다
-      go.click();
+      /* ★ 올리지 않는다 〈2026-08-29 · D-176〉. 올리면 보관으로 가서 스캔이
+         실제로 읽어 버린다 — 재려는 것은 **읽을 것이 없을 때 뭐라고 하는가**다.
+         「여기 오지 않습니다」는 옛 1회성 자료가 있으면 그 자리에서 바로 뜬다. */
       for (var u = 0; u < 1200; u++) {
-        await sleep(20);
         if (/여기 오지 않습니다/.test(notes())) break;
+        await sleep(20);
       }
       o.afterUpload = notes();
 

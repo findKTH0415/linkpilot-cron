@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="5562914f">
+<html lang="ko" data-lp-build="fc1d94c6">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -300,7 +300,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=5562914f">
+<link rel="stylesheet" href="tokens.css?v=fc1d94c6">
 <style>
 /* 색·간격·반경 토큰은 tokens.css 하나가 정한다 (LinkPilot Design System v1.1) */
 * { box-sizing: border-box; }
@@ -608,6 +608,28 @@ select:focus-visible, button:focus-visible { outline: 2px solid var(--lime-deep)
 /* 「올렸습니다」 안에 섞인 **나쁜 소식**. 초록 칸 안에서도 눈에 걸려야 한다 */
 .up__d--bad { color: var(--bad-ink); font-weight: 700; }
 
+/* ── 읽는 과정을 **한 파일에 한 줄로** 편다 〈2026-08-29 사장님 지시 · D-177〉 ──
+   ★ 앞 판은 도는 동안 숫자만 있었다 — 「9/13건 읽음 · 방금 「…」」. 그러면
+     **무엇이 아직 안 읽혔는지**가 화면에 없고, 오래 걸릴 때 사람이 볼 것이 없다.
+   ★ 글자를 세로로 맞춘다(`tabular-nums`) — 초 단위가 들쭉날쭉하면 목록이 떨린다.
+   ★ 색은 **한 곳에만** 준다 (§6-3 ④): 못 읽은 줄만 붉다. 나머지는 활자로 가른다. */
+.roll { margin: 12px 0 2px; border-top: 1px solid var(--line2); }
+.roll__r { display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; gap: 4px 9px;
+  align-items: baseline; padding: 7px 2px; border-bottom: 1px solid var(--line2); }
+.roll__i { font-size: 11.5px; font-weight: 800; text-align: center; line-height: 1.5; }
+.roll__i--ok { color: var(--lime-deep); }
+.roll__i--no { color: var(--bad-ink); }
+.roll__i--wait { color: var(--ink2); opacity: .55; }
+.roll__n { font-size: 12.5px; font-weight: 700; color: var(--ink); line-height: 1.5;
+  overflow-wrap: anywhere; }
+.roll__m { font-size: 11.5px; color: var(--ink2); line-height: 1.5; white-space: nowrap;
+  font-variant-numeric: tabular-nums; }
+.roll__h { grid-column: 2 / -1; font-size: 11.5px; color: var(--ink2); line-height: 1.55; margin: 1px 0 0; }
+.roll__r--wait .roll__n { color: var(--ink2); font-weight: 600; }
+.roll__r--no .roll__n, .roll__r--no .roll__h { color: var(--bad-ink); }
+.roll__r--no .roll__h { font-weight: 700; }
+@media (max-width: 560px) { .roll__m { grid-column: 2 / -1; white-space: normal; } }
+
 /* ── 이관 칸 — **떠나는 일**이라 머무는 칸과 색을 달리한다 〈2026-08-22〉 ──
    ★ 라임으로 채우지 않는다. 큰 면을 브랜드색으로 채우지 않는 것이 이 시스템의
      규칙이고(§11), 여기서 채우면 「완료」로 읽혀 넘어간다는 뜻이 흐려진다. */
@@ -753,10 +775,10 @@ select:focus-visible, button:focus-visible { outline: 2px solid var(--lime-deep)
   </div>
 </div>
 
-<script src="gate-core.js?v=5562914f"></script>
-<script src="flow-core.js?v=5562914f"></script>
-<script src="upload-core.js?v=5562914f"></script>
-<script src="versions-core.js?v=5562914f"></script>
+<script src="gate-core.js?v=fc1d94c6"></script>
+<script src="flow-core.js?v=fc1d94c6"></script>
+<script src="upload-core.js?v=fc1d94c6"></script>
+<script src="versions-core.js?v=fc1d94c6"></script>
 <script>
 /**
  * 붙이는 쪽이 채우는 유일한 값.
@@ -802,7 +824,7 @@ window.LINKPILOT_FILES = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=5562914f" data-lp-global="LINKPILOT_FILES"></script>
+<script src="embed-bridge.js?v=fc1d94c6" data-lp-global="LINKPILOT_FILES"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -1454,6 +1476,16 @@ window.LINKPILOT_FILES = {
   function wayName(id) {
     return wayOf(id).t;
   }
+
+  /**
+   * 올리기 단추의 이름 — **한 곳에서만 만든다** 〈2026-08-29 · D-176〉.
+   *
+   * ★ 보관/1회성 고르는 칸이 화면에서 내려가면서(사장님 지시) 안내 문장들이
+   *   **화면에 없는 단추 이름**을 부르게 됐다. 이름을 문장에 손으로 적으면
+   *   이런 어긋남이 조용히 남는다 — 사용자는 없는 단추를 찾게 된다.
+   * ★ 단추와 안내가 **같은 함수**를 부르면 다음에 이름이 바뀌어도 같이 바뀐다.
+   */
+  function uploadBtnName() { return '파일업로드 — 보관'; }
 
   /**
    * 갈래 셋을 **한 벌의 토글로** 그린다 〈2026-08-22 사용자 지시 —
@@ -2381,43 +2413,23 @@ window.LINKPILOT_FILES = {
      *   둘이 한 줄기임을 번호가 이어 준다.
      */
     var box = el('div', 'ways2__b');
-    box.appendChild(el('div', 'ways2__t', '파일업로드'));
-    box.appendChild(el('p', 'ways2__d', '파일을 고르거나 아래에 끌어다 놓습니다.'));
 
-    /**
-     * ★★★ **올린 자료를 남길 것인가** 〈2026-08-23 사장님: 「자료를 업로드
-     *   했는데 전혀 반영이 안되었음. 매우 중요함. 최종결과물 품질이 달라짐」〉.
+    /* ★★★ **머리와 보관/1회성 고르는 칸을 내렸다** 〈2026-08-29 사장님 화면:
+     *   빨간 테두리 + 「삭제」 · D-176〉.
      *
-     *   앞 판은 이 칸이 **1회성 한 길뿐**이었다. 1회성은 읽고 파일을 버리므로
-     *   `02_Source_Data` 가 언제나 비었고, 보고서를 만들 때 추출기가
-     *   「원본자료가 없다」로 끝났다 — **숫자가 전부 통상치로 나갔다.**
-     *   보관하는 길(`POST /projects/:id/sources`)은 **서버에 살아 있었는데**
-     *   2026-08-20 에 화면에서 뺀 뒤로 부르는 곳이 없었다.
+     *   이 칸은 같은 말을 **세 번** 하고 있었다 — 카드 머리가 「자료 넣는 방법」,
+     *   그 안이 「파일업로드」, 또 그 안이 「1 자료 수집」. 읽는 사람은 세 층이
+     *   각각 다른 일인 줄 알고 무엇을 먼저 해야 하는지를 찾게 된다.
      *
-     * ★ 고르는 단계를 새로 만들지 않는다 — **이 칸 안에서** 고른다.
-     * ★ 기본은 **보관**이다. 다시 만들 수 있는 쪽이 기본이어야 한다.
-     * ★ 1회성은 남긴다 (D-65) — 사본을 남기기 싫은 사람의 길이다.
-     */
-    var KEEPS = [
-      { id: 'keep', t: '보관합니다', d: '보고서를 다시 만들 때 이 자료를 다시 읽습니다. 나중에 원본과 대조할 수 있습니다.' },
-      { id: 'oneshot', t: '읽고 버립니다', d: '사본을 남기지 않습니다. 보고서를 다시 만들면 이 자료는 안 실립니다 — 그때 다시 올려야 합니다.' },
-    ];
-    var kb = el('div', 'keepway');
-    KEEPS.forEach(function (k) {
-      var b = el('button', 'keepway__b' + (state.way === k.id ? ' on' : ''));
-      b.type = 'button';
-      b.appendChild(el('span', 'keepway__t', k.t));
-      b.appendChild(el('span', 'keepway__d', k.d));
-      b.setAttribute('aria-pressed', state.way === k.id ? 'true' : 'false');
-      b.addEventListener('click', function () {
-        if (state.way === k.id) return;
-        state.way = k.id;
-        remember({ way: k.id });
-        render();
-      });
-      kb.appendChild(b);
-    });
-    box.appendChild(kb);
+     * ★ 보관/1회성 고르기도 내렸다. **지운 것이 아니라 내린 것이다** (D-175와 같은 결) —
+     *   1회성 길(`/oneshot`)은 서버에 그대로 있고 코드도 그대로 둔다 (D-65).
+     *   화면에서 **고르는 자리만** 없애고 올리기는 늘 **보관**으로 간다.
+     * ★★ 보관이 기본이어야 하는 이유는 이미 겪었다 — 1회성은 읽고 파일을 버려서
+     *   `02_Source_Data` 가 비었고, 보고서를 다시 만들 때 **숫자가 전부 통상치로** 나갔다.
+     * ★★★ 사람이 고른 값이 남아 있을 수 있다(브라우저에 기억된 `way`). 그대로 두면
+     *   **고를 자리가 없는데 1회성으로 올라간다** — 여기서 바로잡는다. */
+    if (state.way === 'oneshot') { state.way = 'keep'; remember({ way: 'keep' }); }
+
 
     /* ★★ 「1 자료 수집」 머리를 **남긴다** 〈2026-08-23〉. 카드 안의 ①②③ 과
      *   번호가 겹쳐 보이지만, 이 1 은 **카드 셋에 걸친 줄기**다:
@@ -2469,8 +2481,7 @@ window.LINKPILOT_FILES = {
         '고른 파일 ' + reading.length + '개를 아직 읽는 중입니다 — 다 읽으면 올릴 수 있습니다.'));
     }
 
-    var go = el('button', 'btn',
-      state.way === 'oneshot' ? '파일업로드 — 읽고 버리기' : '파일업로드 — 보관');
+    var go = el('button', 'btn', uploadBtnName());
     go.type = 'button';
     go.disabled = !ready.length || state.busy || !!over || !!reading.length;
     go.addEventListener('click', doUpload);
@@ -2568,7 +2579,7 @@ window.LINKPILOT_FILES = {
         '파일 고르기 창이 아직 연결되지 않았습니다 — 준비되면 위 단추가 열립니다. '
         // ★ 조사를 이름 뒤에 붙이지 않는다 — 이름이 바뀌면 「…」을/를 이 어긋난다.
         //   갈래 이름은 사람이 정하는 값이라 받침을 미리 알 수 없다
-        + '지금 자료를 넣으려면 「' + wayName('oneshot') + '」 갈래를 쓰십시오.'));
+        + '지금 자료를 넣으려면 위 「' + uploadBtnName() + '」 로 올려 주십시오.'));
     } else if (blocked.length) {
       box.appendChild(el('p', 'note',
         blocked.join(' · ') + ' 는 아직 등록되지 않았습니다 — 관리자에게 저장소 등록을 요청하십시오.'));
@@ -3052,6 +3063,107 @@ window.LINKPILOT_FILES = {
        자기가 뭘 잘못한 줄 안다. 여기서 「무엇을 못 읽었는지」를 먼저 본다. */
   var SCAN_STAGES = ['자료 모으기', '읽기 · OCR', '값으로 만들기', '보고서 생성으로'];
 
+  /* ══════════ 읽는 과정을 **한 개씩** 보여 준다 〈2026-08-29 사장님 지시 · D-177〉 ══════════
+   *
+   *   사장님 지시: 「한개한개 읽는 과정을 노출해줘 스캔 진행과정에」.
+   *
+   * ★★★ 앞 판이 도는 동안 보여 준 것은 **숫자 하나**였다 — 「9/13건 읽음」.
+   *   그런데 사람이 알고 싶은 것은 셋이다: ① 지금 어디까지 왔나 ② **무엇이**
+   *   아직 안 읽혔나 ③ 읽은 것은 **어떻게** 읽혔나(본문인가 OCR 인가).
+   *   숫자 하나는 ①만 답한다. 자료가 열세 개인데 오래 걸리면, 남은 넷이
+   *   무엇인지 모르는 채로 기다리게 된다.
+   *
+   * ★★ **「읽는 중」이라고 찍지 않는다.** 서버는 나란히 읽으므로 「지금 이것을
+   *   읽는 중」이 여럿이 된다 — 그러면 목록이 진행이 아니라 잡음이다
+   *   (`core/scanprogress.js` 가 **끝난 것만** 적는 이유가 그것이다).
+   *   그래서 아직 안 끝난 줄은 **「아직」**이다. 모르는 것을 아는 척하지 않는다.
+   *
+   * ★ 도는 동안과 끝난 뒤가 **같은 꼴**이다. 둘을 다르게 그리면 끝나는 순간
+   *   목록이 통째로 갈아 끼워져 「방금 본 것이 어디 갔나」가 된다.
+   */
+
+  /** 한 줄을 그린다. `r` = {name, state:'ok'|'no'|'wait', how, meta} */
+  function rollRow(r) {
+    var line = el('div', 'roll__r roll__r--' + r.state);
+    line.appendChild(el('span', 'roll__i roll__i--' + r.state,
+      r.state === 'ok' ? '✓' : (r.state === 'no' ? '✕' : '·')));
+    line.appendChild(el('span', 'roll__n', r.name));
+    line.appendChild(el('span', 'roll__m', r.meta || ''));
+    if (r.how) line.appendChild(el('p', 'roll__h', r.how));
+    return line;
+  }
+
+  function scanRoll(rows) {
+    var box = el('div', 'roll');
+    rows.forEach(function (r) { box.appendChild(rollRow(r)); });
+    return box;
+  }
+
+  /** 밀리초를 사람이 읽는 초로. 0.05초 미만은 **적지 않는다** — 잰 값이 아니다 */
+  function msText(ms) {
+    var n = Number(ms || 0);
+    if (!n || n < 50) return '';
+    return (n / 1000).toFixed(n < 10000 ? 1 : 0) + '초';
+  }
+
+  /**
+   * 도는 동안의 줄들. **차례는 읽을 차례**(`queued`)이고, 결과는 이름으로 붙인다.
+   *
+   * ★ `queued` 를 안 주는 옛 서버면 **끝난 것만** 편다 — 없는 줄을 지어내지 않는다.
+   * ★ 값이 0 개인 것도 「읽음」이다. 읽은 것과 값이 나온 것은 다른 사실이라
+   *   둘을 함께 적는다 (「본문을 읽음 · 값 0개」).
+   */
+  function rollFromProgress(pg) {
+    var done = {};
+    (pg.rows || []).forEach(function (x) { if (x && x.name) done[x.name] = x; });
+    var order = (pg.queued && pg.queued.length) ? pg.queued.slice()
+      : (pg.rows || []).map(function (x) { return x && x.name; });
+    // 계획에 없던 이름이 결과에 있으면 뒤에 붙인다 — 조용히 빠뜨리지 않는다
+    (pg.rows || []).forEach(function (x) {
+      if (x && x.name && order.indexOf(x.name) < 0) order.push(x.name);
+    });
+    return order.filter(Boolean).map(function (name) {
+      var d = done[name];
+      if (!d) return { name: name, state: 'wait', how: null, meta: '아직' };
+      if (!d.ok) {
+        return { name: name, state: 'no',
+          how: '못 읽었습니다 — ' + (d.why || '사유 없음'), meta: msText(d.ms) };
+      }
+      return { name: name, state: 'ok',
+        how: (d.ocr ? 'OCR — 글자로 옮겨 읽음' : '본문을 읽음')
+          + ' · 값 ' + Number(d.facts || 0) + '개',
+        meta: msText(d.ms) };
+    });
+  }
+
+  /**
+   * 끝난 뒤의 줄들. 서버가 준 `scanned` · `unread` 를 **같은 꼴로** 편다.
+   *
+   * ★ 같은 파일이 두 목록에 다 있으면 **한 줄**로 둔다 — 앞서 「OCR 로 읽음」과
+   *   「못 읽음」이 두 줄로 떠서 어느 쪽이 사실인지 알 수 없던 자리다 (2026-08-21).
+   */
+  function rollFromResult(res) {
+    var out = [], seen = {};
+    (res.scanned || []).forEach(function (f) {
+      if (!f || !f.name || seen[f.name]) return;
+      seen[f.name] = true;
+      // 서버가 `read` 를 안 주는 옛 판이면 `readable` 로 본다 (모르면 막지 않는다)
+      var got = (f.read === undefined) ? f.readable : f.read;
+      out.push(got
+        ? { name: f.name, state: 'ok',
+            how: f.ocr ? 'OCR — 글자로 옮겨 읽음' : '본문을 읽음', meta: '' }
+        : { name: f.name, state: 'no',
+            how: '못 읽었습니다 — ' + (f.why || f.note || '사유 없음'), meta: '' });
+    });
+    (res.unread || []).forEach(function (u) {
+      if (!u || !u.name || seen[u.name]) return;
+      seen[u.name] = true;
+      out.push({ name: u.name, state: 'no',
+        how: '못 읽었습니다 — ' + (u.why || '사유 없음'), meta: '' });
+    });
+    return out;
+  }
+
   /**
    * 스캔이 도는 동안 **시계를 돌린다** 〈2026-08-22 사용자 지시 — 「진행율, 시간 표기」〉.
    *
@@ -3148,7 +3260,13 @@ window.LINKPILOT_FILES = {
       //   반만 읽은 값으로 2단계에 가면, 왜 어떤 칸만 비었는지 알 수가 없다.
       //   사람이 한 번 더 눌러 다 읽은 뒤에 넘어가는 쪽이 싸다
       if (r.body.remaining) { render(); return null; }
-      goReport();
+      /* ★★★ **떠나기 전에 떠난다고 말한다** 〈2026-08-29 · D-176 에서 드러났다〉.
+       *   앞 판은 여기서 곧바로 `goReport()` 를 불러 **말없이 탭을 바꿨다.**
+       *   ③ 이관 칸을 그리는 길은 1회성 쪽에만 있었는데(2211행), 보관/1회성을
+       *   고르는 칸이 화면에서 내려가면서 **보관이 유일한 길**이 됐다 —
+       *   그러면 ③ 이 영영 안 뜬다. 「화면이 갑자기 바뀐다」가 그 모양이었다.
+       *   ★ `startHandoff` 는 칸을 다 그린 **뒤에** `goReport()` 를 부른다. */
+      startHandoff(r.body.facts, r.body.documents || 0);
       return null;
     }, function (e) {
       state.scan.busy = false;
@@ -3353,7 +3471,7 @@ window.LINKPILOT_FILES = {
         // ★ 조사를 이름 뒤에 붙이지 않는다 — 갈래 이름은 사람이 정하는 값이라
         //   받침을 미리 알 수 없다 (「파일업로드」을 → 를 이 어긋났다)
         '고른 파일 ' + waiting + '개가 아직 안 올라갔습니다 — 위에서 「'
-        + wayName('oneshot') + '」 단추를 먼저 누르십시오. 스캔은 올라간 자료만 읽습니다.'));
+        + uploadBtnName() + '」 단추를 먼저 누르십시오. 스캔은 올라간 자료만 읽습니다.'));
     }
 
     var go = el('button', 'btn', state.scan.busy ? '읽는 중…' : '자료 스캔');
@@ -3399,6 +3517,9 @@ window.LINKPILOT_FILES = {
         card.appendChild(el('p', 'up__d',
           '지금까지 값 ' + (pg.facts || 0) + '개'
           + (pg.ocr ? ' · 글자로 옮겨 읽은 것 ' + pg.ocr + '건' : '')));
+        /* ★★★ **한 개씩 읽는 과정을 편다** 〈2026-08-29 사장님 지시 · D-177〉.
+         *   숫자만으로는 **무엇이 아직 안 읽혔는지**가 화면에 없다. */
+        card.appendChild(scanRoll(rollFromProgress(pg)));
       } else if (sc.busy) {
         var pct = Math.min(90, (sc.ms / SCAN_TYPICAL_MS) * 90);
         card.appendChild(meter({
@@ -3437,16 +3558,14 @@ window.LINKPILOT_FILES = {
       //   전에는 「읽을 작정」과 「실제 결과」를 따로 그려서, 같은 파일이
       //   「OCR 로 읽음」과 「못 읽음」 두 줄로 떴다. 둘 다 화면에 있으면
       //   사용자는 어느 쪽이 사실인지 알 방법이 없다
-      (res.scanned || []).forEach(function (f) {
-        // 서버가 `read` 를 안 주는 옛 판이면 `readable` 로 본다 (모르면 막지 않는다)
-        var got = (f.read === undefined) ? f.readable : f.read;
-        var how = got ? (f.ocr ? 'OCR — 글자로 옮겨 읽음' : '본문을 읽음')
-          : ('못 읽었습니다 — ' + (f.why || f.note || '사유 없음'));
-        okBox.appendChild(el('p', 'up__d', '· ' + f.name + ' — ' + how));
-      });
-      (res.unread || []).forEach(function (u) {
-        okBox.appendChild(el('p', 'up__d', '· ' + u.name + ' — 못 읽었습니다: ' + u.why));
-      });
+      /* ★★★ **도는 동안과 같은 꼴로 편다** 〈2026-08-29 · D-177〉.
+       *   앞 판은 여기만 「· 이름 — 어떻게」 한 줄짜리였다. 도는 동안의 목록과
+       *   생김새가 달라서, 끝나는 순간 목록이 통째로 갈아 끼워졌다.
+       *   ★ 같은 파일이 `scanned` 와 `unread` 에 다 있으면 **한 줄**로 접는다 —
+       *     앞서 「OCR 로 읽음」과 「못 읽음」이 두 줄로 떠서 어느 쪽이 사실인지
+       *     알 수 없던 자리다 (2026-08-21). */
+      var rolled = rollFromResult(res);
+      if (rolled.length) okBox.appendChild(scanRoll(rolled));
       if (!res.facts && (res.scanned || []).length) {
         okBox.appendChild(el('p', 'up__d',
           '값이 하나도 안 나와서 「' + F.SECTION.tab + '」으로 넘어가지 않았습니다 — '
@@ -3461,7 +3580,13 @@ window.LINKPILOT_FILES = {
           '양이 많아 ' + res.remaining + '개를 아직 안 읽었습니다 — '
           + '「자료 스캔」을 다시 누르면 이어서 읽습니다.'));
       }
-      if (res.oneshotNote) okBox.appendChild(el('p', 'up__d', res.oneshotNote));
+      /* ★★ **1회성 자료가 실제로 있을 때만 말한다** 〈2026-08-29 · D-176〉.
+       *   서버는 이 말을 늘 보낸다. 그런데 보관/1회성 고르는 칸이 화면에서
+       *   내려간 뒤로는, 1회성 자료가 하나도 없는 사람에게도 이 줄이 떠서
+       *   **고를 수 없는 갈래**를 설명하게 됐다 — 없는 단추를 찾게 만든다.
+       *   ★ 서버 약속은 그대로 둔다. 옛 1회성 자료가 남아 있는 사람에게는
+       *     여전히 사실이므로, 그때만 그린다. */
+      if (res.oneshotNote && shotN) okBox.appendChild(el('p', 'up__d', res.oneshotNote));
       card.appendChild(okBox);
     }
 
@@ -3501,7 +3626,7 @@ window.LINKPILOT_FILES = {
       //   ★★ 브라우저 탓을 하지 않는다 — 브라우저는 아무 상관이 없다.
       //     틀린 원인을 말하면 사용자가 엉뚱한 것을 고치러 간다 (2026-08-20 실측)
       state.linkMsg = '파일 고르기 창이 아직 연결되지 않았습니다 — '
-        + '지금은 「' + wayName('oneshot') + '」 갈래로 넣을 수 있습니다.';
+        + '지금은 위 「' + uploadBtnName() + '」 로 올릴 수 있습니다.';
       state.linkStage = 0; state.linkDead = true;
       return render();
     }

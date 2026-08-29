@@ -97,14 +97,11 @@ function uploadDriver() {
      고를 것이 없으므로 **드롭존이 떴는지**로 준비를 잰다 */
   var tile = function () { return $('.drop'); };
   var goBtn = function () { return $$('button.btn').filter(function (b) { return /파일업로드/.test(b.textContent); })[0]; };
-  /* ★★ 이 판이 보여 주려는 것은 **「받았지만 못 읽었다」**이고, 그것은
-   *   1회성(읽고 버리기)에서만 나온다 — 보관은 올린 뒤 스캔이 따로 읽는다.
-   *   기본이 보관으로 바뀌었으므로(2026-08-23) 여기서 갈래를 눌러 고른다. */
-  var pickOneshot = function () {
-    var b = $$('.keepway__b').filter(function (x) { return /버립니다/.test(x.textContent); })[0];
-    if (b && b.getAttribute('aria-pressed') !== 'true') { b.click(); return true; }
-    return false;
-  };
+  /* ★★ 이 판이 보여 주려는 것은 **「받았지만 못 읽었다」**이다 〈2026-08-29 · D-176〉.
+   *   앞 판은 그것을 1회성(읽고 버리기)에서 냈고, 여기서 갈래를 눌러 골랐다.
+   *   그 고르는 칸이 화면에서 내려갔으므로(사장님 지시) **보관 쪽에서** 낸다 —
+   *   보관은 올린 뒤 스캔이 읽고, 못 읽은 것을 스캔 결과가 한 줄씩 적는다.
+   *   그래서 표본 하나를 **스캔이 못 읽는 확장자**로 둔다 (아래 drop 칸). */
   var opts = function () {
     var sel = $('select');
     return sel ? [].map.call(sel.options, function (o) { return o.value; }).filter(function (v) { return /^LP-/.test(v); }) : [];
@@ -143,15 +140,6 @@ function uploadDriver() {
       } },
     /* 누를 것이 없다. 칸이 뜨기만 기다린다 〈2026-08-23 병합〉 */
     { name: 'tile', ready: tile, act: function () {} },
-    /* ★ 1회성을 고른다 — 이 판이 보여 주려는 「받았지만 못 읽었다」가
-     *   그쪽에서만 나온다 (2026-08-23) */
-    /* ★ ready 는 「이미 됐는가」가 아니라 **「지금 누를 수 있는가」**다
-     *   (위 proj·drop 과 같은 뜻). 「됐는가」로 적으면 영영 안 넘어간다.
-     *   ※ 이 블록은 템플릿 문자열 안이다 — 역따옴표를 쓰면 문자열이 끊긴다 */
-    { name: 'oneshot',
-      ready: function () { return $$('.keepway__b').filter(function (x) {
-        return /버립니다/.test(x.textContent); })[0]; },
-      act: pickOneshot },
     /* ★ 파일을 끼우는 칸. act 를 **다시 불러도 안전하게** 짰다 — 아래에서
      *   기다리다 막히면 이 칸만 다시 두드린다 (다른 칸은 다시 두드리면 안 된다:
      *   tile 을 또 누르면 갈래가 바뀌면서 **고른 파일을 버린다**) */
@@ -166,7 +154,10 @@ function uploadDriver() {
          *   「이름 하나가 없다」로 빨개졌는데 **접기는 옳게 돌고 있었다.**
          *   ★ 표본이 실제와 다르면 잡히는 것도 실제가 아니다. 크기는 그대로
          *     두고 내용만 가른다. */
-        dt.items.add(new File([new Uint8Array(2048)], '[붙임3]산출근거.xlsx'));
+        /* ★★ 하나는 **스캔이 못 읽는 확장자**로 둔다 〈2026-08-29 · D-176〉 —
+         *   그래야 「받았지만 못 읽었다」를 그리는 코드가 미리보기에서 실제로 돈다.
+         *   좋은 소식만 보여 주면 나쁜 소식을 그리는 코드는 안 돌아 본다 */
+        dt.items.add(new File([new Uint8Array(2048)], '[붙임3]산출근거.hwp'));
         dt.items.add(new File([new Uint8Array(2048).fill(7)], '사업계획서(초안).pdf'));
         inp.files = dt.files;
         inp.dispatchEvent(new Event('change'));
@@ -330,8 +321,11 @@ async function build(outFile) {
     + ` · 파일칸=${drove('drop')} · 줄 ${drove('rows')}개 · 올리기 말=[${drove('uptext')}]`
     + ` · 화면의 칸=[${drove('cards')}])`;
   const part2 = inlineScreen(dom2, 'scr-files2');
-  if (!/읽지 못했습니다/.test(part2.html)) {
-    throw new Error('둘째 장에 「읽지 못했습니다」가 없다 — 올리기가 그 자리까지 못 갔다' + trace);
+  /* ★ 말이 두 가지다 〈2026-08-29 · D-177〉 — 올리기 칸은 「읽지 못했습니다」,
+   *   한 줄씩 펴는 목록은 「못 읽었습니다」. **둘 다 받는다.** 한쪽만 보면
+   *   말투가 바뀐 날 빌드가 멎는데, 정작 화면은 멀쩡하다. */
+  if (!/읽지 못했습니다|못 읽었습니다/.test(part2.html)) {
+    throw new Error('둘째 장에 「못 읽었다」는 말이 없다 — 올리기가 그 자리까지 못 갔다' + trace);
   }
   if (!/card--handoff/.test(part2.html)) {
     throw new Error('둘째 장에 이관 칸(③)이 없다 — 넘어가는 것을 보여 주는 자리가 안 그려졌다' + trace);
@@ -503,7 +497,17 @@ function fakeServer(limits) {
           documents: rd.map(function (f) { return { name: f.name }; }), unsupported: no2 },
         note: '보관하지 않습니다 — 보고서를 다시 만들려면 다시 올려야 합니다.' }];
     }
-    if (/\\/oneshot$/.test(p)) return [200, { items: oneshot }];
+    /* ★★ **옛 1회성 자료가 남아 있는 상태**를 만들 수 있게 둔다 〈2026-08-29 · D-176〉.
+     *   보관/1회성 고르는 칸이 화면에서 내려가 이제 여기서 1회성을 새로 만들 수는
+     *   없다. 그런데 **전에 1회성으로 넣은 자료가 남아 있는 사람**은 그대로 있고,
+     *   그 사람에게 화면이 무엇을 말하는지는 여전히 재야 한다.
+     *   (일부러 고장을 내는 스위치와 같은 결이다 — 위 5xx 스위치 참고) */
+    if (/\\/oneshot$/.test(p)) {
+      var seed = window.__lpSeedOneshot
+        ? [{ name: '옛 1회성 자료.pdf', bytes: 0, readAt: '예시',
+             fingerprint: { value: 'demo-seed-1' } }] : [];
+      return [200, { items: seed.concat(oneshot) }];
+    }
     // 프로젝트 내용 → 값. **사전에 없는 항목은 거절한다** (실제 서버와 같다)
     if (/\\/facts$/.test(p) && method === 'PUT') {
       var fs2 = (body && body.facts) || [];
@@ -555,6 +559,23 @@ function fakeServer(limits) {
       return [200, { items: linked, storesCopies: false,
         appProvider: INTERNAL_IDS[0] || null, providers: PROVIDERS_DEMO }];
     }
+    /* ★★ 읽는 도중의 진행 — **실제 서버와 같은 모양**으로 준다 〈2026-08-29 · D-177〉.
+     *   가짜 서버가 이 길을 몰라 404 를 주면 화면은 「모른다」로 떨어지고,
+     *   **한 개씩 펴는 목록이 미리보기에서 한 번도 안 돌아 본다.**
+     *   ★ 읽을 차례도 함께 준다 — 아직 안 읽힌 줄을 그리는 근거가 그것이다.
+     *   (이 글은 템플릿 문자열 속이다 — 역따옴표를 쓰면 문자열이 끊긴다) */
+    if (/\\/scan\\/progress$/.test(p)) {
+      var qn = kept.map(function (f) { return f.name; })
+        .concat(linked.map(function (x) { return x.name; }));
+      if (!qn.length) return [200, { known: false }];
+      var d1 = [{ name: qn[0], ok: !/\\.(hwp|dwg|zip)$/i.test(qn[0]), facts: 3, ms: 1400,
+        ocr: false, why: /\\.(hwp|dwg|zip)$/i.test(qn[0]) ? '이 형식은 읽지 못합니다 (예시)' : null }];
+      return [200, { known: true, running: true, stale: false,
+        total: qn.length, done: d1.length, ok: d1[0].ok ? 1 : 0, failed: d1[0].ok ? 0 : 1,
+        facts: d1[0].ok ? 3 : 0, ocr: 0,
+        pct: Math.round((d1.length / qn.length) * 100),
+        last: d1[0], rows: d1, queued: qn, at: '예시', finished: false }];
+    }
     // ★ 자료 스캔 — **응답 모양을 실제와 같게 둔다.** 여기만 후하면 미리보기는
     //   초록인데 실물은 빈 칸이 된다 (연결 갈래에서 실제로 그렇게 당했다)
     if (/\\/scan$/.test(p) && method === 'POST') {
@@ -563,11 +584,12 @@ function fakeServer(limits) {
       if (!all.length) {
         // ★ 실제 서버와 같은 말을 한다. 1회성으로만 넣은 상태를 **탓하지 않는다**
         //   (2026-08-21 실제 신고 — 넣은 사람에게 안 넣었다고 말하고 있었다)
-        if (oneshot.length) {
+        var shotN2 = oneshot.length + (window.__lpSeedOneshot ? 1 : 0);
+        if (shotN2) {
           return [200, { scanned: [], unread: [], facts: 0, documents: 0, empty: true,
-            oneshotOnly: true, oneshotCount: oneshot.length,
+            oneshotOnly: true, oneshotCount: shotN2,
             note: '여기서 다시 읽을 자료가 없습니다 — 「파일업로드」로 넣은 '
-              + oneshot.length + '건은 올리는 그 자리에서 이미 읽었고, 보관하지 않으므로 '
+              + shotN2 + '건은 올리는 그 자리에서 이미 읽었고, 보관하지 않으므로 '
               + '원본이 남아 있지 않습니다. 다시 읽어야 하면 「폴더를 연결해서」로 넣으십시오.',
             at: '예시' }];
         }
@@ -799,7 +821,23 @@ function demoConfig() {
   };
 }
 
+/**
+ * ★★★ **밖으로 내놓는 이유는 하나 — 검사가 이 글자를 파싱해 봐야 한다**
+ *   〈2026-08-29 · D-178〉.
+ *
+ *   예시 서버와 미리보기 손은 **템플릿 문자열 속의 자바스크립트**다. 이 파일은
+ *   멀쩡히 파싱되므로 `node -e require(...)` 는 초록인데, **안에 든 글자가
+ *   깨져 있어도 아무도 모른다.** 브라우저는 그 조각을 조용히 버리고,
+ *   그러면 예시 서버가 통째로 안 붙는다 — 화면은 멀쩡히 뜨고 올리기만
+ *   「전송이 끊겼습니다」로 실패한다. **정확히 「오류를 안 내는 고장」이다.**
+ *
+ *   실제로 그렇게 당했다: `/\/oneshot$/` 를 고치면서 역슬래시 하나를 빼먹어
+ *   내보낸 글자가 `//oneshot$/` 가 됐다. 이 파일은 파싱됐고, 미리보기 빌드만
+ *   **엉뚱한 자리에서** 멎었다 — 원인을 찾는 데 한참 걸렸다.
+ */
+const INNER_SCRIPTS = { fakeServer, uploadDriver };
+
 module.exports = {
   build, buildLive, publishableLive, DEMO, uploadDriver,
-  demoConfig, withConfig, inlineTokens, SIBLINGS,
+  demoConfig, withConfig, inlineTokens, SIBLINGS, INNER_SCRIPTS,
 };

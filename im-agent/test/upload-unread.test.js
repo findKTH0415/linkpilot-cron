@@ -57,14 +57,25 @@ test('★★ 받았지만 못 읽은 자료를 화면이 말한다 (올려 보�
     /* ★ **끈끈하게 잰다** 〈2026-08-27 · D-146〉. 올리기가 끝나면 ②칸이 접히므로
      *   마지막 틱만 보면 「칸이 없다」가 된다 — 재려는 것은 **올리기 전에 있었는가**다.
      *   접는 것은 일부러 한 것이고, 이 검사가 재려는 것은 그것이 아니다. */
-    + '  out.sawTile = out.sawTile || !!$$(".ways2__t").filter(function (b) { return /파일업로드/.test(b.textContent); })[0];'
+    /* ★ 〈2026-08-29 · D-176〉 「파일업로드」 머리와 보관/1회성 고르는 칸이
+     *   화면에서 내려갔다(사장님 지시). 이제 그 칸을 가리키는 것은 **올리기 단추**다 */
+    + '  out.sawTile = out.sawTile || !!$$("button.btn").filter(function (b) { return /파일업로드/.test(b.textContent); })[0];'
     + '  out.hasTile = out.sawTile;'
     + '  out.hasDrop = out.hasDrop || !!$(".drop input");'   /* 같은 까닭으로 끈끈하게 */
     + '  out.headings = $$(".sub__n").map(function (x) { return x.textContent; });'
-    + '  out.rows = $$(".row__n").map(function (x) { return x.textContent; });'
+    /* ★ 고른 파일 목록도 **끈끈하게** 잰다 〈2026-08-29〉. 올리고 나면 `picked` 가
+     *   비고 ②칸이 접혀 목록이 사라진다 — 재려는 것은 **올리기 전에 이름이
+     *   그대로 나왔는가**다. 마지막 틱만 보면 「이름이 없다」가 된다. */
+    + '  var rw = $$(".row__n").map(function (x) { return x.textContent; });'
+    + '  if (rw.length) out.rows = rw;'
+    + '  out.rows = out.rows || [];'
     + '  out.phase = ($(".up__h b") || {}).textContent || null;'
     + '  out.lines = $$(".up__d").map(function (x) { return x.textContent; });'
     + '  out.bad = $$(".up__d--bad").map(function (x) { return x.textContent; });'
+    /* ★ 한 개씩 펴는 줄(D-177). 끈끈하게 모은다 — 이관으로 넘어가면 사라진다 */
+    + '  var rl = $$(".roll__r").map(function (x) { return x.textContent; });'
+    + '  if (rl.length) out.roll = rl;'
+    + '  out.roll = out.roll || [];'
     + '  out.errBox = $$(".err").length;'
     + '  document.getElementById("probe").textContent = JSON.stringify(out);'
     /* ★★ **손이 끝났다고 화면이 다 그려진 것은 아니다** 〈2026-08-22 · CI 에서 잡혔다〉.
@@ -114,24 +125,32 @@ test('★★ 받았지만 못 읽은 자료를 화면이 말한다 (올려 보�
      *   고치는 곳이 다른데, 숫자가 없으면 둘이 같아 보인다 */
     + `(마지막 걸음 ${r.step} · ${r.ticks}번 되물었다 · 단계 ${r.phase})`);
 
-  assert.deepStrictEqual(r.rows, ['[붙임3]산출근거.xlsx', '사업계획서(초안).pdf'],
+  assert.deepStrictEqual(r.rows, ['[붙임3]산출근거.hwp', '사업계획서(초안).pdf'],
     '고른 파일 이름이 그대로 안 나온다');
   assert.strictEqual(r.phase, '올렸습니다',
     `올리기가 끝나지 않았다 — 마지막 걸음 ${r.step} · ${r.ticks}번 되물었다`);
   assert.strictEqual(r.errBox, 0, '빨간 오류 상자가 떴다 — 이건 고장이 아니다');
 
   // ★★ 핵심: **못 읽은 것을 말한다.** 이 줄이 없던 것이 신고의 원인이다
-  const all = r.lines.join('\n');
-  assert.match(all, /읽지 못했습니다/,
+  /* ★ 〈2026-08-29 · D-177〉 파일마다의 소식은 이제 **한 줄씩 펴진 목록**에 있다.
+   *   초록 칸의 요약(`lines`)과 그 목록(`roll`)을 함께 본다 — 재려는 것은
+   *   「어디에 적혔나」가 아니라 **「그 말이 화면에 있나」**다. */
+  const all = r.lines.concat(r.roll).join('\n');
+  assert.match(all, /읽지 못했습니다|못 읽었습니다/,
     '못 읽은 자료를 한 줄도 안 말한다 — 「올렸습니다」만 보고 다음 칸이 빈 것을 고장으로 읽는다');
-  assert.match(all, /\[붙임3\]산출근거\.xlsx/,
+  assert.match(all, /\[붙임3\]산출근거\.hwp/,
     '어느 파일이 안 읽혔는지 이름을 안 적는다 — 무엇을 다시 올려야 할지 모른다');
-  assert.ok(r.bad.length >= 2,
-    '나쁜 소식이 초록 칸 안에서 눈에 안 걸린다 (up__d--bad 가 안 붙었다)');
 
-  // ★ 1회성은 **원본이 남아 있지 않다.** 그 말까지 해야 사용자가 판단할 수 있다
-  assert.match(all, /원본을 지웁니다|남아 있지 않습니다/,
-    '1회성이라 원본이 사라졌다는 말이 없다 — 자료를 잃은 것도 모른다');
+  /* ★★★ **한 개씩 읽은 결과가 줄로 펴진다** 〈2026-08-29 사장님 지시 · D-177〉.
+   *   숫자만 있으면 무엇이 안 읽혔는지가 화면에 없다. 줄이 실제로 그려지는지를
+   *   **눌러 보고** 잰다 — 소스 검사로는 「그리기는 하는데 그 자리까지 안 간다」를
+   *   못 잡는다. */
+  assert.ok(r.roll.length >= 2,
+    `읽은 과정이 한 줄씩 안 펴졌다 (roll ${r.roll.length}줄 · 단계 ${r.phase})`);
+  assert.ok(r.roll.some((x) => /산출근거\.hwp/.test(x) && /못 읽었습니다/.test(x)),
+    '못 읽은 파일이 그 줄에서 「못 읽었습니다」라고 안 적힌다');
+  assert.ok(r.roll.some((x) => /사업계획서\(초안\)\.pdf/.test(x) && /읽음/.test(x)),
+    '읽은 파일이 「어떻게 읽었는지」와 함께 안 적힌다');
 
   // ★ 읽힌 것까지 싸잡아 실패로 말하지 않는다
   assert.match(all, /2개를 올렸습니다/, '올린 개수를 안 말한다');
