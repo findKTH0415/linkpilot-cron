@@ -122,6 +122,13 @@ const SECRET_ENV = [
   //   **이 일곱만** 로그에 평문으로 남는다
   'GEMINI_API_KEY_2', 'GEMINI_API_KEY_3', 'GEMINI_API_KEY_4', 'GEMINI_API_KEY_5',
   'GEMINI_API_KEY_6', 'GEMINI_API_KEY_7', 'GEMINI_API_KEY_8',
+  // ★★★ **자료를 읽는 두 번째 길의 열쇠** 〈2026-08-29 · D-167〉.
+  //   철자를 하나로 못 박지 않는다 — 사장님이 넣으신 이름이 `CLODE_API_Key2`
+  //   였다(`CLAUDE` 가 아니라 `CLODE`). 여기 빠뜨리면 **그 이름만** 로그에
+  //   평문으로 남는다. `core/claude.js` 의 KEY_PATTERN 과 짝이다.
+  'CLAUDE_API_KEY', 'CLAUDE_API_KEY_2',
+  'CLODE_API_KEY', 'CLODE_API_KEY2', 'CLODE_API_KEY_2',
+  'ANTHROPIC_API_KEY',
   'KMA_APIHUB_KEY',    // 22자쯤 — 안 걸린다 (기상청 API허브)
   'REB_API_KEY',       // 32자쯤 — 안 걸린다 (한국부동산원 R-ONE)
   'KOSIS_API_KEY',     // 40자쯤 (통계청 공유서비스) — 쿼리에 들어간다

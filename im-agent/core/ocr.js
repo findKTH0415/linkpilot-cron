@@ -20,6 +20,7 @@
  */
 
 const llm = require('./llm');
+const claude = require('./claude');
 
 /** Gemini 가 inlineData 로 받는 형식. 목록 밖은 **변환 없이는 못 읽는다** */
 const OCR_MIME = {
@@ -75,24 +76,67 @@ async function transcribe(file) {
     throw new Error(`파일이 커서 한 번에 못 읽는다 (${Math.round(file.buffer.length / 1048576)}MB · 한도 ${MAX_INLINE_BYTES / 1048576}MB) — 나눠서 올린다`);
   }
 
-  const text = await llm.generate({
-    system: SYSTEM,
-    files: [{ mime, data: file.buffer }],
-    prompt: '이 문서에 적힌 글자를 처음부터 끝까지 그대로 옮겨 적어라. 설명은 붙이지 않는다.',
-    temperature: 0,
-    maxOutputTokens: 8192,
-    timeoutMs: 180000,          // 여러 쪽짜리 스캔본은 오래 걸린다
-  });
+  const PROMPT = '이 문서에 적힌 글자를 처음부터 끝까지 그대로 옮겨 적어라. 설명은 붙이지 않는다.';
+
+  /* ★★★ **읽는 길이 둘이다** 〈2026-08-29 · D-167〉.
+   *
+   *   사장님이 PDF 여덟을 올리셨는데 셋을 한 글자도 못 읽었다. 그 셋은 글자가
+   *   코드값으로만 들어 있어 OCR 로 넘어가야 했는데, **그 OCR 이 하나뿐**이었고
+   *   그날 Gemini 열쇠가 전부 막혀 있었다(D-166).
+   *
+   *   ★ D-166 은 **같은 길을 고친 것**이다. 한도가 정말 찬 날에는 여전히 한 글자도
+   *     못 읽는다. 그래서 **다른 회사의 다른 길**을 하나 더 둔다.
+   *   ★★ 첫 길이 실패한 **까닭을 버리지 않는다.** 둘 다 실패하면 두 까닭을 함께
+   *     적는다 — 하나만 적으면 「왜 안 되는지」를 반쪽만 알게 된다.
+   */
+  let text = null;
+  let by = 'gemini';
+  let firstWhy = null;
+
+  try {
+    text = await llm.generate({
+      system: SYSTEM,
+      files: [{ mime, data: file.buffer }],
+      prompt: PROMPT,
+      temperature: 0,
+      maxOutputTokens: 8192,
+      timeoutMs: 180000,          // 여러 쪽짜리 스캔본은 오래 걸린다
+    });
+  } catch (e) {
+    firstWhy = e && e.message ? e.message : String(e);
+    if (!claude.available()) {
+      /* 두 번째 길이 꺼져 있으면 **첫 까닭을 그대로** 올린다. 여기서 말을
+         바꾸면 원인이 흐려진다 */
+      throw e;
+    }
+    try {
+      text = await claude.generate({
+        system: SYSTEM,
+        files: [{ mime, data: file.buffer }],
+        prompt: PROMPT,
+        maxOutputTokens: 8192,
+        timeoutMs: 180000,
+      });
+      by = 'claude';
+    } catch (e2) {
+      const why2 = e2 && e2.message ? e2.message : String(e2);
+      const err = new Error(`두 길 다 못 읽었다 — 첫째: ${firstWhy} / 둘째: ${why2}`);
+      err.code = 'OCR_BOTH_FAILED';
+      throw err;
+    }
+  }
 
   const clean = String(text).replace(/\r\n/g, '\n').trim();
   // ★ 조용한 빈 응답을 성공으로 넘기지 않는다
   if (clean.replace(/\s|\[\?\]/g, '').length < 10) {
     throw new Error('글자를 거의 못 읽었다 — 해상도가 낮거나 글자가 없는 이미지일 수 있다');
   }
-  return { text: clean, chars: clean.length };
+  /* ★ **누가 읽었는지 남긴다.** 두 길의 글자는 결이 다를 수 있고, 나중에
+     「이 값이 왜 이런가」를 볼 때 그 사실이 필요하다 (§4.7 출처 규칙) */
+  return { text: clean, chars: clean.length, by, fallbackFrom: by === 'claude' ? firstWhy : null };
 }
 
 module.exports = {
-  transcribe, isSupported, mimeFor, extOf,
+  transcribe, isSupported, mimeFor, extOf, secondReader: claude,
   OCR_MIME, MAX_INLINE_BYTES, OCR_CONFIDENCE, SYSTEM,
 };

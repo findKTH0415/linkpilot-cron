@@ -631,7 +631,7 @@ function fakeServer(limits) {
         try { body = payload ? JSON.parse(payload) : null; } catch (e) {}
         var r = reply(url, method, body);
         var total = (payload || '').length;
-        // 진행 단계를 실제처럼 둘로 나눠 보여 준다 (보내는 중 → 서버가 읽는 중)
+        // 진행 단계를 실제처럼 둘로 나눠 보여 준다 (보내는 중 → 올리는 중)
         setTimeout(function () { if (x.upload.onprogress) x.upload.onprogress({ lengthComputable: true, loaded: Math.round(total * 0.5), total: total }); }, 90);
         setTimeout(function () { if (x.upload.onprogress) x.upload.onprogress({ lengthComputable: true, loaded: total, total: total }); }, 220);
         setTimeout(function () { if (x.upload.onload) x.upload.onload(); }, 300);

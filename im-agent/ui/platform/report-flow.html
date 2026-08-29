@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="8c065aa7">
+<html lang="ko" data-lp-build="4eb64934">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -288,7 +288,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=8c065aa7">
+<link rel="stylesheet" href="tokens.css?v=4eb64934">
 <style>
 /* 색·간격·반경 토큰은 tokens.css 하나가 정한다 (LinkPilot Design System v1.1) */
 * { box-sizing: border-box; }
@@ -476,14 +476,14 @@ window.LINKPILOT_REPORT_FLOW = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=8c065aa7" data-lp-global="LINKPILOT_REPORT_FLOW"></script>
-<script src="gate-core.js?v=8c065aa7"></script>
-<script src="flow-core.js?v=8c065aa7"></script>
+<script src="embed-bridge.js?v=4eb64934" data-lp-global="LINKPILOT_REPORT_FLOW"></script>
+<script src="gate-core.js?v=4eb64934"></script>
+<script src="flow-core.js?v=4eb64934"></script>
 <!-- ★ 4단계 진행율(필수 항목 채움)을 재는 데 쓴다. **값과 출처가 둘 다**
      있어야 세는 규칙이 여기 있다 — 화면이 따로 세면 두 벌이 된다 -->
-<script src="fields-core.js?v=8c065aa7"></script>
-<script src="catalog.js?v=8c065aa7"></script>
-<script src="inapp.js?v=8c065aa7"></script>
+<script src="fields-core.js?v=4eb64934"></script>
+<script src="catalog.js?v=4eb64934"></script>
+<script src="inapp.js?v=4eb64934"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -619,7 +619,25 @@ window.LINKPILOT_REPORT_FLOW = {
   var APIR = F.resolveApi(C);
   C.api = APIR.api;
 
-  var state = { current: null, projectId: C.projectId || null, embedBlocked: false };
+  /**
+   * ★★★ **자기 주소의 `?project=`·`?step=` 을 읽는다** 〈2026-08-29 · D-165〉.
+   *
+   *   앞 판은 앱이 넘겨 준 설정(`C.projectId`)만 봤다. 그래서 다른 화면이
+   *   **주소로 직접 보내면** 프로젝트가 없는 채로 열려 **단계가 전부 잠겼다** —
+   *   보내는 쪽은 「보냈다」이고 받는 쪽은 「아무것도 못 받았다」가 된다.
+   *
+   *   ★ 앱이 넘긴 값이 **먼저**다. 주소는 그 다음이다 — 앱 안에서는 앱이 아는
+   *     것이 더 정확하고, 주소는 단독으로 열렸을 때의 길이다.
+   */
+  function fromUrl(k) {
+    try { return new URLSearchParams(window.location.search).get(k) || null; }
+    catch (_) { return null; }
+  }
+  var state = {
+    current: fromUrl('step'),
+    projectId: C.projectId || fromUrl('project') || null,
+    embedBlocked: false,
+  };
 
   /**
    * 절마다의 「완료·진행율」에 쓰는 **잰 사실**.

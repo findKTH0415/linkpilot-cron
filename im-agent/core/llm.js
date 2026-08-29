@@ -193,9 +193,19 @@ async function generate({ system, prompt, files, temperature = 0.3, maxOutputTok
             errors.push(`${model} ${keys.label(k.fp)}: 429 (${secs}초 쉼)`);
             handled = true; break;
           }
-          if (st === 401 || st === 403) {
+          /* ★★★ **401 과 403 을 가른다** 〈2026-08-29 · D-166 · 실측〉.
+           *   앞 판은 둘을 같이 폐기했다. 그런데 구글은 **한도 초과·권한·지역
+           *   차단**에도 403 을 준다. OCR 은 문서 한 건에도 요청을 여러 번
+           *   쓰므로 한도에 닿는 순간 **여덟 개가 줄줄이 폐기되고 굳었다** —
+           *   같은 시각 NAS 진단은 「열쇠는 살아 있다」였다. 둘 다 사실이었다. */
+          if (st === 401) {
             keys.recordAuthError(k, st);
-            errors.push(`${model} ${keys.label(k.fp)}: ${st} 인증 거부`);
+            errors.push(`${model} ${keys.label(k.fp)}: 401 인증 거부`);
+            handled = true; break;
+          }
+          if (st === 403) {
+            const rest = keys.recordForbidden(k, st, e.message);
+            errors.push(`${model} ${keys.label(k.fp)}: 403 거절 — 한도·권한일 수 있다 (${rest}초 쉼)`);
             handled = true; break;
           }
           if (st >= 500 && st <= 599) {
@@ -233,7 +243,14 @@ async function generate({ system, prompt, files, temperature = 0.3, maxOutputTok
     );
   }
   throw new AllKeysUnavailableError(
-    `GEMINI_ALL_KEYS_UNAVAILABLE — 지금 고를 수 있는 열쇠가 없다 (전부 쉬는 중이거나 폐기됨). ${errors.slice(0, 4).join(' / ')}`,
+    /* ★ 「없다」로 끝내지 않고 **언제 다시 되는지**를 적는다 〈D-166〉.
+     *   앞 판은 「전부 쉬는 중이거나 폐기됨」까지였다. 그러면 읽는 사람은
+     *   **영영 안 되는 것**으로 읽고 거기서 멈춘다 — 실제로는 대개 한도라
+     *   시간이 지나면 풀린다. */
+    `GEMINI_ALL_KEYS_UNAVAILABLE — 지금은 읽을 수 없다. 대개 **한도**이고 `
+    + `시간이 지나면 풀린다 (열쇠가 틀린 것이 아니다). 잠시 뒤 「자료 스캔」을 `
+    + `다시 눌러 주십시오 — 다음 시도에서 쉬던 열쇠 하나를 깨워 확인한다. `
+    + `${errors.slice(0, 4).join(' / ')}`,
     errors,
   );
 }
