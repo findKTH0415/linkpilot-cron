@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="c7e46144">
+<html lang="ko" data-lp-build="17290819">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -264,7 +264,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=c7e46144">
+<link rel="stylesheet" href="tokens.css?v=17290819">
 <style>
 :root {
   --side: 248px;
@@ -579,14 +579,14 @@ a.out__a, a.out__a:visited { display: inline-block; white-space: nowrap; color: 
   <a class="bot__i on" href="#"><b>☰</b>더보기</a>
 </nav>
 
-<script src="gate-core.js?v=c7e46144"></script>
-<script src="catalog.js?v=c7e46144"></script>
-<script src="inapp.js?v=c7e46144"></script>
-<script src="live-core.js?v=c7e46144"></script>
+<script src="gate-core.js?v=17290819"></script>
+<script src="catalog.js?v=17290819"></script>
+<script src="inapp.js?v=17290819"></script>
+<script src="live-core.js?v=17290819"></script>
 <!-- ★ 판 지문을 화면에 보이게 찍는 것이 여기 있다 (§8) — 묶음에 이미 실리는 파일이다 -->
-<script src="flow-core.js?v=c7e46144"></script>
+<script src="flow-core.js?v=17290819"></script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=c7e46144" data-lp-global="LINKPILOT_REPORTS"></script>
+<script src="embed-bridge.js?v=17290819" data-lp-global="LINKPILOT_REPORTS"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -1846,8 +1846,18 @@ window.LINKPILOT_REPORTS = Object.assign({
    *   틀 안(앱·흐름)에서는 아무것도 안 그린다. */
   try {
     var LPF = window.LinkPilotFlow;
-    if (LPF && LPF.showStranded) {
-      LPF.showStranded({ projectId: (typeof projectId === 'function' ? projectId() : null), step: 'spec' });
+    if (LPF) {
+      /* ★★★ **앱이 나를 갈아 끼웠으면 제 껍데기를 감춘다** 〈D-173〉.
+       *   앱은 화면 HTML 을 최상위 문서에 통째로 넣는다 — 그러면 사이드바·로고·
+       *   단계칩이 **앱 것과 두 벌**이 된다. 주소가 제 것이 아니면 감춘다. */
+      if (LPF.hideOwnChrome) LPF.hideOwnChrome('reports.html');
+      if (LPF.showStranded) {
+        LPF.showStranded({
+          file: 'reports.html',
+          projectId: (typeof projectId === 'function' ? projectId() : null),
+          step: 'spec',
+        });
+      }
     }
   } catch (_) { /* 이 한 줄 때문에 화면이 죽지 않는다 */ }
   loadSpec();

@@ -24,7 +24,7 @@
    *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다. 화면이 자기
    *   지문과 대 보고 다르면 「함수가 없다」로 죽기 전에 사람 말로 알린다.
    */
-  var LP_BUILD = 'c7e46144';
+  var LP_BUILD = '17290819';
 
   /**
    * ★★★ **단계는 다섯이다** 〈2026-08-22 사용자 지시〉.
@@ -749,6 +749,55 @@
   }
 
   /**
+   * ══════════ **앱이 나를 갈아 끼웠는가** 〈2026-08-29 · D-173〉 ══════════
+   *
+   * 사장님 화면: 주소는 `linkpilot-platform.html` 하나인데 **문서가 넷**이었다 —
+   * 새로 고칠 때마다 탭 제목이 「보고서 생성」·「보고서 생성 입력」·「자료
+   * 업로드」·「LinkPilot」으로 바뀌었다.
+   *
+   * ★★★ 뜻: **앱이 화면 HTML 을 최상위 문서에 통째로 갈아 끼운다.** 틀(iframe)
+   *   안에 넣는 것이 아니라 문서 자체를 바꾼다.
+   *
+   * ★★ 그래서 **껍데기가 두 벌이 된다.** 화면들은 저마다 사이드바·로고·단계칩을
+   *   그리는데(단독으로 열릴 때 필요하다), 앱이 이미 그것을 그려 놓은 자리에
+   *   들어가면 같은 것이 한 벌 더 생긴다. 틀에 넣을 때는 `EMBED_CSS` 가 그것을
+   *   감췄는데, **문서를 통째로 갈아 끼우면 그 CSS 를 얹는 사람이 없다.**
+   *
+   * ★ 고침: 화면이 **자기 주소를 보고** 판단한다. 주소의 파일 이름이 제 것이
+   *   아니면 「누가 나를 여기 갖다 놓았다」는 뜻이므로 **제 껍데기를 스스로
+   *   감춘다.** 제 주소로 열렸으면 그대로 다 그린다.
+   * ★★ 다른 출처·이상한 주소면 **아무것도 하지 않는다** — 모르면 건드리지
+   *   않는 것이 낫다. 잘못 감추면 화면이 통째로 빈 것처럼 보인다.
+   *
+   * @param {string} file 이 화면의 파일 이름 (예: 'intake.html')
+   * @returns {boolean} 제 주소로 열렸는가
+   */
+  function selfPlaced(file) {
+    if (typeof window === 'undefined') return true;   // 브라우저가 아니면 건드리지 않는다
+    var here = '';
+    try { here = String(window.location.pathname || ''); } catch (_) { return true; }
+    if (!here) return true;
+    var got = here.split('/').pop();
+    if (!got) return true;                            // 폴더 주소 — 판단하지 않는다
+    return got === String(file);
+  }
+
+  /**
+   * 앱이 갈아 끼운 자리라면 **제 껍데기를 감춘다.**
+   * @returns {boolean} 감췄는가
+   */
+  function hideOwnChrome(file) {
+    if (typeof document === 'undefined') return false;
+    if (selfPlaced(file)) return false;               // 제 주소다 — 다 그린다
+    if (document.getElementById('lp-host-chrome')) return true;
+    var st = document.createElement('style');
+    st.id = 'lp-host-chrome';
+    st.textContent = EMBED_CSS;
+    (document.head || document.documentElement).appendChild(st);
+    return true;
+  }
+
+  /**
    * ══════════ **흐름 밖에 홀로 떠 있으면 돌아갈 길을 준다** 〈2026-08-29 · D-170〉
    *
    * 사장님 신고: 「LinkPilot 플랫폼 프레임내 있지 않음」 — 주소는
@@ -773,6 +822,12 @@
     try { if (window.parent !== window) return null; } catch (_) { return null; }
 
     var o = opts || {};
+    /* ★★★ **앱이 갖다 놓은 자리에서는 뜨지 않는다** 〈2026-08-29 · D-173〉.
+     *   앱은 화면 HTML 을 최상위 문서에 갈아 끼운다. 그러면 `parent === window`
+     *   라 「홀로 떴다」로 보이는데, 실제로는 **앱이 일부러 놓은 자리**다.
+     *   거기서 「흐름 밖입니다」라고 하면 **멀쩡한 화면을 고장으로 읽게 만든다** —
+     *   내가 D-170 에서 만든 헛울음이다. 주소가 제 것일 때만 말한다. */
+    if (o.file && !selfPlaced(o.file)) return null;
     var url = sectionUrl({ projectId: o.projectId, step: o.step });
     if (!url) return null;
 
@@ -838,5 +893,6 @@
     tokensLoaded: tokensLoaded, TOKENS_MISSING: TOKENS_MISSING,
     openSection: openSection, OPEN_EVENT: OPEN_EVENT, sectionUrl: sectionUrl,
     strandedBar: strandedBar, showStranded: showStranded,
+    selfPlaced: selfPlaced, hideOwnChrome: hideOwnChrome,
   };
 }));

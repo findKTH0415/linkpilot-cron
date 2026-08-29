@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="c7e46144">
+<html lang="ko" data-lp-build="17290819">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -289,7 +289,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=c7e46144">
+<link rel="stylesheet" href="tokens.css?v=17290819">
 <style>
 /* 색·간격·반경 토큰은 tokens.css 하나가 정한다 (LinkPilot Design System v1.1) */
 * { box-sizing: border-box; }
@@ -439,9 +439,9 @@ window.LINKPILOT_OUTPUTS = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=c7e46144" data-lp-global="LINKPILOT_OUTPUTS"></script>
-<script src="gate-core.js?v=c7e46144"></script>
-<script src="flow-core.js?v=c7e46144"></script>
+<script src="embed-bridge.js?v=17290819" data-lp-global="LINKPILOT_OUTPUTS"></script>
+<script src="gate-core.js?v=17290819"></script>
+<script src="flow-core.js?v=17290819"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -1203,6 +1203,16 @@ window.LINKPILOT_OUTPUTS = {
   }
 
   draw();
+
+  /* ★★★ **앱이 나를 갈아 끼웠으면 제 껍데기를 감춘다** 〈2026-08-29 · D-173〉.
+   *   앱은 화면 HTML 을 최상위 문서에 통째로 넣는다 — 그러면 사이드바·로고·
+   *   단계칩이 **앱 것과 두 벌**이 된다. 주소가 제 것이 아니면 감춘다.
+   *   ★ 이 두 화면은 흐름의 칸이 아니라 **탭**이라, 「흐름으로 돌아가기」 줄은
+   *     붙이지 않는다 — 돌아갈 흐름이 없다. */
+  try {
+    var LPF2 = window.LinkPilotFlow;
+    if (LPF2 && LPF2.hideOwnChrome) LPF2.hideOwnChrome('outputs.html');
+  } catch (_) { /* 이 한 줄 때문에 화면이 죽지 않는다 */ }
   loadProjects().then(function () {
     draw();
     return loadReports();
