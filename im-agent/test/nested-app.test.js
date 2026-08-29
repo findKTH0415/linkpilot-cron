@@ -30,19 +30,31 @@ const drawn = (dom) => dom.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');
 /** 실린 뒤 주소를 되짚는 조각만 떼어 본다 */
 const GUARD = (function () {
   const i = SRC.indexOf("fr.addEventListener('load'");
-  return i < 0 ? '' : SRC.slice(i, i + 1600);
+  /* ★ 조각을 넉넉히 뗀다 — D-171 로 안쪽 문서까지 보게 되면서 길어졌다 */
+  return i < 0 ? '' : SRC.slice(i, i + 3600);
 }());
 
 test('★★★ 실린 뒤 **부른 파일이 왔는지** 되짚는다 — 안 되짚으면 앱이 겹쳐 그려진다', () => {
   assert.ok(GUARD.length > 200, '되짚는 자리가 아예 없다');
   assert.match(GUARD, /var got = here\.split\('\/'\)\.pop\(\);/, '무엇이 왔는지 안 본다');
-  assert.match(GUARD, /if \(got === file\) return;/, '부른 파일과 대 보지 않는다');
+  /* ★★★ **이름만 대 보면 못 잡는다** 〈2026-08-29 · D-171 · 또 났다〉.
+   *   `…/im-flow/im-flow/files.html` 은 **끝이 여전히 `files.html`** 이라 이름
+   *   검사를 통과한다. 서버는 그런 파일이 없으니 404 대신 앱 첫 화면을 주고,
+   *   그것이 그대로 그려졌다. 그래서 **온 문서가 그 화면인지**까지 본다. */
+  assert.match(GUARD, /if \(got === file && \(looksRight \|\| !canRead\)\) return;/,
+    '부른 파일과 대 보지 않거나, 이름만 보고 통과시킨다');
+  assert.match(GUARD, /fr\.contentDocument\.title/,
+    '안쪽 문서가 무엇인지 안 본다 — 앱 첫 화면이 그대로 통과한다');
 });
 
 test('★★★ 어긋나면 **틀을 지우고 글자로 적는다** — 겹쳐 그리는 것보다 낫다', () => {
   assert.match(GUARD, /wrap\.textContent = '';/, '엉뚱한 문서를 담은 틀을 그대로 둔다');
-  assert.match(GUARD, /자료 업로드 화면을 못 불러왔습니다/, '무슨 일인지 안 적는다');
-  assert.match(GUARD, /\+ \(got \|\| '다른 것'\) \+/, '무엇이 왔는지 이름을 안 적는다');
+  /* ★ 갈래가 둘이다 — 주소가 아예 다른 곳으로 갔을 때와, 이름은 맞는데
+   *   다른 문서가 왔을 때(D-171). 둘 다 무슨 일인지 적어야 한다 */
+  assert.match(GUARD, /자료 업로드 화면을 못 불러왔습니다|자료 업로드 화면 대신 다른 화면이 왔습니다/,
+    '무슨 일인지 안 적는다');
+  assert.match(GUARD, /\+ \(got \|\| '다른 것'\) \+|돌아온 문서의 제목이/,
+    '무엇이 왔는지 안 적는다 — 원인을 못 짚는다');
   assert.match(GUARD, /새 탭에서 열기/, '그 화면으로 가는 길이 없다 — 막다른 골목이 된다');
 });
 

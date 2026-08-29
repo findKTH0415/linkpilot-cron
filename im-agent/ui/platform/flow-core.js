@@ -24,7 +24,7 @@
    *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다. 화면이 자기
    *   지문과 대 보고 다르면 「함수가 없다」로 죽기 전에 사람 말로 알린다.
    */
-  var LP_BUILD = 'd5e589f8';
+  var LP_BUILD = '1b271c0c';
 
   /**
    * ★★★ **단계는 다섯이다** 〈2026-08-22 사용자 지시〉.
@@ -761,6 +761,62 @@
       + '고치는 자리는 앱 쪽이며, 근본과 방법은 전달 문서의 lp:base 절에 있습니다.';
   }
 
+  /**
+   * ══════════ **흐름 밖에 홀로 떠 있으면 돌아갈 길을 준다** 〈2026-08-29 · D-170〉
+   *
+   * 사장님 신고: 「LinkPilot 플랫폼 프레임내 있지 않음」 — 주소는
+   * `report-flow.html` 인데 화면과 탭 제목은 `intake.html` 이었다. 즉 단계
+   * 화면이 **흐름 밖으로 빠져나가** 홀로 떠 있었다.
+   *
+   * ★★★ **빠져나간 것 자체보다, 돌아올 길이 없는 것이 문제다.** 단계 화면은
+   *   저마다 사이드바를 그리므로 **플랫폼처럼 보인다** — 그래서 사용자는
+   *   「여기가 어디지」가 아니라 「플랫폼이 이상하다」로 읽는다. 그 상태에서
+   *   할 수 있는 일이 뒤로가기뿐이다.
+   *
+   * ★ 그래서 **홀로 떴을 때만** 맨 위에 한 줄을 둔다 — 어디에 있는지 말하고,
+   *   흐름으로 돌아가는 링크를 준다. 틀 안(앱·흐름)에서는 아무것도 안 그린다.
+   * ★★ 「고장」이 아니라 **「여기는 한 칸만 보는 자리」**라고 적는다. 빨간 띠로
+   *   그리면 멀쩡한 화면을 고장으로 읽는다 (늑대야를 만들지 않는다).
+   *
+   * @param {{projectId?:string, step?:string}} opts
+   * @returns {HTMLElement|null} 틀 안이면 `null`
+   */
+  function strandedBar(opts) {
+    if (typeof window === 'undefined' || typeof document === 'undefined') return null;
+    try { if (window.parent !== window) return null; } catch (_) { return null; }
+
+    var o = opts || {};
+    var url = sectionUrl({ projectId: o.projectId, step: o.step });
+    if (!url) return null;
+
+    var bar = document.createElement('div');
+    bar.setAttribute('data-lp-stranded', '');
+    bar.setAttribute('style', 'display:flex;gap:10px;align-items:center;flex-wrap:wrap;'
+      + 'padding:11px 16px;background:#F2F2F7;border-bottom:1px solid #E8EAEC;'
+      + 'font:600 13.5px/1.5 system-ui,-apple-system,sans-serif;color:#3C4149');
+
+    var t = document.createElement('span');
+    t.textContent = '이 화면은 한 칸만 따로 열린 것입니다 — 「보고서 만들기」 흐름 밖입니다.';
+    bar.appendChild(t);
+
+    var a = document.createElement('a');
+    a.href = url;
+    a.textContent = '흐름으로 돌아가기';
+    a.setAttribute('style', 'margin-left:auto;background:#B5E01F;color:#12161F;'
+      + 'text-decoration:none;font-weight:700;padding:7px 14px;border-radius:10px');
+    bar.appendChild(a);
+    return bar;
+  }
+
+  /** 화면 맨 위에 붙인다. 이미 있으면 두 번 붙이지 않는다 */
+  function showStranded(opts) {
+    var bar = strandedBar(opts);
+    if (!bar || !document.body) return null;
+    if (document.querySelector('[data-lp-stranded]')) return null;
+    document.body.insertBefore(bar, document.body.firstChild);
+    return bar;
+  }
+
   function stampInto(doc) {
     var d = doc || document;
     var b = buildOf(d);
@@ -794,5 +850,6 @@
     API_FALLBACK: API_FALLBACK,
     tokensLoaded: tokensLoaded, TOKENS_MISSING: TOKENS_MISSING,
     openSection: openSection, OPEN_EVENT: OPEN_EVENT, sectionUrl: sectionUrl,
+    strandedBar: strandedBar, showStranded: showStranded,
   };
 }));
