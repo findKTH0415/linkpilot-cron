@@ -24,7 +24,7 @@
    *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다. 화면이 자기
    *   지문과 대 보고 다르면 「함수가 없다」로 죽기 전에 사람 말로 알린다.
    */
-  var LP_BUILD = 'fc1d94c6';
+  var LP_BUILD = '18aeb517';
 
   /**
    * ★★★ **단계는 다섯이다** 〈2026-08-22 사용자 지시〉.
@@ -736,11 +736,56 @@
     return { apps: apps, hops: hops, blocked: false };
   }
 
-  /** 겹쳤다고 **말할 수 있을 때만** 문장을 돌려준다. 아니면 `null` */
-  function nestedAppNote(d) {
+  /**
+   * ══════════ **나와 맨 위 사이에 무엇이 있는가** 〈2026-08-29 · D-179〉 ══════════
+   *
+   * ★★★ 왜 세는 수를 하나 더 두나 〈사장님 화면 「잘못된 케이스」〉.
+   *
+   *   `appDepth()` 는 **위쪽 창이 `LINKPILOT_EMBED` 를 들고 있는가**로 셌다.
+   *   그런데 그 전역은 앱이 **우리 화면에 넣어 주는 것**이라, 사이에 낀 것이
+   *   **앱 자신의 페이지**면 그 칸이 비어 있다. 그래서 배너·탭이 두 벌로
+   *   보이는 화면에서 **경고가 한 줄도 안 떴다** — 세는 자가 그 모양을 못 쟀다.
+   *
+   * ★ 이 화면(보고서 생성 흐름)은 앱이 **바로** 틀에 넣는 자리다. 그러므로
+   *   **나와 맨 위 사이에 문서가 하나라도 있으면** 그것은 우리 것이 아니다 —
+   *   앱이 자기 페이지를 한 겹 더 넣었다는 뜻이다. 무엇인지 몰라도 **있다는
+   *   사실**은 잴 수 있고, 그것만으로 원인을 가리키기에 충분하다.
+   *
+   * ★★ 우리 화면끼리의 겹침을 이것으로 재면 **안 된다.** 단계 화면
+   *   (`basics` 등)은 이 화면이 틀에 넣으므로 사이에 하나가 **정상으로** 있다.
+   *   그래서 이 셈은 **바로 넣히는 화면만** 쓴다 (`direct: true`).
+   *
+   * ★ 다른 출처를 만나면 **모른다고 답한다** — 못 본 것과 없는 것은 다르다 (§4.9).
+   */
+  function midFrames(win) {
+    var w = win || (typeof window !== 'undefined' ? window : null);
+    if (!w) return { mid: 0, blocked: false, top: true };
+    try {
+      if (w.top === w) return { mid: 0, blocked: false, top: true };
+      var mid = 0, cur = w, hops = 0;
+      while (cur.parent && cur.parent !== cur && cur.parent !== w.top && hops < 8) {
+        cur = cur.parent; hops++; mid++;
+      }
+      return { mid: mid, blocked: false, top: false };
+    } catch (e) {
+      return { mid: 0, blocked: true, top: false };
+    }
+  }
+
+  /**
+   * 겹쳤다고 **말할 수 있을 때만** 문장을 돌려준다. 아니면 `null`.
+   *
+   * @param {object} [d] `appDepth()` 결과 (안 주면 여기서 잰다)
+   * @param {{direct?:boolean}} [opt] `direct` 는 **앱이 바로 틀에 넣는 화면**이라는 뜻.
+   *   그때만 `midFrames` 로도 잰다 — 단계 화면은 사이에 하나가 정상으로 있다.
+   */
+  function nestedAppNote(d, opt) {
     var x = d || appDepth();
-    if (x.apps < 2) return null;
-    return '앱 화면이 앱 안에 ' + x.apps + '겹으로 들어 있습니다. '
+    var direct = !!(opt && opt.direct);
+    var mid = direct ? midFrames() : { mid: 0, blocked: false, top: true };
+    if (x.apps < 2 && !(direct && mid.mid > 0)) return null;
+    var howMany = x.apps >= 2 ? (x.apps + '겹') : ((mid.mid + 1) + '겹');
+    return '앱 화면이 앱 안에 ' + howMany + '으로 들어 있습니다. '
       + '그래서 배너와 탭 줄이 두 벌로 보입니다. '
       + '이 화면이 만든 것이 아닙니다 — 배너·탭 글자는 이 저장소에 하나도 없습니다. '
       + '앱이 「보고서 만들기」 자리에 넣을 주소로 **앱 자신의 페이지**를 넣고 '
@@ -886,7 +931,7 @@
     sectionProgress: sectionProgress,
     BUILD_ATTR: BUILD_ATTR, buildOf: buildOf, buildLabel: buildLabel, stampInto: stampInto,
     insideLinkPilot: insideLinkPilot,
-    appDepth: appDepth, nestedAppNote: nestedAppNote,
+    appDepth: appDepth, midFrames: midFrames, nestedAppNote: nestedAppNote,
     resolveApi: resolveApi,
     apiNote: apiNote,
     API_FALLBACK: API_FALLBACK,
