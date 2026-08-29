@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="4eb64934">
+<html lang="ko" data-lp-build="958bc576">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -288,7 +288,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=4eb64934">
+<link rel="stylesheet" href="tokens.css?v=958bc576">
 <style>
 /* 색·간격·반경 토큰은 tokens.css 하나가 정한다 (LinkPilot Design System v1.1) */
 * { box-sizing: border-box; }
@@ -476,14 +476,14 @@ window.LINKPILOT_REPORT_FLOW = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=4eb64934" data-lp-global="LINKPILOT_REPORT_FLOW"></script>
-<script src="gate-core.js?v=4eb64934"></script>
-<script src="flow-core.js?v=4eb64934"></script>
+<script src="embed-bridge.js?v=958bc576" data-lp-global="LINKPILOT_REPORT_FLOW"></script>
+<script src="gate-core.js?v=958bc576"></script>
+<script src="flow-core.js?v=958bc576"></script>
 <!-- ★ 4단계 진행율(필수 항목 채움)을 재는 데 쓴다. **값과 출처가 둘 다**
      있어야 세는 규칙이 여기 있다 — 화면이 따로 세면 두 벌이 된다 -->
-<script src="fields-core.js?v=4eb64934"></script>
-<script src="catalog.js?v=4eb64934"></script>
-<script src="inapp.js?v=4eb64934"></script>
+<script src="fields-core.js?v=958bc576"></script>
+<script src="catalog.js?v=958bc576"></script>
+<script src="inapp.js?v=958bc576"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -1060,22 +1060,78 @@ window.LINKPILOT_REPORT_FLOW = {
     /* ★ 아직 안 정했으면 편다. 사람이 눌렀으면 그 뜻을 따른다 */
     var open = (foldOpen === null) ? !facts.issuerSet : foldOpen;
 
+    wrap.appendChild(foldBox('발행 주체', issuerLabel(), open, function () {
+      foldOpen = !open; draw();
+    }, basics));
+    return wrap;
+  }
+
+  /**
+   * 접이 한 칸 — 머리줄에 **지금 값**을 적고, 펴면 그 단계 화면이 나온다.
+   *
+   * ★ 1절(발행 주체)과 2절(자료 업로드)이 같은 모양을 쓴다. 두 벌로 만들면
+   *   한쪽만 고치는 날 서로 다르게 보인다.
+   */
+  function foldBox(title, value, open, onToggle, step) {
     var fold = el('div', 'fold');
     var h = el('button', 'fold__h');
     h.type = 'button';
     h.setAttribute('aria-expanded', open ? 'true' : 'false');
-    h.appendChild(el('span', 'fold__t', '발행 주체'));
-    h.appendChild(el('span', 'fold__v', issuerLabel()));
+    h.appendChild(el('span', 'fold__t', title));
+    h.appendChild(el('span', 'fold__v', value));
     h.appendChild(el('span', 'fold__m', open ? '접기 ▲' : '펴기 ▼'));
-    h.addEventListener('click', function () { foldOpen = !open; draw(); });
+    h.addEventListener('click', onToggle);
     fold.appendChild(h);
-
     if (open) {
       var body = el('div', 'fold__b');
-      body.appendChild(stepBody(basics));
+      body.appendChild(stepBody(step));
       fold.appendChild(body);
     }
-    wrap.appendChild(fold);
+    return fold;
+  }
+
+  /**
+   * ══════════ 2절 — **끝낸 자료 업로드는 접는다** 〈2026-08-29 · D-169〉
+   *
+   * 사장님 신고: 「스캔클릭이후 보고서 생성으로 넘어가야 하는데 이상곳으로
+   * 다시 업로드로 이동됨」.
+   *
+   * ★★★ **실제로는 옮겨 갔다.** 2절이 열렸고 그 안에 「보고서 생성」이 있다.
+   *   그런데 D-162 로 셋(자료 업로드 · 가이드 필드 · 출력조건)을 **한 칸에
+   *   합치면서**, 방금 자료를 다 올린 사람에게 **「자료 업로드」가 맨 위에
+   *   또 보였다.** 그러면 **되돌아간 것으로 읽힌다** — 화면은 맞는데 뜻이 틀렸다.
+   *
+   * ★ 고침은 1절과 같은 결이다 — **끝낸 것은 접고 값만 보인다.**
+   *   자료를 아직 안 올렸으면(프로젝트가 없으면) 펴 둔다. 그때는 그것이 할 일이다.
+   * ★★ **지운 것이 아니다.** 머리줄에 「자료 8건 중 5건 읽음」처럼 지금 값이
+   *   적히고, 눌러서 언제든 다시 편다. 접었는데 되돌릴 길이 없으면 그건 지운 것이다.
+   */
+  var foldSources = null;   // null = 사람이 아직 안 눌렀다
+
+  /** 접힌 줄에 적을 자료 요약 — **못 물어봤으면 그렇다고 적는다** (§4.9) */
+  function sourcesLabel() {
+    var s = facts.sources;
+    if (!state.projectId) return '아직 프로젝트가 없습니다';
+    if (!s) return '올린 자료를 아직 못 물어봤습니다';
+    if (!s.total) return '자료 없이 진행 중 — 값을 직접 넣습니다';
+    return '자료 ' + s.total + '건 중 ' + s.read + '건 읽음';
+  }
+
+  function mergedMake(sec, byId) {
+    if (sec.id !== 'make') return null;
+    var sources = byId.sources, fields = byId.fields, spec = byId.spec;
+    if (!sources || !fields || !spec) return null;   // 목록이 바뀌었다
+
+    /* ★ 아직 프로젝트가 없으면 자료 올리기가 **지금 할 일**이라 펴 둔다.
+     *   생겼으면 접는다 — 방금 끝낸 일을 맨 위에 다시 펴 보이지 않는다. */
+    var open = (foldSources === null) ? !state.projectId : foldSources;
+
+    var wrap = el('div');
+    wrap.appendChild(foldBox('자료 업로드', sourcesLabel(), open, function () {
+      foldSources = !open; draw();
+    }, sources));
+    wrap.appendChild(stepBody(fields));
+    wrap.appendChild(stepBody(spec));
     return wrap;
   }
 
@@ -1390,7 +1446,7 @@ window.LINKPILOT_REPORT_FLOW = {
         var frag = document.createDocumentFragment();
         var mine0 = {};
         sec.steps.forEach(function (st) { mine0[st.id] = st; });
-        var merged0 = mergedStart(sec, mine0);
+        var merged0 = mergedStart(sec, mine0) || mergedMake(sec, mine0);
         if (merged0) frag.appendChild(merged0);
         else sec.steps.forEach(function (st) { frag.appendChild(stage(st)); });
         var tw0 = toolRow(sec);
@@ -1411,7 +1467,7 @@ window.LINKPILOT_REPORT_FLOW = {
          아래에 접어서. 나머지 절은 품은 단계를 차례로 편다. */
       var mine = {};
       sec.steps.forEach(function (st) { mine[st.id] = st; });
-      var merged = mergedStart(sec, mine);
+      var merged = mergedStart(sec, mine) || mergedMake(sec, mine);
       if (merged) frag.appendChild(merged);
       else sec.steps.forEach(function (st) { frag.appendChild(stepBody(st)); });
       /* ★ 도구줄이 [확인] **앞**에 온다 〈D-158〉. 미리보기·수정은 「이 칸을

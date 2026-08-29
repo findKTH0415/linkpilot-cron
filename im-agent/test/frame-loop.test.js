@@ -161,3 +161,55 @@ test('★ 접힌 머리줄이 지금 값을 적는다 (못 물어봤으면 그�
     '못 물어본 것을 「안 정했다」로 적고 있다 — 둘은 다른 사실이다 (§4.9)');
   assert.match(code, /아직 정하지 않았습니다/, '정말 안 정했을 때의 말이 없다');
 });
+
+/* ══════════ 2절 — 끝낸 자료 업로드는 접는다 〈2026-08-29 · D-169〉 ══════════
+ *
+ * 사장님 신고: 「스캔클릭이후 보고서 생성으로 넘어가야 하는데 이상곳으로
+ * 다시 업로드로 이동됨」.
+ *
+ * ★★★ **실제로는 옮겨 갔다.** 2절이 열렸고 그 안에 보고서 생성이 있다.
+ *   그런데 D-162 로 셋을 한 칸에 합치면서, 방금 자료를 다 올린 사람에게
+ *   **「자료 업로드」가 맨 위에 또 보였다** — 그러면 되돌아간 것으로 읽힌다.
+ *   화면은 맞는데 뜻이 틀렸다.
+ */
+test('★★★ 2절도 끝낸 것을 접는다 (되돌아간 것으로 보이지 않게)', () => {
+  assert.match(code, /function mergedMake\(sec, byId\) \{/, '2절을 합치는 자리가 없다');
+  assert.match(code, /if \(sec\.id !== 'make'\) return null;/,
+    '어느 절인지 못 박혀 있지 않다');
+  assert.match(code, /var open = \(foldSources === null\) \? !state\.projectId : foldSources;/,
+    '프로젝트가 생겼는데도 자료 업로드를 펴 둔다 — 방금 끝낸 일이 맨 위에 다시 보인다');
+});
+
+/**
+ * ★ **지운 것이 아니다.** 머리줄에 지금 값이 적히고 눌러서 다시 편다.
+ *   접었는데 되돌릴 길이 없으면 그건 지운 것이다.
+ */
+test('★ 접힌 줄에 자료 요약을 적고, 눌러서 다시 편다', () => {
+  assert.match(code, /function sourcesLabel\(\)/, '접힌 줄에 적을 값이 없다');
+  assert.match(code, /'자료 ' \+ s\.total \+ '건 중 ' \+ s\.read \+ '건 읽음'/,
+    '몇 건 중 몇 건인지 안 적는다');
+  assert.match(code, /올린 자료를 아직 못 물어봤습니다/,
+    '못 물어본 것을 「없다」로 적고 있다 — 둘은 다른 사실이다 (§4.9)');
+  assert.match(code, /foldSources = !open; draw\(\);/, '다시 펴는 길이 없다');
+});
+
+/**
+ * ★★ 1절과 2절이 **같은 접이 조각**을 쓴다. 두 벌로 만들면 한쪽만 고치는 날
+ *   서로 다르게 보인다.
+ */
+test('★★ 접이를 두 벌로 만들지 않는다', () => {
+  assert.match(code, /function foldBox\(title, value, open, onToggle, step\) \{/,
+    '접이 조각이 없다');
+  const uses = (code.match(/foldBox\(/g) || []).length;
+  assert.ok(uses >= 3, `foldBox 를 ${uses}번만 쓴다 — 1절·2절이 같은 것을 쓰는지 본다`);
+});
+
+test('2절이 가이드 필드와 출력조건은 펴 둔다', () => {
+  assert.match(code, /wrap\.appendChild\(stepBody\(fields\)\);\s*wrap\.appendChild\(stepBody\(spec\)\);/,
+    '보고서를 만드는 두 칸이 안 펴진다 — 스캔을 끝내고 온 사람이 할 일이 안 보인다');
+});
+
+test('목록이 바뀌면 평소대로 그린다 (빈 화면을 만들지 않는다)', () => {
+  assert.match(code, /if \(!sources \|\| !fields \|\| !spec\) return null;/,
+    '단계가 하나라도 없으면 빈손으로 그린다');
+});
