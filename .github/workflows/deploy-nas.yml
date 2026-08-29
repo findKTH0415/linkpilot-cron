@@ -1018,6 +1018,15 @@ jobs:
           GEMINI_API_KEY_6: ${{ secrets.GEMINI_API_KEY_6 }}
           GEMINI_API_KEY_7: ${{ secrets.GEMINI_API_KEY_7 }}
           GEMINI_API_KEY_8: ${{ secrets.GEMINI_API_KEY_8 }}
+          # ★★★ **자료를 읽는 두 번째 길** 〈2026-08-29 · D-167〉. 철자를 하나로
+          #   못 박지 않는다 — 사장님이 넣으신 이름이 `CLODE_API_Key2` 였다.
+          #   ★ 여기 빠뜨리면 Secret 에 넣어도 **NAS 로 안 간다** (M-40 사고 그대로).
+          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+          CLAUDE_API_KEY_2: ${{ secrets.CLAUDE_API_KEY_2 }}
+          CLODE_API_KEY: ${{ secrets.CLODE_API_KEY }}
+          CLODE_API_KEY2: ${{ secrets.CLODE_API_KEY2 }}
+          CLODE_API_KEY_2: ${{ secrets.CLODE_API_KEY_2 }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           VWORLD_KEY: ${{ secrets.VWORLD_KEY }}
           VWORLD_DOMAIN: ${{ secrets.VWORLD_DOMAIN }}
           DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
@@ -1059,7 +1068,7 @@ jobs:
           #   (MEMORY M-40 이 기록한 사고 그대로다).
           #   SketchUp 13 + Engine 37 → 합집합 41. KICT_API_BASE·ECOS_BOK_KEY 는
           #   검사가 짚어 준 것이다 — 어느 갈래도 혼자서는 못 보는 결함이었다.
-          NAMES="GEMINI_API_KEY GEMINI_KEY_01 GEMINI_KEY_02 GEMINI_KEY_03 GEMINI_KEY_04 GEMINI_KEY_05 GEMINI_KEY_06 GEMINI_KEY_07 GEMINI_KEY_08 GEMINI_API_KEY_2 GEMINI_API_KEY_3 GEMINI_API_KEY_4 GEMINI_API_KEY_5 GEMINI_API_KEY_6 GEMINI_API_KEY_7 GEMINI_API_KEY_8 VWORLD_KEY VWORLD_DOMAIN DATA_GO_KR_KEY ECOS_API_KEY KMA_APIHUB_KEY REB_API_KEY KOSIS_API_KEY DART_API_KEY LAW_OC PEXELS_API_KEY KEPCO_BIGDATA_KEY RHINO_COMPUTE_KEY RHINO_COMPUTE_URL DROPBOX_APP_KEY DROPBOX_APP_SECRET BOX_CLIENT_ID BOX_CLIENT_SECRET GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET MS_CLIENT_ID MS_CLIENT_SECRET LAW_OPEN_DATA KICT_API_KEY KICT_API_BASE ECOS_BOK_KEY"
+          NAMES="GEMINI_API_KEY GEMINI_KEY_01 GEMINI_KEY_02 GEMINI_KEY_03 GEMINI_KEY_04 GEMINI_KEY_05 GEMINI_KEY_06 GEMINI_KEY_07 GEMINI_KEY_08 GEMINI_API_KEY_2 GEMINI_API_KEY_3 GEMINI_API_KEY_4 GEMINI_API_KEY_5 GEMINI_API_KEY_6 GEMINI_API_KEY_7 GEMINI_API_KEY_8 CLAUDE_API_KEY CLAUDE_API_KEY_2 CLODE_API_KEY CLODE_API_KEY2 CLODE_API_KEY_2 ANTHROPIC_API_KEY VWORLD_KEY VWORLD_DOMAIN DATA_GO_KR_KEY ECOS_API_KEY KMA_APIHUB_KEY REB_API_KEY KOSIS_API_KEY DART_API_KEY LAW_OC PEXELS_API_KEY KEPCO_BIGDATA_KEY RHINO_COMPUTE_KEY RHINO_COMPUTE_URL DROPBOX_APP_KEY DROPBOX_APP_SECRET BOX_CLIENT_ID BOX_CLIENT_SECRET GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET MS_CLIENT_ID MS_CLIENT_SECRET LAW_OPEN_DATA KICT_API_KEY KICT_API_BASE ECOS_BOK_KEY"
           # ★ 임시 파일로 모은다. 셸 문자열에 줄바꿈을 넣으면 YAML 블록이 거기서 끝난다
           KEYFILE=$(mktemp)
           chmod 600 "$KEYFILE"
@@ -1407,6 +1416,45 @@ jobs:
               echo "엔진: 뜬 시각을 **못 쟀다** ($OUT)" >> "$GITHUB_STEP_SUMMARY"
               echo "::notice::엔진이 뜬 시각을 못 쟀다 ($OUT) — 배포는 그대로 진행한다"
               ;;
+          esac
+          exit 0
+
+      # ★★★ **읽는 두 번째 길이 켜졌나** 〈2026-08-29 · D-167〉.
+      #   Gemini 한도가 찬 날에도 자료를 읽으려고 붙인 길이다. 켜졌는지는
+      #   **NAS 안에서** 재야 뜻이 있다 — 이 자리(개발 컨테이너)에는 열쇠가
+      #   아예 없어서 언제나 「없다」가 나온다 (CLAUDE.md §4.3).
+      #   ★ 값은 한 글자도 안 찍는다. 이름과 켜짐/꺼짐만 본다 (§2).
+      - name: Check second reader (Claude)
+        if: ${{ always() && needs.plan.outputs.dry_run != 'true' }}
+        env:
+          NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+          NAS_USER: ${{ secrets.NAS_SSH_USER }}
+          ENGINE_ROOT: ${{ vars.LP_ENGINE_ROOT || '/volume1/docker/linkpilot' }}
+        run: |
+          set -u
+          set +e
+          OUT=$(ssh -o BatchMode=yes -o ConnectTimeout=20 -i ~/.ssh/id_deploy \
+            "$NAS_USER@$NAS_HOST" \
+            "cd '$ENGINE_ROOT' 2>/dev/null || exit 9
+             for N in node /usr/local/bin/node \
+                      /volume1/@appstore/Node.js_v20/usr/local/bin/node \
+                      /volume1/@appstore/Node.js_v18/usr/local/bin/node; do
+               command -v \"\$N\" >/dev/null 2>&1 && exec \"\$N\" -e \
+                 \"console.log(require('./im-agent/core/claude.js').diagnose().text)\"
+             done
+             echo 'NONODE'" 2>&1 | tr -d '\r')
+
+          printf '%s\n' "$OUT"
+          case "$OUT" in
+            *'두 번째 읽기 길(Claude): 켜짐'*)
+              echo "::notice::**두 번째 읽기 길이 켜져 있다.** Gemini 한도가 차도 자료를 읽는다."
+              echo "두 번째 읽기 길(Claude): **켜짐**" >> "$GITHUB_STEP_SUMMARY" ;;
+            *'두 번째 읽기 길(Claude)'*)
+              echo "::warning::**두 번째 읽기 길이 꺼져 있다.** Gemini 한도가 차면 자료를 한 건도 못 읽는다 — Secret 에 CLAUDE_API_KEY(또는 CLODE_API_KEY2 · ANTHROPIC_API_KEY)를 넣으면 켜진다."
+              echo "두 번째 읽기 길(Claude): **꺼짐** — 열쇠를 Secret 에 넣으면 켜집니다" >> "$GITHUB_STEP_SUMMARY" ;;
+            *)
+              echo "::warning::**두 번째 읽기 길을 못 쟀다** (ssh 가 안 붙었거나 node 가 없다). 못 잰 것과 꺼진 것은 다른 사실이다."
+              echo "두 번째 읽기 길(Claude): **못 쟀다**" >> "$GITHUB_STEP_SUMMARY" ;;
           esac
           exit 0
 
