@@ -42,7 +42,7 @@
    *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다. 화면이 자기
    *   지문과 대 보고 다르면 「함수가 없다」로 죽기 전에 사람 말로 알린다.
    */
-  var LP_BUILD = '56253318';
+  var LP_BUILD = '8ce0f736';
 
   /**
    * 파일 하나를 base64 로 읽는다.
@@ -219,6 +219,130 @@
   }
 
   /** 올린 결과를 사람이 읽는 한 줄로. **거절된 것을 숨기지 않는다** */
+  /**
+   * ══════════ **한 요청에 몰아 보내지 않는다** 〈2026-08-29 · D-174〉 ══════════
+   *
+   * 사장님 화면: 파일 여덟을 올리는데 **본문 28.4MB 한 덩어리**가 나갔고,
+   * 서버가 그 하나를 `HTTP 401` 로 거절했다. 같은 화면에서 **목록 읽기는
+   * 통과했다** — 즉 로그인이 아니라 **그 요청 하나**가 거절된 것이다.
+   *
+   * ★★★ **왜 나누나 — 이유가 셋이다.**
+   *   ① 큰 본문 하나는 **거절될 자리가 많다.** 앞단·프록시·본문 파서가 저마다
+   *     한도를 갖고, 넘으면 401·413·끊김 등 **저마다 다른 말로** 실패한다.
+   *     실제로 이 저장소는 이미 한 번 당했다 — 64MB 에서 `req.destroy()` (D-81).
+   *   ② **전부 아니면 전무**가 된다. 여덟 중 하나가 커도 여덟이 다 실패한다.
+   *     나눠 보내면 **된 것은 남는다.**
+   *   ③ 실패했을 때 **어느 파일에서 막혔는지** 알 수 있다. 한 덩어리는
+   *     「28.4MB 가 거절됐다」까지밖에 말하지 못한다.
+   *
+   * ★★ **파일 하나가 한도를 넘으면 그 하나는 혼자 간다.** 억지로 쪼개지 않는다 —
+   *   서버가 파일 단위로 받으므로 쪼개면 그건 다른 파일이 된다.
+   * ★ 진행률은 **전체 기준**으로 말한다. 묶음마다 0→100 을 되풀이하면
+   *   「되돌아갔다」로 보인다.
+   *
+   * @param {{url:string, files:Array, maxBytes?:number,
+   *          onUpdate?:fn, onDone?:fn, onFail?:fn}} opt
+   */
+  var BATCH_BYTES = 8 * 1024 * 1024;   // 한 묶음의 base64 합계 상한
+
+  function sizeOf(f) {
+    return ((f && f.contentBase64) ? String(f.contentBase64).length : 0) + 200;
+  }
+
+  /** 파일 목록을 **크기로** 묶는다. 한 개가 상한을 넘으면 그 하나로 한 묶음 */
+  function batches(files, maxBytes) {
+    var cap = maxBytes || BATCH_BYTES;
+    var out = [];
+    var cur = [];
+    var sum = 0;
+    (files || []).forEach(function (f) {
+      var n = sizeOf(f);
+      if (cur.length && sum + n > cap) { out.push(cur); cur = []; sum = 0; }
+      cur.push(f);
+      sum += n;
+    });
+    if (cur.length) out.push(cur);
+    return out;
+  }
+
+  /**
+   * 나눠 보낸다. 겉보기 계약은 `send()` 와 같다 — 부르는 쪽이 안 바뀐다.
+   *
+   * ★ 하나라도 실패하면 **거기서 멈춘다.** 이어서 보내면 「반은 올라갔는데
+   *   어디까지인지 모르는」 상태가 되고, 그것이 가장 되돌리기 어렵다.
+   *   대신 **그때까지 올린 것을 결과에 담아** 사람이 알 수 있게 한다.
+   */
+  function sendAll(opt) {
+    var o = opt || {};
+    var groups = batches(o.files, o.maxBytes);
+    var total = (o.files || []).length;
+    var doneFiles = 0;
+    /* ★★★ **없는 칸을 빈 배열로 만들어 두지 않는다** 〈2026-08-29 · 스스로 잡았다〉.
+     *   앞 판은 `{ saved: [], accepted: [] , … }` 로 시작했다. 그런데 빈 배열도
+     *   **참**이라, 결과를 읽는 쪽의 `j.saved || j.accepted` 가 **빈 `saved` 를
+     *   골라** 「0개를 올렸습니다」가 됐다 — 실제로는 `accepted` 에 다 들어
+     *   있었다. **화면은 멀쩡히 뜨고 숫자만 0 이라** 눈으로는 안 잡힌다.
+     *   ★ 그래서 **실제로 온 칸만** 만든다. 안 온 칸은 없는 채로 둔다. */
+    var merged = { batches: groups.length };
+    var last = null;
+
+    function collect(j) {
+      if (!j) return;
+      ['saved', 'accepted', 'rejected', 'replaced'].forEach(function (k) {
+        if (!Array.isArray(j[k])) return;
+        merged[k] = (merged[k] || []).concat(j[k]);
+      });
+      /* 배열이 아닌 값(읽은 결과 등)은 **마지막 것을 그대로** 잇는다 */
+      Object.keys(j).forEach(function (k) {
+        if (Array.isArray(j[k])) return;
+        if (merged[k] === undefined) merged[k] = j[k];
+      });
+      last = j;
+    }
+
+    function step(i) {
+      if (i >= groups.length) {
+        if (o.onUpdate) o.onUpdate({ phase: 'done', pct: 100, files: total, error: null });
+        if (o.onDone) o.onDone(merged, 200);
+        return;
+      }
+      var group = groups[i];
+      last = send({
+        url: o.url,
+        files: group,
+        onUpdate: function (u) {
+          if (!o.onUpdate) return;
+          /* ★ 전체 기준으로 다시 센다 — 묶음마다 0→100 이면 되돌아간 것처럼 보인다 */
+          var within = (u && u.pct !== null && u.pct !== undefined) ? u.pct : null;
+          var pct = (within === null) ? null
+            : Math.round(((doneFiles + (group.length * within / 100)) / total) * 100);
+          o.onUpdate({
+            phase: u.phase, pct: pct, files: total, bodyBytes: u.bodyBytes,
+            error: u.error,
+            batch: { at: i + 1, of: groups.length, files: group.length },
+          });
+        },
+        onDone: function (j) {
+          collect(j);
+          doneFiles += group.length;
+          step(i + 1);
+        },
+        onFail: function (why, status, j) {
+          collect(j);
+          if (o.onFail) {
+            o.onFail(why, status, merged, {
+              at: i + 1, of: groups.length,
+              uploaded: doneFiles, total: total,
+            });
+          }
+        },
+      });
+      return last;
+    }
+    step(0);
+    return { abort: function () { try { if (last && last.abort) last.abort(); } catch (_) {} } };
+  }
+
   function summary(j) {
     if (!j) return '';
     var okN = (j.saved || j.accepted || []).length;
@@ -229,5 +353,6 @@
   }
 
   return { BUILD: LP_BUILD,
-    readAll: readAll, readOne: readOne, send: send, tooBig: tooBig, summary: summary };
+    readAll: readAll, readOne: readOne, send: send, sendAll: sendAll,
+    batches: batches, BATCH_BYTES: BATCH_BYTES, tooBig: tooBig, summary: summary };
 }));

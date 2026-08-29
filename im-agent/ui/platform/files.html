@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="56253318">
+<html lang="ko" data-lp-build="8ce0f736">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -300,7 +300,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=56253318">
+<link rel="stylesheet" href="tokens.css?v=8ce0f736">
 <style>
 /* 색·간격·반경 토큰은 tokens.css 하나가 정한다 (LinkPilot Design System v1.1) */
 * { box-sizing: border-box; }
@@ -753,10 +753,10 @@ select:focus-visible, button:focus-visible { outline: 2px solid var(--lime-deep)
   </div>
 </div>
 
-<script src="gate-core.js?v=56253318"></script>
-<script src="flow-core.js?v=56253318"></script>
-<script src="upload-core.js?v=56253318"></script>
-<script src="versions-core.js?v=56253318"></script>
+<script src="gate-core.js?v=8ce0f736"></script>
+<script src="flow-core.js?v=8ce0f736"></script>
+<script src="upload-core.js?v=8ce0f736"></script>
+<script src="versions-core.js?v=8ce0f736"></script>
 <script>
 /**
  * 붙이는 쪽이 채우는 유일한 값.
@@ -802,7 +802,7 @@ window.LINKPILOT_FILES = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=56253318" data-lp-global="LINKPILOT_FILES"></script>
+<script src="embed-bridge.js?v=8ce0f736" data-lp-global="LINKPILOT_FILES"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -967,17 +967,24 @@ window.LINKPILOT_FILES = {
     gateWhere: null,   // 화면 전체를 잠근 부름이 무엇이었나 (없으면 뒤져야 한다)
     /* ★ 「아직 안 붙었다(501)」와 **다르다.** 401 은 길이 열려 있고 목록만 안 보이는 것 */
     locked: {},        // 로그인해야 보이는 목록 — 길이 막힌 것이 아니다
-    kept: null,        // 보관 목록 (GET /sources)
     linked: null,      // 연결 목록 (GET /linked)
     oneshot: null,     // 1회성 기록 (GET /oneshot)
     // 「아직 안 붙었다」를 길별로 따로 들고 있는다 — 하나가 닫혔다고 셋 다
     // 닫힌 것처럼 그리면 열려 있는 길까지 못 쓴다
+    /* ★★★ **보관 목록** (GET /projects/:id/sources) 〈2026-08-29 · D-175 에서 되살렸다〉.
+     *   앞 판은 이 자리만 만들어 두고 **값을 받아 오는 곳이 없었다** — 늘 `null`
+     *   이라 「같은 이름 찾기」가 보관 자료를 **한 번도 못 봤다.** 그래서
+     *   같은 문서가 「보관」과 「1회성 기록」 양쪽에 남아도 못 잡았다.
+     *   ★ 지우는 대신 **채웠다** — 반만 만들어진 자리를 지우면 그 의도까지 사라진다. */
+    kept: null,
     closed: { kept: null, linked: null, oneshot: null },
     error: null,
     // 서버가 「로그인이 필요합니다 / 플랜이 모자랍니다」라고 한 경우 — 오류와 구분한다
     gate: null,
     // 올리기가 실패한 사유. **화면 전체 게이트로 올리지 않는다** (2026-08-22)
     uploadFail: null,
+    /* 나눠 보내다 막혔을 때 **어디까지 갔는지** 〈D-174〉 */
+    partial: null,
     // 이관(넘기기) 진행. **넘어가는 것을 보여 주고 나서** 넘긴다 (2026-08-22)
     handoff: null,
     busy: false,
@@ -1185,6 +1192,15 @@ window.LINKPILOT_FILES = {
         else if (r.gated) { state.linked = null; state.closed.linked = null; state.locked.linked = r.msg; }
         else { state.linked = null; state.closed.linked = r.closed; state.locked.linked = null; }
       }, function (e) { state.closed.linked = e.message; }),
+      /* ★★★ **보관 목록을 실제로 받아 온다** 〈2026-08-29 · D-175〉.
+       *   이 호출이 없어서 `state.kept` 가 늘 비어 있었고, 「같은 이름 찾기」가
+       *   보관 자료를 한 번도 못 봤다 — 같은 문서가 보관과 1회성 양쪽에 남아도
+       *   두 자료로 보여 줬다. 다른 둘과 **같은 꼴로** 부른다. */
+      call('GET', base + '/sources', null, LG).then(function (r) {
+        if (r.ok) { state.kept = r.body; state.closed.kept = null; state.locked.kept = null; }
+        else if (r.gated) { state.kept = null; state.closed.kept = null; state.locked.kept = r.msg; }
+        else { state.kept = null; state.closed.kept = r.closed; state.locked.kept = null; }
+      }, function (e) { state.closed.kept = e.message; }),
       call('GET', base + '/oneshot', null, LG).then(function (r) {
         if (r.ok) { state.oneshot = r.body; state.closed.oneshot = null; state.locked.oneshot = null; }
         else if (r.gated) { state.oneshot = null; state.closed.oneshot = null; state.locked.oneshot = r.msg; }
@@ -1243,15 +1259,36 @@ window.LINKPILOT_FILES = {
     if (id && id.indexOf('ext:') === 0) {
       state.projectId = null;
       state.noFolder = true;
-      state.linked = state.oneshot = null;
+      state.linked = state.oneshot = state.kept = null;
       announce(null);
       return render();
     }
     state.noFolder = false;
     state.restored = false;      // 사람이 직접 골랐으면 「이어서」라고 말하지 않는다
     state.projectId = id || null;
-    state.linked = state.oneshot = null;
+    state.linked = state.oneshot = state.kept = null;
     state.closed = { kept: null, linked: null, oneshot: null };
+
+    /* ★★★ **그 프로젝트 것이 아닌 것은 남기지 않는다** 〈2026-08-29 사장님 지시 · D-175:
+     *   「리셋기능같은 프로젝트에 등록된 아닌 목록은 노출되지 않도록」〉.
+     *
+     *   앞 판은 목록(`linked`·`oneshot`)만 버렸다. 그런데 **올리다 만 것들**은
+     *   그대로 남았다 — 고른 파일·올리기 결과·어디까지 갔는지·실패 안내·진행
+     *   그래프. 그것들은 **어느 프로젝트 것도 아니다**(아직 안 붙었거나 거절됐다).
+     *
+     *   ★ 그대로 두면 다른 프로젝트를 골라도 **앞 프로젝트에서 하던 일이 그대로
+     *     보인다** — 그럴듯하게 틀린 화면이라 아무도 눈치채지 못한다. 스캔
+     *     결과를 버리는 것과 **같은 이유**다(바로 위).
+     *   ★★ **지우는 것이 아니라 화면에서 내리는 것이다.** 서버에 올라간 자료는
+     *     그대로 있고, 프로젝트를 다시 고르면 그 프로젝트 것이 다시 뜬다. */
+    state.picked = [];
+    state.result = null;
+    state.partial = null;
+    state.upload = null;
+    state.trace = [];
+    state.uploadFail = null;
+    state.busy = false;
+    state.error = null;
     announce(state.projectId);
     remember({ projectId: state.projectId });   // 다음에 열면 이 프로젝트로 시작한다
     render();
@@ -1929,6 +1966,19 @@ window.LINKPILOT_FILES = {
        *   세션을 못 읽고 401 을 돌려준다.
        *   ★ 그래서 **둘 다 적는다.** 하나로 단정하면 반대쪽을 고치러 간다. */
       var uf = state.uploadFail;
+
+      /* ★★★ **어디까지 갔는지 먼저 말한다** 〈2026-08-29 · D-174〉.
+       *   나눠 보내므로 막혀도 **앞 묶음은 이미 올라가 있다.** 그 사실을 안
+       *   적으면 사장님이 **같은 파일을 처음부터 다시** 올리시고, 그러면
+       *   같은 자료가 두 벌 생긴다. 실패보다 이것이 되돌리기 어렵다. */
+      if (state.partial && state.partial.uploaded > 0) {
+        box.appendChild(el('p', 'up__d',
+          '여기까지는 올라갔습니다 — ' + state.partial.total + '개 중 '
+          + state.partial.uploaded + '개 (묶음 ' + state.partial.of + '개 중 '
+          + (state.partial.at - 1) + '개). **이미 올라간 것은 다시 안 올리셔도 됩니다** — '
+          + '아래 목록에서 확인하시고, 남은 것만 다시 고르십시오.'));
+      }
+
       /* ★★★ **5xx 는 「내가 뭘 잘못했나」가 아니다** 〈2026-08-27 · 실제 신고 HTTP 502〉.
        *
        *   사장님 화면에 「올리지 못했습니다 · HTTP 502」만 떴다. 502 는
@@ -2030,7 +2080,7 @@ window.LINKPILOT_FILES = {
         });
         /* ★ 무엇을 해야 하는지까지 말한다. 사유만 주면 사용자는 같은 파일을 또 올린다
          *
-         * ★★ **못 읽은 것은 이제 지우지 않는다** 〈2026-08-28 · D-174〉. 서버가
+         * ★★ **못 읽은 것은 이제 지우지 않는다** 〈2026-08-28 · D-176〉. 서버가
          *   보관 자료로 옮기고 `rescued` 에 이름을 적어 준다. 옛 문구를 그대로
          *   두면 **거짓말이 된다** — 남아 있는데 「남아 있지 않습니다」라고 하면
          *   같은 파일을 다시 올리게 되고 두 벌이 된다. */
@@ -2080,7 +2130,13 @@ window.LINKPILOT_FILES = {
     // 자취는 **이번 올리기 것만** 모은다. 안 비우면 지난 판이 앞에 붙어
     // 「예전에 한 번 갔다가 되돌아왔다」처럼 보인다
     state.trace = []; state.traceAt0 = now(); state.failStage = 1;
-    UP.send({
+    /* ★★★ **나눠 보낸다** 〈2026-08-29 · D-174〉.
+     *   앞 판은 `UP.send` 로 **한 요청에 몰아** 보냈다. 사장님 화면에서 본문이
+     *   28.4MB 한 덩어리로 나갔고 서버가 그 하나를 401 로 거절했다 — 같은
+     *   화면에서 목록 읽기는 통과했으니 **로그인이 아니라 그 요청 하나**가
+     *   거절된 것이다. 큰 본문 하나는 거절될 자리가 많고(앞단·프록시·본문 파서),
+     *   무엇보다 **전부 아니면 전무**가 된다. 나누면 된 것은 남는다. */
+    UP.sendAll({
       url: C.api + '/projects/' + state.projectId + path,
       files: ready.map(function (f) { return { name: f.name, contentBase64: f.data }; }),
       onUpdate: function (u) {
@@ -2134,8 +2190,16 @@ window.LINKPILOT_FILES = {
           }
         });
       },
-      onFail: function (why, status) {
+      onFail: function (why, status, partial, at) {
         state.busy = false;
+        /* ★ 나눠 보내다 막히면 **어디까지 갔는지** 남긴다 〈D-174〉.
+         *   「실패」만 적으면 이미 올라간 것을 또 올리게 된다 */
+        if (at && at.uploaded > 0) {
+          state.partial = at;
+          state.result = partial || null;
+        } else {
+          state.partial = null;
+        }
         /* ★★★ **올리기가 실패했다고 화면을 통째로 갈아치우지 않는다**
          *   〈2026-08-22 · 실제 신고 「화면이 사라지는 오류」〉.
          *
