@@ -34,7 +34,7 @@
    * ★ **이 스크립트가 어느 판인가** 〈2026-08-23 · D-93 사고〉.
    *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다.
    */
-  var LP_BUILD = '958bc576';
+  var LP_BUILD = '8b8a0d67';
 
   var self = document.currentScript;
   var name = self && self.getAttribute('data-lp-global');

@@ -24,7 +24,7 @@
    *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다. 화면이 자기
    *   지문과 대 보고 다르면 「함수가 없다」로 죽기 전에 사람 말로 알린다.
    */
-  var LP_BUILD = '958bc576';
+  var LP_BUILD = '8b8a0d67';
 
   /**
    * ★★★ **단계는 다섯이다** 〈2026-08-22 사용자 지시〉.
@@ -111,10 +111,21 @@
    * ★ 순서를 여기서만 정한다. 화면이 따로 적으면 한쪽만 고치는 날 갈린다.
    */
   /**
-   * **화면의 큰 뼈대 — 넷** 〈2026-08-28 사장님 지시 · D-157〉.
+   * **화면의 큰 뼈대 — 여섯** 〈2026-08-29 사장님 지시 · D-172〉.
    *
-   *   1 기본정보 · 무엇을 만들까요   2 관련자료 업로드
-   *   3 보고서 생성                 4 완성 보고서
+   *   1 기본정보 입력   2 무엇을 만들까요?   3 관련자료 업로드
+   *   4 보고서 생성·미리보기   5 출력정보 입력   6 완성결과물
+   *
+   * ★★★ **한 절에 한 단계로 되돌렸다.** D-157~D-162 에서 절을 넷·셋으로
+   *   합쳐 왔는데, 합칠수록 **한 칸 안에 여러 일이 겹쳐** 「지금 무엇을 하는
+   *   자리인지」가 흐려졌다 — 끝낸 것을 접는 장치(D-163·D-169)를 두 번 덧대야
+   *   했던 것이 그 증거다. 사장님이 여섯으로 다시 그리라고 하신 이유다.
+   *
+   * ★ 대신 **아무 칸이나 펼 수 있다.** 앞 판은 「지금 칸」만 펴졌다 —
+   *   지나온 칸을 다시 보려면 되돌아가야 했다. 이제 잠기지 않은 칸은
+   *   눌러서 펴고, 각 칸 맨 아래 [완료] 로 다음 칸이 열린다.
+   * ★★ 4(생성)와 5(출력정보)의 **순서는 사장님 지시 그대로**다. 다만 코드는
+   *   출력조건을 확정해야 생성 단추가 열리므로, **생성 단추는 5번 안에** 있다.
    *
    * ★★★ **왜 다섯에서 넷으로 줄였나.** 사장님 지시 그대로다 —
    *   「거울 미러링처럼 복잡함 혼란스러워 · 화면 전면적으로 재구성한다」.
@@ -130,40 +141,18 @@
    *   모든 단계는 **정확히 한 절**에만 속한다 (`flow.test.js` 가 잰다).
    */
   var SECTIONS = [
-    {
-      /* ★★★ **순서가 뒤집혔다** 〈2026-08-28 사장님 지시 · D-163:
-       *   「무엇을 만들까요? / 밑에 발행주체를 통합병합한 아코디언 창을 만들어줘」〉.
-       *   발행 주체는 **한 번 정하면 잘 안 바뀌는 설정**이고, 화면을 열 때마다
-       *   할 일은 **요청문을 적는 것**이다. 설정이 위에 있으면 정작 할 일이
-       *   아래로 밀린다. 그래서 `ask` 가 먼저다 — 화면은 이 차례대로 그린다. */
-      no: 1, id: 'start', name: '무엇을 만들까요 · 발행 주체', steps: ['ask', 'basics'],
-      note: '무엇을 만들지 적고, 누가 내는 문서인지 정한다. '
-        + '발행 주체는 한 번 정하면 접어 둔다 — 값은 접힌 줄에 그대로 보인다.',
-    },
-    /**
-     * ★★★ **자료 업로드와 보고서 생성을 한 칸으로 합쳤다**
-     *   〈2026-08-28 사장님 지시: 「2.자료 스캔 +3「보고서 만들기」으로 넘기기 →
-     *    병합해줘 / 더 헷갈림」 · D-162〉.
-     *
-     *   앞 판(D-157)은 자료를 올린 뒤 **[확인 — 3. 보고서 생성 으로]** 를 눌러
-     *   칸을 넘어가야 했다. 그런데 사장님이 보시기에 그 넘김이 **일이 아니라
-     *   장애물**이었다 — 자료를 올린 사람이 다음에 할 일은 「보고서를 만드는
-     *   것」 하나뿐인데, 화면이 그 사이에 문을 하나 더 세운 것이다.
-     *
-     *   ★ 그래서 셋이 되었다: **넣고 → 만들고 → 받는다.**
-     *   ★★ 없앤 것은 **칸 사이의 문**이지 단계가 아니다. `sources`·`fields`·
-     *     `spec` 은 그대로 있고 한 칸 안에서 차례로 펴진다.
-     */
-    {
-      no: 2, id: 'make', name: '자료 업로드 · 보고서 생성',
-      steps: ['sources', 'fields', 'spec'],
-      note: '원본 자료를 받아 얼마나 읽었는지 보여 주고, 그 값으로 채운 뒤 '
-        + '쪽수·형식을 못 박고 만든다. 여기서 프로젝트가 만들어진다.',
-    },
-    {
-      no: 3, id: 'done', name: '완성 보고서', steps: ['done'],
-      note: '만들어진 문서를 내려받는다.',
-    },
+    { no: 1, id: 'basics', name: '기본정보 입력', steps: ['basics'],
+      note: '누가 내는 문서인지 정한다. 발행 주체가 정해져야 나머지가 그 회사 것이 된다.' },
+    { no: 2, id: 'ask', name: '무엇을 만들까요?', steps: ['ask'],
+      note: '요청문과 만들 산출물 종류를 받는다. 요청문에서 뽑은 값은 미확인으로 표시한다.' },
+    { no: 3, id: 'sources', name: '관련자료 업로드', steps: ['sources'],
+      note: '원본 자료를 받고 얼마나 읽었는지 보여 준다. 여기서 프로젝트를 만든다.' },
+    { no: 4, id: 'make', name: '보고서 생성 · 미리보기', steps: ['fields'],
+      note: '올린 자료가 채운 값을 확인하고 못 채운 것만 넣는다. 만들어진 문서는 아래 [미리보기] 로 본다.' },
+    { no: 5, id: 'spec', name: '출력정보 입력', steps: ['spec'],
+      note: '쪽수·형식·언어를 못 박는다. 확정하면 그 자리에서 생성으로 바뀐다.' },
+    { no: 6, id: 'done', name: '완성결과물', steps: ['done'],
+      note: '만들어진 문서를 내려받는다.' },
   ];
 
   /** 어느 단계가 어느 절에 속하는가 — 화면이 되짚을 때 쓴다 */
@@ -562,49 +551,47 @@
      *   열쇠는 **절 id** 다(`SECTIONS[].id`). 레일 칸 이름을 쓰면 절과 어긋난다.
      *   ★ 못 잰 것은 `known:false` 로 둔다 — 「0%」는 「못 쟀다」가 아니다. */
 
-    /* ① 기본정보 · 무엇을 만들까요 — **둘 다** 돼야 끝난 것이다 */
+    /* ★★★ **절이 여섯이 되면서 이 셈도 여섯이 되었다** 〈2026-08-29 · D-172〉.
+     *   열쇠는 **절 id** 다(`SECTIONS[].id`). 절 이름을 쓰면 절과 어긋난다.
+     *   ★ 못 잰 것은 `known:false` 로 둔다 — 「0%」는 「못 쟀다」가 아니다 (§4.9). */
+
+    /* ① 기본정보 입력 — 발행 주체가 있는가 */
     var issuerKnown = o.issuerSet !== null && o.issuerSet !== undefined;
+    put('basics', issuerKnown, !!o.issuerSet, null,
+      issuerKnown ? (o.issuerSet ? '발행 주체가 정해져 있습니다' : '발행 주체가 아직 없습니다') : null);
+
+    /* ② 무엇을 만들까요 — 요청문을 적었는가.
+       ★ 프로젝트가 만들어졌다는 것은 요청문이 이미 들어갔다는 뜻이다 */
     var asked = !!o.projectId || !!(o.request && String(o.request).trim());
-    put('start', issuerKnown, !!o.issuerSet && asked, null,
-      (!o.issuerSet ? '발행 주체가 아직 없습니다'
-        : (asked ? '발행 주체와 요청문이 다 있습니다' : '아직 무엇을 만들지 안 적었습니다')));
+    put('ask', true, asked, null,
+      asked ? '무엇을 만들지 적었습니다' : '아직 무엇을 만들지 안 적었습니다');
 
-    /* ② 자료 업로드 · 보고서 생성 — **한 칸이 셋을 품는다** 〈D-162〉.
-     *
-     * ★★ 끝났다고 보는 것은 **출력조건 확정**이다. 프로젝트를 만든 것만으로는
-     *   이 칸이 안 끝난다 — 앞 판은 그것이 딴 칸이라 「프로젝트가 생기면 끝」
-     *   이었는데, 합친 뒤에도 그렇게 두면 **값을 하나도 안 넣고 칸이 초록**이 된다.
-     *
-     * ★★★ **진행률은 「지금 어디쯤인가」를 말한다.** 자료를 읽는 중이면 그 비율,
-     *   값을 채우는 중이면 그 비율이다. 둘을 더해 평균 내지 않는다 — 서로 다른
-     *   것을 섞은 숫자는 어느 쪽이 모자란지 못 알려 준다 (§4.9 와 같은 결).
-     */
+    /* ③ 관련자료 업로드 — **프로젝트를 만들면 이 칸의 목적은 끝난다.**
+       진행율은 그다음 일(올린 자료를 읽었는가)을 말한다. 자료를 안 올려도
+       진행은 되므로, 자료가 0건인 것을 「0%」로 적지 않는다 */
     var src = o.sources;
+    var pct3 = (src && src.total > 0) ? Math.round((src.read / src.total) * 100) : null;
+    put('sources', true, !!o.projectId, pct3,
+      !o.projectId ? '아직 프로젝트가 없습니다'
+        : (!src ? '프로젝트가 만들어졌습니다'
+          : (src.total === 0 ? '자료 없이 진행 중 — 값을 전부 직접 넣어야 합니다'
+            : '자료 ' + src.total + '건 중 ' + src.read + '건을 읽었습니다')));
+
+    /* ④ 보고서 생성 · 미리보기 — 값이 얼마나 찼는가.
+       ★ 값은 **값과 출처가 둘 다** 있는 것만 센다 (`fields-core.completeness`) */
     var fl = o.fields;
-    var pctSrc = (src && src.total > 0) ? Math.round((src.read / src.total) * 100) : null;
-    var pctFld = (fl && fl.total > 0) ? Math.round((fl.filled / fl.total) * 100) : null;
+    var pct4 = (fl && fl.total > 0) ? Math.round((fl.filled / fl.total) * 100) : null;
+    put('make', !!fl, !!(fl && fl.total > 0 && fl.filled >= fl.total), pct4,
+      !fl ? null
+        : (fl.total === 0 ? '필수 항목이 없습니다'
+          : '필수 ' + fl.total + '개 중 ' + fl.filled + '개 (값과 출처가 모두 있어야 셉니다)'));
 
-    /* 아직 프로젝트가 없으면 「자료를 읽는 중」, 생겼으면 「값을 채우는 중」 */
-    var early = !o.projectId;
-    var pct2 = early ? pctSrc : (pctFld !== null ? pctFld : pctSrc);
+    /* ⑤ 출력정보 입력 — 확정했는가 */
+    put('spec', o.specLocked !== null && o.specLocked !== undefined, !!o.specLocked, null,
+      (o.specLocked === null || o.specLocked === undefined) ? null
+        : (o.specLocked ? '출력조건을 확정했습니다' : '아직 확정하지 않았습니다'));
 
-    var detail2;
-    if (early) {
-      detail2 = !src ? '아직 프로젝트가 없습니다'
-        : (src.total === 0 ? '자료 없이 진행 중 — 값을 전부 직접 넣어야 합니다'
-          : '자료 ' + src.total + '건 중 ' + src.read + '건을 읽었습니다');
-    } else if (fl && fl.total > 0) {
-      detail2 = '필수 ' + fl.total + '개 중 ' + fl.filled + '개 (값과 출처가 모두 있어야 셉니다)'
-        + (o.specLocked ? ' · 출력조건 확정' : ' · 출력조건은 아직');
-    } else {
-      detail2 = o.specLocked ? '출력조건을 확정했습니다' : '아직 확정하지 않았습니다';
-    }
-
-    /* ★ 잰 것이 하나라도 있어야 「안다」고 한다 */
-    var known2 = !!src || !!fl || (o.specLocked !== null && o.specLocked !== undefined);
-    put('make', known2, !!o.specLocked, pct2, detail2);
-
-    /* ③ 완성 보고서 — **여기서는 못 잰다.** 산출물 목록은 그 화면이 받아 온다.
+    /* ⑥ 완성결과물 — **여기서는 못 잰다.** 산출물 목록은 그 화면이 받아 온다.
        못 쟀다고 두는 것이 「0건」이라고 적는 것보다 낫다 (§4.9) */
     put('done', false, false, null, null);
 
@@ -761,6 +748,62 @@
       + '고치는 자리는 앱 쪽이며, 근본과 방법은 전달 문서의 lp:base 절에 있습니다.';
   }
 
+  /**
+   * ══════════ **흐름 밖에 홀로 떠 있으면 돌아갈 길을 준다** 〈2026-08-29 · D-170〉
+   *
+   * 사장님 신고: 「LinkPilot 플랫폼 프레임내 있지 않음」 — 주소는
+   * `report-flow.html` 인데 화면과 탭 제목은 `intake.html` 이었다. 즉 단계
+   * 화면이 **흐름 밖으로 빠져나가** 홀로 떠 있었다.
+   *
+   * ★★★ **빠져나간 것 자체보다, 돌아올 길이 없는 것이 문제다.** 단계 화면은
+   *   저마다 사이드바를 그리므로 **플랫폼처럼 보인다** — 그래서 사용자는
+   *   「여기가 어디지」가 아니라 「플랫폼이 이상하다」로 읽는다. 그 상태에서
+   *   할 수 있는 일이 뒤로가기뿐이다.
+   *
+   * ★ 그래서 **홀로 떴을 때만** 맨 위에 한 줄을 둔다 — 어디에 있는지 말하고,
+   *   흐름으로 돌아가는 링크를 준다. 틀 안(앱·흐름)에서는 아무것도 안 그린다.
+   * ★★ 「고장」이 아니라 **「여기는 한 칸만 보는 자리」**라고 적는다. 빨간 띠로
+   *   그리면 멀쩡한 화면을 고장으로 읽는다 (늑대야를 만들지 않는다).
+   *
+   * @param {{projectId?:string, step?:string}} opts
+   * @returns {HTMLElement|null} 틀 안이면 `null`
+   */
+  function strandedBar(opts) {
+    if (typeof window === 'undefined' || typeof document === 'undefined') return null;
+    try { if (window.parent !== window) return null; } catch (_) { return null; }
+
+    var o = opts || {};
+    var url = sectionUrl({ projectId: o.projectId, step: o.step });
+    if (!url) return null;
+
+    var bar = document.createElement('div');
+    bar.setAttribute('data-lp-stranded', '');
+    bar.setAttribute('style', 'display:flex;gap:10px;align-items:center;flex-wrap:wrap;'
+      + 'padding:11px 16px;background:#F2F2F7;border-bottom:1px solid #E8EAEC;'
+      + 'font:600 13.5px/1.5 system-ui,-apple-system,sans-serif;color:#3C4149');
+
+    var t = document.createElement('span');
+    t.textContent = '이 화면은 한 칸만 따로 열린 것입니다 — 「보고서 만들기」 흐름 밖입니다.';
+    bar.appendChild(t);
+
+    var a = document.createElement('a');
+    a.href = url;
+    a.textContent = '흐름으로 돌아가기';
+    a.setAttribute('style', 'margin-left:auto;background:#B5E01F;color:#12161F;'
+      + 'text-decoration:none;font-weight:700;padding:7px 14px;border-radius:10px');
+    bar.appendChild(a);
+    return bar;
+  }
+
+  /** 화면 맨 위에 붙인다. 이미 있으면 두 번 붙이지 않는다 */
+  function showStranded(opts) {
+    var bar = strandedBar(opts);
+    if (!bar || !document.body) return null;
+    if (document.querySelector('[data-lp-stranded]')) return null;
+    document.body.insertBefore(bar, document.body.firstChild);
+    return bar;
+  }
+
   function stampInto(doc) {
     var d = doc || document;
     var b = buildOf(d);
@@ -794,5 +837,6 @@
     API_FALLBACK: API_FALLBACK,
     tokensLoaded: tokensLoaded, TOKENS_MISSING: TOKENS_MISSING,
     openSection: openSection, OPEN_EVENT: OPEN_EVENT, sectionUrl: sectionUrl,
+    strandedBar: strandedBar, showStranded: showStranded,
   };
 }));

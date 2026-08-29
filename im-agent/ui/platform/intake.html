@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="958bc576">
+<html lang="ko" data-lp-build="8b8a0d67">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -263,7 +263,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=958bc576">
+<link rel="stylesheet" href="tokens.css?v=8b8a0d67">
 <style>
 :root {
   --side: 248px;
@@ -529,11 +529,11 @@ h1,h2,h3,h4 { margin: 0; }
   </main>
 </div>
 
-<script src="gate-core.js?v=958bc576"></script>
-<script src="flow-core.js?v=958bc576"></script>
-<script src="upload-core.js?v=958bc576"></script>
-<script src="catalog.js?v=958bc576"></script>
-<script src="inapp.js?v=958bc576"></script>
+<script src="gate-core.js?v=8b8a0d67"></script>
+<script src="flow-core.js?v=8b8a0d67"></script>
+<script src="upload-core.js?v=8b8a0d67"></script>
+<script src="catalog.js?v=8b8a0d67"></script>
+<script src="inapp.js?v=8b8a0d67"></script>
 <script>
 /**
  * 설정 — 서버가 로그인 세션을 보고 내려주는 것이 정석이다.
@@ -545,7 +545,7 @@ window.LINKPILOT_INTAKE = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=958bc576" data-lp-global="LINKPILOT_INTAKE"></script>
+<script src="embed-bridge.js?v=8b8a0d67" data-lp-global="LINKPILOT_INTAKE"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -1539,7 +1539,44 @@ window.LINKPILOT_INTAKE = {
       try { here = String(fr.contentWindow.location.pathname || ''); } catch (_) { return; }
       if (!here) return;                                   // about:blank — 아직이다
       var got = here.split('/').pop();
-      if (got === file) return;                            // 부른 것이 왔다
+
+      /* ★★★ **주소 끝만 보면 못 잡는다** 〈2026-08-29 · D-171 · 또 났다〉.
+       *
+       *   앞 판은 파일 이름만 맞으면 통과시켰다. 그런데 실제로 온 것은
+       *   **앱 전체**였다 — 사이드바·배너·탭까지 한 벌 더 들어왔다.
+       *
+       *   ★ 왜 통과했나: 주소가 `…/im-flow/im-flow/files.html` 처럼 앞이 겹치면
+       *     **끝은 여전히 `files.html`** 이다. 서버는 그런 파일이 없으니 404 대신
+       *     **앱의 첫 화면**을 돌려주고, 이름 검사는 그것을 통과시킨다.
+       *   ★★ 그래서 **온 문서가 정말 그 화면인지**를 본다. 같은 출처라 안쪽
+       *     제목을 읽을 수 있다 — 제목은 화면마다 다르다.
+       *   ★★★ 못 읽으면 **아무 말도 하지 않는다.** 모르는 것을 고장이라고
+       *     적으면 멀쩡한 화면이 고장으로 읽힌다. */
+      var innerTitle = '';
+      try { innerTitle = String(fr.contentDocument.title || ''); } catch (_) { innerTitle = ''; }
+      var looksRight = innerTitle && innerTitle.indexOf('자료 업로드') !== -1;
+      var canRead = !!innerTitle;
+
+      if (got === file && (looksRight || !canRead)) return;   // 부른 것이 왔다
+      if (got === file && canRead && !looksRight) {
+        /* 이름은 맞는데 **다른 문서**가 왔다 — 거의 언제나 앱의 첫 화면이다 */
+        wrap.textContent = '';
+        var bad = el('div', 'note note--bad');
+        bad.appendChild(el('b', null, '자료 업로드 화면 대신 다른 화면이 왔습니다'));
+        bad.appendChild(document.createTextNode(
+          '「' + file + '」 를 불렀는데 돌아온 문서의 제목이 「' + innerTitle + '」 입니다. '
+          + '주소 앞부분이 어긋나 서버가 없는 파일 대신 앱 첫 화면을 돌려준 것으로 '
+          + '보입니다 — 그대로 그리면 이 칸 안에 앱이 통째로 겹칩니다. '
+          + '그래서 그리지 않았습니다.'));
+        var link = el('a', null, '자료 업로드를 새 탭에서 열기');
+        link.href = want;
+        link.target = '_blank';
+        link.rel = 'noopener';
+        link.setAttribute('style', 'display:inline-block;margin-top:8px;font-weight:700');
+        bad.appendChild(link);
+        wrap.appendChild(bad);
+        return;
+      }
       wrap.textContent = '';
       var na = el('div', 'sub-frame__na');
       na.appendChild(el('b', null, '자료 업로드 화면을 못 불러왔습니다'));
@@ -1890,6 +1927,17 @@ window.LINKPILOT_INTAKE = {
   }
 
   render();
+
+  /* ★ **홀로 떴으면 돌아갈 길을 준다** 〈2026-08-29 · D-170〉.
+   *   이 화면은 사이드바를 스스로 그리므로 **플랫폼처럼 보인다** — 흐름 밖에서
+   *   열리면 사용자는 「여기가 어디지」가 아니라 「플랫폼이 이상하다」로 읽는다.
+   *   틀 안(앱·흐름)에서는 아무것도 안 그린다. */
+  try {
+    var LPF = window.LinkPilotFlow;
+    if (LPF && LPF.showStranded) {
+      LPF.showStranded({ projectId: (typeof projectId === 'function' ? projectId() : null), step: 'sources' });
+    }
+  } catch (_) { /* 이 한 줄 때문에 화면이 죽지 않는다 */ }
   load();
 }());
 </script>

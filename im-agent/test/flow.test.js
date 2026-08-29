@@ -756,26 +756,24 @@ test('★★ 단계 이름을 화면이 베껴 쓰지 않는다', () => {
  * ★ 「새보고서 진행률」 절을 뺐다. 그것이 ①이던 앞 판은 **절 번호와 단계
  *   번호가 하나씩 어긋나** 「1단계」라는 말이 어느 칸을 가리키는지 흐렸다.
  */
-test('★★ 절 셋 — 순서·이름·품은 단계가 고정되어 있다', () => {
-  /* ★★★ **다섯에서 넷으로 줄였다** 〈2026-08-28 사장님 지시 · D-157:
-   *   「거울 미러링처럼 복잡함 혼란스러워 · 화면 전면적으로 재구성한다」〉.
+test('★★ 절 여섯 — 순서·이름·품은 단계가 고정되어 있다', () => {
+  /* ★★★ **셋에서 여섯으로 다시 폈다** 〈2026-08-29 사장님 지시 · D-172:
+   *   「1.기본정보 입력 → 펼치기 [완료] … 6.완성결과물」〉.
    *
-   *   앞 판은 절 하나에 단계 하나(1:1)였다. 그래서 「누가 내는가」와 「무엇을
-   *   만드는가」가 한 가지 일인데도 **한 번에 하나씩**만 보였다.
-   *   ★ 이제 한 절이 여러 단계를 품는다. 절 번호와 단계 번호는 **더 이상
-   *     같지 않다** — 대신 「모든 단계는 정확히 한 절에만」이 규칙으로 남는다. */
-  /* ★★★ **넷에서 셋으로 또 줄였다** 〈2026-08-28 사장님 지시 · D-162:
-   *   「2.자료 스캔 +3「보고서 만들기」으로 넘기기 → 병합해줘 / 더 헷갈림」〉.
-   *   자료를 올린 사람이 다음에 할 일은 「보고서를 만드는 것」 하나뿐인데,
-   *   화면이 그 사이에 [확인] 문을 하나 더 세우고 있었다. **넣고 → 만들고 →
-   *   받는다** 셋이 되었다. 없앤 것은 칸 사이의 문이지 단계가 아니다. */
+   *   D-157~D-162 에서 절을 다섯→넷→셋으로 합쳐 왔는데, 합칠수록 **한 칸 안에
+   *   여러 일이 겹쳐** 「지금 무엇을 하는 자리인지」가 흐려졌다 — 끝낸 것을
+   *   접는 장치를 두 번 덧대야 했던 것(D-163·D-169)이 그 증거다.
+   *   ★ 이제 **한 절에 한 단계**이고, 대신 **아무 칸이나 펼 수 있다.** */
   assert.deepStrictEqual(F.SECTIONS.map(s => `${s.no}. ${s.name}`), [
-    '1. 무엇을 만들까요 · 발행 주체',
-    '2. 자료 업로드 · 보고서 생성',
-    '3. 완성 보고서',
+    '1. 기본정보 입력',
+    '2. 무엇을 만들까요?',
+    '3. 관련자료 업로드',
+    '4. 보고서 생성 · 미리보기',
+    '5. 출력정보 입력',
+    '6. 완성결과물',
   ]);
   assert.deepStrictEqual(F.SECTIONS.map(s => s.steps),
-    [['ask', 'basics'], ['sources', 'fields', 'spec'], ['done']]);
+    [['basics'], ['ask'], ['sources'], ['fields'], ['spec'], ['done']]);
   // 모든 단계가 **정확히 한 절**에만 속한다 (빠진 단계도, 두 번 실린 단계도 없다)
   const owned = F.SECTIONS.flatMap(s => s.steps).sort();
   assert.deepStrictEqual(owned, F.STEPS.map(s => s.id).sort(),
@@ -791,136 +789,22 @@ test('★★ 절 셋 — 순서·이름·품은 단계가 고정되어 있다', 
 test('★ 절 상태 — 잠긴 이유는 그 절이 품은 단계에서 나온다', () => {
   // 서버가 없으면 전부 잠긴다
   const none = F.sectionState({ api: null, projectId: null });
-  assert.deepStrictEqual(none.map(s => s.locked), [true, true, true]);
+  assert.strictEqual(none.length, 6);
+  assert.ok(none.every(s => s.locked), '서버가 없는데 열린 절이 있다');
   assert.match(none[0].why, /서버/, '잠긴 이유를 안 적으면 고장으로 읽힌다');
 
-  /* ★ 프로젝트가 없어도 ②는 **열려 있다** 〈D-162〉 — 그 안에서 자료를 올려
-     프로젝트를 만들기 때문이다. 잠그면 프로젝트를 만들 자리가 사라진다.
-     ★★ 대신 ②가 품은 뒤쪽 단계(fields·spec)는 여전히 잠긴다 — 절이 열렸다는
-       것과 그 안이 다 열렸다는 것은 다른 사실이다. */
+  /* ★ 프로젝트가 없어도 앞의 셋은 열려 있다 — 3절(자료 업로드)에서 만든다 */
   const fresh = F.sectionState({ api: '/x', projectId: null });
-  assert.deepStrictEqual(fresh.map(s => s.locked), [false, false, true]);
-  assert.strictEqual(fresh[1].opensTo, 'sources', '②를 열면 자료 업로드로 가야 한다');
-  assert.ok(fresh[1].steps.filter(s => s.locked).length >= 2,
-    '프로젝트가 없는데 ② 안의 값·출력조건까지 열려 있다');
-  assert.match(fresh[2].why, /프로젝트/);
+  assert.deepStrictEqual(fresh.map(s => s.locked),
+    [false, false, false, true, true, true]);
+  assert.match(fresh[3].why, /프로젝트/, '4절이 왜 잠겼는지 안 적는다');
 
   // 다 열리면 「지금」이 하나뿐이다 — 둘이면 어디를 보는지 알 수 없다
   const open = F.sectionState({ api: '/x', projectId: 'LP-DC-2026-001', current: 'spec' });
-  assert.deepStrictEqual(open.map(s => s.locked), [false, false, false]);
+  assert.ok(open.every(s => !s.locked), '프로젝트가 있는데 잠긴 절이 있다');
   assert.strictEqual(open.filter(s => s.current).length, 1);
-  assert.strictEqual(open[1].current, true, '자료 업로드 · 보고서 생성이 지금 절이어야 한다');
-  /* ★ ② 는 단계 셋을 품는다 — 열면 **열린 것 중 첫째**로 간다 */
-  assert.strictEqual(open[1].opensTo, 'sources');
-});
-
-
-/**
- * ★★★ **자기 자신을 안에 또 띄우지 않는다** 〈2026-08-23 · 실제로 그렇게 떴다〉.
- *
- *   1단계 칸 안에 `report-flow.html` 통째가 들어가 절 목록이 두 겹으로 겹쳐
- *   보였다. 겹쳐 보이는 것도 나쁘지만 **더 나쁜 것은 원인이 안 보이는 것**이다
- *   — 어느 쪽이 바깥인지조차 알 수 없어 무엇을 고칠지 판단할 근거가 화면에
- *   남지 않는다.
- */
-test('★★★ 단계 칸이 자기 화면을 가리키면 띄우지 않고 그렇다고 적는다', () => {
-  const flow = read('report-flow.html');
-
-  assert.match(flow, /이 화면 자신을 가리킨다/, '겹칠 때 아무 말도 안 한다');
-  assert.match(flow, /window\.location\.pathname/, '지금 화면이 무엇인지 안 본다');
-
-  /* ★ 물음표 뒤로 가르면 안 된다 — 같은 파일도 `?part=` 때문에 달라 보인다 */
-  assert.match(flow, /split\('\?'\)\[0\]/, '물음표 뒤까지 넣어 비교한다 — 같은 파일을 다르게 본다');
-
-  /* ★★ 〈2026-08-23 사장님 지시〉 단계 칸의 머리줄을 지웠다 — 바로 위 절 카드가
-     같은 말을 하고 있어 제목이 두 줄 연달아 나왔다. 부르는 화면 이름은 iframe 의
-     title 에 남긴다. 물음표 뒤는 넣지 않는다 — 열쇠가 섞인다 (§2) */
-  assert.ok(flow.indexOf('stage__bar') === -1, '머리줄이 되살아났다 — 같은 제목이 두 줄이다');
-  const t = /fr\.title = step\.no \+ '\. ' \+ step\.name \+ ' \(' \+ (\w+) \+ '\)';/.exec(flow);
-  assert.ok(t, '부르는 화면 이름을 어디에도 안 남긴다');
-  assert.strictEqual(t[1], 'want', `title 에 ${t[1]} 를 넣는다 — api 키가 새어 나갈 수 있다`);
-});
-
-/**
- * ★★★ **레일을 되짚는 쪽도 물음표 뒤를 넘겨야 한다** 〈2026-08-23〉.
- *   `stepOfFile` 만 고치고 부르는 쪽이 경로만 넘기면 아무것도 안 달라진다 —
- *   실제로 그렇게 되어 있었다.
- */
-test('★★★ 화면 감시가 주소의 물음표 뒤까지 넘긴다', () => {
-  const flow = read('report-flow.html');
-  const m = /F\.stepOfFile\(([^)]*)\)/.exec(flow);
-  assert.ok(m, 'stepOfFile 을 부르는 자리를 못 찾았다');
-  assert.match(m[1], /loc\.search/,
-    '경로만 넘긴다 — 앞의 셋이 같은 파일이라 늘 첫 칸으로 판정돼 2·3단계가 튕긴다');
-});
-
-/**
- * ★★★ **칸을 나눴으면 나가는 곳도 있어야 한다** 〈2026-08-23 · 사장님 지적〉.
- *
- *   1·2단계를 나눠 놓고 단추는 3단계에만 두었다. 그래서 발행 주체를 적고 나면
- *   **화면에 아무것도 없었다** — 저장이 된 건지, 다음이 어디인지 알 수가 없다.
- */
-test('★★★ 1·2단계에 다음으로 가는 단추가 있다', () => {
-  const intake = read('intake.html');
-
-  assert.match(intake, /function partNav\(\)/, '칸 사이를 옮기는 단추가 없다');
-  assert.match(intake, /'다음 — '/, '다음 단추 문구가 없다');
-  assert.match(intake, /'이전 — '/, '이전 단추 문구가 없다');
-  assert.match(intake, /body\.appendChild\(nav\)/, '만들어 놓고 화면에 안 붙인다');
-
-  /* ★★ **「저장」이라고 적지 않는다.** 이 단계에서 서버로 가는 것은 없다 —
-     3단계에서 함께 간다. 단추 이름이 하는 일과 달라지는 것이 가장 비싼 거짓말이다 */
-  const nav = intake.slice(intake.indexOf('function partNav()'), intake.indexOf('function actionsRow()'));
-  assert.ok(nav.indexOf('저장') === -1,
-    '이 단계 단추에 「저장」이 들어갔다 — 서버에 넣은 줄 알고 창을 닫는다');
-
-  /* ★ 앱 안에서는 부모에게 알린다. 안쪽만 옮기면 바깥 레일과 갈린다 */
-  assert.match(intake, /lp-flow-step/, '부모에게 단계 이동을 안 알린다');
-  const flow = read('report-flow.html');
-  assert.match(flow, /lp-flow-step/, '부모가 그 알림을 안 받는다 — 한쪽만 있으면 갈린다');
-  assert.match(flow, /known && known\.id !== state\.current/,
-    '모르는 단계 이름을 걸러내지 않는다');
-});
-
-/** ★ 칸의 앞뒤는 `flow-core` 차례 그대로여야 한다 — 화면이 따로 정하면 갈린다 */
-test('★ 칸의 앞뒤 차례가 단계 차례와 같다', () => {
-  const parts = F.STEPS.filter(s => s.file === 'intake.html');
-  assert.deepStrictEqual(parts.map(s => s.part), ['issuer', 'ask', 'files']);
-  assert.deepStrictEqual(parts.map(s => s.no), [1, 2, 3], '앞의 셋이 이어져 있지 않다');
-});
-
-/**
- * ★★★ **머리 글자가 지금 보는 칸을 말한다** 〈2026-08-23 사장님 지시〉.
- *
- *   앞 판은 「보고서 생성 입력 / 무엇을 만들지 적고…」가 박혀 있었다. 칸이 셋이
- *   되면서 **어느 칸을 보든 같은 머리**가 떴고, 바로 아래 카드가 제 이름을 또
- *   달아 **같은 자리에 제목이 둘**이었다.
- */
-test('★★★ 머리 글자가 칸을 따라가고, 제목이 두 번 나오지 않는다', () => {
-  const intake = read('intake.html');
-
-  /* ① 머리를 정적으로 박아 두지 않는다 */
-  assert.match(intake, /id="head-t"><\/h1>/, '머리 제목이 아직 박혀 있다');
-  assert.ok(intake.indexOf('<h1 class="head__t">보고서 생성 입력</h1>') === -1,
-    '옛 머리가 남아 있다 — 어느 칸을 보든 같은 말을 한다');
-
-  /* ② 칸 셋의 머리 글자가 한 곳에 모여 있다 */
-  assert.match(intake, /var HEADS = \{/, '칸별 머리 글자가 없다');
-  ['issuer:', 'ask:', 'files:'].forEach((k) => assert.match(intake, new RegExp(k),
-    `HEADS 에 「${k}」 가 없다`));
-
-  /* ③ ★ 카드가 같은 문장을 **베껴 쓰지 않는다.** 두 벌이면 한쪽만 고치는 날
-     머리와 본문이 다른 말을 한다 */
-  const code = intake.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '');
-  ['발행 주체', '무엇을 만들까요'].forEach((t) => {
-    const hits = (code.match(new RegExp(`'${t}'`, 'g')) || []).length;
-    assert.strictEqual(hits, 1, `「${t}」 가 ${hits}곳에 적혀 있다 — HEADS 한 곳이어야 한다`);
-  });
-
-  /* ④ 머리로 올라간 칸은 카드에서 제 이름을 뗀다 */
-  assert.match(intake, /function cardHead\(/, '카드 제목을 가려 붙이는 자리가 없다');
-  assert.match(intake, /if \(PART && PART === part\) return box;/,
-    '머리에 있는데 카드에도 또 붙인다');
+  assert.strictEqual(open[4].current, true, '출력정보 입력이 지금 절이어야 한다');
+  assert.strictEqual(open[4].opensTo, 'spec');
 });
 
 /* ═════════ 완료·진행율 표기 〈2026-08-23 사장님 지시〉 ═════════ */
@@ -936,63 +820,62 @@ test('★★★ 머리 글자가 칸을 따라가고, 제목이 두 번 나오�
  *   「아직 아무것도 안 했다」를 보고 처음부터 다시 한다 (§4.9).
  */
 test('★★★ 못 쟀으면 완료도 진행율도 말하지 않는다', () => {
-  const F = require('../ui/platform/flow-core.js');
   const p = F.sectionProgress({});          // 아무것도 못 쟀다
 
-  assert.strictEqual(p.start.known, false, '발행 주체를 못 쟀는데 안다고 한다');
-  assert.strictEqual(p.start.done, false, '못 쟀는데 완료라고 한다');
-  assert.strictEqual(p.start.pct, null, '못 쟀는데 숫자를 적었다 — 0% 는 「안 했다」로 읽힌다');
-  assert.strictEqual(p.make.known, false, '값도 출력조건도 못 쟀는데 안다고 한다');
+  assert.strictEqual(p.basics.known, false, '발행 주체를 못 쟀는데 안다고 한다');
+  assert.strictEqual(p.basics.done, false, '못 쟀는데 완료라고 한다');
+  assert.strictEqual(p.basics.pct, null, '못 쟀는데 숫자를 적었다 — 0% 는 「안 했다」로 읽힌다');
+  assert.strictEqual(p.make.known, false, '값을 못 쟀는데 안다고 한다');
   assert.strictEqual(p.make.pct, null, '못 쟀는데 숫자를 적었다');
-  /* ★ 완성 보고서는 **여기서 잴 수 없다.** 산출물 목록은 그 화면이 받아 온다 —
+  assert.strictEqual(p.spec.known, false, '출력조건을 못 쟀는데 안다고 한다');
+  /* ★ 완성결과물은 **여기서 잴 수 없다.** 산출물 목록은 그 화면이 받아 온다 —
      못 쟀다고 두는 것이 「0건」이라고 적는 것보다 낫다 (§4.9) */
   assert.strictEqual(p.done.known, false, '못 재는 칸을 안다고 한다');
 });
 
-test('★★★ 세 절이 각자 맞는 표기를 낸다 (완료 / 진행율)', () => {
-  const F = require('../ui/platform/flow-core.js');
+test('★★★ 여섯 절이 각자 맞는 표기를 낸다 (완료 / 진행율)', () => {
   const p = F.sectionProgress({
     issuerSet: true, projectId: 'LP-DC-2026-001',
     sources: { total: 5, read: 3 }, fields: { filled: 7, total: 10 }, specLocked: true,
   });
 
-  /* ① 은 **둘 다** 돼야 끝난 것이다 — 발행 주체와 요청문 */
-  assert.strictEqual(p.start.done, true, '① 발행 주체·요청문이 다 있는데 완료가 아니다');
+  assert.strictEqual(p.basics.done, true, '① 발행 주체가 있는데 완료가 아니다');
+  assert.strictEqual(p.ask.done, true, '② 프로젝트가 있으면 요청문은 이미 들어간 것이다');
 
-  /* ★★★ ② 는 자료·값·출력조건을 **한 칸에서** 본다 〈D-162〉.
-   *   끝났다고 보는 것은 **출력조건 확정**이다 — 프로젝트를 만든 것만으로
-   *   끝났다고 하면 **값을 하나도 안 넣고 칸이 초록**이 된다. */
-  assert.strictEqual(p.make.done, true, '② 출력조건을 확정했는데 완료가 아니다');
-  assert.strictEqual(p.make.pct, 70, `② 프로젝트가 있으면 값 비율이다 7/10 → 70% (${p.make.pct})`);
-  assert.match(p.make.detail, /10개 중 7개/, '② 무엇을 셌는지 안 적었다');
-  assert.match(p.make.detail, /출처/, '② 출처가 있어야 센다는 규칙을 안 알려 준다');
-  assert.match(p.make.detail, /출력조건 확정/, '② 출력조건을 확정했다는 사실을 안 적었다');
+  /* ③ 은 **프로젝트를 만들었는가**로 끝난다. 진행율은 자료를 얼마나 읽었는지다 */
+  assert.strictEqual(p.sources.done, true, '③ 프로젝트를 만들었는데 완료가 아니다');
+  assert.strictEqual(p.sources.pct, 60, `③ 5건 중 3건이면 60% 여야 한다 (${p.sources.pct})`);
+  assert.match(p.sources.detail, /5건 중 3건/, '③ 무엇을 셌는지 안 적었다');
 
-  /* ★ 진행율은 **②에만** 있다. 나머지는 중간이 없다 —
+  /* ★★ ④ 는 **필수를 다 채워야** 끝난다. 7/10 은 아직이다 —
+     여기서 「완료」로 적으면 빈 칸을 두고 다음으로 간다 */
+  assert.strictEqual(p.make.pct, 70, `④ 7/10 이면 70% 여야 한다 (${p.make.pct})`);
+  assert.strictEqual(p.make.done, false, '④ 필수가 덜 찼는데 완료라고 한다');
+  assert.match(p.make.detail, /10개 중 7개/, '④ 무엇을 셌는지 안 적었다');
+  assert.match(p.make.detail, /출처/, '④ 출처가 있어야 센다는 규칙을 안 알려 준다');
+
+  assert.strictEqual(p.spec.done, true, '⑤ 확정했는데 완료가 아니다');
+
+  /* ★ 진행율은 **③④에만** 있다. 나머지는 중간이 없다 —
      없는 중간을 지어내면 뜻 없는 숫자가 돈다 */
-  assert.strictEqual(p.start.pct, null, '①에 없는 진행율을 지어냈다');
-  assert.strictEqual(p.done.pct, null, '③에 없는 진행율을 지어냈다');
+  assert.strictEqual(p.basics.pct, null, '①에 없는 진행율을 지어냈다');
+  assert.strictEqual(p.ask.pct, null, '②에 없는 진행율을 지어냈다');
+  assert.strictEqual(p.spec.pct, null, '⑤에 없는 진행율을 지어냈다');
+  assert.strictEqual(p.done.pct, null, '⑥에 없는 진행율을 지어냈다');
 });
 
-/**
- * ★★ **프로젝트 전에는 「자료를 읽는 중」이 진행율이다** 〈D-162〉.
- *   합치기 전에는 그것이 딴 칸(②)의 숫자였다. 합친 뒤에도 그 사실이
- *   보여야 한다 — 안 그러면 자료를 읽는 동안 칸이 아무 말도 안 한다.
- */
-test('★★ 프로젝트가 생기기 전에는 자료 읽은 비율을 낸다', () => {
-  const F = require('../ui/platform/flow-core.js');
-  const p = F.sectionProgress({ sources: { total: 5, read: 3 } });
-  assert.strictEqual(p.make.pct, 60, `자료 5건 중 3건이면 60% 여야 한다 (${p.make.pct})`);
-  assert.strictEqual(p.make.done, false, '출력조건을 확정 안 했는데 완료다');
-  assert.match(p.make.detail, /5건 중 3건/, '무엇을 셌는지 안 적었다');
+test('★★ 필수를 다 채우면 ④가 완료가 된다', () => {
+  const p = F.sectionProgress({ projectId: 'P', fields: { filled: 10, total: 10 } });
+  assert.strictEqual(p.make.done, true, '다 채웠는데 완료가 아니다');
+  assert.strictEqual(p.make.pct, 100);
 });
 
 test('★★ 자료가 0건인 것을 0% 로 적지 않는다', () => {
-  const F = require('../ui/platform/flow-core.js');
-  const p = F.sectionProgress({ sources: { total: 0, read: 0 } });
+  const p = F.sectionProgress({ projectId: 'LP-1', sources: { total: 0, read: 0 } });
   /* 자료 없이도 진행은 된다(값을 직접 넣는 길). 0% 로 적으면 막힌 것으로 읽힌다 */
-  assert.strictEqual(p.make.pct, null, '자료 0건을 0% 로 적었다 — 막힌 것으로 읽힌다');
-  assert.match(p.make.detail, /직접/, '자료 없이 갈 때 무엇을 해야 하는지 안 알려 준다');
+  assert.strictEqual(p.sources.pct, null, '자료 0건을 0% 로 적었다 — 막힌 것으로 읽힌다');
+  assert.strictEqual(p.sources.done, true, '프로젝트가 있으면 이 칸은 지나온 것이다');
+  assert.match(p.sources.detail, /직접/, '자료 없이 갈 때 무엇을 해야 하는지 안 알려 준다');
 });
 
 test('★★ 화면이 완료·진행율을 실제로 그린다 (규칙은 flow-core 한 곳)', () => {
