@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="99047fcc">
+<html lang="ko" data-lp-build="cc1a2a0a">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -300,7 +300,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=99047fcc">
+<link rel="stylesheet" href="tokens.css?v=cc1a2a0a">
 <style>
 /* 색·간격·반경 토큰은 tokens.css 하나가 정한다 (LinkPilot Design System v1.1) */
 * { box-sizing: border-box; }
@@ -621,7 +621,7 @@ select:focus-visible, button:focus-visible { outline: 2px solid var(--lime-deep)
 
 /* ── 활동 그래프 — 올리는 동안 **어디까지 갔는지** 보여 준다 ─────────
    ★ 막대 하나만 있으면 「멈춘 것 같은데 어디서 멈췄나」에 답할 수 없다.
-     보내는 중과 서버가 읽는 중은 걸리는 이유가 다르다 — 앞은 회선, 뒤는 파일.
+     「보내는 중」과 「올리는 중」은 걸리는 이유가 다르다 — 앞은 회선, 뒤는 파일.
    ★ 움직임을 싫어하는 설정(prefers-reduced-motion)에서는 **색으로만** 말한다. */
 .fx { margin-top: 12px; border: 1px solid var(--line); border-radius: 14px;
   background: var(--surface); padding: 15px 16px 11px; }
@@ -753,10 +753,10 @@ select:focus-visible, button:focus-visible { outline: 2px solid var(--lime-deep)
   </div>
 </div>
 
-<script src="gate-core.js?v=99047fcc"></script>
-<script src="flow-core.js?v=99047fcc"></script>
-<script src="upload-core.js?v=99047fcc"></script>
-<script src="versions-core.js?v=99047fcc"></script>
+<script src="gate-core.js?v=cc1a2a0a"></script>
+<script src="flow-core.js?v=cc1a2a0a"></script>
+<script src="upload-core.js?v=cc1a2a0a"></script>
+<script src="versions-core.js?v=cc1a2a0a"></script>
 <script>
 /**
  * 붙이는 쪽이 채우는 유일한 값.
@@ -802,7 +802,7 @@ window.LINKPILOT_FILES = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=99047fcc" data-lp-global="LINKPILOT_FILES"></script>
+<script src="embed-bridge.js?v=cc1a2a0a" data-lp-global="LINKPILOT_FILES"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -1719,7 +1719,7 @@ window.LINKPILOT_FILES = {
   /* ── 활동 그래프 ─────────────────────────────────────────
    *
    * ★★ 왜 만들었나: 막대 하나로는 **어디서 걸렸는지** 알 수 없다. 「보내는 중」이
-   *   오래 걸리는 것과 「서버가 읽는 중」이 오래 걸리는 것은 원인이 다르다 —
+   *   오래 걸리는 것과 「올리는 중」이 오래 걸리는 것은 원인이 다르다 —
    *   앞은 회선, 뒤는 파일(스캔본이면 오래 걸린다). 둘을 같은 막대로 그리면
    *   사용자는 고장으로 읽고 창을 닫는다. 실제로 닫으면 올린 것이 없다.
    *
@@ -1850,7 +1850,18 @@ window.LINKPILOT_FILES = {
   }
 
   /** 올리는 갈래의 칸 이름 — 한 곳에서 정한다 */
-  var UP_STAGES = ['고른 파일', '보내는 중', '서버가 읽는 중', '붙었습니다'];
+  /* ★★★ **「서버가 읽는 중」을 「올리는 중」으로 바꿨다** 〈2026-08-29 사장님 지시 · D-168〉.
+   *
+   *   이 칸은 **첨부 진행율**이다 — 파일을 올리는 동안 어디까지 갔는지만 말한다.
+   *   그런데 「읽는 중」이라고 적어 두니, 바로 아래 「② 자료 스캔」의 **「읽어서
+   *   값으로」**와 같은 말로 읽혔다. 사장님이 그 둘을 한 화면에서 보시고
+   *   「스캔이 벌써 돌았나」로 읽으셨다.
+   *
+   *   ★ 서버가 하는 일이 무엇이든, **사용자 쪽에서 이 구간은 아직 올리는 중**이다.
+   *     화면은 사용자가 겪는 것을 말해야지 서버의 사정을 말할 자리가 아니다.
+   *   ★★ 걸리는 이유가 다르다는 사실은 그대로다 — 앞은 회선, 뒤는 파일.
+   *     그것은 칸을 **나눠 두는** 것으로 이미 말하고 있고, 이름으로 또 말할 필요는 없다. */
+  var UP_STAGES = ['고른 파일', '보내는 중', '올리는 중', '붙었습니다'];
 
   function uploadStage(u) {
     if (!u) return 0;
@@ -1891,7 +1902,7 @@ window.LINKPILOT_FILES = {
     var h = el('div', 'up__h');
     h.appendChild(el('b', null,
       u.phase === 'sending' ? '보내는 중'
-        : u.phase === 'reading' ? '서버가 읽는 중'
+        : u.phase === 'reading' ? '올리는 중'
         : u.phase === 'done' ? '올렸습니다' : '올리지 못했습니다'));
     h.appendChild(el('span', 'up__v' + (u.pct === null || u.pct === undefined ? ' up__v--none' : ''),
       (u.pct === null || u.pct === undefined) ? '진행률을 알 수 없습니다' : (u.pct + '%')));
@@ -2416,7 +2427,7 @@ window.LINKPILOT_FILES = {
     var up = uploadCard();
     if (up) {
       card.appendChild(stepHead(3, '첨부 진행율',
-        '보내는 중 · 서버가 읽는 중 · 끝남 — 지금 어디인지 % 와 그래프로 보입니다.'));
+        '보내는 중 · 올리는 중 · 끝남 — 지금 어디인지 % 와 그래프로 보입니다.'));
       card.appendChild(up);
       return;
     }
