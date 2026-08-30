@@ -3,16 +3,29 @@ name: im-agent-ci
 # IM Agent 회귀 테스트. 네트워크 호출 없음(IM_AGENT_OFFLINE=1) → 시크릿 불필요.
 # 재무계산·교차검증·환각검출은 아침 크론과 달리 조용히 틀리면 알 방법이 없으므로
 # 모든 PR에서 강제 실행한다.
+# ★★★ **문서만 바꾼 PR 이 검사 0개로 지나갔다** 〈2026-08-30 · 사장님 화면: 「CI」 칸이 비어 있음〉.
+#   앞 판은 `im-agent/**` 만 봤다. 그런데 이 저장소의 검사는 **문서도 잰다** —
+#   결정 건수(`docs/결정-기록.md` 의 줄 수)와 사고기록 색인(`MEMORY.md`)이 맞는지
+#   `flow.test.js` · `memory-index.test.js` 가 센다.
+#   ★ 그래서 문서만 고친 PR 이야말로 **그 검사가 필요한 자리**인데 아무것도 안 돌았다.
+#   ★★ 「검사가 없다」와 「검사가 통과했다」는 다른 사실이다 — 화면에는 둘 다
+#     빈 동그라미로 보인다. 그것이 이번에 사장님이 물으신 자리다.
 on:
   push:
     branches-ignore: []
     paths:
       - 'im-agent/**'
-      - '.github/workflows/im-agent-ci.yml'
+      - 'docs/**'
+      - 'CLAUDE.md'
+      - 'MEMORY.md'
+      - '.github/workflows/**'
   pull_request:
     paths:
       - 'im-agent/**'
-      - '.github/workflows/im-agent-ci.yml'
+      - 'docs/**'
+      - 'CLAUDE.md'
+      - 'MEMORY.md'
+      - '.github/workflows/**'
   workflow_dispatch:
 
 concurrency:
