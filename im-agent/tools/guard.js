@@ -375,12 +375,25 @@ function backupNote() {
   try {
     const b = require('./backup.js');
     const fs2 = require('fs');
+    /* ★★★ **여기서 재는 것은 「이 자리」다 — 운영 자리가 아니다**
+     *   〈2026-08-30 · D-184〉.
+     *
+     *   앞 판은 이 줄이 「아직 한 벌도 안 떴다」로만 끝났다. 그런데 이 자리는
+     *   개발 컨테이너라, 여기에 백업이 없는 것은 **당연한 일**이다 — 사장님
+     *   자료는 NAS 에 있다. 그 말만 보고 「백업이 없다」고 읽으면 **운영 자리에
+     *   실제로 있는지 없는지와 무관한 말**을 매번 하게 된다.
+     *
+     * ★ 그래서 **어디를 잰 것인지**를 함께 적고, 운영 자리는 배포가 잰다는
+     *   사실을 가리킨다 (`deploy-nas` 의 「Back up project data」). */
     if (!fs2.existsSync(b.DEST)) {
-      return '  · 자료 백업(H-1) **아직 한 벌도 안 떴다** — `npm run backup:write`'
-        + ' 로 뜨고 `npm run backup:drill` 로 되살아나는지 잰다\n';
+      return '  · 자료 백업(H-1) **이 자리엔 한 벌도 없다** (개발 컨테이너 —'
+        + ' 사장님 자료는 NAS 에 있다). **운영 자리는 배포가 잰다** —'
+        + ' 배포 요약의 「자료 백업」 줄을 본다. 여기서 재 보려면'
+        + ' `npm run backup:write` · `npm run backup:drill`\n';
     }
     const v = b.verify();
-    return `  · 자료 백업(H-1) ${v.ok ? '뜬 것이 지금 자료와 같다' : v.line}\n`;
+    return `  · 자료 백업(H-1) ${v.ok ? '뜬 것이 지금 자료와 같다' : v.line}`
+      + ' (이 자리 기준 — 운영 자리는 배포가 잰다)\n';
   } catch (e) {
     return `  · 자료 백업(H-1) 못 쟀다 — ${String(e.message).split('\n')[0]}\n`;
   }
