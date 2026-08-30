@@ -258,6 +258,18 @@ function build() {
   console.log('  ' + path.relative(process.cwd(), web) + ' · 웹앱용 ' + PWA.length + '장'
     + ' (오려 내는 자리용 · 안 오려 내는 자리용)');
 
+  /* ★★★ **넘기는 폴더도 같이 갱신한다** 〈2026-08-30 · D-189〉.
+   *   사장님이 「아직 반영이 안 됨」을 세 번 말씀하셨다. 그림은 다 있는데
+   *   **넣는 자리가 저쪽**이라 아무것도 안 바뀌고 있었다. 그래서 저쪽에서
+   *   **복사만 하면 되도록** 한 폴더에 담아 둔다.
+   *   ★ 손으로 복사하면 다시 그린 날 **넘긴 것만 옛말을 한다** (M-63 과 같은 결).
+   *     그래서 여기서 함께 갱신하고, 검사가 바이트를 대 본다. */
+  const hand = path.join(HERE, '..', '..', 'docs', '전달-webapp');
+  if (fs.existsSync(hand)) {
+    PWA.forEach(([name]) => fs.copyFileSync(path.join(web, name), path.join(hand, name)));
+    console.log('  ' + path.relative(process.cwd(), hand) + ' · 넘기는 폴더도 갱신했다');
+  }
+
   /* ★ 그리고 **바로 쓸 수 있는 한 벌**로 묶는다. 맥에서 `iconutil` 을 안 쳐도 된다 */
   const out = path.join(HERE, 'LinkPilot.icns');
   const buf = icns(set);

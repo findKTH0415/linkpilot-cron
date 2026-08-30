@@ -1,6 +1,6 @@
 'use strict';
 /**
- * oneshot-rescue.test.js — **못 읽은 것은 지우지 않는다** 〈2026-08-28 · D-189〉.
+ * oneshot-rescue.test.js — **못 읽은 것은 지우지 않는다** 〈2026-08-28 · D-190〉.
  *
  * ★★ 실제 신고(사장님 화면): 13개를 올렸는데 9개가 `GEMINI_ALL_KEYS_UNAVAILABLE`
  *   로 실패했고, 화면이 「이 9건은 남아 있지 않습니다」라고 적었다. 사실이었다 —
@@ -66,7 +66,7 @@ test('★★★ 못 읽은 파일은 보관 자료에 남는다 — 지우지 �
   ], ['못읽는다.png']);
 
   assert.deepStrictEqual(out.rescued, ['못읽는다.png'],
-    '못 읽은 것을 보관으로 옮기지 않았다 — 이 한 줄이 D-189 의 전부다');
+    '못 읽은 것을 보관으로 옮기지 않았다 — 이 한 줄이 D-190 의 전부다');
 
   const kept = fs.readdirSync(path.join(p, '02_Source_Data'));
   assert.ok(kept.indexOf('못읽는다.png') !== -1,
