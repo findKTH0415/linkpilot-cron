@@ -69,8 +69,69 @@ test('★ 다른 출처를 만나면 그때까지 센 것과 「못 봤다」를
 });
 
 test('화면이 그 말을 실제로 띄운다', () => {
-  assert.match(code, /F\.nestedAppNote && F\.nestedAppNote\(\)/,
-    '화면이 겹침을 물어보지 않는다');
+  /* ★ 〈2026-08-29 · D-179〉 이 화면은 앱이 **바로** 틀에 넣는 자리라
+   *   `direct: true` 로 묻는다 — 나와 맨 위 사이에 문서가 있으면 앱이 자기
+   *   페이지를 한 겹 더 넣은 것이다. 앞 판은 `LINKPILOT_EMBED` 만 세다가
+   *   실제 화면에서 **한 줄도 안 떴다.** */
+  assert.match(code, /F\.nestedAppNote && F\.nestedAppNote\(null, \{ direct: true \}\)/,
+    '화면이 겹침을 물어보지 않거나, 바로 넣히는 자리로 안 묻는다');
   assert.match(code, /배너와 탭이 두 벌로 보입니다/, '띄우는 제목이 없다');
   assert.match(code, /notice\('note--bad'/, '빨간 안내로 띄우지 않는다');
+});
+
+/**
+ * ★★★ **세는 자가 그 모양을 못 쟀다** 〈2026-08-29 사장님 화면 「잘못된 케이스」 · D-179〉.
+ *
+ *   배너·탭이 두 벌로 보이는 화면에서 **경고가 한 줄도 안 떴다.** `appDepth()` 는
+ *   위쪽 창이 `LINKPILOT_EMBED` 를 들고 있는지로 셌는데, 그 전역은 앱이
+ *   **우리 화면에 넣어 주는 것**이라 사이에 낀 것이 **앱 자신의 페이지**면
+ *   그 칸이 비어 있다.
+ *
+ * ★ 그래서 「나와 맨 위 사이에 문서가 있는가」를 따로 잰다. 무엇인지 몰라도
+ *   **있다는 사실**은 잴 수 있고, 그것만으로 원인을 가리키기에 충분하다.
+ */
+test('★★★ 위쪽이 전역을 안 들고 있어도 사이에 낀 문서를 잡는다 (direct)', () => {
+  const F = require(path.join(PLATFORM, 'flow-core.js'));
+
+  /* 앱(맨 위) → 앱(가운데, 전역 없음) → 이 화면 */
+  const top = {};
+  const mid = {};
+  const me = {};
+  top.parent = top; top.top = top;
+  mid.parent = top; mid.top = top;
+  me.parent = mid;  me.top = top;
+
+  const d = F.appDepth(me);
+  assert.strictEqual(d.apps, 0,
+    '표본이 재려는 모양이 아니다 — 가운데가 전역을 들고 있으면 앞 판도 잡는다');
+
+  const seen = F.midFrames(me);
+  assert.strictEqual(seen.mid, 1, '사이에 낀 문서를 못 셌다');
+  assert.strictEqual(seen.blocked, false, '못 본 것으로 잘못 적었다');
+
+  /* 맨 위에 바로 붙어 있으면 겹친 것이 아니다 */
+  const flat = { top: top };
+  flat.parent = top;
+  assert.strictEqual(F.midFrames(flat).mid, 0, '겹치지 않았는데 겹쳤다고 한다');
+
+  /* 맨 위 그 자체면 틀 안이 아니다 */
+  assert.strictEqual(F.midFrames(top).mid, 0, '맨 위인데 겹쳤다고 한다');
+  assert.strictEqual(F.midFrames(top).top, true, '맨 위인 것을 안 적는다');
+});
+
+/**
+ * ★★ **단계 화면에는 이 셈을 쓰지 않는다.** `basics` 같은 화면은 보고서 생성
+ *   흐름이 틀에 넣으므로 **사이에 하나가 정상으로** 있다. 그것을 겹침으로
+ *   세면 멀쩡한 화면마다 빨간 띠가 뜬다 — 그러면 진짜일 때 아무도 안 본다.
+ */
+test('★★ 바로 넣히는 자리가 아니면 사이에 낀 문서로 판정하지 않는다', () => {
+  const F = require(path.join(PLATFORM, 'flow-core.js'));
+  const top = {}; const mid = {}; const me = {};
+  top.parent = top; top.top = top;
+  mid.parent = top; mid.top = top;
+  me.parent = mid;  me.top = top;
+
+  const d = F.appDepth(me);
+  assert.strictEqual(F.nestedAppNote(d), null,
+    '단계 화면인데 겹쳤다고 말한다 — 멀쩡한 화면마다 빨간 띠가 뜬다');
 });

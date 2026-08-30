@@ -250,7 +250,7 @@ function run(argv) {
       const byBranch = { '(작업본)': parse(readAt(null, reg.doc), reg) };
 
       /**
-       * ★★★ **`origin/main` 은 늘 함께 본다** 〈2026-08-29 · D-179〉.
+       * ★★★ **`origin/main` 은 늘 함께 본다** 〈2026-08-29 · D-181〉.
        *
        *   하루에 **세 번** 겹쳤다 — D-164 · D-165 · D-169 를 main 이
        *   먼저 썼고, 그때마다 여섯 자리를 손으로 옮겼다.
