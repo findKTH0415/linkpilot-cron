@@ -265,15 +265,30 @@ test('★ 붙이기: 탭 이름을 화면·구성안이 복사해 적지 않는�
   assert.match(doc, /탭 이름을 복사해 적지 않는다/);
 });
 
-test('★★ 붙이기: 탭 안에서는 화면이 자체 제목을 그리지 않는다', () => {
+/* ★★★ **뒤집혔다** 〈2026-08-30 사장님 지시 · D-199 · D-200〉.
+ *
+ *   앞 판의 이름은 「탭 안에서는 화면이 자체 제목을 그리지 않는다」였다. 그것이
+ *   맞았던 이유는 하나뿐이다 — **앱이 사진 배너로 같은 이름을 그리고 있었다.**
+ *   그 배너를 지웠으므로(사장님 지시) 이제 그 규칙은 **앱 안에서 이름을 지운다.**
+ *
+ * ★ 그래서 검사도 함께 뒤집는다. 검사만 두면 **고친 화면이 빨개진다.**
+ * ★★ 그리려는 것을 실제로 그리는지는 `report-head.test.js` 가 잰다(셋). 여기서는
+ *   **탭 쪽 약속**만 본다 — 이름을 복사해 적지 않았는가, 끄는 줄이 되살아났는가.
+ */
+test('★★ 붙이기: 머리는 화면이 단다 — 탭이라고 제목을 끄지 않는다', () => {
   const src = fs.readFileSync(
     path.join(__dirname, '..', 'ui', 'platform', 'report-flow.html'), 'utf8');
-  // ★ 탭 이름과 섹션 제목이 **같아졌다**(2026-08-18) — 안 끄면 같은 글자가 두 번 나온다
-  assert.match(src, /if \(!C\.inTab\) view\.appendChild\(el\('h1', null, F\.SECTION\.title\)\);/);
-  // 기본은 false — 단독으로 열 때 true 면 이름 없는 화면이 된다
+  const code = src.replace(/<!--[\s\S]*?-->/g, ' ')
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/^[ \t]*\/\/.*$/gm, ' ');   /* 주석을 떼고 본다 (CLAUDE.md §8) */
+  assert.ok(!/if\s*\(\s*!\s*C\.inTab\s*\)\s*view\.appendChild/.test(code),
+    '탭 안이면 제목을 끄는 줄이 되살아났다 — 앱은 이제 배너를 안 그린다 (D-200)');
+  assert.match(code, /F\.SECTION\.title/,
+    '제목을 flow-core 의 SECTION 에서 읽지 않는다');
+  // 기본은 false — 앱이 이 값으로 다른 것들을 가른다
   assert.match(src, /inTab: false,/);
   // 제목 문자열을 화면이 따로 들고 있지 않다
-  assert.ok(!/el\('h1', null, '보고서 생성'\)/.test(src), '제목이 두 벌이다');
+  assert.ok(!/el\('h1', null, '보고서/.test(code), '제목이 두 벌이다');
 });
 
 test('★ 붙이기: 4단계 화면을 탭 바에 따로 달지 않는다고 적어 둔다', () => {
