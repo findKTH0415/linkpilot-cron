@@ -41,13 +41,19 @@ function read(file) {
   const depth = ihdr.data[8];
   const color = ihdr.data[9];
   const interlace = ihdr.data[12];
-  if (depth !== 8 || color !== 6 || interlace !== 0) {
-    throw new Error(`이 읽개는 8비트 RGBA 만 읽는다 (깊이 ${depth} · 색유형 ${color} · 인터레이스 ${interlace})`);
+  /* ★★ **투명이 없는 판도 읽는다** 〈2026-08-30 · D-188 에서 걸렸다〉.
+   *   바탕을 흰색으로 찍으면 크로미움이 **알파 없는 꼴(색유형 2)** 로 쓴다.
+   *   그것을 못 읽고 던지면 「가장자리가 꽉 찼나」를 **아예 못 재게** 된다 —
+   *   못 재는 것과 실패하는 것은 다르지만, 여기서는 둘 다 안 된다.
+   *   ★ 알파가 없으면 **255(꽉 참)** 로 읽는다. 그것이 그 꼴의 뜻이다. */
+  const rgba = color === 6;
+  if (depth !== 8 || (color !== 6 && color !== 2) || interlace !== 0) {
+    throw new Error(`이 읽개는 8비트 RGB/RGBA 만 읽는다 (깊이 ${depth} · 색유형 ${color} · 인터레이스 ${interlace})`);
   }
   const raw = zlib.inflateSync(Buffer.concat(
     cs.filter((c) => c.type === 'IDAT').map((c) => c.data)));
 
-  const bpp = 4;
+  const bpp = rgba ? 4 : 3;
   const stride = width * bpp;
   const out = Buffer.alloc(height * stride);
   let src = 0;
@@ -76,7 +82,7 @@ function read(file) {
     width, height,
     at(x, y) {
       const i = y * stride + x * bpp;
-      return [out[i], out[i + 1], out[i + 2], out[i + 3]];
+      return [out[i], out[i + 1], out[i + 2], rgba ? out[i + 3] : 255];
     },
   };
 }
