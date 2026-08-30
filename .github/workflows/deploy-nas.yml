@@ -1625,6 +1625,59 @@ jobs:
               fi ;;
           esac
 
+      - name: Back up project data (H-1 · 한 벌 남긴다)
+        if: ${{ always() && needs.plan.outputs.dry_run != 'true' }}
+        env:
+          NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+          NAS_USER: ${{ secrets.NAS_SSH_USER }}
+          ENGINE_ROOT: ${{ vars.LP_ENGINE_ROOT || '/volume1/docker/linkpilot' }}
+        run: |
+          set -u
+          set +e
+          # ★★★ **복원시험이 초록이어도 백업은 없었다** 〈2026-08-30 · D-184〉.
+          #
+          #   아래 「복원시험」은 임시 자리에 떴다가 **끝나면 지운다**
+          #   (`backup.js` 의 drill 이 `finally` 에서 지운다). 그러니 그것이
+          #   증명하는 것은 **「되살리는 길이 돈다」**이지 **「되살릴 것이 있다」**가
+          #   아니다. 둘은 다른 사실인데 화면에는 똑같이 초록으로 보였다.
+          #
+          #   ★ 그래서 **남는 한 벌**을 여기서 뜬다. 지금 이 디스크가 죽으면
+          #     되살릴 것이 실제로 있어야 한다.
+          #   ★★ **손으로 돌려야 도는 장치는 안 돈다** (D-88). 나갈 때마다 돈다.
+          #   ★ 배포를 **막지 않는다** — 재는 것이지 문턱이 아니다.
+          OUT=$(ssh -o BatchMode=yes -o ConnectTimeout=20 -i ~/.ssh/id_deploy \
+            "$NAS_USER@$NAS_HOST" \
+            "cd '$ENGINE_ROOT' 2>/dev/null || exit 9
+             for N in node /usr/local/bin/node \
+                      /volume1/@appstore/Node.js_v20/usr/local/bin/node \
+                      /volume1/@appstore/Node.js_v18/usr/local/bin/node; do
+               if command -v \"\$N\" >/dev/null 2>&1; then
+                 \"\$N\" im-agent/tools/backup.js write || exit 1
+                 exec \"\$N\" im-agent/tools/backup.js verify
+               fi
+             done
+             echo 'NONODE'" 2>&1 | tr -d '\r')
+
+          # ★ **진단기가 실제로 돌았는지**부터 본다. ssh 가 못 붙은 것을
+          #   「백업 실패」로 적으면 멀쩡한 디스크를 두고 없는 고장을 찾으러 간다.
+          # ★ 도구는 성패와 **무관하게** 「떴다」·「견줌」을 찍는다. 그 글자가 없으면
+          #   도구가 아예 안 돈 것이다 — 못 쟀다와 실패는 다른 사실이다.
+          if ! printf '%s' "$OUT" | grep -q '떴다\|견줌'; then
+            echo "자료 백업: 못 쟀다 — 진단기가 안 돌았다 (ssh 가 안 붙었거나 node 가 없다). 받은 답: ${OUT:-NONODE}"
+            echo "자료 백업: **못 쟀다** (실패한 것과 **다른 사실**이다)" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          printf '%s\n' "$OUT"
+          if printf '%s' "$OUT" | grep -q '뜬 것이 지금 자료와 같다'; then
+            echo "::notice::**자료 백업 한 벌이 남았다.** 뜬 것이 지금 자료와 같다 (H-1)."
+            printf '자료 백업: **한 벌 남았다** — %s\n' "$(printf '%s' "$OUT" | grep '떴다' | head -1)" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning::**자료 백업을 못 남겼다.** 복원시험이 초록이어도 그것은 「되살리는 길이 돈다」일 뿐, **되살릴 것이 있다**는 뜻이 아니다."
+            printf '자료 백업: **못 남겼다** — %s\n' "$(printf '%s' "$OUT" | head -1)" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit 0
+
       - name: Restore drill (복원시험 · 지침 §11-4)
         if: ${{ always() && needs.plan.outputs.dry_run != 'true' }}
         env:

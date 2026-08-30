@@ -65,3 +65,6 @@ im-agent/ui/platform/merge-watch.html
 #   자리에서는 「배포 단계 0개」로 그려진다. 그것이 커밋되면 저장소가 옛말 하는
 #   화면을 갖게 된다 (MEMORY M-05).
 deploy-report.html
+
+# 앱 자리 지도 산출물 — 주소가 채워진 판이라 커밋하지 않는다 (§2 · D-185)
+.appview/
