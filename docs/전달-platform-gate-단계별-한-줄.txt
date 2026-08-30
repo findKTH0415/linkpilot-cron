@@ -1,0 +1,26 @@
+LinkPilot Platform — 초안 PR 을 합칠 때 충돌 화면에 넣을 줄
+2026-08-31 · 실측으로 만든 것입니다 (여섯을 실제로 합쳐 본 결과)
+
+【이 파일은 무엇입니까】
+초안 PR 여섯을 순서대로 합치시면 4·5·6단계에서 package.json 한 곳이 충돌합니다.
+검사 목록을 적는 "gate" 줄에 각 PR 이 자기 검사를 덧붙였기 때문입니다.
+
+GitHub 충돌 화면에서 <<<<<<< 로 시작해 >>>>>>> 로 끝나는 덩어리 전체를 지우고,
+그 단계의 줄을 통째로 넣으시면 됩니다.
+
+★ 단계마다 줄이 다릅니다. 아직 없는 검사 파일을 부르면 게이트가 깨지므로
+  반드시 그 단계의 줄을 쓰십시오.
+
+★★ 앞뒤 들여쓰기(공백 4칸)와 끝의 쉼표까지 그대로입니다.
+
+── 4단계 · PR 5번 (보고서 자리 상단 배너 삭제 + 화면이 머리를 단다) ────────────────────────────
+
+    "gate": "node verify-build.js linkpilot-platform.deploy.html && node check-tdz.js && node check-undefined.js && node test-popup-guard.js && node test-auth-loop.js && node test-build-parity.js && node test-css-hazards.js && node test-app-facts.js && node test-sync-collections.js && node test-card-noovercut.js && node test-brief-sections.js && node test-theme-parity.js && node test-empty-keys.js && node test-icon-duplicates.js && node test-frame-guard.js && node test-sw-routing.js && node test-report-no-hero.js",
+
+── 5단계 · PR 6번 (연도별 통화량 최근 5개년) ────────────────────────────
+
+    "gate": "node verify-build.js linkpilot-platform.deploy.html && node check-tdz.js && node check-undefined.js && node test-popup-guard.js && node test-auth-loop.js && node test-build-parity.js && node test-css-hazards.js && node test-app-facts.js && node test-sync-collections.js && node test-card-noovercut.js && node test-brief-sections.js && node test-theme-parity.js && node test-empty-keys.js && node test-icon-duplicates.js && node test-frame-guard.js && node test-sw-routing.js && node test-report-no-hero.js && node test-call-years.js",
+
+── 6단계 · PR 2번 (기기 한도에서 자리 비우기) ────────────────────────────
+
+    "gate": "node verify-build.js linkpilot-platform.deploy.html && node check-tdz.js && node check-undefined.js && node test-popup-guard.js && node test-auth-loop.js && node test-build-parity.js && node test-css-hazards.js && node test-app-facts.js && node test-sync-collections.js && node test-card-noovercut.js && node test-brief-sections.js && node test-theme-parity.js && node test-empty-keys.js && node test-icon-duplicates.js && node test-frame-guard.js && node test-sw-routing.js && node test-report-no-hero.js && node test-call-years.js && node test-device-release.js",
