@@ -1665,6 +1665,7 @@ jobs:
           if ! printf '%s' "$OUT" | grep -q '떴다\|견줌'; then
             echo "자료 백업: 못 쟀다 — 진단기가 안 돌았다 (ssh 가 안 붙었거나 node 가 없다). 받은 답: ${OUT:-NONODE}"
             echo "자료 백업: **못 쟀다** (실패한 것과 **다른 사실**이다)" >> "$GITHUB_STEP_SUMMARY"
+            echo "LP_OPS backup=unmeasured" | tee -a "$RUNNER_TEMP/lp-ops.txt"
             exit 0
           fi
 
@@ -1672,9 +1673,11 @@ jobs:
           if printf '%s' "$OUT" | grep -q '뜬 것이 지금 자료와 같다'; then
             echo "::notice::**자료 백업 한 벌이 남았다.** 뜬 것이 지금 자료와 같다 (H-1)."
             printf '자료 백업: **한 벌 남았다** — %s\n' "$(printf '%s' "$OUT" | grep '떴다' | head -1)" >> "$GITHUB_STEP_SUMMARY"
+            echo "LP_OPS backup=ok" | tee -a "$RUNNER_TEMP/lp-ops.txt"
           else
             echo "::warning::**자료 백업을 못 남겼다.** 복원시험이 초록이어도 그것은 「되살리는 길이 돈다」일 뿐, **되살릴 것이 있다**는 뜻이 아니다."
             printf '자료 백업: **못 남겼다** — %s\n' "$(printf '%s' "$OUT" | head -1)" >> "$GITHUB_STEP_SUMMARY"
+            echo "LP_OPS backup=none" | tee -a "$RUNNER_TEMP/lp-ops.txt"
           fi
           exit 0
 
@@ -1716,6 +1719,7 @@ jobs:
           if ! printf '%s' "$OUT" | grep -q '복원시험'; then
             echo "복원시험: 못 쟀다 — 진단기가 안 돌았다 (ssh 가 안 붙었거나 node 가 없다). 받은 답: ${OUT:-NONODE}"
             echo "복원시험: **못 쟀다** (실패한 것과 **다른 사실**이다)" >> "$GITHUB_STEP_SUMMARY"
+            echo "LP_OPS drill=unmeasured" | tee -a "$RUNNER_TEMP/lp-ops.txt"
             exit 0
           fi
 
@@ -1723,12 +1727,15 @@ jobs:
           if printf '%s' "$OUT" | grep -q '되살아난다'; then
             echo "::notice::**복원시험 통과.** 뜬 것을 빈 자리에 실제로 되살려 바이트까지 댔다 (지침 §11-4)."
             printf '복원시험: **되살아난다** — %s\n' "$(printf '%s' "$OUT" | grep '되살아난다' | head -1)" >> "$GITHUB_STEP_SUMMARY"
+            echo "LP_OPS drill=ok" | tee -a "$RUNNER_TEMP/lp-ops.txt"
           elif printf '%s' "$OUT" | grep -q '못 쟀다\|한도'; then
             echo "::warning::**복원시험을 못 쟀다.** 자료가 한도를 넘었거나 잴 자료가 없다 — 표본을 몰래 줄이지 않고 못 쟀다고 적는다. 한도는 저장소 변수 LP_BACKUP_MAX_MB 로 올린다."
             echo "복원시험: **못 쟀다** (한도 초과 또는 자료 없음)" >> "$GITHUB_STEP_SUMMARY"
+            echo "LP_OPS drill=unmeasured" | tee -a "$RUNNER_TEMP/lp-ops.txt"
           else
             echo "::error::**안 되살아난다.** 뜬 것과 되살린 것이 다르다 — 지금 이 디스크가 죽으면 그대로 잃는다. 위 로그의 빠진/다른 파일을 본다."
             echo "복원시험: **안 되살아난다** — 위 로그를 본다" >> "$GITHUB_STEP_SUMMARY"
+            echo "LP_OPS drill=fail" | tee -a "$RUNNER_TEMP/lp-ops.txt"
           fi
 
       # ★★★ **어디까지 닿았고 어디부터는 사람 손인지 매 배포마다 적는다**
@@ -1746,6 +1753,33 @@ jobs:
         run: |
           STAMP=$(grep -o "LP_BUILD = '[0-9a-f]*'" im-agent/ui/platform/linkpilot-platform.html \
             | head -1 | sed "s/.*'\(.*\)'/\1/")
+
+          # ★★★ **정기 운영점검이 읽을 표를 한자리에 모아 찍는다** 〈2026-08-30 · D-196〉.
+          #
+          #   매일 도는 점검은 **NAS 안을 못 본다.** 그래서 백업·복원시험 같은 운영
+          #   증빙이 전부 `UNVERIFIED` 로 나갔다 (운영지침 §2.3 · 문서 B 절).
+          #   그런데 그 값은 **이 배포가 NAS 안에서 이미 재고 있었다** — 다만 한국어
+          #   산문으로만 적혀 있어 기계가 못 읽었다.
+          #
+          # ★ 그래서 **글자가 고정된 표**(`LP_OPS 이름=값`)를 함께 찍는다. 점검은
+          #   이 워크플로의 마지막 성공 실행 로그에서 이 줄들만 집어 가면 된다.
+          # ★★ **산문을 지우지 않는다.** 사람이 읽는 줄과 기계가 읽는 줄은 쓰임이 다르다.
+          # ★★★ **없으면 없다고 찍는다.** 표가 아예 없는 것과 `unmeasured` 는 다른
+          #   사실이다 — 앞의 것은 단계가 안 돈 것이고, 뒤의 것은 돌았는데 못 잰 것이다.
+          echo "LP_OPS stamp=${STAMP:-none}" | tee -a "$RUNNER_TEMP/lp-ops.txt"
+          echo "LP_OPS run=$GITHUB_RUN_ID" | tee -a "$RUNNER_TEMP/lp-ops.txt"
+          grep -q 'LP_OPS backup=' "$RUNNER_TEMP/lp-ops.txt" 2>/dev/null \
+            || echo "LP_OPS backup=absent" | tee -a "$RUNNER_TEMP/lp-ops.txt"
+          grep -q 'LP_OPS drill=' "$RUNNER_TEMP/lp-ops.txt" 2>/dev/null \
+            || echo "LP_OPS drill=absent" | tee -a "$RUNNER_TEMP/lp-ops.txt"
+          {
+            echo "### 운영점검이 읽는 표 (LP_OPS)"
+            echo ""
+            echo '```'
+            sort -u "$RUNNER_TEMP/lp-ops.txt" 2>/dev/null || echo "LP_OPS backup=absent"
+            echo '```'
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
           {
             echo "### 이 배포가 닿은 곳 · 아직 사람 손인 곳"
             echo ""
