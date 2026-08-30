@@ -180,3 +180,56 @@ test('★★ .icns 안의 1024 조각이 지금 아이콘과 바이트까지 같
   assert.ok(found.equals(big),
     '.icns 안의 큰 그림이 지금 아이콘과 다르다 — 옛 판을 묶었다 (「고쳤는데 그대로」의 정체)');
 });
+
+/**
+ * ★★★ **웹앱(PWA) 아이콘 — 사장님이 실제로 설치하시는 자리**
+ *   〈2026-08-30 사장님 화면: 안드로이드 크롬 「설치 및 바로가기 만들기」 · D-188〉.
+ *
+ *   `.icns` 는 **맥 앱**용이다. 사장님이 「앱 다운로드」라고 하신 것은
+ *   **웹앱(PWA)** 이었고, 그 아이콘은 **웹 매니페스트의 PNG** 에서 온다.
+ *   앞 판은 맥 쪽만 만들어 두고 「고쳤다」고 말했다 — **고친 것이 그 자리에 안 닿았다.**
+ */
+test('★★★ 오려 내는 판(maskable)은 가장자리까지 꽉 차 있다', () => {
+  const B = require(path.join(BRAND, 'build-icon.js'));
+  const f = path.join(BRAND, 'pwa', 'linkpilot-maskable-512.png');
+  assert.ok(fs.existsSync(f), '오려 내는 판이 없다 — npm run brand:icon 으로 만든다');
+  const im = read(f);
+
+  /* 네 모서리가 **투명하지 않아야** 한다. 투명하면 안드로이드가 그것째로 오려
+     아이콘이 조그맣게 박힌 흰 동그라미가 된다 */
+  [[2, 2], [im.width - 3, 2], [2, im.height - 3], [im.width - 3, im.height - 3]]
+    .forEach(([x, y]) => {
+      assert.strictEqual(im.at(x, y)[3], 255,
+        `모서리 (${x},${y}) 가 비어 있다 — 오려 내면 아이콘이 쪼그라든다`);
+    });
+  assert.ok(B.PWA.some((r) => r[2] === 'maskable'), '오려 내는 판을 안 만든다');
+});
+
+test('★★ 안 오려 내는 판(any)은 둥근 사각형 밖이 비어 있다', () => {
+  const f = path.join(BRAND, 'pwa', 'linkpilot-512.png');
+  const im = read(f);
+  assert.strictEqual(im.at(2, 2)[3], 0,
+    '모서리가 안 비었다 — 오려 내지 않는 자리에서 각진 네모로 뜬다');
+});
+
+/**
+ * ★ 오려 내는 원은 한 변의 **80%** 다. 그림이 그 밖으로 나가면 잘린다.
+ *   `geometry.js` 의 값으로 재므로, 나중에 그림을 키우면 여기서 빨개진다.
+ */
+test('★★ 그림이 오려 내는 원(한 변의 80%) 안에 들어간다', () => {
+  const G2 = require(path.join(BRAND, 'geometry.js'));
+  const safeRadius = G2.CANVAS * 0.4;          // 지름 80% → 반지름 40%
+  assert.ok(G2.markReach() <= safeRadius,
+    `그림이 ${Math.round(G2.markReach())} 까지 닿는다 — 안전 반경 ${safeRadius} 를 넘어 잘린다`);
+});
+
+test('★★ 웹앱 아이콘 넉 장이 다 있고 크기가 맞다', () => {
+  const B = require(path.join(BRAND, 'build-icon.js'));
+  assert.strictEqual(B.PWA.length, 4, '웹앱 아이콘은 넉 장이다 (192·512 × 오림·안오림)');
+  B.PWA.forEach(([name, size]) => {
+    const f = path.join(BRAND, 'pwa', name);
+    assert.ok(fs.existsSync(f), `${name} 이 없다`);
+    const im = read(f);
+    assert.strictEqual(im.width, size, `${name} 의 폭이 ${im.width} 다 (${size} 여야 한다)`);
+  });
+});
