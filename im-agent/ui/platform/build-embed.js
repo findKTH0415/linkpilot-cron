@@ -63,6 +63,10 @@ function required() {
    *   (M-22 와 같은 결의 사고 — 짝이 깨진 배포는 오류를 안 낸다).
    *   ★ 그래서 「어디에 얹혔든 화면이면 싣는다」로 센다. */
   [FLOW.FILES_SECTION].forEach((sec) => { if (sec && sec.file) scan(sec.file); });
+  /* ★★★ **들어오는 자리도 묶음에 싣는다** 〈2026-08-30 · D-182〉.
+   *   `index.html` 은 탭도 단계도 아니라 위 목록 어디에도 안 걸린다. 안 실으면
+   *   **배포는 초록인데 폴더 주소만 404** 가 된다 — 사장님이 늘 여시는 자리다. */
+  if (FLOW.HUB && FLOW.HUB.file) scan(FLOW.HUB.file);
   return [...seen].sort();
 }
 

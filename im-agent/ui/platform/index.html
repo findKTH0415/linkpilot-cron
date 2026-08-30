@@ -1,0 +1,604 @@
+<!doctype html>
+<html lang="ko" data-lp-build="942097fb">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>보고서 스튜디오 · LINKPILOT</title>
+<!--
+  index.html — **들어오는 자리** 〈2026-08-30 사장님 지시 · D-182〉.
+
+  사장님 지시: 「내가 앞으로 보는 창은 (NAS 주소) 여기 기준으로
+  **네비게이션 중심으로 재구성**해줘」.
+
+  ★★★ 지금까지 이 화면들에는 들어오는 자리가 없었다. 화면마다 주소를 따로
+    외워야 했고, 그래서 「어느 주소가 맞느냐」를 여러 번 물으셨다. 폴더 주소로
+    열면 나오는 이 파일이 그 자리다 — **주소 하나만 기억하면 된다.**
+
+  ★ 이름과 차례를 **손으로 적지 않는다.** `flow-core.js` 하나가 정본이다
+    (M-63 — 이름을 베껴 적어 화면만 옛말을 했다).
+
+  ★★ 여기서 서버를 부르지 않는다. 부르는 것이 없으면 **로그인·주소 때문에
+    막히는 자리도 없다** — 들어오는 자리가 막히면 아무 데도 못 간다.
+-->
+<script>
+/* ★ 형제 파일 자리를 **틀리지 않게** 한다 (M-56 · report-flow.html 과 같은 규칙).
+ *   이 파일은 형제들과 한 폴더에 있으므로 대개 손댈 일이 없지만, 앱이 다른
+ *   자리에 얹는 날을 위해 같은 조각을 둔다. 파일로 열었을 때는 손대지 않는다. */
+(function () {
+  try {
+    var FOLDER = 'im-flow';
+    var base = null;
+    var meta = document.querySelector('meta[name="lp:base"]');
+    var told = (meta && meta.getAttribute('content')) || window.LP_BASE || null;
+    if (told) base = String(told).replace(/\/*$/, '') + '/';
+    if (!base && /^https?:$/.test(location.protocol)) {
+      var pathname = String(location.pathname);
+      var at = pathname.indexOf('/' + FOLDER + '/');
+      if (at >= 0) base = pathname.slice(0, at + FOLDER.length + 2);
+    }
+    var now = String(location.pathname).slice(0, String(location.pathname).lastIndexOf('/') + 1);
+    if (base && base !== now && !document.querySelector('base[data-lp-base]')) {
+      var b = document.createElement('base');
+      b.setAttribute('data-lp-base', '주소에서 찾음');
+      b.href = location.origin + base;
+      (document.head || document.documentElement).insertBefore(
+        b, (document.head || document.documentElement).firstChild);
+    }
+  } catch (_) { /* 못 고쳐도 죽지 않는다 */ }
+}());
+</script>
+<script>
+/* ★★★ **빈 화면으로 끝나지 않는다** 〈2026-08-24 사장님: 데스크탑에서 흰 화면〉.
+ *
+ *   화면이 통째로 비어 뜬 일이 있었다. 소스는 멀쩡했고 헤드리스로 열면
+ *   정상이었다 — 즉 **그 순간의 브라우저에서만** 무언가가 안 왔다.
+ *
+ *   ★ 가장 흔한 자리: 배포가 파일을 하나씩 갈아 끼우는 동안(70초쯤) 화면은
+ *     새 판인데 형제 스크립트가 **아직 안 올라와 404** 인 순간이 있다.
+ *     그러면 전역이 아예 안 생기고, 첫 줄에서 예외가 나고, **화면은 흰 채로
+ *     아무 말도 안 한다.**
+ *   ★ 아래쪽 **짝 확인 조각**은 옛 스크립트는 잡지만 **없는 스크립트**는
+ *     못 잡는다 — 견줄 전역 자체가 없기 때문이다. 여기가 그 구멍이다.
+ *     (그 조각의 표시 이름을 여기 글자로 적지 않는다. 그것을 찾는 검사가
+ *      이 주석을 코드로 오해한다 — CLAUDE.md §8 에서 세 번째로 당한 자리다.)
+ *
+ * ★ 그래서 ① 파일이 안 온 것과 ② 코드가 던진 것을 **둘 다** 사람 말로 띄운다.
+ * ★ 이 조각은 **형제 스크립트보다 먼저** 있어야 한다. 뒤에 두면 이미 난
+ *   불러오기 실패를 못 듣는다.
+ * ★ 검사 자신이 죽으면 안 된다 — 전부 try 로 감싼다. */
+(function () {
+  /* ★★★★ **자리를 「고치는」 것이 아니라 「틀리지 않게」 한다**
+   *   〈2026-08-26 · 같은 고장 **네 번째** · M-56〉.
+   *
+   *   앱이 이 화면을 어디에 얹느냐에 따라 형제 파일 주소가 두 가지로 틀렸다 —
+   *
+   *     겹침    /im-flow/im-flow/embed-bridge.js   (앞을 두 번 붙인다)
+   *     빠짐    /embed-bridge.js                   (앞을 아예 안 붙인다)
+   *
+   *   ★ 3판은 **겹침만** 고쳤다. 그래서 빠짐이 나자 또 빨간 띠가 떴다.
+   *     **한 증상만 보고 고치면 남은 증상이 다음 주에 온다.**
+   *
+   * ★★ 그래서 「무엇이 틀렸나」를 고치지 않고 **「어디가 맞나」를 정한다.**
+   *   형제 파일들은 늘 **한 폴더에 함께** 있다. 그 폴더를 세 가지로 찾는다 —
+   *
+   *     ① 앱이 알려 준 자리      `<meta name="lp:base">` 또는 window.LP_BASE
+   *     ② 주소에 `im-flow` 가 있으면 **첫 번째** 것까지  (겹침이 여기서 풀린다)
+   *     ③ 뿌리(`/`)에서 열렸으면 `/im-flow/`             (빠짐이 여기서 풀린다)
+   *
+   *   ①이 있는 이유: 앱이 다른 자리에 얹게 되는 날 **코드를 안 고치고**
+   *   알려 줄 길을 남겨 둔다. 없으면 그날 또 이 파일을 고치게 된다.
+   *
+   * ★★★ **파일로 열었을 때(file:)는 손대지 않는다.** 미리보기가 그 길이다 —
+   *   거기서 자리를 바꾸면 멀쩡한 화면이 깨진다 (늑대야).
+   *
+   * ★ 이 조각은 형제 파일들보다 **위**에 있으므로, 여기서 `<base>` 를 세우면
+   *   아래 상대 경로들이 **처음부터 옳은 자리**를 본다 — 실패가 아예 안 난다.
+   *   실패한 뒤에 다시 부르는 것으로는 부족했다(실측: 파일 17개를 다시 받았는데
+   *   **버튼이 5개에서 0개**가 되었다 — 이미 초기화가 끝난 뒤였다).
+   */
+  try {
+    var FOLDER = 'im-flow';                  /* 형제 파일들이 함께 사는 폴더 이름 */
+    var base = null;
+    var why = null;
+
+    /* ① 앱이 알려 준 자리 */
+    try {
+      var meta = document.querySelector('meta[name="lp:base"]');
+      var told = (meta && meta.getAttribute('content')) || window.LP_BASE || null;
+      if (told) { base = String(told).replace(/\/*$/, '') + '/'; why = '앱이 알려 줌'; }
+    } catch (_) { /* 무시 */ }
+
+    if (!base && /^https?:$/.test(location.protocol)) {
+      var pathname = String(location.pathname);
+      var at = pathname.indexOf('/' + FOLDER + '/');
+      if (at >= 0) {
+        /* ② 첫 번째 `/im-flow/` 까지가 그 폴더다. 두 번 이어져 있어도 여기서 풀린다 */
+        base = pathname.slice(0, at + FOLDER.length + 2);
+        why = '주소에서 찾음';
+      } else if (pathname.lastIndexOf('/') === 0) {
+        /* ③ 뿌리에서 열렸다 — 형제 파일이 뿌리에 있을 리 없다 */
+        base = '/' + FOLDER + '/';
+        why = '뿌리에서 열려 폴더를 붙임';
+      }
+    }
+
+    /* 지금 자리와 같으면 아무것도 하지 않는다 — 멀쩡한 화면을 건드리지 않는다 */
+    var now = String(location.pathname).slice(0, String(location.pathname).lastIndexOf('/') + 1);
+    if (base && base !== now && !document.querySelector('base[data-lp-base]')) {
+      var b = document.createElement('base');
+      b.setAttribute('data-lp-base', why);
+      b.href = location.origin + base;
+      (document.head || document.documentElement).insertBefore(
+        b, (document.head || document.documentElement).firstChild);
+      /* ★★ **조용히 넘어가지는 않는다.** 화면은 살렸지만 **근본은 앱 쪽**이다
+       *   (앞을 붙이는 쪽). 사장님 화면에 빨간 띠를 띄우면 멀쩡히 도는 화면을
+       *   고장으로 읽으시게 되므로, 개발자 콘솔과 표시로만 남긴다 —
+       *   사람은 안 놀라고, 기계는 셀 수 있다. */
+      try {
+        console.warn('[LinkPilot] 형제 파일 자리를 바로잡았다 (' + why + '): '
+          + now + ' → ' + base
+          + ' — 화면은 정상이지만 **앞부분을 붙이는 앱 쪽**이 근본이다.');
+      } catch (_) { /* 콘솔이 없어도 죽지 않는다 */ }
+    }
+  } catch (_) { /* 자리를 못 고쳐도 죽지 않는다 — 아래 띠가 받는다 */ }
+
+  var shown = false;
+  /**
+   * ★★★ **고쳤다는 말과 못 고쳤다는 말을 같은 색으로 하지 않는다**
+   *   〈2026-08-26 · 자가치유를 넣으면서〉.
+   *
+   *   빨강은 「화면이 안 뜬다」는 뜻이어야 한다. 스스로 고쳐서 화면이
+   *   멀쩡히 뜬 경우까지 빨강으로 적으면, 사장님은 **멀쩡한 화면을 보며
+   *   고장이라고 읽으신다** — 그러면 다음부터 빨간 띠를 안 믿게 된다.
+   *
+   * ★★ 그리고 **빗장(shown)을 경고에는 걸지 않는다.** 앞 판은 한 번 뜨면
+   *   끝이라, 자가치유 알림이 먼저 뜨면 **뒤에 오는 진짜 실패가 통째로
+   *   조용해졌다.** 조용한 실패가 이 저장소에서 가장 비쌌다.
+   */
+  function say(msg, kind) {
+    var warn = kind === 'warn';
+    if (shown) return;
+    if (!warn) shown = true;          /* 치명만 빗장을 건다 */
+    try {
+      var n = document.createElement('div');
+      n.setAttribute('data-lp-fail', warn ? 'warn' : '');
+      n.setAttribute('style', 'position:fixed;left:0;right:0;top:0;z-index:99999;'
+        + 'background:' + (warn ? '#8A6100' : '#C00000')
+        + ';color:#fff;padding:14px 18px;font:700 14px/1.5 system-ui,sans-serif');
+      n.textContent = msg;
+      var put = function () { if (document.body) document.body.appendChild(n); };
+      if (document.body) put(); else document.addEventListener('DOMContentLoaded', put);
+    } catch (_) { /* 알리다 죽지 않는다 */ }
+  }
+  /* 불러오기 실패는 거품이 안 올라온다 — 잡기 단계(true)에서 들어야 한다 */
+  window.addEventListener('error', function (e) {
+    try {
+      var t = e && e.target;
+      if (!t || !t.tagName) return;
+      var tag = String(t.tagName).toUpperCase();
+      if (tag !== 'SCRIPT' && tag !== 'LINK') return;
+      /* ★★★ **이름만으로는 갈라 낼 수 없다** 〈2026-08-25 · 실제로 못 갈랐다〉.
+       *   앱 안에서 이 띠가 떴을 때 「그 파일이 NAS 에 없다」와 「앱이 엉뚱한
+       *   자리에서 찾는다」가 **똑같이 파일 이름 하나로만** 보였다. 파일은
+       *   NAS 에 있었고 HTTP 200 이었는데도 그랬다 — 갈랐어야 할 것은
+       *   **어느 경로로 찾았나**이고, 그것이 이름을 자르면서 사라졌다.
+       * ★ 호스트는 뗀다 (CLAUDE.md §2). 경로만 있으면 갈린다. */
+      var raw = String(t.src || t.href || '');
+      var where = raw;
+      try { var u = new URL(raw, location.href); where = u.pathname + u.search; } catch (_) {}
+      /* ★★★ **경로가 겹쳤으면 그렇다고 말한다** 〈2026-08-26 · 실제로 났다〉.
+       *   앱 안에서 `/im-flow/im-flow/tokens.css` 로 찾다가 못 받았다.
+       *   이 화면들의 링크는 **전부 상대 경로**(`tokens.css`)라 앞을 붙이지
+       *   않는다 — 즉 앞부분을 **덧붙이는 쪽은 앱**이다.
+       *
+       *   ★ 그런데 띠는 「못 받았습니다」만 말했다. 그러면 「파일이 없다」와
+       *     「엉뚱한 자리에서 찾는다」가 **같은 문장으로 보인다.** 사장님은
+       *     새로고침을 하시고, 그래도 그대로면 그때부터 원인을 못 찾는다.
+       *   ★ 같은 토막이 두 번 이어지는 것은 **새로고침으로 안 없어진다.**
+       *     그것은 배포가 도는 중이라서가 아니라 **주소를 만드는 코드**의 일이다. */
+      var dup = null;
+      try {
+        var segs = String(where).split('?')[0].split('/').filter(Boolean);
+        for (var i = 0; i + 1 < segs.length; i++) {
+          if (segs[i] === segs[i + 1]) { dup = segs[i]; break; }
+        }
+      } catch (_) { /* 무시 */ }
+      if (dup) {
+        /* ★★★ **띠는 진단만 했다 — 그래서 같은 일이 계속 났다** 〈2026-08-26 · 세 번째〉.
+         *
+         *   앞 판 둘은 **메시지를 좋게 만드는 일**이었다. 「못 받았습니다」에
+         *   경로를 붙이고, 다시 「두 번 들어 있습니다」를 붙였다. 그런데
+         *   **화면은 여전히 안 떴다.** 사장님이 보시는 것은 같은 빨간 띠다.
+         *
+         * ★ 잘 설명하는 고장은 **고장이다.** 여기서 스스로 고친다 —
+         *   겹친 토막을 하나 지우고 **그 파일을 다시 부른다.**
+         *
+         * ★★ 앞을 덧붙이는 것은 앱 쪽이지만, **고치는 것은 이쪽이 할 수 있다.**
+         *   저쪽 저장소에 쓰지 않기로 한 경계(§8-2)를 지키면서 화면은 살린다.
+         *
+         * ★★★ **한 번만 고친다.** 고친 주소가 또 실패하면 그때는 진짜로
+         *   파일이 없는 것이다 — 무한히 다시 부르면 그 사실이 사라진다. */
+        var fixed = null;
+        try {
+          var u2 = new URL(raw, location.href);
+          var ss = u2.pathname.split('/');
+          for (var k = 0; k + 1 < ss.length; k++) {
+            if (ss[k] && ss[k] === ss[k + 1]) { ss.splice(k, 1); break; }
+          }
+          u2.pathname = ss.join('/');
+          fixed = u2.href;
+        } catch (_) { fixed = null; }
+
+        if (fixed && fixed !== raw && !t.getAttribute('data-lp-healed')) {
+          var el = tag === 'LINK'
+            ? document.createElement('link')
+            : document.createElement('script');
+          el.setAttribute('data-lp-healed', '1');
+          if (tag === 'LINK') { el.rel = 'stylesheet'; el.href = fixed; }
+          else {
+            el.src = fixed;
+            /* 원래 태그가 지녔던 표시를 그대로 옮긴다 — 이것이 없으면
+               `embed-bridge.js` 가 어느 전역에 붙을지 모른다 */
+            var g = t.getAttribute('data-lp-global');
+            if (g) el.setAttribute('data-lp-global', g);
+            el.async = false;   /* 순서를 지킨다 — 뒤 파일이 앞 파일을 쓴다 */
+          }
+          t.setAttribute('data-lp-healed', '1');
+          (document.head || document.documentElement).appendChild(el);
+          say('경로에 「' + dup + '」가 두 번 들어 있어 **한 번 고쳐서 다시 불렀습니다** — '
+            + where + ' → ' + (function () {
+              try { var v = new URL(fixed); return v.pathname + v.search; } catch (_) { return fixed; }
+            }()) + '. 화면이 뜨면 그대로 쓰셔도 됩니다. 앞부분을 덧붙이는 것은 **앱 쪽**이라 '
+            + '근본은 그쪽에서 고쳐야 합니다 — 이 경로를 그대로 알려 주십시오.', 'warn');
+          return;
+        }
+        say('화면에 필요한 파일을 못 받았습니다: ' + (where || '(이름 모름)')
+          + ' — 경로에 「' + dup + '」가 **두 번** 들어 있습니다.'
+          + ' 고쳐서 다시 불러 봤지만 그것도 실패했습니다 — 파일이 정말 없는 자리입니다.'
+          + ' 위 경로를 그대로 알려 주십시오.');
+      } else {
+        say('화면에 필요한 파일을 못 받았습니다: ' + (where || '(이름 모름)')
+          + ' — 배포가 도는 중이면 30초 뒤 새로고침(Mac ⌘⇧R · Windows Ctrl+Shift+R)으로 사라집니다.'
+          + ' 한 번 하고도 그대로면 그것은 **다른 일**입니다 — 위 경로를 그대로 알려 주십시오.');
+      }
+    } catch (_) { /* 무시 */ }
+  }, true);
+  /* ★★★ **헛울음을 내지 않는다** 〈2026-08-24 · 실측에서 걸렸다〉.
+   *   `report-flow.html` 은 창을 품고 있어서 브라우저가 막는 읽기가 하나 난다
+   *   (`SecurityError: Location.pathname`). 화면은 **멀쩡히 뜬다.**
+   *   그것까지 빨간 띠로 띄우면 **멀쩡한 화면에 고장 딱지**가 붙는다.
+   * ★ 그래서 코드가 던진 것은 **화면이 실제로 비었을 때만** 알린다.
+   *   빈 화면이 이 장치가 막으려는 것이고, 그 밖은 알릴 일이 아니다. */
+  var lastErr = null;
+  function noteErr(m) {
+    lastErr = m;
+    setTimeout(function () {
+      try {
+        var b = document.body;
+        var n = b ? (b.innerText || '').trim().length : 0;
+        if (n < 40) {
+          say('화면을 그리다 멈췄습니다: ' + lastErr
+            + ' — 이 글이 보이면 고장입니다. 이대로 알려 주십시오.');
+        }
+      } catch (_) { /* 무시 */ }
+    }, 1200);
+  }
+  window.addEventListener('error', function (e) {
+    if (e && e.target && e.target.tagName) return;   // 위에서 이미 다뤘다
+    noteErr((e && e.message) || '알 수 없는 오류');
+  });
+  window.addEventListener('unhandledrejection', function (e) {
+    var r = e && e.reason;
+    noteErr((r && r.message) || r || '알 수 없는 오류');
+  });
+}());
+</script>
+<link rel="stylesheet" href="tokens.css?v=942097fb">
+<style>
+/* ── 판 ─────────────────────────────────────────────────────────────── */
+:root { color-scheme: light dark; }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--ground, #F4F5F7);
+  color: var(--ink, #12161F);
+  font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
+    'Malgun Gothic', 'Segoe UI', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 880px; margin: 0 auto; padding: 34px 20px 64px; }
+
+/* ── ① 첫 화면이 주장을 한다 (§6-3 ①) — 제목이 아니라 **갈 곳**이 크다 ── */
+.head { margin: 0 0 26px; }
+.head__k {
+  font-size: 11.5px; font-weight: 800; letter-spacing: .14em;
+  color: var(--lime-deep, #7BA10F); margin: 0 0 8px;
+}
+.head__t {
+  margin: 0; font-size: 34px; line-height: 1.15; font-weight: 850;
+  letter-spacing: -.03em;                 /* 제목은 자간을 좁힌다 (§6-3 ③) */
+}
+.head__d { margin: 9px 0 0; font-size: 13.5px; line-height: 1.7; color: var(--ink2, #6E757D); }
+
+/* ── 주 동선. **대비는 여기 한 곳에만** 준다 (§6-3 ④) ────────────────── */
+.go {
+  display: block; text-decoration: none; color: inherit;
+  border: 1px solid var(--lime-deep, #7BA10F); border-radius: 18px;
+  background: var(--surface, #FFF); padding: 22px 22px 24px; margin: 0 0 26px;
+}
+.go:hover { border-color: var(--lime, #B5E01F); }
+.go:focus-visible { outline: 2px solid var(--lime-deep, #7BA10F); outline-offset: 3px; }
+.go__r { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.go__t { font-size: 21px; font-weight: 850; letter-spacing: -.02em; }
+.go__n { font-size: 12px; font-weight: 800; color: var(--lime-deep, #7BA10F);
+  font-variant-numeric: tabular-nums; }
+.go__d { margin: 8px 0 0; font-size: 13px; line-height: 1.7; color: var(--ink2, #6E757D); }
+
+/* ── 절 ─────────────────────────────────────────────────────────────── */
+.sec { margin: 0 0 26px; }
+.sec__t { margin: 0 0 4px; font-size: 15px; font-weight: 800; letter-spacing: -.01em; }
+.sec__d { margin: 0 0 13px; font-size: 12.5px; line-height: 1.65; color: var(--ink2, #6E757D); }
+
+/* ── 칸 목록 — 한 줄에 하나. 번호는 세로로 맞춘다 ──────────────────── */
+.list { display: grid; gap: 8px; }
+.row {
+  display: grid; grid-template-columns: 30px minmax(0, 1fr) auto;
+  gap: 4px 13px; align-items: baseline; text-decoration: none; color: inherit;
+  border: 1px solid var(--line, #E3E6E9); border-radius: 13px;
+  background: var(--surface, #FFF); padding: 13px 15px 14px;
+}
+.row:hover { border-color: var(--ink2, #6E757D); }
+.row:focus-visible { outline: 2px solid var(--lime-deep, #7BA10F); outline-offset: 2px; }
+.row__n {
+  width: 24px; height: 24px; border-radius: 8px; display: grid; place-items: center;
+  background: var(--lime-soft, #EFF8DA); color: var(--lime-deep, #7BA10F);
+  font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums;
+}
+.row__t { font-size: 14px; font-weight: 750; letter-spacing: -.01em; }
+.row__f { font-size: 11.5px; color: var(--ink2, #6E757D); white-space: nowrap;
+  font-variant-numeric: tabular-nums; }
+.row__d { grid-column: 2 / -1; margin: 3px 0 0; font-size: 12px; line-height: 1.65;
+  color: var(--ink2, #6E757D); }
+
+/* ── 발 ─────────────────────────────────────────────────────────────── */
+.foot { margin: 30px 0 0; padding: 15px 0 0; border-top: 1px solid var(--line, #E3E6E9);
+  font-size: 11.5px; line-height: 1.75; color: var(--ink2, #6E757D); }
+.foot__v { margin: 0; color: var(--ink, #12161F); font-weight: 700;
+  font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+.warn { margin: 0 0 20px; border: 1px solid #F3C6C6; border-radius: 13px;
+  background: var(--bad-soft, #FDF2F2); color: var(--bad-ink, #A02020);
+  padding: 13px 15px; font-size: 12.5px; line-height: 1.7; }
+
+@media (max-width: 560px) {
+  .wrap { padding: 26px 15px 52px; }
+  .head__t { font-size: 27px; }
+  .row { grid-template-columns: 26px minmax(0, 1fr); }
+  .row__f { grid-column: 2 / -1; white-space: normal; }
+}
+</style>
+</head>
+<body>
+<div class="wrap" id="lp-root">
+  <p id="lp-boot" class="foot">화면을 그리는 중입니다…</p>
+</div>
+
+<script src="flow-core.js?v=942097fb"></script>
+<script>
+(function () {
+  var want = document.documentElement.getAttribute('data-lp-build');
+  if (!want) return;                       /* 지문이 없는 판 — 잴 것이 없다 */
+  var bad = [];
+  try {
+    Object.keys(window).forEach(function (k) {
+      if (k.indexOf('LinkPilot') !== 0) return;
+      var v = window[k];
+      if (v && typeof v === 'object' && typeof v.BUILD === 'string'
+        && v.BUILD !== want) bad.push(k + ' (' + v.BUILD + ')');
+    });
+  } catch (_) { return; }                  /* 훑다 막히면 조용히 — 검사가 화면을 죽이지 않는다 */
+  if (!bad.length) return;
+
+  /* ★★★ **한 번은 화면이 스스로 고친다** 〈2026-08-27 · D-149〉.
+   *
+   *   앞 판은 빨간 띠로 「새로고침해 주십시오」라고만 했다. 그 말은 맞지만
+   *   **고치는 일을 사람에게 떠넘긴다** — 사장님이 폰에서 강제 새로고침을
+   *   하시는 것은 쉬운 일이 아니다 (M-58 과 같은 결: 「잠깐 나는 고장을
+   *   사람에게 떠넘기지 않는다」).
+   *
+   *   ★ 그래서 주소에 표를 하나 붙여 **다시 받는다.** 브라우저는 주소가 다르면
+   *     캐시를 안 쓴다. 화면이 새로 오면 스크립트와 판이 맞는다.
+   *   ★★ **세션당 한 번만.** 서버에 정말 두 판이 섞여 있으면 다시 받아도 같다 —
+   *     그때 또 다시 받으면 **끝없이 돈다.** 한 번 해 보고 안 되면 띠를 띄운다.
+   *   ★ 표는 다음 새로고침에서 사라지도록 `replace` 로 바꾼다 (뒤로가기에 안 쌓인다). */
+  try {
+    var KEY = 'lp-pair-retried';
+    if (!sessionStorage.getItem(KEY)) {
+      sessionStorage.setItem(KEY, want);
+      var u = location.href.replace(/[?&]lpfix=\d+/, '');
+      location.replace(u + (u.indexOf('?') < 0 ? '?' : '&') + 'lpfix=' + Date.now());
+      return;
+    }
+  } catch (_) { /* 저장소가 막힌 자리도 있다 — 그때는 띠만 띄운다 */ }
+
+  var n = document.createElement('div');
+  n.setAttribute('data-lp-pair', '');
+  n.setAttribute('style', 'position:fixed;left:0;right:0;top:0;z-index:99999;'
+    + 'background:#C00000;color:#fff;padding:14px 18px;font:700 14px/1.5 system-ui,sans-serif');
+  /* ★★★ **어느 쪽이 옛것인지 아는 척하지 않는다 — 다만 구조가 답을 준다**
+   *   〈2026-08-27 · D-149 · 실제 화면에서 거꾸로 말했다〉.
+   *
+   *   앞 판은 「옛 판 <스크립트 이름들>」이라고 **스크립트를 옛것으로 지목**했다.
+   *   그런데 사장님 화면은 반대였다 — 화면 479c745f(옛), 스크립트 64478fa1(새).
+   *
+   *   ★ 지문은 해시라 **그 자체로는 앞뒤가 없다.** 하지만 자리 관계가 답을 준다:
+   *     · 배포는 **자산 먼저 · HTML 나중**으로 올린다 (deploy-nas 「Upload」).
+   *     · 화면은 형제 파일을 **판 표시를 붙여** 부르는데, 서버는 그 표를
+   *       무시하고 **지금 있는 파일**을 준다.
+   *       (표 이름을 여기 글자로 적지 않는다 — 검사가 주석을 코드로 읽는다. §8)
+   *   → 그래서 어긋나면 **거의 언제나 화면(HTML)이 옛것**이다. 스크립트는
+   *     서버의 지금 판이다. 그 말을 그대로 적는다.
+   *   ★ 그래도 단정하지 않는다 — 「대개」라고 적고, 새로고침해도 같으면
+   *     **서버에 두 판이 섞인 것**이니 알려 달라고 한다. */
+  n.textContent = '화면과 스크립트의 판이 다릅니다 — 화면(HTML)이 옛 판일 가능성이 큽니다. '
+    + '한 번 다시 받아 봤는데도 그대로입니다. '
+    + '화면 ' + want + ' · 스크립트 ' + bad.join(', ')
+    + ' · 어느 쪽인지 지금 확인하고 있습니다 — 잠시 뒤 이 자리에 무엇을 하면 되는지 적힙니다. '
+    + '그대로면 이 여덟 글자 두 개를 알려 주시면 저희가 봅니다.';
+
+  /* ★★★ **「둘 중 하나」로 끝내지 않는다 — 물어봐서 가른다** 〈2026-08-27 · 사장님 화면〉.
+   *
+   *   앞 판은 「서버에 두 판이 섞여 있을 수 있습니다」로 끝났다. 그런데 그 말은
+   *   **읽는 사람이 할 수 있는 일이 없다** — 캐시를 지워야 하는지, 배포가 안
+   *   된 것인지 갈리지 않기 때문이다. 오늘 그 갈림에서 세 번 헤맸다.
+   *
+   *   ★ 가르는 법은 간단하다. **이 화면의 주소를 캐시를 쓰지 말고 다시 받아**
+   *     거기 적힌 판을 본다. 받은 것이
+   *       · 지금 그려진 것과 **같으면** → 서버가 정말 옛 화면을 준다
+   *       · **다르면**               → 서버는 새 판이고 브라우저가 옛것을 들고 있다
+   *   ★ 못 받으면 **못 쟀다고 적는다.** 「둘 중 하나」로 되돌아가지 않는다.
+   *   ★ 판 표시는 문서 뿌리의 속성에 있다 — 받은 글에서 그 속성을 찾는다.
+   */
+  try {
+    var url = location.href.replace(/[?&]lpcheck=\d+/, '');
+    url += (url.indexOf('?') < 0 ? '?' : '&') + 'lpcheck=' + Date.now();
+    fetch(url, { cache: 'no-store', credentials: 'same-origin' })
+      .then(function (r) { return r.text(); })
+      .then(function (t) {
+        var m = /data-lp-build="([0-9a-f]+)"/.exec(t);
+        var fresh = m && m[1];
+        if (!fresh) {
+          n.textContent += ' — 다시 받아 봤지만 판을 읽지 못했습니다. 알려 주시면 저희가 봅니다.';
+          return;
+        }
+        if (fresh === want) {
+          n.textContent = '서버가 옛 화면을 주고 있습니다 — 브라우저 탓이 아닙니다. '
+            + '화면 ' + want + ' · 스크립트 ' + bad.join(', ')
+            + ' · 캐시를 지우셔도 그대로입니다. 이 두 글자묶음을 알려 주십시오.';
+        } else {
+          n.textContent = '브라우저가 옛 화면을 들고 있습니다 — 서버는 새 판(' + fresh + ')입니다. '
+            + '앱을 완전히 껐다 켜시고, 그래도 그대로면 앱 설정에서 **캐시 삭제**를 하십시오. '
+            + '(화면 ' + want + ' · 스크립트 ' + bad.join(', ') + ')';
+        }
+      })
+      .catch(function () {
+        n.textContent += ' — 다시 받아 보지 못했습니다(연결). 알려 주시면 저희가 봅니다.';
+      });
+  } catch (_) { /* fetch 가 없는 자리도 있다 — 그때는 위 문장으로 둔다 */ }
+  var put = function () { if (document.body) document.body.appendChild(n); };
+  if (document.body) put(); else document.addEventListener('DOMContentLoaded', put);
+}());
+</script>
+<script>
+(function () {
+  'use strict';
+  var F = window.LinkPilotFlow;
+  var root = document.getElementById('lp-root');
+
+  /* ★★ **못 그리면 그렇다고 말한다.** 흰 화면으로 끝나면 사용자는 서버가 죽은
+   *   줄 안다 — 실제로는 형제 파일 하나가 안 온 것이다 (M-29 와 같은 결). */
+  if (!F || !F.SECTIONS) {
+    root.innerHTML = '';
+    var w = document.createElement('p');
+    w.className = 'warn';
+    w.textContent = '흐름 파일(flow-core.js)을 못 받았습니다 — '
+      + '이 화면과 같은 폴더에 함께 올라가 있어야 합니다. '
+      + '새로고침해도 같으면 배포가 덜 된 것입니다.';
+    root.appendChild(w);
+    return;
+  }
+
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text !== undefined && text !== null) n.textContent = text;
+    return n;
+  }
+
+  function link(href, cls) {
+    var a = el('a', cls);
+    a.href = href;
+    return a;
+  }
+
+  root.innerHTML = '';
+
+  /* ── 머리 ─────────────────────────────────────────────────────────── */
+  var head = el('div', 'head');
+  head.appendChild(el('p', 'head__k', 'LINKPILOT'));
+  head.appendChild(el('h1', 'head__t', F.HUB.name));
+  head.appendChild(el('p', 'head__d', F.HUB.note));
+  root.appendChild(head);
+
+  /* ── 주 동선 — 여기가 **첫째로 눌리는 자리**다 ────────────────────── */
+  var go = link(F.SECTION.file, 'go');
+  var r = el('div', 'go__r');
+  r.appendChild(el('span', 'go__t', F.SECTION.tab));
+  r.appendChild(el('span', 'go__n', F.SECTIONS.length + '단계'));
+  go.appendChild(r);
+  go.appendChild(el('p', 'go__d',
+    '처음부터 끝까지 한 화면에서 진행합니다. 어디까지 왔는지도 여기서 보입니다.'));
+  root.appendChild(go);
+
+  /* ── 단계로 바로 가기 ─────────────────────────────────────────────── */
+  var sec = el('div', 'sec');
+  sec.appendChild(el('h2', 'sec__t', '단계로 바로 가기'));
+  sec.appendChild(el('p', 'sec__d',
+    '이미 하던 것이 있으면 그 칸으로 바로 갑니다. 앞 칸을 안 끝냈으면 그 칸은 잠겨 있습니다.'));
+  var list = el('div', 'list');
+  F.SECTIONS.forEach(function (s) {
+    var a = link(F.SECTION.file + '?step=' + encodeURIComponent(s.steps[0] || ''), 'row');
+    a.appendChild(el('span', 'row__n', String(s.no)));
+    a.appendChild(el('span', 'row__t', s.name));
+    a.appendChild(el('span', 'row__f', ''));
+    a.appendChild(el('p', 'row__d', s.note));
+    list.appendChild(a);
+  });
+  sec.appendChild(list);
+  root.appendChild(sec);
+
+  /* ── 화면 낱개 ────────────────────────────────────────────────────── */
+  var sec2 = el('div', 'sec');
+  sec2.appendChild(el('h2', 'sec__t', '화면 낱개로 열기'));
+  sec2.appendChild(el('p', 'sec__d',
+    '흐름을 거치지 않고 한 화면만 볼 때 씁니다. 확인용이라 평소에는 위 동선을 쓰십시오.'));
+  var list2 = el('div', 'list');
+  var seen = {};
+  var solo = [];
+  F.STEPS.forEach(function (st) {
+    if (seen[st.file]) return;
+    seen[st.file] = true;
+    solo.push({ file: st.file, name: st.name });
+  });
+  if (F.FILES_SECTION && F.FILES_SECTION.file && !seen[F.FILES_SECTION.file]) {
+    seen[F.FILES_SECTION.file] = true;
+    solo.push({ file: F.FILES_SECTION.file, name: F.FILES_SECTION.tab });
+  }
+  solo.forEach(function (s, i) {
+    var a = link(s.file, 'row');
+    a.appendChild(el('span', 'row__n', String(i + 1)));
+    a.appendChild(el('span', 'row__t', s.name));
+    a.appendChild(el('span', 'row__f', s.file));
+    list2.appendChild(a);
+  });
+  sec2.appendChild(list2);
+  root.appendChild(sec2);
+
+  /* ── 발 — **판 지문을 적는다** (M-25). 사장님이 사진 한 장으로 판을 가리신다 ── */
+  var foot = el('div', 'foot');
+  var stamp = document.documentElement.getAttribute('data-lp-build') || '(없음)';
+  /* ★★★ **한 덩어리 글자로 적는다** 〈2026-08-30 · 검사가 잡았다〉.
+   *   `판 ` 과 지문을 다른 칸(`<b>`)으로 나눠 적었더니, 「화면에 판이 보이는가」를
+   *   재는 검사가 못 찾았다 — 사람 눈에는 붙어 보여도 글자 사이에 태그가 낀다.
+   *   ★ 이 검사는 **사장님이 사진 한 장으로 판을 가리시게** 하려고 만든 것이다
+   *     (M-25). 못 찾으면 그 장치가 통째로 죽는다. */
+  foot.appendChild(el('p', 'foot__v',
+    '판 ' + stamp + ' · 화면 ' + solo.length + '개 · 단계 ' + F.SECTIONS.length + '개'));
+  var p2 = el('p', null,
+    '이 자리는 보고서를 요청하고 만드는 곳입니다. 연락처·딜·통화분석은 LinkPilot 앱에 있습니다.');
+  p2.style.margin = '6px 0 0';
+  foot.appendChild(p2);
+  root.appendChild(foot);
+}());
+</script>
+</body>
+</html>

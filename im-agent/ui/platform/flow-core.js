@@ -24,7 +24,7 @@
    *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다. 화면이 자기
    *   지문과 대 보고 다르면 「함수가 없다」로 죽기 전에 사람 말로 알린다.
    */
-  var LP_BUILD = '18aeb517';
+  var LP_BUILD = '942097fb';
 
   /**
    * ★★★ **단계는 다섯이다** 〈2026-08-22 사용자 지시〉.
@@ -322,6 +322,28 @@
    *   할 일은 **만드는 것**이고, 완성본은 만든 다음에 보는 곳이다. 순서가 하는
    *   일의 차례와 반대면 첫 화면에서 한 번 더 생각하게 된다. */
   var TABS = [SECTION, OUTPUTS_SECTION];
+
+  /**
+   * ══════════ **들어오는 자리** 〈2026-08-30 사장님 지시 · D-182〉 ══════════
+   *
+   *   사장님 지시: 「내가 앞으로 보는 창은 (NAS 주소) 여기 기준으로
+   *   **네비게이션 중심으로 재구성**해줘」.
+   *
+   * ★★★ 지금까지 이 화면들에는 **들어오는 자리가 없었다.** 화면마다 주소를 따로
+   *   외워야 했고, 그래서 「어느 주소가 맞느냐」를 여러 번 물으셨다. 폴더 주소로
+   *   열면 나오는 `index.html` 이 그 자리다 — 주소 하나만 기억하면 된다.
+   *
+   * ★ 이름과 차례를 여기서만 정한다. 화면이 따로 적으면 한쪽만 고치는 날 갈린다
+   *   (M-63 — 이름을 베껴 적어 화면만 옛말을 했다).
+   * ★★ `build-embed.js` 의 `required()` 가 이것을 훑어 묶음에 싣는다. 안 실으면
+   *   **배포는 초록인데 그 주소만 404** 가 된다 (M-22 와 같은 결).
+   */
+  var HUB = {
+    id: 'hub',
+    file: 'index.html',
+    name: '보고서 스튜디오',
+    note: '보고서를 요청하고 만드는 자리입니다. 여기서 시작합니다.',
+  };
 
   /**
    * **토큰이 실렸는가** (2026-08-17).
@@ -926,7 +948,7 @@
     STEPS: STEPS, WHY: WHY, EMBED_CSS: EMBED_CSS,
     SECTIONS: SECTIONS, sectionState: sectionState, sectionOfStep: sectionOfStep,
     SECTION: SECTION, OUTPUTS_SECTION: OUTPUTS_SECTION,
-    FILES_SECTION: FILES_SECTION, TABS: TABS,
+    FILES_SECTION: FILES_SECTION, TABS: TABS, HUB: HUB,
     stepState: stepState, urlFor: urlFor, stepOfFile: stepOfFile,
     sectionProgress: sectionProgress,
     BUILD_ATTR: BUILD_ATTR, buildOf: buildOf, buildLabel: buildLabel, stampInto: stampInto,

@@ -98,7 +98,7 @@ on:
         #   생성」이 통째로 비어서 나왔다.
         #   ★ 목록을 손으로 적지 않는다. `build-embed.js` 의 `required()` 가
         #     단일 출처이고, `workflow-default.test.js` 가 둘이 같은지 지킨다.
-        default: 'im-agent/ui/platform/catalog.js im-agent/ui/platform/embed-bridge.js im-agent/ui/platform/evidence-core.js im-agent/ui/platform/fields-core.js im-agent/ui/platform/fields.html im-agent/ui/platform/files.html im-agent/ui/platform/flow-core.js im-agent/ui/platform/gate-core.js im-agent/ui/platform/inapp.js im-agent/ui/platform/intake.html im-agent/ui/platform/live-core.js im-agent/ui/platform/outputs.html im-agent/ui/platform/report-flow.html im-agent/ui/platform/reports.html im-agent/ui/platform/tokens.css im-agent/ui/platform/upload-core.js im-agent/ui/platform/versions-core.js'
+        default: 'im-agent/ui/platform/catalog.js im-agent/ui/platform/embed-bridge.js im-agent/ui/platform/evidence-core.js im-agent/ui/platform/fields-core.js im-agent/ui/platform/fields.html im-agent/ui/platform/files.html im-agent/ui/platform/flow-core.js im-agent/ui/platform/gate-core.js im-agent/ui/platform/inapp.js im-agent/ui/platform/index.html im-agent/ui/platform/intake.html im-agent/ui/platform/live-core.js im-agent/ui/platform/outputs.html im-agent/ui/platform/report-flow.html im-agent/ui/platform/reports.html im-agent/ui/platform/tokens.css im-agent/ui/platform/upload-core.js im-agent/ui/platform/versions-core.js'
       dest:
         # ★★ **화면 사본은 `im-flow` 로 간다** 〈2026-08-21 · 실제로 헛돌았다〉.
         #   기본값이 웹 루트(`/volume1/web`)여서 화면을 여섯 번 올렸는데
