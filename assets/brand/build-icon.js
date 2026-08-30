@@ -105,6 +105,78 @@ function png(browser, svgMarkup, out, size) {
   fs.unlinkSync(page);
 }
 
+/**
+ * ══════════ **`.icns` 를 여기서 만든다** 〈2026-08-30 사장님 지시 · D-187〉 ══════════
+ *
+ * 사장님 지시: 「개정된 파비콘 앱 다운로드 될수 있도록 · 갱신한 주소로 접속해도
+ * 과거 버젼이 다운로드됨」.
+ *
+ * ★★★ 앞 판은 **맥에서 `iconutil` 을 치셔야** `.icns` 가 됐다. 그런데 그 한 줄이
+ *   안 쳐지면 **아이콘은 영영 안 바뀐다** — 실제로 안 바뀐 채로 며칠이 갔다.
+ *   손으로 해야 도는 장치는 안 돈다 (D-88 과 같은 결).
+ *
+ * ★ `.icns` 는 **겉모양이 아주 단순하다** — 머리 8바이트 뒤에 「종류 4자 + 길이 4바이트
+ *   + PNG」가 이어질 뿐이다. 그래서 라이브러리 없이(§5) `fs` 만으로 쓴다.
+ *
+ * ★★ 종류 이름은 **크기마다 정해져 있다.** 틀리면 맥이 통째로 거절하는데,
+ *   그때 나오는 말은 한 줄뿐이라 무엇이 틀렸는지 안 알려 준다. 그래서 표로 둔다.
+ */
+const ICNS_TYPE = {
+  'icon_16x16.png': 'icp4',
+  'icon_16x16@2x.png': 'ic11',
+  'icon_32x32.png': 'icp5',
+  'icon_32x32@2x.png': 'ic12',
+  'icon_128x128.png': 'ic07',
+  'icon_128x128@2x.png': 'ic13',
+  'icon_256x256.png': 'ic08',
+  'icon_256x256@2x.png': 'ic14',
+  'icon_512x512.png': 'ic09',
+  'icon_512x512@2x.png': 'ic10',
+};
+
+/** 묶은 것을 도로 풀어 본다 — **쓴 것과 읽히는 것이 같은지**를 검사가 잰다 */
+function readIcns(buf) {
+  if (buf.length < 8 || buf.toString('ascii', 0, 4) !== 'icns') {
+    throw new Error('icns 가 아니다 (머리 네 글자가 다르다)');
+  }
+  const total = buf.readUInt32BE(4);
+  if (total !== buf.length) throw new Error(`적어 둔 길이(${total})와 실제(${buf.length})가 다르다`);
+  const out = [];
+  let at = 8;
+  while (at + 8 <= buf.length) {
+    const type = buf.toString('ascii', at, at + 4);
+    const len = buf.readUInt32BE(at + 4);
+    if (len < 8 || at + len > buf.length) throw new Error(`조각 길이가 틀렸다: ${type}`);
+    out.push({ type, bytes: len - 8 });
+    at += len;
+  }
+  return out;
+}
+
+/**
+ * 열 장을 `.icns` 한 벌로 묶는다.
+ *
+ * ★ 한 장이라도 없으면 **묶지 않는다.** 반쯤 묶인 것을 내면 맥이 거절하는데,
+ *   그때는 「아이콘이 안 바뀐다」로만 보여 원인이 안 보인다.
+ */
+function icns(dir) {
+  const parts = [];
+  Object.keys(ICNS_TYPE).forEach((name) => {
+    const f = path.join(dir, name);
+    if (!fs.existsSync(f)) throw new Error(`묶을 그림이 없다: ${name}`);
+    const png = fs.readFileSync(f);
+    const head = Buffer.alloc(8);
+    head.write(ICNS_TYPE[name], 0, 4, 'ascii');
+    head.writeUInt32BE(png.length + 8, 4);
+    parts.push(head, png);
+  });
+  const body = Buffer.concat(parts);
+  const head = Buffer.alloc(8);
+  head.write('icns', 0, 4, 'ascii');
+  head.writeUInt32BE(body.length + 8, 4);
+  return Buffer.concat([head, body]);
+}
+
 function build() {
   const iconSvg = path.join(HERE, 'linkpilot-icon.svg');
   const markSvg = path.join(HERE, 'linkpilot-mark.svg');
@@ -127,8 +199,16 @@ function build() {
     png(browser, markup, path.join(set, name), size);
   });
   console.log('  ' + path.relative(process.cwd(), set) + ' · 맥용 ' + ICONSET.length + '장');
+
+  /* ★ 그리고 **바로 쓸 수 있는 한 벌**로 묶는다. 맥에서 `iconutil` 을 안 쳐도 된다 */
+  const out = path.join(HERE, 'LinkPilot.icns');
+  const buf = icns(set);
+  fs.writeFileSync(out, buf);
+  const back = readIcns(buf);
+  console.log('  ' + path.relative(process.cwd(), out)
+    + ` · ${back.length}조각 · ${Math.round(buf.length / 1024)}KB (도로 풀어 확인했다)`);
   return 0;
 }
 
 if (require.main === module) process.exit(build());
-module.exports = { build, svg, mark, ICONSET };
+module.exports = { build, svg, mark, ICONSET, icns, readIcns, ICNS_TYPE };
