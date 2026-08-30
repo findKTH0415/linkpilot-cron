@@ -1,0 +1,265 @@
+<title>앱 자리 지도</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* ── LinkPilot 토큰 그대로 (tokens.css) — 새 색을 만들지 않는다 ───────── */
+:root {
+  --ground: #F4F5F7; --surface: #FFFFFF; --sunk: #FAFBFC;
+  --ink: #12161F; --ink2: #6E757D; --ink3: #9AA1A9;
+  --line: #E3E6E9; --line2: #EDEFF1;
+  --lime: #B5E01F; --lime-deep: #7BA10F; --lime-soft: #EFF8DA;
+  --bad: #A02020; --bad-soft: #FDF2F2; --bad-line: #F3C6C6;
+  --warn: #8A6100; --warn-soft: #FFF8E6; --warn-line: #EBD7A3;
+  --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --body: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #131517; --surface: #1B1E21; --sunk: #16191B;
+    --ink: #E9ECEE; --ink2: #98A0A8; --ink3: #6E767D;
+    --line: #2B3036; --line2: #23272B;
+    --lime: #A9E20B; --lime-deep: #C9F04A; --lime-soft: #26320B;
+    --bad: #FF9B9B; --bad-soft: #2A1618; --bad-line: #55282B;
+    --warn: #E8C26A; --warn-soft: #2A2213; --warn-line: #514227;
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #131517; --surface: #1B1E21; --sunk: #16191B;
+  --ink: #E9ECEE; --ink2: #98A0A8; --ink3: #6E767D;
+  --line: #2B3036; --line2: #23272B;
+  --lime: #A9E20B; --lime-deep: #C9F04A; --lime-soft: #26320B;
+  --bad: #FF9B9B; --bad-soft: #2A1618; --bad-line: #55282B;
+  --warn: #E8C26A; --warn-soft: #2A2213; --warn-line: #514227;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--ground); color: var(--ink);
+  font-family: var(--body); font-size: 15px; line-height: 1.75;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 860px; margin: 0 auto; padding: 40px 22px 72px; }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--lime-deep); outline-offset: 3px; border-radius: 4px; }
+
+/* ── 판정 — 첫 화면이 주장을 한다 ─────────────────────────────────── */
+.verdict { margin: 0 0 34px; }
+.verdict__k {
+  margin: 0 0 10px; font-size: 11px; font-weight: 700; letter-spacing: .16em;
+  color: var(--lime-deep); font-family: var(--mono);
+}
+.verdict__t {
+  margin: 0; font-size: clamp(26px, 4.6vw, 38px); font-weight: 900;
+  letter-spacing: -.035em; line-height: 1.18; text-wrap: balance;
+}
+.verdict__d { margin: 12px 0 0; color: var(--ink2); font-size: 14px; max-width: 60ch; }
+
+/* ── 지금 실린 판 ─────────────────────────────────────────────────── */
+.now {
+  display: flex; flex-wrap: wrap; gap: 10px 26px; align-items: baseline;
+  margin: 22px 0 0; padding: 15px 18px;
+  background: var(--lime-soft); border-radius: 12px;
+}
+.now__l { font-size: 11.5px; font-weight: 700; color: var(--lime-deep); letter-spacing: .05em; }
+.now__v { font-family: var(--mono); font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.now__n { font-size: 13px; color: var(--ink2); }
+
+/* ── 절 ───────────────────────────────────────────────────────────── */
+.sec { margin: 44px 0 0; }
+.sec__t { margin: 0 0 6px; font-size: 19px; font-weight: 700; letter-spacing: -.02em; }
+.sec__d { margin: 0 0 18px; color: var(--ink2); font-size: 13.5px; max-width: 62ch; }
+
+/* ── 주소 지도 — 들여쓰기가 「무엇이 무엇을 품는가」를 나른다 ───────── */
+.rail { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.rail li { position: relative; }
+.rail--in { margin-left: 26px; padding-left: 22px; border-left: 2px solid var(--line); }
+.node {
+  display: grid; grid-template-columns: 1fr auto; gap: 3px 14px; align-items: baseline;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 13px;
+  padding: 14px 17px; text-decoration: none;
+}
+a.node:hover { border-color: var(--lime-deep); }
+.node--root { border-width: 2px; border-color: var(--lime); }
+.node__t { font-size: 15px; font-weight: 700; letter-spacing: -.01em; }
+.node__u {
+  grid-column: 1 / -1; font-family: var(--mono); font-size: 12px; color: var(--ink2);
+  word-break: break-all; margin: 2px 0 0;
+}
+.node__d { grid-column: 1 / -1; margin: 5px 0 0; font-size: 12.5px; color: var(--ink2); }
+.tag {
+  font-size: 10.5px; font-weight: 700; letter-spacing: .04em; white-space: nowrap;
+  padding: 3px 9px; border-radius: 999px;
+}
+.tag--app { background: var(--lime-soft); color: var(--lime-deep); }
+.tag--ours { background: var(--sunk); color: var(--ink2); border: 1px solid var(--line); }
+
+/* ── 잰 것 / 못 잰 것 ─────────────────────────────────────────────── */
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line2); white-space: nowrap; }
+th { font-size: 11px; letter-spacing: .08em; color: var(--ink2); font-weight: 700;
+  border-bottom: 1px solid var(--line); }
+td.w { white-space: normal; min-width: 22ch; }
+.mark { font-weight: 700; font-family: var(--mono); }
+.mark--no { color: var(--bad); }
+.mark--ok { color: var(--lime-deep); }
+.mark--q { color: var(--warn); }
+
+/* ── 못 쟀다 안내 ─────────────────────────────────────────────────── */
+.note {
+  margin: 18px 0 0; padding: 15px 18px; border-radius: 12px;
+  background: var(--warn-soft); border: 1px solid var(--warn-line); color: var(--warn);
+  font-size: 13px; line-height: 1.7;
+}
+.note b { color: inherit; }
+
+/* ── 사람 손 ──────────────────────────────────────────────────────── */
+.todo { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; counter-reset: t; }
+.todo li {
+  display: grid; grid-template-columns: 30px 1fr; gap: 4px 14px; align-items: baseline;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 13px; padding: 14px 17px;
+}
+.todo li::before {
+  counter-increment: t; content: counter(t);
+  font-family: var(--mono); font-size: 13px; font-weight: 600;
+  width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center;
+  background: var(--sunk); color: var(--ink2); border: 1px solid var(--line);
+}
+.todo li.block { border-color: var(--bad-line); background: var(--bad-soft); }
+.todo li.block::before { background: var(--bad); color: #fff; border-color: var(--bad); }
+.todo__t { font-weight: 700; font-size: 14.5px; }
+.todo li.block .todo__t { color: var(--bad); }
+.todo__d { grid-column: 2; margin: 4px 0 0; font-size: 12.5px; color: var(--ink2); }
+.todo li.block .todo__d { color: var(--bad); opacity: .92; }
+
+.foot { margin: 46px 0 0; padding: 18px 0 0; border-top: 1px solid var(--line);
+  font-size: 12px; color: var(--ink2); }
+.foot code { font-family: var(--mono); font-size: 11.5px; }
+@media (max-width: 560px) {
+  .wrap { padding: 30px 16px 56px; }
+  .node { grid-template-columns: 1fr; }
+  .tag { justify-self: start; }
+}
+</style>
+
+<div class="wrap">
+
+  <header class="verdict">
+    <p class="verdict__k">LINKPILOT · 판정</p>
+    <h1 class="verdict__t">기준은 앱에서 보이는 것입니다. 낱개 화면이 아닙니다.</h1>
+    <p class="verdict__d">사장님이 여시는 창은 뿌리 주소 하나입니다. 보고서 화면은 그 안에 틀로 얹혀
+      보이고, <b>혼자 열었을 때와 다르게 보일 수 있습니다</b> — 실제로 그랬습니다.</p>
+    <div class="now">
+      <span class="now__l">지금 NAS 에 실린 판</span>
+      <span class="now__v">942097fb</span>
+      <span class="now__n">화면 7개 · 단계 6개 · 배포 <span class="mark mark--ok">닿음</span></span>
+    </div>
+  </header>
+
+  <section class="sec">
+    <h2 class="sec__t">주소 지도</h2>
+    <p class="sec__d">들여쓴 것은 <b>바깥이 안을 품는다</b>는 뜻입니다. 앱이 바깥이고, 보고서 화면이 안입니다.</p>
+    <ul class="rail">
+      <li>
+        <a class="node node--root" href="{{APP_BASE}}/">
+          <span class="node__t">LinkPilot 앱 — 사장님이 여시는 창</span>
+          <span class="tag tag--app">앱 쪽</span>
+          <span class="node__u">{{APP_HOST}}</span>
+          <span class="node__d">로그인 화면이 먼저 뜹니다. 이 저장소는 이 파일을 안 건드립니다.</span>
+        </a>
+        <ul class="rail rail--in" style="margin-top:10px">
+          <li>
+            <a class="node" href="{{APP_BASE}}/im-flow/">
+              <span class="node__t">보고서 스튜디오 — 들어오는 자리</span>
+              <span class="tag tag--ours">이 저장소</span>
+              <span class="node__u">…/im-flow/</span>
+              <span class="node__d">주소 하나만 기억하면 되는 자리. 단계 여섯과 화면 낱개로 갈라집니다.</span>
+            </a>
+          </li>
+          <li>
+            <a class="node" href="{{APP_BASE}}/im-flow/report-flow.html">
+              <span class="node__t">보고서 생성 흐름 — 앱의 「보고서 만들기」 자리에 들어갈 것</span>
+              <span class="tag tag--ours">이 저장소</span>
+              <span class="node__u">…/im-flow/report-flow.html</span>
+              <span class="node__d">1 기본정보 → 2 무엇을 → 3 자료 → 4 생성·미리보기 → 5 출력정보 → 6 완성결과물</span>
+            </a>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </section>
+
+  <section class="sec">
+    <h2 class="sec__t">앱 안에서 보면 달랐던 것</h2>
+    <p class="sec__d">낱개로 열면 멀쩡한데 앱 안에서는 어긋난 것들입니다. <b>이것이 이 기준을 세운 이유입니다.</b></p>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>무엇</th><th>낱개로 열면</th><th>앱 안에서는</th><th>고칠 자리</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="w">배너·탭</td>
+            <td><span class="mark mark--ok">한 벌</span></td>
+            <td><span class="mark mark--no">두 벌</span></td>
+            <td class="w">앱 — 틀 주소가 앱 자신을 가리킴</td>
+          </tr>
+          <tr>
+            <td class="w">기기 등록 수</td>
+            <td><span class="mark mark--q">해당 없음</span></td>
+            <td><span class="mark mark--no">탭마다 +1</span></td>
+            <td class="w">앱 — 표식이 탭 단위</td>
+          </tr>
+          <tr>
+            <td class="w">형제 파일 주소</td>
+            <td><span class="mark mark--ok">맞음</span></td>
+            <td><span class="mark mark--q">앱이 정함</span></td>
+            <td class="w">앱 — <code>lp:base</code> 한 줄</td>
+          </tr>
+          <tr>
+            <td class="w">앱 아이콘</td>
+            <td><span class="mark mark--ok">새로 그림</span></td>
+            <td><span class="mark mark--no">원이 잘림</span></td>
+            <td class="w">앱 — 아이콘 교체</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note"><b>이 판이 못 하는 것.</b> 이 미리보기는 tailnet 밖에 있어서
+      <b>앱 화면 자체를 그려 보일 수 없습니다.</b> 위 표는 사장님 화면과 소스에서 잰 것이고,
+      앱 안의 실제 모습은 위 주소를 눌러 <b>사장님 브라우저에서</b> 보셔야 합니다.
+      없는 것을 그리지 않으려고 이렇게 적어 둡니다.</p>
+  </section>
+
+  <section class="sec">
+    <h2 class="sec__t">사람 손이 필요한 것</h2>
+    <p class="sec__d">번호는 급한 순서입니다. <b>1번만 차단이고 나머지는 불편입니다.</b></p>
+    <ol class="todo">
+      <li class="block">
+        <span class="todo__t">휴대폰에서 등록 기기 하나 해제</span>
+        <span class="todo__d">지금 맥에서 로그인이 안 됩니다. 휴대폰의 <b>이미 열려 있던 창</b>에서
+          [내 정보] → [로그인] → [등록 기기] → <code>Android · Chrome 2026-08-25</code> 해제.</span>
+      </li>
+      <li>
+        <span class="todo__t">앱 개발자께 전달 문서 넘기기</span>
+        <span class="todo__d"><code>docs/전달-platform-0-먼저-읽어주십시오.md</code> 한 장이면 됩니다 —
+          넷의 순서와 재현 절차가 그 안에 있습니다.</span>
+      </li>
+      <li>
+        <span class="todo__t">백업 세대를 몇 벌 둘지 정하기</span>
+        <span class="todo__d">지금은 <b>한 벌만</b> 뜨고 다음 배포가 덮습니다. 며칠치를 남길지
+          정해 주시면 그렇게 고칩니다.</span>
+      </li>
+      <li>
+        <span class="todo__t">관리대장 인계자·인수자 지정</span>
+        <span class="todo__d">10건 중 0건이라, 지침상 어느 것도 완료로 판정되지 않습니다.</span>
+      </li>
+    </ol>
+  </section>
+
+  <p class="foot">이 판은 앱 자리 지도입니다 — 앱 화면 자체가 아닙니다.
+    화면 아래 여덟 글자가 <code>942097fb</code> 이면 방금 판이고, 다르면 옛 판을 보고 계신 것입니다.</p>
+
+</div>

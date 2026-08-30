@@ -56,7 +56,8 @@
     "rights:count": "node im-agent/tools/rights-count.js",
     "prs:write": "node im-agent/tools/open-prs.js",
     "deploy:report": "node im-agent/tools/deploy-report.js",
-    "brand:icon": "node assets/brand/build-icon.js"
+    "brand:icon": "node assets/brand/build-icon.js",
+    "im:appview": "node im-agent/tools/appview.js"
   },
   "dependencies": {
     "solapi": "^5.5.1"
