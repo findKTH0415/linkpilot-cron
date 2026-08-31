@@ -57,7 +57,8 @@
     "prs:write": "node im-agent/tools/open-prs.js",
     "deploy:report": "node im-agent/tools/deploy-report.js",
     "brand:icon": "node assets/brand/build-icon.js",
-    "im:appview": "node im-agent/tools/appview.js"
+    "im:appview": "node im-agent/tools/appview.js",
+    "im:pdf": "node im-agent/tools/pdf.js"
   },
   "dependencies": {
     "solapi": "^5.5.1"
