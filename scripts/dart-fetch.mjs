@@ -88,10 +88,10 @@ for (const q of names) {
   for (const c of loose) {
     const d = { corp: c };
     d.company = await getJson('company.json', { corp_code: c.code });
-    d.filings = await getJson('list.json', {
-      corp_code: c.code, bgn_de: '20200101',
+     d.filings = await getJson('list.json', {
+      corp_code: c.code, bgn_de: '20180101',
       end_de: new Date().toISOString().slice(0, 10).replace(/-/g, ''),
-      pblntf_ty: 'A', page_count: '100',
+      page_count: '100',
     });
     d.financials = {};
     for (const y of YEARS) {
