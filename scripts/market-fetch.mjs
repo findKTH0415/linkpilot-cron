@@ -1,4 +1,4 @@
-// 시장 근거 수집 v3 — 부동산원 항목(ITM/CLS/기간) 탐색 후 데이터 조회 + 통계청 분당 인구
+// 시장 근거 수집 v4 — 부동산원 항목(ITM/CLS/기간) 탐색 후 데이터 조회 + 통계청 분당 인구
 // 의존성 없음. Node 20+ 내장 fetch 만 쓴다.
 
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -63,7 +63,7 @@ const TBL = [
   ['A_2024_00391', '소득수익률 · 중대형 (2022~)'],
 ];
 
-say('# 시장 근거 자료 수집 v3');
+say('# 시장 근거 자료 수집 v4');
 say('');
 say(`조회일 ${new Date().toISOString().slice(0, 10)}`);
 say('');
@@ -78,7 +78,7 @@ else {
     const d = { label };
 
     // (a) 항목·분류·기간 메타 조회
-    const itm = await get(`https://www.reb.or.kr/r-one/openapi/SttsApiTblItm.do?KEY=${REB}&Type=json&STATBL_ID=${id}`);
+    const itm = await get(`https://www.reb.or.kr/r-one/openapi/SttsApiTblItm.do?KEY=${REB}&Type=json&STATBL_ID=${id}&pIndex=1&pSize=1000`);
     const itmRows = rows(itm.json);
     d.itm = { status: itm.status, count: itmRows.length, sample: itmRows.slice(0, 8), msg: resultMsg(itm.json) };
     say(`- 항목메타 : HTTP ${itm.status} · ${itmRows.length}건 ${d.itm.msg}`);
@@ -90,6 +90,12 @@ else {
     }
 
     // (b) 기간 후보 추출
+    const geo = itmRows.filter((x) => /성남|분당|경기/.test(String(x.ITM_NM || '') + String(x.ITM_FULLNM || '')));
+    if (geo.length) {
+      say(`  지역 분류 ${geo.length}건 : ` + geo.map((x) => `${x.ITM_NM}(${x.ITM_ID})`).slice(0, 12).join(', '));
+      d.geo = geo;
+    }
+
     const times = [...new Set(itmRows.map((x) => x.WRTTIME_IDTFR_ID || x.wrttimeIdtfrId).filter(Boolean))];
     const cands = times.length ? times.slice(-3) : ['', '20244', '2024', '20243'];
 
@@ -99,7 +105,7 @@ else {
       for (const wt of cands) {
         const u = `https://www.reb.or.kr/r-one/openapi/SttsApiTblData.do?KEY=${REB}&Type=json` +
                   `&STATBL_ID=${id}&DTACYCLE_CD=${cyc}` + (wt ? `&WRTTIME_IDTFR_ID=${wt}` : '') +
-                  `&pIndex=1&pSize=2000`;
+                  `&pIndex=1&pSize=1000`;
         const r = await get(u);
         const rr = rows(r.json);
         const hit = rr.filter((x) => TARGET.test(JSON.stringify(x)));
