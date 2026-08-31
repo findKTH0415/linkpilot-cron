@@ -240,25 +240,67 @@ function agents() {
  *   주셨으면 병합하는 날에야 알았을 것이다.
  * ★ 원격을 못 보면 **「못 쟀다」**로 적는다. 없는 것과 다른 사실이다.
  */
+/**
+ * ★★★ **저쪽 저장소도 함께 본다** 〈2026-09-01 · M-70 · 실제로 당하고 나서〉.
+ *
+ *   이 칸은 여태 **이 저장소만** 봤다. 그런데 2026-08-31 에 난 사고는
+ *   `linkpilot-platform` 에서 났다 — 열려 있던 PR 5번이 이미 한 일을 PR 3번에서
+ *   하루 뒤에 다시 했고, **양쪽이 새로 만든 같은 파일 3개 · 같이 고친 코드 18개**
+ *   였는데 아무것도 말해 주지 않았다.
+ *
+ *   ★ 장치는 다 있었고 **돌린 자리가 한 곳뿐이었다.** 저쪽 작업 폴더에서 같은
+ *     검사를 돌려 보니 그 자리에서 잡혔다.
+ *   ★★ 저쪽 폴더가 없으면 **「못 쟀다」**로 적는다 — 안 재고 통과로 적지 않는다.
+ *     다만 이 칸은 이 저장소 몫이 먼저이므로, 이쪽이 빨가면 그것이 판정이다.
+ */
+function otherRepoDir() {
+  const given = process.env.LP_PLATFORM_DIR;
+  const guess = path.join(ROOT, '..', 'linkpilot-platform');
+  const dir = given || guess;
+  return fs.existsSync(path.join(dir, '.git')) ? dir : null;
+}
+
+function runDoctor(dir) {
+  const arg = dir ? ` --repo ${JSON.stringify(dir)}` : '';
+  try { return { out: sh(`node im-agent/tools/branch-doctor.js${arg} 2>&1`), code: 0 }; }
+  catch (e) {
+    return { out: String((e.stdout || '') + (e.stderr || '')),
+      code: e.status === undefined ? 1 : e.status };
+  }
+}
+
+function verdictOf(out) {
+  const lines = String(out).trim().split('\n').filter(Boolean);
+  const v = [...lines].reverse().find((l) => /^(겹치는 파일|살아 있는 갈래|견줄|못 |못읽)/.test(l.trim()));
+  return (v || lines[lines.length - 1] || '').trim().replace(/^겹치는 파일: /, '');
+}
+
 function branches() {
-  let out = '';
-  let code = 0;
-  try {
-    out = sh('node im-agent/tools/branch-doctor.js 2>&1');
-  } catch (e) {
-    out = String((e.stdout || '') + (e.stderr || ''));
-    code = e.status === undefined ? 1 : e.status;
+  const here = runDoctor(null);
+  let out = here.out;
+  let code = here.code;
+
+  /* 저쪽 저장소 — 이쪽 판정을 덮지 않고 **더 나쁜 쪽으로만** 옮긴다 */
+  const other = otherRepoDir();
+  let otherLine;
+  if (!other) {
+    otherLine = '저쪽 저장소(linkpilot-platform)는 **못 쟀다** — 이 자리에 작업 폴더가 없다'
+      + ' (`LP_PLATFORM_DIR` 로 알려 주면 함께 잰다)';
+    if (code === 0) code = 2;
+  } else {
+    const o = runDoctor(other);
+    otherLine = `저쪽(linkpilot-platform): ${verdictOf(o.out)}`;
+    if (o.code === 1) code = 1;
+    else if (o.code === 2 && code === 0) code = 2;
   }
   /* ★★ **마지막 줄이 판정 줄이 아니다** 〈2026-08-26 · 실측〉.
    *   겹침이 있으면 `branch-doctor` 가 판정 줄 뒤에 **왜 위험한지**를 한 문단
    *   더 적는다. 그냥 마지막 줄을 집으면 화면에 「진 쪽 설계는 오류 하나 없이
    *   사라진다」만 뜨고 **어느 파일이 겹쳤는지가 사라진다.**
    * ★ 그래서 **판정 줄을 이름으로 찾는다.** 못 찾으면 마지막 줄로 내려간다. */
-  const lines = out.trim().split('\n').filter(Boolean);
-  const verdictLine = [...lines].reverse().find((l) => /^(겹치는 파일|살아 있는 갈래|견줄|못 |못읽)/.test(l.trim()));
-  const line = (verdictLine || lines[lines.length - 1] || '').trim().replace(/^겹치는 파일: /, '');
+  const line = verdictOf(out);
   add('다른 갈래와 겹침', code === 0 ? 'ok' : (code === 2 ? 'unknown' : 'fail'),
-    line || '결과를 못 읽었다');
+    `이쪽: ${line || '결과를 못 읽었다'} · ${otherLine}`);
 }
 
 /* ── ⑨ 보고서 화면 사본이 옛 판인가 ────────────────────── */
