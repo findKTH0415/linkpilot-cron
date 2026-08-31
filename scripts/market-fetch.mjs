@@ -1,0 +1,39 @@
+name: 시장근거 수집
+
+# 한국부동산원(R-ONE)·통계청(KOSIS) 공표통계를 받아 data/market/ 에 커밋한다.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 시장근거 조회
+        env:
+          REB_API_KEY: ${{ secrets.REB_API_KEY }}
+          KOSIS_API_KEY: ${{ secrets.KOSIS_API_KEY }}
+        run: node scripts/market-fetch.mjs
+
+      - name: 결과 커밋
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/market
+          git diff --staged --quiet || git commit -m "시장근거 자료 갱신 ($(date +%Y-%m-%d))"
+          git push
+
+      - name: 아티팩트 업로드
+        uses: actions/upload-artifact@v4
+        with:
+          name: market-data
+          path: data/market
