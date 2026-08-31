@@ -87,10 +87,22 @@ const BY_HAND = [
 function render(o) {
   const g = o.guard;
   const bad = (o.steps || []).filter((s) => s.conclusion === 'failure');
+  /* ★★★ **배포 단계가 하나도 없으면 「반영됐다」라고 못 쓴다** 〈2026-08-31 · 실측〉.
+   *
+   *   앞 판은 실패 칸만 셌다. 그래서 `--deploy` 를 안 준 자리에서 돌리면
+   *   NAS 표가 **텅 빈 채로** 첫 줄에 「반영됐다」가 초록으로 찍혔다 —
+   *   **아무것도 안 재고 통과라고 말한 것**이다. §8 의 「못 잰 것을 통과로
+   *   그리지 않는다」를 이 장 스스로 어기고 있었다.
+   *
+   * ★ 셋을 가른다: 실패가 있다(빨강) · 교차검증이 빨갛다(빨강) ·
+   *   **NAS 를 안 쟀다**(노랑, 통과 아님) · 다 됐다(초록).
+   *   노랑을 초록과 같이 그리면 이 장을 볼 이유가 없어진다. */
+  const noSteps = !(o.steps || []).length;
   const verdict = bad.length ? '반영되지 않았다'
     : (g && g.tally && Number(g.tally[1]) > 0) ? '내보내면 안 된다'
+    : noSteps ? '배포는 아직 안 쟀다'
     : '반영됐다';
-  const vClass = verdict === '반영됐다' ? 'ok' : 'bad';
+  const vClass = verdict === '반영됐다' ? 'ok' : verdict === '배포는 아직 안 쟀다' ? 'warn' : 'bad';
   const step = (s) => `<tr><td>${esc(s.name)}</td><td class="${
     s.conclusion === 'success' ? 'ok' : s.conclusion === 'skipped' ? 'dim' : 'bad'}">${
     s.conclusion === 'success' ? '통과' : s.conclusion === 'skipped' ? '건너뜀' : esc(s.conclusion)}</td></tr>`;
@@ -111,7 +123,7 @@ function render(o) {
        font-variant-numeric:tabular-nums}
   .wrap{max-width:860px;margin:0 auto}
   .v{font-size:clamp(30px,7vw,46px);font-weight:800;letter-spacing:-.03em;margin:0 0 6px}
-  .v.ok{color:var(--ok)} .v.bad{color:var(--bad)}
+  .v.ok{color:var(--ok)} .v.bad{color:var(--bad)} .v.warn{color:var(--warn)}
   .sub{color:var(--dim);margin:0 0 26px}
   h2{font-size:15px;letter-spacing:.02em;margin:30px 0 10px;padding-bottom:6px;
      border-bottom:1px solid var(--line)}
@@ -141,7 +153,9 @@ function render(o) {
     직접 재고 돌려준 결과이고, 「내 자리에서 잰 것」은 코드·화면을 여기서 잰 결과입니다.
     <b>못 잰 것은 통과로 적지 않습니다.</b></div>
 
-  <h2>배포가 NAS 안에서 잰 것</h2>
+  <h2>배포가 NAS 안에서 잰 것</h2>${(o.steps || []).length ? '' : `
+  <p class="sub">이 장을 만들 때 <b>배포 결과를 안 받았습니다</b> — 배포가 돌지 않았거나, 
+    <code>--deploy &lt;배포단계.json&gt;</code> 없이 만든 판입니다. <b>빈 표는 통과가 아닙니다.</b></p>`}
   <div class="scroll"><table><tr><th>단계</th><th>결과</th></tr>
   ${(o.steps || []).map(step).join('\n  ')}
   </table></div>

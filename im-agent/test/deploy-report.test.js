@@ -77,3 +77,22 @@ test('★ 터미널용 별표를 화면에 그대로 내지 않는다', () => {
   const g = guardRows('  ✅ 테스트           **2177 통과** · 0 실패\n');
   assert.strictEqual(g.rows[0].note, '2177 통과 · 0 실패', '별표가 글자로 남았다');
 });
+
+test('★★★ 배포 단계가 비면 「반영됐다」라고 못 쓴다 — 안 잰 것을 통과로 그리지 않는다', () => {
+  /* 실제로 났던 일: `--deploy` 없이 만든 장이 NAS 표를 **텅 빈 채로** 두고
+     첫 줄에 초록 「반영됐다」를 찍었다. 아무것도 안 재고 통과라고 말한 것이다. */
+  const none = render({ stamp: 'a', at: '지금', steps: [], guard: { rows: [], tally: ['10', '0', '1'] } });
+  assert.doesNotMatch(none, /class="v ok"/, '안 쟀는데 초록으로 그렸다');
+  assert.match(none, /class="v warn"/, '못 쟀다는 표시가 없다');
+  assert.match(none, /빈 표는 통과가 아닙니다/, '빈 표에 사유를 안 적었다');
+
+  /* 단계가 하나라도 있으면 종전대로 초록이다 — 검사가 느슨해진 것이 아니다 */
+  const some = render({ stamp: 'a', at: '지금', steps: [{ name: 'Upload', conclusion: 'success' }],
+    guard: { rows: [], tally: ['10', '0', '1'] } });
+  assert.match(some, /class="v ok"/, '잰 것까지 노랗게 만들었다');
+
+  /* 실패가 있으면 빈 표보다 실패가 먼저다 */
+  const fail = render({ stamp: 'a', at: '지금', steps: [{ name: 'Upload', conclusion: 'failure' }],
+    guard: null });
+  assert.match(fail, /반영되지 않았다/, '실패를 「안 쟀다」로 덮었다');
+});
