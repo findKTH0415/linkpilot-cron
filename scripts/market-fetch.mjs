@@ -1,4 +1,4 @@
-// 시장 근거 수집 v5 — 부동산원 ITM_DATANO/CLS_DATANO 로 좁혀 조회 + 통계청 분당 인구
+// 시장 근거 수집 v6 — 기간 고정 + 전 페이지 수집 후 분당·성남 추출
 // 의존성 없음. Node 20+ 내장 fetch 만 쓴다.
 
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -36,17 +36,14 @@ function rows(o, depth = 0) {
   }
   return [];
 }
-function msg(j) {
-  const s = JSON.stringify(j || {});
-  const m = s.match(/"CODE"\s*:\s*"([^"]+)"[^}]*"MESSAGE"\s*:\s*"([^"]+)"/);
-  return m ? `${m[1]} ${m[2]}` : '';
-}
 
-// 항목 메타 전체 페이징 (한 페이지 100건 상한)
-async function allItems(id) {
+// 한 기간(WRTTIME_IDTFR_ID)을 페이지 단위로 전부 긁는다
+async function fetchPeriod(id, cyc, wt) {
   const out = [];
-  for (let p = 1; p <= 20; p++) {
-    const r = await get(`https://www.reb.or.kr/r-one/openapi/SttsApiTblItm.do?KEY=${REB}&Type=json&STATBL_ID=${id}&pIndex=${p}&pSize=100`);
+  for (let p = 1; p <= 40; p++) {
+    const u = `https://www.reb.or.kr/r-one/openapi/SttsApiTblData.do?KEY=${REB}&Type=json` +
+              `&STATBL_ID=${id}&DTACYCLE_CD=${cyc}&WRTTIME_IDTFR_ID=${wt}&pIndex=${p}&pSize=100`;
+    const r = await get(u);
     const rr = rows(r.json);
     out.push(...rr);
     if (rr.length < 100) break;
@@ -54,7 +51,13 @@ async function allItems(id) {
   return out;
 }
 
-const GEO = /경기|성남|분당/;
+// 분당·성남 상권과 경기 광역
+const PICK = (x) => {
+  const s = `${x.CLS_FULLNM || ''} ${x.CLS_NM || ''}`;
+  return /분당|성남/.test(s) && !/울산/.test(s) || s.trim() === '경기';
+};
+
+const PERIODS = ['202502', '202501', '202404', '202403'];
 const TBL = [
   ['T242083134887473', '수익률 · 중대형 상가'],
   ['T246393134978815', '수익률 · 집합 상가'],
@@ -68,57 +71,45 @@ const TBL = [
   ['T243283134931290', '공실률 · 집합 상가'],
 ];
 
-say('# 시장 근거 자료 수집 v5');
+say('# 시장 근거 자료 수집 v6');
 say('');
 say(`조회일 ${new Date().toISOString().slice(0, 10)}`);
 say('');
 say('## 1. 한국부동산원 — 상업용부동산 임대동향조사');
 say('');
+say('분당역세권·성남구시가지·경기 광역만 추출했습니다.');
+say('');
 
-const diag = {};
+const store = {};
 if (!REB) say('REB_API_KEY 없음 — 건너뜀');
 else {
   for (const [id, label] of TBL) {
-    say(`### ${label}  \`${id}\``);
-    const meta = await allItems(id);
-    const items = meta.filter((x) => String(x.ITM_TAG) === '항목');
-    const clses = meta.filter((x) => String(x.ITM_TAG) === '분류');
-    const geo = clses.filter((x) => GEO.test(String(x.ITM_NM) + String(x.ITM_FULLNM)));
-    say(`- 메타 ${meta.length}건 · 항목 ${items.length} · 분류 ${clses.length} · 경기·성남·분당 분류 ${geo.length}`);
-    if (items.length) say(`  항목 : ${items.slice(0, 8).map((x) => `${x.ITM_NM}(${x.ITM_ID})`).join(', ')}`);
-    if (geo.length) say(`  지역 : ${geo.map((x) => `${x.ITM_FULLNM || x.ITM_NM}(${x.ITM_ID})`).join(', ')}`);
-    else say(`  지역 분류 예시 : ${clses.slice(0, 12).map((x) => x.ITM_NM).join(', ')}`);
-
-    const d = { label, items: items.slice(0, 20), geo, results: [] };
-    const useItems = items.length ? items.slice(0, 4) : [{ ITM_ID: '' }];
-    const useGeo = geo.length ? geo.slice(0, 4) : clses.slice(0, 1);
-
-    outer:
-    for (const it of useItems) {
-      for (const g of useGeo) {
-        const u = `https://www.reb.or.kr/r-one/openapi/SttsApiTblData.do?KEY=${REB}&Type=json` +
-                  `&STATBL_ID=${id}&DTACYCLE_CD=QY` +
-                  (it.ITM_ID ? `&ITM_DATANO=${it.ITM_ID}` : '') +
-                  `&CLS_DATANO=${g.ITM_ID}&pIndex=1&pSize=100`;
-        const r = await get(u);
-        const rr = rows(r.json);
-        if (!rr.length) {
-          say(`- ${it.ITM_NM || '전체'} × ${g.ITM_NM} : 0행 ${msg(r.json)}`);
-          continue;
-        }
-        const last = rr.slice(-6);
-        say(`- **${it.ITM_NM || '전체'} × ${g.ITM_FULLNM || g.ITM_NM}** : ${rr.length}행`);
-        for (const x of last) {
-          say(`  · ${x.WRTTIME_DESC || x.WRTTIME_IDTFR_ID || ''} = **${x.DTA_VAL}** ${x.UI_NM || ''}`);
-        }
-        d.results.push({ item: it.ITM_NM, geo: g.ITM_FULLNM || g.ITM_NM, rows: rr });
-        if (d.results.length >= 6) break outer;
-      }
+    say(`### ${label}`);
+    let picked = [], usedWt = '';
+    for (const wt of PERIODS) {
+      const all = await fetchPeriod(id, 'QY', wt);
+      if (!all.length) continue;
+      const hit = all.filter(PICK);
+      if (hit.length) { picked = hit; usedWt = wt; break; }
+      if (!usedWt) usedWt = wt;
     }
-    diag[id] = d;
+    if (!picked.length) { say(`- 해당 지역 데이터 없음 (조회 기간 ${usedWt || PERIODS.join(', ')})`); say(''); continue; }
+
+    const when = picked[0].WRTTIME_DESC || usedWt;
+    say(`- 기준 ${when} · ${picked.length}건`);
+    const byGeo = {};
+    for (const x of picked) {
+      const g = x.CLS_FULLNM || x.CLS_NM;
+      (byGeo[g] ||= []).push(x);
+    }
+    for (const [g, arr] of Object.entries(byGeo)) {
+      const parts = arr.map((x) => `${x.ITM_NM} **${Number(x.DTA_VAL).toFixed(2)}**${x.UI_NM || ''}`);
+      say(`  · **${g}** — ${parts.join(' · ')}`);
+    }
+    store[id] = { label, when, rows: picked };
     say('');
   }
-  await writeFile(`${OUT}/reb_data.json`, JSON.stringify(diag, null, 2));
+  await writeFile(`${OUT}/reb_data.json`, JSON.stringify(store, null, 2));
 }
 
 say('## 2. 통계청 — 성남시 분당구');
@@ -136,7 +127,7 @@ else {
     const r = await get(u);
     const rr = rows(r.json);
     const bd = rr.filter((x) => JSON.stringify(x).includes('분당'));
-    say(`### ${t.label} (${t.tblId}) — 전체 ${rr.length}행 · 분당 ${bd.length}행`);
+    say(`### ${t.label} — 분당 ${bd.length}건`);
     for (const x of bd.slice(0, 20)) {
       say(`- ${x.PRD_DE || ''} · ${x.C1_NM || ''} · ${x.ITM_NM || ''} = **${x.DT || ''}** ${x.UNIT_NM || ''}`);
     }
