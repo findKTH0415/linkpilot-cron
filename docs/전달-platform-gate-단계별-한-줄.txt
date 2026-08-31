@@ -1,8 +1,21 @@
 LinkPilot Platform — 초안 PR 을 합칠 때 충돌 화면에 넣을 줄
-2026-08-31 · 실측으로 만든 것입니다 (여섯을 실제로 합쳐 본 결과)
+2026-09-01 · 실측으로 만든 것입니다 (일곱을 실제로 순서대로 합쳐 본 결과)
+
+★★★ 【2026-09-01 개정 — 앞 판(08-31)을 쓰지 마십시오】
+
+  앞 판은 PR 5번을 셋째로 합치는 순서였습니다. 그 뒤 8월 31일 밤에
+  PR 3번에 같은 일(보고서 배너를 화면 쪽으로 옮기기)이 더 나은 판으로
+  들어갔습니다. 그래서 —
+
+    · PR 5번은 3번 안에 통째로 들어 있습니다. **5번은 닫으십시오.**
+      (합치면 파일 스무 개가 충돌합니다. 내용이 다투는 것이 아니라
+       같은 일을 두 번 하는 것입니다.)
+    · 단계가 하나 줄어 여섯이 되었고, **줄도 달라졌습니다.**
+      앞 판의 줄을 넣으면 없는 검사를 부르거나 있는 검사를 빠뜨립니다.
 
 【이 파일은 무엇입니까】
-초안 PR 여섯을 순서대로 합치시면 4·5·6단계에서 package.json 한 곳이 충돌합니다.
+
+초안 PR 을 아래 순서로 합치시면 4·5단계에서 package.json 한 곳이 충돌합니다.
 검사 목록을 적는 "gate" 줄에 각 PR 이 자기 검사를 덧붙였기 때문입니다.
 
 GitHub 충돌 화면에서 <<<<<<< 로 시작해 >>>>>>> 로 끝나는 덩어리 전체를 지우고,
@@ -13,14 +26,64 @@ GitHub 충돌 화면에서 <<<<<<< 로 시작해 >>>>>>> 로 끝나는 덩어리
 
 ★★ 앞뒤 들여쓰기(공백 4칸)와 끝의 쉼표까지 그대로입니다.
 
-── 4단계 · PR 5번 (보고서 자리 상단 배너 삭제 + 화면이 머리를 단다) ────────────────────────────
+【순서 — 실제로 합쳐 본 결과】
 
-    "gate": "node verify-build.js linkpilot-platform.deploy.html && node check-tdz.js && node check-undefined.js && node test-popup-guard.js && node test-auth-loop.js && node test-build-parity.js && node test-css-hazards.js && node test-app-facts.js && node test-sync-collections.js && node test-card-noovercut.js && node test-brief-sections.js && node test-theme-parity.js && node test-empty-keys.js && node test-icon-duplicates.js && node test-frame-guard.js && node test-sw-routing.js && node test-report-no-hero.js",
+  1단계  PR 4번  PR 마다 게이트를 돌린다            충돌 없음
+  2단계  PR 1번  웹앱 아이콘 (maskable)             충돌 없음
+  3단계  PR 3번  서비스워커 + 배너를 화면으로       충돌 없음
+  4단계  PR 6번  연도별 통화량 최근 5개년           package.json 충돌
+  5단계  PR 2번  기기 한도에서 자리 비우기          package.json 충돌
+  6단계  PR 7번  게이트 명단을 파일로 (반드시 끝)   package.json 충돌 · 아래 별도
 
-── 5단계 · PR 6번 (연도별 통화량 최근 5개년) ────────────────────────────
+  (PR 5번은 없습니다 — 3번에 들어 있으므로 닫으십시오.)
+
+  여섯을 다 합친 자리에서 게이트를 돌렸습니다: 통과, 빨간 줄 0.
+
+── 4단계 · PR 6번 (연도별 통화량 최근 5개년) ────────────────────────────
 
     "gate": "node verify-build.js linkpilot-platform.deploy.html && node check-tdz.js && node check-undefined.js && node test-popup-guard.js && node test-auth-loop.js && node test-build-parity.js && node test-css-hazards.js && node test-app-facts.js && node test-sync-collections.js && node test-card-noovercut.js && node test-brief-sections.js && node test-theme-parity.js && node test-empty-keys.js && node test-icon-duplicates.js && node test-frame-guard.js && node test-sw-routing.js && node test-report-no-hero.js && node test-call-years.js",
 
-── 6단계 · PR 2번 (기기 한도에서 자리 비우기) ────────────────────────────
+── 5단계 · PR 2번 (기기 한도에서 자리 비우기) ────────────────────────────
 
     "gate": "node verify-build.js linkpilot-platform.deploy.html && node check-tdz.js && node check-undefined.js && node test-popup-guard.js && node test-auth-loop.js && node test-build-parity.js && node test-css-hazards.js && node test-app-facts.js && node test-sync-collections.js && node test-card-noovercut.js && node test-brief-sections.js && node test-theme-parity.js && node test-empty-keys.js && node test-icon-duplicates.js && node test-frame-guard.js && node test-sw-routing.js && node test-report-no-hero.js && node test-call-years.js && node test-device-release.js",
+
+── 6단계 · PR 7번 (게이트 명단을 파일로) — 여기는 줄을 넣지 않습니다 ──────
+
+★ 7번은 "gate" 줄을 통째로 짧게 바꿉니다. 그래서 해결이 다릅니다.
+
+  ① package.json 은 **7번 쪽(들어오는 쪽)을 그대로 씁니다.**
+     충돌 화면에서 7번 쪽 덩어리만 남기면 됩니다. 결과는 이 한 줄입니다:
+
+    "gate": "node gate.js",
+
+  ② 그리고 **gate.list 파일에 다섯 줄을 알파벳 자리로 끼워 넣습니다.**
+     맨 끝에 붙이지 마십시오 — 그러면 이 파일을 만든 뜻이 없어집니다.
+     「그다음 — 알파벳 순」 구역이 아래처럼 되면 맞습니다:
+
+test-app-facts.js
+test-auth-loop.js
+test-brief-sections.js
+test-build-parity.js
+test-call-years.js
+test-card-noovercut.js
+test-css-hazards.js
+test-device-release.js
+test-empty-keys.js
+test-frame-guard.js
+test-icon-duplicates.js
+test-popup-guard.js
+test-report-no-hero.js
+test-sw-routing.js
+test-sync-collections.js
+test-theme-parity.js
+
+【합치신 뒤】
+
+앱 본체는 GitHub 이 자동으로 올리지 않습니다. 맥의 앱 저장소 폴더에서
+  git pull
+  python3 deploy-filestation.py
+를 돌리셔야 NAS 화면이 바뀝니다.
+
+여기서 대개 막히는 곳: NAS 로그인 토큰이 없으면 비밀번호와 OTP 를 묻습니다.
+그리고 브라우저가 옛 서비스워커를 들고 있어 한 박자 늦게 바뀝니다 —
+탭을 모두 닫았다 다시 여시면 됩니다.
