@@ -1,0 +1,83 @@
+{
+  "query": "에듀포레",
+  "candidates": [
+    {
+      "code": "01165313",
+      "name": "케이디에듀포레",
+      "stock": ""
+    },
+    {
+      "code": "01148945",
+      "name": "하이에듀포레",
+      "stock": ""
+    }
+  ],
+  "detail": {
+    "01165313": {
+      "corp": {
+        "code": "01165313",
+        "name": "케이디에듀포레",
+        "stock": ""
+      },
+      "company": {
+        "status": "000",
+        "message": "정상",
+        "corp_code": "01165313",
+        "corp_name": "케이디에듀포레 주식회사",
+        "corp_name_eng": "KD Edufore Co.,Ltd.",
+        "stock_name": "케이디에듀포레",
+        "stock_code": "",
+        "ceo_nm": "강수정",
+        "corp_cls": "E",
+        "jurir_no": "1101115971430",
+        "bizr_no": "2658600315",
+        "adres": "서울특별시 영등포구 여의대로 60 9층(여의도동)",
+        "hm_url": "",
+        "ir_url": "",
+        "phn_no": "02-3775-4128",
+        "fax_no": "02-3775-4124",
+        "induty_code": "64999",
+        "est_dt": "20160212",
+        "acc_mt": "02"
+      },
+      "filings": {
+        "status": "013",
+        "message": "조회된 데이타가 없습니다."
+      },
+      "financials": {}
+    },
+    "01148945": {
+      "corp": {
+        "code": "01148945",
+        "name": "하이에듀포레",
+        "stock": ""
+      },
+      "company": {
+        "status": "000",
+        "message": "정상",
+        "corp_code": "01148945",
+        "corp_name": "하이에듀포레 주식회사",
+        "corp_name_eng": "highdeuforet inc.",
+        "stock_name": "하이에듀포레",
+        "stock_code": "",
+        "ceo_nm": "강수정",
+        "corp_cls": "E",
+        "jurir_no": "1101115971472",
+        "bizr_no": "3768800190",
+        "adres": "서울특별시 영등포구 여의대로 60 (여의도동, NH투자증권빌딩)",
+        "hm_url": "",
+        "ir_url": "",
+        "phn_no": "02-771-9839",
+        "fax_no": "",
+        "induty_code": "64201",
+        "est_dt": "20160212",
+        "acc_mt": "01"
+      },
+      "filings": {
+        "status": "013",
+        "message": "조회된 데이타가 없습니다."
+      },
+      "financials": {}
+    }
+  }
+}

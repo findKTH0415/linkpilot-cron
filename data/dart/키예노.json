@@ -1,0 +1,45 @@
+{
+  "query": "키예노",
+  "candidates": [
+    {
+      "code": "01927829",
+      "name": "키예노",
+      "stock": ""
+    }
+  ],
+  "detail": {
+    "01927829": {
+      "corp": {
+        "code": "01927829",
+        "name": "키예노",
+        "stock": ""
+      },
+      "company": {
+        "status": "000",
+        "message": "정상",
+        "corp_code": "01927829",
+        "corp_name": "(주)키예노",
+        "corp_name_eng": "KIYENO CO.LTD",
+        "stock_name": "키예노",
+        "stock_code": "",
+        "ceo_nm": "고병화",
+        "corp_cls": "E",
+        "jurir_no": "1101113259911",
+        "bizr_no": "2208712585",
+        "adres": "서울특별시 강남구 봉은사로37길 26 (논현동, 키예노빌딩)",
+        "hm_url": "",
+        "ir_url": "",
+        "phn_no": "02-2193-8300",
+        "fax_no": "02-3463-0769",
+        "induty_code": "42412",
+        "est_dt": "20050701",
+        "acc_mt": "12"
+      },
+      "filings": {
+        "status": "013",
+        "message": "조회된 데이타가 없습니다."
+      },
+      "financials": {}
+    }
+  }
+}

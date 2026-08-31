@@ -1,0 +1,45 @@
+{
+  "query": "서영엔지니어링",
+  "candidates": [
+    {
+      "code": "00223443",
+      "name": "서영엔지니어링",
+      "stock": ""
+    }
+  ],
+  "detail": {
+    "00223443": {
+      "corp": {
+        "code": "00223443",
+        "name": "서영엔지니어링",
+        "stock": ""
+      },
+      "company": {
+        "status": "000",
+        "message": "정상",
+        "corp_code": "00223443",
+        "corp_name": "(주)서영엔지니어링",
+        "corp_name_eng": "Seoyoung Engineering Co., Ltd.",
+        "stock_name": "서영엔지니어링",
+        "stock_code": "",
+        "ceo_nm": "김종흔",
+        "corp_cls": "E",
+        "jurir_no": "1341110032106",
+        "bizr_no": "1388104348",
+        "adres": "경기도 성남시 분당구 황새울로 246 (수내동) 도담빌딩",
+        "hm_url": "seoyoungeng.com",
+        "ir_url": "",
+        "phn_no": "02-6915-7000",
+        "fax_no": "02-6915-7007",
+        "induty_code": "72129",
+        "est_dt": "19910104",
+        "acc_mt": "12"
+      },
+      "filings": {
+        "status": "013",
+        "message": "조회된 데이타가 없습니다."
+      },
+      "financials": {}
+    }
+  }
+}
