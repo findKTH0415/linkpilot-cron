@@ -26,6 +26,7 @@
  * 쓰는 법:
  *   npm run im:pdf -- <입력.html> [...]        지정한 파일들을 옆에 .pdf 로
  *   npm run im:pdf -- <입력.html> -o <출력.pdf>
+ *   npm run im:pdf -- <입력.html> --to "○○캐피탈"  수령자 문서번호를 박아 따로 낸다
  *   npm run im:pdf -- --check <파일.pdf>       이미 만든 PDF 만 검사
  *
  * 되돌아오는 값: 0 통과 · 1 실패 · 2 못 쟀다(§8 「못 잰 것은 통과가 아니다」)
@@ -35,6 +36,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
+const crypto = require('crypto');
 const { findBrowser } = require('../core/raster');
 
 const RENDER_TIMEOUT_MS = 90000;
@@ -204,6 +206,83 @@ function ensureFonts(wanted) {
 }
 
 /* ────────────────────────────────────────────────────────────
+ * 수령자 도장 — 「이 사본이 어디로 갔는가」
+ * ──────────────────────────────────────────────────────────── */
+
+/**
+ * ★ **왜 필요한가.** 「Strictly Private and Confidential」 이 붙은 문서는
+ *   **어디로 새는지가 문제**다. 그런데 똑같은 파일을 열 곳에 보내면
+ *   나중에 한 부가 돌아다녀도 **어디서 나온 것인지 알 방법이 없다.**
+ *   받는 곳마다 다른 번호를 박아 두면 그때 갈린다.
+ *
+ * ★★ **번호는 짐작할 수 없어야 하고, 같은 조건이면 같아야 한다.**
+ *   그래서 수령자·파일·날짜를 해시로 접는다 — 순번(001, 002)을 쓰면
+ *   받는 쪽이 「나는 몇 번째인가」를 알게 되고, 그것 자체가 정보다.
+ *
+ * ★★★ **박을 자리가 없으면 조용히 넘어가지 않는다.** `--to` 를 주었는데
+ *   문서에 기밀 머리가 없으면 **도장 없는 PDF 가 나온다** — 그러면
+ *   「번호를 박았다」고 믿은 채로 추적 불가능한 사본이 나간다.
+ *   그때는 빨갛게 끝낸다 (§6-1 「조용히 넘어가지 않는다」와 같은 규칙).
+ */
+function docNo(to, baseName, dateStr) {
+  const key = `${to}|${baseName}|${dateStr}`;
+  const h = crypto.createHash('sha256').update(key, 'utf8').digest('hex');
+  return `LP-${dateStr}-${h.slice(0, 4).toUpperCase()}`;
+}
+
+/** 오늘 날짜 (Asia/Seoul). 서버 로컬타임에 기대지 않는다 (CLAUDE.md §5) */
+function kstYmd(now) {
+  const d = now || new Date();
+  const kst = new Date(d.getTime() + (9 * 60 + d.getTimezoneOffset()) * 60000);
+  return `${kst.getFullYear()}`
+    + `${String(kst.getMonth() + 1).padStart(2, '0')}`
+    + `${String(kst.getDate()).padStart(2, '0')}`;
+}
+
+/** 기밀 머리를 찾는 자리. §6-2 가 대외 문서에 이 줄을 요구한다 */
+const CONF_MARK = /(<b[^>]*>\s*Strictly Private and Confidential\s*<\/b>)/i;
+
+const STAMP_CSS = '<style>'
+  + '.lp-docno{font-family:var(--mono),monospace;font-size:10.5px;font-weight:600;'
+  + 'letter-spacing:.1em;color:var(--ochre,#9A6E19);margin-left:10px;white-space:nowrap}'
+  + '.lp-docno-f{font-family:var(--mono),monospace;font-size:11px;font-weight:600;'
+  + 'letter-spacing:.08em;color:var(--ochre,#9A6E19);margin-top:12px}'
+  + '</style>';
+
+/**
+ * 수령자 도장을 찍은 HTML 을 돌려준다.
+ * @returns {{ok:boolean, html?:string, no?:string, reason?:string}}
+ */
+function stamp(html, to, baseName, now) {
+  const s = String(html || '');
+  if (!CONF_MARK.test(s)) {
+    return { ok: false,
+      reason: '이 문서에 기밀 머리(Strictly Private and Confidential)가 없어 번호를 박을 자리가 없다 '
+        + '— 대외 문서라면 §6-2 대로 그 줄을 먼저 넣는다' };
+  }
+  const no = docNo(to, baseName, kstYmd(now));
+  const label = `${no} · ${to}`;
+  let out = s.replace(CONF_MARK, `$1<span class="lp-docno">${escapeHtml(label)}</span>`);
+
+  // 꼬리에도 한 번 더 — 머리만 있으면 마지막 장에는 아무 표시가 없다
+  const foot = out.lastIndexOf('</footer>');
+  if (foot > -1) {
+    out = out.slice(0, foot)
+      + `<p class="lp-docno-f">문서번호 ${escapeHtml(label)} — 이 사본은 위 수령자에게만 제공되었습니다.</p>`
+      + out.slice(foot);
+  }
+  // 스타일은 문서 맨 앞에 — 뒤에 넣으면 인쇄 규격 블록보다 늦게 와도 상관없지만
+  // 앞에 두어야 문서의 자기 스타일이 이길 수 있다
+  out = STAMP_CSS + out;
+  return { ok: true, html: out, no, label, hasFooter: foot > -1 };
+}
+
+function escapeHtml(t) {
+  return String(t).replace(/[&<>"']/g, c => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+/* ────────────────────────────────────────────────────────────
  * 3. 뽑은 PDF 를 검사한다
  * ──────────────────────────────────────────────────────────── */
 
@@ -292,11 +371,27 @@ function htmlToPdf(htmlPath, opt) {
       reason: '헤드리스 크로미움이 없어 PDF 를 만들지 못했다 — CHROME_PATH 로 알려 주거나 설치한다' };
   }
 
-  const r = renderOne(htmlPath, path.resolve(out), browser);
+  // ★ 수령자 도장. 원본 HTML 을 고치지 않는다 — 임시 사본에만 찍는다.
+  //   원본을 고치면 화면(아티팩트)에 남의 이름이 박힌 채로 올라간다.
+  let src = htmlPath;
+  let tmpDir = null;
+  let stamped = null;
+  if (o.to) {
+    const st = stamp(html, o.to, path.basename(htmlPath), o.now);
+    if (!st.ok) return { ok: false, path: null, reason: st.reason };
+    stamped = st;
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'im-pdf-stamp-'));
+    src = path.join(tmpDir, path.basename(htmlPath));
+    fs.writeFileSync(src, st.html, 'utf8');
+  }
+
+  const r = renderOne(src, path.resolve(out), browser);
+  if (tmpDir) { try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch (_) { /* 임시 폴더다 */ } }
   if (!r.ok) return { ok: false, path: null, reason: r.reason };
 
   const got = inspect(out, wanted);
-  return { ...got, path: out, wanted };
+  return { ...got, path: out, wanted, docNo: stamped ? stamped.no : null,
+    stampFooter: stamped ? stamped.hasFooter : null };
 }
 
 /* ────────────────────────────────────────────────────────────
@@ -308,6 +403,7 @@ function usage() {
     '쓰는 법:\n'
     + '  npm run im:pdf -- <입력.html> [...]            옆에 같은 이름의 .pdf 를 만든다\n'
     + '  npm run im:pdf -- <입력.html> -o <출력.pdf>\n'
+    + '  npm run im:pdf -- <입력.html> --to "○○캐피탈"  수령자 문서번호를 박는다\n'
     + '  npm run im:pdf -- --check <파일.pdf>           이미 만든 PDF 만 검사한다\n'
     + '\n'
     + '대외로 나가는 문서는 주소와 PDF 를 둘 다 낸다 (CLAUDE.md §6-2-1).\n');
@@ -335,10 +431,13 @@ function main(argv) {
 
   const inputs = [];
   let out = null;
+  let to = null;
   for (let i = 0; i < args.length; i += 1) {
     if (args[i] === '-o' || args[i] === '--out') { out = args[i + 1]; i += 1; continue; }
+    if (args[i] === '--to') { to = args[i + 1]; i += 1; continue; }
     inputs.push(args[i]);
   }
+  if (to !== null && !String(to).trim()) { say(NO, '--to 뒤에 수령자 이름이 없다'); return 1; }
   if (!inputs.length) { say(NO, '입력 HTML 이 없다'); usage(); return 1; }
   if (out && inputs.length > 1) { say(NO, '-o 는 입력이 하나일 때만 쓴다'); return 1; }
 
@@ -374,7 +473,12 @@ function main(argv) {
   const browser = findBrowser();
   let bad = 0;
   for (const f of inputs) {
-    const r = htmlToPdf(f, { out: inputs.length === 1 ? out : null, browser, wanted });
+    let target = inputs.length === 1 ? out : null;
+    if (to && !target) {
+      const no = docNo(to, path.basename(f), kstYmd());
+      target = f.replace(/\.html?$/i, `__${no}.pdf`);
+    }
+    const r = htmlToPdf(f, { out: target, browser, wanted, to });
     if (!r.ok) {
       if (r.measured === false) { say('못잼', `${f} — ${r.reason}`); return 2; }
       const why = r.reason
@@ -386,7 +490,8 @@ function main(argv) {
       continue;
     }
     say(OK, `${path.basename(r.path)} — ${r.pages}쪽 · A4 · ${(r.bytes / 1024).toFixed(0)}KB`
-      + ` · 글꼴 ${wanted.length}종 박힘`);
+      + ` · 글꼴 ${wanted.length}종 박힘`
+      + (r.docNo ? ` · 문서번호 ${r.docNo}${r.stampFooter ? ' (머리·꼬리)' : ' (머리만)'}` : ''));
   }
   if (bad) say('', `${bad}건 실패 — 내보내지 않는다 (CLAUDE.md §8)`);
   return bad ? 1 : 0;
@@ -394,4 +499,5 @@ function main(argv) {
 
 if (require.main === module) process.exit(main(process.argv));
 
-module.exports = { fontsWanted, ensureFonts, inspect, htmlToPdf, installed, main, A4_PT };
+module.exports = { fontsWanted, ensureFonts, inspect, htmlToPdf, installed, main, A4_PT,
+  stamp, docNo, kstYmd };

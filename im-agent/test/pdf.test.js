@@ -16,6 +16,7 @@ const os = require('os');
 const path = require('path');
 
 const pdf = require('../tools/pdf');
+const fresh = require('../tools/pdf-fresh');
 
 /** 인쇄 규격이 든 최소 문서 하나 */
 function sampleHtml(opt) {
@@ -137,4 +138,124 @@ test('CLAUDE.md §6-2-1 이 im:pdf 를 가리킨다', () => {
 test('package.json 에 im:pdf 가 있다', () => {
   const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'package.json'), 'utf8'));
   assert.strictEqual(pkg.scripts['im:pdf'], 'node im-agent/tools/pdf.js');
+});
+
+/* ── 6. 수령자 도장 ─────────────────────────────────────── */
+
+test('같은 수령자·같은 파일·같은 날이면 번호가 같다', () => {
+  const a = pdf.docNo('한국벤처투자', 'im.html', '20260831');
+  const b = pdf.docNo('한국벤처투자', 'im.html', '20260831');
+  assert.strictEqual(a, b);
+  assert.match(a, /^LP-20260831-[0-9A-F]{4}$/);
+});
+
+test('★ 수령자가 다르면 번호도 다르다 — 이게 아니면 도장이 뜻이 없다', () => {
+  const a = pdf.docNo('한국벤처투자', 'im.html', '20260831');
+  const b = pdf.docNo('산업은행', 'im.html', '20260831');
+  assert.notStrictEqual(a, b);
+});
+
+test('번호가 순번이 아니다 — 받는 쪽이 「나는 몇 번째인가」를 알면 안 된다', () => {
+  const nos = ['가', '나', '다', '라'].map(t => pdf.docNo(t, 'im.html', '20260831'));
+  assert.strictEqual(new Set(nos).size, 4);
+  // 001·002 같은 연속값이 아니라는 것: 뒤 네 자리가 오름차순이 아니다
+  const tails = nos.map(n => n.split('-').pop());
+  assert.ok(!tails.every((v, i) => i === 0 || tails[i - 1] < v),
+    '번호가 오름차순이면 순번과 다를 바 없다');
+});
+
+test('도장은 기밀 머리 옆과 꼬리 두 곳에 찍힌다', () => {
+  const html = '<div class="conf"><b>Strictly Private and Confidential</b>'
+    + '<span>기준일</span></div><p>본문</p><footer><p>꼬리</p></footer>';
+  const r = pdf.stamp(html, '한국벤처투자', 'im.html');
+  assert.strictEqual(r.ok, true);
+  // ★ 스타일 블록에도 같은 이름이 들어 있다 — 자리를 잴 때는 **실제 태그**로 본다.
+  //   (처음엔 이름만 찾아서 CSS 를 도장으로 세고 있었다 — M-30 과 같은 결)
+  assert.ok(r.html.includes('<span class="lp-docno">'), '머리에 찍혀야 한다');
+  const foot = r.html.indexOf('<p class="lp-docno-f">');
+  assert.ok(foot > -1, '꼬리에도 찍혀야 한다');
+  assert.ok(foot > r.html.indexOf('<footer>') && foot < r.html.indexOf('</footer>'),
+    '꼬리 도장은 footer 안이어야 한다');
+  assert.ok(r.html.includes(r.no));
+});
+
+test('★ 박을 자리가 없으면 조용히 넘어가지 않는다', () => {
+  // 도장 없는 PDF 가 나가면 「번호를 박았다」고 믿은 채로 추적 불가능한 사본이 돈다
+  const r = pdf.stamp('<h1>기밀 머리가 없는 문서</h1>', '아무개', 'x.html');
+  assert.strictEqual(r.ok, false);
+  assert.match(r.reason, /기밀 머리/);
+});
+
+test('수령자 이름의 꺾쇠는 태그가 되지 않는다', () => {
+  const html = '<div class="conf"><b>Strictly Private and Confidential</b></div>';
+  const r = pdf.stamp(html, '<script>alert(1)</script>', 'im.html');
+  assert.strictEqual(r.ok, true);
+  assert.ok(!r.html.includes('<script>alert'), '이름이 그대로 태그가 되면 안 된다');
+  assert.ok(r.html.includes('&lt;script&gt;'));
+});
+
+/* ── 7. PDF 가 화면보다 옛말을 하지 않는가 ───────────────── */
+
+test('인쇄 규격이 없는 HTML 은 짝 검사 대상이 아니다', () => {
+  const p = tmpFile('plain.html', '<h1>미리보기 화면</h1>');
+  assert.strictEqual(fresh.isPrintable(p), false);
+});
+
+test('@page 나 @media print 가 있으면 검사 대상이다', () => {
+  const a = tmpFile('a.html', '<style>@page{size:A4}</style>');
+  const b = tmpFile('b.html', '<style>@media print{body{color:#000}}</style>');
+  assert.strictEqual(fresh.isPrintable(a), true);
+  assert.strictEqual(fresh.isPrintable(b), true);
+});
+
+test('★ PDF 가 HTML 보다 오래되면 stale 로 잡는다', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'im-fresh-'));
+  const h = path.join(dir, 'doc.html');
+  const d = path.join(dir, 'doc.pdf');
+  fs.writeFileSync(h, '<style>@page{size:A4}</style><h1>문서</h1>', 'utf8');
+  fs.writeFileSync(d, '%PDF-1.4\n', 'utf8');
+  const old = Date.now() - 3600 * 1000;
+  fs.utimesSync(d, old / 1000, old / 1000);
+
+  const pairs = fresh.scan(dir);
+  assert.strictEqual(pairs.length, 1, '짝 하나를 찾아야 한다');
+  assert.strictEqual(pairs[0].stale, true, 'PDF 가 한 시간 뒤처졌는데 통과하면 검사가 눈이 먼 것이다');
+});
+
+test('같은 시각이면 통과한다 — git 클론의 몇 초 차로 빨개지지 않는다', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'im-fresh2-'));
+  const h = path.join(dir, 'doc.html');
+  const d = path.join(dir, 'doc.pdf');
+  fs.writeFileSync(h, '<style>@page{size:A4}</style>', 'utf8');
+  fs.writeFileSync(d, '%PDF-1.4\n', 'utf8');
+  const pairs = fresh.scan(dir);
+  assert.strictEqual(pairs.length, 1);
+  assert.strictEqual(pairs[0].stale, false);
+});
+
+test('도장 찍힌 사본도 같은 HTML 의 짝으로 센다', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'im-fresh3-'));
+  fs.writeFileSync(path.join(dir, 'doc.html'), '<style>@page{size:A4}</style>', 'utf8');
+  fs.writeFileSync(path.join(dir, 'doc.pdf'), '%PDF-1.4\n', 'utf8');
+  fs.writeFileSync(path.join(dir, 'doc__LP-20260831-ABCD.pdf'), '%PDF-1.4\n', 'utf8');
+  const pairs = fresh.scan(dir);
+  assert.strictEqual(pairs.length, 2, '수령자 사본이 빠지면 그 한 벌만 옛 판으로 남는다');
+});
+
+test('짝이 하나도 없으면 「못 잼」이지 통과가 아니다', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'im-fresh4-'));
+  assert.strictEqual(fresh.scan(dir).length, 0);
+  // main 은 이 경우 2 를 돌려준다 (CLAUDE.md §8 — 못 잰 것은 통과가 아니다)
+  const src = fs.readFileSync(path.join(__dirname, '..', 'tools', 'pdf-fresh.js'), 'utf8');
+  const code = src.replace(/\/\*[\s\S]*?\*\//g, '')
+    .split('\n').filter(l => !/^\s*(\/\/|\*)/.test(l)).join('\n');
+  assert.match(code, /짝이 하나도 없다[\s\S]{0,80}return 2/);
+});
+
+test('guard 가 이 칸을 실제로 부른다', () => {
+  const g = fs.readFileSync(path.join(__dirname, '..', 'tools', 'guard.js'), 'utf8');
+  const code = g.replace(/\/\*[\s\S]*?\*\//g, '')
+    .split('\n').filter(l => !/^\s*(\/\/|\*)/.test(l)).join('\n');
+  assert.match(code, /pdfFresh\(\);/, 'main 에서 불러야 칸이 생긴다');
+  assert.match(code, /add\('대외 문서 PDF'/);
 });

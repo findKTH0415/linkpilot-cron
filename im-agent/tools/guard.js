@@ -330,6 +330,31 @@ function typeface() {
     + ' 자리(CI·NAS)에는 fonts-noto-cjk 가 설치된다');
 }
 
+/* ── ⑪ 대외 문서 PDF 가 화면보다 옛말을 하지 않는가 ────── */
+/**
+ * ★★★ **§6-2-1 은 「주소 + PDF 둘 다」를 요구하는데, 둘을 만드는 시점이 다르다.**
+ *   HTML 을 고쳐 다시 발행하면 주소는 바로 새 판이 되지만, `npm run im:pdf` 를
+ *   다시 안 돌리면 **PDF 만 옛 판으로 남는다.** 그리고 그 상태가 **아무 오류도
+ *   안 낸다** — 둘 다 열리고 둘 다 멀쩡해 보이고, 다른 것은 내용뿐이다.
+ *
+ * ★★ M-25(화면 지문 어긋남)와 **같은 결의 사고**다. 화면 쪽 구멍은
+ *   `build-stamp.js` 가 이미 막는다 — 이 칸이 **PDF 쪽 같은 구멍**을 막는다.
+ *   규칙을 문서에만 적어 두면 사람의 기억에 얹힌다는 것이 M-31 의 교훈이다.
+ */
+function pdfFresh() {
+  let out; let code = 0;
+  try {
+    out = execFileSync(process.execPath, [path.join(__dirname, 'pdf-fresh.js')],
+      { cwd: ROOT, encoding: 'utf8' });
+  } catch (e) {
+    out = String((e.stdout || '') + (e.stderr || ''));
+    code = typeof e.status === 'number' ? e.status : 1;
+  }
+  const line = (out || '').trim().split('\n').pop().replace(/^대외 문서 PDF: /, '');
+  add('대외 문서 PDF', code === 0 ? 'ok' : (code === 2 ? 'unknown' : 'fail'),
+    line || '결과를 못 읽었다');
+}
+
 /**
  * ★★★ **재기만 하고 아무도 안 보는 숫자는 없는 숫자다** 〈2026-08-26 · D-118 후속〉.
  *
@@ -427,6 +452,7 @@ function ledgerNote() {
 
 function main() {
   tests(); stamp(); previews(); render(); saveBar(); openFile(); agents(); branches(); imflow(); typeface();
+  pdfFresh();
 
   const mark = { ok: '✅', fail: '❌', unknown: '⚠️ ' };
   const pad = (s, n) => s + ' '.repeat(Math.max(0, n - [...s].reduce((a, c) => a + (c.charCodeAt(0) > 0x1100 ? 2 : 1), 0)));
