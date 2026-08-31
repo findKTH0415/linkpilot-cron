@@ -74,8 +74,69 @@
         "acc_mt": "12"
       },
       "filings": {
-        "status": "013",
-        "message": "조회된 데이타가 없습니다."
+        "status": "000",
+        "message": "정상",
+        "page_no": 1,
+        "page_count": 100,
+        "total_count": 5,
+        "total_page": 1,
+        "list": [
+          {
+            "corp_code": "01587782",
+            "corp_name": "미주건설",
+            "stock_code": "",
+            "corp_cls": "E",
+            "report_nm": "감사보고서 (2025.12)",
+            "rcept_no": "20260402003951",
+            "flr_nm": "회계법인오현",
+            "rcept_dt": "20260403",
+            "rm": ""
+          },
+          {
+            "corp_code": "01587782",
+            "corp_name": "미주건설",
+            "stock_code": "",
+            "corp_cls": "E",
+            "report_nm": "감사보고서 (2024.12)",
+            "rcept_no": "20250408002227",
+            "flr_nm": "회계법인오현",
+            "rcept_dt": "20250408",
+            "rm": ""
+          },
+          {
+            "corp_code": "01587782",
+            "corp_name": "미주건설",
+            "stock_code": "",
+            "corp_cls": "E",
+            "report_nm": "감사보고서 (2023.12)",
+            "rcept_no": "20240409003836",
+            "flr_nm": "회계법인오현",
+            "rcept_dt": "20240409",
+            "rm": ""
+          },
+          {
+            "corp_code": "01587782",
+            "corp_name": "미주건설",
+            "stock_code": "",
+            "corp_cls": "E",
+            "report_nm": "감사보고서 (2022.12)",
+            "rcept_no": "20230404001099",
+            "flr_nm": "회계법인오현",
+            "rcept_dt": "20230404",
+            "rm": ""
+          },
+          {
+            "corp_code": "01587782",
+            "corp_name": "미주건설",
+            "stock_code": "",
+            "corp_cls": "E",
+            "report_nm": "감사보고서 (2021.12)",
+            "rcept_no": "20220412001071",
+            "flr_nm": "회계법인오현",
+            "rcept_dt": "20220412",
+            "rm": ""
+          }
+        ]
       },
       "financials": {}
     }

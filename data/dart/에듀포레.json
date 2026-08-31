@@ -74,8 +74,36 @@
         "acc_mt": "01"
       },
       "filings": {
-        "status": "013",
-        "message": "조회된 데이타가 없습니다."
+        "status": "000",
+        "message": "정상",
+        "page_no": 1,
+        "page_count": 100,
+        "total_count": 2,
+        "total_page": 1,
+        "list": [
+          {
+            "corp_code": "01148945",
+            "corp_name": "하이에듀포레",
+            "stock_code": "",
+            "corp_cls": "E",
+            "report_nm": "감사보고서 (2018.02)",
+            "rcept_no": "20190821000503",
+            "flr_nm": "태영회계법인",
+            "rcept_dt": "20190821",
+            "rm": ""
+          },
+          {
+            "corp_code": "01148945",
+            "corp_name": "하이에듀포레",
+            "stock_code": "",
+            "corp_cls": "E",
+            "report_nm": "감사보고서 (2017.11)",
+            "rcept_no": "20180314000880",
+            "flr_nm": "태영회계법인",
+            "rcept_dt": "20180314",
+            "rm": ""
+          }
+        ]
       },
       "financials": {}
     }

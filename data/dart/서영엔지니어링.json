@@ -36,8 +36,113 @@
         "acc_mt": "12"
       },
       "filings": {
-        "status": "013",
-        "message": "조회된 데이타가 없습니다."
+        "status": "000",
+        "message": "정상",
+        "page_no": 1,
+        "page_count": 100,
+        "total_count": 9,
+        "total_page": 1,
+        "list": [
+          {
+            "corp_code": "00223443",
+            "corp_name": "서영엔지니어링",
+            "stock_code": "",
+            "corp_cls": "E",
+            "report_nm": "감사보고서 (2025.12)",
+            "rcept_no": "20260403003463",
+            "flr_nm": "태일회계법인",
+            "rcept_dt": "20260403",
+            "rm": ""
+          },
+          {
+            "corp_code": "00223443",
+            "corp_name": "서영엔지니어링",
+            "stock_code": "",
+            "corp_cls": "E",
+            "report_nm": "감사보고서 (2024.12)",
+            "rcept_no": "20250401001026",
+            "flr_nm": "태일회계법인",
+            "rcept_dt": "20250401",
+            "rm": ""
+          },
+          {
+            "corp_code": "00223443",
+            "corp_name": "서영엔지니어링",
+            "stock_code": "",
+            "corp_cls": "E",
+            "report_nm": "감사보고서 (2023.12)",
+            "rcept_no": "20240403001264",
+            "flr_nm": "회계법인세일원",
+            "rcept_dt": "20240403",
+            "rm": ""
+          },
+          {
+            "corp_code": "00223443",
+            "corp_name": "서영엔지니어링",
+            "stock_code": "",
+            "corp_cls": "E",
+            "report_nm": "감사보고서 (2022.12)",
+            "rcept_no": "20230405002314",
+            "flr_nm": "회계법인세일원",
+            "rcept_dt": "20230405",
+            "rm": ""
+          },
+          {
+            "corp_code": "00223443",
+            "corp_name": "서영엔지니어링",
+            "stock_code": "",
+            "corp_cls": "E",
+            "report_nm": "감사보고서 (2021.12)",
+            "rcept_no": "20220331000360",
+            "flr_nm": "회계법인세일원",
+            "rcept_dt": "20220331",
+            "rm": ""
+          },
+          {
+            "corp_code": "00223443",
+            "corp_name": "서영엔지니어링",
+            "stock_code": "",
+            "corp_cls": "E",
+            "report_nm": "감사보고서 (2020.12)",
+            "rcept_no": "20210405001986",
+            "flr_nm": "회계법인세일원",
+            "rcept_dt": "20210405",
+            "rm": ""
+          },
+          {
+            "corp_code": "00223443",
+            "corp_name": "서영엔지니어링",
+            "stock_code": "",
+            "corp_cls": "E",
+            "report_nm": "감사보고서 (2019.12)",
+            "rcept_no": "20200401002167",
+            "flr_nm": "회계법인세일원",
+            "rcept_dt": "20200401",
+            "rm": ""
+          },
+          {
+            "corp_code": "00223443",
+            "corp_name": "서영엔지니어링",
+            "stock_code": "",
+            "corp_cls": "E",
+            "report_nm": "감사보고서 (2018.12)",
+            "rcept_no": "20190401003143",
+            "flr_nm": "회계법인세일원",
+            "rcept_dt": "20190401",
+            "rm": ""
+          },
+          {
+            "corp_code": "00223443",
+            "corp_name": "서영엔지니어링",
+            "stock_code": "",
+            "corp_cls": "E",
+            "report_nm": "감사보고서 (2017.12)",
+            "rcept_no": "20180405001742",
+            "flr_nm": "회계법인세일원",
+            "rcept_dt": "20180405",
+            "rm": ""
+          }
+        ]
       },
       "financials": {}
     }
