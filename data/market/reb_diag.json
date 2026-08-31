@@ -1,0 +1,2882 @@
+{
+  "T242083134887473": {
+    "label": "수익률 · 중대형 상가",
+    "itm": {
+      "status": 200,
+      "count": 100,
+      "sample": [
+        {
+          "STATBL_ID": "T242083134887473",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500001,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "전국",
+          "ITM_FULLNM": "전국",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 1
+        },
+        {
+          "STATBL_ID": "T242083134887473",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500002,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "서울",
+          "ITM_FULLNM": "서울",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 2
+        },
+        {
+          "STATBL_ID": "T242083134887473",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500003,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "부산",
+          "ITM_FULLNM": "부산",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 3
+        },
+        {
+          "STATBL_ID": "T242083134887473",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500004,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "대구",
+          "ITM_FULLNM": "대구",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 4
+        },
+        {
+          "STATBL_ID": "T242083134887473",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500005,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "인천",
+          "ITM_FULLNM": "인천",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 5
+        },
+        {
+          "STATBL_ID": "T242083134887473",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500006,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "광주",
+          "ITM_FULLNM": "광주",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 6
+        },
+        {
+          "STATBL_ID": "T242083134887473",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500007,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "대전",
+          "ITM_FULLNM": "대전",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 7
+        },
+        {
+          "STATBL_ID": "T242083134887473",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500008,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "울산",
+          "ITM_FULLNM": "울산",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 8
+        }
+      ],
+      "msg": "INFO-000 정상 처리되었습니다."
+    },
+    "tries": [
+      {
+        "cyc": "QY",
+        "wt": "",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "20244",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "2024",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "20243",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "20244",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "2024",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "20243",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      }
+    ]
+  },
+  "T246393134978815": {
+    "label": "수익률 · 집합 상가",
+    "itm": {
+      "status": 200,
+      "count": 100,
+      "sample": [
+        {
+          "STATBL_ID": "T246393134978815",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500001,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "전국",
+          "ITM_FULLNM": "전국",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 1
+        },
+        {
+          "STATBL_ID": "T246393134978815",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500002,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "서울",
+          "ITM_FULLNM": "서울",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 2
+        },
+        {
+          "STATBL_ID": "T246393134978815",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500003,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "부산",
+          "ITM_FULLNM": "부산",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 3
+        },
+        {
+          "STATBL_ID": "T246393134978815",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500004,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "대구",
+          "ITM_FULLNM": "대구",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 4
+        },
+        {
+          "STATBL_ID": "T246393134978815",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500005,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "인천",
+          "ITM_FULLNM": "인천",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 5
+        },
+        {
+          "STATBL_ID": "T246393134978815",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500006,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "광주",
+          "ITM_FULLNM": "광주",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 6
+        },
+        {
+          "STATBL_ID": "T246393134978815",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500007,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "대전",
+          "ITM_FULLNM": "대전",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 7
+        },
+        {
+          "STATBL_ID": "T246393134978815",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500008,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "울산",
+          "ITM_FULLNM": "울산",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 8
+        }
+      ],
+      "msg": "INFO-000 정상 처리되었습니다."
+    },
+    "tries": [
+      {
+        "cyc": "QY",
+        "wt": "",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "20244",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "2024",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "20243",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "20244",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "2024",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "20243",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      }
+    ]
+  },
+  "T246253134913401": {
+    "label": "수익률 · 소규모 상가",
+    "itm": {
+      "status": 200,
+      "count": 100,
+      "sample": [
+        {
+          "STATBL_ID": "T246253134913401",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500001,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "전국",
+          "ITM_FULLNM": "전국",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 1
+        },
+        {
+          "STATBL_ID": "T246253134913401",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500002,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "서울",
+          "ITM_FULLNM": "서울",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 2
+        },
+        {
+          "STATBL_ID": "T246253134913401",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500003,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "부산",
+          "ITM_FULLNM": "부산",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 3
+        },
+        {
+          "STATBL_ID": "T246253134913401",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500004,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "대구",
+          "ITM_FULLNM": "대구",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 4
+        },
+        {
+          "STATBL_ID": "T246253134913401",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500005,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "인천",
+          "ITM_FULLNM": "인천",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 5
+        },
+        {
+          "STATBL_ID": "T246253134913401",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500006,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "광주",
+          "ITM_FULLNM": "광주",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 6
+        },
+        {
+          "STATBL_ID": "T246253134913401",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500007,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "대전",
+          "ITM_FULLNM": "대전",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 7
+        },
+        {
+          "STATBL_ID": "T246253134913401",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500008,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "울산",
+          "ITM_FULLNM": "울산",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 8
+        }
+      ],
+      "msg": "INFO-000 정상 처리되었습니다."
+    },
+    "tries": [
+      {
+        "cyc": "QY",
+        "wt": "",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "20244",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "2024",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "20243",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "20244",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "2024",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "20243",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      }
+    ]
+  },
+  "T244363134858603": {
+    "label": "임대료 · 중대형 상가",
+    "itm": {
+      "status": 200,
+      "count": 100,
+      "sample": [
+        {
+          "STATBL_ID": "T244363134858603",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500001,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "전국",
+          "ITM_FULLNM": "전국",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 1
+        },
+        {
+          "STATBL_ID": "T244363134858603",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500002,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "서울",
+          "ITM_FULLNM": "서울",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 2
+        },
+        {
+          "STATBL_ID": "T244363134858603",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500003,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "부산",
+          "ITM_FULLNM": "부산",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 3
+        },
+        {
+          "STATBL_ID": "T244363134858603",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500004,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "대구",
+          "ITM_FULLNM": "대구",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 4
+        },
+        {
+          "STATBL_ID": "T244363134858603",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500005,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "인천",
+          "ITM_FULLNM": "인천",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 5
+        },
+        {
+          "STATBL_ID": "T244363134858603",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500006,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "광주",
+          "ITM_FULLNM": "광주",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 6
+        },
+        {
+          "STATBL_ID": "T244363134858603",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500007,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "대전",
+          "ITM_FULLNM": "대전",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 7
+        },
+        {
+          "STATBL_ID": "T244363134858603",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500008,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "울산",
+          "ITM_FULLNM": "울산",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 8
+        }
+      ],
+      "msg": "INFO-000 정상 처리되었습니다."
+    },
+    "tries": [
+      {
+        "cyc": "QY",
+        "wt": "",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "20244",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "2024",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "20243",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "20244",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "2024",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "20243",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      }
+    ]
+  },
+  "T244913134948657": {
+    "label": "임대료 · 집합 상가",
+    "itm": {
+      "status": 200,
+      "count": 100,
+      "sample": [
+        {
+          "STATBL_ID": "T244913134948657",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500001,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "전국",
+          "ITM_FULLNM": "전국",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 1
+        },
+        {
+          "STATBL_ID": "T244913134948657",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500002,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "서울",
+          "ITM_FULLNM": "서울",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 2
+        },
+        {
+          "STATBL_ID": "T244913134948657",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500003,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "부산",
+          "ITM_FULLNM": "부산",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 3
+        },
+        {
+          "STATBL_ID": "T244913134948657",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500004,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "대구",
+          "ITM_FULLNM": "대구",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 4
+        },
+        {
+          "STATBL_ID": "T244913134948657",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500005,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "인천",
+          "ITM_FULLNM": "인천",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 5
+        },
+        {
+          "STATBL_ID": "T244913134948657",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500006,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "광주",
+          "ITM_FULLNM": "광주",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 6
+        },
+        {
+          "STATBL_ID": "T244913134948657",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500007,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "대전",
+          "ITM_FULLNM": "대전",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 7
+        },
+        {
+          "STATBL_ID": "T244913134948657",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500008,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "울산",
+          "ITM_FULLNM": "울산",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 8
+        }
+      ],
+      "msg": "INFO-000 정상 처리되었습니다."
+    },
+    "tries": [
+      {
+        "cyc": "QY",
+        "wt": "",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "20244",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "2024",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "20243",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "20244",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "2024",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "20243",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      }
+    ]
+  },
+  "T248223134698125": {
+    "label": "임대료 · 소규모 상가",
+    "itm": {
+      "status": 200,
+      "count": 100,
+      "sample": [
+        {
+          "STATBL_ID": "T248223134698125",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500001,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "전국",
+          "ITM_FULLNM": "전국",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 1
+        },
+        {
+          "STATBL_ID": "T248223134698125",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500002,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "서울",
+          "ITM_FULLNM": "서울",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 2
+        },
+        {
+          "STATBL_ID": "T248223134698125",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500003,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "부산",
+          "ITM_FULLNM": "부산",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 3
+        },
+        {
+          "STATBL_ID": "T248223134698125",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500004,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "대구",
+          "ITM_FULLNM": "대구",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 4
+        },
+        {
+          "STATBL_ID": "T248223134698125",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500005,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "인천",
+          "ITM_FULLNM": "인천",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 5
+        },
+        {
+          "STATBL_ID": "T248223134698125",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500006,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "광주",
+          "ITM_FULLNM": "광주",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 6
+        },
+        {
+          "STATBL_ID": "T248223134698125",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500007,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "대전",
+          "ITM_FULLNM": "대전",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 7
+        },
+        {
+          "STATBL_ID": "T248223134698125",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500008,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "울산",
+          "ITM_FULLNM": "울산",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 8
+        }
+      ],
+      "msg": "INFO-000 정상 처리되었습니다."
+    },
+    "tries": [
+      {
+        "cyc": "QY",
+        "wt": "",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "20244",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "2024",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "20243",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "20244",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "2024",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "20243",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      }
+    ]
+  },
+  "T241873134863890": {
+    "label": "층별임대료 · 중대형 상가",
+    "itm": {
+      "status": 200,
+      "count": 100,
+      "sample": [
+        {
+          "STATBL_ID": "T241873134863890",
+          "ITM_TAG": "분류",
+          "ITM_ID": 50001,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "지하1층",
+          "ITM_FULLNM": "지하1층",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 1
+        },
+        {
+          "STATBL_ID": "T241873134863890",
+          "ITM_TAG": "분류",
+          "ITM_ID": 50002,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "1층",
+          "ITM_FULLNM": "1층",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 2
+        },
+        {
+          "STATBL_ID": "T241873134863890",
+          "ITM_TAG": "분류",
+          "ITM_ID": 50003,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "2층",
+          "ITM_FULLNM": "2층",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 3
+        },
+        {
+          "STATBL_ID": "T241873134863890",
+          "ITM_TAG": "분류",
+          "ITM_ID": 50004,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "3층",
+          "ITM_FULLNM": "3층",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 4
+        },
+        {
+          "STATBL_ID": "T241873134863890",
+          "ITM_TAG": "분류",
+          "ITM_ID": 50005,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "4층",
+          "ITM_FULLNM": "4층",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 5
+        },
+        {
+          "STATBL_ID": "T241873134863890",
+          "ITM_TAG": "분류",
+          "ITM_ID": 50006,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "5층",
+          "ITM_FULLNM": "5층",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 6
+        },
+        {
+          "STATBL_ID": "T241873134863890",
+          "ITM_TAG": "분류",
+          "ITM_ID": 50007,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "6층이상",
+          "ITM_FULLNM": "6층이상",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 7
+        },
+        {
+          "STATBL_ID": "T241873134863890",
+          "ITM_TAG": "그룹",
+          "ITM_ID": 60001,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "전국",
+          "ITM_FULLNM": "전국",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 1
+        }
+      ],
+      "msg": "INFO-000 정상 처리되었습니다."
+    },
+    "tries": [
+      {
+        "cyc": "QY",
+        "wt": "",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "20244",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "2024",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "20243",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "20244",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "2024",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "20243",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      }
+    ]
+  },
+  "T249023134703697": {
+    "label": "층별임대료 · 집합 상가",
+    "itm": {
+      "status": 200,
+      "count": 100,
+      "sample": [
+        {
+          "STATBL_ID": "T249023134703697",
+          "ITM_TAG": "분류",
+          "ITM_ID": 50001,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "지하1층",
+          "ITM_FULLNM": "지하1층",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 1
+        },
+        {
+          "STATBL_ID": "T249023134703697",
+          "ITM_TAG": "분류",
+          "ITM_ID": 50002,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "1층",
+          "ITM_FULLNM": "1층",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 2
+        },
+        {
+          "STATBL_ID": "T249023134703697",
+          "ITM_TAG": "분류",
+          "ITM_ID": 50003,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "2층",
+          "ITM_FULLNM": "2층",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 3
+        },
+        {
+          "STATBL_ID": "T249023134703697",
+          "ITM_TAG": "분류",
+          "ITM_ID": 50004,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "3층",
+          "ITM_FULLNM": "3층",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 4
+        },
+        {
+          "STATBL_ID": "T249023134703697",
+          "ITM_TAG": "분류",
+          "ITM_ID": 50005,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "4층",
+          "ITM_FULLNM": "4층",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 5
+        },
+        {
+          "STATBL_ID": "T249023134703697",
+          "ITM_TAG": "분류",
+          "ITM_ID": 50006,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "5층",
+          "ITM_FULLNM": "5층",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 6
+        },
+        {
+          "STATBL_ID": "T249023134703697",
+          "ITM_TAG": "분류",
+          "ITM_ID": 50007,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "6층이상",
+          "ITM_FULLNM": "6층이상",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 7
+        },
+        {
+          "STATBL_ID": "T249023134703697",
+          "ITM_TAG": "그룹",
+          "ITM_ID": 60001,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "전국",
+          "ITM_FULLNM": "전국",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 1
+        }
+      ],
+      "msg": "INFO-000 정상 처리되었습니다."
+    },
+    "tries": [
+      {
+        "cyc": "QY",
+        "wt": "",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "20244",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "2024",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "20243",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "20244",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "2024",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "20243",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      }
+    ]
+  },
+  "T249633134845544": {
+    "label": "공실률 · 중대형 상가",
+    "itm": {
+      "status": 200,
+      "count": 100,
+      "sample": [
+        {
+          "STATBL_ID": "T249633134845544",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500001,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "전국",
+          "ITM_FULLNM": "전국",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 1
+        },
+        {
+          "STATBL_ID": "T249633134845544",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500002,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "서울",
+          "ITM_FULLNM": "서울",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 2
+        },
+        {
+          "STATBL_ID": "T249633134845544",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500003,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "부산",
+          "ITM_FULLNM": "부산",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 3
+        },
+        {
+          "STATBL_ID": "T249633134845544",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500004,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "대구",
+          "ITM_FULLNM": "대구",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 4
+        },
+        {
+          "STATBL_ID": "T249633134845544",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500005,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "인천",
+          "ITM_FULLNM": "인천",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 5
+        },
+        {
+          "STATBL_ID": "T249633134845544",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500006,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "광주",
+          "ITM_FULLNM": "광주",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 6
+        },
+        {
+          "STATBL_ID": "T249633134845544",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500007,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "대전",
+          "ITM_FULLNM": "대전",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 7
+        },
+        {
+          "STATBL_ID": "T249633134845544",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500008,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "울산",
+          "ITM_FULLNM": "울산",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 8
+        }
+      ],
+      "msg": "INFO-000 정상 처리되었습니다."
+    },
+    "tries": [
+      {
+        "cyc": "QY",
+        "wt": "",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "20244",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "2024",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "20243",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "20244",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "2024",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "20243",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      }
+    ]
+  },
+  "T243283134931290": {
+    "label": "공실률 · 집합 상가",
+    "itm": {
+      "status": 200,
+      "count": 100,
+      "sample": [
+        {
+          "STATBL_ID": "T243283134931290",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500001,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "전국",
+          "ITM_FULLNM": "전국",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 1
+        },
+        {
+          "STATBL_ID": "T243283134931290",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500002,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "서울",
+          "ITM_FULLNM": "서울",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 2
+        },
+        {
+          "STATBL_ID": "T243283134931290",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500003,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "부산",
+          "ITM_FULLNM": "부산",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 3
+        },
+        {
+          "STATBL_ID": "T243283134931290",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500004,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "대구",
+          "ITM_FULLNM": "대구",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 4
+        },
+        {
+          "STATBL_ID": "T243283134931290",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500005,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "인천",
+          "ITM_FULLNM": "인천",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 5
+        },
+        {
+          "STATBL_ID": "T243283134931290",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500006,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "광주",
+          "ITM_FULLNM": "광주",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 6
+        },
+        {
+          "STATBL_ID": "T243283134931290",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500007,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "대전",
+          "ITM_FULLNM": "대전",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 7
+        },
+        {
+          "STATBL_ID": "T243283134931290",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500008,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "울산",
+          "ITM_FULLNM": "울산",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 8
+        }
+      ],
+      "msg": "INFO-000 정상 처리되었습니다."
+    },
+    "tries": [
+      {
+        "cyc": "QY",
+        "wt": "",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "20244",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "2024",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "20243",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "20244",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "2024",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "20243",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      }
+    ]
+  },
+  "A_2024_00367": {
+    "label": "수익률 · 중대형 (2022~2024)",
+    "itm": {
+      "status": 200,
+      "count": 100,
+      "sample": [
+        {
+          "STATBL_ID": "A_2024_00367",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500001,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "전국",
+          "ITM_FULLNM": "전국",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 1
+        },
+        {
+          "STATBL_ID": "A_2024_00367",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500002,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "서울",
+          "ITM_FULLNM": "서울",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 2
+        },
+        {
+          "STATBL_ID": "A_2024_00367",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500003,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "부산",
+          "ITM_FULLNM": "부산",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 3
+        },
+        {
+          "STATBL_ID": "A_2024_00367",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500004,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "대구",
+          "ITM_FULLNM": "대구",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 4
+        },
+        {
+          "STATBL_ID": "A_2024_00367",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500005,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "인천",
+          "ITM_FULLNM": "인천",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 5
+        },
+        {
+          "STATBL_ID": "A_2024_00367",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500006,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "광주",
+          "ITM_FULLNM": "광주",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 6
+        },
+        {
+          "STATBL_ID": "A_2024_00367",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500007,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "대전",
+          "ITM_FULLNM": "대전",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 7
+        },
+        {
+          "STATBL_ID": "A_2024_00367",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500008,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "울산",
+          "ITM_FULLNM": "울산",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 8
+        }
+      ],
+      "msg": "INFO-000 정상 처리되었습니다."
+    },
+    "tries": [
+      {
+        "cyc": "QY",
+        "wt": "",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "20244",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "2024",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "20243",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "20244",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "2024",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "20243",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      }
+    ]
+  },
+  "A_2024_00369": {
+    "label": "수익률 · 집합 (2022~2024)",
+    "itm": {
+      "status": 200,
+      "count": 100,
+      "sample": [
+        {
+          "STATBL_ID": "A_2024_00369",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500001,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "전국",
+          "ITM_FULLNM": "전국",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 1
+        },
+        {
+          "STATBL_ID": "A_2024_00369",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500002,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "서울",
+          "ITM_FULLNM": "서울",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 2
+        },
+        {
+          "STATBL_ID": "A_2024_00369",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500003,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "부산",
+          "ITM_FULLNM": "부산",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 3
+        },
+        {
+          "STATBL_ID": "A_2024_00369",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500004,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "대구",
+          "ITM_FULLNM": "대구",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 4
+        },
+        {
+          "STATBL_ID": "A_2024_00369",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500005,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "인천",
+          "ITM_FULLNM": "인천",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 5
+        },
+        {
+          "STATBL_ID": "A_2024_00369",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500006,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "광주",
+          "ITM_FULLNM": "광주",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 6
+        },
+        {
+          "STATBL_ID": "A_2024_00369",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500007,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "대전",
+          "ITM_FULLNM": "대전",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 7
+        },
+        {
+          "STATBL_ID": "A_2024_00369",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500008,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "울산",
+          "ITM_FULLNM": "울산",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 8
+        }
+      ],
+      "msg": "INFO-000 정상 처리되었습니다."
+    },
+    "tries": [
+      {
+        "cyc": "QY",
+        "wt": "",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "20244",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "2024",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "20243",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "20244",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "2024",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "20243",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      }
+    ]
+  },
+  "A_2024_00278": {
+    "label": "임대료 · 중대형 (2022~2024)",
+    "itm": {
+      "status": 200,
+      "count": 100,
+      "sample": [
+        {
+          "STATBL_ID": "A_2024_00278",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500001,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "전국",
+          "ITM_FULLNM": "전국",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 1
+        },
+        {
+          "STATBL_ID": "A_2024_00278",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500002,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "서울",
+          "ITM_FULLNM": "서울",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 2
+        },
+        {
+          "STATBL_ID": "A_2024_00278",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500003,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "부산",
+          "ITM_FULLNM": "부산",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 3
+        },
+        {
+          "STATBL_ID": "A_2024_00278",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500004,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "대구",
+          "ITM_FULLNM": "대구",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 4
+        },
+        {
+          "STATBL_ID": "A_2024_00278",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500005,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "인천",
+          "ITM_FULLNM": "인천",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 5
+        },
+        {
+          "STATBL_ID": "A_2024_00278",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500006,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "광주",
+          "ITM_FULLNM": "광주",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 6
+        },
+        {
+          "STATBL_ID": "A_2024_00278",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500007,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "대전",
+          "ITM_FULLNM": "대전",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 7
+        },
+        {
+          "STATBL_ID": "A_2024_00278",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500008,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "울산",
+          "ITM_FULLNM": "울산",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 8
+        }
+      ],
+      "msg": "INFO-000 정상 처리되었습니다."
+    },
+    "tries": [
+      {
+        "cyc": "QY",
+        "wt": "",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "20244",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "2024",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "20243",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "20244",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "2024",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "20243",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      }
+    ]
+  },
+  "A_2024_00280": {
+    "label": "임대료 · 집합 (2022~2024)",
+    "itm": {
+      "status": 200,
+      "count": 100,
+      "sample": [
+        {
+          "STATBL_ID": "A_2024_00280",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500001,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "전국",
+          "ITM_FULLNM": "전국",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 1
+        },
+        {
+          "STATBL_ID": "A_2024_00280",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500002,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "서울",
+          "ITM_FULLNM": "서울",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 2
+        },
+        {
+          "STATBL_ID": "A_2024_00280",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500003,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "부산",
+          "ITM_FULLNM": "부산",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 3
+        },
+        {
+          "STATBL_ID": "A_2024_00280",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500004,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "대구",
+          "ITM_FULLNM": "대구",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 4
+        },
+        {
+          "STATBL_ID": "A_2024_00280",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500005,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "인천",
+          "ITM_FULLNM": "인천",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 5
+        },
+        {
+          "STATBL_ID": "A_2024_00280",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500006,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "광주",
+          "ITM_FULLNM": "광주",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 6
+        },
+        {
+          "STATBL_ID": "A_2024_00280",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500007,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "대전",
+          "ITM_FULLNM": "대전",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 7
+        },
+        {
+          "STATBL_ID": "A_2024_00280",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500008,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "울산",
+          "ITM_FULLNM": "울산",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 8
+        }
+      ],
+      "msg": "INFO-000 정상 처리되었습니다."
+    },
+    "tries": [
+      {
+        "cyc": "QY",
+        "wt": "",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "20244",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "2024",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "20243",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "20244",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "2024",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "20243",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      }
+    ]
+  },
+  "A_2024_00415": {
+    "label": "자본수익률 · 중대형 (2022~)",
+    "itm": {
+      "status": 200,
+      "count": 100,
+      "sample": [
+        {
+          "STATBL_ID": "A_2024_00415",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500001,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "전체",
+          "ITM_FULLNM": "전체",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 1
+        },
+        {
+          "STATBL_ID": "A_2024_00415",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500002,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "서울",
+          "ITM_FULLNM": "서울",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 2
+        },
+        {
+          "STATBL_ID": "A_2024_00415",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500003,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "부산",
+          "ITM_FULLNM": "부산",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 3
+        },
+        {
+          "STATBL_ID": "A_2024_00415",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500004,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "대구",
+          "ITM_FULLNM": "대구",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 4
+        },
+        {
+          "STATBL_ID": "A_2024_00415",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500005,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "인천",
+          "ITM_FULLNM": "인천",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 5
+        },
+        {
+          "STATBL_ID": "A_2024_00415",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500006,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "광주",
+          "ITM_FULLNM": "광주",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 6
+        },
+        {
+          "STATBL_ID": "A_2024_00415",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500007,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "대전",
+          "ITM_FULLNM": "대전",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 7
+        },
+        {
+          "STATBL_ID": "A_2024_00415",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500008,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "울산",
+          "ITM_FULLNM": "울산",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 8
+        }
+      ],
+      "msg": "INFO-000 정상 처리되었습니다."
+    },
+    "tries": [
+      {
+        "cyc": "QY",
+        "wt": "",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "20244",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "2024",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "20243",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "20244",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "2024",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "20243",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      }
+    ]
+  },
+  "A_2024_00391": {
+    "label": "소득수익률 · 중대형 (2022~)",
+    "itm": {
+      "status": 200,
+      "count": 100,
+      "sample": [
+        {
+          "STATBL_ID": "A_2024_00391",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500001,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "전체",
+          "ITM_FULLNM": "전체",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 1
+        },
+        {
+          "STATBL_ID": "A_2024_00391",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500002,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "서울",
+          "ITM_FULLNM": "서울",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 2
+        },
+        {
+          "STATBL_ID": "A_2024_00391",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500003,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "부산",
+          "ITM_FULLNM": "부산",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 3
+        },
+        {
+          "STATBL_ID": "A_2024_00391",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500004,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "대구",
+          "ITM_FULLNM": "대구",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 4
+        },
+        {
+          "STATBL_ID": "A_2024_00391",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500005,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "인천",
+          "ITM_FULLNM": "인천",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 5
+        },
+        {
+          "STATBL_ID": "A_2024_00391",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500006,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "광주",
+          "ITM_FULLNM": "광주",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 6
+        },
+        {
+          "STATBL_ID": "A_2024_00391",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500007,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "대전",
+          "ITM_FULLNM": "대전",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 7
+        },
+        {
+          "STATBL_ID": "A_2024_00391",
+          "ITM_TAG": "분류",
+          "ITM_ID": 500008,
+          "PAR_ITM_ID": 0,
+          "ITM_NM": "울산",
+          "ITM_FULLNM": "울산",
+          "UI_NM": null,
+          "ITM_CMMT_IDTFR": null,
+          "ITM_CMMT_CONT": null,
+          "V_ORDER": 8
+        }
+      ],
+      "msg": "INFO-000 정상 처리되었습니다."
+    },
+    "tries": [
+      {
+        "cyc": "QY",
+        "wt": "",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "20244",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "2024",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "QY",
+        "wt": "20243",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "20244",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "2024",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      },
+      {
+        "cyc": "YY",
+        "wt": "20243",
+        "status": 200,
+        "rows": 0,
+        "matched": 0,
+        "msg": "ERROR-336 데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+        "body": "{\"RESULT\":{\"CODE\":\"ERROR-336\",\"MESSAGE\":\"데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.\"}}"
+      }
+    ]
+  }
+}

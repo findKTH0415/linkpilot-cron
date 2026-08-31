@@ -172,7 +172,6 @@
       "C1_OBJ_NM_ENG": "By Administrative District"
     }
   ],
-  "DT_1B04006": [],
   "DT_1JC1502": [
     {
       "C1_OBJ_NM": "행정구역별(읍면동)",
@@ -269,5 +268,6 @@
       "ORG_ID": "101",
       "C1_OBJ_NM_ENG": "By administrative divisions(eup myeon dong)"
     }
-  ]
+  ],
+  "DT_1B04005N": []
 }
