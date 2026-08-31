@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="e66e07a5">
+<html lang="ko" data-lp-build="c0f78351">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -263,13 +263,31 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=e66e07a5">
+<link rel="stylesheet" href="tokens.css?v=c0f78351">
 <style>
 :root {
   --side: 248px;
 }
 * { box-sizing: border-box; }
-html, body { height: 100%; }
+html, body {
+  /* ★★★ **`height: 100%` 를 빼야 폰에서 스크롤이 된다** 〈2026-09-01 사장님 화면 · M-71〉.
+   *
+   *   사장님이 앱에서 이 화면을 여니 **내용이 화면 밖으로 잘린 채 스크롤이 안 됐다.**
+   *   앞 판은 여기에 `height: 100%` 가 있었다 — 앱 셸(사이드바 + 100% 높이)로
+   *   짜여 있던 시절의 잔재다. 그 셸(`.app` · `.side` · `.top`)은 이미 없어졌고,
+   *   지금 `body` 아래에는 `.wrap` 하나뿐이라 **아무것도 이 규칙에 기대지 않는다.**
+   *
+   *   ★ 그런데 안드로이드 웹뷰에서는 이것이 문서 높이를 한 화면으로 못박아
+   *     **내용이 넘쳐도 스크롤이 안 생기는** 상태를 만든다. 데스크탑 브라우저에서는
+   *     같은 규칙이 멀쩡히 스크롤되므로 **여기서는 재현되지 않는다** — 그래서
+   *     오래 안 보였다.
+   *   ★★ 실제로 스크롤이 되는 두 화면(`report-flow.html` · `index.html`)에는
+   *     이 규칙이 **처음부터 없었다.** 잘리는 다섯 화면에만 있었다.
+   *   ★ 틀 안에서는 `EMBED_CSS` 가 `height:auto!important` 로 덮으므로,
+   *     이 줄을 빼도 틀 쪽 동작은 그대로다.
+   */
+  min-height: 100%;
+}
 body {
   margin: 0; background: var(--bg); color: var(--ink);
   font: 400 15px/1.55 var(--lp-font);
@@ -529,11 +547,11 @@ h1,h2,h3,h4 { margin: 0; }
   </main>
 </div>
 
-<script src="gate-core.js?v=e66e07a5"></script>
-<script src="flow-core.js?v=e66e07a5"></script>
-<script src="upload-core.js?v=e66e07a5"></script>
-<script src="catalog.js?v=e66e07a5"></script>
-<script src="inapp.js?v=e66e07a5"></script>
+<script src="gate-core.js?v=c0f78351"></script>
+<script src="flow-core.js?v=c0f78351"></script>
+<script src="upload-core.js?v=c0f78351"></script>
+<script src="catalog.js?v=c0f78351"></script>
+<script src="inapp.js?v=c0f78351"></script>
 <script>
 /**
  * 설정 — 서버가 로그인 세션을 보고 내려주는 것이 정석이다.
@@ -545,7 +563,7 @@ window.LINKPILOT_INTAKE = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=e66e07a5" data-lp-global="LINKPILOT_INTAKE"></script>
+<script src="embed-bridge.js?v=c0f78351" data-lp-global="LINKPILOT_INTAKE"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
