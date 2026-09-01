@@ -11,6 +11,7 @@
     "branch:check": "node im-agent/tools/branch-doctor.js",
     "agent:check": "node im-agent/tools/agent-doctor.js",
     "im:smoke": "node im-agent/tools/smoke-public-data.js",
+    "im:api-report": "node im-agent/tools/api-report.js",
     "im:render": "node im-agent/tools/render-birdseye.js",
     "im:env-doctor": "node im-agent/tools/env-doctor.js",
     "guard": "node im-agent/tools/guard.js",

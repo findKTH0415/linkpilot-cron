@@ -1,0 +1,87 @@
+# 공공 API 실측 진단 — 열쇠가 있는 자리에서 부르고 **결과만 커밋**한다.
+#
+# 왜 이 방식인가 (docs/운영지침-공공API-활용.md §0):
+#   Actions Secrets 는 다시 읽을 수 없다. 그래서 열쇠를 꺼내는 대신
+#   열쇠를 쓸 수 있는 이 자리에서 대신 부르고, 사람이 읽는 요약만 남긴다.
+#   열쇠는 저장소 밖으로 안 나가고 로그에도 안 남는다.
+#
+# 이 저장소는 공개다 — 그래서 커밋 전에 api-report.js 가 결과에 열쇠가
+# 섞였는지 직접 세고, 걸리면 파일을 안 쓰고 빨갛게 끝난다 (§10 · CLAUDE.md §2).
+
+name: 공공 API 실측 진단
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 21 * * 1'          # 매주 월요일 06:00 KST (UTC 표기 — CLAUDE.md §2)
+
+permissions:
+  contents: write
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # 진단이 실패해도 다음 단계로 간다 — 실패한 항목이 곧 우리가 알고 싶은 것이다
+      - name: 26개 커넥터를 실제로 불러 본다
+        continue-on-error: true
+        env:
+          VWORLD_KEY:        ${{ secrets.VWORLD_KEY }}
+          VWORLD_DOMAIN:     ${{ secrets.VWORLD_DOMAIN }}
+          DATA_GO_KR_KEY:    ${{ secrets.DATA_GO_KR_KEY }}
+          DART_API_KEY:      ${{ secrets.DART_API_KEY }}
+          REB_API_KEY:       ${{ secrets.REB_API_KEY }}
+          KOSIS_API_KEY:     ${{ secrets.KOSIS_API_KEY }}
+          ECOS_API_KEY:      ${{ secrets.ECOS_API_KEY }}
+          ECOS_BOK_KEY:      ${{ secrets.ECOS_BOK_KEY }}
+          KEPCO_BIGDATA_KEY: ${{ secrets.KEPCO_BIGDATA_KEY }}
+          KMA_APIHUB_KEY:    ${{ secrets.KMA_APIHUB_KEY }}
+          LAW_OC:            ${{ secrets.LAW_OC }}
+          LAW_OPEN_DATA:     ${{ secrets.LAW_OPEN_DATA }}
+          KICT_API_KEY:      ${{ secrets.KICT_API_KEY }}
+          KICT_API_BASE:     ${{ secrets.KICT_API_BASE }}
+          PEXELS_API_KEY:    ${{ secrets.PEXELS_API_KEY }}
+          KRX_API_KEY:       ${{ secrets.KRX_API_KEY }}
+        run: node im-agent/tools/smoke-public-data.js > "${RUNNER_TEMP}/smoke.txt" 2>&1
+
+      # ★ 요약을 만든다. 결과에 열쇠가 섞였으면 여기서 멈춘다(파일을 안 쓴다).
+      - name: 사람이 읽는 요약으로 접는다
+        env:
+          VWORLD_KEY:        ${{ secrets.VWORLD_KEY }}
+          VWORLD_DOMAIN:     ${{ secrets.VWORLD_DOMAIN }}
+          DATA_GO_KR_KEY:    ${{ secrets.DATA_GO_KR_KEY }}
+          DART_API_KEY:      ${{ secrets.DART_API_KEY }}
+          REB_API_KEY:       ${{ secrets.REB_API_KEY }}
+          KOSIS_API_KEY:     ${{ secrets.KOSIS_API_KEY }}
+          ECOS_API_KEY:      ${{ secrets.ECOS_API_KEY }}
+          ECOS_BOK_KEY:      ${{ secrets.ECOS_BOK_KEY }}
+          KEPCO_BIGDATA_KEY: ${{ secrets.KEPCO_BIGDATA_KEY }}
+          KMA_APIHUB_KEY:    ${{ secrets.KMA_APIHUB_KEY }}
+          LAW_OC:            ${{ secrets.LAW_OC }}
+          LAW_OPEN_DATA:     ${{ secrets.LAW_OPEN_DATA }}
+          KICT_API_KEY:      ${{ secrets.KICT_API_KEY }}
+          PEXELS_API_KEY:    ${{ secrets.PEXELS_API_KEY }}
+          KRX_API_KEY:       ${{ secrets.KRX_API_KEY }}
+        run: node im-agent/tools/api-report.js "${RUNNER_TEMP}/smoke.txt" --out data/_api
+
+      - name: 결과 커밋
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/_api
+          git diff --staged --quiet || git commit -m "공공 API 실측 진단 ($(date -u +%Y-%m-%d))"
+          git push
+
+      # 커밋이 막혀도(브랜치 보호 등) 결과를 회수할 수 있게 (지침서 §8)
+      - name: 아티팩트 업로드
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-smoke
+          path: data/_api
+          if-no-files-found: warn
