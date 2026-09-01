@@ -1,147 +1,240 @@
-# 공공 API 활용 지침서
+# 공공·상용 API 활용지침 규정집
 
-**대상 저장소** `findKTH0415/linkpilot-cron`
-**작성일** 2026년 9월 1일
-**용도** GitHub Actions Secrets에 등록된 API 키를 다른 프로젝트에서 재사용하기 위한 절차서
+**v1.3 · 2026-09-02 · 프로젝트 이식용 표준 운영 규약**
 
 ---
 
-## 0. 왜 이 방식인가
+## 0. 문서의 성격
 
-Actions Secrets에 저장한 키는 **다시 읽을 수 없습니다.** 편집 화면의 연필 아이콘은 값을 덮어쓰는 버튼이지 보여 주는 버튼이 아닙니다. 저장소 소유자도 마찬가지입니다.
+| 항목 | 내용 |
+|---|---|
+| 적용 대상 | API 키를 GitHub Actions Secrets에 보관하고, 수집 스크립트를 Actions에서 실행하며, 결과를 저장소에 커밋해 분석하는 모든 프로젝트 |
+| 근거 | 실운영에서 확인된 사실과 실패 사례. 추정 규칙은 「미검증」으로 표기 |
+| 갱신 | 신규 API 추가·엔드포인트 변경 시 4장과 부록 A를 갱신 |
+| 이식 방법 | 이 파일을 신규 저장소 `docs/API_GUIDE.md`로 복사한 뒤 4장 인벤토리만 교체 |
 
-그래서 키를 꺼내는 대신 **키를 쓸 수 있는 곳에서 대신 호출**합니다.
-
-```
-GitHub Actions (키 보유)
-   ↓ API 호출
-   ↓ 결과를 data/ 에 커밋
-raw.githubusercontent.com
-   ↓ 공개 URL
-분석 도구 · 다른 프로젝트
-```
-
-키는 저장소 밖으로 나가지 않고 로그에도 남지 않습니다. 결과 파일만 남습니다.
+이 규정집은 **어떤 API를 쓸지**가 아니라 **어떻게 호출하고 무엇을 남길지**를 정한다. 도메인이 바뀌어도 1·2·3·6·7·9장은 그대로 유효하다.
 
 ---
 
-## 1. 등록된 키 목록
+## 1. 제1원칙 — 실행 위치
 
-| Secret 이름 | 발급처 | 용도 | 검증 |
+> **분석 환경에서는 외부 API를 직접 호출하지 않는다.**
+
+분석 샌드박스의 네트워크는 패키지 저장소만 허용된다. 실측 결과는 다음과 같다.
+
+| 도메인 | 결과 |
+|---|---|
+| `github.com` · `raw.githubusercontent.com` · `api.github.com` | 허용 |
+| `pypi.org` · `registry.npmjs.org` · `crates.io` | 허용 |
+| `apis.data.go.kr` (공공데이터포털) | **403 · `host_not_allowed`** |
+| `kosis.kr` (통계청) | **403 · `host_not_allowed`** |
+| `opendart.fss.or.kr` (금감원) | **403 · `host_not_allowed`** |
+| `ecos.bok.or.kr` (한국은행) | **403 · `host_not_allowed`** |
+| `reb.or.kr` (한국부동산원) | **403 · `host_not_allowed`** |
+
+따라서 표준 구조는 3단이다.
+
+```
+① 호출    GitHub Actions 워크플로     ← 여기서만 API를 때린다
+② 보관    저장소 data/ 디렉터리 커밋   ← 원문 JSON + _summary.md
+③ 판독    raw.githubusercontent.com   ← 분석 측이 직접 읽는다
+```
+
+**규칙 1-1** 모든 수집은 워크플로에서 수행한다.
+**규칙 1-2** 결과는 저장소 커밋과 `upload-artifact` **양쪽에** 남긴다. 아티팩트 업로드 스텝에는 반드시 `if: always()`를 건다. 실패했을 때가 오히려 진단이 필요한 때다.
+**규칙 1-3** 판독은 `raw.githubusercontent.com`을 우선한다. `api.github.com`은 미인증 시 rate limit이 잦다.
+
+---
+
+## 2. 인증키 관리
+
+**2-1. GitHub Actions Secrets는 설계상 write-only다.**
+저장하는 순간 암호화되고, 워크플로 실행 중에만 복호화되어 주입된다. 저장소 소유자 본인도 웹 UI에서 값을 다시 볼 수 없다. 목록 화면의 연필 버튼은 조회가 아니라 **덮어쓰기**다. 값이 필요하면 발급기관에서 재발급받는 수밖에 없다.
+
+**2-2. 키 원문을 대화·이슈·커밋·로그에 남기지 않는다.**
+채팅창에 붙여넣은 키는 대화 기록에 평문으로 남는다. 스크립트 로그에는 **경로와 상태코드만** 출력한다.
+
+**2-3. 워크플로 `env:` 이름과 Secret 이름을 대소문자까지 일치시킨다.**
+「키 없음」으로 중단되는 사례의 대부분이 이 불일치다. 키 자체는 멀쩡한데 주입이 안 된 것이다.
+
+**2-4. 공공데이터포털의 Encoding / Decoding 키를 구분한다.**
+
+| 호출 방식 | 사용할 키 |
+|---|---|
+| `URLSearchParams` · `requests(params=)` 등 **라이브러리가 인코딩** | **Decoding 키** |
+| URL 문자열에 **직접 결합** | **Encoding 키** |
+
+둘을 바꿔 쓰면 이중 인코딩이 발생하고, 서버는 `SERVICE_KEY_IS_NOT_REGISTERED_ERROR`로 응답한다. 키가 잘못됐다는 뜻이 아니라 **인코딩이 잘못됐다**는 뜻이다.
+
+**2-5. 도메인 등록형 키를 별도 관리한다.**
+V-World 등은 키 발급 시 등록한 호출 도메인 외에서는 거부한다. Actions에서 호출할 경우 등록 도메인 정책을 먼저 확인한다.
+
+**2-6. 서비스별 승인 상태를 인벤토리에 기록한다.**
+공공데이터포털은 키가 유효해도 **개별 서비스 활용신청이 승인되지 않으면** 호출이 실패한다. 자동승인과 심의승인(1~2영업일)이 섞여 있다. KRX는 인증키 발급 자체가 관리자 승인제다.
+
+**키는 계정 단위, 승인은 서비스 단위다.** `DATA_GO_KR_KEY` 하나로 승인된 모든 서비스를 호출하지만, **승인되지 않은 서비스는 같은 키로도 거부된다.** 따라서 키 인벤토리(4장)와 **승인 서비스 목록(부록 D)을 따로 관리**한다. 「키는 멀쩡한데 이 서비스만 안 된다」는 상황의 원인이 대부분 여기다.
+
+**2-7. 키 풀은 순환 규칙을 문서화한다.**
+동일 서비스에 다중 키를 두는 경우(예: `GEMINI_API_KEY` ~ `_8`), 목적은 **할당량 분산**이다. 다음을 지킨다.
+
+- 워크플로에서 전부를 `env`로 주입하고, 스크립트가 순차·라운드로빈으로 선택한다
+- 429 / `RESOURCE_EXHAUSTED` 수신 시 **다음 키로 넘어가고, 몇 번 키에서 소진됐는지를 `_summary.md`에 기록**한다
+- 로그에는 **키 값이 아니라 인덱스**(`key #3 소진`)만 남긴다
+- 풀 크기와 일일 한도를 인벤토리에 병기한다. 그래야 수집 상한을 계산할 수 있다
+
+**2-8. 인프라 자격증명은 데이터 API 키와 위험등급이 다르다.**
+SSH 개인키·NAS 접속정보·터널 인증키는 유출 시 **서버 접근권 자체**가 넘어간다. 데이터 API 키는 조회 한도 손실에 그친다. 다음을 분리 적용한다.
+
+| 구분 | 데이터 API 키 | 인프라 자격증명 |
+|---|---|---|
+| 유출 시 피해 | 할당량 소진·부정 조회 | **시스템 침해** |
+| 워크플로 주입 범위 | 해당 수집 잡에만 | **배포 잡에만.** 수집 잡에 주입 금지 |
+| 회전 주기 | 사고 시 | **정기 회전 + 사고 시 즉시** |
+| 로그 노출 | 금지 | 금지 + **`set -x` 사용 금지** |
+
+수집 워크플로에 `NAS_SSH_KEY` 같은 항목을 습관적으로 함께 주입하지 않는다. 스텝별 최소권한이 원칙이다.
+
+---
+
+## 3. 파일 배치 규약
+
+가장 잦은 사고는 **스크립트와 워크플로의 내용이 서로 바뀌는 것**이다. 실제로 발생했고, 진단에 시간이 걸렸다.
+
+| 파일 | 첫 글자 | 확인 |
+|---|---|---|
+| `scripts/*.mjs` | `//` | 주석으로 시작 |
+| `scripts/*.py` | `#` | 주석으로 시작 |
+| `.github/workflows/*.yml` | `name:` | 키로 시작 |
+
+**규칙 3-1** 스크립트 첫 줄에 파일 경로를 주석으로 적는다. 육안으로 즉시 판별된다.
+**규칙 3-2** 커밋 후 두 파일의 **바이트 크기가 같으면 의심**한다. 성격이 다른 두 파일이 같은 크기일 확률은 낮다.
+**규칙 3-3** 업로드 직후 raw로 `head`를 확인한다.
+
+> 증상: Node가 YAML을 ES 모듈로 실행하려다 exit 1. `mkdir`까지 도달하지 못해 출력 폴더 자체가 생기지 않는다. **폴더가 없다 = 첫 줄에서 죽었다**는 신호다.
+
+---
+
+## 4. API 인벤토리
+
+기준 저장소 `findKTH0415/linkpilot-cron` · 대조일 2026-09-02. 항목은 **성격에 따라 세 군으로 분리**한다. 성격이 다르면 주입 범위와 회전 정책이 달라지기 때문이다(2-8).
+
+「검증」은 **실제 호출 성공이 확인된 것**만 ●로 표기한다.
+● 성공 확인 · △ 호출됐으나 **빈 응답**(수집 실패로 처리) · ○ 미검증
+
+### 4-A. 데이터 API 인증키
+
+| Secret 이름 | 제공기관 | 베이스 URL | 인증 파라미터 | 검증 |
+|---|---|---|---|:---:|
+| `DATA_GO_KR_KEY` | 공공데이터포털 (범용) | `apis.data.go.kr/{기관코드}/{서비스}` | `serviceKey` (2-4 참조) | ● |
+| `DART_API_KEY` | 금감원 전자공시 | `opendart.fss.or.kr/api` | `crtfc_key` | ● |
+| `REB_API_KEY` | 한국부동산원 R-ONE | `reb.or.kr/r-one/openapi` | `KEY` | ● |
+| `KOSIS_API_KEY` | 통계청 KOSIS | `kosis.kr/openapi` | `apiKey` | △ |
+| `ECOS_BOK_KEY` | 한국은행 경제통계 | `ecos.bok.or.kr/api` | **경로 삽입형** | ○ |
+| `ECOS_API_KEY` | 한국은행 경제통계 — **`ECOS_BOK_KEY` 의 다른 이름** | 위와 동일 | 위와 동일 | ○ |
+| `KRX_API_KEY` | 한국거래소 Data Marketplace | `data-dbg.krx.co.kr/svc/apis` | **`AUTH_KEY` 헤더** | ○ |
+| `KMA_APIHUB_KEY` | 기상청 API허브 | `apihub.kma.go.kr` | `authKey` | ○ |
+| `KEPCO_BIGDATA_KEY` | 한국전력 빅데이터 | `bigdata.kepco.co.kr/openapi` | `apiKey` | ○ |
+| `VWORLD_KEY` | 국토부 V-World | `api.vworld.kr/req` | `key` (+ `domain`) | ○ |
+| `LAW_OPEN_DATA` | 국가법령정보 | `law.go.kr/DRF` | 서비스 인증값 | ○ |
+| `LAW_OC` | 국가법령정보 | 위와 동일 | `OC` — **계정 ID**(키 아님) | ○ |
+| `KICT_API_KEY` | 한국건설기술연구원 **국가건설기준센터(KCSC)** | `kcsc.re.kr/OpenApi` | `Key` (쿼리) | ○ |
+
+**KRX 주의** — 인증키가 쿼리 파라미터가 아니라 **HTTP 헤더 `AUTH_KEY`** 다. 다른 공공 API와 호출 형태가 다르다. 인증키 발급은 관리자 승인제이며, 키를 받은 뒤에도 **서비스별 이용 신청을 따로** 해야 한다(공공데이터포털과 같은 구조, 2-6). 호출 한도는 일 1만 회다.
+
+**한국은행 열쇠는 이름이 둘이다 — 엔진이 둘 다 읽는다** 〈2026-09-01 · 저장소 실측 보강〉. `connectors/ecos.js` 의 `KEY_NAMES` 가 `ECOS_API_KEY` · `ECOS_BOK_KEY` 를 함께 읽는다. 실제로 이름이 갈려 값이 조용히 죽은 적이 있어, 다시 넣으시라고 하는 대신 **둘 다 읽게** 한 것이다. 둘 중 아무 이름으로 등록해도 돌지만, **한 곳에는 하나만** 넣는다.
+
+**`LAW_OC`는 키가 아니다.** 국가법령정보 Open API의 `OC` 파라미터는 신청 시 등록한 **계정 ID**다. `LAW_OPEN_DATA`와 짝으로 쓰되 성격이 다르다는 점을 스크립트 주석에 남긴다.
+
+**`KICT_API_KEY` — 국가건설기준센터(KCSC) 건설기준 표준 데이터.** 설계기준(KDS)·표준시방서(KCS)·전문시방서 본문을 코드 단위로 연동한다. 다른 공공 API와 규격이 상당히 다르므로 별항으로 정리한다.
+
+| 항목 | 값 |
+|---|---|
+| 제공 | 한국건설기술연구원 국가건설기준센터 (`kcsc.re.kr`) |
+| 방식 | `GET` · JSON |
+| 목록 조회 | `https://kcsc.re.kr/OpenApi/CodeList` |
+| 본문 조회 | `https://kcsc.re.kr/OpenApi/CodeViewer` |
+| 요청 변수 | `Type` (`KDS` / `KCS`) · `Code` (문서번호, 예 `101000`) · `Key` (인증키) — **셋 다 필수** |
+| 응답 필드 | `no` · `codeType` · `code` · `fullCode` · `name` · `ver` 등 |
+| 발급 | 사이트 내 인증키 발급신청 |
+
+**주의 세 가지.**
+
+**① 파라미터명이 대문자로 시작한다.** `serviceKey`·`apiKey` 같은 통상 표기가 아니라 `Type`·`Code`·`Key`다. 공식 문서의 요청변수표는 `Key`, 예시 URL은 `key=`로 표기가 엇갈리므로 **첫 프로브에서 대소문자를 확정**하고 스크립트 주석에 남긴다(7-1).
+
+**② 인증키가 URL 쿼리에 그대로 노출된다.** 호출 URL 전문을 로그·요약파일에 남기지 않는다(6-5). 경로와 상태코드만 기록한다.
+
+**③ 건설기준은 개정된다.** 응답의 `ver`(버전)과 조회 시점을 **반드시 함께 저장**한다. 버전 없이 인용한 기준 조문은 신뢰등급 D에 해당한다(10장). 국토교통부 고시로 부분 개정이 반복되므로, 인용 시 "KDS ○○ ○○ ○○, ver.X, 조회일 YYYY-MM-DD" 형식을 쓴다.
+
+**활용 경로** — `CodeList`로 대분류·중분류 코드를 먼저 받아 트리를 만들고, 필요한 소분류만 `CodeViewer`로 본문을 받는다. 전량 수집은 불필요하고 부하만 크다.
+
+### 4-B. AI·미디어 API 키
+
+| Secret 이름 | 서비스 | 베이스 URL | 인증 방식 | 검증 |
+|---|---|---|---|:---:|
+| `GEMINI_API_KEY` ~ `_8` **(8개 풀)** | Google Gemini | `generativelanguage.googleapis.com` | `x-goog-api-key` 헤더 | ○ |
+| `CLODE_API_KEY2` | Anthropic Claude *(추정)* | `api.anthropic.com` | `x-api-key` 헤더 | ○ |
+| `PEXELS_API_KEY` | Pexels 이미지 | `api.pexels.com/v1` | `Authorization` 헤더 | ○ |
+| `WORLDWIDE_NEWS` | World News API *(추정)* | `api.worldnewsapi.com` | `api-key` | ○ |
+
+**Gemini 8개는 키 풀이다.** 2-7의 순환 규칙을 반드시 적용한다. 순환 없이 `GEMINI_API_KEY` 하나만 쓰면 나머지 7개는 등록만 되어 있고 아무 역할도 하지 않는다.
+
+**`CLODE_API_KEY2`는 오타로 보인다**(CLAUDE → CLODE). 접미사 `2`가 붙어 있으므로 짝이 되는 `CLODE_API_KEY`가 별도로 존재할 가능성이 높다. 부록 A 참조.
+
+### 4-C. 인프라·설정값 — 키가 아님
+
+| Secret 이름 | 성격 | 용도 | 위험등급 |
 |---|---|---|---|
-| `DART_API_KEY` | 금융감독원 전자공시 | 기업 개황·재무제표·감사보고서 원문 | 검증 완료 |
-| `REB_API_KEY` | 한국부동산원 R-ONE | 상업용부동산 임대동향(수익률·임대료·공실률) | 검증 완료 |
-| `KOSIS_API_KEY` | 통계청 | 인구·가구·사회통계 | 검증 완료 |
-| `ECOS_BOK_KEY` | 한국은행 | 금리·환율·통화 | 미검증 |
-| `KEPCO_BIGDATA_KEY` | 한국전력 | 전력 사용량 | 미검증 |
-| `KMA_APIHUB_KEY` | 기상청 | 관측·통계(일사·일조) | 미검증 |
-| `DATA_GO_KR_KEY` | 공공데이터포털 | 범용 공공데이터 | 미검증 |
-| `LAW_OPEN_DATA` / `LAW_OC` | 국가법령정보센터 | 법령·판례 | 미검증 |
-| `VWORLD_DOMAIN` | 브이월드 | 공간정보·지도 | 미검증 |
-| `KRX_API_KEY` | 한국거래소 | 상장·코넥스 시세 | 서비스 승인 필요 |
-| `GEMINI_API_KEY` ~ `_8` | 구글 | 생성형 AI | — |
-| `PEXELS_API_KEY` | Pexels | 무료 이미지 | — |
-| `KICT_API_KEY` | 건설기술연구원 | 건설 관련 | 미검증 |
+| `NAS_SSH_HOST` · `NAS_SSH_USER` · `NAS_SSH_KEY` | **SSH 자격증명** | NAS 접속·배포 | **높음** |
+| `TS_AUTHKEY` | 터널 인증키 (Tailscale 추정) | NAS 접근 경로 확보 | **높음** |
+| `NAS_BASE_URL` | 엔드포인트 설정값 | NAS 서비스 주소 | 중 |
+| `LP_PUBLIC_BASE` | 엔드포인트 설정값 | 프로젝트 공개 베이스 URL | 낮음 |
+| `VWORLD_DOMAIN` | 등록 도메인값 | V-World 호출 도메인 검증 (2-5) | 낮음 |
 
-★ **실측 보강 (2026-09-01 · `im-agent/test/api-guide.test.js` 가 찾음).**
-위 표만 보고 새 저장소에 옮기면 **두 개가 빠집니다** — 커넥터는 읽는데 표에 없습니다.
+**이 군은 수집 워크플로에 주입하지 않는다.** 배포·동기화 잡에만 주입한다(2-8).
 
-| Secret 이름 | 발급처 | 용도 | 빠지면 |
-|---|---|---|---|
-| `VWORLD_KEY` | 브이월드 | 지오코딩·지적·토지특성 (`VWORLD_DOMAIN` 과 **짝**) | 지적도가 없어 매스가 직사각형으로 서고 조감도가 안 나온다 |
-| `ECOS_API_KEY` | 한국은행 | `ECOS_BOK_KEY` 와 **같은 키의 다른 이름** | — (엔진이 둘 다 읽는다) |
+**다만 `VWORLD_DOMAIN` 은 예외다 — `VWORLD_KEY` 와 반드시 함께 주입한다.** 도메인 등록형 키라 한쪽만 넣으면 거부된다. 자격증명이 아니라 **등록 도메인 문자열**이므로 2-8 이 막으려는 위험(SSH·터널 자격증명이 수집 잡에 섞이는 것)에 해당하지 않는다.
 
-★★ **한국은행과 법제처는 이름이 둘입니다.** 2026-08-26 에 실제로 사고가 났습니다 —
-안내 문서는 `ECOS_API_KEY` 인데 넣으신 이름은 `ECOS_BOK_KEY` 였고, **엔진이 한 이름만
-보아 넣으신 값이 죽었습니다.** 오류는 안 났습니다. 그래서 답을 **「다시 넣으시라 하지 않고
-엔진이 둘 다 읽는다」**로 정했습니다 (`connectors/ecos.js` 의 `KEY_NAMES`,
-`connectors/law.js` 의 `LAW_OC`/`LAW_OPEN_DATA`). 새 프로젝트에 옮기실 때도
-**둘 중 아무 이름으로 넣으셔도 됩니다.**
+> 〈2026-09-01 · 저장소 실측〉 v1.3 원문은 이 두 줄이 나란히 있어 **서로 어긋났다** — > 앞줄은 「주입하지 않는다」, 뒷줄은 「반드시 함께 주입한다」였다. > `VWORLD_KEY` 는 4-A(데이터 API)에 있고 `VWORLD_DOMAIN` 만 이 군에 있어 생긴 자리다. > 어느 쪽을 따를지 모르는 규칙은 **안 지켜지므로** 예외로 못박는다.
 
-★★★ **이 표가 코드와 갈리면 `npm test` 가 빨개집니다** (`api-guide.test.js`).
-표에 없는 이름을 커넥터가 읽거나, 표에 있는 이름을 저장소가 아무 데서도 안 부르면
-그 자리에서 알려 줍니다 — 이 문서 §9 점검목록 첫 줄을 사람 대신 기계가 셉니다.
+### 4-D. 대조 결과 — v1.0 대비 변경
 
----
+| 항목 | v1.0 | v1.1 |
+|---|---|---|
+| `LOCALDATA_KEY` | 인벤토리에 기재 | **삭제 — 실제 미등록.** 사용하려면 신규 발급 필요 |
+| `WORLD_NEWS_KEY` | 이 이름으로 기재 | **`WORLDWIDE_NEWS`로 정정** |
+| `KRX_API_KEY` | 누락 | **신규 등재** (헤더 인증) |
+| `KICT_API_KEY` | 누락 | **신규 등재 → v1.2에서 규격 확정** (KCSC 건설기준) |
+| `CLODE_API_KEY2` | 누락 | **신규 등재** |
+| `GEMINI_API_KEY_2` ~ `_8` | 누락 | **신규 등재** — 키 풀, 2-7 신설 |
+| `VWORLD_DOMAIN` | 누락 | **신규 등재** |
+| `NAS_*` 4건 · `TS_AUTHKEY` · `LP_PUBLIC_BASE` | 누락 | **4-C 신설로 편입** |
 
-## 1-1. 이 저장소에서 지금 바로 쓰는 법 〈2026-09-01 신설〉
+**4-1. 검증 상태 △·○는 첫 사용 시 반드시 프로브 호출로 확인한다** (7장). 엔드포인트 규격은 기관 개편으로 바뀐다. 실제로 건축물대장 서비스는 「건축HUB」로 이관되며 베이스 경로가 `BldRgstService_v2` → `BldRgstHubService`로 변경됐다.
 
-위 표의 **「미검증」 일곱을 한 번에 재는 길**이 이미 만들어져 있습니다. 새 스크립트를
-쓰실 필요가 없습니다 — 이 저장소에는 공공 API 커넥터가 **26개** 있고, 그것을 실제로
-불러 보는 진단(`npm run im:smoke`)도 있습니다. 없던 것은 **열쇠가 있는 자리에서
-돌릴 길**뿐이었고, 그것을 §0 방식 그대로 만들었습니다.
+**4-2. API로 확보 불가능한 자료를 미리 구분한다.** 아래는 대안 경로가 없으므로 직접 징구 계획을 세운다.
 
-**어떻게 돌리나 — 마우스로 세 번입니다.**
-
-1. GitHub 에서 이 저장소를 열고 위쪽 **[Actions]** 탭을 누릅니다.
-2. 왼쪽 목록에서 **「공공 API 실측 진단」**을 고릅니다.
-3. 오른쪽 **[Run workflow]** → 초록 **[Run workflow]** 를 누릅니다. 2~3분 걸립니다.
-
-**결과는 어디서 보나.** 다 돌면 `data/_api/_summary.md` 가 커밋됩니다. 이 주소로 바로 읽힙니다.
-
-```
-https://raw.githubusercontent.com/findKTH0415/linkpilot-cron/main/data/_api/_summary.md
-```
-
-**무엇이 적히나 — 표 둘입니다.**
-
-- **1번 표: 열쇠가 들어왔는가.** 열쇠마다 ✅ 또는 **없음**. 이름이 둘인 것
-  (`ECOS_API_KEY`/`ECOS_BOK_KEY`, `LAW_OC`/`LAW_OPEN_DATA`)은 **어느 이름으로
-  들어왔는지**까지 적습니다 — 2026-08-26 사고가 그 자리였습니다.
-- **2번 표: 실제로 불러 본 결과.** 살아 있음 / **활용신청 안 됨** / 키 없음 /
-  승인 대기 / 한도 초과 / 응답 없음으로 갈라 적고, **무엇을 하면 되는지**를 함께 적습니다.
-  §4.2 대로 「키가 틀린 것」과 「신청이 안 된 것」을 가릅니다 — 이 둘은 상태코드만
-  보면 같아 보여서, 뭉뚱그리면 **멀쩡한 키를 다시 발급하러 가시게** 됩니다.
-
-★★★ **열쇠는 결과 파일에 한 글자도 안 들어갑니다.** 이 저장소는 **공개**입니다.
-쓰기 전에 `im-agent/tools/api-report.js` 가 **`process.env` 의 실제 값이 본문에 있는지**
-직접 세고, 하나라도 걸리면 **파일을 아예 안 쓰고 빨갛게 끝냅니다.** 걸렸을 때도
-**환경변수 이름만** 말하고 값은 안 찍습니다. 모양으로 짐작하는 것이 아니라 실제 값을
-대조하므로 열쇠가 늘어도 저절로 따라옵니다. (§9 마지막 줄 · §10)
-
-★★ **매주 월요일 06:00 (KST) 에 저절로 한 번 더 돕니다.** 손대실 것 없습니다.
-활용신청이 승인되면 그 다음 회차에 「활용신청 안 됨」이 「살아 있음」으로 바뀝니다.
-
-★ **커밋이 막혀도 결과는 회수됩니다** — 실행 화면 아래 **Artifacts** 에 `api-smoke` 로
-붙습니다 (§8 마지막 줄과 같은 대비).
+| 자료 | 사유 |
+|---|---|
+| 등기부등본·신탁원부 | 인터넷등기소 유료, API 미개방 |
+| 신탁 우선수익권 실제 잔액 | 금융기관 직접 징구 외 방법 없음 |
+| KISCON 행정처분 전문 | 대화형 조회만 제공 |
+| 신용평가사 등급 | 유료 서비스 |
 
 ---
 
-## 2. 3단계 도입 절차
-
-### 1단계 — 스크립트 작성
-
-`scripts/` 에 `.mjs` 파일을 만듭니다. **확장자가 `.js`면 실행되지 않습니다.** ES 모듈이기 때문입니다.
-
-```javascript
-// scripts/example-fetch.mjs
-import { mkdir, writeFile } from 'node:fs/promises';
-
-const KEY = process.env.MY_API_KEY;
-if (!KEY) { console.error('키 없음'); process.exit(1); }
-
-const OUT = 'data/example';
-await mkdir(OUT, { recursive: true });
-
-const r = await fetch(`https://api.example.com/data?key=${KEY}`);
-const j = await r.json();
-
-await writeFile(`${OUT}/result.json`, JSON.stringify(j, null, 2));
-await writeFile(`${OUT}/_summary.md`, '# 조회 결과\n\n...');
-```
-
-### 2단계 — 워크플로 작성
-
-`.github/workflows/` 에 `.yml` 파일을 만듭니다.
+## 5. 워크플로 표준 템플릿
 
 ```yaml
-name: 데이터 수집
+name: <조회명>
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:          # 수동 실행 기본
+  # schedule:
+  #   - cron: '0 21 * * *'    # 정기 수집이 필요할 때만
 
 permissions:
-  contents: write
+  contents: write             # 결과 커밋에 필요
 
 jobs:
   fetch:
@@ -154,341 +247,354 @@ jobs:
 
       - name: 조회
         env:
-          MY_API_KEY: ${{ secrets.MY_API_KEY }}
-        run: node scripts/example-fetch.mjs
+          DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}   # ← Secret 이름과 정확히 일치
+        run: node scripts/<name>-fetch.mjs
 
       - name: 결과 커밋
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/example
-          git diff --staged --quiet || git commit -m "데이터 갱신 ($(date +%Y-%m-%d))"
+          git add data/<name>
+          git diff --staged --quiet || git commit -m "<조회명> ($(date +%Y-%m-%d))"
           git push
 
       - name: 아티팩트 업로드
+        if: always()          # ★ 실패해도 진단 파일을 받는다
         uses: actions/upload-artifact@v4
         with:
-          name: example-data
-          path: data/example
-```
-
-### 3단계 — 실행 및 읽기
-
-Actions 탭 → 워크플로 선택 → Run workflow.
-
-결과는 이 주소로 읽습니다.
-
-```
-https://raw.githubusercontent.com/findKTH0415/linkpilot-cron/main/data/example/_summary.md
+          name: <name>-data
+          path: data/<name>
 ```
 
 ---
 
-## 3. 파일 만들 때 자주 틀리는 곳
+## 6. 진단 우선 원칙 (Diagnosis-First) — 핵심 장
 
-GitHub 웹에서 파일을 만들 때 **주소에 파일명을 미리 넣으면** 폴더 생성 실수가 없습니다.
+수집 스크립트는 **성공을 전제로 쓰지 않는다.** 실패했을 때 원인을 알 수 있는 형태로 쓴다.
 
-```
-https://github.com/findKTH0415/linkpilot-cron/new/main?filename=scripts/example-fetch.mjs
-https://github.com/findKTH0415/linkpilot-cron/new/main?filename=.github/workflows/example.yml
-```
+**6-1. 무슨 일이 있어도 `data/<도메인>/_summary.md`를 남긴다.**
+출력 폴더 생성(`mkdir -p` / `recursive: true`)을 스크립트의 **첫 실행문**으로 둔다. 키 확인보다 먼저다.
 
-기존 파일을 고칠 때는 `new` 대신 `edit` 입니다.
+**6-2. 응답 원문을 가공 전에 저장한다.**
+파싱에 실패해도 원문이 있으면 다음 시도에서 규격을 맞출 수 있다. 원문이 없으면 처음부터 다시 돌려야 한다.
 
-```
-https://github.com/findKTH0415/linkpilot-cron/edit/main/scripts/example-fetch.mjs
-```
+**6-3. HTTP 상태와 `resultCode`·`resultMsg`를 요약에 기록한다.**
+공공데이터포털은 HTTP 200을 반환하면서 본문에 오류코드를 담는 경우가 많다. 상태코드만 보면 성공으로 오인한다.
 
-**내용이 바뀌었는지 확인하는 법.** `.yml` 은 `name:` 으로 시작하고 `.mjs` 는 `//` 로 시작합니다. 첫 글자만 보면 됩니다. 두 파일의 내용이 서로 바뀌는 실수가 가장 잦습니다.
+**6-4. 베이스 경로 후보를 순차 시도하고 시험 응답을 `_probe_*.txt`로 남긴다.**
+기관 개편으로 경로가 바뀌었을 가능성을 항상 열어둔다.
 
-**쓰기 권한.** Settings → Actions → General → 페이지 맨 아래 **Workflow permissions** 를 **Read and write permissions** 로 설정해야 결과 커밋이 됩니다. 안 하면 마지막 단계에서 push가 거부됩니다.
+**6-5. 키는 로그에 찍지 않는다.** 경로와 상태코드만 출력한다.
+
+**6-6. 중단할 때도 중단 사유를 요약 파일에 쓰고 종료한다.**
+`process.exit(1)` 직전에 반드시 `_summary.md`를 flush한다. 이것이 6-1과 짝을 이룬다.
+
+> 이 여섯 항은 스크립트 자신에게도 적용된다. 스크립트가 깨져 있을 때조차 무엇이 왜 안 됐는지가 파일로 남아야 한다.
 
 ---
 
-## 4. API별 실전 사용법
+## 7. 응답 처리 — 프로브·페이징·인코딩
 
-### 4-1. DART 전자공시
+**7-1. 첫 호출은 프로브다.** `numOfRows=5`, `pageNo=1`로 규격만 확인한다. 필드명·응답 구조·오류코드를 확인한 뒤 본 수집으로 넘어간다.
 
-**엔드포인트**
+**7-2. 전 페이지를 순회한다.**
+`numOfRows` 상한은 대개 100이다. `totalCount`를 읽어 페이지 수를 계산하고 끝까지 돈다. **첫 페이지만 받고 결론을 내지 않는다.** 100건에서 잘린 데이터로 판정했다가 재실행한 사례가 있다.
 
-| 용도 | 경로 |
-|---|---|
-| 고유번호 전체 | `corpCode.xml` (ZIP) |
-| 기업 개황 | `company.json` |
-| 공시 목록 | `list.json` |
-| 재무제표 | `fnlttSinglAcntAll.json` |
-| 공시 원문 | `document.xml` (ZIP) |
+**7-3. 서버 측 필터를 신뢰하지 않는다.**
+주소·지역 필터 파라미터를 서버가 무시하는 API가 있다. 전량 수신 후 **클라이언트에서 선별**하는 편이 안전하다.
 
-베이스는 `https://opendart.fss.or.kr/api` 이고 인증 파라미터는 `crtfc_key` 입니다.
+**7-4. 응답 포맷을 명시한다.** `_type=json` 미지정 시 XML이 반환된다.
 
-**함정 셋**
+**7-5. 빈 응답은 성공이 아니다.**
+`{}` 또는 빈 배열은 **수집 실패로 기록**한다. 조회조건 불일치인지 실제로 데이터가 없는지 구분해 요약에 적는다.
 
-`pblntf_ty=A`(정기공시)로 조회하면 **비상장 외감법인의 감사보고서가 안 나옵니다.** 감사보고서는 「외부감사관련」 유형이라 걸리지 않습니다. **`pblntf_ty` 를 아예 빼면** 전부 나옵니다.
+**7-6. 파라미터 자릿수를 맞춘다.**
+법정동코드·본번·부번은 zero-padding 규격이 있다. 예: `bun=0305`, `ji=0002`. 자릿수 오류는 `NODATA_ERROR`로 나타나며 키 문제로 오인하기 쉽다.
 
-`corpCode.xml` 과 `document.xml` 은 ZIP으로 옵니다. Node 내장 `zlib.inflateRawSync` 로 풀 수 있고 외부 패키지가 필요 없습니다. 중앙 디렉터리를 읽는 최소 구현이 `scripts/dart-fetch.mjs` 에 있습니다.
+---
 
-`fnlttSinglAcntAll.json` 은 **사업보고서 제출법인만** 됩니다. 비상장 외감법인은 빈 응답이 오므로 감사보고서 원문 XML에서 표를 직접 파싱해야 합니다.
+## 8. 오류 사전
 
-**조회 결과 예시** — `data/dart/_summary.md`
-
-| 회사 | 대표자 | 사업자번호 | 확인 내용 |
-|---|---|---|---|
-| ㈜서영엔지니어링 | 김종흔 | 138-81-04348 | 매출 956.6억 · 자본 95.9억 (제35기) |
-| ㈜엔와이컴퓨터 | 김장수 | 106-81-65222 | 2020년 이후 감사보고서 부재 |
-| ㈜키예노 | 고병화 | 220-87-12585 | 매출 577.6억 (제21기) |
-
-### 4-2. 한국부동산원 R-ONE
-
-**엔드포인트** — 베이스 `https://www.reb.or.kr/r-one/openapi`, 인증 파라미터 `KEY`
-
-| 용도 | 경로 |
-|---|---|
-| 통계표 목록 | `SttsApiTbl.do` |
-| 항목·분류 메타 | `SttsApiTblItm.do` |
-| 데이터 | `SttsApiTblData.do` |
-
-**함정 넷**
-
-응답 구조가 `[{head:[...]},{row:[...]}]` 입니다. 바깥 배열 길이를 세면 항상 2가 나옵니다. **`row` 키를 재귀로 찾아야** 합니다.
-
-`pSize=2000`을 주면 `ERROR-336 한 번에 최대 1,000건` 이 뜹니다. **전체 결과가 1,000건을 넘어도 거부**되므로 `WRTTIME_IDTFR_ID`(기간)로 좁혀야 합니다.
-
-`CLS_DATANO`(지역 필터)는 **서버에서 무시됩니다.** 무엇을 넣든 같은 결과가 옵니다. 기간만 고정하고 전 페이지를 받아 **클라이언트에서 걸러내야** 합니다.
-
-`SttsApiTblItm.do` 는 한 페이지 100건 상한입니다. `pIndex`로 페이징해야 전체 분류가 보입니다.
-
-**지역 코드** — `CLS_FULLNM` 필드에 `경기>분당역세권` 형태로 들어 있습니다.
-
-| 코드 | 지역 |
-|---|---|
-| 520152 | 경기 > 분당역세권 |
-| 520153 | 경기 > 성남구시가지 |
-| 500010 | 경기 (광역) |
-
-동명이의 주의 — 「울산>성남옥교동」이 문자열 필터에 걸립니다.
-
-**핵심 통계표 ID**
-
-| 지표 | 중대형 상가 | 집합 상가 |
+| 증상 | 원인 | 조치 |
 |---|---|---|
-| 수익률 | `T242083134887473` | `T246393134978815` |
-| 임대료 | `T244363134858603` | `T244913134948657` |
-| 공실률 | `T249633134845544` | `T243283134931290` |
-| 층별임대료 | `T241873134863890` | `T249023134703697` |
-
-**조회 결과 예시** — 분당역세권 2025년 2분기
-
-| 지표 | 분당역세권 | 성남구시가지 |
-|---|---:|---:|
-| 집합상가 소득수익률 (분기) | 1.07% | 1.00% |
-| 집합상가 임대료 | 49,980원/㎡ | 26,630원/㎡ |
-| 집합상가 공실률 | 0.18% | 4.72% |
-
-소득수익률은 **분기 기준**입니다. 연환산하려면 4배 합니다.
-
-### 4-3. 통계청 KOSIS
-
-**엔드포인트**
-
-```
-통계표 검색  https://kosis.kr/openapi/statisticsSearch.do?method=getList
-데이터 조회  https://kosis.kr/openapi/Param/statisticsParameterData.do?method=getList
-```
-
-인증 파라미터는 `apiKey` 입니다.
-
-**주요 파라미터**
-
-| 이름 | 설명 |
-|---|---|
-| `orgId` | 기관 코드 (통계청 = 101) |
-| `tblId` | 통계표 ID |
-| `itmId` | 항목 코드 (`T20+` 형태, `+`가 구분자) |
-| `objL1` | 분류 (`ALL` 이면 전체) |
-| `prdSe` | 주기 (`Y` 연간, `Q` 분기, `M` 월간) |
-| `newEstPrdCnt` | 최근 N개 시점 |
-
-**검증된 통계표**
-
-| tblId | 내용 |
-|---|---|
-| `DT_1B040A3` | 주민등록 총인구·성별 (시군구) |
-| `DT_1JC1502` | 가구원수별 가구 |
-
-**응답이 평평한 배열**로 옵니다. R-ONE과 달리 래퍼가 없습니다. 같은 파서를 쓰려면 배열 처리 분기가 필요합니다.
-
-**조회 결과 예시** — 성남시 분당구
-
-| 항목 | 2023 | 2024 | 2025 |
-|---|---:|---:|---:|
-| 총인구 | 472,957 | 471,154 | 469,833 |
-| 1인 가구 | 51,155 | 52,173 | 52,677 |
-
-### 4-4. KRX 한국거래소
-
-**키 발급만으로는 호출되지 않습니다.** 인증키 발급 후 **서비스별 이용신청과 관리자 승인**이 별도로 필요합니다. 승인 없이 호출하면 401이 뜹니다. 데이터도 익일 오전 8시 갱신이라 실시간이 아닙니다.
-
-비상장·외감법인 조사에는 쓸 수 없습니다. 상장사 시세와 지수 용도입니다.
+| `403 host_not_allowed` | 분석 샌드박스에서 직접 호출 | 1장 위배. Actions로 이동 |
+| `SERVICE_KEY_IS_NOT_REGISTERED_ERROR` | Encoding/Decoding 키 오용, 서비스 미승인, 승인 대기 | 2-4 확인 → 활용신청 상태 확인 |
+| `NODATA_ERROR` | 파라미터 오류 (코드 자릿수·행정구역코드) | 7-6 확인 |
+| `LIMITED_NUMBER_OF_SERVICE_REQUESTS_EXCEEDS` | 일일 트래픽 초과 | 익일 재시도 또는 한도 증설 신청 |
+| exit 1 + 출력 폴더 미생성 | 파일 내용 뒤바뀜 | 3장. raw로 첫 줄 확인 |
+| 응답 `{}` 또는 빈 배열 | 조회조건 불일치 / 데이터 부재 | 7-5. 실패로 기록 |
+| `api.github.com` 응답 없음 | rate limit | `raw.githubusercontent.com` 사용 |
+| 수집 건수가 딱 100건 | 페이징 미처리 | 7-2 |
 
 ---
 
-## 5. 응답 파서 — 재사용 가능
+## 9. 재실행 함정
 
-서비스마다 응답 구조가 다릅니다. 아래 함수는 R-ONE(`row` 래퍼)과 KOSIS(평평한 배열)를 모두 처리합니다.
+> **GitHub의 `Re-run`은 그 실행이 사용했던 커밋의 코드를 그대로 다시 돌린다.**
+
+스크립트를 수정한 뒤 `Re-run`을 누르면 **옛 코드로 실행되어 같은 실패가 반복된다.** 실제로 겪은 사고다.
+
+| | 재실행 (틀림) | 새 실행 (맞음) |
+|---|---|---|
+| 진입 경로 | 실패한 실행 화면의 `Re-run jobs` | **Actions 목록 → `Run workflow`** |
+| 실행 번호 | #1 (attempt 2) | **#2** |
+| 사용 코드 | 그때 그 커밋 | **main 최신** |
+| 상단 표시 | `Re-run triggered` | **`Manually triggered`** |
+
+**규칙 9-1** 코드 수정 후에는 반드시 워크플로 목록 화면에서 `Run workflow`로 새 실행한다.
+**규칙 9-2** 실행 시작 후 **커밋 해시가 최신인지** 한 번 확인한다. 이것만 보면 된다.
+
+---
+
+## 10. 데이터 신뢰 등급
+
+수집한 데이터를 보고서에 인용할 때 등급을 명시한다.
+
+| 등급 | 정의 | 활용 범위 |
+|---|---|---|
+| **A** 원자료 | API 원문 JSON 저장본 (저장소에 커밋됨) | 근거로 직접 인용 가능 |
+| **B** 공표통계 | 기관 공표 보고서·통계표 | 인용 가능. 기준시점 병기 |
+| **C** 2차자료 | 언론·플랫폼 요약, 웹 검색 결과 | **1차 스크리닝 한정** |
+| **D** 미확인 | 대조되지 않은 진술 | 인용 금지 |
+
+**규칙 10-1** 등급 C 이하는 **원본 징구를 대체하지 않는다.** 보고서에 대조 한계를 명시한다.
+**규칙 10-2** 등급 A는 raw 경로를 각주로 남겨 재현 가능하게 한다.
+**규칙 10-3** 인용 수치에는 **대상 연도**를 반드시 병기한다. 몇 년 전 순위를 현재형으로 서술하는 것이 가장 흔한 오류다.
+
+---
+
+## 11. 산출물 규약
+
+작업 완료 시 **세 가지를 함께** 낸다.
+
+| 형식 | 용도 |
+|---|---|
+| HTML | 미리보기 · 공유 URL |
+| PDF | 배포·인쇄본 |
+| Markdown | 재편집·버전관리 |
+
+개정 시 `Rev.n`을 붙이고, 문서 첫머리에 **직전 판본 대비 변경 총괄표**를 둔다. 부분 추가가 아니라 **전체 재작성**을 원칙으로 한다.
+
+---
+
+## 12. 신규 프로젝트 이식 체크리스트
+
+```
+□ 저장소 생성 · Secrets 등록 (부록 A 명명 표준)
+□ 등록 목록과 4장 인벤토리 대조 — 미등재·오기재·미상 용도 세 가지를 본다
+□ 포털 마이페이지의 승인 서비스 목록과 부록 D 대조 (활용기간·트래픽 한도 포함)
+□ 키 풀이 있으면 2-7 순환 규칙 적용 여부 확인
+□ 인프라 자격증명(SSH·터널)은 수집 잡에서 분리 (2-8)
+□ 디렉터리 골격 :  .github/workflows/  ·  scripts/  ·  data/  ·  docs/
+□ 이 규정집을 docs/API_GUIDE.md 로 복사
+□ 4장 인벤토리를 해당 프로젝트 키 목록으로 교체
+□ 5장 워크플로 템플릿 복사 → env 이름과 Secret 이름 대조
+□ 스크립트에 6장 6개 항 전부 적용 (부록 B 스켈레톤 사용)
+□ 프로브 실행 (numOfRows=5) → _probe_*.txt 확인
+□ 본 수집 실행 → _summary.md 생성 확인
+□ raw.githubusercontent.com 경로로 읽기 확인
+□ 산출물 3종(HTML·PDF·MD) 생성 경로 확보
+```
+
+---
+
+## 부록 A. Secret 명명 표준
+
+```
+{기관약칭}_{용도}_KEY        대문자 · 언더스코어 · 하이픈/공백/한글 금지
+
+DATA_GO_KR_KEY    KOSIS_API_KEY    DART_API_KEY
+ECOS_BOK_KEY      REB_API_KEY      KMA_APIHUB_KEY
+VWORLD_KEY        KRX_API_KEY      GEMINI_API_KEY
+```
+
+**A-1. 실제 등록 목록은 대체로 표준을 지키고 있다.** 30건 중 어긋난 것은 아래 넷뿐이며, 모두 **동작에는 지장이 없다.** 다음 정리 때 다루면 되는 수준이다.
+
+| 현재 이름 | 사유 | 권장 |
+|---|---|---|
+| `CLODE_API_KEY2` | **철자 오류**(CLAUDE→CLODE) + 접미사에 언더스코어 누락 | `CLAUDE_API_KEY_2` |
+| `WORLDWIDE_NEWS` | `_KEY` 접미사 누락 — 설정값과 구분 안 됨 | `WORLD_NEWS_API_KEY` |
+| `TS_AUTHKEY` | 약칭 `TS`가 모호. `AUTHKEY` 붙여쓰기 | `TAILSCALE_AUTH_KEY` |
+| `LAW_OC` | 키가 아니라 계정 ID (4-A 참조) | `LAW_OC_ID` |
+
+**A-2. 이름 변경은 워크플로 수정과 동시에 한다.** Secret 이름만 바꾸면 `env:` 참조가 끊어져 2-3의 「키 없음」 중단이 발생한다. 이름 변경 → 워크플로 `env:` 수정 → **새 실행**(9장) 순서를 지킨다.
+
+**A-3. 번호 접미사는 두 가지 의미가 있다.** 혼용하지 않는다.
+
+| 형태 | 의미 | 처리 |
+|---|---|---|
+| `_2` ~ `_8` 연속 | **키 풀** (할당량 분산) | 유지. 2-7 순환 규칙 적용 |
+| `_2` 단독 | 회전 중 임시 병존 | 회전 완료 후 **정리** |
+
+`GEMINI_API_KEY_2`~`_8`은 전자, `CLODE_API_KEY2`는 후자일 가능성이 높다. 후자라면 구 키를 폐기하고 번호를 떼어낸다.
+
+**A-4. 목록 캡처 시 상단이 잘리지 않게 한다.** 알파벳 정렬이므로 A~C 구간이 화면 밖으로 밀리기 쉽다. 대조 시 **첫 항목이 실제 첫 항목인지** 확인한다.
+
+---
+
+## 부록 B. 스크립트 스켈레톤
+
+6장 원칙을 내장한 최소 골격이다. 이 형태를 유지한 채 대상 API만 교체한다.
 
 ```javascript
-function rows(o, depth = 0) {
-  if (!o || depth > 8) return [];
-  if (Array.isArray(o)) {
-    const inner = [];
-    for (const el of o) { const r = rows(el, depth + 1); if (r.length) inner.push(...r); }
-    if (inner.length) return inner;
-    return o.filter((x) => x && typeof x === 'object');
-  }
-  if (typeof o !== 'object') return [];
-  if (Array.isArray(o.row)) return o.row;
-  for (const [k, v] of Object.entries(o)) {
-    if (k === 'head' || k === 'RESULT') continue;
-    const r = rows(v, depth + 1);
-    if (r.length) return r;
-  }
-  return [];
+// scripts/<name>-fetch.mjs
+// ↑ 첫 글자는 반드시 "//" 다. "name:" 으로 시작하면 워크플로 내용이 잘못 들어간 것이다.
+
+import { mkdir, writeFile } from 'node:fs/promises';
+
+const OUT = 'data/<name>';
+await mkdir(OUT, { recursive: true });          // ★ 6-1 무엇보다 먼저
+
+const log = [];
+const P = (s = '') => { log.push(s); };
+const save = async () => { await writeFile(`${OUT}/_summary.md`, log.join('\n')); };
+
+P('# <조회명>');
+P('');
+P(`조회일 ${new Date().toISOString().slice(0, 10)}`);
+P('');
+
+// ── 0. 키 확인 ────────────────────────────────────────────
+const KEY = process.env.DATA_GO_KR_KEY;
+if (!KEY) {
+  P('## 중단 — DATA_GO_KR_KEY 없음');
+  P('워크플로의 `env:` 이름과 저장소 Secret 이름이 일치하는지 확인.');
+  await save();                                  // ★ 6-6 중단해도 남긴다
+  process.exit(1);
 }
-```
 
-ZIP 해제도 외부 패키지 없이 됩니다.
-
-```javascript
-import { inflateRawSync } from 'node:zlib';
-
-function unzip(buf) {
-  const files = {};
-  const eocd = buf.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]));
-  if (eocd < 0) throw new Error('ZIP EOCD 없음');
-  const n = buf.readUInt16LE(eocd + 10);
-  let p = buf.readUInt32LE(eocd + 16);
-  for (let i = 0; i < n; i++) {
-    if (buf.readUInt32LE(p) !== 0x02014b50) break;
-    const method = buf.readUInt16LE(p + 10);
-    const csize = buf.readUInt32LE(p + 20);
-    const nlen = buf.readUInt16LE(p + 28);
-    const elen = buf.readUInt16LE(p + 30);
-    const clen = buf.readUInt16LE(p + 32);
-    const lho = buf.readUInt32LE(p + 42);
-    const name = buf.toString('utf8', p + 46, p + 46 + nlen);
-    const lnlen = buf.readUInt16LE(lho + 26);
-    const lelen = buf.readUInt16LE(lho + 28);
-    const start = lho + 30 + lnlen + lelen;
-    files[name] = method === 0
-      ? buf.subarray(start, start + csize)
-      : inflateRawSync(buf.subarray(start, start + csize));
-    p += 46 + nlen + elen + clen;
-  }
-  return files;
+// ── 1. 베이스 경로 판별 ───────────────────────────────────
+const BASES = ['<신규 경로>', '<구 경로>'];       // ★ 6-4
+let BASE = null;
+for (const b of BASES) {
+  const q = new URLSearchParams({ numOfRows: '5', pageNo: '1',
+                                  _type: 'json', serviceKey: KEY });
+  const r = await fetch(`${b}/<probeOp>?${q}`);
+  const t = await r.text();
+  await writeFile(`${OUT}/_probe_${b.split('/').pop()}.txt`, t.slice(0, 4000));
+  P(`- 프로브 \`${b}\` → HTTP ${r.status}`);      // ★ 6-3 · 6-5 키는 안 찍는다
+  if (r.status === 200 && !/NOT.?REGISTERED|SERVICE.*ERROR/i.test(t)) { BASE = b; break; }
 }
+if (!BASE) { P('## 중단 — 유효한 베이스 경로 없음'); await save(); process.exit(1); }
+
+// ── 2. 전 페이지 수집 ─────────────────────────────────────
+const rows = [];                                 // ★ 7-2
+for (let page = 1; page <= 50; page++) {
+  const q = new URLSearchParams({ numOfRows: '100', pageNo: String(page),
+                                  _type: 'json', serviceKey: KEY });
+  const r = await fetch(`${BASE}/<operation>?${q}`);
+  const raw = await r.text();
+  await writeFile(`${OUT}/<operation>_p${page}.json`, raw);   // ★ 6-2 원문 먼저
+  const j = JSON.parse(raw);
+  const body = j?.response?.body;
+  const item = body?.items?.item;
+  const got = Array.isArray(item) ? item : item ? [item] : [];
+  rows.push(...got);
+  if (rows.length >= Number(body?.totalCount ?? 0) || got.length === 0) break;
+}
+
+P('');
+P(`수집 **${rows.length}건**`);
+if (rows.length === 0) P('> 빈 응답 — 수집 실패로 기록한다.');   // ★ 7-5
+
+await save();
+console.log(`완료 — ${OUT}/_summary.md`);
 ```
 
 ---
 
-## 6. 진단 우선 원칙
+## 부록 D. 공공데이터포털 승인 서비스 목록
 
-API 규격을 모를 때 추측으로 파라미터를 넣으면 시행착오가 길어집니다. **첫 스크립트는 진단용으로 짭니다.**
+대조일 2026-09-02 · **총 16건 승인** · 전부 `DATA_GO_KR_KEY` 하나로 호출한다(2-6).
 
-- 응답 본문을 200자 이상 그대로 저장
-- HTTP 상태 코드와 결과 코드·메시지를 요약에 기록
-- 목록 API가 있으면 먼저 호출해 실제 존재하는 코드를 확인
-- 필터가 먹지 않으면 전량 수신 후 클라이언트에서 처리
+「경로」는 프로브로 확정된 것만 적는다. **`확정 필요`는 추정하지 말고 7-1 프로브로 확인한 뒤 채운다.**
 
-R-ONE은 이 원칙을 지키지 않아 여섯 번 재작성했습니다. `ERROR-336` 메시지 한 줄만 저장했어도 두 번이면 끝났습니다.
+### D-1. 부동산·담보물 (7건)
 
----
+| 서비스 | 소관 | 경로 | 확인 |
+|---|---|---|:---:|
+| 건축HUB **건축물대장정보** | 국토부 | `1613000/BldRgstHubService` | ● |
+| 건축HUB **건축인허가정보** | 국토부 | `1613000/ArchPmsHubService` | ○ |
+| 건축HUB **주택인허가정보** | 국토부 | 확정 필요 | ○ |
+| **토지이용규제정보** | 국토부 | 확정 필요 | ○ |
+| **상업업무용 부동산 매매 실거래가** | 국토부 | `1613000/RTMSDataSvcNrgTrade` | ○ |
+| **토지 매매 실거래가** | 국토부 | `1613000/RTMSDataSvcLandTrade` | ○ |
+| 차세대 온비드 **부동산 물건상세 조회** | 캠코 | 확정 필요 | ○ |
 
-## 7. 파일 배치 규칙
+### D-2. 차주·기업 (3건)
 
-```
-linkpilot-cron/
-├── .github/workflows/
-│   ├── dart-fetch.yml          기업 조회
-│   ├── market-fetch.yml        시장 통계
-│   ├── bldrgst.yml             건축물대장          (2026-09-01 추가)
-│   └── api-smoke.yml           열쇠 실측 진단      (2026-09-01 추가 · §1-1)
-├── scripts/
-│   ├── dart-fetch.mjs
-│   ├── market-fetch.mjs
-│   └── bldrgst-fetch.mjs
-├── im-agent/
-│   ├── connectors/             ★ 공공 API 커넥터 26개 — 새로 만들기 전에 여기부터 본다
-│   └── tools/
-│       ├── smoke-public-data.js   26개를 실제로 불러 보는 진단
-│       └── api-report.js          그 출력을 _summary.md 로 접는다 (열쇠 유출 차단)
-└── data/
-    ├── dart/
-    │   ├── _summary.md         사람이 읽는 요약
-    │   ├── 회사명.json          원본 응답
-    │   └── {고유번호}_{접수번호}_*.xml
-    ├── market/
-    │   ├── _summary.md
-    │   ├── reb_data.json
-    │   └── kosis_data.json
-    ├── bldrgst/
-    │   ├── _summary.md
-    │   └── getBr*.json / *.raw.txt
-    └── _api/                   ★ 열쇠 실측 진단 결과 (§1-1)
-        ├── _summary.md         열쇠가 들어왔는가 · 실제로 불러 본 결과
-        └── _raw.txt            진단 원문
-```
+| 서비스 | 소관 | 경로 | 확인 |
+|---|---|---|:---:|
+| **사업자등록정보 진위확인 및 상태조회** | 국세청 | `api.odcloud.kr/api/nts-businessman/v1` | ○ |
+| **기업기본정보** | 금융위 | `1160100/service/GetCorpBasicInfoService_V2` | ○ |
+| **자산운용사 영업활동통계정보** | 금융위 | 확정 필요 | ○ |
 
-★ **새 API 를 붙이기 전에 `im-agent/connectors/` 를 먼저 보십시오.** 26개가 이미 있습니다
-(VWorld·국토부·기상청·부동산원·한국은행·통계청·법제처·전력·관세·환경·조달 등).
-있는 것을 다시 만들면 **같은 일을 하는 자리가 둘이 되고, 한쪽만 고쳐지는 날이 옵니다.**
-§5 의 파서·ZIP 해제도 이미 `im-agent/core/unzip.js` 에 있습니다.
+### D-3. 조달·수주 (1건)
 
-`_summary.md` 를 반드시 만듭니다. JSON 원본은 크고 읽기 어렵습니다. 요약 파일이 있으면 결과 확인이 빠르고, 분석 도구에 넘길 때도 이 파일 하나면 됩니다.
+| 서비스 | 소관 | 경로 | 확인 |
+|---|---|---|:---:|
+| 나라장터 **낙찰정보서비스** | 조달청 | `1230000` 계열 · 확정 필요 | ○ |
+
+### D-4. 전력·REC (5건)
+
+| 서비스 | 소관 | 경로 | 확인 |
+|---|---|---|:---:|
+| **REC 현물시장 정보** | 전력거래소 | 확정 필요 | ○ |
+| **신재생에너지(REC) 현물시장 거래시장** | — | 확정 필요 | ○ |
+| **공급인증서(REC) 기준가격정보** | 한국중부발전 | 확정 필요 | ○ |
+| **발전원별 발전량(계통기준)** | 전력거래소 | 확정 필요 | ○ |
+| **현재전력수급현황조회** | 전력거래소 | 확정 필요 | ○ |
 
 ---
 
-## 8. 다른 프로젝트에 적용할 때
+### D-5. 심사항목 매핑
 
-**저장소를 새로 만드는 경우** 키를 새 저장소 Secrets에도 등록해야 합니다. Secrets는 저장소 단위이므로 자동으로 공유되지 않습니다. 여러 저장소에서 같은 키를 쓰려면 **Organization Secrets** 로 올리는 편이 낫습니다.
+승인 서비스를 여신심사 5요소에 대응시킨 것이다. **어느 항목에 쓸지 정하지 않은 승인은 방치된 승인**이다.
 
-**저장소가 비공개인 경우** `raw.githubusercontent.com` 으로 읽을 수 없습니다. 두 가지 길이 있습니다. 결과 데이터만 공개 저장소나 Gist에 두거나, Actions 실행 화면의 **Artifacts** 에서 내려받아 직접 전달하는 방법입니다.
+| 심사요소 | 대응 서비스 | 확인 가능한 것 |
+|---|---|---|
+| **Character** 차주 적격성 | 사업자등록 상태조회 · 기업기본정보 | 폐업·휴업 여부, 과세유형, 법인 실체 |
+| **Capacity** 상환능력 | 나라장터 낙찰정보 | 건설·용역 차주의 **수주 실적·계약금액** |
+| **Collateral** 담보가치 | 건축물대장 · 실거래가(상업용·토지) · 토지이용규제 · 온비드 | 물건 제원, 시세 대조, 용도지역·행위제한, **공매 진행이력** |
+| **Capital** 자본력 | 기업기본정보 | 자본금·설립일 |
+| **Conditions** 경기조건 | 실거래가 시계열 · 인허가정보 · REC·발전량 | 지역 거래량 추이, **신규 공급 물량**, 발전사업 수익성 |
 
-**커밋이 거부되는 경우** 브랜치 보호 규칙이 걸려 있을 수 있습니다. 워크플로에 아티팩트 업로드 단계를 함께 두면 커밋이 실패해도 결과를 회수할 수 있습니다.
+**D-5-1. 온비드는 「공매」다. 「경매」가 아니다.**
+법원경매(민사집행)와 공매(국세징수·캠코 위탁)는 절차·낙찰가율 분포가 다르다. 3장 담보가치 평가에서 **경매 낙찰가율 대비 환가성**을 논할 때 온비드 데이터를 그대로 대입하지 않는다. 법원경매 정보는 API가 개방되지 않았으므로 4-2의 「확보 불가」 항목으로 남는다.
 
-**정기 실행이 필요한 경우** `on:` 에 스케줄을 추가합니다.
+**D-5-2. 실거래가는 감정평가액을 대체하지 않는다.**
+용도·층·향·계약 특수관계가 반영되지 않은 원자료다. 감정평가액의 **합리성 대조용**으로만 쓰고, 대조 결과는 신뢰등급 B로 기재한다(10장).
 
-```yaml
-on:
-  workflow_dispatch:
-  schedule:
-    - cron: '0 21 * * 1'   # 매주 월요일 06:00 KST (UTC 기준 표기)
-```
-
----
-
-## 9. 점검 목록
-
-새 API를 붙일 때 이 순서로 확인합니다.
-
-- [ ] Secret 이름이 워크플로의 `env:` 와 정확히 일치하는가
-- [ ] 스크립트 확장자가 `.mjs` 인가
-- [ ] Workflow permissions 가 Read and write 인가
-- [ ] 인증 파라미터 이름이 맞는가 (`crtfc_key` · `KEY` · `apiKey` · `serviceKey`)
-- [ ] 응답이 JSON인가 XML인가 ZIP인가
-- [ ] 페이징 상한과 전체 결과 상한이 각각 얼마인가
-- [ ] 서버 측 필터가 실제로 동작하는가
-- [ ] 실패 시 응답 본문을 저장하고 있는가
-- [ ] `_summary.md` 를 만들고 있는가
-- [ ] 결과 파일에 개인정보나 키가 섞이지 않는가
+**D-5-3. 인허가정보는 선행지표다.**
+건축·주택 인허가 물량은 착공·준공에 앞서므로, 담보물 소재지의 **향후 공급 압력**을 읽는 데 쓴다. 현재 시세 판단에 직접 넣지 않는다.
 
 ---
 
-## 10. 보안
+### D-6. 운영 주의사항
 
-**키를 코드에 직접 쓰지 않습니다.** 반드시 `process.env` 로 읽습니다. 한 번이라도 커밋되면 저장소 이력에 영구히 남습니다.
+**D-6-1. 국세청 진위확인은 호출 방식이 다르다.**
+`odcloud.kr` 도메인이고 **POST + JSON 본문**이다. 다른 승인 서비스는 `apis.data.go.kr` + GET이다. 같은 스크립트 패턴을 복사하면 실패한다. 사업자번호만 넣는 `status`(상태조회)와 대표자명·개업일까지 대조하는 `validate`(진위확인)가 별개 오퍼레이션이라는 점도 확인한다.
 
-**로그에 키가 찍히지 않게 합니다.** 실패 시 URL 전체를 출력하면 쿼리스트링의 키가 노출됩니다. 경로와 상태 코드만 남기십시오.
+**D-6-2. REC 관련 2건은 중복 여부를 확인한다.**
+「REC 현물시장 정보」와 「신재생에너지(REC) 현물시장 거래시장」은 명칭이 겹친다. 실제 제공 항목을 프로브로 비교해 **하나를 정리하거나 역할을 구분**한다. 중복 승인은 트래픽만 나눠 쓴다.
 
-**결과 파일을 확인하고 커밋합니다.** 응답 본문을 그대로 저장하는 진단 코드는 요청 URL을 함께 담을 수 있습니다.
+**D-6-3. 활용기간과 트래픽 한도를 기록한다.**
+포털 승인에는 활용기간이 붙는다. 만료되면 **키는 유효한데 그 서비스만 거부**되며, 증상이 미승인과 구별되지 않는다. 개발계정 기본 한도(통상 일 1,000회)로 부족하면 운영계정 신청이 별도로 필요하다. 만료·한도 초과 시 8장의 `LIMITED_NUMBER_OF_SERVICE_REQUESTS_EXCEEDS`를 함께 본다.
 
-키가 노출됐다고 판단되면 **발급처에서 재발급하고 Secrets를 갱신**합니다. Secrets 값만 바꾸면 워크플로는 수정할 필요가 없습니다.
+**D-6-4. 이 목록은 포털 마이페이지가 정본이다.**
+승인은 늘어나고 만료된다. 신규 승인·만료 시 이 부록을 갱신하고, 갱신하지 않은 채로 다음 프로젝트에 이식하지 않는다.
+
+---
+
+## 부록 C. 개정 이력
+
+| 판 | 일자 | 내용 |
+|---|---|---|
+| v1.0 | 2026-09-02 | 최초 제정. 실행 위치·키 관리·파일 배치·진단 우선·재실행 함정을 실사례 기준으로 성문화 |
+| v1.1 | 2026-09-02 | **저장소 등록 Secrets 실물 대조.** 4장을 A(데이터 API)·B(AI·미디어)·C(인프라·설정값) 3군으로 재편. 12건 신규 등재, 1건 삭제(`LOCALDATA_KEY` 미등록), 1건 명칭 정정(`WORLDWIDE_NEWS`). 2-7 키 풀 순환, 2-8 자격증명 등급 분리 신설. 부록 A를 실제 목록 기준으로 재작성 |
+| v1.2 | 2026-09-02 | **`KICT_API_KEY` 규격 확정** — 국가건설기준센터(KCSC) 건설기준(KDS·KCS) 연동. 엔드포인트·요청변수·버전 기록 의무를 4-A에 성문화. 용도 미확인 항목 해소로 검증 등급 `?` 폐지 |
+| **v1.3** | **2026-09-02** | **부록 D 신설** — 공공데이터포털 승인 서비스 16건 등재(부동산 7 · 차주 3 · 조달 1 · 전력 5), 여신심사 5요소 매핑, 운영 주의사항 4항. 2-6에 「키는 계정 단위·승인은 서비스 단위」 조항 보강 |
+
+---
+
+*본 규정집은 실제 운영에서 확인된 사실을 기준으로 작성했다. 4장 인벤토리 중 「미검증」 항목의 엔드포인트·파라미터 규격은 사용 전 각 기관의 최신 문서로 대조할 것.*

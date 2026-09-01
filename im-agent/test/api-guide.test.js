@@ -38,21 +38,52 @@ const walk = (dir, out = []) => {
   return out;
 };
 
-/** 지침서 §1 표의 Secret 이름 */
-function guideKeys() {
+/**
+ * 지침서 인벤토리의 Secret 이름. **절 번호로 찾지 않는다** — 판이 바뀌면 번호가 움직인다
+ * (v1.2 는 §1, v1.3 은 §4 였다. 번호로 찾던 앞 판은 그 자리에서 네 칸이 통째로 빨개졌다).
+ * 제목의 **낱말**로 찾고, 표 첫 칸만 읽는다.
+ */
+function inventorySection() {
   const s = read(GUIDE);
-  const i = s.indexOf('## 1. 등록된 키 목록');
-  const j = s.indexOf('## 2.', i);
-  assert.ok(i >= 0 && j > i, '지침서에서 §1 등록된 키 목록을 못 찾았습니다');
-  /* ★ **표 줄만** 본다. 설명 문단까지 훑으면 `KEY_NAMES` 같은 코드 이름을 Secret 으로
-     오인해 「저장소가 모르는 이름」이라며 빨개진다(실측 — 보강 문단을 넣자마자 그랬다).
-     Secret 이름은 표 첫 칸에만 온다. */
-  const rows = s.slice(i, j).split('\n').filter((l) => /^\s*\|/.test(l));
-  return [...new Set(rows.flatMap((l) => {
+  const heads = [...s.matchAll(/^##+ .*$/gm)];
+  const i = heads.findIndex((h) => /인벤토리|등록된 키 목록/.test(h[0]));
+  assert.ok(i >= 0, '지침서에서 키 인벤토리 절을 못 찾았습니다 (제목에 「인벤토리」 또는 「등록된 키 목록」)');
+  const from = heads[i].index;
+  /* 다음 **같은 깊이 이상**의 제목까지 — 4-A·4-B 같은 하위 절은 안에 품는다 */
+  const depth = heads[i][0].match(/^#+/)[0].length;
+  const nxt = heads.slice(i + 1).find((h) => h[0].match(/^#+/)[0].length <= depth);
+  return s.slice(from, nxt ? nxt.index : s.length);
+}
+
+/** 표 첫 칸의 `NAME` 만 — 설명 문단의 코드 이름을 Secret 으로 오인하지 않는다 */
+function namesIn(text) {
+  return [...new Set(text.split('\n').filter((l) => /^\s*\|/.test(l)).flatMap((l) => {
     const first = l.split('|')[1] || '';
     return [...first.matchAll(/`([A-Z][A-Z0-9_]{3,})`/g)].map((m) => m[1]);
   }))];
 }
+
+/** 열쇠인 군(데이터 API · AI/미디어)과 **열쇠가 아닌 군**(인프라·설정값)을 갈라 읽는다 */
+function groups() {
+  const sec = inventorySection();
+  const subs = [...sec.matchAll(/^###+ .*$/gm)];
+  const cut = (k) => {
+    const i = subs.findIndex((h) => k.test(h[0]));
+    if (i < 0) return '';
+    return sec.slice(subs[i].index, subs[i + 1] ? subs[i + 1].index : sec.length);
+  };
+  const infra = cut(/인프라|키가 아님/);
+  /* ★ **변경 이력 절은 인벤토리가 아니다.** 거기엔 **지운 이름**(LOCALDATA_KEY)과
+     이름이 바뀐 옛 이름(WORLD_NEWS_KEY), 그리고 다른 군으로 옮긴 것(TS_AUTHKEY)이 적힌다.
+     그것까지 세면 「저장소가 모르는 이름」·「마스킹 안 됨」이 무더기로 뜬다(실측 5건). */
+  const log = cut(/대조 결과|변경 이력|v[0-9.]+ 대비/);
+  let keyText = sec;
+  for (const t of [infra, log]) if (t) keyText = keyText.replace(t, '');
+  const infraOnly = log && infra ? infra.replace(log, '') : infra;
+  return { keys: namesIn(keyText), infra: namesIn(infraOnly), all: namesIn(keyText) };
+}
+
+const guideKeys = () => groups().keys;
 
 /* ── A. 원문은 한 곳에 ─────────────────────────────────────────── */
 test('A. 지침서가 저장소에 있고 CLAUDE.md 가 그것을 가리킨다', () => {
@@ -96,7 +127,11 @@ test('C. 커넥터가 읽는 공공 API 열쇠가 지침서 표에 있다', () =
     /* 공공 API 열쇠만 본다 — RHINO_COMPUTE 는 3D 연산 서비스라 이 지침서의 대상이 아니다 */
     .filter((k) => /_(KEY|OC|DOMAIN|DATA)$/.test(k)
       && !/^IM_|^LP_|^GITHUB_|^GH_|^RHINO_|^ANTHROPIC_|^BOX_|^DROPBOX_|^MS_|^GOOGLE_/.test(k));
-  const inGuide = new Set(guideKeys());
+  /* ★ **C 가 묻는 것은 「지침서에 적혀 있는가」다** — 어느 군인지가 아니다.
+     `VWORLD_DOMAIN` 은 4-C(설정값)에 있지만 커넥터가 읽는 값이고 지침서에도 있다.
+     열쇠 군만 보면 「문서에 없다」고 잘못 말한다 (실측 1건). 인벤토리 전체로 본다. */
+  const g = groups();
+  const inGuide = new Set(g.keys.concat(g.infra));
   const missing = used.filter((k) => !inGuide.has(k));
   assert.deepStrictEqual(missing, [],
     '커넥터는 읽는데 지침서 표에 없는 열쇠입니다 — 새 저장소에 옮길 때 빠뜨립니다: ' + missing.join(', '));
