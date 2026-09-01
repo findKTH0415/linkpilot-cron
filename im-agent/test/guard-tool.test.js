@@ -26,8 +26,13 @@ const CODE = SRC.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 test('★★★ 교차검증 넷을 전부 돈다', () => {
   ['function tests', 'function stamp', 'function previews', 'function render']
     .forEach((f) => assert.ok(CODE.indexOf(f) !== -1, `${f} 가 없다`));
-  assert.ok(/tests\(\); stamp\(\); previews\(\); render\(\);/.test(CODE),
-    '만들어 놓고 안 부르는 것이 있다 — 그게 다음에 빠질 자리다');
+  /* ★ 재려는 것은 **「부르는가」**다. 앞 판은 `tests(); stamp(); previews(); render();`
+     라는 **글자 차례**를 통째로 못박아, 순서를 고치자 「안 부른다」며 빨개졌다 —
+     코드는 넷을 다 부르고 있었다. 재려던 것이 아닌 것을 재면 고칠 때마다 헛울음이 난다.
+     순서는 아래 전용 칸이 따로 잰다. 〈2026-09-01〉 */
+  ['tests', 'stamp', 'previews', 'render'].forEach((f) => assert.ok(
+    new RegExp('(^|[^\\w.])' + f + '\\(\\);').test(CODE),
+    `${f}() 를 만들어 놓고 안 부른다 — 그게 다음에 빠질 자리다`));
 });
 
 /**
@@ -39,8 +44,9 @@ test('★★★ 늘어난 칸도 실제로 부른다', () => {
   ['function saveBar', 'function openFile', 'function agents', 'function branches', 'function imflow',
     'function pdfFresh', 'function viewport']
     .forEach((f) => assert.ok(CODE.indexOf(f) !== -1, `${f} 가 없다`));
-  assert.ok(/render\(\); saveBar\(\); openFile\(\); agents\(\); branches\(\); imflow\(\);/.test(CODE),
-    '만들어 놓고 안 부른다 — 그게 다음에 빠질 자리다');
+  ['render', 'saveBar', 'openFile', 'agents', 'branches', 'imflow'].forEach((f) => assert.ok(
+    new RegExp('(^|[^\\w.])' + f + '\\(\\);').test(CODE),
+    `${f}() 를 만들어 놓고 안 부른다 — 그게 다음에 빠질 자리다`));
   assert.ok(/pdfFresh\(\);/.test(CODE),
     '대외 문서 PDF 칸을 만들어 놓고 안 부른다 (§6-2-1)');
   assert.ok(/viewport\(\);/.test(CODE),
@@ -96,4 +102,49 @@ test('★★★ CLAUDE.md 가 그 한 줄을 가리킨다 (문서와 도구가 �
     '§8 이 여전히 넷을 손으로 챙기라고 한다');
   assert.ok(doc.indexOf('dry_run=false') !== -1 || doc.indexOf('`dry_run=false`') !== -1,
     '배포를 걸 때 dry_run 을 꺼야 한다는 것이 안 적혀 있다 — 두 번 헛돌았다');
+});
+
+/**
+ * ★★★ **미리보기를 먼저 다시 만들고 나서 시험을 돈다** 〈2026-09-01 · 오늘 두 번 헤맸다〉.
+ *
+ *   시험 하나가 **커밋된 미리보기를 디스크에서 읽어** 소스와 대조한다
+ *   (`flow.test.js` 의 「커밋된 section-preview.html 이 소스와 같다」).
+ *   미리보기가 갈려 있는데 시험이 먼저 돌면 —
+ *     ① 「❌ 테스트 … 1 실패」  ② 「❌ 미리보기 재생성 … 갈려 있었다」
+ *   **한 원인이 빨간 줄 둘**이 되고, ①이 코드 고장처럼 읽힌다. 오늘 그 ①을 좇아
+ *   한 바퀴 돌았다. 순서를 바꾸면 시험이 **다시 만든 판**을 재므로 빨간 줄이 하나 남는다.
+ *
+ * ★ 순서를 **글자로만** 대조하면 주석에 적힌 이름에 걸려 헛통과한다(§8).
+ *   그래서 주석을 떼고, **호출 줄 하나**에서 자리를 잰다.
+ */
+test('★★ guard 가 미리보기를 다시 만든 뒤에 시험을 돈다 (한 원인이 빨간 줄 둘이 되지 않게)', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'tools', 'guard.js'), 'utf8');
+  /* 주석을 걷는다 — 이 저장소는 경위 주석이 길어 검사가 눈이 먼다 */
+  const bare = src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[\s;{}(])\/\/[^\n]*/g, '$1 ');
+  const line = bare.split('\n').find((l) => /previews\(\)/.test(l) && /tests\(\)/.test(l));
+  assert.ok(line, 'previews() 와 tests() 를 함께 부르는 줄을 못 찾았다');
+  assert.ok(line.indexOf('previews()') < line.indexOf('tests()'),
+    '★ tests() 가 previews() 보다 먼저면, 미리보기가 갈렸을 때 「테스트 실패」가 먼저 떠서 '
+    + '코드 고장처럼 읽힌다 — 한 원인을 두 이름으로 말하게 된다');
+});
+
+/**
+ * ★ 순서를 바꿨다고 **갈린 사실을 덮으면 안 된다.** 다시 만들어 주고 조용히
+ *   넘어가면 커밋 안 된 미리보기가 그대로 남아 CI 에서 터진다 — 자리만 옮긴 셈이다.
+ */
+test('★★ 미리보기가 갈리면 여전히 빨갛게 말한다 (고쳐 주고 넘어가지 않는다)', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'tools', 'guard.js'), 'utf8');
+  const i = src.indexOf('function previews()');
+  const body = src.slice(i, src.indexOf('\n}', i));
+  /* ★★ **「갈렸을 때」 갈래를 콕 집어 본다.** 앞 판은 previews() 본문 어딘가에
+     'fail' 이 있으면 통과했다 — 그 갈래를 'ok' 로 바꿔 놓아도 초록이었다(훼손 실측).
+     본문에는 「다시 만들다가 죽었다」·「안 만들어진 것이 있다」 갈래에도 'fail' 이 있어서다.
+     재려는 것은 **그 갈래 하나**이므로 거기서부터 잘라 본다. 〈2026-09-01〉 */
+  const j = body.indexOf('if (changed.length)');
+  assert.ok(j > 0, '「다시 만드니 달라졌다」 갈래를 못 찾았다');
+  const branch = body.slice(j, j + 400);
+  assert.ok(/'fail'/.test(branch),
+    '★ 다시 만들어 달라졌으면 **그 갈래가** fail 로 말해야 한다 — 고쳐 주고 넘어가면 '
+    + '커밋 안 된 미리보기가 남아 CI 에서 터진다(자리만 옮긴 셈이다)');
+  assert.ok(/커밋/.test(branch), '무엇을 하면 되는지(이대로 커밋)를 말해야 한다');
 });

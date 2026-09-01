@@ -523,7 +523,17 @@ function ledgerNote() {
 /* ── 내보내기 ──────────────────────────────────────────── */
 
 function main() {
-  tests(); stamp(); previews(); render(); saveBar(); openFile(); agents(); branches(); imflow(); typeface();
+  /* ★★★ **미리보기를 먼저 다시 만들고 나서 시험을 돈다** 〈2026-09-01 · 오늘 두 번 헤맸다〉.
+     앞 판은 `tests()` 가 먼저였다. 그런데 시험 하나가 **커밋된 미리보기를 디스크에서 읽어**
+     소스와 대조한다. 미리보기가 갈려 있으면 —
+       ① 「❌ 테스트 … 1 실패」 가 먼저 뜨고
+       ② 그다음 「❌ 미리보기 재생성 … 갈려 있었다」 가 뜬다.
+     **한 원인이 빨간 줄 둘**로 보이고, 그중 ①이 **코드 고장처럼 읽힌다.** 실제로 오늘
+     그 ① 을 좇아 한 바퀴 돌았다. 순서를 바꾸면 시험이 **다시 만든 판**을 재므로
+     빨간 줄은 「미리보기가 갈려 있었다 — 이대로 커밋하라」 하나만 남는다.
+     ★ 고쳐 주는 것이 아니다. 갈렸다는 사실은 **여전히 빨갛게** 말한다(previews 가 그렇게 한다) —
+       다만 그 사실을 **한 번만, 맞는 이름으로** 말한다. */
+  previews(); tests(); stamp(); render(); saveBar(); openFile(); agents(); branches(); imflow(); typeface();
   pdfFresh(); viewport();
 
   const mark = { ok: '✅', fail: '❌', unknown: '⚠️ ' };
