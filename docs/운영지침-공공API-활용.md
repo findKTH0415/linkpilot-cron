@@ -409,20 +409,39 @@ R-ONE은 이 원칙을 지키지 않아 여섯 번 재작성했습니다. `ERROR
 linkpilot-cron/
 ├── .github/workflows/
 │   ├── dart-fetch.yml          기업 조회
-│   └── market-fetch.yml        시장 통계
+│   ├── market-fetch.yml        시장 통계
+│   ├── bldrgst.yml             건축물대장          (2026-09-01 추가)
+│   └── api-smoke.yml           열쇠 실측 진단      (2026-09-01 추가 · §1-1)
 ├── scripts/
 │   ├── dart-fetch.mjs
-│   └── market-fetch.mjs
+│   ├── market-fetch.mjs
+│   └── bldrgst-fetch.mjs
+├── im-agent/
+│   ├── connectors/             ★ 공공 API 커넥터 26개 — 새로 만들기 전에 여기부터 본다
+│   └── tools/
+│       ├── smoke-public-data.js   26개를 실제로 불러 보는 진단
+│       └── api-report.js          그 출력을 _summary.md 로 접는다 (열쇠 유출 차단)
 └── data/
     ├── dart/
     │   ├── _summary.md         사람이 읽는 요약
     │   ├── 회사명.json          원본 응답
     │   └── {고유번호}_{접수번호}_*.xml
-    └── market/
-        ├── _summary.md
-        ├── reb_data.json
-        └── kosis_data.json
+    ├── market/
+    │   ├── _summary.md
+    │   ├── reb_data.json
+    │   └── kosis_data.json
+    ├── bldrgst/
+    │   ├── _summary.md
+    │   └── getBr*.json / *.raw.txt
+    └── _api/                   ★ 열쇠 실측 진단 결과 (§1-1)
+        ├── _summary.md         열쇠가 들어왔는가 · 실제로 불러 본 결과
+        └── _raw.txt            진단 원문
 ```
+
+★ **새 API 를 붙이기 전에 `im-agent/connectors/` 를 먼저 보십시오.** 26개가 이미 있습니다
+(VWorld·국토부·기상청·부동산원·한국은행·통계청·법제처·전력·관세·환경·조달 등).
+있는 것을 다시 만들면 **같은 일을 하는 자리가 둘이 되고, 한쪽만 고쳐지는 날이 옵니다.**
+§5 의 파서·ZIP 해제도 이미 `im-agent/core/unzip.js` 에 있습니다.
 
 `_summary.md` 를 반드시 만듭니다. JSON 원본은 크고 읽기 어렵습니다. 요약 파일이 있으면 결과 확인이 빠르고, 분석 도구에 넘길 때도 이 파일 하나면 됩니다.
 

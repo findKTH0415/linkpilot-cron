@@ -5,7 +5,8 @@
   "description": "LinkPilot 보고서 생성 (IM Agent) — 출처 있는 숫자만 들어가는 문서 생성 파이프라인",
   "main": "im-agent/cli.js",
   "scripts": {
-    "test": "node --test im-agent/test/*.test.js",
+    "test": "node im-agent/tools/test-lock.js node --test im-agent/test/*.test.js",
+    "test:nolock": "node --test im-agent/test/*.test.js",
     "im": "node im-agent/cli.js",
     "im:demo": "IM_AGENT_OFFLINE=1 node im-agent/cli.js demo",
     "branch:check": "node im-agent/tools/branch-doctor.js",
