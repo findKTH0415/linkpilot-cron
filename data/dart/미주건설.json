@@ -1,0 +1,144 @@
+{
+  "query": "미주건설",
+  "candidates": [
+    {
+      "code": "00665223",
+      "name": "미주건설",
+      "stock": ""
+    },
+    {
+      "code": "01587782",
+      "name": "미주건설",
+      "stock": ""
+    }
+  ],
+  "detail": {
+    "00665223": {
+      "corp": {
+        "code": "00665223",
+        "name": "미주건설",
+        "stock": ""
+      },
+      "company": {
+        "status": "000",
+        "message": "정상",
+        "corp_code": "00665223",
+        "corp_name": "미주건설주식회사",
+        "corp_name_eng": "MIJU",
+        "stock_name": "미주건설",
+        "stock_code": "",
+        "ceo_nm": "김근호",
+        "corp_cls": "E",
+        "jurir_no": "1601110142359",
+        "bizr_no": "3148152556",
+        "adres": "대전광역시 유성구 장대동 336-1 국당빌딩 5층",
+        "hm_url": "",
+        "ir_url": "",
+        "phn_no": "042-824-2315",
+        "fax_no": "042-824-2317",
+        "induty_code": "41",
+        "est_dt": "20020726",
+        "acc_mt": "12"
+      },
+      "filings": {
+        "status": "013",
+        "message": "조회된 데이타가 없습니다."
+      },
+      "financials": {}
+    },
+    "01587782": {
+      "corp": {
+        "code": "01587782",
+        "name": "미주건설",
+        "stock": ""
+      },
+      "company": {
+        "status": "000",
+        "message": "정상",
+        "corp_code": "01587782",
+        "corp_name": "(주)미주건설",
+        "corp_name_eng": "MIJU Construction Co., Ltd.",
+        "stock_name": "미주건설",
+        "stock_code": "",
+        "ceo_nm": "안성환",
+        "corp_cls": "E",
+        "jurir_no": "1348110404666",
+        "bizr_no": "2448800613",
+        "adres": "경기도 김포시 양촌읍 석모로 7 (석모리) 1동 201호",
+        "hm_url": "",
+        "ir_url": "",
+        "phn_no": "031-982-0491",
+        "fax_no": "031-982-0463",
+        "induty_code": "41111",
+        "est_dt": "20170502",
+        "acc_mt": "12"
+      },
+      "filings": {
+        "status": "000",
+        "message": "정상",
+        "page_no": 1,
+        "page_count": 100,
+        "total_count": 5,
+        "total_page": 1,
+        "list": [
+          {
+            "corp_code": "01587782",
+            "corp_name": "미주건설",
+            "stock_code": "",
+            "corp_cls": "E",
+            "report_nm": "감사보고서 (2025.12)",
+            "rcept_no": "20260402003951",
+            "flr_nm": "회계법인오현",
+            "rcept_dt": "20260403",
+            "rm": ""
+          },
+          {
+            "corp_code": "01587782",
+            "corp_name": "미주건설",
+            "stock_code": "",
+            "corp_cls": "E",
+            "report_nm": "감사보고서 (2024.12)",
+            "rcept_no": "20250408002227",
+            "flr_nm": "회계법인오현",
+            "rcept_dt": "20250408",
+            "rm": ""
+          },
+          {
+            "corp_code": "01587782",
+            "corp_name": "미주건설",
+            "stock_code": "",
+            "corp_cls": "E",
+            "report_nm": "감사보고서 (2023.12)",
+            "rcept_no": "20240409003836",
+            "flr_nm": "회계법인오현",
+            "rcept_dt": "20240409",
+            "rm": ""
+          },
+          {
+            "corp_code": "01587782",
+            "corp_name": "미주건설",
+            "stock_code": "",
+            "corp_cls": "E",
+            "report_nm": "감사보고서 (2022.12)",
+            "rcept_no": "20230404001099",
+            "flr_nm": "회계법인오현",
+            "rcept_dt": "20230404",
+            "rm": ""
+          },
+          {
+            "corp_code": "01587782",
+            "corp_name": "미주건설",
+            "stock_code": "",
+            "corp_cls": "E",
+            "report_nm": "감사보고서 (2021.12)",
+            "rcept_no": "20220412001071",
+            "flr_nm": "회계법인오현",
+            "rcept_dt": "20220412",
+            "rm": ""
+          }
+        ]
+      },
+      "financials": {}
+    }
+  }
+}

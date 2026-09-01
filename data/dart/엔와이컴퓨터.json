@@ -1,0 +1,62 @@
+{
+  "query": "엔와이컴퓨터",
+  "candidates": [
+    {
+      "code": "01087486",
+      "name": "엔와이컴퓨터",
+      "stock": ""
+    }
+  ],
+  "detail": {
+    "01087486": {
+      "corp": {
+        "code": "01087486",
+        "name": "엔와이컴퓨터",
+        "stock": ""
+      },
+      "company": {
+        "status": "000",
+        "message": "정상",
+        "corp_code": "01087486",
+        "corp_name": "(주)엔와이컴퓨터",
+        "corp_name_eng": "NYCOMPUTER.Co.,Ltd",
+        "stock_name": "엔와이컴퓨터",
+        "stock_code": "",
+        "ceo_nm": "김장수",
+        "corp_cls": "E",
+        "jurir_no": "1101111365231",
+        "bizr_no": "1068165222",
+        "adres": "서울특별시 금천구 가산디지털2로 18 (가산동, 대륭테크노타운1차) 406호",
+        "hm_url": "www.nycomputer.co.kr",
+        "ir_url": "",
+        "phn_no": "02-2078-4031",
+        "fax_no": "0505-863-0093",
+        "induty_code": "26310",
+        "est_dt": "19970123",
+        "acc_mt": "12"
+      },
+      "filings": {
+        "status": "000",
+        "message": "정상",
+        "page_no": 1,
+        "page_count": 100,
+        "total_count": 1,
+        "total_page": 1,
+        "list": [
+          {
+            "corp_code": "01087486",
+            "corp_name": "엔와이컴퓨터",
+            "stock_code": "",
+            "corp_cls": "E",
+            "report_nm": "감사보고서 (2020.12)",
+            "rcept_no": "20210407002028",
+            "flr_nm": "태성회계법인",
+            "rcept_dt": "20210407",
+            "rm": ""
+          }
+        ]
+      },
+      "financials": {}
+    }
+  }
+}
