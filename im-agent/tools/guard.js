@@ -383,6 +383,36 @@ function typeface() {
  *   `build-stamp.js` 가 이미 막는다 — 이 칸이 **PDF 쪽 같은 구멍**을 막는다.
  *   규칙을 문서에만 적어 두면 사람의 기억에 얹힌다는 것이 M-31 의 교훈이다.
  */
+/* ── ⑫ 화면 크기에서 잘리거나 넘치는가 ────────────────── */
+/**
+ * ★★★ **오늘 화면 크기 문제 둘을 사장님이 눈으로 찾으셨다** 〈2026-09-01 · M-71 · M-72〉.
+ *
+ *   ⑨ 「헤드리스 렌더」는 **「그려지는가」**를 본다. 그려지기는 하는데 **자리가
+ *   틀린** 고장은 그것으로 안 잡힌다 — 오늘 둘 다 그 모양이었고, 그때 검사는
+ *   전부 초록이었다.
+ *
+ * ★ 그래서 **폰·맥 두 폭에서 실제로 그려** 가로 넘침·화면 밖으로 나간 것·
+ *   상자가 내용보다 작은 것·잘린 글자를 센다.
+ * ★★ 헤드리스 창은 390px 로 안 줄어들므로 **폭이 정확한 틀**에 넣고 잰다.
+ *   재려던 폭으로 못 쟀으면 **「못 쟀다」**로 끝난다 — 다른 폭을 재고 초록으로
+ *   끝내면 이 칸을 둔 뜻이 없어진다.
+ */
+function viewport() {
+  let out = '';
+  let code = 0;
+  try {
+    out = sh('node im-agent/tools/probe-viewport.js 2>&1');
+  } catch (e) {
+    out = String((e.stdout || '') + (e.stderr || ''));
+    code = e.status === undefined ? 1 : e.status;
+  }
+  const line = (String(out).trim().split('\n').filter(Boolean)
+    .reverse().find((l) => l.trim().startsWith('화면 크기:')) || '')
+    .trim().replace(/^화면 크기: /, '');
+  add('화면 크기', code === 0 ? 'ok' : (code === 2 ? 'unknown' : 'fail'),
+    line || '결과를 못 읽었다');
+}
+
 function pdfFresh() {
   let out; let code = 0;
   try {
@@ -494,7 +524,7 @@ function ledgerNote() {
 
 function main() {
   tests(); stamp(); previews(); render(); saveBar(); openFile(); agents(); branches(); imflow(); typeface();
-  pdfFresh();
+  pdfFresh(); viewport();
 
   const mark = { ok: '✅', fail: '❌', unknown: '⚠️ ' };
   const pad = (s, n) => s + ' '.repeat(Math.max(0, n - [...s].reduce((a, c) => a + (c.charCodeAt(0) > 0x1100 ? 2 : 1), 0)));
@@ -522,4 +552,4 @@ function main() {
 }
 
 if (require.main === module) process.exit(main());
-module.exports = { tests, stamp, previews, render, saveBar, openFile, agents, branches, typeface, rightsNote, backupNote, ledgerNote, rows };
+module.exports = { tests, stamp, previews, render, saveBar, openFile, agents, branches, typeface, viewport, rightsNote, backupNote, ledgerNote, rows };

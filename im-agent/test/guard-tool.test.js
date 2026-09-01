@@ -37,18 +37,23 @@ test('★★★ 교차검증 넷을 전부 돈다', () => {
  */
 test('★★★ 늘어난 칸도 실제로 부른다', () => {
   ['function saveBar', 'function openFile', 'function agents', 'function branches', 'function imflow',
-    'function pdfFresh']
+    'function pdfFresh', 'function viewport']
     .forEach((f) => assert.ok(CODE.indexOf(f) !== -1, `${f} 가 없다`));
   assert.ok(/render\(\); saveBar\(\); openFile\(\); agents\(\); branches\(\); imflow\(\);/.test(CODE),
     '만들어 놓고 안 부른다 — 그게 다음에 빠질 자리다');
   assert.ok(/pdfFresh\(\);/.test(CODE),
     '대외 문서 PDF 칸을 만들어 놓고 안 부른다 (§6-2-1)');
+  assert.ok(/viewport\(\);/.test(CODE),
+    '화면 크기 칸을 만들어 놓고 안 부른다 (M-71 · M-72)');
   /* ★ 못 쟀을 때(되돌아오는 값 2)를 통과로 세면 안 된다.
    *   크로미움이 없는 자리 둘([저장]·[열기]) · 원격을 못 보는 자리 하나(갈래 겹침) ·
    *   보낸 기록이 아예 없는 자리 하나(보고서 화면 사본 · D-120) ·
    *   HTML·PDF 짝이 하나도 없는 자리 하나(대외 문서 PDF · §6-2-1 — 「정말 없는 것」과
-   *   「훑는 곳이 틀린 것」이 구분되지 않으므로 통과로 세지 않는다) */
-  assert.strictEqual((CODE.match(/code === 2 \? 'unknown'/g) || []).length, 5,
+   *   「훑는 곳이 틀린 것」이 구분되지 않으므로 통과로 세지 않는다) ·
+   *   재려던 폭으로 못 잰 자리 하나(화면 크기 · 2026-09-01 — 헤드리스 창이 390px 로
+   *   안 줄어들어 **폰을 잰 줄 알고 485px 를 재고도 초록이던** 자리다. 다른 폭을
+   *   재고 통과로 끝내면 이 칸을 둔 뜻이 없어진다) */
+  assert.strictEqual((CODE.match(/code === 2 \? 'unknown'/g) || []).length, 6,
     '못 잰 것을 통과로 세는 칸이 있다 — 못 잰 것은 통과가 아니다');
 });
 

@@ -54,6 +54,7 @@
     "backup:drill": "node im-agent/tools/backup.js drill",
     "backup:verify": "node im-agent/tools/backup.js verify",
     "rights:count": "node im-agent/tools/rights-count.js",
+    "probe:viewport": "node im-agent/tools/probe-viewport.js",
     "prs:write": "node im-agent/tools/open-prs.js",
     "deploy:report": "node im-agent/tools/deploy-report.js",
     "brand:icon": "node assets/brand/build-icon.js",
