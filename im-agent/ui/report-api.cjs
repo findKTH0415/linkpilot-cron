@@ -863,19 +863,51 @@ function createHandlers(deps) {
       } finally {
         // dispose 는 두 번 불러도 안전하다
       }
+
+      /**
+       * ★★★ **못 읽은 것은 지우지 않고 보관으로 옮긴다** 〈2026-08-28 사장님 지시 · D-190〉.
+       *
+       *   실측(사장님 화면): 13개를 올려 9개가 GEMINI_ALL_KEYS_UNAVAILABLE 로
+       *   실패했는데 **원본까지 지웠다.** 얻은 것은 없고 파일만 사라졌다 —
+       *   1회성의 「안 보관한다」가 여기서는 「일한 것을 버린다」가 된다.
+       *
+       *   ★ 임시 폴더에 그냥 두는 것으로는 모자란다. 거기는 OS 임시 폴더라
+       *     재부팅에 없어지고, 무엇보다 **다시 읽을 길이 없다.** 보관 자료
+       *     (02_Source_Data)로 옮겨야 화면의 [다시 읽기](/scan)가 집는다.
+       *
+       *   ★★ 그래서 **1회성 약속이 「읽은 것만 안 남긴다」로 좁아진다.**
+       *     못 읽은 것은 남으므로, 그 사실을 응답에 적어 화면이 말하게 한다.
+       *     조용히 남기면 「안 남긴다」가 거짓이 된다.
+       */
+      const vault = load('core/vault');
+      const failed = new Set(((read && read.unsupported) || []).map(u => u && u.name).filter(Boolean));
+      const rescued = [];
+      for (const f of r.files) {
+        if (!failed.has(f.name)) continue;
+        try {
+          const put = vault.put(dirOf, f.name, fs.readFileSync(f.path), { by: (g.user && g.user.name) || null });
+          if (put.ok) rescued.push(put.name);
+        } catch (_) { /* 옮기지 못해도 아래 dispose 는 돈다 — 못 옮긴 것은 rescued 에 안 들어간다 */ }
+      }
+
       const removed = r.dispose().removed;
 
       return ok({
         accepted: r.accepted,
         rejected: rejected.concat(r.rejected),
         removed,
+        // ★ 못 읽어서 보관으로 옮긴 것. 화면이 「다시 읽기」를 안내하는 근거다
+        rescued,
         // 읽은 결과를 그대로 돌려준다 — 무엇이 값으로 잡혔는지 사용자가 봐야 한다
         read: read || null,
         // 화면이 올리기 전에 말해야 하는 것들
         reusable: false,
         verifiable: false,
-        note: '보관하지 않습니다 — 보고서를 다시 만들려면 다시 올려야 하고, '
-          + '나중에 원본과 대조할 수 없습니다.',
+        note: (rescued.length
+          ? `읽은 것은 보관하지 않습니다 — 다시 만들려면 다시 올려야 하고, 나중에 원본과 대조할 수 없습니다. `
+            + `다만 읽지 못한 ${rescued.length}건은 지우지 않고 보관 자료로 옮겼습니다 — 「다시 읽기」로 다시 시도할 수 있습니다.`
+          : '보관하지 않습니다 — 보고서를 다시 만들려면 다시 올려야 하고, '
+            + '나중에 원본과 대조할 수 없습니다.'),
         at: kstStamp(new Date()),
       });
     },

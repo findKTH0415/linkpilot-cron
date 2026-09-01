@@ -9,6 +9,8 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const rc = require('../tools/registry-check');
+const fs = require('fs');
+const path = require('path');
 
 const doc = lines => lines.join('\n');
 const H = (id, title, status = '🟠') => `### ${status} ${id}. ${title}`;
@@ -111,4 +113,36 @@ test('★ 등록부에 번호 배정 규칙이 살아 있다', () => {
   assert.match(t, /한쪽이 늘 양보하는 것이 아니다/,
     '「번호마다 선후가 다르다」가 사라지면 늘 같은 갈래가 양보하게 된다');
   assert.match(t, /MEMORY\.md/, '사고기록도 같은 병을 앓는다는 말이 없다');
+});
+
+/**
+ * ★★★ **번호를 딸 때 `origin/main` 을 함께 보는가** 〈2026-08-29 · D-181〉.
+ *
+ * ★ 왜 만들었나. 하루에 **세 번** 겹쳤다 — main 이 D-164 · D-165 · D-169 를
+ *   먼저 썼고, 그때마다 여섯 자리를 손으로 옮겼다. 원인은 하나다:
+ *   `--next` 가 **자기 갈래만** 보고 있었다.
+ *
+ * ★★ 규칙으로는 세 번 다 못 막았다 (D-102 가 「비워 두자」로 적어 둔 자리다).
+ *   갈래는 서로를 못 보므로 **재는 쪽이 main 을 읽어야** 한다.
+ *
+ * ★ 이 검사는 「글자가 있는가」가 아니라 **「그 줄을 실제로 도는가」**를 잰다 —
+ *   주석에 `origin/main` 이라고 적어 두는 것만으로는 아무것도 안 막는다 (M-63).
+ */
+test('★★★ `--next` 가 origin/main 을 읽는다 — 안 읽으면 번호가 또 겹친다', () => {
+  const src = fs.readFileSync(
+    path.join(__dirname, '..', 'tools', 'registry-check.js'), 'utf8');
+
+  // 주석을 떼고 본다 — 이 저장소는 주석이 길어 글자 대조가 눈이 먼다 (CLAUDE.md §8)
+  const body = src
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|[^:])\/\/.*$/gm, '$1');
+
+  const next = body.slice(body.indexOf("argv.includes('--next')"));
+  assert.ok(next, '`--next` 갈래를 못 찾았다');
+
+  const upTo = next.slice(0, next.indexOf('return 0;'));
+  assert.match(upTo, /readAt\(\s*'origin\/main'/,
+    '`--next` 가 origin/main 을 안 읽는다 — 자기 갈래만 보고 번호를 딴다');
+  assert.ok(!/--all[\s\S]{0,120}readAt\(\s*'origin\/main'/.test(upTo),
+    'origin/main 읽기가 --all 안에 들어가 있다 — 번호 딸 때는 --all 을 안 준다');
 });

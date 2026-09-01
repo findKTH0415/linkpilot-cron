@@ -69,6 +69,37 @@ const PLANNED = {
   '17_distribution': { label: 'Distribution Agent', phase: 3, note: '외부 발송 — 사람 승인 없이는 절대 실행하지 않는다' },
 };
 
+/**
+ * ★★★ **Task 그래프 전용 Agent** 〈2026-08-26 · D-132 · D-119〉.
+ *
+ * 위 `AGENTS` 는 **IM 하나를 만드는 파이프라인**이다. `pipeline.js` 가 순서대로
+ * 부르고, `monitor.WEIGHTS` 가 그 진행률을 100 으로 나눠 가지며, 진행 화면이
+ * 단계마다 한 칸씩 그린다.
+ *
+ * **화면 작업지시서(T22)는 그 파이프라인의 일부가 아니다.** 태양광 딜 IM 을
+ * 만들 때마다 화면 작업지시서가 하나씩 나오면 안 된다. 그리고 진행률을 나눠
+ * 가지면 **「IM 이 몇 % 됐나」가 화면 작업 유무에 따라 달라진다** — 그 순간
+ * 진행률이 뜻을 잃는다.
+ *
+ * 그래서 갈래를 둘로 둔다:
+ *
+ *   AGENTS       IM 파이프라인. pipeline.js 가 부른다. 진행률 100 을 나눠 갖는다
+ *   TASK_AGENTS  Task 그래프 전용. orchestrator.js 가 taskplan 대로 부른다
+ *
+ * ★ `list()` 는 **AGENTS 만** 돌려준다 — IM 진행률·화면 단계·MCP 짝을 세는
+ *   검사들이 전부 그것을 기준으로 서 있고, 그 뜻은 바뀌지 않았다.
+ * ★ `get()`·`load()` 는 **둘 다** 본다 — router 와 runtime 이 실제로 이것을
+ *   불러야 하기 때문이다.
+ * ★ 배선 점검은 `tools/agent-doctor.js` 가 **다른 잣대로** 잰다.
+ *   IM 잣대(파이프라인·진행률·화면 단계)를 여기 들이대면 늘 빨갛고,
+ *   **늘 빨가면 아무도 안 본다.**
+ */
+const TASK_AGENTS = {
+  /* approvalRule 이 'human' 인 이유: 지시서는 「무엇이 끝인가」를 정하는 문서다.
+   * 사람 확인 없이 확정하면 나중에 「그건 시킨 적 없다」가 나온다. */
+  '20_platform_spec': { label: 'Platform Spec Agent (화면 작업지시서)', enabled: true, confidenceThreshold: 0.5, approvalRule: 'human', module: '../agents/20-platform-spec', task: 'T22', capability: 'PLATFORM_SPEC' },
+};
+
 function disabledFromEnv() {
   return (process.env.IM_AGENT_DISABLE || '').split(',').map(s => s.trim()).filter(Boolean);
 }
@@ -82,9 +113,18 @@ function list() {
 
 function get(id) {
   const off = disabledFromEnv();
-  const a = AGENTS[id];
+  // ★ 둘 다 본다. AGENTS 만 보면 Task 그래프 Agent 가 router 에서 「미구현」으로
+  //   잡히고, 그러면 계획에 남기는 하는데 **영영 안 돈다** (D-20 과 같은 모양).
+  const a = AGENTS[id] || TASK_AGENTS[id];
   if (!a) return null;
   return { id, ...a, enabled: a.enabled && !off.includes(id) };
+}
+
+/** Task 그래프 전용 Agent 목록 — IM 진행률과 섞이지 않는다 */
+function listTaskAgents() {
+  const off = disabledFromEnv();
+  return Object.entries(TASK_AGENTS)
+    .map(([id, a]) => ({ id, ...a, enabled: a.enabled && !off.includes(id) }));
 }
 
 function load(id) {
@@ -93,4 +133,4 @@ function load(id) {
   return require(a.module);
 }
 
-module.exports = { AGENTS, PLANNED, REAL_ESTATE_AGENTS, list, get, load };
+module.exports = { AGENTS, TASK_AGENTS, PLANNED, REAL_ESTATE_AGENTS, list, listTaskAgents, get, load };

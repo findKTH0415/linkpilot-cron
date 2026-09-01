@@ -248,6 +248,31 @@ function run(argv) {
   if (argv.includes('--next')) {
     for (const reg of regs) {
       const byBranch = { '(작업본)': parse(readAt(null, reg.doc), reg) };
+
+      /**
+       * ★★★ **`origin/main` 은 늘 함께 본다** 〈2026-08-29 · D-181〉.
+       *
+       *   하루에 **세 번** 겹쳤다 — D-164 · D-165 · D-169 를 main 이
+       *   먼저 썼고, 그때마다 여섯 자리를 손으로 옮겼다.
+       *
+       * ★ 앞 판은 `--all` 을 줘야만 남의 갈래를 봤다. 그런데 번호를 딸
+       *   때는 `--all` 을 안 준다 — 빠르니까. 그러면 **자기 갈래만 보고**
+       *   이미 쓰인 번호를 또 딴다.
+       *
+       * ★★ 갈래 전부를 보는 것과는 다르다. main 은 **모두가 합치는
+       *   줄기**라 거기 있는 번호는 예외 없이 이미 쓰인 것이다. 열려 있는
+       *   남의 갈래는 안 합쳐질 수도 있지만 main 은 그럴 일이 없다.
+       *
+       * ★ 못 읽어도 멈추지 않는다 — 네트워크가 없는 자리가 있다. 그때는
+       *   앞 판과 같은 답이 나오고, 그것이 **정확히 지금까지의 위험**이다.
+       *   그래서 조용히 넘기지 않고 한 줄로 알린다 (§4.6 과 같은 결).
+       */
+      const trunk = parse(readAt('origin/main', reg.doc), reg);
+      if (trunk.length) byBranch['origin/main'] = trunk;
+      else if (!argv.includes('--quiet')) {
+        console.error('※ origin/main 을 못 읽었다 — 이 번호는 내 갈래만 보고 낸 것이다 (겹칠 수 있다)');
+      }
+
       if (argv.includes('--all')) {
         for (const b of (remoteBranches() || [])) {
           const items = parse(readAt(b, reg.doc), reg);

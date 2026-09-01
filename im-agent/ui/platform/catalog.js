@@ -26,7 +26,7 @@
    *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다. 화면이 자기
    *   지문과 대 보고 다르면 「함수가 없다」로 죽기 전에 사람 말로 알린다.
    */
-  var LP_BUILD = '942097fb';
+  var LP_BUILD = 'fca016d9';
 
   /** 지침 판(版). 지침을 고치면 이 값도 같이 올린다 */
   var GUIDE = { title: 'LinkPilot 외부 업무지침', asOf: '2026-08-14' };
@@ -52,11 +52,25 @@
     { key: 'qna',       icon: '💬', name: 'Q&A',                 minPlan: 'free', byGuide: true },
     { key: 'sourcedb',  icon: '☆',  name: '투자소스 DB',          minPlan: 'free', byGuide: true },
     // 유료
-    { key: 'quote',     icon: '☆',  name: '오늘의 한줄생각',      minPlan: 'basic',    byGuide: false },
-    { key: 'brief',     icon: '☀',  name: '아침브리핑',           minPlan: 'basic',    byGuide: false },
-    { key: 'callai',    icon: '📞', name: '통화음성분석',         minPlan: 'pro',      byGuide: false },
-    { key: 'sourcedb+', icon: '★',  name: '프리미엄 투자소스 DB',  minPlan: 'pro',      byGuide: false },
-    { key: 'renew',     icon: '🔆', name: '신재생에너지 분석',     minPlan: 'business', byGuide: false },
+  /* ★★★ **2026-08-26 — 등급을 둘로 맞췄다** 〈D-06 · D-08〉.
+   *
+   *   살아 있는 앱(`linkpilot-platform.deploy.html`, platform 갈래)에서 직접 쟀다:
+   *     · 등급은 **Free / Pro 둘뿐**이다 (`plan:'Free'` · `plan:'Pro'`)
+   *     · 앱이 화면에 넘기는 값도 **`planId: isPro ? 'pro' : 'free'`** 뿐이다
+   *
+   *   여기 있던 `basic` · `business` 는 앱에 **없는 등급**이었다. 그래서
+   *   `business` 로 잠근 「신재생에너지 분석」은 **Pro 를 결제해도 안 열렸다** —
+   *   PLAN_RANK 로 pro(2) < business(3) 이라 영영 잠긴 채였고, 오류는 안 났다.
+   *   D-06 이 걱정한 「결제한 사람이 못 쓴다」가 실제로 나 있었다.
+   *
+   *   ★ `byGuide: false` 는 그대로 둔다 — 지침은 여전히 「유료」라고만 했다.
+   *     등급이 둘이 된 것이지 지침이 등급을 못 박은 것이 아니다.
+   */
+    { key: 'quote',     icon: '☆',  name: '오늘의 한줄생각',      minPlan: 'pro', byGuide: false },
+    { key: 'brief',     icon: '☀',  name: '아침브리핑',           minPlan: 'pro', byGuide: false },
+    { key: 'callai',    icon: '📞', name: '통화음성분석',         minPlan: 'pro', byGuide: false },
+    { key: 'sourcedb+', icon: '★',  name: '프리미엄 투자소스 DB',  minPlan: 'pro', byGuide: false },
+    { key: 'renew',     icon: '🔆', name: '신재생에너지 분석',     minPlan: 'pro', byGuide: false },
     // 지침이 등급까지 적은 유일한 항목
     { key: 'reports',   icon: '📄', name: '보고서 생성',          minPlan: 'pro',      byGuide: true },
   ];
@@ -66,7 +80,7 @@
   var GUIDE_PAID = ['오늘의 한줄생각', '아침브리핑', '통화음성분석',
     '프리미엄 투자소스 DB', '신재생에너지 분석', '보고서 생성'];
 
-  var PLAN_RANK = { free: 0, basic: 1, pro: 2, business: 3 };
+  var PLAN_RANK = { free: 0, pro: 1 };   // 앱이 보내는 값이 이 둘뿐이다 (실측 2026-08-26)
 
   function free() { return FEATURES.filter(function (f) { return f.minPlan === 'free'; }); }
   function paid() { return FEATURES.filter(function (f) { return f.minPlan !== 'free'; }); }
@@ -151,7 +165,7 @@
     return t.replace(/\s+/g, ' ').trim();
   }
 
-  var PLAN_NAMES = { free: 'Free', basic: 'Basic', pro: 'Pro', business: 'Business' };
+  var PLAN_NAMES = { free: 'Free', pro: 'Pro' };
   function planName(id) { return PLAN_NAMES[id] || id; }
 
   return {
