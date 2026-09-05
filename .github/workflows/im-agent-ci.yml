@@ -3,16 +3,29 @@ name: im-agent-ci
 # IM Agent 회귀 테스트. 네트워크 호출 없음(IM_AGENT_OFFLINE=1) → 시크릿 불필요.
 # 재무계산·교차검증·환각검출은 아침 크론과 달리 조용히 틀리면 알 방법이 없으므로
 # 모든 PR에서 강제 실행한다.
+# ★★★ **문서만 바꾼 PR 이 검사 0개로 지나갔다** 〈2026-08-30 · 사장님 화면: 「CI」 칸이 비어 있음〉.
+#   앞 판은 `im-agent/**` 만 봤다. 그런데 이 저장소의 검사는 **문서도 잰다** —
+#   결정 건수(`docs/결정-기록.md` 의 줄 수)와 사고기록 색인(`MEMORY.md`)이 맞는지
+#   `flow.test.js` · `memory-index.test.js` 가 센다.
+#   ★ 그래서 문서만 고친 PR 이야말로 **그 검사가 필요한 자리**인데 아무것도 안 돌았다.
+#   ★★ 「검사가 없다」와 「검사가 통과했다」는 다른 사실이다 — 화면에는 둘 다
+#     빈 동그라미로 보인다. 그것이 이번에 사장님이 물으신 자리다.
 on:
   push:
     branches-ignore: []
     paths:
       - 'im-agent/**'
-      - '.github/workflows/im-agent-ci.yml'
+      - 'docs/**'
+      - 'CLAUDE.md'
+      - 'MEMORY.md'
+      - '.github/workflows/**'
   pull_request:
     paths:
       - 'im-agent/**'
-      - '.github/workflows/im-agent-ci.yml'
+      - 'docs/**'
+      - 'CLAUDE.md'
+      - 'MEMORY.md'
+      - '.github/workflows/**'
   workflow_dispatch:
 
 concurrency:
@@ -38,6 +51,36 @@ jobs:
       #   **우리가 통제하는 환경에서는 설치해서 맞춘다.**
       - name: Install Korean fonts (D-52)
         run: sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-cjk
+
+      # ★★★ **「깔렸다」와 「그 이름으로 쓰인다」는 다른 사실이다** 〈2026-09-05 · D-52 재발〉.
+      #   위 꾸러미만 믿고 있었는데 러너에서 PDF 에 **CJKjp(일본어 변형)**가 박혔다.
+      #   글꼴 스택의 첫 이름은 `Noto Sans KR` 인데 그 이름은 apt 꾸러미에 없다 —
+      #   두 번째 이름(`Noto Sans CJK KR`)으로 넘어가야 하는데 러너의 fontconfig 가
+      #   거기서 **일본어 얼굴을 골랐다.** 이 자리에서는 안 그래서 **재현이 안 된다.**
+      #   ★ 그래서 **첫 이름을 진짜로 깔아** 두 번째 이름까지 가지 않게 한다.
+      #     `ensureFonts` 가 fc-match 로 묻고(브라우저와 같은 방식) 없으면 내려받는다.
+      #     실측: 없는 자리에서 부르면 `DejaVu Sans` → `Noto Sans KR` 로 바뀐다.
+      #   ★★ 못 갖추면 **조용히 넘어가지 않는다** — 빨갛게 끝낸다 (§8 「못 잰 것은 통과가 아니다」).
+      - name: Make the first name in the font stack real (D-52)
+        run: |
+          node -e '
+            const pdf = require("./im-agent/tools/pdf.js");
+            const want = [
+              { family: "Noto Sans KR",  weights: [400, 700] },
+              { family: "Noto Serif KR", weights: [400, 700] },
+            ];
+            const r = pdf.ensureFonts(want);
+            console.log(JSON.stringify(r));
+            if (!r.ok) {
+              console.log("글꼴을 못 갖췄다 — " + (r.reason || "까닭 없음")
+                + " · 없는 것: " + (r.missing.join(", ") || "(없음)"));
+              process.exit(1);
+            }
+          '
+          for f in "Noto Sans KR" "Noto Serif KR"; do
+            got=$(fc-match --format='%{family}' "$f")
+            echo "  물어본 이름: $f  →  돌아온 이름: $got"
+          done
 
       # ★★ TAP 전문은 50만 자가 넘는다. 실패 한 줄이 그 안에 묻히면
       #   **로그를 받아 보는 쪽에서 원인을 못 찾는다** — 실제로 그랬다

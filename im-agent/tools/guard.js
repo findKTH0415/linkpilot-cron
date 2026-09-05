@@ -240,25 +240,67 @@ function agents() {
  *   주셨으면 병합하는 날에야 알았을 것이다.
  * ★ 원격을 못 보면 **「못 쟀다」**로 적는다. 없는 것과 다른 사실이다.
  */
+/**
+ * ★★★ **저쪽 저장소도 함께 본다** 〈2026-09-01 · M-70 · 실제로 당하고 나서〉.
+ *
+ *   이 칸은 여태 **이 저장소만** 봤다. 그런데 2026-08-31 에 난 사고는
+ *   `linkpilot-platform` 에서 났다 — 열려 있던 PR 5번이 이미 한 일을 PR 3번에서
+ *   하루 뒤에 다시 했고, **양쪽이 새로 만든 같은 파일 3개 · 같이 고친 코드 18개**
+ *   였는데 아무것도 말해 주지 않았다.
+ *
+ *   ★ 장치는 다 있었고 **돌린 자리가 한 곳뿐이었다.** 저쪽 작업 폴더에서 같은
+ *     검사를 돌려 보니 그 자리에서 잡혔다.
+ *   ★★ 저쪽 폴더가 없으면 **「못 쟀다」**로 적는다 — 안 재고 통과로 적지 않는다.
+ *     다만 이 칸은 이 저장소 몫이 먼저이므로, 이쪽이 빨가면 그것이 판정이다.
+ */
+function otherRepoDir() {
+  const given = process.env.LP_PLATFORM_DIR;
+  const guess = path.join(ROOT, '..', 'linkpilot-platform');
+  const dir = given || guess;
+  return fs.existsSync(path.join(dir, '.git')) ? dir : null;
+}
+
+function runDoctor(dir) {
+  const arg = dir ? ` --repo ${JSON.stringify(dir)}` : '';
+  try { return { out: sh(`node im-agent/tools/branch-doctor.js${arg} 2>&1`), code: 0 }; }
+  catch (e) {
+    return { out: String((e.stdout || '') + (e.stderr || '')),
+      code: e.status === undefined ? 1 : e.status };
+  }
+}
+
+function verdictOf(out) {
+  const lines = String(out).trim().split('\n').filter(Boolean);
+  const v = [...lines].reverse().find((l) => /^(겹치는 파일|살아 있는 갈래|견줄|못 |못읽)/.test(l.trim()));
+  return (v || lines[lines.length - 1] || '').trim().replace(/^겹치는 파일: /, '');
+}
+
 function branches() {
-  let out = '';
-  let code = 0;
-  try {
-    out = sh('node im-agent/tools/branch-doctor.js 2>&1');
-  } catch (e) {
-    out = String((e.stdout || '') + (e.stderr || ''));
-    code = e.status === undefined ? 1 : e.status;
+  const here = runDoctor(null);
+  let out = here.out;
+  let code = here.code;
+
+  /* 저쪽 저장소 — 이쪽 판정을 덮지 않고 **더 나쁜 쪽으로만** 옮긴다 */
+  const other = otherRepoDir();
+  let otherLine;
+  if (!other) {
+    otherLine = '저쪽 저장소(linkpilot-platform)는 **못 쟀다** — 이 자리에 작업 폴더가 없다'
+      + ' (`LP_PLATFORM_DIR` 로 알려 주면 함께 잰다)';
+    if (code === 0) code = 2;
+  } else {
+    const o = runDoctor(other);
+    otherLine = `저쪽(linkpilot-platform): ${verdictOf(o.out)}`;
+    if (o.code === 1) code = 1;
+    else if (o.code === 2 && code === 0) code = 2;
   }
   /* ★★ **마지막 줄이 판정 줄이 아니다** 〈2026-08-26 · 실측〉.
    *   겹침이 있으면 `branch-doctor` 가 판정 줄 뒤에 **왜 위험한지**를 한 문단
    *   더 적는다. 그냥 마지막 줄을 집으면 화면에 「진 쪽 설계는 오류 하나 없이
    *   사라진다」만 뜨고 **어느 파일이 겹쳤는지가 사라진다.**
    * ★ 그래서 **판정 줄을 이름으로 찾는다.** 못 찾으면 마지막 줄로 내려간다. */
-  const lines = out.trim().split('\n').filter(Boolean);
-  const verdictLine = [...lines].reverse().find((l) => /^(겹치는 파일|살아 있는 갈래|견줄|못 |못읽)/.test(l.trim()));
-  const line = (verdictLine || lines[lines.length - 1] || '').trim().replace(/^겹치는 파일: /, '');
+  const line = verdictOf(out);
   add('다른 갈래와 겹침', code === 0 ? 'ok' : (code === 2 ? 'unknown' : 'fail'),
-    line || '결과를 못 읽었다');
+    `이쪽: ${line || '결과를 못 읽었다'} · ${otherLine}`);
 }
 
 /* ── ⑨ 보고서 화면 사본이 옛 판인가 ────────────────────── */
@@ -328,6 +370,61 @@ function typeface() {
     `요청한 글꼴이 이 자리에 없다 (${sub || r.missing.join(', ')})`
     + ' — 여기서 만든 PDF 는 **다른 활자로** 그려진다. 문서를 실제로 내보내는'
     + ' 자리(CI·NAS)에는 fonts-noto-cjk 가 설치된다');
+}
+
+/* ── ⑪ 대외 문서 PDF 가 화면보다 옛말을 하지 않는가 ────── */
+/**
+ * ★★★ **§6-2-1 은 「주소 + PDF 둘 다」를 요구하는데, 둘을 만드는 시점이 다르다.**
+ *   HTML 을 고쳐 다시 발행하면 주소는 바로 새 판이 되지만, `npm run im:pdf` 를
+ *   다시 안 돌리면 **PDF 만 옛 판으로 남는다.** 그리고 그 상태가 **아무 오류도
+ *   안 낸다** — 둘 다 열리고 둘 다 멀쩡해 보이고, 다른 것은 내용뿐이다.
+ *
+ * ★★ M-25(화면 지문 어긋남)와 **같은 결의 사고**다. 화면 쪽 구멍은
+ *   `build-stamp.js` 가 이미 막는다 — 이 칸이 **PDF 쪽 같은 구멍**을 막는다.
+ *   규칙을 문서에만 적어 두면 사람의 기억에 얹힌다는 것이 M-31 의 교훈이다.
+ */
+/* ── ⑫ 화면 크기에서 잘리거나 넘치는가 ────────────────── */
+/**
+ * ★★★ **오늘 화면 크기 문제 둘을 사장님이 눈으로 찾으셨다** 〈2026-09-01 · M-71 · M-72〉.
+ *
+ *   ⑨ 「헤드리스 렌더」는 **「그려지는가」**를 본다. 그려지기는 하는데 **자리가
+ *   틀린** 고장은 그것으로 안 잡힌다 — 오늘 둘 다 그 모양이었고, 그때 검사는
+ *   전부 초록이었다.
+ *
+ * ★ 그래서 **폰·맥 두 폭에서 실제로 그려** 가로 넘침·화면 밖으로 나간 것·
+ *   상자가 내용보다 작은 것·잘린 글자를 센다.
+ * ★★ 헤드리스 창은 390px 로 안 줄어들므로 **폭이 정확한 틀**에 넣고 잰다.
+ *   재려던 폭으로 못 쟀으면 **「못 쟀다」**로 끝난다 — 다른 폭을 재고 초록으로
+ *   끝내면 이 칸을 둔 뜻이 없어진다.
+ */
+function viewport() {
+  let out = '';
+  let code = 0;
+  try {
+    out = sh('node im-agent/tools/probe-viewport.js 2>&1');
+  } catch (e) {
+    out = String((e.stdout || '') + (e.stderr || ''));
+    code = e.status === undefined ? 1 : e.status;
+  }
+  const line = (String(out).trim().split('\n').filter(Boolean)
+    .reverse().find((l) => l.trim().startsWith('화면 크기:')) || '')
+    .trim().replace(/^화면 크기: /, '');
+  add('화면 크기', code === 0 ? 'ok' : (code === 2 ? 'unknown' : 'fail'),
+    line || '결과를 못 읽었다');
+}
+
+function pdfFresh() {
+  let out; let code = 0;
+  try {
+    out = execFileSync(process.execPath, [path.join(__dirname, 'pdf-fresh.js')],
+      { cwd: ROOT, encoding: 'utf8' });
+  } catch (e) {
+    out = String((e.stdout || '') + (e.stderr || ''));
+    code = typeof e.status === 'number' ? e.status : 1;
+  }
+  const line = (out || '').trim().split('\n').pop().replace(/^대외 문서 PDF: /, '');
+  add('대외 문서 PDF', code === 0 ? 'ok' : (code === 2 ? 'unknown' : 'fail'),
+    line || '결과를 못 읽었다');
 }
 
 /**
@@ -426,7 +523,18 @@ function ledgerNote() {
 /* ── 내보내기 ──────────────────────────────────────────── */
 
 function main() {
-  tests(); stamp(); previews(); render(); saveBar(); openFile(); agents(); branches(); imflow(); typeface();
+  /* ★★★ **미리보기를 먼저 다시 만들고 나서 시험을 돈다** 〈2026-09-01 · 오늘 두 번 헤맸다〉.
+     앞 판은 `tests()` 가 먼저였다. 그런데 시험 하나가 **커밋된 미리보기를 디스크에서 읽어**
+     소스와 대조한다. 미리보기가 갈려 있으면 —
+       ① 「❌ 테스트 … 1 실패」 가 먼저 뜨고
+       ② 그다음 「❌ 미리보기 재생성 … 갈려 있었다」 가 뜬다.
+     **한 원인이 빨간 줄 둘**로 보이고, 그중 ①이 **코드 고장처럼 읽힌다.** 실제로 오늘
+     그 ① 을 좇아 한 바퀴 돌았다. 순서를 바꾸면 시험이 **다시 만든 판**을 재므로
+     빨간 줄은 「미리보기가 갈려 있었다 — 이대로 커밋하라」 하나만 남는다.
+     ★ 고쳐 주는 것이 아니다. 갈렸다는 사실은 **여전히 빨갛게** 말한다(previews 가 그렇게 한다) —
+       다만 그 사실을 **한 번만, 맞는 이름으로** 말한다. */
+  previews(); tests(); stamp(); render(); saveBar(); openFile(); agents(); branches(); imflow(); typeface();
+  pdfFresh(); viewport();
 
   const mark = { ok: '✅', fail: '❌', unknown: '⚠️ ' };
   const pad = (s, n) => s + ' '.repeat(Math.max(0, n - [...s].reduce((a, c) => a + (c.charCodeAt(0) > 0x1100 ? 2 : 1), 0)));
@@ -454,4 +562,4 @@ function main() {
 }
 
 if (require.main === module) process.exit(main());
-module.exports = { tests, stamp, previews, render, saveBar, openFile, agents, branches, typeface, rightsNote, backupNote, ledgerNote, rows };
+module.exports = { tests, stamp, previews, render, saveBar, openFile, agents, branches, typeface, viewport, rightsNote, backupNote, ledgerNote, rows };

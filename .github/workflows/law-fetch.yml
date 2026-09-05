@@ -1,0 +1,50 @@
+name: 주택법 조문 수집
+
+# 국가법령정보(LAW_OC)로 주택법·주택법 시행령의 도시형생활주택 조문을 받아
+# data/law/ 에 커밋한다. 열쇠는 저장소 밖으로 나가지 않고 결과 파일만 남는다.
+#
+# ★ 이 워크플로가 부르는 스크립트는 `scripts/sacheon-law-fetch.mjs` 다.
+#   앞서 그 스크립트가 `.github/workflows/main.yml` 자리에 들어가 있었고,
+#   GitHub 이 워크플로로 읽으려다 **읽지도 못하고** 실패했다(M-75). 수집은
+#   한 번도 안 돌았다. `workflow-shape.test.js` 가 그 모양을 잰다.
+#
+# ★★ 이 잡에는 **접속 자격증명을 넣지 않는다** — 데이터 열쇠 둘뿐이다
+#   (규정집 2-8 · CLAUDE.md §4). NAS SSH·터널 키는 배포 잡에만 넣는다.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 조문 수집
+        env:
+          LAW_OC: ${{ secrets.LAW_OC }}
+          LAW_OPEN_DATA: ${{ secrets.LAW_OPEN_DATA }}
+        run: node scripts/sacheon-law-fetch.mjs
+
+      - name: 결과 커밋
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/law
+          git diff --staged --quiet || git commit -m "주택법 조문 수집 결과 갱신 ($(date +%Y-%m-%d))"
+          git push
+
+      # ★ 실패해도 올린다 — 진단 요약(_summary.md)이 실패했을 때 가장 필요하다
+      - name: 아티팩트 업로드
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: law-data
+          path: data/law

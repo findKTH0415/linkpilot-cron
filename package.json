@@ -5,12 +5,14 @@
   "description": "LinkPilot 보고서 생성 (IM Agent) — 출처 있는 숫자만 들어가는 문서 생성 파이프라인",
   "main": "im-agent/cli.js",
   "scripts": {
-    "test": "node --test im-agent/test/*.test.js",
+    "test": "node im-agent/tools/test-lock.js node --test im-agent/test/*.test.js",
+    "test:nolock": "node --test im-agent/test/*.test.js",
     "im": "node im-agent/cli.js",
     "im:demo": "IM_AGENT_OFFLINE=1 node im-agent/cli.js demo",
     "branch:check": "node im-agent/tools/branch-doctor.js",
     "agent:check": "node im-agent/tools/agent-doctor.js",
     "im:smoke": "node im-agent/tools/smoke-public-data.js",
+    "im:api-report": "node im-agent/tools/api-report.js",
     "im:render": "node im-agent/tools/render-birdseye.js",
     "im:env-doctor": "node im-agent/tools/env-doctor.js",
     "guard": "node im-agent/tools/guard.js",
@@ -54,10 +56,12 @@
     "backup:drill": "node im-agent/tools/backup.js drill",
     "backup:verify": "node im-agent/tools/backup.js verify",
     "rights:count": "node im-agent/tools/rights-count.js",
+    "probe:viewport": "node im-agent/tools/probe-viewport.js",
     "prs:write": "node im-agent/tools/open-prs.js",
     "deploy:report": "node im-agent/tools/deploy-report.js",
     "brand:icon": "node assets/brand/build-icon.js",
-    "im:appview": "node im-agent/tools/appview.js"
+    "im:appview": "node im-agent/tools/appview.js",
+    "im:pdf": "node im-agent/tools/pdf.js"
   },
   "dependencies": {
     "solapi": "^5.5.1"

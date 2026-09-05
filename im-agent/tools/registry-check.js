@@ -51,7 +51,14 @@ const DOC = path.join('docs', '미결정-사항.md');
  */
 const REGISTRIES = {
   d: { key: 'd', doc: DOC, prefix: 'D',
-    head: /^###\s+(?:([🔴🟠🟡⚪✅]+)\s*)?(D-\d+)\.\s*(.*)$/, label: '미결정' },
+    head: /^###\s+(?:([🔴🟠🟡⚪✅]+)\s*)?(D-\d+)\.\s*(.*)$/, label: '미결정',
+    /* ★★★ **번호는 여기서만 나는 것이 아니다** 〈2026-09-01 · 실측〉.
+       결정된 항목은 `docs/결정-기록.md` 로 옮겨 가고 그 파일은 **표**라 위 머리말
+       정규식에 안 걸린다. 그래서 이 도구가 **이미 쓴 번호를 다시 내주고 있었다** —
+       `--next` 가 `D-191` 을 줬는데 그 번호는 결정 기록에 **세 번** 나온다.
+       번호가 겹치면 옛 커밋·대화가 그 번호로 **다른 것**을 가리키게 된다(D-101 이
+       그 사고다). 아래 장부는 **번호만** 줍는다 — 제목 대조에는 쓰지 않는다 */
+    reserved: ['docs/결정-기록.md'] },
   m: { key: 'm', doc: 'MEMORY.md', prefix: 'M',
     head: /^##\s+()(M-\d+)\.\s*(.*)$/, label: '사고기록' },
 };
@@ -154,9 +161,24 @@ function crossConflicts(byBranch, baseItems) {
   return { conflicts, revisions };
 }
 
+/**
+ * 장부 밖에서 **이미 쓰인 번호**를 줍는다 — 결정되어 옮겨 간 항목이 여기 있다.
+ * 표든 문장이든 `D-123` 꼴이면 다 센다. 넉넉히 세는 편이 안전하다 —
+ * **덜 세면 겹치는 번호를 내주고, 더 세면 번호 하나를 건너뛸 뿐이다.**
+ */
+function reservedNums(reg) {
+  const out = new Set();
+  for (const f of (reg.reserved || [])) {
+    const text = readAt(null, f);
+    if (!text) continue;
+    for (const m of text.matchAll(new RegExp(reg.prefix + '-(\\d+)', 'g'))) out.add(Number(m[1]));
+  }
+  return out;
+}
+
 /** 어느 갈래에서도 쓰이지 않은 가장 작은 번호 — 다음에 붙일 것 */
-function nextFree(byBranch) {
-  const used = new Set();
+function nextFree(byBranch, reserved) {
+  const used = new Set(reserved || []);
   for (const items of Object.values(byBranch)) for (const it of items) used.add(num(it.id));
   let n = 1;
   while (used.has(n)) n += 1;
@@ -185,7 +207,7 @@ function checkOne(reg, argv) {
     }
   }
 
-  const free = nextFree(byBranch);
+  const free = nextFree(byBranch, reservedNums(reg));
   const dups = localDuplicates(byBranch['(작업본)']);
   const baseItems = all ? parse(readAt('origin/main', reg.doc), reg) : null;
   if (all && baseItems && !baseItems.length) notes.push('main 을 못 읽어 충돌·개정을 제목으로만 갈랐다 (오탐이 섞인다)');
@@ -254,7 +276,7 @@ function run(argv) {
           if (items.length) byBranch[b] = items;
         }
       }
-      console.log(`${reg.prefix}-${nextFree(byBranch).next}`);
+      console.log(`${reg.prefix}-${nextFree(byBranch, reservedNums(reg)).next}`);
     }
     return 0;
   }
