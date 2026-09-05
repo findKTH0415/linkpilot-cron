@@ -55,6 +55,36 @@ jobs:
       - name: Install
         run: npm ci --no-audit --no-fund
 
+      # ★★★ **한국어 글꼴** (D-52). 없으면 브라우저가 **말없이 다른 글꼴로** 그리고,
+      #   PDF 에 일본어 얼굴(`CJKjp`)이 박힌다 — 검사는 빨개지는데 까닭은 안 보인다.
+      #   ★ 꾸러미만으로는 모자란다: 글꼴 스택의 **첫 이름**(`Noto Sans KR`)은 apt 에 없어
+      #     둘째 이름으로 넘어가고, 러너의 fontconfig 가 거기서 일본어를 고른다.
+      #     `ensureFonts` 가 `fc-match` 로 묻고(브라우저와 같은 방식) 없으면 내려받는다.
+      #   ★★ 이 워크플로는 **셋째로 발견된 자리**다. 앞의 둘을 고칠 때 여기가 빠져 있었고,
+      #     `workflow-shape.test.js` 가 그것을 잡아 냈다 — 사람 눈이 세 번 다 놓쳤다.
+      - name: Korean fonts (D-52)
+        if: ${{ !inputs.skip_tests }}
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-cjk
+          node -e '
+            const pdf = require("./im-agent/tools/pdf.js");
+            const want = [
+              { family: "Noto Sans KR",  weights: [400, 700] },
+              { family: "Noto Serif KR", weights: [400, 700] },
+            ];
+            const r = pdf.ensureFonts(want);
+            console.log(JSON.stringify(r));
+            if (!r.ok) {
+              console.log("글꼴을 못 갖췄다 — " + (r.reason || "까닭 없음")
+                + " · 없는 것: " + (r.missing.join(", ") || "(없음)"));
+              process.exit(1);
+            }
+          '
+          for f in "Noto Sans KR" "Noto Serif KR"; do
+            got=$(fc-match --format='%{family}' "$f")
+            echo "  물어본 이름: $f  →  돌아온 이름: $got"
+          done
+
       # ★★ 배포 전 교차검증. 빨간 판은 여기서 멈춘다 (CLAUDE.md §7)
       - name: Test
         if: ${{ !inputs.skip_tests }}

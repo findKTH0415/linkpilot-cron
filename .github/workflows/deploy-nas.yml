@@ -258,6 +258,37 @@ jobs:
       - name: Install Korean fonts (D-52)
         run: sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-cjk
 
+      # ★★★ **꾸러미만으로는 모자란다** 〈2026-09-06 · 같은 결함이 두 워크플로에 있었다〉.
+      #   글꼴 스택의 **첫 이름**(`Noto Sans KR`)은 위 apt 꾸러미에 없다. 그러면 둘째
+      #   이름(`Noto Sans CJK KR`)으로 가야 하는데 러너의 fontconfig 가 거기서
+      #   **일본어 얼굴**을 골라 PDF 에 `CJKjp` 가 박힌다 (D-52 재발).
+      #   → 첫 이름을 진짜로 깔아 둘째까지 갈 일을 없앤다. `ensureFonts` 가 `fc-match` 로
+      #     묻고(브라우저와 같은 방식) 없으면 내려받는다.
+      #
+      # ★★ **어제 이것을 `im-agent-ci.yml` 에만 넣었다.** 두 워크플로가 같은 검사를
+      #   돌리는데 한쪽만 고쳤고, 그래서 이 배포 게이트는 계속 빨갰다 —
+      #   **같은 결함은 한 번에 옮긴다**(지침 §8-1). 자리가 둘이면 둘 다 고친다.
+      - name: Make the first name in the font stack real (D-52)
+        run: |
+          node -e '
+            const pdf = require("./im-agent/tools/pdf.js");
+            const want = [
+              { family: "Noto Sans KR",  weights: [400, 700] },
+              { family: "Noto Serif KR", weights: [400, 700] },
+            ];
+            const r = pdf.ensureFonts(want);
+            console.log(JSON.stringify(r));
+            if (!r.ok) {
+              console.log("글꼴을 못 갖췄다 — " + (r.reason || "까닭 없음")
+                + " · 없는 것: " + (r.missing.join(", ") || "(없음)"));
+              process.exit(1);
+            }
+          '
+          for f in "Noto Sans KR" "Noto Serif KR"; do
+            got=$(fc-match --format='%{family}' "$f")
+            echo "  물어본 이름: $f  →  돌아온 이름: $got"
+          done
+
       # ★ **`npm test` 를 쓴다 — 목록을 여기 옮겨 적지 않는다.** 손으로 적으면
       #   테스트 폴더가 하나 늘어난 날 이 판만 옛 목록을 돈다. 실제로 그럴 뻔했다:
       #   `test/alert.test.js`(실패 알림 경로)가 `im-agent/test/*` 밖에 있다 —

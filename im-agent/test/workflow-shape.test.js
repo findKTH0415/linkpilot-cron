@@ -102,3 +102,48 @@ test('스크립트 파일에 워크플로가 잘못 들어가지 않았다 (거�
   assert.deepStrictEqual(broken, [],
     '스크립트 자리에 워크플로가 있습니다:\n  ' + broken.join('\n  '));
 });
+
+/**
+ * ★★★ **검사를 돌리는 워크플로는 글꼴 이름도 진짜로 만든다** (2026-09-06 신설 · D-52 세 번째).
+ *
+ * [사고] `pdf-fonts.test.js` 가 러너에서 「PDF 에 CJKjp 이 박혔다」로 빨개졌다.
+ *   글꼴 스택의 **첫 이름**(`Noto Sans KR`)이 apt 꾸러미에 없어 둘째 이름으로 넘어가고,
+ *   거기서 러너의 fontconfig 가 **일본어 얼굴**을 골랐다.
+ *
+ * ★★ **한쪽만 고쳤다.** 고침을 `im-agent-ci.yml` 에 넣고 `deploy-nas.yml` 은 그대로 뒀다.
+ *   두 워크플로가 **같은 검사를 돌리는데** 한쪽만 고쳐 배포 게이트는 계속 빨갰고,
+ *   그 사실은 배포를 걸어 보고서야 드러났다. 「같은 결함은 한 번에 옮긴다」(§8-1).
+ *
+ * ★ 그래서 사람의 기억이 아니라 여기서 센다 — **검사를 돌리는 워크플로**(`node --test`)는
+ *   반드시 **꾸러미 설치와 이름 확인 둘 다** 있어야 한다. 하나라도 빠지면 빨개진다.
+ *   ★★ 꾸러미만 있고 이름 확인이 없는 것이 **바로 이번에 당한 모양**이다 —
+ *     그 자리가 초록으로 보이는 것이 이 고장의 급소다.
+ */
+test('검사를 돌리는 워크플로는 한국어 글꼴을 깔고 **그 이름으로 쓰이는지까지** 확인한다 (D-52)', () => {
+  const files = fs.readdirSync(WF).filter(f => /\.ya?ml$/i.test(f));
+  const runsTests = [];
+  for (const f of files) {
+    const body = fs.readFileSync(path.join(WF, f), 'utf8');
+    // ★ 검사를 부르는 말이 하나가 아니다 — 한쪽은 `node --test`, 한쪽은 `npm test`.
+    //   한 가지만 찾으면 나머지를 놓치고, 그러면 이 검사가 **아무것도 안 재게 된다**
+    //   (실제로 처음엔 하나만 찾아 빨개졌다 — 그 빨간 줄이 이 줄을 넓히게 했다).
+    if (/node\s+--test|npm\s+(run\s+\w+|test)/.test(body)) runsTests.push([f, body]);
+  }
+  assert.ok(runsTests.length >= 2,
+    `검사를 돌리는 워크플로를 ${runsTests.length}개만 찾았다 — 이 검사가 아무것도 안 재고 있다`);
+
+  const missing = [];
+  for (const [f, body] of runsTests) {
+    const hasPkg = /fonts-noto-cjk/.test(body);
+    // 「깔렸는가」가 아니라 「그 이름으로 쓰이는가」를 재는 자리 — ensureFonts + fc-match
+    // ★★ **부르는 자리**를 본다 — 이름만 훑으면 `ensureFontsXX` 같은 것도 통과한다.
+    //   실제로 사보타주에서 그렇게 새어 나갔다: 이름을 망가뜨렸는데 검사가 초록이었다.
+    //   글자가 들어 있는지가 아니라 **부르는지**를 재야 한다 (이 저장소의 상습 함정).
+    const hasName = /ensureFonts\s*\(/.test(body) && /fc-match\b/.test(body);
+    if (!hasPkg) missing.push(`${f}: 꾸러미(fonts-noto-cjk) 설치가 없다`);
+    if (!hasName) missing.push(`${f}: 이름 확인(ensureFonts · fc-match)이 없다`);
+  }
+  assert.deepStrictEqual(missing, [],
+    '검사를 돌리는데 글꼴 준비가 빠진 워크플로가 있다 — 러너에서만 PDF 가 일본어 글꼴로 나온다:\n  ' +
+    missing.join('\n  '));
+});
