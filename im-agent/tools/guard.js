@@ -74,10 +74,14 @@ function stamp() {
  *   「커밋된 것이 지금 소스에서 나오는 것과 같다」를 재는 것이다.
  */
 function previews() {
-  const targets = ['im:section', 'im:static', 'im:artifact', 'im:platform'];
+  /* ★ `im:layouts` 는 **셋**을 만든다 (CSS · 견본 · 적용규칙 문서). 여기서는
+     `ui/platform` 안에 떨어지는 견본만 지문으로 대고, 나머지 둘은
+     `test/design-layout.test.js` 가 커밋본과 대 본다 — 두 곳에서 같은 것을
+     재는 것이 아니라 **자리가 다른 것을 나눠 재는 것**이다. */
+  const targets = ['im:section', 'im:static', 'im:artifact', 'im:platform', 'im:layouts'];
   const made = [
     'section-preview.html', 'section-static.html', 'section-artifact.html',
-    'linkpilot-platform.html',
+    'linkpilot-platform.html', 'layout-system.html',
   ];
   /* ★★ **git 을 안 본다** 〈2026-08-24 · 첫 판이 헛울음을 냈다〉.
    *   `git status` 로 재면 **아직 커밋 안 한 작업**까지 「갈렸다」로 잡는다 —
