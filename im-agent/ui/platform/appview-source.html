@@ -201,10 +201,16 @@ td.w { white-space: normal; min-width: 22ch; }
         </thead>
         <tbody>
           <tr>
-            <td class="w">배너·탭</td>
+            <td class="w">배너·탭 — 원인 ①<br><small>틀 주소가 앱 자신을 가리킴</small></td>
             <td><span class="mark mark--ok">한 벌</span></td>
-            <td><span class="mark mark--no">두 벌</span></td>
-            <td class="w">앱 — 틀 주소가 앱 자신을 가리킴</td>
+            <td><span class="mark mark--ok">고쳤다</span></td>
+            <td class="w">앱 — <code>sw.js</code> 가 틀에 앱 셸을 안 준다</td>
+          </tr>
+          <tr>
+            <td class="w">배너·탭 — 원인 ②<br><small>앱과 엔진이 각자 그림</small></td>
+            <td><span class="mark mark--no">한 벌도 없었다</span></td>
+            <td><span class="mark mark--ok">고쳤다</span></td>
+            <td class="w">머리는 <b>엔진 화면</b>이 단다 · 앱은 안 그린다</td>
           </tr>
           <tr>
             <td class="w">기기 등록 수</td>
@@ -230,7 +236,9 @@ td.w { white-space: normal; min-width: 22ch; }
     <p class="note"><b>이 판이 못 하는 것.</b> 이 미리보기는 tailnet 밖에 있어서
       <b>앱 화면 자체를 그려 보일 수 없습니다.</b> 위 표는 사장님 화면과 소스에서 잰 것이고,
       앱 안의 실제 모습은 위 주소를 눌러 <b>사장님 브라우저에서</b> 보셔야 합니다.
-      없는 것을 그리지 않으려고 이렇게 적어 둡니다.</p>
+      없는 것을 그리지 않으려고 이렇게 적어 둡니다.
+      <br><b>「고쳤다」는 두 저장소의 소스와 검사에서 잰 것입니다</b> — 초안 PR 상태이고,
+      아직 앱에 합쳐지지 않았습니다. 합치는 것은 사장님 몫입니다.</p>
   </section>
 
   <section class="sec">
@@ -243,9 +251,11 @@ td.w { white-space: normal; min-width: 22ch; }
           [내 정보] → [로그인] → [등록 기기] → <code>Android · Chrome 2026-08-25</code> 해제.</span>
       </li>
       <li>
-        <span class="todo__t">앱 개발자께 전달 문서 넘기기</span>
-        <span class="todo__d"><code>docs/전달-platform-0-먼저-읽어주십시오.md</code> 한 장이면 됩니다 —
-          넷의 순서와 재현 절차가 그 안에 있습니다.</span>
+        <span class="todo__t">초안 PR 을 합치기 — 배너 고침이 여기 들어 있습니다</span>
+        <span class="todo__d">앱 쪽 <code>claude/frame-guard-report</code> 와 엔진 쪽
+          <code>claude/ai-project-manager-orchestrator-o8rg8d</code> 둘입니다.
+          합치기 전까지 <b>앱에는 옛 판이 실려 있습니다</b> — 위 표의 「고쳤다」는
+          소스 기준입니다.</span>
       </li>
       <li>
         <span class="todo__t">백업 세대를 몇 벌 둘지 정하기</span>

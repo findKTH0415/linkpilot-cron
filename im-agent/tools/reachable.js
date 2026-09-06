@@ -85,8 +85,22 @@ function pointsTo(file, byBasename) {
   for (const m of s.matchAll(/(?:^|\s)(?:import|export)[^;'"]*from\s*['"](\.[^'"]+)['"]/g)) rel(m[1]);
   for (const m of s.matchAll(/import\(\s*['"](\.[^'"]+)['"]\s*\)/g)) rel(m[1]);
 
-  // ③ 화면이 부르는 스크립트 — HTML 은 require 를 쓰지 않는다
-  for (const m of s.matchAll(/<script src="([^"]+\.js)"/g)) rel(m[1]);
+  /* ③ 화면이 부르는 스크립트 — HTML 은 require 를 쓰지 않는다.
+   *
+   * ★★★ **판 표시(`?v=`)를 안 봐 주어 이 줄이 통째로 죽어 있었다**
+   *   〈2026-08-31 · 실측〉. 화면은 형제 스크립트를 `inapp.js?v=e66e07a5` 로
+   *   부른다(`build-stamp.js`). 그런데 여기는 `.js` 뒤에 바로 따옴표가 와야
+   *   맞는 모양이라 **한 번도 안 맞았다.**
+   *
+   *   그런데도 검사는 **초록이었다** — 아래 ④ 의 이름 되짚기가 `"embed-bridge.js"`
+   *   같은 글자를 아무 데서나 주워 대신 이어 줬기 때문이다. 즉 「이 화면이 이
+   *   스크립트를 부른다」는 **정확한 길은 없는 채로** 통과하고 있었다.
+   *   ④ 를 잠깐 끄고 재 보니 `embed-bridge.js` · `gate-core.js` 가 고아로 떨어졌다.
+   *
+   * ★ 같은 결의 눈먼 자리를 앱 저장소 `verify-build.js` 에서도 같은 날 찾았다.
+   *   **`?v=` 는 파일 이름이 아니다** (MEMORY M-25) — 주소에서 파일을 찾는
+   *   자리는 전부 떼고 본다. */
+  for (const m of s.matchAll(/<script src="([^"?]+\.js)(?:\?[^"]*)?"/g)) rel(m[1]);
 
   // ④ 표에 적힌 모듈 경로 · 이어 붙인 경로 — 이름으로 잇는다
   for (const m of s.matchAll(/['"]([\w.-]+\/)*([\w.-]+)\.(?:js|cjs|mjs)['"]/g)) {
