@@ -187,7 +187,9 @@ docTypes: ['im', 'ma_im', 'teaser', 'investor_presentation', 'financial_report',
     purpose: '기업 보고서 및 사업계획서',
     writing: WRITING.executive.id,
     traits: ['Corporate Identity', 'Brand Color', '정돈된 표'],
-    docTypes: ['business_plan', 'annual_report', 'financial_report'],
+        /* `dashboard` — 이 테마의 traits 가 「정돈된 표」이고 목적이 기업 보고다.
+       recommend.js 표에는 없지만 내부 경영 대시보드가 가는 자리라 판단으로 붙였다. */
+    docTypes: ['business_plan', 'annual_report', 'financial_report', 'dashboard'],
     primary: '#17457A', primaryMid: '#4571A0', accent: '#8C6D3F', accentLight: '#B08F5E',
     onPrimary: '#F0F4F8', onPrimarySub: '#A9BDD2', surfaceAlt: '#F5F7FA',
     serif: FONT.serif, sans: FONT.sans,
@@ -280,7 +282,9 @@ docTypes: ['im', 'technical_report', 'investor_presentation', 'dashboard'],
     purpose: '도로·철도·항만·발전소·산업단지·물류',
     writing: WRITING.technical.id,
     traits: ['Master Plan', 'Infrastructure Map', 'Timeline', 'Funding Structure'],
-    docTypes: ['pf_proposal', 'im', 'feasibility'],
+        /* `technical_report` — 이 테마의 `writing` 이 `technical`(기술전문형) 그대로다.
+       recommend.js 표에는 없지만 **문체가 그 문서의 문체**라 판단으로 붙였다. */
+    docTypes: ['pf_proposal', 'im', 'feasibility', 'technical_report'],
     primary: '#263238', primaryMid: '#4F6470', accent: '#C07C2C', accentLight: '#D9A052',
     onPrimary: '#F0F2F3', onPrimarySub: '#A8B4BB', surfaceAlt: '#F5F6F7',
     serif: FONT.serif, sans: FONT.sans,
@@ -314,7 +318,15 @@ docTypes: ['im', 'technical_report', 'investor_presentation', 'dashboard'],
     purpose: '공공기관·지자체·정책사업·공공투자',
     writing: WRITING.official.id,
     traits: ['Formal', 'Clear', 'Accessible', 'Official'],
-    docTypes: ['feasibility', 'financial_report', 'dd_report'],
+        /* ★★★ **보수·공식 쪽이 `institutional` 하나에 쏠려 있었다** 〈2026-09-06 · 실측〉.
+       88개 조합에서 `institutional` 이 **45번(51%)**, `corporate` 는 **2번**뿐이었다.
+       그러면 B안이 사실상 늘 같은 안이라 「두 안」이라는 말이 무색해진다.
+
+       ★ **빼지 않고 더한다.** 문서를 institutional 에서 떼면 그 문서의 보수 쪽 짝이
+         사라질 수 있다 — 더하면 고를 폭만 넓어지고 잃는 것이 없다. */
+    /* `legal_dd` — recommend.js DOC.legal_dd 가 government 에 0.7 을 준 자리다.
+       문체가 `official`(공식 행정형)이라 법률실사의 절제된 서술과 맞는다. */
+    docTypes: ['feasibility', 'financial_report', 'dd_report', 'legal_dd'],
     primary: '#12365E', primaryMid: '#41618A', accent: '#6E7A8C', accentLight: '#93A0B0',
     onPrimary: '#EEF3F8', onPrimarySub: '#A7B8CB', surfaceAlt: '#F4F6F9',
     serif: FONT.serif, sans: FONT.sans,

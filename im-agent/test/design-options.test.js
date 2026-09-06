@@ -334,6 +334,162 @@ test('★★ 순위 셋이 다 안 맞으면 **같은 계열 안에서** 바꿔 
     '왜 바꿨는지 화면에 적지 않는다');
 });
 
+test('★★ `custom` 은 **의도된 빈칸**이다 — 채우지 않는다', () => {
+  /* 〈2026-09-06 · 권고 ①을 재 보고 뒤집었다〉 앞서 「custom 의 docTypes 가 비어 있어
+     어떤 문서에도 안 맞는다」를 고칠 것으로 적었는데, 소스를 읽어 보니 **일부러 비운
+     것**이었다 — 「사람이 고른다 · custom 은 값을 지어내지 않는다」. Brand Kit 이
+     덮어쓰는 자리라 문서 종류를 미리 박으면 그 뜻이 깨진다.
+
+     ★ 그래서 채우는 대신 **채우지 못하게** 못박는다. 나중에 누가 「빈 칸이네」하고
+       메우면 이 검사가 빨개진다. */
+  const T = themes.get('custom');
+  assert.ok(T, 'custom 테마가 사라졌다');
+  assert.deepStrictEqual(T.docTypes, [],
+    'custom 에 문서 종류가 들어갔다 — 일부러 비운 자리다 (Brand Kit 이 덮어쓴다)');
+  assert.strictEqual(T.writing, null, 'custom 에 문체가 박혔다 — 사람이 고르는 자리다');
+  assert.strictEqual(T.inherits, 'institutional', 'custom 이 상속 대상을 잃었다');
+
+  /* 두 안 후보에 안 들어간다 — 갈래표에 없어야 그렇게 된다 */
+  assert.strictEqual(options.FAMILY.custom, undefined,
+    'custom 이 성격 갈래에 들어갔다 — 값이 없는 테마가 A·B 로 뽑힌다');
+
+  /* 그리고 **왜 비웠는지가 소스에 적혀 있어야** 한다 — 이유가 없으면 반년 뒤 메운다 */
+  const src = fs.readFileSync(path.join(D, 'themes.js'), 'utf8');
+  const blk = src.slice(src.indexOf('  custom: {'), src.indexOf('  custom: {') + 900);
+  assert.match(blk, /지어내지 않는다|사람이 고른다/, 'custom 을 비운 이유가 소스에 없다');
+});
+
+test('★★★ 보수·공식이 **한 테마에 쏠리지 않는다** (두 안이 늘 같은 안이면 뜻이 없다)', () => {
+  /* 〈2026-09-06 · 실측〉 88개 조합에서 `institutional` 이 45번(51%)이고 `corporate`
+     는 2번뿐이었다. 그러면 B안이 사실상 늘 같은 안이라 「두 안」이 무색해진다.
+     government·infrastructure·corporate 에 대안을 더해 폭을 넓혔다. */
+  const assets = ['datacenter', 'solar', 'realestate', 'hotel', 'office', 'logistics', 'road', 'generic'];
+  const docs = Object.keys(themes.DOC_PROFILE);
+  const cnt = {};
+  let total = 0;
+  docs.forEach((d) => assets.forEach((a) => {
+    const r = options.pick2({ assetType: a, docType: d });
+    [r.A, r.B].forEach((x) => {
+      if (options.FAMILY[x.themeId] !== 'formal') return;
+      cnt[x.themeId] = (cnt[x.themeId] || 0) + 1;
+      total++;
+    });
+  }));
+  assert.ok(total > 50, `보수 쪽 표본이 ${total}개뿐 — 아무것도 안 재고 있다`);
+
+  const top = Object.entries(cnt).sort((a, b) => b[1] - a[1])[0];
+  const share = top[1] / total;
+  /* ★ 기준 0.48 은 **실측 두 값 사이**에서 잡았다 — 고치기 전 0.511(45/88),
+     고친 뒤 0.420(37/88). 넉넉하게 0.55 로 뒀더니 **되돌려도 안 물었다**
+     (사보타주로 확인했다). 재려는 상태를 못 잡는 기준은 없는 것과 같다. */
+  assert.ok(share <= 0.48,
+    `보수 쪽이 ${top[0]} 하나에 ${Math.round(share * 100)}% 쏠렸다 `
+    + `(${JSON.stringify(cnt)}) — 두 안이 늘 같은 안이 된다`);
+
+  /* 쓰이는 테마가 몇 종인지도 본다 — 한둘만 돌면 위 비율이 낮아도 뜻이 없다 */
+  assert.ok(Object.keys(cnt).length >= 4,
+    `보수 쪽에서 ${Object.keys(cnt).length}종만 쓰인다 — 나머지는 죽은 테마다`);
+});
+
+test('★★★ 화면이 내놓는 테마 이름이 **엔진에 실제로 있다** (권고 ③ · 진짜 버그였다)', () => {
+  /* 〈2026-09-06 · 권고 ③을 하다가 잡았다〉 출력조건 화면(`reports.html`)이 테마 셋을
+     손으로 박아 두었고, 그중 **둘(`modern`·`pdi`)이 `themes.js` 에 없는 이름**이었다.
+     고르면 `design-state.select()` 가 「알 수 없는 디자인 테마」로 **던진다** —
+     그런데 화면에서는 멀쩡히 눌렸고 아무 표시도 안 났다. */
+  const P = path.join(__dirname, '..', 'ui', 'platform');
+  const screen = fs.readFileSync(path.join(P, 'reports.html'), 'utf8');
+
+  /* 없는 이름이 되살아나면 빨개진다 */
+  ['modern', 'pdi'].forEach((bad) => {
+    assert.ok(!new RegExp(`id:\\s*'${bad}'`).test(screen),
+      `화면에 엔진에 없는 테마 '${bad}' 가 다시 들어왔다`);
+  });
+
+  /* 짝 표를 실제로 읽는가 — 안 읽으면 다시 손으로 박은 것이다.
+     ★ **글자만 찾지 않는다** — 이 화면의 주석에도 `style-ab.js` 가 적혀 있어서
+       그냥 찾으면 스크립트 태그를 지워도 통과한다(사보타주로 확인했다).
+       CLAUDE.md §8 「소스를 글자로 대조하는 검사는 주석을 떼고 본다」와 같은 결이다.
+       그래서 **여는 script 태그**를 본다. */
+  assert.match(screen, /<script\s+src="style-ab\.js/,
+    '화면이 짝 표 스크립트를 안 싣는다 (주석에만 있고 태그가 없다)');
+  assert.match(screen.replace(/\/\*[\s\S]*?\*\//g, ''), /lpStylePair\(/,
+    '화면이 짝 표 함수를 안 부른다 (주석을 뺀 코드에 없다)');
+
+  /* 화면 소스에 남은 테마 id 는 전부 엔진에 있어야 한다 */
+  const ids = [...screen.matchAll(/id:\s*'([a-z_]+)'/g)].map((m) => m[1]);
+  const known = new Set(themes.list().map((x) => x.id));
+  ids.filter((id) => known.has(id) || /^(institutional|global_ib|premium|luxury|minimal|corporate|government|technology|renewable|infrastructure|real_estate|private_equity|custom)$/.test(id))
+    .forEach((id) => assert.ok(known.has(id), `화면의 테마 '${id}' 가 엔진에 없다`));
+});
+
+test('★★ 짝 표(생성물)가 소스와 같고, 없는 이름을 안 담는다', () => {
+  const gen = builder.pairsFile();
+  let got;
+  try { got = fs.readFileSync(builder.OUT_PAIRS, 'utf8'); }
+  catch (_) { assert.fail('style-ab.js 가 없다 — npm run im:styles 를 돌려라'); }
+  /* ★ 판 지문(`LP_BUILD`)은 **`build-stamp.js` 가 나중에 채운다.** 생성기는 빈 값으로
+     내므로, 대 볼 때는 `bare()` 와 같은 방식으로 그 자리를 지우고 본다 —
+     안 그러면 지문을 찍을 때마다 이 검사가 빨개진다 (M-29 와 같은 결). */
+  const blank = (t) => t.replace(/(LP_BUILD = ')[0-9a-f_]*(')/g, '$1$2');
+  assert.strictEqual(blank(got), blank(gen),
+    'style-ab.js 가 소스와 갈렸다 — npm run im:styles 를 다시 돌려라');
+  assert.match(got, /LP_BUILD = '[0-9a-f]{8}'/,
+    '짝 표에 판 지문이 안 찍혔다 — npm run im:stamp 를 돌려라');
+
+  /* 담긴 이름이 전부 실재하는가 — 이것이 이 파일을 만든 이유다 */
+  const data = builder.pairs();
+  const known = new Set(themes.list().map((x) => x.id));
+  const docs = Object.keys(themes.DOC_PROFILE);
+  assert.deepStrictEqual(Object.keys(data).sort(), docs.slice().sort(),
+    '문서 종류가 빠졌거나 없는 것이 들어갔다');
+  docs.forEach((d) => {
+    [data[d].A, data[d].B].forEach((o) => {
+      assert.ok(known.has(o.id), `${d} 의 ${o.role}안 '${o.id}' 가 엔진에 없다`);
+      assert.ok(o.name && o.color, `${d} 의 ${o.role}안에 이름·색이 없다`);
+    });
+    assert.notStrictEqual(data[d].A.id, data[d].B.id, `${d} 의 두 안이 같다`);
+  });
+
+  /* 화면이 고른 값을 거를 수 있게 이름 목록도 함께 나가는가 */
+  assert.match(gen, /LP_THEME_IDS/, '엔진 테마 이름 목록이 안 나간다');
+  themes.list().forEach((x) => assert.ok(gen.includes(`"${x.id}"`), `${x.id} 가 목록에 없다`));
+});
+
+test('★★★ 화면이 부르는 형제 스크립트가 **배포 목록에 있다** (없으면 조용히 안 돈다)', () => {
+  /* ★ 이것이 이 저장소의 단골 사고다 — 파일은 저장소에 있고 검사도 초록인데
+     **NAS 에 안 올라가서** 화면에서만 기능이 죽는다. 404 는 오류를 안 낸다.
+     `reports.html` 이 `style-ab.js` 를 부르므로 그 파일도 함께 나가야 한다. */
+  const P = path.join(__dirname, '..', 'ui', 'platform');
+  const wf = fs.readFileSync(
+    path.join(__dirname, '..', '..', '.github', 'workflows', 'deploy-nas.yml'), 'utf8');
+
+  const screen = fs.readFileSync(path.join(P, 'reports.html'), 'utf8');
+  const siblings = [...screen.matchAll(/<script\s+src="([a-z0-9-]+\.js)/g)].map((m) => m[1]);
+  assert.ok(siblings.length >= 4, `형제 스크립트를 ${siblings.length}개만 찾았다 — 안 재고 있다`);
+  assert.ok(siblings.includes('style-ab.js'), '짝 표가 형제 목록에 없다');
+
+  const missing = siblings.filter((f) => !wf.includes(`im-agent/ui/platform/${f}`));
+  assert.deepStrictEqual(missing, [],
+    `화면이 부르는데 배포 목록에 없는 파일: ${missing.join(' · ')} — NAS 에서 404 가 되고 기능이 조용히 죽는다`);
+});
+
+test('★★★ 짝 표를 다시 만들어도 **판 지문이 안 지워진다** (guard 가 잡은 구멍)', () => {
+  /* 〈2026-09-06 · guard 가 잡았다〉 생성기가 늘 빈 지문으로 내던 판에서는,
+     `guard` 가 「미리보기 재생성」으로 이 파일을 다시 만들 때마다 지문이 지워져
+     바로 다음 칸(「화면 지문」)이 **매번 빨갰다** — 고칠 것이 없는데도.
+     생성기는 내용만 책임지고 지문은 build-stamp 가 소유한다. */
+  const onDisk = fs.readFileSync(builder.OUT_PAIRS, 'utf8');
+  const now = (onDisk.match(/LP_BUILD = '([0-9a-f_]*)'/) || [])[1];
+  assert.match(now || '', /^[0-9a-f]{8}$/, '짝 표에 판 지문이 안 찍혀 있다');
+
+  /* 다시 만들어도 같은 지문이 남아야 한다 */
+  const again = builder.pairsFile();
+  const kept = (again.match(/LP_BUILD = '([0-9a-f_]*)'/) || [])[1];
+  assert.strictEqual(kept, now,
+    `다시 만들자 지문이 '${now}' → '${kept}' 로 바뀌었다 — guard 가 매번 빨개진다`);
+  assert.strictEqual(builder.keptStamp(), now);
+});
+
 test('★ 커밋된 화면이 지금 소스로 만든 것과 같다 (CLAUDE.md §8)', () => {
   let got;
   try { got = fs.readFileSync(builder.OUT, 'utf8'); }

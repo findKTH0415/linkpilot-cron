@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="a1919ec9">
+<html lang="ko" data-lp-build="607de752">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -264,7 +264,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=a1919ec9">
+<link rel="stylesheet" href="tokens.css?v=607de752">
 <style>
 :root {
   --side: 248px;
@@ -597,14 +597,15 @@ a.out__a, a.out__a:visited { display: inline-block; white-space: nowrap; color: 
   <a class="bot__i on" href="#"><b>☰</b>더보기</a>
 </nav>
 
-<script src="gate-core.js?v=a1919ec9"></script>
-<script src="catalog.js?v=a1919ec9"></script>
-<script src="inapp.js?v=a1919ec9"></script>
-<script src="live-core.js?v=a1919ec9"></script>
+<script src="gate-core.js?v=607de752"></script>
+<script src="catalog.js?v=607de752"></script>
+<script src="inapp.js?v=607de752"></script>
+<script src="live-core.js?v=607de752"></script>
 <!-- ★ 판 지문을 화면에 보이게 찍는 것이 여기 있다 (§8) — 묶음에 이미 실리는 파일이다 -->
-<script src="flow-core.js?v=a1919ec9"></script>
+<script src="style-ab.js?v=607de752"></script>
+<script src="flow-core.js?v=607de752"></script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=a1919ec9" data-lp-global="LINKPILOT_REPORTS"></script>
+<script src="embed-bridge.js?v=607de752" data-lp-global="LINKPILOT_REPORTS"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -769,11 +770,18 @@ window.LINKPILOT_REPORTS = Object.assign({
       desc: 'RED FLAG · 값 충돌 · 독립 재계산 결과', pages: 12 },
   ],
 
-  themes: [
-    { id: 'institutional', name: 'Institutional', color: '#16304F' },
-    { id: 'modern', name: 'Modern', color: '#2E7D6B' },
-    { id: 'pdi', name: 'PDI 하우스', color: '#C00000' },
-  ],
+  /* ★★★ **테마 목록을 손으로 박지 않는다** 〈2026-09-06 · 권고 ③〉.
+   *
+   *   앞 판은 여기 셋(`institutional` · `modern` · `pdi`)을 적어 두었는데,
+   *   **뒤의 둘은 `design/themes.js` 에 없는 이름**이었다. 고르면 엔진이
+   *   `알 수 없는 디자인 테마` 로 던진다 — 그런데 화면에서는 멀쩡히 눌렸고
+   *   아무 표시도 안 났다. 값을 두 곳에 두면 이렇게 된다.
+   *
+   * ★ 이제 `style-ab.js`(생성물)를 읽어 **그 문서 종류의 두 안(A·B)** 만 낸다.
+   *   규칙은 `design/options.js` 한 곳에 있고 화면은 결과를 그린다.
+   * ★★ 스크립트가 안 실려도 화면이 죽지 않게 **정본 하나**로 버틴다 —
+   *   그 하나는 `themes.js` 에 실제로 있는 이름이다.
+   */
 
   // ★ 만들 수 있는 형식만 고를 수 있다. 못 만드는 것은 이유와 함께 비활성으로 보여준다 —
   //   목록에서 아예 빼면 "왜 PDF가 없냐"고 묻고, 그냥 두면 골랐다가 안 나온다.
@@ -1182,18 +1190,40 @@ window.LINKPILOT_REPORTS = Object.assign({
     th.style.marginTop = '16px';
     th.appendChild(el('label', null, '디자인 테마'));
     th.querySelector('label').style.cssText = 'font-size:12.5px;font-weight:700;color:var(--ink2);display:block;margin-bottom:8px';
+    /* ★ 고른 문서 종류의 **두 안**을 읽는다. 종류가 바뀌면 두 안도 바뀐다. */
+    var pair = (typeof window !== 'undefined' && window.lpStylePair)
+      ? window.lpStylePair(state.kindId) : null;
+    var opts = pair ? [pair.A, pair.B]
+      /* 짝 표가 안 실렸을 때의 버팀목 — themes.js 에 실제로 있는 이름 하나 */
+      : [{ id: 'institutional', role: 'A', roleKr: '기본', name: 'Institutional',
+          kr: '기관투자자 / PF / Credit', color: '#10233C', shape: '', docFit: true }];
+
+    /* ★★ 고른 값이 엔진에 있는 이름인지 **그릴 때마다** 본다. 없으면 정본으로
+     *   되돌린다 — 옛 값이 저장돼 있다가 조용히 던지는 것을 막는다. */
+    var known = (typeof window !== 'undefined' && window.LP_THEME_IDS) || null;
+    if (known && known.indexOf(state.themeId) < 0) state.themeId = 'institutional';
+    if (opts.length && !opts.some(function (o) { return o.id === state.themeId; })) {
+      state.themeId = opts[0].id;
+    }
+
     var list = el('div', 'themes');
-    C.themes.forEach(function (t) {
+    opts.forEach(function (t) {
       var b = el('button', 'theme' + (state.themeId === t.id ? ' on' : ''));
       b.type = 'button';
       b.disabled = state.locked;
       var sw = el('span', 'theme__sw');
       sw.style.background = t.color;
-      add(b, sw, el('span', null, t.name));
+      add(b, sw, el('span', null, t.roleKr + ' · ' + t.name));
+      b.title = t.kr + (t.shape ? ' — ' + t.shape : '');
       b.addEventListener('click', function () { state.themeId = t.id; draw(); });
       list.appendChild(b);
     });
     th.appendChild(list);
+    if (pair) {
+      var noteEl = el('p', null, pair.note);
+      noteEl.style.cssText = 'margin:7px 0 0;font-size:11.5px;line-height:1.5;color:var(--ink3,#6E7A8C)';
+      th.appendChild(noteEl);
+    }
     box.appendChild(th);
 
     /* ── 출력 성격 네 축 〈2026-08-23 사장님 지시〉 ────────────────

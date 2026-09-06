@@ -35,6 +35,10 @@ const themes = require(path.join(DESIGN, 'themes.js'));
 const { PAGE, eok, pct, CAPTION_PREFIX } = require(path.join(DESIGN, 'tokens.js'));
 
 const OUT = path.join(__dirname, 'style-options.html');
+/* ★ 이름에 `pair` 를 안 쓴다 〈2026-09-06 · 검사가 잡았다〉 — `pair-check.test.js` 가
+ *   「짝 확인 조각을 딴 파일로 빼지 마라」를 `src="…pair…"` 로 재는데, 이 파일
+ *   이름이 거기 걸려 **엉뚱한 것을 잡았다.** 이름이 겹치면 검사가 눈이 먼다. */
+const OUT_PAIRS = path.join(__dirname, 'style-ab.js');
 
 const esc = (s) => String(s == null ? '' : s)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -140,6 +144,105 @@ ${o.docFit ? '' : `    <p class="misfit">이 테마는 <b>${esc(o.docType)}</b> 
     ${esc(o.role)}안으로 정한다
   </button>
 </section>`;
+}
+
+/* ─────────────────────────────────────────────────────────
+ * 화면이 읽는 짝 표 — **생성물이다**
+ * ───────────────────────────────────────────────────────── */
+/**
+ * ★★★ **왜 파일로 내보내나** 〈2026-09-06 · 권고 ③〉.
+ *
+ *   `reports.html`(출력조건)의 테마 목록이 **손으로 박은 셋**이었고, 그중 둘
+ *   (`modern` · `pdi`)은 **`themes.js` 에 없는 이름**이었다. 고르면 엔진이
+ *   `알 수 없는 디자인 테마` 로 던진다 — 화면에서는 멀쩡히 눌리는데.
+ *
+ * ★ 그렇다고 화면에 `options.js` 를 옮겨 적으면 **두 벌**이 된다. 그래서
+ *   **값만** 내보낸다 — 규칙은 여전히 `options.js` 한 곳에 있고, 화면은 결과를 읽는다.
+ * ★★ 자산유형은 출력조건 화면에서 안 정해지므로 **문서 종류만으로** 뽑는다.
+ *   딜의 자산유형까지 아는 자리(엔진)는 `options.pick2()` 를 그대로 부르면 된다.
+ */
+function pairs() {
+  const out = {};
+  Object.keys(themes.DOC_PROFILE).forEach((d) => {
+    const r = options.pick2({ docType: d });
+    const one = (o) => {
+      const T = themes.get(o.themeId);
+      return {
+        id: o.themeId, role: o.role, roleKr: o.roleKr,
+        name: T.label, kr: T.labelKr, color: T.primary,
+        shape: o.shape, docFit: o.docFit,
+      };
+    };
+    out[d] = { A: one(r.A), B: one(r.B), axes: r.diffs.diff.length, note: r.note };
+  });
+  return out;
+}
+
+/**
+ * 지금 파일에 찍혀 있는 판 지문을 **그대로 지킨다**.
+ *
+ * ★★★ 〈2026-09-06 · guard 가 잡았다〉 처음에는 늘 빈 값(`''`)으로 냈다. 그러자
+ *   `guard` 가 「미리보기 재생성」에서 이 파일을 다시 만들 때마다 **지문이 지워져**
+ *   바로 다음 칸(「화면 지문」)이 빨개졌다 — 고칠 것이 없는데 매번 빨간 상태다.
+ *
+ * ★ 생성기는 **내용**만 책임지고, 지문은 `build-stamp.js` 가 소유한다. 그래서
+ *   다시 만들 때 그 값을 읽어 그대로 되돌려 놓는다. 파일이 아직 없으면 빈 값으로
+ *   내고, 첫 `im:stamp` 가 채운다.
+ */
+function keptStamp() {
+  try {
+    const m = fs.readFileSync(OUT_PAIRS, 'utf8').match(/LP_BUILD = '([0-9a-f_]*)'/);
+    return m ? m[1] : '';
+  } catch (_) { return ''; }
+}
+
+function pairsFile() {
+  const data = pairs();
+  const ids = Object.keys(themes.THEMES);
+  const built = keptStamp();
+  return `/* style-ab.js — 문서 종류별 **스타일 두 안(A·B)**.
+ *
+ * ★★★ 이 파일은 **손으로 고치지 않는다.** \`npm run im:styles\` 가
+ *   \`design/options.js\` 를 돌려 만든다. 규칙은 그쪽 한 곳에 있고 여기는 결과다.
+ *
+ * ★ 앞 판은 화면(\`reports.html\`)에 테마 셋을 손으로 박아 두었는데, 그중 둘
+ *   (\`modern\` · \`pdi\`)이 \`themes.js\` 에 **없는 이름**이었다 — 고르면 엔진이
+ *   \`알 수 없는 디자인 테마\` 로 던진다. 화면에서는 멀쩡히 눌렸다.
+ *
+ * 의존성 없음. 브라우저·Node 양쪽에서 돈다.
+ */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else {
+    var m = factory();
+    root.LP_THEME_IDS = m.THEME_IDS;
+    root.LP_STYLE_PAIRS = m.PAIRS;
+    root.lpStylePair = m.pair;
+  }
+}(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  /**
+   * ★ **이 스크립트가 어느 판인가** 〈D-93 · M-29〉.
+   *   \`build-stamp.js\` 가 채운다 — 손으로 고치지 않는다. 생성기는 빈 값으로 내고,
+   *   지문 찍기가 그 자리를 메운다. 그래서 다시 만들어도 지문이 안 흔들린다.
+   */
+  var LP_BUILD = '${built}';
+
+  /** themes.js 에 실제로 있는 이름 — 화면이 고른 값을 이 목록으로 거른다 */
+  var THEME_IDS = ${JSON.stringify(ids)};
+
+  /** 문서 종류 → { A, B } */
+  var PAIRS = ${JSON.stringify(data, null, 2).split('\n').join('\n  ')};
+
+  /** 그 문서의 두 안. 모르는 종류면 기본(im)으로 돌려준다 — 지어내지 않는다 */
+  function pair(docType) {
+    return PAIRS[docType] || PAIRS.im || null;
+  }
+
+  return { BUILD: LP_BUILD, THEME_IDS: THEME_IDS, PAIRS: PAIRS, pair: pair };
+}));
+`;
 }
 
 function build(signals) {
@@ -342,9 +445,13 @@ if (require.main === module) {
   };
   const html = build(signals);
   fs.writeFileSync(OUT, html, 'utf8');
+  const pf = pairsFile();
+  fs.writeFileSync(OUT_PAIRS, pf, 'utf8');
   const r = options.pick2(signals);
   console.log(`두 안: A ${r.A.label} (${r.A.familyKr}) · B ${r.B.label} (${r.B.familyKr})`);
-  console.log(`  ${path.relative(path.join(__dirname, '..', '..', '..'), OUT)}  (${html.length.toLocaleString('ko-KR')}자)`);
+  const rel = (f) => path.relative(path.join(__dirname, '..', '..', '..'), f);
+  console.log(`  ${rel(OUT)}  (${html.length.toLocaleString('ko-KR')}자)`);
+  console.log(`  ${rel(OUT_PAIRS)}  (문서 종류 ${Object.keys(pairs()).length}종)`);
 }
 
-module.exports = { build, card, cover, body, DEAL, DEFAULT_SIGNALS, OUT };
+module.exports = { build, card, cover, body, pairs, pairsFile, keptStamp, DEAL, DEFAULT_SIGNALS, OUT, OUT_PAIRS };
