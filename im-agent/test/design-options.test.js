@@ -166,45 +166,62 @@ test('★ 화면이 예시 숫자임을 **화면에** 박는다 (데모를 실�
   assert.match(html, /예시/, '예시임을 안 적었다');
 });
 
-test('★★★ B안은 **그 문서 종류에 쓰는 테마**에서 고른다 (없으면 없다고 적는다)', () => {
-  /* 실측에서 잡았다: IM 인데 B안이 `government`(공식 행정형)로 나왔다 —
-     그 테마는 docTypes 에 im 을 안 적어 두었다. 갈리기만 하면 되는 것이 아니라
-     **둘 다 쓸 수 있는 안**이어야 고를 거리가 된다. */
-  const cases = [
-    { assetType: 'datacenter', docType: 'im', investorType: 'institutional' },
-    { assetType: 'hotel', docType: 'teaser' },
-    { assetType: 'road', docType: 'feasibility' },
-    { assetType: 'office', docType: 'ic_memo' },
-  ];
-  cases.forEach((d) => {
-    const r = options.pick2(d);
-    const T = themes.get(r.B.themeId);
-    const fits = (T.docTypes || []).includes(d.docType);
-    if (r.docFiltered) {
-      assert.ok(fits, `${d.docType} 인데 B안 ${r.B.themeId} 은 그 문서에 쓴다고 안 적혀 있다`);
-      assert.strictEqual(r.B.docFit, true);
-    } else {
-      /* 못 맞췄으면 **못 맞췄다고 적어야** 한다 */
-      assert.match(r.B.why, /문서 종류를 못 맞췄다/,
-        `${d.docType} 에서 문서 종류를 못 맞췄는데 그 사실을 안 적었다`);
+test('★★★ 문서 종류 **전부**가 두 계열 모두에서 짝을 찾는다 (사장님 지시 · 외부 문서 여섯)', () => {
+  /* 〈2026-09-06 사장님 지시: 「오류발생 · 외부에서 · financial_report ·
+     technical_report · dd_report · legal_dd · investor_presentation · dashboard」〉
+
+     스타일 두 안은 **보수·공식 하나 · 현대·시각 하나**를 낸다. 그러니 문서 종류마다
+     양쪽 계열에 **쓴다고 적힌 테마가 하나씩은** 있어야 고를 거리가 둘이 된다.
+     그 여섯은 한쪽(또는 양쪽)이 비어 있었고, `legal_dd`·`dashboard` 는 **양쪽 다**
+     비어 있었다. */
+  const holes = [];
+  Object.keys(themes.DOC_PROFILE).forEach((d) => {
+    const fam = { formal: 0, visual: 0 };
+    themes.list().forEach((x) => {
+      const T = themes.get(x.id);
+      if (!(T.docTypes || []).includes(d)) return;
+      const f = options.FAMILY[T.id];
+      if (f) fam[f]++;
+    });
+    if (!fam.formal || !fam.visual) {
+      holes.push(`${d}: 보수 ${fam.formal}개 · 현대 ${fam.visual}개`);
     }
   });
+  assert.deepStrictEqual(holes, [],
+    '한쪽 계열이 빈 문서 종류가 있다 — 그 문서에서는 고를 거리가 하나다:\n  ' + holes.join('\n  '));
+});
 
-  /* 거를 것이 없는 경우가 실제로 있는지 — 없으면 위 else 는 헛돈다.
-     ★ 표본은 **재려는 성질을 지켜야 한다** (CLAUDE.md §8). 앞 판은 `pf_proposal` 을
-       썼는데, `renewable` 에 그 문서 종류를 더하자 **맞아 버려서 이 칸이 헛돌았다** —
-       시험이 그 자리에서 빨개져 알려 줬다. 지금 실제로 못 맞추는 것으로 바꾼다:
-       `financial_report` 에 쓴다고 적힌 **현대·시각 계열 테마가 하나도 없다.** */
-  const none = options.pick2({ assetType: 'generic', docType: 'financial_report' });
-  assert.strictEqual(none.docFiltered, false, '표본이 「못 맞추는 경우」를 안 담고 있다');
-  assert.match(none.B.why, /문서 종류를 못 맞췄다/);
+test('★★★ 실제 조합 전부에서 두 안이 **그 문서에 쓰는 테마**다 (안 맞는 것이 0건)', () => {
+  const assets = ['datacenter', 'solar', 'realestate', 'hotel', 'office', 'logistics', 'road', 'generic'];
+  const bad = [];
+  Object.keys(themes.DOC_PROFILE).forEach((d) => assets.forEach((a) => {
+    const r = options.pick2({ assetType: a, docType: d });
+    if (!r.A.docFit) bad.push(`${a}+${d}: A=${r.A.themeId}`);
+    if (!r.B.docFit) bad.push(`${a}+${d}: B=${r.B.themeId}`);
+  }));
+  assert.deepStrictEqual(bad, [],
+    `안 맞는 안이 ${bad.length}건 남았다:\n  ` + bad.slice(0, 12).join('\n  '));
+});
+
+test('★★ 그래도 정말 없으면 **없다고 적는다** (지어내지 않는다)', () => {
+  /* ★ 표본을 **없는 문서 종류**로 만든다. 실제 문서 종류는 이제 전부 맞으므로,
+     진짜 조합으로는 이 갈래를 못 잰다 — 그렇다고 갈래를 지우면 나중에 문서 종류가
+     늘었을 때 **조용히 엉뚱한 테마가 나간다.** */
+  const r = options.pick2({ assetType: 'generic', docType: 'no_such_doc_type' });
+  assert.strictEqual(r.docFiltered, false, '없는 문서 종류인데 걸러졌다고 한다');
+  assert.match(r.B.why, /문서 종류를 못 맞췄다/, 'B안이 못 맞췄다고 안 적는다');
+  assert.strictEqual(r.A.docFit, false);
+  assert.strictEqual(r.B.docFit, false);
+  assert.ok(r.A && r.B, '못 맞춰도 두 안은 나와야 한다 — 빈 화면을 내지 않는다');
 });
 
 test('★★ 문서 종류에 안 맞는 안은 **화면에 그렇다고 적는다** (조용히 넘어가지 않는다)', () => {
   /* A안도 잰다. ★ 이제 A 도 순위 안에서 문서 종류에 맞는 것을 먼저 집으므로,
      안 맞는 경우는 **순위 셋이 전부 그 문서를 안 적어 둔 때**만 남는다.
      앞 판 표본(오피스+IC메모)은 고치고 나서 맞아 버렸다 — 시험이 잡아 줬다. */
-  const sig = { assetType: 'datacenter', docType: 'legal_dd' };
+  /* ★ 실제 문서 종류는 이제 전부 맞으므로 **없는 종류**로 그 갈래를 연다.
+     앞 판 표본(datacenter+legal_dd)은 여섯을 메우면서 맞아 버렸다 — 시험이 잡아 줬다. */
+  const sig = { assetType: 'datacenter', docType: 'no_such_doc_type' };
   const r = options.pick2(sig);
   assert.strictEqual(r.A.docFit, false, '표본이 「안 맞는 A안」을 안 담고 있다');
   const html = builder.build(sig);
@@ -298,6 +315,23 @@ test('★ renewable 이 pf_proposal 을 받는다 — 그 문서에 쓸 현대·
   assert.strictEqual(r.docFiltered, true, 'pf_proposal 에서 여전히 문서 종류를 못 맞춘다');
   assert.strictEqual(r.B.docFit, true, `B안 ${r.B.themeId} 이 pf_proposal 에 안 맞는다`);
   assert.strictEqual(r.A.docFit, true, `A안 ${r.A.themeId} 이 pf_proposal 에 안 맞는다`);
+});
+
+test('★★ 순위 셋이 다 안 맞으면 **같은 계열 안에서** 바꿔 온다 (계열까지 버리지 않는다)', () => {
+  /* 실측: 호텔+재무보고서 — 추천 순위는 luxury·premium·real_estate 인데 셋 다
+     financial_report 를 안 적어 두었다. 계열(현대·시각)은 지키고 global_ib 로 바꾼다. */
+  const sig = { assetType: 'hotel', docType: 'financial_report' };
+  const ids = recommend.recommend(sig).recommendations.map((x) => x.themeId);
+  ids.forEach((id) => assert.ok(!(themes.get(id).docTypes || []).includes('financial_report'),
+    `표본이 못 쓴다 — 순위의 ${id} 가 이미 그 문서에 맞는다`));
+
+  const r = options.pick2(sig);
+  assert.strictEqual(r.aFromOutside, true, '순위 밖에서 데려왔다고 표시하지 않는다');
+  assert.strictEqual(r.A.docFit, true, `A안 ${r.A.themeId} 이 그 문서에 안 맞는다`);
+  assert.strictEqual(options.FAMILY[r.A.themeId], options.FAMILY[ids[0]],
+    `계열이 바뀌었다: ${ids[0]}(${options.FAMILY[ids[0]]}) → ${r.A.themeId}(${options.FAMILY[r.A.themeId]})`);
+  assert.match(r.A.why, /모두 financial_report 에 쓴다고 적혀 있지 않아/,
+    '왜 바꿨는지 화면에 적지 않는다');
 });
 
 test('★ 커밋된 화면이 지금 소스로 만든 것과 같다 (CLAUDE.md §8)', () => {

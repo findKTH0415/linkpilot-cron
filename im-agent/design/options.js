@@ -204,8 +204,25 @@ function pick2(signals = {}) {
       || (T && Array.isArray(T.docTypes) && T.docTypes.includes(signals.docType));
   };
   const rankedIds = ranked.map((r) => r.themeId);
-  const topId = rankedIds.find(fitsDocId) || rankedIds[0] || 'institutional';
+
+  /* ★★★ **순위 셋이 전부 그 문서를 안 적어 뒀으면, 순위 밖에서 맞는 것을 데려온다**
+     〈2026-09-06 · 여섯을 메우고 나서 드러났다〉.
+
+     앞 판은 그때 **순위 1위를 그대로 쓰고 「이 문서용이 아닙니다」를 띄웠다.**
+     정직하기는 한데, 실측해 보니 호텔+재무보고서·호텔+법률실사처럼 **실제로 자주
+     오는 조합**에서 그 경고가 떴다 — 고를 거리가 하나로 줄어드는 것과 같다.
+
+     ★ 그렇다고 아무거나 데려오지 않는다. **추천이 읽은 성격(계열)은 지킨다** —
+       1위가 현대·시각이면 현대·시각 중에서, 보수·공식이면 보수·공식 중에서 고른다.
+       계열까지 버리면 추천이 한 일이 아무것도 안 남는다.
+     ★★ 그래도 없으면 **그때는 1위를 그대로 쓰고 안 맞는다고 적는다** — 지어내지 않는다. */
+  const famOf = (id) => FAMILY[id] || 'formal';
+  const rank1 = rankedIds[0] || 'institutional';
+  const outside = Object.keys(FAMILY)
+    .filter((id) => fitsDocId(id) && famOf(id) === famOf(rank1));
+  const topId = rankedIds.find(fitsDocId) || outside[0] || rank1;
   const A = themes.get(topId) || themes.get('institutional');
+  const aFromOutside = !rankedIds.find(fitsDocId) && !!outside[0];
   const famA = FAMILY[A.id] || 'formal';
   const wantB = OPPOSITE[famA];
 
@@ -310,7 +327,10 @@ function pick2(signals = {}) {
 
   const A0 = opt(A, 'A', '권장안', ra,
     ra ? `이 딜의 신호로 점수가 가장 높다 (${ra.confidence}점 · ${ra.reasons.join(' · ')})`
-      : '딜 신호가 없어 정본(기관투자자용)으로 둔다');
+      : aFromOutside
+        ? `추천 순위 셋(${rankedIds.join(' · ')})이 **모두 ${signals.docType} 에 쓴다고 적혀 있지 않아**,`
+          + ` 같은 ${FAMILY_KR[famOf(rank1)]} 계열에서 그 문서에 쓰는 것으로 바꿨다`
+        : '딜 신호가 없어 정본(기관투자자용)으로 둔다');
   const B0 = opt(B, 'B', wantB === 'formal' ? '보수·공식안' : '현대·시각안', rb,
     `A안(${A.label})이 ${FAMILY_KR[famA]} 계열이라, **성격이 갈리는** ${FAMILY_KR[wantB]} 계열에서`
     + ` 갈리는 축이 가장 확실한 것을 골랐다 (${chosen ? chosen.n : 0}가지가 갈린다)`
@@ -321,6 +341,7 @@ function pick2(signals = {}) {
   return {
     A: A0,
     B: B0,
+    aFromOutside,
     diffs,
     signals: rec.signals,
     docFiltered,

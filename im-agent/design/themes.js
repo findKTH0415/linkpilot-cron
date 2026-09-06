@@ -93,7 +93,24 @@ const THEMES = {
     purpose: '은행·기관투자자·금융기관·Credit Committee 제출용',
     writing: WRITING.executive.id,
     traits: ['신뢰성', '보수적', '데이터 중심', '장식 배제'],
-    docTypes: ['pf_proposal', 'credit_report', 'ic_memo', 'financial_report', 'dd_report'],
+        /* ★★★ **밖으로 나가는 문서 여섯을 여기서 받는다** 〈2026-09-06 사장님 지시:
+       「오류발생 · 외부에서 · financial_report · technical_report · dd_report ·
+       legal_dd · investor_presentation · dashboard」〉.
+
+       무엇이 문제였나: 스타일 두 안(A·B)은 **보수·공식 계열 하나 · 현대·시각 계열
+       하나**를 내는데, 이 여섯은 한쪽(또는 양쪽) 계열에 **쓴다고 적힌 테마가 하나도
+       없었다.** 그러면 화면에 「이 문서용으로 만든 스타일이 아닙니다」가 뜨고,
+       고를 거리가 사실상 하나로 줄었다 — `legal_dd` 와 `dashboard` 는 **양쪽 다**
+       비어 있었다.
+
+       ★ 어디에 붙일지는 **`recommend.js` 의 DOC 표가 이미 점수를 매겨 둔 곳**을
+         그대로 쓴다 — 내가 새로 정하면 그 표와 두 벌이 된다. 표에 없는 자리만
+         「외부 제출」 기준으로 판단하고, 그 사실을 이 주석에 적는다. */
+    /* 위 셋 중 `technical_report`·`legal_dd` 는 recommend.js DOC 표에 이미
+       institutional 점수가 있다(0.5 · 0.9). `investor_presentation` 은 표에 없지만
+       이 테마의 purpose 가 「은행·기관투자자·금융기관·Credit Committee 제출용」이라
+       IR 자료가 가는 자리 그대로다 — **판단이며, 그래서 여기 적는다.** */
+docTypes: ['pf_proposal', 'credit_report', 'ic_memo', 'financial_report', 'dd_report', 'technical_report', 'legal_dd', 'investor_presentation'],
     primary: '#10233C', primaryMid: '#35506F', accent: '#A6813C', accentLight: '#C9A15A',
     onPrimary: '#F3E3C4', onPrimarySub: '#9FB0C4', surfaceAlt: '#F7F5F0',
     serif: FONT.serif, sans: FONT.sans,
@@ -111,7 +128,12 @@ const THEMES = {
     purpose: '글로벌 투자은행 및 해외 투자자용',
     writing: WRITING.executive.id,
     traits: ['Premium', 'International', 'Data-driven', 'Executive-focused'],
-    docTypes: ['im', 'ma_im', 'teaser', 'investor_presentation'],
+        /* 위 셋은 recommend.js DOC 표에 **현대·시각 계열이 하나도 없어** 비어 있던 자리다.
+       「밖으로 나간다」를 기준으로 이 테마에 붙였다 — 재무보고서·실사보고서·법률실사는
+       인수측 투자자와 대주단에게 가고, 이 테마가 바로 그 자리(M&A·글로벌 투자자)다.
+       **표에 근거가 없는 판단이므로 여기 적는다.** 법률실사를 사진 전면 표지로 내지
+       않도록 이 테마의 표지는 `split`(사진+글자)이라는 점도 함께 본다. */
+docTypes: ['im', 'ma_im', 'teaser', 'investor_presentation', 'financial_report', 'dd_report', 'legal_dd'],
     primary: '#0B1B2B', primaryMid: '#2C4257', accent: '#B08D57', accentLight: '#CFAE7B',
     onPrimary: '#EFE6D3', onPrimarySub: '#9AAABB', surfaceAlt: '#F6F4EF',
     serif: FONT.serif, sans: FONT.sans,
@@ -200,7 +222,8 @@ const THEMES = {
     purpose: '경영진 보고 및 Executive Presentation',
     writing: WRITING.plain.id,
     traits: ['White Space', 'Minimal Color', 'Short Text', 'Large Number'],
-    docTypes: ['ic_memo', 'executive_summary', 'teaser'],
+        /* `dashboard` — recommend.js DOC.dashboard 가 minimal 0.8 로 1위를 준 자리다. */
+docTypes: ['ic_memo', 'executive_summary', 'teaser', 'dashboard'],
     primary: '#111827', primaryMid: '#4B5563', accent: '#6B7280', accentLight: '#9CA3AF',
     onPrimary: '#F9FAFB', onPrimarySub: '#C3C9D2', surfaceAlt: '#F7F7F8',
     serif: FONT.serif, sans: FONT.sans,
@@ -218,7 +241,8 @@ const THEMES = {
     purpose: 'Data Center·AI Infrastructure·Cloud·ICT 프로젝트',
     writing: WRITING.technical.id,
     traits: ['Technology Visual', 'Power Flow', 'Rack/MW Visualization', 'Infrastructure Diagram'],
-    docTypes: ['im', 'technical_report', 'investor_presentation'],
+        /* `dashboard` — recommend.js DOC.dashboard 가 technology 0.6 으로 2위를 준 자리다. */
+docTypes: ['im', 'technical_report', 'investor_presentation', 'dashboard'],
     primary: '#0E1A2B', primaryMid: '#1F7A8C', accent: '#2FA8B8', accentLight: '#67C6D2',
     onPrimary: '#E8F4F6', onPrimarySub: '#8FB3BD', surfaceAlt: '#F2F7F8',
     serif: FONT.serif, sans: FONT.sans,
