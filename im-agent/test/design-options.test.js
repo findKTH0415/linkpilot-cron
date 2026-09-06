@@ -23,6 +23,7 @@ const path = require('path');
 const D = path.join(__dirname, '..', 'design');
 const options = require(path.join(D, 'options.js'));
 const themes = require(path.join(D, 'themes.js'));
+const recommend = require(path.join(D, 'recommend.js'));
 const builder = require(path.join(__dirname, '..', 'ui', 'platform', 'build-styleoptions.js'));
 
 /** 실제로 들어올 만한 딜 모양 — 한 가지만 재면 아무것도 안 재는 것이다 */
@@ -189,26 +190,114 @@ test('★★★ B안은 **그 문서 종류에 쓰는 테마**에서 고른다 (
     }
   });
 
-  /* 거를 것이 없는 경우가 실제로 있는지 — 없으면 위 else 는 헛돈다 */
-  const none = options.pick2({ assetType: 'solar', docType: 'pf_proposal', investorType: 'bank' });
+  /* 거를 것이 없는 경우가 실제로 있는지 — 없으면 위 else 는 헛돈다.
+     ★ 표본은 **재려는 성질을 지켜야 한다** (CLAUDE.md §8). 앞 판은 `pf_proposal` 을
+       썼는데, `renewable` 에 그 문서 종류를 더하자 **맞아 버려서 이 칸이 헛돌았다** —
+       시험이 그 자리에서 빨개져 알려 줬다. 지금 실제로 못 맞추는 것으로 바꾼다:
+       `financial_report` 에 쓴다고 적힌 **현대·시각 계열 테마가 하나도 없다.** */
+  const none = options.pick2({ assetType: 'generic', docType: 'financial_report' });
   assert.strictEqual(none.docFiltered, false, '표본이 「못 맞추는 경우」를 안 담고 있다');
   assert.match(none.B.why, /문서 종류를 못 맞췄다/);
 });
 
 test('★★ 문서 종류에 안 맞는 안은 **화면에 그렇다고 적는다** (조용히 넘어가지 않는다)', () => {
-  /* A안도 잰다 — A 는 recommend.js 가 고르는데 자산유형 가중치(40)가
-     문서유형(22)보다 커서 문서에 안 맞는 테마가 1위로 올 수 있다 (실측). */
-  const sig = { assetType: 'office', docType: 'ic_memo' };
+  /* A안도 잰다. ★ 이제 A 도 순위 안에서 문서 종류에 맞는 것을 먼저 집으므로,
+     안 맞는 경우는 **순위 셋이 전부 그 문서를 안 적어 둔 때**만 남는다.
+     앞 판 표본(오피스+IC메모)은 고치고 나서 맞아 버렸다 — 시험이 잡아 줬다. */
+  const sig = { assetType: 'datacenter', docType: 'legal_dd' };
   const r = options.pick2(sig);
   assert.strictEqual(r.A.docFit, false, '표본이 「안 맞는 A안」을 안 담고 있다');
   const html = builder.build(sig);
   assert.match(html, /쓴다고 적혀 있지 않습니다/, '안 맞는다는 사실이 화면에 없다');
-  assert.strictEqual((html.match(/class="misfit"/g) || []).length, 1,
-    '안 맞는 안이 하나인데 경고가 하나가 아니다');
+  /* ★ 「하나」로 못박지 않는다 — 둘 다 안 맞는 조합이 실제로 있다(datacenter+legal_dd).
+     **안 맞는 개수만큼** 떠야 한다는 것이 재려는 성질이다. 수를 박아 두면 표본이
+     바뀔 때마다 검사가 헛울음을 낸다 (앞 판이 그랬고, 그래서 빨개졌다). */
+  const misfits = [r.A, r.B].filter((o) => !o.docFit).length;
+  assert.strictEqual((html.match(/class="misfit"/g) || []).length, misfits,
+    `안 맞는 안이 ${misfits}개인데 경고 수가 다르다`);
 
   /* 둘 다 맞으면 경고가 하나도 없어야 한다 — 늘 뜨면 아무도 안 본다 */
   const ok = builder.build({ assetType: 'datacenter', docType: 'im', investorType: 'institutional' });
   assert.strictEqual((ok.match(/class="misfit"/g) || []).length, 0, '멀쩡한데 경고가 떴다');
+});
+
+test('★★ A안도 **문서 종류에 맞는 것**을 순위 안에서 먼저 집는다 (추천 규칙은 안 건드린다)', () => {
+  /* recommend.js 는 자산유형 가중치(40)가 문서유형(22)보다 커서 문서에 안 맞는
+     테마를 1위로 낸다 — 그 표는 다른 자리도 읽으므로 안 건드리고, **여기서 고를 때만**
+     순위 안에서 맞는 것을 집는다. 실측: 오피스+IC메모 는 recommend 1위가
+     `real_estate`(ic_memo 없음)인데 A 는 `minimal`(ic_memo 있음)이 되어야 한다. */
+  const sig = { assetType: 'office', docType: 'ic_memo' };
+  const top = recommend.recommend(sig).recommendations[0].themeId;
+  assert.ok(!(themes.get(top).docTypes || []).includes('ic_memo'),
+    `표본이 못 쓴다 — recommend 1위(${top})가 이미 그 문서에 맞는다`);
+
+  const r = options.pick2(sig);
+  assert.strictEqual(r.A.docFit, true, `A안 ${r.A.themeId} 이 그 문서에 맞지 않는다`);
+  assert.notStrictEqual(r.A.themeId, top, '순위 1위를 그대로 집었다 — 거르지 않았다');
+
+  /* 순위 **안에서** 집어야 한다 — 아무 테마나 데려오면 추천이 뜻을 잃는다 */
+  const ids = recommend.recommend(sig).recommendations.map((x) => x.themeId);
+  assert.ok(ids.includes(r.A.themeId), `A안 ${r.A.themeId} 이 추천 순위 밖에서 왔다`);
+});
+
+test('★★ 축 수가 같으면 **색이 더 갈리는 쪽**을 집는다 (없는 테마를 만들지 않는다)', () => {
+  /* 처음에는 「팔레트가 전부 어두워 색으로는 못 가른다」고 적었는데 **재 보니 틀렸다** —
+     갈래를 가로지르는 35쌍 중 8쌍이 기준(60)을 넘는다. 색 변화는 이미 있었고
+     고르는 규칙이 거기까지 안 갔을 뿐이다. */
+  const F = []; const V = [];
+  themes.list().forEach((x) => {
+    const f = options.FAMILY[x.id];
+    if (f === 'formal') F.push(themes.get(x.id));
+    if (f === 'visual') V.push(themes.get(x.id));
+  });
+  let over = 0;
+  F.forEach((a) => V.forEach((b) => { if (options.colorGap(a.primary, b.primary) >= options.COLOR_NOTICEABLE) over++; }));
+  assert.ok(over >= 5, `갈래를 가로질러 색이 갈리는 짝이 ${over}쌍뿐 — 색으로 고를 거리가 없다`);
+
+  /* ★★ **규칙을 그대로 다시 계산해 대 본다** — 「색이 갈리는 딜이 하나라도 있는가」로
+     재면 동점처리를 꺼도 통과한다(사보타주로 확인했다). 재려는 것은
+     **축이 충분한 후보 중 색이 가장 갈리는 것을 집었는가**다. */
+  const cases = [
+    { assetType: 'hotel', docType: 'financial_report' },   // 후보 셋 · 색 48/86/117
+    { assetType: 'road', docType: 'im' },                  // 후보 여섯
+    { assetType: 'datacenter', docType: 'feasibility' },
+    { assetType: 'hotel', docType: 'pf_proposal' },
+  ];
+  let decided = 0;
+  cases.forEach((d) => {
+    const r = options.pick2(d);
+    const A = themes.get(r.A.themeId);
+    const cands = Object.keys(options.FAMILY)
+      .filter((id) => options.FAMILY[id] === r.B.family && id !== A.id
+        && (!d.docType || (themes.get(id).docTypes || []).includes(d.docType)))
+      .map((id) => ({
+        id,
+        n: options.differences({ themeId: A.id }, { themeId: id }).diff.length,
+        g: options.colorGap(A.primary, themes.get(id).primary),
+      }))
+      .filter((c) => c.n >= 2);
+    if (cands.length < 2) return;
+    const gaps = new Set(cands.map((c) => c.g));
+    if (gaps.size < 2) return;               // 색이 다 같으면 이 딜은 안 재진다
+    decided++;
+    const want = cands.slice().sort((a, b) => b.g - a.g)[0];
+    assert.strictEqual(r.B.themeId, want.id,
+      `${d.assetType}+${d.docType}: 색이 가장 갈리는 ${want.id}(${want.g}) 대신 `
+      + `${r.B.themeId}(${cands.find((c) => c.id === r.B.themeId).g}) 를 집었다`);
+  });
+  assert.ok(decided >= 3, `동점처리가 실제로 결정한 딜이 ${decided}개뿐 — 표본이 안 재고 있다`);
+});
+
+test('★ renewable 이 pf_proposal 을 받는다 — 그 문서에 쓸 현대·시각 테마가 있어야 한다', () => {
+  /* 실측에서 잡은 빈자리: `pf_proposal` 에 쓴다고 적힌 현대·시각 계열 테마가 하나도
+     없어서 PF 제안서에서 B안이 문서 종류를 못 맞췄다. 재생에너지 PF 는 이 저장소가
+     실제로 다루는 딜이다(태양광·ESS). */
+  assert.ok((themes.get('renewable').docTypes || []).includes('pf_proposal'),
+    'renewable 이 pf_proposal 을 안 받는다');
+  const r = options.pick2({ assetType: 'solar', docType: 'pf_proposal', investorType: 'bank' });
+  assert.strictEqual(r.docFiltered, true, 'pf_proposal 에서 여전히 문서 종류를 못 맞춘다');
+  assert.strictEqual(r.B.docFit, true, `B안 ${r.B.themeId} 이 pf_proposal 에 안 맞는다`);
+  assert.strictEqual(r.A.docFit, true, `A안 ${r.A.themeId} 이 pf_proposal 에 안 맞는다`);
 });
 
 test('★ 커밋된 화면이 지금 소스로 만든 것과 같다 (CLAUDE.md §8)', () => {

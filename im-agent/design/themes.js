@@ -235,7 +235,11 @@ const THEMES = {
     purpose: '재생에너지·에너지 인프라 프로젝트',
     writing: WRITING.technical.id,
     traits: ['Satellite Image', 'Site Map', 'Energy Flow', 'Carbon Reduction'],
-    docTypes: ['im', 'feasibility', 'technical_report'],
+    /* ★ `pf_proposal` 을 더했다 〈2026-09-06 · 실측에서 잡았다〉 — 그 문서 종류에
+       쓴다고 적힌 **현대·시각 계열 테마가 하나도 없어서** 스타일 두 안(A·B)이
+       PF 제안서에서 문서 종류를 못 맞췄다. 재생에너지 PF 는 실제로 이 저장소가
+       다루는 딜이고(태양광·ESS), 이 테마의 강조 KPI 도 그쪽이다. */
+    docTypes: ['im', 'feasibility', 'technical_report', 'pf_proposal'],
     primary: '#0F3D2E', primaryMid: '#2F6A52', accent: '#7FA650', accentLight: '#A7C579',
     onPrimary: '#EAF3EC', onPrimarySub: '#9BB8A8', surfaceAlt: '#F3F7F3',
     serif: FONT.serif, sans: FONT.sans,

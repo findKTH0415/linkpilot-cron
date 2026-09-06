@@ -188,8 +188,23 @@ function pick2(signals = {}) {
   const rec = recommend.recommend(signals);
   const ranked = rec.recommendations || [];
 
-  /* ★ 추천이 비면 짐작하지 않는다 — 정본(institutional)과 그 반대 결로 간다 */
-  const topId = (ranked[0] && ranked[0].themeId) || 'institutional';
+  /* ★★★ **A 도 그 문서 종류에 쓰는 것 중에서 고른다** 〈2026-09-06 · 실측〉.
+     `recommend.js` 는 **자산유형 가중치(40)가 문서유형(22)보다 커서** 문서에 안 맞는
+     테마가 1위로 올라온다 — 실측: 오피스+IC메모 → `real_estate`(그 테마는 `docTypes`
+     에 `ic_memo` 를 안 적어 두었다).
+
+     ★ **추천 규칙(가중치)은 안 건드린다.** 그 표는 다른 자리(테마 갤러리·자동 배정)도
+       함께 읽으므로, 여기 사정으로 바꾸면 그쪽이 조용히 달라진다. 대신 **여기서 고를 때만**
+       B 와 **같은 규칙**으로 거른다 — 순위는 그대로 두고 순위 안에서 맞는 것을 집는다.
+     ★★ 맞는 것이 하나도 없으면 **거르지 않고 1위를 쓴다.** 그리고 `docFit:false` 로
+       화면에 「이 문서에 쓴다고 적혀 있지 않다」가 뜬다 — 조용히 넘어가지 않는다. */
+  const fitsDocId = (id) => {
+    const T = themes.get(id);
+    return !signals.docType
+      || (T && Array.isArray(T.docTypes) && T.docTypes.includes(signals.docType));
+  };
+  const rankedIds = ranked.map((r) => r.themeId);
+  const topId = rankedIds.find(fitsDocId) || rankedIds[0] || 'institutional';
   const A = themes.get(topId) || themes.get('institutional');
   const famA = FAMILY[A.id] || 'formal';
   const wantB = OPPOSITE[famA];
@@ -213,11 +228,7 @@ function pick2(signals = {}) {
        맞는 보수(또는 현대) 계열이 이 시스템에 없다는 뜻이고, 그 사실을 적는다.
        비었는데 걸러진 채로 두면 엉뚱한 기본값이 조용히 나간다. */
   const want = signals.docType;
-  const fitsDoc = (id) => {
-    const T = themes.get(id);
-    return !want || (T && Array.isArray(T.docTypes) && T.docTypes.includes(want));
-  };
-  const fitted = candidates.filter(fitsDoc);
+  const fitted = candidates.filter(fitsDocId);   /* ★ A 와 **같은 자를 쓴다** */
   const docFiltered = fitted.length > 0;
   if (docFiltered) candidates = fitted;
 
@@ -230,16 +241,30 @@ function pick2(signals = {}) {
      그래서 이제 **재고 고른다**: 갈리는 축이 둘 이상인 첫 후보를 쓴다.
      하나도 못 찾으면 **가장 많이 갈리는 것**을 쓰고, 몇 개만 갈리는지 적는다 —
      억지로 둘을 만들지 않고 **적은 대로 말한다**. */
+  /* ★★★ **축 수가 같으면 색이 더 갈리는 쪽을 집는다** 〈2026-09-06 · 실측이 바로잡았다〉.
+     처음에는 「팔레트가 전부 어두운 계열이라 색으로는 못 가른다」고 적었는데,
+     **재 보니 틀렸다** — 갈래를 가로지르는 35쌍 중 **8쌍이 기준(60)을 넘는다**
+     (가장 먼 짝은 `corporate` 대 `premium` 으로 120). 색 변화는 이미 있었고,
+     **고르는 규칙이 거기까지 안 갔을 뿐**이다.
+
+     ★ 그래서 없는 테마를 새로 만들지 않는다. 순서만 바꾼다 — 축 수가 먼저,
+       같으면 색 거리가 다음이다. 있는 것을 안 쓰고 새로 만드는 것이 가장 비싼 답이다. */
   const MIN_AXES = 2;
   const scored = candidates
     .map((id) => {
       const T = themes.get(id);
       if (!T) return null;
-      return { id, n: differences({ themeId: A.id }, { themeId: id }).diff.length };
+      return {
+        id,
+        n: differences({ themeId: A.id }, { themeId: id }).diff.length,
+        gap: colorGap(A.primary, T.primary),
+      };
     })
     .filter(Boolean);
-  const enough = scored.find((c) => c.n >= MIN_AXES);
-  const best = scored.slice().sort((a, b) => b.n - a.n)[0];
+  /* 축이 충분한 것들 중 **색이 가장 갈리는** 것 */
+  const byGap = (a, b) => b.gap - a.gap;
+  const enough = scored.filter((c) => c.n >= MIN_AXES).sort(byGap)[0];
+  const best = scored.slice().sort((a, b) => (b.n - a.n) || (b.gap - a.gap))[0];
   const fallback = wantB === 'formal' ? 'institutional' : 'global_ib';
   const chosen = enough || best;
   const bId = (chosen && chosen.id) || fallback;
