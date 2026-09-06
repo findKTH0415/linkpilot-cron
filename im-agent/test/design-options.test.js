@@ -165,6 +165,52 @@ test('★ 화면이 예시 숫자임을 **화면에** 박는다 (데모를 실�
   assert.match(html, /예시/, '예시임을 안 적었다');
 });
 
+test('★★★ B안은 **그 문서 종류에 쓰는 테마**에서 고른다 (없으면 없다고 적는다)', () => {
+  /* 실측에서 잡았다: IM 인데 B안이 `government`(공식 행정형)로 나왔다 —
+     그 테마는 docTypes 에 im 을 안 적어 두었다. 갈리기만 하면 되는 것이 아니라
+     **둘 다 쓸 수 있는 안**이어야 고를 거리가 된다. */
+  const cases = [
+    { assetType: 'datacenter', docType: 'im', investorType: 'institutional' },
+    { assetType: 'hotel', docType: 'teaser' },
+    { assetType: 'road', docType: 'feasibility' },
+    { assetType: 'office', docType: 'ic_memo' },
+  ];
+  cases.forEach((d) => {
+    const r = options.pick2(d);
+    const T = themes.get(r.B.themeId);
+    const fits = (T.docTypes || []).includes(d.docType);
+    if (r.docFiltered) {
+      assert.ok(fits, `${d.docType} 인데 B안 ${r.B.themeId} 은 그 문서에 쓴다고 안 적혀 있다`);
+      assert.strictEqual(r.B.docFit, true);
+    } else {
+      /* 못 맞췄으면 **못 맞췄다고 적어야** 한다 */
+      assert.match(r.B.why, /문서 종류를 못 맞췄다/,
+        `${d.docType} 에서 문서 종류를 못 맞췄는데 그 사실을 안 적었다`);
+    }
+  });
+
+  /* 거를 것이 없는 경우가 실제로 있는지 — 없으면 위 else 는 헛돈다 */
+  const none = options.pick2({ assetType: 'solar', docType: 'pf_proposal', investorType: 'bank' });
+  assert.strictEqual(none.docFiltered, false, '표본이 「못 맞추는 경우」를 안 담고 있다');
+  assert.match(none.B.why, /문서 종류를 못 맞췄다/);
+});
+
+test('★★ 문서 종류에 안 맞는 안은 **화면에 그렇다고 적는다** (조용히 넘어가지 않는다)', () => {
+  /* A안도 잰다 — A 는 recommend.js 가 고르는데 자산유형 가중치(40)가
+     문서유형(22)보다 커서 문서에 안 맞는 테마가 1위로 올 수 있다 (실측). */
+  const sig = { assetType: 'office', docType: 'ic_memo' };
+  const r = options.pick2(sig);
+  assert.strictEqual(r.A.docFit, false, '표본이 「안 맞는 A안」을 안 담고 있다');
+  const html = builder.build(sig);
+  assert.match(html, /쓴다고 적혀 있지 않습니다/, '안 맞는다는 사실이 화면에 없다');
+  assert.strictEqual((html.match(/class="misfit"/g) || []).length, 1,
+    '안 맞는 안이 하나인데 경고가 하나가 아니다');
+
+  /* 둘 다 맞으면 경고가 하나도 없어야 한다 — 늘 뜨면 아무도 안 본다 */
+  const ok = builder.build({ assetType: 'datacenter', docType: 'im', investorType: 'institutional' });
+  assert.strictEqual((ok.match(/class="misfit"/g) || []).length, 0, '멀쩡한데 경고가 떴다');
+});
+
 test('★ 커밋된 화면이 지금 소스로 만든 것과 같다 (CLAUDE.md §8)', () => {
   let got;
   try { got = fs.readFileSync(builder.OUT, 'utf8'); }

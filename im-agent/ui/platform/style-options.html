@@ -666,6 +666,7 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
 .after b{color:var(--im-primary)}
 .after code{background:var(--im-surface-alt);padding:2px 6px}
 
+.misfit{margin:8px 0 0;padding:7px 10px;background:#FCF3E0;color:#8A6100;font-size:12.5px;line-height:1.5}
 .two{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}
 .dbox{background:var(--im-surface);padding:16px 20px}
 .dh{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;margin:0 0 8px;color:var(--im-primary)}
@@ -690,7 +691,7 @@ footer{margin-top:56px;padding-top:16px;border-top:1px solid var(--im-rule-stron
   <p class="lede">테마 13개 중 <b>둘</b>만 골라 나란히 놓았습니다. 두 장은 <b>같은 딜·같은 숫자</b>이고 다른 것은 스타일뿐입니다 — 그래야 차이가 곧 고를 거리가 됩니다.</p>
 
   <div class="verdict">
-    <b>Global Investment Bank</b><span class="vs">대</span><b>Government / Public</b>
+    <b>Global Investment Bank</b><span class="vs">대</span><b>Infrastructure</b>
     <div class="small" style="margin-top:6px">두 안은 2가지가 갈린다 — 다만 <b>색은 가깝다</b>(둘 다 같은 계열). 갈리는 것은 형식이지 색이 아니다.</div>
   </div>
   <p class="small">딜 신호: <code>assetType=datacenter · docType=im · investorType=institutional · country=KR</code> — 신호가 바뀌면 두 안도 바뀝니다.</p>
@@ -701,6 +702,7 @@ footer{margin-top:56px;padding-top:16px;border-top:1px solid var(--im-rule-stron
     <div class="opt-role">A안 · 권장안</div>
     <h2 class="opt-name">Global Investment Bank</h2>
     <div class="opt-kr">M&amp;A / 글로벌 투자자 · <span class="fam">현대·시각</span> · 추천 <b>60</b>점</div>
+
   </header>
 
   <div class="pages">
@@ -747,11 +749,12 @@ footer{margin-top:56px;padding-top:16px;border-top:1px solid var(--im-rule-stron
     A안으로 정한다
   </button>
 </section>
-<section class="opt" data-im-theme="government" data-role="B">
+<section class="opt" data-im-theme="infrastructure" data-role="B">
   <header class="opt-h">
     <div class="opt-role">B안 · 보수·공식안</div>
-    <h2 class="opt-name">Government / Public</h2>
-    <div class="opt-kr">공공기관 / 지자체 / 정책사업 · <span class="fam">보수·공식</span> · 추천 점수 없음</div>
+    <h2 class="opt-name">Infrastructure</h2>
+    <div class="opt-kr">SOC / 물류 / 산업단지 · <span class="fam">보수·공식</span> · 추천 점수 없음</div>
+
   </header>
 
   <div class="pages">
@@ -783,19 +786,19 @@ footer{margin-top:56px;padding-top:16px;border-top:1px solid var(--im-rule-stron
 
   <div class="opt-b">
     <h3>왜 이 자리에 놓였나</h3>
-    <p>A안(Global Investment Bank)이 현대·시각 계열이라, <b>성격이 갈리는</b> 보수·공식 계열에서 갈리는 축이 가장 확실한 것을 골랐다 (2가지가 갈린다) — 추천 목록에는 없지만, <b>고를 거리를 만들려고</b> 넣었다</p>
+    <p>A안(Global Investment Bank)이 현대·시각 계열이라, <b>성격이 갈리는</b> 보수·공식 계열에서 갈리는 축이 가장 확실한 것을 골랐다 (2가지가 갈린다) — im 에 쓰는 테마 중에서만 골랐다 — 추천 목록에는 없지만, <b>고를 거리를 만들려고</b> 넣었다</p>
 
     <h3>장점</h3>
-    <ul><li>Formal · Clear · Accessible · Official</li><li>문체 공식 행정형 — 객관적 · 절차적 · 근거 중심 (공기업·공공기관 대상)</li><li>공공기관·지자체·정책사업·공공투자</li><li>표준 간격 (절 간격 20px)</li></ul>
+    <ul><li>Master Plan · Infrastructure Map · Timeline · Funding Structure</li><li>문체 기술전문형 — 조건 · 규격 · 검토방법 (전문기업·엔지니어링 대상)</li><li>도로·철도·항만·발전소·산업단지·물류</li><li>표준 간격 (절 간격 20px)</li></ul>
 
     <h3>주의점</h3>
     <ul class="warn"><li>구조적으로 걸리는 점이 없다 — 무난한 안이다</li></ul>
 
     <h3>나오는 모습</h3>
-    <p class="shape">괘선 표지 · 표준 · 공식 행정형 · 차트색 5단</p>
+    <p class="shape">괘선 표지 · 표준 · 기술전문형 · 차트색 5단</p>
   </div>
 
-  <button type="button" class="choose" data-t="government" data-role="B" aria-pressed="false">
+  <button type="button" class="choose" data-t="infrastructure" data-role="B" aria-pressed="false">
     B안으로 정한다
   </button>
 </section>
@@ -808,11 +811,11 @@ footer{margin-top:56px;padding-top:16px;border-top:1px solid var(--im-rule-stron
   <div class="two">
     <div class="dbox">
       <h3 class="dh">갈리는 것 2가지</h3>
-      <ul><li>표지 형식: 사진+글자 분할 표지 대 괘선 표지</li><li>문체: 경영진 요약형 대 공식 행정형</li></ul>
+      <ul><li>표지 형식: 사진+글자 분할 표지 대 괘선 표지</li><li>문체: 경영진 요약형 대 기술전문형</li></ul>
     </div>
     <div class="dbox">
       <h3 class="dh same">같은 것 2가지</h3>
-      <ul><li>정보 밀도: 둘 다 표준</li><li>주색: #0B1B2B 와 #12365E — 색 거리 58 (기준 60 미만이면 나란히 놓아도 구별이 어렵다)</li></ul>
+      <ul><li>정보 밀도: 둘 다 표준</li><li>주색: #0B1B2B 와 #263238 — 색 거리 38 (기준 60 미만이면 나란히 놓아도 구별이 어렵다)</li></ul>
     </div>
   </div>
 

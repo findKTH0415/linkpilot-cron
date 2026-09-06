@@ -200,7 +200,26 @@ function pick2(signals = {}) {
     .filter((id) => id !== A.id && FAMILY[id] === wantB);
   const rest = Object.keys(FAMILY)
     .filter((id) => FAMILY[id] === wantB && id !== A.id && !inRanked.includes(id));
-  const candidates = inRanked.concat(rest);
+  let candidates = inRanked.concat(rest);
+
+  /* ★★★ **그 문서 종류에 쓰는 테마 중에서 고른다** 〈2026-09-06 · 실측에서 잡았다〉.
+     갈래와 갈리는 축만 보고 골랐더니 **IM 에 `government`(공식 행정형)** 가 B안으로
+     나왔다. 그 테마는 `docTypes` 에 `im` 을 아예 안 적어 두었다 — 타당성조사·
+     재무보고서용이다. 「갈린다」는 맞지만 **그 문서에 쓸 안이 아니다.**
+
+     ★ 갈리기만 하면 되는 것이 아니라 **둘 다 쓸 수 있는 안**이어야 고를 거리가 된다.
+       한쪽이 애초에 못 쓰는 안이면 선택지가 하나인 것과 같다.
+     ★★ 다만 **거르고 났더니 아무도 안 남으면 거르지 않는다** — 그때는 문서 종류에
+       맞는 보수(또는 현대) 계열이 이 시스템에 없다는 뜻이고, 그 사실을 적는다.
+       비었는데 걸러진 채로 두면 엉뚱한 기본값이 조용히 나간다. */
+  const want = signals.docType;
+  const fitsDoc = (id) => {
+    const T = themes.get(id);
+    return !want || (T && Array.isArray(T.docTypes) && T.docTypes.includes(want));
+  };
+  const fitted = candidates.filter(fitsDoc);
+  const docFiltered = fitted.length > 0;
+  if (docFiltered) candidates = fitted;
 
   /* ★★★ **갈래만 반대면 충분하지 않다** 〈2026-09-06 · 그려 보고 알았다〉.
      첫 판은 `global_ib`(현대 계열)와 `institutional`(보수 계열)을 냈는데,
@@ -236,6 +255,15 @@ function pick2(signals = {}) {
   const ra = reasonOf(A.id);
   const rb = reasonOf(B.id);
 
+  /* ★★ **그 안이 이 문서 종류에 쓴다고 적혀 있는가** — 재서 그대로 적는다.
+     A안은 `recommend.js` 가 고르는데, 그쪽은 **자산유형 가중치(40)가 문서유형(22)보다
+     커서** 문서 종류에 안 맞는 테마가 1위로 올라올 수 있다 (실측: office+ic_memo →
+     `real_estate`). 여기서 추천 규칙을 바꾸지는 않는다 — 다른 자리에 영향이 간다.
+     대신 **안 맞으면 안 맞는다고 화면에 적는다.** 조용히 넘어가면 사장님이
+     그 사실을 모르신 채로 고르신다 (CLAUDE.md §8 「못 잰 것은 통과가 아니다」와 같은 결). */
+  const docFit = (T) => !signals.docType
+    || (Array.isArray(T.docTypes) && T.docTypes.includes(signals.docType));
+
   const opt = (T, role, roleKr, r, why) => ({
     role,                                   // 'A' | 'B'
     roleKr,                                 // 화면에 쓰는 이름
@@ -251,6 +279,8 @@ function pick2(signals = {}) {
     strengths: strengths(T),
     cautions: cautions(T),
     shape: shape(T),
+    docFit: docFit(T),
+    docType: signals.docType || null,
   });
 
   const A0 = opt(A, 'A', '권장안', ra,
@@ -259,6 +289,7 @@ function pick2(signals = {}) {
   const B0 = opt(B, 'B', wantB === 'formal' ? '보수·공식안' : '현대·시각안', rb,
     `A안(${A.label})이 ${FAMILY_KR[famA]} 계열이라, **성격이 갈리는** ${FAMILY_KR[wantB]} 계열에서`
     + ` 갈리는 축이 가장 확실한 것을 골랐다 (${chosen ? chosen.n : 0}가지가 갈린다)`
+    + (want ? (docFiltered ? ` — ${want} 에 쓰는 테마 중에서만 골랐다` : ` — ★ ${want} 에 쓴다고 적힌 ${FAMILY_KR[wantB]} 테마가 없어 **문서 종류를 못 맞췄다**`) : '')
     + (bWasRanked ? ` — 추천 목록에도 든 안이다 (${rb ? rb.confidence + '점' : '점수 없음'})` : ' — 추천 목록에는 없지만, **고를 거리를 만들려고** 넣었다'));
   const diffs = differences(A0, B0);
 
@@ -267,6 +298,7 @@ function pick2(signals = {}) {
     B: B0,
     diffs,
     signals: rec.signals,
+    docFiltered,
     ranked,
     /* ★ 「갈린다」를 말로만 적지 않는다 — **무엇이 갈리고 무엇이 같은지** 함께 적는다.
        색이 가까운데 「성격이 갈린다」고만 쓰면 그림과 글이 서로 다른 말을 한다. */

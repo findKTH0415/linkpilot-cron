@@ -114,6 +114,7 @@ function card(o) {
     <div class="opt-role">${esc(o.role)}안 · ${esc(o.roleKr)}</div>
     <h2 class="opt-name">${esc(o.label)}</h2>
     <div class="opt-kr">${esc(o.labelKr)} · <span class="fam">${esc(o.familyKr)}</span>${o.confidence != null ? ` · 추천 <b>${o.confidence}</b>점` : ' · 추천 점수 없음'}</div>
+${o.docFit ? '' : `    <p class="misfit">이 테마는 <b>${esc(o.docType)}</b> 에 쓴다고 적혀 있지 않습니다 — 쓸 수는 있지만, 그 문서용으로 만든 스타일이 아닙니다.</p>`}
   </header>
 
   <div class="pages">
@@ -233,6 +234,7 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
 .after b{color:var(--im-primary)}
 .after code{background:var(--im-surface-alt);padding:2px 6px}
 
+.misfit{margin:8px 0 0;padding:7px 10px;background:#FCF3E0;color:#8A6100;font-size:12.5px;line-height:1.5}
 .two{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}
 .dbox{background:var(--im-surface);padding:16px 20px}
 .dh{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;margin:0 0 8px;color:var(--im-primary)}
