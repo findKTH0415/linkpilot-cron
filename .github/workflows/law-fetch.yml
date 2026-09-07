@@ -21,9 +21,9 @@ jobs:
   fetch:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '20'
 
@@ -44,7 +44,7 @@ jobs:
       # ★ 실패해도 올린다 — 진단 요약(_summary.md)이 실패했을 때 가장 필요하다
       - name: 아티팩트 업로드
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: law-data
           path: data/law

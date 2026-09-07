@@ -160,10 +160,10 @@ jobs:
       # ★ `fetch-depth: 0` 이 필요하다. 기본은 커밋 하나만 받아 와서
       #   `git diff <이전> <지금>` 이 「그런 커밋 없음」으로 죽는다 — 그러면
       #   엔진을 올릴지 말지를 **못 재고**, 못 잰 채로 넘어가게 된다
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '20'
       - name: Decide what to deploy
@@ -250,8 +250,8 @@ jobs:
     env:
       IM_AGENT_OFFLINE: '1'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: '20'
       # 한글 글꼴이 없으면 브라우저가 **말없이 다른 글꼴로** 그린다 (D-52)
@@ -315,10 +315,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       # ★ 라우트 점검(`verify:nas`)이 node 로 돈다. 없으면 그 단계만 조용히
       #   죽는데, 하필 **조용히 죽으면 안 되는** 단계다
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '20'
 
@@ -385,6 +385,37 @@ jobs:
           for v in NAS_HOST NAS_USER NAS_KEY; do
             [ -n "${!v:-}" ] || NAS_OK=0
           done
+
+          # ★★★ **「있음」과 「열쇠다」는 다른 사실이다** 〈2026-09-07 · 실측〉.
+          #
+          #   NAS_SSH_KEY 에 **11바이트짜리 글자**가 들어 있었다. 위 say 는
+          #   비었는지만 보므로 그대로 **「있음」으로 통과**했고, 배포는 스무
+          #   단계 뒤 ssh 에서야 죽었다:
+          #
+          #     Load key ".../id_deploy": error in libcrypto
+          #
+          #   ★ 그 오류는 **「열쇠가 깨졌다」와 구분되지 않는다.** 그래서 하루를
+          #     방화벽·tailnet·OAuth 를 뒤지며 보냈다 — 정작 들어 있던 것은
+          #     열쇠가 아니었다. 개인키는 짧아도 400바이트가 넘는다.
+          #
+          # ★★ **값은 한 글자도 안 찍는다** (§2). 길이·줄 수와 머리표 **모양**만 잰다.
+          #   머리표가 표준 머리표일 때만 그대로 찍는다 — 한 줄로 붙은 열쇠의
+          #   첫 줄은 열쇠 본문이라 찍으면 그대로 새어 나간다.
+          if [ -n "${NAS_KEY:-}" ]; then
+            KB=$(printf '%s' "$NAS_KEY" | wc -c | tr -d ' ')
+            KL=$(printf '%s\n' "$NAS_KEY" | wc -l | tr -d ' ')
+            if printf '%s\n' "$NAS_KEY" | head -1 | grep -qE '^-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----$'; then
+              echo "  NAS_SSH_KEY 모양: 개인키로 보인다 ($KB 바이트 · $KL 줄)"
+            elif printf '%s\n' "$NAS_KEY" | head -1 | grep -q '^PuTTY-User-Key-File'; then
+              echo "::error::**NAS_SSH_KEY 가 PuTTY 형식(.ppk) 이다** — OpenSSH 는 이 형식을 못 읽는다. OpenSSH 형식 개인키로 다시 넣는다"
+              MISSING="$MISSING NAS_SSH_KEY(PuTTY 형식이다)"
+              NAS_OK=0
+            else
+              echo "::error::**NAS_SSH_KEY 에 든 것이 개인키가 아니다** — $KB 바이트 · $KL 줄이고, 첫 줄이 -----BEGIN … PRIVATE KEY----- 이 아니다. 개인키는 짧아도 400바이트가 넘는다. 맥 터미널에서 pbcopy 로 ~/.ssh/id_deploy 를 통째로 복사해 이 Secret 을 다시 넣는다"
+              MISSING="$MISSING NAS_SSH_KEY(모양이 개인키가 아니다)"
+              NAS_OK=0
+            fi
+          fi
 
           if [ "${DRY:-}" = "true" ]; then
             # ★ dry run 에서는 **판정만 하고 mode 를 넘기지 않는다.**
@@ -486,6 +517,7 @@ jobs:
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
           printf '%s\n' "$NAS_KEY" > ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
+
           # 호스트키를 미리 받아둔다. StrictHostKeyChecking 을 끄지 않는다
           #
           # ★★★ **`|| { ... }` 를 반드시 붙인다** 〈2026-08-23 · 실제로 당했다〉.
@@ -1832,6 +1864,98 @@ jobs:
         if: ${{ always() && needs.plan.outputs.dry_run != 'true' }}
         run: |
           echo "::notice::**올리고 재는 것까지 끝났다.** 「Verify deployed」 의 저장소·디스크가 같아야 실제로 닿은 것이다. HTTP 가 다르다는 경고는 잰 길(포트 80)이 앱이 쓰는 길(Funnel 443)과 달라서일 수 있다 — 원인 후보 셋이 로그에 적혀 있다 (M-25)."
+
+      # ★★★ **열쇠 진단은 「Set up ssh」 안이 아니라 맨 끝에 둔다** 〈2026-09-07 · 실측〉.
+      #
+      #   처음엔 그 단계 안에 넣었다. 그런데 거기서 죽어도 뒤의 진단 단계
+      #   스무 개가 계속 돌면서 **로그를 1000줄 넘게 밀어낸다** — 정작 재려던
+      #   여섯 줄이 한가운데 묻혀 **꺼내 볼 수가 없었다.** (실제로 두 번 못 꺼냈다.)
+      #
+      #   ★ 그래서 **맨 끝에서 찍는다.** 열쇠 파일은 같은 러너에 그대로 남아
+      #     있으므로 다시 만들 것이 없다. 단계 이름이 따로 있어 화면에서도 바로 찾힌다.
+      #   ★★ **`always()` 여야 한다.** 이 진단이 필요한 때는 언제나 **앞이 죽은 때**다.
+      - name: 열쇠 모양 진단 (값은 안 찍는다)
+        if: ${{ always() && needs.plan.outputs.dry_run != 'true' }}
+        env:
+          NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+          NAS_USER: ${{ secrets.NAS_SSH_USER }}
+        run: |
+          set -uo pipefail
+          if [ ! -f ~/.ssh/id_deploy ]; then
+            echo "열쇠 파일이 없다 — 「Set up ssh」 가 시작도 못 했다"
+            exit 0
+          fi
+          # ★★★ **열쇠가 안 열리면 「왜 안 열리는지」를 값 없이 잰다** 〈2026-09-07 · 실측〉.
+          #
+          #   실제로 이렇게 죽었다:
+          #     Load key ".../id_deploy": error in libcrypto
+          #     Permission denied (publickey,password).
+          #
+          #   이 한 줄에 **서로 다른 고장 셋**이 겹쳐 보인다 — 줄바꿈이 사라져 한
+          #   줄로 붙은 것 · 머리꼬리표가 잘린 것 · PuTTY 형식인 것. 셋 다 같은
+          #   말만 나오므로 **짐작으로 열쇠를 새로 만들면 틀린 것을 고치게 된다.**
+          #   그래서 붙기 전에 **모양부터 잰다** (CLAUDE.md §4 「진단부터 짠다」).
+          #
+          # ★★ **값은 한 글자도 안 찍는다** (§2). 머리표는 그것이 표준 머리표일
+          #   때만 그대로 찍고, 아니면 「머리표가 아니다」로만 적는다 — 한 줄로
+          #   붙은 열쇠의 첫 줄은 **열쇠 본문**이라 찍으면 그대로 새어 나간다.
+          echo "바이트 $(wc -c < ~/.ssh/id_deploy | tr -d ' ') · 줄 $(wc -l < ~/.ssh/id_deploy | tr -d ' ')"
+          if head -1 ~/.ssh/id_deploy | grep -qE '^-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----$'; then
+            echo "머리표: $(head -1 ~/.ssh/id_deploy)"
+          elif head -1 ~/.ssh/id_deploy | grep -q '^PuTTY-User-Key-File'; then
+            echo "머리표: **PuTTY 형식(.ppk) 이다** — OpenSSH 는 이 형식을 못 읽는다"
+          else
+            echo "머리표: **없다** — 첫 줄이 -----BEGIN … PRIVATE KEY----- 이 아니다"
+          fi
+          if tail -1 ~/.ssh/id_deploy | grep -qE '^-----END [A-Z0-9 ]*KEY-----$'; then
+            echo "꼬리표: 있다"
+          else
+            echo "꼬리표: **없다** — 마지막 줄이 -----END … KEY----- 이 아니다"
+          fi
+          if LC_ALL=C grep -q "$(printf '\r')" ~/.ssh/id_deploy; then
+            echo "줄끝: **CR 이 섞여 있다** (윈도우 줄바꿈 — OpenSSH 가 거부한다)"
+          else
+            echo "줄끝: LF (정상)"
+          fi
+          if ssh-keygen -y -f ~/.ssh/id_deploy </dev/null >/dev/null 2>"$RUNNER_TEMP/keyerr.txt"; then
+            echo "열쇠 읽기: **된다** · 지문 $(ssh-keygen -lf ~/.ssh/id_deploy 2>/dev/null | awk '{print $2}')"
+            echo "  ★ 여기까지 되는데 붙지 못하면 열쇠가 깨진 것이 아니라 **NAS 의 authorized_keys 에 안 들어간 것**이다."
+          else
+            echo "열쇠 읽기: **안 된다** — $(tr -d '\r' < "$RUNNER_TEMP/keyerr.txt" | head -3 | tr '\n' ' ')"
+            echo "  ※ 위 「머리표·꼬리표·줄끝」 셋 중 무엇이 어긋났는지가 곧 원인이다."
+          fi
+
+          # ★★★ **열쇠가 멀쩡한데 못 붙는 자리를 갈라 적는다** 〈2026-09-07 · 실측〉.
+          #
+          #   열쇠 모양은 통과했는데(바이트 412 · 줄 8 · 읽기 된다) 「Set up ssh」 가
+          #   4초 만에 죽었다. 그러면 남은 후보가 **셋**인데 로그에는 한 줄만 남아
+          #   구분이 안 된다:
+          #     ① 22번이 안 열렸다(호스트키를 못 받는다)
+          #     ② NAS_SSH_USER 가 그 계정이 아니다
+          #     ③ 그 계정의 authorized_keys 에 이 열쇠가 없다
+          #
+          # ★ 그래서 **두 단계로 갈라 잰다** — 호스트키를 받는가(①), 그다음 붙는가(②③).
+          #   ①이 되고 ②③에서 거부되면 「기계는 열려 있고 사람이 아니다」로 좁혀진다.
+          # ★★ 값은 안 찍는다. 주소·계정은 Secret 이라 GitHub 이 *** 로 가려 찍고,
+          #   여기서는 그 결과만 사람 말로 적는다 (§2).
+          echo "── 붙어 보기 ──"
+          if ssh-keyscan -H "$NAS_HOST" > "$RUNNER_TEMP/hk.txt" 2>/dev/null && [ -s "$RUNNER_TEMP/hk.txt" ]; then
+            echo "호스트키: **받았다** — 22번이 열려 있고 NAS 가 대답한다"
+          else
+            echo "호스트키: **못 받았다** — 22번이 안 열렸거나 주소가 다르다 (그러면 아래는 볼 것도 없다)"
+          fi
+          OUT=$(ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+                    -o ConnectTimeout=20 -i ~/.ssh/id_deploy "$NAS_USER@$NAS_HOST" 'echo LPOK' 2>&1 | tail -3)
+          case "$OUT" in
+            *LPOK*)
+              echo "붙기: **된다** — 여기가 되는데 「Set up ssh」 가 죽었다면 그 단계의 호스트키 확인이 원인이다" ;;
+            *"Permission denied"*)
+              echo "붙기: **거부됐다.** 열쇠는 멀쩡하므로 기계가 아니라 **사람 쪽**이다 — 둘 중 하나다:"
+              echo "  ① NAS_SSH_USER 가 그 열쇠를 넣어 둔 계정이 아니다"
+              echo "  ② 그 계정의 ~/.ssh/authorized_keys 에 이 지문이 없다 (또는 홈 권한이 헐거워 무시된다)" ;;
+            *)
+              echo "붙기: **안 된다** — $OUT" ;;
+          esac
 
       - name: Dry run summary
         if: ${{ needs.plan.outputs.dry_run == 'true' }}

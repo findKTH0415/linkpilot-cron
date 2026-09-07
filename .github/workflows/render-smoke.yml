@@ -21,8 +21,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with: { node-version: 20 }
       # 원본 이미지 — 저장소의 미리 그려 둔 화면을 크롬으로 찍는다.
       # 실측 목적(모델 ID·응답 형상 확인)에는 어떤 래스터든 충분하다.
@@ -49,7 +49,7 @@ jobs:
           exit "$CODE"
       - name: Upload candidates
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: render-candidates
           path: |
