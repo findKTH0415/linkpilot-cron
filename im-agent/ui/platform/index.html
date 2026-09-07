@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="b9970662">
+<html lang="ko" data-lp-build="5d969cce">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -293,7 +293,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=b9970662">
+<link rel="stylesheet" href="tokens.css?v=5d969cce">
 <style>
 /* ── 판 ─────────────────────────────────────────────────────────────── */
 :root { color-scheme: light dark; }
@@ -382,7 +382,7 @@ body {
   <p id="lp-boot" class="foot">화면을 그리는 중입니다…</p>
 </div>
 
-<script src="flow-core.js?v=b9970662"></script>
+<script src="flow-core.js?v=5d969cce"></script>
 <script>
 (function () {
   var want = document.documentElement.getAttribute('data-lp-build');
@@ -486,6 +486,81 @@ body {
   } catch (_) { /* fetch 가 없는 자리도 있다 — 그때는 위 문장으로 둔다 */ }
   var put = function () { if (document.body) document.body.appendChild(n); };
   if (document.body) put(); else document.addEventListener('DOMContentLoaded', put);
+}());
+</script>
+<script>
+/* ★★★ **「화면↔스크립트」가 맞아도 옛 판일 수 있다** 〈2026-09-07 · 사장님 화면 · M-77〉.
+ *
+ *   [사고] 사장님 화면의 보고서 판이 942097fb 였다. 그것은 이 저장소가 **8월 30일**에
+ *     낸 판이고, NAS 에는 그날 판(b9970662)이 실려 있었다. **여드레 옛 화면**을
+ *     보고 계셨는데 위의 짝 확인은 한 번도 안 울렸다 — 화면과 형제 스크립트가
+ *     **둘 다 8월 30일 것**이라 서로 맞았기 때문이다.
+ *
+ *   ★ 위 검사는 「이 화면과 그 스크립트가 한 판인가」를 잰다. 그것은 **묶음 안의**
+ *     일관성이다. 「이 화면이 지금 서버에 있는 그 판인가」는 **아무도 안 물었다.**
+ *     둘은 다른 사실인데 하나만 재고 있었다.
+ *
+ *   ★★ 그래서 여기서 **서버에 직접 물어본다.** 캐시를 안 쓰고 제 주소를 다시 받아
+ *     거기 적힌 판을 지금 그려진 판과 댄다. 다르면 **한 번은 화면이 스스로 고친다**
+ *     — 고치는 일을 사람에게 떠넘기지 않는다 (M-58 과 같은 결). 고치고도 그대로면
+ *     그때 띠를 띄우고 **두 판을 나란히 적는다.**
+ *
+ *   ★★★ **서비스워커를 건드리지 않는다.** 이 화면은 앱 안에 얹혀 있어 같은 출처지만,
+ *     앱의 서비스워커는 저쪽(linkpilot-platform) 것이다. 이쪽이 저쪽 살림에 손대지
+ *     않는다 (CLAUDE.md §8-2 — 줄기의 방향). 주소에 표를 붙여 다시 받는 것으로 충분하다.
+ *
+ *   ★ 한 판당 **세션에 한 번**만 묻고, 고치는 것도 **한 번**뿐이다. 서버에 정말 옛
+ *     판이 있으면 다시 받아도 같다 — 그때 또 받으면 끝없이 돈다.
+ */
+(function () {
+  'use strict';
+  var want = '';
+  try { want = document.documentElement.getAttribute('data-lp-build') || ''; } catch (_) { return; }
+  if (!want) return;                       /* 판을 안 박은 화면은 잴 것이 없다 */
+
+  function bust(u, name) {
+    u = u.replace(new RegExp('[?&]' + name + '=\\d+'), '');
+    return u + (u.indexOf('?') < 0 ? '?' : '&') + name + '=' + Date.now();
+  }
+  function mark(k) {                       /* 저장소가 막힌 자리에서는 「이미 했다」로 친다 — 도는 것이 더 나쁘다 */
+    try { if (sessionStorage.getItem(k)) return false; sessionStorage.setItem(k, '1'); return true; }
+    catch (_) { return false; }
+  }
+  if (!mark('lp-fresh-' + want)) return;
+
+  var url;
+  try { url = bust(location.href, 'lpfresh'); } catch (_) { return; }
+  try {
+    fetch(url, { cache: 'no-store', credentials: 'same-origin' })
+      .then(function (r) { return r.ok ? r.text() : ''; })
+      .then(function (t) {
+        var m = /data-lp-build="([0-9a-f]+)"/.exec(t || '');
+        var served = m && m[1];
+        if (!served || served === want) return;   /* 못 읽었으면 아무 말 안 한다 — 지어내지 않는다 */
+
+        if (mark('lp-freshfix-' + want)) {        /* 한 번은 스스로 고친다 */
+          try { location.replace(bust(location.href, 'lpfresh')); return; } catch (_) { }
+        }
+        var n = document.createElement('div');
+        n.setAttribute('data-lp-stale', '');
+        n.setAttribute('style', 'position:fixed;left:0;right:0;top:0;z-index:99999;display:flex;'
+          + 'gap:10px;align-items:center;background:#C00000;color:#fff;padding:12px 16px;'
+          + 'font:700 13px/1.5 system-ui,sans-serif');
+        var s = document.createElement('span');
+        s.setAttribute('style', 'flex:1;min-width:0');
+        s.textContent = '이 화면은 옛 판입니다 — 서버에는 새 판이 있습니다. '
+          + '지금 화면 ' + want + ' · 서버 ' + served + '. 다시 받아도 그대로면 알려 주십시오.';
+        var b = document.createElement('button');
+        b.textContent = '새 판으로 받기';
+        b.setAttribute('style', 'flex:none;border:0;border-radius:8px;padding:6px 12px;'
+          + 'background:#fff;color:#C00000;font-weight:800;cursor:pointer');
+        b.onclick = function () { try { location.replace(bust(location.href, 'lpfresh')); } catch (_) { } };
+        n.appendChild(s); n.appendChild(b);
+        var put = function () { try { if (document.body) document.body.appendChild(n); } catch (_) { } };
+        if (document.body) put(); else document.addEventListener('DOMContentLoaded', put);
+      })
+      .catch(function () { });               /* 못 물어본 것은 옛 판이라는 뜻이 아니다 — 조용히 둔다 */
+  } catch (_) { }
 }());
 </script>
 <script>
