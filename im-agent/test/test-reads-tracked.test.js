@@ -14,6 +14,10 @@
  * ★★ 그래서 **글자가 아니라 git 에게 묻는다.** 검사 파일이 이름을 대는 `.html`·`.js`
  *   가운데 **추적되지 않는 것**이 있으면 빨개진다. 「내 자리에서는 된다」가 통하지 않는다.
  *
+ * ★★★ **깨끗한 자리에서는 걸릴 것이 0개인 것이 정상이다** 〈2026-09-07 · CI 에서 실측〉.
+ *   앞 판은 그 0개를 「공회전」으로 읽고 **CI 에서만 빨갰다** — 새로 받은 자리에는
+ *   산출물이 아직 없다. 공회전은 **파일 수**가 아니라 **체가 도는가**로 재야 한다.
+ *
  * ⚠ 주석을 걷고 본다 — 위 경위에 그 파일 이름이 글자로 적혀 있다 (§8).
  */
 const test = require('node:test');
@@ -32,19 +36,28 @@ const DIR = __dirname;
  *   시험이 스스로 만드는 임시 파일(`probe.html` · `out.html` …)까지 잡혀 열두 칸이
  *   헛울었다. 재려는 것은 그것이 아니라 **「내 자리에만 있는 진짜 산출물」**이다.
  * ★★ 그래서 **git 에게 두 번 묻는다**: 지금 있는 UI 파일 목록과, 그중 추적되는 것.
- *   그 차이가 곧 위험한 이름이다. 목록이 비면 이 검사는 **아무것도 안 재므로**
- *   그 사실 자체로 빨개진다.
+ *   그 차이가 곧 위험한 이름이다.
+ * ★ 그 차이가 0개인 것은 **정상**이다(깨끗한 자리). 대신 **체가 도는지**를 따로 잰다 —
+ *   `sieve()` 에 지어낸 목록을 넣어 답이 맞는지 보고, git 이 대답을 했는지 본다.
  */
-function risky() {
-  const here = fs.readdirSync(path.join(ROOT, 'im-agent', 'ui', 'platform'));
-  const out = execFileSync('git', ['ls-files', 'im-agent/ui/platform/'],
-    { cwd: ROOT, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 });
-  const T = new Set(out.split('\n').filter(Boolean).map((p2) => p2.split('/').pop()));
+function sieve(here, tracked) {
+  const T = new Set(tracked);
   /* ★ 검사가 **스스로 만드는** 파일은 위험이 아니다 — 이 저장소는 그런 것에 `__` 나
      `.` 를 앞에 붙인다(`__stage-ok-probe.html` · `__evidence-probe.html`).
      재려는 것은 **남이 만드는 산출물을 읽는 것**이다. */
   return here.filter((n) => /\.(html|css|js)$/.test(n)
     && !n.startsWith('.') && !n.startsWith('__') && !T.has(n));
+}
+
+/** git 이 추적하는 UI 파일 이름들 */
+function tracked() {
+  const out = execFileSync('git', ['ls-files', 'im-agent/ui/platform/'],
+    { cwd: ROOT, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 });
+  return out.split('\n').filter(Boolean).map((p2) => p2.split('/').pop());
+}
+
+function risky() {
+  return sieve(fs.readdirSync(path.join(ROOT, 'im-agent', 'ui', 'platform')), tracked());
 }
 
 /** 검사 파일이 이름을 대는 자리 — 주석은 걷고 본다 */
@@ -54,12 +67,22 @@ function named(file) {
     .replace(/^\s*\/\/.*$/gm, ' ');
 }
 
-test('잴 것을 실제로 찾았다 — 0개를 훑고 통과라고 말하지 않는다', () => {
+test('★ 재는 장치가 실제로 돈다 — 0개를 훑고 통과라고 말하지 않는다', () => {
   const files = fs.readdirSync(DIR).filter((n) => n.endsWith('.test.js'));
   assert.ok(files.length >= 50, `검사 파일을 ${files.length}개만 찾았다 — 훑는 자리가 틀렸다`);
-  assert.ok(risky().length >= 1,
-    '★ 추적 안 되는 UI 산출물을 하나도 못 찾았다 — 이 자리에서 아직 안 만들어 본 것이거나 '
-    + 'git 에게 묻는 길이 막힌 것이다. 어느 쪽이든 이 검사는 **아무것도 안 재고 있다**');
+
+  /* ★★★ **깨끗한 자리에서는 「추적 안 되는 파일」이 0개가 정상이다** 〈2026-09-07 · CI 실측〉.
+     앞 판은 그 0개를 「아무것도 안 재고 있다」로 읽고 **CI 에서만 빨갰다** — 새로 받은
+     자리에는 산출물이 아직 없기 때문이다. 재려던 것은 **파일이 있는가**가 아니라
+     **체가 도는가**였다. 그래서 체에 직접 물어본다 — 파일을 안 만들고. */
+  assert.deepStrictEqual(
+    sieve(['keep.html', 'gone.html', '__probe.html', '.tmp.html', 'note.md'], ['keep.html']),
+    ['gone.html'],
+    '★ 체가 안 돈다 — 추적 안 되는 것만 남겨야 하고, 스스로 만든 것(`__`·`.`)은 빼야 한다');
+
+  /* ★ git 이 대답을 했는가. 목록이 비면 아래 시험이 **모든 것을 통과시킨다** */
+  assert.ok(tracked().length >= 5,
+    '★ git 이 UI 파일 목록을 안 준다 — 묻는 길이 막혔다. 그러면 아래 검사는 아무것도 안 잡는다');
 });
 
 test('★★★ 검사가 **커밋되지 않은 산출물**을 읽지 않는다 — 「내 자리에서는 된다」가 안 통한다', () => {
