@@ -72,3 +72,8 @@ deploy-report.html
 # ★ 시험이 도는 동안 만드는 임시 화면 — 2026-09-01 에 `git add -A` 가 집어
 #   커밋에 딸려 들어갔다. 시험 중에 커밋하면 또 난다.
 im-agent/ui/platform/__*.html
+
+# 검사가 남기는 임시 파일 — `open-file.test.js` 가 `.open-test-<PID>.html` 로 만들었다
+# 지운다. 중간에 끊기면 남는데, 10만 바이트짜리 HTML 이라 정체를 몰라 커밋될 뻔했다
+# 〈2026-09-07 · 실제로 작업트리에 남아 있었다〉
+im-agent/ui/platform/.open-test-*.html
