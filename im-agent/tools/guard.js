@@ -103,18 +103,53 @@ function previews() {
     return;
   }
 
-  const changed = made.filter((f) => sha(f) !== before[f]);
+  let drift = made.filter((f) => sha(f) !== before[f]);
   const missing = made.filter((f) => sha(f) === null);
   if (missing.length) {
     add('미리보기 재생성', 'fail', `안 만들어진 것이 있다: ${missing.join(' · ')}`);
     return;
   }
+
+  /* ★★★ **다르면 한 번 더 만들어 보고 판정한다** 〈2026-09-07 · 실측〉.
+   *
+   *   `section-static.html` · `section-artifact.html` 은 **헤드리스 브라우저로
+   *   미리 그려 넣은** 파일이라 결과가 **그때의 형편**을 탄다 — 검사 2,463개와
+   *   같이 돌아 부하가 걸리면 덜 그려진 채로 나온다.
+   *
+   *   실측: 이 칸이 「소스와 갈려 있었다」로 빨갰는데 **바로 다시 만드니 커밋본과
+   *   한 글자도 다르지 않았고**, 곧이어 돌린 guard 는 같은 칸이 초록이었다.
+   *   어긋난 것이 아니라 **그 실행 때만 나온 빨강**이다. 그대로 두면 배포가
+   *   통째로 막히고(§8), 「가끔 빨간」 관문은 결국 사람이 꺼 버린다.
+   *
+   *   ★★★ **두 번째 판은 「커밋본」과 견준다 — 첫 번째 판과 견주지 않는다.**
+   *     첫 판과 견주면 재는 것이 **만드는 도구가 같은 값을 내는가**뿐이라,
+   *     커밋본이 진짜로 낡았어도 「흔들림」으로 삼켜진다. 실제로 그렇게 짰다가
+   *     `guard-tool.test.js` 에 잡혔다 — **고쳐 주고 넘어가는 것**이 된다.
+   *   ★★ **한 번만 더 본다.** 두 번째도 커밋본과 다르면 진짜 어긋남이다.
+   *   ★ 두 번째로 같아져도 **그 사실을 적는다.** 조용히 초록으로 넘기면 이 자리가
+   *     흔들린다는 것을 아무도 모르게 된다. */
+  let flaky = null;
+  if (drift.length) {
+    const first = drift.slice();
+    try {
+      targets.forEach((t) => sh(`npm run --silent ${t} >/dev/null 2>&1`));
+    } catch (_) {
+      add('미리보기 재생성', 'fail', '두 번째로 다시 만들다가 죽었다');
+      return;
+    }
+    drift = made.filter((f) => sha(f) !== before[f]);   // ★ 커밋본과 견준다
+    if (!drift.length) flaky = first;
+  }
+
+  const changed = drift;
   if (changed.length) {
     add('미리보기 재생성', 'fail',
-      `**소스와 갈려 있었다** — 다시 만드니 달라졌다: ${changed.join(' · ')} (이대로 커밋한다)`);
+      `**소스와 갈려 있었다** — 두 번 다시 만들어도 달라진다: ${changed.join(' · ')} (이대로 커밋한다)`);
     return;
   }
-  add('미리보기 재생성', 'ok', `${made.length}개가 소스와 같다`);
+  add('미리보기 재생성', 'ok', flaky
+    ? `${made.length}개가 소스와 같다 — 다만 첫 판에서 흔들렸다: ${flaky.join(' · ')} (헤드리스 렌더가 부하를 탄다)`
+    : `${made.length}개가 소스와 같다`);
 }
 
 /* ── ④ 헤드리스로 실제 렌더 ────────────────────────────── */
