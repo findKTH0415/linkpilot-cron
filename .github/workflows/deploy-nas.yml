@@ -487,47 +487,6 @@ jobs:
           printf '%s\n' "$NAS_KEY" > ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
 
-          # ★★★ **열쇠가 안 열리면 「왜 안 열리는지」를 값 없이 잰다** 〈2026-09-07 · 실측〉.
-          #
-          #   실제로 이렇게 죽었다:
-          #     Load key ".../id_deploy": error in libcrypto
-          #     Permission denied (publickey,password).
-          #
-          #   이 한 줄에 **서로 다른 고장 셋**이 겹쳐 보인다 — 줄바꿈이 사라져 한
-          #   줄로 붙은 것 · 머리꼬리표가 잘린 것 · PuTTY 형식인 것. 셋 다 같은
-          #   말만 나오므로 **짐작으로 열쇠를 새로 만들면 틀린 것을 고치게 된다.**
-          #   그래서 붙기 전에 **모양부터 잰다** (CLAUDE.md §4 「진단부터 짠다」).
-          #
-          # ★★ **값은 한 글자도 안 찍는다** (§2). 머리표는 그것이 표준 머리표일
-          #   때만 그대로 찍고, 아니면 「머리표가 아니다」로만 적는다 — 한 줄로
-          #   붙은 열쇠의 첫 줄은 **열쇠 본문**이라 찍으면 그대로 새어 나간다.
-          echo "::group::열쇠 모양 진단 (값은 안 찍는다)"
-          echo "바이트 $(wc -c < ~/.ssh/id_deploy | tr -d ' ') · 줄 $(wc -l < ~/.ssh/id_deploy | tr -d ' ')"
-          if head -1 ~/.ssh/id_deploy | grep -qE '^-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----$'; then
-            echo "머리표: $(head -1 ~/.ssh/id_deploy)"
-          elif head -1 ~/.ssh/id_deploy | grep -q '^PuTTY-User-Key-File'; then
-            echo "머리표: **PuTTY 형식(.ppk) 이다** — OpenSSH 는 이 형식을 못 읽는다"
-          else
-            echo "머리표: **없다** — 첫 줄이 -----BEGIN … PRIVATE KEY----- 이 아니다"
-          fi
-          if tail -1 ~/.ssh/id_deploy | grep -qE '^-----END [A-Z0-9 ]*KEY-----$'; then
-            echo "꼬리표: 있다"
-          else
-            echo "꼬리표: **없다** — 마지막 줄이 -----END … KEY----- 이 아니다"
-          fi
-          if LC_ALL=C grep -q "$(printf '\r')" ~/.ssh/id_deploy; then
-            echo "줄끝: **CR 이 섞여 있다** (윈도우 줄바꿈 — OpenSSH 가 거부한다)"
-          else
-            echo "줄끝: LF (정상)"
-          fi
-          if ssh-keygen -y -f ~/.ssh/id_deploy </dev/null >/dev/null 2>"$RUNNER_TEMP/keyerr.txt"; then
-            echo "열쇠 읽기: **된다** · 지문 $(ssh-keygen -lf ~/.ssh/id_deploy 2>/dev/null | awk '{print $2}')"
-            echo "  ★ 여기까지 되는데 붙지 못하면 열쇠가 깨진 것이 아니라 **NAS 의 authorized_keys 에 안 들어간 것**이다."
-          else
-            echo "열쇠 읽기: **안 된다** — $(tr -d '\r' < "$RUNNER_TEMP/keyerr.txt" | head -3 | tr '\n' ' ')"
-            echo "  ※ 위 「머리표·꼬리표·줄끝」 셋 중 무엇이 어긋났는지가 곧 원인이다."
-          fi
-          echo "::endgroup::"
           # 호스트키를 미리 받아둔다. StrictHostKeyChecking 을 끄지 않는다
           #
           # ★★★ **`|| { ... }` 를 반드시 붙인다** 〈2026-08-23 · 실제로 당했다〉.
@@ -1874,6 +1833,63 @@ jobs:
         if: ${{ always() && needs.plan.outputs.dry_run != 'true' }}
         run: |
           echo "::notice::**올리고 재는 것까지 끝났다.** 「Verify deployed」 의 저장소·디스크가 같아야 실제로 닿은 것이다. HTTP 가 다르다는 경고는 잰 길(포트 80)이 앱이 쓰는 길(Funnel 443)과 달라서일 수 있다 — 원인 후보 셋이 로그에 적혀 있다 (M-25)."
+
+      # ★★★ **열쇠 진단은 「Set up ssh」 안이 아니라 맨 끝에 둔다** 〈2026-09-07 · 실측〉.
+      #
+      #   처음엔 그 단계 안에 넣었다. 그런데 거기서 죽어도 뒤의 진단 단계
+      #   스무 개가 계속 돌면서 **로그를 1000줄 넘게 밀어낸다** — 정작 재려던
+      #   여섯 줄이 한가운데 묻혀 **꺼내 볼 수가 없었다.** (실제로 두 번 못 꺼냈다.)
+      #
+      #   ★ 그래서 **맨 끝에서 찍는다.** 열쇠 파일은 같은 러너에 그대로 남아
+      #     있으므로 다시 만들 것이 없다. 단계 이름이 따로 있어 화면에서도 바로 찾힌다.
+      #   ★★ **`always()` 여야 한다.** 이 진단이 필요한 때는 언제나 **앞이 죽은 때**다.
+      - name: 열쇠 모양 진단 (값은 안 찍는다)
+        if: ${{ always() && needs.plan.outputs.dry_run != 'true' }}
+        run: |
+          set -uo pipefail
+          if [ ! -f ~/.ssh/id_deploy ]; then
+            echo "열쇠 파일이 없다 — 「Set up ssh」 가 시작도 못 했다"
+            exit 0
+          fi
+          # ★★★ **열쇠가 안 열리면 「왜 안 열리는지」를 값 없이 잰다** 〈2026-09-07 · 실측〉.
+          #
+          #   실제로 이렇게 죽었다:
+          #     Load key ".../id_deploy": error in libcrypto
+          #     Permission denied (publickey,password).
+          #
+          #   이 한 줄에 **서로 다른 고장 셋**이 겹쳐 보인다 — 줄바꿈이 사라져 한
+          #   줄로 붙은 것 · 머리꼬리표가 잘린 것 · PuTTY 형식인 것. 셋 다 같은
+          #   말만 나오므로 **짐작으로 열쇠를 새로 만들면 틀린 것을 고치게 된다.**
+          #   그래서 붙기 전에 **모양부터 잰다** (CLAUDE.md §4 「진단부터 짠다」).
+          #
+          # ★★ **값은 한 글자도 안 찍는다** (§2). 머리표는 그것이 표준 머리표일
+          #   때만 그대로 찍고, 아니면 「머리표가 아니다」로만 적는다 — 한 줄로
+          #   붙은 열쇠의 첫 줄은 **열쇠 본문**이라 찍으면 그대로 새어 나간다.
+          echo "바이트 $(wc -c < ~/.ssh/id_deploy | tr -d ' ') · 줄 $(wc -l < ~/.ssh/id_deploy | tr -d ' ')"
+          if head -1 ~/.ssh/id_deploy | grep -qE '^-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----$'; then
+            echo "머리표: $(head -1 ~/.ssh/id_deploy)"
+          elif head -1 ~/.ssh/id_deploy | grep -q '^PuTTY-User-Key-File'; then
+            echo "머리표: **PuTTY 형식(.ppk) 이다** — OpenSSH 는 이 형식을 못 읽는다"
+          else
+            echo "머리표: **없다** — 첫 줄이 -----BEGIN … PRIVATE KEY----- 이 아니다"
+          fi
+          if tail -1 ~/.ssh/id_deploy | grep -qE '^-----END [A-Z0-9 ]*KEY-----$'; then
+            echo "꼬리표: 있다"
+          else
+            echo "꼬리표: **없다** — 마지막 줄이 -----END … KEY----- 이 아니다"
+          fi
+          if LC_ALL=C grep -q "$(printf '\r')" ~/.ssh/id_deploy; then
+            echo "줄끝: **CR 이 섞여 있다** (윈도우 줄바꿈 — OpenSSH 가 거부한다)"
+          else
+            echo "줄끝: LF (정상)"
+          fi
+          if ssh-keygen -y -f ~/.ssh/id_deploy </dev/null >/dev/null 2>"$RUNNER_TEMP/keyerr.txt"; then
+            echo "열쇠 읽기: **된다** · 지문 $(ssh-keygen -lf ~/.ssh/id_deploy 2>/dev/null | awk '{print $2}')"
+            echo "  ★ 여기까지 되는데 붙지 못하면 열쇠가 깨진 것이 아니라 **NAS 의 authorized_keys 에 안 들어간 것**이다."
+          else
+            echo "열쇠 읽기: **안 된다** — $(tr -d '\r' < "$RUNNER_TEMP/keyerr.txt" | head -3 | tr '\n' ' ')"
+            echo "  ※ 위 「머리표·꼬리표·줄끝」 셋 중 무엇이 어긋났는지가 곧 원인이다."
+          fi
 
       - name: Dry run summary
         if: ${{ needs.plan.outputs.dry_run == 'true' }}
