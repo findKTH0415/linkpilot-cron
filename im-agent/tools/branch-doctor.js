@@ -31,6 +31,29 @@ const path = require('path');
 
 const ROOT = path.join(__dirname, '..', '..');
 
+/**
+ * ★★★ **어느 저장소를 볼 것인가** 〈2026-09-01 · 실제로 당하고 나서 · M-70〉.
+ *
+ *   이 검사는 여태 **이 저장소만** 봤다. 그런데 2026-08-31 에 난 사고는
+ *   저쪽(`linkpilot-platform`)에서 났다 — 열려 있던 PR 5번이 이미 한 일을
+ *   PR 3번에서 **하루 뒤에 다시 했다.** 파일 스무 개가 겹쳤는데
+ *   **아무것도 그 사실을 말해 주지 않았다.**
+ *
+ *   ★ 장치는 이미 다 있었다. **돌린 자리가 한 곳뿐이었을 뿐이다.**
+ *     저쪽 작업 폴더에서 같은 검사를 돌렸으면 그 자리에서 잡혔다
+ *     (아래 시험이 실제 갈래로 그것을 확인한다).
+ *
+ *   ★★ 그래서 볼 곳을 밖에서 정할 수 있게 한다. `--repo <경로>` 또는
+ *     `LP_BRANCH_REPO`. 안 주면 종전대로 이 저장소다.
+ *
+ *   ★ 없는 경로를 주면 **「못 쟀다」**로 끝난다 — 조용히 이 저장소로
+ *     되돌아가지 않는다. 되돌아가면 「저쪽을 쟀다」는 화면만 남고
+ *     실제로는 이쪽을 잰 것이 된다 (M-05 「옛말 하는 화면」과 같은 결).
+ */
+let REPO = ROOT;
+function setRepo(dir) { REPO = dir || ROOT; }
+function repo() { return REPO; }
+
 /** 어느 갈래들을 견줄 것인가 — 작업선은 전부 이 접두사를 쓴다 */
 const BRANCH_PREFIX = 'refs/heads/claude/';
 
@@ -57,7 +80,7 @@ function expected(f) {
 }
 
 function git(cmd) {
-  return execSync(`git ${cmd}`, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  return execSync(`git ${cmd}`, { cwd: REPO, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
 }
 
 /**
@@ -121,7 +144,16 @@ function whyNoPr() { return LAST_WHY; }
  *   `{ "at": "...", "refs": [...] }` 도 받는다 — 받는 쪽을 늘리는 편이,
  *   적는 쪽이 형식을 틀려서 조용히 빈 배열이 되는 것보다 낫다.
  */
-/** 자동으로 찾는 자리 — 아무도 손대지 않아도 여기 있으면 쓴다 */
+/**
+ * 자동으로 찾는 자리 — 아무도 손대지 않아도 여기 있으면 쓴다.
+ *
+ * ★★★ **보는 저장소를 따라간다** 〈2026-09-01 · M-70〉. 열린 PR 목록은
+ *   저장소마다 다르다. 이 자리를 이 저장소에 고정해 두면, `--repo` 로 저쪽을
+ *   볼 때 **이쪽 PR 목록으로 저쪽을 좁히게 된다** — 그러면 저쪽 갈래가 전부
+ *   「열린 PR 이 아니다」로 빠져 **아무것도 안 겹친 것처럼 보인다.**
+ *   조용히 틀리는 자리라 함수로 둔다.
+ */
+function autoPrsPath() { return path.join(REPO, '.lp-open-prs.json'); }
 const AUTO_PRS = path.join(ROOT, '.lp-open-prs.json');
 /** ★ 이보다 낡은 기록은 **안 쓴다** (아래 까닭) */
 const MAX_AGE_H = 12;
@@ -139,8 +171,8 @@ function openPrFromFile() {
   /* ★★ **손으로 넣은 자리가 먼저다.** 밖에서 대 준 답은 그 사람이 지금
    *   물어본 것이므로, 나이를 따지지 않고 쓴다 (다만 나이를 화면에 적는다). */
   const given = process.env.LP_OPEN_PRS;
-  const auto = !given && fs.existsSync(AUTO_PRS);
-  const p = given || (auto ? AUTO_PRS : null);
+  const auto = !given && fs.existsSync(autoPrsPath());
+  const p = given || (auto ? autoPrsPath() : null);
   if (!p) return null;
   if (!fs.existsSync(p)) { LAST_WHY = `LP_OPEN_PRS 가 가리키는 파일이 없다: ${p}`; return null; }
   let j;
@@ -162,7 +194,7 @@ function openPrFromFile() {
    *   아니면 안 쓰고 **까닭을 남긴다** — 그 까닭이 곧 「다시 받아 오라」는 말이다. */
   if (auto) {
     if (LAST_AGE_H === null) {
-      LAST_WHY = `열린 PR 기록(${path.basename(AUTO_PRS)})에 **받은 시각이 없다** — 언제 것인지 모르는 답은 안 쓴다`;
+      LAST_WHY = `열린 PR 기록(${path.basename(autoPrsPath())})에 **받은 시각이 없다** — 언제 것인지 모르는 답은 안 쓴다`;
       LAST_AGE_H = null;
       return null;
     }
@@ -340,10 +372,28 @@ function verdict(r) {
 }
 
 module.exports = { check, verdict, expected, openPrBranches, openPrFromFile, whyNoPr,
-  prAgeHours, AUTO_PRS, MAX_AGE_H, LIVE_DAYS };
+  prAgeHours, AUTO_PRS, MAX_AGE_H, LIVE_DAYS, setRepo, repo };
+
+/** `--repo <경로>` 또는 `LP_BRANCH_REPO` — 안 주면 이 저장소 */
+function repoFromArgs(argv) {
+  const i = argv.indexOf('--repo');
+  const v = (i > 0 ? argv[i + 1] : null) || process.env.LP_BRANCH_REPO || null;
+  return v ? path.resolve(v) : null;
+}
 
 if (require.main === module) {
   (async () => {
+  const want = repoFromArgs(process.argv);
+  if (want) {
+    /* ★ 없는 곳을 조용히 이 저장소로 바꾸지 않는다 — 「저쪽을 쟀다」는
+     *   화면만 남고 실제로는 이쪽을 잰 것이 된다. */
+    if (!fs.existsSync(path.join(want, '.git'))) {
+      process.stdout.write(`겹치는 파일: 못 쟀다 — 저장소가 없다: ${want}\n`);
+      process.exit(2);
+    }
+    setRepo(want);
+    process.stdout.write(`\n보는 저장소: ${want}\n`);
+  }
   const r = check(await openPrBranches());
   const v = verdict(r);
   if (r.measured) {

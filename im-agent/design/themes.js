@@ -93,7 +93,24 @@ const THEMES = {
     purpose: '은행·기관투자자·금융기관·Credit Committee 제출용',
     writing: WRITING.executive.id,
     traits: ['신뢰성', '보수적', '데이터 중심', '장식 배제'],
-    docTypes: ['pf_proposal', 'credit_report', 'ic_memo', 'financial_report', 'dd_report'],
+        /* ★★★ **밖으로 나가는 문서 여섯을 여기서 받는다** 〈2026-09-06 사장님 지시:
+       「오류발생 · 외부에서 · financial_report · technical_report · dd_report ·
+       legal_dd · investor_presentation · dashboard」〉.
+
+       무엇이 문제였나: 스타일 두 안(A·B)은 **보수·공식 계열 하나 · 현대·시각 계열
+       하나**를 내는데, 이 여섯은 한쪽(또는 양쪽) 계열에 **쓴다고 적힌 테마가 하나도
+       없었다.** 그러면 화면에 「이 문서용으로 만든 스타일이 아닙니다」가 뜨고,
+       고를 거리가 사실상 하나로 줄었다 — `legal_dd` 와 `dashboard` 는 **양쪽 다**
+       비어 있었다.
+
+       ★ 어디에 붙일지는 **`recommend.js` 의 DOC 표가 이미 점수를 매겨 둔 곳**을
+         그대로 쓴다 — 내가 새로 정하면 그 표와 두 벌이 된다. 표에 없는 자리만
+         「외부 제출」 기준으로 판단하고, 그 사실을 이 주석에 적는다. */
+    /* 위 셋 중 `technical_report`·`legal_dd` 는 recommend.js DOC 표에 이미
+       institutional 점수가 있다(0.5 · 0.9). `investor_presentation` 은 표에 없지만
+       이 테마의 purpose 가 「은행·기관투자자·금융기관·Credit Committee 제출용」이라
+       IR 자료가 가는 자리 그대로다 — **판단이며, 그래서 여기 적는다.** */
+docTypes: ['pf_proposal', 'credit_report', 'ic_memo', 'financial_report', 'dd_report', 'technical_report', 'legal_dd', 'investor_presentation'],
     primary: '#10233C', primaryMid: '#35506F', accent: '#A6813C', accentLight: '#C9A15A',
     onPrimary: '#F3E3C4', onPrimarySub: '#9FB0C4', surfaceAlt: '#F7F5F0',
     serif: FONT.serif, sans: FONT.sans,
@@ -111,7 +128,12 @@ const THEMES = {
     purpose: '글로벌 투자은행 및 해외 투자자용',
     writing: WRITING.executive.id,
     traits: ['Premium', 'International', 'Data-driven', 'Executive-focused'],
-    docTypes: ['im', 'ma_im', 'teaser', 'investor_presentation'],
+        /* 위 셋은 recommend.js DOC 표에 **현대·시각 계열이 하나도 없어** 비어 있던 자리다.
+       「밖으로 나간다」를 기준으로 이 테마에 붙였다 — 재무보고서·실사보고서·법률실사는
+       인수측 투자자와 대주단에게 가고, 이 테마가 바로 그 자리(M&A·글로벌 투자자)다.
+       **표에 근거가 없는 판단이므로 여기 적는다.** 법률실사를 사진 전면 표지로 내지
+       않도록 이 테마의 표지는 `split`(사진+글자)이라는 점도 함께 본다. */
+docTypes: ['im', 'ma_im', 'teaser', 'investor_presentation', 'financial_report', 'dd_report', 'legal_dd'],
     primary: '#0B1B2B', primaryMid: '#2C4257', accent: '#B08D57', accentLight: '#CFAE7B',
     onPrimary: '#EFE6D3', onPrimarySub: '#9AAABB', surfaceAlt: '#F6F4EF',
     serif: FONT.serif, sans: FONT.sans,
@@ -165,7 +187,9 @@ const THEMES = {
     purpose: '기업 보고서 및 사업계획서',
     writing: WRITING.executive.id,
     traits: ['Corporate Identity', 'Brand Color', '정돈된 표'],
-    docTypes: ['business_plan', 'annual_report', 'financial_report'],
+        /* `dashboard` — 이 테마의 traits 가 「정돈된 표」이고 목적이 기업 보고다.
+       recommend.js 표에는 없지만 내부 경영 대시보드가 가는 자리라 판단으로 붙였다. */
+    docTypes: ['business_plan', 'annual_report', 'financial_report', 'dashboard'],
     primary: '#17457A', primaryMid: '#4571A0', accent: '#8C6D3F', accentLight: '#B08F5E',
     onPrimary: '#F0F4F8', onPrimarySub: '#A9BDD2', surfaceAlt: '#F5F7FA',
     serif: FONT.serif, sans: FONT.sans,
@@ -200,7 +224,8 @@ const THEMES = {
     purpose: '경영진 보고 및 Executive Presentation',
     writing: WRITING.plain.id,
     traits: ['White Space', 'Minimal Color', 'Short Text', 'Large Number'],
-    docTypes: ['ic_memo', 'executive_summary', 'teaser'],
+        /* `dashboard` — recommend.js DOC.dashboard 가 minimal 0.8 로 1위를 준 자리다. */
+docTypes: ['ic_memo', 'executive_summary', 'teaser', 'dashboard'],
     primary: '#111827', primaryMid: '#4B5563', accent: '#6B7280', accentLight: '#9CA3AF',
     onPrimary: '#F9FAFB', onPrimarySub: '#C3C9D2', surfaceAlt: '#F7F7F8',
     serif: FONT.serif, sans: FONT.sans,
@@ -218,7 +243,8 @@ const THEMES = {
     purpose: 'Data Center·AI Infrastructure·Cloud·ICT 프로젝트',
     writing: WRITING.technical.id,
     traits: ['Technology Visual', 'Power Flow', 'Rack/MW Visualization', 'Infrastructure Diagram'],
-    docTypes: ['im', 'technical_report', 'investor_presentation'],
+        /* `dashboard` — recommend.js DOC.dashboard 가 technology 0.6 으로 2위를 준 자리다. */
+docTypes: ['im', 'technical_report', 'investor_presentation', 'dashboard'],
     primary: '#0E1A2B', primaryMid: '#1F7A8C', accent: '#2FA8B8', accentLight: '#67C6D2',
     onPrimary: '#E8F4F6', onPrimarySub: '#8FB3BD', surfaceAlt: '#F2F7F8',
     serif: FONT.serif, sans: FONT.sans,
@@ -235,7 +261,11 @@ const THEMES = {
     purpose: '재생에너지·에너지 인프라 프로젝트',
     writing: WRITING.technical.id,
     traits: ['Satellite Image', 'Site Map', 'Energy Flow', 'Carbon Reduction'],
-    docTypes: ['im', 'feasibility', 'technical_report'],
+    /* ★ `pf_proposal` 을 더했다 〈2026-09-06 · 실측에서 잡았다〉 — 그 문서 종류에
+       쓴다고 적힌 **현대·시각 계열 테마가 하나도 없어서** 스타일 두 안(A·B)이
+       PF 제안서에서 문서 종류를 못 맞췄다. 재생에너지 PF 는 실제로 이 저장소가
+       다루는 딜이고(태양광·ESS), 이 테마의 강조 KPI 도 그쪽이다. */
+    docTypes: ['im', 'feasibility', 'technical_report', 'pf_proposal'],
     primary: '#0F3D2E', primaryMid: '#2F6A52', accent: '#7FA650', accentLight: '#A7C579',
     onPrimary: '#EAF3EC', onPrimarySub: '#9BB8A8', surfaceAlt: '#F3F7F3',
     serif: FONT.serif, sans: FONT.sans,
@@ -252,7 +282,9 @@ const THEMES = {
     purpose: '도로·철도·항만·발전소·산업단지·물류',
     writing: WRITING.technical.id,
     traits: ['Master Plan', 'Infrastructure Map', 'Timeline', 'Funding Structure'],
-    docTypes: ['pf_proposal', 'im', 'feasibility'],
+        /* `technical_report` — 이 테마의 `writing` 이 `technical`(기술전문형) 그대로다.
+       recommend.js 표에는 없지만 **문체가 그 문서의 문체**라 판단으로 붙였다. */
+    docTypes: ['pf_proposal', 'im', 'feasibility', 'technical_report'],
     primary: '#263238', primaryMid: '#4F6470', accent: '#C07C2C', accentLight: '#D9A052',
     onPrimary: '#F0F2F3', onPrimarySub: '#A8B4BB', surfaceAlt: '#F5F6F7',
     serif: FONT.serif, sans: FONT.sans,
@@ -286,7 +318,15 @@ const THEMES = {
     purpose: '공공기관·지자체·정책사업·공공투자',
     writing: WRITING.official.id,
     traits: ['Formal', 'Clear', 'Accessible', 'Official'],
-    docTypes: ['feasibility', 'financial_report', 'dd_report'],
+        /* ★★★ **보수·공식 쪽이 `institutional` 하나에 쏠려 있었다** 〈2026-09-06 · 실측〉.
+       88개 조합에서 `institutional` 이 **45번(51%)**, `corporate` 는 **2번**뿐이었다.
+       그러면 B안이 사실상 늘 같은 안이라 「두 안」이라는 말이 무색해진다.
+
+       ★ **빼지 않고 더한다.** 문서를 institutional 에서 떼면 그 문서의 보수 쪽 짝이
+         사라질 수 있다 — 더하면 고를 폭만 넓어지고 잃는 것이 없다. */
+    /* `legal_dd` — recommend.js DOC.legal_dd 가 government 에 0.7 을 준 자리다.
+       문체가 `official`(공식 행정형)이라 법률실사의 절제된 서술과 맞는다. */
+    docTypes: ['feasibility', 'financial_report', 'dd_report', 'legal_dd'],
     primary: '#12365E', primaryMid: '#41618A', accent: '#6E7A8C', accentLight: '#93A0B0',
     onPrimary: '#EEF3F8', onPrimarySub: '#A7B8CB', surfaceAlt: '#F4F6F9',
     serif: FONT.serif, sans: FONT.sans,
