@@ -160,10 +160,10 @@ jobs:
       # ★ `fetch-depth: 0` 이 필요하다. 기본은 커밋 하나만 받아 와서
       #   `git diff <이전> <지금>` 이 「그런 커밋 없음」으로 죽는다 — 그러면
       #   엔진을 올릴지 말지를 **못 재고**, 못 잰 채로 넘어가게 된다
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '20'
       - name: Decide what to deploy
@@ -250,8 +250,8 @@ jobs:
     env:
       IM_AGENT_OFFLINE: '1'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: '20'
       # 한글 글꼴이 없으면 브라우저가 **말없이 다른 글꼴로** 그린다 (D-52)
@@ -315,10 +315,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       # ★ 라우트 점검(`verify:nas`)이 node 로 돈다. 없으면 그 단계만 조용히
       #   죽는데, 하필 **조용히 죽으면 안 되는** 단계다
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '20'
 

@@ -22,8 +22,8 @@ jobs:
   smoke:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: '20'
 
@@ -80,7 +80,7 @@ jobs:
       # 커밋이 막혀도(브랜치 보호 등) 결과를 회수할 수 있게 (지침서 §8)
       - name: 아티팩트 업로드
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: api-smoke
           path: data/_api
