@@ -25,7 +25,7 @@
    *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다. 생성기는 빈 값으로 내고,
    *   지문 찍기가 그 자리를 메운다. 그래서 다시 만들어도 지문이 안 흔들린다.
    */
-  var LP_BUILD = 'b9970662';
+  var LP_BUILD = 'c4b4106f';
 
   /** themes.js 에 실제로 있는 이름 — 화면이 고른 값을 이 목록으로 거른다 */
   var THEME_IDS = ["institutional","global_ib","private_equity","real_estate","corporate","premium","minimal","technology","renewable","infrastructure","luxury","government","custom"];
