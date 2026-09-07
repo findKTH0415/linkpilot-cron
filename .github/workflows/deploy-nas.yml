@@ -1876,6 +1876,9 @@ jobs:
       #   ★★ **`always()` 여야 한다.** 이 진단이 필요한 때는 언제나 **앞이 죽은 때**다.
       - name: 열쇠 모양 진단 (값은 안 찍는다)
         if: ${{ always() && needs.plan.outputs.dry_run != 'true' }}
+        env:
+          NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+          NAS_USER: ${{ secrets.NAS_SSH_USER }}
         run: |
           set -uo pipefail
           if [ ! -f ~/.ssh/id_deploy ]; then
@@ -1921,6 +1924,38 @@ jobs:
             echo "열쇠 읽기: **안 된다** — $(tr -d '\r' < "$RUNNER_TEMP/keyerr.txt" | head -3 | tr '\n' ' ')"
             echo "  ※ 위 「머리표·꼬리표·줄끝」 셋 중 무엇이 어긋났는지가 곧 원인이다."
           fi
+
+          # ★★★ **열쇠가 멀쩡한데 못 붙는 자리를 갈라 적는다** 〈2026-09-07 · 실측〉.
+          #
+          #   열쇠 모양은 통과했는데(바이트 412 · 줄 8 · 읽기 된다) 「Set up ssh」 가
+          #   4초 만에 죽었다. 그러면 남은 후보가 **셋**인데 로그에는 한 줄만 남아
+          #   구분이 안 된다:
+          #     ① 22번이 안 열렸다(호스트키를 못 받는다)
+          #     ② NAS_SSH_USER 가 그 계정이 아니다
+          #     ③ 그 계정의 authorized_keys 에 이 열쇠가 없다
+          #
+          # ★ 그래서 **두 단계로 갈라 잰다** — 호스트키를 받는가(①), 그다음 붙는가(②③).
+          #   ①이 되고 ②③에서 거부되면 「기계는 열려 있고 사람이 아니다」로 좁혀진다.
+          # ★★ 값은 안 찍는다. 주소·계정은 Secret 이라 GitHub 이 *** 로 가려 찍고,
+          #   여기서는 그 결과만 사람 말로 적는다 (§2).
+          echo "── 붙어 보기 ──"
+          if ssh-keyscan -H "$NAS_HOST" > "$RUNNER_TEMP/hk.txt" 2>/dev/null && [ -s "$RUNNER_TEMP/hk.txt" ]; then
+            echo "호스트키: **받았다** — 22번이 열려 있고 NAS 가 대답한다"
+          else
+            echo "호스트키: **못 받았다** — 22번이 안 열렸거나 주소가 다르다 (그러면 아래는 볼 것도 없다)"
+          fi
+          OUT=$(ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+                    -o ConnectTimeout=20 -i ~/.ssh/id_deploy "$NAS_USER@$NAS_HOST" 'echo LPOK' 2>&1 | tail -3)
+          case "$OUT" in
+            *LPOK*)
+              echo "붙기: **된다** — 여기가 되는데 「Set up ssh」 가 죽었다면 그 단계의 호스트키 확인이 원인이다" ;;
+            *"Permission denied"*)
+              echo "붙기: **거부됐다.** 열쇠는 멀쩡하므로 기계가 아니라 **사람 쪽**이다 — 둘 중 하나다:"
+              echo "  ① NAS_SSH_USER 가 그 열쇠를 넣어 둔 계정이 아니다"
+              echo "  ② 그 계정의 ~/.ssh/authorized_keys 에 이 지문이 없다 (또는 홈 권한이 헐거워 무시된다)" ;;
+            *)
+              echo "붙기: **안 된다** — $OUT" ;;
+          esac
 
       - name: Dry run summary
         if: ${{ needs.plan.outputs.dry_run == 'true' }}
