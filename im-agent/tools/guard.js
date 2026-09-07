@@ -42,20 +42,52 @@ function sh(cmd) {
 }
 
 /* ── ① 테스트 전부 ─────────────────────────────────────── */
+/**
+ * ★★★ **실패했을 때만 눈이 멀던 자리** 〈2026-09-07 · 실제로 당했다〉.
+ *
+ *   앞 판은 `npm test 2>&1 | tail -20` 의 **마지막 20줄**에서 요약을 찾았다.
+ *   통과할 때는 그 안에 `# fail 0` 이 들어 있어 잘 읽혔다.
+ *
+ *   ★ 그런데 **실패하면** npm 이 뒤에 제 오류 메시지를 여러 줄 덧붙인다
+ *     (`npm error Lifecycle script ... failed`). 그러면 요약 줄이 20줄 밖으로
+ *     **밀려나고**, guard 는 「결과를 못 읽었다」로 적는다.
+ *
+ *   ★★ 즉 **가장 중요한 때에만** 눈이 멀었다. 「못 쟀다」는 실패가 아니므로
+ *     guard 는 「실패 0」으로 끝나고, 나는 그것을 보고 **빨간 것을 올렸다.**
+ *     실제로 오늘 그렇게 나갔다 — CI 가 잡아 줘서 알았다.
+ *
+ *   [고침] 줄 수로 자르지 않고 **찾는 줄만 골라낸다.** 실패한 시험 이름도
+ *     함께 주워, 요약에 **무엇이 실패했는지** 적는다 — 개수만으로는 다시 돌려야 한다.
+ *   ★ `grep` 은 못 찾으면 1 로 끝나므로 `|| true` 를 붙인다. 안 붙이면
+ *     **아무 시험도 없을 때** 예외가 나서 또 「돌다가 죽었다」가 된다.
+ */
 function tests() {
+  const PICK = "npm test 2>&1 | grep -E '^(# (tests|pass|fail|skipped)|not ok )' || true";
+  let out = '';
   try {
-    const out = sh('npm test 2>&1 | tail -20');
-    const pass = (out.match(/# pass (\d+)/) || [])[1];
-    const fail = (out.match(/# fail (\d+)/) || [])[1];
-    const skip = (out.match(/# skipped (\d+)/) || [])[1];
-    if (fail === undefined) { add('테스트', 'unknown', '결과를 못 읽었다'); return; }
-    add('테스트', Number(fail) === 0 ? 'ok' : 'fail',
-      `${pass} 통과 · ${skip} skip · ${fail} 실패`);
+    out = sh(PICK);
   } catch (e) {
-    const out = String((e.stdout || '') + (e.stderr || ''));
-    const fail = (out.match(/# fail (\d+)/) || [])[1];
-    add('테스트', 'fail', fail ? `${fail} 실패` : '돌다가 죽었다');
+    out = String((e.stdout || '') + (e.stderr || ''));
   }
+  const pass = (out.match(/# pass (\d+)/) || [])[1];
+  const fail = (out.match(/# fail (\d+)/) || [])[1];
+  const skip = (out.match(/# skipped (\d+)/) || [])[1];
+
+  if (fail === undefined) {
+    /* 여기까지 와서 못 읽었다면 테스트가 **시작도 못 한 것**이다 (설치 실패 등) */
+    add('테스트', 'unknown', '요약 줄이 아예 없다 — 테스트가 시작도 못 했다');
+    return;
+  }
+  if (Number(fail) === 0) {
+    add('테스트', 'ok', `${pass} 통과 · ${skip} skip · 0 실패`);
+    return;
+  }
+  /* ★ 실패했으면 **무엇이** 실패했는지 적는다 — 개수만 적으면 다시 돌려야 안다 */
+  const names = (out.match(/^not ok \d+ - .*$/gm) || [])
+    .map((l) => l.replace(/^not ok \d+ - /, '').trim())
+    .slice(0, 3);
+  add('테스트', 'fail',
+    `${pass} 통과 · ${fail} 실패` + (names.length ? ` — ${names.join(' · ')}` : ''));
 }
 
 /* ── ② 화면 지문 ───────────────────────────────────────── */
