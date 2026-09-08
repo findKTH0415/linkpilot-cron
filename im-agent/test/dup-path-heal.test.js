@@ -249,25 +249,36 @@ test('★★★ 장치를 빼면 **화면이 안 뜬다** (통과가 아니라 �
   const browser = findBrowser();
   if (!browser) { t.skip('헤드리스 크로미움이 없어 **못 쟀다**'); return; }
   const { dir, dup } = stage();
-  // ★ 자리를 정하는 조각만 무력화한다 (지침 §5-④)
-  const before = fs.readFileSync(dup, 'utf8');
-  fs.writeFileSync(dup, before.replace("createElement('base')", "createElement('span')"));
-  /* ★★★ **고장을 낸 것이 정말 먹었는지 먼저 본다** 〈2026-09-08 · CI 에서 빨개졌다〉.
+  /* ★★★ **화면을 살리는 장치가 «둘»이다 — 둘 다 빼야 「뺐다」가 된다**
+   *   〈2026-09-08 · CI 에서 세 번 빨갰다〉.
    *
-   *   [사고] 같은 커밋인데 push 실행은 초록, PR 실행만 빨갰다. 빨간 쪽이 한 말은
-   *     「장치를 빼도 화면이 그대로 뜬다 (겹친 자리 9개 · 멀쩡한 자리 9개)」였다.
-   *     그런데 **장치는 멀쩡하고 고장내기가 안 먹은 것**이어도 숫자가 똑같이 나온다.
-   *     둘이 구분이 안 되면 **멀쩡한 장치를 고장이라고 탓한다.**
+   *   [사고] 앞 판은 `<base>` 하나만 무력화했다. 그런데 이 화면에는 두 번째 길이
+   *     있다 — 형제 파일을 못 받으면 **겹친 토막을 지우고 그 파일을 다시 부른다**
+   *     (화면 위쪽 「한 번 고쳐서 다시 불렀습니다」 자리).
    *
-   *   ★ 이 자리는 **살아 있는 폴더에서 베낀 사본**을 쓴다 — 다른 검사가 그 파일을
-   *     다시 만드는 중이면 베낌본이 기대와 다를 수 있다 (`copyStable` 이 막으려는 것과
-   *     같은 결). 그때 바꿔치기는 **아무 데도 안 맞아 조용히 지나간다.**
+   *   ★ 그래서 `<base>` 만 빼도 **두 번째 길이 화면을 살려낸다.** 다만 그것이
+   *     제때 닿느냐는 **기계 속도에 달렸다** — 늦게 온 스크립트는 초기화가 이미
+   *     끝나 화면을 못 그린다(이 파일 머리말). 그래서 빠른 자리에서는 0개,
+   *     느린 러너에서는 9개가 나왔다. **같은 커밋이 초록도 되고 빨강도 됐다.**
    *
-   *   ★★ 그래서 **바꾼 파일을 다시 읽어** 그 조각이 정말 없어졌는지 본다.
-   *     안 먹었으면 「못 쟀다」로 끝낸다 — 통과로도 실패로도 뭉개지 않는다 (M-30). */
-  if (fs.readFileSync(dup, 'utf8').includes("createElement('base')")) {
+   *   ★★ 문턱을 무르게 하지 않는다. **재려던 것을 재게** 고친다 — 두 길을 다
+   *     막아 「살릴 길이 없으면 화면이 안 뜬다」를 그대로 잰다 (CLAUDE.md §8). */
+  const KILL = [
+    ["createElement('base')", "createElement('span')"],          // ① 받기 전에 자리를 바로잡는 길
+    [': document.createElement(\'script\');', ': document.createElement(\'template\');'],  // ② 실패한 뒤 다시 부르는 길
+  ];
+  let sabotaged = fs.readFileSync(dup, 'utf8');
+  for (const [from, to] of KILL) sabotaged = sabotaged.replace(from, to);
+  fs.writeFileSync(dup, sabotaged);
+
+  /* ★★★ **고장내기가 정말 먹었는지 먼저 본다.** 안 먹으면 숫자가 멀쩡한 쪽과
+   *   같아지는데, 그러면 **멀쩡한 장치를 고장이라고 탓한다** — 둘이 구분이 안 된다.
+   *   안 먹었으면 「못 쟀다」로 끝낸다 (M-30). */
+  const after = fs.readFileSync(dup, 'utf8');
+  const left = KILL.filter(([from]) => after.includes(from)).map(([from]) => from);
+  if (left.length) {
     fs.rmSync(dir, { recursive: true, force: true });
-    t.skip('고장내기가 안 먹었다 — 베낀 화면에 그 조각이 그대로 있다. '
+    t.skip(`고장내기가 안 먹었다 — 베낀 화면에 ${left.length}개가 그대로 있다. `
       + '**표본이 안 서서 못 쟀다** (통과가 아니다)');
     return;
   }
