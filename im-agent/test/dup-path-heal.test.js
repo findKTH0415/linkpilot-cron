@@ -250,7 +250,27 @@ test('★★★ 장치를 빼면 **화면이 안 뜬다** (통과가 아니라 �
   if (!browser) { t.skip('헤드리스 크로미움이 없어 **못 쟀다**'); return; }
   const { dir, dup } = stage();
   // ★ 자리를 정하는 조각만 무력화한다 (지침 §5-④)
-  fs.writeFileSync(dup, fs.readFileSync(dup, 'utf8').replace("createElement('base')", "createElement('span')"));
+  const before = fs.readFileSync(dup, 'utf8');
+  fs.writeFileSync(dup, before.replace("createElement('base')", "createElement('span')"));
+  /* ★★★ **고장을 낸 것이 정말 먹었는지 먼저 본다** 〈2026-09-08 · CI 에서 빨개졌다〉.
+   *
+   *   [사고] 같은 커밋인데 push 실행은 초록, PR 실행만 빨갰다. 빨간 쪽이 한 말은
+   *     「장치를 빼도 화면이 그대로 뜬다 (겹친 자리 9개 · 멀쩡한 자리 9개)」였다.
+   *     그런데 **장치는 멀쩡하고 고장내기가 안 먹은 것**이어도 숫자가 똑같이 나온다.
+   *     둘이 구분이 안 되면 **멀쩡한 장치를 고장이라고 탓한다.**
+   *
+   *   ★ 이 자리는 **살아 있는 폴더에서 베낀 사본**을 쓴다 — 다른 검사가 그 파일을
+   *     다시 만드는 중이면 베낌본이 기대와 다를 수 있다 (`copyStable` 이 막으려는 것과
+   *     같은 결). 그때 바꿔치기는 **아무 데도 안 맞아 조용히 지나간다.**
+   *
+   *   ★★ 그래서 **바꾼 파일을 다시 읽어** 그 조각이 정말 없어졌는지 본다.
+   *     안 먹었으면 「못 쟀다」로 끝낸다 — 통과로도 실패로도 뭉개지 않는다 (M-30). */
+  if (fs.readFileSync(dup, 'utf8').includes("createElement('base')")) {
+    fs.rmSync(dir, { recursive: true, force: true });
+    t.skip('고장내기가 안 먹었다 — 베낀 화면에 그 조각이 그대로 있다. '
+      + '**표본이 안 서서 못 쟀다** (통과가 아니다)');
+    return;
+  }
   const { child, port } = serve(dir);
   try {
     const a = render(browser, `http://127.0.0.1:${port}/im-flow/im-flow/report-flow.html`);
