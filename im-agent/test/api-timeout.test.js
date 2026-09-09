@@ -69,27 +69,47 @@ test('창구가 시간 제한을 실제로 걸고, 시간 초과를 갈라서 �
   assert.match(a, /대답/, '시간 초과 안내가 사람 말이 아니다: ' + a);
 });
 
-/* ── ② 그려서 잰다: «영영 대답 안 하는» 서버 앞에서 흰 채로 안 끝나는가 ── */
-test('서버가 대답을 안 해도 화면이 흰 채로 끝나지 않는다 (실제로 그려서 잰다)', async (t) => {
+/* ── ② 그려서 잰다: 대답이 안 오는 상황에서 «기다림»이 끝나는가 ── */
+test('대답이 안 오면 화면이 기다림을 멈추고 그 사실을 말한다 (실제로 그려서 잰다)', async (t) => {
+  /* ★★★ **이 칸을 세 번 고쳤다. 앞의 둘은 아무것도 안 재고 있었다** 〈2026-09-09〉.
+     ① CDP(WebSocket)로 붙잡아 읽었다 — 이 자리(Node 22)에서는 돌았고 사보타주도
+        잡았는데, **CI 는 Node 20 이라 전역 WebSocket 이 없어** ReferenceError 로 죽었다.
+        그리고 그것이 「못 쟀다」가 아니라 **「실패」로 끝났다** — 규칙의 반대다 (§8).
+     ② 그래서 늦게 대답하는 서버 + `--dump-dom` 으로 바꿨더니 **빠른 응답에서도**
+        안 끝났다 (실측: fast·404·slow 셋 다 35초에 죽었다). 그 도구는 http 주소에서
+        안 끝난다 — 저장소가 늘 `file://` 만 쓰는 이유다.
+     ③ 다시 `file://` + 가짜 fetch 로 바꿨더니 **0.7초에 통과**했다. 이상해서
+        사보타주를 걸어 보니 **시간 제한을 통째로 빼도 통과**했다 — `--dump-dom` 은
+        **숨은 글자까지** 주기 때문에, 화면에 안 보이는 「불러오지 못했습니다」가
+        내 조건에 걸린 것이었다. **잡히는 것이 거짓이었다.**
+   ★ 그래서 **보이는 글자**로 재야 한다 — 그것은 화면을 붙잡아 물어봐야 알 수 있다.
+     WebSocket 이 없는 자리에서는 **못 잰다고 적고 건너뛴다.** 통과로 적지 않는다. */
+  if (typeof WebSocket === 'undefined')
+    return t.skip('이 자리의 Node 에 WebSocket 이 없다 — **못 쟀다** (Node 22 이상에서 잰다)');
   let findBrowser;
   try { ({ findBrowser } = require(path.join(HERE, 'build-static.js'))); }
   catch (_) { return t.skip('그리는 도구가 없다 — 못 쟀다'); }
   const b = findBrowser();
   if (!b) return t.skip('헤드리스 크로미움이 없다 — 못 쟀다');
 
-  /* ★★★ `--dump-dom` 으로는 못 잰다 — 요청이 매달려 있으면 «그 도구도» 안 끝난다
-       (실제로 그렇게 멈췄다). 화면을 붙잡아 아무 때나 읽는 쪽으로 간다. */
   const { spawn } = require('node:child_process');
   const sleep = ms => new Promise(r => setTimeout(r, ms));
-  const CDP = 9795;
+  const CDP = 9796;
+  const SHORT = 1200;   /* 시계만 줄인다 — 재려는 성질은 그대로다 */
 
-  /* 화면 파일은 주고, `/api/` 는 **영영 붙잡는다** — 이것이 이 검사의 표본이다.
-     404 를 주면 화면이 「못 받았습니다」로 빠져 재려던 성질이 사라진다. */
+  const F = require(path.join(HERE, 'flow-core.js'));
+  const core = fs.readFileSync(path.join(HERE, 'flow-core.js'), 'utf8')
+    .replace('var API_TIMEOUT_MS = ' + F.API_TIMEOUT_MS + ';', 'var API_TIMEOUT_MS = ' + SHORT + ';');
+  if (core.indexOf('var API_TIMEOUT_MS = ' + SHORT + ';') < 0)
+    return t.skip('시계를 못 바꿨다 — 못 쟀다 (창구의 숫자 모양이 바뀌었다)');
+
   const held = [];
   const srv = http.createServer((q, r) => {
     const rel = decodeURIComponent((q.url || '/').split('?')[0]).replace(/^\/+/, '');
-    if (/(^|\/)api\//.test('/' + rel)) { held.push(r); return; }
-    const p = path.join(HERE, rel.replace(/^im-flow\/?/, '') || 'intake.html');
+    if (/(^|\/)api\//.test('/' + rel)) { held.push(r); return; }   /* 영영 대답 안 함 */
+    const rel2 = rel.replace(/^im-flow\/?/, '') || 'intake.html';
+    if (rel2 === 'flow-core.js') { r.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8' }); r.end(core); return; }
+    const p = path.join(HERE, rel2);
     if (!p.startsWith(HERE) || !fs.existsSync(p) || fs.statSync(p).isDirectory()) { r.writeHead(404); r.end('no'); return; }
     r.writeHead(200, { 'Content-Type': /\.js$/.test(p) ? 'text/javascript; charset=utf-8'
       : /\.css$/.test(p) ? 'text/css; charset=utf-8' : 'text/html; charset=utf-8' });
@@ -100,7 +120,7 @@ test('서버가 대답을 안 해도 화면이 흰 채로 끝나지 않는다 (�
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-to-'));
   const proc = spawn(b, ['--headless=new', '--no-sandbox', '--disable-gpu',
     '--remote-debugging-port=' + CDP, '--user-data-dir=' + profile, 'about:blank'], { stdio: 'ignore' });
-  let ws = null, text = '';
+  let ws = null, seen = null;
   try {
     let target = null;
     for (let i = 0; i < 60 && !target; i++) { await sleep(250);
@@ -118,10 +138,11 @@ test('서버가 대답을 안 해도 화면이 흰 채로 끝나지 않는다 (�
     await cmd('Page.enable'); await cmd('Runtime.enable');
     await cmd('Emulation.setDeviceMetricsOverride', { width: 430, height: 900, deviceScaleFactor: 1, mobile: true });
     await cmd('Page.navigate', { url: `http://127.0.0.1:${port}/im-flow/intake.html?api=${encodeURIComponent('/api/linkpilot')}` });
-    /* 창구의 시간 제한(12초)보다 넉넉히 기다린다 — 못 기다리고 재면
-       「흰 채로 끝났다」로 잘못 나온다 (§8 「못 잰 것은 통과가 아니다」의 반대편). */
-    await sleep(16000);
-    text = String(await ev("(document.body&&document.body.innerText||'').replace(/\\s+/g,' ').trim()") || '');
+    /* 줄인 시계(1.2초)보다 넉넉히 기다린다 */
+    await sleep(7000);
+    /* ★ `innerText` 는 **보이는 글자만** 준다 — 숨은 글자에 속지 않는다.
+         앞 판이 `--dump-dom` 의 숨은 글자에 걸려 헛통과했다. */
+    seen = String(await ev("(document.body&&document.body.innerText||'').replace(/\\s+/g,' ').trim()") || '');
   } finally {
     for (const r of held) { try { r.destroy(); } catch (_) {} }
     try { if (ws) ws.close(); } catch (_) {}
@@ -129,8 +150,11 @@ test('서버가 대답을 안 해도 화면이 흰 채로 끝나지 않는다 (�
     await new Promise(ok => srv.close(ok));
     try { fs.rmSync(profile, { recursive: true, force: true }); } catch (_) {}
   }
-  assert.ok(text.length > 40, '화면이 사실상 비었다 (글자 ' + text.length + '자)');
-  /* 기다리는 중이라는 말이든, 시간이 다 됐다는 말이든 — **사람이 읽을 것이 있어야 한다** */
-  assert.match(text, /대답|다시 열|시간|불러오지 못|못 받/,
-    '대답 없는 서버 앞에서 화면이 그 사실을 말하지 않는다: ' + text.slice(0, 200));
+  assert.ok(seen && seen.length > 40, '화면이 사실상 비었다 (글자 ' + ((seen || '').length) + '자)');
+  /* ★★ 급소는 여기다 — **아직도 기다리고 있으면 안 된다.** 앞 판은 이것을 안 봐서
+       시간 제한을 빼도 통과했다. 「불러오는 중」이 남아 있으면 고치기 전과 같은 상태다. */
+  assert.ok(!/불러오는 중/.test(seen),
+    '★ 대답이 안 오는데 아직도 「불러오는 중」이다 — 흰 상자 그대로다: ' + seen.slice(0, 200));
+  assert.match(seen, /대답|다시 열|불러오지 못|못 받/,
+    '기다림은 멈췄는데 이유를 안 말한다: ' + seen.slice(0, 200));
 });
