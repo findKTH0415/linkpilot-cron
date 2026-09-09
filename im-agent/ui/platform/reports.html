@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="585ff7d1">
+<html lang="ko" data-lp-build="61972349">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -264,7 +264,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=585ff7d1">
+<link rel="stylesheet" href="tokens.css?v=61972349">
 <style>
 :root {
   --side: 248px;
@@ -597,15 +597,15 @@ a.out__a, a.out__a:visited { display: inline-block; white-space: nowrap; color: 
   <a class="bot__i on" href="#"><b>☰</b>더보기</a>
 </nav>
 
-<script src="gate-core.js?v=585ff7d1"></script>
-<script src="catalog.js?v=585ff7d1"></script>
-<script src="inapp.js?v=585ff7d1"></script>
-<script src="live-core.js?v=585ff7d1"></script>
+<script src="gate-core.js?v=61972349"></script>
+<script src="catalog.js?v=61972349"></script>
+<script src="inapp.js?v=61972349"></script>
+<script src="live-core.js?v=61972349"></script>
 <!-- ★ 판 지문을 화면에 보이게 찍는 것이 여기 있다 (§8) — 묶음에 이미 실리는 파일이다 -->
-<script src="style-ab.js?v=585ff7d1"></script>
-<script src="flow-core.js?v=585ff7d1"></script>
+<script src="style-ab.js?v=61972349"></script>
+<script src="flow-core.js?v=61972349"></script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=585ff7d1" data-lp-global="LINKPILOT_REPORTS"></script>
+<script src="embed-bridge.js?v=61972349" data-lp-global="LINKPILOT_REPORTS"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -801,6 +801,18 @@ a.out__a, a.out__a:visited { display: inline-block; white-space: nowrap; color: 
 }());
 </script>
 <script>
+/* ★ API 는 시간 제한이 있는 창구로 부른다 〈2026-09-09〉 — 서버가 대답을 안 하면
+   화면이 «영영» 기다리고, 그 상태가 글자 하나 없는 흰 칸으로 보인다. flow-core 의
+   설명을 본다. 창구가 없으면(옛 판) 그냥 fetch 로 물러난다 — 화면을 죽이지 않는다. */
+var lpApiFetch = (function () {
+  try { var F = (window.LinkPilotFlow || {}); if (F.lpFetch) return F.lpFetch; } catch (_) {}
+  return function (u, o) { return fetch(u, o); };
+}());
+var lpApiWhy = (function () {
+  try { var F = (window.LinkPilotFlow || {}); if (F.apiWhy) return F.apiWhy; } catch (_) {}
+  return function (e) { return '서버에 닿지 못했습니다.'; };
+}());
+
 /* ── 설정 ──────────────────────────────────────────────────────────
  * 서버가 로그인 세션을 보고 내려준다.
  *
@@ -1018,7 +1030,7 @@ window.LINKPILOT_REPORTS = Object.assign({
   }
 
   function call(method, p, body) {
-    return fetch(apiUrl(p), {
+    return lpApiFetch(apiUrl(p), {
       method: method,
       credentials: 'same-origin',     // 세션 쿠키로 인증한다
       headers: body ? { 'content-type': 'application/json' } : undefined,
@@ -1685,7 +1697,7 @@ window.LINKPILOT_REPORTS = Object.assign({
   }
 
   function fetchAsBlob(url, relPath) {
-    return fetch(url, { credentials: 'same-origin' }).then(function (r) {
+    return lpApiFetch(url, { credentials: 'same-origin' }).then(function (r) {
       if (!r.ok) {
         return r.text().then(function (t) {
           var msg = '';

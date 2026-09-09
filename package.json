@@ -63,7 +63,8 @@
     "deploy:report": "node im-agent/tools/deploy-report.js",
     "brand:icon": "node assets/brand/build-icon.js",
     "im:appview": "node im-agent/tools/appview.js",
-    "im:pdf": "node im-agent/tools/pdf.js"
+    "im:pdf": "node im-agent/tools/pdf.js",
+    "probe:load": "node im-agent/tools/probe-load.js"
   },
   "dependencies": {
     "solapi": "^5.5.1"
