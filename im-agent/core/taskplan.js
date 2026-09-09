@@ -394,8 +394,10 @@ function referencedAgents() {
  *   밝히지 않은 것만 오타로 본다 — 밝히면 병합될 때 검사가 따로 짚는다.
  */
 function unknownAgents() {
+  // ★ `registry.get()` 을 쓴다 — AGENTS 만 보면 Task 그래프 전용 Agent(D-132)가
+  //   「모르는 Agent」로 잡힌다. 등록된 곳이 두 갈래라 세는 자리도 한 곳이어야 한다.
   return referencedAgents().filter(id =>
-    !registry.AGENTS[id] && !registry.PLANNED[id] && !router.INCOMING[id]);
+    !registry.get(id) && !registry.PLANNED[id] && !router.INCOMING[id]);
 }
 
 /**
@@ -403,7 +405,8 @@ function unknownAgents() {
  * ★ 안 지우면 이미 와 있는 것을 아직 안 왔다고 말하는 표가 된다.
  */
 function arrivedIncoming() {
-  return Object.keys(router.INCOMING).filter(id => registry.AGENTS[id]);
+  // ★ AGENTS 와 TASK_AGENTS 를 함께 본다 (D-132) — 어느 갈래로 도착하든 도착이다
+  return Object.keys(router.INCOMING).filter(id => registry.get(id));
 }
 
 module.exports = { PLAN, plan, detectAsset, referencedAgents, unknownAgents, arrivedIncoming, REAL_ESTATE_ONLY };

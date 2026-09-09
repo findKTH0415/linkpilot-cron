@@ -249,8 +249,39 @@ test('★★★ 장치를 빼면 **화면이 안 뜬다** (통과가 아니라 �
   const browser = findBrowser();
   if (!browser) { t.skip('헤드리스 크로미움이 없어 **못 쟀다**'); return; }
   const { dir, dup } = stage();
-  // ★ 자리를 정하는 조각만 무력화한다 (지침 §5-④)
-  fs.writeFileSync(dup, fs.readFileSync(dup, 'utf8').replace("createElement('base')", "createElement('span')"));
+  /* ★★★ **화면을 살리는 장치가 «둘»이다 — 둘 다 빼야 「뺐다」가 된다**
+   *   〈2026-09-08 · CI 에서 세 번 빨갰다〉.
+   *
+   *   [사고] 앞 판은 `<base>` 하나만 무력화했다. 그런데 이 화면에는 두 번째 길이
+   *     있다 — 형제 파일을 못 받으면 **겹친 토막을 지우고 그 파일을 다시 부른다**
+   *     (화면 위쪽 「한 번 고쳐서 다시 불렀습니다」 자리).
+   *
+   *   ★ 그래서 `<base>` 만 빼도 **두 번째 길이 화면을 살려낸다.** 다만 그것이
+   *     제때 닿느냐는 **기계 속도에 달렸다** — 늦게 온 스크립트는 초기화가 이미
+   *     끝나 화면을 못 그린다(이 파일 머리말). 그래서 빠른 자리에서는 0개,
+   *     느린 러너에서는 9개가 나왔다. **같은 커밋이 초록도 되고 빨강도 됐다.**
+   *
+   *   ★★ 문턱을 무르게 하지 않는다. **재려던 것을 재게** 고친다 — 두 길을 다
+   *     막아 「살릴 길이 없으면 화면이 안 뜬다」를 그대로 잰다 (CLAUDE.md §8). */
+  const KILL = [
+    ["createElement('base')", "createElement('span')"],          // ① 받기 전에 자리를 바로잡는 길
+    [': document.createElement(\'script\');', ': document.createElement(\'template\');'],  // ② 실패한 뒤 다시 부르는 길
+  ];
+  let sabotaged = fs.readFileSync(dup, 'utf8');
+  for (const [from, to] of KILL) sabotaged = sabotaged.replace(from, to);
+  fs.writeFileSync(dup, sabotaged);
+
+  /* ★★★ **고장내기가 정말 먹었는지 먼저 본다.** 안 먹으면 숫자가 멀쩡한 쪽과
+   *   같아지는데, 그러면 **멀쩡한 장치를 고장이라고 탓한다** — 둘이 구분이 안 된다.
+   *   안 먹었으면 「못 쟀다」로 끝낸다 (M-30). */
+  const after = fs.readFileSync(dup, 'utf8');
+  const left = KILL.filter(([from]) => after.includes(from)).map(([from]) => from);
+  if (left.length) {
+    fs.rmSync(dir, { recursive: true, force: true });
+    t.skip(`고장내기가 안 먹었다 — 베낀 화면에 ${left.length}개가 그대로 있다. `
+      + '**표본이 안 서서 못 쟀다** (통과가 아니다)');
+    return;
+  }
   const { child, port } = serve(dir);
   try {
     const a = render(browser, `http://127.0.0.1:${port}/im-flow/im-flow/report-flow.html`);

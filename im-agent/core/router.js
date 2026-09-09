@@ -244,7 +244,7 @@ const INCOMING = {
   // ★ D-119 로 만들기로 정했다(2026-08-26). 갈래는 병합이 끝난 뒤에 붙는다 —
   //   지금 열면 build-preview.js·changes.js 를 다섯 갈래가 문다.
   //   여기 적어 두면 **도착하는 순간 자동으로 일감이 잡힌다**.
-  '20_platform_spec': 'Platform Manager (D-119 · 병합 후 합류)',
+  // ★ 2026-08-26 — 20_platform_spec 이 도착해서 여기서 지웠다 (검사가 시켰다).
   '21_platform_build': 'Platform Manager (D-119 · 병합 후 합류)',
   '22_platform_verify': 'Platform Manager (D-119 · 병합 후 합류)',
 };

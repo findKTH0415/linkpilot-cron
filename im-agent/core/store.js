@@ -14,6 +14,9 @@ const FOLDERS = [
   '01_Project', '02_Source_Data', '03_Legal', '04_Property', '05_Market',
   '06_Technical', '07_Financial', '08_DD', '09_IM', '10_Teaser',
   '11_QC', '12_Final', '13_Distribution',
+  // ★ 화면 작업지시서·구현·통합검증(T22~T24)의 자리 〈2026-08-26 · D-119〉.
+  //   보고서 산출물이 아니라 **플랫폼 작업의 기록**이라 뒤에 붙였다.
+  '14_Platform',
 ];
 
 const ASSET_CODE = {
