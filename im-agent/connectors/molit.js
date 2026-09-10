@@ -88,8 +88,11 @@ async function trades(sigunguCd, months, type = 'land') {
   const all = [];
   const errors = [];
   let cachedCount = 0;
+  let attemptedMonths = 0;
+  let networkErrorStreak = 0;
 
   for (const ym of months) {
+    attemptedMonths++;
     const r = await call(endpoint.path, {
       LAWD_CD: sigunguCd, DEAL_YMD: ym, numOfRows: 200, pageNo: 1,
     }, 'trade', { type, sigunguCd, ym });
@@ -97,8 +100,17 @@ async function trades(sigunguCd, months, type = 'land') {
     if (!r.ok) {
       errors.push(`${ym}: ${r.error}`);
       if (r.quotaExhausted) break; // 쿼터 소진이면 즉시 중단
+      if (/fetch failed|타임아웃|ENOTFOUND|EAI_AGAIN|ECONN/i.test(String(r.error || ''))) {
+        networkErrorStreak++;
+        // 같은 호스트 연결이 연속으로 죽으면 나머지 월도 같은 결과다. 36개월을
+        // 모두 재시도해 러너만 붙잡지 말고, 불완전 조회 사실을 명시한다.
+        if (networkErrorStreak >= 2) break;
+      } else {
+        networkErrorStreak = 0;
+      }
       continue;
     }
+    networkErrorStreak = 0;
     if (r.cached) cachedCount++;
     for (const item of r.value) all.push(toTrade(item, ym, type));
   }
@@ -108,7 +120,9 @@ async function trades(sigunguCd, months, type = 'land') {
     ok: valid.length > 0,
     value: valid,
     label: endpoint.label,
-    monthsQueried: months.length,
+    monthsRequested: months.length,
+    monthsQueried: attemptedMonths,
+    incomplete: attemptedMonths < months.length || errors.length > 0,
     cachedMonths: cachedCount,
     error: valid.length ? null : (errors[0] || '실거래 자료 없음'),
     errors,
