@@ -47,7 +47,7 @@ process.env.IM_AGENT_CACHE = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-parcel-so
 
 // .env와 마스킹 목록을 먼저 올린 뒤 커넥터를 읽는다.
 require('../core/env').load();
-const { redact } = require('../connectors/http');
+const { redact, request, buildUrl, SECRET_ENV } = require('../connectors/http');
 
 const nativeFetch = global.fetch.bind(global);
 let rawSequence = 0;
@@ -57,19 +57,44 @@ function countMatches(text, regex) {
   return (String(text).match(regex) || []).length;
 }
 
+/** 요청주소에서는 인증값과 사내 서비스URL만 가리고 조회조건은 보존한다. */
+function sanitizeUrl(input) {
+  let text = String(input);
+  try {
+    const url = new URL(text);
+    for (const name of [...url.searchParams.keys()]) {
+      if (/^(servicekey|key|apikey|authkey|oc|domain)$/i.test(name)) {
+        url.searchParams.set(name, '[REDACTED]');
+      }
+    }
+    text = url.toString();
+  } catch (_) { /* URL이 아니면 아래의 실제 값 치환만 적용한다. */ }
+
+  for (const name of SECRET_ENV) {
+    const value = String(process.env[name] || '');
+    if (value.length < 8) continue;
+    text = text.split(value).join('[REDACTED]');
+    text = text.split(encodeURIComponent(value)).join('[REDACTED]');
+  }
+  return text;
+}
+
 /** 공개 저장소·아티팩트에 남기면 안 되는 개인식별자를 원문에서 가린다. */
 function sanitizeBody(input) {
   let text = redact(String(input));
   const counts = {
     email: countMatches(text, /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi),
     phone: countMatches(text, /\b01[016789][ -]?\d{3,4}[ -]?\d{4}\b/g),
-    residentId: countMatches(text, /\b\d{6}-?[1-4]\d{6}\b/g),
+    residentId: countMatches(text, /\b\d{6}-[1-4]\d{6}\b/g),
     namedField: 0,
   };
   text = text
     .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[EMAIL_REDACTED]')
     .replace(/\b01[016789][ -]?\d{3,4}[ -]?\d{4}\b/g, '[PHONE_REDACTED]')
-    .replace(/\b\d{6}-?[1-4]\d{6}\b/g, '[RESIDENT_ID_REDACTED]');
+    // 하이픈 없는 13자리 숫자까지 지우면 통계 API의 긴 소수부를 주민번호로
+    // 오인해 JSON 자체가 깨진다. 이 수집 대상은 소유자 원부가 아니므로 형식이
+    // 명확한 하이픈 포함 주민번호만 패턴으로 가리고, 이름 필드는 아래에서 가린다.
+    .replace(/\b\d{6}-[1-4]\d{6}\b/g, '[RESIDENT_ID_REDACTED]');
 
   const fields = [
     '소유자', '건축주', '대표자', '성명', '전화번호', '이메일',
@@ -92,7 +117,7 @@ function safePart(value) {
 }
 
 function writeRawRecord(url, init, response, buffer, error = null) {
-  const safeUrl = redact(String(url));
+  const safeUrl = sanitizeUrl(url);
   const parsed = new URL(safeUrl);
   const requestId = crypto.createHash('sha256')
     .update(`${init?.method || 'GET'} ${safeUrl}`)
@@ -161,7 +186,7 @@ const source = {
   address: ADDRESS,
   region: REGION || null,
   collectedAt,
-  grade: 'B — GitHub Actions 공식 실행 아티팩트',
+  grade: '혼합 — 각 source의 grade 필드 참조',
   sources: {},
 };
 
@@ -181,7 +206,7 @@ function compact(result) {
   return out;
 }
 
-async function collect(id, label, provider, fn) {
+async function collect(id, label, provider, fn, grade = 'B') {
   const started = new Date().toISOString();
   let result;
   try {
@@ -189,7 +214,7 @@ async function collect(id, label, provider, fn) {
   } catch (error) {
     result = { ok: false, error: redact(error.stack || error.message || String(error)) };
   }
-  source.sources[id] = { label, provider, startedAt: started, ...compact(result) };
+  source.sources[id] = { label, provider, grade, startedAt: started, ...compact(result) };
   console.log(`${result.ok ? '●' : '✕'} ${label}${result.error ? ` — ${result.error}` : ''}`);
   return result;
 }
@@ -210,6 +235,82 @@ function lineStatus(item) {
   return item.ok ? '성공' : (item.unavailable ? '키 없음' : `확인 실패: ${item.error || '원인 미상'}`);
 }
 
+function parcelNumber() {
+  const match = ADDRESS.match(/\s(산\s*)?(\d+)(?:-(\d+))?\s*$/);
+  if (!match) return null;
+  return {
+    landType: match[1] ? '2' : '1',
+    bun: String(Number(match[2])).padStart(4, '0'),
+    ji: String(Number(match[3] || 0)).padStart(4, '0'),
+    jibun: `${match[1] ? '산' : ''}${Number(match[2])}${match[3] ? `-${Number(match[3])}` : ''}`,
+    legalAddress: ADDRESS.slice(0, match.index).trim(),
+  };
+}
+
+/** VWorld 장애 때도 PNU를 공식 법정동코드로 구성하기 위한 행안부 조회. */
+async function officialPnuFromAddress() {
+  const number = parcelNumber();
+  const serviceKey = process.env.DATA_GO_KR_KEY || '';
+  if (!number) return { ok: false, error: '주소 끝에서 지번을 분리하지 못했다' };
+  if (!serviceKey) return { ok: false, unavailable: true, error: 'DATA_GO_KR_KEY 미설정' };
+
+  const url = buildUrl('https://apis.data.go.kr/1741000/StanReginCd/getStanReginCdList', {
+    ServiceKey: serviceKey,
+    pageNo: 1,
+    numOfRows: 100,
+    type: 'json',
+    locatadd_nm: number.legalAddress,
+  });
+  const response = await request(url);
+  if (!response.ok) return { ok: false, error: response.error };
+
+  let body;
+  try { body = JSON.parse(response.body); }
+  catch (_) { return { ok: false, error: '법정동코드 응답이 JSON이 아니다' }; }
+
+  const blocks = body.StanReginCd || body.stanReginCd || [];
+  const rows = blocks.flatMap(block => block.row || block.rows || []);
+  const active = rows.filter(row => !/폐지/.test(String(row.locat_rm || '')));
+  const chosen = active.find(row => String(row.locatadd_nm || '').trim() === number.legalAddress)
+    || active.find(row => String(row.locatadd_nm || '').includes('부여군 외산면 만수리'));
+  const regionCd = String(chosen?.region_cd || chosen?.locatjijuk_cd || '').replace(/\D/g, '');
+  if (regionCd.length !== 10) {
+    const result = blocks?.[0]?.head?.find?.(x => x.RESULT)?.RESULT;
+    return { ok: false, error: result?.resultMsg || result?.MESSAGE || '일치하는 법정동코드가 없다' };
+  }
+  return {
+    ok: true,
+    value: {
+      regionCd,
+      legalAddress: chosen.locatadd_nm,
+      pnu: `${regionCd}${number.landType}${number.bun}${number.ji}`,
+      jibun: number.jibun,
+    },
+  };
+}
+
+/** 공식 지오코딩 장애 시 일사 관측소 탐색에만 쓰는 보조 좌표. */
+async function fallbackGeocode() {
+  const url = buildUrl('https://nominatim.openstreetmap.org/search', {
+    q: ADDRESS,
+    format: 'jsonv2',
+    limit: 1,
+    countrycodes: 'kr',
+  });
+  const response = await request(url, {
+    headers: { 'User-Agent': 'PDIGID-parcel-review/1.0 (workflow source collection)' },
+  });
+  if (!response.ok) return { ok: false, error: response.error };
+  let rows;
+  try { rows = JSON.parse(response.body); }
+  catch (_) { return { ok: false, error: '보조 지오코딩 응답이 JSON이 아니다' }; }
+  const row = Array.isArray(rows) ? rows[0] : null;
+  const lat = Number(row?.lat);
+  const lon = Number(row?.lon);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return { ok: false, error: '보조 지오코딩 결과 없음' };
+  return { ok: true, value: { lat, lon, refined: row.display_name || ADDRESS, matchedType: 'OSM' } };
+}
+
 function buildSummary(derived) {
   const s = source.sources;
   const L = [];
@@ -224,8 +325,8 @@ function buildSummary(derived) {
   L.push('');
   L.push('## 핵심 원자료');
   L.push('');
-  L.push(`- 좌표: ${derived.lat ?? '미확인'}, ${derived.lon ?? '미확인'}`);
-  L.push(`- PNU: ${derived.pnu || '미확인'} · 지번: ${derived.jibun || '미확인'}`);
+  L.push(`- 좌표: ${derived.lat ?? '미확인'}, ${derived.lon ?? '미확인'} · ${derived.coordinateSource || '출처 미확인'}`);
+  L.push(`- PNU: ${derived.pnu || '미확인'} · 지번: ${derived.jibun || '미확인'} · ${derived.pnuSource || '출처 미확인'}`);
   L.push(`- 공부상 면적/지목: ${derived.areaSqm?.toLocaleString('ko-KR') || '미확인'}㎡ · ${derived.category || '미확인'}`);
   L.push(`- 지적 폴리곤 실측면적: ${derived.polygonAreaSqm?.toLocaleString('ko-KR') || '미확인'}㎡`);
   L.push(`- 최신 개별공시지가: ${derived.landPriceYear || '연도 미확인'} · ${money(derived.landPricePerSqm)}/㎡`);
@@ -239,9 +340,9 @@ function buildSummary(derived) {
   L.push('');
   L.push('## 호출 결과');
   L.push('');
-  L.push('| 항목 | 기관 | 결과 |');
-  L.push('|---|---|---|');
-  for (const item of Object.values(s)) L.push(`| ${item.label} | ${item.provider} | ${lineStatus(item).replace(/\|/g, '·')} |`);
+  L.push('| 항목 | 기관 | 등급 | 결과 |');
+  L.push('|---|---|---:|---|');
+  for (const item of Object.values(s)) L.push(`| ${item.label} | ${item.provider} | ${item.grade || '-'} | ${lineStatus(item).replace(/\|/g, '·')} |`);
   L.push('');
   L.push('## 이 자료만으로 확정할 수 없는 것');
   L.push('');
@@ -255,13 +356,20 @@ function buildSummary(derived) {
 }
 
 async function main() {
-  const geocode = await collect('geocode', '주소→좌표', 'VWorld', () => vworld.geocode(ADDRESS));
+  const [geocode, legalCode] = await Promise.all([
+    collect('geocode', '주소→좌표', 'VWorld', () => vworld.geocode(ADDRESS)),
+    collect('legalCode', '법정동코드→PNU', '행정안전부', () => officialPnuFromAddress()),
+  ]);
+  let coordinate = geocode;
+  if (!coordinate.ok) {
+    coordinate = await collect('geocodeFallback', '보조 주소→좌표', 'OpenStreetMap Nominatim', () => fallbackGeocode(), 'C');
+  }
   let parcel = { ok: false, error: '좌표 미확인으로 건너뜀' };
   let parsed = null;
   let polygonAreaSqm = null;
 
-  if (geocode.ok) {
-    parcel = await collect('parcel', '연속지적도·PNU', 'VWorld', () => vworld.parcelAt(geocode.value.lon, geocode.value.lat));
+  if (coordinate.ok) {
+    parcel = await collect('parcel', '연속지적도·PNU', 'VWorld', () => vworld.parcelAt(coordinate.value.lon, coordinate.value.lat));
     if (parcel.ok) {
       parsed = pnuUtil.parse(parcel.value.pnu);
       polygonAreaSqm = parcel.value.polygon?.length >= 3
@@ -270,8 +378,18 @@ async function main() {
       await collect('nearbyParcels', '주변 30m 필지', 'VWorld', () => vworld.parcelsNear(parcel.value.polygon, 30));
     }
   } else {
-    source.sources.parcel = { label: '연속지적도·PNU', provider: 'VWorld', ...compact(parcel) };
+    source.sources.parcel = { label: '연속지적도·PNU', provider: 'VWorld', grade: 'B', ...compact(parcel) };
   }
+
+  if (!parsed && legalCode.ok) parsed = pnuUtil.parse(legalCode.value.pnu);
+  source.sources.pnuResolution = {
+    label: '분석용 PNU 확정',
+    provider: parcel.ok ? 'VWorld' : (legalCode.ok ? '행정안전부 법정동코드' : '미확인'),
+    grade: 'B',
+    ok: Boolean(parsed),
+    error: parsed ? null : 'VWorld와 행정안전부 조회 모두에서 PNU를 확정하지 못했다',
+    value: parsed ? { pnu: parsed.pnu, jibun: parsed.jibun } : null,
+  };
 
   const skipped = (label, provider, why) => ({ label, provider, ok: false, error: why, skipped: true });
   let landChar = null;
@@ -314,8 +432,8 @@ async function main() {
     source.sources.landTrades = skipped('최근 36개월 토지 실거래', '국토교통부', 'PNU 미확인');
   }
 
-  if (geocode.ok) {
-    const station = await collect('solarStation', '최근 일사 관측소', '기상청 API허브', () => kma.nearestStation(geocode.value.lat, geocode.value.lon));
+  if (coordinate.ok) {
+    const station = await collect('solarStation', '최근 일사 관측소', '기상청 API허브', () => kma.nearestStation(coordinate.value.lat, coordinate.value.lon));
     if (station.ok) {
       const completeYear = new Date().getUTCFullYear() - 1;
       for (const year of [completeYear - 2, completeYear - 1, completeYear]) {
@@ -348,10 +466,12 @@ async function main() {
 
   const targetTrades = source.sources.landTrades?.targetTransactions || [];
   const derived = {
-    lat: geocode.ok ? geocode.value.lat : null,
-    lon: geocode.ok ? geocode.value.lon : null,
+    lat: coordinate.ok ? coordinate.value.lat : null,
+    lon: coordinate.ok ? coordinate.value.lon : null,
+    coordinateSource: geocode.ok ? 'VWorld(B)' : (coordinate.ok ? 'OpenStreetMap 보조좌표(C)' : null),
     pnu: parsed?.pnu || null,
     jibun: parsed?.jibun || null,
+    pnuSource: parcel.ok ? 'VWorld 연속지적도(B)' : (legalCode.ok ? '행정안전부 법정동코드로 구성(B)' : null),
     polygonAreaSqm,
     areaSqm: landChar?.ok ? landChar.value.areaSqm : null,
     category: landChar?.ok ? landChar.value.category : null,
@@ -400,4 +520,3 @@ main().catch((error) => {
   console.error(redact(error.stack || error.message || String(error)));
   process.exit(1);
 });
-
