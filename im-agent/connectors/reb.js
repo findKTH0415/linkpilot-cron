@@ -284,9 +284,19 @@ async function resolveRegion(address, month, table = TBL_LAND_INDEX) {
 
   // '서울특별시' → '서울', '경기도' → '경기' 로 줄여 맞춘다 (R-ONE 표기가 축약형이다)
   const addr = String(address).replace(/\s+/g, ' ').trim();
+  const sidoAliases = {
+    '충남': ['충남', '충청남도', '충청남'],
+    '충북': ['충북', '충청북도', '충청북'],
+    '전남': ['전남', '전라남도', '전라남'],
+    '전북': ['전북', '전북특별자치도', '전라북도', '전라북'],
+    '경남': ['경남', '경상남도', '경상남'],
+    '경북': ['경북', '경상북도', '경상북'],
+    '강원': ['강원', '강원특별자치도', '강원도'],
+  };
   const hits = idx.value.filter(r => {
     const sidoShort = r.sido.replace(/(특별자치)?(시|도)$/, '');
-    return addr.includes(r.sigungu) && (addr.includes(r.sido) || addr.includes(sidoShort));
+    const aliases = sidoAliases[r.sido] || [r.sido, sidoShort];
+    return addr.includes(r.sigungu) && aliases.some(name => addr.includes(name));
   });
 
   if (!hits.length) return { ok: false, error: `주소에서 지역을 특정하지 못했다: ${addr}` };
