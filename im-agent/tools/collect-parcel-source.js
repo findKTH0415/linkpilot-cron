@@ -208,6 +208,9 @@ function compact(result) {
   if ('count' in result) out.count = result.count;
   if ('latest' in result) out.latest = result.latest;
   if ('errors' in result) out.errors = result.errors;
+  if ('monthsRequested' in result) out.monthsRequested = result.monthsRequested;
+  if ('monthsQueried' in result) out.monthsQueried = result.monthsQueried;
+  if ('incomplete' in result) out.incomplete = result.incomplete;
   return out;
 }
 
@@ -351,7 +354,7 @@ function buildSummary(derived) {
   L.push(`- 공시지가 단순 합계(공부면적×공시지가): ${money(derived.officialLandValue)} · 시장가치가 아님`);
   L.push(`- 용도지역: ${derived.zone || '미확인'}`);
   L.push(`- 함께 조회된 규제: ${derived.restrictions?.length ? derived.restrictions.join(' · ') : '없음으로 확인된 것이 아님 — 원자료 확인 필요'}`);
-  L.push(`- 만수리 토지 실거래: 최근 36개월 ${derived.tradeCount}건 · ㎡당 단가 중앙값 ${money(derived.tradeMedianPerSqm)}`);
+  L.push(`- 만수리 토지 실거래: ${derived.tradeCount === null ? '미확인' : `${derived.tradeCount}건`} · 조회 ${derived.tradeMonthsQueried ?? 0}/${derived.tradeMonthsRequested ?? 36}개월 · ㎡당 단가 중앙값 ${money(derived.tradeMedianPerSqm)}`);
   L.push(`- 일사량: ${derived.solarYears?.length ? derived.solarYears.map(x => `${x.year}년 ${x.irradianceKwh}kWh/㎡(관측 ${x.coverage}%)`).join(' · ') : '미확인'}`);
   L.push(`- REC 현물시장: ${derived.recWeightedAvg ? `최근 12개월 육지 거래량가중 평균 ${money(derived.recWeightedAvg)}/REC · ${derived.recSessions}회` : '미확인'}`);
   L.push(`- 계통 여유: ${derived.gridRows === null ? '미확인' : `${derived.gridRows}개 선로 응답`} · 변전소 거리는 공식 API 비공개`);
@@ -511,7 +514,10 @@ async function main() {
       ? landChar.value.areaSqm * landPrice.value.pricePerSqm : null,
     zone: landUse?.ok ? landUse.value.zone : null,
     restrictions: landUse?.ok ? landUse.value.restrictions : [],
-    tradeCount: targetTrades.length,
+    tradeCount: trades?.ok ? targetTrades.length : null,
+    tradeMonthsRequested: source.sources.landTrades?.monthsRequested || 36,
+    tradeMonthsQueried: source.sources.landTrades?.monthsQueried || 0,
+    tradeIncomplete: Boolean(source.sources.landTrades?.incomplete),
     tradeMedianPerSqm: median(targetTrades.map(x => x.pricePerSqm)),
     solarYears: solarYears.map(x => ({ year: x.year, irradianceKwh: x.irradianceKwh, coverage: x.coverage })),
     recWeightedAvg: rec?.ok ? rec.value.weightedAvg : null,
