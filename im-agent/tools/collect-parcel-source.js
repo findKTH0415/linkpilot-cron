@@ -16,6 +16,7 @@
  */
 
 const crypto = require('node:crypto');
+const dns = require('node:dns');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
@@ -27,6 +28,7 @@ function arg(flag, fallback = '') {
 
 const ADDRESS = arg('--address');
 const REGION = arg('--region');
+const SEEDED_PNU = arg('--pnu');
 const OUT = path.resolve(arg('--out', 'data/parcel/latest'));
 const DATA_ROOT = path.resolve('data') + path.sep;
 
@@ -48,6 +50,9 @@ process.env.IM_AGENT_CACHE = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-parcel-so
 // .env와 마스킹 목록을 먼저 올린 뒤 커넥터를 읽는다.
 require('../core/env').load();
 const { redact, request, buildUrl, SECRET_ENV } = require('../connectors/http');
+
+// 일부 국내 공공 API가 GitHub 호스팅 러너의 IPv6 연결을 끝내지 못한다.
+dns.setDefaultResultOrder('ipv4first');
 
 const nativeFetch = global.fetch.bind(global);
 let rawSequence = 0;
@@ -291,24 +296,37 @@ async function officialPnuFromAddress() {
 
 /** 공식 지오코딩 장애 시 일사 관측소 탐색에만 쓰는 보조 좌표. */
 async function fallbackGeocode() {
-  const url = buildUrl('https://nominatim.openstreetmap.org/search', {
-    q: ADDRESS,
-    format: 'jsonv2',
-    limit: 1,
-    countrycodes: 'kr',
-  });
-  const response = await request(url, {
-    headers: { 'User-Agent': 'PDIGID-parcel-review/1.0 (workflow source collection)' },
-  });
-  if (!response.ok) return { ok: false, error: response.error };
-  let rows;
-  try { rows = JSON.parse(response.body); }
-  catch (_) { return { ok: false, error: '보조 지오코딩 응답이 JSON이 아니다' }; }
-  const row = Array.isArray(rows) ? rows[0] : null;
-  const lat = Number(row?.lat);
-  const lon = Number(row?.lon);
-  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return { ok: false, error: '보조 지오코딩 결과 없음' };
-  return { ok: true, value: { lat, lon, refined: row.display_name || ADDRESS, matchedType: 'OSM' } };
+  const number = parcelNumber();
+  const queries = [
+    ADDRESS,
+    number?.legalAddress,
+    '만수리, 외산면, 부여군, 충청남도, 대한민국',
+  ].filter(Boolean);
+
+  for (const query of queries) {
+    const url = buildUrl('https://nominatim.openstreetmap.org/search', {
+      q: query,
+      format: 'jsonv2',
+      limit: 1,
+      countrycodes: 'kr',
+    });
+    const response = await request(url, {
+      headers: { 'User-Agent': 'PDIGID-parcel-review/1.0 (workflow source collection)' },
+    });
+    if (!response.ok) continue;
+    let rows;
+    try { rows = JSON.parse(response.body); }
+    catch (_) { continue; }
+    const row = Array.isArray(rows) ? rows[0] : null;
+    const lat = Number(row?.lat);
+    const lon = Number(row?.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+    return {
+      ok: true,
+      value: { lat, lon, refined: row.display_name || query, matchedType: 'OSM', query },
+    };
+  }
+  return { ok: false, error: '보조 지오코딩 결과 없음' };
 }
 
 function buildSummary(derived) {
@@ -364,12 +382,23 @@ async function main() {
   if (!coordinate.ok) {
     coordinate = await collect('geocodeFallback', '보조 주소→좌표', 'OpenStreetMap Nominatim', () => fallbackGeocode(), 'C');
   }
+  const seeded = pnuUtil.parse(SEEDED_PNU);
+  source.sources.pnuSeed = {
+    label: '보조 PNU 입력값',
+    provider: '공개 주소자료 교차확인',
+    grade: 'C',
+    ok: Boolean(seeded),
+    error: seeded ? null : (SEEDED_PNU ? 'PNU 19자리 형식이 아니다' : '보조 PNU 없음'),
+    value: seeded ? { pnu: seeded.pnu, jibun: seeded.jibun } : null,
+  };
   let parcel = { ok: false, error: '좌표 미확인으로 건너뜀' };
   let parsed = null;
   let polygonAreaSqm = null;
 
-  if (coordinate.ok) {
-    parcel = await collect('parcel', '연속지적도·PNU', 'VWorld', () => vworld.parcelAt(coordinate.value.lon, coordinate.value.lat));
+  // C등급 마을 중심점으로 필지를 조회하면 다른 PNU가 나올 수 있으므로,
+  // 연속지적도는 VWorld가 직접 찾은 좌표에만 적용한다.
+  if (geocode.ok) {
+    parcel = await collect('parcel', '연속지적도·PNU', 'VWorld', () => vworld.parcelAt(geocode.value.lon, geocode.value.lat));
     if (parcel.ok) {
       parsed = pnuUtil.parse(parcel.value.pnu);
       polygonAreaSqm = parcel.value.polygon?.length >= 3
@@ -382,10 +411,11 @@ async function main() {
   }
 
   if (!parsed && legalCode.ok) parsed = pnuUtil.parse(legalCode.value.pnu);
+  if (!parsed && seeded) parsed = seeded;
   source.sources.pnuResolution = {
     label: '분석용 PNU 확정',
-    provider: parcel.ok ? 'VWorld' : (legalCode.ok ? '행정안전부 법정동코드' : '미확인'),
-    grade: 'B',
+    provider: parcel.ok ? 'VWorld' : (legalCode.ok ? '행정안전부 법정동코드' : (seeded ? '보조 PNU 입력값' : '미확인')),
+    grade: parcel.ok || legalCode.ok ? 'B' : (seeded ? 'C' : '-'),
     ok: Boolean(parsed),
     error: parsed ? null : 'VWorld와 행정안전부 조회 모두에서 PNU를 확정하지 못했다',
     value: parsed ? { pnu: parsed.pnu, jibun: parsed.jibun } : null,
@@ -471,7 +501,7 @@ async function main() {
     coordinateSource: geocode.ok ? 'VWorld(B)' : (coordinate.ok ? 'OpenStreetMap 보조좌표(C)' : null),
     pnu: parsed?.pnu || null,
     jibun: parsed?.jibun || null,
-    pnuSource: parcel.ok ? 'VWorld 연속지적도(B)' : (legalCode.ok ? '행정안전부 법정동코드로 구성(B)' : null),
+    pnuSource: parcel.ok ? 'VWorld 연속지적도(B)' : (legalCode.ok ? '행정안전부 법정동코드로 구성(B)' : (seeded ? '공개 주소자료 보조값(C)' : null)),
     polygonAreaSqm,
     areaSqm: landChar?.ok ? landChar.value.areaSqm : null,
     category: landChar?.ok ? landChar.value.category : null,
