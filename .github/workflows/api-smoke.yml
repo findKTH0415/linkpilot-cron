@@ -20,6 +20,7 @@ on:
     paths:
       - .github/workflows/api-smoke.yml
       - im-agent/tools/collect-parcel-source.js
+      - im-agent/connectors/reb.js
       - package.json
   schedule:
     - cron: '0 21 * * 1'          # 매주 월요일 06:00 KST (UTC 표기 — CLAUDE.md §2)
