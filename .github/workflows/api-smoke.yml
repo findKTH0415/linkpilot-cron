@@ -20,6 +20,7 @@ on:
     paths:
       - .github/workflows/api-smoke.yml
       - im-agent/tools/collect-parcel-source.js
+      - im-agent/connectors/molit.js
       - im-agent/connectors/reb.js
       - package.json
   schedule:
