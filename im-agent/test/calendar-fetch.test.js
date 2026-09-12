@@ -50,6 +50,23 @@ test('★ 왜 안 되는지 갈라 말한다 — 「승인 전」과 「키 틀�
   assert.match(approval.head, /활용신청/, '승인 안내에 무엇을 해야 하는지가 없다');
 });
 
+test('★★★ 「못 닿은 것」을 「승인 안 된 것」으로 말하지 않는다', () => {
+  /* [사고 2026-09-12 · 실측] 첫 실행에서 5년 × 4갈래 **스무 칸 전부**가
+     「판정하지 못했다 (HTTP undefined)」로 나왔다. 상태코드가 없다는 것은
+     **응답이 아예 안 온 것**인데, 그 글은 「승인이 안 됐나」로 읽힌다 —
+     사장님이 **이미 하신 활용신청을 또 하시게 된다.**
+     ★ 실제 원인은 자리였다: 같은 날 진단에서 data.go.kr 계열이 전부 `fetch failed` 였고
+       한국은행·부동산원은 살아 있었다. 열쇠가 있는 자리가 곧 «닿는 자리»는 아니다. */
+  const unreachable = kasi.diagnose(undefined, undefined, 'fetch failed (4회 시도 실패)');
+  assert.strictEqual(unreachable.kind, 'unreachable', '응답이 없는 것을 따로 갈라야 한다');
+  assert.match(unreachable.head, /못 닿았다/, '무엇이 일어난 것인지 말하지 않는다');
+  assert.match(unreachable.head, /fetch failed/, '실제 이유를 그대로 옮기지 않는다');
+  assert.doesNotMatch(unreachable.head, /HTTP undefined/, '「HTTP undefined」를 사람에게 보이면 안 된다');
+  /* ★ 승인 문제와 «다른 판정»이어야 한다 — 섞이면 갈라 둔 뜻이 없다 */
+  const approval2 = kasi.diagnose(200, 'SERVICE_KEY_IS_NOT_REGISTERED_ERROR');
+  assert.notStrictEqual(unreachable.kind, approval2.kind);
+});
+
 test('★★ 열쇠가 없으면 «못 쟀다»로 끝낸다 — 통과로도 실패로도 안 뭉갠다', () => {
   const env = { ...process.env };
   delete env.DATA_GO_KR_KEY;
