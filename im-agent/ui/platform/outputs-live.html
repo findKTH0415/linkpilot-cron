@@ -1061,6 +1061,18 @@ window.LINKPILOT_OUTPUTS = {
 }));
 </script>
 <script>
+/* ★ API 는 시간 제한이 있는 창구로 부른다 〈2026-09-09〉 — 서버가 대답을 안 하면
+   화면이 «영영» 기다리고, 그 상태가 글자 하나 없는 흰 칸으로 보인다. flow-core 의
+   설명을 본다. 창구가 없으면(옛 판) 그냥 fetch 로 물러난다 — 화면을 죽이지 않는다. */
+var lpApiFetch = (function () {
+  try { var F = (window.LinkPilotFlow || {}); if (F.lpFetch) return F.lpFetch; } catch (_) {}
+  return function (u, o) { return fetch(u, o); };
+}());
+var lpApiWhy = (function () {
+  try { var F = (window.LinkPilotFlow || {}); if (F.apiWhy) return F.apiWhy; } catch (_) {}
+  return function (e) { return '서버에 닿지 못했습니다.'; };
+}());
+
 (function () {
   'use strict';
   var C = window.LINKPILOT_OUTPUTS;
@@ -1099,7 +1111,7 @@ window.LINKPILOT_OUTPUTS = {
   }
 
   function get(url) {
-    return fetch(url, { credentials: 'same-origin' }).then(function (r) {
+    return lpApiFetch(url, { credentials: 'same-origin' }).then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (b) {
         if (!r.ok) throw new Error((b && b.error) || ('서버 오류 (' + r.status + ')'));
         return b;

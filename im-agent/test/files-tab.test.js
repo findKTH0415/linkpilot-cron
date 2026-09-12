@@ -1785,7 +1785,12 @@ test('★★★ 주소를 못 받아도 부른다 — 다만 null 을 주소에 
   assert.ok(at > 0, 'call 을 못 찾았다');
   const fn = code.slice(at, at + 1600);
   const guardAt = fn.indexOf('if (!C.api)');
-  const fetchAt = fn.indexOf('fetch(C.api + path');
+  /* ★★ **부르는 창구의 «이름»이 아니라 «순서»를 잰다** 〈2026-09-09〉.
+       API 호출이 시간 제한 있는 창구(`lpApiFetch`)를 거치게 되면서 이 줄이
+       빨개졌는데, **재려던 성질은 그대로였다** — 문지기는 여전히 부르기 «전»에
+       있었고 이름만 바뀌었다. 그래서 약하게 고치는 것이 아니라 **어느 창구로
+       가든 잡도록 넓힌다** (CLAUDE.md §6-2-5 의 잣대). */
+  const fetchAt = fn.search(/(?:lpApiFetch|fetch)\(C\.api \+ path/);
   assert.ok(guardAt > -1 && fetchAt > -1 && guardAt < fetchAt,
     '빈 주소 문지기가 fetch 뒤에 있다 — 막기 전에 이미 불렀다');
   assert.ok(!/null/.test(fn.slice(guardAt, fetchAt).replace(/\/\*[\s\S]*?\*\//g, '')),

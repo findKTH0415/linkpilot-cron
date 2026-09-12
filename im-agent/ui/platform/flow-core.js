@@ -24,7 +24,7 @@
    *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다. 화면이 자기
    *   지문과 대 보고 다르면 「함수가 없다」로 죽기 전에 사람 말로 알린다.
    */
-  var LP_BUILD = '585ff7d1';
+  var LP_BUILD = '61972349';
 
   /**
    * ★★★ **단계는 다섯이다** 〈2026-08-22 사용자 지시〉.
@@ -1003,6 +1003,63 @@
     return n;
   }
 
+  /* ★★★ **API 를 부를 때는 «기다릴 시간»을 정한다** 〈2026-09-09 사장님 지시:
+       「너무 느림 로딩 교차검증하고 개선해줘」〉.
+
+     [사고] 화면 열셋의 `fetch` 쉰네 곳에 **시간 제한이 한 곳도 없었다.** 서버가
+       404 나 오류를 주면 화면이 「못 받았습니다」를 띄우는데, **대답을 아예 안 하고
+       매달려 있으면** 그 자리도 안 온다. 사장님 화면의 **글자 하나 없는 흰 상자**가
+       그 상태다 — 오류도 없고 안내도 없고, 그냥 영영 기다린다.
+
+     [왜 큰가] 「못 받았다」와 「아직 기다린다」는 사람에게 **똑같이 보인다.** 앞엣것은
+       고칠 데가 있고 뒤엣것은 없는데, 화면이 갈라 주지 않으면 둘 다 「고장」으로 읽힌다
+       (§8 「빈 화면으로 끝나지 않는다」 · §2 「조용히 죽지 않는다」와 같은 결).
+
+     [정한 것] 기본 12초. 사람이 흰 화면을 참는 한계보다 짧고, 느린 망에서 멀쩡한
+       응답을 자르지 않을 만큼은 길다. 부르는 쪽이 필요하면 바꿔 준다.
+     ★ 시간이 다 되면 **그냥 실패가 아니라 「시간이 다 됐다」로 갈라** 준다 —
+       받는 쪽이 사람에게 다른 말을 할 수 있어야 한다.
+     ★★ `AbortSignal.timeout` 이 없는 낡은 브라우저에서는 스스로 만들어 쓴다.
+       없다고 시간 제한을 포기하면 그 브라우저에서만 흰 화면이 남는다. */
+  var API_TIMEOUT_MS = 12000;
+  function lpFetch(url, opts) {
+    var o = {};
+    for (var k in (opts || {})) if (Object.prototype.hasOwnProperty.call(opts, k)) o[k] = opts[k];
+    var ms = o.timeoutMs || API_TIMEOUT_MS;
+    delete o.timeoutMs;
+    var timer = null;
+    if (!o.signal) {
+      try {
+        if (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) o.signal = AbortSignal.timeout(ms);
+        else if (typeof AbortController !== 'undefined') {
+          var ac = new AbortController();
+          o.signal = ac.signal;
+          timer = setTimeout(function () { try { ac.abort(); } catch (_) {} }, ms);
+        }
+      } catch (_) { /* 시간 제한을 못 걸어도 요청 자체는 보낸다 */ }
+    }
+    return fetch(url, o).then(function (r) {
+      if (timer) clearTimeout(timer);
+      return r;
+    }, function (e) {
+      if (timer) clearTimeout(timer);
+      /* 시간이 다 된 것인지 다른 이유인지 갈라 준다 */
+      var name = (e && e.name) || '';
+      if (name === 'TimeoutError' || name === 'AbortError') {
+        var t = new Error('서버가 ' + Math.round(ms / 1000) + '초 안에 대답하지 않았습니다');
+        t.lpTimeout = true;
+        throw t;
+      }
+      throw e;
+    });
+  }
+  /* 사람에게 보일 한 줄 — 「못 받았다」와 「너무 오래 걸린다」를 갈라 적는다 */
+  function apiWhy(e) {
+    if (e && e.lpTimeout) return '서버가 제때 대답하지 않았습니다. 잠시 뒤 다시 열어 주십시오.';
+    var m = (e && e.message) || '';
+    return m ? ('서버에 닿지 못했습니다 — ' + m) : '서버에 닿지 못했습니다.';
+  }
+
   return {
     BUILD: LP_BUILD,
     STEPS: STEPS, WHY: WHY, EMBED_CSS: EMBED_CSS,
@@ -1015,6 +1072,7 @@
     insideLinkPilot: insideLinkPilot,
     appDepth: appDepth, midFrames: midFrames, nestedAppNote: nestedAppNote,
     resolveApi: resolveApi,
+    lpFetch: lpFetch, apiWhy: apiWhy, API_TIMEOUT_MS: API_TIMEOUT_MS,
     apiNote: apiNote,
     API_FALLBACK: API_FALLBACK,
     tokensLoaded: tokensLoaded, TOKENS_MISSING: TOKENS_MISSING,

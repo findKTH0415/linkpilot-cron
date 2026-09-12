@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="585ff7d1">
+<html lang="ko" data-lp-build="61972349">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -300,7 +300,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=585ff7d1">
+<link rel="stylesheet" href="tokens.css?v=61972349">
 <style>
 /* 색·간격·반경 토큰은 tokens.css 하나가 정한다 (LinkPilot Design System v1.1) */
 * { box-sizing: border-box; }
@@ -793,10 +793,10 @@ select:focus-visible, button:focus-visible { outline: 2px solid var(--lime-deep)
   </div>
 </div>
 
-<script src="gate-core.js?v=585ff7d1"></script>
-<script src="flow-core.js?v=585ff7d1"></script>
-<script src="upload-core.js?v=585ff7d1"></script>
-<script src="versions-core.js?v=585ff7d1"></script>
+<script src="gate-core.js?v=61972349"></script>
+<script src="flow-core.js?v=61972349"></script>
+<script src="upload-core.js?v=61972349"></script>
+<script src="versions-core.js?v=61972349"></script>
 <script>
 /**
  * 붙이는 쪽이 채우는 유일한 값.
@@ -842,7 +842,7 @@ window.LINKPILOT_FILES = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=585ff7d1" data-lp-global="LINKPILOT_FILES"></script>
+<script src="embed-bridge.js?v=61972349" data-lp-global="LINKPILOT_FILES"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -1038,6 +1038,18 @@ window.LINKPILOT_FILES = {
 }());
 </script>
 <script>
+/* ★ API 는 시간 제한이 있는 창구로 부른다 〈2026-09-09〉 — 서버가 대답을 안 하면
+   화면이 «영영» 기다리고, 그 상태가 글자 하나 없는 흰 칸으로 보인다. flow-core 의
+   설명을 본다. 창구가 없으면(옛 판) 그냥 fetch 로 물러난다 — 화면을 죽이지 않는다. */
+var lpApiFetch = (function () {
+  try { var F = (window.LinkPilotFlow || {}); if (F.lpFetch) return F.lpFetch; } catch (_) {}
+  return function (u, o) { return fetch(u, o); };
+}());
+var lpApiWhy = (function () {
+  try { var F = (window.LinkPilotFlow || {}); if (F.apiWhy) return F.apiWhy; } catch (_) {}
+  return function (e) { return '서버에 닿지 못했습니다.'; };
+}());
+
 (function () {
   'use strict';
   var C = window.LINKPILOT_FILES;
@@ -1222,7 +1234,7 @@ window.LINKPILOT_FILES = {
      *   `fetch` 가 던지는 것은 「Failed to fetch」 한 줄뿐이라, 그대로 그리면
      *   사용자는 서버가 고장 났다고 읽는다. 실제로는 주소가 틀렸거나 망이
      *   안 닿은 것이고, **짐작으로 부른 판이면 그 짐작이 원인일 확률이 가장 크다.** */
-    return fetch(C.api + path, opt).catch(function (e) {
+    return lpApiFetch(C.api + path, opt).catch(function (e) {
       throw new Error(whyBlocked('서버에 닿지 못했습니다 — 요청이 아예 나가지 못했습니다'
         + (e && e.message ? ' (' + e.message + ')' : '')));
     }).then(function (r) {
