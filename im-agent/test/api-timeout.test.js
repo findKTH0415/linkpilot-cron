@@ -83,9 +83,13 @@ test('대답이 안 오면 화면이 기다림을 멈추고 그 사실을 말한
         **숨은 글자까지** 주기 때문에, 화면에 안 보이는 「불러오지 못했습니다」가
         내 조건에 걸린 것이었다. **잡히는 것이 거짓이었다.**
    ★ 그래서 **보이는 글자**로 재야 한다 — 그것은 화면을 붙잡아 물어봐야 알 수 있다.
-     WebSocket 이 없는 자리에서는 **못 잰다고 적고 건너뛴다.** 통과로 적지 않는다. */
-  if (typeof WebSocket === 'undefined')
-    return t.skip('이 자리의 Node 에 WebSocket 이 없다 — **못 쟀다** (Node 22 이상에서 잰다)');
+   ★★★ ④ 그런데 그 붙잡는 길(웹소켓)이 **CI 에서는 늘 건너뛰어졌다** 〈2026-09-12〉.
+        Node 20 에 전역 `WebSocket` 이 없기 때문인데, **런타임을 올려서 고치지 않는다** —
+        CI 와 NAS 가 같은 Node 20 이어야 한다는 것이 이 저장소의 규칙이다
+        (`deploy-im.yml`: 「NAS 가 v20 이다. 여기서만 새 것을 쓰지 않는다」).
+        모자란 것은 웹소켓 한 가지뿐이므로 `ws-lite.js` 로 **그것만 채운다.**
+        그래서 이 칸은 이제 **CI 에서도 실제로 잰다.** */
+  const wsLite = require('./ws-lite.js');
   let findBrowser;
   try { ({ findBrowser } = require(path.join(HERE, 'build-static.js'))); }
   catch (_) { return t.skip('그리는 도구가 없다 — 못 쟀다'); }
@@ -128,10 +132,10 @@ test('대답이 안 오면 화면이 기다림을 멈추고 그 사실을 말한
             target = l.find(x => x.type === 'page' && x.webSocketDebuggerUrl); } catch (_) {}
     }
     if (!target) return t.skip('크로미움에 붙지 못했다 — 못 쟀다');
-    ws = new WebSocket(target.webSocketDebuggerUrl);
-    await new Promise((res, rej) => { ws.onopen = res; ws.onerror = rej; });
+    try { ws = await wsLite.connect(target.webSocketDebuggerUrl, 10000); }
+    catch (e) { return t.skip('크로미움 웹소켓에 못 붙었다 — 못 쟀다: ' + e.message); }
     let seq = 0; const wait = new Map();
-    ws.onmessage = e => { const m = JSON.parse(e.data); if (m.id && wait.has(m.id)) { wait.get(m.id)(m); wait.delete(m.id); } };
+    ws.onMessage(text => { const m = JSON.parse(text); if (m.id && wait.has(m.id)) { wait.get(m.id)(m); wait.delete(m.id); } });
     const cmd = (m, p) => new Promise(r => { const id = ++seq; wait.set(id, r); ws.send(JSON.stringify({ id, method: m, params: p || {} })); });
     const ev = async x => { const r = await cmd('Runtime.evaluate', { expression: x, returnByValue: true, awaitPromise: true });
       return r && r.result && r.result.result ? r.result.result.value : undefined; };
