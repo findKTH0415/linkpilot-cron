@@ -82,8 +82,21 @@ function keyFormatError() {
  *   그 응답이 「키가 틀렸다」와 똑같이 생겼다 (§4.2). 갈라 주지 않으면
  *   사장님이 **키를 다시 발급받으시고도 같은 증상**을 보신다.
  */
-function diagnose(status, body) {
+function diagnose(status, body, transportError) {
   const t = String(body || '');
+  /* ★★★ 「서버가 거부한 것」과 「서버에 못 닿은 것」을 «먼저» 가른다 〈2026-09-12 · 실측〉.
+     [사고] 첫 실행에서 5년 × 4갈래 전부가 「판정하지 못했다 (HTTP undefined)」로 나왔다.
+     `HTTP undefined` 는 **응답이 아예 안 온 것**이다 — 상태코드가 없으니까. 그런데 그 글이
+     「승인이 안 됐나」처럼 읽혀, 사장님이 **이미 하신 활용신청을 또 하시게 만든다.**
+     ★ 실제 원인은 자리다: GitHub Actions 러너(해외 IP)에서 `apis.data.go.kr` 이 안 열린다.
+       같은 날 진단(`data/_api/_summary.md`)에서 data.go.kr 계열 넷이 전부 `fetch failed` 였고,
+       한국은행·부동산원은 살아 있었다. **열쇠가 있는 자리가 곧 «닿는 자리»는 아니다.** */
+  if (typeof status !== 'number') {
+    return { kind: 'unreachable',
+      head: '서버에 **못 닿았다** — 응답이 아예 안 왔다 (' + String(transportError || '이유 없음') + '). '
+        + '승인·키 문제가 아니다. data.go.kr 은 해외 IP(GitHub Actions)에서 막히는 일이 있어, '
+        + '국내 자리(NAS)에서 불러야 한다' };
+  }
   if (/SERVICE_KEY_IS_NOT_REGISTERED_ERROR|등록되지\s*않은/.test(t)) {
     return { kind: 'approval',
       head: '이 API 에 **활용신청이 안 됐다** — data.go.kr 에서 「특일정보」를 신청한다. '
@@ -114,7 +127,7 @@ async function call(kind, year, month) {
     const url = buildUrl(`${BASE}/${spec.path}`, { ...params, serviceKey: apiKey() });
     const r = await request(url);
     if (!r.ok) {
-      const d = diagnose(r.status, r.body);
+      const d = diagnose(r.status, r.body, r.error);
       return { ok: false, error: redact(r.error || d.head), why: d.kind, head: d.head,
         /* ★ 본문 앞머리를 남긴다 (§4 「진단부터 짠다」) — 값은 안 남긴다(redact) */
         sample: redact(String(r.body || '').slice(0, 300)) };
