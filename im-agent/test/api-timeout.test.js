@@ -151,7 +151,19 @@ test('대답이 안 오면 화면이 기다림을 멈추고 그 사실을 말한
     for (const r of held) { try { r.destroy(); } catch (_) {} }
     try { if (ws) ws.close(); } catch (_) {}
     try { proc.kill(); } catch (_) {}
-    await new Promise(ok => srv.close(ok));
+    /* ★★★ **여기서 영원히 매달릴 수 있었다** 〈2026-09-12 · 배포 #193 이 「Run tests」에서
+         12분 매달렸다가 취소됐다〉.
+       [왜] `srv.close()` 는 **열려 있는 연결이 다 끝나야** 되돌아온다. 크로미움이 받아 둔
+         keep-alive 소켓이 그것이다. `proc.kill()` 은 **신호만 보낸다** — 프로세스가
+         실제로 죽기 전에 `close()` 를 기다리면, 느린 러너에서는 **안 끝난다.**
+         내 자리에서는 크로미움이 빨리 죽어 안 났다.
+       ★ 그래서 **연결을 먼저 끊고**(`closeAllConnections`), 그래도 안 끝나면
+         **기다리기를 그만둔다.** 시험을 치우는 일이 시험을 멈춰 세우면 안 된다. */
+    try { if (typeof srv.closeAllConnections === 'function') srv.closeAllConnections(); } catch (_) {}
+    await Promise.race([
+      new Promise(ok => srv.close(ok)),
+      new Promise(ok => setTimeout(ok, 3000)),
+    ]);
     try { fs.rmSync(profile, { recursive: true, force: true }); } catch (_) {}
   }
   assert.ok(seen && seen.length > 40, '화면이 사실상 비었다 (글자 ' + ((seen || '').length) + '자)');

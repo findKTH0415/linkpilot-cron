@@ -64,7 +64,8 @@
     "brand:icon": "node assets/brand/build-icon.js",
     "im:appview": "node im-agent/tools/appview.js",
     "im:pdf": "node im-agent/tools/pdf.js",
-    "probe:load": "node im-agent/tools/probe-load.js"
+    "probe:load": "node im-agent/tools/probe-load.js",
+    "calendar:fetch": "node im-agent/tools/calendar-fetch.js"
   },
   "dependencies": {
     "solapi": "^5.5.1"
