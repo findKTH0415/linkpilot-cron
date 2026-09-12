@@ -65,7 +65,8 @@
     "im:appview": "node im-agent/tools/appview.js",
     "im:pdf": "node im-agent/tools/pdf.js",
     "probe:load": "node im-agent/tools/probe-load.js",
-    "calendar:fetch": "node im-agent/tools/calendar-fetch.js"
+    "calendar:fetch": "node im-agent/tools/calendar-fetch.js",
+    "calendar:nas": "bash deploy/calendar-nas.sh"
   },
   "dependencies": {
     "solapi": "^5.5.1"

@@ -108,3 +108,45 @@ test('cron 은 UTC 로 적혀 있다 (KST 로 적으면 하루가 어긋난다 �
   assert.strictEqual(m[1], '10 15 31 12 *',
     'cron 이 UTC 변환값과 다르다 (KST 로 적었는지 본다): ' + m[1]);
 });
+
+/* ── 국내 자리(NAS) 수집 ─────────────────────────────────────────── */
+
+test('★★★ 도는 자리가 있다 — `deploy/calendar-nas.sh` (Actions 에서는 못 닿는다 · D-206)', () => {
+  /* ★ 왜 이 칸이 있나. 앞 판은 「NAS 에서 돈다」를 **규칙으로만** 적어 두었다.
+     그러면 그 규칙이 사람의 기억에 얹힌다 — 부를 것이 실제로 없어도 아무 오류가 안 난다
+     (M-31 과 같은 결). 그래서 **부를 것이 있는지**를 잰다. */
+  const sh = path.join(ROOT, 'deploy', 'calendar-nas.sh');
+  assert.ok(fs.existsSync(sh), 'deploy/calendar-nas.sh 가 없습니다 — 「NAS 에서 돈다」를 적어 두고 부를 것이 없습니다');
+  const code = fs.readFileSync(sh, 'utf8');
+
+  /* ① 수집을 실제로 부르는가 — 규칙만 적고 안 부르는 상태가 가장 잡기 어렵다 */
+  assert.match(code, /calendar-fetch\.js/,
+    'calendar-nas.sh 가 수집 도구를 안 부릅니다 — 껍데기입니다');
+
+  /* ② 「돌았다」와 「채워졌다」를 갈라 세는가 (§8 「걸었다 ≠ 닿았다」) */
+  assert.match(code, /exit 4/, '받은 해가 0 개일 때 빨갛게 끝나는 길이 없습니다');
+  assert.match(code, /exit 5/, '앱이 읽을 자리로 못 옮긴 것을 따로 가르는 길이 없습니다');
+
+  /* ③ ★★ 접속 자격증명도 데이터 열쇠도 없는가 (규정집 2-8 · §2) */
+  const noComment = code.split('\n').filter((l) => !/^\s*#/.test(l)).join('\n');
+  for (const bad of ['ssh ', 'scp ', 'id_deploy', 'DATA_GO_KR_KEY=', 'PRIVATE KEY']) {
+    assert.ok(noComment.indexOf(bad) < 0,
+      'calendar-nas.sh 에 「' + bad.trim() + '」 가 있습니다 — 수집이 도는 자리에는 자격증명을 두지 않습니다');
+  }
+
+  /* ④ npm 으로도 같은 것이 도는가 — 손으로 경로를 치게 만들지 않는다 */
+  const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+  assert.ok(String(pkg.scripts['calendar:nas'] || '').includes('calendar-nas.sh'),
+    'package.json 에 calendar:nas 가 없습니다');
+});
+
+test('★★ Actions 워크플로가 「여기서는 못 돈다」를 적어 두었다 (지운 것과 다른 사실이다)', () => {
+  /* ★★★ 이것이 없으면 다음 사람이 그 단추를 눌러 보고 실패를 **승인 문제로 읽는다** —
+     실제로 그랬고, 그 글이 이미 하신 활용신청을 또 하시게 만들었다. */
+  const wf = fs.readFileSync(path.join(ROOT, '.github', 'workflows', 'calendar-fetch.yml'), 'utf8');
+  const head = wf.slice(0, wf.indexOf('\non:\n'));
+  assert.match(head, /calendar-nas\.sh/,
+    '워크플로 머리가 진짜 도는 자리를 안 가리킵니다 — 눌러 본 사람이 어디로 가야 할지 모릅니다');
+  assert.match(head, /못 닿음/,
+    '워크플로 머리에 「못 닿음」과 「승인 안 됨」을 가르는 말이 없습니다');
+});
