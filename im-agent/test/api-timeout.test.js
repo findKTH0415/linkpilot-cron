@@ -124,6 +124,13 @@ test('대답이 안 오면 화면이 기다림을 멈추고 그 사실을 말한
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-to-'));
   const proc = spawn(b, ['--headless=new', '--no-sandbox', '--disable-gpu',
     '--remote-debugging-port=' + CDP, '--user-data-dir=' + profile, 'about:blank'], { stdio: 'ignore' });
+  /* ★★★ **자식이 안 죽으면 Node 도 안 끝난다** 〈2026-09-12 · 배포가 두 번 여기서 죽었다〉.
+       `spawn` 한 아이는 **이벤트 루프를 붙잡는다.** 크로미움이 SIGTERM 을 안 받고 버티면
+       시험 파일이 끝나지 않고, `npm test` 가 12분 제한에 걸려 **배포가 통째로 취소된다.**
+       실제로 두 번 다 로그 끝에 `Terminate orphan process: … (chrome)` 이 남아 있었다.
+     ★ 그래서 둘을 함께 한다 — **붙잡지 않게 하고(`unref`)**, 치울 때는 **바로 SIGKILL** 을 보낸다.
+       시험용 브라우저는 곱게 닫아 줄 이유가 없다. */
+  try { proc.unref(); } catch (_) {}
   let ws = null, seen = null;
   try {
     let target = null;
@@ -150,7 +157,7 @@ test('대답이 안 오면 화면이 기다림을 멈추고 그 사실을 말한
   } finally {
     for (const r of held) { try { r.destroy(); } catch (_) {} }
     try { if (ws) ws.close(); } catch (_) {}
-    try { proc.kill(); } catch (_) {}
+    try { proc.kill('SIGKILL'); } catch (_) {}
     /* ★★★ **여기서 영원히 매달릴 수 있었다** 〈2026-09-12 · 배포 #193 이 「Run tests」에서
          12분 매달렸다가 취소됐다〉.
        [왜] `srv.close()` 는 **열려 있는 연결이 다 끝나야** 되돌아온다. 크로미움이 받아 둔
