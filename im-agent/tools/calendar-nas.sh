@@ -4,7 +4,14 @@
 #                   〈2026-09-12 · D-206 실측 · CLAUDE.md §4〉
 #
 #   NAS 안에서 돈다. DSM 「작업 스케줄러」가 이 파일을 부른다.
-#   쓰는 법:  bash deploy/calendar-nas.sh          (엔진 뿌리에서)
+#   쓰는 법:  bash im-agent/tools/calendar-nas.sh          (엔진 뿌리에서)
+#
+# ★★★ **왜 `deploy/` 가 아니라 `im-agent/tools/` 인가** 〈2026-09-12 · 내가 한 번 틀렸다〉.
+#   처음에 `deploy/calendar-nas.sh` 로 두었는데, `deploy/engine.sh` 가 NAS 로 올리는 것은
+#   **`im-agent/` 뿐이다.** 그러면 이 파일은 **NAS 에 아예 없고**, 사장님이 DSM 에서
+#   부를 것이 없다 — 그런데 검사는 초록이었다(저장소에는 있으니까).
+#   ★ 「만들었다」와 「닿는다」는 다른 사실이다 (§8 「걸었다 ≠ 닿았다」와 같은 결).
+#     그래서 **배포가 실제로 올리는 자리**에 둔다. `calendar-fetch.test.js` 가 그 자리를 잰다.
 #
 # ★★★ 왜 NAS 인가. **GitHub Actions 러너에서 `apis.data.go.kr` 이 안 열린다.**
 #   첫 실행에서 5년 × 4갈래 **스무 칸 전부**가 응답 없이 죽었다(`fetch failed`).
@@ -26,7 +33,10 @@
 #     5  받았는데 **앱이 읽을 자리에 못 뒀다** — 받은 것은 살아 있다
 set -uo pipefail
 
-ROOT="${LP_ENGINE_ROOT:-/volume1/docker/linkpilot}"
+# ★ 뿌리는 «이 파일이 놓인 자리»에서 끌어낸다 — im-agent/tools/ 의 두 칸 위가 엔진 뿌리다.
+#   손으로 적은 경로에 기대면 자리가 바뀌는 날 조용히 엉뚱한 곳을 본다.
+HERE="$(cd "$(dirname "$0")" && pwd)"
+ROOT="${LP_ENGINE_ROOT:-$(cd "$HERE/../.." && pwd)}"
 WEB="${LP_CALENDAR_WEB:-}"            # 앱이 HTTP 로 읽을 자리. 안 주면 옮기지 않는다
 FROM="${1:-}"
 TO="${2:-}"

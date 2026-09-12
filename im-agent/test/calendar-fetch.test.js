@@ -111,12 +111,13 @@ test('cron 은 UTC 로 적혀 있다 (KST 로 적으면 하루가 어긋난다 �
 
 /* ── 국내 자리(NAS) 수집 ─────────────────────────────────────────── */
 
-test('★★★ 도는 자리가 있다 — `deploy/calendar-nas.sh` (Actions 에서는 못 닿는다 · D-206)', () => {
+test('★★★ 도는 자리가 있다 — `im-agent/tools/calendar-nas.sh` (Actions 에서는 못 닿는다 · D-206)', () => {
   /* ★ 왜 이 칸이 있나. 앞 판은 「NAS 에서 돈다」를 **규칙으로만** 적어 두었다.
      그러면 그 규칙이 사람의 기억에 얹힌다 — 부를 것이 실제로 없어도 아무 오류가 안 난다
      (M-31 과 같은 결). 그래서 **부를 것이 있는지**를 잰다. */
-  const sh = path.join(ROOT, 'deploy', 'calendar-nas.sh');
-  assert.ok(fs.existsSync(sh), 'deploy/calendar-nas.sh 가 없습니다 — 「NAS 에서 돈다」를 적어 두고 부를 것이 없습니다');
+  const sh = path.join(ROOT, 'im-agent', 'tools', 'calendar-nas.sh');
+  assert.ok(fs.existsSync(sh),
+    'im-agent/tools/calendar-nas.sh 가 없습니다 — 「NAS 에서 돈다」를 적어 두고 부를 것이 없습니다');
   const code = fs.readFileSync(sh, 'utf8');
 
   /* ① 수집을 실제로 부르는가 — 규칙만 적고 안 부르는 상태가 가장 잡기 어렵다 */
@@ -138,6 +139,32 @@ test('★★★ 도는 자리가 있다 — `deploy/calendar-nas.sh` (Actions �
   const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
   assert.ok(String(pkg.scripts['calendar:nas'] || '').includes('calendar-nas.sh'),
     'package.json 에 calendar:nas 가 없습니다');
+});
+
+test('★★★ 그 자리가 «배포가 올리는 자리»인가 (저장소에만 있으면 NAS 에서 부를 것이 없다)', () => {
+  /* ★★★ 내가 실제로 한 번 틀렸다 〈2026-09-12〉. 처음에 `deploy/calendar-nas.sh` 로
+     두었는데 `deploy/engine.sh` 가 NAS 로 올리는 것은 **`im-agent/` 뿐이다.**
+     그러면 그 파일은 NAS 에 아예 없고 사장님이 DSM 에서 부를 것이 없는데,
+     **검사는 초록이었다** — 저장소에는 있으니까.
+     ★ 「만들었다」와 「닿는다」는 다른 사실이다 (§8 「걸었다 ≠ 닿았다」).
+     ★★ 그래서 ① `im-agent/` 안에 있는지 ② 배포가 빼는 폴더에 걸리지 않는지 둘을 잰다. */
+  const rel = path.join('im-agent', 'tools', 'calendar-nas.sh');
+  const engine = fs.readFileSync(path.join(ROOT, 'deploy', 'engine.sh'), 'utf8');
+
+  assert.ok(rel.startsWith('im-agent' + path.sep),
+    '수집 스크립트가 `im-agent/` 밖에 있습니다 — 배포가 그것을 올리지 않습니다');
+
+  /* 배포가 빼는 폴더들 — `--exclude='im-agent/test'` 같은 줄에서 읽는다 */
+  const excluded = [...engine.matchAll(/--exclude='([^']+)'/g)].map((m) => m[1]);
+  assert.ok(excluded.length >= 3,
+    "engine.sh 에서 빼는 폴더 목록을 못 읽었습니다 — 이 칸은 아무것도 안 잽니다");
+  const hit = excluded.filter((e) => {
+    const pat = e.replace(/\*/g, '');
+    return pat && rel.indexOf(pat) === 0;
+  });
+  assert.deepStrictEqual(hit, [],
+    '수집 스크립트가 배포에서 «빼는» 자리에 있습니다 (' + hit.join('·')
+    + ') — 저장소에는 있는데 NAS 에는 안 올라갑니다');
 });
 
 test('★★ Actions 워크플로가 「여기서는 못 돈다」를 적어 두었다 (지운 것과 다른 사실이다)', () => {
