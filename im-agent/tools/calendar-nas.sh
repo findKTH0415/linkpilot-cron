@@ -46,9 +46,26 @@ say() { echo "$*"; }
 [ -d "$ROOT" ] || { say "엔진 뿌리가 없다: $ROOT — LP_ENGINE_ROOT 로 알려 주십시오"; exit 3; }
 cd "$ROOT" || exit 3
 
-NODE="$(command -v node || true)"
-[ -n "$NODE" ] || NODE="/usr/local/bin/node"
-[ -x "$NODE" ] || { say "node 를 못 찾았다 — DSM 에서 Node.js 패키지를 켜야 한다"; exit 3; }
+# ★★★ node 는 «여러 자리»를 훑는다 — DSM 작업 스케줄러의 PATH 가 좁기 때문이다
+#   〈2026-09-13 · 사장님 화면으로 확인: Node.js v22 「실행 중」〉.
+#   패키지 센터에서 멀쩡히 도는데도 스케줄러가 부르면 못 찾을 수 있다 — 스케줄러가 주는
+#   PATH 에는 패키지 자리가 안 들어 있어서다. 그러면 「Node.js 를 깔라」는 말이 나오는데
+#   **이미 깔려 있으므로** 그 글이 원인을 가린다 (§4.6 「원인을 사람 말로 적는다」와 같은 결).
+#   ★ 그래서 판 번호를 안 박고 «있는 것 아무거나» 찾는다 — v20 이든 v22 이든 다음 판이든.
+NODE=""
+for c in "$(command -v node 2>/dev/null || true)" \
+         /usr/local/bin/node \
+         /var/packages/Node.js_v*/target/usr/local/bin/node \
+         /volume*/@appstore/Node.js_v*/usr/local/bin/node; do
+  [ -n "$c" ] && [ -x "$c" ] && { NODE="$c"; break; }
+done
+if [ -z "$NODE" ]; then
+  say "node 를 못 찾았다."
+  say "  · DSM 「패키지 센터」에서 Node.js 가 «실행 중»인지 먼저 보십시오."
+  say "  · 실행 중인데도 이 말이 나오면 스케줄러가 그 자리를 못 보는 것입니다 —"
+  say "    작업 설정 첫 줄에 PATH 를 넓혀 주시면 됩니다 (세션 답변에 적어 드립니다)."
+  exit 3
+fi
 
 say "──────── 특일정보 수집 (국내 자리) ────────"
 say "자리: $ROOT · node: $($NODE -v 2>/dev/null || echo '?')"
