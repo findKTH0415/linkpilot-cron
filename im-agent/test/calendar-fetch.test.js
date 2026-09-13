@@ -177,3 +177,51 @@ test('★★ Actions 워크플로가 「여기서는 못 돈다」를 적어 두
   assert.match(head, /못 닿음/,
     '워크플로 머리에 「못 닿음」과 「승인 안 됨」을 가르는 말이 없습니다');
 });
+
+test('★★★ 스케줄러의 좁은 PATH 에서도 node 를 찾는다 (깔려 있는데 «못 찾았다»가 나온다)', () => {
+  /* [왜 급소인가 · 2026-09-13 사장님 화면] 패키지 센터에 Node.js v22 가 「실행 중」인데도
+     DSM 「작업 스케줄러」가 부르면 못 찾을 수 있다 — 스케줄러가 주는 PATH 에 패키지 자리가
+     안 들어 있어서다. 그때 나오는 말이 「Node.js 패키지를 켜야 한다」라서
+     **이미 켜 두신 것을 또 하시게 된다** (§4.6 「원인을 사람 말로 적는다」와 같은 결).
+     ★ 글자로 대조하지 않고 **PATH 를 실제로 좁혀 돌려** 잰다. */
+  const sh = path.join(ROOT, 'im-agent', 'tools', 'calendar-nas.sh');
+  let out = '';
+  try {
+    out = execFileSync('/usr/bin/env', ['-i', 'PATH=/nonexistent', '/usr/bin/bash', sh], {
+      cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000,
+    });
+  } catch (err) {
+    out = String((err && err.stdout) || '') + String((err && err.stderr) || '');
+  }
+  assert.ok(/node 를 못 찾았다/.test(out) === false,
+    'PATH 가 좁다는 이유로 node 를 못 찾았습니다 — DSM 스케줄러에서 같은 일이 납니다:\n' + out.slice(0, 400));
+  assert.match(out, /· node: v\d+/,
+    '어떤 node 를 골랐는지가 안 찍힙니다 — 무엇으로 돌았는지 알 수 없습니다');
+});
+
+test('★★ 글로브가 안 맞을 때 그 «글자»가 node 로 새지 않는다', () => {
+  /* [왜 이 칸을 두나] 후보에 DSM 패키지 자리를 «별표가 든 무늬»로 적었는데,
+     그 자리가 없는 기계(이 컨테이너·러너)에서는 셸이 **글자 그대로** 넘겨준다.
+     ★ 이 설명에 그 무늬를 글자로 인용하지 않는다 — 별표와 빗금이 붙으면 이 주석이
+       거기서 끝나 파일이 통째로 깨진다 (§8 「주석 안의 글자가 코드를 깨뜨린다」 · 실제로 났다).
+     걸러 내지 않으면 `$NODE` 가 별표가 든 문자열이 되고, 그것으로 실행을 시도해
+     **원인이 안 보이는 오류**가 난다. 그래서 실행 가능 여부로 거르는지 실제로 잰다. */
+  const sh = fs.readFileSync(path.join(ROOT, 'im-agent', 'tools', 'calendar-nas.sh'), 'utf8');
+  const body = sh.split('\n').filter((l) => !/^\s*#/.test(l)).join('\n');
+  const loop = body.slice(body.indexOf('NODE=""'), body.indexOf('say "────────'));
+  assert.ok(loop.length > 40, '후보를 고르는 자리를 못 읽었습니다 — 이 칸은 아무것도 안 잽니다');
+  assert.match(loop, /\[\s*-x\s*"\$c"\s*\]/,
+    '실행 가능한지 안 보고 후보를 씁니다 — 안 맞은 글로브가 그대로 새어 들어갑니다');
+});
+
+test('★ 후보에 판 번호를 박지 않는다 (v22 로 박으면 다음 판에서 조용히 깨진다)', () => {
+  /* 사장님 NAS 는 지금 v22 다. 그 숫자를 박아 두면 v24 로 올리시는 날
+     **아무 오류 없이 못 찾게** 되고, 증상이 「Node.js 가 안 깔렸다」와 같아진다. */
+  const sh = fs.readFileSync(path.join(ROOT, 'im-agent', 'tools', 'calendar-nas.sh'), 'utf8');
+  const body = sh.split('\n').filter((l) => !/^\s*#/.test(l)).join('\n');
+  const cands = body.match(/Node\.js_v[^\s\\"]*/g) || [];
+  assert.ok(cands.length >= 2, 'DSM 패키지 자리를 안 훑습니다 (찾은 후보 ' + cands.length + '개)');
+  const pinned = cands.filter((c) => /Node\.js_v\d/.test(c));
+  assert.deepStrictEqual(pinned, [],
+    '판 번호가 박힌 후보가 있습니다 (' + pinned.join('·') + ') — 판을 올리시면 조용히 깨집니다');
+});
