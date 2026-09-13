@@ -174,3 +174,89 @@ test('★★ 미리보기가 갈리면 여전히 빨갛게 말한다 (고쳐 주
     + '커밋 안 된 미리보기가 남아 CI 에서 터진다(자리만 옮긴 셈이다)');
   assert.ok(/커밋/.test(branch), '무엇을 하면 되는지(이대로 커밋)를 말해야 한다');
 });
+
+/**
+ * ★★★ **「커밋하라」고 말하는 칸에는 «커밋할 수 있는 파일»만 넣는다**
+ *   〈2026-09-13 · 실측 · 고칠 수 없는 실패를 내고 있었다〉.
+ *
+ *   [무엇이 났나] 미리보기 칸이 「소스와 갈려 있었다 … **이대로 커밋한다**」로
+ *     빨갰는데, 걸린 둘(`section-static.html` · `section-artifact.html`)은
+ *     `.gitignore` 에 들어 있어 **커밋할 수가 없었다.** 시키는 대로 해도 다음
+ *     실행에 또 빨개진다 — 그런 관문은 결국 사람이 꺼 버린다.
+ *
+ *   ★ 그래서 두 목록을 **git 에 직접 물어** 갈린다. 손으로 적은 목록은 언젠가
+ *     어긋나고, 어긋나도 아무 오류가 안 난다 (CLAUDE.md §8 과 같은 결).
+ *   ★★ 「그려 넣는 판」이 추적되게 바뀌면 이 칸이 빨개진다 — 그때는 위 목록으로
+ *     옮기라는 뜻이지, 이 검사를 약하게 하라는 뜻이 아니다.
+ */
+test('★★★ 지문으로 재는 목록은 «추적되는 파일»만, 크기로 재는 목록은 «무시되는 파일»만', () => {
+  const { execFileSync } = require('node:child_process');
+  const root = path.join(__dirname, '..', '..');
+  const rel = (f) => path.join('im-agent', 'ui', 'platform', f);
+  const tracked = (f) => {
+    try {
+      execFileSync('git', ['ls-files', '--error-unmatch', rel(f)],
+        { cwd: root, stdio: 'pipe' });
+      return true;
+    } catch (_) { return false; }
+  };
+
+  /* ★ 목록은 코드에서 읽는다 — 여기 손으로 옮겨 적으면 두 벌이 되어 한쪽이 옛말을 한다 */
+  const grab = (name) => {
+    const m = new RegExp('const ' + name + ' = \\[([\\s\\S]*?)\\];').exec(CODE);
+    assert.ok(m, `${name} 목록을 못 읽었다 — 이 칸은 아무것도 안 잰다`);
+    return (m[1].match(/'([^']+\.html)'/g) || []).map((q) => q.slice(1, -1));
+  };
+  const made = grab('made');
+  const drawn = grab('drawn');
+
+  assert.ok(made.length >= 1 && drawn.length >= 1,
+    `목록이 비었다 — made ${made.length}개 · drawn ${drawn.length}개`);
+
+  const badMade = made.filter((f) => !tracked(f));
+  assert.deepStrictEqual(badMade, [],
+    '★ 지문으로 재는 목록에 **git 이 안 들고 있는 파일**이 있다 — 갈렸다고 말해도 '
+    + `커밋할 수가 없다: ${badMade.join(' · ')}`);
+
+  const badDrawn = drawn.filter(tracked);
+  assert.deepStrictEqual(badDrawn, [],
+    '★ 크기로만 재는 목록에 **추적되는 파일**이 있다 — 그 파일은 커밋본과 갈렸는지까지 '
+    + `재야 한다(made 로 옮긴다): ${badDrawn.join(' · ')}`);
+});
+
+/**
+ * ★★ **그려 넣는 판도 「못 나온 것」과 「덜 나온 것」을 빨갛게 말한다.**
+ *   지문 대조를 뺀 자리를 비워 두면 이 둘이 통째로 안 재진다 (§8 「못 잰 것은
+ *   통과가 아니다」). 재려던 위험은 **덜 그려진 채로 나오는 것**이다.
+ */
+test('★★ 그려 넣는 판의 판정을 «돌려서» 잰다 (글자로 안 잰다)', () => {
+  const { drawnVerdict } = require(path.join(__dirname, '..', 'tools', 'guard.js'));
+  assert.strictEqual(typeof drawnVerdict, 'function',
+    '판정을 순수 함수로 안 내놓으면 이 칸은 글자밖에 못 본다 (M-83)');
+
+  const v = (b, a) => drawnVerdict({ f: b }, { f: a }, 0.85);
+  assert.deepStrictEqual(v(1000, 0).gone, ['f'], '★ 0바이트를 「나왔다」로 세면 빈 미리보기가 통과한다');
+  assert.deepStrictEqual(v(1000, null).gone, ['f'], '★ 아예 없는 것도 「안 나온 것」이다');
+  assert.deepStrictEqual(v(1000, 800).thin, ['f'], '★ 앞 판의 80% 면 덜 그려진 것이다');
+  assert.deepStrictEqual(v(1000, 980).thin, [],
+    '★ 몇 바이트 흔들림까지 잡으면 검사 2,511개와 같이 돌 때마다 빨개진다 — 그런 관문은 꺼진다');
+  assert.deepStrictEqual(v(null, 900).thin, [],
+    '★ 앞 판이 없는 첫 실행을 「덜 그려졌다」로 적으면 안 된다 (모르는 것은 모른다고 둔다)');
+  /* ★ 「안 나온 것」을 「덜 나온 것」으로 두 번 세지 않는다 — 한 고장이 두 이름으로 말해진다 */
+  assert.deepStrictEqual(v(1000, 0).thin, [], '안 나온 것을 덜 나온 것으로 또 세고 있다');
+});
+
+/** ★ 그 판정이 실제로 **빨갛게 이어지는지**는 따로 본다 — 순수 함수가 옳아도 부르는
+ *    자리에서 갈래를 꺼 버리면 아무 일도 안 일어난다. */
+test('★★ 그 판정을 실제로 불러서 빨갛게 끝낸다 (갈래를 끄면 이 칸이 빨개진다)', () => {
+  const i = SRC.indexOf('function previews()');
+  const body = SRC.slice(i, SRC.indexOf('\n}', i));
+  assert.ok(/drawnVerdict\(drawnBefore, drawnAfter, MIN_KEEP\)/.test(body),
+    '★ 판정 함수를 안 부르고 있다 — 따로 낸 뜻이 사라진다');
+  assert.ok(/if \(gone\.length\)/.test(body) && /if \(thin\.length\)/.test(body),
+    '★ 그 판정으로 «갈라지지» 않는다 — 갈래가 꺼져 있으면 판정이 옳아도 아무 일도 안 난다');
+  const g = body.indexOf('if (gone.length)');
+  const t = body.indexOf('if (thin.length)');
+  assert.ok(/'fail'/.test(body.slice(g, g + 300)), '★ 안 나왔는데 초록으로 끝난다');
+  assert.ok(/'fail'/.test(body.slice(t, t + 500)), '★ 덜 나왔는데 초록으로 끝난다');
+});
