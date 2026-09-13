@@ -108,6 +108,9 @@ function looksUrlEncoded(value) {
 const SECRET_ENV = [
   'VWORLD_KEY',        // 36자 (UUID) — 길이 규칙에 안 걸린다
   'DATA_GO_KR_KEY',
+  // ★ 같은 공공데이터포털 키의 다른 이름 — 사장님이 이 이름으로 넣으셨다
+  //   (connectors/datakey.js 의 KEY_NAMES) — 2026-09-13
+  'APIS_DATA',
   'ECOS_API_KEY',      // 20자쯤 — 안 걸린다
   'ECOS_BOK_KEY',      // 같은 한국은행 키의 다른 이름 (ecos.js KEY_NAMES) — 2026-08-26
   'DART_API_KEY',
@@ -130,6 +133,10 @@ const SECRET_ENV = [
   'CLODE_API_KEY', 'CLODE_API_KEY2', 'CLODE_API_KEY_2',
   'ANTHROPIC_API_KEY',
   'KMA_APIHUB_KEY',    // 22자쯤 — 안 걸린다 (기상청 API허브)
+  // ★ 날씨 열쇠 — 사장님이 2026-09-13 에 넣으셨다. **어느 시스템인지는 아직 안 쟀다**
+  //   (`_GO` 가 붙어 data.go.kr 로 보이지만 추측으로 배선하지 않는다 — §4.3).
+  //   ★ 규격을 모르더라도 **가리는 것은 지금 한다** — 진단 로그에 값이 찍힐 자리가 먼저 온다.
+  'WEATHER_GO',
   // ★★★ **세계뉴스 열쇠 — 이름을 «화면에서» 읽었다** 〈2026-09-13 · 사장님 화면 · 실측〉.
   //   [무엇이 났나] 사장님이 말씀으로 주신 이름은 `WORLD_NES_KEY` 였는데, 비밀 목록에는
   //     그 이름이 **없었다.** 실제로 들어 있는 것은 **`WORLDWIDE_NEWS`** 와

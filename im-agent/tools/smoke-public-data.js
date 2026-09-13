@@ -161,12 +161,14 @@ async function main() {
 
   // ── 0. 키 형식 점검 (호출 전에 먼저) ──────────────────────
   const vk = checkKeyFormat('VWORLD_KEY', process.env.VWORLD_KEY, 'uuid');
-  const dk = checkKeyFormat('DATA_GO_KR_KEY', process.env.DATA_GO_KR_KEY, null);
+  /* ★ 이름이 둘이다 — 들어온 이름으로 재고, 그 이름 그대로 말한다 (datakey.js) */
+  const dkName = require('../connectors/datakey').usedName() || 'DATA_GO_KR_KEY';
+  const dk = checkKeyFormat(dkName, process.env[dkName], null);
 
   if (vk.fatal || dk.fatal) {
     console.log('\n✕ 키 형식 오류 — 호출하기 전에 고쳐야 한다\n');
     if (vk.fatal) console.log(`  VWORLD_KEY     : ${vk.message}`);
-    if (dk.fatal) console.log(`  DATA_GO_KR_KEY : ${dk.message}`);
+    if (dk.fatal) console.log(`  ${dkName} : ${dk.message}`);
     console.log('\n  올바른 예 (꺾쇠·따옴표 없이 값만):');
     // ★ 자리표시자는 **한눈에 가짜여야 한다.** 진짜처럼 생긴 값을 예시로 쓰면
     //   그게 진짜인지 예시인지 아무도 구분 못 하고, 실제로 여기에 실키가 박혀
@@ -185,7 +187,7 @@ async function main() {
 
   // 정상 형식이면 정리된 값으로 교체 (따옴표 등 무해한 껍데기 제거)
   if (vk.cleaned) process.env.VWORLD_KEY = vk.cleaned;
-  if (dk.cleaned) process.env.DATA_GO_KR_KEY = dk.cleaned;
+  if (dk.cleaned) process.env[dkName] = dk.cleaned;
 
   if (envFile.exists) {
     console.log(`.env       : ${envFile.loaded.length}개 적용`

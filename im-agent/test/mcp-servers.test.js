@@ -79,7 +79,9 @@ test('★ 이 갈래의 Agent·커넥터 수를 고정한다 (배포 엔진과�
     'Agent 수가 바뀌었다 — mcp/servers.js 의 짝과 ENGINE 을 다시 보라');
 
   const dir = path.join(__dirname, '..', 'connectors');
-  const infra = new Set(['cache.js', 'http.js', 'xml.js']);
+  /* ★ 커넥터가 아닌 «살림» 파일 — 바깥 API 에 안 붙는다. 세면 숫자가 뜻을 잃는다.
+     `datakey.js` 는 공공데이터 열쇠를 «여러 이름으로» 읽는 자리다 (2026-09-13). */
+  const infra = new Set(['cache.js', 'http.js', 'xml.js', 'datakey.js']);
   const n = fs.readdirSync(dir).filter(f => f.endsWith('.js') && !infra.has(f)).length;
   assert.strictEqual(n, 24, '커넥터 수가 바뀌었다 — 새 커넥터가 MCP 로 들어온 것은 아닌지 보라');
 

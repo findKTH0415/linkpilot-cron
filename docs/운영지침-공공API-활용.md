@@ -127,6 +127,7 @@ SSH 개인키·NAS 접속정보·터널 인증키는 유출 시 **서버 접근�
 | Secret 이름 | 제공기관 | 베이스 URL | 인증 파라미터 | 검증 |
 |---|---|---|---|:---:|
 | `DATA_GO_KR_KEY` | 공공데이터포털 (범용) | `apis.data.go.kr/{기관코드}/{서비스}` | `serviceKey` (2-4 참조) | ● |
+| `APIS_DATA` | 공공데이터포털 — **`DATA_GO_KR_KEY` 의 다른 이름** 〈2026-09-13 사장님이 이 이름으로 넣으셨다〉 | 위와 동일 | 위와 동일 | ● |
 | `DART_API_KEY` | 금감원 전자공시 | `opendart.fss.or.kr/api` | `crtfc_key` | ● |
 | `REB_API_KEY` | 한국부동산원 R-ONE | `reb.or.kr/r-one/openapi` | `KEY` | ● |
 | `KOSIS_API_KEY` | 통계청 KOSIS | `kosis.kr/openapi` | `apiKey` | △ |
@@ -134,6 +135,7 @@ SSH 개인키·NAS 접속정보·터널 인증키는 유출 시 **서버 접근�
 | `ECOS_API_KEY` | 한국은행 경제통계 — **`ECOS_BOK_KEY` 의 다른 이름** | 위와 동일 | 위와 동일 | ○ |
 | `KRX_API_KEY` | 한국거래소 Data Marketplace | `data-dbg.krx.co.kr/svc/apis` | **`AUTH_KEY` 헤더** | ○ |
 | `KMA_APIHUB_KEY` | 기상청 API허브 | `apihub.kma.go.kr` | `authKey` | ○ |
+| `WEATHER_GO` | **어느 기관인지 아직 안 쟀다** 〈2026-09-13 사장님이 넣으셨다 · 날씨정보〉 | 미측정 | 미측정 | ✕ |
 | `KEPCO_BIGDATA_KEY` | 한국전력 빅데이터 | `bigdata.kepco.co.kr/openapi` | `apiKey` | ○ |
 | `VWORLD_KEY` | 국토부 V-World | `api.vworld.kr/req` | `key` (+ `domain`) | ○ |
 | `LAW_OPEN_DATA` | 국가법령정보 | `law.go.kr/DRF` | 서비스 인증값 | ○ |

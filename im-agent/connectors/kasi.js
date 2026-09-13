@@ -37,6 +37,7 @@
 const { request, buildUrl, redact, looksUrlEncoded } = require('./http');
 const cache = require('./cache');
 const { normalize } = require('./xml');
+const { dataKey } = require('./datakey');
 
 /* ★ 쿼터 통을 갈래로 나눈다 (§4.5 · D-85) — 다른 data.go.kr 커넥터와 한 통을 안 쓴다 */
 const PROVIDER = 'data.go.kr:kasi';
@@ -55,7 +56,7 @@ const KINDS = {
      그래서 영원히 캐시하지 않고 30일로 둔다. */
 const TTL = 30 * 24 * 3600; /* 초 단위 — cache.through 가 그렇게 받는다 */
 
-function apiKey() { return process.env.DATA_GO_KR_KEY || ''; }
+function apiKey() { return dataKey(); }
 function isAvailable() { return Boolean(apiKey()); }
 
 function unavailable(what) {
