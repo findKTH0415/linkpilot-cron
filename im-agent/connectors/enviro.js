@@ -39,6 +39,7 @@ const http = require('./http');
 const { buildUrl, redact, looksUrlEncoded } = http;
 const cache = require('./cache');
 const { normalize } = require('./xml');
+const { dataKey } = require('./datakey');
 
 /** ★ 쿼터 버킷은 키 단위로 묶는다 — 한도는 API 별이 아니라 인증키 전체다 */
 /* ★ 쿼터 통을 **갈래로 나눈다** 〈2026-08-23 · D-85〉. data.go.kr 은 상세기능마다
@@ -98,7 +99,8 @@ const CHECKS = {
 };
 
 function apiKey() {
-  return (process.env.DATA_GO_KR_KEY || '').trim();
+  /* ★ 이름 목록은 `datakey.js` 한 곳에 있다 — 열 군데에 이름표를 두면 다음 사람이 아홉 곳만 고친다 */
+  return dataKey();
 }
 
 function isAvailable() {

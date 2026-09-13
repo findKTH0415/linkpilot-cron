@@ -29,6 +29,7 @@ const http = require('./http');
 const { buildUrl, redact, looksUrlEncoded } = http;
 const cache = require('./cache');
 const { normalize } = require('./xml');
+const { dataKey } = require('./datakey');
 
 /* ★ 쿼터 통을 **갈래로 나눈다** 〈2026-08-23 · D-85〉. data.go.kr 은 상세기능마다
    하루치를 세는데(개발계정 1,000), 앞 판은 아홉 커넥터가 `data.go.kr` 한 통을
@@ -37,7 +38,8 @@ const PROVIDER = 'data.go.kr:nps';
 const BASE = 'https://apis.data.go.kr/B552015/NpsBplcInfoInqireService';
 
 function apiKey() {
-  return (process.env.DATA_GO_KR_KEY || '').trim();
+  /* ★ 이름 목록은 `datakey.js` 한 곳에 있다 — 열 군데에 이름표를 두면 다음 사람이 아홉 곳만 고친다 */
+  return dataKey();
 }
 
 function isAvailable() {
