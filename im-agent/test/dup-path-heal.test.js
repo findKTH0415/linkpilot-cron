@@ -171,6 +171,12 @@ function render(browser, url) {
 const btn = (h) => (h.match(/<button/g) || []).length;
 const band = (h) => { const m = h.match(/<div data-lp-fail="([^"]*)"/); return m ? (m[1] || 'fatal') : null; };
 const baseOf = (h) => { const m = h.match(/<base [^>]*data-lp-base="([^"]*)"/); return m ? m[1] : null; };
+/* ★★★ **어느 다리로 살아났는지 세어 둔다** 〈2026-09-13〉.
+   [왜] CI 가 「겹친 자리 9개 · 멀쩡한 자리 9개」로 빨개졌을 때, 그 줄만으로는
+     «무엇이 화면을 살렸는지»를 알 수가 없었다 — 자리를 잡아서인지, 다시 불러서인지.
+     이 자리에서는 재현이 안 되므로 **다음에 또 나면 그 줄이 스스로 말하게** 한다.
+   ★ 이것은 판정에 안 쓴다. 판정이 뒤집힐 때 **읽을 것을 남기는** 것뿐이다. */
+const healed = (h) => (h.match(/data-lp-healed/g) || []).length;
 
 /* ───────────── 소스에 장치가 있는가 (브라우저가 없어도 잰다) ───────────── */
 
@@ -253,17 +259,39 @@ test('★★★ 장치를 빼면 **화면이 안 뜬다** (통과가 아니라 �
   const browser = findBrowser();
   if (!browser) { t.skip('헤드리스 크로미움이 없어 **못 쟀다**'); return; }
   const { dir, dup } = stage();
-  // ★ 자리를 정하는 조각만 무력화한다 (지침 §5-④)
+  /* ★★★ **장치는 «다리 둘»이다 — 하나만 빼면 이 칸이 아무것도 안 잰다**
+     〈2026-09-13 · CI 가 「겹친 자리 9개 · 멀쩡한 자리 9개」로 빨개졌다〉.
+
+     [무엇이 났나] 앞 판은 `<base>` 를 만드는 다리 하나만 뺐다. 그런데 이 화면에는
+       **둘째 다리**가 있다 — 형제 파일이 404 로 죽으면 **경로에서 겹친 마디를 덜어
+       한 번 다시 부른다**(`data-lp-healed`). 그래서 첫째 다리를 빼도 화면이 결국 다 뜬다.
+
+     [왜 여태 안 걸렸나] 예산이 12초였을 때는 그 «다시 부르기»가 예산 안에 못 끝나
+       버튼이 덜 그려졌고, 그것이 «장치를 빼서 깨진 것»처럼 보였다. 예산을 25초로
+       늘리자 다시 부르기가 끝나 **9 대 9** 가 됐다 — 제품이 더 튼튼해진 것이지
+       고장이 아니다. **재던 것이 사실은 «속도»였다.**
+
+     [고침] 재려던 성질(「장치를 빼면 화면이 안 뜬다」)은 그대로 두고 **장치를 통째로**
+       뺀다. 다리가 또 늘면 여기 한 줄을 더한다 — 그리고 **걸렸는지 다리마다 센다.** */
   const before = fs.readFileSync(dup, 'utf8');
-  const after = before.replace("createElement('base')", "createElement('span')");
-  /* ★★★ **사보타주가 실제로 걸렸는지 먼저 본다** 〈2026-09-12 신설〉.
-     [사고] 앞 판은 `replace` 의 결과를 안 봤다. 찾는 글자가 없으면 `replace` 는
-       **조용히 원본을 그대로 돌려준다** — 그러면 아무것도 안 망가뜨린 채
-       「장치를 빼도 화면이 그대로 뜬다」로 빨개진다. 즉 **엉뚱한 것을 탓한다.**
-       장치의 코드 모양이 바뀌는 날 이 칸이 그렇게 거짓말을 한다. */
-  if (after === before) {
-    assert.fail('사보타주가 안 걸렸다 — 무력화할 글자를 못 찾았다. '
-      + '이 칸은 아무것도 안 재고 있다 (장치의 코드 모양이 바뀌었는지 본다)');
+  const LEGS = [
+    ['자리 잡기(<base>)', "createElement('base')", "createElement('span')"],
+    ['다시 부르기(겹친 마디 덜기)',
+      "if (fixed && fixed !== raw && !t.getAttribute('data-lp-healed')) {",
+      'if (false) {'],
+  ];
+  let after = before;
+  for (const [name, from, to] of LEGS) {
+    /* ★★★ **다리마다 걸렸는지 본다** 〈2026-09-12 신설 · 2026-09-13 다리별로 넓힘〉.
+       [사고] `replace` 는 찾는 글자가 없으면 **조용히 원본을 그대로 돌려준다** —
+         그러면 아무것도 안 망가뜨린 채 「장치를 빼도 화면이 그대로 뜬다」로 빨개진다.
+         즉 **엉뚱한 것을 탓한다.** 장치의 코드 모양이 바뀌는 날 그렇게 거짓말을 한다. */
+    const next = after.replace(from, to);
+    if (next === after) {
+      assert.fail('사보타주가 안 걸렸다 — 「' + name + '」 다리를 못 찾았다. '
+        + '이 칸은 아무것도 안 재고 있다 (장치의 코드 모양이 바뀌었는지 본다)');
+    }
+    after = next;
   }
   fs.writeFileSync(dup, after);
   const { child, port } = serve(dir);
@@ -312,7 +340,9 @@ test('★★★ 장치를 빼면 **화면이 안 뜬다** (통과가 아니라 �
     }
     assert.ok(btn(a) < btn(b),
       `장치를 빼도 화면이 그대로 뜬다 — 이 검사는 아무것도 안 재고 있다 `
-      + `(겹친 자리 ${btn(a)}개 · 멀쩡한 자리 ${btn(b)}개)`);
+      + `(겹친 자리 ${btn(a)}개 · 멀쩡한 자리 ${btn(b)}개 · `
+      + `자리잡기 ${baseOf(a) === null ? '꺼짐' : '살아 있다: ' + baseOf(a)} · `
+      + `다시부르기 표시 ${healed(a)}개 · 띠 ${band(a) === null ? '없음' : band(a)})`);
   } finally {
     try { child.kill(); } catch (_) { /* 이미 죽었다 */ }
     fs.rmSync(dir, { recursive: true, force: true });
