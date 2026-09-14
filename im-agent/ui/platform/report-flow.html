@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="61972349">
+<html lang="ko" data-lp-build="24b1976e">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -288,7 +288,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=61972349">
+<link rel="stylesheet" href="tokens.css?v=24b1976e">
 <style>
 /* 색·간격·반경 토큰은 tokens.css 하나가 정한다 (LinkPilot Design System v1.1) */
 * { box-sizing: border-box; }
@@ -311,26 +311,19 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
      제목 한 줄 · 부제 한 줄»이다. 이 배너만 라임 딱지 한 줄이 더 있고 부제가 두 줄로
      접혀 **200px 넘게** 자리를 먹었다. 한 화면 안에서 배너 둘이 다른 크기로 서 있으면
      «다른 앱을 붙여 놓은 것»처럼 보인다.
-   ★ 사진은 여전히 안 넣는다 — 두 벌 사고의 원인이었고, 여기서 재는 것은 «몸집»이다.
+   ★ 그림이 들어왔다 〈2026-09-14 사장님 지시: 「배너를 일관성있게 이미지넣어 만들어줘」〉.
+     남의 사진이 아니라 **우리가 그린 그림**이고 자리마다 다르다 (`flow-core` 의 heroSvg) —
+     남의 사진이면 §6-2-6 일곱에 걸리고, 바깥 주소를 물면 자체 완결이 깨진다 (§8).
+     ★ 두 벌 사고는 앱 쪽 배너를 지워서 이미 풀렸다 (§8-2 · S-39). 여기서 재는 것은
+       여전히 «몸집»이다 — 그림이 들어와도 높이는 안 늘어난다.
    ★★ 라임 딱지 줄을 안 그린다. 앱의 다른 섹션 배너에는 그 줄이 없다.
      설정값은 flow-core 의 kicker 에 남겨 둔다 — 지우면 다른 화면이 쓰던 것까지 없어진다.
    ★★★ 그 딱지의 «글자»를 여기 적지 않는다. `nested-app-notice.test.js` 가 이 파일에
      그 글자가 있으면 «우리가 그린 것»으로 읽고 빨개진다 — 방금 그렇게 한 번 걸렸다
      (CLAUDE.md §8 — 검사가 찾는 이름을 주석에 글자로 적지 않는다). */
-.head {
-  margin: 0 0 14px; padding: 20px 22px; border-radius: 16px;
-  background: var(--lp-navy, #10233C); color: #fff;
-  min-height: 120px; box-sizing: border-box;
-  display: flex; flex-direction: column; justify-content: center;
-}
-.head h1 { margin: 0; font-size: clamp(20px, 5.4vw, 26px); line-height: 1.2; color: #fff; }
-/* ★ 부제는 «한 줄»이다. 두 줄로 접히면 배너가 다시 커진다 — 넘치면 말줄임표로 끊는다. */
-.head__d {
-  margin: 7px 0 0; font-size: clamp(12px, 3.4vw, 13.5px); line-height: 1.5;
-  color: rgba(255,255,255,.78);
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-  overflow: hidden;
-}
+/* ★★★ 배너 모양은 **`flow-core` 의 HEAD_CSS 한 벌**이다 〈2026-09-14〉 —
+   `headEl` 이 심는다. 여기 적어 두면 화면이 늘 때마다 복사해야 하고 두 벌이 된다 (§8-1).
+   ★ 되돌려 보려면 `flow-core.js` 의 HEAD_CSS 를 본다. */
 
 /* ★★★ 탭 줄 — **앱이 아니라 이 화면이 단다** 〈2026-08-31 사장님 지시〉.
    [지시] 「Linkpilot 프레임 보고서생성 상단배너바를 삭제하고 Engine Agent 의
@@ -527,14 +520,14 @@ window.LINKPILOT_REPORT_FLOW = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=61972349" data-lp-global="LINKPILOT_REPORT_FLOW"></script>
-<script src="gate-core.js?v=61972349"></script>
-<script src="flow-core.js?v=61972349"></script>
+<script src="embed-bridge.js?v=24b1976e" data-lp-global="LINKPILOT_REPORT_FLOW"></script>
+<script src="gate-core.js?v=24b1976e"></script>
+<script src="flow-core.js?v=24b1976e"></script>
 <!-- ★ 4단계 진행율(필수 항목 채움)을 재는 데 쓴다. **값과 출처가 둘 다**
      있어야 세는 규칙이 여기 있다 — 화면이 따로 세면 두 벌이 된다 -->
-<script src="fields-core.js?v=61972349"></script>
-<script src="catalog.js?v=61972349"></script>
-<script src="inapp.js?v=61972349"></script>
+<script src="fields-core.js?v=24b1976e"></script>
+<script src="catalog.js?v=24b1976e"></script>
+<script src="inapp.js?v=24b1976e"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -1551,12 +1544,16 @@ var lpApiWhy = (function () {
      * ★★ 사진은 안 넣는다. 얇은 한 줄이다 (지침 §6-3 ③ — 활자로 승부한다).
      * ★★★ 탭 바에도 같은 이름이 있다. 그것은 **누르는 것**이고 이것은 **지금 어디에
      *   있는지**라 쓰임이 다르다 — 부제를 함께 적어 갈라 보이게 한다. */
-    var hd = el('div', 'head');
-    /* ★ 라임 딱지는 안 그린다 — 앱의 다른 섹션 배너에 그 줄이 없다 (2026-09-09 사장님 지시). */
-    add(hd, el('h1', null, F.SECTION.title));
-    if (F.SECTION.lead) add(hd, el('p', 'head__d', F.SECTION.lead));
-    else if (F.SECTION.tabNote) add(hd, el('p', 'head__d', F.SECTION.tabNote));
-    view.appendChild(hd);
+    /* ★★★ **배너는 `flow-core` 가 만든다** 〈2026-09-14 사장님 지시 — 「배너를
+     *   일관성있게 이미지넣어 만들어줘」〉. 여기서 조립하면 세 화면이 **각자**
+     *   조립하게 되고, 그때부터 한 화면만 고쳐진다 (§6-3 ⑥ · §8-1 과 같은 결).
+     * ★ 그림도 거기서 그린다 — 자리 이름(`make`·`done`·`files`)마다 다른 그림이다.
+     * ★★ 못 만들면(문서가 없는 자리) **조용히 넘어가지 않는다** — 머리가 없는 화면은
+     *   앱 안에서 «이름 없는 틀»이 된다. */
+    /* ★ `F` 가 없을 수 있다 — 형제 스크립트가 404 인 순간이 실제로 있다 (M-29).
+       그때 여기서 던지면 화면이 통째로 빈다. 머리만 빠지고 나머지는 뜬다. */
+    var hd = (F && F.headEl) ? F.headEl(F.SECTION, document, C.hero) : null;
+    if (hd) view.appendChild(hd);
     view.appendChild(tabBar());
 
     // ★ 토큰이 안 실리면 색·글꼴이 통째로 빠지는데 **오류는 안 난다.**

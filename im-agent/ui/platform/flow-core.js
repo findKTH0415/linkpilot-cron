@@ -24,7 +24,7 @@
    *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다. 화면이 자기
    *   지문과 대 보고 다르면 「함수가 없다」로 죽기 전에 사람 말로 알린다.
    */
-  var LP_BUILD = '61972349';
+  var LP_BUILD = '24b1976e';
 
   /**
    * ★★★ **단계는 다섯이다** 〈2026-08-22 사용자 지시〉.
@@ -1060,6 +1060,185 @@
     return m ? ('서버에 닿지 못했습니다 — ' + m) : '서버에 닿지 못했습니다.';
   }
 
+
+  /**
+   * ══════════ **배너 그림 — 세 화면이 같은 얼굴을 쓴다** 〈2026-09-14 사장님 지시〉 ══════════
+   *
+   * 사장님 지시 그대로다 — 「**배너를 일관성있게 이미지넣어 만들어줘**」.
+   *
+   * ★ **무엇이 일관성이 없었나** 〈실측〉. 배너와 탭줄이 **세 화면 중 하나**(report-flow)
+   *   에만 있었다. 「완성 보고서」·「자료 업로드」로 가면 **머리가 통째로 사라진다** —
+   *   한 앱인데 자리를 옮길 때마다 얼굴이 바뀐다. 그림이 없는 것보다 이쪽이 먼저였다.
+   *
+   * ★★ **앞 판의 「사진은 안 넣는다」를 사장님 지시가 바꾼다.** 그 줄이 있던 이유는
+   *   「배너 두 벌」 사고였는데, 그것은 **앱 쪽 배너를 지워서** 이미 풀렸다 (§8-2 · S-39).
+   *   남은 이유는 「활자로 승부한다」(§6-3 ③)였고, 그것은 **내 판단**이지 지시가 아니었다.
+   *
+   * ★★★ **남의 사진을 안 쓴다 — 우리가 그린다.** §6-2-6 이 정한 일곱(공식 API·사진가
+   *   표기·Asset Registry)은 **남의 사진**에 걸리는 규칙이다. 박아 둔 사진을 하나 더
+   *   늘리면 그 자리에서 지침을 어긴다(이미 55장이 그 상태다). 그리고 미리보기는
+   *   **파일 하나로 열려야 한다**(§8) — 바깥 주소를 물면 그 순간 자체 완결이 깨진다.
+   *   그래서 **자리마다 뜻이 있는 그림을 우리가 그려** data URI 로 심는다.
+   *
+   * ★ **난수를 안 쓴다.** 앱의 배너는 열 때마다 새로 그리는데, 이 자리는 그러면
+   *   **화면 지문 검사와 헤드리스 렌더가 매번 다른 그림**을 본다 (§8 — 재생성 결과가
+   *   커밋본과 같아야 한다). 자리 이름에서 뽑은 **고정된 그림**을 쓴다.
+   *
+   * ★★ **글자가 먼저다.** 그림은 스크림(어두운 겹) 아래로 들어간다 — 없으면 흰 제목이
+   *   그림 위에 얹혀 안 읽힌다 (§6-1-2 · §6-3 ③).
+   */
+
+  /**
+   * 배너 모양 — **한 벌**이다 〈2026-09-14〉.
+   *
+   * ★ 앞 판은 이 규칙이 `report-flow.html` 안에만 있었다. 그래서 다른 화면에 배너를
+   *   달려면 **규칙을 복사**해야 했고, 그 순간 두 벌이 되어 한쪽이 옛말을 한다 (§8-1).
+   * ★★ `headEl` 이 문서마다 **한 번만** 심는다.
+   * ★★★ `.head` 라는 이름을 바꾸지 않는다 — 앱이 감추는 이름(`.top`·`.steps`·`.side`)을
+   *   피해서 고른 이름이다. 바꾸면 **앱 안에서만 조용히 사라진다**.
+   */
+  var HEAD_CSS = [
+    '.head{margin:0 0 14px;padding:20px 22px;border-radius:16px;',
+    'background-color:var(--lp-navy,#10233C);color:#fff;min-height:120px;box-sizing:border-box;',
+    'display:flex;flex-direction:column;justify-content:center;',
+    /* ★ 바탕색을 **남긴다** — 그림이 안 뜨는 자리에서도 흰 글자가 읽혀야 한다.
+       「그림이 없으면 글자도 안 보인다」를 만들지 않는다. */
+    'background-size:cover;background-position:right center;background-repeat:no-repeat;overflow:hidden}',
+    '.head h1{margin:0;font-size:clamp(20px,5.4vw,26px);line-height:1.2;color:#fff}',
+    /* ★ 부제는 두 줄까지다. 더 접히면 배너가 커져 «몸집»이 달라진다 (M-71 과 같은 결) */
+    '.head__d{margin:7px 0 0;font-size:clamp(12px,3.4vw,13.5px);line-height:1.5;',
+    'color:rgba(255,255,255,.78);display:-webkit-box;-webkit-line-clamp:2;',
+    '-webkit-box-orient:vertical;overflow:hidden}',
+  ].join('');
+
+  /** 배너 모양을 문서에 **한 번만** 심는다 */
+  function headCssInto(d) {
+    if (!d || !d.createElement) return false;
+    try {
+      if (d.querySelector && d.querySelector('style[data-lp-head-css]')) return false;
+      var st = d.createElement('style');
+      st.setAttribute('data-lp-head-css', '1');
+      st.textContent = HEAD_CSS;
+      (d.head || d.documentElement || d.body).appendChild(st);
+      return true;
+    } catch (_) { return false; }
+  }
+
+  var HERO_INK = '#10233C';      // 배너 바탕 — 토큰이 없을 때의 기본값과 같다
+  var HERO_LIME = '#AAE106';     // 강조 — 디자인 시스템 §11 (큰 면을 채우지 않는다)
+
+  /** 자리마다 무엇을 그리는가 — **뜻을 나르는 그림만 둔다** (§6-3 「장식으로 넣지 않는다」) */
+  function heroArt(id) {
+    var w = '#FFFFFF';
+    var g = '';
+    var i;
+    if (id === 'done') {
+      /* 완성 보고서 — **쌓여 나온 산출물**. 겹쳐 놓인 장들이 오른쪽으로 퍼진다 */
+      for (i = 0; i < 5; i++) {
+        g += '<rect x="' + (690 + i * 74) + '" y="' + (96 + i * 12) + '" width="150" height="196" rx="8"'
+          + ' fill="' + w + '" opacity="' + (0.05 + i * 0.035).toFixed(3) + '"/>';
+      }
+      g += '<path d="M968 206 l26 26 l52 -58" fill="none" stroke="' + HERO_LIME
+        + '" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/>';
+    } else if (id === 'files') {
+      /* 자료 업로드 — **들어오는 자료**. 세 갈래가 한 곳으로 모인다 */
+      var from = [[700, 92], [700, 190], [700, 288]];
+      for (i = 0; i < from.length; i++) {
+        g += '<path d="M' + from[i][0] + ' ' + from[i][1] + ' C 830 ' + from[i][1] + ', 880 190, 1000 190"'
+          + ' fill="none" stroke="' + w + '" stroke-width="3" opacity=".22"/>';
+        g += '<circle cx="' + from[i][0] + '" cy="' + from[i][1] + '" r="13" fill="' + w + '" opacity=".3"/>';
+      }
+      g += '<rect x="1000" y="120" width="140" height="140" rx="14" fill="' + w + '" opacity=".1"/>';
+      g += '<path d="M1070 235 v-90 m-32 32 l32 -32 l32 32" fill="none" stroke="' + HERO_LIME
+        + '" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/>';
+    } else {
+      /* 보고서 만들기 — **자료가 문서가 된다**. 장 위에 줄이 그어지고 한 줄만 라임이다
+         (그 한 줄이 「출처 있는 값」이다 — 이 시스템의 전부가 그것이다) */
+      g += '<rect x="720" y="80" width="230" height="230" rx="10" fill="' + w + '" opacity=".07"/>';
+      g += '<rect x="790" y="112" width="230" height="230" rx="10" fill="' + w + '" opacity=".05"/>';
+      for (i = 0; i < 6; i++) {
+        g += '<rect x="752" y="' + (118 + i * 30) + '" width="' + (166 - (i % 3) * 38) + '" height="9" rx="4.5"'
+          + ' fill="' + (i === 2 ? HERO_LIME : w) + '" opacity="' + (i === 2 ? '.9' : '.26') + '"/>';
+      }
+      g += '<circle cx="1092" cy="196" r="66" fill="none" stroke="' + w + '" stroke-width="3" opacity=".18"/>';
+      g += '<circle cx="1092" cy="196" r="24" fill="' + HERO_LIME + '" opacity=".22"/>';
+    }
+    return g;
+  }
+
+  /**
+   * 배너 바탕 그림 한 장. **`background-image` 에 그대로 넣는 data URI** 를 돌려준다.
+   * @param {string} id 자리 이름 (`make` · `done` · `files`)
+   */
+  function heroSvg(id) {
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 390" width="1200" height="390">'
+      + '<defs><linearGradient id="lpG" x1="0" y1="0" x2="1" y2="1">'
+      + '<stop offset="0" stop-color="' + HERO_INK + '"/>'
+      + '<stop offset="1" stop-color="#0A1620"/></linearGradient></defs>'
+      + '<rect width="1200" height="390" fill="url(#lpG)"/>'
+      + heroArt(id)
+      + '</svg>';
+    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  }
+
+  /**
+   * 배너 한 벌을 만든다 — **세 화면이 이것을 부른다.**
+   *
+   * ★ 글자는 `SECTION` 에서 읽는다. 여기 옮겨 적으면 두 벌이 된다 (§8-1).
+   * ★★ 그림은 **스크림 아래**다 — `linear-gradient` 를 그림 «앞»에 적는다.
+   *   차례를 바꾸면 그림이 스크림을 덮어 흰 제목이 안 읽힌다.
+   * ★★★ 라임 딱지(`kicker`) 줄은 **안 그린다** 〈2026-09-09 사장님 지시 — 앞 지시가 이긴다〉.
+   *   그 값은 `SECTION.kicker` 에 남겨 둔다. 다른 화면이 쓴다.
+   *
+   * ★★★ **앱이 그림을 넘기면 그것이 이긴다** 〈2026-09-14 사장님 지시: 「배너 이미지
+   *   만들어줘 · **다른 섹션과 동일하게**」〉.
+   *
+   *   [왜] 앱의 다른 섹션 배너는 **앱이 가진 한 생성기**(풍경 씬)로 그린다. 여기서
+   *     내가 따로 그리면 **얼굴이 다르다** — 사장님이 말씀하신 「동일하게」가 그것이다.
+   *   ★ 그 생성기를 여기 **베끼지 않는다.** 베끼면 두 벌이 되어 앱이 그림을 손보는 날
+   *     이쪽만 옛말을 한다 (§8-1). 그러니 **앱이 넘겨 준다** — `LINKPILOT_EMBED` 의
+   *     `hero` 다. 이미 있는 계약이라 새 규격을 만들지 않는다 (`embed-bridge.js`).
+   *   ★★ **넘겨받지 못하면 조용히 빈 배너가 되지 않는다** — 아래 `heroSvg` 로 우리가
+   *     그린 그림을 쓴다. 단독으로 열 때(미리보기)가 그 자리다. 「앱이 안 주면 그림이
+   *     없다」로 두면 **미리보기가 제품과 다른 것을 보여 준다** (§8).
+   *   ★★★ **바깥 주소는 안 받는다.** `hero` 로 `https://…` 가 들어오면 그 순간
+   *     남의 사진을 출처 없이 싣는 길이 열린다 (§6-2-6). `data:` 만 받는다.
+   *
+   * @param {object} sec  `SECTION` · `OUTPUTS_SECTION` · `FILES_SECTION` 중 하나
+   * @param {object} doc  `document` (검사가 다른 문서를 넘길 수 있게 받는다)
+   * @param {string} [hero] 앱이 넘긴 그림(`data:` URI). 없으면 우리가 그린 것을 쓴다
+   * @returns {HTMLElement}
+   */
+  function heroFrom(sec, hero) {
+    var h = hero == null ? '' : String(hero);
+    /* ★ `data:image/` 로 시작하는 것만 받는다 — 바깥 주소는 §6-2-6 을 그 자리에서 어긴다 */
+    if (h && h.slice(0, 11) === 'data:image/') return h;
+    return heroSvg(sec.id);
+  }
+
+  function headEl(sec, doc, hero) {
+    var d = doc || (typeof document !== 'undefined' ? document : null);
+    if (!d || !sec) return null;
+    headCssInto(d);
+    var hd = d.createElement('div');
+    hd.className = 'head';
+    hd.setAttribute('data-lp-hero', sec.id || '');
+    hd.style.backgroundImage =
+      'linear-gradient(100deg, rgba(10,22,32,.92) 0%, rgba(10,22,32,.72) 46%, rgba(10,22,32,.42) 100%), '
+      + 'url("' + heroFrom(sec, hero) + '")';
+    var h1 = d.createElement('h1');
+    h1.textContent = sec.title;
+    hd.appendChild(h1);
+    var sub = sec.lead || sec.tabNote;
+    if (sub) {
+      var p = d.createElement('p');
+      p.className = 'head__d';
+      p.textContent = sub;
+      hd.appendChild(p);
+    }
+    return hd;
+  }
+
   return {
     BUILD: LP_BUILD,
     STEPS: STEPS, WHY: WHY, EMBED_CSS: EMBED_CSS,
@@ -1079,5 +1258,7 @@
     openSection: openSection, OPEN_EVENT: OPEN_EVENT, sectionUrl: sectionUrl,
     strandedBar: strandedBar, showStranded: showStranded,
     selfPlaced: selfPlaced, hideOwnChrome: hideOwnChrome,
+    heroSvg: heroSvg, heroFrom: heroFrom, headEl: headEl, HERO_LIME: HERO_LIME,
+    HEAD_CSS: HEAD_CSS, headCssInto: headCssInto,
   };
 }));

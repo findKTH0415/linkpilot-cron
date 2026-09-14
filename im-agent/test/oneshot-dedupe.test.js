@@ -212,3 +212,57 @@ test('★★★ 화면이 서버 판과 무관하게 접는다 (files.html 이 s
   assert.ok(src.indexOf('it.copies || it.times') !== -1,
     '몇 번 올렸는지를 줄에 안 적는다');
 });
+
+/* ══════ **보기에 같은 이름을 「다른 이름」이라고 하지 않는다** 〈2026-09-14 사장님 화면〉 ══════
+ *
+ * 사장님 화면에 이렇게 떴다 — 「**다른 이름으로도 올라왔습니다: 대상사업지_ 네이버 뉴스.pdf**」.
+ * 그런데 바로 위에 적힌 이름과 **글자 하나 안 다르다.** 화면이 거짓말을 하는 것처럼 보인다.
+ *
+ * ★★★ 원인은 한글의 **모아쓰기**다. 맥이 주는 이름은 ㄷ·ㅐ 를 **따로**(NFD),
+ *   폰·윈도우는 **한 글자로**(NFC) 적는다. **화면에는 똑같이 보이고 문자열은 다르다**
+ *   (실측: 같은 이름이 37바이트 vs 73바이트). 그래서 `!==` 가 「다르다」로 판정했다.
+ *
+ * ★ 이 칸이 재는 것은 **사람이 보는 이름**이다. 지문(sha256)이 같아 **내용이 같다는 것은
+ *   이미 확인된 상태**다 — 여기서 가르는 것은 이름뿐이다.
+ * ★★ **반대쪽도 잰다** — 진짜로 다른 이름은 여전히 적혀야 한다. 안 그러면
+ *   「(1).png」·「(2).png」를 뭉뚱그려 **무엇이 올라왔는지 사라진다**.
+ */
+test('★★★ 맥(NFD)과 폰(NFC)이 준 같은 이름을 「다른 이름」이라고 하지 않는다', () => {
+  const V = require('../ui/platform/versions-core.js');
+  const nfc = '대상사업지_ 네이버 뉴스.pdf';
+  const nfd = nfc.normalize('NFD');
+  assert.notStrictEqual(nfc, nfd, '표본이 거짓말을 한다 — 두 이름이 같으면 이 칸은 아무것도 안 잰다 (M-30)');
+
+  for (const [a, b, lbl] of [[nfc, nfd, '폰 → 맥'], [nfd, nfc, '맥 → 폰']]) {
+    const out = V.sameFile([{ name: a, sha256: 'same', times: 3 }, { name: b, sha256: 'same', times: 7 }]);
+    assert.strictEqual(out.length, 1, lbl + ': 같은 지문인데 두 줄로 남았다');
+    assert.strictEqual(out[0].copies, 10, lbl + ': 올린 횟수를 안 합쳤다');
+    assert.deepStrictEqual(out[0].alsoNamed, [],
+      lbl + ': 보기에 똑같은 이름을 「다른 이름으로도 올라왔습니다」로 적는다 — 화면이 거짓말을 한다');
+  }
+});
+
+test('★★ 진짜로 다른 이름은 여전히 적는다 (되짚어 잰다)', () => {
+  const V = require('../ui/platform/versions-core.js');
+  const out = V.sameFile([
+    { name: '동의서.pdf', sha256: 'same', times: 1 },
+    { name: '동의서(1).pdf', sha256: 'same', times: 1 },
+  ]);
+  assert.deepStrictEqual(out[0].alsoNamed, ['동의서(1).pdf'],
+    '다른 이름을 안 적는다 — 무엇이 올라왔는지 사라진다');
+});
+
+test('★ `normalize` 가 없는 브라우저에서도 안 죽는다 (앞 판과 같이 동작한다)', () => {
+  const V = require('../ui/platform/versions-core.js');
+  const orig = String.prototype.normalize;
+  try {
+    // eslint-disable-next-line no-extend-native
+    delete String.prototype.normalize;
+    const out = V.sameFile([{ name: 'ㄱ.pdf', sha256: 's', times: 1 }, { name: 'ㄴ.pdf', sha256: 's', times: 1 }]);
+    assert.strictEqual(out.length, 1, '모아쓰기를 못 맞추면 접는 것 자체가 깨진다');
+    assert.deepStrictEqual(out[0].alsoNamed, ['ㄴ.pdf'], '있는 그대로 견주지 않는다');
+  } finally {
+    // eslint-disable-next-line no-extend-native
+    String.prototype.normalize = orig;
+  }
+});
