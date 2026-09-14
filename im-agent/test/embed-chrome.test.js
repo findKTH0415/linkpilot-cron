@@ -118,8 +118,23 @@ test('★★★ 화면이 실제로 머리와 탭을 만든다 — 안 그러면
         CI 에서 ENOENT 로 빨갰다 — **없는 파일을 근거로 삼은 검사**였다.
         추적되는 소스에서 재면 어디서 돌리든 같은 답이 나온다. */
   const src = fs.readFileSync(path.join(P, 'report-flow.html'), 'utf8');
-  assert.match(src, /el\('div',\s*'head'\)/,
-    "★ report-flow 가 머리를 안 만든다 — 앱은 §8-2 대로 제 배너를 지우므로 아무도 이름을 안 단다");
+  /* ★★★ **재는 자리를 옮겼다** 〈2026-09-14〉 — 머리 조립이 `flow-core` 의 `headEl`
+     한 곳으로 들어갔다(세 화면이 같은 얼굴을 쓰려면 그래야 한다). 앞 판은 이 파일에서
+     `el('div','head')` 라는 **글자**를 찾고 있었고, 그래서 옮기자마자 빨개졌다.
+     ★ 재려던 성질은 「머리가 실제로 만들어지는가」다 — 그러니 **글자 대신 돌려서** 잰다.
+       그리고 이제 **세 화면 전부**를 본다: 앞 판은 report-flow 하나만 봤다. */
+  const mk = () => ({ style: {}, className: '', children: [], attrs: {}, textContent: '',
+    appendChild(c) { this.children.push(c); }, setAttribute(k, v) { this.attrs[k] = v; } });
+  const doc = { head: { appendChild() {} }, querySelector: () => null, createElement: mk };
+  for (const sec of [FLOW.SECTION, FLOW.OUTPUTS_SECTION, FLOW.FILES_SECTION]) {
+    const hd = FLOW.headEl(sec, doc);
+    assert.ok(hd && hd.className === 'head',
+      '★ ' + sec.id + ' 의 머리가 안 만들어진다 — 앱은 §8-2 대로 제 배너를 지우므로 아무도 이름을 안 단다');
+  }
+  for (const f of ['report-flow.html', 'outputs.html', 'files.html']) {
+    assert.ok(fs.readFileSync(path.join(P, f), 'utf8').includes('F.headEl('),
+      '★ ' + f + ' 이 머리를 안 부른다 — 그 화면만 이름 없는 틀이 된다');
+  }
   assert.match(src, /el\('div',\s*'tabs'\)/,
     "★ report-flow 가 탭 줄을 안 만든다면 `.tabs` 규칙은 재는 것이 없다 — 규칙을 지우거나 이 검사를 고친다");
 });

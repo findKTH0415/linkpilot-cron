@@ -283,8 +283,11 @@ test('★★ 붙이기: 머리는 화면이 단다 — 탭이라고 제목을 �
     .replace(/^[ \t]*\/\/.*$/gm, ' ');   /* 주석을 떼고 본다 (CLAUDE.md §8) */
   assert.ok(!/if\s*\(\s*!\s*C\.inTab\s*\)\s*view\.appendChild/.test(code),
     '탭 안이면 제목을 끄는 줄이 되살아났다 — 앱은 이제 배너를 안 그린다 (D-200)');
-  assert.match(code, /F\.SECTION\.title/,
-    '제목을 flow-core 의 SECTION 에서 읽지 않는다');
+  /* ★ **재는 자리를 옮겼다** 〈2026-09-14〉 — 배너 조립이 `flow-core` 의 `headEl`
+     한 벌로 들어갔다(세 화면이 같은 얼굴을 쓴다). 그래서 이 파일에 `F.SECTION.title`
+     이라는 **글자**는 더 없다. 성질(「이름을 한 곳에서만 읽는가」)은 그대로다. */
+  assert.match(code, /F\.headEl\(\s*F\.SECTION/,
+    '공유 배너를 안 부른다 — 화면마다 따로 조립하면 한 곳만 고쳐진다');
   // 기본은 false — 앱이 이 값으로 다른 것들을 가른다
   assert.match(src, /inTab: false,/);
   // 제목 문자열을 화면이 따로 들고 있지 않다
