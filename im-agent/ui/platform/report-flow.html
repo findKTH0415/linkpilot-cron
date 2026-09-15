@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="7d1f390b">
+<html lang="ko" data-lp-build="7375d608">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -288,7 +288,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=7d1f390b">
+<link rel="stylesheet" href="tokens.css?v=7375d608">
 <style>
 /* 색·간격·반경 토큰은 tokens.css 하나가 정한다 (LinkPilot Design System v1.1) */
 * { box-sizing: border-box; }
@@ -471,6 +471,22 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
 
 /* ★ 「외부 분석 환경」 카드를 지우면서 그 카드에만 쓰던 규칙도 함께 지웠다 */
 </style>
+<!-- ★★★ **여섯 벌을 «한꺼번에» 받는다** 〈2026-09-15 사장님 지시: 「아직도 느리고 늦게 로딩됨」〉.
+     ★ 이 글에 «여는 태그»를 글자 그대로 안 적는다 — 조각 검사가 주석을 가리지 않고 보아
+       진짜 태그로 오인한다 (CLAUDE.md §8 · 실제로 여기서 한 번 걸렸다).
+     [무엇이 느렸나] 아래에서 부르는 형제 스크립트 여섯은 «막는» 스크립트다 — 파서가 한 벌씩
+       기다렸다가 다음 것을 부른다. 폰에서 터널을 지나면 한 벌에 왕복이 들어가니
+       **여섯 번을 줄 서서 기다린다.** 파일이 커서가 아니라 «차례로 기다려서» 느렸다.
+     ★ 미리받기는 **받는 차례만** 바꾼다 — 도는 차례는 그대로다. 그래서 아래 인라인
+       조각들이 `F.` 를 바로 쓰는 지금 구조를 **한 글자도 안 건드린다**(`defer` 는 그것을 깬다).
+     ★★ 주소는 스크립트 쪽과 **글자까지 같아야 한다** — 다르면 같은 파일을 두 번 받아
+       오히려 느려진다. `build-stamp.js` 가 셋을 함께 지문 찍고 `--check` 가 함께 잰다. -->
+<link rel="preload" as="script" href="embed-bridge.js?v=7375d608">
+<link rel="preload" as="script" href="gate-core.js?v=7375d608">
+<link rel="preload" as="script" href="flow-core.js?v=7375d608">
+<link rel="preload" as="script" href="fields-core.js?v=7375d608">
+<link rel="preload" as="script" href="catalog.js?v=7375d608">
+<link rel="preload" as="script" href="inapp.js?v=7375d608">
 </head>
 <body>
 
@@ -520,14 +536,14 @@ window.LINKPILOT_REPORT_FLOW = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=7d1f390b" data-lp-global="LINKPILOT_REPORT_FLOW"></script>
-<script src="gate-core.js?v=7d1f390b"></script>
-<script src="flow-core.js?v=7d1f390b"></script>
+<script src="embed-bridge.js?v=7375d608" data-lp-global="LINKPILOT_REPORT_FLOW"></script>
+<script src="gate-core.js?v=7375d608"></script>
+<script src="flow-core.js?v=7375d608"></script>
 <!-- ★ 4단계 진행율(필수 항목 채움)을 재는 데 쓴다. **값과 출처가 둘 다**
      있어야 세는 규칙이 여기 있다 — 화면이 따로 세면 두 벌이 된다 -->
-<script src="fields-core.js?v=7d1f390b"></script>
-<script src="catalog.js?v=7d1f390b"></script>
-<script src="inapp.js?v=7d1f390b"></script>
+<script src="fields-core.js?v=7375d608"></script>
+<script src="catalog.js?v=7375d608"></script>
+<script src="inapp.js?v=7375d608"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
