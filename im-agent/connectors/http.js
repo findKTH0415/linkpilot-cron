@@ -114,6 +114,12 @@ const SECRET_ENV = [
   'ECOS_API_KEY',      // 20자쯤 — 안 걸린다
   'ECOS_BOK_KEY',      // 같은 한국은행 키의 다른 이름 (ecos.js KEY_NAMES) — 2026-08-26
   'DART_API_KEY',
+  // ★★★ 길찾기 소요시간 — 자동차·대중교통은 출처가 다르다 〈2026-09-15 사장님 승인: 「둘 다」〉.
+  //   **열쇠가 들어오기 «전»에 여기 먼저 넣는다** — 넣으신 날 바로 가려지게 하려는 것이다.
+  //   여기 없으면 그 값이 로그·오류 본문에 평문으로 남는다 (CLAUDE.md §2).
+  //   ★ 이름을 둘씩 읽는다 — 갈리면 아무 오류도 안 나고 조용히 죽는다 (ECOS·LAW 에서 두 번 당했다)
+  'KAKAO_MOBILITY_KEY', 'KAKAOMOBILITY_KEY',
+  'ODSAY_API_KEY', 'ODSAY_KEY',
   'GEMINI_API_KEY',
   // ★★ 여섯 슬롯 (D-110 · 지시서 §3). `GEMINI_API_KEY` 를 지우지 않는다 —
   //   지금 NAS 에 들어 있는 유일한 열쇠이고, 새 이름으로 옮기기 전에도 돌아야
