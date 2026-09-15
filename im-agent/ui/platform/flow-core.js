@@ -24,7 +24,7 @@
    *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다. 화면이 자기
    *   지문과 대 보고 다르면 「함수가 없다」로 죽기 전에 사람 말로 알린다.
    */
-  var LP_BUILD = '24b1976e';
+  var LP_BUILD = '7d1f390b';
 
   /**
    * ★★★ **단계는 다섯이다** 〈2026-08-22 사용자 지시〉.
@@ -1099,7 +1099,16 @@
    */
   var HEAD_CSS = [
     '.head{margin:0 0 14px;padding:20px 22px;border-radius:16px;',
-    'background-color:var(--lp-navy,#10233C);color:#fff;min-height:120px;box-sizing:border-box;',
+    /* ★★★ **높이를 앱 배너와 맞춘다** 〈2026-09-14 사장님 지시: 「플렛폼 배너와 크기가 다름 ·
+         보고서생성 배너를 일관성 있게 동일하게 만들어줘」〉.
+       [무엇이 달랐나] 앱의 `SectionHero` 는 **170px**(줄었을 때 64)인데 이쪽은 **120px** 이었다.
+         앱 안에서 두 화면을 오가면 **배너만 껑충거린다** — 같은 앱인데 다른 앱처럼 읽힌다.
+       ★ 여기 적힌 170 은 **앱의 값**이다 (`linkpilot-platform.deploy.html` 의 `SectionHero`
+         height: shrink ? 64 : 170). 저쪽이 바뀌면 이 값도 함께 바꾼다 — 두 저장소라
+         한 곳으로 합칠 수가 없으므로 **같은지 잰다** (§8-1 과 같은 결 · `report-head.test.js`).
+       ★★ `min-height` 인 이유: 부제가 두 줄을 넘겨도 글자가 안 잘린다. 앱은 고정 높이인데
+         이쪽은 글이 길어질 수 있어 **작아지지만 않게** 막는다. */
+    'background-color:var(--lp-navy,#10233C);color:#fff;min-height:170px;box-sizing:border-box;',
     'display:flex;flex-direction:column;justify-content:center;',
     /* ★ 바탕색을 **남긴다** — 그림이 안 뜨는 자리에서도 흰 글자가 읽혀야 한다.
        「그림이 없으면 글자도 안 보인다」를 만들지 않는다. */
