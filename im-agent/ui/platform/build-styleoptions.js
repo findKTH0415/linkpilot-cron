@@ -196,9 +196,51 @@ function keptStamp() {
   } catch (_) { return ''; }
 }
 
+/**
+ * **테마 13종의 «표지 그리는 값»** 〈2026-09-17 사장님 지시: 「보고서 생성에 디자인
+ *   템플렛 선택 할수 있도록 만들어줘」 · PPT 템플릿 갤러리 사진 다섯〉.
+ *
+ * ★★★ **왜 필요한가.** 화면은 지금 테마를 **색 점 하나 + 이름**으로 보여 준다.
+ *   사장님이 주신 사진은 전부 **표지 모양을 보고 고르는** 갤러리다 —
+ *   이름만 보고 고르는 것은 고른 것이 아니다 (`build-themes.js` 머리말과 같은 결).
+ *
+ * ★★ **화면에 손으로 적지 않는다.** 여기서 `themes.js` 를 읽어 내려보낸다.
+ *   앞 판이 화면에 테마 이름 셋을 박아 두었다가 **둘이 없는 이름**이어서
+ *   고르면 엔진이 던졌다 — 값을 두 곳에 두면 그렇게 된다.
+ *
+ * ★ **PAIRS 만으로는 모자란다** 〈실측〉. 문서 11종의 A·B 를 다 모아도
+ *   **10종**만 나온다 — `luxury`·`government`·`custom` 이 빠진다. 그래서
+ *   「전체 보기」를 만들려면 이 표가 따로 있어야 한다.
+ *
+ * ★★★ **담는 것은 «그리는 데 필요한 것»뿐이다** — 색 셋, 표지 갈래, 이름, 쓰임.
+ *   글꼴 선언 전문이나 레이아웃 목록은 화면이 안 쓰므로 안 싣는다(파일만 커진다).
+ */
+function themeCards() {
+  const out = [];
+  for (const id of Object.keys(themes.THEMES)) {
+    const t = themes.get(id);
+    if (!t) continue;
+    /* 표지 갈래 — 그림으로 그릴 수 있게 «세 글자»로 줄인다.
+       ★ 모르는 값이면 `plain` 으로 둔다. 지어내지 않는다 (§4.6). */
+    const cv = String(t.cover || '');
+    const shape = /사진.*전면|full/.test(cv) ? 'full'
+      : /사진.*분할|split/.test(cv) ? 'split'
+      : /괘선|rule/.test(cv) ? 'rule' : 'plain';
+    out.push({
+      id: t.id, no: t.no || '', name: t.label || t.id, kr: t.labelKr || '',
+      purpose: t.purpose || '', shape,
+      color: t.primary || '#10233C', accent: t.accent || '#A6813C',
+      surface: t.surfaceAlt || '#F7F5F0',
+      serif: !!(t.serif && String(t.serif).includes('Serif')),
+    });
+  }
+  return out;
+}
+
 function pairsFile() {
   const data = pairs();
   const ids = Object.keys(themes.THEMES);
+  const cards = themeCards();
   const built = keptStamp();
   return `/* style-ab.js — 문서 종류별 **스타일 두 안(A·B)**.
  *
@@ -217,6 +259,7 @@ function pairsFile() {
     var m = factory();
     root.LP_THEME_IDS = m.THEME_IDS;
     root.LP_STYLE_PAIRS = m.PAIRS;
+    root.LP_THEME_CARDS = m.THEME_CARDS;
     root.lpStylePair = m.pair;
   }
 }(typeof self !== 'undefined' ? self : this, function () {
@@ -235,12 +278,15 @@ function pairsFile() {
   /** 문서 종류 → { A, B } */
   var PAIRS = ${JSON.stringify(data, null, 2).split('\n').join('\n  ')};
 
+  /** 테마 13종의 표지 그리는 값 — 화면이 「모양 보고 고르기」에 쓴다 */
+  var THEME_CARDS = ${JSON.stringify(cards, null, 2).split('\n').join('\n  ')};
+
   /** 그 문서의 두 안. 모르는 종류면 기본(im)으로 돌려준다 — 지어내지 않는다 */
   function pair(docType) {
     return PAIRS[docType] || PAIRS.im || null;
   }
 
-  return { BUILD: LP_BUILD, THEME_IDS: THEME_IDS, PAIRS: PAIRS, pair: pair };
+  return { BUILD: LP_BUILD, THEME_IDS: THEME_IDS, PAIRS: PAIRS, THEME_CARDS: THEME_CARDS, pair: pair };
 }));
 `;
 }
@@ -454,4 +500,4 @@ if (require.main === module) {
   console.log(`  ${rel(OUT_PAIRS)}  (문서 종류 ${Object.keys(pairs()).length}종)`);
 }
 
-module.exports = { build, card, cover, body, pairs, pairsFile, keptStamp, DEAL, DEFAULT_SIGNALS, OUT, OUT_PAIRS };
+module.exports = { build, card, cover, body, pairs, pairsFile, themeCards, keptStamp, DEAL, DEFAULT_SIGNALS, OUT, OUT_PAIRS };
