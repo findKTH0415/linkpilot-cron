@@ -185,13 +185,29 @@ function write({ source = SOURCE, dest = DEST } = {}) {
   /* ★★★ **빠진 것이 있으면 그 사실이 첫 줄에 있어야 한다.** 뒤에 적으면 안 읽힌다 —
      「백업이 떴다」만 보고 다 있는 줄 안다 (§6-3 ① · §8). */
   const miss = [...new Set(skipped.map((x) => x.rel))];
+  /* ★★★ **개수만 적으면 「어디를 고쳐야 하나」가 안 보인다** 〈2026-09-17 · D-213〉.
+   *   배포 #213 이 「못 읽어 빠진 것 19개」로 끝났는데, **어느 파일인지는 NAS 의
+   *   목록 파일에만** 있었다. 그래서 사장님이 File Station 에서 **어느 폴더를 여실지**
+   *   알 수 없었다 — 「고칠 자리를 말하지 않는 글」은 §4.6 이 금지한 그것이다.
+   * ★ **폴더까지만 적는다. 파일 이름은 안 적는다** — 프로젝트 자료 이름에는 사람 이름·
+   *   거래 상대가 섞일 수 있고, 이 줄은 Actions 로그로 나간다 (§2).
+   *   폴더만 있으면 권한을 고치기에 충분하다.
+   * ★★ 많으면 앞의 셋만 적고 「그리고 N곳 더」로 센다 — 로그를 덮지 않는다. */
+  const dirs = [...new Set(miss.map((r) => {
+    const i = r.lastIndexOf('/');
+    return i > 0 ? r.slice(0, i) : '(뿌리)';
+  }))].sort();
+  const where = dirs.length
+    ? dirs.slice(0, 3).join(' · ') + (dirs.length > 3 ? ` 그리고 ${dirs.length - 3}곳 더` : '')
+    : '';
   const line = miss.length
     ? `${n}개 파일 · ${Math.round(bytes / 1024)}KB · 지문 ${manifest.digest}`
       + ` · **못 읽어 빠진 것 ${miss.length}개** (백업에 없다 — 파일 권한이다)`
+      + ` · 그 자리: ${where}`
     : `${n}개 파일 · ${Math.round(bytes / 1024)}KB · 지문 ${manifest.digest}`;
   return {
     ok: true, code: 0, digest: manifest.digest, count: n, bytes,
-    skipped: miss, line,
+    skipped: miss, skippedDirs: dirs, line,
   };
 }
 

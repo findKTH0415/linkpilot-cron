@@ -15,15 +15,45 @@ jobs:
         with:
           node-version: '20'
 
+      # ★★★ **「0/5 인데 초록」을 막는다** 〈2026-09-17 · D-213〉.
+      #
+      #   [무엇이 났나] 5필지 전부 실패한 실행이 **초록으로 끝났다**(실측:
+      #   `fetch failed` 3 · `HTTP 502` 2). 스크립트가 걸린 것을 요약에 적기만 하고
+      #   종료 코드가 늘 0 이었다. 초록이라 아무도 안 열어 보고, 정작 하려던 수집은
+      #   **한 번도 안 됐다.**
+      #
+      # ★ 이제 스크립트가 갈래 넷으로 끝낸다 — 0 전부 받음 / 1 일부 / 2 못 쟀다 /
+      #   3 서버는 대답했는데 값을 안 줬다. **할 일이 갈래마다 정반대**이므로 갈라 센다.
+      # ★★ **그 판정을 여기서 나른다.** 도구가 갈라 줘도 **나르는 자리가 버리면**
+      #   사장님 화면에는 한 줄도 안 온다 — 그 자리를 앞서 한 번 겪었다(D-212 계열).
+      #   그래서 `2>&1 | tee` 로 받고, 요약 줄은 **스스로 처방을 적지 않는다**(도구가 적는다).
+      # ★★★ **판정으로 끝내는 것은 «맨 마지막»이다** — 결과 파일과 아티팩트를 먼저
+      #   남긴 뒤에 빨갛게 끝내야, 빨간 실행에서도 받을 것이 남는다.
       - name: 브이월드 조회
+        id: fetch
         env:
           # 도메인 등록형 키다. 둘을 반드시 함께 주입한다. 한쪽만 넣으면 거부된다.
           VWORLD_KEY: ${{ secrets.VWORLD_KEY }}
           VWORLD_DOMAIN: ${{ secrets.VWORLD_DOMAIN }}
           # SSH·NAS·터널 등 인프라 자격증명은 이 잡에 주입하지 않는다.
-        run: node scripts/vworld-fetch.mjs
+        run: |
+          set -o pipefail
+          set +e
+          node scripts/vworld-fetch.mjs 2>&1 | tee "$RUNNER_TEMP/vworld.log"
+          CODE=${PIPESTATUS[0]}
+          set -e
+          echo "code=$CODE" >> "$GITHUB_OUTPUT"
+          {
+            echo "### 브이월드 수집 판정"
+            echo ""
+            # ★ 스크립트가 적은 판정을 **그대로** 싣는다. 여기서 처방을 덧붙이지 않는다
+            grep -v '^LP_VWORLD ' "$RUNNER_TEMP/vworld.log" | tail -20
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 0
 
       - name: 결과 커밋
+        if: always()          # 실패해도 받은 것과 진단은 저장소에 남긴다
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -37,3 +67,19 @@ jobs:
         with:
           name: vworld-songgye
           path: data/vworld
+
+      # ★ **판정으로 끝낸다 — 결과를 다 남긴 뒤에.** 0 만 초록이다.
+      #   「못 쟀다」(2)도 초록으로 안 끝낸다 (CLAUDE.md §8).
+      - name: 판정
+        if: always()
+        run: |
+          C='${{ steps.fetch.outputs.code }}'
+          case "${C:-없음}" in
+            0) echo "전부 받았다" ;;
+            1) echo "::error::**일부만 받았다.** 어느 필지가 왜 빠졌는지 위 요약 §4 에 있다"; exit 1 ;;
+            2) echo "::error::**못 쟀다 — 서버가 한 번도 대답하지 않았다.** 이 자리의 나가는 길이 막힌 것이고 **열쇠·도메인·활용신청 문제가 아닙니다.**"; exit 1 ;;
+            3) echo "::error::**VWorld 쪽 서버가 지금 못 받습니다 (HTTP 5xx).** 인증 거부는 0건이므로 **열쇠·도메인·활용신청 문제가 아니고, 우리 쪽에 고칠 것이 없습니다.** 시간을 두고 다시 걸어 봅니다"; exit 1 ;;
+            4) echo "::error::**서버가 인증을 거부했습니다.** 볼 것은 둘입니다 — 콘솔 서비스URL 과 VWORLD_DOMAIN 이 글자까지 같은지, 그 키에 **지오코더 API** 활용신청이 있는지"; exit 1 ;;
+            5) echo "::error::**인증은 통과했고 주소가 안 맞았습니다.** **열쇠 문제가 아닙니다** — 주소 표기를 봅니다"; exit 1 ;;
+            *) echo "::error::**판정을 못 받았다** — 조회 단계가 시작조차 못 했을 수 있다. 못 잰 것은 통과가 아니다"; exit 1 ;;
+          esac

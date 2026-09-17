@@ -232,5 +232,98 @@ if (problems.length) {
   for (const p of problems) P(`- ${p}`);
 }
 
+/* ★★★ **판정을 갈라 돌려준다 — 「0/5 인데 초록」을 막는다** 〈2026-09-17 · D-213〉.
+ *
+ *   [무엇이 났나] 앞 판은 `problems` 를 §4 에 **적기만** 하고 종료 코드가 늘 0 이었다.
+ *   그래서 **5필지 전부 실패한 실행이 초록으로 끝났다**(실측: `fetch failed` 3 ·
+ *   `HTTP 502` 2). 초록이라 아무도 안 열어 보고, 정작 하려던 수집은 한 번도 안 됐다.
+ *   §4 의 `kasi.year()` 가 「못 받았다」와 「아직 공표 전」을 같은 글자로 냈던 것과
+ *   **같은 고장**이다 — 뭉뚱그리면 할 일이 정반대인 것들이 한 값으로 묻힌다.
+ *
+ * ★ [갈래 넷] 되돌아오는 값이 사장님이 하실 일을 가른다.
+ *     0 — 5/5 받았다 (지도 일부 실패는 경고로만)
+ *     1 — 일부만 받았다 (1~4필지) · 어느 필지가 왜 빠졌는지 §4 에 있다
+ *     2 — **못 쟀다** — 전부 응답이 없었다. 이 자리의 나가는 길이 막힌 것이고
+ *         **열쇠·도메인·활용신청 문제가 아니다** (§4 「못 닿음을 승인 안 됨으로
+ *         적지 않는다」와 같은 규칙). 도는 자리를 옮겨 다시 잰다.
+ *     3 — 전부 실패했고 **서버가 대답했다** — 그때는 도메인·활용신청을 본다.
+ *
+ * ★★ **「대답이 왔다」가 곧 「닿았다」다.** 그 하나가 갈래 2 와 3 을 가르고,
+ *   할 일이 **자리를 옮기는 일**과 **콘솔을 여는 일**로 정반대가 된다.
+ * ★★★ **판정은 요약 «맨 앞»에 넣는다** (§6-3 ①). §4 맨 끝에 적으면 안 읽힌다 —
+ *   실제로 앞 판이 그 자리에 적고 있었고, 아무도 못 봤다.
+ */
+const UNREACHED = /fetch failed|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|socket hang up|ECONNRESET|응답 없음|네트워크/i;
+const ANSWERED = /HTTP \d{3}|VWorld [A-Z_]+|INVALID_KEY|INCORRECT_KEY|결과가 없|NOT_FOUND|권한|인증/i;
+/* ★★★ **「서버가 대답했다」 안에 갈래 셋이 또 있다 — 할 일이 전부 다르다**
+ *   〈2026-09-17 · 실측으로 드러났다〉.
+ *
+ *   앞 판은 「대답이 왔다」를 한 덩어리로 보고 **「콘솔의 서비스URL·활용신청을 보라」**
+ *   하나만 가리켰다. 그런데 실측 응답은 `fetch failed` 10 · **`HTTP 502` 6** 이고
+ *   **인증 거부(`INVALID_KEY`·권한)는 0건**이었다 — 열쇠가 틀렸으면 VWorld 는
+ *   `INVALID_KEY` 를 준다. **502 는 그쪽 게이트웨이**다.
+ *   그 상태로 콘솔을 여시게 하면 **거기에는 고칠 것이 없다** (§4.6 · §12-11 의 그 잣대).
+ *
+ * ★ 그래서 셋으로 가른다 —
+ *     `5xx`            그쪽 서버가 지금 못 받는다 → **우리 쪽에 고칠 것이 없다.** 기다렸다 다시
+ *     인증·권한        도메인·활용신청 → 콘솔을 본다
+ *     결과 없음        주소 미매칭 → 주소를 본다
+ * ★★ **섞이면 「고칠 것이 있는 쪽」을 먼저 가리킨다** — 인증 > 주소 > 5xx.
+ *   5xx 를 먼저 말하면 「기다리면 된다」로 읽혀 진짜 고칠 것이 묻힌다.
+ */
+const SERVER5XX = /HTTP 5\d{2}/;
+const AUTHDENY = /INVALID_KEY|INCORRECT_KEY|권한|인증|UNAUTHORIZED|등록되지/i;
+const NOMATCH = /결과가 없|NOT_FOUND|no result|좌표\(result\.point\)가 없다/i;
+
+const unreached = problems.filter((t) => UNREACHED.test(t)).length;
+const answered = problems.filter((t) => ANSWERED.test(t)).length;
+const s5xx = problems.filter((t) => SERVER5XX.test(t)).length;
+const deny = problems.filter((t) => AUTHDENY.test(t)).length;
+const nomatch = problems.filter((t) => NOMATCH.test(t)).length;
+
+let code = 0;
+let verdict;
+if (parcels.length === LOTS.length) {
+  verdict = `✅ **수집 ${parcels.length}/${LOTS.length}필지** — 전부 받았다`;
+} else if (parcels.length > 0) {
+  code = 1;
+  verdict = `⚠️ **수집 ${parcels.length}/${LOTS.length}필지 — 일부만 받았다.**`
+    + ' 어느 필지가 왜 빠졌는지는 아래 §4 에 있다';
+} else if (deny > 0) {
+  code = 4;
+  verdict = `❌ **0/${LOTS.length}필지 — 서버가 «인증을 거부»했다** (${deny}건).`
+    + ' 볼 것은 둘이다 — ① VWorld 콘솔의 서비스URL 과 `VWORLD_DOMAIN` 이 글자까지'
+    + ' 같은지 ② 그 키의 활용 API 목록에 **지오코더**가 있는지';
+} else if (nomatch > 0) {
+  code = 5;
+  verdict = `❌ **0/${LOTS.length}필지 — 인증은 통과했고 «주소가 안 맞았다»** (${nomatch}건).`
+    + ' **열쇠 문제가 아니다** — 주소 표기를 본다';
+} else if (s5xx > 0) {
+  code = 3;
+  verdict = `❌ **0/${LOTS.length}필지 — VWorld 쪽 서버가 지금 못 받는다** (HTTP 5xx ${s5xx}건).`
+    + ' 인증 거부는 **0건**이므로 **열쇠·도메인·활용신청 문제가 아니고, 우리 쪽에 고칠 것이'
+    + ' 없다.** 시간을 두고 다시 걸어 본다';
+} else if (unreached > 0) {
+  code = 2;
+  verdict = `❌ **못 쟀다 — 0/${LOTS.length}필지 · 서버가 한 번도 대답하지 않았다**`
+    + ' (응답 없음). 이 자리의 나가는 길이 막힌 것이고 **열쇠·도메인·활용신청 문제가'
+    + ' 아니다.** 도는 자리를 옮겨 다시 잰다';
+} else {
+  code = 2;
+  verdict = `❌ **못 쟀다 — 0/${LOTS.length}필지 · 사유를 못 받았다.**`
+    + ' 무엇이 막았는지 지어내지 않는다 — 아래 §4 의 원문을 본다';
+}
+
+/* ★ 요약 맨 앞(제목·조회일 바로 뒤)에 끼워 넣는다 */
+log.splice(4, 0, '', verdict, '',
+  `- 못 닿음 ${unreached}건 · 서버가 대답 ${answered}건`
+  + ` (그 안에서 — 5xx ${s5xx} · 인증거부 ${deny} · 주소 미매칭 ${nomatch})`, '');
+
 await save();
+/* ★★ 판정을 **stdout 으로도** 낸다 — 워크플로가 이것을 요약에 나른다.
+ *   §12-19 에서 배운 자리다: 도구가 갈라 줘도 **나르는 자리가 버리면** 사장님 화면에는
+ *   한 줄도 안 온다. 「만들었다」와 「닿는다」는 다른 사실이다. */
+console.log(`LP_VWORLD verdict=${code}`);
+console.log(verdict.replace(/\*\*/g, ''));
 console.log(`완료 — ${OUT}/_summary.md`);
+process.exit(code);

@@ -244,6 +244,26 @@ test('★★ 복원시험도 못 읽는 파일에 **안 죽는다** — 그리�
     `「되살아난다」만 적고 못 센 것을 안 말합니다 — 반쪽 진실입니다: ${r.line}`);
 });
 
+test('★★★ 빠진 것의 **폴더는 적고 파일 이름은 안 적는다** (D-213 · §2)', () => {
+  const src = sampleStore();
+  const dest = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-bk-dst4-'));
+  /* ★ 표본이 재려는 성질을 지켜야 한다 — **폴더 안**의 파일이어야 폴더가 나온다.
+     뿌리의 파일로 재면 「폴더를 적는가」를 영영 못 잰다. */
+  const r = withUnreadable('dataset.json', () => backup.write({ source: src, dest: path.join(dest, 'b') }));
+  assert.ok(r.ok, `백업이 통째로 죽었습니다: ${r.line}`);
+  assert.ok(Array.isArray(r.skippedDirs) && r.skippedDirs.length >= 1,
+    `빠진 것의 폴더를 안 돌려줍니다: ${JSON.stringify(r.skippedDirs)}`);
+  assert.ok(/그 자리:/.test(r.line),
+    `첫 줄에 「어디인지」가 없습니다 — 개수만 있으면 어느 폴더를 여실지 모릅니다: ${r.line}`);
+  /* ★★★ **파일 이름은 그 줄에 안 나간다** — 프로젝트 자료 이름에는 사람 이름·거래
+     상대가 섞일 수 있고 이 줄은 Actions 로그로 나간다 (§2). 폴더만 있으면 충분하다. */
+  assert.ok(!/dataset\.json/.test(r.line),
+    `빠진 **파일 이름**이 로그 줄에 실립니다 — 폴더까지만 적어야 합니다 (§2): ${r.line}`);
+  /* ★ 그리고 폴더 이름 자체는 맞아야 한다 — 「적는 척」만 하면 뜻이 없다 */
+  assert.ok(r.skippedDirs.some((d) => /LP-T-002\/01_Project$/.test(d)),
+    `폴더가 엉뚱합니다: ${JSON.stringify(r.skippedDirs)}`);
+});
+
 test('★ 못 읽는 파일이 **없을 때는** 그 말을 안 붙인다 (없는 걱정을 만들지 않는다)', () => {
   const src = sampleStore();
   const dest = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-bk-dst3-'));
