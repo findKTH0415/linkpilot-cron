@@ -181,8 +181,19 @@ const healed = (h) => (h.match(/data-lp-healed/g) || []).length;
 /* ───────────── 소스에 장치가 있는가 (브라우저가 없어도 잰다) ───────────── */
 
 test('★★★ 일곱 화면 모두 **받기 전에** 자리를 바로잡는다', () => {
+  /* ★★★ **git 이 추적하는 화면만 본다** 〈2026-09-17 · 실측으로 걸렸다〉.
+     [무엇이 났나] 이 자리는 폴더를 통째로 훑었다. 그런데 이 폴더에는 `.gitignore` 에
+     든 **빌드 산출물**도 같이 있다(`preview.html`) — `npm run im:screens` 를 돌린
+     자리에만 생기는 파일이다. 그것을 읽는 순간 이 검사의 답이 **「그 사람이 빌드를
+     돌렸는가」에 따라 달라진다**: 내 자리에서는 빨갛고 CI 에서는 초록이다.
+     ★ 이 저장소는 그 함정을 이미 알고 `test-reads-tracked.test.js` 로 재고 있었는데,
+       그 검사는 **검사 파일이 «이름을 대는» 것**만 본다 — 폴더를 훑는 이 자리는 못 봤다.
+     ★★ 재려던 성질(일곱 화면에 장치가 있는가)은 그대로 두고 **읽는 자리만** 좁혔다. */
+  const keep = new Set(execFileSync('git', ['ls-files', 'im-agent/ui/platform/'],
+    { cwd: path.join(__dirname, '..', '..'), encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 })
+    .split('\n').filter(Boolean).map((x) => x.split('/').pop()));
   const screens = fs.readdirSync(PLATFORM)
-    .filter((f) => f.endsWith('.html') && !f.startsWith('section-static'));
+    .filter((f) => f.endsWith('.html') && !f.startsWith('section-static') && keep.has(f));
   let n = 0;
   for (const f of screens) {
     const s = fs.readFileSync(path.join(PLATFORM, f), 'utf8');
