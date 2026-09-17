@@ -192,7 +192,14 @@ function write({ source = SOURCE, dest = DEST } = {}) {
    * ★ **폴더까지만 적는다. 파일 이름은 안 적는다** — 프로젝트 자료 이름에는 사람 이름·
    *   거래 상대가 섞일 수 있고, 이 줄은 Actions 로그로 나간다 (§2).
    *   폴더만 있으면 권한을 고치기에 충분하다.
-   * ★★ 많으면 앞의 셋만 적고 「그리고 N곳 더」로 센다 — 로그를 덮지 않는다. */
+   * ★★ 많으면 앞의 셋만 적고 「그리고 N곳 더」로 센다 — 로그를 덮지 않는다.
+   * ★★★ **총수를 괄호로 «먼저» 적는다** 〈2026-09-17 · 실측으로 잡았다 · D-213 이음〉.
+   *   배포 워크플로가 이 줄에서 폴더 수를 세어 `LP_OPS backupdirs=N` 으로 찍는데,
+   *   앞 판은 **가운뎃점을 세는 것 말고 길이 없었다.** 그러면 넷을 넘는 순간
+   *   「A · B · C 그리고 5곳 더」가 **8곳인데 3 으로** 세진다 — 숫자를 재는 법이
+   *   재려는 것을 다 덮지 못한 것이다 (§6-2-6 의 46 → 105 와 같은 규칙).
+   *   ★ 그러니 **세는 쪽이 짐작하게 두지 않고 정본이 총수를 적는다** (§8-1 —
+   *     두 벌로 세면 한쪽이 옛말을 한다). 사람이 읽는 줄에도 뜻이 늘어난다. */
   const dirs = [...new Set(miss.map((r) => {
     const i = r.lastIndexOf('/');
     return i > 0 ? r.slice(0, i) : '(뿌리)';
@@ -203,7 +210,7 @@ function write({ source = SOURCE, dest = DEST } = {}) {
   const line = miss.length
     ? `${n}개 파일 · ${Math.round(bytes / 1024)}KB · 지문 ${manifest.digest}`
       + ` · **못 읽어 빠진 것 ${miss.length}개** (백업에 없다 — 파일 권한이다)`
-      + ` · 그 자리: ${where}`
+      + ` · 그 자리(${dirs.length}곳): ${where}`
     : `${n}개 파일 · ${Math.round(bytes / 1024)}KB · 지문 ${manifest.digest}`;
   return {
     ok: true, code: 0, digest: manifest.digest, count: n, bytes,
