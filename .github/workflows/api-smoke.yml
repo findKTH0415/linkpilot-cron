@@ -33,6 +33,8 @@ jobs:
         env:
           VWORLD_KEY:        ${{ secrets.VWORLD_KEY }}
           VWORLD_DOMAIN:     ${{ secrets.VWORLD_DOMAIN }}
+          LINKPILOT_VWORLD_REPORT_KEY: ${{ secrets.LINKPILOT_VWORLD_REPORT_KEY }}
+          LINKPILOT_VWORLD_WEB_KEY:    ${{ secrets.LINKPILOT_VWORLD_WEB_KEY }}
           DATA_GO_KR_KEY:    ${{ secrets.DATA_GO_KR_KEY }}
           DART_API_KEY:      ${{ secrets.DART_API_KEY }}
           REB_API_KEY:       ${{ secrets.REB_API_KEY }}
@@ -62,6 +64,8 @@ jobs:
         env:
           VWORLD_KEY:        ${{ secrets.VWORLD_KEY }}
           VWORLD_DOMAIN:     ${{ secrets.VWORLD_DOMAIN }}
+          LINKPILOT_VWORLD_REPORT_KEY: ${{ secrets.LINKPILOT_VWORLD_REPORT_KEY }}
+          LINKPILOT_VWORLD_WEB_KEY:    ${{ secrets.LINKPILOT_VWORLD_WEB_KEY }}
           DATA_GO_KR_KEY:    ${{ secrets.DATA_GO_KR_KEY }}
           DART_API_KEY:      ${{ secrets.DART_API_KEY }}
           REB_API_KEY:       ${{ secrets.REB_API_KEY }}

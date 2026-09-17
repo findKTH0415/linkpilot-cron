@@ -138,6 +138,8 @@ SSH 개인키·NAS 접속정보·터널 인증키는 유출 시 **서버 접근�
 | `WEATHER_GO` | **어느 기관인지 아직 안 쟀다** 〈2026-09-13 사장님이 넣으셨다 · 날씨정보〉 | 미측정 | 미측정 | ✕ |
 | `KEPCO_BIGDATA_KEY` | 한국전력 빅데이터 | `bigdata.kepco.co.kr/openapi` | `apiKey` | ○ |
 | `VWORLD_KEY` | 국토부 V-World | `api.vworld.kr/req` | `key` (+ `domain`) | ○ |
+| `LINKPILOT_VWORLD_REPORT_KEY` | 국토부 V-World — 같은 열쇠의 다른 이름 〈2026-09-17 사장님이 넣으셨다〉 | 위와 동일 | 위와 동일 | ○ |
+| `LINKPILOT_VWORLD_WEB_KEY` | 국토부 V-World — 같은 열쇠의 다른 이름 〈2026-09-17 사장님이 넣으셨다〉 | 위와 동일 | 위와 동일 | ○ |
 | `LAW_OPEN_DATA` | 국가법령정보 | `law.go.kr/DRF` | 서비스 인증값 | ○ |
 | `LAW_OC` | 국가법령정보 | 위와 동일 | `OC` — **계정 ID**(키 아님) | ○ |
 | `KICT_API_KEY` | 한국건설기술연구원 **국가건설기준센터(KCSC)** | `kcsc.re.kr/OpenApi` | `Key` (쿼리) | ○ |

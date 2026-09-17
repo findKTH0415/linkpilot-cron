@@ -35,6 +35,8 @@ jobs:
           # 도메인 등록형 키다. 둘을 반드시 함께 주입한다. 한쪽만 넣으면 거부된다.
           VWORLD_KEY: ${{ secrets.VWORLD_KEY }}
           VWORLD_DOMAIN: ${{ secrets.VWORLD_DOMAIN }}
+          LINKPILOT_VWORLD_REPORT_KEY: ${{ secrets.LINKPILOT_VWORLD_REPORT_KEY }}
+          LINKPILOT_VWORLD_WEB_KEY:    ${{ secrets.LINKPILOT_VWORLD_WEB_KEY }}
           # SSH·NAS·터널 등 인프라 자격증명은 이 잡에 주입하지 않는다.
         run: |
           set -o pipefail
@@ -109,7 +111,7 @@ jobs:
             1) echo "::error::**일부만 받았다.** 어느 필지가 왜 빠졌는지 위 요약 §4 에 있다"; exit 1 ;;
             2) echo "::error::**못 쟀다 — 서버가 한 번도 대답하지 않았다.** 이 자리의 나가는 길이 막힌 것이고 **열쇠·도메인·활용신청 문제가 아닙니다.**"; exit 1 ;;
             3) echo "::error::**VWorld 쪽 서버가 지금 못 받습니다 (HTTP 5xx).** 인증 거부는 0건이므로 **열쇠·도메인·활용신청 문제가 아니고, 우리 쪽에 고칠 것이 없습니다.** 시간을 두고 다시 걸어 봅니다"; exit 1 ;;
-            4) echo "::error::**서버가 인증을 거부했습니다.** 볼 것은 둘입니다 — 콘솔 서비스URL 과 VWORLD_DOMAIN 이 글자까지 같은지, 그 키에 **지오코더 API** 활용신청이 있는지"; exit 1 ;;
+            4) echo "::error::**서버가 인증을 거부했습니다.** 볼 것은 둘입니다 — 콘솔 서비스URL 과 VWORLD_DOMAIN 이 글자까지 같은지, 그 키에 **지오코더 API** 활용신청이 있는지. 어느 열쇠 이름으로 걸었는지는 요약이 적습니다(이름 셋을 순서대로 걸어 봅니다)"; exit 1 ;;
             5) echo "::error::**인증은 통과했고 주소가 안 맞았습니다.** **열쇠 문제가 아닙니다** — 주소 표기를 봅니다"; exit 1 ;;
             *) echo "::error::**판정을 못 받았다** — 조회 단계가 시작조차 못 했을 수 있다. 못 잰 것은 통과가 아니다"; exit 1 ;;
           esac
