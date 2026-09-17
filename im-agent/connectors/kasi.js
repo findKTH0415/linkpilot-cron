@@ -189,7 +189,14 @@ async function year(y, kinds = Object.keys(KINDS)) {
   }
   out.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.name < b.name ? -1 : 1));
   /* ★ 하나라도 받았으면 ok 다 — 한 갈래가 죽어도 나머지는 쓴다 (§4.6 실패 격리) */
-  return { ok: out.length > 0, value: out, errors, year: y };
+  /* ★★★ 「못 받았다」와 「그 해 자료가 아직 없다」는 **다른 사실**이다 (§12-12 와 같은 결).
+   *   갈래 넷이 **전부 성공**했는데 0건이면 서버는 멀쩡히 대답한 것이고, 그 해 특일정보가
+   *   아직 공표되지 않은 것이다 — **우리가 고칠 자리가 없다.** 둘을 같은 글자로 적으면
+   *   「활용신청을 또 하시게」 만든다 (D-206 이 겪은 그 자리 · §4.6 「원인을 사람 말로 적는다」).
+   *   ★ 실측 2026-09-17: 러너에서 2026~2028 은 왔고 2029·2030 만 이 갈래였다 — 오류 줄이
+   *     한 줄도 안 찍혔는데 글은 「한 건도 못 받았다」였다. */
+  const empty = out.length === 0 && errors.length === 0;
+  return { ok: out.length > 0, empty, value: out, errors, year: y };
 }
 
 module.exports = { year, diagnose, isAvailable, KINDS, toKey, PROVIDER };

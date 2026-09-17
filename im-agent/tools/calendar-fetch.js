@@ -64,6 +64,14 @@ async function main() {
     if (r.unavailable) { console.log('⚠ ' + r.error); process.exit(2); }
 
     const errs = (r.errors || []);
+    /* ★★★ 「아직 공표 안 됨」을 실패로 세지 않는다 (§12-12 와 같은 결).
+     *   서버가 멀쩡히 대답했는데 그 해 자료가 0건인 것은 **우리가 고칠 자리가 없다.**
+     *   실패로 세면 날마다 빨개지고, 그 빨강이 「활용신청을 또 하라」로 읽힌다. */
+    if (r.empty) {
+      console.log(`◦ ${y}년 — 서버는 대답했는데 그 해 자료가 아직 없다 (공표 전 · 고칠 것 없음)`);
+      rows.push({ year: y, ok: false, empty: true, count: 0, errors: [] });
+      continue;
+    }
     if (!r.ok) {
       /* ★ 한 해를 통째로 못 받은 것 — 갈래 실패와 갈라 적는다 */
       hardFail++;
@@ -103,12 +111,18 @@ async function main() {
   L.push('| 연도 | 받음 | 건수 | 설날 | 추석 | 못 받은 갈래 |');
   L.push('|---|---|---:|---|---|---|');
   for (const r of rows) {
-    L.push(`| ${r.year} | ${r.ok ? '✓' : '✗'} | ${r.count} | ${r.seollal || '—'} | ${r.chuseok || '—'} | `
+    L.push(`| ${r.year} | ${r.ok ? '✓' : r.empty ? '◦ 공표 전' : '✗'} | ${r.count} | ${r.seollal || '—'} | ${r.chuseok || '—'} | `
       + `${(r.errors || []).map((e) => e.label).join(' · ') || '없음'} |`);
   }
   L.push('');
-  const failed = rows.filter((r) => !r.ok);
+  const failed = rows.filter((r) => !r.ok && !r.empty);
+  const empty = rows.filter((r) => r.empty);
   const partial = rows.filter((r) => r.ok && (r.errors || []).length);
+  if (empty.length) {
+    L.push(`◦ **아직 공표되지 않은 해가 ${empty.length}개** 있다 — ${empty.map((r) => r.year).join(' · ')}.`);
+    L.push('  서버는 대답했고 오류도 없었다. **못 받은 것이 아니라 아직 없는 것**이라 고칠 자리가 없다 —');
+    L.push('  공휴일은 해마다 관보로 확정된 뒤에 이 API 에 실린다. 다음 수집에서 저절로 채워진다.');
+  }
   if (failed.length) {
     L.push(`★ **통째로 못 받은 해가 ${failed.length}개** 있다 — ${failed.map((r) => r.year).join(' · ')}.`);
     L.push('  이 해들은 **없는 것**이지 「명절이 없는 해」가 아니다.');
@@ -117,14 +131,17 @@ async function main() {
     L.push(`★ 받았지만 **일부 갈래가 빠진 해가 ${partial.length}개** 있다.`);
     L.push('  「통째로 못 받은 것」과 다른 사실이라 갈라 적는다.');
   }
-  if (!failed.length && !partial.length) L.push('빠진 것 없음.');
+  if (!failed.length && !partial.length && !empty.length) L.push('빠진 것 없음.');
   const summary = L.join('\n') + '\n';
   const badS = leaks(summary);
   if (badS.length) { console.log('❌ 요약에 열쇠 값이 섞였다 — 안 쓴다: ' + badS.join(' · ')); process.exit(1); }
   fs.writeFileSync(path.join(OUT, '_summary.md'), summary);
 
   console.log('');
-  console.log(`요약: data/_calendar/_summary.md · 받은 해 ${rows.filter((r) => r.ok).length}/${rows.length}`);
+  const gotN = rows.filter((r) => r.ok).length;
+  const emptyN = rows.filter((r) => r.empty).length;
+  console.log(`요약: data/_calendar/_summary.md · 받은 해 ${gotN}/${rows.length}`
+    + (emptyN ? ` (그중 ${emptyN}개는 «아직 공표 전» — 못 받은 것이 아니다)` : ''));
   process.exit(hardFail ? 1 : 0);
 }
 
