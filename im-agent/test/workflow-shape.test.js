@@ -266,3 +266,121 @@ test('★★ 배포 길이 `check:reachable` 을 지나간다 (M-08 계열 — �
     '배포 워크플로에 `npm run check:reachable` 이 없습니다 — '
     + '`deploy-im.yml` 에서 옮겨 온 단계가 사라졌습니다 (M-08 계열이 다시 안 잡힙니다).');
 });
+
+/**
+ * ★★★ **「썼다」와 「남았다」는 다른 사실이다 — 배포 열쇠 자리** 〈2026-09-17 · D-212〉
+ *
+ * [무엇이 났나] 배포 #212 가 「써 넣은 열쇠 **25개**」라고 적고 **초록으로 끝났는데**,
+ *   같은 초의 로그에 `Permission denied` 가 넉 줄 찍혀 있었고 40초 뒤 진단은
+ *   「실제로 읽은 파일: **(없다)**」였다. 곧 **한 글자도 안 실렸다.**
+ *   그 결과 지적도·OCR·둘째 읽기가 통째로 꺼진 채 배포가 성공으로 끝났고,
+ *   **나는 그 초록을 근거로 사장님께 「열쇠는 들어 있습니다」라고 적었다.**
+ *
+ * [왜 안 잡혔나] `OUT=$(ssh …)` 의 종료코드는 **ssh 안 마지막 명령의 것**이다.
+ *   `cat > linkpilot.env` 가 실패해도 뒤의 `echo` 가 성공하면 0 이 온다.
+ *   §12-10 의 「실패를 돌려주는 함수는 부르는 쪽이 본다」와 **같은 고장**이고,
+ *   그때는 PHP 였다 (S-53 — 한 칸에서 배운 것을 옆 칸에 안 대면 그대로 남는다).
+ *
+ * ★ **주석을 떼고 본다.** 위 경위에 옛 글자를 그대로 적었으므로, 안 떼면
+ *   되돌려도 주석 때문에 초록이 된다 (§8 그 함정이 거꾸로 온 경우).
+ */
+const deployWf = () => {
+  const found = fs.readdirSync(WF)
+    .filter((f) => /\.ya?ml$/i.test(f))
+    .filter((f) => fs.readFileSync(path.join(WF, f), 'utf8').includes('NAS_SSH_HOST'));
+  assert.strictEqual(found.length, 1,
+    `배포 워크플로가 ${found.length}개입니다 — 이 칸이 무엇을 재는지 알 수 없습니다`);
+  return read(path.join(WF, found[0]))
+    .split('\n').filter((l) => !/^\s*#/.test(l)).join('\n');
+};
+
+test('★★★ 열쇠 파일을 「썼다」로 끝내지 않고 **되읽어 센다** (D-212)', () => {
+  const body = deployWf();
+  assert.ok(/BACKCOUNT=/.test(body),
+    '열쇠 단계가 NAS 에서 **되읽는 자리**가 없습니다 — 「보냈다」만으로 판정하면 '
+    + '`Permission denied` 가 나도 초록으로 끝납니다 (배포 #212 가 그랬습니다).');
+  assert.ok(/WROTE=/.test(body),
+    '쓰기 성패를 돌려받는 자리(`WROTE=`)가 없습니다.');
+  /* ★★★ **「그 글자가 있는가」로는 아무것도 안 잰다** 〈사보타주가 빠져나가서 고쳤다〉.
+     `BACKCOUNT=` 만 세면 **되읽어 놓고 안 쓰는** 코드가 그대로 통과한다.
+     재려던 성질은 **「되읽은 수로 판정하는가」**이므로 **판정 조건 안**을 본다
+     (§6-2-5 — 재는 자리를 옮긴 것이지 약하게 고친 것이 아니다). */
+  const gate = body.match(/if \[ "\$WROTE"[^\n]*\n/);
+  assert.ok(gate, '열쇠가 실렸는지 가르는 조건문을 못 찾았습니다 — 이 칸은 아무것도 안 잽니다.');
+  assert.ok(/\$BACK\b|"\$BACK"/.test(gate[0]),
+    '판정 조건이 **되읽은 수(`$BACK`)를 안 봅니다** — 「보냈다」만으로 초록이 됩니다.');
+  const sed = body.match(/BACK=\$\(printf[^\n]*\n/);
+  assert.ok(sed && /BACKCOUNT=/.test(sed[0]),
+    '러너가 `BACKCOUNT=` 를 집어 오는 자리가 없습니다.');
+  /* ★ 옛 판은 `cat > linkpilot.env` 로 **바로** 썼다 — 옛 파일을 다른 계정이 갖고
+     있으면 그 자리에서 거부된다. 임시 이름에 쓰고 `mv` 로 갈아 끼우면
+     **폴더에 쓸 수만 있으면** 된다 (같은 폴더에 engine.sh 가 성공한다). */
+  assert.ok(!/umask 177 && cat > linkpilot\.env/.test(body),
+    '열쇠 파일을 그 자리에 바로 씁니다 — 임시 이름에 쓰고 `mv` 로 갈아 끼워야 합니다.');
+  assert.ok(/\.linkpilot\.env\.new-/.test(body) && /mv -f '\.linkpilot\.env\.new-/.test(body),
+    '임시 파일 → `mv` 로 갈아 끼우는 자리가 없습니다.');
+});
+
+test('★★★ 열쇠가 0개면 배포가 **빨갛게 끝난다** (거짓 초록을 막는 판정 칸)', () => {
+  const body = deployWf();
+  assert.ok(/LP_OPS enginekeys=none/.test(body),
+    '열쇠가 안 실린 것을 `LP_OPS enginekeys=none` 으로 남기는 자리가 없습니다.');
+  const m = body.match(/- name: Deploy verdict[\s\S]*?(?=\n      - name: |\n  [a-z_-]+:\n|$)/);
+  assert.ok(m, '마지막 판정 칸(`Deploy verdict`)이 없습니다 — 그러면 열쇠 0개가 초록으로 끝납니다.');
+  const step = m[0];
+  assert.ok(/enginekeys=/.test(step), '판정 칸이 `LP_OPS enginekeys=` 를 안 읽습니다.');
+  /* ★★ **「못 쟀다」도 초록으로 안 끝낸다** (§8). 둘 다 exit 1 이어야 한다. */
+  for (const w of ['none', 'unmeasured']) {
+    const c = step.match(new RegExp(`\\b${w}\\)[\\s\\S]*?;;`));
+    assert.ok(c, `판정 칸에 \`${w}\` 갈래가 없습니다.`);
+    assert.ok(/exit 1/.test(c[0]),
+      `판정 칸의 \`${w}\` 갈래가 빨갛게 끝나지 않습니다 — 그러면 이 칸을 둔 뜻이 없습니다.`);
+  }
+});
+
+/**
+ * ★★★ **「못 쟀다」안에 갈래 셋이 숨어 있었다** 〈2026-09-17 · 실측〉
+ *
+ * 백업·복원시험이 `EACCES: permission denied` 로 죽었는데 글은
+ * 「ssh 가 안 붙었거나 node 가 없다」였다 — **ssh 도 node 도 멀쩡했고**
+ * 막은 것은 **자료 파일 한 개의 권한**이다. 그리고 바로 아래 칸이
+ * 「붙기: **된다**」를 찍고 있었다 (§8 — 이웃한 두 칸이 다른 말을 하면 사고 신호).
+ *
+ * ★ **낱말이 아니라 「시키는가」를 잰다** — 「EACCES 면 ssh 를 보라고 말하지 않는가」.
+ */
+test('★★ 백업·복원시험이 `EACCES` 를 ssh·node 와 **갈라 적는다** (틀린 곳을 가리키지 않는다)', () => {
+  const body = deployWf();
+  /* ★ 창을 **덩어리(그 `if` 블록)**로 잡는다 — 글자 모양을 박아 두면 코드가
+     조금만 움직여도 **고침이 옳은데 빨개진다** (§12-6 에서 세 번 겪은 자리). */
+  const blocks = [...body.matchAll(/if ! printf[\s\S]{0,1200}?exit 0\n\s*fi/g)]
+    .map((m) => m[0])
+    .filter((seg) => /LP_OPS (backup|drill)=unmeasured/.test(seg));
+  assert.ok(blocks.length >= 2,
+    `「못 쟀다」 갈래를 ${blocks.length}개밖에 못 찾았습니다 — 이 칸은 거의 아무것도 안 잽니다.`);
+  for (const seg of blocks) {
+    const b = { 1: (seg.match(/LP_OPS (backup|drill)=/) || [])[1] };
+    assert.ok(/EACCES/.test(seg),
+      `「${b[1]}」의 「못 쟀다」가 EACCES 를 갈라 보지 않습니다 — `
+      + '파일 권한 문제를 「ssh 가 안 붙었다」로 적으면 고칠 것이 없는 자리를 보러 가십니다.');
+    assert.ok(/ssh·node 문제가 아니다|ssh 문제가 아니다/.test(seg),
+      `「${b[1]}」의 EACCES 갈래가 **아니라고 말하지** 않습니다 — `
+      + '부정으로 적지 않으면 여전히 ssh 를 보러 가십니다 (§4.6 의 그 잣대).');
+  }
+});
+
+/**
+ * ★★★ **「한 벌 남았다」와 「다 남았다」는 다른 사실이다** 〈2026-09-17 · D-212〉
+ *
+ * 못 읽는 자료 파일이 있으면 그것만 빼고 뜬다. 지문은 양쪽이 같아 **`ok` 로 보이는데
+ * 그 파일은 백업에 없다** — 갈라 적지 않으면 「되살릴 것이 있다」가 반쪽 진실이 된다.
+ */
+test('★★ 백업이 «일부만» 남은 것을 «다 남은 것»과 갈라 적는다 (D-212)', () => {
+  const body = deployWf();
+  assert.ok(/LP_OPS backup=partial/.test(body),
+    '일부만 뜬 것을 `backup=partial` 로 갈라 적지 않습니다 — `ok` 로 보여 그 파일이 '
+    + '백업에 없다는 사실이 사라집니다 (§8 의 거짓 초록).');
+  const seg = body.match(/못 읽어 빠진 것[\s\S]{0,700}?backup=partial/);
+  assert.ok(seg, '`partial` 을 가르는 잣대(「못 읽어 빠진 것」)가 없습니다.');
+  assert.ok(/백업 장치 문제가 아니다|파일 권한 문제이지/.test(seg[0]),
+    '무엇이 문제인지 **부정으로** 적지 않습니다 — 그러면 백업 장치를 고치러 가십니다 (§4.6).');
+});

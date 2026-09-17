@@ -177,3 +177,77 @@ test('★★★ 배포가 나갈 때마다 복원시험을 돌린다 — 손으�
   assert.match(wf, /복원시험: \*\*못 쟀다\*\*/,
     '못 잰 것을 실패로 적으면 멀쩡한 디스크를 두고 없는 고장을 찾으러 간다');
 });
+
+/**
+ * ★★★ **못 읽는 파일 하나가 백업을 통째로 막고 있었다** 〈2026-09-17 · 실측 · D-212〉
+ *
+ * 배포 로그가 이렇게 죽었다 —
+ *   `EACCES: permission denied, open '…/02_Source_Data/….pdf'`
+ *   `at sha256 (backup.js:90) → inventory → write`
+ * 앱이 만든 자료 파일을 **배포 계정이 못 읽는 것**인데, 던지고 끝나므로
+ * **한 벌도 안 떴다.** 그리고 워크플로는 그것을 「못 쟀다」로만 적어,
+ * **지금 이 디스크가 죽으면 그대로 잃는 상태**가 조용히 이어졌다 (H-1).
+ *
+ * ★ 잣대는 둘이다 — ① **일부라도 뜬다** ② **무엇이 빠졌는지 반드시 말한다.**
+ *   ①만 하면 「백업이 있다」고 믿는 채로 그 파일만 없다 (§8 · §4.7).
+ * ★★ **표본이 재려는 성질을 지켜야 한다** — `chmod` 로 막으면 root 로 돌 때
+ *   권한이 안 먹어 **거짓으로 초록**이 된다(§12-10 에서 실제로 당했다).
+ *   그래서 **읽기 자체를 던지게** 끼운다 — 누가 돌리든 같은 답이 나온다.
+ */
+function withUnreadable(rel, fn) {
+  const realRead = fs.readFileSync;
+  const realCopy = fs.copyFileSync;
+  const boom = () => { const e = new Error('EACCES: permission denied'); e.code = 'EACCES'; throw e; };
+  fs.readFileSync = function (p, ...a) {
+    return String(p).endsWith(rel) ? boom() : realRead.call(fs, p, ...a);
+  };
+  fs.copyFileSync = function (s, ...a) {
+    return String(s).endsWith(rel) ? boom() : realCopy.call(fs, s, ...a);
+  };
+  try { return fn(); } finally { fs.readFileSync = realRead; fs.copyFileSync = realCopy; }
+}
+
+test('★★★ 못 읽는 파일이 있어도 **한 벌은 뜬다** — 하나 때문에 전부를 잃지 않는다 (D-212)', () => {
+  const src = sampleStore();
+  const dest = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-bk-dst-'));
+  const r = withUnreadable('run.log', () => backup.write({ source: src, dest: path.join(dest, 'b') }));
+  assert.ok(r.ok, `못 읽는 파일 하나에 백업이 통째로 죽었습니다: ${r.line}`);
+  assert.ok(r.count >= 2, `뜬 파일이 ${r.count}개뿐입니다 — 나머지까지 안 떴습니다`);
+});
+
+test('★★★ 빠진 것을 **말한다** — 조용히 건너뛰면 「백업이 있다」가 거짓이 된다 (D-212)', () => {
+  const src = sampleStore();
+  const dest = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-bk-dst2-'));
+  const r = withUnreadable('run.log', () => backup.write({ source: src, dest: path.join(dest, 'b') }));
+  /* ★ **개수를 손으로 박지 않는다** — 그 파일 이름이 있는지로 본다 (§6-2-5). */
+  assert.ok(Array.isArray(r.skipped) && r.skipped.some((f) => /run\.log$/.test(f)),
+    `빠진 파일을 안 돌려줍니다: ${JSON.stringify(r.skipped)}`);
+  assert.ok(/못 읽어 빠진 것/.test(r.line),
+    `첫 줄에 빠진 사실이 없습니다 — 뒤에 적으면 안 읽힙니다 (§6-3 ①): ${r.line}`);
+  /* ★ 백업 «안»에도 남긴다 — 되살릴 때 무엇이 없는지 보여야 한다 */
+  const mp = path.join(dest, 'b', 'BACKUP-MANIFEST.json');
+  const saved = JSON.parse(fs.readFileSync(mp, 'utf8'));
+  assert.ok(Array.isArray(saved.skipped)
+    && saved.skipped.some((x) => /run\.log$/.test(x.rel)),
+  '백업 목록에 빠진 파일이 안 적혀 있습니다 — 되살릴 때 무엇이 없는지 모릅니다.');
+  /* ★ 같은 파일이 두 번 적히지 않는다 — 읽는 사람에게는 「무엇이」가 필요하다 */
+  const rels = saved.skipped.map((x) => x.rel);
+  assert.strictEqual(rels.length, new Set(rels).size,
+    `빠진 파일이 두 번 적혔습니다: ${rels.join(' · ')}`);
+});
+
+test('★★ 복원시험도 못 읽는 파일에 **안 죽는다** — 그리고 몇 개를 못 셌는지 적는다 (D-212)', () => {
+  const src = sampleStore();
+  const r = withUnreadable('run.log', () => backup.drill({ source: src }));
+  assert.ok(r.ok, `복원시험이 못 읽는 파일 하나에 죽었습니다: ${r.line}`);
+  assert.ok(/못 읽어 안 센 것/.test(r.line),
+    `「되살아난다」만 적고 못 센 것을 안 말합니다 — 반쪽 진실입니다: ${r.line}`);
+});
+
+test('★ 못 읽는 파일이 **없을 때는** 그 말을 안 붙인다 (없는 걱정을 만들지 않는다)', () => {
+  const src = sampleStore();
+  const dest = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-bk-dst3-'));
+  const r = backup.write({ source: src, dest: path.join(dest, 'b') });
+  assert.ok(r.ok && (!r.skipped || r.skipped.length === 0), '멀쩡한데 빠진 것이 있다고 합니다');
+  assert.ok(!/못 읽어/.test(r.line), `멀쩡한데 경고를 붙입니다: ${r.line}`);
+});
