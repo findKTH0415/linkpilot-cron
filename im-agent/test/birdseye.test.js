@@ -183,3 +183,67 @@ test('★ 서버가 참거짓만 받는다', () => {
   assert.match(src.slice(at, at + 400), /Object\.keys\(outputspec\.VISUAL_DEFAULT\)/,
     '시각자료 이름을 손으로 적어 두면 새 칸이 조용히 버려진다');
 });
+
+/* ────────────────────────────────────────────────────────────────────
+ * 렌더 실패를 «넷»으로 갈라 말한다 — 2026-09-17 실측으로 생긴 칸
+ *
+ * 무엇이 났나: 사장님이 `render-smoke` 의 빨간 ❌ 둘을 화면으로 주셨다.
+ * 로그를 갈라 읽으니 **열쇠는 살아 있었다** — 서버가 인증을 통과시키고
+ * 「`limit: 0`, free_tier」라고 답했다. 곧 **무료 등급에 이미지 모델 몫이 0**이다.
+ *
+ * ★ 그런데 그때 화면 마지막 줄은 「모델 이름이 다르면 GEMINI_RENDER_MODELS 로
+ *   바꿔 다시 시도한다」였다 — 사장님은 **모델 이름을 고치러 가신다.**
+ *   실제 원인은 결제다 (§4.6 「원인을 사람 말로 적는다」).
+ * ★★ 그 뒤 `diagnose()` 가 들어와 고쳐졌는데 **재는 칸이 0개였다** —
+ *   누가 조건을 건드리면 **조용히 되돌아간다.** 그래서 못박는다.
+ * ────────────────────────────────────────────────────────────────── */
+
+const bird = require(path.join(__dirname, '..', 'tools', 'render-birdseye.js'));
+
+/* 사장님 실행(run 32843199322)에 실제로 찍힌 글이다 — 줄여 쓰지 않는다.
+   ★ 표본이 고장의 «크기»를 정한다 (§12-11) — 짧게 줄이면 `limit: 0` 이 빠져
+     네 갈래 중 둘이 구별되지 않는다. */
+const REAL_ZERO = 'gemini-3-pro-image[interactions]: You exceeded your current quota, '
+  + 'please check your plan and billing details. '
+  + '* Quota exceeded for metric: generativelanguage.googleapis.com/'
+  + 'generate_content_free_tier_requests, limit: 0, model: gemini-3-pro-image '
+  + 'Please retry in 59.995010351s.';
+
+test('★★★ 「몫이 0」을 결제로 가른다 — 기다려도 안 낫는 것이다', () => {
+  const d = bird.diagnose([REAL_ZERO]);
+  assert.strictEqual(d.kind, 'billing',
+    '무료 등급 몫 0 을 결제로 안 가릅니다 — 사장님이 기다리시거나 열쇠를 다시 넣으십니다');
+  const txt = [d.head, ...(d.body || [])].join(' ');
+  assert.match(txt, /열쇠를 다시 넣어도 안 열린다|결제/,
+    '무엇을 하면 되는지가 글에 없습니다');
+  /* ★ 그리고 «엉뚱한 곳»을 가리키지 않아야 한다 — 그것이 이 고장의 본체였다. */
+  assert.ok(!/GEMINI_RENDER_MODELS/.test(txt),
+    '모델 이름을 고치라고 말합니다 — 고칠 것이 없는 자리로 보내는 글입니다');
+});
+
+test('★★★ 반대로도 막는다 — «진짜» 한도 초과에 「결제를 붙이세요」라고 안 적는다', () => {
+  /* [왜] 결제를 이미 붙이신 뒤의 한도 초과는 **기다리면 낫는다**. 그때 결제를
+     가리키면 사장님이 **이미 하신 일을 또 하신다** (M-86 · §4.6 「고치는 방향이
+     반대로 가는 것도 함께 막는다」). 둘 다 429/quota 이고 서버는 둘 다
+     「retry in 59s」라고 말하므로, 가르는 것은 `limit: 0` 하나다. */
+  const paid = 'You exceeded your current quota. Quota exceeded for metric: '
+    + 'generate_content_paid_tier_requests, limit: 1000. Please retry in 30s.';
+  const d = bird.diagnose([paid]);
+  assert.strictEqual(d.kind, 'quota',
+    '진짜 한도 초과를 결제 문제로 적습니다 — 이미 하신 일을 또 하시게 됩니다');
+  const txt = [d.head, ...(d.body || [])].join(' ');
+  assert.match(txt, /그대로 두면|기다/, '기다리면 된다는 말이 없습니다');
+  assert.ok(!/Set up Billing|결제를 연결/.test(txt), '결제를 붙이라고 말합니다');
+});
+
+test('★★ 열쇠·모델은 여전히 갈라진다 (넷이 서로 안 섞인다)', () => {
+  const key = bird.diagnose(['API key not valid. Please pass a valid API key. 401 UNAUTHENTICATED']);
+  const model = bird.diagnose(['models/gemini-x is not found for API version v1beta 404']);
+  assert.strictEqual(key.kind, 'key', '열쇠 거부를 못 가릅니다');
+  assert.strictEqual(model.kind, 'model', '모델 이름 문제를 못 가릅니다');
+  /* ★ 넷이 «서로 다른 글»이어야 한다 — 같은 글이면 갈래가 있어도 거짓이다
+     (§6-2-5 「딱지가 여섯인데 글이 같으면 그 딱지는 거짓이다」와 같은 잣대). */
+  const heads = [bird.diagnose([REAL_ZERO]).head, key.head, model.head,
+    bird.diagnose(['quota exceeded, limit: 1000']).head];
+  assert.strictEqual(new Set(heads).size, 4, '넷 중 같은 글을 내는 갈래가 있습니다');
+});

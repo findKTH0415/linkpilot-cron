@@ -121,6 +121,25 @@ function candDir(projectId) {
  */
 function diagnose(errors) {
   const all = errors.join(' | ').toLowerCase();
+  /* ★★★ 「몫이 0 이다」와 「오늘 몫을 다 썼다」는 **다른 사실**이다 〈2026-09-17 실측〉.
+   *   둘 다 429/quota 로 오고 서버는 **둘 다** 「Please retry in 59s」라고 말한다.
+   *   그런데 `limit: 0` 은 **무료 등급에 그 모델 몫이 아예 없는 것**이라 **기다려도
+   *   절대 안 낫는다** — 결제를 붙여야만 열린다. 뭉뚱그리면 사장님이 한 시간 뒤에
+   *   다시 눌러 보시고 또 같은 빨강을 보신다 (§4.6 의 그 잣대 · §12-12 와 같은 결).
+   *   ★ 반대로도 막는다 — 결제를 붙이신 뒤의 «진짜» 한도 초과에 「결제를 붙이세요」라고
+   *     적으면 **이미 하신 일을 또 하시게 된다** (M-86). 그때는 기다리면 된다고 적는다. */
+  const zeroQuota = /limit:\s*0\b/.test(all) || /free[_ ]?tier/.test(all);
+  if (/quota|exceeded|rate.?limit|billing/.test(all) && !zeroQuota) {
+    return {
+      kind: 'quota',
+      head: '**오늘 몫을 다 썼다** — 결제·열쇠 문제가 아니다.',
+      body: [
+        '  서버가 「한도를 넘었다」고 답했는데 **몫이 0 인 것은 아니다**(무료 등급 표시가 없다).',
+        '  → **그대로 두면 열린다.** 한도가 풀리는 때를 서버가 함께 말해 준다(위 원문의 retry 값).',
+        '  → 자주 걸리면 그때 결제·요금제를 본다 — 지금 누르는 것으로는 안 바뀐다.',
+      ],
+    };
+  }
   if (/quota|exceeded|rate.?limit|billing/.test(all)) {
     return {
       kind: 'billing',
