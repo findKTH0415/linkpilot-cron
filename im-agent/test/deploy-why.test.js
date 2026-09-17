@@ -123,3 +123,67 @@ test('★ 아직 도는 중인 것을 실패로 안 적는다', () => {
   assert.strictEqual(code, 0);
   assert.match(out, /도는 중/, '도는 중인 것을 그렇다고 안 적는다');
 });
+
+/* ────────────────────────────────────────────────────────────────────
+ * 넷째 갈래 — 「워크플로 파일 자체가 거부된 것」 〈2026-09-17 실측〉
+ *
+ * 사장님 화면: `.github/workflows/deploy-im.yml` 이 **1초**에 ❌ 였고
+ * GitHub 의 결론은 `startup_failure` — 잡도 단계도 **안 만들어졌다.**
+ *
+ * ★ 앞 판은 이것을 「코드 쪽(값 1)」으로 적고 **「멈춘 단계의 로그를 열어
+ *   보십시오」**라고 말했다. **열 로그가 없다** — 404 다. 사장님이 없는
+ *   자리를 찾아 헤매신다 (§12-14 가 겪은 그 자리 · §4.6 과 같은 결).
+ * ★★ 고칠 자리가 **정반대**다: 실패한 단계가 아니라 **그 `.yml` 파일**이다.
+ * ────────────────────────────────────────────────────────────────── */
+
+test('★★★ startup_failure 를 「코드 쪽」과 갈라 적는다 (값 4)', () => {
+  const r = put('run_sf.json', {
+    id: 35231206888, status: 'completed', conclusion: 'startup_failure',
+    path: '.github/workflows/deploy-im.yml',
+    head_sha: 'fe9bf4ca0cbeb3176ed9b87ac357add132455a64',
+  });
+  const j = put('jobs_sf.json', { jobs: [] });
+  const { code, out } = run(['--run', r, '--jobs', j]);
+  assert.strictEqual(code, 4, '값 1(코드 쪽)·3(러너)과 뭉뚱그립니다 — 할 일이 정반대입니다');
+  /* ★ 이 고장의 본체는 «엉뚱한 곳을 가리키는 글»이었다 — 낱말이 아니라
+       «시키는가»를 잰다 (§4.6 의 그 잣대). */
+  assert.ok(!/멈춘 단계의 로그를 열/.test(out),
+    '없는 로그를 열어 보라고 말합니다 — 사장님이 404 를 보십니다');
+  assert.match(out, /로그가 없습니다|로그 자체가 없/, '로그가 없다는 사실을 안 적습니다');
+  assert.match(out, /결제 자리도.*아닙니다|결제 자리가 아닙/,
+    '결제 자리가 아니라는 것을 안 적습니다 — 그쪽을 보러 가십니다');
+});
+
+test('★★ 고칠 «그 파일»을 이름으로 짚는다 (못 받으면 못 받았다고 적는다)', () => {
+  const r = put('run_sf2.json', {
+    id: 1, status: 'completed', conclusion: 'startup_failure',
+    path: '.github/workflows/deploy-im.yml', head_sha: 'abc1234',
+  });
+  const j = put('jobs_sf2.json', { jobs: [] });
+  const { out } = run(['--run', r, '--jobs', j]);
+  assert.match(out, /\.github\/workflows\/deploy-im\.yml/,
+    '어느 파일을 고쳐야 하는지 안 적습니다');
+  /* ★ 경로를 못 받은 경우 — 지어내지 않는다 (§4.7) */
+  const r2 = put('run_sf3.json', { id: 2, status: 'completed', conclusion: 'startup_failure' });
+  const { out: out2 } = run(['--run', r2, '--jobs', j]);
+  assert.match(out2, /경로를 못 받았습니다/, '경로가 없는데 있는 척 적습니다');
+});
+
+test('★★★ 사유를 못 받으면 «무엇이 틀렸는지 지어내지 않는다»', () => {
+  const r = put('run_sf4.json', {
+    id: 3, status: 'completed', conclusion: 'startup_failure',
+    path: '.github/workflows/x.yml',
+  });
+  const j = put('jobs_sf4.json', { jobs: [] });
+  const { out } = run(['--run', r, '--jobs', j]);
+  assert.match(out, /사유를 못 받았습니다/, '사유가 없는데 있는 것처럼 적습니다');
+  /* ★★ 그리고 «YAML 이 맞으면 괜찮다»로 넘어가지 않게 적어야 한다 —
+     실측에서 이 파일은 YAML 로는 멀쩡히 파싱됐다. */
+  assert.match(out, /스키마|YAML 문법이 맞아도/,
+    'YAML 이 맞으면 괜찮다고 읽힙니다 — 실측에서 그 파일은 YAML 로는 멀쩡했습니다');
+  /* ★ 사유를 받은 경우에는 그대로 싣는다 */
+  const a = put('ann_sf.json', [{ message: 'Invalid workflow file: line 42, col 7' }]);
+  const { out: out2 } = run(['--run', r, '--jobs', j, '--ann', a]);
+  assert.match(out2, /line 42/, '받은 사유를 안 싣습니다');
+  assert.ok(!/사유를 못 받았습니다/.test(out2), '사유를 받았는데 못 받았다고 적습니다');
+});
