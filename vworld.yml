@@ -1,0 +1,39 @@
+name: 브이월드 송계리 조회
+
+on:
+  workflow_dispatch:          # 수동 실행. 코드를 고친 뒤에는 Re-run 대신 새로 실행한다.
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 브이월드 조회
+        env:
+          # 도메인 등록형 키다. 둘을 반드시 함께 주입한다. 한쪽만 넣으면 거부된다.
+          VWORLD_KEY: ${{ secrets.VWORLD_KEY }}
+          VWORLD_DOMAIN: ${{ secrets.VWORLD_DOMAIN }}
+          # SSH·NAS·터널 등 인프라 자격증명은 이 잡에 주입하지 않는다.
+        run: node scripts/vworld-fetch.mjs
+
+      - name: 결과 커밋
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/vworld
+          git diff --staged --quiet || git commit -m "브이월드 송계리 조회 ($(date +%Y-%m-%d))"
+          git push
+
+      - name: 아티팩트 업로드
+        if: always()          # 실패해도 진단 파일과 지도 이미지를 받는다
+        uses: actions/upload-artifact@v4
+        with:
+          name: vworld-songgye
+          path: data/vworld
