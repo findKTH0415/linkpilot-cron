@@ -107,6 +107,9 @@ function looksUrlEncoded(value) {
  */
 const SECRET_ENV = [
   'VWORLD_KEY',        // 36자 (UUID) — 길이 규칙에 안 걸린다
+  // ★ 같은 VWorld 열쇠의 다른 이름 둘 — 사장님이 이 이름으로 넣으셨다
+  //   (connectors/vworldkey.js 의 KEY_NAMES) — 2026-09-17
+  'LINKPILOT_VWORLD_REPORT_KEY', 'LINKPILOT_VWORLD_WEB_KEY',
   'DATA_GO_KR_KEY',
   // ★ 같은 공공데이터포털 키의 다른 이름 — 사장님이 이 이름으로 넣으셨다
   //   (connectors/datakey.js 의 KEY_NAMES) — 2026-09-13

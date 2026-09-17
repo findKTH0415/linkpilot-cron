@@ -80,8 +80,12 @@ test('★ 이 갈래의 Agent·커넥터 수를 고정한다 (배포 엔진과�
 
   const dir = path.join(__dirname, '..', 'connectors');
   /* ★ 커넥터가 아닌 «살림» 파일 — 바깥 API 에 안 붙는다. 세면 숫자가 뜻을 잃는다.
-     `datakey.js` 는 공공데이터 열쇠를 «여러 이름으로» 읽는 자리다 (2026-09-13). */
-  const infra = new Set(['cache.js', 'http.js', 'xml.js', 'datakey.js']);
+     `datakey.js` 는 공공데이터 열쇠를 «여러 이름으로» 읽는 자리다 (2026-09-13).
+     `vworldkey.js` 도 **같은 종류**다 — VWorld 열쇠 이름 셋을 읽는 자리이고
+     바깥 API 에 안 붙는다 (2026-09-17 · CLAUDE.md §12-25).
+     ★ **그러니 숫자를 올리지 않는다.** 올리면 「새 커넥터가 MCP 짝 없이 늘었다」를
+       재던 이 칸이 그만큼 무뎌진다 — 재려던 성질은 그대로 두고 **가르는 자리**를 고친다. */
+  const infra = new Set(['cache.js', 'http.js', 'xml.js', 'datakey.js', 'vworldkey.js']);
   const n = fs.readdirSync(dir).filter(f => f.endsWith('.js') && !infra.has(f)).length;
   assert.strictEqual(n, 24, '커넥터 수가 바뀌었다 — 새 커넥터가 MCP 로 들어온 것은 아닌지 보라');
 
