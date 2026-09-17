@@ -306,13 +306,16 @@ jobs:
           npm run verify:nas -- --base "$LP_BASE"
 
   # 배포가 실패하면 알린다 (CLAUDE.md §2 — 조용히 죽지 않는다)
-  alert:
-    needs: deploy
-    if: failure()
-    uses: ./.github/workflows/alert-failure.yml
-    permissions:
-      issues: write
-      contents: read
-    secrets: inherit
-    with:
-      workflow: deploy-im
+  # ★★★ **`alert` 잡을 지웠다** 〈2026-09-17 · 사장님 화면에서 잡았다 · §12-20〉.
+  #   D-99(`e551ca4`)가 문자 알림과 함께 `alert-failure.yml` 을 지웠는데,
+  #   **여기서 그것을 부르는 자리만 남았다.** GitHub 은 워크플로를 읽을 때
+  #   `uses:` 가 가리키는 로컬 파일을 확인하므로, 없으면 **`startup_failure`** 다 —
+  #   잡도 단계도 로그도 안 만들어지고 **1초에 ❌** 로 끝난다.
+  #   ★ `deploy-nas.yml` 은 그때 제 `alert` 를 **지웠다**(그 파일 2036줄에 경위).
+  #     이쪽만 남은 것이 §8-2 의 「같은 일을 하는 자리가 둘이면 한쪽만 고쳐진다」다.
+  #   ★★ **한 달 넘게 아무도 몰랐다** — 이 워크플로는 `workflow_dispatch` 전용이라
+  #     사장님이 오늘 처음 누르실 때까지 **한 번도 안 돌았다**(실행 번호 1).
+  #   ★★★ 지금의 실패 통보 경로는 **GitHub 이 실행 실패 시 보내는 메일**이다 (§2).
+  #     그 메일이 안 오는 상태가 되면 그때가 알림을 다시 만들 때다.
+  #   ★ 재는 자리: `im-agent/test/workflow-shape.test.js` — 이제 `uses:` 가 가리키는
+  #     로컬 워크플로가 **실제로 있는지** 잰다. 없으면 빨개진다.

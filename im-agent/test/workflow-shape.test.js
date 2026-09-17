@@ -147,3 +147,73 @@ test('검사를 돌리는 워크플로는 한국어 글꼴을 깔고 **그 이�
     '검사를 돌리는데 글꼴 준비가 빠진 워크플로가 있다 — 러너에서만 PDF 가 일본어 글꼴로 나온다:\n  ' +
     missing.join('\n  '));
 });
+
+/* ────────────────────────────────────────────────────────────────────
+ * `uses:` 가 가리키는 «로컬 워크플로»가 실제로 있는가 — 2026-09-17 실측
+ *
+ * 무엇이 났나: 사장님 화면에서 `.github/workflows/deploy-im.yml` 이 **1초**에 ❌
+ * 였고 결론이 `startup_failure` 였다. 원인은 그 파일의 `alert` 잡이
+ * `uses: ./.github/workflows/alert-failure.yml` 을 부르는데 **그 파일이 없는 것**.
+ * D-99(`e551ca4`)가 문자 알림과 함께 그 워크플로를 지웠는데 **부르는 자리만 남았다.**
+ *
+ * ★ **YAML 문법으로는 안 잡힌다** — 실측에서 그 파일은 `yaml.safe_load` 로 멀쩡히
+ *   파싱됐다. GitHub 의 워크플로 «스키마»는 따로다 (§12-20).
+ * ★★ **한 달 넘게 아무도 몰랐다** — 그 워크플로는 `workflow_dispatch` 전용이라
+ *   사장님이 누르실 때까지 **한 번도 안 돌았다**(실행 번호 1). 곧 「도는 것이 없으면
+ *   깨진 줄도 모른다」 — 그래서 **누르기 전에** 검사가 잡아야 한다.
+ * ★★★ 잡도 단계도 로그도 안 만들어지므로 **열어 볼 로그가 없다**(404).
+ * ──────────────────────────────────────────────────────────────────── */
+
+test('★★★ `uses:` 로 부르는 로컬 워크플로가 실제로 있다 (없으면 startup_failure)', () => {
+  const files = fs.readdirSync(WF).filter((f) => /\.ya?ml$/i.test(f));
+  assert.ok(files.length >= 3, '워크플로를 못 읽었습니다 — 이 칸은 아무것도 안 잽니다');
+  const missing = [];
+  let seen = 0;
+  for (const f of files) {
+    const body = fs.readFileSync(path.join(WF, f), 'utf8')
+      /* ★ 주석 줄을 떼고 본다 — 이 저장소는 경위 주석이 길어 그 안의 인용이
+         코드로 읽힌다 (§8 「경위를 잘 적어 둘수록 검사가 눈이 먼다」).
+         실제로 이 고침의 주석에 그 경로를 적었고, 안 떼면 그 줄이 걸린다. */
+      .split('\n').filter((l) => !/^\s*#/.test(l)).join('\n');
+    /* 로컬 재사용 워크플로만 본다 — `owner/repo/...@ref` 는 바깥이라 여기서 못 잰다. */
+    for (const m of body.matchAll(/^\s*uses:\s*(\.\/[^\s'"]+)/gm)) {
+      seen++;
+      const rel = m[1].replace(/^\.\//, '');
+      if (!fs.existsSync(path.join(ROOT, rel))) missing.push(`${f} → ${rel}`);
+    }
+  }
+  assert.deepStrictEqual(missing, [],
+    'GitHub 이 못 찾는 워크플로를 부릅니다 — 그 워크플로는 «1초에» startup_failure 로 죽고\n'
+    + '  잡도 단계도 로그도 안 만들어집니다(열면 404). 부르는 자리를 지우거나 그 파일을 만드십시오:\n  '
+    + missing.join('\n  '));
+  /* ★ 「찾은 것이 0개」와 「전부 멀쩡」은 다른 사실이다 — 0 이면 이 칸은 눈이 먼 것이다.
+     다만 로컬 재사용 워크플로를 하나도 안 쓰는 것도 정상이므로 실패로는 안 센다. */
+  if (seen === 0) console.log('    (로컬 `uses:` 가 0곳 — 지금은 잴 것이 없다)');
+});
+
+test('★★ 잡마다 돌 자리가 있다 — `runs-on` 이나 `uses` 중 하나는 있어야 한다', () => {
+  /* [왜] 위와 같은 갈래다. 잡에 `runs-on` 도 `uses` 도 없으면 GitHub 이 그 워크플로를
+     통째로 거부한다(`startup_failure`). YAML 은 멀쩡히 파싱되므로 그것으로는 안 잡힌다.
+     ★ 라이브러리를 안 들인다 (§5) — 잡 머리와 그 아래 들여쓴 줄만 본다. */
+  const files = fs.readdirSync(WF).filter((f) => /\.ya?ml$/i.test(f));
+  const bad = [];
+  let jobs = 0;
+  for (const f of files) {
+    const lines = fs.readFileSync(path.join(WF, f), 'utf8').split('\n')
+      .filter((l) => !/^\s*#/.test(l));
+    const at = lines.findIndex((l) => /^jobs:\s*$/.test(l));
+    if (at < 0) continue;
+    for (let i = at + 1; i < lines.length; i++) {
+      if (!/^ {2}[A-Za-z_][\w-]*:\s*$/.test(lines[i])) continue;   /* 잡 머리 */
+      const name = lines[i].trim().replace(/:$/, '');
+      jobs++;
+      let body = '';
+      for (let j = i + 1; j < lines.length && !/^ {2}\S/.test(lines[j]); j++) body += lines[j] + '\n';
+      if (!/^\s{4}(runs-on|uses):/m.test(body)) bad.push(`${f} → ${name}`);
+    }
+  }
+  assert.ok(jobs >= 3, `잡을 ${jobs}개밖에 못 읽었습니다 — 이 칸은 거의 아무것도 안 잽니다`);
+  assert.deepStrictEqual(bad, [],
+    '`runs-on` 도 `uses` 도 없는 잡이 있습니다 — 그 워크플로는 시작 전에 거부됩니다:\n  '
+    + bad.join('\n  '));
+});
