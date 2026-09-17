@@ -247,3 +247,75 @@ test('★★ 열쇠·모델은 여전히 갈라진다 (넷이 서로 안 섞인�
     bird.diagnose(['quota exceeded, limit: 1000']).head];
   assert.strictEqual(new Set(heads).size, 4, '넷 중 같은 글을 내는 갈래가 있습니다');
 });
+
+/* ────────────────────────────────────────────────────────────────────
+ * 그 판정이 «사장님께 닿는 자리»에 실리는가 — 2026-09-17 실측으로 생긴 칸 셋
+ *
+ * 무엇이 났나: 사장님이 `render-smoke` 실패 화면을 다시 주셨다. 요약 첫 줄이
+ *   여전히 「… (모델 이름은 … 로 조정)」이었다. 위 칸들이 도구를 재서 초록인데도.
+ *
+ * ★★★ 갈라 보니 **도구는 멀쩡했고 그 답이 요약에 한 줄도 안 왔다.** 그 도구는
+ *   판정을 stderr 로 적는데 워크플로가 `| tee` 로 **stdout 만** 받았다 —
+ *   실측으로 그 파일에 담긴 것은 「원본: …」 **한 줄**이었고, 사장님 화면에
+ *   정확히 그 한 줄만 보였다. 판정은 Actions 로그에만 있었다.
+ *   **「만들었다」와 「닿는다」는 다른 사실이다** (CLAUDE.md §8 과 같은 결).
+ * ★★ 그래서 위 칸들이 «아무것도 못 막았다» — 재는 자리가 도구에서 끝났기 때문이다.
+ *   한 칸에서 배운 것을 **그 값이 흘러가는 자리**에 안 대면 거기 그대로 남는다.
+ * ──────────────────────────────────────────────────────────────── */
+
+const WF_PATH = path.join(__dirname, '..', '..', '.github', 'workflows', 'render-smoke.yml');
+
+/** ★ 주석 줄을 떼고 본다 — 이 고침의 경위를 워크플로 주석에 그대로 적었으므로,
+ *  안 떼면 ①은 주석으로 통과하고 ②는 주석 때문에 빨개진다 (§8 의 함정이 양쪽으로 온다). */
+function wfCode() {
+  const raw = fs.readFileSync(WF_PATH, 'utf8');
+  return raw.split('\n').filter((l) => !/^\s*#/.test(l)).join('\n');
+}
+
+test('★★★ 워크플로가 «판정(stderr)까지» 받아 적는다 — 안 받으면 요약이 한 줄만 보인다', () => {
+  const code = wfCode();
+  const m = code.match(/render-birdseye\.js[^\n|]*\|\s*tee\s+\S+/);
+  assert.ok(m, 'render-birdseye 를 tee 로 받는 자리를 못 찾았습니다 — 이 칸은 아무것도 안 잽니다');
+  assert.match(m[0], /2>&1\s*\|\s*tee/,
+    'stderr 를 안 받습니다 — 판정이 요약에 한 줄도 안 오고 「원본: …」만 보입니다');
+});
+
+test('★★★ 요약이 원인을 «스스로 단정»하지 않는다 — 가르는 일은 도구가 한다', () => {
+  const code = wfCode();
+  /* GITHUB_STEP_SUMMARY 로 직접 적는 줄만 본다 — 로그로 가는 것은 상관없다 */
+  const lines = code.split('\n').filter((l) => /GITHUB_STEP_SUMMARY/.test(l) && /echo/.test(l));
+  assert.ok(lines.length >= 2,
+    `요약에 적는 줄을 ${lines.length}개밖에 못 찾았습니다 — 이 칸은 거의 아무것도 안 잽니다`);
+  /* ★ 낱말이 아니라 «시키는가»를 잰다 (§4.6 의 잣대) — 처방이 요약 글 자체에 박혀 있으면
+     그것이 무엇이 막았든 늘 같은 곳을 가리킨다. */
+  const bad = lines.filter((l) => /GEMINI_RENDER_MODELS|모델 이름|열쇠를 다시 넣|결제를 연결/.test(l));
+  assert.strictEqual(bad.length, 0,
+    '요약이 스스로 처방을 적습니다 — 원인과 무관하게 늘 같은 곳을 가리킵니다:\n      '
+    + bad.map((l) => l.trim().slice(0, 90)).join('\n      '));
+});
+
+test('★★★ 실어 나르는 줄 수가 «판정 최악 길이»를 덮는다 — 숫자를 손으로 안 박는다', () => {
+  const code = wfCode();
+  const m = code.match(/tail\s+-(\d+)\s+\S*render\.log/);
+  assert.ok(m, 'render.log 를 요약으로 나르는 자리를 못 찾았습니다 — 이 칸은 아무것도 안 잽니다');
+  const carried = +m[1];
+
+  /* ★ 재는 법이 재려는 것을 다 덮게 — 갈래 넷을 «실제로 돌려» 가장 긴 출력을 센다.
+     숫자를 박아 두면 body 가 늘어난 날 조용히 앞이 잘리고, 잘리는 첫 줄이
+     하필 «무엇이 막았는가»다 (§6-2-6 의 46 → 105 와 같은 규칙). */
+  const SAMPLES = [
+    [REAL_ZERO],
+    ['quota exceeded, limit: 1000. Please retry in 30s.'],
+    ['API key not valid. Please pass a valid API key. 401 UNAUTHENTICATED'],
+    ['models/gemini-x is not found for API version v1beta 404'],
+    ['무엇인지 모를 오류'],
+  ];
+  let worst = 0;
+  for (const s of SAMPLES) {
+    const d = bird.diagnose(s);
+    /* 실패 출력 = 원본 1줄 + head 1줄 + body + 빈 줄 1 + 안내 1줄 + 원문 최대 4줄 */
+    worst = Math.max(worst, 1 + 1 + (d.body || []).length + 1 + 1 + 4);
+  }
+  assert.ok(carried >= worst,
+    `${carried}줄만 나릅니다 — 판정이 최악 ${worst}줄이라 «무엇이 막았는가»가 앞에서 잘립니다`);
+});

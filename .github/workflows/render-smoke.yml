@@ -35,14 +35,27 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           set +e
-          node im-agent/tools/render-birdseye.js --image base.png --project LP-DEMO-APT-000 | tee render.log
+          # ★★★ 2026-09-17 — «2>&1» 이 없으면 사람 말 판정이 요약에 한 줄도 안 온다.
+          #   그 도구는 판정을 stderr 로 적는데 tee 는 stdout 만 받는다. 그래서
+          #   render.log 에는 「원본: …」 한 줄만 담겼고(실측), 요약이 그 한 줄만 보였다.
+          #   판정은 Actions 로그에만 있었다 — 「만들었다」와 「닿는다」는 다른 사실이다.
+          node im-agent/tools/render-birdseye.js --image base.png --project LP-DEMO-APT-000 2>&1 | tee render.log
           CODE=${PIPESTATUS[0]}
           echo "exit=$CODE" >> "$GITHUB_STEP_SUMMARY"
           if [ "$CODE" = "0" ]; then
             echo "✅ 렌더 성공 — 후보와 기록 JSON 이 아티팩트에 있다" >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "❌ 실패 — 아래 서버 오류가 실측 기록이다 (모델 이름은 GEMINI_RENDER_MODELS 로 조정)" >> "$GITHUB_STEP_SUMMARY"
-            tail -8 render.log >> "$GITHUB_STEP_SUMMARY"
+            # ★★★ 여기서 «원인을 단정하지 않는다». 앞 판은 무엇이 막았든
+            #   「모델 이름을 조정하라」고 적어, 결제가 막은 날에도 사장님을
+            #   고칠 것이 없는 자리로 보냈다 (CLAUDE.md §12-19). 가르는 일은
+            #   그 도구가 한다 — 이 자리는 그 답을 «그대로 싣기만» 한다.
+            echo "❌ 실패 — 아래가 판정과 서버 원문이다 (이 출력이 실측 기록이다)" >> "$GITHUB_STEP_SUMMARY"
+            # ★ 코드블록으로 감싼다 — 요약은 마크다운이라 안 감싸면 줄이 뭉개진다.
+            # ★★ 줄 수를 넉넉히 둔다. 판정이 길어지면 앞에서 잘리고, 잘리는 첫 줄이
+            #   하필 «무엇이 막았는가»다. 검사가 그 길이를 실제로 세어 견준다.
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            tail -24 render.log >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
           fi
           exit "$CODE"
       - name: Upload candidates
