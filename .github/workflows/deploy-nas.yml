@@ -165,6 +165,11 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v5
         with:
+          # ★★ **NAS 가 v20 이다. 여기서만 새 것을 쓰지 않는다.**
+          #   〈2026-09-17 · `deploy-im.yml` 을 내리면서 그 경위를 이리 옮겼다〉
+          #   러너에서만 새 판을 쓰면, 러너에서는 도는 코드가 **NAS 에서만 죽는다** —
+          #   그리고 그 죽음은 배포가 끝난 뒤에 오므로 검사는 초록이다.
+          #   ★ 세 자리(plan · guard · deploy)가 **같은 값**이어야 한다.
           node-version: '20'
       - name: Decide what to deploy
         id: p
@@ -326,6 +331,17 @@ jobs:
       #   그러면 「반영이 안 된다」를 지문으로 가릴 수가 없어진다 (M-25).
       - name: Check build stamp
         run: npm run im:stamp -- --check
+
+      # ★★★ **만들어 놓고 아무도 안 부르는 것이 없는지** (M-08 계열).
+      #   〈2026-09-17 · `deploy-im.yml` 을 내리면서 **이 한 단계만 옮겨 왔다**〉
+      #   저쪽 16단계 중 이쪽에 없던 것은 이것 하나였다 — 화면 만들기(`im:embed`)는
+      #   산출물이 저장소 원본과 **바이트가 같고**(실측: 다른 파일 0개), 더 나오는
+      #   `manifest.json` 은 NAS 에서 **아무도 안 읽는다**(`sync-im-flow.js` 가 보는
+      #   것은 저쪽 저장소의 im-flow 다). 그래서 옮길 것이 이것뿐이었다.
+      #   ★ `npm test` 는 `reachable.js` 의 **함수 성질**만 잰다(`nas-guard.test.js`).
+      #     저장소 전체를 훑는 것은 이 CLI 뿐이라, 안 옮겼으면 **조용히 없어졌다.**
+      - name: Reachable
+        run: npm run check:reachable
 
   deploy:
     needs: [plan, guard]

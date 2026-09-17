@@ -217,3 +217,52 @@ test('★★ 잡마다 돌 자리가 있다 — `runs-on` 이나 `uses` 중 하�
     '`runs-on` 도 `uses` 도 없는 잡이 있습니다 — 그 워크플로는 시작 전에 거부됩니다:\n  '
     + bad.join('\n  '));
 });
+
+/**
+ * ★★★ **NAS 에 올리는 워크플로가 둘이면 한쪽만 고쳐진다**
+ * 〈2026-09-17 · `deploy-im.yml` 을 내리면서 · CLAUDE.md §12-20〉
+ *
+ * [왜] 이번 사고의 뿌리가 그것이다. D-99 가 `alert-failure.yml` 을 지울 때
+ *   `deploy-nas.yml` 은 제 `alert` 잡을 **함께 지웠는데** `deploy-im.yml` 은
+ *   **부르는 자리만 남았다.** 배포 길이 하나였으면 날 수 없는 고장이다
+ *   (§6-3 ⑥ 「같은 것을 두 자리에 두지 않는다」).
+ *
+ * ★ 표지는 `NAS_SSH_HOST` 다 — 접속정보가 있어야 NAS 에 올릴 수 있다.
+ * ★★ **0개도 빨갛게 끝낸다.** 배포 길이 통째로 없어진 것이거나 표지 이름이
+ *   바뀐 것인데, 둘 다 「이 칸이 눈이 먼 것」이다 (§8 — 못 잰 것은 통과가 아니다).
+ */
+test('★★★ NAS 에 올리는 워크플로가 **정확히 하나**다 (둘이면 한쪽만 고쳐진다)', () => {
+  const found = fs.readdirSync(WF)
+    .filter((f) => /\.ya?ml$/i.test(f))
+    .filter((f) => fs.readFileSync(path.join(WF, f), 'utf8').includes('NAS_SSH_HOST'));
+  assert.strictEqual(found.length, 1,
+    `NAS 배포 워크플로가 ${found.length}개입니다 (하나여야 합니다): ${found.join(' · ') || '(없음)'}\n`
+    + '  둘이면 한쪽만 고쳐지고, 0개면 이 칸이 눈이 먼 것입니다.');
+});
+
+/**
+ * ★★ **`deploy-im.yml` 의 마지막 유산 — 「아무도 안 부르는 것」 훑기**
+ * 〈2026-09-17〉
+ *
+ * [왜] 저쪽 16단계 중 이쪽에 없던 것은 `npm run check:reachable` **하나**였다.
+ *   `npm test` 는 `reachable.js` 의 **함수 성질**만 잰다(`nas-guard.test.js`) —
+ *   저장소 전체를 훑는 것은 그 CLI 뿐이라, 안 옮겼으면 **조용히 없어졌다.**
+ *   옮겨 놓고 재지 않으면 다음 사람이 그 줄을 지워도 아무도 모른다.
+ */
+test('★★ 배포 길이 `check:reachable` 을 지나간다 (M-08 계열 — 옮겨 온 단계)', () => {
+  const found = fs.readdirSync(WF)
+    .filter((f) => /\.ya?ml$/i.test(f))
+    .filter((f) => fs.readFileSync(path.join(WF, f), 'utf8').includes('NAS_SSH_HOST'));
+  assert.ok(found.length >= 1, '배포 워크플로를 못 찾았습니다 — 이 칸은 아무것도 안 잽니다');
+  const hit = found.filter((f) => {
+    /* ★ 주석 줄을 떼고 본다 — 이 고침의 경위 주석에 그 명령을 그대로 적었고,
+       안 떼면 **고침이 옳은데 초록으로 통과한다** (§8 「경위를 잘 적어 둘수록
+       검사가 눈이 먼다」 — 여기서는 거꾸로, 지워도 주석 때문에 안 빨개진다). */
+    const body = fs.readFileSync(path.join(WF, f), 'utf8')
+      .split('\n').filter((l) => !/^\s*#/.test(l)).join('\n');
+    return /check:reachable/.test(body);
+  });
+  assert.ok(hit.length >= 1,
+    '배포 워크플로에 `npm run check:reachable` 이 없습니다 — '
+    + '`deploy-im.yml` 에서 옮겨 온 단계가 사라졌습니다 (M-08 계열이 다시 안 잡힙니다).');
+});
