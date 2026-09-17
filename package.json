@@ -62,6 +62,7 @@
     "probe:viewport": "node im-agent/tools/probe-viewport.js",
     "prs:write": "node im-agent/tools/open-prs.js",
     "deploy:report": "node im-agent/tools/deploy-report.js",
+    "deploy:why": "node im-agent/tools/deploy-why.js",
     "brand:icon": "node assets/brand/build-icon.js",
     "im:appview": "node im-agent/tools/appview.js",
     "im:pdf": "node im-agent/tools/pdf.js",
