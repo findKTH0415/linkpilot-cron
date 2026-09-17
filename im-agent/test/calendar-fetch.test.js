@@ -238,3 +238,71 @@ test('★ 후보에 판 번호를 박지 않는다 (v22 로 박으면 다음 판
   assert.deepStrictEqual(pinned, [],
     '판 번호가 박힌 후보가 있습니다 (' + pinned.join('·') + ') — 판을 올리시면 조용히 깨집니다');
 });
+
+/* ────────────────────────────────────────────────────────────────────
+ * 「아직 공표 안 됨」과 「못 받았다」 — 2026-09-17 실측으로 생긴 칸
+ *
+ * 무엇이 났나: 사장님이 Actions 에서 이 수집을 돌리셨는데 두 실행이 ❌ 였다.
+ * 로그를 갈라 읽어 보니 2026·2027·2028 은 **멀쩡히 왔고**(135·155·150건)
+ * 2029·2030 만 0건이었다. 그런데 글은 「한 건도 **못 받았다**」였고,
+ * 사유 줄은 **한 줄도 안 찍혔다** — 곧 오류가 없었다는 뜻이다.
+ *
+ * ★ 서버는 대답했고 그 해 자료가 아직 없는 것이다(공휴일은 관보 확정 뒤에 실린다).
+ *   **우리가 고칠 자리가 없는 일**인데 실패로 세어 날마다 빨개졌고, 그 빨강이
+ *   「활용신청을 또 하라」로 읽힌다 (§12-12 · D-206 이 겪은 그 자리).
+ * ──────────────────────────────────────────────────────────────────── */
+
+test('★★★ 「그 해 자료가 아직 없다」를 「못 받았다」와 갈라 돌려준다', () => {
+  const src = fs.readFileSync(path.join(ROOT, 'im-agent', 'connectors', 'kasi.js'), 'utf8');
+  const body = src.split('\n').filter((l) => !/^\s*[*/]/.test(l)).join('\n');
+  const at = body.indexOf('function year(');
+  assert.ok(at > 0, 'year() 를 못 읽었습니다 — 이 칸은 아무것도 안 잽니다');
+  const seg = body.slice(at);
+  /* 재려는 성질: 「갈래가 전부 성공했는데 0건」을 «따로 이름 붙여» 돌려주는가.
+     낱말이 아니라 «조건»을 본다 — 변수 이름이 바뀌어도 남는다. */
+  assert.match(seg, /empty\s*=[^;]*errors\.length\s*===\s*0/,
+    '빈 응답을 오류 없음과 «함께» 보지 않습니다 — 그러면 둘이 같은 값이 됩니다');
+  assert.match(seg, /return\s*\{[^}]*\bempty\b/,
+    '갈라 놓고 돌려주지 않습니다 — 부르는 쪽이 못 가릅니다');
+});
+
+test('★★★ 공표 전인 해를 실패로 세지 않는다 (날마다 빨개지면 그 빨강이 뜻을 잃는다)', () => {
+  const src = fs.readFileSync(path.join(ROOT, 'im-agent', 'tools', 'calendar-fetch.js'), 'utf8');
+  const body = src.split('\n').filter((l) => !/^\s*[*/]/.test(l)).join('\n');
+  const at = body.indexOf('if (r.empty)');
+  assert.ok(at > 0, '공표 전 갈래를 아예 안 봅니다 — 「못 받았다」와 한 덩어리입니다');
+  /* ★ 그 갈래가 hardFail 앞에 있어야 한다 — 뒤에 있으면 이미 실패로 세어진 뒤다. */
+  const hardAt = body.indexOf('hardFail++');
+  assert.ok(at < hardAt, '공표 전 판정이 실패 세는 자리보다 뒤에 있습니다 — 그대로 빨개집니다');
+  /* ★ 창을 글자 수로 잡지 않는다 — 400자로 잡았더니 **바로 뒤의 다른 블록**을
+     제 것으로 읽어 고침이 옳은데 빨개졌다 (§12-6 「같은 검사의 창이 세 번 어긋났다」).
+     여는 중괄호부터 짝이 닫히는 자리까지만 본다. */
+  const ob = body.indexOf('{', at);
+  let d = 0, end = ob;
+  for (let i = ob; i < body.length; i++) {
+    if (body[i] === '{') d++;
+    else if (body[i] === '}') { d--; if (d === 0) { end = i; break; } }
+  }
+  const seg = body.slice(at, end + 1);
+  assert.ok(end > ob, '공표 전 블록의 끝을 못 찾았습니다 — 이 칸은 아무것도 안 잽니다');
+  assert.ok(!/hardFail\+\+/.test(seg), '공표 전인데도 실패로 셉니다');
+  /* ★★ 그리고 사람 말로 «고칠 것이 없다»를 적어야 한다 — 안 적으면 사장님이
+     고칠 것이 없는 자리(활용신청·열쇠)를 보러 가신다 (§4.6 · §12-12). */
+  assert.match(seg, /고칠 것 없음|공표 전/,
+    '무엇인지 사람 말로 안 적습니다 — 「못 받았다」로 읽힙니다');
+});
+
+test('★★ 요약이 셋을 갈라 적는다 — 받음 · 공표 전 · 못 받음', () => {
+  const src = fs.readFileSync(path.join(ROOT, 'im-agent', 'tools', 'calendar-fetch.js'), 'utf8');
+  const body = src.split('\n').filter((l) => !/^\s*[*/]/.test(l)).join('\n');
+  /* 「통째로 못 받은 해」를 세는 자리가 공표 전인 해를 빼고 세는가 */
+  /* ★ `[^)]*` 로 쓰면 화살표 함수의 인자 괄호에서 막힌다 — 옳은 코드가 빨개졌다.
+     한 줄 안에서만 찾는다(줄바꿈은 안 넘는다). */
+  assert.match(body, /failed\s*=\s*rows\.filter\(.*!r\.ok\s*&&\s*!r\.empty/,
+    '못 받은 해를 셀 때 공표 전인 해를 빼지 않습니다 — 요약이 「없는 것」이라 적습니다');
+  assert.match(body, /\bempty\s*=\s*rows\.filter\(.*r\.empty/,
+    '공표 전인 해를 따로 세지 않습니다');
+  /* ★ 표에도 갈래가 보여야 한다 — ✓/✗ 둘뿐이면 요약만 봐서는 못 가린다 */
+  const tbl = body.slice(body.indexOf('L.push(`| ${r.year}'), body.indexOf('L.push(`| ${r.year}') + 200);
+  assert.match(tbl, /r\.empty/, '표가 공표 전인 해를 ✗ 로 적습니다 — 같은 글자가 됩니다');
+});
