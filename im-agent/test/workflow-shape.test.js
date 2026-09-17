@@ -147,3 +147,122 @@ test('검사를 돌리는 워크플로는 한국어 글꼴을 깔고 **그 이�
     '검사를 돌리는데 글꼴 준비가 빠진 워크플로가 있다 — 러너에서만 PDF 가 일본어 글꼴로 나온다:\n  ' +
     missing.join('\n  '));
 });
+
+/* ────────────────────────────────────────────────────────────────────
+ * `uses:` 가 가리키는 «로컬 워크플로»가 실제로 있는가 — 2026-09-17 실측
+ *
+ * 무엇이 났나: 사장님 화면에서 `.github/workflows/deploy-im.yml` 이 **1초**에 ❌
+ * 였고 결론이 `startup_failure` 였다. 원인은 그 파일의 `alert` 잡이
+ * `uses: ./.github/workflows/alert-failure.yml` 을 부르는데 **그 파일이 없는 것**.
+ * D-99(`e551ca4`)가 문자 알림과 함께 그 워크플로를 지웠는데 **부르는 자리만 남았다.**
+ *
+ * ★ **YAML 문법으로는 안 잡힌다** — 실측에서 그 파일은 `yaml.safe_load` 로 멀쩡히
+ *   파싱됐다. GitHub 의 워크플로 «스키마»는 따로다 (§12-20).
+ * ★★ **한 달 넘게 아무도 몰랐다** — 그 워크플로는 `workflow_dispatch` 전용이라
+ *   사장님이 누르실 때까지 **한 번도 안 돌았다**(실행 번호 1). 곧 「도는 것이 없으면
+ *   깨진 줄도 모른다」 — 그래서 **누르기 전에** 검사가 잡아야 한다.
+ * ★★★ 잡도 단계도 로그도 안 만들어지므로 **열어 볼 로그가 없다**(404).
+ * ──────────────────────────────────────────────────────────────────── */
+
+test('★★★ `uses:` 로 부르는 로컬 워크플로가 실제로 있다 (없으면 startup_failure)', () => {
+  const files = fs.readdirSync(WF).filter((f) => /\.ya?ml$/i.test(f));
+  assert.ok(files.length >= 3, '워크플로를 못 읽었습니다 — 이 칸은 아무것도 안 잽니다');
+  const missing = [];
+  let seen = 0;
+  for (const f of files) {
+    const body = fs.readFileSync(path.join(WF, f), 'utf8')
+      /* ★ 주석 줄을 떼고 본다 — 이 저장소는 경위 주석이 길어 그 안의 인용이
+         코드로 읽힌다 (§8 「경위를 잘 적어 둘수록 검사가 눈이 먼다」).
+         실제로 이 고침의 주석에 그 경로를 적었고, 안 떼면 그 줄이 걸린다. */
+      .split('\n').filter((l) => !/^\s*#/.test(l)).join('\n');
+    /* 로컬 재사용 워크플로만 본다 — `owner/repo/...@ref` 는 바깥이라 여기서 못 잰다. */
+    for (const m of body.matchAll(/^\s*uses:\s*(\.\/[^\s'"]+)/gm)) {
+      seen++;
+      const rel = m[1].replace(/^\.\//, '');
+      if (!fs.existsSync(path.join(ROOT, rel))) missing.push(`${f} → ${rel}`);
+    }
+  }
+  assert.deepStrictEqual(missing, [],
+    'GitHub 이 못 찾는 워크플로를 부릅니다 — 그 워크플로는 «1초에» startup_failure 로 죽고\n'
+    + '  잡도 단계도 로그도 안 만들어집니다(열면 404). 부르는 자리를 지우거나 그 파일을 만드십시오:\n  '
+    + missing.join('\n  '));
+  /* ★ 「찾은 것이 0개」와 「전부 멀쩡」은 다른 사실이다 — 0 이면 이 칸은 눈이 먼 것이다.
+     다만 로컬 재사용 워크플로를 하나도 안 쓰는 것도 정상이므로 실패로는 안 센다. */
+  if (seen === 0) console.log('    (로컬 `uses:` 가 0곳 — 지금은 잴 것이 없다)');
+});
+
+test('★★ 잡마다 돌 자리가 있다 — `runs-on` 이나 `uses` 중 하나는 있어야 한다', () => {
+  /* [왜] 위와 같은 갈래다. 잡에 `runs-on` 도 `uses` 도 없으면 GitHub 이 그 워크플로를
+     통째로 거부한다(`startup_failure`). YAML 은 멀쩡히 파싱되므로 그것으로는 안 잡힌다.
+     ★ 라이브러리를 안 들인다 (§5) — 잡 머리와 그 아래 들여쓴 줄만 본다. */
+  const files = fs.readdirSync(WF).filter((f) => /\.ya?ml$/i.test(f));
+  const bad = [];
+  let jobs = 0;
+  for (const f of files) {
+    const lines = fs.readFileSync(path.join(WF, f), 'utf8').split('\n')
+      .filter((l) => !/^\s*#/.test(l));
+    const at = lines.findIndex((l) => /^jobs:\s*$/.test(l));
+    if (at < 0) continue;
+    for (let i = at + 1; i < lines.length; i++) {
+      if (!/^ {2}[A-Za-z_][\w-]*:\s*$/.test(lines[i])) continue;   /* 잡 머리 */
+      const name = lines[i].trim().replace(/:$/, '');
+      jobs++;
+      let body = '';
+      for (let j = i + 1; j < lines.length && !/^ {2}\S/.test(lines[j]); j++) body += lines[j] + '\n';
+      if (!/^\s{4}(runs-on|uses):/m.test(body)) bad.push(`${f} → ${name}`);
+    }
+  }
+  assert.ok(jobs >= 3, `잡을 ${jobs}개밖에 못 읽었습니다 — 이 칸은 거의 아무것도 안 잽니다`);
+  assert.deepStrictEqual(bad, [],
+    '`runs-on` 도 `uses` 도 없는 잡이 있습니다 — 그 워크플로는 시작 전에 거부됩니다:\n  '
+    + bad.join('\n  '));
+});
+
+/**
+ * ★★★ **NAS 에 올리는 워크플로가 둘이면 한쪽만 고쳐진다**
+ * 〈2026-09-17 · `deploy-im.yml` 을 내리면서 · CLAUDE.md §12-20〉
+ *
+ * [왜] 이번 사고의 뿌리가 그것이다. D-99 가 `alert-failure.yml` 을 지울 때
+ *   `deploy-nas.yml` 은 제 `alert` 잡을 **함께 지웠는데** `deploy-im.yml` 은
+ *   **부르는 자리만 남았다.** 배포 길이 하나였으면 날 수 없는 고장이다
+ *   (§6-3 ⑥ 「같은 것을 두 자리에 두지 않는다」).
+ *
+ * ★ 표지는 `NAS_SSH_HOST` 다 — 접속정보가 있어야 NAS 에 올릴 수 있다.
+ * ★★ **0개도 빨갛게 끝낸다.** 배포 길이 통째로 없어진 것이거나 표지 이름이
+ *   바뀐 것인데, 둘 다 「이 칸이 눈이 먼 것」이다 (§8 — 못 잰 것은 통과가 아니다).
+ */
+test('★★★ NAS 에 올리는 워크플로가 **정확히 하나**다 (둘이면 한쪽만 고쳐진다)', () => {
+  const found = fs.readdirSync(WF)
+    .filter((f) => /\.ya?ml$/i.test(f))
+    .filter((f) => fs.readFileSync(path.join(WF, f), 'utf8').includes('NAS_SSH_HOST'));
+  assert.strictEqual(found.length, 1,
+    `NAS 배포 워크플로가 ${found.length}개입니다 (하나여야 합니다): ${found.join(' · ') || '(없음)'}\n`
+    + '  둘이면 한쪽만 고쳐지고, 0개면 이 칸이 눈이 먼 것입니다.');
+});
+
+/**
+ * ★★ **`deploy-im.yml` 의 마지막 유산 — 「아무도 안 부르는 것」 훑기**
+ * 〈2026-09-17〉
+ *
+ * [왜] 저쪽 16단계 중 이쪽에 없던 것은 `npm run check:reachable` **하나**였다.
+ *   `npm test` 는 `reachable.js` 의 **함수 성질**만 잰다(`nas-guard.test.js`) —
+ *   저장소 전체를 훑는 것은 그 CLI 뿐이라, 안 옮겼으면 **조용히 없어졌다.**
+ *   옮겨 놓고 재지 않으면 다음 사람이 그 줄을 지워도 아무도 모른다.
+ */
+test('★★ 배포 길이 `check:reachable` 을 지나간다 (M-08 계열 — 옮겨 온 단계)', () => {
+  const found = fs.readdirSync(WF)
+    .filter((f) => /\.ya?ml$/i.test(f))
+    .filter((f) => fs.readFileSync(path.join(WF, f), 'utf8').includes('NAS_SSH_HOST'));
+  assert.ok(found.length >= 1, '배포 워크플로를 못 찾았습니다 — 이 칸은 아무것도 안 잽니다');
+  const hit = found.filter((f) => {
+    /* ★ 주석 줄을 떼고 본다 — 이 고침의 경위 주석에 그 명령을 그대로 적었고,
+       안 떼면 **고침이 옳은데 초록으로 통과한다** (§8 「경위를 잘 적어 둘수록
+       검사가 눈이 먼다」 — 여기서는 거꾸로, 지워도 주석 때문에 안 빨개진다). */
+    const body = fs.readFileSync(path.join(WF, f), 'utf8')
+      .split('\n').filter((l) => !/^\s*#/.test(l)).join('\n');
+    return /check:reachable/.test(body);
+  });
+  assert.ok(hit.length >= 1,
+    '배포 워크플로에 `npm run check:reachable` 이 없습니다 — '
+    + '`deploy-im.yml` 에서 옮겨 온 단계가 사라졌습니다 (M-08 계열이 다시 안 잡힙니다).');
+});

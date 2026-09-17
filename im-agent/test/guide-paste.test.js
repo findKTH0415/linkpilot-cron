@@ -53,6 +53,28 @@ function codeBlocks(text) {
  */
 const PASTEABLE = new Set(['bash', 'sh', 'zsh', 'jsonc', 'js', '']);
 
+/**
+ * ★★★ **배포 워크플로 목록을 손으로 적지 않는다** 〈2026-09-17 · `deploy-im.yml` 을 내리면서〉.
+ *
+ *   앞 판은 `['deploy-nas.yml', 'deploy-im.yml']` 을 **글자로 박아** 두었다. 그러면
+ *   워크플로가 하나 내려가는 날 **고침이 옳은데 빨개지고**, 그때 「검사를 약하게
+ *   고칠까」가 된다 — 반대로 배포 워크플로가 하나 늘면 **아무도 안 잰다.**
+ *
+ * ★ 그래서 **폴더를 훑어 스스로 찾는다.** NAS 로 배포하는 워크플로의 표지는
+ *   `NAS_SSH_HOST` 를 쓰는 것이다(접속정보가 있어야 올릴 수 있다).
+ * ★★ **몇 개를 찾았는지 함께 잰다** — 0개면 이 칸은 **눈이 먼 것**이고, 그대로
+ *   초록으로 끝나면 이 검사가 그 자리에서 없는 것이 된다 (§8 · §12-6 과 같은 결).
+ */
+function deployWorkflows() {
+  const WF = path.join(__dirname, '..', '..', '.github', 'workflows');
+  const names = fs.readdirSync(WF)
+    .filter((f) => /\.ya?ml$/i.test(f))
+    .filter((f) => fs.readFileSync(path.join(WF, f), 'utf8').includes('NAS_SSH_HOST'));
+  assert.ok(names.length >= 1,
+    'NAS 배포 워크플로를 한 개도 못 찾았습니다 — 이 칸은 아무것도 안 잽니다');
+  return { WF, names };
+}
+
 test('★★ 안내서의 붙여넣는 칸에 자리표시가 없다 (네 번 넘어진 자리)', () => {
   const found = [];
   GUIDES.forEach((name) => {
@@ -115,8 +137,8 @@ test('★ 자기 값을 어디에 넣는지 안내서가 말한다', () => {
  *   여기서 갈리면 사용자는 넣었는데 안 읽히는 Secret 을 넣게 된다.
  */
 test('★★ 워크플로가 OAuth 와 auth key 를 **둘 다** 받는다', () => {
-  const WF = path.join(__dirname, '..', '..', '.github', 'workflows');
-  ['deploy-nas.yml', 'deploy-im.yml'].forEach((name) => {
+  const { WF, names } = deployWorkflows();
+  names.forEach((name) => {
     const y = fs.readFileSync(path.join(WF, name), 'utf8');
 
     // ① 두 길이 다 있다
@@ -183,8 +205,8 @@ function stepBlock(yml, name) {
 }
 
 test('★★ dry run 도 열쇠를 잰다 — 안 그러면 실제로 올려 보는 수밖에 없다', () => {
-  const WF = path.join(__dirname, '..', '..', '.github', 'workflows');
-  ['deploy-nas.yml', 'deploy-im.yml'].forEach((name) => {
+  const { WF, names } = deployWorkflows();
+  names.forEach((name) => {
     const y = fs.readFileSync(path.join(WF, name), 'utf8');
     const b = stepBlock(y, 'Check secrets');
     assert.ok(b, `${name}: Check secrets 단계가 없다`);
@@ -219,8 +241,8 @@ test('★★ dry run 도 열쇠를 잰다 — 안 그러면 실제로 올려 보
 });
 
 test('★ 접속 단계는 여전히 판정 결과로만 돈다', () => {
-  const WF = path.join(__dirname, '..', '..', '.github', 'workflows');
-  ['deploy-nas.yml', 'deploy-im.yml'].forEach((name) => {
+  const { WF, names } = deployWorkflows();
+  names.forEach((name) => {
     const y = fs.readFileSync(path.join(WF, name), 'utf8');
     ['(OAuth)', '(auth key)'].forEach((k) => {
       const b = stepBlock(y, 'Connect to tailnet ' + k);

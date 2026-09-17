@@ -154,6 +154,41 @@ function main() {
     process.exit(0);
   }
 
+  /* ★★★ 넷째 갈래 — **워크플로 파일 자체가 거부된 것** 〈2026-09-17 실측〉.
+   *   `startup_failure` 는 GitHub 이 그 `.yml` 을 **읽다가 물린 것**이라
+   *   **잡도 단계도 로그도 아예 없다.** 그런데 앞 판은 이것을 「코드 쪽」으로 적고
+   *   **「멈춘 단계의 로그를 열어 보십시오」**라고 말했다 — 열 로그가 없어 **404** 다.
+   *   사장님이 없는 자리를 찾아 헤매신다 (§12-14 가 겪은 그 자리 · §4.6 과 같은 결).
+   *   ★ 고칠 자리가 **정반대**다: 실패한 단계가 아니라 **그 워크플로 파일**이다.
+   *   ★★ YAML 문법이 맞아도 난다 — GitHub 의 워크플로 «스키마»는 따로다
+   *     (없는 잡을 `needs` 로 가리킴 · `uses` 경로 오류 · 표현식 오류 등).
+   *     그러니 「YAML 이 맞으니 괜찮다」로 넘어가지 않는다. */
+  if (cc === 'startup_failure') {
+    console.log('  ❌ 배포가 **시작되기 전에 거부**됐습니다 — 워크플로 파일을 GitHub 이 못 읽었습니다.');
+    console.log('');
+    console.log('  ★ **로그가 없습니다.** 잡도 단계도 안 만들어졌으니 열어 볼 로그 자체가 없습니다');
+    console.log('    (열면 404 입니다). **결제 자리도, 멈춘 단계도 아닙니다.**');
+    console.log('');
+    console.log(`  ★ 고칠 자리는 그 워크플로 파일 하나입니다: ${run.path || '(경로를 못 받았습니다)'}`);
+    console.log('    · **어디서** — 웹브라우저에서 그 실행 화면을 엽니다.');
+    console.log('    · **무엇을** — 화면 맨 위의 **빨간 띠**에 사유 한 줄이 적혀 있습니다');
+    console.log('      (「Invalid workflow file」 다음의 줄·칸 번호).');
+    console.log('    · **그러면** — 그 줄을 고쳐 올리면 다음 실행부터 정상으로 만들어집니다.');
+    console.log('');
+    console.log('  ★★ YAML 문법이 맞아도 납니다 — GitHub 의 워크플로 **스키마**는 따로입니다');
+    console.log('     (없는 잡을 needs 로 가리킴 · uses 경로 · 표현식 오류 등).');
+    if (ann && ann.length) {
+      console.log('');
+      console.log('  받은 사유:');
+      for (const a of ann.slice(0, 4)) console.log(`     ${a.message || a.title || ''}`.slice(0, 200));
+    } else {
+      console.log('');
+      console.log('  ★★★ **사유를 못 받았습니다** — 이 자리에서는 그 빨간 띠를 못 읽습니다.');
+      console.log('     무엇이 틀렸는지 **지어내지 않습니다**. 화면에서 그 한 줄을 보고 고칩니다.');
+    }
+    process.exit(4);
+  }
+
   const bad = jobs.filter((j) => j.conclusion && j.conclusion !== 'success' && j.conclusion !== 'skipped');
   const stalled = bad.filter(neverStarted);
 
