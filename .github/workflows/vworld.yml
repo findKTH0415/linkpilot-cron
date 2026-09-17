@@ -52,9 +52,39 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           exit 0
 
+      # ★★★ **기본 가지에서만 커밋한다** 〈2026-09-17 · 실측 · D-213 이음〉.
+      #
+      #   [무엇이 났나] 고친 코드를 재려고 이 워크플로를 **작업 가지로** 걸었다.
+      #   조회·판정은 뜻대로 돌았는데, 이 단계가 그 가지에 결과를 밀어 넣어
+      #   **열려 있던 PR 의 머리가 움직였다.** 그 커밋을 민 것은 봇이라
+      #   새로 선 검사가 `action_required` (사람이 눌러 줘야 도는 상태)가 됐고,
+      #   **초록이던 PR 이 초록도 빨강도 아닌 자리로 내려앉았다.**
+      #
+      # ★ 가르는 잣대는 하나다 — **이 결과를 저장소에 남기는 것이 그 가지의 일인가.**
+      #   기본 가지는 그렇다(그것이 이 워크플로의 몫이다). 작업 가지에서 도는 것은
+      #   **재 보려고 도는 것**이라, 남길 자리는 저장소가 아니라 아티팩트다.
+      # ★★ **조용히 건너뛰지 않는다** — 왜 안 남겼는지와 어디서 받는지를 적는다.
+      #   적지 않으면 「커밋이 없다」가 고장으로 읽힌다 (§8).
+      # ★★★ 아티팩트 업로드는 **이 아래에서 그대로 돈다** — 건너뛰는 것은 커밋뿐이고
+      #   받을 것은 어느 가지에서든 남는다.
       - name: 결과 커밋
         if: always()          # 실패해도 받은 것과 진단은 저장소에 남긴다
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
+          set -u
+          if [ -z "${DEFAULT_BRANCH:-}" ]; then
+            echo "::warning::기본 가지 이름을 못 받았다 — 커밋하지 않는다. 결과는 아래 아티팩트에 있다"
+            exit 0
+          fi
+          if [ "$REF_NAME" != "$DEFAULT_BRANCH" ]; then
+            echo "가지 '$REF_NAME' 에서 돌았다 — **결과를 커밋하지 않는다.**"
+            echo "  까닭: 열려 있는 PR 의 머리가 움직이면 검사가 다시 서고, 봇이 민 커밋은"
+            echo "        사람이 눌러 줘야 도는 상태(action_required)가 된다."
+            echo "  받을 곳: 아래 «아티팩트 업로드» (vworld-songgye) — 진단과 지도까지 그대로 들어 있다."
+            exit 0
+          fi
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/vworld
