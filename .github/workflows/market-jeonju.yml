@@ -1,0 +1,38 @@
+name: 전주 시장근거 수집 (여의동 893)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+
+      - name: 전주시 지가지수 조회
+        env:
+          # 부동산원 키는 reb.or.kr 에서 따로 발급받는다. 공공데이터포털 키가 아니다.
+          REB_API_KEY: ${{ secrets.REB_API_KEY }}
+        run: node scripts/market-jeonju.mjs
+
+      - name: 결과 커밋
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/market
+          git diff --staged --quiet || git commit -m "전주 시장근거 갱신 ($(date +%Y-%m-%d))"
+          git push
+
+      - name: 아티팩트 업로드
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: market-jeonju
+          path: data/market
