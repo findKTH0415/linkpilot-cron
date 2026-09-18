@@ -12,15 +12,14 @@
 
 ## 3. 브이월드 정적지도
 - 중심 35.85235767859004, 127.07520454497622 (브이월드 지오코딩)
-- site_sat → 이미지 아님 (HTTP 200)
-- wide_sat → 이미지 아님 (HTTP 200)
-- site_map → 이미지 아님 (HTTP 200)
-- wide_map → 이미지 아님 (HTTP 200)
-- site_sat_try → 이미지 아님 (HTTP 200)
-- site_map_try → 이미지 아님 (HTTP 200)
+- site_photo → HTTP 200 · 1953KB
+- site_hybrid → HTTP 200 · 1955KB
+- wide_photo → HTTP 200 · 2053KB
+- site_graphic → HTTP 200 · 145KB
+- wide_graphic → HTTP 200 · 252KB
 - cadastral_wms → HTTP 200 · 160KB
 - 공개 링크(키 없음) https://map.vworld.kr/map/maps.do#17/127.07520454497622/35.85235767859004
-- 브이월드 응답 분포 {"200":13} → `vworld_diag.json`
+- 브이월드 응답 분포 {"200":12} → `vworld_diag.json`
 - 등록 도메인 주입 있음(Referer·Origin·domain)
 - 호출 경로 Tailscale → NAS(국내 IP) 경유
 
@@ -31,11 +30,5 @@
 - 법원경매 매각통계 — 법원경매정보 열람(브라우저)
 
 ## 5. 걸린 것
-- 지도 site_sat 미수집
-- 지도 wide_sat 미수집
-- 지도 site_map 미수집
-- 지도 wide_map 미수집
-- 지도 site_sat_try 미수집
-- 지도 site_map_try 미수집
 
-판정 5/11 · 종료코드 1
+판정 10/10 · 종료코드 0
