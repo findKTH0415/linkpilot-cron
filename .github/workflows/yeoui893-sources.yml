@@ -1,0 +1,51 @@
+name: 여의동 893 추가 소싱 (법령 · 한국은행 · 부동산원 지가지수)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+
+      - name: 한국부동산원 지가지수 (전주시)
+        continue-on-error: true
+        env:
+          REB_API_KEY: ${{ secrets.REB_API_KEY }}
+        run: node scripts/market-jeonju.mjs
+
+      - name: 국가법령정보 · 한국은행
+        continue-on-error: true
+        env:
+          LAW_OC: ${{ secrets.LAW_OC }}
+          LAW_OPEN_DATA: ${{ secrets.LAW_OPEN_DATA }}
+          ECOS_API_KEY: ${{ secrets.ECOS_API_KEY }}
+          ECOS_BOK_KEY: ${{ secrets.ECOS_BOK_KEY }}
+        run: node scripts/yeoui893-sources.mjs
+
+      - name: 결과 커밋 (최신본 위에 얹어 올린다)
+        if: always() && github.ref_name == github.event.repository.default_branch
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/market data/yeoui893
+          git diff --staged --quiet || git commit -m "여의동 893 추가 소싱 ($(date +%Y-%m-%d))"
+          for i in 1 2 3; do git pull --rebase -q && git push && break; sleep 5; done
+
+      - name: 아티팩트 업로드
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: yeoui893-sources
+          path: |
+            data/market
+            data/yeoui893/_sources.md
+            data/yeoui893/law.json
+            data/yeoui893/ecos.json
