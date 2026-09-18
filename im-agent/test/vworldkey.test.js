@@ -254,3 +254,49 @@ test('★★ 브이월드를 부르는 워크플로가 받는 이름을 전부 �
     assert.deepStrictEqual(missing, [], `${f} 의 env: 에 없다: ${missing.join(', ')}`);
   });
 });
+
+/* ------------------------------------------------------------------------- *
+ * **차례는 «잰 값»이다 — 콘솔 화면으로 확인했다** 〈2026-09-18 · D-220〉
+ *
+ * [앞 판] 이름만 보고 `REPORT` 가 서버용일 것이라 **추측해 앞에 두었다.**
+ *   그리고 「추측이다 · 잰 값이 나오면 고친다」고 적어 두었다.
+ * [잰 값] 사장님이 VWorld 콘솔 화면을 주셨다. 「활용API」 체크가 —
+ *   · WEB    … 2D지도 · 배경지도 · WMS/WFS · WMTS/TMS · **2D데이터** ·
+ *              **지오코더** · **검색** · **이미지** · 범례
+ *   · REPORT … 3D지도 · 3D데스크톱 · 국가중점 **셋뿐**
+ *   이 엔진이 부르는 것은 `req/address`(지오코더) · `req/data`(2D데이터) ·
+ *   `req/image`(이미지)다 — **전부 WEB 에만 있고 REPORT 에는 하나도 없다.**
+ *   이름이 뜻과 반대로 읽히는 자리라 추측이 거꾸로 갔다.
+ *
+ * ★ **이 칸이 없으면 되돌려도 조용하다** — 실측으로 기존 14칸이 순서를 한 번도
+ *   안 쟀다. 잰 값으로 고친 것은 **재는 자리가 있어야** 남는다 (§8).
+ * ★★ **낱말로 안 잰다** — 「주석에 WEB 이라 적혀 있는가」는 아무것도 안 재는
+ *   것이다. **환경변수를 실제로 넣고 돌려** 어느 이름이 나오는지 본다.
+ * ------------------------------------------------------------------------- */
+test('★★★ 우리가 쓰는 API 가 승인된 열쇠(WEB)를 REPORT 보다 «먼저» 쓴다 (D-220)', () => {
+  /* ★ 둘만 있을 때 — 콘솔에서 지오코더·2D데이터를 가진 쪽이 먼저여야 한다 */
+  withEnv({ LINKPILOT_VWORLD_REPORT_KEY: B, LINKPILOT_VWORLD_WEB_KEY: C }, () => {
+    assert.strictEqual(vkey.usedName(), 'LINKPILOT_VWORLD_WEB_KEY',
+      'REPORT 를 먼저 씁니다 — 그 열쇠에는 지오코더·2D데이터가 승인돼 있지 않아 '
+      + '첫 호출이 거부되고, 그만큼 호출과 시간이 버려집니다 (콘솔 실측 · D-220).');
+    assert.strictEqual(vkey.vworldKey(), C);
+  });
+
+  /* ★★ 돌아가는 차례도 같다 — `keys()` 가 실제로 그 순서로 준다 */
+  withEnv({ LINKPILOT_VWORLD_REPORT_KEY: B, LINKPILOT_VWORLD_WEB_KEY: C }, () => {
+    assert.deepStrictEqual(vkey.keys().map((k) => k.name),
+      ['LINKPILOT_VWORLD_WEB_KEY', 'LINKPILOT_VWORLD_REPORT_KEY'],
+      '열쇠를 도는 차례가 거꾸로입니다 — 승인 안 된 쪽부터 겁니다.');
+  });
+
+  /* ★★★ 반대로 가는 것도 막는다 — 지금 도는 이름은 «여전히» 첫째다.
+     순서를 고치면서 그것까지 밀어내면 NAS 에서 도는 것이 조용히 바뀐다. */
+  withEnv({ VWORLD_KEY: A, LINKPILOT_VWORLD_WEB_KEY: C }, () => {
+    assert.strictEqual(vkey.usedName(), 'VWORLD_KEY',
+      '지금 도는 이름을 밀어냈습니다 — 도는 것을 안 건드리는 것이 이 목록의 첫 규칙입니다.');
+  });
+
+  /* ★ REPORT 를 «빼지 않았는가» — 콘솔에서 체크를 더하시면 살아나야 한다 */
+  assert.ok(vkey.KEY_NAMES.includes('LINKPILOT_VWORLD_REPORT_KEY'),
+    'REPORT 를 목록에서 뺐습니다 — 콘솔에서 체크를 더하셔도 안 살아납니다 (§4.6).');
+});
