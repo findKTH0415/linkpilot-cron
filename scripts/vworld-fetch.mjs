@@ -88,6 +88,15 @@ for (const lot of LOTS) {
   if (!g.ok) {
     P(`- **${lot.label}** 지오코딩 실패 — ${g.error}`);
     if (g.hint) P(`  - ${g.hint}`);
+    // ★★★ **응답 본문 앞머리를 적는다** 〈D-218〉 — 「그 5xx 를 누가 냈는가」는
+    //   본문 없이 못 가른다. 예전에는 `HTTP 502` 글자만 남아, 기관 게이트웨이와
+    //   중간 프록시가 **같은 모습**이었다 — 할 일은 정반대인데.
+    // ★ 본문을 못 받았으면 **그 줄을 아예 안 적는다** — 빈 줄은 「본문이 비었다」로
+    //   읽혀 또 다른 거짓이 된다 (§8 「못 잼을 통과로 적지 않는다」).
+    for (const a of (g.attempts || [])) {
+      if (!a.bodyHead) continue;
+      P(`  - 그쪽이 돌려준 본문(${a.type}${a.httpStatus ? ' · HTTP ' + a.httpStatus : ''}): \`${a.bodyHead}\``);
+    }
     problems.push(`${lot.label} 지오코딩: ${g.error}`);
     continue;
   }
