@@ -170,13 +170,14 @@ P('## 3. 브이월드 정적지도');
 const C = center || FALLBACK;
 P(`- 중심 ${C.lat}, ${C.lon} (${center ? '브이월드 지오코딩' : '구글 좌표 대체 — 등급 C'})`);
 const REFERER = /^https?:\/\//.test(vworld.domain()) ? vworld.domain() : `http://${vworld.domain()}`;
-const MAPS = [['site_sat', { zoom: 18, layer: 'Satellite' }], ['wide_sat', { zoom: 16, layer: 'Satellite' }],
-              ['site_map', { zoom: 18, layer: 'Base' }], ['wide_map', { zoom: 15, layer: 'Base' }],
-              // 시험 중 — 커넥터의 basemap 값(Satellite/Base)이 안 먹을 때 대체 표기
-              ['site_sat_try', { zoom: 18, layer: 'PHOTO' }], ['site_map_try', { zoom: 18, layer: 'GRAPHIC' }]];
+// 2026-09-19 NAS 경유 실측: basemap 은 [NONE, GRAPHIC, GRAPHIC_NIGHT, PHOTO, PHOTO_HYBRID, GRAPHIC_WHITE],
+// size 는 1,1 ~ 1024,1024 만 받는다 (커넥터 기본값 Satellite/Base·1200x900 은 INVALID_RANGE)
+const MAPS = [['site_photo', { zoom: 18, layer: 'PHOTO' }], ['site_hybrid', { zoom: 18, layer: 'PHOTO_HYBRID' }],
+              ['wide_photo', { zoom: 16, layer: 'PHOTO' }], ['site_graphic', { zoom: 17, layer: 'GRAPHIC' }],
+              ['wide_graphic', { zoom: 15, layer: 'GRAPHIC' }]];
 for (const [name, opt] of MAPS) {
   tried++;
-  const url = vworld.staticMapUrl(C.lat, C.lon, { width: 1200, height: 900, ...opt });
+  const url = vworld.staticMapUrl(C.lat, C.lon, { width: 1024, height: 768, ...opt });
   if (!url) { P(`- ${name} → 키 없음, 요청 안 함`); problems.push(`지도 ${name}: 키 없음`); continue; }
   try {
     const r = await fetch(url, { headers: { Referer: REFERER } });
