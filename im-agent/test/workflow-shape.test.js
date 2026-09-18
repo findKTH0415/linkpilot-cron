@@ -119,6 +119,55 @@ test('스크립트 파일에 워크플로가 잘못 들어가지 않았다 (거�
  *   ★★ 꾸러미만 있고 이름 확인이 없는 것이 **바로 이번에 당한 모양**이다 —
  *     그 자리가 초록으로 보이는 것이 이 고장의 급소다.
  */
+/**
+ * ★★★ **PR·push 를 재는 워크플로에 «경로 거르개»를 두지 않는다**
+ * 〈2026-09-19 · D-223 · 실제로 새어 나갔다〉
+ *
+ * [무엇이 났나] `im-agent-ci.yml` 이 `paths:` 로 다섯 갈래만 보고 있었다 —
+ *   `im-agent/**` · `docs/**` · `CLAUDE.md` · `MEMORY.md` · `.github/workflows/**`.
+ *   **`scripts/**` 가 없었다.** 그래서 사장님이 웹에서 `scripts/yeoui893-fetch.mjs` 를
+ *   올리셨을 때 **검사가 한 번도 안 돌았고**, 그 주석에 든 **NAS tailnet 주소가
+ *   그대로 `main` 에 들어갔다** (§2 위반 · §12-33).
+ *
+ * ★ **이 저장소의 검사는 저장소 «전체»를 훑는다** — `secrets.test.js` 는 `git ls-files`
+ *   로 추적되는 파일을 전부 보고, `memory-index.test.js` 는 문서를 센다. 그러니
+ *   **무엇이 바뀌든 돌아야 한다.** 「검사가 있다」와 「그 검사가 돈다」는 다른 사실이다 (§8).
+ *
+ * ★★ **고침은 목록을 늘리는 것이 아니다.** 늘리면 **다음 폴더가 생기는 날 또** 같은 일이
+ *   난다 — 그 규칙이 사람의 기억에 얹힌다 (§8-1). 거르개 자체를 안 두는 것이 답이다.
+ *   ★ 그 워크플로 주석이 이미 「문서만 바꾼 PR 이 검사 0개로 지나갔다」를 적어 두었는데,
+ *     **같은 고장이 `scripts/` 에서 되풀이됐다.** 목록을 넓히는 고침은 한 번 더 샌다.
+ *
+ * ★★★ **수집·배포 워크플로는 안 센다** — 그쪽은 `workflow_dispatch`·`push: main` 이고
+ *   경로를 좁히는 것이 옳다(안 좁히면 아무 커밋에나 배포가 돈다). 재려는 것은
+ *   **「PR·push 를 재는 자리」**뿐이다.
+ */
+test('★★★ PR·push 를 재는 워크플로에 경로 거르개가 없다 (새 폴더가 조용히 안 재진다)', () => {
+  const gates = fs.readdirSync(WF)
+    .filter((f) => /\.ya?ml$/i.test(f))
+    .map((f) => [f, fs.readFileSync(path.join(WF, f), 'utf8')])
+    // ★ 「PR 을 재는 자리」의 표지는 `pull_request:` 다 — 배포·수집은 이것을 안 쓴다
+    .filter(([, t]) => /^\s*pull_request:/m.test(t));
+
+  assert.ok(gates.length >= 1,
+    'PR 을 재는 워크플로를 한 개도 못 찾았다 — 이 칸은 아무것도 안 잽니다 (표지가 바뀐 것입니다).');
+
+  const bad = [];
+  for (const [f, t] of gates) {
+    // ★ `on:` 블록 안의 `paths:`·`paths-ignore:` 만 본다. 잡 안의 `paths` 는 다른 것이다.
+    const on = t.slice(t.search(/^on:/m));
+    const head = on.slice(0, on.search(/^\w/m) > 0 ? on.search(/^[a-z]+:/m) : on.length);
+    const block = on.split(/^(?:permissions|concurrency|jobs|env|defaults):/m)[0];
+    if (/^\s{2,}paths(-ignore)?:/m.test(block)) bad.push(f);
+    void head;
+  }
+  assert.deepStrictEqual(bad, [],
+    'PR·push 를 재는 워크플로에 경로 거르개가 있습니다 — 거기 안 적힌 폴더는\n'
+    + '  **조용히 안 재집니다**(실제로 `scripts/` 가 그랬고 주소가 공개로 나갔습니다).\n'
+    + '  목록을 늘리지 말고 거르개를 지웁니다 (§8-1 — 사람의 기억에 안 얹는다):\n  '
+    + bad.join(' · '));
+});
+
 test('검사를 돌리는 워크플로는 한국어 글꼴을 깔고 **그 이름으로 쓰이는지까지** 확인한다 (D-52)', () => {
   const files = fs.readdirSync(WF).filter(f => /\.ya?ml$/i.test(f));
   const runsTests = [];
@@ -280,8 +329,11 @@ test('★★★ NAS 에 올리는 워크플로가 **정확히 하나**다 (둘�
  *     정해지면 이 목록에서 빼거나 규칙을 고친다.
  */
 const NAS_CRED_EXEMPT = new Map([
-  ['yeoui893-nas.yml',
-    '브이월드 502 우회(러너 해외 IP) — 내리면 되던 수집이 없어진다. 사장님 판단 대기 (D-222)'],
+  // ★ 2026-09-19 · D-223 — **비었다.** `yeoui893-nas.yml` 이 유일한 예외였는데,
+  //   사장님이 「권하는 개선안 대로 진행해」로 ㉡(NAS 가 스스로 부르기)을 고르셔서
+  //   그 워크플로를 내렸다 — `im-agent/tools/yeoui893-nas.sh` 로 옮겼다.
+  //   ★★ **빈 채로 둔다.** 지우면 다음에 또 예외를 만들 때 «사유를 적는 자리»가 없어지고,
+  //     그러면 이름만 슬쩍 더하게 된다. 아래 「죽은 이름」 칸이 빈 목록도 함께 센다.
 ]);
 
 test('★★★ 수집 잡에 NAS 접속 자격증명이 없다 (§4 · 규정집 2-8)', () => {
