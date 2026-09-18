@@ -99,11 +99,20 @@ for (const lot of LOTS) {
     //   중간 프록시가 **같은 모습**이었다 — 할 일은 정반대인데.
     // ★ 본문을 못 받았으면 **그 줄을 아예 안 적는다** — 빈 줄은 「본문이 비었다」로
     //   읽혀 또 다른 거짓이 된다 (§8 「못 잼을 통과로 적지 않는다」).
+    // ★★★ **헤더도 함께 적는다** 〈D-219〉 — 그 502 본문에는 서버 서명이 없었다.
+    //   `Server` 한 줄이면 대개 갈리고, `Via`·`X-Cache` 가 있으면 **중간이 끼었다**는 표다.
+    //   ★ 본문과 «따로» 센다 — 본문이 비어도 헤더는 올 수 있고 그 반대도 있다.
+    //     하나라도 있으면 그 줄을 적고, 둘 다 없으면 아무 줄도 안 적는다.
     for (const a of (g.attempts || [])) {
-      if (!a.bodyHead) continue;
-      const line = `${lot.label} ${a.type}${a.httpStatus ? ' · HTTP ' + a.httpStatus : ''}: ${a.bodyHead}`;
-      P(`  - 그쪽이 돌려준 본문(${a.type}${a.httpStatus ? ' · HTTP ' + a.httpStatus : ''}): \`${a.bodyHead}\``);
-      evidence.push(line);
+      const who = `${a.type}${a.httpStatus ? ' · HTTP ' + a.httpStatus : ''}`;
+      if (a.bodyHead) {
+        P(`  - 그쪽이 돌려준 본문(${who}): \`${a.bodyHead}\``);
+        evidence.push(`${lot.label} ${who} 본문: ${a.bodyHead}`);
+      }
+      if (a.headHdr) {
+        P(`  - 그쪽이 돌려준 헤더(${who}): \`${a.headHdr}\``);
+        evidence.push(`${lot.label} ${who} 헤더: ${a.headHdr}`);
+      }
     }
     problems.push(`${lot.label} 지오코딩: ${g.error}`);
     continue;

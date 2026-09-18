@@ -121,3 +121,49 @@ test('LAW_OC 가 http.js 의 가리개 목록에 올라가 있다 (§2)', () => 
   assert.ok(SECRET_ENV.includes('LAW_OC'),
     'LAW_OC 가 SECRET_ENV 에 없으면 로그·오류 메시지에 평문으로 남는다');
 });
+
+/* ------------------------------------------------------------------------- *
+ * **같은 고장이 여기에도 있었다 — `!r.ok` 에서 응답 본문을 버렸다**
+ * 〈2026-09-18 · D-219 · 실측〉
+ *
+ * [무엇이 났나] 이 파일은 `diagnose()` 로 **승인·OC·없음·형식 넷**을 가르는데,
+ *   그것을 부르는 자리가 **JSON 파싱이 깨졌을 때 하나뿐**이었다. 곧 서버가
+ *   401·403·5xx 로 답하면 **본문을 통째로 버리고** `HTTP 403` 이라는 글자만 남았다 —
+ *   「승인 전」과 「OC 오타」와 「그쪽 게이트웨이」가 **한 글자로 뭉개진다.**
+ *   할 일이 정반대인데(기다린다 / 값을 고친다 / 자리를 옮긴다) 가릴 재료가 없다.
+ *
+ * ★ D-218 이 브이월드에서 고친 것과 **같은 고장**이고, 이 파일에는 안 댔던 자리다
+ *   (S-53 「한 칸에서 배운 것을 옆 칸에 안 대면 그 자리에 그대로 남는다」).
+ * ★★ **낱말이 아니라 돌려서 잰다** — 「diagnose 를 부르는가」는 아무것도 안 재는 것이다.
+ *   가짜 403 을 먹여 **무엇이 돌아오는지** 본다.
+ * ------------------------------------------------------------------------- */
+test('★★★ 403 에서 본문·상태를 «버리지 않는다» — 승인·OC·그쪽서버가 한 글자로 뭉개졌다 (D-219)', async () => {
+  const BAIT = 'AIzaSyBAIT000000000000000000000000000000';
+  const realFetch = globalThis.fetch;
+  const prev = process.env.LAW_OC;
+  process.env.LAW_OC = 'testoc';
+  globalThis.fetch = async () => new Response(
+    `<html>이용 승인이 아직 나지 않았습니다 ${BAIT}</html>`,
+    { status: 403, headers: { server: 'nginx/1.18.0', 'set-cookie': 'S=LEAKME' } },
+  );
+  try {
+    const r = await law.findLaw('건축법 시행령');
+    assert.equal(r.ok, false);
+    assert.equal(r.httpStatus, 403, '상태코드를 버립니다 — 401 인지 403 인지조차 안 남습니다.');
+    assert.ok(r.bodyHead && /승인/.test(r.bodyHead),
+      '응답 본문을 버립니다 — 승인 전인지 OC 오타인지 가릴 재료가 통째로 사라집니다.');
+    assert.equal(r.kind, 'approval',
+      'diagnose 를 안 부릅니다 — 넷으로 가르는 장치가 이 갈래에서는 한 번도 안 돕니다.');
+    assert.ok(r.head && /승인/.test(r.head), '사람 말로 된 원인을 안 답니다 (§4.6).');
+    assert.ok(r.headHdr && /server: nginx/.test(r.headHdr),
+      '헤더를 안 나릅니다 — 「그쪽 게이트웨이인가」를 못 가립니다 (D-219).');
+
+    /* ★★ 값이 새지 않는가 (§2) */
+    const all = JSON.stringify(r);
+    assert.ok(!all.includes(BAIT), '본문에 섞인 열쇠가 그대로 나옵니다 — 가려야 합니다 (§2).');
+    assert.ok(!/LEAKME/.test(all), '허용목록 밖 헤더가 새어 나옵니다 (§2).');
+  } finally {
+    globalThis.fetch = realFetch;
+    if (prev === undefined) delete process.env.LAW_OC; else process.env.LAW_OC = prev;
+  }
+});

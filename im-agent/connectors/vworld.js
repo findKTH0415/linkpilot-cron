@@ -13,7 +13,7 @@
  * 인증키: `vworldkey.js` 가 이름 셋을 읽는다 (GitHub Secrets)
  */
 
-const { request, buildUrl, redact } = require('./http');
+const { request, buildUrl, redact, fmtHeaders } = require('./http');
 const cache = require('./cache');
 const { num } = require('./xml');
 const vkey = require('./vworldkey');
@@ -58,6 +58,22 @@ function isAuthReject(text) {
  *   간헐적이라 "가끔 값이 안 들어오는" 형태로만 드러나 원인을 찾기 어렵다.
  *   등록값을 가공하지 않는 것이 유일하게 안전한 쪽이다.
  */
+/* ★★★ **열쇠가 여럿인데 `VWORLD_DOMAIN` 은 하나다 — 지금은 «맞다»**
+ *   〈2026-09-18 · D-220 · 사장님 콘솔 화면 둘로 잼〉.
+ *
+ *   [처음 화면] 두 열쇠의 「서비스URL」이 **같은 호스트인데 경로가 달랐다**(한쪽은
+ *     뿌리, 한쪽은 화면 파일 하나까지). `VWORLD_DOMAIN` 은 하나라 어느 열쇠를 쓰든
+ *     같은 값이 가므로, 한쪽은 등록값과 어긋난 채 나갈 자리가 있었다.
+ *   [고친 화면] 사장님이 그 자리에서 **둘을 같은 URL 로 맞춰 주셨다.** 이제 한 값으로
+ *     둘 다 맞으므로 **지금 고칠 것이 없다.**
+ *
+ * ★ **그래서 새 열쇠 이름을 안 만든다.** 사장님이 안 넣으신 이름을 지어내면
+ *   「선언만 되고 아무도 안 읽는 자리」가 하나 더 는다 (§6-2-6).
+ * ★★ **다만 「지금 같다」와 「늘 같다」는 다른 사실이다.** 콘솔에서 한쪽만 고치시는
+ *   날 다시 갈린다 — 그때 증상은 **간헐적 인증 거부**라 가장 찾기 어렵다(아래 주석의
+ *   실측 5회 중 2회). `isAuthReject` 가 그 갈래를 따로 세므로, **실제로 잡히는 날**
+ *   그 잰 값을 보고 정한다 (§4.3 「진단부터 짠다」 · §4.7 「모르는 것은 모른다고 적는다」).
+ * ★ 주소·경로 값은 여기 안 적는다 — 이 저장소는 공개다 (§2 · D-10). */
 function domain() {
   // ★ 콘솔의 **서비스URL 을 글자 그대로** 보낸다. 스킴·경로를 벗기면 안 된다.
   //
@@ -151,11 +167,16 @@ async function callOnce(service, params, key) {
     //   새 칸으로 나르면 판정은 그대로 돌고 사람은 근거를 본다.
     // ★★ 값은 `redact()` 를 지나간다 (§2). 200자는 §4 「응답 본문을 200자 이상
     //   그대로 저장한다」의 그 자리다.
+    // ★★★ **헤더도 함께 나른다** 〈D-219〉. D-218 이 되살린 그 502 본문에는
+    //   **서버 서명이 없었다**(`502 Bad Gateway` 한 줄) — 그래서 누가 냈는지를
+    //   아직 못 가린다. `Server` 한 줄, `Via`·`X-Cache` 가 있으면 **중간이 끼었다**는 표다.
+    //   담기는 이름은 `http.js` 의 `SAFE_RESPONSE_HEADERS` 뿐이고 값은 `redact()` 를 지난다 (§2).
     if (!r.ok) {
       const head = r.body === undefined || r.body === null
         ? ''
         : redact(String(r.body).replace(/\s+/g, ' ').trim().slice(0, 200));
-      return { ok: false, error: redact(r.error), httpStatus: r.status, bodyHead: head };
+      return { ok: false, error: redact(r.error), httpStatus: r.status, bodyHead: head,
+        headHdr: fmtHeaders(r.headers) };
     }
 
     let j;
@@ -215,6 +236,7 @@ async function geocode(address) {
       //   (§8 「만들었다와 닿는다는 다른 사실이다」 · §12-19 의 그 자리).
       httpStatus: r.httpStatus,
       bodyHead: r.bodyHead || '',
+      headHdr: r.headHdr || '',
     });
   }
 
