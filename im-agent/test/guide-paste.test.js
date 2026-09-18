@@ -64,12 +64,23 @@ const PASTEABLE = new Set(['bash', 'sh', 'zsh', 'jsonc', 'js', '']);
  *   `NAS_SSH_HOST` 를 쓰는 것이다(접속정보가 있어야 올릴 수 있다).
  * ★★ **몇 개를 찾았는지 함께 잰다** — 0개면 이 칸은 **눈이 먼 것**이고, 그대로
  *   초록으로 끝나면 이 검사가 그 자리에서 없는 것이 된다 (§8 · §12-6 과 같은 결).
+ *
+ * ★★★ **표지 하나로는 «올리는 것»과 «명령만 돌리는 것»이 안 갈린다** 〈2026-09-19 · D-222〉.
+ *   `yeoui893-nas.yml`(브이월드 502 를 NAS 경유로 우회하는 **수집** 잡)이 들어오면서
+ *   이 고르개가 그것을 **배포로 세었고**, 배포 규격(「Check secrets」 단계 등)을
+ *   요구해 **세 칸이 기능은 멀쩡한데 빨개졌다.**
+ *   ★ 배포는 **파일을 올린다**(`deploy/engine.sh`). 그 표지를 함께 본다 —
+ *     재려던 성질(「배포 워크플로가 안내대로 생겼는가」)은 그대로다 (§6-2-5 의 잣대).
+ *   ★★ **수집 잡에 접속 자격증명이 있는 것 자체**는 §4(규정집 2-8)가 금지하는 별건이고,
+ *     그것은 `workflow-shape.test.js` 가 따로 잰다 — 여기서 뭉뚱그리지 않는다.
  */
 function deployWorkflows() {
   const WF = path.join(__dirname, '..', '..', '.github', 'workflows');
   const names = fs.readdirSync(WF)
     .filter((f) => /\.ya?ml$/i.test(f))
-    .filter((f) => fs.readFileSync(path.join(WF, f), 'utf8').includes('NAS_SSH_HOST'));
+    .map((f) => [f, fs.readFileSync(path.join(WF, f), 'utf8')])
+    .filter(([, t]) => t.includes('NAS_SSH_HOST') && t.includes('deploy/engine.sh'))
+    .map(([f]) => f);
   assert.ok(names.length >= 1,
     'NAS 배포 워크플로를 한 개도 못 찾았습니다 — 이 칸은 아무것도 안 잽니다');
   return { WF, names };

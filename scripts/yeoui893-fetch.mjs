@@ -14,7 +14,8 @@ const require = createRequire(import.meta.url);
 require('../im-agent/core/env').load();
 
 // ── 브이월드 호출에 등록 도메인을 Referer·Origin 으로 싣는다 (2026-09-19 재구성) ──
-// 콘솔 서비스URL: https://synologynas.tail43fc79.ts.net (WEB·REPORT 키 공통)
+// 콘솔 서비스URL 은 여기 안 적는다 — 이 저장소는 공개다 (CLAUDE.md §2 · D-10).
+// 값은 `VWORLD_DOMAIN` 으로만 들어온다. WEB·REPORT 두 열쇠가 같은 값을 쓴다 (D-220).
 // Actions 러너는 Referer 가 비어 있다. 커넥터는 domain 파라미터만 보내므로 여기서 헤더를 더한다.
 // 모든 브이월드 응답의 상태와 앞부분(키 가림)을 diag 로 남겨 502·인증거부·권한없음을 구분한다.
 const VW_DOMAIN = (process.env.VWORLD_DOMAIN || '').trim();
