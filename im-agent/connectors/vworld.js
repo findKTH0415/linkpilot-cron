@@ -143,7 +143,20 @@ async function callOnce(service, params, key) {
       if (r.body) console.error(`[debug] 응답: ${redact(String(r.body).slice(0, 400))}\n`);
     }
 
-    if (!r.ok) return { ok: false, error: redact(r.error) };
+    // ★★★ **응답 본문을 버리지 않고 «따로 나른다»** 〈D-218〉.
+    //   [왜] 5xx 를 누가 냈는지는 **본문을 봐야** 안다 — 기관 게이트웨이인지
+    //   중간의 프록시인지에 따라 **할 일이 정반대**다(기다렸다 다시 / 도는 자리를 옛긴다).
+    // ★ **`error` 에는 안 섮는다** — `isAuthReject` 가 그 글자를 보므로,
+    //   본문을 섞으면 HTML 속 낟말 하나에 **엉뙡한 갈래로 넘어간다.**
+    //   새 칸으로 나르면 판정은 그대로 돌고 사람은 근거를 본다.
+    // ★★ 값은 `redact()` 를 지나간다 (§2). 200자는 §4 「응답 본문을 200자 이상
+    //   그대로 저장한다」의 그 자리다.
+    if (!r.ok) {
+      const head = r.body === undefined || r.body === null
+        ? ''
+        : redact(String(r.body).replace(/\s+/g, ' ').trim().slice(0, 200));
+      return { ok: false, error: redact(r.error), httpStatus: r.status, bodyHead: head };
+    }
 
     let j;
     try {
@@ -198,6 +211,10 @@ async function geocode(address) {
       type,
       error: r.error || (r.ok ? '응답에 좌표(result.point)가 없다' : '알 수 없는 실패'),
       status: r.ok && r.value ? (r.value.status || null) : null,
+      // ★ 본문 앞머리를 여기까지 나른다 — 나르는 자리가 버리면 요약에 한 줄도 안 온다
+      //   (§8 「만들었다와 닿는다는 다른 사실이다」 · §12-19 의 그 자리).
+      httpStatus: r.httpStatus,
+      bodyHead: r.bodyHead || '',
     });
   }
 

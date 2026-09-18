@@ -40,6 +40,14 @@ async function request(url, {
   requestBody = undefined,
 } = {}) {
   let lastError = null;
+  // ★★★ **재시도로 끝난 응답의 «본문을 버리지 않는다»** 〈D-218〉.
+  //   [왜] 5xx 가 네 번 나면 예전에는 `HTTP 502` 라는 **글자만** 남고
+  //   응답 본문을 통째로 버렸다. 그러면 **그 502 를 누가 냈는지**를
+  //   가릴 재료가 없다 — 기관 게이트웨이인지, 중간의 프록시인지.
+  //   할 일이 **정반대**인데(기다렸다 다시 / 도는 자리를 옛긴다) 한 글자로 뭉개졌다.
+  //   §6-2-6 「받자마자 버린 것」 · §12-10 「무엇을 버리는지 본다」와 같은 고장이다.
+  // ★ 값은 부르는 쪽이 `redact()` 를 지나게 한다 (§2).
+  let lastStatus, lastBody;
 
   for (let attempt = 0; attempt <= RETRY_DELAYS.length; attempt++) {
     if (attempt > 0) await sleep(RETRY_DELAYS[attempt - 1]);
@@ -58,6 +66,7 @@ async function request(url, {
       if (r.ok) return { ok: true, status: r.status, body, attempts: attempt + 1 };
 
       lastError = `HTTP ${r.status}`;
+      lastStatus = r.status; lastBody = body;
       if (isFatalStatus(r.status)) {
         return { ok: false, status: r.status, error: `${lastError} (재시도 무의미)`, body, attempts: attempt + 1 };
       }
@@ -68,7 +77,13 @@ async function request(url, {
     }
   }
 
-  return { ok: false, error: `${lastError} (${RETRY_DELAYS.length + 1}회 시도 실패)`, attempts: RETRY_DELAYS.length + 1 };
+  return {
+    ok: false,
+    error: `${lastError} (${RETRY_DELAYS.length + 1}회 시도 실패)`,
+    status: lastStatus,
+    body: lastBody,
+    attempts: RETRY_DELAYS.length + 1,
+  };
 }
 
 /** 쿼리스트링 조립. 값이 null/undefined 인 항목은 제외한다. */

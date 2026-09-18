@@ -252,3 +252,80 @@ test('★★★ 결과 커밋은 **기본 가지에서만** 돈다 — 가지에
   assert.ok(/- name: 아티팩트 업로드\n\s*if: always\(\)/.test(w),
     '아티팩트 업로드가 `if: always()` 가 아닙니다 — 가지에서 돌면 받을 것이 통째로 없어집니다.');
 });
+
+/* ------------------------------------------------------------------------- *
+ * **502 의 «증거»를 버리지 않는다** 〈2026-09-18 · D-218〉
+ *
+ * [무엇이 났나] 5필지 전부 `HTTP 502` 로 죽은 실행에서 요약이
+ *   「VWorld 쪽 서버가 5xx · 우리 쪽에 고칠 것이 없다」로 **단정**했다.
+ *   그런데 그 판정의 근거가 «상태코드 하나»뿐이었다 — 응답 본문을 통째로
+ *   버렸기 때문이다(실측: 재시도로 끝난 `request()` 가 `body` 를 안 돌려줬다).
+ *
+ * [왜 이것이 위험한가] **502 를 기관 게이트웨이가 낼 수도, 중간의 프록시가 낼 수도
+ *   있다.** 그리고 할 일이 **정반대**다 — 앞은 「기다렸다 다시」, 뒤는 「도는 자리를
+ *   옮긴다」. 본문이 없으면 그 둘이 **한 글자로 뭉개진다**
+ *   (§4.6 · §12-12 · §12-24 와 같은 결).
+ *
+ * ★ **낱말이 아니라 «돌려서» 잰다** — 가짜 502 를 먹여 본문이 실제로 살아 오는지 본다.
+ * ★★ **값이 새지 않는지 함께 잰다** (§2) — 미끼 열쇠를 본문에 섞어 가려지는지 센다.
+ * ------------------------------------------------------------------------- */
+test('★★★ 재시도로 끝난 응답의 본문·상태를 버리지 않는다 (502 를 누가 냈는지 가릴 재료)', async () => {
+  const { request } = require('../connectors/http.js');
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async () =>
+    new Response('<html><title>502 Bad Gateway</title><body>nginx</body></html>', { status: 502 });
+  try {
+    const r = await request('https://example.invalid/x', { timeoutMs: 50 });
+    assert.equal(r.ok, false, '502 인데 성공으로 옵니다.');
+    assert.equal(r.status, 502,
+      '재시도로 끝난 뒤 상태코드를 버립니다 — 「502」인지 「503」인지조차 안 남습니다.');
+    assert.ok(r.body && /Bad Gateway/.test(String(r.body)),
+      '응답 본문을 버립니다 — 그 5xx 를 «누가 냈는지» 가릴 재료가 통째로 사라집니다 (§4 · §12-10).');
+  } finally { globalThis.fetch = realFetch; }
+});
+
+test('★★ 커넥터가 그 본문을 «따로» 나르고, error 글자에는 안 섞는다', async () => {
+  const vw = require('../connectors/vworld.js');
+  const BAIT = 'AIzaSyBAIT000000000000000000000000000000';
+  const realFetch = globalThis.fetch;
+  const prevKey = process.env.VWORLD_KEY, prevDom = process.env.VWORLD_DOMAIN;
+  process.env.VWORLD_KEY = BAIT;
+  process.env.VWORLD_DOMAIN = 'https://example.invalid/app.html';
+  globalThis.fetch = async () =>
+    new Response(`<html>INVALID_KEY ${BAIT} 502 Bad Gateway nginx</html>`, { status: 502 });
+  try {
+    const g = await vw.geocode('강원특별자치도 원주시 신림면 송계리 695-4');
+    assert.equal(g.ok, false);
+    const at = (g.attempts || []).filter(a => a.bodyHead);
+    assert.ok(at.length > 0,
+      '본문 앞머리를 한 시도도 안 실었습니다 — 나르는 자리가 버리면 요약에 한 줄도 안 옵니다 (§8).');
+    assert.ok(at.some(a => a.httpStatus === 502),
+      '상태코드를 같이 안 나릅니다.');
+
+    /* ★★ 값이 새지 않는가 (§2) — 미끼 열쇠가 본문에 있었는데 그대로 나오면 안 된다 */
+    const all = JSON.stringify(g);
+    assert.ok(!all.includes(BAIT),
+      '응답 본문에 섞인 열쇠가 그대로 나옵니다 — 가려야 합니다 (§2).');
+
+    /* ★★★ error 글자에는 안 섞는다 — isAuthReject 가 그 글자를 보므로,
+       HTML 속 낱말 하나에 엉뚱한 갈래로 넘어간다 */
+    assert.ok(!/Bad Gateway|nginx/.test(String(g.error)),
+      'error 글자에 본문을 섞었습니다 — 인증 거부 판정이 HTML 속 낱말에 흔들립니다.');
+  } finally {
+    globalThis.fetch = realFetch;
+    if (prevKey === undefined) delete process.env.VWORLD_KEY; else process.env.VWORLD_KEY = prevKey;
+    if (prevDom === undefined) delete process.env.VWORLD_DOMAIN; else process.env.VWORLD_DOMAIN = prevDom;
+  }
+});
+
+test('★★ 요약을 쓰는 자리가 그 본문을 실제로 적는다 — 그리고 «없을 때는 안 적는다»', () => {
+  /* ★ 주석 줄을 떼고 본다 — 이 고침의 경위를 그 파일 주석에 그대로 적었으므로,
+     안 떼면 **지워도 안 빨개진다** (§8 의 그 함정이 거꾸로 온 경우). */
+  const body = codeOf(SCRIPT, '//');
+  assert.ok(/a\.bodyHead/.test(body),
+    '요약 생성기가 본문 앞머리를 안 읽습니다 — 커넥터가 날라도 화면에 한 줄도 안 옵니다 (§8).');
+  assert.ok(/if \(!a\.bodyHead\) continue/.test(body),
+    '본문이 없을 때도 그 줄을 찍습니다 — 빈 줄은 「본문이 비었다」로 읽혀 또 다른 거짓이 됩니다.');
+  assert.ok(/a\.httpStatus/.test(body),
+    '상태코드를 요약에 안 적습니다 — 502 인지 503 인지 사람이 못 가립니다.');
+});
