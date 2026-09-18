@@ -1,0 +1,20 @@
+{
+ "ok": true,
+ "cached": false,
+ "value": {
+  "zone": "자연녹지지역",
+  "allZones": [
+   "가축사육제한구역",
+   "자연녹지지역"
+  ],
+  "limits": {
+   "far": 100,
+   "bcr": 20
+  },
+  "limitsSource": "국토계획법 시행령 기준(조례 확인 필요)",
+  "restrictions": [
+   "가축사육제한구역"
+  ],
+  "critical": []
+ }
+}
