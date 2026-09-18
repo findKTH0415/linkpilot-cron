@@ -8,6 +8,7 @@
 //        종료 코드 0 전부 / 1 일부 / 2 못 쟀다.
 import { createRequire } from 'node:module';
 import { mkdir, writeFile } from 'node:fs/promises';
+import { spawn } from 'node:child_process';
 
 const require = createRequire(import.meta.url);
 require('../im-agent/core/env').load();
@@ -19,6 +20,32 @@ require('../im-agent/core/env').load();
 const VW_DOMAIN = (process.env.VWORLD_DOMAIN || '').trim();
 const VW_DIAG = [];
 const _fetch = globalThis.fetch;
+
+// ── NAS 경유 (VW_VIA=nas) ─────────────────────────────────
+// GitHub 러너(해외 IP)에서 브이월드가 502 로 끊는다(2026-09-18·19 실측).
+// Tailscale 로 붙은 NAS 에 ssh 로 들어가 NAS 의 curl 로 대신 부른다 — 요청이 국내 IP 로 나간다.
+// URL(키 포함)은 명령줄이 아니라 표준입력으로 넘긴다 — NAS 프로세스 목록에 남지 않게.
+const VIA_NAS = process.env.VW_VIA === 'nas';
+const REMOTE = 'read -r U; read -r R; T=$(mktemp 2>/dev/null || echo /tmp/vw.$$); '
+  + 'C=$(curl -sS -m 40 -H "Referer: $R" -H "Origin: ${R%/}" -o "$T" -w "%{http_code}|%{content_type}" "$U" 2>/dev/null) || C="000|"; '
+  + 'printf "%s\\n" "$C" >&2; cat "$T"; rm -f "$T"';
+function viaNas(url, referer) {
+  return new Promise((resolve, reject) => {
+    const p = spawn('ssh', ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=20', '-i', process.env.NAS_KEY_FILE,
+      `${process.env.NAS_USER}@${process.env.NAS_HOST}`, REMOTE]);
+    const out = [], err = [];
+    p.stdout.on('data', (d) => out.push(d)); p.stderr.on('data', (d) => err.push(d));
+    p.on('error', reject);
+    p.on('close', () => {
+      const line = Buffer.concat(err).toString().trim().split('\n').pop() || '';
+      const [code, ct] = line.split('|');
+      const st = Number(code);
+      if (!st) { const e = new Error('NAS 경유 실패'); e.code = `NAS_${code || 'NOCODE'}`; return reject(e); }
+      resolve(new Response(Buffer.concat(out), { status: st, headers: { 'content-type': ct || '' } }));
+    });
+    p.stdin.write(`${url}\n${referer}\n`); p.stdin.end();
+  });
+}
 const redactUrl = (u) => String(u).replace(/([?&](key|KEY|serviceKey)=)[^&]+/g, '$1***').replace(/([?&]domain=)[^&]+/g, '$1(등록도메인)');
 globalThis.fetch = async (url, init = {}) => {
   const u = String(url);
@@ -30,7 +57,7 @@ globalThis.fetch = async (url, init = {}) => {
   }
   const t0 = Date.now();
   try {
-    const r = await _fetch(url, { ...init, headers });
+    const r = VIA_NAS ? await viaNas(u, headers.get('Referer') || '') : await _fetch(url, { ...init, headers });
     const ct = r.headers.get('content-type') || '';
     let head = '';
     if (!/image/.test(ct)) { try { head = (await r.clone().text()).slice(0, 240); } catch {} }
@@ -182,6 +209,7 @@ await writeFile(`${OUT}/vworld_diag.json`, JSON.stringify(VW_DIAG, null, 1));
   const by = {}; for (const x of VW_DIAG) by[x.status] = (by[x.status] || 0) + 1;
   P(`- 브이월드 응답 분포 ${JSON.stringify(by)} → \`vworld_diag.json\``);
   P(`- 등록 도메인 주입 ${VW_DOMAIN ? '있음(Referer·Origin·domain)' : '**없음 — VWORLD_DOMAIN 비어 있음**'}`);
+  P(`- 호출 경로 ${VIA_NAS ? 'Tailscale → NAS(국내 IP) 경유' : 'GitHub 러너 직접'}`);
 }
 P('');
 P('## 4. API로 받지 않는 것');
