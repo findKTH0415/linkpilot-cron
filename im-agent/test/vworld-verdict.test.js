@@ -324,7 +324,10 @@ test('★★ 요약을 쓰는 자리가 그 본문을 실제로 적는다 — �
   const body = codeOf(SCRIPT, '//');
   assert.ok(/a\.bodyHead/.test(body),
     '요약 생성기가 본문 앞머리를 안 읽습니다 — 커넥터가 날라도 화면에 한 줄도 안 옵니다 (§8).');
-  assert.ok(/if \(!a\.bodyHead\) continue/.test(body),
+  /* ★ D-219 로 본문·헤더를 «따로» 세면서 `continue` 가 `if` 로 바뀌었다.
+     글자 모양을 박아 둔 탓에 **고침이 옳은데 빨개졌다** — 재려던 성질
+     (「본문이 없으면 그 줄을 안 적는다」)은 그대로 두고 **세는 자리만 옮겼다** (§6-2-5). */
+  assert.ok(/if \(a\.bodyHead\)/.test(body),
     '본문이 없을 때도 그 줄을 찍습니다 — 빈 줄은 「본문이 비었다」로 읽혀 또 다른 거짓이 됩니다.');
   assert.ok(/a\.httpStatus/.test(body),
     '상태코드를 요약에 안 적습니다 — 502 인지 503 인지 사람이 못 가립니다.');
@@ -370,9 +373,141 @@ test('★★ 나르는 줄 수가 «판정 + 근거»의 최악 길이를 덮는
   const src = read(SCRIPT);
   const lots = (src.match(/label:/g) || []).length;
   assert.ok(lots >= 1, '필지 표를 못 읽었습니다 — 이 칸은 아무것도 안 잽니다.');
-  const worst = lots * 2 /* 도로명·지번 */ + 1 /* 근거 머리말 */ + 1 /* 판정 */ + 1 /* 완료 */;
+  /* ★ D-219 로 «본문»과 «헤더»가 각각 한 줄이 됐다 — 갈래 둘 × 두 줄이다.
+     한쪽만 세면 헤더가 붙는 날 판정이 조용히 밀려 사라진다. */
+  const worst = lots * 2 /* 도로명·지번 */ * 2 /* 본문·헤더 */
+    + 1 /* 근거 머리말 */ + 1 /* 판정 */ + 1 /* 완료 */;
 
   assert.ok(carry >= worst,
     `요약으로 ${carry}줄만 나르는데 최악은 ${worst}줄입니다 — 잘리는 첫 줄이 하필 `
     + '「무엇이 막았는가」가 됩니다 (§12-19 의 그 자리).');
+});
+
+/* ------------------------------------------------------------------------- *
+ * **502 를 «누가 냈는가» — 헤더가 말한다** 〈2026-09-18 · D-219 · 실측〉
+ *
+ * [무엇이 남아 있었나] D-218 이 본문을 되살렸고, 실제로 걸어 보니 브이월드가
+ *   돌려준 것은 `502 Bad Gateway` **한 줄**이었다 — **서버 서명이 없다.**
+ *   그래서 **기관 게이트웨이인지 중간의 프록시인지** 아직 못 가린다.
+ *   할 일이 정반대다: 앞은 「기다렸다 다시」, 뒤는 「도는 자리를 옮긴다」 (§12-31).
+ *
+ * ★ `Server` 한 줄이면 대개 갈리고, `Via`·`X-Cache`·`CF-Ray` 는 **중간이 끼었다**는 표다.
+ * ★★ **통째로 담지 않는다** — 응답 헤더에는 쿠키·인증 챌린지가 섞여 온다 (§2).
+ *   그래서 **허용목록**이고, 이 칸이 그 허용목록이 실제로 «거르는지»를 잰다.
+ * ★★★ **낱말이 아니라 돌려서 잰다** — 「SAFE_RESPONSE_HEADERS 가 있는가」는
+ *   아무것도 안 재는 것이다. 진짜 `Response` 를 먹여 무엇이 담기는지 본다.
+ * ------------------------------------------------------------------------- */
+test('★★★ 헤더 허용목록이 실제로 «거른다» — 쿠키·인증 챌린지는 안 담는다 (§2)', () => {
+  const { pickHeaders, SAFE_RESPONSE_HEADERS } = require('../connectors/http.js');
+  assert.ok(Array.isArray(SAFE_RESPONSE_HEADERS) && SAFE_RESPONSE_HEADERS.length >= 3,
+    '허용목록을 못 읽었습니다 — 이 칸은 아무것도 안 잽니다.');
+
+  const r = new Response('x', {
+    status: 502,
+    headers: {
+      'server': 'nginx/1.18.0',
+      'via': '1.1 squid',
+      'x-cache': 'MISS',
+      'set-cookie': 'SESSIONID=SECRETCOOKIEVALUE; Path=/',
+      'www-authenticate': 'Basic realm="SECRETREALM"',
+      'authorization': 'Bearer SECRETTOKEN',
+    },
+  });
+  const h = pickHeaders(r);
+  assert.equal(h.server, 'nginx/1.18.0', '`Server` 를 안 담습니다 — 누가 냈는지 가릴 첫 줄입니다.');
+  assert.equal(h.via, '1.1 squid', '`Via` 를 안 담습니다 — 중간이 끼었다는 표입니다.');
+
+  const flat = JSON.stringify(h);
+  assert.ok(!/SECRETCOOKIEVALUE|SECRETTOKEN|SECRETREALM/.test(flat),
+    '허용목록 밖의 헤더가 담깁니다 — 쿠키·인증 챌린지가 그 자리에서 샙니다 (§2).');
+  assert.ok(!('set-cookie' in h) && !('authorization' in h),
+    '허용목록이 안 거릅니다 — 통째로 담고 있습니다 (§4.6 「진단 답을 통째로 찍지 않는다」).');
+});
+
+test('★★★ `request()` 가 헤더를 «세 갈래 모두»에 싣는다 (성공 · 재시도 무의미 · 재시도로 끝남)', async () => {
+  const { request } = require('../connectors/http.js');
+  const realFetch = globalThis.fetch;
+  const mk = (status) => async () =>
+    new Response('body', { status, headers: { server: 'nginx/1.18.0', via: '1.1 squid' } });
+  try {
+    globalThis.fetch = mk(200);
+    const ok = await request('https://example.invalid/x', { timeoutMs: 50 });
+    assert.equal(ok.headers && ok.headers.server, 'nginx/1.18.0', '성공 갈래에서 헤더를 버립니다.');
+
+    globalThis.fetch = mk(403);
+    const fatal = await request('https://example.invalid/x', { timeoutMs: 50 });
+    assert.equal(fatal.headers && fatal.headers.server, 'nginx/1.18.0',
+      '「재시도 무의미」 갈래에서 헤더를 버립니다 — 403 을 누가 냈는지 못 가립니다.');
+
+    globalThis.fetch = mk(502);
+    const dead = await request('https://example.invalid/x', { timeoutMs: 50 });
+    assert.equal(dead.headers && dead.headers.server, 'nginx/1.18.0',
+      '재시도로 끝난 갈래에서 헤더를 버립니다 — D-219 가 되살리려던 그 자리입니다.');
+    assert.equal(dead.headers.via, '1.1 squid', '`Via` 를 안 나릅니다.');
+  } finally { globalThis.fetch = realFetch; }
+});
+
+test('★★ 커넥터·요약이 헤더를 «따로» 나르고, error 글자에는 안 섞는다', async () => {
+  const vw = require('../connectors/vworld.js');
+  const BAIT = 'AIzaSyBAIT000000000000000000000000000000';
+  const realFetch = globalThis.fetch;
+  const prevKey = process.env.VWORLD_KEY, prevDom = process.env.VWORLD_DOMAIN;
+  process.env.VWORLD_KEY = BAIT;
+  process.env.VWORLD_DOMAIN = 'https://example.invalid/app.html';
+  globalThis.fetch = async () => new Response('502 Bad Gateway', {
+    status: 502,
+    /* ★ 헤더에 열쇠가 실려 오는 일이 실제로 있다 — 되비추는 안내 페이지 */
+    headers: { server: 'squid/5.7', via: `1.1 proxy ${BAIT}`, 'set-cookie': 'S=LEAKME' },
+  });
+  try {
+    const g = await vw.geocode('강원특별자치도 원주시 신림면 송계리 695-4');
+    assert.equal(g.ok, false);
+    const at = (g.attempts || []).filter(a => a.headHdr);
+    assert.ok(at.length > 0,
+      '헤더를 한 시도도 안 실었습니다 — 나르는 자리가 버리면 요약에 한 줄도 안 옵니다 (§8).');
+    assert.ok(/server: squid/.test(at[0].headHdr), '`Server` 가 안 실렸습니다.');
+
+    const all = JSON.stringify(g);
+    assert.ok(!all.includes(BAIT), '헤더에 섞인 열쇠가 그대로 나옵니다 — 가려야 합니다 (§2).');
+    assert.ok(!/LEAKME/.test(all), '허용목록 밖 헤더가 새어 나옵니다 (§2).');
+    assert.ok(!/squid/.test(String(g.error)),
+      'error 글자에 헤더를 섞었습니다 — 인증 거부 판정이 헤더 낱말에 흔들립니다.');
+
+    /* ★★ 요약 생성기가 실제로 그것을 적는가 — 나르는 자리는 셋이다 (§12-19) */
+    const body = codeOf(SCRIPT, '//');
+    assert.ok(/a\.headHdr/.test(body),
+      '요약 생성기가 헤더를 안 읽습니다 — 커넥터가 날라도 화면에 한 줄도 안 옵니다 (§8).');
+    assert.ok(/if \(a\.headHdr\)/.test(body),
+      '헤더가 없을 때도 그 줄을 찍습니다 — 빈 줄은 또 다른 거짓이 됩니다 (§8).');
+  } finally {
+    globalThis.fetch = realFetch;
+    if (prevKey === undefined) delete process.env.VWORLD_KEY; else process.env.VWORLD_KEY = prevKey;
+    if (prevDom === undefined) delete process.env.VWORLD_DOMAIN; else process.env.VWORLD_DOMAIN = prevDom;
+  }
+});
+
+test('★★ 헤더를 펴는 자리가 «한 벌»이다 — 커넥터마다 적으면 한쪽이 옛말을 한다 (§8-1)', () => {
+  const http = require('../connectors/http.js');
+  assert.equal(typeof http.fmtHeaders, 'function',
+    '공용 창구가 없습니다 — 커넥터마다 제 것을 두면 한쪽이 옛말을 합니다.');
+
+  const fs2 = require('node:fs');
+  const dir = path.join(__dirname, '..', 'connectors');
+  const own = fs2.readdirSync(dir)
+    .filter(f => f.endsWith('.js') && f !== 'http.js')
+    .filter(f => /function\s+fmtHeaders/.test(fs2.readFileSync(path.join(dir, f), 'utf8')));
+  assert.deepEqual(own, [],
+    `커넥터가 제 fmtHeaders 를 따로 갖고 있습니다: ${own.join(', ')} — 한 벌만 둡니다 (§8-1).`);
+
+  /* ★ 가리개를 지나가는가 — 헤더에 열쇠가 실려 오는 일이 실제로 있다 (§2) */
+  const BAIT = 'AIzaSyBAIT000000000000000000000000000000';
+  const prev = process.env.VWORLD_KEY;
+  process.env.VWORLD_KEY = BAIT;
+  try {
+    const line = http.fmtHeaders({ server: 'nginx', via: `1.1 proxy ${BAIT}` });
+    assert.ok(/server: nginx/.test(line), '헤더를 안 폅니다.');
+    assert.ok(!line.includes(BAIT), '헤더에 섞인 열쇠를 안 가립니다 (§2).');
+  } finally {
+    if (prev === undefined) delete process.env.VWORLD_KEY; else process.env.VWORLD_KEY = prev;
+  }
 });

@@ -27,10 +27,42 @@ function isFatalStatus(status) {
   return status === 400 || status === 401 || status === 403 || status === 404;
 }
 
+/* ★★★ **5xx 를 «누가 냈는지»는 헤더가 말한다 — 다만 «정해 둔 이름만» 담는다** 〈D-219〉.
+ *   [왜] D-218 이 본문을 되살렸는데, 브이월드가 돌려준 502 본문에는 **서버 서명이 없었다**
+ *     (`502 Bad Gateway` 한 줄). 그래서 **기관 게이트웨이인지 중간의 프록시인지** 아직 못 가린다.
+ *     할 일이 정반대다 — 앞은 「기다렸다 다시」, 뒤는 「도는 자리를 옮긴다」 (§12-31).
+ *   ★ `Server` 한 줄만 있어도 대개 갈린다. `Via`·`X-Cache`·`CF-Ray` 는 **중간이 끼었다**는 표다.
+ *   ★★ **전부 담지 않는다.** 응답 헤더에는 쿠키·인증 챌린지가 섞여 올 수 있어,
+ *     통째로 나르면 그 자리에서 샌다 (§2 · §4.6 「진단 답을 통째로 찍지 않는다」와 같은 규칙).
+ *     그래서 **허용목록**이다 — 새 이름을 더할 때는 그 이름이 값을 나를 수 없는지 먼저 본다.
+ *   ★★★ 값은 부르는 쪽이 `redact()` 를 지나게 한다 — `bodyHead` 와 같은 길이다. */
+const SAFE_RESPONSE_HEADERS = [
+  'server',          // nginx / Apache / … — 대답한 자리의 서명
+  'via',             // 중간에 낀 프록시가 스스로 적는다
+  'x-cache', 'x-cache-hits', 'x-served-by', 'x-varnish',   // CDN 캐시 계열
+  'cf-ray', 'cf-cache-status',                              // Cloudflare
+  'x-amz-cf-id',                                            // CloudFront
+  'x-powered-by',
+  'age',
+  'content-type',    // XML 을 부탁했는데 HTML 이 오면 대개 안내 페이지다
+];
+
+/** 응답에서 위 이름만 골라 평평한 객체로 돌려준다 (없는 이름은 안 담는다) */
+function pickHeaders(r) {
+  const out = {};
+  if (!r || !r.headers || typeof r.headers.get !== 'function') return out;
+  for (const name of SAFE_RESPONSE_HEADERS) {
+    const v = r.headers.get(name);
+    if (v) out[name] = String(v).slice(0, 200);
+  }
+  return out;
+}
+
 /**
  * @param {object} [opts]
  * @param {boolean} [opts.binary] 본문을 Buffer 로 받는다 (ZIP 등 — 텍스트로 읽으면 깨진다)
- * @returns {Promise<{ok:boolean, status?:number, body?:string|Buffer, error?:string, attempts:number}>}
+ * @returns {Promise<{ok:boolean, status?:number, body?:string|Buffer, headers?:object, error?:string, attempts:number}>}
+ *   `headers` 는 SAFE_RESPONSE_HEADERS 에 적힌 이름만 담는다 — 통째로 담지 않는다 (§2)
  */
 async function request(url, {
   timeoutMs = DEFAULT_TIMEOUT, headers = {}, method = 'GET', binary = false,
@@ -47,7 +79,7 @@ async function request(url, {
   //   할 일이 **정반대**인데(기다렸다 다시 / 도는 자리를 옛긴다) 한 글자로 뭉개졌다.
   //   §6-2-6 「받자마자 버린 것」 · §12-10 「무엇을 버리는지 본다」와 같은 고장이다.
   // ★ 값은 부르는 쪽이 `redact()` 를 지나게 한다 (§2).
-  let lastStatus, lastBody;
+  let lastStatus, lastBody, lastHeaders;
 
   for (let attempt = 0; attempt <= RETRY_DELAYS.length; attempt++) {
     if (attempt > 0) await sleep(RETRY_DELAYS[attempt - 1]);
@@ -63,12 +95,12 @@ async function request(url, {
       const r = await fetch(url, init);
       const body = binary ? Buffer.from(await r.arrayBuffer()) : await r.text();
 
-      if (r.ok) return { ok: true, status: r.status, body, attempts: attempt + 1 };
+      if (r.ok) return { ok: true, status: r.status, body, headers: pickHeaders(r), attempts: attempt + 1 };
 
       lastError = `HTTP ${r.status}`;
-      lastStatus = r.status; lastBody = body;
+      lastStatus = r.status; lastBody = body; lastHeaders = pickHeaders(r);
       if (isFatalStatus(r.status)) {
-        return { ok: false, status: r.status, error: `${lastError} (재시도 무의미)`, body, attempts: attempt + 1 };
+        return { ok: false, status: r.status, error: `${lastError} (재시도 무의미)`, body, headers: lastHeaders, attempts: attempt + 1 };
       }
     } catch (e) {
       lastError = e.name === 'AbortError' ? `타임아웃 ${timeoutMs}ms` : e.message;
@@ -82,6 +114,7 @@ async function request(url, {
     error: `${lastError} (${RETRY_DELAYS.length + 1}회 시도 실패)`,
     status: lastStatus,
     body: lastBody,
+    headers: lastHeaders,
     attempts: RETRY_DELAYS.length + 1,
   };
 }
@@ -218,6 +251,23 @@ const SECRET_ENV = [
 ];
 
 /**
+ * 위에서 고른 헤더를 «한 줄»로 편다 — 커넥터가 요약에 실을 모양이다.
+ *
+ * ★ **여기 한 벌만 둔다** — 커넥터마다 적으면 한쪽이 옛말을 한다 (§8-1).
+ * ★★ 값은 `redact()` 를 지나간다 (§2). 헤더에 열쇠가 실려 오는 일이 실제로 있다
+ *   (되비추는 안내 페이지가 요청을 그대로 되돌려주는 경우).
+ * ★★★ **부르는 쪽은 이것을 `error` 글자에 안 섞는다** — 그 글자로 「다음 열쇠로
+ *   넘어갈지」를 정하는 자리가 있어(vworld 의 `isAuthReject`), `WWW-Authenticate`
+ *   같은 낱말 하나에 **엉뚱한 갈래로 넘어간다.** 새 칸으로 나른다.
+ */
+function fmtHeaders(h) {
+  if (!h || typeof h !== 'object') return '';
+  const parts = Object.keys(h).map((k) => `${k}: ${h[k]}`);
+  if (!parts.length) return '';
+  return redact(parts.join(' · ')).slice(0, 300);
+}
+
+/**
  * 로그·에러 메시지에서 서비스키를 가린다 (시크릿 평문 노출 금지).
  *
  * ★ 규칙 두 개로는 부족한 경우가 있다. ECOS 는 키를 **URL 경로**에 넣고 길이도
@@ -253,4 +303,4 @@ function redact(text, extra) {
   return out;
 }
 
-module.exports = { request, buildUrl, redact, sleep, looksUrlEncoded, SECRET_ENV, DEFAULT_TIMEOUT };
+module.exports = { request, buildUrl, redact, sleep, looksUrlEncoded, SECRET_ENV, SAFE_RESPONSE_HEADERS, pickHeaders, fmtHeaders, DEFAULT_TIMEOUT };

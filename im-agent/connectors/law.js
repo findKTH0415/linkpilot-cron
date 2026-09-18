@@ -33,7 +33,7 @@
  *   비운다 (§4.6). 「아마 800%」 같은 것을 채우지 않는다.
  */
 
-const { request, buildUrl, redact } = require('./http');
+const { request, buildUrl, redact, fmtHeaders } = require('./http');
 const cache = require('./cache');
 
 const PROVIDER = 'law';
@@ -105,7 +105,23 @@ function diagnose(status, body) {
 async function call(path, params, { ttl, namespace }) {
   const url = buildUrl(`${BASE}/${path}`, { OC: oc(), type: 'JSON', ...params });
   const r = await request(url);
-  if (!r.ok) return { ok: false, error: redact(r.error) };
+  /* ★★★ **여기서 응답 본문을 «버리고» 있었다** 〈D-219 · 실측〉.
+     [무엇이 났나] 이 파일은 `diagnose()` 로 승인·OC·없음·형식 넷을 가르는데,
+       그것을 부르는 자리가 **JSON 파싱이 깨졌을 때 하나뿐**이었다. 곧 서버가
+       401·403·5xx 로 답하면 **본문을 통째로 버리고** `HTTP 403` 이라는 글자만 남았다 —
+       승인 전인지 OC 오타인지 그쪽 게이트웨이인지가 **한 글자로 뭉개진다.**
+     ★ D-218 이 브이월드에서 고친 것과 **같은 고장**이고, 이 파일에는 안 댔던 자리다
+       (S-53 「한 칸에서 배운 것을 옆 칸에 안 대면 그 자리에 그대로 남는다」).
+     ★★ 값은 `redact()` 를 지나간다 (§2). `error` 에는 안 섞는다 — 부르는 쪽이
+       그 글자로 갈래를 정하는 자리가 생기면 본문 속 낱말 하나에 엉뚱해진다. */
+  if (!r.ok) {
+    const d = diagnose(r.status, r.body);
+    const head = r.body === undefined || r.body === null
+      ? ''
+      : redact(String(r.body).replace(/\s+/g, ' ').trim().slice(0, 200));
+    return { ok: false, error: redact(r.error), kind: d.kind, head: d.head,
+      httpStatus: r.status, bodyHead: head, headHdr: fmtHeaders(r.headers) };
+  }
 
   let body;
   try {

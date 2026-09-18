@@ -13,7 +13,7 @@
  * 인증키: `vworldkey.js` 가 이름 셋을 읽는다 (GitHub Secrets)
  */
 
-const { request, buildUrl, redact } = require('./http');
+const { request, buildUrl, redact, fmtHeaders } = require('./http');
 const cache = require('./cache');
 const { num } = require('./xml');
 const vkey = require('./vworldkey');
@@ -151,11 +151,16 @@ async function callOnce(service, params, key) {
     //   새 칸으로 나르면 판정은 그대로 돌고 사람은 근거를 본다.
     // ★★ 값은 `redact()` 를 지나간다 (§2). 200자는 §4 「응답 본문을 200자 이상
     //   그대로 저장한다」의 그 자리다.
+    // ★★★ **헤더도 함께 나른다** 〈D-219〉. D-218 이 되살린 그 502 본문에는
+    //   **서버 서명이 없었다**(`502 Bad Gateway` 한 줄) — 그래서 누가 냈는지를
+    //   아직 못 가린다. `Server` 한 줄, `Via`·`X-Cache` 가 있으면 **중간이 끼었다**는 표다.
+    //   담기는 이름은 `http.js` 의 `SAFE_RESPONSE_HEADERS` 뿐이고 값은 `redact()` 를 지난다 (§2).
     if (!r.ok) {
       const head = r.body === undefined || r.body === null
         ? ''
         : redact(String(r.body).replace(/\s+/g, ' ').trim().slice(0, 200));
-      return { ok: false, error: redact(r.error), httpStatus: r.status, bodyHead: head };
+      return { ok: false, error: redact(r.error), httpStatus: r.status, bodyHead: head,
+        headHdr: fmtHeaders(r.headers) };
     }
 
     let j;
@@ -215,6 +220,7 @@ async function geocode(address) {
       //   (§8 「만들었다와 닿는다는 다른 사실이다」 · §12-19 의 그 자리).
       httpStatus: r.httpStatus,
       bodyHead: r.bodyHead || '',
+      headHdr: r.headHdr || '',
     });
   }
 
