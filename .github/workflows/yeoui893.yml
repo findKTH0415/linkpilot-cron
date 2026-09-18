@@ -2,6 +2,11 @@ name: 여의동 893 공공데이터 수집
 
 on:
   workflow_dispatch:
+    inputs:
+      skip_trade:
+        description: '실거래 재수집 생략 (이미 받은 36개월치 사용)'
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -19,10 +24,13 @@ jobs:
         id: fetch
         env:
           DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
-          VWORLD_KEY: ${{ secrets.VWORLD_KEY }}        # 도메인 등록형 — 둘을 함께 주입
+          SKIP_TRADE: ${{ inputs.skip_trade && '1' || '0' }}
+          # ★ 2026-09-19 재구성 — 브이월드 콘솔 등록 내용에 맞춘다
+          #   WEB 키 : 2D지도·배경지도·WMS/WFS·WMTS·2D데이터·지오코더·검색·이미지·범례  → 이 수집에 필요한 것 전부
+          #   REPORT 키 : 3D지도·3D데스크톱·국가중점 만 → 지오코더·데이터·이미지 권한이 없어 넣지 않는다
+          #   서비스URL(두 키 공통) = VWORLD_DOMAIN 시크릿 값과 글자까지 같아야 한다
+          VWORLD_KEY: ${{ secrets.LINKPILOT_VWORLD_WEB_KEY }}
           VWORLD_DOMAIN: ${{ secrets.VWORLD_DOMAIN }}
-          LINKPILOT_VWORLD_REPORT_KEY: ${{ secrets.LINKPILOT_VWORLD_REPORT_KEY }}   # 커넥터가 VWORLD_KEY 다음 순서로 읽는다
-          LINKPILOT_VWORLD_WEB_KEY:    ${{ secrets.LINKPILOT_VWORLD_WEB_KEY }}
         run: |
           set -o pipefail
           set +e
