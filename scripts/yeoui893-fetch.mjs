@@ -11,6 +11,36 @@ import { mkdir, writeFile } from 'node:fs/promises';
 
 const require = createRequire(import.meta.url);
 require('../im-agent/core/env').load();
+
+// ── 브이월드 호출에 등록 도메인을 Referer·Origin 으로 싣는다 (2026-09-19 재구성) ──
+// 콘솔 서비스URL: https://synologynas.tail43fc79.ts.net (WEB·REPORT 키 공통)
+// Actions 러너는 Referer 가 비어 있다. 커넥터는 domain 파라미터만 보내므로 여기서 헤더를 더한다.
+// 모든 브이월드 응답의 상태와 앞부분(키 가림)을 diag 로 남겨 502·인증거부·권한없음을 구분한다.
+const VW_DOMAIN = (process.env.VWORLD_DOMAIN || '').trim();
+const VW_DIAG = [];
+const _fetch = globalThis.fetch;
+const redactUrl = (u) => String(u).replace(/([?&](key|KEY|serviceKey)=)[^&]+/g, '$1***').replace(/([?&]domain=)[^&]+/g, '$1(등록도메인)');
+globalThis.fetch = async (url, init = {}) => {
+  const u = String(url);
+  if (!/vworld\.kr/.test(u)) return _fetch(url, init);
+  const headers = new Headers(init.headers || {});
+  if (VW_DOMAIN) {
+    if (!headers.has('Referer')) headers.set('Referer', VW_DOMAIN.endsWith('/') ? VW_DOMAIN : VW_DOMAIN + '/');
+    if (!headers.has('Origin')) headers.set('Origin', VW_DOMAIN.replace(/\/$/, ''));
+  }
+  const t0 = Date.now();
+  try {
+    const r = await _fetch(url, { ...init, headers });
+    const ct = r.headers.get('content-type') || '';
+    let head = '';
+    if (!/image/.test(ct)) { try { head = (await r.clone().text()).slice(0, 240); } catch {} }
+    VW_DIAG.push({ url: redactUrl(u).slice(0, 220), status: r.status, ct, ms: Date.now() - t0, head });
+    return r;
+  } catch (e) {
+    VW_DIAG.push({ url: redactUrl(u).slice(0, 220), status: 'NETWORK', err: e.cause?.code || e.code || e.message, ms: Date.now() - t0 });
+    throw e;
+  }
+};
 const vworld = require('../im-agent/connectors/vworld');
 const nsdi = require('../im-agent/connectors/nsdi');
 const { dataKey } = require('../im-agent/connectors/datakey');
@@ -40,7 +70,8 @@ const months = [];
   for (let i = 1; i <= 36; i++) { const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() - i, 1));
     months.push(`${t.getUTCFullYear()}${String(t.getUTCMonth() + 1).padStart(2, '0')}`); } }
 const trades = [];
-if (!key) { P('- **DATA_GO_KR_KEY 미주입** — 실거래 미실행'); problems.push('실거래 키 없음'); }
+if (process.env.SKIP_TRADE === '1') { P('- 이번 실행은 생략 (2026-09-18 수집본 사용)'); }
+else if (!key) { P('- **DATA_GO_KR_KEY 미주입** — 실거래 미실행'); problems.push('실거래 키 없음'); }
 else {
   let okMonths = 0, emptyMonths = 0, failMonths = 0;
   for (const ym of months) {
@@ -112,8 +143,11 @@ P('## 3. 브이월드 정적지도');
 const C = center || FALLBACK;
 P(`- 중심 ${C.lat}, ${C.lon} (${center ? '브이월드 지오코딩' : '구글 좌표 대체 — 등급 C'})`);
 const REFERER = /^https?:\/\//.test(vworld.domain()) ? vworld.domain() : `http://${vworld.domain()}`;
-for (const [name, opt] of [['site_sat', { zoom: 18, layer: 'Satellite' }], ['wide_sat', { zoom: 16, layer: 'Satellite' }],
-                           ['site_map', { zoom: 18, layer: 'Base' }], ['wide_map', { zoom: 15, layer: 'Base' }]]) {
+const MAPS = [['site_sat', { zoom: 18, layer: 'Satellite' }], ['wide_sat', { zoom: 16, layer: 'Satellite' }],
+              ['site_map', { zoom: 18, layer: 'Base' }], ['wide_map', { zoom: 15, layer: 'Base' }],
+              // 시험 중 — 커넥터의 basemap 값(Satellite/Base)이 안 먹을 때 대체 표기
+              ['site_sat_try', { zoom: 18, layer: 'PHOTO' }], ['site_map_try', { zoom: 18, layer: 'GRAPHIC' }]];
+for (const [name, opt] of MAPS) {
   tried++;
   const url = vworld.staticMapUrl(C.lat, C.lon, { width: 1200, height: 900, ...opt });
   if (!url) { P(`- ${name} → 키 없음, 요청 안 함`); problems.push(`지도 ${name}: 키 없음`); continue; }
@@ -124,7 +158,31 @@ for (const [name, opt] of [['site_sat', { zoom: 18, layer: 'Satellite' }], ['wid
     else { await writeFile(`${OUT}/maps/${name}.err.txt`, buf.subarray(0, 3000)); P(`- ${name} → 이미지 아님 (HTTP ${r.status})`); problems.push(`지도 ${name} 미수집`); }
   } catch (e) { P(`- ${name} → 네트워크 오류 ${e.code || ''}`); problems.push(`지도 ${name}: 네트워크`); }
 }
+// 지적 경계(연속지적도) WMS — 시험 중. 결과로만 확정한다
+{
+  tried++;
+  const d = 0.0009, k = (process.env.VWORLD_KEY || '').trim();
+  if (!k) { P('- cadastral → 키 없음'); }
+  else {
+    const q = new URLSearchParams({ SERVICE: 'WMS', REQUEST: 'GetMap', VERSION: '1.3.0',
+      LAYERS: 'lp_pa_cbnd_bubun,lp_pa_cbnd_bonbun', STYLES: 'lp_pa_cbnd_bubun_line,lp_pa_cbnd_bonbun_line',
+      CRS: 'EPSG:4326', BBOX: [C.lat - d, C.lon - d * 1.25, C.lat + d, C.lon + d * 1.25].join(','),
+      WIDTH: '1200', HEIGHT: '900', FORMAT: 'image/png', TRANSPARENT: 'true', KEY: k, DOMAIN: VW_DOMAIN });
+    try {
+      const r = await fetch(`https://api.vworld.kr/req/wms?${q}`);
+      const buf = Buffer.from(await r.arrayBuffer()); const ct = r.headers.get('content-type') || '';
+      if (/image/.test(ct) && buf.length > 2000) { await writeFile(`${OUT}/maps/cadastral_wms.png`, buf); got++; P(`- cadastral_wms → HTTP ${r.status} · ${(buf.length / 1024).toFixed(0)}KB`); }
+      else { await writeFile(`${OUT}/maps/cadastral_wms.err.txt`, buf.subarray(0, 3000)); P(`- cadastral_wms → 이미지 아님 (HTTP ${r.status})`); problems.push('지적도 WMS 미수집'); }
+    } catch (e) { P(`- cadastral_wms → 네트워크 오류`); problems.push('지적도 WMS: 네트워크'); }
+  }
+}
 P(`- 공개 링크(키 없음) ${vworld.mapLink(C.lat, C.lon)}`);
+await writeFile(`${OUT}/vworld_diag.json`, JSON.stringify(VW_DIAG, null, 1));
+{
+  const by = {}; for (const x of VW_DIAG) by[x.status] = (by[x.status] || 0) + 1;
+  P(`- 브이월드 응답 분포 ${JSON.stringify(by)} → \`vworld_diag.json\``);
+  P(`- 등록 도메인 주입 ${VW_DOMAIN ? '있음(Referer·Origin·domain)' : '**없음 — VWORLD_DOMAIN 비어 있음**'}`);
+}
 P('');
 P('## 4. API로 받지 않는 것');
 P('- 등기사항전부증명서 — 인터넷등기소 발급(직접 징구)');
