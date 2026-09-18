@@ -49,7 +49,11 @@ jobs:
             echo "### 브이월드 수집 판정"
             echo ""
             # ★ 스크립트가 적은 판정을 **그대로** 싣는다. 여기서 처방을 덧붙이지 않는다
-            grep -v '^LP_VWORLD ' "$RUNNER_TEMP/vworld.log" | tail -20
+            # ★ 나르는 줄 수는 **판정 + 근거의 최악 길이를 덮어야** 한다.
+            #   필지마다 갈래 둘(도로명·지번)의 본문이 따라오므로 그만큼 길어진다 —
+            #   모자라면 **잘리는 첫 줄이 하필 「무엇이 막았는가」**가 된다 (§12-19 의 그 자리).
+            #   손으로 박지 않고 검사가 최악 길이를 세어 견준다.
+            grep -v '^LP_VWORLD ' "$RUNNER_TEMP/vworld.log" | tail -40
             echo ""
           } >> "$GITHUB_STEP_SUMMARY"
           exit 0

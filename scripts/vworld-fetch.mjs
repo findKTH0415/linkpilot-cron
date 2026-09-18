@@ -82,6 +82,12 @@ P('');
 
 const parcels = [];
 const problems = [];
+/* ★★★ **근거를 따로 모은다 — 요약은 «파일»이고 사장님이 보시는 것은 «실행 요약»이다**
+ *   〈D-218 이음〉. 본문을 되살렸는데 그것이 `_summary.md` 안에만 있었다 —
+ *   그리고 작업 가지에서는 그 파일이 **커밋도 안 된다**(D-213 이음). 곰
+ *   **아티팩트를 받지 않으면 아무도 못 본다.**
+ * ★ 「만들었다」와 「닿는다」는 다른 사실이다 (§8 · §12-19 의 그 자리). */
+const evidence = [];
 
 for (const lot of LOTS) {
   const g = await vworld.geocode(lot.address);
@@ -95,7 +101,9 @@ for (const lot of LOTS) {
     //   읽혀 또 다른 거짓이 된다 (§8 「못 잼을 통과로 적지 않는다」).
     for (const a of (g.attempts || [])) {
       if (!a.bodyHead) continue;
+      const line = `${lot.label} ${a.type}${a.httpStatus ? ' · HTTP ' + a.httpStatus : ''}: ${a.bodyHead}`;
       P(`  - 그쪽이 돌려준 본문(${a.type}${a.httpStatus ? ' · HTTP ' + a.httpStatus : ''}): \`${a.bodyHead}\``);
+      evidence.push(line);
     }
     problems.push(`${lot.label} 지오코딩: ${g.error}`);
     continue;
@@ -334,5 +342,13 @@ await save();
  *   한 줄도 안 온다. 「만들었다」와 「닿는다」는 다른 사실이다. */
 console.log(`LP_VWORLD verdict=${code}`);
 console.log(verdict.replace(/\*\*/g, ''));
+/* ★★★ **걸렸으면 근거를 함께 낸다** — 판정만 나르면 「왜 그렇게 판정했는지」를
+ *   보려면 아티팩트를 받아 압축을 푸셔야 한다. 그러면 아무도 안 본다.
+ * ★ 본문을 못 받았으면 그 줄을 **아예 안 찍는다** — 빈 줄은 「본문이 비었다」로
+ *   읽혀 또 다른 거짓이 된다 (§8). */
+if (code !== 0 && evidence.length) {
+  console.log('— 그쪽이 돌려준 본문 (이것이 위 판정의 근거다):');
+  for (const e of evidence) console.log(`  · ${e}`);
+}
 console.log(`완료 — ${OUT}/_summary.md`);
 process.exit(code);
