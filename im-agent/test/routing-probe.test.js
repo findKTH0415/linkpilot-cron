@@ -38,6 +38,27 @@ function cutFn(src, name) {
   return null;
 }
 
+/** `P(…)` 에 **실제로 넘기는 것**만 오려 낸다 — 괄호 짝을 세어 판다.
+ *  ★★★ **왜 「그 줄」이 아니라 「그 인자」인가** 〈D-230 · 두 번 헛짚었다〉.
+ *    · 줄 «맨 앞»의 `P(` 만 세면 `for (…) P(…)` 를 통째로 놓쳐 **눈이 먼다.**
+ *    · 반대로 「`P(` 가 든 줄」을 통째로 세면, 같은 줄의 **견줌**(`k === odsay.value`)까지
+ *      「찍는다」로 읽혀 **고침이 옳은데 빨개진다.**
+ *    재려던 성질(**요약에 값이 실리는가**)은 그대로 두고 **세는 자리를 옮겼다** (§6-2-5). */
+function cutCalls(src, name) {
+  const out = [];
+  const re = new RegExp(`\\b${name}\\(`, 'g');
+  let m;
+  while ((m = re.exec(src))) {
+    let i = m.index + m[0].length - 1, depth = 0;
+    for (; i < src.length; i += 1) {
+      if (src[i] === '(') depth += 1;
+      else if (src[i] === ')') { depth -= 1; if (depth === 0) break; }
+    }
+    out.push(src.slice(m.index + m[0].length, i));
+  }
+  return out;
+}
+
 test('★★★ 갈래 다섯을 «갈라» 말한다 — 값마다 하실 일이 정반대다 (D-227)', () => {
   const src = read(SRC);
   const fn = cutFn(src, 'verdictOf');
@@ -127,11 +148,30 @@ test('★★★ 열쇠 이름을 여럿 읽고, 값은 한 글자도 안 남긴�
        소스 전체를 세면 `Authorization: KakaoAK ${…}` 같은 **헤더 조립**까지 걸린다 —
        그것은 요청에 실리는 것이지 화면에 찍히는 것이 아니다. 재려던 성질
        (**요약에 값이 실리는가**)은 그대로 두고 세는 자리를 옮겼다 (§6-2-5 의 잣대). */
-  const printed = (src.match(/^\s*P\(.*$/gm) || []).join('\n');
+  /* ★★★ **줄 «맨 앞»의 `P(` 만 세면 눈이 먼다** 〈D-230 · 실측〉 — `for (…) P(…)` 처럼
+     한 줄 안에 든 것을 통째로 놓친다. 실제로 그 자리에 값을 찍는 줄이 하나 들어왔고
+     이 칸은 **초록이었다.** 잣대는 하나다 — 「그 숫자를 재는 법이 재려는 것을 다 덮는가」. */
+  const calls = cutCalls(src, 'P');
+  assert.ok(calls.length >= 15, `요약에 찍는 자리를 못 읽었습니다 (${calls.length}곳) — 이 칸이 아무것도 안 잽니다`);
+  const printed = calls.join('\n');
   assert.ok(printed.length > 200, `요약에 찍는 줄을 못 읽었습니다 (${printed.length}자) — 이 칸이 아무것도 안 잽니다`);
-  assert.ok(!/\.value\}/.test(printed),
-    '열쇠 값을 요약에 그대로 찍습니다 — 이 저장소는 공개입니다 (§2 · D-10).');
+  /* ★★ **세는 자리는 「`.value` 라는 이름」이 아니라 「열쇠를 담은 변수」다** (§6-2-5).
+     이름만 세면 `findFields` 가 돌려주는 **숫자 칸**(`h.value`)까지 걸려 **고침이 옳은데
+     빨개진다.** 변수 이름은 소스에서 뽑는다 — 이름을 바꾸셔도 따라간다 (§8-1). */
+  const keyVars = [...src.matchAll(/const\s+(\w+)\s*=\s*pick\(/g)].map((m) => m[1]);
+  assert.strictEqual(keyVars.length, 2, `pick() 으로 받는 열쇠 변수가 둘이 아닙니다 (${keyVars.length}) — 이 칸이 아무것도 안 잽니다`);
+  for (const v of keyVars) {
+    /* ★ **길이는 적어도 된다** — 들어왔는지 가릴 유일한 길이다. 값 자체와 갈라 센다.
+       `.length` 말고 다른 것을 붙여 꺼내면(예: `.slice(0,4)`) 여전히 빨개진다. */
+    assert.ok(!new RegExp(`\\b${v}\\.value(?!\\.length\\b)`).test(printed),
+      `열쇠 값(${v}.value)을 요약에 그대로 찍습니다 — 이 저장소는 공개입니다 (§2 · D-10).`);
+  }
   assert.match(src, /\.value\.length/, '길이로 적는 자리가 없습니다 — 들어왔는지 가릴 수 없습니다.');
+
+  /* ★★★ **못 닿았을 때의 오류 글도 가린다.** ODsay 는 열쇠를 «주소»에 싣는다 —
+     주소가 섞인 오류가 오면 그 자리에서 샌다 (§2 · §12-32 의 허용목록과 같은 잣대). */
+  assert.match(src, /transport:\s*redact\(/,
+    '못 닿았을 때의 오류 글이 redact 를 안 지나갑니다 — 주소에 실린 열쇠가 그대로 남습니다 (§2).');
 });
 
 test('★ 판정이 «실행 요약 첫 화면»까지 간다 — 파일 안에만 두면 아무도 안 본다 (§12-19)', () => {
@@ -165,9 +205,15 @@ function mkProbe(src, body, status) {
   if (!fn) return null;
   const m = src.match(/const\s+AUTH_FAIL_RE\s*=\s*\/(.+)\/([a-z]*);/);
   const authRe = m ? new RegExp(m[1], m[2]) : /$^/;
-  return new Function('fetch', 'redact', 'AbortSignal', 'AUTH_FAIL_RE', `${fn}\nreturn probe;`)(
+  /* ★ D-230 에서 `probe` 에 새 의존(`findFields`)이 생겨 이 자리가 «거짓으로» 빨개졌다.
+     **없던 인자만 채운다** — 그리고 **가짜로 끼우지 않는다.** 가짜를 넣으면 그 잣대를
+     영영 안 재게 된다 (§12-5 · §12-30 의 그 구분). */
+  const ff = cutFn(src, 'findFields');
+  return new Function('fetch', 'redact', 'AbortSignal', 'AUTH_FAIL_RE', 'findFields',
+    `${fn}\nreturn probe;`)(
     async () => ({ ok: status < 400, status, text: async () => body, headers: { get: () => null } }),
     (x) => x, { timeout: () => null }, authRe,
+    ff ? new Function(`${ff}\nreturn findFields;`)() : null,
   );
 }
 
@@ -224,7 +270,12 @@ test('후보 결과를 적는 글이 한 벌이고, 「대답이 왔다」와 �
   const say = cutFn(src, 'sayRow');
   assert.ok(/gotValue/.test(say),
     '「값이 왔는가」를 화면에 안 적습니다 — HTTP 200 하나를 보고 「됐다」로 읽힙니다');
-  assert.ok(!/\.value\b/.test(say), '열쇠 값을 요약에 찍습니다 (§2)');
+  /* ★ 세는 자리를 «열쇠를 담은 변수»로 옮긴다 — 위와 같은 잣대다 (§6-2-5) */
+  const keyVars = [...src.matchAll(/const\s+(\w+)\s*=\s*pick\(/g)].map((m) => m[1]);
+  assert.strictEqual(keyVars.length, 2, `열쇠 변수를 못 읽었습니다 (${keyVars.length}) — 이 칸이 아무것도 안 잽니다`);
+  for (const v of keyVars) {
+    assert.ok(!new RegExp(`\\b${v}\\.value`).test(say), `열쇠 값(${v}.value)을 요약에 찍습니다 (§2)`);
+  }
 });
 
 /* ★★★ D-229 — **인증 거부가 「200」으로 온다.** ODsay 가 실제로 그랬다:
@@ -261,4 +312,68 @@ test('인증 거부를 «본문»으로도 가른다 — 200 으로 오는 곳�
   assert.strictEqual(ok200.authFail, false, '인증 낱말이 없는데 거부로 셉니다');
   assert.strictEqual(verdictOf([ok200]).code, 5,
     '규격 문제를 인증 거부로 셉니다 — 그러면 멀쩡한 열쇠를 다시 넣으시게 됩니다 (M-86)');
+});
+
+/* ★★★ D-230 — **「값이 왔다」와 「그 값이 «어디» 있다」는 다른 사실이다.**
+   D-228 이 「왔다」까지 재게 했는데, 배선하려면 **경로**를 알아야 한다. 그런데 요약에
+   실리는 것은 앞머리 300자뿐이라 `routes[0].summary.duration` 자리가 **안 보인다** —
+   그러면 경로를 **추측으로** 박게 되고, §4.3 이 금한 그 자리다(R-ONE 이 여섯 번 다시 썼다).
+   ★ 「이름이 다른 것」과 「JSON 으로 못 읽은 것」도 갈라야 한다 — 뭉뚱그리면
+     멀쩡한 응답을 「규격이 틀렸다」로 읽는다 (§8 · §12-12 의 그 고장). */
+test('그 칸이 «어디»에 있는지까지 잰다 — 경로를 알아야 추측 없이 배선한다 (D-230)', async () => {
+  const src = read(SRC);
+  const ff = cutFn(src, 'findFields');
+  assert.ok(ff, 'findFields 를 못 오려 냈습니다 — 이 칸은 아무것도 안 잽니다');
+  const findFields = new Function(`${ff}\nreturn findFields;`)();
+
+  /* 실제로 온 모양 — 소요시간 칸이 배열·객체 **안쪽**에 있다 */
+  const body = JSON.stringify({
+    trans_id: 'x'.repeat(32),
+    routes: [{
+      result_code: 0, result_msg: '길찾기 성공',
+      summary: { bound: { min_x: 126.9 }, fare: { taxi: 12000 }, distance: 11234, duration: 1820 },
+    }],
+  });
+  const got = findFields(body, /^(duration|distance)$/i);
+  assert.strictEqual(got.parsed, true);
+  const paths = got.hits.map((h) => h.path);
+  assert.ok(paths.includes('routes[0].summary.duration'),
+    `경로를 못 적습니다 (${paths.join(' · ') || '없음'}) — 그러면 배선이 추측이 됩니다 (§4.3)`);
+  assert.strictEqual(got.hits.find((h) => /duration$/.test(h.path)).value, 1820,
+    '경로만 적고 값을 안 적습니다 — 그 칸이 초인지 분인지 못 가립니다');
+
+  /* ★ 값이 «숫자인 칸»만 담는다 — 열쇠·개인정보가 실릴 자리를 안 만든다 (§2 · D-10) */
+  const leak = findFields(JSON.stringify({ duration: 'AIzaSyTHISISASECRETVALUE0123456789' }),
+    /^(duration|distance)$/i);
+  assert.deepStrictEqual(leak.hits, [],
+    '숫자가 아닌 값을 요약에 싣습니다 — 이 저장소는 공개입니다 (§2 · D-10).');
+
+  /* ★★ 「JSON 으로 못 읽었다」와 「그 이름이 없다」를 갈라 적는다 (§8 · §12-12) */
+  assert.strictEqual(findFields('<html>502 Bad Gateway</html>', /^duration$/i).parsed, false,
+    'JSON 이 아닌 것을 「칸이 없다」와 같은 값으로 셉니다 — 못 쟀다고 적어야 합니다.');
+  const named = findFields('{"totalTime":52}', /^duration$/i);
+  assert.strictEqual(named.parsed, true);
+  assert.deepStrictEqual(named.hits, []);
+
+  /* ★★★ 그리고 **두 자리 모두** 그 잣대를 넘기는가 — 하나만 넘기면 그쪽만 경로를 잰다 */
+  const bare = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^[ \t]*\/\/.*$/gm, '');
+  const calls = [...bare.matchAll(/await\s+probe\(([\s\S]*?)\);/g)].map((m) => m[1]);
+  assert.strictEqual(calls.length, 2, `probe 호출이 둘이 아닙니다 (${calls.length}) — 자동차·대중교통 둘입니다`);
+  for (const c of calls) {
+    assert.ok(/\/\^\(/.test(c) || /fieldRe/.test(c),
+      `probe 를 부르면서 «칸 이름 잣대»를 안 넘깁니다 — 그쪽은 경로를 영영 못 잽니다: ${c.trim()}`);
+  }
+
+  /* ★ 그리고 probe 가 그것을 실제로 싣는가 — 넘기기만 하고 안 담으면 화면에 한 줄도 안 온다 */
+  const probe = mkProbe(src, body, 200);
+  const r = await probe('표본', 'https://example.invalid/x', {}, /"duration"\s*:\s*\d/, /^duration$/i);
+  assert.ok(r.fields && r.fields.parsed && r.fields.hits.length,
+    'probe 가 칸 자리를 안 싣습니다 — 잣대를 넘겨도 요약에 안 나옵니다 (§12-19 「나르는 자리는 셋이다」).');
+
+  /* ★★ 셋째 자리 — sayRow 가 그것을 적는가 (§12-19) */
+  const say = cutFn(src, 'sayRow');
+  assert.ok(/fields/.test(say),
+    'sayRow 가 칸 자리를 안 적습니다 — 재 놓고 안 보여 주면 안 잰 것과 같습니다 (§12-29).');
+  assert.ok(/못 쟀다|못 읽었다/.test(say),
+    'JSON 으로 못 읽은 것을 「칸이 없다」와 같은 글로 적습니다 (§8).');
 });
