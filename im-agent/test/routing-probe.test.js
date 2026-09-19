@@ -156,6 +156,21 @@ test('★ 판정이 «실행 요약 첫 화면»까지 간다 — 파일 안에�
     `진단이 결과 커밋보다 뒤에 있습니다 — 그날 결과가 안 남습니다 (진단 ${iProbe + 1} · 커밋 ${iCommit + 1})`);
 });
 
+
+/** `probe()` 를 오려 내 **가짜 망**으로 돌린다 — 세 칸이 같은 자리를 쓴다 (§8-1).
+ *  ★ 망 호출만 가짜이고 **판정식(인증 잣대)은 진짜를 소스에서 읽어** 넘긴다 —
+ *    가짜로 끼우면 그 잣대를 영영 안 재게 된다 (§12-30 의 그 구분). */
+function mkProbe(src, body, status) {
+  const fn = cutFn(src, 'probe');
+  if (!fn) return null;
+  const m = src.match(/const\s+AUTH_FAIL_RE\s*=\s*\/(.+)\/([a-z]*);/);
+  const authRe = m ? new RegExp(m[1], m[2]) : /$^/;
+  return new Function('fetch', 'redact', 'AbortSignal', 'AUTH_FAIL_RE', `${fn}\nreturn probe;`)(
+    async () => ({ ok: status < 400, status, text: async () => body, headers: { get: () => null } }),
+    (x) => x, { timeout: () => null }, authRe,
+  );
+}
+
 /* ★★★ D-228 — **잣대가 앞머리 300자만 봤다.** 그래서 카카오가 「길찾기 성공」을
    HTTP 200 으로 돌려줬는데도 판정이 **5(값을 못 뽑았다 · 규격을 고쳐라)** 로 나왔다.
    그 글은 **틀린 곳을 가리킨다** — 고칠 규격이 없다 (§4.6 · §12-24 와 같은 결).
@@ -183,12 +198,7 @@ test('probe 는 «본문 전체»로 값을 재고, 요약에는 앞머리만 �
   assert.ok(body.indexOf('"duration"') > 300,
     '표본이 재려던 성질을 안 지킵니다 — 소요시간 칸이 앞 300자 «안»에 있으면 이 고장을 영영 못 잽니다');
 
-  const probe = new Function('fetch', 'redact', 'AbortSignal',
-    `${fn}\nreturn probe;`)(
-    async () => ({ ok: true, status: 200, text: async () => body, headers: { get: () => null } }),
-    (x) => x,
-    { timeout: () => null },
-  );
+  const probe = mkProbe(src, body, 200);
 
   const r = await probe('표본', 'https://example.invalid/x', {}, /"duration"\s*:\s*\d/);
   assert.strictEqual(r.gotValue, true,
@@ -198,11 +208,7 @@ test('probe 는 «본문 전체»로 값을 재고, 요약에는 앞머리만 �
   assert.strictEqual(r.truncated, true, '잘렸다는 사실을 안 적습니다 — 다음 사람이 또 앞머리만 봅니다');
 
   /* 반대로도 막는다 — 정말 값이 없으면 여전히 «못 찾았다»다 */
-  const empty = new Function('fetch', 'redact', 'AbortSignal',
-    `${fn}\nreturn probe;`)(
-    async () => ({ ok: true, status: 200, text: async () => '{"routes":[]}', headers: { get: () => null } }),
-    (x) => x, { timeout: () => null },
-  );
+  const empty = mkProbe(src, '{"routes":[]}', 200);
   const r2 = await empty('빈 것', 'https://example.invalid/x', {}, /"duration"\s*:\s*\d/);
   assert.strictEqual(r2.gotValue, false,
     '값이 없는데 «왔다»로 셉니다 — 그러면 이 판정이 아무것도 안 가릅니다');
@@ -219,4 +225,40 @@ test('후보 결과를 적는 글이 한 벌이고, 「대답이 왔다」와 �
   assert.ok(/gotValue/.test(say),
     '「값이 왔는가」를 화면에 안 적습니다 — HTTP 200 하나를 보고 「됐다」로 읽힙니다');
   assert.ok(!/\.value\b/.test(say), '열쇠 값을 요약에 찍습니다 (§2)');
+});
+
+/* ★★★ D-229 — **인증 거부가 「200」으로 온다.** ODsay 가 실제로 그랬다:
+     HTTP 200 · `{"error":[{"code":"500","message":"[ApiKeyAuthFailed] …"}]}`
+   상태코드만 보면 **갈래 5(규격을 고쳐라)** 로 세지고, 그 글은 **「열쇠 문제가 아니다」**라고
+   **정반대**를 말한다 — 사장님이 열쇠·등록을 안 보시고 규격을 고치러 가신다.
+   §4.2 가 이미 적어 둔 자리다: 「키 문제와 구분하려면 **응답 본문을 봐야 한다**」. */
+test('인증 거부를 «본문»으로도 가른다 — 200 으로 오는 곳이 있다', async () => {
+  const src = read(SRC);
+  const fn = cutFn(src, 'probe');
+  const vf = cutFn(src, 'verdictOf');
+  assert.ok(fn && vf, 'probe·verdictOf 를 못 떼어 냈습니다 — 이 칸은 아무것도 안 잽니다');
+
+  const authRe = src.match(/const\s+AUTH_FAIL_RE\s*=\s*(\/[^\n]*\/[a-z]*);/);
+  assert.ok(authRe, '인증 실패 잣대를 한 곳에 안 두었습니다 — 두 벌이면 한쪽이 옛말을 합니다 (§8-1)');
+
+  /* 사장님 실행에 실제로 찍힌 본문 그대로 */
+  const body = '{"error":[{"code":"500","message":"[ApiKeyAuthFailed] ApiKey authentication failed."}]}';
+  const mk = (b, status) => mkProbe(src, b, status);
+
+  const r = await mk(body, 200)('ODsay', 'https://example.invalid/x', {}, /"totalTime"\s*:\s*\d/);
+  assert.strictEqual(r.authFail, true,
+    'HTTP 200 으로 온 인증 거부를 못 잡습니다 — 「규격을 고쳐라」는 틀린 글이 나갑니다');
+
+  const verdictOf = new Function(`${vf}\nreturn verdictOf;`)();
+  const v = verdictOf([r]);
+  assert.strictEqual(v.code, 4,
+    `인증 거부를 갈래 ${v.code} 로 셉니다 — 4 여야 합니다. 하실 일이 정반대입니다`);
+  assert.ok(!/열쇠 문제가 아니다/.test(v.head),
+    '인증 거부인데 「열쇠 문제가 아니다」라고 적습니다 — 틀린 곳을 가리킵니다 (§4.6)');
+
+  /* ★ 반대로도 막는다 — 진짜 규격 문제(인증 낱말이 없는 200)는 여전히 5 다 */
+  const ok200 = await mk('{"routes":[]}', 200)('멀쩡', 'https://example.invalid/x', {}, /"duration"\s*:\s*\d/);
+  assert.strictEqual(ok200.authFail, false, '인증 낱말이 없는데 거부로 셉니다');
+  assert.strictEqual(verdictOf([ok200]).code, 5,
+    '규격 문제를 인증 거부로 셉니다 — 그러면 멀쩡한 열쇠를 다시 넣으시게 됩니다 (M-86)');
 });
