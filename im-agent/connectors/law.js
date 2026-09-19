@@ -85,8 +85,26 @@ function unavailable(what) {
  *
  * @returns {{kind:'approval'|'oc'|'notfound'|'format'|'unknown', head:string}}
  */
-function diagnose(status, body) {
+function diagnose(status, body, transportError) {
   const t = String(body || '');
+  /* ★★★ **「못 닿았다」를 «승인 안 됨»으로 적지 않는다** 〈2026-09-19 · D-226 · §4 D-206〉.
+     [무엇이 났나] 러너에서 law.go.kr 이 `fetch failed` 로 죽으면 `status` 가 아예 없다.
+       그때 이 함수는 아래 갈래를 전부 지나쳐 `unknown` 으로 끝났고, 글은
+       **「판정하지 못했다 (HTTP undefined)」**였다 — D-206 이 `kasi.js` 에서 고친
+       바로 그 글자이고, 그것이 **승인 문제처럼 읽혀 이미 하신 활용신청을 또 하시게 만든다**.
+     ★ **가르는 잣대는 「상태코드를 받았는가」 하나다.** 서버가 대답을 안 했으면
+       본문도 없으므로 아래 낱말 검사는 **전부 거짓**이고, 할 일도 정반대다 —
+       못 닿음은 **자리를 옮기는 일**이고 승인·OC 는 **값을 고치는 일**이다.
+     ★★ **반대로도 막는다** — 진짜 403 에 승인 글이 실려 오면 여전히 `approval` 이다.
+       상태코드가 있으면 이 갈래를 안 탄다. */
+  if (typeof status !== 'number') {
+    return { kind: 'unreachable',
+      head: '서버에 **못 닿았다** — 응답이 아예 안 왔다 ('
+        + String(transportError || '이유 없음') + '). '
+        + '**승인·OC 값 문제가 아니다** — 다시 신청하거나 값을 고치실 일이 아니다. '
+        + '망이 잠깐 끊겼거나 law.go.kr 쪽이 응답을 안 한 것이다. '
+        + '되풀이되면 국내 자리(NAS)에서 불러 본다 (§4 · D-206)' };
+  }
   if (/승인|미승인|권한|허가되지/.test(t)) {
     return { kind: 'approval', head: '이용 승인이 아직 안 났다 — open.law.go.kr 신청 후 1~2일 걸린다. OC 값 문제가 아니다' };
   }
@@ -115,7 +133,7 @@ async function call(path, params, { ttl, namespace }) {
      ★★ 값은 `redact()` 를 지나간다 (§2). `error` 에는 안 섞는다 — 부르는 쪽이
        그 글자로 갈래를 정하는 자리가 생기면 본문 속 낱말 하나에 엉뚱해진다. */
   if (!r.ok) {
-    const d = diagnose(r.status, r.body);
+    const d = diagnose(r.status, r.body, r.error);
     const head = r.body === undefined || r.body === null
       ? ''
       : redact(String(r.body).replace(/\s+/g, ' ').trim().slice(0, 200));
