@@ -101,20 +101,8 @@ test('★ 「지금은 쓰이지 않는 것」이 정말로 안 쓰인다', () =
  *   ★★ **주석을 안 떼는 쪽으로 「이름만 말로 바꿔」 넘기지 않는다.** 그러면 다음에
  *     비슷한 글을 적는 날 또 샌다 — 그때는 원인이 더 안 보인다.
  */
-/** YAML 한 줄에서 주석을 뗀다 — 따옴표 안의 `#` 은 주석이 아니다 */
-function yamlNoComment(text) {
-  return text.split('\n').map((line) => {
-    let q = null, cut = -1;
-    for (let i = 0; i < line.length; i += 1) {
-      const c = line[i];
-      if (q) { if (c === q) q = null; continue; }
-      if (c === '"' || c === "'") { q = c; continue; }
-      // ★ 값 한가운데의 `#`(예: 색 코드)은 앞에 빈칸이 있어야 주석이다 — YAML 규칙 그대로
-      if (c === '#' && (i === 0 || /\s/.test(line[i - 1]))) { cut = i; break; }
-    }
-    return cut < 0 ? line : line.slice(0, cut);
-  }).join('\n');
-}
+/* ★ 이 함수는 `yaml-lite.js` 한 곳에 있다 — 베끼면 한쪽이 옛말을 한다 (§8-1 · D-224) */
+const { yamlNoComment } = require('./yaml-lite.js');
 
 test('★ CI 는 오프라인으로 돈다 (이것이 ② 판단의 근거다)', () => {
   const raw = fs.readFileSync(path.join(WF_DIR, 'im-agent-ci.yml'), 'utf8');
