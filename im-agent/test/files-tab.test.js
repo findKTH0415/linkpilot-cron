@@ -163,12 +163,21 @@ test('★ 탭 안·창 안에서는 제목을 그리지 않는다 (바깥이 이
   /* ★ 〈2026-08-23〉 `inTab` **하나만으로는 모자랐다.** 그 값은 앱이 탭으로
      얹을 때만 들어오고, 1단계 안에 **창으로 품어진** 경우는 아무도 안 알려
      줬다 — 그래서 「자료 업로드」가 세 번 나왔다. 둘 다 보는지 잰다 */
-  assert.match(html, /var embedded = C\.inTab \|\|/,
-    'inTab 만 본다 — 창 안에 품어진 경우를 못 가린다');
+  /* ★★★ **잣대가 바뀌었다** 〈2026-09-14 사장님 지시 — 배너 일관성〉.
+     앞 판은 `C.inTab` **또는** 품어짐이면 이름을 안 그렸다. 그런데 앱이 제 배너를
+     지운 뒤(§8-2 · S-39) 「앱 탭으로 얹힘」에서는 **아무도 이름을 안 달게** 됐다.
+     ★ 그래서 `inTab` 은 **일부러 안 본다.** 남은 잣대는 **「우리 화면 안에 품어졌는가」**
+       하나다 — 그쪽은 그대로 지킨다(바깥이 이미 이름을 말하므로 두 번 나오면 안 된다).
+     ★★ 재려던 성질(「품어졌으면 이름이 두 번 안 나온다」)은 그대로이고, 실제로
+       **그려서 재는 칸**이 아래 ★★★ 에 따로 있다 — 거기가 급소다. */
   assert.match(html, /insideLinkPilot\(\)/,
-    '부모가 우리 화면인지 안 본다');
-  assert.match(html, /if \(!embedded\) view\.appendChild\(el\('h1', null, '자료 업로드'\)\)/,
-    '품어졌는지 안 보고 제목을 그린다 — 바깥 이름 아래에 같은 말이 또 나온다');
+    '부모가 우리 화면인지 안 본다 — 품어진 자리에서 이름이 두 번 나온다');
+  assert.match(html, /var nested = [^;]*insideLinkPilot/,
+    '품어졌는지를 한 값으로 안 잡는다');
+  assert.match(html, /!nested && F && F\.headEl/,
+    '품어졌는지 안 보고 머리를 그린다 — 바깥 이름 아래에 같은 말이 또 나온다');
+  assert.ok(!/if \(!embedded\) view\.appendChild\(el\('h1'/.test(html),
+    '앱 탭 안에서 이름을 지우는 옛 줄이 살아 있다 — 앱은 이제 배너를 안 그린다');
 });
 
 /* ═════════ ④ 손으로 적어 두지 않는다 ═════════ */
@@ -1785,7 +1794,12 @@ test('★★★ 주소를 못 받아도 부른다 — 다만 null 을 주소에 
   assert.ok(at > 0, 'call 을 못 찾았다');
   const fn = code.slice(at, at + 1600);
   const guardAt = fn.indexOf('if (!C.api)');
-  const fetchAt = fn.indexOf('fetch(C.api + path');
+  /* ★★ **부르는 창구의 «이름»이 아니라 «순서»를 잰다** 〈2026-09-09〉.
+       API 호출이 시간 제한 있는 창구(`lpApiFetch`)를 거치게 되면서 이 줄이
+       빨개졌는데, **재려던 성질은 그대로였다** — 문지기는 여전히 부르기 «전»에
+       있었고 이름만 바뀌었다. 그래서 약하게 고치는 것이 아니라 **어느 창구로
+       가든 잡도록 넓힌다** (CLAUDE.md §6-2-5 의 잣대). */
+  const fetchAt = fn.search(/(?:lpApiFetch|fetch)\(C\.api \+ path/);
   assert.ok(guardAt > -1 && fetchAt > -1 && guardAt < fetchAt,
     '빈 주소 문지기가 fetch 뒤에 있다 — 막기 전에 이미 불렀다');
   assert.ok(!/null/.test(fn.slice(guardAt, fetchAt).replace(/\/\*[\s\S]*?\*\//g, '')),

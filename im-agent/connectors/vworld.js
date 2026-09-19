@@ -10,18 +10,37 @@
  * ★ 필지 폴리곤에서 계산한 면적은 '독립된 두 번째 출처'가 된다.
  *   문서상 대지면적과 대조해 불일치를 잡아내는 것이 이 Connector의 핵심 가치다.
  *
- * 인증키: VWORLD_KEY (GitHub Secrets)
+ * 인증키: `vworldkey.js` 가 이름 셋을 읽는다 (GitHub Secrets)
  */
 
-const { request, buildUrl, redact } = require('./http');
+const { request, buildUrl, redact, fmtHeaders } = require('./http');
 const cache = require('./cache');
 const { num } = require('./xml');
+const vkey = require('./vworldkey');
 
 const PROVIDER = 'vworld';
 const BASE = 'https://api.vworld.kr/req';
 
+/**
+ * 인증키. **이름은 `vworldkey.js` 한 곳에만 있다** — 여기 이름을 적으면
+ * `nsdi.js` 와 두 벌이 되어 한쪽이 옛말을 한다 (§8-1).
+ */
 function apiKey() {
-  return process.env.VWORLD_KEY || '';
+  return vkey.vworldKey();
+}
+
+/**
+ * **인증 거부인가** — 「다른 열쇠로 바꾸면 나을 수 있는 것」을 가른다.
+ *
+ * ★ 판정식을 **한 곳**에 둔다. 두 벌이면 재시도와 진단이 서로 다른 말을 한다
+ *   (§8-1 · §12-5 의 `lpAiFatal` 과 같은 결).
+ * ★★ **여기 안 걸리는 것은 다른 열쇠로 낫지 않는다** — 5xx·못 닿음·주소
+ *   미매칭이 그렇다. 거기서 열쇠를 돌면 **호출만 배로 늘고** 시간이 버려진다
+ *   (§12-11 「끊김은 다른 열쇠로 낫지 않는다」와 같은 잣대).
+ */
+function isAuthReject(text) {
+  return /INVALID_KEY|INCORRECT_KEY|등록되지|권한|UNAUTHORIZED|인증|FORBIDDEN|HTTP 40[13]/i
+    .test(String(text || ''));
 }
 
 /**
@@ -39,6 +58,22 @@ function apiKey() {
  *   간헐적이라 "가끔 값이 안 들어오는" 형태로만 드러나 원인을 찾기 어렵다.
  *   등록값을 가공하지 않는 것이 유일하게 안전한 쪽이다.
  */
+/* ★★★ **열쇠가 여럿인데 `VWORLD_DOMAIN` 은 하나다 — 지금은 «맞다»**
+ *   〈2026-09-18 · D-220 · 사장님 콘솔 화면 둘로 잼〉.
+ *
+ *   [처음 화면] 두 열쇠의 「서비스URL」이 **같은 호스트인데 경로가 달랐다**(한쪽은
+ *     뿌리, 한쪽은 화면 파일 하나까지). `VWORLD_DOMAIN` 은 하나라 어느 열쇠를 쓰든
+ *     같은 값이 가므로, 한쪽은 등록값과 어긋난 채 나갈 자리가 있었다.
+ *   [고친 화면] 사장님이 그 자리에서 **둘을 같은 URL 로 맞춰 주셨다.** 이제 한 값으로
+ *     둘 다 맞으므로 **지금 고칠 것이 없다.**
+ *
+ * ★ **그래서 새 열쇠 이름을 안 만든다.** 사장님이 안 넣으신 이름을 지어내면
+ *   「선언만 되고 아무도 안 읽는 자리」가 하나 더 는다 (§6-2-6).
+ * ★★ **다만 「지금 같다」와 「늘 같다」는 다른 사실이다.** 콘솔에서 한쪽만 고치시는
+ *   날 다시 갈린다 — 그때 증상은 **간헐적 인증 거부**라 가장 찾기 어렵다(아래 주석의
+ *   실측 5회 중 2회). `isAuthReject` 가 그 갈래를 따로 세므로, **실제로 잡히는 날**
+ *   그 잰 값을 보고 정한다 (§4.3 「진단부터 짠다」 · §4.7 「모르는 것은 모른다고 적는다」).
+ * ★ 주소·경로 값은 여기 안 적는다 — 이 저장소는 공개다 (§2 · D-10). */
 function domain() {
   // ★ 콘솔의 **서비스URL 을 글자 그대로** 보낸다. 스킴·경로를 벗기면 안 된다.
   //
@@ -60,11 +95,11 @@ function domain() {
  *   type=ROAD/PARCEL 이 type=json 으로 덮어써졌다 — 지오코딩이 키와 무관하게
  *   항상 실패하던 원인이다. key·domain 만 마지막에 둬서 덮이지 않게 한다.
  */
-function buildRequestUrl(service, params) {
+function buildRequestUrl(service, params, key) {
   return buildUrl(`${BASE}/${service}`, {
     format: 'json',
     ...params,
-    key: apiKey(),
+    key: key || apiKey(),
     domain: domain() || undefined,
   });
 }
@@ -74,15 +109,46 @@ function isAvailable() {
 }
 
 function unavailable() {
-  return { ok: false, error: 'VWORLD_KEY 미설정 — 위성지도/지적 조회 생략', unavailable: true };
+  // ★ **받는 이름을 전부 적는다** — 사장님이 「내가 넣은 이름이 이 중에 있나」를
+  //   눈으로 대실 수 있어야 한다 (`datakey.js` 와 같은 결).
+  return {
+    ok: false,
+    error: `VWorld 인증키 미설정(${vkey.namesText()}) — 위성지도/지적 조회 생략`,
+    unavailable: true,
+  };
 }
 
-/** VWorld 공통 호출: JSON 응답의 status 필드까지 검사한다 */
+/**
+ * VWorld 공통 호출: JSON 응답의 status 필드까지 검사한다.
+ *
+ * ★★★ **열쇠가 여럿이면 «인증 거부일 때만» 다음 것으로 넘어간다**
+ *   〈2026-09-17 · 사장님이 열쇠 둘을 더 넣으셨다〉. 거부 한 줄로 멈추면
+ *   **멀쩡한 나머지 열쇠가 한 번도 안 불린다** (§12-11 에서 겪은 그 자리).
+ *   반대로 5xx·못 닿음에서 열쇠를 돌면 **호출만 배로 늘고** 안 낫는다.
+ */
 async function call(service, params, namespace, cacheParams) {
   if (!isAvailable()) return unavailable();
 
   return cache.through(PROVIDER, namespace, cacheParams, async () => {
-    const url = buildRequestUrl(service, params);
+    const cands = vkey.keys();
+    let last = null;
+    for (const c of cands) {
+      const r = await callOnce(service, params, c.value);
+      if (r.ok) return r;
+      last = r;
+      if (!isAuthReject(r.error)) return r;   // 다른 열쇠로 안 낫는 갈래
+    }
+    if (last && cands.length > 1) {
+      // ★ **이름만 적는다. 값은 한 글자도 안 적는다** (§2)
+      return { ...last, error: `${last.error} (걸어 본 열쇠 ${cands.length}개: ${cands.map(c => c.name).join(' · ')})` };
+    }
+    return last || unavailable();
+  });
+}
+
+/** 한 열쇠로 한 번 건다 — 캐시는 부르는 쪽(`call`)이 이미 씌웠다 */
+async function callOnce(service, params, key) {
+    const url = buildRequestUrl(service, params, key);
     const r = await request(url);
 
     // IM_AGENT_DEBUG_HTTP=1 이면 원본 응답을 그대로 보여준다.
@@ -93,7 +159,25 @@ async function call(service, params, namespace, cacheParams) {
       if (r.body) console.error(`[debug] 응답: ${redact(String(r.body).slice(0, 400))}\n`);
     }
 
-    if (!r.ok) return { ok: false, error: redact(r.error) };
+    // ★★★ **응답 본문을 버리지 않고 «따로 나른다»** 〈D-218〉.
+    //   [왜] 5xx 를 누가 냈는지는 **본문을 봐야** 안다 — 기관 게이트웨이인지
+    //   중간의 프록시인지에 따라 **할 일이 정반대**다(기다렸다 다시 / 도는 자리를 옛긴다).
+    // ★ **`error` 에는 안 섮는다** — `isAuthReject` 가 그 글자를 보므로,
+    //   본문을 섞으면 HTML 속 낟말 하나에 **엉뙡한 갈래로 넘어간다.**
+    //   새 칸으로 나르면 판정은 그대로 돌고 사람은 근거를 본다.
+    // ★★ 값은 `redact()` 를 지나간다 (§2). 200자는 §4 「응답 본문을 200자 이상
+    //   그대로 저장한다」의 그 자리다.
+    // ★★★ **헤더도 함께 나른다** 〈D-219〉. D-218 이 되살린 그 502 본문에는
+    //   **서버 서명이 없었다**(`502 Bad Gateway` 한 줄) — 그래서 누가 냈는지를
+    //   아직 못 가린다. `Server` 한 줄, `Via`·`X-Cache` 가 있으면 **중간이 끼었다**는 표다.
+    //   담기는 이름은 `http.js` 의 `SAFE_RESPONSE_HEADERS` 뿐이고 값은 `redact()` 를 지난다 (§2).
+    if (!r.ok) {
+      const head = r.body === undefined || r.body === null
+        ? ''
+        : redact(String(r.body).replace(/\s+/g, ' ').trim().slice(0, 200));
+      return { ok: false, error: redact(r.error), httpStatus: r.status, bodyHead: head,
+        headHdr: fmtHeaders(r.headers) };
+    }
 
     let j;
     try {
@@ -110,7 +194,6 @@ async function call(service, params, namespace, cacheParams) {
       return { ok: false, error: `VWorld ${status}: ${msg}${hint}` };
     }
     return { ok: true, value: j.response };
-  });
 }
 
 /**
@@ -149,6 +232,11 @@ async function geocode(address) {
       type,
       error: r.error || (r.ok ? '응답에 좌표(result.point)가 없다' : '알 수 없는 실패'),
       status: r.ok && r.value ? (r.value.status || null) : null,
+      // ★ 본문 앞머리를 여기까지 나른다 — 나르는 자리가 버리면 요약에 한 줄도 안 온다
+      //   (§8 「만들었다와 닿는다는 다른 사실이다」 · §12-19 의 그 자리).
+      httpStatus: r.httpStatus,
+      bodyHead: r.bodyHead || '',
+      headHdr: r.headHdr || '',
     });
   }
 
@@ -258,19 +346,29 @@ async function parcelsNear(ring, marginM = 30) {
 function diagnoseGeocodeFailure(attempts) {
   const all = attempts.map(a => `${a.error} ${a.status || ''}`).join(' ');
 
-  if (/INVALID_KEY|등록되지|권한|UNAUTHORIZED|인증/i.test(all)) {
+  // ★ **인증 거부는 재시도 판정식과 «같은 자리»를 쓴다** — 두 벌이면 재시도는
+  //   열쇠를 돌았는데 진단은 「인증 아님」이라 말하는 어긋남이 난다 (§8-1).
+  if (isAuthReject(all)) {
     return '키 또는 도메인 인증 실패 — VWorld 콘솔의 서비스URL 과 VWORLD_DOMAIN 이 정확히 같은지, '
-      + '개발키가 승인 상태인지 확인한다 (승인 전에는 호출이 거부된다)';
+      + `그 키에 지오코더 API 활용신청이 있는지 확인한다 (받는 이름: ${vkey.namesText()})`;
   }
   if (/NOT_FOUND|결과가 없|no result/i.test(all)) {
     return '키·도메인은 통과했으나 주소가 매칭되지 않았다 — 다른 주소로 다시 시도한다';
   }
+  // ★★★ **그쪽 서버 5xx·못 닿음에는 「다시 실행해 원문을 보라」고 시키지 않는다**
+  //   〈2026-09-17 · 실측으로 잡았다〉. 요약 맨 앞 판정은 「우리 쪽에 고칠 것이
+  //   없다」인데 이 줄이 「디버그를 켜고 다시 돌려라」라고 말해 **한 화면에서 두 줄이
+  //   정반대를 시켰다** (§8 「이웃한 두 칸이 서로 다른 말을 하면 사고 신호」).
+  //   원문을 봐도 5xx 는 그쪽 게이트웨이라 **우리가 고칠 것이 없다.**
+  if (/HTTP 5\d\d/.test(all)) {
+    return 'VWorld 쪽 서버가 5xx 를 돌려준다 — 우리 쪽에 고칠 것이 없다. 시간을 두고 다시 건다';
+  }
+  if (/fetch failed|타임아웃|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|ECONNRESET/i.test(all)) {
+    return '응답이 아예 없다 — 도는 자리의 바깥 연결(api.vworld.kr)이 막혔는지 본다. 열쇠 문제가 아니다';
+  }
   if (/좌표\(result\.point\)가 없다/.test(all)) {
     return '응답은 정상(OK)인데 좌표가 비어 있다 — 주소 매칭 실패이거나 응답 구조가 다르다. '
       + 'IM_AGENT_DEBUG_HTTP=1 로 원문을 확인한다';
-  }
-  if (/타임아웃|ETIMEDOUT|ENOTFOUND|EAI_AGAIN/i.test(all)) {
-    return '네트워크 문제 — 방화벽·프록시에서 api.vworld.kr 접근이 막혔는지 확인한다';
   }
   return 'IM_AGENT_DEBUG_HTTP=1 로 다시 실행해 VWorld 원문 응답을 확인한다';
 }

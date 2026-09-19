@@ -26,8 +26,10 @@ const registry = require('./registry');
  * 베껴 적은 값이 아니라, 커넥터가 실제로 읽는 이름이다.
  */
 const CONNECTOR_KEYS = {
-  vworld: ['VWORLD_KEY', 'VWORLD_DOMAIN'],
-  nsdi: ['VWORLD_KEY'],
+  // ★ 배열 안의 배열은 「그중 하나」다 (아래 ecos 주석 참고).
+  //   VWorld 열쇠는 이름이 셋이다 — `connectors/vworldkey.js` 의 KEY_NAMES
+  vworld: [['VWORLD_KEY', 'LINKPILOT_VWORLD_REPORT_KEY', 'LINKPILOT_VWORLD_WEB_KEY'], 'VWORLD_DOMAIN'],
+  nsdi: [['VWORLD_KEY', 'LINKPILOT_VWORLD_REPORT_KEY', 'LINKPILOT_VWORLD_WEB_KEY']],
   molit: ['DATA_GO_KR_KEY'],
   kpx: ['DATA_GO_KR_KEY'],
   fsc: ['DATA_GO_KR_KEY'],

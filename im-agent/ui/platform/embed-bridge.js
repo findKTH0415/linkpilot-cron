@@ -34,7 +34,7 @@
    * ★ **이 스크립트가 어느 판인가** 〈2026-08-23 · D-93 사고〉.
    *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다.
    */
-  var LP_BUILD = '283a2e1f';
+  var LP_BUILD = '1cf9cb58';
 
   var self = document.currentScript;
   var name = self && self.getAttribute('data-lp-global');
@@ -250,23 +250,57 @@
       }
       return Math.max(el ? el.scrollHeight : 0, document.body ? document.body.scrollHeight : 0);
     }
+    /**
+     * ★★★ **재는 것은 «프레임 사이»에서 한다** 〈2026-09-15 사장님 지시:
+     *   「보고서 생성 스크롤이 부드럽지 않고 끊김」〉.
+     *
+     *   [무엇이 끊었나] `getBoundingClientRect()` 는 **그 자리에서 레이아웃을 강제**한다.
+     *   그것을 아무 때나(타이머로) 부르면 브라우저가 그리던 프레임을 버리고 다시 잰다 —
+     *   그 버려진 프레임이 **눈에는 「끊김」으로 보인다.**
+     *   ★ `requestAnimationFrame` 안에서 재면 브라우저가 **어차피 재는 자리**라 공짜다.
+     *   ★★ 그리고 잰 값을 부모에게 보내면 부모가 iframe 높이를 다시 잡는다 —
+     *     그것도 레이아웃이다. 그래서 **덜 보내는 것**이 곧 부드러움이다(아래 8px).
+     */
     function tell() {
-      var h = contentHeight();
-      if (!h || Math.abs(h - last) < 4) return;    // 4px 미만은 알리지 않는다
-      last = h;
+      var run = function () {
+        var h = contentHeight();
+        /* ★ 4px → 8px. 부모가 여기에 8px 을 더해 잡으므로(앱의 `+ 8`), 4px 문턱은
+           **글자 한 줄이 흔들릴 때마다** 왕복을 만든다. 8px 이면 진짜 바뀔 때만 간다. */
+        if (!h || Math.abs(h - last) < 8) return;
+        last = h;
+        send(h);
+      };
+      if (window.requestAnimationFrame) window.requestAnimationFrame(run); else run();
+    }
+    function send(h) {
       try {
         window.parent.postMessage({ type: 'lp-embed-height', global: name, height: h },
           window.location.origin);
       } catch (_) { /* 다른 출처면 막힌다 — 그게 맞다 */ }
     }
-    function soon() { clearTimeout(timer); timer = setTimeout(tell, 60); }
+    /* ★ 60ms → 120ms. 이 값은 「얼마나 빨리 따라가는가」가 아니라 「얼마나 자주 레이아웃을
+       시키는가」다 — 사람 눈에 120ms 는 즉시이고, 그동안의 잔떨림은 한 번으로 합쳐진다. */
+    function soon() { clearTimeout(timer); timer = setTimeout(tell, 120); }
 
     if (document.readyState === 'complete') soon();
     window.addEventListener('load', soon);
-    window.addEventListener('resize', soon);
+    window.addEventListener('resize', soon, { passive: true });
     if (window.MutationObserver) {
+      /**
+       * ★★★ **모든 바뀜을 보지 않는다** 〈같은 지시〉.
+       *
+       *   앞 판은 `attributes: true, characterData: true` 로 **문서의 모든 바뀜**을 봤다.
+       *   그런데 이 화면은 만지는 동안 딱지·진행률·`data-` 표시가 쉬지 않고 바뀐다 —
+       *   **높이와 아무 상관이 없는 바뀜**인데 그때마다 레이아웃을 강제하고 부모를 깨웠다.
+       *   ★ 그래서 **높이를 바꿀 수 있는 것만** 본다: 칸이 생기고 없어지는 것(`childList`)과
+       *     펴고 접는 속성 다섯. 「글자 한 자 바뀜(characterData)」은 안 본다 —
+       *     그것으로 높이가 바뀌면 그 칸의 `childList` 나 창 크기가 함께 말해 준다.
+       *   ★★ **재려던 성질은 그대로다** — 「내용이 커지면 iframe 도 커진다」. 접기·펴기를
+       *     `hidden`·`open`·`style`·`class` 로 하는 자리가 모두 들어 있다.
+       */
       new MutationObserver(soon).observe(document.documentElement,
-        { childList: true, subtree: true, attributes: true, characterData: true });
+        { childList: true, subtree: true, attributes: true,
+          attributeFilter: ['style', 'class', 'hidden', 'open', 'data-open'] });
     }
   }());
 

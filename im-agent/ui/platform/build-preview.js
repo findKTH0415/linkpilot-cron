@@ -388,6 +388,14 @@ async function flowShell(docs) {
   (shell.match(/<link rel="stylesheet" href="([^"]+)">/g) || []).forEach((tag) => {
     shell = shell.replace(tag, '<style>' + read(tag.match(/href="([^"]+)"/)[1].split('?')[0]) + '</style>');
   });
+  /* ★★★ **미리받기 줄은 «단벌 문서»에서 뺀다** 〈2026-09-15〉.
+   *   미리받기는 형제 파일을 **미리 부르는** 줄이다. 그런데 여기서는 그 형제들을
+   *   본문에 통째로 넣으므로 부를 파일이 **옆에 없다** — 그러면 그 줄이 404 를 만들고,
+   *   화면의 「필요한 파일을 못 받았습니다」 빨간 띠가 **멀쩡한 미리보기 위에** 뜬다.
+   *   ★ 실제로 그렇게 났다 — `section-artifact.html` 에 그 띠가 그대로 찍혀 나갔다.
+   *   ★★ 빼도 느려지지 않는다: 여기서는 이미 다 들어 있어 받을 것이 없다.
+   *     빠른 것은 «앱이 여는 진짜 화면»이고, 그쪽에는 그대로 남는다. */
+  shell = shell.replace(/[ \t]*<link rel="preload" as="script" href="[^"]+">\n?/g, '');
   (shell.match(/<script([^>]*)\ssrc="([^"]+)"([^>]*)><\/script>/g) || []).forEach((tag) => {
     const src = tag.match(/src="([^"]+)"/)[1].split('?')[0];   /* ?v= 는 파일 이름이 아니다 */
     const attrs = tag.replace(/^<script/, '').replace(/><\/script>$/, '')

@@ -160,19 +160,40 @@ function serve(rootDir) {
 function render(browser, url) {
   return execFileSync(browser, [
     '--headless', '--disable-gpu', '--no-sandbox',
-    '--virtual-time-budget=12000', '--dump-dom', url,
+    /* ★★ 예산은 «가상 시간»이라 러너가 느려도 그만큼 흘려 준다 — 다만 그 12초를 다
+       쓰기 전에 프로세스가 끝나면 덜 그려진 DOM 이 나온다. 실측에서 다 서면 버튼 9개인데
+       CI 에서 그보다 적게 나와 판정이 뒤집혔다(2026-09-13 · run 1289). 먼저 예산을 늘려
+       «못 쟀다» 자체를 줄인다 — 문턱을 올리는 것보다 이쪽이 재는 횟수를 안 깎는다. */
+    '--virtual-time-budget=25000', '--dump-dom', url,
   ], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] });
 }
 
 const btn = (h) => (h.match(/<button/g) || []).length;
 const band = (h) => { const m = h.match(/<div data-lp-fail="([^"]*)"/); return m ? (m[1] || 'fatal') : null; };
 const baseOf = (h) => { const m = h.match(/<base [^>]*data-lp-base="([^"]*)"/); return m ? m[1] : null; };
+/* ★★★ **어느 다리로 살아났는지 세어 둔다** 〈2026-09-13〉.
+   [왜] CI 가 「겹친 자리 9개 · 멀쩡한 자리 9개」로 빨개졌을 때, 그 줄만으로는
+     «무엇이 화면을 살렸는지»를 알 수가 없었다 — 자리를 잡아서인지, 다시 불러서인지.
+     이 자리에서는 재현이 안 되므로 **다음에 또 나면 그 줄이 스스로 말하게** 한다.
+   ★ 이것은 판정에 안 쓴다. 판정이 뒤집힐 때 **읽을 것을 남기는** 것뿐이다. */
+const healed = (h) => (h.match(/data-lp-healed/g) || []).length;
 
 /* ───────────── 소스에 장치가 있는가 (브라우저가 없어도 잰다) ───────────── */
 
 test('★★★ 일곱 화면 모두 **받기 전에** 자리를 바로잡는다', () => {
+  /* ★★★ **git 이 추적하는 화면만 본다** 〈2026-09-17 · 실측으로 걸렸다〉.
+     [무엇이 났나] 이 자리는 폴더를 통째로 훑었다. 그런데 이 폴더에는 `.gitignore` 에
+     든 **빌드 산출물**도 같이 있다(`preview.html`) — `npm run im:screens` 를 돌린
+     자리에만 생기는 파일이다. 그것을 읽는 순간 이 검사의 답이 **「그 사람이 빌드를
+     돌렸는가」에 따라 달라진다**: 내 자리에서는 빨갛고 CI 에서는 초록이다.
+     ★ 이 저장소는 그 함정을 이미 알고 `test-reads-tracked.test.js` 로 재고 있었는데,
+       그 검사는 **검사 파일이 «이름을 대는» 것**만 본다 — 폴더를 훑는 이 자리는 못 봤다.
+     ★★ 재려던 성질(일곱 화면에 장치가 있는가)은 그대로 두고 **읽는 자리만** 좁혔다. */
+  const keep = new Set(execFileSync('git', ['ls-files', 'im-agent/ui/platform/'],
+    { cwd: path.join(__dirname, '..', '..'), encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 })
+    .split('\n').filter(Boolean).map((x) => x.split('/').pop()));
   const screens = fs.readdirSync(PLATFORM)
-    .filter((f) => f.endsWith('.html') && !f.startsWith('section-static'));
+    .filter((f) => f.endsWith('.html') && !f.startsWith('section-static') && keep.has(f));
   let n = 0;
   for (const f of screens) {
     const s = fs.readFileSync(path.join(PLATFORM, f), 'utf8');
@@ -249,39 +270,41 @@ test('★★★ 장치를 빼면 **화면이 안 뜬다** (통과가 아니라 �
   const browser = findBrowser();
   if (!browser) { t.skip('헤드리스 크로미움이 없어 **못 쟀다**'); return; }
   const { dir, dup } = stage();
-  /* ★★★ **화면을 살리는 장치가 «둘»이다 — 둘 다 빼야 「뺐다」가 된다**
-   *   〈2026-09-08 · CI 에서 세 번 빨갰다〉.
-   *
-   *   [사고] 앞 판은 `<base>` 하나만 무력화했다. 그런데 이 화면에는 두 번째 길이
-   *     있다 — 형제 파일을 못 받으면 **겹친 토막을 지우고 그 파일을 다시 부른다**
-   *     (화면 위쪽 「한 번 고쳐서 다시 불렀습니다」 자리).
-   *
-   *   ★ 그래서 `<base>` 만 빼도 **두 번째 길이 화면을 살려낸다.** 다만 그것이
-   *     제때 닿느냐는 **기계 속도에 달렸다** — 늦게 온 스크립트는 초기화가 이미
-   *     끝나 화면을 못 그린다(이 파일 머리말). 그래서 빠른 자리에서는 0개,
-   *     느린 러너에서는 9개가 나왔다. **같은 커밋이 초록도 되고 빨강도 됐다.**
-   *
-   *   ★★ 문턱을 무르게 하지 않는다. **재려던 것을 재게** 고친다 — 두 길을 다
-   *     막아 「살릴 길이 없으면 화면이 안 뜬다」를 그대로 잰다 (CLAUDE.md §8). */
-  const KILL = [
-    ["createElement('base')", "createElement('span')"],          // ① 받기 전에 자리를 바로잡는 길
-    [': document.createElement(\'script\');', ': document.createElement(\'template\');'],  // ② 실패한 뒤 다시 부르는 길
-  ];
-  let sabotaged = fs.readFileSync(dup, 'utf8');
-  for (const [from, to] of KILL) sabotaged = sabotaged.replace(from, to);
-  fs.writeFileSync(dup, sabotaged);
+  /* ★★★ **장치는 «다리 둘»이다 — 하나만 빼면 이 칸이 아무것도 안 잰다**
+     〈2026-09-13 · CI 가 「겹친 자리 9개 · 멀쩡한 자리 9개」로 빨개졌다〉.
 
-  /* ★★★ **고장내기가 정말 먹었는지 먼저 본다.** 안 먹으면 숫자가 멀쩡한 쪽과
-   *   같아지는데, 그러면 **멀쩡한 장치를 고장이라고 탓한다** — 둘이 구분이 안 된다.
-   *   안 먹었으면 「못 쟀다」로 끝낸다 (M-30). */
-  const after = fs.readFileSync(dup, 'utf8');
-  const left = KILL.filter(([from]) => after.includes(from)).map(([from]) => from);
-  if (left.length) {
-    fs.rmSync(dir, { recursive: true, force: true });
-    t.skip(`고장내기가 안 먹었다 — 베낀 화면에 ${left.length}개가 그대로 있다. `
-      + '**표본이 안 서서 못 쟀다** (통과가 아니다)');
-    return;
+     [무엇이 났나] 앞 판은 `<base>` 를 만드는 다리 하나만 뺐다. 그런데 이 화면에는
+       **둘째 다리**가 있다 — 형제 파일이 404 로 죽으면 **경로에서 겹친 마디를 덜어
+       한 번 다시 부른다**(`data-lp-healed`). 그래서 첫째 다리를 빼도 화면이 결국 다 뜬다.
+
+     [왜 여태 안 걸렸나] 예산이 12초였을 때는 그 «다시 부르기»가 예산 안에 못 끝나
+       버튼이 덜 그려졌고, 그것이 «장치를 빼서 깨진 것»처럼 보였다. 예산을 25초로
+       늘리자 다시 부르기가 끝나 **9 대 9** 가 됐다 — 제품이 더 튼튼해진 것이지
+       고장이 아니다. **재던 것이 사실은 «속도»였다.**
+
+     [고침] 재려던 성질(「장치를 빼면 화면이 안 뜬다」)은 그대로 두고 **장치를 통째로**
+       뺀다. 다리가 또 늘면 여기 한 줄을 더한다 — 그리고 **걸렸는지 다리마다 센다.** */
+  const before = fs.readFileSync(dup, 'utf8');
+  const LEGS = [
+    ['자리 잡기(<base>)', "createElement('base')", "createElement('span')"],
+    ['다시 부르기(겹친 마디 덜기)',
+      "if (fixed && fixed !== raw && !t.getAttribute('data-lp-healed')) {",
+      'if (false) {'],
+  ];
+  let after = before;
+  for (const [name, from, to] of LEGS) {
+    /* ★★★ **다리마다 걸렸는지 본다** 〈2026-09-12 신설 · 2026-09-13 다리별로 넓힘〉.
+       [사고] `replace` 는 찾는 글자가 없으면 **조용히 원본을 그대로 돌려준다** —
+         그러면 아무것도 안 망가뜨린 채 「장치를 빼도 화면이 그대로 뜬다」로 빨개진다.
+         즉 **엉뚱한 것을 탓한다.** 장치의 코드 모양이 바뀌는 날 그렇게 거짓말을 한다. */
+    const next = after.replace(from, to);
+    if (next === after) {
+      assert.fail('사보타주가 안 걸렸다 — 「' + name + '」 다리를 못 찾았다. '
+        + '이 칸은 아무것도 안 재고 있다 (장치의 코드 모양이 바뀌었는지 본다)');
+    }
+    after = next;
   }
+  fs.writeFileSync(dup, after);
   const { child, port } = serve(dir);
   try {
     const a = render(browser, `http://127.0.0.1:${port}/im-flow/im-flow/report-flow.html`);
@@ -301,14 +324,36 @@ test('★★★ 장치를 빼면 **화면이 안 뜬다** (통과가 아니라 �
      *   ★★ 안 섰으면 **「못 쟀다」로 끝낸다.** 러너가 느려 렌더가 예산 안에 못
      *     끝난 것은 환경이지 코드가 아니다 — 통과로도 실패로도 뭉개지 않는다 (M-30).
      *     늘 건너뛰지는 않는다: 이 조건은 「멀쩡한 자리마저 0개」일 때뿐이다. */
-    if (btn(b) === 0) {
-      t.skip('멀쩡한 자리도 버튼이 0개다 — 표본이 안 서서 **못 쟀다** (통과가 아니다). '
-        + '렌더가 예산(12초) 안에 못 끝났을 수 있다');
+    /* ★★★ 문턱을 0 이 아니라 «다 선 개수»로 잰다 〈2026-09-12 · 배포 #192 가 여기서 죽었다〉.
+     *
+     *   [사고] 앞 판은 **버튼이 0개일 때만** 「못 쟀다」로 넘겼다. 그런데 느린 러너에서
+     *     실제로 나는 것은 0 이 아니라 **덜 그려진 중간 상태**다 — 멀쩡한 자리가 3개쯤에서
+     *     끊기고 겹친 자리도 3개쯤이면 `btn(a) < btn(b)` 가 그냥 뒤집힌다.
+     *     그 한 번의 빨강이 **배포 전체를 세운다**(#192: 화면도 엔진도 안 올라갔다).
+     *
+     *   [실측] 이 화면이 다 서면 **버튼 9개**다 (2026-09-12 · 두 번 재서 둘 다 9).
+     *     절반인 5 를 문턱으로 둔다 — 그 아래면 표본이 안 선 것이다.
+     *
+     *   ★ 재려는 성질은 그대로다: **장치를 빼면 화면이 안 뜬다.** 표본이 섰을 때만
+     *     판정하고, 안 섰으면 「못 쟀다」로 끝낸다 — 통과로도 실패로도 뭉개지 않는다. */
+    /* ★★★ 문턱을 «다 선 개수»로 올린다 〈2026-09-13 · CI run 1289 가 여기서 빨개졌다〉.
+     *   [사고] 절반(5)을 문턱으로 두었는데, 5~8개인 **덜 그려진 중간 상태**에서도 판정이
+     *     돌아 `btn(a) < btn(b)` 가 뒤집혔다. 같은 코드를 로컬에서 두 번 돌리면 둘 다 9개다.
+     *   ★ 재려는 성질은 그대로다 — **장치를 빼면 화면이 안 뜬다.** 바뀐 것은
+     *     「표본이 거짓말할 때 판정하지 않는다」이지 판정을 없앤 것이 아니다
+     *     (CLAUDE.md §8 「표본이 거짓말을 하면 잡히는 것도 거짓」).
+     *   ★★ 그래서 예산을 먼저 늘렸다(위). 문턱만 올리면 「못 쟀다」가 늘어 재는 횟수가 준다. */
+    const FULL = 9;
+    if (btn(b) < FULL) {
+      t.skip('멀쩡한 자리가 버튼 ' + btn(b) + '개에서 끊겼다 (다 서면 ' + FULL + '개) — 표본이 안 서서 '
+        + '**못 쟀다** (통과가 아니다). 덜 그려진 중간 상태로는 판정이 뒤집힌다');
       return;
     }
     assert.ok(btn(a) < btn(b),
       `장치를 빼도 화면이 그대로 뜬다 — 이 검사는 아무것도 안 재고 있다 `
-      + `(겹친 자리 ${btn(a)}개 · 멀쩡한 자리 ${btn(b)}개)`);
+      + `(겹친 자리 ${btn(a)}개 · 멀쩡한 자리 ${btn(b)}개 · `
+      + `자리잡기 ${baseOf(a) === null ? '꺼짐' : '살아 있다: ' + baseOf(a)} · `
+      + `다시부르기 표시 ${healed(a)}개 · 띠 ${band(a) === null ? '없음' : band(a)})`);
   } finally {
     try { child.kill(); } catch (_) { /* 이미 죽었다 */ }
     fs.rmSync(dir, { recursive: true, force: true });

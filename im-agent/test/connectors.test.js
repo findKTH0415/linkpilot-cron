@@ -229,8 +229,16 @@ test('★ 지오코딩 폴백이 실제 오류를 감추지 않는다', async ()
   const notFound = vworld.diagnoseGeocodeFailure([{ type: 'ROAD', error: 'VWorld NOT_FOUND: 결과가 없습니다' }]);
   assert.match(notFound, /주소가 매칭되지 않았다/);
 
+  /*
+   * ★ **낱말이 아니라 「어디를 가리키는가」를 잰다** 〈2026-09-17 · 재는 자리를 옮겼다〉.
+   *   앞 판은 「네트워크」라는 **낱말 하나**를 셌다. 그런데 §12-25 에서 이 글을
+   *   「응답이 아예 없다 — 도는 자리의 바깥 연결이 막혔는지 본다. 열쇠 문제가 아니다」로
+   *   고치자 **고침이 옳은데 빨개졌다** (§6-2-5 의 그 자리).
+   *   재려던 성질은 **「망 쪽을 가리키고 열쇠 탓으로 안 돌리는가」**이므로 그것을 잰다.
+   */
   const net = vworld.diagnoseGeocodeFailure([{ type: 'ROAD', error: '타임아웃 15000ms' }]);
-  assert.match(net, /네트워크/);
+  assert.match(net, /네트워크|바깥 연결|막혔는지/, `망 쪽을 안 가리킨다: ${net}`);
+  assert.ok(!/IM_AGENT_DEBUG_HTTP/.test(net), `망 문제인데 「원문을 다시 보라」고 시킨다: ${net}`);
 
   // 알 수 없는 오류는 추측하지 않고 원문 확인을 안내한다
   const unknown = vworld.diagnoseGeocodeFailure([{ type: 'ROAD', error: '??' }]);

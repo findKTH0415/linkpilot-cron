@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="283a2e1f">
+<html lang="ko" data-lp-build="1cf9cb58">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -289,7 +289,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=283a2e1f">
+<link rel="stylesheet" href="tokens.css?v=1cf9cb58">
 <style>
 /* 색·간격·반경 토큰은 tokens.css 하나가 정한다 (LinkPilot Design System v1.1) */
 * { box-sizing: border-box; }
@@ -457,9 +457,9 @@ window.LINKPILOT_OUTPUTS = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=283a2e1f" data-lp-global="LINKPILOT_OUTPUTS"></script>
-<script src="gate-core.js?v=283a2e1f"></script>
-<script src="flow-core.js?v=283a2e1f"></script>
+<script src="embed-bridge.js?v=1cf9cb58" data-lp-global="LINKPILOT_OUTPUTS"></script>
+<script src="gate-core.js?v=1cf9cb58"></script>
+<script src="flow-core.js?v=1cf9cb58"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -655,6 +655,18 @@ window.LINKPILOT_OUTPUTS = {
 }());
 </script>
 <script>
+/* ★ API 는 시간 제한이 있는 창구로 부른다 〈2026-09-09〉 — 서버가 대답을 안 하면
+   화면이 «영영» 기다리고, 그 상태가 글자 하나 없는 흰 칸으로 보인다. flow-core 의
+   설명을 본다. 창구가 없으면(옛 판) 그냥 fetch 로 물러난다 — 화면을 죽이지 않는다. */
+var lpApiFetch = (function () {
+  try { var F = (window.LinkPilotFlow || {}); if (F.lpFetch) return F.lpFetch; } catch (_) {}
+  return function (u, o) { return fetch(u, o); };
+}());
+var lpApiWhy = (function () {
+  try { var F = (window.LinkPilotFlow || {}); if (F.apiWhy) return F.apiWhy; } catch (_) {}
+  return function (e) { return '서버에 닿지 못했습니다.'; };
+}());
+
 (function () {
   'use strict';
   var C = window.LINKPILOT_OUTPUTS;
@@ -714,7 +726,7 @@ window.LINKPILOT_OUTPUTS = {
       return Promise.reject(new Error(
         '서버가 연결되어 있지 않습니다 — 앱 안에서 열어 주십시오.'));
     }
-    return fetch(url, { credentials: 'same-origin' }).then(function (r) {
+    return lpApiFetch(url, { credentials: 'same-origin' }).then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (b) {
         if (!r.ok) throw new Error((b && b.error) || ('서버 오류 (' + r.status + ')'));
         return b;
@@ -727,7 +739,7 @@ window.LINKPILOT_OUTPUTS = {
     if (String(url).indexOf('null/') === 0) {
       return Promise.reject(new Error('서버가 연결되어 있지 않습니다'));
     }
-    return fetch(url, {
+    return lpApiFetch(url, {
       method: 'PUT', credentials: 'same-origin',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(body || {}),
@@ -1227,7 +1239,27 @@ window.LINKPILOT_OUTPUTS = {
 
   function draw() {
     view.textContent = '';
-    if (!C.inTab) view.appendChild(el('h1', null, '완성 보고서'));
+    /* ★★★ **머리를 그릴 자리와 안 그릴 자리를 가른다** 〈2026-09-14 사장님 지시:
+     *   「배너를 일관성있게 이미지넣어 만들어줘」 · 그리고 실측으로 한 번 틀렸다〉.
+     *
+     *   [앞 줄] `C.inTab` 이면 안 그렸다. 그 값은 **앱 탭으로 얹힌 것**까지 포함하는데,
+     *     앱은 2026-09-06 에 제 배너를 지웠다 (§8-2 · S-39) — 그래서 앱 안에서
+     *     이 화면은 **이름이 없었다.** 오류는 안 나고 머리만 사라진다.
+     *
+     *   ★★★ [그런데 조건을 통째로 없애면 «반대쪽»이 깨진다] 이 화면은 report-flow 의
+     *     **단계 안에 창으로 품어진다**(``done` 단계`). 거기서 머리를 그리면 바깥 배너 아래에
+     *     **같은 이름이 한 번 더** 나온다 — 그것이 D-164 의 「배너 두 벌」 그 모습이다.
+     *     처음에 조건을 통째로 지웠다가 검사가 잡았다. **검사가 옳았다.**
+     *
+     *   ★ 그러니 가르는 잣대는 「탭인가」가 아니라 **「우리 화면 «안»에 품어졌는가」**다:
+     *       · 앱 탭으로 얹힘 → **그린다** (앱이 안 그리므로 아무도 안 단다)
+     *       · 우리 단계 안에 품어짐 → **안 그린다** (바깥이 이미 이름을 말한다)
+     * ★★ 이름·부제·그림은 `flow-core` 한 곳에서 온다 — 글자를 여기 적으면 두 벌이 된다.
+     * ★ `F` 가 없을 수 있다 — 형제 스크립트가 404 인 순간이 실제로 있다 (M-29).
+     *   그때 여기서 던지면 화면이 통째로 빈다. 머리만 빠지고 나머지는 뜬다. */
+    var nested = !!(F && F.insideLinkPilot && F.insideLinkPilot());
+    var hd = (!nested && F && F.headEl) ? F.headEl(F.OUTPUTS_SECTION, document, C.hero) : null;
+    if (hd) view.appendChild(hd);
 
     // ★ 토큰이 안 실리면 색·글꼴이 통째로 빠지는데 **오류는 안 난다.**
     //   「화면이 이상하다」로 끝나지 않게 원인을 화면이 말한다

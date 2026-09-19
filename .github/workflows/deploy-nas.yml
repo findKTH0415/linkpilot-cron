@@ -165,6 +165,11 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v5
         with:
+          # ★★ **NAS 가 v20 이다. 여기서만 새 것을 쓰지 않는다.**
+          #   〈2026-09-17 · `deploy-im.yml` 을 내리면서 그 경위를 이리 옮겼다〉
+          #   러너에서만 새 판을 쓰면, 러너에서는 도는 코드가 **NAS 에서만 죽는다** —
+          #   그리고 그 죽음은 배포가 끝난 뒤에 오므로 검사는 초록이다.
+          #   ★ 세 자리(plan · guard · deploy)가 **같은 값**이어야 한다.
           node-version: '20'
       - name: Decide what to deploy
         id: p
@@ -246,7 +251,15 @@ jobs:
   #     러너가 다시 돌린 결과라야 뜻이 있다.
   guard:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    # ★★★ 12 → 20 〈2026-09-12 · 배포 193·194 가 둘 다 11분 51초에 «취소»됐다〉.
+    #   그때 원인은 느린 러너가 아니라 **안 끝나는 검사**였다 — 3/3 초록인데 파일이
+    #   안 끝나 잡이 제한에 걸려 잘렸고, 로그 끝은 `Terminate orphan process: (chrome)` 였다.
+    #   ★ 그래서 **제한을 올리는 것만으로는 안 고쳐진다.** 실제 장치는
+    #     `im-agent/tools/test-lock.js` 의 시간 감시다(통째 10분·말 끊김 3분) —
+    #     거기서 먼저 걸려 **왜 안 끝났는지 이름을 대고** 빨갛게 끝난다.
+    #   ★★ 여기 20 분을 두는 이유는 **감시가 먼저 걸리게 하기 위해서**다. 잡이 먼저
+    #     잘리면 아무 말도 안 남고 그냥 취소로 보인다 — 그것이 이번에 못 고친 이유였다.
+    timeout-minutes: 20
     env:
       IM_AGENT_OFFLINE: '1'
     steps:
@@ -303,12 +316,32 @@ jobs:
         run: |
           echo "───────── 실패한 테스트 ─────────"
           grep -n '^not ok' "${RUNNER_TEMP}/tap.txt" || echo "(not ok 줄이 없다 — 테스트 밖에서 죽었다)"
+          # ★★★ **이름만으로는 못 고친다** 〈2026-09-12 · 배포 #192 에서 실제로 막혔다〉.
+          #   앞 판은 `not ok` «줄 이름»만 찍었다. 그런데 이 저장소의 검사들은 왜 빨간지를
+          #   **메시지에 숫자로** 적어 둔다(「겹친 자리 9개 · 멀쩡한 자리 9개」처럼).
+          #   그 숫자가 로그에 안 남으면, 내 자리에서 재현이 안 될 때 **원인을 어림할 수밖에 없다.**
+          #   실제로 그래서 「느린 러너 탓」인지 「사보타주가 안 걸린 것」인지 못 갈랐다.
+          # ★ TAP 은 실패 줄 «바로 뒤»에 사유 블록을 둔다 — 그 뒤 25줄을 함께 찍는다.
+          echo ""
+          echo "───────── 왜 빨간지 (실패 줄 뒤 25줄) ─────────"
+          awk '/^not ok/{c=25} c>0{print; c--}' "${RUNNER_TEMP}/tap.txt" || true
 
       # ★★ **산출물이 소스와 갈리지 않았는지** 본다. 화면 파일을 고치고 지문을
       #   다시 안 찍으면, 배포는 새 파일을 올리는데 **화면은 옛 판을 말한다** —
       #   그러면 「반영이 안 된다」를 지문으로 가릴 수가 없어진다 (M-25).
       - name: Check build stamp
         run: npm run im:stamp -- --check
+
+      # ★★★ **만들어 놓고 아무도 안 부르는 것이 없는지** (M-08 계열).
+      #   〈2026-09-17 · `deploy-im.yml` 을 내리면서 **이 한 단계만 옮겨 왔다**〉
+      #   저쪽 16단계 중 이쪽에 없던 것은 이것 하나였다 — 화면 만들기(`im:embed`)는
+      #   산출물이 저장소 원본과 **바이트가 같고**(실측: 다른 파일 0개), 더 나오는
+      #   `manifest.json` 은 NAS 에서 **아무도 안 읽는다**(`sync-im-flow.js` 가 보는
+      #   것은 저쪽 저장소의 im-flow 다). 그래서 옮길 것이 이것뿐이었다.
+      #   ★ `npm test` 는 `reachable.js` 의 **함수 성질**만 잰다(`nas-guard.test.js`).
+      #     저장소 전체를 훑는 것은 이 CLI 뿐이라, 안 옮겼으면 **조용히 없어졌다.**
+      - name: Reachable
+        run: npm run check:reachable
 
   deploy:
     needs: [plan, guard]
@@ -1115,15 +1148,31 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           VWORLD_KEY: ${{ secrets.VWORLD_KEY }}
           VWORLD_DOMAIN: ${{ secrets.VWORLD_DOMAIN }}
+          LINKPILOT_VWORLD_REPORT_KEY: ${{ secrets.LINKPILOT_VWORLD_REPORT_KEY }}
+          LINKPILOT_VWORLD_WEB_KEY: ${{ secrets.LINKPILOT_VWORLD_WEB_KEY }}
           DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+          # ★ 같은 공공데이터포털 키의 다른 이름 — 사장님이 이 이름으로 넣으셨다
+          #   (connectors/datakey.js 의 KEY_NAMES) 〈2026-09-13〉.
+          #   ★ 여기 빠뜨리면 Secret 에 넣어도 **NAS 로 안 간다** (M-40 사고 그대로).
+          APIS_DATA: ${{ secrets.APIS_DATA }}
           ECOS_API_KEY: ${{ secrets.ECOS_API_KEY }}
           KMA_APIHUB_KEY: ${{ secrets.KMA_APIHUB_KEY }}
+          # ★ 날씨 열쇠 〈2026-09-13 사장님: 「WEATHER_GO 날씨정보 API 걸어 넣었어」〉.
+          #   어느 시스템인지는 아직 안 쟀다 — 그래도 **나르는 것은 지금 한다**.
+          #   여기 빠뜨리면 Secret 에 넣어도 NAS 로 안 간다 (M-40 사고 그대로).
+          WEATHER_GO: ${{ secrets.WEATHER_GO }}
           REB_API_KEY: ${{ secrets.REB_API_KEY }}
           KOSIS_API_KEY: ${{ secrets.KOSIS_API_KEY }}
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
           LAW_OC: ${{ secrets.LAW_OC }}
           LAW_OPEN_DATA: ${{ secrets.LAW_OPEN_DATA }}
           KICT_API_KEY: ${{ secrets.KICT_API_KEY }}
+          # ★ 길찾기 소요시간 〈2026-09-15 사장님 승인〉 — 넣으신 날 바로 NAS 로 가게 미리 배선
+          KAKAO_MOBILITY_KEY: ${{ secrets.KAKAO_MOBILITY_KEY }}
+          KAKAOMOBILITY_KEY: ${{ secrets.KAKAOMOBILITY_KEY }}
+          KAKAO_MOBILITY_REST_API: ${{ secrets.KAKAO_MOBILITY_REST_API }}
+          ODSAY_API_KEY: ${{ secrets.ODSAY_API_KEY }}
+          ODSAY_KEY: ${{ secrets.ODSAY_KEY }}
           # ★ 목록(NAMES)에만 있고 여기서 안 받으면 **언제나 빈 값**이 된다
           #   — 검사가 그것을 짚어 준다 (절차서 §5 방어장치 2)
           KICT_API_BASE: ${{ secrets.KICT_API_BASE }}
@@ -1157,7 +1206,7 @@ jobs:
           #   (MEMORY M-40 이 기록한 사고 그대로다).
           #   SketchUp 13 + Engine 37 → 합집합 41. KICT_API_BASE·ECOS_BOK_KEY 는
           #   검사가 짚어 준 것이다 — 어느 갈래도 혼자서는 못 보는 결함이었다.
-          NAMES="GEMINI_API_KEY GEMINI_KEY_01 GEMINI_KEY_02 GEMINI_KEY_03 GEMINI_KEY_04 GEMINI_KEY_05 GEMINI_KEY_06 GEMINI_KEY_07 GEMINI_KEY_08 GEMINI_API_KEY_2 GEMINI_API_KEY_3 GEMINI_API_KEY_4 GEMINI_API_KEY_5 GEMINI_API_KEY_6 GEMINI_API_KEY_7 GEMINI_API_KEY_8 CLAUDE_API_KEY CLAUDE_API_KEY_2 CLODE_API_KEY CLODE_API_KEY2 CLODE_API_KEY_2 ANTHROPIC_API_KEY VWORLD_KEY VWORLD_DOMAIN DATA_GO_KR_KEY ECOS_API_KEY KMA_APIHUB_KEY REB_API_KEY KOSIS_API_KEY DART_API_KEY LAW_OC PEXELS_API_KEY KEPCO_BIGDATA_KEY RHINO_COMPUTE_KEY RHINO_COMPUTE_URL DROPBOX_APP_KEY DROPBOX_APP_SECRET BOX_CLIENT_ID BOX_CLIENT_SECRET GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET MS_CLIENT_ID MS_CLIENT_SECRET LAW_OPEN_DATA KICT_API_KEY KICT_API_BASE ECOS_BOK_KEY WORLDWIDE_NEWS"
+          NAMES="GEMINI_API_KEY GEMINI_KEY_01 GEMINI_KEY_02 GEMINI_KEY_03 GEMINI_KEY_04 GEMINI_KEY_05 GEMINI_KEY_06 GEMINI_KEY_07 GEMINI_KEY_08 GEMINI_API_KEY_2 GEMINI_API_KEY_3 GEMINI_API_KEY_4 GEMINI_API_KEY_5 GEMINI_API_KEY_6 GEMINI_API_KEY_7 GEMINI_API_KEY_8 CLAUDE_API_KEY CLAUDE_API_KEY_2 CLODE_API_KEY CLODE_API_KEY2 CLODE_API_KEY_2 ANTHROPIC_API_KEY VWORLD_KEY VWORLD_DOMAIN LINKPILOT_VWORLD_REPORT_KEY LINKPILOT_VWORLD_WEB_KEY DATA_GO_KR_KEY ECOS_API_KEY KMA_APIHUB_KEY REB_API_KEY KOSIS_API_KEY DART_API_KEY LAW_OC PEXELS_API_KEY KEPCO_BIGDATA_KEY RHINO_COMPUTE_KEY RHINO_COMPUTE_URL DROPBOX_APP_KEY DROPBOX_APP_SECRET BOX_CLIENT_ID BOX_CLIENT_SECRET GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET MS_CLIENT_ID MS_CLIENT_SECRET LAW_OPEN_DATA KICT_API_KEY KICT_API_BASE ECOS_BOK_KEY WORLDWIDE_NEWS APIS_DATA WEATHER_GO KAKAO_MOBILITY_KEY KAKAOMOBILITY_KEY KAKAO_MOBILITY_REST_API ODSAY_API_KEY ODSAY_KEY"
           # ★ 임시 파일로 모은다. 셸 문자열에 줄바꿈을 넣으면 YAML 블록이 거기서 끝난다
           KEYFILE=$(mktemp)
           chmod 600 "$KEYFILE"
@@ -1189,27 +1238,110 @@ jobs:
             exit 0
           fi
           STAMP=$(TZ=Asia/Seoul date +%Y%m%d%H%M)
+          # ★★★ **「썼다」와 「남았다」는 다른 사실이다** 〈2026-09-17 · 배포 #212 실측 · D-212〉.
+          #
+          #   [무엇이 났나] 이 자리가 **열쇠 25개를 「써 넣었다」고 적고 초록으로 끝났는데,
+          #   같은 초의 로그에 `Permission denied` 가 넉 줄 찍혀 있었다. 40초 뒤 진단은
+          #   「실제로 읽은 파일: (없다)」였다. 곧 **한 글자도 안 실렸다.**
+          #   그 결과 지적도·OCR·Claude 가 통째로 꺼진 채 배포가 **성공으로 끝났고**,
+          #   나는 그 초록을 근거로 사장님께 「열쇠는 들어 있습니다」라고 적었다.
+          #
+          #   [왜 안 잡혔나] `OUT=$(ssh …)` 의 종료코드는 **ssh 안 마지막 명령의 것**이다.
+          #   `cat > linkpilot.env` 가 실패해도 그 뒤 `echo` 가 성공하면 0 이 온다.
+          #   §12-10 의 「실패를 돌려주는 함수는 부르는 쪽이 본다」와 **같은 고장**인데,
+          #   그때는 PHP 였고 여기는 배포 워크플로다 (S-53 — 한 칸에서 배운 것을 옆 칸에 안 댔다).
+          #
+          # ★ [고침 셋]
+          #   ① **임시 이름에 쓰고 `mv` 로 갈아 끼운다.** 옛 파일을 못 읽어도 폴더에 쓸 수만
+          #      있으면 된다 — `deploy/engine.sh` 가 같은 폴더에 성공하므로 이 길은 열려 있다.
+          #   ② **되읽어 센다.** 「썼다」로 끝내지 않는다. 보낸 수와 되읽은 수가 다르면 적는다
+          #      (§4.6 「올린 뒤 몇 개가 있는지 되묻는다」).
+          #   ③ **못 쓴 까닭을 사람 말로** 적는다. 「ssh 가 안 붙었다」로 적으면 사장님이
+          #      **고칠 것이 없는 자리**를 보러 가신다 (§4.6 · §12-4 · §12-10 과 같은 결).
+          # ★★ **못 읽는 옛 파일은 지우지 않고 이름만 바꿔 남긴다** — 되돌릴 길을 없애지 않는다.
+          # ★★★ **값은 한 글자도 안 찍는다** (§2). 찍는 것은 **개수와 있다/없다**뿐이다.
           # ★ 값은 stdin 으로만 간다 — 명령줄 인자는 NAS 프로세스 목록에 잠깐 뜬다 (§2)
           OUT=$(ssh -o BatchMode=yes -o ConnectTimeout=20 \
               -i ~/.ssh/id_deploy "$NAS_USER@$NAS_HOST" \
               "cd '$ENGINE_ROOT' || exit 9
                OLD=''
-               if [ -f linkpilot.env ]; then
-                 cp -p linkpilot.env 'linkpilot.env.bak-$STAMP'
-                 OLD=\$(sed -n 's/^\\([A-Za-z_][A-Za-z0-9_]*\\)=.*/\\1/p' linkpilot.env | sort -u | tr '\\n' ' ')
+               BAK=none
+               if [ -e linkpilot.env ]; then
+                 if [ -r linkpilot.env ]; then
+                   cp -p linkpilot.env 'linkpilot.env.bak-$STAMP' 2>/dev/null && BAK=ok || BAK=nobackup
+                   OLD=\$(sed -n 's/^\\([A-Za-z_][A-Za-z0-9_]*\\)=.*/\\1/p' linkpilot.env | sort -u | tr '\\n' ' ')
+                 else
+                   BAK=unreadable
+                   mv -f linkpilot.env 'linkpilot.env.unreadable-$STAMP' 2>/dev/null || true
+                 fi
+                 [ -e linkpilot.env ] \\
+                   && { [ -O linkpilot.env ] && echo 'OWN=me' || echo 'OWN=other'; }
                fi
-               umask 177 && cat > linkpilot.env
-               chmod 600 linkpilot.env
-               echo \"OLDKEYS=\$OLD\"
-               echo \"SIZE=\$(wc -c < linkpilot.env)\"" < "$KEYFILE")
-          if [ $? -ne 0 ]; then
-            echo "::error::**열쇠 파일을 못 놓았다.** 엔진 루트에 쓸 수 없거나 ssh 가 안 붙었다 — 아래 진단이 옛 파일을 그대로 말할 것이다"
+               [ -w . ] && echo 'DIRW=yes' || echo 'DIRW=no'
+               umask 177
+               if cat > '.linkpilot.env.new-$STAMP'; then
+                 chmod 600 '.linkpilot.env.new-$STAMP' 2>/dev/null || true
+                 if mv -f '.linkpilot.env.new-$STAMP' linkpilot.env 2>/dev/null; then
+                   echo 'WROTE=yes'
+                 else
+                   rm -f '.linkpilot.env.new-$STAMP' 2>/dev/null || true
+                   echo 'WROTE=no'
+                 fi
+               else
+                 rm -f '.linkpilot.env.new-$STAMP' 2>/dev/null || true
+                 echo 'WROTE=no'
+               fi
+               if [ -r linkpilot.env ]; then
+                 echo \"BACKCOUNT=\$(grep -c '^[A-Za-z_][A-Za-z0-9_]*=' linkpilot.env 2>/dev/null || echo 0)\"
+               else
+                 echo 'BACKCOUNT=unreadable'
+               fi
+               echo \"BAK=\$BAK\"
+               echo \"OLDKEYS=\$OLD\"" < "$KEYFILE")
+          SSHRC=$?
+          if [ $SSHRC -ne 0 ]; then
+            echo "::error::**열쇠 파일을 못 놓았다 — ssh 가 안 붙었거나 엔진 폴더가 없다** (되돌아온 값 $SSHRC). 아래 진단이 옛 파일을 그대로 말할 것이다"
+            echo "LP_OPS enginekeys=unmeasured" | tee -a "$RUNNER_TEMP/lp-ops.txt"
             exit 1
           fi
-          OLDKEYS=$(printf '%s\n' "$OUT" | sed -n 's/^OLDKEYS=//p')
+          OLDKEYS=$(printf '%s\n' "$OUT" | sed -n 's/^OLDKEYS=//p' | tail -1)
+          WROTE=$(printf '%s\n' "$OUT" | sed -n 's/^WROTE=//p' | tail -1)
+          BACK=$(printf '%s\n' "$OUT" | sed -n 's/^BACKCOUNT=//p' | tail -1)
+          OWN=$(printf '%s\n' "$OUT" | sed -n 's/^OWN=//p' | tail -1)
+          DIRW=$(printf '%s\n' "$OUT" | sed -n 's/^DIRW=//p' | tail -1)
+          BAK=$(printf '%s\n' "$OUT" | sed -n 's/^BAK=//p' | tail -1)
           NEWCOUNT=$(printf '%s' "$HAVE" | wc -w)
-          echo "써 넣은 열쇠 ${NEWCOUNT}개:${HAVE}"
-          echo "열쇠 파일: 배포가 새로 놓았다 — ${NEWCOUNT}개 (${HAVE# }) · 앞 판은 linkpilot.env.bak-$STAMP" >> "$GITHUB_STEP_SUMMARY"
+          # ★★★ **되읽은 수가 판정이다.** 보낸 수는 「보냈다」일 뿐이다.
+          if [ "$WROTE" != "yes" ] || [ "$BACK" = "unreadable" ] || [ "${BACK:-0}" -eq 0 ] 2>/dev/null; then
+            WHY="엔진 폴더에 쓸 수 없다"
+            [ "$OWN" = "other" ] && WHY="**그 파일을 다른 계정이 갖고 있다** — 배포 계정이 덮어쓸 수 없다"
+            [ "$DIRW" = "no" ] && WHY="**엔진 폴더 자체에 쓸 수 없다** — 폴더 권한이다"
+            [ "$BACK" = "unreadable" ] && [ "$WROTE" = "yes" ] \
+              && WHY="**썼는데 되읽지 못한다** — 파일이 다른 계정 소유로 남아 있다"
+            echo "::error::**열쇠 파일이 NAS 에 안 실렸다.** ${WHY}. 그래서 지적도·OCR·둘째 읽기가 **전부 꺼진 채로** 돈다 — 열쇠를 다시 넣으실 필요는 없다(Secret 에는 ${NEWCOUNT}개가 멀쩡히 있다). **NAS 의 파일 권한 문제이지 열쇠 문제가 아니다.**"
+            {
+              echo "### ❌ 엔진 열쇠 파일이 안 실렸다"
+              echo ""
+              echo "- Secret 에서 모은 열쇠: **${NEWCOUNT}개** (여기까지는 멀쩡하다)"
+              echo "- NAS 에 실린 열쇠: **0개** — ${WHY}"
+              echo "- 옛 파일: \`BAK=${BAK}\` · 폴더 쓰기 \`${DIRW:-?}\` · 소유 \`${OWN:-없음}\`"
+              echo ""
+              echo "★ **열쇠를 다시 넣지 않으셔도 된다** — 막는 것은 NAS 쪽 파일 권한 하나다."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "LP_OPS enginekeys=none" | tee -a "$RUNNER_TEMP/lp-ops.txt"
+            exit 0
+          fi
+          echo "보낸 열쇠 ${NEWCOUNT}개 · NAS 에서 되읽은 열쇠 ${BACK}개:${HAVE}"
+          echo "열쇠 파일: 배포가 새로 놓았다 — 보냄 ${NEWCOUNT}개 · **되읽음 ${BACK}개** (${HAVE# }) · 앞 판 \`${BAK}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "LP_OPS enginekeys=${BACK}" | tee -a "$RUNNER_TEMP/lp-ops.txt"
+          # ★★ **「보냈다」와 「그만큼 있다」는 다른 사실이다** (§4.6). 다르면 적는다.
+          if [ "$BACK" != "$NEWCOUNT" ]; then
+            echo "::warning::**보낸 수와 되읽은 수가 다르다 — 보냄 ${NEWCOUNT} · 되읽음 ${BACK}.** 값에 줄바꿈이 섞였거나 같은 이름이 두 번 들어간 것이다."
+            echo "⚠️ 보냄 ${NEWCOUNT} ≠ 되읽음 ${BACK} (값에 줄바꿈이 섞였을 수 있다)" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ "$BAK" = "unreadable" ]; then
+            echo "::warning::**앞 열쇠 파일을 못 읽어 백업을 못 떴다.** 다른 계정 소유였다 — \`linkpilot.env.unreadable-$STAMP\` 로 이름만 바꿔 남겼다(지우지 않았다)."
+          fi
           # ★ **사라진 것이 있으면 이름을 댄다.** 조용히 없어지는 것이 가장 나쁘다
           LOST=""
           for o in $OLDKEYS; do
@@ -1219,7 +1351,7 @@ jobs:
             echo "::warning::**앞 파일에 있던 열쇠가 이번 판에 없다:${LOST}.** 배포가 이 파일의 주인이므로 Secret 에 없는 값은 안 실린다. 그 기능을 쓰시려면 같은 이름으로 GitHub Secret 에 넣어 주십시오 — 앞 판은 NAS 의 linkpilot.env.bak-$STAMP 에 그대로 있다."
             echo "⚠️ 앞 파일에만 있던 열쇠:${LOST} (Secret 에 넣으면 다음 배포부터 실린다)" >> "$GITHUB_STEP_SUMMARY"
           fi
-          echo "::notice::**열쇠 파일을 배포가 놓았다.** ${NEWCOUNT}개를 Secret 값으로 새로 썼다 — 손으로 만드실 필요가 없다."
+          echo "::notice::**열쇠 파일을 배포가 놓았다.** NAS 에서 되읽어 ${BACK}개를 확인했다 — 손으로 만드실 필요가 없다."
 
       # ★★ **앱(웹루트) 열쇠도 배포가 놓는다** 〈2026-08-27 · D-141〉.
       #
@@ -1751,18 +1883,63 @@ jobs:
           #   「백업 실패」로 적으면 멀쩡한 디스크를 두고 없는 고장을 찾으러 간다.
           # ★ 도구는 성패와 **무관하게** 「떴다」·「견줌」을 찍는다. 그 글자가 없으면
           #   도구가 아예 안 돈 것이다 — 못 쟀다와 실패는 다른 사실이다.
+          # ★★★ **「못 쟀다」안에 «갈래 셋»이 숨어 있다** 〈2026-09-17 · 실측 · D-212〉.
+          #   실제로 이렇게 죽었다 — `EACCES: permission denied, open '…/02_Source_Data/….pdf'`.
+          #   곧 **ssh 도 node 도 멀쩡했고** 막은 것은 **자료 파일 한 개의 권한**이다.
+          #   그런데 앞 판의 글은 「ssh 가 안 붙었거나 node 가 없다」였다 — 사장님이
+          #   **고칠 것이 없는 자리**를 보러 가신다 (§4.6 · §12-4 · §12-10 과 같은 결).
+          #   ★ 게다가 바로 아래 칸이 「붙기: **된다**」를 찍고 있었다 — **이웃한 두 칸이
+          #     서로 다른 말을 하면 그 자체가 사고 신호다** (§8).
           if ! printf '%s' "$OUT" | grep -q '떴다\|견줌'; then
-            echo "자료 백업: 못 쟀다 — 진단기가 안 돌았다 (ssh 가 안 붙었거나 node 가 없다). 받은 답: ${OUT:-NONODE}"
-            echo "자료 백업: **못 쟀다** (실패한 것과 **다른 사실**이다)" >> "$GITHUB_STEP_SUMMARY"
+            WHY="ssh 가 안 붙었거나 node 가 없다"
+            case "$OUT" in
+              *EACCES*|*"permission denied"*|*"Permission denied"*)
+                WHY="**자료 파일을 못 읽는다 (EACCES) — ssh·node 문제가 아니다.** 다른 계정이 만든 파일이 im-projects 안에 있다. 위 로그의 경로가 그 파일이다" ;;
+              *ENOSPC*) WHY="**디스크가 찼다 (ENOSPC)**" ;;
+              ''|*NONODE*) WHY="ssh 가 안 붙었거나 node 가 없다" ;;
+            esac
+            echo "자료 백업: 못 쟀다 — ${WHY}"
+            printf '자료 백업: **못 쟀다** — %s (실패한 것과 **다른 사실**이다)\n' "$WHY" >> "$GITHUB_STEP_SUMMARY"
             echo "LP_OPS backup=unmeasured" | tee -a "$RUNNER_TEMP/lp-ops.txt"
             exit 0
           fi
 
           printf '%s\n' "$OUT"
           if printf '%s' "$OUT" | grep -q '뜬 것이 지금 자료와 같다'; then
-            echo "::notice::**자료 백업 한 벌이 남았다.** 뜬 것이 지금 자료와 같다 (H-1)."
-            printf '자료 백업: **한 벌 남았다** — %s\n' "$(printf '%s' "$OUT" | grep '떴다' | head -1)" >> "$GITHUB_STEP_SUMMARY"
-            echo "LP_OPS backup=ok" | tee -a "$RUNNER_TEMP/lp-ops.txt"
+            # ★★★ **「한 벌 남았다」와 「다 남았다」는 다른 사실이다** 〈2026-09-17 · D-212〉.
+            #   못 읽는 자료 파일이 있으면 그것만 빼고 뜬다 — 지문은 양쪽이 같아
+            #   **`ok` 로 보이는데 그 파일은 백업에 없다.** 갈라 적지 않으면
+            #   「되살릴 것이 있다」가 반쪽 진실이 된다 (§8 의 거짓 초록).
+            # ★★★ **「위 로그에 있다」로 보내지 않는다** 〈2026-09-17 · 실측 · D-213 이음〉.
+            #
+            #   [무엇이 났나] 이 줄이 「어느 파일인지는 위 로그에 있다」였다. 그런데 그
+            #   자리는 **이 단계 로그의 가운데**다 — 실제로 내가 그 한 줄을 읽으려고
+            #   로그를 **네 번** 되감았고(끝에서 320줄), 사장님이라면 못 찾으신다.
+            #
+            # ★ 정작 그 값은 **바로 아래 실행 요약 줄**에 이미 실려 있다(폴더까지).
+            #   그러니 **글이 가리키는 자리를 그 줄로 옮긴다** — 없는 길로 보내면
+            #   찾다가 지치고, 그것이 「고장」으로 읽힌다 (§12-19 의 그 자리 · §8).
+            # ★★ **폴더 개수를 «기계가 읽는 표»에도 적는다.** 산문 줄은 사람용이라
+            #   정기 운영점검이 못 읽는다 — `LP_OPS backupdirs=N` 으로 함께 찍어
+            #   「줄었는가」를 스스로 세게 한다 (D-196 의 그 표와 같은 규칙).
+            #   ★ **폴더 «이름»은 그 표에 안 넣는다** — 프로젝트 자료 이름에 사람
+            #     이름·거래 상대가 섞일 수 있고 이 로그는 공개다 (§2). 개수만 적는다.
+            # ★★★ **못 셌으면 그 줄을 아예 안 찍는다** — 0 으로 찍으면 「빠진 폴더가
+            #   없다」로 읽혀 `partial` 과 어긋난다 (§8 「못 잰 것은 통과가 아니다」).
+            if printf '%s' "$OUT" | grep -q '못 읽어 빠진 것'; then
+              echo "::warning::**자료 백업이 «일부»만 남았다.** 못 읽는 파일이 있어 그것은 백업에 없다 — **파일 권한 문제이지 백업 장치 문제가 아니다.** 어느 폴더인지는 이 실행의 «요약(Summary)» 첫 화면 「자료 백업」 줄에 적혀 있다 — 로그를 파고 들어가지 않으셔도 됩니다."
+              printf '자료 백업: **일부만 남았다** — %s\n' "$(printf '%s' "$OUT" | grep '못 읽어 빠진 것' | head -1)" >> "$GITHUB_STEP_SUMMARY"
+              echo "LP_OPS backup=partial" | tee -a "$RUNNER_TEMP/lp-ops.txt"
+              DIRS=$(printf '%s' "$OUT" | sed -n 's/.*그 자리(\([0-9][0-9]*\)곳).*/\1/p' | head -1)
+              case "${DIRS:-}" in
+                ''|0|*[!0-9]*) : ;;
+                *) echo "LP_OPS backupdirs=${DIRS}" | tee -a "$RUNNER_TEMP/lp-ops.txt" ;;
+              esac
+            else
+              echo "::notice::**자료 백업 한 벌이 남았다.** 뜬 것이 지금 자료와 같다 (H-1)."
+              printf '자료 백업: **한 벌 남았다** — %s\n' "$(printf '%s' "$OUT" | grep '떴다' | head -1)" >> "$GITHUB_STEP_SUMMARY"
+              echo "LP_OPS backup=ok" | tee -a "$RUNNER_TEMP/lp-ops.txt"
+            fi
           else
             echo "::warning::**자료 백업을 못 남겼다.** 복원시험이 초록이어도 그것은 「되살리는 길이 돈다」일 뿐, **되살릴 것이 있다**는 뜻이 아니다."
             printf '자료 백업: **못 남겼다** — %s\n' "$(printf '%s' "$OUT" | head -1)" >> "$GITHUB_STEP_SUMMARY"
@@ -1805,9 +1982,23 @@ jobs:
           # ★ **진단기가 실제로 돌았는지**부터 본다 (Check map power 와 같은 규칙).
           #   ssh 가 못 붙은 것을 「복원 실패」로 적으면, 멀쩡한 디스크를 두고
           #   없는 고장을 찾으러 간다. 못 잰 것과 실패한 것은 다른 사실이다.
+          # ★★★ **「못 쟀다」안에 «갈래 셋»이 숨어 있다** 〈2026-09-17 · 실측 · D-212〉.
+          #   실제로 이렇게 죽었다 — `EACCES: permission denied, open '…/02_Source_Data/….pdf'`.
+          #   곧 **ssh 도 node 도 멀쩡했고** 막은 것은 **자료 파일 한 개의 권한**이다.
+          #   그런데 앞 판의 글은 「ssh 가 안 붙었거나 node 가 없다」였다 — 사장님이
+          #   **고칠 것이 없는 자리**를 보러 가신다 (§4.6 · §12-4 · §12-10 과 같은 결).
+          #   ★ 게다가 바로 아래 칸이 「붙기: **된다**」를 찍고 있었다 — **이웃한 두 칸이
+          #     서로 다른 말을 하면 그 자체가 사고 신호다** (§8).
           if ! printf '%s' "$OUT" | grep -q '복원시험'; then
-            echo "복원시험: 못 쟀다 — 진단기가 안 돌았다 (ssh 가 안 붙었거나 node 가 없다). 받은 답: ${OUT:-NONODE}"
-            echo "복원시험: **못 쟀다** (실패한 것과 **다른 사실**이다)" >> "$GITHUB_STEP_SUMMARY"
+            WHY="ssh 가 안 붙었거나 node 가 없다"
+            case "$OUT" in
+              *EACCES*|*"permission denied"*|*"Permission denied"*)
+                WHY="**자료 파일을 못 읽는다 (EACCES) — ssh·node 문제가 아니다.** 다른 계정이 만든 파일이 im-projects 안에 있다. 위 로그의 경로가 그 파일이다" ;;
+              *ENOSPC*) WHY="**디스크가 찼다 (ENOSPC)**" ;;
+              ''|*NONODE*) WHY="ssh 가 안 붙었거나 node 가 없다" ;;
+            esac
+            echo "복원시험: 못 쟀다 — ${WHY}"
+            printf '복원시험: **못 쟀다** — %s (실패한 것과 **다른 사실**이다)\n' "$WHY" >> "$GITHUB_STEP_SUMMARY"
             echo "LP_OPS drill=unmeasured" | tee -a "$RUNNER_TEMP/lp-ops.txt"
             exit 0
           fi
@@ -1872,15 +2063,33 @@ jobs:
           {
             echo "### 이 배포가 닿은 곳 · 아직 사람 손인 곳"
             echo ""
-            echo "| | 누가 | 상태 |"
-            echo "|---|---|---|"
-            echo "| NAS 의 보고서 화면 16개 | **이 배포** | 판 \`${STAMP}\` 로 올렸다 |"
-            echo "| NAS 의 엔진 | **이 배포** | 위 「Deploy engine」 참고 |"
-            echo "| 앱 저장소 \`im-flow/\` 사본 | **사람** | 안 올리면 앱에는 **옛 판**이 그대로 보인다 |"
-            echo "| 앱 자체 화면(브리핑·대시보드 등) | **앱 저장소** | 이 배포와 무관하다 |"
-            echo "| NAS 웹서버의 화면 캐시 끄기 | **한 번만 사람** | 위 「Do not cache HTML」 이 켜졌는지 적는다 |"
+            # ★★★ **「막는가」를 칸으로 적는다** 〈2026-09-15 사장님: 「손으로 하실 자리 — 그대로 셋 ·
+            #   더진행이 안됨」〉.
+            #
+            #   [무엇이 잘못됐나] 앞 판의 표는 **누가 하는가**만 적었다. 그래서 「한 번만 사람」이
+            #   전부 **숙제**로 읽혔고, 네 번의 확인 동안 그중 하나(화면 캐시)가 **안 해도 되는 것**
+            #   이라는 사실이 한 번도 안 적혔다. 사장님이 못 하시는 채로 목록만 남았다.
+            #
+            #   ★ 가르는 잣대는 하나다 — **그것 없이도 서비스가 도는가.**
+            #     · **차단** = 안 하면 기능이 안 돈다
+            #     · **선택** = 안 해도 돈다. 하면 조금 나아진다
+            #     · **바깥** = 우리 손 밖이다(기관 승인·폰 설정)
+            #   ★★ 화면 캐시가 «선택»인 근거: 앱의 서비스워커가 화면을 `cache:'no-store'` 로
+            #     받는다(앱 저장소 `sw.js` · `test-sw-nocache.js` 가 잰다). 그래서 헤더가 없어도
+            #     **화면은 스스로 새 판을 받는다** (D-149 가 실측으로 적어 둔 그 사실이다).
+            #   ★★★ **「선택」을 「안 해도 된다」로 줄여 적지 않는다** — 하면 «첫 화면»이
+            #     한 번 덜 헛돈다. 다만 **못 하고 있는 것을 숙제로 쌓아 두지 않는다.**
+            echo "| | 누가 | 막는가 | 상태 |"
+            echo "|---|---|---|---|"
+            echo "| NAS 의 보고서 화면 16개 | **이 배포** | — | 판 \`${STAMP}\` 로 올렸다 |"
+            echo "| NAS 의 엔진 | **이 배포** | — | 위 「Deploy engine」 참고 |"
+            echo "| 앱 저장소 \`im-flow/\` 사본 | **사람** | **차단** | 안 올리면 앱에는 **옛 판**이 그대로 보인다 |"
+            echo "| 앱 자체 화면(브리핑·대시보드 등) | **앱 저장소** | — | 이 배포와 무관하다 |"
+            echo "| NAS 웹서버의 화면 캐시 끄기 | 한 번만 사람 | **선택** | 안 켜도 앱이 화면을 \`no-store\` 로 받는다 (D-149) · 위 「Do not cache HTML」 참고 |"
             echo ""
             echo "★ 앱에서 「보고서 만들기」를 열고 화면 맨 아래 여덟 글자가 \`${STAMP}\` 인지 보면 사본이 최신인지 갈린다."
+            echo ""
+            echo "★★ **「선택」은 목록에서 빼도 된다** — 안 하고 두어도 서비스가 돈다. 「차단」만 남긴다."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Probe summary
@@ -1978,6 +2187,41 @@ jobs:
               echo "  ② 그 계정의 ~/.ssh/authorized_keys 에 이 지문이 없다 (또는 홈 권한이 헐거워 무시된다)" ;;
             *)
               echo "붙기: **안 된다** — $OUT" ;;
+          esac
+
+      # ★★★ **마지막에 «한 줄로» 판정한다 — 거짓 초록을 막는 자리** 〈2026-09-17 · D-212〉.
+      #
+      #   [왜 두나] 배포 #212 가 **열쇠를 한 글자도 안 싣고 초록으로 끝났다.**
+      #   「Write engine keys」 가 「써 넣은 열쇠 25개」라고 적었는데 같은 초에
+      #   `Permission denied` 가 찍혀 있었고, 40초 뒤 진단은 「실제로 읽은 파일: (없다)」였다.
+      #   그리고 **나는 그 초록을 근거로 사장님께 「열쇠는 들어 있습니다」라고 적었다.**
+      #
+      # ★ [잣대] 그것 없이도 서비스가 도는가 — **안 돈다.** 열쇠가 0개면 지적도·OCR·
+      #   둘째 읽기가 통째로 꺼진다. 그러니 **차단**이다 (§12 배포 표의 그 잣대).
+      # ★★ **배포를 막지는 않는다** — 화면·엔진은 이미 올라간 뒤다. 올릴 것은 올리고
+      #   **판정만 빨갛다** (§8 「되돌렸어도 빨갛게 끝난다」와 같은 모양).
+      # ★★★ **「못 쟀다」도 초록으로 안 끝낸다** (§8).
+      - name: Deploy verdict (열쇠가 실제로 실렸는가)
+        if: ${{ always() && needs.plan.outputs.dry_run != 'true' }}
+        run: |
+          set -u
+          V=$(sed -n 's/^LP_OPS enginekeys=//p' "$RUNNER_TEMP/lp-ops.txt" 2>/dev/null | tail -1)
+          if [ -z "${V:-}" ]; then
+            echo "엔진 열쇠: 이번 배포는 엔진을 안 올렸다 — 잴 것이 없다"
+            exit 0
+          fi
+          case "$V" in
+            none)
+              echo "::error::**엔진 열쇠가 NAS 에 하나도 안 실렸다.** 위 「Write engine keys」 의 까닭을 보십시오 — **열쇠를 다시 넣으실 필요는 없습니다.** GitHub Secret 에는 멀쩡히 있고, 막는 것은 NAS 쪽 파일 권한입니다."
+              echo "### ❌ 판정 — 엔진 열쇠 0개 (지적도·OCR·둘째 읽기가 꺼진 채로 돈다)" >> "$GITHUB_STEP_SUMMARY"
+              exit 1 ;;
+            unmeasured)
+              echo "::error::**엔진 열쇠가 실렸는지 못 쟀다.** 못 잰 것은 통과가 아니다 (§8)."
+              echo "### ❌ 판정 — 엔진 열쇠를 **못 쟀다**" >> "$GITHUB_STEP_SUMMARY"
+              exit 1 ;;
+            *)
+              echo "엔진 열쇠: NAS 에서 되읽어 ${V}개를 확인했다"
+              echo "### ✅ 판정 — 엔진 열쇠 **${V}개**가 NAS 에 실렸다 (되읽어 확인)" >> "$GITHUB_STEP_SUMMARY" ;;
           esac
 
       - name: Dry run summary

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="283a2e1f">
+<html lang="ko" data-lp-build="1cf9cb58">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -288,7 +288,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=283a2e1f">
+<link rel="stylesheet" href="tokens.css?v=1cf9cb58">
 <style>
 /* 색·간격·반경 토큰은 tokens.css 하나가 정한다 (LinkPilot Design System v1.1) */
 * { box-sizing: border-box; }
@@ -311,26 +311,19 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
      제목 한 줄 · 부제 한 줄»이다. 이 배너만 라임 딱지 한 줄이 더 있고 부제가 두 줄로
      접혀 **200px 넘게** 자리를 먹었다. 한 화면 안에서 배너 둘이 다른 크기로 서 있으면
      «다른 앱을 붙여 놓은 것»처럼 보인다.
-   ★ 사진은 여전히 안 넣는다 — 두 벌 사고의 원인이었고, 여기서 재는 것은 «몸집»이다.
+   ★ 그림이 들어왔다 〈2026-09-14 사장님 지시: 「배너를 일관성있게 이미지넣어 만들어줘」〉.
+     남의 사진이 아니라 **우리가 그린 그림**이고 자리마다 다르다 (`flow-core` 의 heroSvg) —
+     남의 사진이면 §6-2-6 일곱에 걸리고, 바깥 주소를 물면 자체 완결이 깨진다 (§8).
+     ★ 두 벌 사고는 앱 쪽 배너를 지워서 이미 풀렸다 (§8-2 · S-39). 여기서 재는 것은
+       여전히 «몸집»이다 — 그림이 들어와도 높이는 안 늘어난다.
    ★★ 라임 딱지 줄을 안 그린다. 앱의 다른 섹션 배너에는 그 줄이 없다.
      설정값은 flow-core 의 kicker 에 남겨 둔다 — 지우면 다른 화면이 쓰던 것까지 없어진다.
    ★★★ 그 딱지의 «글자»를 여기 적지 않는다. `nested-app-notice.test.js` 가 이 파일에
      그 글자가 있으면 «우리가 그린 것»으로 읽고 빨개진다 — 방금 그렇게 한 번 걸렸다
      (CLAUDE.md §8 — 검사가 찾는 이름을 주석에 글자로 적지 않는다). */
-.head {
-  margin: 0 0 14px; padding: 20px 22px; border-radius: 16px;
-  background: var(--lp-navy, #10233C); color: #fff;
-  min-height: 120px; box-sizing: border-box;
-  display: flex; flex-direction: column; justify-content: center;
-}
-.head h1 { margin: 0; font-size: clamp(20px, 5.4vw, 26px); line-height: 1.2; color: #fff; }
-/* ★ 부제는 «한 줄»이다. 두 줄로 접히면 배너가 다시 커진다 — 넘치면 말줄임표로 끊는다. */
-.head__d {
-  margin: 7px 0 0; font-size: clamp(12px, 3.4vw, 13.5px); line-height: 1.5;
-  color: rgba(255,255,255,.78);
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-  overflow: hidden;
-}
+/* ★★★ 배너 모양은 **`flow-core` 의 HEAD_CSS 한 벌**이다 〈2026-09-14〉 —
+   `headEl` 이 심는다. 여기 적어 두면 화면이 늘 때마다 복사해야 하고 두 벌이 된다 (§8-1).
+   ★ 되돌려 보려면 `flow-core.js` 의 HEAD_CSS 를 본다. */
 
 /* ★★★ 탭 줄 — **앱이 아니라 이 화면이 단다** 〈2026-08-31 사장님 지시〉.
    [지시] 「Linkpilot 프레임 보고서생성 상단배너바를 삭제하고 Engine Agent 의
@@ -478,6 +471,22 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
 
 /* ★ 「외부 분석 환경」 카드를 지우면서 그 카드에만 쓰던 규칙도 함께 지웠다 */
 </style>
+<!-- ★★★ **여섯 벌을 «한꺼번에» 받는다** 〈2026-09-15 사장님 지시: 「아직도 느리고 늦게 로딩됨」〉.
+     ★ 이 글에 «여는 태그»를 글자 그대로 안 적는다 — 조각 검사가 주석을 가리지 않고 보아
+       진짜 태그로 오인한다 (CLAUDE.md §8 · 실제로 여기서 한 번 걸렸다).
+     [무엇이 느렸나] 아래에서 부르는 형제 스크립트 여섯은 «막는» 스크립트다 — 파서가 한 벌씩
+       기다렸다가 다음 것을 부른다. 폰에서 터널을 지나면 한 벌에 왕복이 들어가니
+       **여섯 번을 줄 서서 기다린다.** 파일이 커서가 아니라 «차례로 기다려서» 느렸다.
+     ★ 미리받기는 **받는 차례만** 바꾼다 — 도는 차례는 그대로다. 그래서 아래 인라인
+       조각들이 `F.` 를 바로 쓰는 지금 구조를 **한 글자도 안 건드린다**(`defer` 는 그것을 깬다).
+     ★★ 주소는 스크립트 쪽과 **글자까지 같아야 한다** — 다르면 같은 파일을 두 번 받아
+       오히려 느려진다. `build-stamp.js` 가 셋을 함께 지문 찍고 `--check` 가 함께 잰다. -->
+<link rel="preload" as="script" href="embed-bridge.js?v=1cf9cb58">
+<link rel="preload" as="script" href="gate-core.js?v=1cf9cb58">
+<link rel="preload" as="script" href="flow-core.js?v=1cf9cb58">
+<link rel="preload" as="script" href="fields-core.js?v=1cf9cb58">
+<link rel="preload" as="script" href="catalog.js?v=1cf9cb58">
+<link rel="preload" as="script" href="inapp.js?v=1cf9cb58">
 </head>
 <body>
 
@@ -527,14 +536,14 @@ window.LINKPILOT_REPORT_FLOW = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=283a2e1f" data-lp-global="LINKPILOT_REPORT_FLOW"></script>
-<script src="gate-core.js?v=283a2e1f"></script>
-<script src="flow-core.js?v=283a2e1f"></script>
+<script src="embed-bridge.js?v=1cf9cb58" data-lp-global="LINKPILOT_REPORT_FLOW"></script>
+<script src="gate-core.js?v=1cf9cb58"></script>
+<script src="flow-core.js?v=1cf9cb58"></script>
 <!-- ★ 4단계 진행율(필수 항목 채움)을 재는 데 쓴다. **값과 출처가 둘 다**
      있어야 세는 규칙이 여기 있다 — 화면이 따로 세면 두 벌이 된다 -->
-<script src="fields-core.js?v=283a2e1f"></script>
-<script src="catalog.js?v=283a2e1f"></script>
-<script src="inapp.js?v=283a2e1f"></script>
+<script src="fields-core.js?v=1cf9cb58"></script>
+<script src="catalog.js?v=1cf9cb58"></script>
+<script src="inapp.js?v=1cf9cb58"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -730,6 +739,18 @@ window.LINKPILOT_REPORT_FLOW = {
 }());
 </script>
 <script>
+/* ★ API 는 시간 제한이 있는 창구로 부른다 〈2026-09-09〉 — 서버가 대답을 안 하면
+   화면이 «영영» 기다리고, 그 상태가 글자 하나 없는 흰 칸으로 보인다. flow-core 의
+   설명을 본다. 창구가 없으면(옛 판) 그냥 fetch 로 물러난다 — 화면을 죽이지 않는다. */
+var lpApiFetch = (function () {
+  try { var F = (window.LinkPilotFlow || {}); if (F.lpFetch) return F.lpFetch; } catch (_) {}
+  return function (u, o) { return fetch(u, o); };
+}());
+var lpApiWhy = (function () {
+  try { var F = (window.LinkPilotFlow || {}); if (F.apiWhy) return F.apiWhy; } catch (_) {}
+  return function (e) { return '서버에 닿지 못했습니다.'; };
+}());
+
 (function () {
   'use strict';
   var C = window.LINKPILOT_REPORT_FLOW;
@@ -799,7 +820,11 @@ window.LINKPILOT_REPORT_FLOW = {
   function add(p) { for (var i = 1; i < arguments.length; i++) if (arguments[i]) p.appendChild(arguments[i]); return p; }
 
   function ctx() {
-    return { api: C.api, base: C.base || '', projectId: state.projectId, current: state.current };
+    /* ★ 2026-09-19 — `issuerSet` 을 함께 넘긴다 〈사장님 지시: 「2~6번은 1번완료후 노출」〉.
+         이 값이 없으면 `flow-core` 가 「1번이 끝났는가」를 못 보고 늘 다 그린다 —
+         **나르는 자리가 빠지면 그 장치는 안 도는 것과 같다** (§12-19 · §12-37). */
+    return { api: C.api, base: C.base || '', projectId: state.projectId, current: state.current,
+             issuerSet: facts.issuerSet };
   }
 
   /* ── 절 넷 ─────────────────────────────────────────────
@@ -1539,12 +1564,16 @@ window.LINKPILOT_REPORT_FLOW = {
      * ★★ 사진은 안 넣는다. 얇은 한 줄이다 (지침 §6-3 ③ — 활자로 승부한다).
      * ★★★ 탭 바에도 같은 이름이 있다. 그것은 **누르는 것**이고 이것은 **지금 어디에
      *   있는지**라 쓰임이 다르다 — 부제를 함께 적어 갈라 보이게 한다. */
-    var hd = el('div', 'head');
-    /* ★ 라임 딱지는 안 그린다 — 앱의 다른 섹션 배너에 그 줄이 없다 (2026-09-09 사장님 지시). */
-    add(hd, el('h1', null, F.SECTION.title));
-    if (F.SECTION.lead) add(hd, el('p', 'head__d', F.SECTION.lead));
-    else if (F.SECTION.tabNote) add(hd, el('p', 'head__d', F.SECTION.tabNote));
-    view.appendChild(hd);
+    /* ★★★ **배너는 `flow-core` 가 만든다** 〈2026-09-14 사장님 지시 — 「배너를
+     *   일관성있게 이미지넣어 만들어줘」〉. 여기서 조립하면 세 화면이 **각자**
+     *   조립하게 되고, 그때부터 한 화면만 고쳐진다 (§6-3 ⑥ · §8-1 과 같은 결).
+     * ★ 그림도 거기서 그린다 — 자리 이름(`make`·`done`·`files`)마다 다른 그림이다.
+     * ★★ 못 만들면(문서가 없는 자리) **조용히 넘어가지 않는다** — 머리가 없는 화면은
+     *   앱 안에서 «이름 없는 틀»이 된다. */
+    /* ★ `F` 가 없을 수 있다 — 형제 스크립트가 404 인 순간이 실제로 있다 (M-29).
+       그때 여기서 던지면 화면이 통째로 빈다. 머리만 빠지고 나머지는 뜬다. */
+    var hd = (F && F.headEl) ? F.headEl(F.SECTION, document, C.hero) : null;
+    if (hd) view.appendChild(hd);
     view.appendChild(tabBar());
 
     // ★ 토큰이 안 실리면 색·글꼴이 통째로 빠지는데 **오류는 안 난다.**
@@ -1590,7 +1619,13 @@ window.LINKPILOT_REPORT_FLOW = {
     var byStep = {};
     steps.forEach(function (st) { byStep[st.id] = st; });
 
-    F.sectionState(ctx()).forEach(function (sec) {
+    /* ★★★ **1번을 끝내기 전에는 2~6을 안 그린다** 〈2026-09-19 사장님 지시〉.
+     *   ★ 대신 **무엇이 더 있는지 한 줄로 적는다** — 아무 말 없이 한 칸만 남으면
+     *     「여기서 끝인가」로 읽히고, 그것이 고장으로 보인다 (§8 · §6-3 ⑥).
+     *   ★★ 「못 물었다」면 안 숨기므로 이 줄도 안 나온다 — 모를 때는 그냥 다 보인다. */
+    var _secs = F.sectionState(ctx());
+    var _hid = _secs.filter(function (x) { return x.hidden; });
+    _secs.filter(function (x) { return !x.hidden; }).forEach(function (sec) {
       /* ★ 이제 모든 절이 단계를 품는다. 「품은 단계가 없는 절」(진행률)은 없앴다 */
       // 껍데기 조각에서는 단계 화면을 안 심었다. 없는 주소를 부르면 빈 칸이 뜨고
       // 그 빈 칸을 고장으로 읽는다 — 그래서 부르러 가지 않고 그렇다고 적는다
@@ -1626,6 +1661,14 @@ window.LINKPILOT_REPORT_FLOW = {
       if (go) frag.appendChild(go);
       view.appendChild(section(sec, frag));
     });
+
+    /* ★ 숨긴 칸이 있으면 «몇 칸이 · 무엇을 하면» 열리는지 적는다 (§5 의 넷 중 ④) */
+    if (_hid.length) {
+      var _n = notice('', _hid.length + '칸이 더 있습니다 — 위 「' + _secs[0].name + '」 을 끝내면 열립니다',
+        _hid.map(function (x) { return x.no + '. ' + x.name; }).join(' · '));
+      _n.setAttribute('data-lp-flow-hidden', String(_hid.length));
+      view.appendChild(_n);
+    }
 
     /* ★★★ **앱이 앱 안에 겹쳐 있으면 말한다** 〈2026-08-28 · D-164〉.
      *   배너·탭이 두 벌로 보이는 상태다. 이 화면이 만든 것이 아니고 이
@@ -1664,7 +1707,7 @@ window.LINKPILOT_REPORT_FLOW = {
    *   빠른 넷이 함께 늦는다.
    */
   function call(path) {
-    return fetch(C.api + path, { credentials: 'same-origin' }).then(function (r) {
+    return lpApiFetch(C.api + path, { credentials: 'same-origin' }).then(function (r) {
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.json();
     });

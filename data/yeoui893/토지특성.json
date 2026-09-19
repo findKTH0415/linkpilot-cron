@@ -1,0 +1,70 @@
+{
+ "ok": true,
+ "cached": false,
+ "value": {
+  "year": 2026,
+  "areaSqm": 1570,
+  "category": "답",
+  "zone": "자연녹지지역",
+  "topography": "평지",
+  "roadSide": "세로한면(불)"
+ },
+ "history": [
+  {
+   "year": 2026,
+   "areaSqm": 1570,
+   "category": "답",
+   "zone": "자연녹지지역",
+   "topography": "평지",
+   "roadSide": "세로한면(불)"
+  },
+  {
+   "year": 2025,
+   "areaSqm": 1570,
+   "category": "답",
+   "zone": "자연녹지지역",
+   "topography": "평지",
+   "roadSide": "세로한면(불)"
+  },
+  {
+   "year": 2025,
+   "areaSqm": 1570,
+   "category": "답",
+   "zone": "자연녹지지역",
+   "topography": "평지",
+   "roadSide": "세로한면(불)"
+  },
+  {
+   "year": 2025,
+   "areaSqm": 1570,
+   "category": "답",
+   "zone": "자연녹지지역",
+   "topography": "평지",
+   "roadSide": "세로한면(불)"
+  },
+  {
+   "year": 2024,
+   "areaSqm": 1570,
+   "category": "답",
+   "zone": "자연녹지지역",
+   "topography": "평지",
+   "roadSide": "세로(불)"
+  },
+  {
+   "year": 2024,
+   "areaSqm": 1570,
+   "category": "답",
+   "zone": "자연녹지지역",
+   "topography": "평지",
+   "roadSide": "세로한면(불)"
+  },
+  {
+   "year": 2023,
+   "areaSqm": 1570,
+   "category": "답",
+   "zone": "자연녹지지역",
+   "topography": "평지",
+   "roadSide": "세로한면(불)"
+  }
+ ]
+}

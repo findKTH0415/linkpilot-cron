@@ -1,0 +1,86 @@
+[
+ {
+  "url": "https://api.vworld.kr/req/address?format=json&service=address&request=getcoord&version=2.0&crs=EPSG%3A4326&address=%EC%A0%84%EB%B6%81%ED%8A%B9%EB%B3%84%EC%9E%90%EC%B9%98%EB%8F%84+%EC%A0%84%EC%A3%BC%EC%8B%9C+%EB%8D%95%EC%",
+  "status": 200,
+  "ct": "application/json;charset=UTF-8",
+  "ms": 1930,
+  "head": "{\"response\" : {\"service\" : {\"name\" : \"address\", \"version\" : \"2.0\", \"operation\" : \"getcoord\", \"time\" : \"18(ms)\"}, \"status\" : \"NOT_FOUND\", \"record\" : {\"total\" : \"0\", \"current\" : \"0\"}, \"page\" : {\"total\" : \"1\", \"current\" : \"1\", \"size\" : \"10\"}}}"
+ },
+ {
+  "url": "https://api.vworld.kr/req/address?format=json&service=address&request=getcoord&version=2.0&crs=EPSG%3A4326&address=%EC%A0%84%EB%B6%81%ED%8A%B9%EB%B3%84%EC%9E%90%EC%B9%98%EB%8F%84+%EC%A0%84%EC%A3%BC%EC%8B%9C+%EB%8D%95%EC%",
+  "status": 200,
+  "ct": "application/json;charset=UTF-8",
+  "ms": 1865,
+  "head": "{\"response\" : {\"service\" : {\"name\" : \"address\", \"version\" : \"2.0\", \"operation\" : \"getcoord\", \"time\" : \"14(ms)\"}, \"status\" : \"OK\", \"input\" : {\"type\" : \"PARCEL\", \"address\" : \"전북특별자치도 전주시 덕진구 여의동 893\"}, \"refined\" : {\"text\" : \"전북특별자치도 전주시 덕진구 여"
+ },
+ {
+  "url": "https://api.vworld.kr/req/data?format=json&service=data&request=GetFeature&version=2.0&data=LP_PA_CBND_BUBUN&geomFilter=POINT%28127.07520454497622+35.85235767859004%29&geometry=true&attribute=true&size=5&page=1&crs=EPSG%",
+  "status": 200,
+  "ct": "application/json;charset=UTF-8",
+  "ms": 1981,
+  "head": "{\"response\" : {\"service\" : {\"name\" : \"data\", \"version\" : \"2.0\", \"operation\" : \"GetFeature\", \"time\" : \"131(ms)\"}, \"status\" : \"OK\", \"record\" : {\"total\" : \"1\", \"current\" : \"1\"}, \"page\" : {\"total\" : \"1\", \"current\" : \"1\", \"size\" : \"5\"}, \"result\""
+ },
+ {
+  "url": "https://api.vworld.kr/ned/data/getLandCharacteristics?format=json&pnu=5211313000108930000&numOfRows=100&pageNo=1&key=***&domain=(등록도메인)",
+  "status": 200,
+  "ct": "application/json;charset=UTF-8",
+  "ms": 1859,
+  "head": "{\"landCharacteristicss\" : {\"field\" : [{\"tpgrphHgCodeNm\" : \"평지\", \"stdrYear\" : \"2023\", \"lndcgrCodeNm\" : \"답\", \"roadSideCodeNm\" : \"세로한면(불)\", \"pblntfPclnd\" : \"167900\", \"prposArea2Nm\" : \"지정되지않음\", \"tpgrphHgCode\" : \"02\", \"prposArea1Nm\" : \"자연녹지지역\", "
+ },
+ {
+  "url": "https://api.vworld.kr/ned/data/getLandUseAttr?format=json&pnu=5211313000108930000&numOfRows=30&pageNo=1&key=***&domain=(등록도메인)",
+  "status": 200,
+  "ct": "application/json;charset=UTF-8",
+  "ms": 1868,
+  "head": "{\"landUses\" : {\"field\" : [{\"cnflcAt\" : \"1\", \"ldCode\" : \"5211313000\", \"ldCodeNm\" : \"전북특별자치도 전주시 덕진구 여의동\", \"mnnmSlno\" : \"893\", \"prposAreaDstrcCodeNm\" : \"가축사육제한구역\", \"cnflcAtNm\" : \"포함\", \"pnu\" : \"5211313000108930000\", \"lastUpdtDt\" : \"2026-09-07\""
+ },
+ {
+  "url": "https://api.vworld.kr/ned/data/getIndvdLandPriceAttr?format=json&pnu=5211313000108930000&numOfRows=100&pageNo=1&key=***&domain=(등록도메인)",
+  "status": 200,
+  "ct": "application/json;charset=UTF-8",
+  "ms": 1866,
+  "head": "{\"indvdLandPrices\" : {\"field\" : [{\"mnnmSlno\" : \"893\", \"pblntfDe\" : \"2023-04-28\", \"stdLandAt\" : \"N\", \"stdrYear\" : \"2023\", \"pnu\" : \"5211313000108930000\", \"lastUpdtDt\" : \"2024-02-06\", \"ldCode\" : \"5211313000\", \"ldCodeNm\" : \"전북특별자치도 전주시 덕진구 여의동\""
+ },
+ {
+  "url": "https://api.vworld.kr/req/image?service=image&request=getmap&version=2.0&key=***&domain=(등록도메인)&format=png&errorformat=json&basemap=PHOTO&center=127.07520454497622%2C35.85235767859004&zoom=18&size=1024%2C768&crs=EPSG%3A4",
+  "status": 200,
+  "ct": "image/png",
+  "ms": 4721,
+  "head": ""
+ },
+ {
+  "url": "https://api.vworld.kr/req/image?service=image&request=getmap&version=2.0&key=***&domain=(등록도메인)&format=png&errorformat=json&basemap=PHOTO_HYBRID&center=127.07520454497622%2C35.85235767859004&zoom=18&size=1024%2C768&crs=E",
+  "status": 200,
+  "ct": "image/png",
+  "ms": 4953,
+  "head": ""
+ },
+ {
+  "url": "https://api.vworld.kr/req/image?service=image&request=getmap&version=2.0&key=***&domain=(등록도메인)&format=png&errorformat=json&basemap=PHOTO&center=127.07520454497622%2C35.85235767859004&zoom=16&size=1024%2C768&crs=EPSG%3A4",
+  "status": 200,
+  "ct": "image/png",
+  "ms": 4735,
+  "head": ""
+ },
+ {
+  "url": "https://api.vworld.kr/req/image?service=image&request=getmap&version=2.0&key=***&domain=(등록도메인)&format=png&errorformat=json&basemap=GRAPHIC&center=127.07520454497622%2C35.85235767859004&zoom=17&size=1024%2C768&crs=EPSG%3",
+  "status": 200,
+  "ct": "image/png",
+  "ms": 2723,
+  "head": ""
+ },
+ {
+  "url": "https://api.vworld.kr/req/image?service=image&request=getmap&version=2.0&key=***&domain=(등록도메인)&format=png&errorformat=json&basemap=GRAPHIC&center=127.07520454497622%2C35.85235767859004&zoom=15&size=1024%2C768&crs=EPSG%3",
+  "status": 200,
+  "ct": "image/png",
+  "ms": 2940,
+  "head": ""
+ },
+ {
+  "url": "https://api.vworld.kr/req/wms?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=lp_pa_cbnd_bubun%2Clp_pa_cbnd_bonbun&STYLES=lp_pa_cbnd_bubun_line%2Clp_pa_cbnd_bonbun_line&CRS=EPSG%3A4326&BBOX=35.85145767859004%2C127.074079",
+  "status": 200,
+  "ct": "image/png",
+  "ms": 2508,
+  "head": ""
+ }
+]

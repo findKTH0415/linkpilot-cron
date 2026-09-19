@@ -113,8 +113,39 @@ test('★★ 지문 문구가 한 곳에서 나온다 (flow-core)', () => {
   /* ★ 화면들은 제 손으로 문구를 적지 않는다 — `stampInto` 한 곳을 거친다 */
   ['files.html', 'report-flow.html', 'intake.html', 'fields.html', 'reports.html', 'outputs.html']
     .forEach((n) => {
-      const src = fs.readFileSync(path.join(PLATFORM, n), 'utf8');
-      assert.match(src, /stampInto\(/, `${n} 이 판 지문을 안 찍는다`);
+      const file = path.join(PLATFORM, n);
+      /* ★★★ **읽는 동안 누가 쓰고 있으면 «반쪽»이 읽힌다** 〈2026-09-12 · CI 에서 두 번째〉.
+           첫 번째는 `actual: ''`(빈 것), 두 번째는 **29,297자**였다 — 실제 파일은 71,000자다.
+           그 반쪽에는 `stampInto(` 가 없어 「화면이 지문을 안 찍는다」로 빨개졌는데,
+           **파일은 멀쩡했다.** 이 자리에서는 한 번도 재현이 안 된다.
+         ★ 원인은 `node --test` 가 **시험 파일들을 나란히 돌리는 것**이다 — 그중 하나가
+           이 폴더의 화면을 다시 쓰는 순간에 이 시험이 읽으면 반쪽이 온다.
+         ★★ 그래서 **「멈춘 것을 읽는다」** — 두 번 읽어 길이가 같을 때만 그것을 본다.
+           재려던 성질(「그 파일이 `stampInto(` 를 거치는가」)은 그대로다. 끝까지 안 멈추면
+           **못 쟀다고 말하고 빨갛게 끝낸다** — 조용히 통과시키지 않는다. */
+      const readStable = () => {
+        let prev = null;
+        for (let i = 0; i < 40; i++) {                 /* 40 × 25ms = 1초 */
+          const now = fs.readFileSync(file, 'utf8');
+          if (prev !== null && now.length === prev.length) return now;
+          prev = now;
+          const t = Date.now() + 25; while (Date.now() < t) { /* 잠깐 기다린다 */ }
+        }
+        assert.fail(`${n} 을 «멈춘 상태»로 못 읽었다 — 읽는 동안 누가 계속 쓰고 있다. `
+          + `「지문을 안 찍는다」와 다른 사실이다`);
+        return '';
+      };
+      const src = readStable();
+      /* ★★★ **「안 적혀 있다」와 「못 읽었다」를 갈라 말한다** 〈2026-09-12 · CI 에서 한 번 겪었다〉.
+           CI 가 `outputs.html 이 판 지문을 안 찍는다` 로 빨개졌는데, 그 커밋의 파일에는
+           `stampInto(` 가 **분명히 있었고** 이 자리에서는 재현이 안 됐다.
+           그때 로그가 보여 준 것은 `actual: ''` — **읽은 것이 비어 있었다**는 뜻이다.
+         ★ 그런데 메시지는 「안 찍는다」였다. 그래서 **파일을 고치러 갈 뻔했다.**
+           읽은 길이를 함께 적으면 다음 사람은 그 자리에서 갈린다. */
+      assert.ok(src.length > 200,
+        `${n} 을 못 읽었다 — 읽은 길이 ${src.length}자 (파일이 비었거나 읽는 순간 비어 있었다). `
+        + `「지문을 안 찍는다」와 다른 사실이다`);
+      assert.match(src, /stampInto\(/, `${n} 이 판 지문을 안 찍는다 (읽은 길이 ${src.length}자)`);
       const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '');
       assert.ok(!/'판 ' \+/.test(code),
         `${n} 이 제 문구를 따로 적는다 — 두 벌이면 화면마다 다르게 적힌다`);

@@ -151,3 +151,88 @@ test('D. 지침서 표의 열쇠가 SECRET_ENV 에 있다 (없으면 로그에 �
   assert.deepStrictEqual(leaky, [],
     'SECRET_ENV 에 없어 값이 로그·오류 본문에 평문으로 남을 수 있습니다: ' + leaky.join(', '));
 });
+
+/* ── E. CLAUDE.md 가 「지금 쓴다」고 적은 이름을 저장소가 알아보는가 ── */
+/**
+ * ★★★ 2026-09-14 신설. **「들었다」와 「들어 있다」는 다른 사실이다** 〈실측〉.
+ *   CLAUDE.md 가 말씀으로 들은 이름(`WORLD_NES_KEY`)을 그대로 박아 두고 있었다.
+ *   비밀 목록에 그 이름은 **없었다.** 다른 세 곳은 이미 맞았고 **이 파일만 옛말을 했는데**,
+ *   이 파일이 **가장 먼저 읽히는 파일**이다 — 다음 사람이 없는 이름을 배선하고,
+ *   그 값은 가려지지도 않아 로그에 평문으로 샐 수 있었다 (§2).
+ *
+ * ★ **B 가 이것을 못 잡는다.** B 는 «지침서 → 저장소» 방향이고, 이 이름들은
+ *   지침서가 아니라 **CLAUDE.md 에만** 적혀 있었다. 방향이 하나 비어 있었다.
+ *
+ * ★★ **경위 문장은 안 본다.** 이 저장소는 「앞 판은 `WORLD_NES_KEY` 라고 적었다」처럼
+ *   **틀린 이름을 일부러 인용**한다. 그것까지 세면 경위를 잘 적을수록 빨개진다
+ *   (§8 「경위를 잘 적어 둘수록 검사가 눈이 먼다」). 그래서 **「지금 쓴다」고 말하는
+ *   두 자리만** 읽는다 — §4.1 의 기관·키 표와 「지금 읽는 이름」 블록.
+ *
+ * ★★★ **못 잰 것을 통과로 적지 않는다** (§8). 두 자리에서 이름이 하나도 안 나오면
+ *   글이 바뀌어 검사가 눈이 먼 것이므로 **빨갛게 끝난다** — 조용히 0개를 세지 않는다.
+ */
+function claudeLiveNames() {
+  const md = read(path.join(ROOT, 'CLAUDE.md')).split('\n');
+  const tbl = [];
+  const blk = [];
+
+  /* ① 기관·키 표 — 머리글이 「키」인 칸만 읽는다. 칸 차례가 바뀌어도 따라간다 */
+  for (let i = 0; i < md.length; i++) {
+    const cells = md[i].split('|').map((c) => c.trim());
+    if (cells[1] !== '기관' || !cells.includes('키')) continue;
+    const col = cells.indexOf('키');
+    for (let j = i + 2; j < md.length && /^\s*\|/.test(md[j]); j++) {
+      const row = md[j].split('|').map((c) => c.trim());
+      for (const m of (row[col] || '').matchAll(/`([A-Z][A-Z0-9_]{3,})`/g)) tbl.push(m[1]);
+    }
+  }
+
+  /* ② 「지금 읽는 이름」 블록 — 그 줄과, 그보다 **더 들여쓴** 이어지는 줄까지.
+     ★ 다음 ★ 로 끊지 않는다: 블록 안에 ★ 를 넣는 순간 조용히 짧아진다 (M-84 와 같은 결) */
+  for (let i = 0; i < md.length; i++) {
+    if (!/지금 읽는 이름/.test(md[i])) continue;
+    const base = md[i].match(/^\s*/)[0].length;
+    let j = i;
+    do {
+      for (const m of md[j].matchAll(/`([A-Z][A-Z0-9_]{3,})`/g)) blk.push(m[1]);
+      j++;
+    } while (j < md.length && md[j].trim() && md[j].match(/^\s*/)[0].length > base);
+  }
+  return { table: [...new Set(tbl)], block: [...new Set(blk)], all: [...new Set(tbl.concat(blk))] };
+}
+
+test('E. CLAUDE.md 가 「지금 쓴다」고 적은 열쇠를 저장소가 알아본다 (들었다 ≠ 들어 있다)', () => {
+  const src2 = claudeLiveNames();
+  /* ★★★ **두 자리를 «각각» 센다.** 합쳐서 세면 한쪽이 통째로 사라져도 다른 쪽 수로 덮여
+     초록으로 끝난다 — 「그 숫자를 재는 법이 재려는 것을 다 덮는가」 (§6-2-6 · §8 과 같은 규칙).
+     실측: 표 8개 · 「지금 읽는 이름」 5개. 어느 한쪽이 0 이면 그 자리는 못 잰 것이다. */
+  assert.ok(src2.table.length >= 5,
+    '§4.1 의 기관·키 표에서 열쇠를 ' + src2.table.length + '개밖에 못 읽었습니다 — '
+    + '표가 사라졌거나 머리글(「기관」·「키」)이 바뀐 것입니다 (못 잰 것은 통과가 아닙니다 · §8)');
+  assert.ok(src2.block.length >= 3,
+    '「지금 읽는 이름」 줄에서 열쇠를 ' + src2.block.length + '개밖에 못 읽었습니다 — '
+    + '그 낱말이 사라졌거나 들여쓰기가 바뀐 것입니다 (못 잰 것은 통과가 아닙니다 · §8)');
+  const live = src2.all;
+
+  const files = walk(path.join(ROOT, 'im-agent'));
+  const src = files.map(read).join('\n');
+  const env = fs.existsSync(path.join(ROOT, '.env.example')) ? read(path.join(ROOT, '.env.example')) : '';
+  const wfDir = path.join(ROOT, '.github', 'workflows');
+  const wf = fs.readdirSync(wfDir).filter((f) => /\.ya?ml$/.test(f)).map((f) => read(path.join(wfDir, f))).join('\n');
+
+  /* ★★★ **`SECRET_ENV` 에 있는 것을 「안다」로 세지 않는다** 〈2026-09-14 · 되돌려서 잡았다〉.
+     그 목록은 **가리는 목록**이라 지운 이름·오타 이름까지 일부러 품는다 — `WORLD_NES_KEY`
+     가 실제로 거기 있다. 그래서 B 와 같은 잣대(문자열 어디든)를 쓰면 **어제 난 그 고장이
+     그대로 통과한다**(실측: 심어 봤더니 초록). **가리는 것과 쓰는 것은 다른 사실이다.**
+     ★ 그러니 근거는 둘뿐이다 — **코드가 읽거나**(`process.env.X`) **워크플로가 나르거나**
+       (`secrets.X`). 사장님이 실제로 넣으신 이름은 나르는 자리에 반드시 있다. */
+  const unknown = live.filter((k) => {
+    if (new RegExp('process\\.env\\.' + k + '\\b').test(src)) return false;   // 코드가 읽는다
+    if (new RegExp('secrets\\.' + k + '\\b').test(wf)) return false;            // 워크플로가 나른다
+    if (new RegExp('^\\s*#?\\s*' + k + '=', 'm').test(env)) return false;       // .env.example 에 있다
+    return true;
+  });
+  assert.deepStrictEqual(unknown, [],
+    'CLAUDE.md 는 지금 쓴다고 적는데 저장소 어디서도 안 부르는 이름입니다 — '
+    + '다음 사람이 이 이름을 배선하면 아무 오류 없이 죽고, 가려지지도 않습니다 (§2): ' + unknown.join(', '));
+});

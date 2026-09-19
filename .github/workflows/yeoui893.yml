@@ -1,0 +1,63 @@
+name: 여의동 893 공공데이터 수집
+
+on:
+  workflow_dispatch:
+    inputs:
+      skip_trade:
+        description: '실거래 재수집 생략 (이미 받은 36개월치 사용)'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+
+      - name: 실거래·브이월드 수집
+        id: fetch
+        env:
+          DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+          SKIP_TRADE: ${{ inputs.skip_trade && '1' || '0' }}
+          # ★ 2026-09-19 재구성 — 브이월드 콘솔 등록 내용에 맞춘다
+          #   WEB 키 : 2D지도·배경지도·WMS/WFS·WMTS·2D데이터·지오코더·검색·이미지·범례  → 이 수집에 필요한 것 전부
+          #   REPORT 키 : 3D지도·3D데스크톱·국가중점 만 → 지오코더·데이터·이미지 권한이 없어 넣지 않는다
+          #   서비스URL(두 키 공통) = VWORLD_DOMAIN 시크릿 값과 글자까지 같아야 한다
+          VWORLD_KEY: ${{ secrets.LINKPILOT_VWORLD_WEB_KEY }}
+          VWORLD_DOMAIN: ${{ secrets.VWORLD_DOMAIN }}
+        run: |
+          set -o pipefail
+          set +e
+          node scripts/yeoui893-fetch.mjs 2>&1 | tee "$RUNNER_TEMP/y.log"
+          echo "code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+          { echo "### 여의동 893 수집 판정"; tail -25 "$RUNNER_TEMP/y.log"; } >> "$GITHUB_STEP_SUMMARY"
+          exit 0
+
+      - name: 결과 커밋(기본 가지만)
+        if: always() && github.ref_name == github.event.repository.default_branch
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/yeoui893
+          git diff --staged --quiet || git commit -m "여의동 893 수집 ($(date +%Y-%m-%d))"
+          git push
+
+      - name: 아티팩트 업로드
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: yeoui893
+          path: data/yeoui893
+
+      - name: 판정으로 끝내기
+        if: always()
+        run: |
+          C="${{ steps.fetch.outputs.code }}"
+          [ "$C" = "0" ] && exit 0
+          echo "::warning::판정 $C — _summary.md 확인"; [ "$C" = "1" ] && exit 0 || exit 1

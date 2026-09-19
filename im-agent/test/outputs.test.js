@@ -165,8 +165,21 @@ test('★ 완성 보고서: 탭 이름이 flow-core 한 곳에서 나온다', ()
   assert.equal(FLOW.SECTION.file, 'report-flow.html');
 });
 
-test('★ 완성 보고서: 탭 안에서는 자체 제목을 그리지 않는다', () => {
-  assert.match(src, /if \(!C\.inTab\) view\.appendChild\(el\('h1', null, '완성 보고서'\)\);/);
+/* ★★★ **잣대가 바뀌었다** 〈2026-09-14 사장님 지시 — 배너 일관성〉.
+   앞 판은 `C.inTab` 이면 이름을 안 그렸다. 앱이 제 배너를 지운 뒤(§8-2 · S-39)
+   그 줄은 **앱 안에서 이 화면의 이름을 지우는 줄**이 되었다.
+   ★ 다만 이 화면은 report-flow 의 **`done` 단계 안에 창으로 품어진다** — 거기서
+     그리면 이름이 두 번 나온다. 그래서 잣대를 **「품어졌는가」**로 바꾼다.
+     (조건을 통째로 지웠다가 검사가 잡았다. 검사가 옳았다.) */
+test('★ 완성 보고서: 품은 창 안에서는 자체 제목을 그리지 않는다 — 탭 안에서는 그린다', () => {
+  assert.match(src, /var nested = [^;]*insideLinkPilot/,
+    '품어졌는지를 안 본다 — `done` 단계 안에서 이름이 두 번 나온다');
+  assert.match(src, /!nested && F && F\.headEl/,
+    '품어졌을 때 머리를 막는 가드가 없다');
+  assert.match(src, /F\.headEl\(F\.OUTPUTS_SECTION, document, C\.hero\)/,
+    '공유 배너를 안 부른다 — 화면마다 얼굴이 달라진다');
+  assert.ok(!/if \(!C\.inTab\) view\.appendChild\(el\('h1'/.test(src),
+    '앱 탭 안에서 이름을 지우는 옛 줄이 살아 있다 — 앱은 이제 배너를 안 그린다');
   assert.match(src, /inTab: false,/);   // 단독으로 열 때 켜면 이름 없는 화면이 된다
 });
 

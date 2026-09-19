@@ -37,7 +37,7 @@
    *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다. 화면이 자기
    *   지문과 대 보고 다르면 「함수가 없다」로 죽기 전에 사람 말로 알린다.
    */
-  var LP_BUILD = '283a2e1f';
+  var LP_BUILD = '1cf9cb58';
 
   /** 버전으로 읽히는 꼬리표. **떼어내고 남은 것**이 같으면 같은 문서로 본다 */
   const VERSION_TOKEN = [
@@ -202,6 +202,31 @@
    * 지문이 같은 것을 **한 벌로 접는다.** 접은 수(`copies`)와 다른 이름
    * (`alsoNamed`)은 남긴다 — 접은 것이지 지운 것이 아니다.
    */
+
+  /**
+   * ══════ **보기에 같은 이름을 「다른 이름」이라고 하지 않는다** 〈2026-09-14 사장님 화면〉 ══════
+   *
+   * 사장님 화면에 이렇게 떴다 — 「**다른 이름으로도 올라왔습니다: 대상사업지_ 네이버 뉴스.pdf**」.
+   * 그런데 **위에 적힌 이름과 글자 하나 안 다르다.** 화면이 거짓말을 하는 것처럼 보인다.
+   *
+   * ★★★ **원인은 한글의 «모아쓰기»다.** 같은 「대」가 **두 가지로 적힌다** —
+   *   맥이 주는 이름은 ㄷ·ㅐ 를 **따로**(NFD), 폰·윈도우는 **한 글자로**(NFC) 적는다.
+   *   **화면에는 똑같이 보이고 문자열은 다르다** (실측: 37바이트 vs 73바이트).
+   *   그래서 `other !== prev.name` 가 「다르다」로 판정했다 — **글자로는 맞는 판정**이다.
+   *
+   * ★ 그러니 **재는 자리를 고친다**: 견줄 때 **모아쓰기를 한 모양으로 맞추고**(NFC) 견준다.
+   *   지문(sha256)이 같은 파일이므로 **내용은 이미 같다는 것이 확인된 상태**다 —
+   *   여기서 가르는 것은 오직 **사람이 보는 이름**이다.
+   * ★★ 적어 둘 때도 NFC 로 적는다. NFD 를 그대로 두면 글꼴에 따라 자모가 벌어져 보이고,
+   *   검색·정렬에서도 같은 이름이 두 자리에 선다.
+   * ★★★ **아주 옛 브라우저에는 `normalize` 가 없다.** 없으면 **있는 그대로** 견준다 —
+   *   그때는 앞 판과 같이 동작한다(더 나빠지지 않는다). 조용히 던지지 않는다.
+   */
+  function sameLook(s) {
+    var t = s == null ? '' : String(s);
+    try { return t.normalize ? t.normalize('NFC') : t; } catch (_) { return t; }
+  }
+
   function sameFile(items) {
     const out = [];
     const at = new Map();
@@ -220,8 +245,10 @@
       }
       const prev = out[seen];
       prev.copies += (it.times || 1);
-      const other = it.name;
-      if (other && other !== prev.name && prev.alsoNamed.indexOf(other) === -1) {
+      /* ★ **보기에 같은 이름은 「다른 이름」이 아니다** — 모아쓰기를 맞춰 견준다 (위 sameLook) */
+      const other = sameLook(it.name);
+      const already = prev.alsoNamed.some((n) => sameLook(n) === other);
+      if (other && other !== sameLook(prev.name) && !already) {
         prev.alsoNamed.push(other);
       }
     });

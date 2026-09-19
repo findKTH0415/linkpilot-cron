@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="283a2e1f">
+<html lang="ko" data-lp-build="1cf9cb58">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -264,7 +264,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=283a2e1f">
+<link rel="stylesheet" href="tokens.css?v=1cf9cb58">
 <style>
 :root {
   --side: 248px;
@@ -386,6 +386,37 @@ ul { margin: 0; padding: 0; list-style: none; }
 .kind__m { font-size: 11.5px; color: var(--lime-deep); font-weight: 700; margin-top: 7px; }
 
 /* 테마 */
+/* ★★★ 표지 카드 — 모양을 보고 고르는 자리 〈2026-09-17〉.
+     A4 비율(1:1.414)을 지킨다. 비율이 틀리면 실제 문서와 다른 인상을 준다. */
+.themes { display:flex; gap:10px; flex-wrap:wrap; }
+.thcard { display:flex; flex-direction:column; align-items:stretch; gap:5px;
+  background:#fff; border:1.5px solid var(--line,#DDE3EA); border-radius:8px;
+  padding:8px; cursor:pointer; width:104px; text-align:left;
+  transition:border-color .12s ease, box-shadow .12s ease; }
+.thcard.big { width:132px; }
+.thcard:hover:not(:disabled) { border-color:#AAB6C4; }
+.thcard.on { border-color:var(--lime-deep,#6F8F00); border-width:2px; padding:7px;
+  box-shadow:0 2px 10px rgba(111,143,0,.18); }
+.thcard:disabled { opacity:.55; cursor:default; }
+.thcard__n { font-size:11.5px; font-weight:800; color:var(--ink); line-height:1.3;
+  word-break:keep-all; }
+.thcard__k { font-size:10px; color:var(--ink3,#6E7A8C); line-height:1.35; word-break:keep-all; }
+.thcov { position:relative; width:100%; aspect-ratio:1/1.414; border-radius:4px;
+  overflow:hidden; border:1px solid rgba(0,0,0,.10); }
+.thcov__t { position:absolute; inset:0 0 auto 0; }
+.thcov__b1, .thcov__b2, .thcov__ac { position:absolute; display:block; border-radius:1px; }
+.thcov__b1 { left:14%; width:56%; height:5%; top:64%; opacity:.92; }
+.thcov__b2 { left:14%; width:38%; height:4%; top:72%; opacity:.66; }
+.thcov__ac { left:14%; width:22%; height:3%; top:83%; }
+.thgrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(104px,1fr)); gap:10px;
+  margin-top:10px; }
+.thmore { margin-top:10px; }
+.thmore > summary { cursor:pointer; font-size:12px; font-weight:700; color:var(--ink2,#41505F);
+  list-style:none; padding:6px 0; }
+.thmore > summary::-webkit-details-marker { display:none; }
+.thmore > summary::before { content:'\25B8 '; }
+.thmore[open] > summary::before { content:'\25BE '; }
+
 /* ── 출력 성격 네 축 + 교정 미리보기 〈2026-08-23〉 ───────────────── */
 .style { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
 .style__h { font-size: 14px; font-weight: 800; }
@@ -597,15 +628,15 @@ a.out__a, a.out__a:visited { display: inline-block; white-space: nowrap; color: 
   <a class="bot__i on" href="#"><b>☰</b>더보기</a>
 </nav>
 
-<script src="gate-core.js?v=283a2e1f"></script>
-<script src="catalog.js?v=283a2e1f"></script>
-<script src="inapp.js?v=283a2e1f"></script>
-<script src="live-core.js?v=283a2e1f"></script>
+<script src="gate-core.js?v=1cf9cb58"></script>
+<script src="catalog.js?v=1cf9cb58"></script>
+<script src="inapp.js?v=1cf9cb58"></script>
+<script src="live-core.js?v=1cf9cb58"></script>
 <!-- ★ 판 지문을 화면에 보이게 찍는 것이 여기 있다 (§8) — 묶음에 이미 실리는 파일이다 -->
-<script src="style-ab.js?v=283a2e1f"></script>
-<script src="flow-core.js?v=283a2e1f"></script>
+<script src="style-ab.js?v=1cf9cb58"></script>
+<script src="flow-core.js?v=1cf9cb58"></script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=283a2e1f" data-lp-global="LINKPILOT_REPORTS"></script>
+<script src="embed-bridge.js?v=1cf9cb58" data-lp-global="LINKPILOT_REPORTS"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -801,6 +832,18 @@ a.out__a, a.out__a:visited { display: inline-block; white-space: nowrap; color: 
 }());
 </script>
 <script>
+/* ★ API 는 시간 제한이 있는 창구로 부른다 〈2026-09-09〉 — 서버가 대답을 안 하면
+   화면이 «영영» 기다리고, 그 상태가 글자 하나 없는 흰 칸으로 보인다. flow-core 의
+   설명을 본다. 창구가 없으면(옛 판) 그냥 fetch 로 물러난다 — 화면을 죽이지 않는다. */
+var lpApiFetch = (function () {
+  try { var F = (window.LinkPilotFlow || {}); if (F.lpFetch) return F.lpFetch; } catch (_) {}
+  return function (u, o) { return fetch(u, o); };
+}());
+var lpApiWhy = (function () {
+  try { var F = (window.LinkPilotFlow || {}); if (F.apiWhy) return F.apiWhy; } catch (_) {}
+  return function (e) { return '서버에 닿지 못했습니다.'; };
+}());
+
 /* ── 설정 ──────────────────────────────────────────────────────────
  * 서버가 로그인 세션을 보고 내려준다.
  *
@@ -1018,7 +1061,7 @@ window.LINKPILOT_REPORTS = Object.assign({
   }
 
   function call(method, p, body) {
-    return fetch(apiUrl(p), {
+    return lpApiFetch(apiUrl(p), {
       method: method,
       credentials: 'same-origin',     // 세션 쿠키로 인증한다
       headers: body ? { 'content-type': 'application/json' } : undefined,
@@ -1268,10 +1311,11 @@ window.LINKPILOT_REPORTS = Object.assign({
     /* ★ 고른 문서 종류의 **두 안**을 읽는다. 종류가 바뀌면 두 안도 바뀐다. */
     var pair = (typeof window !== 'undefined' && window.lpStylePair)
       ? window.lpStylePair(state.kindId) : null;
+    /* ★★ 버팀목에 **테마 값을 적지 않는다** — 이름 하나만 적고 색·표지는
+     *   `cardOf()` 가 생성물에서 읽는다. 앞 판은 색과 한글 이름까지 여기 적어 두어
+     *   **테마를 고치면 이 자리만 옛말**을 했고, 그 상태가 아무 오류도 안 냈다. */
     var opts = pair ? [pair.A, pair.B]
-      /* 짝 표가 안 실렸을 때의 버팀목 — themes.js 에 실제로 있는 이름 하나 */
-      : [{ id: 'institutional', role: 'A', roleKr: '기본', name: 'Institutional',
-          kr: '기관투자자 / PF / Credit', color: '#10233C', shape: '', docFit: true }];
+      : [{ id: 'institutional', role: 'A', roleKr: '기본', shape: '', docFit: true }];
 
     /* ★★ 고른 값이 엔진에 있는 이름인지 **그릴 때마다** 본다. 없으면 정본으로
      *   되돌린다 — 옛 값이 저장돼 있다가 조용히 던지는 것을 막는다. */
@@ -1281,19 +1325,91 @@ window.LINKPILOT_REPORTS = Object.assign({
       state.themeId = opts[0].id;
     }
 
-    var list = el('div', 'themes');
-    opts.forEach(function (t) {
-      var b = el('button', 'theme' + (state.themeId === t.id ? ' on' : ''));
+    /* ★★★ **테마는 «모양을 보고» 고른다** 〈2026-09-17 사장님 지시: 「보고서 생성에
+         디자인 템플렛 선택 할수 있도록 만들어줘」 · PPT 템플릿 갤러리 사진 다섯〉.
+       [무엇이 없었나] 고르는 칸은 있었다 — 다만 **색 점 하나 + 이름**뿐이었다.
+         「Institutional」과 「Premium」이 어떻게 다른지 **이름만 보고는 못 고른다.**
+         사장님이 주신 사진은 전부 **표지 모양을 늘어놓고 고르는** 갤러리다.
+       ★ 그림 파일을 안 쓴다 — 테마가 **색과 표지 갈래**를 이미 갖고 있어
+         CSS 로 그린다. 파일이 안 늘고, 선명하고, 화면 폭을 따라간다 (§6-1 과 같은 결).
+       ★★ **기본은 두 안 그대로다** 〈2026-09-06 사장님 지시 「2가지 스타일 옵션」〉 —
+         13개를 늘어놓으면 고르기를 포기하게 된다. 다만 **[전체 13종]** 으로 열 수 있다.
+         나중 지시가 이기되, 앞 지시가 풀려던 문제(너무 많아 못 고름)도 함께 지킨다.
+       ★★★ **값을 화면에 손으로 안 적는다** — `LP_THEME_CARDS`(생성물)를 읽는다.
+         앞 판이 이름 셋을 박아 두었다가 둘이 없는 이름이어서 엔진이 던졌다. */
+    var CARDS = (typeof window !== 'undefined' && window.LP_THEME_CARDS) || [];
+    var cardOf = function (id) {
+      for (var i = 0; i < CARDS.length; i++) if (CARDS[i].id === id) return CARDS[i];
+      return null;
+    };
+    /* 작은 표지 하나를 그린다 — 갈래에 따라 모양이 달라진다 */
+    var cover = function (c) {
+      var w = el('div', 'thcov');
+      w.style.background = c.surface;
+      var top = el('div', 'thcov__t');
+      top.style.background = c.color;
+      if (c.shape === 'split') { top.style.height = '54%'; }
+      else if (c.shape === 'full') { top.style.height = '100%'; top.style.background =
+        'linear-gradient(160deg,' + c.color + ',' + c.accent + ')'; }
+      else if (c.shape === 'rule') {
+        top.style.height = '100%';
+        for (var r = 0; r < 4; r++) {
+          var ln = el('i');
+          ln.style.cssText = 'position:absolute;left:14%;right:14%;height:1px;background:rgba(255,255,255,.28);top:'
+            + (26 + r * 13) + '%';
+          top.appendChild(ln);
+        }
+      } else { top.style.height = '100%'; }
+      w.appendChild(top);
+      /* 표제 두 줄 + 강조 띠 — 어느 갈래든 문서처럼 보이게 하는 최소 */
+      var t1 = el('i', 'thcov__b1'); t1.style.background = c.shape === 'split' ? c.color : '#FFFFFF';
+      var t2 = el('i', 'thcov__b2'); t2.style.background = c.shape === 'split' ? c.color : '#FFFFFF';
+      var ac = el('i', 'thcov__ac'); ac.style.background = c.accent;
+      add(w, t1, t2, ac);
+      if (c.serif) w.setAttribute('data-serif', '1');
+      return w;
+    };
+    var themeBtn = function (t, big) {
+      /* ★★★ 생성물이 아예 안 실렸을 때 — **어느 테마의 색도 쓰지 않는다.**
+       *   테마 색을 버팀목으로 쓰면 「모양을 못 받은 것」이 「Institutional 을 받은 것」과
+       *   구별되지 않는다. 회색으로 그려 **못 받았다는 사실이 보이게** 한다 (§8). */
+      var c = cardOf(t.id) || { id: t.id, name: t.name || t.id, kr: t.kr || '',
+        color: '#8A93A0', accent: '#B9C0C9', surface: '#EEF1F4', shape: 'plain' };
+      var b = el('button', 'thcard' + (state.themeId === t.id ? ' on' : '') + (big ? ' big' : ''));
       b.type = 'button';
       b.disabled = state.locked;
-      var sw = el('span', 'theme__sw');
-      sw.style.background = t.color;
-      add(b, sw, el('span', null, t.roleKr + ' · ' + t.name));
-      b.title = t.kr + (t.shape ? ' — ' + t.shape : '');
+      b.setAttribute('data-theme-card', t.id);
+      b.appendChild(cover(c));
+      var nm = el('span', 'thcard__n', (t.roleKr ? t.roleKr + ' · ' : '') + (c.name || t.name));
+      var kr = el('span', 'thcard__k', c.kr || t.kr || '');
+      add(b, nm, kr);
+      b.title = (c.purpose || t.kr || '');
       b.addEventListener('click', function () { state.themeId = t.id; draw(); });
-      list.appendChild(b);
-    });
+      return b;
+    };
+
+    var list = el('div', 'themes');
+    opts.forEach(function (t) { list.appendChild(themeBtn(t, true)); });
     th.appendChild(list);
+    /* ★★ **[전체 13종]** — 접힘 안에 둔다 (§6-3 ⑥: 기본 화면에 할 일은 하나).
+         ★ 여는 자리에 «몇 종인지»를 적는다 — 안 적으면 눌러 볼 이유가 안 보인다.
+         ★★ 펼침을 기억하지 «않는다» — 다음에 열 때 펴져 있으면 「둘로 줄인」 뜻이 사라진다. */
+    if (CARDS.length > opts.length) {
+      var more = el('details', 'thmore');
+      more.setAttribute('data-theme-all', '1');
+      more.appendChild(el('summary', null, '전체 테마 보기 (' + CARDS.length + '종)'));
+      var grid = el('div', 'thgrid');
+      CARDS.forEach(function (c) {
+        grid.appendChild(themeBtn({ id: c.id, name: c.name, kr: c.kr }, false));
+      });
+      more.appendChild(grid);
+      var gnote = el('p', null,
+        '표지 모양과 색은 실제로 쓰이는 값입니다 — 고르시면 그대로 문서에 들어갑니다. '
+        + '판형·글자 크기는 아래 「출력 성격」에서 따로 정합니다.');
+      gnote.style.cssText = 'margin:8px 0 0;font-size:11px;line-height:1.5;color:var(--ink3,#6E7A8C)';
+      more.appendChild(gnote);
+      th.appendChild(more);
+    }
     if (pair) {
       var noteEl = el('p', null, pair.note);
       noteEl.style.cssText = 'margin:7px 0 0;font-size:11.5px;line-height:1.5;color:var(--ink3,#6E7A8C)';
@@ -1685,7 +1801,7 @@ window.LINKPILOT_REPORTS = Object.assign({
   }
 
   function fetchAsBlob(url, relPath) {
-    return fetch(url, { credentials: 'same-origin' }).then(function (r) {
+    return lpApiFetch(url, { credentials: 'same-origin' }).then(function (r) {
       if (!r.ok) {
         return r.text().then(function (t) {
           var msg = '';

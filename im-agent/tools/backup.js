@@ -90,12 +90,31 @@ function sha256(p) {
   return crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
 }
 
-/** 폴더 하나의 목록과 지문 */
-function inventory(root) {
+/**
+ * 폴더 하나의 목록과 지문.
+ *
+ * ★★★ **못 읽는 파일 하나가 백업을 통째로 막고 있었다** 〈2026-09-17 · 실측 · D-212〉.
+ *   배포 로그가 이렇게 죽었다 —
+ *   `EACCES: permission denied, open '…/02_Source_Data/….pdf'`.
+ *   앱이 만든 자료 파일을 **배포 계정이 못 읽는 것**인데, 던지고 끝나므로
+ *   **한 벌도 안 떴다.** 그리고 워크플로는 그것을 「못 쟀다」로만 적었다 —
+ *   곧 **지금 이 디스크가 죽으면 그대로 잃는 상태**가 조용히 이어졌다 (H-1).
+ *
+ * ★ **일부라도 뜨는 쪽이 낫다 — 다만 «무엇이 빠졌는지»를 반드시 돌려준다.**
+ *   조용히 건너뛰면 「백업이 있다」고 믿는 채로 그 파일만 없다 (§8 · §4.7).
+ * ★★ `skipped` 를 안 주면 **앞 판처럼 던진다** — 부르는 쪽이 이 사실을 모르고
+ *   지나가는 길을 안 만든다 (§12-10 「실패를 돌려주는 함수는 부르는 쪽이 본다」).
+ */
+function inventory(root, skipped) {
   const files = {};
   for (const rel of walk(root)) {
     const abs = path.join(root, rel);
-    files[rel] = { bytes: fs.statSync(abs).size, sha256: sha256(abs) };
+    try {
+      files[rel] = { bytes: fs.statSync(abs).size, sha256: sha256(abs) };
+    } catch (e) {
+      if (!skipped) throw e;
+      skipped.push({ rel, code: e.code || 'ERR' });
+    }
   }
   return files;
 }
@@ -109,12 +128,19 @@ function digestOf(files) {
   return h.digest('hex').slice(0, 16);
 }
 
-function copyTree(from, to) {
+function copyTree(from, to, skipped) {
   for (const rel of walk(from)) {
     const src = path.join(from, rel);
     const dst = path.join(to, rel);
     fs.mkdirSync(path.dirname(dst), { recursive: true });
-    fs.copyFileSync(src, dst);
+    /* ★ 못 읽는 파일에서 **멈추지 않는다** — 하나 때문에 한 벌을 통째로 잃었다
+       (D-212). 대신 무엇이 빠졌는지 `skipped` 로 돌려준다. */
+    try {
+      fs.copyFileSync(src, dst);
+    } catch (e) {
+      if (!skipped) throw e;
+      skipped.push({ rel, code: e.code || 'ERR' });
+    }
   }
 }
 
@@ -130,13 +156,21 @@ function write({ source = SOURCE, dest = DEST } = {}) {
   if (!fs.existsSync(source)) {
     return { ok: false, code: 2, line: `뜰 자료가 없다: ${path.relative(REPO, source)}` };
   }
-  const files = inventory(source);
+  const skipped = [];
+  const files = inventory(source, skipped);
   const staging = `${dest}.new`;
   fs.rmSync(staging, { recursive: true, force: true });
   fs.mkdirSync(staging, { recursive: true });
-  copyTree(source, staging);
+  copyTree(source, staging, skipped);
 
+  /* ★ **빠진 것을 목록에 적는다.** 백업 안에 남겨야 되살릴 때 무엇이 없는지 보인다 */
   const manifest = { source: path.relative(REPO, source), digest: digestOf(files), files };
+  if (skipped.length) {
+    /* ★ 같은 파일이 두 번(목록 뜰 때 · 복사할 때) 걸린다 — **고유 목록으로 적는다.**
+       읽는 사람에게 필요한 것은 「무엇이 빠졌나」이지 몇 번 걸렸나가 아니다. */
+    const seen = new Set();
+    manifest.skipped = skipped.filter((x) => !seen.has(x.rel) && seen.add(x.rel));
+  }
   fs.writeFileSync(path.join(staging, 'BACKUP-MANIFEST.json'),
     `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
 
@@ -148,9 +182,39 @@ function write({ source = SOURCE, dest = DEST } = {}) {
 
   const n = Object.keys(files).length;
   const bytes = Object.values(files).reduce((a, f) => a + f.bytes, 0);
+  /* ★★★ **빠진 것이 있으면 그 사실이 첫 줄에 있어야 한다.** 뒤에 적으면 안 읽힌다 —
+     「백업이 떴다」만 보고 다 있는 줄 안다 (§6-3 ① · §8). */
+  const miss = [...new Set(skipped.map((x) => x.rel))];
+  /* ★★★ **개수만 적으면 「어디를 고쳐야 하나」가 안 보인다** 〈2026-09-17 · D-213〉.
+   *   배포 #213 이 「못 읽어 빠진 것 19개」로 끝났는데, **어느 파일인지는 NAS 의
+   *   목록 파일에만** 있었다. 그래서 사장님이 File Station 에서 **어느 폴더를 여실지**
+   *   알 수 없었다 — 「고칠 자리를 말하지 않는 글」은 §4.6 이 금지한 그것이다.
+   * ★ **폴더까지만 적는다. 파일 이름은 안 적는다** — 프로젝트 자료 이름에는 사람 이름·
+   *   거래 상대가 섞일 수 있고, 이 줄은 Actions 로그로 나간다 (§2).
+   *   폴더만 있으면 권한을 고치기에 충분하다.
+   * ★★ 많으면 앞의 셋만 적고 「그리고 N곳 더」로 센다 — 로그를 덮지 않는다.
+   * ★★★ **총수를 괄호로 «먼저» 적는다** 〈2026-09-17 · 실측으로 잡았다 · D-213 이음〉.
+   *   배포 워크플로가 이 줄에서 폴더 수를 세어 `LP_OPS backupdirs=N` 으로 찍는데,
+   *   앞 판은 **가운뎃점을 세는 것 말고 길이 없었다.** 그러면 넷을 넘는 순간
+   *   「A · B · C 그리고 5곳 더」가 **8곳인데 3 으로** 세진다 — 숫자를 재는 법이
+   *   재려는 것을 다 덮지 못한 것이다 (§6-2-6 의 46 → 105 와 같은 규칙).
+   *   ★ 그러니 **세는 쪽이 짐작하게 두지 않고 정본이 총수를 적는다** (§8-1 —
+   *     두 벌로 세면 한쪽이 옛말을 한다). 사람이 읽는 줄에도 뜻이 늘어난다. */
+  const dirs = [...new Set(miss.map((r) => {
+    const i = r.lastIndexOf('/');
+    return i > 0 ? r.slice(0, i) : '(뿌리)';
+  }))].sort();
+  const where = dirs.length
+    ? dirs.slice(0, 3).join(' · ') + (dirs.length > 3 ? ` 그리고 ${dirs.length - 3}곳 더` : '')
+    : '';
+  const line = miss.length
+    ? `${n}개 파일 · ${Math.round(bytes / 1024)}KB · 지문 ${manifest.digest}`
+      + ` · **못 읽어 빠진 것 ${miss.length}개** (백업에 없다 — 파일 권한이다)`
+      + ` · 그 자리(${dirs.length}곳): ${where}`
+    : `${n}개 파일 · ${Math.round(bytes / 1024)}KB · 지문 ${manifest.digest}`;
   return {
     ok: true, code: 0, digest: manifest.digest, count: n, bytes,
-    line: `${n}개 파일 · ${Math.round(bytes / 1024)}KB · 지문 ${manifest.digest}`,
+    skipped: miss, skippedDirs: dirs, line,
   };
 }
 
@@ -193,7 +257,7 @@ function drill({ source = SOURCE, maxMb = null } = {}) {
    * ★ 그래서 넘치면 **「못 쟀다」(2)** 로 끝낸다. 표본을 몰래 줄이지 않는다.
    */
   if (maxMb) {
-    const bytes = Object.values(inventory(source)).reduce((a, f) => a + f.bytes, 0);
+    const bytes = Object.values(inventory(source, [])).reduce((a, f) => a + f.bytes, 0);
     const mb = bytes / (1024 * 1024);
     if (mb > maxMb) {
       return {
@@ -215,8 +279,11 @@ function drill({ source = SOURCE, maxMb = null } = {}) {
     const r = restore({ from: dest, to: back });
     if (!r.ok) return r;
 
-    const before = inventory(source);
-    const after = inventory(back);
+    /* ★ 못 읽는 파일은 **양쪽 다** 빠지므로 견주기는 맞는다 — 다만 «몇 개가
+       빠졌는지»를 함께 돌려준다. 안 적으면 「되살아난다」가 반쪽 진실이 된다 (D-212). */
+    const skipped = [];
+    const before = inventory(source, skipped);
+    const after = inventory(back, []);
 
     const missing = Object.keys(before).filter((f) => !after[f]);
     const extra = Object.keys(after).filter((f) => !before[f]);
@@ -230,8 +297,12 @@ function drill({ source = SOURCE, maxMb = null } = {}) {
       count: Object.keys(before).length,
       digest: digestOf(before),
       missing, extra, differ,
+      skipped: [...new Set(skipped.map((x) => x.rel))],
       line: same
         ? `되살아난다 — ${Object.keys(before).length}개 파일이 바이트까지 같다 (지문 ${digestOf(before)})`
+          + (skipped.length
+            ? ` · **못 읽어 안 센 것 ${new Set(skipped.map((x) => x.rel)).size}개** (파일 권한이다)`
+            : '')
         : `**안 되살아난다** — 빠짐 ${missing.length} · 더 생김 ${extra.length} · 내용 다름 ${differ.length}`,
     };
   } finally {
@@ -249,7 +320,8 @@ function verify({ source = SOURCE, dest = DEST } = {}) {
   try { saved = JSON.parse(fs.readFileSync(mp, 'utf8')); }
   catch (e) { return { ok: false, code: 2, line: `뜬 기록을 못 읽었다 — ${e.message}` }; }
 
-  const now = inventory(source);
+  const skipped = [];
+  const now = inventory(source, skipped);
   const nowDigest = digestOf(now);
   if (nowDigest === saved.digest) {
     return { ok: true, code: 0, line: `뜬 것이 지금 자료와 같다 (지문 ${nowDigest})` };

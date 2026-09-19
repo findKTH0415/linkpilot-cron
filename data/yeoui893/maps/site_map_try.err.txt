@@ -1,0 +1,1 @@
+{"response" : {"service" : {"name" : "image", "version" : "2.0", "operation" : "getmap", "time" : "8(ms)"}, "status" : "ERROR", "error" : {"level" : "1", "code" : "INVALID_RANGE", "text" : "size 파라미터의 값이 유효한 범위를 넘었습니다. 유효한 파라미터 값의 범위 : 1,1 ~ 1024,1024, 입력한 파라미터 값 : 1200,900"}}}

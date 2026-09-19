@@ -102,6 +102,8 @@ if (!BASE) {
 
 // ── 2. 조회 ────────────────────────────────────────────────
 const store = {};
+/* 받음 · 공표(등재) 전 · 못 받음 — 셋을 갈라 센다 (§4) */
+const got = [], empty = [], bad = [];
 
 for (const [op, label, ord] of OPS) {
   const q = new URLSearchParams({ ...PLAT, numOfRows: '500', pageNo: '1',
@@ -124,6 +126,7 @@ for (const [op, label, ord] of OPS) {
     store[op] = items;
     await writeFile(`${OUT}/${op}.json`, JSON.stringify(j, null, 2));
   } catch {
+    bad.push(`${label} (HTTP ${status} · 파싱 실패)`);
     P(`## ${ord}. ${label} (\`${op}\`)`);
     P();
     P(`HTTP ${status} · **JSON 파싱 실패**`);
@@ -139,6 +142,13 @@ for (const [op, label, ord] of OPS) {
   P(`## ${ord}. ${label} (\`${op}\`)`);
   P();
   P(`HTTP ${status} · resultCode ${head.resultCode ?? '—'} · ${head.resultMsg ?? '—'} · **${items.length}건**`);
+  /* ★ **셋으로 가른다** — 받음 · 대답했는데 그 필지에 자료가 없음 · 못 받음 (§4 의 셋째 갈래).
+     0건은 **고칠 자리가 없는 갈래**라 실패로 세지 않는다. 뭉뚱그리면 날마다 빨개지고
+     그 빨강이 뜻을 잃는다. */
+  if (status !== 200 || (head.resultCode != null && String(head.resultCode) !== '00')) {
+    bad.push(`${label} (HTTP ${status} · ${head.resultMsg ?? head.resultCode ?? '사유 없음'})`);
+  } else if (items.length) got.push(label);
+  else empty.push(label);
   P();
 
   if (op === 'getBrTitleInfo' && items.length) {
@@ -232,5 +242,28 @@ P('- **표제부 위반건축물 표기 존재** → 기득권 주장 무너짐.
 P('- **지역지구구역의 용도지역**이 보전녹지인지 제1종일반주거인지가 판정 분기를 가름');
 P();
 
+// ★★★ **초록이 「값이 왔다」를 뜻하게 한다** 〈2026-09-19 · D-226 · §12-24 · §12-36〉.
+//   앞 판은 **열쇠가 없을 때만** 1 로 끝났다. 여덟 갈래가 전부 파싱 실패이거나
+//   resultCode 가 오류여도 **초록**이라, 아무도 `_summary.md` 를 안 열어 본다.
+//   ★ **셋으로 갈라 센다** — 받음 · 대답했는데 그 필지에 자료 없음 · 못 받음.
+//     「자료 없음」은 **고칠 자리가 없는 갈래**라 실패로 세지 않는다 (§4 의 셋째 갈래).
+//   ★★ 판정은 **요약 맨 앞**(§6-3 ①), **파일을 먼저 남긴 뒤에** 빨갛게 끝낸다 (§12-24).
+const code = bad.length === 0 ? 0 : (got.length ? 1 : 2);
+const verdict = code === 0
+  ? `판정 0 — ${OPS.length} 갈래를 **전부 받았다** (자료 있음 ${got.length} · `
+    + `대답했는데 그 필지에 자료 없음 ${empty.length} · 고칠 것 없음)`
+  : code === 1
+    ? `판정 1 — **${bad.length} 갈래를 못 받았다** (받음 ${got.length} · 자료 없음 ${empty.length}). `
+      + `못 받은 것: ${bad.join(' · ')}`
+    : `판정 2 — **한 갈래도 못 받았다** (${OPS.length} 갈래). 열쇠(DATA_GO_KR_KEY)·`
+      + '활용신청·베이스 경로·그쪽 서버 중 하나다 — `_probe_*.txt` 와 아래 사유를 본다';
+P('---');
+P();
+P(`> ${verdict}`);
+log.unshift(`> ${verdict}`, '');
+
 await save();
 console.log('완료 — data/bldrgst/_summary.md');
+// ★ 사람이 읽는 판정은 stderr 로도 낸다 — 요약이 stdout 만 받아 가는 자리가 있다 (§12-19)
+if (code !== 0) console.error(verdict.replace(/\*\*/g, ''));
+process.exit(code);

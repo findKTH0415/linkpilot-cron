@@ -38,6 +38,7 @@
     "im:themes": "node im-agent/ui/platform/build-themes.js",
     "im:layouts": "node im-agent/ui/platform/build-layouts.js",
     "im:styles": "node im-agent/ui/platform/build-styleoptions.js",
+    "im:themecards": "node im-agent/ui/platform/build-theme-cards.js",
     "im:result": "IM_AGENT_OFFLINE=1 node im-agent/cli.js demo >/dev/null && node im-agent/ui/platform/build-result.js",
     "im:embed": "node im-agent/ui/platform/build-embed.js",
     "im:stamp": "node im-agent/ui/platform/build-stamp.js",
@@ -61,9 +62,14 @@
     "probe:viewport": "node im-agent/tools/probe-viewport.js",
     "prs:write": "node im-agent/tools/open-prs.js",
     "deploy:report": "node im-agent/tools/deploy-report.js",
+    "deploy:why": "node im-agent/tools/deploy-why.js",
     "brand:icon": "node assets/brand/build-icon.js",
     "im:appview": "node im-agent/tools/appview.js",
-    "im:pdf": "node im-agent/tools/pdf.js"
+    "im:pdf": "node im-agent/tools/pdf.js",
+    "probe:load": "node im-agent/tools/probe-load.js",
+    "calendar:fetch": "node im-agent/tools/calendar-fetch.js",
+    "calendar:nas": "bash im-agent/tools/calendar-nas.sh",
+    "yeoui893:nas": "bash im-agent/tools/yeoui893-nas.sh"
   },
   "dependencies": {
     "solapi": "^5.5.1"

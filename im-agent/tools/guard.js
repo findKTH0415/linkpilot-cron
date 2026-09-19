@@ -105,6 +105,27 @@ function stamp() {
  * ★ **다시 만들어 보고 달라지는지** 본다. 「만들 수 있다」가 아니라
  *   「커밋된 것이 지금 소스에서 나오는 것과 같다」를 재는 것이다.
  */
+/**
+ * ★★★ **판정을 «돌려서» 잴 수 있게 따로 낸다** 〈2026-09-13 · 사보타주가 안 걸렸다〉.
+ *   갈래를 `if (false)` 로 꺼 봤더니 검사가 그대로 초록이었다 — 글자만 보고 있었기
+ *   때문이다 (M-83 「사보타주는 장치를 통째로」와 같은 결). 판정을 순수 함수로 내면
+ *   검사가 **숫자를 넣어 돌려 볼 수 있고**, 끄면 그 자리에서 빨개진다.
+ * @param {Record<string, number|null>} before 앞 판의 바이트
+ * @param {Record<string, number|null>} after  이번 판의 바이트
+ * @param {number} minKeep 앞 판의 이 비율 밑이면 「덜 그려졌다」
+ * @returns {{gone: string[], thin: string[]}}
+ */
+function drawnVerdict(before, after, minKeep) {
+  const names = Object.keys(after);
+  const gone = names.filter((f) => after[f] === null || after[f] === 0);
+  const thin = names.filter((f) => {
+    if (gone.indexOf(f) !== -1) return false;
+    const b = before[f];
+    return !!b && after[f] < b * minKeep;
+  });
+  return { gone, thin };
+}
+
 function previews() {
   /* ★ `im:layouts` 는 **셋**을 만든다 (CSS · 견본 · 적용규칙 문서). 여기서는
      `ui/platform` 안에 떨어지는 견본만 지문으로 대고, 나머지 둘은
@@ -112,10 +133,32 @@ function previews() {
      재는 것이 아니라 **자리가 다른 것을 나눠 재는 것**이다. */
   const targets = ['im:section', 'im:static', 'im:artifact', 'im:platform',
     'im:layouts', 'im:styles'];
+  /* ★★★ **여섯을 «똑같이» 재지 않는다 — 넷은 추적되고 둘은 «무시»된다**
+   *   〈2026-09-13 · 실측 · 이 칸이 고칠 수 없는 실패를 내고 있었다〉.
+   *
+   *   [무엇이 났나] 이 칸이 「소스와 갈려 있었다 … **(이대로 커밋한다)**」로 빨갰다.
+   *     그런데 걸린 둘은 `.gitignore` 에 들어 있어 **커밋할 수가 없다.** 시키는 대로
+   *     해도 다음 실행에 또 빨개진다. 고칠 수 없는 지시를 내는 관문은 결국 꺼진다.
+   *
+   *   [왜 났나] 그 둘은 **헤드리스로 그려 넣는** 파일이라 결과가 그때의 형편을 탄다 —
+   *     바로 아래 주석이 그 사실을 이미 적어 두었다. 곧 **흔들리는 것이 설계**인데
+   *     그것을 「커밋본과 갈렸다」로 재고 있었다. 2회 재시도로 덧댔지만 검사 2,511개와
+   *     같이 돌면 둘 다 흔들려 그대로 실패한다(오늘이 그랬다).
+   *
+   *   ★ **재려던 성질을 다시 본다.** 이 둘의 진짜 위험은 「바이트가 흔들리는 것」이
+   *     아니라 **「덜 그려진 채로 나오는 것」**이다 (주석 149줄이 그렇게 적는다).
+   *     그래서 **크기로 잰다** — 몇 바이트 흔들림은 넘기고, 뭉텅 줄면 빨갛게 끝난다.
+   *   ★★ **덜 재는 것이 아니다.** 잴 수 없던 성질(없는 커밋본과의 대조)을 빼고,
+   *     잴 수 있고 실제로 위험한 성질(덜 그려짐)을 넣었다.
+   *   ★★★ **목록이 갈리는 것은 검사가 잡는다** — 추적되는 파일을 아래 칸에 잘못
+   *     넣으면 `guard-tool.test.js` 가 빨개진다. 손으로 적은 두 목록은 어긋난다. */
   const made = [
-    'section-preview.html', 'section-static.html', 'section-artifact.html',
+    'section-preview.html',
     'linkpilot-platform.html', 'layout-system.html', 'style-options.html',
   ];
+  /* ★ 그려 넣는 판 — git 이 안 들고 있다. 결정성으로 재지 않는다. */
+  const drawn = ['section-static.html', 'section-artifact.html'];
+  const MIN_KEEP = 0.85;   // 앞 판의 85% 밑으로 떨어지면 «덜 그려진» 것으로 본다
   /* ★★ **git 을 안 본다** 〈2026-08-24 · 첫 판이 헛울음을 냈다〉.
    *   `git status` 로 재면 **아직 커밋 안 한 작업**까지 「갈렸다」로 잡는다 —
    *   고칠 것이 없는데 빨갛게 끝난다. 재려는 것은 그것이 아니라
@@ -125,8 +168,13 @@ function previews() {
     try { return crypto.createHash('sha256').update(fs.readFileSync(path.join(P, f))).digest('hex'); }
     catch (_) { return null; }
   };
+  const size = (f) => {
+    try { return fs.statSync(path.join(P, f)).size; } catch (_) { return null; }
+  };
   const before = {};
   made.forEach((f) => { before[f] = sha(f); });
+  const drawnBefore = {};
+  drawn.forEach((f) => { drawnBefore[f] = size(f); });
 
   try {
     targets.forEach((t) => sh(`npm run --silent ${t} >/dev/null 2>&1`));
@@ -179,9 +227,26 @@ function previews() {
       `**소스와 갈려 있었다** — 두 번 다시 만들어도 달라진다: ${changed.join(' · ')} (이대로 커밋한다)`);
     return;
   }
+
+  /* ★ 그려 넣는 판 둘 — 「그려졌는가」로 잰다. 지문으로 재지 않는다(위 주석). */
+  const drawnAfter = {};
+  drawn.forEach((f) => { drawnAfter[f] = size(f); });
+  const { gone, thin } = drawnVerdict(drawnBefore, drawnAfter, MIN_KEEP);
+  if (gone.length) {
+    add('미리보기 재생성', 'fail', `그려 넣는 판이 **안 나왔다**: ${gone.join(' · ')}`);
+    return;
+  }
+  if (thin.length) {
+    add('미리보기 재생성', 'fail',
+      `그려 넣는 판이 **덜 그려진 채로 나왔다** (앞 판의 ${Math.round(MIN_KEEP * 100)}% 밑): `
+      + thin.map((f) => `${f} ${drawnBefore[f]} → ${drawnAfter[f]}바이트`).join(' · '));
+    return;
+  }
+
+  const n = made.length + drawn.length;
   add('미리보기 재생성', 'ok', flaky
-    ? `${made.length}개가 소스와 같다 — 다만 첫 판에서 흔들렸다: ${flaky.join(' · ')} (헤드리스 렌더가 부하를 탄다)`
-    : `${made.length}개가 소스와 같다`);
+    ? `${n}개 — 추적본 ${made.length}개가 소스와 같다 · 그려 넣는 판 ${drawn.length}개가 온전히 나왔다 (첫 판에서 흔들림: ${flaky.join(' · ')})`
+    : `${n}개 — 추적본 ${made.length}개가 소스와 같다 · 그려 넣는 판 ${drawn.length}개가 온전히 나왔다`);
 }
 
 /* ── ④ 헤드리스로 실제 렌더 ────────────────────────────── */
@@ -634,4 +699,4 @@ function main() {
 }
 
 if (require.main === module) process.exit(main());
-module.exports = { tests, stamp, previews, render, saveBar, openFile, agents, branches, typeface, viewport, rightsNote, backupNote, ledgerNote, rows };
+module.exports = { tests, stamp, previews, drawnVerdict, render, saveBar, openFile, agents, branches, typeface, viewport, rightsNote, backupNote, ledgerNote, rows };

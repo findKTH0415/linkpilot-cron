@@ -39,11 +39,17 @@ const KEYS = [
   ['KMA_APIHUB_KEY', '기상청', '일사·일조 (태양광)'],
   ['DATA_GO_KR_KEY', '공공데이터포털', '실거래가·건축물대장·인허가 등'],
   ['LAW_OC|LAW_OPEN_DATA', '국가법령정보센터', '법령·조례 (이름 둘 다 읽는다)'],
-  ['VWORLD_KEY', '브이월드', '지오코딩·지적·토지특성'],
+  ['VWORLD_KEY|LINKPILOT_VWORLD_REPORT_KEY|LINKPILOT_VWORLD_WEB_KEY', '브이월드',
+    '지오코딩·지적·토지특성 (이름 셋 다 읽는다 — connectors/vworldkey.js)'],
   ['VWORLD_DOMAIN', '브이월드', '서비스URL — 키와 **짝**이라 둘 다 있어야 한다'],
   ['KRX_API_KEY', '한국거래소', '상장 시세 — 서비스 승인이 따로 필요'],
   ['PEXELS_API_KEY', 'Pexels', '무료 이미지'],
   ['KICT_API_KEY', '건설기술연구원', '건설 관련'],
+  /* ★ 길찾기 소요시간 — 아직 «미측정»이다 〈2026-09-15 사장님 승인: 「둘 다」〉.
+     자동차와 대중교통은 출처가 다르다. 규격은 열쇠를 받은 뒤 진단으로 본다 — 여기
+     추측으로 적지 않는다. 이름을 둘씩 읽는 이유는 ECOS·LAW 에서 두 번 당해서다. */
+  ['KAKAO_MOBILITY_KEY|KAKAOMOBILITY_KEY|KAKAO_MOBILITY_REST_API', '카카오모빌리티', '자동차 길찾기 소요시간 (이름 셋 다 읽는다)'],
+  ['ODSAY_API_KEY|ODSAY_KEY', 'ODsay', '대중교통 소요시간 (이름 둘 다 읽는다)'],
 ];
 
 /** 지침서 §4.2 — 상태코드만 보면 구분이 안 되는 것들을 응답 본문으로 가른다 */

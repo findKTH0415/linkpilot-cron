@@ -1,0 +1,1 @@
+{"response" : {"service" : {"name" : "image", "version" : "2.0", "operation" : "getmap", "time" : "0(ms)"}, "status" : "ERROR", "error" : {"level" : "1", "code" : "INVALID_RANGE", "text" : "basemap 파라미터의 값이 유효한 범위를 넘었습니다. 유효한 파라미터 값의 범위 : [NONE, GRAPHIC, GRAPHIC_NIGHT, PHOTO, PHOTO_HYBRID, GRAPHIC_WHITE], 입력한 파라미터 값 : Base"}}}

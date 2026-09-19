@@ -11,7 +11,7 @@
  * 지자체 조례가 더 강할 수 있으므로 **참고 상한**으로만 쓰고,
  * 계획안이 이 상한을 넘으면 RED FLAG를 띄워 조례 확인을 강제한다.
  *
- * 인증키: VWORLD_KEY (VWorld NED는 VWorld 키를 공유한다)
+ * 인증키: `vworldkey.js` (VWorld NED는 VWorld 키를 공유한다)
  */
 
 const { request, buildUrl, redact } = require('./http');
@@ -21,8 +21,12 @@ const { normalize, num } = require('./xml');
 const PROVIDER = 'vworld';
 const BASE = 'https://api.vworld.kr/ned/data';
 
+/**
+ * 인증키. **이름은 `vworldkey.js` 한 곳에만 있다** — `vworld.js` 와 같은 값을
+ * 읽으므로 이름표를 두 벌 두면 다음 사람이 한 곳만 고친다 (§8-1).
+ */
 function apiKey() {
-  return process.env.VWORLD_KEY || '';
+  return require('./vworldkey').vworldKey();
 }
 
 function isAvailable() {
@@ -39,7 +43,11 @@ function domain() {
 
 async function call(endpoint, params, namespace, cacheParams) {
   if (!isAvailable()) {
-    return { ok: false, error: 'VWORLD_KEY 미설정 — 공시지가/용도지역 조회 생략', unavailable: true };
+    return {
+      ok: false,
+      error: `VWorld 인증키 미설정(${require('./vworldkey').namesText()}) — 공시지가/용도지역 조회 생략`,
+      unavailable: true,
+    };
   }
 
   return cache.through(PROVIDER, namespace, cacheParams, async () => {
