@@ -88,6 +88,26 @@ jobs:
           KRX_API_KEY:       ${{ secrets.KRX_API_KEY }}
         run: node im-agent/tools/api-report.js "${RUNNER_TEMP}/smoke.txt" --out data/_api
 
+      # ★★★ 길찾기 소요시간 — **진단** 〈2026-09-19 · D-227〉.
+      #   규격(베이스 URL·인증)을 모르므로 후보를 걸어 **무엇이 오는지부터** 본다 (§4).
+      #   ★ 걸린 것이 곧 알고 싶은 것이라 continue-on-error 다 — 다만 **판정 줄을
+      #     실행 요약 첫 화면으로 나른다.** 요약 파일 안에만 두면 아무도 안 본다 (§12-19).
+      - name: 길찾기 소요시간을 실제로 불러 본다
+        continue-on-error: true
+        env:
+          KAKAO_MOBILITY_KEY: ${{ secrets.KAKAO_MOBILITY_KEY }}
+          KAKAOMOBILITY_KEY:  ${{ secrets.KAKAOMOBILITY_KEY }}
+          KAKAO_MOBILITY_REST_API: ${{ secrets.KAKAO_MOBILITY_REST_API }}
+          ODSAY_API_KEY:      ${{ secrets.ODSAY_API_KEY }}
+          ODSAY_KEY:          ${{ secrets.ODSAY_KEY }}
+        run: |
+          node scripts/routing-probe.mjs || true
+          {
+            echo '### 길찾기 소요시간 진단'
+            # 판정 줄만 뽑는다 — 최악 세 줄(전체 + 자동차 + 대중교통)이다
+            grep -E '^> ' data/_api/routing-probe.md || echo '(판정 줄을 못 읽었다)'
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: 결과 커밋
         run: |
           git config user.name  "github-actions[bot]"
