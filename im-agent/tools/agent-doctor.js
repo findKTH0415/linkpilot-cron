@@ -135,6 +135,82 @@ function check() {
     };
   });
 
+  /* ────────────────────────────────────────────────────────────────
+   * ★★★ **Task 그래프 전용 Agent — 다른 잣대로 잰다** 〈2026-08-26 · D-132〉
+   *
+   *   위 다섯은 **IM 파이프라인** 잣대다(파이프라인이 부르는가 · 진행률 비중 ·
+   *   화면 단계). 화면 작업지시서(T22)에 그것을 들이대면 늘 빨갛다 —
+   *   그리고 **늘 빨가면 아무도 안 본다.**
+   *
+   * ★★ 그렇다고 면제가 아니다. 여기가 「검사를 피하는 문」이 되면 다음 사람이
+   *   막히는 Agent 를 전부 이쪽으로 옮긴다. 그래서 **더 좁게 잠근다**:
+   *
+   *     · 능력(capability)이 router 에 실재하고 그 Agent 를 가리켜야 한다
+   *     · 그 능력을 쓰는 Task 가 taskplan 에 있어야 한다
+   *     · 모듈 계약과 자기 검사는 **IM Agent 와 똑같이** 요구한다
+   *     · **pipeline 이 부르면 오류다** — 그러면 Task 전용이 아니라
+   *       IM Agent 이므로 AGENTS 로 옮겨 다섯 곳을 다 채워야 한다
+   * ──────────────────────────────────────────────────────────────── */
+  const routerSrc = read('core/router.js');
+  const taskplanSrc = read('core/taskplan.js');
+
+  const taskRows = (registry.listTaskAgents ? registry.listTaskAgents() : []).map((a) => {
+    const id = a.id;
+    const bad = (what) => problems.push(`${id}: ${what}`);
+
+    let mod = null;
+    let contract = 'ok';
+    try { mod = require(path.join(ROOT, a.module.replace(/^\.\.\//, ''))); } catch (_) { mod = null; }
+    if (!mod) { contract = '못 불렀다'; bad('모듈을 못 불렀다 — registry 의 module 경로를 본다'); }
+    else {
+      const miss = CONTRACT.filter((k) => mod[k] === undefined);
+      if (miss.length) { contract = `빠짐: ${miss.join(',')}`; bad(`모듈 계약이 빠졌다: ${miss.join(', ')}`); }
+      else if (mod.id !== id) { contract = `id 다름: ${mod.id}`; bad(`모듈의 id 가 registry 와 다르다 (${mod.id})`); }
+    }
+
+    /* ★ 능력이 실재하고 이 Agent 를 가리키는가 — 아니면 아무도 안 부른다 */
+    const cap = a.capability;
+    const capOk = Boolean(cap) && routerSrc.includes(`${cap}: {`) && routerSrc.includes(`'${id}'`);
+    if (!capOk) bad(`router 에 이 Agent 를 가리키는 능력(${cap || '미기재'})이 없다 — 등록만 하고 아무도 안 부른다`);
+
+    /* ★ 그 능력을 쓰는 Task 가 계획에 있는가 */
+    const taskOk = Boolean(cap) && taskplanSrc.includes(`capability: '${cap}'`);
+    if (!taskOk) bad(`taskplan 에 ${cap || '이 능력'} 을(를) 쓰는 Task 가 없다 — 계획에 안 나오면 영영 안 돈다`);
+
+    /* ★★ pipeline 이 부르면 Task 전용이 아니다 — 갈래를 잘못 골랐다 */
+    if (pipeline.includes(`runAgent('${id}'`)) {
+      bad('pipeline 이 부른다 — Task 전용이 아니라 IM Agent 다. AGENTS 로 옮기고 다섯 곳을 다 채운다');
+    }
+
+    const tested = testBlob.includes(id);
+    if (!tested) bad('이 Agent 를 이름으로 재는 검사가 하나도 없다');
+
+    /* ★★★ **결과가 쓰이는가 — Task 잣대로** 〈2026-08-26〉.
+     *
+     *   위 ⑦ 은 `pipeline.js` 만 본다. Task 전용 Agent 는 pipeline 에 없으므로
+     *   **그 칸을 그냥 비켜 간다** — 그러면 이 갈래가 「검사를 피하는 문」이 된다.
+     *   D-132 가 걱정한 바로 그 자리이고, ⑦ 이 생긴 날 실제로 그렇게 됐다.
+     *
+     * ★ Task 에서 「쓰인다」는 **그 Task 가 내겠다고 적은 산출물을 실제로 쓰는가**다.
+     *   `taskplan` 의 `outputs` 에 적힌 경로가 Agent 모듈 안에 있어야 한다.
+     *   적어만 두고 안 쓰면 그 Task 는 **돌기만 하고 아무것도 안 남긴다** —
+     *   그리고 다음 Task 는 없는 파일을 기다린다. */
+    const taskBlock = a.task
+      ? (taskplanSrc.match(new RegExp(`id: '${a.task}'[\\s\\S]*?\\}`)) || [''])[0]
+      : '';
+    const declared = [...taskBlock.matchAll(/'([\w/]+\.(?:json|md|html|svg|pptx|pdf))'/g)].map(m => m[1]);
+    const modSrc = mod ? read(a.module.replace(/^\.\.\//, '') + '.js') : '';
+    const unwritten = declared.filter(o => !modSrc.includes(o));
+    if (declared.length && unwritten.length) {
+      bad(`Task 가 내겠다고 적은 산출물을 모듈이 안 쓴다: ${unwritten.join(', ')}`
+        + ' — 돌기만 하고 아무것도 안 남긴다. 다음 Task 는 없는 파일을 기다린다');
+    }
+    const used = declared.length > 0 && unwritten.length === 0;
+
+    return { id, order: '(Task)', 계약: contract, 비중: '(IM 아님)', 선행: a.task || '✗', 부름: capOk ? cap : '✗', 화면: '(IM 아님)', 검사: tested ? 'ok' : '✗', 쓰임: used ? `${declared.length}건` : '✗' };
+  });
+  rows.push(...taskRows);
+
   const weightTotal = Object.values(monitor.WEIGHTS).reduce((a, b) => a + b, 0);
   if (weightTotal !== WEIGHT_TOTAL) {
     problems.push(`진행률 비중 합계가 ${weightTotal} 이다 — ${WEIGHT_TOTAL} 이어야 한다.`
