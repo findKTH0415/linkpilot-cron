@@ -6,19 +6,23 @@
     "label": "apis-navi /v1/directions",
     "ok": true,
     "status": 200,
-    "ms": 1424,
-    "head": "{\"trans_id\":\"01a0b825c5b7784cb36edd5481a81d0f\",\"routes\":[{\"result_code\":0,\"result_msg\":\"길찾기 성공\",\"summary\":{\"origin\":{\"name\":\"\",\"x\":126.97839806210874,\"y\":37.566599979513605},\"destination\":{\"name\":\"\",\"x\":127.02759129515296,\"y\":37.49789587828953},\"waypoints\":[],\"priority\":\"RECOMMEND\",\"bound\":{\"min_x\":",
-    "server": null,
-    "gotValue": false
+    "ms": 1365,
+    "gotValue": true,
+    "authFail": false,
+    "head": "{\"trans_id\":\"01a0b82d77567996b95c5af6469b3a42\",\"routes\":[{\"result_code\":0,\"result_msg\":\"길찾기 성공\",\"summary\":{\"origin\":{\"name\":\"\",\"x\":126.97839806210874,\"y\":37.566599979513605},\"destination\":{\"name\":\"\",\"x\":127.02759129515296,\"y\":37.49789587828953},\"waypoints\":[],\"priority\":\"RECOMMEND\",\"bound\":{\"min_x\":",
+    "truncated": true,
+    "server": null
    },
    {
     "label": "apis-navi /v1/future/directions",
     "ok": true,
     "status": 200,
-    "ms": 823,
-    "head": "{\"trans_id\":\"01a0b825c98a748182669400fe43fd1a\",\"routes\":[{\"result_code\":0,\"result_msg\":\"길찾기 성공\",\"summary\":{\"origin\":{\"name\":\"\",\"x\":126.97839806210874,\"y\":37.566599979513605},\"destination\":{\"name\":\"\",\"x\":127.02759129515296,\"y\":37.49789587828953},\"waypoints\":[],\"priority\":\"RECOMMEND\",\"bound\":{\"min_x\":",
-    "server": null,
-    "gotValue": false
+    "ms": 775,
+    "gotValue": true,
+    "authFail": false,
+    "head": "{\"trans_id\":\"01a0b82d7a6974c69b0ba583bfa34749\",\"routes\":[{\"result_code\":0,\"result_msg\":\"길찾기 성공\",\"summary\":{\"origin\":{\"name\":\"\",\"x\":126.97839806210874,\"y\":37.566599979513605},\"destination\":{\"name\":\"\",\"x\":127.02759129515296,\"y\":37.49789587828953},\"waypoints\":[],\"priority\":\"RECOMMEND\",\"bound\":{\"min_x\":",
+    "truncated": true,
+    "server": null
    }
   ]
  },
@@ -29,10 +33,12 @@
     "label": "원본 그대로",
     "ok": true,
     "status": 200,
-    "ms": 558,
+    "ms": 595,
+    "gotValue": false,
+    "authFail": true,
     "head": "{\"error\":[{\"code\":\"500\",\"message\":\"[ApiKeyAuthFailed] ApiKey authentication failed.\"}]}",
-    "server": "Apache",
-    "gotValue": false
+    "truncated": false,
+    "server": "Apache"
    }
   ]
  }

@@ -1,4 +1,4 @@
-> 판정 5 — 대답은 왔는데 값을 못 뽑았다 — **규격**을 고친다. 열쇠 문제가 아니다 (자동차 5 · 대중교통 5). 아래 갈래별 판정을 본다
+> 판정 4 — 인증이 거부됐다 — 열쇠이거나 그 서비스 신청이다 (자동차 0 · 대중교통 4). 아래 갈래별 판정을 본다
 
 # 길찾기 소요시간 — 실측 진단
 
@@ -10,19 +10,26 @@
 
 - 열쇠 **`KAKAO_MOBILITY_REST_API`** 로 읽었다 (길이 32자 · 값은 안 적는다)
 
-- `apis-navi /v1/directions` — HTTP 200 · 1424ms
-  - 본문 «{"trans_id":"01a0b825c5b7784cb36edd5481a81d0f","routes":[{"result_code":0,"result_msg":"길찾기 성공","summary":{"origin":{"name":"","x":126.97839806210874,"y":37.566599979513605},"destination":{"name":"","x":127.02759129515296,"y":37.49789587828953},"waypoints":[],"priority":"RECOMMEND","bound":{"min_x":»
-- `apis-navi /v1/future/directions` — HTTP 200 · 823ms
-  - 본문 «{"trans_id":"01a0b825c98a748182669400fe43fd1a","routes":[{"result_code":0,"result_msg":"길찾기 성공","summary":{"origin":{"name":"","x":126.97839806210874,"y":37.566599979513605},"destination":{"name":"","x":127.02759129515296,"y":37.49789587828953},"waypoints":[],"priority":"RECOMMEND","bound":{"min_x":»
+- `apis-navi /v1/directions` — HTTP 200 · 1365ms
+  - 본문 «{"trans_id":"01a0b82d77567996b95c5af6469b3a42","routes":[{"result_code":0,"result_msg":"길찾기 성공","summary":{"origin":{"name":"","x":126.97839806210874,"y":37.566599979513605},"destination":{"name":"","x":127.02759129515296,"y":37.49789587828953},"waypoints":[],"priority":"RECOMMEND","bound":{"min_x":» …
+  - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
+  - 소요시간 칸: **찾았다**
+- `apis-navi /v1/future/directions` — HTTP 200 · 775ms
+  - 본문 «{"trans_id":"01a0b82d7a6974c69b0ba583bfa34749","routes":[{"result_code":0,"result_msg":"길찾기 성공","summary":{"origin":{"name":"","x":126.97839806210874,"y":37.566599979513605},"destination":{"name":"","x":127.02759129515296,"y":37.49789587828953},"waypoints":[],"priority":"RECOMMEND","bound":{"min_x":» …
+  - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
+  - 소요시간 칸: **찾았다**
 
-> **판정 5** — 대답은 왔는데 **값을 못 뽑았다** — 주소·파라미터 규격이 다르다. **열쇠 문제가 아니다.** 아래 본문을 보고 배선을 고친다
+> **판정 0** — **값이 왔다** — 이 후보로 배선한다
 
 ## 2. 대중교통 — ODsay
 
 - 열쇠 **`ODSAY_API_KEY`** 로 읽었다 (길이 66자 · 값은 안 적는다)
 
-- `원본 그대로` — HTTP 200 · 558ms
+- `원본 그대로` — HTTP 200 · 595ms
   - 본문 «{"error":[{"code":"500","message":"[ApiKeyAuthFailed] ApiKey authentication failed."}]}»
+  - 소요시간 칸: **못 찾았다**
+  - ★ 본문이 **인증 거부**를 말한다 — 상태코드가 200 이어도 그렇다 (D-229)
+  - 서버 Apache
 - `한 번 디코딩` — 원본과 같아 건너뛴다
 
-> **판정 5** — 대답은 왔는데 **값을 못 뽑았다** — 주소·파라미터 규격이 다르다. **열쇠 문제가 아니다.** 아래 본문을 보고 배선을 고친다
+> **판정 4** — **인증이 거부됐다** — 열쇠 자체이거나 **그 서비스 등록·신청**이 안 된 것이다. ★ 상태코드가 **200 이어도** 본문이 그렇게 말하는 곳이 있다(ODsay 가 그렇다). 아래 응답 본문이 둘 중 어느 쪽인지 말해 준다

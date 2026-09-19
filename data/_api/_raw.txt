@@ -53,10 +53,10 @@ KEPCO_BIGDATA  : 설정됨 (⚠ 응답 필드 미검증 — 등록부 D-54)
 법령 API        : ✅ 승인됨 — 「건축법 시행령」 MST 288849 (시행 20260918)
 
 ✕ VWorld 지오코딩
-  지오코딩 실패 — ROAD: HTTP 502 (4회 시도 실패) / PARCEL: fetch failed (4회 시도 실패) (주소: 강원특별자치도 원주시 신림면 송계리 695-4)
-    · ROAD 시도 → HTTP 502 (4회 시도 실패)
+  지오코딩 실패 — fetch failed (4회 시도 실패) (주소: 강원특별자치도 원주시 신림면 송계리 695-4)
+    · ROAD 시도 → fetch failed (4회 시도 실패)
     · PARCEL 시도 → fetch failed (4회 시도 실패)
-  → VWorld 쪽 서버가 5xx 를 돌려준다 — 우리 쪽에 고칠 것이 없다. 시간을 두고 다시 건다
+  → 응답이 아예 없다 — 도는 자리의 바깥 연결(api.vworld.kr)이 막혔는지 본다. 열쇠 문제가 아니다
   ※ 원문 응답을 보려면: IM_AGENT_DEBUG_HTTP=1 npm run im:smoke
 
 ● REC 현물시장 (전력거래소)
