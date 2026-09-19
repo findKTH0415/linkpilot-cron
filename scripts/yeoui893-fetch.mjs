@@ -208,6 +208,17 @@ P('## 5. 걸린 것');
 for (const p of problems) P(`- ${p}`);
 const code = got === tried ? 0 : (got > 0 ? 1 : 2);
 P(''); P(`판정 ${got}/${tried} · 종료코드 ${code}`);
+/* ★★★ **판정을 요약 «맨 앞»에도 올린다** 〈2026-09-19 · D-226 · §6-3 ①〉.
+   앞 판은 이 글이 **요약 맨 끝**에만 있었다 — `vworld-fetch.mjs` 가 D-213 에서
+   같은 자리를 이미 고쳤는데 **이 파일에는 안 댔다**
+   (S-53 「한 칸에서 배운 것을 옆 칸에 안 대면 그 자리에 그대로 남는다」).
+   맨 끝에 적으면 아무도 안 본다 — 실제로 브이월드에서 그랬다. */
+const verdict = code === 0
+  ? `판정 0 — ${tried} 가지를 **전부** 받았다`
+  : code === 1
+    ? `판정 1 — ${tried} 가지 중 **${got} 개만** 받았다. 아래 「5. 걸린 것」을 본다`
+    : `판정 2 — **한 가지도 못 받았다** (${tried} 가지). 아래 「5. 걸린 것」이 사유다`;
+log.unshift(`> ${verdict}`, '');
 await save();
 console.log(`LP_YEOUI verdict=${code}`);
 process.exit(code);

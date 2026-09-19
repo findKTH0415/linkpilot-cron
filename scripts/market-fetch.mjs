@@ -139,5 +139,30 @@ else {
 
 say('---');
 say('수집 완료.');
+
+/* ★★★ **초록이 「값이 왔다」를 뜻하게 한다** 〈2026-09-19 · D-226 · §12-24 · §12-36〉.
+   [무엇이었나] 이 스크립트는 `process.exit` 이 **한 곳도 없었다.** 열쇠가 없어
+     통째로 건너뛰어도, 열 표가 전부 빈손이어도 **초록**이다. 초록이라 아무도
+     `_summary.md` 를 안 열어 보고, 정작 하려던 수집은 한 번도 안 된 채로 남는다.
+   ★ 세는 잣대는 **「보고서에 실을 것이 왔나」**다 — 호출 횟수가 아니다.
+     이 스크립트가 내려는 것은 둘이다: **부동산원 임대동향 표**와 **통계청 분당 행**.
+   ★★ 판정은 **요약 맨 앞**(§6-3 ①), **결과 파일을 먼저 남긴 뒤에** 빨갛게 끝낸다 (§12-24).
+   ★★★ **「대답했는데 그 지역 자료가 없다」를 실패로 세지 않는다** — 그 갈래는
+     고칠 자리가 없다 (§4 의 셋째 갈래). 여기서는 **한 표라도 값이 왔는가**로 센다. */
+const gotReb = Object.keys(store).length > 0;
+const gotKosis = Object.values(kosisOut).some((v) => Array.isArray(v) && v.length > 0);
+const code = (gotReb && gotKosis) ? 0 : ((gotReb || gotKosis) ? 1 : 2);
+const verdict = code === 0
+  ? '판정 0 — 부동산원 표와 통계청 행을 **둘 다** 받았다'
+  : code === 1
+    ? `판정 1 — **하나만** 받았다 (부동산원 ${gotReb ? '받음' : '못 받음'} · `
+      + `통계청 ${gotKosis ? '받음' : '못 받음'}). 아래에서 어느 쪽이 빈손인지 본다`
+    : '판정 2 — **한 가지도 못 받았다.** 열쇠(REB_API_KEY · KOSIS_API_KEY)·'
+      + '활용신청·그쪽 서버 중 하나다 — 아래 사유를 본다';
+log.unshift(`> ${verdict}`, '');
+
 await writeFile(`${OUT}/_summary.md`, log.join('\n'));
 console.log('\n완료 — data/market/');
+// ★ 사람이 읽는 판정은 stderr 로도 낸다 — 요약이 stdout 만 받아 가는 자리가 있다 (§12-19)
+if (code !== 0) console.error(verdict.replace(/\*\*/g, ''));
+process.exit(code);

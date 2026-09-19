@@ -49,6 +49,7 @@ jobs:
           # ★ 길찾기 소요시간 〈2026-09-15 사장님 승인: 「둘 다」〉 — 이름이 둘씩이다
           KAKAO_MOBILITY_KEY: ${{ secrets.KAKAO_MOBILITY_KEY }}
           KAKAOMOBILITY_KEY:  ${{ secrets.KAKAOMOBILITY_KEY }}
+          KAKAO_MOBILITY_REST_API: ${{ secrets.KAKAO_MOBILITY_REST_API }}
           ODSAY_API_KEY:      ${{ secrets.ODSAY_API_KEY }}
           ODSAY_KEY:          ${{ secrets.ODSAY_KEY }}
           KICT_API_BASE:     ${{ secrets.KICT_API_BASE }}
@@ -80,6 +81,7 @@ jobs:
           # ★ 길찾기 소요시간 〈2026-09-15 사장님 승인: 「둘 다」〉 — 이름이 둘씩이다
           KAKAO_MOBILITY_KEY: ${{ secrets.KAKAO_MOBILITY_KEY }}
           KAKAOMOBILITY_KEY:  ${{ secrets.KAKAOMOBILITY_KEY }}
+          KAKAO_MOBILITY_REST_API: ${{ secrets.KAKAO_MOBILITY_REST_API }}
           ODSAY_API_KEY:      ${{ secrets.ODSAY_API_KEY }}
           ODSAY_KEY:          ${{ secrets.ODSAY_KEY }}
           PEXELS_API_KEY:    ${{ secrets.PEXELS_API_KEY }}
