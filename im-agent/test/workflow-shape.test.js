@@ -600,3 +600,49 @@ test('워크플로가 부르는 스크립트가 실제로 있다 (누르시는 �
     + '  이 상태는 아무 오류도 안 내고 있다가, 그 워크플로를 누르시는 날 그 단계에서 죽습니다.\n  '
     + missing.join('\n  '));
 });
+
+/* ═════════ PR 검사는 한 푸시에 «한 번»만 돈다 〈2026-09-19 · D-234〉 ═════════
+ *
+ * [무엇이 났나] `pull_request` 의 기본 갈래에는 `synchronize`(PR 가지에 푸시)가 들어
+ *   있다. 그래서 열려 있는 PR 가지에 한 번 밀면 **실행이 둘** 생겼다 — 이 저장소는
+ *   묶음 이름이 갈려 **둘 다 끝까지** 돌았고(분(分) 두 배), 저쪽은 같은 묶음이라
+ *   하나가 **취소**되어 PR 화면이 `unstable` 로 보였다. 둘 다 초록인데 읽기가 나쁘다.
+ *
+ * ★ 재는 것은 **「그렇게 적혀 있는가」까지**다 — 실제로 한 번만 도는지는 다음 푸시가
+ *   말한다. **못 재는 것을 재는 척하지 않는다** (§8).
+ */
+test('★★★ PR 검사가 한 푸시에 한 번만 돌게 적혀 있다 (synchronize 를 push 가 덮는다)', () => {
+  const { yamlNoComment } = require('./yaml-lite');
+  /* 검사를 도는 워크플로만 본다 — 배포·수집은 경로를 좁히는 것이 옳다 (§12-34) */
+  const files = list(WF, /\.ya?ml$/)
+    .map((f) => ({ f, y: yamlNoComment(read(path.join(WF, f))) }))
+    .filter(({ y }) => /^\s*pull_request\s*:/m.test(y));
+
+  assert.ok(files.length > 0,
+    'PR 에서 도는 워크플로를 한 개도 못 찾았습니다 — 이 칸은 아무것도 안 잽니다.');
+
+  const bad = [];
+  for (const { f, y } of files) {
+    const m = /^\s*pull_request\s*:\s*\n((?:\s{4,}.*\n)*)/m.exec(y);
+    const block = (m && m[1]) || '';
+    const hasTypes = /types\s*:/.test(block);
+    const hasSync = /synchronize/.test(block);
+    /* `push:` 가 그 가지를 덮는가 — 안 덮으면 PR 가지 푸시가 «아무 검사도» 안 받는다.
+       ★ **`push:` «줄»만 보면 안 된다** 〈사보타주가 빠져나가서 고쳤다〉. 그 아래에
+         `branches:` 가 붙어 가지를 좁혀도 그 줄 자체는 늘 매치해 **늘 참**이었다.
+         봐야 하는 것은 «그 아래 블록»이다 (§6-2-5 — 세는 자리를 옮겼다). */
+    const pm = /^\s*push\s*:\s*\n((?:\s{4,}.*\n)*)/m.exec(y);
+    const pushAll = /^\s*push\s*:\s*$/m.test(y)
+      && !(pm && /^\s+branches\s*:/m.test(pm[1]));
+    if (!hasTypes || hasSync) bad.push(f + ' — pull_request 가 synchronize 를 아직 듣습니다');
+    else if (!pushAll) bad.push(f + ' — synchronize 를 뺐는데 push 가 그 가지를 안 덮습니다');
+  }
+
+  console.log('  ◦ PR 에서 도는 워크플로 ' + files.length + '개를 봤습니다'
+    + ' (실제로 한 번만 도는지는 다음 푸시가 말합니다 — 여기서는 못 잽니다)');
+
+  assert.deepStrictEqual(bad, [],
+    'PR 검사가 한 푸시에 두 번 돕니다:\n  ' + bad.join('\n  ')
+    + '\n  · synchronize 를 빼면 그 자리는 push 가 덮습니다.'
+    + '\n  · 다만 push 가 «모든 작업 가지»를 덮어야 합니다 — 안 그러면 검사가 통째로 빠집니다.');
+});
