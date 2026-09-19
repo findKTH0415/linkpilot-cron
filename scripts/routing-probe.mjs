@@ -43,19 +43,39 @@ const TO = { x: 127.0276, y: 37.4979, name: '강남역' };
  * 한 후보를 걸어 보고 **무엇이 왔는지 그대로** 돌려준다.
  * ★ 던지지 않는다 — 걸린 것이 곧 우리가 알고 싶은 것이다 (§4.6).
  */
-async function probe(label, url, init) {
+async function probe(label, url, init, valueRe) {
   const t0 = Date.now();
   try {
     const r = await fetch(url, { ...init, signal: AbortSignal.timeout(15000) });
     const body = await r.text();
+    const flat = body.replace(/\s+/g, ' ').trim();
     return {
       label, ok: r.ok, status: r.status, ms: Date.now() - t0,
-      head: redact(body.replace(/\s+/g, ' ').trim().slice(0, 300)),
+      /* 값 판정은 **자르기 전 본문 전체**로 한다. 앞머리만 보면 값이 왔는데
+         「못 뽑았다」가 되고, 그 글이 「규격을 고치라」고 틀린 곳을 가리킨다
+         (실측 D-228: 카카오의 소요시간 칸이 앞 300자 밖이라 판정 5 가 나왔다).
+         잣대는 하나다 — 「그 숫자를 재는 법이 재려는 것을 다 덮는가」 (§6-2-6). */
+      gotValue: Boolean(r.ok && valueRe && valueRe.test(flat)),
+      /* ★ 본문 전체는 이 함수 밖으로 안 나간다 — 요약에 실리는 것은 앞머리뿐이다 (§2) */
+      head: redact(flat.slice(0, 300)),
+      truncated: flat.length > 300,
       server: r.headers.get('server') || null,
     };
   } catch (e) {
-    return { label, ok: false, status: null, ms: Date.now() - t0, transport: String(e && e.message || e) };
+    return { label, ok: false, status: null, ms: Date.now() - t0, gotValue: false,
+      transport: String(e && e.message || e) };
   }
+}
+
+/** 한 후보가 무엇을 돌려줬는지 사람이 읽게 적는다 — 두 자리가 **같은 글**을 쓴다 (§8-1).
+ *  ★ 「대답이 왔다」와 「값이 왔다」를 **갈라** 적는다 — 둘을 뚝뚹그리면
+ *    HTTP 200 하나를 보고 「됐다」로 읽힌다. */
+function sayRow(r) {
+  P(`- \`${r.label}\` — ${r.status == null ? `**못 닿음** (${r.transport})` : `HTTP ${r.status}`} · ${r.ms}ms`);
+  if (r.head) P(`  - 본문 «${r.head}»${r.truncated ? ' …' : ''}`);
+  if (r.truncated) P('  - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)');
+  if (r.status != null) P(`  - 소요시간 칸: ${r.gotValue ? '**찾았다**' : '**못 찾았다**'}`);
+  if (r.server) P(`  - 서버 ${r.server}`);
 }
 
 /* ★★★ **갈래를 가른다 — 값마다 사장님이 하실 일이 정반대다** (§12-24 의 그 규칙).
@@ -101,13 +121,11 @@ if (!kakao) {
     ['apis-navi /v1/directions', `https://apis-navi.kakaomobility.com/v1/directions?${q}`],
     ['apis-navi /v1/future/directions', `https://apis-navi.kakaomobility.com/v1/future/directions?${q}&departure_time=202609200900`],
   ]) {
-    const r = await probe(label, url, auth);
-    /* ★ 「대답이 왔다」와 「값이 왔다」는 다른 사실이다 — 소요시간을 실제로 뽑았는지 본다 */
-    r.gotValue = Boolean(r.ok && /"duration"\s*:\s*\d/.test(r.head || ''));
+    /* ★ 「대답이 왔다」와 「값이 왔다」는 다른 사실이다 — 소요시간을 실제로 뽑았는지 본다.
+       잣대는 probe 안에서 **본문 전체**에 댄다 (앞머리만 보면 못 찾는다 · D-228) */
+    const r = await probe(label, url, auth, /"duration"\s*:\s*\d/);
     kRows.push(r);
-    P(`- \`${label}\` — ${r.status == null ? `**못 닿음** (${r.transport})` : `HTTP ${r.status}`} · ${r.ms}ms`);
-    if (r.head) P(`  - 본문 «${r.head}»`);
-    if (r.server) P(`  - 서버 ${r.server}`);
+    sayRow(r);
   }
 }
 results.kakao = { key: kakao ? kakao.name : null, rows: kRows };
@@ -133,11 +151,9 @@ if (!odsay) {
     if (label === '한 번 디코딩' && k === odsay.value) { P('- `한 번 디코딩` — 원본과 같아 건너뛴다'); continue; }
     const url = 'https://api.odsay.com/v1/api/searchPubTransPathT'
       + `?apiKey=${encodeURIComponent(k)}&SX=${FROM.x}&SY=${FROM.y}&EX=${TO.x}&EY=${TO.y}&output=json`;
-    const r = await probe(label, url, {});
-    r.gotValue = Boolean(r.ok && /"totalTime"\s*:\s*\d/.test(r.head || ''));
+    const r = await probe(label, url, {}, /"totalTime"\s*:\s*\d/);
     oRows.push(r);
-    P(`- \`${label}\` — ${r.status == null ? `**못 닿음** (${r.transport})` : `HTTP ${r.status}`} · ${r.ms}ms`);
-    if (r.head) P(`  - 본문 «${r.head}»`);
+    sayRow(r);
   }
 }
 results.odsay = { key: odsay ? odsay.name : null, rows: oRows };

@@ -28,7 +28,7 @@ const read = (p) => fs.readFileSync(p, 'utf8');
 
 /** `function 이름(...) { … }` 을 **중괄호 짝을 세어** 오려 낸다 (꼬리 글자로 찾지 않는다 · §12-6) */
 function cutFn(src, name) {
-  const at = src.search(new RegExp(`^function\\s+${name}\\s*\\(`, 'm'));
+  const at = src.search(new RegExp(`^(?:async\\s+)?function\\s+${name}\\s*\\(`, 'm'));
   if (at < 0) return null;
   let i = src.indexOf('{', at), depth = 0;
   for (; i < src.length; i += 1) {
@@ -77,8 +77,13 @@ test('★★★ 갈래 다섯을 «갈라» 말한다 — 값마다 하실 일�
 
 test('★★ 「대답이 왔다」와 「값이 왔다」를 갈라 센다 (§8 「걸었다 ≠ 올라갔다」와 같은 결)', () => {
   const src = read(SRC).replace(/\/\*[\s\S]*?\*\//g, '').replace(/^[ \t]*\/\/.*$/gm, '');
-  /* HTTP 200 만으로 「됐다」로 세면, 규격이 달라 빈 답이 와도 초록이 된다 */
-  assert.match(src, /gotValue\s*=\s*Boolean\(\s*r\.ok\s*&&/,
+  /* HTTP 200 만으로 「됐다」로 세면, 규격이 달라 빈 답이 와도 초록이 된다.
+     ★ **글자 모양을 박지 않는다** — D-228 에서 이 줄을 `probe()` 안으로 옮기자
+       **고침이 옳은데 빨개졌다.** 재려던 성질(「200 하나로 세지 않는가」)은 그대로 두고
+       **세는 자리를 옮겼다** (§6-2-5 의 잣대). 어느 자리에 적혔든 성질만 본다. */
+  const calc = (cutFn(src, 'probe') || src).match(/gotValue\s*:\s*Boolean\([^)]*\)|gotValue\s*=\s*Boolean\([^;]*/);
+  assert.ok(calc, 'gotValue 를 계산하는 자리를 못 찾았습니다 — 이 칸은 아무것도 안 잽니다');
+  assert.match(calc[0], /r\.ok\s*&&/,
     'gotValue 를 r.ok 만으로 셉니다 — 200 인데 값이 없는 갈래가 사라집니다.');
   assert.ok(/duration/.test(src) && /totalTime/.test(src),
     '소요시간을 실제로 뽑았는지 안 봅니다 — 갈래 5 를 영영 못 잽니다.');
@@ -149,4 +154,69 @@ test('★ 판정이 «실행 요약 첫 화면»까지 간다 — 파일 안에�
   assert.ok(iProbe >= 0 && iCommit >= 0, `단계를 못 읽었습니다 (${names.length}개)`);
   assert.ok(iProbe < iCommit,
     `진단이 결과 커밋보다 뒤에 있습니다 — 그날 결과가 안 남습니다 (진단 ${iProbe + 1} · 커밋 ${iCommit + 1})`);
+});
+
+/* ★★★ D-228 — **잣대가 앞머리 300자만 봤다.** 그래서 카카오가 「길찾기 성공」을
+   HTTP 200 으로 돌려줬는데도 판정이 **5(값을 못 뽑았다 · 규격을 고쳐라)** 로 나왔다.
+   그 글은 **틀린 곳을 가리킨다** — 고칠 규격이 없다 (§4.6 · §12-24 와 같은 결).
+   잣대는 하나다 — **「그 숫자를 재는 법이 재려는 것을 다 덮는가」** (§6-2-6 의 46 → 105). */
+test('probe 는 «본문 전체»로 값을 재고, 요약에는 앞머리만 싣는다', async () => {
+  const src = read(SRC);
+  const fn = cutFn(src, 'probe');
+  assert.ok(fn, 'probe 를 못 떼어 냈습니다 — 이 칸은 아무것도 안 잽니다');
+
+  /* 실제로 온 모양: summary.duration 이 **앞 300자 밖**에 있다 */
+  const body = JSON.stringify({
+    trans_id: 'x'.repeat(32),
+    routes: [{
+      result_code: 0, result_msg: '길찾기 성공',
+      summary: {
+        origin: { name: '', x: 126.9784, y: 37.5666 },
+        destination: { name: '', x: 127.0276, y: 37.4979 },
+        waypoints: [], priority: 'RECOMMEND',
+        bound: { min_x: 126.9, min_y: 37.4, max_x: 127.1, max_y: 37.6 },
+        fare: { taxi: 12000, toll: 0 },
+        distance: 11234, duration: 1820,
+      },
+    }],
+  });
+  assert.ok(body.indexOf('"duration"') > 300,
+    '표본이 재려던 성질을 안 지킵니다 — 소요시간 칸이 앞 300자 «안»에 있으면 이 고장을 영영 못 잽니다');
+
+  const probe = new Function('fetch', 'redact', 'AbortSignal',
+    `${fn}\nreturn probe;`)(
+    async () => ({ ok: true, status: 200, text: async () => body, headers: { get: () => null } }),
+    (x) => x,
+    { timeout: () => null },
+  );
+
+  const r = await probe('표본', 'https://example.invalid/x', {}, /"duration"\s*:\s*\d/);
+  assert.strictEqual(r.gotValue, true,
+    '값이 왔는데 «못 뽑았다»로 셉니다 — 앞머리만 보고 판정하면 「규격을 고치라」는 틀린 글이 나갑니다');
+  assert.ok(r.head && r.head.length <= 300,
+    `요약에 본문을 통째로 싣습니다 (${r.head ? r.head.length : 0}자) — 값이 샐 자리입니다 (§2)`);
+  assert.strictEqual(r.truncated, true, '잘렸다는 사실을 안 적습니다 — 다음 사람이 또 앞머리만 봅니다');
+
+  /* 반대로도 막는다 — 정말 값이 없으면 여전히 «못 찾았다»다 */
+  const empty = new Function('fetch', 'redact', 'AbortSignal',
+    `${fn}\nreturn probe;`)(
+    async () => ({ ok: true, status: 200, text: async () => '{"routes":[]}', headers: { get: () => null } }),
+    (x) => x, { timeout: () => null },
+  );
+  const r2 = await empty('빈 것', 'https://example.invalid/x', {}, /"duration"\s*:\s*\d/);
+  assert.strictEqual(r2.gotValue, false,
+    '값이 없는데 «왔다»로 셉니다 — 그러면 이 판정이 아무것도 안 가릅니다');
+});
+
+/* ★ 두 자리(자동차·대중교통)가 **같은 글**을 쓰는지 — 두 벌이면 한쪽이 옛말을 한다 (§8-1) */
+test('후보 결과를 적는 글이 한 벌이고, 「대답이 왔다」와 「값이 왔다」를 갈라 적는다', () => {
+  const src = read(SRC);
+  assert.ok(cutFn(src, 'sayRow'), 'sayRow 를 못 찾았습니다 — 이 칸은 아무것도 안 잽니다');
+  const calls = (src.match(/^\s*sayRow\(r\);/gm) || []).length;
+  assert.ok(calls >= 2,
+    `두 자리가 같은 글을 안 씁니다 (${calls}곳) — 한쪽만 고쳐지면 그 자리가 옛말을 합니다`);
+  const say = cutFn(src, 'sayRow');
+  assert.ok(/gotValue/.test(say),
+    '「값이 왔는가」를 화면에 안 적습니다 — HTTP 200 하나를 보고 「됐다」로 읽힙니다');
+  assert.ok(!/\.value\b/.test(say), '열쇠 값을 요약에 찍습니다 (§2)');
 });
