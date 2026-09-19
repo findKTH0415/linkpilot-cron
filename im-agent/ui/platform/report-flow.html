@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="865a916d">
+<html lang="ko" data-lp-build="5845de62">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -288,7 +288,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=865a916d">
+<link rel="stylesheet" href="tokens.css?v=5845de62">
 <style>
 /* 색·간격·반경 토큰은 tokens.css 하나가 정한다 (LinkPilot Design System v1.1) */
 * { box-sizing: border-box; }
@@ -481,12 +481,12 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
        조각들이 `F.` 를 바로 쓰는 지금 구조를 **한 글자도 안 건드린다**(`defer` 는 그것을 깬다).
      ★★ 주소는 스크립트 쪽과 **글자까지 같아야 한다** — 다르면 같은 파일을 두 번 받아
        오히려 느려진다. `build-stamp.js` 가 셋을 함께 지문 찍고 `--check` 가 함께 잰다. -->
-<link rel="preload" as="script" href="embed-bridge.js?v=865a916d">
-<link rel="preload" as="script" href="gate-core.js?v=865a916d">
-<link rel="preload" as="script" href="flow-core.js?v=865a916d">
-<link rel="preload" as="script" href="fields-core.js?v=865a916d">
-<link rel="preload" as="script" href="catalog.js?v=865a916d">
-<link rel="preload" as="script" href="inapp.js?v=865a916d">
+<link rel="preload" as="script" href="embed-bridge.js?v=5845de62">
+<link rel="preload" as="script" href="gate-core.js?v=5845de62">
+<link rel="preload" as="script" href="flow-core.js?v=5845de62">
+<link rel="preload" as="script" href="fields-core.js?v=5845de62">
+<link rel="preload" as="script" href="catalog.js?v=5845de62">
+<link rel="preload" as="script" href="inapp.js?v=5845de62">
 </head>
 <body>
 
@@ -536,14 +536,14 @@ window.LINKPILOT_REPORT_FLOW = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=865a916d" data-lp-global="LINKPILOT_REPORT_FLOW"></script>
-<script src="gate-core.js?v=865a916d"></script>
-<script src="flow-core.js?v=865a916d"></script>
+<script src="embed-bridge.js?v=5845de62" data-lp-global="LINKPILOT_REPORT_FLOW"></script>
+<script src="gate-core.js?v=5845de62"></script>
+<script src="flow-core.js?v=5845de62"></script>
 <!-- ★ 4단계 진행율(필수 항목 채움)을 재는 데 쓴다. **값과 출처가 둘 다**
      있어야 세는 규칙이 여기 있다 — 화면이 따로 세면 두 벌이 된다 -->
-<script src="fields-core.js?v=865a916d"></script>
-<script src="catalog.js?v=865a916d"></script>
-<script src="inapp.js?v=865a916d"></script>
+<script src="fields-core.js?v=5845de62"></script>
+<script src="catalog.js?v=5845de62"></script>
+<script src="inapp.js?v=5845de62"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -820,7 +820,11 @@ var lpApiWhy = (function () {
   function add(p) { for (var i = 1; i < arguments.length; i++) if (arguments[i]) p.appendChild(arguments[i]); return p; }
 
   function ctx() {
-    return { api: C.api, base: C.base || '', projectId: state.projectId, current: state.current };
+    /* ★ 2026-09-19 — `issuerSet` 을 함께 넘긴다 〈사장님 지시: 「2~6번은 1번완료후 노출」〉.
+         이 값이 없으면 `flow-core` 가 「1번이 끝났는가」를 못 보고 늘 다 그린다 —
+         **나르는 자리가 빠지면 그 장치는 안 도는 것과 같다** (§12-19 · §12-37). */
+    return { api: C.api, base: C.base || '', projectId: state.projectId, current: state.current,
+             issuerSet: facts.issuerSet };
   }
 
   /* ── 절 넷 ─────────────────────────────────────────────
@@ -1615,7 +1619,13 @@ var lpApiWhy = (function () {
     var byStep = {};
     steps.forEach(function (st) { byStep[st.id] = st; });
 
-    F.sectionState(ctx()).forEach(function (sec) {
+    /* ★★★ **1번을 끝내기 전에는 2~6을 안 그린다** 〈2026-09-19 사장님 지시〉.
+     *   ★ 대신 **무엇이 더 있는지 한 줄로 적는다** — 아무 말 없이 한 칸만 남으면
+     *     「여기서 끝인가」로 읽히고, 그것이 고장으로 보인다 (§8 · §6-3 ⑥).
+     *   ★★ 「못 물었다」면 안 숨기므로 이 줄도 안 나온다 — 모를 때는 그냥 다 보인다. */
+    var _secs = F.sectionState(ctx());
+    var _hid = _secs.filter(function (x) { return x.hidden; });
+    _secs.filter(function (x) { return !x.hidden; }).forEach(function (sec) {
       /* ★ 이제 모든 절이 단계를 품는다. 「품은 단계가 없는 절」(진행률)은 없앴다 */
       // 껍데기 조각에서는 단계 화면을 안 심었다. 없는 주소를 부르면 빈 칸이 뜨고
       // 그 빈 칸을 고장으로 읽는다 — 그래서 부르러 가지 않고 그렇다고 적는다
@@ -1651,6 +1661,14 @@ var lpApiWhy = (function () {
       if (go) frag.appendChild(go);
       view.appendChild(section(sec, frag));
     });
+
+    /* ★ 숨긴 칸이 있으면 «몇 칸이 · 무엇을 하면» 열리는지 적는다 (§5 의 넷 중 ④) */
+    if (_hid.length) {
+      var _n = notice('', _hid.length + '칸이 더 있습니다 — 위 「' + _secs[0].name + '」 을 끝내면 열립니다',
+        _hid.map(function (x) { return x.no + '. ' + x.name; }).join(' · '));
+      _n.setAttribute('data-lp-flow-hidden', String(_hid.length));
+      view.appendChild(_n);
+    }
 
     /* ★★★ **앱이 앱 안에 겹쳐 있으면 말한다** 〈2026-08-28 · D-164〉.
      *   배너·탭이 두 벌로 보이는 상태다. 이 화면이 만든 것이 아니고 이
