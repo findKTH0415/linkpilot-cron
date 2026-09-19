@@ -35,6 +35,14 @@ function pick(names) {
   return n ? { name: n, value: String(process.env[n]).trim() } : null;
 }
 
+/* ★★★ **인증 거부는 «상태코드»로만 못 가른다** 〈2026-09-19 · 실측 · D-229〉.
+   ODsay 는 **HTTP 200** 으로 주고 본문에 `[ApiKeyAuthFailed]` 를 넣는다 —
+   상태코드만 보면 「값을 못 뽑았다(규격을 고쳐라)」로 세지고, 그 글은
+   **「열쇠 문제가 아니다」**라고 **정반대**를 말한다. §4.2 가 이미 적어 둔 그 자리다:
+   「키 문제와 구분하려면 **응답 본문을 봐야 한다** — 상태코드만 보면 둘이 같아 보인다」.
+   ★ 낱말을 지어내지 않는다 — **실측한 것**과 §4.2 의 표에 있는 것만 적는다. */
+const AUTH_FAIL_RE = /ApiKeyAuthFailed|authentication failed|INVALID_KEY|SERVICE_KEY_IS_NOT_REGISTERED|NOT_REGISTERED|UNAUTHORIZED/i;
+
 /* 공개 랜드마크 두 점 — 개인 주소를 안 쓴다 (§2). 서울시청 → 강남역 */
 const FROM = { x: 126.9784, y: 37.5666, name: '서울시청' };
 const TO = { x: 127.0276, y: 37.4979, name: '강남역' };
@@ -43,19 +51,42 @@ const TO = { x: 127.0276, y: 37.4979, name: '강남역' };
  * 한 후보를 걸어 보고 **무엇이 왔는지 그대로** 돌려준다.
  * ★ 던지지 않는다 — 걸린 것이 곧 우리가 알고 싶은 것이다 (§4.6).
  */
-async function probe(label, url, init) {
+async function probe(label, url, init, valueRe) {
   const t0 = Date.now();
   try {
     const r = await fetch(url, { ...init, signal: AbortSignal.timeout(15000) });
     const body = await r.text();
+    const flat = body.replace(/\s+/g, ' ').trim();
     return {
       label, ok: r.ok, status: r.status, ms: Date.now() - t0,
-      head: redact(body.replace(/\s+/g, ' ').trim().slice(0, 300)),
+      /* 값 판정은 **자르기 전 본문 전체**로 한다. 앞머리만 보면 값이 왔는데
+         「못 뽑았다」가 되고, 그 글이 「규격을 고치라」고 틀린 곳을 가리킨다
+         (실측 D-228: 카카오의 소요시간 칸이 앞 300자 밖이라 판정 5 가 나왔다).
+         잣대는 하나다 — 「그 숫자를 재는 법이 재려는 것을 다 덮는가」 (§6-2-6). */
+      gotValue: Boolean(r.ok && valueRe && valueRe.test(flat)),
+      /* ★ 200 으로 오는 인증 거부를 잡는다 — 본문 전체로 본다 (D-229) */
+      authFail: AUTH_FAIL_RE.test(flat),
+      /* ★ 본문 전체는 이 함수 밖으로 안 나간다 — 요약에 실리는 것은 앞머리뿐이다 (§2) */
+      head: redact(flat.slice(0, 300)),
+      truncated: flat.length > 300,
       server: r.headers.get('server') || null,
     };
   } catch (e) {
-    return { label, ok: false, status: null, ms: Date.now() - t0, transport: String(e && e.message || e) };
+    return { label, ok: false, status: null, ms: Date.now() - t0, gotValue: false, authFail: false,
+      transport: String(e && e.message || e) };
   }
+}
+
+/** 한 후보가 무엇을 돌려줬는지 사람이 읽게 적는다 — 두 자리가 **같은 글**을 쓴다 (§8-1).
+ *  ★ 「대답이 왔다」와 「값이 왔다」를 **갈라** 적는다 — 둘을 뭉뚱그리면
+ *    HTTP 200 하나를 보고 「됐다」로 읽힌다. */
+function sayRow(r) {
+  P(`- \`${r.label}\` — ${r.status == null ? `**못 닿음** (${r.transport})` : `HTTP ${r.status}`} · ${r.ms}ms`);
+  if (r.head) P(`  - 본문 «${r.head}»${r.truncated ? ' …' : ''}`);
+  if (r.truncated) P('  - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)');
+  if (r.status != null) P(`  - 소요시간 칸: ${r.gotValue ? '**찾았다**' : '**못 찾았다**'}`);
+  if (r.authFail) P('  - ★ 본문이 **인증 거부**를 말한다 — 상태코드가 200 이어도 그렇다 (D-229)');
+  if (r.server) P(`  - 서버 ${r.server}`);
 }
 
 /* ★★★ **갈래를 가른다 — 값마다 사장님이 하실 일이 정반대다** (§12-24 의 그 규칙).
@@ -67,8 +98,10 @@ function verdictOf(rows) {
     return { code: 3, head: '**못 닿았다** — 응답이 한 번도 안 왔다. '
       + '**열쇠 문제가 아니다** (다시 넣거나 신청하실 일이 아니다). 도는 자리를 옮겨 다시 잰다' };
   }
-  if (rows.some(r => r.status === 401 || r.status === 403)) {
-    return { code: 4, head: '**인증이 거부됐다** — 열쇠 자체이거나 **그 서비스 신청**이 안 된 것이다. '
+  /* ★★★ 상태코드«와» 본문을 함께 본다 — 200 으로 오는 인증 거부가 있다 (D-229 · §4.2) */
+  if (rows.some(r => r.status === 401 || r.status === 403 || r.authFail)) {
+    return { code: 4, head: '**인증이 거부됐다** — 열쇠 자체이거나 **그 서비스 등록·신청**이 안 된 것이다. '
+      + '★ 상태코드가 **200 이어도** 본문이 그렇게 말하는 곳이 있다(ODsay 가 그렇다). '
       + '아래 응답 본문이 둘 중 어느 쪽인지 말해 준다' };
   }
   return { code: 5, head: '대답은 왔는데 **값을 못 뽑았다** — 주소·파라미터 규격이 다르다. '
@@ -101,13 +134,11 @@ if (!kakao) {
     ['apis-navi /v1/directions', `https://apis-navi.kakaomobility.com/v1/directions?${q}`],
     ['apis-navi /v1/future/directions', `https://apis-navi.kakaomobility.com/v1/future/directions?${q}&departure_time=202609200900`],
   ]) {
-    const r = await probe(label, url, auth);
-    /* ★ 「대답이 왔다」와 「값이 왔다」는 다른 사실이다 — 소요시간을 실제로 뽑았는지 본다 */
-    r.gotValue = Boolean(r.ok && /"duration"\s*:\s*\d/.test(r.head || ''));
+    /* ★ 「대답이 왔다」와 「값이 왔다」는 다른 사실이다 — 소요시간을 실제로 뽑았는지 본다.
+       잣대는 probe 안에서 **본문 전체**에 댄다 (앞머리만 보면 못 찾는다 · D-228) */
+    const r = await probe(label, url, auth, /"duration"\s*:\s*\d/);
     kRows.push(r);
-    P(`- \`${label}\` — ${r.status == null ? `**못 닿음** (${r.transport})` : `HTTP ${r.status}`} · ${r.ms}ms`);
-    if (r.head) P(`  - 본문 «${r.head}»`);
-    if (r.server) P(`  - 서버 ${r.server}`);
+    sayRow(r);
   }
 }
 results.kakao = { key: kakao ? kakao.name : null, rows: kRows };
@@ -133,11 +164,9 @@ if (!odsay) {
     if (label === '한 번 디코딩' && k === odsay.value) { P('- `한 번 디코딩` — 원본과 같아 건너뛴다'); continue; }
     const url = 'https://api.odsay.com/v1/api/searchPubTransPathT'
       + `?apiKey=${encodeURIComponent(k)}&SX=${FROM.x}&SY=${FROM.y}&EX=${TO.x}&EY=${TO.y}&output=json`;
-    const r = await probe(label, url, {});
-    r.gotValue = Boolean(r.ok && /"totalTime"\s*:\s*\d/.test(r.head || ''));
+    const r = await probe(label, url, {}, /"totalTime"\s*:\s*\d/);
     oRows.push(r);
-    P(`- \`${label}\` — ${r.status == null ? `**못 닿음** (${r.transport})` : `HTTP ${r.status}`} · ${r.ms}ms`);
-    if (r.head) P(`  - 본문 «${r.head}»`);
+    sayRow(r);
   }
 }
 results.odsay = { key: odsay ? odsay.name : null, rows: oRows };
