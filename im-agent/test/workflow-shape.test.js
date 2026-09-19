@@ -119,6 +119,55 @@ test('스크립트 파일에 워크플로가 잘못 들어가지 않았다 (거�
  *   ★★ 꾸러미만 있고 이름 확인이 없는 것이 **바로 이번에 당한 모양**이다 —
  *     그 자리가 초록으로 보이는 것이 이 고장의 급소다.
  */
+/**
+ * ★★★ **PR·push 를 재는 워크플로에 «경로 거르개»를 두지 않는다**
+ * 〈2026-09-19 · D-223 · 실제로 새어 나갔다〉
+ *
+ * [무엇이 났나] `im-agent-ci.yml` 이 `paths:` 로 다섯 갈래만 보고 있었다 —
+ *   `im-agent/**` · `docs/**` · `CLAUDE.md` · `MEMORY.md` · `.github/workflows/**`.
+ *   **`scripts/**` 가 없었다.** 그래서 사장님이 웹에서 `scripts/yeoui893-fetch.mjs` 를
+ *   올리셨을 때 **검사가 한 번도 안 돌았고**, 그 주석에 든 **NAS tailnet 주소가
+ *   그대로 `main` 에 들어갔다** (§2 위반 · §12-33).
+ *
+ * ★ **이 저장소의 검사는 저장소 «전체»를 훑는다** — `secrets.test.js` 는 `git ls-files`
+ *   로 추적되는 파일을 전부 보고, `memory-index.test.js` 는 문서를 센다. 그러니
+ *   **무엇이 바뀌든 돌아야 한다.** 「검사가 있다」와 「그 검사가 돈다」는 다른 사실이다 (§8).
+ *
+ * ★★ **고침은 목록을 늘리는 것이 아니다.** 늘리면 **다음 폴더가 생기는 날 또** 같은 일이
+ *   난다 — 그 규칙이 사람의 기억에 얹힌다 (§8-1). 거르개 자체를 안 두는 것이 답이다.
+ *   ★ 그 워크플로 주석이 이미 「문서만 바꾼 PR 이 검사 0개로 지나갔다」를 적어 두었는데,
+ *     **같은 고장이 `scripts/` 에서 되풀이됐다.** 목록을 넓히는 고침은 한 번 더 샌다.
+ *
+ * ★★★ **수집·배포 워크플로는 안 센다** — 그쪽은 `workflow_dispatch`·`push: main` 이고
+ *   경로를 좁히는 것이 옳다(안 좁히면 아무 커밋에나 배포가 돈다). 재려는 것은
+ *   **「PR·push 를 재는 자리」**뿐이다.
+ */
+test('★★★ PR·push 를 재는 워크플로에 경로 거르개가 없다 (새 폴더가 조용히 안 재진다)', () => {
+  const gates = fs.readdirSync(WF)
+    .filter((f) => /\.ya?ml$/i.test(f))
+    .map((f) => [f, fs.readFileSync(path.join(WF, f), 'utf8')])
+    // ★ 「PR 을 재는 자리」의 표지는 `pull_request:` 다 — 배포·수집은 이것을 안 쓴다
+    .filter(([, t]) => /^\s*pull_request:/m.test(t));
+
+  assert.ok(gates.length >= 1,
+    'PR 을 재는 워크플로를 한 개도 못 찾았다 — 이 칸은 아무것도 안 잽니다 (표지가 바뀐 것입니다).');
+
+  const bad = [];
+  for (const [f, t] of gates) {
+    // ★ `on:` 블록 안의 `paths:`·`paths-ignore:` 만 본다. 잡 안의 `paths` 는 다른 것이다.
+    const on = t.slice(t.search(/^on:/m));
+    const head = on.slice(0, on.search(/^\w/m) > 0 ? on.search(/^[a-z]+:/m) : on.length);
+    const block = on.split(/^(?:permissions|concurrency|jobs|env|defaults):/m)[0];
+    if (/^\s{2,}paths(-ignore)?:/m.test(block)) bad.push(f);
+    void head;
+  }
+  assert.deepStrictEqual(bad, [],
+    'PR·push 를 재는 워크플로에 경로 거르개가 있습니다 — 거기 안 적힌 폴더는\n'
+    + '  **조용히 안 재집니다**(실제로 `scripts/` 가 그랬고 주소가 공개로 나갔습니다).\n'
+    + '  목록을 늘리지 말고 거르개를 지웁니다 (§8-1 — 사람의 기억에 안 얹는다):\n  '
+    + bad.join(' · '));
+});
+
 test('검사를 돌리는 워크플로는 한국어 글꼴을 깔고 **그 이름으로 쓰이는지까지** 확인한다 (D-52)', () => {
   const files = fs.readdirSync(WF).filter(f => /\.ya?ml$/i.test(f));
   const runsTests = [];
@@ -230,14 +279,79 @@ test('★★ 잡마다 돌 자리가 있다 — `runs-on` 이나 `uses` 중 하�
  * ★ 표지는 `NAS_SSH_HOST` 다 — 접속정보가 있어야 NAS 에 올릴 수 있다.
  * ★★ **0개도 빨갛게 끝낸다.** 배포 길이 통째로 없어진 것이거나 표지 이름이
  *   바뀐 것인데, 둘 다 「이 칸이 눈이 먼 것」이다 (§8 — 못 잰 것은 통과가 아니다).
+ *
+ * ★★★ **재려던 성질이 «둘»이었는데 한 칸에 뭉쳐 있었다** 〈2026-09-19 · D-222 · 실측〉.
+ *   `main` 에 `yeoui893-nas.yml`(브이월드 502 를 NAS 경유로 우회하는 **수집** 잡)이
+ *   들어오면서 이 칸이 빨개졌고, 그와 함께 **다른 다섯 칸이 도미노로** 빨개졌다
+ *   (배포 워크플로를 못 고르니 무엇을 재는지 알 수 없어서 — 그것은 **옳은 동작**이다).
+ *
+ *   ★ **그런데 글이 「배포가 둘」이라고 «틀린 곳»을 가리켰다.** 실제로 난 것은
+ *     **「수집 잡에 접속 자격증명이 들어갔다」**(CLAUDE.md §4 · 규정집 2-8)이고,
+ *     그 둘은 **할 일이 정반대**다 — 앞은 배포 길을 합치는 일, 뒤는 자격증명을
+ *     빼는 일이다 (§4.6 「원인을 사람 말로 적는다」와 같은 결).
+ *
+ *   ★★ **그래서 «가르는 표지»를 더한다** — 배포는 **파일을 올린다**(`deploy/engine.sh`).
+ *     수집은 NAS 에서 **명령만 돌린다.** 이것은 검사를 약하게 고치는 것이 아니라
+ *     **재려던 성질 둘을 각각 재게** 한 것이다 (§6-2-5 의 잣대) — 아래 칸이 ②를 잰다.
  */
+const NAS_WF = () => fs.readdirSync(WF)
+  .filter((f) => /\.ya?ml$/i.test(f))
+  .filter((f) => fs.readFileSync(path.join(WF, f), 'utf8').includes('NAS_SSH_HOST'));
+
+/** 배포 = NAS 에 **올리는** 것. 표지는 `deploy/engine.sh` 다 (수집 잡은 안 부른다) */
+const DEPLOY_WF = () => NAS_WF()
+  .filter((f) => fs.readFileSync(path.join(WF, f), 'utf8').includes('deploy/engine.sh'));
+
 test('★★★ NAS 에 올리는 워크플로가 **정확히 하나**다 (둘이면 한쪽만 고쳐진다)', () => {
-  const found = fs.readdirSync(WF)
-    .filter((f) => /\.ya?ml$/i.test(f))
-    .filter((f) => fs.readFileSync(path.join(WF, f), 'utf8').includes('NAS_SSH_HOST'));
+  const found = DEPLOY_WF();
   assert.strictEqual(found.length, 1,
     `NAS 배포 워크플로가 ${found.length}개입니다 (하나여야 합니다): ${found.join(' · ') || '(없음)'}\n`
-    + '  둘이면 한쪽만 고쳐지고, 0개면 이 칸이 눈이 먼 것입니다.');
+    + '  둘이면 한쪽만 고쳐지고, 0개면 이 칸이 눈이 먼 것입니다.\n'
+    + '  ★ 「수집 잡에 접속 자격증명이 있다」는 다른 고장입니다 — 아래 칸이 그것을 잽니다.');
+});
+
+/**
+ * ★★★ **수집 잡에 접속 자격증명을 넣지 않는다** 〈CLAUDE.md §4 · 규정집 2-8 · D-222〉
+ *
+ * [왜] NAS SSH·터널 키는 **배포 잡에만** 넣는다. 공공 API 를 부르는 워크플로에
+ *   섞어 두면, 그 잡이 부르는 **바깥 서버 쪽 오류 본문**에 섞여 나갈 자리가 생긴다 (§2).
+ *   `api-smoke.yml` 에 데이터 열쇠만 있고 접속정보가 없는 이유가 그것이다.
+ *
+ * ★ **이 칸이 없으면 그 규칙을 «아무도 안 센다».** 실제로 그랬다 — 위 칸이
+ *   「배포가 둘」이라고만 말해, 무엇이 규칙을 어겼는지가 글에 없었다.
+ *
+ * ★★ **예외를 «이름과 사유»로 적는다.** 이름을 적는 것은 약하게 고치는 것이 아니다
+ *   (§12-21 과 같은 잣대) — 재려던 성질은 **「새로 그런 워크플로가 생기는가」**이고,
+ *   새것이 들어오면 **여전히 빨개진다**(사보타주로 확인).
+ *   ★ 예외는 **사장님 판단을 기다리는 동안**만 유효하다. `yeoui893-nas.yml` 은
+ *     브이월드 502(러너 해외 IP)를 우회하려고 만들어졌고, 그것을 내리면
+ *     **되던 수집이 없어진다** — 그러니 제가 혼자 고르지 않는다 (§4.9 · §10).
+ *     정해지면 이 목록에서 빼거나 규칙을 고친다.
+ */
+const NAS_CRED_EXEMPT = new Map([
+  // ★ 2026-09-19 · D-223 — **비었다.** `yeoui893-nas.yml` 이 유일한 예외였는데,
+  //   사장님이 「권하는 개선안 대로 진행해」로 ㉡(NAS 가 스스로 부르기)을 고르셔서
+  //   그 워크플로를 내렸다 — `im-agent/tools/yeoui893-nas.sh` 로 옮겼다.
+  //   ★★ **빈 채로 둔다.** 지우면 다음에 또 예외를 만들 때 «사유를 적는 자리»가 없어지고,
+  //     그러면 이름만 슬쩍 더하게 된다. 아래 「죽은 이름」 칸이 빈 목록도 함께 센다.
+]);
+
+test('★★★ 수집 잡에 NAS 접속 자격증명이 없다 (§4 · 규정집 2-8)', () => {
+  const all = NAS_WF();
+  assert.ok(all.length >= 1,
+    'NAS_SSH_HOST 를 가진 워크플로가 0개입니다 — 이 칸은 아무것도 안 잽니다 (표지 이름이 바뀐 것입니다).');
+
+  const deploy = new Set(DEPLOY_WF());
+  const bad = all.filter((f) => !deploy.has(f) && !NAS_CRED_EXEMPT.has(f));
+  assert.deepStrictEqual(bad, [],
+    '배포가 아닌 워크플로에 NAS 접속 자격증명이 있습니다 — 바깥 서버 오류 본문에 섞여 나갈\n'
+    + '  자리가 생깁니다 (§2). 데이터 열쇠만 남기고 접속정보를 빼거나, 배포 잡으로 옮깁니다:\n  '
+    + bad.join(' · '));
+
+  // ★ 예외가 «죽은 이름»으로 남지 않게 센다 — 파일이 없어졌으면 그 줄을 지운다
+  const stale = [...NAS_CRED_EXEMPT.keys()].filter((f) => !all.includes(f));
+  assert.deepStrictEqual(stale, [],
+    `예외 목록에 지금 없는 워크플로가 남아 있습니다 — 그 줄을 지웁니다: ${stale.join(' · ')}`);
 });
 
 /**
@@ -250,9 +364,7 @@ test('★★★ NAS 에 올리는 워크플로가 **정확히 하나**다 (둘�
  *   옮겨 놓고 재지 않으면 다음 사람이 그 줄을 지워도 아무도 모른다.
  */
 test('★★ 배포 길이 `check:reachable` 을 지나간다 (M-08 계열 — 옮겨 온 단계)', () => {
-  const found = fs.readdirSync(WF)
-    .filter((f) => /\.ya?ml$/i.test(f))
-    .filter((f) => fs.readFileSync(path.join(WF, f), 'utf8').includes('NAS_SSH_HOST'));
+  const found = DEPLOY_WF();
   assert.ok(found.length >= 1, '배포 워크플로를 못 찾았습니다 — 이 칸은 아무것도 안 잽니다');
   const hit = found.filter((f) => {
     /* ★ 주석 줄을 떼고 본다 — 이 고침의 경위 주석에 그 명령을 그대로 적었고,
@@ -285,9 +397,7 @@ test('★★ 배포 길이 `check:reachable` 을 지나간다 (M-08 계열 — �
  *   되돌려도 주석 때문에 초록이 된다 (§8 그 함정이 거꾸로 온 경우).
  */
 const deployWf = () => {
-  const found = fs.readdirSync(WF)
-    .filter((f) => /\.ya?ml$/i.test(f))
-    .filter((f) => fs.readFileSync(path.join(WF, f), 'utf8').includes('NAS_SSH_HOST'));
+  const found = DEPLOY_WF();
   assert.strictEqual(found.length, 1,
     `배포 워크플로가 ${found.length}개입니다 — 이 칸이 무엇을 재는지 알 수 없습니다`);
   return read(path.join(WF, found[0]))

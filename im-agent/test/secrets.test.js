@@ -91,12 +91,39 @@ test('★ 「지금은 쓰이지 않는 것」이 정말로 안 쓰인다', () =
 
 /**
  * ★ CI 가 오프라인으로 돈다는 것이 ② 판단의 근거다. 이게 바뀌면 ② 도 바뀐다.
+ *
+ * ★★★ **주석 줄을 떼고 본다** 〈2026-09-19 · D-223 · 그 자리에서 빨개졌다〉.
+ *   그 워크플로에 「왜 경로 거르개를 지웠나」를 적으면서 **검사 파일 이름을 그대로**
+ *   적었더니, 그 글자가 **「CI 가 secret 을 쓰기 시작했다」**로 읽혀 빨개졌다 —
+ *   코드는 멀쩡했다. §8 의 「경위를 잘 적어 둘수록 검사가 눈이 먼다」 그대로다.
+ *   ★ 재려던 성질(「CI 가 실제로 secret 을 «쓰는가»」)은 그대로 두고 **보는 자리를
+ *     옮겼다** — YAML 주석(`#` 뒤)을 떼고 본다 (§6-2-5 의 잣대 · §8 의 정본 규칙).
+ *   ★★ **주석을 안 떼는 쪽으로 「이름만 말로 바꿔」 넘기지 않는다.** 그러면 다음에
+ *     비슷한 글을 적는 날 또 샌다 — 그때는 원인이 더 안 보인다.
  */
+/** YAML 한 줄에서 주석을 뗀다 — 따옴표 안의 `#` 은 주석이 아니다 */
+function yamlNoComment(text) {
+  return text.split('\n').map((line) => {
+    let q = null, cut = -1;
+    for (let i = 0; i < line.length; i += 1) {
+      const c = line[i];
+      if (q) { if (c === q) q = null; continue; }
+      if (c === '"' || c === "'") { q = c; continue; }
+      // ★ 값 한가운데의 `#`(예: 색 코드)은 앞에 빈칸이 있어야 주석이다 — YAML 규칙 그대로
+      if (c === '#' && (i === 0 || /\s/.test(line[i - 1]))) { cut = i; break; }
+    }
+    return cut < 0 ? line : line.slice(0, cut);
+  }).join('\n');
+}
+
 test('★ CI 는 오프라인으로 돈다 (이것이 ② 판단의 근거다)', () => {
-  const ci = fs.readFileSync(path.join(WF_DIR, 'im-agent-ci.yml'), 'utf8');
+  const raw = fs.readFileSync(path.join(WF_DIR, 'im-agent-ci.yml'), 'utf8');
+  const ci = yamlNoComment(raw);
   assert.match(ci, /IM_AGENT_OFFLINE:\s*'?1'?/,
     'CI 가 오프라인이 아니면 공공데이터 키가 필요해진다 — D-12 ② 를 다시 봐야 한다');
   assert.ok(!/secrets\./.test(ci), 'CI 가 secret 을 쓰기 시작했다 — D-12 를 갱신해야 한다');
+  // ★ 「주석을 뗐더니 아무것도 안 남았다」를 통과로 적지 않는다 (§8 — 못 잰 것은 통과가 아니다)
+  assert.ok(/jobs:/.test(ci), '주석을 떼고 나니 본문이 안 남았다 — 이 칸은 아무것도 안 잽니다');
 });
 
 /**

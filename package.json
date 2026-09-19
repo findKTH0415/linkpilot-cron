@@ -68,7 +68,8 @@
     "im:pdf": "node im-agent/tools/pdf.js",
     "probe:load": "node im-agent/tools/probe-load.js",
     "calendar:fetch": "node im-agent/tools/calendar-fetch.js",
-    "calendar:nas": "bash im-agent/tools/calendar-nas.sh"
+    "calendar:nas": "bash im-agent/tools/calendar-nas.sh",
+    "yeoui893:nas": "bash im-agent/tools/yeoui893-nas.sh"
   },
   "dependencies": {
     "solapi": "^5.5.1"
