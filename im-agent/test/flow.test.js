@@ -900,3 +900,108 @@ test('★★ 화면이 완료·진행율을 실제로 그린다 (규칙은 flow-
   assert.ok(!/:\s*(false|0)\b/.test(init[1]),
     `잰 적 없는 값을 false/0 으로 시작했다 — 「못 쟀다」가 「안 했다」로 보인다: ${init[1]}`);
 });
+
+/* ═════════ 2~6번은 1번을 끝낸 뒤에 보인다 〈2026-09-19 사장님 지시〉 ═════════ */
+
+/**
+ * 사장님 지시 그대로 — 「**2~6번은 1번완료후 노출되도록 만들어줘**」.
+ *
+ * ★ **「잠김」과 「안 보임」은 다른 일이다.** 잠김은 «여기 있지만 아직»이고,
+ *   안 보임은 «지금 할 일이 아니다»다. 그래서 `locked` 와 따로 잰다.
+ * ★★★ **「못 물었다」를 「안 됐다」로 접지 않는다** (§12-12 · §12-28).
+ *   `issuerSet` 이 `null` 이면 **안 숨긴다** — 서버가 느린 날 1번만 남으면
+ *   그것이 「여기서 끝인가」로 읽히고, 고장과 구별되지 않는다.
+ */
+test('★★★ 1번을 끝내기 전에는 2~6번을 안 보인다 — 다만 못 물었으면 안 숨긴다', () => {
+  const at = { api: '/x', projectId: 'LP-1' };
+
+  const off = F.sectionState(Object.assign({ issuerSet: false }, at));
+  /* ★ 개수를 손으로 적지 않는다 — 절이 늘면 그 수도 따라와야 한다 (§8-1) */
+  assert.strictEqual(off.length, F.SECTIONS.length);
+  assert.strictEqual(off[0].hidden, false, '1번을 숨겼다 — 할 일이 하나도 안 남는다');
+  assert.strictEqual(off.filter(s => s.hidden).length, F.SECTIONS.length - 1,
+    '1번을 빼고 전부 숨기지 않았다');
+
+  /* ★★ **못 물었을 때는 다 보인다.** null 과 undefined 둘 다 「못 물었다」다 */
+  [null, undefined].forEach((v) => {
+    const unknown = F.sectionState(Object.assign({ issuerSet: v }, at));
+    assert.strictEqual(unknown.filter(s => s.hidden).length, 0,
+      `issuerSet=${v} 는 「못 물었다」인데 숨겼다 — 「안 됐다」와 섞었다`);
+  });
+
+  /* ★ 끝냈으면 전부 보인다 */
+  const on = F.sectionState(Object.assign({ issuerSet: true }, at));
+  assert.strictEqual(on.filter(s => s.hidden).length, 0, '1번을 끝냈는데 아직 숨긴다');
+
+  /* ★★ 숨기는 것과 잠그는 것이 서로를 덮지 않는다 — 숨김은 1번 완료 여부만 본다 */
+  assert.ok(off.every(s => typeof s.locked === 'boolean'), 'locked 가 사라졌다');
+});
+
+/**
+ * ★★★ **나르는 자리가 빠지면 그 장치는 안 도는 것과 같다** (§12-19 · §12-37).
+ *   `flow-core` 가 갈라 주어도 화면의 `ctx()` 가 그 값을 안 실으면
+ *   `issuerSet` 이 늘 `undefined` 라 **아무것도 안 숨긴다** — 오류는 한 줄도 안 난다.
+ *   그래서 「`issuerSet` 이라는 낱말이 있는가」가 아니라 **떼어 내 돌려서** 잰다.
+ */
+test('★★★ 화면의 ctx() 가 issuerSet 을 실제로 나른다 (돌려서 잰다)', () => {
+  const html = fs.readFileSync(path.join(PLATFORM, 'report-flow.html'), 'utf8');
+
+  const at = html.indexOf('function ctx()');
+  assert.ok(at > 0, 'ctx() 를 못 찾았다 — 이 칸은 아무것도 안 잰다');
+  let i = html.indexOf('{', at), depth = 0, end = -1;
+  for (let k = i; k < html.length; k++) {
+    if (html[k] === '{') depth++;
+    else if (html[k] === '}') { depth--; if (!depth) { end = k + 1; break; } }
+  }
+  assert.ok(end > 0, 'ctx() 의 끝을 못 찾았다 — 이 칸은 아무것도 안 잰다');
+
+  const run = new Function('C', 'state', 'facts',
+    html.slice(at, end) + '\nreturn ctx();');
+  const got = run({ api: '/api', base: '' },
+    { projectId: 'LP-1', current: 'basics' },
+    { issuerSet: false });
+
+  assert.strictEqual(got.issuerSet, false, 'ctx() 가 issuerSet 을 안 나른다');
+
+  /* ★ 그리고 그 값이 실제로 숨김을 만드는지 **이어서** 본다 —
+     나르기만 하고 `flow-core` 가 안 읽으면 그것도 안 도는 것이다 */
+  assert.strictEqual(F.sectionState(got).filter(s => s.hidden).length,
+    F.SECTIONS.length - 1, '나른 값으로 실제 숨김이 안 생긴다');
+});
+
+/**
+ * ★ 그리는 고리가 숨긴 칸을 **안 그리고**, 몇 칸이 · 무엇을 하면 열리는지 적는가
+ *   (§5 의 넷 중 ④ — 「그러면 어떻게 되는지」).
+ * ★★ **주석을 떼고 본다** — 이 고침의 경위를 바로 위 주석에 적어 두었고,
+ *   안 떼면 그 글자가 코드로 읽혀 **지워도 안 빨개진다** (§8 · D-223 과 같은 결).
+ */
+test('★★ 숨긴 칸을 안 그리고, 몇 칸이 더 있는지 적는다', () => {
+  const src = fs.readFileSync(path.join(PLATFORM, 'report-flow.html'), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|[^:])\/\/.*$/gm, '$1');
+
+  /* ★ `sectionState` 를 부르는 자리는 하나가 아니다 — [완료] 줄은 **다음 칸 이름**을
+     대려고 통째를 받는다(그 자리는 숨기면 안 된다). 그리는 고리만 골라 잰다:
+     절을 화면에 붙이는(`view.appendChild(section(`) 고리가 그것이다. */
+  const hits = [...src.matchAll(/var (\w+) = F\.sectionState\(ctx\(\)\)/g)];
+  assert.ok(hits.length, 'sectionState 를 부르는 자리가 없다 — 이 칸은 아무것도 안 잰다');
+  const draw = hits.filter((h) => {
+    const seg = src.slice(h.index, h.index + 3000);
+    return /view\.appendChild\(section\(/.test(seg);
+  });
+  assert.strictEqual(draw.length, 1,
+    `절을 그리는 고리를 하나로 못 집었다 (${draw.length}개) — 이 칸은 아무것도 안 잰다`);
+  const v = draw[0][1];
+  const seg = src.slice(draw[0].index, draw[0].index + 3000);
+
+  assert.ok(!new RegExp('\\b' + v + '\\.forEach\\(').test(seg),
+    '숨김을 거르지 않고 통째로 그린다');
+  assert.ok(new RegExp(v + '\\.filter\\([\\s\\S]{0,80}?!\\w+\\.hidden[\\s\\S]{0,60}?\\.forEach\\(')
+    .test(seg), '그리기 전에 숨긴 칸을 거르지 않는다');
+
+  assert.match(src, /data-lp-flow-hidden/, '몇 칸이 숨었는지 화면에 안 남긴다');
+  /* ★ 숨긴 것이 없으면 그 줄도 안 뜬다 — 없는 걱정을 만들지 않는다 */
+  assert.match(src, /if \(\w+\.length\) \{[\s\S]{0,400}?data-lp-flow-hidden/,
+    '숨긴 칸이 0개여도 안내가 뜬다 — 없는 것을 그린다');
+  assert.match(src, /칸이 더 있습니다/, '무엇이 더 있는지 사람 말로 안 적는다');
+});
