@@ -1,0 +1,29 @@
+{
+ "kakao": {
+  "key": "KAKAO_MOBILITY_REST_API",
+  "rows": [
+   {
+    "label": "apis-navi /v1/directions",
+    "ok": true,
+    "status": 200,
+    "ms": 1315,
+    "head": "{\"trans_id\":\"01a0b81e8b557e31ad8b66066a226c32\",\"routes\":[{\"result_code\":0,\"result_msg\":\"길찾기 성공\",\"summary\":{\"origin\":{\"name\":\"\",\"x\":126.97839806210874,\"y\":37.566599979513605},\"destination\":{\"name\":\"\",\"x\":127.02759129515296,\"y\":37.49789587828953},\"waypoints\":[],\"priority\":\"RECOMMEND\",\"bound\":{\"min_x\":",
+    "server": null,
+    "gotValue": false
+   },
+   {
+    "label": "apis-navi /v1/future/directions",
+    "ok": true,
+    "status": 200,
+    "ms": 840,
+    "head": "{\"trans_id\":\"01a0b81e8eb97d118ffd0cee80d5bf36\",\"routes\":[{\"result_code\":0,\"result_msg\":\"길찾기 성공\",\"summary\":{\"origin\":{\"name\":\"\",\"x\":126.97839806210874,\"y\":37.566599979513605},\"destination\":{\"name\":\"\",\"x\":127.02759129515296,\"y\":37.49789587828953},\"waypoints\":[],\"priority\":\"RECOMMEND\",\"bound\":{\"min_x\":",
+    "server": null,
+    "gotValue": false
+   }
+  ]
+ },
+ "odsay": {
+  "key": null,
+  "rows": []
+ }
+}
