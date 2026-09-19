@@ -48,7 +48,7 @@ const KEYS = [
   /* ★ 길찾기 소요시간 — 아직 «미측정»이다 〈2026-09-15 사장님 승인: 「둘 다」〉.
      자동차와 대중교통은 출처가 다르다. 규격은 열쇠를 받은 뒤 진단으로 본다 — 여기
      추측으로 적지 않는다. 이름을 둘씩 읽는 이유는 ECOS·LAW 에서 두 번 당해서다. */
-  ['KAKAO_MOBILITY_KEY|KAKAOMOBILITY_KEY', '카카오모빌리티', '자동차 길찾기 소요시간 (이름 둘 다 읽는다)'],
+  ['KAKAO_MOBILITY_KEY|KAKAOMOBILITY_KEY|KAKAO_MOBILITY_REST_API', '카카오모빌리티', '자동차 길찾기 소요시간 (이름 셋 다 읽는다)'],
   ['ODSAY_API_KEY|ODSAY_KEY', 'ODsay', '대중교통 소요시간 (이름 둘 다 읽는다)'],
 ];
 

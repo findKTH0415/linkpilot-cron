@@ -169,7 +169,9 @@ const SECRET_ENV = [
   //   **열쇠가 들어오기 «전»에 여기 먼저 넣는다** — 넣으신 날 바로 가려지게 하려는 것이다.
   //   여기 없으면 그 값이 로그·오류 본문에 평문으로 남는다 (CLAUDE.md §2).
   //   ★ 이름을 둘씩 읽는다 — 갈리면 아무 오류도 안 나고 조용히 죽는다 (ECOS·LAW 에서 두 번 당했다)
-  'KAKAO_MOBILITY_KEY', 'KAKAOMOBILITY_KEY',
+  //   ★★★ **세 번째 철자가 «실제로» 들어왔다** 〈2026-09-19 사장님: 「KAKAO_MOBILITY_REST_API 넣었어」〉.
+  //     다시 넣으시라고 하지 않는다 — **읽는 이름을 늘린다**. 그것이 ECOS·LAW 에서 정한 답이다.
+  'KAKAO_MOBILITY_KEY', 'KAKAOMOBILITY_KEY', 'KAKAO_MOBILITY_REST_API',
   'ODSAY_API_KEY', 'ODSAY_KEY',
   'GEMINI_API_KEY',
   // ★★ 여섯 슬롯 (D-110 · 지시서 §3). `GEMINI_API_KEY` 를 지우지 않는다 —
