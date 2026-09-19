@@ -51,5 +51,20 @@ for (const sid of ['cd91', 'ktb3']) {
 }
 await writeFile(`${OUT}/ecos.json`, JSON.stringify(rates, null, 1));
 P(''); P(`판정 ${got}/${tried}`);
+
+// ★★★ 판정을 **요약 맨 앞**으로 올린다 〈2026-09-19 · D-225 · §12-24 · §6-3 ①〉.
+//   맨 끝에 적으면 아무도 안 본다 — 브이월드에서 실제로 그랬다.
+//   ★ 되돌아오는 값(0·1·2)은 앞 판 그대로다. 바뀐 것은 **어디에 적는가**와
+//     **워크플로가 그것을 버리지 않는가**(그쪽의 continue-on-error)다.
+const verdict = got === tried
+  ? `판정 0 — ${tried} 가지를 **전부** 받았다`
+  : got
+    ? `판정 1 — ${tried} 가지 중 **${got} 개만** 받았다. 아래에서 어느 것이 실패했는지 본다`
+    : `판정 2 — **한 가지도 못 받았다** (${tried} 가지). 열쇠(LAW_OC · ECOS_API_KEY)·`
+      + '활용 승인·그쪽 서버 중 하나다 — 아래 사유를 본다';
+log.unshift(`> ${verdict}`, '');
+
 await writeFile(`${OUT}/_sources.md`, log.join('\n'));
+// ★ 사람이 읽는 판정은 stderr 로도 낸다 — 요약이 stdout 만 받아 가는 자리가 있다 (§12-19)
+if (got !== tried) console.error(verdict.replace(/\*\*/g, ''));
 process.exit(got === tried ? 0 : (got ? 1 : 2));
