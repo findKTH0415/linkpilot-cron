@@ -92,3 +92,94 @@ test('scripts/ 의 모든 스크립트가 파싱된다 (누르시는 순간에�
     + '  그 화면에는 SyntaxError 한 줄뿐이라 어느 파일인지도 안 보입니다.\n  '
     + broken.join('\n  '));
 });
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * ★★★ **부르는 것이 실제로 있는가** 〈2026-09-19 · D-225 · 권장 ②〉
+ *
+ *   위 칸은 **파싱**까지다. 그런데 파싱이 맞아도 **없는 커넥터를 부르면**
+ *   그 스크립트는 **부르는 순간** `Cannot find module` 로 죽는다 —
+ *   그리고 그것도 **누르시는 날에야** 드러난다 (§12-20 의 그 결).
+ *
+ * ★★★ **재는 법이 한 번 틀렸다** 〈실측 · 그대로 적을 뻔했다〉.
+ *   처음에 `from '…'` 만 셌더니 **0 곳**이 나왔다 — 「잴 것이 없다」로 접을 뻔했다.
+ *   이 스크립트들은 `createRequire` 로 **`require('../im-agent/…')`** 를 쓴다.
+ *   ★ 잣대는 그대로다 — **「그 숫자를 재는 법이 재려는 것을 다 덮는가」**
+ *     (§6-2-6 의 46 → 105 · §14 의 「더 세는 쪽으로도 틀린다」와 같은 규칙).
+ *
+ * ★ **바깥 꾸러미(`node:fs` · npm)는 안 센다** — 여기서 못 재므로 재는 척하지 않는다 (§8).
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+/** 주석을 뗀다 — 경위 주석에 적은 «없는 경로»가 걸리면 고침이 옳은데 빨개진다 (§8) */
+function jsNoComment(text) {
+  return String(text)
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^[ \t]*\/\/.*$/gm, '');
+}
+
+/** 그 지정자가 가리키는 파일이 실제로 있는가 (확장자 없이 적는 CommonJS 꼴도 본다) */
+function resolves(fromFile, spec) {
+  const base = path.resolve(path.dirname(fromFile), spec);
+  const cands = [base, `${base}.js`, `${base}.mjs`, `${base}.cjs`, path.join(base, 'index.js')];
+  return cands.some((c) => fs.existsSync(c) && fs.statSync(c).isFile());
+}
+
+const LOCAL_SPEC = [
+  /\bfrom\s+['"](\.[^'"]+)['"]/g,          // import x from './y'
+  /\brequire\(\s*['"](\.[^'"]+)['"]\s*\)/g, // require('./y')
+  /\bimport\(\s*['"](\.[^'"]+)['"]\s*\)/g,  // await import('./y')
+];
+
+test('★ 부르는 것을 세는 잣대가 도는지 먼저 잰다 (require 를 빠뜨리면 14 곳이 0 으로 세진다)', () => {
+  const sample = [
+    "import { createRequire } from 'node:module';",
+    "const require = createRequire(import.meta.url);",
+    "const a = require('../im-agent/core/env');",
+    "import b from './b.js';",
+    "const c = await import('./c.js');",
+    "import fs from 'node:fs';           // 바깥 꾸러미 — 안 센다",
+  ].join('\n');
+
+  const found = [];
+  for (const re of LOCAL_SPEC) for (const m of jsNoComment(sample).matchAll(re)) found.push(m[1]);
+
+  assert.deepStrictEqual(found.sort(), ['../im-agent/core/env', './b.js', './c.js'],
+    '세 갈래(from · require · 동적 import)를 다 못 셉니다 — 하나라도 빠지면 '
+    + '실측이 조용히 줄고 그것이 「없다」로 읽힙니다');
+
+  /* ★ 주석 안의 것은 안 세야 한다 — 이 파일의 경위 주석이 곧 그 표본이다 */
+  const commented = jsNoComment("// const x = require('./없는것-ZZZ');\n/* import y from './또없는것-ZZZ.js'; */\n");
+  for (const re of LOCAL_SPEC) {
+    assert.strictEqual([...commented.matchAll(re)].length, 0,
+      '주석 안의 경로를 셉니다 — 경위를 적는 날 고침이 옳은데 빨개집니다 (§8)');
+  }
+});
+
+test('scripts/ 가 부르는 저장소 안의 파일이 실제로 있다 (부르는 순간 죽지 않게)', () => {
+  const files = fs.readdirSync(SCRIPTS).filter((f) => /\.(mjs|cjs|js)$/.test(f)).sort();
+  assert.ok(files.length > 0, 'scripts/ 에서 스크립트를 한 개도 못 찾았습니다');
+
+  const missing = [];
+  let calls = 0;
+  for (const f of files) {
+    const body = jsNoComment(fs.readFileSync(path.join(SCRIPTS, f), 'utf8'));
+    for (const re of LOCAL_SPEC) {
+      for (const m of body.matchAll(re)) {
+        calls += 1;
+        if (!resolves(path.join(SCRIPTS, f), m[1])) missing.push(`scripts/${f} → ${m[1]}`);
+      }
+    }
+  }
+
+  /* ★★★ 「찾은 것이 0 곳」과 「전부 멀쩡」을 갈라 적는다 (§8 · §12-12).
+     여기서 0 은 정상이 아니다 — 이 스크립트들은 엔진 커넥터를 부르는 것이 일이다.
+     0 이면 잣대가 무뎌진 것이므로 빨갛게 끝낸다. */
+  assert.ok(calls > 0,
+    'scripts/ 가 저장소 안의 파일을 부르는 자리를 0 곳으로 셌습니다 — '
+    + '이 칸이 눈이 멀었습니다 (실제로 `require` 를 빠뜨려 그렇게 됐던 적이 있습니다)');
+
+  assert.deepStrictEqual(missing, [],
+    `부르는 자리 ${calls} 곳 중 ${missing.length} 곳이 «없는 파일»을 가리킵니다.\n`
+    + '  파싱은 통과하므로 위 칸에는 안 걸리고, 그 스크립트를 부르시는 순간\n'
+    + '  `Cannot find module` 로 죽습니다.\n  '
+    + missing.join('\n  '));
+});

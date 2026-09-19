@@ -15,13 +15,17 @@ jobs:
         with:
           node-version: '20'
 
+      # ★ continue-on-error 는 **남긴다** — 한 단계가 죽어도 다음 단계는 돌아야 한다.
+      #   대신 맨 끝에서 판정한다(아래). 걷어내면 지가지수가 막힌 날 법령·금리를 아예 안 받는다.
       - name: 한국부동산원 지가지수 (전주시)
+        id: jeonju
         continue-on-error: true
         env:
           REB_API_KEY: ${{ secrets.REB_API_KEY }}
         run: node scripts/market-jeonju.mjs
 
       - name: 국가법령정보 · 한국은행
+        id: sources
         continue-on-error: true
         env:
           LAW_OC: ${{ secrets.LAW_OC }}
@@ -49,3 +53,46 @@ jobs:
             data/yeoui893/_sources.md
             data/yeoui893/law.json
             data/yeoui893/ecos.json
+
+      # ──────────────────────────────────────────────────────────────────────
+      # ★★★ **판정** 〈2026-09-19 · D-225 · CLAUDE.md §12-24 와 같은 잣대〉
+      #
+      #   앞 판은 두 단계가 `continue-on-error` 이고 **판정이 없어**, 조회가
+      #   전부 실패해도 **초록으로 끝났다.** 초록이라 아무도 요약을 안 열어 보고,
+      #   정작 하려던 수집은 한 번도 안 된 채로 남는다 — 브이월드에서 실제로 그랬다.
+      #
+      #   ★ **맨 마지막에 둔다.** 결과 커밋과 아티팩트를 먼저 남긴 뒤에 빨갛게 끝내야
+      #     **빨간 실행에서도 받을 것이 남는다** (§12-24 의 그 규칙).
+      #   ★★ **갈래를 갈라 적는다** — 값마다 사장님이 하실 일이 다르다.
+      #     스크립트가 내는 값을 그대로 나른다: 0 전부 · 1 일부 · 2 하나도 못 받음.
+      #   ★★★ **스스로 처방을 안 적는다** — 무엇이 막았는지는 요약이 말한다.
+      #     여기서는 **어느 단계가 어느 값이었는지**만 적는다 (§12-19 의 그 자리).
+      # ──────────────────────────────────────────────────────────────────────
+      - name: 판정 (초록이 「값이 왔다」를 뜻하게)
+        if: always()
+        env:
+          J: ${{ steps.jeonju.outcome }}
+          S: ${{ steps.sources.outcome }}
+        run: |
+          say() { echo "$1"; echo "$1" >> "$GITHUB_STEP_SUMMARY"; }
+          say "## 수집 판정"
+          say ""
+          bad=0
+          for pair in "지가지수(전주):$J" "법령·한국은행:$S"; do
+            name="${pair%%:*}"; out="${pair##*:}"
+            case "$out" in
+              success)  say "- ✅ $name — 받았다" ;;
+              failure)  say "- ❌ $name — **못 받았거나 일부만** 받았다. 결과 요약 맨 앞의 «판정» 줄을 본다"; bad=$((bad+1)) ;;
+              skipped)  say "- ◦ $name — 안 돌았다 (앞 단계가 막았다)"; bad=$((bad+1)) ;;
+              *)        say "- ? $name — **못 쟀다** (되돌아온 값: '${out:-없음}')"; bad=$((bad+1)) ;;
+            esac
+          done
+          say ""
+          if [ "$bad" = "0" ]; then
+            say "판정: **전부 받았다.**"
+          else
+            say "판정: **$bad 갈래가 안 찼다.** 결과 파일과 아티팩트는 위에 남아 있다 —"
+            say "무엇이 막았는지는 \`data/yeoui893/_sources.md\` · \`data/market/_jeonju.md\` 의"
+            say "**맨 앞 «판정» 줄**이 적는다. 이 실행 요약 첫 화면에서 바로 보인다."
+            exit 1
+          fi

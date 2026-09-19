@@ -181,5 +181,29 @@ if (result.notes.length) {
   for (const n of result.notes) P(`- ${n}`);
 }
 
+// ── 판정 ────────────────────────────────────────────────────
+// ★★★ 왜 두는가 〈2026-09-19 · D-225 · §12-24 와 같은 잣대〉.
+//   앞 판은 **무엇이 막았든 늘 0 으로 끝났다.** 그래서 워크플로가 초록이고,
+//   초록이라 아무도 요약을 안 열어 본다 — 「0/5 인데 초록」과 같은 모양이다.
+//   ★ 이 스크립트가 내려는 값은 둘이다: **시점수정 계수**와 **변동률 추이**.
+//     그 둘로만 센다 — 「호출이 몇 번 됐나」가 아니라 **「보고서에 실을 것이 왔나」**다.
+//   ★★ 판정은 **요약 맨 앞**에 넣는다. 맨 끝에 적으면 아무도 못 본다 (§6-3 ①).
+//   ★★★ 그리고 **결과 파일을 먼저 남긴 뒤에** 빨갛게 끝낸다 — 그래야 빨간 실행에서도
+//     받을 것이 남는다 (§12-24 의 그 규칙).
+const gotAdjust = result.adjust != null;
+const gotChange = result.change != null;
+const code = (gotAdjust && gotChange) ? 0 : ((gotAdjust || gotChange) ? 1 : 2);
+const verdict = code === 0
+  ? '판정 0 — 시점수정 계수와 변동률 추이를 **둘 다** 받았다'
+  : code === 1
+    ? `판정 1 — **하나만** 받았다 (시점수정 ${gotAdjust ? '받음' : '못 받음'} · `
+      + `변동률 ${gotChange ? '받음' : '못 받음'}). 아래 「채우지 못한 것」을 본다`
+    : '판정 2 — **둘 다 못 받았다.** 아래 「채우지 못한 것」이 사유다 — '
+      + '열쇠(REB_API_KEY)·활용신청·그쪽 서버 중 하나다';
+log.unshift(`> ${verdict}`, '');
+
 await save();
 console.log(`완료 — ${OUT}/_jeonju.md`);
+// ★ 사람이 읽는 판정은 stderr 로도 낸다 — 요약이 stdout 만 받아 가는 자리가 있다 (§12-19)
+if (code !== 0) console.error(verdict.replace(/\*\*/g, ''));
+process.exit(code);
