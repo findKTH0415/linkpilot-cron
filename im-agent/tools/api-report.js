@@ -29,6 +29,19 @@
 const fs = require('fs');
 const path = require('path');
 
+/* ★★★ **이름 목록을 두 벌로 적지 않는다** 〈2026-09-20 · 실측 · D-247〉.
+   [무엇이 났나] 이 표가 브이월드 이름을 `VWORLD_KEY|…REPORT_KEY|…WEB_KEY` 로 **손으로**
+   적어 두었는데, 엔진(`connectors/vworldkey.js`)의 차례는 `VWORLD_KEY|…WEB_KEY|…REPORT_KEY`
+   다 — D-221 에서 **콘솔 실측으로 WEB 을 앞으로 옮긴 그 차례**다. 그래서 요약이
+   **「✅ LINKPILOT_VWORLD_REPORT_KEY」**라고 적었는데 **엔진이 실제로 쓰는 것은 WEB** 이었다.
+   ★ 브이월드가 막히는 날 그 줄이 **엉뚱한 열쇠를 가리킨다** — 사장님이 REPORT 콘솔을
+     보러 가시고 거기에는 고칠 것이 없다 (§4.6 · M-86 과 **같은 결**).
+   ★★ 고침은 **엔진이 읽는 목록을 그대로 읽는 것**이다 (§8-1 — 두 벌이면 한쪽이 옛말을 한다).
+     `api-guide.test.js` 가 세 자리(지침서·커넥터·SECRET_ENV)를 이미 대 보는데, 이 표는
+     **그 셋 중 어디에도 없어** 아무도 안 세고 있었다. */
+const { KEY_NAMES: VWORLD_NAMES } = require('../connectors/vworldkey');
+const { KEY_NAMES: DATA_NAMES } = require('../connectors/datakey');
+
 /** 지침서 §1 표 — 이름과 발급처. 값은 절대 담지 않는다 */
 const KEYS = [
   ['DART_API_KEY', '금융감독원 전자공시', '기업 개황·재무제표·감사보고서'],
@@ -37,15 +50,15 @@ const KEYS = [
   ['ECOS_API_KEY|ECOS_BOK_KEY', '한국은행', '금리·환율·통화 (이름 둘 다 읽는다)'],
   ['KEPCO_BIGDATA_KEY', '한국전력', '전력 사용량'],
   ['KMA_APIHUB_KEY', '기상청', '일사·일조 (태양광)'],
-  ['DATA_GO_KR_KEY|APIS_DATA|SPECIAL_DAY_INFO', '공공데이터포털',
-    '실거래가·건축물대장·인허가·특일정보 (이름 셋 다 읽는다 — connectors/datakey.js)'],
+  [DATA_NAMES.join('|'), '공공데이터포털',
+    '실거래가·건축물대장·인허가·특일정보 (이름을 다 읽는다 — connectors/datakey.js 의 차례 그대로)'],
   /* ★ `WEATHER_GO` 는 **어느 기관인지 아직 안 쟀다** 〈2026-09-13 사장님이 넣으셨다〉.
      규격을 모르므로 부르지 않고 «들어 있는가»만 적는다 — 추측으로 배선하면
      그것이 곧 거짓이 된다 (§4.3). 진단이 그 사실을 그대로 말한다. */
   ['WEATHER_GO', '(미측정)', '날씨 — 어느 기관인지 아직 안 쟀다. 들어 있는지만 본다'],
   ['LAW_OC|LAW_OPEN_DATA', '국가법령정보센터', '법령·조례 (이름 둘 다 읽는다)'],
-  ['VWORLD_KEY|LINKPILOT_VWORLD_REPORT_KEY|LINKPILOT_VWORLD_WEB_KEY', '브이월드',
-    '지오코딩·지적·토지특성 (이름 셋 다 읽는다 — connectors/vworldkey.js)'],
+  [VWORLD_NAMES.join('|'), '브이월드',
+    '지오코딩·지적·토지특성 (이름을 다 읽는다 — connectors/vworldkey.js 의 차례 그대로)'],
   ['VWORLD_DOMAIN', '브이월드', '서비스URL — 키와 **짝**이라 둘 다 있어야 한다'],
   ['KRX_API_KEY', '한국거래소', '상장 시세 — 서비스 승인이 따로 필요'],
   ['PEXELS_API_KEY', 'Pexels', '무료 이미지'],
