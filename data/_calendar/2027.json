@@ -1,0 +1,1091 @@
+{
+ "year": 2027,
+ "fetchedAt": "2026-09-20T08:54:37.660Z",
+ "items": [
+  {
+   "date": "2027-1-1",
+   "name": "1월1일",
+   "kind": "holiday",
+   "label": "공휴일",
+   "isHoliday": true
+  },
+  {
+   "date": "2027-1-20",
+   "name": "대한",
+   "kind": "term",
+   "label": "24절기",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-1-5",
+   "name": "소한",
+   "kind": "term",
+   "label": "24절기",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-10-1",
+   "name": "국군의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-10-10",
+   "name": "임산부의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-10-10",
+   "name": "정신건강의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-10-11",
+   "name": "대체공휴일(한글날)",
+   "kind": "holiday",
+   "label": "공휴일",
+   "isHoliday": true
+  },
+  {
+   "date": "2027-10-15",
+   "name": "스포츠의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-10-16",
+   "name": "문화의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-10-16",
+   "name": "부마민주항쟁 기념일",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-10-2",
+   "name": "노인의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-10-21",
+   "name": "경찰의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-10-24",
+   "name": "국제연합일",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-10-24",
+   "name": "상강",
+   "kind": "term",
+   "label": "24절기",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-10-26",
+   "name": "금융의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-10-28",
+   "name": "교정의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-10-3",
+   "name": "개천절",
+   "kind": "holiday",
+   "label": "공휴일",
+   "isHoliday": true
+  },
+  {
+   "date": "2027-10-4",
+   "name": "대체공휴일(개천절)",
+   "kind": "holiday",
+   "label": "공휴일",
+   "isHoliday": true
+  },
+  {
+   "date": "2027-10-4",
+   "name": "동물보호의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-10-5",
+   "name": "세계 한인의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-10-8",
+   "name": "재향군인의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-10-8",
+   "name": "한로",
+   "kind": "term",
+   "label": "24절기",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-10-9",
+   "name": "한글날",
+   "kind": "holiday",
+   "label": "공휴일",
+   "isHoliday": true
+  },
+  {
+   "date": "2027-10-9",
+   "name": "호스피스의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-11-22",
+   "name": "소설",
+   "kind": "term",
+   "label": "24절기",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-11-8",
+   "name": "입동",
+   "kind": "term",
+   "label": "24절기",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-12-22",
+   "name": "동지",
+   "kind": "term",
+   "label": "24절기",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-12-25",
+   "name": "기독탄신일",
+   "kind": "holiday",
+   "label": "공휴일",
+   "isHoliday": true
+  },
+  {
+   "date": "2027-12-27",
+   "name": "대체공휴일(기독탄신일)",
+   "kind": "holiday",
+   "label": "공휴일",
+   "isHoliday": true
+  },
+  {
+   "date": "2027-12-7",
+   "name": "대설",
+   "kind": "term",
+   "label": "24절기",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-2-19",
+   "name": "우수",
+   "kind": "term",
+   "label": "24절기",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-2-21",
+   "name": "정월대보름",
+   "kind": "sundry",
+   "label": "잡절",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-2-28",
+   "name": "2·28 민주운동 기념일",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-2-4",
+   "name": "입춘",
+   "kind": "term",
+   "label": "24절기",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-2-6",
+   "name": "설날",
+   "kind": "holiday",
+   "label": "공휴일",
+   "isHoliday": true
+  },
+  {
+   "date": "2027-2-7",
+   "name": "설날",
+   "kind": "holiday",
+   "label": "공휴일",
+   "isHoliday": true
+  },
+  {
+   "date": "2027-2-8",
+   "name": "설날",
+   "kind": "holiday",
+   "label": "공휴일",
+   "isHoliday": true
+  },
+  {
+   "date": "2027-2-9",
+   "name": "대체공휴일(설날)",
+   "kind": "holiday",
+   "label": "공휴일",
+   "isHoliday": true
+  },
+  {
+   "date": "2027-3-1",
+   "name": "삼일절",
+   "kind": "holiday",
+   "label": "공휴일",
+   "isHoliday": true
+  },
+  {
+   "date": "2027-3-15",
+   "name": "3·15 의거 기념일",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-3-17",
+   "name": "상공의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-3-19",
+   "name": "의용소방대의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-3-21",
+   "name": "암 예방의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-3-21",
+   "name": "춘분",
+   "kind": "term",
+   "label": "24절기",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-3-26",
+   "name": "서해수호의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-3-3",
+   "name": "국립공원의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-3-3",
+   "name": "납세자의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-3-6",
+   "name": "경칩",
+   "kind": "term",
+   "label": "24절기",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-3-8",
+   "name": "3·8민주의거 기념일",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-3-8",
+   "name": "여성의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-4-10",
+   "name": "임시의정원 개원기념일",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-4-11",
+   "name": "대한민국임시정부 수립기념일",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-4-11",
+   "name": "도시농업의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-4-16",
+   "name": "국민안전의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-4-19",
+   "name": "4·19혁명 기념일",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-4-2",
+   "name": "예비군의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-4-20",
+   "name": "곡우",
+   "kind": "term",
+   "label": "24절기",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-4-20",
+   "name": "장애인의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-4-21",
+   "name": "과학의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-4-22",
+   "name": "정보통신의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-4-23",
+   "name": "순직의무군경의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-4-25",
+   "name": "법의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-4-28",
+   "name": "산업재해근로자의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-4-28",
+   "name": "충무공 이순신 탄신일",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-4-3",
+   "name": "4·3희생자 추념일",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-4-5",
+   "name": "식목일",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-4-5",
+   "name": "청명",
+   "kind": "term",
+   "label": "24절기",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-4-6",
+   "name": "한식",
+   "kind": "sundry",
+   "label": "잡절",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-4-7",
+   "name": "보건의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-5-1",
+   "name": "노동절",
+   "kind": "holiday",
+   "label": "공휴일",
+   "isHoliday": true
+  },
+  {
+   "date": "2027-5-1",
+   "name": "노동절",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-5-10",
+   "name": "양잠인의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-5-10",
+   "name": "유권자의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-5-10",
+   "name": "한부모가족의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-5-11",
+   "name": "동학농민혁명 기념일",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-5-11",
+   "name": "입양의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-5-13",
+   "name": "부처님오신날",
+   "kind": "holiday",
+   "label": "공휴일",
+   "isHoliday": true
+  },
+  {
+   "date": "2027-5-14",
+   "name": "식품안전의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-5-15",
+   "name": "가정의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-5-15",
+   "name": "세종대왕 나신 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-5-15",
+   "name": "스승의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-5-17",
+   "name": "성년의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-5-18",
+   "name": "5·18민주화운동 기념일",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-5-19",
+   "name": "발명의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-5-20",
+   "name": "세계인의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-5-21",
+   "name": "부부의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-5-21",
+   "name": "소만",
+   "kind": "term",
+   "label": "24절기",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-5-25",
+   "name": "실종아동의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-5-27",
+   "name": "우주항공의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-5-29",
+   "name": "의료기기의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-5-29",
+   "name": "해외 파병용사의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-5-3",
+   "name": "대체공휴일(노동절)",
+   "kind": "holiday",
+   "label": "공휴일",
+   "isHoliday": true
+  },
+  {
+   "date": "2027-5-31",
+   "name": "국회 개원기념일",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-5-31",
+   "name": "바다의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-5-5",
+   "name": "어린이 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-5-5",
+   "name": "어린이날",
+   "kind": "holiday",
+   "label": "공휴일",
+   "isHoliday": true
+  },
+  {
+   "date": "2027-5-6",
+   "name": "입하",
+   "kind": "term",
+   "label": "24절기",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-5-8",
+   "name": "어버이 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-6-1",
+   "name": "의병의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-6-10",
+   "name": "6·10만세운동 기념일",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-6-10",
+   "name": "6·10민주항쟁 기념일",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-6-14",
+   "name": "헌혈자의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-6-21",
+   "name": "하지",
+   "kind": "term",
+   "label": "24절기",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-6-21",
+   "name": "해양조사의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-6-24",
+   "name": "전자정부의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-6-25",
+   "name": "6·25전쟁일",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-6-26",
+   "name": "마약퇴치의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-6-28",
+   "name": "6·25전쟁 납북자 기억의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-6-28",
+   "name": "철도의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-6-5",
+   "name": "환경의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-6-6",
+   "name": "망종",
+   "kind": "term",
+   "label": "24절기",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-6-6",
+   "name": "현충일",
+   "kind": "holiday",
+   "label": "공휴일",
+   "isHoliday": true
+  },
+  {
+   "date": "2027-6-6",
+   "name": "현충일",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-6-9",
+   "name": "구강보건의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-6-9",
+   "name": "기록의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-6-9",
+   "name": "단오",
+   "kind": "sundry",
+   "label": "잡절",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-7-1",
+   "name": "사회적기업의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-7-11",
+   "name": "인구의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-7-14",
+   "name": "북한이탈주민의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-7-14",
+   "name": "정보보호의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-7-17",
+   "name": "제헌절",
+   "kind": "holiday",
+   "label": "공휴일",
+   "isHoliday": true
+  },
+  {
+   "date": "2027-7-18",
+   "name": "연안안전의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-7-19",
+   "name": "대체공휴일(제헌절)",
+   "kind": "holiday",
+   "label": "공휴일",
+   "isHoliday": true
+  },
+  {
+   "date": "2027-7-20",
+   "name": "초복",
+   "kind": "sundry",
+   "label": "잡절",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-7-23",
+   "name": "대서",
+   "kind": "term",
+   "label": "24절기",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-7-27",
+   "name": "유엔군 참전의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-7-30",
+   "name": "중복",
+   "kind": "sundry",
+   "label": "잡절",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-7-7",
+   "name": "도농교류의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-7-7",
+   "name": "소서",
+   "kind": "term",
+   "label": "24절기",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-8-14",
+   "name": "일본군위안부 피해자 기림의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-8-15",
+   "name": "광복절",
+   "kind": "holiday",
+   "label": "공휴일",
+   "isHoliday": true
+  },
+  {
+   "date": "2027-8-16",
+   "name": "대체공휴일(광복절)",
+   "kind": "holiday",
+   "label": "공휴일",
+   "isHoliday": true
+  },
+  {
+   "date": "2027-8-23",
+   "name": "처서",
+   "kind": "term",
+   "label": "24절기",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-8-8",
+   "name": "섬의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-8-8",
+   "name": "입추",
+   "kind": "term",
+   "label": "24절기",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-8-8",
+   "name": "칠석",
+   "kind": "sundry",
+   "label": "잡절",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-9-1",
+   "name": "여권통문의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-9-1",
+   "name": "통계의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-9-10",
+   "name": "해양경찰의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-9-13",
+   "name": "이산가족의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-9-14",
+   "name": "추석",
+   "kind": "holiday",
+   "label": "공휴일",
+   "isHoliday": true
+  },
+  {
+   "date": "2027-9-15",
+   "name": "추석",
+   "kind": "holiday",
+   "label": "공휴일",
+   "isHoliday": true
+  },
+  {
+   "date": "2027-9-16",
+   "name": "추석",
+   "kind": "holiday",
+   "label": "공휴일",
+   "isHoliday": true
+  },
+  {
+   "date": "2027-9-18",
+   "name": "청년의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-9-21",
+   "name": "치매극복의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-9-23",
+   "name": "추분",
+   "kind": "term",
+   "label": "24절기",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-9-30",
+   "name": "개인정보 보호의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-9-30",
+   "name": "조달의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-9-7",
+   "name": "곤충의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-9-7",
+   "name": "사회복지의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-9-7",
+   "name": "푸른 하늘의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-9-7",
+   "name": "화장품의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-9-8",
+   "name": "백로",
+   "kind": "term",
+   "label": "24절기",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-9-9",
+   "name": "말복",
+   "kind": "sundry",
+   "label": "잡절",
+   "isHoliday": false
+  },
+  {
+   "date": "2027-9-9",
+   "name": "숙련기술인의 날",
+   "kind": "anniversary",
+   "label": "기념일",
+   "isHoliday": false
+  }
+ ]
+}
