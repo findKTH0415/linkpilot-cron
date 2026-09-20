@@ -128,6 +128,7 @@ SSH 개인키·NAS 접속정보·터널 인증키는 유출 시 **서버 접근�
 |---|---|---|---|:---:|
 | `DATA_GO_KR_KEY` | 공공데이터포털 (범용) | `apis.data.go.kr/{기관코드}/{서비스}` | `serviceKey` (2-4 참조) | ● |
 | `APIS_DATA` | 공공데이터포털 — **`DATA_GO_KR_KEY` 의 다른 이름** 〈2026-09-13 사장님이 이 이름으로 넣으셨다〉 | 위와 동일 | 위와 동일 | ● |
+| `SPECIAL_DAY_INFO` | 공공데이터포털 — **특일정보(`SpcdeInfoService`)용으로 넣으신 이름** 〈2026-09-20〉. 포털 인증키는 계정당 하나이고 승인만 서비스별이라 같은 값일 수 있다 — **추측하지 않고 셋 다 읽는다** | 위와 동일 | 위와 동일 | ● |
 | `DART_API_KEY` | 금감원 전자공시 | `opendart.fss.or.kr/api` | `crtfc_key` | ● |
 | `REB_API_KEY` | 한국부동산원 R-ONE | `reb.or.kr/r-one/openapi` | `KEY` | ● |
 | `KOSIS_API_KEY` | 통계청 KOSIS | `kosis.kr/openapi` | `apiKey` | △ |

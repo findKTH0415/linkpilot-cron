@@ -37,7 +37,12 @@ const KEYS = [
   ['ECOS_API_KEY|ECOS_BOK_KEY', '한국은행', '금리·환율·통화 (이름 둘 다 읽는다)'],
   ['KEPCO_BIGDATA_KEY', '한국전력', '전력 사용량'],
   ['KMA_APIHUB_KEY', '기상청', '일사·일조 (태양광)'],
-  ['DATA_GO_KR_KEY', '공공데이터포털', '실거래가·건축물대장·인허가 등'],
+  ['DATA_GO_KR_KEY|APIS_DATA|SPECIAL_DAY_INFO', '공공데이터포털',
+    '실거래가·건축물대장·인허가·특일정보 (이름 셋 다 읽는다 — connectors/datakey.js)'],
+  /* ★ `WEATHER_GO` 는 **어느 기관인지 아직 안 쟀다** 〈2026-09-13 사장님이 넣으셨다〉.
+     규격을 모르므로 부르지 않고 «들어 있는가»만 적는다 — 추측으로 배선하면
+     그것이 곧 거짓이 된다 (§4.3). 진단이 그 사실을 그대로 말한다. */
+  ['WEATHER_GO', '(미측정)', '날씨 — 어느 기관인지 아직 안 쟀다. 들어 있는지만 본다'],
   ['LAW_OC|LAW_OPEN_DATA', '국가법령정보센터', '법령·조례 (이름 둘 다 읽는다)'],
   ['VWORLD_KEY|LINKPILOT_VWORLD_REPORT_KEY|LINKPILOT_VWORLD_WEB_KEY', '브이월드',
     '지오코딩·지적·토지특성 (이름 셋 다 읽는다 — connectors/vworldkey.js)'],

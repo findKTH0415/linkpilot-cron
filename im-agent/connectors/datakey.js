@@ -34,7 +34,14 @@
  * 받는 이름 — **앞에 있는 것이 이긴다.**
  * `DATA_GO_KR_KEY` 가 먼저인 이유는 지침서·안내 문서가 그 이름으로 적혀 있어서다.
  */
-const KEY_NAMES = ['DATA_GO_KR_KEY', 'APIS_DATA'];
+/* ★ 셋째 이름 〈2026-09-20 사장님: 「SPECIAL_DAY_INFO 키 넣었어」〉.
+     특일정보(`SpcdeInfoService`)를 부르는 `kasi.js` 가 이 창구를 쓴다.
+     포털 인증키는 계정당 하나이고 승인만 서비스별이라(§4.2) 같은 값일 수 있지만
+     **추측하지 않고 둘 다 읽는다** — 이름이 갈리면 아무 오류 없이 조용히 죽는다
+     (`ECOS_API_KEY`/`ECOS_BOK_KEY` · `LAW_OC`/`LAW_OPEN_DATA` 에서 두 번 당했다).
+     ★★ 차례는 «앞엣것이 먼저»다 — 이미 도는 것을 새 이름이 덮지 않는다.
+       어느 이름이 실제로 들어왔는지는 `usedName()` 이 말하고 진단이 그것을 적는다. */
+const KEY_NAMES = ['DATA_GO_KR_KEY', 'APIS_DATA', 'SPECIAL_DAY_INFO'];
 
 /** 실제로 값이 들어 있는 이름. 없으면 null */
 function usedName() {
