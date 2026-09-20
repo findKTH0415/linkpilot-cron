@@ -36,6 +36,9 @@ jobs:
           LINKPILOT_VWORLD_REPORT_KEY: ${{ secrets.LINKPILOT_VWORLD_REPORT_KEY }}
           LINKPILOT_VWORLD_WEB_KEY:    ${{ secrets.LINKPILOT_VWORLD_WEB_KEY }}
           DATA_GO_KR_KEY:    ${{ secrets.DATA_GO_KR_KEY }}
+          APIS_DATA:         ${{ secrets.APIS_DATA }}
+          SPECIAL_DAY_INFO:  ${{ secrets.SPECIAL_DAY_INFO }}
+          WEATHER_GO:        ${{ secrets.WEATHER_GO }}
           DART_API_KEY:      ${{ secrets.DART_API_KEY }}
           REB_API_KEY:       ${{ secrets.REB_API_KEY }}
           KOSIS_API_KEY:     ${{ secrets.KOSIS_API_KEY }}
@@ -68,6 +71,9 @@ jobs:
           LINKPILOT_VWORLD_REPORT_KEY: ${{ secrets.LINKPILOT_VWORLD_REPORT_KEY }}
           LINKPILOT_VWORLD_WEB_KEY:    ${{ secrets.LINKPILOT_VWORLD_WEB_KEY }}
           DATA_GO_KR_KEY:    ${{ secrets.DATA_GO_KR_KEY }}
+          APIS_DATA:         ${{ secrets.APIS_DATA }}
+          SPECIAL_DAY_INFO:  ${{ secrets.SPECIAL_DAY_INFO }}
+          WEATHER_GO:        ${{ secrets.WEATHER_GO }}
           DART_API_KEY:      ${{ secrets.DART_API_KEY }}
           REB_API_KEY:       ${{ secrets.REB_API_KEY }}
           KOSIS_API_KEY:     ${{ secrets.KOSIS_API_KEY }}

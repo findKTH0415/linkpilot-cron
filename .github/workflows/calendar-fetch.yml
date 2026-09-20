@@ -55,7 +55,11 @@ jobs:
 
       - name: 특일정보 수집
         env:
+          # ★ 포털 인증키의 이름 셋을 «다» 준다 〈2026-09-20〉 — `datakey.js` 가 셋 다 읽는다.
+          #   하나만 주면 사장님이 다른 이름으로 넣으신 날 **아무 오류 없이 조용히 죽는다**.
           DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+          APIS_DATA: ${{ secrets.APIS_DATA }}
+          SPECIAL_DAY_INFO: ${{ secrets.SPECIAL_DAY_INFO }}
         run: |
           FROM="${{ github.event.inputs.from_year }}"
           TO="${{ github.event.inputs.to_year }}"
