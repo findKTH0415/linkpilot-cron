@@ -293,11 +293,24 @@ function redact(text, extra) {
   //   나가면 로그에 평문으로 남는다 — CLAUDE.md §2 절대 규칙 위반이다.
   //   그래서 **환경변수에 들어 있는 값을 이름으로 찾아 직접 가린다.**
   //   커넥터를 새로 붙이면 이 목록에 키 이름을 더한다.
+  /* ★★★ «턴 값»도 가린다 〈2026-09-20 · 실측 · D-246〉.
+       [무엇이 났나] 진단 로그에서 `ECOS_BOK_KEY` 만 `***` 뒤에 **보이지 않는 글자**가
+       붙어 찍혔다(U+2028 LINE SEPARATOR). 커넥터는 전부 `String(env).trim()` 으로 읽고
+       **턴 값을 요청에 싣는데**, 이 가림은 **원본만** 찾으므로 그 값이 오류 본문·헤더에
+       섞여 오면 **한 글자도 안 가려진다** — §2 절대 규칙이 그 자리에서 깨진다.
+       실측으로 확인했다: 원본은 가려지고 턴 값은 그대로 샜다.
+     ★ 이것은 §12-42(구글 비밀에 보이지 않는 글자가 섞임)와 **같은 종류**인데,
+       거기서는 «인증이 거부되는» 것이 증상이었고 여기서는 «조용히 새는» 것이 증상이다.
+     ★★ 값을 «거부하지 않는다» — 털어 쓰는 것은 커넥터의 몫이고, 여기는 가리기만 한다.
+     ★★★ 턴 값이 원본과 같으면 한 번만 돈다(`Set`). */
   SECRET_ENV.forEach((name) => {
-    const v = process.env[name];
-    if (!v || String(v).length < 8) return;   // 짧으면 본문을 통째로 망가뜨린다
-    out = out.split(v).join('***');
-    out = out.split(encodeURIComponent(v)).join('***');
+    const raw = process.env[name];
+    if (!raw) return;
+    for (const v of new Set([String(raw), String(raw).trim()])) {
+      if (v.length < 8) continue;   // 짧으면 본문을 통째로 망가뜨린다
+      out = out.split(v).join('***');
+      out = out.split(encodeURIComponent(v)).join('***');
+    }
   });
 
   (extra || []).forEach((secret) => {
