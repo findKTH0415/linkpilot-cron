@@ -136,7 +136,7 @@ SSH 개인키·NAS 접속정보·터널 인증키는 유출 시 **서버 접근�
 | `ECOS_API_KEY` | 한국은행 경제통계 — **`ECOS_BOK_KEY` 의 다른 이름** | 위와 동일 | 위와 동일 | ○ |
 | `KRX_API_KEY` | 한국거래소 Data Marketplace | `data-dbg.krx.co.kr/svc/apis` | **`AUTH_KEY` 헤더** | ○ |
 | `KMA_APIHUB_KEY` | 기상청 API허브 | `apihub.kma.go.kr` | `authKey` | ○ |
-| `WEATHER_GO` | **어느 기관인지 아직 안 쟀다** 〈2026-09-13 사장님이 넣으셨다 · 날씨정보〉 | 미측정 | 미측정 | ✕ |
+| `WEATHER_GO` | **공공데이터포털 기상청** 〈2026-09-20 실측 · D-247〉 — 단기예보 (`VilageFcstInfoService_2.0`). **API허브가 아니다**: 같은 값을 API허브에 넣으면 「유효한 인증키가 아닙니다」(401)로 거부된다 | `apis.data.go.kr/1360000` | `serviceKey` | ● |
 | `KEPCO_BIGDATA_KEY` | 한국전력 빅데이터 | `bigdata.kepco.co.kr/openapi` | `apiKey` | ○ |
 | `VWORLD_KEY` | 국토부 V-World | `api.vworld.kr/req` | `key` (+ `domain`) | ○ |
 | `LINKPILOT_VWORLD_REPORT_KEY` | 국토부 V-World — 같은 열쇠의 다른 이름 〈2026-09-17 사장님이 넣으셨다〉 | 위와 동일 | 위와 동일 | ○ |
@@ -148,10 +148,10 @@ SSH 개인키·NAS 접속정보·터널 인증키는 유출 시 **서버 접근�
 | `WORLD_NEWS_API` | 세계뉴스 — **규격 미확인** (위와 다른 서비스일 수 있다) | 미확인 | 미확인 | ✗ |
 | `WORLD_NES_KEY` | 말씀으로 받은 철자 — **비밀 목록에는 없다** (넣으실 때를 대비해 가림만 등록) | — | — | ✗ |
 | `WORLD_NEWS_KEY` | 위와 같음 | — | — | ✗ |
-| `KAKAO_MOBILITY_KEY` | 카카오모빌리티 — **자동차 길찾기 소요시간** 〈2026-09-15 사장님 승인: 「둘 다」〉 | 미측정 | 미측정 | ✕ |
+| `KAKAO_MOBILITY_KEY` | 카카오모빌리티 — **자동차 길찾기 소요시간** 〈2026-09-15 사장님 승인: 「둘 다」〉. 규격은 2026-09-20 실측(D-246) | `apis-navi.kakaomobility.com/v1/directions` | `Authorization: KakaoAK` **헤더** | ✕ |
 | `KAKAOMOBILITY_KEY` | 위와 같음 — **다른 철자도 읽는다** (이름이 갈려 값이 조용히 죽는 것을 막는다) | 위와 동일 | 위와 동일 | ✕ |
 | `KAKAO_MOBILITY_REST_API` | 위와 같음 — **2026-09-19 사장님이 실제로 넣으신 이름**. 다시 넣으시라 하지 않고 읽는 이름을 늘렸다 | 위와 동일 | 위와 동일 | ○ |
-| `ODSAY_API_KEY` | ODsay — **대중교통 소요시간** 〈같은 승인〉 | 미측정 | 미측정 | ✕ |
+| `ODSAY_API_KEY` | ODsay — **대중교통 소요시간** 〈같은 승인〉. 규격은 실측했고 **열쇠가 거부된다** — HTTP 200 인데 본문이 `[ApiKeyAuthFailed]`(D-229) | `api.odsay.com/v1/api` | `apiKey` | ✕ |
 | `ODSAY_KEY` | 위와 같음 — **다른 철자도 읽는다** | 위와 동일 | 위와 동일 | ✕ |
 
 **길찾기 열쇠 둘 — 아직 «미측정»이다** 〈2026-09-15 사장님 승인: 「둘 다 — 자동차+대중교통」〉.
