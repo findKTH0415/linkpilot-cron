@@ -178,6 +178,28 @@ test('로그에서 인증키가 가려진다 — 길이·위치와 무관하게'
         `${name}: 본문에서 새어 나간다`);
     }
     assert.strictEqual(http.redact('오류 없음'), '오류 없음', '평범한 문자열은 건드리지 않는다');
+
+    /* ★★★ «보이지 않는 글자»가 붙은 열쇠 — 턴 값도 가려야 한다 〈2026-09-20 · 실측 · D-246〉.
+         [무엇이 났나] 진단 로그에서 `ECOS_BOK_KEY` 만 `***` 뒤에 U+2028(LINE SEPARATOR)이
+         붙어 찍혔다. 커넥터는 전부 `String(env).trim()` 으로 읽어 **턴 값을 요청에 싣는데**,
+         가림이 원본만 찾으면 그 값이 오류 본문에 섞여 올 때 **한 글자도 안 가려진다** (§2).
+       ★ 보이지 않는 글자 셋을 다 잰다 — U+2028 · U+200B(제로폭) · 줄바꿈. 구글 콘솔에서
+         복사할 때 실제로 섞여 들어오는 것들이다 (§12-42). */
+    for (const [tail, what] of [['\u2028', 'U+2028'], ['\u200b', '제로폭'], ['\n', '줄바꿈']]) {
+      const raw = 'INVISIBLETAILKEY99' + tail;
+      const prev = process.env.KMA_APIHUB_KEY;
+      process.env.KMA_APIHUB_KEY = raw;
+      try {
+        const trimmed = String(raw).trim();
+        assert.ok(!http.redact(`인증 실패: ${trimmed} 는 등록되지 않았습니다`).includes(trimmed),
+          `${what} 가 붙은 열쇠: 커넥터가 싣는 «턴 값»이 그대로 샌다 (§2)`);
+        assert.ok(!http.redact(`key=${raw}&a=1`).includes('INVISIBLETAILKEY99'),
+          `${what} 가 붙은 열쇠: 원본도 가려야 한다`);
+      } finally {
+        if (prev === undefined) delete process.env.KMA_APIHUB_KEY;
+        else process.env.KMA_APIHUB_KEY = prev;
+      }
+    }
   } finally {
     Object.keys(fake).forEach((k) => {
       if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k];

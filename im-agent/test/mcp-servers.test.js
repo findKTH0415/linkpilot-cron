@@ -74,6 +74,13 @@ test('★ 이 갈래의 Agent·커넥터 수를 고정한다 (배포 엔진과�
    *     kasi (한국천문연구원 특일정보) ← **짝이 없는 것이 맞다.**
    *       `law.js` 와 같은 결로, MCP 서버가 아니라 `data.go.kr` 에 거는 **평범한 HTTP** 다.
    *       MCP 짝을 억지로 만들면 **없는 서버를 있는 것처럼 적게 된다.**
+   *   확인하고 옮겼다.
+   * ★★★ **2026-09-20 또 제 일을 했다** — 커넥터 24 → 25 (`routing.js` · D-246).
+   *   빨개져서 짝을 확인했고, 확인한 결과는 이렇다:
+   *     routing (카카오모빌리티 길찾기 소요시간) ← **짝이 없는 것이 맞다.**
+   *       `law.js` · `kasi.js` 와 같은 결로, MCP 서버가 아니라
+   *       `apis-navi.kakaomobility.com` 에 거는 **평범한 HTTP** 다.
+   *       MCP 짝을 억지로 만들면 **없는 서버를 있는 것처럼 적게 된다.**
    *   확인하고 옮겼다. */
   assert.strictEqual(registry.list().length, 15,
     'Agent 수가 바뀌었다 — mcp/servers.js 의 짝과 ENGINE 을 다시 보라');
@@ -87,10 +94,10 @@ test('★ 이 갈래의 Agent·커넥터 수를 고정한다 (배포 엔진과�
        재던 이 칸이 그만큼 무뎌진다 — 재려던 성질은 그대로 두고 **가르는 자리**를 고친다. */
   const infra = new Set(['cache.js', 'http.js', 'xml.js', 'datakey.js', 'vworldkey.js']);
   const n = fs.readdirSync(dir).filter(f => f.endsWith('.js') && !infra.has(f)).length;
-  assert.strictEqual(n, 24, '커넥터 수가 바뀌었다 — 새 커넥터가 MCP 로 들어온 것은 아닌지 보라');
+  assert.strictEqual(n, 25, '커넥터 수가 바뀌었다 — 새 커넥터가 MCP 로 들어온 것은 아닌지 보라');
 
   assert.strictEqual(S.ENGINE.agents, 15);
-  assert.strictEqual(S.ENGINE.connectors, 24);
+  assert.strictEqual(S.ENGINE.connectors, 25);
 });
 
 test('★ 「아직 없는 Agent」로 적어 둔 것이 도착하면 빨개진다', () => {
