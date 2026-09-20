@@ -1,0 +1,46 @@
+{
+ "key": "WEATHER_GO",
+ "hub": [
+  {
+   "label": "typ01 지상관측 kma_sfctm2",
+   "ok": false,
+   "status": 401,
+   "ms": 1589,
+   "gotValue": false,
+   "authFail": false,
+   "blocked": false,
+   "fields": null,
+   "head": "{ \"result\" : { \"status\" : 401, \"message\" : \"유효한 인증키가 아닙니다.\" } }",
+   "truncated": false,
+   "server": "Apache"
+  },
+  {
+   "label": "typ02 초단기실황 getUltraSrtNcst",
+   "ok": false,
+   "status": 401,
+   "ms": 1597,
+   "gotValue": false,
+   "authFail": false,
+   "blocked": false,
+   "fields": null,
+   "head": "{ \"result\" : { \"status\" : 401, \"message\" : \"유효한 인증키가 아닙니다.\" } }",
+   "truncated": false,
+   "server": "Apache"
+  }
+ ],
+ "portal": [
+  {
+   "label": "원본 그대로",
+   "ok": true,
+   "status": 200,
+   "ms": 714,
+   "gotValue": true,
+   "authFail": false,
+   "blocked": false,
+   "fields": null,
+   "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL_SERVICE\"},\"body\":{\"dataType\":\"JSON\",\"items\":{\"item\":[{\"baseDate\":\"20260920\",\"baseTime\":\"1600\",\"category\":\"PTY\",\"nx\":60,\"ny\":127,\"obsrValue\":\"0\"},{\"baseDate\":\"20260920\",\"baseTime\":\"1600\",\"category\":\"REH\",\"nx\":60,\"ny\":127,\"obsrValue\":\"37\"},{",
+   "truncated": true,
+   "server": null
+  }
+ ]
+}
