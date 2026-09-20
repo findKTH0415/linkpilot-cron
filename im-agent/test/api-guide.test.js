@@ -236,3 +236,39 @@ test('E. CLAUDE.md 가 「지금 쓴다」고 적은 열쇠를 저장소가 알�
     'CLAUDE.md 는 지금 쓴다고 적는데 저장소 어디서도 안 부르는 이름입니다 — '
     + '다음 사람이 이 이름을 배선하면 아무 오류 없이 죽고, 가려지지도 않습니다 (§2): ' + unknown.join(', '));
 });
+
+/* ★★★ F. **진단 요약의 이름 차례가 엔진의 차례와 같다** 〈2026-09-20 · 실측 · D-247〉.
+   [무엇이 났나] `api-report.js` 가 브이월드 이름을 **손으로** 적어 두어 차례가 엔진과
+   달랐다 — 엔진은 D-221 의 콘솔 실측대로 `WEB` 이 앞인데 표는 `REPORT` 가 앞이었다.
+   그래서 2026-09-20 요약이 **「✅ LINKPILOT_VWORLD_REPORT_KEY」**라고 적었는데
+   **엔진이 실제로 쓰는 것은 WEB** 이었다. 브이월드가 막히는 날 그 줄이 **엉뚱한 열쇠를
+   가리키고**, 사장님은 고칠 것이 없는 콘솔을 보러 가신다 (§4.6 · M-86).
+   ★ A~E 는 지침서·커넥터·`SECRET_ENV` 셋을 대 보는데 **이 표는 그 셋 중 어디에도 없어
+     아무도 안 세고 있었다.** 잣대는 하나다 — 「그 숫자를 재는 법이 재려는 것을
+     다 덮는가」 (§6-2-6 의 46 → 105). */
+test('F. 진단 요약의 열쇠 이름 차례가 커넥터와 같다 (두 벌이면 한쪽이 옛말을 한다 · §8-1)', () => {
+  const REPORT = path.join(ROOT, 'im-agent', 'tools', 'api-report.js');
+  /* ★★ **주석을 떼고 본다** — 이 고침의 경위를 `api-report.js` 주석에 그대로 적었고,
+     안 떼면 그 글자가 「손으로 적었다」로 읽혀 **고침이 옳은데 빨개진다** (§8 의 그 함정). */
+  const src = read(REPORT).replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+  const { KEYS } = require(REPORT);
+  assert.ok(Array.isArray(KEYS) && KEYS.length >= 10,
+    '진단 표(KEYS)를 못 읽었습니다 — 이 칸이 아무것도 안 잽니다 (§8)');
+
+  for (const [file, label] of [['vworldkey', '브이월드'], ['datakey', '공공데이터포털']]) {
+    const { KEY_NAMES } = require(path.join(ROOT, 'im-agent', 'connectors', `${file}.js`));
+    assert.ok(Array.isArray(KEY_NAMES) && KEY_NAMES.length >= 2,
+      `${file}.js 의 KEY_NAMES 를 못 읽었습니다 — 이 칸이 아무것도 안 잽니다`);
+    const row = KEYS.find((r) => r[1] === label);
+    assert.ok(row, `진단 표에서 ${label} 줄을 못 찾았습니다`);
+    assert.strictEqual(row[0], KEY_NAMES.join('|'),
+      `${label} 이름 차례가 커넥터와 다릅니다 — 요약이 «엔진이 안 쓰는 열쇠»를 가리킵니다.\n`
+      + `  진단 표: ${row[0]}\n  커넥터 : ${KEY_NAMES.join('|')}`);
+  }
+
+  /* ★ 반대로도 막는다 — 소스에 이름이 **통째로 박혀** 있으면 그것이 곧 두 벌이다 */
+  for (const n of ['LINKPILOT_VWORLD_REPORT_KEY', 'LINKPILOT_VWORLD_WEB_KEY', 'SPECIAL_DAY_INFO']) {
+    assert.ok(!new RegExp(`'[^']*${n}[^']*\\|`).test(src) && !new RegExp(`\\|[^']*${n}`).test(src),
+      `${n} 을 진단 표에 손으로 적었습니다 — 커넥터에서 읽어야 차례가 안 갈립니다 (§8-1).`);
+  }
+});

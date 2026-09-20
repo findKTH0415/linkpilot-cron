@@ -23,17 +23,27 @@ const { yamlNoComment } = require('./yaml-lite.js');
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const SRC = path.join(ROOT, 'scripts', 'routing-probe.mjs');
+/* ★★★ **진단 창구가 한 벌이 됐다** 〈2026-09-20 · D-247 · §8-1〉 — `probe`·`verdictOf`
+   ·`sayRow`·`findFields`·`pick` 은 이제 `probe-lib.mjs` 에 산다. 그래서 **재는 자리를
+   옮긴다**: 두 파일을 이어 읽어 **같은 성질을 그대로** 잰다 (§6-2-5 — 약하게 고친 것이
+   아니다. 사보타주는 여전히 그 자리에서 빨개진다). */
+const LIB = path.join(ROOT, 'scripts', 'probe-lib.mjs');
 const WF = path.join(ROOT, '.github', 'workflows', 'api-smoke.yml');
 const read = (p) => fs.readFileSync(p, 'utf8');
+/** 진단 스크립트와 공용 창구를 **이어** 읽는다 — 어느 쪽에 있든 같은 것을 잰다 */
+const readAll = () => `${read(SRC)}\n${read(LIB)}`;
 
 /** `function 이름(...) { … }` 을 **중괄호 짝을 세어** 오려 낸다 (꼬리 글자로 찾지 않는다 · §12-6) */
 function cutFn(src, name) {
-  const at = src.search(new RegExp(`^(?:async\\s+)?function\\s+${name}\\s*\\(`, 'm'));
+  /* ★ `export function …` 도 같은 함수다 〈D-247 — 공용 창구로 옮기면서〉.
+     떼어 낸 조각은 `new Function` 안에서 도는데 거기서는 `export` 가 문법 오류라
+     **머리의 `export` 만 턴다.** 재려던 성질(그 함수를 오려 내 돌린다)은 그대로다. */
+  const at = src.search(new RegExp(`^(?:export\\s+)?(?:async\\s+)?function\\s+${name}\\s*\\(`, 'm'));
   if (at < 0) return null;
   let i = src.indexOf('{', at), depth = 0;
   for (; i < src.length; i += 1) {
     if (src[i] === '{') depth += 1;
-    else if (src[i] === '}') { depth -= 1; if (depth === 0) return src.slice(at, i + 1); }
+    else if (src[i] === '}') { depth -= 1; if (depth === 0) return src.slice(at, i + 1).replace(/^export\s+/, ''); }
   }
   return null;
 }
@@ -60,7 +70,7 @@ function cutCalls(src, name) {
 }
 
 test('★★★ 갈래 다섯을 «갈라» 말한다 — 값마다 하실 일이 정반대다 (D-227)', () => {
-  const src = read(SRC);
+  const src = readAll();
   const fn = cutFn(src, 'verdictOf');
   assert.ok(fn, 'verdictOf() 를 못 오려 냈습니다 — 이 칸은 아무것도 안 잽니다');
   const verdictOf = new Function(`${fn}\nreturn verdictOf;`)();
@@ -91,13 +101,30 @@ test('★★★ 갈래 다섯을 «갈라» 말한다 — 값마다 하실 일�
   assert.ok(/문제가 아니다|아니다/.test(shape.head),
     `규격 문제인데 열쇠를 가리킵니다: ${shape.head}`);
 
+  /* ★★★ **⑥ 「우리 자리의 문지기가 막은 403」은 «인증 거부»가 아니다** 〈D-247 · 실측〉.
+     개발 컨테이너의 문지기가 허용 목록 밖 호스트를 403 + 「Host not in allowlist」로 막는다.
+     그것을 갈래 4 로 세면 **기관 콘솔을 가리키는데 거기에는 고칠 것이 없다** (M-86 · §4.6).
+     D-206 이 세운 그 잣대다 — 「못 닿음」을 「승인 안 됨」으로 적지 않는다. */
+  const gate = verdictOf([{ status: 403, blocked: true }, { status: 403, blocked: true }]);
+  assert.strictEqual(gate.code, 3,
+    '우리 자리의 문지기가 막은 403 을 인증 거부로 셉니다 — 고칠 것이 없는 콘솔을 가리킵니다.');
+  assert.ok(/문제가 아니다|아니다/.test(gate.head), `막힌 것인데 열쇠를 가리킵니다: ${gate.head}`);
+
+  /* ★★ **반대로도 막는다** — 기관이 보낸 진짜 403 은 **여전히 갈래 4** 다.
+     넓히면 멀쩡한 인증 거부까지 「못 닿았다」로 접혀 **이미 하신 신청을 또** 하시게 된다. */
+  assert.strictEqual(verdictOf([{ status: 403 }]).code, 4,
+    '기관이 보낸 진짜 403 까지 「못 닿았다」로 접습니다 — 열쇠·신청을 영영 못 가립니다.');
+  /* ★ 한쪽만 막혔으면 **닿은 쪽**이 판정한다 */
+  assert.strictEqual(verdictOf([{ status: 403, blocked: true }, { status: 200, gotValue: false }]).code, 5,
+    '한 후보가 막혔다고 닿은 쪽의 판정을 덮습니다.');
+
   /* ★ 섞이면 「고칠 것이 있는 쪽」이 이긴다 — 못 닿음 하나에 묻히지 않는다 */
   assert.strictEqual(verdictOf([{ status: null }, { status: 403 }]).code, 4,
     '한 후보가 못 닿았다고 인증 거부를 덮습니다 — 고칠 것이 있는 쪽을 가려야 합니다.');
 });
 
 test('★★ 「대답이 왔다」와 「값이 왔다」를 갈라 센다 (§8 「걸었다 ≠ 올라갔다」와 같은 결)', () => {
-  const src = read(SRC).replace(/\/\*[\s\S]*?\*\//g, '').replace(/^[ \t]*\/\/.*$/gm, '');
+  const src = readAll().replace(/\/\*[\s\S]*?\*\//g, '').replace(/^[ \t]*\/\/.*$/gm, '');
   /* HTTP 200 만으로 「됐다」로 세면, 규격이 달라 빈 답이 와도 초록이 된다.
      ★ **글자 모양을 박지 않는다** — D-228 에서 이 줄을 `probe()` 안으로 옮기자
        **고침이 옳은데 빨개졌다.** 재려던 성질(「200 하나로 세지 않는가」)은 그대로 두고
@@ -111,13 +138,13 @@ test('★★ 「대답이 왔다」와 「값이 왔다」를 갈라 센다 (§8
 });
 
 test('★★★ 열쇠 이름을 여럿 읽고, 값은 한 글자도 안 남긴다 (§2)', () => {
-  const src = read(SRC).replace(/\/\*[\s\S]*?\*\//g, '').replace(/^[ \t]*\/\/.*$/gm, '');
+  const src = readAll().replace(/\/\*[\s\S]*?\*\//g, '').replace(/^[ \t]*\/\/.*$/gm, '');
 
   /* ★★★ 이름이 갈리면 아무 오류도 안 나고 조용히 죽는다 — 셋·둘을 다 읽는다.
      ★ **「소스에 그 글자가 있는가」로는 아무것도 안 잰다** 〈사보타주가 실제로 빠져나갔다〉.
        읽는 목록에서 이름을 빼도 **안내 문구에 그 글자가 남아** 통과했다.
        그래서 `pick()` 을 **오려 내 돌리고**, 목록도 소스에서 뽑아 먹인다 (§12-24 의 그 방식). */
-  const pickFn = cutFn(read(SRC), 'pick');
+  const pickFn = cutFn(readAll(), 'pick');
   assert.ok(pickFn, 'pick() 을 못 오려 냈습니다 — 이 칸은 아무것도 안 잽니다');
   const pick = new Function('process', `${pickFn}\nreturn pick;`);
 
@@ -209,11 +236,16 @@ function mkProbe(src, body, status) {
      **없던 인자만 채운다** — 그리고 **가짜로 끼우지 않는다.** 가짜를 넣으면 그 잣대를
      영영 안 재게 된다 (§12-5 · §12-30 의 그 구분). */
   const ff = cutFn(src, 'findFields');
-  return new Function('fetch', 'redact', 'AbortSignal', 'AUTH_FAIL_RE', 'findFields',
+  /* ★ D-247 에서 `probe` 에 또 하나(`GATEWAY_BLOCK_RE`)가 붙었다 — 같은 규칙이다:
+     **없던 인자만 채우되 가짜로 끼우지 않는다.** 진짜 잣대를 소스에서 읽어 넘긴다. */
+  const g = src.match(/const\s+GATEWAY_BLOCK_RE\s*=\s*\/(.+)\/([a-z]*);/);
+  const gateRe = g ? new RegExp(g[1], g[2]) : /$^/;
+  return new Function('fetch', 'redact', 'AbortSignal', 'AUTH_FAIL_RE', 'findFields', 'GATEWAY_BLOCK_RE',
     `${fn}\nreturn probe;`)(
     async () => ({ ok: status < 400, status, text: async () => body, headers: { get: () => null } }),
     (x) => x, { timeout: () => null }, authRe,
     ff ? new Function(`${ff}\nreturn findFields;`)() : null,
+    gateRe,
   );
 }
 
@@ -222,7 +254,7 @@ function mkProbe(src, body, status) {
    그 글은 **틀린 곳을 가리킨다** — 고칠 규격이 없다 (§4.6 · §12-24 와 같은 결).
    잣대는 하나다 — **「그 숫자를 재는 법이 재려는 것을 다 덮는가」** (§6-2-6 의 46 → 105). */
 test('probe 는 «본문 전체»로 값을 재고, 요약에는 앞머리만 싣는다', async () => {
-  const src = read(SRC);
+  const src = readAll();
   const fn = cutFn(src, 'probe');
   assert.ok(fn, 'probe 를 못 떼어 냈습니다 — 이 칸은 아무것도 안 잽니다');
 
@@ -262,9 +294,14 @@ test('probe 는 «본문 전체»로 값을 재고, 요약에는 앞머리만 �
 
 /* ★ 두 자리(자동차·대중교통)가 **같은 글**을 쓰는지 — 두 벌이면 한쪽이 옛말을 한다 (§8-1) */
 test('후보 결과를 적는 글이 한 벌이고, 「대답이 왔다」와 「값이 왔다」를 갈라 적는다', () => {
-  const src = read(SRC);
+  const src = readAll();
   assert.ok(cutFn(src, 'sayRow'), 'sayRow 를 못 찾았습니다 — 이 칸은 아무것도 안 잽니다');
-  const calls = (src.match(/^\s*sayRow\(r\);/gm) || []).length;
+  /* ★ **글자 모양을 박지 않는다** 〈D-247 — 공용 창구로 옮기며 인자가 늘어
+     `sayRow(r);` 를 찾던 이 줄이 «고침이 옳은데» 빨개졌다〉. 재려던 성질
+     (**두 자리가 같은 글을 쓰는가**)은 그대로 두고 **세는 자리를 옮겼다** (§6-2-5).
+     ★ 세는 곳은 `routing-probe.mjs` 뿐이다 — 공용 창구에는 «정의»가 있고
+       여기서 세려는 것은 «부르는 자리»다. */
+  const calls = (read(SRC).match(/\bsayRow\(/g) || []).length;
   assert.ok(calls >= 2,
     `두 자리가 같은 글을 안 씁니다 (${calls}곳) — 한쪽만 고쳐지면 그 자리가 옛말을 합니다`);
   const say = cutFn(src, 'sayRow');
@@ -284,7 +321,7 @@ test('후보 결과를 적는 글이 한 벌이고, 「대답이 왔다」와 �
    **정반대**를 말한다 — 사장님이 열쇠·등록을 안 보시고 규격을 고치러 가신다.
    §4.2 가 이미 적어 둔 자리다: 「키 문제와 구분하려면 **응답 본문을 봐야 한다**」. */
 test('인증 거부를 «본문»으로도 가른다 — 200 으로 오는 곳이 있다', async () => {
-  const src = read(SRC);
+  const src = readAll();
   const fn = cutFn(src, 'probe');
   const vf = cutFn(src, 'verdictOf');
   assert.ok(fn && vf, 'probe·verdictOf 를 못 떼어 냈습니다 — 이 칸은 아무것도 안 잽니다');
@@ -321,7 +358,7 @@ test('인증 거부를 «본문»으로도 가른다 — 200 으로 오는 곳�
    ★ 「이름이 다른 것」과 「JSON 으로 못 읽은 것」도 갈라야 한다 — 뭉뚱그리면
      멀쩡한 응답을 「규격이 틀렸다」로 읽는다 (§8 · §12-12 의 그 고장). */
 test('그 칸이 «어디»에 있는지까지 잰다 — 경로를 알아야 추측 없이 배선한다 (D-230)', async () => {
-  const src = read(SRC);
+  const src = readAll();
   const ff = cutFn(src, 'findFields');
   assert.ok(ff, 'findFields 를 못 오려 냈습니다 — 이 칸은 아무것도 안 잽니다');
   const findFields = new Function(`${ff}\nreturn findFields;`)();

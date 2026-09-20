@@ -114,6 +114,24 @@ jobs:
             grep -E '^> ' data/_api/routing-probe.md || echo '(판정 줄을 못 읽었다)'
           } >> "$GITHUB_STEP_SUMMARY"
 
+      # ★★★ `WEATHER_GO` 가 **어느 기관 것인가** — 진단 〈2026-09-20 · D-247〉.
+      #   2026-09-13 에 넣으신 뒤 **어느 기관인지 아직 안 쟀다.** 이름이 `weather.go.kr`
+      #   을 가리키는 듯하지만 그것은 짐작이고, 기상청만 해도 열쇠를 받는 자리가 둘이다
+      #   (API허브 `authKey` · 공공데이터포털 `serviceKey`). 추측으로 배선하면 그것이
+      #   곧 거짓이 된다 (§4.3). 후보를 걸어 **무엇이 오는지부터** 본다.
+      #   ★ 판정 줄을 **실행 요약 첫 화면**으로 나른다 — 파일 안에만 두면 아무도 안 본다 (§12-19).
+      - name: WEATHER_GO 가 어느 기관 것인지 불러 본다
+        continue-on-error: true
+        env:
+          WEATHER_GO: ${{ secrets.WEATHER_GO }}
+        run: |
+          node scripts/weather-probe.mjs || true
+          {
+            echo '### WEATHER_GO 기관 진단'
+            # 판정 줄만 뽑는다 — 최악 세 줄(전체 + API허브 + 포털)이다
+            grep -E '^> \*\*판정|^> 판정' data/_api/weather-probe.md || echo '(판정 줄을 못 읽었다)'
+          } >> "$GITHUB_STEP_SUMMARY"
+
       # ★★★ 기본 가지에서만 커밋한다 〈2026-09-20 · D-246 · `vworld.yml` 과 같은 규칙〉.
       #   [왜] 작업 가지에서 돌리면 봇이 민 커밋이 **열린 PR 의 머리를 움직여**,
       #   초록이던 검사가 다시 서고 `action_required`(사람이 눌러야 도는 상태)가 된다.
