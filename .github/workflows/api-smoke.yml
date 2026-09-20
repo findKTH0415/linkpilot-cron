@@ -114,8 +114,29 @@ jobs:
             grep -E '^> ' data/_api/routing-probe.md || echo '(판정 줄을 못 읽었다)'
           } >> "$GITHUB_STEP_SUMMARY"
 
+      # ★★★ 기본 가지에서만 커밋한다 〈2026-09-20 · D-246 · `vworld.yml` 과 같은 규칙〉.
+      #   [왜] 작업 가지에서 돌리면 봇이 민 커밋이 **열린 PR 의 머리를 움직여**,
+      #   초록이던 검사가 다시 서고 `action_required`(사람이 눌러야 도는 상태)가 된다.
+      #   실제로 §12-24 에서 그렇게 깨졌고, 그때 고친 것을 **이 칸에는 안 댔다** (S-53).
+      # ★★ 조용히 건너뛰지 않는다 — 왜 안 남겼는지와 어디서 받는지를 적는다 (§8).
+      # ★★★ 아티팩트는 이 아래에서 **어느 가지에서든** 그대로 돈다.
       - name: 결과 커밋
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
+          set -u
+          if [ -z "${DEFAULT_BRANCH:-}" ]; then
+            echo "::warning::기본 가지 이름을 못 받았다 — 커밋하지 않는다. 결과는 아래 아티팩트에 있다"
+            exit 0
+          fi
+          if [ "$REF_NAME" != "$DEFAULT_BRANCH" ]; then
+            echo "가지 '$REF_NAME' 에서 돌았다 — **결과를 커밋하지 않는다.**"
+            echo "  까닭: 열려 있는 PR 의 머리가 움직이면 검사가 다시 서고, 봇이 민 커밋은"
+            echo "        사람이 눌러 줘야 도는 상태(action_required)가 된다."
+            echo "  받을 곳: 아래 «아티팩트 업로드» (api-smoke) — 진단 요약까지 그대로 들어 있다."
+            exit 0
+          fi
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/_api
