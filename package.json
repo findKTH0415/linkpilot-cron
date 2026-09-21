@@ -10,6 +10,8 @@
     "im": "node im-agent/cli.js",
     "im:demo": "IM_AGENT_OFFLINE=1 node im-agent/cli.js demo",
     "branch:check": "node im-agent/tools/branch-doctor.js",
+    "push:guard": "node im-agent/tools/push-guard.js",
+    "hooks:on": "git config core.hooksPath .githooks && echo '  \u2713 \ud6c5 \ucf1c\uc84c\uc2b5\ub2c8\ub2e4 \u2014 \uc774\uc81c push \uc804\uc5d0 push-guard \uac00 \uc2a4\uc2a4\ub85c \ub3d5\ub2c8\ub2e4.'",
     "agent:check": "node im-agent/tools/agent-doctor.js",
     "im:smoke": "node im-agent/tools/smoke-public-data.js",
     "im:api-report": "node im-agent/tools/api-report.js",

@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# pre-push — **원격의 커밋을 덮는 push 를 막고, 덮일 것을 먼저 적어 둔다**
+#   〈2026-09-21 · D-251 · CLAUDE.md §12-61〉
+#
+# ★★★ 왜 있나: 2026-09-21 에 `git checkout -B <가지> origin/main` 으로 PR #89 의
+#   커밋을 날린 뒤 force-push 가 **원격까지 덮었다.** 그때 잡아 준 것은 규칙이 아니라
+#   우연히 세어 본 것이다 (§8-2). 그 규칙을 사람의 기억에서 내려 여기에 둔다.
+#
+# ★ 보통 push 는 **조용히 통과한다** — 막는 것은 「원격에 있는 커밋이 사라지는 push」뿐이다.
+#   가르는 잣대 하나: 원격의 머리가 내가 미는 것의 **조상인가**.
+#
+# ★★ 막다른 길을 안 만든다 — 정말 덮으셔야 하면 `LP_FORCE_OK=1 git push …` 다.
+#   그때도 **덮일 커밋 지문을 먼저 적어 둔다** (§6-3 ⑥).
+#
+# 켜는 법: npm run hooks:on   (git config core.hooksPath .githooks)
+
+set -u
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo .)"
+GITDIR="$(git rev-parse --absolute-git-dir 2>/dev/null || echo .git)"
+ZERO="0000000000000000000000000000000000000000"
+BLOCK=0
+LOST=""
+
+while read -r LREF LSHA RREF RSHA; do
+  [ -z "${LSHA:-}" ] && continue
+  [ "$LSHA" = "$ZERO" ] && continue          # 가지를 지우는 push 는 여기서 안 본다
+  [ "${RSHA:-$ZERO}" = "$ZERO" ] && continue # 새 가지 — 덮을 것이 없다
+  # 원격 머리가 내 것의 조상이면 앞으로 감는 것이다 — 통과
+  if git merge-base --is-ancestor "$RSHA" "$LSHA" 2>/dev/null; then continue; fi
+  BLOCK=1
+  LOST="${LOST}
+--- ${RREF} (원격 ${RSHA}) 에서 덮이는 커밋 ---
+$(git log --oneline "${LSHA}..${RSHA}" 2>/dev/null || echo '(못 읽었다 — 원격 커밋이 이 자리에 없다)')"
+done
+
+if [ "$BLOCK" = "0" ]; then exit 0; fi
+
+# ★ 막기 «전에» 적어 둔다 — 뚫고 미셔도 되돌릴 길이 남는다
+STAMP="$(date -u +%Y-%m-%dT%H-%M-%SZ)"
+OUT="${GITDIR}/lp-safety/${STAMP}-force"
+mkdir -p "$OUT" 2>/dev/null && printf '%s\n' "$LOST" > "${OUT}/OVERWRITTEN.txt" 2>/dev/null
+
+echo ""
+echo "  ❌ 이 push 는 **원격에 있는 커밋을 덮습니다.**"
+echo "$LOST"
+echo ""
+echo "  ✓ 덮일 커밋 지문을 적어 뒀습니다 — ${OUT#$ROOT/}/OVERWRITTEN.txt"
+echo ""
+echo "  ★ 먼저 보십시오: 그 커밋들이 \`main\` 에 이미 들어가 있습니까?"
+echo "    들어가 있으면 덮어도 잃는 것이 없고, 아니면 **그 일이 사라집니다.**"
+echo "    (재는 법: git log --oneline origin/main..<그 지문>)"
+echo ""
+echo "  ★★ 정말 덮으실 것이면: LP_FORCE_OK=1 git push …"
+echo ""
+
+# 커밋 안 된 변경도 함께 베껴 둔다 (있으면)
+node "${ROOT}/im-agent/tools/push-guard.js" --dir "$ROOT" --save >/dev/null 2>&1 || true
+
+if [ "${LP_FORCE_OK:-}" = "1" ]; then
+  echo "  ★ LP_FORCE_OK=1 이라 그대로 밉니다."
+  echo ""
+  exit 0
+fi
+exit 1
