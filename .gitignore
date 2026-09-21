@@ -78,3 +78,7 @@ im-agent/ui/platform/__*.html
 # 지운다. 중간에 끊기면 남는데, 10만 바이트짜리 HTML 이라 정체를 몰라 커밋될 뻔했다
 # 〈2026-09-07 · 실제로 작업트리에 남아 있었다〉
 im-agent/ui/platform/.open-test-*.html
+# 한전 계통 수집 — 지번 단위 산출물. 대상지가 드러나는 판이라 커밋하지 않는다.
+# 공개 저장소이므로 시군구 단위만 `data/kepco/` 로 커밋하고,
+# 지번 단위는 실행 아티팩트 `kepco-site-private` 로 받는다 (2026-09-22).
+private/
