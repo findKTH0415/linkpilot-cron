@@ -11,7 +11,12 @@
  *
  * 종료 코드
  *   0 전부 수집   1 일부 수집   2 서버 미응답
- *   3 HTTP 5xx 또는 경로 없음(404)   4 인증 거부   5 행정코드 불일치
+ *   3 HTTP 5xx    4 인증 거부   5 행정코드 불일치
+ *
+ * 개방포털의 응답 규칙 (2026-09-22 실측)
+ *   · 인증·인자 오류는 HTTP 400 에 본문 errCd 400 으로 돌려준다
+ *   · 월별 API 는 게시 전인 달을 HTTP 404 로 돌려준다 — 오류가 아니라 「그 달 자료 없음」
+ *     따라서 404 를 만나면 멈추지 않고 다음 달로 넘어간다
  *
  * 산출
  *   data/kepco/      시군구 단위 — 공개 공공데이터, 커밋 대상
@@ -54,7 +59,7 @@ function rowsOf(obj) {
   return [];
 }
 
-const WORST = { OK: 0, EMPTY: 1, NET: 2, S5XX: 3, NOTFOUND: 3, AUTH: 4, CODE: 5 };
+const WORST = { OK: 0, NODATA: 1, EMPTY: 1, NET: 2, S5XX: 3, AUTH: 4, CODE: 5 };
 let worst = 'OK';
 const bump = s => { if (WORST[s] > WORST[worst]) worst = s; };
 
@@ -74,13 +79,16 @@ async function call(pathname, params) {
         signal: AbortSignal.timeout(TIMEOUT),
       });
 
-      if ([400, 401, 403, 404].includes(res.status)) {
-        const why = res.status === 400 ? '요청 인자 오류'
-                  : res.status === 404 ? '경로 없음 — 요청 URL 을 규격과 대조하십시오'
-                  : '인증 거부 — 해당 API 의 활용신청·승인 상태를 확인하십시오';
-        console.error(`  HTTP${res.status} ${safe}\n        ${why}`);
-        const st = res.status === 400 ? 'EMPTY' : res.status === 404 ? 'NOTFOUND' : 'AUTH';
-        return { obj: null, status: st };
+      if (res.status === 404) {
+        console.log(`  NODATA ${safe}  (해당 기간 자료가 아직 없습니다)`);
+        return { obj: null, status: 'NODATA' };
+      }
+      if ([400, 401, 403].includes(res.status)) {
+        const body = (await res.text()).slice(0, 200);
+        // 개방포털은 인증 문제도 400 으로 돌려준다 — 본문으로 가른다
+        const isAuth = res.status !== 400 || /apiKey|인증|권한/i.test(body);
+        console.error(`  HTTP${res.status} ${safe}\n        ${body.replace(/\s+/g, ' ').trim()}`);
+        return { obj: null, status: isAuth ? 'AUTH' : 'EMPTY' };
       }
       if (res.status >= 500) {
         console.warn(`  retry ${attempt}/3  HTTP${res.status}  ${safe}`);
@@ -225,18 +233,19 @@ async function main() {
   // 3) 계약종별 전력사용량
   console.log(`\n[3] 계약종별 전력사용량 — 최근 ${MONTHS}개월`);
   {
-    const rows = []; let empty = 0, last = 'OK';
+    const rows = []; let empty = 0, nodata = 0, last = 'OK';
     for (const [year, month] of months(MONTHS)) {
       const { obj, status } = await call('powerUsage/contractType.do', { year, month, metroCd, cityCd });
       last = status;
       if (status === 'OK') rows.push(...rowsOf(obj));
       else if (status === 'EMPTY') empty++;
+      else if (status === 'NODATA') { nodata++; }   // 게시 전인 달 — 계속 거슬러 올라간다
       else { bump(status); break; }
       await sleep(PAUSE);
     }
-    const st = rows.length ? 'OK' : (empty ? 'EMPTY' : last);
-    bump(st === 'OK' ? 'OK' : st);
-    man.호출.push({ 항목: '계약종별 전력사용량', 상태: st, 빈응답월: empty });
+    const st = rows.length ? 'OK' : (empty || nodata ? 'NODATA' : last);
+    bump(st);
+    man.호출.push({ 항목: '계약종별 전력사용량', 상태: st, 빈응답월: empty, 자료없는월: nodata });
     const r = await saveCsv(PUB, 'contract-sgg.csv', rows);
     if (r) { man.산출.push(r); manPublic.산출 = [...(manPublic.산출 || []), r]; }
   }
@@ -244,18 +253,19 @@ async function main() {
   // 4) 산업분류별 전기사용고객 증감
   console.log(`\n[4] 산업분류별 전기사용고객 증감 — 최근 ${MONTHS}개월`);
   {
-    const rows = []; let empty = 0, last = 'OK';
+    const rows = []; let empty = 0, nodata = 0, last = 'OK';
     for (const [year, month] of months(MONTHS)) {
       const { obj, status } = await call('change/custNum/industryType.do', { year, month, metroCd, cityCd });
       last = status;
       if (status === 'OK') rows.push(...rowsOf(obj));
       else if (status === 'EMPTY') empty++;
+      else if (status === 'NODATA') { nodata++; }   // 게시 전인 달 — 계속 거슬러 올라간다
       else { bump(status); break; }
       await sleep(PAUSE);
     }
-    const st = rows.length ? 'OK' : (empty ? 'EMPTY' : last);
-    bump(st === 'OK' ? 'OK' : st);
-    man.호출.push({ 항목: '산업분류별 고객 증감', 상태: st, 빈응답월: empty });
+    const st = rows.length ? 'OK' : (empty || nodata ? 'NODATA' : last);
+    bump(st);
+    man.호출.push({ 항목: '산업분류별 고객 증감', 상태: st, 빈응답월: empty, 자료없는월: nodata });
     const r = await saveCsv(PUB, 'custchange-sgg.csv', rows);
     if (r) { man.산출.push(r); manPublic.산출 = [...(manPublic.산출 || []), r]; }
   }
@@ -272,7 +282,7 @@ async function main() {
   console.log('─'.repeat(60));
 
   if (!man.산출.length) { console.error('수집 0건 — 인증키·승인상태·행정코드를 확인하십시오.'); process.exit(WORST[worst] || 1); }
-  const partial = man.호출.some(c => !['OK', 'SKIP'].includes(c.상태));
+  const partial = man.호출.some(c => !['OK', 'SKIP', 'NODATA'].includes(c.상태));
   process.exit(partial ? Math.max(1, WORST[worst]) : 0);
 }
 
