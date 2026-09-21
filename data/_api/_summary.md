@@ -1,8 +1,8 @@
 # 공공 API 실측 진단
 
-**잰 시각** 2026. 9. 20. 17시 51분 8초 · **잰 곳** GitHub Actions (열쇠가 있는 자리)
+**잰 시각** 2026. 9. 21. 8시 59분 59초 · **잰 곳** GitHub Actions (열쇠가 있는 자리)
 
-**9개 항목 중 6개 살아 있음 · 3개 실패**
+**9개 항목 중 7개 살아 있음 · 2개 실패**
 
 > 이 파일은 `npm run im:smoke` 를 **키가 있는 자리에서 돌린 결과**입니다.
 > 키는 한 글자도 담기지 않습니다 — 쓰기 전에 기계가 세고, 걸리면 안 씁니다.
@@ -18,7 +18,7 @@
 | `KEPCO_BIGDATA_KEY` | 한국전력 | 전력 사용량 | ✅ `KEPCO_BIGDATA_KEY` |
 | `KMA_APIHUB_KEY` | 기상청 | 일사·일조 (태양광) | ✅ `KMA_APIHUB_KEY` |
 | `DATA_GO_KR_KEY` 또는 `APIS_DATA` 또는 `SPECIAL_DAY_INFO` | 공공데이터포털 | 실거래가·건축물대장·인허가·특일정보 (이름을 다 읽는다 — connectors/datakey.js 의 차례 그대로) | ✅ `DATA_GO_KR_KEY` |
-| `WEATHER_GO` | (미측정) | 날씨 — 어느 기관인지 아직 안 쟀다. 들어 있는지만 본다 | ✅ `WEATHER_GO` |
+| `WEATHER_GO` | 공공데이터포털 기상청 | 단기예보 (VilageFcstInfoService_2.0) — 아직 커넥터에 안 붙였다 | ✅ `WEATHER_GO` |
 | `LAW_OC` 또는 `LAW_OPEN_DATA` | 국가법령정보센터 | 법령·조례 (이름 둘 다 읽는다) | ✅ `LAW_OC` |
 | `VWORLD_KEY` 또는 `LINKPILOT_VWORLD_WEB_KEY` 또는 `LINKPILOT_VWORLD_REPORT_KEY` | 브이월드 | 지오코딩·지적·토지특성 (이름을 다 읽는다 — connectors/vworldkey.js 의 차례 그대로) | ✅ `LINKPILOT_VWORLD_WEB_KEY` |
 | `VWORLD_DOMAIN` | 브이월드 | 서비스URL — 키와 **짝**이라 둘 다 있어야 한다 | ✅ `VWORLD_DOMAIN` |
@@ -35,8 +35,8 @@
 | 한국은행 ECOS 시장금리 | ✅ 살아 있음 | — | — |
 | 한국은행 ECOS 생산자물가 업종목록 (404Y014) | ✅ 살아 있음 | — | — |
 | 통계청 KOSIS 통계표 검색 (가동률) | ✅ 살아 있음 | — | — |
-| DART 시행사 대조 (삼성물산) | ✕ 응답 없음 | 타임아웃 60000ms (4회 시도 실패) | 서버가 안 받았습니다 — 일시적일 수 있습니다 |
-| VWorld 지오코딩 | ✕ 실패 | 지오코딩 실패 — fetch failed (4회 시도 실패) (주소: 강원특별자치도 원주시 신림면 송계리 6 | 아래 진단 원문을 보십시오 |
+| DART 시행사 대조 (삼성물산) | ✅ 살아 있음 | — | — |
+| VWorld 지오코딩 | ✕ 실패 | 지오코딩 실패 — HTTP 502 (4회 시도 실패) (주소: 강원특별자치도 원주시 신림면 송계리 695-4 | 아래 진단 원문을 보십시오 |
 | REC 현물시장 (전력거래소) | ✅ 살아 있음 | — | — |
 | 지가지수 (부동산원) | ✅ 살아 있음 | — | — |
 | 기업기본정보 (금융위) | ✅ 살아 있음 | — | — |
