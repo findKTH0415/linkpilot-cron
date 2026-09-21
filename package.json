@@ -11,7 +11,7 @@
     "im:demo": "IM_AGENT_OFFLINE=1 node im-agent/cli.js demo",
     "branch:check": "node im-agent/tools/branch-doctor.js",
     "push:guard": "node im-agent/tools/push-guard.js",
-    "hooks:on": "git config core.hooksPath .githooks && echo '  \u2713 \ud6c5 \ucf1c\uc84c\uc2b5\ub2c8\ub2e4 \u2014 \uc774\uc81c push \uc804\uc5d0 push-guard \uac00 \uc2a4\uc2a4\ub85c \ub3d5\ub2c8\ub2e4.'",
+    "hooks:on": "git config core.hooksPath .githooks && echo '  ✓ 훅 켜졌습니다 — 이제 push 전에 push-guard 가 스스로 돕니다.'",
     "agent:check": "node im-agent/tools/agent-doctor.js",
     "im:smoke": "node im-agent/tools/smoke-public-data.js",
     "im:api-report": "node im-agent/tools/api-report.js",
@@ -71,7 +71,8 @@
     "probe:load": "node im-agent/tools/probe-load.js",
     "calendar:fetch": "node im-agent/tools/calendar-fetch.js",
     "calendar:nas": "bash im-agent/tools/calendar-nas.sh",
-    "yeoui893:nas": "bash im-agent/tools/yeoui893-nas.sh"
+    "yeoui893:nas": "bash im-agent/tools/yeoui893-nas.sh",
+    "routing:nas": "bash im-agent/tools/routing-nas.sh"
   },
   "dependencies": {
     "solapi": "^5.5.1"
