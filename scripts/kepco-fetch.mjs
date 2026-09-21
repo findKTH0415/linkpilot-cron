@@ -11,7 +11,7 @@
  *
  * 종료 코드
  *   0 전부 수집   1 일부 수집   2 서버 미응답
- *   3 HTTP 5xx    4 인증 거부   5 행정코드 불일치
+ *   3 HTTP 5xx 또는 경로 없음(404)   4 인증 거부   5 행정코드 불일치
  *
  * 산출
  *   data/kepco/      시군구 단위 — 공개 공공데이터, 커밋 대상
@@ -54,7 +54,7 @@ function rowsOf(obj) {
   return [];
 }
 
-const WORST = { OK: 0, EMPTY: 1, NET: 2, S5XX: 3, AUTH: 4, CODE: 5 };
+const WORST = { OK: 0, EMPTY: 1, NET: 2, S5XX: 3, NOTFOUND: 3, AUTH: 4, CODE: 5 };
 let worst = 'OK';
 const bump = s => { if (WORST[s] > WORST[worst]) worst = s; };
 
@@ -75,8 +75,12 @@ async function call(pathname, params) {
       });
 
       if ([400, 401, 403, 404].includes(res.status)) {
-        console.error(`  HTTP${res.status} ${safe} — 재시도하지 않습니다`);
-        return { obj: null, status: res.status === 400 ? 'EMPTY' : 'AUTH' };
+        const why = res.status === 400 ? '요청 인자 오류'
+                  : res.status === 404 ? '경로 없음 — 요청 URL 을 규격과 대조하십시오'
+                  : '인증 거부 — 해당 API 의 활용신청·승인 상태를 확인하십시오';
+        console.error(`  HTTP${res.status} ${safe}\n        ${why}`);
+        const st = res.status === 400 ? 'EMPTY' : res.status === 404 ? 'NOTFOUND' : 'AUTH';
+        return { obj: null, status: st };
       }
       if (res.status >= 500) {
         console.warn(`  retry ${attempt}/3  HTTP${res.status}  ${safe}`);
