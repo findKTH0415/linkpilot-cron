@@ -72,7 +72,8 @@
     "calendar:fetch": "node im-agent/tools/calendar-fetch.js",
     "calendar:nas": "bash im-agent/tools/calendar-nas.sh",
     "yeoui893:nas": "bash im-agent/tools/yeoui893-nas.sh",
-    "routing:nas": "bash im-agent/tools/routing-nas.sh"
+    "routing:nas": "bash im-agent/tools/routing-nas.sh",
+    "weather:nas": "bash im-agent/tools/weather-nas.sh"
   },
   "dependencies": {
     "solapi": "^5.5.1"

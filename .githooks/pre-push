@@ -46,9 +46,28 @@ echo "$LOST"
 echo ""
 echo "  ✓ 덮일 커밋 지문을 적어 뒀습니다 — ${OUT#$ROOT/}/OVERWRITTEN.txt"
 echo ""
-echo "  ★ 먼저 보십시오: 그 커밋들이 \`main\` 에 이미 들어가 있습니까?"
-echo "    들어가 있으면 덮어도 잃는 것이 없고, 아니면 **그 일이 사라집니다.**"
-echo "    (재는 법: git log --oneline origin/main..<그 지문>)"
+# ★★★ **지문으로는 «스쿼시»를 못 본다** 〈2026-09-21 · 실측 · 만든 날〉.
+#   PR 의 커밋 여럿이 스쿼시로 한 커밋이 되면 **지문이 달라져** `git log main..<지문>` 이
+#   「없다」고 한다 — 그런데 **내용은 이미 다 들어가 있다.** 그 글을 그대로 읽으면
+#   「그 일이 사라진다」로 읽혀 **멀쩡한 push 를 접게 된다** (M-86 · §4.6 과 같은 결).
+#   ★ 그래서 **내용을 견줘 먼저 말한다** — 잣대가 둘이면 둘 다 적는다 (§8).
+# ★ 재는 것은 «덮일 커밋의 내용이 기준 가지에 있는가»다 — 「원격 가지와 HEAD 가
+#   같은가」가 아니다(내 새 커밋 때문에 늘 다르다). 처음에 그렇게 재어 헛돌았다.
+BASE="${LP_BASE:-main}"
+SAME=""
+for R in $(printf '%s\n' "$LOST" | sed -n 's/^--- \(.*\) (원격 .*/\1/p'); do
+  RB="${R#refs/heads/}"
+  if git diff --quiet "origin/${BASE}" "origin/${RB}" 2>/dev/null; then SAME="yes"; fi
+done
+if [ -n "$SAME" ]; then
+  echo "  ✓ **내용은 이미 같습니다** — 덮어도 잃는 것이 없습니다."
+  echo "    (스쿼시 병합이면 지문이 달라져도 내용은 들어가 있습니다)"
+else
+  echo "  ★ 먼저 보십시오: 그 커밋들의 **내용**이 이미 들어가 있습니까?"
+  echo "    (재는 법: git diff --stat origin/main origin/<그 가지> — 비었으면 잃을 것이 없습니다)"
+  echo "    ★★ **지문으로 재지 마십시오** — 스쿼시 병합이면 지문이 달라져"
+  echo "       \`git log origin/main..<지문>\` 이 「없다」고 말합니다. 그 글은 틀린 곳을 가리킵니다."
+fi
 echo ""
 echo "  ★★ 정말 덮으실 것이면: LP_FORCE_OK=1 git push …"
 echo ""

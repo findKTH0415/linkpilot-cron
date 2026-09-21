@@ -192,6 +192,55 @@ test('기준에도 원격에도 «없는» 커밋은 여전히 센다 — 반대
   } finally { rm(R.base); }
 });
 
+// ── ⑤-3 «여럿이 하나로» 스쿼시돼도 내용이 같으면 0 개다 ─────────────────
+test('여러 커밋이 «하나로» 스쿼시돼도 내용이 같으면 «사라진다»로 안 센다', () => {
+  const R = mkRepo();
+  try {
+    /* ★★★ **patch-id 로는 이것을 못 거른다** 〈2026-09-21 · 실측 · 두 번째〉.
+         `--cherry-pick` 은 커밋 하나하나를 견준다. PR 의 커밋 «여럿»이 스쿼시로
+         **한 커밋**이 되면 그 지문이 어느 쪽과도 안 맞아 **전부 「사라진다」**로 세졌다.
+       ★ 잣대는 **내용**이다 — 이미 그 ref 에 다 있으면 잃을 것이 없다. */
+    git(R.work, ['checkout', '-q', '-b', 'lp-multi']);
+    for (const n of ['p', 'q', 'r']) {
+      fs.writeFileSync(path.join(R.work, `${n}.txt`), n + '\n');
+      git(R.work, ['add', '-A']);
+      git(R.work, ['commit', '-m', `lp-part-${n}`]);
+    }
+    git(R.work, ['push', '-q', '-u', 'origin', 'lp-multi']);
+
+    // main 에 «셋을 하나로» 합친 커밋이 들어간 상태 — 그것이 스쿼시 병합이다
+    git(R.work, ['checkout', '-q', 'main']);
+    for (const n of ['p', 'q', 'r']) fs.writeFileSync(path.join(R.work, `${n}.txt`), n + '\n');
+    git(R.work, ['add', '-A']);
+    git(R.work, ['commit', '-m', 'lp-squashed-three (#9)']);
+    git(R.work, ['push', '-q', 'origin', 'main']);
+    git(R.work, ['checkout', '-q', 'lp-multi']);
+
+    const r = runTool(R.work, ['--base', 'main']);
+    assert.strictEqual(r.code, 0,
+      `★ 스쿼시로 이미 들어간 셋을 「사라진다」로 셌습니다 — 늘 빨가면 아무도 안 봅니다\n${r.out}`);
+  } finally { rm(R.base); }
+});
+
+test('내용이 «한 줄이라도» 다르면 여전히 센다 — 반대로도 막는다', () => {
+  const R = mkRepo();
+  try {
+    git(R.work, ['checkout', '-q', '-b', 'lp-diff']);
+    fs.writeFileSync(path.join(R.work, 'p.txt'), 'p\n');
+    git(R.work, ['add', '-A']);
+    git(R.work, ['commit', '-m', 'lp-part-p']);
+    git(R.work, ['push', '-q', '-u', 'origin', 'lp-diff']);
+    /* 원격에 없는 «다른» 내용을 얹는다 — 이것은 정말 사라진다 */
+    fs.writeFileSync(path.join(R.work, 'p.txt'), 'p-changed\n');
+    git(R.work, ['add', '-A']);
+    git(R.work, ['commit', '-m', 'lp-really-new']);
+    const r = runTool(R.work, ['--base', 'main']);
+    assert.strictEqual(r.code, 1,
+      `★ 정말 사라질 것을 놓쳤습니다 — 그러면 이 도구가 없는 것과 같습니다\n${r.out}`);
+    assert.match(r.out, /lp-really-new/, '어느 커밋이 사라지는지 안 적습니다');
+  } finally { rm(R.base); }
+});
+
 // ── ⑥ 훅이 «실제로» force-push 를 막는다 ─────────────────────────────────
 test('훅이 원격 커밋을 덮는 push 를 실제로 막고, 덮일 지문을 먼저 적어 둔다', () => {
   const R = mkRepo();
