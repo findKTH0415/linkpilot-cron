@@ -117,6 +117,24 @@ function aheadNone(dir, refs) {
     const ids = new Set(set.map((l) => l.split(' ')[0]));
     keep = keep === null ? set : keep.filter((l) => ids.has(l.split(' ')[0]));
   }
+  /* ★★★ **기준 가지를 «하나로 박으면» 저장소마다 틀린다** 〈2026-09-21 · 실측 · D-255〉.
+       [무엇이 났나] `linkpilot-platform` 에 새 가지를 처음 밀 때 **703 개를 잃는다**고
+       적었다. 그 저장소의 일은 `platform` 가지에서 도는데 이 도구의 기준 기본값이
+       `main` 이고, 거기 `origin/main` 은 703 커밋 뒤처진 다른 가지였다.
+       잰 값: `origin/main` 703 · `origin/platform` 1 · **원격 전체 0**.
+     ★ 그러니 **기준을 짐작하지 않는다** — 커밋이 «원격 어느 가지에든» 닿으면
+       되돌려도 안 사라진다. 그것이 이 도구가 재려던 바로 그 성질이다.
+     ★★ **늘 빨간 경고는 그 빨강이 뜻을 잃는다** (§4 · 이 파일이 제 머리말에 적어
+       둔 그 규칙). 새 가지를 밀 때마다 빨개지면 다음에는 안 읽는다.
+     ★★★ **반대로도 막는다** — 어디에도 안 닿는 커밋은 **여전히 센다**(사보타주로 확인).
+     ★ 못 쟀으면(null) 거르지 않는다 — 「못 쟀다」를 「없다」로 안 적는다 (§12-12). */
+  if (keep && keep.length) {
+    const un = git(dir, ['rev-list', 'HEAD', '--not', '--remotes=origin']);
+    if (un != null) {
+      const far = new Set((un ? un.split('\n') : []).map((h) => h.slice(0, 7)));
+      keep = keep.filter((l) => far.has(l.split(' ')[0].slice(0, 7)));
+    }
+  }
   return keep;                                       // null = 한 ref 도 못 쟀다
 }
 

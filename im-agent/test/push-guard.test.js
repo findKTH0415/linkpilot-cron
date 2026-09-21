@@ -317,3 +317,52 @@ test('잣대 자기검사 — 추적 안 되는 파일을 안 세도록 무디�
   // 상한을 적어 두었는가 — 다 베낀 척하지 않는다
   assert.match(src, /truncated/, '★ 일부만 베낀 것을 다 베낀 것처럼 적으면 그 백업이 거짓말을 합니다 (§8)');
 });
+
+// ── ⑩ 기준 가지를 «짐작»하지 않는다 — 원격 어디에든 닿으면 안 사라진다 ──
+test('기준 가지가 실제와 다른 저장소에서도 0 개다 — 기준을 짐작하면 늘 빨개진다', () => {
+  const R = mkRepo();
+  try {
+    /* ★★★ **기준 가지를 «하나로 박으면» 저장소마다 틀린다** 〈2026-09-21 · 실측 · D-255〉.
+         `linkpilot-platform` 에 새 가지를 처음 밀 때 **703 개를 잃는다**고 적었다.
+         그 저장소의 일은 `platform` 가지에서 도는데 이 도구의 기준 기본값이 `main` 이고,
+         거기 `origin/main` 은 703 커밋 뒤처진 다른 가지였다.
+         잰 값: `origin/main` 703 · `origin/platform` 1 · **원격 전체 0**.
+       ★ 표본이 그 성질을 지켜야 한다 — 기준(`main`)을 **일부러 뒤처지게** 두고
+         진짜 일은 다른 원격 가지에서 돌린다. 그래야 「기준만 보는가」가 갈린다. */
+    /* ★★★ **표본이 실제 고장 조건을 지켜야 한다** 〈실측 · 사보타주가 한 번 빠져나갔다〉.
+         처음에 `origin/lp-real` 을 만들어 두었더니 **upstream ref 가 있어** 옛 코드도
+         0 을 냈다 — 거르개를 꺼도 15칸이 전부 초록이었다.
+       ★ 실제로 난 자리는 **upstream ref 가 아직 없고**(새 가지) 그 커밋이
+         **«다른» 원격 가지에 있는** 경우다. 그때 옛 코드는 기준(main)만 보고 빨개졌다. */
+    git(R.work, ['checkout', '-q', '-b', 'lp-real']);
+    fs.writeFileSync(path.join(R.work, 'a.txt'), 'real-work\n');
+    git(R.work, ['add', '-A']);
+    git(R.work, ['commit', '-m', 'lp-real-1']);
+    git(R.work, ['push', '-q', 'origin', 'HEAD:refs/heads/lp-archive']);  // «다른» 가지에 있다
+    // origin/lp-real 은 «없다»(새 가지) · main 은 뒤처져 있다 → 기준만 보면 빨개진다
+    const r = runTool(R.work, ['--base', 'main']);
+    assert.strictEqual(r.code, 0,
+      `★ 원격에 «있는» 커밋을 기준(main)에 없다는 이유로 「사라진다」로 셌습니다.\n`
+      + `  새 가지를 밀 때마다 빨개지면 그 빨강이 뜻을 잃습니다 (§4).\n${r.out}`);
+    assert.ok(!/lp-real-1/.test(r.out), '★ 그 커밋을 목록에 적습니다 — 원격에 멀쩡히 있습니다');
+  } finally { rm(R.base); }
+});
+
+test('원격 어디에도 «안 닿는» 커밋은 여전히 센다 — 반대로도 막는다', () => {
+  const R = mkRepo();
+  try {
+    git(R.work, ['checkout', '-q', '-b', 'lp-real']);
+    fs.writeFileSync(path.join(R.work, 'a.txt'), 'real-work\n');
+    git(R.work, ['add', '-A']);
+    git(R.work, ['commit', '-m', 'lp-real-1']);
+    git(R.work, ['push', '-q', 'origin', 'HEAD:refs/heads/lp-archive']);
+    fs.writeFileSync(path.join(R.work, 'a.txt'), 'never-pushed\n');   // 이것만 안 민다
+    git(R.work, ['add', '-A']);
+    git(R.work, ['commit', '-m', 'lp-never-pushed']);
+    const r = runTool(R.work, ['--base', 'main']);
+    assert.strictEqual(r.code, 1,
+      `★ 어디에도 없는 커밋을 못 셉니다 — 넓게 고치면 이 도구가 없는 것과 같아집니다\n${r.out}`);
+    assert.match(r.out, /lp-never-pushed/, '그 커밋의 지문을 안 적습니다');
+    assert.ok(!/lp-real-1/.test(r.out), '★ 원격에 있는 커밋까지 함께 셌습니다');
+  } finally { rm(R.base); }
+});
