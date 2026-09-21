@@ -1,0 +1,85 @@
+name: 한전 계통 여유용량 조회
+
+on:
+  workflow_dispatch:
+    inputs:
+      months:
+        description: "월별 시계열 길이 (기본 24)"
+        required: false
+        default: "24"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: kepco-fetch
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 인증키 확인
+        env:
+          KEPCO_API_KEY: ${{ secrets.KEPCO_API_KEY }}
+        run: |
+          if [ -z "$KEPCO_API_KEY" ]; then
+            echo "::error::KEPCO_API_KEY 시크릿이 없습니다. Settings → Secrets and variables → Actions 에서 등록하십시오."
+            exit 1
+          fi
+          echo "인증키 길이 ${#KEPCO_API_KEY}자"
+
+      - name: 수집 실행
+        env:
+          KEPCO_API_KEY: ${{ secrets.KEPCO_API_KEY }}
+          KEPCO_SITE: ${{ secrets.KEPCO_SITE }}
+          KEPCO_MONTHS: ${{ github.event.inputs.months || '24' }}
+        run: node scripts/kepco-fetch.mjs
+
+      - name: 결과 요약
+        if: always()
+        run: |
+          if [ -f data/kepco/manifest.json ]; then
+            echo '### 한전 계통 수집 결과' >> $GITHUB_STEP_SUMMARY
+            echo '```json' >> $GITHUB_STEP_SUMMARY
+            cat data/kepco/manifest.json >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: 결과 커밋
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/kepco
+          if git diff --staged --quiet; then
+            echo "변경 없음 — 커밋하지 않습니다"
+          else
+            git commit -m "한전 계통 자료 갱신 ($(date -u +%Y-%m-%d))"
+            git push
+          fi
+
+      - name: 산출물 보관 (시군구 단위)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kepco-data
+          path: data/kepco
+          retention-days: 90
+          if-no-files-found: warn
+
+      - name: 산출물 보관 (지번 단위 · 비공개)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kepco-site-private
+          path: private/kepco
+          retention-days: 90
+          if-no-files-found: ignore
