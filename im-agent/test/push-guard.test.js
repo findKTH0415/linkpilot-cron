@@ -366,3 +366,61 @@ test('원격 어디에도 «안 닿는» 커밋은 여전히 센다 — 반대�
     assert.ok(!/lp-real-1/.test(r.out), '★ 원격에 있는 커밋까지 함께 셌습니다');
   } finally { rm(R.base); }
 });
+
+// ── 원격을 «다 못 보는» 자리 — 「못 쟀다」를 「잃는다」로 안 적는다 (D-257) ────
+/**
+ * ★★★ **실측으로 잡았다** 〈2026-09-21〉. 이 개발 컨테이너의 `linkpilot-platform`
+ *   클론은 `remote.origin.fetch` 가 `+refs/heads/main:refs/remotes/origin/main`
+ *   **하나**였다. 그래서 방금 민 가지의 `origin/<가지>` 가 안 생기고, 이 도구가
+ *   **「원격 어디에도 없는 커밋 1 개」**라고 적었다 — 그 커밋은 **이미 밀린 뒤**였다.
+ * ★ 곧 **「못 쟀다」를 「잃는다」로 적은 것**이고, 이 도구가 제 머리말에 적어 둔
+ *   §12-12 를 **스스로 어긴 자리**다. 늘 빨간 경고는 그 빨강이 뜻을 잃는다 (§4).
+ */
+test('원격을 다 못 보는 자리에서는 값 2(못 쟀다)다 — 1(잃는다)로 안 적는다', () => {
+  const R = mkRepo();
+  try {
+    // refspec 을 «좁힌다» — 이 컨테이너가 실제로 그런 모양이었다
+    git(R.work, ['config', '--unset-all', 'remote.origin.fetch']);
+    git(R.work, ['config', 'remote.origin.fetch', '+refs/heads/main:refs/remotes/origin/main']);
+
+    git(R.work, ['checkout', '-q', '-b', 'lp-narrow']);
+    fs.writeFileSync(path.join(R.work, 'a.txt'), 'pushed-but-unseen\n');
+    git(R.work, ['add', '-A']);
+    git(R.work, ['commit', '-m', 'lp-pushed-1']);
+    git(R.work, ['push', '-q', 'origin', 'HEAD:refs/heads/lp-narrow']);   // 진짜로 밀었다
+    git(R.work, ['fetch', '-q', 'origin']);                               // 좁은 규칙이라 ref 가 안 생긴다
+
+    assert.strictEqual(
+      git(R.work, ['rev-parse', '--verify', '--quiet', 'origin/lp-narrow']).status !== 0, true,
+      '★ 표본이 재려는 성질을 안 지킵니다 — 추적 ref 가 «없어야» 이 갈래를 잽니다 (§8)');
+
+    const r = runTool(R.work, ['--base', 'main']);
+    assert.strictEqual(r.code, 2,
+      `★ 원격을 다 못 보는데 «잃는다(1)»로 적었습니다.\n`
+      + `  그 커밋은 이미 밀려 있습니다 — 「못 쟀다」와 「없다」가 같은 값이면\n`
+      + `  이 도구가 멀쩡한 push 마다 빨개집니다 (§12-12 · §4).\n${r.out}`);
+    assert.match(r.out, /remote\.origin\.fetch/,
+      '★ 무엇이 막았는지를 안 적습니다 — 사장님이 고칠 자리를 못 찾으십니다 (§4.6)');
+    assert.match(r.out, /refs\/heads\/\*/,
+      '★ 넓히는 법을 안 적습니다 — 막다른 길입니다 (§6-3 ⑥)');
+  } finally { rm(R.base); }
+});
+
+/** ★ **반대로도 막는다** — 좁은 자리여도 «커밋 안 된 변경»은 로컬 사실이라 여전히 1 이다. */
+test('원격을 다 못 봐도 커밋 안 된 변경은 여전히 값 1 이다 — 로컬 사실은 못 쟀다가 아니다', () => {
+  const R = mkRepo();
+  try {
+    git(R.work, ['config', '--unset-all', 'remote.origin.fetch']);
+    git(R.work, ['config', 'remote.origin.fetch', '+refs/heads/main:refs/remotes/origin/main']);
+    git(R.work, ['checkout', '-q', '-b', 'lp-narrow2']);
+    fs.writeFileSync(path.join(R.work, 'a.txt'), 'x\n');
+    git(R.work, ['add', '-A']);
+    git(R.work, ['commit', '-m', 'lp-c1']);
+    git(R.work, ['push', '-q', 'origin', 'HEAD:refs/heads/lp-narrow2']);
+    fs.writeFileSync(path.join(R.work, 'b.txt'), 'uncommitted\n');        // 이것이 진짜 위험이다
+    const r = runTool(R.work, ['--base', 'main']);
+    assert.strictEqual(r.code, 1,
+      `★ 커밋 안 된 변경이 있는데 «못 쟀다(2)»로 넘겼습니다 — 그것은 원격과 무관한 로컬 사실입니다\n${r.out}`);
+    assert.match(r.out, /b\.txt/, '그 파일 이름을 안 적습니다');
+  } finally { rm(R.base); }
+});

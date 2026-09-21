@@ -150,6 +150,25 @@ function ahead(dir, ref) {
  * 잰다. 되돌아오는 것은 **사실만** — 무엇을 하라는 말은 부르는 쪽이 적는다
  * (§12-19 — 나르는 자리가 스스로 처방을 적지 않는다).
  */
+/**
+ * **원격을 «다 볼 수 있는가».** `remote.origin.fetch` 가 `refs/heads/*` 를 덮지 않으면
+ * 추적 ref 가 **일부만** 생겨, `--remotes=origin` 이 말하는 「어디에도 없다」가 거짓이 된다.
+ *
+ * ★★★ 〈2026-09-21 · 실측 · D-257〉 이 개발 컨테이너의 refspec 이
+ *   `+refs/heads/main:refs/remotes/origin/main` **하나**였다. 그래서 방금 민 가지의
+ *   `origin/<가지>` 가 **안 생기고**, 이 도구가 **「원격 어디에도 없는 커밋 1 개」**라고
+ *   적었다 — 실제로는 **밀린 뒤**였다. 곧 **「못 쟀다」를 「잃는다」로 적은 것**이고,
+ *   이 파일이 제 머리말에 적어 둔 §12-12 를 **제가 어긴 자리**다.
+ * ★ **늘 빨간 경고는 그 빨강이 뜻을 잃는다** (§4 · D-255 와 같은 결).
+ * ★★ 돌려주는 것은 **사실만**이다 — true(좁다) · false(다 본다) · null(못 쟀다).
+ */
+function remoteNarrow(dir) {
+  const spec = git(dir, ['config', '--get-all', 'remote.origin.fetch']);
+  if (spec == null) return null;                       // 못 쟀다
+  if (!spec) return true;                              // 가져오는 규칙이 아예 없다
+  return !spec.split('\n').some((l) => l.includes('refs/heads/*'));
+}
+
 function survey(dir, base) {
   const root = git(dir, ['rev-parse', '--show-toplevel']);
   if (root == null) return { ok: false, why: 'not-a-repo' };
@@ -175,6 +194,10 @@ function survey(dir, base) {
        ★ 늘 빨간 경고는 **그 빨강이 뜻을 잃는다** (§4 의 그 결). 그러니
          **원격에도 없고 기준에도 없는 것**만 센다. */
     aheadBoth: aheadNone(dir, [upstream, `origin/${base}`]),
+    /* ★ 원격을 다 볼 수 있는지 — 아니면 위 세 값의 「없다」를 못 믿는다 (D-257) */
+    narrow: remoteNarrow(dir),
+    /* ★ 이 가지의 추적 ref 가 실제로 있는가 — 없으면 「밀렸는지」를 이 자리에서 못 본다 */
+    seesBranch: upstream ? git(dir, ['rev-parse', '--verify', '--quiet', upstream]) != null : null,
     base,
   };
 }
@@ -244,7 +267,32 @@ function main() {
   if (!r.any) {
     console.log(`  ✓ 사라질 것이 없습니다 — 가지 \`${s.branch}\``);
     if (s.aheadRemote == null) console.log(`  ★ 다만 \`origin/${s.branch}\` 를 못 읽었습니다 — 원격에 아직 없는 가지일 수 있습니다.`);
+    if (s.narrow === true) console.log('  ★★ 이 저장소는 `remote.origin.fetch` 가 좁아 **원격을 다 보지 못합니다** — 위 「없습니다」는 그만큼만 잰 것입니다 (D-257).');
     process.exit(0);
+  }
+
+  /* ★★★ **「못 쟀다」를 「잃는다」로 안 적는다** 〈D-257 · §12-12 의 그 잣대〉.
+       원격을 다 못 보는 자리(좁은 refspec)에서 **이 가지의 추적 ref 가 없으면**,
+       「원격 어디에도 없다」는 **못 본 것**이지 없는 것이 아니다 — 실측으로
+       방금 «민» 커밋이 「잃는다」로 세졌다.
+     ★ 커밋 안 된 변경은 **이 자리와 무관하다**(로컬 사실이다). 그것이 있으면
+       여전히 1 이고, 없을 때만 2 로 끝낸다.
+     ★★ **반대로도 막는다** — 원격을 다 보는 저장소에서 정말 안 밀린 커밋은
+       **여전히 1** 이다 (사보타주로 확인).
+     ★★★ 훅은 이 값으로 막지 않는다(`|| true`) — 보통 push 는 그대로 통과한다. */
+  const blind = r.onlyHere > 0 && s.narrow === true && s.seesBranch === false;
+  if (blind && !r.unsaved) {
+    console.log('  ⚠ **못 쟀습니다** — 이 자리는 통과가 아닙니다.');
+    console.log('');
+    console.log(`  · 이 저장소의 \`remote.origin.fetch\` 가 **좁습니다** — \`refs/heads/*\` 를 안 덮습니다.`);
+    console.log(`     그래서 \`origin/${s.branch}\` 추적 ref 가 **아예 없고**, 「원격 어디에도 없다」를 못 믿습니다.`);
+    console.log(`  · 그 잣대로는 커밋 **${r.onlyHere} 개**가 「어디에도 없다」로 세졌습니다 — **이미 밀린 것일 수 있습니다.**`);
+    console.log('');
+    console.log('  ★ 넓히는 법 (한 줄):');
+    console.log("     git config --add remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*' && git fetch origin");
+    console.log('  ★★ 그 전에는 **되돌리기·force-push 를 하지 마십시오** — 무엇이 사라지는지 이 자리가 못 봅니다.');
+    console.log('');
+    process.exit(2);
   }
 
   console.log('  ❌ **되돌리면 사라지는 것이 있습니다.**');
