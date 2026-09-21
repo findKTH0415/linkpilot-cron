@@ -143,6 +143,55 @@ test('origin 에 없는 커밋을 세고, --save 가 그 지문을 COMMITS.txt �
   } finally { rm(R.base); }
 });
 
+// ── ⑤-2 기준에 «이미 합쳐진» 커밋은 사라진다고 안 센다 ──────────────────
+test('스쿼시로 기준에 이미 들어간 커밋을 «사라진다»로 안 센다 — 늘 빨가면 그 빨강이 뜻을 잃는다', () => {
+  const R = mkRepo();
+  try {
+    /* ★★★ **이 도구가 «제 고장»을 찾아 준 자리다** 〈2026-09-21 · 실측〉.
+         앞 판은 `origin/<이 가지>` 에만 없으면 「사라진다」고 적어 **12개를 잃는다고 했고
+         그 대부분이 이미 합쳐진 것**이었다. 스쿼시 병합이면 늘 그렇다.
+       ★ 잣대는 **「되돌리면 정말 사라지는가」**다 — 기준에 있으면 안 사라진다. */
+    fs.writeFileSync(path.join(R.work, 'a.txt'), 'squashed-change\n');
+    git(R.work, ['add', '-A']);
+    git(R.work, ['commit', '-m', 'lp-squash-source']);
+
+    /* ★★★ **표본이 재려는 성질을 지켜야 한다** 〈실측 · 사보타주가 한 번 빠져나갔다〉.
+         처음에 원격 «작업가지»를 안 만들었더니 볼 ref 가 `origin/main` 하나뿐이라,
+         「ref 마다 따로 돌리는가」를 무디게 해도 **수가 같아 안 잡혔다.**
+       ★ 그래서 작업가지를 **X 가 들어가기 «전» 상태로** 원격에 밀어 둔다 —
+         그러면 두 ref 의 답이 갈리고 그 갈래가 재진다 (§8). */
+    git(R.work, ['checkout', '-q', '-b', 'lp-work']);
+    git(R.work, ['push', '-q', '-u', 'origin', 'HEAD~1:refs/heads/lp-work']);
+    git(R.work, ['branch', '-q', '--set-upstream-to=origin/lp-work']);
+    git(R.work, ['checkout', '-q', 'main']);
+    git(R.work, ['reset', '--hard', '-q', 'HEAD~1']);
+    fs.writeFileSync(path.join(R.work, 'a.txt'), 'squashed-change\n');
+    git(R.work, ['add', '-A']);
+    git(R.work, ['commit', '-m', 'lp-squashed-into-main (#1)']);
+    git(R.work, ['push', '-f', '-q', 'origin', 'main']);
+    git(R.work, ['checkout', '-q', 'lp-work']);
+
+    const r = runTool(R.work, ['--base', 'main']);
+    assert.strictEqual(r.code, 0,
+      `★ 기준에 이미 합쳐진 커밋을 「사라진다」로 셌습니다 — 늘 빨가면 아무도 안 봅니다\n${r.out}`);
+    assert.ok(!/lp-squash-source/.test(r.out), '그 커밋을 목록에 적습니다');
+  } finally { rm(R.base); }
+});
+
+test('기준에도 원격에도 «없는» 커밋은 여전히 센다 — 반대로도 막는다', () => {
+  const R = mkRepo();
+  try {
+    git(R.work, ['checkout', '-q', '-b', 'lp-work2']);
+    fs.writeFileSync(path.join(R.work, 'z.txt'), 'only-here\n');
+    git(R.work, ['add', '-A']);
+    git(R.work, ['commit', '-m', 'lp-nowhere-else']);
+    const r = runTool(R.work, ['--base', 'main']);
+    assert.strictEqual(r.code, 1,
+      `★ 어디에도 없는 커밋을 놓쳤습니다 — 그러면 이 도구가 없는 것과 같습니다\n${r.out}`);
+    assert.match(r.out, /lp-nowhere-else/, '어느 커밋이 사라지는지 안 적습니다');
+  } finally { rm(R.base); }
+});
+
 // ── ⑥ 훅이 «실제로» force-push 를 막는다 ─────────────────────────────────
 test('훅이 원격 커밋을 덮는 push 를 실제로 막고, 덮일 지문을 먼저 적어 둔다', () => {
   const R = mkRepo();

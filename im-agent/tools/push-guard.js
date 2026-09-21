@@ -89,6 +89,30 @@ function dirty(dir) {
   });
 }
 
+/**
+ * **주어진 ref 들 «어디에도» 없는** 커밋. 하나도 못 읽으면 null(못 쟀다).
+ * ★ 스쿼시 병합이면 같은 일이 «다른 지문»으로 기준에 들어간다 — 그래서
+ *   지문만으로는 「이미 합쳐졌다」를 못 본다. `--cherry-pick` 이 그것을 걸러 준다.
+ */
+function aheadNone(dir, refs) {
+  const live = refs.filter((r) => r && git(dir, ['rev-parse', '--verify', '--quiet', r]) != null);
+  if (!live.length) return null;
+  /* ★★★ **`A...HEAD` 는 ref 를 «하나»만 받는다** 〈2026-09-21 · 실측으로 잡았다〉.
+       처음에 `${live[0]}...HEAD ^${live[1]}` 로 섞어 썼더니 **patch-id 가 같은데도
+       안 걸러졌다**(재 보니 두 지문의 patch-id 가 글자 하나 안 달랐다).
+     ★ 그래서 **ref 마다 따로 돌려 «전부에서 빠진 것»만 남긴다** — 하나라도
+       「이미 있다」고 하면 그 커밋은 안 사라진다. */
+  let keep = null;
+  for (const r of live) {
+    const out = git(dir, ['rev-list', '--oneline', '--right-only', '--cherry-pick', `${r}...HEAD`]);
+    if (out == null) continue;                       // 이 ref 는 못 쟀다 — 건너뛴다
+    const set = out ? out.split('\n') : [];
+    const ids = new Set(set.map((l) => l.split(' ')[0]));
+    keep = keep === null ? set : keep.filter((l) => ids.has(l.split(' ')[0]));
+  }
+  return keep;                                       // null = 한 ref 도 못 쟀다
+}
+
 /** `<ref>` 에 없는 이 가지의 커밋 — 없는 ref 는 «못 쟀다»(null)로 돌려준다 */
 function ahead(dir, ref) {
   if (git(dir, ['rev-parse', '--verify', '--quiet', ref]) == null) return null;
@@ -119,6 +143,13 @@ function survey(dir, base) {
     // ★ null 은 「그 ref 가 없다」이지 「앞선 커밋이 0개」가 아니다 (§12-12)
     aheadRemote: upstream ? ahead(dir, upstream) : null,
     aheadBase: ahead(dir, `origin/${base}`),
+    /* ★★★ **«어디에도 없는» 커밋만 잃는다** 〈2026-09-21 · 이 도구가 제 고장을 찾았다〉.
+         앞 판은 `origin/<이 가지>` 에만 없으면 「사라진다」고 적었는데, 그 커밋이
+         **기준 가지에 이미 합쳐져 있으면 안 사라진다** — 스쿼시 병합이면 늘 그렇다.
+         실측에서 **12개를 잃는다고 적었고 그 대부분이 이미 합쳐진 것**이었다.
+       ★ 늘 빨간 경고는 **그 빨강이 뜻을 잃는다** (§4 의 그 결). 그러니
+         **원격에도 없고 기준에도 없는 것**만 센다. */
+    aheadBoth: aheadNone(dir, [upstream, `origin/${base}`]),
     base,
   };
 }
@@ -127,8 +158,11 @@ function survey(dir, base) {
 function atRisk(s) {
   if (!s.ok) return null;
   const unsaved = s.dirty.length;
-  // 원격에도 없고 기준에도 없는 커밋이 가장 위험하다 — 되돌리면 reflog 밖에 길이 없다
-  const onlyHere = (s.aheadRemote == null ? (s.aheadBase || []) : s.aheadRemote).length;
+  /* ★ **어디에도 없는 것**만 센다 — 기준에 합쳐진 것은 되돌려도 안 사라진다.
+       못 쟀으면(null) 예전 잣대로 물러난다 — 「못 쟀다」를 「없다」로 안 적는다 (§12-12). */
+  const only = s.aheadBoth != null ? s.aheadBoth
+    : (s.aheadRemote == null ? (s.aheadBase || []) : s.aheadRemote);
+  const onlyHere = only.length;
   return { unsaved, onlyHere, any: unsaved > 0 || onlyHere > 0 };
 }
 
@@ -159,6 +193,7 @@ function save(s) {
     }
     // ★ 커밋은 베낄 수 없다 — **그 지문을 적어 둔다.** reflog 가 지워져도 이 글이 남는다
     const notes = [];
+    if (s.aheadBoth && s.aheadBoth.length) notes.push(`어디에도 없는 커밋:\n` + s.aheadBoth.join('\n'));
     if (s.aheadRemote && s.aheadRemote.length) notes.push(`origin/${s.branch} 에 없는 커밋:\n` + s.aheadRemote.join('\n'));
     if (s.aheadBase && s.aheadBase.length) notes.push(`origin/${s.base} 에 없는 커밋:\n` + s.aheadBase.join('\n'));
     if (notes.length) fs.writeFileSync(path.join(out, 'COMMITS.txt'), notes.join('\n\n') + '\n', 'utf8');
@@ -197,9 +232,11 @@ function main() {
     console.log('');
   }
   if (r.onlyHere) {
-    const list = s.aheadRemote == null ? s.aheadBase : s.aheadRemote;
-    const where = s.aheadRemote == null ? `origin/${s.base}` : `origin/${s.branch}`;
-    console.log(`  · \`${where}\` 에 없는 커밋 **${r.onlyHere} 개** — 가지를 옮기거나 force-push 하면 덮입니다.`);
+    const list = s.aheadBoth != null ? s.aheadBoth
+      : (s.aheadRemote == null ? s.aheadBase : s.aheadRemote);
+    const where = s.aheadBoth != null ? `origin/${s.branch} 에도 origin/${s.base}`
+      : (s.aheadRemote == null ? `origin/${s.base}` : `origin/${s.branch}`);
+    console.log(`  · \`${where}\` 에도 없는 커밋 **${r.onlyHere} 개** — 가지를 옮기거나 force-push 하면 덮입니다.`);
     list.slice(0, 10).forEach((l) => console.log(`      ${l}`));
     if (list.length > 10) console.log(`      … 그리고 ${list.length - 10} 개 더`);
     console.log('');
