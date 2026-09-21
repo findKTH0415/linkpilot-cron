@@ -49,6 +49,45 @@ const cache = require('./cache');
 const KEY_NAMES = ['KAKAO_MOBILITY_REST_API', 'KAKAO_MOBILITY_KEY', 'KAKAOMOBILITY_KEY'];
 
 const PROVIDER = 'kakaomobility';
+
+/* ★★★ 대중교통 — ODsay 〈2026-09-21 · D-252 · 사장님 콘솔 화면으로 잼〉.
+     [무엇이 잰 값인가] 콘솔이 「서비스 상태 **활성화**(기한제한 없음) · 현재 호출수 0/30」이고
+     서비스 URI·서버 IP 가 **등록돼 있다.** 곧 열쇠도 등록도 멀쩡하다.
+     그런데 진단은 **GitHub Actions 러너(해외 IP)** 에서 돌아 `[ApiKeyAuthFailed]` 가 났다.
+   ★ ODsay 는 **등록된 서버에서 온 요청만** 통과시킨다 — 그러니 이 갈래는
+     **국내 자리(NAS)에서** 돌아야 한다. D-206 이 세운 「열쇠가 있는 자리가 곧
+     「닿는 자리」는 아니다」와 **같은 규칙**이고, 이번엔 이유가 **IP 등록**이다.
+   ★★ **규격을 추측으로 박지 않는다** (§4.3 — R-ONE 이 그것을 안 해서 여섯 번 다시 썼다).
+     후보 둘을 **순차로** 걸고, 값을 못 뽑으면 **본문 앞머리를 가려서 함께 싣는다** —
+     그러면 **첫 실행이 곧 진단**이 된다 (§4 「진단부터 짠다」).
+   ★★★ **ODsay 는 열쇠를 «주소»에 싣는다** — 되비추는 오류에 그 주소가 섞여 오면
+     그 자리에서 샌다 (§2 · D-230 이 겪은 그 구멍). 그래서 **모든 바깥 글을 가린다.** */
+const ODSAY_KEY_NAMES = ['ODSAY_API_KEY', 'ODSAY_KEY'];
+const ODSAY_BASES = [
+  'https://api.odsay.com/v1/api/searchPubTransPathT',
+  'https://api.odsay.com/v1/api/searchPubTransPath',
+];
+/** ODsay 가 «인증을 거부했다»고 말하는 글 — HTTP 200 으로 온다 (§4.2 · D-229 실측) */
+const ODSAY_AUTH_FAIL = /ApiKeyAuthFail|Invalid\s*API\s*Key|\uc778\uc99d\s*\uc2e4\ud328/i;
+
+function odsayUsedName() {
+  return ODSAY_KEY_NAMES.find((n) => (process.env[n] || '').trim()) || null;
+}
+function odsayKey() {
+  const n = odsayUsedName();
+  return n ? String(process.env[n]).trim() : '';
+}
+function odsayHasKey() { return Boolean(odsayKey()); }
+
+const ODSAY_PROVIDER = 'odsay';
+
+/** 본문 앞머리 — **진단에 실을 만큼만**. 길게 실으면 그 자리가 곧 값이 새는 자리가 된다 (§2) */
+function head(t, n) {
+  const s0 = String(t == null ? '' : t).replace(/\s+/g, ' ').trim();
+  const lim = Number.isFinite(n) ? n : 200;
+  return s0.length > lim ? s0.slice(0, lim) + '…' : s0;
+}
+
 const BASE = 'https://apis-navi.kakaomobility.com/v1/directions';
 
 /** 실제로 값이 들어 있는 이름. 없으면 null */
@@ -169,16 +208,113 @@ async function carDuration(from, to) {
 }
 
 /**
- * 대중교통 — **아직 못 낸다.**
- * ★ 함수를 굳이 두는 이유는 `kepco.js` 와 같다 — 없으면 「아직 안 붙였나 보다」로
- *   읽히고, 언젠가 누가 자동차 값을 그 자리에 넣는다. **못 하는 이유를 코드가 들고 있어야 한다** (§4.9).
+ * 대중교통 소요시간 — ODsay.
+ *
+ * ★ 갈래는 자동차와 **같은 것**을 쓴다(`unavailable`·`bad-input`·`unreachable`·`auth`·
+ *   `http`·`not-json`·`no-route`·`no-value`). 두 벌로 적으면 한쪽이 옛말을 한다 (§8-1).
+ *
+ * ★★ **자동차 값을 이 자리에 넣지 않는다** — 그것이 곧 지어낸 값이다 (§4.9).
+ *   못 내면 «왜 못 내는지»를 돌려주고, 부르는 쪽이 그 사실을 화면에 적는다.
+ *
+ * @returns {Promise<object>} 성공: `{ok:true, seconds, source, mode:'transit'}`
+ *   실패: `{ok:false, reason, error}` — **던지지 않는다** (§4.6)
  */
-async function transitDuration() {
-  return { ok: false, reason: 'auth',
-    error: 'ODsay 가 인증을 거부한다 (HTTP 200 · `[ApiKeyAuthFailed]` · 2026-09-20 실측). '
-         + '열쇠는 읽혔으므로 **없는 것이 아니라 등록·신청 쪽**이다 — ODsay 콘솔의 서비스 URL 은 '
-         + '**프로토콜을 빼고 도메인만** 넣어야 한다(브이월드와 정반대다 · CLAUDE.md §12-39). '
-         + '★ 자동차 값을 이 자리에 넣지 않는다 — 그것이 곧 지어낸 값이다 (§4.9)' };
+async function transitDuration(from, to) {
+  if (!odsayKey()) {
+    return { ok: false, reason: 'unavailable',
+      error: `ODsay 열쇠가 없다 (${ODSAY_KEY_NAMES.join(' 또는 ')})` };
+  }
+  if (!okPoint(from) || !okPoint(to)) {
+    return { ok: false, reason: 'bad-input',
+      error: '좌표가 숫자가 아니거나 범위 밖이다 (x 124~132 · y 33~39)' };
+  }
+
+  const got = await cache.through(ODSAY_PROVIDER, 'transit',
+    { ox: from.x, oy: from.y, dx: to.x, dy: to.y }, async () => {
+      let last = null;
+      for (const base of ODSAY_BASES) {
+        /* ★ 열쇠는 주소에 실린다 — 그래서 아래 모든 바깥 글이 `redact` 를 지나간다 */
+        const url = `${base}?apiKey=${encodeURIComponent(odsayKey())}`
+          + `&SX=${from.x}&SY=${from.y}&EX=${to.x}&EY=${to.y}&lang=0&OPT=0`;
+        const r = await http.request(url);
+        if (!r.ok) {
+          const kind = (r.status === undefined || r.status === null) ? 'unreachable'
+            : (r.status === 401 || r.status === 403) ? 'auth' : 'http';
+          last = { ok: false, reason: kind, httpStatus: r.status ?? null,
+            error: http.redact(r.error || `대중교통 길찾기 실패 (HTTP ${r.status ?? '못 받음'})`) };
+          /* ★ 못 닿은 것은 다음 후보로도 안 낫는다 — 거기서 접는다 (§12-25 의 그 잣대) */
+          if (kind === 'unreachable') return last;
+          continue;
+        }
+
+        const raw = typeof r.body === 'string' ? r.body : JSON.stringify(r.body || '');
+        /* ★★★ **인증 거부가 HTTP 200 으로 온다** (§4.2 · D-229 실측).
+             상태코드만 보면 성공과 구분이 안 되고, 그때 글이 **정반대**를 가리킨다. */
+        if (ODSAY_AUTH_FAIL.test(raw)) {
+          return { ok: false, reason: 'auth', httpStatus: r.status ?? 200,
+            error: http.redact('ODsay 가 인증을 거부했다 — 상태코드가 200 이어도 그렇다. '
+              + '열쇠 «값»이 아니라 **등록된 서버에서 부르고 있는가**를 먼저 본다 '
+              + '(ODsay 는 등록 서버 IP 밖의 요청을 거부한다 · D-252)') };
+        }
+
+        let body;
+        try { body = JSON.parse(raw); }
+        catch (_) {
+          last = { ok: false, reason: 'not-json',
+            error: '응답이 JSON 이 아니다 — 안내 페이지가 왔을 수 있다 (도는 자리·그쪽 서버)' };
+          continue;
+        }
+
+        /* ★ ODsay 는 오류도 200 + `error` 로 준다 — 성공으로 안 센다 */
+        if (body && body.error) {
+          last = { ok: false, reason: 'http', httpStatus: r.status ?? 200,
+            error: http.redact('ODsay 가 오류로 답했다: ' + head(raw)) };
+          continue;
+        }
+
+        const path = body && body.result && Array.isArray(body.result.path)
+          ? body.result.path[0] : null;
+        if (!path) {
+          last = { ok: false, reason: 'no-route', httpStatus: r.status ?? 200,
+            error: http.redact('경로가 한 건도 안 왔다 · 본문 앞머리: ' + head(raw)) };
+          continue;
+        }
+
+        const min = Number(path.info && path.info.totalTime);
+        /* ★ 「대답이 왔다」와 「값이 왔다」는 다른 사실이다 (D-228) — 숫자인지까지 본다.
+             `isFinite(null)` 이 참이므로 타입도 함께 본다 (§12-30 에서 겪은 자리). */
+        if (!Number.isFinite(min) || typeof path.info.totalTime !== 'number' || min <= 0) {
+          /* ★★ **본문 앞머리를 싣는다 — 첫 실행이 곧 진단이다** (§4 「진단부터 짠다」).
+               안 실으면 「규격이 어디가 다른지」를 또 한 판 돌려야 안다. */
+          last = { ok: false, reason: 'no-value',
+            error: http.redact('대답은 왔는데 `result.path[0].info.totalTime` 이 숫자가 아니다 '
+              + '— 규격이 다를 수 있다 · 본문 앞머리: ' + head(raw)) };
+          continue;
+        }
+
+        const met = Number(path.info.totalDistance);
+        return { ok: true, value: {
+          mode: 'transit',
+          seconds: Math.round(min * 60),
+          meters: Number.isFinite(met) && typeof path.info.totalDistance === 'number' ? met : null,
+          /* ★ 값만 옮기지 않는다 — 어디서·언제·어떤 조건으로 나왔는지 (§4.7) */
+          source: {
+            기관: 'ODsay',
+            api: base.replace(/^https?:\/\/[^/]+/, ''),
+            조회시각: new Date().toISOString(),
+            기준: '요청 시점의 추천 대중교통 경로 · 총 소요시간(분)을 초로 옮긴 값',
+            비고: '환승 대기·도보가 포함된 값이다. 출발 시각은 «지금» 기준이다',
+          },
+        } };
+      }
+      /* ★ 후보를 다 돌고도 못 받았다 — 마지막 갈래를 그대로 돌려준다.
+           「못 쟀다」를 「없다」로 뭉개지 않는다 (§8 · §12-12). */
+      return last || { ok: false, reason: 'no-route', error: '후보를 다 돌았는데 답이 없다' };
+    }, { ttl: 30 * 60 });
+
+  if (!got.ok) return got;
+  return { ok: true, cached: Boolean(got.cached), ...got.value };
 }
 
-module.exports = { carDuration, transitDuration, hasKey, usedName, namesText, KEY_NAMES, okPoint };
+module.exports = { carDuration, transitDuration, hasKey, usedName, namesText, KEY_NAMES, okPoint,
+  odsayUsedName, odsayHasKey, ODSAY_KEY_NAMES, ODSAY_BASES };
