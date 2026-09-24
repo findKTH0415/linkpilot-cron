@@ -1,0 +1,38 @@
+# platform-deploy-watch — linkpilot-platform 의 마지막 배포가 «시작조차 못 했는지»를 이 저장소의 러너가 대신 본다 (D-289)
+#
+# [왜] platform 은 비공개라 결제·지출 한도에 막히면 러너를 못 받고, 그때는 배포도 그것을 보는 deploy-watch 도
+#   안 돈다 — 실패도 성공도 아무 글이 없다(2026-09-24 실측: 배포 155·156 이 2~4초에 죽었는데 아무도 몰랐다).
+#   공개 저장소(여기)의 러너는 그때도 돌므로, 읽기 토큰으로 대신 묻고 0 이 아니면 빨갛게 끝낸다 → GitHub 실패 메일이 알림이다.
+# [무장] Variables 에 PLATFORM_WATCH_ON=1 · Secrets 에 PLATFORM_WATCH_TOKEN(linkpilot-platform · Actions: read 만).
+#   변수가 없으면 잡이 «건너뜀»으로 끝난다 — 열쇠가 없는 동안 시간마다 빨개져 그 빨강이 뜻을 잃는 것을 막는다 (§4).
+# [판정] scripts/platform-deploy-watch.mjs → im-agent/tools/deploy-why.js 한 벌. 0 성공 / 1 코드 / 3 러너 못 받음 / 4 시작 전 거부 / 2 못 쟀다.
+name: platform-deploy-watch
+
+on:
+  schedule:
+    - cron: '30 * * * *'          # 매시 30분 (UTC 표기 — CLAUDE.md §2)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: platform-deploy-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    if: vars.PLATFORM_WATCH_ON == '1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Ask platform how its last deploy ended
+        env:
+          PLATFORM_WATCH_TOKEN: ${{ secrets.PLATFORM_WATCH_TOKEN }}
+        run: node scripts/platform-deploy-watch.mjs
