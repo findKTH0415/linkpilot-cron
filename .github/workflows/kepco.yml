@@ -21,9 +21,9 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 20
 
@@ -69,7 +69,7 @@ jobs:
 
       - name: 산출물 보관 (시군구 단위)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: kepco-data
           path: data/kepco
@@ -78,7 +78,7 @@ jobs:
 
       - name: 산출물 보관 (지번 단위 · 비공개)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: kepco-site-private
           path: private/kepco

@@ -276,14 +276,51 @@ async function main() {
   await fs.mkdir(PRIV, { recursive: true });
   await fs.writeFile(path.join(PRIV, 'manifest.json'), JSON.stringify(man, null, 1), 'utf8');
 
-  console.log('\n' + '─'.repeat(60));
-  console.log(`조회일 ${TODAY} · 산출 ${man.산출.length}건`);
-  for (const c of man.호출) console.log(`  ${String(c.상태).padEnd(6)} ${c.항목}`);
-  console.log('─'.repeat(60));
-
-  if (!man.산출.length) { console.error('수집 0건 — 인증키·승인상태·행정코드를 확인하십시오.'); process.exit(WORST[worst] || 1); }
+  /* ★★★ 판정 — 「무엇이 막았든 늘 초록」으로 끝내지 않는다 (CLAUDE.md §12-24 · §12-36).
+     초록이면 아무도 요약을 안 열어 보고, 정작 하려던 수집은 한 번도 안 된 채로 남는다.
+     ★ 값마다 사장님이 하실 일이 정반대라 갈래를 묶지 않는다 (§4.6 · §12-24). */
+  const got = man.산출.length;
   const partial = man.호출.some(c => !['OK', 'SKIP', 'NODATA'].includes(c.상태));
-  process.exit(partial ? Math.max(1, WORST[worst]) : 0);
+  const code = !got ? (WORST[worst] || 2) : (partial ? Math.max(1, WORST[worst]) : 0);
+  const SAY = {
+    0: '판정 0 — **전부 받았다**',
+    1: '판정 1 — **일부만 받았다** (아래 「걸린 것」이 사유다)',
+    2: '판정 2 — **한 가지도 못 받았다 · 서버가 대답을 안 했다.** 열쇠 문제가 아니다 — 도는 자리를 본다',
+    3: '판정 3 — **개방포털 쪽 5xx.** 우리 쪽에 고칠 것이 없다 — 기다렸다 다시 건다',
+    4: '판정 4 — **인증 거부.** `KEPCO_API_KEY` 와 그 서비스의 활용신청을 본다 (§4.2)',
+    5: '판정 5 — **행정코드가 안 맞는다.** 대상지 표기를 본다 — 열쇠 문제가 아니다',
+  };
+  const verdict = SAY[code] || `판정 ${code}`;
+
+  /* ★★ 사람이 읽는 요약을 반드시 남긴다 (§4) — JSON 원본은 크고 안 읽힌다.
+     ★★★ 이 파일은 공개 저장소에 커밋된다(D-10) — 지번은 한 글자도 안 적는다 (§2). */
+  const log = [
+    `# 한전 계통 수집 — ${TODAY}`,
+    '',
+    `대상 ${SIDO} ${SGG} (시군구 단위) · 산출 ${got}건`,
+    '',
+    '## 걸린 것',
+    '',
+    ...man.호출.filter(c => !c.항목.includes('지번')).map(c => `- \`${c.상태}\` ${c.항목}`),
+  ];
+  /* 판정은 요약 **맨 앞**에 올린다 — 맨 끝에 적으면 아무도 안 본다 (§6-3 ①) */
+  log.unshift(`> ${verdict}`, '');
+  await fs.writeFile(path.join(PUB, '_summary.md'), log.join('\n') + '\n', 'utf8');
+
+  console.log('\n' + '─'.repeat(60));
+  console.log(`조회일 ${TODAY} · 산출 ${got}건`);
+  for (const c of man.호출) console.log(`  ${String(c.상태).padEnd(6)} ${c.항목}`);
+  console.log(`LP_KEPCO verdict=${code}`);
+  console.log('─'.repeat(60));
+  /* ★ 사람이 읽는 판정은 stderr 로도 낸다 — 요약이 stdout 만 받아 가는 자리가 있다 (§12-19) */
+  if (code !== 0) console.error(verdict.replace(/\*\*/g, ''));
+  return code;
 }
 
-main().catch(e => { console.error('예상치 못한 오류:', e); process.exit(2); });
+/* ★ 마지막 되돌아오는 값은 **갈래를 세어 낸 값**이다 — 박아 둔 숫자가 아니다 (§12-37).
+   ★★ 예상 밖 오류도 **가려서** 찍는다 — 오류 본문에 주소가 섮이면 그 자리에서 샘다 (§2). */
+const code = await main().catch((e) => {
+  console.error('예상치 못한 오류:', mask(String((e && e.stack) || e)));
+  return 2;
+});
+process.exit(code);

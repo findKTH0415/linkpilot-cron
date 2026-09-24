@@ -175,6 +175,13 @@ test('스쿼시로 기준에 이미 들어간 커밋을 «사라진다»로 안 
     assert.strictEqual(r.code, 0,
       `★ 기준에 이미 합쳐진 커밋을 「사라진다」로 셌습니다 — 늘 빨가면 아무도 안 봅니다\n${r.out}`);
     assert.ok(!/lp-squash-source/.test(r.out), '그 커밋을 목록에 적습니다');
+
+    /* ★ 2026-09-24 — `--base origin/main` 처럼 원격 접두어를 붙여도 같은 답이어야 한다.
+         앞 판은 `origin/origin/main` 을 찾아 「못 쟀다」로 끝났다 — 기준을 잘못 읽은 것을
+         「안전」으로도 「잃는다」로도 적지 않았지만, 그 한 줄이 도구를 못 쓰게 만든다. */
+    const r2 = runTool(R.work, ['--base', 'origin/main']);
+    assert.strictEqual(r2.code, 0, `\`--base origin/main\` 을 못 받습니다\n${r2.out}`);
+    assert.ok(!/origin\/origin\//.test(r2.out), '원격 접두어를 그대로 이어 붙여 `origin/origin/…` 을 찾습니다');
   } finally { rm(R.base); }
 });
 
