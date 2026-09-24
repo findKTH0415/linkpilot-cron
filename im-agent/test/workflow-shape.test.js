@@ -646,3 +646,65 @@ test('★★★ PR 검사가 한 푸시에 한 번만 돌게 적혀 있다 (sync
     + '\n  · synchronize 를 빼면 그 자리는 push 가 덮습니다.'
     + '\n  · 다만 push 가 «모든 작업 가지»를 덮어야 합니다 — 안 그러면 검사가 통째로 빠집니다.');
 });
+
+/*
+ * ★★★ **「결과 커밋」이 «기본 가지에서만» 도는가 — 워크플로 «전부»를 훑는다** 〈2026-09-24 · D-280〉.
+ *
+ *   D-213 이 `vworld.yml` 에 가드를 넣었고 `vworld-verdict.test.js` 가 그 «한 파일»을 잰다.
+ *   그런데 결과를 `git push` 하는 수집 잡이 **열둘**이고, 그중 가드가 있는 것은 넷이었고 `kepco.yml` 을 더해 다섯이다
+ *   (§12-69 가 `kepco.yml` 을 「아직 안 고친 것」으로 적어 둔 그 자리). 한 칸에서 배운 것을
+ *   옆 칸에 안 대면 그 자리에 그대로 남는다 (S-53).
+ *
+ * ★ **목록을 손으로 안 적는다** — `git push` 가 든 「결과 커밋」 단계를 폴더에서 찾는다.
+ *   새 수집 잡이 생기는 날 자동으로 걸린다 (§8-1).
+ * ★★ **가드의 «모양»을 박지 않는다** (§12-37 의 잣대) — 셸 안에서 견주는 것(`vworld.yml`)과
+ *   단계의 `if:` 로 거르는 것(`yeoui893.yml`)은 **같은 성질**이다(기본 가지가 아니면 안 민다).
+ * ★★★ **아직 안 댄 것은 «이름과 사유»로 적는다** (§12-33 의 잣대) — 지우지 않고 남겨야
+ *   다음 사람이 「그 일곱」을 안다. **죽은 이름**이 남지 않게 함께 센다.
+ * ★ **주석을 떼고 본다** — 이 경위를 워크플로 주석에 적으면 안 떼고는 거짓 초록이 된다 (§8).
+ */
+const RESULT_COMMIT_TODO = new Map([
+  ['bldrgst.yml',          '건축물대장 — 가드 아직 안 댐 (D-280 다음 권고)'],
+  ['calendar-fetch.yml',   '특일정보 — 가드 아직 안 댐 (D-280 다음 권고)'],
+  ['dart-fetch.yml',       'DART — 가드 아직 안 댐 (D-280 다음 권고)'],
+  ['law-fetch.yml',        '법제처 — 가드 아직 안 댐 (D-280 다음 권고)'],
+  ['market-fetch.yml',     '시장 지표 — 가드 아직 안 댐 (D-280 다음 권고)'],
+  ['market-jeonju.yml',    '전주 지가 — 가드 아직 안 댐 (D-280 다음 권고)'],
+  ['market-wonju.yml',     '원주 지가 — 가드 아직 안 댐 (D-280 다음 권고)'],
+]);
+
+/** 결과 커밋 단계 하나가 기본 가지 가드를 갖는가 — 두 모양 중 하나면 된다 */
+function hasBranchGuard(body) {
+  const head = body.split('\n').slice(0, 3).join('\n');
+  if (/if:[^\n]*github\.ref_name\s*==\s*github\.event\.repository\.default_branch/.test(head)) return true;
+  const guard = body.match(/if \[ "\$REF_NAME" != "\$DEFAULT_BRANCH" \][\s\S]*?\bexit 0\b/);
+  return Boolean(/github\.event\.repository\.default_branch/.test(body)
+    && /github\.ref_name/.test(body)
+    && guard && body.indexOf(guard[0]) < body.indexOf('git push')
+    && /-z "\$\{DEFAULT_BRANCH:-\}"[\s\S]*?exit 0/.test(body)
+    && /까닭/.test(guard[0]) && /아티팩트/.test(guard[0]));
+}
+
+test('★★★ 결과를 `git push` 하는 수집 잡마다 «기본 가지 가드»가 있다 (없으면 PR 머리가 움직인다)', () => {
+  const { yamlNoComment } = require('./yaml-lite');
+  const files = list(WF, /\.ya?ml$/);
+  const found = [], bad = [];
+  for (const f of files) {
+    const w = yamlNoComment(read(path.join(WF, f)));
+    const m = w.match(/- name: 결과 커밋[^\n]*\n[\s\S]*?(?=\n\s*- name: |\n\s*- uses: |$)/);
+    if (!m || !/git push/.test(m[0])) continue;
+    found.push(f);
+    if (hasBranchGuard(m[0]) || RESULT_COMMIT_TODO.has(f)) continue;
+    bad.push(f);
+  }
+  assert.ok(found.length >= 3, `결과를 push 하는 수집 잡을 ${found.length}개밖에 못 찾았습니다 — 이 칸이 눈이 멀었습니다.`);
+  assert.deepStrictEqual(bad, [],
+    `가드 없이 push 하는 수집 잡: ${bad.join(', ')} — 작업 가지에서 걸면 열린 PR 의 머리가 움직입니다 (D-213).`);
+  /* ★ 예외가 «죽은 이름»으로 남지 않는다 — 가드를 댔거나 파일이 없어졌으면 그 줄을 지운다 */
+  for (const [f] of RESULT_COMMIT_TODO) {
+    assert.ok(found.includes(f), `예외 목록의 \`${f}\` 가 push 하는 결과 커밋을 안 갖습니다 — 죽은 이름입니다. 지우십시오.`);
+    const w = yamlNoComment(read(path.join(WF, f)));
+    const m = w.match(/- name: 결과 커밋[^\n]*\n[\s\S]*?(?=\n\s*- name: |\n\s*- uses: |$)/);
+    assert.ok(!hasBranchGuard(m[0]), `\`${f}\` 는 이미 가드를 댔습니다 — 예외 목록에서 지우십시오 (죽은 이름).`);
+  }
+});
