@@ -253,7 +253,10 @@ function save(s) {
 
 function main() {
   const dir = arg('--dir', process.cwd());
-  const base = arg('--base', 'main');
+  /* ★ `--base origin/main` 처럼 «원격 접두어»를 붙여 주셔도 받는다 — 앞 판은 그대로 이어 붙여
+       `origin/origin/main` 을 찾았고, 그 ref 가 없으니 「못 쟀다」로 끝났다 (2026-09-24 실측).
+       기준은 늘 `origin/<가지>` 로 읽으므로 접두어를 턴다. */
+  const base = String(arg('--base', 'main')).replace(/^origin\//, '');
   const s = survey(dir, base);
 
   if (!s.ok) {
