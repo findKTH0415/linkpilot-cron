@@ -153,6 +153,14 @@ SSH 개인키·NAS 접속정보·터널 인증키는 유출 시 **서버 접근�
 | `KAKAO_MOBILITY_REST_API` | 위와 같음 — **2026-09-19 사장님이 실제로 넣으신 이름**. 다시 넣으시라 하지 않고 읽는 이름을 늘렸다 | 위와 동일 | 위와 동일 | ○ |
 | `ODSAY_API_KEY` | ODsay — **대중교통 소요시간** 〈같은 승인〉. 규격은 실측했고 **열쇠가 거부된다** — HTTP 200 인데 본문이 `[ApiKeyAuthFailed]`(D-229) | `api.odsay.com/v1/api` | `apiKey` | ✕ |
 | `ODSAY_KEY` | 위와 같음 — **다른 철자도 읽는다** | 위와 동일 | 위와 동일 | ✕ |
+| `NCP_MAPS_CLIENT_ID` | 네이버 클라우드 **Maps** (Geocoding · Directions 5·15) 〈2026-09-25 사장님이 넣으셨다〉 — **규격 미측정**, 진단 D-314 가 옛·새 호스트 둘을 잰다 | 미측정 | `x-ncp-apigw-api-key-id` **헤더** (진단 후보) | ✗ |
+| `NCP_MAPS_CLIENT_SECRET` | 위의 짝 — Client Secret | 위와 동일 | `x-ncp-apigw-api-key` **헤더** (진단 후보) | ✗ |
+| `NAVER_MAPS_CLIENT_ID` | 위와 같음 — **다른 철자도 짝으로 읽는다** (넣으신 이름을 아직 모른다) | 위와 동일 | 위와 동일 | ✗ |
+| `NAVER_MAPS_CLIENT_SECRET` | 위의 짝 | 위와 동일 | 위와 동일 | ✗ |
+| `NAVER_MAP_CLIENT_ID` | 위와 같음 — 다른 철자 | 위와 동일 | 위와 동일 | ✗ |
+| `NAVER_MAP_CLIENT_SECRET` | 위의 짝 | 위와 동일 | 위와 동일 | ✗ |
+| `NAVER_CLIENT_ID` | 위와 같음 — 다른 철자. ★ 네이버 **개발자센터(뉴스 검색)** 열쇠와 이름이 같을 수 있다 — 그러면 Maps 에서 거부된다 | 위와 동일 | 위와 동일 | ✗ |
+| `NAVER_CLIENT_SECRET` | 위의 짝 | 위와 동일 | 위와 동일 | ✗ |
 
 **길찾기 열쇠 둘 — 아직 «미측정»이다** 〈2026-09-15 사장님 승인: 「둘 다 — 자동차+대중교통」〉.
 자동차와 대중교통은 **출처가 다르다** — 한 곳에서 둘 다 받는 길이 없어 둘로 나눈다.
