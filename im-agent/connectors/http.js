@@ -200,6 +200,10 @@ const SECRET_ENV = [
   //   (`_GO` 가 붙어 data.go.kr 로 보이지만 추측으로 배선하지 않는다 — §4.3).
   //   ★ 규격을 모르더라도 **가리는 것은 지금 한다** — 진단 로그에 값이 찍힐 자리가 먼저 온다.
   'WEATHER_GO',
+  // ★★ 네이버 클라우드 Maps 〈2026-09-25 · D-314〉 — 넣으신 이름을 아직 몰라 **넷씩 짝으로** 읽는다
+  //   (scripts/naver-maps-probe.mjs). 쓰기 «전»에 여기 먼저 넣는다 — 그래야 넣으신 날 바로 가려진다.
+  'NCP_MAPS_CLIENT_ID', 'NCP_MAPS_CLIENT_SECRET', 'NAVER_MAPS_CLIENT_ID', 'NAVER_MAPS_CLIENT_SECRET',
+  'NAVER_MAP_CLIENT_ID', 'NAVER_MAP_CLIENT_SECRET', 'NAVER_CLIENT_ID', 'NAVER_CLIENT_SECRET',
   // ★★★ **세계뉴스 열쇠 — 이름을 «화면에서» 읽었다** 〈2026-09-13 · 사장님 화면 · 실측〉.
   //   [무엇이 났나] 사장님이 말씀으로 주신 이름은 `WORLD_NES_KEY` 였는데, 비밀 목록에는
   //     그 이름이 **없었다.** 실제로 들어 있는 것은 **`WORLDWIDE_NEWS`** 와

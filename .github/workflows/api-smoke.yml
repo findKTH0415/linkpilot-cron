@@ -132,6 +132,29 @@ jobs:
             grep -E '^> \*\*판정|^> 판정' data/_api/weather-probe.md || echo '(판정 줄을 못 읽었다)'
           } >> "$GITHUB_STEP_SUMMARY"
 
+      # ★★★ 네이버 클라우드 Maps — **진단** 〈2026-09-25 · D-314〉.
+      #   사장님이 Client ID · Secret 을 넣으셨는데 **넣으신 이름**과 **호스트(옛·새)** 를
+      #   아직 안 쟀다. 이름 넷씩을 짝으로 읽고 두 호스트를 걸어 **무엇이 오는지부터** 본다 (§4.3).
+      #   ★ 아래 env 에서 `***` 로 찍히는 이름이 실제로 들어 있는 이름이다 (§4.6 의 갈라 보는 법).
+      - name: 네이버 Maps 열쇠가 먹는지 불러 본다
+        continue-on-error: true
+        env:
+          NCP_MAPS_CLIENT_ID:       ${{ secrets.NCP_MAPS_CLIENT_ID }}
+          NCP_MAPS_CLIENT_SECRET:   ${{ secrets.NCP_MAPS_CLIENT_SECRET }}
+          NAVER_MAPS_CLIENT_ID:     ${{ secrets.NAVER_MAPS_CLIENT_ID }}
+          NAVER_MAPS_CLIENT_SECRET: ${{ secrets.NAVER_MAPS_CLIENT_SECRET }}
+          NAVER_MAP_CLIENT_ID:      ${{ secrets.NAVER_MAP_CLIENT_ID }}
+          NAVER_MAP_CLIENT_SECRET:  ${{ secrets.NAVER_MAP_CLIENT_SECRET }}
+          NAVER_CLIENT_ID:          ${{ secrets.NAVER_CLIENT_ID }}
+          NAVER_CLIENT_SECRET:      ${{ secrets.NAVER_CLIENT_SECRET }}
+        run: |
+          node scripts/naver-maps-probe.mjs || true
+          {
+            echo '### 네이버 Maps 진단'
+            # 판정 줄만 뽑는다 — 최악 세 줄(전체 + Geocoding + Directions)이다
+            grep -E '^> \*\*판정|^> 판정' data/_api/naver-maps-probe.md || echo '(판정 줄을 못 읽었다)'
+          } >> "$GITHUB_STEP_SUMMARY"
+
       # ★★★ 기본 가지에서만 커밋한다 〈2026-09-20 · D-246 · `vworld.yml` 과 같은 규칙〉.
       #   [왜] 작업 가지에서 돌리면 봇이 민 커밋이 **열린 PR 의 머리를 움직여**,
       #   초록이던 검사가 다시 서고 `action_required`(사람이 눌러야 도는 상태)가 된다.
