@@ -74,6 +74,9 @@ const KEYS = [
      추측으로 적지 않는다. 이름을 둘씩 읽는 이유는 ECOS·LAW 에서 두 번 당해서다. */
   ['KAKAO_MOBILITY_KEY|KAKAOMOBILITY_KEY|KAKAO_MOBILITY_REST_API', '카카오모빌리티', '자동차 길찾기 소요시간 (이름 셋 다 읽는다)'],
   ['ODSAY_API_KEY|ODSAY_KEY', 'ODsay', '대중교통 소요시간 (이름 둘 다 읽는다)'],
+  /* ★ 네이버 클라우드 Maps — 넣으신 이름을 아직 몰라 넷씩 읽는다 〈2026-09-25 · D-314〉 */
+  ['NCP_MAPS_CLIENT_ID|NAVER_MAPS_CLIENT_ID|NAVER_MAP_CLIENT_ID|NAVER_CLIENT_ID', '네이버 클라우드 Maps', 'Client ID — 규격 미측정 (진단 D-314)'],
+  ['NCP_MAPS_CLIENT_SECRET|NAVER_MAPS_CLIENT_SECRET|NAVER_MAP_CLIENT_SECRET|NAVER_CLIENT_SECRET', '네이버 클라우드 Maps', 'Client Secret — 위의 짝'],
 ];
 
 /** 지침서 §4.2 — 상태코드만 보면 구분이 안 되는 것들을 응답 본문으로 가른다 */
