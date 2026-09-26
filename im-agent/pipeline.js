@@ -32,6 +32,7 @@ const agentMerge = require('./core/agent-merge');
 const assetclass = require('./core/assetclass');
 const pdf = require('./core/pdf');
 const deskappraisal = require('./core/deskappraisal');
+const valuationEvidence = require('./core/valuation-evidence');
 const corpreport = require('./core/corpreport');
 const nts = require('./connectors/nts');
 const nps = require('./connectors/nps');
@@ -402,9 +403,12 @@ async function run(opts = {}) {
       zoning: strOf('land.zoning'),
       useDistricts: strOf('land.use_districts'),
       appraisal: appraisal.output,
+      // 근거 대장 — 가격보다 먼저 온다 (가치평가 지침 v1.0 §2 · D-333)
+      evidence: valuationEvidence.build({ assetId: projectId, dataset, appraisal: appraisal.output }),
     });
 
     if (dr.ok) {
+      if (dr.evidence) store.writeJson(projectId, '08_Appraisal/evidence.json', dr.evidence);
       store.writeText(projectId, '08_Appraisal/desk-review.md', dr.markdown);
       const html = a4.render({
         projectId,

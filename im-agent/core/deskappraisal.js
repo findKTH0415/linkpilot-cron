@@ -26,6 +26,7 @@
 
 const { round, formatEok } = require('./numeric');
 const { kstDate, kstStamp } = require('./kst');
+const valuationEvidence = require('./valuation-evidence');
 
 /**
  * 이 문서가 **확인하지 않은 것**. 탁상검토의 정의 그 자체다.
@@ -350,12 +351,17 @@ function build(o) {
     ].join('\n') },
     { no: '02', title: '확인하지 않은 것', subtitle: 'Not Verified', text: sectionNotice() },
     { no: '03', title: '대상 토지', subtitle: 'Subject', text: sectionSubject({ ...opt, asOf }) },
+    // ★ 근거 대장은 «가격보다 먼저» 온다 (가치평가 지침 v1.0 §2·§5 — 대상·기준일 → 신뢰 상태 → 가격).
+    //   대장이 없으면(옛 호출) 그 절을 아예 안 넣는다 — 빈 절을 그리지 않는다
+    ...(opt.evidence ? [{ no: '', title: '근거 대장', subtitle: 'Evidence', text: valuationEvidence.section(opt.evidence) }] : []),
     { no: '04', title: '평가 방식별 결과', subtitle: 'Methods', text: sectionMethods(a.methods) },
     { no: '05', title: '결론', subtitle: 'Conclusion', text: sectionConclusion(c) },
     { no: '06', title: '적용한 가정', subtitle: 'Assumptions', text: sectionAssumptions(a.methods) },
     { no: '07', title: '점검에서 걸린 항목', subtitle: 'Flags', text: sectionFlags(a.flags) },
     { no: '08', title: '거래사례', subtitle: 'Comparables', text: sectionComparables(a.comparables) },
   ];
+  // 번호는 차례대로 다시 매긴다 — 대장이 끼면 뒤가 하나씩 밀린다
+  sections.forEach((sec, i) => { sec.no = String(i + 1).padStart(2, '0'); });
 
   const markdown = [
     'Strictly Private and Confidential',
@@ -382,6 +388,7 @@ function build(o) {
     conclusion: c,
     notChecked: NOT_CHECKED.map(x => x.item),
     disclaimers: [NOT_AN_APPRAISAL],
+    evidence: opt.evidence || null,
     asOf,
   };
 }
