@@ -251,10 +251,40 @@ async function run(input, ctx) {
     }
   }
 
-  // ── 결론: 사용 가능한 방식의 가중평균 ────────────────────
-  const WEIGHTS = { comparison: 0.5, income: 0.3, official: 0.2 };
-  const usable = Object.entries(methods)
-    .filter(([, m]) => m.valueEok !== null && m.valueEok !== undefined && m.valueEok > 0);
+  // ── 가치의 종류를 가른다 〈2026-09-26 · 부동산 가치평가 지침 v1.0 §4 · D-330〉 ─────
+  // ★★★ 공시지가·거래사례는 **현 상태 토지**의 값이고, 수익환원법은 안정화 NOI 에서 건물가치를 뺀
+  //   **개발 완료 전제의 토지 귀속가치**(인허가·공사·분양이 된다는 조건부)다. 대상 상태가 다른 값을
+  //   한 평균에 넣으면 그 평균은 어느 쪽의 값도 아니다. 그래서 결론은 **현 상태 방식끼리만** 내고
+  //   수익환원법은 따로 적는다(없애지 않는다 — 비교의 근거로 남긴다).
+  for (const [k, m] of Object.entries(methods)) {
+    m.valueType = k === 'income' ? 'residual' : 'current';
+    m.valueTypeLabel = m.valueType === 'residual' ? '개발 완료 전제 · 조건부' : '현 상태 토지';
+  }
+  const positive = ([, m]) => m.valueEok !== null && m.valueEok !== undefined && m.valueEok > 0;
+  const usableAll = Object.entries(methods).filter(positive);
+  const residualOnly = usableAll.filter(([, m]) => m.valueType === 'residual');
+
+  for (const [key, m] of usableAll) {
+    facts.push({
+      key: `appraisal.land_value_${key === 'official' ? 'official' : key}`,
+      value: m.valueEok, unit: '억원', confidence: 0.85, verified: true,
+      note: m.valueType === 'residual' ? `${DISCLAIMER} · 개발 완료 전제(조건부) — 현 상태 결론에 넣지 않았다` : DISCLAIMER,
+      ...src(`감정평가 Agent · ${m.label}`),
+    });
+  }
+  if (residualOnly.length) {
+    flags.push({
+      severity: 'INFO', type: 'APPRAISAL_BASIS_SPLIT',
+      message: `${residualOnly.map(([, m]) => `${m.label} ${formatEok(m.valueEok)}`).join(' / ')} 은(는) 개발 완료 전제의 조건부 값이라 `
+        + '현 상태 토지 결론의 평균에 넣지 않았다 — 두 값의 차이를 「할인」·「상승 여력」으로 읽지 않는다',
+    });
+  }
+
+  // ── 결론: 현 상태 방식의 가중평균 — «잠정» ────────────────────
+  // ★ 고정 가중치 평균은 최종가가 아니다(지침 §4.5). 값은 내되 `status: provisional` 이고
+  //   출처 기록의 verified 는 거짓이다 — 평균은 확인된 사실이 아니라 계산된 참고값이다.
+  const WEIGHTS = { comparison: 0.5, official: 0.2 };
+  const usable = usableAll.filter(([, m]) => m.valueType === 'current');
 
   let concluded = null;
   if (usable.length) {
@@ -262,22 +292,18 @@ async function run(input, ctx) {
     const value = round(usable.reduce((a, [k, m]) => a + m.valueEok * (WEIGHTS[k] || 0), 0) / totalWeight, 1);
     concluded = {
       valueEok: value,
+      status: 'provisional',
+      valueType: 'current',
       methodsUsed: usable.map(([k]) => methods[k].label),
       weights: Object.fromEntries(usable.map(([k]) => [methods[k].label, round((WEIGHTS[k] || 0) / totalWeight, 2)])),
+      excluded: residualOnly.map(([, m]) => ({ label: m.label, valueEok: m.valueEok, why: '개발 완료 전제(조건부) — 대상 상태가 다르다' })),
       pricePerSqm: Math.round((value * 1e8) / areaSqm),
     };
 
-    for (const [key, m] of usable) {
-      facts.push({
-        key: `appraisal.land_value_${key === 'official' ? 'official' : key}`,
-        value: m.valueEok, unit: '억원', confidence: 0.85, verified: true,
-        note: DISCLAIMER, ...src(`감정평가 Agent · ${m.label}`),
-      });
-    }
     facts.push({
       key: 'appraisal.land_value_concluded', value, unit: '억원',
-      confidence: 0.8, verified: true, note: DISCLAIMER,
-      ...src(`감정평가 Agent · ${usable.length}방식 가중평균`),
+      confidence: 0.8, verified: false, note: `${DISCLAIMER} · 잠정 — 현 상태 방식 ${usable.length}개의 고정 가중평균이며 최종 결론이 아니다`,
+      ...src(`감정평가 Agent · 현 상태 ${usable.length}방식 가중평균(잠정)`),
     });
 
     // 방식 간 편차
@@ -286,7 +312,7 @@ async function run(input, ctx) {
     if (usable.length >= 2 && spread >= 2) {
       flags.push({
         severity: 'RED', type: 'APPRAISAL_SPREAD',
-        message: `평가 3방식 간 편차가 ${round(spread, 1)}배다 (${usable.map(([, m]) => `${m.label} ${formatEok(m.valueEok)}`).join(' / ')}) — 가정 재검토 필요`,
+        message: `현 상태 평가방식 간 편차가 ${round(spread, 1)}배다 (${usable.map(([, m]) => `${m.label} ${formatEok(m.valueEok)}`).join(' / ')}) — 가정 재검토 필요`,
       });
     } else if (usable.length >= 2 && spread >= 1.5) {
       flags.push({
@@ -323,6 +349,16 @@ async function run(input, ctx) {
           message: `토지비 ${formatEok(docLandCost)} 가 참고 평가액 ${formatEok(value)} 범위 내다`,
         });
       }
+    }
+  } else if (residualOnly.length) {
+    ctx.warn('현 상태 토지 방식(공시지가·실거래)이 없어 결론을 내지 않았다 — 수익환원법은 개발 완료 전제라 단독 결론으로 쓰지 않는다');
+    // ★ 앞 판은 여기서 「방식 1개뿐이라 토지비를 판단하지 않았다」를 적었다 — 그 말은 그대로 남긴다
+    if (ds.num('investment.land') !== null) {
+      flags.push({
+        severity: 'YELLOW', type: 'APPRAISAL_SINGLE_METHOD',
+        message: '현 상태 토지 방식(공시지가·실거래)이 없어 토지비 적정성을 판단하지 않았다 — 수익환원법은 개발 완료 전제라 쓰지 않는다. '
+          + '공시지가(VWORLD_KEY)·실거래가(DATA_GO_KR_KEY) 연동 필요',
+      });
     }
   } else {
     ctx.warn('감정평가 3방식 모두 산정 불가 — 공시지가·실거래·재무모델 중 최소 1개가 필요하다');

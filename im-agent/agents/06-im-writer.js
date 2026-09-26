@@ -355,14 +355,18 @@ function appraisalTable(appraisal) {
     return '_감정평가 미실행 (공시지가·실거래·재무모델 중 확보된 자료 없음)_';
   }
   const rows = Object.values(appraisal.methods).map(m =>
-    `| ${m.label} | ${m.valueEok !== null && m.valueEok !== undefined ? formatEok(m.valueEok) : '-'} | ${m.basis} |`);
+    `| ${m.valueType === 'residual' ? `${m.label} (개발 완료 전제 · 조건부)` : m.label} | ${m.valueEok !== null && m.valueEok !== undefined ? formatEok(m.valueEok) : '-'} | ${m.basis} |`);
 
   const out = ['| 평가방식 | 토지가치 | 산정근거 |', '|---|---:|---|', ...rows];
   if (appraisal.concluded) {
-    out.push(`| **결론(가중평균)** | **${formatEok(appraisal.concluded.valueEok)}** | ${Object.entries(appraisal.concluded.weights).map(([k, v]) => `${k} ${Math.round(v * 100)}%`).join(', ')} |`);
+    out.push(`| **참고 결론(현 상태 방식 · 잠정 가중평균)** | **${formatEok(appraisal.concluded.valueEok)}** | ${Object.entries(appraisal.concluded.weights).map(([k, v]) => `${k} ${Math.round(v * 100)}%`).join(', ')} |`);
+    /* ★ 가치의 종류가 다른 값은 결론에서 뺐다는 사실을 표 바로 밑에 적는다 (부동산 가치평가 지침 v1.0 §4 · D-330) */
+    if ((appraisal.concluded.excluded || []).length) {
+      out.push('', `결론에서 뺀 값: ${appraisal.concluded.excluded.map(x => `${x.label} ${formatEok(x.valueEok)}`).join(' / ')} — 개발 완료 전제의 조건부 값이라 현 상태 토지 결론과 섞지 않았다.`);
+    }
   }
   out.push('', `> ${appraisal.disclaimer}`);
-  out.push('', '자료출처: 개별공시지가·국토교통부 실거래가(공공데이터) 및 본 자료 재무모델. 3방식 가중평균은 본 자료 산출치.');
+  out.push('', '자료출처: 개별공시지가·국토교통부 실거래가(공공데이터) 및 본 자료 재무모델. 결론은 현 상태 방식의 고정 가중평균이며 최종 평가액이 아니다.');
 
   const assumptions = Object.values(appraisal.methods).filter(m => m.assumption);
   if (assumptions.length) {

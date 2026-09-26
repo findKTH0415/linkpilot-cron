@@ -166,6 +166,20 @@ test('감정평가: 법적 고지가 산출물에 반드시 포함된다', () =>
   }
 });
 
+test('★ 감정평가: 개발 완료 전제(수익환원법)를 현 상태 결론 평균에 넣지 않는다 (D-330)', () => {
+  const first = store.listProjects()[0].id;
+  const a = store.readJson(first, '04_Property/appraisal.json');
+  for (const [k, m] of Object.entries(a.methods || {})) {
+    assert.strictEqual(m.valueType, k === 'income' ? 'residual' : 'current', `${k} 의 가치 종류가 적혀 있지 않다`);
+  }
+  if (a.concluded) {
+    assert.ok(!a.concluded.methodsUsed.includes('수익환원법'), '수익환원법이 결론 평균에 들어갔다');
+    assert.strictEqual(a.concluded.status, 'provisional');
+    const f = (a.facts || []).find(x => x.key === 'appraisal.land_value_concluded');
+    assert.ok(f && f.verified === false, '잠정 평균을 «확인된 값»으로 적었다');
+  }
+});
+
 test('감정평가: 평가방식이 1개뿐이면 토지비 적정성을 단정하지 않는다', () => {
   const first = store.listProjects()[0].id;
   const a = store.readJson(first, '04_Property/appraisal.json');
