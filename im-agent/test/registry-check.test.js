@@ -112,3 +112,19 @@ test('★ 등록부에 번호 배정 규칙이 살아 있다', () => {
     '「번호마다 선후가 다르다」가 사라지면 늘 같은 갈래가 양보하게 된다');
   assert.match(t, /MEMORY\.md/, '사고기록도 같은 병을 앓는다는 말이 없다');
 });
+
+test('★★★ 다음 번호는 CLAUDE.md·MEMORY.md 에만 적힌 번호보다 크다 (2026-09-26 — D-209 를 다시 내줬다)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const D = rc.REGISTRIES.d;
+  for (const f of ['CLAUDE.md', 'MEMORY.md']) assert.ok((D.reserved || []).includes(f), `${f} 를 번호 줍는 자리에 안 넣었다`);
+  const root = path.join(__dirname, '..', '..');
+  let max = 0;
+  for (const f of ['CLAUDE.md', 'MEMORY.md']) {
+    for (const m of fs.readFileSync(path.join(root, f), 'utf8').matchAll(/D-(\d+)/g)) max = Math.max(max, Number(m[1]));
+  }
+  assert.ok(max > 0, '두 파일에서 D- 번호를 하나도 못 찾았다 — 이 칸이 아무것도 안 잰다');
+  const items = rc.parse(fs.readFileSync(path.join(root, rc.DOC), 'utf8'), D);
+  const { next } = rc.nextFree({ '(작업본)': items }, rc.reservedNums(D));
+  assert.ok(next > max, `다음 번호 D-${next} 가 이미 쓴 D-${max} 이하다`);
+});

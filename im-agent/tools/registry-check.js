@@ -58,7 +58,10 @@ const REGISTRIES = {
        `--next` 가 `D-191` 을 줬는데 그 번호는 결정 기록에 **세 번** 나온다.
        번호가 겹치면 옛 커밋·대화가 그 번호로 **다른 것**을 가리키게 된다(D-101 이
        그 사고다). 아래 장부는 **번호만** 줍는다 — 제목 대조에는 쓰지 않는다 */
-    reserved: ['docs/결정-기록.md'] },
+    /* ★★★ 〈2026-09-26 · 실측〉 그리고 **CLAUDE.md·MEMORY.md 에만 적힌 번호**도 있다 —
+       `D-210`~`D-324` 는 등록부에 안 올리고 두 파일에만 적었다. 그래서 이 도구가
+       `D-209` 를 내줬는데 그 번호는 CLAUDE.md §12 에 이미 있었다. 두 파일도 번호만 줍는다 */
+    reserved: ['docs/결정-기록.md', 'CLAUDE.md', 'MEMORY.md'] },
   m: { key: 'm', doc: 'MEMORY.md', prefix: 'M',
     head: /^##\s+()(M-\d+)\.\s*(.*)$/, label: '사고기록' },
 };
@@ -297,7 +300,7 @@ function run(argv) {
 }
 
 module.exports = {
-  parse, localDuplicates, crossConflicts, nextFree, sameSubject, run,
+  parse, localDuplicates, crossConflicts, nextFree, reservedNums, sameSubject, run,
   checkOne, pickRegistries, REGISTRIES, DOC,
 };
 
