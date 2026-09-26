@@ -59,9 +59,26 @@ function methodRows(methods) {
     .map(k => ({ id: k, ...m[k] }));
 }
 
-/** 값이 있는 방식만 (없는 방식을 0 으로 세지 않는다) */
-function usableRows(methods) {
+/**
+ * 개발 완료 전제(조건부)의 값인가 〈2026-09-26 · 부동산 가치평가 지침 v1.0 §4 · D-330〉.
+ * 08 이 `valueType` 을 적는다. 옛 산출물(그 칸이 없는 것)은 **수익환원법을 그렇게 본다** —
+ * 안정화 NOI 에서 건물가치를 뺀 값은 현 상태 토지의 값이 아니다.
+ */
+function isResidual(r) {
+  return r && r.valueType ? r.valueType === 'residual' : !!(r && r.id === 'income');
+}
+
+/** 값이 있는 방식 (없는 방식을 0 으로 세지 않는다) */
+function positiveRows(methods) {
   return methodRows(methods).filter(r => r.valueEok !== null && r.valueEok !== undefined && r.valueEok > 0);
+}
+
+/**
+ * 결론에 쓰는 방식 — **현 상태 토지 방식만**. 대상 상태가 다른 값을 한 평균·한 범위에 넣으면
+ * 그 값은 어느 쪽의 값도 아니다. 개발 완료 전제 값은 표에는 남고 결론에서만 빠진다.
+ */
+function usableRows(methods) {
+  return positiveRows(methods).filter(r => !isResidual(r));
 }
 
 /**
@@ -88,6 +105,18 @@ function conclusion(appraisal) {
   const a = appraisal || {};
   const rows = usableRows(a.methods);
 
+  const excluded = positiveRows(a.methods).filter(isResidual).map(r => ({ label: r.label, valueEok: r.valueEok }));
+
+  if (!rows.length && excluded.length) {
+    return {
+      mode: 'none',
+      text: '현 상태 토지 방식(공시지가·거래사례)이 없어 결론을 내지 않는다',
+      why: `${excluded.map(r => `${r.label} ${formatEok(r.valueEok)}`).join(' / ')} 은(는) 개발 완료 전제의 조건부 값이다 — `
+        + '인허가·공사·분양이 된다는 가정이 곧 결론이 되므로 현재 토지가치로 쓰지 않는다',
+      valueEok: null, rangeEok: null, excluded,
+    };
+  }
+
   if (!rows.length) {
     return {
       mode: 'none',
@@ -108,6 +137,7 @@ function conclusion(appraisal) {
       valueEok: null,
       rangeEok: null,
       only: { label: rows[0].label, valueEok: rows[0].valueEok },
+      excluded,
       text: `${rows[0].label} 단독 ${formatEok(rows[0].valueEok)} — **결론값으로 제시하지 않는다**`,
       why: '한 방식만으로는 그 방식의 가정이 곧 결론이 된다. '
         + '다른 방식과 견주지 못한 값을 대표값으로 쓰면 가정이 사실처럼 남는다',
@@ -120,6 +150,7 @@ function conclusion(appraisal) {
       valueEok: null,
       rangeEok: [lo, hi],
       spread,
+      excluded,
       text: `${formatEok(lo)} ~ ${formatEok(hi)} (방식 간 ${spread}배) — **단일 값으로 제시하지 않는다**`,
       why: `방식 간 편차가 ${spread}배다. 가중평균을 내면 숫자는 하나로 좁혀지지만 `
         + '그 값은 「가운데 어딘가」일 뿐이고, 표지에 크게 박히면 그것만 읽힌다. '
@@ -135,6 +166,7 @@ function conclusion(appraisal) {
     spread,
     weights: c ? c.weights : null,
     pricePerSqm: c ? c.pricePerSqm : null,
+    excluded,
     text: c
       ? `${formatEok(c.valueEok)} (범위 ${formatEok(lo)} ~ ${formatEok(hi)})`
       : `${formatEok(lo)} ~ ${formatEok(hi)}`,
@@ -196,7 +228,8 @@ function sectionMethods(methods) {
   const body = rows.map((r) => {
     const val = (r.valueEok === null || r.valueEok === undefined) ? '산정 불가' : formatEok(r.valueEok);
     const unit = r.pricePerSqm ? `${fmtNum(r.pricePerSqm)} 원/㎡` : (r.adjustedPricePerSqm ? `${fmtNum(r.adjustedPricePerSqm)} 원/㎡` : '—');
-    return `| ${r.label} | ${unit} | ${val} | ${r.basis || '—'} |`;
+    const label = isResidual(r) ? `${r.label} (개발 완료 전제 · 조건부 — 결론에서 뺌)` : r.label;
+    return `| ${label} | ${unit} | ${val} | ${r.basis || '—'} |`;
   }).join('\n');
 
   const extra = [];
@@ -232,6 +265,10 @@ function sectionConclusion(c) {
     }
   }
 
+  if (c.excluded && c.excluded.length) {
+    out.push('', `결론에서 뺀 값: ${c.excluded.map(r => `${r.label} ${formatEok(r.valueEok)}`).join(' / ')} — `
+      + '개발 완료 전제의 조건부 값이라 현 상태 토지 결론과 섞지 않았다. 두 값의 차이를 「할인」이나 「상승 여력」으로 읽지 않는다.');
+  }
   out.push('', `**${NOT_AN_APPRAISAL}**`, '',
     '자료출처: 본 자료 08 Appraisal Agent 산출 및 위 3장의 방식별 결과.');
   return out.join('\n');
@@ -362,6 +399,6 @@ function coverValue(c) {
 
 module.exports = {
   build, conclusion, spreadOf, assumptions, coverValue,
-  usableRows, methodRows,
+  usableRows, methodRows, isResidual,
   NOT_CHECKED, NOT_AN_APPRAISAL,
 };

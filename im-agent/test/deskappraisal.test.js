@@ -103,7 +103,7 @@ test('★ 걸린 항목이 없어도 「문제 없다」고 하지 않는다', (
 /* ── ③ 방식이 갈릴 때 좁히지 않는다 ──────────────────── */
 
 test('★ 방식이 하나뿐이면 **결론값을 내지 않는다**', () => {
-  const c = da.conclusion(appraisalOf({ income: M_INCOME }));
+  const c = da.conclusion(appraisalOf({ comparison: M_COMPARE }));
   assert.strictEqual(c.mode, 'single');
   assert.strictEqual(c.valueEok, null);
   assert.match(c.why, /그 방식의 가정이 곧 결론/);
@@ -216,4 +216,68 @@ test('★ 파이프라인이 표지 문구에 「감정평가서가 아님」을
   assert.match(src, /desk-review\.md/);
   // 문서를 안 만든 경우도 로그에 남아야 한다
   assert.match(src, /탁상검토: 만들지 않았다/);
+});
+
+/* ── ⑤ 가치의 종류를 섞지 않는다 〈2026-09-26 · 부동산 가치평가 지침 v1.0 §4 · D-330〉 ──
+ *   공시지가·거래사례는 «현 상태 토지», 수익환원법(안정화 NOI − 건물가치)은 «개발 완료 전제».
+ *   대상 상태가 다른 값을 한 평균·한 범위에 넣으면 그 값은 어느 쪽의 값도 아니다. */
+
+test('★★★ 수익환원법(개발 완료 전제)만 있으면 결론을 내지 않고 **왜 안 내는지** 적는다', () => {
+  const c = da.conclusion(appraisalOf({ income: { ...M_INCOME, valueType: 'residual' } }));
+  assert.strictEqual(c.mode, 'none');
+  assert.strictEqual(c.valueEok, null);
+  assert.match(c.why, /개발 완료 전제/);
+  assert.strictEqual(da.coverValue(c), null, '조건부 값이 표지에 올라가면 현재 토지가치로 읽힌다');
+});
+
+test('★★★ 개발 완료 전제 값은 **범위·편차에서도** 빠진다', () => {
+  const c = da.conclusion(appraisalOf(
+    { official: M_OFFICIAL, comparison: M_COMPARE, income: { ...M_INCOME, valueEok: 900, valueType: 'residual' } },
+    { concluded: { valueEok: 112, weights: {}, pricePerSqm: 1 } },
+  ));
+  assert.strictEqual(c.mode, 'point', '현 상태 두 방식은 가깝다 — 조건부 값 하나 때문에 범위로 무너지면 안 된다');
+  assert.deepStrictEqual(c.rangeEok, [100, 120]);
+  assert.deepStrictEqual(c.excluded.map(x => x.label), ['수익환원법']);
+  assert.strictEqual(da.spreadOf({ official: M_OFFICIAL, income: { ...M_INCOME, valueEok: 900, valueType: 'residual' } }), null);
+});
+
+test('★ 옛 산출물(valueType 칸이 없는 것)도 수익환원법을 조건부로 본다', () => {
+  assert.strictEqual(da.isResidual({ id: 'income', label: '수익환원법' }), true);
+  assert.strictEqual(da.isResidual({ id: 'comparison', label: '거래사례비교법' }), false);
+  assert.strictEqual(da.isResidual({ id: 'income', valueType: 'current' }), false, '엔진이 적은 칸이 이긴다');
+});
+
+test('★ 보고서가 뺀 값과 뺀 까닭을 적는다 — 표에서도, 결론에서도', () => {
+  const r = da.build({ projectId: 'P1', appraisal: appraisalOf(
+    { official: M_OFFICIAL, comparison: M_COMPARE, income: { ...M_INCOME, valueType: 'residual' } },
+    { concluded: { valueEok: 112, weights: {}, pricePerSqm: 1 } }) });
+  assert.match(r.sections.find(s => s.title === '평가 방식별 결과').text, /수익환원법 \(개발 완료 전제/);
+  const t = r.sections.find(s => s.title === '결론').text;
+  assert.match(t, /결론에서 뺀 값: 수익환원법/);
+  assert.match(t, /「할인」이나 「상승 여력」으로 읽지 않는다/);
+});
+
+test('★★★ 엔진(08) — 수익환원법에 조건부 표시를 달고, 결론 평균에서 빼고, 결론을 «잠정»으로 적는다', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'agents', '08-appraisal.js'), 'utf8');
+  assert.match(src, /m\.valueType = k === 'income' \? 'residual' : 'current'/);
+  assert.match(src, /const usable = usableAll\.filter\(\(\[, m\]\) => m\.valueType === 'current'\)/,
+    '결론 평균이 현 상태 방식만 쓰지 않는다');
+  const w = /const WEIGHTS = \{([^}]*)\}/.exec(src);
+  assert.ok(w && !/income/.test(w[1]), '수익환원법이 결론 가중치에 남아 있다');
+  const concl = src.slice(src.indexOf("key: 'appraisal.land_value_concluded'"), src.indexOf("key: 'appraisal.land_value_concluded'") + 400);
+  assert.match(concl, /verified: false/, '고정 가중평균을 «확인된 값»으로 적는다');
+  assert.match(src, /status: 'provisional'/);
+});
+
+test('★★ 결론의 출처 이름이 바뀌면 병합기가 옛 값을 치우는 목록도 따라간다 — 안 그러면 다시 돌 때 두 벌로 쌓인다', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'agents', '08-appraisal.js'), 'utf8');
+  const m = /src\(`(감정평가 Agent · 현 상태 )\$\{usable\.length\}(방식 가중평균\(잠정\))`\)/.exec(src);
+  assert.ok(m, '결론 출처 이름의 모양을 못 찾았다 — 이 칸이 아무것도 안 잰다');
+  const merge = require('../core/agent-merge');
+  const drop = ((merge.MERGE || {})['08_appraisal'] || {}).drop
+    || fs.readFileSync(path.join(__dirname, '..', 'core', 'agent-merge.js'), 'utf8');
+  for (const n of [1, 2]) {
+    const name = `${m[1]}${n}${m[2]}`;
+    assert.ok(Array.isArray(drop) ? drop.includes(name) : drop.includes(`'${name}'`), `병합기가 「${name}」 을 안 치운다`);
+  }
 });
