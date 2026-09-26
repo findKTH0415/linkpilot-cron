@@ -1,6 +1,6 @@
 # 공공 API 실측 진단
 
-**잰 시각** 2026. 9. 22. 8시 44분 21초 · **잰 곳** GitHub Actions (열쇠가 있는 자리)
+**잰 시각** 2026. 9. 26. 12시 54분 54초 · **잰 곳** GitHub Actions (열쇠가 있는 자리)
 
 **9개 항목 중 7개 살아 있음 · 2개 실패**
 
@@ -27,6 +27,11 @@
 | `KICT_API_KEY` | 건설기술연구원 | 건설 관련 | ✅ `KICT_API_KEY` |
 | `KAKAO_MOBILITY_KEY` 또는 `KAKAOMOBILITY_KEY` 또는 `KAKAO_MOBILITY_REST_API` | 카카오모빌리티 | 자동차 길찾기 소요시간 (이름 셋 다 읽는다) | ✅ `KAKAO_MOBILITY_REST_API` |
 | `ODSAY_API_KEY` 또는 `ODSAY_KEY` | ODsay | 대중교통 소요시간 (이름 둘 다 읽는다) | ✅ `ODSAY_API_KEY` |
+| `NCP_MAPS_CLIENT_ID` 또는 `NAVER_MAPS_CLIENT_ID` 또는 `NAVER_MAP_CLIENT_ID` 또는 `NAVER_CLIENT_ID` | 네이버 클라우드 Maps | Client ID — 규격 미측정 (진단 D-314) | — **없음** |
+| `NCP_MAPS_CLIENT_SECRET` 또는 `NAVER_MAPS_CLIENT_SECRET` 또는 `NAVER_MAP_CLIENT_SECRET` 또는 `NAVER_CLIENT_SECRET` | 네이버 클라우드 Maps | Client Secret — 위의 짝 | — **없음** |
+
+★ **2개가 안 들어왔습니다.** Secrets 에 없거나 **이름이 다릅니다** —
+이름이 다르면 아무 오류 없이 조용히 죽습니다 (지침서 §9 첫 줄).
 
 ## 2. 실제로 불러 본 결과
 
@@ -36,11 +41,11 @@
 | 한국은행 ECOS 생산자물가 업종목록 (404Y014) | ✅ 살아 있음 | — | — |
 | 통계청 KOSIS 통계표 검색 (가동률) | ✅ 살아 있음 | — | — |
 | DART 시행사 대조 (삼성물산) | ✅ 살아 있음 | — | — |
-| VWorld 지오코딩 | ✕ 실패 | 지오코딩 실패 — HTTP 502 (4회 시도 실패) (주소: 강원특별자치도 원주시 신림면 송계리 695-4 | 아래 진단 원문을 보십시오 |
+| VWorld 지오코딩 | ✕ 실패 | 지오코딩 실패 — ROAD: HTTP 502 (4회 시도 실패) / PARCEL: fetch failed ( | 아래 진단 원문을 보십시오 |
 | REC 현물시장 (전력거래소) | ✅ 살아 있음 | — | — |
 | 지가지수 (부동산원) | ✅ 살아 있음 | — | — |
 | 기업기본정보 (금융위) | ✅ 살아 있음 | — | — |
-| 공사 낙찰 (조달청) | ✕ 실패 | 조회는 됐지만 조건에 맞는 낙찰 건이 없다 (기간 20250921~20260921 · 지역 인천 · 10억  | 아래 진단 원문을 보십시오 |
+| 공사 낙찰 (조달청) | ✕ 실패 | 조회는 됐지만 조건에 맞는 낙찰 건이 없다 (기간 20250926~20260926 · 지역 인천 · 10억  | 아래 진단 원문을 보십시오 |
 
 ## 3. 이 파일을 어떻게 읽나
 

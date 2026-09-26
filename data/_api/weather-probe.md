@@ -2,7 +2,7 @@
 
 # `WEATHER_GO` 가 어느 기관 것인가 — 실측 진단
 
-조회일 2026-09-21 · 기준 20260922 0700 (KST) · 서울
+조회일 2026-09-26 · 기준 20260926 1100 (KST) · 서울
 
 > 규격을 모르는 채 배선하지 않는다. 후보를 걸어 **무엇이 오는지부터** 본다 (CLAUDE.md §4).
 > ★ 관측값이 **문자열**이라 숫자 칸 찾기(D-230)는 **안 건다** — 경로는 본문 앞머리로 읽는다.
@@ -11,11 +11,11 @@
 
 ## 1. 기상청 **API허브** (`apihub.kma.go.kr` · `authKey`)
 
-- `typ01 지상관측 kma_sfctm2` — HTTP 401 · 1018ms
+- `typ01 지상관측 kma_sfctm2` — HTTP 401 · 1348ms
   - 본문 «{ "result" : { "status" : 401, "message" : "유효한 인증키가 아닙니다." } }»
   - 관측값 칸: **못 찾았다**
   - 서버 Apache
-- `typ02 초단기실황 getUltraSrtNcst` — HTTP 401 · 851ms
+- `typ02 초단기실황 getUltraSrtNcst` — HTTP 401 · 1282ms
   - 본문 «{ "result" : { "status" : 401, "message" : "유효한 인증키가 아닙니다." } }»
   - 관측값 칸: **못 찾았다**
   - 서버 Apache
@@ -27,8 +27,8 @@
 > ★ 이 호스트는 **러너에서 안 열릴 때가 있다** (D-206 · 2026-09-20 실측 재확인).
 > 그때 판정 3 은 **열쇠 문제가 아니다** — 도는 자리를 NAS 로 옮겨 다시 잰다.
 
-- `원본 그대로` — HTTP 200 · 560ms
-  - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL_SERVICE"},"body":{"dataType":"JSON","items":{"item":[{"baseDate":"20260922","baseTime":"0700","category":"PTY","nx":60,"ny":127,"obsrValue":"0"},{"baseDate":"20260922","baseTime":"0700","category":"REH","nx":60,"ny":127,"obsrValue":"59"},{» …
+- `원본 그대로` — HTTP 200 · 862ms
+  - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL_SERVICE"},"body":{"dataType":"JSON","items":{"item":[{"baseDate":"20260926","baseTime":"1100","category":"PTY","nx":60,"ny":127,"obsrValue":"0"},{"baseDate":"20260926","baseTime":"1100","category":"REH","nx":60,"ny":127,"obsrValue":"60"},{» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 관측값 칸: **찾았다**
 - `한 번 디코딩` — 원본과 같아 건너뛴다
