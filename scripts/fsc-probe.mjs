@@ -40,7 +40,14 @@ const SERVICES = [
   { key: 'FSC_KOFIA_API', id: '15094809', name: '금융위원회_금융투자협회종합통계정보', use: '펀드순자산·증시자금·신용공여 추이' },
   { key: 'FSC_AMC_API', id: '15139266', name: '금융위원회_자산운용사 영업활동통계정보', use: '자산운용사 — 후보(검색으로 찾음)' },
 ];
-const AMC_SEARCH = 'https://www.data.go.kr/tcs/dss/selectDataSetList.do?dType=API&keyword=' + encodeURIComponent('금융위원회 자산운용');
+/* 서비스 번호를 모르는 것은 **포털 검색 화면**에서 찾는다 — 번호를 지어내지 않는다.
+   ★ `SME_SUPPORT` 〈같은 날 · 사장님: 「중소벤처기업부_중소기업 지원사업 공고 — API 키넣었어」〉 — 투자정보 [정책자금] 탭 후보.
+     넣으신 **열쇠 이름을 아직 모른다** — 포털 계정 열쇠로 건다(승인은 서비스별 · §4.2). */
+const SEARCHES = [
+  { key: 'FSC_AMC_API', keyword: '금융위원회 자산운용', word: '자산운용', use: '자산운용사 — 포털 검색에서 찾음' },
+  { key: 'SME_SUPPORT', keyword: '중소벤처기업부 중소기업 지원사업 공고', word: '지원사업', use: '투자정보 [정책자금] 탭 후보 — 포털 검색에서 찾음' },
+];
+const searchUrl = (kw) => 'https://www.data.go.kr/tcs/dss/selectDataSetList.do?dType=API&keyword=' + encodeURIComponent(kw);
 
 /* 값이 실렸는가 — 포털 1160100 계열은 `totalCount` 를 준다. 0 이면 «대답은 왔는데 비었다» */
 const HAS_ITEMS = /"totalCount"\s*:\s*"?[1-9]|<totalCount>[1-9]/;
@@ -64,10 +71,23 @@ export function discover(html) {
 
 /* 포털 검색 화면에서 «자산운용» 이 든 오픈API 목록(번호 · 제목)을 뽑는다 */
 export function searchHits(html, word) {
+  const src = String(html || '');
   const hits = [];
-  for (const m of String(html || '').matchAll(/\/data\/(\d{6,9})\/openapi\.do[^>]*>([^<]{2,80})</g)) {
+  for (const m of src.matchAll(/\/data\/(\d{6,9})\/openapi\.do[^>]*>([^<]{2,80})</g)) {
     const t = m[2].replace(/\s+/g, ' ').trim();
     if (t.includes(word) && !hits.some((h) => h.id === m[1])) hits.push({ id: m[1], name: t });
+  }
+  /* ★ 목록 모양이 달라 위에서 못 뽑으면 — 낱말 바로 앞 800자 안의 서비스 번호를 줍는다 */
+  if (!hits.length) {
+    let i = src.indexOf(word);
+    while (i >= 0 && hits.length < 4) {
+      const back = src.slice(Math.max(0, i - 800), i);
+      const ids = [...back.matchAll(/(?:\/data\/|publicDataPk=)(\d{6,9})/g)];
+      const id = ids.length ? ids[ids.length - 1][1] : null;
+      const name = src.slice(i, i + 80).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 50);
+      if (id && !hits.some((h) => h.id === id)) hits.push({ id, name });
+      i = src.indexOf(word, i + word.length);
+    }
   }
   return hits.slice(0, 4);
 }
@@ -104,13 +124,14 @@ async function main() {
      Actions 비밀에 없었다 — 빈칸으로 찍혔다〉. 포털 인증키는 계정당 하나이고 **승인만 서비스별**이라(§4.2)
      그 서비스를 신청하셨으면 같은 열쇠로 통한다. 어느 이름으로 걸었는지는 반드시 적는다 — 섞어 읽으면
      「어느 열쇠가 통했는가」가 흐려진다. */
-  for (const n of ['FSC_API', 'FSC_AMC_API', 'FSC_IAF_API', 'FSC_KOFIA_API']) {
-    const own = pick([n]);
+  for (const n of ['FSC_API', 'FSC_AMC_API', 'FSC_IAF_API', 'FSC_KOFIA_API', 'SME_SUPPORT']) {
+    const own = n === 'SME_SUPPORT' ? null : pick([n]);  // SME_SUPPORT 는 이름을 아직 모른다 — 포털 열쇠로만 건다
     if (own) OWN.push(own);
     const k = own || portal;
     KEYS[n] = k;
     results.keys[n] = own ? own.value.length : null;
     if (own) P(`- 열쇠 **\`${n}\`** 읽었다 (길이 ${own.value.length}자 · 값은 안 적는다) · 포털 열쇠와 ${portal ? (portal.value === own.value ? '**같은 값**' : '**다른 값**') : '견줄 것이 없다'}`);
+    else if (n === 'SME_SUPPORT') P(`- 중소기업 지원사업 공고 — 넣으신 **열쇠 이름을 아직 모른다** → ${portal ? `포털 계정 열쇠 \`${portal.name}\` 로 건다` : '걸 포털 열쇠도 없다'}`);
     else P(`- 열쇠 **\`${n}\`** — **이 저장소의 Actions 비밀에 없다** → ${portal ? `포털 계정 열쇠 \`${portal.name}\` 로 대신 건다` : '대신 걸 포털 열쇠도 없다'}`);
   }
   /* ★ 세 이름이 «같은 값»인지만 적는다 — 포털 인증키는 계정당 하나라 같을 수 있다. 값은 안 적는다 (§2) */
@@ -119,16 +140,21 @@ async function main() {
   P('');
 
   /* 자산운용 후보를 포털 검색으로 더한다 — 못 읽으면 적힌 후보만 건다 */
-  try {
-    const sh = await (await fetch(AMC_SEARCH, { signal: AbortSignal.timeout(15000) })).text();
-    const hits = searchHits(sh, '자산운용');
-    P(`- 포털 검색 «자산운용» — ${hits.length ? hits.map((h) => `${h.id} ${h.name}`).join(' · ') : '**못 뽑았다**'}`);
-    for (const h of hits) if (!SERVICES.some((x) => x.id === h.id)) SERVICES.push({ key: 'FSC_AMC_API', id: h.id, name: h.name, use: '자산운용사 — 포털 검색에서 찾음' });
-  } catch (e) { P(`- 포털 검색 «자산운용» — **못 닿음** (${redact(String((e && e.message) || e))})`); }
+  for (const q of SEARCHES) {
+    try {
+      const r = await fetch(searchUrl(q.keyword), { signal: AbortSignal.timeout(15000) });
+      const sh = await r.text();
+      const hits = searchHits(sh, q.word);
+      P(`- 포털 검색 «${q.keyword}» — HTTP ${r.status} · ${sh.length}자 · ${hits.length ? hits.map((h) => `${h.id} ${h.name}`).join(' · ') : '**못 뽑았다**'}`);
+      /* 못 뽑았으면 그 낱말 둘레를 조금 남긴다 — 다음에 뽑는 법을 고칠 재료다(공개 목록이라 비밀이 없다) */
+      if (!hits.length) { const i = sh.indexOf(q.word); P(`  - 둘레 «${i < 0 ? '(낱말이 페이지에 없다)' : redact(sh.slice(Math.max(0, i - 200), i + 60).replace(/\s+/g, ' '))}»`); }
+      for (const h of hits) if (!SERVICES.some((x) => x.id === h.id)) SERVICES.push({ key: q.key, id: h.id, name: h.name, use: q.use });
+    } catch (e) { P(`- 포털 검색 «${q.keyword}» — **못 닿음** (${redact(String((e && e.message) || e))})`); }
+  }
   P('');
 
   const codes = [];
-  for (const svc of SERVICES.slice(0, 8)) {
+  for (const svc of SERVICES.slice(0, 10)) {
     P(`## ${svc.name} (${svc.id}) — ${svc.use} · 열쇠 \`${svc.key}\``);
     P('');
     const key = KEYS[svc.key];
