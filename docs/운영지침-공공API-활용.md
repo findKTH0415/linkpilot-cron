@@ -140,6 +140,7 @@ SSH 개인키·NAS 접속정보·터널 인증키는 유출 시 **서버 접근�
 | `FSC_API` | **공공데이터포털 금융위원회** 금융통계 — 종합금융회사(15061312)·국내은행(15061304) 〈2026-09-27 사장님이 넣으셨다 · D-357〉. 오퍼레이션 이름은 `scripts/fsc-probe.mjs` 가 포털 안내 페이지에서 읽는다 | `apis.data.go.kr/1160100` | `serviceKey` | ○ |
 | `FSC_AMC_API` | **공공데이터포털 금융위원회** 금융통계 — 자산운용사 〈2026-09-27 사장님이 넣으셨다 · D-357〉. 서비스 번호는 진단이 정한다 | `apis.data.go.kr/1160100` | `serviceKey` | ○ |
 | `FSC_IAF_API` | **공공데이터포털 금융위원회** 금융통계 — 투자자문사(15061358) 〈2026-09-27 사장님이 넣으셨다 · D-357〉 | `apis.data.go.kr/1160100` | `serviceKey` | ○ |
+| `FSC_KOFIA_API` | **공공데이터포털 금융위원회** 금융투자협회 종합통계(15094809) — 신탁규모·펀드순자산·CMA·신용공여·증시자금·DLS/DLB 〈2026-09-27 사장님이 넣으셨다 · D-357〉 | `apis.data.go.kr/1160100` | `serviceKey` | ○ |
 | `KEPCO_BIGDATA_KEY` | 한국전력 빅데이터 | `bigdata.kepco.co.kr/openapi` | `apiKey` | ○ |
 | `VWORLD_KEY` | 국토부 V-World | `api.vworld.kr/req` | `key` (+ `domain`) | ○ |
 | `LINKPILOT_VWORLD_REPORT_KEY` | 국토부 V-World — 같은 열쇠의 다른 이름 〈2026-09-17 사장님이 넣으셨다〉 | 위와 동일 | 위와 동일 | ○ |

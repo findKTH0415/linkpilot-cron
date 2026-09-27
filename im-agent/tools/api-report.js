@@ -65,6 +65,7 @@ const KEYS = [
   ['FSC_API', '금융위원회 금융통계', '종합금융회사·국내은행 — 아직 커넥터에 안 붙였다 (scripts/fsc-probe.mjs)'],
   ['FSC_AMC_API', '금융위원회 금융통계', '자산운용사 — 아직 커넥터에 안 붙였다 (scripts/fsc-probe.mjs)'],
   ['FSC_IAF_API', '금융위원회 금융통계', '투자자문사 — 아직 커넥터에 안 붙였다 (scripts/fsc-probe.mjs)'],
+  ['FSC_KOFIA_API', '금융위원회 금융투자협회', '펀드·증시자금·신용공여 — 아직 커넥터에 안 붙였다 (scripts/fsc-probe.mjs)'],
   ['LAW_OC|LAW_OPEN_DATA', '국가법령정보센터', '법령·조례 (이름 둘 다 읽는다)'],
   [VWORLD_NAMES.join('|'), '브이월드',
     '지오코딩·지적·토지특성 (이름을 다 읽는다 — connectors/vworldkey.js 의 차례 그대로)'],
