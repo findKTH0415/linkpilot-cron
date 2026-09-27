@@ -62,6 +62,9 @@ const KEYS = [
        (§4.2) 이 열쇠가 단기예보에 승인된 것이 특일정보·실거래가 승인을 뜻하지 않는다.
        넣으면 그 이름이 앞자리를 차지해 **멀쩡히 돌던 조회가 조용히 거부될 수 있다.** */
   ['WEATHER_GO', '공공데이터포털 기상청', '단기예보 (VilageFcstInfoService_2.0) — 아직 커넥터에 안 붙였다'],
+  ['FSC_API', '금융위원회 금융통계', '종합금융회사·국내은행 — 아직 커넥터에 안 붙였다 (scripts/fsc-probe.mjs)'],
+  ['FSC_AMC_API', '금융위원회 금융통계', '자산운용사 — 아직 커넥터에 안 붙였다 (scripts/fsc-probe.mjs)'],
+  ['FSC_IAF_API', '금융위원회 금융통계', '투자자문사 — 아직 커넥터에 안 붙였다 (scripts/fsc-probe.mjs)'],
   ['LAW_OC|LAW_OPEN_DATA', '국가법령정보센터', '법령·조례 (이름 둘 다 읽는다)'],
   [VWORLD_NAMES.join('|'), '브이월드',
     '지오코딩·지적·토지특성 (이름을 다 읽는다 — connectors/vworldkey.js 의 차례 그대로)'],
