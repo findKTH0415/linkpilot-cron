@@ -47,6 +47,9 @@ jobs:
           FSC_IAF_API:       ${{ secrets.FSC_IAF_API }}
           FSC_KOFIA_API:     ${{ secrets.FSC_KOFIA_API }}
           FSC_DOMESTIC_BANK_API: ${{ secrets.FSC_DOMESTIC_BANK_API }}
+          FSC_SAVINGS_BANK_API: ${{ secrets.FSC_SAVINGS_BANK_API }}
+          FSC_CREDIT_UNION_BANK_API: ${{ secrets.FSC_CREDIT_UNION_BANK_API }}
+          FSC__AGRICULTURAL_COOPERATIVE_BANK_API: ${{ secrets.FSC__AGRICULTURAL_COOPERATIVE_BANK_API }}
           MSS_SME_SPA_API:   ${{ secrets.MSS_SME_SPA_API }}
           PERSONAL_API_KEY:  ${{ secrets.PERSONAL_API_KEY }}
           DART_API_KEY:      ${{ secrets.DART_API_KEY }}
@@ -89,6 +92,9 @@ jobs:
           FSC_IAF_API:       ${{ secrets.FSC_IAF_API }}
           FSC_KOFIA_API:     ${{ secrets.FSC_KOFIA_API }}
           FSC_DOMESTIC_BANK_API: ${{ secrets.FSC_DOMESTIC_BANK_API }}
+          FSC_SAVINGS_BANK_API: ${{ secrets.FSC_SAVINGS_BANK_API }}
+          FSC_CREDIT_UNION_BANK_API: ${{ secrets.FSC_CREDIT_UNION_BANK_API }}
+          FSC__AGRICULTURAL_COOPERATIVE_BANK_API: ${{ secrets.FSC__AGRICULTURAL_COOPERATIVE_BANK_API }}
           MSS_SME_SPA_API:   ${{ secrets.MSS_SME_SPA_API }}
           PERSONAL_API_KEY:  ${{ secrets.PERSONAL_API_KEY }}
           DART_API_KEY:      ${{ secrets.DART_API_KEY }}
@@ -150,7 +156,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       # ★★★ 금융위원회 금융통계 — **진단** 〈2026-09-27 · D-357〉.
-      #   사장님이 FSC_API · FSC_AMC_API · FSC_IAF_API · FSC_KOFIA_API · FSC_DOMESTIC_BANK_API 를 넣으셨다. 오퍼레이션 이름을 추측하지 않고
+      #   사장님이 FSC_API · FSC_AMC_API · FSC_IAF_API · FSC_KOFIA_API · FSC_DOMESTIC_BANK_API · 저축은행·신협·농협 셋을 넣으셨다. 오퍼레이션 이름을 추측하지 않고
       #   **포털 안내 페이지에서 읽어** 그대로 부른다 (§4.3). 판정 줄은 실행 요약 첫 화면으로 나른다 (§12-19).
       - name: 금융위원회 금융통계 열쇠가 먹는지 불러 본다
         continue-on-error: true
@@ -160,6 +166,9 @@ jobs:
           FSC_IAF_API:      ${{ secrets.FSC_IAF_API }}
           FSC_KOFIA_API:    ${{ secrets.FSC_KOFIA_API }}
           FSC_DOMESTIC_BANK_API: ${{ secrets.FSC_DOMESTIC_BANK_API }}
+          FSC_SAVINGS_BANK_API: ${{ secrets.FSC_SAVINGS_BANK_API }}
+          FSC_CREDIT_UNION_BANK_API: ${{ secrets.FSC_CREDIT_UNION_BANK_API }}
+          FSC__AGRICULTURAL_COOPERATIVE_BANK_API: ${{ secrets.FSC__AGRICULTURAL_COOPERATIVE_BANK_API }}
           MSS_SME_SPA_API:  ${{ secrets.MSS_SME_SPA_API }}
           PERSONAL_API_KEY: ${{ secrets.PERSONAL_API_KEY }}
           DATA_GO_KR_KEY:   ${{ secrets.DATA_GO_KR_KEY }}
