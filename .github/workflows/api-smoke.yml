@@ -47,6 +47,7 @@ jobs:
           FSC_IAF_API:       ${{ secrets.FSC_IAF_API }}
           FSC_KOFIA_API:     ${{ secrets.FSC_KOFIA_API }}
           MSS_SME_SPA_API:   ${{ secrets.MSS_SME_SPA_API }}
+          PERSONAL_API_KEY:  ${{ secrets.PERSONAL_API_KEY }}
           DART_API_KEY:      ${{ secrets.DART_API_KEY }}
           REB_API_KEY:       ${{ secrets.REB_API_KEY }}
           KOSIS_API_KEY:     ${{ secrets.KOSIS_API_KEY }}
@@ -87,6 +88,7 @@ jobs:
           FSC_IAF_API:       ${{ secrets.FSC_IAF_API }}
           FSC_KOFIA_API:     ${{ secrets.FSC_KOFIA_API }}
           MSS_SME_SPA_API:   ${{ secrets.MSS_SME_SPA_API }}
+          PERSONAL_API_KEY:  ${{ secrets.PERSONAL_API_KEY }}
           DART_API_KEY:      ${{ secrets.DART_API_KEY }}
           REB_API_KEY:       ${{ secrets.REB_API_KEY }}
           KOSIS_API_KEY:     ${{ secrets.KOSIS_API_KEY }}
@@ -156,6 +158,7 @@ jobs:
           FSC_IAF_API:      ${{ secrets.FSC_IAF_API }}
           FSC_KOFIA_API:    ${{ secrets.FSC_KOFIA_API }}
           MSS_SME_SPA_API:  ${{ secrets.MSS_SME_SPA_API }}
+          PERSONAL_API_KEY: ${{ secrets.PERSONAL_API_KEY }}
           DATA_GO_KR_KEY:   ${{ secrets.DATA_GO_KR_KEY }}
           APIS_DATA:        ${{ secrets.APIS_DATA }}
           SPECIAL_DAY_INFO: ${{ secrets.SPECIAL_DAY_INFO }}
