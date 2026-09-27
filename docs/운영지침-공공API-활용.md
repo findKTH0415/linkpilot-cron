@@ -137,6 +137,12 @@ SSH 개인키·NAS 접속정보·터널 인증키는 유출 시 **서버 접근�
 | `KRX_API_KEY` | 한국거래소 Data Marketplace | `data-dbg.krx.co.kr/svc/apis` | **`AUTH_KEY` 헤더** | ○ |
 | `KMA_APIHUB_KEY` | 기상청 API허브 | `apihub.kma.go.kr` | `authKey` | ○ |
 | `WEATHER_GO` | **공공데이터포털 기상청** 〈2026-09-20 실측 · D-247〉 — 단기예보 (`VilageFcstInfoService_2.0`). **API허브가 아니다**: 같은 값을 API허브에 넣으면 「유효한 인증키가 아닙니다」(401)로 거부된다 | `apis.data.go.kr/1360000` | `serviceKey` | ● |
+| `FSC_API` | **공공데이터포털 금융위원회** 금융통계 — 종합금융회사(15061312)·국내은행(15061304) 〈2026-09-27 사장님이 넣으셨다 · D-357〉. 오퍼레이션 이름은 `scripts/fsc-probe.mjs` 가 포털 안내 페이지에서 읽는다 | `apis.data.go.kr/1160100` | `serviceKey` | ○ |
+| `FSC_AMC_API` | **공공데이터포털 금융위원회** 금융통계 — 자산운용사 〈2026-09-27 사장님이 넣으셨다 · D-357〉. 서비스 번호는 진단이 정한다 | `apis.data.go.kr/1160100` | `serviceKey` | ○ |
+| `FSC_IAF_API` | **공공데이터포털 금융위원회** 금융통계 — 투자자문사(15061358) 〈2026-09-27 사장님이 넣으셨다 · D-357〉 | `apis.data.go.kr/1160100` | `serviceKey` | ○ |
+| `FSC_KOFIA_API` | **공공데이터포털 금융위원회** 금융투자협회 종합통계(15094809) — 신탁규모·펀드순자산·CMA·신용공여·증시자금·DLS/DLB 〈2026-09-27 사장님이 넣으셨다 · D-357〉 | `apis.data.go.kr/1160100` | `serviceKey` | ○ |
+| `PERSONAL_API_KEY` | **공공데이터포털 개인 인증키** 〈2026-09-27 사장님이 넣으셨다 · D-357〉 — 계정당 하나이고 승인만 서비스별이다(§4.2). `DATA_GO_KR_KEY` 와 같은 값일 수 있다 — 진단이 값 없이 견준다 | `apis.data.go.kr` | `serviceKey` | ○ |
+| `MSS_SME_SPA_API` | **공공데이터포털 중소벤처기업부** — 중소기업 지원사업 공고 조회(기업마당 자료) 〈2026-09-27 사장님이 넣으셨다 · D-357〉. 서비스 번호는 진단이 포털 검색으로 찾는다 | `apis.data.go.kr` | `serviceKey` | ○ |
 | `KEPCO_BIGDATA_KEY` | 한국전력 빅데이터 | `bigdata.kepco.co.kr/openapi` | `apiKey` | ○ |
 | `VWORLD_KEY` | 국토부 V-World | `api.vworld.kr/req` | `key` (+ `domain`) | ○ |
 | `LINKPILOT_VWORLD_REPORT_KEY` | 국토부 V-World — 같은 열쇠의 다른 이름 〈2026-09-17 사장님이 넣으셨다〉 | 위와 동일 | 위와 동일 | ○ |

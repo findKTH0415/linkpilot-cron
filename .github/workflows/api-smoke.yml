@@ -30,6 +30,9 @@ jobs:
       # 진단이 실패해도 다음 단계로 간다 — 실패한 항목이 곧 우리가 알고 싶은 것이다
       - name: 26개 커넥터를 실제로 불러 본다
         continue-on-error: true
+        # ★ 상한을 둔다 〈2026-09-27 · 실측〉 — 평소 63초인 이 단계가 한 커넥터에 매달려 12분 넘게 섰고,
+        #   그 뒤 진단(길찾기·날씨·금융위원회)이 한 줄도 못 돌았다. 여기서 끊겨도 아래 진단은 돈다.
+        timeout-minutes: 5
         env:
           VWORLD_KEY:        ${{ secrets.VWORLD_KEY }}
           VWORLD_DOMAIN:     ${{ secrets.VWORLD_DOMAIN }}
@@ -39,6 +42,12 @@ jobs:
           APIS_DATA:         ${{ secrets.APIS_DATA }}
           SPECIAL_DAY_INFO:  ${{ secrets.SPECIAL_DAY_INFO }}
           WEATHER_GO:        ${{ secrets.WEATHER_GO }}
+          FSC_API:           ${{ secrets.FSC_API }}
+          FSC_AMC_API:       ${{ secrets.FSC_AMC_API }}
+          FSC_IAF_API:       ${{ secrets.FSC_IAF_API }}
+          FSC_KOFIA_API:     ${{ secrets.FSC_KOFIA_API }}
+          MSS_SME_SPA_API:   ${{ secrets.MSS_SME_SPA_API }}
+          PERSONAL_API_KEY:  ${{ secrets.PERSONAL_API_KEY }}
           DART_API_KEY:      ${{ secrets.DART_API_KEY }}
           REB_API_KEY:       ${{ secrets.REB_API_KEY }}
           KOSIS_API_KEY:     ${{ secrets.KOSIS_API_KEY }}
@@ -74,6 +83,12 @@ jobs:
           APIS_DATA:         ${{ secrets.APIS_DATA }}
           SPECIAL_DAY_INFO:  ${{ secrets.SPECIAL_DAY_INFO }}
           WEATHER_GO:        ${{ secrets.WEATHER_GO }}
+          FSC_API:           ${{ secrets.FSC_API }}
+          FSC_AMC_API:       ${{ secrets.FSC_AMC_API }}
+          FSC_IAF_API:       ${{ secrets.FSC_IAF_API }}
+          FSC_KOFIA_API:     ${{ secrets.FSC_KOFIA_API }}
+          MSS_SME_SPA_API:   ${{ secrets.MSS_SME_SPA_API }}
+          PERSONAL_API_KEY:  ${{ secrets.PERSONAL_API_KEY }}
           DART_API_KEY:      ${{ secrets.DART_API_KEY }}
           REB_API_KEY:       ${{ secrets.REB_API_KEY }}
           KOSIS_API_KEY:     ${{ secrets.KOSIS_API_KEY }}
@@ -130,6 +145,28 @@ jobs:
             echo '### WEATHER_GO 기관 진단'
             # 판정 줄만 뽑는다 — 최악 세 줄(전체 + API허브 + 포털)이다
             grep -E '^> \*\*판정|^> 판정' data/_api/weather-probe.md || echo '(판정 줄을 못 읽었다)'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # ★★★ 금융위원회 금융통계 — **진단** 〈2026-09-27 · D-357〉.
+      #   사장님이 FSC_API · FSC_AMC_API · FSC_IAF_API · FSC_KOFIA_API 를 넣으셨다. 오퍼레이션 이름을 추측하지 않고
+      #   **포털 안내 페이지에서 읽어** 그대로 부른다 (§4.3). 판정 줄은 실행 요약 첫 화면으로 나른다 (§12-19).
+      - name: 금융위원회 금융통계 열쇠가 먹는지 불러 본다
+        continue-on-error: true
+        env:
+          FSC_API:          ${{ secrets.FSC_API }}
+          FSC_AMC_API:      ${{ secrets.FSC_AMC_API }}
+          FSC_IAF_API:      ${{ secrets.FSC_IAF_API }}
+          FSC_KOFIA_API:    ${{ secrets.FSC_KOFIA_API }}
+          MSS_SME_SPA_API:  ${{ secrets.MSS_SME_SPA_API }}
+          PERSONAL_API_KEY: ${{ secrets.PERSONAL_API_KEY }}
+          DATA_GO_KR_KEY:   ${{ secrets.DATA_GO_KR_KEY }}
+          APIS_DATA:        ${{ secrets.APIS_DATA }}
+          SPECIAL_DAY_INFO: ${{ secrets.SPECIAL_DAY_INFO }}
+        run: |
+          node scripts/fsc-probe.mjs || true
+          {
+            echo '### 금융위원회 금융통계 진단'
+            grep -E '^> \*\*판정|^> 판정' data/_api/fsc-probe.md || echo '(판정 줄을 못 읽었다)'
           } >> "$GITHUB_STEP_SUMMARY"
 
       # ★★★ 네이버 클라우드 Maps — **진단** 〈2026-09-25 · D-314〉.
