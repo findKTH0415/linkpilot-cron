@@ -69,6 +69,10 @@ export function discover(html) {
   }
   const ops = new Set();
   for (const m of flat.matchAll(/["'\/](get[A-Z][A-Za-z0-9_]{2,60})["'?\/]/g)) ops.add(m[1]);
+  /* ★ 스웨거 «paths» 의 열쇠도 줍는다 — get 으로 시작하지 않는 오퍼레이션이 있다(실측: 1421000/bizinfo) */
+  const pi = flat.indexOf('"paths"');
+  if (pi >= 0) for (const m of flat.slice(pi, pi + 20000).matchAll(/"\/([A-Za-z][A-Za-z0-9_]{2,60})"\s*:/g)) ops.add(m[1]);
+  for (const o of [...ops]) if (/_response$/.test(o)) ops.delete(o);
   return { bases: [...bases], full: [...full], ops: [...ops] };
 }
 
@@ -185,8 +189,13 @@ async function main() {
     let targets = d.full.slice();
     for (const b of d.bases) for (const o of d.ops) targets.push(`${b}/${o}`);
     targets = [...new Set(targets)].slice(0, 6);
-    if (!targets.length) {
-      P('  - ★ 부를 주소를 **못 읽었다** — 페이지 모양이 다르거나 막혔다. **열쇠 문제가 아니다**');
+    /* 뿌리는 읽었는데 오퍼레이션을 못 뽑았으면 뿌리 자체도 한 번 건다 — 뿌리가 곧 창구인 서비스가 있다 */
+    if (!targets.length) for (const b of d.bases) targets.push(b);
+    if (!targets.length || !d.ops.length) {
+      if (!targets.length) P('  - ★ 부를 주소를 **못 읽었다** — 페이지 모양이 다르거나 막혔다. **열쇠 문제가 아니다**');
+      /* 다음에 뽑는 법을 고칠 재료 — 공개 안내 페이지라 비밀이 없다. 요청주소 둘레 200자만 */
+      const at = ['apis.data.go.kr', '요청주소', 'End Point', 'swagger'].map((w) => html.indexOf(w)).filter((i) => i >= 0)[0];
+      P(`  - 둘레 «${at == null ? '(요청주소 낱말이 페이지에 없다)' : redact(html.slice(Math.max(0, at - 80), at + 220).replace(/\s+/g, ' '))}»`);
     }
     for (const t of targets) {
       for (const [how, k] of [['원본', key.value], ['디코딩', decoded]]) {
