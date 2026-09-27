@@ -38,14 +38,17 @@ const SERVICES = [
   { key: 'FSC_IAF_API', id: '15061358', name: '금융위원회_금융통계투자자문사정보', use: '투자자문사 일반·재무현황' },
   /* ★ `FSC_KOFIA_API` 〈같은 날 · 사장님: 「FSC_KOFIA_API 키넣었어」 + 상세기능 화면(신탁규모·펀드순자산·CMA·신용공여·증시자금·DLS/DLB)〉 */
   { key: 'FSC_KOFIA_API', id: '15094809', name: '금융위원회_금융투자협회종합통계정보', use: '펀드순자산·증시자금·신용공여 추이' },
+  /* ★ `MSS_SME_SPA_API` — 투자정보 [정책자금] 탭 후보. 검색으로 찾은 번호 둘을 함께 건다 — 어느 쪽이 신청된 것인지는 판정이 말한다 */
+  { key: 'MSS_SME_SPA_API', id: '15113297', name: '중소벤처기업부_사업공고', use: '[정책자금] 후보 — 중기부 사업공고' },
+  { key: 'MSS_SME_SPA_API', id: '15113191', name: '중소기업기술정보진흥원_중소벤처24 공고정보', use: '[정책자금] 후보 — 중소벤처24 공고' },
   { key: 'FSC_AMC_API', id: '15139266', name: '금융위원회_자산운용사 영업활동통계정보', use: '자산운용사 — 후보(검색으로 찾음)' },
 ];
 /* 서비스 번호를 모르는 것은 **포털 검색 화면**에서 찾는다 — 번호를 지어내지 않는다.
    ★ `SME_SUPPORT` 〈같은 날 · 사장님: 「중소벤처기업부_중소기업 지원사업 공고 — API 키넣었어」〉 — 투자정보 [정책자금] 탭 후보.
-     넣으신 **열쇠 이름을 아직 모른다** — 포털 계정 열쇠로 건다(승인은 서비스별 · §4.2). */
+     열쇠 이름은 `MSS_SME_SPA_API` 〈같은 날 사장님이 알려 주셨다〉. */
 const SEARCHES = [
   { key: 'FSC_AMC_API', keyword: '금융위원회 자산운용', word: '자산운용', use: '자산운용사 — 포털 검색에서 찾음' },
-  { key: 'SME_SUPPORT', keyword: '중소벤처기업부 중소기업 지원사업 공고', word: '지원사업', use: '투자정보 [정책자금] 탭 후보 — 포털 검색에서 찾음' },
+  { key: 'MSS_SME_SPA_API', keyword: '중소벤처기업부 중소기업 지원사업 공고', word: '지원사업', use: '투자정보 [정책자금] 탭 후보 — 포털 검색에서 찾음' },
 ];
 const searchUrl = (kw) => 'https://www.data.go.kr/tcs/dss/selectDataSetList.do?dType=API&keyword=' + encodeURIComponent(kw);
 
@@ -124,14 +127,13 @@ async function main() {
      Actions 비밀에 없었다 — 빈칸으로 찍혔다〉. 포털 인증키는 계정당 하나이고 **승인만 서비스별**이라(§4.2)
      그 서비스를 신청하셨으면 같은 열쇠로 통한다. 어느 이름으로 걸었는지는 반드시 적는다 — 섞어 읽으면
      「어느 열쇠가 통했는가」가 흐려진다. */
-  for (const n of ['FSC_API', 'FSC_AMC_API', 'FSC_IAF_API', 'FSC_KOFIA_API', 'SME_SUPPORT']) {
-    const own = n === 'SME_SUPPORT' ? null : pick([n]);  // SME_SUPPORT 는 이름을 아직 모른다 — 포털 열쇠로만 건다
+  for (const n of ['FSC_API', 'FSC_AMC_API', 'FSC_IAF_API', 'FSC_KOFIA_API', 'MSS_SME_SPA_API']) {
+    const own = pick([n]);
     if (own) OWN.push(own);
     const k = own || portal;
     KEYS[n] = k;
     results.keys[n] = own ? own.value.length : null;
     if (own) P(`- 열쇠 **\`${n}\`** 읽었다 (길이 ${own.value.length}자 · 값은 안 적는다) · 포털 열쇠와 ${portal ? (portal.value === own.value ? '**같은 값**' : '**다른 값**') : '견줄 것이 없다'}`);
-    else if (n === 'SME_SUPPORT') P(`- 중소기업 지원사업 공고 — 넣으신 **열쇠 이름을 아직 모른다** → ${portal ? `포털 계정 열쇠 \`${portal.name}\` 로 건다` : '걸 포털 열쇠도 없다'}`);
     else P(`- 열쇠 **\`${n}\`** — **이 저장소의 Actions 비밀에 없다** → ${portal ? `포털 계정 열쇠 \`${portal.name}\` 로 대신 건다` : '대신 걸 포털 열쇠도 없다'}`);
   }
   /* ★ 세 이름이 «같은 값»인지만 적는다 — 포털 인증키는 계정당 하나라 같을 수 있다. 값은 안 적는다 (§2) */
@@ -154,7 +156,7 @@ async function main() {
   P('');
 
   const codes = [];
-  for (const svc of SERVICES.slice(0, 10)) {
+  for (const svc of SERVICES.slice(0, 12)) {
     P(`## ${svc.name} (${svc.id}) — ${svc.use} · 열쇠 \`${svc.key}\``);
     P('');
     const key = KEYS[svc.key];
@@ -184,9 +186,15 @@ async function main() {
     for (const t of targets) {
       for (const [how, k] of [['원본', key.value], ['디코딩', decoded]]) {
         if (how === '디코딩' && k === key.value) continue;
-        const url = `https://apis.data.go.kr/${t}?serviceKey=${encodeURIComponent(k)}`
-          + `&pageNo=1&numOfRows=3&resultType=json&basYm=${BAS_YM}`;
-        const r = await probe(`${t} · ${how}`, url, {}, HAS_ITEMS, null);
+        /* ★ 대답은 왔는데 그 기준월이 비었으면(종금사 202512 = 0건 · 실측) 앞 기준월로 두 번 더 건다.
+           «비었다»를 「규격이 틀렸다」로 적지 않으려는 것이다 — 공표 전인 달일 수 있다 (§4 의 셋째 갈래). */
+        let url = '', r = null;
+        for (const ym of [BAS_YM, `${Y}06`, `${Y - 1}12`]) {
+          url = `https://apis.data.go.kr/${t}?serviceKey=${encodeURIComponent(k)}`
+            + `&pageNo=1&numOfRows=3&resultType=json&basYm=${ym}`;
+          r = await probe(`${t} · ${how} · ${ym}`, url, {}, HAS_ITEMS, null);
+          if (r.gotValue || r.status == null || r.authFail || !/"resultCode"\s*:\s*"00"/.test(r.head || '')) break;
+        }
         rows.push(r);
         sayRow(P, r, '항목(totalCount>0)');
         if (r.gotValue) {
