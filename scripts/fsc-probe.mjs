@@ -97,15 +97,22 @@ async function main() {
   /* ★ 포털 열쇠와 «같은 값»인지만 적는다 — 값·길이 차이는 안 적는다 (§2) */
   const portal = pick(['DATA_GO_KR_KEY', 'APIS_DATA', 'SPECIAL_DAY_INFO']);
   const KEYS = {};
+  const OWN = [];
+  /* ★★ 넣으신 이름이 이 자리에 없으면 **포털 계정 열쇠**로 건다 〈2026-09-27 실측: 세 이름이 이 저장소의
+     Actions 비밀에 없었다 — 빈칸으로 찍혔다〉. 포털 인증키는 계정당 하나이고 **승인만 서비스별**이라(§4.2)
+     그 서비스를 신청하셨으면 같은 열쇠로 통한다. 어느 이름으로 걸었는지는 반드시 적는다 — 섞어 읽으면
+     「어느 열쇠가 통했는가」가 흐려진다. */
   for (const n of ['FSC_API', 'FSC_AMC_API', 'FSC_IAF_API']) {
-    const k = pick([n]);
+    const own = pick([n]);
+    if (own) OWN.push(own);
+    const k = own || portal;
     KEYS[n] = k;
-    results.keys[n] = k ? k.value.length : null;
-    P(k ? `- 열쇠 **\`${n}\`** 읽었다 (길이 ${k.value.length}자 · 값은 안 적는다) · 포털 열쇠와 ${portal ? (portal.value === k.value ? '**같은 값**' : '**다른 값**') : '견줄 것이 없다'}`
-        : `- 열쇠 **\`${n}\`** — **이 자리에 안 들어왔다**`);
+    results.keys[n] = own ? own.value.length : null;
+    if (own) P(`- 열쇠 **\`${n}\`** 읽었다 (길이 ${own.value.length}자 · 값은 안 적는다) · 포털 열쇠와 ${portal ? (portal.value === own.value ? '**같은 값**' : '**다른 값**') : '견줄 것이 없다'}`);
+    else P(`- 열쇠 **\`${n}\`** — **이 저장소의 Actions 비밀에 없다** → ${portal ? `포털 계정 열쇠 \`${portal.name}\` 로 대신 건다` : '대신 걸 포털 열쇠도 없다'}`);
   }
   /* ★ 세 이름이 «같은 값»인지만 적는다 — 포털 인증키는 계정당 하나라 같을 수 있다. 값은 안 적는다 (§2) */
-  const have = Object.values(KEYS).filter(Boolean);
+  const have = OWN;
   if (have.length > 1) P(`- 들어온 열쇠 ${have.length}개가 ${new Set(have.map((k) => k.value)).size === 1 ? '**모두 같은 값**' : '**서로 다른 값이 섞였다**'}`);
   P('');
 
@@ -123,6 +130,7 @@ async function main() {
     P(`## ${svc.name} (${svc.id}) — ${svc.use} · 열쇠 \`${svc.key}\``);
     P('');
     const key = KEYS[svc.key];
+    if (key) P(`- 건 열쇠: \`${key.name}\``);
     if (!key) { P('> **판정 2** — 열쇠가 없다'); P(''); codes.push(2); results.services.push({ id: svc.id, code: 2 }); continue; }
     let decoded = key.value;
     try { decoded = decodeURIComponent(key.value); } catch (_) { decoded = key.value; }
