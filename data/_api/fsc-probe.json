@@ -1,0 +1,317 @@
+{
+ "keys": {
+  "FSC_API": null,
+  "FSC_AMC_API": null,
+  "FSC_IAF_API": null,
+  "FSC_KOFIA_API": null,
+  "FSC_DOMESTIC_BANK_API": null,
+  "FSC_SAVINGS_BANK_API": null,
+  "FSC_CREDIT_UNION_BANK_API": null,
+  "FSC__AGRICULTURAL_COOPERATIVE_BANK_API": null,
+  "FSC_FISHERIES_COOPERATIVE_BANK_API": null,
+  "MSS_SME_SPA_API": null
+ },
+ "services": [
+  {
+   "id": "15061312",
+   "bases": [
+    "1160100/service/GetMercBankInfoService"
+   ],
+   "ops": [],
+   "code": 5,
+   "rows": [
+    {
+     "label": "*** · 원본 · 202412",
+     "status": 200,
+     "gotValue": false,
+     "authFail": false,
+     "head": "{\"response\":{\"body\":{\"tableList\":[{\"items\":{\"item\":[]},\"title\":\"종금사_일반현황_임직원현황\",\"totalCount\":0},{\"items\":{\"item\":[]},\"title\":\"종금사_일반현황_영업점포현황\",\"totalCount\":0}]},\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\",\"pageNo\":\"1\",\"numOfRows\":\"3\"}}}"
+    }
+   ]
+  },
+  {
+   "id": "15061304",
+   "bases": [
+    "1160100/service/GetDomeBankInfoService"
+   ],
+   "ops": [],
+   "code": 0,
+   "rows": [
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 200,
+     "gotValue": true,
+     "authFail": false,
+     "head": "{\"response\":{\"body\":{\"tableList\":[{\"items\":{\"item\":[{\"basYm\":\"202512\",\"crno\":\"1101110023393\",\"fncoCd\":\"0010001\",\"fncoNm\":\"우리은행\",\"xcsmCnt\":\"14211\",\"xcsmDcd\":\"A\",\"xcsmDcdNm\":\"총임직원\"},{\"basYm\":\"202512\",\"crno\":\"1101110023393\",\"fncoCd\":\"0010001\",\"fncoNm\":\"우리은행\",\"xcsmCnt\":\"28\",\"xcsmDcd\":\"A1\",\"xcsmDcdNm\":\"임"
+    }
+   ]
+  },
+  {
+   "id": "15061358",
+   "bases": [
+    "***"
+   ],
+   "ops": [],
+   "code": 0,
+   "rows": [
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 200,
+     "gotValue": true,
+     "authFail": false,
+     "head": "{\"response\":{\"body\":{\"tableList\":[{\"items\":{\"item\":[]},\"title\":\"투자자문_일반현황_임직원현황(09.03월이전)\",\"totalCount\":0},{\"items\":{\"item\":[{\"basYm\":\"202512\",\"crno\":\"1101110566773\",\"fncoCd\":\"0010193\",\"fncoNm\":\"프랭클린템플턴투자자문 주식회사\",\"xcsmCnt\":\"0\",\"xcsmDcd\":\"D\",\"xcsmDcdNm\":\"운용전문인력\"},{\"basYm\":\"202512\",\"crno\":\"11011115415"
+    }
+   ]
+  },
+  {
+   "id": "15094809",
+   "bases": [
+    "***"
+   ],
+   "ops": [
+    "getTrustScaleInfo",
+    "getFundTotalNetEssetInfo",
+    "getCMAStatus",
+    "getGrantingOfCreditBalanceInfo",
+    "getSecuritiesMarketTotalCapitalInfo",
+    "getDLSAndDLBInfo",
+    "getELSAndELBInfo",
+    "getDerivationProductTradingInfo"
+   ],
+   "code": 0,
+   "rows": [
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 200,
+     "gotValue": true,
+     "authFail": false,
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":330,\"items\":{\"item\":[{\"basYm\":\"202512\",\"bzds\":\"합계\",\"tstCtg\":\"금전신탁 특정금전신탁\",\"kind\":\"정기예금형\",\"iqBs\":\"계약수\",\"val\":\"107829\"},{\"basYm\":\"202512\",\"bzds\":\"합계\",\"tstCtg\":\"금전신탁 특정금전신탁\",\"kind\":\"기타\""
+    },
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 200,
+     "gotValue": true,
+     "authFail": false,
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":28687,\"items\":{\"item\":[{\"basDt\":\"20260922\",\"ctg\":\"-\",\"tstMthdCtg\":\"공모\",\"nPptTotAmt\":\"36229761418\"},{\"basDt\":\"20260922\",\"ctg\":\"재간접\",\"tstMthdCtg\":\"공모\",\"nPptTotAmt\":\"55853622174489\"},{\""
+    },
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 200,
+     "gotValue": true,
+     "authFail": false,
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":14448,\"items\":{\"item\":[{\"basDt\":\"20260922\",\"mngInvTgt\":\"합계\",\"invrCtg\":\"기관\",\"scrtCmpyCnt\":\"0\",\"actCnt\":\"147378\",\"actBal\":\"12214007072315\"},{\"basDt\":\"20260922\",\"mngInvTgt\":\"MMF형\",\"invr"
+    },
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 200,
+     "gotValue": true,
+     "authFail": false,
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":1191,\"items\":{\"item\":[{\"basDt\":\"20260922\",\"crdTrFingWhl\":\"32819168401860\",\"crdTrFingScrs\":\"25609148339779\",\"crdTrFingKosdaq\":\"7210020062081\",\"crdTrLndrWhl\":\"34329878973\",\"crdTrLndrSc"
+    },
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 200,
+     "gotValue": true,
+     "authFail": false,
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":1204,\"items\":{\"item\":[{\"basDt\":\"20260922\",\"invrDpsgAmt\":\"100982554761485\",\"onbdDrvPrdTrRcAdvAmt\":\"42217285110345\",\"toCstRpchCndBndSlgBal\":\"110640626185958\",\"brkTrdUcolMny\":\"853708535"
+    },
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 200,
+     "gotValue": true,
+     "authFail": false,
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":1176,\"items\":{\"item\":[{\"basDt\":\"202607\",\"ctgDlbDls\":\"원금비보장형\",\"ctgPrplcPsub\":\"사모\",\"presCtg\":\"상환현황\",\"amt\":\"387334000000\",\"ccnt\":\"46\"},{\"basDt\":\"202607\",\"ctgDlbDls\":\"원금보장형\",\"ctgPrplcPsu"
+    }
+   ]
+  },
+  {
+   "id": "15113297",
+   "bases": [
+    "1421000/mssBizService_v2"
+   ],
+   "ops": [
+    "getbizList_v2"
+   ],
+   "code": 4,
+   "rows": [
+    {
+     "label": "1421000/mssBizService_v2/getbizList_v2 · 원본 · 202512",
+     "status": 403,
+     "gotValue": false,
+     "authFail": true,
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
+    }
+   ]
+  },
+  {
+   "id": "15113191",
+   "bases": [],
+   "ops": [],
+   "code": 3,
+   "rows": []
+  },
+  {
+   "id": "15139266",
+   "bases": [
+    "1160100/service/GetFSSaleActInfoService"
+   ],
+   "ops": [
+    "getScrtDlngPresInfo",
+    "getDrvpDlngPresInfo",
+    "getInvdCminPresInfo",
+    "getInvdCntrPresInfo",
+    "getInvdPptPresInfo",
+    "getInvdPptOperPresInfo"
+   ],
+   "code": 0,
+   "rows": [
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 200,
+     "gotValue": true,
+     "authFail": false,
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":3520,\"items\":{\"item\":[{\"basYm\":\"202512\",\"fncoCd\":\"0019635\",\"fncoNm\":\"스피네이커자산운용 주식회사\",\"sttsItemCd\":\"H\",\"sttsItemNm\":\"증권합계\",\"sttsItemAmt\":\"2755335595\"},{\"basYm\":\"202512\",\"fncoCd\":\"0014"
+    },
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 200,
+     "gotValue": true,
+     "authFail": false,
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":792,\"items\":{\"item\":[{\"basYm\":\"202512\",\"fncoCd\":\"0012121\",\"fncoNm\":\"브레인자산운용\",\"sttsItemCd\":\"A1\",\"sttsItemNm\":\"선물\",\"sttsItemAmt\":\"801488982500\"},{\"basYm\":\"202512\",\"fncoCd\":\"0019431\",\"f"
+    },
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 200,
+     "gotValue": true,
+     "authFail": false,
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":1368,\"items\":{\"item\":[{\"basYm\":\"202512\",\"fncoCd\":\"0010183\",\"fncoNm\":\"교보악사자산운용\",\"sttsItemCd\":\"A1\",\"sttsItemNm\":\"일반투자자\",\"sttsItemAmt\":\"0\"},{\"basYm\":\"202512\",\"fncoCd\":\"0019588\",\"fncoNm\""
+    },
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 200,
+     "gotValue": true,
+     "authFail": false,
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":972,\"items\":{\"item\":[{\"basYm\":\"202512\",\"fncoCd\":\"0010170\",\"fncoNm\":\"하나자산운용\",\"sttsItemCd\":\"A\",\"sttsItemNm\":\"고객수\",\"sttsItemAmt\":\"14\"},{\"basYm\":\"202512\",\"fncoCd\":\"0016797\",\"fncoNm\":\"파이브"
+    },
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 200,
+     "gotValue": true,
+     "authFail": false,
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":1452,\"items\":{\"item\":[{\"basYm\":\"202512\",\"fncoCd\":\"0013784\",\"fncoNm\":\"웰스자산운용\",\"sttsItemCd\":\"A1\",\"sttsItemNm\":\"일반투자자\",\"sttsItemAmt\":\"0\"},{\"basYm\":\"202512\",\"fncoCd\":\"0010210\",\"fncoNm\":\""
+    },
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 200,
+     "gotValue": true,
+     "authFail": false,
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":964,\"items\":{\"item\":[{\"basYm\":\"202512\",\"fncoCd\":\"0010215\",\"fncoNm\":\"플러스자산운용\",\"sttsItemCd\":\"A\",\"sttsItemNm\":\"유동성자산\",\"sttsItemDmstAmt\":\"119849171692\",\"sttsItemOvseAmt\":\"0\"},{\"basYm\":\"2"
+    }
+   ]
+  },
+  {
+   "id": "15061325",
+   "bases": [
+    "***"
+   ],
+   "ops": [],
+   "code": 4,
+   "rows": [
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 403,
+     "gotValue": false,
+     "authFail": true,
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
+    }
+   ]
+  },
+  {
+   "id": "15157820",
+   "bases": [
+    "1421000/bizinfo"
+   ],
+   "ops": [
+    "pblancBsnsService"
+   ],
+   "code": 0,
+   "rows": [
+    {
+     "label": "1421000/bizinfo/pblancBsnsService · 원본 · 202512",
+     "status": 200,
+     "gotValue": true,
+     "authFail": false,
+     "head": "<response> <header> <resultCode>00</resultCode> <resultMsg>NORMAL_SERVICE</resultMsg> </header> <body> <items> <item> <pblancNm><![CDATA[2026년 하반기 산청군 단체관광객 유치 인센티브 지원 공고]]></pblancNm> <!-- 공고명 --> <pblancUrl>https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000126818</pb"
+    }
+   ]
+  },
+  {
+   "id": "15061316",
+   "bases": [
+    "***"
+   ],
+   "ops": [],
+   "code": 0,
+   "rows": [
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 200,
+     "gotValue": true,
+     "authFail": false,
+     "head": "{\"response\":{\"body\":{\"tableList\":[{\"items\":{\"item\":[{\"basYm\":\"202512\",\"crno\":\"1101110126014\",\"fncoCd\":\"0010345\",\"fncoNm\":\"애큐온저축은행\",\"xcsmCnt\":\"384\",\"xcsmDcd\":\"A\",\"xcsmDcdNm\":\"총임직원\"},{\"basYm\":\"202512\",\"crno\":\"1101110126014\",\"fncoCd\":\"0010345\",\"fncoNm\":\"애큐온저축은행\",\"xcsmCnt\":\"18\",\"xcsmDcd\":\"A1\",\"xcsmDcdNm"
+    }
+   ]
+  },
+  {
+   "id": "15061337",
+   "bases": [
+    "1160100/service/GetCredUnioInfoService"
+   ],
+   "ops": [],
+   "code": 0,
+   "rows": [
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 200,
+     "gotValue": true,
+     "authFail": false,
+     "head": "{\"response\":{\"body\":{\"tableList\":[{\"items\":{\"item\":[{\"basYm\":\"202512\",\"crno\":\"\",\"fncoCd\":\"00106561002\",\"fncoNm\":\"정락\",\"xcsmCnt\":\"16\",\"xcsmDcd\":\"A\",\"xcsmDcdNm\":\"총임직원\"},{\"basYm\":\"202512\",\"crno\":\"\",\"fncoCd\":\"00106561002\",\"fncoNm\":\"정락\",\"xcsmCnt\":\"10\",\"xcsmDcd\":\"A1\",\"xcsmDcdNm\":\"임 원\"},{\"basYm\":\"202512\",\"c"
+    }
+   ]
+  },
+  {
+   "id": "15061344",
+   "bases": [
+    "1160100/service/GetAgriCoopInfoService"
+   ],
+   "ops": [],
+   "code": 0,
+   "rows": [
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 200,
+     "gotValue": true,
+     "authFail": false,
+     "head": "{\"response\":{\"body\":{\"tableList\":[{\"items\":{\"item\":[{\"basYm\":\"202512\",\"crno\":\"1146360000288\",\"fncoCd\":\"0010027100089\",\"fncoNm\":\"남서울농협\",\"xcsmCnt\":\"174\",\"xcsmDcd\":\"A\",\"xcsmDcdNm\":\"총임직원\"},{\"basYm\":\"202512\",\"crno\":\"1146360000288\",\"fncoCd\":\"0010027100089\",\"fncoNm\":\"남서울농협\",\"xcsmCnt\":\"23\",\"xcsmDcd\":\"A1\",\"x"
+    }
+   ]
+  },
+  {
+   "id": "15061340",
+   "bases": [
+    "1160100/service/GetFishCoopInfoService"
+   ],
+   "ops": [],
+   "code": 0,
+   "rows": [
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 200,
+     "gotValue": true,
+     "authFail": false,
+     "head": "{\"response\":{\"body\":{\"tableList\":[{\"items\":{\"item\":[{\"basYm\":\"202512\",\"crno\":\"\",\"fncoCd\":\"0010028100970\",\"fncoNm\":\"근해안강망수협\",\"xcsmCnt\":\"2\",\"xcsmDcd\":\"A11\",\"xcsmDcdNm\":\"임 원_상근 이사 및 감사\"},{\"basYm\":\"202512\",\"crno\":\"\",\"fncoCd\":\"0010028100970\",\"fncoNm\":\"근해안강망수협\",\"xcsmCnt\":\"7\",\"xcsmDcd\":\"A12\",\"xcsmDcdNm\":\"임"
+    }
+   ]
+  }
+ ]
+}
