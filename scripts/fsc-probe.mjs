@@ -91,6 +91,8 @@ const SEARCHES = [
   { key: 'MOLIT_LUR_INFO', keyword: '국토교통부 토지이용규제정보서비스', word: '토지이용규제정보', use: '토지이용규제정보 — 반영 확인(2026-09-29)' },
   { key: 'MOLIT_COMM_SALE', keyword: '상업업무용 부동산 매매 실거래가', word: '상업업무용', use: '상업업무용 부동산 매매 실거래가 — 반영 확인(2026-09-29)' },
   { key: 'MOLIT_LAND_SALE', keyword: '국토교통부 토지 매매 실거래가', word: '토지 매매', use: '토지 매매 실거래가 — 반영 확인(2026-09-29)' },
+  /* ★ 〈같은 날 · 첫 검색이 «못 뽑았다»〉 — 이름을 한 겹 좁혀 한 번 더 찾는다(찾은 번호만 건다) */
+  { key: 'MOLIT_LAND_SALE', keyword: '토지 매매 실거래가 자료', word: '토지', use: '토지 매매 실거래가 — 반영 확인(2026-09-29)' },
 ];
 const searchUrl = (kw) => 'https://www.data.go.kr/tcs/dss/selectDataSetList.do?dType=API&keyword=' + encodeURIComponent(kw);
 
