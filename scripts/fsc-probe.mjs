@@ -71,6 +71,9 @@ const SEARCHES = [
   /* ★ 〈같은 날 · 첫 검색 둘이 «못 뽑았다»〉 — 이름을 한 겹 넓혀 한 번 더 찾는다. 찾은 번호만 건다 (지어내지 않는다) */
   { key: 'MOLIT_LUR_LAW_KEY', keyword: '토지이용규제', word: '토지이용', use: '토지이용규제 법령정보 — 인허가 검토(행위제한) 후보' },
   { key: 'FSC_API', keyword: '금융위원회 기금', word: '기금', use: '기금대출정보 — 투자정보 [정책자금] 후보' },
+  /* ★ 〈2026-09-29 · 사장님 화면: 「[운영계정]한국산업은행_기금대출 정보」 · 자동승인 · 승인 · 2026-09-28 ~ 2028-09-28〉 —
+     제공기관이 금융위원회가 아니라 **한국산업은행**이었다. 앞의 두 검색이 0건이던 까닭이다. 그 이름 그대로 찾는다 (번호를 지어내지 않는다) */
+  { key: 'FSC_API', keyword: '한국산업은행 기금대출', word: '기금대출', use: '한국산업은행 기금대출 정보 — 투자정보 [정책자금] 후보' },
 ];
 const searchUrl = (kw) => 'https://www.data.go.kr/tcs/dss/selectDataSetList.do?dType=API&keyword=' + encodeURIComponent(kw);
 
