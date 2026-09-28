@@ -127,6 +127,30 @@ export function discover(html) {
   return { bases: [...bases], full: [...full], ops: [...ops], required: [...required] };
 }
 
+/* ★ 〈2026-09-29 · 실측: 15121307 · 15081808 안내 페이지는 swagger-ui 빈 칸만 주고, 규격은 odcloud «api-docs» 주소에 있었다〉.
+   그 규격(JSON)에서 **부를 뿌리 · 경로 · 방법 · 필수 인자**를 뽑는다. 주소를 지어내지 않는다 — 문서에 적힌 것만 쓴다 (§4.3).
+   ★ 못 읽으면 null — 「경로가 없다」가 아니라 「못 읽었다」다 (§8). */
+export function swaggerOps(json) {
+  let d;
+  try { d = typeof json === 'string' ? JSON.parse(json) : json; } catch (_) { return null; }
+  if (!d || typeof d !== 'object' || !d.paths || typeof d.paths !== 'object') return null;
+  let root = '';
+  if (d.host) root = `https://${d.host}${d.basePath || ''}`;
+  else if (Array.isArray(d.servers) && d.servers[0] && d.servers[0].url) root = String(d.servers[0].url).replace(/^\/\//, 'https://');
+  root = root.replace(/\/+$/, '');
+  const ops = [];
+  for (const [p, methods] of Object.entries(d.paths)) {
+    for (const [m, op] of Object.entries(methods || {})) {
+      if (!/^(get|post)$/i.test(m) || !op || typeof op !== 'object') continue;
+      const params = Array.isArray(op.parameters) ? op.parameters : [];
+      const required = params.filter((x) => x && x.required && x.in !== 'header' && x.in !== 'body' && !/^serviceKey$/i.test(x.name)).map((x) => String(x.name));
+      const body = Boolean(op.requestBody || params.some((x) => x && x.in === 'body'));
+      ops.push({ method: m.toUpperCase(), path: p, required, body });
+    }
+  }
+  return { root: /^https:\/\//.test(root) ? root : '', ops: ops.slice(0, 20) };
+}
+
 /* 포털 검색 화면에서 «자산운용» 이 든 오픈API 목록(번호 · 제목)을 뽑는다 */
 export function searchHits(html, word) {
   const src = String(html || '');
@@ -251,6 +275,7 @@ async function main() {
     P(`  - 뽑은 오퍼레이션 ${d.ops.length ? d.ops.map((o) => `\`${o}\``).join(' · ') : '**없음(못 읽었다)**'}`);
     if (d.required.length) { const line = `  - 필수 인자(스웨거) ${d.required.map((o) => `\`${o}\``).join(' · ')}`; P(line); SEARCH_RECAP.push(`- ${svc.id} ${line.trim()}`); }
     const rows = [];
+    const odRows = []; let odSpec = false;
     /* 부를 것 — 통째 주소가 있으면 그것, 없으면 서비스 × 오퍼레이션 */
     /* 통째 주소가 먼저, 그다음 서비스 × 오퍼레이션 — 페이지가 둘을 따로 적는 수가 있다 */
     let targets = d.full.slice();
@@ -269,6 +294,31 @@ async function main() {
       const refLine = `  - 규격 주소 후보 ${refs.length ? refs.map((u) => `«${redact(u)}»`).join(' · ') : '(페이지에 없다)'}`;
       P(refLine); SEARCH_RECAP.push(`- ${svc.id} ${refLine.trim()}`);
       if (/swagger-ui/.test(html)) { const j = html.indexOf('SwaggerUIBundle'); P(`  - 스웨거 불러오기 둘레 «${j < 0 ? '(SwaggerUIBundle 낱말이 없다)' : redact(html.slice(j, j + 300).replace(/\s+/g, ' '))}»`); }
+      /* ★ 그 후보 중 odcloud 규격(api-docs)을 실제로 받아 읽는다 — 문서에 적힌 뿌리·경로로만 부른다.
+         ★★ 값이 필요한 인자(사업자번호 등)는 **지어 넣지 않는다** — 이름만 적는다. 부를 수 있는 것만 부른다:
+           GET 은 쪽 인자(page·perPage·returnType)만 필요한 것 · POST 는 빈 몸통(인증 통과 여부만 가린다). */
+      for (const ref of refs.filter((u) => /odcloud\.kr\/.*api-docs/i.test(u)).slice(0, 2)) {
+        const docUrl = ref.startsWith('//') ? `https:${ref}` : ref;
+        let spec = null;
+        try { spec = swaggerOps(await (await fetch(docUrl, { signal: AbortSignal.timeout(15000) })).text()); } catch (_) { spec = null; }
+        if (!spec) { const l = '  - odcloud 규격 — **못 읽었다** (받지 못했거나 JSON 이 아니다)'; P(l); SEARCH_RECAP.push(`- ${svc.id} ${l.trim()}`); continue; }
+        odSpec = true;
+        const opLine = `  - odcloud 규격 — 뿌리 ${spec.root ? `\`${redact(spec.root)}\`` : '**못 읽었다**'} · `
+          + (spec.ops.length ? spec.ops.map((o) => `${o.method} \`${o.path}\`${o.required.length ? ` (필수 ${o.required.join('·')})` : ''}${o.body ? ' (몸통)' : ''}`).join(' · ') : '경로 **없음(못 읽었다)**');
+        P(opLine); SEARCH_RECAP.push(`- ${svc.id} ${opLine.trim()}`);
+        if (!spec.root) continue;
+        const PAGE = new Set(['page', 'perPage', 'returnType']);
+        for (const o of spec.ops.slice(0, 4)) {
+          const u = `${spec.root}${o.path}?serviceKey=${encodeURIComponent(decoded)}`;
+          let r = null;
+          if (o.method === 'GET' && o.required.every((x) => PAGE.has(x))) {
+            r = await probe(`odcloud GET ${o.path}`, `${u}&page=1&perPage=3&returnType=JSON`, {}, /"currentCount"\s*:\s*[1-9]|"data"\s*:\s*\[\s*\{/, null);
+          } else if (o.method === 'POST' && o.body && !o.required.length) {
+            r = await probe(`odcloud POST ${o.path} · 빈 몸통`, u, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: '{}' }, null, null);
+          } else { P(`  - \`${o.method} ${o.path}\` — 필수 인자 값이 있어야 부른다 · **지어 넣지 않아 안 불렀다**`); continue; }
+          odRows.push(r); sayRow(P, r, '항목');
+        }
+      }
     }
     for (const t of targets) {
       for (const [how, k] of [['원본', key.value], ['디코딩', decoded]]) {
@@ -295,10 +345,15 @@ async function main() {
       }
     }
     /* 부를 주소를 못 읽었으면 «못 쟀다(3)» — 기관에 안 닿았다 */
-    const v = targets.length ? verdictOf(rows) : { code: 3, head: '**부를 주소를 못 읽었다** — 안내 페이지를 못 받았거나 모양이 다르다. 열쇠 문제가 아니다' };
+    /* ★ odcloud 규격으로 부른 줄이 있으면 그것으로 판정한다. 규격은 읽었는데 부를 수 있는 것이 없었으면(값이 필요한 인자뿐)
+       «못 쟀다» — 대답을 못 받은 것을 승인·거부 어느 쪽으로도 적지 않는다 (§8) */
+    const v = targets.length ? verdictOf(rows)
+      : odRows.length ? verdictOf(odRows)
+      : odSpec ? { code: 3, head: '**규격은 읽었다** — 부르려면 필수 인자 값이 있어야 해서 지어 넣지 않고 안 불렀다(못 쟀다). **열쇠 문제가 아니다**' }
+      : { code: 3, head: '**부를 주소를 못 읽었다** — 안내 페이지를 못 받았거나 모양이 다르다. 열쇠 문제가 아니다' };
     codes.push(v.code);
     results.services.push({ id: svc.id, bases: d.bases, ops: d.ops, code: v.code,
-      rows: rows.map((r) => ({ label: r.label, status: r.status, gotValue: r.gotValue, authFail: r.authFail, head: r.head })) });
+      rows: rows.concat(odRows).map((r) => ({ label: r.label, status: r.status, gotValue: r.gotValue, authFail: r.authFail, head: r.head })) });
     P('');
     P(`> **판정 ${v.code}** — ${v.head}`);
     P('');
