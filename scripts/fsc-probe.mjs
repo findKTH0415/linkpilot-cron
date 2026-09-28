@@ -113,10 +113,22 @@ export function searchHits(html, word) {
 function itemKeys(body) {
   try {
     const j = JSON.parse(body);
-    let it = j && j.response && j.response.body && j.response.body.items;
+    const bd = j && j.response && j.response.body;
+    let it = bd && bd.items;
+    /* ★ D-363 — 은행 계열(국내은행·저축은행·신협·농협·수협)은 «표 목록» 모양이다:
+       body.tableList[].items.item. 앞 판은 body.items 만 봐서 칸 이름을 못 뽑았다.
+       표 쪽 칸 이름은 «표.» 를 붙여 따로 적는다 — 두 층이 섞이면 배선할 때 헷갈린다. */
+    let head = [];
+    if (!it && bd && Array.isArray(bd.tableList) && bd.tableList.length) {
+      const tb = bd.tableList[0] || {};
+      head = Object.keys(tb).filter((k) => k !== 'items').map((k) => '표.' + k);
+      head.unshift(`표목록(${bd.tableList.length})`);
+      it = tb.items;
+    }
     it = it && (it.item || it);
     if (Array.isArray(it)) it = it[0];
-    return it && typeof it === 'object' ? Object.keys(it).slice(0, 40) : null;
+    const ks = it && typeof it === 'object' ? Object.keys(it) : [];
+    return head.length || ks.length ? head.concat(ks).slice(0, 48) : null;
   } catch (_) { return null; }
 }
 

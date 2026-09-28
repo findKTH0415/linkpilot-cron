@@ -182,7 +182,12 @@ jobs:
           {
             echo '### 금융위원회 금융통계 진단'
             grep -E '^> \*\*판정|^> 판정' data/_api/fsc-probe.md || echo '(판정 줄을 못 읽었다)'
+            # ★ D-363 — 서비스별 «칸 이름»(응답 항목의 필드 이름)도 싣는다. 배선할 때 이 이름을 보고
+            #   짠다 — 추측으로 박지 않는다 (§4.3). 값은 안 싣는다 — 이름만이다 (§2).
+            echo ''
+            grep -E '^## |칸 이름' data/_api/fsc-probe.md || echo '(칸 이름 줄을 못 읽었다)'
           } >> "$GITHUB_STEP_SUMMARY"
+          grep -E '^## |칸 이름' data/_api/fsc-probe.md || true
 
       # ★★★ 네이버 클라우드 Maps — **진단** 〈2026-09-25 · D-314〉.
       #   사장님이 Client ID · Secret 을 넣으셨는데 **넣으신 이름**과 **호스트(옛·새)** 를
