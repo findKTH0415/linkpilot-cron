@@ -72,6 +72,7 @@ const KEYS = [
   ['FSC_CREDIT_UNION_BANK_API', '금융위원회 금융통계', '신용협동조합 — 아직 커넥터에 안 붙였다 (scripts/fsc-probe.mjs)'],
   ['FSC__AGRICULTURAL_COOPERATIVE_BANK_API', '금융위원회 금융통계', '농업협동조합 — 아직 커넥터에 안 붙였다 (scripts/fsc-probe.mjs)'],
   ['FSC_FISHERIES_COOPERATIVE_BANK_API', '금융위원회 금융통계', '수산업협동조합 — 아직 커넥터에 안 붙였다 (scripts/fsc-probe.mjs)'],
+  ['FSC_SP_FIN', '금융위원회', '개인사업자금융정보(보증잔액·예금대출) — 아직 커넥터에 안 붙였다 (scripts/fsc-probe.mjs)'],
   ['FSC_KOFIA_API', '금융위원회 금융투자협회', '펀드·증시자금·신용공여 — 아직 커넥터에 안 붙였다 (scripts/fsc-probe.mjs)'],
   ['LAW_OC|LAW_OPEN_DATA', '국가법령정보센터', '법령·조례 (이름 둘 다 읽는다)'],
   [VWORLD_NAMES.join('|'), '브이월드',

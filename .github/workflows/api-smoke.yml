@@ -51,6 +51,7 @@ jobs:
           FSC_CREDIT_UNION_BANK_API: ${{ secrets.FSC_CREDIT_UNION_BANK_API }}
           FSC__AGRICULTURAL_COOPERATIVE_BANK_API: ${{ secrets.FSC__AGRICULTURAL_COOPERATIVE_BANK_API }}
           FSC_FISHERIES_COOPERATIVE_BANK_API: ${{ secrets.FSC_FISHERIES_COOPERATIVE_BANK_API }}
+          FSC_SP_FIN: ${{ secrets.FSC_SP_FIN }}
           MSS_SME_SPA_API:   ${{ secrets.MSS_SME_SPA_API }}
           PERSONAL_API_KEY:  ${{ secrets.PERSONAL_API_KEY }}
           DART_API_KEY:      ${{ secrets.DART_API_KEY }}
@@ -97,6 +98,7 @@ jobs:
           FSC_CREDIT_UNION_BANK_API: ${{ secrets.FSC_CREDIT_UNION_BANK_API }}
           FSC__AGRICULTURAL_COOPERATIVE_BANK_API: ${{ secrets.FSC__AGRICULTURAL_COOPERATIVE_BANK_API }}
           FSC_FISHERIES_COOPERATIVE_BANK_API: ${{ secrets.FSC_FISHERIES_COOPERATIVE_BANK_API }}
+          FSC_SP_FIN: ${{ secrets.FSC_SP_FIN }}
           MSS_SME_SPA_API:   ${{ secrets.MSS_SME_SPA_API }}
           PERSONAL_API_KEY:  ${{ secrets.PERSONAL_API_KEY }}
           DART_API_KEY:      ${{ secrets.DART_API_KEY }}
@@ -172,6 +174,7 @@ jobs:
           FSC_CREDIT_UNION_BANK_API: ${{ secrets.FSC_CREDIT_UNION_BANK_API }}
           FSC__AGRICULTURAL_COOPERATIVE_BANK_API: ${{ secrets.FSC__AGRICULTURAL_COOPERATIVE_BANK_API }}
           FSC_FISHERIES_COOPERATIVE_BANK_API: ${{ secrets.FSC_FISHERIES_COOPERATIVE_BANK_API }}
+          FSC_SP_FIN: ${{ secrets.FSC_SP_FIN }}
           MSS_SME_SPA_API:  ${{ secrets.MSS_SME_SPA_API }}
           PERSONAL_API_KEY: ${{ secrets.PERSONAL_API_KEY }}
           DATA_GO_KR_KEY:   ${{ secrets.DATA_GO_KR_KEY }}

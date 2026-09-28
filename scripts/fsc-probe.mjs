@@ -59,6 +59,9 @@ const SEARCHES = [
   { key: 'FSC__AGRICULTURAL_COOPERATIVE_BANK_API', keyword: '금융위원회 금융통계 농업협동조합', word: '농업협동조합', use: '농업협동조합 일반·재무·주요경영지표' },
   /* ★ 〈같은 날 · 사장님: 「FSC_Fisheries_Cooperative_Bank_API 키 넣었어」 + 상세기능 화면(수산업협동조합 일반·재무·주요경영지표)〉 */
   { key: 'FSC_FISHERIES_COOPERATIVE_BANK_API', keyword: '금융위원회 금융통계 수산업협동조합', word: '수산업협동조합', use: '수산업협동조합 일반·재무·주요경영지표' },
+  /* ★ 〈2026-09-28 · 사장님: 「FSC_SP_FIN 개인사업자금융정보 키넣었어」 + 상세기능 화면(getGrnBalInfo 보증잔액 · getDpstLoanInfo 예금대출)〉 —
+     서비스 번호를 못 들었으므로 포털 검색에서 찾는다. 오퍼레이션이 basYm 말고 다른 인자를 요구하면 판정 5 로 나오고 그 본문으로 규격을 고친다 (§4.3) */
+  { key: 'FSC_SP_FIN', keyword: '개인사업자금융정보', word: '개인사업자', use: '개인사업자 보증잔액·예금대출 — 투자정보 [정책자금]·[은행] 후보' },
 ];
 const searchUrl = (kw) => 'https://www.data.go.kr/tcs/dss/selectDataSetList.do?dType=API&keyword=' + encodeURIComponent(kw);
 
@@ -158,7 +161,7 @@ async function main() {
      Actions 비밀에 없었다 — 빈칸으로 찍혔다〉. 포털 인증키는 계정당 하나이고 **승인만 서비스별**이라(§4.2)
      그 서비스를 신청하셨으면 같은 열쇠로 통한다. 어느 이름으로 걸었는지는 반드시 적는다 — 섞어 읽으면
      「어느 열쇠가 통했는가」가 흐려진다. */
-  for (const n of ['FSC_API', 'FSC_AMC_API', 'FSC_IAF_API', 'FSC_KOFIA_API', 'FSC_DOMESTIC_BANK_API', 'FSC_SAVINGS_BANK_API', 'FSC_CREDIT_UNION_BANK_API', 'FSC__AGRICULTURAL_COOPERATIVE_BANK_API', 'FSC_FISHERIES_COOPERATIVE_BANK_API', 'MSS_SME_SPA_API']) {
+  for (const n of ['FSC_API', 'FSC_AMC_API', 'FSC_IAF_API', 'FSC_KOFIA_API', 'FSC_DOMESTIC_BANK_API', 'FSC_SAVINGS_BANK_API', 'FSC_CREDIT_UNION_BANK_API', 'FSC__AGRICULTURAL_COOPERATIVE_BANK_API', 'FSC_FISHERIES_COOPERATIVE_BANK_API', 'FSC_SP_FIN', 'MSS_SME_SPA_API']) {
     const own = pick([n]);
     if (own) OWN.push(own);
     const k = own || portal;
