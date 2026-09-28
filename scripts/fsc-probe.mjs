@@ -64,7 +64,7 @@ const SEARCHES = [
   { key: 'FSC_SP_FIN', keyword: '개인사업자금융정보', word: '개인사업자', use: '개인사업자 보증잔액·예금대출 — 투자정보 [정책자금]·[은행] 후보' },
   /* ★ 〈같은 날 · 사장님 목록: 「금융위원회_기금대출정보(FSC_API)」·「한국국제협력단_사업정보(분야,국가)조회(KOICA_PROJ_SC)」〉 —
      둘 다 이 진단에 없던 서비스다. 번호를 못 들었으므로 포털 검색에서 찾는다 (번호를 지어내지 않는다) */
-  { key: 'FSC_API', keyword: '금융위원회 기금대출정보', word: '기금대출', use: '기금대출정보 — 투자정보 [정책자금] 후보' },
+  { key: 'FSC_API', keyword: '기금대출정보', word: '기금대출', use: '기금대출정보 — 투자정보 [정책자금] 후보' },
   { key: 'KOICA_PROJ_SC', keyword: '한국국제협력단 사업정보', word: '사업정보', use: 'KOICA 사업정보(분야·국가) — 해외 프로젝트 후보' },
 ];
 const searchUrl = (kw) => 'https://www.data.go.kr/tcs/dss/selectDataSetList.do?dType=API&keyword=' + encodeURIComponent(kw);
@@ -80,7 +80,8 @@ export function discover(html) {
   const bases = new Set();
   const full = new Set();
   /* 기관 번호(1160100)를 박지 않는다 — 같은 부처라도 서비스마다 다를 수 있다 */
-  for (const m of flat.matchAll(/apis\.data\.go\.kr\/(\d{5,8}\/(?:service\/)?[A-Za-z0-9_]+)(?:\/(get[A-Za-z0-9_]+))?/g)) {
+  /* ★ 기관 번호가 글자로 시작하는 곳이 있다(실측: 한국국제협력단 `B260003` — 스웨거 «host» 에 적혀 있다) */
+  for (const m of flat.matchAll(/apis\.data\.go\.kr\/([A-Z]?\d{5,8}\/(?:service\/)?[A-Za-z0-9_]+)(?:\/(get[A-Za-z0-9_]+))?/g)) {
     bases.add(m[1]);
     if (m[2]) full.add(`${m[1]}/${m[2]}`);
   }
