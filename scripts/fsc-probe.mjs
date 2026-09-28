@@ -263,6 +263,12 @@ async function main() {
       /* 다음에 뽑는 법을 고칠 재료 — 공개 안내 페이지라 비밀이 없다. 요청주소 둘레 200자만 */
       const at = ['apis.data.go.kr', '요청주소', 'End Point', 'swagger'].map((w) => html.indexOf(w)).filter((i) => i >= 0)[0];
       P(`  - 둘레 «${at == null ? '(요청주소 낱말이 페이지에 없다)' : redact(html.slice(Math.max(0, at - 80), at + 220).replace(/\s+/g, ' '))}»`);
+      /* ★ 〈2026-09-29 · 사업자 진위확인 15081808 이 «swagger-ui» 빈 칸만 주었다〉 — 규격을 화면 스크립트가 따로 불러오는 모양이다.
+         주소를 지어내지 않고, 페이지에 적힌 주소 중 규격·창구로 보이는 것만 적는다(공개 페이지 · 가림을 지난다). 다음 판에서 이것으로 뽑는다 */
+      const refs = [...new Set((html.match(/(?:https?:)?\/\/[^"'\s<>()]*(?:odcloud|swagger|api-docs|openapi|\.json)[^"'\s<>()]*/gi) || []))].slice(0, 6);
+      const refLine = `  - 규격 주소 후보 ${refs.length ? refs.map((u) => `«${redact(u)}»`).join(' · ') : '(페이지에 없다)'}`;
+      P(refLine); SEARCH_RECAP.push(`- ${svc.id} ${refLine.trim()}`);
+      if (/swagger-ui/.test(html)) { const j = html.indexOf('SwaggerUIBundle'); P(`  - 스웨거 불러오기 둘레 «${j < 0 ? '(SwaggerUIBundle 낱말이 없다)' : redact(html.slice(j, j + 300).replace(/\s+/g, ' '))}»`); }
     }
     for (const t of targets) {
       for (const [how, k] of [['원본', key.value], ['디코딩', decoded]]) {
