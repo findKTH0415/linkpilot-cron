@@ -53,6 +53,7 @@ jobs:
           FSC_FISHERIES_COOPERATIVE_BANK_API: ${{ secrets.FSC_FISHERIES_COOPERATIVE_BANK_API }}
           FSC_SP_FIN: ${{ secrets.FSC_SP_FIN }}
           KOICA_PROJ_SC: ${{ secrets.KOICA_PROJ_SC }}
+          MOLIT_LUR_LAW_KEY: ${{ secrets.MOLIT_LUR_LAW_KEY }}
           MSS_SME_SPA_API:   ${{ secrets.MSS_SME_SPA_API }}
           PERSONAL_API_KEY:  ${{ secrets.PERSONAL_API_KEY }}
           DART_API_KEY:      ${{ secrets.DART_API_KEY }}
@@ -101,6 +102,7 @@ jobs:
           FSC_FISHERIES_COOPERATIVE_BANK_API: ${{ secrets.FSC_FISHERIES_COOPERATIVE_BANK_API }}
           FSC_SP_FIN: ${{ secrets.FSC_SP_FIN }}
           KOICA_PROJ_SC: ${{ secrets.KOICA_PROJ_SC }}
+          MOLIT_LUR_LAW_KEY: ${{ secrets.MOLIT_LUR_LAW_KEY }}
           MSS_SME_SPA_API:   ${{ secrets.MSS_SME_SPA_API }}
           PERSONAL_API_KEY:  ${{ secrets.PERSONAL_API_KEY }}
           DART_API_KEY:      ${{ secrets.DART_API_KEY }}
@@ -178,6 +180,7 @@ jobs:
           FSC_FISHERIES_COOPERATIVE_BANK_API: ${{ secrets.FSC_FISHERIES_COOPERATIVE_BANK_API }}
           FSC_SP_FIN: ${{ secrets.FSC_SP_FIN }}
           KOICA_PROJ_SC: ${{ secrets.KOICA_PROJ_SC }}
+          MOLIT_LUR_LAW_KEY: ${{ secrets.MOLIT_LUR_LAW_KEY }}
           MSS_SME_SPA_API:  ${{ secrets.MSS_SME_SPA_API }}
           PERSONAL_API_KEY: ${{ secrets.PERSONAL_API_KEY }}
           DATA_GO_KR_KEY:   ${{ secrets.DATA_GO_KR_KEY }}
