@@ -96,7 +96,13 @@ export function discover(html) {
   const pi = flat.indexOf('"paths"');
   if (pi >= 0) for (const m of flat.slice(pi, pi + 20000).matchAll(/"\/([A-Za-z][A-Za-z0-9_]{2,60})"\s*:/g)) ops.add(m[1]);
   for (const o of [...ops]) if (/_response$/.test(o)) ops.delete(o);
-  return { bases: [...bases], full: [...full], ops: [...ops] };
+  /* ★ 〈2026-09-29 실측: 토지이용규제 법령정보가 «필수 인자 없음(11)»으로 답했다〉 — 스웨거가 «required: true» 로 적은
+     인자 이름을 줍는다. 값은 지어 넣지 않는다 — 이름만 적어 배선할 때 쓴다 (§4.3) */
+  const required = new Set();
+  for (const m of flat.matchAll(/"name"\s*:\s*"([A-Za-z][A-Za-z0-9_]{0,40})"[^{}]{0,400}?"required"\s*:\s*true/g)) required.add(m[1]);
+  for (const m of flat.matchAll(/"required"\s*:\s*true[^{}]{0,400}?"name"\s*:\s*"([A-Za-z][A-Za-z0-9_]{0,40})"/g)) required.add(m[1]);
+  for (const k of ['serviceKey', 'ServiceKey']) required.delete(k);
+  return { bases: [...bases], full: [...full], ops: [...ops], required: [...required] };
 }
 
 /* 포털 검색 화면에서 «자산운용» 이 든 오픈API 목록(번호 · 제목)을 뽑는다 */
@@ -221,6 +227,7 @@ async function main() {
     P(`- 안내 페이지 — ${page.status == null ? `**못 닿음** (${page.transport})` : `HTTP ${page.status}`} · ${page.ms}ms`);
     P(`  - 뽑은 서비스 ${d.bases.length ? d.bases.map((b) => `\`${b}\``).join(' · ') : '**없음(못 읽었다)**'}`);
     P(`  - 뽑은 오퍼레이션 ${d.ops.length ? d.ops.map((o) => `\`${o}\``).join(' · ') : '**없음(못 읽었다)**'}`);
+    if (d.required.length) { const line = `  - 필수 인자(스웨거) ${d.required.map((o) => `\`${o}\``).join(' · ')}`; P(line); SEARCH_RECAP.push(`- ${svc.id} ${line.trim()}`); }
     const rows = [];
     /* 부를 것 — 통째 주소가 있으면 그것, 없으면 서비스 × 오퍼레이션 */
     /* 통째 주소가 먼저, 그다음 서비스 × 오퍼레이션 — 페이지가 둘을 따로 적는 수가 있다 */
