@@ -68,6 +68,9 @@ const SEARCHES = [
   { key: 'KOICA_PROJ_SC', keyword: '한국국제협력단 사업정보', word: '사업정보', use: 'KOICA 사업정보(분야·국가) — 해외 프로젝트 후보' },
   /* ★ 〈2026-09-29 · 사장님: 「MOLIT_LUR_LAW_KEY (토지이용규제법령정보서비스) 키넣었어」〉 — 인허가 검토(행위제한·법령) 후보. 번호는 검색에서 찾는다 */
   { key: 'MOLIT_LUR_LAW_KEY', keyword: '토지이용규제법령정보', word: '토지이용규제', use: '토지이용규제 법령정보 — 인허가 검토(행위제한) 후보' },
+  /* ★ 〈같은 날 · 첫 검색 둘이 «못 뽑았다»〉 — 이름을 한 겹 넓혀 한 번 더 찾는다. 찾은 번호만 건다 (지어내지 않는다) */
+  { key: 'MOLIT_LUR_LAW_KEY', keyword: '토지이용규제', word: '토지이용', use: '토지이용규제 법령정보 — 인허가 검토(행위제한) 후보' },
+  { key: 'FSC_API', keyword: '금융위원회 기금', word: '기금', use: '기금대출정보 — 투자정보 [정책자금] 후보' },
 ];
 const searchUrl = (kw) => 'https://www.data.go.kr/tcs/dss/selectDataSetList.do?dType=API&keyword=' + encodeURIComponent(kw);
 
@@ -182,17 +185,20 @@ async function main() {
   if (have.length > 1) P(`- 들어온 열쇠 ${have.length}개가 ${new Set(have.map((k) => k.value)).size === 1 ? '**모두 같은 값**' : '**서로 다른 값이 섞였다**'}`);
   P('');
 
-  /* 자산운용 후보를 포털 검색으로 더한다 — 못 읽으면 적힌 후보만 건다 */
+  /* 자산운용 후보를 포털 검색으로 더한다 — 못 읽으면 적힌 후보만 건다
+     ★ 검색 줄은 로그 앞쪽이라 꼬리만 읽으면 안 보인다 — 끝에서 한 번 더 찍는다(SEARCH_RECAP) */
+  const SEARCH_RECAP = [];
   for (const q of SEARCHES) {
     try {
       const r = await fetch(searchUrl(q.keyword), { signal: AbortSignal.timeout(15000) });
       const sh = await r.text();
       const hits = searchHits(sh, q.word);
-      P(`- 포털 검색 «${q.keyword}» — HTTP ${r.status} · ${sh.length}자 · ${hits.length ? hits.map((h) => `${h.id} ${h.name}`).join(' · ') : '**못 뽑았다**'}`);
+      const line = `- 포털 검색 «${q.keyword}» — HTTP ${r.status} · ${sh.length}자 · ${hits.length ? hits.map((h) => `${h.id} ${h.name}`).join(' · ') : '**못 뽑았다**'}`;
+      P(line); SEARCH_RECAP.push(line.replace(/\*\*/g, ''));
       /* 못 뽑았으면 그 낱말 둘레를 조금 남긴다 — 다음에 뽑는 법을 고칠 재료다(공개 목록이라 비밀이 없다) */
       if (!hits.length) { const i = sh.indexOf(q.word); P(`  - 둘레 «${i < 0 ? '(낱말이 페이지에 없다)' : redact(sh.slice(Math.max(0, i - 200), i + 60).replace(/\s+/g, ' '))}»`); }
       for (const h of hits) if (!SERVICES.some((x) => x.id === h.id)) SERVICES.push({ key: q.key, id: h.id, name: h.name, use: q.use });
-    } catch (e) { P(`- 포털 검색 «${q.keyword}» — **못 닿음** (${redact(String((e && e.message) || e))})`); }
+    } catch (e) { const line = `- 포털 검색 «${q.keyword}» — **못 닿음** (${redact(String((e && e.message) || e))})`; P(line); SEARCH_RECAP.push(line.replace(/\*\*/g, '')); }
   }
   P('');
 
@@ -270,6 +276,7 @@ async function main() {
     + results.services.map((x, i) => `${SERVICES[i].name.replace('금융위원회_', '')} ${x.code}`).join(' · ') + ')';
   log.unshift(`> ${verdict}`, '');
   await writeFile(`${OUT}/fsc-probe.md`, log.join('\n'));
+  if (SEARCH_RECAP.length) console.log(['', '포털 검색 다시 보기:', ...SEARCH_RECAP].join('\n'));
   console.log(`\n완료 — ${OUT}/fsc-probe.md`);
   if (code !== 0) console.error(verdict.replace(/\*\*/g, ''));
   return code;
