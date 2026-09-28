@@ -66,6 +66,8 @@ const SEARCHES = [
      둘 다 이 진단에 없던 서비스다. 번호를 못 들었으므로 포털 검색에서 찾는다 (번호를 지어내지 않는다) */
   { key: 'FSC_API', keyword: '기금대출정보', word: '기금대출', use: '기금대출정보 — 투자정보 [정책자금] 후보' },
   { key: 'KOICA_PROJ_SC', keyword: '한국국제협력단 사업정보', word: '사업정보', use: 'KOICA 사업정보(분야·국가) — 해외 프로젝트 후보' },
+  /* ★ 〈2026-09-29 · 사장님: 「MOLIT_LUR_LAW_KEY (토지이용규제법령정보서비스) 키넣었어」〉 — 인허가 검토(행위제한·법령) 후보. 번호는 검색에서 찾는다 */
+  { key: 'MOLIT_LUR_LAW_KEY', keyword: '토지이용규제법령정보', word: '토지이용규제', use: '토지이용규제 법령정보 — 인허가 검토(행위제한) 후보' },
 ];
 const searchUrl = (kw) => 'https://www.data.go.kr/tcs/dss/selectDataSetList.do?dType=API&keyword=' + encodeURIComponent(kw);
 
@@ -166,7 +168,7 @@ async function main() {
      Actions 비밀에 없었다 — 빈칸으로 찍혔다〉. 포털 인증키는 계정당 하나이고 **승인만 서비스별**이라(§4.2)
      그 서비스를 신청하셨으면 같은 열쇠로 통한다. 어느 이름으로 걸었는지는 반드시 적는다 — 섞어 읽으면
      「어느 열쇠가 통했는가」가 흐려진다. */
-  for (const n of ['FSC_API', 'FSC_AMC_API', 'FSC_IAF_API', 'FSC_KOFIA_API', 'FSC_DOMESTIC_BANK_API', 'FSC_SAVINGS_BANK_API', 'FSC_CREDIT_UNION_BANK_API', 'FSC__AGRICULTURAL_COOPERATIVE_BANK_API', 'FSC_FISHERIES_COOPERATIVE_BANK_API', 'FSC_SP_FIN', 'KOICA_PROJ_SC', 'MSS_SME_SPA_API']) {
+  for (const n of ['FSC_API', 'FSC_AMC_API', 'FSC_IAF_API', 'FSC_KOFIA_API', 'FSC_DOMESTIC_BANK_API', 'FSC_SAVINGS_BANK_API', 'FSC_CREDIT_UNION_BANK_API', 'FSC__AGRICULTURAL_COOPERATIVE_BANK_API', 'FSC_FISHERIES_COOPERATIVE_BANK_API', 'FSC_SP_FIN', 'KOICA_PROJ_SC', 'MOLIT_LUR_LAW_KEY', 'MSS_SME_SPA_API']) {
     const own = pick([n]);
     if (own) OWN.push(own);
     const k = own || portal;
