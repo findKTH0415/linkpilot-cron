@@ -201,7 +201,8 @@ const SECRET_ENV = [
   //   ★ 규격을 모르더라도 **가리는 것은 지금 한다** — 진단 로그에 값이 찍힐 자리가 먼저 온다.
   'WEATHER_GO',
   // ★ 금융위원회 금융통계 〈2026-09-27 · D-357〉 — 사장님이 넣으신 이름 둘. 규격은 scripts/fsc-probe.mjs 가 잰다.
-  'FSC_API', 'FSC_AMC_API', 'FSC_IAF_API', 'FSC_KOFIA_API',
+  'FSC_API', 'FSC_AMC_API', 'FSC_IAF_API', 'FSC_KOFIA_API', 'FSC_DOMESTIC_BANK_API',
+  'FSC_SAVINGS_BANK_API', 'FSC_CREDIT_UNION_BANK_API', 'FSC__AGRICULTURAL_COOPERATIVE_BANK_API', 'FSC_FISHERIES_COOPERATIVE_BANK_API',
   'MSS_SME_SPA_API', // ★ 중소벤처기업부 중소기업 지원사업 공고 〈2026-09-27 · D-357〉
   'PERSONAL_API_KEY', // ★ 공공데이터포털 개인 인증키 〈2026-09-27 · D-357〉
   // ★★ 네이버 클라우드 Maps 〈2026-09-25 · D-314〉 — 넣으신 이름을 아직 몰라 **넷씩 짝으로** 읽는다

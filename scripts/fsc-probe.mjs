@@ -33,7 +33,9 @@ const P = (s = '') => { log.push(s); console.log(s); };
    화면에서 «자산운용» 이 든 제목을 뽑아 함께 건다. 어느 것이 신청된 서비스인지는 판정이 말한다. */
 const SERVICES = [
   { key: 'FSC_API', id: '15061312', name: '금융위원회_금융통계종합금융회사정보', use: '종합금융회사 일반·재무·경영지표' },
-  { key: 'FSC_API', id: '15061304', name: '금융위원회_금융통계국내은행정보', use: '투자정보 [은행] 탭 후보' },
+  /* ★ `FSC_DOMESTIC_BANK_API` 〈2026-09-28 · 사장님: 「FSC_DOMESTIC_BANK_API 키넣었어」 + 상세기능 화면(일반현황·재무현황·주요경영지표·주요영업활동)〉 —
+     앞서 `FSC_API`·포털 열쇠로 걸었을 때 「등록되지 않은 서비스키」였다. 이제 그 이름으로 건다 (없으면 포털 열쇠로 대신) */
+  { key: 'FSC_DOMESTIC_BANK_API', id: '15061304', name: '금융위원회_금융통계국내은행정보', use: '투자정보 [은행] 탭 후보' },
   /* ★ `FSC_IAF_API` 〈같은 날 · 사장님: 「FSC_IAF_API 키 넣었어」 + 설명 화면〉 — 투자자문사(오퍼레이션 둘: 일반현황 · 재무현황) */
   { key: 'FSC_IAF_API', id: '15061358', name: '금융위원회_금융통계투자자문사정보', use: '투자자문사 일반·재무현황' },
   /* ★ `FSC_KOFIA_API` 〈같은 날 · 사장님: 「FSC_KOFIA_API 키넣었어」 + 상세기능 화면(신탁규모·펀드순자산·CMA·신용공여·증시자금·DLS/DLB)〉 */
@@ -49,6 +51,14 @@ const SERVICES = [
 const SEARCHES = [
   { key: 'FSC_AMC_API', keyword: '금융위원회 자산운용', word: '자산운용', use: '자산운용사 — 포털 검색에서 찾음' },
   { key: 'MSS_SME_SPA_API', keyword: '중소벤처기업부 중소기업 지원사업 공고', word: '지원사업', use: '투자정보 [정책자금] 탭 후보 — 포털 검색에서 찾음' },
+  /* ★ 〈2026-09-28 · 사장님: 「FSC_SAVINGS_BANK_API · FSC_CREDIT_UNION_BANK_API · FSC__Agricultural_Cooperative_Bank_API 키넣었어」
+     + 상세기능 화면 셋(각 일반현황·재무현황·주요경영지표)〉 — 서비스 번호를 못 들었으므로 **포털 검색에서 찾는다** (번호를 지어내지 않는다).
+     ★ 농협 열쇠 이름은 **밑줄이 둘**(FSC__)이다 — 넣으신 글자 그대로 읽는다. GitHub 비밀 이름은 대문자로 저장된다. */
+  { key: 'FSC_SAVINGS_BANK_API', keyword: '금융위원회 금융통계 저축은행', word: '저축은행', use: '저축은행 일반·재무·주요경영지표' },
+  { key: 'FSC_CREDIT_UNION_BANK_API', keyword: '금융위원회 금융통계 신용협동조합', word: '신용협동조합', use: '신용협동조합 일반·재무·주요경영지표' },
+  { key: 'FSC__AGRICULTURAL_COOPERATIVE_BANK_API', keyword: '금융위원회 금융통계 농업협동조합', word: '농업협동조합', use: '농업협동조합 일반·재무·주요경영지표' },
+  /* ★ 〈같은 날 · 사장님: 「FSC_Fisheries_Cooperative_Bank_API 키 넣었어」 + 상세기능 화면(수산업협동조합 일반·재무·주요경영지표)〉 */
+  { key: 'FSC_FISHERIES_COOPERATIVE_BANK_API', keyword: '금융위원회 금융통계 수산업협동조합', word: '수산업협동조합', use: '수산업협동조합 일반·재무·주요경영지표' },
 ];
 const searchUrl = (kw) => 'https://www.data.go.kr/tcs/dss/selectDataSetList.do?dType=API&keyword=' + encodeURIComponent(kw);
 
@@ -136,7 +146,7 @@ async function main() {
      Actions 비밀에 없었다 — 빈칸으로 찍혔다〉. 포털 인증키는 계정당 하나이고 **승인만 서비스별**이라(§4.2)
      그 서비스를 신청하셨으면 같은 열쇠로 통한다. 어느 이름으로 걸었는지는 반드시 적는다 — 섞어 읽으면
      「어느 열쇠가 통했는가」가 흐려진다. */
-  for (const n of ['FSC_API', 'FSC_AMC_API', 'FSC_IAF_API', 'FSC_KOFIA_API', 'MSS_SME_SPA_API']) {
+  for (const n of ['FSC_API', 'FSC_AMC_API', 'FSC_IAF_API', 'FSC_KOFIA_API', 'FSC_DOMESTIC_BANK_API', 'FSC_SAVINGS_BANK_API', 'FSC_CREDIT_UNION_BANK_API', 'FSC__AGRICULTURAL_COOPERATIVE_BANK_API', 'FSC_FISHERIES_COOPERATIVE_BANK_API', 'MSS_SME_SPA_API']) {
     const own = pick([n]);
     if (own) OWN.push(own);
     const k = own || portal;
@@ -165,7 +175,7 @@ async function main() {
   P('');
 
   const codes = [];
-  for (const svc of SERVICES.slice(0, 12)) {
+  for (const svc of SERVICES.slice(0, 24)) {
     P(`## ${svc.name} (${svc.id}) — ${svc.use} · 열쇠 \`${svc.key}\``);
     P('');
     const key = KEYS[svc.key];
