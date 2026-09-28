@@ -74,6 +74,23 @@ const SEARCHES = [
   /* ★ 〈2026-09-29 · 사장님 화면: 「[운영계정]한국산업은행_기금대출 정보」 · 자동승인 · 승인 · 2026-09-28 ~ 2028-09-28〉 —
      제공기관이 금융위원회가 아니라 **한국산업은행**이었다. 앞의 두 검색이 0건이던 까닭이다. 그 이름 그대로 찾는다 (번호를 지어내지 않는다) */
   { key: 'FSC_API', keyword: '한국산업은행 기금대출', word: '기금대출', use: '한국산업은행 기금대출 정보 — 투자정보 [정책자금] 후보' },
+
+  /* ★ 〈2026-09-29 · 사장님: 「확인해줘 반영되었는지?」 + 목록 26개〉 — 이 진단이 한 번도 안 잰 13개를 더한다.
+     번호는 모르므로 포털 검색에서 찾는다(지어내지 않는다). 판정 4(등록되지 않은 서비스키)면 활용신청이 아직 안 된 것,
+     판정 0·5 면 승인은 된 것이다(5 는 필수 인자만 남았다) */
+  { key: 'MOLIT_APT_SALE', keyword: '국토교통부 아파트 매매 실거래가', word: '아파트', use: '아파트 매매 실거래가 — 반영 확인(2026-09-29)' },
+  { key: 'REB_LAND_MICRO', keyword: '전국지가변동률조사 마이크로데이터', word: '지가변동률', use: '전국지가변동률조사 마이크로데이터 — 반영 확인(2026-09-29)' },
+  { key: 'MOLIT_OFFICETEL_RENT', keyword: '국토교통부 오피스텔 전월세 실거래가', word: '오피스텔', use: '오피스텔 전월세 실거래가 — 반영 확인(2026-09-29)' },
+  { key: 'KAMCO_ONBID_BID_RESULT', keyword: '차세대 온비드 물건 입찰결과목록', word: '입찰결과', use: '온비드 물건 입찰결과 — 반영 확인(2026-09-29)' },
+  { key: 'KAMCO_SEIZED_AUCTION_RATE', keyword: '체납 압류재산 공매 낙찰가율', word: '낙찰가율', use: '압류재산 공매 낙찰가율 — 반영 확인(2026-09-29)' },
+  { key: 'MOLIT_HUB_BLDG_LEDGER', keyword: '건축HUB 건축물대장정보', word: '건축물대장', use: '건축HUB 건축물대장 — 반영 확인(2026-09-29)' },
+  { key: 'MOLIT_HUB_HOUSING_PERMIT', keyword: '건축HUB 주택인허가정보', word: '주택인허가', use: '건축HUB 주택인허가 — 반영 확인(2026-09-29)' },
+  { key: 'NTS_BIZ_VERIFY', keyword: '사업자등록정보 진위확인 및 상태조회', word: '사업자등록', use: '사업자등록 진위확인·상태조회 — 반영 확인(2026-09-29)' },
+  { key: 'MOLIT_HUB_BLDG_PERMIT', keyword: '건축HUB 건축인허가정보', word: '건축인허가', use: '건축HUB 건축인허가 — 반영 확인(2026-09-29)' },
+  { key: 'FSC_CORP_BASIC', keyword: '금융위원회 기업기본정보', word: '기업기본정보', use: '기업기본정보 — 반영 확인(2026-09-29)' },
+  { key: 'MOLIT_LUR_INFO', keyword: '국토교통부 토지이용규제정보서비스', word: '토지이용규제정보', use: '토지이용규제정보 — 반영 확인(2026-09-29)' },
+  { key: 'MOLIT_COMM_SALE', keyword: '상업업무용 부동산 매매 실거래가', word: '상업업무용', use: '상업업무용 부동산 매매 실거래가 — 반영 확인(2026-09-29)' },
+  { key: 'MOLIT_LAND_SALE', keyword: '국토교통부 토지 매매 실거래가', word: '토지 매매', use: '토지 매매 실거래가 — 반영 확인(2026-09-29)' },
 ];
 const searchUrl = (kw) => 'https://www.data.go.kr/tcs/dss/selectDataSetList.do?dType=API&keyword=' + encodeURIComponent(kw);
 
@@ -180,7 +197,7 @@ async function main() {
      Actions 비밀에 없었다 — 빈칸으로 찍혔다〉. 포털 인증키는 계정당 하나이고 **승인만 서비스별**이라(§4.2)
      그 서비스를 신청하셨으면 같은 열쇠로 통한다. 어느 이름으로 걸었는지는 반드시 적는다 — 섞어 읽으면
      「어느 열쇠가 통했는가」가 흐려진다. */
-  for (const n of ['FSC_API', 'FSC_AMC_API', 'FSC_IAF_API', 'FSC_KOFIA_API', 'FSC_DOMESTIC_BANK_API', 'FSC_SAVINGS_BANK_API', 'FSC_CREDIT_UNION_BANK_API', 'FSC__AGRICULTURAL_COOPERATIVE_BANK_API', 'FSC_FISHERIES_COOPERATIVE_BANK_API', 'FSC_SP_FIN', 'KOICA_PROJ_SC', 'MOLIT_LUR_LAW_KEY', 'MSS_SME_SPA_API']) {
+  for (const n of ['FSC_API', 'FSC_AMC_API', 'FSC_IAF_API', 'FSC_KOFIA_API', 'FSC_DOMESTIC_BANK_API', 'FSC_SAVINGS_BANK_API', 'FSC_CREDIT_UNION_BANK_API', 'FSC__AGRICULTURAL_COOPERATIVE_BANK_API', 'FSC_FISHERIES_COOPERATIVE_BANK_API', 'FSC_SP_FIN', 'KOICA_PROJ_SC', 'MOLIT_LUR_LAW_KEY', 'MSS_SME_SPA_API', 'MOLIT_APT_SALE', 'REB_LAND_MICRO', 'MOLIT_OFFICETEL_RENT', 'KAMCO_ONBID_BID_RESULT', 'KAMCO_SEIZED_AUCTION_RATE', 'MOLIT_HUB_BLDG_LEDGER', 'MOLIT_HUB_HOUSING_PERMIT', 'NTS_BIZ_VERIFY', 'MOLIT_HUB_BLDG_PERMIT', 'FSC_CORP_BASIC', 'MOLIT_LUR_INFO', 'MOLIT_COMM_SALE', 'MOLIT_LAND_SALE']) {
     const own = pick([n]);
     if (own) OWN.push(own);
     const k = own || portal;
@@ -212,7 +229,7 @@ async function main() {
   P('');
 
   const codes = [];
-  for (const svc of SERVICES.slice(0, 32)) {
+  for (const svc of SERVICES.slice(0, 64)) {
     P(`## ${svc.name} (${svc.id}) — ${svc.use} · 열쇠 \`${svc.key}\``);
     P('');
     const key = KEYS[svc.key];
