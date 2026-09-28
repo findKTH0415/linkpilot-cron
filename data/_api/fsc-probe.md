@@ -28,11 +28,11 @@
 ## 금융위원회_금융통계종합금융회사정보 (15061312) — 종합금융회사 일반·재무·경영지표 · 열쇠 `FSC_API`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 590ms
+- 안내 페이지 — HTTP 200 · 633ms
   - 뽑은 서비스 `1160100/service/GetMercBankInfoService`
   - 뽑은 오퍼레이션 **없음(못 읽었다)**
   - 둘레 «"key">요청주소</strong> <div class="value"> https://apis.data.go.*** </div> </li> <li> <strong class="key">서비스 URL</strong> <div class="value"> »
-- `1160100/service/GetMercBankInfoService/getMercBankGeneInfo · 원본 · 202412` — HTTP 200 · 245ms
+- `1160100/service/GetMercBankInfoService/getMercBankGeneInfo · 원본 · 202412` — HTTP 200 · 363ms
   - 본문 «{"response":{"body":{"tableList":[{"items":{"item":[]},"title":"종금사_일반현황_임직원현황","totalCount":0},{"items":{"item":[]},"title":"종금사_일반현황_영업점포현황","totalCount":0}]},"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE.","pageNo":"1","numOfRows":"3"}}}»
   - 항목(totalCount>0) 칸: **못 찾았다**
 
@@ -41,11 +41,11 @@
 ## 금융위원회_금융통계국내은행정보 (15061304) — 투자정보 [은행] 탭 후보 · 열쇠 `FSC_DOMESTIC_BANK_API`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 633ms
+- 안내 페이지 — HTTP 200 · 639ms
   - 뽑은 서비스 `1160100/service/GetDomeBankInfoService`
   - 뽑은 오퍼레이션 **없음(못 읽었다)**
   - 둘레 «"key">요청주소</strong> <div class="value"> https://apis.data.go.*** </div> </li> <li> <strong class="key">서비스 URL</strong> <div class="value"> »
-- `1160100/service/GetDomeBankInfoService/getDomeBankGeneInfo · 원본 · 202512` — HTTP 200 · 580ms
+- `1160100/service/GetDomeBankInfoService/getDomeBankGeneInfo · 원본 · 202512` — HTTP 200 · 349ms
   - 본문 «{"response":{"body":{"tableList":[{"items":{"item":[{"basYm":"202512","crno":"1101110023393","fncoCd":"0010001","fncoNm":"우리은행","xcsmCnt":"14211","xcsmDcd":"A","xcsmDcdNm":"총임직원"},{"basYm":"202512","crno":"1101110023393","fncoCd":"0010001","fncoNm":"우리은행","xcsmCnt":"28","xcsmDcd":"A1","xcsmDcdNm":"임» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
@@ -56,11 +56,11 @@
 ## 금융위원회_금융통계투자자문사정보 (15061358) — 투자자문사 일반·재무현황 · 열쇠 `FSC_IAF_API`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 572ms
+- 안내 페이지 — HTTP 200 · 643ms
   - 뽑은 서비스 `1160100/service/GetInveAdviCompInfoService`
   - 뽑은 오퍼레이션 **없음(못 읽었다)**
   - 둘레 «"key">요청주소</strong> <div class="value"> https://apis.data.go.*** </div> </li> <li> <strong class="key">서비스 URL</strong> <div class="value"> »
-- `1160100/service/GetInveAdviCompInfoService/getInveAdviCompGeneInfo · 원본 · 202512` — HTTP 200 · 588ms
+- `1160100/service/GetInveAdviCompInfoService/getInveAdviCompGeneInfo · 원본 · 202512` — HTTP 200 · 821ms
   - 본문 «{"response":{"body":{"tableList":[{"items":{"item":[]},"title":"투자자문_일반현황_임직원현황(09.03월이전)","totalCount":0},{"items":{"item":[{"basYm":"202512","crno":"1101110566773","fncoCd":"0010193","fncoNm":"프랭클린템플턴투자자문 주식회사","xcsmCnt":"0","xcsmDcd":"D","xcsmDcdNm":"운용전문인력"},{"basYm":"202512","crno":"11011115415» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
@@ -71,35 +71,35 @@
 ## 금융위원회_금융투자협회종합통계정보 (15094809) — 펀드순자산·증시자금·신용공여 추이 · 열쇠 `FSC_KOFIA_API`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 597ms
+- 안내 페이지 — HTTP 200 · 666ms
   - 뽑은 서비스 `1160100/service/GetKofiaStatisticsInfoService`
   - 뽑은 오퍼레이션 `getTrustScaleInfo` · `getFundTotalNetEssetInfo` · `getCMAStatus` · `getGrantingOfCreditBalanceInfo` · `getSecuritiesMarketTotalCapitalInfo` · `getDLSAndDLBInfo` · `getELSAndELBInfo` · `getDerivationProductTradingInfo`
-- `1160100/service/GetKofiaStatisticsInfoService/getTrustScaleInfo · 원본 · 202512` — HTTP 200 · 176ms
+- `1160100/service/GetKofiaStatisticsInfoService/getTrustScaleInfo · 원본 · 202512` — HTTP 200 · 223ms
   - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":330,"items":{"item":[{"basYm":"202512","bzds":"합계","tstCtg":"금전신탁 특정금전신탁","kind":"정기예금형","iqBs":"계약수","val":"107829"},{"basYm":"202512","bzds":"합계","tstCtg":"금전신탁 특정금전신탁","kind":"기타"» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
   - 칸 이름 `basYm` `bzds` `tstCtg` `kind` `iqBs` `val`
-- `1160100/service/GetKofiaStatisticsInfoService/getFundTotalNetEssetInfo · 원본 · 202512` — HTTP 200 · 199ms
+- `1160100/service/GetKofiaStatisticsInfoService/getFundTotalNetEssetInfo · 원본 · 202512` — HTTP 200 · 321ms
   - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":28687,"items":{"item":[{"basDt":"20260922","ctg":"-","tstMthdCtg":"공모","nPptTotAmt":"36229761418"},{"basDt":"20260922","ctg":"재간접","tstMthdCtg":"공모","nPptTotAmt":"55853622174489"},{"» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
   - 칸 이름 `basDt` `ctg` `tstMthdCtg` `nPptTotAmt`
-- `1160100/service/GetKofiaStatisticsInfoService/getCMAStatus · 원본 · 202512` — HTTP 200 · 205ms
+- `1160100/service/GetKofiaStatisticsInfoService/getCMAStatus · 원본 · 202512` — HTTP 200 · 279ms
   - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":14448,"items":{"item":[{"basDt":"20260922","mngInvTgt":"합계","invrCtg":"기관","scrtCmpyCnt":"0","actCnt":"147378","actBal":"12214007072315"},{"basDt":"20260922","mngInvTgt":"MMF형","invr» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
   - 칸 이름 `basDt` `mngInvTgt` `invrCtg` `scrtCmpyCnt` `actCnt` `actBal`
-- `1160100/service/GetKofiaStatisticsInfoService/getGrantingOfCreditBalanceInfo · 원본 · 202512` — HTTP 200 · 173ms
+- `1160100/service/GetKofiaStatisticsInfoService/getGrantingOfCreditBalanceInfo · 원본 · 202512` — HTTP 200 · 212ms
   - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":1191,"items":{"item":[{"basDt":"20260922","crdTrFingWhl":"32819168401860","crdTrFingScrs":"25609148339779","crdTrFingKosdaq":"7210020062081","crdTrLndrWhl":"34329878973","crdTrLndrSc» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
   - 칸 이름 `basDt` `crdTrFingWhl` `crdTrFingScrs` `crdTrFingKosdaq` `crdTrLndrWhl` `crdTrLndrScrs` `crdTrLndrKosdaq` `sbscCapLn` `dpsgScrtMogFing`
-- `1160100/service/GetKofiaStatisticsInfoService/getSecuritiesMarketTotalCapitalInfo · 원본 · 202512` — HTTP 200 · 174ms
+- `1160100/service/GetKofiaStatisticsInfoService/getSecuritiesMarketTotalCapitalInfo · 원본 · 202512` — HTTP 200 · 219ms
   - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":1204,"items":{"item":[{"basDt":"20260922","invrDpsgAmt":"100982554761485","onbdDrvPrdTrRcAdvAmt":"42217285110345","toCstRpchCndBndSlgBal":"110640626185958","brkTrdUcolMny":"853708535» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
   - 칸 이름 `basDt` `invrDpsgAmt` `onbdDrvPrdTrRcAdvAmt` `toCstRpchCndBndSlgBal` `brkTrdUcolMny` `brkTrdUcolMnyVsOppsTrdAmt` `ucolMnyVsOppsTrdRlImpt`
-- `1160100/service/GetKofiaStatisticsInfoService/getDLSAndDLBInfo · 원본 · 202512` — HTTP 200 · 173ms
+- `1160100/service/GetKofiaStatisticsInfoService/getDLSAndDLBInfo · 원본 · 202512` — HTTP 200 · 226ms
   - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":1176,"items":{"item":[{"basDt":"202607","ctgDlbDls":"원금비보장형","ctgPrplcPsub":"사모","presCtg":"상환현황","amt":"387334000000","ccnt":"46"},{"basDt":"202607","ctgDlbDls":"원금보장형","ctgPrplcPsu» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
@@ -110,10 +110,10 @@
 ## 중소벤처기업부_사업공고 (15113297) — [정책자금] 후보 — 중기부 사업공고 · 열쇠 `MSS_SME_SPA_API`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 581ms
+- 안내 페이지 — HTTP 200 · 622ms
   - 뽑은 서비스 `1421000/mssBizService_v2`
   - 뽑은 오퍼레이션 `getbizList_v2`
-- `1421000/mssBizService_v2/getbizList_v2 · 원본 · 202512` — HTTP 403 · 152ms
+- `1421000/mssBizService_v2/getbizList_v2 · 원본 · 202512` — HTTP 403 · 197ms
   - 본문 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR", "returnAuthMsg": "등록되지 않은 서비스키", "returnReasonCode": "30" } } }»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - ★ 본문이 **인증 거부**를 말한다 — 상태코드가 200 이어도 그렇다 (D-229)
@@ -123,7 +123,7 @@
 ## 중소기업기술정보진흥원_중소벤처24 공고정보 (15113191) — [정책자금] 후보 — 중소벤처24 공고 · 열쇠 `MSS_SME_SPA_API`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 545ms
+- 안내 페이지 — HTTP 200 · 586ms
   - 뽑은 서비스 **없음(못 읽었다)**
   - 뽑은 오퍼레이션 **없음(못 읽었다)**
   - ★ 부를 주소를 **못 읽었다** — 페이지 모양이 다르거나 막혔다. **열쇠 문제가 아니다**
@@ -134,35 +134,35 @@
 ## 금융위원회_자산운용사 영업활동통계정보 (15139266) — 자산운용사 — 후보(검색으로 찾음) · 열쇠 `FSC_AMC_API`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 608ms
+- 안내 페이지 — HTTP 200 · 654ms
   - 뽑은 서비스 `1160100/service/GetFSSaleActInfoService`
   - 뽑은 오퍼레이션 `getScrtDlngPresInfo` · `getDrvpDlngPresInfo` · `getInvdCminPresInfo` · `getInvdCntrPresInfo` · `getInvdPptPresInfo` · `getInvdPptOperPresInfo`
-- `1160100/service/GetFSSaleActInfoService/getScrtDlngPresInfo · 원본 · 202512` — HTTP 200 · 292ms
+- `1160100/service/GetFSSaleActInfoService/getScrtDlngPresInfo · 원본 · 202512` — HTTP 200 · 1883ms
   - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":3520,"items":{"item":[{"basYm":"202512","fncoCd":"0019635","fncoNm":"스피네이커자산운용 주식회사","sttsItemCd":"H","sttsItemNm":"증권합계","sttsItemAmt":"2755335595"},{"basYm":"202512","fncoCd":"0014» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
   - 칸 이름 `basYm` `fncoCd` `fncoNm` `sttsItemCd` `sttsItemNm` `sttsItemAmt`
-- `1160100/service/GetFSSaleActInfoService/getDrvpDlngPresInfo · 원본 · 202512` — HTTP 200 · 229ms
+- `1160100/service/GetFSSaleActInfoService/getDrvpDlngPresInfo · 원본 · 202512` — HTTP 200 · 241ms
   - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":792,"items":{"item":[{"basYm":"202512","fncoCd":"0012121","fncoNm":"브레인자산운용","sttsItemCd":"A1","sttsItemNm":"선물","sttsItemAmt":"801488982500"},{"basYm":"202512","fncoCd":"0019431","f» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
   - 칸 이름 `basYm` `fncoCd` `fncoNm` `sttsItemCd` `sttsItemNm` `sttsItemAmt`
-- `1160100/service/GetFSSaleActInfoService/getInvdCminPresInfo · 원본 · 202512` — HTTP 200 · 234ms
+- `1160100/service/GetFSSaleActInfoService/getInvdCminPresInfo · 원본 · 202512` — HTTP 200 · 278ms
   - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":1368,"items":{"item":[{"basYm":"202512","fncoCd":"0010183","fncoNm":"교보악사자산운용","sttsItemCd":"A1","sttsItemNm":"일반투자자","sttsItemAmt":"0"},{"basYm":"202512","fncoCd":"0019588","fncoNm"» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
   - 칸 이름 `basYm` `fncoCd` `fncoNm` `sttsItemCd` `sttsItemNm` `sttsItemAmt`
-- `1160100/service/GetFSSaleActInfoService/getInvdCntrPresInfo · 원본 · 202512` — HTTP 200 · 209ms
+- `1160100/service/GetFSSaleActInfoService/getInvdCntrPresInfo · 원본 · 202512` — HTTP 200 · 289ms
   - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":972,"items":{"item":[{"basYm":"202512","fncoCd":"0010170","fncoNm":"하나자산운용","sttsItemCd":"A","sttsItemNm":"고객수","sttsItemAmt":"14"},{"basYm":"202512","fncoCd":"0016797","fncoNm":"파이브» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
   - 칸 이름 `basYm` `fncoCd` `fncoNm` `sttsItemCd` `sttsItemNm` `sttsItemAmt`
-- `1160100/service/GetFSSaleActInfoService/getInvdPptPresInfo · 원본 · 202512` — HTTP 200 · 226ms
+- `1160100/service/GetFSSaleActInfoService/getInvdPptPresInfo · 원본 · 202512` — HTTP 200 · 273ms
   - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":1452,"items":{"item":[{"basYm":"202512","fncoCd":"0013784","fncoNm":"웰스자산운용","sttsItemCd":"A1","sttsItemNm":"일반투자자","sttsItemAmt":"0"},{"basYm":"202512","fncoCd":"0010210","fncoNm":"» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
   - 칸 이름 `basYm` `fncoCd` `fncoNm` `sttsItemCd` `sttsItemNm` `sttsItemAmt`
-- `1160100/service/GetFSSaleActInfoService/getInvdPptOperPresInfo · 원본 · 202512` — HTTP 200 · 199ms
+- `1160100/service/GetFSSaleActInfoService/getInvdPptOperPresInfo · 원본 · 202512` — HTTP 200 · 250ms
   - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":964,"items":{"item":[{"basYm":"202512","fncoCd":"0010215","fncoNm":"플러스자산운용","sttsItemCd":"A","sttsItemNm":"유동성자산","sttsItemDmstAmt":"119849171692","sttsItemOvseAmt":"0"},{"basYm":"2» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
@@ -177,7 +177,7 @@
   - 뽑은 서비스 `1160100/service/GetAsseManaCompInfoService`
   - 뽑은 오퍼레이션 **없음(못 읽었다)**
   - 둘레 «"key">요청주소</strong> <div class="value"> https://apis.data.go.*** </div> </li> <li> <strong class="key">서비스 URL</strong> <div class="value"> »
-- `1160100/service/GetAsseManaCompInfoService/getAsseManaCompGeneInfo · 원본 · 202512` — HTTP 403 · 151ms
+- `1160100/service/GetAsseManaCompInfoService/getAsseManaCompGeneInfo · 원본 · 202512` — HTTP 403 · 193ms
   - 본문 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR", "returnAuthMsg": "등록되지 않은 서비스키", "returnReasonCode": "30" } } }»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - ★ 본문이 **인증 거부**를 말한다 — 상태코드가 200 이어도 그렇다 (D-229)
@@ -187,10 +187,10 @@
 ## 지원사업 공고 조회 서비스 (15157820) — 투자정보 [정책자금] 탭 후보 — 포털 검색에서 찾음 · 열쇠 `MSS_SME_SPA_API`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 597ms
+- 안내 페이지 — HTTP 200 · 689ms
   - 뽑은 서비스 `1421000/bizinfo`
   - 뽑은 오퍼레이션 `pblancBsnsService`
-- `1421000/bizinfo/pblancBsnsService · 원본 · 202512` — HTTP 200 · 254ms
+- `1421000/bizinfo/pblancBsnsService · 원본 · 202512` — HTTP 200 · 307ms
   - 본문 «<response> <header> <resultCode>00</resultCode> <resultMsg>NORMAL_SERVICE</resultMsg> </header> <body> <items> <item> <pblancNm><![CDATA[2026년 하반기 산청군 단체관광객 유치 인센티브 지원 공고]]></pblancNm> <!-- 공고명 --> <pblancUrl>https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000126818</pb» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
@@ -201,11 +201,11 @@
 ## 저축은행정보 (15061316) — 저축은행 일반·재무·주요경영지표 · 열쇠 `FSC_SAVINGS_BANK_API`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 581ms
+- 안내 페이지 — HTTP 200 · 674ms
   - 뽑은 서비스 `1160100/service/GetMutuSaviBankInfoService`
   - 뽑은 오퍼레이션 **없음(못 읽었다)**
   - 둘레 «"key">요청주소</strong> <div class="value"> https://apis.data.go.*** </div> </li> <li> <strong class="key">서비스 URL</strong> <div class="value"> »
-- `1160100/service/GetMutuSaviBankInfoService/getMutuSaviBankGeneInfo · 원본 · 202512` — HTTP 200 · 228ms
+- `1160100/service/GetMutuSaviBankInfoService/getMutuSaviBankGeneInfo · 원본 · 202512` — HTTP 200 · 288ms
   - 본문 «{"response":{"body":{"tableList":[{"items":{"item":[{"basYm":"202512","crno":"1101110126014","fncoCd":"0010345","fncoNm":"애큐온저축은행","xcsmCnt":"384","xcsmDcd":"A","xcsmDcdNm":"총임직원"},{"basYm":"202512","crno":"1101110126014","fncoCd":"0010345","fncoNm":"애큐온저축은행","xcsmCnt":"18","xcsmDcd":"A1","xcsmDcdNm» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
@@ -216,11 +216,11 @@
 ## 신용협동조합정보 (15061337) — 신용협동조합 일반·재무·주요경영지표 · 열쇠 `FSC_CREDIT_UNION_BANK_API`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 837ms
+- 안내 페이지 — HTTP 200 · 642ms
   - 뽑은 서비스 `1160100/service/GetCredUnioInfoService`
   - 뽑은 오퍼레이션 **없음(못 읽었다)**
   - 둘레 «"key">요청주소</strong> <div class="value"> https://apis.data.go.*** </div> </li> <li> <strong class="key">서비스 URL</strong> <div class="value"> »
-- `1160100/service/GetCredUnioInfoService/getCredUnioGeneInfo · 원본 · 202512` — HTTP 200 · 637ms
+- `1160100/service/GetCredUnioInfoService/getCredUnioGeneInfo · 원본 · 202512` — HTTP 200 · 2300ms
   - 본문 «{"response":{"body":{"tableList":[{"items":{"item":[{"basYm":"202512","crno":"","fncoCd":"00106561002","fncoNm":"정락","xcsmCnt":"16","xcsmDcd":"A","xcsmDcdNm":"총임직원"},{"basYm":"202512","crno":"","fncoCd":"00106561002","fncoNm":"정락","xcsmCnt":"10","xcsmDcd":"A1","xcsmDcdNm":"임 원"},{"basYm":"202512","c» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
@@ -231,11 +231,11 @@
 ## 농업협동조합정보 (15061344) — 농업협동조합 일반·재무·주요경영지표 · 열쇠 `FSC__AGRICULTURAL_COOPERATIVE_BANK_API`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 630ms
+- 안내 페이지 — HTTP 200 · 664ms
   - 뽑은 서비스 `1160100/service/GetAgriCoopInfoService`
   - 뽑은 오퍼레이션 **없음(못 읽었다)**
   - 둘레 «"key">요청주소</strong> <div class="value"> https://apis.data.go.*** </div> </li> <li> <strong class="key">서비스 URL</strong> <div class="value"> »
-- `1160100/service/GetAgriCoopInfoService/getAgriCoopGeneInfo · 원본 · 202512` — HTTP 200 · 311ms
+- `1160100/service/GetAgriCoopInfoService/getAgriCoopGeneInfo · 원본 · 202512` — HTTP 200 · 1283ms
   - 본문 «{"response":{"body":{"tableList":[{"items":{"item":[{"basYm":"202512","crno":"1146360000288","fncoCd":"0010027100089","fncoNm":"남서울농협","xcsmCnt":"174","xcsmDcd":"A","xcsmDcdNm":"총임직원"},{"basYm":"202512","crno":"1146360000288","fncoCd":"0010027100089","fncoNm":"남서울농협","xcsmCnt":"23","xcsmDcd":"A1","x» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
@@ -246,11 +246,11 @@
 ## 수산업협동조합정보 (15061340) — 수산업협동조합 일반·재무·주요경영지표 · 열쇠 `FSC_FISHERIES_COOPERATIVE_BANK_API`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 623ms
+- 안내 페이지 — HTTP 200 · 632ms
   - 뽑은 서비스 `1160100/service/GetFishCoopInfoService`
   - 뽑은 오퍼레이션 **없음(못 읽었다)**
   - 둘레 «"key">요청주소</strong> <div class="value"> https://apis.data.go.*** </div> </li> <li> <strong class="key">서비스 URL</strong> <div class="value"> »
-- `1160100/service/GetFishCoopInfoService/getFishCoopGeneInfo · 원본 · 202512` — HTTP 200 · 233ms
+- `1160100/service/GetFishCoopInfoService/getFishCoopGeneInfo · 원본 · 202512` — HTTP 200 · 425ms
   - 본문 «{"response":{"body":{"tableList":[{"items":{"item":[{"basYm":"202512","crno":"","fncoCd":"0010028100970","fncoNm":"근해안강망수협","xcsmCnt":"2","xcsmDcd":"A11","xcsmDcdNm":"임 원_상근 이사 및 감사"},{"basYm":"202512","crno":"","fncoCd":"0010028100970","fncoNm":"근해안강망수협","xcsmCnt":"7","xcsmDcd":"A12","xcsmDcdNm":"임» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
