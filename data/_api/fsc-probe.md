@@ -1,4 +1,4 @@
-> 판정 5 — 대답은 왔는데 값을 못 뽑았다 — **규격**을 고친다. 열쇠 문제가 아니다 (금융통계종합금융회사정보 5 · 금융통계국내은행정보 0 · 금융통계투자자문사정보 0 · 금융투자협회종합통계정보 0 · 중소벤처기업부_사업공고 4 · 중소기업기술정보진흥원_중소벤처24 공고정보 3 · 자산운용사 영업활동통계정보 0 · 자산운용사정보 4 · 지원사업 공고 조회 서비스 0 · 저축은행정보 0 · 신용협동조합정보 0 · 농업협동조합정보 0 · 수산업협동조합정보 0)
+> 판정 5 — 대답은 왔는데 값을 못 뽑았다 — **규격**을 고친다. 열쇠 문제가 아니다 (금융통계종합금융회사정보 5 · 금융통계국내은행정보 0 · 금융통계투자자문사정보 0 · 금융투자협회종합통계정보 0 · 중소벤처기업부_사업공고 4 · 중소기업기술정보진흥원_중소벤처24 공고정보 3 · 자산운용사 영업활동통계정보 0 · 자산운용사정보 4 · 지원사업 공고 조회 서비스 0 · 저축은행정보 0 · 신용협동조합정보 0 · 농업협동조합정보 0 · 수산업협동조합정보 0 · 개인사업자금융정보 0 · 사업정보 _KF-공공외교 사업 정보 4 · 사업정보 (분야,국가)조회 4 · 사업정보조회 4 · 토지이용 규제 기본법의 적용을 받는 규제 법령과 그와 관련된 도시(군)계획조례 및 그 밖에 5 · 토지이용 규제 기본법 제2조제2호 및 동법 영 제2조 등에 명시된 건축법 시행령 별표 및  4)
 
 # `FSC_API` — 금융위원회 금융통계 실측 진단
 
@@ -16,6 +16,9 @@
 - 열쇠 **`FSC_CREDIT_UNION_BANK_API`** — **이 저장소의 Actions 비밀에 없다** → 포털 계정 열쇠 `DATA_GO_KR_KEY` 로 대신 건다
 - 열쇠 **`FSC__AGRICULTURAL_COOPERATIVE_BANK_API`** — **이 저장소의 Actions 비밀에 없다** → 포털 계정 열쇠 `DATA_GO_KR_KEY` 로 대신 건다
 - 열쇠 **`FSC_FISHERIES_COOPERATIVE_BANK_API`** — **이 저장소의 Actions 비밀에 없다** → 포털 계정 열쇠 `DATA_GO_KR_KEY` 로 대신 건다
+- 열쇠 **`FSC_SP_FIN`** — **이 저장소의 Actions 비밀에 없다** → 포털 계정 열쇠 `DATA_GO_KR_KEY` 로 대신 건다
+- 열쇠 **`KOICA_PROJ_SC`** — **이 저장소의 Actions 비밀에 없다** → 포털 계정 열쇠 `DATA_GO_KR_KEY` 로 대신 건다
+- 열쇠 **`MOLIT_LUR_LAW_KEY`** — **이 저장소의 Actions 비밀에 없다** → 포털 계정 열쇠 `DATA_GO_KR_KEY` 로 대신 건다
 - 열쇠 **`MSS_SME_SPA_API`** — **이 저장소의 Actions 비밀에 없다** → 포털 계정 열쇠 `DATA_GO_KR_KEY` 로 대신 건다
 
 - 포털 검색 «금융위원회 자산운용» — HTTP 200 · 423272자 · 15061325 자산운용사정보 · 15139266 자산운용사 영업활동통계정보
@@ -24,15 +27,24 @@
 - 포털 검색 «금융위원회 금융통계 신용협동조합» — HTTP 200 · 406025자 · 15061337 신용협동조합정보
 - 포털 검색 «금융위원회 금융통계 농업협동조합» — HTTP 200 · 406024자 · 15061344 농업협동조합정보
 - 포털 검색 «금융위원회 금융통계 수산업협동조합» — HTTP 200 · 406008자 · 15061340 수산업협동조합정보
+- 포털 검색 «개인사업자금융정보» — HTTP 200 · 419840자 · 15108175 개인사업자금융정보
+- 포털 검색 «기금대출정보» — HTTP 200 · 405743자 · **못 뽑았다**
+  - 둘레 « <label for="keyword" class="sr-only">검색어 입력창</label> <input type="text" id="keyword" name="keyword" class="krds-input" autocomplete="off" placeholder="데이터명을 입력해 주세요" value="기금대출정보" onkeydown="if(event.keyCode===13){eventFnOb»
+- 포털 검색 «한국국제협력단 사업정보» — HTTP 200 · 436062자 · 15099215 사업정보 _KF-공공외교 사업 정보 · 15158399 사업정보 (분야,국가)조회 · 15158394 사업정보조회
+- 포털 검색 «토지이용규제법령정보» — HTTP 200 · 409364자 · **못 뽑았다**
+  - 둘레 « <label for="keyword" class="sr-only">검색어 입력창</label> <input type="text" id="keyword" name="keyword" class="krds-input" autocomplete="off" placeholder="데이터명을 입력해 주세요" value="토지이용규제법령정보" onkeydown="if(event.keyCode===13){event»
+- 포털 검색 «토지이용규제» — HTTP 200 · 416050자 · 15057174 토지이용 규제 기본법의 적용을 받는 규제 법령과 그와 관련된 도시(군)계획조례 및 그 밖에 · 15057263 토지이용 규제 기본법 제2조제2호 및 동법 영 제2조 등에 명시된 건축법 시행령 별표 및 
+- 포털 검색 «금융위원회 기금» — HTTP 200 · 409446자 · **못 뽑았다**
+  - 둘레 «abel for="keyword" class="sr-only">검색어 입력창</label> <input type="text" id="keyword" name="keyword" class="krds-input" autocomplete="off" placeholder="데이터명을 입력해 주세요" value="금융위원회 기금" onkeydown="if(event.keyCode===13){eventFnObj.fn»
 
 ## 금융위원회_금융통계종합금융회사정보 (15061312) — 종합금융회사 일반·재무·경영지표 · 열쇠 `FSC_API`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 633ms
+- 안내 페이지 — HTTP 200 · 538ms
   - 뽑은 서비스 `1160100/service/GetMercBankInfoService`
   - 뽑은 오퍼레이션 **없음(못 읽었다)**
   - 둘레 «"key">요청주소</strong> <div class="value"> https://apis.data.go.*** </div> </li> <li> <strong class="key">서비스 URL</strong> <div class="value"> »
-- `1160100/service/GetMercBankInfoService/getMercBankGeneInfo · 원본 · 202412` — HTTP 200 · 363ms
+- `1160100/service/GetMercBankInfoService/getMercBankGeneInfo · 원본 · 202412` — HTTP 200 · 186ms
   - 본문 «{"response":{"body":{"tableList":[{"items":{"item":[]},"title":"종금사_일반현황_임직원현황","totalCount":0},{"items":{"item":[]},"title":"종금사_일반현황_영업점포현황","totalCount":0}]},"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE.","pageNo":"1","numOfRows":"3"}}}»
   - 항목(totalCount>0) 칸: **못 찾았다**
 
@@ -41,11 +53,11 @@
 ## 금융위원회_금융통계국내은행정보 (15061304) — 투자정보 [은행] 탭 후보 · 열쇠 `FSC_DOMESTIC_BANK_API`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 639ms
+- 안내 페이지 — HTTP 200 · 514ms
   - 뽑은 서비스 `1160100/service/GetDomeBankInfoService`
   - 뽑은 오퍼레이션 **없음(못 읽었다)**
   - 둘레 «"key">요청주소</strong> <div class="value"> https://apis.data.go.*** </div> </li> <li> <strong class="key">서비스 URL</strong> <div class="value"> »
-- `1160100/service/GetDomeBankInfoService/getDomeBankGeneInfo · 원본 · 202512` — HTTP 200 · 349ms
+- `1160100/service/GetDomeBankInfoService/getDomeBankGeneInfo · 원본 · 202512` — HTTP 200 · 581ms
   - 본문 «{"response":{"body":{"tableList":[{"items":{"item":[{"basYm":"202512","crno":"1101110023393","fncoCd":"0010001","fncoNm":"우리은행","xcsmCnt":"14211","xcsmDcd":"A","xcsmDcdNm":"총임직원"},{"basYm":"202512","crno":"1101110023393","fncoCd":"0010001","fncoNm":"우리은행","xcsmCnt":"28","xcsmDcd":"A1","xcsmDcdNm":"임» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
@@ -56,11 +68,11 @@
 ## 금융위원회_금융통계투자자문사정보 (15061358) — 투자자문사 일반·재무현황 · 열쇠 `FSC_IAF_API`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 643ms
+- 안내 페이지 — HTTP 200 · 522ms
   - 뽑은 서비스 `1160100/service/GetInveAdviCompInfoService`
   - 뽑은 오퍼레이션 **없음(못 읽었다)**
   - 둘레 «"key">요청주소</strong> <div class="value"> https://apis.data.go.*** </div> </li> <li> <strong class="key">서비스 URL</strong> <div class="value"> »
-- `1160100/service/GetInveAdviCompInfoService/getInveAdviCompGeneInfo · 원본 · 202512` — HTTP 200 · 821ms
+- `1160100/service/GetInveAdviCompInfoService/getInveAdviCompGeneInfo · 원본 · 202512` — HTTP 200 · 817ms
   - 본문 «{"response":{"body":{"tableList":[{"items":{"item":[]},"title":"투자자문_일반현황_임직원현황(09.03월이전)","totalCount":0},{"items":{"item":[{"basYm":"202512","crno":"1101110566773","fncoCd":"0010193","fncoNm":"프랭클린템플턴투자자문 주식회사","xcsmCnt":"0","xcsmDcd":"D","xcsmDcdNm":"운용전문인력"},{"basYm":"202512","crno":"11011115415» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
@@ -71,35 +83,35 @@
 ## 금융위원회_금융투자협회종합통계정보 (15094809) — 펀드순자산·증시자금·신용공여 추이 · 열쇠 `FSC_KOFIA_API`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 666ms
+- 안내 페이지 — HTTP 200 · 563ms
   - 뽑은 서비스 `1160100/service/GetKofiaStatisticsInfoService`
   - 뽑은 오퍼레이션 `getTrustScaleInfo` · `getFundTotalNetEssetInfo` · `getCMAStatus` · `getGrantingOfCreditBalanceInfo` · `getSecuritiesMarketTotalCapitalInfo` · `getDLSAndDLBInfo` · `getELSAndELBInfo` · `getDerivationProductTradingInfo`
-- `1160100/service/GetKofiaStatisticsInfoService/getTrustScaleInfo · 원본 · 202512` — HTTP 200 · 223ms
+- `1160100/service/GetKofiaStatisticsInfoService/getTrustScaleInfo · 원본 · 202512` — HTTP 200 · 186ms
   - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":330,"items":{"item":[{"basYm":"202512","bzds":"합계","tstCtg":"금전신탁 특정금전신탁","kind":"정기예금형","iqBs":"계약수","val":"107829"},{"basYm":"202512","bzds":"합계","tstCtg":"금전신탁 특정금전신탁","kind":"기타"» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
   - 칸 이름 `basYm` `bzds` `tstCtg` `kind` `iqBs` `val`
-- `1160100/service/GetKofiaStatisticsInfoService/getFundTotalNetEssetInfo · 원본 · 202512` — HTTP 200 · 321ms
+- `1160100/service/GetKofiaStatisticsInfoService/getFundTotalNetEssetInfo · 원본 · 202512` — HTTP 200 · 282ms
   - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":28687,"items":{"item":[{"basDt":"20260922","ctg":"-","tstMthdCtg":"공모","nPptTotAmt":"36229761418"},{"basDt":"20260922","ctg":"재간접","tstMthdCtg":"공모","nPptTotAmt":"55853622174489"},{"» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
   - 칸 이름 `basDt` `ctg` `tstMthdCtg` `nPptTotAmt`
-- `1160100/service/GetKofiaStatisticsInfoService/getCMAStatus · 원본 · 202512` — HTTP 200 · 279ms
+- `1160100/service/GetKofiaStatisticsInfoService/getCMAStatus · 원본 · 202512` — HTTP 200 · 230ms
   - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":14448,"items":{"item":[{"basDt":"20260922","mngInvTgt":"합계","invrCtg":"기관","scrtCmpyCnt":"0","actCnt":"147378","actBal":"12214007072315"},{"basDt":"20260922","mngInvTgt":"MMF형","invr» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
   - 칸 이름 `basDt` `mngInvTgt` `invrCtg` `scrtCmpyCnt` `actCnt` `actBal`
-- `1160100/service/GetKofiaStatisticsInfoService/getGrantingOfCreditBalanceInfo · 원본 · 202512` — HTTP 200 · 212ms
+- `1160100/service/GetKofiaStatisticsInfoService/getGrantingOfCreditBalanceInfo · 원본 · 202512` — HTTP 200 · 166ms
   - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":1191,"items":{"item":[{"basDt":"20260922","crdTrFingWhl":"32819168401860","crdTrFingScrs":"25609148339779","crdTrFingKosdaq":"7210020062081","crdTrLndrWhl":"34329878973","crdTrLndrSc» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
   - 칸 이름 `basDt` `crdTrFingWhl` `crdTrFingScrs` `crdTrFingKosdaq` `crdTrLndrWhl` `crdTrLndrScrs` `crdTrLndrKosdaq` `sbscCapLn` `dpsgScrtMogFing`
-- `1160100/service/GetKofiaStatisticsInfoService/getSecuritiesMarketTotalCapitalInfo · 원본 · 202512` — HTTP 200 · 219ms
+- `1160100/service/GetKofiaStatisticsInfoService/getSecuritiesMarketTotalCapitalInfo · 원본 · 202512` — HTTP 200 · 164ms
   - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":1204,"items":{"item":[{"basDt":"20260922","invrDpsgAmt":"100982554761485","onbdDrvPrdTrRcAdvAmt":"42217285110345","toCstRpchCndBndSlgBal":"110640626185958","brkTrdUcolMny":"853708535» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
   - 칸 이름 `basDt` `invrDpsgAmt` `onbdDrvPrdTrRcAdvAmt` `toCstRpchCndBndSlgBal` `brkTrdUcolMny` `brkTrdUcolMnyVsOppsTrdAmt` `ucolMnyVsOppsTrdRlImpt`
-- `1160100/service/GetKofiaStatisticsInfoService/getDLSAndDLBInfo · 원본 · 202512` — HTTP 200 · 226ms
+- `1160100/service/GetKofiaStatisticsInfoService/getDLSAndDLBInfo · 원본 · 202512` — HTTP 200 · 206ms
   - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":1176,"items":{"item":[{"basDt":"202607","ctgDlbDls":"원금비보장형","ctgPrplcPsub":"사모","presCtg":"상환현황","amt":"387334000000","ccnt":"46"},{"basDt":"202607","ctgDlbDls":"원금보장형","ctgPrplcPsu» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
@@ -110,10 +122,11 @@
 ## 중소벤처기업부_사업공고 (15113297) — [정책자금] 후보 — 중기부 사업공고 · 열쇠 `MSS_SME_SPA_API`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 622ms
+- 안내 페이지 — HTTP 200 · 547ms
   - 뽑은 서비스 `1421000/mssBizService_v2`
   - 뽑은 오퍼레이션 `getbizList_v2`
-- `1421000/mssBizService_v2/getbizList_v2 · 원본 · 202512` — HTTP 403 · 197ms
+  - 필수 인자(스웨거) `pageNo` · `numOfRows`
+- `1421000/mssBizService_v2/getbizList_v2 · 원본 · 202512` — HTTP 403 · 145ms
   - 본문 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR", "returnAuthMsg": "등록되지 않은 서비스키", "returnReasonCode": "30" } } }»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - ★ 본문이 **인증 거부**를 말한다 — 상태코드가 200 이어도 그렇다 (D-229)
@@ -123,7 +136,7 @@
 ## 중소기업기술정보진흥원_중소벤처24 공고정보 (15113191) — [정책자금] 후보 — 중소벤처24 공고 · 열쇠 `MSS_SME_SPA_API`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 586ms
+- 안내 페이지 — HTTP 200 · 467ms
   - 뽑은 서비스 **없음(못 읽었다)**
   - 뽑은 오퍼레이션 **없음(못 읽었다)**
   - ★ 부를 주소를 **못 읽었다** — 페이지 모양이 다르거나 막혔다. **열쇠 문제가 아니다**
@@ -134,35 +147,36 @@
 ## 금융위원회_자산운용사 영업활동통계정보 (15139266) — 자산운용사 — 후보(검색으로 찾음) · 열쇠 `FSC_AMC_API`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 654ms
+- 안내 페이지 — HTTP 200 · 625ms
   - 뽑은 서비스 `1160100/service/GetFSSaleActInfoService`
   - 뽑은 오퍼레이션 `getScrtDlngPresInfo` · `getDrvpDlngPresInfo` · `getInvdCminPresInfo` · `getInvdCntrPresInfo` · `getInvdPptPresInfo` · `getInvdPptOperPresInfo`
-- `1160100/service/GetFSSaleActInfoService/getScrtDlngPresInfo · 원본 · 202512` — HTTP 200 · 1883ms
+  - 필수 인자(스웨거) `pageNo` · `numOfRows` · `basYm`
+- `1160100/service/GetFSSaleActInfoService/getScrtDlngPresInfo · 원본 · 202512` — HTTP 200 · 276ms
   - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":3520,"items":{"item":[{"basYm":"202512","fncoCd":"0019635","fncoNm":"스피네이커자산운용 주식회사","sttsItemCd":"H","sttsItemNm":"증권합계","sttsItemAmt":"2755335595"},{"basYm":"202512","fncoCd":"0014» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
   - 칸 이름 `basYm` `fncoCd` `fncoNm` `sttsItemCd` `sttsItemNm` `sttsItemAmt`
-- `1160100/service/GetFSSaleActInfoService/getDrvpDlngPresInfo · 원본 · 202512` — HTTP 200 · 241ms
+- `1160100/service/GetFSSaleActInfoService/getDrvpDlngPresInfo · 원본 · 202512` — HTTP 200 · 189ms
   - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":792,"items":{"item":[{"basYm":"202512","fncoCd":"0012121","fncoNm":"브레인자산운용","sttsItemCd":"A1","sttsItemNm":"선물","sttsItemAmt":"801488982500"},{"basYm":"202512","fncoCd":"0019431","f» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
   - 칸 이름 `basYm` `fncoCd` `fncoNm` `sttsItemCd` `sttsItemNm` `sttsItemAmt`
-- `1160100/service/GetFSSaleActInfoService/getInvdCminPresInfo · 원본 · 202512` — HTTP 200 · 278ms
+- `1160100/service/GetFSSaleActInfoService/getInvdCminPresInfo · 원본 · 202512` — HTTP 200 · 213ms
   - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":1368,"items":{"item":[{"basYm":"202512","fncoCd":"0010183","fncoNm":"교보악사자산운용","sttsItemCd":"A1","sttsItemNm":"일반투자자","sttsItemAmt":"0"},{"basYm":"202512","fncoCd":"0019588","fncoNm"» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
   - 칸 이름 `basYm` `fncoCd` `fncoNm` `sttsItemCd` `sttsItemNm` `sttsItemAmt`
-- `1160100/service/GetFSSaleActInfoService/getInvdCntrPresInfo · 원본 · 202512` — HTTP 200 · 289ms
+- `1160100/service/GetFSSaleActInfoService/getInvdCntrPresInfo · 원본 · 202512` — HTTP 200 · 212ms
   - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":972,"items":{"item":[{"basYm":"202512","fncoCd":"0010170","fncoNm":"하나자산운용","sttsItemCd":"A","sttsItemNm":"고객수","sttsItemAmt":"14"},{"basYm":"202512","fncoCd":"0016797","fncoNm":"파이브» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
   - 칸 이름 `basYm` `fncoCd` `fncoNm` `sttsItemCd` `sttsItemNm` `sttsItemAmt`
-- `1160100/service/GetFSSaleActInfoService/getInvdPptPresInfo · 원본 · 202512` — HTTP 200 · 273ms
+- `1160100/service/GetFSSaleActInfoService/getInvdPptPresInfo · 원본 · 202512` — HTTP 200 · 209ms
   - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":1452,"items":{"item":[{"basYm":"202512","fncoCd":"0013784","fncoNm":"웰스자산운용","sttsItemCd":"A1","sttsItemNm":"일반투자자","sttsItemAmt":"0"},{"basYm":"202512","fncoCd":"0010210","fncoNm":"» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
   - 칸 이름 `basYm` `fncoCd` `fncoNm` `sttsItemCd` `sttsItemNm` `sttsItemAmt`
-- `1160100/service/GetFSSaleActInfoService/getInvdPptOperPresInfo · 원본 · 202512` — HTTP 200 · 250ms
+- `1160100/service/GetFSSaleActInfoService/getInvdPptOperPresInfo · 원본 · 202512` — HTTP 200 · 216ms
   - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":964,"items":{"item":[{"basYm":"202512","fncoCd":"0010215","fncoNm":"플러스자산운용","sttsItemCd":"A","sttsItemNm":"유동성자산","sttsItemDmstAmt":"119849171692","sttsItemOvseAmt":"0"},{"basYm":"2» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
@@ -173,11 +187,11 @@
 ## 자산운용사정보 (15061325) — 자산운용사 — 포털 검색에서 찾음 · 열쇠 `FSC_AMC_API`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 631ms
+- 안내 페이지 — HTTP 200 · 519ms
   - 뽑은 서비스 `1160100/service/GetAsseManaCompInfoService`
   - 뽑은 오퍼레이션 **없음(못 읽었다)**
   - 둘레 «"key">요청주소</strong> <div class="value"> https://apis.data.go.*** </div> </li> <li> <strong class="key">서비스 URL</strong> <div class="value"> »
-- `1160100/service/GetAsseManaCompInfoService/getAsseManaCompGeneInfo · 원본 · 202512` — HTTP 403 · 193ms
+- `1160100/service/GetAsseManaCompInfoService/getAsseManaCompGeneInfo · 원본 · 202512` — HTTP 403 · 144ms
   - 본문 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR", "returnAuthMsg": "등록되지 않은 서비스키", "returnReasonCode": "30" } } }»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - ★ 본문이 **인증 거부**를 말한다 — 상태코드가 200 이어도 그렇다 (D-229)
@@ -187,10 +201,10 @@
 ## 지원사업 공고 조회 서비스 (15157820) — 투자정보 [정책자금] 탭 후보 — 포털 검색에서 찾음 · 열쇠 `MSS_SME_SPA_API`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 689ms
+- 안내 페이지 — HTTP 200 · 516ms
   - 뽑은 서비스 `1421000/bizinfo`
   - 뽑은 오퍼레이션 `pblancBsnsService`
-- `1421000/bizinfo/pblancBsnsService · 원본 · 202512` — HTTP 200 · 307ms
+- `1421000/bizinfo/pblancBsnsService · 원본 · 202512` — HTTP 200 · 247ms
   - 본문 «<response> <header> <resultCode>00</resultCode> <resultMsg>NORMAL_SERVICE</resultMsg> </header> <body> <items> <item> <pblancNm><![CDATA[2026년 하반기 산청군 단체관광객 유치 인센티브 지원 공고]]></pblancNm> <!-- 공고명 --> <pblancUrl>https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000126818</pb» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
@@ -201,11 +215,11 @@
 ## 저축은행정보 (15061316) — 저축은행 일반·재무·주요경영지표 · 열쇠 `FSC_SAVINGS_BANK_API`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 674ms
+- 안내 페이지 — HTTP 200 · 555ms
   - 뽑은 서비스 `1160100/service/GetMutuSaviBankInfoService`
   - 뽑은 오퍼레이션 **없음(못 읽었다)**
   - 둘레 «"key">요청주소</strong> <div class="value"> https://apis.data.go.*** </div> </li> <li> <strong class="key">서비스 URL</strong> <div class="value"> »
-- `1160100/service/GetMutuSaviBankInfoService/getMutuSaviBankGeneInfo · 원본 · 202512` — HTTP 200 · 288ms
+- `1160100/service/GetMutuSaviBankInfoService/getMutuSaviBankGeneInfo · 원본 · 202512` — HTTP 200 · 680ms
   - 본문 «{"response":{"body":{"tableList":[{"items":{"item":[{"basYm":"202512","crno":"1101110126014","fncoCd":"0010345","fncoNm":"애큐온저축은행","xcsmCnt":"384","xcsmDcd":"A","xcsmDcdNm":"총임직원"},{"basYm":"202512","crno":"1101110126014","fncoCd":"0010345","fncoNm":"애큐온저축은행","xcsmCnt":"18","xcsmDcd":"A1","xcsmDcdNm» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
@@ -216,11 +230,11 @@
 ## 신용협동조합정보 (15061337) — 신용협동조합 일반·재무·주요경영지표 · 열쇠 `FSC_CREDIT_UNION_BANK_API`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 642ms
+- 안내 페이지 — HTTP 200 · 558ms
   - 뽑은 서비스 `1160100/service/GetCredUnioInfoService`
   - 뽑은 오퍼레이션 **없음(못 읽었다)**
   - 둘레 «"key">요청주소</strong> <div class="value"> https://apis.data.go.*** </div> </li> <li> <strong class="key">서비스 URL</strong> <div class="value"> »
-- `1160100/service/GetCredUnioInfoService/getCredUnioGeneInfo · 원본 · 202512` — HTTP 200 · 2300ms
+- `1160100/service/GetCredUnioInfoService/getCredUnioGeneInfo · 원본 · 202512` — HTTP 200 · 2539ms
   - 본문 «{"response":{"body":{"tableList":[{"items":{"item":[{"basYm":"202512","crno":"","fncoCd":"00106561002","fncoNm":"정락","xcsmCnt":"16","xcsmDcd":"A","xcsmDcdNm":"총임직원"},{"basYm":"202512","crno":"","fncoCd":"00106561002","fncoNm":"정락","xcsmCnt":"10","xcsmDcd":"A1","xcsmDcdNm":"임 원"},{"basYm":"202512","c» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
@@ -231,11 +245,11 @@
 ## 농업협동조합정보 (15061344) — 농업협동조합 일반·재무·주요경영지표 · 열쇠 `FSC__AGRICULTURAL_COOPERATIVE_BANK_API`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 664ms
+- 안내 페이지 — HTTP 200 · 555ms
   - 뽑은 서비스 `1160100/service/GetAgriCoopInfoService`
   - 뽑은 오퍼레이션 **없음(못 읽었다)**
   - 둘레 «"key">요청주소</strong> <div class="value"> https://apis.data.go.*** </div> </li> <li> <strong class="key">서비스 URL</strong> <div class="value"> »
-- `1160100/service/GetAgriCoopInfoService/getAgriCoopGeneInfo · 원본 · 202512` — HTTP 200 · 1283ms
+- `1160100/service/GetAgriCoopInfoService/getAgriCoopGeneInfo · 원본 · 202512` — HTTP 200 · 1394ms
   - 본문 «{"response":{"body":{"tableList":[{"items":{"item":[{"basYm":"202512","crno":"1146360000288","fncoCd":"0010027100089","fncoNm":"남서울농협","xcsmCnt":"174","xcsmDcd":"A","xcsmDcdNm":"총임직원"},{"basYm":"202512","crno":"1146360000288","fncoCd":"0010027100089","fncoNm":"남서울농협","xcsmCnt":"23","xcsmDcd":"A1","x» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
@@ -246,14 +260,110 @@
 ## 수산업협동조합정보 (15061340) — 수산업협동조합 일반·재무·주요경영지표 · 열쇠 `FSC_FISHERIES_COOPERATIVE_BANK_API`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 632ms
+- 안내 페이지 — HTTP 200 · 525ms
   - 뽑은 서비스 `1160100/service/GetFishCoopInfoService`
   - 뽑은 오퍼레이션 **없음(못 읽었다)**
   - 둘레 «"key">요청주소</strong> <div class="value"> https://apis.data.go.*** </div> </li> <li> <strong class="key">서비스 URL</strong> <div class="value"> »
-- `1160100/service/GetFishCoopInfoService/getFishCoopGeneInfo · 원본 · 202512` — HTTP 200 · 425ms
+- `1160100/service/GetFishCoopInfoService/getFishCoopGeneInfo · 원본 · 202512` — HTTP 200 · 343ms
   - 본문 «{"response":{"body":{"tableList":[{"items":{"item":[{"basYm":"202512","crno":"","fncoCd":"0010028100970","fncoNm":"근해안강망수협","xcsmCnt":"2","xcsmDcd":"A11","xcsmDcdNm":"임 원_상근 이사 및 감사"},{"basYm":"202512","crno":"","fncoCd":"0010028100970","fncoNm":"근해안강망수협","xcsmCnt":"7","xcsmDcd":"A12","xcsmDcdNm":"임» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
   - 칸 이름 `표목록(2)` `표.title` `표.totalCount` `basYm` `crno` `fncoCd` `fncoNm` `xcsmCnt` `xcsmDcd` `xcsmDcdNm`
 
 > **판정 0** — **값이 왔다** — 이 후보로 배선한다
+
+## 개인사업자금융정보 (15108175) — 개인사업자 보증잔액·예금대출 — 투자정보 [정책자금]·[은행] 후보 · 열쇠 `FSC_SP_FIN`
+
+- 건 열쇠: `DATA_GO_KR_KEY`
+- 안내 페이지 — HTTP 200 · 516ms
+  - 뽑은 서비스 `1160100/service/GetSBBankingInfoService`
+  - 뽑은 오퍼레이션 `getGrnBalInfo` · `getDpstLoanInfo`
+  - 필수 인자(스웨거) `pageNo` · `numOfRows`
+- `1160100/service/GetSBBankingInfoService/getGrnBalInfo · 원본 · 202506` — HTTP 200 · 672ms
+  - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":216710,"items":{"item":[{"basYm":"202506","rprSexNm":"남성","rprAggrNm":"60대","estbYr":"2005","bizAreaNm":"강원특별자치도 강릉시 강변로","bizBzcCd":"47","bizBzcCdNm":"소매업; 자동차 제외","empeCntNm":"1명 이» …
+  - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
+  - 항목(totalCount>0) 칸: **찾았다**
+  - 칸 이름 `basYm` `rprSexNm` `rprAggrNm` `estbYr` `bizAreaNm` `bizBzcCd` `bizBzcCdNm` `empeCntNm` `grnBal` `wrkfndLoanYn` `fctfndLoanYn`
+- `1160100/service/GetSBBankingInfoService/getDpstLoanInfo · 원본 · 202506` — HTTP 200 · 685ms
+  - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":187334,"items":{"item":[{"basYm":"202506","rprSexNm":"여성","rprAggrNm":"60대","estbYr":"2010","bizAreaNm":"강원특별자치도 강릉시 강변로","bizBzcCd":"56","bizBzcCdNm":"음식점 및 주점업","empeCntNm":"1명 이상 » …
+  - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
+  - 항목(totalCount>0) 칸: **찾았다**
+  - 칸 이름 `basYm` `rprSexNm` `rprAggrNm` `estbYr` `bizAreaNm` `bizBzcCd` `bizBzcCdNm` `empeCntNm` `depAbl` `loanAbl` `wrkfndLoanYn` `fctfndLoanYn`
+
+> **판정 0** — **값이 왔다** — 이 후보로 배선한다
+
+## 사업정보 _KF-공공외교 사업 정보 (15099215) — KOICA 사업정보(분야·국가) — 해외 프로젝트 후보 · 열쇠 `KOICA_PROJ_SC`
+
+- 건 열쇠: `DATA_GO_KR_KEY`
+- 안내 페이지 — HTTP 200 · 509ms
+  - 뽑은 서비스 `B260003/OdaBusinessInfoService`
+  - 뽑은 오퍼레이션 **없음(못 읽었다)**
+  - 둘레 «"key">요청주소</strong> <div class="value"> https://apis.data.go.*** </div> </li> <li> <strong class="key">서비스 URL</strong> <div class="value"> »
+- `B260003/OdaBusinessInfoService/getOdaBusinessInfoList · 원본 · 202512` — HTTP 403 · 147ms
+  - 본문 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR", "returnAuthMsg": "등록되지 않은 서비스키", "returnReasonCode": "30" } } }»
+  - 항목(totalCount>0) 칸: **못 찾았다**
+  - ★ 본문이 **인증 거부**를 말한다 — 상태코드가 200 이어도 그렇다 (D-229)
+
+> **판정 4** — **인증이 거부됐다** — 열쇠 자체이거나 **그 서비스 등록·신청**이 안 된 것이다. ★ 상태코드가 **200 이어도** 본문이 그렇게 말하는 곳이 있다(ODsay 가 그렇다). 아래 응답 본문이 둘 중 어느 쪽인지 말해 준다
+
+## 사업정보 (분야,국가)조회 (15158399) — KOICA 사업정보(분야·국가) — 해외 프로젝트 후보 · 열쇠 `KOICA_PROJ_SC`
+
+- 건 열쇠: `DATA_GO_KR_KEY`
+- 안내 페이지 — HTTP 200 · 511ms
+  - 뽑은 서비스 `B260003/BsnsAddService`
+  - 뽑은 오퍼레이션 `getBsnsInfoRealmList` · `getBsnsInfoNationList`
+  - 필수 인자(스웨거) `pageNo` · `numOfRows` · `P_YEAR` · `P_BSNS_TY_CD` · `P_SPORT_REALM_CD` · `P_NATION_CD`
+- `B260003/BsnsAddService/getBsnsInfoRealmList · 원본 · 202512` — HTTP 403 · 145ms
+  - 본문 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR", "returnAuthMsg": "등록되지 않은 서비스키", "returnReasonCode": "30" } } }»
+  - 항목(totalCount>0) 칸: **못 찾았다**
+  - ★ 본문이 **인증 거부**를 말한다 — 상태코드가 200 이어도 그렇다 (D-229)
+- `B260003/BsnsAddService/getBsnsInfoNationList · 원본 · 202512` — HTTP 403 · 143ms
+  - 본문 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR", "returnAuthMsg": "등록되지 않은 서비스키", "returnReasonCode": "30" } } }»
+  - 항목(totalCount>0) 칸: **못 찾았다**
+  - ★ 본문이 **인증 거부**를 말한다 — 상태코드가 200 이어도 그렇다 (D-229)
+
+> **판정 4** — **인증이 거부됐다** — 열쇠 자체이거나 **그 서비스 등록·신청**이 안 된 것이다. ★ 상태코드가 **200 이어도** 본문이 그렇게 말하는 곳이 있다(ODsay 가 그렇다). 아래 응답 본문이 둘 중 어느 쪽인지 말해 준다
+
+## 사업정보조회 (15158394) — KOICA 사업정보(분야·국가) — 해외 프로젝트 후보 · 열쇠 `KOICA_PROJ_SC`
+
+- 건 열쇠: `DATA_GO_KR_KEY`
+- 안내 페이지 — HTTP 200 · 500ms
+  - 뽑은 서비스 `B260003/BsnsService`
+  - 뽑은 오퍼레이션 `getBsnsInfoList` · `getBsnsInfoDetail`
+  - 필수 인자(스웨거) `P_PAGE_NO` · `P_PAGE_SIZE` · `P_YEAR` · `P_BSNS_TY_CD` · `P_BSNS_NO`
+- `B260003/BsnsService/getBsnsInfoList · 원본 · 202512` — HTTP 403 · 145ms
+  - 본문 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR", "returnAuthMsg": "등록되지 않은 서비스키", "returnReasonCode": "30" } } }»
+  - 항목(totalCount>0) 칸: **못 찾았다**
+  - ★ 본문이 **인증 거부**를 말한다 — 상태코드가 200 이어도 그렇다 (D-229)
+- `B260003/BsnsService/getBsnsInfoDetail · 원본 · 202512` — HTTP 403 · 144ms
+  - 본문 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR", "returnAuthMsg": "등록되지 않은 서비스키", "returnReasonCode": "30" } } }»
+  - 항목(totalCount>0) 칸: **못 찾았다**
+  - ★ 본문이 **인증 거부**를 말한다 — 상태코드가 200 이어도 그렇다 (D-229)
+
+> **판정 4** — **인증이 거부됐다** — 열쇠 자체이거나 **그 서비스 등록·신청**이 안 된 것이다. ★ 상태코드가 **200 이어도** 본문이 그렇게 말하는 곳이 있다(ODsay 가 그렇다). 아래 응답 본문이 둘 중 어느 쪽인지 말해 준다
+
+## 토지이용 규제 기본법의 적용을 받는 규제 법령과 그와 관련된 도시(군)계획조례 및 그 밖에 (15057174) — 토지이용규제 법령정보 — 인허가 검토(행위제한) 후보 · 열쇠 `MOLIT_LUR_LAW_KEY`
+
+- 건 열쇠: `DATA_GO_KR_KEY`
+- 안내 페이지 — HTTP 200 · 518ms
+  - 뽑은 서비스 `1613000/LuLawInfoService`
+  - 뽑은 오퍼레이션 `DTluLawInfo`
+  - 필수 인자(스웨거) `areaCd` · `ucodeList`
+- `1613000/LuLawInfoService/DTluLawInfo · 원본 · 202512` — HTTP 200 · 158ms
+  - 본문 «<?xml version="1.0" encoding="EUC-KR" standalone="yes"?><response><ERROR_CODE>11</ERROR_CODE><ERROR_MSG>NO_MANDATORY_REQUEST__PARAMETER_ERROR</ERROR_MSG></response>»
+  - 항목(totalCount>0) 칸: **못 찾았다**
+
+> **판정 5** — 대답은 왔는데 **값을 못 뽑았다** — 주소·파라미터 규격이 다르다. **열쇠 문제가 아니다.** 아래 본문을 보고 배선을 고친다
+
+## 토지이용 규제 기본법 제2조제2호 및 동법 영 제2조 등에 명시된 건축법 시행령 별표 및  (15057263) — 토지이용규제 법령정보 — 인허가 검토(행위제한) 후보 · 열쇠 `MOLIT_LUR_LAW_KEY`
+
+- 건 열쇠: `DATA_GO_KR_KEY`
+- 안내 페이지 — HTTP 200 · 516ms
+  - 뽑은 서비스 `1613000/ebGuideBookListService`
+  - 뽑은 오퍼레이션 `DTebGuideBookList`
+- `1613000/ebGuideBookListService/DTebGuideBookList · 원본 · 202512` — HTTP 403 · 146ms
+  - 본문 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR", "returnAuthMsg": "등록되지 않은 서비스키", "returnReasonCode": "30" } } }»
+  - 항목(totalCount>0) 칸: **못 찾았다**
+  - ★ 본문이 **인증 거부**를 말한다 — 상태코드가 200 이어도 그렇다 (D-229)
+
+> **판정 4** — **인증이 거부됐다** — 열쇠 자체이거나 **그 서비스 등록·신청**이 안 된 것이다. ★ 상태코드가 **200 이어도** 본문이 그렇게 말하는 곳이 있다(ODsay 가 그렇다). 아래 응답 본문이 둘 중 어느 쪽인지 말해 준다

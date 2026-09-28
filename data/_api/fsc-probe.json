@@ -9,6 +9,9 @@
   "FSC_CREDIT_UNION_BANK_API": null,
   "FSC__AGRICULTURAL_COOPERATIVE_BANK_API": null,
   "FSC_FISHERIES_COOPERATIVE_BANK_API": null,
+  "FSC_SP_FIN": null,
+  "KOICA_PROJ_SC": null,
+  "MOLIT_LUR_LAW_KEY": null,
   "MSS_SME_SPA_API": null
  },
  "services": [
@@ -310,6 +313,142 @@
      "gotValue": true,
      "authFail": false,
      "head": "{\"response\":{\"body\":{\"tableList\":[{\"items\":{\"item\":[{\"basYm\":\"202512\",\"crno\":\"\",\"fncoCd\":\"0010028100970\",\"fncoNm\":\"근해안강망수협\",\"xcsmCnt\":\"2\",\"xcsmDcd\":\"A11\",\"xcsmDcdNm\":\"임 원_상근 이사 및 감사\"},{\"basYm\":\"202512\",\"crno\":\"\",\"fncoCd\":\"0010028100970\",\"fncoNm\":\"근해안강망수협\",\"xcsmCnt\":\"7\",\"xcsmDcd\":\"A12\",\"xcsmDcdNm\":\"임"
+    }
+   ]
+  },
+  {
+   "id": "15108175",
+   "bases": [
+    "1160100/service/GetSBBankingInfoService"
+   ],
+   "ops": [
+    "getGrnBalInfo",
+    "getDpstLoanInfo"
+   ],
+   "code": 0,
+   "rows": [
+    {
+     "label": "*** · 원본 · 202506",
+     "status": 200,
+     "gotValue": true,
+     "authFail": false,
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":216710,\"items\":{\"item\":[{\"basYm\":\"202506\",\"rprSexNm\":\"남성\",\"rprAggrNm\":\"60대\",\"estbYr\":\"2005\",\"bizAreaNm\":\"강원특별자치도 강릉시 강변로\",\"bizBzcCd\":\"47\",\"bizBzcCdNm\":\"소매업; 자동차 제외\",\"empeCntNm\":\"1명 이"
+    },
+    {
+     "label": "*** · 원본 · 202506",
+     "status": 200,
+     "gotValue": true,
+     "authFail": false,
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":187334,\"items\":{\"item\":[{\"basYm\":\"202506\",\"rprSexNm\":\"여성\",\"rprAggrNm\":\"60대\",\"estbYr\":\"2010\",\"bizAreaNm\":\"강원특별자치도 강릉시 강변로\",\"bizBzcCd\":\"56\",\"bizBzcCdNm\":\"음식점 및 주점업\",\"empeCntNm\":\"1명 이상 "
+    }
+   ]
+  },
+  {
+   "id": "15099215",
+   "bases": [
+    "B260003/OdaBusinessInfoService"
+   ],
+   "ops": [],
+   "code": 4,
+   "rows": [
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 403,
+     "gotValue": false,
+     "authFail": true,
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
+    }
+   ]
+  },
+  {
+   "id": "15158399",
+   "bases": [
+    "B260003/BsnsAddService"
+   ],
+   "ops": [
+    "getBsnsInfoRealmList",
+    "getBsnsInfoNationList"
+   ],
+   "code": 4,
+   "rows": [
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 403,
+     "gotValue": false,
+     "authFail": true,
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
+    },
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 403,
+     "gotValue": false,
+     "authFail": true,
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
+    }
+   ]
+  },
+  {
+   "id": "15158394",
+   "bases": [
+    "B260003/BsnsService"
+   ],
+   "ops": [
+    "getBsnsInfoList",
+    "getBsnsInfoDetail"
+   ],
+   "code": 4,
+   "rows": [
+    {
+     "label": "B260003/BsnsService/getBsnsInfoList · 원본 · 202512",
+     "status": 403,
+     "gotValue": false,
+     "authFail": true,
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
+    },
+    {
+     "label": "B260003/BsnsService/getBsnsInfoDetail · 원본 · 202512",
+     "status": 403,
+     "gotValue": false,
+     "authFail": true,
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
+    }
+   ]
+  },
+  {
+   "id": "15057174",
+   "bases": [
+    "1613000/LuLawInfoService"
+   ],
+   "ops": [
+    "DTluLawInfo"
+   ],
+   "code": 5,
+   "rows": [
+    {
+     "label": "1613000/LuLawInfoService/DTluLawInfo · 원본 · 202512",
+     "status": 200,
+     "gotValue": false,
+     "authFail": false,
+     "head": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><response><ERROR_CODE>11</ERROR_CODE><ERROR_MSG>NO_MANDATORY_REQUEST__PARAMETER_ERROR</ERROR_MSG></response>"
+    }
+   ]
+  },
+  {
+   "id": "15057263",
+   "bases": [
+    "1613000/ebGuideBookListService"
+   ],
+   "ops": [
+    "DTebGuideBookList"
+   ],
+   "code": 4,
+   "rows": [
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 403,
+     "gotValue": false,
+     "authFail": true,
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
     }
    ]
   }
