@@ -721,10 +721,10 @@
    "rows": [
     {
      "label": "*** · 원본 · 202412",
-     "status": 200,
+     "status": 503,
      "gotValue": false,
      "authFail": false,
-     "head": "{\"body\":{},\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE\"}}"
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
     },
     {
      "label": "*** · 원본 · 202412",
