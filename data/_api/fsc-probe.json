@@ -257,7 +257,7 @@
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "<response> <header> <resultCode>00</resultCode> <resultMsg>NORMAL_SERVICE</resultMsg> </header> <body> <items> <item> <pblancNm><![CDATA[2026년 하반기 산청군 단체관광객 유치 인센티브 지원 공고]]></pblancNm> <!-- 공고명 --> <pblancUrl>https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000126818</pb"
+     "head": "<response> <header> <resultCode>00</resultCode> <resultMsg>NORMAL_SERVICE</resultMsg> </header> <body> <items> <item> <pblancNm><![CDATA[[전북] 장수군 2026년 트레일 신산업 육성사업 기업활성화 지원 참여기업 모집 공고]]></pblancNm> <!-- 공고명 --> <pblancUrl>https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_00000"
     }
    ]
   },
@@ -902,18 +902,18 @@
      "head": "{\"body\":{},\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE\"}}"
     },
     {
-     "label": "*** · 원본 · 202512",
-     "status": 503,
+     "label": "*** · 원본 · 202412",
+     "status": 200,
      "gotValue": false,
      "authFail": false,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
+     "head": "{\"body\":{},\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE\"}}"
     },
     {
-     "label": "*** · 원본 · 202512",
-     "status": 503,
+     "label": "*** · 원본 · 202412",
+     "status": 200,
      "gotValue": false,
      "authFail": false,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
+     "head": "{\"body\":{},\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE\"}}"
     },
     {
      "label": "*** · 원본 · 202412",
