@@ -696,7 +696,7 @@
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL_CODE\"},\"body\":{\"items\":{\"item\":[{\"CRTR_YMD\":\"20260928\",\"SDNM\":\"경기도\",\"SGGNM\":\"평택시\",\"PRPT_ITEM_NM\":\"전\",\"SCFB_YR\":\"2025\",\"SCFB_MT\":\"09\",\"APSL_EVL_AMT\":9683643,\"DSPL_AMT\":1952000,\"SCFB_PRC_RTO\":20.16},{\"CRTR_YMD\":\"20260928\",\"SDNM\":\"경기도\",\"SGGNM\":\"평택시\",\"PRP"
+     "head": "{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL_CODE\"},\"body\":{\"items\":{\"item\":[{\"CRTR_YMD\":\"20260929\",\"SDNM\":\"경기도\",\"SGGNM\":\"김포시\",\"PRPT_ITEM_NM\":\"임야\",\"SCFB_YR\":\"2025\",\"SCFB_MT\":\"10\",\"APSL_EVL_AMT\":44000000,\"DSPL_AMT\":14100000,\"SCFB_PRC_RTO\":32.05},{\"CRTR_YMD\":\"20260929\",\"SDNM\":\"인천광역시\",\"SGGNM\":\"연수구\""
     }
    ]
   },
@@ -721,10 +721,10 @@
    "rows": [
     {
      "label": "*** · 원본 · 202412",
-     "status": 503,
+     "status": 200,
      "gotValue": false,
      "authFail": false,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
+     "head": "{\"body\":{},\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE\"}}"
     },
     {
      "label": "*** · 원본 · 202412",
@@ -881,39 +881,39 @@
    "code": 5,
    "rows": [
     {
-     "label": "*** · 원본 · 202506",
-     "status": 503,
+     "label": "*** · 원본 · 202412",
+     "status": 200,
      "gotValue": false,
      "authFail": false,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
+     "head": "{\"body\":{},\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE\"}}"
     },
     {
-     "label": "*** · 원본 · 202512",
-     "status": 503,
+     "label": "*** · 원본 · 202412",
+     "status": 200,
      "gotValue": false,
      "authFail": false,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
+     "head": "{\"body\":{},\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE\"}}"
     },
     {
-     "label": "*** · 원본 · 202512",
-     "status": 503,
+     "label": "*** · 원본 · 202412",
+     "status": 200,
      "gotValue": false,
      "authFail": false,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
+     "head": "{\"body\":{},\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE\"}}"
     },
     {
-     "label": "*** · 원본 · 202506",
-     "status": 503,
+     "label": "*** · 원본 · 202412",
+     "status": 200,
      "gotValue": false,
      "authFail": false,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
+     "head": "{\"body\":{},\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE\"}}"
     },
     {
-     "label": "*** · 원본 · 202512",
-     "status": 503,
+     "label": "*** · 원본 · 202412",
+     "status": 200,
      "gotValue": false,
      "authFail": false,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
+     "head": "{\"body\":{},\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE\"}}"
     },
     {
      "label": "*** · 원본 · 202412",
