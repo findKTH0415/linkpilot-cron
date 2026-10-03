@@ -101,7 +101,7 @@
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":330,\"items\":{\"item\":[{\"basYm\":\"202512\",\"bzds\":\"부동산전업신탁사\",\"tstCtg\":\"재산신탁 증권신탁\",\"kind\":\"-\",\"iqBs\":\"고객수\",\"val\":\"0\"},{\"basYm\":\"202512\",\"bzds\":\"부동산전업신탁사\",\"tstCtg\":\"재산신탁 금전채권신탁\",\"kind\":\"-\""
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":330,\"items\":{\"item\":[{\"basYm\":\"202512\",\"bzds\":\"합계\",\"tstCtg\":\"재산신탁 동산신탁\",\"kind\":\"-\",\"iqBs\":\"계약수\",\"val\":\"736\"},{\"basYm\":\"202512\",\"bzds\":\"합계\",\"tstCtg\":\"재산신탁 부동산관련권리\",\"kind\":\"-\",\"iqBs\":\""
     },
     {
      "label": "*** · 원본 · 202512",
@@ -696,7 +696,7 @@
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL_CODE\"},\"body\":{\"items\":{\"item\":[{\"CRTR_YMD\":\"20261002\",\"SDNM\":\"경상북도\",\"SGGNM\":\"경주시\",\"PRPT_ITEM_NM\":\"임야\",\"SCFB_YR\":\"2025\",\"SCFB_MT\":\"10\",\"APSL_EVL_AMT\":36221200,\"DSPL_AMT\":12250000,\"SCFB_PRC_RTO\":33.82},{\"CRTR_YMD\":\"20261002\",\"SDNM\":\"경상북도\",\"SGGNM\":\"경산시\""
+     "head": "{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL_CODE\"},\"body\":{\"items\":{\"item\":[{\"CRTR_YMD\":\"20261003\",\"SDNM\":\"전북특별자치도\",\"SGGNM\":\"부안군\",\"PRPT_ITEM_NM\":\"답\",\"SCFB_YR\":\"2025\",\"SCFB_MT\":\"10\",\"APSL_EVL_AMT\":16722220,\"DSPL_AMT\":3745000,\"SCFB_PRC_RTO\":22.4},{\"CRTR_YMD\":\"20261003\",\"SDNM\":\"전북특별자치도\",\"SGGNM\":\"완"
     }
    ]
   },
@@ -720,39 +720,39 @@
    "code": 5,
    "rows": [
     {
-     "label": "*** · 원본 · 202412",
-     "status": 200,
+     "label": "*** · 원본 · 202506",
+     "status": 503,
      "gotValue": false,
      "authFail": false,
-     "head": "{\"body\":{},\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE\"}}"
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
     },
     {
-     "label": "*** · 원본 · 202412",
-     "status": 200,
+     "label": "*** · 원본 · 202512",
+     "status": 503,
      "gotValue": false,
      "authFail": false,
-     "head": "{\"body\":{},\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE\"}}"
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
     },
     {
-     "label": "*** · 원본 · 202412",
-     "status": 200,
+     "label": "*** · 원본 · 202506",
+     "status": 503,
      "gotValue": false,
      "authFail": false,
-     "head": "{\"body\":{},\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE\"}}"
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
     },
     {
-     "label": "*** · 원본 · 202412",
-     "status": 200,
+     "label": "*** · 원본 · 202506",
+     "status": 503,
      "gotValue": false,
      "authFail": false,
-     "head": "{\"body\":{},\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE\"}}"
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
     },
     {
-     "label": "*** · 원본 · 202412",
-     "status": 200,
+     "label": "*** · 원본 · 202506",
+     "status": 503,
      "gotValue": false,
      "authFail": false,
-     "head": "{\"body\":{},\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE\"}}"
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
     },
     {
      "label": "*** · 원본 · 202412",
@@ -881,11 +881,11 @@
    "code": 5,
    "rows": [
     {
-     "label": "*** · 원본 · 202412",
-     "status": 200,
+     "label": "*** · 원본 · 202512",
+     "status": 503,
      "gotValue": false,
      "authFail": false,
-     "head": "{\"body\":{},\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE\"}}"
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
     },
     {
      "label": "*** · 원본 · 202412",
@@ -895,32 +895,32 @@
      "head": "{\"body\":{},\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE\"}}"
     },
     {
-     "label": "*** · 원본 · 202412",
-     "status": 200,
+     "label": "*** · 원본 · 202506",
+     "status": 503,
      "gotValue": false,
      "authFail": false,
-     "head": "{\"body\":{},\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE\"}}"
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
     },
     {
-     "label": "*** · 원본 · 202412",
-     "status": 200,
+     "label": "*** · 원본 · 202512",
+     "status": 503,
      "gotValue": false,
      "authFail": false,
-     "head": "{\"body\":{},\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE\"}}"
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
     },
     {
-     "label": "*** · 원본 · 202412",
-     "status": 200,
+     "label": "*** · 원본 · 202512",
+     "status": 503,
      "gotValue": false,
      "authFail": false,
-     "head": "{\"body\":{},\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE\"}}"
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
     },
     {
-     "label": "*** · 원본 · 202412",
-     "status": 200,
+     "label": "*** · 원본 · 202512",
+     "status": 503,
      "gotValue": false,
      "authFail": false,
-     "head": "{\"body\":{},\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE\"}}"
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
     }
    ]
   },
@@ -938,10 +938,9 @@
    "rows": [
     {
      "label": "1160100/service/GetCorpBasicInfoService_V2/getAffiliate_V2 · 원본 · 202512",
-     "status": 200,
-     "gotValue": true,
-     "authFail": false,
-     "head": "{\"response\":{\"body\":{\"items\":{\"item\":[{\"basDt\":\"20200509\",\"crno\":\"1101110000086\",\"afilCmpyNm\":\"롯데건설(주)\",\"afilCmpyCrno\":\"1101110014764\",\"lstgYn\":\"\"},{\"basDt\":\"20200509\",\"crno\":\"1101110000086\",\"afilCmpyNm\":\"(주)롯데푸드\",\"afilCmpyCrno\":\"1101110033722\",\"lstgYn\":\"\"},{\"basDt\":\"20200509\",\"crno\":\"1101110000086\""
+     "status": null,
+     "gotValue": false,
+     "authFail": false
     },
     {
      "label": "1160100/service/GetCorpBasicInfoService_V2/getConsSubsComp_V2 · 원본 · 202512",
