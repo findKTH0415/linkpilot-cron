@@ -101,42 +101,42 @@
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":330,\"items\":{\"item\":[{\"basYm\":\"202512\",\"bzds\":\"보험\",\"tstCtg\":\"금전신탁 특정금전신탁\",\"kind\":\"수시입출금\",\"iqBs\":\"계약수\",\"val\":\"8607\"},{\"basYm\":\"202512\",\"bzds\":\"보험\",\"tstCtg\":\"금전신탁 특정금전신탁\",\"kind\":\"자사주\","
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":330,\"items\":{\"item\":[{\"basYm\":\"202512\",\"bzds\":\"부동산전업신탁사\",\"tstCtg\":\"재산신탁 증권신탁\",\"kind\":\"-\",\"iqBs\":\"고객수\",\"val\":\"0\"},{\"basYm\":\"202512\",\"bzds\":\"부동산전업신탁사\",\"tstCtg\":\"재산신탁 금전채권신탁\",\"kind\":\"-\""
     },
     {
      "label": "*** · 원본 · 202512",
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":28712,\"items\":{\"item\":[{\"basDt\":\"20260923\",\"ctg\":\"혼합주식형\",\"tstMthdCtg\":\"공모\",\"nPptTotAmt\":\"6275318550160\"},{\"basDt\":\"20260923\",\"ctg\":\"혼합채권형\",\"tstMthdCtg\":\"공모\",\"nPptTotAmt\":\"33194781713"
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":28787,\"items\":{\"item\":[{\"basDt\":\"20260930\",\"ctg\":\"PEF\",\"tstMthdCtg\":\"사모\",\"nPptTotAmt\":\"3776705852226\"},{\"basDt\":\"20260930\",\"ctg\":\"혼합채권형\",\"tstMthdCtg\":\"공모\",\"nPptTotAmt\":\"3284248197824"
     },
     {
      "label": "*** · 원본 · 202512",
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":14460,\"items\":{\"item\":[{\"basDt\":\"20260923\",\"mngInvTgt\":\"MMF형\",\"invrCtg\":\"개인\",\"scrtCmpyCnt\":\"12\",\"actCnt\":\"2925063\",\"actBal\":\"4302216767764\"},{\"basDt\":\"20260923\",\"mngInvTgt\":\"합계\",\"inv"
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":14496,\"items\":{\"item\":[{\"basDt\":\"20260930\",\"mngInvTgt\":\"합계\",\"invrCtg\":\"개인\",\"scrtCmpyCnt\":\"0\",\"actCnt\":\"39985789\",\"actBal\":\"94556351450470\"},{\"basDt\":\"20260930\",\"mngInvTgt\":\"합계\",\"invr"
     },
     {
      "label": "*** · 원본 · 202512",
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":1192,\"items\":{\"item\":[{\"basDt\":\"20260923\",\"crdTrFingWhl\":\"32776433636815\",\"crdTrFingScrs\":\"25526956334162\",\"crdTrFingKosdaq\":\"7249477302653\",\"crdTrLndrWhl\":\"35863735596\",\"crdTrLndrSc"
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":1195,\"items\":{\"item\":[{\"basDt\":\"20260930\",\"crdTrFingWhl\":\"33390128913817\",\"crdTrFingScrs\":\"26057234413350\",\"crdTrFingKosdaq\":\"7332894500467\",\"crdTrLndrWhl\":\"37477175346\",\"crdTrLndrSc"
     },
     {
      "label": "*** · 원본 · 202512",
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":1205,\"items\":{\"item\":[{\"basDt\":\"20260923\",\"invrDpsgAmt\":\"101634868131273\",\"onbdDrvPrdTrRcAdvAmt\":\"41491162755751\",\"toCstRpchCndBndSlgBal\":\"111513447303125\",\"brkTrdUcolMny\":\"888130323"
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":1208,\"items\":{\"item\":[{\"basDt\":\"20260930\",\"invrDpsgAmt\":\"104664400150814\",\"onbdDrvPrdTrRcAdvAmt\":\"38359002470575\",\"toCstRpchCndBndSlgBal\":\"107442758445608\",\"brkTrdUcolMny\":\"110196707"
     },
     {
      "label": "*** · 원본 · 202512",
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":1176,\"items\":{\"item\":[{\"basDt\":\"202607\",\"ctgDlbDls\":\"원금비보장형\",\"ctgPrplcPsub\":\"사모\",\"presCtg\":\"상환현황\",\"amt\":\"387334000000\",\"ccnt\":\"46\"},{\"basDt\":\"202607\",\"ctgDlbDls\":\"원금보장형\",\"ctgPrplcPsu"
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":1197,\"items\":{\"item\":[{\"basDt\":\"202608\",\"ctgDlbDls\":\"합계\",\"ctgPrplcPsub\":\"사모\",\"presCtg\":\"상환현황\",\"amt\":\"1379463509900\",\"ccnt\":\"132\"},{\"basDt\":\"202608\",\"ctgDlbDls\":\"합계\",\"ctgPrplcPsub\":\"사"
     }
    ]
   },
@@ -257,7 +257,7 @@
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "<response> <header> <resultCode>00</resultCode> <resultMsg>NORMAL_SERVICE</resultMsg> </header> <body> <items> <item> <pblancNm><![CDATA[[전북] 장수군 2026년 트레일 신산업 육성사업 기업활성화 지원 참여기업 모집 공고]]></pblancNm> <!-- 공고명 --> <pblancUrl>https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_00000"
+     "head": "<response> <header> <resultCode>00</resultCode> <resultMsg>NORMAL_SERVICE</resultMsg> </header> <body> <items> <item> <pblancNm><![CDATA[2026년 문화체육관광형 예비사회적기업 지정 계획 공고]]></pblancNm> <!-- 공고명 --> <pblancUrl>https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000126975</pblan"
     }
    ]
   },
@@ -696,7 +696,7 @@
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL_CODE\"},\"body\":{\"items\":{\"item\":[{\"CRTR_YMD\":\"20260929\",\"SDNM\":\"경기도\",\"SGGNM\":\"김포시\",\"PRPT_ITEM_NM\":\"임야\",\"SCFB_YR\":\"2025\",\"SCFB_MT\":\"10\",\"APSL_EVL_AMT\":44000000,\"DSPL_AMT\":14100000,\"SCFB_PRC_RTO\":32.05},{\"CRTR_YMD\":\"20260929\",\"SDNM\":\"인천광역시\",\"SGGNM\":\"연수구\""
+     "head": "{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL_CODE\"},\"body\":{\"items\":{\"item\":[{\"CRTR_YMD\":\"20261002\",\"SDNM\":\"경상북도\",\"SGGNM\":\"경주시\",\"PRPT_ITEM_NM\":\"임야\",\"SCFB_YR\":\"2025\",\"SCFB_MT\":\"10\",\"APSL_EVL_AMT\":36221200,\"DSPL_AMT\":12250000,\"SCFB_PRC_RTO\":33.82},{\"CRTR_YMD\":\"20261002\",\"SDNM\":\"경상북도\",\"SGGNM\":\"경산시\""
     }
    ]
   },
