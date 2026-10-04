@@ -720,6 +720,20 @@
    "code": 5,
    "rows": [
     {
+     "label": "*** · 원본 · 202412",
+     "status": 503,
+     "gotValue": false,
+     "authFail": false,
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
+    },
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 503,
+     "gotValue": false,
+     "authFail": false,
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
+    },
+    {
      "label": "*** · 원본 · 202506",
      "status": 503,
      "gotValue": false,
@@ -741,25 +755,11 @@
      "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
     },
     {
-     "label": "*** · 원본 · 202506",
+     "label": "*** · 원본 · 202512",
      "status": 503,
      "gotValue": false,
      "authFail": false,
      "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
-    },
-    {
-     "label": "*** · 원본 · 202506",
-     "status": 503,
-     "gotValue": false,
-     "authFail": false,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
-    },
-    {
-     "label": "*** · 원본 · 202412",
-     "status": 200,
-     "gotValue": false,
-     "authFail": false,
-     "head": "{\"body\":{},\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE\"}}"
     }
    ]
   },
@@ -881,20 +881,6 @@
    "code": 5,
    "rows": [
     {
-     "label": "*** · 원본 · 202512",
-     "status": 503,
-     "gotValue": false,
-     "authFail": false,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
-    },
-    {
-     "label": "*** · 원본 · 202412",
-     "status": 200,
-     "gotValue": false,
-     "authFail": false,
-     "head": "{\"body\":{},\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE\"}}"
-    },
-    {
      "label": "*** · 원본 · 202506",
      "status": 503,
      "gotValue": false,
@@ -916,7 +902,21 @@
      "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
     },
     {
-     "label": "*** · 원본 · 202512",
+     "label": "*** · 원본 · 202412",
+     "status": 200,
+     "gotValue": false,
+     "authFail": false,
+     "head": "{\"body\":{},\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE\"}}"
+    },
+    {
+     "label": "*** · 원본 · 202506",
+     "status": 503,
+     "gotValue": false,
+     "authFail": false,
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
+    },
+    {
+     "label": "*** · 원본 · 202506",
      "status": 503,
      "gotValue": false,
      "authFail": false,
@@ -938,9 +938,10 @@
    "rows": [
     {
      "label": "1160100/service/GetCorpBasicInfoService_V2/getAffiliate_V2 · 원본 · 202512",
-     "status": null,
-     "gotValue": false,
-     "authFail": false
+     "status": 200,
+     "gotValue": true,
+     "authFail": false,
+     "head": "{\"response\":{\"body\":{\"items\":{\"item\":[{\"basDt\":\"20200509\",\"crno\":\"1101110000086\",\"afilCmpyNm\":\"롯데건설(주)\",\"afilCmpyCrno\":\"1101110014764\",\"lstgYn\":\"\"},{\"basDt\":\"20200509\",\"crno\":\"1101110000086\",\"afilCmpyNm\":\"(주)롯데푸드\",\"afilCmpyCrno\":\"1101110033722\",\"lstgYn\":\"\"},{\"basDt\":\"20200509\",\"crno\":\"1101110000086\""
     },
     {
      "label": "1160100/service/GetCorpBasicInfoService_V2/getConsSubsComp_V2 · 원본 · 202512",
