@@ -56,6 +56,8 @@ jobs:
           MOLIT_LUR_LAW_KEY: ${{ secrets.MOLIT_LUR_LAW_KEY }}
           MSS_SME_SPA_API:   ${{ secrets.MSS_SME_SPA_API }}
           PERSONAL_API_KEY:  ${{ secrets.PERSONAL_API_KEY }}
+          KPX_SMP_DEMAND_FORECAST: ${{ secrets.KPX_SMP_DEMAND_FORECAST }}
+          KPX_POWER_SUPPLY_DEMAND_FORECAST_GW: ${{ secrets.KPX_POWER_SUPPLY_DEMAND_FORECAST_GW }}
           DART_API_KEY:      ${{ secrets.DART_API_KEY }}
           REB_API_KEY:       ${{ secrets.REB_API_KEY }}
           KOSIS_API_KEY:     ${{ secrets.KOSIS_API_KEY }}
@@ -105,6 +107,8 @@ jobs:
           MOLIT_LUR_LAW_KEY: ${{ secrets.MOLIT_LUR_LAW_KEY }}
           MSS_SME_SPA_API:   ${{ secrets.MSS_SME_SPA_API }}
           PERSONAL_API_KEY:  ${{ secrets.PERSONAL_API_KEY }}
+          KPX_SMP_DEMAND_FORECAST: ${{ secrets.KPX_SMP_DEMAND_FORECAST }}
+          KPX_POWER_SUPPLY_DEMAND_FORECAST_GW: ${{ secrets.KPX_POWER_SUPPLY_DEMAND_FORECAST_GW }}
           DART_API_KEY:      ${{ secrets.DART_API_KEY }}
           REB_API_KEY:       ${{ secrets.REB_API_KEY }}
           KOSIS_API_KEY:     ${{ secrets.KOSIS_API_KEY }}
@@ -183,6 +187,8 @@ jobs:
           MOLIT_LUR_LAW_KEY: ${{ secrets.MOLIT_LUR_LAW_KEY }}
           MSS_SME_SPA_API:  ${{ secrets.MSS_SME_SPA_API }}
           PERSONAL_API_KEY: ${{ secrets.PERSONAL_API_KEY }}
+          KPX_SMP_DEMAND_FORECAST: ${{ secrets.KPX_SMP_DEMAND_FORECAST }}
+          KPX_POWER_SUPPLY_DEMAND_FORECAST_GW: ${{ secrets.KPX_POWER_SUPPLY_DEMAND_FORECAST_GW }}
           DATA_GO_KR_KEY:   ${{ secrets.DATA_GO_KR_KEY }}
           APIS_DATA:        ${{ secrets.APIS_DATA }}
           SPECIAL_DAY_INFO: ${{ secrets.SPECIAL_DAY_INFO }}

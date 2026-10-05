@@ -39,10 +39,10 @@ for (const months of [1, 3]) {
 P('');
 
 /* ② SMP — 포털에서 서비스를 찾는다 (번호를 지어내지 않는다) */
-const key = pick(['PERSONAL_API_KEY', 'DATA_GO_KR_KEY', 'APIS_DATA', 'SPECIAL_DAY_INFO']);
+const key = pick(['KPX_SMP_DEMAND_FORECAST', 'PERSONAL_API_KEY', 'DATA_GO_KR_KEY', 'APIS_DATA', 'SPECIAL_DAY_INFO']);
 P(`- 포털 열쇠: ${key ? `\`${key.name}\` (길이 ${key.value.length})` : '**없다**'}`);
 const svcs = [];
-for (const [kw, word] of [['한국전력거래소 계통한계가격', '계통한계가격'], ['한국전력거래소 SMP', 'SMP'], ['전력거래소 계통한계가격', '계통한계']]) {
+for (const [kw, word] of [['한국전력거래소 계통한계가격', '계통한계가격'], ['한국전력거래소 SMP', 'SMP'], ['전력거래소 계통한계가격', '계통한계'], ['한국전력거래소 SMP 수요예측', 'SMP'], ['전력거래소 수요예측', '수요예측']]) {
   try {
     const r = await fetch('https://www.data.go.kr/tcs/dss/selectDataSetList.do?dType=API&keyword=' + encodeURIComponent(kw), { signal: AbortSignal.timeout(15000) });
     const hits = searchHits(await r.text(), word);
@@ -77,6 +77,40 @@ for (const s of svcs.slice(0, 5)) {
       result.smp.push({ svc: s.id, op: t, day, status: st, head: redact(body.slice(0, 4000)) });
       if (ok) { smpOk = true; break; }
     }
+  }
+}
+/* ②-2 전력수급예보 〈2026-10-05 · D-420 · 사장님이 KPX_POWER_SUPPLY_DEMAND_FORECAST_GW 를 넣으셨다〉 —
+   SMP 와 같은 방식(포털 검색 → 안내 페이지 → 그대로 부른다). 판정에는 안 섞는다 — 받았는지만 적는다. */
+const key2 = pick(['KPX_POWER_SUPPLY_DEMAND_FORECAST_GW', 'PERSONAL_API_KEY', 'DATA_GO_KR_KEY', 'APIS_DATA', 'SPECIAL_DAY_INFO']);
+P('');
+P(`## 전력수급예보 — 열쇠 ${key2 ? `\`${key2.name}\` (길이 ${key2.value.length})` : '**없다**'}`);
+result.supply = [];
+const svcs2 = [];
+for (const [kw, word] of [['한국전력거래소 전력수급예보', '수급예보'], ['전력거래소 전력수급예보조회', '수급']]) {
+  try {
+    const r = await fetch('https://www.data.go.kr/tcs/dss/selectDataSetList.do?dType=API&keyword=' + encodeURIComponent(kw), { signal: AbortSignal.timeout(15000) });
+    const hits = searchHits(await r.text(), word);
+    P(`- 포털 검색 «${kw}» — HTTP ${r.status} · ${hits.length ? hits.map((h) => `${h.id} ${h.name}`).join(' · ') : '못 뽑았다'}`);
+    for (const h of hits) if (!svcs2.some((x) => x.id === h.id)) svcs2.push(h);
+  } catch (e) { P(`- 포털 검색 «${kw}» — 못 닿음 (${redact(String(e && e.message || e))})`); }
+}
+for (const s of svcs2.slice(0, 3)) {
+  let html = '';
+  try { html = await (await fetch(`https://www.data.go.kr/data/${s.id}/openapi.do`, { signal: AbortSignal.timeout(15000) })).text(); } catch (_) {}
+  const d = discover(html);
+  P(`### ${s.name} (${s.id})`);
+  P(`- 서비스 ${d.bases.join(' · ') || '못 읽었다'} · 오퍼레이션 ${d.ops.join(' · ') || '못 읽었다'} · 필수 인자 ${d.required.join(' · ') || '(못 읽었다/없음)'}`);
+  if (!key2) continue;
+  const targets = [...new Set([...d.full, ...d.bases.flatMap((b) => d.ops.map((o) => `${b}/${o}`))])].slice(0, 4);
+  for (const t of targets) {
+    const dateArgs = d.required.filter((n) => /(dd|day|date|ymd|dt)$/i.test(n));
+    const q = new URLSearchParams({ pageNo: '1', numOfRows: '50', dataType: 'JSON', _type: 'json' });
+    for (const n of dateArgs) q.set(n, days[0]);
+    let body = '', st = null;
+    try { const r = await fetch(`https://apis.data.go.kr/${t}?serviceKey=${encodeURIComponent(key2.value)}&${q}`, { signal: AbortSignal.timeout(20000) }); st = r.status; body = await r.text(); } catch (e) { body = String(e && e.message || e); }
+    P(`- \`${t}\` — HTTP ${st} · ${body.length}자`);
+    P(`  - 앞머리 «${redact(body.slice(0, 600).replace(/\s+/g, ' '))}»`);
+    result.supply.push({ svc: s.id, op: t, status: st, head: redact(body.slice(0, 2000)) });
   }
 }
 /* ③ SMP — 공개 화면(열쇠 없음)에서 읽는다. 위 API 는 활용신청 전이라 막혔다(등록되지 않은 서비스키).

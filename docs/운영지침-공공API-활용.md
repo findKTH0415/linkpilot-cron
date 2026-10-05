@@ -150,6 +150,8 @@ SSH 개인키·NAS 접속정보·터널 인증키는 유출 시 **서버 접근�
 | `KOICA_PROJ_SC` | **공공데이터포털 한국국제협력단** — 사업정보(분야·국가) 조회 〈2026-09-28 사장님 목록 · D-380〉. 서비스 번호는 진단이 포털 검색으로 찾는다 | (진단 뒤 채운다) | `serviceKey` | ○ |
 | `MOLIT_LUR_LAW_KEY` | **공공데이터포털 국토교통부** — 토지이용규제 법령정보 〈2026-09-29 사장님이 넣으셨다 · D-382〉. 서비스 번호는 진단이 포털 검색으로 찾는다 | (진단 뒤 채운다) | `serviceKey` | ○ |
 | `PERSONAL_API_KEY` | **공공데이터포털 개인 인증키** 〈2026-09-27 사장님이 넣으셨다 · D-357〉 — 계정당 하나이고 승인만 서비스별이다(§4.2). `DATA_GO_KR_KEY` 와 같은 값일 수 있다 — 진단이 값 없이 견준다 | `apis.data.go.kr` | `serviceKey` | ○ |
+| `KPX_POWER_SUPPLY_DEMAND_FORECAST_GW` | **공공데이터포털 한국전력거래소** — 전력수급예보조회(GW) 〈2026-10-05 사장님이 넣으셨다 · D-420〉. 서비스 번호는 진단이 포털 검색으로 찾는다 | `apis.data.go.kr` | `serviceKey` | ○ |
+| `KPX_SMP_DEMAND_FORECAST` | **공공데이터포털 한국전력거래소** — SMP(계통한계가격)·수요예측 〈2026-10-05 사장님이 넣으셨다 · D-420〉. 서비스 번호는 진단이 포털 검색으로 찾는다 | `apis.data.go.kr` | `serviceKey` | ○ |
 | `MSS_SME_SPA_API` | **공공데이터포털 중소벤처기업부** — 중소기업 지원사업 공고 조회(기업마당 자료) 〈2026-09-27 사장님이 넣으셨다 · D-357〉. 서비스 번호는 진단이 포털 검색으로 찾는다 | `apis.data.go.kr` | `serviceKey` | ○ |
 | `KEPCO_BIGDATA_KEY` | 한국전력 빅데이터 | `bigdata.kepco.co.kr/openapi` | `apiKey` | ○ |
 | `VWORLD_KEY` | 국토부 V-World | `api.vworld.kr/req` | `key` (+ `domain`) | ○ |
