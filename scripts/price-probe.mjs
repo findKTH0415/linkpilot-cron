@@ -79,6 +79,22 @@ for (const s of svcs.slice(0, 5)) {
     }
   }
 }
+/* ③ SMP — 공개 화면(열쇠 없음)에서 읽는다. 위 API 는 활용신청 전이라 막혔다(등록되지 않은 서비스키).
+   주소는 전력거래소·EPSIS 의 공개 화면이고, 숫자는 «SMP» 낱말 둘레에서만 줍는다 — 지어내지 않는다.
+   무엇을 받았는지 둘레 글을 그대로 남겨, 값을 쓸지는 사람이 본다. */
+result.smpPublic = [];
+for (const u of ['https://www.kpx.or.kr/', 'https://new.kpx.or.kr/', 'https://epsis.kpx.or.kr/epsisnew/selectEkmaSmpShdChart.do?menuId=040201', 'https://epsis.kpx.or.kr/epsisnew/selectEkmaSmpSmpChart.do?menuId=040202', 'https://epsis.kpx.or.kr/epsisnew/selectEkmaSmpSmpGrid.do?menuId=040202']) {
+  try {
+    const r = await fetch(u, { signal: AbortSignal.timeout(20000), headers: { 'User-Agent': 'Mozilla/5.0' } });
+    const t = (await r.text()).replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ');
+    const snips = [];
+    let i = t.search(/SMP|계통한계가격/);
+    while (i >= 0 && snips.length < 4) { snips.push(t.slice(Math.max(0, i - 80), i + 220)); const n = t.slice(i + 3).search(/SMP|계통한계가격/); i = n < 0 ? -1 : i + 3 + n; }
+    P(`- 공개 화면 ${u} — HTTP ${r.status} · ${t.length}자`);
+    for (const x of snips) P(`  - 둘레 «${redact(x)}»`);
+    result.smpPublic.push({ url: u, status: r.status, snips });
+  } catch (e) { P(`- 공개 화면 ${u} — 못 닿음 (${redact(String(e && e.message || e))})`); }
+}
 codes.push(smpOk ? 0 : 5);
 await writeFile(`${OUT}/price-probe.json`, redact(JSON.stringify(result, null, 1)));
 const code = Math.max(...codes);
