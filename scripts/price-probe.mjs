@@ -79,6 +79,35 @@ for (const s of svcs.slice(0, 5)) {
     }
   }
 }
+/* ②-1 SMP 평균 — 판정 0 이 나온 서비스(15131225)에서 육지 시간별 SMP 를 받아 «최근 1개월»·«마지막 날» 평균을 낸다.
+   정렬은 믿지 않고 날짜로 직접 거른다 (§4.4). 기초값은 이 숫자·기간·표본 수로만 적는다 — 지어내지 않는다. */
+if (smpOk && key) {
+  const rows = [];
+  for (let pg = 1; pg <= 3; pg++) {
+    const q = new URLSearchParams({ pageNo: String(pg), numOfRows: '1000', dataType: 'JSON' });
+    try {
+      const r = await fetch(`https://apis.data.go.kr/B552115/SmpWithForecastDemand/getSmpWithForecastDemand?serviceKey=${encodeURIComponent(key.value)}&${q}`, { signal: AbortSignal.timeout(30000) });
+      const j = await r.json();
+      let it = j && j.response && j.response.body && j.response.body.items && j.response.body.items.item;
+      if (it && !Array.isArray(it)) it = [it];
+      if (!it || !it.length) break;
+      rows.push(...it);
+    } catch (e) { P(`- SMP 평균용 ${pg}쪽 — 못 받았다 (${redact(String(e && e.message || e))})`); break; }
+  }
+  const land = rows.filter((x) => x && /육지/.test(String(x.areaName || '')) && Number.isFinite(+x.smp) && +x.smp > 0 && /^\d{8}$/.test(String(x.date)));
+  const dates = [...new Set(land.map((x) => String(x.date)))].sort();
+  if (dates.length) {
+    const last = dates[dates.length - 1];
+    const lt = new Date(`${last.slice(0, 4)}-${last.slice(4, 6)}-${last.slice(6, 8)}T00:00:00Z`);
+    const from = new Date(lt.getTime() - 29 * 86400e3).toISOString().slice(0, 10).replace(/-/g, '');
+    const avg = (a) => Math.round(a.reduce((t, x) => t + (+x.smp), 0) / a.length * 100) / 100;
+    const m1 = land.filter((x) => String(x.date) >= from);
+    const d1 = land.filter((x) => String(x.date) === last);
+    result.smpAvg = { area: '육지', from: [...new Set(m1.map((x) => String(x.date)))].sort()[0], to: last, days: new Set(m1.map((x) => String(x.date))).size, hours: m1.length, avg1m: avg(m1), lastDay: last, lastDayAvg: avg(d1), lastDayHours: d1.length, source: '한국전력거래소 계통한계가격 및 수요예측(하루전 발전계획용) · data.go.kr 15131225' };
+    const v = result.smpAvg;
+    P(`- SMP 육지 최근 1개월 — 평균 **${v.avg1m}원/kWh** · 기간 ${v.from}~${v.to} · ${v.days}일 ${v.hours}시간 · 마지막 날 ${v.lastDay} 평균 ${v.lastDayAvg}원/kWh (${v.lastDayHours}시간)`);
+  } else P('- SMP 평균 — 육지 시간별 값을 못 뽑았다');
+}
 /* ②-2 전력수급예보 〈2026-10-05 · D-420 · 사장님이 KPX_POWER_SUPPLY_DEMAND_FORECAST_GW 를 넣으셨다〉 —
    SMP 와 같은 방식(포털 검색 → 안내 페이지 → 그대로 부른다). 판정에는 안 섞는다 — 받았는지만 적는다. */
 const key2 = pick(['KPX_POWER_SUPPLY_DEMAND_FORECAST_GW', 'PERSONAL_API_KEY', 'DATA_GO_KR_KEY', 'APIS_DATA', 'SPECIAL_DAY_INFO']);
