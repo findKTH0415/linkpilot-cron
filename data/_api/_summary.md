@@ -1,8 +1,8 @@
 # 공공 API 실측 진단
 
-**잰 시각** 2026. 10. 5. 11시 47분 10초 · **잰 곳** GitHub Actions (열쇠가 있는 자리)
+**잰 시각** 2026. 10. 5. 12시 7분 44초 · **잰 곳** GitHub Actions (열쇠가 있는 자리)
 
-**9개 항목 중 5개 살아 있음 · 4개 실패**
+**6개 항목 중 4개 살아 있음 · 2개 실패**
 
 > 이 파일은 `npm run im:smoke` 를 **키가 있는 자리에서 돌린 결과**입니다.
 > 키는 한 글자도 담기지 않습니다 — 쓰기 전에 기계가 세고, 걸리면 안 씁니다.
@@ -23,6 +23,8 @@
 | `FSC_AMC_API` | 금융위원회 금융통계 | 자산운용사 — 아직 커넥터에 안 붙였다 (scripts/fsc-probe.mjs) | — **없음** |
 | `FSC_IAF_API` | 금융위원회 금융통계 | 투자자문사 — 아직 커넥터에 안 붙였다 (scripts/fsc-probe.mjs) | — **없음** |
 | `PERSONAL_API_KEY` | 공공데이터포털 | 개인 인증키 — 진단(scripts/fsc-probe.mjs)이 먼저 쓴다 · 기존 포털 열쇠와 같은 값인지 적는다 | — **없음** |
+| `KPX_POWER_SUPPLY_DEMAND_FORECAST_GW` | 공공데이터포털 한국전력거래소 | 전력수급예보조회 — 진단(scripts/price-probe.mjs)이 먼저 쓴다 · 아직 커넥터에 안 붙였다 | — **없음** |
+| `KPX_SMP_DEMAND_FORECAST` | 공공데이터포털 한국전력거래소 | SMP·수요예측 — 진단(scripts/price-probe.mjs)이 먼저 쓴다 · 아직 커넥터에 안 붙였다 | — **없음** |
 | `MSS_SME_SPA_API` | 중소벤처기업부 | 중소기업 지원사업 공고 — 아직 커넥터에 안 붙였다 (scripts/fsc-probe.mjs) | — **없음** |
 | `FSC_DOMESTIC_BANK_API` | 금융위원회 금융통계 | 국내은행 — 아직 커넥터에 안 붙였다 (scripts/fsc-probe.mjs) | — **없음** |
 | `FSC_SAVINGS_BANK_API` | 금융위원회 금융통계 | 저축은행 — 아직 커넥터에 안 붙였다 (scripts/fsc-probe.mjs) | — **없음** |
@@ -44,7 +46,7 @@
 | `NCP_MAPS_CLIENT_ID` 또는 `NAVER_MAPS_CLIENT_ID` 또는 `NAVER_MAP_CLIENT_ID` 또는 `NAVER_CLIENT_ID` | 네이버 클라우드 Maps | Client ID — 규격 미측정 (진단 D-314) | — **없음** |
 | `NCP_MAPS_CLIENT_SECRET` 또는 `NAVER_MAPS_CLIENT_SECRET` 또는 `NAVER_MAP_CLIENT_SECRET` 또는 `NAVER_CLIENT_SECRET` | 네이버 클라우드 Maps | Client Secret — 위의 짝 | — **없음** |
 
-★ **16개가 안 들어왔습니다.** Secrets 에 없거나 **이름이 다릅니다** —
+★ **18개가 안 들어왔습니다.** Secrets 에 없거나 **이름이 다릅니다** —
 이름이 다르면 아무 오류 없이 조용히 죽습니다 (지침서 §9 첫 줄).
 
 ## 2. 실제로 불러 본 결과
@@ -55,11 +57,8 @@
 | 한국은행 ECOS 생산자물가 업종목록 (404Y014) | ✅ 살아 있음 | — | — |
 | 통계청 KOSIS 통계표 검색 (가동률) | ✅ 살아 있음 | — | — |
 | DART 시행사 대조 (삼성물산) | ✕ 응답 없음 | 타임아웃 60000ms (4회 시도 실패) | 서버가 안 받았습니다 — 일시적일 수 있습니다 |
-| VWorld 지오코딩 | ✕ 실패 | 지오코딩 실패 — ROAD: HTTP 502 (4회 시도 실패) / PARCEL: fetch failed ( | 아래 진단 원문을 보십시오 |
+| VWorld 지오코딩 | ✕ 실패 | 지오코딩 실패 — ROAD: fetch failed (4회 시도 실패) / PARCEL: HTTP 502 ( | 아래 진단 원문을 보십시오 |
 | REC 현물시장 (전력거래소) | ✅ 살아 있음 | — | — |
-| 지가지수 (부동산원) | ✅ 살아 있음 | — | — |
-| 기업기본정보 (금융위) | ✕ 실패 | '롯데케미칼' 으로 등록된 법인을 찾지 못했다 | 아래 진단 원문을 보십시오 |
-| 공사 낙찰 (조달청) | ✕ 실패 | 조회는 됐지만 조건에 맞는 낙찰 건이 없다 (기간 20251005~20261005 · 지역 인천 · 10억  | 아래 진단 원문을 보십시오 |
 
 ## 3. 이 파일을 어떻게 읽나
 

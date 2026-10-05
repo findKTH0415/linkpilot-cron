@@ -840,17 +840,17 @@
    "rows": [
     {
      "label": "odcloud POST /validate · 빈 몸통",
-     "status": 503,
+     "status": 411,
      "gotValue": false,
      "authFail": false,
-     "head": "{\"code\":-5,\"msg\":\"API 서버 오류가 발생하였습니다.\"}"
+     "head": "{\"status_code\":\"REQUEST_DATA_MALFORMED\"}"
     },
     {
      "label": "odcloud POST /status · 빈 몸통",
-     "status": 503,
+     "status": 411,
      "gotValue": false,
      "authFail": false,
-     "head": "{\"code\":-5,\"msg\":\"API 서버 오류가 발생하였습니다.\"}"
+     "head": "{\"status_code\":\"REQUEST_DATA_MALFORMED\"}"
     }
    ]
   },
@@ -952,9 +952,10 @@
     },
     {
      "label": "1160100/service/GetCorpBasicInfoService_V2/getCorpOutline_V2 · 원본 · 202512",
-     "status": null,
-     "gotValue": false,
-     "authFail": false
+     "status": 200,
+     "gotValue": true,
+     "authFail": false,
+     "head": "{\"response\":{\"body\":{\"items\":{\"item\":[{\"crno\":\"0000000000000\",\"corpNm\":\"SAMPO FUND MANAGEMENT LTD/MANDATUM EMERGING\",\"corpEnsnNm\":\"SAMPO FUND MANAGEMENT LTD/MANDATUM EMERGING\",\"enpPbanCmpyNm\":\"SAMPOFUNDMANAGEMENTLTD/MANDATUMEMERGING\",\"enpRprFnm\":\"KIMMO LAAKSONEN\",\"corpRegMrktDcd\":\"E\",\"corpRegMrktDcd"
     }
    ]
   },
