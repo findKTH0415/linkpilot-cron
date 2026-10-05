@@ -56,6 +56,8 @@ jobs:
           MOLIT_LUR_LAW_KEY: ${{ secrets.MOLIT_LUR_LAW_KEY }}
           MSS_SME_SPA_API:   ${{ secrets.MSS_SME_SPA_API }}
           PERSONAL_API_KEY:  ${{ secrets.PERSONAL_API_KEY }}
+          KPX_SMP_DEMAND_FORECAST: ${{ secrets.KPX_SMP_DEMAND_FORECAST }}
+          KPX_POWER_SUPPLY_DEMAND_FORECAST_GW: ${{ secrets.KPX_POWER_SUPPLY_DEMAND_FORECAST_GW }}
           DART_API_KEY:      ${{ secrets.DART_API_KEY }}
           REB_API_KEY:       ${{ secrets.REB_API_KEY }}
           KOSIS_API_KEY:     ${{ secrets.KOSIS_API_KEY }}
@@ -105,6 +107,8 @@ jobs:
           MOLIT_LUR_LAW_KEY: ${{ secrets.MOLIT_LUR_LAW_KEY }}
           MSS_SME_SPA_API:   ${{ secrets.MSS_SME_SPA_API }}
           PERSONAL_API_KEY:  ${{ secrets.PERSONAL_API_KEY }}
+          KPX_SMP_DEMAND_FORECAST: ${{ secrets.KPX_SMP_DEMAND_FORECAST }}
+          KPX_POWER_SUPPLY_DEMAND_FORECAST_GW: ${{ secrets.KPX_POWER_SUPPLY_DEMAND_FORECAST_GW }}
           DART_API_KEY:      ${{ secrets.DART_API_KEY }}
           REB_API_KEY:       ${{ secrets.REB_API_KEY }}
           KOSIS_API_KEY:     ${{ secrets.KOSIS_API_KEY }}
@@ -183,6 +187,8 @@ jobs:
           MOLIT_LUR_LAW_KEY: ${{ secrets.MOLIT_LUR_LAW_KEY }}
           MSS_SME_SPA_API:  ${{ secrets.MSS_SME_SPA_API }}
           PERSONAL_API_KEY: ${{ secrets.PERSONAL_API_KEY }}
+          KPX_SMP_DEMAND_FORECAST: ${{ secrets.KPX_SMP_DEMAND_FORECAST }}
+          KPX_POWER_SUPPLY_DEMAND_FORECAST_GW: ${{ secrets.KPX_POWER_SUPPLY_DEMAND_FORECAST_GW }}
           DATA_GO_KR_KEY:   ${{ secrets.DATA_GO_KR_KEY }}
           APIS_DATA:        ${{ secrets.APIS_DATA }}
           SPECIAL_DAY_INFO: ${{ secrets.SPECIAL_DAY_INFO }}
@@ -197,6 +203,11 @@ jobs:
             grep -E '^## |칸 이름' data/_api/fsc-probe.md || echo '(칸 이름 줄을 못 읽었다)'
           } >> "$GITHUB_STEP_SUMMARY"
           grep -E '^## |칸 이름' data/_api/fsc-probe.md || true
+          # ★ 2026-10-05 — 전력 판매 단가(SMP · REC) 실측. 태양광 가정값의 기초값을 지어내지 않으려고
+          #   값·출처·기준일을 받는다. 시세는 공개 자료라 값을 싣는다 — 열쇠는 안 싣는다 (§2).
+          node scripts/price-probe.mjs || true
+          { echo ''; echo '### 전력 판매 단가 (SMP · REC)'; cat data/_api/price-probe.md 2>/dev/null | head -60 || echo '(못 읽었다)'; } >> "$GITHUB_STEP_SUMMARY"
+          cat data/_api/price-probe.md 2>/dev/null || true
 
       # ★★★ 네이버 클라우드 Maps — **진단** 〈2026-09-25 · D-314〉.
       #   사장님이 Client ID · Secret 을 넣으셨는데 **넣으신 이름**과 **호스트(옛·새)** 를

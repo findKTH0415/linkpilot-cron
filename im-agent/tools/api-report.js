@@ -66,6 +66,8 @@ const KEYS = [
   ['FSC_AMC_API', '금융위원회 금융통계', '자산운용사 — 아직 커넥터에 안 붙였다 (scripts/fsc-probe.mjs)'],
   ['FSC_IAF_API', '금융위원회 금융통계', '투자자문사 — 아직 커넥터에 안 붙였다 (scripts/fsc-probe.mjs)'],
   ['PERSONAL_API_KEY', '공공데이터포털', '개인 인증키 — 진단(scripts/fsc-probe.mjs)이 먼저 쓴다 · 기존 포털 열쇠와 같은 값인지 적는다'],
+  ['KPX_POWER_SUPPLY_DEMAND_FORECAST_GW', '공공데이터포털 한국전력거래소', '전력수급예보조회 — 진단(scripts/price-probe.mjs)이 먼저 쓴다 · 아직 커넥터에 안 붙였다'],
+  ['KPX_SMP_DEMAND_FORECAST', '공공데이터포털 한국전력거래소', 'SMP·수요예측 — 진단(scripts/price-probe.mjs)이 먼저 쓴다 · 아직 커넥터에 안 붙였다'],
   ['MSS_SME_SPA_API', '중소벤처기업부', '중소기업 지원사업 공고 — 아직 커넥터에 안 붙였다 (scripts/fsc-probe.mjs)'],
   ['FSC_DOMESTIC_BANK_API', '금융위원회 금융통계', '국내은행 — 아직 커넥터에 안 붙였다 (scripts/fsc-probe.mjs)'],
   ['FSC_SAVINGS_BANK_API', '금융위원회 금융통계', '저축은행 — 아직 커넥터에 안 붙였다 (scripts/fsc-probe.mjs)'],

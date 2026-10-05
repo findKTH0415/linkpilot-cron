@@ -208,6 +208,8 @@ const SECRET_ENV = [
   'MOLIT_LUR_LAW_KEY', // ★ 국토교통부 토지이용규제법령정보 〈2026-09-29 · D-382〉
   'MSS_SME_SPA_API', // ★ 중소벤처기업부 중소기업 지원사업 공고 〈2026-09-27 · D-357〉
   'PERSONAL_API_KEY', // ★ 공공데이터포털 개인 인증키 〈2026-09-27 · D-357〉
+  'KPX_POWER_SUPPLY_DEMAND_FORECAST_GW', // ★ 전력거래소 전력수급예보조회 〈2026-10-05 · D-420〉
+  'KPX_SMP_DEMAND_FORECAST', // ★ 전력거래소 SMP·수요예측 〈2026-10-05 · D-420〉 — 이름 대소문자 그대로
   // ★★ 네이버 클라우드 Maps 〈2026-09-25 · D-314〉 — 넣으신 이름을 아직 몰라 **넷씩 짝으로** 읽는다
   //   (scripts/naver-maps-probe.mjs). 쓰기 «전»에 여기 먼저 넣는다 — 그래야 넣으신 날 바로 가려진다.
   'NCP_MAPS_CLIENT_ID', 'NCP_MAPS_CLIENT_SECRET', 'NAVER_MAPS_CLIENT_ID', 'NAVER_MAPS_CLIENT_SECRET',
