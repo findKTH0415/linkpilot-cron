@@ -104,8 +104,19 @@ if (smpOk && key) {
     const m1 = land.filter((x) => String(x.date) >= from);
     const d1 = land.filter((x) => String(x.date) === last);
     result.smpAvg = { area: '육지', from: [...new Set(m1.map((x) => String(x.date)))].sort()[0], to: last, days: new Set(m1.map((x) => String(x.date))).size, hours: m1.length, avg1m: avg(m1), lastDay: last, lastDayAvg: avg(d1), lastDayHours: d1.length, source: '한국전력거래소 계통한계가격 및 수요예측(하루전 발전계획용) · data.go.kr 15131225' };
+    /* 시간대별 평균 〈2026-10-05 · 권장 진행〉 — 「hour」 칸(01~24)으로 30일을 묶는다. 발전량 가중치는 출처가 없어 안 쓴다 —
+       단순평균을 시간대마다 적고, 주간 구간 둘(09~17시 · 11~15시)도 «단순평균»이라고 적는다. 지어내지 않는다. */
+    const byH = {};
+    for (const x of m1) { const h = String(x.hour || '').padStart(2, '0'); if (!/^(0[1-9]|1\d|2[0-4])$/.test(h)) continue; (byH[h] = byH[h] || []).push(x); }
+    const hours = Object.keys(byH).sort().map((h) => ({ hour: h, n: byH[h].length, avg: avg(byH[h]) }));
+    const band = (a, b) => { const r = m1.filter((x) => { const h = +x.hour; return h >= a && h <= b; }); return r.length ? { from: a, to: b, n: r.length, avg: avg(r) } : null; };
+    result.smpAvg.hourly = hours;
+    result.smpAvg.day0917 = band(9, 17);
+    result.smpAvg.day1115 = band(11, 15);
     const v = result.smpAvg;
     P(`- SMP 육지 최근 1개월 — 평균 **${v.avg1m}원/kWh** · 기간 ${v.from}~${v.to} · ${v.days}일 ${v.hours}시간 · 마지막 날 ${v.lastDay} 평균 ${v.lastDayAvg}원/kWh (${v.lastDayHours}시간)`);
+    if (v.day0917) P(`- SMP 육지 시간대 단순평균 — 09~17시 **${v.day0917.avg}원/kWh** (${v.day0917.n}시간) · 11~15시 **${v.day1115 ? v.day1115.avg : '-'}원/kWh** (${v.day1115 ? v.day1115.n : 0}시간) · 발전량 가중 아님`);
+    if (hours.length) P(`- SMP 시간대별 평균(시각 칸 01~24) — ${hours.map((h) => `${h.hour}:${h.avg}`).join(' · ')}`);
   } else P('- SMP 평균 — 육지 시간별 값을 못 뽑았다');
 }
 /* ②-2 전력수급예보 〈2026-10-05 · D-420 · 사장님이 KPX_POWER_SUPPLY_DEMAND_FORECAST_GW 를 넣으셨다〉 —
