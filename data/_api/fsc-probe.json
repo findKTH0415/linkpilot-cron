@@ -101,35 +101,35 @@
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":330,\"items\":{\"item\":[{\"basYm\":\"202512\",\"bzds\":\"합계\",\"tstCtg\":\"재산신탁 동산신탁\",\"kind\":\"-\",\"iqBs\":\"계약수\",\"val\":\"736\"},{\"basYm\":\"202512\",\"bzds\":\"합계\",\"tstCtg\":\"재산신탁 부동산관련권리\",\"kind\":\"-\",\"iqBs\":\""
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":330,\"items\":{\"item\":[{\"basYm\":\"202512\",\"bzds\":\"부동산전업신탁사\",\"tstCtg\":\"금전신탁 특정금전신탁\",\"kind\":\"주식형(자문형,자사주)\",\"iqBs\":\"수탁총액\",\"val\":\"0\"},{\"basYm\":\"202512\",\"bzds\":\"부동산전업신탁사\",\"tstCtg\":\"금전신탁 특정금전"
     },
     {
      "label": "*** · 원본 · 202512",
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":28787,\"items\":{\"item\":[{\"basDt\":\"20260930\",\"ctg\":\"PEF\",\"tstMthdCtg\":\"사모\",\"nPptTotAmt\":\"3776705852226\"},{\"basDt\":\"20260930\",\"ctg\":\"혼합채권형\",\"tstMthdCtg\":\"공모\",\"nPptTotAmt\":\"3284248197824"
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":28812,\"items\":{\"item\":[{\"basDt\":\"20261001\",\"ctg\":\"혼합채권형\",\"tstMthdCtg\":\"사모\",\"nPptTotAmt\":\"7727376584108\"},{\"basDt\":\"20261001\",\"ctg\":\"-\",\"tstMthdCtg\":\"공모\",\"nPptTotAmt\":\"36242302345\"},{"
     },
     {
      "label": "*** · 원본 · 202512",
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":14496,\"items\":{\"item\":[{\"basDt\":\"20260930\",\"mngInvTgt\":\"합계\",\"invrCtg\":\"개인\",\"scrtCmpyCnt\":\"0\",\"actCnt\":\"39985789\",\"actBal\":\"94556351450470\"},{\"basDt\":\"20260930\",\"mngInvTgt\":\"합계\",\"invr"
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":14508,\"items\":{\"item\":[{\"basDt\":\"20261001\",\"mngInvTgt\":\"발행어음형\",\"invrCtg\":\"개인\",\"scrtCmpyCnt\":\"6\",\"actCnt\":\"6936747\",\"actBal\":\"23437475321634\"},{\"basDt\":\"20261001\",\"mngInvTgt\":\"RP형\",\"i"
     },
     {
      "label": "*** · 원본 · 202512",
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":1195,\"items\":{\"item\":[{\"basDt\":\"20260930\",\"crdTrFingWhl\":\"33390128913817\",\"crdTrFingScrs\":\"26057234413350\",\"crdTrFingKosdaq\":\"7332894500467\",\"crdTrLndrWhl\":\"37477175346\",\"crdTrLndrSc"
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":1196,\"items\":{\"item\":[{\"basDt\":\"20261001\",\"crdTrFingWhl\":\"33480842873745\",\"crdTrFingScrs\":\"26145637625644\",\"crdTrFingKosdaq\":\"7335205248101\",\"crdTrLndrWhl\":\"36034925586\",\"crdTrLndrSc"
     },
     {
      "label": "*** · 원본 · 202512",
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":1208,\"items\":{\"item\":[{\"basDt\":\"20260930\",\"invrDpsgAmt\":\"104664400150814\",\"onbdDrvPrdTrRcAdvAmt\":\"38359002470575\",\"toCstRpchCndBndSlgBal\":\"107442758445608\",\"brkTrdUcolMny\":\"110196707"
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":1209,\"items\":{\"item\":[{\"basDt\":\"20261001\",\"invrDpsgAmt\":\"104637665634665\",\"onbdDrvPrdTrRcAdvAmt\":\"38375727279680\",\"toCstRpchCndBndSlgBal\":\"109894519057438\",\"brkTrdUcolMny\":\"983659276"
     },
     {
      "label": "*** · 원본 · 202512",
@@ -696,7 +696,7 @@
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL_CODE\"},\"body\":{\"items\":{\"item\":[{\"CRTR_YMD\":\"20261003\",\"SDNM\":\"전북특별자치도\",\"SGGNM\":\"부안군\",\"PRPT_ITEM_NM\":\"답\",\"SCFB_YR\":\"2025\",\"SCFB_MT\":\"10\",\"APSL_EVL_AMT\":16722220,\"DSPL_AMT\":3745000,\"SCFB_PRC_RTO\":22.4},{\"CRTR_YMD\":\"20261003\",\"SDNM\":\"전북특별자치도\",\"SGGNM\":\"완"
+     "head": "{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL_CODE\"},\"body\":{\"items\":{\"item\":[{\"CRTR_YMD\":\"20261004\",\"SDNM\":\"강원특별자치도\",\"SGGNM\":\"삼척시\",\"PRPT_ITEM_NM\":\"출자증권\",\"SCFB_YR\":\"2025\",\"SCFB_MT\":\"10\",\"APSL_EVL_AMT\":8553528,\"DSPL_AMT\":8412000,\"SCFB_PRC_RTO\":98.35},{\"CRTR_YMD\":\"20261004\",\"SDNM\":\"강원특별자치도\",\"SGGNM\""
     }
    ]
   },
@@ -721,45 +721,45 @@
    "rows": [
     {
      "label": "*** · 원본 · 202412",
-     "status": 503,
+     "status": 200,
      "gotValue": false,
      "authFail": false,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
+     "head": "{\"body\":{},\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE\"}}"
     },
     {
-     "label": "*** · 원본 · 202512",
-     "status": 503,
+     "label": "*** · 원본 · 202412",
+     "status": 200,
      "gotValue": false,
      "authFail": false,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
+     "head": "{\"body\":{},\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE\"}}"
     },
     {
-     "label": "*** · 원본 · 202506",
-     "status": 503,
+     "label": "*** · 원본 · 202412",
+     "status": 200,
      "gotValue": false,
      "authFail": false,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
+     "head": "{\"body\":{},\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE\"}}"
     },
     {
-     "label": "*** · 원본 · 202512",
-     "status": 503,
+     "label": "*** · 원본 · 202412",
+     "status": 200,
      "gotValue": false,
      "authFail": false,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
+     "head": "{\"body\":{},\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE\"}}"
     },
     {
-     "label": "*** · 원본 · 202506",
-     "status": 503,
+     "label": "*** · 원본 · 202412",
+     "status": 200,
      "gotValue": false,
      "authFail": false,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
+     "head": "{\"body\":{},\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE\"}}"
     },
     {
-     "label": "*** · 원본 · 202512",
-     "status": 503,
+     "label": "*** · 원본 · 202412",
+     "status": 200,
      "gotValue": false,
      "authFail": false,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
+     "head": "{\"body\":{},\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE\"}}"
     }
    ]
   },
@@ -840,17 +840,17 @@
    "rows": [
     {
      "label": "odcloud POST /validate · 빈 몸통",
-     "status": 411,
+     "status": 503,
      "gotValue": false,
      "authFail": false,
-     "head": "{\"status_code\":\"REQUEST_DATA_MALFORMED\"}"
+     "head": "{\"code\":-5,\"msg\":\"API 서버 오류가 발생하였습니다.\"}"
     },
     {
      "label": "odcloud POST /status · 빈 몸통",
-     "status": 411,
+     "status": 503,
      "gotValue": false,
      "authFail": false,
-     "head": "{\"status_code\":\"REQUEST_DATA_MALFORMED\"}"
+     "head": "{\"code\":-5,\"msg\":\"API 서버 오류가 발생하였습니다.\"}"
     }
    ]
   },
@@ -881,25 +881,11 @@
    "code": 5,
    "rows": [
     {
-     "label": "*** · 원본 · 202506",
-     "status": 503,
+     "label": "*** · 원본 · 202412",
+     "status": 200,
      "gotValue": false,
      "authFail": false,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
-    },
-    {
-     "label": "*** · 원본 · 202512",
-     "status": 503,
-     "gotValue": false,
-     "authFail": false,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
-    },
-    {
-     "label": "*** · 원본 · 202512",
-     "status": 503,
-     "gotValue": false,
-     "authFail": false,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
+     "head": "{\"body\":{},\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE\"}}"
     },
     {
      "label": "*** · 원본 · 202412",
@@ -909,18 +895,32 @@
      "head": "{\"body\":{},\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE\"}}"
     },
     {
-     "label": "*** · 원본 · 202506",
-     "status": 503,
+     "label": "*** · 원본 · 202412",
+     "status": 200,
      "gotValue": false,
      "authFail": false,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
+     "head": "{\"body\":{},\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE\"}}"
     },
     {
-     "label": "*** · 원본 · 202506",
-     "status": 503,
+     "label": "*** · 원본 · 202412",
+     "status": 200,
      "gotValue": false,
      "authFail": false,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
+     "head": "{\"body\":{},\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE\"}}"
+    },
+    {
+     "label": "*** · 원본 · 202412",
+     "status": 200,
+     "gotValue": false,
+     "authFail": false,
+     "head": "{\"body\":{},\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE\"}}"
+    },
+    {
+     "label": "*** · 원본 · 202412",
+     "status": 200,
+     "gotValue": false,
+     "authFail": false,
+     "head": "{\"body\":{},\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE\"}}"
     }
    ]
   },
@@ -952,10 +952,9 @@
     },
     {
      "label": "1160100/service/GetCorpBasicInfoService_V2/getCorpOutline_V2 · 원본 · 202512",
-     "status": 200,
-     "gotValue": true,
-     "authFail": false,
-     "head": "{\"response\":{\"body\":{\"items\":{\"item\":[{\"crno\":\"0000000000000\",\"corpNm\":\"SAMPO FUND MANAGEMENT LTD/MANDATUM EMERGING\",\"corpEnsnNm\":\"SAMPO FUND MANAGEMENT LTD/MANDATUM EMERGING\",\"enpPbanCmpyNm\":\"SAMPOFUNDMANAGEMENTLTD/MANDATUMEMERGING\",\"enpRprFnm\":\"KIMMO LAAKSONEN\",\"corpRegMrktDcd\":\"E\",\"corpRegMrktDcd"
+     "status": null,
+     "gotValue": false,
+     "authFail": false
     }
    ]
   },
