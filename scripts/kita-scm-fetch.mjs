@@ -58,6 +58,44 @@ function parseList(html) {
   return [...out.values()].sort((a, b) => b.no - a.no);
 }
 
+// 세션 꼬리(;JSESSIONID_KITA=…)는 남기지 않는다 — 공개 저장소다.
+const noSess = (u) => String(u).replace(/;JSESSIONID[^?'"\s]*/gi, '');
+
+// 첨부 PDF 앞 세 쪽에서 «소제목» 줄을 뽑는다. 못 뽑으면 빈 목록 — 지어내지 않는다.
+function headLines(text) {
+  const out = [];
+  const mark = /^(?:[■□◆◇●○▶▷◎※]|[ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩ][.\s]|\d{1,2}[.)]\s|[①-⑩]|[가-하][.)]\s)/;
+  for (let ln of String(text).split('\n')) {
+    ln = ln.replace(/\s+/g, ' ').trim();
+    if (ln.length < 6 || ln.length > 80 || !mark.test(ln) || /\.{4,}|^\d+$/.test(ln)) continue;
+    ln = ln.replace(/\s*\d{1,3}$/, '');
+    if (!out.includes(ln)) out.push(ln);
+    if (out.length >= 8) break;
+  }
+  return out;
+}
+
+async function readIssue(x) {
+  const d = await get(x.url);
+  if (!d.reached || !d.ok) return { topics: [], pdf: null, why: d.reached ? `상세 HTTP ${d.status}` : '상세 응답 없음' };
+  const calls = [...d.text.matchAll(/doDownloadFile\(\s*'([^']+)'\s*,\s*'([^']*)'\s*\)[^>]*>([^<]*)/g)];
+  const pick = calls.find((m) => /\.pdf\s*$/i.test(m[3])) || calls[0];
+  if (!pick) return { topics: [], pdf: null, why: '첨부 내려받기 자리를 못 찾음' };
+  const url = `${BASE}/researchTrade/globalSupplyChain/downloadGlobalSupplyChainFile.do?no=${pick[1]}` + (pick[2] ? `&fileSeq=${pick[2]}` : '');
+  try {
+    const pr = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (LinkPilot weekly digest)', Referer: x.url } });
+    const buf = Buffer.from(await pr.arrayBuffer());
+    if (buf.slice(0, 5).toString() !== '%PDF-') return { topics: [], pdf: null, why: `PDF 아님 (HTTP ${pr.status})` };
+    await writeFile('/tmp/kita-issue.pdf', buf);
+    let t = '';
+    try { t = execFileSync('pdftotext', ['-l', '3', '-layout', '/tmp/kita-issue.pdf', '-'], { encoding: 'utf8' }); }
+    catch { return { topics: [], pdf: noSess(url), why: 'pdftotext 없음' }; }
+    const topics = headLines(t);
+    if (!topics.length) say('', `### 진단 — ${x.title} PDF 앞머리 (소제목을 못 뽑았다)`, '', '```', t.replace(/[ \t]+/g, ' ').replace(/\n{2,}/g, '\n').slice(0, 900), '```');
+    return { topics, pdf: noSess(url), why: topics.length ? '' : '소제목 모양을 못 찾음' };
+  } catch (e) { return { topics: [], pdf: null, why: `PDF 받기 실패 (${String(e.message).slice(0, 60)})` }; }
+}
+
 say(`# 글로벌 공급망 인사이트 수집 — ${new Date().toISOString()}`);
 say(`- 목록: ${LIST}`);
 const r = await get(LIST);
@@ -74,8 +112,8 @@ if (!r.reached) {
   code = items.length ? 0 : 5;
   say(`- HTTP ${r.status} · 본문 ${r.text.length}자 · 찾은 호 ${items.length}개`);
   // ★ 진단: 본문 앞머리를 그대로 남긴다(태그를 벗긴 글 · 공개 화면이라 비밀이 없다)
-  say('', '## 응답 본문 앞머리 (진단용 · 태그 벗김)', '', '```', strip(r.text).slice(0, 600), '```');
   if (!items.length) {
+    say('', '## 응답 본문 앞머리 (진단용 · 태그 벗김)', '', '```', strip(r.text).slice(0, 600), '```');
     const hint = (r.text.match(/globalSupplyChain[A-Za-z]*\.do[^"'\s>]*/g) || []).slice(0, 8);
     say('', `- 상세 주소 모양 후보: ${hint.length ? hint.join(' · ') : '(없음)'}`);
   }
@@ -87,66 +125,29 @@ if (items.length) {
   const top = items.slice(0, 12);
   const prevNo = prev && prev.items && prev.items[0] ? prev.items[0].no : null;
   const fresh = prevNo ? top.filter((x) => x.no > prevNo).length : top.length;
+  const prevById = new Map(((prev && prev.items) || []).map((x) => [x.no, x]));
+  say('', `## 최근 호 (새로 ${fresh}개)`, '');
+  // ★ 상세 화면에는 본문이 없다 — «자세한 내용은 첨부파일을 확인»뿐이다(2026-10-10 실측).
+  //   그래서 «자료분석»은 첨부 PDF 에서 한다. 상세 화면의 doDownloadFile(no, fileSeq) 인자로
+  //   그 화면이 쓰는 내려받기 주소를 그대로 짠다(추측 금지 · §4.3 · 진단 실측).
+  //   PDF 에서는 앞 세 쪽의 «머리 줄»(목차·소제목)만 뽑는다 — 본문은 옮겨 싣지 않는다 (§6-2-7).
+  //   이미 뽑아 둔 호는 다시 받지 않는다(§4.5) — 한 번에 새로 여는 PDF 는 셋까지.
+  let opened = 0;
+  for (const x of top) {
+    const old = prevById.get(x.no);
+    if (old && Array.isArray(old.topics) && old.topics.length) { x.topics = old.topics; x.pdf = old.pdf || null; }
+    else if (opened < 3) { opened++; Object.assign(x, await readIssue(x)); }
+    say(`- ${x.date || '날짜 못 읽음'} · ${x.title} · ${x.url}${x.topics && x.topics.length ? '' : (x.why ? ' — 분석 못 함: ' + x.why : '')}`);
+    for (const t of (x.topics || []).slice(0, 6)) say(`  - ${t}`);
+    delete x.why;
+  }
   await writeFile(`${OUT}/latest.json`, JSON.stringify({
     source: '한국무역협회 소재부품장비산업 공급망센터 · 글로벌 공급망 인사이트',
     list: LIST,
-    note: '제목·발간일·원문 주소만 싣는다. 본문은 원문에서 본다.',
+    note: '제목·발간일·원문 주소와 첨부 PDF 의 소제목만 싣는다. 본문은 원문에서 본다.',
     fetchedAt: new Date().toISOString(),
     items: top,
   }, null, 2) + '\n');
-  say('', `## 최근 호 (새로 ${fresh}개)`, '');
-  for (const x of top) say(`- ${x.date || '날짜 못 읽음'} · ${x.title} · ${x.url}`);
-  // ★ 진단 둘째 — 가장 최근 호의 상세 화면 생김새를 잰다(«자료분석»을 붙일 자리를 찾는다 · §4.3).
-  //   본문을 옮겨 싣지 않는다 — 진단용 앞머리 800자와 «첨부 이름»만 요약에 남긴다.
-  const d = await get(top[0].url);
-  if (d.reached && d.ok) {
-    const txt = strip(d.text);
-    // 화면 머리(<title>·메뉴)에도 제목이 있어 첫 자리는 메뉴다 — 첨부 이름이 처음 나오는 자리
-    // (게시 본문 바로 곁)를 기준으로 그 앞 600자 · 뒤 400자를 본다. 첨부가 없으면 제목의 «마지막» 자리.
-    const key = String(top[0].title).replace(/^\[[^\]]*\]\s*/, '').slice(0, 12);
-    const fi = txt.search(/\S+\.(?:pdf|hwp|hwpx)\b/i);
-    const at = fi > 0 ? Math.max(0, fi - 600) : txt.lastIndexOf(key);
-    const files = [...new Set((d.text.match(/[^"'<>\s\/]+\.(?:pdf|hwp|hwpx|pptx?|docx?)/gi) || []))].slice(0, 6);
-    say('', `## 상세 화면 진단 — ${top[0].title}`, '', `- HTTP ${d.status} · 본문 ${d.text.length}자 · 첨부 후보: ${files.length ? files.join(' · ') : '(없음)'}`,
-      '', '```', txt.slice(Math.max(0, at), Math.max(0, at) + 1000), '```');
-    // ★ 진단 셋째 — 상세 화면에는 본문이 없고 «첨부파일을 확인해 주십시오»뿐이다(2026-10-10 실측).
-    //   그러니 «자료분석»은 PDF 에서 해야 한다. 내려받기 주소 후보를 적고, 첫 후보를 받아
-    //   pdftotext 로 앞 세 쪽의 «머리 줄»만 뽑는다. 본문은 옮겨 싣지 않는다 (§6-2-7).
-    const hrefs = [...new Set([...d.text.matchAll(/href\s*=\s*["']([^"']*(?:[Dd]own|[Ff]ile)[^"']*)["']/g)].map((m) => m[1].replace(/&amp;/g, '&')))]
-      .filter((h) => !/^javascript:void|#$/.test(h)).slice(0, 6);
-    const onclk = [...new Set([...d.text.matchAll(/onclick\s*=\s*["']([^"']*(?:[Dd]own|[Ff]ile)[^"']*)["']/g)].map((m) => m[1]))].slice(0, 4);
-    say('', `- 내려받기 주소 후보: ${hrefs.length ? hrefs.join(' · ') : '(없음)'}`, `- 누름 스크립트 후보: ${onclk.length ? onclk.join(' · ') : '(없음)'}`);
-    // 누름 스크립트가 쓰는 함수의 «부르는 자리»와 «정의»를 그대로 남긴다 — 그 인자로 주소를 짠다(추측 금지 · §4.3).
-    for (const fnName of ['doDownloadFile', 'showFileContents']) {
-      const callAt = d.text.indexOf(fnName + '(');
-      if (callAt > 0) say(`- ${fnName} 부르는 자리: \`${d.text.slice(callAt, callAt + 160).replace(/\s+/g, ' ').replace(/`/g, "'")}\``);
-      const defRe = new RegExp('(?:function\\s+' + fnName + '\\s*\\(|' + fnName + '\\s*[:=]\\s*function\\s*\\()');
-      const dm = defRe.exec(d.text);
-      if (dm) say('', `#### ${fnName} 정의`, '', '```', d.text.slice(dm.index, dm.index + 700), '```');
-      else say(`- ${fnName} 정의: 이 화면 안에 없다(바깥 스크립트 파일)`);
-    }
-    const scripts = [...new Set([...d.text.matchAll(/<script[^>]+src=["']([^"']+)["']/g)].map((m) => m[1]))].filter((x) => !/googletag|gtm|analytics/i.test(x)).slice(0, 12);
-    say(`- 바깥 스크립트: ${scripts.join(' · ') || '(없음)'}`);
-    const pdfHref = hrefs.find((h) => /\.pdf|down/i.test(h));
-    if (pdfHref) {
-      const pdfUrl = pdfHref.startsWith('http') ? pdfHref : BASE + (pdfHref.startsWith('/') ? '' : '/') + pdfHref;
-      try {
-        const pr = await fetch(pdfUrl, { headers: { 'User-Agent': 'Mozilla/5.0 (LinkPilot weekly digest)', Referer: top[0].url } });
-        const buf = Buffer.from(await pr.arrayBuffer());
-        const isPdf = buf.slice(0, 5).toString() === '%PDF-';
-        say(`- PDF 받기: HTTP ${pr.status} · ${buf.length}바이트 · ${isPdf ? 'PDF 맞음' : 'PDF 아님(' + buf.slice(0, 40).toString().replace(/\s+/g, ' ') + ')'}`);
-        if (isPdf) {
-          await writeFile('/tmp/kita-latest.pdf', buf);
-          let txt2 = '';
-          try { txt2 = execFileSync('pdftotext', ['-l', '3', '-layout', '/tmp/kita-latest.pdf', '-'], { encoding: 'utf8' }); }
-          catch (e) { say(`- pdftotext 못 돌림 — ${String(e.message).slice(0, 120)}`); }
-          if (txt2) say('', '### PDF 앞 세 쪽 앞머리 (진단용)', '', '```', txt2.replace(/[ \t]+/g, ' ').replace(/\n{2,}/g, '\n').slice(0, 1200), '```');
-        }
-      } catch (e) { say(`- PDF 받기 실패 — ${String(e.message).slice(0, 120)}`); }
-    }
-  } else {
-    say('', `- 상세 화면 못 받음 (${d.reached ? 'HTTP ' + d.status : '응답 없음'}) — 목록은 받았으니 판정은 그대로다`);
-  }
 } else if (prev) {
   say('', '- 이번엔 못 받아 **앞 결과(latest.json)를 그대로 둔다** — 빈 것으로 덮지 않는다');
 }
