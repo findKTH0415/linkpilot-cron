@@ -100,10 +100,14 @@ if (items.length) {
   const d = await get(top[0].url);
   if (d.reached && d.ok) {
     const txt = strip(d.text);
-    const at = txt.indexOf(String(top[0].title).replace(/^\[[^\]]*\]\s*/, '').slice(0, 12));
+    // 화면 머리(<title>·메뉴)에도 제목이 있어 첫 자리는 메뉴다 — 첨부 이름이 처음 나오는 자리
+    // (게시 본문 바로 곁)를 기준으로 그 앞 600자 · 뒤 400자를 본다. 첨부가 없으면 제목의 «마지막» 자리.
+    const key = String(top[0].title).replace(/^\[[^\]]*\]\s*/, '').slice(0, 12);
+    const fi = txt.search(/\S+\.(?:pdf|hwp|hwpx)\b/i);
+    const at = fi > 0 ? Math.max(0, fi - 600) : txt.lastIndexOf(key);
     const files = [...new Set((d.text.match(/[^"'<>\s\/]+\.(?:pdf|hwp|hwpx|pptx?|docx?)/gi) || []))].slice(0, 6);
     say('', `## 상세 화면 진단 — ${top[0].title}`, '', `- HTTP ${d.status} · 본문 ${d.text.length}자 · 첨부 후보: ${files.length ? files.join(' · ') : '(없음)'}`,
-      '', '```', txt.slice(Math.max(0, at), Math.max(0, at) + 800), '```');
+      '', '```', txt.slice(Math.max(0, at), Math.max(0, at) + 1000), '```');
   } else {
     say('', `- 상세 화면 못 받음 (${d.reached ? 'HTTP ' + d.status : '응답 없음'}) — 목록은 받았으니 판정은 그대로다`);
   }
