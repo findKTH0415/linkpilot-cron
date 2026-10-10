@@ -38,9 +38,19 @@ const MONTHS = Number(process.env.KEPCO_MONTHS || 24);
 const PAUSE = Number(process.env.KEPCO_PAUSE || 400);
 
 // 대상지 — 「시도|시군구|읍면동|리|번지」. 시크릿이 없으면 시군구 단위만 수집한다.
-const SITE_RAW = (process.env.KEPCO_SITE || '').trim();
-const [SIDO, SGG, LIDONG, LI, JIBUN] = SITE_RAW ? SITE_RAW.split('|').map(s => s.trim())
-                                                : ['경기도', '김포시', '', '', ''];
+// ★ 2026-10-10 — KEPCO_REGION(「시도|시군구」)을 주면 그 지역을 시군구 단위로만 조회한다.
+//   공개 저장소라 지번은 입력으로 받지 않는다 — 지번 조회는 여전히 KEPCO_SITE 시크릿으로만 한다.
+//   두 값을 섞지 않는다: 지역을 주면 시크릿의 지번은 쓰지 않는다(다른 지역 지번이 엉뚱하게 붙는다).
+const REGION_RAW = (process.env.KEPCO_REGION || '').trim();
+const SITE_RAW = REGION_RAW ? '' : (process.env.KEPCO_SITE || '').trim();
+const [SIDO, SGG, LIDONG, LI, JIBUN] = REGION_RAW
+  ? [...REGION_RAW.split('|').map(s => s.trim()).slice(0, 2), '', '', '']
+  : SITE_RAW ? SITE_RAW.split('|').map(s => s.trim())
+             : ['경기도', '김포시', '', '', ''];
+if (REGION_RAW && (!SIDO || !SGG)) {
+  console.error(`KEPCO_REGION 은 「시도|시군구」 모양이어야 합니다 (받은 값: ${REGION_RAW}).`);
+  process.exit(5);
+}
 
 if (!KEY) {
   console.error('KEPCO_API_KEY 시크릿이 없습니다. Settings → Secrets and variables → Actions 에 등록하십시오.');
