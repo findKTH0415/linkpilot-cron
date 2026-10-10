@@ -23,6 +23,7 @@
  */
 const test = require('node:test');
 const assert = require('node:assert');
+const { findEmoji } = require('./emoji-lite');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -211,7 +212,7 @@ test('★ 갤러리는 **파일 하나로 열린다** — 바깥 파일을 안 �
   assert.ok(!/<script[^>]+src=/i.test(html), '바깥 스크립트를 부른다');
   assert.ok(!/https?:\/\//.test(html), '바깥 주소를 부른다');
   assert.ok(!/<img/i.test(html), '그림 파일을 쓴다 — 13장이면 화면이 무거워진다 (CSS 로 그린다)');
-  const emoji = html.match(/\p{Extended_Pictographic}/gu) || [];
+  const emoji = findEmoji(html);
   assert.strictEqual(emoji.length, 0, `이모지가 있다: ${emoji.join(' ')}`);
 });
 

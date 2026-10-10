@@ -20,6 +20,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
+const { findEmoji } = require('./emoji-lite');
 const fs = require('fs');
 const path = require('path');
 
@@ -162,8 +163,9 @@ test('★ 견본에 이모지가 없다 (rules.json D3 · 대외 문서 규격�
   /* ★ `\u2600-\u27BF` 로 재면 **★ 가 걸린다** — 이 저장소가 문서 전체에서
      쓰는 강조 기호이지 이모지가 아니다(유니코드도 이모지로 안 친다).
      그래서 `Extended_Pictographic` 로 묻는다: ★ ☆ △ ▽ 는 통과하고
-     ⚠️ ✅ 🔑 는 걸린다 (실측). */
-  const emoji = html.match(/\p{Extended_Pictographic}/gu) || [];
+     ⚠️ ✅ 🔑 는 걸린다 (실측).
+     ★★ 유니코드 16 부터 ★ 가 그 범위에 들어와, 잣대를 emoji-lite.js 한 벌로 옮겼다 (D-432). */
+  const emoji = findEmoji(html);
   assert.strictEqual(emoji.length, 0, `이모지가 있다: ${emoji.join(' ')}`);
 });
 
