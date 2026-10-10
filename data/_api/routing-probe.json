@@ -6,66 +6,32 @@
     "label": "apis-navi /v1/directions",
     "ok": true,
     "status": 200,
-    "ms": 1646,
-    "gotValue": true,
+    "ms": 1116,
+    "gotValue": false,
     "authFail": false,
     "blocked": false,
     "fields": {
      "parsed": true,
-     "hits": [
-      {
-       "path": "routes[0].summary.distance",
-       "value": 10940
-      },
-      {
-       "path": "routes[0].summary.duration",
-       "value": 2199
-      },
-      {
-       "path": "routes[0].sections[0].distance",
-       "value": 10939
-      },
-      {
-       "path": "routes[0].sections[0].duration",
-       "value": 2103
-      }
-     ]
+     "hits": []
     },
-    "head": "{\"trans_id\":\"01a124f6ce057d6fbe6b74372ff79db9\",\"routes\":[{\"result_code\":0,\"result_msg\":\"길찾기 성공\",\"summary\":{\"origin\":{\"name\":\"\",\"x\":126.97839806210874,\"y\":37.566599979513605},\"destination\":{\"name\":\"\",\"x\":127.02759129515296,\"y\":37.49789587828953},\"waypoints\":[],\"priority\":\"RECOMMEND\",\"bound\":{\"min_x\":",
-    "truncated": true,
+    "head": "{\"trans_id\":\"01a12835564c7f71bb7469a75746c182\",\"routes\":[{\"result_code\":105,\"result_msg\":\"시작 지점 주변의 도로에 유고 정보(교통 장애)가 있음\"}]}",
+    "truncated": false,
     "server": null
    },
    {
     "label": "apis-navi /v1/future/directions",
     "ok": true,
     "status": 200,
-    "ms": 1191,
-    "gotValue": true,
+    "ms": 666,
+    "gotValue": false,
     "authFail": false,
     "blocked": false,
     "fields": {
      "parsed": true,
-     "hits": [
-      {
-       "path": "routes[0].summary.distance",
-       "value": 10940
-      },
-      {
-       "path": "routes[0].summary.duration",
-       "value": 2198
-      },
-      {
-       "path": "routes[0].sections[0].distance",
-       "value": 10939
-      },
-      {
-       "path": "routes[0].sections[0].duration",
-       "value": 2102
-      }
-     ]
+     "hits": []
     },
-    "head": "{\"trans_id\":\"01a124f6d27f7e35bb3a0c35fd363b94\",\"routes\":[{\"result_code\":0,\"result_msg\":\"길찾기 성공\",\"summary\":{\"origin\":{\"name\":\"\",\"x\":126.97839806210874,\"y\":37.566599979513605},\"destination\":{\"name\":\"\",\"x\":127.02759129515296,\"y\":37.49789587828953},\"waypoints\":[],\"priority\":\"RECOMMEND\",\"bound\":{\"min_x\":",
-    "truncated": true,
+    "head": "{\"trans_id\":\"01a1283558ef7a1883d97f27ee1bd7f8\",\"routes\":[{\"result_code\":105,\"result_msg\":\"시작 지점 주변의 도로에 유고 정보(교통 장애)가 있음\"}]}",
+    "truncated": false,
     "server": null
    }
   ]
@@ -77,7 +43,7 @@
     "label": "원본 그대로",
     "ok": true,
     "status": 200,
-    "ms": 917,
+    "ms": 714,
     "gotValue": false,
     "authFail": true,
     "blocked": false,

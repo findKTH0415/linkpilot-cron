@@ -1,5 +1,5 @@
 {
- "at": "2026-10-10T08:46:15.046Z",
+ "at": "2026-10-10T23:47:58.166Z",
  "rec": {
   "area": "land",
   "months": 1,
@@ -11,7 +11,43 @@
   "sessions": 9,
   "totalVolume": 2758679
  },
- "smp": [],
+ "smp": [
+  {
+   "svc": "15131225",
+   "op": "***",
+   "day": "",
+   "status": 200,
+   "head": "{  \"response\" : {    \"header\" : {      \"resultCode\" : \"00\",      \"resultMsg\" : \"OK\"    },    \"body\" : {      \"dataType\" : \"JSON\",      \"totalCount\" : \"119277\",      \"numOfRows\" : \"100\",      \"pageNo\" : \"1\",      \"items\" : {        \"item\" : [ {          \"date\" : \"20261012\",          \"jlfd\" : 621.00000,          \"slfd\" : 49526.00000,          \"hour\" : \"01\",          \"areaName\" : \"육지\",          \"smp\" : 98.10000,          \"rn\" : 1,          \"mlfd\" : 48905.00000        }, {          \"date\" : \"20261012\",          \"jlfd\" : 586.00000,          \"slfd\" : 47548.00000,          \"hour\" : \"02\",          \"areaName\" : \"육지\",          \"smp\" : 95.09000,          \"rn\" : 2,          \"mlfd\" : 46962.00000        }, {          \"date\" : \"20261012\",          \"jlfd\" : 564.00000,          \"slfd\" : 46906.00000,          \"hour\" : \"03\",          \"areaName\" : \"육지\",          \"smp\" : 94.97000,          \"rn\" : 3,          \"mlfd\" : 46342.00000        }, {          \"date\" : \"20261012\",          \"jlfd\" : 548.00000,          \"slfd\" : 45599.00000,          \"hour\" : \"04\",          \"areaName\" : \"육지\",          \"smp\" : 94.06000,          \"rn\" : 4,          \"mlfd\" : 45051.00000        }, {          \"date\" : \"20261012\",          \"jlfd\" : 547.00000,          \"slfd\" : 46365.00000,          \"hour\" : \"05\",          \"areaName\" : \"육지\",          \"smp\" : 94.06000,          \"rn\" : 5,          \"mlfd\" : 45818.00000        }, {          \"date\" : \"20261012\",          \"jlfd\" : 566.00000,          \"slfd\" : 47771.00000,          \"hour\" : \"06\",          \"areaName\" : \"육지\",          \"smp\" : 94.97000,          \"rn\" : 6,          \"mlfd\" : 47205.00000        }, {          \"date\" : \"20261012\",          \"jlfd\" : 603.00000,          \"slfd\" : 51317.00000,          \"hour\" : \"07\",          \"areaName\" : \"육지\",          \"smp\" : 97.83000,          \"rn\" : 7,          \"mlfd\" : 50714.00000        }, {          \"date\" : \"20261012\",          \"jlfd\" : 638.00000,          \"slfd\" : 56466.00000,          \"hour\" : \"08\",          \"areaName\" : \"육지\",          \"smp\" : 107.92000,          \"rn\" : 8,          \"mlfd\" : 55828.00000        }, {          \"date\" : \"20261012\",          \"jlfd\" : 677.00000,          \"slfd\" : 59452.00000,          \"hour\" : \"09\",          \"areaName\" : \"육지\",          \"smp\" : 107.90000,          \"rn\" : 9,          \"mlfd\" : 58775.00000        }, {          \"date\" : \"20261012\",          \"jlfd\" : 702.00000,          \"slfd\" : 60182.00000,          \"hour\" : \"10\",          \"areaName\" : \"육지\",          \"smp\" : 107.90000,          \"rn\" : 10,          \"mlfd\" : 59480.00000        }, {          \"date\" : \"20261012\",          \"jlfd\" : 589.00000,          \"slfd\" : 59549.00000,          \"hour\" : \"11\",          \"areaName\" : \"육지\",          \"smp\" : 107.90000,          \"rn\" : 11,          \"mlfd\" : 58960.00000        }, {          \"date\" : \"20261012\",          \"jlfd\" : 586.00000,          \"slfd\" : 56732.00000,          \"hour\" : \"12\",          \"areaName\" : \"육지\",          \"smp\" : 107.85000,          \"rn\" : 12,          \"mlfd\" : 56146.00000        }, {          \"date\" : \"20261012\",          \"jlfd\" : 593.00000,          \"slfd\" : 54620.00000,          \"hour\" : \"13\",          \"areaName\" : \"육지\",          \"smp\" : 107.85000,          \"rn\" : 13,          \"mlfd\" : 54027.00000        }, {          \"date\" : \"20261012\",          \"jlfd\" : 605.00000,          \"slfd\" : 58147.00000,          \"hour\" : \"14\",          \"areaName\" : \"육지\",          \"smp\" : 107.85000,          \"rn\" : 14,          \"mlfd\" : 57542.00000        }, {          \"date\" : \"20261012\",          \"jlfd\" : 622.00000,          \"slfd\" : 60467.00000,          \"hour\" : \"15\",          \"areaName\" : \"육지\",          \"smp\" : 107.85000,          \"rn\" : 15,          \"mlfd\" : 59845.00000        }, {          \"date\" : \"20261012\",          \"jlfd\" : 645.00000,          \"slfd\" : 63484.00000,          \"hour\" : \"16\",          \"areaName\" : \"육지\",          \"smp\" : 107.85000,          \"rn\" : 16,          \"mlfd\" : 62839.00000        }, {          \"date\" : \"20261012\",          \"jlfd\" : 682.00000,  "
+  },
+  {
+   "svc": "15131225",
+   "op": "***_header",
+   "day": "",
+   "status": 400,
+   "head": "{\n  \"OpenAPI_ServiceResponse\": {\n    \"cmmMsgHeader\": {\n      \"errMsg\": \"NO_OPENAPI_SERVICE_ERROR\",\n      \"returnAuthMsg\": \"해당 오픈API 서비스가 없거나 폐기됨\",\n      \"returnReasonCode\": \"12\"\n    }\n  }\n}\n"
+  },
+  {
+   "svc": "15131225",
+   "op": "***_body",
+   "day": "",
+   "status": 400,
+   "head": "{\n  \"OpenAPI_ServiceResponse\": {\n    \"cmmMsgHeader\": {\n      \"errMsg\": \"NO_OPENAPI_SERVICE_ERROR\",\n      \"returnAuthMsg\": \"해당 오픈API 서비스가 없거나 폐기됨\",\n      \"returnReasonCode\": \"12\"\n    }\n  }\n}\n"
+  },
+  {
+   "svc": "15131225",
+   "op": "***_items",
+   "day": "",
+   "status": 400,
+   "head": "{\n  \"OpenAPI_ServiceResponse\": {\n    \"cmmMsgHeader\": {\n      \"errMsg\": \"NO_OPENAPI_SERVICE_ERROR\",\n      \"returnAuthMsg\": \"해당 오픈API 서비스가 없거나 폐기됨\",\n      \"returnReasonCode\": \"12\"\n    }\n  }\n}\n"
+  },
+  {
+   "svc": "15103214",
+   "op": "B552115/SmpDecByFuel2/getSmpDecByFuel2",
+   "day": "",
+   "status": 403,
+   "head": "{\n  \"OpenAPI_ServiceResponse\": {\n    \"cmmMsgHeader\": {\n      \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\",\n      \"returnAuthMsg\": \"등록되지 않은 서비스키\",\n      \"returnReasonCode\": \"30\"\n    }\n  }\n}\n"
+  }
+ ],
  "rec3": {
   "area": "land",
   "months": 3,
@@ -23,7 +59,160 @@
   "sessions": 26,
   "totalVolume": 7140681
  },
- "supply": [],
+ "smpAvg": {
+  "area": "육지",
+  "from": "20260913",
+  "to": "20261012",
+  "days": 30,
+  "hours": 718,
+  "avg1m": 105.37,
+  "lastDay": "20261012",
+  "lastDayAvg": 107.82,
+  "lastDayHours": 24,
+  "source": "한국전력거래소 계통한계가격 및 수요예측(하루전 발전계획용) · data.go.kr 15131225",
+  "hourly": [
+   {
+    "hour": "01",
+    "n": 30,
+    "avg": 102.91
+   },
+   {
+    "hour": "02",
+    "n": 30,
+    "avg": 98.81
+   },
+   {
+    "hour": "03",
+    "n": 30,
+    "avg": 97.65
+   },
+   {
+    "hour": "04",
+    "n": 30,
+    "avg": 97.01
+   },
+   {
+    "hour": "05",
+    "n": 30,
+    "avg": 96.99
+   },
+   {
+    "hour": "06",
+    "n": 30,
+    "avg": 98.65
+   },
+   {
+    "hour": "07",
+    "n": 30,
+    "avg": 101.67
+   },
+   {
+    "hour": "08",
+    "n": 30,
+    "avg": 103
+   },
+   {
+    "hour": "09",
+    "n": 30,
+    "avg": 101.49
+   },
+   {
+    "hour": "10",
+    "n": 30,
+    "avg": 101.11
+   },
+   {
+    "hour": "11",
+    "n": 30,
+    "avg": 101.25
+   },
+   {
+    "hour": "12",
+    "n": 29,
+    "avg": 95.69
+   },
+   {
+    "hour": "13",
+    "n": 29,
+    "avg": 94.21
+   },
+   {
+    "hour": "14",
+    "n": 30,
+    "avg": 102.44
+   },
+   {
+    "hour": "15",
+    "n": 30,
+    "avg": 103.25
+   },
+   {
+    "hour": "16",
+    "n": 30,
+    "avg": 104.47
+   },
+   {
+    "hour": "17",
+    "n": 30,
+    "avg": 114.77
+   },
+   {
+    "hour": "18",
+    "n": 30,
+    "avg": 117.56
+   },
+   {
+    "hour": "19",
+    "n": 30,
+    "avg": 119.76
+   },
+   {
+    "hour": "20",
+    "n": 30,
+    "avg": 118.3
+   },
+   {
+    "hour": "21",
+    "n": 30,
+    "avg": 117.98
+   },
+   {
+    "hour": "22",
+    "n": 30,
+    "avg": 114.55
+   },
+   {
+    "hour": "23",
+    "n": 30,
+    "avg": 113.91
+   },
+   {
+    "hour": "24",
+    "n": 30,
+    "avg": 110.85
+   }
+  ],
+  "day0917": {
+   "from": 9,
+   "to": 17,
+   "n": 268,
+   "avg": 102.13
+  },
+  "day1115": {
+   "from": 11,
+   "to": 15,
+   "n": 148,
+   "avg": 99.43
+  }
+ },
+ "supply": [
+  {
+   "svc": "15158707",
+   "op": "***",
+   "status": 200,
+   "head": "{  \"response\" : {    \"header\" : {      \"resultCode\" : \"00\",      \"resultMsg\" : \"OK\"    },    \"body\" : {      \"dataType\" : \"JSON\",      \"totalCount\" : \"1\",      \"numOfRows\" : \"50\",      \"pageNo\" : \"1\",      \"items\" : {        \"item\" : [ {          \"fcStime\" : \"18\",          \"fcMaxload\" : 61800,          \"fcDate\" : \"20261011\",          \"fcEtime\" : \"19\",          \"rn\" : 1,          \"fcLevel\" : 0,          \"fcReservePwr\" : 26557        } ]      }    }  }}"
+  }
+ ],
  "smpPublic": [
   {
    "url": "https://www.kpx.or.kr/",

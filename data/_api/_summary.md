@@ -1,6 +1,6 @@
 # 공공 API 실측 진단
 
-**잰 시각** 2026. 10. 10. 17시 38분 35초 · **잰 곳** GitHub Actions (열쇠가 있는 자리)
+**잰 시각** 2026. 10. 11. 8시 45분 45초 · **잰 곳** GitHub Actions (열쇠가 있는 자리)
 
 **9개 항목 중 6개 살아 있음 · 3개 실패**
 
@@ -33,7 +33,8 @@
 | `FSC_FISHERIES_COOPERATIVE_BANK_API` | 금융위원회 금융통계 | 수산업협동조합 — 아직 커넥터에 안 붙였다 (scripts/fsc-probe.mjs) | — **없음** |
 | `FSC_SP_FIN` | 금융위원회 | 개인사업자금융정보(보증잔액·예금대출) — 아직 커넥터에 안 붙였다 (scripts/fsc-probe.mjs) | — **없음** |
 | `KOICA_PROJ_SC` | 한국국제협력단 | 사업정보(분야·국가) — 아직 커넥터에 안 붙였다 (scripts/fsc-probe.mjs) | — **없음** |
-| `KOICA_GLOBAL_POLITICAL_DEVELOPMENTS` | 한국국제협력단 | 세계 정치동향 — 아직 커넥터에 안 붙였다 (scripts/fsc-probe.mjs) | ✅ `KOICA_GLOBAL_POLITICAL_DEVELOPMENTS` |
+| `KOICA_GLOBAL_POLITICAL_DEVELOPMENTS` | 외교부 | 국가·지역별 정치현황 — 아직 커넥터에 안 붙였다 (scripts/fsc-probe.mjs) | ✅ `KOICA_GLOBAL_POLITICAL_DEVELOPMENTS` |
+| `KOICA_COUNTRY_INFORMATION` | 대한무역투자진흥공사 | 국가정보 — 아직 커넥터에 안 붙였다 (scripts/fsc-probe.mjs) | ✅ `KOICA_COUNTRY_INFORMATION` |
 | `MOLIT_LUR_LAW_KEY` | 국토교통부 | 토지이용규제 법령정보 — 아직 커넥터에 안 붙였다 (scripts/fsc-probe.mjs) | — **없음** |
 | `FSC_KOFIA_API` | 금융위원회 금융투자협회 | 펀드·증시자금·신용공여 — 아직 커넥터에 안 붙였다 (scripts/fsc-probe.mjs) | — **없음** |
 | `LAW_OC` 또는 `LAW_OPEN_DATA` | 국가법령정보센터 | 법령·조례 (이름 둘 다 읽는다) | ✅ `LAW_OC` |
@@ -57,8 +58,8 @@
 | 한국은행 ECOS 시장금리 | ✅ 살아 있음 | — | — |
 | 한국은행 ECOS 생산자물가 업종목록 (404Y014) | ✅ 살아 있음 | — | — |
 | 통계청 KOSIS 통계표 검색 (가동률) | ✅ 살아 있음 | — | — |
-| DART 시행사 대조 (삼성물산) | ✕ 실패 | DART 800: 시스템 점검 중 | 아래 진단 원문을 보십시오 |
-| VWorld 지오코딩 | ✕ 실패 | 지오코딩 실패 — ROAD: fetch failed (4회 시도 실패) / PARCEL: HTTP 502 ( | 아래 진단 원문을 보십시오 |
+| DART 시행사 대조 (삼성물산) | ✕ 실패 | corpCode 응답이 ZIP 이 아니다 | 아래 진단 원문을 보십시오 |
+| VWorld 지오코딩 | ✕ 실패 | 지오코딩 실패 — ROAD: HTTP 502 (4회 시도 실패) / PARCEL: fetch failed ( | 아래 진단 원문을 보십시오 |
 | REC 현물시장 (전력거래소) | ✅ 살아 있음 | — | — |
 | 지가지수 (부동산원) | ✅ 살아 있음 | — | — |
 | 기업기본정보 (금융위) | ✅ 살아 있음 | — | — |

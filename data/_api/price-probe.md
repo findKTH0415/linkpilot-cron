@@ -1,4 +1,4 @@
-> 판정 5 — 대답은 왔는데 값을 못 뽑았다 — **규격**을 고친다. 열쇠 문제가 아니다 (REC 0 · SMP 5)
+> 판정 0 — 값이 왔다 — 배선할 수 있다 (REC 0 · SMP 0)
 
 # 전력 판매 단가 실측 (SMP · REC)
 
@@ -6,15 +6,38 @@
 - REC 육지 최근 3개월 — 가중평균 **71293원/REC** · 단순평균 71274 · 개장 26회 · 기간 20260708~20261008 · 마지막 거래일 종가(평균) 71262
 
 - 포털 열쇠: `KPX_SMP_DEMAND_FORECAST` (길이 64)
-- 포털 검색 «한국전력거래소 계통한계가격» — 못 닿음 (fetch failed)
-- 포털 검색 «한국전력거래소 SMP» — 못 닿음 (fetch failed)
-- 포털 검색 «전력거래소 계통한계가격» — 못 닿음 (fetch failed)
-- 포털 검색 «한국전력거래소 SMP 수요예측» — 못 닿음 (fetch failed)
-- 포털 검색 «전력거래소 수요예측» — 못 닿음 (fetch failed)
+- 포털 검색 «한국전력거래소 계통한계가격» — HTTP 200 · 15131225 계통한계가격 및 수요예측(하루전 발전계획용)
+- 포털 검색 «한국전력거래소 SMP» — HTTP 200 · 15103214 SMP 결정 횟수(일별)
+- 포털 검색 «전력거래소 계통한계가격» — HTTP 200 · 15131225 계통한계가격 및 수요예측(하루전 발전계획용)
+- 포털 검색 «한국전력거래소 SMP 수요예측» — HTTP 200 · 못 뽑았다
+- 포털 검색 «전력거래소 수요예측» — HTTP 200 · 15131225 수요예측 (하루전 발전계획용)
+## 계통한계가격 및 수요예측(하루전 발전계획용) (15131225)
+- 서비스 B552115/SmpWithForecastDemand · 오퍼레이션 getSmpWithForecastDemand · getSmpWithForecastDemand_header · getSmpWithForecastDemand_body · getSmpWithForecastDemand_items · getSmpWithForecastDemand_item · 필수 인자 pageNo · numOfRows · dataType
+- `B552115/SmpWithForecastDemand/getSmpWithForecastDemand` — HTTP 200 · 23427자
+  - 앞머리 «{ "response" : { "header" : { "resultCode" : "00", "resultMsg" : "OK" }, "body" : { "dataType" : "JSON", "totalCount" : "119277", "numOfRows" : "100", "pageNo" : "1", "items" : { "item" : [ { "date" : "20261012", "jlfd" : 621.00000, "slfd" : 49526.00000, "hour" : "01", "areaName" : "육지", "smp" : 98.10000, "rn" : 1, "mlfd" : 48905.00000 }, { "date" : "20261012", "jlfd" : 586.00000, "slfd" : 47548.00000, "hour" : "02", "ar»
+- `B552115/SmpWithForecastDemand/getSmpWithForecastDemand_header` — HTTP 400 · 190자
+  - 앞머리 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "NO_OPENAPI_SERVICE_ERROR", "returnAuthMsg": "해당 오픈API 서비스가 없거나 폐기됨", "returnReasonCode": "12" } } } »
+- `B552115/SmpWithForecastDemand/getSmpWithForecastDemand_body` — HTTP 400 · 190자
+  - 앞머리 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "NO_OPENAPI_SERVICE_ERROR", "returnAuthMsg": "해당 오픈API 서비스가 없거나 폐기됨", "returnReasonCode": "12" } } } »
+- `B552115/SmpWithForecastDemand/getSmpWithForecastDemand_items` — HTTP 400 · 190자
+  - 앞머리 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "NO_OPENAPI_SERVICE_ERROR", "returnAuthMsg": "해당 오픈API 서비스가 없거나 폐기됨", "returnReasonCode": "12" } } } »
+## SMP 결정 횟수(일별) (15103214)
+- 서비스 B552115/SmpDecByFuel2 · 오퍼레이션 getSmpDecByFuel2 · 필수 인자 pageNo · numOfRows · dataType
+- `B552115/SmpDecByFuel2/getSmpDecByFuel2` — HTTP 403 · 192자
+  - 앞머리 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR", "returnAuthMsg": "등록되지 않은 서비스키", "returnReasonCode": "30" } } } »
+- SMP 육지 최근 1개월 — 평균 **105.37원/kWh** · 기간 20260913~20261012 · 30일 718시간 · 마지막 날 20261012 평균 107.82원/kWh (24시간)
+- SMP 육지 시간대 단순평균 — 09~17시 **102.13원/kWh** (268시간) · 11~15시 **99.43원/kWh** (148시간) · 발전량 가중 아님
+- SMP 시간대별 평균(시각 칸 01~24) — 01:102.91 · 02:98.81 · 03:97.65 · 04:97.01 · 05:96.99 · 06:98.65 · 07:101.67 · 08:103 · 09:101.49 · 10:101.11 · 11:101.25 · 12:95.69 · 13:94.21 · 14:102.44 · 15:103.25 · 16:104.47 · 17:114.77 · 18:117.56 · 19:119.76 · 20:118.3 · 21:117.98 · 22:114.55 · 23:113.91 · 24:110.85
 
 ## 전력수급예보 — 열쇠 `KPX_POWER_SUPPLY_DEMAND_FORECAST_GW` (길이 64)
-- 포털 검색 «한국전력거래소 전력수급예보» — 못 닿음 (fetch failed)
-- 포털 검색 «전력거래소 전력수급예보조회» — 못 닿음 (fetch failed)
+- 포털 검색 «한국전력거래소 전력수급예보» — HTTP 200 · 15051436 수급예보조회 · 15158707 수급예보조회_GW
+- 포털 검색 «전력거래소 전력수급예보조회» — HTTP 200 · 15051436 수급예보조회 · 15158707 수급예보조회 _GW
+### 수급예보조회 (15051436)
+- 서비스 못 읽었다 · 오퍼레이션 못 읽었다 · 필수 인자 (못 읽었다/없음)
+### 수급예보조회_GW (15158707)
+- 서비스 B552115/forecast1dMaxBaseDate · 오퍼레이션 getForecast1dMaxBaseDate · 필수 인자 dataType
+- `B552115/forecast1dMaxBaseDate/getForecast1dMaxBaseDate` — HTTP 200 · 455자
+  - 앞머리 «{ "response" : { "header" : { "resultCode" : "00", "resultMsg" : "OK" }, "body" : { "dataType" : "JSON", "totalCount" : "1", "numOfRows" : "50", "pageNo" : "1", "items" : { "item" : [ { "fcStime" : "18", "fcMaxload" : 61800, "fcDate" : "20261011", "fcEtime" : "19", "rn" : 1, "fcLevel" : 0, "fcReservePwr" : 26557 } ] } } }}»
 - 공개 화면 https://www.kpx.or.kr/ — HTTP 200 · 7937자
   - 둘레 «력관련정보 최대부하전망 최대부하전망(제주) 실시간 전력수급현황 실시간 전력수급현황 (제주) 비상시 절전참여요령 전력수급실적 전력수급실적(제주) 계통한계가격(SMP) 하루전 발전계획용 수요예측 스마트그리드 스마트그리드 개요 해외동향 전력산업동향 통합계약정보 입찰공고 공고 안내사항 입찰공고 게시판 계약절차안내 계약종류및방법 업무절차도 계약준비서류 예상소요일수 통합자료실 청렴계약안내 청렵계약이란 소식알림 공지사항 보도자료 KPX 브리핑 이사장 동정 시장개선 KPX 종합자료실 (구)보도자료 고객지원 고객만족 고객서비스 헌장 및 이행표준 친»
   - 둘레 «대부하전망 최대부하전망(제주) 실시간 전력수급현황 실시간 전력수급현황 (제주) 비상시 절전참여요령 전력수급실적 전력수급실적(제주) 계통한계가격(SMP) 하루전 발전계획용 수요예측 스마트그리드 스마트그리드 개요 해외동향 전력산업동향 통합계약정보 입찰공고 공고 안내사항 입찰공고 게시판 계약절차안내 계약종류및방법 업무절차도 계약준비서류 예상소요일수 통합자료실 청렴계약안내 청렵계약이란 소식알림 공지사항 보도자료 KPX 브리핑 이사장 동정 시장개선 KPX 종합자료실 (구)보도자료 고객지원 고객만족 고객서비스 헌장 및 이행표준 친절사원을 추천»
