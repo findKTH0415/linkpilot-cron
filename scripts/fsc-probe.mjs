@@ -66,10 +66,11 @@ const SEARCHES = [
      둘 다 이 진단에 없던 서비스다. 번호를 못 들었으므로 포털 검색에서 찾는다 (번호를 지어내지 않는다) */
   { key: 'FSC_API', keyword: '기금대출정보', word: '기금대출', use: '기금대출정보 — 투자정보 [정책자금] 후보' },
   { key: 'KOICA_PROJ_SC', keyword: '한국국제협력단 사업정보', word: '사업정보', use: 'KOICA 사업정보(분야·국가) — 해외 프로젝트 후보' },
-  /* ★ 〈2026-10-10 · 사장님: 「KOICA_GLOBAL_POLITICAL_DEVELOPMENTS 키넣었어」 · D-429〉 — 서비스 번호를 못 들었다.
-     이름으로 짐작해 포털 검색 둘로 찾는다(번호를 지어내지 않는다). 못 찾으면 «못 뽑았다»로 적힌다 */
-  { key: 'KOICA_GLOBAL_POLITICAL_DEVELOPMENTS', keyword: '한국국제협력단 정치', word: '정치', use: 'KOICA 세계 정치동향 — 해외 프로젝트 국가 리스크 후보' },
-  { key: 'KOICA_GLOBAL_POLITICAL_DEVELOPMENTS', keyword: '국제협력단 동향', word: '동향', use: 'KOICA 세계 정치동향 — 해외 프로젝트 국가 리스크 후보' },
+  /* ★ 〈2026-10-10 · 사장님: 「외교부_국가·지역별 정치현황(KOICA_GLOBAL_POLITICAL_DEVELOPMENTS) · 대한무역투자진흥공사_국가정보(KOICA_COUNTRY_INFORMATION) 키넣었어」 · D-429 · D-430〉 —
+     서비스 이름을 받았다. 그 이름 그대로 포털 검색으로 번호를 찾는다(번호를 지어내지 않는다) */
+  { key: 'KOICA_GLOBAL_POLITICAL_DEVELOPMENTS', keyword: '외교부 국가·지역별 정치현황', word: '정치현황', use: '외교부 국가·지역별 정치현황 — 해외 프로젝트 국가 리스크 후보' },
+  { key: 'KOICA_GLOBAL_POLITICAL_DEVELOPMENTS', keyword: '외교부 정치현황', word: '정치', use: '외교부 국가·지역별 정치현황 — 해외 프로젝트 국가 리스크 후보' },
+  { key: 'KOICA_COUNTRY_INFORMATION', keyword: '대한무역투자진흥공사 국가정보', word: '국가정보', use: 'KOTRA 국가정보 — 해외 프로젝트 국가 개황 후보' },
   /* ★ 〈2026-09-29 · 사장님: 「MOLIT_LUR_LAW_KEY (토지이용규제법령정보서비스) 키넣었어」〉 — 인허가 검토(행위제한·법령) 후보. 번호는 검색에서 찾는다 */
   { key: 'MOLIT_LUR_LAW_KEY', keyword: '토지이용규제법령정보', word: '토지이용규제', use: '토지이용규제 법령정보 — 인허가 검토(행위제한) 후보' },
   /* ★ 〈같은 날 · 첫 검색 둘이 «못 뽑았다»〉 — 이름을 한 겹 넓혀 한 번 더 찾는다. 찾은 번호만 건다 (지어내지 않는다) */
@@ -227,7 +228,7 @@ async function main() {
      Actions 비밀에 없었다 — 빈칸으로 찍혔다〉. 포털 인증키는 계정당 하나이고 **승인만 서비스별**이라(§4.2)
      그 서비스를 신청하셨으면 같은 열쇠로 통한다. 어느 이름으로 걸었는지는 반드시 적는다 — 섞어 읽으면
      「어느 열쇠가 통했는가」가 흐려진다. */
-  for (const n of ['FSC_API', 'FSC_AMC_API', 'FSC_IAF_API', 'FSC_KOFIA_API', 'FSC_DOMESTIC_BANK_API', 'FSC_SAVINGS_BANK_API', 'FSC_CREDIT_UNION_BANK_API', 'FSC__AGRICULTURAL_COOPERATIVE_BANK_API', 'FSC_FISHERIES_COOPERATIVE_BANK_API', 'FSC_SP_FIN', 'KOICA_PROJ_SC', 'KOICA_GLOBAL_POLITICAL_DEVELOPMENTS', 'MOLIT_LUR_LAW_KEY', 'MSS_SME_SPA_API', 'MOLIT_APT_SALE', 'REB_LAND_MICRO', 'MOLIT_OFFICETEL_RENT', 'KAMCO_ONBID_BID_RESULT', 'KAMCO_SEIZED_AUCTION_RATE', 'MOLIT_HUB_BLDG_LEDGER', 'MOLIT_HUB_HOUSING_PERMIT', 'NTS_BIZ_VERIFY', 'MOLIT_HUB_BLDG_PERMIT', 'FSC_CORP_BASIC', 'MOLIT_LUR_INFO', 'MOLIT_COMM_SALE', 'MOLIT_LAND_SALE']) {
+  for (const n of ['FSC_API', 'FSC_AMC_API', 'FSC_IAF_API', 'FSC_KOFIA_API', 'FSC_DOMESTIC_BANK_API', 'FSC_SAVINGS_BANK_API', 'FSC_CREDIT_UNION_BANK_API', 'FSC__AGRICULTURAL_COOPERATIVE_BANK_API', 'FSC_FISHERIES_COOPERATIVE_BANK_API', 'FSC_SP_FIN', 'KOICA_PROJ_SC', 'KOICA_GLOBAL_POLITICAL_DEVELOPMENTS', 'KOICA_COUNTRY_INFORMATION', 'MOLIT_LUR_LAW_KEY', 'MSS_SME_SPA_API', 'MOLIT_APT_SALE', 'REB_LAND_MICRO', 'MOLIT_OFFICETEL_RENT', 'KAMCO_ONBID_BID_RESULT', 'KAMCO_SEIZED_AUCTION_RATE', 'MOLIT_HUB_BLDG_LEDGER', 'MOLIT_HUB_HOUSING_PERMIT', 'NTS_BIZ_VERIFY', 'MOLIT_HUB_BLDG_PERMIT', 'FSC_CORP_BASIC', 'MOLIT_LUR_INFO', 'MOLIT_COMM_SALE', 'MOLIT_LAND_SALE']) {
     const own = pick([n]);
     if (own) OWN.push(own);
     const k = own || portal;
