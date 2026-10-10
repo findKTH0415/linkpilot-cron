@@ -63,7 +63,7 @@ function tmpBox(files) {
   return d;
 }
 const run = (dir, args = [], env = {}) => spawnSync(process.execPath, [SCRIPT, ...args], {
-  encoding: 'utf8', env: { ...Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^GEMINI_/.test(k))), GUIDE_DIR: dir, OPENAI_API_KEY: '', ...env },
+  encoding: 'utf8', env: { ...Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^(GEMINI_|CLAUDE_|CLODE_|ANTHROPIC_)/.test(k))), GUIDE_DIR: dir, OPENAI_API_KEY: '', ...env },
 });
 
 test('현황표 — 지문이 같아야 «검토됨», 반영기록에 지문이 있어야 «반영 완료»', async () => {
@@ -77,7 +77,7 @@ test('현황표 — 지문이 같아야 «검토됨», 반영기록에 지문이
     '반영기록.md': `- a.md · ${h} · 2026-10-10\n`, 'README.md': '안내', '_검증기준.md': '기준',
   });
   const s = m.renderStatus(d, 'T');
-  assert.match(s, /\| a\.md \| `[0-9a-f]{12}` \| 통과 \| 검토 대기 \| 반영 완료 \|/);
+  assert.match(s, /\| a\.md \| `[0-9a-f]{12}` \| 검토 대기 \| 통과 \| 검토 대기 \| 반영 완료 \|/);
   assert.match(s, /\| b\.md \|[^\n]*옛 판을 검토함[^\n]*미반영 \|/, '옛 지문의 검토를 새 판에 이어 붙이지 않는다');
   assert.ok(!/README|_검증기준/.test(s.split('\n').filter((l) => l.startsWith('| ') && !l.startsWith('| 지침')).join('\n')), '안내 파일을 지침으로 세지 않는다');
   assert.match(s, /미반영 1건/);
@@ -134,7 +134,7 @@ test('Gemini 검토 파일 — 현황표의 Gemini 칸이 읽고, 지침으로 �
   const text = '# 지침'; const h = m.hashOf(text);
   const d = tmpBox({ 'a.md': text, 'a.gemini-review.md': `<!-- gemini-review: hash=${h} verdict=BLOCK model=g at=x -->\n` });
   const s = m.renderStatus(d, 'T');
-  assert.match(s, /\| a\.md \| `[0-9a-f]{12}` \| 검토 대기 \| 반영 보류 \| 미반영 \|/);
+  assert.match(s, /\| a\.md \| `[0-9a-f]{12}` \| 반영 보류 \| 검토 대기 \| 검토 대기 \| 미반영 \|/);
   assert.match(s, /지침 1건/, 'gemini-review 파일을 지침으로 세지 않는다');
   const doc = m.renderReview('a.md', h, 'g', { verdict: 'PASS', summary: '', issues: [], conflicts: [] }, 'T', 'gemini');
   assert.match(doc, /^<!-- gemini-review: hash=/);
@@ -147,4 +147,22 @@ test('차례 — Gemini 가 먼저 돌고, ChatGPT 는 같은 지문의 Gemini �
   assert.ok(g > 0 && c > 0 && g < c, 'Gemini 호출이 ChatGPT 호출보다 앞이어야 한다');
   assert.match(src, /reviewedHash\(DIR, f, 'gemini'\) === hashOf\(text\)[^\n]*readFileSync/, '옛 지문의 Gemini 의견을 싣지 않는다');
   assert.match(src, /reviewOne\(\{ name: f, text, criteria: crit,/, 'ChatGPT 에 Gemini 의견을 실어 보낸다');
+});
+
+test('Claude(3번) — 앞 두 의견을 받아 정리하고, 잔액 부족을 열쇠 문제로 적지 않는다', async () => {
+  const m = await load();
+  const CK = ['sk-ant-FAKE_one_00000000000000000', 'sk-ant-FAKE_two_00000000000000000'];
+  assert.deepStrictEqual(m.claudeKeys({ CLODE_API_KEY2: CK[0], ANTHROPIC_API_KEY: CK[1], CLAUDE_API_KEY: CK[0] }), CK, '옛 철자(CLODE)도 읽고 중복은 뺀다');
+  const base = { name: 'a.md', text: '지침', criteria: '', keys: CK };
+  const cb = (j) => ({ content: [{ type: 'text', text: '정리합니다\n' + JSON.stringify(j) }] });
+  let n = 0;
+  let r = await m.reviewClaude({ ...base, fetchImpl: async () => (++n === 1 ? res(401, 'bad') : res(200, cb({ verdict: 'PASS', summary: 's', issues: [] }))) });
+  assert.ok(r.ok && n === 2, '거부되면 다음 열쇠로 간다 · 앞뒤 글이 붙은 JSON 도 읽는다');
+  r = await m.reviewClaude({ ...base, fetchImpl: async () => res(400, 'Your credit balance is too low') });
+  assert.strictEqual(r.code, 5);
+  assert.ok(!/열쇠를 다시/.test(r.say));
+  const src = fs.readFileSync(SCRIPT, 'utf8');
+  const g = src.indexOf('await reviewGemini('), c = src.indexOf('await reviewOne('), k = src.indexOf('await reviewClaude(');
+  assert.ok(g < c && c < k, '차례는 Gemini → ChatGPT → Claude');
+  assert.match(src, /filter\(\(k\) => reviewedHash\(DIR, f, k\) === h\)/, '같은 지문의 앞 의견만 싣는다');
 });

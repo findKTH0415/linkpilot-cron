@@ -49,7 +49,15 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENAI_REVIEW_MODEL: ${{ vars.OPENAI_REVIEW_MODEL }}
           FORCE_FILE: ${{ inputs.file }}
-          # 둘째 검증자 Gemini — 배포가 이미 쓰는 열쇠 묶음 그대로 (D-430)
+          CLAUDE_REVIEW_MODEL: ${{ vars.CLAUDE_REVIEW_MODEL }}
+          # 3번 검증자 Claude — 배포가 이미 쓰는 열쇠 이름 그대로 (D-430)
+          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+          CLAUDE_API_KEY_2: ${{ secrets.CLAUDE_API_KEY_2 }}
+          CLODE_API_KEY: ${{ secrets.CLODE_API_KEY }}
+          CLODE_API_KEY2: ${{ secrets.CLODE_API_KEY2 }}
+          CLODE_API_KEY_2: ${{ secrets.CLODE_API_KEY_2 }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # 1번 검증자 Gemini — 배포가 이미 쓰는 열쇠 묶음 그대로 (D-430)
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_API_KEY_2: ${{ secrets.GEMINI_API_KEY_2 }}
           GEMINI_API_KEY_3: ${{ secrets.GEMINI_API_KEY_3 }}

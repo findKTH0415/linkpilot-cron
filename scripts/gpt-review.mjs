@@ -34,7 +34,7 @@ export const DIR = process.env.GUIDE_DIR ? path.resolve(process.env.GUIDE_DIR) :
 const { kstStamp } = require('../im-agent/core/kst.js');
 
 /* 지침이 아닌 파일 — 안내·현황·기록·검토 결과·검증 기준 */
-const NOT_GUIDE = /^(README|INBOX|반영기록|_.*)\.md$|\.(gpt|gemini)-review\.md$/;
+const NOT_GUIDE = /^(README|INBOX|반영기록|_.*)\.md$|\.(gpt|gemini|claude)-review\.md$/;
 
 export function listGuides(dir = DIR) {
   if (!fs.existsSync(dir)) return [];
@@ -47,13 +47,13 @@ export const reviewName = (f, kind = 'gpt') => f.replace(/\.md$/, `.${kind}-revi
 export function reviewedHash(dir, f, kind = 'gpt') {
   const p = path.join(dir, reviewName(f, kind));
   if (!fs.existsSync(p)) return null;
-  const m = fs.readFileSync(p, 'utf8').match(/(?:gpt|gemini)-review:\s*hash=([0-9a-f]{12})/);
+  const m = fs.readFileSync(p, 'utf8').match(/(?:gpt|gemini|claude)-review:\s*hash=([0-9a-f]{12})/);
   return m ? m[1] : null;
 }
 export function verdictOfReview(dir, f, kind = 'gpt') {
   const p = path.join(dir, reviewName(f, kind));
   if (!fs.existsSync(p)) return null;
-  const m = fs.readFileSync(p, 'utf8').match(/(?:gpt|gemini)-review:[^>]*verdict=(PASS|REVISE|BLOCK)/);
+  const m = fs.readFileSync(p, 'utf8').match(/(?:gpt|gemini|claude)-review:[^>]*verdict=(PASS|REVISE|BLOCK)/);
   return m ? m[1] : null;
 }
 /* Orchestrator 가 반영하면 「반영기록.md」에 `파일 · 지문` 을 남긴다 */
@@ -184,9 +184,44 @@ export async function reviewGemini({ name, text, criteria, keys, models = GEMINI
   return last;
 }
 
+/* ★★ 3번 검증자 — Claude 〈2026-10-10 사장님: 「1.제미나이 2.쳇지피티 3.클로드ai 순으로」〉
+ * 앞의 두 의견을 받아 «최종 정리»를 한다. ★ 지침을 쓴 것도 Claude 라 이 검토만으로는 독립 감사가 아니다 —
+ * 앞의 두 검증자가 독립 감사이고, 이 칸은 두 의견을 맞대어 정리하는 자리다 (CLAUDE.md §11 · D-202). */
+export function claudeKeys(env = process.env) {
+  const names = ['CLAUDE_API_KEY', 'CLAUDE_API_KEY_2', 'CLODE_API_KEY', 'CLODE_API_KEY2', 'CLODE_API_KEY_2', 'ANTHROPIC_API_KEY'];
+  return [...new Set(names.map((k) => String(env[k] || '').trim()).filter((v) => v.length >= 20 && !/[<>]/.test(v)))];
+}
+export async function reviewClaude({ name, text, criteria, keys, model = 'claude-sonnet-5-5', fetchImpl = fetch, timeoutMs = 180000 }) {
+  const [sys, user] = buildMessages(name, text, criteria);
+  let last = { ok: false, code: 2, kind: 'nokey', say: 'Claude 열쇠가 이 자리에 없습니다.' };
+  for (const key of keys) {
+    const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), timeoutMs);
+    let r, body = '';
+    try {
+      r = await fetchImpl('https://api.anthropic.com/v1/messages', {
+        method: 'POST', signal: ctl.signal,
+        headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+        body: JSON.stringify({ model, max_tokens: 4096, system: sys.content, messages: [{ role: 'user', content: user.content }] }),
+      });
+      body = await r.text();
+    } catch (e) { clearTimeout(t); last = { ok: false, code: 3, kind: 'unreachable', say: 'Claude 에 닿지 못했습니다 — 열쇠 문제가 아닙니다.', detail: redact(e && e.message, keys) }; continue; }
+    clearTimeout(t);
+    if (r.status === 404) return { ok: false, code: 6, kind: 'model', say: `Claude 모델 ${model} 이 없습니다 — 저장소 변수 CLAUDE_REVIEW_MODEL 을 고칩니다.`, detail: redact(body.slice(0, 200), keys) };
+    if (r.status === 400 && /credit balance/i.test(body)) { last = { ok: false, code: 5, kind: 'quota', say: 'Claude 계정 잔액이 모자랍니다 — 기다려도 안 낫습니다. 열쇠 문제가 아닙니다.', detail: redact(body.slice(0, 200), keys) }; continue; }
+    if (!r.ok) { last = { ok: false, code: r.status === 401 || r.status === 403 ? 4 : 3, kind: 'http', say: `Claude 가 HTTP ${r.status} 로 거부했습니다.`, detail: redact(body.slice(0, 200), keys) }; continue; }
+    let content = '';
+    try { content = JSON.parse(body).content.map((x) => x.text || '').join(''); } catch { /* 아래 */ }
+    const m = String(content).match(/\{[\s\S]*\}/);
+    const review = parseReview(m ? m[0] : content);
+    if (!review) return { ok: false, code: 3, kind: 'unparsed', say: 'Claude 대답이 판정 형식이 아닙니다.', detail: redact(String(content).slice(0, 200), keys) };
+    return { ok: true, review, model };
+  }
+  return last;
+}
+
 const VLABEL = { PASS: '통과 — 그대로 반영 가능', REVISE: '보완 필요 — 고쳐서 반영', BLOCK: '반영 보류 — 고칠 때까지 반영하지 않는다' };
 export function renderReview(f, hash, model, rv, at, kind = 'gpt') {
-  const who = kind === 'gemini' ? 'Gemini' : 'ChatGPT';
+  const who = { gemini: 'Gemini', claude: 'Claude' }[kind] || 'ChatGPT';
   const rows = rv.issues.map((i) => `| ${i.severity || '-'} | ${String(i.where || '-').replace(/\|/g, '/')} | ${String(i.problem || '').replace(/\|/g, '/')} | ${String(i.fix || '').replace(/\|/g, '/')} |`);
   return [
     `<!-- ${kind}-review: hash=${hash} verdict=${rv.verdict} model=${model} at=${at} -->`,
@@ -217,8 +252,11 @@ export function renderStatus(dir = DIR, at = kstStamp()) {
     const grh = reviewedHash(dir, f, 'gemini');
     const gv = grh === h ? verdictOfReview(dir, f, 'gemini') : null;
     const gem = gv ? { PASS: '통과', REVISE: '보완 필요', BLOCK: '반영 보류' }[gv] : (grh ? '옛 판을 검토함' : '검토 대기');
+    const crh = reviewedHash(dir, f, 'claude');
+    const cv = crh === h ? verdictOfReview(dir, f, 'claude') : null;
+    const cla = cv ? { PASS: '통과', REVISE: '보완 필요', BLOCK: '반영 보류' }[cv] : (crh ? '옛 판을 검토함' : '검토 대기');
     const st = applied.has(h) ? '반영 완료' : '미반영';
-    return { f, h, gpt, gem, st };
+    return { f, h, gpt, gem, cla, st };
   });
   const pending = rows.filter((r) => r.st === '미반영').length;
   return [
@@ -226,8 +264,8 @@ export function renderStatus(dir = DIR, at = kstStamp()) {
     '',
     `지침 ${rows.length}건 · **미반영 ${pending}건** · 이 표는 \`npm run guide:status\` 가 만든다(손으로 고치지 않는다).`,
     '',
-    rows.length ? '| 지침 | 지문 | ChatGPT 검토 | Gemini 검토 | Orchestrator 반영 |\n|---|---|---|---|---|\n'
-      + rows.map((r) => `| ${r.f} | \`${r.h}\` | ${r.gpt} | ${r.gem} | ${r.st} |`).join('\n') : '아직 지침이 없습니다.',
+    rows.length ? '| 지침 | 지문 | 1 Gemini | 2 ChatGPT | 3 Claude 정리 | Orchestrator 반영 |\n|---|---|---|---|---|---|\n'
+      + rows.map((r) => `| ${r.f} | \`${r.h}\` | ${r.gem} | ${r.gpt} | ${r.cla} | ${r.st} |`).join('\n') : '아직 지침이 없습니다.',
     '',
   ].join('\n');
 }
@@ -283,6 +321,27 @@ async function main(argv) {
   }
   for (const x of fails) log.push(`- ✗ ${x.f} — ${x.say}`);
 
+  /* 3번 Claude — 같은 지문의 Gemini·ChatGPT 의견을 받아 최종 정리 */
+  const ckeys = claudeKeys();
+  const cModel = (process.env.CLAUDE_REVIEW_MODEL || '').trim() || 'claude-sonnet-5-5';
+  const cTodo = listGuides().filter((f) => (force ? f === force : reviewedHash(DIR, f, 'claude') !== hashOf(fs.readFileSync(path.join(DIR, f), 'utf8'))));
+  let cDone = 0; const cFails = [];
+  for (const f of cTodo) {
+    const text = fs.readFileSync(path.join(DIR, f), 'utf8'); const h = hashOf(text);
+    if (leakCheck(text).length) { cFails.push({ code: 4, f, say: '공개 저장소에 둘 수 없는 글이 있어 보내지 않았습니다.' }); continue; }
+    if (!ckeys.length) { cFails.push({ code: 2, f, say: 'Claude 열쇠(CLAUDE_API_KEY…)가 이 자리에 없습니다.' }); continue; }
+    const priors = ['gemini', 'gpt'].filter((k) => reviewedHash(DIR, f, k) === h).map((k) => `### ${k === 'gpt' ? 'ChatGPT' : 'Gemini'} 의견\n${fs.readFileSync(path.join(DIR, reviewName(f, k)), 'utf8')}`);
+    const crit = `${criteria}\n\n## 앞선 검증자 의견 — 너는 3번째 검증자다. 두 의견을 맞대어 동의·반박을 가르고 최종 정리한다. 앞 의견이 없으면 그 사실을 summary 에 적는다\n${priors.join('\n\n') || '(앞선 의견 없음)'}`;
+    const r = await reviewClaude({ name: f, text, criteria: crit, keys: ckeys, model: cModel });
+    if (!r.ok) { cFails.push({ code: r.code, f, say: r.say + (r.detail ? ` (앞머리: ${r.detail.slice(0, 160)})` : '') }); if (r.code === 5 || r.code === 6) break; continue; }
+    const doc = renderReview(f, h, r.model, r.review, kstStamp(), 'claude');
+    fs.writeFileSync(path.join(DIR, reviewName(f, 'claude')), doc);
+    cDone += 1;
+    log.push(`- ✓ [Claude] ${f} — ${VLABEL[r.review.verdict]} (문제 ${r.review.issues.length}건)`);
+    log.push('', '<details><summary>Claude 정리 전문</summary>', '', doc, '</details>', '');
+  }
+  for (const x of cFails) log.push(`- ✗ [Claude] ${x.f} — ${x.say}`);
+
   writeStatus();
 
   /* 판정 — 섞이면 «고칠 것이 있는 쪽»을 먼저 말한다 (§12-24) */
@@ -294,11 +353,11 @@ async function main(argv) {
   if (code === 2 && onlyNoKey && gemCovered) { code = 0; log.unshift('- ChatGPT 는 열쇠(OPENAI_API_KEY)가 없어 건너뛰었고, Gemini 가 대신 검토했습니다.'); }
   else if (code === 0 && gFails.length && !fails.length && todo.length === 0 && gDone === 0) code = gFails.some((x) => x.code === 4) ? 4 : 3;
   const head = code === 0
-    ? (todo.length || gDone ? `판정 0 — ChatGPT ${done}건 · Gemini ${gDone}건 검토 완료` : '판정 0 — 새로 검토할 지침이 없습니다')
+    ? (todo.length || gDone || cDone ? `판정 0 — Gemini ${gDone}건 · ChatGPT ${done}건 · Claude ${cDone}건 검토 완료` : '판정 0 — 새로 검토할 지침이 없습니다')
     : `판정 ${code} — ${todo.length}건 중 ${done}건 검토 · ${fails[0].say}`;
   log.unshift(head, '');
   fs.writeFileSync(path.join(DIR, '_검토요약.md'), `# 이번 검토 — ${kstStamp()}\n\n${log.join('\n')}\n`);
-  console.log(redact(log.join('\n'), [key, ...gkeys]));
+  console.log(redact(log.join('\n'), [key, ...gkeys, ...ckeys]));
   return code;
 }
 
