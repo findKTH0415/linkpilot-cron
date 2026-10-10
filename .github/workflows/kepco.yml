@@ -7,6 +7,10 @@ on:
         description: "월별 시계열 길이 (기본 24)"
         required: false
         default: "24"
+      region:
+        description: "시군구 단위로 볼 지역 「시도|시군구」 (비우면 KEPCO_SITE 시크릿). 지번은 넣지 않는다 — 공개 저장소다"
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -42,6 +46,7 @@ jobs:
           KEPCO_API_KEY: ${{ secrets.KEPCO_API_KEY }}
           KEPCO_SITE: ${{ secrets.KEPCO_SITE }}
           KEPCO_MONTHS: ${{ github.event.inputs.months || '24' }}
+          KEPCO_REGION: ${{ github.event.inputs.region || '' }}
         run: node scripts/kepco-fetch.mjs
 
       - name: 결과 요약
