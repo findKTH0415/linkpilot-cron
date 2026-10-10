@@ -17,6 +17,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
+const { findEmoji } = require('./emoji-lite');
 const fs = require('fs');
 const path = require('path');
 
@@ -143,7 +144,7 @@ test('★ 고르지 않은 안도 순위와 함께 보여 준다 (둘 다 싫을
 
 test('★ 화면에 이모지가 없다 (대외 문서 규격을 보이는 자리다)', () => {
   const html = builder.build(builder.DEFAULT_SIGNALS);
-  const emoji = html.match(/\p{Extended_Pictographic}/gu) || [];
+  const emoji = findEmoji(html);
   assert.strictEqual(emoji.length, 0, `이모지가 있다: ${emoji.join(' ')}`);
 });
 
