@@ -1,12 +1,11 @@
 // 한국무역협회 소부장 공급망센터 «글로벌 공급망 인사이트» 주간 수집 (D-431)
 // 의존성 없음. Node 20+ 내장 fetch 만 쓴다.
 //
-// ★ 무엇을 싣는가 — 제목 · 발간일 · 호수 · 원문 주소 «뿐»이다. 본문·PDF 는 안 받고
-//   안 싣는다(원문 복제 대신 요약 + 원문 링크 · CLAUDE.md §6-2-7). 열쇠가 필요 없는
-//   공개 목록이라 비밀도 없다.
-// ★★ 진단부터 짠다 (§4.3) — 목록 화면의 생김새를 아직 잰 적이 없다. 그래서 첫 실행이
-//   곧 진단이다: 응답 본문 앞머리를 그대로 요약에 남기고, 무엇을 찾았는지 · 못 찾았는지를
-//   갈래로 가른다. 추측으로 고른 자리에서 «아무것도 못 찾았다»를 «발간이 없다»로 적지 않는다.
+// ★ 무엇을 싣는가 — 제목 · 발간일 · 호수 · 원문 주소 + 첨부 PDF «첫 쪽 목차의 머리 줄»뿐이다.
+//   본문은 옮겨 싣지 않는다(원문 복제 대신 요약 + 원문 링크 · CLAUDE.md §6-2-7). PDF 는
+//   목차를 읽으려고 받기만 하고 저장소에 안 남긴다. 열쇠가 필요 없는 공개 목록이라 비밀도 없다.
+// ★★ 진단부터 짰다 (§4.3) — 2026-10-10 다섯 번 걸어 규격을 쟀다. 못 찾으면 여전히 본문
+//   앞머리를 요약에 남기고 갈래로 가른다. «아무것도 못 찾았다»를 «발간이 없다»로 적지 않는다.
 
 import { mkdir, writeFile, readFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
@@ -78,6 +77,8 @@ function headLines(text) {
   let mode = '';
   const after = { 'Ⅱ': '월간 공급망', 'Ⅲ': '더 알아보기', 'Ⅳ': '소식통' };
   let want = '';
+  // 두 단 목차는 한 단이 줄을 넘기면 [태그] 와 [제목] 이 다른 줄로 갈린다 — 남은 태그를 다음 줄로 넘긴다.
+  let pend = '';
   for (const raw of rows) {
     const line = raw.trim();
     if (want) { push(`${want} — ${line.replace(/^[가-힣A-Za-z]+·[가-힣A-Za-z]+\s+/, '')}`); want = ''; continue; }
@@ -89,8 +90,15 @@ function headLines(text) {
     if (/^원자재 뉴스 PLUS$/.test(line)) { mode = ''; want = '원자재'; continue; }
     if (mode === 'issues') {
       const seg = line.split(/\s{3,}/).map((x) => x.trim()).filter(Boolean);
-      for (let i = 0; i < seg.length - 1; i++) if (isTag(seg[i]) && !isTag(seg[i + 1])) { push(`[${seg[i]}] ${seg[i + 1]}`); i++; }
-    }
+      let i = 0;
+      if (pend && seg.length && !isTag(seg[0])) { push(`[${pend}] ${seg[0]}`); i = 1; }
+      pend = '';
+      for (; i < seg.length; i++) {
+        if (!isTag(seg[i])) continue;
+        if (i + 1 < seg.length && !isTag(seg[i + 1])) { push(`[${seg[i]}] ${seg[i + 1]}`); i++; }
+        else if (i === seg.length - 1) pend = seg[i];
+      }
+    } else pend = '';
     if (out.length >= 12) break;
   }
   return out;
@@ -104,8 +112,10 @@ async function readIssue(x) {
   if (!pick) return { topics: [], pdf: null, why: '첨부 내려받기 자리를 못 찾음' };
   const url = `${BASE}/researchTrade/globalSupplyChain/downloadGlobalSupplyChainFile.do?no=${pick[1]}` + (pick[2] ? `&fileSeq=${pick[2]}` : '');
   try {
-    const pr = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (LinkPilot weekly digest)', Referer: x.url } });
+    // 상한을 둔다 — 머리만 오고 몸통이 안 오면 잡이 시간 한도까지 선다 (§12-81 과 같은 결).
+    const pr = await fetch(url, { signal: AbortSignal.timeout(45000), headers: { 'User-Agent': 'Mozilla/5.0 (LinkPilot weekly digest)', Referer: x.url } });
     const buf = Buffer.from(await pr.arrayBuffer());
+    if (buf.length > 40 * 1024 * 1024) return { topics: [], pdf: noSess(url), why: `PDF 가 너무 크다 (${Math.round(buf.length / 1048576)}MB)` };
     if (buf.slice(0, 5).toString() !== '%PDF-') return { topics: [], pdf: null, why: `PDF 아님 (HTTP ${pr.status})` };
     await writeFile('/tmp/kita-issue.pdf', buf);
     let t = '';
@@ -155,11 +165,22 @@ if (items.length) {
   //   그 화면이 쓰는 내려받기 주소를 그대로 짠다(추측 금지 · §4.3 · 진단 실측).
   //   PDF 에서는 앞 세 쪽의 «머리 줄»(목차·소제목)만 뽑는다 — 본문은 옮겨 싣지 않는다 (§6-2-7).
   //   이미 뽑아 둔 호는 다시 받지 않는다(§4.5) — 한 번에 새로 여는 PDF 는 셋까지.
+  //   ★ 못 뽑은 호(빈 목록)는 세 번까지만 다시 받는다(tries) — 안 그러면 그 호를 매주 내려받는다.
+  //   ★ 이번에 못 연 호는 앞 결과를 그대로 싣는다 — 진단(KITA_DIAG)으로 돌려도 지우지 않는다.
   let opened = 0;
+  const diag = process.env.KITA_DIAG === '1';
+  const keep = (x, old) => { x.topics = old.topics; x.pdf = old.pdf || null; x.tv = old.tv; if (old.tries) x.tries = old.tries; };
   for (const x of top) {
     const old = prevById.get(x.no);
-    if (old && old.tv === TV && Array.isArray(old.topics) && old.topics.length && process.env.KITA_DIAG !== '1') { x.topics = old.topics; x.pdf = old.pdf || null; x.tv = TV; }
-    else if (opened < 3) { opened++; Object.assign(x, await readIssue(x), { tv: TV }); }
+    const had = old && Array.isArray(old.topics);
+    const done = had && old.tv === TV && (old.topics.length || (old.tries || 0) >= 3);
+    if (done && !(diag && opened < 3)) keep(x, old);
+    else if (opened < 3) {
+      opened++;
+      Object.assign(x, await readIssue(x), { tv: TV });
+      x.tries = x.topics.length ? undefined : ((had && old.tv === TV ? old.tries || 0 : 0) + 1);
+      if (!x.topics.length && had && old.topics.length) keep(x, old);
+    } else if (had) keep(x, old);
     say(`- ${x.date || '날짜 못 읽음'} · ${x.title} · ${x.url}${x.topics && x.topics.length ? '' : (x.why ? ' — 분석 못 함: ' + x.why : '')}`);
     for (const t of (x.topics || []).slice(0, 6)) say(`  - ${t}`);
     delete x.why;
