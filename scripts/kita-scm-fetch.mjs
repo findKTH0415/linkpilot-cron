@@ -116,6 +116,17 @@ if (items.length) {
       .filter((h) => !/^javascript:void|#$/.test(h)).slice(0, 6);
     const onclk = [...new Set([...d.text.matchAll(/onclick\s*=\s*["']([^"']*(?:[Dd]own|[Ff]ile)[^"']*)["']/g)].map((m) => m[1]))].slice(0, 4);
     say('', `- 내려받기 주소 후보: ${hrefs.length ? hrefs.join(' · ') : '(없음)'}`, `- 누름 스크립트 후보: ${onclk.length ? onclk.join(' · ') : '(없음)'}`);
+    // 누름 스크립트가 쓰는 함수의 «부르는 자리»와 «정의»를 그대로 남긴다 — 그 인자로 주소를 짠다(추측 금지 · §4.3).
+    for (const fnName of ['doDownloadFile', 'showFileContents']) {
+      const callAt = d.text.indexOf(fnName + '(');
+      if (callAt > 0) say(`- ${fnName} 부르는 자리: \`${d.text.slice(callAt, callAt + 160).replace(/\s+/g, ' ').replace(/`/g, "'")}\``);
+      const defRe = new RegExp('(?:function\\s+' + fnName + '\\s*\\(|' + fnName + '\\s*[:=]\\s*function\\s*\\()');
+      const dm = defRe.exec(d.text);
+      if (dm) say('', `#### ${fnName} 정의`, '', '```', d.text.slice(dm.index, dm.index + 700), '```');
+      else say(`- ${fnName} 정의: 이 화면 안에 없다(바깥 스크립트 파일)`);
+    }
+    const scripts = [...new Set([...d.text.matchAll(/<script[^>]+src=["']([^"']+)["']/g)].map((m) => m[1]))].filter((x) => !/googletag|gtm|analytics/i.test(x)).slice(0, 12);
+    say(`- 바깥 스크립트: ${scripts.join(' · ') || '(없음)'}`);
     const pdfHref = hrefs.find((h) => /\.pdf|down/i.test(h));
     if (pdfHref) {
       const pdfUrl = pdfHref.startsWith('http') ? pdfHref : BASE + (pdfHref.startsWith('/') ? '' : '/') + pdfHref;
