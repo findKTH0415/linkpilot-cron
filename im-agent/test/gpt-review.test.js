@@ -77,7 +77,7 @@ test('현황표 — 지문이 같아야 «검토됨», 반영기록에 지문이
     '반영기록.md': `- a.md · ${h} · 2026-10-10\n`, 'README.md': '안내', '_검증기준.md': '기준',
   });
   const s = m.renderStatus(d, 'T');
-  assert.match(s, /\| a\.md \| `[0-9a-f]{12}` \| 검토 대기 \| 통과 \| 검토 대기 \| 반영 완료 \|/);
+  assert.match(s, /\| a\.md \| `[0-9a-f]{12}` \| 검토 대기 \| 통과 \| 검토 대기 \| 송부 대기 \| 반영 완료 \|/);
   assert.match(s, /\| b\.md \|[^\n]*옛 판을 검토함[^\n]*미반영 \|/, '옛 지문의 검토를 새 판에 이어 붙이지 않는다');
   assert.ok(!/README|_검증기준/.test(s.split('\n').filter((l) => l.startsWith('| ') && !l.startsWith('| 지침')).join('\n')), '안내 파일을 지침으로 세지 않는다');
   assert.match(s, /미반영 1건/);
@@ -134,7 +134,7 @@ test('Gemini 검토 파일 — 현황표의 Gemini 칸이 읽고, 지침으로 �
   const text = '# 지침'; const h = m.hashOf(text);
   const d = tmpBox({ 'a.md': text, 'a.gemini-review.md': `<!-- gemini-review: hash=${h} verdict=BLOCK model=g at=x -->\n` });
   const s = m.renderStatus(d, 'T');
-  assert.match(s, /\| a\.md \| `[0-9a-f]{12}` \| 반영 보류 \| 검토 대기 \| 검토 대기 \| 미반영 \|/);
+  assert.match(s, /\| a\.md \| `[0-9a-f]{12}` \| 반영 보류 \| 검토 대기 \| 검토 대기 \| 송부 대기 \| 미반영 \|/);
   assert.match(s, /지침 1건/, 'gemini-review 파일을 지침으로 세지 않는다');
   const doc = m.renderReview('a.md', h, 'g', { verdict: 'PASS', summary: '', issues: [], conflicts: [] }, 'T', 'gemini');
   assert.match(doc, /^<!-- gemini-review: hash=/);
@@ -165,4 +165,20 @@ test('Claude(3번) — 앞 두 의견을 받아 정리하고, 잔액 부족을 �
   const g = src.indexOf('await reviewGemini('), c = src.indexOf('await reviewOne('), k = src.indexOf('await reviewClaude(');
   assert.ok(g < c && c < k, '차례는 Gemini → ChatGPT → Claude');
   assert.match(src, /filter\(\(k\) => reviewedHash\(DIR, f, k\) === h\)/, '같은 지문의 앞 의견만 싣는다');
+});
+
+test('송부 — 「송부기록」에 지문이 있어야 «송부됨», 고치면 다시 «송부 대기» (2026-10-10 사장님 지시)', async () => {
+  const m = await load();
+  const d = fs.mkdtempSync(path.join(os.tmpdir(), 'gr-send-'));
+  fs.writeFileSync(path.join(d, 'a.md'), '# 가\n본문');
+  fs.writeFileSync(path.join(d, 'b.md'), '# 나\n본문');
+  fs.writeFileSync(path.join(d, '송부기록.md'), `- a.md · ${m.hashOf('# 가\n본문')} · 2026-10-10 16:30\n`);
+  let s = m.renderStatus(d, 'T');
+  assert.match(s, /\| a\.md \|[^\n]*\| 송부됨 \| 미반영 \|/);
+  assert.match(s, /\| b\.md \|[^\n]*\| 송부 대기 \| 미반영 \|/);
+  assert.match(s, /송부 대기 1건/);
+  assert.ok(!/\| 송부기록\.md/.test(s), '송부기록 자체를 지침으로 세지 않는다');
+  fs.writeFileSync(path.join(d, 'a.md'), '# 가\n고친 본문');
+  s = m.renderStatus(d, 'T');
+  assert.match(s, /\| a\.md \|[^\n]*\| 송부 대기 \| 미반영 \|/, '송부 뒤에 고친 판은 다시 송부 대기다');
 });

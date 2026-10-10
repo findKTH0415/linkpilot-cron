@@ -34,7 +34,7 @@ export const DIR = process.env.GUIDE_DIR ? path.resolve(process.env.GUIDE_DIR) :
 const { kstStamp } = require('../im-agent/core/kst.js');
 
 /* 지침이 아닌 파일 — 안내·현황·기록·검토 결과·검증 기준 */
-const NOT_GUIDE = /^(README|INBOX|반영기록|_.*)\.md$|\.(gpt|gemini|claude)-review\.md$/;
+const NOT_GUIDE = /^(README|INBOX|반영기록|송부기록|_.*)\.md$|\.(gpt|gemini|claude)-review\.md$/;
 
 export function listGuides(dir = DIR) {
   if (!fs.existsSync(dir)) return [];
@@ -241,9 +241,19 @@ export function renderReview(f, hash, model, rv, at, kind = 'gpt') {
   ].join('\n');
 }
 
+/* 사장님이 「송부」라고 하신 지침만 Orchestrator 에게 간다 — 「송부기록.md」에 `파일 · 지문` 을 남긴다
+ * 〈2026-10-10 사장님: 「송부하기 명령하기 전까지는 지침서에 업데이트 하도록 해」〉
+ * 지문 단위라 송부 뒤에 고치면 다시 «송부 대기»가 된다 — 고친 판을 몰래 보내지 않는다. */
+export function sentHashes(dir = DIR) {
+  const p = path.join(dir, '송부기록.md');
+  if (!fs.existsSync(p)) return new Set();
+  return new Set([...fs.readFileSync(p, 'utf8').matchAll(/\b([0-9a-f]{12})\b/g)].map((m) => m[1]));
+}
+
 /* 현황표 — 사람이 읽는 한 장. 열쇠 없이도 만든다 */
 export function renderStatus(dir = DIR, at = kstStamp()) {
   const applied = appliedHashes(dir);
+  const sent = sentHashes(dir);
   const rows = listGuides(dir).map((f) => {
     const h = hashOf(fs.readFileSync(path.join(dir, f), 'utf8'));
     const rh = reviewedHash(dir, f);
@@ -256,16 +266,18 @@ export function renderStatus(dir = DIR, at = kstStamp()) {
     const cv = crh === h ? verdictOfReview(dir, f, 'claude') : null;
     const cla = cv ? { PASS: '통과', REVISE: '보완 필요', BLOCK: '반영 보류' }[cv] : (crh ? '옛 판을 검토함' : '검토 대기');
     const st = applied.has(h) ? '반영 완료' : '미반영';
-    return { f, h, gpt, gem, cla, st };
+    const sd = sent.has(h) ? '송부됨' : '송부 대기';
+    return { f, h, gpt, gem, cla, sd, st };
   });
   const pending = rows.filter((r) => r.st === '미반영').length;
+  const hold = rows.filter((r) => r.sd === '송부 대기').length;
   return [
     `# 지침함 현황 — ${at} 기준`,
     '',
-    `지침 ${rows.length}건 · **미반영 ${pending}건** · 이 표는 \`npm run guide:status\` 가 만든다(손으로 고치지 않는다).`,
+    `지침 ${rows.length}건 · **미반영 ${pending}건** · 송부 대기 ${hold}건(반영하지 않는다) · 이 표는 \`npm run guide:status\` 가 만든다(손으로 고치지 않는다).`,
     '',
-    rows.length ? '| 지침 | 지문 | 1 Gemini | 2 ChatGPT | 3 Claude 정리 | Orchestrator 반영 |\n|---|---|---|---|---|---|\n'
-      + rows.map((r) => `| ${r.f} | \`${r.h}\` | ${r.gem} | ${r.gpt} | ${r.cla} | ${r.st} |`).join('\n') : '아직 지침이 없습니다.',
+    rows.length ? '| 지침 | 지문 | 1 Gemini | 2 ChatGPT | 3 Claude 정리 | 송부 | Orchestrator 반영 |\n|---|---|---|---|---|---|---|\n'
+      + rows.map((r) => `| ${r.f} | \`${r.h}\` | ${r.gem} | ${r.gpt} | ${r.cla} | ${r.sd} | ${r.st} |`).join('\n') : '아직 지침이 없습니다.',
     '',
   ].join('\n');
 }
