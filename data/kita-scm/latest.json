@@ -2,7 +2,7 @@
   "source": "한국무역협회 소재부품장비산업 공급망센터 · 글로벌 공급망 인사이트",
   "list": "https://www.kita.net/researchTrade/globalSupplyChain/globalSupplyChainList.do",
   "note": "제목·발간일·원문 주소와 첨부 PDF 의 소제목만 싣는다. 본문은 원문에서 본다.",
-  "fetchedAt": "2026-10-10T09:58:45.175Z",
+  "fetchedAt": "2026-10-10T10:05:08.041Z",
   "items": [
     {
       "no": 2986,
@@ -10,12 +10,17 @@
       "date": "2026-10-08",
       "url": "https://www.kita.net/researchTrade/globalSupplyChain/globalSupplyChainDetail.do?no=2986",
       "topics": [
-        "Ⅰ. 공급망 주간 이슈 Check!",
-        "Ⅱ. 월간 공급망",
-        "Ⅲ. 공급망 더 알아보기",
-        "Ⅳ. 공급망 소식통"
+        "[미-중·통상] 미·중 정상회담, 무역휴전 연장",
+        "[EU·탄소] CBAM 하류제품 확대안 본회의 통과",
+        "[중국·석유] 중국, 10월 석유 제품 수출 중단",
+        "심층분석 — 첨단산업의 필수 소재 희토류, 핵심 광물의 공급망 안정화 노력 지속해야",
+        "원자재 — 원유 중동, 이란 제외 중동 지역 원유 수출량 전쟁 전 87% 수준까지 회복",
+        "월간 공급망 — 소재·부품·장비 품목 심층분석 – 로터리 실린더",
+        "더 알아보기 — 미국 232조 관세 조치, 최근 변화와 기업의 대응 방안",
+        "소식통 — 수출 다변화를 위한 비관세장벽 설명회 (~10.20.(화) 신청)"
       ],
-      "pdf": "https://www.kita.net/researchTrade/globalSupplyChain/downloadGlobalSupplyChainFile.do?no=06BD16C0C32AAC0D4FD7675AAAF85B0A&fileSeq=B0721B9F23054DDC7FE56C2811A12715"
+      "pdf": "https://www.kita.net/researchTrade/globalSupplyChain/downloadGlobalSupplyChainFile.do?no=06BD16C0C32AAC0D4FD7675AAAF85B0A&fileSeq=B0721B9F23054DDC7FE56C2811A12715",
+      "tv": 2
     },
     {
       "no": 2984,
@@ -23,22 +28,39 @@
       "date": "2026-09-23",
       "url": "https://www.kita.net/researchTrade/globalSupplyChain/globalSupplyChainDetail.do?no=2984",
       "topics": [
-        "Ⅰ. 공급망 주간 이슈 Check!",
-        "Ⅱ. 월간 공급망",
-        "Ⅲ. 공급망 더 알아보기",
-        "Ⅳ. 공급망 소식통",
-        "▶ 중국은 세계 텅스텐 부존량의 47%, 광석 생산량의 80% 이상을 차지하는 텅스텐 최대 공급국 (출처: USGS)",
-        "▶ ’25.2월 중국의 이중용도 수출통제 발표 및 군수용 수요 증가 등으로 텅스텐 가공의 핵심 중간재인 암모늄 파라"
+        "[글로벌·형석] 형석 현물 가격, 10.86% 상승",
+        "[EU·알루미늄] EU, 알루미늄 스크랩 수출 정책 전환",
+        "[글로벌·석탄] ’26년 세계 석탄 수요 1.2% 증가 전망",
+        "[미-중·AI] 美 정부, 中기업의 AI 무단 증류 비판",
+        "[멕시코·통상] 美, 멕시코 AI 장비에 북미산 부품 확대 요구 한·중앙아, 광물 한-중앙아 5개국, 핵심광물 공급망 협력",
+        "심층분석 — 반도체 필수 소재 희귀가스, 전량 수입에서 공급망 내재화까지",
+        "원자재 — 리튬 SMM, 중국 리튬 재고 집계 방식 변경으로 재고량 상승, 가격 하락",
+        "월간 공급망 — 인도 핵심 광물 공급망의 빈칸과 한국의 진입 전략",
+        "더 알아보기 — 중동 사태에 따른 글로벌 핵심 광물 및 소재 공급망의 영향",
+        "소식통 — 미국 주정부 협력 중서부 투자 진출 웨비나 참가기업 모집 안내(~10.16.(금) 신청)"
       ],
-      "pdf": "https://www.kita.net/researchTrade/globalSupplyChain/downloadGlobalSupplyChainFile.do?no=239FC40F38DAC01E9893246BDCE37AE7&fileSeq=B0721B9F23054DDC7FE56C2811A12715"
+      "pdf": "https://www.kita.net/researchTrade/globalSupplyChain/downloadGlobalSupplyChainFile.do?no=239FC40F38DAC01E9893246BDCE37AE7&fileSeq=B0721B9F23054DDC7FE56C2811A12715",
+      "tv": 2
     },
     {
       "no": 2982,
       "title": "[2026.09.10] 글로벌 공급망 인사이트 179호",
       "date": "2026-09-10",
       "url": "https://www.kita.net/researchTrade/globalSupplyChain/globalSupplyChainDetail.do?no=2982",
-      "topics": [],
-      "pdf": null
+      "topics": [
+        "[미-중·통상] 美, ‘전력 비상사태 선포’",
+        "[글로벌·아연] 아연, 재고 하락으로 4년만 최고가 경신",
+        "[말련·희토류] 말련, 미가공 희토류 원광 수출 금지 해제 검토 헝가리·배터리 헝가리, 배터리 공장 환경규제 강화",
+        "[미국·통상] 美, 반도체 현지 미생산 시 표적관세 부과",
+        "[중국·철광석] 中, 폐광물 찌꺼기서 철 추출···최초 대규모 산업화",
+        "심층분석 — 중동전쟁 6개월, 나프타 공급망은 어떻게 달라졌나",
+        "원자재 — 핵심광물 中, 최대 리튬 광산 환경 평가 허가 철회",
+        "월간 공급망 — 글로벌 공급망 재편 시대, 기업이 준비해야 할 컴플라이언스와 내부통제",
+        "더 알아보기 — 美, ‘벌크전력시스템 국가비상사태 선포’ 주요 내용 및 현지 반응",
+        "소식통 — 미국 IEEPA 관세 환급 Fast Track 웨비나(~9.15.(화) 신청)"
+      ],
+      "pdf": "https://www.kita.net/researchTrade/globalSupplyChain/downloadGlobalSupplyChainFile.do?no=27831D7189E6174E9DDA39D48F162BF3&fileSeq=B0721B9F23054DDC7FE56C2811A12715",
+      "tv": 2
     },
     {
       "no": 2980,
