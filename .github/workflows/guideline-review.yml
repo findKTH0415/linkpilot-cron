@@ -1,4 +1,4 @@
-# 업무지침 ChatGPT 교차검증 〈2026-10-10 사장님 지시 · D-428〉
+# 업무지침 교차검증 (ChatGPT·Gemini) 〈2026-10-10 사장님 지시 · D-428〉
 #
 # 「여기서 업무지침 전략이 만들어지면 챗지피티와 검증 자동화 해줘」.
 #
@@ -9,7 +9,7 @@
 # ★ 열쇠는 Actions 에만 있다 — 키가 있는 자리에서 부르고 결과만 커밋한다 (§4).
 # ★ 검토는 «참고 의견»이지 승인이 아니다 (§11).
 
-name: 업무지침 ChatGPT 교차검증
+name: 업무지침 교차검증 (ChatGPT·Gemini)
 
 on:
   push:
@@ -76,7 +76,7 @@ jobs:
           code=${PIPESTATUS[0]}
           echo "code=$code" >> "$GITHUB_OUTPUT"
           {
-            echo '## 업무지침 ChatGPT 교차검증'
+            echo '## 업무지침 교차검증 (ChatGPT·Gemini)'
             echo
             head -400 review.log
             echo

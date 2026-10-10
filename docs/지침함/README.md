@@ -9,7 +9,7 @@
 ① 지침을 만든다        claude.ai 프로젝트 「LinkPilot 리뉴얼 재구성」 (Claude)
         │  docs/지침함/<날짜>-<제목>.md 로 올리고, 같은 글을 그 프로젝트 문서에도 백업한다
         ▼
-② ChatGPT 가 검증한다   GitHub Actions 「업무지침 ChatGPT 교차검증」 (저절로 돈다)
+② ChatGPT 가 검증한다   GitHub Actions 「업무지침 교차검증 (ChatGPT·Gemini)」 (저절로 돈다)
         │  <지침>.gpt-review.md (판정·문제·고칠 점) · _검증현황.md (한 장 표)
         ▼
 ③ Orchestrator 가 반영   Claude Code 세션 「AI Project Manager Orchestrator」

@@ -1,6 +1,6 @@
 'use strict';
 /**
- * gpt-review.test.js — 업무지침 ChatGPT 교차검증 (D-428 · CLAUDE.md §18)
+ * gpt-review.test.js — 업무지침 교차검증 (ChatGPT·Gemini) (D-428 · CLAUDE.md §18)
  *
  * 망 호출만 가짜로 끼우고 판정은 진짜를 돌린다 (§12-30). 갈래마다 하실 일이 다르므로
  * 「대답이 왔다」와 「판정이 왔다」·「열쇠 거부」와 「결제 한도」를 각각 잰다.
