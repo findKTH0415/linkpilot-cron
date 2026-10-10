@@ -1,13 +1,13 @@
 {
- "조회일": "2026-10-05",
+ "조회일": "2026-10-10",
  "레인": "GitHub Actions (API 규정집 v2.0)",
  "증거등급": "B — 공공 API",
- "대상": "경기도 김포시",
+ "대상": "강원특별자치도 강릉시",
  "코드": {
-  "metroCd": "41",
-  "cityCd": "570",
-  "시도": "경기도",
-  "시군구": "김포시",
+  "metroCd": "51",
+  "cityCd": "150",
+  "시도": "강원특별자치도",
+  "시군구": "강릉시",
   "조회방식": "lglDngMetroCd / lglDngCityCd"
  },
  "호출": [
@@ -30,19 +30,19 @@
  ],
  "산출": [
   {
-   "파일": "data/kepco/dgen-sgg-2026-10-05.json",
-   "건수": 127,
-   "sha256": "d6934dd0db0a2d16"
+   "파일": "data/kepco/dgen-sgg-2026-10-10.json",
+   "건수": 50,
+   "sha256": "79fea00cbaa52c50"
   },
   {
    "파일": "data/kepco/contract-sgg.csv",
    "건수": 154,
-   "sha256": "f4fcac3e6b38b0a1"
+   "sha256": "45a0b48ee8a9f4d6"
   },
   {
    "파일": "data/kepco/custchange-sgg.csv",
-   "건수": 363,
-   "sha256": "9cfbb8812117971f"
+   "건수": 379,
+   "sha256": "2659cd5186b1445a"
   }
  ]
 }
