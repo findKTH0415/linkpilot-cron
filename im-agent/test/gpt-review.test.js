@@ -140,3 +140,11 @@ test('Gemini 검토 파일 — 현황표의 Gemini 칸이 읽고, 지침으로 �
   assert.match(doc, /^<!-- gemini-review: hash=/);
   assert.match(doc, /# Gemini 교차검증/);
 });
+
+test('차례 — Gemini 가 먼저 돌고, ChatGPT 는 같은 지문의 Gemini 의견을 받아 본다 (사장님 지시 2026-10-10)', () => {
+  const src = fs.readFileSync(SCRIPT, 'utf8');
+  const g = src.indexOf('const r = await reviewGemini('), c = src.indexOf('const r = await reviewOne(');
+  assert.ok(g > 0 && c > 0 && g < c, 'Gemini 호출이 ChatGPT 호출보다 앞이어야 한다');
+  assert.match(src, /reviewedHash\(DIR, f, 'gemini'\) === hashOf\(text\)[^\n]*readFileSync/, '옛 지문의 Gemini 의견을 싣지 않는다');
+  assert.match(src, /reviewOne\(\{ name: f, text, criteria: crit,/, 'ChatGPT 에 Gemini 의견을 실어 보낸다');
+});

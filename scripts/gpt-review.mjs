@@ -247,21 +247,7 @@ async function main(argv) {
   const todo = listGuides().filter((f) => (force ? f === force : reviewedHash(DIR, f) !== hashOf(fs.readFileSync(path.join(DIR, f), 'utf8'))));
   if (force && !todo.length) log.push(`- 다시 검토하라 하신 «${force}» 가 지침함에 없습니다.`);
 
-  let done = 0; const fails = [];
-  for (const f of todo) {
-    const text = fs.readFileSync(path.join(DIR, f), 'utf8');
-    const leak = leakCheck(text);
-    if (leak.length) { fails.push({ code: 4, f, say: `공개 저장소에 둘 수 없는 글이 있습니다(${leak.join(' · ')}) — 보내지 않았습니다. 그 줄을 지우고 다시 올립니다.` }); continue; }
-    if (!key) { fails.push({ code: 2, f, say: '열쇠(OPENAI_API_KEY)가 이 자리에 없습니다 — GitHub 비밀에 넣으시면 다음 실행부터 검토합니다.' }); continue; }
-    const r = await reviewOne({ name: f, text, criteria, key, model });
-    if (!r.ok) { fails.push({ code: r.code, f, say: r.say + (r.detail ? ` (앞머리: ${r.detail.slice(0, 160)})` : '') }); if (r.code === 4 || r.code === 5 || r.code === 6) break; continue; }
-    fs.writeFileSync(path.join(DIR, reviewName(f)), renderReview(f, hashOf(text), model, r.review, kstStamp()));
-    done += 1;
-    log.push(`- ✓ ${f} — ${VLABEL[r.review.verdict]} (문제 ${r.review.issues.length}건)`);
-  }
-  for (const x of fails) log.push(`- ✗ ${x.f} — ${x.say}`);
-
-  /* 둘째 검증자 Gemini — ChatGPT 와 따로 돈다. 결과 글은 로그에도 싣는다(작업 가지에서는 커밋하지 않으므로) */
+  /* 1번 검증자 Gemini — 먼저 돈다 〈2026-10-10 사장님: 「1.제미나이 2.쳇지피티 순으로」〉. 결과 글은 로그에도 싣는다(작업 가지에서는 커밋하지 않으므로) */
   const gkeys = geminiKeys();
   const gTodo = listGuides().filter((f) => (force ? f === force : reviewedHash(DIR, f, 'gemini') !== hashOf(fs.readFileSync(path.join(DIR, f), 'utf8'))));
   let gDone = 0; const gFails = [];
@@ -278,6 +264,25 @@ async function main(argv) {
     log.push('', '<details><summary>Gemini 검토 전문</summary>', '', doc, '</details>', '');
   }
   for (const x of gFails) log.push(`- ✗ [Gemini] ${x.f} — ${x.say}`);
+
+  let done = 0; const fails = [];
+  for (const f of todo) {
+    const text = fs.readFileSync(path.join(DIR, f), 'utf8');
+    const leak = leakCheck(text);
+    if (leak.length) { fails.push({ code: 4, f, say: `공개 저장소에 둘 수 없는 글이 있습니다(${leak.join(' · ')}) — 보내지 않았습니다. 그 줄을 지우고 다시 올립니다.` }); continue; }
+    if (!key) { fails.push({ code: 2, f, say: '열쇠(OPENAI_API_KEY)가 이 자리에 없습니다 — GitHub 비밀에 넣으시면 다음 실행부터 검토합니다.' }); continue; }
+    /* 2번 검증자 ChatGPT 는 Gemini 의견까지 받아 동의·반박을 함께 적는다 — 같은 지문의 의견만 싣는다 */
+    const gp = path.join(DIR, reviewName(f, 'gemini'));
+    const prior = reviewedHash(DIR, f, 'gemini') === hashOf(text) ? fs.readFileSync(gp, 'utf8') : '';
+    const crit = prior ? `${criteria}\n\n## 앞선 검증자(Gemini) 의견 — 동의하는 것과 반박하는 것을 issues·summary 에 함께 적는다\n${prior}` : criteria;
+    const r = await reviewOne({ name: f, text, criteria: crit, key, model });
+    if (!r.ok) { fails.push({ code: r.code, f, say: r.say + (r.detail ? ` (앞머리: ${r.detail.slice(0, 160)})` : '') }); if (r.code === 4 || r.code === 5 || r.code === 6) break; continue; }
+    fs.writeFileSync(path.join(DIR, reviewName(f)), renderReview(f, hashOf(text), model, r.review, kstStamp()));
+    done += 1;
+    log.push(`- ✓ ${f} — ${VLABEL[r.review.verdict]} (문제 ${r.review.issues.length}건)`);
+  }
+  for (const x of fails) log.push(`- ✗ ${x.f} — ${x.say}`);
+
   writeStatus();
 
   /* 판정 — 섞이면 «고칠 것이 있는 쪽»을 먼저 말한다 (§12-24) */
