@@ -1,26 +1,44 @@
 {
   "source": "한국무역협회 소재부품장비산업 공급망센터 · 글로벌 공급망 인사이트",
   "list": "https://www.kita.net/researchTrade/globalSupplyChain/globalSupplyChainList.do",
-  "note": "제목·발간일·원문 주소만 싣는다. 본문은 원문에서 본다.",
-  "fetchedAt": "2026-10-10T09:46:07.191Z",
+  "note": "제목·발간일·원문 주소와 첨부 PDF 의 소제목만 싣는다. 본문은 원문에서 본다.",
+  "fetchedAt": "2026-10-10T09:52:38.106Z",
   "items": [
     {
       "no": 2986,
       "title": "[2026.10.08] 글로벌 공급망 인사이트 181호",
       "date": "2026-10-08",
-      "url": "https://www.kita.net/researchTrade/globalSupplyChain/globalSupplyChainDetail.do?no=2986"
+      "url": "https://www.kita.net/researchTrade/globalSupplyChain/globalSupplyChainDetail.do?no=2986",
+      "topics": [
+        "Ⅰ. 공급망 주간 이슈 Check!",
+        "Ⅱ. 월간 공급망",
+        "Ⅲ. 공급망 더 알아보기",
+        "Ⅳ. 공급망 소식통"
+      ],
+      "pdf": "https://www.kita.net/researchTrade/globalSupplyChain/downloadGlobalSupplyChainFile.do?no=06BD16C0C32AAC0D4FD7675AAAF85B0A&fileSeq=B0721B9F23054DDC7FE56C2811A12715"
     },
     {
       "no": 2984,
       "title": "[2026.09.23] 글로벌 공급망 인사이트 180호",
       "date": "2026-09-23",
-      "url": "https://www.kita.net/researchTrade/globalSupplyChain/globalSupplyChainDetail.do?no=2984"
+      "url": "https://www.kita.net/researchTrade/globalSupplyChain/globalSupplyChainDetail.do?no=2984",
+      "topics": [
+        "Ⅰ. 공급망 주간 이슈 Check!",
+        "Ⅱ. 월간 공급망",
+        "Ⅲ. 공급망 더 알아보기",
+        "Ⅳ. 공급망 소식통",
+        "▶ 중국은 세계 텅스텐 부존량의 47%, 광석 생산량의 80% 이상을 차지하는 텅스텐 최대 공급국 (출처: USGS)",
+        "▶ ’25.2월 중국의 이중용도 수출통제 발표 및 군수용 수요 증가 등으로 텅스텐 가공의 핵심 중간재인 암모늄 파라"
+      ],
+      "pdf": "https://www.kita.net/researchTrade/globalSupplyChain/downloadGlobalSupplyChainFile.do?no=239FC40F38DAC01E9893246BDCE37AE7&fileSeq=B0721B9F23054DDC7FE56C2811A12715"
     },
     {
       "no": 2982,
       "title": "[2026.09.10] 글로벌 공급망 인사이트 179호",
       "date": "2026-09-10",
-      "url": "https://www.kita.net/researchTrade/globalSupplyChain/globalSupplyChainDetail.do?no=2982"
+      "url": "https://www.kita.net/researchTrade/globalSupplyChain/globalSupplyChainDetail.do?no=2982",
+      "topics": [],
+      "pdf": null
     },
     {
       "no": 2980,
