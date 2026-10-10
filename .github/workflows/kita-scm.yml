@@ -1,0 +1,74 @@
+name: 소부장 공급망 인사이트 주간 수집
+
+# 한국무역협회 소재부품장비산업 공급망센터가 매주(목) 올리는 «글로벌 공급망 인사이트»를
+# 금요일 10:00 KST 에 받아 data/kita-scm/latest.json 으로 남긴다 (D-431).
+# ★ 시각은 UTC 다 — 금 10:00 KST = 금 01:00 UTC (CLAUDE.md §2).
+# ★ 제목·발간일·원문 주소만 싣는다 — 본문은 원문에서 본다. 열쇠도 접속정보도 없다.
+
+on:
+  schedule:
+    - cron: '0 1 * * 5'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+
+      - name: 목록 조회
+        id: fetch
+        continue-on-error: true
+        run: |
+          set +e
+          node scripts/kita-scm-fetch.mjs 2>&1 | tee /tmp/kita.log
+          code=${PIPESTATUS[0]}
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          { echo '### 소부장 공급망 인사이트'; head -1 data/kita-scm/_summary.md 2>/dev/null || echo '(요약 없음)'; } >> "$GITHUB_STEP_SUMMARY"
+          exit $code
+
+      - name: 결과 커밋
+        if: always()
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -u
+          if [ -z "${DEFAULT_BRANCH:-}" ]; then
+            echo "::warning::기본 가지 이름을 못 받았다 — 커밋하지 않는다. 결과는 아래 아티팩트에 있다"
+            exit 0
+          fi
+          if [ "$REF_NAME" != "$DEFAULT_BRANCH" ]; then
+            echo "가지 '$REF_NAME' 에서 돌았다 — **결과를 커밋하지 않는다.**"
+            echo "  까닭: 열려 있는 PR 의 머리가 움직이면 검사가 다시 선다."
+            echo "  받을 곳: 아래 «아티팩트 업로드» 아티팩트 (kita-scm) — 요약과 자료가 그대로 들어 있다."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/kita-scm
+          git diff --staged --quiet || git commit -m "소부장 공급망 인사이트 갱신 ($(date -u +%Y-%m-%d))"
+          git push
+
+      - name: 아티팩트 업로드
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: kita-scm
+          path: data/kita-scm
+
+      - name: 판정
+        if: always()
+        env:
+          CODE: ${{ steps.fetch.outputs.code }}
+        run: |
+          echo "목록 조회 값: ${CODE:-못 받음}"
+          [ "${CODE:-2}" = "0" ] || exit 1
