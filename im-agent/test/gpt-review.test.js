@@ -1,0 +1,108 @@
+'use strict';
+/**
+ * gpt-review.test.js — 업무지침 ChatGPT 교차검증 (D-428 · CLAUDE.md §18)
+ *
+ * 망 호출만 가짜로 끼우고 판정은 진짜를 돌린다 (§12-30). 갈래마다 하실 일이 다르므로
+ * 「대답이 왔다」와 「판정이 왔다」·「열쇠 거부」와 「결제 한도」를 각각 잰다.
+ */
+const test = require('node:test');
+const assert = require('node:assert');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { spawnSync } = require('child_process');
+
+const ROOT = path.resolve(__dirname, '..', '..');
+const SCRIPT = path.join(ROOT, 'scripts', 'gpt-review.mjs');
+const load = () => import(SCRIPT);
+const res = (status, body) => ({ ok: status >= 200 && status < 300, status, text: async () => (typeof body === 'string' ? body : JSON.stringify(body)) });
+const okBody = (j) => ({ choices: [{ message: { content: JSON.stringify(j) } }] });
+const KEY = 'sk-test-ABCDEFGHIJKLMNOPQRSTUVWX';
+
+test('갈래 — 상태코드와 본문으로 하실 일을 가른다', async () => {
+  const m = await load();
+  assert.strictEqual(m.classify(undefined).code, 3);
+  assert.strictEqual(m.classify(401, '').code, 4);
+  assert.strictEqual(m.classify(429, '{"error":{"code":"insufficient_quota"}}').code, 5, '결제 한도는 기다려도 안 낫는다 — 3 으로 뭉개지 않는다');
+  assert.strictEqual(m.classify(429, 'rate limit').code, 3, '잠깐 한도는 기다리면 낫는다 — 5 로 적지 않는다');
+  assert.strictEqual(m.classify(404, 'The model `x` does not exist').code, 6);
+  assert.strictEqual(m.classify(503, '').code, 3);
+  assert.ok(!/열쇠를 다시/.test(m.classify(undefined).say), '못 닿음이 열쇠를 가리키면 안 된다 (M-86)');
+});
+
+test('검토 한 건 — 통과·거부·한도·모델·못 닿음·형식 아님', async () => {
+  const m = await load();
+  const base = { name: 'a.md', text: '지침', criteria: '', key: KEY, model: 'm' };
+  let r = await m.reviewOne({ ...base, fetchImpl: async () => res(200, okBody({ verdict: 'PASS', summary: 's', issues: [] })) });
+  assert.ok(r.ok && r.review.verdict === 'PASS');
+  r = await m.reviewOne({ ...base, fetchImpl: async () => res(200, okBody({ verdict: 'PASS', summary: 's', issues: [{ severity: 'HIGH', problem: 'x' }] })) });
+  assert.strictEqual(r.review.verdict, 'REVISE', 'HIGH 가 있는데 통과라 적으면 그 말을 믿지 않는다');
+  r = await m.reviewOne({ ...base, fetchImpl: async () => res(401, `Incorrect API key provided: ${KEY}`) });
+  assert.strictEqual(r.code, 4);
+  assert.ok(!r.detail.includes(KEY), '되비춘 열쇠를 가린다 (§2)');
+  r = await m.reviewOne({ ...base, fetchImpl: async () => res(429, '{"error":{"code":"insufficient_quota"}}') });
+  assert.strictEqual(r.code, 5);
+  r = await m.reviewOne({ ...base, fetchImpl: async () => res(404, 'model_not_found: model does not exist') });
+  assert.strictEqual(r.code, 6);
+  r = await m.reviewOne({ ...base, fetchImpl: async () => { throw new Error('fetch failed'); } });
+  assert.strictEqual(r.code, 3);
+  r = await m.reviewOne({ ...base, fetchImpl: async () => res(200, okBody({ hello: 1 })) });
+  assert.ok(!r.ok && r.kind === 'unparsed', '판정을 못 읽은 대답을 통과로 적지 않는다 (§8)');
+});
+
+test('공개 저장소 — 열쇠·전화번호가 든 지침은 보내지 않는다', async () => {
+  const m = await load();
+  assert.ok(m.leakCheck(`키는 ${KEY} 입니다`).length);
+  assert.ok(m.leakCheck('연락 010-1234-5678').length);
+  assert.strictEqual(m.leakCheck('평범한 지침입니다').length, 0, '멀쩡한 글은 안 막는다');
+});
+
+function tmpBox(files) {
+  const d = fs.mkdtempSync(path.join(os.tmpdir(), 'guide-'));
+  for (const [k, v] of Object.entries(files)) fs.writeFileSync(path.join(d, k), v);
+  return d;
+}
+const run = (dir, args = [], env = {}) => spawnSync(process.execPath, [SCRIPT, ...args], {
+  encoding: 'utf8', env: { ...process.env, GUIDE_DIR: dir, OPENAI_API_KEY: '', ...env },
+});
+
+test('현황표 — 지문이 같아야 «검토됨», 반영기록에 지문이 있어야 «반영 완료»', async () => {
+  const m = await load();
+  const text = '# 지침\n내용';
+  const h = m.hashOf(text);
+  const d = tmpBox({
+    'a.md': text, 'b.md': '# 다른 지침',
+    'a.gpt-review.md': `<!-- gpt-review: hash=${h} verdict=PASS model=m at=x -->\n`,
+    'b.gpt-review.md': '<!-- gpt-review: hash=000000000000 verdict=PASS model=m at=x -->\n',
+    '반영기록.md': `- a.md · ${h} · 2026-10-10\n`, 'README.md': '안내', '_검증기준.md': '기준',
+  });
+  const s = m.renderStatus(d, 'T');
+  assert.match(s, /\| a\.md \|[^\n]*통과 \| 반영 완료 \|/);
+  assert.match(s, /\| b\.md \|[^\n]*옛 판을 검토함[^\n]*미반영 \|/, '옛 지문의 검토를 새 판에 이어 붙이지 않는다');
+  assert.ok(!/README|_검증기준/.test(s.split('\n').filter((l) => l.startsWith('| ') && !l.startsWith('| 지침')).join('\n')), '안내 파일을 지침으로 세지 않는다');
+  assert.match(s, /미반영 1건/);
+});
+
+test('열쇠가 없으면 «판정 2» 로 빨갛게 끝나고, 검토할 것이 없으면 0 이다', () => {
+  const d = tmpBox({ 'a.md': '# 지침' });
+  const r = run(d);
+  assert.strictEqual(r.status, 2, r.stdout + r.stderr);
+  assert.match(r.stdout.split('\n')[0], /^판정 2/, '판정을 맨 앞에 적는다 (§6-3 ①)');
+  assert.ok(fs.existsSync(path.join(d, '_검증현황.md')), '못 해도 현황표는 남긴다');
+  const e = tmpBox({ 'README.md': '안내' });
+  assert.strictEqual(run(e).status, 0);
+  const leak = tmpBox({ 'a.md': `키 ${KEY}` });
+  const rl = run(leak, [], { OPENAI_API_KEY: 'sk-real-should-not-be-used-000000' });
+  assert.strictEqual(rl.status, 4, '열쇠 모양이 든 지침은 보내지 않고 4 로 끝낸다');
+  assert.match(rl.stdout, /공개 저장소에 둘 수 없는 글/, '4 의 까닭이 «보내지 않았다»여야 한다 — 거부된 4 와 섞이면 안 된다');
+  assert.ok(!rl.stdout.includes('sk-real-should-not-be-used'), '열쇠 값을 찍지 않는다');
+});
+
+test('워크플로 — 지침함이 바뀌면 돌고, 판정이 맨 끝이며, 열쇠는 비밀에서만 온다', () => {
+  const y = fs.readFileSync(path.join(ROOT, '.github', 'workflows', 'guideline-review.yml'), 'utf8');
+  assert.match(y, /docs\/지침함\/\*\*/);
+  assert.match(y, /OPENAI_API_KEY:\s*\$\{\{\s*secrets\.OPENAI_API_KEY\s*\}\}/);
+  const names = [...y.matchAll(/^\s*- name:\s*(.+)$/gm)].map((x) => x[1].trim());
+  assert.strictEqual(names[names.length - 1], '판정', '판정이 맨 끝이 아니면 빨갈 때 받을 것이 안 남는다');
+  assert.ok(fs.existsSync(path.join(ROOT, '.claude', 'commands', 'guideline-inbox.md')), 'Orchestrator 가 칠 명령이 있다');
+});
