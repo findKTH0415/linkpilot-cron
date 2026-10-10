@@ -76,6 +76,7 @@ const KEYS = [
   ['FSC_FISHERIES_COOPERATIVE_BANK_API', '금융위원회 금융통계', '수산업협동조합 — 아직 커넥터에 안 붙였다 (scripts/fsc-probe.mjs)'],
   ['FSC_SP_FIN', '금융위원회', '개인사업자금융정보(보증잔액·예금대출) — 아직 커넥터에 안 붙였다 (scripts/fsc-probe.mjs)'],
   ['KOICA_PROJ_SC', '한국국제협력단', '사업정보(분야·국가) — 아직 커넥터에 안 붙였다 (scripts/fsc-probe.mjs)'],
+  ['KOICA_GLOBAL_POLITICAL_DEVELOPMENTS', '한국국제협력단', '세계 정치동향 — 아직 커넥터에 안 붙였다 (scripts/fsc-probe.mjs)'],
   ['MOLIT_LUR_LAW_KEY', '국토교통부', '토지이용규제 법령정보 — 아직 커넥터에 안 붙였다 (scripts/fsc-probe.mjs)'],
   ['FSC_KOFIA_API', '금융위원회 금융투자협회', '펀드·증시자금·신용공여 — 아직 커넥터에 안 붙였다 (scripts/fsc-probe.mjs)'],
   ['LAW_OC|LAW_OPEN_DATA', '국가법령정보센터', '법령·조례 (이름 둘 다 읽는다)'],
