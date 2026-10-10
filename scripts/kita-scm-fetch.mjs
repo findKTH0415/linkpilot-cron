@@ -17,7 +17,7 @@ const DETAIL = (no) => `${BASE}/researchTrade/globalSupplyChain/globalSupplyChai
 await mkdir(OUT, { recursive: true });
 
 const log = [];
-const say = (s) => { console.log(s); log.push(s); };
+const say = (...ls) => { for (const s of ls) { console.log(s); log.push(s); } };
 
 async function get(url) {
   const ctl = new AbortController();
@@ -95,6 +95,18 @@ if (items.length) {
   }, null, 2) + '\n');
   say('', `## 최근 호 (새로 ${fresh}개)`, '');
   for (const x of top) say(`- ${x.date || '날짜 못 읽음'} · ${x.title} · ${x.url}`);
+  // ★ 진단 둘째 — 가장 최근 호의 상세 화면 생김새를 잰다(«자료분석»을 붙일 자리를 찾는다 · §4.3).
+  //   본문을 옮겨 싣지 않는다 — 진단용 앞머리 800자와 «첨부 이름»만 요약에 남긴다.
+  const d = await get(top[0].url);
+  if (d.reached && d.ok) {
+    const txt = strip(d.text);
+    const at = txt.indexOf(String(top[0].title).replace(/^\[[^\]]*\]\s*/, '').slice(0, 12));
+    const files = [...new Set((d.text.match(/[^"'<>\s\/]+\.(?:pdf|hwp|hwpx|pptx?|docx?)/gi) || []))].slice(0, 6);
+    say('', `## 상세 화면 진단 — ${top[0].title}`, '', `- HTTP ${d.status} · 본문 ${d.text.length}자 · 첨부 후보: ${files.length ? files.join(' · ') : '(없음)'}`,
+      '', '```', txt.slice(Math.max(0, at), Math.max(0, at) + 800), '```');
+  } else {
+    say('', `- 상세 화면 못 받음 (${d.reached ? 'HTTP ' + d.status : '응답 없음'}) — 목록은 받았으니 판정은 그대로다`);
+  }
 } else if (prev) {
   say('', '- 이번엔 못 받아 **앞 결과(latest.json)를 그대로 둔다** — 빈 것으로 덮지 않는다');
 }
