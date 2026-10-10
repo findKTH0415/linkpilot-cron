@@ -198,6 +198,10 @@ jobs:
           DATA_GO_KR_KEY:   ${{ secrets.DATA_GO_KR_KEY }}
           APIS_DATA:        ${{ secrets.APIS_DATA }}
           SPECIAL_DAY_INFO: ${{ secrets.SPECIAL_DAY_INFO }}
+          # ★ D-435 — 국제수지(ECOS 와 같은 열쇠) · 국가건설기준(KICT_API_KEY) 진단
+          ECOS_API_KEY:     ${{ secrets.ECOS_API_KEY }}
+          ECOS_BOK_KEY:     ${{ secrets.ECOS_BOK_KEY }}
+          KICT_API_KEY:     ${{ secrets.KICT_API_KEY }}
         run: |
           node scripts/fsc-probe.mjs || true
           {
@@ -214,6 +218,10 @@ jobs:
           node scripts/price-probe.mjs || true
           { echo ''; echo '### 전력 판매 단가 (SMP · REC)'; cat data/_api/price-probe.md 2>/dev/null | head -60 || echo '(못 읽었다)'; } >> "$GITHUB_STEP_SUMMARY"
           cat data/_api/price-probe.md 2>/dev/null || true
+          # ★ D-435 — 한국은행 국제수지. 통계표 코드를 외워 박지 않고 목록에서 찾아 부른다 (§4.3).
+          node scripts/ecos-bop-probe.mjs || true
+          { echo ''; echo '### 한국은행 국제수지'; head -40 data/_api/ecos-bop-probe.md 2>/dev/null || echo '(못 읽었다)'; } >> "$GITHUB_STEP_SUMMARY"
+          cat data/_api/ecos-bop-probe.md 2>/dev/null || true
 
       # ★★★ 네이버 클라우드 Maps — **진단** 〈2026-09-25 · D-314〉.
       #   사장님이 Client ID · Secret 을 넣으셨는데 **넣으신 이름**과 **호스트(옛·새)** 를
