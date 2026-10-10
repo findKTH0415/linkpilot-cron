@@ -9,6 +9,7 @@
 //   갈래로 가른다. 추측으로 고른 자리에서 «아무것도 못 찾았다»를 «발간이 없다»로 적지 않는다.
 
 import { mkdir, writeFile, readFile } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
 
 const OUT = 'data/kita-scm';
 const BASE = 'https://www.kita.net';
@@ -108,6 +109,30 @@ if (items.length) {
     const files = [...new Set((d.text.match(/[^"'<>\s\/]+\.(?:pdf|hwp|hwpx|pptx?|docx?)/gi) || []))].slice(0, 6);
     say('', `## 상세 화면 진단 — ${top[0].title}`, '', `- HTTP ${d.status} · 본문 ${d.text.length}자 · 첨부 후보: ${files.length ? files.join(' · ') : '(없음)'}`,
       '', '```', txt.slice(Math.max(0, at), Math.max(0, at) + 1000), '```');
+    // ★ 진단 셋째 — 상세 화면에는 본문이 없고 «첨부파일을 확인해 주십시오»뿐이다(2026-10-10 실측).
+    //   그러니 «자료분석»은 PDF 에서 해야 한다. 내려받기 주소 후보를 적고, 첫 후보를 받아
+    //   pdftotext 로 앞 세 쪽의 «머리 줄»만 뽑는다. 본문은 옮겨 싣지 않는다 (§6-2-7).
+    const hrefs = [...new Set([...d.text.matchAll(/href\s*=\s*["']([^"']*(?:[Dd]own|[Ff]ile)[^"']*)["']/g)].map((m) => m[1].replace(/&amp;/g, '&')))]
+      .filter((h) => !/^javascript:void|#$/.test(h)).slice(0, 6);
+    const onclk = [...new Set([...d.text.matchAll(/onclick\s*=\s*["']([^"']*(?:[Dd]own|[Ff]ile)[^"']*)["']/g)].map((m) => m[1]))].slice(0, 4);
+    say('', `- 내려받기 주소 후보: ${hrefs.length ? hrefs.join(' · ') : '(없음)'}`, `- 누름 스크립트 후보: ${onclk.length ? onclk.join(' · ') : '(없음)'}`);
+    const pdfHref = hrefs.find((h) => /\.pdf|down/i.test(h));
+    if (pdfHref) {
+      const pdfUrl = pdfHref.startsWith('http') ? pdfHref : BASE + (pdfHref.startsWith('/') ? '' : '/') + pdfHref;
+      try {
+        const pr = await fetch(pdfUrl, { headers: { 'User-Agent': 'Mozilla/5.0 (LinkPilot weekly digest)', Referer: top[0].url } });
+        const buf = Buffer.from(await pr.arrayBuffer());
+        const isPdf = buf.slice(0, 5).toString() === '%PDF-';
+        say(`- PDF 받기: HTTP ${pr.status} · ${buf.length}바이트 · ${isPdf ? 'PDF 맞음' : 'PDF 아님(' + buf.slice(0, 40).toString().replace(/\s+/g, ' ') + ')'}`);
+        if (isPdf) {
+          await writeFile('/tmp/kita-latest.pdf', buf);
+          let txt2 = '';
+          try { txt2 = execFileSync('pdftotext', ['-l', '3', '-layout', '/tmp/kita-latest.pdf', '-'], { encoding: 'utf8' }); }
+          catch (e) { say(`- pdftotext 못 돌림 — ${String(e.message).slice(0, 120)}`); }
+          if (txt2) say('', '### PDF 앞 세 쪽 앞머리 (진단용)', '', '```', txt2.replace(/[ \t]+/g, ' ').replace(/\n{2,}/g, '\n').slice(0, 1200), '```');
+        }
+      } catch (e) { say(`- PDF 받기 실패 — ${String(e.message).slice(0, 120)}`); }
+    }
   } else {
     say('', `- 상세 화면 못 받음 (${d.reached ? 'HTTP ' + d.status : '응답 없음'}) — 목록은 받았으니 판정은 그대로다`);
   }
