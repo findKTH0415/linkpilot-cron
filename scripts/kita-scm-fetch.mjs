@@ -14,6 +14,8 @@ import { execFileSync } from 'node:child_process';
 const OUT = 'data/kita-scm';
 const BASE = 'https://www.kita.net';
 const LIST = `${BASE}/researchTrade/globalSupplyChain/globalSupplyChainList.do`;
+// 뽑는 규칙의 판 — 규칙을 바꾸면 올린다. 옛 판으로 뽑아 둔 소제목은 다시 뽑는다.
+const TV = 2;
 const DETAIL = (no) => `${BASE}/researchTrade/globalSupplyChain/globalSupplyChainDetail.do?no=${no}`;
 await mkdir(OUT, { recursive: true });
 
@@ -61,16 +63,35 @@ function parseList(html) {
 // 세션 꼬리(;JSESSIONID_KITA=…)는 남기지 않는다 — 공개 저장소다.
 const noSess = (u) => String(u).replace(/;JSESSIONID[^?'"\s]*/gi, '');
 
-// 첨부 PDF 앞 세 쪽에서 «소제목» 줄을 뽑는다. 못 뽑으면 빈 목록 — 지어내지 않는다.
+// 첨부 PDF «첫 쪽»(목차 쪽)에서 그 호의 이슈 제목을 뽑는다 (2026-10-10 실측 규격).
+// 첫 쪽은 두 단(段) 목차라 -layout 글에서 넓은 빈칸(3칸 이상)이 단을 가른다.
+//   · «주요 공급망 이슈» ~ «공급망 이슈 포커스» 사이: [태그(예 미-중·통상)] [제목] 짝
+//   · Ⅱ·Ⅲ·Ⅳ 머리와 «산업·품목 심층분석»·«원자재 뉴스 PLUS» 바로 다음 줄: 그 절의 제목
+// 고정 목차 머리(Ⅰ. 공급망 주간 이슈 Check! 등)는 싣지 않는다 — 매 호 같아 정보가 아니다.
+// 못 뽑으면 빈 목록이다 — 지어내지 않는다.
 function headLines(text) {
+  const page1 = String(text).split('\f')[0];
+  const rows = page1.split('\n').map((l) => l.replace(/\s+$/, '')).filter((l) => l.trim());
+  const isTag = (x) => /^[가-힣A-Za-z]+(?:[-·][가-힣A-Za-z]+)+$/.test(x) && x.length <= 14;
   const out = [];
-  const mark = /^(?:[■□◆◇●○▶▷◎※]|[ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩ][.\s]|\d{1,2}[.)]\s|[①-⑩]|[가-하][.)]\s)/;
-  for (let ln of String(text).split('\n')) {
-    ln = ln.replace(/\s+/g, ' ').trim();
-    if (ln.length < 6 || ln.length > 80 || !mark.test(ln) || /\.{4,}|^\d+$/.test(ln)) continue;
-    ln = ln.replace(/\s*\d{1,3}$/, '');
-    if (!out.includes(ln)) out.push(ln);
-    if (out.length >= 8) break;
+  const push = (t) => { t = t.replace(/\s+/g, ' ').trim(); if (t.length >= 6 && t.length <= 90 && !out.includes(t)) out.push(t); };
+  let mode = '';
+  const after = { 'Ⅱ': '월간 공급망', 'Ⅲ': '더 알아보기', 'Ⅳ': '소식통' };
+  let want = '';
+  for (const raw of rows) {
+    const line = raw.trim();
+    if (want) { push(`${want} — ${line.replace(/^[가-힣A-Za-z]+·[가-힣A-Za-z]+\s+/, '')}`); want = ''; continue; }
+    if (/^주요 공급망 이슈$/.test(line)) { mode = 'issues'; continue; }
+    if (/^공급망 이슈 포커스/.test(line)) { mode = ''; continue; }
+    const m = line.match(/^([ⅡⅢⅣ])\./);
+    if (m) { mode = ''; want = after[m[1]]; continue; }
+    if (/^산업·품목 심층분석$/.test(line)) { mode = ''; want = '심층분석'; continue; }
+    if (/^원자재 뉴스 PLUS$/.test(line)) { mode = ''; want = '원자재'; continue; }
+    if (mode === 'issues') {
+      const seg = line.split(/\s{3,}/).map((x) => x.trim()).filter(Boolean);
+      for (let i = 0; i < seg.length - 1; i++) if (isTag(seg[i]) && !isTag(seg[i + 1])) { push(`[${seg[i]}] ${seg[i + 1]}`); i++; }
+    }
+    if (out.length >= 12) break;
   }
   return out;
 }
@@ -88,7 +109,7 @@ async function readIssue(x) {
     if (buf.slice(0, 5).toString() !== '%PDF-') return { topics: [], pdf: null, why: `PDF 아님 (HTTP ${pr.status})` };
     await writeFile('/tmp/kita-issue.pdf', buf);
     let t = '';
-    try { t = execFileSync('pdftotext', ['-l', '3', '-layout', '/tmp/kita-issue.pdf', '-'], { encoding: 'utf8' }); }
+    try { t = execFileSync('pdftotext', ['-l', '1', '-layout', '/tmp/kita-issue.pdf', '-'], { encoding: 'utf8' }); }
     catch { return { topics: [], pdf: noSess(url), why: 'pdftotext 없음' }; }
     const topics = headLines(t);
     if (process.env.KITA_DIAG === '1' && !globalThis.__kitaDiagDone) { globalThis.__kitaDiagDone = 1;
@@ -137,8 +158,8 @@ if (items.length) {
   let opened = 0;
   for (const x of top) {
     const old = prevById.get(x.no);
-    if (old && Array.isArray(old.topics) && old.topics.length && process.env.KITA_DIAG !== '1') { x.topics = old.topics; x.pdf = old.pdf || null; }
-    else if (opened < 3) { opened++; Object.assign(x, await readIssue(x)); }
+    if (old && old.tv === TV && Array.isArray(old.topics) && old.topics.length && process.env.KITA_DIAG !== '1') { x.topics = old.topics; x.pdf = old.pdf || null; x.tv = TV; }
+    else if (opened < 3) { opened++; Object.assign(x, await readIssue(x), { tv: TV }); }
     say(`- ${x.date || '날짜 못 읽음'} · ${x.title} · ${x.url}${x.topics && x.topics.length ? '' : (x.why ? ' — 분석 못 함: ' + x.why : '')}`);
     for (const t of (x.topics || []).slice(0, 6)) say(`  - ${t}`);
     delete x.why;
