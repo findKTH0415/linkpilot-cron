@@ -36,7 +36,7 @@ test('검토 한 건 — 통과·거부·한도·모델·못 닿음·형식 아�
   let r = await m.reviewOne({ ...base, fetchImpl: async () => res(200, okBody({ verdict: 'PASS', summary: 's', issues: [] })) });
   assert.ok(r.ok && r.review.verdict === 'PASS');
   r = await m.reviewOne({ ...base, fetchImpl: async () => res(200, okBody({ verdict: 'PASS', summary: 's', issues: [{ severity: 'HIGH', problem: 'x' }] })) });
-  assert.strictEqual(r.review.verdict, 'REVISE', 'HIGH 가 있는데 통과라 적으면 그 말을 믿지 않는다');
+  assert.strictEqual(r.review.verdict, 'BLOCK', 'HIGH 가 있으면 반영 보류다 — 통과·보완 필요라 적어도 믿지 않는다');
   r = await m.reviewOne({ ...base, fetchImpl: async () => res(401, `Incorrect API key provided: ${KEY}`) });
   assert.strictEqual(r.code, 4);
   assert.ok(!r.detail.includes(KEY), '되비춘 열쇠를 가린다 (§2)');

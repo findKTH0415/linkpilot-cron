@@ -118,7 +118,7 @@ export function parseReview(content) {
   j.issues = Array.isArray(j.issues) ? j.issues : [];
   j.conflicts = Array.isArray(j.conflicts) ? j.conflicts : [];
   /* HIGH 가 있는데 PASS 라고 하면 그 말을 믿지 않는다 — 판정과 근거가 서로 다른 말을 하면 사고 신호다 (§8) */
-  if (j.verdict === 'PASS' && j.issues.some((i) => i && i.severity === 'HIGH')) j.verdict = 'REVISE';
+  if (j.verdict !== 'BLOCK' && j.issues.some((i) => i && i.severity === 'HIGH')) j.verdict = 'BLOCK';
   return j;
 }
 
