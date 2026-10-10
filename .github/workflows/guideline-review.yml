@@ -1,21 +1,23 @@
-# 업무지침 교차검증 (ChatGPT·Gemini) 〈2026-10-10 사장님 지시 · D-428〉
+# 업무지침 교차검증 (Gemini) 〈2026-10-10 사장님 지시 · D-428 · 2026-10-11 D-437〉
 #
-# 「여기서 업무지침 전략이 만들어지면 챗지피티와 검증 자동화 해줘」.
+# 「여기서 업무지침 전략이 만들어지면 … 검증 자동화 해줘」.
+# ★ 2026-10-11 사장님: 「ChatGPT, Claude API 검증은 빼줘」 — 검증자는 Gemini 하나다.
+#   OpenAI·Anthropic 열쇠는 이 워크플로가 더는 받지 않는다. Gemini 가 못 하면 프로젝트 세션의 Claude 가 스스로 검증한다.
 #
 # 흐름: Claude(LinkPilot 리뉴얼 재구성 프로젝트)가 지침을 docs/지침함/ 에 올린다
-#   → 이 워크플로가 바뀐 지침만 ChatGPT 로 교차검증한다 → <지침>.gpt-review.md · _검증현황.md
+#   → 이 워크플로가 바뀐 지침만 Gemini 로 교차검증한다 → <지침>.gemini-review.md · _검증현황.md
 #   → Orchestrator 가 세션 시작 때 현황을 읽고 반영한다 (CLAUDE.md §18).
 #
 # ★ 열쇠는 Actions 에만 있다 — 키가 있는 자리에서 부르고 결과만 커밋한다 (§4).
 # ★ 검토는 «참고 의견»이지 승인이 아니다 (§11).
 
-name: 업무지침 교차검증 (ChatGPT·Gemini)
+name: 업무지침 교차검증 (Gemini)
 
 on:
   push:
     paths:
       - 'docs/지침함/**'
-      - 'scripts/gpt-review.mjs'
+      - 'scripts/guide-review.mjs'
   workflow_dispatch:
     inputs:
       file:
@@ -41,25 +43,13 @@ jobs:
           node-version: '20'
 
       # 검토가 실패해도 결과·아티팩트는 남긴다 — 판정은 맨 끝에서 한다 (§12-36)
-      - name: ChatGPT 로 교차검증
+      - name: Gemini 로 교차검증
         id: review
         continue-on-error: true
         timeout-minutes: 15
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          OPENAI_REVIEW_MODEL: ${{ vars.OPENAI_REVIEW_MODEL }}
           FORCE_FILE: ${{ inputs.file }}
-          CLAUDE_REVIEW_MODEL: ${{ vars.CLAUDE_REVIEW_MODEL }}
-          # 3번 검증자 Claude — 배포가 이미 쓰는 열쇠 이름 그대로 (D-430)
-          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
-          CLAUDE_API_KEY_2: ${{ secrets.CLAUDE_API_KEY_2 }}
-          CLODE_API_KEY: ${{ secrets.CLODE_API_KEY }}
-          CLODE_API_KEY2: ${{ secrets.CLODE_API_KEY2 }}
-          CLODE_API_KEY_2: ${{ secrets.CLODE_API_KEY_2 }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          # 워크스페이스에 안 묶인 Claude 열쇠는 이 번호가 함께 있어야 한다(2026-10-10 실측 400) — 비밀이 아니라 변수다
-          ANTHROPIC_WORKSPACE_ID: ${{ vars.ANTHROPIC_WORKSPACE_ID }}
-          # 1번 검증자 Gemini — 배포가 이미 쓰는 열쇠 묶음 그대로 (D-430)
+          # 검증자 Gemini — 배포가 이미 쓰는 열쇠 묶음 그대로 (D-430)
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_API_KEY_2: ${{ secrets.GEMINI_API_KEY_2 }}
           GEMINI_API_KEY_3: ${{ secrets.GEMINI_API_KEY_3 }}
@@ -79,14 +69,14 @@ jobs:
         run: |
           set +e
           if [ -n "${FORCE_FILE:-}" ]; then
-            node scripts/gpt-review.mjs --force "$FORCE_FILE" 2>&1 | tee review.log
+            node scripts/guide-review.mjs --force "$FORCE_FILE" 2>&1 | tee review.log
           else
-            node scripts/gpt-review.mjs 2>&1 | tee review.log
+            node scripts/guide-review.mjs 2>&1 | tee review.log
           fi
           code=${PIPESTATUS[0]}
           echo "code=$code" >> "$GITHUB_OUTPUT"
           {
-            echo '## 업무지침 교차검증 (ChatGPT·Gemini)'
+            echo '## 업무지침 교차검증 (Gemini)'
             echo
             head -400 review.log
             echo
@@ -119,7 +109,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "변경 없음 — 커밋하지 않습니다"
           else
-            git commit -m "지침함 ChatGPT 교차검증 결과 ($(date -u +%Y-%m-%d))"
+            git commit -m "지침함 Gemini 교차검증 결과 ($(date -u +%Y-%m-%d))"
             git push
           fi
 
@@ -141,5 +131,5 @@ jobs:
           case "${J:-}" in
             0) echo "판정 0 — 검토할 것을 다 검토했다" ;;
             '') echo "판정 못 받음 — 검토 단계가 안 돌았다" | tee -a "$GITHUB_STEP_SUMMARY"; exit 1 ;;
-            *) echo "판정 $J — 위 요약의 첫 줄이 까닭을 말한다 (2 열쇠 없음 · 3 기다리면 낫는다 · 4 열쇠 거부 · 5 결제 한도 · 6 모델 이름)" | tee -a "$GITHUB_STEP_SUMMARY"; exit 1 ;;
+            *) echo "판정 $J — 위 요약의 첫 줄이 까닭을 말한다 (2 열쇠 없음 · 3 기다리면 낫는다 · 4 열쇠 거부·보내면 안 되는 글 · 6 모델 이름) — 못 한 지침은 프로젝트 세션의 Claude 가 스스로 검증한다" | tee -a "$GITHUB_STEP_SUMMARY"; exit 1 ;;
           esac

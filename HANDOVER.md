@@ -19,23 +19,16 @@
 - G-06 의 첫 «나라 × 업종»은 사장님 답이 없어 예시 셋(한국·태양광 / 방글라데시·인프라 / 베트남·부동산)으로 시작한다고 송부 기록에 적었다.
 - 현황표의 검증 칸이 「검토 대기」인 것은 고장이 아니다 — 작업 가지 실행은 결과를 커밋하지 않는다(D-213 가드). 실제 판정은 Actions 실행 로그에 있다.
 
-## 2. 검증자 열쇠 — 잰 값
-| 검증자 | 상태 |
-|---|---|
-| 1 Gemini | 돈다 (gemini-3.1-flash-lite 만 · 판마다 판정이 흔들린다) |
-| 2 ChatGPT | 열쇠 `OPENAI_API_KEY` 없음 |
-| 3 Claude | `CLAUDE_API_KEY` = 401 · `CLODE_API_KEY2` = 인증 통과, **HTTP 400 «워크스페이스에 안 묶인 열쇠 — anthropic-workspace-id 필요»** |
-
-- `b97d290` 이 그 400 을 따로 가르고, 저장소 **변수** `ANTHROPIC_WORKSPACE_ID` 가 있으면 머리에 싣게 했다(검사 12칸 · 사보타주 확인).
-- **사장님 손 하나**: Claude 콘솔에서 워크스페이스 번호(`wrkspc_…`)를 찾아 GitHub linkpilot-cron → Settings → Secrets and variables → Actions → **Variables 탭** → `ANTHROPIC_WORKSPACE_ID`. 또는 워크스페이스 안에서 만든 열쇠로 `CLODE_API_KEY2` 를 바꾼다.
-  넣으셨다고 하면 `guideline-review.yml` 을 **새로 걸어**(Re-run 금지) `[Claude]` 줄을 잰다.
+## 2. 검증자 — 2026-10-11 부터 Gemini 하나 (D-437)
+- 사장님 지시 「ChatGPT, Claude API 검증은 빼줘」 — 워크플로·스크립트에서 OpenAI·Anthropic 호출을 지웠다.
+- 그래서 `OPENAI_API_KEY` · `ANTHROPIC_WORKSPACE_ID` 를 넣으실 일은 **없어졌다.**
+- 1 Gemini(자동) · 2 세션 Claude 자체 검증(손으로 · Gemini 가 못 하면 원문만 보고).
 
 ## 3. 남은 권고 (값이 큰 순)
-1. 워크스페이스 번호 — 위 2절.
-2. 다국어 지침 송부 유지/취소 — 사장님 답 대기.
-3. 지침 가지를 `main` 에 합치기 → 검증 결과가 main 에 커밋되어 현황표가 실제 판정을 보인다. (PR 초록 + §10 조건 셋)
-4. `npm test` 의 빨간 칸 둘 — `design-options.test.js` · `design-layout.test.js` 「견본/화면에 이모지가 없다」. **main 에서도 빨갛다(이번 변경과 무관)** — 견본의 ★ 가 이모지로 세진다.
-5. CLAUDE.md 를 «목차 + 규칙 한 줄»로 줄이기 — 세션이 빨리 차는 가장 큰 원인. 글자로 재는 검사가 여럿이라 함께 옮겨야 한다.
+1. 다국어 지침 송부 유지/취소 — 사장님 답 대기.
+2. 지침 가지를 `main` 에 합치기 → 검증 결과가 main 에 커밋되어 현황표가 실제 판정을 보인다. (PR 초록 + §10 조건 셋)
+3. `npm test` 의 빨간 칸 둘 — `design-options.test.js` · `design-layout.test.js` 「견본/화면에 이모지가 없다」. **main 에서도 빨갛다(이번 변경과 무관)** — 견본의 ★ 가 이모지로 세진다.
+4. CLAUDE.md 를 «목차 + 규칙 한 줄»로 줄이기 — 세션이 빨리 차는 가장 큰 원인. 글자로 재는 검사가 여럿이라 함께 옮겨야 한다.
 
 ## 4. 산출물 자리
 - 아티팩트 「G-06 광고 구조 교차검증」 (Artifact 목록에서 그 이름으로 찾는다 · 주소는 저장소에 안 적는다 · D-10)
