@@ -34,26 +34,26 @@ export const DIR = process.env.GUIDE_DIR ? path.resolve(process.env.GUIDE_DIR) :
 const { kstStamp } = require('../im-agent/core/kst.js');
 
 /* 지침이 아닌 파일 — 안내·현황·기록·검토 결과·검증 기준 */
-const NOT_GUIDE = /^(README|INBOX|반영기록|_.*)\.md$|\.gpt-review\.md$/;
+const NOT_GUIDE = /^(README|INBOX|반영기록|_.*)\.md$|\.(gpt|gemini)-review\.md$/;
 
 export function listGuides(dir = DIR) {
   if (!fs.existsSync(dir)) return [];
   return fs.readdirSync(dir).filter((f) => f.endsWith('.md') && !NOT_GUIDE.test(f)).sort();
 }
 export const hashOf = (t) => crypto.createHash('sha256').update(String(t).replace(/\r\n/g, '\n')).digest('hex').slice(0, 12);
-export const reviewName = (f) => f.replace(/\.md$/, '.gpt-review.md');
+export const reviewName = (f, kind = 'gpt') => f.replace(/\.md$/, `.${kind}-review.md`);
 
 /* 검토 파일 첫 줄에 «무엇을 검토했는지»(지문)를 적어 둔다 — 지침이 바뀌면 다시 검토한다 */
-export function reviewedHash(dir, f) {
-  const p = path.join(dir, reviewName(f));
+export function reviewedHash(dir, f, kind = 'gpt') {
+  const p = path.join(dir, reviewName(f, kind));
   if (!fs.existsSync(p)) return null;
-  const m = fs.readFileSync(p, 'utf8').match(/gpt-review:\s*hash=([0-9a-f]{12})/);
+  const m = fs.readFileSync(p, 'utf8').match(/(?:gpt|gemini)-review:\s*hash=([0-9a-f]{12})/);
   return m ? m[1] : null;
 }
-export function verdictOfReview(dir, f) {
-  const p = path.join(dir, reviewName(f));
+export function verdictOfReview(dir, f, kind = 'gpt') {
+  const p = path.join(dir, reviewName(f, kind));
   if (!fs.existsSync(p)) return null;
-  const m = fs.readFileSync(p, 'utf8').match(/gpt-review:[^>]*verdict=(PASS|REVISE|BLOCK)/);
+  const m = fs.readFileSync(p, 'utf8').match(/(?:gpt|gemini)-review:[^>]*verdict=(PASS|REVISE|BLOCK)/);
   return m ? m[1] : null;
 }
 /* Orchestrator 가 반영하면 「반영기록.md」에 `파일 · 지문` 을 남긴다 */
@@ -147,12 +147,50 @@ export async function reviewOne({ name, text, criteria, key, model, fetchImpl = 
   return { ok: true, review };
 }
 
+/* ★★ 둘째 검증자 — Gemini 〈2026-10-10 사장님: 「둘다 만들어줘」 · D-430〉
+ * OpenAI 열쇠가 없어도 다른 회사의 AI 로 교차검증한다. 열쇠는 배포가 이미 쓰는 GEMINI 묶음(Actions 비밀)이다.
+ * 한도(429)·과부하(5xx)는 다음 열쇠로, 거부(401·403)도 다음 열쇠로(열쇠마다 승인이 다르다) · 모델 이름 없음(404)은 다음 모델로 (§4.6 · §12-25). */
+export function geminiKeys(env = process.env) {
+  const names = Object.keys(env).filter((k) => /^GEMINI_(API_)?KEY(_\d+)?$/.test(k)).sort();
+  return [...new Set(names.map((k) => String(env[k] || '').trim()).filter((v) => v.length >= 20 && !/[<>]/.test(v)))];
+}
+export const GEMINI_MODELS = ['gemini-3.8-flash', 'gemini-3.1-flash-lite', 'gemini-3.5-flash'];
+export async function reviewGemini({ name, text, criteria, keys, models = GEMINI_MODELS, fetchImpl = fetch, timeoutMs = 120000 }) {
+  const [sys, user] = buildMessages(name, text, criteria);
+  let last = { ok: false, code: 2, kind: 'nokey', say: 'Gemini 열쇠가 이 자리에 없습니다.' };
+  for (const model of models) {
+    for (const key of keys) {
+      const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), timeoutMs);
+      let r, body = '';
+      try {
+        r = await fetchImpl(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+          method: 'POST', signal: ctl.signal,
+          headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
+          body: JSON.stringify({ systemInstruction: { parts: [{ text: sys.content }] }, contents: [{ role: 'user', parts: [{ text: user.content }] }],
+            generationConfig: { responseMimeType: 'application/json', maxOutputTokens: 8192 } }),
+        });
+        body = await r.text();
+      } catch (e) { clearTimeout(t); last = { ok: false, code: 3, kind: 'unreachable', say: 'Gemini 에 닿지 못했습니다 — 열쇠 문제가 아닙니다.', detail: redact(e && e.message, keys) }; continue; }
+      clearTimeout(t);
+      if (r.status === 404) { last = { ok: false, code: 6, kind: 'model', say: `Gemini 모델 ${model} 이 없습니다 — 다음 모델로 갑니다.`, detail: redact(body.slice(0, 200), keys) }; break; }
+      if (!r.ok) { last = { ok: false, code: r.status === 401 || r.status === 403 ? 4 : 3, kind: 'http', say: `Gemini 가 HTTP ${r.status} 로 거부했습니다.`, detail: redact(body.slice(0, 200), keys) }; continue; }
+      let content = '';
+      try { content = JSON.parse(body).candidates[0].content.parts.map((x) => x.text || '').join(''); } catch { /* 아래 */ }
+      const review = parseReview(content);
+      if (!review) { last = { ok: false, code: 3, kind: 'unparsed', say: 'Gemini 대답이 판정 형식이 아닙니다.', detail: redact(String(content).slice(0, 200), keys) }; break; }
+      return { ok: true, review, model };
+    }
+  }
+  return last;
+}
+
 const VLABEL = { PASS: '통과 — 그대로 반영 가능', REVISE: '보완 필요 — 고쳐서 반영', BLOCK: '반영 보류 — 고칠 때까지 반영하지 않는다' };
-export function renderReview(f, hash, model, rv, at) {
+export function renderReview(f, hash, model, rv, at, kind = 'gpt') {
+  const who = kind === 'gemini' ? 'Gemini' : 'ChatGPT';
   const rows = rv.issues.map((i) => `| ${i.severity || '-'} | ${String(i.where || '-').replace(/\|/g, '/')} | ${String(i.problem || '').replace(/\|/g, '/')} | ${String(i.fix || '').replace(/\|/g, '/')} |`);
   return [
-    `<!-- gpt-review: hash=${hash} verdict=${rv.verdict} model=${model} at=${at} -->`,
-    `# ChatGPT 교차검증 — ${f.replace(/\.md$/, '')}`,
+    `<!-- ${kind}-review: hash=${hash} verdict=${rv.verdict} model=${model} at=${at} -->`,
+    `# ${who} 교차검증 — ${f.replace(/\.md$/, '')}`,
     '',
     `**판정: ${VLABEL[rv.verdict]}** · 검토 모델 ${model} · ${at} 기준 · 지침 지문 \`${hash}\``,
     '',
@@ -176,8 +214,11 @@ export function renderStatus(dir = DIR, at = kstStamp()) {
     const rh = reviewedHash(dir, f);
     const v = rh === h ? verdictOfReview(dir, f) : null;
     const gpt = v ? { PASS: '통과', REVISE: '보완 필요', BLOCK: '반영 보류' }[v] : (rh ? '옛 판을 검토함 — 다시 검토 대기' : '검토 대기');
+    const grh = reviewedHash(dir, f, 'gemini');
+    const gv = grh === h ? verdictOfReview(dir, f, 'gemini') : null;
+    const gem = gv ? { PASS: '통과', REVISE: '보완 필요', BLOCK: '반영 보류' }[gv] : (grh ? '옛 판을 검토함' : '검토 대기');
     const st = applied.has(h) ? '반영 완료' : '미반영';
-    return { f, h, gpt, st };
+    return { f, h, gpt, gem, st };
   });
   const pending = rows.filter((r) => r.st === '미반영').length;
   return [
@@ -185,8 +226,8 @@ export function renderStatus(dir = DIR, at = kstStamp()) {
     '',
     `지침 ${rows.length}건 · **미반영 ${pending}건** · 이 표는 \`npm run guide:status\` 가 만든다(손으로 고치지 않는다).`,
     '',
-    rows.length ? '| 지침 | 지문 | ChatGPT 검토 | Orchestrator 반영 |\n|---|---|---|---|\n'
-      + rows.map((r) => `| ${r.f} | \`${r.h}\` | ${r.gpt} | ${r.st} |`).join('\n') : '아직 지침이 없습니다.',
+    rows.length ? '| 지침 | 지문 | ChatGPT 검토 | Gemini 검토 | Orchestrator 반영 |\n|---|---|---|---|---|\n'
+      + rows.map((r) => `| ${r.f} | \`${r.h}\` | ${r.gpt} | ${r.gem} | ${r.st} |`).join('\n') : '아직 지침이 없습니다.',
     '',
   ].join('\n');
 }
@@ -219,17 +260,40 @@ async function main(argv) {
     log.push(`- ✓ ${f} — ${VLABEL[r.review.verdict]} (문제 ${r.review.issues.length}건)`);
   }
   for (const x of fails) log.push(`- ✗ ${x.f} — ${x.say}`);
+
+  /* 둘째 검증자 Gemini — ChatGPT 와 따로 돈다. 결과 글은 로그에도 싣는다(작업 가지에서는 커밋하지 않으므로) */
+  const gkeys = geminiKeys();
+  const gTodo = listGuides().filter((f) => (force ? f === force : reviewedHash(DIR, f, 'gemini') !== hashOf(fs.readFileSync(path.join(DIR, f), 'utf8'))));
+  let gDone = 0; const gFails = [];
+  for (const f of gTodo) {
+    const text = fs.readFileSync(path.join(DIR, f), 'utf8');
+    if (leakCheck(text).length) { gFails.push({ code: 4, f, say: '공개 저장소에 둘 수 없는 글이 있어 보내지 않았습니다.' }); continue; }
+    if (!gkeys.length) { gFails.push({ code: 2, f, say: 'Gemini 열쇠(GEMINI_API_KEY…)가 이 자리에 없습니다.' }); continue; }
+    const r = await reviewGemini({ name: f, text, criteria, keys: gkeys });
+    if (!r.ok) { gFails.push({ code: r.code, f, say: r.say + (r.detail ? ` (앞머리: ${r.detail.slice(0, 160)})` : '') }); continue; }
+    const doc = renderReview(f, hashOf(text), r.model, r.review, kstStamp(), 'gemini');
+    fs.writeFileSync(path.join(DIR, reviewName(f, 'gemini')), doc);
+    gDone += 1;
+    log.push(`- ✓ [Gemini] ${f} — ${VLABEL[r.review.verdict]} (문제 ${r.review.issues.length}건)`);
+    log.push('', '<details><summary>Gemini 검토 전문</summary>', '', doc, '</details>', '');
+  }
+  for (const x of gFails) log.push(`- ✗ [Gemini] ${x.f} — ${x.say}`);
   writeStatus();
 
   /* 판정 — 섞이면 «고칠 것이 있는 쪽»을 먼저 말한다 (§12-24) */
   const worst = [4, 5, 6, 2, 3].find((c) => fails.some((x) => x.code === c));
-  const code = !todo.length || !fails.length ? 0 : done === 0 ? (worst ?? 2) : 1;
+  let code = !todo.length || !fails.length ? 0 : done === 0 ? (worst ?? 2) : 1;
+  /* ★ OpenAI 열쇠만 없고 Gemini 가 전부 검토했으면 «검토는 됐다» — 빨강으로 끝내지 않고 그 사실을 적는다 */
+  const gemCovered = gTodo.length > 0 && gFails.length === 0;
+  const onlyNoKey = fails.length > 0 && fails.every((x) => x.code === 2);
+  if (code === 2 && onlyNoKey && gemCovered) { code = 0; log.unshift('- ChatGPT 는 열쇠(OPENAI_API_KEY)가 없어 건너뛰었고, Gemini 가 대신 검토했습니다.'); }
+  else if (code === 0 && gFails.length && !fails.length && todo.length === 0 && gDone === 0) code = gFails.some((x) => x.code === 4) ? 4 : 3;
   const head = code === 0
-    ? (todo.length ? `판정 0 — ${done}건 검토 완료` : '판정 0 — 새로 검토할 지침이 없습니다')
+    ? (todo.length || gDone ? `판정 0 — ChatGPT ${done}건 · Gemini ${gDone}건 검토 완료` : '판정 0 — 새로 검토할 지침이 없습니다')
     : `판정 ${code} — ${todo.length}건 중 ${done}건 검토 · ${fails[0].say}`;
   log.unshift(head, '');
   fs.writeFileSync(path.join(DIR, '_검토요약.md'), `# 이번 검토 — ${kstStamp()}\n\n${log.join('\n')}\n`);
-  console.log(redact(log.join('\n'), [key]));
+  console.log(redact(log.join('\n'), [key, ...gkeys]));
   return code;
 }
 

@@ -63,7 +63,7 @@ function tmpBox(files) {
   return d;
 }
 const run = (dir, args = [], env = {}) => spawnSync(process.execPath, [SCRIPT, ...args], {
-  encoding: 'utf8', env: { ...process.env, GUIDE_DIR: dir, OPENAI_API_KEY: '', ...env },
+  encoding: 'utf8', env: { ...Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^GEMINI_/.test(k))), GUIDE_DIR: dir, OPENAI_API_KEY: '', ...env },
 });
 
 test('현황표 — 지문이 같아야 «검토됨», 반영기록에 지문이 있어야 «반영 완료»', async () => {
@@ -77,7 +77,7 @@ test('현황표 — 지문이 같아야 «검토됨», 반영기록에 지문이
     '반영기록.md': `- a.md · ${h} · 2026-10-10\n`, 'README.md': '안내', '_검증기준.md': '기준',
   });
   const s = m.renderStatus(d, 'T');
-  assert.match(s, /\| a\.md \|[^\n]*통과 \| 반영 완료 \|/);
+  assert.match(s, /\| a\.md \| `[0-9a-f]{12}` \| 통과 \| 검토 대기 \| 반영 완료 \|/);
   assert.match(s, /\| b\.md \|[^\n]*옛 판을 검토함[^\n]*미반영 \|/, '옛 지문의 검토를 새 판에 이어 붙이지 않는다');
   assert.ok(!/README|_검증기준/.test(s.split('\n').filter((l) => l.startsWith('| ') && !l.startsWith('| 지침')).join('\n')), '안내 파일을 지침으로 세지 않는다');
   assert.match(s, /미반영 1건/);
@@ -105,4 +105,38 @@ test('워크플로 — 지침함이 바뀌면 돌고, 판정이 맨 끝이며, �
   const names = [...y.matchAll(/^\s*- name:\s*(.+)$/gm)].map((x) => x[1].trim());
   assert.strictEqual(names[names.length - 1], '판정', '판정이 맨 끝이 아니면 빨갈 때 받을 것이 안 남는다');
   assert.ok(fs.existsSync(path.join(ROOT, '.claude', 'commands', 'guideline-inbox.md')), 'Orchestrator 가 칠 명령이 있다');
+});
+
+/* 둘째 검증자 Gemini — D-430 */
+const gBody = (j) => ({ candidates: [{ content: { parts: [{ text: JSON.stringify(j) }] } }] });
+const GK = ['AIzaFAKEKEY_one_000000000000000', 'AIzaFAKEKEY_two_000000000000000'];
+
+test('Gemini — 열쇠 묶음을 읽고, 거부·한도는 다음 열쇠로 · 모델 없음은 다음 모델로', async () => {
+  const m = await load();
+  assert.deepStrictEqual(m.geminiKeys({ GEMINI_API_KEY: GK[0], GEMINI_KEY_01: GK[1], GEMINI_KEY_02: GK[1], OTHER: 'x', GEMINI_API_KEY_3: '<빈칸>' }), GK, '중복·꺾쇠는 빼고, 이름 둘을 다 읽는다');
+  const base = { name: 'a.md', text: '지침', criteria: '', keys: GK, models: ['m1', 'm2'] };
+  const seen = [];
+  let r = await m.reviewGemini({ ...base, fetchImpl: async (u, o) => { seen.push(u.split('/models/')[1].split(':')[0] + '/' + o.headers['x-goog-api-key'].slice(-18, -15)); return seen.length === 1 ? res(403, 'denied') : res(200, gBody({ verdict: 'REVISE', summary: 's', issues: [] })); } });
+  assert.ok(r.ok && r.review.verdict === 'REVISE' && r.model === 'm1', JSON.stringify(r));
+  assert.strictEqual(seen.length, 2, '거부되면 같은 모델의 다음 열쇠로 간다');
+  seen.length = 0;
+  r = await m.reviewGemini({ ...base, fetchImpl: async (u) => { seen.push(u); return /m1/.test(u) ? res(404, 'not found') : res(200, gBody({ verdict: 'PASS', summary: 's', issues: [] })); } });
+  assert.ok(r.ok && r.model === 'm2');
+  assert.strictEqual(seen.filter((u) => /m1/.test(u)).length, 1, '모델이 없으면 열쇠를 돌지 않고 다음 모델로 간다');
+  r = await m.reviewGemini({ ...base, fetchImpl: async () => res(403, `bad key ${GK[0]}`) });
+  assert.ok(!r.ok && !String(r.detail).includes(GK[0]), '되비춘 열쇠를 가린다 (§2)');
+  r = await m.reviewGemini({ ...base, fetchImpl: async () => res(200, gBody({ hello: 1 })) });
+  assert.ok(!r.ok && r.kind === 'unparsed', '판정을 못 읽은 대답을 통과로 적지 않는다');
+});
+
+test('Gemini 검토 파일 — 현황표의 Gemini 칸이 읽고, 지침으로 세지 않는다', async () => {
+  const m = await load();
+  const text = '# 지침'; const h = m.hashOf(text);
+  const d = tmpBox({ 'a.md': text, 'a.gemini-review.md': `<!-- gemini-review: hash=${h} verdict=BLOCK model=g at=x -->\n` });
+  const s = m.renderStatus(d, 'T');
+  assert.match(s, /\| a\.md \| `[0-9a-f]{12}` \| 검토 대기 \| 반영 보류 \| 미반영 \|/);
+  assert.match(s, /지침 1건/, 'gemini-review 파일을 지침으로 세지 않는다');
+  const doc = m.renderReview('a.md', h, 'g', { verdict: 'PASS', summary: '', issues: [], conflicts: [] }, 'T', 'gemini');
+  assert.match(doc, /^<!-- gemini-review: hash=/);
+  assert.match(doc, /# Gemini 교차검증/);
 });

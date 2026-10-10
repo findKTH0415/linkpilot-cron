@@ -15,6 +15,7 @@ on:
   push:
     paths:
       - 'docs/지침함/**'
+      - 'scripts/gpt-review.mjs'
   workflow_dispatch:
     inputs:
       file:
@@ -48,6 +49,23 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENAI_REVIEW_MODEL: ${{ vars.OPENAI_REVIEW_MODEL }}
           FORCE_FILE: ${{ inputs.file }}
+          # 둘째 검증자 Gemini — 배포가 이미 쓰는 열쇠 묶음 그대로 (D-430)
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_API_KEY_2: ${{ secrets.GEMINI_API_KEY_2 }}
+          GEMINI_API_KEY_3: ${{ secrets.GEMINI_API_KEY_3 }}
+          GEMINI_API_KEY_4: ${{ secrets.GEMINI_API_KEY_4 }}
+          GEMINI_API_KEY_5: ${{ secrets.GEMINI_API_KEY_5 }}
+          GEMINI_API_KEY_6: ${{ secrets.GEMINI_API_KEY_6 }}
+          GEMINI_API_KEY_7: ${{ secrets.GEMINI_API_KEY_7 }}
+          GEMINI_API_KEY_8: ${{ secrets.GEMINI_API_KEY_8 }}
+          GEMINI_KEY_01: ${{ secrets.GEMINI_KEY_01 }}
+          GEMINI_KEY_02: ${{ secrets.GEMINI_KEY_02 }}
+          GEMINI_KEY_03: ${{ secrets.GEMINI_KEY_03 }}
+          GEMINI_KEY_04: ${{ secrets.GEMINI_KEY_04 }}
+          GEMINI_KEY_05: ${{ secrets.GEMINI_KEY_05 }}
+          GEMINI_KEY_06: ${{ secrets.GEMINI_KEY_06 }}
+          GEMINI_KEY_07: ${{ secrets.GEMINI_KEY_07 }}
+          GEMINI_KEY_08: ${{ secrets.GEMINI_KEY_08 }}
         run: |
           set +e
           if [ -n "${FORCE_FILE:-}" ]; then
@@ -60,7 +78,7 @@ jobs:
           {
             echo '## 업무지침 ChatGPT 교차검증'
             echo
-            head -40 review.log
+            head -400 review.log
             echo
             cat 'docs/지침함/_검증현황.md' 2>/dev/null || echo '(현황표를 못 만들었다)'
           } >> "$GITHUB_STEP_SUMMARY"
