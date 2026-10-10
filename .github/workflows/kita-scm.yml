@@ -24,6 +24,9 @@ jobs:
         with:
           node-version: '20'
 
+      - name: PDF 글 뽑기 도구
+        run: command -v pdftotext || (sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils) || echo "pdftotext 없음 — 목록만 받는다"
+
       - name: 목록 조회
         id: fetch
         continue-on-error: true
