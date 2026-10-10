@@ -191,7 +191,7 @@ export function claudeKeys(env = process.env) {
   const names = ['CLAUDE_API_KEY', 'CLAUDE_API_KEY_2', 'CLODE_API_KEY', 'CLODE_API_KEY2', 'CLODE_API_KEY_2', 'ANTHROPIC_API_KEY'];
   return [...new Set(names.map((k) => String(env[k] || '').trim()).filter((v) => v.length >= 20 && !/[<>]/.test(v)))];
 }
-export async function reviewClaude({ name, text, criteria, keys, model = 'claude-sonnet-5-5', fetchImpl = fetch, timeoutMs = 180000 }) {
+export async function reviewClaude({ name, text, criteria, keys, model = 'claude-sonnet-5-5', fetchImpl = fetch, timeoutMs = 180000, workspaceId = String(process.env.ANTHROPIC_WORKSPACE_ID || '').trim() }) {
   const [sys, user] = buildMessages(name, text, criteria);
   let last = { ok: false, code: 2, kind: 'nokey', say: 'Claude 열쇠가 이 자리에 없습니다.' };
   for (const key of keys) {
@@ -200,7 +200,7 @@ export async function reviewClaude({ name, text, criteria, keys, model = 'claude
     try {
       r = await fetchImpl('https://api.anthropic.com/v1/messages', {
         method: 'POST', signal: ctl.signal,
-        headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+        headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', ...(workspaceId ? { 'anthropic-workspace-id': workspaceId } : {}) },
         body: JSON.stringify({ model, max_tokens: 4096, system: sys.content, messages: [{ role: 'user', content: user.content }] }),
       });
       body = await r.text();
@@ -208,6 +208,9 @@ export async function reviewClaude({ name, text, criteria, keys, model = 'claude
     clearTimeout(t);
     if (r.status === 404) return { ok: false, code: 6, kind: 'model', say: `Claude 모델 ${model} 이 없습니다 — 저장소 변수 CLAUDE_REVIEW_MODEL 을 고칩니다.`, detail: redact(body.slice(0, 200), keys) };
     if (r.status === 400 && /credit balance/i.test(body)) { last = { ok: false, code: 5, kind: 'quota', say: 'Claude 계정 잔액이 모자랍니다 — 기다려도 안 낫습니다. 열쇠 문제가 아닙니다.', detail: redact(body.slice(0, 200), keys) }; continue; }
+    /* 2026-10-10 실측: 워크스페이스에 안 묶인 열쇠는 401 이 아니라 400 으로 «워크스페이스 번호를 함께 보내라»고 답한다.
+     * 열쇠 값은 통과한 것이라 «열쇠가 틀렸다»로 적지 않는다 — 할 일이 다르다(번호를 넣거나 워크스페이스 안의 열쇠로 바꾼다). */
+    if (r.status === 400 && /not scoped to a workspace|anthropic-workspace-id/i.test(body)) { last = { ok: false, code: 4, kind: 'workspace', say: workspaceId ? 'Claude 가 워크스페이스 번호를 받아들이지 않았습니다 — 저장소 변수 ANTHROPIC_WORKSPACE_ID 값을 다시 봅니다. 잔액·모델 문제가 아닙니다.' : 'Claude 열쇠는 받아들여졌는데 «워크스페이스에 안 묶인 열쇠»라 워크스페이스 번호가 함께 있어야 합니다 — 저장소 변수 ANTHROPIC_WORKSPACE_ID 를 넣거나, 워크스페이스 안에서 만든 열쇠로 바꿉니다. 잔액·모델 문제가 아닙니다.', detail: redact(body.slice(0, 200), keys) }; continue; }
     if (!r.ok) { last = { ok: false, code: r.status === 401 || r.status === 403 ? 4 : 3, kind: 'http', say: `Claude 가 HTTP ${r.status} 로 거부했습니다.`, detail: redact(body.slice(0, 200), keys) }; continue; }
     let content = '';
     try { content = JSON.parse(body).content.map((x) => x.text || '').join(''); } catch { /* 아래 */ }

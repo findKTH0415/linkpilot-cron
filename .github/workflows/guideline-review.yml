@@ -57,6 +57,8 @@ jobs:
           CLODE_API_KEY2: ${{ secrets.CLODE_API_KEY2 }}
           CLODE_API_KEY_2: ${{ secrets.CLODE_API_KEY_2 }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # 워크스페이스에 안 묶인 Claude 열쇠는 이 번호가 함께 있어야 한다(2026-10-10 실측 400) — 비밀이 아니라 변수다
+          ANTHROPIC_WORKSPACE_ID: ${{ vars.ANTHROPIC_WORKSPACE_ID }}
           # 1번 검증자 Gemini — 배포가 이미 쓰는 열쇠 묶음 그대로 (D-430)
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_API_KEY_2: ${{ secrets.GEMINI_API_KEY_2 }}

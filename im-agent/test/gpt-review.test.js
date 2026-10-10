@@ -182,3 +182,19 @@ test('송부 — 「송부기록」에 지문이 있어야 «송부됨», 고치
   s = m.renderStatus(d, 'T');
   assert.match(s, /\| a\.md \|[^\n]*\| 송부 대기 \| 미반영 \|/, '송부 뒤에 고친 판은 다시 송부 대기다');
 });
+
+test('Claude(3번) — 워크스페이스 번호를 요구하는 400 을 «열쇠가 틀렸다»로 적지 않고, 번호가 있으면 함께 보낸다', async () => {
+  const m = await load();
+  const CK = ['sk-ant-FAKE_one_00000000000000000'];
+  const W400 = '{"type":"error","error":{"type":"invalid_request_error","message":"This API key is not scoped to a workspace, so this request must include the anthropic-workspace-id header."}}';
+  const base = { name: 'a.md', text: '지침', criteria: '', keys: CK };
+  let r = await m.reviewClaude({ ...base, workspaceId: '', fetchImpl: async () => res(400, W400) });
+  assert.strictEqual(r.kind, 'workspace', '워크스페이스 갈래로 가른다');
+  assert.ok(/ANTHROPIC_WORKSPACE_ID/.test(r.say) && /잔액·모델 문제가 아닙니다/.test(r.say), '할 일(변수 이름)을 적고 엉뚱한 곳을 가리키지 않는다');
+  let seen = null;
+  r = await m.reviewClaude({ ...base, workspaceId: 'wrkspc_FAKE01', fetchImpl: async (u, o) => { seen = o.headers['anthropic-workspace-id']; return res(200, { content: [{ type: 'text', text: JSON.stringify({ verdict: 'PASS', summary: 's', issues: [] }) }] }); } });
+  assert.ok(r.ok && seen === 'wrkspc_FAKE01', '번호가 있으면 머리에 싣는다');
+  seen = 'x';
+  await m.reviewClaude({ ...base, workspaceId: '', fetchImpl: async (u, o) => { seen = o.headers['anthropic-workspace-id']; return res(400, W400); } });
+  assert.strictEqual(seen, undefined, '번호가 없으면 빈 머리를 보내지 않는다');
+});
