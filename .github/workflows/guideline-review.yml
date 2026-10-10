@@ -1,0 +1,135 @@
+# 업무지침 교차검증 (Gemini) 〈2026-10-10 사장님 지시 · D-428 · 2026-10-11 D-437〉
+#
+# 「여기서 업무지침 전략이 만들어지면 … 검증 자동화 해줘」.
+# ★ 2026-10-11 사장님: 「ChatGPT, Claude API 검증은 빼줘」 — 검증자는 Gemini 하나다.
+#   OpenAI·Anthropic 열쇠는 이 워크플로가 더는 받지 않는다. Gemini 가 못 하면 프로젝트 세션의 Claude 가 스스로 검증한다.
+#
+# 흐름: Claude(LinkPilot 리뉴얼 재구성 프로젝트)가 지침을 docs/지침함/ 에 올린다
+#   → 이 워크플로가 바뀐 지침만 Gemini 로 교차검증한다 → <지침>.gemini-review.md · _검증현황.md
+#   → Orchestrator 가 세션 시작 때 현황을 읽고 반영한다 (CLAUDE.md §18).
+#
+# ★ 열쇠는 Actions 에만 있다 — 키가 있는 자리에서 부르고 결과만 커밋한다 (§4).
+# ★ 검토는 «참고 의견»이지 승인이 아니다 (§11).
+
+name: 업무지침 교차검증 (Gemini)
+
+on:
+  push:
+    paths:
+      - 'docs/지침함/**'
+      - 'scripts/guide-review.mjs'
+  workflow_dispatch:
+    inputs:
+      file:
+        description: '다시 검토할 지침 파일 이름 (비우면 바뀐 것만)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: guideline-review-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+
+      # 검토가 실패해도 결과·아티팩트는 남긴다 — 판정은 맨 끝에서 한다 (§12-36)
+      - name: Gemini 로 교차검증
+        id: review
+        continue-on-error: true
+        timeout-minutes: 15
+        env:
+          FORCE_FILE: ${{ inputs.file }}
+          # 검증자 Gemini — 배포가 이미 쓰는 열쇠 묶음 그대로 (D-430)
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_API_KEY_2: ${{ secrets.GEMINI_API_KEY_2 }}
+          GEMINI_API_KEY_3: ${{ secrets.GEMINI_API_KEY_3 }}
+          GEMINI_API_KEY_4: ${{ secrets.GEMINI_API_KEY_4 }}
+          GEMINI_API_KEY_5: ${{ secrets.GEMINI_API_KEY_5 }}
+          GEMINI_API_KEY_6: ${{ secrets.GEMINI_API_KEY_6 }}
+          GEMINI_API_KEY_7: ${{ secrets.GEMINI_API_KEY_7 }}
+          GEMINI_API_KEY_8: ${{ secrets.GEMINI_API_KEY_8 }}
+          GEMINI_KEY_01: ${{ secrets.GEMINI_KEY_01 }}
+          GEMINI_KEY_02: ${{ secrets.GEMINI_KEY_02 }}
+          GEMINI_KEY_03: ${{ secrets.GEMINI_KEY_03 }}
+          GEMINI_KEY_04: ${{ secrets.GEMINI_KEY_04 }}
+          GEMINI_KEY_05: ${{ secrets.GEMINI_KEY_05 }}
+          GEMINI_KEY_06: ${{ secrets.GEMINI_KEY_06 }}
+          GEMINI_KEY_07: ${{ secrets.GEMINI_KEY_07 }}
+          GEMINI_KEY_08: ${{ secrets.GEMINI_KEY_08 }}
+        run: |
+          set +e
+          if [ -n "${FORCE_FILE:-}" ]; then
+            node scripts/guide-review.mjs --force "$FORCE_FILE" 2>&1 | tee review.log
+          else
+            node scripts/guide-review.mjs 2>&1 | tee review.log
+          fi
+          code=${PIPESTATUS[0]}
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          {
+            echo '## 업무지침 교차검증 (Gemini)'
+            echo
+            head -400 review.log
+            echo
+            cat 'docs/지침함/_검증현황.md' 2>/dev/null || echo '(현황표를 못 만들었다)'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 0
+
+      # ★★★ **결과 커밋은 «기본 가지에서만» 돈다** (D-213 · §12-69 와 같은 모양).
+      - name: 결과 커밋
+        if: always()
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -u
+          if [ -z "${DEFAULT_BRANCH:-}" ]; then
+            echo "::warning::기본 가지 이름을 못 받았다 — 커밋하지 않는다. 결과는 아래 아티팩트에 있다"
+            exit 0
+          fi
+          if [ "$REF_NAME" != "$DEFAULT_BRANCH" ]; then
+            echo "가지 '$REF_NAME' 에서 돌았다 — **결과를 커밋하지 않는다.**"
+            echo "  까닭: 열려 있는 PR 의 머리가 움직이면 검사가 다시 서고, 봇이 민 커밋은"
+            echo "        사람이 눌러 줘야 도는 상태(action_required)가 된다."
+            echo "  받을 곳: 아래 «산출물 보관» 아티팩트 (guideline-review) — 검토 결과가 그대로 들어 있다."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add 'docs/지침함'
+          if git diff --staged --quiet; then
+            echo "변경 없음 — 커밋하지 않습니다"
+          else
+            git commit -m "지침함 Gemini 교차검증 결과 ($(date -u +%Y-%m-%d))"
+            git push
+          fi
+
+      - name: 산출물 보관 (아티팩트)
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: guideline-review
+          path: |
+            docs/지침함
+            review.log
+          if-no-files-found: warn
+
+      - name: 판정
+        if: always()
+        env:
+          J: ${{ steps.review.outputs.code }}
+        run: |
+          case "${J:-}" in
+            0) echo "판정 0 — 검토할 것을 다 검토했다" ;;
+            '') echo "판정 못 받음 — 검토 단계가 안 돌았다" | tee -a "$GITHUB_STEP_SUMMARY"; exit 1 ;;
+            *) echo "판정 $J — 위 요약의 첫 줄이 까닭을 말한다 (2 열쇠 없음 · 3 기다리면 낫는다 · 4 열쇠 거부·보내면 안 되는 글 · 6 모델 이름) — 못 한 지침은 프로젝트 세션의 Claude 가 스스로 검증한다" | tee -a "$GITHUB_STEP_SUMMARY"; exit 1 ;;
+          esac
