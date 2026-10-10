@@ -91,6 +91,8 @@ async function readIssue(x) {
     try { t = execFileSync('pdftotext', ['-l', '3', '-layout', '/tmp/kita-issue.pdf', '-'], { encoding: 'utf8' }); }
     catch { return { topics: [], pdf: noSess(url), why: 'pdftotext 없음' }; }
     const topics = headLines(t);
+    if (process.env.KITA_DIAG === '1' && !globalThis.__kitaDiagDone) { globalThis.__kitaDiagDone = 1;
+      say('', `### 진단 — ${x.title} PDF 앞 두 쪽 (소제목 규격을 잴 때만 · KITA_DIAG=1)`, '', '```', t.replace(/[ \t]+/g, ' ').replace(/\n{2,}/g, '\n').slice(0, 2500), '```'); }
     if (!topics.length) say('', `### 진단 — ${x.title} PDF 앞머리 (소제목을 못 뽑았다)`, '', '```', t.replace(/[ \t]+/g, ' ').replace(/\n{2,}/g, '\n').slice(0, 900), '```');
     return { topics, pdf: noSess(url), why: topics.length ? '' : '소제목 모양을 못 찾음' };
   } catch (e) { return { topics: [], pdf: null, why: `PDF 받기 실패 (${String(e.message).slice(0, 60)})` }; }
@@ -135,7 +137,7 @@ if (items.length) {
   let opened = 0;
   for (const x of top) {
     const old = prevById.get(x.no);
-    if (old && Array.isArray(old.topics) && old.topics.length) { x.topics = old.topics; x.pdf = old.pdf || null; }
+    if (old && Array.isArray(old.topics) && old.topics.length && process.env.KITA_DIAG !== '1') { x.topics = old.topics; x.pdf = old.pdf || null; }
     else if (opened < 3) { opened++; Object.assign(x, await readIssue(x)); }
     say(`- ${x.date || '날짜 못 읽음'} · ${x.title} · ${x.url}${x.topics && x.topics.length ? '' : (x.why ? ' — 분석 못 함: ' + x.why : '')}`);
     for (const t of (x.topics || []).slice(0, 6)) say(`  - ${t}`);

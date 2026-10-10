@@ -9,6 +9,11 @@ on:
   schedule:
     - cron: '0 1 * * 5'
   workflow_dispatch:
+    inputs:
+      diag:
+        description: '소제목 규격 진단(PDF 앞머리를 요약에 남긴다)'
+        required: false
+        default: '0'
 
 permissions:
   contents: write
@@ -29,6 +34,8 @@ jobs:
 
       - name: 목록 조회
         id: fetch
+        env:
+          KITA_DIAG: ${{ github.event.inputs.diag || '0' }}
         continue-on-error: true
         run: |
           set +e
