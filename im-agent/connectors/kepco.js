@@ -37,9 +37,10 @@
  *   한다. **`DATA_GO_KR_KEY` 로는 안 된다** (§4.1 「기관마다 키가 다르고 서로
  *   통용되지 않는다」에 새 행이 는다).
  *
- * ⚠️ **실제 키로 검증되지 않았다** (등록부 D-54). 이 환경에서는 한전·공공데이터
- *    포털 도메인이 전부 망 정책으로 차단되어 있어 **응답 필드가 실측 전이다**
- *    (§4.3). 필드명은 공개 문서 기준이고, 실측에서 바뀔 수 있다.
+ * ★ **경로·칸은 실측으로 고쳤다** (2026-10-11 · D-439). 앞 판은 공개 문서를 보고
+ *   `distributionCapacity` 와 `subst_cap` 같은 칸을 짐작했고, 진단이 **HTTP 404** 를 받았다.
+ *   지금 판은 `kepco.yml`(scripts/kepco-fetch.mjs)이 판정 0 을 낸 그 규격을 쓴다 —
+ *   `commonCode.do`(법정동 코드) → `dispersedGeneration.do`(vol1·vol2·vol3 = 여유 kW).
  */
 
 // ★ `request` 를 뜯어내지 않고 모듈 객체로 붙든다 (M-08)
@@ -56,7 +57,7 @@ const { normalize } = require('./xml');
  */
 const PROVIDER = 'kepco';
 
-/** ⚠️ 미검증 — D-54 */
+/** 실측 2026-10-10 (kepco.yml 판정 0) — 경로는 *.do */
 const BASE = 'https://bigdata.kepco.co.kr/openapi/v1';
 
 /** 판정 갈래. **`enviro.js` 와 같은 넷이다** — 여기서 줄이면 「모름」이 흡수된다 */
@@ -104,14 +105,92 @@ function num(v) {
   return Number.isFinite(n) ? n : null;
 }
 
+/** 개방포털 응답의 목록 칸 — `scripts/kepco-fetch.mjs` 의 rowsOf 와 같은 규칙 */
+function rowsOf(obj) {
+  if (!obj || typeof obj !== 'object') return [];
+  for (const k of ['data', 'totData', 'list']) if (Array.isArray(obj[k])) return obj[k];
+  return [];
+}
+
 /**
- * 선로별 여유용량 조회.
+ * 「충청남도 보령시」·「원주시」 → { sido, sgg }.
+ * ★ 시·군·구 낱말이 없으면 null — 시도만으로 부르면 그것이 곧 넓은 값으로 대체하는 것이다 (§4.9)
+ */
+function splitRegion(region) {
+  const parts = String(region || '').trim().split(/\s+/).filter(Boolean);
+  const sgg = [...parts].reverse().find(p => /(시|군|구)$/.test(p) && !/(특별시|광역시|특별자치시)$/.test(p)) || null;
+  const sido = parts.length > 1 && parts[0] !== sgg ? parts[0] : null;
+  return { sido, sgg };
+}
+
+/** 한 번 받은 결과를 JSON 으로 읽는다. 404 는 «그 기간·지역 자료 없음»이다 (실측 · kepco-fetch.mjs) */
+async function getJson(pathname, params) {
+  const url = buildUrl(`${BASE}/${pathname}`, Object.assign({}, params, { apiKey: apiKey(), returnType: 'json' }));
+  const res = await http.request(url);
+  if (!res.ok) {
+    if (res.status === 404) return { ok: false, notFound: true, error: `HTTP 404 — ${pathname} 에 그 지역 자료가 없다` };
+    return { ok: false, status: res.status, error: mask(res.error) };
+  }
+  try { return { ok: true, obj: JSON.parse(String(res.body || '')) }; } catch (e) {
+    return { ok: false, error: `JSON 이 아니다 — ${mask(String(res.body || '').slice(0, 120))}` };
+  }
+}
+
+/**
+ * 행정코드 대조 — 공통코드(법정동 시도·시군구).
+ * ★ 한전 자체코드(부산 21)와 법정동코드(부산 26)가 다르다 — **추정하지 않고 받아 쓴다.**
+ * ★ 같은 이름의 시군구(「중구」·「동구」)가 여럿인데 시도가 없으면 **하나를 고르지 않는다** (§4.9).
+ */
+async function resolveCodes(region) {
+  const { sido, sgg } = splitRegion(region);
+  if (!sgg) return { ok: false, error: `'${region}' 에서 시·군·구를 못 읽었다 — **전국·시도 값으로 대체하지 않는다**` };
+  const code = (codeTy) => cache.through(PROVIDER, 'kepcocode', { codeTy }, async () => {
+    const r = await getJson('commonCode.do', { codeTy });
+    return r.ok ? { ok: true, value: rowsOf(r.obj) } : r;
+  });
+
+  const cities = await code('lglDngCityCd');
+  if (!cities.ok) return { ok: false, error: `시군구 공통코드를 못 받았다 — ${cities.error}` };
+  let hits = cities.value.filter(x => String(x.codeNm || '').includes(sgg));
+  if (!hits.length) return { ok: false, noData: true, error: `공통코드에 '${sgg}' 가 없다 — 표기를 확인한다` };
+
+  let metroCd = null;
+  if (sido) {
+    const metros = await code('lglDngMetroCd');
+    if (!metros.ok) return { ok: false, error: `시도 공통코드를 못 받았다 — ${metros.error}` };
+    const m = metros.value.find(x => String(x.codeNm || '').includes(sido.replace(/(특별자치도|특별자치시|특별시|광역시|도)$/, '')));
+    if (m) {
+      metroCd = String(m.code);
+      const inSido = hits.filter(x => x.uppoCd == null || String(x.uppoCd) === metroCd);
+      if (inSido.length) hits = inSido;
+    }
+  }
+  const uppos = [...new Set(hits.map(x => String(x.uppoCd ?? '')))];
+  if (hits.length > 1 && uppos.length > 1) {
+    return {
+      ok: false,
+      error: `'${sgg}' 가 여러 시도에 있다 (${hits.map(x => `${x.uppoCdNm || x.uppoCd}`).join(' · ')}) — `
+        + '**하나를 고르지 않는다.** 시도를 함께 적는다 (예: 「충청남도 보령시」)',
+    };
+  }
+  const hit = hits[0];
+  return { ok: true, metroCd: metroCd || String(hit.uppoCd ?? ''), cityCd: String(hit.code), name: hit.codeNm };
+}
+
+/**
+ * 선로별 여유용량 조회 — `dispersedGeneration.do`(분산전원연계정보).
+ *
+ * ★ **규격은 실측이다** (2026-10-10 · `kepco.yml` 수집 판정 0). 앞 판은 공개 문서를 보고
+ *   `distributionCapacity` 를 짐작해 불렀고, 그 주소는 **없다**(2026-10-11 진단: HTTP 404).
+ * ★ 칸의 뜻도 받은 값으로 정했다 — 강릉시 실측에서 `substPwr + vol1 = 100,000` ·
+ *   `mtrPwr + vol2 = 50,000` · `dlPwr + vol3 = 13,000` 이다. 곧 `*Pwr` 은 이미 연계된 용량,
+ *   `vol1·2·3` 은 변전소·주변압기·배전선로의 **여유(kW)** 다.
  *
  * ★ **지역을 특정하지 못하면 부르지 않는다.** 전국 값으로 대체하면 문서에는
  *   「적용됨」만 남고 무엇이 빠졌는지 사라진다 (§4.9).
  *
- * @param {object} o { region } — 시·군·구
- * @returns {{ok, value?:{rows, region, source}, error?, unavailable?}}
+ * @param {object} o { region } — 「시도 시군구」 또는 「시군구」
+ * @returns {{ok, value?:{rows, region, source}, error?, unavailable?, noData?}}
  */
 async function capacity(o) {
   const opt = o || {};
@@ -127,17 +206,14 @@ async function capacity(o) {
     return { ok: false, error: 'KEPCO_BIGDATA_KEY 가 Encoding 키로 보인다 — Decoding(일반) 키를 넣는다' };
   }
 
-  // ★ 여유용량은 접속 신청이 들어오면 바뀐다 — 오래 붙들면 옛 여유를 보고 판단한다
-  const r = await cache.through(PROVIDER, 'grid', { region }, async () => {
-    const url = buildUrl(`${BASE}/distributionCapacity`, {
-      apiKey: apiKey(), returnType: 'json', numOfRows: 200, pageNo: 1, addr: region,
-    });
-    const res = await http.request(url);
-    if (!res.ok) return { ok: false, error: mask(res.error) };
+  const codes = await resolveCodes(region);
+  if (!codes.ok) return codes;
 
-    const j = normalize(res.body);
-    if (!j.ok) return { ok: false, error: mask(j.error) };
-    return { ok: true, value: { items: j.items || [] } };
+  // ★ 여유용량은 접속 신청이 들어오면 바뀐다 — 오래 붙들면 옛 여유를 보고 판단한다
+  const r = await cache.through(PROVIDER, 'grid', { metroCd: codes.metroCd, cityCd: codes.cityCd }, async () => {
+    const g = await getJson('dispersedGeneration.do', { metroCd: codes.metroCd, cityCd: codes.cityCd });
+    if (!g.ok) return g.notFound ? { ok: true, value: { items: [] } } : g;
+    return { ok: true, value: { items: rowsOf(g.obj) } };
   });
 
   if (!r.ok) return r;
@@ -151,28 +227,30 @@ async function capacity(o) {
     };
   }
 
+  const mw = v => { const n = num(v); return n === null ? null : Math.round(n) / 1000; };
   const rows = items.map(x => ({
-    substation: x.subst_nm || x.substNm || null,
-    transformer: x.mtr_nm || x.mtrNm || null,        // 주변압기
-    line: x.dl_nm || x.dlNm || null,                 // 배전선로
+    substation: x.substNm || null,
+    transformer: x.mtrNo != null && String(x.mtrNo).trim() ? `#${String(x.mtrNo).trim()} M.Tr` : null,  // 주변압기
+    line: x.dlNm || null,                                                                                 // 배전선로
     // ★ 셋 다 여유가 0보다 커야 접속이 된다 — 하나만 보면 통과처럼 보인다
-    substationMw: num(x.subst_cap || x.substCap),
-    transformerMw: num(x.mtr_cap || x.mtrCap),
-    lineMw: num(x.dl_cap || x.dlCap),
-    at: x.base_ym || x.baseYm || null,
+    substationMw: mw(x.vol1),
+    transformerMw: mw(x.vol2),
+    lineMw: mw(x.vol3),
+    at: null,   // 응답에 기준 시각 칸이 없다 — 조회일이 곧 기준이다 (지어내지 않는다)
   }));
 
   return {
     ok: true,
     value: {
       region,
+      codes: { metroCd: codes.metroCd, cityCd: codes.cityCd, name: codes.name },
       rows,
       cached: r.cached,
       source: {
         provider: '한국전력공사',
         label: '분산전원연계정보',
         // ★ **모수와 시점을 함께 남긴다** (§4.7)
-        note: `'${region}' ${rows.length}개 선로. `
+        note: `'${region}' ${rows.length}개 선로 (여유 kW → MW 환산). `
           + '**조회 시점의 스냅샷이다** — 접속 대기열이 있어 여유가 곧 접속 가능을 뜻하지 않는다',
       },
     },
@@ -326,4 +404,5 @@ module.exports = {
   capacity, headroom, substationDistance, humanDistance, verdict,
   isAvailable, mask,
   PROVIDER, BASE, STATUS, CLEARED, BASIS, BASIS_LABEL,
+  splitRegion, rowsOf,
 };
