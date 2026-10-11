@@ -144,25 +144,6 @@
    ]
   },
   {
-   "id": "15113297",
-   "bases": [
-    "1421000/mssBizService_v2"
-   ],
-   "ops": [
-    "getbizList_v2"
-   ],
-   "code": 4,
-   "rows": [
-    {
-     "label": "1421000/mssBizService_v2/getbizList_v2 · 원본 · 202512",
-     "status": 403,
-     "gotValue": false,
-     "authFail": true,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
-    }
-   ]
-  },
-  {
    "id": "15113191",
    "bases": [],
    "ops": [],
@@ -450,13 +431,21 @@
   {
    "id": "15034830",
    "bases": [
-    "B410001/kotra_nationalInformation"
+    "B410001/kotra_nationalInformation",
+    "B410001/kotra_nationalInformation/natnInfo"
    ],
    "ops": [
     "natnInfo"
    ],
    "code": 5,
    "rows": [
+    {
+     "label": "B410001/kotra_nationalInformation/natnInfo/natnInfo · 원본 · 202512",
+     "status": 200,
+     "gotValue": false,
+     "authFail": false,
+     "head": "{\"response\":{\"header\":{\"resultCode\":81,\"resultMsg\":\"Not Exist Required Paramaters.\"},\"body\":null}}"
+    },
     {
      "label": "B410001/kotra_nationalInformation/natnInfo · 원본 · 202512",
      "status": 400,
@@ -527,6 +516,13 @@
     },
     {
      "label": "1613000/KictTms/spothcv · 원본 · 202512",
+     "status": 403,
+     "gotValue": false,
+     "authFail": true,
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
+    },
+    {
+     "label": "1613000/KictTms/vt · 원본 · 202512",
      "status": 403,
      "gotValue": false,
      "authFail": true,
