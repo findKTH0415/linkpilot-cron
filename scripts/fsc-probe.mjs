@@ -133,7 +133,20 @@ export function discover(html) {
   for (const m of flat.matchAll(/"name"\s*:\s*"([A-Za-z][A-Za-z0-9_]{0,40})"[^{}]{0,400}?"required"\s*:\s*true/g)) required.add(m[1]);
   for (const m of flat.matchAll(/"required"\s*:\s*true[^{}]{0,400}?"name"\s*:\s*"([A-Za-z][A-Za-z0-9_]{0,40})"/g)) required.add(m[1]);
   for (const k of ['serviceKey', 'ServiceKey']) required.delete(k);
-  return { bases: [...bases], full: [...full], ops: [...ops], required: [...required] };
+  /* ★ 〈2026-10-11 · KOTRA 국가정보 15034830 이 «뿌리/natnInfo» 에 «서비스 없음(12)»으로 답했다〉 — 스웨거가 적은
+     host·basePath 와 경로 «통째»(슬래시가 둘 이상인 것 포함)를 그대로 줍는다. 문서에 적힌 것만 쓴다 — 지어내지 않는다 (§4.3) */
+  const host = (flat.match(/"host"\s*:\s*"([^"]{3,80})"/) || [])[1] || '';
+  const basePath = (flat.match(/"basePath"\s*:\s*"([^"]{1,120})"/) || [])[1] || '';
+  const paths = new Set();
+  if (pi >= 0) for (const m of flat.slice(pi, pi + 20000).matchAll(/"(\/[A-Za-z][A-Za-z0-9_\/]{1,120})"\s*:\s*\{/g)) paths.add(m[1]);
+  /* ★★ 〈같은 날 · 실측〉 KOTRA 는 basePath 가 비고 host 칸에 «apis.data.go.kr/B410001/kotra_nationalInformation/natnInfo» 를
+     통째로 적었다(경로는 «/natnInfo»). 그러니 host 와 basePath 를 이어 붙인 뒤 앞의 호스트만 뗀다 */
+  const rootPath = `${host}${basePath}`.replace(/^https?:\/\//, '');
+  if (/^apis\.data\.go\.kr\//.test(rootPath)) {
+    const b = rootPath.replace(/^apis\.data\.go\.kr\//, '').replace(/^\/+|\/+$/g, '');
+    if (/^[A-Z]?\d{5,8}\//.test(b)) { bases.add(b); for (const x of paths) full.add(`${b}${x}`); }
+  }
+  return { bases: [...bases], full: [...full], ops: [...ops], required: [...required], host, basePath, paths: [...paths] };
 }
 
 /* ★ 〈2026-09-29 · 실측: 15121307 · 15081808 안내 페이지는 swagger-ui 빈 칸만 주고, 규격은 odcloud «api-docs» 주소에 있었다〉.
@@ -282,6 +295,7 @@ async function main() {
     P(`- 안내 페이지 — ${page.status == null ? `**못 닿음** (${page.transport})` : `HTTP ${page.status}`} · ${page.ms}ms`);
     P(`  - 뽑은 서비스 ${d.bases.length ? d.bases.map((b) => `\`${b}\``).join(' · ') : '**없음(못 읽었다)**'}`);
     P(`  - 뽑은 오퍼레이션 ${d.ops.length ? d.ops.map((o) => `\`${o}\``).join(' · ') : '**없음(못 읽었다)**'}`);
+    if (d.host || d.paths.length) { const line = `  - 스웨거 host·basePath \`${redact(d.host || '-')}\` \`${redact(d.basePath || '-')}\` · 경로 ${d.paths.length ? d.paths.slice(0, 6).map((x) => `\`${redact(x)}\``).join(' ') : '(없다)'}`; P(line); SEARCH_RECAP.push(`- ${svc.id} ${line.trim()}`); }
     if (d.required.length) { const line = `  - 필수 인자(스웨거) ${d.required.map((o) => `\`${o}\``).join(' · ')}`; P(line); SEARCH_RECAP.push(`- ${svc.id} ${line.trim()}`); }
     const rows = [];
     const odRows = []; let odSpec = false;
