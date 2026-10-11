@@ -84,10 +84,16 @@ function responder(url) {
       { factrNo: 'F-1', fctryNm: '한빛정밀', fctryAddr: '경기도 화성시', lndarNm: '12000', manufAr: '3800', regstrDe: '20190312' },
     ] } } } });
   }
-  if (/distributionCapacity/.test(url)) {
-    return ok({ response: { header: { resultCode: '00' }, body: { items: { item: [
-      { subst_nm: '○○변전소', mtr_nm: '#1 M.Tr', dl_nm: 'DL-01', subst_cap: '50', mtr_cap: '40', dl_cap: '30', base_ym: '202608' },
-    ] } } } });
+  // ★ 한전 규격은 실측이다 (D-439) — 공통코드로 법정동 코드를 받고 dispersedGeneration.do 가 선로를 준다
+  if (/commonCode\.do/.test(url)) {
+    return ok({ data: /lglDngMetroCd/.test(url)
+      ? [{ code: '44', codeNm: '충청남도' }]
+      : [{ code: '44180', codeNm: '보령시', uppoCd: '44', uppoCdNm: '충청남도' }] });
+  }
+  if (/dispersedGeneration\.do/.test(url)) {
+    return ok({ data: [
+      { substNm: '○○변전소', mtrNo: '1', dlNm: 'DL-01', vol1: 50000, vol2: 40000, vol3: 30000 },
+    ] });
   }
   return EMPTY_GOKR;   // 환경 인허가 — 기록 없음
 }
@@ -287,7 +293,7 @@ test('★ 계통 여유가 실제로 조회되고 수전용량과 견준다', as
     // ★ 「접속 가능」으로 읽히면 안 된다 — 대기열은 이 자료에 없다
     assert.match(g.text, /접속 가능을 뜻하지 않는다/);
     assert.strictEqual(g.apply, 'human');
-    assert.ok(calls.some(u => /distributionCapacity/.test(u)), '계통 조회가 안 나갔다');
+    assert.ok(calls.some(u => /dispersedGeneration\.do/.test(u)), '계통 조회가 안 나갔다');
   });
 });
 
@@ -324,7 +330,7 @@ test('★ 지역만 넣고 거리를 안 넣어도 **여유용량 조회는 나�
     assert.strictEqual(out.find(c => c.id === 'grid').status, 'ok');
     // 거리는 못 넣었다는 사실이 그대로 남는다
     assert.strictEqual(out.find(c => c.id === 'substation').status, 'skipped');
-    assert.ok(calls.some(u => /distributionCapacity/.test(u)),
+    assert.ok(calls.some(u => /dispersedGeneration\.do/.test(u)),
       '거리를 못 넣었다고 여유용량 조회까지 건너뛰면 안 된다');
   });
 });
