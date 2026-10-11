@@ -82,6 +82,7 @@ jobs:
         run: |
           node im-agent/tools/smoke-public-data.js \
             --address "강원특별자치도 원주시 신림면 송계리 695-4" \
+            --grid-region "원주시" \
             > "${RUNNER_TEMP}/smoke.txt" 2>&1
 
       # ★ 요약을 만든다. 결과에 열쇠가 섞였으면 여기서 멈춘다(파일을 안 쓴다).
