@@ -1,0 +1,278 @@
+{
+ "updatedAt": "2026-10-11T08:07:20.823Z",
+ "sources": {
+  "politic": {
+   "org": "외교부",
+   "service": "국가·지역별 정치현황",
+   "id": "15099537",
+   "ok": true,
+   "count": 196
+  },
+  "kotra": {
+   "org": "대한무역투자진흥공사",
+   "service": "국가정보",
+   "id": "15034830",
+   "got": 0,
+   "of": 16,
+   "fields": []
+  }
+ },
+ "countries": {
+  "BD": {
+   "iso": "BD",
+   "name": "방글라데시",
+   "politic": {
+    "congress_composition": "단원제(의석 350석, 임기 5년)",
+    "country_eng_nm": "Bangladesh",
+    "country_iso_alp2": "BD",
+    "country_nm": "방글라데시",
+    "foreign_policy": null,
+    "government_form": "내각책임제(1991.9월 개헌)",
+    "main_party": null,
+    "main_people": "(現 선출 정부 체제, 2026. 2.17-) \n대통령 : 모하메드 샤합우딘(Mohammed Shahabuddin, '23.4월-)\n수반 : 타리크 라흐만(Tarique Rahman, 2026.2월-)\n외교장관 : 칼릴루르 라흐만(Khalilur Rahman, 2026.2월-)",
+    "national_form": null
+   },
+   "kotra": null
+  },
+  "VN": {
+   "iso": "VN",
+   "name": "베트남",
+   "politic": {
+    "congress_composition": "임기 5년 단원제(의석 수 500석)\n현, 제15대(2021-2026년) : 국회의원 479명 (국회 출범 당시, 499석)",
+    "country_eng_nm": "Vietnam",
+    "country_iso_alp2": "VN",
+    "country_nm": "베트남",
+    "foreign_policy": null,
+    "government_form": "사회주의 공화제",
+    "main_party": "공산당(유일정당)",
+    "main_people": "국가 지도자 (집단지도체제)\n당서기장 : 또 럼(To Lam)\n국가주석 : 르엉 끄엉(Luong Cuong)\n총리 : 팜 밍 찡(Pham Minh Chinh)\n국회의장 : 쩐 타잉 먼(Tran Thanh Man)\n외교장관대행 : 레 화이 쭝(Le Hoai Trung)",
+    "national_form": null
+   },
+   "kotra": null
+  },
+  "TH": {
+   "iso": "TH",
+   "name": "태국",
+   "politic": {
+    "congress_composition": "국가평화질서회의(NCPO)에서 임명하는 상원 200명, 총선으로 선출하는 하원 500명 총 700명으로 구성\n상원 : 200명\n하원  : 500명",
+    "country_eng_nm": "Thailand",
+    "country_iso_alp2": "TH",
+    "country_nm": "태국",
+    "foreign_policy": null,
+    "government_form": "내각책임제",
+    "main_party": null,
+    "main_people": "국왕 : 마하 와치라롱껀(Maha Vajiralongkorn)\n총리 : 아누틴 찬위라꾼(Anutin Charnvirakul)\n외교장관 : 시하삭 푸엉깻깨우(Sihasak Phuangketkeow)",
+    "national_form": "입헌군주제"
+   },
+   "kotra": null
+  },
+  "ID": {
+   "iso": "ID",
+   "name": "인도네시아",
+   "politic": {
+    "congress_composition": "-국민평의회(MPR)는 상하원협의체 성격(732명)\n하원 : 580석(임기 5년)\n상원 : 152석(임기 5년)",
+    "country_eng_nm": "Indonesia",
+    "country_iso_alp2": "ID",
+    "country_nm": "인도네시아",
+    "foreign_policy": null,
+    "government_form": "대통령중심제",
+    "main_party": null,
+    "main_people": "대통령 : 프라보워 수비안토(Prabowo Subianto)\n부통령 : 기브란 라카부밍 라카(Gibran   Rakabuming Raka)\n국민평의회(MPR)의장 : 아흐마드 무자니(Ahmad Muzani)\n하원(DPR)의장 : 푸안 마하라니(Puan Maharani)\n상원(DPD)의장 : 술탄 박티아르 나자무딘(Sultan Bachtiar Najamudin)\n외교장관 : 수기오노(Sugiono)",
+    "national_form": null
+   },
+   "kotra": null
+  },
+  "PH": {
+   "iso": "PH",
+   "name": "필리핀",
+   "politic": {
+    "congress_composition": "상원 24석(임기 6년), 하원 315석(임기 3년)",
+    "country_eng_nm": "Philippines",
+    "country_iso_alp2": "PH",
+    "country_nm": "필리핀",
+    "foreign_policy": null,
+    "government_form": "대통령제(6년 단임제)",
+    "main_party": null,
+    "main_people": "대통령 : 페르디난드 마르코스 주니어(Ferdinand Marcos Jr.)\n부통령 : 사라 두테르테(Sara Duterte)\n상원의장 : 비센테 소토 3세(Vicente C. Sotto Ⅲ)\n하원의장 : 파우스티노 디(Faustino Bojie Dy Ⅲ)\n외교장관 : 마리아 테레사 라자로(Ma. Teresa Lazaro)",
+    "national_form": null
+   },
+   "kotra": null
+  },
+  "MY": {
+   "iso": "MY",
+   "name": "말레이시아",
+   "politic": {
+    "congress_composition": "양원제, 하원 우위",
+    "country_eng_nm": "Malaysia",
+    "country_iso_alp2": "MY",
+    "country_nm": "말레이시아",
+    "foreign_policy": null,
+    "government_form": "의원내각제",
+    "main_party": null,
+    "main_people": "국왕 : 이브라힘(His Majesty Sultan Ibrahim ibni Almarhum Sultan Iskandar Al-Haj)\n총리 : 안와르(Dato' Seri Anwar bin Ibrahim)\n하원의장 : 조하리(Dato' Johari bin Abdul)\n상원의장 : 아왕 비미(Dato' Awang Bemee bin Awang Ali Basah)\n외교장관 : 모하마드(Dato’ Seri Utama Haji Mohamad bin Hasan)",
+    "national_form": null
+   },
+   "kotra": null
+  },
+  "KH": {
+   "iso": "KH",
+   "name": "캄보디아",
+   "politic": {
+    "congress_composition": "양원제\n국회 : 125석(임기 5년)\n상원 : 62석(임기 6년)",
+    "country_eng_nm": "Cambodia",
+    "country_iso_alp2": "KH",
+    "country_nm": "캄보디아",
+    "foreign_policy": null,
+    "government_form": "의원내각제",
+    "main_party": null,
+    "main_people": "국왕 : 노로돔 시하모니(Norodom Sihamoni)\n총리 : 훈 마넷(Hun Manet)\n국회의장 : 쿠은 쏘다리(Khuon Sudary)\n상원의장 : 훈 센(Hun Sen)\n외교장관 : 쁘락 소콘(Prak Sokhonn)",
+    "national_form": "입헌군주제"
+   },
+   "kotra": null
+  },
+  "MN": {
+   "iso": "MN",
+   "name": "몽골",
+   "politic": {
+    "congress_composition": null,
+    "country_eng_nm": "Mongolia",
+    "country_iso_alp2": "MN",
+    "country_nm": "몽골",
+    "foreign_policy": null,
+    "government_form": "민주공화제(1992, 신헌법 발효) \n- 의원내각제적 성격이 강한 이원집정부제",
+    "main_party": "(2026.4.)\n - 인민당(68석)\n - 민주당(42석)\n - 훈당(8석)\n - 민족연대(4석)\n - 민의녹색당(4석)",
+    "main_people": "대통령 : U.Khurelsukh(후렐수흐, 인민당)\n총리 : N.Uchral(오츠랄, 인민당)\n국회의장 : S.Byambatsogt(뱜바척트, 인민당)\n외교장관 : B.Battsetseg(바트체첵, 인민당)",
+    "national_form": null
+   },
+   "kotra": null
+  },
+  "KZ": {
+   "iso": "KZ",
+   "name": "카자흐스탄",
+   "politic": {
+    "congress_composition": "(총 148석)\n상원 : 50석\n하원 : 98석",
+    "country_eng_nm": "Kazakhstan",
+    "country_iso_alp2": "KZ",
+    "country_nm": "카자흐스탄",
+    "foreign_policy": null,
+    "government_form": "대통령중심제(임기7년)",
+    "main_party": "아마나트당, 아울당, 공화당 등",
+    "main_people": "대통령 : 토카예프(Kassym-Jomart Tokayev)\n상원의장 : 아쉼바예프(Maulen Ashimbayev)\n하원의장 : 코샤노프(Yerlan Koshanov)\n총리 : 벡테노프(Olzhas Bektenov)\n외교장관 : 코쉐르바예프(Ermek Kosherbayev)",
+    "national_form": null
+   },
+   "kotra": null
+  },
+  "UZ": {
+   "iso": "UZ",
+   "name": "우즈베키스탄",
+   "politic": {
+    "congress_composition": "(총 250석)\n상원 : 100석\n하원 : 150석",
+    "country_eng_nm": "Uzbekistan",
+    "country_iso_alp2": "UZ",
+    "country_nm": "우즈베키스탄",
+    "foreign_policy": null,
+    "government_form": "대통령중심제(임기 7년 중임제)",
+    "main_party": "자유민주당, 사회민주당, 인민민주당 등",
+    "main_people": "대통령 : 미르지요예프(Shavkat Mirziyoyev)\n상원의장 : 나르바예바(Tanzila Narbaeva)\n하원의장 : 이스마일로프(Nurdindjon Ismailov)\n총리 : 아리포프(Abdulla Aripov)\n외교장관 : 사이도프(Baxtiyor Saidov)",
+    "national_form": null
+   },
+   "kotra": null
+  },
+  "IN": {
+   "iso": "IN",
+   "name": "인도",
+   "politic": {
+    "congress_composition": "양원제 \n상원 : 245석(임기 6년)\n하원 : 543석(임기 5년)",
+    "country_eng_nm": "India",
+    "country_iso_alp2": "IN",
+    "country_nm": "인도",
+    "foreign_policy": null,
+    "government_form": "의원내각제",
+    "main_party": null,
+    "main_people": "대통령 : 드라우파디 무르무(Droupadi Murmu, 2022.7.25.)\n총리 : 나렌드라 모디(Narendra Modi, 2014.5.26)\n외교장관 : 수브라마냠 자이샨카르\n(Subrahmanyam Jaishankar, 2019.5.30)\n상원의장(부통령) : C.P. 라다크리슈난\n(C.P. Radhakrishnan, 2025.9.128.11)\n하원의장 : 옴 비를라(Om Birla, 2019.6.19)",
+    "national_form": null
+   },
+   "kotra": null
+  },
+  "SA": {
+   "iso": "SA",
+   "name": "사우디아라비아",
+   "politic": {
+    "congress_composition": "국정자문회의 : 국왕이 임명권 행사",
+    "country_eng_nm": "Saudi Arabia",
+    "country_iso_alp2": "SA",
+    "country_nm": "사우디아라비아",
+    "foreign_policy": null,
+    "government_form": "이슬람군주정(정교일치의 국왕중심제)",
+    "main_party": null,
+    "main_people": "국왕 : 살만(Custodian of the Two Holy Mosques King Salman / 2015년 즉위)\n왕세자 : 모하메드 빈 살만(H.R.H. Crown Prince Mohammed bin Salman bin Abdulaziz Al Saud)\n외교장관 : 파이살 빈 파르한 알 사우드(H.H. Faisal bin Farhan Al Saud)",
+    "national_form": null
+   },
+   "kotra": null
+  },
+  "AE": {
+   "iso": "AE",
+   "name": "아랍에미리트",
+   "politic": {
+    "congress_composition": "연방평의회 : 40명(여성 50% 의무화)",
+    "country_eng_nm": "United Arab Emirates : UAE",
+    "country_iso_alp2": "AE",
+    "country_nm": "아랍에미리트",
+    "foreign_policy": null,
+    "government_form": "대통령 중심 연방제(7개 에미리트(emirates)로 구성)",
+    "main_party": null,
+    "main_people": "대통령 : 모하메드 빈 자이드 알 나흐얀(아부다비 통치자)\n부통령 겸 총리 : 모하메드 알 막툼(두바이 통치자)\n부통령 및 부총리 겸 대통령실 의장 : 만수르 알 나흐얀(아부다비 출신)\n부총리 겸 외교장관 : 압둘라 알 나흐얀(아부다비 출신) ",
+    "national_form": null
+   },
+   "kotra": null
+  },
+  "US": {
+   "iso": "US",
+   "name": "미합중국",
+   "politic": {
+    "congress_composition": "상하 양원제\n상원 : 100석(임기 6년)\n하원 : 435석(임기 2년)",
+    "country_eng_nm": "United States of America",
+    "country_iso_alp2": "US",
+    "country_nm": "미합중국",
+    "foreign_policy": null,
+    "government_form": "연방공화국(대통령 중심제)",
+    "main_party": "- 공화당(Republican Party)\n- 민주당(Democratic Party)",
+    "main_people": "대통령 : 도널드 트럼프(Donald Trump)\n부통령 : 제임스 데이비드 밴스(James David Vance)\n국무장관 : 마르코 루비오(Marco Rubio)",
+    "national_form": null
+   },
+   "kotra": null
+  },
+  "JP": {
+   "iso": "JP",
+   "name": "일본",
+   "politic": {
+    "congress_composition": "양원제(참의원 / 중의원)",
+    "country_eng_nm": "Japan",
+    "country_iso_alp2": "JP",
+    "country_nm": "일본",
+    "foreign_policy": null,
+    "government_form": "내각책임제",
+    "main_party": "- 연립여당 : 자민당, 공명당\n- 야당 : 입헌민주당, 일본유신회, 국민민주당 등",
+    "main_people": "국가원수 : 나루히토 천황\n총리대신 : 이시바 시게루 자민당 총재",
+    "national_form": "입헌군주제"
+   },
+   "kotra": null
+  },
+  "CN": {
+   "iso": "CN",
+   "name": "중국",
+   "politic": {
+    "congress_composition": null,
+    "country_eng_nm": "China",
+    "country_iso_alp2": "CN",
+    "country_nm": "중국",
+    "foreign_policy": null,
+    "government_form": "노농연맹에 기초한 인민민주주의 사회주의 국가",
+    "main_party": null,
+    "main_people": null,
+    "national_form": null
+   },
+   "kotra": null
+  }
+ }
+}
