@@ -44,7 +44,30 @@ const AUTH_RE = /SERVICE_KEY_IS_NOT_REGISTERED|SERVICE ACCESS DENIED|ApiKeyAuthF
 const itemsOf = (j) => {
   const it = j && j.response && j.response.body && j.response.body.items;
   const arr = it && (Array.isArray(it.item) ? it.item : it.item ? [it.item] : Array.isArray(it) ? it : []);
-  return Array.isArray(arr) ? arr : [];
+  if (Array.isArray(arr) && arr.length) return arr;
+  /* ★ 〈2026-10-11 · 첫 수집 실측〉 KOTRA 는 결과 00 을 주면서 items.item 자리가 비었다 — 항목이 다른 자리에 있다.
+     body 안에서 «객체가 든 첫 배열», 없으면 «낱값 칸이 셋 이상인 객체»를 찾는다. 자리를 지어내지 않고 실제로 있는 것만 줍는다 */
+  const body = (j && j.response && j.response.body) || j;
+  const seen = new Set();
+  const walk = (v, depth) => {
+    if (!v || typeof v !== 'object' || depth > 5 || seen.has(v)) return null;
+    seen.add(v);
+    if (Array.isArray(v)) return v.some((x) => x && typeof x === 'object' && !Array.isArray(x)) ? v.filter((x) => x && typeof x === 'object') : null;
+    for (const k of Object.keys(v)) { const r = walk(v[k], depth + 1); if (r) return r; }
+    const scal = Object.values(v).filter((x) => x == null || typeof x !== 'object').length;
+    return depth > 0 && scal >= 3 ? [v] : null;
+  };
+  return walk(body, 0) || [];
+};
+/* 칸 자리 — 다음 판에서 규격을 고칠 재료. 이름만 적고 값은 안 적는다 */
+const shapeOf = (v, pre = '', out = [], depth = 0) => {
+  if (out.length > 40 || depth > 4 || !v || typeof v !== 'object') return out;
+  for (const k of Object.keys(v)) {
+    const x = v[k]; const p = pre ? `${pre}.${k}` : k;
+    out.push(Array.isArray(x) ? `${p}[${x.length}]` : x && typeof x === 'object' ? `${p}{}` : p);
+    if (x && typeof x === 'object') shapeOf(Array.isArray(x) ? x[0] : x, p, out, depth + 1);
+  }
+  return out;
 };
 // 한 번의 대답을 갈래로 가른다 — 못 닿음(2) · 인증 거부(4) · 대답은 왔는데 비었다(5) · 받음(0)
 function classify(r) {
@@ -55,7 +78,7 @@ function classify(r) {
   const items = itemsOf(j);
   if (!items.length) {
     const h = (j.response && j.response.header) || {};
-    return { code: 5, why: `대답은 왔는데 항목이 없다 (결과 ${h.resultCode ?? '?'} ${h.resultMsg ?? ''})`.trim() };
+    return { code: 5, why: `대답은 왔는데 항목이 없다 (결과 ${h.resultCode ?? '?'} ${h.resultMsg ?? ''}) · 자리 ${shapeOf(j).slice(0, 25).join(' ') || '(없음)'}`.trim() };
   }
   return { code: 0, items };
 }
