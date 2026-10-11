@@ -118,7 +118,8 @@ function rowsOf(obj) {
  */
 function splitRegion(region) {
   const parts = String(region || '').trim().split(/\s+/).filter(Boolean);
-  const sgg = [...parts].reverse().find(p => /(시|군|구)$/.test(p) && !/(특별시|광역시|특별자치시)$/.test(p)) || null;
+  // ★ 세종특별자치시는 아래에 시·군·구가 없는 단층이다 — 그 이름 자체가 시군구 자리다 (Codex 지적 · D-441)
+  const sgg = [...parts].reverse().find(p => (/(시|군|구)$/.test(p) && !/(특별시|광역시|특별자치시)$/.test(p)) || /^세종(특별자치시)?$/.test(p)) || null;
   const sido = parts.length > 1 && parts[0] !== sgg ? parts[0] : null;
   return { sido, sgg };
 }
@@ -162,7 +163,11 @@ async function resolveCodes(region) {
     if (m) {
       metroCd = String(m.code);
       const inSido = hits.filter(x => x.uppoCd == null || String(x.uppoCd) === metroCd);
-      if (inSido.length) hits = inSido;
+      // ★ 시도는 읽혔는데 그 시도 안에 그 시군구가 없으면(「서울특별시 보령시」) 다른 시도 코드와 섞어 부르지 않는다
+      if (!inSido.length) {
+        return { ok: false, error: `'${sgg}' 가 '${m.codeNm}' 안에 없다 — 시도와 시군구가 서로 맞지 않는다. 다른 시도 값으로 대체하지 않는다` };
+      }
+      hits = inSido;
     }
   }
   const uppos = [...new Set(hits.map(x => String(x.uppoCd ?? '')))];

@@ -62,9 +62,11 @@ const CITY = [
   { code: '44180', codeNm: '보령시', uppoCd: '44', uppoCdNm: '충청남도' },
   { code: '26110', codeNm: '중구', uppoCd: '26', uppoCdNm: '부산광역시' },
   { code: '11140', codeNm: '중구', uppoCd: '11', uppoCdNm: '서울특별시' },
+  { code: '36110', codeNm: '세종특별자치시', uppoCd: '36', uppoCdNm: '세종특별자치시' },
 ];
 const METRO = [
   { code: '44', codeNm: '충청남도' }, { code: '26', codeNm: '부산광역시' }, { code: '11', codeNm: '서울특별시' },
+  { code: '36', codeNm: '세종특별자치시' },
 ];
 function payload(items) {
   return (url) => {
@@ -298,6 +300,23 @@ test('시·군·구 낱말이 없으면 부르지 않는다 — 시도 값으로
     const r = await kepco.capacity({ region: '충청남도' });
     assert.equal(r.ok, false);
     assert.equal(calls.length, 0);
+  });
+});
+
+test('★ 시도와 시군구가 서로 안 맞으면 섞어 부르지 않는다 — 「서울특별시 보령시」 (D-441)', async () => {
+  await withFake(payload([LINE()]), async (calls) => {
+    const r = await kepco.capacity({ region: '서울특별시 보령시' });
+    assert.equal(r.ok, false);
+    assert.match(r.error, /서로 맞지 않는다/);
+    assert.equal(dgenCalls(calls).length, 0);
+  });
+});
+
+test('★ 세종특별자치시는 단층이라 그 이름으로 바로 부른다 (D-441)', async () => {
+  await withFake(payload([LINE()]), async (calls) => {
+    const r = await kepco.capacity({ region: '세종특별자치시' });
+    assert.equal(r.ok, true, r.error);
+    assert.match(dgenCalls(calls)[0], /cityCd=36110/);
   });
 });
 
