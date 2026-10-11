@@ -50,3 +50,17 @@ test('값이 필요한 인자는 부르지 않고 이름만 적는다 · 규격�
   assert.match(s, /odSpec \? \{ code: 3/);
   assert.doesNotMatch(s, /b_no['"]?\s*:\s*\[\s*['"]\d/, '사업자번호 값을 지어 넣으면 안 된다');
 });
+
+/* 〈2026-10-11 · KOTRA 국가정보 15034830 이 «뿌리/natnInfo» 에 «서비스 없음(12)»으로 답했다〉 —
+   안내 페이지의 스웨거가 적은 host·basePath·경로 «통째»를 그대로 부를 자리로 만드는가. 지어내지 않는다. */
+test('안내 페이지 스웨거 — basePath + 경로 통째(슬래시 둘)를 부를 자리로 · 다른 host 는 안 붙인다', async () => {
+  const { discover } = await import(SRC);
+  const page = 'x {"swagger":"2.0","host":"apis.data.go.kr","basePath":"/B410001/kotra_nationalInformation","paths":{"/natnInfo/natnInfo":{"get":{"parameters":[{"name":"isoWd2CntCd","required":true}]}}}}';
+  const d = discover(page);
+  assert.ok(d.full.includes('B410001/kotra_nationalInformation/natnInfo/natnInfo'), JSON.stringify(d.full));
+  assert.deepStrictEqual(d.paths, ['/natnInfo/natnInfo']);
+  assert.deepStrictEqual(d.required, ['isoWd2CntCd']);
+  const other = discover(page.replace('apis.data.go.kr', 'api.odcloud.kr'));
+  assert.ok(!other.full.some((x) => x.includes('natnInfo/natnInfo')), '포털 밖 host 를 data.go.kr 주소로 붙였다');
+  assert.ok(String(fs.readFileSync(SRC, 'utf8')).includes('스웨거 host·basePath'), '요약에 그 줄을 안 적는다');
+});
