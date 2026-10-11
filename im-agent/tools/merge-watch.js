@@ -299,12 +299,21 @@ function measure(opts = {}) {
   const archived = all.filter(b => b.ahead !== 0 && noMerge.has(nameOf(b)));
 
   // ── 두 갈래씩 전부 — 갈래가 하나 늘면 견줄 짝이 몇 개 느는지 그대로 보인다
+  // ★★ **시간 예산을 둔다** 〈2026-10-11 · 실측 · D-440〉. 안 합친 갈래가 200개를 넘자 짝이
+  //   약 2만 개가 되어 merge-tree 를 2만 번 부르느라 **끝나지 않았다** — 교차검증 전체가 그 자리에서
+  //   멈췄다(CI 는 갈래가 없어 초록이라 아무도 몰랐다). 그래서 ① **최근 갈래부터** 맞대 보고
+  //   ② 예산을 넘기면 멈추되 ③ **못 잰 짝 수를 결과에 싣는다** — 못 잰 것을 「안 부딪힘」으로 세지 않는다 (§8).
+  const budgetMs = Number(opts.budgetMs ?? process.env.MERGE_WATCH_BUDGET_MS ?? 15000);
+  const started = Date.now();
+  const order = [...branches].sort((x, y) => String(y.lastCommitAt || '').localeCompare(String(x.lastCommitAt || '')));
+  let pairsSkipped = 0;
   const pairs = [];
-  for (let i = 0; i < branches.length; i++) {
-    for (let j = i + 1; j < branches.length; j++) {
-      const c = conflictsBetween(branches[i].ref, branches[j].ref);
+  for (let i = 0; i < order.length; i++) {
+    for (let j = i + 1; j < order.length; j++) {
+      if (Date.now() - started > budgetMs) { pairsSkipped++; continue; }
+      const c = conflictsBetween(order[i].ref, order[j].ref);
       pairs.push({
-        a: branches[i].name, b: branches[j].name,
+        a: order[i].name, b: order[j].name,
         conflicts: c.files.length, files: c.files,
         error: c.error || null,
       });
@@ -331,7 +340,10 @@ function measure(opts = {}) {
       branchCount: branches.length,
       mergedCount: merged.length,
       archivedCount: archived.length,
-      pairCount: pairs.length,
+      // ★ 견줄 짝 «전부»의 수다 — 실제로 맞대 본 수는 pairsMeasured, 예산이 모자라 못 잰 수는 pairsSkipped
+      pairCount: (branches.length - 1) * branches.length / 2 || 0,
+      pairsMeasured: pairs.length,
+      pairsSkipped,
       totalConflicts,
       distinctConflictedFiles: conflictedFiles.size,
       // ★ 갈래가 하나 늘면 견줄 짝이 몇 개 되는가 — n(n-1)/2 다.
@@ -366,6 +378,10 @@ function render(m) {
     L.push('');
   }
   L.push(`  아직 안 합친 갈래 ${m.summary.branchCount}개 · 견줄 짝 ${m.summary.pairCount}개`);
+  if (m.summary.pairsSkipped) {
+    L.push(`  ⚠️  시간 예산 안에 ${m.summary.pairsMeasured}개만 맞대 봤다 — **${m.summary.pairsSkipped}개는 못 쟀다** (최근 갈래부터 쟀다).`);
+    L.push('     못 잰 짝을 「안 부딪힘」으로 세지 않는다. 아래 «부딪히는 곳»은 잰 짝만의 수다.');
+  }
   L.push(`  ★ 실제로 부딪히는 곳 — 서로 다른 파일 ${m.summary.distinctConflictedFiles}개`);
   L.push('');
   L.push('  아직 안 합친 갈래');
@@ -530,7 +546,7 @@ ${m.fetched && m.fetched.tried && !m.fetched.ok ? `<div class="note" style="bord
 
 <div class="cards">
   <div class="card"><h3>아직 안 합친 갈래</h3><div class="big" style="color:${m.summary.branchCount ? 'var(--ink)' : 'var(--ok)'}">${m.summary.branchCount}</div><p>기준 <code>${esc(m.base)}</code> · 이미 들어간 <b>${m.summary.mergedCount}</b>개와 합치지 않기로 한 <b>${m.summary.archivedCount}</b>개는 뺐습니다</p></div>
-  <div class="card"><h3>견줄 짝</h3><div class="big">${m.summary.pairCount}</div><p>하나 더 열면 <b>${m.summary.pairsIfOneMore}</b> 개가 됩니다</p></div>
+  <div class="card"><h3>견줄 짝</h3><div class="big">${m.summary.pairCount}</div><p>하나 더 열면 <b>${m.summary.pairsIfOneMore}</b> 개가 됩니다${m.summary.pairsSkipped ? ` · <b style="color:var(--red)">${m.summary.pairsSkipped}개는 시간 안에 못 쟀습니다</b> (최근 갈래부터 ${m.summary.pairsMeasured}개 잼)` : ''}</p></div>
   <div class="card"><h3>실제로 부딪히는 파일</h3><div class="big" style="color:${m.summary.distinctConflictedFiles ? 'var(--red)' : 'var(--ok)'}">${m.summary.distinctConflictedFiles}</div><p>손으로 풀어야 하는 곳</p></div>
   <div class="card"><h3>가장 나쁜 짝</h3><div class="big">${worst}</div><p>한 번에 풀 곳이 가장 많은 조합</p></div>
   <div class="card"><h3>주인이 둘인 갈래</h3><div class="big" style="color:${m.summary.sharedOwnerBranches ? 'var(--red)' : 'var(--ok)'}">${m.summary.sharedOwnerBranches}</div><p>병합 뒤에는 누가 무엇을 했는지 못 가릅니다</p></div>
