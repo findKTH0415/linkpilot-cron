@@ -62,5 +62,8 @@ test('안내 페이지 스웨거 — basePath + 경로 통째(슬래시 둘)를 
   assert.deepStrictEqual(d.required, ['isoWd2CntCd']);
   const other = discover(page.replace('apis.data.go.kr', 'api.odcloud.kr'));
   assert.ok(!other.full.some((x) => x.includes('natnInfo/natnInfo')), '포털 밖 host 를 data.go.kr 주소로 붙였다');
+  /* 실측 모양 — basePath 없이 host 칸에 경로까지 적은 경우(KOTRA 2026-10-11) */
+  const kotra = discover('x {"swagger":"2.0","host":"apis.data.go.kr/B410001/kotra_nationalInformation/natnInfo","paths":{"/natnInfo":{"get":{}}}}');
+  assert.ok(kotra.full.includes('B410001/kotra_nationalInformation/natnInfo/natnInfo'), JSON.stringify(kotra.full));
   assert.ok(String(fs.readFileSync(SRC, 'utf8')).includes('스웨거 host·basePath'), '요약에 그 줄을 안 적는다');
 });

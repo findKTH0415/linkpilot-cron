@@ -139,8 +139,11 @@ export function discover(html) {
   const basePath = (flat.match(/"basePath"\s*:\s*"([^"]{1,120})"/) || [])[1] || '';
   const paths = new Set();
   if (pi >= 0) for (const m of flat.slice(pi, pi + 20000).matchAll(/"(\/[A-Za-z][A-Za-z0-9_\/]{1,120})"\s*:\s*\{/g)) paths.add(m[1]);
-  if (/apis\.data\.go\.kr/.test(host) && basePath) {
-    const b = basePath.replace(/^\/+|\/+$/g, '');
+  /* ★★ 〈같은 날 · 실측〉 KOTRA 는 basePath 가 비고 host 칸에 «apis.data.go.kr/B410001/kotra_nationalInformation/natnInfo» 를
+     통째로 적었다(경로는 «/natnInfo»). 그러니 host 와 basePath 를 이어 붙인 뒤 앞의 호스트만 뗀다 */
+  const rootPath = `${host}${basePath}`.replace(/^https?:\/\//, '');
+  if (/^apis\.data\.go\.kr\//.test(rootPath)) {
+    const b = rootPath.replace(/^apis\.data\.go\.kr\//, '').replace(/^\/+|\/+$/g, '');
     if (/^[A-Z]?\d{5,8}\//.test(b)) { bases.add(b); for (const x of paths) full.add(`${b}${x}`); }
   }
   return { bases: [...bases], full: [...full], ops: [...ops], required: [...required], host, basePath, paths: [...paths] };
