@@ -17,6 +17,10 @@ const assert = require('node:assert');
 
 const mw = require('../tools/merge-watch');
 
+// ★ 갈래가 200개를 넘으면 짝 맞대기가 수만 번이라 검사가 안 끝났다 (D-440). 예산을 짧게 둔다 —
+//   짝의 «수»는 그대로 재고, 실제로 맞대 본 수와 못 잰 수를 따로 센다.
+if (!process.env.MERGE_WATCH_BUDGET_MS) process.env.MERGE_WATCH_BUDGET_MS = '2000';
+
 test('★ 기준 갈래를 찾는다', () => {
   const b = mw.baseRef();
   assert.ok(b === null || /^origin\/(main|master)$/.test(b), `기준 갈래가 이상하다: ${b}`);
@@ -316,4 +320,18 @@ test('★ 다 보이면 「안 보이는 갈래」가 비어 있다', () => {
   const all = (doc.갈래 || []).map(b => ({ ref: `origin/${b.branch}`, name: b.branch, files: [] }));
   const rows = mw.ownership(all);
   assert.deepStrictEqual(rows.declaredMissing, [], '다 보이는데 없다고 한다');
+});
+
+test('★★ 시간 예산을 넘기면 멈추되 «못 잰 짝 수»를 싣는다 — 못 잰 것을 안 부딪힘으로 세지 않는다 (D-440)', () => {
+  const m = mw.measure({ budgetMs: 0, fetch: false });
+  if (!m.ok) return;
+  const s = m.summary;
+  assert.strictEqual(s.pairsMeasured + s.pairsSkipped, s.pairCount,
+    '잰 짝 + 못 잰 짝 = 전부여야 한다 — 어긋나면 어딘가 조용히 빠졌다');
+  assert.strictEqual(s.pairsMeasured, m.pairs.length);
+  if (s.pairCount > 1) {
+    assert.ok(s.pairsSkipped > 0, '예산 0 인데 못 잰 짝이 0 이다 — 예산을 안 본다');
+    assert.match(mw.render(m), /못 쟀다/);
+    assert.match(mw.html(m), /못 쟀습니다/);
+  }
 });
