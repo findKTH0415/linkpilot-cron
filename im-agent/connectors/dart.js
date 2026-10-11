@@ -96,7 +96,7 @@ async function corpIndex() {
     const head = Buffer.from(r.body).slice(0, 5).toString('utf8');
     if (!head.startsWith('PK')) {
       const s = statusError(Buffer.from(r.body).toString('utf8'));
-      return { ok: false, error: s || 'corpCode 응답이 ZIP 이 아니다' };
+      return { ok: false, error: s || notZipWhy(r) };
     }
 
     let xml;
@@ -235,6 +235,27 @@ function ymd(v) {
 }
 
 /** status 코드를 사람이 읽는 사유로. 정상이면 null */
+/**
+ * ZIP 도 <status> 도 아닌 대답을 «갈래를 가를 재료»와 함께 적는다.
+ * 점검 안내(HTML) · 하루 한도 · 열쇠 문제가 겉으로는 같은 한 줄이었다 (§4.2 — 본문을 봐야 갈린다).
+ * 담는 것은 상태코드 · 길이 · 모양 · 태그를 벗긴 앞머리 120자뿐이고, 열쇠는 가린다 (§2).
+ */
+function notZipWhy(r) {
+  const buf = Buffer.from((r && r.body) || []);
+  const text = buf.toString('utf8');
+  const t = text.trim();
+  const shape = !t ? '빈 대답'
+    : /^<\?xml|^<result|^<status/i.test(t) ? 'XML'
+    : /^<!doctype html|^<html|<body/i.test(t) ? 'HTML'
+    : /^[{[]/.test(t) ? 'JSON' : '글';
+  const head = mask(t.replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()).slice(0, 120);
+  const st = r && r.status != null ? `HTTP ${r.status}` : 'HTTP ?';
+  return `corpCode 응답이 ZIP 이 아니다 — ${st} · ${buf.length}바이트 · ${shape}`
+    + (head ? ` · 앞머리 「${head}」` : '');
+}
+
 function statusError(input) {
   let code = null, message = '';
   if (typeof input === 'string') {
@@ -253,6 +274,6 @@ function statusError(input) {
 
 module.exports = {
   findCompany, company, corpIndex, isAvailable, unavailable,
-  normalizeName, parseCompany, statusError, unzipFirstEntry, mask,
+  normalizeName, parseCompany, statusError, notZipWhy, unzipFirstEntry, mask,
   PROVIDER, BASE, STATUS, CORP_CLASS,
 };

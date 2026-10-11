@@ -416,6 +416,10 @@ async function main() {
         `${g.value.rows.length}개 선로` + (h && h.ok ? ` · ${h.value.text}` : ''),
         ['subst_nm', 'mtr_nm', 'dl_nm', 'subst_cap'], null);
       if (!h) console.log('  ※ 요구용량과 견주려면: --grid-mw <수전용량MW>');
+    } else if (g.noData) {
+      // ★ 서버는 대답했고 그 지역에 선로가 없을 뿐이다 — **열쇠 문제가 아니다** (§4 의 셋째 갈래).
+      //   실패로 세면 날마다 빨개지고 「키를 다시 넣으라」로 읽힌다 (M-86)
+      report(`계통 여유용량 (${gridRegion})`, true, `열쇠 통과 · 선로 없음 — ${g.error}`);
     } else {
       report(`계통 여유용량 (${gridRegion})`, false, g.error);
     }
@@ -522,8 +526,11 @@ async function main() {
     if (probe.ok) {
       const top = probe.value[0];
       console.log(`법령 API        : ✅ 승인됨 — 「${top.name}」 MST ${top.mst} (시행 ${top.enforcedAt || '?'})`);
+      // ★ 요약 표에도 한 줄 — 앞 판은 `_raw.txt` 에만 있어 요약을 보는 자리가 「미측정」으로 셌다
+      report('국가법령정보 (법제처)', true, `승인됨 — 「${top.name}」 MST ${top.mst}`);
     } else {
       console.log(`법령 API        : ❌ ${probe.error}`);
+      report('국가법령정보 (법제처)', false, probe.error);
       if (probe.kind === 'approval') console.log('               ↳ **OC 값 문제가 아닙니다.** 승인 대기 중이면 1~2일 뒤 다시 돌립니다');
       if (probe.kind === 'oc') console.log('               ↳ 신청에 쓰신 이메일의 @ 앞부분만 넣습니다 (주소 전체 아님)');
     }
