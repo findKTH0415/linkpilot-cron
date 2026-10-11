@@ -45,6 +45,7 @@ function withFake(responder, fn) {
     calls.push(url);
     const r = typeof responder === 'function' ? responder(url, calls.length) : responder;
     if (r && r.transportError) return { ok: false, status: 500, error: r.transportError, attempts: 3 };
+    if (r && r.notFound) return { ok: false, status: 404, error: 'HTTP 404 (재시도 무의미)', attempts: 1 };
     return { ok: true, status: 200, body: typeof r === 'string' ? r : JSON.stringify(r), attempts: 1 };
   };
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'kepco-cache-'));
@@ -55,18 +56,28 @@ function withFake(responder, fn) {
     });
 }
 
+// ★ 규격은 실측이다 (2026-10-10 · kepco.yml 판정 0) — 공통코드로 법정동 코드를 받고
+//   dispersedGeneration.do 가 {data:[…]} 로 선로를 준다. vol1·2·3 = 여유(kW).
+const CITY = [
+  { code: '44180', codeNm: '보령시', uppoCd: '44', uppoCdNm: '충청남도' },
+  { code: '26110', codeNm: '중구', uppoCd: '26', uppoCdNm: '부산광역시' },
+  { code: '11140', codeNm: '중구', uppoCd: '11', uppoCdNm: '서울특별시' },
+];
+const METRO = [
+  { code: '44', codeNm: '충청남도' }, { code: '26', codeNm: '부산광역시' }, { code: '11', codeNm: '서울특별시' },
+];
 function payload(items) {
-  return {
-    response: {
-      header: { resultCode: '00', resultMsg: 'NORMAL SERVICE' },
-      body: { totalCount: items.length, items: { item: items } },
-    },
+  return (url) => {
+    if (url.includes('commonCode.do')) return { data: url.includes('lglDngMetroCd') ? METRO : CITY };
+    if (items && items.notFound) return items;
+    return { data: items };
   };
 }
+const dgenCalls = calls => calls.filter(u => u.includes('dispersedGeneration.do'));
 
 const LINE = (o) => Object.assign({
-  subst_nm: '○○변전소', mtr_nm: '#1 M.Tr', dl_nm: 'DL-01',
-  subst_cap: '50', mtr_cap: '30', dl_cap: '10', base_ym: '202608',
+  substCd: 'S100', substNm: '○○변전소', substPwr: '50000', mtrNo: '1', mtrPwr: '20000',
+  dlCd: '01', dlNm: 'DL-01', dlPwr: 3000, vol1: 50000, vol2: 30000, vol3: 10000,
 }, o);
 
 /* ── ① 거리는 짓지 않는다 ─────────────────────────────── */
@@ -218,7 +229,7 @@ test('조회 결과가 비면 **「여유가 없다」고 말하지 않는다**'
 });
 
 test('선로를 파싱하고 **모수와 스냅샷임을 출처에 남긴다** (§4.7)', async () => {
-  await withFake(payload([LINE(), LINE({ dl_nm: 'DL-02', dl_cap: '25' })]), async () => {
+  await withFake(payload([LINE(), LINE({ dlNm: 'DL-02', vol3: 25000 })]), async () => {
     const r = await kepco.capacity({ region: '충청남도 보령시' });
     assert.equal(r.ok, true);
     assert.equal(r.value.rows.length, 2);
@@ -231,7 +242,7 @@ test('선로를 파싱하고 **모수와 스냅샷임을 출처에 남긴다** (
 });
 
 test('빈 문자열 용량이 0MW 가 되지 않는다 (M-07)', async () => {
-  await withFake(payload([LINE({ dl_cap: '  ' })]), async () => {
+  await withFake(payload([LINE({ vol3: '  ' })]), async () => {
     const r = await kepco.capacity({ region: '충청남도 보령시' });
     assert.equal(r.value.rows[0].lineMw, null);
   });
@@ -241,7 +252,52 @@ test('같은 지역을 두 번 불러도 API 는 한 번만 탄다 (§4.5)', asy
   await withFake(payload([LINE()]), async (calls) => {
     await kepco.capacity({ region: '충청남도 보령시' });
     await kepco.capacity({ region: '충청남도 보령시' });
-    assert.equal(calls.length, 1);
+    assert.equal(dgenCalls(calls).length, 1);
+  });
+});
+
+test('★ 실측 경로를 부른다 — 짐작한 distributionCapacity 는 없다 (2026-10-11 진단 HTTP 404 · D-439)', async () => {
+  await withFake(payload([LINE()]), async (calls) => {
+    const r = await kepco.capacity({ region: '충청남도 보령시' });
+    assert.equal(r.ok, true);
+    assert.ok(calls.every(u => !u.includes('distributionCapacity')));
+    const d = dgenCalls(calls);
+    assert.equal(d.length, 1);
+    assert.match(d[0], /metroCd=44/);
+    assert.match(d[0], /cityCd=44180/);
+    // vol 은 kW — MW 로 바꿔 싣는다 (substPwr+vol1 = 기준용량 · 실측 강릉시)
+    assert.equal(r.value.rows[0].substationMw, 50);
+    assert.equal(r.value.rows[0].transformerMw, 30);
+    assert.equal(r.value.rows[0].transformer, '#1 M.Tr');
+  });
+});
+
+test('★ 404 는 «그 지역 자료 없음»이다 — 열쇠 실패로 세지 않는다 (M-86)', async () => {
+  await withFake(payload({ notFound: true }), async () => {
+    const r = await kepco.capacity({ region: '충청남도 보령시' });
+    assert.equal(r.ok, false);
+    assert.equal(r.noData, true);
+    assert.match(r.error, /여유가 없다는 뜻이 아니다/);
+  });
+});
+
+test('★ 같은 이름 시군구가 여럿이면 하나를 고르지 않는다 (§4.9) — 시도를 주면 그쪽으로', async () => {
+  await withFake(payload([LINE()]), async (calls) => {
+    const r = await kepco.capacity({ region: '중구' });
+    assert.equal(r.ok, false);
+    assert.match(r.error, /하나를 고르지 않는다/);
+    assert.equal(dgenCalls(calls).length, 0);
+    const r2 = await kepco.capacity({ region: '부산광역시 중구' });
+    assert.equal(r2.ok, true);
+    assert.match(dgenCalls(calls)[0], /cityCd=26110/);
+  });
+});
+
+test('시·군·구 낱말이 없으면 부르지 않는다 — 시도 값으로 대체하지 않는다', async () => {
+  await withFake(payload([LINE()]), async (calls) => {
+    const r = await kepco.capacity({ region: '충청남도' });
+    assert.equal(r.ok, false);
+    assert.equal(calls.length, 0);
   });
 });
 
