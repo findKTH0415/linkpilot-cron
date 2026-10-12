@@ -2,7 +2,7 @@
 
 # `FSC_API` — 금융위원회 금융통계 실측 진단
 
-조회일 2026-10-11 · 기준연월 202512
+조회일 2026-10-12 · 기준연월 202512
 
 > 주소를 추측하지 않는다 — **포털 안내 페이지에서 읽고** 그대로 부른다 (CLAUDE.md §4.3).
 
@@ -64,7 +64,7 @@
 - 포털 검색 «국토교통부 아파트 매매 실거래가» — HTTP 200 · 412833자 · 15126469 아파트 매매 실거래가 자료 · 15126468 아파트 매매 실거래가 상세 자료 · 15126471 아파트 분양권전매 실거래가 자료
 - 포털 검색 «전국지가변동률조사 마이크로데이터» — HTTP 200 · 405976자 · 15121307 지가변동률조사 마이크로데이터 조회 서비스
 - 포털 검색 «국토교통부 오피스텔 전월세 실거래가» — HTTP 200 · 405918자 · 15126475 오피스텔 전월세 실거래가 자료
-- 포털 검색 «차세대 온비드 물건 입찰결과목록» — HTTP 200 · 420120자 · 15157252 입찰결과목록 조회서비스 · 15157254 입찰결과상세 조회서비스 · 15157222 입찰결과목록 조회서비스 · 15157258 입찰결과상세 조회서비스
+- 포털 검색 «차세대 온비드 물건 입찰결과목록» — HTTP 200 · 420122자 · 15157252 입찰결과목록 조회서비스 · 15157254 입찰결과상세 조회서비스 · 15157222 입찰결과목록 조회서비스 · 15157258 입찰결과상세 조회서비스
 - 포털 검색 «체납 압류재산 공매 낙찰가율» — HTTP 200 · 405998자 · 15126398 낙찰가율 조회서비스
 - 포털 검색 «건축HUB 건축물대장정보» — HTTP 200 · 412899자 · 15134735 건축물대장정보 서비스
 - 포털 검색 «건축HUB 주택인허가정보» — HTTP 200 · 405873자 · 15136560 주택인허가정보 서비스
@@ -80,13 +80,14 @@
 ## 금융위원회_금융통계종합금융회사정보 (15061312) — 종합금융회사 일반·재무·경영지표 · 열쇠 `FSC_API`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 1280ms
+- 안내 페이지 — HTTP 200 · 1501ms
   - 뽑은 서비스 `1160100/service/GetMercBankInfoService`
   - 뽑은 오퍼레이션 **없음(못 읽었다)**
   - 둘레 «"key">요청주소</strong> <div class="value"> https://apis.data.go.*** </div> </li> <li> <strong class="key">서비스 URL</strong> <div class="value"> »
   - 규격 주소 후보 «https://data.go.kr/data/15061312/openapi.do»
   - 스웨거 불러오기 둘레 «SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset ], plugins: [ SwaggerUIBundle.plugins.DownloadUrl ], layout: "StandaloneLayout" }; if(swaggerUrl !== '') { »
-- `1160100/service/GetMercBankInfoService/getMercBankGeneInfo · 원본 · 202412` — HTTP 200 · 217ms
+  - swaggerUrl 둘레 «swaggerUrl = ''; const swaggerJson = ``; const publicDataPk = '15061312'; const mberId = ''; mberTy = ''; $.ajax({ url: "/u»
+- `1160100/service/GetMercBankInfoService/getMercBankGeneInfo · 원본 · 202412` — HTTP 200 · 234ms
   - 본문 «{"response":{"body":{"tableList":[{"items":{"item":[]},"title":"종금사_일반현황_임직원현황","totalCount":0},{"items":{"item":[]},"title":"종금사_일반현황_영업점포현황","totalCount":0}]},"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE.","pageNo":"1","numOfRows":"3"}}}»
   - 항목(totalCount>0) 칸: **못 찾았다**
 
@@ -95,13 +96,14 @@
 ## 금융위원회_금융통계국내은행정보 (15061304) — 투자정보 [은행] 탭 후보 · 열쇠 `FSC_DOMESTIC_BANK_API`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 1324ms
+- 안내 페이지 — HTTP 200 · 1371ms
   - 뽑은 서비스 `1160100/service/GetDomeBankInfoService`
   - 뽑은 오퍼레이션 **없음(못 읽었다)**
   - 둘레 «"key">요청주소</strong> <div class="value"> https://apis.data.go.*** </div> </li> <li> <strong class="key">서비스 URL</strong> <div class="value"> »
   - 규격 주소 후보 «https://data.go.kr/data/15061304/openapi.do»
   - 스웨거 불러오기 둘레 «SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset ], plugins: [ SwaggerUIBundle.plugins.DownloadUrl ], layout: "StandaloneLayout" }; if(swaggerUrl !== '') { »
-- `1160100/service/GetDomeBankInfoService/getDomeBankGeneInfo · 원본 · 202512` — HTTP 200 · 770ms
+  - swaggerUrl 둘레 «swaggerUrl = ''; const swaggerJson = ``; const publicDataPk = '15061304'; const mberId = ''; mberTy = ''; $.ajax({ url: "/u»
+- `1160100/service/GetDomeBankInfoService/getDomeBankGeneInfo · 원본 · 202512` — HTTP 200 · 746ms
   - 본문 «{"response":{"body":{"tableList":[{"items":{"item":[{"basYm":"202512","crno":"1101110023393","fncoCd":"0010001","fncoNm":"우리은행","xcsmCnt":"14211","xcsmDcd":"A","xcsmDcdNm":"총임직원"},{"basYm":"202512","crno":"1101110023393","fncoCd":"0010001","fncoNm":"우리은행","xcsmCnt":"28","xcsmDcd":"A1","xcsmDcdNm":"임» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
@@ -112,13 +114,14 @@
 ## 금융위원회_금융통계투자자문사정보 (15061358) — 투자자문사 일반·재무현황 · 열쇠 `FSC_IAF_API`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 1483ms
+- 안내 페이지 — HTTP 200 · 1583ms
   - 뽑은 서비스 `1160100/service/GetInveAdviCompInfoService`
   - 뽑은 오퍼레이션 **없음(못 읽었다)**
   - 둘레 «"key">요청주소</strong> <div class="value"> https://apis.data.go.*** </div> </li> <li> <strong class="key">서비스 URL</strong> <div class="value"> »
   - 규격 주소 후보 «https://data.go.kr/data/15061358/openapi.do»
   - 스웨거 불러오기 둘레 «SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset ], plugins: [ SwaggerUIBundle.plugins.DownloadUrl ], layout: "StandaloneLayout" }; if(swaggerUrl !== '') { »
-- `1160100/service/GetInveAdviCompInfoService/getInveAdviCompGeneInfo · 원본 · 202512` — HTTP 200 · 1037ms
+  - swaggerUrl 둘레 «swaggerUrl = ''; const swaggerJson = ``; const publicDataPk = '15061358'; const mberId = ''; mberTy = ''; $.ajax({ url: "/u»
+- `1160100/service/GetInveAdviCompInfoService/getInveAdviCompGeneInfo · 원본 · 202512` — HTTP 200 · 1639ms
   - 본문 «{"response":{"body":{"tableList":[{"items":{"item":[]},"title":"투자자문_일반현황_임직원현황(09.03월이전)","totalCount":0},{"items":{"item":[{"basYm":"202512","crno":"1101110566773","fncoCd":"0010193","fncoNm":"프랭클린템플턴투자자문 주식회사","xcsmCnt":"0","xcsmDcd":"D","xcsmDcdNm":"운용전문인력"},{"basYm":"202512","crno":"11011115415» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
@@ -129,36 +132,36 @@
 ## 금융위원회_금융투자협회종합통계정보 (15094809) — 펀드순자산·증시자금·신용공여 추이 · 열쇠 `FSC_KOFIA_API`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 1450ms
+- 안내 페이지 — HTTP 200 · 1666ms
   - 뽑은 서비스 `1160100/service/GetKofiaStatisticsInfoService`
   - 뽑은 오퍼레이션 `getTrustScaleInfo` · `getFundTotalNetEssetInfo` · `getCMAStatus` · `getGrantingOfCreditBalanceInfo` · `getSecuritiesMarketTotalCapitalInfo` · `getDLSAndDLBInfo` · `getELSAndELBInfo` · `getDerivationProductTradingInfo`
   - 스웨거 host·basePath `apis.data.go.***` `-` · 경로 `/getTrustScaleInfo` `/getFundTotalNetEssetInfo` `/getCMAStatus` `/getGrantingOfCreditBalanceInfo` `/getSecuritiesMarketTotalCapitalInfo` `/getDLSAndDLBInfo`
-- `1160100/service/GetKofiaStatisticsInfoService/getTrustScaleInfo · 원본 · 202512` — HTTP 200 · 236ms
-  - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":330,"items":{"item":[{"basYm":"202512","bzds":"보험","tstCtg":"금전신탁 특정금전신탁","kind":"수시입출금","iqBs":"계약수","val":"8607"},{"basYm":"202512","bzds":"보험","tstCtg":"금전신탁 특정금전신탁","kind":"자사주",» …
+- `1160100/service/GetKofiaStatisticsInfoService/getTrustScaleInfo · 원본 · 202512` — HTTP 200 · 253ms
+  - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":330,"items":{"item":[{"basYm":"202512","bzds":"증권","tstCtg":"금전신탁 특정금전신탁","kind":"채권형","iqBs":"고객수","val":"0"},{"basYm":"202512","bzds":"증권","tstCtg":"금전신탁 특정금전신탁","kind":"주식형(자문형,자사» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
   - 칸 이름 `basYm` `bzds` `tstCtg` `kind` `iqBs` `val`
-- `1160100/service/GetKofiaStatisticsInfoService/getFundTotalNetEssetInfo · 원본 · 202512` — HTTP 200 · 242ms
-  - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":28887,"items":{"item":[{"basDt":"20261007","ctg":"-","tstMthdCtg":"공모","nPptTotAmt":"36250608531"},{"basDt":"20261007","ctg":"혼합주식형","tstMthdCtg":"공모","nPptTotAmt":"6177750257245"},{» …
+- `1160100/service/GetKofiaStatisticsInfoService/getFundTotalNetEssetInfo · 원본 · 202512` — HTTP 200 · 253ms
+  - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":28912,"items":{"item":[{"basDt":"20261008","ctg":"혼합채권형","tstMthdCtg":"사모","nPptTotAmt":"7666302801760"},{"basDt":"20261008","ctg":"-","tstMthdCtg":"공모","nPptTotAmt":"36249195759"},{» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
   - 칸 이름 `basDt` `ctg` `tstMthdCtg` `nPptTotAmt`
-- `1160100/service/GetKofiaStatisticsInfoService/getCMAStatus · 원본 · 202512` — HTTP 200 · 196ms
-  - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":14544,"items":{"item":[{"basDt":"20261007","mngInvTgt":"합계","invrCtg":"기관","scrtCmpyCnt":"0","actCnt":"147707","actBal":"12527189425271"},{"basDt":"20261007","mngInvTgt":"MMF형","invr» …
+- `1160100/service/GetKofiaStatisticsInfoService/getCMAStatus · 원본 · 202512` — HTTP 200 · 296ms
+  - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":14556,"items":{"item":[{"basDt":"20261008","mngInvTgt":"RP형","invrCtg":"개인","scrtCmpyCnt":"23","actCnt":"27053639","actBal":"40210886268557"},{"basDt":"20261008","mngInvTgt":"MMF형","» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
   - 칸 이름 `basDt` `mngInvTgt` `invrCtg` `scrtCmpyCnt` `actCnt` `actBal`
-- `1160100/service/GetKofiaStatisticsInfoService/getGrantingOfCreditBalanceInfo · 원본 · 202512` — HTTP 200 · 188ms
-  - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":1199,"items":{"item":[{"basDt":"20261007","crdTrFingWhl":"33516738844485","crdTrFingScrs":"26096341002665","crdTrFingKosdaq":"7420397841820","crdTrLndrWhl":"40359600581","crdTrLndrSc» …
+- `1160100/service/GetKofiaStatisticsInfoService/getGrantingOfCreditBalanceInfo · 원본 · 202512` — HTTP 200 · 213ms
+  - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":1200,"items":{"item":[{"basDt":"20261008","crdTrFingWhl":"33811320912737","crdTrFingScrs":"26324142641370","crdTrFingKosdaq":"7487178271367","crdTrLndrWhl":"42343042042","crdTrLndrSc» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
   - 칸 이름 `basDt` `crdTrFingWhl` `crdTrFingScrs` `crdTrFingKosdaq` `crdTrLndrWhl` `crdTrLndrScrs` `crdTrLndrKosdaq` `sbscCapLn` `dpsgScrtMogFing`
-- `1160100/service/GetKofiaStatisticsInfoService/getSecuritiesMarketTotalCapitalInfo · 원본 · 202512` — HTTP 200 · 184ms
-  - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":1212,"items":{"item":[{"basDt":"20261007","invrDpsgAmt":"100379606883634","onbdDrvPrdTrRcAdvAmt":"39538190249051","toCstRpchCndBndSlgBal":"110096500672803","brkTrdUcolMny":"931602257» …
+- `1160100/service/GetKofiaStatisticsInfoService/getSecuritiesMarketTotalCapitalInfo · 원본 · 202512` — HTTP 200 · 213ms
+  - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":1213,"items":{"item":[{"basDt":"20261008","invrDpsgAmt":"100109940711015","onbdDrvPrdTrRcAdvAmt":"39391418027854","toCstRpchCndBndSlgBal":"109146122055839","brkTrdUcolMny":"991461798» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
   - 칸 이름 `basDt` `invrDpsgAmt` `onbdDrvPrdTrRcAdvAmt` `toCstRpchCndBndSlgBal` `brkTrdUcolMny` `brkTrdUcolMnyVsOppsTrdAmt` `ucolMnyVsOppsTrdRlImpt`
-- `1160100/service/GetKofiaStatisticsInfoService/getDLSAndDLBInfo · 원본 · 202512` — HTTP 200 · 188ms
+- `1160100/service/GetKofiaStatisticsInfoService/getDLSAndDLBInfo · 원본 · 202512` — HTTP 200 · 219ms
   - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":1197,"items":{"item":[{"basDt":"202608","ctgDlbDls":"합계","ctgPrplcPsub":"사모","presCtg":"상환현황","amt":"1379463509900","ccnt":"132"},{"basDt":"202608","ctgDlbDls":"합계","ctgPrplcPsub":"사» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
@@ -169,50 +172,51 @@
 ## 중소기업기술정보진흥원_중소벤처24 공고정보 (15113191) — [정책자금] 후보 — 중소벤처24 공고 · 열쇠 `MSS_SME_SPA_API`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 1202ms
+- 안내 페이지 — HTTP 200 · 1322ms
   - 뽑은 서비스 **없음(못 읽었다)**
   - 뽑은 오퍼레이션 **없음(못 읽었다)**
   - ★ 부를 주소를 **못 읽었다** — 페이지 모양이 다르거나 막혔다. **열쇠 문제가 아니다**
   - 둘레 « "/images/biz/swagger-guide/gw/gateway_swagger_guide.pdf" window.open(url, "_blank"); }) }) const fn_listCsvDownload = function (filename) { $.»
   - 규격 주소 후보 «https://data.go.kr/data/15113191/openapi.do»
   - 스웨거 불러오기 둘레 «SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset ], plugins: [ SwaggerUIBundle.plugins.DownloadUrl ], layout: "StandaloneLayout" }; if(swaggerUrl !== '') { »
+  - swaggerUrl 둘레 «swaggerUrl = ''; const swaggerJson = ``; const publicDataPk = '15113191'; const mberId = ''; mberTy = ''; $.ajax({ url: "/u»
 
 > **판정 3** — **부를 주소를 못 읽었다** — 안내 페이지를 못 받았거나 모양이 다르다. 열쇠 문제가 아니다
 
 ## 금융위원회_자산운용사 영업활동통계정보 (15139266) — 자산운용사 — 후보(검색으로 찾음) · 열쇠 `FSC_AMC_API`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 1607ms
+- 안내 페이지 — HTTP 200 · 1652ms
   - 뽑은 서비스 `1160100/service/GetFSSaleActInfoService`
   - 뽑은 오퍼레이션 `getScrtDlngPresInfo` · `getDrvpDlngPresInfo` · `getInvdCminPresInfo` · `getInvdCntrPresInfo` · `getInvdPptPresInfo` · `getInvdPptOperPresInfo`
   - 스웨거 host·basePath `apis.data.go.***` `-` · 경로 `/getScrtDlngPresInfo` `/getDrvpDlngPresInfo` `/getInvdCminPresInfo` `/getInvdCntrPresInfo` `/getInvdPptPresInfo` `/getInvdPptOperPresInfo`
   - 필수 인자(스웨거) `pageNo` · `numOfRows` · `basYm`
-- `1160100/service/GetFSSaleActInfoService/getScrtDlngPresInfo · 원본 · 202512` — HTTP 200 · 926ms
+- `1160100/service/GetFSSaleActInfoService/getScrtDlngPresInfo · 원본 · 202512` — HTTP 200 · 999ms
   - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":3520,"items":{"item":[{"basYm":"202512","fncoCd":"0019635","fncoNm":"스피네이커자산운용 주식회사","sttsItemCd":"H","sttsItemNm":"증권합계","sttsItemAmt":"2755335595"},{"basYm":"202512","fncoCd":"0014» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
   - 칸 이름 `basYm` `fncoCd` `fncoNm` `sttsItemCd` `sttsItemNm` `sttsItemAmt`
-- `1160100/service/GetFSSaleActInfoService/getDrvpDlngPresInfo · 원본 · 202512` — HTTP 200 · 270ms
+- `1160100/service/GetFSSaleActInfoService/getDrvpDlngPresInfo · 원본 · 202512` — HTTP 200 · 295ms
   - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":792,"items":{"item":[{"basYm":"202512","fncoCd":"0012121","fncoNm":"브레인자산운용","sttsItemCd":"A1","sttsItemNm":"선물","sttsItemAmt":"801488982500"},{"basYm":"202512","fncoCd":"0019431","f» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
   - 칸 이름 `basYm` `fncoCd` `fncoNm` `sttsItemCd` `sttsItemNm` `sttsItemAmt`
-- `1160100/service/GetFSSaleActInfoService/getInvdCminPresInfo · 원본 · 202512` — HTTP 200 · 255ms
+- `1160100/service/GetFSSaleActInfoService/getInvdCminPresInfo · 원본 · 202512` — HTTP 200 · 294ms
   - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":1368,"items":{"item":[{"basYm":"202512","fncoCd":"0010183","fncoNm":"교보악사자산운용","sttsItemCd":"A1","sttsItemNm":"일반투자자","sttsItemAmt":"0"},{"basYm":"202512","fncoCd":"0019588","fncoNm"» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
   - 칸 이름 `basYm` `fncoCd` `fncoNm` `sttsItemCd` `sttsItemNm` `sttsItemAmt`
-- `1160100/service/GetFSSaleActInfoService/getInvdCntrPresInfo · 원본 · 202512` — HTTP 200 · 270ms
+- `1160100/service/GetFSSaleActInfoService/getInvdCntrPresInfo · 원본 · 202512` — HTTP 200 · 277ms
   - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":972,"items":{"item":[{"basYm":"202512","fncoCd":"0010170","fncoNm":"하나자산운용","sttsItemCd":"A","sttsItemNm":"고객수","sttsItemAmt":"14"},{"basYm":"202512","fncoCd":"0016797","fncoNm":"파이브» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
   - 칸 이름 `basYm` `fncoCd` `fncoNm` `sttsItemCd` `sttsItemNm` `sttsItemAmt`
-- `1160100/service/GetFSSaleActInfoService/getInvdPptPresInfo · 원본 · 202512` — HTTP 200 · 248ms
+- `1160100/service/GetFSSaleActInfoService/getInvdPptPresInfo · 원본 · 202512` — HTTP 200 · 317ms
   - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":1452,"items":{"item":[{"basYm":"202512","fncoCd":"0013784","fncoNm":"웰스자산운용","sttsItemCd":"A1","sttsItemNm":"일반투자자","sttsItemAmt":"0"},{"basYm":"202512","fncoCd":"0010210","fncoNm":"» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
   - 칸 이름 `basYm` `fncoCd` `fncoNm` `sttsItemCd` `sttsItemNm` `sttsItemAmt`
-- `1160100/service/GetFSSaleActInfoService/getInvdPptOperPresInfo · 원본 · 202512` — HTTP 200 · 255ms
+- `1160100/service/GetFSSaleActInfoService/getInvdPptOperPresInfo · 원본 · 202512` — HTTP 200 · 284ms
   - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":964,"items":{"item":[{"basYm":"202512","fncoCd":"0010215","fncoNm":"플러스자산운용","sttsItemCd":"A","sttsItemNm":"유동성자산","sttsItemDmstAmt":"119849171692","sttsItemOvseAmt":"0"},{"basYm":"2» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
@@ -223,13 +227,14 @@
 ## 자산운용사정보 (15061325) — 자산운용사 — 포털 검색에서 찾음 · 열쇠 `FSC_AMC_API`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 1414ms
+- 안내 페이지 — HTTP 200 · 1420ms
   - 뽑은 서비스 `1160100/service/GetAsseManaCompInfoService`
   - 뽑은 오퍼레이션 **없음(못 읽었다)**
   - 둘레 «"key">요청주소</strong> <div class="value"> https://apis.data.go.*** </div> </li> <li> <strong class="key">서비스 URL</strong> <div class="value"> »
   - 규격 주소 후보 «https://data.go.kr/data/15061325/openapi.do»
   - 스웨거 불러오기 둘레 «SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset ], plugins: [ SwaggerUIBundle.plugins.DownloadUrl ], layout: "StandaloneLayout" }; if(swaggerUrl !== '') { »
-- `1160100/service/GetAsseManaCompInfoService/getAsseManaCompGeneInfo · 원본 · 202512` — HTTP 403 · 172ms
+  - swaggerUrl 둘레 «swaggerUrl = ''; const swaggerJson = ``; const publicDataPk = '15061325'; const mberId = ''; mberTy = ''; $.ajax({ url: "/u»
+- `1160100/service/GetAsseManaCompInfoService/getAsseManaCompGeneInfo · 원본 · 202512` — HTTP 403 · 197ms
   - 본문 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR", "returnAuthMsg": "등록되지 않은 서비스키", "returnReasonCode": "30" } } }»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - ★ 본문이 **인증 거부**를 말한다 — 상태코드가 200 이어도 그렇다 (D-229)
@@ -239,12 +244,12 @@
 ## 지원사업 공고 조회 서비스 (15157820) — 투자정보 [정책자금] 탭 후보 — 포털 검색에서 찾음 · 열쇠 `MSS_SME_SPA_API`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 1578ms
+- 안내 페이지 — HTTP 200 · 1723ms
   - 뽑은 서비스 `1421000/bizinfo`
   - 뽑은 오퍼레이션 `pblancBsnsService`
   - 스웨거 host·basePath `apis.data.go.kr/1421000/bizinfo` `-` · 경로 `/pblancBsnsService`
-- `1421000/bizinfo/pblancBsnsService · 원본 · 202512` — HTTP 200 · 271ms
-  - 본문 «<response> <header> <resultCode>00</resultCode> <resultMsg>NORMAL_SERVICE</resultMsg> </header> <body> <items> <item> <pblancNm><![CDATA[[충남] 2026년 디지털콘텐츠 제작지원(팔리는 상세페이지 제작지원) 모집 공고]]></pblancNm> <!-- 공고명 --> <pblancUrl>https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_00000000» …
+- `1421000/bizinfo/pblancBsnsService · 원본 · 202512` — HTTP 200 · 786ms
+  - 본문 «<response> <header> <resultCode>00</resultCode> <resultMsg>NORMAL_SERVICE</resultMsg> </header> <body> <items> <item> <pblancNm><![CDATA[2026년 연구개발특구 기술사업화대상 후보자 추천 공고]]></pblancNm> <!-- 공고명 --> <pblancUrl>https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000127130</pblan» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
   - 서버 Apache
@@ -254,13 +259,14 @@
 ## 저축은행정보 (15061316) — 저축은행 일반·재무·주요경영지표 · 열쇠 `FSC_SAVINGS_BANK_API`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 1393ms
+- 안내 페이지 — HTTP 200 · 1593ms
   - 뽑은 서비스 `1160100/service/GetMutuSaviBankInfoService`
   - 뽑은 오퍼레이션 **없음(못 읽었다)**
   - 둘레 «"key">요청주소</strong> <div class="value"> https://apis.data.go.*** </div> </li> <li> <strong class="key">서비스 URL</strong> <div class="value"> »
   - 규격 주소 후보 «https://data.go.kr/data/15061316/openapi.do»
   - 스웨거 불러오기 둘레 «SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset ], plugins: [ SwaggerUIBundle.plugins.DownloadUrl ], layout: "StandaloneLayout" }; if(swaggerUrl !== '') { »
-- `1160100/service/GetMutuSaviBankInfoService/getMutuSaviBankGeneInfo · 원본 · 202512` — HTTP 200 · 1269ms
+  - swaggerUrl 둘레 «swaggerUrl = ''; const swaggerJson = ``; const publicDataPk = '15061316'; const mberId = ''; mberTy = ''; $.ajax({ url: "/u»
+- `1160100/service/GetMutuSaviBankInfoService/getMutuSaviBankGeneInfo · 원본 · 202512` — HTTP 200 · 619ms
   - 본문 «{"response":{"body":{"tableList":[{"items":{"item":[{"basYm":"202512","crno":"1101110126014","fncoCd":"0010345","fncoNm":"애큐온저축은행","xcsmCnt":"384","xcsmDcd":"A","xcsmDcdNm":"총임직원"},{"basYm":"202512","crno":"1101110126014","fncoCd":"0010345","fncoNm":"애큐온저축은행","xcsmCnt":"18","xcsmDcd":"A1","xcsmDcdNm» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
@@ -271,13 +277,14 @@
 ## 신용협동조합정보 (15061337) — 신용협동조합 일반·재무·주요경영지표 · 열쇠 `FSC_CREDIT_UNION_BANK_API`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 1479ms
+- 안내 페이지 — HTTP 200 · 1630ms
   - 뽑은 서비스 `1160100/service/GetCredUnioInfoService`
   - 뽑은 오퍼레이션 **없음(못 읽었다)**
   - 둘레 «"key">요청주소</strong> <div class="value"> https://apis.data.go.*** </div> </li> <li> <strong class="key">서비스 URL</strong> <div class="value"> »
   - 규격 주소 후보 «https://data.go.kr/data/15061337/openapi.do»
   - 스웨거 불러오기 둘레 «SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset ], plugins: [ SwaggerUIBundle.plugins.DownloadUrl ], layout: "StandaloneLayout" }; if(swaggerUrl !== '') { »
-- `1160100/service/GetCredUnioInfoService/getCredUnioGeneInfo · 원본 · 202512` — HTTP 200 · 2505ms
+  - swaggerUrl 둘레 «swaggerUrl = ''; const swaggerJson = ``; const publicDataPk = '15061337'; const mberId = ''; mberTy = ''; $.ajax({ url: "/u»
+- `1160100/service/GetCredUnioInfoService/getCredUnioGeneInfo · 원본 · 202512` — HTTP 200 · 2079ms
   - 본문 «{"response":{"body":{"tableList":[{"items":{"item":[{"basYm":"202512","crno":"","fncoCd":"00106561002","fncoNm":"정락","xcsmCnt":"16","xcsmDcd":"A","xcsmDcdNm":"총임직원"},{"basYm":"202512","crno":"","fncoCd":"00106561002","fncoNm":"정락","xcsmCnt":"10","xcsmDcd":"A1","xcsmDcdNm":"임 원"},{"basYm":"202512","c» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
@@ -288,13 +295,14 @@
 ## 농업협동조합정보 (15061344) — 농업협동조합 일반·재무·주요경영지표 · 열쇠 `FSC__AGRICULTURAL_COOPERATIVE_BANK_API`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 1219ms
+- 안내 페이지 — HTTP 200 · 1375ms
   - 뽑은 서비스 `1160100/service/GetAgriCoopInfoService`
   - 뽑은 오퍼레이션 **없음(못 읽었다)**
   - 둘레 «"key">요청주소</strong> <div class="value"> https://apis.data.go.*** </div> </li> <li> <strong class="key">서비스 URL</strong> <div class="value"> »
   - 규격 주소 후보 «https://data.go.kr/data/15061344/openapi.do»
   - 스웨거 불러오기 둘레 «SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset ], plugins: [ SwaggerUIBundle.plugins.DownloadUrl ], layout: "StandaloneLayout" }; if(swaggerUrl !== '') { »
-- `1160100/service/GetAgriCoopInfoService/getAgriCoopGeneInfo · 원본 · 202512` — HTTP 200 · 1750ms
+  - swaggerUrl 둘레 «swaggerUrl = ''; const swaggerJson = ``; const publicDataPk = '15061344'; const mberId = ''; mberTy = ''; $.ajax({ url: "/u»
+- `1160100/service/GetAgriCoopInfoService/getAgriCoopGeneInfo · 원본 · 202512` — HTTP 200 · 1286ms
   - 본문 «{"response":{"body":{"tableList":[{"items":{"item":[{"basYm":"202512","crno":"1146360000288","fncoCd":"0010027100089","fncoNm":"남서울농협","xcsmCnt":"174","xcsmDcd":"A","xcsmDcdNm":"총임직원"},{"basYm":"202512","crno":"1146360000288","fncoCd":"0010027100089","fncoNm":"남서울농협","xcsmCnt":"23","xcsmDcd":"A1","x» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
@@ -305,13 +313,14 @@
 ## 수산업협동조합정보 (15061340) — 수산업협동조합 일반·재무·주요경영지표 · 열쇠 `FSC_FISHERIES_COOPERATIVE_BANK_API`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 1473ms
+- 안내 페이지 — HTTP 200 · 1411ms
   - 뽑은 서비스 `1160100/service/GetFishCoopInfoService`
   - 뽑은 오퍼레이션 **없음(못 읽었다)**
   - 둘레 «"key">요청주소</strong> <div class="value"> https://apis.data.go.*** </div> </li> <li> <strong class="key">서비스 URL</strong> <div class="value"> »
   - 규격 주소 후보 «https://data.go.kr/data/15061340/openapi.do»
   - 스웨거 불러오기 둘레 «SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset ], plugins: [ SwaggerUIBundle.plugins.DownloadUrl ], layout: "StandaloneLayout" }; if(swaggerUrl !== '') { »
-- `1160100/service/GetFishCoopInfoService/getFishCoopGeneInfo · 원본 · 202512` — HTTP 200 · 355ms
+  - swaggerUrl 둘레 «swaggerUrl = ''; const swaggerJson = ``; const publicDataPk = '15061340'; const mberId = ''; mberTy = ''; $.ajax({ url: "/u»
+- `1160100/service/GetFishCoopInfoService/getFishCoopGeneInfo · 원본 · 202512` — HTTP 200 · 376ms
   - 본문 «{"response":{"body":{"tableList":[{"items":{"item":[{"basYm":"202512","crno":"","fncoCd":"0010028100970","fncoNm":"근해안강망수협","xcsmCnt":"2","xcsmDcd":"A11","xcsmDcdNm":"임 원_상근 이사 및 감사"},{"basYm":"202512","crno":"","fncoCd":"0010028100970","fncoNm":"근해안강망수협","xcsmCnt":"7","xcsmDcd":"A12","xcsmDcdNm":"임» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
@@ -322,17 +331,17 @@
 ## 개인사업자금융정보 (15108175) — 개인사업자 보증잔액·예금대출 — 투자정보 [정책자금]·[은행] 후보 · 열쇠 `FSC_SP_FIN`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 1304ms
+- 안내 페이지 — HTTP 200 · 1395ms
   - 뽑은 서비스 `1160100/service/GetSBBankingInfoService`
   - 뽑은 오퍼레이션 `getGrnBalInfo` · `getDpstLoanInfo`
   - 스웨거 host·basePath `apis.data.go.***` `-` · 경로 `/getGrnBalInfo` `/getDpstLoanInfo`
   - 필수 인자(스웨거) `pageNo` · `numOfRows`
-- `1160100/service/GetSBBankingInfoService/getGrnBalInfo · 원본 · 202506` — HTTP 200 · 564ms
+- `1160100/service/GetSBBankingInfoService/getGrnBalInfo · 원본 · 202506` — HTTP 200 · 633ms
   - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":216710,"items":{"item":[{"basYm":"202506","rprSexNm":"남성","rprAggrNm":"60대","estbYr":"2005","bizAreaNm":"강원특별자치도 강릉시 강변로","bizBzcCd":"47","bizBzcCdNm":"소매업; 자동차 제외","empeCntNm":"1명 이» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
   - 칸 이름 `basYm` `rprSexNm` `rprAggrNm` `estbYr` `bizAreaNm` `bizBzcCd` `bizBzcCdNm` `empeCntNm` `grnBal` `wrkfndLoanYn` `fctfndLoanYn`
-- `1160100/service/GetSBBankingInfoService/getDpstLoanInfo · 원본 · 202506` — HTTP 200 · 674ms
+- `1160100/service/GetSBBankingInfoService/getDpstLoanInfo · 원본 · 202506` — HTTP 200 · 663ms
   - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":3,"pageNo":1,"totalCount":187334,"items":{"item":[{"basYm":"202506","rprSexNm":"여성","rprAggrNm":"60대","estbYr":"2010","bizAreaNm":"강원특별자치도 강릉시 강변로","bizBzcCd":"56","bizBzcCdNm":"음식점 및 주점업","empeCntNm":"1명 이상 » …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
@@ -343,13 +352,14 @@
 ## 사업정보 _KF-공공외교 사업 정보 (15099215) — KOICA 사업정보(분야·국가) — 해외 프로젝트 후보 · 열쇠 `KOICA_PROJ_SC`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 1852ms
+- 안내 페이지 — HTTP 200 · 1576ms
   - 뽑은 서비스 `B260003/OdaBusinessInfoService`
   - 뽑은 오퍼레이션 **없음(못 읽었다)**
   - 둘레 «"key">요청주소</strong> <div class="value"> https://apis.data.go.*** </div> </li> <li> <strong class="key">서비스 URL</strong> <div class="value"> »
   - 규격 주소 후보 «https://data.go.kr/data/15099215/openapi.do»
   - 스웨거 불러오기 둘레 «SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset ], plugins: [ SwaggerUIBundle.plugins.DownloadUrl ], layout: "StandaloneLayout" }; if(swaggerUrl !== '') { »
-- `B260003/OdaBusinessInfoService/getOdaBusinessInfoList · 원본 · 202512` — HTTP 403 · 177ms
+  - swaggerUrl 둘레 «swaggerUrl = ''; const swaggerJson = ``; const publicDataPk = '15099215'; const mberId = ''; mberTy = ''; $.ajax({ url: "/u»
+- `B260003/OdaBusinessInfoService/getOdaBusinessInfoList · 원본 · 202512` — HTTP 403 · 198ms
   - 본문 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR", "returnAuthMsg": "등록되지 않은 서비스키", "returnReasonCode": "30" } } }»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - ★ 본문이 **인증 거부**를 말한다 — 상태코드가 200 이어도 그렇다 (D-229)
@@ -359,16 +369,16 @@
 ## 사업정보 (분야,국가)조회 (15158399) — KOICA 사업정보(분야·국가) — 해외 프로젝트 후보 · 열쇠 `KOICA_PROJ_SC`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 1596ms
+- 안내 페이지 — HTTP 200 · 1449ms
   - 뽑은 서비스 `B260003/BsnsAddService`
   - 뽑은 오퍼레이션 `getBsnsInfoRealmList` · `getBsnsInfoNationList`
   - 스웨거 host·basePath `apis.data.go.kr/B260003/BsnsAddService` `-` · 경로 `/getBsnsInfoRealmList` `/getBsnsInfoNationList`
   - 필수 인자(스웨거) `pageNo` · `numOfRows` · `P_YEAR` · `P_BSNS_TY_CD` · `P_SPORT_REALM_CD` · `P_NATION_CD`
-- `B260003/BsnsAddService/getBsnsInfoRealmList · 원본 · 202512` — HTTP 403 · 176ms
+- `B260003/BsnsAddService/getBsnsInfoRealmList · 원본 · 202512` — HTTP 403 · 204ms
   - 본문 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR", "returnAuthMsg": "등록되지 않은 서비스키", "returnReasonCode": "30" } } }»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - ★ 본문이 **인증 거부**를 말한다 — 상태코드가 200 이어도 그렇다 (D-229)
-- `B260003/BsnsAddService/getBsnsInfoNationList · 원본 · 202512` — HTTP 403 · 521ms
+- `B260003/BsnsAddService/getBsnsInfoNationList · 원본 · 202512` — HTTP 403 · 788ms
   - 본문 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR", "returnAuthMsg": "등록되지 않은 서비스키", "returnReasonCode": "30" } } }»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - ★ 본문이 **인증 거부**를 말한다 — 상태코드가 200 이어도 그렇다 (D-229)
@@ -378,16 +388,16 @@
 ## 사업정보조회 (15158394) — KOICA 사업정보(분야·국가) — 해외 프로젝트 후보 · 열쇠 `KOICA_PROJ_SC`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 1370ms
+- 안내 페이지 — HTTP 200 · 1435ms
   - 뽑은 서비스 `B260003/BsnsService`
   - 뽑은 오퍼레이션 `getBsnsInfoList` · `getBsnsInfoDetail`
   - 스웨거 host·basePath `apis.data.go.kr/B260003/BsnsService` `-` · 경로 `/getBsnsInfoList` `/getBsnsInfoDetail`
   - 필수 인자(스웨거) `P_PAGE_NO` · `P_PAGE_SIZE` · `P_YEAR` · `P_BSNS_TY_CD` · `P_BSNS_NO`
-- `B260003/BsnsService/getBsnsInfoList · 원본 · 202512` — HTTP 403 · 174ms
+- `B260003/BsnsService/getBsnsInfoList · 원본 · 202512` — HTTP 403 · 201ms
   - 본문 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR", "returnAuthMsg": "등록되지 않은 서비스키", "returnReasonCode": "30" } } }»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - ★ 본문이 **인증 거부**를 말한다 — 상태코드가 200 이어도 그렇다 (D-229)
-- `B260003/BsnsService/getBsnsInfoDetail · 원본 · 202512` — HTTP 403 · 174ms
+- `B260003/BsnsService/getBsnsInfoDetail · 원본 · 202512` — HTTP 403 · 204ms
   - 본문 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR", "returnAuthMsg": "등록되지 않은 서비스키", "returnReasonCode": "30" } } }»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - ★ 본문이 **인증 거부**를 말한다 — 상태코드가 200 이어도 그렇다 (D-229)
@@ -397,13 +407,14 @@
 ## 정치현항 (15099537) — 외교부 국가·지역별 정치현황 — 해외 프로젝트 국가 리스크 후보 · 열쇠 `KOICA_GLOBAL_POLITICAL_DEVELOPMENTS`
 
 - 건 열쇠: `KOICA_GLOBAL_POLITICAL_DEVELOPMENTS`
-- 안내 페이지 — HTTP 200 · 1269ms
+- 안내 페이지 — HTTP 200 · 1440ms
   - 뽑은 서비스 `1262000/OverviewPoliticService`
   - 뽑은 오퍼레이션 **없음(못 읽었다)**
   - 둘레 «"key">요청주소</strong> <div class="value"> https://apis.data.go.*** </div> </li> <li> <strong class="key">서비스 URL</strong> <div class="value"> »
   - 규격 주소 후보 «https://data.go.kr/data/15099537/openapi.do»
   - 스웨거 불러오기 둘레 «SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset ], plugins: [ SwaggerUIBundle.plugins.DownloadUrl ], layout: "StandaloneLayout" }; if(swaggerUrl !== '') { »
-- `1262000/OverviewPoliticService/getOverviewPoliticList · 원본 · 202512` — HTTP 200 · 183ms
+  - swaggerUrl 둘레 «swaggerUrl = ''; const swaggerJson = ``; const publicDataPk = '15099537'; const mberId = ''; mberTy = ''; $.ajax({ url: "/u»
+- `1262000/OverviewPoliticService/getOverviewPoliticList · 원본 · 202512` — HTTP 200 · 206ms
   - 본문 «{"response":{"body":{"dataType":"JSON","items":{"item":[{"congress_composition":"단원제(276석)","country_eng_nm":"Ghana","country_iso_alp2":"GH","country_nm":"가나","foreign_policy":null,"government_form":"공화국(대통령 중심제)","main_party":"국민민주회의(NDC, National Democratic Congress) : (276석 중) 183석","main_people"» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
@@ -415,16 +426,16 @@
 ## 국가정보 (15034830) — KOTRA 국가정보 — 해외 프로젝트 국가 개황 후보 · 열쇠 `KOICA_COUNTRY_INFORMATION`
 
 - 건 열쇠: `KOICA_COUNTRY_INFORMATION`
-- 안내 페이지 — HTTP 200 · 1699ms
+- 안내 페이지 — HTTP 200 · 1825ms
   - 뽑은 서비스 `B410001/kotra_nationalInformation` · `B410001/kotra_nationalInformation/natnInfo`
   - 뽑은 오퍼레이션 `natnInfo`
   - 스웨거 host·basePath `apis.data.go.kr/B410001/kotra_nationalInformation/natnInfo` `-` · 경로 `/natnInfo`
   - 필수 인자(스웨거) `isoWd2CntCd`
-- `B410001/kotra_nationalInformation/natnInfo/natnInfo · 원본 · 202512` — HTTP 200 · 246ms
+- `B410001/kotra_nationalInformation/natnInfo/natnInfo · 원본 · 202512` — HTTP 200 · 273ms
   - 본문 «{"response":{"header":{"resultCode":81,"resultMsg":"Not Exist Required Paramaters."},"body":null}}»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - 서버 Apache/2.4.6 (Red Hat Enterprise Linux) OpenSSL/1.0.2k-fips
-- `B410001/kotra_nationalInformation/natnInfo · 원본 · 202512` — HTTP 400 · 164ms
+- `B410001/kotra_nationalInformation/natnInfo · 원본 · 202512` — HTTP 400 · 191ms
   - 본문 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "NO_OPENAPI_SERVICE_ERROR", "returnAuthMsg": "해당 오픈API 서비스가 없거나 폐기됨", "returnReasonCode": "12" } } }»
   - 항목(totalCount>0) 칸: **못 찾았다**
 
@@ -433,12 +444,12 @@
 ## 토지이용 규제 기본법의 적용을 받는 규제 법령과 그와 관련된 도시(군)계획조례 및 그 밖에 (15057174) — 토지이용규제 법령정보 — 인허가 검토(행위제한) 후보 · 열쇠 `MOLIT_LUR_LAW_KEY`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 1267ms
+- 안내 페이지 — HTTP 200 · 1472ms
   - 뽑은 서비스 `1613000/LuLawInfoService`
   - 뽑은 오퍼레이션 `DTluLawInfo`
   - 스웨거 host·basePath `apis.data.go.kr/1613000/LuLawInfoService` `-` · 경로 `/DTluLawInfo`
   - 필수 인자(스웨거) `areaCd` · `ucodeList`
-- `1613000/LuLawInfoService/DTluLawInfo · 원본 · 202512` — HTTP 200 · 690ms
+- `1613000/LuLawInfoService/DTluLawInfo · 원본 · 202512` — HTTP 200 · 709ms
   - 본문 «<?xml version="1.0" encoding="EUC-KR" standalone="yes"?><response><ERROR_CODE>11</ERROR_CODE><ERROR_MSG>NO_MANDATORY_REQUEST__PARAMETER_ERROR</ERROR_MSG></response>»
   - 항목(totalCount>0) 칸: **못 찾았다**
 
@@ -447,11 +458,11 @@
 ## 토지이용 규제 기본법 제2조제2호 및 동법 영 제2조 등에 명시된 건축법 시행령 별표 및  (15057263) — 토지이용규제 법령정보 — 인허가 검토(행위제한) 후보 · 열쇠 `MOLIT_LUR_LAW_KEY`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 1405ms
+- 안내 페이지 — HTTP 200 · 1422ms
   - 뽑은 서비스 `1613000/ebGuideBookListService`
   - 뽑은 오퍼레이션 `DTebGuideBookList`
   - 스웨거 host·basePath `apis.data.go.kr/1613000/ebGuideBookListService` `-` · 경로 `/DTebGuideBookList`
-- `1613000/ebGuideBookListService/DTebGuideBookList · 원본 · 202512` — HTTP 403 · 177ms
+- `1613000/ebGuideBookListService/DTebGuideBookList · 원본 · 202512` — HTTP 403 · 197ms
   - 본문 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR", "returnAuthMsg": "등록되지 않은 서비스키", "returnReasonCode": "30" } } }»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - ★ 본문이 **인증 거부**를 말한다 — 상태코드가 200 이어도 그렇다 (D-229)
@@ -461,32 +472,32 @@
 ## 건설기술연구원 상시/수시 교통량 정보조회서비스 (15076407) — 국가건설기준(KCSC) — 설계·시방 기준 조회 후보 · 열쇠 `KICT_API_KEY`
 
 - 건 열쇠: `KICT_API_KEY`
-- 안내 페이지 — HTTP 200 · 1490ms
+- 안내 페이지 — HTTP 200 · 1752ms
   - 뽑은 서비스 `1613000/KictTms`
   - 뽑은 오퍼레이션 `eqpstate` · `spothcv` · `itmsh` · `spotlist` · `eqplist`
   - 스웨거 host·basePath `apis.data.go.kr/1613000/KictTms` `-` · 경로 `/eqpstate` `/spothcv` `/vt` `/itmsh` `/spotlist` `/eqplist`
   - 필수 인자(스웨거) `equipment_id` · `output` · `year` · `dtype` · `pageNo` · `numOfRows` · `month` · `PageNo`
-- `1613000/KictTms/eqpstate · 원본 · 202512` — HTTP 403 · 178ms
+- `1613000/KictTms/eqpstate · 원본 · 202512` — HTTP 403 · 195ms
   - 본문 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR", "returnAuthMsg": "등록되지 않은 서비스키", "returnReasonCode": "30" } } }»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - ★ 본문이 **인증 거부**를 말한다 — 상태코드가 200 이어도 그렇다 (D-229)
-- `1613000/KictTms/spothcv · 원본 · 202512` — HTTP 403 · 678ms
+- `1613000/KictTms/spothcv · 원본 · 202512` — HTTP 403 · 1182ms
   - 본문 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR", "returnAuthMsg": "등록되지 않은 서비스키", "returnReasonCode": "30" } } }»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - ★ 본문이 **인증 거부**를 말한다 — 상태코드가 200 이어도 그렇다 (D-229)
-- `1613000/KictTms/vt · 원본 · 202512` — HTTP 403 · 174ms
+- `1613000/KictTms/vt · 원본 · 202512` — HTTP 403 · 199ms
   - 본문 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR", "returnAuthMsg": "등록되지 않은 서비스키", "returnReasonCode": "30" } } }»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - ★ 본문이 **인증 거부**를 말한다 — 상태코드가 200 이어도 그렇다 (D-229)
-- `1613000/KictTms/itmsh · 원본 · 202512` — HTTP 403 · 170ms
+- `1613000/KictTms/itmsh · 원본 · 202512` — HTTP 403 · 204ms
   - 본문 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR", "returnAuthMsg": "등록되지 않은 서비스키", "returnReasonCode": "30" } } }»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - ★ 본문이 **인증 거부**를 말한다 — 상태코드가 200 이어도 그렇다 (D-229)
-- `1613000/KictTms/spotlist · 원본 · 202512` — HTTP 403 · 173ms
+- `1613000/KictTms/spotlist · 원본 · 202512` — HTTP 403 · 196ms
   - 본문 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR", "returnAuthMsg": "등록되지 않은 서비스키", "returnReasonCode": "30" } } }»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - ★ 본문이 **인증 거부**를 말한다 — 상태코드가 200 이어도 그렇다 (D-229)
-- `1613000/KictTms/eqplist · 원본 · 202512` — HTTP 403 · 171ms
+- `1613000/KictTms/eqplist · 원본 · 202512` — HTTP 403 · 201ms
   - 본문 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR", "returnAuthMsg": "등록되지 않은 서비스키", "returnReasonCode": "30" } } }»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - ★ 본문이 **인증 거부**를 말한다 — 상태코드가 200 이어도 그렇다 (D-229)
@@ -496,32 +507,32 @@
 ## 건설기술연구원 교통량 통계 데이터 정보조회서비스 (15097077) — 국가건설기준(KCSC) — 설계·시방 기준 조회 후보 · 열쇠 `KICT_API_KEY`
 
 - 건 열쇠: `KICT_API_KEY`
-- 안내 페이지 — HTTP 200 · 1686ms
+- 안내 페이지 — HTTP 200 · 1957ms
   - 뽑은 서비스 `1613000/KictTmsStat`
   - 뽑은 오퍼레이션 `itmsh_daily` · `itmsh_monthly` · `vt_yearly` · `vt_daily` · `vt_monthly` · `itmsh_yearly`
   - 스웨거 host·basePath `apis.data.go.kr/1613000/KictTmsStat` `-` · 경로 `/itmsh_daily` `/itmsh_monthly` `/vt_yearly` `/vt_daily` `/vt_monthly` `/itmsh_yearly`
   - 필수 인자(스웨거) `spot_id` · `year` · `month` · `dtype` · `numOfRows` · `pageNo` · `eqp_id` · `datetime`
-- `1613000/KictTmsStat/itmsh_daily · 원본 · 202512` — HTTP 403 · 176ms
+- `1613000/KictTmsStat/itmsh_daily · 원본 · 202512` — HTTP 403 · 196ms
   - 본문 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR", "returnAuthMsg": "등록되지 않은 서비스키", "returnReasonCode": "30" } } }»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - ★ 본문이 **인증 거부**를 말한다 — 상태코드가 200 이어도 그렇다 (D-229)
-- `1613000/KictTmsStat/itmsh_monthly · 원본 · 202512` — HTTP 403 · 172ms
+- `1613000/KictTmsStat/itmsh_monthly · 원본 · 202512` — HTTP 403 · 204ms
   - 본문 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR", "returnAuthMsg": "등록되지 않은 서비스키", "returnReasonCode": "30" } } }»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - ★ 본문이 **인증 거부**를 말한다 — 상태코드가 200 이어도 그렇다 (D-229)
-- `1613000/KictTmsStat/vt_yearly · 원본 · 202512` — HTTP 403 · 176ms
+- `1613000/KictTmsStat/vt_yearly · 원본 · 202512` — HTTP 403 · 196ms
   - 본문 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR", "returnAuthMsg": "등록되지 않은 서비스키", "returnReasonCode": "30" } } }»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - ★ 본문이 **인증 거부**를 말한다 — 상태코드가 200 이어도 그렇다 (D-229)
-- `1613000/KictTmsStat/vt_daily · 원본 · 202512` — HTTP 403 · 171ms
+- `1613000/KictTmsStat/vt_daily · 원본 · 202512` — HTTP 403 · 202ms
   - 본문 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR", "returnAuthMsg": "등록되지 않은 서비스키", "returnReasonCode": "30" } } }»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - ★ 본문이 **인증 거부**를 말한다 — 상태코드가 200 이어도 그렇다 (D-229)
-- `1613000/KictTmsStat/vt_monthly · 원본 · 202512` — HTTP 403 · 173ms
+- `1613000/KictTmsStat/vt_monthly · 원본 · 202512` — HTTP 403 · 196ms
   - 본문 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR", "returnAuthMsg": "등록되지 않은 서비스키", "returnReasonCode": "30" } } }»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - ★ 본문이 **인증 거부**를 말한다 — 상태코드가 200 이어도 그렇다 (D-229)
-- `1613000/KictTmsStat/itmsh_yearly · 원본 · 202512` — HTTP 403 · 174ms
+- `1613000/KictTmsStat/itmsh_yearly · 원본 · 202512` — HTTP 403 · 204ms
   - 본문 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR", "returnAuthMsg": "등록되지 않은 서비스키", "returnReasonCode": "30" } } }»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - ★ 본문이 **인증 거부**를 말한다 — 상태코드가 200 이어도 그렇다 (D-229)
@@ -531,39 +542,42 @@
 ## 건설 기술 연구원 이 관리하는 OpenAPI를 통해 제공되며, 응답은 XML 또는 JSON (15061097) — 국가건설기준(KCSC) — 설계·시방 기준 조회 후보 · 열쇠 `KICT_API_KEY`
 
 - 건 열쇠: `KICT_API_KEY`
-- 안내 페이지 — HTTP 200 · 1174ms
+- 안내 페이지 — HTTP 200 · 1495ms
   - 뽑은 서비스 **없음(못 읽었다)**
   - 뽑은 오퍼레이션 **없음(못 읽었다)**
   - ★ 부를 주소를 **못 읽었다** — 페이지 모양이 다르거나 막혔다. **열쇠 문제가 아니다**
   - 둘레 « "/images/biz/swagger-guide/gw/gateway_swagger_guide.pdf" window.open(url, "_blank"); }) }) const fn_listCsvDownload = function (filename) { $.»
   - 규격 주소 후보 «https://data.go.kr/data/15061097/openapi.do»
   - 스웨거 불러오기 둘레 «SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset ], plugins: [ SwaggerUIBundle.plugins.DownloadUrl ], layout: "StandaloneLayout" }; if(swaggerUrl !== '') { »
+  - swaggerUrl 둘레 «swaggerUrl = ''; const swaggerJson = ``; const publicDataPk = '15061097'; const mberId = ''; mberTy = ''; $.ajax({ url: "/u»
 
 > **판정 3** — **부를 주소를 못 읽었다** — 안내 페이지를 못 받았거나 모양이 다르다. 열쇠 문제가 아니다
 
 ## 건설 사업_업체 목록 (15061039) — 국가건설기준(KCSC) — 설계·시방 기준 조회 후보 · 열쇠 `KICT_API_KEY`
 
 - 건 열쇠: `KICT_API_KEY`
-- 안내 페이지 — HTTP 200 · 1328ms
+- 안내 페이지 — HTTP 200 · 1246ms
   - 뽑은 서비스 **없음(못 읽었다)**
   - 뽑은 오퍼레이션 **없음(못 읽었다)**
   - ★ 부를 주소를 **못 읽었다** — 페이지 모양이 다르거나 막혔다. **열쇠 문제가 아니다**
   - 둘레 « "/images/biz/swagger-guide/gw/gateway_swagger_guide.pdf" window.open(url, "_blank"); }) }) const fn_listCsvDownload = function (filename) { $.»
   - 규격 주소 후보 «https://data.go.kr/data/15061039/openapi.do»
   - 스웨거 불러오기 둘레 «SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset ], plugins: [ SwaggerUIBundle.plugins.DownloadUrl ], layout: "StandaloneLayout" }; if(swaggerUrl !== '') { »
+  - swaggerUrl 둘레 «swaggerUrl = ''; const swaggerJson = ``; const publicDataPk = '15061039'; const mberId = ''; mberTy = ''; $.ajax({ url: "/u»
 
 > **판정 3** — **부를 주소를 못 읽었다** — 안내 페이지를 못 받았거나 모양이 다르다. 열쇠 문제가 아니다
 
 ## 기금대출 정보 (15060633) — 한국산업은행 기금대출 정보 — 투자정보 [정책자금] 후보 · 열쇠 `FSC_API`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 1260ms
+- 안내 페이지 — HTTP 200 · 1347ms
   - 뽑은 서비스 `B190030/GetFundLoanInfoService`
   - 뽑은 오퍼레이션 **없음(못 읽었다)**
   - 둘레 «"key">요청주소</strong> <div class="value"> https://apis.data.go.*** </div> </li> <li> <strong class="key">서비스 URL</strong> <div class="value"> ht»
   - 규격 주소 후보 «https://data.go.kr/data/15060633/openapi.do»
   - 스웨거 불러오기 둘레 «SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset ], plugins: [ SwaggerUIBundle.plugins.DownloadUrl ], layout: "StandaloneLayout" }; if(swaggerUrl !== '') { »
-- `B190030/GetFundLoanInfoService/getFundLoanList · 원본 · 202512` — HTTP 200 · 769ms
+  - swaggerUrl 둘레 «swaggerUrl = ''; const swaggerJson = ``; const publicDataPk = '15060633'; const mberId = ''; mberTy = ''; $.ajax({ url: "/u»
+- `B190030/GetFundLoanInfoService/getFundLoanList · 원본 · 202512` — HTTP 200 · 939ms
   - 본문 «<?xml version="1.0" encoding="UTF-8"?> <response> <resultCode>99</resultCode> <resultMsg>[BEBII00002] 자료 조회시 오류가 발생하였습니다. [BEBII00005] 필수항목이 입력되지 않았습니다. 필수 항목이 입력되지 않았습니다.</resultMsg> </response>»
   - 항목(totalCount>0) 칸: **못 찾았다**
 
@@ -572,12 +586,12 @@
 ## 아파트 매매 실거래가 자료 (15126469) — 아파트 매매 실거래가 — 반영 확인(2026-09-29) · 열쇠 `MOLIT_APT_SALE`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 1223ms
+- 안내 페이지 — HTTP 200 · 1467ms
   - 뽑은 서비스 `1613000/RTMSDataSvcAptTrade`
   - 뽑은 오퍼레이션 `getRTMSDataSvcAptTrade`
   - 스웨거 host·basePath `apis.data.go.kr/1613000/RTMSDataSvcAptTrade` `-` · 경로 `/getRTMSDataSvcAptTrade`
   - 필수 인자(스웨거) `LAWD_CD` · `DEAL_YMD`
-- `1613000/RTMSDataSvcAptTrade/getRTMSDataSvcAptTrade · 원본 · 202512` — HTTP 200 · 189ms
+- `1613000/RTMSDataSvcAptTrade/getRTMSDataSvcAptTrade · 원본 · 202512` — HTTP 200 · 231ms
   - 본문 «<?xml version="1.0" encoding="utf-8" standalone="yes"?><response><header><resultCode>000</resultCode><resultMsg>OK</resultMsg></header><body><items/><numOfRows>3</numOfRows><pageNo>1</pageNo><totalCount>0</totalCount></body></response>»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - 서버 Apache
@@ -587,12 +601,12 @@
 ## 아파트 매매 실거래가 상세 자료 (15126468) — 아파트 매매 실거래가 — 반영 확인(2026-09-29) · 열쇠 `MOLIT_APT_SALE`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 1859ms
+- 안내 페이지 — HTTP 200 · 1451ms
   - 뽑은 서비스 `1613000/RTMSDataSvcAptTradeDev`
   - 뽑은 오퍼레이션 `getRTMSDataSvcAptTradeDev`
   - 스웨거 host·basePath `apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev` `-` · 경로 `/getRTMSDataSvcAptTradeDev`
   - 필수 인자(스웨거) `LAWD_CD` · `DEAL_YMD` · `pageNo` · `numOfRows`
-- `1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev · 원본 · 202512` — HTTP 403 · 172ms
+- `1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev · 원본 · 202512` — HTTP 403 · 200ms
   - 본문 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR", "returnAuthMsg": "등록되지 않은 서비스키", "returnReasonCode": "30" } } }»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - ★ 본문이 **인증 거부**를 말한다 — 상태코드가 200 이어도 그렇다 (D-229)
@@ -602,12 +616,12 @@
 ## 아파트 분양권전매 실거래가 자료 (15126471) — 아파트 매매 실거래가 — 반영 확인(2026-09-29) · 열쇠 `MOLIT_APT_SALE`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 1370ms
+- 안내 페이지 — HTTP 200 · 1971ms
   - 뽑은 서비스 `1613000/RTMSDataSvcSilvTrade`
   - 뽑은 오퍼레이션 `getRTMSDataSvcSilvTrade`
   - 스웨거 host·basePath `apis.data.go.kr/1613000/RTMSDataSvcSilvTrade` `-` · 경로 `/getRTMSDataSvcSilvTrade`
   - 필수 인자(스웨거) `LAWD_CD` · `DEAL_YMD`
-- `1613000/RTMSDataSvcSilvTrade/getRTMSDataSvcSilvTrade · 원본 · 202512` — HTTP 403 · 173ms
+- `1613000/RTMSDataSvcSilvTrade/getRTMSDataSvcSilvTrade · 원본 · 202512` — HTTP 403 · 201ms
   - 본문 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR", "returnAuthMsg": "등록되지 않은 서비스키", "returnReasonCode": "30" } } }»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - ★ 본문이 **인증 거부**를 말한다 — 상태코드가 200 이어도 그렇다 (D-229)
@@ -617,15 +631,16 @@
 ## 지가변동률조사 마이크로데이터 조회 서비스 (15121307) — 전국지가변동률조사 마이크로데이터 — 반영 확인(2026-09-29) · 열쇠 `REB_LAND_MICRO`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 1271ms
+- 안내 페이지 — HTTP 200 · 1729ms
   - 뽑은 서비스 **없음(못 읽었다)**
   - 뽑은 오퍼레이션 **없음(못 읽었다)**
   - ★ 부를 주소를 **못 읽었다** — 페이지 모양이 다르거나 막혔다. **열쇠 문제가 아니다**
   - 둘레 « <div id="swagger-ui"> </div> </div> </div> »
   - 규격 주소 후보 «https://data.go.kr/data/15121307/openapi.do» · «https://infuser.odcloud.kr/api/stages/47398/api-docs?1693355048521»
   - 스웨거 불러오기 둘레 «SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset ], plugins: [ SwaggerUIBundle.plugins.DownloadUrl ], layout: "StandaloneLayout" }; if(swaggerUrl !== '') { »
+  - swaggerUrl 규격 — 뿌리 `https://api.odcloud.kr/api` · GET `/LfrMasterSvc/v1/getLfrMicro`
   - odcloud 규격 — 뿌리 `https://api.odcloud.kr/api` · GET `/LfrMasterSvc/v1/getLfrMicro`
-- `odcloud GET /LfrMasterSvc/v1/getLfrMicro` — HTTP 200 · 929ms
+- `odcloud GET /LfrMasterSvc/v1/getLfrMicro` — HTTP 200 · 1665ms
   - 본문 «{"currentCount":3,"data":[{"AREA":2,"AS1":"서울특별시","AS2":"종로구","DIST1":0,"DIST_ETC_YN":0,"ENVS":119,"FASC":0,"FASC_ETC":0,"GAPYO":0,"GIMOK1":8,"GITA1":0,"GITAJ":0,"GIYUKCD":2,"GIYUK_LIMITED_YN":0,"GOJEU":2,"GRADE":"5","HUNG":2,"JUB":8,"PRICE":8,"PRICE_TYPE":1,"REG":"11110","YM":"202608","YOUNGDOCD":1» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목 칸: **찾았다**
@@ -635,12 +650,12 @@
 ## 오피스텔 전월세 실거래가 자료 (15126475) — 오피스텔 전월세 실거래가 — 반영 확인(2026-09-29) · 열쇠 `MOLIT_OFFICETEL_RENT`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 1219ms
+- 안내 페이지 — HTTP 200 · 1388ms
   - 뽑은 서비스 `1613000/RTMSDataSvcOffiRent`
   - 뽑은 오퍼레이션 `getRTMSDataSvcOffiRent`
   - 스웨거 host·basePath `apis.data.go.kr/1613000/RTMSDataSvcOffiRent` `-` · 경로 `/getRTMSDataSvcOffiRent`
   - 필수 인자(스웨거) `LAWD_CD` · `DEAL_YMD`
-- `1613000/RTMSDataSvcOffiRent/getRTMSDataSvcOffiRent · 원본 · 202512` — HTTP 200 · 677ms
+- `1613000/RTMSDataSvcOffiRent/getRTMSDataSvcOffiRent · 원본 · 202512` — HTTP 200 · 1196ms
   - 본문 «<?xml version="1.0" encoding="utf-8" standalone="yes"?><response><header><resultCode>000</resultCode><resultMsg>OK</resultMsg></header><body><items/><numOfRows>3</numOfRows><pageNo>1</pageNo><totalCount>0</totalCount></body></response>»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - 서버 Apache
@@ -650,15 +665,15 @@
 ## 입찰결과목록 조회서비스 (15157252) — 온비드 물건 입찰결과 — 반영 확인(2026-09-29) · 열쇠 `KAMCO_ONBID_BID_RESULT`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 1377ms
+- 안내 페이지 — HTTP 200 · 1467ms
   - 뽑은 서비스 `B010003/OnbidCltrBidRsltListSrvc2`
   - 뽑은 오퍼레이션 `getCltrBidRsltList2` · `getCltrBidRsltList`
   - 스웨거 host·basePath `apis.data.go.kr/B010003/OnbidCltrBidRsltListSrvc2` `-` · 경로 `/getCltrBidRsltList2`
   - 필수 인자(스웨거) `pageNo` · `numOfRows` · `resultType` · `cltrTypeCd` · `prptDivCd` · `opbdDtStart` · `opbdDtEnd`
-- `B010003/OnbidCltrBidRsltListSrvc2/getCltrBidRsltList2 · 원본 · 202512` — HTTP 200 · 208ms
+- `B010003/OnbidCltrBidRsltListSrvc2/getCltrBidRsltList2 · 원본 · 202512` — HTTP 200 · 237ms
   - 본문 «{"result":{"resultCode":"11","resultMsg":"NO_MANDATORY_REQUEST_PARAMETERS_ERROR"}}»
   - 항목(totalCount>0) 칸: **못 찾았다**
-- `B010003/OnbidCltrBidRsltListSrvc2/getCltrBidRsltList · 원본 · 202512` — HTTP 400 · 682ms
+- `B010003/OnbidCltrBidRsltListSrvc2/getCltrBidRsltList · 원본 · 202512` — HTTP 400 · 866ms
   - 본문 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "NO_OPENAPI_SERVICE_ERROR", "returnAuthMsg": "해당 오픈API 서비스가 없거나 폐기됨", "returnReasonCode": "12" } } }»
   - 항목(totalCount>0) 칸: **못 찾았다**
 
@@ -667,16 +682,16 @@
 ## 입찰결과상세 조회서비스 (15157254) — 온비드 물건 입찰결과 — 반영 확인(2026-09-29) · 열쇠 `KAMCO_ONBID_BID_RESULT`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 1256ms
+- 안내 페이지 — HTTP 200 · 1357ms
   - 뽑은 서비스 `B010003/OnbidCltrBidRsltDtlSrvc2`
   - 뽑은 오퍼레이션 `getCltrBidRsltDtl2` · `getCltrBidRsltDtl`
   - 스웨거 host·basePath `apis.data.go.kr/B010003/OnbidCltrBidRsltDtlSrvc2` `-` · 경로 `/getCltrBidRsltDtl2`
   - 필수 인자(스웨거) `pageNo` · `numOfRows` · `resultType` · `cltrMngNo`
-- `B010003/OnbidCltrBidRsltDtlSrvc2/getCltrBidRsltDtl2 · 원본 · 202512` — HTTP 403 · 176ms
+- `B010003/OnbidCltrBidRsltDtlSrvc2/getCltrBidRsltDtl2 · 원본 · 202512` — HTTP 403 · 205ms
   - 본문 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR", "returnAuthMsg": "등록되지 않은 서비스키", "returnReasonCode": "30" } } }»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - ★ 본문이 **인증 거부**를 말한다 — 상태코드가 200 이어도 그렇다 (D-229)
-- `B010003/OnbidCltrBidRsltDtlSrvc2/getCltrBidRsltDtl · 원본 · 202512` — HTTP 400 · 166ms
+- `B010003/OnbidCltrBidRsltDtlSrvc2/getCltrBidRsltDtl · 원본 · 202512` — HTTP 400 · 192ms
   - 본문 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "NO_OPENAPI_SERVICE_ERROR", "returnAuthMsg": "해당 오픈API 서비스가 없거나 폐기됨", "returnReasonCode": "12" } } }»
   - 항목(totalCount>0) 칸: **못 찾았다**
 
@@ -685,16 +700,16 @@
 ## 입찰결과목록 조회서비스 (15157222) — 온비드 물건 입찰결과 — 반영 확인(2026-09-29) · 열쇠 `KAMCO_ONBID_BID_RESULT`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 1209ms
+- 안내 페이지 — HTTP 200 · 1795ms
   - 뽑은 서비스 `B010003/OnbidPbancBidRsltListSrvc2`
   - 뽑은 오퍼레이션 `getPbancBidRsltList2` · `getPbancBidRsltList`
   - 스웨거 host·basePath `apis.data.go.kr/B010003/OnbidPbancBidRsltListSrvc2` `-` · 경로 `/getPbancBidRsltList2`
   - 필수 인자(스웨거) `pageNo` · `numOfRows` · `resultType` · `cltrTypeCd` · `prptDivCd` · `opbdDtStart` · `opbdDtEnd`
-- `B010003/OnbidPbancBidRsltListSrvc2/getPbancBidRsltList2 · 원본 · 202512` — HTTP 403 · 174ms
+- `B010003/OnbidPbancBidRsltListSrvc2/getPbancBidRsltList2 · 원본 · 202512` — HTTP 403 · 206ms
   - 본문 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR", "returnAuthMsg": "등록되지 않은 서비스키", "returnReasonCode": "30" } } }»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - ★ 본문이 **인증 거부**를 말한다 — 상태코드가 200 이어도 그렇다 (D-229)
-- `B010003/OnbidPbancBidRsltListSrvc2/getPbancBidRsltList · 원본 · 202512` — HTTP 400 · 165ms
+- `B010003/OnbidPbancBidRsltListSrvc2/getPbancBidRsltList · 원본 · 202512` — HTTP 400 · 192ms
   - 본문 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "NO_OPENAPI_SERVICE_ERROR", "returnAuthMsg": "해당 오픈API 서비스가 없거나 폐기됨", "returnReasonCode": "12" } } }»
   - 항목(totalCount>0) 칸: **못 찾았다**
 
@@ -703,16 +718,16 @@
 ## 입찰결과상세 조회서비스 (15157258) — 온비드 물건 입찰결과 — 반영 확인(2026-09-29) · 열쇠 `KAMCO_ONBID_BID_RESULT`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 1844ms
+- 안내 페이지 — HTTP 200 · 1720ms
   - 뽑은 서비스 `B010003/OnbidPbancBidRsltDtlSrvc2`
   - 뽑은 오퍼레이션 `getPbancBidRsltDtl2` · `getPbancBidRsltDtl`
   - 스웨거 host·basePath `apis.data.go.kr/B010003/OnbidPbancBidRsltDtlSrvc2` `-` · 경로 `/getPbancBidRsltDtl2`
   - 필수 인자(스웨거) `pageNo` · `numOfRows` · `resultType` · `pbancMngNo`
-- `B010003/OnbidPbancBidRsltDtlSrvc2/getPbancBidRsltDtl2 · 원본 · 202512` — HTTP 403 · 176ms
+- `B010003/OnbidPbancBidRsltDtlSrvc2/getPbancBidRsltDtl2 · 원본 · 202512` — HTTP 403 · 206ms
   - 본문 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR", "returnAuthMsg": "등록되지 않은 서비스키", "returnReasonCode": "30" } } }»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - ★ 본문이 **인증 거부**를 말한다 — 상태코드가 200 이어도 그렇다 (D-229)
-- `B010003/OnbidPbancBidRsltDtlSrvc2/getPbancBidRsltDtl · 원본 · 202512` — HTTP 400 · 166ms
+- `B010003/OnbidPbancBidRsltDtlSrvc2/getPbancBidRsltDtl · 원본 · 202512` — HTTP 400 · 191ms
   - 본문 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "NO_OPENAPI_SERVICE_ERROR", "returnAuthMsg": "해당 오픈API 서비스가 없거나 폐기됨", "returnReasonCode": "12" } } }»
   - 항목(totalCount>0) 칸: **못 찾았다**
 
@@ -721,13 +736,13 @@
 ## 낙찰가율 조회서비스 (15126398) — 압류재산 공매 낙찰가율 — 반영 확인(2026-09-29) · 열쇠 `KAMCO_SEIZED_AUCTION_RATE`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 1411ms
+- 안내 페이지 — HTTP 200 · 1728ms
   - 뽑은 서비스 `B010003/szrPrptPbctPbct`
   - 뽑은 오퍼레이션 `scfbPrcRto`
   - 스웨거 host·basePath `apis.data.go.kr/B010003/szrPrptPbctPbct` `-` · 경로 `/scfbPrcRto`
   - 필수 인자(스웨거) `pageNo` · `numOfRows`
-- `B010003/szrPrptPbctPbct/scfbPrcRto · 원본 · 202512` — HTTP 200 · 225ms
-  - 본문 «{"header":{"resultCode":"00","resultMsg":"NORMAL_CODE"},"body":{"items":{"item":[{"CRTR_YMD":"20261011","SDNM":"광주광역시","SGGNM":"동구","PRPT_ITEM_NM":"대","SCFB_YR":"2025","SCFB_MT":"10","APSL_EVL_AMT":27360000,"DSPL_AMT":3835000,"SCFB_PRC_RTO":14.02},{"CRTR_YMD":"20261011","SDNM":"전라남도","SGGNM":"장흥군","» …
+- `B010003/szrPrptPbctPbct/scfbPrcRto · 원본 · 202512` — HTTP 200 · 264ms
+  - 본문 «{"header":{"resultCode":"00","resultMsg":"NORMAL_CODE"},"body":{"items":{"item":[{"CRTR_YMD":"20261012","SDNM":"전북특별자치도","SGGNM":"전주시 덕진구","PRPT_ITEM_NM":"출자증권","SCFB_YR":"2025","SCFB_MT":"10","APSL_EVL_AMT":7603136,"DSPL_AMT":7468000,"SCFB_PRC_RTO":98.22},{"CRTR_YMD":"20261012","SDNM":"경상남도","SGGNM» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
 
@@ -736,32 +751,32 @@
 ## 건축물대장정보 서비스 (15134735) — 건축HUB 건축물대장 — 반영 확인(2026-09-29) · 열쇠 `MOLIT_HUB_BLDG_LEDGER`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 1577ms
+- 안내 페이지 — HTTP 200 · 2236ms
   - 뽑은 서비스 `1613000/BldRgstHubService`
   - 뽑은 오퍼레이션 `getBrTitleInfo` · `getBrBasisOulnInfo` · `getBrFlrOulnInfo` · `getBrExposPubuseAreaInfo` · `getBrHsprcInfo` · `getBrExposInfo` · `getBrWclfInfo` · `getBrRecapTitleInfo` · `getBrAtchJibunInfo` · `getBrJijiguInfo`
   - 스웨거 host·basePath `apis.data.go.kr/1613000/BldRgstHubService` `-` · 경로 `/getBrTitleInfo` `/getBrBasisOulnInfo` `/getBrFlrOulnInfo` `/getBrExposPubuseAreaInfo`
   - 필수 인자(스웨거) `sigunguCd` · `bjdongCd`
-- `1613000/BldRgstHubService/getBrTitleInfo · 원본 · 202412` — HTTP 200 · 185ms
+- `1613000/BldRgstHubService/getBrTitleInfo · 원본 · 202412` — HTTP 200 · 210ms
   - 본문 «{"body":{},"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE"}}»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - 서버 Apache
-- `1613000/BldRgstHubService/getBrBasisOulnInfo · 원본 · 202412` — HTTP 200 · 184ms
+- `1613000/BldRgstHubService/getBrBasisOulnInfo · 원본 · 202412` — HTTP 200 · 207ms
   - 본문 «{"body":{},"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE"}}»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - 서버 Apache
-- `1613000/BldRgstHubService/getBrFlrOulnInfo · 원본 · 202412` — HTTP 200 · 184ms
+- `1613000/BldRgstHubService/getBrFlrOulnInfo · 원본 · 202412` — HTTP 200 · 214ms
   - 본문 «{"body":{},"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE"}}»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - 서버 Apache
-- `1613000/BldRgstHubService/getBrExposPubuseAreaInfo · 원본 · 202412` — HTTP 200 · 183ms
+- `1613000/BldRgstHubService/getBrExposPubuseAreaInfo · 원본 · 202412` — HTTP 200 · 207ms
   - 본문 «{"body":{},"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE"}}»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - 서버 Apache
-- `1613000/BldRgstHubService/getBrHsprcInfo · 원본 · 202412` — HTTP 200 · 188ms
+- `1613000/BldRgstHubService/getBrHsprcInfo · 원본 · 202412` — HTTP 200 · 213ms
   - 본문 «{"body":{},"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE"}}»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - 서버 Apache
-- `1613000/BldRgstHubService/getBrExposInfo · 원본 · 202412` — HTTP 200 · 190ms
+- `1613000/BldRgstHubService/getBrExposInfo · 원본 · 202412` — HTTP 200 · 208ms
   - 본문 «{"body":{},"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE"}}»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - 서버 Apache
@@ -771,32 +786,32 @@
 ## 주택인허가정보 서비스 (15136560) — 건축HUB 주택인허가 — 반영 확인(2026-09-29) · 열쇠 `MOLIT_HUB_HOUSING_PERMIT`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 1550ms
+- 안내 페이지 — HTTP 200 · 1780ms
   - 뽑은 서비스 `1613000/HsPmsHubService`
   - 뽑은 오퍼레이션 `getHpBasisOulnInfo` · `getHpDongOulnInfo` · `getHpFlrOulnInfo` · `getHpHoOulnInfo` · `getHpSbsdFcInfo` · `getHpWclfInfo` · `getHpPklotInfo` · `getHpAtchPklotInfo` · `getHpExposPubuseAreaInfo` · `getHpHoExposPubuseAreaInfo` · `getHpActOulnInfo` · `getHpMgmCoopTpOulnInfo` · `getHpMgmCoopSbsdWlfarFcInfo` · `getHpJijiguInfo` · `getHpWlfarLotouFcInfo` · `getHpPlatPlcInfo`
   - 스웨거 host·basePath `apis.data.go.kr/1613000/HsPmsHubService` `-` · 경로 `/getHpBasisOulnInfo` `/getHpDongOulnInfo` `/getHpFlrOulnInfo` `/getHpHoOulnInfo` `/getHpSbsdFcInfo`
   - 필수 인자(스웨거) `sigunguCd` · `bjdongCd`
-- `1613000/HsPmsHubService/getHpBasisOulnInfo · 원본 · 202412` — HTTP 200 · 181ms
+- `1613000/HsPmsHubService/getHpBasisOulnInfo · 원본 · 202412` — HTTP 200 · 210ms
   - 본문 «{"body":{},"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE"}}»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - 서버 Apache
-- `1613000/HsPmsHubService/getHpDongOulnInfo · 원본 · 202412` — HTTP 200 · 183ms
+- `1613000/HsPmsHubService/getHpDongOulnInfo · 원본 · 202412` — HTTP 200 · 208ms
   - 본문 «{"body":{},"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE"}}»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - 서버 Apache
-- `1613000/HsPmsHubService/getHpFlrOulnInfo · 원본 · 202412` — HTTP 200 · 182ms
+- `1613000/HsPmsHubService/getHpFlrOulnInfo · 원본 · 202412` — HTTP 200 · 212ms
   - 본문 «{"body":{},"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE"}}»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - 서버 Apache
-- `1613000/HsPmsHubService/getHpHoOulnInfo · 원본 · 202412` — HTTP 200 · 180ms
+- `1613000/HsPmsHubService/getHpHoOulnInfo · 원본 · 202412` — HTTP 200 · 206ms
   - 본문 «{"body":{},"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE"}}»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - 서버 Apache
-- `1613000/HsPmsHubService/getHpSbsdFcInfo · 원본 · 202412` — HTTP 200 · 184ms
+- `1613000/HsPmsHubService/getHpSbsdFcInfo · 원본 · 202412` — HTTP 200 · 212ms
   - 본문 «{"body":{},"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE"}}»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - 서버 Apache
-- `1613000/HsPmsHubService/getHpWclfInfo · 원본 · 202412` — HTTP 200 · 182ms
+- `1613000/HsPmsHubService/getHpWclfInfo · 원본 · 202412` — HTTP 200 · 206ms
   - 본문 «{"body":{},"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE"}}»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - 서버 Apache
@@ -806,18 +821,19 @@
 ## 사업자등록정보 진위확인 및 상태조회 서비스 (15081808) — 사업자등록 진위확인·상태조회 — 반영 확인(2026-09-29) · 열쇠 `NTS_BIZ_VERIFY`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 1360ms
+- 안내 페이지 — HTTP 200 · 1346ms
   - 뽑은 서비스 **없음(못 읽었다)**
   - 뽑은 오퍼레이션 **없음(못 읽었다)**
   - ★ 부를 주소를 **못 읽었다** — 페이지 모양이 다르거나 막혔다. **열쇠 문제가 아니다**
   - 둘레 « <div id="swagger-ui"> </div> </div> </div> »
   - 규격 주소 후보 «https://data.go.kr/data/15081808/openapi.do» · «https://infuser.odcloud.kr/api/stages/28493/api-docs?1728017570963»
   - 스웨거 불러오기 둘레 «SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset ], plugins: [ SwaggerUIBundle.plugins.DownloadUrl ], layout: "StandaloneLayout" }; if(swaggerUrl !== '') { »
+  - swaggerUrl 규격 — 뿌리 `https://api.odcloud.kr/api/nts-businessman/v1` · POST `/validate` · POST `/status`
   - odcloud 규격 — 뿌리 `https://api.odcloud.kr/api/nts-businessman/v1` · POST `/validate` (몸통) · POST `/status` (몸통)
-- `odcloud POST /validate · 빈 몸통` — HTTP 411 · 577ms
+- `odcloud POST /validate · 빈 몸통` — HTTP 411 · 947ms
   - 본문 «{"status_code":"REQUEST_DATA_MALFORMED"}»
   - 항목 칸: **못 찾았다**
-- `odcloud POST /status · 빈 몸통` — HTTP 411 · 704ms
+- `odcloud POST /status · 빈 몸통` — HTTP 411 · 788ms
   - 본문 «{"status_code":"REQUEST_DATA_MALFORMED"}»
   - 항목 칸: **못 찾았다**
 
@@ -826,32 +842,32 @@
 ## 건축인허가정보 서비스 (15136267) — 건축HUB 건축인허가 — 반영 확인(2026-09-29) · 열쇠 `MOLIT_HUB_BLDG_PERMIT`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 1943ms
+- 안내 페이지 — HTTP 200 · 1715ms
   - 뽑은 서비스 `1613000/ArchPmsHubService`
   - 뽑은 오퍼레이션 `getApBasisOulnInfo` · `getApDongOulnInfo` · `getApFlrOulnInfo` · `getApHoOulnInfo` · `getApImprprInfo` · `getApExposPubuseAreaInfo` · `getApHdcrMgmRgstInfo` · `getApDemolExtngMgmRgstInfo` · `getApTmpBldInfo` · `getApWclfInfo` · `getApPklotInfo` · `getApAtchPklotInfo` · `getApHoExposPubuseAreaInfo` · `getApJijiguInfo` · `getApRoadRgstInfo` · `getApPlatPlcInfo` · `getApHsTpInfo`
   - 스웨거 host·basePath `apis.data.go.kr/1613000/ArchPmsHubService` `-` · 경로 `/getApBasisOulnInfo` `/getApDongOulnInfo` `/getApFlrOulnInfo` `/getApHoOulnInfo` `/getApImprprInfo` `/getApExposPubuseAreaInfo`
   - 필수 인자(스웨거) `sigunguCd` · `bjdongCd`
-- `1613000/ArchPmsHubService/getApBasisOulnInfo · 원본 · 202412` — HTTP 200 · 182ms
+- `1613000/ArchPmsHubService/getApBasisOulnInfo · 원본 · 202412` — HTTP 200 · 206ms
   - 본문 «{"body":{},"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE"}}»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - 서버 Apache
-- `1613000/ArchPmsHubService/getApDongOulnInfo · 원본 · 202412` — HTTP 200 · 185ms
+- `1613000/ArchPmsHubService/getApDongOulnInfo · 원본 · 202412` — HTTP 200 · 742ms
   - 본문 «{"body":{},"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE"}}»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - 서버 Apache
-- `1613000/ArchPmsHubService/getApFlrOulnInfo · 원본 · 202412` — HTTP 200 · 191ms
+- `1613000/ArchPmsHubService/getApFlrOulnInfo · 원본 · 202412` — HTTP 200 · 206ms
   - 본문 «{"body":{},"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE"}}»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - 서버 Apache
-- `1613000/ArchPmsHubService/getApHoOulnInfo · 원본 · 202412` — HTTP 200 · 184ms
+- `1613000/ArchPmsHubService/getApHoOulnInfo · 원본 · 202412` — HTTP 200 · 213ms
   - 본문 «{"body":{},"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE"}}»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - 서버 Apache
-- `1613000/ArchPmsHubService/getApImprprInfo · 원본 · 202412` — HTTP 200 · 213ms
+- `1613000/ArchPmsHubService/getApImprprInfo · 원본 · 202412` — HTTP 200 · 203ms
   - 본문 «{"body":{},"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE"}}»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - 서버 Apache
-- `1613000/ArchPmsHubService/getApExposPubuseAreaInfo · 원본 · 202412` — HTTP 200 · 185ms
+- `1613000/ArchPmsHubService/getApExposPubuseAreaInfo · 원본 · 202412` — HTTP 200 · 215ms
   - 본문 «{"body":{},"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE"}}»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - 서버 Apache
@@ -861,18 +877,22 @@
 ## 기업기본정보 (15043184) — 기업기본정보 — 반영 확인(2026-09-29) · 열쇠 `FSC_CORP_BASIC`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 1458ms
+- 안내 페이지 — HTTP 200 · 1794ms
   - 뽑은 서비스 `1160100/service/GetCorpBasicInfoService_V2`
   - 뽑은 오퍼레이션 `getAffiliate_V2` · `getConsSubsComp_V2` · `getCorpOutline_V2`
   - 스웨거 host·basePath `apis.data.go.***_V2` `-` · 경로 `/getAffiliate_V2` `/getConsSubsComp_V2` `/getCorpOutline_V2`
   - 필수 인자(스웨거) `pageNo` · `numOfRows` · `resultType`
-- `1160100/service/GetCorpBasicInfoService_V2/getAffiliate_V2 · 원본 · 202512` — **못 닿음** (The operation was aborted due to timeout) · 15000ms
-- `1160100/service/GetCorpBasicInfoService_V2/getConsSubsComp_V2 · 원본 · 202512` — HTTP 200 · 858ms
+- `1160100/service/GetCorpBasicInfoService_V2/getAffiliate_V2 · 원본 · 202512` — HTTP 200 · 1178ms
+  - 본문 «{"response":{"body":{"items":{"item":[{"basDt":"20200509","crno":"1101110000086","afilCmpyNm":"롯데건설(주)","afilCmpyCrno":"1101110014764","lstgYn":""},{"basDt":"20200509","crno":"1101110000086","afilCmpyNm":"(주)롯데푸드","afilCmpyCrno":"1101110033722","lstgYn":""},{"basDt":"20200509","crno":"1101110000086"» …
+  - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
+  - 항목(totalCount>0) 칸: **찾았다**
+  - 칸 이름 `basDt` `crno` `afilCmpyNm` `afilCmpyCrno` `lstgYn`
+- `1160100/service/GetCorpBasicInfoService_V2/getConsSubsComp_V2 · 원본 · 202512` — HTTP 200 · 496ms
   - 본문 «{"response":{"body":{"items":{"item":[{"basDt":"20110331","crno":"1101110305858","sbrdEnpNm":"AAC","sbrdEnpEstbDt":"920713","sbrdEnpadr":"미국","sbrdEnpMainBizCtt":"통신기기 판매","dntRltBsisCtt":"실질적지배력","mainSbrdEnpYnCtt":"종속회사","sbrdEnpLtstEbzyrTastAmt":"5454"},{"basDt":"20110331","crno":"1101110305858",» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
   - 칸 이름 `basDt` `crno` `sbrdEnpNm` `sbrdEnpEstbDt` `sbrdEnpadr` `sbrdEnpMainBizCtt` `dntRltBsisCtt` `mainSbrdEnpYnCtt` `sbrdEnpLtstEbzyrTastAmt`
-- `1160100/service/GetCorpBasicInfoService_V2/getCorpOutline_V2 · 원본 · 202512` — HTTP 200 · 2919ms
+- `1160100/service/GetCorpBasicInfoService_V2/getCorpOutline_V2 · 원본 · 202512` — HTTP 200 · 3732ms
   - 본문 «{"response":{"body":{"items":{"item":[{"crno":"0000000000000","corpNm":"SAMPO FUND MANAGEMENT LTD/MANDATUM EMERGING","corpEnsnNm":"SAMPO FUND MANAGEMENT LTD/MANDATUM EMERGING","enpPbanCmpyNm":"SAMPOFUNDMANAGEMENTLTD/MANDATUMEMERGING","enpRprFnm":"KIMMO LAAKSONEN","corpRegMrktDcd":"E","corpRegMrktDcd» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 항목(totalCount>0) 칸: **찾았다**
@@ -883,15 +903,15 @@
 ## 토지이용규제정보서비스 (15058410) — 토지이용규제정보 — 반영 확인(2026-09-29) · 열쇠 `MOLIT_LUR_INFO`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 1247ms
+- 안내 페이지 — HTTP 200 · 1373ms
   - 뽑은 서비스 `1613000/arLandUseInfoService`
   - 뽑은 오퍼레이션 `DTarLandUseInfo` · `DTsearchLunCd`
   - 스웨거 host·basePath `apis.data.go.kr/1613000/arLandUseInfoService` `-` · 경로 `/DTarLandUseInfo` `/DTsearchLunCd`
   - 필수 인자(스웨거) `areaCd` · `ucodeList` · `landUseNm` · `pageNum` · `numOfRows`
-- `1613000/arLandUseInfoService/DTarLandUseInfo · 원본 · 202512` — HTTP 200 · 286ms
+- `1613000/arLandUseInfoService/DTarLandUseInfo · 원본 · 202512` — HTTP 200 · 1142ms
   - 본문 «<?xml version="1.0" encoding="EUC-KR" standalone="yes"?><response><ERROR_CODE>11</ERROR_CODE><ERROR_MSG>NO_MANDATORY_REQUEST__PARAMETER_ERROR</ERROR_MSG></response>»
   - 항목(totalCount>0) 칸: **못 찾았다**
-- `1613000/arLandUseInfoService/DTsearchLunCd · 원본 · 202512` — HTTP 200 · 516ms
+- `1613000/arLandUseInfoService/DTsearchLunCd · 원본 · 202512` — HTTP 200 · 275ms
   - 본문 «<?xml version="1.0" encoding="EUC-KR" standalone="yes"?><response><ERROR_CODE>11</ERROR_CODE><ERROR_MSG>NO_MANDATORY_REQUEST__PARAMETER_ERROR</ERROR_MSG></response>»
   - 항목(totalCount>0) 칸: **못 찾았다**
 
@@ -900,12 +920,12 @@
 ## 상업업무용 부동산 매매 실거래가 자료 (15126463) — 상업업무용 부동산 매매 실거래가 — 반영 확인(2026-09-29) · 열쇠 `MOLIT_COMM_SALE`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 2182ms
+- 안내 페이지 — HTTP 200 · 1364ms
   - 뽑은 서비스 `1613000/RTMSDataSvcNrgTrade`
   - 뽑은 오퍼레이션 `getRTMSDataSvcNrgTrade`
   - 스웨거 host·basePath `apis.data.go.kr/1613000/RTMSDataSvcNrgTrade` `-` · 경로 `/getRTMSDataSvcNrgTrade`
   - 필수 인자(스웨거) `LAWD_CD` · `DEAL_YMD`
-- `1613000/RTMSDataSvcNrgTrade/getRTMSDataSvcNrgTrade · 원본 · 202512` — HTTP 200 · 185ms
+- `1613000/RTMSDataSvcNrgTrade/getRTMSDataSvcNrgTrade · 원본 · 202512` — HTTP 200 · 218ms
   - 본문 «<?xml version="1.0" encoding="utf-8" standalone="yes"?><response><header><resultCode>000</resultCode><resultMsg>OK</resultMsg></header><body><items/><numOfRows>3</numOfRows><pageNo>1</pageNo><totalCount>0</totalCount></body></response>»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - 서버 Apache
@@ -915,12 +935,12 @@
 ## 토지 매매 실거래가 자료 (15126466) — 토지 매매 실거래가 — 반영 확인(2026-09-29) · 열쇠 `MOLIT_LAND_SALE`
 
 - 건 열쇠: `DATA_GO_KR_KEY`
-- 안내 페이지 — HTTP 200 · 1532ms
+- 안내 페이지 — HTTP 200 · 1615ms
   - 뽑은 서비스 `1613000/RTMSDataSvcLandTrade`
   - 뽑은 오퍼레이션 `getRTMSDataSvcLandTrade`
   - 스웨거 host·basePath `apis.data.go.kr/1613000/RTMSDataSvcLandTrade` `-` · 경로 `/getRTMSDataSvcLandTrade`
   - 필수 인자(스웨거) `LAWD_CD` · `DEAL_YMD`
-- `1613000/RTMSDataSvcLandTrade/getRTMSDataSvcLandTrade · 원본 · 202512` — HTTP 200 · 204ms
+- `1613000/RTMSDataSvcLandTrade/getRTMSDataSvcLandTrade · 원본 · 202512` — HTTP 200 · 224ms
   - 본문 «<?xml version="1.0" encoding="utf-8" standalone="yes"?><response><header><resultCode>000</resultCode><resultMsg>OK</resultMsg></header><body><items/><numOfRows>3</numOfRows><pageNo>1</pageNo><totalCount>0</totalCount></body></response>»
   - 항목(totalCount>0) 칸: **못 찾았다**
   - 서버 Apache

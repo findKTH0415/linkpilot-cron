@@ -104,35 +104,35 @@
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":330,\"items\":{\"item\":[{\"basYm\":\"202512\",\"bzds\":\"보험\",\"tstCtg\":\"금전신탁 특정금전신탁\",\"kind\":\"수시입출금\",\"iqBs\":\"계약수\",\"val\":\"8607\"},{\"basYm\":\"202512\",\"bzds\":\"보험\",\"tstCtg\":\"금전신탁 특정금전신탁\",\"kind\":\"자사주\","
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":330,\"items\":{\"item\":[{\"basYm\":\"202512\",\"bzds\":\"증권\",\"tstCtg\":\"금전신탁 특정금전신탁\",\"kind\":\"채권형\",\"iqBs\":\"고객수\",\"val\":\"0\"},{\"basYm\":\"202512\",\"bzds\":\"증권\",\"tstCtg\":\"금전신탁 특정금전신탁\",\"kind\":\"주식형(자문형,자사"
     },
     {
      "label": "*** · 원본 · 202512",
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":28887,\"items\":{\"item\":[{\"basDt\":\"20261007\",\"ctg\":\"-\",\"tstMthdCtg\":\"공모\",\"nPptTotAmt\":\"36250608531\"},{\"basDt\":\"20261007\",\"ctg\":\"혼합주식형\",\"tstMthdCtg\":\"공모\",\"nPptTotAmt\":\"6177750257245\"},{"
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":28912,\"items\":{\"item\":[{\"basDt\":\"20261008\",\"ctg\":\"혼합채권형\",\"tstMthdCtg\":\"사모\",\"nPptTotAmt\":\"7666302801760\"},{\"basDt\":\"20261008\",\"ctg\":\"-\",\"tstMthdCtg\":\"공모\",\"nPptTotAmt\":\"36249195759\"},{"
     },
     {
      "label": "*** · 원본 · 202512",
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":14544,\"items\":{\"item\":[{\"basDt\":\"20261007\",\"mngInvTgt\":\"합계\",\"invrCtg\":\"기관\",\"scrtCmpyCnt\":\"0\",\"actCnt\":\"147707\",\"actBal\":\"12527189425271\"},{\"basDt\":\"20261007\",\"mngInvTgt\":\"MMF형\",\"invr"
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":14556,\"items\":{\"item\":[{\"basDt\":\"20261008\",\"mngInvTgt\":\"RP형\",\"invrCtg\":\"개인\",\"scrtCmpyCnt\":\"23\",\"actCnt\":\"27053639\",\"actBal\":\"40210886268557\"},{\"basDt\":\"20261008\",\"mngInvTgt\":\"MMF형\",\""
     },
     {
      "label": "*** · 원본 · 202512",
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":1199,\"items\":{\"item\":[{\"basDt\":\"20261007\",\"crdTrFingWhl\":\"33516738844485\",\"crdTrFingScrs\":\"26096341002665\",\"crdTrFingKosdaq\":\"7420397841820\",\"crdTrLndrWhl\":\"40359600581\",\"crdTrLndrSc"
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":1200,\"items\":{\"item\":[{\"basDt\":\"20261008\",\"crdTrFingWhl\":\"33811320912737\",\"crdTrFingScrs\":\"26324142641370\",\"crdTrFingKosdaq\":\"7487178271367\",\"crdTrLndrWhl\":\"42343042042\",\"crdTrLndrSc"
     },
     {
      "label": "*** · 원본 · 202512",
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":1212,\"items\":{\"item\":[{\"basDt\":\"20261007\",\"invrDpsgAmt\":\"100379606883634\",\"onbdDrvPrdTrRcAdvAmt\":\"39538190249051\",\"toCstRpchCndBndSlgBal\":\"110096500672803\",\"brkTrdUcolMny\":\"931602257"
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":1213,\"items\":{\"item\":[{\"basDt\":\"20261008\",\"invrDpsgAmt\":\"100109940711015\",\"onbdDrvPrdTrRcAdvAmt\":\"39391418027854\",\"toCstRpchCndBndSlgBal\":\"109146122055839\",\"brkTrdUcolMny\":\"991461798"
     },
     {
      "label": "*** · 원본 · 202512",
@@ -241,7 +241,7 @@
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "<response> <header> <resultCode>00</resultCode> <resultMsg>NORMAL_SERVICE</resultMsg> </header> <body> <items> <item> <pblancNm><![CDATA[[충남] 2026년 디지털콘텐츠 제작지원(팔리는 상세페이지 제작지원) 모집 공고]]></pblancNm> <!-- 공고명 --> <pblancUrl>https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_00000000"
+     "head": "<response> <header> <resultCode>00</resultCode> <resultMsg>NORMAL_SERVICE</resultMsg> </header> <body> <items> <item> <pblancNm><![CDATA[2026년 연구개발특구 기술사업화대상 후보자 추천 공고]]></pblancNm> <!-- 공고명 --> <pblancUrl>https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000127130</pblan"
     }
    ]
   },
@@ -855,7 +855,7 @@
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL_CODE\"},\"body\":{\"items\":{\"item\":[{\"CRTR_YMD\":\"20261011\",\"SDNM\":\"광주광역시\",\"SGGNM\":\"동구\",\"PRPT_ITEM_NM\":\"대\",\"SCFB_YR\":\"2025\",\"SCFB_MT\":\"10\",\"APSL_EVL_AMT\":27360000,\"DSPL_AMT\":3835000,\"SCFB_PRC_RTO\":14.02},{\"CRTR_YMD\":\"20261011\",\"SDNM\":\"전라남도\",\"SGGNM\":\"장흥군\",\""
+     "head": "{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL_CODE\"},\"body\":{\"items\":{\"item\":[{\"CRTR_YMD\":\"20261012\",\"SDNM\":\"전북특별자치도\",\"SGGNM\":\"전주시 덕진구\",\"PRPT_ITEM_NM\":\"출자증권\",\"SCFB_YR\":\"2025\",\"SCFB_MT\":\"10\",\"APSL_EVL_AMT\":7603136,\"DSPL_AMT\":7468000,\"SCFB_PRC_RTO\":98.22},{\"CRTR_YMD\":\"20261012\",\"SDNM\":\"경상남도\",\"SGGNM"
     }
    ]
   },
@@ -1097,9 +1097,10 @@
    "rows": [
     {
      "label": "1160100/service/GetCorpBasicInfoService_V2/getAffiliate_V2 · 원본 · 202512",
-     "status": null,
-     "gotValue": false,
-     "authFail": false
+     "status": 200,
+     "gotValue": true,
+     "authFail": false,
+     "head": "{\"response\":{\"body\":{\"items\":{\"item\":[{\"basDt\":\"20200509\",\"crno\":\"1101110000086\",\"afilCmpyNm\":\"롯데건설(주)\",\"afilCmpyCrno\":\"1101110014764\",\"lstgYn\":\"\"},{\"basDt\":\"20200509\",\"crno\":\"1101110000086\",\"afilCmpyNm\":\"(주)롯데푸드\",\"afilCmpyCrno\":\"1101110033722\",\"lstgYn\":\"\"},{\"basDt\":\"20200509\",\"crno\":\"1101110000086\""
     },
     {
      "label": "1160100/service/GetCorpBasicInfoService_V2/getConsSubsComp_V2 · 원본 · 202512",
