@@ -61,7 +61,7 @@ const REGISTRIES = {
     /* ★★★ 〈2026-09-26 · 실측〉 그리고 **CLAUDE.md·MEMORY.md 에만 적힌 번호**도 있다 —
        `D-210`~`D-324` 는 등록부에 안 올리고 두 파일에만 적었다. 그래서 이 도구가
        `D-209` 를 내줬는데 그 번호는 CLAUDE.md §12 에 이미 있었다. 두 파일도 번호만 줍는다 */
-    reserved: ['docs/결정-기록.md', 'CLAUDE.md', 'MEMORY.md'] },
+    reserved: ['docs/결정-기록.md', 'CLAUDE.md', 'MEMORY.md', 'docs/경위-§12.md'] },
   m: { key: 'm', doc: 'MEMORY.md', prefix: 'M',
     head: /^##\s+()(M-\d+)\.\s*(.*)$/, label: '사고기록' },
 };
