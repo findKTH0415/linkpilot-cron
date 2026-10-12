@@ -174,6 +174,18 @@ export function swaggerOps(json) {
   return { root: /^https:\/\//.test(root) ? root : '', ops: ops.slice(0, 20) };
 }
 
+/* ★ 〈2026-10-12 · 실측: 한국산업은행 기금대출 15060633 — 안내 페이지가 «swaggerUrl» 변수로 규격을 따로 불러온다〉.
+   페이지 스크립트에 적힌 그 주소만 읽는다(지어내지 않는다). 빈 값·없음이면 '' — 「규격이 없다」가 아니라 「못 읽었다」다 (§8). */
+export function swaggerUrlOf(html) {
+  const m = String(html || '').match(/swaggerUrl\s*=\s*['"`]([^'"`]+)['"`]/);
+  if (!m) return '';
+  const u = m[1].trim();
+  if (/^https?:\/\//.test(u)) return u;
+  if (u.startsWith('//')) return 'https:' + u;
+  if (u.startsWith('/')) return 'https://www.data.go.kr' + u;
+  return '';
+}
+
 /* 포털 검색 화면에서 «자산운용» 이 든 오픈API 목록(번호 · 제목)을 뽑는다 */
 export function searchHits(html, word) {
   const src = String(html || '');
@@ -247,7 +259,8 @@ async function main() {
      그 서비스를 신청하셨으면 같은 열쇠로 통한다. 어느 이름으로 걸었는지는 반드시 적는다 — 섞어 읽으면
      「어느 열쇠가 통했는가」가 흐려진다. */
   for (const n of ['FSC_API', 'FSC_AMC_API', 'FSC_IAF_API', 'FSC_KOFIA_API', 'FSC_DOMESTIC_BANK_API', 'FSC_SAVINGS_BANK_API', 'FSC_CREDIT_UNION_BANK_API', 'FSC__AGRICULTURAL_COOPERATIVE_BANK_API', 'FSC_FISHERIES_COOPERATIVE_BANK_API', 'FSC_SP_FIN', 'KOICA_PROJ_SC', 'KOICA_GLOBAL_POLITICAL_DEVELOPMENTS', 'KOICA_COUNTRY_INFORMATION', 'MOLIT_LUR_LAW_KEY', 'MSS_SME_SPA_API', 'MOLIT_APT_SALE', 'REB_LAND_MICRO', 'MOLIT_OFFICETEL_RENT', 'KAMCO_ONBID_BID_RESULT', 'KAMCO_SEIZED_AUCTION_RATE', 'MOLIT_HUB_BLDG_LEDGER', 'MOLIT_HUB_HOUSING_PERMIT', 'NTS_BIZ_VERIFY', 'MOLIT_HUB_BLDG_PERMIT', 'FSC_CORP_BASIC', 'MOLIT_LUR_INFO', 'MOLIT_COMM_SALE', 'MOLIT_LAND_SALE', 'KICT_API_KEY']) {
-    const own = pick([n]);
+    /* ★ 2026-10-12 — 등록부에는 밑줄 둘(`FSC__AGRICULTURAL…`)로 적혀 있었다. 사장님 목록은 밑줄 하나다 — 둘 다 읽는다 (§4) */
+    const own = pick(n === 'FSC__AGRICULTURAL_COOPERATIVE_BANK_API' ? [n, 'FSC_AGRICULTURAL_COOPERATIVE_BANK_API'] : [n]);
     if (own) OWN.push(own);
     const k = own || portal;
     KEYS[n] = k;
@@ -318,6 +331,19 @@ async function main() {
       const refLine = `  - 규격 주소 후보 ${refs.length ? refs.map((u) => `«${redact(u)}»`).join(' · ') : '(페이지에 없다)'}`;
       P(refLine); SEARCH_RECAP.push(`- ${svc.id} ${refLine.trim()}`);
       if (/swagger-ui/.test(html)) { const j = html.indexOf('SwaggerUIBundle'); P(`  - 스웨거 불러오기 둘레 «${j < 0 ? '(SwaggerUIBundle 낱말이 없다)' : redact(html.slice(j, j + 300).replace(/\s+/g, ' '))}»`); }
+      /* ★ swaggerUrl 이 적혀 있으면 그 규격을 받아 «필수 인자 이름»만 적는다 — 값이 필요한 인자는 지어 넣지 않는다 */
+      { const su = swaggerUrlOf(html);
+        if (su) {
+          let sp = null;
+          try { sp = swaggerOps(await (await fetch(su, { signal: AbortSignal.timeout(15000) })).text()); } catch (_) { sp = null; }
+          const l = sp
+            ? `  - swaggerUrl 규격 — 뿌리 ${sp.root ? `\`${redact(sp.root)}\`` : '**못 읽었다**'} · ` + (sp.ops.length ? sp.ops.map((o) => `${o.method} \`${o.path}\`${o.required.length ? ` (필수 ${o.required.join('·')})` : ''}`).join(' · ') : '경로 **없음(못 읽었다)**')
+            : `  - swaggerUrl «${redact(su)}» — **못 읽었다** (받지 못했거나 JSON 이 아니다)`;
+          P(l); SEARCH_RECAP.push(`- ${svc.id} ${l.trim()}`);
+        } else if (/swaggerUrl/.test(html)) {
+          const j = html.indexOf('swaggerUrl'); const l = `  - swaggerUrl 둘레 «${redact(html.slice(j, j + 200).replace(/\s+/g, ' '))}»`; P(l); SEARCH_RECAP.push(`- ${svc.id} ${l.trim()}`);
+        }
+      }
       /* ★ 그 후보 중 odcloud 규격(api-docs)을 실제로 받아 읽는다 — 문서에 적힌 뿌리·경로로만 부른다.
          ★★ 값이 필요한 인자(사업자번호 등)는 **지어 넣지 않는다** — 이름만 적는다. 부를 수 있는 것만 부른다:
            GET 은 쪽 인자(page·perPage·returnType)만 필요한 것 · POST 는 빈 몸통(인증 통과 여부만 가린다). */

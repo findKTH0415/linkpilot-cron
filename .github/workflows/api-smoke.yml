@@ -50,6 +50,7 @@ jobs:
           FSC_SAVINGS_BANK_API: ${{ secrets.FSC_SAVINGS_BANK_API }}
           FSC_CREDIT_UNION_BANK_API: ${{ secrets.FSC_CREDIT_UNION_BANK_API }}
           FSC__AGRICULTURAL_COOPERATIVE_BANK_API: ${{ secrets.FSC__AGRICULTURAL_COOPERATIVE_BANK_API }}
+          FSC_AGRICULTURAL_COOPERATIVE_BANK_API: ${{ secrets.FSC_AGRICULTURAL_COOPERATIVE_BANK_API }}
           FSC_FISHERIES_COOPERATIVE_BANK_API: ${{ secrets.FSC_FISHERIES_COOPERATIVE_BANK_API }}
           FSC_SP_FIN: ${{ secrets.FSC_SP_FIN }}
           KOICA_PROJ_SC: ${{ secrets.KOICA_PROJ_SC }}
@@ -104,6 +105,7 @@ jobs:
           FSC_SAVINGS_BANK_API: ${{ secrets.FSC_SAVINGS_BANK_API }}
           FSC_CREDIT_UNION_BANK_API: ${{ secrets.FSC_CREDIT_UNION_BANK_API }}
           FSC__AGRICULTURAL_COOPERATIVE_BANK_API: ${{ secrets.FSC__AGRICULTURAL_COOPERATIVE_BANK_API }}
+          FSC_AGRICULTURAL_COOPERATIVE_BANK_API: ${{ secrets.FSC_AGRICULTURAL_COOPERATIVE_BANK_API }}
           FSC_FISHERIES_COOPERATIVE_BANK_API: ${{ secrets.FSC_FISHERIES_COOPERATIVE_BANK_API }}
           FSC_SP_FIN: ${{ secrets.FSC_SP_FIN }}
           KOICA_PROJ_SC: ${{ secrets.KOICA_PROJ_SC }}
@@ -186,6 +188,7 @@ jobs:
           FSC_SAVINGS_BANK_API: ${{ secrets.FSC_SAVINGS_BANK_API }}
           FSC_CREDIT_UNION_BANK_API: ${{ secrets.FSC_CREDIT_UNION_BANK_API }}
           FSC__AGRICULTURAL_COOPERATIVE_BANK_API: ${{ secrets.FSC__AGRICULTURAL_COOPERATIVE_BANK_API }}
+          FSC_AGRICULTURAL_COOPERATIVE_BANK_API: ${{ secrets.FSC_AGRICULTURAL_COOPERATIVE_BANK_API }}
           FSC_FISHERIES_COOPERATIVE_BANK_API: ${{ secrets.FSC_FISHERIES_COOPERATIVE_BANK_API }}
           FSC_SP_FIN: ${{ secrets.FSC_SP_FIN }}
           KOICA_PROJ_SC: ${{ secrets.KOICA_PROJ_SC }}
@@ -223,6 +226,65 @@ jobs:
           node scripts/ecos-bop-probe.mjs || true
           { echo ''; echo '### 한국은행 국제수지'; head -40 data/_api/ecos-bop-probe.md 2>/dev/null || echo '(못 읽었다)'; } >> "$GITHUB_STEP_SUMMARY"
           cat data/_api/ecos-bop-probe.md 2>/dev/null || true
+
+      # ★ 2026-10-12 — 사장님 목록 49개의 «이름»이 이 저장소 비밀에 있는가 (값은 안 찍는다 · 길이만).
+      #   이름은 scripts/key-presence.mjs 의 NAMES 한 곳이 정본이다 — workflow-shape 검사가 두 쪽을 견준다.
+      - name: 열쇠 이름이 들어 있는지 센다
+        continue-on-error: true
+        env:
+          KOREA_LAW_INFORMATION: ${{ secrets.KOREA_LAW_INFORMATION }}
+          DATAGOKR_PUBLIC_DATA: ${{ secrets.DATAGOKR_PUBLIC_DATA }}
+          KASI_SPECIAL_DAYS: ${{ secrets.KASI_SPECIAL_DAYS }}
+          KMA_SHORT_TERM_FORECAST: ${{ secrets.KMA_SHORT_TERM_FORECAST }}
+          KPX_REC_SPOT_MARKET: ${{ secrets.KPX_REC_SPOT_MARKET }}
+          REC_SPOT_MARKET_TRADING: ${{ secrets.REC_SPOT_MARKET_TRADING }}
+          KOMIPO_REC_REFERENCE_PRICE: ${{ secrets.KOMIPO_REC_REFERENCE_PRICE }}
+          KEPCO: ${{ secrets.KEPCO }}
+          KPX_SMP_DEMAND_FORECAST: ${{ secrets.KPX_SMP_DEMAND_FORECAST }}
+          KPX_POWER_SUPPLY_DEMAND_FORECAST_GW: ${{ secrets.KPX_POWER_SUPPLY_DEMAND_FORECAST_GW }}
+          KOICA_PROJ_SC: ${{ secrets.KOICA_PROJ_SC }}
+          KOICA_COUNTRY_INFORMATION: ${{ secrets.KOICA_COUNTRY_INFORMATION }}
+          KOICA_GLOBAL_POLITICAL_DEVELOPMENTS: ${{ secrets.KOICA_GLOBAL_POLITICAL_DEVELOPMENTS }}
+          REB_LAND_PRICE_CHANGE: ${{ secrets.REB_LAND_PRICE_CHANGE }}
+          KCSC_CONSTRUCTION_STANDARDS: ${{ secrets.KCSC_CONSTRUCTION_STANDARDS }}
+          VWORLD_SPATIAL_DATA: ${{ secrets.VWORLD_SPATIAL_DATA }}
+          REB_LAND_MICRO: ${{ secrets.REB_LAND_MICRO }}
+          MOLIT_APT_SALE: ${{ secrets.MOLIT_APT_SALE }}
+          MOLIT_OFFICETEL_RENT: ${{ secrets.MOLIT_OFFICETEL_RENT }}
+          MOLIT_HUB_BLDG_LEDGER: ${{ secrets.MOLIT_HUB_BLDG_LEDGER }}
+          MOLIT_HUB_HOUSING_PERMIT: ${{ secrets.MOLIT_HUB_HOUSING_PERMIT }}
+          MOLIT_HUB_BLDG_PERMIT: ${{ secrets.MOLIT_HUB_BLDG_PERMIT }}
+          MOLIT_LUR_INFO: ${{ secrets.MOLIT_LUR_INFO }}
+          MOLIT_COMM_SALE: ${{ secrets.MOLIT_COMM_SALE }}
+          MOLIT_LAND_SALE: ${{ secrets.MOLIT_LAND_SALE }}
+          MOLIT_LUR_LAW_KEY: ${{ secrets.MOLIT_LUR_LAW_KEY }}
+          KAMCO_PUBLIC_AUCTION_STATISTICS: ${{ secrets.KAMCO_PUBLIC_AUCTION_STATISTICS }}
+          KONEPS_AWARD_INFORMATION: ${{ secrets.KONEPS_AWARD_INFORMATION }}
+          KONEPS_BID_NOTICE: ${{ secrets.KONEPS_BID_NOTICE }}
+          ONBID_REAL_ESTATE_PROPERTY: ${{ secrets.ONBID_REAL_ESTATE_PROPERTY }}
+          MSS_SME_SPA_API: ${{ secrets.MSS_SME_SPA_API }}
+          NTS_BIZ_VERIFY: ${{ secrets.NTS_BIZ_VERIFY }}
+          KAMCO_ONBID_BID_RESULT: ${{ secrets.KAMCO_ONBID_BID_RESULT }}
+          KAMCO_SEIZED_AUCTION_RATE: ${{ secrets.KAMCO_SEIZED_AUCTION_RATE }}
+          FSC_ASSET_MANAGEMENT_BUSINESS_STATISTICS: ${{ secrets.FSC_ASSET_MANAGEMENT_BUSINESS_STATISTICS }}
+          FSC_CORP_BASIC: ${{ secrets.FSC_CORP_BASIC }}
+          FSC_AMC_API: ${{ secrets.FSC_AMC_API }}
+          FSC_API: ${{ secrets.FSC_API }}
+          FSC_IAF_API: ${{ secrets.FSC_IAF_API }}
+          FSC_KOFIA_API: ${{ secrets.FSC_KOFIA_API }}
+          FSC_DOMESTIC_BANK_API: ${{ secrets.FSC_DOMESTIC_BANK_API }}
+          FSC_SAVINGS_BANK_API: ${{ secrets.FSC_SAVINGS_BANK_API }}
+          FSC_CREDIT_UNION_BANK_API: ${{ secrets.FSC_CREDIT_UNION_BANK_API }}
+          FSC_AGRICULTURAL_COOPERATIVE_BANK_API: ${{ secrets.FSC_AGRICULTURAL_COOPERATIVE_BANK_API }}
+          FSC_FISHERIES_COOPERATIVE_BANK_API: ${{ secrets.FSC_FISHERIES_COOPERATIVE_BANK_API }}
+          FSC_SP_FIN: ${{ secrets.FSC_SP_FIN }}
+          ECOC_API: ${{ secrets.ECOC_API }}
+          ECOC_BOK_BOP_STATISTICS: ${{ secrets.ECOC_BOK_BOP_STATISTICS }}
+          FSS_DART_DISCLOSURE: ${{ secrets.FSS_DART_DISCLOSURE }}
+          DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+        run: |
+          node scripts/key-presence.mjs || true
+          { echo ""; echo "### 열쇠 이름 — 들어 있는가"; cat data/_api/key-presence.md 2>/dev/null || echo "(못 읽었다)"; } >> "$GITHUB_STEP_SUMMARY"
 
       # ★★★ 네이버 클라우드 Maps — **진단** 〈2026-09-25 · D-314〉.
       #   사장님이 Client ID · Secret 을 넣으셨는데 **넣으신 이름**과 **호스트(옛·새)** 를

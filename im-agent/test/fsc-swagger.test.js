@@ -67,3 +67,17 @@ test('안내 페이지 스웨거 — basePath + 경로 통째(슬래시 둘)를 
   assert.ok(kotra.full.includes('B410001/kotra_nationalInformation/natnInfo/natnInfo'), JSON.stringify(kotra.full));
   assert.ok(String(fs.readFileSync(SRC, 'utf8')).includes('스웨거 host·basePath'), '요약에 그 줄을 안 적는다');
 });
+
+/* 〈2026-10-12 · 한국산업은행 기금대출 15060633 — 안내 페이지가 «swaggerUrl» 변수로 규격을 따로 불러온다〉 —
+   적힌 주소만 읽고(상대 주소는 www.data.go.kr 에 붙인다) · 빈 값·없음은 '' 이다. 그리고 그 규격을 «실제로 받아 읽는» 자리가 있는가. */
+test('안내 페이지 swaggerUrl — 적힌 주소만 읽는다 · 빈 값은 못 읽은 것 · 받아서 필수 인자를 적는다', async () => {
+  const { swaggerUrlOf } = await import(SRC);
+  assert.strictEqual(swaggerUrlOf("var swaggerUrl = '/data/15060633/swagger.json';"), 'https://www.data.go.kr/data/15060633/swagger.json');
+  assert.strictEqual(swaggerUrlOf('swaggerUrl="https://infuser.odcloud.kr/x.json"'), 'https://infuser.odcloud.kr/x.json');
+  assert.strictEqual(swaggerUrlOf("var swaggerUrl = '';"), '');
+  assert.strictEqual(swaggerUrlOf('<div>규격 없음</div>'), '');
+  const s = String(fs.readFileSync(SRC, 'utf8'));
+  assert.match(s, /const su = swaggerUrlOf\(html\)/, 'swaggerUrl 을 읽는 자리가 없다');
+  assert.match(s, /swaggerOps\(await \(await fetch\(su,/, 'swaggerUrl 규격을 받아 읽지 않는다');
+  assert.match(s, /swaggerUrl 규격 — 뿌리/, '요약에 그 줄을 안 적는다');
+});
