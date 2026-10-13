@@ -44,11 +44,22 @@ test('못 읽으면 null — 빈 목록으로 뭉개지 않는다', async () => 
   assert.strictEqual(swaggerOps({ swagger: '2.0' }), null);
 });
 
-test('값이 필요한 인자는 부르지 않고 이름만 적는다 · 규격만 읽고 못 부른 것은 «못 쟀다(3)»', () => {
+test('값이 필요한 인자는 부르지 않고 이름만 적는다 · 규격만 읽고 못 부른 것은 «못 쟀다(1 · 닿았다)»', () => {
   const s = fs.readFileSync(SRC, 'utf8');
   assert.match(s, /지어 넣지 않아 안 불렀다/);
-  assert.match(s, /odSpec \? \{ code: 3/);
+  assert.match(s, /odSpec \? \{ code: 1/);
   assert.doesNotMatch(s, /b_no['"]?\s*:\s*\[\s*['"]\d/, '사업자번호 값을 지어 넣으면 안 된다');
+});
+
+/* 〈2026-10-13 · Codex 리뷰 #220〉 — 서버가 대답한 411(몸통에 번호가 있어야 한다)을 «못 닿았다(3)»로 세면
+   요약 첫 줄이 «도는 자리를 옮기라»를 시킨다. 닿았는데 사람이 넣을 값이 있어야 잰다는 1 로 갈라 적는가 */
+test('몸통 값이 필요한 411 은 «못 닿음(3)»이 아니라 «닿음·사람 값 필요(1)» — 요약 글도 자리 옮기기를 안 시킨다', () => {
+  const s = fs.readFileSync(SRC, 'utf8');
+  assert.match(s, /bodyNeeded \? \{ code: 1/, '411 갈래가 3 으로 돌아가면 요약이 «자리를 옮기라»를 말한다');
+  const m = s.match(/FSC_MEAN = \{ \.\.\.MEAN, 1: '([^']+)'/);
+  assert.ok(m, '판정 1 의 뜻 글을 못 찾았다');
+  assert.doesNotMatch(m[1], /못 닿았다|자리를 옮/, '판정 1 의 글이 «못 닿음»처럼 읽히면 안 된다');
+  assert.match(s, /FSC_MEAN\[code\]/, '요약 첫 줄이 이 진단의 뜻 표(FSC_MEAN)를 읽어야 한다');
 });
 
 /* 〈2026-10-11 · KOTRA 국가정보 15034830 이 «뿌리/natnInfo» 에 «서비스 없음(12)»으로 답했다〉 —

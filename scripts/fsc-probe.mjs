@@ -20,6 +20,9 @@
 
 import { mkdir, writeFile } from 'node:fs/promises';
 import { redact, pick, probe, sayRow, verdictOf, MEAN } from './probe-lib.mjs';
+/* ★ 판정 1 은 이 진단에만 있다 — 서버가 대답했는데(규격 페이지·411 등) 조회할 값(번호·필수 인자)을 사람이 넣어야 잴 수 있는 경우.
+     3(못 닿았다)과 갈라야 요약이 «자리를 옮기라»를 잘못 말하지 않는다. 다른 진단의 MEAN 은 건드리지 않는다 */
+const FSC_MEAN = { ...MEAN, 1: '닿았다 — 조회할 값(번호·필수 인자)을 사람이 넣어야 잰다. **열쇠 문제도, 도는 자리 문제도 아니다**' };
 
 const OUT = 'data/_api';
 await mkdir(OUT, { recursive: true });
@@ -543,12 +546,14 @@ async function main() {
        «못 쟀다» — 대답을 못 받은 것을 승인·거부 어느 쪽으로도 적지 않는다 (§8) */
     /* ★ 〈2026-10-13 · 실측: 사업자등록 15081808 이 빈 몸통에 HTTP 411 «REQUEST_DATA_MALFORMED» 로 답했다〉 —
        그것은 «규격이 틀렸다»가 아니라 «몸통에 사업자번호(b_no)가 있어야 한다»는 뜻이다. 번호는 지어 넣지 않는다(검사가 막는다) —
-       그래서 «못 쟀다(3)»로 적는다. 실제 호출은 im-agent/connectors/nts.js 가 사람이 넣은 번호로 한다 */
+       그래서 «못 쟀다»로 적는다. 실제 호출은 im-agent/connectors/nts.js 가 사람이 넣은 번호로 한다.
+       ★ 다만 3 이 아니라 1 로 적는다 — 3 은 «못 닿았다 · 도는 자리를 옮긴다»라서, 서버가 대답한 이 경우를 3 으로 세면
+         요약 첫 줄이 엉뚱한 일(자리 옮기기)을 시킨다 (Codex 리뷰 · #220). 1 은 «닿았는데 사람이 넣을 값이 있어야 잰다»다 */
     const bodyNeeded = odRows.length > 0 && odRows.every((r) => r.status != null && !r.gotValue && /REQUEST_DATA_MALFORMED/.test(r.head || ''));
     const v = targets.length ? verdictOf(rows)
-      : bodyNeeded ? { code: 3, head: '**규격은 읽었다** — 몸통에 조회할 값(사업자번호 `b_no`)이 있어야 대답한다(«REQUEST_DATA_MALFORMED»). 값을 지어 넣지 않아 **못 쟀다**. 실제 조회는 `im-agent/connectors/nts.js` 가 사람이 넣은 번호로 한다. 열쇠가 통했는지는 이 대답만으로 **못 가른다**' }
+      : bodyNeeded ? { code: 1, head: '**규격은 읽었다** — 몸통에 조회할 값(사업자번호 `b_no`)이 있어야 대답한다(«REQUEST_DATA_MALFORMED»). 값을 지어 넣지 않아 **못 쟀다**. 실제 조회는 `im-agent/connectors/nts.js` 가 사람이 넣은 번호로 한다. 열쇠가 통했는지는 이 대답만으로 **못 가른다**' }
       : odRows.length ? verdictOf(odRows)
-      : odSpec ? { code: 3, head: '**규격은 읽었다** — 부르려면 필수 인자 값이 있어야 해서 지어 넣지 않고 안 불렀다(못 쟀다). **열쇠 문제가 아니다**' }
+      : odSpec ? { code: 1, head: '**규격은 읽었다** — 부르려면 필수 인자 값이 있어야 해서 지어 넣지 않고 안 불렀다(못 쟀다). **열쇠 문제가 아니다**' }
       : { code: 3, head: '**부를 주소를 못 읽었다** — 안내 페이지를 못 받았거나 모양이 다르다. 열쇠 문제가 아니다' };
     codes.push(v.code);
     results.services.push({ id: svc.id, bases: d.bases, ops: d.ops, code: v.code,
@@ -561,7 +566,7 @@ async function main() {
   await writeFile(`${OUT}/fsc-probe.json`, redact(JSON.stringify(results, null, 1)));
   /* 되돌아오는 값은 **나쁜 쪽** — 두 서비스를 다 쓰려는 것이라 하나라도 막히면 할 일이 남는다 */
   const code = Math.max(...codes);
-  const verdict = `판정 ${code} — ${MEAN[code] || '판정하지 못했다'} (`
+  const verdict = `판정 ${code} — ${FSC_MEAN[code] || '판정하지 못했다'} (`
     + results.services.map((x, i) => `${SERVICES[i].name.replace('금융위원회_', '')} ${x.code}`).join(' · ') + ')';
   log.unshift(`> ${verdict}`, '');
   await writeFile(`${OUT}/fsc-probe.md`, log.join('\n'));
