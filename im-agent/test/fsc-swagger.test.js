@@ -44,11 +44,22 @@ test('못 읽으면 null — 빈 목록으로 뭉개지 않는다', async () => 
   assert.strictEqual(swaggerOps({ swagger: '2.0' }), null);
 });
 
-test('값이 필요한 인자는 부르지 않고 이름만 적는다 · 규격만 읽고 못 부른 것은 «못 쟀다(3)»', () => {
+test('값이 필요한 인자는 부르지 않고 이름만 적는다 · 규격만 읽고 못 부른 것은 «못 쟀다(1 · 닿았다)»', () => {
   const s = fs.readFileSync(SRC, 'utf8');
   assert.match(s, /지어 넣지 않아 안 불렀다/);
-  assert.match(s, /odSpec \? \{ code: 3/);
+  assert.match(s, /odSpec \? \{ code: 1/);
   assert.doesNotMatch(s, /b_no['"]?\s*:\s*\[\s*['"]\d/, '사업자번호 값을 지어 넣으면 안 된다');
+});
+
+/* 〈2026-10-13 · Codex 리뷰 #220〉 — 서버가 대답한 411(몸통에 번호가 있어야 한다)을 «못 닿았다(3)»로 세면
+   요약 첫 줄이 «도는 자리를 옮기라»를 시킨다. 닿았는데 사람이 넣을 값이 있어야 잰다는 1 로 갈라 적는가 */
+test('몸통 값이 필요한 411 은 «못 닿음(3)»이 아니라 «닿음·사람 값 필요(1)» — 요약 글도 자리 옮기기를 안 시킨다', () => {
+  const s = fs.readFileSync(SRC, 'utf8');
+  assert.match(s, /bodyNeeded \? \{ code: 1/, '411 갈래가 3 으로 돌아가면 요약이 «자리를 옮기라»를 말한다');
+  const m = s.match(/FSC_MEAN = \{ \.\.\.MEAN, 1: '([^']+)'/);
+  assert.ok(m, '판정 1 의 뜻 글을 못 찾았다');
+  assert.doesNotMatch(m[1], /못 닿았다|자리를 옮/, '판정 1 의 글이 «못 닿음»처럼 읽히면 안 된다');
+  assert.match(s, /FSC_MEAN\[code\]/, '요약 첫 줄이 이 진단의 뜻 표(FSC_MEAN)를 읽어야 한다');
 });
 
 /* 〈2026-10-11 · KOTRA 국가정보 15034830 이 «뿌리/natnInfo» 에 «서비스 없음(12)»으로 답했다〉 —
@@ -80,4 +91,51 @@ test('안내 페이지 swaggerUrl — 적힌 주소만 읽는다 · 빈 값은 �
   assert.match(s, /const su = swaggerUrlOf\(html\)/, 'swaggerUrl 을 읽는 자리가 없다');
   assert.match(s, /swaggerOps\(await \(await fetch\(su,/, 'swaggerUrl 규격을 받아 읽지 않는다');
   assert.match(s, /swaggerUrl 규격 — 뿌리/, '요약에 그 줄을 안 적는다');
+});
+
+/* 〈2026-10-13 · data/_api/fsc-probe.md 실측 — 판정 5 열넷의 본문을 그대로 표본으로 쓴다〉 */
+test('값 판정 — 빈 표 목록·빈 XML·필수 인자 오류는 값이 아니다 · KOTRA·XML item·odcloud data 는 값이다', async () => {
+  const { hasItems } = await import(SRC);
+  /* 아니다 — 실측 본문 */
+  assert.strictEqual(hasItems('{"response":{"body":{"tableList":[{"items":{"item":[]},"title":"종금사_일반현황_임직원현황","totalCount":0},{"items":{"item":[]},"title":"종금사_일반현황_영업점포현황","totalCount":0}]},"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE.","pageNo":"1","numOfRows":"3"}}}'), false);
+  assert.strictEqual(hasItems('<?xml version="1.0" encoding="utf-8" standalone="yes"?><response><header><resultCode>000</resultCode><resultMsg>OK</resultMsg></header><body><items/><numOfRows>3</numOfRows><pageNo>1</pageNo><totalCount>0</totalCount></body></response>'), false);
+  assert.strictEqual(hasItems('{"body":{},"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE"}}'), false);
+  assert.strictEqual(hasItems('{"response":{"header":{"resultCode":81,"resultMsg":"Not Exist Required Paramaters."},"body":null}}'), false);
+  assert.strictEqual(hasItems('{"result":{"resultCode":"11","resultMsg":"NO_MANDATORY_REQUEST_PARAMETERS_ERROR"}}'), false);
+  assert.strictEqual(hasItems('{"status_code":"REQUEST_DATA_MALFORMED"}'), false);
+  assert.strictEqual(hasItems('{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR", "returnAuthMsg": "x", "returnReasonCode": "30" } } }'), false);
+  /* 이다 */
+  assert.strictEqual(hasItems('{"response":{"header":{"resultCode":"00"},"body":{"itemList":[{"tretRealmCntnt":"무역","acplcAdvncYear":"1979","pcompNm":"가"}]}}}'), true);
+  assert.strictEqual(hasItems('<response><body><items><item><pblancNm>공고</pblancNm></item></items></body></response>'), true);
+  assert.strictEqual(hasItems('{"currentCount":3,"data":[{"AREA":2,"AS1":"서울특별시","AS2":"종로구"}]}'), true);
+  assert.strictEqual(hasItems('<response><body><totalCount>12</totalCount></body></response>'), true);
+});
+
+test('필수 인자 값 — 스웨거가 적은 값 · 저장소가 받아 본 값만 붙이고 · 모르는 것은 «값 모름»으로 남긴다', async () => {
+  const { paramHints, extraParams } = await import(SRC);
+  const page = 'x {"paths":{"/a":{"get":{"parameters":[{"name":"areaCd","in":"query","required":true,"default":"11110"},{"name":"ucodeList","in":"query","required":true,"description":"용도지역지구 코드"},{"name":"cltrTypeCd","in":"query","required":true,"enum":["0001","0002"]}]}}}}';
+  const h = paramHints(page);
+  assert.deepStrictEqual(h.areaCd, { value: '11110', from: '스웨거 default' });
+  assert.deepStrictEqual(h.cltrTypeCd, { value: '0001', from: '스웨거 enum 첫 값' });
+  assert.strictEqual(h.ucodeList, undefined, '설명에 예시가 없으면 값을 만들면 안 된다');
+  const lur = extraParams('1613000/LuLawInfoService/DTluLawInfo', '202512', ['areaCd', 'ucodeList', 'pageNo'], h);
+  assert.deepStrictEqual(lur.q, { areaCd: '11110' });
+  assert.deepStrictEqual(lur.missing, ['ucodeList']);
+  /* 실측 표 — KOTRA · 실거래(기준월이 DEAL_YMD 로 따라간다) · 건축HUB */
+  assert.deepStrictEqual(extraParams('B410001/kotra_nationalInformation/natnInfo/natnInfo', '202512', ['isoWd2CntCd'], {}).q, { isoWd2CntCd: 'BD', type: 'json' });
+  const rt = extraParams('1613000/RTMSDataSvcOffiRent/getRTMSDataSvcOffiRent', '202506', ['LAWD_CD', 'DEAL_YMD'], {});
+  assert.strictEqual(rt.q.DEAL_YMD, '202506');
+  assert.ok(/^\d{5}$/.test(rt.q.LAWD_CD));
+  assert.deepStrictEqual(rt.missing, []);
+  const hub = extraParams('1613000/ArchPmsHubService/getApBasisOulnInfo', '202512', ['sigunguCd', 'bjdongCd'], {});
+  assert.deepStrictEqual(Object.keys(hub.q).sort(), ['bjdongCd', 'sigunguCd']);
+  assert.ok(hub.used.every((u) => /scripts\/\S+\.mjs/.test(u.from)), '실측 값에는 출처 파일을 적는다');
+});
+
+test('칸 이름 — XML 첫 item · items 밖 자리(KOTRA)도 줍는다 · 요청변수 표에서 이름만', async () => {
+  const { itemKeys, requestVarsOf } = await import(SRC);
+  assert.deepStrictEqual(itemKeys('<response><body><items><item><dealAmount>1</dealAmount><umdNm>x</umdNm></item></items></body></response>'), ['dealAmount', 'umdNm']);
+  assert.deepStrictEqual(itemKeys('{"response":{"body":{"itemList":[{"a":"1","b":"2","c":"3"}]}}}'), ['a', 'b', 'c']);
+  assert.deepStrictEqual(requestVarsOf('<h4>요청변수(Request Parameter)</h4><table><tr><td>serviceKey</td></tr><tr><td>fndNm</td></tr></table>'), ['fndNm']);
+  assert.strictEqual(requestVarsOf('<div>없다</div>'), null);
 });
