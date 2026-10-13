@@ -107,7 +107,41 @@ const SEARCHES = [
 const searchUrl = (kw) => 'https://www.data.go.kr/tcs/dss/selectDataSetList.do?dType=API&keyword=' + encodeURIComponent(kw);
 
 /* 값이 실렸는가 — 포털 1160100 계열은 `totalCount` 를 준다. 0 이면 «대답은 왔는데 비었다» */
-const HAS_ITEMS = /"totalCount"\s*:\s*"?[1-9]|<totalCount>[1-9]/;
+/* ★ 〈2026-10-13 · fsc-probe.md 실측〉 `totalCount` 하나만 보면 놓치는 모양이 셋 있었다 —
+   ① KOTRA 국가정보는 결과 00 을 주면서 항목을 `items.item` 이 아닌 자리에 두고 totalCount 를 안 준다
+     (scripts/country-fetch.mjs 가 이미 겪었다) ② XML 은 `<item><칸>…` 으로 온다(중소기업 지원사업 공고)
+   ③ odcloud 는 `data: [{…}]` 다. 그래서 **본문을 읽어** «낱값 칸이 셋 이상인 객체가 든 배열»이 있으면 값이 왔다고 본다.
+   ★ 은행 계열의 빈 «표 목록»(`tableList:[{items:{item:[]},title,totalCount:0}]`)은 객체 안에 객체(items)가 있어
+     값으로 안 센다 — 실측: 종금사 202512 가 그 모양으로 비어 왔다. 자리를 지어내지 않고 실제로 있는 것만 본다. */
+const COUNT_RE = /"totalCount"\s*:\s*"?[1-9]|<totalCount>[1-9]/;
+export function hasItems(text) {
+  const s = String(text || '');
+  if (COUNT_RE.test(s)) return true;
+  if (/<item>\s*<[A-Za-z]/.test(s)) return true;
+  let j;
+  try { j = JSON.parse(s); } catch (_) { return false; }
+  const seen = new Set();
+  const walk = (v, depth) => {
+    if (!v || typeof v !== 'object' || depth > 8 || seen.has(v)) return false;
+    seen.add(v);
+    if (Array.isArray(v)) {
+      const first = v.find((x) => x && typeof x === 'object' && !Array.isArray(x));
+      if (first) {
+        const vals = Object.values(first);
+        if (vals.length >= 3 && vals.every((x) => x == null || typeof x !== 'object')) return true;
+      }
+      return v.some((x) => walk(x, depth + 1));
+    }
+    return Object.values(v).some((x) => walk(x, depth + 1));
+  };
+  return walk(j, 0);
+}
+/* probe() 는 `.test(본문)` 만 부른다 — 정규식 대신 같은 모양의 판정기를 넘긴다 */
+const HAS_ITEMS = { test: hasItems };
+
+/* 대답은 «정상»(결과코드 0·00·000)인데 비었는가 — 기준월을 앞으로 당겨 다시 걸 근거다.
+   ★ XML(국토부 실거래 `<resultCode>000</resultCode>`)도 함께 본다 — 앞 판은 JSON 의 "00" 만 봐서 한 번에 멈췄다 */
+const OK_EMPTY_RE = /"resultCode"\s*:\s*"?0+"?\s*[,}]|<resultCode>\s*0+\s*<\/resultCode>/;
 
 /* 안내 페이지에서 **요청 주소**와 **오퍼레이션 이름**을 뽑는다.
    ★ 페이지 모양이 바뀌어도 되게 두 갈래로 찾는다 — 통째 주소 · 스웨거 경로(`"/getX"`).
@@ -210,7 +244,7 @@ export function searchHits(html, word) {
 }
 
 /* 응답의 첫 항목에서 **칸 이름만** 뽑는다 — 값은 안 담는다 (배선은 칸 이름으로 한다) */
-function itemKeys(body) {
+export function itemKeys(body) {
   try {
     const j = JSON.parse(body);
     const bd = j && j.response && j.response.body;
@@ -227,9 +261,99 @@ function itemKeys(body) {
     }
     it = it && (it.item || it);
     if (Array.isArray(it)) it = it[0];
-    const ks = it && typeof it === 'object' ? Object.keys(it) : [];
+    let ks = it && typeof it === 'object' ? Object.keys(it) : [];
+    /* ★ 〈2026-10-13〉 항목이 `items.item` 이 아닌 자리에 있는 곳(KOTRA 국가정보 · odcloud `data`) —
+       «낱값 칸이 셋 이상인 객체가 든 첫 배열»의 칸 이름을 줍는다. 자리를 지어내지 않는다 */
+    if (!head.length && !ks.length) {
+      const seen = new Set();
+      const find = (v, depth) => {
+        if (!v || typeof v !== 'object' || depth > 8 || seen.has(v)) return null;
+        seen.add(v);
+        if (Array.isArray(v)) {
+          const f = v.find((x) => x && typeof x === 'object' && !Array.isArray(x));
+          if (f && Object.values(f).length >= 3 && Object.values(f).every((x) => x == null || typeof x !== 'object')) return f;
+          for (const x of v) { const r = find(x, depth + 1); if (r) return r; }
+          return null;
+        }
+        for (const x of Object.values(v)) { const r = find(x, depth + 1); if (r) return r; }
+        return null;
+      };
+      const f = find(j, 0);
+      if (f) ks = Object.keys(f);
+    }
     return head.length || ks.length ? head.concat(ks).slice(0, 48) : null;
-  } catch (_) { return null; }
+  } catch (_) {
+    /* ★ XML(국토부 실거래 · 중소기업 지원사업 공고) — 첫 `<item>` 안의 칸 이름만 줍는다. 값은 안 담는다 */
+    const m = String(body || '').match(/<item>([\s\S]*?)<\/item>/);
+    if (!m) return null;
+    const ks = [...new Set([...m[1].matchAll(/<([A-Za-z][A-Za-z0-9_]{0,40})>/g)].map((x) => x[1]))];
+    return ks.length ? ks.slice(0, 48) : null;
+  }
+}
+
+/* ★ 〈2026-10-13 · fsc-probe.md 실측: 판정 5 열넷 중 여덟이 «필수 인자 없음»(11·81·99) 또는 «인자 없이 빈 대답»이었다〉 —
+   필수 인자에 **넣을 값**을 어디서 얻는가. 지어내지 않는다 — 출처는 둘뿐이다 (§4.3):
+   ① 안내 페이지 스웨거가 그 인자에 적어 둔 값(x-example·example·default·enum 첫 값·설명 속 «예)»)
+   ② 이 저장소의 다른 수집이 **이미 같은 서비스에서 값을 받아 본** 인자(아래 MEASURED — 출처 파일을 함께 적는다).
+   ★ 값은 공개 코드(지역코드·국가코드·연월)뿐이다 — 열쇠·개인정보는 없다. 그래도 요약에 적을 때 가림을 지난다 (§2). */
+export function paramHints(html) {
+  const out = {};
+  const flat = String(html || '');
+  for (const m of flat.matchAll(/\{[^{}]*?"name"\s*:\s*"([A-Za-z][A-Za-z0-9_]{0,40})"[^{}]*\}/g)) {
+    const name = m[1];
+    if (out[name] || /^serviceKey$/i.test(name)) continue;
+    const o = m[0];
+    let x = o.match(/"(x-example|example|default)"\s*:\s*(?:"([^"]{1,40})"|(-?\d{1,20}))/);
+    let v = null; let from = '';
+    if (x) { v = x[2] != null ? x[2] : x[3]; from = `스웨거 ${x[1]}`; }
+    else if ((x = o.match(/"enum"\s*:\s*\[\s*"([^"]{1,40})"/))) { v = x[1]; from = '스웨거 enum 첫 값'; }
+    else if ((x = o.match(/"description"\s*:\s*"[^"]*?(?:예\)|예시|예:|ex\))\s*[:：]?\s*([A-Za-z0-9_-]{2,30})/i))) { v = x[1]; from = '스웨거 설명의 예시'; }
+    if (v != null && String(v).trim()) out[name] = { value: String(v).trim(), from };
+  }
+  return out;
+}
+
+/* 안내 페이지의 «요청변수» 표에서 인자 이름만 줍는다 — 스웨거를 못 읽은 서비스의 다음 판 재료다(부르지 않는다).
+   ★ 실측: 한국산업은행 기금대출 15060633 이 «필수항목이 입력되지 않았습니다(99)»로 답했는데 스웨거가 비어 이름을 못 읽었다 */
+export function requestVarsOf(html) {
+  const flat = String(html || '');
+  const at = ['요청변수', 'Request Parameter'].map((w) => flat.indexOf(w)).filter((i) => i >= 0)[0];
+  if (at == null) return null;
+  const names = new Set();
+  for (const m of flat.slice(at, at + 8000).matchAll(/<td[^>]*>\s*([A-Za-z][A-Za-z0-9_]{1,40})\s*<\/td>/g)) {
+    if (!/^serviceKey$/i.test(m[1])) names.add(m[1]);
+  }
+  return [...names].slice(0, 20);
+}
+
+/* ② 이 저장소가 **같은 서비스에서 이미 값을 받아 본** 인자 — 출처 파일을 그대로 적는다(지어내지 않는다).
+   ★ 기준월(`ym`)을 받는 것은 아래 기준월 되짚기와 함께 움직인다 */
+const MEASURED = [
+  /* KOTRA 국가정보 — fsc-probe.md: 결과 81 «Not Exist Required Paramaters» · 스웨거 필수 `isoWd2CntCd` */
+  { re: /^B410001\/kotra_nationalInformation\//, params: () => ({ isoWd2CntCd: 'BD', type: 'json' }),
+    from: 'scripts/country-fetch.mjs 실측 (data/country — KOTRA 16/16개국 받음)' },
+  /* 국토부 실거래(아파트·오피스텔·상업업무용·토지) — fsc-probe.md: 결과 000 OK 인데 `<items/>`·totalCount 0 · 스웨거 필수 `LAWD_CD`·`DEAL_YMD` */
+  { re: /^1613000\/RTMSDataSvc/, params: (ym) => ({ LAWD_CD: '52113', DEAL_YMD: ym }),
+    from: 'scripts/yeoui893-fetch.mjs 실측 (국토부 실거래 · LAWD_CD 52113 전주 덕진구)' },
+  /* 건축HUB(건축물대장·건축인허가·주택인허가) — fsc-probe.md: 결과 00 인데 `"body":{}` · 스웨거 필수 `sigunguCd`·`bjdongCd` */
+  { re: /^1613000\/(?:BldRgstHubService|ArchPmsHubService|HsPmsHubService)\//, params: () => ({ sigunguCd: '41135', bjdongCd: '11100' }),
+    from: 'scripts/bldrgst-fetch.mjs 실측 (data/bldrgst — 성남 분당 금곡동 · 건축물대장 받음)' },
+];
+/* 이미 붙이는 인자 — 필수 인자 목록에서 «값 모름»으로 세지 않는다 */
+const BASE_PARAMS = new Set(['pageNo', 'numOfRows', 'resultType', 'basYm']);
+
+/** 한 주소에 붙일 인자를 모은다 — { q: {이름: 값}, used: [{name, value, from}], missing: [이름] } */
+export function extraParams(target, ym, required, hints) {
+  const q = {}; const used = [];
+  const m = MEASURED.find((x) => x.re.test(target));
+  if (m) for (const [k, v] of Object.entries(m.params(ym))) { q[k] = v; used.push({ name: k, value: v, from: m.from }); }
+  const missing = [];
+  for (const name of required || []) {
+    if (BASE_PARAMS.has(name) || q[name] != null) continue;
+    const h = hints && hints[name];
+    if (h) { q[name] = h.value; used.push({ name, value: h.value, from: h.from }); } else missing.push(name);
+  }
+  return { q, used, missing };
 }
 
 /* 기준 연월 — 금융통계는 분기·월 단위라 **작년 12월**을 기본으로 한다(공표가 끝난 달) */
@@ -330,6 +454,10 @@ async function main() {
       const refs = [...new Set((html.match(/(?:https?:)?\/\/[^"'\s<>()]*(?:odcloud|swagger|api-docs|openapi|\.json)[^"'\s<>()]*/gi) || []))].slice(0, 6);
       const refLine = `  - 규격 주소 후보 ${refs.length ? refs.map((u) => `«${redact(u)}»`).join(' · ') : '(페이지에 없다)'}`;
       P(refLine); SEARCH_RECAP.push(`- ${svc.id} ${refLine.trim()}`);
+      /* ★ 〈2026-10-13〉 스웨거가 비어 인자 이름을 못 읽은 곳 — 안내 페이지의 «요청변수» 표에서 이름만 줍는다(부르지 않는다) */
+      { const rv = requestVarsOf(html);
+        const l = `  - 요청변수 표 ${rv == null ? '(요청변수 낱말이 페이지에 없다 — 화면 스크립트가 따로 그리는 모양이다)' : rv.length ? rv.map((x) => `\`${x}\``).join(' · ') : '(낱말은 있는데 이름을 못 뽑았다)'}`;
+        P(l); SEARCH_RECAP.push(`- ${svc.id} ${l.trim()}`); }
       if (/swagger-ui/.test(html)) { const j = html.indexOf('SwaggerUIBundle'); P(`  - 스웨거 불러오기 둘레 «${j < 0 ? '(SwaggerUIBundle 낱말이 없다)' : redact(html.slice(j, j + 300).replace(/\s+/g, ' '))}»`); }
       /* ★ swaggerUrl 이 적혀 있으면 그 규격을 받아 «필수 인자 이름»만 적는다 — 값이 필요한 인자는 지어 넣지 않는다 */
       { const su = swaggerUrlOf(html);
@@ -370,20 +498,36 @@ async function main() {
         }
       }
     }
+    /* ★ 〈2026-10-13〉 필수 인자 값 — 스웨거가 적은 값 · 이 저장소가 같은 서비스에서 받아 본 값만 붙인다(지어내지 않는다).
+       무엇을 어디서 가져와 붙였는지, 값을 몰라 못 붙인 필수 인자가 무엇인지 요약에 적는다 */
+    const hints = paramHints(html);
+    if (targets.length) {
+      const ex = extraParams(targets[0], 'YYYYMM', d.required, hints);
+      for (const u of ex.used) { const l = `  - 붙인 인자 \`${u.name}=${u.value === 'YYYYMM' ? '기준월(줄마다 따라 움직인다)' : redact(String(u.value))}\` — ${u.from}`; P(l); SEARCH_RECAP.push(`- ${svc.id} ${l.trim()}`); }
+      if (ex.missing.length) { const l = `  - 값을 모르는 필수 인자 ${ex.missing.map((x) => `\`${x}\``).join(' · ')} — 스웨거에 예시 값이 없고 이 저장소도 받아 본 적이 없다 · **지어 넣지 않았다** (대답이 «필수 인자 없음»이면 이 칸이다)`; P(l); SEARCH_RECAP.push(`- ${svc.id} ${l.trim()}`); }
+    }
     for (const t of targets) {
       for (const [how, k] of [['원본', key.value], ['디코딩', decoded]]) {
         if (how === '디코딩' && k === key.value) continue;
-        /* ★ 대답은 왔는데 그 기준월이 비었으면(종금사 202512 = 0건 · 실측) 앞 기준월로 두 번 더 건다.
-           «비었다»를 「규격이 틀렸다」로 적지 않으려는 것이다 — 공표 전인 달일 수 있다 (§4 의 셋째 갈래). */
-        let url = '', r = null;
-        for (const ym of [BAS_YM, `${Y}06`, `${Y - 1}12`]) {
+        /* ★ 대답은 «정상»인데 그 기준월이 비었으면 앞 기준월로 더 건다 (§4 의 셋째 갈래 — 공표 전인 달일 수 있다).
+           ★★ 〈2026-10-13 · 실측〉 종금사는 202512·202506·202412 셋이 다 «결과 00 · 표 목록 비었음»이었다 —
+             그래서 두 해를 더 거슬러 본다. 거기서 차면 «규격»이 아니라 «공표가 끊긴 서비스»다(아래 줄이 그 사실을 적는다).
+           ★ 국토부 실거래는 기준월이 곧 `DEAL_YMD` 다 — 같은 되짚기로 움직인다 */
+        let url = '', r = null, hitYm = '';
+        const months = [BAS_YM, `${Y}06`, `${Y - 1}12`, `${Y - 2}12`, `${Y - 3}12`];
+        for (const ym of months) {
+          const ex = extraParams(t, ym, d.required, hints);
           url = `https://apis.data.go.kr/${t}?serviceKey=${encodeURIComponent(k)}`
-            + `&pageNo=1&numOfRows=3&resultType=json&basYm=${ym}`;
+            + `&pageNo=1&numOfRows=3&resultType=json&basYm=${ym}`
+            + Object.entries(ex.q).map(([n, v]) => `&${encodeURIComponent(n)}=${encodeURIComponent(v)}`).join('');
           r = await probe(`${t} · ${how} · ${ym}`, url, {}, HAS_ITEMS, null);
-          if (r.gotValue || r.status == null || r.authFail || !/"resultCode"\s*:\s*"00"/.test(r.head || '')) break;
+          hitYm = ym;
+          if (r.gotValue || r.status == null || r.authFail || !OK_EMPTY_RE.test(r.head || '')) break;
         }
         rows.push(r);
-        sayRow(P, r, '항목(totalCount>0)');
+        sayRow(P, r, '항목');
+        if (r.gotValue && hitYm !== BAS_YM) P(`  - ★ 최근 기준월(${BAS_YM})은 비었고 **${hitYm}** 에서 찼다 — 규격이 아니라 공표가 늦거나 끊긴 서비스일 수 있다`);
+        if (!r.gotValue && r.status != null && !r.authFail && OK_EMPTY_RE.test(r.head || '')) P(`  - ★ 대답은 **정상(결과 0)** 인데 기준월 ${months.length}개(${months[0]}~${months[months.length - 1]})가 모두 비었다 — 인자가 모자라거나, 그 기간에 자료가 없다`);
         if (r.gotValue) {
           try {
             const body = await (await fetch(url, { signal: AbortSignal.timeout(15000) })).text();
@@ -397,7 +541,12 @@ async function main() {
     /* 부를 주소를 못 읽었으면 «못 쟀다(3)» — 기관에 안 닿았다 */
     /* ★ odcloud 규격으로 부른 줄이 있으면 그것으로 판정한다. 규격은 읽었는데 부를 수 있는 것이 없었으면(값이 필요한 인자뿐)
        «못 쟀다» — 대답을 못 받은 것을 승인·거부 어느 쪽으로도 적지 않는다 (§8) */
+    /* ★ 〈2026-10-13 · 실측: 사업자등록 15081808 이 빈 몸통에 HTTP 411 «REQUEST_DATA_MALFORMED» 로 답했다〉 —
+       그것은 «규격이 틀렸다»가 아니라 «몸통에 사업자번호(b_no)가 있어야 한다»는 뜻이다. 번호는 지어 넣지 않는다(검사가 막는다) —
+       그래서 «못 쟀다(3)»로 적는다. 실제 호출은 im-agent/connectors/nts.js 가 사람이 넣은 번호로 한다 */
+    const bodyNeeded = odRows.length > 0 && odRows.every((r) => r.status != null && !r.gotValue && /REQUEST_DATA_MALFORMED/.test(r.head || ''));
     const v = targets.length ? verdictOf(rows)
+      : bodyNeeded ? { code: 3, head: '**규격은 읽었다** — 몸통에 조회할 값(사업자번호 `b_no`)이 있어야 대답한다(«REQUEST_DATA_MALFORMED»). 값을 지어 넣지 않아 **못 쟀다**. 실제 조회는 `im-agent/connectors/nts.js` 가 사람이 넣은 번호로 한다. 열쇠가 통했는지는 이 대답만으로 **못 가른다**' }
       : odRows.length ? verdictOf(odRows)
       : odSpec ? { code: 3, head: '**규격은 읽었다** — 부르려면 필수 인자 값이 있어야 해서 지어 넣지 않고 안 불렀다(못 쟀다). **열쇠 문제가 아니다**' }
       : { code: 3, head: '**부를 주소를 못 읽었다** — 안내 페이지를 못 받았거나 모양이 다르다. 열쇠 문제가 아니다' };
