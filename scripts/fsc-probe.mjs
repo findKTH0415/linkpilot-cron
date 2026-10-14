@@ -82,7 +82,9 @@ const SEARCHES = [
   /* ★ 〈2026-10-10 · 사장님 목록: 「국가건설기준센터(KCSC)」 · D-435〉 — 열쇠는 건설기술연구원 이름(KICT_API_KEY)으로 들어와 있다.
      포털에 그 서비스가 있는지부터 검색으로 찾는다(번호·주소를 지어내지 않는다). 없으면 KCSC 자체 창구(포털 밖) 열쇠일 수 있다 — 그 사실을 적는다 */
   { key: 'KICT_API_KEY', keyword: '국가건설기준', word: '건설기준', use: '국가건설기준(KCSC) — 설계·시방 기준 조회 후보' },
-  { key: 'KICT_API_KEY', keyword: '한국건설기술연구원', word: '건설', use: '국가건설기준(KCSC) — 설계·시방 기준 조회 후보' },
+  /* ★ 〈2026-10-14 · 실측〉 넓힌 검색 «한국건설기술연구원»은 «교통량»·«업체 목록» 서비스만 찾아, 그 서비스들이 «등록되지 않은 서비스키(30)»로
+     답한 것을 KCSC 열쇠의 판정처럼 적고 있었다 — 엉뚱한 서비스다. 뺐다. «국가건설기준»은 포털 검색에 0건이다 —
+     KCSC 는 포털 밖(국가건설기준센터 자체 창구) 열쇠일 수 있다. 그 주소는 지어내지 않는다 (§4.3) */
   { key: 'FSC_API', keyword: '금융위원회 기금', word: '기금', use: '기금대출정보 — 투자정보 [정책자금] 후보' },
   /* ★ 〈2026-09-29 · 사장님 화면: 「[운영계정]한국산업은행_기금대출 정보」 · 자동승인 · 승인 · 2026-09-28 ~ 2028-09-28〉 —
      제공기관이 금융위원회가 아니라 **한국산업은행**이었다. 앞의 두 검색이 0건이던 까닭이다. 그 이름 그대로 찾는다 (번호를 지어내지 않는다) */
@@ -333,7 +335,10 @@ export function requestVarsOf(html) {
    ★ 기준월(`ym`)을 받는 것은 아래 기준월 되짚기와 함께 움직인다 */
 const MEASURED = [
   /* KOTRA 국가정보 — fsc-probe.md: 결과 81 «Not Exist Required Paramaters» · 스웨거 필수 `isoWd2CntCd` */
+  /* ★ 〈2026-10-14 · 실측〉 isoWd2CntCd 를 붙였더니 «HTTP_ERROR(04)» — 같은 열쇠로 country-fetch 는 받는다. 다른 것은 진단이 늘 붙이는
+     resultType·basYm·numOfRows=3 뿐이다. 그래서 이 서비스는 «받아 본 요청 그대로»(pageNo=1 · numOfRows=10) 건다 — base 가 그 표시다 */
   { re: /^B410001\/kotra_nationalInformation\//, params: () => ({ isoWd2CntCd: 'BD', type: 'json' }),
+    base: { pageNo: '1', numOfRows: '10' },
     from: 'scripts/country-fetch.mjs 실측 (data/country — KOTRA 16/16개국 받음)' },
   /* 국토부 실거래(아파트·오피스텔·상업업무용·토지) — fsc-probe.md: 결과 000 OK 인데 `<items/>`·totalCount 0 · 스웨거 필수 `LAWD_CD`·`DEAL_YMD` */
   { re: /^1613000\/RTMSDataSvc/, params: (ym) => ({ LAWD_CD: '52113', DEAL_YMD: ym }),
@@ -349,6 +354,7 @@ const BASE_PARAMS = new Set(['pageNo', 'numOfRows', 'resultType', 'basYm']);
 export function extraParams(target, ym, required, hints) {
   const q = {}; const used = [];
   const m = MEASURED.find((x) => x.re.test(target));
+  const base = m && m.base ? { ...m.base } : null; /* 있으면 진단의 공통 인자 대신 이것만 붙인다 */
   if (m) for (const [k, v] of Object.entries(m.params(ym))) { q[k] = v; used.push({ name: k, value: v, from: m.from }); }
   const missing = [];
   for (const name of required || []) {
@@ -356,7 +362,7 @@ export function extraParams(target, ym, required, hints) {
     const h = hints && hints[name];
     if (h) { q[name] = h.value; used.push({ name, value: h.value, from: h.from }); } else missing.push(name);
   }
-  return { q, used, missing };
+  return { q, used, missing, base };
 }
 
 /* 기준 연월 — 금융통계는 분기·월 단위라 **작년 12월**을 기본으로 한다(공표가 끝난 달) */
@@ -521,7 +527,7 @@ async function main() {
         for (const ym of months) {
           const ex = extraParams(t, ym, d.required, hints);
           url = `https://apis.data.go.kr/${t}?serviceKey=${encodeURIComponent(k)}`
-            + `&pageNo=1&numOfRows=3&resultType=json&basYm=${ym}`
+            + (ex.base ? Object.entries(ex.base).map(([n, v]) => `&${n}=${encodeURIComponent(v)}`).join('') : `&pageNo=1&numOfRows=3&resultType=json&basYm=${ym}`)
             + Object.entries(ex.q).map(([n, v]) => `&${encodeURIComponent(n)}=${encodeURIComponent(v)}`).join('');
           r = await probe(`${t} · ${how} · ${ym}`, url, {}, HAS_ITEMS, null);
           hitYm = ym;
