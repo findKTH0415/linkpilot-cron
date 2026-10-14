@@ -33,12 +33,13 @@ OCR 길은 이 둘뿐이다 — 고치기 전에 `grep -c PREMIUM_OCR_SYSTEM_PRO
    - 애매하면 «기타»다 — 근거 없이 고르지 않는다 (CLAUDE.md §4.9).
 5. **사진의 그림자** — `autoEnhanceCard` 맨 앞의 `lpShadeFlat` 가 칸마다 밝기를 편다. 전체 밝기·감마만으로 고치지 않는다(한쪽 그림자가 남는다). 색은 R·G·B 같은 비율로만 바꾼다. 재는 자리 `test-card-shade.js`.
 6. **방향** — 마지막 판정은 모델의 `orientation`(시계 방향 몇 도). 프롬프트에 «머릿속으로 바로잡아라»를 넣지 않는다. 모델 각도로 돌릴 때는 `lpAiRot`(90/270 뒤 OSD 재확인)를 쓴다 — `lpRotateDataUrl` 로 바로 돌리지 않는다. 재는 자리 `test-card-orient.js`.
-7. 갈래를 늘리거나 바꾸면 **프롬프트 목록과 `test-card-ko.js` 의 목록을 함께** 고친다.
+7. **AI 고르기** — 미리보기 위 «Claude API [ON][OFF]»(`LpOcrAiTab` · `lp_ocr_claude`)가 `callClaudeOCR` 의 `provider` 를 정한다. OCR 을 부르는 길을 새로 만들면 그 스위치를 따르게 한다. 재는 자리 `test-ocr-claude-tab.js`.
+8. 갈래를 늘리거나 바꾸면 **프롬프트 목록과 `test-card-ko.js` 의 목록을 함께** 고친다.
 
 ## 고친 뒤
 
 1. 크기: `node test-app-split.js` — 앱 gzip 600 KiB 한도. 넘으면 긴 경위 주석을 한 줄로 접는다(한도를 올리지 않는다).
-2. 검사: `node test-card-ko.js` · `test-card-orient.js` · `test-card-shade.js` · `test-card-upright.js` · `check-tdz.js` · `check-undefined.js` · `verify-build.js linkpilot-platform.deploy.html`.
+2. 검사: `node test-card-ko.js` · `test-card-orient.js` · `test-card-shade.js` · `test-card-upright.js` · `test-ocr-claude-tab.js` · `check-tdz.js` · `check-undefined.js` · `verify-build.js linkpilot-platform.deploy.html`.
 3. 사보타주: 옛 판(`git show HEAD:linkpilot-platform.deploy.html`)에 대어 고친 자리의 검사(`test-card-ko.js` · `test-card-orient.js` · `test-card-shade.js` 중 해당하는 것)가 빨개지는지 본다.
 4. PR → 초록 → 합치기 → 배포 판 지문 확인 (CLAUDE.md §8 · §10).
 5. **못 잰 것**: 실제 AI 가 업종을 맞게 고르는지는 열쇠가 있는 자리에서만 잰다 — 통과로 적지 않는다.
