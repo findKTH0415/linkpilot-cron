@@ -123,6 +123,8 @@ test('필수 인자 값 — 스웨거가 적은 값 · 저장소가 받아 본 �
   assert.deepStrictEqual(lur.missing, ['ucodeList']);
   /* 실측 표 — KOTRA · 실거래(기준월이 DEAL_YMD 로 따라간다) · 건축HUB */
   assert.deepStrictEqual(extraParams('B410001/kotra_nationalInformation/natnInfo/natnInfo', '202512', ['isoWd2CntCd'], {}).q, { isoWd2CntCd: 'BD', type: 'json' });
+  assert.deepStrictEqual(extraParams('B410001/kotra_nationalInformation/natnInfo/natnInfo', '202512', ['isoWd2CntCd'], {}).base, { pageNo: '1', numOfRows: '10' }, 'KOTRA 는 받아 본 요청 그대로 — 진단 공통 인자(resultType·basYm)를 안 붙인다');
+  assert.strictEqual(extraParams('1613000/RTMSDataSvcOffiRent/getRTMSDataSvcOffiRent', '202506', ['LAWD_CD', 'DEAL_YMD'], {}).base, null);
   const rt = extraParams('1613000/RTMSDataSvcOffiRent/getRTMSDataSvcOffiRent', '202506', ['LAWD_CD', 'DEAL_YMD'], {});
   assert.strictEqual(rt.q.DEAL_YMD, '202506');
   assert.ok(/^\d{5}$/.test(rt.q.LAWD_CD));
