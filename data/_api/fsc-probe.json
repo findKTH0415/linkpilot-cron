@@ -437,14 +437,14 @@
    "ops": [
     "natnInfo"
    ],
-   "code": 5,
+   "code": 0,
    "rows": [
     {
      "label": "B410001/kotra_nationalInformation/natnInfo/natnInfo · 원본 · 202512",
      "status": 200,
-     "gotValue": false,
+     "gotValue": true,
      "authFail": false,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"HTTP_ERROR\", \"returnAuthMsg\": \"HTTP 에러\", \"returnReasonCode\": \"04\" } } }"
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NO ERROR\"},\"body\":{\"itemList\":{\"item\":{\"korCompList\":{\"korComp\":[{\"tretRealmCntnt\":\"무역/에너지\",\"acplcAdvncYear\":\"1979\",\"acplcAdvncFormCntnt\":\"지사\",\"pcompNm\":\"포스코대우\",\"indlnCntnt\":\"무역\",\"korCompNm\":\"포스코인터내셔널\"},{\"tretRealmCntnt\":\"건설업/송전선로\",\"acplcAdvncYea"
     },
     {
      "label": "B410001/kotra_nationalInformation/natnInfo · 원본 · 202512",
@@ -492,137 +492,6 @@
      "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
     }
    ]
-  },
-  {
-   "id": "15076407",
-   "bases": [
-    "1613000/KictTms"
-   ],
-   "ops": [
-    "eqpstate",
-    "spothcv",
-    "itmsh",
-    "spotlist",
-    "eqplist"
-   ],
-   "code": 4,
-   "rows": [
-    {
-     "label": "1613000/KictTms/eqpstate · 원본 · 202512",
-     "status": 403,
-     "gotValue": false,
-     "authFail": true,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
-    },
-    {
-     "label": "1613000/KictTms/spothcv · 원본 · 202512",
-     "status": 403,
-     "gotValue": false,
-     "authFail": true,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
-    },
-    {
-     "label": "1613000/KictTms/vt · 원본 · 202512",
-     "status": 403,
-     "gotValue": false,
-     "authFail": true,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
-    },
-    {
-     "label": "1613000/KictTms/itmsh · 원본 · 202512",
-     "status": 403,
-     "gotValue": false,
-     "authFail": true,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
-    },
-    {
-     "label": "1613000/KictTms/spotlist · 원본 · 202512",
-     "status": 403,
-     "gotValue": false,
-     "authFail": true,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
-    },
-    {
-     "label": "1613000/KictTms/eqplist · 원본 · 202512",
-     "status": 403,
-     "gotValue": false,
-     "authFail": true,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
-    }
-   ]
-  },
-  {
-   "id": "15097077",
-   "bases": [
-    "1613000/KictTmsStat"
-   ],
-   "ops": [
-    "itmsh_daily",
-    "itmsh_monthly",
-    "vt_yearly",
-    "vt_daily",
-    "vt_monthly",
-    "itmsh_yearly"
-   ],
-   "code": 4,
-   "rows": [
-    {
-     "label": "1613000/KictTmsStat/itmsh_daily · 원본 · 202512",
-     "status": 403,
-     "gotValue": false,
-     "authFail": true,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
-    },
-    {
-     "label": "1613000/KictTmsStat/itmsh_monthly · 원본 · 202512",
-     "status": 403,
-     "gotValue": false,
-     "authFail": true,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
-    },
-    {
-     "label": "1613000/KictTmsStat/vt_yearly · 원본 · 202512",
-     "status": 403,
-     "gotValue": false,
-     "authFail": true,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
-    },
-    {
-     "label": "1613000/KictTmsStat/vt_daily · 원본 · 202512",
-     "status": 403,
-     "gotValue": false,
-     "authFail": true,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
-    },
-    {
-     "label": "1613000/KictTmsStat/vt_monthly · 원본 · 202512",
-     "status": 403,
-     "gotValue": false,
-     "authFail": true,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
-    },
-    {
-     "label": "1613000/KictTmsStat/itmsh_yearly · 원본 · 202512",
-     "status": 403,
-     "gotValue": false,
-     "authFail": true,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
-    }
-   ]
-  },
-  {
-   "id": "15061097",
-   "bases": [],
-   "ops": [],
-   "code": 3,
-   "rows": []
-  },
-  {
-   "id": "15061039",
-   "bases": [],
-   "ops": [],
-   "code": 3,
-   "rows": []
   },
   {
    "id": "15060633",
