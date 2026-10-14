@@ -18,7 +18,7 @@ description: 명함 OCR·촬영 보정을 고치거나 새로 짤 때 쓴다 —
 | 같은 파일의 `lpShadeFlat` · `autoEnhanceCard` | 찍은 사진의 그림자를 펴고 밝기·대비를 맞춘다 (한 장·연속 앞면·뒷면 모두) |
 | `test-card-ko.js` | 위 둘을 떼어 내 돌려 잰다 (게이트 목록 `gate-tests.json` 에 있다) |
 
-OCR 길은 이 둘뿐이다 — 고치기 전에 `grep -c PREMIUM_OCR_SYSTEM_PROMPT` · `grep -c mapClaudeToForm` 로 다시 센다(늘었으면 그 자리도 고친다).
+OCR 길은 이 둘뿐이다 — 고치기 전에 `grep -c PREMIUM_OCR_SYSTEM_PROMPT linkpilot-platform.deploy.html lp-*.js` · `grep -c mapClaudeToForm linkpilot-platform.deploy.html lp-*.js` 로 다시 센다(늘었으면 그 자리도 고친다).
 
 ## 지킬 것
 
