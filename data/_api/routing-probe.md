@@ -10,22 +10,22 @@
 
 - 열쇠 **`KAKAO_MOBILITY_REST_API`** 로 읽었다 (길이 32자 · 값은 안 적는다)
 
-- `apis-navi /v1/directions` — HTTP 200 · 1168ms
-  - 본문 «{"trans_id":"01a1494f56a97a118f587641c56db940","routes":[{"result_code":0,"result_msg":"길찾기 성공","summary":{"origin":{"name":"","x":126.97839806210874,"y":37.566599979513605},"destination":{"name":"","x":127.02759129515296,"y":37.49789587828953},"waypoints":[],"priority":"RECOMMEND","bound":{"min_x":» …
+- `apis-navi /v1/directions` — HTTP 200 · 3028ms
+  - 본문 «{"trans_id":"01a14a6552207f698ac191af63e0463c","routes":[{"result_code":0,"result_msg":"길찾기 성공","summary":{"origin":{"name":"","x":126.97839806210874,"y":37.566599979513605},"destination":{"name":"","x":127.02759129515296,"y":37.49789587828953},"waypoints":[],"priority":"RECOMMEND","bound":{"min_x":» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 소요시간 칸: **찾았다**
-  - 칸 `routes[0].summary.distance` = 10679
-  - 칸 `routes[0].summary.duration` = 1704
-  - 칸 `routes[0].sections[0].distance` = 10678
-  - 칸 `routes[0].sections[0].duration` = 1662
-- `apis-navi /v1/future/directions` — HTTP 200 · 920ms
-  - 본문 «{"trans_id":"01a1494f5a3575e0a53e45a782c18d21","routes":[{"result_code":0,"result_msg":"길찾기 성공","summary":{"origin":{"name":"","x":126.97839806210874,"y":37.566599979513605},"destination":{"name":"","x":127.02759129515296,"y":37.49789587828953},"waypoints":[],"priority":"RECOMMEND","bound":{"min_x":» …
+  - 칸 `routes[0].summary.distance` = 10672
+  - 칸 `routes[0].summary.duration` = 1255
+  - 칸 `routes[0].sections[0].distance` = 10671
+  - 칸 `routes[0].sections[0].duration` = 1254
+- `apis-navi /v1/future/directions` — HTTP 200 · 1052ms
+  - 본문 «{"trans_id":"01a14a6556457c76ba1277a9d7c580b0","routes":[{"result_code":0,"result_msg":"길찾기 성공","summary":{"origin":{"name":"","x":126.97839806210874,"y":37.566599979513605},"destination":{"name":"","x":127.02759129515296,"y":37.49789587828953},"waypoints":[],"priority":"RECOMMEND","bound":{"min_x":» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 소요시간 칸: **찾았다**
-  - 칸 `routes[0].summary.distance` = 10679
-  - 칸 `routes[0].summary.duration` = 1705
-  - 칸 `routes[0].sections[0].distance` = 10678
-  - 칸 `routes[0].sections[0].duration` = 1663
+  - 칸 `routes[0].summary.distance` = 10672
+  - 칸 `routes[0].summary.duration` = 1255
+  - 칸 `routes[0].sections[0].distance` = 10671
+  - 칸 `routes[0].sections[0].duration` = 1254
 
 > **판정 0** — **값이 왔다** — 이 후보로 배선한다
 
@@ -33,7 +33,7 @@
 
 - 열쇠 **`ODSAY_API_KEY`** 로 읽었다 (길이 22자 · 값은 안 적는다)
 
-- `원본 그대로` — HTTP 200 · 729ms
+- `원본 그대로` — HTTP 200 · 815ms
   - 본문 «{"error":[{"code":"500","message":"[ApiKeyAuthFailed] ApiKey authentication failed."}]}»
   - 소요시간 칸: **못 찾았다**
   - 칸 자리: **못 찾았다** — JSON 은 읽었으니 **이름이 다른 것**이다
