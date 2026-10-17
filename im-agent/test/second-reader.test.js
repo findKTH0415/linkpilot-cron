@@ -144,7 +144,12 @@ const ocrSrc = read('im-agent/core/ocr.js');
 
 test('첫 길이 실패하면 두 번째 길로 넘어간다', () => {
   assert.match(ocrSrc, /claude\.available\(\)/, '두 번째 길이 켜졌는지 안 본다');
-  assert.match(ocrSrc, /await claude\.generate\(/, '두 번째 길을 안 부른다');
+  assert.match(ocrSrc, /claude\.generate\(/, 'Claude 길을 안 부른다');
+  assert.match(ocrSrc, /llm\.generateGemini\(/, 'Gemini 길을 «Claude 없이» 부르지 않는다 — Claude 를 두 번 부르게 된다');
+});
+
+test('★★★ 2026-10-17 지침 — Claude 먼저 (llm.claudeFirst 한 곳에서 정한다)', () => {
+  assert.match(ocrSrc, /llm\.claudeFirst\(\) \? 'claude' : 'gemini'/, 'OCR 이 Claude 먼저 규칙을 안 따른다');
 });
 
 /**
@@ -152,8 +157,10 @@ test('첫 길이 실패하면 두 번째 길로 넘어간다', () => {
  *   여기서 말을 바꾸면 원인이 흐려진다.
  */
 test('★★ 두 번째 길이 꺼져 있으면 첫 까닭을 그대로 올린다', () => {
-  assert.match(ocrSrc, /if \(!claude\.available\(\)\) \{[\s\S]*?throw e;/,
-    '두 번째 길이 없을 때 원래 까닭을 안 올린다');
+  assert.match(ocrSrc, /if \(second === 'claude' && !claude\.available\(\)\) throw e;/,
+    'Claude 가 꺼져 있을 때 원래 까닭을 안 올린다');
+  assert.match(ocrSrc, /if \(second === 'gemini' && llm\.isGeminiOffline\(\)\) throw e;/,
+    'Gemini 열쇠가 없을 때 원래 까닭을 안 올린다');
 });
 
 test('★★ 둘 다 실패하면 두 까닭을 함께 적는다', () => {
@@ -167,7 +174,7 @@ test('★★ 둘 다 실패하면 두 까닭을 함께 적는다', () => {
  *   누가 읽었는지가 필요하다 (§4.7 출처 규칙).
  */
 test('★ 누가 읽었는지 남긴다', () => {
-  assert.match(ocrSrc, /by: 'claude'|by,/, '읽은 쪽을 안 남긴다');
+  assert.match(ocrSrc, /by = second|by,/, '읽은 쪽을 안 남긴다');
   assert.match(ocrSrc, /fallbackFrom/, '왜 넘어갔는지를 안 남긴다');
 });
 
@@ -217,4 +224,67 @@ test('보내는 몸에 캐시 끊는 자리가 둘이다 — 시스템 · 마지
   assert.ok(!c[0].cache_control, '첫 파일에는 안 붙인다');
   assert.deepStrictEqual(c[1].cache_control, { type: 'ephemeral' });
   assert.ok(!c[2].cache_control, '질문 글은 매번 달라 캐시하지 않는다');
+});
+
+
+// ══ Claude 먼저 · 소진되면 Gemini 〈2026-10-17 사장님 지침〉 — llm.generate 를 돌려서 잰다 ══
+async function withEnvAsync(vars, fn) {
+  const saved = {};
+  Object.keys(process.env).forEach((n) => { if (claude.KEY_PATTERN.test(n)) { saved[n] = process.env[n]; delete process.env[n]; } });
+  Object.keys(vars).forEach((n) => { process.env[n] = vars[n]; });
+  try { return await fn(); }
+  finally {
+    Object.keys(vars).forEach((n) => { delete process.env[n]; });
+    Object.keys(saved).forEach((n) => { process.env[n] = saved[n]; });
+  }
+}
+function freshLlm() {
+  for (const k of Object.keys(require.cache)) if (/core[\\/](llm|gemini-keys)\.js$/.test(k)) delete require.cache[k];
+  return require('../core/llm');
+}
+async function withClaudeStub(answer, fn) {
+  const real = claude.generate;
+  const calls = [];
+  claude.generate = async (o) => { calls.push(o); if (answer instanceof Error) throw answer; return answer; };
+  try { return await fn(calls); } finally { claude.generate = real; }
+}
+
+test('★★★ Claude 열쇠가 있으면 llm.generate 가 Claude 를 먼저 부르고 Gemini 를 안 부른다', async () => {
+  await withEnvAsync({ CLAUDE_API_KEY: 'sk-ant-' + LONG }, async () => {
+    const llm = freshLlm();
+    const realG = llm.generateGemini;
+    await withClaudeStub('C 답', async (calls) => {
+      const out = await llm.generate({ system: 's', prompt: 'p' });
+      assert.strictEqual(out, 'C 답');
+      assert.strictEqual(calls.length, 1);
+    });
+    assert.strictEqual(llm.generateGemini, realG);
+  });
+});
+
+test('★★★ Claude 가 잔액·한도로 막히면 Gemini 가 이어 받고, 6시간 동안 Claude 먼저를 쉰다', async () => {
+  await withEnvAsync({ CLAUDE_API_KEY: 'sk-ant-' + LONG }, async () => {
+    const llm = freshLlm();
+    const err = new Error('HTTP 400 · You have reached your specified API usage limits.');
+    await withClaudeStub(err, async (calls) => {
+      await assert.rejects(() => llm.generate({ prompt: 'p' }), (e) => /Claude 먼저 실패: HTTP 400/.test(e.message), '두 사유를 함께 안 적는다');
+      assert.strictEqual(calls.length, 1);
+      assert.strictEqual(llm.claudeFirst(), false, '한도 답 뒤에도 Claude 먼저를 계속한다 — 같은 벽을 매번 두드린다');
+    });
+  });
+});
+
+test('★★ LP_CLAUDE_FIRST=0 이면 앞 판(Gemini 먼저)', async () => {
+  await withEnvAsync({ CLAUDE_API_KEY: 'sk-ant-' + LONG }, async () => {
+    process.env.LP_CLAUDE_FIRST = '0';
+    try { const llm = freshLlm(); assert.strictEqual(llm.claudeFirst(), false); }
+    finally { delete process.env.LP_CLAUDE_FIRST; }
+  });
+});
+
+test('★★ Gemini 열쇠가 없어도 Claude 가 있으면 오프라인이 아니다', async () => {
+  await withEnvAsync({ CLAUDE_API_KEY: 'sk-ant-' + LONG }, async () => {
+    const llm = freshLlm();
+    if (llm.keys.ensure().length === 0) assert.strictEqual(llm.isOffline(), false, 'Claude 가 있는데 Agent 가 «오프라인»으로 빠진다');
+  });
 });

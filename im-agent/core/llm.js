@@ -33,6 +33,23 @@ const MODELS = (process.env.GEMINI_MODELS || 'gemini-3.7-flash,gemini-3.5-flash,
 require('./env').ensure();
 
 const keys = require('./gemini-keys');
+const claude = require('./claude');
+
+/* ★★★ **Claude 먼저 · 소진되면 Gemini** 〈2026-10-17 사장님 지시: 「앞으로는 클로드 API 먼저 사용하고
+ *   소진되면 무료구글 API 사용하도록」 · platform 앱과 같은 규칙〉.
+ *   Claude 열쇠가 있으면 모든 Agent 의 글짓기가 Claude 를 먼저 부르고, 막히면 사유를 가리지 않고
+ *   Gemini 가 이어 받는다. 잔액·지출 한도 답이면 6시간 동안 Gemini 를 먼저 쓴다(같은 벽을 매번 두드리지 않는다).
+ *   끄려면 LP_CLAUDE_FIRST=0 (앞 판 = Gemini 먼저 · OCR 만 Claude 를 둘째로). */
+const BILLING_RE = /credit balance|usage limit|spend limit|insufficient|billing/i;
+const COOL_MS = 6 * 3600 * 1000;
+let claudeCoolUntil = 0;
+function claudeFirst() {
+  return process.env.LP_CLAUDE_FIRST !== '0' && claude.available() && Date.now() >= claudeCoolUntil;
+}
+function noteClaudeFail(e) {
+  if (BILLING_RE.test(String((e && e.message) || ''))) claudeCoolUntil = Date.now() + COOL_MS;
+}
+function noteClaudeOk() { claudeCoolUntil = 0; }
 
 /** 5xx 재시도 간격 — 지시서 §13 */
 const BACKOFF_MS = [500, 1000, 2000];
@@ -56,6 +73,10 @@ class AllKeysUnavailableError extends Error {
  *   그 둘을 같게 다루면 「열쇠를 넣으십시오」라는 엉뚱한 안내가 나간다.
  */
 function isOffline() {
+  return process.env.IM_AGENT_OFFLINE === '1' || (keys.ensure().length === 0 && !claude.available());
+}
+/** Gemini 길만 놓고 본 오프라인 — Claude 가 있어도 Gemini 열쇠가 없으면 참 */
+function isGeminiOffline() {
   return process.env.IM_AGENT_OFFLINE === '1' || keys.ensure().length === 0;
 }
 
@@ -156,8 +177,27 @@ async function callOnce(opts) {
  *
  * @returns {Promise<string>}
  */
-async function generate({ system, prompt, files, temperature = 0.3, maxOutputTokens = 4096, timeoutMs = 60000 }) {
-  if (isOffline()) throw new OfflineError('LLM 오프라인 모드 — Gemini 열쇠 미설정 또는 IM_AGENT_OFFLINE=1');
+async function generate(opts) {
+  const o = opts || {};
+  if (process.env.IM_AGENT_OFFLINE === '1') throw new OfflineError('LLM 오프라인 모드 — IM_AGENT_OFFLINE=1');
+  if (!o.noClaude && claudeFirst()) {
+    let why = '';
+    try {
+      const t = await claude.generate({ system: o.system, prompt: o.prompt, files: o.files, maxOutputTokens: o.maxOutputTokens || 4096, timeoutMs: o.timeoutMs || 60000 });
+      noteClaudeOk();
+      return t;
+    } catch (e) {
+      noteClaudeFail(e);
+      why = String((e && e.message) || e).slice(0, 160);
+    }
+    try { return await generateGemini(o); }
+    catch (ge) { try { ge.message = String(ge.message || '') + ` [Claude 먼저 실패: ${why}]`; } catch (_) {} throw ge; }
+  }
+  return generateGemini(o);
+}
+
+async function generateGemini({ system, prompt, files, temperature = 0.3, maxOutputTokens = 4096, timeoutMs = 60000 }) {
+  if (isGeminiOffline()) throw new OfflineError('LLM 오프라인 모드 — Gemini 열쇠 미설정 또는 IM_AGENT_OFFLINE=1');
 
   const errors = [];
   let triedAnyKey = false;
@@ -294,7 +334,7 @@ async function generateJson({ system, prompt, schema, label = 'LLM 출력', retr
 }
 
 module.exports = {
-  generate, generateJson, extractJson, isOffline,
+  generate, generateGemini, generateJson, extractJson, isOffline, isGeminiOffline, claudeFirst,
   OfflineError, AllKeysUnavailableError, MODELS,
   keys,
 };
