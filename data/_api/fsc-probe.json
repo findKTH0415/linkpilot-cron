@@ -500,14 +500,13 @@
     "B190021/branchinfo"
    ],
    "ops": [],
-   "code": 5,
+   "code": 3,
    "rows": [
     {
-     "label": "B190021/branchinfo · 원본 · 202512",
-     "status": 400,
+     "label": "B190021/branchinfo/brcode · 원본 · 202512",
+     "status": null,
      "gotValue": false,
-     "authFail": false,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"NO_OPENAPI_SERVICE_ERROR\", \"returnAuthMsg\": \"해당 오픈API 서비스가 없거나 폐기됨\", \"returnReasonCode\": \"12\" } } }"
+     "authFail": false
     }
    ]
   },
@@ -799,7 +798,7 @@
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL_CODE\"},\"body\":{\"items\":{\"item\":[{\"CRTR_YMD\":\"20261016\",\"SDNM\":\"전북특별자치도\",\"SGGNM\":\"부안군\",\"PRPT_ITEM_NM\":\"전\",\"SCFB_YR\":\"2025\",\"SCFB_MT\":\"10\",\"APSL_EVL_AMT\":19025000,\"DSPL_AMT\":3810000,\"SCFB_PRC_RTO\":20.03},{\"CRTR_YMD\":\"20261016\",\"SDNM\":\"전북특별자치도\",\"SGGNM\":\""
+     "head": "{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL_CODE\"},\"body\":{\"items\":{\"item\":[{\"CRTR_YMD\":\"20261017\",\"SDNM\":\"충청남도\",\"SGGNM\":\"서산시\",\"PRPT_ITEM_NM\":\"임야\",\"SCFB_YR\":\"2025\",\"SCFB_MT\":\"10\",\"APSL_EVL_AMT\":156228000,\"DSPL_AMT\":68000000,\"SCFB_PRC_RTO\":43.53},{\"CRTR_YMD\":\"20261017\",\"SDNM\":\"충청남도\",\"SGGNM\":\"천안시"
     }
    ]
   },
@@ -820,7 +819,7 @@
     "getBrAtchJibunInfo",
     "getBrJijiguInfo"
    ],
-   "code": 0,
+   "code": 5,
    "rows": [
     {
      "label": "*** · 원본 · 202512",
@@ -852,17 +851,17 @@
     },
     {
      "label": "*** · 원본 · 202512",
-     "status": 200,
-     "gotValue": true,
+     "status": 503,
+     "gotValue": false,
      "authFail": false,
-     "head": "<response><header><resultCode>00</resultCode><resultMsg>NORMAL SERVICE</resultMsg></header><body><items><item><rnum>1</rnum><platPlc>경기도 성남시 분당구 금곡동 125번지</platPlc><sigunguCd>41135</sigunguCd><bjdongCd>11100</bjdongCd><platGbCd>0</platGbCd><bun>0125</bun><ji>0000</ji><mgmBldrgstPk>10891205688</mgmBl"
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
     },
     {
      "label": "*** · 원본 · 202512",
-     "status": 200,
-     "gotValue": true,
+     "status": 503,
+     "gotValue": false,
      "authFail": false,
-     "head": "<response><header><resultCode>00</resultCode><resultMsg>NORMAL SERVICE</resultMsg></header><body><items><item><rnum>1</rnum><platPlc>경기도 성남시 분당구 금곡동 47-2번지</platPlc><sigunguCd>41135</sigunguCd><bjdongCd>11100</bjdongCd><platGbCd>0</platGbCd><bun>0047</bun><ji>0002</ji><mgmBldrgstPk>10891100308630</m"
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
     }
    ]
   },
@@ -901,30 +900,30 @@
     {
      "label": "*** · 원본 · 202512",
      "status": 200,
-     "gotValue": false,
+     "gotValue": true,
      "authFail": false,
-     "head": ""
+     "head": "<response><header><resultCode>00</resultCode><resultMsg>NORMAL SERVICE</resultMsg></header><body><items><item><platPlc>경기도 성남시 분당구 금곡동 74번지</platPlc><sigunguCd>41135</sigunguCd><bjdongCd>11100</bjdongCd><platGbCd>0</platGbCd><bun>0074</bun><ji>0000</ji><mgmDongOulnPk>1089100007392</mgmDongOulnPk><mg"
     },
     {
      "label": "*** · 원본 · 202512",
-     "status": 503,
-     "gotValue": false,
+     "status": 200,
+     "gotValue": true,
      "authFail": false,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
+     "head": "<response><header><resultCode>00</resultCode><resultMsg>NORMAL SERVICE</resultMsg></header><body><items><item><rnum>1</rnum><platPlc>경기도 성남시 분당구 금곡동 125번지</platPlc><sigunguCd>41135</sigunguCd><bjdongCd>11100</bjdongCd><platGbCd>0</platGbCd><bun>0125</bun><ji>0000</ji><mgmFlrOulnPk>100000000000000134"
     },
     {
      "label": "1613000/HsPmsHubService/getHpHoOulnInfo · 원본 · 202512",
-     "status": 503,
-     "gotValue": false,
+     "status": 200,
+     "gotValue": true,
      "authFail": false,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
+     "head": "<response><header><resultCode>00</resultCode><resultMsg>NORMAL SERVICE</resultMsg></header><body><items><item><rnum>1</rnum><platPlc>경기도 성남시 분당구 금곡동 125번지</platPlc><sigunguCd>41135</sigunguCd><bjdongCd>11100</bjdongCd><platGbCd>0</platGbCd><bun>0125</bun><ji>0000</ji><mgmHoDetlPk>1089100048015</mgmH"
     },
     {
      "label": "1613000/HsPmsHubService/getHpSbsdFcInfo · 원본 · 202512",
-     "status": 503,
-     "gotValue": false,
+     "status": 200,
+     "gotValue": true,
      "authFail": false,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
+     "head": "<response><header><resultCode>00</resultCode><resultMsg>NORMAL SERVICE</resultMsg></header><body><items><item><rnum>1</rnum><platPlc>경기도 성남시 분당구 금곡동 125번지</platPlc><sigunguCd>41135</sigunguCd><bjdongCd>11100</bjdongCd><platGbCd>0</platGbCd><bun>0125</bun><ji>0000</ji><mgmHsrgstPk>1000000000000000149"
     },
     {
      "label": "1613000/HsPmsHubService/getHpWclfInfo · 원본 · 202512",
@@ -992,6 +991,13 @@
     },
     {
      "label": "*** · 원본 · 202512",
+     "status": 200,
+     "gotValue": true,
+     "authFail": false,
+     "head": "<response><header><resultCode>00</resultCode><resultMsg>NORMAL SERVICE</resultMsg></header><body><items><item><rnum>1</rnum><platPlc>경기도 성남시 분당구 금곡동 1-7번지</platPlc><sigunguCd>41135</sigunguCd><bjdongCd>11100</bjdongCd><platGbCd>0</platGbCd><bun>0001</bun><ji>0007</ji><mgmPmsrgstPk>1089100046441</mgm"
+    },
+    {
+     "label": "*** · 원본 · 202512",
      "status": 503,
      "gotValue": false,
      "authFail": false,
@@ -1006,17 +1012,10 @@
     },
     {
      "label": "*** · 원본 · 202512",
-     "status": 200,
-     "gotValue": true,
+     "status": 503,
+     "gotValue": false,
      "authFail": false,
-     "head": "<response><header><resultCode>00</resultCode><resultMsg>NORMAL SERVICE</resultMsg></header><body><items><item><rnum>1</rnum><platPlc>경기도 성남시 분당구 금곡동 49번지</platPlc><sigunguCd>41135</sigunguCd><bjdongCd>11100</bjdongCd><platGbCd>0</platGbCd><bun>0049</bun><ji>0000</ji><mgmHoDetlPk>1089100065315</mgmHo"
-    },
-    {
-     "label": "*** · 원본 · 202512",
-     "status": 200,
-     "gotValue": true,
-     "authFail": false,
-     "head": "<response><header><resultCode>00</resultCode><resultMsg>NORMAL SERVICE</resultMsg></header><body><items><item><rnum>1</rnum><platPlc>경기도 성남시 분당구 금곡동 10-11번지</platPlc><sigunguCd>41135</sigunguCd><bjdongCd>11100</bjdongCd><platGbCd>0</platGbCd><bun>0010</bun><ji>0011</ji><mgmPmsrgstPk>1000000000000000"
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
     },
     {
      "label": "*** · 원본 · 202512",
