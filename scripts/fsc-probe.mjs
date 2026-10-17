@@ -171,6 +171,12 @@ export function discover(html) {
     bases.add(m[1]);
     if (m[2]) full.add(`${m[1]}/${m[2]}`);
   }
+  /* ★ 〈2026-10-17 · 실측: 기업은행 영업점 15084721 — 오퍼레이션이 «brcode» 라 get 으로 시작하지 않는다〉.
+     안내 페이지의 «요청주소» 칸에 적힌 통째 주소는 그대로 줍는다 — 문서에 적힌 것만 쓴다 (§4.3) */
+  for (const m of flat.matchAll(/요청주소[\s\S]{0,120}?apis\.data\.go\.kr\/([A-Z]?\d{5,8}\/(?:service\/)?[A-Za-z0-9_]+)\/([A-Za-z][A-Za-z0-9_]{2,60})/g)) {
+    bases.add(m[1]);
+    full.add(`${m[1]}/${m[2]}`);
+  }
   const ops = new Set();
   for (const m of flat.matchAll(/["'\/](get[A-Z][A-Za-z0-9_]{2,60})["'?\/]/g)) ops.add(m[1]);
   /* ★ 스웨거 «paths» 의 열쇠도 줍는다 — get 으로 시작하지 않는 오퍼레이션이 있다(실측: 1421000/bizinfo) */

@@ -348,7 +348,14 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/_api
           git diff --staged --quiet || git commit -m "공공 API 실측 진단 ($(date -u +%Y-%m-%d))"
-          git push
+          # 도는 사이 main 이 앞서 나가면 push 가 밀려난다(2026-10-17 실측 · #86) —
+          # 받아 와서 위에 얹고 다시 민다. 세 번 다 밀리면 빨갛게 끝난다(결과는 아티팩트에 있다).
+          for i in 1 2 3; do
+            if git pull --rebase -q origin "$DEFAULT_BRANCH" && git push; then exit 0; fi
+            sleep 5
+          done
+          echo "::error::세 번 다 main 에 못 올렸다 — 결과는 아래 아티팩트(api-smoke)에 있다"
+          exit 1
 
       # 커밋이 막혀도(브랜치 보호 등) 결과를 회수할 수 있게 (지침서 §8)
       - name: 아티팩트 업로드
