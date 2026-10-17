@@ -167,6 +167,9 @@ async function generate(opts) {
 
   const content = [];
   (o.files || []).forEach(f => content.push(fileBlock(f)));
+  /* 2026-10-17 사장님: 「캐싱으로 반영해줘」 — 같은 문서를 다시 읽을 때 앞부분(시스템·파일)을 캐시에서 읽는다.
+     값이 짧아 캐시 최소 길이에 못 미치면 API 가 조용히 그냥 처리한다(오류 아님). 끊는 자리는 둘: 시스템 · 마지막 파일 */
+  if (content.length) content[content.length - 1] = Object.assign({}, content[content.length - 1], { cache_control: { type: 'ephemeral' } });
   content.push({ type: 'text', text: String(o.prompt || '') });
 
   const body = {
@@ -174,7 +177,7 @@ async function generate(opts) {
     max_tokens: o.maxOutputTokens || 8192,
     messages: [{ role: 'user', content }],
   };
-  if (o.system) body.system = String(o.system);
+  if (o.system) body.system = [{ type: 'text', text: String(o.system), cache_control: { type: 'ephemeral' } }];
 
   const res = await post(body, o.timeoutMs || 180000, key);
 

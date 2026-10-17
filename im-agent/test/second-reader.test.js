@@ -185,3 +185,36 @@ test('★ 거절을 성공으로 넘기지 않는다', () => {
   const src = read('im-agent/core/claude.js');
   assert.match(src, /stop_reason === 'refusal'/, '거절을 안 본다 — 빈 글자를 성공으로 넘긴다');
 });
+
+// ══ 캐싱 〈2026-10-17 사장님: 「캐싱으로 반영해줘」〉 ══════════════════════
+test('보내는 몸에 캐시 끊는 자리가 둘이다 — 시스템 · 마지막 파일 (질문 글에는 안 붙인다)', async () => {
+  const https = require('https');
+  const real = https.request;
+  let sent = null;
+  https.request = (url, opts, cb) => {
+    const { EventEmitter } = require('events');
+    const req = new EventEmitter();
+    req.end = (payload) => {
+      sent = JSON.parse(String(payload));
+      const res = new EventEmitter(); res.statusCode = 200;
+      cb(res);
+      res.emit('data', Buffer.from(JSON.stringify({ content: [{ type: 'text', text: '읽음' }], usage: {} })));
+      res.emit('end');
+    };
+    req.destroy = () => {};
+    return req;
+  };
+  try {
+    await withEnv({ CLAUDE_API_KEY: 'sk-ant-' + LONG }, () => claude.generate({
+      system: '시스템 지침', prompt: '읽어 달라',
+      files: [{ mime: 'application/pdf', data: Buffer.from('%PDF-1') }, { mime: 'image/png', data: Buffer.from('png') }],
+    }));
+  } finally { https.request = real; }
+  assert.ok(sent, '몸을 못 잡았다');
+  assert.deepStrictEqual(sent.system, [{ type: 'text', text: '시스템 지침', cache_control: { type: 'ephemeral' } }]);
+  const c = sent.messages[0].content;
+  assert.strictEqual(c.length, 3);
+  assert.ok(!c[0].cache_control, '첫 파일에는 안 붙인다');
+  assert.deepStrictEqual(c[1].cache_control, { type: 'ephemeral' });
+  assert.ok(!c[2].cache_control, '질문 글은 매번 달라 캐시하지 않는다');
+});
