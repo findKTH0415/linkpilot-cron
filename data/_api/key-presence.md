@@ -1,6 +1,6 @@
 # 열쇠 이름 — 들어 있는가
 
-> 이름 49개 중 **4개 들어 있음 · 45개 없음** — 값은 안 찍는다 · 길이만
+> 이름 50개 중 **5개 들어 있음 · 45개 없음** — 값은 안 찍는다 · 길이만
 
 | 이름 | 무엇 | 이 저장소 Actions 비밀 |
 |---|---|---|
@@ -16,6 +16,7 @@
 | `KPX_POWER_SUPPLY_DEMAND_FORECAST_GW` | 전력거래소 전력수급예보 | ✅ 있음 (길이 64) |
 | `KOICA_PROJ_SC` | KOICA 사업정보 | — 없음 |
 | `KOICA_COUNTRY_INFORMATION` | KOTRA 국가정보 | ✅ 있음 (길이 64) |
+| `KOTRA_KOREA_FDI_BY_INDUSTRY` | KOTRA 외국인투자 업종별 | ✅ 있음 (길이 64) |
 | `KOICA_GLOBAL_POLITICAL_DEVELOPMENTS` | 외교부 정치현황 | ✅ 있음 (길이 64) |
 | `REB_LAND_PRICE_CHANGE` | 부동산원 전국지가변동률 | — 없음 |
 | `KCSC_CONSTRUCTION_STANDARDS` | 국가건설기준센터 | — 없음 |

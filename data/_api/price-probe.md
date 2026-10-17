@@ -13,8 +13,8 @@
 - 포털 검색 «전력거래소 수요예측» — HTTP 200 · 15131225 수요예측 (하루전 발전계획용)
 ## 계통한계가격 및 수요예측(하루전 발전계획용) (15131225)
 - 서비스 B552115/SmpWithForecastDemand · 오퍼레이션 getSmpWithForecastDemand · getSmpWithForecastDemand_header · getSmpWithForecastDemand_body · getSmpWithForecastDemand_items · getSmpWithForecastDemand_item · 필수 인자 pageNo · numOfRows · dataType
-- `B552115/SmpWithForecastDemand/getSmpWithForecastDemand` — HTTP 200 · 23432자
-  - 앞머리 «{ "response" : { "header" : { "resultCode" : "00", "resultMsg" : "OK" }, "body" : { "dataType" : "JSON", "totalCount" : "119589", "numOfRows" : "100", "pageNo" : "1", "items" : { "item" : [ { "date" : "20261019", "jlfd" : 608.00000, "slfd" : 49354.00000, "hour" : "01", "areaName" : "육지", "smp" : 99.49000, "rn" : 1, "mlfd" : 48746.00000 }, { "date" : "20261019", "jlfd" : 576.00000, "slfd" : 47312.00000, "hour" : "02", "ar»
+- `B552115/SmpWithForecastDemand/getSmpWithForecastDemand` — HTTP 200 · 23428자
+  - 앞머리 «{ "response" : { "header" : { "resultCode" : "00", "resultMsg" : "OK" }, "body" : { "dataType" : "JSON", "totalCount" : "119613", "numOfRows" : "100", "pageNo" : "1", "items" : { "item" : [ { "date" : "20261019", "jlfd" : 608.00000, "slfd" : 49354.00000, "hour" : "01", "areaName" : "육지", "smp" : 99.49000, "rn" : 1, "mlfd" : 48746.00000 }, { "date" : "20261019", "jlfd" : 576.00000, "slfd" : 47312.00000, "hour" : "02", "ar»
 - `B552115/SmpWithForecastDemand/getSmpWithForecastDemand_header` — HTTP 400 · 190자
   - 앞머리 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "NO_OPENAPI_SERVICE_ERROR", "returnAuthMsg": "해당 오픈API 서비스가 없거나 폐기됨", "returnReasonCode": "12" } } } »
 - `B552115/SmpWithForecastDemand/getSmpWithForecastDemand_body` — HTTP 400 · 190자

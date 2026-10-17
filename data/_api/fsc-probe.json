@@ -13,6 +13,7 @@
   "KOICA_PROJ_SC": null,
   "KOICA_GLOBAL_POLITICAL_DEVELOPMENTS": 64,
   "KOICA_COUNTRY_INFORMATION": 64,
+  "KOTRA_KOREA_FDI_BY_INDUSTRY": 64,
   "MOLIT_LUR_LAW_KEY": null,
   "MSS_SME_SPA_API": null,
   "MOLIT_APT_SALE": null,
@@ -452,6 +453,23 @@
      "gotValue": false,
      "authFail": false,
      "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"NO_OPENAPI_SERVICE_ERROR\", \"returnAuthMsg\": \"해당 오픈API 서비스가 없거나 폐기됨\", \"returnReasonCode\": \"12\" } } }"
+    }
+   ]
+  },
+  {
+   "id": "15088476",
+   "bases": [
+    "B410001/DS00000127"
+   ],
+   "ops": [],
+   "code": 0,
+   "rows": [
+    {
+     "label": "B410001/DS00000127/getDS00000127 · 원본 · 202512",
+     "status": 200,
+     "gotValue": true,
+     "authFail": false,
+     "head": "{\"records\":[{\"BASE_YR\":\"2021\",\"KSIC_NAME\":\"전체\",\"LEVEL_CD\":\"0\",\"STTMN_CNT\":3088,\"STTMN_AMT\":29512597133,\"COMP_CNT\":2086,\"INVT_AMT\":17564742020},{\"BASE_YR\":\"2021\",\"KSIC_NAME\":\"종합건설\",\"LEVEL_CD\":\"2\",\"STTMN_CNT\":17,\"STTMN_AMT\":244735577,\"COMP_CNT\":12,\"INVT_AMT\":114258065},{\"BASE_YR\":\"2021\",\"KSIC_NAME\":\"수"
     }
    ]
   },
