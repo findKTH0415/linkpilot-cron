@@ -111,28 +111,28 @@
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":28936,\"items\":{\"item\":[{\"basDt\":\"20261012\",\"ctg\":\"-\",\"tstMthdCtg\":\"공모\",\"nPptTotAmt\":\"36257111698\"},{\"basDt\":\"20261012\",\"ctg\":\"혼합주식형\",\"tstMthdCtg\":\"사모\",\"nPptTotAmt\":\"7265843739131\"},{"
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":28986,\"items\":{\"item\":[{\"basDt\":\"20261014\",\"ctg\":\"혼합주식형\",\"tstMthdCtg\":\"사모\",\"nPptTotAmt\":\"7190271746826\"},{\"basDt\":\"20261014\",\"ctg\":\"혼합채권형\",\"tstMthdCtg\":\"사모\",\"nPptTotAmt\":\"76055912733"
     },
     {
      "label": "*** · 원본 · 202512",
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":14568,\"items\":{\"item\":[{\"basDt\":\"20261012\",\"mngInvTgt\":\"발행어음형\",\"invrCtg\":\"기관\",\"scrtCmpyCnt\":\"7\",\"actCnt\":\"9510\",\"actBal\":\"906385361840\"},{\"basDt\":\"20261012\",\"mngInvTgt\":\"MMF형\",\"invrC"
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":14592,\"items\":{\"item\":[{\"basDt\":\"20261014\",\"mngInvTgt\":\"합계\",\"invrCtg\":\"기관\",\"scrtCmpyCnt\":\"0\",\"actCnt\":\"147878\",\"actBal\":\"12111893623100\"},{\"basDt\":\"20261014\",\"mngInvTgt\":\"합계\",\"invrCt"
     },
     {
      "label": "*** · 원본 · 202512",
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":1201,\"items\":{\"item\":[{\"basDt\":\"20261012\",\"crdTrFingWhl\":\"34288698925499\",\"crdTrFingScrs\":\"26715211768315\",\"crdTrFingKosdaq\":\"7573487157184\",\"crdTrLndrWhl\":\"40464778434\",\"crdTrLndrSc"
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":1203,\"items\":{\"item\":[{\"basDt\":\"20261014\",\"crdTrFingWhl\":\"33705741630634\",\"crdTrFingScrs\":\"26268574255153\",\"crdTrFingKosdaq\":\"7437167375481\",\"crdTrLndrWhl\":\"31484644574\",\"crdTrLndrSc"
     },
     {
      "label": "*** · 원본 · 202512",
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":1214,\"items\":{\"item\":[{\"basDt\":\"20261012\",\"invrDpsgAmt\":\"100438880580597\",\"onbdDrvPrdTrRcAdvAmt\":\"39747976112298\",\"toCstRpchCndBndSlgBal\":\"108454610182647\",\"brkTrdUcolMny\":\"106346740"
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":1216,\"items\":{\"item\":[{\"basDt\":\"20261014\",\"invrDpsgAmt\":\"97428012285396\",\"onbdDrvPrdTrRcAdvAmt\":\"36737434552866\",\"toCstRpchCndBndSlgBal\":\"107642130837802\",\"brkTrdUcolMny\":\"1357472624"
     },
     {
      "label": "*** · 원본 · 202512",
@@ -241,7 +241,7 @@
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "<response> <header> <resultCode>00</resultCode> <resultMsg>NORMAL_SERVICE</resultMsg> </header> <body> <items> <item> <pblancNm><![CDATA[[전북] 김제시 2026년 김제전통시장 청년몰 입점 모집 공고]]></pblancNm> <!-- 공고명 --> <pblancUrl>https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000127173</p"
+     "head": "<response> <header> <resultCode>00</resultCode> <resultMsg>NORMAL_SERVICE</resultMsg> </header> <body> <items> <item> <pblancNm><![CDATA[[경남] 김해시 2026년 김해형 중소기업 근로소득 청년지원사업 모집 공고]]></pblancNm> <!-- 공고명 --> <pblancUrl>https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_00000000012"
     }
    ]
   },
@@ -724,7 +724,7 @@
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL_CODE\"},\"body\":{\"items\":{\"item\":[{\"CRTR_YMD\":\"20261013\",\"SDNM\":\"경기도\",\"SGGNM\":\"시흥시\",\"PRPT_ITEM_NM\":\"대\",\"SCFB_YR\":\"2025\",\"SCFB_MT\":\"10\",\"APSL_EVL_AMT\":280900000,\"DSPL_AMT\":71000000,\"SCFB_PRC_RTO\":25.28},{\"CRTR_YMD\":\"20261013\",\"SDNM\":\"경기도\",\"SGGNM\":\"양평군\",\""
+     "head": "{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL_CODE\"},\"body\":{\"items\":{\"item\":[{\"CRTR_YMD\":\"20261016\",\"SDNM\":\"전북특별자치도\",\"SGGNM\":\"부안군\",\"PRPT_ITEM_NM\":\"전\",\"SCFB_YR\":\"2025\",\"SCFB_MT\":\"10\",\"APSL_EVL_AMT\":19025000,\"DSPL_AMT\":3810000,\"SCFB_PRC_RTO\":20.03},{\"CRTR_YMD\":\"20261016\",\"SDNM\":\"전북특별자치도\",\"SGGNM\":\""
     }
    ]
   },

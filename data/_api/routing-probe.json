@@ -6,7 +6,7 @@
     "label": "apis-navi /v1/directions",
     "ok": true,
     "status": 200,
-    "ms": 1458,
+    "ms": 1592,
     "gotValue": true,
     "authFail": false,
     "blocked": false,
@@ -15,23 +15,23 @@
      "hits": [
       {
        "path": "routes[0].summary.distance",
-       "value": 10672
+       "value": 10327
       },
       {
        "path": "routes[0].summary.duration",
-       "value": 1746
+       "value": 1912
       },
       {
        "path": "routes[0].sections[0].distance",
-       "value": 10671
+       "value": 10326
       },
       {
        "path": "routes[0].sections[0].duration",
-       "value": 1695
+       "value": 1829
       }
      ]
     },
-    "head": "{\"trans_id\":\"01a1386269b776ef88a0f89beef0439b\",\"routes\":[{\"result_code\":0,\"result_msg\":\"길찾기 성공\",\"summary\":{\"origin\":{\"name\":\"\",\"x\":126.97839806210874,\"y\":37.566599979513605},\"destination\":{\"name\":\"\",\"x\":127.02759129515296,\"y\":37.49789587828953},\"waypoints\":[],\"priority\":\"RECOMMEND\",\"bound\":{\"min_x\":",
+    "head": "{\"trans_id\":\"01a1482e8b8c708eb8582c40779cf2ff\",\"routes\":[{\"result_code\":0,\"result_msg\":\"길찾기 성공\",\"summary\":{\"origin\":{\"name\":\"\",\"x\":126.97839806210874,\"y\":37.566599979513605},\"destination\":{\"name\":\"\",\"x\":127.02759129515296,\"y\":37.49789587828953},\"waypoints\":[],\"priority\":\"RECOMMEND\",\"bound\":{\"min_x\":",
     "truncated": true,
     "server": null
    },
@@ -39,7 +39,7 @@
     "label": "apis-navi /v1/future/directions",
     "ok": true,
     "status": 200,
-    "ms": 1100,
+    "ms": 1026,
     "gotValue": true,
     "authFail": false,
     "blocked": false,
@@ -48,23 +48,23 @@
      "hits": [
       {
        "path": "routes[0].summary.distance",
-       "value": 10672
+       "value": 10327
       },
       {
        "path": "routes[0].summary.duration",
-       "value": 1746
+       "value": 1905
       },
       {
        "path": "routes[0].sections[0].distance",
-       "value": 10671
+       "value": 10326
       },
       {
        "path": "routes[0].sections[0].duration",
-       "value": 1695
+       "value": 1822
       }
      ]
     },
-    "head": "{\"trans_id\":\"01a138626dc571c6b2b6c73a8d61fa81\",\"routes\":[{\"result_code\":0,\"result_msg\":\"길찾기 성공\",\"summary\":{\"origin\":{\"name\":\"\",\"x\":126.97839806210874,\"y\":37.566599979513605},\"destination\":{\"name\":\"\",\"x\":127.02759129515296,\"y\":37.49789587828953},\"waypoints\":[],\"priority\":\"RECOMMEND\",\"bound\":{\"min_x\":",
+    "head": "{\"trans_id\":\"01a1482e8f9e7df183779013c891ea63\",\"routes\":[{\"result_code\":0,\"result_msg\":\"길찾기 성공\",\"summary\":{\"origin\":{\"name\":\"\",\"x\":126.97839806210874,\"y\":37.566599979513605},\"destination\":{\"name\":\"\",\"x\":127.02759129515296,\"y\":37.49789587828953},\"waypoints\":[],\"priority\":\"RECOMMEND\",\"bound\":{\"min_x\":",
     "truncated": true,
     "server": null
    }
@@ -77,7 +77,7 @@
     "label": "원본 그대로",
     "ok": true,
     "status": 200,
-    "ms": 769,
+    "ms": 816,
     "gotValue": false,
     "authFail": true,
     "blocked": false,
