@@ -40,8 +40,9 @@ const afterLine = (s, re, mk) => s.replace(re, (m, ...g) => m + '\n' + mk(m, ...
 await edit('im-agent/connectors/http.js', '① 가림 SECRET_ENV', s => has(s, new RegExp(`'${NAME}'`)) ? null
   : afterLine(s, new RegExp(`^  '${ANCHOR}',[^\\n]*$`, 'm'), () => `  '${NAME}', // ★ ${A.org} ${A.service} ${note}`));
 // ② 진단 env · ④ 배포 env (같은 닻 줄 뒤 · 들여쓰기 그대로)
-const envFn = s => has(s, new RegExp(`^\\s+${NAME}:`, 'm')) ? null
-  : s.replace(new RegExp(`^( +)${ANCHOR}:\\s*\\$\\{\\{ secrets\\.${ANCHOR} \\}\\}$`, 'gm'), (m, sp) => `${m}\n${sp}${NAME}: \${{ secrets.${NAME} }}`);
+/* ★ 닻 줄마다 따로 본다 — 한 잡에만 달린 «반쯤 된» 상태도 나머지 잡을 채운다 (Codex #241). 바로 다음 줄이 이미 그 이름이면 그 자리는 건너뛴다 */
+const envFn = s => { const t = s.replace(new RegExp(`^( +)${ANCHOR}:\\s*\\$\\{\\{ secrets\\.${ANCHOR} \\}\\}$(?!\\n +${NAME}:)`, 'gm'), (m, sp) => `${m}\n${sp}${NAME}: \${{ secrets.${NAME} }}`);
+  return t === s && has(s, new RegExp(`^\\s+${NAME}:`, 'm')) ? null : t; };
 await edit('.github/workflows/api-smoke.yml', '② 진단 env (api-smoke 의 잡 전부)', envFn);
 await edit('.github/workflows/deploy-nas.yml', '④ 배포 env', envFn);
 // ⑤ 배포 NAMES — 닻 낱말 뒤에 한 칸
@@ -52,19 +53,27 @@ await edit('.github/workflows/deploy-nas.yml', '⑤ 배포 NAMES', s => {
   return s.slice(0, i) + line.replace(new RegExp(`\\b${ANCHOR}\\b`), `${ANCHOR} ${NAME}`) + s.slice(j);
 });
 // ③ 진단 목록 — 서비스 번호를 알면 SERVICES, 모르면 SEARCHES · 그리고 이름 목록
+/* ★ 서비스·검색 줄과 이름 목록을 «따로» 본다 — 한쪽만 있는 반쯤 된 상태도 나머지를 채운다 (Codex #241).
+     이름 목록에 없으면 진단이 그 열쇠를 «없다»로 적고, 서비스 줄이 없으면 그 열쇠를 아예 안 잰다 */
 await edit('scripts/fsc-probe.mjs', '③ 진단 목록 (fsc-probe)', s => {
-  if (has(s, new RegExp(`key: '${NAME}'`))) return null;
+  const hasRow = has(s, new RegExp(`key: '${NAME}'`));
+  const listRe = /^  for \(const n of \[[^\n]*$/m; const lm = s.match(listRe);
+  const hasList = !!(lm && lm[0].includes(`'${NAME}'`));
+  if (hasRow && hasList) return null;
   let t = s;
-  if (A.id) {
-    t = afterLine(t, /^  \{ key: 'FSC_AMC_API', id: '15139266'[^\n]*$/m, () =>
-      `  /* ★ ${note} — 서비스 이름을 받았다 */\n  { key: '${NAME}', id: '${A.id}', name: '${A.service}', use: '${A.use}' },`);
-  } else {
-    const kw = A.keyword || A.service.replace(/_/g, ' '); const w = A.word || A.service.split('_').pop().slice(0, 4);
-    t = afterLine(t, new RegExp(`^  \\{ key: '${ANCHOR}', keyword: '대한무역투자진흥공사 외국인직접투자'[^\\n]*$`, 'm'), () =>
-      `  /* ★ ${note} — 번호를 못 들었으므로 포털 검색에서 찾는다 (번호를 지어내지 않는다) */\n  { key: '${NAME}', keyword: '${kw}', word: '${w}', use: '${A.use}' },`);
+  if (!hasRow) {
+    if (A.id) {
+      t = afterLine(t, /^  \{ key: 'FSC_AMC_API', id: '15139266'[^\n]*$/m, () =>
+        `  /* ★ ${note} — 서비스 이름을 받았다 */\n  { key: '${NAME}', id: '${A.id}', name: '${A.service}', use: '${A.use}' },`);
+    } else {
+      const kw = A.keyword || A.service.replace(/_/g, ' '); const w = A.word || A.service.split('_').pop().slice(0, 4);
+      t = afterLine(t, new RegExp(`^  \\{ key: '${ANCHOR}', keyword: '대한무역투자진흥공사 외국인직접투자'[^\\n]*$`, 'm'), () =>
+        `  /* ★ ${note} — 번호를 못 들었으므로 포털 검색에서 찾는다 (번호를 지어내지 않는다) */\n  { key: '${NAME}', keyword: '${kw}', word: '${w}', use: '${A.use}' },`);
+    }
+    if (t === s) return s; // 닻을 못 찾았다 — 손으로
   }
-  /* 이름 목록은 «for (const n of [» 줄 하나다 — 그 줄 안에서만 닻 뒤에 끼운다(서비스 줄의 key: 를 건드리지 않는다) */
-  return t.replace(/^  for \(const n of \[[^\n]*$/m, line => line.includes(`'${NAME}'`) ? line : line.replace(`'${ANCHOR}'`, `'${ANCHOR}', '${NAME}'`));
+  if (!hasList) { const u = t.replace(listRe, line => line.replace(`'${ANCHOR}'`, `'${ANCHOR}', '${NAME}'`)); if (u === t) return s; t = u; }
+  return t;
 });
 // ⑥ key-presence
 await edit('scripts/key-presence.mjs', '⑥ key-presence', s => has(s, new RegExp(`'${NAME}'`)) ? null

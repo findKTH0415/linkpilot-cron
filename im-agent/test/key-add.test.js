@@ -41,3 +41,20 @@ test('★ 서비스 번호를 알면 서비스 줄로 단다 · 이름 모양이
   assert.notStrictEqual(bad.status, 0);
   for (const f of FILES) assert.strictEqual(fs.readFileSync(path.join(d2, f), 'utf8'), fs.readFileSync(path.join(ROOT, f), 'utf8'));
 });
+
+test('★ 반쯤 된 상태도 채운다 — 한 잡에만 env 가 있거나, 서비스 줄만 있고 이름 목록이 없을 때 (Codex #241)', () => {
+  const d = sandbox();
+  const smokeP = path.join(d, '.github/workflows/api-smoke.yml');
+  /* 첫 닻 뒤에만 손으로 단 상태 */
+  fs.writeFileSync(smokeP, fs.readFileSync(smokeP, 'utf8').replace(/^( +)KOTRA_KOREA_FDI_BY_INDUSTRY:[^\n]*$/m, (m, sp) => m + '\n' + sp + NAME + ': ${{ secrets.' + NAME + ' }}'));
+  const probeP = path.join(d, 'scripts/fsc-probe.mjs');
+  /* 서비스 줄만 손으로 단 상태 (이름 목록에는 없다) */
+  fs.writeFileSync(probeP, fs.readFileSync(probeP, 'utf8').replace(/^(  \{ key: 'FSC_AMC_API', id: '15139266'[^\n]*)$/m, "$1\n  { key: '" + NAME + "', id: '15000002', name: 'x', use: 'y' },"));
+  const r = run(d); assert.strictEqual(r.status, 0, r.stdout + r.stderr);
+  const smoke = fs.readFileSync(smokeP, 'utf8');
+  const anchors = (smoke.match(/^\s+KOTRA_KOREA_FDI_BY_INDUSTRY:/gm) || []).length;
+  assert.strictEqual((smoke.match(new RegExp('^\\s+' + NAME + ':', 'gm')) || []).length, anchors, '남은 잡에도 env 가 들어가야 한다 (두 번 들어가지도 않는다)');
+  const probe = fs.readFileSync(probeP, 'utf8');
+  assert.match(probe, new RegExp("^  for \\(const n of \\[[^\\n]*'" + NAME + "'", 'm'), '서비스 줄만 있던 상태에서 이름 목록이 채워지지 않았다');
+  assert.strictEqual((probe.match(new RegExp("key: '" + NAME + "'", 'g')) || []).length, 1, '서비스 줄이 두 벌이 됐다');
+});
