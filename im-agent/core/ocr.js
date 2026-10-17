@@ -95,7 +95,9 @@ async function transcribe(file) {
   const first = llm.claudeFirst() ? 'claude' : 'gemini';
   let by = first;
   let firstWhy = null;
-  const viaClaude = () => claude.generate({ system: SYSTEM, files: [{ mime, data: file.buffer }], prompt: PROMPT, maxOutputTokens: 8192, timeoutMs: 180000 });
+  /* 쉼 표시를 llm 과 같이 지고 간다 — 안 지면 잔액 바닥이어도 다음 장마다 Claude 를 또 부른다 (Codex #237) */
+  const viaClaude = () => claude.generate({ system: SYSTEM, files: [{ mime, data: file.buffer }], prompt: PROMPT, maxOutputTokens: 8192, timeoutMs: 180000 })
+    .then(t => { llm.noteClaudeOk(); return t; }, e => { llm.noteClaudeFail(e); throw e; });
   const viaGemini = () => llm.generateGemini({
     system: SYSTEM,
     files: [{ mime, data: file.buffer }],
