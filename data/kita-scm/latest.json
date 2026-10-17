@@ -2,7 +2,7 @@
   "source": "한국무역협회 소재부품장비산업 공급망센터 · 글로벌 공급망 인사이트",
   "list": "https://www.kita.net/researchTrade/globalSupplyChain/globalSupplyChainList.do",
   "note": "제목·발간일·원문 주소와 첨부 PDF 의 소제목만 싣는다. 본문은 원문에서 본다.",
-  "fetchedAt": "2026-10-10T10:05:08.041Z",
+  "fetchedAt": "2026-10-16T05:36:19.955Z",
   "items": [
     {
       "no": 2986,
@@ -66,19 +66,53 @@
       "no": 2980,
       "title": "[2026.08.27] 글로벌 공급망 인사이트 178호",
       "date": "2026-08-27",
-      "url": "https://www.kita.net/researchTrade/globalSupplyChain/globalSupplyChainDetail.do?no=2980"
+      "url": "https://www.kita.net/researchTrade/globalSupplyChain/globalSupplyChainDetail.do?no=2980",
+      "topics": [
+        "[미국·드론] 美, 무인항공시스템·부품에 관세 부과",
+        "[중국·드론] 中, 美 관세 반발 및 對美 드론 수출통제 강화",
+        "[미국·관세] 14개 파생상품 추가 제안",
+        "[콩고·핵심광물] 민주콩고, 구리·코발트 정광 수출 금지",
+        "[EU·통상] EU, 한국·멕시코산 테레프탈산에 반덤핑 관세",
+        "[러시아·원유] 러시아, 석유 수출량 감소, 흑해 항구 차질 원인",
+        "[미-캐·통상] 美와 캐나다의 무역 전쟁, 50% 관세 부과",
+        "심층분석 — 美 태양광·반도체 산업의 핵심 원재료, 폴리실리콘에 MIP 설정 및 관세 부과",
+        "원자재 — 에너지 ⽇, 세계 최초 심해 희토류 추출 성공",
+        "월간 공급망 — 소재·부품·장비 품목 심층분석 – 스핀들 베어링",
+        "더 알아보기 — USMCA 검토 논의 동향과 한국 기업의 대응 조사",
+        "소식통 — 미국 관세정책 대응 심층 컨설팅 지원 사업 (~11.30.(월)신청)"
+      ],
+      "pdf": "https://www.kita.net/researchTrade/globalSupplyChain/downloadGlobalSupplyChainFile.do?no=5F3E8C95C75A1876DBB518270A9C7FDC&fileSeq=B0721B9F23054DDC7FE56C2811A12715",
+      "tv": 2
     },
     {
       "no": 2975,
       "title": "[2026.07.30] 글로벌 공급망 인사이트 177호",
       "date": "2026-07-30",
-      "url": "https://www.kita.net/researchTrade/globalSupplyChain/globalSupplyChainDetail.do?no=2975"
+      "url": "https://www.kita.net/researchTrade/globalSupplyChain/globalSupplyChainDetail.do?no=2975",
+      "topics": [
+        "[미-중·AI] 美, 자국 기업의 중국산 AI 접근금지 검토",
+        "[중국·AI] 中, 독자적 AI 생태계 구축 프로젝트 착수",
+        "[인니·니켈] 니켈 가격 3주 만에 최고치 기록",
+        "[중-EU·통상] 中, EU 기업·기관 14곳 이중용도 수출통제",
+        "[미-중·로봇] 美, 中 겨냥해 외국산 로봇 수입 금지",
+        "심층분석 — 전략금속 몰리브덴 공급망 재편 속 우리나라의 기회",
+        "원자재 — 에너지 中 태양광 업계, 올해 상반기 3조 원 규모의 손실 기록",
+        "월간 공급망 — IEA, 「Global Critical Minerals Outlook 2026」 주요 내용 및 시사점",
+        "더 알아보기 — 핵심광물 프로젝트의 금융조달 촉진을 위한 정책수단 분석",
+        "소식통 — 2026 소재·부품·장비 기업 해외 공급망 ESG 요구대응 맞춤형 컨설팅(~8.14.(금) 신청)"
+      ],
+      "pdf": "https://www.kita.net/researchTrade/globalSupplyChain/downloadGlobalSupplyChainFile.do?no=03A979A370B2667E764BA73350243A86&fileSeq=B0721B9F23054DDC7FE56C2811A12715",
+      "tv": 2
     },
     {
       "no": 2971,
       "title": "[2026.07.16] 글로벌 공급망 인사이트 176호",
       "date": "2026-07-16",
-      "url": "https://www.kita.net/researchTrade/globalSupplyChain/globalSupplyChainDetail.do?no=2971"
+      "url": "https://www.kita.net/researchTrade/globalSupplyChain/globalSupplyChainDetail.do?no=2971",
+      "topics": [],
+      "pdf": null,
+      "tv": 2,
+      "tries": 1
     },
     {
       "no": 2968,
