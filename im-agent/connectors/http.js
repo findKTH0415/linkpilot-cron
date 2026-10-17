@@ -207,6 +207,7 @@ const SECRET_ENV = [
   'KOICA_PROJ_SC', // ★ 한국국제협력단 사업정보(분야·국가) 〈2026-09-28 · D-380〉
   'KOICA_GLOBAL_POLITICAL_DEVELOPMENTS', // ★ 외교부 국가·지역별 정치현황 〈2026-10-10 · D-429 · 사장님이 서비스 이름을 주셨다〉
   'KOICA_COUNTRY_INFORMATION', // ★ 대한무역투자진흥공사(KOTRA) 국가정보 〈2026-10-10 · D-430〉
+  'IBK_BRANCH_INFORMATION', // ★ 중소기업은행(IBK) 영업점 정보조회 〈2026-10-17 사장님: 「IBK_Branch_Information API 키넣었어」 · 규격은 진단 중〉
   'KOTRA_KOREA_FDI_BY_INDUSTRY', // ★ 대한무역투자진흥공사(KOTRA) 외국인투자 업종별 현황 〈2026-10-17 사장님: 「키넣었어」 · 규격은 진단 중〉
   'MOLIT_LUR_LAW_KEY', // ★ 국토교통부 토지이용규제법령정보 〈2026-09-29 · D-382〉
   'MSS_SME_SPA_API', // ★ 중소벤처기업부 중소기업 지원사업 공고 〈2026-09-27 · D-357〉
