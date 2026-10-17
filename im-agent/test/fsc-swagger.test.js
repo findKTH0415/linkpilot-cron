@@ -141,3 +141,16 @@ test('칸 이름 — XML 첫 item · items 밖 자리(KOTRA)도 줍는다 · 요
   assert.deepStrictEqual(requestVarsOf('<h4>요청변수(Request Parameter)</h4><table><tr><td>serviceKey</td></tr><tr><td>fndNm</td></tr></table>'), ['fndNm']);
   assert.strictEqual(requestVarsOf('<div>없다</div>'), null);
 });
+
+/* 〈2026-10-17 · 실측: 기업은행 영업점 15084721 — 오퍼레이션이 «brcode»(get 으로 시작하지 않음)라 못 뽑고
+   뿌리만 불러 «서비스 없음(12)»이 났다〉 — 안내 페이지 «요청주소» 칸의 통째 주소를 부를 자리로 줍는가. */
+test('안내 페이지 요청주소 — get 으로 시작하지 않는 오퍼레이션도 통째로 줍는다', async () => {
+  const { discover } = await import(SRC);
+  const page = '<li> <strong class="key">요청주소</strong> <div class="value"> https://apis.data.go.kr/B190021/branchinfo/brcode </div> </li>';
+  const d = discover(page);
+  assert.ok(d.full.includes('B190021/branchinfo/brcode'), JSON.stringify(d.full));
+  assert.ok(d.bases.includes('B190021/branchinfo'), JSON.stringify(d.bases));
+  /* 요청주소 낱말이 없는 곳의 아무 주소 꼬리를 오퍼레이션으로 집지 않는다 */
+  const plain = discover('see https://apis.data.go.kr/B190021/branchinfo/brcode');
+  assert.ok(!plain.full.includes('B190021/branchinfo/brcode'), JSON.stringify(plain.full));
+});
