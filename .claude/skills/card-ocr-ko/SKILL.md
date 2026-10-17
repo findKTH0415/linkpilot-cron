@@ -40,6 +40,6 @@ OCR 길은 이 둘뿐이다 — 고치기 전에 `grep -c PREMIUM_OCR_SYSTEM_PRO
 
 1. 크기: `node test-app-split.js` — 앱 gzip 600 KiB 한도. 넘으면 긴 경위 주석을 한 줄로 접는다(한도를 올리지 않는다).
 2. 검사: `node test-card-ko.js` · `test-card-orient.js` · `test-card-shade.js` · `test-card-upright.js` · `test-ocr-claude-tab.js` · `check-tdz.js` · `check-undefined.js` · `verify-build.js linkpilot-platform.deploy.html`.
-3. 사보타주: 옛 판(`git show HEAD:linkpilot-platform.deploy.html`)에 대어 고친 자리의 검사(`test-card-ko.js` · `test-card-orient.js` · `test-card-shade.js` 중 해당하는 것)가 빨개지는지 본다.
+3. 사보타주: 옛 판(`git show HEAD:linkpilot-platform.deploy.html`)에 대어 고친 자리의 검사(`test-card-ko.js` · `test-card-orient.js` · `test-card-shade.js` · `test-ocr-claude-tab.js` 중 해당하는 것)가 빨개지는지 본다. Claude 탭을 건드렸으면 `test-ocr-claude-tab.js` 를 옛 판에 대어 빨개지는 칸을 센다(지금 판 기준 3칸).
 4. PR → 초록 → 합치기 → 배포 판 지문 확인 (CLAUDE.md §8 · §10).
 5. **못 잰 것**: 실제 AI 가 업종을 맞게 고르는지는 열쇠가 있는 자리에서만 잰다 — 통과로 적지 않는다.
