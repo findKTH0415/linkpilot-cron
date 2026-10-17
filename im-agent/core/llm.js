@@ -193,7 +193,21 @@ async function generate(opts) {
     try { return await generateGemini(o); }
     catch (ge) { try { ge.message = String(ge.message || '') + ` [Claude 먼저 실패: ${why}]`; } catch (_) {} throw ge; }
   }
-  return generateGemini(o);
+  /* 무료 먼저(LP_CLAUDE_FIRST=0·쉬는 중)여도 넘어가는 길은 둔다 — 무료가 막히거나 열쇠가 없으면 Claude 가 이어 받는다
+     (§4.6 10-13 규칙 · §12-160). 안 두면 isOffline() 은 「아니다」라는데 generate() 는 OfflineError 로 끝난다 (Codex #237) */
+  try { return await generateGemini(o); }
+  catch (ge) {
+    if (o.noClaude || !claude.available()) throw ge;
+    try {
+      const t = await claude.generate({ system: o.system, prompt: o.prompt, files: o.files, maxOutputTokens: o.maxOutputTokens || 4096, timeoutMs: o.timeoutMs || 60000 });
+      noteClaudeOk();
+      return t;
+    } catch (ce) {
+      noteClaudeFail(ce);
+      try { ge.message = String(ge.message || '') + ` [Claude 이어 받기도 실패: ${String((ce && ce.message) || ce).slice(0, 160)}]`; } catch (_) {}
+      throw ge;
+    }
+  }
 }
 
 async function generateGemini({ system, prompt, files, temperature = 0.3, maxOutputTokens = 4096, timeoutMs = 60000 }) {
@@ -334,7 +348,7 @@ async function generateJson({ system, prompt, schema, label = 'LLM 출력', retr
 }
 
 module.exports = {
-  generate, generateGemini, generateJson, extractJson, isOffline, isGeminiOffline, claudeFirst,
+  generate, generateGemini, generateJson, extractJson, isOffline, isGeminiOffline, claudeFirst, noteClaudeFail, noteClaudeOk,
   OfflineError, AllKeysUnavailableError, MODELS,
   keys,
 };

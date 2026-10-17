@@ -289,3 +289,33 @@ test('★★ Gemini 열쇠가 없어도 Claude 가 있으면 오프라인이 아
     if (llm.keys.ensure().length === 0) assert.strictEqual(llm.isOffline(), false, 'Claude 가 있는데 Agent 가 «오프라인»으로 빠진다');
   });
 });
+
+test('★★★ 무료 먼저(LP_CLAUDE_FIRST=0)여도 Gemini 열쇠가 없으면 Claude 가 이어 받는다 — isOffline 과 같은 말을 한다', async () => {
+  await withEnvAsync({ CLAUDE_API_KEY: 'sk-ant-' + LONG, LP_CLAUDE_FIRST: '0' }, async () => {
+    const llm = freshLlm();
+    if (llm.keys.ensure().length !== 0) return; // 이 자리에 Gemini 열쇠가 있으면 이 갈래는 못 잰다
+    assert.strictEqual(llm.isOffline(), false);
+    await withClaudeStub('C 이어 받음', async (calls) => {
+      assert.strictEqual(await llm.generate({ prompt: 'p' }), 'C 이어 받음', 'isOffline 은 «아니다»인데 generate 가 OfflineError 로 끝난다');
+      assert.strictEqual(calls.length, 1);
+    });
+  });
+});
+
+test('★★ OCR 이 Claude 잔액·한도 답을 받으면 llm 의 쉼 표시를 함께 켠다 — 다음 장에서 같은 벽을 안 두드린다', async () => {
+  await withEnvAsync({ CLAUDE_API_KEY: 'sk-ant-' + LONG }, async () => {
+    const llm = freshLlm();
+    for (const k of Object.keys(require.cache)) if (/core[\\/]ocr\.js$/.test(k)) delete require.cache[k];
+    const ocr = require('../core/ocr');
+    const realG = llm.generateGemini;
+    llm.generateGemini = async () => '무료가 읽은 글 '.repeat(40);
+    const realOff = llm.isGeminiOffline; llm.isGeminiOffline = () => false;
+    try {
+      await withClaudeStub(new Error('HTTP 400 · Your credit balance is too low'), async () => {
+        assert.strictEqual(llm.claudeFirst(), true);
+        await ocr.transcribe({ name: 'a.png', buffer: Buffer.alloc(64, 1) });
+        assert.strictEqual(llm.claudeFirst(), false, 'OCR 의 잔액 답이 쉼 표시를 안 켰다');
+      });
+    } finally { llm.generateGemini = realG; llm.isGeminiOffline = realOff; }
+  });
+});
