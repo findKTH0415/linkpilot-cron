@@ -89,35 +89,34 @@ async function transcribe(file) {
    *   ★★ 첫 길이 실패한 **까닭을 버리지 않는다.** 둘 다 실패하면 두 까닭을 함께
    *     적는다 — 하나만 적으면 「왜 안 되는지」를 반쪽만 알게 된다.
    */
+  /* ★★★ 2026-10-17 사장님 지시 — **Claude 먼저 · 소진되면 Gemini** (llm.claudeFirst 한 곳에서 정한다).
+   *   Claude 가 꺼져 있거나 쉬는 중이면 앞 판 그대로 Gemini 먼저 · Claude 둘째다. */
   let text = null;
-  let by = 'gemini';
+  const first = llm.claudeFirst() ? 'claude' : 'gemini';
+  let by = first;
   let firstWhy = null;
+  const viaClaude = () => claude.generate({ system: SYSTEM, files: [{ mime, data: file.buffer }], prompt: PROMPT, maxOutputTokens: 8192, timeoutMs: 180000 });
+  const viaGemini = () => llm.generateGemini({
+    system: SYSTEM,
+    files: [{ mime, data: file.buffer }],
+    prompt: PROMPT,
+    temperature: 0,
+    maxOutputTokens: 8192,
+    timeoutMs: 180000,          // 여러 쪽짜리 스캔본은 오래 걸린다
+  });
 
   try {
-    text = await llm.generate({
-      system: SYSTEM,
-      files: [{ mime, data: file.buffer }],
-      prompt: PROMPT,
-      temperature: 0,
-      maxOutputTokens: 8192,
-      timeoutMs: 180000,          // 여러 쪽짜리 스캔본은 오래 걸린다
-    });
+    text = first === 'claude' ? await viaClaude() : await viaGemini();
   } catch (e) {
     firstWhy = e && e.message ? e.message : String(e);
-    if (!claude.available()) {
-      /* 두 번째 길이 꺼져 있으면 **첫 까닭을 그대로** 올린다. 여기서 말을
-         바꾸면 원인이 흐려진다 */
-      throw e;
-    }
+    const second = first === 'claude' ? 'gemini' : 'claude';
+    /* 두 번째 길이 꺼져 있으면 **첫 까닭을 그대로** 올린다. 여기서 말을
+       바꾸면 원인이 흐려진다 */
+    if (second === 'claude' && !claude.available()) throw e;
+    if (second === 'gemini' && llm.isGeminiOffline()) throw e;
     try {
-      text = await claude.generate({
-        system: SYSTEM,
-        files: [{ mime, data: file.buffer }],
-        prompt: PROMPT,
-        maxOutputTokens: 8192,
-        timeoutMs: 180000,
-      });
-      by = 'claude';
+      text = second === 'claude' ? await viaClaude() : await viaGemini();
+      by = second;
     } catch (e2) {
       const why2 = e2 && e2.message ? e2.message : String(e2);
       const err = new Error(`두 길 다 못 읽었다 — 첫째: ${firstWhy} / 둘째: ${why2}`);
@@ -133,7 +132,7 @@ async function transcribe(file) {
   }
   /* ★ **누가 읽었는지 남긴다.** 두 길의 글자는 결이 다를 수 있고, 나중에
      「이 값이 왜 이런가」를 볼 때 그 사실이 필요하다 (§4.7 출처 규칙) */
-  return { text: clean, chars: clean.length, by, fallbackFrom: by === 'claude' ? firstWhy : null };
+  return { text: clean, chars: clean.length, by, fallbackFrom: by !== first ? firstWhy : null };
 }
 
 module.exports = {
