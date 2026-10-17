@@ -7,6 +7,7 @@
   "scripts": {
     "test": "node im-agent/tools/test-lock.js node --test im-agent/test/*.test.js",
     "test:nolock": "node --test im-agent/test/*.test.js",
+    "key:add": "node scripts/key-add.mjs",
     "im": "node im-agent/cli.js",
     "im:demo": "IM_AGENT_OFFLINE=1 node im-agent/cli.js demo",
     "branch:check": "node im-agent/tools/branch-doctor.js",

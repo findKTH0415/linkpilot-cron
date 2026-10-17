@@ -12,7 +12,7 @@ export const NAMES = [
   ['국가법령정보', 'KOREA_LAW_INFORMATION'], ['공공데이터포털', 'DATAGOKR_PUBLIC_DATA'], ['한국천문연구원 특일 정보', 'KASI_SPECIAL_DAYS'],
   ['기상청 단기예보', 'KMA_SHORT_TERM_FORECAST'], ['전력거래소 REC 현물시장', 'KPX_REC_SPOT_MARKET'], ['REC 현물시장 거래시장', 'REC_SPOT_MARKET_TRADING'],
   ['중부발전 REC 기준가격', 'KOMIPO_REC_REFERENCE_PRICE'], ['한국전력', 'KEPCO'], ['전력거래소 SMP·수요예측', 'KPX_SMP_DEMAND_FORECAST'],
-  ['전력거래소 전력수급예보', 'KPX_POWER_SUPPLY_DEMAND_FORECAST_GW'], ['KOICA 사업정보', 'KOICA_PROJ_SC'], ['KOTRA 국가정보', 'KOICA_COUNTRY_INFORMATION'], ['KOTRA 외국인투자 업종별', 'KOTRA_KOREA_FDI_BY_INDUSTRY'], ['기업은행 영업점 정보', 'IBK_BRANCH_INFORMATION'],
+  ['전력거래소 전력수급예보', 'KPX_POWER_SUPPLY_DEMAND_FORECAST_GW'], ['KOICA 사업정보', 'KOICA_PROJ_SC'], ['KOTRA 국가정보', 'KOICA_COUNTRY_INFORMATION'], ['KOTRA 외국인투자 업종별', 'KOTRA_KOREA_FDI_BY_INDUSTRY'], ['중소벤처기업부 사업공고', 'MSS_BUSINESS_SUPPORT_ANNOUNCEMENTS'], ['기업은행 영업점 정보', 'IBK_BRANCH_INFORMATION'],
   ['외교부 정치현황', 'KOICA_GLOBAL_POLITICAL_DEVELOPMENTS'], ['부동산원 전국지가변동률', 'REB_LAND_PRICE_CHANGE'], ['국가건설기준센터', 'KCSC_CONSTRUCTION_STANDARDS'],
   ['브이월드', 'VWORLD_SPATIAL_DATA'], ['지가변동률 마이크로데이터', 'REB_LAND_MICRO'], ['아파트 매매 실거래가', 'MOLIT_APT_SALE'],
   ['오피스텔 전월세', 'MOLIT_OFFICETEL_RENT'], ['건축물대장', 'MOLIT_HUB_BLDG_LEDGER'], ['주택인허가', 'MOLIT_HUB_HOUSING_PERMIT'],
