@@ -352,6 +352,8 @@ jobs:
           # 받아 와서 위에 얹고 다시 민다. 세 번 다 밀리면 빨갛게 끝난다(결과는 아티팩트에 있다).
           for i in 1 2 3; do
             if git pull --rebase -q origin "$DEFAULT_BRANCH" && git push; then exit 0; fi
+            # 얹다가 부딪히면 반쯤 얹힌 상태로 남는다 — 되돌려 놓아야 다음 시도와 아티팩트가 깨끗하다
+            git rebase --abort 2>/dev/null || true
             sleep 5
           done
           echo "::error::세 번 다 main 에 못 올렸다 — 결과는 아래 아티팩트(api-smoke)에 있다"
