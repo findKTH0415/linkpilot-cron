@@ -230,7 +230,8 @@ test('보내는 몸에 캐시 끊는 자리가 둘이다 — 시스템 · 마지
 // ══ Claude 먼저 · 소진되면 Gemini 〈2026-10-17 사장님 지침〉 — llm.generate 를 돌려서 잰다 ══
 async function withEnvAsync(vars, fn) {
   const saved = {};
-  Object.keys(process.env).forEach((n) => { if (claude.KEY_PATTERN.test(n)) { saved[n] = process.env[n]; delete process.env[n]; } });
+  /* CI 는 IM_AGENT_OFFLINE=1 로 돈다(실제 호출을 막는 스위치) — 그 상태에서는 Claude 먼저를 잴 수 없으니 이 칸 동안만 비운다 */
+  Object.keys(process.env).forEach((n) => { if (claude.KEY_PATTERN.test(n) || n === 'IM_AGENT_OFFLINE') { saved[n] = process.env[n]; delete process.env[n]; } });
   Object.keys(vars).forEach((n) => { process.env[n] = vars[n]; });
   try { return await fn(); }
   finally {
