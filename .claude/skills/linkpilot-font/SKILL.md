@@ -27,7 +27,7 @@ description: LinkPilot 플랫폼 화면·보고서의 글꼴을 고치거나 새
 |---|---|
 | `linkpilot-platform.deploy.html` 첫 디자인 `<style>` | `@font-face` 다섯 · `--lp-font` · `body *:not(svg)…{font-family:var(--lp-font)!important}` (인라인 `fontFamily` 까지 덮는다) |
 | `solar-report.php` · `lp-solar.js` | 보고서·PDF 쪽 (2026-10-05 부터 이미 Paperlogy) |
-| 캔버스 카드(`ctx.font=…` · 명언·예약·브리핑 카드) | **아직 옛 스택** — 캔버스는 CSS 를 안 따른다. 바꾸려면 그리기 전에 `document.fonts.load('600 40px Paperlogy')` 를 기다린다 |
+| 캔버스 카드(`ctx.font=…` · 명언·나의 글·예약·태양광 카드) | **Paperlogy 먼저** 〈2026-10-18 · platform #432〉 — 캔버스는 CSS 를 안 따르므로 그리는 함수가 `await window.lpFontsReady()` 를 먼저 부른다(다섯 굵기 · 3초 상한 · 못 받으면 대체 글꼴). 새 카드를 만들면 같은 두 가지(글꼴 차례 · 기다림)를 넣고 `test-mine-card.js` 처럼 그려서 잰다 |
 | `test-design-v4.js` · `test-fonts-local.js` · `test-solar-report-v2.js` | 재는 자리 |
 
 ## 고칠 때 절차

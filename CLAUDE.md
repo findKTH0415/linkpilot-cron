@@ -1315,7 +1315,8 @@ IM 생성 전체를 죽이지 않는다.** 인증·요청 오류(400/401/403/404
 - **규칙** — 플랫폼 화면의 글자는 한글·숫자·영문 모두 Paperlogy(3 Light · 5 Medium · 6 SemiBold 가 기본 · 400·700 도 같은 글꼴 파일). 대체는 Cambria → 옛 SF Pro 스택.
   받는 자리는 같은 출처 `fonts/` 먼저 · jsDelivr(커밋 고정) 다음. 인라인 `fontFamily` 까지 `body *:not(svg)…{font-family:var(--lp-font)!important}` 로 덮는다.
 - **까닭** — v3·v4(아래)는 SF Pro 스택 하나였다. **나중 지시가 이긴다** — v3·v4 의 다른 값(색·모서리·높이)은 그대로다.
-- ★ **캔버스 카드(`ctx.font`)는 CSS 를 안 따른다** — 명언·예약·브리핑 카드는 아직 옛 스택이다. 바꿀 때는 그리기 전에 글꼴을 기다린다(스킬에 절차).
+- ★ **캔버스 카드(`ctx.font`)는 CSS 를 안 따른다** — 〈2026-10-18 · platform #432〉 명언·나의 글·예약·태양광 카드도 `Paperlogy,Cambria` 먼저로 바꿨고, 그리기 전에 `window.lpFontsReady()`(다섯 굵기 · 3초 상한)를 기다린다. 800·900 은 700 으로 그려진다. 재는 자리: `test-mine-card.js`(그려진 글꼴 · 받아졌는가).
+- ★ **좌우 여백은 화면마다 잰다** 〈2026-10-18 사장님: 「앱센터 양쪽 여백 좀 여유있게」 · platform #431〉 — 앱센터만 0 이었다(24 로 고침 · 위 배너 머리와 같은 선). 1000px 에서 23화면을 그려 재 보니 0 인 곳은 더 없고 대부분 24, 할일·캘린더·프로젝트 20 · 커뮤니티·내 정보 14 · 부동산 18 이다.
 - 절차: 스킬 [`.claude/skills/linkpilot-font/SKILL.md`](.claude/skills/linkpilot-font/SKILL.md) · 재는 자리: `linkpilot-platform` 의 `test-design-v4.js`(글꼴 세 칸) · `test-fonts-local.js`.
 
 ### 6-3-0. 디자인 시스템 값 — **v3 가 정본이다** 〈2026-10-12 사장님: 「CSS 실측 v3 반영해줘」 · D-445〉
