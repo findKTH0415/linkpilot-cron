@@ -13,8 +13,8 @@
 - 포털 검색 «전력거래소 수요예측» — HTTP 200 · 15131225 수요예측 (하루전 발전계획용)
 ## 계통한계가격 및 수요예측(하루전 발전계획용) (15131225)
 - 서비스 B552115/SmpWithForecastDemand · 오퍼레이션 getSmpWithForecastDemand · getSmpWithForecastDemand_header · getSmpWithForecastDemand_body · getSmpWithForecastDemand_items · getSmpWithForecastDemand_item · 필수 인자 pageNo · numOfRows · dataType
-- `B552115/SmpWithForecastDemand/getSmpWithForecastDemand` — HTTP 200 · 23428자
-  - 앞머리 «{ "response" : { "header" : { "resultCode" : "00", "resultMsg" : "OK" }, "body" : { "dataType" : "JSON", "totalCount" : "119613", "numOfRows" : "100", "pageNo" : "1", "items" : { "item" : [ { "date" : "20261019", "jlfd" : 608.00000, "slfd" : 49354.00000, "hour" : "01", "areaName" : "육지", "smp" : 99.49000, "rn" : 1, "mlfd" : 48746.00000 }, { "date" : "20261019", "jlfd" : 576.00000, "slfd" : 47312.00000, "hour" : "02", "ar»
+- `B552115/SmpWithForecastDemand/getSmpWithForecastDemand` — HTTP 200 · 23430자
+  - 앞머리 «{ "response" : { "header" : { "resultCode" : "00", "resultMsg" : "OK" }, "body" : { "dataType" : "JSON", "totalCount" : "119637", "numOfRows" : "100", "pageNo" : "1", "items" : { "item" : [ { "date" : "20261019", "jlfd" : 608.00000, "slfd" : 49354.00000, "hour" : "01", "areaName" : "육지", "smp" : 99.49000, "rn" : 1, "mlfd" : 48746.00000 }, { "date" : "20261019", "jlfd" : 608.00000, "slfd" : 49354.00000, "hour" : "01", "ar»
 - `B552115/SmpWithForecastDemand/getSmpWithForecastDemand_header` — HTTP 400 · 190자
   - 앞머리 «{ "OpenAPI_ServiceResponse": { "cmmMsgHeader": { "errMsg": "NO_OPENAPI_SERVICE_ERROR", "returnAuthMsg": "해당 오픈API 서비스가 없거나 폐기됨", "returnReasonCode": "12" } } } »
 - `B552115/SmpWithForecastDemand/getSmpWithForecastDemand_body` — HTTP 400 · 190자
@@ -37,13 +37,13 @@
 ### 수급예보조회_GW (15158707)
 - 서비스 B552115/forecast1dMaxBaseDate · 오퍼레이션 getForecast1dMaxBaseDate · 필수 인자 dataType
 - `B552115/forecast1dMaxBaseDate/getForecast1dMaxBaseDate` — HTTP 200 · 455자
-  - 앞머리 «{ "response" : { "header" : { "resultCode" : "00", "resultMsg" : "OK" }, "body" : { "dataType" : "JSON", "totalCount" : "1", "numOfRows" : "50", "pageNo" : "1", "items" : { "item" : [ { "fcStime" : "18", "fcMaxload" : 61700, "fcDate" : "20261018", "fcEtime" : "19", "rn" : 1, "fcLevel" : 0, "fcReservePwr" : 26986 } ] } } }}»
-- 공개 화면 https://www.kpx.or.kr/ — HTTP 200 · 7822자
+  - 앞머리 «{ "response" : { "header" : { "resultCode" : "00", "resultMsg" : "OK" }, "body" : { "dataType" : "JSON", "totalCount" : "1", "numOfRows" : "50", "pageNo" : "1", "items" : { "item" : [ { "fcStime" : "18", "fcMaxload" : 70800, "fcDate" : "20261019", "fcEtime" : "19", "rn" : 1, "fcLevel" : 0, "fcReservePwr" : 20703 } ] } } }}»
+- 공개 화면 https://www.kpx.or.kr/ — HTTP 200 · 7820자
   - 둘레 «력관련정보 최대부하전망 최대부하전망(제주) 실시간 전력수급현황 실시간 전력수급현황 (제주) 비상시 절전참여요령 전력수급실적 전력수급실적(제주) 계통한계가격(SMP) 하루전 발전계획용 수요예측 스마트그리드 스마트그리드 개요 해외동향 전력산업동향 통합계약정보 입찰공고 공고 안내사항 입찰공고 게시판 계약절차안내 계약종류및방법 업무절차도 계약준비서류 예상소요일수 통합자료실 청렴계약안내 청렵계약이란 소식알림 공지사항 보도자료 KPX 브리핑 이사장 동정 시장개선 KPX 종합자료실 (구)보도자료 고객지원 고객만족 고객서비스 헌장 및 이행표준 친»
   - 둘레 «대부하전망 최대부하전망(제주) 실시간 전력수급현황 실시간 전력수급현황 (제주) 비상시 절전참여요령 전력수급실적 전력수급실적(제주) 계통한계가격(SMP) 하루전 발전계획용 수요예측 스마트그리드 스마트그리드 개요 해외동향 전력산업동향 통합계약정보 입찰공고 공고 안내사항 입찰공고 게시판 계약절차안내 계약종류및방법 업무절차도 계약준비서류 예상소요일수 통합자료실 청렴계약안내 청렵계약이란 소식알림 공지사항 보도자료 KPX 브리핑 이사장 동정 시장개선 KPX 종합자료실 (구)보도자료 고객지원 고객만족 고객서비스 헌장 및 이행표준 친절사원을 추천»
   - 둘레 «력관련정보 최대부하전망 최대부하전망(제주) 실시간 전력수급현황 실시간 전력수급현황 (제주) 비상시 절전참여요령 전력수급실적 전력수급실적(제주) 계통한계가격(SMP) 하루전 발전계획용 수요예측 스마트그리드 스마트그리드 개요 해외동향 전력산업동향 통합계약정보 입찰공고 공고 안내사항 입찰공고 게시판 계약절차안내 계약종류및방법 업무절차도 계약준비서류 예상소요일수 통합자료실 청렴계약안내 청렵계약이란 소식알림 공지사항 보도자료 KPX 브리핑 이사장 동정 시장개선 KPX 종합자료실 (구)보도자료 고객지원 고객만족 고객서비스 헌장 및 이행표준 친»
   - 둘레 «대부하전망 최대부하전망(제주) 실시간 전력수급현황 실시간 전력수급현황 (제주) 비상시 절전참여요령 전력수급실적 전력수급실적(제주) 계통한계가격(SMP) 하루전 발전계획용 수요예측 스마트그리드 스마트그리드 개요 해외동향 전력산업동향 통합계약정보 입찰공고 공고 안내사항 입찰공고 게시판 계약절차안내 계약종류및방법 업무절차도 계약준비서류 예상소요일수 통합자료실 청렴계약안내 청렵계약이란 소식알림 공지사항 보도자료 KPX 브리핑 이사장 동정 시장개선 KPX 종합자료실 (구)보도자료 고객지원 고객만족 고객서비스 헌장 및 이행표준 친절사원을 추천»
-- 공개 화면 https://new.kpx.or.kr/ — HTTP 200 · 7822자
+- 공개 화면 https://new.kpx.or.kr/ — HTTP 200 · 7820자
   - 둘레 «력관련정보 최대부하전망 최대부하전망(제주) 실시간 전력수급현황 실시간 전력수급현황 (제주) 비상시 절전참여요령 전력수급실적 전력수급실적(제주) 계통한계가격(SMP) 하루전 발전계획용 수요예측 스마트그리드 스마트그리드 개요 해외동향 전력산업동향 통합계약정보 입찰공고 공고 안내사항 입찰공고 게시판 계약절차안내 계약종류및방법 업무절차도 계약준비서류 예상소요일수 통합자료실 청렴계약안내 청렵계약이란 소식알림 공지사항 보도자료 KPX 브리핑 이사장 동정 시장개선 KPX 종합자료실 (구)보도자료 고객지원 고객만족 고객서비스 헌장 및 이행표준 친»
   - 둘레 «대부하전망 최대부하전망(제주) 실시간 전력수급현황 실시간 전력수급현황 (제주) 비상시 절전참여요령 전력수급실적 전력수급실적(제주) 계통한계가격(SMP) 하루전 발전계획용 수요예측 스마트그리드 스마트그리드 개요 해외동향 전력산업동향 통합계약정보 입찰공고 공고 안내사항 입찰공고 게시판 계약절차안내 계약종류및방법 업무절차도 계약준비서류 예상소요일수 통합자료실 청렴계약안내 청렵계약이란 소식알림 공지사항 보도자료 KPX 브리핑 이사장 동정 시장개선 KPX 종합자료실 (구)보도자료 고객지원 고객만족 고객서비스 헌장 및 이행표준 친절사원을 추천»
   - 둘레 «력관련정보 최대부하전망 최대부하전망(제주) 실시간 전력수급현황 실시간 전력수급현황 (제주) 비상시 절전참여요령 전력수급실적 전력수급실적(제주) 계통한계가격(SMP) 하루전 발전계획용 수요예측 스마트그리드 스마트그리드 개요 해외동향 전력산업동향 통합계약정보 입찰공고 공고 안내사항 입찰공고 게시판 계약절차안내 계약종류및방법 업무절차도 계약준비서류 예상소요일수 통합자료실 청렴계약안내 청렵계약이란 소식알림 공지사항 보도자료 KPX 브리핑 이사장 동정 시장개선 KPX 종합자료실 (구)보도자료 고객지원 고객만족 고객서비스 헌장 및 이행표준 친»
