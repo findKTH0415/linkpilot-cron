@@ -129,6 +129,9 @@ test('필수 인자 값 — 스웨거가 적은 값 · 저장소가 받아 본 �
   assert.strictEqual(rt.q.DEAL_YMD, '202506');
   assert.ok(/^\d{5}$/.test(rt.q.LAWD_CD));
   assert.deepStrictEqual(rt.missing, []);
+  /* 기금대출 — 필수 `bseYy` 를 기준월의 연도로 붙인다 (판정 5 «필수항목이 입력되지 않았습니다» · 2026-10-19) */
+  assert.deepStrictEqual(extraParams('B190030/GetFundLoanInfoService/getFundLoanList', '202512', [], {}).q, { bseYy: '2025' });
+  assert.deepStrictEqual(extraParams('B190030/GetFundLoanInfoService/getFundLoanList', '202406', [], {}).q, { bseYy: '2024' }, '기준월 되짚기를 따라 연도도 움직인다');
   const hub = extraParams('1613000/ArchPmsHubService/getApBasisOulnInfo', '202512', ['sigunguCd', 'bjdongCd'], {});
   assert.deepStrictEqual(Object.keys(hub.q).sort(), ['bjdongCd', 'sigunguCd']);
   assert.ok(hub.used.every((u) => /scripts\/\S+\.mjs/.test(u.from)), '실측 값에는 출처 파일을 적는다');

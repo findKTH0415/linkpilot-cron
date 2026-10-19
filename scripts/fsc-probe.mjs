@@ -376,6 +376,10 @@ const MEASURED = [
   /* 건축HUB(건축물대장·건축인허가·주택인허가) — fsc-probe.md: 결과 00 인데 `"body":{}` · 스웨거 필수 `sigunguCd`·`bjdongCd` */
   { re: /^1613000\/(?:BldRgstHubService|ArchPmsHubService|HsPmsHubService)\//, params: () => ({ sigunguCd: '41135', bjdongCd: '11100' }),
     from: 'scripts/bldrgst-fetch.mjs 실측 (data/bldrgst — 성남 분당 금곡동 · 건축물대장 받음)' },
+  /* 한국산업은행 기금대출 15060633 — fsc-probe.md: 결과 99 «필수항목이 입력되지 않았습니다» · 안내 페이지 요청변수 표에 `bseYy`(기준연도).
+     ★ 값을 지어내지 않는다 — 진단이 늘 붙이는 기준월(basYm)의 «연도»를 그대로 쓴다(기준월 되짚기와 함께 움직인다) */
+  { re: /^B190030\/GetFundLoanInfoService\//, params: (ym) => ({ bseYy: String(ym).slice(0, 4) }),
+    from: '안내 페이지 요청변수 표 `bseYy`(기준연도) — 진단 기준월의 연도' },
 ];
 /* 이미 붙이는 인자 — 필수 인자 목록에서 «값 모름»으로 세지 않는다 */
 const BASE_PARAMS = new Set(['pageNo', 'numOfRows', 'resultType', 'basYm']);
