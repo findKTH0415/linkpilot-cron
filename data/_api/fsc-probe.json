@@ -14,6 +14,8 @@
   "KOICA_GLOBAL_POLITICAL_DEVELOPMENTS": 64,
   "KOICA_COUNTRY_INFORMATION": 64,
   "KOTRA_KOREA_FDI_BY_INDUSTRY": 64,
+  "KSURE_COUNTRY_LIST": 64,
+  "MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY": 64,
   "MSS_BUSINESS_SUPPORT_ANNOUNCEMENTS": 64,
   "IBK_BRANCH_INFORMATION": 64,
   "MOLIT_LUR_LAW_KEY": null,
@@ -232,42 +234,6 @@
    ]
   },
   {
-   "id": "15061325",
-   "bases": [
-    "***"
-   ],
-   "ops": [],
-   "code": 4,
-   "rows": [
-    {
-     "label": "*** · 원본 · 202512",
-     "status": 403,
-     "gotValue": false,
-     "authFail": true,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
-    }
-   ]
-  },
-  {
-   "id": "15157820",
-   "bases": [
-    "1421000/bizinfo"
-   ],
-   "ops": [
-    "pblancBsnsService"
-   ],
-   "code": 0,
-   "rows": [
-    {
-     "label": "1421000/bizinfo/pblancBsnsService · 원본 · 202512",
-     "status": 200,
-     "gotValue": true,
-     "authFail": false,
-     "head": "<response> <header> <resultCode>00</resultCode> <resultMsg>NORMAL_SERVICE</resultMsg> </header> <body> <items> <item> <pblancNm><![CDATA[[경남] 김해시 2026년 김해형 중소기업 근로소득 청년지원사업 모집 공고]]></pblancNm> <!-- 공고명 --> <pblancUrl>https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_00000000012"
-    }
-   ]
-  },
-  {
    "id": "15061316",
    "bases": [
     "***"
@@ -380,60 +346,6 @@
    ]
   },
   {
-   "id": "15158399",
-   "bases": [
-    "B260003/BsnsAddService"
-   ],
-   "ops": [
-    "getBsnsInfoRealmList",
-    "getBsnsInfoNationList"
-   ],
-   "code": 4,
-   "rows": [
-    {
-     "label": "*** · 원본 · 202512",
-     "status": 403,
-     "gotValue": false,
-     "authFail": true,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
-    },
-    {
-     "label": "*** · 원본 · 202512",
-     "status": 403,
-     "gotValue": false,
-     "authFail": true,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
-    }
-   ]
-  },
-  {
-   "id": "15158394",
-   "bases": [
-    "B260003/BsnsService"
-   ],
-   "ops": [
-    "getBsnsInfoList",
-    "getBsnsInfoDetail"
-   ],
-   "code": 4,
-   "rows": [
-    {
-     "label": "B260003/BsnsService/getBsnsInfoList · 원본 · 202512",
-     "status": 403,
-     "gotValue": false,
-     "authFail": true,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
-    },
-    {
-     "label": "B260003/BsnsService/getBsnsInfoDetail · 원본 · 202512",
-     "status": 403,
-     "gotValue": false,
-     "authFail": true,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
-    }
-   ]
-  },
-  {
    "id": "15099537",
    "bases": [
     "1262000/OverviewPoliticService"
@@ -459,14 +371,13 @@
    "ops": [
     "natnInfo"
    ],
-   "code": 0,
+   "code": 5,
    "rows": [
     {
      "label": "B410001/kotra_nationalInformation/natnInfo/natnInfo · 원본 · 202512",
-     "status": 200,
-     "gotValue": true,
-     "authFail": false,
-     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NO ERROR\"},\"body\":{\"itemList\":{\"item\":{\"korCompList\":{\"korComp\":[{\"tretRealmCntnt\":\"무역/에너지\",\"acplcAdvncYear\":\"1979\",\"acplcAdvncFormCntnt\":\"지사\",\"pcompNm\":\"포스코대우\",\"indlnCntnt\":\"무역\",\"korCompNm\":\"포스코인터내셔널\"},{\"tretRealmCntnt\":\"건설업/송전선로\",\"acplcAdvncYea"
+     "status": null,
+     "gotValue": false,
+     "authFail": false
     },
     {
      "label": "B410001/kotra_nationalInformation/natnInfo · 원본 · 202512",
@@ -495,6 +406,42 @@
    ]
   },
   {
+   "id": "15144256",
+   "bases": [
+    "B552696/country"
+   ],
+   "ops": [
+    "getCountryList"
+   ],
+   "code": 0,
+   "rows": [
+    {
+     "label": "B552696/country/getCountryList · 원본 · 202512",
+     "status": 200,
+     "gotValue": true,
+     "authFail": false,
+     "head": "{\"response\":{\"header\":{\"resultCode\":0,\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"items\":{\"item\":[{\"ctryCd\":\"627\",\"ctryNm\":\"가나\"},{\"ctryCd\":\"625\",\"ctryNm\":\"가봉\"},{\"ctryCd\":\"534\",\"ctryNm\":\"가이아나\"},{\"ctryCd\":\"626\",\"ctryNm\":\"감비아\"},{\"ctryCd\":\"532\",\"ctryNm\":\"과달루프\"},{\"ctryCd\":\"530\",\"ctryNm\":\"과테말라\"},{\"ctryCd\":\"12"
+    }
+   ]
+  },
+  {
+   "id": "15099539",
+   "bases": [
+    "1262000/OverviewKorRelationService"
+   ],
+   "ops": [],
+   "code": 0,
+   "rows": [
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 200,
+     "gotValue": true,
+     "authFail": false,
+     "head": "{\"response\":{\"body\":{\"dataType\":\"JSON\",\"items\":{\"item\":[{\"country_eng_nm\":\"Ghana\",\"country_iso_alp2\":\"GH\",\"country_nm\":\"가나\",\"diplomatic_relations\":\"1977.11.14. 수교\",\"export_amount\":\"209000000\",\"import_amount\":\"37000000\",\"investment_status\":\"45건, 1.37억달러('21월말 누계, 수출입은행)\",\"mission_status\":\"아국 : 상주공관('"
+    }
+   ]
+  },
+  {
    "id": "15084721",
    "bases": [
     "B190021/branchinfo"
@@ -507,25 +454,6 @@
      "status": null,
      "gotValue": false,
      "authFail": false
-    }
-   ]
-  },
-  {
-   "id": "15125567",
-   "bases": [
-    "B190021/totBrStateInq"
-   ],
-   "ops": [
-    "gettotBrStateInq"
-   ],
-   "code": 4,
-   "rows": [
-    {
-     "label": "B190021/totBrStateInq/gettotBrStateInq · 원본 · 202512",
-     "status": 403,
-     "gotValue": false,
-     "authFail": true,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
     }
    ]
   },
@@ -549,42 +477,6 @@
    ]
   },
   {
-   "id": "15057263",
-   "bases": [
-    "1613000/ebGuideBookListService"
-   ],
-   "ops": [
-    "DTebGuideBookList"
-   ],
-   "code": 4,
-   "rows": [
-    {
-     "label": "*** · 원본 · 202512",
-     "status": 403,
-     "gotValue": false,
-     "authFail": true,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
-    }
-   ]
-  },
-  {
-   "id": "15060633",
-   "bases": [
-    "B190030/GetFundLoanInfoService"
-   ],
-   "ops": [],
-   "code": 5,
-   "rows": [
-    {
-     "label": "*** · 원본 · 202512",
-     "status": 200,
-     "gotValue": false,
-     "authFail": false,
-     "head": "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <response> <resultCode>99</resultCode> <resultMsg>[BEBII00002] 자료 조회시 오류가 발생하였습니다. [BEBII00005] 필수항목이 입력되지 않았습니다. 필수 항목이 입력되지 않았습니다.</resultMsg> </response>"
-    }
-   ]
-  },
-  {
    "id": "15126469",
    "bases": [
     "1613000/RTMSDataSvcAptTrade"
@@ -600,44 +492,6 @@
      "gotValue": true,
      "authFail": false,
      "head": "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?><response><header><resultCode>000</resultCode><resultMsg>OK</resultMsg></header><body><items><item><aptDong>104</aptDong><aptNm>벽산e-리버파크</aptNm><buildYear>2013</buildYear><buyerGbn>개인</buyerGbn><cdealDay> </cdealDay><cdealType> </cdealType><deal"
-    }
-   ]
-  },
-  {
-   "id": "15126468",
-   "bases": [
-    "1613000/RTMSDataSvcAptTradeDev"
-   ],
-   "ops": [
-    "getRTMSDataSvcAptTradeDev"
-   ],
-   "code": 4,
-   "rows": [
-    {
-     "label": "*** · 원본 · 202512",
-     "status": 403,
-     "gotValue": false,
-     "authFail": true,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
-    }
-   ]
-  },
-  {
-   "id": "15126471",
-   "bases": [
-    "1613000/RTMSDataSvcSilvTrade"
-   ],
-   "ops": [
-    "getRTMSDataSvcSilvTrade"
-   ],
-   "code": 4,
-   "rows": [
-    {
-     "label": "*** · 원본 · 202512",
-     "status": 403,
-     "gotValue": false,
-     "authFail": true,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
     }
    ]
   },
@@ -692,87 +546,6 @@
      "gotValue": false,
      "authFail": false,
      "head": "{\"result\":{\"resultCode\":\"11\",\"resultMsg\":\"NO_MANDATORY_REQUEST_PARAMETERS_ERROR\"}}"
-    },
-    {
-     "label": "*** · 원본 · 202512",
-     "status": 400,
-     "gotValue": false,
-     "authFail": false,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"NO_OPENAPI_SERVICE_ERROR\", \"returnAuthMsg\": \"해당 오픈API 서비스가 없거나 폐기됨\", \"returnReasonCode\": \"12\" } } }"
-    }
-   ]
-  },
-  {
-   "id": "15157254",
-   "bases": [
-    "B010003/OnbidCltrBidRsltDtlSrvc2"
-   ],
-   "ops": [
-    "getCltrBidRsltDtl2",
-    "getCltrBidRsltDtl"
-   ],
-   "code": 4,
-   "rows": [
-    {
-     "label": "*** · 원본 · 202512",
-     "status": 403,
-     "gotValue": false,
-     "authFail": true,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
-    },
-    {
-     "label": "*** · 원본 · 202512",
-     "status": 400,
-     "gotValue": false,
-     "authFail": false,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"NO_OPENAPI_SERVICE_ERROR\", \"returnAuthMsg\": \"해당 오픈API 서비스가 없거나 폐기됨\", \"returnReasonCode\": \"12\" } } }"
-    }
-   ]
-  },
-  {
-   "id": "15157222",
-   "bases": [
-    "B010003/OnbidPbancBidRsltListSrvc2"
-   ],
-   "ops": [
-    "getPbancBidRsltList2",
-    "getPbancBidRsltList"
-   ],
-   "code": 4,
-   "rows": [
-    {
-     "label": "*** · 원본 · 202512",
-     "status": 403,
-     "gotValue": false,
-     "authFail": true,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
-    },
-    {
-     "label": "*** · 원본 · 202512",
-     "status": 400,
-     "gotValue": false,
-     "authFail": false,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"NO_OPENAPI_SERVICE_ERROR\", \"returnAuthMsg\": \"해당 오픈API 서비스가 없거나 폐기됨\", \"returnReasonCode\": \"12\" } } }"
-    }
-   ]
-  },
-  {
-   "id": "15157258",
-   "bases": [
-    "B010003/OnbidPbancBidRsltDtlSrvc2"
-   ],
-   "ops": [
-    "getPbancBidRsltDtl2",
-    "getPbancBidRsltDtl"
-   ],
-   "code": 4,
-   "rows": [
-    {
-     "label": "*** · 원본 · 202512",
-     "status": 403,
-     "gotValue": false,
-     "authFail": true,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
     },
     {
      "label": "*** · 원본 · 202512",
@@ -1123,6 +896,270 @@
      "gotValue": true,
      "authFail": false,
      "head": "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?><response><header><resultCode>000</resultCode><resultMsg>OK</resultMsg></header><body><items><item><cdealDay> </cdealDay><cdealType> </cdealType><dealAmount>5,170</dealAmount><dealArea>157.75</dealArea><dealDay>17</dealDay><dealMonth>12</dealMon"
+    }
+   ]
+  },
+  {
+   "id": "15060633",
+   "bases": [
+    "B190030/GetFundLoanInfoService"
+   ],
+   "ops": [],
+   "code": 5,
+   "rows": [
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 200,
+     "gotValue": false,
+     "authFail": false,
+     "head": "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <response> <resultCode>99</resultCode> <resultMsg>[BEBII00002] 자료 조회시 오류가 발생하였습니다. [BEBII00005] 필수항목이 입력되지 않았습니다. 필수 항목이 입력되지 않았습니다.</resultMsg> </response>"
+    }
+   ]
+  },
+  {
+   "id": "15157820",
+   "bases": [
+    "1421000/bizinfo"
+   ],
+   "ops": [
+    "pblancBsnsService"
+   ],
+   "code": 0,
+   "rows": [
+    {
+     "label": "1421000/bizinfo/pblancBsnsService · 원본 · 202512",
+     "status": 200,
+     "gotValue": true,
+     "authFail": false,
+     "head": "<response> <header> <resultCode>00</resultCode> <resultMsg>NORMAL_SERVICE</resultMsg> </header> <body> <items> <item> <pblancNm><![CDATA[[제주] 2026년 4극3특 제주특별자치도 과학기술혁신지원사업 연구단 모집 공고]]></pblancNm> <!-- 공고명 --> <pblancUrl>https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_00000000"
+    }
+   ]
+  },
+  {
+   "id": "15061325",
+   "bases": [
+    "***"
+   ],
+   "ops": [],
+   "code": 4,
+   "rows": [
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 403,
+     "gotValue": false,
+     "authFail": true,
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
+    }
+   ]
+  },
+  {
+   "id": "15158399",
+   "bases": [
+    "B260003/BsnsAddService"
+   ],
+   "ops": [
+    "getBsnsInfoRealmList",
+    "getBsnsInfoNationList"
+   ],
+   "code": 4,
+   "rows": [
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 403,
+     "gotValue": false,
+     "authFail": true,
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
+    },
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 403,
+     "gotValue": false,
+     "authFail": true,
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
+    }
+   ]
+  },
+  {
+   "id": "15125567",
+   "bases": [
+    "B190021/totBrStateInq"
+   ],
+   "ops": [
+    "gettotBrStateInq"
+   ],
+   "code": 4,
+   "rows": [
+    {
+     "label": "B190021/totBrStateInq/gettotBrStateInq · 원본 · 202512",
+     "status": 403,
+     "gotValue": false,
+     "authFail": true,
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
+    }
+   ]
+  },
+  {
+   "id": "15057263",
+   "bases": [
+    "1613000/ebGuideBookListService"
+   ],
+   "ops": [
+    "DTebGuideBookList"
+   ],
+   "code": 4,
+   "rows": [
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 403,
+     "gotValue": false,
+     "authFail": true,
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
+    }
+   ]
+  },
+  {
+   "id": "15126468",
+   "bases": [
+    "1613000/RTMSDataSvcAptTradeDev"
+   ],
+   "ops": [
+    "getRTMSDataSvcAptTradeDev"
+   ],
+   "code": 4,
+   "rows": [
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 403,
+     "gotValue": false,
+     "authFail": true,
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
+    }
+   ]
+  },
+  {
+   "id": "15157254",
+   "bases": [
+    "B010003/OnbidCltrBidRsltDtlSrvc2"
+   ],
+   "ops": [
+    "getCltrBidRsltDtl2",
+    "getCltrBidRsltDtl"
+   ],
+   "code": 4,
+   "rows": [
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 403,
+     "gotValue": false,
+     "authFail": true,
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
+    },
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 400,
+     "gotValue": false,
+     "authFail": false,
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"NO_OPENAPI_SERVICE_ERROR\", \"returnAuthMsg\": \"해당 오픈API 서비스가 없거나 폐기됨\", \"returnReasonCode\": \"12\" } } }"
+    }
+   ]
+  },
+  {
+   "id": "15158394",
+   "bases": [
+    "B260003/BsnsService"
+   ],
+   "ops": [
+    "getBsnsInfoList",
+    "getBsnsInfoDetail"
+   ],
+   "code": 4,
+   "rows": [
+    {
+     "label": "B260003/BsnsService/getBsnsInfoList · 원본 · 202512",
+     "status": 403,
+     "gotValue": false,
+     "authFail": true,
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
+    },
+    {
+     "label": "B260003/BsnsService/getBsnsInfoDetail · 원본 · 202512",
+     "status": 403,
+     "gotValue": false,
+     "authFail": true,
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
+    }
+   ]
+  },
+  {
+   "id": "15126471",
+   "bases": [
+    "1613000/RTMSDataSvcSilvTrade"
+   ],
+   "ops": [
+    "getRTMSDataSvcSilvTrade"
+   ],
+   "code": 4,
+   "rows": [
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 403,
+     "gotValue": false,
+     "authFail": true,
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
+    }
+   ]
+  },
+  {
+   "id": "15157222",
+   "bases": [
+    "B010003/OnbidPbancBidRsltListSrvc2"
+   ],
+   "ops": [
+    "getPbancBidRsltList2",
+    "getPbancBidRsltList"
+   ],
+   "code": 4,
+   "rows": [
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 403,
+     "gotValue": false,
+     "authFail": true,
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
+    },
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 400,
+     "gotValue": false,
+     "authFail": false,
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"NO_OPENAPI_SERVICE_ERROR\", \"returnAuthMsg\": \"해당 오픈API 서비스가 없거나 폐기됨\", \"returnReasonCode\": \"12\" } } }"
+    }
+   ]
+  },
+  {
+   "id": "15157258",
+   "bases": [
+    "B010003/OnbidPbancBidRsltDtlSrvc2"
+   ],
+   "ops": [
+    "getPbancBidRsltDtl2",
+    "getPbancBidRsltDtl"
+   ],
+   "code": 4,
+   "rows": [
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 403,
+     "gotValue": false,
+     "authFail": true,
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
+    },
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 400,
+     "gotValue": false,
+     "authFail": false,
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"NO_OPENAPI_SERVICE_ERROR\", \"returnAuthMsg\": \"해당 오픈API 서비스가 없거나 폐기됨\", \"returnReasonCode\": \"12\" } } }"
     }
    ]
   }

@@ -1,6 +1,6 @@
 # 열쇠 이름 — 들어 있는가
 
-> 이름 52개 중 **7개 들어 있음 · 45개 없음** — 값은 안 찍는다 · 길이만
+> 이름 54개 중 **9개 들어 있음 · 45개 없음** — 값은 안 찍는다 · 길이만
 
 | 이름 | 무엇 | 이 저장소 Actions 비밀 |
 |---|---|---|
@@ -17,6 +17,8 @@
 | `KOICA_PROJ_SC` | KOICA 사업정보 | — 없음 |
 | `KOICA_COUNTRY_INFORMATION` | KOTRA 국가정보 | ✅ 있음 (길이 64) |
 | `KOTRA_KOREA_FDI_BY_INDUSTRY` | KOTRA 외국인투자 업종별 | ✅ 있음 (길이 64) |
+| `KSURE_COUNTRY_LIST` | 한국무역보험공사 국가목록 | ✅ 있음 (길이 64) |
+| `MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY` | 외교부 국가·지역별 우리나라와의 관계 | ✅ 있음 (길이 64) |
 | `MSS_BUSINESS_SUPPORT_ANNOUNCEMENTS` | 중소벤처기업부 사업공고 | ✅ 있음 (길이 64) |
 | `IBK_BRANCH_INFORMATION` | 기업은행 영업점 정보 | ✅ 있음 (길이 64) |
 | `KOICA_GLOBAL_POLITICAL_DEVELOPMENTS` | 외교부 정치현황 | ✅ 있음 (길이 64) |
