@@ -19,6 +19,13 @@
  * ★ 라임 위 글자는 **네이비**다. 흰 글자는 대비가 안 나온다 (§11).
  */
 
+/* 페이퍼로지 — 앱과 같은 글꼴 파일. 앱에 얹혀 뜨면 같은 출처 /fonts/ 를, 혼자 뜨면 jsDelivr(커밋 고정)를 받는다 */
+@font-face { font-family: Paperlogy; src: url(../fonts/Paperlogy-3Light.woff2) format('woff2'), url(https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@892c5e6b51f8947b532156e3f6e4c09773086387/Paperlogy-3Light.woff2) format('woff2'); font-weight: 300; font-display: swap; }
+@font-face { font-family: Paperlogy; src: url(../fonts/Paperlogy-4Regular.woff2) format('woff2'), url(https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@892c5e6b51f8947b532156e3f6e4c09773086387/Paperlogy-4Regular.woff2) format('woff2'); font-weight: 400; font-display: swap; }
+@font-face { font-family: Paperlogy; src: url(../fonts/Paperlogy-5Medium.woff2) format('woff2'), url(https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@892c5e6b51f8947b532156e3f6e4c09773086387/Paperlogy-5Medium.woff2) format('woff2'); font-weight: 500; font-display: swap; }
+@font-face { font-family: Paperlogy; src: url(../fonts/Paperlogy-6SemiBold.woff2) format('woff2'), url(https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@892c5e6b51f8947b532156e3f6e4c09773086387/Paperlogy-6SemiBold.woff2) format('woff2'); font-weight: 600; font-display: swap; }
+@font-face { font-family: Paperlogy; src: url(../fonts/Paperlogy-7Bold.woff2) format('woff2'), url(https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@892c5e6b51f8947b532156e3f6e4c09773086387/Paperlogy-7Bold.woff2) format('woff2'); font-weight: 700; font-display: swap; }
+
 :root {
   /* ── Brand (DESIGN_SYSTEM §2) ─────────────────────────── */
   /* ★★★ **1단계 작업지시서의 브랜드 색이 이 값들의 출처다** 〈D-138 · rev.B 로 개정〉.
@@ -72,7 +79,10 @@
   --lp-text-4: rgba(60,60,67,0.45);   /* 라벨 전용 — 본문에 쓰지 않는다 */
 
   /* ── Typography (§3) ──────────────────────────────────── */
-  --lp-font: -apple-system, "SF Pro Text", "SF Pro Display",
+  /* ★★★ 페이퍼로지가 먼저다 〈2026-10-18·19 사장님: 「플랫폼내 모든 숫자·영문 폰트는 페이퍼로지」 · CLAUDE.md §6-3-0-0〉
+   *   앱(platform)과 같은 스택이다 — 이 화면은 앱의 [보고서 만들기] 틀 안에 얹히므로 갈리면 그 칸만 다른 글꼴이 된다(실측).
+   *   대체는 Cambria → 옛 SF Pro 스택. */
+  --lp-font: Paperlogy, Cambria, -apple-system, "SF Pro Text", "SF Pro Display",
              system-ui, "Apple SD Gothic Neo", sans-serif;
   /* ★ 한글 본문은 14px 아래로 내리지 않는다. 캡션 11px 은 부수 라벨만 */
   --lp-size-title1:   28px;
@@ -171,3 +181,6 @@
   line-height: 1.6;
 }
 @keyframes lp-boot { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+
+/* ★ 숫자·영문까지 전부 페이퍼로지 — 화면이 고정폭(monospace)·inherit 을 따로 적어도 덮는다 (앱의 같은 규칙과 한 벌) */
+body *:not(svg):not(svg *) { font-family: var(--lp-font) !important; }

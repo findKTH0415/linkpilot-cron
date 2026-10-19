@@ -204,13 +204,18 @@ test('★ 디자인 시스템: 웹폰트를 불러오지 않는다', () => {
   // iOS·macOS 에 이미 있다
   SCREENS.concat(['tokens.css']).forEach((f) => {
     const s = read(f);
-    assert.ok(!/fonts\.googleapis|Pretendard|@font-face|Noto Sans KR|Roboto|['"]Inter['"]/.test(s),
+    // ★ 2026-10-18 사장님 지시로 페이퍼로지만은 tokens.css 한 곳에서 싣는다(§6-3-0-0) — 그 밖의 웹폰트는 여전히 안 된다
+    const body = f === 'tokens.css' ? s.replace(/@font-face\s*\{[^}]*font-family:\s*Paperlogy;[^}]*\}/g, '') : s;
+    assert.ok(!/fonts\.googleapis|Pretendard|@font-face|Noto Sans KR|Roboto|['"]Inter['"]/.test(body),
       `${f}: 웹폰트를 부른다`);
   });
 });
 
 test('★ 디자인 시스템: 글꼴 스택이 한 곳에서 나온다', () => {
-  assert.match(TOKENS, /--lp-font:\s*-apple-system, "SF Pro Text", "SF Pro Display",/);
+  assert.match(TOKENS, /--lp-font:\s*Paperlogy, Cambria, -apple-system, "SF Pro Text", "SF Pro Display",/);
+  // 숫자·영문까지 페이퍼로지 — 화면이 고정폭을 적어도 덮는 규칙이 있다 · 굵기 다섯이 다 있다
+  assert.match(TOKENS, /body \*:not\(svg\):not\(svg \*\)\s*\{\s*font-family:\s*var\(--lp-font\)\s*!important/);
+  [300, 400, 500, 600, 700].forEach((w) => assert.match(TOKENS, new RegExp('Paperlogy-' + String(w)[0] + '[A-Za-z]+\\.woff2[^}]*font-weight:\\s*' + w), `굵기 ${w}`));
   SCREENS.forEach((f) => {
     const s = read(f).replace(/<!--[\s\S]*?-->/g, '');
     // 화면이 자기 스택을 다시 적으면 한쪽만 고치는 날 갈린다
