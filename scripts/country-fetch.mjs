@@ -121,13 +121,10 @@ if (KEY_REL) {
    이 서비스만 못 받아도 판정은 안 바꾼다 — 요약 줄에 따로 적는다 */
 const ksu = { ok: false, why: KEY_KSU ? '' : '열쇠가 없다', items: [] };
 if (KEY_KSU) {
-  for (let page = 1; page <= 5; page++) {
-    const c = classify(await get(`https://apis.data.go.kr/B552696/country/getCountryList?serviceKey=${encodeURIComponent(KEY_KSU.value)}&pageNo=${page}&numOfRows=100&type=json`));
-    if (c.code !== 0) { ksu.why = (page === 1 ? '' : `${page}쪽에서 끊김 — `) + c.why; ksu.cut = page; break; }
-    ksu.items.push(...c.items);
-    if (c.items.length < 100) break;
-  }
-  if (ksu.items.length && !ksu.cut) ksu.ok = true;
+  /* 쪽을 안 나눈다 — pageNo·numOfRows 를 무시하고 표 전체를 준다(진단에서 3줄을 달라 했는데 더 왔다 · Codex #256). 한 번만 부르고 국가코드로 겹침을 뺀다 */
+  const c = classify(await get(`https://apis.data.go.kr/B552696/country/getCountryList?serviceKey=${encodeURIComponent(KEY_KSU.value)}&type=json`));
+  if (c.code !== 0) ksu.why = c.why;
+  else { const seen = new Set(); for (const x of c.items) { const k = x && String(x.ctryCd || ''); if (k && !seen.has(k)) { seen.add(k); ksu.items.push(x); } } ksu.ok = ksu.items.length > 0; }
 }
 const ksuByName = new Map(ksu.items.filter((x) => x && x.ctryNm && x.ctryCd).map((x) => [String(x.ctryNm).trim(), { code: String(x.ctryCd), name: String(x.ctryNm).trim() }]));
 const relByIso = new Map(rel.items.filter((x) => x && x.country_iso_alp2).map((x) => [String(x.country_iso_alp2).toUpperCase(), x]));

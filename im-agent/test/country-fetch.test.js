@@ -27,7 +27,7 @@ globalThis.fetch = async (u) => {
   if (s.includes('OverviewKorRelationService') && ${relOk === 'partial'}) return s.includes('pageNo=1&') ? J(items([{ country_iso_alp2: 'BD', country_nm: '방글라데시', diplomatic_relations: '쪽1' }, ...Array.from({ length: 99 }, (_, i) => ({ country_iso_alp2: 'X' + i }))])) : new Response('', { status: 200 });
   if (s.includes('OverviewKorRelationService')) return ${relOk ? "J(items([{ country_iso_alp2: 'BD', country_nm: '방글라데시', diplomatic_relations: '1973.12.18. 수교', export_amount: '1,000,000', investment_status: '투자 표본' }, { country_iso_alp2: 'ZZ', country_nm: '고르지 않은 나라' }]))" : "new Response('SERVICE_KEY_IS_NOT_REGISTERED_ERROR', { status: 200 })"};
   if (s.includes('kotra_nationalInformation')) return J(items([{ korCompNm: '표본기업' }]));
-  if (s.includes('B552696/country/getCountryList')) return J({ response: { header: { resultCode: 0, resultMsg: 'NORMAL SERVICE.' }, body: { items: { item: [{ ctryCd: '660', ctryNm: '방글라데시' }, { ctryCd: '627', ctryNm: '가나' }] } } } });
+  if (s.includes('B552696/country/getCountryList')) return J({ response: { header: { resultCode: 0, resultMsg: 'NORMAL SERVICE.' }, body: { items: { item: [{ ctryCd: '660', ctryNm: '방글라데시' }, { ctryCd: '627', ctryNm: '가나' }, { ctryCd: '627', ctryNm: '가나' }] } } } }, globalThis.__ksuN = (globalThis.__ksuN || 0) + 1);
   return new Response('?', { status: 404 });
 };`);
   return spawnSync(process.execPath, ['--import', stub, SRC], { cwd: dir, encoding: 'utf8', env: Object.assign({}, process.env, { COUNTRIES: 'BD', DATA_GO_KR_KEY: KEY, MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY: KEY, KSURE_COUNTRY_LIST: KEY }) });
@@ -71,7 +71,7 @@ test('무역보험공사 국가목록 — 나라 이름이 글자 그대로 같�
     assert.strictEqual(r.status, 0, (r.stderr || '').slice(-200));
     const j = JSON.parse(fs.readFileSync(path.join(dir, 'data/country/latest.json'), 'utf8'));
     assert.deepStrictEqual(j.countries.BD.ksure, { code: '660', name: '방글라데시' }, '방글라데시 = 무보 국가코드 660');
-    assert.deepStrictEqual([j.sources.ksure.id, j.sources.ksure.ok, j.sources.ksure.count], ['15144256', true, 2]);
+    assert.deepStrictEqual([j.sources.ksure.id, j.sources.ksure.ok, j.sources.ksure.count], ['15144256', true, 2], '겹친 줄은 한 번만 센다 · 쪽을 안 나누는 서비스라 한 번만 부른다 (Codex #256)');
     assert.ok(/무역보험공사 국가목록: 2개국 받음 · 이름이 맞은 나라 1\/1/.test(fs.readFileSync(path.join(dir, 'data/country/_summary.md'), 'utf8')), '요약에 받은 수와 맞은 나라 수');
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
