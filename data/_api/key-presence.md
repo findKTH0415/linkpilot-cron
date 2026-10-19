@@ -1,6 +1,6 @@
 # 열쇠 이름 — 들어 있는가
 
-> 이름 54개 중 **9개 들어 있음 · 45개 없음** — 값은 안 찍는다 · 길이만
+> 이름 53개 중 **10개 들어 있음 · 43개 없음** — 값은 안 찍는다 · 길이만
 
 | 이름 | 무엇 | 이 저장소 Actions 비밀 |
 |---|---|---|
@@ -14,7 +14,6 @@
 | `KEPCO` | 한국전력 | — 없음 |
 | `KPX_SMP_DEMAND_FORECAST` | 전력거래소 SMP·수요예측 | ✅ 있음 (길이 64) |
 | `KPX_POWER_SUPPLY_DEMAND_FORECAST_GW` | 전력거래소 전력수급예보 | ✅ 있음 (길이 64) |
-| `KOICA_PROJ_SC` | KOICA 사업정보 | — 없음 |
 | `KOICA_COUNTRY_INFORMATION` | KOTRA 국가정보 | ✅ 있음 (길이 64) |
 | `KOTRA_KOREA_FDI_BY_INDUSTRY` | KOTRA 외국인투자 업종별 | ✅ 있음 (길이 64) |
 | `KSURE_COUNTRY_LIST` | 한국무역보험공사 국가목록 | ✅ 있음 (길이 64) |
@@ -43,7 +42,7 @@
 | `NTS_BIZ_VERIFY` | 사업자 진위·상태 | — 없음 |
 | `KAMCO_ONBID_BID_RESULT` | 온비드 입찰결과목록 | — 없음 |
 | `KAMCO_SEIZED_AUCTION_RATE` | 압류재산 공매 낙찰가율 | — 없음 |
-| `FSC_ASSET_MANAGEMENT_BUSINESS_STATISTICS` | 자산운용사 영업활동통계 | — 없음 |
+| `FSC_ASSET_MANAGEMENT_BUSINESS_STATISTICS` | 자산운용사 영업활동통계 | ✅ 있음 (길이 64) |
 | `FSC_CORP_BASIC` | 기업기본정보 | — 없음 |
 | `FSC_AMC_API` | 종합금융회사 | — 없음 |
 | `FSC_API` | 기금대출정보 | — 없음 |

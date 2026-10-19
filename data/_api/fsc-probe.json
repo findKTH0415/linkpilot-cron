@@ -10,7 +10,6 @@
   "FSC__AGRICULTURAL_COOPERATIVE_BANK_API": null,
   "FSC_FISHERIES_COOPERATIVE_BANK_API": null,
   "FSC_SP_FIN": null,
-  "KOICA_PROJ_SC": null,
   "KOICA_GLOBAL_POLITICAL_DEVELOPMENTS": 64,
   "KOICA_COUNTRY_INFORMATION": 64,
   "KOTRA_KOREA_FDI_BY_INDUSTRY": 64,
@@ -329,23 +328,6 @@
    ]
   },
   {
-   "id": "15099215",
-   "bases": [
-    "B260003/OdaBusinessInfoService"
-   ],
-   "ops": [],
-   "code": 4,
-   "rows": [
-    {
-     "label": "*** · 원본 · 202512",
-     "status": 403,
-     "gotValue": false,
-     "authFail": true,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
-    }
-   ]
-  },
-  {
    "id": "15099537",
    "bases": [
     "1262000/OverviewPoliticService"
@@ -371,13 +353,14 @@
    "ops": [
     "natnInfo"
    ],
-   "code": 5,
+   "code": 0,
    "rows": [
     {
      "label": "B410001/kotra_nationalInformation/natnInfo/natnInfo · 원본 · 202512",
-     "status": null,
-     "gotValue": false,
-     "authFail": false
+     "status": 200,
+     "gotValue": true,
+     "authFail": false,
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NO ERROR\"},\"body\":{\"itemList\":{\"item\":{\"korCompList\":{\"korComp\":[{\"tretRealmCntnt\":\"무역/에너지\",\"acplcAdvncYear\":\"1979\",\"acplcAdvncFormCntnt\":\"지사\",\"pcompNm\":\"포스코대우\",\"indlnCntnt\":\"무역\",\"korCompNm\":\"포스코인터내셔널\"},{\"tretRealmCntnt\":\"건설업/송전선로\",\"acplcAdvncYea"
     },
     {
      "label": "B410001/kotra_nationalInformation/natnInfo · 원본 · 202512",
@@ -571,7 +554,7 @@
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL_CODE\"},\"body\":{\"items\":{\"item\":[{\"CRTR_YMD\":\"20261018\",\"SDNM\":\"경기도\",\"SGGNM\":\"평택시\",\"PRPT_ITEM_NM\":\"대\",\"SCFB_YR\":\"2025\",\"SCFB_MT\":\"10\",\"APSL_EVL_AMT\":22308000,\"DSPL_AMT\":12690000,\"SCFB_PRC_RTO\":56.89},{\"CRTR_YMD\":\"20261018\",\"SDNM\":\"경기도\",\"SGGNM\":\"화성시\",\"P"
+     "head": "{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL_CODE\"},\"body\":{\"items\":{\"item\":[{\"CRTR_YMD\":\"20261019\",\"SDNM\":\"경상북도\",\"SGGNM\":\"포항시 남구\",\"PRPT_ITEM_NM\":\"공동주택\",\"SCFB_YR\":\"2025\",\"SCFB_MT\":\"10\",\"APSL_EVL_AMT\":160000000,\"DSPL_AMT\":100047000,\"SCFB_PRC_RTO\":62.53},{\"CRTR_YMD\":\"20261019\",\"SDNM\":\"대구광역시\",\"SGGN"
     }
    ]
   },
@@ -693,17 +676,17 @@
     },
     {
      "label": "1613000/HsPmsHubService/getHpSbsdFcInfo · 원본 · 202512",
-     "status": 200,
-     "gotValue": true,
+     "status": 503,
+     "gotValue": false,
      "authFail": false,
-     "head": "<response><header><resultCode>00</resultCode><resultMsg>NORMAL SERVICE</resultMsg></header><body><items><item><rnum>1</rnum><platPlc>경기도 성남시 분당구 금곡동 125번지</platPlc><sigunguCd>41135</sigunguCd><bjdongCd>11100</bjdongCd><platGbCd>0</platGbCd><bun>0125</bun><ji>0000</ji><mgmHsrgstPk>1000000000000000149"
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
     },
     {
      "label": "1613000/HsPmsHubService/getHpWclfInfo · 원본 · 202512",
-     "status": 200,
-     "gotValue": true,
+     "status": 503,
+     "gotValue": false,
      "authFail": false,
-     "head": "<response><header><resultCode>00</resultCode><resultMsg>NORMAL SERVICE</resultMsg></header><body><items><item><rnum>1</rnum><platPlc>경기도 성남시 분당구 금곡동 125번지</platPlc><sigunguCd>41135</sigunguCd><bjdongCd>11100</bjdongCd><platGbCd>0</platGbCd><bun>0125</bun><ji>0000</ji><mgmHsrgstPk>1000000000000000254"
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
     }
    ]
   },
@@ -711,21 +694,19 @@
    "id": "15081808",
    "bases": [],
    "ops": [],
-   "code": 1,
+   "code": 3,
    "rows": [
     {
      "label": "odcloud POST /validate · 빈 몸통",
-     "status": 411,
+     "status": null,
      "gotValue": false,
-     "authFail": false,
-     "head": "{\"status_code\":\"REQUEST_DATA_MALFORMED\"}"
+     "authFail": false
     },
     {
      "label": "odcloud POST /status · 빈 몸통",
-     "status": 411,
+     "status": null,
      "gotValue": false,
-     "authFail": false,
-     "head": "{\"status_code\":\"REQUEST_DATA_MALFORMED\"}"
+     "authFail": false
     }
    ]
   },
@@ -905,14 +886,14 @@
     "B190030/GetFundLoanInfoService"
    ],
    "ops": [],
-   "code": 5,
+   "code": 0,
    "rows": [
     {
      "label": "*** · 원본 · 202512",
      "status": 200,
-     "gotValue": false,
+     "gotValue": true,
      "authFail": false,
-     "head": "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <response> <resultCode>99</resultCode> <resultMsg>[BEBII00002] 자료 조회시 오류가 발생하였습니다. [BEBII00005] 필수항목이 입력되지 않았습니다. 필수 항목이 입력되지 않았습니다.</resultMsg> </response>"
+     "head": "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <response> <header> <resultCode>0</resultCode> <resultMsg>NORMAL_CODE</resultMsg> </header> <body> <numOfRows>3</numOfRows> <pageNo>1</pageNo> <totalCount>18</totalCount> <items> <item> <bseYy>2025</bseYy> <brwEdaNm>환경산업분야자금</brwEdaNm> <trOpsIstNm>한국환경산업기술원</tr"
     }
    ]
   },
@@ -943,33 +924,6 @@
    "ops": [],
    "code": 4,
    "rows": [
-    {
-     "label": "*** · 원본 · 202512",
-     "status": 403,
-     "gotValue": false,
-     "authFail": true,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
-    }
-   ]
-  },
-  {
-   "id": "15158399",
-   "bases": [
-    "B260003/BsnsAddService"
-   ],
-   "ops": [
-    "getBsnsInfoRealmList",
-    "getBsnsInfoNationList"
-   ],
-   "code": 4,
-   "rows": [
-    {
-     "label": "*** · 원본 · 202512",
-     "status": 403,
-     "gotValue": false,
-     "authFail": true,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
-    },
     {
      "label": "*** · 원본 · 202512",
      "status": 403,
@@ -1060,33 +1014,6 @@
      "gotValue": false,
      "authFail": false,
      "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"NO_OPENAPI_SERVICE_ERROR\", \"returnAuthMsg\": \"해당 오픈API 서비스가 없거나 폐기됨\", \"returnReasonCode\": \"12\" } } }"
-    }
-   ]
-  },
-  {
-   "id": "15158394",
-   "bases": [
-    "B260003/BsnsService"
-   ],
-   "ops": [
-    "getBsnsInfoList",
-    "getBsnsInfoDetail"
-   ],
-   "code": 4,
-   "rows": [
-    {
-     "label": "B260003/BsnsService/getBsnsInfoList · 원본 · 202512",
-     "status": 403,
-     "gotValue": false,
-     "authFail": true,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
-    },
-    {
-     "label": "B260003/BsnsService/getBsnsInfoDetail · 원본 · 202512",
-     "status": 403,
-     "gotValue": false,
-     "authFail": true,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
     }
    ]
   },
