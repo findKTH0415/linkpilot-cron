@@ -234,6 +234,11 @@ jobs:
           node scripts/price-probe.mjs || true
           { echo ''; echo '### 전력 판매 단가 (SMP · REC)'; cat data/_api/price-probe.md 2>/dev/null | head -60 || echo '(못 읽었다)'; } >> "$GITHUB_STEP_SUMMARY"
           cat data/_api/price-probe.md 2>/dev/null || true
+          # ★ 2026-10-20 — 신재생 보고서용 셋(REC 거래시장 · 중부발전 REC 기준가격 · 환경영향평가 지형지질).
+          #   포털 검색 → 안내 페이지에서 서비스를 읽어 그대로 부른다. 승인 여부를 갈라 적는다 — 열쇠는 안 싣는다 (§2).
+          node scripts/re-probe.mjs || true
+          { echo ''; echo '### 신재생 보고서용 셋'; head -60 data/_api/re-probe.md 2>/dev/null || echo '(못 읽었다)'; } >> "$GITHUB_STEP_SUMMARY"
+          cat data/_api/re-probe.md 2>/dev/null || true
           # ★ D-435 — 한국은행 국제수지. 통계표 코드를 외워 박지 않고 목록에서 찾아 부른다 (§4.3).
           node scripts/ecos-bop-probe.mjs || true
           { echo ''; echo '### 한국은행 국제수지'; head -40 data/_api/ecos-bop-probe.md 2>/dev/null || echo '(못 읽었다)'; } >> "$GITHUB_STEP_SUMMARY"
