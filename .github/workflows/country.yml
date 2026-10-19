@@ -33,6 +33,7 @@ jobs:
         env:
           KOICA_GLOBAL_POLITICAL_DEVELOPMENTS: ${{ secrets.KOICA_GLOBAL_POLITICAL_DEVELOPMENTS }}
           KOICA_COUNTRY_INFORMATION: ${{ secrets.KOICA_COUNTRY_INFORMATION }}
+          MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY: ${{ secrets.MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY }}
           DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
           COUNTRIES: ${{ github.event.inputs.countries || '' }}
         continue-on-error: true

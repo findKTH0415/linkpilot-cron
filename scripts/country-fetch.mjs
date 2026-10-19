@@ -1,4 +1,4 @@
-// 해외 국가 개황 주간 수집 — 외교부 국가·지역별 정치현황 + KOTRA 국가정보 (D-442)
+// 해외 국가 개황 주간 수집 — 외교부 국가·지역별 정치현황 + KOTRA 국가정보 (D-442) + 외교부 국가·지역별 우리나라와의 관계 (2026-10-19)
 // 의존성 없음. Node 20+ 내장 fetch 만 쓴다.
 //
 // ★ 왜: 투자정보 [해외투자자] 탭에 «나라를 고르면 정치·경제 개황이 서는» 칸을 붙이려면 자료가 먼저다.
@@ -19,7 +19,9 @@ await mkdir(OUT, { recursive: true });
 const pick = (...names) => { for (const n of names) { const v = String(process.env[n] || '').trim(); if (v) return { name: n, value: v }; } return null; };
 const KEY_POL = pick('KOICA_GLOBAL_POLITICAL_DEVELOPMENTS', 'DATA_GO_KR_KEY');
 const KEY_KOT = pick('KOICA_COUNTRY_INFORMATION', 'DATA_GO_KR_KEY');
-const SECRETS = [KEY_POL, KEY_KOT].filter(Boolean).map((k) => k.value);
+/* 〈2026-10-19 사장님: 「외교부_국가·지역별 우리나라와의 관계 키넣었어」〉 — 진단(api-smoke · 러너) 판정 0 · 15099539 · 전체 목록이 온다 */
+const KEY_REL = pick('MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY', 'DATA_GO_KR_KEY');
+const SECRETS = [KEY_POL, KEY_KOT, KEY_REL].filter(Boolean).map((k) => k.value);
 const mask = (s) => { let t = String(s ?? ''); for (const v of SECRETS) { t = t.split(v).join('***').split(encodeURIComponent(v)).join('***'); } return t; };
 
 // 고르는 나라 — 사장님 프로젝트에 걸린 나라와 주변 시장. 바꾸려면 COUNTRIES="BD,VN" 로 준다.
@@ -98,6 +100,21 @@ if (KEY_POL) {
   }
   if (pol.items.length) { pol.ok = true; pol.code = 0; }
 }
+/* ③ 외교부 우리나라와의 관계 — 정치현황과 같은 모양(전체 목록 · ISO 2자리 칸)이라 같은 법으로 받는다.
+   서버 쪽 나라 거르기 인자는 잰 적이 없어 안 넣는다 — 전량 받아 여기서 고른다 (§4 「서버 필터가 안 먹는 API」) */
+const rel = { ok: false, code: KEY_REL ? 2 : 4, why: KEY_REL ? '' : '열쇠가 없다', items: [] };
+if (KEY_REL) {
+  for (let page = 1; page <= 5; page++) {
+    const url = `https://apis.data.go.kr/1262000/OverviewKorRelationService/getOverviewKorRelationList?serviceKey=${encodeURIComponent(KEY_REL.value)}&pageNo=${page}&numOfRows=100&returnType=JSON`;
+    const c = classify(await get(url));
+    if (c.code !== 0) { if (page === 1) { rel.code = c.code; rel.why = c.why; } break; }
+    rel.items.push(...c.items);
+    if (c.items.length < 100) break;
+  }
+  if (rel.items.length) { rel.ok = true; rel.code = 0; }
+}
+const relByIso = new Map(rel.items.filter((x) => x && x.country_iso_alp2).map((x) => [String(x.country_iso_alp2).toUpperCase(), x]));
+
 const polByIso = new Map(pol.items.filter((x) => x && x.country_iso_alp2).map((x) => [String(x.country_iso_alp2).toUpperCase(), x]));
 
 // ② KOTRA 국가정보 — 고른 나라마다
@@ -119,44 +136,46 @@ const countries = {};
 for (const iso of COUNTRIES) {
   const p = polByIso.get(iso) || (prev && prev.countries && prev.countries[iso] && prev.countries[iso].politic) || null;
   const k = kot.rows[iso] || (prev && prev.countries && prev.countries[iso] && prev.countries[iso].kotra) || null;
-  countries[iso] = { iso, name: (p && p.country_nm) || null, politic: p, kotra: k };
+  const r = relByIso.get(iso) || (prev && prev.countries && prev.countries[iso] && prev.countries[iso].korel) || null;
+  countries[iso] = { iso, name: (p && p.country_nm) || (r && r.country_nm) || null, politic: p, kotra: k, korel: r };
 }
 const result = {
   updatedAt: now,
   sources: {
     politic: { org: '외교부', service: '국가·지역별 정치현황', id: '15099537', ok: pol.ok, count: pol.items.length },
     kotra: { org: '대한무역투자진흥공사', service: '국가정보', id: '15034830', got: kot.got, of: COUNTRIES.length, fields: [...kot.fields] },
+    korel: { org: '외교부', service: '국가·지역별 우리나라와의 관계', id: '15099539', ok: rel.ok, count: rel.items.length },
   },
   countries,
 };
-if (pol.ok || kot.got > 0) await writeFile(`${OUT}/latest.json`, JSON.stringify(result, null, 1) + '\n');
+if (pol.ok || kot.got > 0 || rel.ok) await writeFile(`${OUT}/latest.json`, JSON.stringify(result, null, 1) + '\n');
 
-say(`- 열쇠: 정치현황 ${KEY_POL ? `\`${KEY_POL.name}\` (${KEY_POL.value.length}자)` : '**없음**'} · KOTRA ${KEY_KOT ? `\`${KEY_KOT.name}\` (${KEY_KOT.value.length}자)` : '**없음**'}`);
+say(`- 열쇠: 정치현황 ${KEY_POL ? `\`${KEY_POL.name}\` (${KEY_POL.value.length}자)` : '**없음**'} · KOTRA ${KEY_KOT ? `\`${KEY_KOT.name}\` (${KEY_KOT.value.length}자)` : '**없음**'} · 우리나라와의 관계 ${KEY_REL ? `\`${KEY_REL.name}\` (${KEY_REL.value.length}자)` : '**없음**'}`);
 say(`- KOTRA 칸 이름: ${kot.fields.size ? [...kot.fields].map((x) => `\`${x}\``).join(' ') : '(받은 칸 없음)'}`, '');
-say('| 나라 | 정치현황 | KOTRA |', '|---|---|---|');
+say('| 나라 | 정치현황 | KOTRA | 우리나라와의 관계 |', '|---|---|---|---|');
 for (const iso of COUNTRIES) {
   const kc = kot.codes[iso];
-  say(`| ${iso} ${countries[iso].name || ''} | ${polByIso.has(iso) ? '받음' : '없음'} | ${kc.code === 0 ? `받음 (${kot.rows[iso].length}건)` : `판정 ${kc.code} — ${kc.why}`} |`);
+  say(`| ${iso} ${countries[iso].name || ''} | ${polByIso.has(iso) ? '받음' : '없음'} | ${kc.code === 0 ? `받음 (${kot.rows[iso].length}건)` : `판정 ${kc.code} — ${kc.why}`} | ${relByIso.has(iso) ? '받음' : rel.ok ? '없음' : `판정 ${rel.code} — ${rel.why}`} |`);
 }
 // 판정 — 고칠 것이 있는 쪽이 이긴다(인증 거부 > 규격·비었음 > 못 닿음)
 const kotCodes = Object.values(kot.codes).map((x) => x.code);
-const parts = [pol.code, ...kotCodes];
+const parts = [pol.code, rel.code, ...kotCodes];
 let code;
-if (pol.ok && kot.got === COUNTRIES.length) code = 0;
-else if (pol.ok || kot.got > 0) code = 1;
+if (pol.ok && rel.ok && kot.got === COUNTRIES.length) code = 0;
+else if (pol.ok || rel.ok || kot.got > 0) code = 1;
 else if (parts.includes(4)) code = 4;
 else if (parts.includes(5)) code = 5;
 else code = 2;
 const MEAN = {
-  0: '둘 다 받았다',
+  0: '셋 다 받았다',
   1: '일부만 받았다 — 아래 표에서 어느 쪽·어느 나라가 빠졌는지 본다',
-  2: '둘 다 못 닿았다 — 도는 자리(러너·NAS)를 본다. 열쇠 문제가 아니다',
+  2: '셋 다 못 닿았다 — 도는 자리(러너·NAS)를 본다. 열쇠 문제가 아니다',
   4: '열쇠가 없거나 거부됐다 — 아래 «열쇠» 줄과 표의 사유로 갈라 본다 (없으면 Secrets 이름 · 거부면 활용신청)',
   5: '대답은 왔는데 비었다 — 주소·인자 규격을 본다. 열쇠 문제가 아니다',
 };
 
 // 판정은 요약 «맨 앞»에 올린다 — 맨 끝에 적으면 아무도 안 본다 (§6-3 ①)
-log.unshift(mask(`> **판정 ${code}** — ${MEAN[code]} (정치현황 ${pol.ok ? `${pol.items.length}개국` : `못 받음 · ${pol.why}`} · KOTRA ${kot.got}/${COUNTRIES.length}개국)`), '');
+log.unshift(mask(`> **판정 ${code}** — ${MEAN[code]} (정치현황 ${pol.ok ? `${pol.items.length}개국` : `못 받음 · ${pol.why}`} · KOTRA ${kot.got}/${COUNTRIES.length}개국 · 우리나라와의 관계 ${rel.ok ? `${rel.items.length}개국` : `못 받음 · ${rel.why}`})`), '');
 console.log(log[0]);
 await writeFile(`${OUT}/_summary.md`, log.join('\n') + '\n');
 console.error(`판정 ${code} — ${MEAN[code]}`);
