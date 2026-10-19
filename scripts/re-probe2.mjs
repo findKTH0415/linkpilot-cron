@@ -11,7 +11,7 @@ const key = pick(['DATA_GO_KR_KEY', 'PERSONAL_API_KEY']);
 P('# re-probe2 — 규격에서 인자 읽기'); P(`- 포털 열쇠: ${key ? `\`${key.name}\`` : '**없다**'}`);
 const kst = new Date(Date.now() + 9 * 3600e3);
 const ymd = (n) => new Date(kst.getTime() - n * 86400e3).toISOString().slice(0, 10).replace(/-/g, '');
-for (const id of ['15084795', '15003824', '15142639']) {
+for (const id of ['15084795', '15142639']) {
   P(''); P(`## ${id}`);
   let html = '';
   try { html = await (await fetch(`https://www.data.go.kr/data/${id}/openapi.do`, { signal: AbortSignal.timeout(15000) })).text(); } catch (e) { P(`- 안내 페이지 못 닿음`); continue; }
@@ -23,6 +23,8 @@ for (const id of ['15084795', '15003824', '15142639']) {
   if (su) { try { sw = JSON.parse(await (await fetch(su, { signal: AbortSignal.timeout(15000) })).text()); } catch (_) {} }
   if (!sw) { const m = html.match(/var\s+swaggerJson\s*=\s*`([\s\S]*?)`/) || html.match(/swaggerJson\s*=\s*'([\s\S]*?)';/); if (m) { try { sw = JSON.parse(m[1]); } catch (_) {} } }
   P(`- 규격 ${sw ? '읽음' : '못 읽음'} ${su ? '(swaggerUrl)' : ''} · host ${sw && sw.host || ''} · basePath ${sw && sw.basePath || ''}`);
+  { const t = html.replace(/<script[\s\S]*?<\/script>/gi,' ').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ').replace(/\s+/g,' ');
+    for (const w of ['요청변수', '항목명(영문)', '출력결과', '응답메시지']) { let i = t.indexOf(w), n = 0; while (i >= 0 && n < 3) { P(`- «${w}» 둘레 «${redact(t.slice(i, i + 900))}»`); i = t.indexOf(w, i + 900); n++; } } }
   if (!sw) { const i = html.indexOf('요청주소'); P(`- 요청주소 둘레 «${redact(html.slice(Math.max(0, i), i + 400).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' '))}»`); continue; }
   for (const [p, ms] of Object.entries(sw.paths || {})) for (const [m, op] of Object.entries(ms || {})) {
     const ps = (op.parameters || []).filter((x) => !/^serviceKey$/i.test(x.name));
