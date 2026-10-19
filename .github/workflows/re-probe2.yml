@@ -1,0 +1,26 @@
+name: re-probe2 (가지 전용 진단)
+on:
+  push:
+    branches: ['probe/re-sources-20261020']
+    paths: ['scripts/re-probe2.mjs', '.github/workflows/re-probe2.yml']
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+      - name: 규격 읽고 다시 부른다
+        env:
+          DATA_GO_KR_KEY:   ${{ secrets.DATA_GO_KR_KEY }}
+          PERSONAL_API_KEY: ${{ secrets.PERSONAL_API_KEY }}
+        run: node scripts/re-probe2.mjs || true
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: re-probe2
+          path: data/_api/re-probe2.md
