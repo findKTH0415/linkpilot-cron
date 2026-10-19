@@ -115,28 +115,28 @@
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":29011,\"items\":{\"item\":[{\"basDt\":\"20261015\",\"ctg\":\"혼합채권형\",\"tstMthdCtg\":\"사모\",\"nPptTotAmt\":\"7500593055245\"},{\"basDt\":\"20261015\",\"ctg\":\"PEF\",\"tstMthdCtg\":\"사모\",\"nPptTotAmt\":\"3715981872310"
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":29036,\"items\":{\"item\":[{\"basDt\":\"20261016\",\"ctg\":\"혼합채권형\",\"tstMthdCtg\":\"공모\",\"nPptTotAmt\":\"31128334499692\"},{\"basDt\":\"20261016\",\"ctg\":\"-\",\"tstMthdCtg\":\"공모\",\"nPptTotAmt\":\"36259037019\"},"
     },
     {
      "label": "*** · 원본 · 202512",
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":14604,\"items\":{\"item\":[{\"basDt\":\"20261015\",\"mngInvTgt\":\"기타형\",\"invrCtg\":\"기관\",\"scrtCmpyCnt\":\"14\",\"actCnt\":\"58411\",\"actBal\":\"7609910849783\"},{\"basDt\":\"20261015\",\"mngInvTgt\":\"합계\",\"invrCt"
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":14616,\"items\":{\"item\":[{\"basDt\":\"20261016\",\"mngInvTgt\":\"종금형\",\"invrCtg\":\"기관\",\"scrtCmpyCnt\":\"1\",\"actCnt\":\"195\",\"actBal\":\"10190524070\"},{\"basDt\":\"20261016\",\"mngInvTgt\":\"합계\",\"invrCtg\":\"개"
     },
     {
      "label": "*** · 원본 · 202512",
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":1204,\"items\":{\"item\":[{\"basDt\":\"20261015\",\"crdTrFingWhl\":\"32749896666992\",\"crdTrFingScrs\":\"25532077937195\",\"crdTrFingKosdaq\":\"7217818729797\",\"crdTrLndrWhl\":\"26124386817\",\"crdTrLndrSc"
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":1205,\"items\":{\"item\":[{\"basDt\":\"20261016\",\"crdTrFingWhl\":\"32252822342183\",\"crdTrFingScrs\":\"25042127635937\",\"crdTrFingKosdaq\":\"7210694706246\",\"crdTrLndrWhl\":\"26291870815\",\"crdTrLndrSc"
     },
     {
      "label": "*** · 원본 · 202512",
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":1217,\"items\":{\"item\":[{\"basDt\":\"20261015\",\"invrDpsgAmt\":\"96912122447206\",\"onbdDrvPrdTrRcAdvAmt\":\"37644384937928\",\"toCstRpchCndBndSlgBal\":\"107748833647267\",\"brkTrdUcolMny\":\"1392560731"
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":1218,\"items\":{\"item\":[{\"basDt\":\"20261016\",\"invrDpsgAmt\":\"94402968108656\",\"onbdDrvPrdTrRcAdvAmt\":\"34973906349126\",\"toCstRpchCndBndSlgBal\":\"108216030756700\",\"brkTrdUcolMny\":\"1232272539"
     },
     {
      "label": "*** · 원본 · 202512",
@@ -676,17 +676,17 @@
     },
     {
      "label": "1613000/HsPmsHubService/getHpSbsdFcInfo · 원본 · 202512",
-     "status": 503,
-     "gotValue": false,
+     "status": 200,
+     "gotValue": true,
      "authFail": false,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
+     "head": "<response><header><resultCode>00</resultCode><resultMsg>NORMAL SERVICE</resultMsg></header><body><items><item><rnum>1</rnum><platPlc>경기도 성남시 분당구 금곡동 125번지</platPlc><sigunguCd>41135</sigunguCd><bjdongCd>11100</bjdongCd><platGbCd>0</platGbCd><bun>0125</bun><ji>0000</ji><mgmHsrgstPk>1000000000000000149"
     },
     {
      "label": "1613000/HsPmsHubService/getHpWclfInfo · 원본 · 202512",
-     "status": 503,
-     "gotValue": false,
+     "status": 200,
+     "gotValue": true,
      "authFail": false,
-     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
+     "head": "<response><header><resultCode>00</resultCode><resultMsg>NORMAL SERVICE</resultMsg></header><body><items><item><rnum>1</rnum><platPlc>경기도 성남시 분당구 금곡동 125번지</platPlc><sigunguCd>41135</sigunguCd><bjdongCd>11100</bjdongCd><platGbCd>0</platGbCd><bun>0125</bun><ji>0000</ji><mgmHsrgstPk>1000000000000000254"
     }
    ]
   },
@@ -694,19 +694,21 @@
    "id": "15081808",
    "bases": [],
    "ops": [],
-   "code": 3,
+   "code": 1,
    "rows": [
     {
      "label": "odcloud POST /validate · 빈 몸통",
-     "status": null,
+     "status": 411,
      "gotValue": false,
-     "authFail": false
+     "authFail": false,
+     "head": "{\"status_code\":\"REQUEST_DATA_MALFORMED\"}"
     },
     {
      "label": "odcloud POST /status · 빈 몸통",
-     "status": null,
+     "status": 411,
      "gotValue": false,
-     "authFail": false
+     "authFail": false,
+     "head": "{\"status_code\":\"REQUEST_DATA_MALFORMED\"}"
     }
    ]
   },
@@ -794,10 +796,9 @@
    "rows": [
     {
      "label": "1160100/service/GetCorpBasicInfoService_V2/getAffiliate_V2 · 원본 · 202512",
-     "status": 200,
-     "gotValue": true,
-     "authFail": false,
-     "head": "{\"response\":{\"body\":{\"items\":{\"item\":[{\"basDt\":\"20200509\",\"crno\":\"1101110000086\",\"afilCmpyNm\":\"롯데건설(주)\",\"afilCmpyCrno\":\"1101110014764\",\"lstgYn\":\"\"},{\"basDt\":\"20200509\",\"crno\":\"1101110000086\",\"afilCmpyNm\":\"(주)롯데푸드\",\"afilCmpyCrno\":\"1101110033722\",\"lstgYn\":\"\"},{\"basDt\":\"20200509\",\"crno\":\"1101110000086\""
+     "status": null,
+     "gotValue": false,
+     "authFail": false
     },
     {
      "label": "1160100/service/GetCorpBasicInfoService_V2/getConsSubsComp_V2 · 원본 · 202512",

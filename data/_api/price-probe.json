@@ -1,5 +1,5 @@
 {
- "at": "2026-10-19T16:53:45.025Z",
+ "at": "2026-10-19T23:50:21.011Z",
  "rec": {
   "area": "land",
   "months": 1,
@@ -210,7 +210,7 @@
    "svc": "15158707",
    "op": "***",
    "status": 200,
-   "head": "{  \"response\" : {    \"header\" : {      \"resultCode\" : \"00\",      \"resultMsg\" : \"OK\"    },    \"body\" : {      \"dataType\" : \"JSON\",      \"totalCount\" : \"1\",      \"numOfRows\" : \"50\",      \"pageNo\" : \"1\",      \"items\" : {        \"item\" : [ {          \"fcStime\" : \"18\",          \"fcMaxload\" : 71800,          \"fcDate\" : \"20261020\",          \"fcEtime\" : \"19\",          \"rn\" : 1,          \"fcLevel\" : 0,          \"fcReservePwr\" : 19150        } ]      }    }  }}"
+   "head": "{  \"response\" : {    \"header\" : {      \"resultCode\" : \"00\",      \"resultMsg\" : \"OK\"    },    \"body\" : {      \"dataType\" : \"JSON\",      \"totalCount\" : \"1\",      \"numOfRows\" : \"50\",      \"pageNo\" : \"1\",      \"items\" : {        \"item\" : [ {          \"fcStime\" : \"18\",          \"fcMaxload\" : 71800,          \"fcDate\" : \"20261020\",          \"fcEtime\" : \"19\",          \"rn\" : 1,          \"fcLevel\" : 0,          \"fcReservePwr\" : 19007        } ]      }    }  }}"
   }
  ],
  "smpPublic": [
