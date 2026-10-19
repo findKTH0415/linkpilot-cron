@@ -1316,6 +1316,9 @@ IM 생성 전체를 죽이지 않는다.** 인증·요청 오류(400/401/403/404
   받는 자리는 같은 출처 `fonts/` 먼저 · jsDelivr(커밋 고정) 다음. 인라인 `fontFamily` 까지 `body *:not(svg)…{font-family:var(--lp-font)!important}` 로 덮는다.
 - **까닭** — v3·v4(아래)는 SF Pro 스택 하나였다. **나중 지시가 이긴다** — v3·v4 의 다른 값(색·모서리·높이)은 그대로다.
 - ★ **캔버스 카드(`ctx.font`)는 CSS 를 안 따른다** — 〈2026-10-18 · platform #432〉 명언·나의 글·예약·태양광 카드도 `Paperlogy,Cambria` 먼저로 바꿨고, 그리기 전에 `window.lpFontsReady()`(다섯 굵기 · 3초 상한)를 기다린다. 800·900 은 700 으로 그려진다. 재는 자리: `test-mine-card.js`(그려진 글꼴 · 받아졌는가).
+- ★ **[보고서 만들기] 틀 안 화면(im-flow)도 페이퍼로지다** 〈2026-10-19 사장님: 「플렛폼내 모든 숫자·영문 폰트는 페이퍼로지」 · cron #251 · platform #447〉 — 앱 13메뉴는 실측 0곳이었고, 남은 자리는 이 저장소 `im-agent/ui/platform/tokens.css` 가 옛 SF Pro 스택을 쓰던 틀 안 화면 하나였다.
+  같은 다섯 굵기 · 같은 출처 `../fonts/` 먼저 · 인라인까지 덮는다. ★ 이 저장소 화면을 고치면 platform `im-flow/` 사본도 함께 보낸다(§8-2). 재는 자리: `im-agent/test/design-system.test.js` · platform `test-flow-font.js`(틀을 그려 잰다).
+- ★ **폰 화면의 긴 값 칸은 낱말 중간에서 안 꺾는다** 〈2026-10-19 사장님 폰 화면: 「본문내용 한쪽으로 치우침 휴대폰 환경에 맞춰 배열」 · platform #446〉 — 값 칸은 `word-break:keep-all` · 제목은 그 줄 폭을 다 쓴다 · 줄마다 붙던 출처 딱지는 카드 맨 위 한 줄로 모은다. 재는 자리: platform `test-inv-mobile-wrap.js`(360px 틀).
 - ★ **좌우 여백은 화면마다 잰다** 〈2026-10-18 사장님: 「앱센터 양쪽 여백 좀 여유있게」 · platform #431〉 — 앱센터만 0 이었다(24 로 고침 · 위 배너 머리와 같은 선). 1000px 에서 23화면을 그려 재 보니 0 인 곳은 더 없고 대부분 24, 할일·캘린더·프로젝트 20 · 커뮤니티·내 정보 14 · 부동산 18 이다. 〈2026-10-18 · platform #434 · 「권하는 개선안 대로 진행해」〉 그 여섯을 데스크탑 24(커뮤니티는 본문 32 에 맞춤)로 맞췄고, 폰은 앞 판 그대로다. 재는 자리: `test-desk-gutter.js`(22화면 1366px · 폰 390 틀).
 - 절차: 스킬 [`.claude/skills/linkpilot-font/SKILL.md`](.claude/skills/linkpilot-font/SKILL.md) · 재는 자리: `linkpilot-platform` 의 `test-design-v4.js`(글꼴 세 칸) · `test-fonts-local.js`.
 
