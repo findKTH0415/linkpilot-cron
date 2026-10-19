@@ -1,0 +1,28 @@
+name: div-photo (가지 전용)
+on:
+  push:
+    branches: ['probe/re-sources-20261020']
+    paths: ['scripts/div-photo.mjs', '.github/workflows/div-photo.yml']
+permissions:
+  contents: read
+jobs:
+  photo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+      - name: 위성사진 받기
+        env:
+          VWORLD_KEY: ${{ secrets.VWORLD_KEY }}
+          VWORLD_DOMAIN: ${{ secrets.VWORLD_DOMAIN }}
+          LINKPILOT_VWORLD_REPORT_KEY: ${{ secrets.LINKPILOT_VWORLD_REPORT_KEY }}
+          LINKPILOT_VWORLD_WEB_KEY: ${{ secrets.LINKPILOT_VWORLD_WEB_KEY }}
+        run: node scripts/div-photo.mjs || true
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: div-photo
+          path: data/_div
