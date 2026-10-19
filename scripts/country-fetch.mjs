@@ -94,11 +94,12 @@ if (KEY_POL) {
   for (let page = 1; page <= 5; page++) {
     const url = `https://apis.data.go.kr/1262000/OverviewPoliticService/getOverviewPoliticList?serviceKey=${encodeURIComponent(KEY_POL.value)}&pageNo=${page}&numOfRows=100&returnType=JSON`;
     const c = classify(await get(url));
-    if (c.code !== 0) { if (page === 1) { pol.code = c.code; pol.why = c.why; } break; }
+    /* 첫 쪽이 아니어도 실패면 «덜 받았다»로 남긴다 — 앞 쪽이 왔다고 성공으로 적으면 뒤 쪽 나라들이 옛 값·빈 값인 채 ok 로 나간다 (Codex #254) */
+    if (c.code !== 0) { pol.code = c.code; pol.why = (page === 1 ? '' : `${page}쪽에서 끊김 — `) + c.why; pol.cut = page; break; }
     pol.items.push(...c.items);
     if (c.items.length < 100) break;
   }
-  if (pol.items.length) { pol.ok = true; pol.code = 0; }
+  if (pol.items.length && !pol.cut) { pol.ok = true; pol.code = 0; }
 }
 /* ③ 외교부 우리나라와의 관계 — 정치현황과 같은 모양(전체 목록 · ISO 2자리 칸)이라 같은 법으로 받는다.
    서버 쪽 나라 거르기 인자는 잰 적이 없어 안 넣는다 — 전량 받아 여기서 고른다 (§4 「서버 필터가 안 먹는 API」) */
@@ -107,11 +108,12 @@ if (KEY_REL) {
   for (let page = 1; page <= 5; page++) {
     const url = `https://apis.data.go.kr/1262000/OverviewKorRelationService/getOverviewKorRelationList?serviceKey=${encodeURIComponent(KEY_REL.value)}&pageNo=${page}&numOfRows=100&returnType=JSON`;
     const c = classify(await get(url));
-    if (c.code !== 0) { if (page === 1) { rel.code = c.code; rel.why = c.why; } break; }
+    /* 첫 쪽이 아니어도 실패면 «덜 받았다»로 남긴다 — 앞 쪽이 왔다고 성공으로 적으면 뒤 쪽 나라들이 옛 값·빈 값인 채 ok 로 나간다 (Codex #254) */
+    if (c.code !== 0) { rel.code = c.code; rel.why = (page === 1 ? '' : `${page}쪽에서 끊김 — `) + c.why; rel.cut = page; break; }
     rel.items.push(...c.items);
     if (c.items.length < 100) break;
   }
-  if (rel.items.length) { rel.ok = true; rel.code = 0; }
+  if (rel.items.length && !rel.cut) { rel.ok = true; rel.code = 0; }
 }
 const relByIso = new Map(rel.items.filter((x) => x && x.country_iso_alp2).map((x) => [String(x.country_iso_alp2).toUpperCase(), x]));
 

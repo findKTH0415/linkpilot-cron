@@ -24,6 +24,7 @@ const items = (a) => ({ response: { header: { resultCode: '00' }, body: { items:
 globalThis.fetch = async (u) => {
   const s = String(u);
   if (s.includes('OverviewPoliticService')) return J(items([{ country_iso_alp2: 'BD', country_nm: '방글라데시', government_form: '의원내각제' }]));
+  if (s.includes('OverviewKorRelationService') && ${relOk === 'partial'}) return s.includes('pageNo=1&') ? J(items([{ country_iso_alp2: 'BD', country_nm: '방글라데시', diplomatic_relations: '쪽1' }, ...Array.from({ length: 99 }, (_, i) => ({ country_iso_alp2: 'X' + i }))])) : new Response('', { status: 200 });
   if (s.includes('OverviewKorRelationService')) return ${relOk ? "J(items([{ country_iso_alp2: 'BD', country_nm: '방글라데시', diplomatic_relations: '1973.12.18. 수교', export_amount: '1,000,000', investment_status: '투자 표본' }, { country_iso_alp2: 'ZZ', country_nm: '고르지 않은 나라' }]))" : "new Response('SERVICE_KEY_IS_NOT_REGISTERED_ERROR', { status: 200 })"};
   if (s.includes('kotra_nationalInformation')) return J(items([{ korCompNm: '표본기업' }]));
   return new Response('?', { status: 404 });
@@ -48,5 +49,16 @@ test('외교부 우리나라와의 관계 — 고른 나라 칸이 korel 에 실
     const sum = fs.readFileSync(path.join(dir, 'data/country/_summary.md'), 'utf8');
     assert.ok(!sum.includes(KEY) && !(r1.stdout + r2.stdout + r1.stderr + r2.stderr).includes(KEY), '열쇠 값이 요약·로그에 안 남는다');
     assert.ok(/우리나라와의 관계/.test(sum) && /인증 거부/.test(sum), '요약 표에 관계 칸과 못 받은 사유가 있다');
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('외교부 관계 — 첫 쪽은 왔는데 뒤 쪽이 끊기면 «다 받았다»로 적지 않는다 (Codex #254)', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-ctry-'));
+  try {
+    const r = run(dir, 'partial');
+    assert.strictEqual(r.status, 1, '뒤 쪽이 끊기면 판정 1(일부) — ' + (r.stderr || '').slice(-200));
+    const j = JSON.parse(fs.readFileSync(path.join(dir, 'data/country/latest.json'), 'utf8'));
+    assert.strictEqual(j.sources.korel.ok, false, '덜 받은 날은 ok 가 아니다');
+    assert.ok(/2쪽에서 끊김/.test(fs.readFileSync(path.join(dir, 'data/country/_summary.md'), 'utf8')), '요약에 몇 쪽에서 끊겼는지 적는다');
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
