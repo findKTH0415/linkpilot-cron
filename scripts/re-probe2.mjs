@@ -51,4 +51,9 @@ for (const id of ['15084795', '15142639']) {
     }
   }
 }
+if (key) for (const [a, b] of [['202601', '202610'], ['202501', '202512']]) {
+  let st = null, body = '';
+  try { const r = await fetch(`https://apis.data.go.kr/B552521/recSpotInfo/getData?serviceKey=${encodeURIComponent(key.value)}&strDateS=${a}&strDateE=${b}`, { signal: AbortSignal.timeout(20000) }); st = r.status; body = await r.text(); } catch (e) { body = String(e && e.message || e); }
+  P(`- 중부발전 getData strDateS=${a} strDateE=${b} — HTTP ${st} · ${body.length}자 «${redact(body.slice(0, 1500).replace(/\s+/g, ' '))}»`);
+}
 await writeFile(`${OUT}/re-probe2.md`, log.join('\n'));
