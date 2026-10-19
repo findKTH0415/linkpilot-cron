@@ -246,6 +246,16 @@ export function swaggerUrlOf(html) {
 }
 
 /* 포털 검색 화면에서 «자산운용» 이 든 오픈API 목록(번호 · 제목)을 뽑는다 */
+/* 부를 차례 — 열쇠마다 번갈아 한 개씩 집는다 (Codex #253). 검색 결과를 다 쌓은 뒤 앞에서 cap 개만 자르면,
+   앞 검색들이 네 개씩 채운 날 «맨 뒤에 단 새 열쇠»의 서비스가 한 번도 안 불린다 — 열쇠를 달고도 진단이 그 열쇠를 못 잰다.
+   열쇠 안의 차례(적힌 후보 → 검색 결과)는 그대로 둔다. */
+export function probeOrder(services, cap) {
+  const by = new Map();
+  for (const s of services) { if (!by.has(s.key)) by.set(s.key, []); by.get(s.key).push(s); }
+  const out = []; const qs = [...by.values()];
+  for (let i = 0; out.length < cap && qs.some((q) => i < q.length); i++) for (const q of qs) { if (i < q.length && out.length < cap) out.push(q[i]); }
+  return out;
+}
 export function searchHits(html, word) {
   const src = String(html || '');
   const hits = [];
@@ -444,7 +454,7 @@ async function main() {
   P('');
 
   const codes = [];
-  for (const svc of SERVICES.slice(0, 64)) {
+  for (const svc of probeOrder(SERVICES, 64)) {
     P(`## ${svc.name} (${svc.id}) — ${svc.use} · 열쇠 \`${svc.key}\``);
     P('');
     const key = KEYS[svc.key];
