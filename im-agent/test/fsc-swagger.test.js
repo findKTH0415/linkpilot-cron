@@ -154,3 +154,17 @@ test('안내 페이지 요청주소 — get 으로 시작하지 않는 오퍼레
   const plain = discover('see https://apis.data.go.kr/B190021/branchinfo/brcode');
   assert.ok(!plain.full.includes('B190021/branchinfo/brcode'), JSON.stringify(plain.full));
 });
+
+test('부를 차례 — 앞 검색이 cap 을 다 채워도 맨 뒤 열쇠의 첫 서비스가 불린다 (Codex #253)', async () => {
+  const { probeOrder } = await import(SRC);
+  const svc = [];
+  for (let k = 0; k < 16; k++) for (let i = 0; i < 4; i++) svc.push({ key: 'K' + k, id: k + '-' + i });
+  svc.push({ key: 'KSURE_COUNTRY_LIST', id: 'ks-0' }, { key: 'MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY', id: 'mo-0' }, { key: 'MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY', id: 'mo-1' });
+  assert.ok(!svc.slice(0, 64).some((x) => /^(ks|mo)-/.test(x.id)), '표본이 «옛 자르기로는 빠지는» 모양이어야 한다');
+  const got = probeOrder(svc, 64);
+  assert.strictEqual(got.length, 64);
+  assert.ok(got.some((x) => x.id === 'ks-0') && got.some((x) => x.id === 'mo-0'), '새 열쇠 둘의 첫 서비스가 cap 안에 든다');
+  assert.deepStrictEqual(got.filter((x) => x.key === 'K0').map((x) => x.id), ['0-0', '0-1', '0-2', '0-3'].slice(0, got.filter((x) => x.key === 'K0').length), '열쇠 안의 차례는 그대로');
+  assert.strictEqual(new Set(got.map((x) => x.id)).size, 64, '같은 것을 두 번 안 집는다');
+  assert.deepStrictEqual(probeOrder([{ key: 'A', id: 1 }, { key: 'A', id: 2 }], 64).map((x) => x.id), [1, 2], 'cap 보다 적으면 전부');
+});

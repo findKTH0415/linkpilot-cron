@@ -81,6 +81,10 @@ const SEARCHES = [
   /* ★ 〈2026-10-17 · 사장님: 「KOTRA_KOREA_FDI_BY_INDUSTRY API 키넣었어」〉 — 이름에서 읽히는 서비스는 KOTRA «외국인투자(FDI) 업종별». 번호를 못 들었으므로 포털 검색에서 찾는다 (번호를 지어내지 않는다) */
   { key: 'KOTRA_KOREA_FDI_BY_INDUSTRY', keyword: '대한무역투자진흥공사 외국인투자 업종별', word: '업종', use: 'KOTRA 외국인직접투자 업종별 현황 — 투자정보 후보' },
   { key: 'KOTRA_KOREA_FDI_BY_INDUSTRY', keyword: '대한무역투자진흥공사 외국인직접투자', word: '외국인', use: 'KOTRA 외국인직접투자 업종별 현황 — 투자정보 후보' },
+  /* ★ 〈2026-10-19 사장님: 「한국무역보험공사_국가목록(KSURE_Country_List) 키넣었어」〉 — 번호를 못 들었으므로 포털 검색에서 찾는다 (번호를 지어내지 않는다) */
+  { key: 'KSURE_COUNTRY_LIST', keyword: '한국무역보험공사 국가목록', word: '국가목록', use: '투자정보 [해외지원기금] 국가 목록·등급' },
+  /* ★ 〈2026-10-19 사장님: 「외교부_국가·지역별 우리나라와의 관계(MOFA_Relations_with_Korea_by_Country) 키넣었어」〉 — 번호를 못 들었으므로 포털 검색에서 찾는다 (번호를 지어내지 않는다) */
+  { key: 'MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY', keyword: '외교부 국가·지역별 우리나라와의 관계', word: '국가·지', use: '투자정보 [해외진출기업] 나라 개황 — 우리나라와의 관계' },
   /* ★ 〈2026-10-17 · 사장님: 「중소기업은행_영업점 정보조회(IBK_Branch_Information) API 키넣었어」〉 — 서비스 이름을 받았다. 번호는 포털 검색에서 찾는다(지어내지 않는다).
      ★ 비밀 이름은 GitHub 이 대문자로 저장한다 — `IBK_BRANCH_INFORMATION` 으로 읽는다. 투자정보 [은행] 탭의 지역 영업점 후보 */
   { key: 'IBK_BRANCH_INFORMATION', keyword: '중소기업은행 영업점 정보조회', word: '영업점', use: '기업은행 영업점 위치·연락처 — 투자정보 [은행] 후보' },
@@ -242,6 +246,16 @@ export function swaggerUrlOf(html) {
 }
 
 /* 포털 검색 화면에서 «자산운용» 이 든 오픈API 목록(번호 · 제목)을 뽑는다 */
+/* 부를 차례 — 열쇠마다 번갈아 한 개씩 집는다 (Codex #253). 검색 결과를 다 쌓은 뒤 앞에서 cap 개만 자르면,
+   앞 검색들이 네 개씩 채운 날 «맨 뒤에 단 새 열쇠»의 서비스가 한 번도 안 불린다 — 열쇠를 달고도 진단이 그 열쇠를 못 잰다.
+   열쇠 안의 차례(적힌 후보 → 검색 결과)는 그대로 둔다. */
+export function probeOrder(services, cap) {
+  const by = new Map();
+  for (const s of services) { if (!by.has(s.key)) by.set(s.key, []); by.get(s.key).push(s); }
+  const out = []; const qs = [...by.values()];
+  for (let i = 0; out.length < cap && qs.some((q) => i < q.length); i++) for (const q of qs) { if (i < q.length && out.length < cap) out.push(q[i]); }
+  return out;
+}
 export function searchHits(html, word) {
   const src = String(html || '');
   const hits = [];
@@ -407,7 +421,7 @@ async function main() {
      Actions 비밀에 없었다 — 빈칸으로 찍혔다〉. 포털 인증키는 계정당 하나이고 **승인만 서비스별**이라(§4.2)
      그 서비스를 신청하셨으면 같은 열쇠로 통한다. 어느 이름으로 걸었는지는 반드시 적는다 — 섞어 읽으면
      「어느 열쇠가 통했는가」가 흐려진다. */
-  for (const n of ['FSC_API', 'FSC_AMC_API', 'FSC_IAF_API', 'FSC_KOFIA_API', 'FSC_DOMESTIC_BANK_API', 'FSC_SAVINGS_BANK_API', 'FSC_CREDIT_UNION_BANK_API', 'FSC__AGRICULTURAL_COOPERATIVE_BANK_API', 'FSC_FISHERIES_COOPERATIVE_BANK_API', 'FSC_SP_FIN', 'KOICA_PROJ_SC', 'KOICA_GLOBAL_POLITICAL_DEVELOPMENTS', 'KOICA_COUNTRY_INFORMATION', 'KOTRA_KOREA_FDI_BY_INDUSTRY', 'MSS_BUSINESS_SUPPORT_ANNOUNCEMENTS', 'IBK_BRANCH_INFORMATION', 'MOLIT_LUR_LAW_KEY', 'MSS_SME_SPA_API', 'MOLIT_APT_SALE', 'REB_LAND_MICRO', 'MOLIT_OFFICETEL_RENT', 'KAMCO_ONBID_BID_RESULT', 'KAMCO_SEIZED_AUCTION_RATE', 'MOLIT_HUB_BLDG_LEDGER', 'MOLIT_HUB_HOUSING_PERMIT', 'NTS_BIZ_VERIFY', 'MOLIT_HUB_BLDG_PERMIT', 'FSC_CORP_BASIC', 'MOLIT_LUR_INFO', 'MOLIT_COMM_SALE', 'MOLIT_LAND_SALE', 'KICT_API_KEY']) {
+  for (const n of ['FSC_API', 'FSC_AMC_API', 'FSC_IAF_API', 'FSC_KOFIA_API', 'FSC_DOMESTIC_BANK_API', 'FSC_SAVINGS_BANK_API', 'FSC_CREDIT_UNION_BANK_API', 'FSC__AGRICULTURAL_COOPERATIVE_BANK_API', 'FSC_FISHERIES_COOPERATIVE_BANK_API', 'FSC_SP_FIN', 'KOICA_PROJ_SC', 'KOICA_GLOBAL_POLITICAL_DEVELOPMENTS', 'KOICA_COUNTRY_INFORMATION', 'KOTRA_KOREA_FDI_BY_INDUSTRY', 'KSURE_COUNTRY_LIST', 'MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY', 'MSS_BUSINESS_SUPPORT_ANNOUNCEMENTS', 'IBK_BRANCH_INFORMATION', 'MOLIT_LUR_LAW_KEY', 'MSS_SME_SPA_API', 'MOLIT_APT_SALE', 'REB_LAND_MICRO', 'MOLIT_OFFICETEL_RENT', 'KAMCO_ONBID_BID_RESULT', 'KAMCO_SEIZED_AUCTION_RATE', 'MOLIT_HUB_BLDG_LEDGER', 'MOLIT_HUB_HOUSING_PERMIT', 'NTS_BIZ_VERIFY', 'MOLIT_HUB_BLDG_PERMIT', 'FSC_CORP_BASIC', 'MOLIT_LUR_INFO', 'MOLIT_COMM_SALE', 'MOLIT_LAND_SALE', 'KICT_API_KEY']) {
     /* ★ 2026-10-12 — 등록부에는 밑줄 둘(`FSC__AGRICULTURAL…`)로 적혀 있었다. 사장님 목록은 밑줄 하나다 — 둘 다 읽는다 (§4) */
     const own = pick(n === 'FSC__AGRICULTURAL_COOPERATIVE_BANK_API' ? [n, 'FSC_AGRICULTURAL_COOPERATIVE_BANK_API'] : [n]);
     if (own) OWN.push(own);
@@ -440,7 +454,7 @@ async function main() {
   P('');
 
   const codes = [];
-  for (const svc of SERVICES.slice(0, 64)) {
+  for (const svc of probeOrder(SERVICES, 64)) {
     P(`## ${svc.name} (${svc.id}) — ${svc.use} · 열쇠 \`${svc.key}\``);
     P('');
     const key = KEYS[svc.key];
