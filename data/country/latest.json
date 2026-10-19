@@ -1,12 +1,12 @@
 {
- "updatedAt": "2026-10-12T06:29:18.785Z",
+ "updatedAt": "2026-10-19T05:17:14.094Z",
  "sources": {
   "politic": {
    "org": "외교부",
    "service": "국가·지역별 정치현황",
    "id": "15099537",
    "ok": true,
-   "count": 196
+   "count": 100
   },
   "kotra": {
    "org": "대한무역투자진흥공사",
@@ -15,6 +15,9 @@
    "got": 16,
    "of": 16,
    "fields": [
+    "errMsg",
+    "returnAuthMsg",
+    "returnReasonCode",
     "tretRealmCntnt",
     "acplcAdvncYear",
     "acplcAdvncFormCntnt",
@@ -41,108 +44,9 @@
    },
    "kotra": [
     {
-     "tretRealmCntnt": "무역/에너지",
-     "acplcAdvncYear": "1979",
-     "acplcAdvncFormCntnt": "지사",
-     "pcompNm": "포스코대우",
-     "indlnCntnt": "무역",
-     "korCompNm": "포스코인터내셔널"
-    },
-    {
-     "tretRealmCntnt": "건설업/송전선로",
-     "acplcAdvncYear": "1983",
-     "acplcAdvncFormCntnt": "지사",
-     "pcompNm": "GS건설",
-     "indlnCntnt": "건설업",
-     "korCompNm": "GS건설"
-    },
-    {
-     "tretRealmCntnt": "타이어",
-     "acplcAdvncYear": "2016",
-     "acplcAdvncFormCntnt": "지사",
-     "pcompNm": "흥아",
-     "indlnCntnt": "제조업(타이어)",
-     "korCompNm": "흥아타이어"
-    },
-    {
-     "tretRealmCntnt": "프로젝트",
-     "acplcAdvncYear": "2010",
-     "acplcAdvncFormCntnt": "지사",
-     "pcompNm": "현대건설",
-     "indlnCntnt": "건설공사업",
-     "korCompNm": "현대건설"
-    },
-    {
-     "tretRealmCntnt": "건축설계",
-     "acplcAdvncYear": "2010",
-     "acplcAdvncFormCntnt": "지사",
-     "pcompNm": "희림건축",
-     "indlnCntnt": "건설공사업",
-     "korCompNm": "희림건축"
-    },
-    {
-     "tretRealmCntnt": "의류 및 잡화",
-     "acplcAdvncYear": "1993",
-     "acplcAdvncFormCntnt": "생산법인",
-     "pcompNm": "영원무역",
-     "indlnCntnt": "제조업(의복,잡화)",
-     "korCompNm": "영원무역"
-    },
-    {
-     "tretRealmCntnt": "은행업무",
-     "acplcAdvncYear": "1996",
-     "acplcAdvncFormCntnt": "지사",
-     "pcompNm": "우리은행",
-     "indlnCntnt": "금융보험업",
-     "korCompNm": "우리은행"
-    },
-    {
-     "tretRealmCntnt": "프로젝트",
-     "acplcAdvncYear": "2017",
-     "acplcAdvncFormCntnt": "지사",
-     "pcompNm": "한라",
-     "indlnCntnt": "건설공사업",
-     "korCompNm": "한라건설"
-    },
-    {
-     "tretRealmCntnt": "모자",
-     "acplcAdvncYear": "2000",
-     "acplcAdvncFormCntnt": "생산법인",
-     "pcompNm": "유풍",
-     "indlnCntnt": "제조업(의복,잡화)",
-     "korCompNm": "유풍(다카리아)"
-    },
-    {
-     "tretRealmCntnt": "정장,의류",
-     "acplcAdvncYear": "1996",
-     "acplcAdvncFormCntnt": "생산법인",
-     "pcompNm": "SG세계물산",
-     "indlnCntnt": "제조업(의복,잡화)",
-     "korCompNm": "SG세계물산"
-    },
-    {
-     "tretRealmCntnt": "프로젝트",
-     "acplcAdvncYear": "2017",
-     "acplcAdvncFormCntnt": "지사",
-     "pcompNm": "삼성물산",
-     "indlnCntnt": "건설공사업",
-     "korCompNm": "삼성물산"
-    },
-    {
-     "tretRealmCntnt": "휴대폰 소프트웨어 개발",
-     "acplcAdvncYear": "2010",
-     "acplcAdvncFormCntnt": "법인",
-     "pcompNm": "삼성전자",
-     "indlnCntnt": "전기전자",
-     "korCompNm": "삼성전자 다카연구소"
-    },
-    {
-     "tretRealmCntnt": "발전소 프로젝트",
-     "acplcAdvncYear": "2017",
-     "acplcAdvncFormCntnt": "지사",
-     "pcompNm": "포스코건설",
-     "indlnCntnt": "건설공사업",
-     "korCompNm": "포스코건설"
+     "errMsg": "HTTP_ERROR",
+     "returnAuthMsg": "HTTP 에러",
+     "returnReasonCode": "04"
     }
    ]
   },
