@@ -1,12 +1,12 @@
 {
- "updatedAt": "2026-10-19T05:17:14.094Z",
+ "updatedAt": "2026-10-19T13:42:54.543Z",
  "sources": {
   "politic": {
    "org": "외교부",
    "service": "국가·지역별 정치현황",
    "id": "15099537",
    "ok": true,
-   "count": 100
+   "count": 196
   },
   "kotra": {
    "org": "대한무역투자진흥공사",
@@ -15,9 +15,6 @@
    "got": 16,
    "of": 16,
    "fields": [
-    "errMsg",
-    "returnAuthMsg",
-    "returnReasonCode",
     "tretRealmCntnt",
     "acplcAdvncYear",
     "acplcAdvncFormCntnt",
@@ -25,6 +22,13 @@
     "indlnCntnt",
     "korCompNm"
    ]
+  },
+  "korel": {
+   "org": "외교부",
+   "service": "국가·지역별 우리나라와의 관계",
+   "id": "15099539",
+   "ok": true,
+   "count": 197
   }
  },
  "countries": {
@@ -44,11 +48,122 @@
    },
    "kotra": [
     {
-     "errMsg": "HTTP_ERROR",
-     "returnAuthMsg": "HTTP 에러",
-     "returnReasonCode": "04"
+     "tretRealmCntnt": "무역/에너지",
+     "acplcAdvncYear": "1979",
+     "acplcAdvncFormCntnt": "지사",
+     "pcompNm": "포스코대우",
+     "indlnCntnt": "무역",
+     "korCompNm": "포스코인터내셔널"
+    },
+    {
+     "tretRealmCntnt": "건설업/송전선로",
+     "acplcAdvncYear": "1983",
+     "acplcAdvncFormCntnt": "지사",
+     "pcompNm": "GS건설",
+     "indlnCntnt": "건설업",
+     "korCompNm": "GS건설"
+    },
+    {
+     "tretRealmCntnt": "타이어",
+     "acplcAdvncYear": "2016",
+     "acplcAdvncFormCntnt": "지사",
+     "pcompNm": "흥아",
+     "indlnCntnt": "제조업(타이어)",
+     "korCompNm": "흥아타이어"
+    },
+    {
+     "tretRealmCntnt": "프로젝트",
+     "acplcAdvncYear": "2010",
+     "acplcAdvncFormCntnt": "지사",
+     "pcompNm": "현대건설",
+     "indlnCntnt": "건설공사업",
+     "korCompNm": "현대건설"
+    },
+    {
+     "tretRealmCntnt": "건축설계",
+     "acplcAdvncYear": "2010",
+     "acplcAdvncFormCntnt": "지사",
+     "pcompNm": "희림건축",
+     "indlnCntnt": "건설공사업",
+     "korCompNm": "희림건축"
+    },
+    {
+     "tretRealmCntnt": "의류 및 잡화",
+     "acplcAdvncYear": "1993",
+     "acplcAdvncFormCntnt": "생산법인",
+     "pcompNm": "영원무역",
+     "indlnCntnt": "제조업(의복,잡화)",
+     "korCompNm": "영원무역"
+    },
+    {
+     "tretRealmCntnt": "은행업무",
+     "acplcAdvncYear": "1996",
+     "acplcAdvncFormCntnt": "지사",
+     "pcompNm": "우리은행",
+     "indlnCntnt": "금융보험업",
+     "korCompNm": "우리은행"
+    },
+    {
+     "tretRealmCntnt": "프로젝트",
+     "acplcAdvncYear": "2017",
+     "acplcAdvncFormCntnt": "지사",
+     "pcompNm": "한라",
+     "indlnCntnt": "건설공사업",
+     "korCompNm": "한라건설"
+    },
+    {
+     "tretRealmCntnt": "모자",
+     "acplcAdvncYear": "2000",
+     "acplcAdvncFormCntnt": "생산법인",
+     "pcompNm": "유풍",
+     "indlnCntnt": "제조업(의복,잡화)",
+     "korCompNm": "유풍(다카리아)"
+    },
+    {
+     "tretRealmCntnt": "정장,의류",
+     "acplcAdvncYear": "1996",
+     "acplcAdvncFormCntnt": "생산법인",
+     "pcompNm": "SG세계물산",
+     "indlnCntnt": "제조업(의복,잡화)",
+     "korCompNm": "SG세계물산"
+    },
+    {
+     "tretRealmCntnt": "프로젝트",
+     "acplcAdvncYear": "2017",
+     "acplcAdvncFormCntnt": "지사",
+     "pcompNm": "삼성물산",
+     "indlnCntnt": "건설공사업",
+     "korCompNm": "삼성물산"
+    },
+    {
+     "tretRealmCntnt": "휴대폰 소프트웨어 개발",
+     "acplcAdvncYear": "2010",
+     "acplcAdvncFormCntnt": "법인",
+     "pcompNm": "삼성전자",
+     "indlnCntnt": "전기전자",
+     "korCompNm": "삼성전자 다카연구소"
+    },
+    {
+     "tretRealmCntnt": "발전소 프로젝트",
+     "acplcAdvncYear": "2017",
+     "acplcAdvncFormCntnt": "지사",
+     "pcompNm": "포스코건설",
+     "indlnCntnt": "건설공사업",
+     "korCompNm": "포스코건설"
     }
-   ]
+   ],
+   "korel": {
+    "country_eng_nm": "Bangladesh",
+    "country_iso_alp2": "BD",
+    "country_nm": "방글라데시",
+    "diplomatic_relations": "1973.12.18. 수교일자",
+    "export_amount": "1760000000",
+    "import_amount": "610000000",
+    "investment_status": "721백만 불\n  - 한->방 : 576백만 불,  방->한 : 145백만 불\n   ※ 출처 : 산업통상자원부 / 수출입은행(신고, 2025.12기준 누적)",
+    "mission_status": "- 주방글라대사 : 김지준 대사(2026.4월-)\n- 주한대사 : 토피크 이슬람 샤틸(Toufiq Islam Shatil) 대사\n                   (2025.9월-)",
+    "oda_status": "13.2억 불\n   ※ 출처 : OECD(1987-2023, 누적)\n   ※ ODA 중점협력국으로 최근 5년간 지원실적 2위(7억불) ",
+    "oks_status": "1,413명(2025, 재외동포현황)\n  - 국내 체류 방글라데시인: 32,407명(2025, 법무부)"
+   }
   },
   "VN": {
    "iso": "VN",
@@ -193,7 +308,19 @@
      "indlnCntnt": "건설업",
      "korCompNm": "GS건설"
     }
-   ]
+   ],
+   "korel": {
+    "country_eng_nm": "Vietnam",
+    "country_iso_alp2": "VN",
+    "country_nm": "베트남",
+    "diplomatic_relations": "수교\n1955.10. 월남공화국 승인\n1956.05. 외교관계 수립\n1975.04. 대사관 철수(월남 패망 직전)\n1992.12. 외교관계 수립",
+    "export_amount": "58320000000",
+    "import_amount": "28440000000",
+    "investment_status": "* (신규법인 신고기준)\n - 대 베트남: 529.1억 불, 29,335건\n   (2024년까지 누계 기준, 한국수출입은행)\n - 대 한국: 1.6억 불, 875건\n   (2024년까지 누계 기준, 산업통상자원부)",
+    "mission_status": "* 1992.12. 상주 대사관 설치\n - 공관장 : 최영삼 대사(2023.8. 부임)\n - 주한 공관장 : 부 호(Vu Ho) 대사(2024.3. 부임)",
+    "oda_status": null,
+    "oks_status": " - 베트남 내 한국인 : 192,683명(주베트남(대), 2024년 기준)\n - 한국 내 베트남인 : 305,936명(2024년 기준, 법무부)"
+   }
   },
   "TH": {
    "iso": "TH",
@@ -458,7 +585,19 @@
      "indlnCntnt": "제조업",
      "korCompNm": "에스트라 오토모티브 시스템즈 타일랜드(구 이래 오토모티브)"
     }
-   ]
+   ],
+   "korel": {
+    "country_eng_nm": "Thailand",
+    "country_iso_alp2": "TH",
+    "country_nm": "태국",
+    "diplomatic_relations": "1958.10. 수교",
+    "export_amount": "7680000000",
+    "import_amount": "7170000000",
+    "investment_status": "* (신규법인 신고기준)\n - 대 태국 : 44억 불, 4,198건\n   (2024년까지 누계기준, 한국수출입은행)\n - 대 한국 : 9.1억 불, 744건\n   (2024년까지 누계기준, 산업통상자원부)",
+    "mission_status": "* 1960.03. 주태국 대한민국대사관 설치\n* 1961.07. 주한 태국대사관 설치\n* 2007.07. 치앙마이, 2008.7. 푸껫 명예영사관 설치\n - 박용민 대사(2023.11. 부임)\n - 타니 상랏(Tanee Sangrat) 대사(2024.4. 부임)",
+    "oda_status": "94.6백만 불(1987-2023 누계, 총지출기준, OECD)\n- 무상원조 : 94.6백만 불(2023년 당해연도 6백만 불)",
+    "oks_status": "- 태국 내 한국인 :  20,353명 (2023년 기준, 재외동포청)\n- 한국 내 태국인: 188,770명 (2024년 기준, 법무부)"
+   }
   },
   "ID": {
    "iso": "ID",
@@ -667,7 +806,19 @@
      "indlnCntnt": "할부금융업",
      "korCompNm": "우리파이낸스 인도네시아"
     }
-   ]
+   ],
+   "korel": {
+    "country_eng_nm": "Indonesia",
+    "country_iso_alp2": "ID",
+    "country_nm": "인도네시아",
+    "diplomatic_relations": "1966.12. 영사급 수교 및 주자카르타 총영사관 개설\n1968.06. 주서울 인도네시아총영사관 개설\n1973.09. 대사급 수교 및 대사관으로 승격",
+    "export_amount": "7000000000",
+    "import_amount": "11300000000",
+    "investment_status": "(신고, 누계기준)\n - 대 인도네시아 : 290억 $, 9,215건 (한국수출입은행)(68-2025)\n - 대 한국 : 28.4백만 $, 220건 (산업통상부)(62-2025)",
+    "mission_status": "- 윤순구 주인도네시아대사 (2025.12 부임)\n- 체쳅 헤라완 주한대사 (2025.7 부임)",
+    "oda_status": "11.2억 $ (1987~2023 누계, 총지출 기준, OECD)\n- 무상원조 4.9억 $\n- 유상원조 6.3억 $",
+    "oks_status": " - 인도네시아 내 한국인 : 27,308명 (재외동포청, 2025)\n - 한국 내 인도네시아인 : 77,015명 (법무부, 2025)"
+   }
   },
   "PH": {
    "iso": "PH",
@@ -836,7 +987,19 @@
      "indlnCntnt": "화장품",
      "korCompNm": "아모레퍼시픽"
     }
-   ]
+   ],
+   "korel": {
+    "country_eng_nm": "Philippines",
+    "country_iso_alp2": "PH",
+    "country_nm": "필리핀",
+    "diplomatic_relations": "1949.03. 공사급 수교\n1954.01.19. 주마닐라 공사관 개설\n1958.02.01. 대사급 수교(대사관으로 승격)\n2015.03.17. 주세부 분관 개설",
+    "export_amount": "11600000000",
+    "import_amount": "3500000000",
+    "investment_status": "(신고, 누계 기준)\n - 대 필리핀 : 66.3억 $, 5,429건 (한국수출입은행)(68-2025)\n - 대 한국 : 12억 $, 209건 (산업통상부)(62-2025)",
+    "mission_status": "- 이상화 주필리핀 대사(2023.6. 부임)\n- 버나뎃 테레스 페르난데즈 주한필리핀대사(2025.9월 부임)",
+    "oda_status": "13.4억 불(1987~2024 누계(잠정), 총지출기준, OECD)\n- 무상원조 : 5.5억 $\n- 유상원조 : 7.9억 $",
+    "oks_status": "필리핀 내 한국인 : 52,695명(재외동포청)(2025)\n한국 내 필리핀인 : 74,125명(법무부)(2025)"
+   }
   },
   "MY": {
    "iso": "MY",
@@ -1157,7 +1320,19 @@
      "indlnCntnt": "외식업, 식음료업",
      "korCompNm": "파리바게뜨 말레이시아"
     }
-   ]
+   ],
+   "korel": {
+    "country_eng_nm": "Malaysia",
+    "country_iso_alp2": "MY",
+    "country_nm": "말레이시아",
+    "diplomatic_relations": "1960.02.23. 외교관계 수립\n1962.05. 주말레이시아 대사관 설치\n1964.04. 주한 말레이시아대사관 설치",
+    "export_amount": "12370000000",
+    "import_amount": "15510000000",
+    "investment_status": "(신고, 누계기준)\n- 대 말레이시아: 116.8억 불 (한국수출입은행)(68-2025)\n- 대 한국: 86.7억불 (산업통상부)(62-2025)",
+    "mission_status": " - 여승배 주말레이시아대사 (2022.10. 부임)\n - 모하메드 잠루니 빈 카리드 주한말레이시아대사 (2024.4. 부임)",
+    "oda_status": null,
+    "oks_status": "- 말레이시아 내 한국인:  17,979명 (‘25, 재외동포청)\n- 한국 내 말레이시아인: 18,224명 (‘25, 법무부)"
+   }
   },
   "KH": {
    "iso": "KH",
@@ -1302,7 +1477,19 @@
      "indlnCntnt": "정보통신업",
      "korCompNm": "코싸인"
     }
-   ]
+   ],
+   "korel": {
+    "country_eng_nm": "Cambodia",
+    "country_iso_alp2": "KH",
+    "country_nm": "캄보디아",
+    "diplomatic_relations": "1970.05. 수교\n1975.04. 캄보디아 공산화로 인한 대사관 철수\n1996.05. 대표부 설치 합의\n1997.10. 외교관계 재개, 상주 대사관 설치\n- 김현수 대사대리(2025.7.17.)\n- 쿠언 폰러타낙(KHUON Phon Rattanak)(2025.9.12. 부임)",
+    "export_amount": "660000000",
+    "import_amount": "500000000",
+    "investment_status": "* (신규법인 신고기준)\n - 대 캄보디아 : 84.6억 불, 3,943건\n   (2024년까지 누계기준, 한국수출입은행)\n - 대 한국 : 51.7백만불, 79건\n   (2024년까지 누계기준, 산업통상자원부)",
+    "mission_status": null,
+    "oda_status": "12.9억 불(1987-2023 누계, 총지출기준, OECD)\n- 무상원조 : 5.8억 불(2023년 당해연도 5,454만 불)\n- 유상원조 : 7.1억 불(2023년 당해연도 6,704만 불)",
+    "oks_status": "- 캄보디아 내 한국인 :   7,800명(2023년 기준, 재외동포청)\n- 한국 내 캄보디아인 : 63,681명(2024년 기준, 법무부)"
+   }
   },
   "MN": {
    "iso": "MN",
@@ -1447,7 +1634,19 @@
      "indlnCntnt": "건설업",
      "korCompNm": "시그마몽골리아"
     }
-   ]
+   ],
+   "korel": {
+    "country_eng_nm": "Mongolia",
+    "country_iso_alp2": "MN",
+    "country_nm": "몽골",
+    "diplomatic_relations": "1990.03.26. 수교",
+    "export_amount": "661000000",
+    "import_amount": "32000000",
+    "investment_status": "對몽골투자(25년 누계) : 11.53억 달러\n    * 몽골의 對한국 투자액(25년 누계) : 1.21억 달러",
+    "mission_status": " 1990.06.18. 주몽골 한국대사관 개설\n 1991.02.01. 주한 몽골대사관 개설\n 2024.05.27. 최진원 주몽골대사 부임",
+    "oda_status": null,
+    "oks_status": null
+   }
   },
   "KZ": {
    "iso": "KZ",
@@ -1592,7 +1791,19 @@
      "indlnCntnt": "건설, 프로젝트",
      "korCompNm": "SK건설"
     }
-   ]
+   ],
+   "korel": {
+    "country_eng_nm": "Kazakhstan",
+    "country_iso_alp2": "KZ",
+    "country_nm": "카자흐스탄",
+    "diplomatic_relations": "1992.1.28 : 외교관계 수립\n2009. 전략적 동반자 관계 설정",
+    "export_amount": "3000000000",
+    "import_amount": "1360000000",
+    "investment_status": "• 투자규모(’24, 신고액 기준): 44.1억불 \n   - 對카 투자(~’25년까지 누계) : 43.8억불\n   - 對한 투자(~’25년까지 누계) : 0.73억불\n",
+    "mission_status": "* 공관 설치 : ‘93.7월  /  주한공관 설치 : ‘95.4월\n -’23.5월 조태익 제11대 주카자흐스탄대사 부임",
+    "oda_status": null,
+    "oks_status": "• 고려인(’25) : 121,261명\n• 재외국민(’25) : 1,293명"
+   }
   },
   "UZ": {
    "iso": "UZ",
@@ -1881,7 +2092,19 @@
      "indlnCntnt": "운수업",
      "korCompNm": "유피알로지스틱스"
     }
-   ]
+   ],
+   "korel": {
+    "country_eng_nm": "Uzbekistan",
+    "country_iso_alp2": "UZ",
+    "country_nm": "우즈베키스탄",
+    "diplomatic_relations": "특별 전략적 동반자 관계(19.4월 관계 격상)\n1992.01.29. 외교관계 수립",
+    "export_amount": "1720000000",
+    "import_amount": "16000000",
+    "investment_status": "투자규모(’24, 신고액 기준)\n* 對우 투자(’24 누계. 신고액 기준) : 1,772백만불\n* 對한 투자(’24 누계. 신고액 기준) : 73.5백만불",
+    "mission_status": "• 공관 설치 : ’93.12월 주우즈베키스탄대사관 개설\n  ※ ’24.6월 원도연 대사 부임\n• 주한공관 설치 : ’97.1월 주한 우즈베키스탄대사관 개설",
+    "oda_status": null,
+    "oks_status": null
+   }
   },
   "IN": {
    "iso": "IN",
@@ -3082,7 +3305,19 @@
      "indlnCntnt": "서비스 ",
      "korCompNm": "Cafe24 India Private Limited"
     }
-   ]
+   ],
+   "korel": {
+    "country_eng_nm": "India",
+    "country_iso_alp2": "IN",
+    "country_nm": "인도",
+    "diplomatic_relations": "1973.12. 수교\n2024.11. 이성호 대사\n2025.10. 고랑랄 다스(Gourangalal Das) 대사",
+    "export_amount": "19200000000",
+    "import_amount": "6400000000",
+    "investment_status": "110.8억 불\n  - 한->인: 102.9억 불, 인->한: 7.9억 불\n   ※ 출처 : 산업통상자원부 / 수출입은행(신고, 2025.12기준 누적)",
+    "mission_status": null,
+    "oda_status": null,
+    "oks_status": "12,288명(2025, 재외동포현황)"
+   }
   },
   "SA": {
    "iso": "SA",
@@ -3339,7 +3574,19 @@
      "indlnCntnt": "제조업",
      "korCompNm": "LIG Defense&Aerospace"
     }
-   ]
+   ],
+   "korel": {
+    "country_eng_nm": "Saudi Arabia",
+    "country_iso_alp2": "SA",
+    "country_nm": "사우디아라비아",
+    "diplomatic_relations": "1962.10.16. 수교",
+    "export_amount": "4900000000",
+    "import_amount": "27400000000",
+    "investment_status": null,
+    "mission_status": "* 우리측 \n - 1973년 대사관 개설(젯다)\n - 1984년 리야드 이전\n - 2026.02. 강신철 대사 부임\n\n* 사우디측 \n - 1974년 대사관 개설\n - 2021.07. Sami M. Alsadhan 대사 부임(25.9 - 공석)",
+    "oda_status": null,
+    "oks_status": "3,011명(거주증 소지 기준)('25)"
+   }
   },
   "AE": {
    "iso": "AE",
@@ -3604,7 +3851,19 @@
      "indlnCntnt": "제조업",
      "korCompNm": "세방전지"
     }
-   ]
+   ],
+   "korel": {
+    "country_eng_nm": "United Arab Emirates : UAE",
+    "country_iso_alp2": "AE",
+    "country_nm": "아랍에미리트",
+    "diplomatic_relations": "1980.06.18. 수교",
+    "export_amount": "5100000000",
+    "import_amount": "17900000000",
+    "investment_status": null,
+    "mission_status": "* 우리측\n - 1980.12. 대사관 개설 / 2022.11. 류제승 대사부임 \n - 2008.03. 총영사관 개설 / 2024.08. 이범찬 두바이 총영사 부임\n* 상대국\n - 1987.03. 대사관 개설 / 2016.11. 알-누아이미 대사 부임",
+    "oda_status": null,
+    "oks_status": "8,487명('24, 재외동포청)"
+   }
   },
   "US": {
    "iso": "US",
@@ -7781,7 +8040,19 @@
      "indlnCntnt": "제조업\r\n",
      "korCompNm": "Duckyang America"
     }
-   ]
+   ],
+   "korel": {
+    "country_eng_nm": "United States of America",
+    "country_iso_alp2": "US",
+    "country_nm": "미합중국",
+    "diplomatic_relations": "1882.05.22. 조·미 우호통상항해조약 체결\n1949.01.01. 미국, 대한민국 정부 공식 승인",
+    "export_amount": "122900000000",
+    "import_amount": "73400000000",
+    "investment_status": null,
+    "mission_status": "상주 대사관(1949.03.25 설치), 9개 총영사관 및 4개 출장소",
+    "oda_status": null,
+    "oks_status": "약 256만명('25)"
+   }
   },
   "JP": {
    "iso": "JP",
@@ -7902,7 +8173,19 @@
      "indlnCntnt": "웹툰",
      "korCompNm": "Contents Lab. Blue Tokyo"
     }
-   ]
+   ],
+   "korel": {
+    "country_eng_nm": "Japan",
+    "country_iso_alp2": "JP",
+    "country_nm": "일본",
+    "diplomatic_relations": "1965. 수교",
+    "export_amount": "18760000000",
+    "import_amount": "32170000000",
+    "investment_status": " - 대한투자액 : 21.6억불(2025.1-6월)\n - 대일투자액 :   4.5억불(2025.1-6월)",
+    "mission_status": null,
+    "oda_status": null,
+    "oks_status": "재일한국인 : 409,238명 / 재일조선인 : 23,206명 (2024.12, 日법무성, 단기체류 제외) / 한국체류 일본인 65,216명(2024, 법무부)"
+   }
   },
   "CN": {
    "iso": "CN",
@@ -7999,7 +8282,19 @@
      "indlnCntnt": "의약품",
      "korCompNm": "북경한미약품유한공사 "
     }
-   ]
+   ],
+   "korel": {
+    "country_eng_nm": "China",
+    "country_iso_alp2": "CN",
+    "country_nm": "중국",
+    "diplomatic_relations": "1992.08.24. 수교\n1992.08.27. 한국대사관 개설",
+    "export_amount": "130780000000",
+    "import_amount": "141950000000",
+    "investment_status": "* 대중국투자(신고액기준) : 27.1억불(한국수출입은행 2025)\n - 1968~2025년 누계 : 1,177.8억불",
+    "mission_status": null,
+    "oda_status": null,
+    "oks_status": "중국 체류 한국인 약 15만명(재외동포청 2025)"
+   }
   }
  }
 }
