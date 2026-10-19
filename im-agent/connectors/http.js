@@ -209,6 +209,8 @@ const SECRET_ENV = [
   'KOICA_COUNTRY_INFORMATION', // ★ 대한무역투자진흥공사(KOTRA) 국가정보 〈2026-10-10 · D-430〉
   'IBK_BRANCH_INFORMATION', // ★ 중소기업은행(IBK) 영업점 정보조회 〈2026-10-17 사장님: 「IBK_Branch_Information API 키넣었어」 · 규격은 진단 중〉
   'KOTRA_KOREA_FDI_BY_INDUSTRY', // ★ 대한무역투자진흥공사(KOTRA) 외국인투자 업종별 현황 〈2026-10-17 사장님: 「키넣었어」 · 규격은 진단 중〉
+  'KSURE_COUNTRY_LIST', // ★ 한국무역보험공사 한국무역보험공사_국가목록 〈2026-10-19 사장님: 「한국무역보험공사_국가목록(KSURE_Country_List) 키넣었어」〉
+  'MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY', // ★ 외교부 외교부_국가·지역별 우리나라와의 관계 〈2026-10-19 사장님: 「외교부_국가·지역별 우리나라와의 관계(MOFA_Relations_with_Korea_by_Country) 키넣었어」〉
   'MSS_BUSINESS_SUPPORT_ANNOUNCEMENTS', // ★ 중소벤처기업부 중소벤처기업부_사업공고 〈2026-10-17 사장님: 「중소벤처기업부_사업공고(MSS_Business_Support_Announcements) 키넣었어」〉
   'MOLIT_LUR_LAW_KEY', // ★ 국토교통부 토지이용규제법령정보 〈2026-09-29 · D-382〉
   'MSS_SME_SPA_API', // ★ 중소벤처기업부 중소기업 지원사업 공고 〈2026-09-27 · D-357〉
