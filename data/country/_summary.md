@@ -1,6 +1,7 @@
 > **판정 0** — 셋 다 받았다 (정치현황 196개국 · KOTRA 16/16개국 · 우리나라와의 관계 197개국)
 
 - 열쇠: 정치현황 `KOICA_GLOBAL_POLITICAL_DEVELOPMENTS` (64자) · KOTRA `KOICA_COUNTRY_INFORMATION` (64자) · 우리나라와의 관계 `MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY` (64자)
+- 무역보험공사 국가목록: 245개국 받음 · 이름이 맞은 나라 14/16
 - KOTRA 칸 이름: `tretRealmCntnt` `acplcAdvncYear` `acplcAdvncFormCntnt` `pcompNm` `indlnCntnt` `korCompNm`
 
 | 나라 | 정치현황 | KOTRA | 우리나라와의 관계 |
