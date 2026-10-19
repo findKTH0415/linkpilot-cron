@@ -21,7 +21,9 @@ const KEY_POL = pick('KOICA_GLOBAL_POLITICAL_DEVELOPMENTS', 'DATA_GO_KR_KEY');
 const KEY_KOT = pick('KOICA_COUNTRY_INFORMATION', 'DATA_GO_KR_KEY');
 /* 〈2026-10-19 사장님: 「외교부_국가·지역별 우리나라와의 관계 키넣었어」〉 — 진단(api-smoke · 러너) 판정 0 · 15099539 · 전체 목록이 온다 */
 const KEY_REL = pick('MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY', 'DATA_GO_KR_KEY');
-const SECRETS = [KEY_POL, KEY_KOT, KEY_REL].filter(Boolean).map((k) => k.value);
+/* 〈2026-10-19 사장님: 「한국무역보험공사_국가목록(KSURE_Country_List) — 반영되고 있는지 교차검증」〉 — 진단 판정 0 · 15144256 · B552696/country/getCountryList · 칸은 ctryCd · ctryNm 둘뿐(등급 없음) */
+const KEY_KSU = pick('KSURE_COUNTRY_LIST', 'DATA_GO_KR_KEY');
+const SECRETS = [KEY_POL, KEY_KOT, KEY_REL, KEY_KSU].filter(Boolean).map((k) => k.value);
 const mask = (s) => { let t = String(s ?? ''); for (const v of SECRETS) { t = t.split(v).join('***').split(encodeURIComponent(v)).join('***'); } return t; };
 
 // 고르는 나라 — 사장님 프로젝트에 걸린 나라와 주변 시장. 바꾸려면 COUNTRIES="BD,VN" 로 준다.
@@ -115,6 +117,19 @@ if (KEY_REL) {
   }
   if (rel.items.length && !rel.cut) { rel.ok = true; rel.code = 0; }
 }
+/* ④ 무역보험공사 국가목록 — 무보 국가코드 표. 나라 이름(한글)이 «글자 그대로» 같을 때만 붙인다 — 이름이 갈리면(미국/미합중국) 비워 둔다(지어 맞추지 않는다 · §4.9).
+   이 서비스만 못 받아도 판정은 안 바꾼다 — 요약 줄에 따로 적는다 */
+const ksu = { ok: false, why: KEY_KSU ? '' : '열쇠가 없다', items: [] };
+if (KEY_KSU) {
+  for (let page = 1; page <= 5; page++) {
+    const c = classify(await get(`https://apis.data.go.kr/B552696/country/getCountryList?serviceKey=${encodeURIComponent(KEY_KSU.value)}&pageNo=${page}&numOfRows=100&type=json`));
+    if (c.code !== 0) { ksu.why = (page === 1 ? '' : `${page}쪽에서 끊김 — `) + c.why; ksu.cut = page; break; }
+    ksu.items.push(...c.items);
+    if (c.items.length < 100) break;
+  }
+  if (ksu.items.length && !ksu.cut) ksu.ok = true;
+}
+const ksuByName = new Map(ksu.items.filter((x) => x && x.ctryNm && x.ctryCd).map((x) => [String(x.ctryNm).trim(), { code: String(x.ctryCd), name: String(x.ctryNm).trim() }]));
 const relByIso = new Map(rel.items.filter((x) => x && x.country_iso_alp2).map((x) => [String(x.country_iso_alp2).toUpperCase(), x]));
 
 const polByIso = new Map(pol.items.filter((x) => x && x.country_iso_alp2).map((x) => [String(x.country_iso_alp2).toUpperCase(), x]));
@@ -139,7 +154,9 @@ for (const iso of COUNTRIES) {
   const p = polByIso.get(iso) || (prev && prev.countries && prev.countries[iso] && prev.countries[iso].politic) || null;
   const k = kot.rows[iso] || (prev && prev.countries && prev.countries[iso] && prev.countries[iso].kotra) || null;
   const r = relByIso.get(iso) || (prev && prev.countries && prev.countries[iso] && prev.countries[iso].korel) || null;
-  countries[iso] = { iso, name: (p && p.country_nm) || (r && r.country_nm) || null, politic: p, kotra: k, korel: r };
+  const nm = (p && p.country_nm) || (r && r.country_nm) || null;
+  const ks = (nm && ksuByName.get(String(nm).trim())) || (!ksu.ok && prev && prev.countries && prev.countries[iso] && prev.countries[iso].ksure) || null;
+  countries[iso] = { iso, name: nm, politic: p, kotra: k, korel: r, ksure: ks };
 }
 const result = {
   updatedAt: now,
@@ -147,12 +164,14 @@ const result = {
     politic: { org: '외교부', service: '국가·지역별 정치현황', id: '15099537', ok: pol.ok, count: pol.items.length },
     kotra: { org: '대한무역투자진흥공사', service: '국가정보', id: '15034830', got: kot.got, of: COUNTRIES.length, fields: [...kot.fields] },
     korel: { org: '외교부', service: '국가·지역별 우리나라와의 관계', id: '15099539', ok: rel.ok, count: rel.items.length },
+    ksure: { org: '한국무역보험공사', service: '국가목록', id: '15144256', ok: ksu.ok, count: ksu.items.length },
   },
   countries,
 };
 if (pol.ok || kot.got > 0 || rel.ok) await writeFile(`${OUT}/latest.json`, JSON.stringify(result, null, 1) + '\n');
 
 say(`- 열쇠: 정치현황 ${KEY_POL ? `\`${KEY_POL.name}\` (${KEY_POL.value.length}자)` : '**없음**'} · KOTRA ${KEY_KOT ? `\`${KEY_KOT.name}\` (${KEY_KOT.value.length}자)` : '**없음**'} · 우리나라와의 관계 ${KEY_REL ? `\`${KEY_REL.name}\` (${KEY_REL.value.length}자)` : '**없음**'}`);
+say(`- 무역보험공사 국가목록: ${ksu.ok ? `${ksu.items.length}개국 받음 · 이름이 맞은 나라 ${COUNTRIES.filter((i) => countries[i].ksure).length}/${COUNTRIES.length}` : `못 받음 — ${ksu.why}`}`);
 say(`- KOTRA 칸 이름: ${kot.fields.size ? [...kot.fields].map((x) => `\`${x}\``).join(' ') : '(받은 칸 없음)'}`, '');
 say('| 나라 | 정치현황 | KOTRA | 우리나라와의 관계 |', '|---|---|---|---|');
 for (const iso of COUNTRIES) {
