@@ -1,0 +1,64 @@
+name: 해외 현지 정보 출처 진단
+
+# 베트남·태국·방글라데시 출처 후보가 «열리는지» 잰다 — 열쇠는 하나도 안 쓴다 (공개 주소뿐).
+# ★ 결과는 커밋하지 않는다 — 아티팩트와 실행 요약·알림 한 줄로만 남긴다.
+#   진단이라 저장소에 쌓을 값이 아니고, 어느 가지에서 돌아도 열린 PR 의 머리를 안 움직인다.
+# ★ 이 파일·스크립트가 바뀌면 그 가지에서 저절로 한 번 돈다(첫 실행이 곧 진단).
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/global-probe.mjs'
+      - '.github/workflows/global-probe.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+
+      - name: 출처 진단
+        id: probe
+        continue-on-error: true
+        run: |
+          set +e
+          node scripts/global-probe.mjs 2>&1 | tee /tmp/global.log
+          code=${PIPESTATUS[0]}
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          { echo '### 해외 현지 정보 출처'; cat data/_global/_summary.md 2>/dev/null || echo '(요약 없음)'; } >> "$GITHUB_STEP_SUMMARY"
+          exit $code
+
+      - name: 요약을 알림으로 싣기
+        if: always()
+        run: |
+          # 표 부분만 한 개의 알림으로 — 줄바꿈은 %0A 로 접는다
+          if [ -f data/_global/_summary.md ]; then
+            body=$(sed -n '1,40p' data/_global/_summary.md | sed 's/%/%25/g' | awk 'BEGIN{ORS="%0A"}{print}')
+            echo "::notice title=global-probe::${body}"
+          else
+            echo "::warning title=global-probe::요약 파일이 안 만들어졌다 — 스크립트가 시작 전에 멈췄다"
+          fi
+
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: global-probe
+          path: data/_global/
+          if-no-files-found: warn
+
+      - name: 판정
+        if: always()
+        run: |
+          c='${{ steps.probe.outputs.code }}'
+          echo "출처 진단 값: ${c:-없음}"
+          if [ -z "$c" ]; then echo "::error::진단이 값을 못 냈다 — 못 쟀다"; exit 2; fi
+          exit "$c"
