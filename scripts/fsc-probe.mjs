@@ -109,6 +109,9 @@ const SEARCHES = [
      판정 0·5 면 승인은 된 것이다(5 는 필수 인자만 남았다) */
   { key: 'MOLIT_APT_SALE', keyword: '국토교통부 아파트 매매 실거래가', word: '아파트', use: '아파트 매매 실거래가 — 반영 확인(2026-09-29)' },
   { key: 'REB_LAND_MICRO', keyword: '전국지가변동률조사 마이크로데이터', word: '지가변동률', use: '전국지가변동률조사 마이크로데이터 — 반영 확인(2026-09-29)' },
+  /* ★ 〈2026-10-20 · 사장님 목록: 「한국부동산원_전국지가변동률조사(REB_Land_Price_Change)」〉 — 진단이 한 번도 안 잰 이름이다.
+     번호를 못 들었으므로 포털 검색에서 찾는다(지어내지 않는다). 마이크로데이터(REB_LAND_MICRO)와 다른 서비스일 수 있어 따로 건다 */
+  { key: 'REB_LAND_PRICE_CHANGE', keyword: '한국부동산원 전국지가변동률조사', word: '지가변동률', use: '전국지가변동률조사 — 공시지가 시점수정 후보' },
   { key: 'MOLIT_OFFICETEL_RENT', keyword: '국토교통부 오피스텔 전월세 실거래가', word: '오피스텔', use: '오피스텔 전월세 실거래가 — 반영 확인(2026-09-29)' },
   { key: 'KAMCO_ONBID_BID_RESULT', keyword: '차세대 온비드 물건 입찰결과목록', word: '입찰결과', use: '온비드 물건 입찰결과 — 반영 확인(2026-09-29)' },
   { key: 'KAMCO_SEIZED_AUCTION_RATE', keyword: '체납 압류재산 공매 낙찰가율', word: '낙찰가율', use: '압류재산 공매 낙찰가율 — 반영 확인(2026-09-29)' },
@@ -348,6 +351,22 @@ export function paramHints(html) {
   return out;
 }
 
+/* ★ 〈2026-10-20 · 실측: 토지이용규제 법령정보 15057174 가 «필수 인자 없음(11)» — areaCd · ucodeList 의 값을 모른다〉.
+   스웨거가 그 인자에 적은 «설명» 글을 그대로 줍는다(공개 안내 페이지 · 값을 지어 넣지 않는다 · §4.3).
+   다음 판에서 그 설명이 가리키는 코드표로 값을 정한다. 못 읽으면 그 이름은 빠진다 — 「설명이 없다」가 아니라 「못 읽었다」다 */
+export function paramDocs(html, names) {
+  const out = {};
+  const flat = String(html || '');
+  const want = new Set(names || []);
+  for (const m of flat.matchAll(/\{[^{}]*?"name"\s*:\s*"([A-Za-z][A-Za-z0-9_]{0,40})"[^{}]*\}/g)) {
+    const name = m[1];
+    if (!want.has(name) || out[name]) continue;
+    const d = m[0].match(/"description"\s*:\s*"((?:[^"\\]|\\.){1,200})"/);
+    if (d && d[1].trim()) out[name] = d[1].replace(/\\[nrt]/g, ' ').replace(/\\(.)/g, '$1').replace(/\s+/g, ' ').trim().slice(0, 160);
+  }
+  return out;
+}
+
 /* 안내 페이지의 «요청변수» 표에서 인자 이름만 줍는다 — 스웨거를 못 읽은 서비스의 다음 판 재료다(부르지 않는다).
    ★ 실측: 한국산업은행 기금대출 15060633 이 «필수항목이 입력되지 않았습니다(99)»로 답했는데 스웨거가 비어 이름을 못 읽었다 */
 export function requestVarsOf(html) {
@@ -425,7 +444,7 @@ async function main() {
      Actions 비밀에 없었다 — 빈칸으로 찍혔다〉. 포털 인증키는 계정당 하나이고 **승인만 서비스별**이라(§4.2)
      그 서비스를 신청하셨으면 같은 열쇠로 통한다. 어느 이름으로 걸었는지는 반드시 적는다 — 섞어 읽으면
      「어느 열쇠가 통했는가」가 흐려진다. */
-  for (const n of ['FSC_API', 'FSC_AMC_API', 'FSC_IAF_API', 'FSC_KOFIA_API', 'FSC_DOMESTIC_BANK_API', 'FSC_SAVINGS_BANK_API', 'FSC_CREDIT_UNION_BANK_API', 'FSC__AGRICULTURAL_COOPERATIVE_BANK_API', 'FSC_FISHERIES_COOPERATIVE_BANK_API', 'FSC_SP_FIN', 'KOICA_GLOBAL_POLITICAL_DEVELOPMENTS', 'KOICA_COUNTRY_INFORMATION', 'KOTRA_KOREA_FDI_BY_INDUSTRY', 'KSURE_COUNTRY_LIST', 'MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY', 'MSS_BUSINESS_SUPPORT_ANNOUNCEMENTS', 'IBK_BRANCH_INFORMATION', 'MOLIT_LUR_LAW_KEY', 'MSS_SME_SPA_API', 'MOLIT_APT_SALE', 'REB_LAND_MICRO', 'MOLIT_OFFICETEL_RENT', 'KAMCO_ONBID_BID_RESULT', 'KAMCO_SEIZED_AUCTION_RATE', 'MOLIT_HUB_BLDG_LEDGER', 'MOLIT_HUB_HOUSING_PERMIT', 'NTS_BIZ_VERIFY', 'MOLIT_HUB_BLDG_PERMIT', 'FSC_CORP_BASIC', 'MOLIT_LUR_INFO', 'MOLIT_COMM_SALE', 'MOLIT_LAND_SALE', 'KICT_API_KEY']) {
+  for (const n of ['FSC_API', 'FSC_AMC_API', 'FSC_IAF_API', 'FSC_KOFIA_API', 'FSC_DOMESTIC_BANK_API', 'FSC_SAVINGS_BANK_API', 'FSC_CREDIT_UNION_BANK_API', 'FSC__AGRICULTURAL_COOPERATIVE_BANK_API', 'FSC_FISHERIES_COOPERATIVE_BANK_API', 'FSC_SP_FIN', 'KOICA_GLOBAL_POLITICAL_DEVELOPMENTS', 'KOICA_COUNTRY_INFORMATION', 'KOTRA_KOREA_FDI_BY_INDUSTRY', 'KSURE_COUNTRY_LIST', 'MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY', 'MSS_BUSINESS_SUPPORT_ANNOUNCEMENTS', 'IBK_BRANCH_INFORMATION', 'MOLIT_LUR_LAW_KEY', 'MSS_SME_SPA_API', 'MOLIT_APT_SALE', 'REB_LAND_MICRO', 'MOLIT_OFFICETEL_RENT', 'KAMCO_ONBID_BID_RESULT', 'KAMCO_SEIZED_AUCTION_RATE', 'MOLIT_HUB_BLDG_LEDGER', 'MOLIT_HUB_HOUSING_PERMIT', 'NTS_BIZ_VERIFY', 'MOLIT_HUB_BLDG_PERMIT', 'FSC_CORP_BASIC', 'MOLIT_LUR_INFO', 'MOLIT_COMM_SALE', 'MOLIT_LAND_SALE', 'KICT_API_KEY', 'REB_LAND_PRICE_CHANGE']) {
     /* ★ 2026-10-12 — 등록부에는 밑줄 둘(`FSC__AGRICULTURAL…`)로 적혀 있었다. 사장님 목록은 밑줄 하나다 — 둘 다 읽는다 (§4) */
     const own = pick(n === 'FSC__AGRICULTURAL_COOPERATIVE_BANK_API' ? [n, 'FSC_AGRICULTURAL_COOPERATIVE_BANK_API'] : [n]);
     if (own) OWN.push(own);
@@ -478,6 +497,13 @@ async function main() {
     P(`  - 뽑은 오퍼레이션 ${d.ops.length ? d.ops.map((o) => `\`${o}\``).join(' · ') : '**없음(못 읽었다)**'}`);
     if (d.host || d.paths.length) { const line = `  - 스웨거 host·basePath \`${redact(d.host || '-')}\` \`${redact(d.basePath || '-')}\` · 경로 ${d.paths.length ? d.paths.slice(0, 6).map((x) => `\`${redact(x)}\``).join(' ') : '(없다)'}`; P(line); SEARCH_RECAP.push(`- ${svc.id} ${line.trim()}`); }
     if (d.required.length) { const line = `  - 필수 인자(스웨거) ${d.required.map((o) => `\`${o}\``).join(' · ')}`; P(line); SEARCH_RECAP.push(`- ${svc.id} ${line.trim()}`); }
+    if (d.required.length) {
+      const docs = paramDocs(html, d.required);
+      for (const n of d.required) {
+        const line = `  - 필수 인자 \`${n}\` 설명(스웨거) ${docs[n] ? `«${redact(docs[n])}»` : '**못 읽었다**'}`;
+        P(line); SEARCH_RECAP.push(`- ${svc.id} ${line.trim()}`);
+      }
+    }
     const rows = [];
     const odRows = []; let odSpec = false;
     /* 부를 것 — 통째 주소가 있으면 그것, 없으면 서비스 × 오퍼레이션 */

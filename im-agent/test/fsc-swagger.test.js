@@ -171,3 +171,15 @@ test('부를 차례 — 앞 검색이 cap 을 다 채워도 맨 뒤 열쇠의 �
   assert.strictEqual(new Set(got.map((x) => x.id)).size, 64, '같은 것을 두 번 안 집는다');
   assert.deepStrictEqual(probeOrder([{ key: 'A', id: 1 }, { key: 'A', id: 2 }], 64).map((x) => x.id), [1, 2], 'cap 보다 적으면 전부');
 });
+
+test('필수 인자 설명 — 스웨거 «description» 을 그대로 줍고, 없으면 그 이름은 빠진다 (값을 지어내지 않는다 · 2026-10-20)', async () => {
+  const { paramDocs } = await import(SRC);
+  const html = '[{"name":"areaCd","in":"query","required":true,"type":"string","description":"지역코드(시군구)"},'
+    + '{"name":"ucodeList","in":"query","required":true,"type":"string"},{"name":"other","description":"안 묻는 것"}]';
+  const d = paramDocs(html, ['areaCd', 'ucodeList']);
+  assert.deepStrictEqual(d, { areaCd: '지역코드(시군구)' }, '설명이 없는 ucodeList 는 «못 읽었다»로 빠지고, 묻지 않은 이름은 안 줍는다');
+  assert.deepStrictEqual(paramDocs('', ['areaCd']), {});
+  const src = fs.readFileSync(SRC, 'utf8');
+  assert.ok(/REB_LAND_PRICE_CHANGE', keyword: '한국부동산원 전국지가변동률조사'/.test(src), '전국지가변동률조사를 포털 검색으로 찾는다');
+  assert.ok(/'KICT_API_KEY', 'REB_LAND_PRICE_CHANGE'\]/.test(src), '열쇠 이름 목록에도 들어 있다(없으면 포털 열쇠로 대신 건다)');
+});
