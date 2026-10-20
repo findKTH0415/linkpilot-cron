@@ -630,7 +630,12 @@ async function main() {
     const lu = await nsdi.landUse(parsedPnu.pnu);
     if (lu.ok) {
       report('토지이용계획 (VWorld NED)', true,
-        `용도지역 ${lu.value.zone}` + (lu.value.limits ? ` · 용적률 ${lu.value.limits.far}% / 건폐율 ${lu.value.limits.bcr}%` : ' · 법정한도 테이블 미매칭'));
+        `용도지역 ${lu.value.zone}` + (lu.value.limits ? ` · 용적률 ${lu.value.limits.far}% / 건폐율 ${lu.value.limits.bcr}%` : ' · 법정한도 테이블 미매칭')
+        // ★ 〈2026-10-20〉 지역지구 «코드»가 실제로 오는가 — LUR ucodeList 를 지어 넣지 않으려면 잰 값이 있어야 한다 (§4.3)
+        + ` · 지역지구 코드 ${(lu.value.zoneCodes || []).filter(z => z.code).length}/${(lu.value.zoneCodes || []).length}칸`);
+      const withCode = (lu.value.zoneCodes || []).filter(z => z.code);
+      if (withCode.length) console.log(`  · 코드 예: ${withCode.slice(0, 3).map(z => `${z.name}=${z.code}`).join(' · ')}`);
+      else console.log('  ⚠ 지역지구 코드 칸이 안 온다 — 응답 칸 이름 확인 (prposAreaDstrcCode / prpos_area_dstrc_code)');
       if (!lu.value.limits) {
         console.log(`  ⚠ '${lu.value.zone}' 가 ZONE_LIMITS 테이블에 없다 — connectors/nsdi.js 에 추가 필요`);
       }
