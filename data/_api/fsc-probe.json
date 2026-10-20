@@ -32,7 +32,8 @@
   "MOLIT_LUR_INFO": null,
   "MOLIT_COMM_SALE": null,
   "MOLIT_LAND_SALE": null,
-  "KICT_API_KEY": 43
+  "KICT_API_KEY": 43,
+  "REB_LAND_PRICE_CHANGE": null
  },
  "services": [
   {

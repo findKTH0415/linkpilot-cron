@@ -37,7 +37,7 @@
 ### 수급예보조회_GW (15158707)
 - 서비스 B552115/forecast1dMaxBaseDate · 오퍼레이션 getForecast1dMaxBaseDate · 필수 인자 dataType
 - `B552115/forecast1dMaxBaseDate/getForecast1dMaxBaseDate` — HTTP 200 · 455자
-  - 앞머리 «{ "response" : { "header" : { "resultCode" : "00", "resultMsg" : "OK" }, "body" : { "dataType" : "JSON", "totalCount" : "1", "numOfRows" : "50", "pageNo" : "1", "items" : { "item" : [ { "fcStime" : "18", "fcMaxload" : 71800, "fcDate" : "20261020", "fcEtime" : "19", "rn" : 1, "fcLevel" : 0, "fcReservePwr" : 19007 } ] } } }}»
+  - 앞머리 «{ "response" : { "header" : { "resultCode" : "00", "resultMsg" : "OK" }, "body" : { "dataType" : "JSON", "totalCount" : "1", "numOfRows" : "50", "pageNo" : "1", "items" : { "item" : [ { "fcStime" : "16", "fcMaxload" : 72200, "fcDate" : "20261020", "fcEtime" : "17", "rn" : 1, "fcLevel" : 0, "fcReservePwr" : 17683 } ] } } }}»
 - 공개 화면 https://www.kpx.or.kr/ — HTTP 200 · 206자
 - 공개 화면 https://new.kpx.or.kr/ — HTTP 200 · 206자
 - 공개 화면 https://epsis.kpx.or.kr/epsisnew/selectEkmaSmpShdChart.do?menuId=040201 — HTTP 200 · 2065자
