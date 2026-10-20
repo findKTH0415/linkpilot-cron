@@ -1,0 +1,137 @@
+# ★★ 〈2026-10-20 · 비용 절감〉 linkpilot-platform(비공개 · 분 요금)에서 이리(공개 · 무료) 옮겼다.
+#   그쪽 작업은 사무실 NAS 러너로 옮겨 가는데, «NAS 가 멈췄는가»를 NAS 가 잴 수는 없다 — 바깥 러너가 재야 한다.
+#   쓰는 비밀(TS_* · NAS_SSH_HOST · LP_PUBLIC_BASE)은 이 저장소에 이미 있다. 로그에는 상태코드·시간만 찍힌다(이 저장소는 공개 · §2).
+# NAS PHP 가 대답하는가 — 3시간마다 재고, 안 하면 빨갛게 끝낸다(GitHub 이 실패 메일을 보낸다 · CLAUDE.md §2)
+# 〈2026-10-12 사장님: 「권하는 개선안 대로 진행해」 · 경위: 2026-10-11 저녁 화면은 새 판으로 떴는데
+#   PHP 창구(열쇠·진단·계정 설정)가 전부 «서버가 제때 대답을 안 했습니다»였다. 사장님 화면으로만 알았다.〉
+# ★ 둘을 갈라 잰다 — 보통 파일(ver.txt)과 PHP(gcal-oauth.php?action=config · 로그인 없이 ok 를 준다).
+#   보통 파일은 오는데 PHP 만 안 오면 «PHP·Web Station 이 멈춤», 둘 다 안 오면 «NAS 웹 자체가 안 닿음»이다 — 할 일이 다르다.
+# ★ 6초 넘게 걸리면 «느림»으로 빨갛다 — 앱의 열쇠 받기가 6초에서 포기한다.
+# ★ 주소·응답 본문은 찍지 않는다(접속정보 · §2). 상태코드와 걸린 시간만 적는다.
+# ★ 분(分) 절약 — 체크아웃·노드 설치가 없다. 한 번에 1분 안쪽 · 하루 8번.
+name: platform-nas-health
+on:
+  schedule:
+    - cron: '17 */3 * * *'
+  workflow_dispatch: {}
+concurrency:
+  group: platform-nas-health
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Do we have the keys
+        id: keys
+        env:
+          OAUTH_ID: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          OAUTH_SEC: ${{ secrets.TS_OAUTH_SECRET }}
+          AUTHKEY: ${{ secrets.TS_AUTHKEY }}
+          NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+        run: |
+          set -u
+          MODE=""
+          if [ -n "${OAUTH_ID:-}" ] && [ -n "${OAUTH_SEC:-}" ]; then MODE=oauth
+          elif [ -n "${AUTHKEY:-}" ]; then MODE=authkey; fi
+          if [ -z "$MODE" ] || [ -z "${NAS_HOST:-}" ]; then
+            echo "::error::사설망 열쇠(TS_*) 또는 NAS_SSH_HOST 가 없다 — 이 감시는 아무것도 못 쟀다"
+            exit 1
+          fi
+          echo "mode=$MODE" >> "$GITHUB_OUTPUT"
+
+      - name: Join the tailnet (OAuth)
+        if: steps.keys.outputs.mode == 'oauth'
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Join the tailnet (auth key)
+        if: steps.keys.outputs.mode == 'authkey'
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+
+      - name: Does PHP answer
+        env:
+          NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+        run: |
+          set -u
+          if [ -z "$(tailscale ip -4 2>/dev/null | head -1 || true)" ]; then
+            echo "::error::사설망에 안 붙었다 — NAS 를 못 쟀다(NAS 가 멈춘 것인지 모른다)"; exit 1
+          fi
+          probe() { r=$(curl -s -o /tmp/body -w '%{http_code} %{time_total}' -m 15 "$1" 2>/dev/null || true); echo "${r:-000 15}"; }
+          PORT=""; S=""
+          for p in 80 5000; do S=$(probe "http://${NAS_HOST}:$p/ver.txt"); [ "${S%% *}" = 200 ] && { PORT=$p; break; }; done
+          if [ -z "$PORT" ]; then
+            V="NAS 웹 자체가 안 닿는다 — 보통 파일도 안 온다(${S}). NAS 전원·네트워크·Web Station 을 본다"
+            echo "::error::$V"; echo "## NAS 감시 — 빨강" >> "$GITHUB_STEP_SUMMARY"; echo "- $V" >> "$GITHUB_STEP_SUMMARY"; exit 1
+          fi
+          P=$(probe "http://${NAS_HOST}:$PORT/gcal-oauth.php?action=config")
+          PC=${P%% *}; PT=${P##* }
+          OK=0; grep -q '"ok"' /tmp/body 2>/dev/null && OK=1
+          SLOW=$(awk -v t="$PT" 'BEGIN{print (t>6)?1:0}')
+          if [ "$PC" != 200 ] || [ "$OK" != 1 ]; then
+            V="PHP 가 대답을 안 한다(상태 ${PC} · ${PT}초) — 보통 파일은 온다(${S#* }초). DSM [패키지 센터]에서 PHP·Web Station 을 [중지] → [실행] 한다"
+            R=1
+          elif [ "$SLOW" = 1 ]; then
+            V="PHP 가 느리다(${PT}초) — 앱이 6초에서 포기한다. NAS 가 바쁜지 본다"; R=1
+          else
+            V="PHP 가 대답한다(${PT}초) · 보통 파일 ${S#* }초"; R=0
+          fi
+          rm -f /tmp/body
+          if [ "$R" = 1 ]; then echo "::error::$V"; T="빨강"; else echo "  $V"; T="초록"; fi
+          { echo "## NAS 감시 — $T"; echo "- $V"; } >> "$GITHUB_STEP_SUMMARY"
+          exit $R
+
+      # ★ 구글 캘린더 «서버 등록»이 남아 있는가 〈2026-10-17 사장님 폰 화면: 「이 서버에 Google 클라이언트가 아직 등록돼 있지 않습니다」〉.
+      #   같은 화면이 셋을 덮는다 — 등록 파일이 «없다» · «못 읽는다» · 있는데 칸이 비었다. 할 일이 다르다.
+      #   ★ 담는 것은 있다/없다뿐이다 — 클라이언트 ID·비밀·토큰은 한 글자도 안 찍는다 (§2).
+      - name: Is the Google calendar registration still there
+        if: always()
+        env:
+          NAS_HOST: ${{ secrets.NAS_SSH_HOST }}
+          BASE: ${{ secrets.LP_PUBLIC_BASE }}
+        run: |
+          set -uo pipefail
+          # ★ 폰은 바깥(5G)에서 «공개 주소»로 들어온다 — 사설망 답과 같은지 함께 잰다. 주소는 안 찍는다.
+          if [ -n "${BASE:-}" ]; then curl -s -m 15 -o /tmp/pc.json -w '%{http_code}' "${BASE%/}/gcal-oauth.php?action=config" > /tmp/pc.code || true; fi
+          for p in 80 5000; do curl -s -m 15 -o /tmp/d.json "http://${NAS_HOST}:$p/gcal-oauth.php?action=diag" && [ -s /tmp/d.json ] && break; done
+          for p in 80 5000; do curl -s -m 15 -o /tmp/c.json "http://${NAS_HOST}:$p/gcal-oauth.php?action=config" && [ -s /tmp/c.json ] && break; done
+          python3 - <<'PY' | tee -a "$GITHUB_STEP_SUMMARY"
+          import json
+          def rd(p):
+              try: return json.load(open(p))
+              except Exception: return None
+          d, c = rd('/tmp/d.json'), rd('/tmp/c.json')
+          import os, sys
+          bad = []
+          print("## 구글 캘린더 서버 등록")
+          if not isinstance(c, dict):
+              print("- 못 쟀다 — config 답을 못 읽었다"); print("::error::구글 등록을 못 쟀다 — config 답을 못 읽었다", file=sys.stderr); sys.exit(1)
+          print(f"- 등록됨(configured): {c.get('configured')} · 저장 파일 오류: {c.get('storeErr') or '없음'} · 클라이언트 ID 있음: {bool(c.get('clientId'))} · 비밀이 ID 모양: {c.get('secretLooksLikeId')}")
+          if isinstance(d, dict):
+              print(f"- 저장 파일 있음: {d.get('storeExists')} · 쓰기 가능: {d.get('storeWritable')} · 폴더 쓰기: {d.get('storeDirOk')} · 서명 열쇠 남음: {d.get('secretKept')}")
+          else:
+              print("- 진단(diag) 답은 못 읽었다")
+          # ★ 못 잰 것·망가진 것은 빨갛게 끝낸다 — 초록이면 GitHub 이 실패 메일을 안 보낸다 (Codex #408 · §2 알림 경로)
+          if c.get('configured') is not True: bad.append('사설망 길: 등록이 없다(configured 아님)')
+          if c.get('storeErr'): bad.append('사설망 길: 저장 파일 오류가 있다')
+          if not c.get('clientId'): bad.append('사설망 길: 클라이언트 ID 가 비었다')
+          if c.get('secretLooksLikeId') is True: bad.append('사설망 길: 비밀 칸에 ID 모양 값이 들어 있다')
+          pc = rd('/tmp/pc.json'); code = open('/tmp/pc.code').read().strip() if os.path.exists('/tmp/pc.code') else '안 잼'
+          if isinstance(pc, dict):
+              print(f"- 공개 주소 길: HTTP {code} · 등록됨: {pc.get('configured')} · 저장 파일 오류: {pc.get('storeErr') or '없음'} · 클라이언트 ID 있음: {bool(pc.get('clientId'))}")
+          else:
+              print(f"- 공개 주소 길: HTTP {code} · JSON 아님(다른 화면이 온다)")
+          if os.environ.get('BASE'):
+              if not isinstance(pc, dict): bad.append(f'공개 주소 길: HTTP {code} · JSON 아님')
+              elif pc.get('configured') is not True or pc.get('storeErr'): bad.append('공개 주소 길: 등록이 없거나 저장 파일 오류')
+          for b in bad: print(f"- **빨강** — {b}"); print(f"::error::{b}", file=sys.stderr)
+          sys.exit(1 if bad else 0)
+          PY
+          rm -f /tmp/d.json /tmp/c.json /tmp/pc.json /tmp/pc.code

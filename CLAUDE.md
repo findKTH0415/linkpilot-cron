@@ -3369,3 +3369,12 @@ SNS 인사말(표에서 고른 3줄) → 오늘 보낼 사람 → 배경 고르�
 - 남은 것: 자산운용사·신탁사·PEF 명단(금융투자협회·금감원 엑셀이 오면 엔진 출처로 붙인다).
 - 재는 자리: `linkpilot-platform` 의 `test-isrc-engine.js`(진짜 PHP · Pro 문을 빼면 빨강) · `test-invest-home.js`(일본 거주자 표본 · 거주국 빼기를 지우면 빨강) · `test-invest-overseas.js`.
 
+
+## 22. Actions 비용 — 어느 러너에서 도는가 〈2026-10-20 사장님: 「비용을 줄이기 위해 교차검증을 하고 반영되도록 해줘」 + NAS 러너 안내문〉
+
+- **규칙** — 비공개 `linkpilot-platform` 의 작업만 사무실 NAS 러너로 옮긴다. 저장소 변수 `LP_RUNNER=nas` 가 켜는 스위치이고(배포는 따로 `LP_DEPLOY_RUNNER`), 변수가 없으면 GitHub 러너다. 되돌리기는 변수를 지우는 것이다.
+  ★ **공개 `linkpilot-cron` 은 GitHub 러너 그대로다** — 공개 저장소는 분 요금이 없고, 자기 서버 러너를 붙이면 남이 보낸 PR 의 코드가 NAS 에서 돈다(GitHub 이 금하는 배치).
+  ★ **NAS 를 재는 감시는 NAS 밖에서 돈다** — `nas-health` 를 이 저장소 `platform-nas-health.yml` 로 옮겼다.
+- **까닭** — 받은 안내문은 «두 저장소 모든 runs-on 을 NAS 로»였다. 대 보니 넷이 어긋났다 — 공개 저장소(무료·보안) · NAS 감시를 NAS 가 함 · 게이트가 쓰는 PHP·크롬·한글 글꼴이 기본 이미지에 없음 · 토큰을 compose 파일에 적음(그 파일이 저장소로 올라갈 수 있다).
+  아침 브리핑(6시)은 이 저장소에서 이미 빠졌다(머리말 «범위 변경») — NAS 러너와 상관이 없다.
+- 재는 자리: `linkpilot-platform` 의 `test-ci-runner.js`(박힌 `ubuntu-latest` 가 하나라도 있으면 빨강 · 토큰 값이 설정 파일에 없는가) · 이미지 조립법과 거는 순서는 platform `nas-runner/README.md`.

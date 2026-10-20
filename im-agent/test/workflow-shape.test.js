@@ -334,7 +334,21 @@ const NAS_CRED_EXEMPT = new Map([
   //   그 워크플로를 내렸다 — `im-agent/tools/yeoui893-nas.sh` 로 옮겼다.
   //   ★★ **빈 채로 둔다.** 지우면 다음에 또 예외를 만들 때 «사유를 적는 자리»가 없어지고,
   //     그러면 이름만 슬쩍 더하게 된다. 아래 「죽은 이름」 칸이 빈 목록도 함께 센다.
+  // ★ 2026-10-20 — `platform-nas-health.yml`: **수집 잡이 아니다.** NAS 가 멈췄는지를 바깥 러너에서 재는 감시이고,
+  //   부르는 곳은 NAS 자신(사설망 주소 · 공개 주소)뿐이다 — 바깥 서버 오류 본문이 섞일 자리가 없다(SSH 열쇠도 없다).
+  //   platform(비공개)에서 옮겨 왔다: 그쪽 작업이 NAS 러너로 가면 NAS 를 NAS 가 잴 수 없다 (CLAUDE.md §22).
+  //   ★ 아래 칸이 «이 파일이 바깥 API 를 안 부르는가»를 함께 잰다 — 부르기 시작하면 빨개진다.
+  ['platform-nas-health.yml', 'NAS 감시 — 바깥 API 0곳 · SSH 열쇠 없음 (CLAUDE.md §22)'],
 ]);
+
+test('★ NAS 감시(platform-nas-health)는 바깥 API 를 안 부르고 SSH 열쇠를 안 쓴다 — 예외의 사유가 참인가', () => {
+  const f = path.join(WF, 'platform-nas-health.yml');
+  if (!fs.existsSync(f)) return; // 예외 목록의 «죽은 이름» 칸이 따로 잡는다
+  const s = fs.readFileSync(f, 'utf8').split('\n').filter((l) => !/^\s*#/.test(l)).join('\n');
+  const hosts = [...s.matchAll(/https?:\/\/([a-z0-9.-]+\.[a-z]{2,})/gi)].map((m) => m[1]);
+  assert.deepStrictEqual(hosts, [], '바깥 주소를 부른다: ' + hosts.join(' · '));
+  assert.ok(!/NAS_SSH_KEY|NAS_SSH_USER/.test(s), 'SSH 열쇠·계정을 쓴다 — 감시에는 필요 없다');
+});
 
 test('★★★ 수집 잡에 NAS 접속 자격증명이 없다 (§4 · 규정집 2-8)', () => {
   const all = NAS_WF();
