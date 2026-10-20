@@ -131,7 +131,12 @@ jobs:
               print(f"- 공개 주소 길: HTTP {code} · 등록됨: {pc.get('configured')} · 저장 파일 오류: {pc.get('storeErr') or '없음'} · 클라이언트 ID 있음: {bool(pc.get('clientId'))}")
           else:
               print(f"- 공개 주소 길: HTTP {code} · JSON 아님(다른 화면이 온다)")
-          if os.environ.get('BASE'):
+          # ★ 〈2026-10-20 · 실측〉 러너(해외 IP)에서 공개 주소는 무엇을 부르든 같은 403 화면이다 — 배포의 앱 경로 확인도 19개가 같은 몸통이었다.
+          #   그 403 은 «폰이 못 들어온다»가 아니라 «이 러너를 막는다»다. 빨강으로 세면 날마다 고칠 것 없는 실패 메일이 간다 — «못 쟀다»로 적는다 (§8).
+          if os.environ.get('BASE') and code == '403' and not isinstance(pc, dict):
+              print("- 공개 주소 길: **못 쟀다** — 이 러너에는 무엇을 부르든 같은 403 화면이 온다(까닭은 못 쟀다). 폰 길은 이 자리에서 못 잰다")
+              print("::warning::공개 주소 길을 못 쟀다 — 러너를 막는다(HTTP 403). 실패로 세지 않는다", file=sys.stderr)
+          elif os.environ.get('BASE'):
               if not isinstance(pc, dict): bad.append(f'공개 주소 길: HTTP {code} · JSON 아님')
               elif pc.get('configured') is not True or pc.get('storeErr'): bad.append('공개 주소 길: 등록이 없거나 저장 파일 오류')
           for b in bad: print(f"- **빨강** — {b}"); print(f"::error::{b}", file=sys.stderr)
