@@ -34,7 +34,7 @@ jobs:
         run: |
           set -o pipefail
           set +e
-          node scripts/yeoui893-fetch.mjs 2>&1 | tee "$RUNNER_TEMP/y.log"
+          node im-agent/tools/yeoui893-fetch.mjs 2>&1 | tee "$RUNNER_TEMP/y.log"
           echo "code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
           { echo "### 여의동 893 수집 판정"; tail -25 "$RUNNER_TEMP/y.log"; } >> "$GITHUB_STEP_SUMMARY"
           exit 0
