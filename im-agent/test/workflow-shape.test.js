@@ -353,6 +353,7 @@ test('★ NAS 감시(platform-nas-health)는 바깥 API 를 안 부르고 SSH �
   assert.ok(/bad\.append\(f'공개 주소 길: HTTP \{code\} · JSON 아님'\)/.test(s), '403 말고 다른 JSON 아님은 여전히 빨강이어야 한다');
   const dep = fs.readFileSync(path.join(WF, 'deploy-nas.yml'), 'utf8');
   assert.ok(/GOTS="\$GOTS \$GOT"/.test(dep) && /sort -u \| wc -l\)" -eq 1/.test(dep) && /앱 경로 확인: \*\*못 쟀다\*\*/.test(dep), '앱 경로 확인은 «전부 같은 몸통»을 옛 판이 아니라 «못 쟀다»로 갈라야 한다(배포 283 실측)');
+  assert.ok(/WARNS="\$\{WARNS\}::warning::/.test(dep) && /printf '%s' "\$WARNS"/.test(dep), '파일별 경고는 모아 두었다가 «못 쟀다»가 아닐 때만 찍어야 한다 — 19줄이 옛 판으로 읽혔다');
 });
 
 test('★★★ 수집 잡에 NAS 접속 자격증명이 없다 (§4 · 규정집 2-8)', () => {

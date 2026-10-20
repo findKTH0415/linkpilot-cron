@@ -959,7 +959,7 @@ jobs:
           fi
 
           BASE="${BASE%/}"
-          BAD=0; OK=0; GOTS=""
+          BAD=0; OK=0; GOTS=""; WARNS=""
           for f in $FILES; do
             NAME=$(basename "$f")
             WANT=$(sha256sum "$f" | cut -c1-12)
@@ -967,7 +967,8 @@ jobs:
             if [ "$WANT" = "$GOT" ]; then
               OK=$((OK+1))
             else
-              echo "::warning::${NAME} — **앱이 쓰는 길로 받은 것이 저장소와 다르다** (저장소 ${WANT} · 앱 ${GOT}). 사장님 화면에 닿은 것은 이 파일이다."
+              # ★ 파일별 경고는 바로 안 찍고 모아 둔다 — 전부 같은 몸통이면 «못 쟀다» 한 줄만 남긴다(19줄이 옛 판으로 읽혔다).
+              WARNS="${WARNS}::warning::${NAME} — **앱이 쓰는 길로 받은 것이 저장소와 다르다** (저장소 ${WANT} · 앱 ${GOT}). 사장님 화면에 닿은 것은 이 파일이다."$'\n'
               BAD=$((BAD+1)); GOTS="$GOTS $GOT"
             fi
           done
@@ -978,6 +979,7 @@ jobs:
             echo "앱 경로 확인: **못 쟀다** — 파일 ${BAD}개가 전부 같은 몸통으로 온다(러너가 막힌다)" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
+          printf '%s' "$WARNS"
 
           # ★★★ **재는 단계가 배포를 세우지 않는다** 〈2026-08-27 · 실제로 세웠다 · M-60 과 같은 결〉.
           #
