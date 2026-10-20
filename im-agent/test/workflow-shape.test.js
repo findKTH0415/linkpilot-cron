@@ -351,6 +351,8 @@ test('★ NAS 감시(platform-nas-health)는 바깥 API 를 안 부르고 SSH �
   assert.ok(/ROOT="\$\{ROOT%\/im-flow\}"/.test(s) && /\$\{ROOT\}\/gcal-oauth\.php/.test(s), '이 저장소의 LP_PUBLIC_BASE 는 …/im-flow 다 — 끝을 떼고 앱 뿌리에서 불러야 한다(실측 403)');
   assert.ok(/code == '403' and not isinstance\(pc, dict\)/.test(s) && /못 쟀다/.test(s), '러너가 받는 403 은 «못 쟀다»로 갈라야 한다 — 실패로 세면 날마다 고칠 것 없는 메일이 간다');
   assert.ok(/bad\.append\(f'공개 주소 길: HTTP \{code\} · JSON 아님'\)/.test(s), '403 말고 다른 JSON 아님은 여전히 빨강이어야 한다');
+  const dep = fs.readFileSync(path.join(WF, 'deploy-nas.yml'), 'utf8');
+  assert.ok(/GOTS="\$GOTS \$GOT"/.test(dep) && /sort -u \| wc -l\)" -eq 1/.test(dep) && /앱 경로 확인: \*\*못 쟀다\*\*/.test(dep), '앱 경로 확인은 «전부 같은 몸통»을 옛 판이 아니라 «못 쟀다»로 갈라야 한다(배포 283 실측)');
 });
 
 test('★★★ 수집 잡에 NAS 접속 자격증명이 없다 (§4 · 규정집 2-8)', () => {
