@@ -348,6 +348,7 @@ test('★ NAS 감시(platform-nas-health)는 바깥 API 를 안 부르고 SSH �
   const hosts = [...s.matchAll(/https?:\/\/([a-z0-9.-]+\.[a-z]{2,})/gi)].map((m) => m[1]);
   assert.deepStrictEqual(hosts, [], '바깥 주소를 부른다: ' + hosts.join(' · '));
   assert.ok(!/NAS_SSH_KEY|NAS_SSH_USER/.test(s), 'SSH 열쇠·계정을 쓴다 — 감시에는 필요 없다');
+  assert.ok(/ROOT="\$\{ROOT%\/im-flow\}"/.test(s) && /\$\{ROOT\}\/gcal-oauth\.php/.test(s), '이 저장소의 LP_PUBLIC_BASE 는 …/im-flow 다 — 끝을 떼고 앱 뿌리에서 불러야 한다(실측 403)');
 });
 
 test('★★★ 수집 잡에 NAS 접속 자격증명이 없다 (§4 · 규정집 2-8)', () => {

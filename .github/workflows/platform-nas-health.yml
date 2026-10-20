@@ -99,7 +99,10 @@ jobs:
         run: |
           set -uo pipefail
           # ★ 폰은 바깥(5G)에서 «공개 주소»로 들어온다 — 사설망 답과 같은지 함께 잰다. 주소는 안 찍는다.
-          if [ -n "${BASE:-}" ]; then curl -s -m 15 -o /tmp/pc.json -w '%{http_code}' "${BASE%/}/gcal-oauth.php?action=config" > /tmp/pc.code || true; fi
+          # ★ 〈2026-10-20 · 실측 403〉 이 저장소의 LP_PUBLIC_BASE 는 «보고서 화면 폴더»(…/im-flow)를 가리킨다(docs/안내-LP-PUBLIC-BASE-등록.md).
+          #   platform 의 같은 이름은 앱 뿌리였다 — 이름이 같아도 값이 다르다. 끝의 /im-flow 를 떼고 앱 뿌리에서 부른다.
+          ROOT="${BASE%/}"; ROOT="${ROOT%/im-flow}"
+          if [ -n "${BASE:-}" ]; then curl -s -m 15 -o /tmp/pc.json -w '%{http_code}' "${ROOT}/gcal-oauth.php?action=config" > /tmp/pc.code || true; fi
           for p in 80 5000; do curl -s -m 15 -o /tmp/d.json "http://${NAS_HOST}:$p/gcal-oauth.php?action=diag" && [ -s /tmp/d.json ] && break; done
           for p in 80 5000; do curl -s -m 15 -o /tmp/c.json "http://${NAS_HOST}:$p/gcal-oauth.php?action=config" && [ -s /tmp/c.json ] && break; done
           python3 - <<'PY' | tee -a "$GITHUB_STEP_SUMMARY"
