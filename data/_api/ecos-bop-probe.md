@@ -16,7 +16,7 @@
 - 항목 100개 · 첫 항목 `100000` 상품수지 · 주기 A
 
 ## 3. 최근 값 (`A` · 2023 ~ 2026)
-- `StatisticSearch` — HTTP 200 · 343ms
+- `StatisticSearch` — HTTP 200 · 291ms
   - 본문 «{"StatisticSearch":{"list_total_count":3,"row":[{"STAT_CODE":"301Y013","STAT_NAME":"2.5.1.1. 국제수지","ITEM_CODE1":"100000","ITEM_NAME1":"상품수지","ITEM_CODE2":null,"ITEM_NAME2":null,"ITEM_CODE3":null,"ITEM_NAME3":null,"ITEM_CODE4":null,"ITEM_NAME4":null,"UNIT_NAME":"백만달러","WGT":null,"TIME":"2023","DATA_V» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 값(DATA_VALUE) 칸: **찾았다**
