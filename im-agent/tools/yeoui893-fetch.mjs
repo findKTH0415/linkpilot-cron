@@ -10,7 +10,7 @@ import { createRequire } from 'node:module';
 import { mkdir, writeFile } from 'node:fs/promises';
 
 const require = createRequire(import.meta.url);
-require('../im-agent/core/env').load();
+require('../core/env').load();
 
 // ── 브이월드 호출에 등록 도메인을 Referer·Origin 으로 싣는다 (2026-09-19 재구성) ──
 // 콘솔 서비스URL 은 여기 안 적는다 — 이 저장소는 공개다 (CLAUDE.md §2 · D-10).
@@ -53,10 +53,10 @@ globalThis.fetch = async (url, init = {}) => {
     throw e;
   }
 };
-const vworld = require('../im-agent/connectors/vworld');
-const nsdi = require('../im-agent/connectors/nsdi');
-const { dataKey } = require('../im-agent/connectors/datakey');
-const { buildUrl } = require('../im-agent/connectors/http');
+const vworld = require('../connectors/vworld');
+const nsdi = require('../connectors/nsdi');
+const { dataKey } = require('../connectors/datakey');
+const { buildUrl } = require('../connectors/http');
 
 const OUT = 'data/yeoui893';
 const ADDRESS = '전북특별자치도 전주시 덕진구 여의동 893';

@@ -73,7 +73,7 @@ fi
 #   다시 받으시려면 SKIP_TRADE=0 으로 부르십시오.
 export SKIP_TRADE="${SKIP_TRADE:-1}"
 
-"$NODE" scripts/yeoui893-fetch.mjs
+"$NODE" im-agent/tools/yeoui893-fetch.mjs
 FETCH_RC=$?
 
 say ""

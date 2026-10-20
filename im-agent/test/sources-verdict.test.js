@@ -124,7 +124,8 @@ test('★ 워크플로가 부르는 수집 스크립트가 «전부» 갈래를 
   const called = new Set();
   for (const f of fs.readdirSync(wfDir).filter((x) => /\.ya?ml$/.test(x))) {
     const y = yamlNoComment(read(path.join(wfDir, f)));
-    for (const m of y.matchAll(/\bnode\s+scripts\/([\w.-]+\.mjs)/g)) called.add(m[1]);
+    // ★ 〈2026-10-20〉 NAS 에서도 도는 수집은 im-agent/tools 에 둔다(배포가 올리는 자리) — 그 자리도 함께 센다
+    for (const m of y.matchAll(/\bnode\s+((?:scripts|im-agent\/tools)\/[\w.-]+\.mjs)/g)) called.add(m[1]);
   }
   assert.ok(called.size >= 5,
     `워크플로가 부르는 수집 스크립트를 못 읽었습니다 (${called.size}개) — 이 칸은 아무것도 안 잽니다`);
@@ -137,8 +138,8 @@ test('★ 워크플로가 부르는 수집 스크립트가 «전부» 갈래를 
 
   const missing = [];
   for (const f of [...called].sort()) {
-    if (VERDICT_EXEMPT[f]) continue;
-    const src = read(path.join(ROOT, 'scripts', f))
+    if (VERDICT_EXEMPT[path.basename(f)]) continue;
+    const src = read(path.join(ROOT, f))
       .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^[ \t]*\/\/.*$/gm, '');
     const at = src.lastIndexOf('process.exit(');
     if (at < 0) { missing.push(`${f} — 되돌아오는 값을 아예 안 냅니다`); continue; }
