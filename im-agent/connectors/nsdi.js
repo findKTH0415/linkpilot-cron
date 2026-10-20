@@ -127,6 +127,16 @@ async function landUse(pnu) {
 
   if (!zones.length) return { ok: false, error: '토지이용계획 자료 없음' };
 
+  // ★ 〈2026-10-20〉 지역지구 «코드»도 버리지 않는다 — 토지이용규제 행위제한(LUR) 조회의 필수 인자
+  //   `ucodeList`(지역지구코드)를 지어 넣지 않으려면 이 응답의 값을 그대로 써야 한다 (§4.3).
+  //   응답에 코드 칸이 없으면 null 로 둔다 — 모르는 것은 모른다고 적는다 (§4.7).
+  const zoneCodes = (r.value || [])
+    .map(x => ({
+      name: (x.prposAreaDstrcCodeNm || x.prpos_area_dstrc_code_nm || '').trim(),
+      code: String(x.prposAreaDstrcCode ?? x.prpos_area_dstrc_code ?? '').trim() || null,
+    }))
+    .filter(z => z.name);
+
   const primary = zones.find(z => ZONE_LIMITS[normalizeZone(z)]) || zones[0];
   const limits = ZONE_LIMITS[normalizeZone(primary)] || null;
 
@@ -139,7 +149,7 @@ async function landUse(pnu) {
   return {
     ok: true, cached: r.cached,
     value: {
-      zone: primary, allZones: zones, limits,
+      zone: primary, allZones: zones, zoneCodes, limits,
       limitsSource: limits ? '국토계획법 시행령 기준(조례 확인 필요)' : null,
       restrictions: restrictions,
       critical: restrictions.filter(isCritical),
