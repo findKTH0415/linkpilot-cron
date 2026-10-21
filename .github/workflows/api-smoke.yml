@@ -211,6 +211,11 @@ jobs:
           PERSONAL_API_KEY: ${{ secrets.PERSONAL_API_KEY }}
           KPX_SMP_DEMAND_FORECAST: ${{ secrets.KPX_SMP_DEMAND_FORECAST }}
           KPX_POWER_SUPPLY_DEMAND_FORECAST_GW: ${{ secrets.KPX_POWER_SUPPLY_DEMAND_FORECAST_GW }}
+          # ★ 2026-10-21 — 토지이용규제 법령정보(15057174)의 지역지구 코드를 같은 실행에서 브이월드에 묻는다. 데이터 열쇠 + 등록 도메인 문자열(§4 · 접속 자격증명 아님)
+          VWORLD_KEY:        ${{ secrets.VWORLD_KEY }}
+          VWORLD_DOMAIN:     ${{ secrets.VWORLD_DOMAIN }}
+          LINKPILOT_VWORLD_REPORT_KEY: ${{ secrets.LINKPILOT_VWORLD_REPORT_KEY }}
+          LINKPILOT_VWORLD_WEB_KEY:    ${{ secrets.LINKPILOT_VWORLD_WEB_KEY }}
           DATA_GO_KR_KEY:   ${{ secrets.DATA_GO_KR_KEY }}
           APIS_DATA:        ${{ secrets.APIS_DATA }}
           SPECIAL_DAY_INFO: ${{ secrets.SPECIAL_DAY_INFO }}
