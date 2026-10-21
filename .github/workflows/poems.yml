@@ -32,6 +32,19 @@ jobs:
           { echo '### 저작권이 끝난 시'; head -1 data/poems/_summary.md 2>/dev/null || echo '(요약 없음)'; } >> "$GITHUB_STEP_SUMMARY"
           exit $code
 
+      - name: 카드 한 장에 들어가는가
+        id: fit
+        if: steps.fetch.outputs.code == '0' || steps.fetch.outputs.code == '1'
+        continue-on-error: true
+        run: |
+          set +e
+          # ★ 사장님 지시(2026-10-21): 카드 화면 안에 들어가는 시만 후보로 — 플랫폼 카드 규칙으로 페이퍼로지 글꼴을 실어 잰다
+          node scripts/poems-fit.mjs 2>&1 | tee /tmp/poems-fit.log
+          code=${PIPESTATUS[0]}
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          { echo '### 카드에 들어가는가'; head -1 data/poems/_fit.md 2>/dev/null || echo '(요약 없음)'; } >> "$GITHUB_STEP_SUMMARY"
+          exit $code
+
       - name: 결과 커밋
         if: always()
         env:
@@ -67,6 +80,8 @@ jobs:
         if: always()
         env:
           CODE: ${{ steps.fetch.outputs.code }}
+          FIT: ${{ steps.fit.outputs.code }}
         run: |
-          echo "위키문헌 진단 값: ${CODE:-못 받음}"
+          echo "위키문헌 진단 값: ${CODE:-못 받음} · 카드 실측 값: ${FIT:-못 돎}"
           [ "${CODE:-2}" = "0" ] || [ "${CODE:-2}" = "1" ] || exit 1
+          [ "${FIT:-2}" = "0" ] || { echo "::error::카드 실측을 못 했다 — 어느 시가 카드에 들어가는지 모른다(_fit.md)"; exit 1; }

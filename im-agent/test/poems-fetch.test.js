@@ -49,3 +49,18 @@ test('판 가르기 — «현대어»·«원문» 묶음을 따로 · 머리글�
   assert.deepStrictEqual(htmlPoemLines(html), ['죽는 날까지 하늘을 우러러', '한 점 부끄럼이 없기를,']);
   assert.strictEqual(htmlPoemLines('<ul><li>목록</li></ul>'), null, '시 칸이 없으면 읽지 않는다');
 });
+
+test('카드 한 장에 들어가는가 — 플랫폼 카드 규칙(64→4px · 9줄 · 1460px)을 흉내 내고, 원문 옛한글 판은 안 쓰고, 자르지 않는다', async () => {
+  const { simulate, cardVersion, cardLines, CARD } = await import(path.resolve(__dirname, '..', '..', 'scripts', 'poems-fit.mjs'));
+  const m = (t, fs) => [...t].length * fs; // 한 글자 = 글씨 크기만큼
+  assert.deepStrictEqual(simulate(['짧은 시', '두 줄'], m), { fs: 64, rows: 2, height: 2 * Math.round(64 * 1.34) + 70, limit: 1460, fits: true });
+  const long = Array.from({ length: 30 }, () => '한 줄');
+  const r = simulate(long, m);
+  assert.strictEqual(r.fs, 44, '9줄을 넘으면 46 밑까지 4px 씩 줄인다(플랫폼과 같은 마지막 값)');
+  assert.strictEqual(r.fits, false, '30줄은 1460px 를 넘는다 — 안 들어간다');
+  assert.strictEqual(simulate(['가'.repeat(20)], m).rows, 2, '폭 896px 를 넘으면 다음 줄로 넘긴다');
+  assert.strictEqual(CARD.bottom - CARD.top, 1460);
+  assert.strictEqual(cardVersion({ versions: [{ label: '원문', lines: ['ᄭᅩᆺ'] }, { label: '현대어', lines: ['꽃'] }] }).label, '현대어');
+  assert.strictEqual(cardVersion({ versions: [{ label: '원문', lines: ['ᄭᅩᆺ'] }] }), null, '옛한글 원문뿐이면 카드에 안 싣는다');
+  assert.deepStrictEqual(cardLines(['<진달래꽃>', '', '나 보기가', ''], '진달래꽃'), ['나 보기가'], '첫 줄 제목은 작가 줄로 옮긴다');
+});
