@@ -1,0 +1,36 @@
+{
+ "at": "2026-10-21",
+ "note": "근거 하나(위키문헌). verified=false — 두 번째 근거와 대조 전에는 앱에 싣지 않는다",
+ "list": [
+  {
+   "author": "김소월",
+   "died": 1934,
+   "title": "진달래꽃",
+   "page": "진달래꽃",
+   "url": "https://ko.wikisource.org/wiki/%EC%A7%84%EB%8B%AC%EB%9E%98%EA%BD%83",
+   "lines": [
+    "* 진달래꽃 (시집): 김소월의 시집.",
+    "** 진달래꽃 (시): 김소월의 시."
+   ],
+   "sources": [
+    "위키문헌"
+   ],
+   "verified": false
+  },
+  {
+   "author": "김소월",
+   "died": 1934,
+   "title": "초혼",
+   "page": "초혼",
+   "url": "https://ko.wikisource.org/wiki/%EC%B4%88%ED%98%BC",
+   "lines": [
+    "* 초혼은 김소월의 시이다.",
+    "* 초혼은 이상화의 시이다."
+   ],
+   "sources": [
+    "위키문헌"
+   ],
+   "verified": false
+  }
+ ]
+}
