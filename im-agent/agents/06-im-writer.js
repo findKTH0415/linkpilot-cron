@@ -411,6 +411,26 @@ ${researchText ? `[참고 시장자료 — 수치 인용 금지, 서술 근거�
   });
 }
 
+/**
+ * 공매 낙찰가율 참고표 — 03 Research 의 auction 칸을 그대로 옮긴다(LLM 무관).
+ * ★ 못 낸 경우에도 칸을 지우지 않고 **왜 없는지** 한 줄을 남긴다 — 조용히 사라지면 「공매 자료가 없는 지역」으로 읽힌다.
+ */
+function auctionTable(a) {
+  const head = '### 공매 낙찰가율 (온비드 · 참고)';
+  if (!a || a.status !== 'ok' || !(a.items || []).length) {
+    return `${head}\n\n_${(a && a.reason) || '자료 없음'}_`;
+  }
+  const ym = v => (v && v.length === 6 ? `${v.slice(0, 4)}.${v.slice(4)}` : (v || '-'));
+  return [
+    head, '',
+    `지역: ${a.region}${a.note ? ` (${a.note})` : ''}`, '',
+    '| 재산 종류 | 표본 | 낙찰가율 중앙값 | 기간 |', '|---|---:|---:|---|',
+    ...a.items.map(x => `| ${x.item} | ${x.n}건 | ${x.median}% | ${ym(x.from)} ~ ${ym(x.to)} |`),
+    '',
+    `자료출처: ${a.source}${a.asOf ? ` · 기준일 ${a.asOf}` : ''}. 낙찰가율은 감정가 대비 낙찰가이며 시세·평가액이 아니다 — 실거래 사례·평가액과 합치지 않는다. 표본이 적은 종류는 중앙값이 크게 흔들린다.`,
+  ].join('\n');
+}
+
 async function run(input, ctx) {
   const ds = ctx.dataset;
   if (!ds) throw new Error('ctx.dataset 필요');
@@ -492,6 +512,9 @@ async function run(input, ctx) {
       //   먼저 오고 인상(AI 그림)이 뒤에 온다. 순서를 바꾸면 그림이 근거로 읽힌다.
       text += renderFigures(input.intake);
     }
+
+    // ★ 공매 낙찰가율 — 시장 분석 절 아래 **별도 칸** (2026-10-21 사장님 · 실거래가와 섞지 않는다 §17)
+    if (section.id === 'market' && research && research.auction) text += `\n\n${auctionTable(research.auction)}`;
 
     // 데이터 요약을 서술 아래에 항상 덧붙인다 (숫자의 출처 추적성 확보)
     if (section.narrative && factSheet.length && text && !text.startsWith('- ')) {
@@ -657,6 +680,7 @@ function buildDisclaimers(appraisal, massing, financial) {
 }
 
 module.exports = {
+  auctionTable,
   id: '06_im_writer', label: 'IM Writer Agent',
   inputSchema, outputSchema, run,
   findUnsourcedNumbers, substitute, displayValue, financialTable, geoTable, massingTable, renderFigures, appraisalTable, buildKpis, buildDisclaimers,
