@@ -34,6 +34,7 @@ const ecos = require('../connectors/ecos');
 const dart = require('../connectors/dart');
 const kma = require('../connectors/kma');
 const kpx = require('../connectors/kpx');
+const kamco = require('../connectors/kamco');
 const reb = require('../connectors/reb');
 const law = require('../connectors/law');
 const kict = require('../connectors/kict');
@@ -733,6 +734,18 @@ async function main() {
     } else {
       report('REC 현물시장 (전력거래소)', false, rec.error);
     }
+  }
+
+  // ── 9-1. 공매 낙찰가율 · 입찰결과 (온비드 — 2026-10-21 · 실측 판정 0) ──
+  //   ★ 실거래가와 섞지 않는다(§17) — 여기서는 «응답을 읽는가»만 잰다.
+  if (kamco.isAvailable()) {
+    const ar = await kamco.auctionRates({});
+    if (ar.ok) report('공매 낙찰가율 (온비드)', true, `표본 ${ar.summary.n}건 · 중앙값 ${ar.summary.median}% · ${ar.summary.from}~${ar.summary.to} (기준 ${ar.summary.asOf})`);
+    else report('공매 낙찰가율 (온비드)', false, ar.error);
+    const ym = (() => { const d = new Date(Date.now() + 9 * 3600 * 1000); d.setUTCMonth(d.getUTCMonth() - 1); return `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, '0')}`; })();
+    const br = await kamco.bidResults({ ym, rows: 20 });
+    if (br.ok) report('공매 입찰결과 (온비드)', true, `${ym} 개찰 압류재산 부동산 ${br.value.length}건(첫 20건까지)`);
+    else report('공매 입찰결과 (온비드)', false, br.error);
   }
 
   // ── 10. 지가지수 (한국부동산원 — 공시지가 시점수정) ──────

@@ -100,7 +100,7 @@ test('★★★ data.go.kr 커넥터가 「제 손으로」 환경변수를 읽�
  *     「키 없음」을 정하는 자리다. 망을 안 탄다.
  */
 const DATA_GO_KR_CONNECTORS = [
-  'molit', 'kpx', 'fsc', 'g2b', 'nts', 'nps', 'kasi', 'customs', 'enviro', 'factory',
+  'molit', 'kpx', 'fsc', 'g2b', 'nts', 'nps', 'kasi', 'customs', 'enviro', 'factory', 'kamco',
 ];
 
 test('★★★ APIS_DATA 만 넣어도 열 커넥터가 전부 「쓸 수 있다」고 한다', () => {
