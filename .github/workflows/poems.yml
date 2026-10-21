@@ -1,0 +1,72 @@
+name: 저작권이 끝난 시 — 위키문헌 원문 진단
+
+# 시집 탭을 채우기 위한 1단계 (2026-10-21 · CLAUDE.md §6-2-7). 사후 70년이 지난 작가의 시를 위키문헌에서 찾아
+# 원문을 data/poems 에 남긴다. 근거 하나라 앱에 싣지 않는다 — 두 번째 근거와 대조한 뒤에 싣는다.
+# ★ 열쇠도 접속 자격증명도 없다 — 공개 위키문헌만 부른다.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+
+      - name: 위키문헌 원문 받기
+        id: fetch
+        continue-on-error: true
+        run: |
+          set +e
+          node scripts/poems-fetch.mjs 2>&1 | tee /tmp/poems.log
+          code=${PIPESTATUS[0]}
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          { echo '### 저작권이 끝난 시'; head -1 data/poems/_summary.md 2>/dev/null || echo '(요약 없음)'; } >> "$GITHUB_STEP_SUMMARY"
+          exit $code
+
+      - name: 결과 커밋
+        if: always()
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -u
+          if [ -z "${DEFAULT_BRANCH:-}" ]; then
+            echo "::warning::기본 가지 이름을 못 받았다 — 커밋하지 않는다. 결과는 아래 아티팩트에 있다"
+            exit 0
+          fi
+          if [ "$REF_NAME" != "$DEFAULT_BRANCH" ]; then
+            echo "가지 '$REF_NAME' 에서 돌았다 — **결과를 커밋하지 않는다.**"
+            echo "  까닭: 열려 있는 PR 의 머리가 움직이면 검사가 다시 선다."
+            echo "  받을 곳: 아래 «아티팩트 업로드» 아티팩트 (poems)."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/poems
+          git diff --staged --quiet || git commit -m "저작권이 끝난 시 원문 진단 ($(date -u +%Y-%m-%d))"
+          git pull --rebase -q origin "$DEFAULT_BRANCH" || true
+          git push
+
+      - name: 아티팩트 업로드
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: poems
+          path: data/poems
+
+      - name: 판정
+        if: always()
+        env:
+          CODE: ${{ steps.fetch.outputs.code }}
+        run: |
+          echo "위키문헌 진단 값: ${CODE:-못 받음}"
+          [ "${CODE:-2}" = "0" ] || [ "${CODE:-2}" = "1" ] || exit 1
