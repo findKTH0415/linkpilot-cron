@@ -19,6 +19,7 @@
 //   `redact()` 를 지나가고, 요약에는 **이름과 길이**만 적는다.
 
 import { mkdir, writeFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import { redact, pick, probe, sayRow, verdictOf, MEAN } from './probe-lib.mjs';
 /* ★ 판정 1 은 이 진단에만 있다 — 서버가 대답했는데(규격 페이지·411 등) 조회할 값(번호·필수 인자)을 사람이 넣어야 잴 수 있는 경우.
      3(못 닿았다)과 갈라야 요약이 «자리를 옮기라»를 잘못 말하지 않는다. 다른 진단의 MEAN 은 건드리지 않는다 */
@@ -408,7 +409,25 @@ const MEASURED = [
      ★ 값을 지어내지 않는다 — 진단이 늘 붙이는 기준월(basYm)의 «연도»를 그대로 쓴다(기준월 되짚기와 함께 움직인다) */
   { re: /^B190030\/GetFundLoanInfoService\//, params: (ym) => ({ bseYy: String(ym).slice(0, 4) }),
     from: '안내 페이지 요청변수 표 `bseYy`(기준연도) — 진단 기준월의 연도' },
+  /* 토지이용규제 법령정보 15057174 — fsc-probe.md: 결과 11 «필수 인자 없음» · 스웨거 필수 `areaCd`(시군구코드)·`ucodeList`(지역지구코드).
+     ★ 〈2026-10-21〉 값은 «같은 실행에서 브이월드 토지이용계획이 돌려준» 코드다(liveLurZone) — 못 받으면 아무것도 안 붙이고 «값 모름»으로 남는다 */
+  { re: /^1613000\/LuLawInfoService\//, params: () => (LIVE.lur && LIVE.lur.ok ? { areaCd: LIVE.lur.areaCd, ucodeList: LIVE.lur.code } : {}),
+    from: '같은 실행에서 브이월드 토지이용계획(getLandUseAttr)이 전주 여의동 893 필지에 돌려준 값 — im-agent/connectors/nsdi.js' },
 ];
+/* 같은 실행에서 받아 둔 값 — 위 표가 읽는다 */
+export const LIVE = {};
+/* 전주 덕진구 여의동 893 — 이 저장소 여의동 수집(data/yeoui893)의 대상 필지. 시군구코드는 PNU 앞 다섯 자리다 */
+const LUR_PNU = '5211313000108930000';
+/** 브이월드에 그 필지의 지역지구를 묻고, 코드가 있는 첫 줄을 고른다. 못 받으면 까닭만 돌려준다(지어내지 않는다 · §4.3) */
+export async function liveLurZone(landUse) {
+  try {
+    const fn = landUse || createRequire(import.meta.url)('../im-agent/connectors/nsdi.js').landUse;
+    const r = await fn(LUR_PNU);
+    if (!r || !r.ok) return { ok: false, why: String((r && r.error) || '대답 없음').slice(0, 120) };
+    const z = ((r.value && r.value.zoneCodes) || []).find((x) => x.code && /^[A-Z0-9]{3,10}$/.test(x.code));
+    return z ? { ok: true, areaCd: LUR_PNU.slice(0, 5), code: z.code, name: z.name } : { ok: false, why: '응답에 지역지구 코드 칸이 없다' };
+  } catch (e) { return { ok: false, why: String((e && e.message) || e).slice(0, 120) }; }
+}
 /* 이미 붙이는 인자 — 필수 인자 목록에서 «값 모름»으로 세지 않는다 */
 const BASE_PARAMS = new Set(['pageNo', 'numOfRows', 'resultType', 'basYm']);
 
@@ -494,6 +513,14 @@ async function main() {
     } catch (e) { const line = `- 포털 검색 «${q.keyword}» — **못 닿음** (${redact(String((e && e.message) || e))})`; P(line); SEARCH_RECAP.push(line.replace(/\*\*/g, '')); }
   }
   P('');
+
+  /* ★ 토지이용규제 법령정보에 넣을 지역지구 코드를 먼저 받는다 — 그 서비스가 이번 목록에 있을 때만 */
+  if (SERVICES.some((x) => x.id === '15057174')) {
+    LIVE.lur = await liveLurZone();
+    P(LIVE.lur.ok ? `- 브이월드 토지이용계획 — 전주 여의동 893 의 지역지구 \`${redact(LIVE.lur.code)}\`(${redact(LIVE.lur.name)}) · 시군구 \`${LIVE.lur.areaCd}\` → 토지이용규제 법령정보에 붙인다`
+      : `- 브이월드 토지이용계획 — **못 받았다** (${redact(LIVE.lur.why)}) · 토지이용규제 법령정보의 \`areaCd\`·\`ucodeList\` 는 «값 모름»으로 남는다`);
+    P('');
+  }
 
   const codes = [];
   for (const svc of probeOrder(SERVICES, 64)) {
