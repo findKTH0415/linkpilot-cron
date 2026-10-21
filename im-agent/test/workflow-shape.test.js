@@ -339,7 +339,26 @@ const NAS_CRED_EXEMPT = new Map([
   //   platform(비공개)에서 옮겨 왔다: 그쪽 작업이 NAS 러너로 가면 NAS 를 NAS 가 잴 수 없다 (CLAUDE.md §22).
   //   ★ 아래 칸이 «이 파일이 바깥 API 를 안 부르는가»를 함께 잰다 — 부르기 시작하면 빨개진다.
   ['platform-nas-health.yml', 'NAS 감시 — 바깥 API 0곳 · SSH 열쇠 없음 (CLAUDE.md §22)'],
+  // ★ 2026-10-21 — `nas-runner.yml`: **수집 잡이 아니다.** NAS 에 platform 러너 컨테이너를 까는 설치 잡이다(사장님 「너가 직접해」 · CLAUDE.md §22).
+  //   부르는 바깥 주소는 api.github.com 하나뿐이고, 그 응답 본문은 파일로만 받아 지운다 — 상태코드만 찍는다.
+  //   ★ 아래 칸이 «사람이 걸 때만 · 기본 가지에서만 · 바깥 주소 하나 · 응답 본문을 안 찍는다»를 함께 잰다.
+  ['nas-runner.yml', 'NAS 러너 설치 — 수동 실행·기본 가지만 · 바깥 주소 api.github.com 하나 · 응답 본문 안 찍음 (CLAUDE.md §22)'],
 ]);
+
+test('★ NAS 러너 설치(nas-runner)는 사람이 걸 때만·기본 가지에서만 돌고, GitHub 말고 아무 데도 안 부르고, 응답 본문을 안 찍는다', () => {
+  const f = path.join(WF, 'nas-runner.yml');
+  if (!fs.existsSync(f)) return; // 예외 목록의 «죽은 이름» 칸이 따로 잡는다
+  const raw = fs.readFileSync(f, 'utf8');
+  const s = raw.split('\n').filter((l) => !/^\s*#/.test(l)).join('\n');
+  const on = (s.match(/^on:\n([\s\S]*?)\n\S/m) || [])[1] || '';
+  assert.ok(/workflow_dispatch/.test(on) && !/push|pull_request|schedule/.test(on), '사람이 걸 때만 돌아야 한다 — 저절로 운영 NAS 를 건드리지 않는다');
+  assert.ok(/"\$REF_NAME" != "\$DEFAULT_BRANCH"/.test(s), '기본 가지가 아니면 멈춰야 한다');
+  const hosts = [...new Set([...s.matchAll(/https?:\/\/([a-z0-9.-]+\.[a-z]{2,})/gi)].map((m) => m[1]))];
+  assert.deepStrictEqual(hosts, ['api.github.com'], '바깥 주소는 api.github.com 하나여야 한다: ' + hosts.join(' · '));
+  assert.ok(!/cat \/tmp\/r\.json|echo "\$\(curl/.test(s), 'GitHub 응답 본문을 로그에 찍는다 — 상태코드만 찍는다');
+  assert.ok(/umask 077; cat > [^'"]*runner\.env/.test(s) && !/echo[^\n]*\$PAT/.test(s), '토큰은 표준입력으로만 넘기고 권한 600 — echo 로 찍지 않는다');
+  assert.ok(/nas-platform:online/.test(s) && /LP_RUNNER/.test(s), '러너가 붙은 것을 본 뒤에만 LP_RUNNER 를 켜야 한다');
+});
 
 test('★ NAS 감시(platform-nas-health)는 바깥 API 를 안 부르고 SSH 열쇠를 안 쓴다 — 예외의 사유가 참인가', () => {
   const f = path.join(WF, 'platform-nas-health.yml');
