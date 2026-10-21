@@ -63,3 +63,19 @@ test('열쇠가 없으면 부르지 않고 unavailable', async () => {
   Object.assign(process.env, save);
   assert.strictEqual(r.unavailable, true); assert.strictEqual(seen.length, 0);
 });
+
+test('사업지 주소 → 자료에 있는 시도·시군구 · 못 정하면 null (전국으로 대체하지 않는다)', () => {
+  const k = load({});
+  const R = [{ sido: '경기도', sgg: '성남시 분당구' }, { sido: '경기도', sgg: '수원시 영통구' }, { sido: '광주광역시', sgg: '북구' }, { sido: '전북특별자치도', sgg: '전주시 덕진구' }];
+  assert.deepStrictEqual(k.regionOf('경기도 성남시 분당구 금곡동 1', R), { sido: '경기도', sgg: '성남시 분당구' });
+  assert.deepStrictEqual(k.regionOf('경기 수원시 장안구', R), { sido: '경기도', sgg: '수원시' }, '구가 자료에 없으면 시까지만');
+  assert.deepStrictEqual(k.regionOf('경기도 광주시 오포읍', R), { sido: '경기도', sgg: null }, '경기도 광주시를 광주광역시로 읽지 않는다');
+  assert.strictEqual(k.regionOf('강원 원주시', R), null, '자료에 없는 시도');
+  assert.strictEqual(k.regionOf('', R), null);
+});
+
+test('종류별 요약 — 표본 수·중앙값·기간, 표본 많은 순', () => {
+  const k = load({});
+  const s = k.summarize([{ item: '토지', ratio: 50, ym: '202501' }, { item: '공동주택', ratio: 70, ym: '202503' }, { item: '공동주택', ratio: 80, ym: '202502' }, { item: '토지', ratio: null, ym: '202504' }]);
+  assert.deepStrictEqual(s, [{ item: '공동주택', n: 2, median: 75, from: '202502', to: '202503' }, { item: '토지', n: 1, median: 50, from: '202501', to: '202501' }]);
+});

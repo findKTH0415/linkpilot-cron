@@ -331,6 +331,8 @@ async function run(opts = {}) {
 
     // ★ 대조는 **facts 가 아니다.** Dataset 에 넣지 않고 따로 남긴다 —
     //   넣는 순간 대조값이 딜의 값으로 IM 에 실린다 (등록부 D-48).
+    // ★ 공매 낙찰가율 참고 칸도 따로 남긴다 — Dataset 에 넣지 않는다 (실거래가와 섞지 않는다 · §17)
+    if (res.output.auction) store.writeJson(projectId, '05_Market/auction.json', res.output.auction);
     const checks = res.output.crosschecks || [];
     if (checks.length) {
       store.writeJson(projectId, '05_Market/crosschecks.json', { checks });

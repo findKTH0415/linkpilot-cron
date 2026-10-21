@@ -36,6 +36,7 @@ const factory = require('../connectors/factory');
 const customs = require('../connectors/customs');
 const enviro = require('../connectors/enviro');
 const kepco = require('../connectors/kepco');
+const kamco = require('../connectors/kamco');
 const { round } = require('../core/numeric');
 const { kstDate } = require('../core/kst');
 
@@ -61,6 +62,9 @@ const outputSchema = {
     sponsor: { type: 'object', nullable: true },
     // ★ facts 와 **다른 칸**에 둔다. 섞이면 대조값이 딜의 값으로 실린다 (D-48)
     crosschecks: { type: 'array' },
+    // ★ 공매 낙찰가율(온비드) — facts 도 crosschecks 도 아닌 **참고 칸**이다 (2026-10-21 사장님: 「IM 시장 분석 안의 별도 칸으로」).
+    //   실거래가와 한 분모에 넣지 않는다 (CLAUDE.md §17) — IM 시장 분석 절 아래 따로 선다
+    auction: { type: 'object', nullable: true },
     confidence: { type: 'number', minimum: 0, maximum: 1 },
     offline: { type: 'boolean' },
   },
@@ -163,6 +167,7 @@ async function run(input, ctx) {
   const market = await marketFacts(input, ctx, today);
   // ★ LLM 보다 **먼저** 돌린다. LLM 이 죽어도 대조는 남아야 한다
   const checks = await crosschecks(ctx);
+  const auction = await auctionRef(input, ctx);
 
   if (llm.isOffline()) {
     ctx.warn('LLM 오프라인 — 시장조사 생략. IM의 시장분석 절은 자리표시자로 출력된다');
@@ -171,7 +176,7 @@ async function run(input, ctx) {
       // ★ LLM 이 죽어도 실측 지표는 살아 있다 — 출처가 LLM 이 아니기 때문이다
       sources: market.sources, facts: market.facts, sponsor: await sponsorCheck(ctx),
       // ★ LLM 이 죽어도 대조는 돈다 — 출처가 LLM 이 아니다
-      crosschecks: checks,
+      crosschecks: checks, auction,
       confidence: 0, offline: true,
     };
   }
@@ -218,8 +223,40 @@ ${TOPICS.map(t => `- ${t.id}: ${t.label}`).join('\n')}
   const sources = [...new Set([...sections.flatMap(s => s.sources), ...market.sources])];
   return {
     sections, sources, facts: market.facts, sponsor: await sponsorCheck(ctx),
-    crosschecks: checks,
+    crosschecks: checks, auction,
     confidence: round(confidence, 3), offline: false,
+  };
+}
+
+/**
+ * 공매 낙찰가율 참고 — 한국자산관리공사 온비드 «압류재산 공매 낙찰가율»(15126398).
+ *
+ * ★ 값을 채우지 않는다. 사업지 주소로 **자료에 있는** 시도·시군구를 고르고, 재산 종류별 표본 수·중앙값·기간만 낸다.
+ * ★ 지역을 못 정하면 **전국 값으로 대체하지 않고** 그 사실만 남긴다 (§4.9).
+ * ★ 낙찰가율은 «감정가 대비 낙찰가»이고 시세가 아니다 — 실거래가·평가액과 한 분모에 넣지 않는다 (§17).
+ */
+async function auctionRef(input, ctx) {
+  const base = { label: '공매 낙찰가율 (온비드)', source: '한국자산관리공사 온비드 압류재산 공매 낙찰가율(공공데이터포털 15126398)' };
+  if (!kamco.isAvailable()) return { ...base, status: 'unavailable', reason: '공공데이터포털 열쇠 미설정 — 조회 생략' };
+  if (!input.location) return { ...base, status: 'skipped', reason: '소재지가 없어 지역을 정하지 못했다 — 전국 값으로 대체하지 않는다' };
+  const all = await kamco.auctionRates({});
+  if (!all.ok) {
+    if (!all.unavailable && ctx && ctx.warn) ctx.warn(`공매 낙찰가율 조회 실패: ${all.error}`);
+    return { ...base, status: all.unavailable ? 'unavailable' : 'failed', reason: all.error };
+  }
+  const rg = kamco.regionOf(input.location, all.value);
+  if (!rg) return { ...base, status: 'skipped', reason: `소재지(${input.location})에 맞는 시도를 자료에서 하나로 정하지 못했다 — 전국 값으로 대체하지 않는다` };
+  const inSido = all.value.filter(x => x.sido === rg.sido);
+  const inSgg = rg.sgg ? inSido.filter(x => x.sgg.startsWith(rg.sgg)) : [];
+  const useSgg = inSgg.length > 0;
+  const rows = useSgg ? inSgg : inSido;
+  return {
+    ...base, status: 'ok',
+    region: useSgg ? `${rg.sido} ${rg.sgg}` : rg.sido,
+    level: useSgg ? 'sgg' : 'sido',
+    note: useSgg ? null : (rg.sgg ? `${rg.sgg} 자료가 없어 시도 단위로 냈다` : '시군구를 주소에서 정하지 못해 시도 단위로 냈다'),
+    items: kamco.summarize(rows),
+    asOf: (all.summary && all.summary.asOf) || null,
   };
 }
 
@@ -540,5 +577,5 @@ async function runOne(c, dataset) {
 module.exports = {
   id: '03_research', label: 'Market Research Agent',
   inputSchema, outputSchema, run, TOPICS, FILLS,
-  marketFacts, rateFacts, sponsorCheck, crosschecks, CROSSCHECKS, pick,
+  marketFacts, rateFacts, sponsorCheck, crosschecks, CROSSCHECKS, pick, auctionRef,
 };
