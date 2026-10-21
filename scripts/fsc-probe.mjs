@@ -18,7 +18,7 @@
 // ★ **값은 한 글자도 안 남긴다** (§2 · 이 저장소는 공개다 · D-10) — 공용 창구의
 //   `redact()` 를 지나가고, 요약에는 **이름과 길이**만 적는다.
 
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile, readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { redact, pick, probe, sayRow, verdictOf, MEAN } from './probe-lib.mjs';
 /* ★ 판정 1 은 이 진단에만 있다 — 서버가 대답했는데(규격 페이지·411 등) 조회할 값(번호·필수 인자)을 사람이 넣어야 잴 수 있는 경우.
@@ -419,14 +419,29 @@ export const LIVE = {};
 /* 전주 덕진구 여의동 893 — 이 저장소 여의동 수집(data/yeoui893)의 대상 필지. 시군구코드는 PNU 앞 다섯 자리다 */
 const LUR_PNU = '5211313000108930000';
 /** 브이월드에 그 필지의 지역지구를 묻고, 코드가 있는 첫 줄을 고른다. 못 받으면 까닭만 돌려준다(지어내지 않는다 · §4.3) */
-export async function liveLurZone(landUse) {
+/* ★ 〈2026-10-21 · 실측: 러너에서 브이월드가 «HTTP 502»〉 — 해외 IP 라서다(§12-31). 그래서 못 받으면
+   **국내 자리(NAS)에서 받아 저장소에 올라온** 결과 파일(`data/yeoui893/토지이용계획.json` · yeoui893-nas.sh 가 쓴다)을 읽는다.
+   그 파일도 «같은 필지에 브이월드가 돌려준 값»이다 — 어디서 왔는지는 from 에 적는다. 코드 칸이 없는 옛 파일이면 «값 모름» 그대로다 */
+const LUR_FILE = 'data/yeoui893/토지이용계획.json';
+const pickZone = (v) => ((v && v.zoneCodes) || []).find((x) => x.code && /^[A-Z0-9]{3,10}$/.test(x.code));
+export async function liveLurZone(landUse, readSaved) {
+  let why = '';
   try {
     const fn = landUse || createRequire(import.meta.url)('../im-agent/connectors/nsdi.js').landUse;
     const r = await fn(LUR_PNU);
-    if (!r || !r.ok) return { ok: false, why: String((r && r.error) || '대답 없음').slice(0, 120) };
-    const z = ((r.value && r.value.zoneCodes) || []).find((x) => x.code && /^[A-Z0-9]{3,10}$/.test(x.code));
-    return z ? { ok: true, areaCd: LUR_PNU.slice(0, 5), code: z.code, name: z.name } : { ok: false, why: '응답에 지역지구 코드 칸이 없다' };
-  } catch (e) { return { ok: false, why: String((e && e.message) || e).slice(0, 120) }; }
+    if (r && r.ok) {
+      const z = pickZone(r.value);
+      if (z) return { ok: true, areaCd: LUR_PNU.slice(0, 5), code: z.code, name: z.name, from: '이 실행' };
+      why = '응답에 지역지구 코드 칸이 없다';
+    } else why = String((r && r.error) || '대답 없음').slice(0, 120);
+  } catch (e) { why = String((e && e.message) || e).slice(0, 120); }
+  try {
+    const saved = readSaved ? await readSaved() : JSON.parse(await readFile(LUR_FILE, 'utf8'));
+    const z = saved && saved.ok && pickZone(saved.value);
+    if (z) return { ok: true, areaCd: LUR_PNU.slice(0, 5), code: z.code, name: z.name, from: `저장소의 ${LUR_FILE}(국내 자리 수집)` };
+    why += ` · 저장소의 ${LUR_FILE} 에도 코드 칸이 없다(NAS 에서 \`npm run yeoui893:nas\` 를 다시 돌려 올리면 채워진다)`;
+  } catch (_) { why += ` · 저장소에 ${LUR_FILE} 가 없다`; }
+  return { ok: false, why };
 }
 /* 이미 붙이는 인자 — 필수 인자 목록에서 «값 모름»으로 세지 않는다 */
 const BASE_PARAMS = new Set(['pageNo', 'numOfRows', 'resultType', 'basYm']);
@@ -517,7 +532,7 @@ async function main() {
   /* ★ 토지이용규제 법령정보에 넣을 지역지구 코드를 먼저 받는다 — 그 서비스가 이번 목록에 있을 때만 */
   if (SERVICES.some((x) => x.id === '15057174')) {
     LIVE.lur = await liveLurZone();
-    P(LIVE.lur.ok ? `- 브이월드 토지이용계획 — 전주 여의동 893 의 지역지구 \`${redact(LIVE.lur.code)}\`(${redact(LIVE.lur.name)}) · 시군구 \`${LIVE.lur.areaCd}\` → 토지이용규제 법령정보에 붙인다`
+    P(LIVE.lur.ok ? `- 브이월드 토지이용계획 — 전주 여의동 893 의 지역지구 \`${redact(LIVE.lur.code)}\`(${redact(LIVE.lur.name)}) · 시군구 \`${LIVE.lur.areaCd}\` · 받은 자리 ${LIVE.lur.from} → 토지이용규제 법령정보에 붙인다`
       : `- 브이월드 토지이용계획 — **못 받았다** (${redact(LIVE.lur.why)}) · 토지이용규제 법령정보의 \`areaCd\`·\`ucodeList\` 는 «값 모름»으로 남는다`);
     P('');
   }
