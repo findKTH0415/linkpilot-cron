@@ -137,10 +137,14 @@ test('필수 인자 값 — 스웨거가 적은 값 · 저장소가 받아 본 �
   assert.deepStrictEqual(extraParams(T, '202512', ['areaCd', 'ucodeList'], {}).missing, ['areaCd', 'ucodeList'], '받기 전에는 값을 만들면 안 된다');
   LIVE.lur = await liveLurZone(async () => ({ ok: true, value: { zoneCodes: [{ name: '가축사육제한구역', code: null }, { name: '제2종일반주거지역', code: 'UQA122' }] } }));
   assert.deepStrictEqual(extraParams(T, '202512', ['areaCd', 'ucodeList'], {}).q, { areaCd: '52113', ucodeList: 'UQA122' });
-  LIVE.lur = await liveLurZone(async () => ({ ok: false, error: 'HTTP 502' }));
-  assert.strictEqual(LIVE.lur.ok, false);
+  LIVE.lur = await liveLurZone(async () => ({ ok: false, error: 'HTTP 502' }), async () => ({ ok: true, value: { allZones: ['자연녹지지역'] } }));
+  assert.strictEqual(LIVE.lur.ok, false, '저장된 파일에도 코드 칸이 없으면 못 받은 것이다');
+  assert.ok(/코드 칸이 없다/.test(LIVE.lur.why) && /HTTP 502/.test(LIVE.lur.why), '두 까닭을 함께 적는다');
   assert.deepStrictEqual(extraParams(T, '202512', ['areaCd', 'ucodeList'], {}).missing, ['areaCd', 'ucodeList'], '못 받으면 지어 넣지 않는다');
-  assert.strictEqual((await liveLurZone(async () => ({ ok: true, value: { zoneCodes: [{ name: 'x', code: null }] } }))).ok, false);
+  assert.strictEqual((await liveLurZone(async () => ({ ok: true, value: { zoneCodes: [{ name: 'x', code: null }] } }), async () => null)).ok, false);
+  /* 러너에서 502 → NAS 에서 받아 올라온 파일의 코드를 쓴다 · 어디서 왔는지 적는다 */
+  const sv = await liveLurZone(async () => ({ ok: false, error: 'HTTP 502' }), async () => ({ ok: true, value: { zoneCodes: [{ name: '자연녹지지역', code: 'UQA430' }] } }));
+  assert.strictEqual(sv.ok, true); assert.strictEqual(sv.code, 'UQA430'); assert.ok(/yeoui893/.test(sv.from));
   delete LIVE.lur;
   /* 실측 표 — KOTRA · 실거래(기준월이 DEAL_YMD 로 따라간다) · 건축HUB */
   assert.deepStrictEqual(extraParams('B410001/kotra_nationalInformation/natnInfo/natnInfo', '202512', ['isoWd2CntCd'], {}).q, { isoWd2CntCd: 'BD', type: 'json' });
