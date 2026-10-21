@@ -7,9 +7,9 @@ DATA_GO_KR_KEY : 형식 정상 (64자)
 ECOS 열쇠       : 설정됨 — ECOS_BOK_KEY (시장금리 + 생산자물가)
 DART_API_KEY   : 설정됨
 
-● 한국은행 ECOS 시장금리
-  국고채(3년) 3.84연% (2026-10-20 고시)
-  ※ 이 값은 기준선(debt.benchmark_rate)이다 — 차입금리를 대체하지 않는다
+✕ 한국은행 ECOS 시장금리
+  ECOS INFO-200: 해당하는 데이터가 없습니다.
+  → 통계표코드(817Y002)·항목코드가 바뀌었을 수 있다. 응답 필드명 DATA_VALUE·TIME 확인
 
 ● 한국은행 ECOS 생산자물가 업종목록 (404Y014)
   업종 500종 (월별 167종) · 예: *AA 총지수 / *AA 총지수 / *AA 총지수
@@ -24,8 +24,9 @@ DART_API_KEY   : 설정됨
   ※ 수출입 단가를 보려면: npm run im:smoke -- --hs <HS코드> [--hs-from/to YYYYMM] [--hs-dir export|import]
   ※ 환경 인허가를 보려면: npm run im:smoke -- --enviro-name <상호> [--enviro-addr <주소>]
 
-✕ 계통 여유용량 (원주시)
-  시군구 공통코드를 못 받았다 — HTTP 401 (재시도 무의미)
+● 계통 여유용량 (원주시)
+  69개 선로
+  ※ 요구용량과 견주려면: --grid-mw <수전용량MW>
   ※ 변전소 거리: 변전소 좌표는 공개되지 않는다 — 한전이 **국가중요시설 사유로 비식별 처리**한다. 공개 범위는 행정구역 단위 「공급가능 변전소 있음/없음」까지다. **거리는 한전 지사 사전검토 회신값을 사람이 넣는다** (crosscheck.substation_km)
   ※ 휴폐업을 보려면: npm run im:smoke -- --biz-no <사업자등록번호 10자리>
     ↳ **법인등록번호(13자리)가 아니다** — 넣으면 거절한다
@@ -64,3 +65,6 @@ KEPCO_BIGDATA  : 설정됨 (⚠ 응답 필드 미검증 — 등록부 D-54)
     · PARCEL 시도 → fetch failed (4회 시도 실패)
   → 응답이 아예 없다 — 도는 자리의 바깥 연결(api.vworld.kr)이 막혔는지 본다. 열쇠 문제가 아니다
   ※ 원문 응답을 보려면: IM_AGENT_DEBUG_HTTP=1 npm run im:smoke
+
+● REC 현물시장 (전력거래소)
+  최근 12개월 육지 가중평균 71,520원/REC (100회 개장) · 최근가 71,545원 (20261020)
