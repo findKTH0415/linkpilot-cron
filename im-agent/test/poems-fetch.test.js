@@ -35,3 +35,17 @@ test('문서 고르기 — «시집 (판)/제목» 아래 쪽을 판마다 전�
   const poem = '<poem>\n나 보기가 역겨워\n가실 때에는\n</poem>';
   assert.strictEqual(isListPage(poem, poemLines(poem)), false);
 });
+
+test('판 가르기 — «현대어»·«원문» 묶음을 따로 · 머리글이 없으면 null · 그려진 판에서는 시 칸만 읽는다', async () => {
+  const { poemVersions, htmlPoemLines } = await import(SRC);
+  // 2026-10-21 실측 모양(진달래꽃) — 첫 줄이 «현대어»로 섞여 나왔다
+  const wt = "{{머리말|제목=진달래꽃}}\n'''현대어'''\n\n<poem>\n나 보기가 역겨워\n가실 때에는\n</poem>\n{{Multicol-break}}\n'''원문'''\n{{옛한글/시작}}\n<poem>\n나보기가 역겨워\n가실ᄯᅢ에는\n</poem>";
+  const v = poemVersions(wt);
+  assert.deepStrictEqual(v.map(x => x.label), ['현대어', '원문']);
+  assert.deepStrictEqual(v[0].lines, ['나 보기가 역겨워', '가실 때에는']);
+  assert.strictEqual(v[1].lines[1], '가실ᄯᅢ에는');
+  assert.deepStrictEqual(poemVersions('<poem>\n한 줄\n</poem>').map(x => x.label), [null], '머리글이 없으면 지어 붙이지 않는다');
+  const html = '<table class="머리말"><tr><td>서시 — 윤동주</td></tr></table><div class="poem"><p>죽는 날까지 하늘을 우러러<br>\n한 점 부끄럼이 없기를,</p></div>';
+  assert.deepStrictEqual(htmlPoemLines(html), ['죽는 날까지 하늘을 우러러', '한 점 부끄럼이 없기를,']);
+  assert.strictEqual(htmlPoemLines('<ul><li>목록</li></ul>'), null, '시 칸이 없으면 읽지 않는다');
+});

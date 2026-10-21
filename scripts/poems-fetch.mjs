@@ -54,6 +54,35 @@ export function isListPage(wt, lines) {
   const body = (lines || []).filter(s => s.trim());
   return !body.length || body.every(s => /^\s*[*#:]/.test(s));
 }
+/**
+ * 한 문서에 든 시 묶음을 «판»마다 가른다 — 위키문헌은 «'''현대어'''»·«'''원문'''» 머리글 아래 <poem> 을 나란히 둔다.
+ * 머리글은 바로 앞(앞 묶음이 끝난 뒤) 굵은 글씨에서만 읽는다 — 없으면 null(지어 붙이지 않는다). <poem> 이 없으면 문서 통째로 한 판.
+ */
+export function poemVersions(wt) {
+  const src = String(wt || ''); const out = []; let prev = 0;
+  for (const m of src.matchAll(/<poem[^>]*>([\s\S]*?)<\/poem>/gi)) {
+    const before = src.slice(prev, m.index);
+    const heads = [...before.matchAll(/'''\s*([^'\n]{1,12}?)\s*'''/g)].map(x => x[1].trim());
+    const lines = poemLines(m[1]);
+    if (lines) out.push({ label: heads.length ? heads[heads.length - 1] : null, lines });
+    prev = m.index + m[0].length;
+  }
+  if (out.length) return out;
+  const lines = poemLines(src);
+  return lines ? [{ label: null, lines }] : [];
+}
+/**
+ * 화면에 그려진 판(HTML)에서 시 칸만 읽는다 — 본문을 다른 문서에서 끌어오는 쪽(틀 끼워 넣기 · 스캔 쪽 묶음)은 원문 글에 본문이 없다.
+ * MediaWiki 의 시 칸은 `<div class="poem">` 이다. 그 밖(머리말 상자·목록)은 읽지 않는다.
+ */
+export function htmlPoemLines(html) {
+  const blocks = [...String(html || '').matchAll(/<div[^>]*class="[^"]*\bpoem\b[^"]*"[^>]*>([\s\S]*?)<\/div>/gi)].map(m => m[1]);
+  if (!blocks.length) return null;
+  const ent = { amp: '&', lt: '<', gt: '>', quot: '"', '#39': "'", nbsp: ' ' };
+  const t = blocks.join('\n\n').replace(/<br\s*\/?>\n?/gi, '\n').replace(/<\/p>/gi, '\n\n').replace(/<[^>]+>/g, '')
+    .replace(/&(amp|lt|gt|quot|#39|nbsp);/g, (_, k) => ent[k]).replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d)));
+  return poemLines(t);
+}
 /** 판의 해 — «하늘과 바람과 별과 시 (1948년)/서시» → 1948 · 없으면 null */
 export const editionYear = page => { const m = String(page).match(/\((\d{4})년?\)/); return m ? Number(m[1]) : null; };
 
@@ -95,16 +124,26 @@ async function main() {
           const raw = await getJson(`${API}?action=parse&format=json&prop=wikitext&page=${encodeURIComponent(pick)}`);
           const wt = raw.j && raw.j.parse && raw.j.parse.wikitext && raw.j.parse.wikitext['*'];
           if (!wt) { notes.push(`«${pick}» 원문 HTTP ${raw.status}`); continue; }
-          const lines = poemLines(wt);
-          if (isListPage(wt, lines)) { notes.push(`«${pick}» 은 안내·목록 문서(시 아님)`); continue; }
           const slug = `${w.author}-${title}-${editionYear(pick) || 'x'}`.replace(/[^\p{L}\p{N}-]+/gu, '_');
-          await writeFile(`${OUT}/raw/${slug}.wikitext`, wt);
-          editions.push({ page: pick, year: editionYear(pick), url: `https://ko.wikisource.org/wiki/${encodeURIComponent(pick)}`, lines });
+          let versions = poemVersions(wt); let from = 'wikitext';
+          if (isListPage(wt, versions.length ? versions[0].lines : null)) {
+            // 원문 글에 본문이 없다 — 그려진 판에서 시 칸을 읽는다 (진단용으로 원문 글도 남긴다)
+            await writeFile(`${OUT}/raw/${slug}.list.wikitext`, wt);
+            const html = await getJson(`${API}?action=parse&format=json&prop=text&page=${encodeURIComponent(pick)}`);
+            const h = html.j && html.j.parse && html.j.parse.text && html.j.parse.text['*'];
+            const hl = htmlPoemLines(h);
+            if (!hl) { notes.push(`«${pick}» 은 안내·목록 문서(시 아님) · 그려진 판에도 시 칸 없음 (HTTP ${html.status})`); continue; }
+            versions = [{ label: null, lines: hl }]; from = 'html';
+          } else {
+            await writeFile(`${OUT}/raw/${slug}.wikitext`, wt);
+          }
+          editions.push({ page: pick, year: editionYear(pick), url: `https://ko.wikisource.org/wiki/${encodeURIComponent(pick)}`, from, versions, lines: versions[0].lines });
         }
         if (!editions.length) { P(`- ${w.author} «${title}» — ${notes.join(' · ')} · **시 본문을 못 받았다**`); continue; }
         got.push({ author: w.author, died: w.died, title, editions, sources: ['위키문헌'], verified: false });
         const e0 = editions[0];
-        P(`- ${w.author} «${title}» → ${editions.map(e => `«${e.page}» ${e.lines.filter(x => x.trim()).length}줄`).join(' · ')} · 첫 줄 «${e0.lines[0].slice(0, 40)}»${editions.length > 1 ? ` · 판 ${editions.length}개 — 다음 단계에서 두 판의 글자를 대 본다` : ''}${notes.length ? ` · (${notes.join(' · ')})` : ''}`);
+        const vs = e => e.versions.map(v => `${v.label || '본문'} ${v.lines.filter(x => x.trim()).length}줄`).join('/');
+        P(`- ${w.author} «${title}» → ${editions.map(e => `«${e.page}» ${vs(e)}${e.from === 'html' ? ' (그려진 판)' : ''}`).join(' · ')} · 첫 줄 «${e0.lines[0].slice(0, 40)}»${editions.length > 1 ? ` · 판 ${editions.length}개 — 다음 단계에서 두 판의 글자를 대 본다` : ''}${notes.length ? ` · (${notes.join(' · ')})` : ''}`);
       } catch (e) {
         P(`- ${w.author} «${title}» — **못 닿음** (${String((e && e.cause && e.cause.code) || (e && e.message) || e).slice(0, 80)})`);
       }
