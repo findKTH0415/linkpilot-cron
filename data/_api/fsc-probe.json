@@ -116,28 +116,28 @@
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":29036,\"items\":{\"item\":[{\"basDt\":\"20261016\",\"ctg\":\"혼합채권형\",\"tstMthdCtg\":\"공모\",\"nPptTotAmt\":\"31128334499692\"},{\"basDt\":\"20261016\",\"ctg\":\"-\",\"tstMthdCtg\":\"공모\",\"nPptTotAmt\":\"36259037019\"},"
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":29060,\"items\":{\"item\":[{\"basDt\":\"20261019\",\"ctg\":\"혼합채권형\",\"tstMthdCtg\":\"사모\",\"nPptTotAmt\":\"7543447370877\"},{\"basDt\":\"20261019\",\"ctg\":\"-\",\"tstMthdCtg\":\"공모\",\"nPptTotAmt\":\"36264828133\"},{"
     },
     {
      "label": "*** · 원본 · 202512",
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":14616,\"items\":{\"item\":[{\"basDt\":\"20261016\",\"mngInvTgt\":\"종금형\",\"invrCtg\":\"기관\",\"scrtCmpyCnt\":\"1\",\"actCnt\":\"195\",\"actBal\":\"10190524070\"},{\"basDt\":\"20261016\",\"mngInvTgt\":\"합계\",\"invrCtg\":\"개"
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":14628,\"items\":{\"item\":[{\"basDt\":\"20261019\",\"mngInvTgt\":\"합계\",\"invrCtg\":\"기관\",\"scrtCmpyCnt\":\"0\",\"actCnt\":\"147999\",\"actBal\":\"12062542201336\"},{\"basDt\":\"20261019\",\"mngInvTgt\":\"MMF형\",\"invr"
     },
     {
      "label": "*** · 원본 · 202512",
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":1205,\"items\":{\"item\":[{\"basDt\":\"20261016\",\"crdTrFingWhl\":\"32252822342183\",\"crdTrFingScrs\":\"25042127635937\",\"crdTrFingKosdaq\":\"7210694706246\",\"crdTrLndrWhl\":\"26291870815\",\"crdTrLndrSc"
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":1206,\"items\":{\"item\":[{\"basDt\":\"20261019\",\"crdTrFingWhl\":\"31108258051187\",\"crdTrFingScrs\":\"24189850123150\",\"crdTrFingKosdaq\":\"6918407928037\",\"crdTrLndrWhl\":\"20603072079\",\"crdTrLndrSc"
     },
     {
      "label": "*** · 원본 · 202512",
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":1218,\"items\":{\"item\":[{\"basDt\":\"20261016\",\"invrDpsgAmt\":\"94402968108656\",\"onbdDrvPrdTrRcAdvAmt\":\"34973906349126\",\"toCstRpchCndBndSlgBal\":\"108216030756700\",\"brkTrdUcolMny\":\"1232272539"
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":1219,\"items\":{\"item\":[{\"basDt\":\"20261019\",\"invrDpsgAmt\":\"92096621768597\",\"onbdDrvPrdTrRcAdvAmt\":\"34450463853258\",\"toCstRpchCndBndSlgBal\":\"108089963224872\",\"brkTrdUcolMny\":\"1429273465"
     },
     {
      "label": "*** · 원본 · 202512",
@@ -229,7 +229,7 @@
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><response><header><resultCode>00</resultCode><resultMsg>NORMAL_CODE</resultMsg></header><body><numOfRows>3</numOfRows><pageNo>1</pageNo><totalCount>2217</totalCount><items><item><itemId>1071793</itemId><title><![CDATA[2026년도 공급망안정화 선도사업자 제2차 선정계획 공고]]></title><d"
+     "head": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><response><header><resultCode>00</resultCode><resultMsg>NORMAL_CODE</resultMsg></header><body><numOfRows>3</numOfRows><pageNo>1</pageNo><totalCount>2219</totalCount><items><item><itemId>1071870</itemId><title><![CDATA[2026년 소공인 클린제조환경조성사업 3차 모집 공고(연장)]]></title>"
     }
    ]
   },
@@ -385,7 +385,7 @@
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"records\":[{\"BASE_YR\":\"2021\",\"KSIC_NAME\":\"전체\",\"LEVEL_CD\":\"0\",\"STTMN_CNT\":3088,\"STTMN_AMT\":29512597133,\"COMP_CNT\":2086,\"INVT_AMT\":17564742020},{\"BASE_YR\":\"2021\",\"KSIC_NAME\":\"종합건설\",\"LEVEL_CD\":\"2\",\"STTMN_CNT\":17,\"STTMN_AMT\":244735577,\"COMP_CNT\":12,\"INVT_AMT\":114258065},{\"BASE_YR\":\"2021\",\"KSIC_NAME\":\"수"
+     "head": "{\"records\":[{\"BASE_YR\":\"2021\",\"KSIC_NAME\":\"전체\",\"LEVEL_CD\":\"0\",\"STTMN_CNT\":3088,\"STTMN_AMT\":29512597133,\"COMP_CNT\":2090,\"INVT_AMT\":17614259468},{\"BASE_YR\":\"2021\",\"KSIC_NAME\":\"종합건설\",\"LEVEL_CD\":\"2\",\"STTMN_CNT\":17,\"STTMN_AMT\":244735577,\"COMP_CNT\":12,\"INVT_AMT\":114258065},{\"BASE_YR\":\"2021\",\"KSIC_NAME\":\"수"
     }
    ]
   },
@@ -555,7 +555,7 @@
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL_CODE\"},\"body\":{\"items\":{\"item\":[{\"CRTR_YMD\":\"20261019\",\"SDNM\":\"경상북도\",\"SGGNM\":\"포항시 남구\",\"PRPT_ITEM_NM\":\"공동주택\",\"SCFB_YR\":\"2025\",\"SCFB_MT\":\"10\",\"APSL_EVL_AMT\":160000000,\"DSPL_AMT\":100047000,\"SCFB_PRC_RTO\":62.53},{\"CRTR_YMD\":\"20261019\",\"SDNM\":\"대구광역시\",\"SGGN"
+     "head": "{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL_CODE\"},\"body\":{\"items\":{\"item\":[{\"CRTR_YMD\":\"20261020\",\"SDNM\":\"경기도\",\"SGGNM\":\"고양시 덕양구\",\"PRPT_ITEM_NM\":\"임야\",\"SCFB_YR\":\"2025\",\"SCFB_MT\":\"10\",\"APSL_EVL_AMT\":510337910,\"DSPL_AMT\":710000000,\"SCFB_PRC_RTO\":139.12},{\"CRTR_YMD\":\"20261020\",\"SDNM\":\"인천광역시\",\"SGGNM"
     }
    ]
   },
@@ -741,17 +741,17 @@
    "rows": [
     {
      "label": "*** · 원본 · 202512",
-     "status": 200,
-     "gotValue": true,
+     "status": 503,
+     "gotValue": false,
      "authFail": false,
-     "head": "<response><header><resultCode>00</resultCode><resultMsg>NORMAL SERVICE</resultMsg></header><body><items><item><rnum>1</rnum><platPlc>경기도 성남시 분당구 금곡동 1-7번지</platPlc><sigunguCd>41135</sigunguCd><bjdongCd>11100</bjdongCd><platGbCd>0</platGbCd><bun>0001</bun><ji>0007</ji><mgmPmsrgstPk>1089100018995</mgm"
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
     },
     {
      "label": "*** · 원본 · 202512",
-     "status": 200,
-     "gotValue": true,
+     "status": 503,
+     "gotValue": false,
      "authFail": false,
-     "head": "<response><header><resultCode>00</resultCode><resultMsg>NORMAL SERVICE</resultMsg></header><body><items><item><rnum>1</rnum><platPlc>경기도 성남시 분당구 금곡동 1-7번지</platPlc><sigunguCd>41135</sigunguCd><bjdongCd>11100</bjdongCd><platGbCd>0</platGbCd><bun>0001</bun><ji>0007</ji><mgmPmsrgstPk>1089100046441</mgm"
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICETIMEOUT_ERROR\", \"returnAuthMsg\": \"서비스 연결실패 에러\", \"returnReasonCode\": \"05\" } } }"
     },
     {
      "label": "*** · 원본 · 202512",
@@ -915,7 +915,7 @@
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "<response> <header> <resultCode>00</resultCode> <resultMsg>NORMAL_SERVICE</resultMsg> </header> <body> <items> <item> <pblancNm><![CDATA[[제주] 2026년 4극3특 제주특별자치도 과학기술혁신지원사업 연구단 모집 공고]]></pblancNm> <!-- 공고명 --> <pblancUrl>https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_00000000"
+     "head": "<response> <header> <resultCode>00</resultCode> <resultMsg>NORMAL_SERVICE</resultMsg> </header> <body> <items> <item> <pblancNm><![CDATA[[충남] 홍성군 2026년 (예비)사회적기업 시설장비 지원사업 공고]]></pblancNm> <!-- 공고명 --> <pblancUrl>https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000127352"
     }
    ]
   },
