@@ -346,6 +346,15 @@ export function paramHints(html) {
     if (x) { v = x[2] != null ? x[2] : x[3]; from = `스웨거 ${x[1]}`; }
     else if ((x = o.match(/"enum"\s*:\s*\[\s*"([^"]{1,40})"/))) { v = x[1]; from = '스웨거 enum 첫 값'; }
     else if ((x = o.match(/"description"\s*:\s*"[^"]*?(?:예\)|예시|예:|ex\))\s*[:：]?\s*([A-Za-z0-9_-]{2,30})/i))) { v = x[1]; from = '스웨거 설명의 예시'; }
+    /* ★ 〈2026-10-21 · 실측: 온비드 입찰결과 15157252 가 «필수 인자 없음(11)»〉 — 설명이 «(0001 : 부동산, 0002 : 자동차 …)» 처럼
+       코드표를 적어 둔 인자는 그 «첫 코드»를 쓴다(안내 페이지가 적은 값 · 지어내지 않는다) */
+    else if ((x = o.match(/"description"\s*:\s*"[^"]*?\(\s*([0-9]{2,6})\s*:\s*[^,()"]{1,30}[,)]/))) { v = x[1]; from = '스웨거 설명의 코드 목록 첫 값'; }
+    /* ★ 설명이 «yyyyMMdd»·«yyyyMM» 형식만 적은 날짜 인자 — 진단 기준월의 첫날·끝날로 채운다(이름이 End·To 로 끝나면 끝날).
+       기준월 되짚기와 함께 움직인다 — 값은 extraParams 가 기준월을 받아 정한다 */
+    else if ((x = o.match(/"description"\s*:\s*"[^"]*?\b(yyyyMMdd|yyyyMM)\b/i))) {
+      out[name] = { value: null, date: x[1].length === 8 ? 'ymd' : 'ym', end: /(?:End|To|Ed)$/.test(name), from: `스웨거 설명의 날짜 형식(${x[1]}) — 진단 기준월` };
+      continue;
+    }
     if (v != null && String(v).trim()) out[name] = { value: String(v).trim(), from };
   }
   return out;
@@ -403,6 +412,15 @@ const MEASURED = [
 /* 이미 붙이는 인자 — 필수 인자 목록에서 «값 모름»으로 세지 않는다 */
 const BASE_PARAMS = new Set(['pageNo', 'numOfRows', 'resultType', 'basYm']);
 
+/* 기준월(YYYYMM) → 날짜 인자 값. 기준월이 자리표시('YYYYMM')면 자리표시로 돌려준다(요약에 «기준월»로 적힌다) */
+export function dateOf(ym, kind, end) {
+  if (kind === 'ym') return String(ym);
+  if (!/^\d{6}$/.test(String(ym))) return `${ym}${end ? '말일' : '01'}`;
+  const y = +String(ym).slice(0, 4); const m = +String(ym).slice(4, 6);
+  const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  return `${ym}${end ? String(last).padStart(2, '0') : '01'}`;
+}
+
 /** 한 주소에 붙일 인자를 모은다 — { q: {이름: 값}, used: [{name, value, from}], missing: [이름] } */
 export function extraParams(target, ym, required, hints) {
   const q = {}; const used = [];
@@ -413,7 +431,8 @@ export function extraParams(target, ym, required, hints) {
   for (const name of required || []) {
     if (BASE_PARAMS.has(name) || q[name] != null) continue;
     const h = hints && hints[name];
-    if (h) { q[name] = h.value; used.push({ name, value: h.value, from: h.from }); } else missing.push(name);
+    if (h && h.date) { const v = dateOf(ym, h.date, h.end); q[name] = v; used.push({ name, value: v, from: h.from }); }
+    else if (h) { q[name] = h.value; used.push({ name, value: h.value, from: h.from }); } else missing.push(name);
   }
   return { q, used, missing, base };
 }
@@ -572,7 +591,7 @@ async function main() {
     const hints = paramHints(html);
     if (targets.length) {
       const ex = extraParams(targets[0], 'YYYYMM', d.required, hints);
-      for (const u of ex.used) { const l = `  - 붙인 인자 \`${u.name}=${u.value === 'YYYYMM' ? '기준월(줄마다 따라 움직인다)' : redact(String(u.value))}\` — ${u.from}`; P(l); SEARCH_RECAP.push(`- ${svc.id} ${l.trim()}`); }
+      for (const u of ex.used) { const l = `  - 붙인 인자 \`${u.name}=${/^YYYYMM/.test(String(u.value)) ? `${u.value === 'YYYYMM' ? '기준월' : String(u.value).endsWith('말일') ? '기준월 끝날' : '기준월 첫날'}(줄마다 따라 움직인다)` : redact(String(u.value))}\` — ${u.from}`; P(l); SEARCH_RECAP.push(`- ${svc.id} ${l.trim()}`); }
       if (ex.missing.length) { const l = `  - 값을 모르는 필수 인자 ${ex.missing.map((x) => `\`${x}\``).join(' · ')} — 스웨거에 예시 값이 없고 이 저장소도 받아 본 적이 없다 · **지어 넣지 않았다** (대답이 «필수 인자 없음»이면 이 칸이다)`; P(l); SEARCH_RECAP.push(`- ${svc.id} ${l.trim()}`); }
     }
     for (const t of targets) {
