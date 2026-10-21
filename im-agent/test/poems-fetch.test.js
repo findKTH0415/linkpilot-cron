@@ -19,3 +19,19 @@ test('wikitext → 본문 줄 — 틀·주석·분류·poem 태그를 걷는다 
   assert.deepStrictEqual(poemLines(wt), ['첫째 줄', '둘째 줄', '', '셋째 줄']);
   assert.strictEqual(poemLines('{{틀}}\n[[분류:시]]'), null);
 });
+
+test('문서 고르기 — «시집 (판)/제목» 아래 쪽을 판마다 전부 · 띄어쓰기만 다르면 같은 제목 · 동음이의 안내는 시가 아니다', async () => {
+  const { pickPages, isListPage, editionYear, poemLines } = await import(SRC);
+  // 2026-10-21 실측 — 위키문헌 검색이 실제로 준 후보
+  const hits = ['하늘과 바람과 별과 시 (1948년)/별 헤는 밤', '하늘과 바람과 별과 시 (1955년)/별헤는 밤', '하늘과 바람과 별과 시 (1955년)/거리에서', '하늘과 바람과 별과 시 (1948년)'];
+  assert.deepStrictEqual(pickPages(hits, '별 헤는 밤'), hits.slice(0, 2));
+  assert.deepStrictEqual(pickPages(['진달래꽃 (시집)/산유화', '진달래꽃 (시집)'], '산유화'), ['진달래꽃 (시집)/산유화']);
+  assert.deepStrictEqual(pickPages(['진달래꽃', '진달래꽃 (시집)'], '진달래꽃'), ['진달래꽃'], '아래 쪽이 없으면 같은 제목의 윗문서');
+  assert.deepStrictEqual(pickPages(['글로벌 세계 대백과사전/인명사전'], '산유화'), []);
+  assert.strictEqual(editionYear('하늘과 바람과 별과 시 (1948년)/서시'), 1948);
+  const disamb = '* [[진달래꽃 (시집)]]: 김소월의 시집.\n* [[진달래꽃 (시)]]: 시.';
+  assert.strictEqual(isListPage(disamb, poemLines(disamb)), true, '그날 «2편 받음»으로 센 그 모양이다');
+  assert.strictEqual(isListPage('{{동음이의}}\n본문', ['본문']), true);
+  const poem = '<poem>\n나 보기가 역겨워\n가실 때에는\n</poem>';
+  assert.strictEqual(isListPage(poem, poemLines(poem)), false);
+});
