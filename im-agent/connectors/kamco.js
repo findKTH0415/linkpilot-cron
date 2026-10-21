@@ -114,4 +114,40 @@ async function bidResults({ ym, cltrTypeCd = '0001', prptDivCd = '0007', rows = 
   return { ok: true, cached: r.cached, value: out, query: { ym, cltrTypeCd, prptDivCd, from: rg[0], to: rg[1] } };
 }
 
-module.exports = { auctionRates, bidResults, monthRange, itemsOf, isAvailable, keyFormatError, PROVIDER, RATE_ROWS };
+/* 시도 줄임말 → 그 시도로 볼 낱말들(옛 이름 포함). 자료의 시도 이름(SDNM)을 지어내지 않고, 이 낱말이 «주소에 있고 자료에도 있는» 것만 고른다 */
+const SIDO = {
+  서울: ['서울'], 부산: ['부산'], 대구: ['대구'], 인천: ['인천'], 광주: ['광주광역시'], 대전: ['대전'], 울산: ['울산'], 세종: ['세종'],
+  경기: ['경기'], 강원: ['강원'], 충북: ['충청북도', '충북'], 충남: ['충청남도', '충남'], 전북: ['전라북도', '전북'], 전남: ['전라남도', '전남'],
+  경북: ['경상북도', '경북'], 경남: ['경상남도', '경남'], 제주: ['제주'],
+};
+/**
+ * 사업지 주소 → 낙찰가율 자료의 시도·시군구. 자료에 실제로 있는 이름만 돌려준다.
+ * ★ 시도를 못 정하면 null — **전국 값으로 대체하지 않는다** (CLAUDE.md §4.9).
+ * ★ 시군구는 주소에 그 이름(예: «성남시 분당구» 또는 «성남시»)이 있을 때만 좁힌다.
+ */
+function regionOf(address, rows) {
+  const a = String(address || '').replace(/\s+/g, ' ');
+  if (!a.trim()) return null;
+  const sidos = [...new Set((rows || []).map(x => x.sido).filter(Boolean))];
+  const keyOf = sd => Object.keys(SIDO).find(k => sd.startsWith(k) || SIDO[k].some(w => sd.startsWith(w.trim())));
+  const hit = sidos.filter(sd => a.includes(sd) || (keyOf(sd) && SIDO[keyOf(sd)].some(w => a.includes(w))));
+  if (hit.length !== 1) return null;           // 없거나 둘 이상이면 고르지 않는다
+  const sido = hit[0];
+  const sggs = [...new Set(rows.filter(x => x.sido === sido).map(x => x.sgg).filter(Boolean))];
+  const full = sggs.filter(g => a.includes(g)).sort((x, y) => y.length - x.length)[0];
+  if (full) return { sido, sgg: full };
+  const city = sggs.map(g => g.split(' ')[0]).filter(c => c.length >= 2 && a.includes(c)).sort((x, y) => y.length - x.length)[0];
+  return city ? { sido, sgg: city } : { sido, sgg: null };
+}
+
+/** 지역의 재산 종류별 요약 — 종류마다 표본 수·중앙값·기간 (표본이 적은 종류도 지우지 않고 수를 적는다) */
+function summarize(rows) {
+  const by = {};
+  for (const x of rows) if (x.ratio !== null) (by[x.item || '(종류 미기재)'] = by[x.item || '(종류 미기재)'] || []).push(x);
+  return Object.entries(by).map(([item, L]) => {
+    const r = L.map(x => x.ratio); const ym = L.map(x => x.ym).sort();
+    return { item, n: r.length, median: Math.round(median(r) * 100) / 100, from: ym[0], to: ym[ym.length - 1] };
+  }).sort((a, b) => b.n - a.n || a.item.localeCompare(b.item));
+}
+
+module.exports = { auctionRates, bidResults, monthRange, itemsOf, regionOf, summarize, isAvailable, keyFormatError, PROVIDER, RATE_ROWS };
