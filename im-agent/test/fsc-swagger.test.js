@@ -121,6 +121,15 @@ test('필수 인자 값 — 스웨거가 적은 값 · 저장소가 받아 본 �
   const lur = extraParams('1613000/LuLawInfoService/DTluLawInfo', '202512', ['areaCd', 'ucodeList', 'pageNo'], h);
   assert.deepStrictEqual(lur.q, { areaCd: '11110' });
   assert.deepStrictEqual(lur.missing, ['ucodeList']);
+  /* 온비드 입찰결과 — 설명 속 코드 목록의 첫 코드 · yyyyMMdd 날짜는 기준월의 첫날·끝날 (2026-10-21 실측: 결과 11) */
+  const onbid = paramHints('x {"name":"cltrTypeCd","in":"query","required":true,"description":"물건유형코드 (0001 : 부동산, 0002 : 자동차, 0003 : 동산)"} {"name":"prptDivCd","in":"query","required":true,"description":"재산유형코드(복수 요청일 경우 쉼표(,)로 구분자) (0007 : 압류재산, 0010 : 국유재산)"} {"name":"opbdDtStart","in":"query","required":true,"description":"검색할 개찰일 시작일자 입력(yyyyMMdd)"} {"name":"opbdDtEnd","in":"query","required":true,"description":"검색할 개찰일 종료일자 입력(yyyyMMdd)"} {"name":"note","in":"query","required":true,"description":"비고 (참고: 아무거나)"}');
+  assert.strictEqual(onbid.cltrTypeCd.value, '0001');
+  assert.strictEqual(onbid.prptDivCd.value, '0007', '앞의 «(복수 …)»·«(,)» 괄호는 코드가 아니다');
+  assert.strictEqual(onbid.note, undefined, '숫자 코드가 아닌 괄호는 값으로 안 쓴다');
+  const ob = extraParams('B010003/OnbidCltrBidRsltListSrvc2/getCltrBidRsltList2', '202502', ['cltrTypeCd', 'prptDivCd', 'opbdDtStart', 'opbdDtEnd'], onbid);
+  assert.deepStrictEqual(ob.q, { cltrTypeCd: '0001', prptDivCd: '0007', opbdDtStart: '20250201', opbdDtEnd: '20250228' });
+  assert.deepStrictEqual(ob.missing, []);
+  assert.strictEqual(extraParams('B010003/x/y', '202412', ['opbdDtEnd'], onbid).q.opbdDtEnd, '20241231');
   /* 실측 표 — KOTRA · 실거래(기준월이 DEAL_YMD 로 따라간다) · 건축HUB */
   assert.deepStrictEqual(extraParams('B410001/kotra_nationalInformation/natnInfo/natnInfo', '202512', ['isoWd2CntCd'], {}).q, { isoWd2CntCd: 'BD', type: 'json' });
   assert.deepStrictEqual(extraParams('B410001/kotra_nationalInformation/natnInfo/natnInfo', '202512', ['isoWd2CntCd'], {}).base, { pageNo: '1', numOfRows: '10' }, 'KOTRA 는 받아 본 요청 그대로 — 진단 공통 인자(resultType·basYm)를 안 붙인다');
