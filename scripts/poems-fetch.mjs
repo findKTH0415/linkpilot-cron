@@ -80,7 +80,8 @@ async function main() {
   const head = code === 0 ? `판정 0 — ${tried}편 **전부** 받았다` : code === 1 ? `판정 1 — ${tried}편 중 **${got.length}편** 받았다` : `판정 2 — **한 편도 못 받았다** (${tried}편)${reached ? '' : ' · 위키문헌에 닿지 못했다'}`;
   log.unshift(`> ${head}`, '');
   await writeFile(`${OUT}/_summary.md`, log.join('\n') + '\n');
-  process.exitCode = code;
+  console.log(`LP_POEMS verdict=${code}`);
+  process.exit(code);
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) main();
