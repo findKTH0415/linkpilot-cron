@@ -1,0 +1,78 @@
+name: KIND 지원사업·공고 수집
+
+# 한국해외인프라도시개발지원공사(KIND) 홈페이지의 지원공고·보도자료·활동소식과 사업 넷(직접투자·정책펀드·
+# 타당성조사 지원·K-City/EIPP) 목록 첫 쪽을 받아 data/kind/latest.json 으로 남긴다.
+# 2026-10-22 사장님: 「KIND 가 지원하는 사업정보 노출 · 실시간 업데이트」 — 플랫폼 투자정보 왼쪽 위 칸이 이 파일을 읽는다.
+# ★ 오픈 API 가 없다(진단 data/kind/_probe.md) — 공개 목록만 읽는다. 열쇠도 접속정보도 없다.
+# ★ 시각은 UTC 다 — 매일 08:13 KST = 전날 23:13 UTC (CLAUDE.md §2). 공개 저장소라 분 요금이 없다.
+
+on:
+  schedule:
+    - cron: '13 23 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+
+      - name: 목록 조회
+        id: fetch
+        continue-on-error: true
+        run: |
+          set +e
+          node scripts/kind-fetch.mjs 2>&1 | tee /tmp/kind.log
+          code=${PIPESTATUS[0]}
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          { echo '### KIND 지원사업·공고'; head -1 data/kind/_summary.md 2>/dev/null || echo '(요약 없음)'; } >> "$GITHUB_STEP_SUMMARY"
+          exit $code
+
+      - name: 결과 커밋
+        if: always()
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -u
+          if [ -z "${DEFAULT_BRANCH:-}" ]; then
+            echo "::warning::기본 가지 이름을 못 받았다 — 커밋하지 않는다. 결과는 아래 아티팩트에 있다"
+            exit 0
+          fi
+          if [ "$REF_NAME" != "$DEFAULT_BRANCH" ]; then
+            echo "가지 '$REF_NAME' 에서 돌았다 — **결과를 커밋하지 않는다.**"
+            echo "  까닭: 열려 있는 PR 의 머리가 움직이면 검사가 다시 선다."
+            echo "  받을 곳: 아래 «아티팩트 업로드» 아티팩트 (kind)"
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/kind/latest.json data/kind/_summary.md 2>/dev/null || true
+          git diff --staged --quiet && { echo "바뀐 것 없음"; exit 0; }
+          git commit -m "KIND 지원사업·공고 갱신 ($(date -u +%Y-%m-%d))"
+          # 도는 사이 본가지가 움직이면 밀어 넣기가 거부된다 — 받아 얹고 다시 민다.
+          for i in 1 2 3; do git pull --rebase -q origin "$DEFAULT_BRANCH" && git push && exit 0; sleep $((i*3)); done
+          exit 1
+
+      - name: 아티팩트 업로드
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: kind
+          path: data/kind
+
+      - name: 판정
+        if: always()
+        env:
+          CODE: ${{ steps.fetch.outputs.code }}
+        run: |
+          echo "조회 값: ${CODE:-못 받음} (0 전부 · 1 일부 · 2 목록을 못 읽음 · 3 못 닿음)"
+          [ "${CODE:-2}" = "0" ] || exit 1
