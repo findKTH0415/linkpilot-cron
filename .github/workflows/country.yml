@@ -6,7 +6,7 @@ name: 해외 국가 개황 주간 수집
 
 on:
   schedule:
-    - cron: '43 0 * * 1'
+    - cron: '43 0 1 * *'          # 매달 1일 09:43 KST · 2026-10-22 사장님: 한 달에 한 번
   workflow_dispatch:
     inputs:
       countries:

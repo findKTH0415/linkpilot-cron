@@ -13,7 +13,7 @@ name: 공공 API 실측 진단
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 21 * * 1'          # 매주 월요일 06:00 KST (UTC 표기 — CLAUDE.md §2)
+    - cron: '0 21 1 * *'          # 매달 1일 21:00 UTC = 매달 2일 06:00 KST (UTC 표기 — CLAUDE.md §2) · 2026-10-22 사장님: 한 달에 한 번
 
 permissions:
   contents: write
