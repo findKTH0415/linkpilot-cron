@@ -66,6 +66,8 @@ test('사업 상세 — 실측 머리 글자에서 사업명·단계·개요 · 
   assert.deepStrictEqual(d.fields, { '사업부지': 'New South Wales주 Chatswood', '사업내용(규모)': '총 260세대' });
   const uk = parseDetail('<h3>x</h3>영국 United Kingdom 영국 런던 지하철 정책펀드사업 운영 중 유럽 교통 <dl><dt>사업부지</dt><dd>런던</dd></dl>');
   assert.strictEqual(uk.name, '영국 런던 지하철');
+  const kcn = parseDetail('<h3>x</h3>인도네시아 Indonesia 신수도 교통체계 계획수립 KCN 및 EIPP 개발단계 아시아/태평양 교통 <dl><dt>사업부지</dt><dd>누산타라</dd></dl>');
+  assert.strictEqual(kcn.name, '신수도 교통체계 계획수립');
   const odd = parseDetail('<h3>x</h3>무엇인가 다른 모양<dl><dt>사업부지</dt><dd>X</dd></dl>');
   assert.strictEqual(odd.name, null);
   assert.strictEqual(odd.head, '무엇인가 다른 모양');

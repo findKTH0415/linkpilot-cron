@@ -104,7 +104,9 @@ export function parseDetail(html) {
     const [top, ov] = gap.split(/\s*OVERVIEW\s*/i);
     if (ov) overview = ov.slice(0, 200);
     const m = (top || '').match(/^(\S+)\s+[A-Za-z][A-Za-z .,'&()\-]*\s+(\S.*?)\s+(\S+)\s+(\S*단계|운영\s?중|건설\s?중|준공|완료)(?:\s|$)/);
-    if (m && m[2].length >= 2 && m[2].length <= 80) { name = m[2]; stage = m[4]; }
+    // 갈래 이름이 두 낱말인 곳(«KCN 및 EIPP»)은 앞 낱말이 사업명 꼬리에 붙는다 — 떼어 낸다
+    if (m) m[2] = m[2].replace(/\s+KCN\s*및$/, '');
+    if (m && m[2].length >= 2 && m[2].length <= 160) { name = m[2]; stage = m[4]; }
     else if (top && top.length <= 160) head = top;
   }
   return { name, stage, overview, head, fields };
