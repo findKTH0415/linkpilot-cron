@@ -80,7 +80,8 @@ export function parseProjects(html, type) {
     if (gt >= 0 && (lt < 0 || gt < lt)) chunk = chunk.slice(gt + 1);
     const text = strip(chunk).replace(/^.*?(?:상세보기|바로가기)\s*/, '').replace(/\s*상세보기\s*$/, '').slice(-240).trim();
     prevEnd = re.lastIndex;
-    if (!out.has(id)) out.set(id, { id, type, text: text || null, url: BASE + m[1] });
+    const rc = (text || '').match(/(\S+)\s*\/\s*(\S+)\s+분야\s*:\s*(\S+)\s*$/);
+    if (!out.has(id)) out.set(id, { id, type, region: rc ? rc[1] : null, country: rc ? rc[2] : null, sector: rc ? rc[3] : null, text: text || null, url: BASE + m[1] });
   }
   return [...out.values()].sort((a, b) => b.id - a.id);
 }
@@ -95,12 +96,18 @@ export function parseDetail(html) {
   }
   const firstDt = html.search(/<dt[^>]*>/i);
   const h3 = firstDt > 0 ? html.lastIndexOf('</h3>', firstDt) : -1;
-  let name = null;
+  // 머리 글자 모양(실측 2026-10-22): «호주 Australia 호주 시드니 채스우드 공동주택 직접투자사업 개발단계 아시아/태평양 도시개발 OVERVIEW 임대주택 개발사업 KEY FACTS»
+  //   = 나라(한글) · 나라(영문) · 사업명 · 갈래 · 단계 · 지역 · 분야 · OVERVIEW 한 줄. 모양이 다르면 이름을 비우고 머리 글자만 남긴다.
+  let name = null; let stage = null; let overview = null; let head = null;
   if (h3 > 0) {
-    const gap = strip(html.slice(h3 + 5, firstDt));
-    if (gap && gap.length >= 4 && gap.length <= 120) name = gap;
+    const gap = strip(html.slice(h3 + 5, firstDt)).replace(/\s*KEY FACTS[\s\S]*$/i, '');
+    const [top, ov] = gap.split(/\s*OVERVIEW\s*/i);
+    if (ov) overview = ov.slice(0, 200);
+    const m = (top || '').match(/^(\S+)\s+[A-Za-z][A-Za-z .,'&()\-]*\s+(\S.*?)\s+(\S+)\s+(\S*단계|운영\s?중|건설\s?중|준공|완료)(?:\s|$)/);
+    if (m && m[2].length >= 2 && m[2].length <= 80) { name = m[2]; stage = m[4]; }
+    else if (top && top.length <= 160) head = top;
   }
-  return { name, fields };
+  return { name, stage, overview, head, fields };
 }
 
 const BOARDS = [
@@ -138,7 +145,7 @@ async function main() {
     const items = r.ok ? parseProjects(r.text, t.type).slice(0, 10) : [];
     for (const it of items) {
       const d = await get(it.url);
-      if (d.ok) { const pd = parseDetail(d.text); it.name = pd.name; it.fields = pd.fields; }
+      if (d.ok) Object.assign(it, parseDetail(d.text));
     }
     if (items.length) { got++; res.projects[t.type] = { name: t.name, items, url: `${BASE}/project?businessType=${t.type}` }; }
     else res.failed.push({ part: t.name, why: r.reached ? `HTTP ${r.status} · 사업 0` : `못 닿음 (${r.text.slice(0, 80)})` });
