@@ -47,3 +47,12 @@ test('다른 갈래의 상세 링크는 안 줍는다', async () => {
   const { parseProjects } = await import(SRC);
   assert.strictEqual(parseProjects(PROJ, 'POLICY_FUND').length, 0);
 });
+
+test('사업 상세 — dt/dd 칸과 머리글 뒤 사업명을 읽는다 · 이름 자리가 없으면 null', async () => {
+  const { parseDetail } = await import(SRC);
+  const html = '<h3>직접투자사업</h3><p class="tit">호주 시드니 초고층 아파트 개발</p><dl><dt>사업부지</dt><dd>호주 시드니</dd><dt>사업내용(규모)</dt><dd>주거 400세대</dd></dl>';
+  const d = parseDetail(html);
+  assert.strictEqual(d.name, '호주 시드니 초고층 아파트 개발');
+  assert.deepStrictEqual(d.fields, { '사업부지': '호주 시드니', '사업내용(규모)': '주거 400세대' });
+  assert.strictEqual(parseDetail('<dl><dt>사업부지</dt><dd>X</dd></dl>').name, null);
+});

@@ -85,6 +85,24 @@ export function parseProjects(html, type) {
   return [...out.values()].sort((a, b) => b.id - a.id);
 }
 
+// 사업 상세 — 목록 카드에는 «지역 / 나라 분야 : …»뿐이라 상세의 dt/dd(사업부지·사업내용(규모)·사업방식·투자형태 …)를 읽는다.
+// 사업명은 dt 앞 머리글 자리에 온다 — 그 사이 글자를 이름으로 본다(없으면 null · 지어내지 않는다).
+export function parseDetail(html) {
+  const fields = {};
+  for (const m of html.matchAll(/<dt[^>]*>([\s\S]*?)<\/dt>\s*<dd[^>]*>([\s\S]*?)<\/dd>/gi)) {
+    const k = strip(m[1]); const v = strip(m[2]);
+    if (k && v && k.length <= 20 && !(k in fields)) fields[k] = v.slice(0, 300);
+  }
+  const firstDt = html.search(/<dt[^>]*>/i);
+  const h3 = firstDt > 0 ? html.lastIndexOf('</h3>', firstDt) : -1;
+  let name = null;
+  if (h3 > 0) {
+    const gap = strip(html.slice(h3 + 5, firstDt));
+    if (gap && gap.length >= 4 && gap.length <= 120) name = gap;
+  }
+  return { name, fields };
+}
+
 const BOARDS = [
   { key: 'notices', page: 29, name: '지원공고' },
   { key: 'news', page: 32, name: '보도자료' },
@@ -118,6 +136,10 @@ async function main() {
     const r = await get(`${BASE}/project?businessType=${t.type}`);
     reachedAny = reachedAny || r.reached;
     const items = r.ok ? parseProjects(r.text, t.type).slice(0, 10) : [];
+    for (const it of items) {
+      const d = await get(it.url);
+      if (d.ok) { const pd = parseDetail(d.text); it.name = pd.name; it.fields = pd.fields; }
+    }
     if (items.length) { got++; res.projects[t.type] = { name: t.name, items, url: `${BASE}/project?businessType=${t.type}` }; }
     else res.failed.push({ part: t.name, why: r.reached ? `HTTP ${r.status} · 사업 0` : `못 닿음 (${r.text.slice(0, 80)})` });
     say(`- 사업 ${t.name}: ${r.reached ? 'HTTP ' + r.status : '못 닿음'} · ${items.length}건`);
@@ -135,6 +157,9 @@ async function main() {
     const first = res.projects.DIRECT_INVESTMENT && res.projects.DIRECT_INVESTMENT.items[0];
     if (first) {
       const rd = await get(first.url);
+      const fd = rd.text.search(/<dt[^>]*>/i); const h3 = fd > 0 ? rd.text.lastIndexOf('</h3>', fd) : -1;
+      if (h3 > 0) say('### 상세 머리글~첫 dt 사이', '```', strip(rd.text.slice(h3 + 5, fd)).slice(0, 400), '```');
+      say('### 상세 칸', '```', JSON.stringify(parseDetail(rd.text)).slice(0, 700), '```');
       const heads = [...rd.text.matchAll(/<(h[1-6]|strong|dt|th)[^>]*>([\s\S]*?)<\/\1>/gi)].map((m) => m[1] + ':' + strip(m[2])).filter((t) => t.length > 3).slice(0, 40);
       say('### 직접투자 첫 상세 머리글', ...heads.map((h) => '- ' + h.slice(0, 120)));
     }
