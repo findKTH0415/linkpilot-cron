@@ -1,0 +1,146 @@
+{
+ "at": "2026-10-22T01:32:44.004Z",
+ "home": {
+  "status": 200,
+  "len": 160931
+ },
+ "scripts": [
+  "/js/jquery-3.6.0.min.js",
+  "/js/jquery.rwdImageMaps.min.js",
+  "/js/fullpage.min.js",
+  "/js/swiper-bundle.min.js",
+  "/js/alpine.min.js",
+  "/js/wbz-popup.v1.js",
+  "/js/common.js",
+  "/js/layout.js"
+ ],
+ "pages": [
+  "/introduce/business",
+  "/business/support",
+  "/business/infra_office",
+  "/business/global",
+  "/business/feasibility_fs",
+  "/business/proposal",
+  "/business/k_network",
+  "/business/eipp",
+  "/business/feasibility",
+  "/business/discovery",
+  "/business/teamKorea",
+  "/business/advisory",
+  "/business/investment",
+  "/business/pis",
+  "/business/pis_2"
+ ],
+ "apis": [
+  "/api/v1/attachment",
+  "/api/v1/attachment/1a648bdc-ebda-4df8-b576-5198affb51ae",
+  "/api/v1/attachment/48de8075-221c-40b8-8d96-294f986b5b9f",
+  "/api/v1/attachment/4c30a12a-6a96-433b-9f08-593213ccd031",
+  "/api/v1/attachment/5b6be4fb-aec4-45e4-916c-3bfcfe75f0bb",
+  "/api/v1/attachment/7f974fe3-725e-40bc-91db-38e98946ca6c",
+  "/api/v1/attachment/94556b5a-4b1c-44a3-983b-0d76a813a92c",
+  "/api/v1/attachment/abdb0619-c49c-45a2-8f32-5f6be8fa7f54",
+  "/api/v1/attachment/c0ba8677-c771-4bf0-a1eb-20b698545354",
+  "/api/v1/attachment/c2203d42-894d-49d2-aafe-f998ecac872f",
+  "/api/v1/attachment/c7b0b36a-a1c9-42f3-afca-a2c337bf32a8",
+  "/api/v1/attachment/d641b760-a06f-4158-8d1f-e7ceb496ece7"
+ ],
+ "calls": [
+  {
+   "path": "/api/v1/attachment",
+   "status": 405,
+   "type": "application/json",
+   "len": 162,
+   "shape": "키: timestamp,status,error,message,path",
+   "head": "{\"timestamp\":\"2026-10-22T10:31:48.877287\",\"status\":405,\"error\":\"Method Not Allowed\",\"message\":\"지원하지 않는 요청입니다: GET /api/v1/attachment\",\"path\":\"/api/v1/attachment\"}"
+  },
+  {
+   "path": "/api/v1/attachment/1a648bdc-ebda-4df8-b576-5198affb51ae",
+   "status": 200,
+   "type": "image/png",
+   "len": 978029,
+   "shape": "(JSON 아님)",
+   "head": "�PNG \u001a \u0000\u0000\u0000 IHDR\u0000\u0000\u0002�\u0000\u0000\u0003 \b\u0006\u0000\u0000\u0000 �U1\u0000\u0000\u0000\u0004sBIT\b\b\b\b|\bd�\u0000\u0000 \u0000IDATx^��ٮm�\u0012\u001dT��*�_�\u001b@Ȉ\u0007$�\u0003�1\u0006�\u0000�' �\u0006���\u0018ߪs���ED�̵��f�{j�5�l�\u0019122g�O��?���i}���ϟ>}�Ŀ����i������_����^��\u001f�:��ӟ���u\u001f���\u0007��\b]�ק|ֱ����\u001f?��\u001d\u0017�zx�o@�������������O_�\u0001T�&t\u001b}gէ>�?:��(h~G\u001fp�ϟ~�c�k����﫝� ����}S{q\u0017�E�yyu�\u001aB�.y���I̐���ߐ��Oʳz�RY\u0016��/��M��SM�#2���\u0012\u001bˆ�X�*KuO=��X�e'[��Er\u0016�ڛzW��|Aܨ���#��s h^#����;���R��� K\u001d�/v�\u001aӟi�\u001aV��\u0017�B��U�,�L��\u0003��n\u0005t7u-y"
+  },
+  {
+   "path": "/api/v1/attachment/48de8075-221c-40b8-8d96-294f986b5b9f",
+   "status": 200,
+   "type": "image/png",
+   "len": 2877581,
+   "shape": "(JSON 아님)",
+   "head": "�PNG \u001a \u0000\u0000\u0000 IHDR\u0000\u0000\u0007�\u0000\u0000\u0003�\b\u0006\u0000\u0000\u00004h�#\u0000\u0000\u0000\u0004sBIT\b\b\b\b|\bd�\u0000\u0000 \u0000IDATx^�� �$ǒ\u001d\u0006\u0014�S\\4I�+\u0011)���r�nT��w2�\u001e\u0019\u000f��HYx��\b\u001fl�6�\u0014���o���ox�~�;�~�w���Ͽ��o�λ�������\u0005PVES���u��u�p�����_�^�$\u0019*� \u0004�\u0007�?o���6D#ꄍ��\u0015�ӯ�~�\u000f����U��é�E\u0019�yJ�/�����)�\u0012\u001f�_�S��O��\u0001mB��x\u000eoa��L�ӏE��@���]�Ë�\u0011���Drq�� �\u0006\u0004��N��U\u0004������7�\u0019�����\u001c�s�\u0007�I?�C�\u001c1��_���\u0017�\u0012:{�\u000e�\u0001q������s�BU�����\"�S��\u0002�����7��\u001d\u0002\u0001�\\�u���\u0003f��n/�����N0��Y���\u0012�\u0011͑\u0011�`\u001d\u0011<�[�HD��\u00132��78��ͽe"
+  },
+  {
+   "path": "/api/v1/attachment/4c30a12a-6a96-433b-9f08-593213ccd031",
+   "status": 200,
+   "type": "image/png",
+   "len": 2108062,
+   "shape": "(JSON 아님)",
+   "head": "�PNG \u001a \u0000\u0000\u0000 IHDR\u0000\u0000\u0007�\u0000\u0000\u0003�\b\u0006\u0000\u0000\u00004h�#\u0000\u0000\u0000\u0004sBIT\b\b\b\b|\bd�\u0000\u0000 \u0000IDATx^Ľٖ\\ɒ\u001d\u0016H�L$\u0012\u0005����\u0015��+դ\u001e%��\u000fh��\u0011@\u0002�y\u0000���mws ?\u0011���d�Be ��`��v�������Vx={� �vV��_�q�O��ׯ�}~��g��oߞ��}�!V߾}���ww�9��f��w�1��?|�<���\u000e�1� �\u001d�z�z||lk�����_ml��_\\���k����������q-w�{�>��\u0017�{����ŋ\u0017�woo��\",86�¿����\u0016�{xxhk�}`^�/�h���׻������:>}�{�\u001b���mc��3�7�/\u001ck�\u001aC�\u0016-���2 S��4��%Zx�z�wP���`wus����?щ\u0011T����2i?u��1�5\u0012\u0003o�F@�A����\u001dY\"�D��������.x�+~���]=<<��"
+  },
+  {
+   "path": "/api/v1/attachment/5b6be4fb-aec4-45e4-916c-3bfcfe75f0bb",
+   "status": 200,
+   "type": "image/png",
+   "len": 2877581,
+   "shape": "(JSON 아님)",
+   "head": "�PNG \u001a \u0000\u0000\u0000 IHDR\u0000\u0000\u0007�\u0000\u0000\u0003�\b\u0006\u0000\u0000\u00004h�#\u0000\u0000\u0000\u0004sBIT\b\b\b\b|\bd�\u0000\u0000 \u0000IDATx^�� �$ǒ\u001d\u0006\u0014�S\\4I�+\u0011)���r�nT��w2�\u001e\u0019\u000f��HYx��\b\u001fl�6�\u0014���o���ox�~�;�~�w���Ͽ��o�λ�������\u0005PVES���u��u�p�����_�^�$\u0019*� \u0004�\u0007�?o���6D#ꄍ��\u0015�ӯ�~�\u000f����U��é�E\u0019�yJ�/�����)�\u0012\u001f�_�S��O��\u0001mB��x\u000eoa��L�ӏE��@���]�Ë�\u0011���Drq�� �\u0006\u0004��N��U\u0004������7�\u0019�����\u001c�s�\u0007�I?�C�\u001c1��_���\u0017�\u0012:{�\u000e�\u0001q������s�BU�����\"�S��\u0002�����7��\u001d\u0002\u0001�\\�u���\u0003f��n/�����N0��Y���\u0012�\u0011͑\u0011�`\u001d\u0011<�[�HD��\u00132��78��ͽe"
+  },
+  {
+   "path": "/api/v1/attachment/7f974fe3-725e-40bc-91db-38e98946ca6c",
+   "status": 200,
+   "type": "image/jpeg",
+   "len": 362327,
+   "shape": "(JSON 아님)",
+   "head": "����\u0000\u0010JFIF\u0000\u0001\u0002\u0001\u0001,\u0001,\u0000\u0000��\u0000,Photoshop 3.0\u00008BIM\u0003�\u0000\u0000\u0000\u0000\u0000\u0010\u0001,\u0000\u0000\u0000\u0001\u0000\u0001\u0001,\u0000\u0000\u0000\u0001\u0000\u0001��9�http://ns.adobe.com/xap/1.0/\u0000<?xpacket begin=\" \" id=\"W5M0MpCehiHzreSzNTczkc9d\"?> <x:xmpmeta xmlns:x=\"adobe:ns:meta/\" x:xmptk=\"Adobe XMP Core 5.6-c143 79.161210, 2017/08/11-10:28:36 \"> <rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"> <rdf:Description rdf:about=\"\" xmlns:dc=\"http://purl."
+  },
+  {
+   "path": "/api/v1/attachment/94556b5a-4b1c-44a3-983b-0d76a813a92c",
+   "status": 200,
+   "type": "image/jpeg",
+   "len": 1569603,
+   "shape": "(JSON 아님)",
+   "head": "����\u0000\u0018Exif\u0000\u0000II*\u0000\b\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000��\u0000\u0011Ducky\u0000\u0001\u0000\u0004\u0000\u0000\u0000d\u0000\u0000��\u0003�http://ns.adobe.com/xap/1.0/\u0000<?xpacket begin=\" \" id=\"W5M0MpCehiHzreSzNTczkc9d\"?> <x:xmpmeta xmlns:x=\"adobe:ns:meta/\" x:xmptk=\"Adobe XMP Core 9.1-c003 79.9690a87fc, 2025/03/06-20:50:16 \"> <rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"> <rdf:Description rdf:about=\"\" xmlns:xmpMM=\"http://ns.adobe.com/xap/1.0/mm/\" xmlns:stRef=\""
+  },
+  {
+   "path": "/api/v1/attachment/abdb0619-c49c-45a2-8f32-5f6be8fa7f54",
+   "status": 200,
+   "type": "image/jpeg",
+   "len": 169971,
+   "shape": "(JSON 아님)",
+   "head": "����\u0000\u0010JFIF\u0000\u0001\u0001\u0001\u0000`\u0000`\u0000\u0000��\u0000C\u0000\u0003\u0002\u0002\u0003\u0002\u0002\u0003\u0003\u0003\u0003\u0004\u0003\u0003\u0004\u0005\b\u0005\u0005\u0004\u0004\u0005 \u0007\u0007\u0006\b \u000e\u0012\u0010 \u000e\u0011\u000e \u0010\u0016\u0010\u0011\u0013\u0014\u0015\u0015\u0015 \u000f\u0017\u0018\u0016\u0014\u0018\u0012\u0014\u0015\u0014��\u0000C\u0001\u0003\u0004\u0004\u0005\u0004\u0005 \u0005\u0005 \u0014 \u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014\u0014��\u0000\u0011\b\u0002�\u0004)\u0003\u0001\"\u0000\u0002\u0011\u0001\u0003\u0011\u0001��\u0000\u001f\u0000\u0000\u0001\u0005\u0001\u0001\u0001\u0001\u0001\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0002\u0003\u0004\u0005\u0006\u0007\b ��\u0000�\u0010\u0000\u0002\u0001\u0003\u0003\u0002\u0004\u0003\u0005\u0005\u0004\u0004\u0000\u0000\u0001}\u0001\u0002\u0003\u0000\u0004\u0011\u0005\u0012!1A\u0006\u0013Qa\u0007\"q\u00142���\b#B��\u0015R��$3br� \u0016\u0017\u0018\u0019\u001a%&'()*456789:CDEFGHIJSTUVWXYZcdefghijstuvwxyz���������������������������������������������������������������������������\u0000\u001f\u0001\u0000\u0003"
+  },
+  {
+   "path": "/api/v1/attachment/c0ba8677-c771-4bf0-a1eb-20b698545354",
+   "status": 200,
+   "type": "image/png",
+   "len": 740042,
+   "shape": "(JSON 아님)",
+   "head": "�PNG \u001a \u0000\u0000\u0000 IHDR\u0000\u0000\u0002�\u0000\u0000\u0003 \b\u0006\u0000\u0000\u0000 �U1\u0000\u0000\u0000\u0004sBIT\b\b\b\b|\bd�\u0000\u0000 \u0000IDATx^��Y���r\u001d�k�ꮮ��2A\u0013�\u0004ɖ\u0001 ��b�U�\u0014�lk2�d\u0018�)\u000e\"lH�IJ��<UUwW��5*׊X�+c�>�W�Y���}��1����<�?�o�|�\u001c��ܹs���\u0007�����ógO\u000f�ϟ�#Ϟ=���\u000e��G������~_\u001a\u001eD��\u001d�� l\u0013m�\u000f���O��\u0019���v:N���㝧O�\u0016 �Om�x�o�.��1�o��y���~?��ʯ\u001d\u000f�������gv�����)z��.�S��\\\u000eNS�\u0013r�N8�:oЖ��\u001b��P�E'ϥ��h��C��ӻΧ����\\o��C\u0010�|����\u0017��ڐ�u����d������\u0016��\u0016�\\߻��wN �e_����>M{ ?�>c|OW�\u001e/�\u001a�,\u0019�?�g�[ ��u �=y�|4\u0010:\u0003"
+  },
+  {
+   "path": "/api/v1/attachment/c2203d42-894d-49d2-aafe-f998ecac872f",
+   "status": 200,
+   "type": "image/png",
+   "len": 1465271,
+   "shape": "(JSON 아님)",
+   "head": "�PNG \u001a \u0000\u0000\u0000 IHDR\u0000\u0000\u0006�\u0000\u0000\u0003�\b\u0002\u0000\u0000\u0000��Ch\u0000\u0000g+caBX\u0000\u0000g+jumb\u0000\u0000\u0000\u001ejumdc2pa\u0000\u0011\u0000\u0010�\u0000\u0000�\u00008�q\u0003c2pa\u0000\u0000\u0000g\u0005jumb\u0000\u0000\u0000Gjumdc2ma\u0000\u0011\u0000\u0010�\u0000\u0000�\u00008�q\u0003urn:c2pa:a957ed34-0bda-4d25-b237-98504f8a423d\u0000\u0000\u0000\u0016�jumb\u0000\u0000\u0000)jumdc2as\u0000\u0011\u0000\u0010�\u0000\u0000�\u00008�q\u0003c2pa.assertions\u0000\u0000\u0000 �jumb\u0000\u0000\u0000;jumd@� 2��H�� *��Ci\u0013c2pa.icon\u0000\u0000\u0000\u0000\u0018c2sh���j׿Y,\u001a�������\u0000\u0000\u0000\u0017bfdb\u0000image/svg+xml\u0000\u0000\u0000 wbidb<svg width=\"716\" height=\"716\" viewBox=\"0 0 716 716\" fill=\"none\" xmlns=\"http://www.w3.org/2000/sv"
+  },
+  {
+   "path": "/api/v1/attachment/c7b0b36a-a1c9-42f3-afca-a2c337bf32a8",
+   "status": 200,
+   "type": "image/png",
+   "len": 2707741,
+   "shape": "(JSON 아님)",
+   "head": "�PNG \u001a \u0000\u0000\u0000 IHDR\u0000\u0000\u0007�\u0000\u0000\u0003�\b\u0006\u0000\u0000\u00004h�#\u0000\u0000\u0000\u0004sBIT\b\b\b\b|\bd�\u0000\u0000 \u0000IDATx^�����ʎ\u001c��{���;�\u001c+,��\u001d3\u0013z\u000fi�Gќ���D\u0002(\u0014���}�uN�o-�X�\u0002\u0012 ԅ����u}������� �뷝���u���}G��?��������\u001f_����*��~��X��e\u001bl���\u001d���?���^?\\.;���\u001f�0��:]\u001f՗:S~�Ǫ�z�i��~�\u0006+�����J��ǯK3�μ��\"TI��\"�zLC���F�\u001fZ���e�u����,w G��8��\u0016?�J8\u001f:�a��i'�C�#ʖ���f��8�K\u0010xgM�_��SO��X��>\u00124��l���6\u0019K3!��m\u0018[��E�ӆA4���^�O� �U��\\�ܰe�s{�]�\u001ev�Ϲߠ�&_��]���Uˆ�M�rQ3�Uv����tb��v��5�\u0019��2��"
+  },
+  {
+   "path": "/api/v1/attachment/d641b760-a06f-4158-8d1f-e7ceb496ece7",
+   "status": 200,
+   "type": "image/jpeg",
+   "len": 3762047,
+   "shape": "(JSON 아님)",
+   "head": "����\u0000\u0014JFIF\u0000\u0001\u0001\u0001\u0001,\u0001,\u0000\u0000AMPF��\u0015nExif\u0000\u0000MM\u0000*\u0000\u0000\u0000\b\u0000\u0006\u0001\u0012\u0000\u0003\u0000\u0000\u0000\u0001\u0000\u0001\u0000\u0000\u0001\u001a\u0000\u0005\u0000\u0000\u0000\u0001\u0000\u0000\u0000V\u0001\u001b\u0000\u0005\u0000\u0000\u0000\u0001\u0000\u0000\u0000^\u0001(\u0000\u0003\u0000\u0000\u0000\u0001\u0000\u0002\u0000\u0000\u0002\u0013\u0000\u0003\u0000\u0000\u0000\u0001\u0000\u0001\u0000\u0000�i\u0000\u0004\u0000\u0000\u0000\u0001\u0000\u0000\u0000f\u0000\u0000\u0000�\u0000\u0000\u0000H\u0000\u0000\u0000\u0001\u0000\u0000\u0000H\u0000\u0000\u0000\u0001\u0000\u0007�\u0000\u0000\u0007\u0000\u0000\u0000\u00040221�\u0001\u0000\u0007\u0000\u0000\u0000\u0004\u0001\u0002\u0003\u0000�\u0000\u0000\u0007\u0000\u0000\u0000\u00040100�\u0001\u0000\u0003\u0000\u0000\u0000\u0001\u0000\u0001\u0000\u0000�\u0002\u0000\u0004\u0000\u0000\u0000\u0001\u0000\u0000\u000f��\u0003\u0000\u0004\u0000\u0000\u0000\u0001\u0000\u0000 Ф\u0006\u0000\u0003\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0006\u0001\u0003\u0000\u0003\u0000\u0000\u0000\u0001\u0000\u0006\u0000\u0000\u0001\u001a\u0000\u0005\u0000\u0000\u0000\u0001\u0000\u0000\u0001\u000e\u0001\u001b\u0000\u0005\u0000\u0000\u0000\u0001\u0000\u0000\u0001\u0016\u0001(\u0000\u0003\u0000\u0000\u0000\u0001\u0000\u0002\u0000\u0000\u0002\u0001\u0000\u0004\u0000\u0000\u0000\u0001\u0000\u0000\u0001\u001e\u0002\u0002\u0000\u0004\u0000\u0000\u0000\u0001\u0000\u0000\u0014F\u0000\u0000\u0000\u0000\u0000\u0000\u0000H\u0000\u0000\u0000\u0001\u0000\u0000\u0000H\u0000\u0000\u0000\u0001����\u0000\u0011\b\u0000x\u0000�\u0003\u0001\"\u0000\u0002\u0011\u0001\u0003\u0011\u0002��\u0000\u001f\u0000\u0000\u0001\u0005\u0001\u0001\u0001\u0001\u0001\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0002\u0003\u0004\u0005\u0006\u0007\b ��\u0000�\u0010\u0000\u0002\u0001\u0003\u0003\u0002\u0004\u0003\u0005\u0005\u0004\u0004\u0000\u0000\u0001}\u0001\u0002\u0003\u0000\u0004\u0011"
+  }
+ ]
+}
