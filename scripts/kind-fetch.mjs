@@ -18,6 +18,12 @@ const log = [];
 const say = (...ls) => { for (const s of ls) { console.log(s); log.push(s); } };
 
 async function get(url) {
+  const a = await get1(url);
+  if (a.reached && a.status < 500) return a;
+  await new Promise((r) => setTimeout(r, 3000));
+  return get1(url);
+}
+async function get1(url) {
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), 20000);
   try {
@@ -70,6 +76,8 @@ export function parseProjects(html, type) {
     // 첫 카드는 앞 글자에 거르기 칸·메뉴가 섞일 수 있다 — 그런 덩어리가 끝나는 자리 뒤만 본다
     const cut = Math.max(...['</nav>', '</header>', '</form>', '</select>', '</ul>'].map((t) => chunk.lastIndexOf(t) + (chunk.lastIndexOf(t) >= 0 ? t.length : 0)));
     if (prevEnd < 0 && cut > 0) chunk = chunk.slice(cut);
+    const gt = chunk.indexOf('>'); const lt = chunk.indexOf('<');
+    if (gt >= 0 && (lt < 0 || gt < lt)) chunk = chunk.slice(gt + 1);
     const text = strip(chunk).replace(/^.*?(?:상세보기|바로가기)\s*/, '').replace(/\s*상세보기\s*$/, '').slice(-240).trim();
     prevEnd = re.lastIndex;
     if (!out.has(id)) out.set(id, { id, type, text: text || null, url: BASE + m[1] });
@@ -113,6 +121,23 @@ async function main() {
     if (items.length) { got++; res.projects[t.type] = { name: t.name, items, url: `${BASE}/project?businessType=${t.type}` }; }
     else res.failed.push({ part: t.name, why: r.reached ? `HTTP ${r.status} · 사업 0` : `못 닿음 (${r.text.slice(0, 80)})` });
     say(`- 사업 ${t.name}: ${r.reached ? 'HTTP ' + r.status : '못 닿음'} · ${items.length}건`);
+  }
+
+  // 모양 견본 — 목록 글자가 빠지면(제목·날짜 null) 무엇을 고칠지 보려고 첫 항목 둘레를 남긴다(공개 글자만 · 가림 거침)
+  if (process.env.KIND_DIAG === '1') {
+    log.push('', '## 모양 견본');
+    const rb = await get(`${BASE}/pages/32`);
+    const ib = rb.text.search(/\/pages\/32\?id=\d+/);
+    if (ib > 0) log.push('### 보도자료 첫 글 둘레', '```', strip(rb.text.slice(Math.max(0, ib - 400), ib + 900)).slice(0, 700), '```');
+    const rp = await get(`${BASE}/project?businessType=DIRECT_INVESTMENT`);
+    const ip = rp.text.search(/\/project\/DIRECT_INVESTMENT\/detail\/\d+/);
+    if (ip > 0) log.push('### 직접투자 첫 카드 둘레 (링크 뒤)', '```', strip(rp.text.slice(ip, ip + 1500)).slice(0, 700), '```');
+    const first = res.projects.DIRECT_INVESTMENT && res.projects.DIRECT_INVESTMENT.items[0];
+    if (first) {
+      const rd = await get(first.url);
+      const heads = [...rd.text.matchAll(/<(h[1-6]|strong|dt|th)[^>]*>([\s\S]*?)<\/\1>/gi)].map((m) => m[1] + ':' + strip(m[2])).filter((t) => t.length > 3).slice(0, 40);
+      log.push('### 직접투자 첫 상세 머리글', ...heads.map((h) => '- ' + h.slice(0, 120)));
+    }
   }
 
   // 판정 — 0 전부 · 1 일부 · 2 못 받음(닿았는데 글 0) · 3 못 닿음
