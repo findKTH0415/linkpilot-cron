@@ -10,6 +10,11 @@ on:
   schedule:
     - cron: '13 23 * * *'
   workflow_dispatch:
+    inputs:
+      diag:
+        description: '모양 견본(첫 항목 둘레)을 요약에 남긴다'
+        required: false
+        default: '0'
 
 permissions:
   contents: write
@@ -27,6 +32,8 @@ jobs:
 
       - name: 목록 조회
         id: fetch
+        env:
+          KIND_DIAG: ${{ github.event.inputs.diag || '0' }}
         continue-on-error: true
         run: |
           set +e

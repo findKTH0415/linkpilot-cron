@@ -43,7 +43,30 @@ test('사업 — 카드 글과 상세 주소 · 최근(번호 큰) 것이 먼저
   assert.ok(!/프로젝트 소개/.test(got[1].text), '머리 메뉴 글자가 카드 글에 섞였다');
 });
 
+test('사업 카드 — «지역 / 나라 분야 : …» 를 칸으로 가른다', async () => {
+  const { parseProjects } = await import(SRC);
+  const html = '<img alt="지도" src="x.png"> 아시아/태평양 / 호주 분야 : 도시개발 <a href="/project/POLICY_FUND/detail/420">상세보기</a>';
+  const [p] = parseProjects(html, 'POLICY_FUND');
+  assert.deepStrictEqual([p.region, p.country, p.sector], ['아시아/태평양', '호주', '도시개발']);
+});
+
 test('다른 갈래의 상세 링크는 안 줍는다', async () => {
   const { parseProjects } = await import(SRC);
   assert.strictEqual(parseProjects(PROJ, 'POLICY_FUND').length, 0);
+});
+
+test('사업 상세 — 실측 머리 글자에서 사업명·단계·개요 · dt/dd 칸 · 모양이 다르면 이름은 null', async () => {
+  const { parseDetail } = await import(SRC);
+  const html = '<h3>직접투자사업</h3><div><span>호주</span><span>Australia</span><b>호주 시드니 채스우드 공동주택</b><i>직접투자사업</i><i>개발단계</i><i>아시아/태평양</i><i>도시개발</i></div>'
+    + '<h4>OVERVIEW</h4><p>임대주택 개발사업</p><h4>KEY FACTS</h4><dl><dt>사업부지</dt><dd>New South Wales주 Chatswood</dd><dt>사업내용(규모)</dt><dd>총 260세대</dd></dl>';
+  const d = parseDetail(html);
+  assert.strictEqual(d.name, '호주 시드니 채스우드 공동주택');
+  assert.strictEqual(d.stage, '개발단계');
+  assert.strictEqual(d.overview, '임대주택 개발사업');
+  assert.deepStrictEqual(d.fields, { '사업부지': 'New South Wales주 Chatswood', '사업내용(규모)': '총 260세대' });
+  const uk = parseDetail('<h3>x</h3>영국 United Kingdom 영국 런던 지하철 정책펀드사업 운영 중 유럽 교통 <dl><dt>사업부지</dt><dd>런던</dd></dl>');
+  assert.strictEqual(uk.name, '영국 런던 지하철');
+  const odd = parseDetail('<h3>x</h3>무엇인가 다른 모양<dl><dt>사업부지</dt><dd>X</dd></dl>');
+  assert.strictEqual(odd.name, null);
+  assert.strictEqual(odd.head, '무엇인가 다른 모양');
 });

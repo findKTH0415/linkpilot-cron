@@ -18,6 +18,12 @@ const log = [];
 const say = (...ls) => { for (const s of ls) { console.log(s); log.push(s); } };
 
 async function get(url) {
+  const a = await get1(url);
+  if (a.reached && a.status < 500) return a;
+  await new Promise((r) => setTimeout(r, 3000));
+  return get1(url);
+}
+async function get1(url) {
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), 20000);
   try {
@@ -70,11 +76,38 @@ export function parseProjects(html, type) {
     // 첫 카드는 앞 글자에 거르기 칸·메뉴가 섞일 수 있다 — 그런 덩어리가 끝나는 자리 뒤만 본다
     const cut = Math.max(...['</nav>', '</header>', '</form>', '</select>', '</ul>'].map((t) => chunk.lastIndexOf(t) + (chunk.lastIndexOf(t) >= 0 ? t.length : 0)));
     if (prevEnd < 0 && cut > 0) chunk = chunk.slice(cut);
+    const gt = chunk.indexOf('>'); const lt = chunk.indexOf('<');
+    if (gt >= 0 && (lt < 0 || gt < lt)) chunk = chunk.slice(gt + 1);
     const text = strip(chunk).replace(/^.*?(?:상세보기|바로가기)\s*/, '').replace(/\s*상세보기\s*$/, '').slice(-240).trim();
     prevEnd = re.lastIndex;
-    if (!out.has(id)) out.set(id, { id, type, text: text || null, url: BASE + m[1] });
+    const rc = (text || '').match(/(\S+)\s*\/\s*(\S+)\s+분야\s*:\s*(\S+)\s*$/);
+    if (!out.has(id)) out.set(id, { id, type, region: rc ? rc[1] : null, country: rc ? rc[2] : null, sector: rc ? rc[3] : null, text: text || null, url: BASE + m[1] });
   }
   return [...out.values()].sort((a, b) => b.id - a.id);
+}
+
+// 사업 상세 — 목록 카드에는 «지역 / 나라 분야 : …»뿐이라 상세의 dt/dd(사업부지·사업내용(규모)·사업방식·투자형태 …)를 읽는다.
+// 사업명은 dt 앞 머리글 자리에 온다 — 그 사이 글자를 이름으로 본다(없으면 null · 지어내지 않는다).
+export function parseDetail(html) {
+  const fields = {};
+  for (const m of html.matchAll(/<dt[^>]*>([\s\S]*?)<\/dt>\s*<dd[^>]*>([\s\S]*?)<\/dd>/gi)) {
+    const k = strip(m[1]); const v = strip(m[2]);
+    if (k && v && k.length <= 20 && !(k in fields)) fields[k] = v.slice(0, 300);
+  }
+  const firstDt = html.search(/<dt[^>]*>/i);
+  const h3 = firstDt > 0 ? html.lastIndexOf('</h3>', firstDt) : -1;
+  // 머리 글자 모양(실측 2026-10-22): «호주 Australia 호주 시드니 채스우드 공동주택 직접투자사업 개발단계 아시아/태평양 도시개발 OVERVIEW 임대주택 개발사업 KEY FACTS»
+  //   = 나라(한글) · 나라(영문) · 사업명 · 갈래 · 단계 · 지역 · 분야 · OVERVIEW 한 줄. 모양이 다르면 이름을 비우고 머리 글자만 남긴다.
+  let name = null; let stage = null; let overview = null; let head = null;
+  if (h3 > 0) {
+    const gap = strip(html.slice(h3 + 5, firstDt)).replace(/\s*KEY FACTS[\s\S]*$/i, '');
+    const [top, ov] = gap.split(/\s*OVERVIEW\s*/i);
+    if (ov) overview = ov.slice(0, 200);
+    const m = (top || '').match(/^(\S+)\s+[A-Za-z][A-Za-z .,'&()\-]*\s+(\S.*?)\s+(\S+)\s+(\S*단계|운영\s?중|건설\s?중|준공|완료)(?:\s|$)/);
+    if (m && m[2].length >= 2 && m[2].length <= 80) { name = m[2]; stage = m[4]; }
+    else if (top && top.length <= 160) head = top;
+  }
+  return { name, stage, overview, head, fields };
 }
 
 const BOARDS = [
@@ -110,9 +143,33 @@ async function main() {
     const r = await get(`${BASE}/project?businessType=${t.type}`);
     reachedAny = reachedAny || r.reached;
     const items = r.ok ? parseProjects(r.text, t.type).slice(0, 10) : [];
+    for (const it of items) {
+      const d = await get(it.url);
+      if (d.ok) Object.assign(it, parseDetail(d.text));
+    }
     if (items.length) { got++; res.projects[t.type] = { name: t.name, items, url: `${BASE}/project?businessType=${t.type}` }; }
     else res.failed.push({ part: t.name, why: r.reached ? `HTTP ${r.status} · 사업 0` : `못 닿음 (${r.text.slice(0, 80)})` });
     say(`- 사업 ${t.name}: ${r.reached ? 'HTTP ' + r.status : '못 닿음'} · ${items.length}건`);
+  }
+
+  // 모양 견본 — 목록 글자가 빠지면(제목·날짜 null) 무엇을 고칠지 보려고 첫 항목 둘레를 남긴다(공개 글자만 · 가림 거침)
+  if (process.env.KIND_DIAG === '1') {
+    say('', '## 모양 견본');
+    const rb = await get(`${BASE}/pages/32`);
+    const ib = rb.text.search(/\/pages\/32\?id=\d+/);
+    if (ib > 0) say('### 보도자료 첫 글 둘레', '```', strip(rb.text.slice(Math.max(0, ib - 400), ib + 900)).slice(0, 700), '```');
+    const rp = await get(`${BASE}/project?businessType=DIRECT_INVESTMENT`);
+    const ip = rp.text.search(/\/project\/DIRECT_INVESTMENT\/detail\/\d+/);
+    if (ip > 0) say('### 직접투자 첫 카드 둘레 (링크 뒤)', '```', strip(rp.text.slice(ip, ip + 1500)).slice(0, 700), '```');
+    const first = res.projects.DIRECT_INVESTMENT && res.projects.DIRECT_INVESTMENT.items[0];
+    if (first) {
+      const rd = await get(first.url);
+      const fd = rd.text.search(/<dt[^>]*>/i); const h3 = fd > 0 ? rd.text.lastIndexOf('</h3>', fd) : -1;
+      if (h3 > 0) say('### 상세 머리글~첫 dt 사이', '```', strip(rd.text.slice(h3 + 5, fd)).slice(0, 400), '```');
+      say('### 상세 칸', '```', JSON.stringify(parseDetail(rd.text)).slice(0, 700), '```');
+      const heads = [...rd.text.matchAll(/<(h[1-6]|strong|dt|th)[^>]*>([\s\S]*?)<\/\1>/gi)].map((m) => m[1] + ':' + strip(m[2])).filter((t) => t.length > 3).slice(0, 40);
+      say('### 직접투자 첫 상세 머리글', ...heads.map((h) => '- ' + h.slice(0, 120)));
+    }
   }
 
   // 판정 — 0 전부 · 1 일부 · 2 못 받음(닿았는데 글 0) · 3 못 닿음
