@@ -111,9 +111,27 @@ for (const h of boards) {
     ...rows.map(t => '  - 표: ' + t.slice(0, 160)), ...items.map(t => '  - 목록: ' + t.slice(0, 160)), ...hrefs.map(t => '  - 글 주소: `' + t + '`'), '');
 }
 
+// ── 셋째 단계 — 첫 화면 링크에서 «사업 목록»(/project?businessType=…)과 «공고 게시판»(/pages/NN?id=…)이 보였다.
+//   그 목록 화면마다 글 주소와 그 링크 글자(제목)·주변 날짜를 그대로 남긴다. 수집기를 짜기 전에 목록 모양부터 본다.
+const lists = ['/project', ...allLinks.filter(h => /^\/project\?businessType=[A-Z_]+$/.test(h)), '/project/fund', '/project/promotion',
+  ...[...new Set(allLinks.filter(h => /^\/pages\/\d+\?id=/.test(h)).map(h => h.split('?')[0]))]];
+say('', `## 목록 화면 ${lists.length}개`, '');
+const listInfo = [];
+for (const h of lists) {
+  const r = await get(BASE + h, 'text/html');
+  const anchors = [...r.text.matchAll(/<a[^>]+href="([^"#]*(?:detail|menuMode=READ|\?id=)[^"#]*)"[^>]*>([\s\S]*?)<\/a>/gi)]
+    .map(m => ({ href: m[1].replace(/&amp;/g, '&'), text: strip(m[2]).slice(0, 160) }))
+    .filter(a => a.text && !/^https?:\/\/(?!www\.kindkorea)/.test(a.href)).slice(0, 10);
+  const dates = [...new Set([...strip(r.text).matchAll(/20\d\d[.\-]\d\d[.\-]\d\d/g)].map(m => m[0]))].slice(0, 8);
+  const total = (strip(r.text).match(/(?:총|전체)\s*[\d,]+\s*(?:건|개)/) || [])[0] || '';
+  listInfo.push({ path: h, status: r.status, anchors, dates, total });
+  say(`### 목록 \`${h}\``, `- HTTP ${r.status} · ${r.text.length}자 · 글 링크 ${anchors.length} · 날짜 ${dates.join(', ') || '없음'} · ${total || '총건수 표기 없음'}`,
+    ...anchors.map(a => `  - \`${a.href}\` — ${a.text}`), '');
+}
+
 log.splice(1, 0, list.length ? `판정 0 — /api 주소 ${list.length}개` : '판정 2 — /api 주소를 하나도 못 찾음');
 await writeFile(`${OUT}/_probe.md`, log.join('\n') + '\n');
-await writeFile(`${OUT}/_probe.json`, JSON.stringify({ at: new Date().toISOString(), home: { status: home.status, len: home.text.length }, scripts: scripts.map(s => s.replace(BASE, '')), pages, apis: list, calls, links: allLinks, pageInfo, boardInfo }, null, 1));
+await writeFile(`${OUT}/_probe.json`, JSON.stringify({ at: new Date().toISOString(), home: { status: home.status, len: home.text.length }, scripts: scripts.map(s => s.replace(BASE, '')), pages, apis: list, calls, links: allLinks, pageInfo, boardInfo, listInfo }, null, 1));
 // 판정 — 0 주소를 찾음 · 2 하나도 못 찾음(화면이 서버에서 그려지는 판일 수 있다) · 3 첫 화면에 못 닿음(위에서 끝남)
 const code = list.length ? 0 : 2;
 console.log(code === 0 ? `판정 0 — /api 주소 ${list.length}개를 찾았다` : '판정 2 — 첫 화면·스크립트에서 /api 주소를 하나도 못 찾았다(위 «화면 링크»를 본다)');
