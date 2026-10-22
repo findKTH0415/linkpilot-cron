@@ -1,0 +1,49 @@
+'use strict';
+/**
+ * kind-fetch.test.js — KIND 지원공고·사업 목록 읽기 〈2026-10-22 사장님: 「KIND 가 지원하는 사업정보 노출 · 실시간 업데이트」〉
+ *
+ * 표본은 진단(data/kind/_probe.md)이 본 화면 모양 그대로다 — 공고는 «/pages/29?id=…&menuMode=READ» 링크 글자가 제목이고
+ * 날짜는 그 뒤에 온다, 사업은 카드 글 뒤에 «상세보기» 링크가 온다, 맨 위 고정글은 같은 글이 두 번 나온다.
+ */
+const test = require('node:test');
+const assert = require('node:assert');
+const path = require('path');
+const { pathToFileURL } = require('url');
+
+const SRC = pathToFileURL(path.resolve(__dirname, '..', '..', 'scripts', 'kind-fetch.mjs')).href;
+
+const BOARD = `
+<li class="fix"><a href="/pages/29?id=10590&amp;menuMode=READ&amp;q=">직원 사칭 피해 주의 안내 직원 사칭 피해 주의 안내</a><span>2025-05-29</span></li>
+<li><a href="/pages/29?id=11052&amp;menuMode=READ&amp;q=">[KIND-2026-04] 제안서작성 지원 대상사업 모집공고</a><span class="date">2026.03.20</span></li>
+<li><a href="/pages/29?id=11518&amp;menuMode=READ&amp;q=">[포르투갈 AICEP] 비즈니스 포럼 참가 안내 담당 02-123-4567</a><span>2026-10-01</span></li>
+<li><a href="/pages/29?id=10590&amp;menuMode=READ&amp;q=">직원 사칭 피해 주의 안내</a><span>2025-05-29</span></li>
+<p>총 218 건</p>`;
+
+const PROJ = `
+<header><nav>사업 소개 프로젝트 소개</nav></header>
+<div class="card"><p>카자흐스탄</p><h3>알마티 순환도로</h3><p>$15.0M · 운영 중</p><a href="/project/DIRECT_INVESTMENT/detail/210">상세보기</a></div>
+<div class="card"><p>호주</p><h3>시드니 초고층 아파트 개발</h3><p>건설 중</p><a href="/project/DIRECT_INVESTMENT/detail/422">상세보기</a></div>`;
+
+test('공고 — 제목·날짜·주소를 읽고, 고정글은 한 번만 · 겹친 제목은 하나로 · 전화는 가린다', async () => {
+  const { parseBoard } = await import(SRC);
+  const got = parseBoard(BOARD, 29);
+  assert.deepStrictEqual(got.map((g) => g.id), [11518, 11052, 10590]);
+  assert.strictEqual(got[1].date, '2026-03-20');
+  assert.strictEqual(got[2].title, '직원 사칭 피해 주의 안내');
+  assert.ok(!/02-123-4567/.test(got[0].title) && /\[전화\]/.test(got[0].title), '전화번호를 안 가렸다');
+  assert.match(got[1].url, /^https:\/\/www\.kindkorea\.or\.kr\/pages\/29\?id=11052&menuMode=READ$/);
+});
+
+test('사업 — 카드 글과 상세 주소 · 최근(번호 큰) 것이 먼저 · 머리 메뉴가 안 섞인다', async () => {
+  const { parseProjects } = await import(SRC);
+  const got = parseProjects(PROJ, 'DIRECT_INVESTMENT');
+  assert.deepStrictEqual(got.map((g) => g.id), [422, 210]);
+  assert.match(got[1].text, /카자흐스탄 알마티 순환도로 \$15\.0M · 운영 중/);
+  assert.match(got[0].text, /^호주 시드니 초고층 아파트 개발 건설 중$/);
+  assert.ok(!/프로젝트 소개/.test(got[1].text), '머리 메뉴 글자가 카드 글에 섞였다');
+});
+
+test('다른 갈래의 상세 링크는 안 줍는다', async () => {
+  const { parseProjects } = await import(SRC);
+  assert.strictEqual(parseProjects(PROJ, 'POLICY_FUND').length, 0);
+});
