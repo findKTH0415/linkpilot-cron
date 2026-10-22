@@ -136,6 +136,10 @@ concurrency:
   group: deploy-nas
   cancel-in-progress: false
 
+# 2026-10-22 — 기본 권한을 «읽기만»으로 좁힌다(저장소 기본값에 기대지 않는다)
+permissions:
+  contents: read
+
 jobs:
   # ★★★ **무엇을 어디에 올릴지 한 곳에서 정한다** 〈2026-08-23 · D-88〉.
   #

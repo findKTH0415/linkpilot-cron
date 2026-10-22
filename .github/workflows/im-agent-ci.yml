@@ -49,6 +49,10 @@ concurrency:
   group: im-agent-ci-${{ github.ref }}
   cancel-in-progress: true
 
+# 2026-10-22 — 기본 권한을 «읽기만»으로 좁힌다(저장소 기본값에 기대지 않는다)
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
