@@ -1,0 +1,407 @@
+{
+ "at": "2026-10-22T02:18:45.739Z",
+ "source": "https://www.kindkorea.or.kr",
+ "boards": {
+  "news": {
+   "name": "보도자료",
+   "total": 100,
+   "items": [
+    {
+     "id": 11509,
+     "title": "KIND, 호주 시드니 초고층 아파트 개발사업 투자계약 체결",
+     "date": null,
+     "url": "https://www.kindkorea.or.kr/pages/32?id=11509&menuMode=READ"
+    },
+    {
+     "id": 11495,
+     "title": "KIND, 정상외교 계기로 중앙아시아 투자개발사업 협력 본격화",
+     "date": null,
+     "url": "https://www.kindkorea.or.kr/pages/32?id=11495&menuMode=READ"
+    },
+    {
+     "id": 11490,
+     "title": "UzA·우즈베키스탄 대통령실 - 우즈베키스탄 대통령, KIND 사장 면담",
+     "date": null,
+     "url": "https://www.kindkorea.or.kr/pages/32?id=11490&menuMode=READ"
+    },
+    {
+     "id": 11489,
+     "title": "DKNews - 토카예프 대통령, KIND에 알라타우시티 개발 참여 요청",
+     "date": null,
+     "url": "https://www.kindkorea.or.kr/pages/32?id=11489&menuMode=READ"
+    },
+    {
+     "id": 11474,
+     "title": "KIND, 우즈베키스탄 타슈켄트 바이오 클러스터 사업설명회 개최",
+     "date": null,
+     "url": "https://www.kindkorea.or.kr/pages/32?id=11474&menuMode=READ"
+    },
+    {
+     "id": 11471,
+     "title": "KIND, K-City에서 사업기회 찾는다… 3개국 정부·우리 기업 한자리에",
+     "date": null,
+     "url": "https://www.kindkorea.or.kr/pages/32?id=11471&menuMode=READ"
+    },
+    {
+     "id": 11454,
+     "title": "KIND, 월드스마트시티엑스포서 K-City 글로벌 성과 확산 나선다",
+     "date": null,
+     "url": "https://www.kindkorea.or.kr/pages/32?id=11454&menuMode=READ"
+    },
+    {
+     "id": 11446,
+     "title": "KIND와 대한변리사회, 우리 기업의 해외 인프라사업 경쟁력 제고를 위한 업무협약(MOU) 체결",
+     "date": null,
+     "url": "https://www.kindkorea.or.kr/pages/32?id=11446&menuMode=READ"
+    },
+    {
+     "id": 11417,
+     "title": "KIND, 부패방지 국제표준 ISO 37001 사후심사 통과",
+     "date": null,
+     "url": "https://www.kindkorea.or.kr/pages/32?id=11417&menuMode=READ"
+    },
+    {
+     "id": 11385,
+     "title": "KIND, 미국 핵심광물 리튬·붕소 생산사업 본격 추진",
+     "date": null,
+     "url": "https://www.kindkorea.or.kr/pages/32?id=11385&menuMode=READ"
+    }
+   ],
+   "url": "https://www.kindkorea.or.kr/pages/32"
+  },
+  "activity": {
+   "name": "활동소식",
+   "total": 320,
+   "items": [
+    {
+     "id": 11506,
+     "title": "탄자니아 공공사업부 장관 면담",
+     "date": "2026-09-22",
+     "url": "https://www.kindkorea.or.kr/pages/31?id=11506&menuMode=READ"
+    },
+    {
+     "id": 11502,
+     "title": "2026 우즈베키스탄 타슈켄트 바이오 클러스터 사업설명회",
+     "date": "2026-09-21",
+     "url": "https://www.kindkorea.or.kr/pages/31?id=11502&menuMode=READ"
+    },
+    {
+     "id": 11501,
+     "title": "KIND-키르기즈스탄 PPP Center 간 MOU 체결",
+     "date": "2026-09-21",
+     "url": "https://www.kindkorea.or.kr/pages/31?id=11501&menuMode=READ"
+    },
+    {
+     "id": 11493,
+     "title": "KIND-우즈베키스탄 의료·제약산업개발청(MPIDA) 간 Framework Agreement 체결",
+     "date": "2026-09-17",
+     "url": "https://www.kindkorea.or.kr/pages/31?id=11493&menuMode=READ"
+    },
+    {
+     "id": 11486,
+     "title": "우즈베키스탄 대통령 면담",
+     "date": "2026-09-16",
+     "url": "https://www.kindkorea.or.kr/pages/31?id=11486&menuMode=READ"
+    },
+    {
+     "id": 11485,
+     "title": "카자흐스탄 대통령 면담",
+     "date": "2026-09-16",
+     "url": "https://www.kindkorea.or.kr/pages/31?id=11485&menuMode=READ"
+    },
+    {
+     "id": 11483,
+     "title": "카자흐스탄 바이테렉·QIC 의장 면담",
+     "date": "2026-09-16",
+     "url": "https://www.kindkorea.or.kr/pages/31?id=11483&menuMode=READ"
+    },
+    {
+     "id": 11480,
+     "title": "카자흐스탄 교통부 장관 면담",
+     "date": "2026-09-15",
+     "url": "https://www.kindkorea.or.kr/pages/31?id=11480&menuMode=READ"
+    },
+    {
+     "id": 11478,
+     "title": "우즈베키스탄 교통부 장관 면담",
+     "date": "2026-09-15",
+     "url": "https://www.kindkorea.or.kr/pages/31?id=11478&menuMode=READ"
+    }
+   ],
+   "url": "https://www.kindkorea.or.kr/pages/31"
+  }
+ },
+ "projects": {
+  "DIRECT_INVESTMENT": {
+   "name": "직접투자",
+   "items": [
+    {
+     "id": 422,
+     "type": "DIRECT_INVESTMENT",
+     "text": "젝트 현황 지도\" src=\"../images/sub/project_map.png\"> 아시아/태평양 / 호주 분야 : 도시개발",
+     "url": "https://www.kindkorea.or.kr/project/DIRECT_INVESTMENT/detail/422"
+    },
+    {
+     "id": 417,
+     "type": "DIRECT_INVESTMENT",
+     "text": "유럽 / 영국 분야 : 교통",
+     "url": "https://www.kindkorea.or.kr/project/DIRECT_INVESTMENT/detail/417"
+    },
+    {
+     "id": 389,
+     "type": "DIRECT_INVESTMENT",
+     "text": "아시아/태평양 / 일본 분야 : 신재생",
+     "url": "https://www.kindkorea.or.kr/project/DIRECT_INVESTMENT/detail/389"
+    },
+    {
+     "id": 340,
+     "type": "DIRECT_INVESTMENT",
+     "text": "미주 / 미국 분야 : 전력",
+     "url": "https://www.kindkorea.or.kr/project/DIRECT_INVESTMENT/detail/340"
+    },
+    {
+     "id": 339,
+     "type": "DIRECT_INVESTMENT",
+     "text": "유럽 / 폴란드 분야 : 물류",
+     "url": "https://www.kindkorea.or.kr/project/DIRECT_INVESTMENT/detail/339"
+    },
+    {
+     "id": 338,
+     "type": "DIRECT_INVESTMENT",
+     "text": "아시아/태평양 / 호주 분야 : 신재생",
+     "url": "https://www.kindkorea.or.kr/project/DIRECT_INVESTMENT/detail/338"
+    },
+    {
+     "id": 337,
+     "type": "DIRECT_INVESTMENT",
+     "text": "아시아/태평양 / 인도네시아 분야 : 도시개발",
+     "url": "https://www.kindkorea.or.kr/project/DIRECT_INVESTMENT/detail/337"
+    },
+    {
+     "id": 259,
+     "type": "DIRECT_INVESTMENT",
+     "text": "아시아/태평양 / 베트남 분야 : 도시개발",
+     "url": "https://www.kindkorea.or.kr/project/DIRECT_INVESTMENT/detail/259"
+    },
+    {
+     "id": 210,
+     "type": "DIRECT_INVESTMENT",
+     "text": "아시아/태평양 / 일본 분야 : 신재생",
+     "url": "https://www.kindkorea.or.kr/project/DIRECT_INVESTMENT/detail/210"
+    },
+    {
+     "id": 209,
+     "type": "DIRECT_INVESTMENT",
+     "text": "MENA / 튀르키예 분야 : 도로",
+     "url": "https://www.kindkorea.or.kr/project/DIRECT_INVESTMENT/detail/209"
+    }
+   ],
+   "url": "https://www.kindkorea.or.kr/project?businessType=DIRECT_INVESTMENT"
+  },
+  "POLICY_FUND": {
+   "name": "정책펀드",
+   "items": [
+    {
+     "id": 420,
+     "type": "POLICY_FUND",
+     "text": "alt=\"프로젝트 현황 지도\" src=\"../images/sub/project_map.png\"> 유럽 / 폴란드 분야 : 물류",
+     "url": "https://www.kindkorea.or.kr/project/POLICY_FUND/detail/420"
+    },
+    {
+     "id": 415,
+     "type": "POLICY_FUND",
+     "text": "아시아/태평양 / 일본 분야 : 전력",
+     "url": "https://www.kindkorea.or.kr/project/POLICY_FUND/detail/415"
+    },
+    {
+     "id": 413,
+     "type": "POLICY_FUND",
+     "text": "미주 / 미국 분야 : 전력",
+     "url": "https://www.kindkorea.or.kr/project/POLICY_FUND/detail/413"
+    },
+    {
+     "id": 401,
+     "type": "POLICY_FUND",
+     "text": "미주 / 미국 분야 : 석유화학",
+     "url": "https://www.kindkorea.or.kr/project/POLICY_FUND/detail/401"
+    },
+    {
+     "id": 400,
+     "type": "POLICY_FUND",
+     "text": "유럽 / 폴란드 분야 : 물류",
+     "url": "https://www.kindkorea.or.kr/project/POLICY_FUND/detail/400"
+    },
+    {
+     "id": 399,
+     "type": "POLICY_FUND",
+     "text": "아시아/태평양 / 호주 분야 : 전력",
+     "url": "https://www.kindkorea.or.kr/project/POLICY_FUND/detail/399"
+    },
+    {
+     "id": 398,
+     "type": "POLICY_FUND",
+     "text": "유럽 / 영국 분야 : 전력",
+     "url": "https://www.kindkorea.or.kr/project/POLICY_FUND/detail/398"
+    },
+    {
+     "id": 397,
+     "type": "POLICY_FUND",
+     "text": "아시아/태평양 / 베트남 분야 : 물류",
+     "url": "https://www.kindkorea.or.kr/project/POLICY_FUND/detail/397"
+    },
+    {
+     "id": 396,
+     "type": "POLICY_FUND",
+     "text": "아시아/태평양 / 인도네시아 분야 : 도시개발",
+     "url": "https://www.kindkorea.or.kr/project/POLICY_FUND/detail/396"
+    },
+    {
+     "id": 395,
+     "type": "POLICY_FUND",
+     "text": "MENA / 튀르키예 분야 : 도로",
+     "url": "https://www.kindkorea.or.kr/project/POLICY_FUND/detail/395"
+    }
+   ],
+   "url": "https://www.kindkorea.or.kr/project?businessType=POLICY_FUND"
+  },
+  "FS_SUPPORT": {
+   "name": "타당성조사 지원",
+   "items": [
+    {
+     "id": 388,
+     "type": "FS_SUPPORT",
+     "text": "프로젝트 현황 지도\" src=\"../images/sub/project_map.png\"> 아시아/태평양 / 베트남 분야 : 물류",
+     "url": "https://www.kindkorea.or.kr/project/FS_SUPPORT/detail/388"
+    },
+    {
+     "id": 258,
+     "type": "FS_SUPPORT",
+     "text": "유럽 / 폴란드 분야 : 전력",
+     "url": "https://www.kindkorea.or.kr/project/FS_SUPPORT/detail/258"
+    },
+    {
+     "id": 257,
+     "type": "FS_SUPPORT",
+     "text": "아시아/태평양 / 베트남 분야 : 도시개발",
+     "url": "https://www.kindkorea.or.kr/project/FS_SUPPORT/detail/257"
+    },
+    {
+     "id": 256,
+     "type": "FS_SUPPORT",
+     "text": "아시아/태평양 / 베트남 분야 : 도시개발",
+     "url": "https://www.kindkorea.or.kr/project/FS_SUPPORT/detail/256"
+    },
+    {
+     "id": 255,
+     "type": "FS_SUPPORT",
+     "text": "아시아/태평양 / 필리핀 분야 : 상하수도",
+     "url": "https://www.kindkorea.or.kr/project/FS_SUPPORT/detail/255"
+    },
+    {
+     "id": 254,
+     "type": "FS_SUPPORT",
+     "text": "미주 / 도미니카공화국 분야 : 교통",
+     "url": "https://www.kindkorea.or.kr/project/FS_SUPPORT/detail/254"
+    },
+    {
+     "id": 253,
+     "type": "FS_SUPPORT",
+     "text": "미주 / 볼리비아 분야 : 전력",
+     "url": "https://www.kindkorea.or.kr/project/FS_SUPPORT/detail/253"
+    },
+    {
+     "id": 252,
+     "type": "FS_SUPPORT",
+     "text": "사하라이남 / 케냐 분야 : 도로",
+     "url": "https://www.kindkorea.or.kr/project/FS_SUPPORT/detail/252"
+    },
+    {
+     "id": 251,
+     "type": "FS_SUPPORT",
+     "text": "아시아/태평양 / 우즈베키스탄 분야 : 도로",
+     "url": "https://www.kindkorea.or.kr/project/FS_SUPPORT/detail/251"
+    },
+    {
+     "id": 250,
+     "type": "FS_SUPPORT",
+     "text": "유럽 / 폴란드 분야 : 교통",
+     "url": "https://www.kindkorea.or.kr/project/FS_SUPPORT/detail/250"
+    }
+   ],
+   "url": "https://www.kindkorea.or.kr/project?businessType=FS_SUPPORT"
+  },
+  "KCN_EIPP": {
+   "name": "K-City Network · EIPP",
+   "items": [
+    {
+     "id": 289,
+     "type": "KCN_EIPP",
+     "text": "황 지도\" src=\"../images/sub/project_map.png\"> 아시아/태평양 / 인도네시아 분야 : 도시개발",
+     "url": "https://www.kindkorea.or.kr/project/KCN_EIPP/detail/289"
+    },
+    {
+     "id": 288,
+     "type": "KCN_EIPP",
+     "text": "아시아/태평양 / 인도네시아 분야 : 도시개발",
+     "url": "https://www.kindkorea.or.kr/project/KCN_EIPP/detail/288"
+    },
+    {
+     "id": 286,
+     "type": "KCN_EIPP",
+     "text": "아시아/태평양 / 인도네시아 분야 : 물류",
+     "url": "https://www.kindkorea.or.kr/project/KCN_EIPP/detail/286"
+    },
+    {
+     "id": 284,
+     "type": "KCN_EIPP",
+     "text": "아시아/태평양 / 인도네시아 분야 : 교통",
+     "url": "https://www.kindkorea.or.kr/project/KCN_EIPP/detail/284"
+    },
+    {
+     "id": 283,
+     "type": "KCN_EIPP",
+     "text": "아시아/태평양 / 인도네시아 분야 : 도시개발",
+     "url": "https://www.kindkorea.or.kr/project/KCN_EIPP/detail/283"
+    },
+    {
+     "id": 282,
+     "type": "KCN_EIPP",
+     "text": "아시아/태평양 / 인도네시아 분야 : 도시개발",
+     "url": "https://www.kindkorea.or.kr/project/KCN_EIPP/detail/282"
+    },
+    {
+     "id": 281,
+     "type": "KCN_EIPP",
+     "text": "아시아/태평양 / 인도네시아 분야 : 도시개발",
+     "url": "https://www.kindkorea.or.kr/project/KCN_EIPP/detail/281"
+    },
+    {
+     "id": 280,
+     "type": "KCN_EIPP",
+     "text": "아시아/태평양 / 인도네시아 분야 : 도시개발",
+     "url": "https://www.kindkorea.or.kr/project/KCN_EIPP/detail/280"
+    },
+    {
+     "id": 279,
+     "type": "KCN_EIPP",
+     "text": "아시아/태평양 / 인도네시아 분야 : 신재생",
+     "url": "https://www.kindkorea.or.kr/project/KCN_EIPP/detail/279"
+    },
+    {
+     "id": 278,
+     "type": "KCN_EIPP",
+     "text": "아시아/태평양 / 인도네시아 분야 : 도시개발",
+     "url": "https://www.kindkorea.or.kr/project/KCN_EIPP/detail/278"
+    }
+   ],
+   "url": "https://www.kindkorea.or.kr/project?businessType=KCN_EIPP"
+  }
+ },
+ "failed": [
+  {
+   "part": "지원공고",
+   "why": "못 닿음 (fetch failed)"
+  }
+ ],
+ "verdict": 1
+}
