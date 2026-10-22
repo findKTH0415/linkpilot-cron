@@ -67,7 +67,7 @@ say('', `## 찾은 /api 주소 ${list.length}개`, '');
 for (const a of list) say(`- \`${a}\` (${found.get(a)})`);
 
 // 인자 자리({id} 등)가 없는 것만 GET — 사업·투자·게시판으로 보이는 것을 먼저
-const want = list.filter(a => !/[{}:]/.test(a))
+const want = list.filter(a => !/[{}:]/.test(a) && !/\/attachment\/[0-9a-f-]{36}$/.test(a))
   .sort((a, b) => (/(biz|business|project|invest|support|program|board|notice|news)/i.test(b) ? 1 : 0) - (/(biz|business|project|invest|support|program|board|notice|news)/i.test(a) ? 1 : 0))
   .slice(0, 30);
 say('', `## 불러 본 것 ${want.length}개 (인자 없이 · 주소 그대로)`, '');
@@ -81,9 +81,39 @@ for (const a of want) {
   say(`### \`${a}\``, `- HTTP ${r.status} · ${r.type} · ${r.text.length}자 · ${shape}`, '```', head, '```', '');
 }
 
+// ── 둘째 단계 — 홈페이지가 서버에서 그리는 판이면 /api 는 첨부(그림)뿐이다. 그래서 화면 자체를 잰다.
+//   ① 첫 화면의 같은 출처 링크 전부 ② 사업 화면 글(태그를 걷은 앞 900자) ③ 게시판으로 보이는 화면의 목록 모양.
+const strip = (h) => mask(String(h || '')
+  .replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<style[\s\S]*?<\/style>/gi, ' ')
+  .replace(/<header[\s\S]*?<\/header>/gi, ' ').replace(/<footer[\s\S]*?<\/footer>/gi, ' ').replace(/<nav[\s\S]*?<\/nav>/gi, ' ')
+  .replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ')).trim();
+const allLinks = [...new Set([...home.text.matchAll(/href="(\/[^"#]*)"/gi)].map(m => m[1]))].sort();
+say('', `## 첫 화면 링크 ${allLinks.length}개`, '', allLinks.map(h => '`' + h + '`').join(' · '));
+const pageInfo = [];
+for (const h of pages) {
+  const r = await get(BASE + h, 'text/html');
+  const title = (r.text.match(/<title>([^<]*)<\/title>/i) || [])[1] || '';
+  const heads = [...r.text.matchAll(/<h[1-4][^>]*>([\s\S]*?)<\/h[1-4]>/gi)].map(m => strip(m[1])).filter(Boolean).slice(0, 12);
+  const body = strip(r.text).slice(0, 900);
+  pageInfo.push({ path: h, status: r.status, len: r.text.length, title, heads });
+  say(`### 화면 \`${h}\``, `- HTTP ${r.status} · ${r.text.length}자 · 제목 «${title.trim()}»`, `- 머리글: ${heads.join(' | ') || '없음'}`, '```', body, '```', '');
+}
+const boards = allLinks.filter(h => /board|notice|news|bbs|press|bid|recruit|data|archive|list/i.test(h)).slice(0, 12);
+say('', `## 게시판으로 보이는 화면 ${boards.length}개`, '');
+const boardInfo = [];
+for (const h of boards) {
+  const r = await get(BASE + h, 'text/html');
+  const rows = [...r.text.matchAll(/<tr[\s\S]*?<\/tr>/gi)].map(m => strip(m[0])).filter(t => t.length > 8).slice(0, 6);
+  const items = [...r.text.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi)].map(m => strip(m[1])).filter(t => /20\d\d[.\-]\d\d/.test(t)).slice(0, 6);
+  const hrefs = [...new Set([...r.text.matchAll(/href="([^"#]*(?:view|detail|seq|idx|id=)[^"#]*)"/gi)].map(m => m[1]))].slice(0, 6);
+  boardInfo.push({ path: h, status: r.status, rows, items, hrefs });
+  say(`### 게시판 \`${h}\``, `- HTTP ${r.status} · ${r.text.length}자 · 표 줄 ${rows.length} · 날짜 든 목록 ${items.length}`,
+    ...rows.map(t => '  - 표: ' + t.slice(0, 160)), ...items.map(t => '  - 목록: ' + t.slice(0, 160)), ...hrefs.map(t => '  - 글 주소: `' + t + '`'), '');
+}
+
 log.splice(1, 0, list.length ? `판정 0 — /api 주소 ${list.length}개` : '판정 2 — /api 주소를 하나도 못 찾음');
 await writeFile(`${OUT}/_probe.md`, log.join('\n') + '\n');
-await writeFile(`${OUT}/_probe.json`, JSON.stringify({ at: new Date().toISOString(), home: { status: home.status, len: home.text.length }, scripts: scripts.map(s => s.replace(BASE, '')), pages, apis: list, calls }, null, 1));
+await writeFile(`${OUT}/_probe.json`, JSON.stringify({ at: new Date().toISOString(), home: { status: home.status, len: home.text.length }, scripts: scripts.map(s => s.replace(BASE, '')), pages, apis: list, calls, links: allLinks, pageInfo, boardInfo }, null, 1));
 // 판정 — 0 주소를 찾음 · 2 하나도 못 찾음(화면이 서버에서 그려지는 판일 수 있다) · 3 첫 화면에 못 닿음(위에서 끝남)
 const code = list.length ? 0 : 2;
 console.log(code === 0 ? `판정 0 — /api 주소 ${list.length}개를 찾았다` : '판정 2 — 첫 화면·스크립트에서 /api 주소를 하나도 못 찾았다(위 «화면 링크»를 본다)');
