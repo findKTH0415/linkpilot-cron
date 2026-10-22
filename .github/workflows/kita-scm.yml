@@ -7,7 +7,7 @@ name: 소부장 공급망 인사이트 주간 수집
 
 on:
   schedule:
-    - cron: '0 1 * * 5'
+    - cron: '0 1 1 * *'           # 매달 1일 10:00 KST · 2026-10-22 사장님: 한 달에 한 번 (주간 호는 손으로 [Run workflow])
   workflow_dispatch:
     inputs:
       diag:
