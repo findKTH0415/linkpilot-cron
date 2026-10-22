@@ -14,6 +14,10 @@ on:
   #   (그때 push 로 우회한 이유는 「main 에 없어 404」였고 그 조건이 사라졌다).
   #   남겨 두면 그 갈래를 누가 건드릴 때마다 **결제 때문에 또 빨개진다.**
 
+# 2026-10-22 — 기본 권한을 «읽기만»으로 좁힌다(저장소 기본값에 기대지 않는다)
+permissions:
+  contents: read
+
 jobs:
   render:
     runs-on: ubuntu-latest
