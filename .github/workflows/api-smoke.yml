@@ -223,6 +223,7 @@ jobs:
           ECOS_API_KEY:     ${{ secrets.ECOS_API_KEY }}
           ECOS_BOK_KEY:     ${{ secrets.ECOS_BOK_KEY }}
           KICT_API_KEY:     ${{ secrets.KICT_API_KEY }}
+          KCSC_CONSTRUCTION_STANDARDS: ${{ secrets.KCSC_CONSTRUCTION_STANDARDS }}
         run: |
           node scripts/fsc-probe.mjs || true
           {
@@ -243,6 +244,9 @@ jobs:
           node scripts/ecos-bop-probe.mjs || true
           { echo ''; echo '### 한국은행 국제수지'; head -40 data/_api/ecos-bop-probe.md 2>/dev/null || echo '(못 읽었다)'; } >> "$GITHUB_STEP_SUMMARY"
           cat data/_api/ecos-bop-probe.md 2>/dev/null || true
+          # ★ 2026-10-22 — 국가건설기준(KCSC). 포털 밖 창구라 지침서 4-A 표의 주소 그대로 부른다 (§4.3).
+          node scripts/kcsc-probe.mjs || true
+          { echo ''; echo '### 국가건설기준(KCSC)'; head -30 data/_api/kcsc-probe.md 2>/dev/null || echo '(못 읽었다)'; } >> "$GITHUB_STEP_SUMMARY"
 
       # ★ 2026-10-12 — 사장님 목록 49개의 «이름»이 이 저장소 비밀에 있는가 (값은 안 찍는다 · 길이만).
       #   이름은 scripts/key-presence.mjs 의 NAMES 한 곳이 정본이다 — workflow-shape 검사가 두 쪽을 견준다.
