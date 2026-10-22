@@ -125,18 +125,18 @@ async function main() {
 
   // 모양 견본 — 목록 글자가 빠지면(제목·날짜 null) 무엇을 고칠지 보려고 첫 항목 둘레를 남긴다(공개 글자만 · 가림 거침)
   if (process.env.KIND_DIAG === '1') {
-    log.push('', '## 모양 견본');
+    say('', '## 모양 견본');
     const rb = await get(`${BASE}/pages/32`);
     const ib = rb.text.search(/\/pages\/32\?id=\d+/);
-    if (ib > 0) log.push('### 보도자료 첫 글 둘레', '```', strip(rb.text.slice(Math.max(0, ib - 400), ib + 900)).slice(0, 700), '```');
+    if (ib > 0) say('### 보도자료 첫 글 둘레', '```', strip(rb.text.slice(Math.max(0, ib - 400), ib + 900)).slice(0, 700), '```');
     const rp = await get(`${BASE}/project?businessType=DIRECT_INVESTMENT`);
     const ip = rp.text.search(/\/project\/DIRECT_INVESTMENT\/detail\/\d+/);
-    if (ip > 0) log.push('### 직접투자 첫 카드 둘레 (링크 뒤)', '```', strip(rp.text.slice(ip, ip + 1500)).slice(0, 700), '```');
+    if (ip > 0) say('### 직접투자 첫 카드 둘레 (링크 뒤)', '```', strip(rp.text.slice(ip, ip + 1500)).slice(0, 700), '```');
     const first = res.projects.DIRECT_INVESTMENT && res.projects.DIRECT_INVESTMENT.items[0];
     if (first) {
       const rd = await get(first.url);
       const heads = [...rd.text.matchAll(/<(h[1-6]|strong|dt|th)[^>]*>([\s\S]*?)<\/\1>/gi)].map((m) => m[1] + ':' + strip(m[2])).filter((t) => t.length > 3).slice(0, 40);
-      log.push('### 직접투자 첫 상세 머리글', ...heads.map((h) => '- ' + h.slice(0, 120)));
+      say('### 직접투자 첫 상세 머리글', ...heads.map((h) => '- ' + h.slice(0, 120)));
     }
   }
 
