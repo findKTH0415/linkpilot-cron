@@ -987,7 +987,7 @@ test('★★ 숨긴 칸을 안 그리고, 몇 칸이 더 있는지 적는다', (
   assert.ok(hits.length, 'sectionState 를 부르는 자리가 없다 — 이 칸은 아무것도 안 잰다');
   const draw = hits.filter((h) => {
     const seg = src.slice(h.index, h.index + 3000);
-    return /view\.appendChild\(section\(/.test(seg);
+    return /(view|_main)\.appendChild\(section\(/.test(seg);   /* 2026-10-23 — 왼쪽 진행절차 목록 옆 칸(_main)에 붙인다 */
   });
   assert.strictEqual(draw.length, 1,
     `절을 그리는 고리를 하나로 못 집었다 (${draw.length}개) — 이 칸은 아무것도 안 잰다`);
