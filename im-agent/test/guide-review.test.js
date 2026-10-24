@@ -99,6 +99,15 @@ test('Gemini — 열쇠 묶음을 읽고, 거부·한도는 다음 열쇠로 · 
   assert.ok(!r.ok && !String(r.detail).includes(GK[0]), '되비춘 열쇠를 가린다 (§2)');
   r = await m.reviewGemini({ ...base, fetchImpl: async () => res(200, gBody({ hello: 1 })) });
   assert.ok(!r.ok && r.kind === 'unparsed', '판정을 못 읽은 대답을 통과로 적지 않는다');
+  /* 2026-10-25 — 시간 초과는 다른 열쇠로 낫지 않는다: 다음 모델로 · 전체 예산이 끝나면 멈춘다 (잡 15분 한도에 걸렸다) */
+  seen.length = 0;
+  const hang = (u, o) => new Promise((_, rej) => { seen.push(u); o.signal.addEventListener('abort', () => rej(new Error('aborted'))); });
+  r = await m.reviewGemini({ ...base, timeoutMs: 20, fetchImpl: hang });
+  assert.ok(!r.ok && r.kind === 'timeout' && r.code === 3, JSON.stringify(r));
+  assert.strictEqual(seen.length, 2, '모델마다 열쇠 하나씩만 걸어 본다 — 열쇠를 다 돌며 기다리지 않는다');
+  let calls = 0;
+  r = await m.reviewGemini({ ...base, deadline: 1000, now: () => 999, fetchImpl: async () => { calls += 1; return res(200, gBody({ verdict: 'PASS', summary: 's', issues: [] })); } });
+  assert.ok(!r.ok && r.kind === 'budget' && r.code === 3 && calls === 0, '예산이 끝났으면 부르지 않고 «기다리면 낫는다»로 적는다');
 });
 
 test('Gemini 검토 파일 — 현황표의 Gemini 칸이 읽고, 지침으로 세지 않는다', async () => {
