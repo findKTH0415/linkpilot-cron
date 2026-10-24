@@ -56,6 +56,7 @@ jobs:
           KOICA_GLOBAL_POLITICAL_DEVELOPMENTS: ${{ secrets.KOICA_GLOBAL_POLITICAL_DEVELOPMENTS }}
           KOICA_COUNTRY_INFORMATION: ${{ secrets.KOICA_COUNTRY_INFORMATION }}
           KOTRA_KOREA_FDI_BY_INDUSTRY: ${{ secrets.KOTRA_KOREA_FDI_BY_INDUSTRY }}
+          EDINET_API_KEY: ${{ secrets.EDINET_API_KEY }}
           KSURE_COUNTRY_LIST: ${{ secrets.KSURE_COUNTRY_LIST }}
           MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY: ${{ secrets.MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY }}
           MSS_BUSINESS_SUPPORT_ANNOUNCEMENTS: ${{ secrets.MSS_BUSINESS_SUPPORT_ANNOUNCEMENTS }}
@@ -115,6 +116,7 @@ jobs:
           KOICA_GLOBAL_POLITICAL_DEVELOPMENTS: ${{ secrets.KOICA_GLOBAL_POLITICAL_DEVELOPMENTS }}
           KOICA_COUNTRY_INFORMATION: ${{ secrets.KOICA_COUNTRY_INFORMATION }}
           KOTRA_KOREA_FDI_BY_INDUSTRY: ${{ secrets.KOTRA_KOREA_FDI_BY_INDUSTRY }}
+          EDINET_API_KEY: ${{ secrets.EDINET_API_KEY }}
           KSURE_COUNTRY_LIST: ${{ secrets.KSURE_COUNTRY_LIST }}
           MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY: ${{ secrets.MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY }}
           MSS_BUSINESS_SUPPORT_ANNOUNCEMENTS: ${{ secrets.MSS_BUSINESS_SUPPORT_ANNOUNCEMENTS }}
@@ -202,6 +204,7 @@ jobs:
           KOICA_GLOBAL_POLITICAL_DEVELOPMENTS: ${{ secrets.KOICA_GLOBAL_POLITICAL_DEVELOPMENTS }}
           KOICA_COUNTRY_INFORMATION: ${{ secrets.KOICA_COUNTRY_INFORMATION }}
           KOTRA_KOREA_FDI_BY_INDUSTRY: ${{ secrets.KOTRA_KOREA_FDI_BY_INDUSTRY }}
+          EDINET_API_KEY: ${{ secrets.EDINET_API_KEY }}
           KSURE_COUNTRY_LIST: ${{ secrets.KSURE_COUNTRY_LIST }}
           MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY: ${{ secrets.MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY }}
           MSS_BUSINESS_SUPPORT_ANNOUNCEMENTS: ${{ secrets.MSS_BUSINESS_SUPPORT_ANNOUNCEMENTS }}
@@ -265,6 +268,7 @@ jobs:
           KPX_POWER_SUPPLY_DEMAND_FORECAST_GW: ${{ secrets.KPX_POWER_SUPPLY_DEMAND_FORECAST_GW }}
           KOICA_COUNTRY_INFORMATION: ${{ secrets.KOICA_COUNTRY_INFORMATION }}
           KOTRA_KOREA_FDI_BY_INDUSTRY: ${{ secrets.KOTRA_KOREA_FDI_BY_INDUSTRY }}
+          EDINET_API_KEY: ${{ secrets.EDINET_API_KEY }}
           KSURE_COUNTRY_LIST: ${{ secrets.KSURE_COUNTRY_LIST }}
           MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY: ${{ secrets.MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY }}
           MSS_BUSINESS_SUPPORT_ANNOUNCEMENTS: ${{ secrets.MSS_BUSINESS_SUPPORT_ANNOUNCEMENTS }}
@@ -310,6 +314,19 @@ jobs:
         run: |
           node scripts/key-presence.mjs || true
           { echo ""; echo "### 열쇠 이름 — 들어 있는가"; cat data/_api/key-presence.md 2>/dev/null || echo "(못 읽었다)"; } >> "$GITHUB_STEP_SUMMARY"
+
+      # ★★ EDINET(일본 공시) — **진단** 〈2026-10-25 · 사장님 「반영해줘」 · Global M&A Intelligence 작업지침 §9〉.
+      #   열쇠가 2026-10-24 에 들어왔는데 «먹는지»를 안 쟀다. 서류 목록 창구를 한 번 불러 무엇이 오는지부터 본다 (§4.3).
+      - name: EDINET 열쇠가 먹는지 불러 본다
+        continue-on-error: true
+        env:
+          EDINET_API_KEY: ${{ secrets.EDINET_API_KEY }}
+        run: |
+          node scripts/edinet-probe.mjs || true
+          {
+            echo '### EDINET 진단'
+            grep -E '^> \*\*판정|^> 판정' data/_api/edinet-probe.md || echo '(판정 줄을 못 읽었다)'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       # ★★★ 네이버 클라우드 Maps — **진단** 〈2026-09-25 · D-314〉.
       #   사장님이 Client ID · Secret 을 넣으셨는데 **넣으신 이름**과 **호스트(옛·새)** 를
