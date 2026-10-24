@@ -1,0 +1,17 @@
+{
+ "key": "EDINET_API_KEY",
+ "date": "2026-10-23",
+ "row": {
+  "label": "EDINET v2 서류 목록 documents.json",
+  "ok": true,
+  "status": 200,
+  "ms": 774,
+  "gotValue": true,
+  "authFail": false,
+  "blocked": false,
+  "fields": null,
+  "head": "{ \"metadata\": { \"title\": \"提出された書類を把握するためのAPI\", \"parameter\": { \"date\": \"2026-10-23\", \"type\": \"2\" }, \"resultset\": { \"count\": 290 }, \"processDateTime\": \"2026-10-25 00:00\", \"status\": \"200\", \"message\": \"OK\" }, \"results\": [ { \"seqNumber\": 1, \"docID\": \"S100YZKR\", \"edinetCode\": \"E12448\", \"secCode\": null, \"J",
+  "truncated": true,
+  "server": null
+ }
+}

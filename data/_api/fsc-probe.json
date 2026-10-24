@@ -109,35 +109,35 @@
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":330,\"items\":{\"item\":[{\"basYm\":\"202512\",\"bzds\":\"보험\",\"tstCtg\":\"재산신탁 부동산관련권리\",\"kind\":\"-\",\"iqBs\":\"고객수\",\"val\":\"0\"},{\"basYm\":\"202512\",\"bzds\":\"보험\",\"tstCtg\":\"재산신탁 무체재산권\",\"kind\":\"-\",\"iqBs\":\"고"
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":330,\"items\":{\"item\":[{\"basYm\":\"202512\",\"bzds\":\"보험\",\"tstCtg\":\"금전신탁 특정금전신탁\",\"kind\":\"수시입출금\",\"iqBs\":\"계약수\",\"val\":\"8607\"},{\"basYm\":\"202512\",\"bzds\":\"보험\",\"tstCtg\":\"금전신탁 특정금전신탁\",\"kind\":\"자사주\","
     },
     {
      "label": "*** · 원본 · 202512",
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":29085,\"items\":{\"item\":[{\"basDt\":\"20261020\",\"ctg\":\"-\",\"tstMthdCtg\":\"공모\",\"nPptTotAmt\":\"36266124383\"},{\"basDt\":\"20261020\",\"ctg\":\"혼합채권형\",\"tstMthdCtg\":\"공모\",\"nPptTotAmt\":\"30386159346579\"},"
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":29110,\"items\":{\"item\":[{\"basDt\":\"20261021\",\"ctg\":\"혼합채권형\",\"tstMthdCtg\":\"사모\",\"nPptTotAmt\":\"7526503379378\"},{\"basDt\":\"20261021\",\"ctg\":\"-\",\"tstMthdCtg\":\"공모\",\"nPptTotAmt\":\"36267374847\"},{"
     },
     {
      "label": "*** · 원본 · 202512",
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":14640,\"items\":{\"item\":[{\"basDt\":\"20261020\",\"mngInvTgt\":\"MMF형\",\"invrCtg\":\"개인\",\"scrtCmpyCnt\":\"12\",\"actCnt\":\"2936997\",\"actBal\":\"4103100358633\"},{\"basDt\":\"20261020\",\"mngInvTgt\":\"합계\",\"inv"
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":14652,\"items\":{\"item\":[{\"basDt\":\"20261021\",\"mngInvTgt\":\"RP형\",\"invrCtg\":\"개인\",\"scrtCmpyCnt\":\"23\",\"actCnt\":\"27082805\",\"actBal\":\"38828644090533\"},{\"basDt\":\"20261021\",\"mngInvTgt\":\"RP형\",\"i"
     },
     {
      "label": "*** · 원본 · 202512",
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":1207,\"items\":{\"item\":[{\"basDt\":\"20261020\",\"crdTrFingWhl\":\"30513862066038\",\"crdTrFingScrs\":\"23694348605136\",\"crdTrFingKosdaq\":\"6819513460902\",\"crdTrLndrWhl\":\"21965669288\",\"crdTrLndrSc"
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":1208,\"items\":{\"item\":[{\"basDt\":\"20261021\",\"crdTrFingWhl\":\"30271025897537\",\"crdTrFingScrs\":\"23448586177456\",\"crdTrFingKosdaq\":\"6822439720081\",\"crdTrLndrWhl\":\"23993524933\",\"crdTrLndrSc"
     },
     {
      "label": "*** · 원본 · 202512",
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":1220,\"items\":{\"item\":[{\"basDt\":\"20261020\",\"invrDpsgAmt\":\"90297588080838\",\"onbdDrvPrdTrRcAdvAmt\":\"34885372379097\",\"toCstRpchCndBndSlgBal\":\"108008219186025\",\"brkTrdUcolMny\":\"1187482739"
+     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\"},\"body\":{\"numOfRows\":3,\"pageNo\":1,\"totalCount\":1221,\"items\":{\"item\":[{\"basDt\":\"20261021\",\"invrDpsgAmt\":\"89634398170440\",\"onbdDrvPrdTrRcAdvAmt\":\"34243604723240\",\"toCstRpchCndBndSlgBal\":\"107898841986373\",\"brkTrdUcolMny\":\"1086469023"
     },
     {
      "label": "*** · 원본 · 202512",
@@ -229,7 +229,7 @@
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><response><header><resultCode>00</resultCode><resultMsg>NORMAL_CODE</resultMsg></header><body><numOfRows>3</numOfRows><pageNo>1</pageNo><totalCount>2220</totalCount><items><item><itemId>1071892</itemId><title><![CDATA[2026년 제4차 기술개발제품 시범구매 지원계획 공고]]></title><dat"
+     "head": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><response><header><resultCode>00</resultCode><resultMsg>NORMAL_CODE</resultMsg></header><body><numOfRows>3</numOfRows><pageNo>1</pageNo><totalCount>2222</totalCount><items><item><itemId>1071948</itemId><title><![CDATA[창업도시 조성 프로젝트 창업도시 모집 공고]]></title><dataConte"
     }
    ]
   },
@@ -354,14 +354,14 @@
    "ops": [
     "natnInfo"
    ],
-   "code": 0,
+   "code": 5,
    "rows": [
     {
      "label": "B410001/kotra_nationalInformation/natnInfo/natnInfo · 원본 · 202512",
      "status": 200,
-     "gotValue": true,
+     "gotValue": false,
      "authFail": false,
-     "head": "{\"response\":{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NO ERROR\"},\"body\":{\"itemList\":{\"item\":{\"korCompList\":{\"korComp\":[{\"tretRealmCntnt\":\"무역/에너지\",\"acplcAdvncYear\":\"1979\",\"acplcAdvncFormCntnt\":\"지사\",\"pcompNm\":\"포스코대우\",\"indlnCntnt\":\"무역\",\"korCompNm\":\"포스코인터내셔널\"},{\"tretRealmCntnt\":\"건설업/송전선로\",\"acplcAdvncYea"
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"HTTP_ERROR\", \"returnAuthMsg\": \"HTTP 에러\", \"returnReasonCode\": \"04\" } } }"
     },
     {
      "label": "B410001/kotra_nationalInformation/natnInfo · 원본 · 202512",
@@ -555,7 +555,7 @@
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL_CODE\"},\"body\":{\"items\":{\"item\":[{\"CRTR_YMD\":\"20261021\",\"SDNM\":\"경상북도\",\"SGGNM\":\"경산시\",\"PRPT_ITEM_NM\":\"전\",\"SCFB_YR\":\"2025\",\"SCFB_MT\":\"10\",\"APSL_EVL_AMT\":32868000,\"DSPL_AMT\":7010000,\"SCFB_PRC_RTO\":21.33},{\"CRTR_YMD\":\"20261021\",\"SDNM\":\"경상북도\",\"SGGNM\":\"김천시\",\""
+     "head": "{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL_CODE\"},\"body\":{\"items\":{\"item\":[{\"CRTR_YMD\":\"20261024\",\"SDNM\":\"경상북도\",\"SGGNM\":\"상주시\",\"PRPT_ITEM_NM\":\"전\",\"SCFB_YR\":\"2025\",\"SCFB_MT\":\"10\",\"APSL_EVL_AMT\":12900000,\"DSPL_AMT\":6660000,\"SCFB_PRC_RTO\":51.63},{\"CRTR_YMD\":\"20261024\",\"SDNM\":\"경상북도\",\"SGGNM\":\"경주시\",\""
     }
    ]
   },
@@ -915,7 +915,7 @@
      "status": 200,
      "gotValue": true,
      "authFail": false,
-     "head": "<response> <header> <resultCode>00</resultCode> <resultMsg>NORMAL_SERVICE</resultMsg> </header> <body> <items> <item> <pblancNm><![CDATA[[경기] 의왕시 2026년 우수중소기업 선정계획 공고]]></pblancNm> <!-- 공고명 --> <pblancUrl>https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000127381</pblanc"
+     "head": "<response> <header> <resultCode>00</resultCode> <resultMsg>NORMAL_SERVICE</resultMsg> </header> <body> <items> <item> <pblancNm><![CDATA[2026년 창업도시 조성 프로젝트 창업도시 모집 공고]]></pblancNm> <!-- 공고명 --> <pblancUrl>https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000127435</pblanc"
     }
    ]
   },
