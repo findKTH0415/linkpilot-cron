@@ -1,11 +1,17 @@
 {
- "at": "2026-10-23T01:26:59.161Z",
+ "at": "2026-10-24T01:32:06.671Z",
  "source": "https://www.kindkorea.or.kr",
  "boards": {
   "notices": {
    "name": "지원공고",
-   "total": 218,
+   "total": 219,
    "items": [
+    {
+     "id": 11536,
+     "title": "[사업협력팀] 국내 PM CM 기업 해외진출 지원 수요조사 설문 실시(10.23.~10.30.)",
+     "date": "2026-10-23",
+     "url": "https://www.kindkorea.or.kr/pages/29?id=11536&menuMode=READ"
+    },
     {
      "id": 11518,
      "title": "[포르투갈 AICEP] 한-포르투갈 비즈니스 포럼 참가 안내 (참가 신청 ~10.5.(월))",
@@ -43,12 +49,6 @@
      "url": "https://www.kindkorea.or.kr/pages/29?id=11431&menuMode=READ"
     },
     {
-     "id": 11396,
-     "title": "KIND SNS 채널 인지도 및 만족도 조사 (~7.24)",
-     "date": "2026-07-15",
-     "url": "https://www.kindkorea.or.kr/pages/29?id=11396&menuMode=READ"
-    },
-    {
      "id": 11052,
      "title": "[KIND-2026-04] 2026년도 해외인프라도시개발사업 제안서작성 지원 대상사업 모집공고",
      "date": "2026-03-20",
@@ -71,8 +71,14 @@
   },
   "news": {
    "name": "보도자료",
-   "total": 100,
+   "total": 101,
    "items": [
+    {
+     "id": 11537,
+     "title": "'K-건설', AI 데이터센터 해외시장 문 열었다",
+     "date": null,
+     "url": "https://www.kindkorea.or.kr/pages/32?id=11537&menuMode=READ"
+    },
     {
      "id": 11509,
      "title": "KIND, 호주 시드니 초고층 아파트 개발사업 투자계약 체결",
@@ -126,12 +132,6 @@
      "title": "KIND, 부패방지 국제표준 ISO 37001 사후심사 통과",
      "date": null,
      "url": "https://www.kindkorea.or.kr/pages/32?id=11417&menuMode=READ"
-    },
-    {
-     "id": 11385,
-     "title": "KIND, 미국 핵심광물 리튬·붕소 생산사업 본격 추진",
-     "date": null,
-     "url": "https://www.kindkorea.or.kr/pages/32?id=11385&menuMode=READ"
     }
    ],
    "url": "https://www.kindkorea.or.kr/pages/32"
