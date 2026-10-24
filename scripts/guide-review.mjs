@@ -119,12 +119,16 @@ export function geminiKeys(env = process.env) {
   return [...new Set(names.map((k) => String(env[k] || '').trim()).filter((v) => v.length >= 20 && !/[<>]/.test(v)))];
 }
 export const GEMINI_MODELS = ['gemini-3.8-flash', 'gemini-3.1-flash-lite', 'gemini-3.5-flash'];
-export async function reviewGemini({ name, text, criteria, keys, models = GEMINI_MODELS, fetchImpl = fetch, timeoutMs = 120000 }) {
+/* ★ 전체 예산(deadline) — 2026-10-25: 큰 지침 둘이 열쇠마다 120초씩 기다려 잡 한도(15분)에 걸려 «판정 못 받음»으로 끝났다.
+ *   시간 초과는 다른 열쇠로 낫지 않는다(§12-5) — 다음 «모델»로 가고, 예산이 끝나면 «기다리면 낫는다(3)»로 적고 멈춘다. */
+export async function reviewGemini({ name, text, criteria, keys, models = GEMINI_MODELS, fetchImpl = fetch, timeoutMs = 120000, deadline = Infinity, now = Date.now }) {
   const [sys, user] = buildMessages(name, text, criteria);
   let last = { ok: false, code: 2, kind: 'nokey', say: 'Gemini 열쇠가 이 자리에 없습니다.' };
   for (const model of models) {
     for (const key of keys) {
-      const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), timeoutMs);
+      const left = deadline - now();
+      if (left < 5000) return { ok: false, code: 3, kind: 'budget', say: '정해 둔 검토 시간이 끝났습니다 — 기다리면 낫습니다. 이 지침은 프로젝트 세션의 Claude 가 스스로 검증합니다.' };
+      const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), Math.min(timeoutMs, left));
       let r, body = '';
       try {
         r = await fetchImpl(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
@@ -134,7 +138,11 @@ export async function reviewGemini({ name, text, criteria, keys, models = GEMINI
             generationConfig: { responseMimeType: 'application/json', maxOutputTokens: 8192 } }),
         });
         body = await r.text();
-      } catch (e) { clearTimeout(t); last = { ok: false, code: 3, kind: 'unreachable', say: 'Gemini 에 닿지 못했습니다 — 열쇠 문제가 아닙니다.', detail: redact(e && e.message, keys) }; continue; }
+      } catch (e) {
+        clearTimeout(t);
+        if (ctl.signal.aborted) { last = { ok: false, code: 3, kind: 'timeout', say: `Gemini ${model} 이 정해 둔 시간 안에 대답하지 않았습니다 — 다음 모델로 갑니다.` }; break; }
+        last = { ok: false, code: 3, kind: 'unreachable', say: 'Gemini 에 닿지 못했습니다 — 열쇠 문제가 아닙니다.', detail: redact(e && e.message, keys) }; continue;
+      }
       clearTimeout(t);
       if (r.status === 404) { last = { ok: false, code: 6, kind: 'model', say: `Gemini 모델 ${model} 이 없습니다 — 다음 모델로 갑니다.`, detail: redact(body.slice(0, 200), keys) }; break; }
       if (!r.ok) { last = { ok: false, code: r.status === 401 || r.status === 403 ? 4 : 3, kind: 'http', say: `Gemini 가 HTTP ${r.status} 로 거부했습니다.`, detail: redact(body.slice(0, 200), keys) }; continue; }
@@ -220,12 +228,14 @@ async function main(argv) {
   if (force && !todo.length) log.push(`- 다시 검토하라 하신 «${force}» 가 지침함에 없습니다.`);
 
   let done = 0; const fails = [];
+  /* 잡 한도(15분) 안에서 끝나게 전체 예산 12분 — 넘기면 판정 줄을 못 남기고 «판정 못 받음»이 된다 */
+  const deadline = Date.now() + Number(process.env.GUIDE_REVIEW_BUDGET_MS || 12 * 60 * 1000);
   for (const f of todo) {
     const text = fs.readFileSync(path.join(DIR, f), 'utf8');
     const leak = leakCheck(text);
     if (leak.length) { fails.push({ code: 4, f, say: `공개 저장소에 둘 수 없는 글이 있습니다(${leak.join(' · ')}) — 보내지 않았습니다. 그 줄을 지우고 다시 올립니다.` }); continue; }
     if (!keys.length) { fails.push({ code: 2, f, say: 'Gemini 열쇠(GEMINI_API_KEY…)가 이 자리에 없습니다 — GitHub 비밀에 넣으시면 다음 실행부터 검토합니다.' }); continue; }
-    const r = await reviewGemini({ name: f, text, criteria, keys });
+    const r = await reviewGemini({ name: f, text, criteria, keys, deadline });
     if (!r.ok) { fails.push({ code: r.code, f, say: r.say + (r.detail ? ` (앞머리: ${r.detail.slice(0, 160)})` : '') }); continue; }
     const doc = renderReview(f, hashOf(text), r.model, r.review, kstStamp());
     fs.writeFileSync(path.join(DIR, reviewName(f)), doc);
