@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="a876cfe1">
+<html lang="ko" data-lp-build="660dffa5">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -264,7 +264,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=a876cfe1">
+<link rel="stylesheet" href="tokens.css?v=660dffa5">
 <style>
 :root {
   --side: 248px;
@@ -429,7 +429,8 @@ ul { margin: 0; padding: 0; list-style: none; }
   font-weight: 600; font-size: 13px; line-height: 1; font-family: inherit;
   padding: 9px 12px; border-radius: 10px;
   border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
-.sopt.on { border-color: var(--lime-deep); background: var(--lime-soft); color: var(--lime-deep); }
+/* 〈2026-10-25 · v2 §8.2 칩 켜짐〉 연두 바탕 + 라임 1.5px + 700 · 글자는 잉크 */
+.sopt.on { border: 1.5px solid var(--lime); background: var(--lime-soft); color: var(--ink); font-weight: 700; }
 .sopt:disabled { opacity: .55; cursor: default; }
 .sopt__sw { width: 12px; height: 12px; border-radius: 3px; flex: none; }
 .style__go { margin-top: 6px; }
@@ -485,6 +486,9 @@ ul { margin: 0; padding: 0; list-style: none; }
 .btn:disabled { background: var(--panel); color: var(--ink2); cursor: not-allowed; }
 .btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .btn--ghost { background: var(--surface); border: 1px solid var(--line); color: var(--ink2); }
+/* 〈2026-10-25 · v2 §8.1〉 라임 단추 hover = 진한 라임 · 보조(ghost) hover = 연두 */
+.btn:hover:not(:disabled) { background: var(--lp-lime-hover); }
+.btn--ghost:hover:not(:disabled) { background: var(--lp-brand-soft); }
 .why { font-size: 13px; color: var(--warn-ink); }
 
 .locked { display: flex; align-items: center; gap: 10px; padding: 13px 16px; border-radius: 12px;
@@ -628,15 +632,15 @@ a.out__a, a.out__a:visited { display: inline-block; white-space: nowrap; color: 
   <a class="bot__i on" href="#"><b>☰</b>더보기</a>
 </nav>
 
-<script src="gate-core.js?v=a876cfe1"></script>
-<script src="catalog.js?v=a876cfe1"></script>
-<script src="inapp.js?v=a876cfe1"></script>
-<script src="live-core.js?v=a876cfe1"></script>
+<script src="gate-core.js?v=660dffa5"></script>
+<script src="catalog.js?v=660dffa5"></script>
+<script src="inapp.js?v=660dffa5"></script>
+<script src="live-core.js?v=660dffa5"></script>
 <!-- ★ 판 지문을 화면에 보이게 찍는 것이 여기 있다 (§8) — 묶음에 이미 실리는 파일이다 -->
-<script src="style-ab.js?v=a876cfe1"></script>
-<script src="flow-core.js?v=a876cfe1"></script>
+<script src="style-ab.js?v=660dffa5"></script>
+<script src="flow-core.js?v=660dffa5"></script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=a876cfe1" data-lp-global="LINKPILOT_REPORTS"></script>
+<script src="embed-bridge.js?v=660dffa5" data-lp-global="LINKPILOT_REPORTS"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 

@@ -36,12 +36,15 @@ test('★ 디자인 시스템: 브랜드 값이 문서와 같다', () => {
    *   이 토큰은 11px 글자 색으로 쓰인다. rev.B 의 `#5A7A00` 은 **4.98** 로
    *   작은 글자 기준 4.5 를 넘긴다 (실측).
    */
+  /* ★★★ 〈2026-10-25 · 「보고서 만들기 v2」 CSS 실측〉 라임·잉크가 v3 정본(#AAE106·#0A1419)으로 옮겨 왔다
+   *   (CLAUDE.md §6-3-0). 앱(platform)이 그 값이라, 옛 지시서 값이면 앱 틀 안에서 이 화면만 어긋났다.
+   *   재는 성질은 그대로다 — «tokens.css 의 브랜드 값이 지금 정본과 같은가». */
   const want = {
-    '--lp-brand': '#B5E01F',
+    '--lp-brand': '#AAE106',
     '--lp-brand-deep': '#5A7A00',
     '--lp-brand-soft': '#F0FAD8',
-    '--lp-brand-ink': '#12161F',
-    '--lp-navy': '#12161F',
+    '--lp-brand-ink': '#0A1419',
+    '--lp-navy': '#0A1419',
   };
   Object.keys(want).forEach((k) => {
     assert.ok(new RegExp(`${k}:\\s*${want[k]};`).test(TOKENS), `${k} 가 ${want[k]} 가 아니다`);
@@ -243,7 +246,7 @@ test('★ 디자인 시스템: 움직임을 줄이는 설정을 존중한다', (
 
 test('★★ 디자인 시스템: 라임 위에 흰 글자를 올리지 않는다', () => {
   // §11 — 대비가 안 나온다. 라임 위는 네이비(--lp-brand-ink)다
-  assert.match(TOKENS, /--lp-brand-ink:\s*#12161F/);   // D-138 — 지시서 확정값
+  assert.match(TOKENS, /--lp-brand-ink:\s*#0A1419/);   // v3 정본 (2026-10-25 · 앞 판은 D-138 지시서 값)
   SCREENS.forEach((f) => {
     const s = read(f);
     // `background: var(--lime)` 과 `color: #fff` 이 같은 규칙 안에 있으면 안 된다
@@ -370,4 +373,44 @@ test('★ 그 검사가 실제로 잡는다 (헛도는 검사가 아니다)', ()
   assert.ok(isBad('400 clamp(13px, 3.6vw, 15px)/1.3 inherit'), 'clamp 가 섞이면 못 잡는다');
   assert.ok(!isBad('inherit'), '멀쩡한 것을 잡는다 — 헛울음이다');
   assert.ok(!isBad('700 13px/1 var(--lp-font)'), '멀쩡한 것을 잡는다');
+});
+
+test('★★ 「보고서 만들기 v2」 값 — 글자로 쓰는 토큰은 대비 4.5 를 넘는다 (CLAUDE.md §6-3-0)', () => {
+  /* 〈2026-10-25〉 v2 실측의 rgba(10,20,25,.5)·.55 는 흰 바탕 3.51·4.13 이라 그대로 못 쓴다 — 토큰이 그 자리를 .62 로 받는다.
+   *   ★ 값을 손으로 적지 않고 tokens.css 에서 읽어 잰다. 누가 옛 값(.5)으로 되돌리면 여기서 빨개진다. */
+  const val = (name) => {
+    const m = TOKENS.match(new RegExp(`${name}:\\s*([^;]+);`));
+    assert.ok(m, `${name} 이 tokens.css 에 없다`);
+    return m[1].trim();
+  };
+  const rgb = (v) => {
+    let m = v.match(/^#([0-9a-f]{6})$/i);
+    if (m) return { c: [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)), a: 1 };
+    m = v.match(/^rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)$/);
+    assert.ok(m, `읽을 수 없는 색: ${v}`);
+    return { c: [+m[1], +m[2], +m[3]], a: +m[4] };
+  };
+  const lum = (c) => {
+    const s = c.map((x) => { x /= 255; return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); });
+    return 0.2126 * s[0] + 0.7152 * s[1] + 0.0722 * s[2];
+  };
+  const ratio = (fg, bg) => {
+    const b = rgb(bg).c;
+    const f = rgb(fg);
+    const c = f.c.map((x, i) => x * f.a + b[i] * (1 - f.a));
+    const [x, y] = [lum(c), lum(b)];
+    return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+  };
+  const W = '#FFFFFF';
+  const G = val('--lp-surface-grouped');
+  const pairs = [
+    ['--lp-text-2', W], ['--lp-text-2', G], ['--lp-text-3', W], ['--lp-text-3', G],
+    ['--lp-text-4', W], ['--lp-text-4', G], ['--lp-brand-deep', W], ['--lp-lime-ink-g', G],
+    ['--lp-lime-strong', val('--lp-brand-soft')], ['--lp-warn-text', val('--lp-warn-bg')],
+    ['--lp-info-text', val('--lp-info-bg')], ['--lp-danger-text', val('--lp-danger-bg')],
+  ];
+  pairs.forEach(([name, bg]) => {
+    const r = ratio(val(name), bg);
+    assert.ok(r >= 4.5, `${name} 이 ${bg} 위에서 ${r.toFixed(2)} — 4.5 미달`);
+  });
 });

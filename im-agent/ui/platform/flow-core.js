@@ -24,7 +24,7 @@
    *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다. 화면이 자기
    *   지문과 대 보고 다르면 「함수가 없다」로 죽기 전에 사람 말로 알린다.
    */
-  var LP_BUILD = 'a876cfe1';
+  var LP_BUILD = '660dffa5';
 
   /**
    * ★★★ **단계는 다섯이다** 〈2026-08-22 사용자 지시〉.
@@ -983,7 +983,7 @@
     var a = document.createElement('a');
     a.href = url;
     a.textContent = '흐름으로 돌아가기';
-    a.setAttribute('style', 'margin-left:auto;background:#B5E01F;color:#12161F;'
+    a.setAttribute('style', 'margin-left:auto;background:#AAE106;color:#0A1419;'
       + 'text-decoration:none;font-weight:700;padding:7px 14px;border-radius:10px');
     bar.appendChild(a);
     return bar;
