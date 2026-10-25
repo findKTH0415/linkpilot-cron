@@ -175,8 +175,16 @@ window.addEventListener('load', function () { setTimeout(function () {
   R.coverDs = q('[data-lp-rv2-ds]') ? q('[data-lp-rv2-ds]').getAttribute('data-lp-rv2-ds') : null;
   R.text = document.body.innerText;
   R.w = { sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth };
-  var L = q('.rf-left'), M = q('.rf-main');
-  if (L && M) R.stack = { leftBottom: Math.round(L.getBoundingClientRect().bottom), mainTop: Math.round(M.getBoundingClientRect().top) };
+  /* 〈2026-10-25 · 견본 396〉 분류·문서 양식은 오른쪽 칸 안 — 휴대폰에서는 오른쪽 칸이 display:contents 라 칸 자체의 위치는 0 이다.
+   *   그래서 «작업 칸»(사업 파악)과 문서 양식을 직접 잰다. */
+  var L = q('.rf-left'), A = q('[data-lp-rv2-part="ask"]'), D = q('[data-lp-rv2-part="docs"]');
+  if (L && A) R.stack = { leftTop: Math.round(L.getBoundingClientRect().top), leftBottom: Math.round(L.getBoundingClientRect().bottom), mainTop: Math.round(A.getBoundingClientRect().top),
+    docsTop: D ? Math.round(D.getBoundingClientRect().top) : null, docsBottom: D ? Math.round(D.getBoundingClientRect().bottom) : null, docsInMain: !!(D && D.closest('.rf-main')) };
+  /* Codex P2 #313 — 휴대폰에서 쌓인 칸이 «내용 폭»으로 좁아지지 않는가(줄 폭을 다 쓰는가) */
+  var G = q('.rf-grid');
+  if (G) { var gw = G.getBoundingClientRect().width, items = [].slice.call(G.children).filter(function (c) { return !c.classList.contains('rf-main'); })
+      .concat([].slice.call(G.querySelectorAll('.rf-main > *'))).filter(function (c) { return c.getBoundingClientRect().height > 0; });
+    R.fill = { grid: Math.round(gw), narrow: Math.round(Math.min.apply(null, items.map(function (c) { return c.getBoundingClientRect().width; }))), n: items.length }; }
   R.vw = window.innerWidth;
   document.documentElement.setAttribute('data-rv2-test', JSON.stringify(R));
   try { parent.postMessage({ rv2: R }, '*'); } catch (_) {}
@@ -281,6 +289,17 @@ test('⑨ 폰(390) 폭에서 한 칸으로 쌓이고 가로로 안 넘친다', (
   assert.strictEqual(R.vw, 390, '390 폭으로 못 쟀다 (' + R.vw + ')');
   assert.ok(R.w.sw <= R.w.cw, '가로로 넘친다: ' + JSON.stringify(R.w));
   assert.ok(R.stack && R.stack.leftBottom <= R.stack.mainTop, '왼쪽 칸과 오른쪽 칸이 나란히 섰다 — 한 칸으로 안 쌓였다: ' + JSON.stringify(R.stack));
+  assert.ok(R.stack.docsBottom != null && R.stack.docsBottom <= R.stack.leftTop, '휴대폰에서 문서 양식이 단계 목록보다 위가 아니다: ' + JSON.stringify(R.stack));
+  assert.ok(R.fill && R.fill.n > 2 && R.fill.narrow >= R.fill.grid - 1, '휴대폰에서 쌓인 칸이 줄 폭을 다 안 쓴다(내용 폭으로 좁아짐): ' + JSON.stringify(R.fill));
+});
+
+test('⑯ 데스크탑(1366): 문서 양식은 오른쪽 칸 안 · 단계 목록은 문서 양식과 같은 높이에서 시작한다 (견본 396)', (t) => {
+  const browser = findBrowser();
+  if (!browser) { t.skip('크로미움이 없다 — 못 쟀다'); return; }
+  const R = run(browser, path.join(build(PRE), 'rv2.html'), 1366);
+  assert.ok(R && R.stack, '결과가 없다 — 못 쟀다');
+  assert.ok(R.stack.docsInMain, '문서 양식이 오른쪽 칸 밖이다: ' + JSON.stringify(R.stack));
+  assert.ok(R.stack.leftTop <= R.stack.docsTop, '단계 목록이 문서 양식 밑에서 시작한다(견본과 다름): ' + JSON.stringify(R.stack));
 });
 
 /* ── ⑬⑭⑮ Codex P2 #571 — 저장 겹침 · 열린 틀 보존 · 문서 종류 = 서버 사양 한 벌 ── */
@@ -381,4 +400,61 @@ test('⑮-3 «출력정보 입력» 칸이 바깥의 사양 변경을 받아 종
   assert.match(win, /state\.kindId\s*=\s*s\.docType/, '받은 사양의 문서 종류로 맞추지 않는다');
   assert.match(src.slice(at - 40, at + 120), /state\.locked\)\s*return/, '확정된 사양도 덮는다');
   assert.match(src, /tellParent\(j\.spec\)/, '확정한 뒤 바깥에 안 알린다');
+});
+
+/* ── ⑰ 병합 판 〈2026-10-25 사장님: 「보조기능들이 작동하지 않음」 · 「과거 보고서엔진 그대로 노출 · 현재 버젼과 병합되어 있지 않음」〉
+ *   앱과 같은 판(미리보기 문서를 안 심음)으로 그려서 누른다 —
+ *   옛 작업 칸은 «펴진 칸»만 «사업 파악»과 «기능 옵션» 사이에 서고, 닫힌 머리 목록은 없다 ·
+ *   왼쪽 단계·[바꾸기]·[+ 자료 올리기]·[+ 새 보고서]·형식 칩이 실제로 무언가를 하고 · 못 하는 칸은 누르면 이유를 남긴다. */
+const ACT_MERGE = `<script>
+addEventListener('load', function () { setTimeout(async function () {
+  var q = function (s) { return document.querySelector(s); }, qa = function (s) { return Array.prototype.slice.call(document.querySelectorAll(s)); };
+  var wait = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+  var R = {};
+  var work = function () { return qa('[data-lp-flow-sec]').map(function (x) { return x.getAttribute('data-lp-flow-sec'); }); };
+  var order = function () { var m = q('.rf-main'); if (!m) return []; return Array.prototype.slice.call(m.children).map(function (x) { return x.getAttribute('data-lp-rv2-part') || (x.getAttribute('data-lp-rv2-work') ? 'work' : '') ; }).filter(Boolean); };
+  R.first = work(); R.order = order(); R.headTags = qa('.sec__h--fixed').length;
+  var it2 = q('[data-lp-flow-procitem="2"]'); if (it2) { it2.click(); await wait(200); } R.afterStep2 = work();
+  var ch = q('[data-lp-rv2-go="basics"]'); if (ch) { ch.click(); await wait(200); } R.afterChange = work();
+  var up = q('[data-lp-rv2-go="sources"]'); if (up) { up.click(); await wait(200); } R.afterUpload = work();
+  var soon = q('.rv2-opts [data-lp-rv2-soon]'); if (soon) { soon.click(); await wait(50); } R.saidSoon = (q('.rv2-opts [data-lp-rv2-said]') || {}).textContent || '';
+  var sg = q('.rv2-search__go'); if (sg) { sg.click(); await wait(50); } R.saidSearch = (q('.rv2-top__r [data-lp-rv2-said]') || {}).textContent || '';
+  var nw = q('[data-lp-rv2-new]'); if (nw) { nw.click(); await wait(200); } R.afterNew = work();
+  var html = q('[data-lp-rv2-format="html"]'); var hb = html && html.getAttribute('aria-pressed'); if (html) { html.click(); await wait(100); }
+  var html2 = q('[data-lp-rv2-format="html"]'); R.fmt = [hb, html2 && html2.getAttribute('aria-pressed')];
+  var hwp = q('[data-lp-rv2-format="hwp"]'); if (hwp) { hwp.click(); await wait(50); } R.hwp = [hwp && hwp.getAttribute('aria-pressed'), !!q('[data-lp-rv2-format="hwp"][data-lp-rv2-soon]')];
+  var form = q('[data-lp-rv2-say]'); if (form) { form.querySelector('input').value = '안녕하세요'; form.dispatchEvent(new Event('submit', { cancelable: true })); await wait(50); }
+  R.saidText = (q('.rv2-ask [data-lp-rv2-said], [data-lp-rv2-part="ask"] [data-lp-rv2-said]') || {}).textContent || '';
+  document.documentElement.setAttribute('data-rv2-test', JSON.stringify(R));
+}, 600); });
+</script>`;
+
+function buildLive() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-rv2l-'));
+  require(path.join(PLATFORM, 'build-embed.js')).build(dir);
+  let html = fs.readFileSync(path.join(dir, 'report-flow.html'), 'utf8');
+  const at = html.lastIndexOf('</body>');
+  html = html.slice(0, at) + ACT_MERGE + html.slice(at);
+  fs.writeFileSync(path.join(dir, 'rv2l.html'), html);
+  return path.join(dir, 'rv2l.html');
+}
+
+test('⑰ 병합 판 — 펴진 칸만 오른쪽에 · 단계·바꾸기·자료 올리기·새 보고서·형식이 돈다 · 못 하는 칸은 이유를 남긴다', (t) => {
+  const browser = findBrowser();
+  if (!browser) { t.skip('크로미움이 없다 — 못 쟀다'); return; }
+  const R = run(browser, buildLive(), 1366);
+  assert.ok(R, '결과가 없다 — 못 쟀다');
+  assert.deepStrictEqual(R.first, ['basics'], '처음에 펴진 칸이 «기본정보 입력» 하나가 아니다(닫힌 옛 머리가 남았다): ' + JSON.stringify(R.first));
+  const o = R.order, iAsk = o.indexOf('ask'), iWork = o.indexOf('work'), iOpts = o.indexOf('opts');
+  assert.ok(iAsk >= 0 && iWork > iAsk && iOpts > iWork, '엔진 칸이 «사업 파악»과 «기능 옵션» 사이가 아니다: ' + JSON.stringify(o));
+  assert.strictEqual(R.headTags, 1, '펴진 칸 머리가 고정 머리가 아니다');
+  assert.deepStrictEqual(R.afterStep2, ['sources'], '왼쪽 «2 사업 파악»을 눌러도 그 칸이 안 선다: ' + JSON.stringify(R.afterStep2));
+  assert.deepStrictEqual(R.afterChange, ['basics'], '[바꾸기] 가 1번 칸을 안 연다: ' + JSON.stringify(R.afterChange));
+  assert.deepStrictEqual(R.afterUpload, ['sources'], '[+ 자료 올리기] 가 3번 칸을 안 연다: ' + JSON.stringify(R.afterUpload));
+  assert.match(R.saidSoon, /준비 중/, '못 하는 칸을 눌러도 이유가 안 남는다');
+  assert.match(R.saidSearch, /통합검색은 준비 중/, '통합검색이 이유를 안 남긴다');
+  assert.deepStrictEqual(R.afterNew, ['basics'], '[+ 새 보고서] 가 1번 칸으로 안 간다');
+  assert.ok(R.fmt[0] !== null && R.fmt[0] !== R.fmt[1], '형식 칩 «데스크탑 HTML» 을 눌러도 안 바뀐다: ' + JSON.stringify(R.fmt));
+  assert.deepStrictEqual(R.hwp, ['false', true], '못 만드는 형식(HWP)이 켜졌다: ' + JSON.stringify(R.hwp));
+  assert.match(R.saidText, /준비 중/, '글로 답해도 아무 말이 없다');
 });
