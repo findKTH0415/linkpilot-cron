@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="a876cfe1">
+<html lang="ko" data-lp-build="660dffa5">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -288,7 +288,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=a876cfe1">
+<link rel="stylesheet" href="tokens.css?v=660dffa5">
 <style>
 /* 색·간격·반경 토큰은 tokens.css 하나가 정한다 (LinkPilot Design System v1.1) */
 * { box-sizing: border-box; }
@@ -297,7 +297,8 @@ body {
   font: 400 15px/1.65 var(--lp-font);
   -webkit-text-size-adjust: 100%;
 }
-.wrap { max-width: 1120px; margin: 0 auto; padding: 22px 20px 40px; }
+.wrap { max-width: 1320px; margin: 0 auto; padding: 22px 24px 40px; }   /* v2 §3.1 본문 폭 1320 · 22/24 */
+@media (max-width: 900px) { .wrap { padding: 16px 14px 40px; } }          /* v2 §3.2 휴대폰 16/14 */
 h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
 
 /* ★★★ 화면 머리 — **앱 안에서도 그린다** 〈2026-08-30 사장님 지시 · D-200〉.
@@ -331,21 +332,23 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
    ★ 이름을 `.tabs` 로 짓는다. `.top`·`.steps`·`.side` 는 앱이 감추는 이름이라
      그 셋을 피한다 (`flow-core.js` 의 EMBED_CSS) — 그렇게 지으면 앱 안에서만
      조용히 사라져 「혼자 뜬 판은 멀쩡한데 앱에서만 없다」가 된다. */
-.tabs { display: flex; gap: 8px; margin: 0 0 18px; }
+/* 〈2026-10-25 · v2 §8.4 탭 세그먼트〉 바탕 띠 위에 켜진 칸만 흰 카드로 선다 — 앞 판의 «잉크 채움»을 걷었다 */
+.tabs { display: flex; gap: 4px; margin: 0 0 16px; padding: 4px; border-radius: 14px;
+  background: var(--lp-seg-track); }
 .tabs button {
-  flex: 1; padding: 13px 14px; border-radius: 10px; cursor: pointer;
-  font: 700 15px/1.3 var(--lp-font); border: 1px solid var(--line);
-  background: var(--surface); color: var(--ink2);
+  flex: 1; min-height: 36px; padding: 6px 14px; border-radius: 10px; cursor: pointer;
+  font: 500 14.5px/1.3 var(--lp-font); border: 0;
+  background: transparent; color: var(--lp-text-2);
 }
 .tabs button[aria-current="page"] {
-  background: var(--lp-navy, #10233C); color: #fff; border-color: var(--lp-navy, #10233C);
+  background: var(--surface); color: var(--ink); font-weight: 700; box-shadow: var(--lp-shadow-seg);
 }
-.tabs button:hover { border-color: var(--lp-navy, #10233C); }
-.tabs button:focus-visible { outline: 2px solid var(--lp-lime, #C6F24E); outline-offset: 2px; }
+.tabs button:hover:not([aria-current="page"]) { background: var(--lp-hover); }
+.tabs button:focus-visible { outline: 2px solid var(--lp-brand-deep); outline-offset: 2px; }
 
 .card {
   background: var(--surface); border: 1px solid var(--line);
-  border-radius: var(--r); padding: 20px 22px; margin-bottom: 16px;
+  border-radius: var(--r); padding: 22px clamp(16px, 3vw, 28px); margin-bottom: 16px;   /* v2 §3.1 카드 공통 */
 }
 .card__t { margin: 0 0 6px; font-size: 17px; }
 .card__d { margin: 0; color: var(--ink2); font-size: 14px; }
@@ -356,58 +359,65 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
    ★ 전에는 레일이 위에, 진행률이 그 아래에 따로 있어서 **어디까지 왔나**와
      **지금 무엇을 하나**가 서로 다른 곳에서 말했다. 한 줄기로 세운다. */
 /* 왼쪽 «진행절차 목록» 〈2026-10-23 사장님 화면〉 — 900px 밑은 한 칸(목록 안 그림) */
-.rf-grid { display: grid; grid-template-columns: 236px minmax(0, 1fr); gap: 18px; align-items: start; }
+/* 〈2026-10-25 · v2 §8.6 단계 목록〉 흰 카드 · 행 44 · 원 28 — 현재 = 연두 바탕 + 잉크 원 · 끝남 = 라임 원 + 체크 · 남음 = 회색 원 */
+.rf-grid { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 16px; align-items: start; }
 .rf-main { min-width: 0; }
-.rf-proc { position: sticky; top: 12px; display: flex; flex-direction: column; gap: 4px; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
-.rf-proc__t { font: 700 13px/1.4 var(--lp-font); color: var(--ink2); padding: 2px 6px 6px; }
-.rf-proc__i { display: flex; align-items: center; gap: 8px; width: 100%; padding: 9px 8px; border: 0; border-radius: 9px; background: transparent; color: var(--ink); font: 600 14px/1.35 var(--lp-font); text-align: left; cursor: pointer; }
-.rf-proc__i:hover:not(:disabled) { background: var(--bg); }
-.rf-proc__i:disabled { cursor: default; color: var(--ink2); }
-.rf-proc__i--on { background: var(--lp-brand-soft); color: var(--lp-brand-ink); }
-.rf-proc__i:focus-visible { outline: 2px solid var(--lp-lime, #C6F24E); outline-offset: 1px; }
-.rf-proc__n { flex: 0 0 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font: 700 12px/1 var(--lp-font); background: var(--bg); color: var(--ink2); font-variant-numeric: tabular-nums; }
-.rf-proc__i--on .rf-proc__n { background: var(--lp-brand-ink); color: var(--surface); }
+.rf-proc { position: sticky; top: 0; display: flex; flex-direction: column; gap: 2px; padding: 16px 10px 10px; border: 0; border-radius: var(--lp-r-card); background: var(--surface); }
+.rf-proc__t { font: 600 13px/1.4 var(--lp-font); color: var(--lp-text-3); padding: 0 10px 8px; }
+.rf-proc__i { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 12px; width: 100%; min-height: 44px; padding: 0 10px; border: 0; border-radius: var(--lp-r-12); background: transparent; color: var(--ink); font: 500 15px/1.35 var(--lp-font); text-align: left; cursor: pointer; }
+.rf-proc__i:hover:not(:disabled) { background: var(--lp-hover); }
+.rf-proc__i:disabled { cursor: default; color: var(--lp-text-3); }
+.rf-proc__i--on, .rf-proc__i--on:hover:not(:disabled) { background: var(--lp-brand-soft); color: var(--lp-brand-ink); font-weight: 700; }
+.rf-proc__i:focus-visible { outline: 2px solid var(--lp-brand-deep); outline-offset: 1px; }
+.rf-proc__n { width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font: 700 13px/1 var(--lp-font); background: var(--lp-step-idle); color: var(--ink); font-variant-numeric: tabular-nums; }
+.rf-proc__n svg { display: block; }
 .rf-proc__i--done .rf-proc__n { background: var(--lp-brand); color: var(--lp-brand-ink); }
-.rf-proc__name { flex: 1 1 auto; min-width: 0; }
-.rf-proc__st { flex: 0 0 auto; font: 600 12px/1 var(--lp-font); color: var(--ink2); font-variant-numeric: tabular-nums; }
-@media (max-width: 899px) { .rf-grid { display: block; } .rf-proc { display: none; } }
+.rf-proc__i--on .rf-proc__n { background: var(--lp-brand-ink); color: var(--lp-white); }   /* 지금 칸이 이긴다 */
+.rf-proc__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rf-proc__st { font: 600 12px/1 var(--lp-font); color: var(--lp-text-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rf-proc__i--done .rf-proc__st { color: var(--lp-brand-deep); }
+@media (max-width: 900px) { .rf-grid { display: block; } .rf-proc { display: none; } }   /* v2 §3.2 — 900 이하는 휴대폰 */
 .sec { margin: 0 0 14px; }
-.sec__h { display: flex; align-items: flex-start; gap: 11px; width: 100%;
+/* 〈2026-10-25 · v2 §8.9 시작 카드〉 모서리 16 · 켜짐 = 라임 2px + 옅은 라임 바탕 · 원은 단계 목록과 같은 세 상태 */
+.sec__h { display: flex; align-items: flex-start; gap: 12px; width: 100%;
   text-align: left; font: inherit; cursor: pointer; background: var(--surface);
-  border: 1px solid var(--line); border-radius: 16px; padding: 15px 17px; }
+  border: 1px solid var(--line); border-radius: var(--lp-r-16); padding: 16px; }
 .sec__h:hover:not(:disabled) { border-color: var(--lime); }
-.sec__h:disabled { cursor: not-allowed; background: var(--panel); }
-.sec--on > .sec__h { border-color: var(--lime); background: var(--lime-soft);
+.sec__h:disabled { cursor: not-allowed; background: var(--lp-fill-1); }
+.sec--on > .sec__h { border-color: var(--lime); background: var(--lp-lime-wash);
   box-shadow: inset 0 0 0 1px var(--lime); }
 .sec--flat > .sec__h { cursor: default; }
 .sec__n { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
-  width: 26px; height: 26px; border-radius: 50%; background: var(--lime);
-  color: var(--lp-brand-ink); font-weight: 800; font-size: 13px; }
-.sec__h:disabled .sec__n { background: #D5D8DC; color: #8A9099; }
+  width: 28px; height: 28px; border-radius: 50%; background: var(--lp-step-idle);
+  color: var(--ink); font-weight: 700; font-size: 13px; font-variant-numeric: tabular-nums; }
+.sec--done .sec__n { background: var(--lime); color: var(--lp-brand-ink); }
+.sec--on .sec__n { background: var(--lp-brand-ink); color: var(--lp-white); }   /* 지금 칸이 이긴다 */
+.sec__h:disabled .sec__n { background: var(--lp-step-idle); color: var(--lp-text-3); }
 .sec__b { min-width: 0; flex: 1 1 auto; }
-.sec__t { font-weight: 800; font-size: 16px; }
-.sec__d { margin: 5px 0 0; font-size: 12.5px; color: var(--ink2); line-height: 1.65; }
-.sec__why { margin: 5px 0 0; font-size: 12.5px; color: var(--warn-ink); line-height: 1.65; }
+.sec__t { font-weight: 700; font-size: 15px; line-height: 1.45; }
+.sec__d { margin: 5px 0 0; font-size: 12.5px; color: var(--ink2); line-height: 1.5; }
+.sec__why { margin: 5px 0 0; font-size: 12.5px; color: var(--warn-ink); line-height: 1.5; }
+/* 〈2026-10-25 · v2 §8.12 상태 이름표〉 26px · 모서리 8 · 700 12px — 초안 회색 · 지금 라임 · 완료 = 연두 바탕 + 진한 라임 글자 */
 .sec__tag { flex: 0 0 auto; margin-left: auto; align-self: center;
-  font-weight: 700; font-size: 11.5px; line-height: 1; font-family: inherit; padding: 6px 10px; border-radius: 999px;
-  background: var(--panel); color: var(--ink2); }
+  display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: var(--lp-r-8);
+  font-weight: 700; font-size: 12px; line-height: 1; font-family: inherit;
+  background: var(--lp-tag); color: var(--lp-text-2); white-space: nowrap; }
 .sec--on .sec__tag { background: var(--lime); color: var(--lp-brand-ink); }
 
 /* ★★ **끝난 칸은 한눈에 갈린다** 〈2026-08-23 사장님 지시〉. 「열기」와 「완료」가
    같은 회색이면 목록을 위에서부터 다시 읽어야 어디까지 왔는지 안다.
-   ★ 라임으로 **큰 면을 채우지 않는다** (§6-3) — 테두리와 글자만 라임이다.
+   ★ 라임으로 **큰 면을 채우지 않는다** (§6-3) — 이름표만 연두 바탕이다 (v2 「열람」 이름표와 같은 쌍).
      채우면 「지금」 칸과 구분이 사라지고, 둘 다 죽는다 */
-.sec__tag--done { background: transparent; color: var(--lp-brand-ink);
-  box-shadow: inset 0 0 0 1.5px var(--lime); }
-.sec--on .sec__tag--done { background: var(--lime); }
+.sec__tag--done { background: var(--lp-brand-soft); color: var(--lp-lime-strong); }
+.sec--on .sec__tag--done { background: var(--lime); color: var(--lp-brand-ink); }
 
 /* 진행율 — **숫자를 문장에 숨기지 않는다** (§6-3 ②). 자릿수가 흔들리지 않게
-   `tabular-nums` 로 세로를 맞춘다 */
+   `tabular-nums` 로 세로를 맞춘다 · 〈2026-10-25〉 v2 §8.7 막대 5px · .4s */
 .sec__pct { font-variant-numeric: tabular-nums; }
-.sec__bar { margin: 8px 0 0; height: 4px; border-radius: 999px;
-  background: var(--line); overflow: hidden; }
+.sec__bar { margin: 8px 0 0; height: 5px; border-radius: 999px;
+  background: var(--lp-line-3); overflow: hidden; }
 .sec__bar > i { display: block; height: 100%; background: var(--lime);
-  border-radius: 999px; transition: width .25s ease; }
+  border-radius: 999px; transition: width .4s ease; }
 @media (prefers-reduced-motion: reduce) { .sec__bar > i { transition: none; } }
 
 .sec__body { margin-top: 10px; }
@@ -448,10 +458,11 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
 /* 절 맨 아래의 [확인] — 한 칸을 끝냈다고 사람이 말해 주는 자리 (D-157) */
 .okrow { display: flex; justify-content: flex-end; align-items: center; gap: 10px;
   margin: 14px 0 2px; flex-wrap: wrap; }
-.okrow__b { font-family: inherit; font-size: 14.5px; font-weight: 700; cursor: pointer;
-  padding: 11px 18px; border-radius: 12px; border: 0;
+/* 〈2026-10-25 · v2 §8.1 강조 단추(라임)〉 46px · 모서리 12 · 700 15px · hover 진한 라임 */
+.okrow__b { font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer;
+  min-height: 46px; padding: 0 20px; border-radius: var(--lp-r-12); border: 0;
   background: var(--lime); color: var(--lp-brand-ink); }
-.okrow__b:hover { filter: brightness(0.96); }
+.okrow__b:hover { background: var(--lp-lime-hover); }
 .okrow__why { font-size: 13px; color: var(--ink2); }
 
 /* 절 도구줄 — [미리보기]·[수정 요구]·[다운로드] 〈2026-08-28 · D-158〉
@@ -460,13 +471,15 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
 .tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
   margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--line); }
 .tools__t { font-size: 13px; font-weight: 700; color: var(--ink2); margin-right: 2px; }
-.tools__b { font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
-  padding: 9px 15px; border-radius: 11px; border: 1px solid var(--line);
+/* 〈2026-10-25 · v2 §8.1 보조 단추〉 34px · 0 14px · 테두리 .14 · 모서리 10 · 700 13px · hover 연두 */
+.tools__b { font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+  min-height: 34px; padding: 0 14px; border-radius: var(--lp-r-md); border: 1px solid var(--lp-line-2);
   background: var(--surface); color: var(--ink); text-decoration: none;
-  display: inline-block; }
-.tools__b:hover { border-color: var(--ink2); }
+  display: inline-flex; align-items: center; }
+.tools__b:hover { background: var(--lp-brand-soft); }
 .tools__b[aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
 .tools__b--go { border: 0; background: var(--lime); color: var(--lp-brand-ink); font-weight: 700; }
+.tools__b--go:hover { background: var(--lp-lime-hover); }
 
 /* 한 칸 안에 접어 두는 속칸 — 발행 주체처럼 **한 번 정하면 잘 안 바뀌는 것**
    〈2026-08-28 · D-163〉. 늘 펴 두면 정작 할 일(요청문)이 아래로 밀린다. */
@@ -497,12 +510,12 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
        조각들이 `F.` 를 바로 쓰는 지금 구조를 **한 글자도 안 건드린다**(`defer` 는 그것을 깬다).
      ★★ 주소는 스크립트 쪽과 **글자까지 같아야 한다** — 다르면 같은 파일을 두 번 받아
        오히려 느려진다. `build-stamp.js` 가 셋을 함께 지문 찍고 `--check` 가 함께 잰다. -->
-<link rel="preload" as="script" href="embed-bridge.js?v=a876cfe1">
-<link rel="preload" as="script" href="gate-core.js?v=a876cfe1">
-<link rel="preload" as="script" href="flow-core.js?v=a876cfe1">
-<link rel="preload" as="script" href="fields-core.js?v=a876cfe1">
-<link rel="preload" as="script" href="catalog.js?v=a876cfe1">
-<link rel="preload" as="script" href="inapp.js?v=a876cfe1">
+<link rel="preload" as="script" href="embed-bridge.js?v=660dffa5">
+<link rel="preload" as="script" href="gate-core.js?v=660dffa5">
+<link rel="preload" as="script" href="flow-core.js?v=660dffa5">
+<link rel="preload" as="script" href="fields-core.js?v=660dffa5">
+<link rel="preload" as="script" href="catalog.js?v=660dffa5">
+<link rel="preload" as="script" href="inapp.js?v=660dffa5">
 </head>
 <body>
 
@@ -552,14 +565,14 @@ window.LINKPILOT_REPORT_FLOW = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=a876cfe1" data-lp-global="LINKPILOT_REPORT_FLOW"></script>
-<script src="gate-core.js?v=a876cfe1"></script>
-<script src="flow-core.js?v=a876cfe1"></script>
+<script src="embed-bridge.js?v=660dffa5" data-lp-global="LINKPILOT_REPORT_FLOW"></script>
+<script src="gate-core.js?v=660dffa5"></script>
+<script src="flow-core.js?v=660dffa5"></script>
 <!-- ★ 4단계 진행율(필수 항목 채움)을 재는 데 쓴다. **값과 출처가 둘 다**
      있어야 세는 규칙이 여기 있다 — 화면이 따로 세면 두 벌이 된다 -->
-<script src="fields-core.js?v=a876cfe1"></script>
-<script src="catalog.js?v=a876cfe1"></script>
-<script src="inapp.js?v=a876cfe1"></script>
+<script src="fields-core.js?v=660dffa5"></script>
+<script src="catalog.js?v=660dffa5"></script>
+<script src="inapp.js?v=660dffa5"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -855,8 +868,10 @@ var lpApiWhy = (function () {
    *   눌리는 것처럼 그리면 눌러 보고 아무 일도 안 일어나는 것을 본다.
    */
   function section(sec, body) {
+    var _pg0 = (progress && progress[sec.id]) || null;
     var box = el('section', 'sec'
       + (sec.current ? ' sec--on' : '')
+      + (sec.steps.length && _pg0 && _pg0.done ? ' sec--done' : '')   /* 〈2026-10-25〉 끝난 칸 원 = 라임 (v2 §8.6) */
       + (sec.steps.length ? '' : ' sec--flat'));
     box.setAttribute('data-lp-flow-sec', sec.id);
 
@@ -953,7 +968,14 @@ var lpApiWhy = (function () {
       it.disabled = shut;
       it.setAttribute('data-lp-flow-procitem', sec.id);
       if (sec.current && !shut) it.setAttribute('aria-current', 'step');
-      it.appendChild(el('span', 'rf-proc__n', sec.no));
+      var _n = el('span', 'rf-proc__n', sec.no);
+      /* 〈2026-10-25 · v2 §8.6〉 끝난 단계는 번호 대신 체크 — 번호는 화면 읽기용으로 남긴다 */
+      if (st === '완료') {
+        _n.textContent = '';
+        _n.setAttribute('aria-label', sec.no + ' 완료');
+        _n.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+      }
+      it.appendChild(_n);
       it.appendChild(el('span', 'rf-proc__name', sec.name));
       if (st) it.appendChild(el('span', 'rf-proc__st', st));
       if (!shut) it.addEventListener('click', function () {

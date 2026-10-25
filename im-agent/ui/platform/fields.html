@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="a876cfe1">
+<html lang="ko" data-lp-build="660dffa5">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -267,7 +267,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=a876cfe1">
+<link rel="stylesheet" href="tokens.css?v=660dffa5">
 <script>
 /* ★★★ **틀 안인지를 그리기 전에 정한다** 〈2026-08-25〉.
  *   나중에 정하면 [저장] 막대가 **아래에 한 번 붙었다가 올라온다** — 그 깜빡임이
@@ -425,18 +425,20 @@ ul { margin: 0; padding: 0; list-style: none; }
 .ev__toggle.on { border-color: var(--lime-deep); color: var(--lime-deep); }
 .tools input[type=search] { flex: 1; min-width: 170px; font-weight: 400; font-size: 14px; line-height: 1.5; font-family: inherit;
   padding: 10px 13px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
-.chip { padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line);
-  background: var(--surface); color: var(--ink2); font-weight: 600; font-size: 13px; line-height: 1; font-family: inherit; cursor: pointer; }
-.chip.on { background: var(--ink); border-color: var(--ink); color: #fff; }
+/* 〈2026-10-25 · v2 §8.2 칩〉 34px · 0 14px · 모서리 10 · 켜짐 = 연두 바탕 + 라임 1.5px + 700 / 꺼짐 = 흰 + .14 테두리 + 500 */
+.chip { min-height: 34px; padding: 0 14px; border-radius: var(--lp-r-md); border: 1px solid var(--lp-line-2);
+  background: var(--surface); color: var(--lp-text-2); font-weight: 500; font-size: 13px; line-height: 1; font-family: inherit; cursor: pointer; }
+.chip:hover:not(.on) { background: var(--lp-brand-soft); }
+.chip.on { background: var(--lp-brand-soft); border: 1.5px solid var(--lime); color: var(--ink); font-weight: 700; }
 .chip:focus-visible, .btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 
 /* 필드 옵션 */
 .optrow { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
-.seg { display: flex; gap: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
-.seg__b { flex: 1; padding: 11px 12px; border: 0; background: var(--surface);
-  font-weight: 600; font-size: 14px; line-height: 1; font-family: inherit; color: var(--ink2); cursor: pointer; }
-.seg__b + .seg__b { border-left: 1px solid var(--line); }
-.seg__b.on { background: var(--ink); color: #fff; }
+/* 〈2026-10-25 · v2 §8.4 탭 세그먼트〉 바탕 띠 + 안쪽 4 · 켜진 칸 = 흰 카드 + 그림자 + 700 */
+.seg { display: flex; gap: 4px; padding: 4px; border: 0; border-radius: var(--lp-r-lg); background: var(--lp-seg-track); }
+.seg__b { flex: 1; min-height: 36px; padding: 6px 12px; border: 0; border-radius: var(--lp-r-md); background: transparent;
+  font-weight: 500; font-size: 14px; line-height: 1; font-family: inherit; color: var(--lp-text-2); cursor: pointer; }
+.seg__b.on { background: var(--surface); color: var(--ink); font-weight: 700; box-shadow: var(--lp-shadow-seg); }
 .seg__b:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
 
 /* 자동 채움 */
@@ -449,8 +451,9 @@ ul { margin: 0; padding: 0; list-style: none; }
 .auto__g { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
 .auto__gl { font-size: 13px; font-weight: 800; }
 .auto__gw { font-size: 12.5px; color: var(--ink2); margin: 3px 0 7px; }
-.row__auto { font-size: 11px; font-weight: 700; color: var(--lime-deep);
-  background: var(--lime-soft); padding: 2px 8px; border-radius: 999px; }
+/* 〈2026-10-25 · v2 §2.3 「올린 자료」 이름표〉 연두 바탕 + 진한 라임 글자 · 모서리 6 · 700 11.5px */
+.row__auto { font-size: 11.5px; font-weight: 700; color: var(--lp-lime-strong);
+  background: var(--lime-soft); padding: 3px 8px; border-radius: var(--lp-r-sm); }
 
 /* 필드 행 */
 .cat { font-size: 13px; font-weight: 800; color: var(--lime-deep); background: var(--lime-soft);
@@ -564,6 +567,9 @@ ul { margin: 0; padding: 0; list-style: none; }
   background: var(--lime); color: var(--ink); cursor: pointer; }
 .btn:disabled { background: var(--panel); color: var(--ink2); cursor: not-allowed; }
 .btn--ghost { background: var(--surface); border: 1px solid var(--line); color: var(--ink2); }
+/* 〈2026-10-25 · v2 §8.1〉 라임 단추 hover = 진한 라임 · 보조(ghost) hover = 연두 */
+.btn:hover:not(:disabled) { background: var(--lp-lime-hover); }
+.btn--ghost:hover:not(:disabled) { background: var(--lp-brand-soft); }
 .save__why { font-size: 13px; color: var(--bad-ink); font-weight: 600; }
 .save__ok { font-size: 13px; color: var(--ink2); }
 
@@ -644,15 +650,15 @@ ul { margin: 0; padding: 0; list-style: none; }
   </main>
 </div>
 
-<script src="gate-core.js?v=a876cfe1"></script>
-<script src="catalog.js?v=a876cfe1"></script>
-<script src="inapp.js?v=a876cfe1"></script>
-<script src="fields-core.js?v=a876cfe1"></script>
+<script src="gate-core.js?v=660dffa5"></script>
+<script src="catalog.js?v=660dffa5"></script>
+<script src="inapp.js?v=660dffa5"></script>
+<script src="fields-core.js?v=660dffa5"></script>
 <!-- ★ 근거 기여도·품질 셈 (D-152). 엔진(core/evidence.js)이 **이 파일을**
      그대로 받아 쓴다 — 두 벌이면 화면과 문서가 다른 수를 말한다 -->
-<script src="evidence-core.js?v=a876cfe1"></script>
+<script src="evidence-core.js?v=660dffa5"></script>
 <!-- ★ 판 지문을 화면에 보이게 찍는 것이 여기 있다 (§8) — 묶음에 이미 실리는 파일이다 -->
-<script src="flow-core.js?v=a876cfe1"></script>
+<script src="flow-core.js?v=660dffa5"></script>
 <script>
 /**
  * 설정 — 서버가 세션을 보고 이 블록을 만들어 내려주는 것이 정석이다.
@@ -667,7 +673,7 @@ window.LINKPILOT_FIELDS_CFG = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=a876cfe1" data-lp-global="LINKPILOT_FIELDS_CFG"></script>
+<script src="embed-bridge.js?v=660dffa5" data-lp-global="LINKPILOT_FIELDS_CFG"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
