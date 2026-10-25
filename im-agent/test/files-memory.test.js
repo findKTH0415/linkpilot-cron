@@ -14,7 +14,7 @@ const path = require('path');
 
 const PLATFORM = path.join(__dirname, '..', 'ui/platform');
 
-test('★★ 갈래와 프로젝트를 기억해 다음에 이어서 연다', async () => {
+test('★★★ 프로젝트는 기억하지 않고, 앞 판이 남긴 프로젝트 기록도 지운다 (2026-10-26 사장님)', async () => {
   const { findBrowser, renderDom } = require(path.join(PLATFORM, 'build-static.js'));
   if (!findBrowser()) return;
   const { buildLive } = require(path.join(PLATFORM, 'build-files.js'));
@@ -26,6 +26,8 @@ test('★★ 갈래와 프로젝트를 기억해 다음에 이어서 연다', as
   /* 한 페이지 안에서 **두 번 연다.** 첫 번째에서 고르고, 저장된 것을 읽어
      두 번째 시작에 그대로 먹이는 대신 — 실제로 남는 자리(localStorage)를
      그대로 쓰고 화면만 다시 그린다. 저장이 안 되면 두 번째가 기본값으로 뜬다 */
+  /* 앞 판이 남긴 기록을 심어 둔다 — 열면 지워져야 하고, 이어서 열리면 안 된다 */
+  const seed = '<script>try{localStorage.setItem("lp.files.last",JSON.stringify({way:null,projectId:"LP-OLD-0001"}));}catch(e){}<' + '/script>';
   const probe = '<div id="probe"></div><script>(function () {'
     + 'var out = { err: [] };'
     + 'window.onerror = function (m) { out.err.push(String(m)); };'
@@ -36,6 +38,8 @@ test('★★ 갈래와 프로젝트를 기억해 다음에 이어서 연다', as
     + '  return b.className.indexOf("on") > -1; })[0];'
     + '  return t ? t.textContent.replace(/\\s*무료\\s*$/, "").trim().slice(0, 12) : null; };'
     + 'var n = 0, picked = false, t = setInterval(function () {'
+    + '  if (n === 4) { try { out.after = window.localStorage.getItem("lp.files.last"); } catch (e) { out.after = "막힘"; }'
+    + '    var pk = document.querySelector(".pickone"); out.note = !!pk && /이어서 열었습니다/.test(pk.textContent); var s0 = sel(); out.sel0 = s0 ? s0.value : null; }'
     + '  var s = sel();'
     + '  if (!picked && s) {'
     + '    var o = [].slice.call(s.options).filter(function (x) { return /^LP-/.test(x.value); })[0];'
@@ -56,7 +60,7 @@ test('★★ 갈래와 프로젝트를 기억해 다음에 이어서 연다', as
   const page = path.join(dir, 'p.html');
   fs.writeFileSync(page, '<!doctype html><html lang="ko"><head><meta charset="utf-8">'
     + '<meta name="viewport" content="width=device-width, initial-scale=1"></head><body>'
-    + fs.readFileSync(frag, 'utf8') + probe + '</body></html>');
+    + seed + fs.readFileSync(frag, 'utf8') + probe + '</body></html>');
 
   const dom = renderDom(findBrowser(), page, 40000, 430);
   const m = dom.match(/<div id="probe">([^<]*)<\/div>/);
@@ -65,13 +69,13 @@ test('★★ 갈래와 프로젝트를 기억해 다음에 이어서 연다', as
 
   assert.deepStrictEqual(r.err, [], '고르는 동안 예외가 났다');
   assert.ok(r.want, '고를 프로젝트가 목록에 없었다');
-  assert.ok(r.saved && r.saved !== '막힘', `기억한 것이 없다 (${r.saved})`);
-
-  const saved = JSON.parse(r.saved);
-  assert.strictEqual(saved.projectId, r.want,
-    `고른 프로젝트를 안 기억했다 — 원한 것 ${r.want} · 기억한 것 ${saved.projectId}`);
-
-  process.stderr.write(`  [기억] ${saved.projectId} · 갈래 ${saved.way || '(기본)'}\n`);
+  const after = r.after && r.after !== '막힘' ? JSON.parse(r.after) : {};
+  assert.ok(!('projectId' in after), `앞 판이 남긴 프로젝트 기록을 안 지웠다 (${r.after})`);
+  assert.strictEqual(r.note, false, '«지난번에 쓰던 프로젝트로 이어서 열었습니다»가 아직 뜬다');
+  assert.ok(r.sel0 !== 'LP-OLD-0001', '앞 판 기록으로 프로젝트가 골라진 채 열렸다');
+  const saved = r.saved && r.saved !== '막힘' ? JSON.parse(r.saved) : {};
+  assert.ok(!saved.projectId, `고른 프로젝트를 기억했다 — 기록되지 않아야 한다 (${r.saved})`);
+  process.stderr.write(`  [기억] 프로젝트 없음 · 갈래 ${saved.way || '(기본)'}\n`);
 });
 
 test('★★ 저장이 막힌 곳에서도 화면은 그대로 돈다', () => {
@@ -85,8 +89,7 @@ test('★★ 저장이 막힌 곳에서도 화면은 그대로 돈다', () => {
   const body2 = src.slice(at2, at2 + 400);
   assert.match(body2, /catch/, '읽기를 try 로 안 감쌌다');
 
-  /* ★★ **딜 자료를 브라우저에 남기지 않는다.** 기억하는 것은 갈래와 프로젝트
-     번호뿐이다 — 파일 이름·내용이 들어가면 그것이 곧 유출 경로다 */
+  /* ★★ **딜 자료를 브라우저에 남기지 않는다.** 기억하는 것은 갈래뿐이다 (프로젝트 번호도 2026-10-26 부터 안 남긴다) — 파일 이름·내용이 들어가면 그것이 곧 유출 경로다 */
   assert.ok(!/localStorage[\s\S]{0,400}(picked|contentBase64|f\.name)/.test(src),
     '고른 파일을 저장하려 한다 — 딜 자료가 브라우저에 남는다');
 });
