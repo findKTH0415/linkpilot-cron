@@ -175,8 +175,11 @@ window.addEventListener('load', function () { setTimeout(function () {
   R.coverDs = q('[data-lp-rv2-ds]') ? q('[data-lp-rv2-ds]').getAttribute('data-lp-rv2-ds') : null;
   R.text = document.body.innerText;
   R.w = { sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth };
-  var L = q('.rf-left'), M = q('.rf-main');
-  if (L && M) R.stack = { leftBottom: Math.round(L.getBoundingClientRect().bottom), mainTop: Math.round(M.getBoundingClientRect().top) };
+  /* 〈2026-10-25 · 견본 396〉 분류·문서 양식은 오른쪽 칸 안 — 휴대폰에서는 오른쪽 칸이 display:contents 라 칸 자체의 위치는 0 이다.
+   *   그래서 «작업 칸»(사업 파악)과 문서 양식을 직접 잰다. */
+  var L = q('.rf-left'), A = q('[data-lp-rv2-part="ask"]'), D = q('[data-lp-rv2-part="docs"]');
+  if (L && A) R.stack = { leftTop: Math.round(L.getBoundingClientRect().top), leftBottom: Math.round(L.getBoundingClientRect().bottom), mainTop: Math.round(A.getBoundingClientRect().top),
+    docsTop: D ? Math.round(D.getBoundingClientRect().top) : null, docsBottom: D ? Math.round(D.getBoundingClientRect().bottom) : null, docsInMain: !!(D && D.closest('.rf-main')) };
   R.vw = window.innerWidth;
   document.documentElement.setAttribute('data-rv2-test', JSON.stringify(R));
   try { parent.postMessage({ rv2: R }, '*'); } catch (_) {}
@@ -281,6 +284,16 @@ test('⑨ 폰(390) 폭에서 한 칸으로 쌓이고 가로로 안 넘친다', (
   assert.strictEqual(R.vw, 390, '390 폭으로 못 쟀다 (' + R.vw + ')');
   assert.ok(R.w.sw <= R.w.cw, '가로로 넘친다: ' + JSON.stringify(R.w));
   assert.ok(R.stack && R.stack.leftBottom <= R.stack.mainTop, '왼쪽 칸과 오른쪽 칸이 나란히 섰다 — 한 칸으로 안 쌓였다: ' + JSON.stringify(R.stack));
+  assert.ok(R.stack.docsBottom != null && R.stack.docsBottom <= R.stack.leftTop, '휴대폰에서 문서 양식이 단계 목록보다 위가 아니다: ' + JSON.stringify(R.stack));
+});
+
+test('⑯ 데스크탑(1366): 문서 양식은 오른쪽 칸 안 · 단계 목록은 문서 양식과 같은 높이에서 시작한다 (견본 396)', (t) => {
+  const browser = findBrowser();
+  if (!browser) { t.skip('크로미움이 없다 — 못 쟀다'); return; }
+  const R = run(browser, path.join(build(PRE), 'rv2.html'), 1366);
+  assert.ok(R && R.stack, '결과가 없다 — 못 쟀다');
+  assert.ok(R.stack.docsInMain, '문서 양식이 오른쪽 칸 밖이다: ' + JSON.stringify(R.stack));
+  assert.ok(R.stack.leftTop <= R.stack.docsTop, '단계 목록이 문서 양식 밑에서 시작한다(견본과 다름): ' + JSON.stringify(R.stack));
 });
 
 /* ── ⑬⑭⑮ Codex P2 #571 — 저장 겹침 · 열린 틀 보존 · 문서 종류 = 서버 사양 한 벌 ── */
