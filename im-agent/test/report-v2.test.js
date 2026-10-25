@@ -104,7 +104,7 @@ test('④ 이름표는 서버가 넘긴 origin·source 에서 나온다', () => 
 });
 
 test('⑫ 디자인·레이아웃 10종 — 지침 §3 글자 · 부록 A 값', () => {
-  const guide = path.join(AGENT, '..', 'docs', '운영지침-디자인레이아웃-10종-v1.0.md');
+  const guide = path.join(AGENT, '..', 'docs', '운영지침-보고서-디자인레이아웃10종-v1.0.md');
   assert.strictEqual(F.V2_DS.length, 10);
   assert.deepStrictEqual(F.V2_DS.map((t) => t.id), Array.from({ length: 10 }, (_, i) => 'LP-DS-' + String(i + 1).padStart(2, '0')));
   const md = fs.readFileSync(guide, 'utf8');
