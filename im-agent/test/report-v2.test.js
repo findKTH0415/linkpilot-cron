@@ -180,6 +180,11 @@ window.addEventListener('load', function () { setTimeout(function () {
   var L = q('.rf-left'), A = q('[data-lp-rv2-part="ask"]'), D = q('[data-lp-rv2-part="docs"]');
   if (L && A) R.stack = { leftTop: Math.round(L.getBoundingClientRect().top), leftBottom: Math.round(L.getBoundingClientRect().bottom), mainTop: Math.round(A.getBoundingClientRect().top),
     docsTop: D ? Math.round(D.getBoundingClientRect().top) : null, docsBottom: D ? Math.round(D.getBoundingClientRect().bottom) : null, docsInMain: !!(D && D.closest('.rf-main')) };
+  /* Codex P2 #313 — 휴대폰에서 쌓인 칸이 «내용 폭»으로 좁아지지 않는가(줄 폭을 다 쓰는가) */
+  var G = q('.rf-grid');
+  if (G) { var gw = G.getBoundingClientRect().width, items = [].slice.call(G.children).filter(function (c) { return !c.classList.contains('rf-main'); })
+      .concat([].slice.call(G.querySelectorAll('.rf-main > *'))).filter(function (c) { return c.getBoundingClientRect().height > 0; });
+    R.fill = { grid: Math.round(gw), narrow: Math.round(Math.min.apply(null, items.map(function (c) { return c.getBoundingClientRect().width; }))), n: items.length }; }
   R.vw = window.innerWidth;
   document.documentElement.setAttribute('data-rv2-test', JSON.stringify(R));
   try { parent.postMessage({ rv2: R }, '*'); } catch (_) {}
@@ -285,6 +290,7 @@ test('⑨ 폰(390) 폭에서 한 칸으로 쌓이고 가로로 안 넘친다', (
   assert.ok(R.w.sw <= R.w.cw, '가로로 넘친다: ' + JSON.stringify(R.w));
   assert.ok(R.stack && R.stack.leftBottom <= R.stack.mainTop, '왼쪽 칸과 오른쪽 칸이 나란히 섰다 — 한 칸으로 안 쌓였다: ' + JSON.stringify(R.stack));
   assert.ok(R.stack.docsBottom != null && R.stack.docsBottom <= R.stack.leftTop, '휴대폰에서 문서 양식이 단계 목록보다 위가 아니다: ' + JSON.stringify(R.stack));
+  assert.ok(R.fill && R.fill.n > 2 && R.fill.narrow >= R.fill.grid - 1, '휴대폰에서 쌓인 칸이 줄 폭을 다 안 쓴다(내용 폭으로 좁아짐): ' + JSON.stringify(R.fill));
 });
 
 test('⑯ 데스크탑(1366): 문서 양식은 오른쪽 칸 안 · 단계 목록은 문서 양식과 같은 높이에서 시작한다 (견본 396)', (t) => {
