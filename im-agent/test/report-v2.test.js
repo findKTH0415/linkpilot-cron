@@ -395,3 +395,60 @@ test('⑮-3 «출력정보 입력» 칸이 바깥의 사양 변경을 받아 종
   assert.match(src.slice(at - 40, at + 120), /state\.locked\)\s*return/, '확정된 사양도 덮는다');
   assert.match(src, /tellParent\(j\.spec\)/, '확정한 뒤 바깥에 안 알린다');
 });
+
+/* ── ⑰ 병합 판 〈2026-10-25 사장님: 「보조기능들이 작동하지 않음」 · 「과거 보고서엔진 그대로 노출 · 현재 버젼과 병합되어 있지 않음」〉
+ *   앱과 같은 판(미리보기 문서를 안 심음)으로 그려서 누른다 —
+ *   옛 작업 칸은 «펴진 칸»만 «사업 파악»과 «기능 옵션» 사이에 서고, 닫힌 머리 목록은 없다 ·
+ *   왼쪽 단계·[바꾸기]·[+ 자료 올리기]·[+ 새 보고서]·형식 칩이 실제로 무언가를 하고 · 못 하는 칸은 누르면 이유를 남긴다. */
+const ACT_MERGE = `<script>
+addEventListener('load', function () { setTimeout(async function () {
+  var q = function (s) { return document.querySelector(s); }, qa = function (s) { return Array.prototype.slice.call(document.querySelectorAll(s)); };
+  var wait = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+  var R = {};
+  var work = function () { return qa('[data-lp-flow-sec]').map(function (x) { return x.getAttribute('data-lp-flow-sec'); }); };
+  var order = function () { var m = q('.rf-main'); if (!m) return []; return Array.prototype.slice.call(m.children).map(function (x) { return x.getAttribute('data-lp-rv2-part') || (x.getAttribute('data-lp-rv2-work') ? 'work' : '') ; }).filter(Boolean); };
+  R.first = work(); R.order = order(); R.headTags = qa('.sec__h--fixed').length;
+  var it2 = q('[data-lp-flow-procitem="2"]'); if (it2) { it2.click(); await wait(200); } R.afterStep2 = work();
+  var ch = q('[data-lp-rv2-go="basics"]'); if (ch) { ch.click(); await wait(200); } R.afterChange = work();
+  var up = q('[data-lp-rv2-go="sources"]'); if (up) { up.click(); await wait(200); } R.afterUpload = work();
+  var soon = q('.rv2-opts [data-lp-rv2-soon]'); if (soon) { soon.click(); await wait(50); } R.saidSoon = (q('.rv2-opts [data-lp-rv2-said]') || {}).textContent || '';
+  var sg = q('.rv2-search__go'); if (sg) { sg.click(); await wait(50); } R.saidSearch = (q('.rv2-top__r [data-lp-rv2-said]') || {}).textContent || '';
+  var nw = q('[data-lp-rv2-new]'); if (nw) { nw.click(); await wait(200); } R.afterNew = work();
+  var html = q('[data-lp-rv2-format="html"]'); var hb = html && html.getAttribute('aria-pressed'); if (html) { html.click(); await wait(100); }
+  var html2 = q('[data-lp-rv2-format="html"]'); R.fmt = [hb, html2 && html2.getAttribute('aria-pressed')];
+  var hwp = q('[data-lp-rv2-format="hwp"]'); if (hwp) { hwp.click(); await wait(50); } R.hwp = [hwp && hwp.getAttribute('aria-pressed'), !!q('[data-lp-rv2-format="hwp"][data-lp-rv2-soon]')];
+  var form = q('[data-lp-rv2-say]'); if (form) { form.querySelector('input').value = '안녕하세요'; form.dispatchEvent(new Event('submit', { cancelable: true })); await wait(50); }
+  R.saidText = (q('.rv2-ask [data-lp-rv2-said], [data-lp-rv2-part="ask"] [data-lp-rv2-said]') || {}).textContent || '';
+  document.documentElement.setAttribute('data-rv2-test', JSON.stringify(R));
+}, 600); });
+</script>`;
+
+function buildLive() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-rv2l-'));
+  require(path.join(PLATFORM, 'build-embed.js')).build(dir);
+  let html = fs.readFileSync(path.join(dir, 'report-flow.html'), 'utf8');
+  const at = html.lastIndexOf('</body>');
+  html = html.slice(0, at) + ACT_MERGE + html.slice(at);
+  fs.writeFileSync(path.join(dir, 'rv2l.html'), html);
+  return path.join(dir, 'rv2l.html');
+}
+
+test('⑰ 병합 판 — 펴진 칸만 오른쪽에 · 단계·바꾸기·자료 올리기·새 보고서·형식이 돈다 · 못 하는 칸은 이유를 남긴다', (t) => {
+  const browser = findBrowser();
+  if (!browser) { t.skip('크로미움이 없다 — 못 쟀다'); return; }
+  const R = run(browser, buildLive(), 1366);
+  assert.ok(R, '결과가 없다 — 못 쟀다');
+  assert.deepStrictEqual(R.first, ['basics'], '처음에 펴진 칸이 «기본정보 입력» 하나가 아니다(닫힌 옛 머리가 남았다): ' + JSON.stringify(R.first));
+  const o = R.order, iAsk = o.indexOf('ask'), iWork = o.indexOf('work'), iOpts = o.indexOf('opts');
+  assert.ok(iAsk >= 0 && iWork > iAsk && iOpts > iWork, '엔진 칸이 «사업 파악»과 «기능 옵션» 사이가 아니다: ' + JSON.stringify(o));
+  assert.strictEqual(R.headTags, 1, '펴진 칸 머리가 고정 머리가 아니다');
+  assert.deepStrictEqual(R.afterStep2, ['sources'], '왼쪽 «2 사업 파악»을 눌러도 그 칸이 안 선다: ' + JSON.stringify(R.afterStep2));
+  assert.deepStrictEqual(R.afterChange, ['basics'], '[바꾸기] 가 1번 칸을 안 연다: ' + JSON.stringify(R.afterChange));
+  assert.deepStrictEqual(R.afterUpload, ['sources'], '[+ 자료 올리기] 가 3번 칸을 안 연다: ' + JSON.stringify(R.afterUpload));
+  assert.match(R.saidSoon, /준비 중/, '못 하는 칸을 눌러도 이유가 안 남는다');
+  assert.match(R.saidSearch, /통합검색은 준비 중/, '통합검색이 이유를 안 남긴다');
+  assert.deepStrictEqual(R.afterNew, ['basics'], '[+ 새 보고서] 가 1번 칸으로 안 간다');
+  assert.ok(R.fmt[0] !== null && R.fmt[0] !== R.fmt[1], '형식 칩 «데스크탑 HTML» 을 눌러도 안 바뀐다: ' + JSON.stringify(R.fmt));
+  assert.deepStrictEqual(R.hwp, ['false', true], '못 만드는 형식(HWP)이 켜졌다: ' + JSON.stringify(R.hwp));
+  assert.match(R.saidText, /준비 중/, '글로 답해도 아무 말이 없다');
+});

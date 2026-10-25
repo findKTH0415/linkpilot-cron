@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="6aba5527">
+<html lang="ko" data-lp-build="4bca1525">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -288,7 +288,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=6aba5527">
+<link rel="stylesheet" href="tokens.css?v=4bca1525">
 <style>
 /* 색·간격·반경 토큰은 tokens.css 하나가 정한다 (LinkPilot Design System v1.1) */
 * { box-sizing: border-box; }
@@ -384,6 +384,9 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
   border: 1px solid var(--line); border-radius: var(--lp-r-16); padding: 16px; }
 .sec__h:hover:not(:disabled) { border-color: var(--lime); }
 .sec__h:disabled { cursor: not-allowed; background: var(--lp-fill-1); }
+.sec__h--fixed { cursor: default; }
+[data-lp-rv2-soon] { cursor: not-allowed; color: var(--lp-text-3); border-style: dashed; }
+.rv2-said { margin: 8px 0 0; font-size: 13px; line-height: 1.5; color: var(--lp-text-2, #3c3c43); }
 .sec--on > .sec__h { border-color: var(--lime); background: var(--lp-lime-wash);
   box-shadow: inset 0 0 0 1px var(--lime); }
 .sec--flat > .sec__h { cursor: default; }
@@ -747,12 +750,12 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
        조각들이 `F.` 를 바로 쓰는 지금 구조를 **한 글자도 안 건드린다**(`defer` 는 그것을 깬다).
      ★★ 주소는 스크립트 쪽과 **글자까지 같아야 한다** — 다르면 같은 파일을 두 번 받아
        오히려 느려진다. `build-stamp.js` 가 셋을 함께 지문 찍고 `--check` 가 함께 잰다. -->
-<link rel="preload" as="script" href="embed-bridge.js?v=6aba5527">
-<link rel="preload" as="script" href="gate-core.js?v=6aba5527">
-<link rel="preload" as="script" href="flow-core.js?v=6aba5527">
-<link rel="preload" as="script" href="fields-core.js?v=6aba5527">
-<link rel="preload" as="script" href="catalog.js?v=6aba5527">
-<link rel="preload" as="script" href="inapp.js?v=6aba5527">
+<link rel="preload" as="script" href="embed-bridge.js?v=4bca1525">
+<link rel="preload" as="script" href="gate-core.js?v=4bca1525">
+<link rel="preload" as="script" href="flow-core.js?v=4bca1525">
+<link rel="preload" as="script" href="fields-core.js?v=4bca1525">
+<link rel="preload" as="script" href="catalog.js?v=4bca1525">
+<link rel="preload" as="script" href="inapp.js?v=4bca1525">
 </head>
 <body>
 
@@ -802,14 +805,14 @@ window.LINKPILOT_REPORT_FLOW = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=6aba5527" data-lp-global="LINKPILOT_REPORT_FLOW"></script>
-<script src="gate-core.js?v=6aba5527"></script>
-<script src="flow-core.js?v=6aba5527"></script>
+<script src="embed-bridge.js?v=4bca1525" data-lp-global="LINKPILOT_REPORT_FLOW"></script>
+<script src="gate-core.js?v=4bca1525"></script>
+<script src="flow-core.js?v=4bca1525"></script>
 <!-- ★ 4단계 진행율(필수 항목 채움)을 재는 데 쓴다. **값과 출처가 둘 다**
      있어야 세는 규칙이 여기 있다 — 화면이 따로 세면 두 벌이 된다 -->
-<script src="fields-core.js?v=6aba5527"></script>
-<script src="catalog.js?v=6aba5527"></script>
-<script src="inapp.js?v=6aba5527"></script>
+<script src="fields-core.js?v=4bca1525"></script>
+<script src="catalog.js?v=4bca1525"></script>
+<script src="inapp.js?v=4bca1525"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -1107,7 +1110,7 @@ var lpApiWhy = (function () {
    * ★ 「새보고서 진행률」은 품은 단계가 없다. 볼 수만 있는 곳이라 안 눌린다 —
    *   눌리는 것처럼 그리면 눌러 보고 아무 일도 안 일어나는 것을 본다.
    */
-  function section(sec, body) {
+  function section(sec, body, fixed) {
     var _pg0 = (progress && progress[sec.id]) || null;
     var box = el('section', 'sec'
       + (sec.current ? ' sec--on' : '')
@@ -1146,7 +1149,7 @@ var lpApiWhy = (function () {
       /* ★ 잠기지 않은 칸은 **누르면 열린다**는 것을 그대로 적는다 〈D-172〉.
        *   앞 판은 「지금」·「열기」였는데, 「지금」은 눌러도 되는지를 안 알려 주고
        *   「열기」는 **이미 펴진 칸에도** 붙어서 눌러도 안 닫히는 것처럼 보였다. */
-      else tag = open ? '접기' : '펼치기';
+      else tag = fixed ? '' : (open ? '접기' : '펼치기');
     }
     if (tag) {
       var tg = el('span', 'sec__tag' + (tag === '완료' ? ' sec__tag--done' : '')
@@ -1171,7 +1174,8 @@ var lpApiWhy = (function () {
      *   잠깐 보려고 눌렀는데 앞으로 가던 자리를 잃었다.**
      *   ★ 이제 펴고 접기만 한다. 「지금 칸」은 [완료] 를 누를 때만 움직인다 —
      *     보는 일과 나아가는 일을 가른다. */
-    if (!sec.locked && sec.steps.length) {
+    if (fixed) { h.tabIndex = -1; h.classList.add('sec__h--fixed'); }   /* 머리 글자는 그대로 · 눌러도 접히지 않는다 */
+    else if (!sec.locked && sec.steps.length) {
       h.setAttribute('aria-expanded', open ? 'true' : 'false');
       h.addEventListener('click', function () {
         openBy[sec.id] = !open;
@@ -1233,6 +1237,52 @@ var lpApiWhy = (function () {
     return true;
   }
 
+  /** 단계 하나가 품은 칸들을 편다 — 다른 칸은 접는다 (병합 판: 펴진 칸만 오른쪽에 선다) */
+  function v2OpenSecs(ids) {
+    var all = F.sectionState(ctx());
+    var ok = ids.filter(function (id) {
+      var s0 = all.filter(function (x) { return x.id === id; })[0];
+      return s0 && !s0.locked && !s0.hidden;
+    });
+    if (!ok.length) return false;
+    openBy = {};
+    ok.forEach(function (id) { openBy[id] = true; });
+    return openSec(ok[0]);
+  }
+  /** 눌러도 못 하는 칸 — 그 자리에 «왜»를 한 줄 남긴다 (§12-15 누른 뒤 아무 글도 안 남는 길을 두지 않는다) */
+  function v2Say(node, msg) {
+    if (!node) return;
+    var host = node.closest('.rv2-opt, .rv2-top__r, .rv2-card') || node.parentNode;
+    var old = host.querySelector('.rv2-said');
+    if (old) old.parentNode.removeChild(old);
+    var p = el('p', 'rv2-said', msg);
+    p.setAttribute('role', 'status');
+    p.setAttribute('data-lp-rv2-said', '');
+    host.appendChild(p);
+  }
+  /** 못 하는 칸 표시 — 회색 · 눌러도 이유만 말한다 */
+  function v2Soon(node, why) {
+    node.setAttribute('aria-disabled', 'true');
+    node.setAttribute('data-lp-rv2-soon', '');
+    node.title = why;
+    node.addEventListener('click', function (ev) { ev.preventDefault(); v2Say(node, why); });
+    return node;
+  }
+  /** [+ 새 보고서] — 지금 프로젝트를 놓고 1번 칸부터 다시 (프로젝트는 3번 «관련자료 업로드»에서 새로 만들어진다) */
+  function v2NewReport() {
+    state.projectId = null;
+    try {
+      var u = new URL(window.location.href);
+      if (u.searchParams.has('project')) { u.searchParams.delete('project'); history.replaceState(null, '', u.toString()); }
+    } catch (_) { /* 주소를 못 고쳐도 화면 상태는 비운다 */ }
+    v2.draft = null; v2.ans = {}; v2.ask = 0;
+    openBy = { basics: true };
+    state.current = 'basics';
+    draw();
+    var to = view.querySelector('[data-lp-flow-sec="basics"]');
+    if (to && to.scrollIntoView) to.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
+
   /** 카드를 바꾸면 «필수 항목» 셈도 그 종류로 다시 센다 (fields-core 한 벌) */
   function v2Recount() {
     if (facts.def && facts.values && window.LinkPilotFields) {
@@ -1267,7 +1317,7 @@ var lpApiWhy = (function () {
       docType: dr.docType || sp.docType || C.docType || 'im',
       targetPages: o.pages != null ? o.pages : o.preset,
       pageSize: sp.pageSize || undefined, language: o.lang || undefined,
-      formats: sp.formats || undefined, themeId: o.themeId || undefined, visuals: sp.visuals || undefined,
+      formats: dr.formats || sp.formats || undefined, themeId: o.themeId || undefined, visuals: sp.visuals || undefined,
     };
   }
   function v2SetOut(patch) {
@@ -1368,8 +1418,14 @@ var lpApiWhy = (function () {
     go.type = 'button'; go.setAttribute('aria-label', '찾기');
     go.appendChild(svgEl(ICON_SEARCH, 18));
     srow.appendChild(go);
+    /* 통합검색 — 보고서·자료·프로젝트를 한 곳에서 찾아 주는 서버 창구가 없다 → 못 하는 칸으로 둔다 (질문 목록) */
+    var SEARCH_WHY = '통합검색은 준비 중입니다 — 보고서·자료·프로젝트를 한 번에 찾아 주는 서버 창구가 아직 없습니다. 완성된 보고서는 [완성 보고서] 탭에서 봅니다.';
+    si.disabled = true; si.title = SEARCH_WHY; sb.setAttribute('data-lp-rv2-soon', '');
+    v2Soon(go, SEARCH_WHY);
     var nw = el('button', 'rv2-new', '+ 새 보고서');
     nw.type = 'button';
+    nw.setAttribute('data-lp-rv2-new', '');
+    nw.addEventListener('click', v2NewReport);
     srow.appendChild(nw);
     r.appendChild(srow);
     top.appendChild(r);
@@ -1770,7 +1826,9 @@ var lpApiWhy = (function () {
       ev.preventDefault();
       /* 견본 안내 그대로 — 숫자 1~3 은 선택지를 고른다. 글로 답한 뒤 무엇이 되는지는 질문 목록 */
       var v = String(inp.value || '').trim();
-      if (/^[1-3]$/.test(v) && cf.length) v2Pick(Number(v));
+      if (/^[1-3]$/.test(v) && cf.length) { v2Pick(Number(v)); return; }
+      if (v) v2Say(form, cf.length ? '숫자 1~3 으로 골라 주십시오 — 글로 받은 답을 엔진에 넣는 칸은 준비 중입니다. 값을 직접 고치려면 왼쪽 «5 빈칸 채우기»로 갑니다.'
+        : '지금 여쭐 것이 없습니다 — 글로 받은 답을 엔진에 넣는 칸은 준비 중입니다. 값을 직접 고치려면 왼쪽 «5 빈칸 채우기»로 갑니다.');
     });
     box.appendChild(form);
     return box;
@@ -1828,12 +1886,15 @@ var lpApiWhy = (function () {
     lg.appendChild(el('span', null, '로고'));
     lg.appendChild(el('span', null, 'or'));
     lg.appendChild(el('u', null, 'browse files'));
+    v2Soon(lg, '로고 올리기는 준비 중입니다 — 엔진에 로고를 받아 문서에 싣는 칸이 아직 없습니다.');
     is.appendChild(lg);
     var ib = el('div');
     var nm = el('div', 'rv2-issuer__n');
     nm.appendChild(el('b', null, facts.issuerName || ''));
     var ch = el('button', 'rv2-link', '바꾸기');
     ch.type = 'button';
+    ch.setAttribute('data-lp-rv2-go', 'basics');
+    ch.addEventListener('click', function () { if (!v2OpenSecs(['basics'])) v2Say(ch, '1번 «기본정보 입력» 칸을 지금 열 수 없습니다.'); });
     nm.appendChild(ch);
     ib.appendChild(nm);
     ib.appendChild(el('p', 'rv2-issuer__d', '회사 로고 — 왼쪽 칸에 끌어 놓거나 눌러서 올립니다. PNG · SVG · JPG'));
@@ -1856,7 +1917,7 @@ var lpApiWhy = (function () {
     var o2 = v2Opt('받는 곳 · 목적');
     [['투자자', '금융기관', '운용사', '전략적투자자'], ['지분', '대출', '메자닌', 'PF']].forEach(function (grp) {
       var r = el('div', 'rv2-opt__row');
-      grp.forEach(function (n) { var c = v2Chip(n, false); c.setAttribute('aria-disabled', 'true'); r.appendChild(c); });
+      grp.forEach(function (n) { r.appendChild(v2Soon(v2Chip(n, false), '받는 곳·목적은 준비 중입니다 — 엔진이 아직 이 값을 받아 문서를 바꾸지 않습니다.')); });
       o2.appendChild(r);
     });
     grid.appendChild(o2);
@@ -1869,9 +1930,12 @@ var lpApiWhy = (function () {
     o3.appendChild(fl);
     var up = el('button', 'rv2-drop', '+ 자료 올리기');
     up.type = 'button';
+    up.setAttribute('data-lp-rv2-go', 'sources');
+    up.addEventListener('click', function () { if (!v2OpenSecs(['sources'])) v2Say(up, '«관련자료 업로드» 칸은 1번 «기본정보 입력»을 끝내면 열립니다.'); });
     o3.appendChild(up);
     var pub = el('div', 'rv2-tg');
     pub.setAttribute('role', 'switch'); pub.setAttribute('aria-checked', 'true');
+    v2Soon(pub, '공공자료 조회는 늘 켜져 있습니다 — 열쇠가 있는 기관은 엔진이 자동으로 부릅니다. 끄는 칸은 아직 없습니다.');
     pub.appendChild(el('span', null, '공공자료 자동 조회'));
     pub.appendChild(el('i'));
     o3.appendChild(pub);
@@ -1901,6 +1965,8 @@ var lpApiWhy = (function () {
     free.type = 'button';
     free.appendChild(svgEl('M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5', 18));
     free.appendChild(el('span', null, '무료 디자인 · 글꼴 고르기'));
+    free.setAttribute('data-lp-rv2-go', 'ds');
+    free.addEventListener('click', function () { var b = view.querySelector('[data-lp-rv2-dsbox]'); if (b && b.scrollIntoView) b.scrollIntoView({ block: 'start', behavior: 'smooth' }); });
     o4.appendChild(free);
     o4.appendChild(el('p', 'rv2-opt__lbl', '3. 출력'));
     var land = !!(sp && (sp.orientation === 'landscape' || sp.pageSize === '16:9'));
@@ -1910,14 +1976,22 @@ var lpApiWhy = (function () {
       tg.setAttribute('aria-checked', x[1] ? 'true' : 'false');
       tg.appendChild(el('span', null, x[0]));
       tg.appendChild(el('i'));
+      v2Soon(tg, '용지 방향은 고른 문서 양식이 정합니다(서버 사양) — 바꾸려면 «문서 양식»에서 다른 양식을 고릅니다.');
       o4.appendChild(tg);
     });
     var fr = el('div', 'rv2-opt__row');
     fr.setAttribute('data-lp-rv2-formats', '');
     var have = (sp && sp.formats) || [];
     F.V2_FORMATS.forEach(function (f) {
-      var c = v2Chip(f.name, f.ok && have.indexOf(f.id) >= 0, ['data-lp-rv2-format', f.id]);
-      if (!f.ok) c.setAttribute('aria-disabled', 'true');   /* 엔진이 못 만든다 (outputspec SUPPORTED_FORMATS) */
+      var curF = (v2.draft && v2.draft.formats) || have;
+      var c = v2Chip(f.name, f.ok && curF.indexOf(f.id) >= 0, ['data-lp-rv2-format', f.id]);
+      if (!f.ok) v2Soon(c, f.name + ' 은 아직 못 만듭니다 — 지금 나가는 것은 PDF 와 데스크탑 HTML 입니다.');   /* 엔진이 못 만든다 (outputspec SUPPORTED_FORMATS) */
+      else if (ou.locked) c.disabled = true;
+      else c.addEventListener('click', function () {
+        var nx = curF.indexOf(f.id) >= 0 ? curF.filter(function (x) { return x !== f.id; }) : curF.concat([f.id]);
+        if (!nx.length) { v2Say(c, '형식은 하나 이상이어야 합니다.'); return; }
+        v2SetOut({ formats: nx });
+      });
       fr.appendChild(c);
     });
     o4.appendChild(fr);
@@ -1931,6 +2005,22 @@ var lpApiWhy = (function () {
       b.type = 'button';
       b.appendChild(el('span', null, x[0]));
       if (x[1]) b.appendChild(el('small', null, x[1]));
+      if (x[1]) v2Soon(b, '금융기관 제출본은 준비 중입니다 — 엔진에 그 양식이 아직 없습니다.');
+      else if (x[0] === '지난 보고서 불러오기') {
+        b.setAttribute('data-lp-rv2-tool', 'past');
+        b.addEventListener('click', function () { var t = (F.TABS || []).filter(function (y) { return y.id !== F.SECTION.id; })[0]; if (t) goTab(t); });
+      } else {
+        var toEng = dd && dd.engine !== 'im' ? 'im' : 'teaser';
+        b.setAttribute('data-lp-rv2-tool', toEng);
+        b.addEventListener('click', function () {
+          var nd = F.v2DocOfEngine && F.v2DocOfEngine(toEng);
+          var tile = nd && view.querySelector('[data-lp-rv2-doc="' + nd.id + '"]');
+          if (tile) { tile.click(); return; }
+          if (!nd) { v2Say(b, '그 문서 양식을 찾지 못했습니다.'); return; }
+          v2.cat = nd.cat; v2Repaint();
+          var t2 = view.querySelector('[data-lp-rv2-doc="' + nd.id + '"]'); if (t2) t2.click();
+        });
+      }
       o5.appendChild(b);
     });
     grid.appendChild(o5);
@@ -1961,7 +2051,7 @@ var lpApiWhy = (function () {
       c.appendChild(el('p', 'rv2-dsc__pv', '표지·본문·도표 미리보기: 준비 중 — 타입별 그림 원본이 아직 없습니다'));
       var bs = el('div', 'rv2-dsc__b');
       var all = el('button', 'rv2-btn rv2-btn--sm', '전체 미리보기');
-      all.type = 'button'; all.disabled = true; all.title = '준비 중 — 타입별 그림 원본이 아직 없습니다';
+      all.type = 'button'; v2Soon(all, '전체 미리보기는 준비 중입니다 — 타입별 그림 원본이 아직 없습니다.');
       var use = el('button', 'rv2-btn rv2-btn--sm rv2-btn--ink', '이 디자인 사용');
       use.type = 'button';
       use.setAttribute('data-lp-rv2-dsuse', t.id);
@@ -2006,13 +2096,7 @@ var lpApiWhy = (function () {
       if (sub) nm.appendChild(el('span', 'rf-proc__sub', sub));
       it.appendChild(nm);
       if (st.no === 2 && un && !st.current) it.appendChild(el('span', 'rf-proc__dot'));
-      if (st.live && !st.locked) it.addEventListener('click', function () {
-        var target = st.secs.filter(function (id) {
-          var s0 = secs.filter(function (x) { return x.id === id; })[0];
-          return s0 && !s0.locked && !s0.hidden;
-        })[0];
-        if (target) openSec(target);
-      });
+      if (st.live && !st.locked) it.addEventListener('click', function () { v2OpenSecs(st.secs); });
       _proc.appendChild(it);
     });
     _left.appendChild(_proc);
@@ -2758,8 +2842,11 @@ var lpApiWhy = (function () {
     _main.appendChild(_part(v2Cats(), 'head2'));
     _main.appendChild(_part(v2Docs(), 'docs'));
     _main.appendChild(_part(v2Ask(), 'ask'));
-    _main.appendChild(_part(v2Opts(), 'opts'));
-    _main.appendChild(_part(v2DsCard(), 'ds'));
+    var _optsN = _part(v2Opts(), 'opts'), _dsN = _part(v2DsCard(), 'ds');
+    /* ★★★ 〈2026-10-25 사장님: 「과거 보고서엔진 그대로 노출 · 현재 버젼과 병합되어 있지 않음」〉 옛 작업 칸 여섯을 목록으로 따로 늘어놓지 않는다 —
+     *   왼쪽 «작성 단계» 가 길잡이이고, 지금 펴진 칸(지금 단계 · 왼쪽에서 누른 단계)만 «사업 파악» 바로 밑에 엔진 화면으로 선다.
+     *   미리보기 조각(문서를 심은 판)·껍데기 조각은 앞 판 그대로 전부 편다. */
+    var _merged = !docs && !shell;
     _secs.filter(function (x) { return !x.hidden; }).forEach(function (sec) {
       /* ★ 이제 모든 절이 단계를 품는다. 「품은 단계가 없는 절」(진행률)은 없앴다 */
       // 껍데기 조각에서는 단계 화면을 안 심었다. 없는 주소를 부르면 빈 칸이 뜨고
@@ -2784,7 +2871,7 @@ var lpApiWhy = (function () {
       /* ★★★ **펴는 것을 사람이 정한다** 〈2026-08-29 사장님 지시 · D-172〉.
        *   앞 판은 「지금 칸」만 폈다 — 지나온 칸을 다시 보려면 되돌아가야 했고,
        *   되돌아가면 「지금 칸」이 바뀌어 앞으로 가던 자리를 잃었다. */
-      if (!isOpen(sec)) { _main.appendChild(section(sec, null)); return; }
+      if (!isOpen(sec)) { if (!_merged) _main.appendChild(section(sec, null)); return; }
 
       var frag = document.createDocumentFragment();
       sec.steps.forEach(function (st) { frag.appendChild(stepBody(st)); });
@@ -2794,8 +2881,12 @@ var lpApiWhy = (function () {
       if (tw) frag.appendChild(tw);
       var go = confirmRow(sec);
       if (go) frag.appendChild(go);
-      _main.appendChild(section(sec, frag));
+      var _box = section(sec, frag, _merged);
+      _box.setAttribute('data-lp-rv2-work', sec.id);
+      _main.appendChild(_box);
     });
+    _main.appendChild(_optsN);
+    _main.appendChild(_dsN);
 
     /* ★ 숨긴 칸이 있으면 «몇 칸이 · 무엇을 하면» 열리는지 적는다 (§5 의 넷 중 ④) */
     if (_hid.length) {
