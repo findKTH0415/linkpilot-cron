@@ -47,3 +47,14 @@ test('화면 10종 카드와 엔진 10종이 같은 ID·이름·컬러 참조를
     assert.deepStrictEqual(got, want, id + ' 컬러 참조');
   }
 });
+
+test('linkpilot 프리셋 + 기준색 — 오류 없이 배색을 만든다 (Codex #312)', async () => {
+  const E = await import(path.join(DIR, 'design-system-engine.js'));
+  const down = async () => { throw new Error('blocked'); };
+  const ds = await E.createDesignSystem({ preset: 'linkpilot', seed: '#C00000', count: 3, fetch: down });
+  assert.strictEqual(ds.tokens.color.seed[500].$value, '#C00000');
+  assert.strictEqual(Object.keys(ds.tokens.color.scheme).length, 3);
+  assert.ok(ds.tokens.lp, 'lp 묶음은 그대로');
+  const r = await E.handleRequest('/design-system?preset=linkpilot&seed=C00000', { fetch: down });
+  assert.strictEqual(r.status, 200);
+});

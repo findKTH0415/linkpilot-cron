@@ -924,6 +924,7 @@ export async function createDesignSystem(o = {}) {
     const r = await colorScheme(seed, { mode: scheme, count, fetch });
     sources.push(r.source);
     if (r.error) warnings.push(`색 API 응답 실패로 내부 계산 사용: ${r.error}`);
+    if (!tokens.color || typeof tokens.color !== 'object') tokens.color = {}; // linkpilot 프리셋은 lp 묶음만 있다 — 색 묶음을 먼저 만든다(Codex #312)
     tokens.color.scheme = {};
     r.colors.forEach((hex, i) => { tokens.color.scheme[String(i + 1)] = { $type: 'color', $value: hex }; });
     tokens.color.seed = {};
