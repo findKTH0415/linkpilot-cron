@@ -282,3 +282,103 @@ test('⑨ 폰(390) 폭에서 한 칸으로 쌓이고 가로로 안 넘친다', (
   assert.ok(R.w.sw <= R.w.cw, '가로로 넘친다: ' + JSON.stringify(R.w));
   assert.ok(R.stack && R.stack.leftBottom <= R.stack.mainTop, '왼쪽 칸과 오른쪽 칸이 나란히 섰다 — 한 칸으로 안 쌓였다: ' + JSON.stringify(R.stack));
 });
+
+/* ── ⑬⑭⑮ Codex P2 #571 — 저장 겹침 · 열린 틀 보존 · 문서 종류 = 서버 사양 한 벌 ── */
+const FAKE = `<script>
+window.__posts = []; window.__open = 0; window.__maxOpen = 0;
+window.fetch = function (u, o) {
+  u = String(u);
+  if (o && o.method === 'POST' && /\\/spec$/.test(u)) {
+    var b = JSON.parse(o.body); var n = window.__posts.push(b);
+    window.__open++; window.__maxOpen = Math.max(window.__maxOpen, window.__open);
+    var delay = n === 1 ? 300 : 30;   /* 첫 대답이 늦게 온다 — 옛 판은 둘째 뒤에 첫째가 도착해 화면을 되돌렸다 */
+    return new Promise(function (res) { setTimeout(function () { window.__open--;
+      res(new Response(JSON.stringify({ spec: Object.assign({ locked: false }, b) }), { status: 200, headers: { 'Content-Type': 'application/json' } })); }, delay); });
+  }
+  return Promise.reject(new Error('no net'));
+};
+</script>`;
+const ACT2 = `
+<script>
+window.addEventListener('load', function () { setTimeout(function () {
+  var R = {}, q = function (s) { return document.querySelector(s); }, qa = function (s) { return [].slice.call(document.querySelectorAll(s)); };
+  var fr = q('iframe[name="lp-flow-basics"]');
+  try { fr.contentDocument.getElementById('t').value = 'typed'; } catch (_) { R.cantType = true; }
+  fr.__mark = 1;
+  q('[data-lp-rv2-ptab="design"]').click();
+  q('[data-lp-rv2-out="pages:60"]').click();
+  q('[data-lp-rv2-len="20"]').click();
+  setTimeout(function () {
+    R.maxOpen = window.__maxOpen;
+    R.posts = window.__posts.map(function (b) { return b.docType + ':' + b.targetPages; });
+    R.len = qa('[data-lp-rv2-len]').filter(function (b) { return b.getAttribute('aria-pressed') === 'true'; }).map(function (b) { return b.getAttribute('data-lp-rv2-len'); });
+    q('[data-lp-rv2-ptab="view"]').click();
+    R.thumb = q('[data-lp-rv2-thumb]').getAttribute('data-lp-rv2-thumb');
+    var fr2 = q('iframe[name="lp-flow-basics"]');
+    R.sameFrame = fr2 === fr && fr2.__mark === 1;
+    try { R.typed = fr2.contentDocument.getElementById('t').value; } catch (_) { R.typed = null; }
+    q('[data-lp-rv2-doc="im"]').click();
+    setTimeout(function () {
+      R.postsAfter = window.__posts.map(function (b) { return b.docType + ':' + b.targetPages; });
+      try { R.specGot = q('iframe[name="lp-flow-spec"]').contentDocument.body.getAttribute('data-got'); } catch (_) { R.specGot = null; }
+      R.progTitle = (q('.rv2-prog__t') || {}).textContent;
+      document.documentElement.setAttribute('data-rv2-test', JSON.stringify(R));
+    }, 300);
+  }, 700);
+}, 400); });
+</script>`;
+
+function build2(pre) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-rv2b-'));
+  require(path.join(PLATFORM, 'build-embed.js')).build(dir);
+  let html = fs.readFileSync(path.join(dir, 'report-flow.html'), 'utf8');
+  const stub = (id) => '<!doctype html><html><head><meta charset="utf-8"></head><body><input id="t">'
+    + (id === 'spec' ? '<script>addEventListener("message",function(e){document.body.setAttribute("data-got",JSON.stringify(e.data));});<\/script>' : '')
+    + '</body></html>';
+  const docs = Object.fromEntries(F.STEPS.map((s) => [s.id, stub(s.id)]));
+  html = html.replace('<head>', '<head>' + FAKE + '<script>window.LINKPILOT_PREVIEW_DOCS=' + JSON.stringify(docs).replace(/<\//g, '<\\/')
+    + ';window.__RV2PRE=' + JSON.stringify(pre) + ';</script>');
+  html = html.replace(/\n  preload: null,/, '\n  preload: window.__RV2PRE,');
+  const at = html.lastIndexOf('</body>');
+  html = html.slice(0, at) + ACT2 + html.slice(at);
+  fs.writeFileSync(path.join(dir, 'rv2b.html'), html);
+  return path.join(dir, 'rv2b.html');
+}
+
+test('⑬⑭⑮ 저장이 한 줄로 · 열린 틀이 안 사라진다 · 문서 종류가 서버 사양과 한 벌', (t) => {
+  const browser = findBrowser();
+  if (!browser) { t.skip('크로미움이 없다 — 못 쟀다'); return; }
+  const pre = Object.assign({}, PRE, { spec: Object.assign({}, PRE.spec, { docType: 'teaser', targetPages: 3 }) });
+  const R = run(browser, build2(pre) + '?project=LP-TEST-2', 1366);
+  assert.ok(R, '화면이 결과를 안 남겼다');
+  // ⑬ 겹침 — 한 번에 하나만 돌고, 늦은 옛 대답이 새 고침을 못 지운다
+  assert.strictEqual(R.maxOpen, 1, '사양 저장 요청이 동시에 ' + R.maxOpen + '개 돌았다');
+  assert.deepStrictEqual(R.len, ['20'], '늦게 온 옛 대답이 화면을 옛 쪽수로 되돌렸다: ' + JSON.stringify(R));
+  assert.match(R.thumb, /^20\|/);
+  assert.strictEqual(R.posts[R.posts.length - 1], 'teaser:20', '마지막으로 보낸 값이 마지막 고침이 아니다: ' + R.posts.join(' / '));
+  // ⑮-1 쪽수만 바꿀 때 사양의 문서 종류(teaser)를 화면 기본(im)으로 덮지 않는다
+  R.posts.forEach((p) => assert.match(p, /^teaser:/, '쪽수만 바꿨는데 문서 종류를 덮었다: ' + R.posts.join(' / ')));
+  // ⑭ 열린 틀(iframe)과 쳐 둔 글이 그대로다
+  assert.ok(!R.cantType, '틀 안 입력칸을 못 만졌다 — 못 쟀다');
+  assert.ok(R.sameFrame, '출력 옵션을 바꿨더니 열린 단계 틀이 새로 만들어졌다');
+  assert.strictEqual(R.typed, 'typed', '쳐 둔 글이 사라졌다');
+  // ⑮-2 문서 카드를 고르면 서버 사양에 적히고 «출력정보 입력» 칸에 알린다
+  assert.match(R.postsAfter[R.postsAfter.length - 1], /^im:/, '카드를 골랐는데 사양에 안 적혔다: ' + R.postsAfter.join(' / '));
+  assert.ok(R.specGot && /"type":"lp-spec-changed"/.test(R.specGot) && /"docType":"im"/.test(R.specGot), '출력정보 입력 칸에 안 알렸다: ' + R.specGot);
+  assert.match(R.progTitle, /^IM 풀버전/);
+  // ⑮-1b 카드가 없는 종류(validation)의 사양도 쪽수만 바꿀 때 화면 기본(im)으로 안 덮인다
+  const pv = Object.assign({}, PRE, { spec: Object.assign({}, PRE.spec, { docType: 'validation', targetPages: 12 }) });
+  const Rv = run(browser, build2(pv) + '?project=LP-TEST-3', 1366);
+  assert.ok(Rv, '두 번째 판이 결과를 안 남겼다');
+  Rv.posts.forEach((p) => assert.match(p, /^validation:/, '쪽수만 바꿨는데 사양의 문서 종류를 덮었다: ' + Rv.posts.join(' / ')));
+});
+
+test('⑮-3 «출력정보 입력» 칸이 바깥의 사양 변경을 받아 종류를 맞추고, 확정을 바깥에 알린다', () => {
+  const src = fs.readFileSync(path.join(PLATFORM, 'reports.html'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  const at = src.indexOf("d.type !== 'lp-spec-changed'");
+  assert.ok(at > 0, 'lp-spec-changed 를 안 듣는다');
+  const win = src.slice(at, src.indexOf('});', at));
+  assert.match(win, /state\.kindId\s*=\s*s\.docType/, '받은 사양의 문서 종류로 맞추지 않는다');
+  assert.match(src.slice(at - 40, at + 120), /state\.locked\)\s*return/, '확정된 사양도 덮는다');
+  assert.match(src, /tellParent\(j\.spec\)/, '확정한 뒤 바깥에 안 알린다');
+});

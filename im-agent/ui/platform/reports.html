@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="d3317afe">
+<html lang="ko" data-lp-build="f86bf0bd">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -264,7 +264,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=d3317afe">
+<link rel="stylesheet" href="tokens.css?v=f86bf0bd">
 <style>
 :root {
   --side: 248px;
@@ -632,15 +632,15 @@ a.out__a, a.out__a:visited { display: inline-block; white-space: nowrap; color: 
   <a class="bot__i on" href="#"><b>☰</b>더보기</a>
 </nav>
 
-<script src="gate-core.js?v=d3317afe"></script>
-<script src="catalog.js?v=d3317afe"></script>
-<script src="inapp.js?v=d3317afe"></script>
-<script src="live-core.js?v=d3317afe"></script>
+<script src="gate-core.js?v=f86bf0bd"></script>
+<script src="catalog.js?v=f86bf0bd"></script>
+<script src="inapp.js?v=f86bf0bd"></script>
+<script src="live-core.js?v=f86bf0bd"></script>
 <!-- ★ 판 지문을 화면에 보이게 찍는 것이 여기 있다 (§8) — 묶음에 이미 실리는 파일이다 -->
-<script src="style-ab.js?v=d3317afe"></script>
-<script src="flow-core.js?v=d3317afe"></script>
+<script src="style-ab.js?v=f86bf0bd"></script>
+<script src="flow-core.js?v=f86bf0bd"></script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=d3317afe" data-lp-global="LINKPILOT_REPORTS"></script>
+<script src="embed-bridge.js?v=f86bf0bd" data-lp-global="LINKPILOT_REPORTS"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -1586,6 +1586,7 @@ window.LINKPILOT_REPORTS = Object.assign({
         })
         .then(function (j) {
           state.locked = !!(j.spec && j.spec.locked);
+          tellParent(j.spec);
           draw();
           if (!state.locked) say('서버가 확정을 반영하지 않았습니다. 다시 시도하세요.', 'bad');
         })
@@ -1649,6 +1650,31 @@ window.LINKPILOT_REPORTS = Object.assign({
    * ★ 이걸 빼면 확정 후 새로고침했을 때 화면만 '미확정'으로 돌아간다.
    *   사용자는 다시 확정을 누르고, 서버는 이미 잠겨 있어 거절하거나 버전을 올린다.
    */
+  /* ★★ 보고서 만들기 화면(바깥)과 «사양 한 벌» 〈2026-10-25 · Codex P2 #571〉.
+   *   바깥의 문서 양식 카드·[출력디자인]이 서버 사양을 바꾸면 이 칸에 알려 온다 — 안 받으면 여기서 [확정]할 때
+   *   옛 종류(IM)·옛 쪽수로 사양을 덮는다. 확정된 사양은 받지 않는다(바깥도 안 바꾼다).
+   *   거꾸로 여기서 확정하면 바깥에 알린다. */
+  function tellParent(spec) {
+    try {
+      if (spec && window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: 'lp-spec-saved', spec: spec },
+          /^https?:/.test(location.protocol) ? location.origin : '*');
+      }
+    } catch (_) { /* 못 알려도 바깥은 다시 물을 때 서버 사양을 읽는다 */ }
+  }
+  window.addEventListener('message', function (e) {
+    var same = e.origin === window.location.origin || (window.location.protocol === 'file:' && e.origin === 'null');
+    if (!same) return;
+    var d = e.data;
+    if (!d || d.type !== 'lp-spec-changed' || !d.spec || state.locked) return;
+    var s = d.spec;
+    if (s.docType) state.kindId = s.docType;
+    if (s.targetPages != null) state.pages = s.targetPages;
+    if (s.language) state.lang = s.language;
+    if (s.themeId) state.themeId = s.themeId;
+    draw();
+  });
+
   function loadSpec() {
     if (!C.api || !state.projectId) return Promise.resolve();
     return call('GET', '/projects/' + encodeURIComponent(state.projectId) + '/spec')
