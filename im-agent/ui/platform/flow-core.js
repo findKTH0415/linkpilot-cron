@@ -24,7 +24,7 @@
    *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다. 화면이 자기
    *   지문과 대 보고 다르면 「함수가 없다」로 죽기 전에 사람 말로 알린다.
    */
-  var LP_BUILD = '660dffa5';
+  var LP_BUILD = 'd3317afe';
 
   /**
    * ★★★ **단계는 다섯이다** 〈2026-08-22 사용자 지시〉.
@@ -1260,6 +1260,317 @@
     return hd;
   }
 
+  /* ══════════ 보고서 만들기 v2 — 1단계 «배치» 〈2026-10-25 사장님: 「단계별로 다시 짓기」 · 「디자인 레이아웃 반영해줘」〉
+   *
+   * ★ 화면(`report-flow.html`)은 이 표를 **그리기만** 한다. 문서 양식 11장 · 작성 단계 10칸 ·
+   *   사실 표 이름표의 판정이 화면에 따로 적히면 한쪽이 옛말을 한다 (§8-1).
+   * ★★ **엔진이 못 만드는 문서를 «만들 수 있다»로 그리지 않는다** (§6-2-3 · §8).
+   *   `engine` 이 있는 카드만 고를 수 있고, 나머지는 «준비 중 — 이유»로 선다.
+   *   장 수·쪽수도 둘로 가른다 — 엔진 카드는 **엔진의 목차·사양 값**(ENGINE_DOCS · 검사가 im-outline·outputspec 과 대 본다),
+   *   준비 중 카드는 디자인 파일의 **예정** 값이다(화면에 «예정»으로 적는다).
+   */
+  var V2_CATS = [
+    { id: 'plan', name: '사업 계획', note: '사업을 설명하고 타당성을 보이는 문서',
+      icon: 'M4 19V9M10 19V5M16 19v-7M3 19h18' },
+    { id: 'invest', name: '투자 유치', note: '투자자에게 보내는 문서',
+      icon: 'M3.6 18.4 9 12.6l3.6 2.8 7.4-8.6M15 6.8h5v5' },
+    { id: 'finance', name: '금융 조달', note: '금융기관 제출과 실사 문서',
+      icon: 'M3 10 12 4l9 6M5 10v8M9.7 10v8M14.3 10v8M19 10v8M3 20h18' },
+  ];
+
+  /* 엔진이 지금 실제로 만드는 문서 — 값은 엔진에서 왔다 (engine-docs 검사가 대 본다):
+   *   im      장 = templates/im-outline.js 의 IM_SECTIONS 수 · 쪽 = outputspec PRESETS.im.targetPages
+   *   teaser  항목 = TEASER_ITEMS 수 · 쪽 = PRESETS.teaser.targetPages
+   *   summary 쪽 = PRESETS.summary.targetPages · 장 나눔은 엔진에 없다(IM 쓰는 이가 같은 본문을 쓴다)
+   *   cover   = 06-im-writer 가 문서 맨 위에 적는 제목 그대로 */
+  var ENGINE_DOCS = {
+    im:      { label: 'IM (투자설명서)', chapters: 21, items: null, pages: 40, cover: 'Investment Memorandum' },
+    teaser:  { label: 'Teaser', chapters: null, items: 11, pages: 3, cover: 'Project Teaser' },
+    summary: { label: '요약 보고서', chapters: null, items: null, pages: 10, cover: 'Investment Memorandum' },
+  };
+
+  var V2_SOON = '엔진에 아직 이 문서의 목차와 서식이 없습니다';
+  var V2_DOCS = [
+    { id: 'so', cat: 'plan', name: '사업개요/요약', desc: '사업을 1~4쪽으로 줄인 개요서', engine: 'summary',
+      kinds: ['1쪽 요약', '2~4쪽 개요'], plan: { chapters: 3, pages: 6 },
+      caution: '엔진의 «요약 보고서» 사양(목표 10쪽)으로 만듭니다 — 개요서 전용 목차는 아직 없어 표지·목차가 IM 과 같습니다.' },
+    { id: 'bp', cat: 'plan', name: '사업계획서', desc: '사업 내용 · 시장 · 추진 계획 · 재무 계획', engine: null,
+      kinds: ['투자유치용', '정책자금 · 정부지원용', '대출 신청용', '내부 보고용'], plan: { chapters: 8, pages: 35 } },
+    { id: 'fs', cat: 'plan', name: '사업성 분석보고서', desc: '입지 · 시장 · 사업비 · 수익성 · 민감도', engine: null,
+      kinds: ['개발사업', '에너지 사업', '운영 사업'], plan: { chapters: 7, pages: 28 } },
+    { id: 'teaser', cat: 'invest', name: '투자 티저', desc: '첫 접촉용 1~3쪽 요약', engine: 'teaser',
+      kinds: null, plan: { chapters: 3, pages: 6 } },
+    { id: 'im', cat: 'invest', name: 'IM 풀버전', desc: '투자 검토용 정식 설명서', engine: 'im',
+      kinds: null, plan: { chapters: 8, pages: 38 } },
+    { id: 'ts', cat: 'invest', name: 'Term Sheet', desc: '거래 주요 조건 요약', engine: null,
+      kinds: ['지분 투자', '대출', '메자닌'], plan: { chapters: 4, pages: 8 } },
+    { id: 'ir', cat: 'invest', name: '투자검토서', desc: '사업 · 재무 · 위험 검토와 투자 의견', engine: null,
+      kinds: null, plan: { chapters: 5, pages: 18 } },
+    { id: 'la', cat: 'finance', name: '대출신청서', desc: '신청 금액 · 용도 · 상환 계획 · 담보', engine: null,
+      kinds: ['PF 대출', '브릿지 대출', '운영자금 대출', '시설자금 대출'], plan: { chapters: 7, pages: 18 } },
+    { id: 'imf', cat: 'finance', name: 'IM제안서', desc: '금융기관 제출용 IM · 대출 조건 제안', engine: null,
+      kinds: ['PF 대출', '브릿지 대출', '리파이낸싱'], plan: { chapters: 8, pages: 32 },
+      hint: '지금은 [투자 유치 → IM 풀버전]으로 만들 수 있습니다' },
+    { id: 'cp', cat: 'finance', name: '여신제안서', desc: '차주 · 여신 조건 · 상환 재원 · 담보', engine: null,
+      kinds: ['PF 대출', '브릿지 대출', '운영자금 대출'], plan: { chapters: 6, pages: 22 } },
+    { id: 'dd', cat: 'finance', name: '실사보고서', desc: '법률 · 재무 · 기술 실사 결과', engine: null,
+      kinds: ['법률 실사', '재무 실사', '기술 실사', '종합 실사'], plan: { chapters: 5, pages: 22 } },
+  ];
+
+  function v2Doc(id) {
+    for (var i = 0; i < V2_DOCS.length; i++) if (V2_DOCS[i].id === id) return V2_DOCS[i];
+    return null;
+  }
+  function v2DocsOf(cat) { return V2_DOCS.filter(function (d) { return d.cat === cat; }); }
+  /** 엔진 종류(im·teaser·summary)를 품은 첫 카드 — 저장된 값이 엔진 종류일 때 되짚는다 */
+  function v2DocOfEngine(engine) {
+    for (var i = 0; i < V2_DOCS.length; i++) if (V2_DOCS[i].engine === engine) return V2_DOCS[i];
+    return null;
+  }
+
+  /** 카드 아래 «N개 장 · N쪽» — 엔진 카드는 엔진 값, 준비 중은 «예정» */
+  function v2DocMeta(d, bare) {
+    if (!d) return '';
+    var e = d.engine && ENGINE_DOCS[d.engine];
+    if (e) {
+      if (e.chapters) return e.chapters + '개 장 · ' + e.pages + '쪽';
+      if (e.items) return '핵심 항목 ' + e.items + '개 · ' + e.pages + '쪽';
+      return e.pages + '쪽 · 장 나눔 없음';
+    }
+    return d.plan.chapters + '개 장 · ' + d.plan.pages + '쪽' + (bare ? '' : ' 예정');
+  }
+
+  /* ── 작성 단계 10칸 ──────────────────────────────────────
+   * ★ 지금 흐름(절 여섯)이 덮는 칸만 «열림»이다. 덮지 않는 칸은 «준비 중»으로 서고
+   *   **끝난 것처럼 칠하지 않는다** — 4칸이 늘 «준비 중»이라 % 의 상한은 60 이다.
+   *   그것이 지금 사실이다 (10칸 중 6칸만 만들어져 있다). */
+  var V2_STEPS = [
+    { no: 1, name: '무엇을 만들까', secs: ['basics', 'ask'] },
+    { no: 2, name: '사업 파악', secs: ['sources'] },
+    { no: 3, name: '받는 곳·목적', secs: [], soon: '받는 곳·목적은 아직 엔진이 받지 않습니다' },
+    { no: 4, name: '목차 정하기', secs: [], soon: '목차는 엔진이 정한 차례로 나갑니다 — 장을 고르는 칸은 준비 중입니다' },
+    { no: 5, name: '빈칸 채우기', secs: ['make'] },
+    { no: 6, name: '디자인·언어', secs: ['spec'] },
+    { no: 7, name: '숫자 점검·확정', secs: [], soon: '점검표 화면은 준비 중입니다 — 지금은 만들 때 엔진이 검증 보고서를 함께 냅니다' },
+    { no: 8, name: '만들기', secs: ['spec'] },
+    { no: 9, name: '고치기', secs: [], soon: '고칠 문단 고르기는 준비 중입니다 — 지금은 «보고서 생성 · 미리보기» 칸의 [수정 요구]로 갑니다' },
+    { no: 10, name: '내보내기·보내기', secs: ['done'] },
+  ];
+
+  /** 지금 단계(STEPS id) → 10칸 번호 */
+  function v2StepOf(stepId, specLocked) {
+    if (stepId === 'basics' || stepId === 'ask') return 1;
+    if (stepId === 'sources') return 2;
+    if (stepId === 'fields') return 5;
+    if (stepId === 'spec') return specLocked ? 8 : 6;
+    if (stepId === 'done') return 10;
+    return null;
+  }
+
+  /**
+   * 10칸 상태. 판정은 **잰 사실**에서만 나온다.
+   * @param {object} o { progress: sectionProgress 결과, sections: sectionState 결과,
+   *                     made: 만들어진 문서 수(null=못 쟀다), current: 지금 STEPS id, specLocked }
+   * @returns {Array<{no,name,live,done,current,locked,why}>}  done 은 true·false·null(못 잰다)
+   */
+  function v2Steps(o) {
+    var c = o || {};
+    var pg = c.progress || {};
+    var secBy = {};
+    (c.sections || []).forEach(function (s) { secBy[s.id] = s; });
+    var cur = v2StepOf(c.current, c.specLocked);
+    function sdone(id) { var p = pg[id]; return p && p.known ? !!p.done : null; }
+    return V2_STEPS.map(function (st) {
+      var live = st.secs.length > 0;
+      var done = null;
+      if (live) {
+        if (st.no === 1) {
+          var a = sdone('basics'), b = sdone('ask');
+          done = (a === null || b === null) ? (a === false || b === false ? false : null) : (a && b);
+        } else if (st.no === 2) done = sdone('sources');
+        else if (st.no === 5) done = sdone('make');
+        else if (st.no === 6) done = sdone('spec');
+        else if (st.no === 8) done = (c.made === null || c.made === undefined) ? null : c.made > 0;
+        else if (st.no === 10) done = null;   /* 내려받았는지는 이 화면이 못 잰다 */
+      }
+      var shut = live && st.secs.every(function (id) {
+        var s = secBy[id]; return !s || s.locked || s.hidden;
+      });
+      var whyLocked = null;
+      if (shut) {
+        var s0 = secBy[st.secs[0]];
+        whyLocked = (s0 && s0.why) || (s0 && s0.hidden ? '1번을 끝내면 열립니다' : '앞 칸을 먼저 끝냅니다');
+      }
+      return {
+        no: st.no, name: st.name, live: live, done: live ? done : false,
+        current: cur === st.no, locked: !live || shut,
+        why: live ? whyLocked : st.soon, secs: st.secs.slice(),
+      };
+    });
+  }
+
+  /** 진행 % — **끝난 칸 수 / 10**. 못 잰 칸·준비 중 칸은 끝난 것으로 안 센다 */
+  function v2Progress(steps) {
+    var list = steps || [];
+    var n = list.filter(function (s) { return s.done === true; }).length;
+    var total = V2_STEPS.length;
+    return { done: n, total: total, pct: Math.round((n / total) * 100),
+      label: total + '단계 중 ' + n + '단계 끝' };
+  }
+
+  /** 다음에 할 일 — 열린 칸 중 끝나지 않은 첫 칸 */
+  function v2Next(steps) {
+    var list = steps || [];
+    for (var i = 0; i < list.length; i++) {
+      var s = list[i];
+      if (s.live && !s.locked && s.done !== true && s.no !== 10) return s;
+    }
+    for (var j = 0; j < list.length; j++) if (list[j].live && !list[j].locked && list[j].done !== true) return list[j];
+    return null;
+  }
+
+  /* ── 사업 파악 — 사실 표 ─────────────────────────────── */
+  var V2_FACT_KEYS = [
+    ['project.name', '사업명'], ['project.location', '위치'], ['land.area_sqm', '대지면적'],
+    ['building.gfa_sqm', '연면적'], ['land.zoning', '용도지역'], ['investment.total', '총사업비'],
+  ];
+
+  function v2Fmt(v, unit) {
+    if (v === null || v === undefined || v === '') return '';
+    var s = (typeof v === 'number') ? v.toLocaleString('ko-KR') : String(v);
+    return unit ? s + unit : s;
+  }
+
+  /** 출처 한 갈래의 첫 이름 — 「사업계획서.pdf, p.6」 같은 인용에서 앞만 */
+  function v2SrcShort(src) {
+    /* 견본처럼 문서 이름만 — 「사업계획서.pdf, p.6」 → 「사업계획서」 */
+    return String(src || '').split(',')[0].trim().replace(/\.[A-Za-z0-9]{1,5}$/, '');
+  }
+  /** 받침이 있으면 a, 없으면 b — 한글이 아니면 b (견본: 「12,400㎡를」) */
+  function v2Josa(word, a, b) {
+    var w = String(word || ''), c = w.charCodeAt(w.length - 1);
+    if (c >= 0xAC00 && c <= 0xD7A3) return w + (((c - 0xAC00) % 28) ? a : b);
+    return w + b;
+  }
+
+  /**
+   * 이름표 — 값이 어디서 왔는가.
+   * ★ 갈래는 서버가 넘긴 `origin` 을 그대로 쓴다(서버가 비우지 않는다 · report-api getFacts).
+   *   origin 이 없으면 **짐작하지 않고** 출처 이름만 적는다 — 판정 규칙을 화면에 또 두지 않는다 (§8-1).
+   * @returns {{kind:string, text:string}}  kind: doc·public·request·calc·manual·need·split·src
+   */
+  function v2Tag(fact) {
+    if (!fact || fact.value === '' || fact.value === null || fact.value === undefined) {
+      return { kind: 'need', text: '자료 필요' };
+    }
+    if (fact.alternatives && fact.alternatives.length) return { kind: 'split', text: '자료 필요' };   /* 견본 397 — 값이 갈린 줄도 «자료 필요» */
+    var src = v2SrcShort(fact.source);
+    var page = (fact.page !== null && fact.page !== undefined && fact.page !== '') ? ' ' + fact.page + '쪽' : '';
+    switch (fact.origin) {
+      case 'document': return { kind: 'doc', text: '올린 자료 · ' + src + page };
+      case 'public': return { kind: 'public', text: '공공자료 · ' + src };
+      case 'request': return { kind: 'request', text: '요청문에서' };
+      case 'derived': return { kind: 'calc', text: '계산' };
+      case 'manual': return { kind: 'manual', text: '직접 입력' };
+      default: return { kind: 'src', text: src ? '출처 · ' + src : '출처 없음' };
+    }
+  }
+
+  /**
+   * 표 줄. `values` 가 null 이면 «못 쟀다» → 줄을 안 만든다(null). {} 이면 여섯 줄 모두 «자료 필요».
+   * ★ 디자인 파일의 예시 값은 여기 없다 — 값은 /facts 대답에서만 온다.
+   */
+  function v2FactRows(values, def) {
+    if (!values || typeof values !== 'object') return null;
+    var d = def || {};
+    return V2_FACT_KEYS.map(function (p) {
+      var key = p[0], f = values[key] || null, dk = d[key] || {};
+      var label = p[1];
+      var shown = f ? v2Fmt(f.value, dk.unit || f.unit || null) : '';
+      if (f && f.alternatives && f.alternatives.length) {
+        shown = [shown].concat(f.alternatives.map(function (a) { return v2Fmt(a.value, dk.unit || a.unit || null); })).join(' / ');
+      }
+      return { key: key, label: label, value: shown || '자료에 없음', empty: !shown, tag: v2Tag(f) };
+    });
+  }
+
+  /**
+   * 되묻기 — 값이 갈린 항목. 서버가 넘긴 `alternatives` 에서만 만든다.
+   * @returns {Array<{key,label,why,opts:[string,string,string]}>}
+   */
+  function v2Conflicts(values, def) {
+    if (!values || typeof values !== 'object') return [];
+    var d = def || {};
+    var out = [];
+    Object.keys(values).sort().forEach(function (key) {
+      var f = values[key];
+      if (!f || !f.alternatives || !f.alternatives.length) return;
+      var dk = d[key] || {};
+      var unit = dk.unit || f.unit || null;
+      var label = dk.label || key;
+      var a = f.alternatives[0];
+      var winSrc = v2SrcShort(f.source) || '한 자료';
+      var altSrc = v2SrcShort((a.sources && a.sources[0]) || '') || '다른 자료';
+      var wv = v2Fmt(f.value, unit), av = v2Fmt(a.value, unit);
+      out.push({
+        key: key, label: label,
+        why: v2Josa(label, '이', '가') + ' ' + winSrc + '에는 ' + wv + ', ' + altSrc + '에는 ' + av
+          + '입니다. 보고서 전체에 쓸 값을 정해 주세요.',
+        /* 견본 397 차례 — ① 다른 자료의 값 ② 지금 표에 선 값 ③ 둘 다 */
+        opts: [altSrc + ' 값 ' + v2Josa(av, '을', '를') + ' 씁니다',
+          winSrc + ' 값 ' + v2Josa(wv, '을', '를') + ' 씁니다',
+          '두 값을 함께 적고 차이를 주석으로 답니다'],
+      });
+    });
+    return out;
+  }
+
+  /* ── 기능 옵션 — 만들 수 있는 형식 ──────────────────────
+   * ★ 값은 엔진 사양(outputspec SUPPORTED_FORMATS)에서 왔다. 못 만드는 것은 «아직 못 만든다». */
+  /* 분량 고르기 — 견본 글자(20쪽 · 40쪽 · 60쪽+) 그대로. n 은 사양에 적는 쪽수, min~max 는 «켜짐»으로 보는 범위.
+   * ★ IM 은 엔진 최소가 30쪽이라 20쪽을 고르면 엔진 사양 검사가 문제로 적는다 — 질문 목록에 올렸다. */
+  var V2_PAGES = [{ n: 20, label: '20쪽', min: 0, max: 29 }, { n: 40, label: '40쪽', min: 30, max: 59 },
+    { n: 60, label: '60쪽+', min: 60, max: 1e9 }];
+  /* 언어 — reports.html(«출력정보 입력»)이 쓰는 값 그대로 */
+  var V2_LANGS = [{ id: 'ko', name: '한국어' }, { id: 'en', name: 'English' }, { id: 'ko-en', name: '국문+영문 병기' }];
+
+
+  /* ══ 디자인·레이아웃 10종 고정 시스템 〈2026-10-25 사장님 지침 v1.0 «추가로 반영해줘»〉
+   *   id·name·layout·use·latin 은 지침 §3 표 글자 그대로. colors 는 §3 «컬러 참조» 토큰 넷을 부록 A 의 실제 CSS 값으로 옮긴 것
+   *   (차례: 지침에 적힌 차례). paperlogy=true 는 «Paperlogy 유지»(LP-DS-04).
+   *   ★ 영문 글꼴 6종은 파일이 없다 — 화면은 «글꼴 파일 등록 전 — Paperlogy 로 보임»으로 적는다(지어 넣지 않는다).
+   *   ★ 타입별 표지·본문·도표 그림은 원본이 없어 안 그린다 (지침 §11 3~5 의 후속 구현). */
+  var V2_DS_TOKENS = {   /* 부록 A 실제 선언값 */
+    '--lp-ink': '#0A1419', '--lp-ink-hover': '#2B3440', '--lp-surface': '#FFFFFF', '--lp-surface-alt': '#F7F7FA',
+    '--lp-line-strong': 'rgba(60,60,67,.3)', '--lp-lime-ink': '#577508', '--lp-lime-deep': '#3F5600', '--lp-lime-tint': '#F0FAD8',
+    '--lp-warn': '#B25000', '--lp-warn-tint': '#FFF1DE', '--lp-info': '#0063CC', '--lp-info-tint': '#E6F0FF',
+  };
+  var V2_DS = [
+    { id: 'LP-DS-01', name: '기업표준 그리드형', layout: '제목·요약·본문·도표가 정돈된 기본 그리드', use: '기업소개·일반 보고·업무제안', latin: 'Roboto Condensed Bold', refs: ['--lp-ink', '--lp-surface', '--lp-lime-ink', '--lp-lime-tint'] },
+    { id: 'LP-DS-02', name: '부동산·투자 IM형', layout: '투자 포인트·핵심 수치·사업구도·재무표', use: '부동산·지분투자·PF IM', latin: 'DIN Condensed Bold', refs: ['--lp-ink', '--lp-surface', '--lp-info', '--lp-info-tint'] },
+    { id: 'LP-DS-03', name: '사업계획 캔버스형', layout: '고객·사업모델·시장·운영·재무 모듈', use: '신규사업·사업확장 계획', latin: 'Roboto Condensed Bold', refs: ['--lp-ink', '--lp-surface', '--lp-lime-deep', '--lp-lime-tint'] },
+    { id: 'LP-DS-04', name: '공공·정책 보고형', layout: '번호 체계·목적·근거·추진계획·예산', use: '공공 제안·정책지원·기관 제출', latin: 'Paperlogy 유지', paperlogy: true, refs: ['--lp-ink', '--lp-surface', '--lp-surface-alt', '--lp-line-strong'] },
+    { id: 'LP-DS-05', name: '데이터분석 대시보드형', layout: '지표 카드·비교 차트·근거 표·해석', use: '시장조사·사업성·실적 보고', latin: 'Roboto Condensed Bold', refs: ['--lp-ink', '--lp-info', '--lp-info-tint', '--lp-surface-alt'] },
+    { id: 'LP-DS-06', name: '인프라·사업구도형', layout: '큰 사업구도·참여자 역할·지도·자금 흐름', use: '인프라·에너지·개발사업', latin: 'DIN Condensed Bold', refs: ['--lp-ink', '--lp-lime-deep', '--lp-lime-tint', '--lp-info-tint'] },
+    { id: 'LP-DS-07', name: '로드맵·추진일정형', layout: '단계·일정·역할·의사결정 시점', use: '프로젝트 진행·실행계획', latin: 'Roboto Condensed Bold', refs: ['--lp-ink', '--lp-info', '--lp-warn', '--lp-surface'] },
+    { id: 'LP-DS-08', name: '분양·프로모션형', layout: '상품 이미지·가격·조건·핵심 혜택', use: '분양·가격 안내·프로모션', latin: '가격: Bebas Neue / 할인·이벤트: Anton', refs: ['--lp-ink', '--lp-lime-deep', '--lp-warn', '--lp-warn-tint'] },
+    { id: 'LP-DS-09', name: '사진·브로슈어형', layout: '선명한 사진·짧은 설명·위치·주요 특징', use: '시설소개·브로슈어·사업소개', latin: 'Oswald Bold', refs: ['--lp-ink', '--lp-surface', '--lp-surface-alt', '--lp-lime-ink'] },
+    { id: 'LP-DS-10', name: '프리미엄 투자제안형', layout: '넓은 여백·흑백 사진·핵심 문구·절제된 도표', use: '고급 투자제안·주요 투자자 제안', latin: 'Montserrat ExtraBold', refs: ['--lp-ink', '--lp-ink-hover', '--lp-surface', '--lp-lime-ink'] },
+  ];
+  function v2DsType(id) { for (var i = 0; i < V2_DS.length; i++) if (V2_DS[i].id === id) return V2_DS[i]; return null; }
+  function v2DsColors(t) { return t ? t.refs.map(function (r) { return V2_DS_TOKENS[r]; }) : []; }
+  /* 사용자 지정 IM 기본 크기 (지침 §5.1 · pt) — 출력기에 잇는 자리는 질문 목록에 올렸다 */
+  var V2_IM_SIZES = [['표지 제목', 18], ['슬라이드 제목', 14], ['핵심 숫자', 10], ['본문', 12], ['표 안의 글자', 10], ['각주', 8], ['주석', 7]];
+
+  var V2_FORMATS = [
+    { id: 'pdf', name: 'PDF', ok: true },
+    { id: 'hwp', name: '한글(HWP)', ok: false },
+    { id: 'docx', name: '워드(DOCX)', ok: false },
+    { id: 'pptx', name: 'PPT(PPTX)', ok: false },
+    { id: 'html', name: '데스크탑 HTML', ok: true },
+    { id: 'mhtml', name: '모바일 HTML', ok: false },
+  ];
+
   return {
     BUILD: LP_BUILD,
     STEPS: STEPS, WHY: WHY, EMBED_CSS: EMBED_CSS,
@@ -1281,5 +1592,11 @@
     selfPlaced: selfPlaced, hideOwnChrome: hideOwnChrome,
     heroSvg: heroSvg, heroFrom: heroFrom, headEl: headEl, HERO_LIME: HERO_LIME,
     HEAD_CSS: HEAD_CSS, headCssInto: headCssInto,
+    V2_CATS: V2_CATS, V2_DOCS: V2_DOCS, ENGINE_DOCS: ENGINE_DOCS, V2_SOON: V2_SOON,
+    v2Doc: v2Doc, v2DocsOf: v2DocsOf, v2DocOfEngine: v2DocOfEngine, v2DocMeta: v2DocMeta,
+    V2_STEPS: V2_STEPS, v2StepOf: v2StepOf, v2Steps: v2Steps, v2Progress: v2Progress, v2Next: v2Next,
+    V2_FACT_KEYS: V2_FACT_KEYS, v2Tag: v2Tag, v2FactRows: v2FactRows, v2Conflicts: v2Conflicts,
+    V2_FORMATS: V2_FORMATS, V2_PAGES: V2_PAGES, V2_LANGS: V2_LANGS,
+    V2_DS: V2_DS, V2_DS_TOKENS: V2_DS_TOKENS, v2DsType: v2DsType, v2DsColors: v2DsColors, V2_IM_SIZES: V2_IM_SIZES,
   };
 }));
