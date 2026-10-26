@@ -1,6 +1,6 @@
 # 열쇠 이름 — 들어 있는가
 
-> 이름 54개 중 **12개 들어 있음 · 42개 없음** — 값은 안 찍는다 · 길이만
+> 이름 57개 중 **15개 들어 있음 · 42개 없음** — 값은 안 찍는다 · 길이만
 
 | 이름 | 무엇 | 이 저장소 Actions 비밀 |
 |---|---|---|
@@ -16,6 +16,8 @@
 | `KPX_POWER_SUPPLY_DEMAND_FORECAST_GW` | 전력거래소 전력수급예보 | ✅ 있음 (길이 64) |
 | `KOICA_COUNTRY_INFORMATION` | KOTRA 국가정보 | ✅ 있음 (길이 64) |
 | `KOTRA_KOREA_FDI_BY_INDUSTRY` | KOTRA 외국인투자 업종별 | ✅ 있음 (길이 64) |
+| `EAIS_ARCHITECTURAL_INFORMATION` | 세움터 건축정보 | ✅ 있음 (길이 26) |
+| `GG_DATADREAM_OPENDATA` | 경기데이터드림 전체 공공데이터 | ✅ 있음 (길이 32) |
 | `EDINET_API_KEY` | EDINET API v2 | ✅ 있음 (길이 32) |
 | `KSURE_COUNTRY_LIST` | 한국무역보험공사 국가목록 | ✅ 있음 (길이 64) |
 | `MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY` | 외교부 국가·지역별 우리나라와의 관계 | ✅ 있음 (길이 64) |
@@ -28,6 +30,7 @@
 | `REB_LAND_MICRO` | 지가변동률 마이크로데이터 | — 없음 |
 | `MOLIT_APT_SALE` | 아파트 매매 실거래가 | — 없음 |
 | `MOLIT_OFFICETEL_RENT` | 오피스텔 전월세 | — 없음 |
+| `DATA_GO_KR` | 공공데이터포털 (넷째 이름) | ✅ 있음 (길이 64) |
 | `MOLIT_HUB_BLDG_LEDGER` | 건축물대장 | ✅ 있음 (길이 64) |
 | `MOLIT_HUB_HOUSING_PERMIT` | 주택인허가 | — 없음 |
 | `MOLIT_HUB_BLDG_PERMIT` | 건축인허가 | — 없음 |

@@ -11,11 +11,11 @@
 
 ## 1. 기상청 **API허브** (`apihub.kma.go.kr` · `authKey`)
 
-- `typ01 지상관측 kma_sfctm2` — HTTP 401 · 1350ms
+- `typ01 지상관측 kma_sfctm2` — HTTP 401 · 1583ms
   - 본문 «{ "result" : { "status" : 401, "message" : "유효한 인증키가 아닙니다." } }»
   - 관측값 칸: **못 찾았다**
   - 서버 Apache
-- `typ02 초단기실황 getUltraSrtNcst` — HTTP 401 · 1389ms
+- `typ02 초단기실황 getUltraSrtNcst` — HTTP 401 · 1164ms
   - 본문 «{ "result" : { "status" : 401, "message" : "유효한 인증키가 아닙니다." } }»
   - 관측값 칸: **못 찾았다**
   - 서버 Apache
@@ -27,7 +27,7 @@
 > ★ 이 호스트는 **러너에서 안 열릴 때가 있다** (D-206 · 2026-09-20 실측 재확인).
 > 그때 판정 3 은 **열쇠 문제가 아니다** — 도는 자리를 NAS 로 옮겨 다시 잰다.
 
-- `원본 그대로` — HTTP 200 · 660ms
+- `원본 그대로` — HTTP 200 · 802ms
   - 본문 «{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL_SERVICE"},"body":{"dataType":"JSON","items":{"item":[{"baseDate":"20261026","baseTime":"1800","category":"PTY","nx":60,"ny":127,"obsrValue":"0"},{"baseDate":"20261026","baseTime":"1800","category":"REH","nx":60,"ny":127,"obsrValue":"63"},{» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 관측값 칸: **찾았다**

@@ -6,7 +6,7 @@
 
 - 열쇠 **`EDINET_API_KEY`** 로 읽었다 (길이 32자 · 값은 안 적는다)
 
-- `EDINET v2 서류 목록 documents.json` — HTTP 200 · 757ms
+- `EDINET v2 서류 목록 documents.json` — HTTP 200 · 895ms
   - 본문 «{ "metadata": { "title": "提出された書類を把握するためのAPI", "parameter": { "date": "2026-10-23", "type": "2" }, "resultset": { "count": 290 }, "processDateTime": "2026-10-26 00:00", "status": "200", "message": "OK" }, "results": [ { "seqNumber": 1, "docID": "S100YZKR", "edinetCode": "E12448", "secCode": null, "J» …
   - ★ 본문은 **앞 300자만** 적는다. 판정은 **본문 전체**로 했다 (D-228)
   - 서류(docID) 칸: **찾았다**
