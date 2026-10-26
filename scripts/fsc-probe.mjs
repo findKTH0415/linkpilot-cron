@@ -52,6 +52,10 @@ const SERVICES = [
   { key: 'FSC_AMC_API', id: '15139266', name: '금융위원회_자산운용사 영업활동통계정보', use: '자산운용사 — 후보(검색으로 찾음)' },
   /* ★ 〈2026-10-17 사장님: 「중소벤처기업부_사업공고(MSS_Business_Support_Announcements) 키넣었어」〉 — 서비스 이름을 받았다 */
   { key: 'MSS_BUSINESS_SUPPORT_ANNOUNCEMENTS', id: '15113297', name: '중소벤처기업부_사업공고', use: '투자정보 [정책자금] 공고 후보' },
+  /* ★ 〈2026-10-26 사장님: 「세움터(EAIS_ARCHITECTURAL_INFORMATION) 키넣었어」 + 「OpenAPI 활용가이드 - 건축HUB 건축물대장정보」〉 —
+     가이드가 요청주소를 apis.data.go.kr/1613000/BldRgstHubService · serviceKey 로 적는다(공공데이터포털 열쇠). 옛 open.eais.go.kr 개방은 건축HUB 로 넘어갔다.
+     같은 서비스를 MOLIT_HUB_BLDG_LEDGER 로도 거니, 이 줄은 «세움터 열쇠로» 따로 잰다 — 섞어 읽으면 어느 열쇠가 통했는지 흐려진다 */
+  { key: 'EAIS_ARCHITECTURAL_INFORMATION', id: '15134735', name: '건축물대장정보 서비스', use: '건축HUB 건축물대장 — 세움터 열쇠로' },
 ];
 /* 서비스 번호를 모르는 것은 **포털 검색 화면**에서 찾는다 — 번호를 지어내지 않는다.
    ★ `SME_SUPPORT` 〈같은 날 · 사장님: 「중소벤처기업부_중소기업 지원사업 공고 — API 키넣었어」〉 — 투자정보 [정책자금] 탭 후보.
@@ -497,7 +501,7 @@ async function main() {
      Actions 비밀에 없었다 — 빈칸으로 찍혔다〉. 포털 인증키는 계정당 하나이고 **승인만 서비스별**이라(§4.2)
      그 서비스를 신청하셨으면 같은 열쇠로 통한다. 어느 이름으로 걸었는지는 반드시 적는다 — 섞어 읽으면
      「어느 열쇠가 통했는가」가 흐려진다. */
-  for (const n of ['FSC_API', 'FSC_AMC_API', 'FSC_IAF_API', 'FSC_KOFIA_API', 'FSC_DOMESTIC_BANK_API', 'FSC_SAVINGS_BANK_API', 'FSC_CREDIT_UNION_BANK_API', 'FSC__AGRICULTURAL_COOPERATIVE_BANK_API', 'FSC_FISHERIES_COOPERATIVE_BANK_API', 'FSC_SP_FIN', 'KOICA_GLOBAL_POLITICAL_DEVELOPMENTS', 'KOICA_COUNTRY_INFORMATION', 'KOTRA_KOREA_FDI_BY_INDUSTRY', 'KSURE_COUNTRY_LIST', 'MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY', 'MSS_BUSINESS_SUPPORT_ANNOUNCEMENTS', 'IBK_BRANCH_INFORMATION', 'MOLIT_LUR_LAW_KEY', 'MSS_SME_SPA_API', 'MOLIT_APT_SALE', 'REB_LAND_MICRO', 'MOLIT_OFFICETEL_RENT', 'KAMCO_ONBID_BID_RESULT', 'KAMCO_SEIZED_AUCTION_RATE', 'MOLIT_HUB_BLDG_LEDGER', 'MOLIT_HUB_HOUSING_PERMIT', 'NTS_BIZ_VERIFY', 'MOLIT_HUB_BLDG_PERMIT', 'FSC_CORP_BASIC', 'MOLIT_LUR_INFO', 'MOLIT_COMM_SALE', 'MOLIT_LAND_SALE', 'KICT_API_KEY', 'REB_LAND_PRICE_CHANGE']) {
+  for (const n of ['FSC_API', 'FSC_AMC_API', 'FSC_IAF_API', 'FSC_KOFIA_API', 'FSC_DOMESTIC_BANK_API', 'FSC_SAVINGS_BANK_API', 'FSC_CREDIT_UNION_BANK_API', 'FSC__AGRICULTURAL_COOPERATIVE_BANK_API', 'FSC_FISHERIES_COOPERATIVE_BANK_API', 'FSC_SP_FIN', 'KOICA_GLOBAL_POLITICAL_DEVELOPMENTS', 'KOICA_COUNTRY_INFORMATION', 'KOTRA_KOREA_FDI_BY_INDUSTRY', 'KSURE_COUNTRY_LIST', 'MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY', 'MSS_BUSINESS_SUPPORT_ANNOUNCEMENTS', 'IBK_BRANCH_INFORMATION', 'MOLIT_LUR_LAW_KEY', 'MSS_SME_SPA_API', 'MOLIT_APT_SALE', 'REB_LAND_MICRO', 'MOLIT_OFFICETEL_RENT', 'KAMCO_ONBID_BID_RESULT', 'KAMCO_SEIZED_AUCTION_RATE', 'MOLIT_HUB_BLDG_LEDGER', 'MOLIT_HUB_HOUSING_PERMIT', 'NTS_BIZ_VERIFY', 'MOLIT_HUB_BLDG_PERMIT', 'FSC_CORP_BASIC', 'MOLIT_LUR_INFO', 'MOLIT_COMM_SALE', 'MOLIT_LAND_SALE', 'KICT_API_KEY', 'REB_LAND_PRICE_CHANGE', 'EAIS_ARCHITECTURAL_INFORMATION']) {
     /* ★ 2026-10-12 — 등록부에는 밑줄 둘(`FSC__AGRICULTURAL…`)로 적혀 있었다. 사장님 목록은 밑줄 하나다 — 둘 다 읽는다 (§4) */
     const own = pick(n === 'FSC__AGRICULTURAL_COOPERATIVE_BANK_API' ? [n, 'FSC_AGRICULTURAL_COOPERATIVE_BANK_API'] : [n]);
     if (own) OWN.push(own);
