@@ -129,6 +129,7 @@ SSH 개인키·NAS 접속정보·터널 인증키는 유출 시 **서버 접근�
 | `DATA_GO_KR_KEY` | 공공데이터포털 (범용) | `apis.data.go.kr/{기관코드}/{서비스}` | `serviceKey` (2-4 참조) | ● |
 | `APIS_DATA` | 공공데이터포털 — **`DATA_GO_KR_KEY` 의 다른 이름** 〈2026-09-13 사장님이 이 이름으로 넣으셨다〉 | 위와 동일 | 위와 동일 | ● |
 | `SPECIAL_DAY_INFO` | 공공데이터포털 — **특일정보(`SpcdeInfoService`)용으로 넣으신 이름** 〈2026-09-20〉. 포털 인증키는 계정당 하나이고 승인만 서비스별이라 같은 값일 수 있다 — **추측하지 않고 셋 다 읽는다** | 위와 동일 | 위와 동일 | ● |
+| `DATA_GO_KR` | **공공데이터포털** — 포털 계정 인증키의 넷째 이름 〈2026-10-26 사장님이 `DATA_GO_KR` 로 넣으셨다〉. `datakey.js` 가 `DATA_GO_KR_KEY` · `APIS_DATA` · `SPECIAL_DAY_INFO` 다음 차례로 읽는다 — 맨 뒤라 이미 도는 이름을 덮지 않는다. 승인은 서비스 단위다(§4.2). |
 | `DART_API_KEY` | 금감원 전자공시 | `opendart.fss.or.kr/api` | `crtfc_key` | ● |
 | `REB_API_KEY` | 한국부동산원 R-ONE | `reb.or.kr/r-one/openapi` | `KEY` | ● |
 | `KOSIS_API_KEY` | 통계청 KOSIS | `kosis.kr/openapi` | `apiKey` | △ |
@@ -150,6 +151,7 @@ SSH 개인키·NAS 접속정보·터널 인증키는 유출 시 **서버 접근�
 | `KOICA_GLOBAL_POLITICAL_DEVELOPMENTS` | **공공데이터포털 외교부** — 국가·지역별 정치현황 〈2026-10-10 사장님이 넣으셨다 · D-429〉. 서비스 번호는 진단이 포털 검색으로 찾는다. |
 | `KOICA_COUNTRY_INFORMATION` | **공공데이터포털 대한무역투자진흥공사(KOTRA)** — 국가정보 〈2026-10-10 사장님이 넣으셨다 · D-430〉. 서비스 번호는 진단이 포털 검색으로 찾는다. |
 | `KOTRA_KOREA_FDI_BY_INDUSTRY` | **공공데이터포털 대한무역투자진흥공사(KOTRA)** — 외국인투자(FDI) 업종별 현황 〈2026-10-17 사장님이 넣으셨다〉. 서비스 번호는 진단이 포털 검색으로 찾는다 · 규격 미측정. |
+| `GG_DATADREAM_OPENDATA` | **경기데이터드림(openapi.gg.go.kr) · 경기도** — 전체 공공데이터 인증키 〈2026-10-26 사장님이 `GG_DataDream_OpenData` 로 넣으셨다 · GitHub 은 대문자로 저장한다〉. **공공데이터포털(data.go.kr) 열쇠가 아니다** — 포털 검색 진단(`fsc-probe`)에 안 싣고 `scripts/gg-probe.mjs` 가 경기데이터드림 주소로 잰다. 규격 미측정. 용도 미정 — 진단 뒤 사장님께 여쭘. |
 | `EDINET_API_KEY` | **공공데이터포털 일본 금융청(FSA)** — EDINET API v2 〈2026-10-24 사장님이 `EDINET_API_KEY` 로 넣으셨다 · GitHub 은 대문자로 저장한다〉. 서비스 번호는 진단이 포털 검색으로 찾는다 · 규격 미측정. M&A 앱 — 일본 공시 서류 목록(공개매수·대량보유·임시보고·유가증권보고서). |
 | `KSURE_COUNTRY_LIST` | **공공데이터포털 한국무역보험공사** — 한국무역보험공사_국가목록 〈2026-10-19 사장님이 `KSURE_Country_List` 로 넣으셨다 · GitHub 은 대문자로 저장한다〉. **15144256** · `B552696/country/getCountryList` — 진단(2026-10-19 · 러너) **판정 0**: 칸 `ctryCd` · `ctryNm`(나라 코드·이름뿐 · 등급 칸은 없다) · 포털 열쇠와 같은 값. 투자정보 [해외지원기금] 국가 목록·등급. |
 | `MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY` | **공공데이터포털 외교부** — 외교부_국가·지역별 우리나라와의 관계 〈2026-10-19 사장님이 `MOFA_Relations_with_Korea_by_Country` 로 넣으셨다 · GitHub 은 대문자로 저장한다〉. **15099539** · `1262000/OverviewKorRelationService/getOverviewKorRelationList` — 진단(2026-10-19 · 러너) **판정 0**: 칸 `country_nm` · `country_iso_alp2` · `diplomatic_relations` · `export_amount` · `import_amount` · `investment_status` · `mission_status` · `oda_status` · `oks_status` · 포털 열쇠와 같은 값. 투자정보 [해외진출기업] 나라 개황 — 우리나라와의 관계. |

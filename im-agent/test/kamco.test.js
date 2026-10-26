@@ -57,7 +57,7 @@ test('오류 본문 — 필수 인자 없음(11)·등록 안 된 키(30)를 값�
 
 test('열쇠가 없으면 부르지 않고 unavailable', async () => {
   const save = { ...process.env };
-  for (const n of ['DATA_GO_KR_KEY', 'APIS_DATA', 'SPECIAL_DAY_INFO', 'PERSONAL_API_KEY']) delete process.env[n];
+  for (const n of ['DATA_GO_KR_KEY', 'APIS_DATA', 'SPECIAL_DAY_INFO', 'DATA_GO_KR', 'PERSONAL_API_KEY']) delete process.env[n];
   const seen = []; const k = load({}, seen);
   const r = await k.auctionRates();
   Object.assign(process.env, save);

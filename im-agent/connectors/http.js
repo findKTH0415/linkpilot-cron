@@ -166,6 +166,7 @@ const SECRET_ENV = [
   //   포털 인증키는 계정당 하나이고 승인만 서비스별이라(§4.2) 같은 값일 수 있지만,
   //   **추측하지 않고 둘 다 읽는다** — 이름이 갈리면 아무 오류 없이 조용히 죽는다.
   'SPECIAL_DAY_INFO',
+  'DATA_GO_KR', // ★ 포털 열쇠 넷째 이름 〈2026-10-26 사장님: 「공공데이터(DATA_GO_KR) 키넣었어」〉
   'ECOS_API_KEY',      // 20자쯤 — 안 걸린다
   'ECOS_BOK_KEY',      // 같은 한국은행 키의 다른 이름 (ecos.js KEY_NAMES) — 2026-08-26
   'DART_API_KEY',
@@ -208,6 +209,7 @@ const SECRET_ENV = [
   'KOICA_COUNTRY_INFORMATION', // ★ 대한무역투자진흥공사(KOTRA) 국가정보 〈2026-10-10 · D-430〉
   'IBK_BRANCH_INFORMATION', // ★ 중소기업은행(IBK) 영업점 정보조회 〈2026-10-17 사장님: 「IBK_Branch_Information API 키넣었어」 · 규격은 진단 중〉
   'KOTRA_KOREA_FDI_BY_INDUSTRY', // ★ 대한무역투자진흥공사(KOTRA) 외국인투자 업종별 현황 〈2026-10-17 사장님: 「키넣었어」 · 규격은 진단 중〉
+  'GG_DATADREAM_OPENDATA', // ★ 경기도 경기데이터드림_전체 공공데이터 〈2026-10-26 사장님: 「경기데이터드림_전체 공공데이터(GG_DataDream_OpenData) 키넣었어」〉
   'EDINET_API_KEY', // ★ 일본 금융청(FSA) EDINET API v2 〈2026-10-24 사장님: 「EDINET API v2(EDINET_API_KEY) 키넣었어」〉
   'KSURE_COUNTRY_LIST', // ★ 한국무역보험공사 한국무역보험공사_국가목록 〈2026-10-19 사장님: 「한국무역보험공사_국가목록(KSURE_Country_List) 키넣었어」〉
   'MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY', // ★ 외교부 외교부_국가·지역별 우리나라와의 관계 〈2026-10-19 사장님: 「외교부_국가·지역별 우리나라와의 관계(MOFA_Relations_with_Korea_by_Country) 키넣었어」〉

@@ -39,7 +39,7 @@ for (const months of [1, 3]) {
 P('');
 
 /* ② SMP — 포털에서 서비스를 찾는다 (번호를 지어내지 않는다) */
-const key = pick(['KPX_SMP_DEMAND_FORECAST', 'PERSONAL_API_KEY', 'DATA_GO_KR_KEY', 'APIS_DATA', 'SPECIAL_DAY_INFO']);
+const key = pick(['KPX_SMP_DEMAND_FORECAST', 'PERSONAL_API_KEY', 'DATA_GO_KR_KEY', 'APIS_DATA', 'SPECIAL_DAY_INFO', 'DATA_GO_KR']);
 P(`- 포털 열쇠: ${key ? `\`${key.name}\` (길이 ${key.value.length})` : '**없다**'}`);
 const svcs = [];
 for (const [kw, word] of [['한국전력거래소 계통한계가격', '계통한계가격'], ['한국전력거래소 SMP', 'SMP'], ['전력거래소 계통한계가격', '계통한계'], ['한국전력거래소 SMP 수요예측', 'SMP'], ['전력거래소 수요예측', '수요예측']]) {
@@ -121,7 +121,7 @@ if (smpOk && key) {
 }
 /* ②-2 전력수급예보 〈2026-10-05 · D-420 · 사장님이 KPX_POWER_SUPPLY_DEMAND_FORECAST_GW 를 넣으셨다〉 —
    SMP 와 같은 방식(포털 검색 → 안내 페이지 → 그대로 부른다). 판정에는 안 섞는다 — 받았는지만 적는다. */
-const key2 = pick(['KPX_POWER_SUPPLY_DEMAND_FORECAST_GW', 'PERSONAL_API_KEY', 'DATA_GO_KR_KEY', 'APIS_DATA', 'SPECIAL_DAY_INFO']);
+const key2 = pick(['KPX_POWER_SUPPLY_DEMAND_FORECAST_GW', 'PERSONAL_API_KEY', 'DATA_GO_KR_KEY', 'APIS_DATA', 'SPECIAL_DAY_INFO', 'DATA_GO_KR']);
 P('');
 P(`## 전력수급예보 — 열쇠 ${key2 ? `\`${key2.name}\` (길이 ${key2.value.length})` : '**없다**'}`);
 result.supply = [];

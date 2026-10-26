@@ -487,8 +487,8 @@ async function main() {
   /* ★ 포털 열쇠와 «같은 값»인지만 적는다 — 값·길이 차이는 안 적는다 (§2) */
   /* ★ `PERSONAL_API_KEY` 〈같은 날 · 사장님: 「PERSONAL_API_KEY 넣었어 — 정부공공데이터 여기에 모두 다 있어」〉 —
      포털 «개인 인증키»다. 그 이름이 있으면 그것을 먼저 쓰고, 기존 포털 열쇠와 같은 값인지만 적는다(값은 안 적는다). */
-  const portal = pick(['PERSONAL_API_KEY', 'DATA_GO_KR_KEY', 'APIS_DATA', 'SPECIAL_DAY_INFO']);
-  const oldPortal = pick(['DATA_GO_KR_KEY', 'APIS_DATA', 'SPECIAL_DAY_INFO']);
+  const portal = pick(['PERSONAL_API_KEY', 'DATA_GO_KR_KEY', 'APIS_DATA', 'SPECIAL_DAY_INFO', 'DATA_GO_KR']);
+  const oldPortal = pick(['DATA_GO_KR_KEY', 'APIS_DATA', 'SPECIAL_DAY_INFO', 'DATA_GO_KR']);
   if (portal && portal.name === 'PERSONAL_API_KEY') P(`- 포털 개인 인증키 \`PERSONAL_API_KEY\` 읽었다 (길이 ${portal.value.length}자) · 기존 \`${oldPortal ? oldPortal.name : '없음'}\` 과 ${oldPortal ? (oldPortal.value === portal.value ? '**같은 값**' : '**다른 값**') : '견줄 것이 없다'}`);
   else P('- 포털 개인 인증키 `PERSONAL_API_KEY` — **이 저장소의 Actions 비밀에 없다**');
   const KEYS = {};

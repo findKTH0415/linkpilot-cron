@@ -41,6 +41,7 @@ jobs:
           DATA_GO_KR_KEY:    ${{ secrets.DATA_GO_KR_KEY }}
           APIS_DATA:         ${{ secrets.APIS_DATA }}
           SPECIAL_DAY_INFO:  ${{ secrets.SPECIAL_DAY_INFO }}
+          DATA_GO_KR:  ${{ secrets.DATA_GO_KR }}
           WEATHER_GO:        ${{ secrets.WEATHER_GO }}
           FSC_API:           ${{ secrets.FSC_API }}
           FSC_AMC_API:       ${{ secrets.FSC_AMC_API }}
@@ -56,6 +57,7 @@ jobs:
           KOICA_GLOBAL_POLITICAL_DEVELOPMENTS: ${{ secrets.KOICA_GLOBAL_POLITICAL_DEVELOPMENTS }}
           KOICA_COUNTRY_INFORMATION: ${{ secrets.KOICA_COUNTRY_INFORMATION }}
           KOTRA_KOREA_FDI_BY_INDUSTRY: ${{ secrets.KOTRA_KOREA_FDI_BY_INDUSTRY }}
+          GG_DATADREAM_OPENDATA: ${{ secrets.GG_DATADREAM_OPENDATA }}
           EDINET_API_KEY: ${{ secrets.EDINET_API_KEY }}
           KSURE_COUNTRY_LIST: ${{ secrets.KSURE_COUNTRY_LIST }}
           MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY: ${{ secrets.MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY }}
@@ -101,6 +103,7 @@ jobs:
           DATA_GO_KR_KEY:    ${{ secrets.DATA_GO_KR_KEY }}
           APIS_DATA:         ${{ secrets.APIS_DATA }}
           SPECIAL_DAY_INFO:  ${{ secrets.SPECIAL_DAY_INFO }}
+          DATA_GO_KR:  ${{ secrets.DATA_GO_KR }}
           WEATHER_GO:        ${{ secrets.WEATHER_GO }}
           FSC_API:           ${{ secrets.FSC_API }}
           FSC_AMC_API:       ${{ secrets.FSC_AMC_API }}
@@ -116,6 +119,7 @@ jobs:
           KOICA_GLOBAL_POLITICAL_DEVELOPMENTS: ${{ secrets.KOICA_GLOBAL_POLITICAL_DEVELOPMENTS }}
           KOICA_COUNTRY_INFORMATION: ${{ secrets.KOICA_COUNTRY_INFORMATION }}
           KOTRA_KOREA_FDI_BY_INDUSTRY: ${{ secrets.KOTRA_KOREA_FDI_BY_INDUSTRY }}
+          GG_DATADREAM_OPENDATA: ${{ secrets.GG_DATADREAM_OPENDATA }}
           EDINET_API_KEY: ${{ secrets.EDINET_API_KEY }}
           KSURE_COUNTRY_LIST: ${{ secrets.KSURE_COUNTRY_LIST }}
           MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY: ${{ secrets.MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY }}
@@ -204,6 +208,7 @@ jobs:
           KOICA_GLOBAL_POLITICAL_DEVELOPMENTS: ${{ secrets.KOICA_GLOBAL_POLITICAL_DEVELOPMENTS }}
           KOICA_COUNTRY_INFORMATION: ${{ secrets.KOICA_COUNTRY_INFORMATION }}
           KOTRA_KOREA_FDI_BY_INDUSTRY: ${{ secrets.KOTRA_KOREA_FDI_BY_INDUSTRY }}
+          GG_DATADREAM_OPENDATA: ${{ secrets.GG_DATADREAM_OPENDATA }}
           EDINET_API_KEY: ${{ secrets.EDINET_API_KEY }}
           KSURE_COUNTRY_LIST: ${{ secrets.KSURE_COUNTRY_LIST }}
           MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY: ${{ secrets.MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY }}
@@ -222,6 +227,7 @@ jobs:
           DATA_GO_KR_KEY:   ${{ secrets.DATA_GO_KR_KEY }}
           APIS_DATA:        ${{ secrets.APIS_DATA }}
           SPECIAL_DAY_INFO: ${{ secrets.SPECIAL_DAY_INFO }}
+          DATA_GO_KR: ${{ secrets.DATA_GO_KR }}
           # ★ D-435 — 국제수지(ECOS 와 같은 열쇠) · 국가건설기준(KICT_API_KEY) 진단
           ECOS_API_KEY:     ${{ secrets.ECOS_API_KEY }}
           ECOS_BOK_KEY:     ${{ secrets.ECOS_BOK_KEY }}
@@ -268,6 +274,7 @@ jobs:
           KPX_POWER_SUPPLY_DEMAND_FORECAST_GW: ${{ secrets.KPX_POWER_SUPPLY_DEMAND_FORECAST_GW }}
           KOICA_COUNTRY_INFORMATION: ${{ secrets.KOICA_COUNTRY_INFORMATION }}
           KOTRA_KOREA_FDI_BY_INDUSTRY: ${{ secrets.KOTRA_KOREA_FDI_BY_INDUSTRY }}
+          GG_DATADREAM_OPENDATA: ${{ secrets.GG_DATADREAM_OPENDATA }}
           EDINET_API_KEY: ${{ secrets.EDINET_API_KEY }}
           KSURE_COUNTRY_LIST: ${{ secrets.KSURE_COUNTRY_LIST }}
           MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY: ${{ secrets.MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY }}
@@ -311,6 +318,7 @@ jobs:
           ECOC_BOK_BOP_STATISTICS: ${{ secrets.ECOC_BOK_BOP_STATISTICS }}
           FSS_DART_DISCLOSURE: ${{ secrets.FSS_DART_DISCLOSURE }}
           DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+          DATA_GO_KR: ${{ secrets.DATA_GO_KR }}
         run: |
           node scripts/key-presence.mjs || true
           { echo ""; echo "### 열쇠 이름 — 들어 있는가"; cat data/_api/key-presence.md 2>/dev/null || echo "(못 읽었다)"; } >> "$GITHUB_STEP_SUMMARY"
@@ -326,6 +334,19 @@ jobs:
           {
             echo '### EDINET 진단'
             grep -E '^> \*\*판정|^> 판정' data/_api/edinet-probe.md || echo '(판정 줄을 못 읽었다)'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # ★★ 경기데이터드림 — **진단** 〈2026-10-26 · 사장님이 GG_DataDream_OpenData 를 넣으셨다〉.
+      #   공공데이터포털이 아니라 openapi.gg.go.kr 이다 — 포털 검색 진단에 싣지 않고 따로 부른다 (§4.3).
+      - name: 경기데이터드림 열쇠가 먹는지 불러 본다
+        continue-on-error: true
+        env:
+          GG_DATADREAM_OPENDATA: ${{ secrets.GG_DATADREAM_OPENDATA }}
+        run: |
+          node scripts/gg-probe.mjs || true
+          {
+            echo '### 경기데이터드림 진단'
+            grep -E '^> \*\*판정|^> 판정' data/_api/gg-probe.md || echo '(판정 줄을 못 읽었다)'
           } >> "$GITHUB_STEP_SUMMARY"
 
       # ★★★ 네이버 클라우드 Maps — **진단** 〈2026-09-25 · D-314〉.
