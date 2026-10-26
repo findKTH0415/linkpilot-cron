@@ -133,6 +133,9 @@ test('⑫ 디자인·레이아웃 10종 — 지침 §3 글자 · 부록 A 값', 
         assert.match(sv, />예시<\/text>/, t.id + ' ' + (i + 1) + '쪽: «예시» 딱지가 없다');
         assert.ok(/<text\b/.test(sv), t.id + ' ' + k + ': 예시 글자가 없다');
         assert.ok(!/<image\b|https?:|href=/.test(sv.replace(' xmlns="http://www.w3.org/2000/svg"', '')), t.id + ' ' + k + ': 바깥 그림·주소가 들어갔다');
+        if (k === 'price') {   // 돌린 차례로 집으면 «분양가» 칸에 계약금이 선다 (Codex #586)
+          assert.ok(sv.includes('>' + S.kpis[1][0] + '<'), t.id + ' ' + (i + 1) + '쪽: 분양가 자리에 다른 값');
+          assert.ok(sv.includes('계약금 ' + S.kpis[2][0]), t.id + ' ' + (i + 1) + '쪽: 계약금 자리에 다른 값'); }
         seen.add(sv);
       });
       assert.strictEqual(seen.size, 12, t.id + (land ? ' 가로' : ' 세로') + ': 똑같이 그려진 쪽이 있다');

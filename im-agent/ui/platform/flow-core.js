@@ -24,7 +24,7 @@
    *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다. 화면이 자기
    *   지문과 대 보고 다르면 「함수가 없다」로 죽기 전에 사람 말로 알린다.
    */
-  var LP_BUILD = '63cb215a';
+  var LP_BUILD = 'b8957838';
 
   /**
    * ★★★ **단계는 다섯이다** 〈2026-08-22 사용자 지시〉.
@@ -1634,6 +1634,7 @@
       chart: ['추이', '전망', '민감도', '비교'], timeline: ['추진 일정', '세부 일정', '결정 시점', '후속 일정'], diagram: ['사업 구도', '자금 흐름', '운영 구조'], map: ['입지', '주변 개발'],
       divider: ['사업 개요', '재무 계획', '실행 계획'], canvas: ['사업모델 캔버스'], price: ['분양가·조건', '할인·혜택'] };
     function vt(k) { var a = VT[k] || [V2_DS_KIND[k] || k]; return a[vi % a.length]; }
+    var K0 = S.kpis; /* 뜻으로 집는 칸(분양가·계약금)은 돌리기 전 차례로 읽는다 */
     if (vi) { var rot = function (a) { a = (a || []).slice(); for (var q0 = 0; q0 < vi; q0++) a.push(a.shift()); return a; };
       S = Object.assign({}, S, { rows: rot(S.rows), kpis: rot(S.kpis), steps: rot(S.steps), chart: vi % 2 ? S.chart.slice().reverse() : S.chart, chartL: S.chartL }); }
     /* 참조 색 넷의 차례는 타입마다 뜻이 다르다(09 는 넷째가 강조색) — 채도가 가장 큰 것이 강조, 흰색이 아닌 가장 밝은 것이 옅은 바탕 */
@@ -1765,8 +1766,8 @@
           S.kpis.slice(0, 3).forEach(function (kp, i) { var kx = P + i * (iw / 3); tx(kx, H * 0.5 + 54, kp[0], 11, mono ? txt : acc, 700); tx(kx, H * 0.5 + 62, kp[1], 4.4, sub, 600); }); lines(P, H * 0.5 + 76, iw, 7, 5); }
       } else if (kind === 'price') {
         y = head(pno, vt('price'), y);
-        r(P, y, iw, land ? 40 : 54, ink, 2); tx(P + 8, y + (land ? 18 : 22), '분양가', 5, 'rgba(255,255,255,.7)', 600); tx(P + 8, y + (land ? 33 : 42), S.kpis[1][0], land ? 18 : 24, '#FFFFFF', 700);
-        tx(P + iw - 8, y + (land ? 33 : 42), '계약금 ' + S.kpis[2][0] + ' · 중도금 무이자', 4.8, mono ? '#FFFFFF' : '#FFD9A8', 700, 'end');
+        r(P, y, iw, land ? 40 : 54, ink, 2); tx(P + 8, y + (land ? 18 : 22), '분양가', 5, 'rgba(255,255,255,.7)', 600); tx(P + 8, y + (land ? 33 : 42), K0[1][0], land ? 18 : 24, '#FFFFFF', 700);
+        tx(P + iw - 8, y + (land ? 33 : 42), '계약금 ' + K0[2][0] + ' · 중도금 무이자', 4.8, mono ? '#FFFFFF' : '#FFD9A8', 700, 'end');
         var py2 = y + (land ? 48 : 64), pc = S.rows.length, pw = (iw - (pc - 1) * 5) / pc, ph = land ? H - py2 - 20 : 70;
         S.rows.forEach(function (row, i) { var px2 = P + i * (pw + 5); r(px2, py2, pw, ph, i === 1 ? acc : (mono ? '#F4F5F7' : tint), 2); tx(px2 + 5, py2 + 11, row[0], 7, i === 1 ? '#FFFFFF' : txt, 700); tx(px2 + 5, py2 + 22, row[1], 8, i === 1 ? '#FFFFFF' : acc, 700); tx(px2 + 5, py2 + 30, row[2], 4.4, i === 1 ? 'rgba(255,255,255,.8)' : sub); });
         if (!land) lines(P, py2 + ph + 12, iw, 6, 5);
