@@ -123,7 +123,9 @@ async function main() {
   const r = await makeFigure({ kind, brief, w, h, keys });
   await mkdir(OUT, { recursive: true });
   const at = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 16).replace('T', ' ') + ' KST';
-  const lines = [`# 제미나이 그림 — ${name}`, '', `${at} · 갈래 ${KINDS[kind]} · ${w}×${h}`, '', `> 판정 ${r.code} — ${r.ok ? '그렸다' : r.say}`, ''];
+  const log = [`# 제미나이 그림 — ${name}`, '', `${at} · 갈래 ${KINDS[kind]} · ${w}×${h}`, ''];
+  /* 판정은 요약 «앞쪽»에 — 맨 끝에 적으면 아무도 안 본다 (§6-3 ① · sources-verdict.test.js) */
+  log.splice(4, 0, `> 판정 ${r.code} — ${r.ok ? '그렸다' : r.say}`, '');
   if (r.ok) {
     const file = `${name}.${r.svg ? 'svg' : (r.mime === 'image/jpeg' ? 'jpg' : 'png')}`;
     const data = r.svg || r.png;
@@ -132,12 +134,12 @@ async function main() {
     await writeFile(`${OUT}/${file}`, data);
     await writeFile(`${OUT}/${name}.json`, JSON.stringify({ name, file, kind, brief, w, h, tool: 'gemini', model: r.model, ai_generated: true,
       disclaimer: kind === 'aerial' ? 'AI 렌더 — 실제 설계안이 아님' : 'AI 가 지은 그림 — 숫자·이름은 요청에 적힌 것만', dropped: r.dropped || [], at }, null, 1));
-    lines.push(`- 파일 \`${OUT}/${file}\` · 모델 \`${r.model}\``);
-    if (r.dropped && r.dropped.length) lines.push(`- 걷어 낸 것: ${r.dropped.join(' · ')} (안전 규칙)`);
-    lines.push('- ★ 문서에 싣기 전에 사람이 눈으로 본다 — 글자 겹침·지어낸 숫자가 없는지 (§6-1-1 «도면은 오류를 안 내고 틀린다»)');
+    log.push(`- 파일 \`${OUT}/${file}\` · 모델 \`${r.model}\``);
+    if (r.dropped && r.dropped.length) log.push(`- 걷어 낸 것: ${r.dropped.join(' · ')} (안전 규칙)`);
+    log.push('- ★ 문서에 싣기 전에 사람이 눈으로 본다 — 글자 겹침·지어낸 숫자가 없는지 (§6-1-1 «도면은 오류를 안 내고 틀린다»)');
   }
-  await writeFile(`${OUT}/_summary.md`, lines.join('\n') + '\n');
-  console.log(lines.join('\n'));
+  await writeFile(`${OUT}/_summary.md`, log.join('\n') + '\n');
+  console.log(log.join('\n'));
   process.exit(r.code);
 }
 
