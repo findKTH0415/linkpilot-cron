@@ -24,7 +24,7 @@
    *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다. 화면이 자기
    *   지문과 대 보고 다르면 「함수가 없다」로 죽기 전에 사람 말로 알린다.
    */
-  var LP_BUILD = '4774c141';
+  var LP_BUILD = '289ad3e3';
 
   /**
    * ★★★ **단계는 다섯이다** 〈2026-08-22 사용자 지시〉.
@@ -1575,49 +1575,216 @@
   var V2_DS_KIND = { cover: '표지', toc: '목차', divider: '간지', kpi: '핵심 수치', twocol: '본문 2단', table: '표', chart: '도표',
     diagram: '사업구도', map: '지도', timeline: '일정', photo: '사진', price: '가격·조건', canvas: '모듈 캔버스', closing: '맺음' };
   function v2DsPages(id) { return (V2_DS_PAGES[id] || []).slice(); }
-  /** 한 쪽의 선 그림(SVG 글자) — kind · 타입 id · land(가로 16:9 이면 true) */
-  function v2DsSvg(kind, id, land) {
-    var t = v2DsType(id), cs = v2DsColors(t);
+  /* ★★ 쪽 견본 = «예시 문서» 〈2026-10-26 사장님: 「실제 예시 작업된 디자인 이미지를 넣어서 · 앳지 있는 디자인으로 깔끔한 레이아웃 · 글로벌 경쟁사 견본을 서치하여」〉
+   *   앞 판(선 그림 · 자리표시 막대)을 «예시 회사·예시 숫자가 실린 완성 쪽»으로 바꿨다. 경쟁사 화면을 베끼지 않고, 공통 경향만 옮겼다 —
+   *   엄격한 격자 · 짙은 무채색 + 강조색 하나 · 큰 숫자 · 굵은 제목 · 사진과 숫자를 한 쪽에 엮기 · 얇은 선의 도표.
+   *   ★ 회사·숫자는 꾸민 값이다 — 쪽마다 «예시» 딱지를 박고 화면에도 그렇게 적는다(§8 「예시면 예시라고 박는다」).
+   *   ★ 사진은 받아 오지 않는다(Pexels·Unsplash 공식 API 만 · §6-2-6) — 그 자리는 타입 색으로 그린 벡터 그림이다.
+   *   판: 세로 A4 = 210×297 · 가로 16:9 = 320×180. */
+  var V2_DS_SAMPLE = {
+    'LP-DS-01': { tableT: '사업 영역별 매출', co: '한빛테크', title: '2026 회사소개서', sub: '산업용 IoT 플랫폼 · 업무 제안', illo: 'office',
+      kpis: [['312', '고객사'], ['148억', '2025 매출'], ['27%', '3년 성장률'], ['14건', '등록 특허']],
+      rows: [['스마트팩토리', '62억', '41%'], ['물류 자동화', '38억', '25%'], ['에너지 관리', '29억', '19%'], ['유지보수', '19억', '15%']], cols: ['사업 영역', '매출', '비중'],
+      chart: [42, 55, 61, 78, 96, 121, 148], chartL: ['19', '20', '21', '22', '23', '24', '25'], unit: '억 원', steps: ['진단', '설계', '구축', '운영'] },
+    'LP-DS-02': { tableT: '재원 구성', co: 'PDI 예시 PFV', title: '서초 복합개발 투자제안', sub: '오피스·리테일 연면적 48,200㎡ · 지분투자 IM', illo: 'city',
+      kpis: [['1,240억', '총사업비'], ['14.2%', '목표 IRR'], ['58%', 'LTV'], ['2028.06', '준공 예정']],
+      rows: [['선순위 PF', '720억', '58%'], ['중순위', '180억', '15%'], ['자기자본(RCPS)', '220억', '18%'], ['분양 선수금', '120억', '9%']], cols: ['재원', '금액', '비중'],
+      chart: [-180, -420, -380, 160, 520, 610, 640], chartL: ['26', '27', '28', '29', '30', '31', '32'], unit: '현금흐름 · 억 원', steps: ['토지 확보', '인허가', '착공', '준공·매각'] },
+    'LP-DS-03': { tableT: '사업모델', co: '예시 로지스', title: '도시형 물류 신사업 계획', sub: '수도권 라스트마일 거점 12곳', illo: 'warehouse',
+      kpis: [['12곳', '거점'], ['3.4만', '일 처리량'], ['2.1년', '회수 기간'], ['18%', '영업이익률']],
+      rows: [['고객', '수도권 이커머스 셀러'], ['가치', '당일 배송 · 반품 수거'], ['채널', '플랫폼 제휴 · 직판'], ['수익', '건당 수수료 · 보관료']], cols: ['모듈', '내용'],
+      chart: [8, 14, 22, 31, 40, 52], chartL: ['1Q', '2Q', '3Q', '4Q', '5Q', '6Q'], unit: '처리량 · 천 건', steps: ['시범 2곳', '확장 6곳', '전국 12곳', '자동화'] },
+    'LP-DS-04': { tableT: '추진 개요', co: '예시시', title: '스마트 에너지 지원사업 제안', sub: '공공건물 태양광·ESS 보급 · 기관 제출용', illo: 'civic',
+      kpis: [['46개소', '대상 건물'], ['3.8MW', '설치 용량'], ['21억', '국비 신청'], ['31%', '전기료 절감']],
+      rows: [['1. 목적', '공공건물 에너지 자립'], ['2. 근거', '신재생에너지법 제12조'], ['3. 추진', '2026.03 ~ 2027.12'], ['4. 예산', '국비 21억 · 시비 9억']], cols: ['항목', '내용'],
+      chart: [12, 18, 23, 27, 31], chartL: ['1년', '2년', '3년', '4년', '5년'], unit: '누적 절감률 · %', steps: ['공모', '선정', '설치', '사후관리'] },
+    'LP-DS-05': { tableT: '권역별 지표', co: '예시 리서치', title: '수도권 오피스 시장 분석', sub: '2026 3분기 · 권역별 공실·임대료', illo: 'city',
+      kpis: [['4.1%', '평균 공실률'], ['+6.3%', '임대료 상승'], ['2.8조', '거래액'], ['5.2%', '캡레이트']],
+      rows: [['CBD', '3.6%', '12.4만'], ['GBD', '2.1%', '13.8만'], ['YBD', '5.9%', '10.2만'], ['판교', '1.4%', '9.6만']], cols: ['권역', '공실률', '평당 임대료'],
+      chart: [5.8, 5.1, 4.9, 4.6, 4.3, 4.1], chartL: ['21', '22', '23', '24', '25', '26'], unit: '공실률 · %', steps: ['수집', '정제', '분석', '해석'] },
+    'LP-DS-06': { tableT: '참여자와 역할', co: '예시 오프쇼어윈드', title: '해상풍력 120MW 사업구도', sub: '전남 서남해 · 발전사업 허가 완료', illo: 'wind',
+      kpis: [['120MW', '설비 용량'], ['3,960억', '총사업비'], ['34%', '이용률'], ['20년', 'PPA']],
+      rows: [['사업주', 'SPC (예시)'], ['EPC', '국내 조선사 컨소시엄'], ['대주단', '정책금융 + 시중은행'], ['구매자', 'RE100 기업 장기계약']], cols: ['참여자', '역할'],
+      chart: [0, 0, 120, 360, 360, 360, 360], chartL: ['26', '27', '28', '29', '30', '31', '32'], unit: '발전량 · GWh', steps: ['허가', '금융 약정', '건설', '상업 운전'] },
+    'LP-DS-07': { tableT: '단계별 책임', co: '예시 엔지니어링', title: '추진 로드맵 2026–2028', sub: '단계·일정·결정 시점', illo: 'office',
+      kpis: [['4단계', '추진'], ['26개월', '전체 기간'], ['7회', '의사결정'], ['3곳', '주관 기관']],
+      rows: [['착수', '2026.01', 'PM'], ['설계', '2026.04', '설계사'], ['인허가', '2026.10', '시행사'], ['시공', '2027.03', '시공사']], cols: ['단계', '시작', '책임'],
+      chart: [10, 25, 45, 70, 90, 100], chartL: ['1Q', '2Q', '3Q', '4Q', '5Q', '6Q'], unit: '공정률 · %', steps: ['착수', '설계', '인허가', '시공', '준공'] },
+    'LP-DS-08': { tableT: '타입별 분양가', photos: ['외관', '로비', '한강 조망', '커뮤니티', '단지 조경'], co: '더 리버 레지던스', title: '한강 조망 프리미엄 분양', sub: '전용 59·84·112㎡ · 482세대', illo: 'tower',
+      kpis: [['482', '세대'], ['6.8억~', '분양가'], ['10%', '계약금'], ['2028.03', '입주']],
+      rows: [['59㎡', '6.8억', '186세대'], ['84㎡', '9.4억', '214세대'], ['112㎡', '13.2억', '82세대']], cols: ['타입', '분양가', '세대'],
+      chart: [62, 71, 84, 92], chartL: ['1차', '2차', '3차', '4차'], unit: '청약 경쟁률 · 대 1', steps: ['청약', '당첨', '계약', '입주'] },
+    'LP-DS-09': { tableT: '시설 구성', photos: ['오션뷰 객실', '인피니티 풀', '스파', '다이닝', '해변 산책로'], co: '예시 리조트', title: '바다 앞 웰니스 리조트', sub: '객실 186 · 스파 · 인피니티 풀', illo: 'resort',
+      kpis: [['186실', '객실'], ['2,400㎡', '스파'], ['78%', '평균 점유율'], ['12분', '공항 거리']],
+      rows: [['객실', '오션뷰 스위트 42실'], ['스파', '트리트먼트 룸 18'], ['F&B', '레스토랑 3 · 바 2'], ['MICE', '연회장 600석']], cols: ['시설', '내용'],
+      chart: [64, 69, 73, 78], chartL: ['23', '24', '25', '26'], unit: '점유율 · %', steps: ['도착', '체크인', '스파', '다이닝'] },
+    'LP-DS-10': { tableT: '편입 자산', photos: ['A 타워', 'B 타워', '로비', '주변 업무지구', '전망'], co: 'Private Placement', title: 'Prime Office Fund I', sub: '도심 핵심 오피스 2개 동 · 주요 투자자 제안', illo: 'tower',
+      kpis: [['6,800억', '펀드 규모'], ['7.4%', '목표 배당'], ['5년', '운용 기간'], ['98%', '임차율']],
+      rows: [['A 타워', '도심 · 연 4.8만㎡', '99%'], ['B 타워', '강남 · 연 3.6만㎡', '97%']], cols: ['자산', '규모', '임차율'],
+      chart: [6.8, 7.0, 7.2, 7.4, 7.5], chartL: ['1년', '2년', '3년', '4년', '5년'], unit: '배당률 · %', steps: ['약정', '인수', '운용', '매각'] },
+  };
+  /** 한 쪽의 예시 그림(SVG 글자) — kind · 타입 id · land(가로 16:9 이면 true) · no(몇째 쪽 · 1부터 · 없으면 그 kind 의 첫 쪽) */
+  /* 글자 폭 어림(글자 크기 1 기준) — 한글·전각 1.0 · 영문·숫자 0.58 · 빈칸 0.3 */
+  function v2DsEm(s) { var w = 0; String(s || '').split('').forEach(function (ch) { w += /\s/.test(ch) ? 0.3 : ch.charCodeAt(0) > 0x2E7F ? 1.0 : 0.58; }); return w || 1; }
+  function v2DsSvg(kind, id, land, no) {
+    var t = v2DsType(id), cs = v2DsColors(t), S = V2_DS_SAMPLE[id] || V2_DS_SAMPLE['LP-DS-01'];
+    /* 같은 kind 가 한 타입에 여러 번 나오면(사진 다섯 쪽) 몇째인지로 그림·제목을 바꾼다 — 똑같은 쪽이 줄지어 서지 않게 */
+    var pages = V2_DS_PAGES[id] || [], pno = no || (pages.indexOf(kind) + 1) || 1, vi = 0;
+    for (var pi = 0; pi < pno - 1 && pi < pages.length; pi++) if (pages[pi] === kind) vi++;
+    /* 둘째·셋째 같은 kind 는 제목과 예시 줄의 차례를 바꿔 다른 쪽으로 그린다 */
+    var VT = { kpi: ['핵심 수치', '투자 포인트', '요약 지표'], twocol: ['사업 개요', '시장 환경', '리스크와 대응'], table: [S.tableT || '구성 요약', '세부 조건', '비교 검토', '추가 자료'],
+      chart: ['추이', '전망', '민감도', '비교'], timeline: ['추진 일정', '세부 일정', '결정 시점', '후속 일정'], diagram: ['사업 구도', '자금 흐름', '운영 구조'], map: ['입지', '주변 개발'],
+      divider: ['사업 개요', '재무 계획', '실행 계획'], canvas: ['사업모델 캔버스'], price: ['분양가·조건', '할인·혜택'] };
+    function vt(k) { var a = VT[k] || [V2_DS_KIND[k] || k]; return a[vi % a.length]; }
+    var K0 = S.kpis; /* 뜻으로 집는 칸(분양가·계약금)은 돌리기 전 차례로 읽는다 */
+    if (vi) { var rot = function (a) { a = (a || []).slice(); for (var q0 = 0; q0 < vi; q0++) a.push(a.shift()); return a; };
+      S = Object.assign({}, S, { rows: rot(S.rows), kpis: rot(S.kpis), steps: rot(S.steps), chart: vi % 2 ? S.chart.slice().reverse() : S.chart, chartL: S.chartL }); }
     /* 참조 색 넷의 차례는 타입마다 뜻이 다르다(09 는 넷째가 강조색) — 채도가 가장 큰 것이 강조, 흰색이 아닌 가장 밝은 것이 옅은 바탕 */
     function rgb(c) { var m = /^#([0-9a-f]{6})$/i.exec(c || ''); if (!m) return null; var n = parseInt(m[1], 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
     var ink = cs[0] || '#0A1419', acc = '#577508', tint = '#F2F2F5', bestS = -1, bestL = -1;
     cs.slice(1).forEach(function (c) { var v = rgb(c); if (!v) return; var mx = Math.max(v[0], v[1], v[2]), mn = Math.min(v[0], v[1], v[2]), sat = mx ? (mx - mn) / mx : 0, lum = (v[0] * 0.299 + v[1] * 0.587 + v[2] * 0.114) / 255;
       if (lum < 0.75 && sat > bestS) { bestS = sat; acc = c; }
       if (lum >= 0.85 && mn < 255 && lum > bestL) { bestL = lum; tint = c; } });
-    var bg = '#FFFFFF', grey = '#D8DCE1', hair = '#E7E9EC', photo = '#9AA1A9';
-    var W = land ? 160 : 113, H = land ? 90 : 160, P = land ? 8 : 9, iw = W - P * 2;
+    var mono = id === 'LP-DS-10' || id === 'LP-DS-04';   /* 프리미엄·공공은 무채색 — 강조는 한 곳에만 */
+    var bg = '#FFFFFF', txt = '#0A1419', sub = '#5B6470', hair = '#DDE1E6', soft = '#EEF0F3';
+    var W = land ? 320 : 210, H = land ? 180 : 297, P = land ? 16 : 16, iw = W - P * 2, FF = 'Paperlogy,Cambria,sans-serif';
     var o = [];
-    function r(x, y, w, h, f, rx) { o.push('<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + Math.max(0, w).toFixed(1) + '" height="' + Math.max(0, h).toFixed(1) + '" fill="' + f + '"' + (rx ? ' rx="' + rx + '"' : '') + '/>'); }
-    function ln(x1, y1, x2, y2, c, sw) { o.push('<line x1="' + x1.toFixed(1) + '" y1="' + y1.toFixed(1) + '" x2="' + x2.toFixed(1) + '" y2="' + y2.toFixed(1) + '" stroke="' + c + '" stroke-width="' + (sw || 1) + '"/>'); }
-    function bars(x, y, w, n, c, gap) { for (var i = 0; i < n; i++) r(x, y + i * (gap || 4), w * (i === n - 1 ? 0.6 : 1), 1.6, c || grey); }
-    function head(y) { r(P, y, iw * 0.55, 3.2, ink); bars(P, y + 6, iw * 0.8, 1); return y + 12; }
-    var dark = kind === 'cover' || kind === 'closing';
-    r(0, 0, W, H, dark ? ink : bg);
-    var y = P;
-    if (kind === 'cover' || kind === 'closing') {
-      if (/LP-DS-0(8|9)|LP-DS-10/.test(id)) r(land ? W * 0.5 : 0, land ? 0 : H * 0.45, land ? W * 0.5 : W, land ? H : H * 0.55, photo);
-      r(P, H * (land ? 0.42 : 0.3), iw * (land ? 0.42 : 0.7), 4, '#FFFFFF');
-      r(P, H * (land ? 0.42 : 0.3) + 7, iw * (land ? 0.3 : 0.5), 4, '#FFFFFF');
-      r(P, H * (land ? 0.42 : 0.3) + 15, iw * 0.18, 2.4, acc);
-      bars(P, H - P - 6, iw * (land ? 0.35 : 0.6), 2, 'rgba(255,255,255,.45)');
-    } else if (kind === 'divider') {
-      r(0, 0, W, H, tint); r(P, H * 0.38, 14, 10, acc); r(P, H * 0.38 + 14, iw * 0.55, 3.6, ink); bars(P, H * 0.38 + 21, iw * 0.4, 1);
-    } else {
-      y = head(y);
-      var bh = H - y - P - 5;
-      if (kind === 'toc') { for (var i = 0; i < 6; i++) { r(P, y + i * (bh / 6), 4, 3, acc); r(P + 7, y + i * (bh / 6) + 0.6, iw * 0.55, 1.8, grey); } }
-      else if (kind === 'kpi') { var n = land ? 4 : 2, cw = (iw - (n - 1) * 3) / n, rows = land ? 1 : 2; for (var k = 0; k < n * rows; k++) { var cx = P + (k % n) * (cw + 3), cy = y + Math.floor(k / n) * (bh * 0.32 + 3); r(cx, cy, cw, bh * 0.3, tint); r(cx + 2, cy + 3, cw * 0.55, 3.4, acc); r(cx + 2, cy + bh * 0.3 - 5, cw * 0.7, 1.4, grey); } bars(P, y + bh * (rows === 1 ? 0.45 : 0.75), iw, 3); }
-      else if (kind === 'table') { r(P, y, iw, 4, ink); for (var j = 1; j < 9; j++) ln(P, y + 4 + j * (bh - 4) / 9, P + iw, y + 4 + j * (bh - 4) / 9, hair, 0.8); for (var q = 0; q < 8; q++) r(P + 2, y + 6.5 + q * (bh - 4) / 9, iw * 0.3, 1.4, grey); }
-      else if (kind === 'chart') { var nb = land ? 9 : 6, gw = iw / nb; for (var b = 0; b < nb; b++) { var hh = bh * (0.25 + 0.65 * ((b * 37) % 10) / 10); r(P + b * gw + 1, y + bh - hh, gw - 2.5, hh, b === nb - 2 ? acc : grey); } ln(P, y + bh, P + iw, y + bh, ink, 0.8); }
-      else if (kind === 'diagram' || kind === 'canvas') { var nn = kind === 'canvas' ? (land ? 5 : 4) : 3, dw = (iw - (nn - 1) * 4) / nn; for (var d = 0; d < nn; d++) { r(P + d * (dw + 4), y + bh * 0.2, dw, bh * 0.45, d === 1 ? acc : tint, 1.5); if (d) ln(P + d * (dw + 4) - 4, y + bh * 0.42, P + d * (dw + 4), y + bh * 0.42, ink, 0.9); } bars(P, y + bh * 0.75, iw * 0.8, 2); }
-      else if (kind === 'map') { r(P, y, land ? iw * 0.6 : iw, land ? bh : bh * 0.62, '#E3E7E1'); o.push('<polygon points="' + [[0.3, 0.3], [0.55, 0.25], [0.6, 0.6], [0.35, 0.7]].map(function (pt) { return (P + pt[0] * (land ? iw * 0.6 : iw)).toFixed(1) + ',' + (y + pt[1] * (land ? bh : bh * 0.62)).toFixed(1); }).join(' ') + '" fill="rgba(192,0,0,.22)" stroke="#C00000" stroke-width="1"/>'); if (land) bars(P + iw * 0.65, y + 2, iw * 0.33, 6); else bars(P, y + bh * 0.7, iw, 3); }
-      else if (kind === 'timeline') { ln(P, y + bh * 0.35, P + iw, y + bh * 0.35, ink, 0.9); for (var tt = 0; tt < 5; tt++) { var tx = P + tt * iw / 4.4; o.push('<circle cx="' + (tx + 2).toFixed(1) + '" cy="' + (y + bh * 0.35).toFixed(1) + '" r="1.8" fill="' + (tt === 2 ? acc : ink) + '"/>'); r(tx, y + bh * 0.45, iw * 0.16, 1.4, grey); } for (var g = 0; g < 3; g++) r(P + g * iw * 0.22, y + bh * (0.62 + g * 0.1), iw * 0.4, 2.6, g === 1 ? acc : tint); }
-      else if (kind === 'photo') { r(land ? P + iw * 0.45 : P, y, land ? iw * 0.55 : iw, land ? bh : bh * 0.6, photo); bars(P, land ? y + 2 : y + bh * 0.68, land ? iw * 0.4 : iw, 3); }
-      else if (kind === 'price') { r(P, y, iw, bh * 0.4, tint); r(P + 3, y + 4, iw * 0.45, 8, acc); r(P + 3, y + 15, iw * 0.3, 1.6, grey); for (var pp = 0; pp < 3; pp++) r(P + pp * (iw / 3), y + bh * 0.5, iw / 3 - 3, bh * 0.4, pp === 1 ? ink : hair); }
-      else { var cw2 = (iw - 4) / 2; bars(P, y, cw2, Math.floor(bh / 5)); bars(P + cw2 + 4, y, cw2, Math.floor(bh / 7)); r(P + cw2 + 4, y + bh * 0.6, cw2, bh * 0.35, tint); }
-      ln(P, H - P + 1, P + iw, H - P + 1, hair, 0.6);
+    function f1(n) { return (+n).toFixed(1); }
+    function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+    function r(x, y, w, h, f, rx, extra) { o.push('<rect x="' + f1(x) + '" y="' + f1(y) + '" width="' + f1(Math.max(0, w)) + '" height="' + f1(Math.max(0, h)) + '" fill="' + f + '"' + (rx ? ' rx="' + rx + '"' : '') + (extra || '') + '/>'); }
+    function ln(x1, y1, x2, y2, c, sw) { o.push('<line x1="' + f1(x1) + '" y1="' + f1(y1) + '" x2="' + f1(x2) + '" y2="' + f1(y2) + '" stroke="' + c + '" stroke-width="' + (sw || 0.5) + '"/>'); }
+    function tx(x, y, s, size, c, w, anchor, ls) { o.push('<text x="' + f1(x) + '" y="' + f1(y) + '" font-family="' + FF + '" font-size="' + size + '" font-weight="' + (w || 400) + '" fill="' + c + '"' + (anchor ? ' text-anchor="' + anchor + '"' : '') + (ls ? ' letter-spacing="' + ls + '"' : '') + '>' + esc(s) + '</text>'); }
+    /* 한 줄 제목은 칸 폭에 맞춰 글자를 줄인다 — 넘치면 그림 틀이 잘라 버린다 (Codex #319) */
+    function fit(s, base, maxw) { return Math.min(base, Math.floor(maxw / v2DsEm(s) * 10) / 10); }
+    function lines(x, y, w, n, gap, c) { for (var i = 0; i < n; i++) r(x, y + i * (gap || 5), w * (i === n - 1 ? 0.62 : (i % 3 === 1 ? 0.92 : 1)), 1.5, c || '#C9CED5'); }
+    /* 그림 — 타입 색의 벡터 장면(사진 대신 · 받아 오지 않는다) */
+    function illo(x, y, w, h, darkBg) {
+      var sky = darkBg ? '#18232B' : (mono ? '#E4E6E9' : tint), g1 = mono ? '#8C939B' : acc, g2 = mono ? '#5E666F' : ink;
+      o.push('<g>'); r(x, y, w, h, sky);
+      var k = S.illo, base = y + h * 0.78;
+      if (k === 'wind') { r(x, base, w, h * 0.22, mono ? '#B5BBC2' : '#9FB7C9'); for (var i = 0; i < 4; i++) { var cx = x + w * (0.18 + i * 0.22), top = y + h * (0.22 + (i % 2) * 0.08); ln(cx, base, cx, top, '#FFFFFF', w * 0.012); var bl = h * 0.2; [0, 120, 240].forEach(function (a) { var rad = (a + i * 20) * Math.PI / 180; ln(cx, top, cx + Math.cos(rad) * bl, top + Math.sin(rad) * bl, '#FFFFFF', w * 0.008); }); } }
+      else if (k === 'resort') { var sh = vi % 3; r(x, y + h * 0.62, w, h * 0.38, mono ? '#9AA2AA' : '#3E8FA8'); r(x, y + h * 0.62, w, h * 0.04, '#FFFFFF', 0, ' opacity=".5"');
+        o.push('<circle cx="' + f1(x + w * (0.78 - sh * 0.2)) + '" cy="' + f1(y + h * 0.22) + '" r="' + f1(h * 0.09) + '" fill="#FFFFFF" opacity=".8"/>');
+        var rx0 = x + w * (0.06 + sh * 0.1); r(rx0, y + h * 0.36, w * 0.5, h * 0.27, '#FFFFFF'); r(rx0, y + h * 0.34, w * 0.5, h * 0.025, g2);
+        for (var j = 0; j < 4; j++) for (var jr = 0; jr < 2; jr++) r(rx0 + w * (0.03 + j * 0.12), y + h * (0.41 + jr * 0.1), w * 0.08, h * 0.06, g2, 0, ' opacity=".45"');
+        var px0 = x + w * (0.82 - sh * 0.62 > 0.1 ? 0.82 : 0.86); o.push('<path d="M' + f1(px0) + ' ' + f1(y + h * 0.64) + ' Q ' + f1(px0 + w * 0.03) + ' ' + f1(y + h * 0.45) + ' ' + f1(px0 - w * 0.01) + ' ' + f1(y + h * 0.3) + '" stroke="' + g2 + '" stroke-width="' + f1(w * 0.012) + '" fill="none"/>');
+        [-40, -10, 20, 160, 200].forEach(function (a) { var rad = a * Math.PI / 180; o.push('<ellipse cx="' + f1(px0 - w * 0.01 + Math.cos(rad) * w * 0.05) + '" cy="' + f1(y + h * 0.3 + Math.sin(rad) * h * 0.04) + '" rx="' + f1(w * 0.055) + '" ry="' + f1(h * 0.018) + '" fill="' + g1 + '" transform="rotate(' + a + ' ' + f1(px0 - w * 0.01 + Math.cos(rad) * w * 0.05) + ' ' + f1(y + h * 0.3 + Math.sin(rad) * h * 0.04) + ')"/>'); }); }
+      else if (k === 'warehouse') { r(x, base, w, h * 0.22, '#C7CCD2'); for (var q = 0; q < 3; q++) { var bx = x + w * (0.06 + q * 0.31); o.push('<polygon points="' + f1(bx) + ',' + f1(base) + ' ' + f1(bx) + ',' + f1(y + h * 0.48) + ' ' + f1(bx + w * 0.14) + ',' + f1(y + h * 0.4) + ' ' + f1(bx + w * 0.28) + ',' + f1(y + h * 0.48) + ' ' + f1(bx + w * 0.28) + ',' + f1(base) + '" fill="' + (q === 1 ? g1 : g2) + '"/>'); r(bx + w * 0.08, base - h * 0.14, w * 0.12, h * 0.14, '#FFFFFF', 0, ' opacity=".8"'); } }
+      else { /* city · tower · office · civic — 높이가 다른 건물 줄 */
+        var bw = [0.12, 0.09, 0.16, 0.1, 0.14, 0.08, 0.13, 0.1], hh = k === 'tower' ? [0.35, 0.5, 0.72, 0.45, 0.6, 0.38, 0.52, 0.3] : [0.3, 0.45, 0.55, 0.36, 0.48, 0.28, 0.42, 0.33], bx2 = x;
+        for (var rot = 0; rot < vi; rot++) { bw.push(bw.shift()); hh.unshift(hh.pop()); }
+        for (var b = 0; b < bw.length && bx2 < x + w; b++) { var ww = Math.min(w * bw[b], x + w - bx2), top2 = base - h * hh[b], hl = (b === 2 || (k === 'tower' && b === 4));
+          r(bx2, top2, ww - w * 0.008, base - top2, hl ? g1 : g2, 0, hl ? '' : ' opacity=".82"');
+          for (var wy = top2 + h * 0.05; wy < base - h * 0.04; wy += h * 0.07) r(bx2 + ww * 0.18, wy, ww * 0.6 - w * 0.008, h * 0.018, '#FFFFFF', 0, ' opacity="' + (darkBg ? '.25' : '.35') + '"');
+          bx2 += ww; }
+        r(x, base, w, h * 0.22, darkBg ? '#0E171D' : '#D5D9DE'); }
+      o.push('</g>');
     }
-    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + (V2_DS_KIND[kind] || kind) + ' 쪽 배치 견본">' + o.join('') + '</svg>';
+    function tag(x, y, darkBg) { r(x, y - 5.4, 14, 7, darkBg ? 'rgba(255,255,255,.16)' : soft, 1.5); tx(x + 7, y - 0.4, '예시', 4, darkBg ? '#FFFFFF' : sub, 600, 'middle'); }
+    function head(no, title, y) { no = pno; tx(P, y, (no < 10 ? '0' : '') + no, 5.4, acc, 700, null, 0.6); tx(P + 11, y, title, land ? 9 : 10, txt, 700); ln(P, y + 4, P + iw, y + 4, txt, 0.6); return y + 12; }
+    function foot() { ln(P, H - 10, P + iw, H - 10, hair, 0.4); tx(P, H - 5, S.co + ' · ' + S.title, 3.6, sub); tag(W - P - 14, H - 3.6); }
+    var dark = kind === 'cover' || kind === 'closing';
+    r(0, 0, W, H, dark ? ink : (kind === 'divider' ? (mono ? '#F4F5F7' : tint) : bg));
+    var y = P + 8;
+    if (kind === 'cover') {
+      if (land) illo(W * 0.5, 0, W * 0.5, H, true); else illo(0, H * 0.46, W, H * 0.54, true);
+      tx(P, P + 6, (t ? t.name : '').toUpperCase(), 4.4, mono ? '#C9CED5' : acc === ink ? '#FFFFFF' : '#C8E27A', 600, null, 0.8);
+      var ty = land ? H * 0.42 : H * 0.24;
+      tx(P, ty, S.title, fit(S.title, land ? 15 : 17, land ? W * 0.5 - P - 4 : iw), '#FFFFFF', 700);
+      tx(P, ty + (land ? 10 : 11), S.sub, land ? 5.6 : 6, 'rgba(255,255,255,.72)');
+      r(P, ty + (land ? 16 : 18), 22, 1.6, mono ? '#FFFFFF' : acc);
+      tx(P, land ? H - P : H * 0.46 - 8, S.co + ' · 2026.10', 4.4, 'rgba(255,255,255,.6)');
+      tag(land ? W * 0.5 - P - 14 : W - P - 14, P + 6, true);
+    } else if (kind === 'closing') {
+      if (land) illo(0, 0, W * 0.42, H, true); else illo(0, 0, W, H * 0.4, true);
+      var cx0 = land ? W * 0.42 + P : P, cy0 = land ? H * 0.4 : H * 0.55;
+      tx(cx0, cy0, '감사합니다', land ? 16 : 18, '#FFFFFF', 700);
+      tx(cx0, cy0 + 11, S.co, 6, 'rgba(255,255,255,.75)', 600);
+      r(cx0, cy0 + 17, 22, 1.6, mono ? '#FFFFFF' : acc);
+      tx(cx0, H - P, 'Strictly Private and Confidential', 4, 'rgba(255,255,255,.5)', 400, null, 0.4);
+      tag(W - P - 14, H - P + 1, true);
+    } else if (kind === 'divider') {
+      var no = vi + 2;
+      tx(P, land ? H * 0.55 : H * 0.48, '0' + no, land ? 54 : 64, mono ? '#C9CED5' : acc, 700);
+      tx(P, (land ? H * 0.55 : H * 0.48) + 14, vt('divider'), land ? 12 : 13, txt, 700);
+      tx(P, (land ? H * 0.55 : H * 0.48) + 23, S.sub, 5, sub);
+      foot();
+    } else {
+      if (kind === 'toc') {
+        y = head(1, '목차', y);
+        var items = ['사업 개요', '시장·입지', '사업 구조', '재무 계획', '추진 일정'];
+        items.forEach(function (it, i) { var yy = y + 6 + i * (land ? 21 : 34); tx(P, yy, '0' + (i + 1), land ? 10 : 13, i === 0 ? acc : '#B9BFC7', 700); tx(P + (land ? 20 : 24), yy, it, land ? 7 : 8, txt, 600); tx(P + iw, yy, String(3 + i * 3), 5, sub, 400, 'end'); ln(P, yy + 5, P + iw, yy + 5, hair, 0.4); });
+      } else if (kind === 'kpi') {
+        y = head(pno, vt('kpi'), y);
+        var n = land ? 4 : 2, rowsN = land ? 1 : 2, cw = (iw - (n - 1) * 6) / n, ch = land ? 52 : 64;
+        S.kpis.forEach(function (kp, i) { var cx = P + (i % n) * (cw + 6), cy = y + Math.floor(i / n) * (ch + 6); r(cx, cy, cw, ch, i === 0 ? ink : (mono ? '#F4F5F7' : tint), 2);
+          tx(cx + 6, cy + ch * 0.55, kp[0], land ? 13 : 16, i === 0 ? '#FFFFFF' : (mono ? txt : acc), 700); tx(cx + 6, cy + ch - 7, kp[1], 4.6, i === 0 ? 'rgba(255,255,255,.7)' : sub, 600); });
+        var ly = y + rowsN * (ch + 6) + 6; tx(P, ly + 4, '안정적 현금흐름과 분명한 회수 경로를 한 쪽에 보입니다.', land ? 5.4 : 5.6, txt, 600); lines(P, ly + 10, iw, land ? 3 : 6, 5);
+      } else if (kind === 'table') {
+        y = head(pno, vt('table'), y);
+        var cols = S.cols, rh = land ? 15 : 18, c1 = cols.length > 2 ? [0, 0.5, 0.78] : [0, 0.36];
+        r(P, y, iw, rh, ink); cols.forEach(function (c, i) { tx(P + 4 + iw * c1[i], y + rh * 0.65, c, 4.8, '#FFFFFF', 600); });
+        S.rows.forEach(function (row, i) { var yy = y + rh * (i + 1); if (i % 2) r(P, yy, iw, rh, '#F7F8FA'); row.forEach(function (cell, j) { tx(P + 4 + iw * c1[j], yy + rh * 0.64, cell, 4.8, j === 0 ? txt : (j === row.length - 1 && !mono ? acc : txt), j === 0 ? 600 : 400); }); ln(P, yy + rh, P + iw, yy + rh, hair, 0.4); });
+        var ty2 = y + rh * (S.rows.length + 1) + 10; tx(P, ty2, '주: 예시 값 — 실제 사업 자료가 아닙니다.', 4, sub); if (!land) lines(P, ty2 + 8, iw, 8, 5);
+      } else if (kind === 'chart') {
+        y = head(pno, vt('chart'), y);
+        tx(P, y + 4, S.unit, 4.4, sub, 600);
+        var vals = S.chart, mx = Math.max.apply(null, vals.map(Math.abs)) || 1, neg = vals.some(function (v) { return v < 0; }),
+          gh = land ? H - y - 40 : H * 0.42, gy = y + 10, zero = neg ? gy + gh * 0.55 : gy + gh, gw = iw / vals.length;
+        [0.25, 0.5, 0.75].forEach(function (g) { ln(P, gy + gh * g, P + iw, gy + gh * g, soft, 0.4); });
+        vals.forEach(function (v, i) { var bh = Math.abs(v) / mx * (neg ? gh * 0.5 : gh * 0.92), last = i === vals.length - 1; var bx = P + i * gw + gw * 0.2;
+          r(bx, v >= 0 ? zero - bh : zero, gw * 0.6, bh, last ? acc : (v < 0 ? '#C9CED5' : (mono ? '#8C939B' : ink)), 0.6);
+          tx(bx + gw * 0.3, (v >= 0 ? zero - bh : zero + bh + 5) - 2, String(v), 4, last ? acc : sub, last ? 700 : 400, 'middle'); tx(bx + gw * 0.3, gy + gh + 7, S.chartL[i], 4, sub, 400, 'middle'); });
+        ln(P, zero, P + iw, zero, txt, 0.6);
+        if (!land) { var ky = gy + gh + 20; tx(P, ky, '마지막 해 값이 가장 큽니다 — 강조색 한 곳에만.', 5.6, txt, 600); lines(P, ky + 7, iw, 6, 5); }
+      } else if (kind === 'diagram' || kind === 'canvas') {
+        y = head(pno, vt(kind), y);
+        if (kind === 'canvas') { var cc = land ? 3 : 2, cr = Math.ceil(S.rows.length / cc) || 2, mw = (iw - (cc - 1) * 5) / cc, mh = land ? (H - y - 24) / cr - 5 : 52;
+          S.rows.forEach(function (row, i) { var mx2 = P + (i % cc) * (mw + 5), my = y + Math.floor(i / cc) * (mh + 5); r(mx2, my, mw, mh, i === 1 ? ink : (mono ? '#F4F5F7' : tint), 2); tx(mx2 + 5, my + 9, row[0], 5.6, i === 1 ? '#FFFFFF' : acc, 700); tx(mx2 + 5, my + 17, row[1], 4.4, i === 1 ? 'rgba(255,255,255,.8)' : txt); lines(mx2 + 5, my + 23, mw - 10, land ? 1 : 4, 5, i === 1 ? 'rgba(255,255,255,.3)' : '#C9CED5'); });
+        } else { var nodes = S.rows.slice(0, 4), bw2 = land ? 62 : 80, bh2 = land ? 22 : 26, cx2 = P + iw / 2, cy2 = y + (land ? 52 : 92);
+          r(cx2 - bw2 / 2, cy2 - bh2 / 2, bw2, bh2, ink, 2); tx(cx2, cy2 + 2, nodes[0][0], 6, '#FFFFFF', 700, 'middle');
+          var pos = land ? [[-1, 0], [1, 0], [0, 1]] : [[0, -1], [-1, 1], [1, 1]];
+          nodes.slice(1).forEach(function (nd, i) { var px = cx2 + pos[i][0] * (land ? 100 : 54), py = cy2 + pos[i][1] * (land ? 46 : 70); ln(cx2, cy2, px, py, acc, 0.9);
+            r(px - bw2 / 2, py - bh2 / 2, bw2, bh2, mono ? '#F4F5F7' : tint, 2, ' stroke="' + acc + '" stroke-width=".6"'); tx(px, py + 1, nd[0], 5, txt, 700, 'middle'); tx(px, py + 7, nd[1], 3.6, sub, 400, 'middle'); });
+          if (!land) { var dy = cy2 + 110; tx(P, dy, '자금은 화살표 방향으로 흐릅니다.', 5.6, txt, 600); lines(P, dy + 7, iw, 4, 5); } }
+      } else if (kind === 'map') {
+        y = head(pno, vt('map'), y);
+        var mw2 = land ? iw * 0.6 : iw, mh2 = land ? H - y - 22 : H * 0.48;
+        r(P, y, mw2, mh2, '#E8EBE5'); o.push('<path d="M' + f1(P) + ' ' + f1(y + mh2 * 0.7) + ' C ' + f1(P + mw2 * 0.3) + ' ' + f1(y + mh2 * 0.55) + ', ' + f1(P + mw2 * 0.6) + ' ' + f1(y + mh2 * 0.9) + ', ' + f1(P + mw2) + ' ' + f1(y + mh2 * 0.72) + '" stroke="#A9C6D9" stroke-width="' + f1(mh2 * 0.08) + '" fill="none"/>');
+        [[0.1, 0, 0.3, 1], [0.6, 0, 0.75, 1], [0, 0.35, 1, 0.3]].forEach(function (s) { ln(P + mw2 * s[0], y + mh2 * s[1], P + mw2 * s[2], y + mh2 * s[3], '#FFFFFF', 2.4); });
+        o.push('<polygon points="' + [[0.38, 0.36], [0.56, 0.32], [0.6, 0.56], [0.4, 0.6]].map(function (pt) { return f1(P + pt[0] * mw2) + ',' + f1(y + pt[1] * mh2); }).join(' ') + '" fill="rgba(192,0,0,.2)" stroke="#C00000" stroke-width=".9"/>');
+        tx(P + mw2 * 0.62, y + mh2 * 0.3, '대상지', 4.6, '#C00000', 700); tx(P + mw2 - 4, y + 8, 'N ↑', 4.4, txt, 700, 'end'); r(P + 4, y + mh2 - 7, 20, 1.2, txt); tx(P + 4, y + mh2 - 9, '500m', 3.4, txt);
+        var sx = land ? P + mw2 + 8 : P, sy = land ? y + 4 : y + mh2 + 12;
+        ['지하철 2호선 도보 4분', '고속도로 IC 6분', '반경 1km 오피스 38개 동'].forEach(function (s, i) { r(sx, sy + i * 12 - 4, 2.4, 6, acc); tx(sx + 6, sy + i * 12 + 1, s, 4.6, txt, 600); });
+      } else if (kind === 'timeline') {
+        y = head(pno, vt('timeline'), y);
+        var qs = land ? 8 : 6, gx = P + (land ? 46 : 40), gw2 = (P + iw - gx) / qs;
+        for (var q2 = 0; q2 < qs; q2++) { tx(gx + q2 * gw2 + gw2 / 2, y + 4, (q2 % 4 + 1) + 'Q', 4, sub, 600, 'middle'); ln(gx + q2 * gw2, y + 7, gx + q2 * gw2, y + 8 + S.steps.length * 16, soft, 0.4); }
+        S.steps.forEach(function (s, i) { var yy = y + 12 + i * 16; tx(P, yy + 5, s, 5, txt, 600); r(gx + (i * qs / (S.steps.length + 0.6)) * gw2, yy, gw2 * (qs / S.steps.length) * 1.1, 7, i === 1 ? acc : (mono ? '#8C939B' : ink), 1.5); });
+        var my2 = y + 16 + S.steps.length * 16; o.push('<polygon points="' + f1(gx + gw2 * 2.5) + ',' + f1(my2) + ' ' + f1(gx + gw2 * 2.5 + 3) + ',' + f1(my2 + 5) + ' ' + f1(gx + gw2 * 2.5 - 3) + ',' + f1(my2 + 5) + '" fill="#C00000"/>'); tx(gx + gw2 * 2.5 + 5, my2 + 5, '투자 결정', 4.2, '#C00000', 700);
+        if (!land) lines(P, my2 + 18, iw, 8, 5);
+      } else if (kind === 'photo') {
+        var capT = (S.photos || ['외관', '공용 공간', '조망', '커뮤니티', '주변 환경'])[vi % 5];
+        if (land) { illo(W * 0.42, 0, W * 0.58, H, false); y = head(pno, capT, P + 8); tx(P, y + 8, S.sub, 6, txt, 700); lines(P, y + 16, W * 0.42 - P * 2, 6, 5); }
+        else { illo(0, 0, W, H * 0.5, false); tx(P, H * 0.5 + 10, capT.toUpperCase(), 4.6, acc, 700, null, 0.8); tx(P, H * 0.5 + 21, vi ? capT + ' — ' + S.co : S.title, fit(vi ? capT + ' — ' + S.co : S.title, 11, iw), txt, 700); tx(P, H * 0.5 + 28, S.sub, 5.4, sub); r(P, H * 0.5 + 33, 18, 1.4, acc);
+          S.kpis.slice(0, 3).forEach(function (kp, i) { var kx = P + i * (iw / 3); tx(kx, H * 0.5 + 54, kp[0], 11, mono ? txt : acc, 700); tx(kx, H * 0.5 + 62, kp[1], 4.4, sub, 600); }); lines(P, H * 0.5 + 76, iw, 7, 5); }
+      } else if (kind === 'price') {
+        y = head(pno, vt('price'), y);
+        r(P, y, iw, land ? 40 : 54, ink, 2); tx(P + 8, y + (land ? 18 : 22), '분양가', 5, 'rgba(255,255,255,.7)', 600); tx(P + 8, y + (land ? 33 : 42), K0[1][0], land ? 18 : 24, '#FFFFFF', 700);
+        tx(P + iw - 8, y + (land ? 33 : 42), '계약금 ' + K0[2][0] + ' · 중도금 무이자', 4.8, mono ? '#FFFFFF' : '#FFD9A8', 700, 'end');
+        var py2 = y + (land ? 48 : 64), pc = S.rows.length, pw = (iw - (pc - 1) * 5) / pc, ph = land ? H - py2 - 20 : 70;
+        S.rows.forEach(function (row, i) { var px2 = P + i * (pw + 5); r(px2, py2, pw, ph, i === 1 ? acc : (mono ? '#F4F5F7' : tint), 2); tx(px2 + 5, py2 + 11, row[0], 7, i === 1 ? '#FFFFFF' : txt, 700); tx(px2 + 5, py2 + 22, row[1], 8, i === 1 ? '#FFFFFF' : acc, 700); tx(px2 + 5, py2 + 30, row[2], 4.4, i === 1 ? 'rgba(255,255,255,.8)' : sub); });
+        if (!land) lines(P, py2 + ph + 12, iw, 6, 5);
+      } else { /* twocol */
+        y = head(pno, vt('twocol'), y);
+        var cw3 = (iw - 8) / 2;
+        tx(P, y + 4, S.sub, land ? 6 : 6.4, txt, 700); lines(P, y + 12, cw3, land ? 14 : 24, 5);
+        var ry = y + 2; r(P + cw3 + 8, ry, cw3, land ? 52 : 72, mono ? '#F4F5F7' : tint, 2); tx(P + cw3 + 14, ry + 14, S.kpis[0][0], land ? 14 : 18, mono ? txt : acc, 700); tx(P + cw3 + 14, ry + 22, S.kpis[0][1], 4.6, sub, 600);
+        lines(P + cw3 + 14, ry + 30, cw3 - 12, land ? 3 : 6, 5); if (!land) { illo(P + cw3 + 8, ry + 80, cw3, 70, false); lines(P + cw3 + 8, ry + 158, cw3, 6, 5); }
+      }
+      foot();
+    }
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc((V2_DS_KIND[kind] || kind) + ' 예시 쪽 — ' + S.title) + '">' + o.join('') + '</svg>';
   }
   function v2DsType(id) { for (var i = 0; i < V2_DS.length; i++) if (V2_DS[i].id === id) return V2_DS[i]; return null; }
   function v2DsColors(t) { return t ? t.refs.map(function (r) { return V2_DS_TOKENS[r]; }) : []; }
@@ -1659,6 +1826,6 @@
     V2_STEPS: V2_STEPS, v2StepOf: v2StepOf, v2Steps: v2Steps, v2Progress: v2Progress, v2Next: v2Next,
     V2_FACT_KEYS: V2_FACT_KEYS, v2Tag: v2Tag, v2FactRows: v2FactRows, v2Conflicts: v2Conflicts,
     V2_FORMATS: V2_FORMATS, V2_PAGES: V2_PAGES, V2_LANGS: V2_LANGS,
-    V2_DS: V2_DS, V2_DS_TOKENS: V2_DS_TOKENS, v2DsType: v2DsType, v2DsColors: v2DsColors, v2DsPages: v2DsPages, v2DsSvg: v2DsSvg, V2_DS_KIND: V2_DS_KIND, V2_IM_SIZES: V2_IM_SIZES,
+    V2_DS: V2_DS, V2_DS_TOKENS: V2_DS_TOKENS, v2DsType: v2DsType, v2DsColors: v2DsColors, v2DsPages: v2DsPages, v2DsSvg: v2DsSvg, V2_DS_KIND: V2_DS_KIND, V2_DS_SAMPLE: V2_DS_SAMPLE, v2DsEm: v2DsEm, V2_IM_SIZES: V2_IM_SIZES,
   };
 }));
