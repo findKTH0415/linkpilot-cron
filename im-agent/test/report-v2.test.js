@@ -141,6 +141,13 @@ test('⑫ 디자인·레이아웃 10종 — 지침 §3 글자 · 부록 A 값', 
       assert.strictEqual(seen.size, 12, t.id + (land ? ' 가로' : ' 세로') + ': 똑같이 그려진 쪽이 있다');
     });
     assert.ok(F.v2DsSvg('cover', t.id, false, 1).includes(S.title.replace(/&/g, '&amp;')), t.id + ' 표지에 예시 제목이 없다');
+    [false, true].forEach((land) => {   // 표지 제목이 한 줄로 칸을 넘으면 틀이 자른다 (Codex #319)
+      const sv = F.v2DsSvg('cover', t.id, land, 1), esc = S.title.replace(/&/g, '&amp;');
+      const m = new RegExp('font-size="([0-9.]+)"[^>]*>' + esc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '<').exec(sv);
+      assert.ok(m, t.id + ' 표지 제목 글자 크기를 못 읽었다');
+      const maxw = land ? 320 * 0.5 - 20 : 210 - 32;
+      assert.ok(+m[1] * F.v2DsEm(S.title) <= maxw + 0.01, t.id + (land ? ' 가로' : ' 세로') + ' 표지 제목이 칸을 넘는다');
+    });
   });
 });
 

@@ -24,7 +24,7 @@
    *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다. 화면이 자기
    *   지문과 대 보고 다르면 「함수가 없다」로 죽기 전에 사람 말로 알린다.
    */
-  var LP_BUILD = 'b8957838';
+  var LP_BUILD = '289ad3e3';
 
   /**
    * ★★★ **단계는 다섯이다** 〈2026-08-22 사용자 지시〉.
@@ -1624,6 +1624,8 @@
       chart: [6.8, 7.0, 7.2, 7.4, 7.5], chartL: ['1년', '2년', '3년', '4년', '5년'], unit: '배당률 · %', steps: ['약정', '인수', '운용', '매각'] },
   };
   /** 한 쪽의 예시 그림(SVG 글자) — kind · 타입 id · land(가로 16:9 이면 true) · no(몇째 쪽 · 1부터 · 없으면 그 kind 의 첫 쪽) */
+  /* 글자 폭 어림(글자 크기 1 기준) — 한글·전각 1.0 · 영문·숫자 0.58 · 빈칸 0.3 */
+  function v2DsEm(s) { var w = 0; String(s || '').split('').forEach(function (ch) { w += /\s/.test(ch) ? 0.3 : ch.charCodeAt(0) > 0x2E7F ? 1.0 : 0.58; }); return w || 1; }
   function v2DsSvg(kind, id, land, no) {
     var t = v2DsType(id), cs = v2DsColors(t), S = V2_DS_SAMPLE[id] || V2_DS_SAMPLE['LP-DS-01'];
     /* 같은 kind 가 한 타입에 여러 번 나오면(사진 다섯 쪽) 몇째인지로 그림·제목을 바꾼다 — 똑같은 쪽이 줄지어 서지 않게 */
@@ -1652,6 +1654,8 @@
     function r(x, y, w, h, f, rx, extra) { o.push('<rect x="' + f1(x) + '" y="' + f1(y) + '" width="' + f1(Math.max(0, w)) + '" height="' + f1(Math.max(0, h)) + '" fill="' + f + '"' + (rx ? ' rx="' + rx + '"' : '') + (extra || '') + '/>'); }
     function ln(x1, y1, x2, y2, c, sw) { o.push('<line x1="' + f1(x1) + '" y1="' + f1(y1) + '" x2="' + f1(x2) + '" y2="' + f1(y2) + '" stroke="' + c + '" stroke-width="' + (sw || 0.5) + '"/>'); }
     function tx(x, y, s, size, c, w, anchor, ls) { o.push('<text x="' + f1(x) + '" y="' + f1(y) + '" font-family="' + FF + '" font-size="' + size + '" font-weight="' + (w || 400) + '" fill="' + c + '"' + (anchor ? ' text-anchor="' + anchor + '"' : '') + (ls ? ' letter-spacing="' + ls + '"' : '') + '>' + esc(s) + '</text>'); }
+    /* 한 줄 제목은 칸 폭에 맞춰 글자를 줄인다 — 넘치면 그림 틀이 잘라 버린다 (Codex #319) */
+    function fit(s, base, maxw) { return Math.min(base, Math.floor(maxw / v2DsEm(s) * 10) / 10); }
     function lines(x, y, w, n, gap, c) { for (var i = 0; i < n; i++) r(x, y + i * (gap || 5), w * (i === n - 1 ? 0.62 : (i % 3 === 1 ? 0.92 : 1)), 1.5, c || '#C9CED5'); }
     /* 그림 — 타입 색의 벡터 장면(사진 대신 · 받아 오지 않는다) */
     function illo(x, y, w, h, darkBg) {
@@ -1686,7 +1690,7 @@
       if (land) illo(W * 0.5, 0, W * 0.5, H, true); else illo(0, H * 0.46, W, H * 0.54, true);
       tx(P, P + 6, (t ? t.name : '').toUpperCase(), 4.4, mono ? '#C9CED5' : acc === ink ? '#FFFFFF' : '#C8E27A', 600, null, 0.8);
       var ty = land ? H * 0.42 : H * 0.24;
-      tx(P, ty, S.title, land ? 15 : 17, '#FFFFFF', 700);
+      tx(P, ty, S.title, fit(S.title, land ? 15 : 17, land ? W * 0.5 - P - 4 : iw), '#FFFFFF', 700);
       tx(P, ty + (land ? 10 : 11), S.sub, land ? 5.6 : 6, 'rgba(255,255,255,.72)');
       r(P, ty + (land ? 16 : 18), 22, 1.6, mono ? '#FFFFFF' : acc);
       tx(P, land ? H - P : H * 0.46 - 8, S.co + ' · 2026.10', 4.4, 'rgba(255,255,255,.6)');
@@ -1762,7 +1766,7 @@
       } else if (kind === 'photo') {
         var capT = (S.photos || ['외관', '공용 공간', '조망', '커뮤니티', '주변 환경'])[vi % 5];
         if (land) { illo(W * 0.42, 0, W * 0.58, H, false); y = head(pno, capT, P + 8); tx(P, y + 8, S.sub, 6, txt, 700); lines(P, y + 16, W * 0.42 - P * 2, 6, 5); }
-        else { illo(0, 0, W, H * 0.5, false); tx(P, H * 0.5 + 10, capT.toUpperCase(), 4.6, acc, 700, null, 0.8); tx(P, H * 0.5 + 21, vi ? capT + ' — ' + S.co : S.title, 11, txt, 700); tx(P, H * 0.5 + 28, S.sub, 5.4, sub); r(P, H * 0.5 + 33, 18, 1.4, acc);
+        else { illo(0, 0, W, H * 0.5, false); tx(P, H * 0.5 + 10, capT.toUpperCase(), 4.6, acc, 700, null, 0.8); tx(P, H * 0.5 + 21, vi ? capT + ' — ' + S.co : S.title, fit(vi ? capT + ' — ' + S.co : S.title, 11, iw), txt, 700); tx(P, H * 0.5 + 28, S.sub, 5.4, sub); r(P, H * 0.5 + 33, 18, 1.4, acc);
           S.kpis.slice(0, 3).forEach(function (kp, i) { var kx = P + i * (iw / 3); tx(kx, H * 0.5 + 54, kp[0], 11, mono ? txt : acc, 700); tx(kx, H * 0.5 + 62, kp[1], 4.4, sub, 600); }); lines(P, H * 0.5 + 76, iw, 7, 5); }
       } else if (kind === 'price') {
         y = head(pno, vt('price'), y);
@@ -1822,6 +1826,6 @@
     V2_STEPS: V2_STEPS, v2StepOf: v2StepOf, v2Steps: v2Steps, v2Progress: v2Progress, v2Next: v2Next,
     V2_FACT_KEYS: V2_FACT_KEYS, v2Tag: v2Tag, v2FactRows: v2FactRows, v2Conflicts: v2Conflicts,
     V2_FORMATS: V2_FORMATS, V2_PAGES: V2_PAGES, V2_LANGS: V2_LANGS,
-    V2_DS: V2_DS, V2_DS_TOKENS: V2_DS_TOKENS, v2DsType: v2DsType, v2DsColors: v2DsColors, v2DsPages: v2DsPages, v2DsSvg: v2DsSvg, V2_DS_KIND: V2_DS_KIND, V2_DS_SAMPLE: V2_DS_SAMPLE, V2_IM_SIZES: V2_IM_SIZES,
+    V2_DS: V2_DS, V2_DS_TOKENS: V2_DS_TOKENS, v2DsType: v2DsType, v2DsColors: v2DsColors, v2DsPages: v2DsPages, v2DsSvg: v2DsSvg, V2_DS_KIND: V2_DS_KIND, V2_DS_SAMPLE: V2_DS_SAMPLE, v2DsEm: v2DsEm, V2_IM_SIZES: V2_IM_SIZES,
   };
 }));
