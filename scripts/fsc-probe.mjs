@@ -528,7 +528,7 @@ async function main() {
       P(line); SEARCH_RECAP.push(line.replace(/\*\*/g, ''));
       /* 못 뽑았으면 그 낱말 둘레를 조금 남긴다 — 다음에 뽑는 법을 고칠 재료다(공개 목록이라 비밀이 없다) */
       if (!hits.length) { const i = sh.indexOf(q.word); P(`  - 둘레 «${i < 0 ? '(낱말이 페이지에 없다)' : redact(sh.slice(Math.max(0, i - 200), i + 60).replace(/\s+/g, ' '))}»`); }
-      for (const h of hits) if (!SERVICES.some((x) => x.id === h.id)) SERVICES.push({ key: q.key, id: h.id, name: h.name, use: q.use });
+      for (const h of hits) if (!SERVICES.some((x) => x.id === h.id && x.key === q.key)) SERVICES.push({ key: q.key, id: h.id, name: h.name, use: q.use });
     } catch (e) { const line = `- 포털 검색 «${q.keyword}» — **못 닿음** (${redact(String((e && e.message) || e))})`; P(line); SEARCH_RECAP.push(line.replace(/\*\*/g, '')); }
   }
   P('');
