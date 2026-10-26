@@ -209,6 +209,7 @@ const SECRET_ENV = [
   'KOICA_COUNTRY_INFORMATION', // ★ 대한무역투자진흥공사(KOTRA) 국가정보 〈2026-10-10 · D-430〉
   'IBK_BRANCH_INFORMATION', // ★ 중소기업은행(IBK) 영업점 정보조회 〈2026-10-17 사장님: 「IBK_Branch_Information API 키넣었어」 · 규격은 진단 중〉
   'KOTRA_KOREA_FDI_BY_INDUSTRY', // ★ 대한무역투자진흥공사(KOTRA) 외국인투자 업종별 현황 〈2026-10-17 사장님: 「키넣었어」 · 규격은 진단 중〉
+  'EAIS_ARCHITECTURAL_INFORMATION', // ★ 국토교통부 세움터_건축정보 〈2026-10-26 사장님: 「세움터_건축정보(EAIS_ARCHITECTURAL_INFORMATION) 키넣었어」〉
   'GG_DATADREAM_OPENDATA', // ★ 경기도 경기데이터드림_전체 공공데이터 〈2026-10-26 사장님: 「경기데이터드림_전체 공공데이터(GG_DataDream_OpenData) 키넣었어」〉
   'EDINET_API_KEY', // ★ 일본 금융청(FSA) EDINET API v2 〈2026-10-24 사장님: 「EDINET API v2(EDINET_API_KEY) 키넣었어」〉
   'KSURE_COUNTRY_LIST', // ★ 한국무역보험공사 한국무역보험공사_국가목록 〈2026-10-19 사장님: 「한국무역보험공사_국가목록(KSURE_Country_List) 키넣었어」〉
