@@ -2053,8 +2053,8 @@ var lpApiWhy = (function () {
     /* ★ 레이아웃 보기 — 가로(16:9)·세로(A4) 〈2026-10-26 사장님: 「디자인 선택 적용에 레이아웃 가로, 세로형을 보여주도록」〉
      *   보기만 바꾼다 — 실제 용지 방향은 문서 양식(서버 사양)이 정한다. 처음 값은 사양의 방향. */
     var sp = facts.spec || {};
-    if (v2.dsLand == null) v2.dsLand = !!(sp.orientation === 'landscape' || sp.pageSize === '16:9');
-    var land = !!v2.dsLand;
+    /* 사람이 누른 값(v2.dsLand)만 기억한다 — 안 눌렀으면 그릴 때마다 사양에서 읽는다(사양이 늦게 와도 따라간다 · Codex #318) */
+    var land = v2.dsLand != null ? !!v2.dsLand : !!(sp.orientation === 'landscape' || sp.pageSize === '16:9');
     var seg = el('div', 'rv2-dsseg');
     seg.setAttribute('role', 'group'); seg.setAttribute('aria-label', '레이아웃 보기');
     seg.appendChild(el('span', 'rv2-dsseg__l', '레이아웃 보기'));

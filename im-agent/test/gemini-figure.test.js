@@ -69,3 +69,21 @@ test('워크플로가 열쇠 묶음을 배포·교차검증과 같은 이름으�
   assert.ok(!/NAS_|SSH|TAILSCALE|TS_AUTH/.test(wf), '그림 잡에 접속 자격증명이 들어갔다');
   assert.match(wf, /node scripts\/gemini-figure\.mjs/);
 });
+
+test('문자 참조로 숨긴 주소(java&#x73;cript:)·<a>·<animate>·style url( 도 걷고, 같은 문서 조각(#id)은 남긴다 (Codex #318)', async () => {
+  const m = await load();
+  const r = m.cleanSvg('<svg viewBox="0 0 10 10"><a href="java&#x73;cript:alert(1)"><text>x</text></a>'
+    + '<rect xlink:href="&#106;avascript:1" style="fill:u&#114;l(http://e)"/><set attributeName="href" to="javascript:1"/>'
+    + '<use href="#m"/></svg>');
+  assert.ok(!/javascript|java&#|&#106;|<a\b|<set|url\(|u&#114;l/i.test(r.svg), r.svg);
+  assert.match(r.svg, /<use href="#m"\/>/);
+  assert.match(r.svg, /<text>x<\/text>/);
+  for (const k of ['a', 'animate', '외부 주소', 'style url']) assert.ok(r.dropped.includes(k), k);
+});
+
+test('도식 요청의 무료 한도 소진(limit: 20)은 «결제 필요(5)»가 아니라 기다리면 낫는 3 (Codex #318)', async () => {
+  const m = await load();
+  const r = await withFetch(() => m.makeFigure({ kind: 'diagram', brief: 'x', keys: ['e'.repeat(30)] }), async () =>
+    reply(429, { error: { message: 'Quota exceeded for metric: generate_content_free_tier_requests, limit: 20' } }));
+  assert.strictEqual(r.code, 3, JSON.stringify(r));
+});

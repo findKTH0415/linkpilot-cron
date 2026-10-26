@@ -5341,8 +5341,8 @@ var lpApiWhy = (function () {
     /* ★ 레이아웃 보기 — 가로(16:9)·세로(A4) 〈2026-10-26 사장님: 「디자인 선택 적용에 레이아웃 가로, 세로형을 보여주도록」〉
      *   보기만 바꾼다 — 실제 용지 방향은 문서 양식(서버 사양)이 정한다. 처음 값은 사양의 방향. */
     var sp = facts.spec || {};
-    if (v2.dsLand == null) v2.dsLand = !!(sp.orientation === 'landscape' || sp.pageSize === '16:9');
-    var land = !!v2.dsLand;
+    /* 사람이 누른 값(v2.dsLand)만 기억한다 — 안 눌렀으면 그릴 때마다 사양에서 읽는다(사양이 늦게 와도 따라간다 · Codex #318) */
+    var land = v2.dsLand != null ? !!v2.dsLand : !!(sp.orientation === 'landscape' || sp.pageSize === '16:9');
     var seg = el('div', 'rv2-dsseg');
     seg.setAttribute('role', 'group'); seg.setAttribute('aria-label', '레이아웃 보기');
     seg.appendChild(el('span', 'rv2-dsseg__l', '레이아웃 보기'));
@@ -7939,7 +7939,7 @@ LTC 65%</pre>
     <div class="ev__n">화면 사본 19개 · 지문</div>
     <div class="ev__m"><code>npm run verify:nas</code> 가 서버에서 받은 바이트를 이 값과 댑니다.
       하나라도 다르면 <b>옛 판</b>으로 봅니다.</div>
-    <div class="ev__m">catalog.js — <code>5669fe62afa7</code> · 7,867B</div><div class="ev__m">embed-bridge.js — <code>98f074099a74</code> · 16,340B</div><div class="ev__m">evidence-core.js — <code>f8b63b1990fe</code> · 18,667B</div><div class="ev__m">fields-core.js — <code>52f1a3fee174</code> · 21,954B</div><div class="ev__m">fields.html — <code>87a0853f76db</code> · 110,622B</div><div class="ev__m">files.html — <code>225c2405c240</code> · 253,713B</div><div class="ev__m">flow-core.js — <code>90a706231828</code> · 103,774B</div><div class="ev__m">gate-core.js — <code>20819a95793a</code> · 5,954B</div><div class="ev__m">inapp.js — <code>d5259782273a</code> · 12,515B</div><div class="ev__m">index.html — <code>f202d4e3b89d</code> · 39,051B</div><div class="ev__m">intake.html — <code>d5cfcbb63642</code> · 111,832B</div><div class="ev__m">live-core.js — <code>a41cb1484c41</code> · 25,783B</div><div class="ev__m">outputs.html — <code>b11c8bbe4d43</code> · 72,820B</div><div class="ev__m">report-flow.html — <code>96cd2c288af8</code> · 189,265B</div><div class="ev__m">reports.html — <code>cc179c8671e6</code> · 117,721B</div><div class="ev__m">style-ab.js — <code>8fa8fa90b491</code> · 15,899B</div><div class="ev__m">tokens.css — <code>4a0574a00ee6</code> · 15,412B</div><div class="ev__m">upload-core.js — <code>94f768cbef78</code> · 17,709B</div><div class="ev__m">versions-core.js — <code>4f43b4a1a33a</code> · 14,154B</div>
+    <div class="ev__m">catalog.js — <code>5669fe62afa7</code> · 7,867B</div><div class="ev__m">embed-bridge.js — <code>98f074099a74</code> · 16,340B</div><div class="ev__m">evidence-core.js — <code>f8b63b1990fe</code> · 18,667B</div><div class="ev__m">fields-core.js — <code>52f1a3fee174</code> · 21,954B</div><div class="ev__m">fields.html — <code>87a0853f76db</code> · 110,622B</div><div class="ev__m">files.html — <code>225c2405c240</code> · 253,713B</div><div class="ev__m">flow-core.js — <code>90a706231828</code> · 103,774B</div><div class="ev__m">gate-core.js — <code>20819a95793a</code> · 5,954B</div><div class="ev__m">inapp.js — <code>d5259782273a</code> · 12,515B</div><div class="ev__m">index.html — <code>f202d4e3b89d</code> · 39,051B</div><div class="ev__m">intake.html — <code>d5cfcbb63642</code> · 111,832B</div><div class="ev__m">live-core.js — <code>a41cb1484c41</code> · 25,783B</div><div class="ev__m">outputs.html — <code>b11c8bbe4d43</code> · 72,820B</div><div class="ev__m">report-flow.html — <code>31dce7a592f9</code> · 189,418B</div><div class="ev__m">reports.html — <code>cc179c8671e6</code> · 117,721B</div><div class="ev__m">style-ab.js — <code>8fa8fa90b491</code> · 15,899B</div><div class="ev__m">tokens.css — <code>4a0574a00ee6</code> · 15,412B</div><div class="ev__m">upload-core.js — <code>94f768cbef78</code> · 17,709B</div><div class="ev__m">versions-core.js — <code>4f43b4a1a33a</code> · 14,154B</div>
   </div>
 
   <div class="ev__c">
@@ -7951,7 +7951,7 @@ LTC 65%</pre>
 
   <div class="ev__c">
     <div class="ev__n">아무도 안 부르는 모듈 — 0개</div>
-    <div class="ev__m">모듈 432개 중 432개가 닿습니다
+    <div class="ev__m">모듈 433개 중 433개가 닿습니다
       (<code>npm run check:reachable</code>).</div>
     <div class="ev__m">없음</div>
   </div>
@@ -8175,6 +8175,6 @@ cannotVerify → ok=false · byDesign=true
     </div>
   <div class="ev__m">본 문서는 「자본시장과 금융투자업에 관한 법률」상 외부평가기관의 평가의견서가 아니며, 세무 목적의 주식가치 평가서도 아니다. 외부평가기관·세무대리인이 작성한 것이 아니고, 제출된 재무자료를 법령이 정한 산식에 넣어 계산한 내부 검토용 참고 수치다. 거래·신고 확정 전 자격을 갖춘 평가기관의 평가가 필요하다.</div>
 </section>
-<div data-lp-preview-stamp style="max-width:960px;margin:34px auto 0;padding:14px 20px 40px;border-top:1px solid rgba(128,128,128,.28);font:400 12px/1.7 ui-monospace,Menlo,monospace;color:#8A939A"><b>판 앱-10e8057c · 미리보기-c87153fc</b><br>앞은 <b>배포되는 앱 묶음</b>, 뒤는 <b>이 미리보기</b>의 판입니다. <b>둘은 따로 움직입니다</b> — 미리보기만 바뀌면 앞은 그대로이고 뒤만 바뀝니다.<br>사진으로 물어보실 때 <b>두 값을 함께</b> 보내 주시면 「반영이 안 됐다」가 어느 쪽 이야기인지 한 번에 갈립니다.</div>
+<div data-lp-preview-stamp style="max-width:960px;margin:34px auto 0;padding:14px 20px 40px;border-top:1px solid rgba(128,128,128,.28);font:400 12px/1.7 ui-monospace,Menlo,monospace;color:#8A939A"><b>판 앱-4774c141 · 미리보기-c87153fc</b><br>앞은 <b>배포되는 앱 묶음</b>, 뒤는 <b>이 미리보기</b>의 판입니다. <b>둘은 따로 움직입니다</b> — 미리보기만 바뀌면 앞은 그대로이고 뒤만 바뀝니다.<br>사진으로 물어보실 때 <b>두 값을 함께</b> 보내 주시면 「반영이 안 됐다」가 어느 쪽 이야기인지 한 번에 갈립니다.</div>
 </body>
 </html>

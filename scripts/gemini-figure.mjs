@@ -35,17 +35,42 @@ export function svgPrompt({ kind, brief, w, h }) {
   ].join('\n');
 }
 
-/** 받은 글에서 SVG 만 꺼내고 위험한 것을 걷는다 — 걸러진 것이 있으면 그 사실을 돌려준다 */
+/** 문자 참조(&#x73; · &#115; · &colon; …)를 풀어 «보는 쪽이 읽을 글자»로 만든다 — 날 글자로만 보면 java&#x73;cript: 가 빠져나간다 (Codex #318) */
+function decodeRefs(v) {
+  const named = { colon: ':', tab: '\t', newline: '\n', amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", sol: '/', lpar: '(', rpar: ')' };
+  return String(v).replace(/&#x([0-9a-f]+);?/gi, (_, h) => String.fromCodePoint(parseInt(h, 16) || 32))
+    .replace(/&#(\d+);?/g, (_, d) => String.fromCodePoint(+d || 32))
+    .replace(/&([a-z]+);/gi, (m, n) => named[n.toLowerCase()] ?? m);
+}
+
+/** 받은 글에서 SVG 만 꺼내고 위험한 것을 걷는다 — 걸러진 것이 있으면 그 사실을 돌려준다
+ *  ★ 주소 칸(href · xlink:href · src)은 «푼 뒤»에 본다 — 같은 문서 안 조각(#이름)만 남기고 나머지는 칸째 뺀다.
+ *    <a>·<animate>·<set> 은 주소를 나중에 바꿔 넣을 수 있어 통째로 뺀다(안의 글은 남긴다). style 의 url( 도 같은 잣대. */
 export function cleanSvg(text) {
   const m = /<svg[\s\S]*<\/svg>/i.exec(String(text || ''));
   if (!m) return null;
   let s = m[0];
-  const dropped = [];
-  const rules = [[/<script[\s\S]*?<\/script>/gi, 'script'], [/<foreignObject[\s\S]*?<\/foreignObject>/gi, 'foreignObject'],
-    [/<image\b[^>]*>/gi, 'image'], [/\son[a-z]+\s*=\s*("[^"]*"|'[^']*')/gi, 'on*'], [/(href|src)\s*=\s*("|')\s*(https?:|javascript:)[^"']*\2/gi, '외부 주소']];
-  for (const [re, name] of rules) if (re.test(s)) { dropped.push(name); s = s.replace(re, ''); }
+  const dropped = new Set();
+  const cut = (re, name, rep = '') => { s = s.replace(re, (...a) => { const out = typeof rep === 'function' ? rep(...a) : rep; if (out !== a[0]) dropped.add(name); return out; }); };
+  cut(/<script[\s\S]*?<\/script>/gi, 'script');
+  cut(/<script\b[^>]*\/?>/gi, 'script');
+  cut(/<foreignObject[\s\S]*?<\/foreignObject>/gi, 'foreignObject');
+  cut(/<image\b[^>]*>/gi, 'image');
+  cut(/<(animate|animateTransform|animateMotion|set)\b[^>]*?(\/>|>[\s\S]*?<\/\1>)/gi, 'animate');
+  cut(/<\/?a\b[^>]*>/gi, 'a');
+  cut(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, 'on*');
+  cut(/\s((?:xlink:)?href|src)\s*=\s*("([^"]*)"|'([^']*)'|([^\s>]+))/gi, '외부 주소', (all, _n, _q, a, b, c) => {
+    const v = decodeRefs(a ?? b ?? c ?? '').replace(/[\s\u0000-\u001f]/g, '');
+    if (/^#[\w.-]+$/.test(v)) return all;
+    return '';
+  });
+  cut(/\sstyle\s*=\s*("([^"]*)"|'([^']*)')/gi, 'style url', (all, _q, a, b) => {
+    const v = decodeRefs(a ?? b ?? '').replace(/\s/g, '').toLowerCase();
+    if (!/url\(|expression\(|javascript:/.test(v)) return all;
+    return '';
+  });
   if (!/viewBox=/.test(s)) return null;
-  return { svg: s, dropped };
+  return { svg: s, dropped: [...dropped] };
 }
 
 async function call(url, key, body, ms = 120000) {
@@ -70,7 +95,8 @@ export async function makeFigure({ kind, brief, w = 1600, h = 900, keys = gemini
       const r = await call(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, key, body);
       if (r.status == null) { last = { ok: false, code: 3, say: r.text === 'timeout' ? `${model} 이 시간 안에 대답하지 않았다` : '제미나이에 닿지 못했다 — 열쇠 문제가 아니다' }; if (r.text === 'timeout') break; continue; }
       if (r.status === 404) { last = { ok: false, code: 6, say: `모델 ${model} 이 없다 — 다음 모델로` }; break; }
-      if (/limit:\s*0/.test(r.text) || /free_tier/.test(r.text) && r.status === 429) { last = { ok: false, code: 5, say: '무료 열쇠는 그림 한도가 0 이다 — 결제 연결(Google AI Studio 의 유료 등급)이 있어야 그림이 나온다', model }; continue; }
+      /* 판정 5 는 «그림» 요청이 «한도 0» 을 받았을 때만 — 그 밖의 무료 한도 소진(limit: 20 등)은 기다리면 낫는 3이다 (Codex #318) */
+      if (!svgKind && r.status === 429 && /limit:\s*0(?!\d)/.test(r.text)) { last = { ok: false, code: 5, say: '무료 열쇠는 그림 한도가 0 이다 — 결제 연결(Google AI Studio 의 유료 등급)이 있어야 그림이 나온다', model }; continue; }
       if (r.status === 401 || r.status === 403) { last = { ok: false, code: 4, say: `열쇠가 거부됐다(HTTP ${r.status}) — 다음 열쇠로` }; continue; }
       if (r.status !== 200) { last = { ok: false, code: 3, say: `HTTP ${r.status} — 한도·과부하일 수 있다. 다음 열쇠로` }; continue; }
       let parts = [];

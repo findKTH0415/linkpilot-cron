@@ -132,6 +132,14 @@ test('⑫ 디자인·레이아웃 10종 — 지침 §3 글자 · 부록 A 값', 
   });
 });
 
+test('⑱ 레이아웃 보기의 처음 값은 «그릴 때마다» 사양에서 읽는다 — 사양이 늦게 와도 따라간다 (Codex #318)', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'ui', 'platform', 'report-flow.html'), 'utf8')
+    .split('\n').filter((l) => !/^\s*(\/\*|\*|\/\/)/.test(l)).join('\n');
+  /* 사양이 오기 전 첫 그림에서 v2.dsLand 를 굳히면 가로 프로젝트가 세로로 남는다 — 그 값은 사람이 누를 때만 적는다 */
+  assert.ok(!/v2\.dsLand\s*=\s*!!\s*\(\s*sp\./.test(src), '사양에서 읽은 방향을 v2.dsLand 에 굳혔다');
+  assert.match(src, /v2\.dsLand\s*!=\s*null\s*\?/, '누른 값이 없을 때 사양으로 돌아가는 갈래가 없다');
+});
+
 /* ── 그려서 재는 칸 ───────────────────────────────────── */
 const PRE = {
   issuerSet: true, issuerName: '시험 발행사',
