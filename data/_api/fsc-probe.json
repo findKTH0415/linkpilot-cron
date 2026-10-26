@@ -25,6 +25,7 @@
   "KAMCO_ONBID_BID_RESULT": null,
   "KAMCO_SEIZED_AUCTION_RATE": null,
   "MOLIT_HUB_BLDG_LEDGER": 64,
+  "EAIS_ARCHITECTURAL_INFORMATION": 26,
   "MOLIT_HUB_HOUSING_PERMIT": null,
   "NTS_BIZ_VERIFY": null,
   "MOLIT_HUB_BLDG_PERMIT": null,
@@ -230,6 +231,69 @@
      "gotValue": true,
      "authFail": false,
      "head": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><response><header><resultCode>00</resultCode><resultMsg>NORMAL_CODE</resultMsg></header><body><numOfRows>3</numOfRows><pageNo>1</pageNo><totalCount>2222</totalCount><items><item><itemId>1071948</itemId><title><![CDATA[창업도시 조성 프로젝트 창업도시 모집 공고]]></title><dataConte"
+    }
+   ]
+  },
+  {
+   "id": "15134735",
+   "bases": [
+    "1613000/BldRgstHubService"
+   ],
+   "ops": [
+    "getBrTitleInfo",
+    "getBrBasisOulnInfo",
+    "getBrFlrOulnInfo",
+    "getBrExposPubuseAreaInfo",
+    "getBrHsprcInfo",
+    "getBrExposInfo",
+    "getBrWclfInfo",
+    "getBrRecapTitleInfo",
+    "getBrAtchJibunInfo",
+    "getBrJijiguInfo"
+   ],
+   "code": 4,
+   "rows": [
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 403,
+     "gotValue": false,
+     "authFail": true,
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
+    },
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 403,
+     "gotValue": false,
+     "authFail": true,
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
+    },
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 403,
+     "gotValue": false,
+     "authFail": true,
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
+    },
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 403,
+     "gotValue": false,
+     "authFail": true,
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
+    },
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 403,
+     "gotValue": false,
+     "authFail": true,
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
+    },
+    {
+     "label": "*** · 원본 · 202512",
+     "status": 403,
+     "gotValue": false,
+     "authFail": true,
+     "head": "{ \"OpenAPI_ServiceResponse\": { \"cmmMsgHeader\": { \"errMsg\": \"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\", \"returnAuthMsg\": \"등록되지 않은 서비스키\", \"returnReasonCode\": \"30\" } } }"
     }
    ]
   },
@@ -495,6 +559,21 @@
    ]
   },
   {
+   "id": "15121307",
+   "bases": [],
+   "ops": [],
+   "code": 0,
+   "rows": [
+    {
+     "label": "odcloud GET /LfrMasterSvc/v1/getLfrMicro",
+     "status": 200,
+     "gotValue": true,
+     "authFail": false,
+     "head": "{\"currentCount\":3,\"data\":[{\"AREA\":2,\"AS1\":\"서울특별시\",\"AS2\":\"종로구\",\"DIST1\":0,\"DIST_ETC_YN\":0,\"ENVS\":119,\"FASC\":0,\"FASC_ETC\":0,\"GAPYO\":0,\"GIMOK1\":8,\"GITA1\":0,\"GITAJ\":0,\"GIYUKCD\":2,\"GIYUK_LIMITED_YN\":0,\"GOJEU\":2,\"GRADE\":\"5\",\"HUNG\":2,\"JUB\":8,\"PRICE\":8,\"PRICE_TYPE\":1,\"REG\":\"11110\",\"YM\":\"202608\",\"YOUNGDOCD\":1"
+    }
+   ]
+  },
+  {
    "id": "15126475",
    "bases": [
     "1613000/RTMSDataSvcOffiRent"
@@ -522,13 +601,14 @@
     "getCltrBidRsltList2",
     "getCltrBidRsltList"
    ],
-   "code": 5,
+   "code": 0,
    "rows": [
     {
      "label": "*** · 원본 · 202512",
-     "status": null,
-     "gotValue": false,
-     "authFail": false
+     "status": 200,
+     "gotValue": true,
+     "authFail": false,
+     "head": "{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL_CODE\"},\"body\":{\"items\":{\"item\":[{\"cltrMngNo\":\"2025-10323-001\",\"pbctCdtnNo\":5610196,\"onbidCltrno\":1912299,\"onbidPbancNo\":842272,\"pbctNo\":9970433,\"prptDivCd\":\"0007\",\"prptDivNm\":\"압류재산\",\"dspsMthodCd\":\"0001\",\"dspsMthodNm\":\"매각\",\"cltrUsgLclsCtgrId\":\"10000\",\""
     },
     {
      "label": "*** · 원본 · 202512",
@@ -547,13 +627,14 @@
    "ops": [
     "scfbPrcRto"
    ],
-   "code": 3,
+   "code": 0,
    "rows": [
     {
      "label": "B010003/szrPrptPbctPbct/scfbPrcRto · 원본 · 202512",
-     "status": null,
-     "gotValue": false,
-     "authFail": false
+     "status": 200,
+     "gotValue": true,
+     "authFail": false,
+     "head": "{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL_CODE\"},\"body\":{\"items\":{\"item\":[{\"CRTR_YMD\":\"20261025\",\"SDNM\":\"경상남도\",\"SGGNM\":\"창원시 의창구\",\"PRPT_ITEM_NM\":\"임야\",\"SCFB_YR\":\"2025\",\"SCFB_MT\":\"10\",\"APSL_EVL_AMT\":301042000,\"DSPL_AMT\":28300000,\"SCFB_PRC_RTO\":9.4},{\"CRTR_YMD\":\"20261025\",\"SDNM\":\"경상남도\",\"SGGNM\":\"통"
     }
    ]
   },
