@@ -233,6 +233,21 @@ jobs:
           ECOS_BOK_KEY:     ${{ secrets.ECOS_BOK_KEY }}
           KICT_API_KEY:     ${{ secrets.KICT_API_KEY }}
           KCSC_CONSTRUCTION_STANDARDS: ${{ secrets.KCSC_CONSTRUCTION_STANDARDS }}
+          # ★ 서비스별 열쇠 — 진단 목록(fsc-probe)이 「이 열쇠로 건다」고 적는데 이 단계 env 에 없어 늘 포털 열쇠로 대신 걸렸다 〈2026-10-26 · 실측: key-presence 「있음」 ↔ fsc-probe 「비밀에 없다」〉
+          MOLIT_APT_SALE: ${{ secrets.MOLIT_APT_SALE }}
+          REB_LAND_MICRO: ${{ secrets.REB_LAND_MICRO }}
+          MOLIT_OFFICETEL_RENT: ${{ secrets.MOLIT_OFFICETEL_RENT }}
+          KAMCO_ONBID_BID_RESULT: ${{ secrets.KAMCO_ONBID_BID_RESULT }}
+          KAMCO_SEIZED_AUCTION_RATE: ${{ secrets.KAMCO_SEIZED_AUCTION_RATE }}
+          MOLIT_HUB_BLDG_LEDGER: ${{ secrets.MOLIT_HUB_BLDG_LEDGER }}
+          MOLIT_HUB_HOUSING_PERMIT: ${{ secrets.MOLIT_HUB_HOUSING_PERMIT }}
+          NTS_BIZ_VERIFY: ${{ secrets.NTS_BIZ_VERIFY }}
+          MOLIT_HUB_BLDG_PERMIT: ${{ secrets.MOLIT_HUB_BLDG_PERMIT }}
+          FSC_CORP_BASIC: ${{ secrets.FSC_CORP_BASIC }}
+          MOLIT_LUR_INFO: ${{ secrets.MOLIT_LUR_INFO }}
+          MOLIT_COMM_SALE: ${{ secrets.MOLIT_COMM_SALE }}
+          MOLIT_LAND_SALE: ${{ secrets.MOLIT_LAND_SALE }}
+          REB_LAND_PRICE_CHANGE: ${{ secrets.REB_LAND_PRICE_CHANGE }}
         run: |
           node scripts/fsc-probe.mjs || true
           {
