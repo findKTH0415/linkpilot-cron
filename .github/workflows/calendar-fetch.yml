@@ -60,6 +60,7 @@ jobs:
           DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
           APIS_DATA: ${{ secrets.APIS_DATA }}
           SPECIAL_DAY_INFO: ${{ secrets.SPECIAL_DAY_INFO }}
+          DATA_GO_KR: ${{ secrets.DATA_GO_KR }}
         run: |
           FROM="${{ github.event.inputs.from_year }}"
           TO="${{ github.event.inputs.to_year }}"

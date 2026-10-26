@@ -41,7 +41,8 @@
      (`ECOS_API_KEY`/`ECOS_BOK_KEY` · `LAW_OC`/`LAW_OPEN_DATA` 에서 두 번 당했다).
      ★★ 차례는 «앞엣것이 먼저»다 — 이미 도는 것을 새 이름이 덮지 않는다.
        어느 이름이 실제로 들어왔는지는 `usedName()` 이 말하고 진단이 그것을 적는다. */
-const KEY_NAMES = ['DATA_GO_KR_KEY', 'APIS_DATA', 'SPECIAL_DAY_INFO'];
+/* ★ 넷째 이름 〈2026-10-26 사장님: 「공공데이터(DATA_GO_KR) 키넣었어」〉 — 맨 뒤라 이미 도는 이름을 덮지 않는다 */
+const KEY_NAMES = ['DATA_GO_KR_KEY', 'APIS_DATA', 'SPECIAL_DAY_INFO', 'DATA_GO_KR'];
 
 /** 실제로 값이 들어 있는 이름. 없으면 null */
 function usedName() {
