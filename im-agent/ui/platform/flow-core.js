@@ -24,7 +24,7 @@
    *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다. 화면이 자기
    *   지문과 대 보고 다르면 「함수가 없다」로 죽기 전에 사람 말로 알린다.
    */
-  var LP_BUILD = 'ecd110b3';
+  var LP_BUILD = '4774c141';
 
   /**
    * ★★★ **단계는 다섯이다** 〈2026-08-22 사용자 지시〉.
@@ -1557,6 +1557,68 @@
     { id: 'LP-DS-09', name: '사진·브로슈어형', layout: '선명한 사진·짧은 설명·위치·주요 특징', use: '시설소개·브로슈어·사업소개', latin: 'Oswald Bold', refs: ['--lp-ink', '--lp-surface', '--lp-surface-alt', '--lp-lime-ink'] },
     { id: 'LP-DS-10', name: '프리미엄 투자제안형', layout: '넓은 여백·흑백 사진·핵심 문구·절제된 도표', use: '고급 투자제안·주요 투자자 제안', latin: 'Montserrat ExtraBold', refs: ['--lp-ink', '--lp-ink-hover', '--lp-surface', '--lp-lime-ink'] },
   ];
+  /* ★ 레이아웃 견본 〈2026-10-26 사장님: 「디자인 선택 적용에 레이아웃 가로, 세로형을 보여주도록」 + 덱 갤러리 사진 여덟〉
+   *   타입마다 12쪽의 «쪽 배치»를 선(線)으로 그린다 — 글·숫자는 회색 막대(자리표시)라 실제 문서로 읽히지 않는다(지어내지 않는다 · §8).
+   *   색은 그 타입의 참조 색 넷(V2_DS_TOKENS) 그대로. 가로(16:9)·세로(A4) 두 판을 같은 쪽 차례로 그린다. */
+  var V2_DS_PAGES = {
+    'LP-DS-01': ['cover', 'toc', 'kpi', 'twocol', 'table', 'chart', 'diagram', 'twocol', 'table', 'chart', 'timeline', 'closing'],
+    'LP-DS-02': ['cover', 'toc', 'kpi', 'diagram', 'map', 'table', 'chart', 'table', 'kpi', 'timeline', 'table', 'closing'],
+    'LP-DS-03': ['cover', 'toc', 'canvas', 'kpi', 'chart', 'diagram', 'table', 'chart', 'timeline', 'table', 'kpi', 'closing'],
+    'LP-DS-04': ['cover', 'toc', 'divider', 'twocol', 'table', 'table', 'timeline', 'divider', 'table', 'chart', 'twocol', 'closing'],
+    'LP-DS-05': ['cover', 'kpi', 'chart', 'chart', 'table', 'kpi', 'chart', 'table', 'chart', 'kpi', 'twocol', 'closing'],
+    'LP-DS-06': ['cover', 'toc', 'diagram', 'map', 'diagram', 'table', 'chart', 'map', 'timeline', 'table', 'kpi', 'closing'],
+    'LP-DS-07': ['cover', 'toc', 'timeline', 'timeline', 'table', 'diagram', 'timeline', 'table', 'kpi', 'timeline', 'twocol', 'closing'],
+    'LP-DS-08': ['cover', 'photo', 'price', 'photo', 'table', 'price', 'photo', 'kpi', 'map', 'table', 'photo', 'closing'],
+    'LP-DS-09': ['cover', 'photo', 'photo', 'twocol', 'map', 'photo', 'kpi', 'photo', 'table', 'photo', 'photo', 'closing'],
+    'LP-DS-10': ['cover', 'divider', 'photo', 'kpi', 'twocol', 'chart', 'divider', 'photo', 'table', 'diagram', 'kpi', 'closing'],
+  };
+  var V2_DS_KIND = { cover: '표지', toc: '목차', divider: '간지', kpi: '핵심 수치', twocol: '본문 2단', table: '표', chart: '도표',
+    diagram: '사업구도', map: '지도', timeline: '일정', photo: '사진', price: '가격·조건', canvas: '모듈 캔버스', closing: '맺음' };
+  function v2DsPages(id) { return (V2_DS_PAGES[id] || []).slice(); }
+  /** 한 쪽의 선 그림(SVG 글자) — kind · 타입 id · land(가로 16:9 이면 true) */
+  function v2DsSvg(kind, id, land) {
+    var t = v2DsType(id), cs = v2DsColors(t);
+    /* 참조 색 넷의 차례는 타입마다 뜻이 다르다(09 는 넷째가 강조색) — 채도가 가장 큰 것이 강조, 흰색이 아닌 가장 밝은 것이 옅은 바탕 */
+    function rgb(c) { var m = /^#([0-9a-f]{6})$/i.exec(c || ''); if (!m) return null; var n = parseInt(m[1], 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
+    var ink = cs[0] || '#0A1419', acc = '#577508', tint = '#F2F2F5', bestS = -1, bestL = -1;
+    cs.slice(1).forEach(function (c) { var v = rgb(c); if (!v) return; var mx = Math.max(v[0], v[1], v[2]), mn = Math.min(v[0], v[1], v[2]), sat = mx ? (mx - mn) / mx : 0, lum = (v[0] * 0.299 + v[1] * 0.587 + v[2] * 0.114) / 255;
+      if (lum < 0.75 && sat > bestS) { bestS = sat; acc = c; }
+      if (lum >= 0.85 && mn < 255 && lum > bestL) { bestL = lum; tint = c; } });
+    var bg = '#FFFFFF', grey = '#D8DCE1', hair = '#E7E9EC', photo = '#9AA1A9';
+    var W = land ? 160 : 113, H = land ? 90 : 160, P = land ? 8 : 9, iw = W - P * 2;
+    var o = [];
+    function r(x, y, w, h, f, rx) { o.push('<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + Math.max(0, w).toFixed(1) + '" height="' + Math.max(0, h).toFixed(1) + '" fill="' + f + '"' + (rx ? ' rx="' + rx + '"' : '') + '/>'); }
+    function ln(x1, y1, x2, y2, c, sw) { o.push('<line x1="' + x1.toFixed(1) + '" y1="' + y1.toFixed(1) + '" x2="' + x2.toFixed(1) + '" y2="' + y2.toFixed(1) + '" stroke="' + c + '" stroke-width="' + (sw || 1) + '"/>'); }
+    function bars(x, y, w, n, c, gap) { for (var i = 0; i < n; i++) r(x, y + i * (gap || 4), w * (i === n - 1 ? 0.6 : 1), 1.6, c || grey); }
+    function head(y) { r(P, y, iw * 0.55, 3.2, ink); bars(P, y + 6, iw * 0.8, 1); return y + 12; }
+    var dark = kind === 'cover' || kind === 'closing';
+    r(0, 0, W, H, dark ? ink : bg);
+    var y = P;
+    if (kind === 'cover' || kind === 'closing') {
+      if (/LP-DS-0(8|9)|LP-DS-10/.test(id)) r(land ? W * 0.5 : 0, land ? 0 : H * 0.45, land ? W * 0.5 : W, land ? H : H * 0.55, photo);
+      r(P, H * (land ? 0.42 : 0.3), iw * (land ? 0.42 : 0.7), 4, '#FFFFFF');
+      r(P, H * (land ? 0.42 : 0.3) + 7, iw * (land ? 0.3 : 0.5), 4, '#FFFFFF');
+      r(P, H * (land ? 0.42 : 0.3) + 15, iw * 0.18, 2.4, acc);
+      bars(P, H - P - 6, iw * (land ? 0.35 : 0.6), 2, 'rgba(255,255,255,.45)');
+    } else if (kind === 'divider') {
+      r(0, 0, W, H, tint); r(P, H * 0.38, 14, 10, acc); r(P, H * 0.38 + 14, iw * 0.55, 3.6, ink); bars(P, H * 0.38 + 21, iw * 0.4, 1);
+    } else {
+      y = head(y);
+      var bh = H - y - P - 5;
+      if (kind === 'toc') { for (var i = 0; i < 6; i++) { r(P, y + i * (bh / 6), 4, 3, acc); r(P + 7, y + i * (bh / 6) + 0.6, iw * 0.55, 1.8, grey); } }
+      else if (kind === 'kpi') { var n = land ? 4 : 2, cw = (iw - (n - 1) * 3) / n, rows = land ? 1 : 2; for (var k = 0; k < n * rows; k++) { var cx = P + (k % n) * (cw + 3), cy = y + Math.floor(k / n) * (bh * 0.32 + 3); r(cx, cy, cw, bh * 0.3, tint); r(cx + 2, cy + 3, cw * 0.55, 3.4, acc); r(cx + 2, cy + bh * 0.3 - 5, cw * 0.7, 1.4, grey); } bars(P, y + bh * (rows === 1 ? 0.45 : 0.75), iw, 3); }
+      else if (kind === 'table') { r(P, y, iw, 4, ink); for (var j = 1; j < 9; j++) ln(P, y + 4 + j * (bh - 4) / 9, P + iw, y + 4 + j * (bh - 4) / 9, hair, 0.8); for (var q = 0; q < 8; q++) r(P + 2, y + 6.5 + q * (bh - 4) / 9, iw * 0.3, 1.4, grey); }
+      else if (kind === 'chart') { var nb = land ? 9 : 6, gw = iw / nb; for (var b = 0; b < nb; b++) { var hh = bh * (0.25 + 0.65 * ((b * 37) % 10) / 10); r(P + b * gw + 1, y + bh - hh, gw - 2.5, hh, b === nb - 2 ? acc : grey); } ln(P, y + bh, P + iw, y + bh, ink, 0.8); }
+      else if (kind === 'diagram' || kind === 'canvas') { var nn = kind === 'canvas' ? (land ? 5 : 4) : 3, dw = (iw - (nn - 1) * 4) / nn; for (var d = 0; d < nn; d++) { r(P + d * (dw + 4), y + bh * 0.2, dw, bh * 0.45, d === 1 ? acc : tint, 1.5); if (d) ln(P + d * (dw + 4) - 4, y + bh * 0.42, P + d * (dw + 4), y + bh * 0.42, ink, 0.9); } bars(P, y + bh * 0.75, iw * 0.8, 2); }
+      else if (kind === 'map') { r(P, y, land ? iw * 0.6 : iw, land ? bh : bh * 0.62, '#E3E7E1'); o.push('<polygon points="' + [[0.3, 0.3], [0.55, 0.25], [0.6, 0.6], [0.35, 0.7]].map(function (pt) { return (P + pt[0] * (land ? iw * 0.6 : iw)).toFixed(1) + ',' + (y + pt[1] * (land ? bh : bh * 0.62)).toFixed(1); }).join(' ') + '" fill="rgba(192,0,0,.22)" stroke="#C00000" stroke-width="1"/>'); if (land) bars(P + iw * 0.65, y + 2, iw * 0.33, 6); else bars(P, y + bh * 0.7, iw, 3); }
+      else if (kind === 'timeline') { ln(P, y + bh * 0.35, P + iw, y + bh * 0.35, ink, 0.9); for (var tt = 0; tt < 5; tt++) { var tx = P + tt * iw / 4.4; o.push('<circle cx="' + (tx + 2).toFixed(1) + '" cy="' + (y + bh * 0.35).toFixed(1) + '" r="1.8" fill="' + (tt === 2 ? acc : ink) + '"/>'); r(tx, y + bh * 0.45, iw * 0.16, 1.4, grey); } for (var g = 0; g < 3; g++) r(P + g * iw * 0.22, y + bh * (0.62 + g * 0.1), iw * 0.4, 2.6, g === 1 ? acc : tint); }
+      else if (kind === 'photo') { r(land ? P + iw * 0.45 : P, y, land ? iw * 0.55 : iw, land ? bh : bh * 0.6, photo); bars(P, land ? y + 2 : y + bh * 0.68, land ? iw * 0.4 : iw, 3); }
+      else if (kind === 'price') { r(P, y, iw, bh * 0.4, tint); r(P + 3, y + 4, iw * 0.45, 8, acc); r(P + 3, y + 15, iw * 0.3, 1.6, grey); for (var pp = 0; pp < 3; pp++) r(P + pp * (iw / 3), y + bh * 0.5, iw / 3 - 3, bh * 0.4, pp === 1 ? ink : hair); }
+      else { var cw2 = (iw - 4) / 2; bars(P, y, cw2, Math.floor(bh / 5)); bars(P + cw2 + 4, y, cw2, Math.floor(bh / 7)); r(P + cw2 + 4, y + bh * 0.6, cw2, bh * 0.35, tint); }
+      ln(P, H - P + 1, P + iw, H - P + 1, hair, 0.6);
+    }
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + (V2_DS_KIND[kind] || kind) + ' 쪽 배치 견본">' + o.join('') + '</svg>';
+  }
   function v2DsType(id) { for (var i = 0; i < V2_DS.length; i++) if (V2_DS[i].id === id) return V2_DS[i]; return null; }
   function v2DsColors(t) { return t ? t.refs.map(function (r) { return V2_DS_TOKENS[r]; }) : []; }
   /* 사용자 지정 IM 기본 크기 (지침 §5.1 · pt) — 출력기에 잇는 자리는 질문 목록에 올렸다 */
@@ -1597,6 +1659,6 @@
     V2_STEPS: V2_STEPS, v2StepOf: v2StepOf, v2Steps: v2Steps, v2Progress: v2Progress, v2Next: v2Next,
     V2_FACT_KEYS: V2_FACT_KEYS, v2Tag: v2Tag, v2FactRows: v2FactRows, v2Conflicts: v2Conflicts,
     V2_FORMATS: V2_FORMATS, V2_PAGES: V2_PAGES, V2_LANGS: V2_LANGS,
-    V2_DS: V2_DS, V2_DS_TOKENS: V2_DS_TOKENS, v2DsType: v2DsType, v2DsColors: v2DsColors, V2_IM_SIZES: V2_IM_SIZES,
+    V2_DS: V2_DS, V2_DS_TOKENS: V2_DS_TOKENS, v2DsType: v2DsType, v2DsColors: v2DsColors, v2DsPages: v2DsPages, v2DsSvg: v2DsSvg, V2_DS_KIND: V2_DS_KIND, V2_IM_SIZES: V2_IM_SIZES,
   };
 }));
