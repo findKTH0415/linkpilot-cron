@@ -724,6 +724,22 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
 .rv2-dsc p { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--lp-text-2); }
 .rv2-dsc .rv2-dsc__f, .rv2-dsc .rv2-dsc__pv { color: var(--lp-text-3); }
 .rv2-dsc__b { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; padding-top: 6px; }
+/* 레이아웃 견본 〈2026-10-26〉 — 가로·세로 보기 · 카드 띠 · 전체 12쪽 */
+.rv2-dsseg { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 12px; }
+.rv2-dsseg__l { font: 600 13px/1 var(--lp-font); color: var(--lp-text-2); margin-right: 4px; }
+.rv2-dsseg__n { flex-basis: 100%; font-size: 12px; color: var(--lp-text-3); }
+.rv2-ds__grid--land { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.rv2-dsc__strip { display: flex; gap: 6px; }
+.rv2-dspg { position: relative; margin: 0; flex: 1 1 0; min-width: 0; border: 1px solid var(--lp-line-2); border-radius: 4px; overflow: hidden; background: #fff; aspect-ratio: 113 / 160; }
+.rv2-dspg--land { aspect-ratio: 16 / 9; }
+.rv2-dspg svg { display: block; width: 100%; height: 100%; }
+.rv2-dspg__no { position: absolute; left: 4px; top: 4px; padding: 2px 5px; border-radius: 4px; background: var(--lp-ink); color: #fff; font: 600 11px/1 var(--lp-font); font-variant-numeric: tabular-nums; }
+.rv2-dspg figcaption { position: absolute; left: 0; right: 0; bottom: 0; padding: 3px 6px; background: rgba(255,255,255,.92); font-size: 11px; color: var(--lp-text-2); }
+.rv2-dsfull { margin-top: 16px; padding: 14px; border-radius: var(--lp-r-lg); border: 1px solid var(--lp-line-2); background: var(--surface); }
+.rv2-dsfull__h { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; margin-bottom: 12px; font-size: 14px; }
+.rv2-dsfull__h span { color: var(--lp-text-3); font-size: 12.5px; }
+.rv2-dsfull__g { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+.rv2-dsfull__g--land { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
 @media (max-width: 900px) {
   .rv2-top > .head { flex-basis: 100%; }
   .rv2-top__r { flex-basis: 100%; min-width: 0; }
@@ -2034,7 +2050,29 @@ var lpApiWhy = (function () {
     var box = el('section', 'rv2-card rv2-ds');
     box.setAttribute('data-lp-rv2-dsbox', String(F.V2_DS.length));
     box.appendChild(el('h2', 'rv2-kicker', '고정 타입 10종'));
-    var grid = el('div', 'rv2-ds__grid');
+    /* ★ 레이아웃 보기 — 가로(16:9)·세로(A4) 〈2026-10-26 사장님: 「디자인 선택 적용에 레이아웃 가로, 세로형을 보여주도록」〉
+     *   보기만 바꾼다 — 실제 용지 방향은 문서 양식(서버 사양)이 정한다. 처음 값은 사양의 방향. */
+    var sp = facts.spec || {};
+    if (v2.dsLand == null) v2.dsLand = !!(sp.orientation === 'landscape' || sp.pageSize === '16:9');
+    var land = !!v2.dsLand;
+    var seg = el('div', 'rv2-dsseg');
+    seg.setAttribute('role', 'group'); seg.setAttribute('aria-label', '레이아웃 보기');
+    seg.appendChild(el('span', 'rv2-dsseg__l', '레이아웃 보기'));
+    [[false, '세로 A4'], [true, '가로 16:9']].forEach(function (x) {
+      var b = v2Chip(x[1], land === x[0], ['data-lp-rv2-dsorient', x[0] ? 'land' : 'port']);
+      b.addEventListener('click', function () { v2.dsLand = x[0]; v2Repaint(); });
+      seg.appendChild(b);
+    });
+    seg.appendChild(el('span', 'rv2-dsseg__n', '쪽 배치 견본 — 글·숫자는 자리표시입니다. 실제 용지 방향은 문서 양식이 정합니다.'));
+    box.appendChild(seg);
+    function page(kind, id, no) {
+      var f = el('figure', 'rv2-dspg' + (land ? ' rv2-dspg--land' : ''));
+      f.setAttribute('data-lp-rv2-dspage', kind);
+      f.innerHTML = F.v2DsSvg(kind, id, land);   /* flow-core 가 짓는 선 그림 — 바깥 글자가 안 들어간다 */
+      if (no) { var n = el('span', 'rv2-dspg__no', (no < 10 ? '0' : '') + no); f.appendChild(n); }
+      return f;
+    }
+    var grid = el('div', 'rv2-ds__grid' + (land ? ' rv2-ds__grid--land' : ''));
     var cur = v2Out().ds;
     F.V2_DS.forEach(function (t) {
       var c = el('article', 'rv2-dsc');
@@ -2042,16 +2080,22 @@ var lpApiWhy = (function () {
       c.setAttribute('aria-pressed', cur === t.id ? 'true' : 'false');
       c.appendChild(el('span', 'rv2-dsc__id', t.id));
       c.appendChild(el('b', 'rv2-dsc__n', t.name));
+      var strip = el('div', 'rv2-dsc__strip');
+      strip.setAttribute('data-lp-rv2-dsstrip', land ? 'land' : 'port');
+      F.v2DsPages(t.id).slice(0, land ? 2 : 3).forEach(function (k) { strip.appendChild(page(k, t.id)); });
+      c.appendChild(strip);
       var sw = el('div', 'rv2-dsc__sw');
       F.v2DsColors(t).forEach(function (col) { var i = el('i'); i.style.background = col; sw.appendChild(i); });
       c.appendChild(sw);
       c.appendChild(el('p', 'rv2-dsc__l', t.layout));
       c.appendChild(el('p', 'rv2-dsc__u', t.use));
       c.appendChild(el('p', 'rv2-dsc__f', t.paperlogy ? t.latin : t.latin + ' · 글꼴 파일 등록 전 — Paperlogy 로 보임'));
-      c.appendChild(el('p', 'rv2-dsc__pv', '표지·본문·도표 미리보기: 준비 중 — 타입별 그림 원본이 아직 없습니다'));
       var bs = el('div', 'rv2-dsc__b');
-      var all = el('button', 'rv2-btn rv2-btn--sm', '전체 미리보기');
-      all.type = 'button'; v2Soon(all, '전체 미리보기는 준비 중입니다 — 타입별 그림 원본이 아직 없습니다.');
+      var all = el('button', 'rv2-btn rv2-btn--sm', v2.dsOpen === t.id ? '미리보기 닫기' : '전체 미리보기');
+      all.type = 'button';
+      all.setAttribute('data-lp-rv2-dsall', t.id);
+      all.addEventListener('click', function () { v2.dsOpen = v2.dsOpen === t.id ? null : t.id; v2Repaint();
+        var o = view.querySelector('[data-lp-rv2-dsfull]'); if (o && o.scrollIntoView) o.scrollIntoView({ block: 'start', behavior: 'smooth' }); });
       var use = el('button', 'rv2-btn rv2-btn--sm rv2-btn--ink', '이 디자인 사용');
       use.type = 'button';
       use.setAttribute('data-lp-rv2-dsuse', t.id);
@@ -2061,6 +2105,28 @@ var lpApiWhy = (function () {
       grid.appendChild(c);
     });
     box.appendChild(grid);
+    /* 전체 미리보기 — 고른 타입의 12쪽을 번호와 함께 (덱 갤러리와 같은 결) */
+    var ot = v2.dsOpen && F.v2DsType(v2.dsOpen);
+    if (ot) {
+      var full = el('div', 'rv2-dsfull');
+      full.setAttribute('data-lp-rv2-dsfull', ot.id);
+      var hd = el('div', 'rv2-dsfull__h');
+      var kinds = F.v2DsPages(ot.id);
+      hd.appendChild(el('b', null, ot.id + ' · ' + ot.name));
+      hd.appendChild(el('span', null, kinds.length + '쪽 · ' + (land ? '가로 16:9' : '세로 A4')));
+      full.appendChild(hd);
+      var fg = el('div', 'rv2-dsfull__g' + (land ? ' rv2-dsfull__g--land' : ''));
+      kinds.forEach(function (k, i) { var pg = page(k, ot.id, i + 1); pg.appendChild(el('figcaption', null, F.V2_DS_KIND[k] || k)); fg.appendChild(pg); });
+      full.appendChild(fg);
+      var fb = el('div', 'rv2-dsc__b');
+      var close = el('button', 'rv2-btn rv2-btn--sm', '닫기'); close.type = 'button';
+      close.addEventListener('click', function () { v2.dsOpen = null; v2Repaint(); });
+      var use2 = el('button', 'rv2-btn rv2-btn--sm rv2-btn--ink', '이 디자인 사용'); use2.type = 'button';
+      use2.setAttribute('data-lp-rv2-dsuse', ot.id);
+      use2.addEventListener('click', function () { v2SetOut({ ds: ot.id }); });
+      fb.appendChild(close); fb.appendChild(use2); full.appendChild(fb);
+      box.appendChild(full);
+    }
     return box;
   }
 

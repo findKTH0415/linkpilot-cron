@@ -117,6 +117,19 @@ test('⑫ 디자인·레이아웃 10종 — 지침 §3 글자 · 부록 A 값', 
     });
   });
   assert.deepStrictEqual(F.V2_IM_SIZES.map((x) => x[1]), [18, 14, 10, 12, 10, 8, 7]);
+  // ⑱ 쪽 배치 견본 — 타입마다 12쪽 · 표지로 시작해 맺음으로 끝난다 · 글자 없이 선만(지어내지 않는다) · 가로/세로 판의 틀
+  F.V2_DS.forEach((t) => {
+    const ks = F.v2DsPages(t.id);
+    assert.strictEqual(ks.length, 12, t.id); assert.strictEqual(ks[0], 'cover'); assert.strictEqual(ks[11], 'closing');
+    ks.forEach((k) => {
+      assert.ok(F.V2_DS_KIND[k], k + ' 이름이 없다');
+      [false, true].forEach((land) => {
+        const sv = F.v2DsSvg(k, t.id, land);
+        assert.match(sv, land ? /viewBox="0 0 160 90"/ : /viewBox="0 0 113 160"/);
+        assert.ok(!/<text\b/.test(sv), t.id + ' ' + k + ': 견본에 글자가 들어갔다');
+      });
+    });
+  });
 });
 
 /* ── 그려서 재는 칸 ───────────────────────────────────── */
@@ -173,6 +186,20 @@ window.addEventListener('load', function () { setTimeout(function () {
   q('[data-lp-rv2-ptab="view"]').click();
   R.thumb1 = q('[data-lp-rv2-thumb]').getAttribute('data-lp-rv2-thumb');
   R.coverDs = q('[data-lp-rv2-ds]') ? q('[data-lp-rv2-ds]').getAttribute('data-lp-rv2-ds') : null;
+  /* ⑱ 레이아웃 보기 — 가로·세로 · 카드 띠 · 전체 12쪽 */
+  function strips() { return qa('[data-lp-rv2-dsstrip]').map(function (n) { return n.getAttribute('data-lp-rv2-dsstrip') + ':' + n.querySelectorAll('[data-lp-rv2-dspage] svg').length; }); }
+  function ratio() { var f = q('[data-lp-rv2-dsstrip] [data-lp-rv2-dspage]'); if (!f) return null; var b = f.getBoundingClientRect(); return b.height ? +(b.width / b.height).toFixed(2) : null; }
+  R.lay = { port: strips(), portRatio: ratio(), portOn: (q('[data-lp-rv2-dsorient="port"]') || {}).getAttribute && q('[data-lp-rv2-dsorient="port"]').getAttribute('aria-pressed') };
+  q('[data-lp-rv2-dsorient="land"]').click();
+  R.lay.land = strips(); R.lay.landRatio = ratio();
+  q('[data-lp-rv2-dsall="LP-DS-09"]').click();
+  var fl = q('[data-lp-rv2-dsfull]');
+  R.lay.full = fl ? { id: fl.getAttribute('data-lp-rv2-dsfull'), pages: fl.querySelectorAll('[data-lp-rv2-dspage] svg').length, nos: [].slice.call(fl.querySelectorAll('.rv2-dspg__no')).map(function (n) { return n.textContent; }).join(','),
+    land: fl.querySelectorAll('.rv2-dspg--land').length, text: fl.innerText } : null;
+  var u2 = fl && fl.querySelector('[data-lp-rv2-dsuse]'); if (u2) u2.click();
+  R.lay.usedFull = qa('[data-lp-rv2-dstype][aria-pressed="true"]').map(function (n) { return n.getAttribute('data-lp-rv2-dstype'); });
+  q('[data-lp-rv2-dsorient="port"]').click();
+  R.lay.back = strips()[0];
   R.text = document.body.innerText;
   R.w = { sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth };
   /* 〈2026-10-25 · 견본 396〉 분류·문서 양식은 오른쪽 칸 안 — 휴대폰에서는 오른쪽 칸이 display:contents 라 칸 자체의 위치는 0 이다.
@@ -258,6 +285,20 @@ test('②③④⑤⑦⑧ 그려서 누른다 — 분류·카드·이름표·되�
   assert.deepStrictEqual(R.dsPressed, ['ds:LP-DS-02']);
   assert.strictEqual(R.dsOpt, '부동산·투자 IM형');
   assert.strictEqual(R.coverDs, 'LP-DS-02');
+  // ⑱ 레이아웃 보기 — 세로 3쪽 띠 → 가로 2쪽 띠(16:9) · 전체 미리보기 12쪽 번호 01~12 · 거기서 [이 디자인 사용] · 다시 세로
+  assert.strictEqual(R.lay.portOn, 'true', '사양이 세로인데 세로 보기가 안 골라졌다');
+  assert.deepStrictEqual(R.lay.port, Array(10).fill('port:3'));
+  assert.deepStrictEqual(R.lay.land, Array(10).fill('land:2'));
+  assert.ok(R.lay.portRatio > 0.6 && R.lay.portRatio < 0.8, '세로 쪽 비율 ' + R.lay.portRatio);
+  assert.ok(R.lay.landRatio > 1.6 && R.lay.landRatio < 1.9, '가로 쪽 비율 ' + R.lay.landRatio);
+  assert.ok(R.lay.full, '[전체 미리보기] 를 눌렀는데 12쪽이 안 섰다');
+  assert.strictEqual(R.lay.full.id, 'LP-DS-09'); assert.strictEqual(R.lay.full.pages, 12); assert.strictEqual(R.lay.full.land, 12);
+  assert.strictEqual(R.lay.full.nos, '01,02,03,04,05,06,07,08,09,10,11,12');
+  assert.match(R.lay.full.text, /12쪽 · 가로 16:9/);
+  assert.deepStrictEqual(R.lay.usedFull, ['LP-DS-09'], '전체 미리보기의 [이 디자인 사용] 이 안 먹었다');
+  assert.strictEqual(R.lay.back, 'port:3');
+  assert.match(R.text, /쪽 배치 견본 — 글·숫자는 자리표시입니다/);
+  assert.ok(!/표지·본문·도표 미리보기: 준비 중/.test(R.text), '옛 «준비 중» 글이 남았다');
   // ⑪ 만든 문서가 없으면 [크게 보기] 는 아무 데도 안 간다
   assert.strictEqual(R.big.kind, 'none');
   // 견본 표본 글자 0
