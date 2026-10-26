@@ -547,7 +547,7 @@ async function main() {
     P('');
     const key = KEYS[svc.key];
     if (key) P(`- 건 열쇠: \`${key.name}\``);
-    if (!key) { P('> **판정 2** — 열쇠가 없다'); P(''); codes.push(2); results.services.push({ id: svc.id, code: 2 }); continue; }
+    if (!key) { P('> **판정 2** — 열쇠가 없다'); P(''); codes.push(2); results.services.push({ id: svc.id, name: svc.name, code: 2 }); continue; }
     let decoded = key.value;
     try { decoded = decodeURIComponent(key.value); } catch (_) { decoded = key.value; }
     const page = await probe('포털 안내 페이지', `https://www.data.go.kr/data/${svc.id}/openapi.do`, {}, null, null);
@@ -687,7 +687,7 @@ async function main() {
       : odSpec ? { code: 1, head: '**규격은 읽었다** — 부르려면 필수 인자 값이 있어야 해서 지어 넣지 않고 안 불렀다(못 쟀다). **열쇠 문제가 아니다**' }
       : { code: 3, head: '**부를 주소를 못 읽었다** — 안내 페이지를 못 받았거나 모양이 다르다. 열쇠 문제가 아니다' };
     codes.push(v.code);
-    results.services.push({ id: svc.id, bases: d.bases, ops: d.ops, code: v.code,
+    results.services.push({ id: svc.id, name: svc.name, bases: d.bases, ops: d.ops, code: v.code,
       rows: rows.concat(odRows).map((r) => ({ label: r.label, status: r.status, gotValue: r.gotValue, authFail: r.authFail, head: r.head })) });
     P('');
     P(`> **판정 ${v.code}** — ${v.head}`);
@@ -698,7 +698,9 @@ async function main() {
   /* 되돌아오는 값은 **나쁜 쪽** — 두 서비스를 다 쓰려는 것이라 하나라도 막히면 할 일이 남는다 */
   const code = Math.max(...codes);
   const verdict = `판정 ${code} — ${FSC_MEAN[code] || '판정하지 못했다'} (`
-    + results.services.map((x, i) => `${SERVICES[i].name.replace('금융위원회_', '')} ${x.code}`).join(' · ') + ')';
+    + /* ★ 이름은 «그 줄이 잰 서비스»에서 읽는다 — 차례 번호(SERVICES[i])로 붙이면 건너뛴 서비스가 있을 때 뒤 이름이 한 칸씩 밀려
+       «건축물대장 4»처럼 남의 판정이 적혔다 (2026-10-26 실측) */
+    results.services.map((x) => `${String(x.name || x.id).replace('금융위원회_', '')} ${x.code}`).join(' · ') + ')';
   log.unshift(`> ${verdict}`, '');
   await writeFile(`${OUT}/fsc-probe.md`, log.join('\n'));
   if (SEARCH_RECAP.length) console.log(['', '포털 검색 다시 보기:', ...SEARCH_RECAP].join('\n'));
