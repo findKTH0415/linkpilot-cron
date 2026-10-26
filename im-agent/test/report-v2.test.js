@@ -117,18 +117,27 @@ test('⑫ 디자인·레이아웃 10종 — 지침 §3 글자 · 부록 A 값', 
     });
   });
   assert.deepStrictEqual(F.V2_IM_SIZES.map((x) => x[1]), [18, 14, 10, 12, 10, 8, 7]);
-  // ⑱ 쪽 배치 견본 — 타입마다 12쪽 · 표지로 시작해 맺음으로 끝난다 · 글자 없이 선만(지어내지 않는다) · 가로/세로 판의 틀
+  // ⑱ 쪽 견본 = «예시 문서» 〈2026-10-26 사장님: 「실제 예시 작업된 디자인 이미지를 넣어서」 — 앞 판의 «글자 없는 선 그림»을 뒤집었다〉
+  //   타입마다 12쪽 · 표지로 시작해 맺음으로 끝난다 · 쪽마다 «예시» 딱지(꾸민 값을 실제로 읽지 않게 · §8) · 그 타입의 예시 제목이 실린다 ·
+  //   사진은 받아 오지 않는다(외부 주소·<image> 0 · §6-2-6) · 같은 kind 가 여러 번이면 쪽마다 다르게 그린다 · 가로/세로 판의 틀
   F.V2_DS.forEach((t) => {
-    const ks = F.v2DsPages(t.id);
+    const ks = F.v2DsPages(t.id), S = F.V2_DS_SAMPLE[t.id];
+    assert.ok(S && S.title, t.id + ' 예시 표가 없다');
     assert.strictEqual(ks.length, 12, t.id); assert.strictEqual(ks[0], 'cover'); assert.strictEqual(ks[11], 'closing');
-    ks.forEach((k) => {
-      assert.ok(F.V2_DS_KIND[k], k + ' 이름이 없다');
-      [false, true].forEach((land) => {
-        const sv = F.v2DsSvg(k, t.id, land);
-        assert.match(sv, land ? /viewBox="0 0 160 90"/ : /viewBox="0 0 113 160"/);
-        assert.ok(!/<text\b/.test(sv), t.id + ' ' + k + ': 견본에 글자가 들어갔다');
+    [false, true].forEach((land) => {
+      const seen = new Set();
+      ks.forEach((k, i) => {
+        assert.ok(F.V2_DS_KIND[k], k + ' 이름이 없다');
+        const sv = F.v2DsSvg(k, t.id, land, i + 1);
+        assert.match(sv, land ? /viewBox="0 0 320 180"/ : /viewBox="0 0 210 297"/);
+        assert.match(sv, />예시<\/text>/, t.id + ' ' + (i + 1) + '쪽: «예시» 딱지가 없다');
+        assert.ok(/<text\b/.test(sv), t.id + ' ' + k + ': 예시 글자가 없다');
+        assert.ok(!/<image\b|https?:|href=/.test(sv.replace(' xmlns="http://www.w3.org/2000/svg"', '')), t.id + ' ' + k + ': 바깥 그림·주소가 들어갔다');
+        seen.add(sv);
       });
+      assert.strictEqual(seen.size, 12, t.id + (land ? ' 가로' : ' 세로') + ': 똑같이 그려진 쪽이 있다');
     });
+    assert.ok(F.v2DsSvg('cover', t.id, false, 1).includes(S.title.replace(/&/g, '&amp;')), t.id + ' 표지에 예시 제목이 없다');
   });
 });
 
@@ -305,7 +314,7 @@ test('②③④⑤⑦⑧ 그려서 누른다 — 분류·카드·이름표·되�
   assert.match(R.lay.full.text, /12쪽 · 가로 16:9/);
   assert.deepStrictEqual(R.lay.usedFull, ['LP-DS-09'], '전체 미리보기의 [이 디자인 사용] 이 안 먹었다');
   assert.strictEqual(R.lay.back, 'port:3');
-  assert.match(R.text, /쪽 배치 견본 — 글·숫자는 자리표시입니다/);
+  assert.match(R.text, /예시 견본 — 회사·숫자는 꾸민 값입니다/);
   assert.ok(!/표지·본문·도표 미리보기: 준비 중/.test(R.text), '옛 «준비 중» 글이 남았다');
   // ⑪ 만든 문서가 없으면 [크게 보기] 는 아무 데도 안 간다
   assert.strictEqual(R.big.kind, 'none');
