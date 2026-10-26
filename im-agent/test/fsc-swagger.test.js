@@ -208,3 +208,11 @@ test('필수 인자 설명 — 스웨거 «description» 을 그대로 줍고, �
   assert.ok(/REB_LAND_PRICE_CHANGE', keyword: '한국부동산원 전국지가변동률조사'/.test(src), '전국지가변동률조사를 포털 검색으로 찾는다');
   assert.ok(/'KICT_API_KEY', 'REB_LAND_PRICE_CHANGE'\]/.test(src), '열쇠 이름 목록에도 들어 있다(없으면 포털 열쇠로 대신 건다)');
 });
+
+test('요약 첫 줄의 서비스 이름은 «그 줄이 잰 서비스»에서 읽는다 — 부르는 차례(probeOrder)가 바뀌어도 이름이 밀리지 않는다', () => {
+  /* 2026-10-26 실측 — 첫 줄이 SERVICES[i] 로 이름을 붙여 «건축물대장 4»처럼 남의 판정을 적었다(서비스별 판정은 0) */
+  const src = fs.readFileSync(SRC, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+  assert.ok(!/results\.services\.map\(\(x, i\) => `\$\{SERVICES\[i\]/.test(src), '첫 줄이 차례 번호로 이름을 붙인다');
+  const pushes = src.match(/results\.services\.push\(\{[^}]*\}/g) || [];
+  assert.ok(pushes.length >= 2 && pushes.every((p) => /name: svc\.name/.test(p)), '판정 줄마다 이름을 싣지 않는다: ' + pushes.length);
+});
