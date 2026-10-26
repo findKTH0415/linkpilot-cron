@@ -1,6 +1,6 @@
 # 열쇠 이름 — 들어 있는가
 
-> 이름 54개 중 **11개 들어 있음 · 43개 없음** — 값은 안 찍는다 · 길이만
+> 이름 54개 중 **12개 들어 있음 · 42개 없음** — 값은 안 찍는다 · 길이만
 
 | 이름 | 무엇 | 이 저장소 Actions 비밀 |
 |---|---|---|
@@ -28,7 +28,7 @@
 | `REB_LAND_MICRO` | 지가변동률 마이크로데이터 | — 없음 |
 | `MOLIT_APT_SALE` | 아파트 매매 실거래가 | — 없음 |
 | `MOLIT_OFFICETEL_RENT` | 오피스텔 전월세 | — 없음 |
-| `MOLIT_HUB_BLDG_LEDGER` | 건축물대장 | — 없음 |
+| `MOLIT_HUB_BLDG_LEDGER` | 건축물대장 | ✅ 있음 (길이 64) |
 | `MOLIT_HUB_HOUSING_PERMIT` | 주택인허가 | — 없음 |
 | `MOLIT_HUB_BLDG_PERMIT` | 건축인허가 | — 없음 |
 | `MOLIT_LUR_INFO` | 토지이용규제정보 | — 없음 |
