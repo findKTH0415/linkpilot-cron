@@ -77,7 +77,8 @@
     "yeoui893:fetch": "node im-agent/tools/yeoui893-fetch.mjs",
     "yeoui893:nas": "bash im-agent/tools/yeoui893-nas.sh",
     "routing:nas": "bash im-agent/tools/routing-nas.sh",
-    "weather:nas": "bash im-agent/tools/weather-nas.sh"
+    "weather:nas": "bash im-agent/tools/weather-nas.sh",
+    "arch:case": "node im-agent/tools/arch-case.js"
   },
   "dependencies": {
     "solapi": "^5.5.1"

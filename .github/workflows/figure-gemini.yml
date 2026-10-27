@@ -18,8 +18,14 @@ on:
         required: true
         default: diagram
       brief:
-        description: 무엇을 그리나 — 숫자·이름은 여기 적은 것만 쓴다
-        required: true
+        description: 무엇을 그리나 — 숫자·이름은 여기 적은 것만 쓴다 (지시문 파일을 주면 비워도 된다)
+        required: false
+      brief_file:
+        description: 지시문 파일 (저장소 안 경로 · 예 data/_arch/ARCH-2026-10-27/render-brief.txt)
+        required: false
+      ref:
+        description: 기준 그림 (저장소 안 png·jpg·webp · 조감도의 형상을 지키는 입력 — 나노바나나)
+        required: false
       size:
         description: 가로x세로 (예 1600x900)
         required: false
@@ -49,6 +55,8 @@ jobs:
           IN_KIND: ${{ inputs.kind }}
           IN_BRIEF: ${{ inputs.brief }}
           IN_SIZE: ${{ inputs.size }}
+          IN_BRIEF_FILE: ${{ inputs.brief_file }}
+          IN_REF: ${{ inputs.ref }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_API_KEY_2: ${{ secrets.GEMINI_API_KEY_2 }}
           GEMINI_API_KEY_3: ${{ secrets.GEMINI_API_KEY_3 }}
@@ -67,7 +75,7 @@ jobs:
           GEMINI_KEY_08: ${{ secrets.GEMINI_KEY_08 }}
         run: |
           W="${IN_SIZE%x*}"; H="${IN_SIZE#*x}"
-          node scripts/gemini-figure.mjs --name "$IN_NAME" --kind "$IN_KIND" --brief "$IN_BRIEF" --w "$W" --h "$H"
+          node scripts/gemini-figure.mjs --name "$IN_NAME" --kind "$IN_KIND" --brief "$IN_BRIEF" --brief-file "$IN_BRIEF_FILE" --ref "$IN_REF" --w "$W" --h "$H"
       - name: 그림만 커밋한다
         if: always()
         env:
