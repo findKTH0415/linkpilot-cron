@@ -41,7 +41,7 @@ test('사례: 평면도 46·79㎡ 는 세대 구성(84·59㎡)에 없는 유형 
 
 test('조감도 대조는 기준과 같으면 적합 — 층수가 다르면 부적합 (거꾸로도 잰다)', () => {
   const base = [{ id: '1', floors: 10 }, { id: '2', floors: 12 }];
-  assert.deepStrictEqual(eng.compareViews(base, { id: 'v', labels: [{ id: '1', floors: 10 }, { id: '2', floors: 12 }] }), { view: 'v', missing: [], extra: [], dup: [], floorDiff: [] });
+  assert.deepStrictEqual(eng.compareViews(base, { id: 'v', labels: [{ id: '1', floors: 10 }, { id: '2', floors: 12 }] }), { view: 'v', missing: [], extra: [], dup: [], floorDiff: [], floorUnknown: [] });
   assert.deepStrictEqual(eng.compareViews(base, { id: 'v', labels: [{ id: '1', floors: 10 }, { id: '2', floors: 9 }, { id: '3', floors: 5 }] }).floorDiff, ['2 12F↔9F']);
 });
 
@@ -77,4 +77,16 @@ test('조감도 지시문: 12개 동 목록·형상 유지·글자 금지를 싣
   const md = eng.toMarkdown(eng.report(CASE, 'T'), CASE);
   assert.ok(!/100% 법규|허가 보장|완벽한 설계/.test(md.replace(/보장하지 않으며/g, '')));
   assert.match(md, /## 1\. 결론[\s\S]*## 2\. 근거[\s\S]*## 3\. 설계[\s\S]*## 4\. 실행[\s\S]*## 6\. 결정/);
+});
+
+test('Codex #320: 층수를 못 읽은 라벨 · 세대수 모르는 유형은 적합이 아니라 미확인', () => {
+  const c = JSON.parse(JSON.stringify(CASE));
+  c.views.find((v) => v.id === 'img4-50').labels.forEach((l) => { l.floors = null; });
+  c.plan.unit_mix[1].count = null;
+  const r = eng.report(c, null);
+  assert.strictEqual(byId(r, 'B-img4-50').status, 'UNVERIFIED');
+  assert.strictEqual(byId(r, 'A2').status, 'UNVERIFIED');
+  const r0 = eng.report(JSON.parse(JSON.stringify(CASE)), null);
+  assert.strictEqual(byId(r0, 'B-img4-50').status, 'PASS');
+  assert.strictEqual(byId(r0, 'A2').status, 'PASS');
 });

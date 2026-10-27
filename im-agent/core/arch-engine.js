@@ -66,7 +66,7 @@ function designModel(c) {
 
 /* 같은 단지를 그린 그림끼리 «동번호·층수»를 대 본다 — 한 그림에만 있는 동 · 두 번 적힌 동 · 층수가 다른 동 */
 function compareViews(base, view) {
-  const out = { view: view.id, missing: [], extra: [], dup: [], floorDiff: [] };
+  const out = { view: view.id, missing: [], extra: [], dup: [], floorDiff: [], floorUnknown: [] };
   const seen = {};
   for (const l of view.labels || []) { seen[l.id] = (seen[l.id] || 0) + 1; }
   for (const [id, n] of Object.entries(seen)) if (n > 1) out.dup.push(id);
@@ -75,7 +75,8 @@ function compareViews(base, view) {
     if (!seen[b.id]) out.missing.push(b.id);
     else {
       const l = (view.labels || []).find((x) => x.id === b.id);
-      if (l && num(l.floors) != null && l.floors !== b.floors) out.floorDiff.push(`${b.id} ${b.floors}F↔${l.floors}F`);
+      if (l && num(l.floors) == null) out.floorUnknown.push(b.id); // 층수를 못 읽은 동 — 같다고 치지 않는다
+      else if (l && num(l.floors) !== num(b.floors)) out.floorDiff.push(`${b.id} ${b.floors}F↔${l.floors}F`);
     }
   }
   for (const id of Object.keys(seen)) if (!ids.has(id)) out.extra.push(id);
@@ -99,7 +100,8 @@ function checks(c) {
 
   /* A2 세대 유형 합계 */
   const mixSum = m.unit_mix.reduce((s, u) => s + (num(u.count) || 0), 0);
-  out.push(chk('A2', '세대 유형 합계', m.households == null ? 'UNVERIFIED' : (mixSum === m.households ? 'PASS' : 'FAIL'),
+  const mixOk = m.unit_mix.length > 0 && m.unit_mix.every((u) => num(u.count) != null); // 한 유형이라도 세대수를 모르면 합을 판정하지 않는다
+  out.push(chk('A2', '세대 유형 합계', m.households == null || !mixOk ? 'UNVERIFIED' : (mixSum === m.households ? 'PASS' : 'FAIL'),
     m.unit_mix.map((u) => `${u.type}㎡ ${u.count}`).join(' + ') + ` = ${mixSum} (목표 ${m.households})`,
     '유형별 합과 전체 세대수가 같은지만 본다 — 동별·층별 세대표가 없어 배치 수용은 못 잰다', 'doc'));
 
@@ -133,7 +135,9 @@ function checks(c) {
     if (d.missing.length) parts.push(`빠진 동 ${d.missing.join(' · ')}`);
     if (d.extra.length) parts.push(`기준에 없는 동 ${d.extra.join(' · ')}`);
     if (d.floorDiff.length) parts.push(`층수 다름 ${d.floorDiff.join(' · ')}`);
-    out.push(chk('B-' + v.id, `동번호 대조 (${v.label} ↔ 기준 배치도)`, bad ? 'FAIL' : 'PASS', `라벨 ${(v.labels || []).length}개`, bad ? parts.join(' · ') : '12개 동 번호·층수가 기준 배치도와 같다', v.id));
+    if (d.floorUnknown.length) parts.push(`층수 미확인 ${d.floorUnknown.join(' · ')}`);
+    const st = bad ? 'FAIL' : (d.floorUnknown.length ? 'UNVERIFIED' : 'PASS');
+    out.push(chk('B-' + v.id, `동번호 대조 (${v.label} ↔ 기준 배치도)`, st, `라벨 ${(v.labels || []).length}개`, st === 'PASS' ? `${B.length}개 동 번호·층수가 기준 배치도와 같다` : parts.join(' · '), v.id));
   }
 
   /* C 평면 유형 대조 — 평면도에 적힌 면적과 세대 구성의 유형 */
