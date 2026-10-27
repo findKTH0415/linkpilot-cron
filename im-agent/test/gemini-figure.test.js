@@ -87,3 +87,25 @@ test('도식 요청의 무료 한도 소진(limit: 20)은 «결제 필요(5)»�
     reply(429, { error: { message: 'Quota exceeded for metric: generate_content_free_tier_requests, limit: 20' } }));
   assert.strictEqual(r.code, 3, JSON.stringify(r));
 });
+
+test('나노바나나 기준 그림(--ref): 조감도 요청에 그림을 함께 싣고 «형상 유지»를 적는다 · 저장소 밖 경로는 거절 (2026-10-27 통합엔진)', async () => {
+  const m = await load();
+  const tmp = path.join('data', '_figures_test_ref.png');
+  fs.mkdirSync('data', { recursive: true });
+  fs.writeFileSync(tmp, Buffer.from('89504e470d0a1a0a', 'hex'));
+  try {
+    const ref = await m.loadRef(tmp);
+    assert.strictEqual(ref.mime, 'image/png'); assert.match(ref.sha256, /^[0-9a-f]{64}$/);
+    assert.ok((await m.loadRef('../x.png')).error); assert.ok((await m.loadRef('/etc/x.png')).error); assert.ok((await m.loadRef('a.gif')).error);
+    let body;
+    const r = await withFetch(() => m.makeFigure({ kind: 'aerial', brief: '12개 동', keys: ['f'.repeat(30)], ref }), async (url, o) => {
+      body = JSON.parse(o.body);
+      return reply(200, parts([{ inlineData: { mimeType: 'image/png', data: Buffer.from('IMG').toString('base64') } }]));
+    });
+    assert.ok(r.ok);
+    const ps = body.contents[0].parts;
+    assert.strictEqual(ps[0].inlineData.mimeType, 'image/png', '기준 그림이 요청에 안 실렸다');
+    assert.match(ps[1].text, /기준 그림의 건물 수·위치·방향·층수/);
+    assert.match(ps[1].text, /상표·수치/);
+  } finally { fs.rmSync(tmp, { force: true }); }
+});

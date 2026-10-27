@@ -11,9 +11,14 @@
 // ★ 열쇠 값은 한 글자도 안 남긴다 (§2 · 공개 저장소) — 결과에 열쇠가 섞였으면 파일을 안 쓰고 빨갛게 끝난다.
 //
 // 쓰는 법  node scripts/gemini-figure.mjs --name 이름 --kind diagram|chart|image|aerial --brief "무엇을 그리나" [--w 1600 --h 900]
+//          [--brief-file 지시문.txt] [--ref 기준그림.png]
+// ★ --ref 〈2026-10-27 사장님: 「제미나이 나노바나나와 연결하여」 · 통합엔진 지침 §12〉 — 사진형·조감도에 «기준 그림»(배치도·매스 렌더)을
+//   함께 넣어 형상을 지키며 질감만 바꾸게 한다. 기준 그림의 지문(sha256)을 기록에 남겨 어느 설계 판에서 나온 그림인지 잇는다(지침 §10).
+//   ★ 지시문만으로 형상 보존은 보장되지 않는다 — 결과는 «AI 디자인 참고 이미지»이고, 기준 모델과 대조한 뒤에만 설계 조감도로 쓴다.
 // 되돌아오는 값: 0 그렸다 · 2 열쇠 없음 · 3 기다리면 낫는다(못 닿음·시간 초과) · 4 열쇠 거부 · 5 그림 한도 0(결제 연결 필요) · 6 모델 없음 · 7 받은 것이 그림이 아니다
 
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile, readFile, stat } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { geminiKeys, GEMINI_MODELS } from './guide-review.mjs';
 
 export const OUT = 'data/_figures';
@@ -82,7 +87,29 @@ async function call(url, key, body, ms = 120000) {
 }
 
 /** 한 장을 짓는다 — { ok, code, say, model, svg|png, dropped } */
-export async function makeFigure({ kind, brief, w = 1600, h = 900, keys = geminiKeys() }) {
+/** 기준 그림을 읽는다 — 저장소 안의 png·jpg·webp 한 장 · 7MB 까지. 못 읽으면 { error } */
+export async function loadRef(file) {
+  const f = String(file || '');
+  if (!f) return null;
+  if (f.includes('..') || f.startsWith('/')) return { error: '기준 그림은 저장소 안의 경로로만 준다' };
+  const ext = (f.split('.').pop() || '').toLowerCase();
+  const mime = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp' }[ext];
+  if (!mime) return { error: '기준 그림은 png · jpg · webp 만 받는다' };
+  let st; try { st = await stat(f); } catch { return { error: `기준 그림 ${f} 이 없다` }; }
+  if (st.size > 7 * 1024 * 1024) return { error: '기준 그림이 7MB 를 넘는다 — 줄여서 다시 준다' };
+  const buf = await readFile(f);
+  return { file: f, mime, data: buf.toString('base64'), sha256: createHash('sha256').update(buf).digest('hex') };
+}
+
+export function imagePrompt({ kind, brief, w, h, ref }) {
+  return [
+    `${KINDS[kind]}. ${brief}.`,
+    ref ? '첨부한 기준 그림의 건물 수·위치·방향·층수·외곽선·도로와 카메라 구도를 그대로 유지한다. 건물을 더하거나 빼거나 옮기지 않는다. 질감·빛·하늘·수목·그림자만 실사로 바꾼다.' : '',
+    `글자·로고·상표·수치·워터마크를 넣지 않는다. 사실적인 사진처럼. 가로 ${w} 세로 ${h} 비율.`,
+  ].filter(Boolean).join(' ');
+}
+
+export async function makeFigure({ kind, brief, w = 1600, h = 900, keys = geminiKeys(), ref = null }) {
   if (!keys.length) return { ok: false, code: 2, say: '제미나이 열쇠가 이 자리에 없다 — 열쇠가 있는 자리(Actions)에서 돌린다' };
   const svgKind = kind === 'diagram' || kind === 'chart';
   const models = svgKind ? GEMINI_MODELS : IMAGE_MODELS;
@@ -91,7 +118,7 @@ export async function makeFigure({ kind, brief, w = 1600, h = 900, keys = gemini
     for (const key of keys) {
       const body = svgKind
         ? { contents: [{ role: 'user', parts: [{ text: svgPrompt({ kind, brief, w, h }) }] }], generationConfig: { maxOutputTokens: 16384 } }
-        : { contents: [{ role: 'user', parts: [{ text: `${KINDS[kind]}. ${brief}. 글자·로고·워터마크를 넣지 않는다. 사실적인 사진처럼. 가로 ${w} 세로 ${h} 비율.` }] }], generationConfig: { responseModalities: ['IMAGE', 'TEXT'] } };
+        : { contents: [{ role: 'user', parts: [...(ref ? [{ inlineData: { mimeType: ref.mime, data: ref.data } }] : []), { text: imagePrompt({ kind, brief, w, h, ref }) }] }], generationConfig: { responseModalities: ['IMAGE', 'TEXT'] } };
       const r = await call(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, key, body);
       if (r.status == null) { last = { ok: false, code: 3, say: r.text === 'timeout' ? `${model} 이 시간 안에 대답하지 않았다` : '제미나이에 닿지 못했다 — 열쇠 문제가 아니다' }; if (r.text === 'timeout') break; continue; }
       if (r.status === 404) { last = { ok: false, code: 6, say: `모델 ${model} 이 없다 — 다음 모델로` }; break; }
@@ -116,11 +143,16 @@ export async function makeFigure({ kind, brief, w = 1600, h = 900, keys = gemini
 
 async function main() {
   const name = String(arg('name', '') || '').replace(/[^0-9A-Za-z가-힣_-]/g, '').slice(0, 60);
-  const kind = arg('kind', 'diagram'), brief = String(arg('brief', '') || '').trim();
+  const kind = arg('kind', 'diagram');
+  let brief = String(arg('brief', '') || '').trim();
+  const bf = String(arg('brief-file', '') || '');
+  if (bf) { if (bf.includes('..') || bf.startsWith('/')) { console.error('--brief-file 은 저장소 안의 경로로만'); process.exit(1); } try { brief = (await readFile(bf, 'utf8')).trim().slice(0, 4000); } catch { console.error(`지시문 파일 ${bf} 이 없다`); process.exit(1); } }
+  const ref = await loadRef(arg('ref', ''));
+  if (ref && ref.error) { console.error(ref.error); process.exit(1); }
   const w = Math.max(200, Math.min(4000, +arg('w', 1600) || 1600)), h = Math.max(200, Math.min(4000, +arg('h', 900) || 900));
   if (!name || !KINDS[kind] || !brief) { console.error('--name · --kind(diagram|chart|image|aerial) · --brief 가 있어야 한다'); process.exit(1); }
   const keys = geminiKeys();
-  const r = await makeFigure({ kind, brief, w, h, keys });
+  const r = await makeFigure({ kind, brief, w, h, keys, ref });
   await mkdir(OUT, { recursive: true });
   const at = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 16).replace('T', ' ') + ' KST';
   const log = [`# 제미나이 그림 — ${name}`, '', `${at} · 갈래 ${KINDS[kind]} · ${w}×${h}`, ''];
@@ -133,7 +165,8 @@ async function main() {
     if (keys.some((k) => k && (str.includes(k) || (r.png && r.png.includes(Buffer.from(k)))))) { console.error('결과에 열쇠 값이 섞였다 — 쓰지 않는다'); process.exit(4); }
     await writeFile(`${OUT}/${file}`, data);
     await writeFile(`${OUT}/${name}.json`, JSON.stringify({ name, file, kind, brief, w, h, tool: 'gemini', model: r.model, ai_generated: true,
-      disclaimer: kind === 'aerial' ? 'AI 렌더 — 실제 설계안이 아님' : 'AI 가 지은 그림 — 숫자·이름은 요청에 적힌 것만', dropped: r.dropped || [], at }, null, 1));
+      disclaimer: kind === 'aerial' ? 'AI 렌더 — 실제 설계안이 아님' : 'AI 가 지은 그림 — 숫자·이름은 요청에 적힌 것만', dropped: r.dropped || [],
+      ref: ref ? { file: ref.file, sha256: ref.sha256 } : null, shape_check: ref ? '기준 그림과 대조 전 — AI 디자인 참고 이미지' : '기준 그림 없음 — AI 디자인 참고 이미지', at }, null, 1));
     log.push(`- 파일 \`${OUT}/${file}\` · 모델 \`${r.model}\``);
     if (r.dropped && r.dropped.length) log.push(`- 걷어 낸 것: ${r.dropped.join(' · ')} (안전 규칙)`);
     log.push('- ★ 문서에 싣기 전에 사람이 눈으로 본다 — 글자 겹침·지어낸 숫자가 없는지 (§6-1-1 «도면은 오류를 안 내고 틀린다»)');
