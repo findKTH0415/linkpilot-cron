@@ -19,6 +19,7 @@ const { grade } = require('../core/confidence');
 const outputspec = require('../core/outputspec');
 const { round, formatEok } = require('../core/numeric');
 const { kstDate, daysBetween } = require('../core/kst');
+const koStyle = require('../core/ko-style');
 
 const inputSchema = {
   type: 'object',
@@ -316,6 +317,17 @@ async function run(input, ctx) {
     g7.checks.push({ item: '출처 없는 숫자', result: unsourced ? 'FAIL' : 'PASS', detail: `${unsourced}건` });
     g7.checks.push({ item: '디자인 규칙', result: designRed.length ? 'FAIL' : 'PASS', detail: `RED ${designRed.length}건` });
     g7.checks.push({ item: '수치 출처표', result: (writer.citations || []).length ? 'PASS' : 'FAIL', detail: `인용 ${(writer.citations || []).length}건` });
+    /* 한국어 AI 표현 점검 (CLAUDE.md §29 · docs/운영지침-한국어AI표현교정-v1.0.md) — 찾기만 한다. 고치는 것은 사람이다 */
+    if (typeof writer.im === 'string') {
+      const ks = koStyle.lint(writer.im);
+      for (const f of ks.findings) {
+        issues.push(issue(f.code, f.severity, 'Style', `${f.line ? f.line + '줄 · ' : ''}«${f.match}» — ${f.why}`,
+          f.code === 'STYLE_UNCERTAINTY_UPGRADE' ? '원문 근거(계약서·승인서·확약서)를 확인하고, 없으면 «목표·예상·협의 중»으로 되돌린다' : '문장을 다듬는다 — 조건·수치·예외는 그대로 둔다'));
+      }
+      const up = ks.findings.filter((f) => f.code === 'STYLE_UNCERTAINTY_UPGRADE').length;
+      g7.checks.push({ item: '한국어 표현 (불확실성 격상)', result: up ? 'FAIL' : 'PASS', detail: `${up}건` });
+      g7.checks.push({ item: '한국어 표현 (과장·자체설명·연결어·문체)', result: ks.findings.length - up ? 'WARNING' : 'PASS', detail: `${ks.findings.length - up}건 · 한다체 ${ks.endings.han} · 합니다체 ${ks.endings.hap}` });
+    }
   }
 
   /* ★★★ **Design Manager 의 판정을 여기서 듣는다** 〈2026-08-26 · D-123〉.
