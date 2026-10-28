@@ -102,12 +102,17 @@ jobs:
       - name: 미리보기용으로 영상만 shorts-preview 가지에 둔다
         # ★ 아티팩트 저장소는 세션 쪽에서 못 닿아 미리보기 창에 못 싣는다 — 영상·포스터만 따로 가지에 둔다.
         #   공개 저장소라 이 가지도 공개다: 대본이 승인 A 를 지났고 개인정보·열쇠가 없는 영상만 여기 온다 (§2 · §30).
-        if: steps.make.outcome == 'success' && github.ref_name == github.event.repository.default_branch
+        # ★ 본가지가 아닌 가지에서 돈 판은 «<번호>--<가지>» 폴더에 둔다 — 올리기는 «<번호>/» 만 읽으므로 시험판이 올라가지 않는다.
+        if: steps.make.outcome == 'success'
         env:
           IN_ID: ${{ inputs.id }}
+          REF_NAME: ${{ github.ref_name }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           set -eu
           src="data/_shorts/out/$IN_ID"
+          dest="$IN_ID"
+          if [ "$REF_NAME" != "$DEFAULT_BRANCH" ]; then dest="$IN_ID--$(printf '%s' "$REF_NAME" | tr 'A-Z' 'a-z' | tr -c 'a-z0-9' '-' | sed 's/-\{2,\}/-/g; s/^-//; s/-$//' | cut -c1-40)"; fi
           ffmpeg -v error -y -ss 2 -i "$src/final.mp4" -frames:v 1 -vf scale=540:-1 "$src/poster.jpg"
           tmp=$(mktemp -d)
           cp "$src/final.mp4" "$src/poster.jpg" "$src/_summary.md" "$tmp/"
@@ -121,9 +126,9 @@ jobs:
           fi
           # ★ 이 가지에는 «<번호>/final.mp4 · poster.jpg · _summary.md · _images.json» 만 둔다 — 앞 판은 저장소 나무가 통째로 딸려 들어갔다
           (cd ../pv && git ls-files | grep -vE '^[a-z0-9-]+/(final\.mp4|poster\.jpg|_summary\.md|_images\.json)$' | xargs -r git rm -q --cached -- && git clean -fdxq -e '*/final.mp4' -e '*/poster.jpg' -e '*/_summary.md' -e '*/_images.json' || true)
-          mkdir -p "../pv/$IN_ID" && cp "$tmp"/* "../pv/$IN_ID/"
-          cd ../pv && git add "$IN_ID" && (git diff --staged --quiet || git commit -q -m "쇼츠 미리보기 $IN_ID") && git push -q origin shorts-preview
-          echo "미리보기: shorts-preview/$IN_ID/final.mp4"
+          mkdir -p "../pv/$dest" && cp "$tmp"/* "../pv/$dest/"
+          cd ../pv && git add "$dest" && (git diff --staged --quiet || git commit -q -m "쇼츠 미리보기 $dest") && git push -q origin shorts-preview
+          echo "미리보기: shorts-preview/$dest/final.mp4"
       - name: 요약만 커밋한다
         if: always()
         env:
