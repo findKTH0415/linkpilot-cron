@@ -121,3 +121,23 @@ test('Typecast — 공식 문서대로 /v3/voices · ssfm-v30 · 429 는 기다�
   assert.strictEqual((await m.makeTypecast({ key: TK, fetchImpl: async (u) => (/voices/.test(u) ? voices(u) : res(429, { message: 'busy' })) })).code, 3);
   assert.strictEqual((await m.makeTypecast({ key: TK, fetchImpl: async (u) => (/voices/.test(u) ? voices(u) : res(422, { error_code: 'TEXT_NOT_SYNTHESIZABLE' })) })).code, 7);
 });
+
+/* 쇼츠 만들기 — scripts/shorts-make.mjs */
+const loadMake = () => import(path.join(__dirname, '..', '..', 'scripts', 'shorts-make.mjs'));
+test('쇼츠 만들기 — 승인 A 없는 대본은 소리로 안 만든다 · 60자 넘는 줄은 막는다', async () => {
+  const m = await loadMake();
+  assert.match(m.checkScript({ approvedA: false, lines: [{ text: '안녕' }] }), /승인 A/);
+  assert.match(m.checkScript({ approvedA: true, lines: [{ text: '가'.repeat(61) }] }), /60자/);
+  assert.strictEqual(m.checkScript({ approvedA: true, lines: [{ text: '안녕' }] }), null);
+  const real = JSON.parse(require('fs').readFileSync(path.join(__dirname, '..', '..', 'data', '_shorts', 'scripts', 'linkpilot-01.json'), 'utf8'));
+  assert.strictEqual(m.checkScript(real), null, '첫 대본이 검사를 지난다');
+  for (const l of real.lines.slice(0, 6)) assert.ok(Array.isArray(l.src) && l.src.length >= 2, `사실 줄은 출처 둘: ${l.text}`);
+});
+test('쇼츠 만들기 — 자막 시각은 받은 소리 길이로 이어지고 줄 사이에만 쉰다', async () => {
+  const m = await loadMake();
+  const tl = m.timeline([1.5, 2, 1], ['a', 'b', 'c'], 0.5);
+  assert.deepStrictEqual(tl.map((c) => [c.start, c.end]), [[0, 1.5], [2, 4], [4.5, 5.5]]);
+  assert.match(m.toSrt(tl), /00:00:02,000 --> 00:00:04,000\nb/);
+  assert.strictEqual(m.assTime(65.5), '0:01:05.50');
+  assert.match(m.toAss(tl, '브랜드'), /Dialogue: 0,0:00:04.50,0:00:05.50,Cap,,0,0,0,,\{\\fad\(120,120\)\}c/);
+});

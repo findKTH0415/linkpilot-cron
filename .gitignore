@@ -84,3 +84,8 @@ im-agent/ui/platform/.open-test-*.html
 private/
 data/_shorts/probe/*.wav
 data/_shorts/probe/*.mp4
+data/_shorts/out/**/*.wav
+data/_shorts/out/**/*.mp4
+data/_shorts/out/**/*.srt
+data/_shorts/out/**/*.ass
+data/_shorts/out/**/*.txt
