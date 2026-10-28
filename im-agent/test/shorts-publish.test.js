@@ -129,3 +129,25 @@ test('올리기는 «같은 판»의 사진 출처와 «지금» 본가지의 �
   assert.ok(pub.indexOf('origin/$DEFAULT_BRANCH:data/_shorts') < pub.indexOf('node scripts/shorts-publish.mjs'), '올리기 전에 읽는다');
   assert.ok(/cp "\$src\/_images\.json" "\$tmp\/"/.test(make) && /_images\\\.json\)\$/.test(make), '만들기가 사진 출처를 미리보기 가지에 함께 둔다');
 });
+
+test('지침 v1.3 — 합성 콘텐츠 표시는 대본 칸을 따르고(없으면 켠다), 기본 올릴 곳은 유튜브 하나다', async () => {
+  const fs = require('fs');
+  const m = await load();
+  assert.strictEqual(m.syntheticOf(SCRIPT).value, true, '판단이 없으면 켠다 — 안 알리는 쪽으로 기울지 않는다');
+  assert.strictEqual(m.syntheticOf({ ...SCRIPT, syntheticMedia: false }).value, false);
+  assert.strictEqual(m.syntheticOf({ ...SCRIPT, syntheticMedia: true }).value, true);
+  const calls = [];
+  const fetchImpl = async (u, o = {}) => {
+    calls.push({ u, o });
+    if (u === m.YT.token) return reply(200, { access_token: 'acc-1' });
+    if (u.startsWith(m.YT.upload)) return reply(200, {}, { location: 'https://upload.example/s' });
+    return reply(200, { id: 'v', status: { privacyStatus: 'private' } });
+  };
+  await m.youtube({ video: VIDEO, script: { ...SCRIPT, syntheticMedia: false }, env: YENV, fetchImpl });
+  assert.strictEqual(JSON.parse(calls[1].o.body).status.containsSyntheticMedia, false, '대본이 «없다»고 적었으면 끈다');
+  assert.strictEqual(m.DEFAULT_TARGETS, 'youtube');
+  const wf = fs.readFileSync(path.join(__dirname, '..', '..', '.github', 'workflows', 'shorts-publish.yml'), 'utf8');
+  assert.ok(/targets:[\s\S]*?default: youtube\n/.test(wf), '워크플로 기본 올릴 곳도 유튜브 하나');
+  const src = fs.readFileSync(path.join(__dirname, '..', '..', 'scripts', 'shorts-publish.mjs'), 'utf8');
+  assert.ok(!/containsSyntheticMedia: true/.test(src), '합성 표시를 박아 두지 않는다');
+});
