@@ -3585,3 +3585,12 @@ SNS 인사말(표에서 고른 3줄) → 오늘 보낼 사람 → 배경 고르�
 - ★ 낱말을 일괄 금지하지 않는다(지침 §3 끝) — 걸린 줄은 문맥을 못 본 기계의 표시라 사람이 확인한다. AI 탐지 점수·변경률을 만들지 않는다(지침 §9 끝).
 - ★ im-not-ai 공식 스킬을 설치한 것이 아니다 — 그 취지를 참고한 별도 작성판이다(지침 머리).
 - 재는 자리: `im-agent/test/ko-style.test.js`(«목표 수익률»·«협의 중» 오탐 없음 포함).
+
+## 30. 쇼츠 자동화 — 목소리·영상 〈2026-10-28 사장님: 「쇼츠 채널은 홍보용 · 링크파일럿」 · 「Gemini 음성으로」 · 「STUDIO_TYPECAST_AI 키넣었어」 · 「쇼츠 스킬반영해줘」〉
+
+- **규칙** — 채널은 LinkPilot 홍보용(상업 이용)이라 무료 판이 상업 이용을 막는 엔진(ElevenLabs 무료)·API 무료 판이 없는 엔진(OpenAI 음성·Runway·Veo)은 쓰지 않는다. 목소리는 무료 Gemini 열쇠 묶음이 먼저, Typecast(`STUDIO_TYPECAST_AI`)는 사장님이 넣으신 두 번째 길이다. 영상은 FFmpeg 9:16(1080×1920 · 30fps · H.264/AAC · faststart).
+- **진단부터** — `scripts/shorts-voice.mjs` · Actions «쇼츠 목소리 진단»(`shorts-voice.yml`)이 두 엔진을 짧게 불러 응답 앞머리·형식·길이를 `data/_shorts/probe/_summary.md` 에 남긴다. 모델 이름·Typecast 주소는 확정값이 아니다(어긋나면 응답이 말한다). 소리·영상 파일은 아티팩트로만 — 저장소에 안 올린다.
+- ★ Typecast 열쇠는 data.go.kr 진단(`fsc-probe`)에 넣지 않는다 — 열쇠를 다른 서버로 보내게 된다(`key:add` 가 다는 «진단 목록» 칸만 되돌렸다).
+- ★ 실존 인물 1인칭·로고·상표는 대본·지시문에 안 넣고, 사실 카드(근거 둘) 통과 전 대본은 읽히지 않는다 — 앱센터 «쇼츠 자동화»와 스킬 `.claude/skills/create-typecast-shorts/` 가 같은 규칙이다.
+- ★ 스킬 원문의 업체 통계 표식(`TYPECAST_INTEGRATION_SOURCE` · `TYPECAST_GENERATED_BY`)과 선택 설문은 사장님 지시 없이 켜지 않는다.
+- 재는 자리: `im-agent/test/shorts-voice.test.js`(가짜 응답 · 갈래 2·3·4·5·6·7 · 열쇠 가림) · `sources-verdict.test.js`(판정이 계산된 값인가).
