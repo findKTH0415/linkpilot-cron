@@ -82,6 +82,28 @@ jobs:
             data/_shorts/out/${{ inputs.id }}/_summary.md
           if-no-files-found: warn
           retention-days: 14
+      - name: 미리보기용으로 영상만 shorts-preview 가지에 둔다
+        # ★ 아티팩트 저장소는 세션 쪽에서 못 닿아 미리보기 창에 못 싣는다 — 영상·포스터만 따로 가지에 둔다.
+        #   공개 저장소라 이 가지도 공개다: 대본이 승인 A 를 지났고 개인정보·열쇠가 없는 영상만 여기 온다 (§2 · §30).
+        if: steps.make.outcome == 'success' && github.ref_name == github.event.repository.default_branch
+        env:
+          IN_ID: ${{ inputs.id }}
+        run: |
+          set -eu
+          src="data/_shorts/out/$IN_ID"
+          ffmpeg -v error -y -ss 2 -i "$src/final.mp4" -frames:v 1 -vf scale=540:-1 "$src/poster.jpg"
+          tmp=$(mktemp -d)
+          cp "$src/final.mp4" "$src/poster.jpg" "$src/_summary.md" "$tmp/"
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git ls-remote --exit-code origin shorts-preview >/dev/null 2>&1; then
+            git fetch -q origin shorts-preview && git worktree add -q ../pv origin/shorts-preview && (cd ../pv && git checkout -q -B shorts-preview)
+          else
+            git worktree add -q --detach ../pv && (cd ../pv && git checkout -q --orphan shorts-preview && git rm -rq . 2>/dev/null || true)
+          fi
+          mkdir -p "../pv/$IN_ID" && cp "$tmp"/* "../pv/$IN_ID/"
+          cd ../pv && git add "$IN_ID" && (git diff --staged --quiet || git commit -q -m "쇼츠 미리보기 $IN_ID") && git push -q origin shorts-preview
+          echo "미리보기: shorts-preview/$IN_ID/final.mp4"
       - name: 요약만 커밋한다
         if: always()
         env:
