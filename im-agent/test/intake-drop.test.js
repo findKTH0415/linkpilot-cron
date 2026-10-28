@@ -58,3 +58,25 @@ test('자료 업로드 칸 — 프로젝트 지정 없이 올리는 칸이 바�
     assert.match(posts[0].request, /^올린 자료로 보고서 작성 — 사업계획서\.pdf$/, '요청문을 파일 이름으로 만들지 않았다: ' + posts[0].request);
   } finally { await b.close(); }
 });
+
+/* 2026-10-28 (Codex P2 #326) — 0바이트 파일이 섞이면 [자료올리기 완료] 가 «읽는 중»으로 영영 막혔다 */
+test('빈 파일(0바이트)은 빼고 나머지 자료로 [자료올리기 완료] 가 열린다', async (t) => {
+  if (!chromium) { t.skip('playwright 가 없다 — 못 쟀다'); return; }
+  let b;
+  try { b = await chromium.launch(); } catch (e) { t.skip('크로미움을 못 띄웠다 — 못 쟀다'); return; }
+  try {
+    const p = await b.newPage({ viewport: { width: 1100, height: 1000 } });
+    await p.route('**/api/**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ assetTypes: [], maxBytesPerFile: 5e7 }) }));
+    await p.goto('file://' + path.join(__dirname, '..', 'ui', 'platform', 'intake.html') + '?part=files&api=http://x.test/api');
+    await p.waitForTimeout(1000);
+    await p.setInputFiles('[data-lp-intake-drop] input[type=file]', [
+      { name: '사업계획서.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4 test') },
+      { name: '빈파일.txt', mimeType: 'text/plain', buffer: Buffer.alloc(0) },
+    ]);
+    await p.waitForTimeout(800);
+    const c = await p.evaluate(() => ({ go: document.getElementById('go').disabled, text: document.body.innerText }));
+    assert.strictEqual(c.go, false, '빈 파일 하나 때문에 [자료올리기 완료] 가 막혔다');
+    assert.match(c.text, /빈 파일\(0바이트\)이라 올리지 않습니다/, '빈 파일을 뺀 까닭을 적지 않는다');
+    assert.ok(!/고른 자료를 읽는 중입니다/.test(c.text), '다 읽었는데 «읽는 중»으로 남았다');
+  } finally { await b.close(); }
+});

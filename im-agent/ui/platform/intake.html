@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="83aa51de">
+<html lang="ko" data-lp-build="fd73a639">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -263,7 +263,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=83aa51de">
+<link rel="stylesheet" href="tokens.css?v=fd73a639">
 <style>
 :root {
   --side: 248px;
@@ -550,11 +550,11 @@ h1,h2,h3,h4 { margin: 0; }
   </main>
 </div>
 
-<script src="gate-core.js?v=83aa51de"></script>
-<script src="flow-core.js?v=83aa51de"></script>
-<script src="upload-core.js?v=83aa51de"></script>
-<script src="catalog.js?v=83aa51de"></script>
-<script src="inapp.js?v=83aa51de"></script>
+<script src="gate-core.js?v=fd73a639"></script>
+<script src="flow-core.js?v=fd73a639"></script>
+<script src="upload-core.js?v=fd73a639"></script>
+<script src="catalog.js?v=fd73a639"></script>
+<script src="inapp.js?v=fd73a639"></script>
 <script>
 /**
  * 설정 — 서버가 로그인 세션을 보고 내려주는 것이 정석이다.
@@ -566,7 +566,7 @@ window.LINKPILOT_INTAKE = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=83aa51de" data-lp-global="LINKPILOT_INTAKE"></script>
+<script src="embed-bridge.js?v=fd73a639" data-lp-global="LINKPILOT_INTAKE"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -1156,7 +1156,9 @@ var lpApiWhy = (function () {
       state.files.push(rec);
       // ★ 읽기·보내기는 upload-core.js 한 곳에 있다 — 화면마다 따로 쓰면 갈린다
       UP.readOne(f, function (err, data) {
-        if (err) { rec.error = err.message; } else { rec.data = data; }
+        /* ★ 2026-10-28 (Codex P2 #326) — 0바이트 파일은 읽기가 끝나도 data 가 빈 글자라 «읽는 중»으로 남아
+           [자료올리기 완료] 를 영영 막았다. 빈 파일은 오류로 갈라 올리지 않고, 나머지 자료는 그대로 보낸다 */
+        if (err) { rec.error = err.message; } else if (!data) { rec.error = '빈 파일(0바이트)이라 올리지 않습니다'; } else { rec.data = data; }
         render();
       });
     });
@@ -1185,11 +1187,9 @@ var lpApiWhy = (function () {
       /* ★ 2026-08-16 — 부모(report-flow)에 알린다. 부모는 자식 URL 의 ?project= 로만 프로젝트를
          알아채는데, 여기서 만든 프로젝트는 URL 에 없다 → 2~4단계가 영원히 「1단계에서 프로젝트를
          먼저 만듭니다」로 잠겨 있었다(앱 실측). 같은 출처에만 보낸다. */
-      try {
-        if (window.parent !== window && j && j.projectId)
-          window.parent.postMessage({ type: 'lp-flow-project', projectId: j.projectId }, window.location.origin);
-      } catch (_) {}
-      if (state.files.length) uploadFiles();
+      /* ★ 2026-10-28 (Codex P1) — 부모는 이 알림을 받자마자 칸을 다시 그려 이 틀을 지운다.
+         그래서 올리기가 끝난 «뒤에» 알린다 — 먼저 알리면 올리던 자료가 중간에 끊긴다. */
+      if (!uploadFiles()) tellParent(j);
     }).catch(function (e) {
       state.busy = false; state.error = e.message; render();
     });
@@ -1204,18 +1204,29 @@ var lpApiWhy = (function () {
    *
    * ★ 여기서는 그 결과를 **이 화면의 말로** 옮기기만 한다.
    */
+  function tellParent(j) {
+    try {
+      if (window.parent !== window && j && j.projectId)
+        window.parent.postMessage({ type: 'lp-flow-project', projectId: j.projectId }, window.location.origin);
+    } catch (_) {}
+  }
+
+  /** 올릴 것이 있으면 올리고 true · 없으면 false (그때는 부르는 쪽이 곧바로 부모에 알린다) */
   function uploadFiles() {
     var ready = state.files.filter(function (f) { return f.data && !f.tooBig; });
-    if (!ready.length || !state.created) return;
+    if (!ready.length || !state.created) return false;
 
     state.busy = true;
+    var made = state.created;
     UP.send({
-      url: C.api + '/projects/' + state.created.projectId + '/sources',
+      url: C.api + '/projects/' + made.projectId + '/sources',
       files: ready.map(function (f) { return { name: f.name, contentBase64: f.data }; }),
       onUpdate: function (u) { state.upload = u; render(); },
-      onDone: function (j) { state.busy = false; state.uploaded = j; render(); },
-      onFail: function (why) { state.busy = false; state.error = why; render(); },
+      onDone: function (j) { state.busy = false; state.uploaded = j; render(); tellParent(made); },
+      /* 못 올려도 프로젝트는 만들어졌다 — 사유를 그린 뒤 알린다(다음 칸이 잠긴 채 남지 않게) */
+      onFail: function (why) { state.busy = false; state.error = why; render(); tellParent(made); },
     });
+    return true;
   }
 
   /** 진행 바 한 칸. 모르는 값은 막대가 아니라 빗금이다 */
@@ -1782,6 +1793,7 @@ var lpApiWhy = (function () {
         mid.appendChild(el('div', 'file__n', f.name));
         var m = size(f.size);
         if (f.tooBig) m += ' · 한도를 넘어 올릴 수 없습니다';
+        else if (f.error) m += ' · ' + f.error;
         else if (!f.data) m += ' · 읽는 중…';
         else if (f.note) m += ' · ' + f.note;
         mid.appendChild(el('div', 'file__m' + (f.readable ? '' : ' no'), m));
@@ -1800,7 +1812,9 @@ var lpApiWhy = (function () {
   }
 
   function canGo() {
-    var ready = state.files.some(function (f) { return f.data && !f.tooBig; });
+    /* ★ 2026-10-28 (Codex P2) — 고른 자료가 «전부» 읽혔을 때만 연다. 하나만 읽힌 채 보내면 나머지가 조용히 빠진다 */
+    var want = state.files.filter(function (f) { return !f.tooBig && !f.error; });
+    var ready = want.length > 0 && want.every(function (f) { return f.data; });
     return !!C.api && (ready || state.request.trim().length >= 5) && !state.busy && !state.created;
   }
 
