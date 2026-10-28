@@ -208,6 +208,8 @@ async function main() {
   const pxKey = String(process.env.PEXELS_API_KEY || '').trim();
   if (pxKey) secrets.push(pxKey);
   // 대본이 visual: graphic 이면 사진을 안 깐다 — 지침 v1.3 §5.3·§8.1 초기 정책(자체 그래픽 · 로고·제품 사진 없음)
+  // ★ 체크아웃에 앞 판의 사진 출처(_images.json)가 남아 있으면 그것이 미리보기·올리기 설명에 딸려 간다 — 빈 목록으로 덮는다
+  if (script.visual === 'graphic') { await writeFile(`${out}/_images.json`, '[]\n'); }
   if (script.visual === 'graphic') log.push('- 장면: 자체 그래픽(강조 문구·연도 숫자·진행 막대) — 대본이 visual: graphic 이라 사진을 안 깔았다 (지침 v1.3 §5.3)');
   else if (arg('images', 'pexels') === 'pexels') {
     if (!pxKey) log.push('- 사진: PEXELS_API_KEY 가 없어 잉크 바탕으로만 그린다');

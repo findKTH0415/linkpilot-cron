@@ -34,7 +34,7 @@ export const DEFAULT_TARGETS = 'youtube'; // 지침 v1.3 — 1차 대상은 YouT
 export function syntheticOf(script) {
   const v = script && script.syntheticMedia;
   if (v === true) return { value: true, why: '대본이 «실제처럼 보이는 생성·변형 장면이 있다»고 적었다' };
-  if (v === false) return { value: false, why: `대본이 «실제처럼 보이는 생성 장면이 없다»고 적었다${script.syntheticNote ? ' — ' + script.syntheticNote : ''}` };
+  if (v === false) return { value: false, why: script.syntheticNote ? `대본 판단 — ${script.syntheticNote}` : '대본이 «실제처럼 보이는 생성 장면이 없다»고 적었다' };
   return { value: true, why: '대본에 판단(syntheticMedia)이 없어 켰다 — 사람이 정해 대본에 적는다' };
 }
 
