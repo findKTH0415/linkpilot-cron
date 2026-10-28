@@ -1,0 +1,73 @@
+# render-smoke — 조감도 자동 렌더(im:render)의 실키 실측 〈D-34 개정의 남은 확인〉
+#
+# ★ 왜 따로 있는가: im:render 의 이미지 모델 ID·응답 형상은 키 있는 자리에서만
+#   실측할 수 있다 (§7 — 키 없는 자리에서 실호출을 판정하지 않는다). NAS 를
+#   건드리지 않고 GitHub Secrets 의 GEMINI_API_KEY 로 한 번 돌려 보는 자리다.
+# ★ 손으로만 돈다 (workflow_dispatch) — 이미지 생성은 유료 구간이 있을 수 있어
+#   자동 스케줄에 걸지 않는다 (§4.5 와 같은 결).
+# ★ 값은 로그에 안 찍힌다 — 키는 env 로만 흐르고, 도구는 이름·모양만 말한다 (§2).
+name: render-smoke
+on:
+  workflow_dispatch: {}
+  # ★ 2026-09-17 — 죽은 push 트리거를 뺐다. 그 갈래(`claude/sketchup-…-rg04zq`)는
+  #   3주째 조용하고, **이 파일이 이제 main 에 있어 `workflow_dispatch` 가 붙는다**
+  #   (그때 push 로 우회한 이유는 「main 에 없어 404」였고 그 조건이 사라졌다).
+  #   남겨 두면 그 갈래를 누가 건드릴 때마다 **결제 때문에 또 빨개진다.**
+
+# 2026-10-22 — 기본 권한을 «읽기만»으로 좁힌다(저장소 기본값에 기대지 않는다)
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: 20 }
+      # 원본 이미지 — 저장소의 미리 그려 둔 화면을 크롬으로 찍는다.
+      # 실측 목적(모델 ID·응답 형상 확인)에는 어떤 래스터든 충분하다.
+      - name: Make base image
+        run: |
+          google-chrome --headless --disable-gpu --no-sandbox \
+            --window-size=800,600 --screenshot=base.png \
+            "file://$PWD/im-agent/ui/platform/section-static.html" 2>/dev/null
+          ls -la base.png
+      - name: Run im:render (실키)
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          set +e
+          # ★★★ 2026-09-17 — «2>&1» 이 없으면 사람 말 판정이 요약에 한 줄도 안 온다.
+          #   그 도구는 판정을 stderr 로 적는데 tee 는 stdout 만 받는다. 그래서
+          #   render.log 에는 「원본: …」 한 줄만 담겼고(실측), 요약이 그 한 줄만 보였다.
+          #   판정은 Actions 로그에만 있었다 — 「만들었다」와 「닿는다」는 다른 사실이다.
+          node im-agent/tools/render-birdseye.js --image base.png --project LP-DEMO-APT-000 2>&1 | tee render.log
+          CODE=${PIPESTATUS[0]}
+          echo "exit=$CODE" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$CODE" = "0" ]; then
+            echo "✅ 렌더 성공 — 후보와 기록 JSON 이 아티팩트에 있다" >> "$GITHUB_STEP_SUMMARY"
+          else
+            # ★★★ 여기서 «원인을 단정하지 않는다». 앞 판은 무엇이 막았든
+            #   「모델 이름을 조정하라」고 적어, 결제가 막은 날에도 사장님을
+            #   고칠 것이 없는 자리로 보냈다 (CLAUDE.md §12-19). 가르는 일은
+            #   그 도구가 한다 — 이 자리는 그 답을 «그대로 싣기만» 한다.
+            echo "❌ 실패 — 아래가 판정과 서버 원문이다 (이 출력이 실측 기록이다)" >> "$GITHUB_STEP_SUMMARY"
+            # ★ 코드블록으로 감싼다 — 요약은 마크다운이라 안 감싸면 줄이 뭉개진다.
+            # ★★ 줄 수를 넉넉히 둔다. 판정이 길어지면 앞에서 잘리고, 잘리는 첫 줄이
+            #   하필 «무엇이 막았는가»다. 검사가 그 길이를 실제로 세어 견준다.
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            tail -24 render.log >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit "$CODE"
+      - name: Upload candidates
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: render-candidates
+          path: |
+            im-projects/LP-DEMO-APT-000/04_Property/render-candidates/
+            render.log
+          if-no-files-found: warn

@@ -1,0 +1,29 @@
+{
+ "key": "GG_DATADREAM_OPENDATA",
+ "rows": [
+  {
+   "label": "경기지역화폐 가맹점 현황 RegionMnyFacltStus (시험용)",
+   "ok": false,
+   "status": null,
+   "ms": 10556,
+   "gotValue": false,
+   "authFail": false,
+   "blocked": false,
+   "fields": null,
+   "transport": "fetch failed",
+   "resultCode": null
+  },
+  {
+   "label": "일반음식점 현황 Genrestrtlist (시험용)",
+   "ok": false,
+   "status": null,
+   "ms": 10494,
+   "gotValue": false,
+   "authFail": false,
+   "blocked": false,
+   "fields": null,
+   "transport": "fetch failed",
+   "resultCode": null
+  }
+ ]
+}

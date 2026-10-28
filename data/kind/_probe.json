@@ -1,0 +1,879 @@
+{
+ "at": "2026-10-22T02:00:14.254Z",
+ "home": {
+  "status": 200,
+  "len": 160931
+ },
+ "scripts": [
+  "/js/jquery-3.6.0.min.js",
+  "/js/jquery.rwdImageMaps.min.js",
+  "/js/fullpage.min.js",
+  "/js/swiper-bundle.min.js",
+  "/js/alpine.min.js",
+  "/js/wbz-popup.v1.js",
+  "/js/common.js",
+  "/js/layout.js"
+ ],
+ "pages": [
+  "/introduce/business",
+  "/business/support",
+  "/business/infra_office",
+  "/business/global",
+  "/business/feasibility_fs",
+  "/business/proposal",
+  "/business/k_network",
+  "/business/eipp",
+  "/business/feasibility",
+  "/business/discovery",
+  "/business/teamKorea",
+  "/business/advisory",
+  "/business/investment",
+  "/business/pis",
+  "/business/pis_2"
+ ],
+ "apis": [
+  "/api/v1/attachment",
+  "/api/v1/attachment/1a648bdc-ebda-4df8-b576-5198affb51ae",
+  "/api/v1/attachment/48de8075-221c-40b8-8d96-294f986b5b9f",
+  "/api/v1/attachment/4c30a12a-6a96-433b-9f08-593213ccd031",
+  "/api/v1/attachment/5b6be4fb-aec4-45e4-916c-3bfcfe75f0bb",
+  "/api/v1/attachment/7f974fe3-725e-40bc-91db-38e98946ca6c",
+  "/api/v1/attachment/94556b5a-4b1c-44a3-983b-0d76a813a92c",
+  "/api/v1/attachment/abdb0619-c49c-45a2-8f32-5f6be8fa7f54",
+  "/api/v1/attachment/c0ba8677-c771-4bf0-a1eb-20b698545354",
+  "/api/v1/attachment/c2203d42-894d-49d2-aafe-f998ecac872f",
+  "/api/v1/attachment/c7b0b36a-a1c9-42f3-afca-a2c337bf32a8",
+  "/api/v1/attachment/d641b760-a06f-4158-8d1f-e7ceb496ece7"
+ ],
+ "calls": [
+  {
+   "path": "/api/v1/attachment",
+   "status": 405,
+   "type": "application/json",
+   "len": 162,
+   "shape": "키: timestamp,status,error,message,path",
+   "head": "{\"timestamp\":\"2026-10-22T10:59:53.592885\",\"status\":405,\"error\":\"Method Not Allowed\",\"message\":\"지원하지 않는 요청입니다: GET /api/v1/attachment\",\"path\":\"/api/v1/attachment\"}"
+  }
+ ],
+ "links": [
+  "/?lang=en",
+  "/?lang=ko",
+  "/business/advisory",
+  "/business/discovery",
+  "/business/eipp",
+  "/business/feasibility",
+  "/business/feasibility_fs",
+  "/business/gif",
+  "/business/global",
+  "/business/greenfund",
+  "/business/infra_office",
+  "/business/infra_office?board=12",
+  "/business/infra_office?board=14",
+  "/business/infra_office?board=17",
+  "/business/investment",
+  "/business/k_network",
+  "/business/manage",
+  "/business/pis",
+  "/business/pis_2",
+  "/business/proposal",
+  "/business/support",
+  "/business/teamKorea",
+  "/community/location",
+  "/css/fullpage.min.css",
+  "/css/general.css",
+  "/css/swiper-bundle.min.css",
+  "/expansion",
+  "/expansion/consult",
+  "/images/favicon/favicon_144x144.svg",
+  "/images/favicon/favicon_196x196.svg",
+  "/images/favicon/favicon_48x48.svg",
+  "/images/favicon/favicon_96x96.svg",
+  "/information/business_management",
+  "/information/data_portal",
+  "/information/disclosure_portal",
+  "/inquiry",
+  "/introduce/business",
+  "/introduce/ceo",
+  "/introduce/ci",
+  "/introduce/cs",
+  "/introduce/esg_eco",
+  "/introduce/esg_management",
+  "/introduce/esg_organizational_structure",
+  "/introduce/guideline",
+  "/introduce/human",
+  "/introduce/human_02",
+  "/introduce/human_03",
+  "/introduce/management",
+  "/introduce/model",
+  "/introduce/network",
+  "/introduce/opinions",
+  "/introduce/org",
+  "/introduce/overview",
+  "/introduce/purpose",
+  "/introduce/statement",
+  "/introduce/timeline",
+  "/introduce/vision",
+  "/pages/11",
+  "/pages/15",
+  "/pages/170",
+  "/pages/171",
+  "/pages/173",
+  "/pages/2",
+  "/pages/20",
+  "/pages/22",
+  "/pages/26",
+  "/pages/29",
+  "/pages/29?id=10590&amp;menuMode=READ&amp;q=",
+  "/pages/29?id=10960&amp;menuMode=READ&amp;q=",
+  "/pages/29?id=11052&amp;menuMode=READ&amp;q=",
+  "/pages/29?id=11444&amp;menuMode=READ&amp;q=",
+  "/pages/29?id=11447&amp;menuMode=READ&amp;q=",
+  "/pages/29?id=11449&amp;menuMode=READ&amp;q=",
+  "/pages/29?id=11470&amp;menuMode=READ&amp;q=",
+  "/pages/29?id=11518&amp;menuMode=READ&amp;q=",
+  "/pages/31",
+  "/pages/31?id=11502&amp;menuMode=READ&amp;q=",
+  "/pages/31?id=11506&amp;menuMode=READ&amp;q=",
+  "/pages/32",
+  "/pages/32?id=11495&amp;menuMode=READ&amp;q=",
+  "/pages/32?id=11509&amp;menuMode=READ&amp;q=",
+  "/pages/33",
+  "/pages/34",
+  "/pages/35",
+  "/pages/36",
+  "/pages/37",
+  "/pages/4",
+  "/pages/44",
+  "/pages/47",
+  "/pages/50",
+  "/pages/55",
+  "/pages/57",
+  "/pages/59",
+  "/pages/64",
+  "/pages/66",
+  "/pages/72",
+  "/pages/74",
+  "/pages/75",
+  "/pages/79",
+  "/pages/80",
+  "/pages/81",
+  "/pages/82",
+  "/pages/84",
+  "/pages/92",
+  "/pages/93",
+  "/privacy_policy",
+  "/project",
+  "/project/fund",
+  "/project/promotion",
+  "/project?businessType=",
+  "/project?businessType=DIRECT_INVESTMENT",
+  "/project?businessType=FS_SUPPORT",
+  "/project?businessType=KCN_EIPP",
+  "/project?businessType=POLICY_FUND",
+  "/proposal",
+  "/relation/gov",
+  "/relation/lab",
+  "/relation/overseas",
+  "/relation/stat",
+  "/report",
+  "/report/corporate",
+  "/report/corruption",
+  "/report/kehi",
+  "/report/solicitation",
+  "/search?text=PPP",
+  "/search?text=도시개발사업",
+  "/search?text=해외인프라",
+  "/sitemap",
+  "/survey"
+ ],
+ "pageInfo": [
+  {
+   "path": "/introduce/business",
+   "status": 200,
+   "len": 134627,
+   "title": "한국해외인프라도시개발지원공사(KIND)",
+   "heads": [
+    "KIND",
+    "통합검색",
+    "공사소개",
+    "사업분야",
+    "KIND"
+   ]
+  },
+  {
+   "path": "/business/support",
+   "status": 200,
+   "len": 130556,
+   "title": "한국해외인프라도시개발지원공사(KIND)",
+   "heads": [
+    "KIND",
+    "통합검색",
+    "기업 지원",
+    "KIND 지원사업",
+    "KIND"
+   ]
+  },
+  {
+   "path": "/business/infra_office",
+   "status": 200,
+   "len": 156700,
+   "title": "한국해외인프라도시개발지원공사(KIND)",
+   "heads": [
+    "KIND",
+    "통합검색",
+    "사업발굴",
+    "해외 인프라협력센터 및 사무소 운영",
+    "KIND"
+   ]
+  },
+  {
+   "path": "/business/global",
+   "status": 200,
+   "len": 135912,
+   "title": "한국해외인프라도시개발지원공사(KIND)",
+   "heads": [
+    "KIND",
+    "통합검색",
+    "사업발굴",
+    "해외 PPP 동향·정책 분석",
+    "KIND"
+   ]
+  },
+  {
+   "path": "/business/feasibility_fs",
+   "status": 200,
+   "len": 147005,
+   "title": "한국해외인프라도시개발지원공사(KIND)",
+   "heads": [
+    "KIND",
+    "통합검색",
+    "사업발굴",
+    "해외인프라도시개발사업 타당성조사(F/S)",
+    "KIND"
+   ]
+  },
+  {
+   "path": "/business/proposal",
+   "status": 200,
+   "len": 137840,
+   "title": "한국해외인프라도시개발지원공사(KIND)",
+   "heads": [
+    "KIND",
+    "통합검색",
+    "사업발굴",
+    "제안서작성",
+    "KIND"
+   ]
+  },
+  {
+   "path": "/business/k_network",
+   "status": 200,
+   "len": 144146,
+   "title": "한국해외인프라도시개발지원공사(KIND)",
+   "heads": [
+    "KIND",
+    "통합검색",
+    "사업 소개",
+    "K-City Network",
+    "KIND"
+   ]
+  },
+  {
+   "path": "/business/eipp",
+   "status": 200,
+   "len": 140809,
+   "title": "한국해외인프라도시개발지원공사(KIND)",
+   "heads": [
+    "KIND",
+    "통합검색",
+    "사업발굴",
+    "EIPP(경제혁신파트너십프로그램, Economic Innovation Partnership Program)",
+    "KIND"
+   ]
+  },
+  {
+   "path": "/business/feasibility",
+   "status": 200,
+   "len": 136849,
+   "title": "한국해외인프라도시개발지원공사(KIND)",
+   "heads": [
+    "KIND",
+    "통합검색",
+    "사업발굴",
+    "국제감축사업 타당성조사",
+    "KIND"
+   ]
+  },
+  {
+   "path": "/business/discovery",
+   "status": 200,
+   "len": 133785,
+   "title": "한국해외인프라도시개발지원공사(KIND)",
+   "heads": [
+    "KIND",
+    "통합검색",
+    "사업발굴",
+    "국제협력 네트워크 구축 및 사업발굴",
+    "KIND"
+   ]
+  },
+  {
+   "path": "/business/teamKorea",
+   "status": 200,
+   "len": 128333,
+   "title": "한국해외인프라도시개발지원공사(KIND)",
+   "heads": [
+    "KIND",
+    "통합검색",
+    "사업개발",
+    "팀코리아 구성 및 사업제안",
+    "KIND"
+   ]
+  },
+  {
+   "path": "/business/advisory",
+   "status": 200,
+   "len": 133665,
+   "title": "한국해외인프라도시개발지원공사(KIND)",
+   "heads": [
+    "KIND",
+    "통합검색",
+    "사업개발",
+    "금융자문",
+    "KIND"
+   ]
+  },
+  {
+   "path": "/business/investment",
+   "status": 200,
+   "len": 141435,
+   "title": "한국해외인프라도시개발지원공사(KIND)",
+   "heads": [
+    "KIND",
+    "통합검색",
+    "금융지원",
+    "직접투자",
+    "KIND"
+   ]
+  },
+  {
+   "path": "/business/pis",
+   "status": 200,
+   "len": 136078,
+   "title": "한국해외인프라도시개발지원공사(KIND)",
+   "heads": [
+    "KIND",
+    "통합검색",
+    "금융지원",
+    "PIS(글로벌 플랜트·건설·스마트시티) 펀드",
+    "KIND"
+   ]
+  },
+  {
+   "path": "/business/pis_2",
+   "status": 200,
+   "len": 135318,
+   "title": "한국해외인프라도시개발지원공사(KIND)",
+   "heads": [
+    "KIND",
+    "통합검색",
+    "금융지원",
+    "PIS(글로벌 플랜트·건설·스마트시티) 2단계 펀드",
+    "KIND"
+   ]
+  }
+ ],
+ "boardInfo": [
+  {
+   "path": "/business/infra_office?board=12",
+   "status": 200,
+   "rows": [],
+   "items": [],
+   "hrefs": [
+    "https://www.kindkorea.or.kr/pages/29?id=10590&amp;menuMode=READ&amp;q=",
+    "/introduce/overview",
+    "https://www.clean.go.kr/menu.es?mid=a10207000000",
+    "/business/infra_office/detail/159?id=11225&amp;board=12",
+    "/business/infra_office/detail/159?id=11224&amp;board=12",
+    "/business/infra_office/detail/159?id=11165&amp;board=12"
+   ]
+  },
+  {
+   "path": "/business/infra_office?board=14",
+   "status": 200,
+   "rows": [],
+   "items": [],
+   "hrefs": [
+    "https://www.kindkorea.or.kr/pages/29?id=10590&amp;menuMode=READ&amp;q=",
+    "/introduce/overview",
+    "https://www.clean.go.kr/menu.es?mid=a10207000000",
+    "/business/infra_office/detail/161?id=11522&amp;board=14",
+    "/business/infra_office/detail/161?id=11512&amp;board=14",
+    "/business/infra_office/detail/161?id=11499&amp;board=14"
+   ]
+  },
+  {
+   "path": "/business/infra_office?board=17",
+   "status": 200,
+   "rows": [],
+   "items": [],
+   "hrefs": [
+    "https://www.kindkorea.or.kr/pages/29?id=10590&amp;menuMode=READ&amp;q=",
+    "/introduce/overview",
+    "https://www.clean.go.kr/menu.es?mid=a10207000000",
+    "/business/infra_office/detail/164?id=11531&amp;board=17",
+    "/business/infra_office/detail/164?id=11523&amp;board=17",
+    "/business/infra_office/detail/164?id=11511&amp;board=17"
+   ]
+  },
+  {
+   "path": "/information/data_portal",
+   "status": 200,
+   "rows": [
+    "구분 부서/직위 성명 연락처",
+    "공공데이터제공책임관 경영지원실 실장 석윤정 [전화]",
+    "공공데이터실무담당자 AI혁신팀 과장 장만희 [전화]"
+   ],
+   "items": [],
+   "hrefs": [
+    "https://www.kindkorea.or.kr/pages/29?id=10590&amp;menuMode=READ&amp;q=",
+    "/introduce/overview",
+    "https://www.clean.go.kr/menu.es?mid=a10207000000"
+   ]
+  }
+ ],
+ "listInfo": [
+  {
+   "path": "/project",
+   "status": 200,
+   "anchors": [
+    {
+     "href": "https://www.kindkorea.or.kr/pages/29?id=10590&menuMode=READ&q=",
+     "text": "한국해외인프라도시개발지원공사(KIND) 직원 사칭 피해 주의 안내 한국해외인프라도시개발지원공사(KIND) 직원 사칭 피해 주의 안내"
+    },
+    {
+     "href": "/project/DIRECT_INVESTMENT/detail/422",
+     "text": "상세보기"
+    },
+    {
+     "href": "/project/POLICY_FUND/detail/420",
+     "text": "상세보기"
+    },
+    {
+     "href": "/project/DIRECT_INVESTMENT/detail/417",
+     "text": "상세보기"
+    },
+    {
+     "href": "/project/POLICY_FUND/detail/415",
+     "text": "상세보기"
+    },
+    {
+     "href": "/project/POLICY_FUND/detail/413",
+     "text": "상세보기"
+    },
+    {
+     "href": "/project/POLICY_FUND/detail/401",
+     "text": "상세보기"
+    },
+    {
+     "href": "/project/POLICY_FUND/detail/400",
+     "text": "상세보기"
+    },
+    {
+     "href": "/project/POLICY_FUND/detail/399",
+     "text": "상세보기"
+    },
+    {
+     "href": "/project/POLICY_FUND/detail/398",
+     "text": "상세보기"
+    }
+   ],
+   "dates": [],
+   "total": ""
+  },
+  {
+   "path": "/project?businessType=DIRECT_INVESTMENT",
+   "status": 200,
+   "anchors": [
+    {
+     "href": "https://www.kindkorea.or.kr/pages/29?id=10590&menuMode=READ&q=",
+     "text": "한국해외인프라도시개발지원공사(KIND) 직원 사칭 피해 주의 안내 한국해외인프라도시개발지원공사(KIND) 직원 사칭 피해 주의 안내"
+    },
+    {
+     "href": "/project/DIRECT_INVESTMENT/detail/422",
+     "text": "상세보기"
+    },
+    {
+     "href": "/project/DIRECT_INVESTMENT/detail/417",
+     "text": "상세보기"
+    },
+    {
+     "href": "/project/DIRECT_INVESTMENT/detail/389",
+     "text": "상세보기"
+    },
+    {
+     "href": "/project/DIRECT_INVESTMENT/detail/340",
+     "text": "상세보기"
+    },
+    {
+     "href": "/project/DIRECT_INVESTMENT/detail/339",
+     "text": "상세보기"
+    },
+    {
+     "href": "/project/DIRECT_INVESTMENT/detail/338",
+     "text": "상세보기"
+    },
+    {
+     "href": "/project/DIRECT_INVESTMENT/detail/337",
+     "text": "상세보기"
+    },
+    {
+     "href": "/project/DIRECT_INVESTMENT/detail/259",
+     "text": "상세보기"
+    },
+    {
+     "href": "/project/DIRECT_INVESTMENT/detail/210",
+     "text": "상세보기"
+    }
+   ],
+   "dates": [],
+   "total": ""
+  },
+  {
+   "path": "/project?businessType=FS_SUPPORT",
+   "status": 200,
+   "anchors": [
+    {
+     "href": "https://www.kindkorea.or.kr/pages/29?id=10590&menuMode=READ&q=",
+     "text": "한국해외인프라도시개발지원공사(KIND) 직원 사칭 피해 주의 안내 한국해외인프라도시개발지원공사(KIND) 직원 사칭 피해 주의 안내"
+    },
+    {
+     "href": "/project/FS_SUPPORT/detail/388",
+     "text": "상세보기"
+    },
+    {
+     "href": "/project/FS_SUPPORT/detail/258",
+     "text": "상세보기"
+    },
+    {
+     "href": "/project/FS_SUPPORT/detail/257",
+     "text": "상세보기"
+    },
+    {
+     "href": "/project/FS_SUPPORT/detail/256",
+     "text": "상세보기"
+    },
+    {
+     "href": "/project/FS_SUPPORT/detail/255",
+     "text": "상세보기"
+    },
+    {
+     "href": "/project/FS_SUPPORT/detail/254",
+     "text": "상세보기"
+    },
+    {
+     "href": "/project/FS_SUPPORT/detail/253",
+     "text": "상세보기"
+    },
+    {
+     "href": "/project/FS_SUPPORT/detail/252",
+     "text": "상세보기"
+    },
+    {
+     "href": "/project/FS_SUPPORT/detail/251",
+     "text": "상세보기"
+    }
+   ],
+   "dates": [],
+   "total": ""
+  },
+  {
+   "path": "/project?businessType=KCN_EIPP",
+   "status": 200,
+   "anchors": [
+    {
+     "href": "https://www.kindkorea.or.kr/pages/29?id=10590&menuMode=READ&q=",
+     "text": "한국해외인프라도시개발지원공사(KIND) 직원 사칭 피해 주의 안내 한국해외인프라도시개발지원공사(KIND) 직원 사칭 피해 주의 안내"
+    },
+    {
+     "href": "/project/KCN_EIPP/detail/289",
+     "text": "상세보기"
+    },
+    {
+     "href": "/project/KCN_EIPP/detail/288",
+     "text": "상세보기"
+    },
+    {
+     "href": "/project/KCN_EIPP/detail/286",
+     "text": "상세보기"
+    },
+    {
+     "href": "/project/KCN_EIPP/detail/284",
+     "text": "상세보기"
+    },
+    {
+     "href": "/project/KCN_EIPP/detail/283",
+     "text": "상세보기"
+    },
+    {
+     "href": "/project/KCN_EIPP/detail/282",
+     "text": "상세보기"
+    },
+    {
+     "href": "/project/KCN_EIPP/detail/281",
+     "text": "상세보기"
+    },
+    {
+     "href": "/project/KCN_EIPP/detail/280",
+     "text": "상세보기"
+    },
+    {
+     "href": "/project/KCN_EIPP/detail/279",
+     "text": "상세보기"
+    }
+   ],
+   "dates": [],
+   "total": ""
+  },
+  {
+   "path": "/project?businessType=POLICY_FUND",
+   "status": 200,
+   "anchors": [
+    {
+     "href": "https://www.kindkorea.or.kr/pages/29?id=10590&menuMode=READ&q=",
+     "text": "한국해외인프라도시개발지원공사(KIND) 직원 사칭 피해 주의 안내 한국해외인프라도시개발지원공사(KIND) 직원 사칭 피해 주의 안내"
+    },
+    {
+     "href": "/project/POLICY_FUND/detail/420",
+     "text": "상세보기"
+    },
+    {
+     "href": "/project/POLICY_FUND/detail/415",
+     "text": "상세보기"
+    },
+    {
+     "href": "/project/POLICY_FUND/detail/413",
+     "text": "상세보기"
+    },
+    {
+     "href": "/project/POLICY_FUND/detail/401",
+     "text": "상세보기"
+    },
+    {
+     "href": "/project/POLICY_FUND/detail/400",
+     "text": "상세보기"
+    },
+    {
+     "href": "/project/POLICY_FUND/detail/399",
+     "text": "상세보기"
+    },
+    {
+     "href": "/project/POLICY_FUND/detail/398",
+     "text": "상세보기"
+    },
+    {
+     "href": "/project/POLICY_FUND/detail/397",
+     "text": "상세보기"
+    },
+    {
+     "href": "/project/POLICY_FUND/detail/396",
+     "text": "상세보기"
+    }
+   ],
+   "dates": [],
+   "total": ""
+  },
+  {
+   "path": "/project/fund",
+   "status": 200,
+   "anchors": [
+    {
+     "href": "https://www.kindkorea.or.kr/pages/29?id=10590&menuMode=READ&q=",
+     "text": "한국해외인프라도시개발지원공사(KIND) 직원 사칭 피해 주의 안내 한국해외인프라도시개발지원공사(KIND) 직원 사칭 피해 주의 안내"
+    }
+   ],
+   "dates": [],
+   "total": ""
+  },
+  {
+   "path": "/project/promotion",
+   "status": 200,
+   "anchors": [
+    {
+     "href": "https://www.kindkorea.or.kr/pages/29?id=10590&menuMode=READ&q=",
+     "text": "한국해외인프라도시개발지원공사(KIND) 직원 사칭 피해 주의 안내 한국해외인프라도시개발지원공사(KIND) 직원 사칭 피해 주의 안내"
+    }
+   ],
+   "dates": [],
+   "total": "총 15개"
+  },
+  {
+   "path": "/pages/29",
+   "status": 200,
+   "anchors": [
+    {
+     "href": "https://www.kindkorea.or.kr/pages/29?id=10590&menuMode=READ&q=",
+     "text": "한국해외인프라도시개발지원공사(KIND) 직원 사칭 피해 주의 안내 한국해외인프라도시개발지원공사(KIND) 직원 사칭 피해 주의 안내"
+    },
+    {
+     "href": "/pages/29?id=11052&menuMode=READ&q=",
+     "text": "[KIND-2026-04] 2026년도 해외인프라도시개발사업 제안서작성 지원 대상사업 모집공고"
+    },
+    {
+     "href": "/pages/29?id=10960&menuMode=READ&q=",
+     "text": "「2026 K-City Network」 계획수립형 사업 공모"
+    },
+    {
+     "href": "/pages/29?id=10590&menuMode=READ&q=",
+     "text": "한국해외인프라도시개발지원공사(KIND) 직원 사칭 피해 주의 안내"
+    },
+    {
+     "href": "/pages/29?id=11518&menuMode=READ&q=",
+     "text": "[포르투갈 AICEP] 한-포르투갈 비즈니스 포럼 참가 안내 (참가 신청 ~10.5.(월))"
+    },
+    {
+     "href": "/pages/29?id=11470&menuMode=READ&q=",
+     "text": "[KIND] 2026 우즈베키스탄 타슈켄트 바이오 클러스터 사업설명회 개최(9.17.(목))"
+    },
+    {
+     "href": "/pages/29?id=11449&menuMode=READ&q=",
+     "text": "[KIND] 2026 K-City Network 글로벌 스마트시티 파트너십 포럼 개최(9/10(금))"
+    },
+    {
+     "href": "/pages/29?id=11447&menuMode=READ&q=",
+     "text": "[KIND] 경제혁신 파트너십 프로그램(EIPP) 필리핀 데이터센터 사업 사업설명회 개최(9.11, 금)"
+    },
+    {
+     "href": "/pages/29?id=11444&menuMode=READ&q=",
+     "text": "[과학기술정보통신부] 2026 모두의 AI 실험실 AI 서비스 경진대회 개최 안내"
+    },
+    {
+     "href": "/pages/29?id=11431&menuMode=READ&q=",
+     "text": "[재정경제부] 2026 경제발전경험공유사업(KSP) 성과공유컨퍼런스 개최 안내(9.7, 월)"
+    }
+   ],
+   "dates": [
+    "2026-03-20",
+    "2026-01-28",
+    "2025-05-29",
+    "2026-10-01",
+    "2026-09-11",
+    "2026-08-31",
+    "2026-08-28",
+    "2026-08-25"
+   ],
+   "total": "총 218 건"
+  },
+  {
+   "path": "/pages/31",
+   "status": 200,
+   "anchors": [
+    {
+     "href": "https://www.kindkorea.or.kr/pages/29?id=10590&menuMode=READ&q=",
+     "text": "한국해외인프라도시개발지원공사(KIND) 직원 사칭 피해 주의 안내 한국해외인프라도시개발지원공사(KIND) 직원 사칭 피해 주의 안내"
+    },
+    {
+     "href": "/pages/31?id=11506&menuMode=READ&q=",
+     "text": "탄자니아 공공사업부 장관 면담"
+    },
+    {
+     "href": "/pages/31?id=11502&menuMode=READ&q=",
+     "text": "2026 우즈베키스탄 타슈켄트 바이오 클러스터 사업설명회"
+    },
+    {
+     "href": "/pages/31?id=11501&menuMode=READ&q=",
+     "text": "KIND-키르기즈스탄 PPP Center 간 MOU 체결"
+    },
+    {
+     "href": "/pages/31?id=11493&menuMode=READ&q=",
+     "text": "KIND-우즈베키스탄 의료·제약산업개발청(MPIDA) 간 Framework Agreement 체결"
+    },
+    {
+     "href": "/pages/31?id=11486&menuMode=READ&q=",
+     "text": "우즈베키스탄 대통령 면담"
+    },
+    {
+     "href": "/pages/31?id=11485&menuMode=READ&q=",
+     "text": "카자흐스탄 대통령 면담"
+    },
+    {
+     "href": "/pages/31?id=11483&menuMode=READ&q=",
+     "text": "카자흐스탄 바이테렉·QIC 의장 면담"
+    },
+    {
+     "href": "/pages/31?id=11480&menuMode=READ&q=",
+     "text": "카자흐스탄 교통부 장관 면담"
+    },
+    {
+     "href": "/pages/31?id=11478&menuMode=READ&q=",
+     "text": "우즈베키스탄 교통부 장관 면담"
+    }
+   ],
+   "dates": [
+    "2026-09-22",
+    "2026-09-21",
+    "2026-09-17",
+    "2026-09-16",
+    "2026-09-15"
+   ],
+   "total": "총 320 건"
+  },
+  {
+   "path": "/pages/32",
+   "status": 200,
+   "anchors": [
+    {
+     "href": "https://www.kindkorea.or.kr/pages/29?id=10590&menuMode=READ&q=",
+     "text": "한국해외인프라도시개발지원공사(KIND) 직원 사칭 피해 주의 안내 한국해외인프라도시개발지원공사(KIND) 직원 사칭 피해 주의 안내"
+    },
+    {
+     "href": "/pages/32?id=11509&menuMode=READ&q=",
+     "text": "KIND, 호주 시드니 초고층 아파트 개발사업 투자계약 체결"
+    },
+    {
+     "href": "/pages/32?id=11495&menuMode=READ&q=",
+     "text": "KIND, 정상외교 계기로 중앙아시아 투자개발사업 협력 본격화"
+    },
+    {
+     "href": "/pages/32?id=11490&menuMode=READ&q=",
+     "text": "UzA·우즈베키스탄 대통령실 - 우즈베키스탄 대통령, KIND 사장 면담"
+    },
+    {
+     "href": "/pages/32?id=11489&menuMode=READ&q=",
+     "text": "DKNews - 토카예프 대통령, KIND에 알라타우시티 개발 참여 요청"
+    },
+    {
+     "href": "/pages/32?id=11474&menuMode=READ&q=",
+     "text": "KIND, 우즈베키스탄 타슈켄트 바이오 클러스터 사업설명회 개최"
+    },
+    {
+     "href": "/pages/32?id=11471&menuMode=READ&q=",
+     "text": "KIND, K-City에서 사업기회 찾는다… 3개국 정부·우리 기업 한자리에"
+    },
+    {
+     "href": "/pages/32?id=11454&menuMode=READ&q=",
+     "text": "KIND, 월드스마트시티엑스포서 K-City 글로벌 성과 확산 나선다"
+    },
+    {
+     "href": "/pages/32?id=11446&menuMode=READ&q=",
+     "text": "KIND와 대한변리사회, 우리 기업의 해외 인프라사업 경쟁력 제고를 위한 업무협약(MOU) 체결"
+    },
+    {
+     "href": "/pages/32?id=11417&menuMode=READ&q=",
+     "text": "KIND, 부패방지 국제표준 ISO 37001 사후심사 통과"
+    }
+   ],
+   "dates": [
+    "2026-09-22",
+    "2026-09-17",
+    "2026-09-16",
+    "2026-09-14",
+    "2026-09-11",
+    "2026-09-07",
+    "2026-08-27",
+    "2026-07-30"
+   ],
+   "total": "총 100 건"
+  }
+ ]
+}

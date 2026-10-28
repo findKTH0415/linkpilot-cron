@@ -1,0 +1,106 @@
+{
+  "version": "1.0",
+  "source": "design_handoff_grand_hyatt README.md · PDI SOLAR REPORT SPEC v1.0 · IM RULES",
+  "note": "규칙의 단일 소스. check.js 와 문서가 같은 파일을 읽는다. 규칙을 바꾸려면 여기만 고친다.",
+  "scope": "이 저장소가 생성하는 IM/Teaser 산출물에만 적용된다. 뷰어(index.html)·공유카드(share.php) 규칙은 적용 대상이 달라 제외한다.",
+  "rules": [
+    {
+      "id": "D1-chapter-break",
+      "label": "챕터 오프너는 항상 새 페이지 최상단에서 시작",
+      "why": "이전 챕터가 페이지 중간에 끝나도 다음 챕터는 다음 장 상단에서 시작해야 한다. 핸드오프 필수 요구사항.",
+      "applies": "a4html",
+      "severity": "RED"
+    },
+    {
+      "id": "D2-caption-prefix",
+      "label": "모든 표·차트 아래 캡션은 '자료출처: ' 로 시작",
+      "why": "출처 없는 표는 IM에서 근거가 없는 것과 같다. 핸드오프 공통 규칙.",
+      "applies": "a4html",
+      "severity": "RED"
+    },
+    {
+      "id": "D3-no-emoji",
+      "label": "대외 문서에 이모지 금지",
+      "why": "PDI 하우스 스타일. 아침 브리핑(내부용)과 달리 IM은 대외 배포 문서다.",
+      "applies": "a4html,markdown",
+      "severity": "RED"
+    },
+    {
+      "id": "D4-krw-only",
+      "label": "금액은 원화(억원/조원) 표기, 음수는 △",
+      "why": "핸드오프가 정한 단일 통화 규칙. 단위가 섞이면 표 간 비교가 깨진다.",
+      "applies": "a4html",
+      "severity": "YELLOW"
+    },
+    {
+      "id": "D5-palette",
+      "label": "IM 산출물은 IM 디자인 토큰만 사용 (아침 브리핑 팔레트 금지)",
+      "why": "브리핑 팔레트(#C00000/Arial)가 IM에 섞이면 핸드오프와 어긋난다. 실제로 매스 SVG에서 발생했던 사고.",
+      "applies": "a4html,svg",
+      "severity": "RED"
+    },
+    {
+      "id": "D6-print-color",
+      "label": "인쇄 시 배경·막대·도넛이 실제로 인쇄되어야 한다",
+      "why": "print-color-adjust: exact 가 없으면 네이비 박스가 흰색으로 인쇄된다.",
+      "applies": "a4html",
+      "severity": "RED"
+    },
+    {
+      "id": "D7-page-geometry",
+      "label": "A4 210×297mm · 여백 17mm",
+      "why": "핸드오프 고정 기하. 다르면 기존 리포트와 나란히 놓을 수 없다.",
+      "applies": "a4html",
+      "severity": "RED"
+    },
+    {
+      "id": "D8-source-marking",
+      "label": "공시·감사 원문값과 본 자료 산출·추정치를 표기에서 구분",
+      "why": "법적 고지 요건. 핸드오프 '이식 시 주의' 4번.",
+      "applies": "a4html,markdown",
+      "severity": "RED"
+    },
+    {
+      "id": "D9-no-orphan-cell",
+      "label": "표 셀은 1줄 표기 원칙",
+      "why": "2줄 셀이 생기면 행 높이가 들쭉날쭉해지고 인쇄 시 페이지가 어긋난다.",
+      "applies": "a4html",
+      "severity": "YELLOW"
+    },
+    {
+      "id": "D10-scale-notice",
+      "label": "사업 규모가 서식 가정 구간을 벗어나면 첫머리에 명시",
+      "why": "값은 토큰으로 갈아끼워지지만 서술문은 그대로 남는다. 태양광 스펙 §10의 교훈.",
+      "applies": "markdown,a4html",
+      "severity": "YELLOW"
+    },
+    {
+      "id": "D11-theme-consistency",
+      "label": "문서의 색·서체는 선택된 테마 팔레트에서만 나온다",
+      "why": "테마를 골라놓고 다른 색이 섞이면 '한 프로젝트 = 한 디자인'이 깨진다. IM·PPT·Dashboard가 따로 놀게 된다.",
+      "applies": "a4html",
+      "severity": "YELLOW"
+    },
+    {
+      "id": "D12-secret-leak",
+      "label": "산출물에 열쇠·비밀정보가 없다",
+      "why": "CLAUDE.md §2 · 지침 §8·§12·§14.5. SECRET_ENV 는 로그만 가린다 — 최종 산출물은 아무도 훑지 않았다. 첫 판은 YELLOW 다: 오탐으로 문서가 아예 안 나가는 쪽이 더 나쁠 수 있어 세어 본 뒤 RED 로 올린다 (D-118).",
+      "applies": "a4html,markdown,asset",
+      "severity": "YELLOW"
+    },
+    {
+      "id": "D13-personal-info",
+      "label": "동의 없는 개인정보가 없다",
+      "why": "디자인 지시서 §10.4 — 「개인정보는 사용자가 제공하거나 승인한 정보만 사용한다」. 전화번호·주민번호·이메일 꼴을 훑는다. 이 저장소의 git 이력에 실제로 실명·번호가 남아 있었다.",
+      "applies": "a4html,markdown,asset",
+      "severity": "YELLOW"
+    },
+    {
+      "id": "D14-rights-unchecked",
+      "label": "권리 확인이 필요한 자산에 표시가 있다",
+      "why": "디자인 지시서 §14.5·§16 — 상표·폰트·이미지 권리. 지금은 아무도 안 본다. 확정이 아니라 **표시**다: 로고·상표·스톡 이미지가 보이면 RIGHTS_CHECK_REQUIRED 로 사람에게 넘긴다. 유사성 점검만으로 상표 등록 가능성을 확정하지 않는다(§10.5).",
+      "applies": "a4html,markdown,asset",
+      "severity": "YELLOW"
+    }
+  ]
+}

@@ -1,0 +1,235 @@
+/*
+ * tokens.css — **LinkPilot Design System v1.1 의 토큰. 단일 출처.**
+ *
+ * 값은 디자인 시스템 문서(DESIGN_SYSTEM.md §2·§3·§4)에서 그대로 가져왔다.
+ * **여기 없는 색을 화면에 직접 적지 않는다.**
+ *
+ * ★★ 왜 파일로 뺐는가 (2026-08-17):
+ *   화면마다 `:root` 를 복붙하고 있었고 **이미 갈려 있었다** — `--lime-deep` 이
+ *   `#5C7A00` · `#4F6900` · `#4F6A00` 세 값으로 흩어져 있었다(실측).
+ *   그리고 셋 다 디자인 시스템의 `#7BA10F` 가 아니었다. 복붙은 「지금은 같다」일
+ *   뿐이고, 갈리는 날 아무도 눈치채지 못한다.
+ *
+ * ★ 옛 이름을 지우지 않고 **새 값으로 잇는다.** 화면 다섯이 `--lime`·`--ink`·`--bg`
+ *   같은 이름을 쓰고 있어서, 이름을 한꺼번에 바꾸면 한 화면만 놓쳐도 그 화면이
+ *   **색 없이 뜨고 오류는 안 난다** — CSS 는 모르는 변수를 조용히 넘긴다.
+ *   그래서 옛 이름을 `var(--lp-*)` 로 이어 두고, 새로 쓰는 곳은 `--lp-*` 를 쓴다.
+ *
+ * ★ 브랜드 라임은 **강조에만.** 큰 면을 채우지 않는다 (§11).
+ * ★ 라임 위 글자는 **네이비**다. 흰 글자는 대비가 안 나온다 (§11).
+ */
+
+/* 페이퍼로지 — 앱과 같은 글꼴 파일. 앱에 얹혀 뜨면 같은 출처 /fonts/ 를, 혼자 뜨면 jsDelivr(커밋 고정)를 받는다 */
+@font-face { font-family: Paperlogy; src: url(../fonts/Paperlogy-3Light.woff2) format('woff2'), url(https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@892c5e6b51f8947b532156e3f6e4c09773086387/Paperlogy-3Light.woff2) format('woff2'); font-weight: 300; font-display: swap; }
+@font-face { font-family: Paperlogy; src: url(../fonts/Paperlogy-4Regular.woff2) format('woff2'), url(https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@892c5e6b51f8947b532156e3f6e4c09773086387/Paperlogy-4Regular.woff2) format('woff2'); font-weight: 400; font-display: swap; }
+@font-face { font-family: Paperlogy; src: url(../fonts/Paperlogy-5Medium.woff2) format('woff2'), url(https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@892c5e6b51f8947b532156e3f6e4c09773086387/Paperlogy-5Medium.woff2) format('woff2'); font-weight: 500; font-display: swap; }
+@font-face { font-family: Paperlogy; src: url(../fonts/Paperlogy-6SemiBold.woff2) format('woff2'), url(https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@892c5e6b51f8947b532156e3f6e4c09773086387/Paperlogy-6SemiBold.woff2) format('woff2'); font-weight: 600; font-display: swap; }
+@font-face { font-family: Paperlogy; src: url(../fonts/Paperlogy-7Bold.woff2) format('woff2'), url(https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@892c5e6b51f8947b532156e3f6e4c09773086387/Paperlogy-7Bold.woff2) format('woff2'); font-weight: 700; font-display: swap; }
+
+:root {
+  /* ── Brand (DESIGN_SYSTEM §2) ─────────────────────────── */
+  /* ★★★ **1단계 작업지시서의 브랜드 색이 이 값들의 출처다** 〈D-138 · rev.B 로 개정〉.
+   *
+   *   그 지시서가 앱 전체의 브랜드 색을 못박는다. 이 저장소가 안 따라가면
+   *   사장님 앱에서 **사이드바 라임과 보고서 화면 라임이 미묘하게 어긋난다** —
+   *   「어딘가 이상한데 뭔지 모르겠다」가 되는 종류다.
+   *
+   * ★★★★ **선택 색은 rev.A 를 안 받고 되돌려 보냈고, rev.B 가 고쳐 왔다.**
+   *   rev.A 값은 흰 바탕 대비가 **2.34** 였다 — 큰 글자 기준(3.0)도 못 넘긴다.
+   *   그런데 이 토큰은 `.auto__t`·`.cat` 처럼 **11px 글자 색**으로 쓰인다.
+   *   rev.B 의 `#5A7A00` 은 흰 바탕 **4.98** 로, 작은 글자 기준 4.5 를 넘긴다
+   *   (실측. 지시서가 적은 값과 소수점까지 같다).
+   *
+   *   라임      #AAE106 → #B5E01F
+   *   잉크      #0A1419 → #12161F
+   *   선택 색   #7BA10F → #5A7A00   (3.02 → 4.98)
+   *
+   * ★★ **밝은 바탕에서 라임(`--lp-brand`)을 글자 색으로 쓰지 않는다.**
+   *   흰 바탕 대비가 **1.54** 다. 채움(배경)과 면 포인트로만 쓴다 — 지시서
+   *   rev.B 「1단계 금지사항」과 같은 규칙이고, 검사가 실제로 막는다.
+   *
+   * ★ 어두운 바탕(`--lp-navy`)에서는 반대로 **라임이 선택 색**이다 (대비 11.76).
+   *   그 자리는 화면이 `--lp-brand` 를 직접 쓴다.
+   */
+  /* ★★★ 〈2026-10-25 · 「보고서 만들기 v2」 CSS 실측〉 라임·잉크를 v3 정본 값으로 옮겼다
+   *   (CLAUDE.md §6-3-0 · docs/디자인시스템-값-보고서만들기-v2-CSS실측-2026-10-25.md §2.1).
+   *   앱(platform)이 이미 이 값이라, 옛 1단계 지시서 값이면 앱 틀 안에서 이 화면만 라임이 어긋났다.
+   *   잉크/흰 18.63 · 잉크/라임 11.96 (실측). 선택 색(brand-deep)은 그대로다 — 흰 바탕 4.98. */
+  --lp-brand:        #AAE106;   /* 로고 라임 · 칩 · 브랜드 점 · 어두운 바탕의 선택 상태 */
+  --lp-brand-deep:   #5A7A00;   /* 밝은 바탕의 선택 상태 — 선·라벨·포커스 링 (흰 4.98 · 회색 바탕 글자는 --lp-lime-ink-g) */
+  --lp-brand-soft:   #F0FAD8;   /* 활성 탭 채움 · 호버 배경 (v2 TINT) */
+  --lp-brand-ink:    #0A1419;   /* 라임 위의 글자/아이콘 — 흰색 금지 */
+  --lp-navy:         #0A1419;
+
+  /* ── 「보고서 만들기 v2」 실측 값 (§2.1 · §6 · §8) ─────────────
+   *   화면은 이 이름만 쓴다 — 값을 화면에 직접 적지 않는다 (design-system.test.js). */
+  --lp-lime-hover:   #9BCE05;   /* 라임 단추 hover */
+  --lp-lime-wash:    #F7FCEB;   /* 고른 카드 바탕 */
+  --lp-lime-strong:  #3F5600;   /* 연두 바탕 위 글자 · 「올린 자료」 이름표 (흰 8.26 · 연두 7.62) */
+  --lp-lime-ink-g:   #577508;   /* 회색 바탕 위 라임 글자 — #5A7A00 은 회색에서 4.46 이라 바꿔 쓴다 (4.76) */
+  --lp-ink-hover:    #2B3440;   /* 검정 단추 hover */
+  --lp-seg-track:    #E6E8DF;   /* 탭 세그먼트 바탕 */
+  --lp-fill-1:       #F5F6F8;   /* 고정 행 · 로고 자리 */
+  --lp-fill-2:       #F7F8FA;   /* 링크 칸 · SNS 단추 hover */
+  --lp-step-idle:    rgba(120,120,128,0.12);   /* 아직 안 온 단계 원 */
+  --lp-hover:        rgba(10,20,25,0.04);      /* 메뉴·단계 행 hover */
+  --lp-line-2:       rgba(10,20,25,0.14);      /* 보조 단추·칩 테두리 */
+  --lp-line-3:       rgba(10,20,25,0.08);      /* 진행 막대 바탕 */
+  --lp-tag:          rgba(10,20,25,0.06);      /* 「직접 입력」·「초안」 이름표 바탕 */
+  --lp-white:        #FFFFFF;
+  --lp-warn-text:    #B25000;   /* 경고 글자 · 「자료 필요」 (흰 5.20 · 경고 바탕 4.86) */
+  --lp-warn-bg:      #FFF6EA;
+  --lp-info-text:    #0063CC;   /* 「공공자료」 · 「보냄」 (정보 바탕 5.00) */
+  --lp-info-bg:      #E6F0FF;
+  --lp-danger-text:  #D70015;   /* v3 위험 쌍 (위험 바탕 4.73) */
+  --lp-danger-bg:    #FFECEB;
+  --lp-shadow-seg:   0 1px 3px rgba(10,20,25,0.12);
+  --lp-shadow-pop:   0 12px 32px rgba(10,20,25,0.18);
+  --lp-shadow-toast: 0 10px 30px rgba(10,20,25,0.3);
+  --lp-shadow-modal: 0 24px 64px rgba(10,20,25,0.35);
+  --lp-focus-ring:   0 0 0 3px rgba(170,225,6,0.35);   /* 입력칸 focus (테두리는 잉크) */
+  /* 〈2026-10-25 · 보고서 만들기 v2 1단계 배치〉 어두운 진행 카드 위 글자·선 · 되묻기 카드 (§8.7 · §8.9) */
+  --lp-on-dark-2:    rgba(255,255,255,0.86);   /* 어두운 카드 위 본문 (잉크 바탕 15.5) */
+  --lp-on-dark-3:    rgba(255,255,255,0.64);   /* 어두운 카드 위 흐린 글자 (잉크 바탕 7.9) */
+  --lp-on-dark-line: rgba(255,255,255,0.22);   /* 어두운 카드 위 단추 테두리 */
+  --lp-on-dark-fill: rgba(255,255,255,0.08);   /* 어두운 카드 위 칸 바탕 · 진행 막대 바탕 */
+  --lp-ask-bg:       #FFFBF4;   /* 되묻기 카드 바탕 */
+  --lp-ask-line:     rgba(255,159,10,0.4);    /* 되묻기 카드 테두리 */
+
+  /* ── System (iOS) — 의미로만 쓴다. 장식으로 쓰지 않는다 ─── */
+  --lp-red:    #FF3B30;   /* 지남 · 오류 · 긴급 */
+  --lp-orange: #FF9500;   /* 경고 · 마감 임박 */
+  --lp-yellow: #FFCC00;
+  --lp-green:  #34C759;   /* 완료 */
+  --lp-blue:   #007AFF;   /* 링크 · 정보 · 진행 중 */
+  --lp-purple: #AF52DE;
+
+  /* ── Surfaces (3단계만. 넷째를 만들지 않는다 §6) ────────── */
+  --lp-surface-grouped: #F2F2F7;
+  --lp-surface-card:    #FFFFFF;
+  --lp-surface-glass:   rgba(255,255,255,0.86);
+  --lp-fill-3:          rgba(120,120,128,0.12);
+  --lp-hairline:        rgba(60,60,67,0.16);
+
+  /* ── Text ─────────────────────────────────────────────── */
+  /* ★★ 〈2026-10-25〉 글자 투명도는 v2 의 잉크 계열(10,20,25)로 옮기고 **대비 4.5 를 넘는 값만** 쓴다 (§6-3-0).
+   *   옛 값 rgba(60,60,67,.6) 은 흰 바탕 3.44 · .45 는 2.40 으로 미달이었다(실측).
+   *   v2 의 .5 · .55(흰 3.51 · 4.13)는 .62 로, .6(흰 4.88 · 회색 4.71)은 그대로 둔다. */
+  --lp-text-1: #0A1419;
+  --lp-text-2: rgba(10,20,25,0.73);   /* 흰 7.78 · 회색 7.36 */
+  --lp-text-3: rgba(10,20,25,0.62);   /* 흰 5.23 · 회색 5.03 — v2 의 .5·.55·.6 자리 */
+  --lp-text-4: rgba(10,20,25,0.6);    /* 라벨 전용 — 흰 4.88 · 회색 4.71 */
+
+  /* ── Typography (§3) ──────────────────────────────────── */
+  /* ★★★ 페이퍼로지가 먼저다 〈2026-10-18·19 사장님: 「플랫폼내 모든 숫자·영문 폰트는 페이퍼로지」 · CLAUDE.md §6-3-0-0〉
+   *   앱(platform)과 같은 스택이다 — 이 화면은 앱의 [보고서 만들기] 틀 안에 얹히므로 갈리면 그 칸만 다른 글꼴이 된다(실측).
+   *   대체는 Cambria → 옛 SF Pro 스택. */
+  --lp-font: Paperlogy, Cambria, -apple-system, "SF Pro Text", "SF Pro Display",
+             system-ui, "Apple SD Gothic Neo", sans-serif;
+  /* ★ 한글 본문은 14px 아래로 내리지 않는다. 캡션 11px 은 부수 라벨만 */
+  --lp-size-title1:   28px;
+  --lp-size-title2:   22px;   /* 모바일 제목은 여기까지 */
+  --lp-size-headline: 17px;
+  --lp-size-body:     15px;
+  --lp-size-footnote: 13px;
+  --lp-size-caption:  11px;
+
+  /* ── Spacing (8pt) · Radius (§4) ──────────────────────── */
+  --lp-sp-xs: 4px;  --lp-sp-sm: 8px;  --lp-sp-md: 12px;
+  --lp-sp-lg: 16px; --lp-sp-xl: 22px; --lp-sp-2xl: 32px; --lp-sp-3xl: 56px;
+  --lp-r-sm: 6px;  --lp-r-md: 10px; --lp-r-lg: 14px;   /* 카드 기본 */
+  --lp-r-xl: 18px; --lp-r-2xl: 28px; --lp-r-full: 9999px;
+  /* v2 실측 모서리 (§4) — 카드 20 · 큰 세그먼트·되묻기 카드 16 · 타일 14 · 행·주 단추 12 · 보조 10 · 칩 8 · 이름표 6 */
+  --lp-r-card: 20px; --lp-r-16: 16px; --lp-r-12: 12px; --lp-r-8: 8px;
+
+  /* ── 떠 있는 것에만 그림자. 카드는 헤어라인으로 가른다 (§6) ── */
+  --lp-shadow-glass: 0 8px 24px rgba(0,0,0,0.08);
+
+  /* ══════════════════════════════════════════════════════
+   * 옛 이름 → 새 값. **화면을 한꺼번에 안 고쳐도 색이 맞는다.**
+   * 새로 쓰는 곳은 위의 `--lp-*` 를 쓴다.
+   * ══════════════════════════════════════════════════════ */
+  --lime:      var(--lp-brand);
+  --lime-deep: var(--lp-brand-deep);
+  --lime-soft: var(--lp-brand-soft);
+  --ink:       var(--lp-text-1);
+  --ink2:      var(--lp-text-3);
+  --line:      var(--lp-hairline);
+  --panel:     var(--lp-fill-3);
+  --bg:        var(--lp-surface-grouped);
+  --surface:   var(--lp-surface-card);
+  --bad:       var(--lp-red);
+  --bad-soft:  var(--lp-danger-bg);    /* 〈2026-10-25〉 v3 위험 쌍 */
+  --bad-ink:   var(--lp-danger-text);
+  --warn:      var(--lp-orange);
+  --warn-soft: var(--lp-warn-bg);      /* 〈2026-10-25〉 v2 경고 쌍 */
+  --warn-ink:  var(--lp-warn-text);
+  --r:         var(--lp-r-card);   /* 〈2026-10-25〉 18 → 20 (v2 카드 공통) */
+}
+
+/*
+ * 포커스 — **보이는 상태가 있어야 한다** (§10 Step 5).
+ * 화면마다 다른 색을 쓰고 있어서 여기서 한 번에 정한다.
+ */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--lp-brand-deep);
+  outline-offset: 2px;
+}
+/* ★ v2 는 링을 라임(#AAE106)으로 그리지만 흰 바탕 대비가 1.5 라 «보이는 링»(3:1)이 못 된다 —
+   링은 진한 라임으로 두고, 입력칸에만 v2 의 옅은 라임 테두리 빛(--lp-focus-ring)을 **더한다**. */
+:where(input:not([type=checkbox]):not([type=radio]), textarea, select):focus-visible {
+  box-shadow: var(--lp-focus-ring);
+}
+
+/* 숫자가 줄을 맞춰야 하는 곳은 전부 tabular (§3 규칙 · §8.2) */
+:where(.num, .pct, .cnt, table td, table th) { font-variant-numeric: tabular-nums; }
+
+@media (prefers-reduced-motion: reduce) {
+  :where(*) { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}
+
+/*
+ * ═══ 뼈대(skeleton) — **스크립트가 돌기 전에 보이는 유일한 것** ═══
+ * 〈2026-08-21 · 「모바일에서 로딩이 너무 느림」 신고에서 나왔다〉
+ *
+ * ★★ 화면 파일들은 본문에 빈 `#view` 칸 하나만 두고 나머지를 스크립트가
+ *   그린다. 그래서 파일을 다 받아 스크립트가 돌기 전까지 **흰 화면**이다.
+ *   자료 업로드 화면은 112KB 라 그 시간이 길다.
+ *
+ * ★ 이 주석에 문서 태그(꺾쇠 붙은 body·html)를 적지 않는다 — 이 파일은 조각으로
+ *   만들 때 **통째로 인라인**되므로, 적으면 「조각에 문서 태그가 있다」로 걸린다.
+ *   실제로 한 번 걸렸다. 검사가 맞았다.
+ *
+ * ★ 흰 화면은 **느린 것과 고장난 것이 똑같이 보인다.** 사용자는 기다릴지
+ *   되돌아갈지 정할 근거가 없다. 그래서 뼈대를 HTML 에 박아 둔다 —
+ *   첫 바이트가 도착하는 순간 「자리는 잡혔고 채워지는 중」이 보인다.
+ *
+ * ★ 색·반경은 토큰을 쓴다. 여기만 다른 회색을 쓰면 판이 바뀔 때 여기만 남는다.
+ */
+.boot { padding: 4px 0 2px; }
+.boot__t {
+  margin: 0 0 14px;
+  color: var(--muted, #6B7280);
+  font-size: 14px;
+}
+.boot__b {
+  height: 14px;
+  margin: 0 0 10px;
+  border-radius: var(--lp-r-sm, 6px);
+  background: var(--line, #E5E7EB);
+  animation: lp-boot 1.2s ease-in-out infinite;
+}
+.boot__b--s { width: 55%; }
+.boot__w {
+  margin: 16px 0 0;
+  padding: 12px 14px;
+  border-radius: var(--lp-r-md, 10px);
+  background: var(--warn-soft, #FFF4E5);
+  color: var(--warn-ink, #8A5A10);
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+@keyframes lp-boot { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+
+/* ★ 숫자·영문까지 전부 페이퍼로지 — 화면이 고정폭(monospace)·inherit 을 따로 적어도 덮는다 (앱의 같은 규칙과 한 벌) */
+body *:not(svg):not(svg *) { font-family: var(--lp-font) !important; }

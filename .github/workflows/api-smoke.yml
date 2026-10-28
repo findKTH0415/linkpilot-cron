@@ -1,0 +1,443 @@
+# 공공 API 실측 진단 — 열쇠가 있는 자리에서 부르고 **결과만 커밋**한다.
+#
+# 왜 이 방식인가 (docs/운영지침-공공API-활용.md §0):
+#   Actions Secrets 는 다시 읽을 수 없다. 그래서 열쇠를 꺼내는 대신
+#   열쇠를 쓸 수 있는 이 자리에서 대신 부르고, 사람이 읽는 요약만 남긴다.
+#   열쇠는 저장소 밖으로 안 나가고 로그에도 안 남는다.
+#
+# 이 저장소는 공개다 — 그래서 커밋 전에 api-report.js 가 결과에 열쇠가
+# 섞였는지 직접 세고, 걸리면 파일을 안 쓰고 빨갛게 끝난다 (§10 · CLAUDE.md §2).
+
+name: 공공 API 실측 진단
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 21 1 * *'          # 매달 1일 21:00 UTC = 매달 2일 06:00 KST (UTC 표기 — CLAUDE.md §2) · 2026-10-22 사장님: 한 달에 한 번
+
+permissions:
+  contents: write
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+
+      # 진단이 실패해도 다음 단계로 간다 — 실패한 항목이 곧 우리가 알고 싶은 것이다
+      - name: 26개 커넥터를 실제로 불러 본다
+        continue-on-error: true
+        # ★ 상한을 둔다 〈2026-09-27 · 실측〉 — 평소 63초인 이 단계가 한 커넥터에 매달려 12분 넘게 섰고,
+        #   그 뒤 진단(길찾기·날씨·금융위원회)이 한 줄도 못 돌았다. 여기서 끊겨도 아래 진단은 돈다.
+        timeout-minutes: 5
+        env:
+          VWORLD_KEY:        ${{ secrets.VWORLD_KEY }}
+          VWORLD_DOMAIN:     ${{ secrets.VWORLD_DOMAIN }}
+          LINKPILOT_VWORLD_REPORT_KEY: ${{ secrets.LINKPILOT_VWORLD_REPORT_KEY }}
+          LINKPILOT_VWORLD_WEB_KEY:    ${{ secrets.LINKPILOT_VWORLD_WEB_KEY }}
+          DATA_GO_KR_KEY:    ${{ secrets.DATA_GO_KR_KEY }}
+          APIS_DATA:         ${{ secrets.APIS_DATA }}
+          SPECIAL_DAY_INFO:  ${{ secrets.SPECIAL_DAY_INFO }}
+          DATA_GO_KR:  ${{ secrets.DATA_GO_KR }}
+          WEATHER_GO:        ${{ secrets.WEATHER_GO }}
+          FSC_API:           ${{ secrets.FSC_API }}
+          FSC_AMC_API:       ${{ secrets.FSC_AMC_API }}
+          FSC_IAF_API:       ${{ secrets.FSC_IAF_API }}
+          FSC_KOFIA_API:     ${{ secrets.FSC_KOFIA_API }}
+          FSC_DOMESTIC_BANK_API: ${{ secrets.FSC_DOMESTIC_BANK_API }}
+          FSC_SAVINGS_BANK_API: ${{ secrets.FSC_SAVINGS_BANK_API }}
+          FSC_CREDIT_UNION_BANK_API: ${{ secrets.FSC_CREDIT_UNION_BANK_API }}
+          FSC__AGRICULTURAL_COOPERATIVE_BANK_API: ${{ secrets.FSC__AGRICULTURAL_COOPERATIVE_BANK_API }}
+          FSC_AGRICULTURAL_COOPERATIVE_BANK_API: ${{ secrets.FSC_AGRICULTURAL_COOPERATIVE_BANK_API }}
+          FSC_FISHERIES_COOPERATIVE_BANK_API: ${{ secrets.FSC_FISHERIES_COOPERATIVE_BANK_API }}
+          FSC_SP_FIN: ${{ secrets.FSC_SP_FIN }}
+          KOICA_GLOBAL_POLITICAL_DEVELOPMENTS: ${{ secrets.KOICA_GLOBAL_POLITICAL_DEVELOPMENTS }}
+          KOICA_COUNTRY_INFORMATION: ${{ secrets.KOICA_COUNTRY_INFORMATION }}
+          KOTRA_KOREA_FDI_BY_INDUSTRY: ${{ secrets.KOTRA_KOREA_FDI_BY_INDUSTRY }}
+          STUDIO_TYPECAST_AI: ${{ secrets.STUDIO_TYPECAST_AI }}
+          EAIS_ARCHITECTURAL_INFORMATION: ${{ secrets.EAIS_ARCHITECTURAL_INFORMATION }}
+          GG_DATADREAM_OPENDATA: ${{ secrets.GG_DATADREAM_OPENDATA }}
+          EDINET_API_KEY: ${{ secrets.EDINET_API_KEY }}
+          KSURE_COUNTRY_LIST: ${{ secrets.KSURE_COUNTRY_LIST }}
+          MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY: ${{ secrets.MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY }}
+          MSS_BUSINESS_SUPPORT_ANNOUNCEMENTS: ${{ secrets.MSS_BUSINESS_SUPPORT_ANNOUNCEMENTS }}
+          IBK_BRANCH_INFORMATION: ${{ secrets.IBK_BRANCH_INFORMATION }}
+          MOLIT_LUR_LAW_KEY: ${{ secrets.MOLIT_LUR_LAW_KEY }}
+          MSS_SME_SPA_API:   ${{ secrets.MSS_SME_SPA_API }}
+          PERSONAL_API_KEY:  ${{ secrets.PERSONAL_API_KEY }}
+          KPX_SMP_DEMAND_FORECAST: ${{ secrets.KPX_SMP_DEMAND_FORECAST }}
+          KPX_POWER_SUPPLY_DEMAND_FORECAST_GW: ${{ secrets.KPX_POWER_SUPPLY_DEMAND_FORECAST_GW }}
+          DART_API_KEY:      ${{ secrets.DART_API_KEY }}
+          REB_API_KEY:       ${{ secrets.REB_API_KEY }}
+          KOSIS_API_KEY:     ${{ secrets.KOSIS_API_KEY }}
+          ECOS_API_KEY:      ${{ secrets.ECOS_API_KEY }}
+          ECOS_BOK_KEY:      ${{ secrets.ECOS_BOK_KEY }}
+          KEPCO_BIGDATA_KEY: ${{ secrets.KEPCO_BIGDATA_KEY }}
+          KMA_APIHUB_KEY:    ${{ secrets.KMA_APIHUB_KEY }}
+          LAW_OC:            ${{ secrets.LAW_OC }}
+          LAW_OPEN_DATA:     ${{ secrets.LAW_OPEN_DATA }}
+          KICT_API_KEY:      ${{ secrets.KICT_API_KEY }}
+          # ★ 길찾기 소요시간 〈2026-09-15 사장님 승인: 「둘 다」〉 — 이름이 둘씩이다
+          KAKAO_MOBILITY_KEY: ${{ secrets.KAKAO_MOBILITY_KEY }}
+          KAKAOMOBILITY_KEY:  ${{ secrets.KAKAOMOBILITY_KEY }}
+          KAKAO_MOBILITY_REST_API: ${{ secrets.KAKAO_MOBILITY_REST_API }}
+          ODSAY_API_KEY:      ${{ secrets.ODSAY_API_KEY }}
+          ODSAY_KEY:          ${{ secrets.ODSAY_KEY }}
+          KICT_API_BASE:     ${{ secrets.KICT_API_BASE }}
+          PEXELS_API_KEY:    ${{ secrets.PEXELS_API_KEY }}
+          KRX_API_KEY:       ${{ secrets.KRX_API_KEY }}
+        run: |
+          node im-agent/tools/smoke-public-data.js \
+            --address "강원특별자치도 원주시 신림면 송계리 695-4" \
+            --grid-region "원주시" \
+            > "${RUNNER_TEMP}/smoke.txt" 2>&1
+
+      # ★ 요약을 만든다. 결과에 열쇠가 섞였으면 여기서 멈춘다(파일을 안 쓴다).
+      - name: 사람이 읽는 요약으로 접는다
+        env:
+          VWORLD_KEY:        ${{ secrets.VWORLD_KEY }}
+          VWORLD_DOMAIN:     ${{ secrets.VWORLD_DOMAIN }}
+          LINKPILOT_VWORLD_REPORT_KEY: ${{ secrets.LINKPILOT_VWORLD_REPORT_KEY }}
+          LINKPILOT_VWORLD_WEB_KEY:    ${{ secrets.LINKPILOT_VWORLD_WEB_KEY }}
+          DATA_GO_KR_KEY:    ${{ secrets.DATA_GO_KR_KEY }}
+          APIS_DATA:         ${{ secrets.APIS_DATA }}
+          SPECIAL_DAY_INFO:  ${{ secrets.SPECIAL_DAY_INFO }}
+          DATA_GO_KR:  ${{ secrets.DATA_GO_KR }}
+          WEATHER_GO:        ${{ secrets.WEATHER_GO }}
+          FSC_API:           ${{ secrets.FSC_API }}
+          FSC_AMC_API:       ${{ secrets.FSC_AMC_API }}
+          FSC_IAF_API:       ${{ secrets.FSC_IAF_API }}
+          FSC_KOFIA_API:     ${{ secrets.FSC_KOFIA_API }}
+          FSC_DOMESTIC_BANK_API: ${{ secrets.FSC_DOMESTIC_BANK_API }}
+          FSC_SAVINGS_BANK_API: ${{ secrets.FSC_SAVINGS_BANK_API }}
+          FSC_CREDIT_UNION_BANK_API: ${{ secrets.FSC_CREDIT_UNION_BANK_API }}
+          FSC__AGRICULTURAL_COOPERATIVE_BANK_API: ${{ secrets.FSC__AGRICULTURAL_COOPERATIVE_BANK_API }}
+          FSC_AGRICULTURAL_COOPERATIVE_BANK_API: ${{ secrets.FSC_AGRICULTURAL_COOPERATIVE_BANK_API }}
+          FSC_FISHERIES_COOPERATIVE_BANK_API: ${{ secrets.FSC_FISHERIES_COOPERATIVE_BANK_API }}
+          FSC_SP_FIN: ${{ secrets.FSC_SP_FIN }}
+          KOICA_GLOBAL_POLITICAL_DEVELOPMENTS: ${{ secrets.KOICA_GLOBAL_POLITICAL_DEVELOPMENTS }}
+          KOICA_COUNTRY_INFORMATION: ${{ secrets.KOICA_COUNTRY_INFORMATION }}
+          KOTRA_KOREA_FDI_BY_INDUSTRY: ${{ secrets.KOTRA_KOREA_FDI_BY_INDUSTRY }}
+          STUDIO_TYPECAST_AI: ${{ secrets.STUDIO_TYPECAST_AI }}
+          EAIS_ARCHITECTURAL_INFORMATION: ${{ secrets.EAIS_ARCHITECTURAL_INFORMATION }}
+          GG_DATADREAM_OPENDATA: ${{ secrets.GG_DATADREAM_OPENDATA }}
+          EDINET_API_KEY: ${{ secrets.EDINET_API_KEY }}
+          KSURE_COUNTRY_LIST: ${{ secrets.KSURE_COUNTRY_LIST }}
+          MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY: ${{ secrets.MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY }}
+          MSS_BUSINESS_SUPPORT_ANNOUNCEMENTS: ${{ secrets.MSS_BUSINESS_SUPPORT_ANNOUNCEMENTS }}
+          IBK_BRANCH_INFORMATION: ${{ secrets.IBK_BRANCH_INFORMATION }}
+          MOLIT_LUR_LAW_KEY: ${{ secrets.MOLIT_LUR_LAW_KEY }}
+          MSS_SME_SPA_API:   ${{ secrets.MSS_SME_SPA_API }}
+          PERSONAL_API_KEY:  ${{ secrets.PERSONAL_API_KEY }}
+          KPX_SMP_DEMAND_FORECAST: ${{ secrets.KPX_SMP_DEMAND_FORECAST }}
+          KPX_POWER_SUPPLY_DEMAND_FORECAST_GW: ${{ secrets.KPX_POWER_SUPPLY_DEMAND_FORECAST_GW }}
+          DART_API_KEY:      ${{ secrets.DART_API_KEY }}
+          REB_API_KEY:       ${{ secrets.REB_API_KEY }}
+          KOSIS_API_KEY:     ${{ secrets.KOSIS_API_KEY }}
+          ECOS_API_KEY:      ${{ secrets.ECOS_API_KEY }}
+          ECOS_BOK_KEY:      ${{ secrets.ECOS_BOK_KEY }}
+          KEPCO_BIGDATA_KEY: ${{ secrets.KEPCO_BIGDATA_KEY }}
+          KMA_APIHUB_KEY:    ${{ secrets.KMA_APIHUB_KEY }}
+          LAW_OC:            ${{ secrets.LAW_OC }}
+          LAW_OPEN_DATA:     ${{ secrets.LAW_OPEN_DATA }}
+          KICT_API_KEY:      ${{ secrets.KICT_API_KEY }}
+          # ★ 길찾기 소요시간 〈2026-09-15 사장님 승인: 「둘 다」〉 — 이름이 둘씩이다
+          KAKAO_MOBILITY_KEY: ${{ secrets.KAKAO_MOBILITY_KEY }}
+          KAKAOMOBILITY_KEY:  ${{ secrets.KAKAOMOBILITY_KEY }}
+          KAKAO_MOBILITY_REST_API: ${{ secrets.KAKAO_MOBILITY_REST_API }}
+          ODSAY_API_KEY:      ${{ secrets.ODSAY_API_KEY }}
+          ODSAY_KEY:          ${{ secrets.ODSAY_KEY }}
+          PEXELS_API_KEY:    ${{ secrets.PEXELS_API_KEY }}
+          KRX_API_KEY:       ${{ secrets.KRX_API_KEY }}
+        run: node im-agent/tools/api-report.js "${RUNNER_TEMP}/smoke.txt" --out data/_api
+
+      # ★★★ 길찾기 소요시간 — **진단** 〈2026-09-19 · D-227〉.
+      #   규격(베이스 URL·인증)을 모르므로 후보를 걸어 **무엇이 오는지부터** 본다 (§4).
+      #   ★ 걸린 것이 곧 알고 싶은 것이라 continue-on-error 다 — 다만 **판정 줄을
+      #     실행 요약 첫 화면으로 나른다.** 요약 파일 안에만 두면 아무도 안 본다 (§12-19).
+      - name: 길찾기 소요시간을 실제로 불러 본다
+        continue-on-error: true
+        env:
+          KAKAO_MOBILITY_KEY: ${{ secrets.KAKAO_MOBILITY_KEY }}
+          KAKAOMOBILITY_KEY:  ${{ secrets.KAKAOMOBILITY_KEY }}
+          KAKAO_MOBILITY_REST_API: ${{ secrets.KAKAO_MOBILITY_REST_API }}
+          ODSAY_API_KEY:      ${{ secrets.ODSAY_API_KEY }}
+          ODSAY_KEY:          ${{ secrets.ODSAY_KEY }}
+        run: |
+          node scripts/routing-probe.mjs || true
+          {
+            echo '### 길찾기 소요시간 진단'
+            # 판정 줄만 뽑는다 — 최악 세 줄(전체 + 자동차 + 대중교통)이다
+            grep -E '^> ' data/_api/routing-probe.md || echo '(판정 줄을 못 읽었다)'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # ★★★ `WEATHER_GO` 가 **어느 기관 것인가** — 진단 〈2026-09-20 · D-247〉.
+      #   2026-09-13 에 넣으신 뒤 **어느 기관인지 아직 안 쟀다.** 이름이 `weather.go.kr`
+      #   을 가리키는 듯하지만 그것은 짐작이고, 기상청만 해도 열쇠를 받는 자리가 둘이다
+      #   (API허브 `authKey` · 공공데이터포털 `serviceKey`). 추측으로 배선하면 그것이
+      #   곧 거짓이 된다 (§4.3). 후보를 걸어 **무엇이 오는지부터** 본다.
+      #   ★ 판정 줄을 **실행 요약 첫 화면**으로 나른다 — 파일 안에만 두면 아무도 안 본다 (§12-19).
+      - name: WEATHER_GO 가 어느 기관 것인지 불러 본다
+        continue-on-error: true
+        env:
+          WEATHER_GO: ${{ secrets.WEATHER_GO }}
+        run: |
+          node scripts/weather-probe.mjs || true
+          {
+            echo '### WEATHER_GO 기관 진단'
+            # 판정 줄만 뽑는다 — 최악 세 줄(전체 + API허브 + 포털)이다
+            grep -E '^> \*\*판정|^> 판정' data/_api/weather-probe.md || echo '(판정 줄을 못 읽었다)'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # ★★★ 금융위원회 금융통계 — **진단** 〈2026-09-27 · D-357〉.
+      #   사장님이 FSC_API · FSC_AMC_API · FSC_IAF_API · FSC_KOFIA_API · FSC_DOMESTIC_BANK_API · 저축은행·신협·농협·수협 넷을 넣으셨다. 오퍼레이션 이름을 추측하지 않고
+      #   **포털 안내 페이지에서 읽어** 그대로 부른다 (§4.3). 판정 줄은 실행 요약 첫 화면으로 나른다 (§12-19).
+      - name: 금융위원회 금융통계 열쇠가 먹는지 불러 본다
+        continue-on-error: true
+        env:
+          FSC_API:          ${{ secrets.FSC_API }}
+          FSC_AMC_API:      ${{ secrets.FSC_AMC_API }}
+          FSC_IAF_API:      ${{ secrets.FSC_IAF_API }}
+          FSC_KOFIA_API:    ${{ secrets.FSC_KOFIA_API }}
+          FSC_DOMESTIC_BANK_API: ${{ secrets.FSC_DOMESTIC_BANK_API }}
+          FSC_SAVINGS_BANK_API: ${{ secrets.FSC_SAVINGS_BANK_API }}
+          FSC_CREDIT_UNION_BANK_API: ${{ secrets.FSC_CREDIT_UNION_BANK_API }}
+          FSC__AGRICULTURAL_COOPERATIVE_BANK_API: ${{ secrets.FSC__AGRICULTURAL_COOPERATIVE_BANK_API }}
+          FSC_AGRICULTURAL_COOPERATIVE_BANK_API: ${{ secrets.FSC_AGRICULTURAL_COOPERATIVE_BANK_API }}
+          FSC_FISHERIES_COOPERATIVE_BANK_API: ${{ secrets.FSC_FISHERIES_COOPERATIVE_BANK_API }}
+          FSC_SP_FIN: ${{ secrets.FSC_SP_FIN }}
+          KOICA_GLOBAL_POLITICAL_DEVELOPMENTS: ${{ secrets.KOICA_GLOBAL_POLITICAL_DEVELOPMENTS }}
+          KOICA_COUNTRY_INFORMATION: ${{ secrets.KOICA_COUNTRY_INFORMATION }}
+          KOTRA_KOREA_FDI_BY_INDUSTRY: ${{ secrets.KOTRA_KOREA_FDI_BY_INDUSTRY }}
+          STUDIO_TYPECAST_AI: ${{ secrets.STUDIO_TYPECAST_AI }}
+          EAIS_ARCHITECTURAL_INFORMATION: ${{ secrets.EAIS_ARCHITECTURAL_INFORMATION }}
+          GG_DATADREAM_OPENDATA: ${{ secrets.GG_DATADREAM_OPENDATA }}
+          EDINET_API_KEY: ${{ secrets.EDINET_API_KEY }}
+          KSURE_COUNTRY_LIST: ${{ secrets.KSURE_COUNTRY_LIST }}
+          MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY: ${{ secrets.MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY }}
+          MSS_BUSINESS_SUPPORT_ANNOUNCEMENTS: ${{ secrets.MSS_BUSINESS_SUPPORT_ANNOUNCEMENTS }}
+          IBK_BRANCH_INFORMATION: ${{ secrets.IBK_BRANCH_INFORMATION }}
+          MOLIT_LUR_LAW_KEY: ${{ secrets.MOLIT_LUR_LAW_KEY }}
+          MSS_SME_SPA_API:  ${{ secrets.MSS_SME_SPA_API }}
+          PERSONAL_API_KEY: ${{ secrets.PERSONAL_API_KEY }}
+          KPX_SMP_DEMAND_FORECAST: ${{ secrets.KPX_SMP_DEMAND_FORECAST }}
+          KPX_POWER_SUPPLY_DEMAND_FORECAST_GW: ${{ secrets.KPX_POWER_SUPPLY_DEMAND_FORECAST_GW }}
+          # ★ 2026-10-21 — 토지이용규제 법령정보(15057174)의 지역지구 코드를 같은 실행에서 브이월드에 묻는다. 데이터 열쇠 + 등록 도메인 문자열(§4 · 접속 자격증명 아님)
+          VWORLD_KEY:        ${{ secrets.VWORLD_KEY }}
+          VWORLD_DOMAIN:     ${{ secrets.VWORLD_DOMAIN }}
+          LINKPILOT_VWORLD_REPORT_KEY: ${{ secrets.LINKPILOT_VWORLD_REPORT_KEY }}
+          LINKPILOT_VWORLD_WEB_KEY:    ${{ secrets.LINKPILOT_VWORLD_WEB_KEY }}
+          DATA_GO_KR_KEY:   ${{ secrets.DATA_GO_KR_KEY }}
+          APIS_DATA:        ${{ secrets.APIS_DATA }}
+          SPECIAL_DAY_INFO: ${{ secrets.SPECIAL_DAY_INFO }}
+          DATA_GO_KR: ${{ secrets.DATA_GO_KR }}
+          # ★ D-435 — 국제수지(ECOS 와 같은 열쇠) · 국가건설기준(KICT_API_KEY) 진단
+          ECOS_API_KEY:     ${{ secrets.ECOS_API_KEY }}
+          ECOS_BOK_KEY:     ${{ secrets.ECOS_BOK_KEY }}
+          KICT_API_KEY:     ${{ secrets.KICT_API_KEY }}
+          KCSC_CONSTRUCTION_STANDARDS: ${{ secrets.KCSC_CONSTRUCTION_STANDARDS }}
+          # ★ 서비스별 열쇠 — 진단 목록(fsc-probe)이 「이 열쇠로 건다」고 적는데 이 단계 env 에 없어 늘 포털 열쇠로 대신 걸렸다 〈2026-10-26 · 실측: key-presence 「있음」 ↔ fsc-probe 「비밀에 없다」〉
+          MOLIT_APT_SALE: ${{ secrets.MOLIT_APT_SALE }}
+          REB_LAND_MICRO: ${{ secrets.REB_LAND_MICRO }}
+          MOLIT_OFFICETEL_RENT: ${{ secrets.MOLIT_OFFICETEL_RENT }}
+          KAMCO_ONBID_BID_RESULT: ${{ secrets.KAMCO_ONBID_BID_RESULT }}
+          KAMCO_SEIZED_AUCTION_RATE: ${{ secrets.KAMCO_SEIZED_AUCTION_RATE }}
+          MOLIT_HUB_BLDG_LEDGER: ${{ secrets.MOLIT_HUB_BLDG_LEDGER }}
+          MOLIT_HUB_HOUSING_PERMIT: ${{ secrets.MOLIT_HUB_HOUSING_PERMIT }}
+          NTS_BIZ_VERIFY: ${{ secrets.NTS_BIZ_VERIFY }}
+          MOLIT_HUB_BLDG_PERMIT: ${{ secrets.MOLIT_HUB_BLDG_PERMIT }}
+          FSC_CORP_BASIC: ${{ secrets.FSC_CORP_BASIC }}
+          MOLIT_LUR_INFO: ${{ secrets.MOLIT_LUR_INFO }}
+          MOLIT_COMM_SALE: ${{ secrets.MOLIT_COMM_SALE }}
+          MOLIT_LAND_SALE: ${{ secrets.MOLIT_LAND_SALE }}
+          REB_LAND_PRICE_CHANGE: ${{ secrets.REB_LAND_PRICE_CHANGE }}
+        run: |
+          node scripts/fsc-probe.mjs || true
+          {
+            echo '### 금융위원회 금융통계 진단'
+            grep -E '^> \*\*판정|^> 판정' data/_api/fsc-probe.md || echo '(판정 줄을 못 읽었다)'
+            # ★ D-363 — 서비스별 «칸 이름»(응답 항목의 필드 이름)도 싣는다. 배선할 때 이 이름을 보고
+            #   짠다 — 추측으로 박지 않는다 (§4.3). 값은 안 싣는다 — 이름만이다 (§2).
+            echo ''
+            grep -E '^## |칸 이름' data/_api/fsc-probe.md || echo '(칸 이름 줄을 못 읽었다)'
+          } >> "$GITHUB_STEP_SUMMARY"
+          grep -E '^## |칸 이름' data/_api/fsc-probe.md || true
+          # ★ 2026-10-05 — 전력 판매 단가(SMP · REC) 실측. 태양광 가정값의 기초값을 지어내지 않으려고
+          #   값·출처·기준일을 받는다. 시세는 공개 자료라 값을 싣는다 — 열쇠는 안 싣는다 (§2).
+          node scripts/price-probe.mjs || true
+          { echo ''; echo '### 전력 판매 단가 (SMP · REC)'; cat data/_api/price-probe.md 2>/dev/null | head -60 || echo '(못 읽었다)'; } >> "$GITHUB_STEP_SUMMARY"
+          cat data/_api/price-probe.md 2>/dev/null || true
+          # ★ D-435 — 한국은행 국제수지. 통계표 코드를 외워 박지 않고 목록에서 찾아 부른다 (§4.3).
+          node scripts/ecos-bop-probe.mjs || true
+          { echo ''; echo '### 한국은행 국제수지'; head -40 data/_api/ecos-bop-probe.md 2>/dev/null || echo '(못 읽었다)'; } >> "$GITHUB_STEP_SUMMARY"
+          cat data/_api/ecos-bop-probe.md 2>/dev/null || true
+          # ★ 2026-10-22 — 국가건설기준(KCSC). 포털 밖 창구라 지침서 4-A 표의 주소 그대로 부른다 (§4.3).
+          node scripts/kcsc-probe.mjs || true
+          { echo ''; echo '### 국가건설기준(KCSC)'; head -30 data/_api/kcsc-probe.md 2>/dev/null || echo '(못 읽었다)'; } >> "$GITHUB_STEP_SUMMARY"
+
+      # ★ 2026-10-12 — 사장님 목록 49개의 «이름»이 이 저장소 비밀에 있는가 (값은 안 찍는다 · 길이만).
+      #   이름은 scripts/key-presence.mjs 의 NAMES 한 곳이 정본이다 — workflow-shape 검사가 두 쪽을 견준다.
+      - name: 열쇠 이름이 들어 있는지 센다
+        continue-on-error: true
+        env:
+          KOREA_LAW_INFORMATION: ${{ secrets.KOREA_LAW_INFORMATION }}
+          DATAGOKR_PUBLIC_DATA: ${{ secrets.DATAGOKR_PUBLIC_DATA }}
+          KASI_SPECIAL_DAYS: ${{ secrets.KASI_SPECIAL_DAYS }}
+          KMA_SHORT_TERM_FORECAST: ${{ secrets.KMA_SHORT_TERM_FORECAST }}
+          KPX_REC_SPOT_MARKET: ${{ secrets.KPX_REC_SPOT_MARKET }}
+          REC_SPOT_MARKET_TRADING: ${{ secrets.REC_SPOT_MARKET_TRADING }}
+          KOMIPO_REC_REFERENCE_PRICE: ${{ secrets.KOMIPO_REC_REFERENCE_PRICE }}
+          KEPCO: ${{ secrets.KEPCO }}
+          KPX_SMP_DEMAND_FORECAST: ${{ secrets.KPX_SMP_DEMAND_FORECAST }}
+          KPX_POWER_SUPPLY_DEMAND_FORECAST_GW: ${{ secrets.KPX_POWER_SUPPLY_DEMAND_FORECAST_GW }}
+          KOICA_COUNTRY_INFORMATION: ${{ secrets.KOICA_COUNTRY_INFORMATION }}
+          KOTRA_KOREA_FDI_BY_INDUSTRY: ${{ secrets.KOTRA_KOREA_FDI_BY_INDUSTRY }}
+          STUDIO_TYPECAST_AI: ${{ secrets.STUDIO_TYPECAST_AI }}
+          EAIS_ARCHITECTURAL_INFORMATION: ${{ secrets.EAIS_ARCHITECTURAL_INFORMATION }}
+          GG_DATADREAM_OPENDATA: ${{ secrets.GG_DATADREAM_OPENDATA }}
+          EDINET_API_KEY: ${{ secrets.EDINET_API_KEY }}
+          KSURE_COUNTRY_LIST: ${{ secrets.KSURE_COUNTRY_LIST }}
+          MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY: ${{ secrets.MOFA_RELATIONS_WITH_KOREA_BY_COUNTRY }}
+          MSS_BUSINESS_SUPPORT_ANNOUNCEMENTS: ${{ secrets.MSS_BUSINESS_SUPPORT_ANNOUNCEMENTS }}
+          IBK_BRANCH_INFORMATION: ${{ secrets.IBK_BRANCH_INFORMATION }}
+          KOICA_GLOBAL_POLITICAL_DEVELOPMENTS: ${{ secrets.KOICA_GLOBAL_POLITICAL_DEVELOPMENTS }}
+          REB_LAND_PRICE_CHANGE: ${{ secrets.REB_LAND_PRICE_CHANGE }}
+          KCSC_CONSTRUCTION_STANDARDS: ${{ secrets.KCSC_CONSTRUCTION_STANDARDS }}
+          VWORLD_SPATIAL_DATA: ${{ secrets.VWORLD_SPATIAL_DATA }}
+          REB_LAND_MICRO: ${{ secrets.REB_LAND_MICRO }}
+          MOLIT_APT_SALE: ${{ secrets.MOLIT_APT_SALE }}
+          MOLIT_OFFICETEL_RENT: ${{ secrets.MOLIT_OFFICETEL_RENT }}
+          MOLIT_HUB_BLDG_LEDGER: ${{ secrets.MOLIT_HUB_BLDG_LEDGER }}
+          MOLIT_HUB_HOUSING_PERMIT: ${{ secrets.MOLIT_HUB_HOUSING_PERMIT }}
+          MOLIT_HUB_BLDG_PERMIT: ${{ secrets.MOLIT_HUB_BLDG_PERMIT }}
+          MOLIT_LUR_INFO: ${{ secrets.MOLIT_LUR_INFO }}
+          MOLIT_COMM_SALE: ${{ secrets.MOLIT_COMM_SALE }}
+          MOLIT_LAND_SALE: ${{ secrets.MOLIT_LAND_SALE }}
+          MOLIT_LUR_LAW_KEY: ${{ secrets.MOLIT_LUR_LAW_KEY }}
+          KAMCO_PUBLIC_AUCTION_STATISTICS: ${{ secrets.KAMCO_PUBLIC_AUCTION_STATISTICS }}
+          KONEPS_AWARD_INFORMATION: ${{ secrets.KONEPS_AWARD_INFORMATION }}
+          KONEPS_BID_NOTICE: ${{ secrets.KONEPS_BID_NOTICE }}
+          ONBID_REAL_ESTATE_PROPERTY: ${{ secrets.ONBID_REAL_ESTATE_PROPERTY }}
+          MSS_SME_SPA_API: ${{ secrets.MSS_SME_SPA_API }}
+          NTS_BIZ_VERIFY: ${{ secrets.NTS_BIZ_VERIFY }}
+          KAMCO_ONBID_BID_RESULT: ${{ secrets.KAMCO_ONBID_BID_RESULT }}
+          KAMCO_SEIZED_AUCTION_RATE: ${{ secrets.KAMCO_SEIZED_AUCTION_RATE }}
+          FSC_ASSET_MANAGEMENT_BUSINESS_STATISTICS: ${{ secrets.FSC_ASSET_MANAGEMENT_BUSINESS_STATISTICS }}
+          FSC_CORP_BASIC: ${{ secrets.FSC_CORP_BASIC }}
+          FSC_AMC_API: ${{ secrets.FSC_AMC_API }}
+          FSC_API: ${{ secrets.FSC_API }}
+          FSC_IAF_API: ${{ secrets.FSC_IAF_API }}
+          FSC_KOFIA_API: ${{ secrets.FSC_KOFIA_API }}
+          FSC_DOMESTIC_BANK_API: ${{ secrets.FSC_DOMESTIC_BANK_API }}
+          FSC_SAVINGS_BANK_API: ${{ secrets.FSC_SAVINGS_BANK_API }}
+          FSC_CREDIT_UNION_BANK_API: ${{ secrets.FSC_CREDIT_UNION_BANK_API }}
+          FSC_AGRICULTURAL_COOPERATIVE_BANK_API: ${{ secrets.FSC_AGRICULTURAL_COOPERATIVE_BANK_API }}
+          FSC_FISHERIES_COOPERATIVE_BANK_API: ${{ secrets.FSC_FISHERIES_COOPERATIVE_BANK_API }}
+          FSC_SP_FIN: ${{ secrets.FSC_SP_FIN }}
+          ECOC_API: ${{ secrets.ECOC_API }}
+          ECOC_BOK_BOP_STATISTICS: ${{ secrets.ECOC_BOK_BOP_STATISTICS }}
+          FSS_DART_DISCLOSURE: ${{ secrets.FSS_DART_DISCLOSURE }}
+          DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+          DATA_GO_KR: ${{ secrets.DATA_GO_KR }}
+        run: |
+          node scripts/key-presence.mjs || true
+          { echo ""; echo "### 열쇠 이름 — 들어 있는가"; cat data/_api/key-presence.md 2>/dev/null || echo "(못 읽었다)"; } >> "$GITHUB_STEP_SUMMARY"
+
+      # ★★ EDINET(일본 공시) — **진단** 〈2026-10-25 · 사장님 「반영해줘」 · Global M&A Intelligence 작업지침 §9〉.
+      #   열쇠가 2026-10-24 에 들어왔는데 «먹는지»를 안 쟀다. 서류 목록 창구를 한 번 불러 무엇이 오는지부터 본다 (§4.3).
+      - name: EDINET 열쇠가 먹는지 불러 본다
+        continue-on-error: true
+        env:
+          EDINET_API_KEY: ${{ secrets.EDINET_API_KEY }}
+        run: |
+          node scripts/edinet-probe.mjs || true
+          {
+            echo '### EDINET 진단'
+            grep -E '^> \*\*판정|^> 판정' data/_api/edinet-probe.md || echo '(판정 줄을 못 읽었다)'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # ★★ 경기데이터드림 — **진단** 〈2026-10-26 · 사장님이 GG_DataDream_OpenData 를 넣으셨다〉.
+      #   공공데이터포털이 아니라 openapi.gg.go.kr 이다 — 포털 검색 진단에 싣지 않고 따로 부른다 (§4.3).
+      - name: 경기데이터드림 열쇠가 먹는지 불러 본다
+        continue-on-error: true
+        env:
+          GG_DATADREAM_OPENDATA: ${{ secrets.GG_DATADREAM_OPENDATA }}
+        run: |
+          node scripts/gg-probe.mjs || true
+          {
+            echo '### 경기데이터드림 진단'
+            grep -E '^> \*\*판정|^> 판정' data/_api/gg-probe.md || echo '(판정 줄을 못 읽었다)'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # ★★★ 네이버 클라우드 Maps — **진단** 〈2026-09-25 · D-314〉.
+      #   사장님이 Client ID · Secret 을 넣으셨는데 **넣으신 이름**과 **호스트(옛·새)** 를
+      #   아직 안 쟀다. 이름 넷씩을 짝으로 읽고 두 호스트를 걸어 **무엇이 오는지부터** 본다 (§4.3).
+      #   ★ 아래 env 에서 `***` 로 찍히는 이름이 실제로 들어 있는 이름이다 (§4.6 의 갈라 보는 법).
+      - name: 네이버 Maps 열쇠가 먹는지 불러 본다
+        continue-on-error: true
+        env:
+          NCP_MAPS_CLIENT_ID:       ${{ secrets.NCP_MAPS_CLIENT_ID }}
+          NCP_MAPS_CLIENT_SECRET:   ${{ secrets.NCP_MAPS_CLIENT_SECRET }}
+          NAVER_MAPS_CLIENT_ID:     ${{ secrets.NAVER_MAPS_CLIENT_ID }}
+          NAVER_MAPS_CLIENT_SECRET: ${{ secrets.NAVER_MAPS_CLIENT_SECRET }}
+          NAVER_MAP_CLIENT_ID:      ${{ secrets.NAVER_MAP_CLIENT_ID }}
+          NAVER_MAP_CLIENT_SECRET:  ${{ secrets.NAVER_MAP_CLIENT_SECRET }}
+          NAVER_CLIENT_ID:          ${{ secrets.NAVER_CLIENT_ID }}
+          NAVER_CLIENT_SECRET:      ${{ secrets.NAVER_CLIENT_SECRET }}
+        run: |
+          node scripts/naver-maps-probe.mjs || true
+          {
+            echo '### 네이버 Maps 진단'
+            # 판정 줄만 뽑는다 — 최악 세 줄(전체 + Geocoding + Directions)이다
+            grep -E '^> \*\*판정|^> 판정' data/_api/naver-maps-probe.md || echo '(판정 줄을 못 읽었다)'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # ★★★ 기본 가지에서만 커밋한다 〈2026-09-20 · D-246 · `vworld.yml` 과 같은 규칙〉.
+      #   [왜] 작업 가지에서 돌리면 봇이 민 커밋이 **열린 PR 의 머리를 움직여**,
+      #   초록이던 검사가 다시 서고 `action_required`(사람이 눌러야 도는 상태)가 된다.
+      #   실제로 §12-24 에서 그렇게 깨졌고, 그때 고친 것을 **이 칸에는 안 댔다** (S-53).
+      # ★★ 조용히 건너뛰지 않는다 — 왜 안 남겼는지와 어디서 받는지를 적는다 (§8).
+      # ★★★ 아티팩트는 이 아래에서 **어느 가지에서든** 그대로 돈다.
+      - name: 결과 커밋
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -u
+          if [ -z "${DEFAULT_BRANCH:-}" ]; then
+            echo "::warning::기본 가지 이름을 못 받았다 — 커밋하지 않는다. 결과는 아래 아티팩트에 있다"
+            exit 0
+          fi
+          if [ "$REF_NAME" != "$DEFAULT_BRANCH" ]; then
+            echo "가지 '$REF_NAME' 에서 돌았다 — **결과를 커밋하지 않는다.**"
+            echo "  까닭: 열려 있는 PR 의 머리가 움직이면 검사가 다시 서고, 봇이 민 커밋은"
+            echo "        사람이 눌러 줘야 도는 상태(action_required)가 된다."
+            echo "  받을 곳: 아래 «아티팩트 업로드» (api-smoke) — 진단 요약까지 그대로 들어 있다."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/_api
+          git diff --staged --quiet || git commit -m "공공 API 실측 진단 ($(date -u +%Y-%m-%d))"
+          # 도는 사이 main 이 앞서 나가면 push 가 밀려난다(2026-10-17 실측 · #86) —
+          # 받아 와서 위에 얹고 다시 민다. 세 번 다 밀리면 빨갛게 끝난다(결과는 아티팩트에 있다).
+          for i in 1 2 3; do
+            if git pull --rebase -q origin "$DEFAULT_BRANCH" && git push; then exit 0; fi
+            # 얹다가 부딪히면 반쯤 얹힌 상태로 남는다 — 되돌려 놓아야 다음 시도와 아티팩트가 깨끗하다
+            git rebase --abort 2>/dev/null || true
+            sleep 5
+          done
+          echo "::error::세 번 다 main 에 못 올렸다 — 결과는 아래 아티팩트(api-smoke)에 있다"
+          exit 1
+
+      # 커밋이 막혀도(브랜치 보호 등) 결과를 회수할 수 있게 (지침서 §8)
+      - name: 아티팩트 업로드
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: api-smoke
+          path: data/_api
+          if-no-files-found: warn

@@ -1,0 +1,959 @@
+{
+ "at": "2026-10-28T02:09:24.451Z",
+ "source": "https://www.kindkorea.or.kr",
+ "boards": {
+  "notices": {
+   "name": "지원공고",
+   "total": 219,
+   "items": [
+    {
+     "id": 11536,
+     "title": "[사업협력팀] 국내 PM CM 기업 해외진출 지원 수요조사 설문 실시(10.23.~10.30.)",
+     "date": "2026-10-23",
+     "url": "https://www.kindkorea.or.kr/pages/29?id=11536&menuMode=READ"
+    },
+    {
+     "id": 11518,
+     "title": "[포르투갈 AICEP] 한-포르투갈 비즈니스 포럼 참가 안내 (참가 신청 ~10.5.(월))",
+     "date": "2026-10-01",
+     "url": "https://www.kindkorea.or.kr/pages/29?id=11518&menuMode=READ"
+    },
+    {
+     "id": 11470,
+     "title": "[KIND] 2026 우즈베키스탄 타슈켄트 바이오 클러스터 사업설명회 개최(9.17.(목))",
+     "date": "2026-09-11",
+     "url": "https://www.kindkorea.or.kr/pages/29?id=11470&menuMode=READ"
+    },
+    {
+     "id": 11449,
+     "title": "[KIND] 2026 K-City Network 글로벌 스마트시티 파트너십 포럼 개최(9/10(금))",
+     "date": "2026-08-31",
+     "url": "https://www.kindkorea.or.kr/pages/29?id=11449&menuMode=READ"
+    },
+    {
+     "id": 11447,
+     "title": "[KIND] 경제혁신 파트너십 프로그램(EIPP) 필리핀 데이터센터 사업 사업설명회 개최(9.11, 금)",
+     "date": "2026-08-28",
+     "url": "https://www.kindkorea.or.kr/pages/29?id=11447&menuMode=READ"
+    },
+    {
+     "id": 11444,
+     "title": "[과학기술정보통신부] 2026 모두의 AI 실험실 AI 서비스 경진대회 개최 안내",
+     "date": "2026-08-25",
+     "url": "https://www.kindkorea.or.kr/pages/29?id=11444&menuMode=READ"
+    },
+    {
+     "id": 11431,
+     "title": "[재정경제부] 2026 경제발전경험공유사업(KSP) 성과공유컨퍼런스 개최 안내(9.7, 월)",
+     "date": "2026-08-13",
+     "url": "https://www.kindkorea.or.kr/pages/29?id=11431&menuMode=READ"
+    },
+    {
+     "id": 11052,
+     "title": "[KIND-2026-04] 2026년도 해외인프라도시개발사업 제안서작성 지원 대상사업 모집공고",
+     "date": "2026-03-20",
+     "url": "https://www.kindkorea.or.kr/pages/29?id=11052&menuMode=READ"
+    },
+    {
+     "id": 10960,
+     "title": "「2026 K-City Network」 계획수립형 사업 공모",
+     "date": "2026-01-28",
+     "url": "https://www.kindkorea.or.kr/pages/29?id=10960&menuMode=READ"
+    },
+    {
+     "id": 10590,
+     "title": "한국해외인프라도시개발지원공사(KIND) 직원 사칭 피해 주의 안내",
+     "date": "2025-05-29",
+     "url": "https://www.kindkorea.or.kr/pages/29?id=10590&menuMode=READ"
+    }
+   ],
+   "url": "https://www.kindkorea.or.kr/pages/29"
+  },
+  "news": {
+   "name": "보도자료",
+   "total": 101,
+   "items": [
+    {
+     "id": 11537,
+     "title": "'K-건설', AI 데이터센터 해외시장 문 열었다",
+     "date": null,
+     "url": "https://www.kindkorea.or.kr/pages/32?id=11537&menuMode=READ"
+    },
+    {
+     "id": 11509,
+     "title": "KIND, 호주 시드니 초고층 아파트 개발사업 투자계약 체결",
+     "date": null,
+     "url": "https://www.kindkorea.or.kr/pages/32?id=11509&menuMode=READ"
+    },
+    {
+     "id": 11495,
+     "title": "KIND, 정상외교 계기로 중앙아시아 투자개발사업 협력 본격화",
+     "date": null,
+     "url": "https://www.kindkorea.or.kr/pages/32?id=11495&menuMode=READ"
+    },
+    {
+     "id": 11490,
+     "title": "UzA·우즈베키스탄 대통령실 - 우즈베키스탄 대통령, KIND 사장 면담",
+     "date": null,
+     "url": "https://www.kindkorea.or.kr/pages/32?id=11490&menuMode=READ"
+    },
+    {
+     "id": 11489,
+     "title": "DKNews - 토카예프 대통령, KIND에 알라타우시티 개발 참여 요청",
+     "date": null,
+     "url": "https://www.kindkorea.or.kr/pages/32?id=11489&menuMode=READ"
+    },
+    {
+     "id": 11474,
+     "title": "KIND, 우즈베키스탄 타슈켄트 바이오 클러스터 사업설명회 개최",
+     "date": null,
+     "url": "https://www.kindkorea.or.kr/pages/32?id=11474&menuMode=READ"
+    },
+    {
+     "id": 11471,
+     "title": "KIND, K-City에서 사업기회 찾는다… 3개국 정부·우리 기업 한자리에",
+     "date": null,
+     "url": "https://www.kindkorea.or.kr/pages/32?id=11471&menuMode=READ"
+    },
+    {
+     "id": 11454,
+     "title": "KIND, 월드스마트시티엑스포서 K-City 글로벌 성과 확산 나선다",
+     "date": null,
+     "url": "https://www.kindkorea.or.kr/pages/32?id=11454&menuMode=READ"
+    },
+    {
+     "id": 11446,
+     "title": "KIND와 대한변리사회, 우리 기업의 해외 인프라사업 경쟁력 제고를 위한 업무협약(MOU) 체결",
+     "date": null,
+     "url": "https://www.kindkorea.or.kr/pages/32?id=11446&menuMode=READ"
+    },
+    {
+     "id": 11417,
+     "title": "KIND, 부패방지 국제표준 ISO 37001 사후심사 통과",
+     "date": null,
+     "url": "https://www.kindkorea.or.kr/pages/32?id=11417&menuMode=READ"
+    }
+   ],
+   "url": "https://www.kindkorea.or.kr/pages/32"
+  },
+  "activity": {
+   "name": "활동소식",
+   "total": 322,
+   "items": [
+    {
+     "id": 11542,
+     "title": "주상진 사업개발본부장 취임식",
+     "date": "2026-10-27",
+     "url": "https://www.kindkorea.or.kr/pages/31?id=11542&menuMode=READ"
+    },
+    {
+     "id": 11540,
+     "title": "KIND-중미경제통합은행(CABEI) MOU 체결",
+     "date": "2026-10-27",
+     "url": "https://www.kindkorea.or.kr/pages/31?id=11540&menuMode=READ"
+    },
+    {
+     "id": 11506,
+     "title": "탄자니아 공공사업부 장관 면담",
+     "date": "2026-09-22",
+     "url": "https://www.kindkorea.or.kr/pages/31?id=11506&menuMode=READ"
+    },
+    {
+     "id": 11502,
+     "title": "2026 우즈베키스탄 타슈켄트 바이오 클러스터 사업설명회",
+     "date": "2026-09-21",
+     "url": "https://www.kindkorea.or.kr/pages/31?id=11502&menuMode=READ"
+    },
+    {
+     "id": 11501,
+     "title": "KIND-키르기즈스탄 PPP Center 간 MOU 체결",
+     "date": "2026-09-21",
+     "url": "https://www.kindkorea.or.kr/pages/31?id=11501&menuMode=READ"
+    },
+    {
+     "id": 11493,
+     "title": "KIND-우즈베키스탄 의료·제약산업개발청(MPIDA) 간 Framework Agreement 체결",
+     "date": "2026-09-17",
+     "url": "https://www.kindkorea.or.kr/pages/31?id=11493&menuMode=READ"
+    },
+    {
+     "id": 11486,
+     "title": "우즈베키스탄 대통령 면담",
+     "date": "2026-09-16",
+     "url": "https://www.kindkorea.or.kr/pages/31?id=11486&menuMode=READ"
+    },
+    {
+     "id": 11485,
+     "title": "카자흐스탄 대통령 면담",
+     "date": "2026-09-16",
+     "url": "https://www.kindkorea.or.kr/pages/31?id=11485&menuMode=READ"
+    },
+    {
+     "id": 11483,
+     "title": "카자흐스탄 바이테렉·QIC 의장 면담",
+     "date": "2026-09-16",
+     "url": "https://www.kindkorea.or.kr/pages/31?id=11483&menuMode=READ"
+    }
+   ],
+   "url": "https://www.kindkorea.or.kr/pages/31"
+  }
+ },
+ "projects": {
+  "DIRECT_INVESTMENT": {
+   "name": "직접투자",
+   "items": [
+    {
+     "id": 422,
+     "type": "DIRECT_INVESTMENT",
+     "region": "아시아/태평양",
+     "country": "호주",
+     "sector": "도시개발",
+     "text": "아시아/태평양 / 호주 분야 : 도시개발",
+     "url": "https://www.kindkorea.or.kr/project/DIRECT_INVESTMENT/detail/422",
+     "name": "호주 시드니 채스우드 공동주택",
+     "stage": "개발단계",
+     "overview": "임대주택 개발사업",
+     "head": null,
+     "fields": {
+      "사업부지": "New South Wales주 Chatswood",
+      "사업내용(규모)": "총 260세대",
+      "사업방식": "BOO",
+      "투자형태": "수익증권"
+     }
+    },
+    {
+     "id": 417,
+     "type": "DIRECT_INVESTMENT",
+     "region": "유럽",
+     "country": "영국",
+     "sector": "교통",
+     "text": "유럽 / 영국 분야 : 교통",
+     "url": "https://www.kindkorea.or.kr/project/DIRECT_INVESTMENT/detail/417",
+     "name": "영국 철도차량 임대 플랫폼",
+     "stage": "운영단계",
+     "overview": null,
+     "head": null,
+     "fields": {
+      "사업부지": "영국 전역",
+      "사업내용(규모)": "7개 노선",
+      "사업방식": "PPP",
+      "투자형태": "수익증권"
+     }
+    },
+    {
+     "id": 389,
+     "type": "DIRECT_INVESTMENT",
+     "region": "아시아/태평양",
+     "country": "일본",
+     "sector": "신재생",
+     "text": "아시아/태평양 / 일본 분야 : 신재생",
+     "url": "https://www.kindkorea.or.kr/project/DIRECT_INVESTMENT/detail/389",
+     "name": "일본 고압 BESS",
+     "stage": "건설단계",
+     "overview": "BESS 건설 및 운영",
+     "head": null,
+     "fields": {
+      "사업부지": "일본 주코쿠·주부·큐슈 권역",
+      "사업내용(규모)": "2MW",
+      "사업방식": "BOO",
+      "투자형태": "수익증권"
+     }
+    },
+    {
+     "id": 340,
+     "type": "DIRECT_INVESTMENT",
+     "region": "미주",
+     "country": "미국",
+     "sector": "전력",
+     "text": "미주 / 미국 분야 : 전력",
+     "url": "https://www.kindkorea.or.kr/project/DIRECT_INVESTMENT/detail/340",
+     "name": "미국 루이지애나 FLNG",
+     "stage": "건설단계",
+     "overview": "FLNG 건설 및 운영",
+     "head": null,
+     "fields": {
+      "사업부지": "Louisiana주",
+      "사업내용(규모)": "4.4mtpa",
+      "사업방식": "BOO",
+      "투자형태": "수익증권"
+     }
+    },
+    {
+     "id": 339,
+     "type": "DIRECT_INVESTMENT",
+     "region": "유럽",
+     "country": "폴란드",
+     "sector": "물류",
+     "text": "유럽 / 폴란드 분야 : 물류",
+     "url": "https://www.kindkorea.or.kr/project/DIRECT_INVESTMENT/detail/339",
+     "name": "폴란드 카토비체 물류센터",
+     "stage": "건설단계",
+     "overview": "물류센터 건설 및 운영",
+     "head": null,
+     "fields": {
+      "사업부지": "카토비체 권역 내 자브제시",
+      "사업내용(규모)": "물류센터 5개동",
+      "사업방식": "BOO",
+      "투자형태": "수익증권"
+     }
+    },
+    {
+     "id": 338,
+     "type": "DIRECT_INVESTMENT",
+     "region": "아시아/태평양",
+     "country": "호주",
+     "sector": "신재생",
+     "text": "아시아/태평양 / 호주 분야 : 신재생",
+     "url": "https://www.kindkorea.or.kr/project/DIRECT_INVESTMENT/detail/338",
+     "name": "호주 Tangkam BESS",
+     "stage": "건설단계",
+     "overview": "BESS 건설 및 운영",
+     "head": null,
+     "fields": {
+      "사업부지": "Queensland주 Obini County",
+      "사업내용(규모)": "100MW",
+      "사업방식": "BOO",
+      "투자형태": "수익증권"
+     }
+    },
+    {
+     "id": 337,
+     "type": "DIRECT_INVESTMENT",
+     "region": "아시아/태평양",
+     "country": "인도네시아",
+     "sector": "도시개발",
+     "text": "아시아/태평양 / 인도네시아 분야 : 도시개발",
+     "url": "https://www.kindkorea.or.kr/project/DIRECT_INVESTMENT/detail/337",
+     "name": "인도네시아 자카르타 AI Ready 데이터센터",
+     "stage": "건설단계",
+     "overview": "데이터센터 건설 및 운영",
+     "head": null,
+     "fields": {
+      "사업부지": "자카르타시",
+      "사업내용(규모)": "지하1층, 지상 11층 규모",
+      "사업방식": "BOOT",
+      "투자형태": "지분증권"
+     }
+    },
+    {
+     "id": 259,
+     "type": "DIRECT_INVESTMENT",
+     "region": "아시아/태평양",
+     "country": "베트남",
+     "sector": "도시개발",
+     "text": "아시아/태평양 / 베트남 분야 : 도시개발",
+     "url": "https://www.kindkorea.or.kr/project/DIRECT_INVESTMENT/detail/259",
+     "name": "베트남 롱탄 물류센터",
+     "stage": "건설단계",
+     "overview": "물류센터 건설 및 운영",
+     "head": null,
+     "fields": {
+      "사업부지": "베트남 동나이성 롱탄현 아마타산단",
+      "사업내용(규모)": "저온창고 및 상온창고 (총면적 약 19,000㎡)",
+      "사업방식": "BOO",
+      "투자형태": "지분증권"
+     }
+    },
+    {
+     "id": 210,
+     "type": "DIRECT_INVESTMENT",
+     "region": "아시아/태평양",
+     "country": "일본",
+     "sector": "신재생",
+     "text": "아시아/태평양 / 일본 분야 : 신재생",
+     "url": "https://www.kindkorea.or.kr/project/DIRECT_INVESTMENT/detail/210",
+     "name": "일본 와타리 BESS",
+     "stage": "건설단계",
+     "overview": "BESS 건설 및 운영",
+     "head": null,
+     "fields": {
+      "사업부지": "일본 미야기현 와타리군",
+      "사업내용(규모)": "20MW",
+      "사업방식": "BOO",
+      "투자형태": "수익증권"
+     }
+    },
+    {
+     "id": 209,
+     "type": "DIRECT_INVESTMENT",
+     "region": "MENA",
+     "country": "튀르키예",
+     "sector": "도로",
+     "text": "MENA / 튀르키예 분야 : 도로",
+     "url": "https://www.kindkorea.or.kr/project/DIRECT_INVESTMENT/detail/209",
+     "name": null,
+     "stage": null,
+     "overview": "고속도로 건설 및 운영",
+     "head": "튀르키예 Türkiye 튀르키예 나카스-바샥세히르 구간 고속도로 직접투자사업 건설단계 MENA 도로",
+     "fields": {
+      "사업부지": "튀르키예 북부 이스탄불주",
+      "사업내용(규모)": "31.3km",
+      "사업방식": "BOT",
+      "투자형태": "수익증권"
+     }
+    }
+   ],
+   "url": "https://www.kindkorea.or.kr/project?businessType=DIRECT_INVESTMENT"
+  },
+  "POLICY_FUND": {
+   "name": "정책펀드",
+   "items": [
+    {
+     "id": 420,
+     "type": "POLICY_FUND",
+     "region": "유럽",
+     "country": "폴란드",
+     "sector": "물류",
+     "text": "유럽 / 폴란드 분야 : 물류",
+     "url": "https://www.kindkorea.or.kr/project/POLICY_FUND/detail/420",
+     "name": "폴란드 카토비체 정책 펀드",
+     "stage": "건설단계",
+     "overview": null,
+     "head": null,
+     "fields": {
+      "사업부지": "카토비체 권역 내 자브제시",
+      "설비용량": "물류센터 5개동"
+     }
+    },
+    {
+     "id": 415,
+     "type": "POLICY_FUND",
+     "region": "아시아/태평양",
+     "country": "일본",
+     "sector": "전력",
+     "text": "아시아/태평양 / 일본 분야 : 전력",
+     "url": "https://www.kindkorea.or.kr/project/POLICY_FUND/detail/415",
+     "name": "일본 와타리 BESS",
+     "stage": "건설단계",
+     "overview": null,
+     "head": null,
+     "fields": {
+      "사업부지": "일본 미야기현 와타리군",
+      "설비용량": "와타리 20MW/90MWh(4.5hrs)"
+     }
+    },
+    {
+     "id": 413,
+     "type": "POLICY_FUND",
+     "region": "미주",
+     "country": "미국",
+     "sector": "전력",
+     "text": "미주 / 미국 분야 : 전력",
+     "url": "https://www.kindkorea.or.kr/project/POLICY_FUND/detail/413",
+     "name": "미국 Concho 태양광 발전",
+     "stage": "건설단계",
+     "overview": null,
+     "head": null,
+     "fields": {
+      "사업부지": "미국 텍사스주 Concho County",
+      "설비용량": "350MW"
+     }
+    },
+    {
+     "id": 401,
+     "type": "POLICY_FUND",
+     "region": "미주",
+     "country": "미국",
+     "sector": "석유화학",
+     "text": "미주 / 미국 분야 : 석유화학",
+     "url": "https://www.kindkorea.or.kr/project/POLICY_FUND/detail/401",
+     "name": "미국 루이지애나 FLNG",
+     "stage": "개발단계",
+     "overview": null,
+     "head": null,
+     "fields": {
+      "사업부지": "미국 루이지애나주",
+      "설비용량": "4.4mtpa"
+     }
+    },
+    {
+     "id": 400,
+     "type": "POLICY_FUND",
+     "region": "유럽",
+     "country": "폴란드",
+     "sector": "물류",
+     "text": "유럽 / 폴란드 분야 : 물류",
+     "url": "https://www.kindkorea.or.kr/project/POLICY_FUND/detail/400",
+     "name": "폴란드 카토비체 물류센터",
+     "stage": "운영단계",
+     "overview": null,
+     "head": null,
+     "fields": {
+      "사업부지": "폴란드 카토비체",
+      "설비용량": "물류센터 5개동"
+     }
+    },
+    {
+     "id": 399,
+     "type": "POLICY_FUND",
+     "region": "아시아/태평양",
+     "country": "호주",
+     "sector": "전력",
+     "text": "아시아/태평양 / 호주 분야 : 전력",
+     "url": "https://www.kindkorea.or.kr/project/POLICY_FUND/detail/399",
+     "name": "호주 탕캄 에너지저장장치",
+     "stage": "건설단계",
+     "overview": null,
+     "head": null,
+     "fields": {
+      "사업부지": "호주 퀸즐랜드주 Obini County",
+      "설비용량": "100MW/200MWh"
+     }
+    },
+    {
+     "id": 398,
+     "type": "POLICY_FUND",
+     "region": "유럽",
+     "country": "영국",
+     "sector": "전력",
+     "text": "유럽 / 영국 분야 : 전력",
+     "url": "https://www.kindkorea.or.kr/project/POLICY_FUND/detail/398",
+     "name": "영국 Widow Hill 에너지저장장치",
+     "stage": "건설단계",
+     "overview": null,
+     "head": null,
+     "fields": {
+      "사업부지": "영국 랭커셔주 번리",
+      "설비용량": "70MW/161MWh(2hrs)"
+     }
+    },
+    {
+     "id": 397,
+     "type": "POLICY_FUND",
+     "region": "아시아/태평양",
+     "country": "베트남",
+     "sector": "물류",
+     "text": "아시아/태평양 / 베트남 분야 : 물류",
+     "url": "https://www.kindkorea.or.kr/project/POLICY_FUND/detail/397",
+     "name": "베트남 롱탄 물류센터",
+     "stage": "개발단계",
+     "overview": null,
+     "head": null,
+     "fields": {
+      "사업부지": "베트남 롱탄",
+      "설비용량": "저온창고 및 상온창고 (약 19,000㎡)"
+     }
+    },
+    {
+     "id": 396,
+     "type": "POLICY_FUND",
+     "region": "아시아/태평양",
+     "country": "인도네시아",
+     "sector": "도시개발",
+     "text": "아시아/태평양 / 인도네시아 분야 : 도시개발",
+     "url": "https://www.kindkorea.or.kr/project/POLICY_FUND/detail/396",
+     "name": "인도네시아 자카르타 데이터센터",
+     "stage": "건설단계",
+     "overview": null,
+     "head": null,
+     "fields": {
+      "사업부지": "인도네시아 자카르타",
+      "설비용량": "IT Load 18MW"
+     }
+    },
+    {
+     "id": 395,
+     "type": "POLICY_FUND",
+     "region": "MENA",
+     "country": "튀르키예",
+     "sector": "도로",
+     "text": "MENA / 튀르키예 분야 : 도로",
+     "url": "https://www.kindkorea.or.kr/project/POLICY_FUND/detail/395",
+     "name": null,
+     "stage": null,
+     "overview": null,
+     "head": "튀르키예 Türkiye 터키 Nakkas 도로 정책펀드사업 건설단계 MENA 도로",
+     "fields": {
+      "사업부지": "튀르키예 이스탄불 북부 Nakkas",
+      "설비용량": "45km"
+     }
+    }
+   ],
+   "url": "https://www.kindkorea.or.kr/project?businessType=POLICY_FUND"
+  },
+  "FS_SUPPORT": {
+   "name": "타당성조사 지원",
+   "items": [
+    {
+     "id": 388,
+     "type": "FS_SUPPORT",
+     "region": "아시아/태평양",
+     "country": "베트남",
+     "sector": "물류",
+     "text": "아시아/태평양 / 베트남 분야 : 물류",
+     "url": "https://www.kindkorea.or.kr/project/FS_SUPPORT/detail/388",
+     "name": "베트남 동나이 롱탄 복합물류센터 개발사업",
+     "stage": "개발단계",
+     "overview": "베트남 동나이 롱탄 복합물류센터 개발사업 타당성조사",
+     "head": null,
+     "fields": {
+      "사업부지": "베트남 동나이성 롱탄 아마타 산업단지",
+      "용역사명": "엠에이피건축종합건축사사무소, 법무법인 율촌, 포지션에셋",
+      "용역기간": "2023.11.01.~2024.06.30."
+     }
+    },
+    {
+     "id": 258,
+     "type": "FS_SUPPORT",
+     "region": "유럽",
+     "country": "폴란드",
+     "sector": "전력",
+     "text": "유럽 / 폴란드 분야 : 전력",
+     "url": "https://www.kindkorea.or.kr/project/FS_SUPPORT/detail/258",
+     "name": "폴란드 URSUS 열병합발전 건설 운영사업",
+     "stage": "개발단계",
+     "overview": "폴란드 URSUS CHP 발전사업 타당성조사",
+     "head": null,
+     "fields": {
+      "위치": "폴란드 바르샤바 우르수스",
+      "용역사명": "안진회계법인, 이파워기술단, 법무법인 태평양",
+      "용역기간": "2024.1.26.~2024.7.31."
+     }
+    },
+    {
+     "id": 257,
+     "type": "FS_SUPPORT",
+     "region": "아시아/태평양",
+     "country": "베트남",
+     "sector": "도시개발",
+     "text": "아시아/태평양 / 베트남 분야 : 도시개발",
+     "url": "https://www.kindkorea.or.kr/project/FS_SUPPORT/detail/257",
+     "name": "베트남 하노이 주상복합 개발사업",
+     "stage": "개발단계",
+     "overview": "베트남 하노이 주상복합 개발사업 타당성조사",
+     "head": null,
+     "fields": {
+      "위치": "베트남 하노이 자럼현",
+      "용역사명": "안진회계법인, 엠에이피건축종합건축사사무소, 법무법인 세종",
+      "용역기간": "2023.6.7.~2023.11.3."
+     }
+    },
+    {
+     "id": 256,
+     "type": "FS_SUPPORT",
+     "region": "아시아/태평양",
+     "country": "베트남",
+     "sector": "도시개발",
+     "text": "아시아/태평양 / 베트남 분야 : 도시개발",
+     "url": "https://www.kindkorea.or.kr/project/FS_SUPPORT/detail/256",
+     "name": "베트남 하남 신도시 개발 사업",
+     "stage": "개발단계",
+     "overview": "베트남 하남 신도시 개발 사업 예비 타당성조사",
+     "head": null,
+     "fields": {
+      "위치": "베트남 하남성 동쪽 리년(Ly Nhan)",
+      "용역사명": "삼덕회계법인, 수성엔지니어링, 법무법인 세종, 해외건설협회",
+      "용역기간": "2023.6.8.~2024.2.2."
+     }
+    },
+    {
+     "id": 255,
+     "type": "FS_SUPPORT",
+     "region": "아시아/태평양",
+     "country": "필리핀",
+     "sector": "상하수도",
+     "text": "아시아/태평양 / 필리핀 분야 : 상하수도",
+     "url": "https://www.kindkorea.or.kr/project/FS_SUPPORT/detail/255",
+     "name": "필리핀 Sierra 상수공급 사업",
+     "stage": "개발단계",
+     "overview": "필리핀 Sierra 상수공급사업 예비 타당성조사",
+     "head": null,
+     "fields": {
+      "위치": "필리핀 메트로 마닐라 동남쪽 60km",
+      "용역사명": "한국종합기술, 삼정회계법인, 법무법인 화우",
+      "용역기간": "2023.6.7.~2024.2.29."
+     }
+    },
+    {
+     "id": 254,
+     "type": "FS_SUPPORT",
+     "region": "미주",
+     "country": "도미니카공화국",
+     "sector": "교통",
+     "text": "미주 / 도미니카공화국 분야 : 교통",
+     "url": "https://www.kindkorea.or.kr/project/FS_SUPPORT/detail/254",
+     "name": "도미니카 페데르날레스 신공항 건설 운영사업",
+     "stage": "개발단계",
+     "overview": "도미니카공화국 페데르날레스 신공항 건설 및 운영 사업 예비 타당성조사",
+     "head": null,
+     "fields": {
+      "위치": "도미니카공화국 페데르날레스주 카르보호",
+      "용역사명": "유신, 법무법인 세종, 한영회계법인",
+      "용역기간": "2023.6.7.~2024.5.1."
+     }
+    },
+    {
+     "id": 253,
+     "type": "FS_SUPPORT",
+     "region": "미주",
+     "country": "볼리비아",
+     "sector": "전력",
+     "text": "미주 / 볼리비아 분야 : 전력",
+     "url": "https://www.kindkorea.or.kr/project/FS_SUPPORT/detail/253",
+     "name": "볼리비아 산타크루즈 LFG발전 및 탄소배출권 사업",
+     "stage": "개발단계",
+     "overview": "볼리비아 산타크루즈 LFG발전 및 탄소배출권 사업 타당성조사",
+     "head": null,
+     "fields": {
+      "위치": "볼리비아 동부 산타크루즈시 산 미구엘 매립장",
+      "용역사명": "제일엔지니어링종합건축사사무소, 이엔파트너스, 시너지코리아",
+      "용역기간": "2023.6.5.~2024.3.30."
+     }
+    },
+    {
+     "id": 252,
+     "type": "FS_SUPPORT",
+     "region": "사하라이남",
+     "country": "케냐",
+     "sector": "도로",
+     "text": "사하라이남 / 케냐 분야 : 도로",
+     "url": "https://www.kindkorea.or.kr/project/FS_SUPPORT/detail/252",
+     "name": "케냐 몸바사 신니알리 교량 건설 및 주요 도로축 개선사업",
+     "stage": "개발단계",
+     "overview": "케냐 몸바사 신니알리 교량 건설 및 주요 도로축 개선사업 예비 타당성조사",
+     "head": null,
+     "fields": {
+      "위치": "케냐 몸바사주 몸바사 섬~니알리 내륙지역 인근",
+      "용역사명": "도화엔지니어링, 법무법인 태평양, 안진회계법인",
+      "용역기간": "2022.11.21.~2023.9.26."
+     }
+    },
+    {
+     "id": 251,
+     "type": "FS_SUPPORT",
+     "region": "아시아/태평양",
+     "country": "우즈베키스탄",
+     "sector": "도로",
+     "text": "아시아/태평양 / 우즈베키스탄 분야 : 도로",
+     "url": "https://www.kindkorea.or.kr/project/FS_SUPPORT/detail/251",
+     "name": "우즈베키스탄 타슈켄트-안디잔 고속도로 사업",
+     "stage": "개발단계",
+     "overview": "우즈베키스탄 타슈켄트-안디잔 고속도로 신설 및 운영 예비 타당성조사",
+     "head": null,
+     "fields": {
+      "위치": "우즈베키스탄 타슈켄트~안디잔(약 340km)",
+      "용역사명": "평화엔지니어링, 법무법인 태평양, 태조엔지니어링, 삼정회계법인",
+      "용역기간": "2022.11.4.~2023.10.6."
+     }
+    },
+    {
+     "id": 250,
+     "type": "FS_SUPPORT",
+     "region": "유럽",
+     "country": "폴란드",
+     "sector": "교통",
+     "text": "유럽 / 폴란드 분야 : 교통",
+     "url": "https://www.kindkorea.or.kr/project/FS_SUPPORT/detail/250",
+     "name": "폴란드 STH 신공항 개발운영사업",
+     "stage": "개발단계",
+     "overview": "폴란드 STH(Solidarity Transport Hub) 신공항 개발운영사업 예비 타당성조사",
+     "head": null,
+     "fields": {
+      "위치": "폴란드 바르샤바 남서쪽 40km",
+      "용역사명": "한영회계법인, 유신, 법무법인 태평양, 아주대학교 산학협력단",
+      "용역기간": "2022.9.1.~2023.2.27."
+     }
+    }
+   ],
+   "url": "https://www.kindkorea.or.kr/project?businessType=FS_SUPPORT"
+  },
+  "KCN_EIPP": {
+   "name": "K-City Network · EIPP",
+   "items": [
+    {
+     "id": 289,
+     "type": "KCN_EIPP",
+     "region": "아시아/태평양",
+     "country": "인도네시아",
+     "sector": "도시개발",
+     "text": "아시아/태평양 / 인도네시아 분야 : 도시개발",
+     "url": "https://www.kindkorea.or.kr/project/KCN_EIPP/detail/289",
+     "name": "신수도 자금조달방안 3차 – 신수도 스마트시티 구축계획 및 재정적/비재정적 인센티브를 활용한 투자유치 전략 수립",
+     "stage": "개발단계",
+     "overview": "2022/23년도 인도네시아 경제혁신 파트너십 프로그램(EIPP) 경제혁신 파트너십 프로그램(EIPP)은 우리 기업의 해외수주 활력 제고를 위해 중장기간(3년 이상) 집중적으로 정책자문을 실시하는 경제발전경험공유사업(KSP)의 새로운 사업모델입니다. 신수도 활성화를 위한 스마트시티 추진 로드맵 수립을 지원하고 및 우리 기업의 현지 진출 기회를 확대하는데 그",
+     "head": null,
+     "fields": {
+      "사업위치": "인도네시아 동칼리만탄(신수도 이전대상지)",
+      "사업기간": "180일(23.05.26.~23.11.21.)",
+      "사업내용": "인도네시아 수도이전(자금조달) 관련 정책자문",
+      "상대정부": "인도네시아 국가개발기획부(BAPPENAS)"
+     }
+    },
+    {
+     "id": 288,
+     "type": "KCN_EIPP",
+     "region": "아시아/태평양",
+     "country": "인도네시아",
+     "sector": "도시개발",
+     "text": "아시아/태평양 / 인도네시아 분야 : 도시개발",
+     "url": "https://www.kindkorea.or.kr/project/KCN_EIPP/detail/288",
+     "name": "수도이전에 따른 자카르타 수도권 경제 개발 전략",
+     "stage": "개발단계",
+     "overview": "2020/21년도 인도네시아 경제혁신 파트너십 프로그램(EIPP) : 경제혁신 파트너십 프로그램(EIPP)은 우리 기업의 해외수주 활력 제고를 위해 중장기간(3년 이상) 집중적으로 정책자문을 실시하는 경제발전경험공유사업(KSP)의 새로운 사업모델입니다. 인도네시아 수도이전에 따른 기존 수도권 지역 경제영향을 분석하고 자카르타 경제발전 전략 및 신수도 연계방",
+     "head": null,
+     "fields": {
+      "사업위치": "인도네시아 자카르타",
+      "사업기간": "300일(20.11.23.~21.09.18.)",
+      "사업내용": "인도네시아 수도 이전(경제 개발 전략) 관련 정책자문",
+      "상대정부": "인도네시아 국가개발계획부(BAPPENAS)"
+     }
+    },
+    {
+     "id": 286,
+     "type": "KCN_EIPP",
+     "region": "아시아/태평양",
+     "country": "인도네시아",
+     "sector": "물류",
+     "text": "아시아/태평양 / 인도네시아 분야 : 물류",
+     "url": "https://www.kindkorea.or.kr/project/KCN_EIPP/detail/286",
+     "name": "동칼리만탄 글로벌 물류 허브 구축을 위한 항만 운영전략 수립",
+     "stage": "개발단계",
+     "overview": "2023/24년도 인도네시아 경제혁신 파트너십 프로그램(EIPP) : 경제혁신 파트너십 프로그램(EIPP)은 우리 기업의 해외수주 활력 제고를 위해 중장기간(3년 이상) 집중적으로 정책자문을 실시하는 경제발전경험공유사업(KSP)의 새로운 사업모델입니다. 인도네시아 신수도 항만운영 현황 및 관련 법제도 분석을 지원하고, 항만 운영전략을 수립하여 우리 기업의 ",
+     "head": null,
+     "fields": {
+      "사업위치": "인도네시아 동칼리만탄(신수도 이전대상지)",
+      "사업기간": "300일(23.12.13.~24.10.07.)",
+      "사업내용": "인도네시아 수도이전 (항만) 관련 정책자문",
+      "상대정부": "인도네시아 국가개발계획부(BAPPENAS)"
+     }
+    },
+    {
+     "id": 284,
+     "type": "KCN_EIPP",
+     "region": "아시아/태평양",
+     "country": "인도네시아",
+     "sector": "교통",
+     "text": "아시아/태평양 / 인도네시아 분야 : 교통",
+     "url": "https://www.kindkorea.or.kr/project/KCN_EIPP/detail/284",
+     "name": "신수도 교통체계 및 전기차 대중교통 시범사업 계획수립",
+     "stage": "개발단계",
+     "overview": "2021/22년도 인도네시아 경제혁신 파트너십 프로그램(EIPP) : 경제혁신 파트너십 프로그램(EIPP)은 우리 기업의 해외수주 활력 제고를 위해 중장기간(3년 이상) 집중적으로 정책자문을 실시하는 경제발전경험공유사업(KSP)의 새로운 사업모델입니다. 인도네시아 신수도 전기차 대중교통 관련 및 인프라 구축 기본구상, 정책제언을 지원하고 우리 기업의 현지 ",
+     "head": null,
+     "fields": {
+      "사업위치": "인도네시아 동칼리만탄",
+      "사업기간": "300일(22.01.12.~22.11.07.)",
+      "사업내용": "인도네시아 수도 이전(교통체계) 관련 정책자문",
+      "상대정부": "인도네시아 국가개발계획부(BAPPENAS)"
+     }
+    },
+    {
+     "id": 283,
+     "type": "KCN_EIPP",
+     "region": "아시아/태평양",
+     "country": "인도네시아",
+     "sector": "도시개발",
+     "text": "아시아/태평양 / 인도네시아 분야 : 도시개발",
+     "url": "https://www.kindkorea.or.kr/project/KCN_EIPP/detail/283",
+     "name": "신수도 지역 산업단지 FDI 유치를 위한 개발전략 수립 및 예비타당성 조사",
+     "stage": "개발단계",
+     "overview": "2024/25 인도네시아 경제혁신파트너십 프로그램(EIPP): 경제혁신파트너십 프로그램(EIPP)은 지식공유프로그램(KSP)의 새로운 비즈니스 모델로, 한국 기업의 해외 수주 모멘텀을 강화하기 위해 중장기(3년 이상) 집중 정책자문을 제공합니다. EIPP는 IKN 내 산업단지 FDI 유치를 위한 투자유치 전략 수립 및 사전타당성 조사를 수행했습니다.",
+     "head": null,
+     "fields": {
+      "사업위치": "인도네시아 동칼리만탄",
+      "사업기간": "340일 (2024 12.17.~ 2025.11.21.)",
+      "사업내용": "인도네시아 수도 이전(산업단지 개발) 관련 정책자문",
+      "상대정부": "인도네시아 국가개발계획부(BAPPENAS)"
+     }
+    },
+    {
+     "id": 282,
+     "type": "KCN_EIPP",
+     "region": "아시아/태평양",
+     "country": "인도네시아",
+     "sector": "도시개발",
+     "text": "아시아/태평양 / 인도네시아 분야 : 도시개발",
+     "url": "https://www.kindkorea.or.kr/project/KCN_EIPP/detail/282",
+     "name": "동칼리만탄 탄소중립(RE100) 산업단지 개발을 위한 예비타당성조사",
+     "stage": "개발단계",
+     "overview": "2023/24 인도네시아 경제혁신파트너십 프로그램(EIPP): 경제혁신파트너십 프로그램(EIPP)은 지식공유프로그램(KSP)의 새로운 비즈니스 모델로, 한국 기업의 해외 수주 모멘텀을 강화하기 위해 중장기(3년 이상) 집중 정책자문을 제공합니다. EIPP는 동칼리만탄 RE100 산업단지 설립을 위한 예비타당성 평가를 수행했습니다.",
+     "head": null,
+     "fields": {
+      "사업위치": "인도네시아 동칼리만탄",
+      "사업기간": "300일 (2023.12.13.~2024.10.07.)",
+      "사업내용": "인도네시아 수도 이전(RE100 산업단지 개발) 관련 정책자문",
+      "상대정부": "인도네시아 국가개발계획부(BAPPENAS)"
+     }
+    },
+    {
+     "id": 281,
+     "type": "KCN_EIPP",
+     "region": "아시아/태평양",
+     "country": "인도네시아",
+     "sector": "도시개발",
+     "text": "아시아/태평양 / 인도네시아 분야 : 도시개발",
+     "url": "https://www.kindkorea.or.kr/project/KCN_EIPP/detail/281",
+     "name": "신수도 인근 Bulumimung 산업단지 지역 마스터플랜 및 스마트 산업단지 계획 수립",
+     "stage": "개발단계",
+     "overview": "2022/23 인도네시아 경제혁신파트너십 프로그램(EIPP): 경제혁신파트너십 프로그램(EIPP)은 지식공유프로그램(KSP)의 새로운 비즈니스 모델로, 한국 기업의 해외 수주 모멘텀을 강화하기 위해 중장기(3년 이상) 집중 정책자문을 제공합니다. 산업 개발 지원을 위해 불루미눙 산업단지의 마스터플랜을 자문하였습니다.",
+     "head": null,
+     "fields": {
+      "사업위치": "인도네시아 동칼리만탄",
+      "사업기간": "240일 (2023.02.28. ~ 2023.10.25.)",
+      "사업내용": "인도네시아 수도 이전(스마트 산업단지 개발) 관련 정책자문",
+      "상대정부": "인도네시아 국가개발계획부(BAPPENAS)"
+     }
+    },
+    {
+     "id": 280,
+     "type": "KCN_EIPP",
+     "region": "아시아/태평양",
+     "country": "인도네시아",
+     "sector": "도시개발",
+     "text": "아시아/태평양 / 인도네시아 분야 : 도시개발",
+     "url": "https://www.kindkorea.or.kr/project/KCN_EIPP/detail/280",
+     "name": "신수도 인근 Kariangau 지역 산업단지 건설/운영 예비타당성조사",
+     "stage": "개발단계",
+     "overview": "2022/23 인도네시아 경제혁신파트너십 프로그램(EIPP): 경제혁신파트너십 프로그램(EIPP)은 지식공유프로그램(KSP)의 새로운 비즈니스 모델로, 한국 기업의 해외 수주 모멘텀을 강화하기 위해 중장기(3년 이상) 집중 정책자문을 제공합니다. IKN 인접 카리앙가우 산업단지의 개발·운영 사전타당성 조사를 실시했습니다.",
+     "head": null,
+     "fields": {
+      "사업위치": "인도네시아 동칼리만탄",
+      "사업기간": "240일 (2023.2.28.~2023.10.25)",
+      "사업내용": "인도네시아 수도 이전(산업단지 개발) 관련 정책자문",
+      "상대정부": "인도네시아 국가개발계획부(BAPPENAS)"
+     }
+    },
+    {
+     "id": 279,
+     "type": "KCN_EIPP",
+     "region": "아시아/태평양",
+     "country": "인도네시아",
+     "sector": "신재생",
+     "text": "아시아/태평양 / 인도네시아 분야 : 신재생",
+     "url": "https://www.kindkorea.or.kr/project/KCN_EIPP/detail/279",
+     "name": "신수도 지속가능한 녹색성장 및 숲도시 개발 계획 수립",
+     "stage": "개발단계",
+     "overview": "2021/22 인도네시아 경제혁신파트너십 프로그램(EIPP): 경제혁신파트너십 프로그램(EIPP)은 지식공유프로그램(KSP)의 새로운 비즈니스 모델로, 한국 기업의 해외 수주 모멘텀을 강화하기 위해 중장기(3년 이상) 집중 정책자문을 제공합니다. EIPP는 '숲 도시 녹색 개발' 컨셉을 기반으로 IKN의 지속가능·녹색 개발 프레임워크 설계를 지원했습니다.",
+     "head": null,
+     "fields": {
+      "사업위치": "인도네시아 동칼리만탄",
+      "사업기간": "300일 (2022.01.12. ~ 2022.11.07.)",
+      "사업내용": "인도네시아 수도 이전(녹색 개발) 관련 정책자문",
+      "상대정부": "인도네시아 국가개발계획부(BAPPENAS)"
+     }
+    },
+    {
+     "id": 278,
+     "type": "KCN_EIPP",
+     "region": "아시아/태평양",
+     "country": "인도네시아",
+     "sector": "도시개발",
+     "text": "아시아/태평양 / 인도네시아 분야 : 도시개발",
+     "url": "https://www.kindkorea.or.kr/project/KCN_EIPP/detail/278",
+     "name": "신수도 개발계획 2차- 토지 확보, 활용 및 실행관리조직(PMO) 운영",
+     "stage": "개발단계",
+     "overview": "2021/22 인도네시아 경제혁신파트너십 프로그램(EIPP): 경제혁신파트너십 프로그램(EIPP)은 지식공유프로그램(KSP)의 새로운 비즈니스 모델로, 한국 기업의 해외 수주 모멘텀을 강화하기 위해 중장기(3년 이상) 집중 정책자문을 제공합니다. EIPP는 IKN 개발을 위한 토지취득 및 PMO 설립·운영에 대한 자문 서비스를 제공했습니다.",
+     "head": null,
+     "fields": {
+      "사업위치": "인도네시아 동칼리만탄",
+      "사업기간": "300일 (2022.01.12. ~ 2022.11.07.)",
+      "사업내용": "인도네시아 수도 이전(PMO 운영) 관련 정책자문",
+      "상대정부": "인도네시아 국가개발계획부(BAPPENAS)"
+     }
+    }
+   ],
+   "url": "https://www.kindkorea.or.kr/project?businessType=KCN_EIPP"
+  }
+ },
+ "failed": [],
+ "verdict": 0
+}

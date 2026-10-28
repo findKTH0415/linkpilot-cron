@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-label="LinkPilot">
+  <title>LinkPilot</title>
+  <circle cx="512" cy="512" r="237" fill="none" stroke="#101A22" stroke-width="62"/>
+  <polygon points="810,512 749,546 700,512 749,478" fill="#101A22"/>
+  <polygon points="512,810 478,749 512,700 546,749" fill="#101A22"/>
+  <polygon points="214,512 275,478 324,512 275,546" fill="#101A22"/>
+  <polygon points="512,214 546,275 512,324 478,275" fill="#101A22"/>
+  <polygon points="545.09,478.91 373.12,473.53 550.47,650.88" fill="#3F7A16"/>
+  <polygon points="717.06,306.94 545.09,478.91 550.47,650.88" fill="#74B41C"/>
+  <polygon points="717.06,306.94 373.12,473.53 545.09,478.91" fill="#A9DC1E"/>
+</svg>

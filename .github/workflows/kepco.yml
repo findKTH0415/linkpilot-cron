@@ -1,0 +1,109 @@
+name: 한전 계통 여유용량 조회
+
+on:
+  workflow_dispatch:
+    inputs:
+      months:
+        description: "월별 시계열 길이 (기본 24)"
+        required: false
+        default: "24"
+      region:
+        description: "시군구 단위로 볼 지역 「시도|시군구」 (비우면 KEPCO_SITE 시크릿). 지번은 넣지 않는다 — 공개 저장소다"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: kepco-fetch
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+
+      - name: 인증키 확인
+        env:
+          KEPCO_API_KEY: ${{ secrets.KEPCO_API_KEY }}
+        run: |
+          if [ -z "$KEPCO_API_KEY" ]; then
+            echo "::error::KEPCO_API_KEY 시크릿이 없습니다. Settings → Secrets and variables → Actions 에서 등록하십시오."
+            exit 1
+          fi
+          echo "인증키 길이 ${#KEPCO_API_KEY}자"
+
+      - name: 수집 실행
+        env:
+          KEPCO_API_KEY: ${{ secrets.KEPCO_API_KEY }}
+          KEPCO_SITE: ${{ secrets.KEPCO_SITE }}
+          KEPCO_MONTHS: ${{ github.event.inputs.months || '24' }}
+          KEPCO_REGION: ${{ github.event.inputs.region || '' }}
+        run: node scripts/kepco-fetch.mjs
+
+      - name: 결과 요약
+        if: always()
+        run: |
+          if [ -f data/kepco/manifest.json ]; then
+            echo '### 한전 계통 수집 결과' >> $GITHUB_STEP_SUMMARY
+            echo '```json' >> $GITHUB_STEP_SUMMARY
+            cat data/kepco/manifest.json >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+
+      # ★★★ **결과 커밋은 «기본 가지에서만» 돈다** 〈2026-09-24 · D-213 이음 · §12-69〉.
+      #   작업 가지에서 손으로 걸면 봇 커밋이 그 가지에 실려 **열린 PR 의 머리가 움직이고**
+      #   새로 선 검사가 사람 손을 기다리는 상태가 된다. 가지에서 돈 결과는 아래 아티팩트가 받는다.
+      - name: 결과 커밋
+        if: always()
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -u
+          if [ -z "${DEFAULT_BRANCH:-}" ]; then
+            echo "::warning::기본 가지 이름을 못 받았다 — 커밋하지 않는다. 결과는 아래 아티팩트에 있다"
+            exit 0
+          fi
+          if [ "$REF_NAME" != "$DEFAULT_BRANCH" ]; then
+            echo "가지 '$REF_NAME' 에서 돌았다 — **결과를 커밋하지 않는다.**"
+            echo "  까닭: 열려 있는 PR 의 머리가 움직이면 검사가 다시 서고, 봇이 민 커밋은"
+            echo "        사람이 눌러 줘야 도는 상태(action_required)가 된다."
+            echo "  받을 곳: 아래 «산출물 보관» 아티팩트 (kepco-data) — 요약과 자료가 그대로 들어 있다."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/kepco
+          if git diff --staged --quiet; then
+            echo "변경 없음 — 커밋하지 않습니다"
+          else
+            git commit -m "한전 계통 자료 갱신 ($(date -u +%Y-%m-%d))"
+            git push
+          fi
+
+      - name: 산출물 보관 (시군구 단위)
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: kepco-data
+          path: data/kepco
+          retention-days: 90
+          if-no-files-found: warn
+
+      - name: 산출물 보관 (지번 단위 · 비공개)
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: kepco-site-private
+          path: private/kepco
+          retention-days: 90
+          if-no-files-found: ignore

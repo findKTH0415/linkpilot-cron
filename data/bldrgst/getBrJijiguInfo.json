@@ -1,0 +1,38 @@
+{
+  "response": {
+    "header": {
+      "resultCode": "00",
+      "resultMsg": "NORMAL SERVICE"
+    },
+    "body": {
+      "items": {
+        "item": [
+          {
+            "rnum": 1,
+            "platPlc": "경기도 성남시 분당구 금곡동 305-2번지",
+            "sigunguCd": "41135",
+            "bjdongCd": "11100",
+            "platGbCd": "0",
+            "bun": "0305",
+            "ji": "0002",
+            "mgmBldrgstPk": 10891100197324,
+            "newPlatPlc": "경기도 성남시 분당구 대왕판교로 155 (금곡동)",
+            "splotNm": " ",
+            "block": " ",
+            "lot": " ",
+            "jijiguGbCd": "1",
+            "jijiguGbCdNm": "용도지역코드",
+            "jijiguCd": "1310",
+            "jijiguCdNm": "보전녹지지역",
+            "reprYn": "1",
+            "etcJijigu": "보전녹지지역",
+            "crtnDay": "20220909"
+          }
+        ]
+      },
+      "numOfRows": "100",
+      "pageNo": "1",
+      "totalCount": "1"
+    }
+  }
+}

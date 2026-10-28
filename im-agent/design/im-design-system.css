@@ -1,0 +1,581 @@
+/* im-design-system.css — LinkPilot IM 디자인 시스템
+ *
+ * ★★★ 이 파일은 **손으로 고치지 않는다.** `im-agent/design/css.js` 가
+ *   `tokens.js`·`themes.js`·`layouts.js` 를 읽어 만든다.
+ *   값을 바꾸려면 그 세 곳을 고치고 `npm run im:layouts` 를 다시 돌린다.
+ *   여기를 직접 고치면 다음 생성 때 조용히 지워진다.
+ *
+ * 기본 테마: Institutional (기관투자자 / PF / Credit) · 지면 A4 210×297mm
+ */
+
+:root {
+  --im-primary: #10233C;
+  --im-primary-mid: #35506F;
+  --im-accent: #A6813C;
+  --im-accent-light: #C9A15A;
+  --im-on-primary: #F3E3C4;
+  --im-on-primary-sub: #9FB0C4;
+  --im-surface-alt: #F7F5F0;
+  --im-body: #2E3949;
+  --im-body-2: #3C4759;
+  --im-muted: #6E7A8C;
+  --im-faint: #8A8578;
+  --im-faint-2: #A09A8C;
+  --im-rule-strong: #D8D2C6;
+  --im-rule-weak: #E4DFD4;
+  --im-surface: #FFFFFF;
+  --im-track: #EDE9E0;
+  --im-negative: #B4453A;
+  --im-brand-red: #C0392B;
+  --im-serif: 'Noto Serif KR', 'Noto Serif CJK KR', serif;
+  --im-sans: 'Noto Sans KR', 'Noto Sans CJK KR', sans-serif;
+  --im-h1: 48px;
+  --im-h2: 26px;
+  --im-h2-small: 22px;
+  --im-h3: 15.5px;
+  --im-text: 12.5px;
+  --im-table: 11.5px;
+  --im-table-head: 11px;
+  --im-caption: 10.5px;
+  --im-micro: 8.5px;
+  --im-page-w: 210mm;
+  --im-page-h: 297mm;
+  --im-page-margin: 17mm;
+}
+
+[data-im-theme="global_ib"] {
+  --im-primary: #0B1B2B;
+  --im-primary-mid: #2C4257;
+  --im-accent: #B08D57;
+  --im-accent-light: #CFAE7B;
+  --im-on-primary: #EFE6D3;
+  --im-on-primary-sub: #9AAABB;
+  --im-surface-alt: #F6F4EF;
+  --im-body: #2E3949;
+  --im-body-2: #3C4759;
+  --im-muted: #6E7A8C;
+  --im-faint: #8A8578;
+  --im-faint-2: #A09A8C;
+  --im-rule-strong: #D8D2C6;
+  --im-rule-weak: #E4DFD4;
+  --im-surface: #FFFFFF;
+  --im-track: #EDE9E0;
+  --im-negative: #B4453A;
+  --im-brand-red: #C0392B;
+  --im-serif: 'Noto Serif KR', 'Noto Serif CJK KR', serif;
+  --im-sans: 'Noto Sans KR', 'Noto Sans CJK KR', sans-serif;
+  --im-h1: 48px;
+  --im-h2: 26px;
+  --im-h2-small: 22px;
+  --im-h3: 15.5px;
+  --im-text: 12.5px;
+  --im-table: 11.5px;
+  --im-table-head: 11px;
+  --im-caption: 10.5px;
+  --im-micro: 8.5px;
+  --im-page-w: 210mm;
+  --im-page-h: 297mm;
+  --im-page-margin: 17mm;
+}
+
+[data-im-theme="private_equity"] {
+  --im-primary: #14213D;
+  --im-primary-mid: #3A4E75;
+  --im-accent: #C9A227;
+  --im-accent-light: #E0BE55;
+  --im-on-primary: #F5EFDD;
+  --im-on-primary-sub: #A3AEC6;
+  --im-surface-alt: #F6F5F1;
+  --im-body: #2E3949;
+  --im-body-2: #3C4759;
+  --im-muted: #6E7A8C;
+  --im-faint: #8A8578;
+  --im-faint-2: #A09A8C;
+  --im-rule-strong: #D8D2C6;
+  --im-rule-weak: #E4DFD4;
+  --im-surface: #FFFFFF;
+  --im-track: #EDE9E0;
+  --im-negative: #B4453A;
+  --im-brand-red: #C0392B;
+  --im-serif: 'Noto Serif KR', 'Noto Serif CJK KR', serif;
+  --im-sans: 'Noto Sans KR', 'Noto Sans CJK KR', sans-serif;
+  --im-h1: 48px;
+  --im-h2: 26px;
+  --im-h2-small: 22px;
+  --im-h3: 15.5px;
+  --im-text: 12.5px;
+  --im-table: 11.5px;
+  --im-table-head: 11px;
+  --im-caption: 10.5px;
+  --im-micro: 8.5px;
+  --im-page-w: 210mm;
+  --im-page-h: 297mm;
+  --im-page-margin: 17mm;
+}
+
+[data-im-theme="real_estate"] {
+  --im-primary: #12314B;
+  --im-primary-mid: #3E5C77;
+  --im-accent: #A6813C;
+  --im-accent-light: #C9A15A;
+  --im-on-primary: #F3E3C4;
+  --im-on-primary-sub: #A2B3C4;
+  --im-surface-alt: #F7F5F0;
+  --im-body: #2E3949;
+  --im-body-2: #3C4759;
+  --im-muted: #6E7A8C;
+  --im-faint: #8A8578;
+  --im-faint-2: #A09A8C;
+  --im-rule-strong: #D8D2C6;
+  --im-rule-weak: #E4DFD4;
+  --im-surface: #FFFFFF;
+  --im-track: #EDE9E0;
+  --im-negative: #B4453A;
+  --im-brand-red: #C0392B;
+  --im-serif: 'Noto Serif KR', 'Noto Serif CJK KR', serif;
+  --im-sans: 'Noto Sans KR', 'Noto Sans CJK KR', sans-serif;
+  --im-h1: 48px;
+  --im-h2: 26px;
+  --im-h2-small: 22px;
+  --im-h3: 15.5px;
+  --im-text: 12.5px;
+  --im-table: 11.5px;
+  --im-table-head: 11px;
+  --im-caption: 10.5px;
+  --im-micro: 8.5px;
+  --im-page-w: 210mm;
+  --im-page-h: 297mm;
+  --im-page-margin: 17mm;
+}
+
+[data-im-theme="corporate"] {
+  --im-primary: #17457A;
+  --im-primary-mid: #4571A0;
+  --im-accent: #8C6D3F;
+  --im-accent-light: #B08F5E;
+  --im-on-primary: #F0F4F8;
+  --im-on-primary-sub: #A9BDD2;
+  --im-surface-alt: #F5F7FA;
+  --im-body: #2E3949;
+  --im-body-2: #3C4759;
+  --im-muted: #6E7A8C;
+  --im-faint: #8A8578;
+  --im-faint-2: #A09A8C;
+  --im-rule-strong: #D8D2C6;
+  --im-rule-weak: #E4DFD4;
+  --im-surface: #FFFFFF;
+  --im-track: #EDE9E0;
+  --im-negative: #B4453A;
+  --im-brand-red: #C0392B;
+  --im-serif: 'Noto Serif KR', 'Noto Serif CJK KR', serif;
+  --im-sans: 'Noto Sans KR', 'Noto Sans CJK KR', sans-serif;
+  --im-h1: 48px;
+  --im-h2: 26px;
+  --im-h2-small: 22px;
+  --im-h3: 15.5px;
+  --im-text: 12.5px;
+  --im-table: 11.5px;
+  --im-table-head: 11px;
+  --im-caption: 10.5px;
+  --im-micro: 8.5px;
+  --im-page-w: 210mm;
+  --im-page-h: 297mm;
+  --im-page-margin: 17mm;
+}
+
+[data-im-theme="premium"] {
+  --im-primary: #14100E;
+  --im-primary-mid: #3B322C;
+  --im-accent: #C9A15A;
+  --im-accent-light: #DFC38C;
+  --im-on-primary: #F3E7D3;
+  --im-on-primary-sub: #B8AA96;
+  --im-surface-alt: #F8F5F0;
+  --im-body: #2E3949;
+  --im-body-2: #3C4759;
+  --im-muted: #6E7A8C;
+  --im-faint: #8A8578;
+  --im-faint-2: #A09A8C;
+  --im-rule-strong: #D8D2C6;
+  --im-rule-weak: #E4DFD4;
+  --im-surface: #FFFFFF;
+  --im-track: #EDE9E0;
+  --im-negative: #B4453A;
+  --im-brand-red: #C0392B;
+  --im-serif: 'Noto Serif KR', 'Noto Serif CJK KR', serif;
+  --im-sans: 'Noto Sans KR', 'Noto Sans CJK KR', sans-serif;
+  --im-h1: 48px;
+  --im-h2: 26px;
+  --im-h2-small: 22px;
+  --im-h3: 15.5px;
+  --im-text: 12.5px;
+  --im-table: 11.5px;
+  --im-table-head: 11px;
+  --im-caption: 10.5px;
+  --im-micro: 8.5px;
+  --im-page-w: 210mm;
+  --im-page-h: 297mm;
+  --im-page-margin: 17mm;
+}
+
+[data-im-theme="minimal"] {
+  --im-primary: #111827;
+  --im-primary-mid: #4B5563;
+  --im-accent: #6B7280;
+  --im-accent-light: #9CA3AF;
+  --im-on-primary: #F9FAFB;
+  --im-on-primary-sub: #C3C9D2;
+  --im-surface-alt: #F7F7F8;
+  --im-body: #2E3949;
+  --im-body-2: #3C4759;
+  --im-muted: #6E7A8C;
+  --im-faint: #8A8578;
+  --im-faint-2: #A09A8C;
+  --im-rule-strong: #D8D2C6;
+  --im-rule-weak: #E4DFD4;
+  --im-surface: #FFFFFF;
+  --im-track: #EDE9E0;
+  --im-negative: #B4453A;
+  --im-brand-red: #C0392B;
+  --im-serif: 'Noto Serif KR', 'Noto Serif CJK KR', serif;
+  --im-sans: 'Noto Sans KR', 'Noto Sans CJK KR', sans-serif;
+  --im-h1: 48px;
+  --im-h2: 26px;
+  --im-h2-small: 22px;
+  --im-h3: 15.5px;
+  --im-text: 12.5px;
+  --im-table: 11.5px;
+  --im-table-head: 11px;
+  --im-caption: 10.5px;
+  --im-micro: 8.5px;
+  --im-page-w: 210mm;
+  --im-page-h: 297mm;
+  --im-page-margin: 17mm;
+}
+
+[data-im-theme="technology"] {
+  --im-primary: #0E1A2B;
+  --im-primary-mid: #1F7A8C;
+  --im-accent: #2FA8B8;
+  --im-accent-light: #67C6D2;
+  --im-on-primary: #E8F4F6;
+  --im-on-primary-sub: #8FB3BD;
+  --im-surface-alt: #F2F7F8;
+  --im-body: #2E3949;
+  --im-body-2: #3C4759;
+  --im-muted: #6E7A8C;
+  --im-faint: #8A8578;
+  --im-faint-2: #A09A8C;
+  --im-rule-strong: #D8D2C6;
+  --im-rule-weak: #E4DFD4;
+  --im-surface: #FFFFFF;
+  --im-track: #EDE9E0;
+  --im-negative: #B4453A;
+  --im-brand-red: #C0392B;
+  --im-serif: 'Noto Serif KR', 'Noto Serif CJK KR', serif;
+  --im-sans: 'Noto Sans KR', 'Noto Sans CJK KR', sans-serif;
+  --im-h1: 48px;
+  --im-h2: 26px;
+  --im-h2-small: 22px;
+  --im-h3: 15.5px;
+  --im-text: 12.5px;
+  --im-table: 11.5px;
+  --im-table-head: 11px;
+  --im-caption: 10.5px;
+  --im-micro: 8.5px;
+  --im-page-w: 210mm;
+  --im-page-h: 297mm;
+  --im-page-margin: 17mm;
+}
+
+[data-im-theme="renewable"] {
+  --im-primary: #0F3D2E;
+  --im-primary-mid: #2F6A52;
+  --im-accent: #7FA650;
+  --im-accent-light: #A7C579;
+  --im-on-primary: #EAF3EC;
+  --im-on-primary-sub: #9BB8A8;
+  --im-surface-alt: #F3F7F3;
+  --im-body: #2E3949;
+  --im-body-2: #3C4759;
+  --im-muted: #6E7A8C;
+  --im-faint: #8A8578;
+  --im-faint-2: #A09A8C;
+  --im-rule-strong: #D8D2C6;
+  --im-rule-weak: #E4DFD4;
+  --im-surface: #FFFFFF;
+  --im-track: #EDE9E0;
+  --im-negative: #B4453A;
+  --im-brand-red: #C0392B;
+  --im-serif: 'Noto Serif KR', 'Noto Serif CJK KR', serif;
+  --im-sans: 'Noto Sans KR', 'Noto Sans CJK KR', sans-serif;
+  --im-h1: 48px;
+  --im-h2: 26px;
+  --im-h2-small: 22px;
+  --im-h3: 15.5px;
+  --im-text: 12.5px;
+  --im-table: 11.5px;
+  --im-table-head: 11px;
+  --im-caption: 10.5px;
+  --im-micro: 8.5px;
+  --im-page-w: 210mm;
+  --im-page-h: 297mm;
+  --im-page-margin: 17mm;
+}
+
+[data-im-theme="infrastructure"] {
+  --im-primary: #263238;
+  --im-primary-mid: #4F6470;
+  --im-accent: #C07C2C;
+  --im-accent-light: #D9A052;
+  --im-on-primary: #F0F2F3;
+  --im-on-primary-sub: #A8B4BB;
+  --im-surface-alt: #F5F6F7;
+  --im-body: #2E3949;
+  --im-body-2: #3C4759;
+  --im-muted: #6E7A8C;
+  --im-faint: #8A8578;
+  --im-faint-2: #A09A8C;
+  --im-rule-strong: #D8D2C6;
+  --im-rule-weak: #E4DFD4;
+  --im-surface: #FFFFFF;
+  --im-track: #EDE9E0;
+  --im-negative: #B4453A;
+  --im-brand-red: #C0392B;
+  --im-serif: 'Noto Serif KR', 'Noto Serif CJK KR', serif;
+  --im-sans: 'Noto Sans KR', 'Noto Sans CJK KR', sans-serif;
+  --im-h1: 48px;
+  --im-h2: 26px;
+  --im-h2-small: 22px;
+  --im-h3: 15.5px;
+  --im-text: 12.5px;
+  --im-table: 11.5px;
+  --im-table-head: 11px;
+  --im-caption: 10.5px;
+  --im-micro: 8.5px;
+  --im-page-w: 210mm;
+  --im-page-h: 297mm;
+  --im-page-margin: 17mm;
+}
+
+[data-im-theme="luxury"] {
+  --im-primary: #1B1410;
+  --im-primary-mid: #4A3B31;
+  --im-accent: #BFA06A;
+  --im-accent-light: #D8C098;
+  --im-on-primary: #F5EADA;
+  --im-on-primary-sub: #BCA98F;
+  --im-surface-alt: #F9F6F1;
+  --im-body: #2E3949;
+  --im-body-2: #3C4759;
+  --im-muted: #6E7A8C;
+  --im-faint: #8A8578;
+  --im-faint-2: #A09A8C;
+  --im-rule-strong: #D8D2C6;
+  --im-rule-weak: #E4DFD4;
+  --im-surface: #FFFFFF;
+  --im-track: #EDE9E0;
+  --im-negative: #B4453A;
+  --im-brand-red: #C0392B;
+  --im-serif: 'Noto Serif KR', 'Noto Serif CJK KR', serif;
+  --im-sans: 'Noto Sans KR', 'Noto Sans CJK KR', sans-serif;
+  --im-h1: 48px;
+  --im-h2: 26px;
+  --im-h2-small: 22px;
+  --im-h3: 15.5px;
+  --im-text: 12.5px;
+  --im-table: 11.5px;
+  --im-table-head: 11px;
+  --im-caption: 10.5px;
+  --im-micro: 8.5px;
+  --im-page-w: 210mm;
+  --im-page-h: 297mm;
+  --im-page-margin: 17mm;
+}
+
+[data-im-theme="government"] {
+  --im-primary: #12365E;
+  --im-primary-mid: #41618A;
+  --im-accent: #6E7A8C;
+  --im-accent-light: #93A0B0;
+  --im-on-primary: #EEF3F8;
+  --im-on-primary-sub: #A7B8CB;
+  --im-surface-alt: #F4F6F9;
+  --im-body: #2E3949;
+  --im-body-2: #3C4759;
+  --im-muted: #6E7A8C;
+  --im-faint: #8A8578;
+  --im-faint-2: #A09A8C;
+  --im-rule-strong: #D8D2C6;
+  --im-rule-weak: #E4DFD4;
+  --im-surface: #FFFFFF;
+  --im-track: #EDE9E0;
+  --im-negative: #B4453A;
+  --im-brand-red: #C0392B;
+  --im-serif: 'Noto Serif KR', 'Noto Serif CJK KR', serif;
+  --im-sans: 'Noto Sans KR', 'Noto Sans CJK KR', sans-serif;
+  --im-h1: 48px;
+  --im-h2: 26px;
+  --im-h2-small: 22px;
+  --im-h3: 15.5px;
+  --im-text: 12.5px;
+  --im-table: 11.5px;
+  --im-table-head: 11px;
+  --im-caption: 10.5px;
+  --im-micro: 8.5px;
+  --im-page-w: 210mm;
+  --im-page-h: 297mm;
+  --im-page-margin: 17mm;
+}
+
+[data-im-theme="custom"] {
+  --im-primary: #10233C;
+  --im-primary-mid: #35506F;
+  --im-accent: #A6813C;
+  --im-accent-light: #C9A15A;
+  --im-on-primary: #F3E3C4;
+  --im-on-primary-sub: #9FB0C4;
+  --im-surface-alt: #F7F5F0;
+  --im-body: #2E3949;
+  --im-body-2: #3C4759;
+  --im-muted: #6E7A8C;
+  --im-faint: #8A8578;
+  --im-faint-2: #A09A8C;
+  --im-rule-strong: #D8D2C6;
+  --im-rule-weak: #E4DFD4;
+  --im-surface: #FFFFFF;
+  --im-track: #EDE9E0;
+  --im-negative: #B4453A;
+  --im-brand-red: #C0392B;
+  --im-serif: 'Noto Serif KR', 'Noto Serif CJK KR', serif;
+  --im-sans: 'Noto Sans KR', 'Noto Sans CJK KR', sans-serif;
+  --im-h1: 48px;
+  --im-h2: 26px;
+  --im-h2-small: 22px;
+  --im-h3: 15.5px;
+  --im-text: 12.5px;
+  --im-table: 11.5px;
+  --im-table-head: 11px;
+  --im-caption: 10.5px;
+  --im-micro: 8.5px;
+  --im-page-w: 210mm;
+  --im-page-h: 297mm;
+  --im-page-margin: 17mm;
+}
+
+/* ── 지면 ───────────────────────────────────────────────── */
+@page { size: A4; margin: 17mm; }
+
+.im-page {
+  width: var(--im-page-w);
+  min-height: var(--im-page-h);
+  padding: var(--im-page-margin);
+  background: var(--im-surface);
+  color: var(--im-body);
+  font-family: var(--im-sans);
+  font-size: var(--im-text);
+  line-height: 1.75;
+  box-sizing: border-box;
+}
+
+/* ★ 없으면 네이비 박스가 흰색으로 인쇄된다 (rules.json D6-print-color) */
+@media print {
+  .im-page, .im-navybox, .im-creambox, .im-kpi, .im-table th {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .im-chapter { break-before: page; break-inside: avoid; }
+  .im-table, .im-kpi, .im-navybox, .im-creambox, .im-figure { break-inside: avoid; }
+}
+
+/* ── 활자 ───────────────────────────────────────────────── */
+.im-h1 {
+  font-family: var(--im-serif); font-weight: 500;
+  font-size: var(--im-h1); line-height: 1.08; letter-spacing: -.02em;
+  color: var(--im-primary); margin: 0; text-wrap: balance;
+}
+.im-h2 {
+  font-family: var(--im-serif); font-weight: 500;
+  font-size: var(--im-h2); line-height: 1.2; letter-spacing: -.01em;
+  color: var(--im-primary); margin: 10px 0 0;
+}
+.im-h3 {
+  font-family: var(--im-serif); font-weight: 500;
+  font-size: var(--im-h3); color: var(--im-primary); margin: 0 0 8px;
+}
+.im-chapter-label {
+  font-family: var(--im-serif); font-size: 10px; font-weight: 600;
+  letter-spacing: .2em; text-transform: uppercase; color: var(--im-accent);
+}
+.im-sub { margin-top: 5px; font-size: 13px; color: var(--im-muted); }
+.im-text { font-size: var(--im-text); line-height: 1.75; color: var(--im-body); text-wrap: pretty; }
+.im-caption { margin: 0 0 14px; font-size: 9.5px; line-height: 1.65; color: var(--im-faint); }
+.im-micro { font-size: var(--im-micro); color: var(--im-faint-2); }
+
+/* ★ 숫자는 자릿수를 맞춘다 — 표에서 세로가 안 맞으면 비교가 안 된다 */
+.im-num, .im-table td, .im-kpi-value { font-variant-numeric: tabular-nums; }
+/* ★ 음수는 △ 로 적는다 (tokens.js eok) — 색까지 갈라 준다 */
+.im-neg { color: var(--im-negative); }
+
+/* ── 상자 ───────────────────────────────────────────────── */
+.im-navybox { background: var(--im-primary); padding: 18px 20px; }
+.im-navybox-label {
+  font-size: 11px; font-weight: 600; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--im-accent-light);
+}
+.im-navybox-value { font-family: var(--im-serif); font-size: 29px; color: var(--im-on-primary); }
+.im-navybox-sub { font-size: 11.5px; color: var(--im-on-primary-sub); }
+.im-creambox { background: var(--im-surface-alt); padding: 16px 18px; }
+.im-quote-gold { border-left: 2px solid var(--im-accent); padding: 2px 0 2px 14px; }
+.im-quote-red { border-left: 2px solid var(--im-negative); padding: 2px 0 2px 14px; }
+
+/* ── 표 ─────────────────────────────────────────────────── */
+.im-table { width: 100%; border-collapse: collapse; font-size: var(--im-table); }
+.im-table th {
+  font-size: var(--im-table-head); font-weight: 600; text-align: left;
+  color: var(--im-primary); background: var(--im-surface-alt);
+  border-top: 1px solid var(--im-rule-strong);
+  border-bottom: 1px solid var(--im-rule-strong);
+  padding: 7px 9px;
+}
+.im-table td { padding: 6px 9px; border-bottom: 1px solid var(--im-rule-weak); }
+.im-table td.im-r, .im-table th.im-r { text-align: right; }
+/* ★ 셀은 한 줄 — 접히면 행 높이가 들쭉날쭉해 표가 안 읽힌다 (CLAUDE.md §6-3 ⑤) */
+.im-table td, .im-table th { white-space: nowrap; }
+.im-table-wrap { overflow-x: auto; }
+
+/* ── KPI ────────────────────────────────────────────────── */
+.im-kpi {
+  border-top: 2px solid var(--im-primary);
+  background: var(--im-surface-alt); padding: 12px 14px;
+}
+.im-kpi-label {
+  font-size: 9.5px; font-weight: 600; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--im-accent);
+}
+.im-kpi-value {
+  font-family: var(--im-serif); font-size: 24px; line-height: 1.15;
+  color: var(--im-primary);
+}
+.im-kpi-sub { font-size: 10px; color: var(--im-muted); }
+
+/* ── 레이아웃 12종 ──────────────────────────────────────── */
+.im-layout { display: grid; gap: 10px; }
+.im-L01 { grid-template-columns:1fr;grid-template-rows:1fr auto; }
+.im-L02 { grid-template-columns:1fr 1fr; }
+.im-L03 { grid-template-columns:1fr 1fr 1fr; }
+.im-L04 { grid-template-columns:repeat(2,1fr);grid-auto-rows:min-content; }
+.im-L05 { grid-template-columns:1fr;grid-template-rows:1fr auto; }
+.im-L06 { grid-template-columns:1fr; }
+.im-L07 { grid-template-columns:1.4fr 1fr; }
+.im-L08 { grid-template-columns:1fr; }
+.im-L09 { grid-template-columns:1fr; }
+.im-L10 { grid-template-columns:1fr 1.1fr; }
+.im-L11 { grid-template-columns:repeat(3,1fr);grid-auto-rows:1fr; }
+.im-L12 { grid-template-columns:1fr; }
+
+/* ── 차트 트랙 ──────────────────────────────────────────── */
+.im-track { background: var(--im-track); height: 8px; }
+.im-bar { background: var(--im-primary); height: 8px; }
+.im-bar-2 { background: var(--im-primary-mid); }
+.im-bar-accent { background: var(--im-accent-light); }

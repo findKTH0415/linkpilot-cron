@@ -1,0 +1,46 @@
+{
+ "ok": true,
+ "cached": false,
+ "value": {
+  "year": 2026,
+  "pricePerSqm": 170700,
+  "noticeDate": "2026-04-30"
+ },
+ "history": [
+  {
+   "year": 2026,
+   "pricePerSqm": 170700,
+   "noticeDate": "2026-04-30"
+  },
+  {
+   "year": 2025,
+   "pricePerSqm": 168600,
+   "noticeDate": "2025-04-30"
+  },
+  {
+   "year": 2025,
+   "pricePerSqm": 168600,
+   "noticeDate": "2025-04-30"
+  },
+  {
+   "year": 2024,
+   "pricePerSqm": 167100,
+   "noticeDate": "2024-04-30"
+  },
+  {
+   "year": 2024,
+   "pricePerSqm": 167100,
+   "noticeDate": "2024-04-30"
+  },
+  {
+   "year": 2024,
+   "pricePerSqm": 167100,
+   "noticeDate": "2024-04-30"
+  },
+  {
+   "year": 2023,
+   "pricePerSqm": 167900,
+   "noticeDate": "2023-04-28"
+  }
+ ]
+}

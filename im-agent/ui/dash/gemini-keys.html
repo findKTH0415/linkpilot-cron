@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gemini 열쇠 여덟</title>
+<style>
+:root{--bg:#EEF0F4;--card:#fff;--ink:#12161D;--dim:#5A6472;--line:#D9DEE6;
+--ok:#17714F;--wait:#8A6A17;--bad:#C00000;--idle:#7A8394;
+--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0E1218;--card:#161C25;--ink:#E8ECF2;--dim:#9AA5B4;--line:#262F3C;--ok:#5BC79B;--wait:#D9AE4A;--bad:#FF6A6A;--idle:#7B879A}}
+:root[data-theme="dark"]{--bg:#0E1218;--card:#161C25;--ink:#E8ECF2;--dim:#9AA5B4;--line:#262F3C;--ok:#5BC79B;--wait:#D9AE4A;--bad:#FF6A6A;--idle:#7B879A}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.6 -apple-system,BlinkMacSystemFont,"Malgun Gothic","맑은 고딕",Arial,sans-serif}
+.wrap{max-width:900px;margin:0 auto;padding:36px 20px 80px;display:flex;flex-direction:column;gap:22px}
+h1{margin:0;font-size:21px;letter-spacing:-.02em}
+.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.kpi div{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:14px 16px}
+.kpi b{display:block;font:600 30px/1.1 var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.kpi span{font-size:13px;color:var(--dim)}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:4px;font-size:14px}
+th,td{text-align:left;padding:10px 13px;border-bottom:1px solid var(--line)}
+tr:last-child td{border-bottom:0}
+th{font:500 12px/1.4 var(--mono);letter-spacing:.07em;text-transform:uppercase;color:var(--dim);white-space:nowrap}
+.mono{font-family:var(--mono);font-size:13px;white-space:nowrap}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.dim{color:var(--dim);font-size:13px}
+tr.ok td:nth-child(3){color:var(--ok)}
+tr.wait td:nth-child(3){color:var(--wait)}
+tr.bad td:nth-child(3){color:var(--bad)}
+tr.idle td:nth-child(3){color:var(--idle)}
+td.empty{color:var(--dim);text-align:center;padding:26px}
+.alerts{margin:0;padding-left:18px}
+.alerts li.red{color:var(--bad);font-weight:600}
+.alerts li.yellow{color:var(--wait)}
+.fine{margin:0;font-size:13.5px;color:var(--dim)}
+.fine.warn{color:var(--wait)}
+code{font-family:var(--mono);font-size:.92em;background:var(--bg);border:1px solid var(--line);border-radius:2px;padding:1px 5px}
+footer{border-top:1px solid var(--line);padding-top:12px;font:400 12px/1.5 var(--mono);color:var(--dim)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Gemini 열쇠 여덟</h1>
+
+  <div class="kpi">
+    <div><b id="k-active">0</b><span>실제 호출 성공(ACTIVE)</span></div>
+    <div><b id="k-avail">0</b><span>지금 쓸 수 있음</span></div>
+    <div><b id="k-reg">0 / 8</b><span>등록됨</span></div>
+    <div><b id="k-req">0</b><span>누적 요청</span></div>
+    <div><b id="k-rate">—</b><span>성공률</span></div>
+  </div>
+
+  <p class="fine warn"><b>실제 호출로 확인한 값이 아닙니다.</b> 지금까지 쌓인 통계만 보여 줍니다 — 살아 있는지 재려면 <code>npm run gemini:keys</code> 를 돌립니다.</p>
+  <div id="alerts"><ul class="alerts"><li class="red">등록된 Gemini 열쇠가 없습니다 — 스캔본·이미지 PDF 를 한 글자도 못 읽습니다</li></ul></div>
+
+  <div class="scroll">
+    <table>
+      <thead><tr><th>슬롯</th><th>지문</th><th>상태</th><th>요청</th><th>실패</th><th>평균</th><th>마지막</th></tr></thead>
+      <tbody id="body">
+<tr><td colspan="7" class="empty">등록된 열쇠가 없습니다 — <code>GEMINI_API_KEY</code> · <code>GEMINI_API_KEY_2</code> … <code>_8</code> 을 GitHub Secrets 에 넣습니다</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="fine">지문은 <b>열쇠에서 해시로 뽑은 네 글자</b>입니다 — 열쇠 글자가 아닙니다.
+  이 저장소와 배포 로그는 공개라, 끝 네 글자도 남기지 않습니다.</p>
+
+  <footer>구운 시각 2026-08-25T22:01:11+09:00 · 읽은 곳 (없음)</footer>
+</div>
+<script>
+/* ★ 엔진 옆에서 열리면 **살아 있는 값**으로 덮는다. 못 받으면 구운 값 그대로 —
+ *   조용히 빈 화면이 되지 않는다 (CLAUDE.md §8). */
+(function () {
+  var base = (window.LINKPILOT_EMBED && window.LINKPILOT_EMBED.common && window.LINKPILOT_EMBED.common.api) || '';
+  if (!base) return;
+  fetch(base + '/gemini/status', { credentials: 'include' })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (j) {
+      if (!j || !j.keys) return;
+      document.getElementById('k-active').textContent = j.active;
+      document.getElementById('k-avail').textContent = j.availableNow;
+      document.getElementById('k-reg').textContent = j.registered + ' / ' + j.slots;
+      document.getElementById('k-req').textContent = j.totalRequests;
+      document.getElementById('k-rate').textContent = j.successRate == null ? '—' : j.successRate + '%';
+    })
+    .catch(function () { /* 구운 값 그대로 둔다 */ });
+}());
+</script>
+</body>
+</html>

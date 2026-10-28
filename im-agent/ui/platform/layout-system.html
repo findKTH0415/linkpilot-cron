@@ -1,0 +1,990 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>IM 레이아웃 시스템 견본</title>
+<style>
+/* im-design-system.css — LinkPilot IM 디자인 시스템
+ *
+ * ★★★ 이 파일은 **손으로 고치지 않는다.** `im-agent/design/css.js` 가
+ *   `tokens.js`·`themes.js`·`layouts.js` 를 읽어 만든다.
+ *   값을 바꾸려면 그 세 곳을 고치고 `npm run im:layouts` 를 다시 돌린다.
+ *   여기를 직접 고치면 다음 생성 때 조용히 지워진다.
+ *
+ * 기본 테마: Institutional (기관투자자 / PF / Credit) · 지면 A4 210×297mm
+ */
+
+:root {
+  --im-primary: #10233C;
+  --im-primary-mid: #35506F;
+  --im-accent: #A6813C;
+  --im-accent-light: #C9A15A;
+  --im-on-primary: #F3E3C4;
+  --im-on-primary-sub: #9FB0C4;
+  --im-surface-alt: #F7F5F0;
+  --im-body: #2E3949;
+  --im-body-2: #3C4759;
+  --im-muted: #6E7A8C;
+  --im-faint: #8A8578;
+  --im-faint-2: #A09A8C;
+  --im-rule-strong: #D8D2C6;
+  --im-rule-weak: #E4DFD4;
+  --im-surface: #FFFFFF;
+  --im-track: #EDE9E0;
+  --im-negative: #B4453A;
+  --im-brand-red: #C0392B;
+  --im-serif: 'Noto Serif KR', 'Noto Serif CJK KR', serif;
+  --im-sans: 'Noto Sans KR', 'Noto Sans CJK KR', sans-serif;
+  --im-h1: 48px;
+  --im-h2: 26px;
+  --im-h2-small: 22px;
+  --im-h3: 15.5px;
+  --im-text: 12.5px;
+  --im-table: 11.5px;
+  --im-table-head: 11px;
+  --im-caption: 10.5px;
+  --im-micro: 8.5px;
+  --im-page-w: 210mm;
+  --im-page-h: 297mm;
+  --im-page-margin: 17mm;
+}
+
+[data-im-theme="global_ib"] {
+  --im-primary: #0B1B2B;
+  --im-primary-mid: #2C4257;
+  --im-accent: #B08D57;
+  --im-accent-light: #CFAE7B;
+  --im-on-primary: #EFE6D3;
+  --im-on-primary-sub: #9AAABB;
+  --im-surface-alt: #F6F4EF;
+  --im-body: #2E3949;
+  --im-body-2: #3C4759;
+  --im-muted: #6E7A8C;
+  --im-faint: #8A8578;
+  --im-faint-2: #A09A8C;
+  --im-rule-strong: #D8D2C6;
+  --im-rule-weak: #E4DFD4;
+  --im-surface: #FFFFFF;
+  --im-track: #EDE9E0;
+  --im-negative: #B4453A;
+  --im-brand-red: #C0392B;
+  --im-serif: 'Noto Serif KR', 'Noto Serif CJK KR', serif;
+  --im-sans: 'Noto Sans KR', 'Noto Sans CJK KR', sans-serif;
+  --im-h1: 48px;
+  --im-h2: 26px;
+  --im-h2-small: 22px;
+  --im-h3: 15.5px;
+  --im-text: 12.5px;
+  --im-table: 11.5px;
+  --im-table-head: 11px;
+  --im-caption: 10.5px;
+  --im-micro: 8.5px;
+  --im-page-w: 210mm;
+  --im-page-h: 297mm;
+  --im-page-margin: 17mm;
+}
+
+[data-im-theme="private_equity"] {
+  --im-primary: #14213D;
+  --im-primary-mid: #3A4E75;
+  --im-accent: #C9A227;
+  --im-accent-light: #E0BE55;
+  --im-on-primary: #F5EFDD;
+  --im-on-primary-sub: #A3AEC6;
+  --im-surface-alt: #F6F5F1;
+  --im-body: #2E3949;
+  --im-body-2: #3C4759;
+  --im-muted: #6E7A8C;
+  --im-faint: #8A8578;
+  --im-faint-2: #A09A8C;
+  --im-rule-strong: #D8D2C6;
+  --im-rule-weak: #E4DFD4;
+  --im-surface: #FFFFFF;
+  --im-track: #EDE9E0;
+  --im-negative: #B4453A;
+  --im-brand-red: #C0392B;
+  --im-serif: 'Noto Serif KR', 'Noto Serif CJK KR', serif;
+  --im-sans: 'Noto Sans KR', 'Noto Sans CJK KR', sans-serif;
+  --im-h1: 48px;
+  --im-h2: 26px;
+  --im-h2-small: 22px;
+  --im-h3: 15.5px;
+  --im-text: 12.5px;
+  --im-table: 11.5px;
+  --im-table-head: 11px;
+  --im-caption: 10.5px;
+  --im-micro: 8.5px;
+  --im-page-w: 210mm;
+  --im-page-h: 297mm;
+  --im-page-margin: 17mm;
+}
+
+[data-im-theme="real_estate"] {
+  --im-primary: #12314B;
+  --im-primary-mid: #3E5C77;
+  --im-accent: #A6813C;
+  --im-accent-light: #C9A15A;
+  --im-on-primary: #F3E3C4;
+  --im-on-primary-sub: #A2B3C4;
+  --im-surface-alt: #F7F5F0;
+  --im-body: #2E3949;
+  --im-body-2: #3C4759;
+  --im-muted: #6E7A8C;
+  --im-faint: #8A8578;
+  --im-faint-2: #A09A8C;
+  --im-rule-strong: #D8D2C6;
+  --im-rule-weak: #E4DFD4;
+  --im-surface: #FFFFFF;
+  --im-track: #EDE9E0;
+  --im-negative: #B4453A;
+  --im-brand-red: #C0392B;
+  --im-serif: 'Noto Serif KR', 'Noto Serif CJK KR', serif;
+  --im-sans: 'Noto Sans KR', 'Noto Sans CJK KR', sans-serif;
+  --im-h1: 48px;
+  --im-h2: 26px;
+  --im-h2-small: 22px;
+  --im-h3: 15.5px;
+  --im-text: 12.5px;
+  --im-table: 11.5px;
+  --im-table-head: 11px;
+  --im-caption: 10.5px;
+  --im-micro: 8.5px;
+  --im-page-w: 210mm;
+  --im-page-h: 297mm;
+  --im-page-margin: 17mm;
+}
+
+[data-im-theme="corporate"] {
+  --im-primary: #17457A;
+  --im-primary-mid: #4571A0;
+  --im-accent: #8C6D3F;
+  --im-accent-light: #B08F5E;
+  --im-on-primary: #F0F4F8;
+  --im-on-primary-sub: #A9BDD2;
+  --im-surface-alt: #F5F7FA;
+  --im-body: #2E3949;
+  --im-body-2: #3C4759;
+  --im-muted: #6E7A8C;
+  --im-faint: #8A8578;
+  --im-faint-2: #A09A8C;
+  --im-rule-strong: #D8D2C6;
+  --im-rule-weak: #E4DFD4;
+  --im-surface: #FFFFFF;
+  --im-track: #EDE9E0;
+  --im-negative: #B4453A;
+  --im-brand-red: #C0392B;
+  --im-serif: 'Noto Serif KR', 'Noto Serif CJK KR', serif;
+  --im-sans: 'Noto Sans KR', 'Noto Sans CJK KR', sans-serif;
+  --im-h1: 48px;
+  --im-h2: 26px;
+  --im-h2-small: 22px;
+  --im-h3: 15.5px;
+  --im-text: 12.5px;
+  --im-table: 11.5px;
+  --im-table-head: 11px;
+  --im-caption: 10.5px;
+  --im-micro: 8.5px;
+  --im-page-w: 210mm;
+  --im-page-h: 297mm;
+  --im-page-margin: 17mm;
+}
+
+[data-im-theme="premium"] {
+  --im-primary: #14100E;
+  --im-primary-mid: #3B322C;
+  --im-accent: #C9A15A;
+  --im-accent-light: #DFC38C;
+  --im-on-primary: #F3E7D3;
+  --im-on-primary-sub: #B8AA96;
+  --im-surface-alt: #F8F5F0;
+  --im-body: #2E3949;
+  --im-body-2: #3C4759;
+  --im-muted: #6E7A8C;
+  --im-faint: #8A8578;
+  --im-faint-2: #A09A8C;
+  --im-rule-strong: #D8D2C6;
+  --im-rule-weak: #E4DFD4;
+  --im-surface: #FFFFFF;
+  --im-track: #EDE9E0;
+  --im-negative: #B4453A;
+  --im-brand-red: #C0392B;
+  --im-serif: 'Noto Serif KR', 'Noto Serif CJK KR', serif;
+  --im-sans: 'Noto Sans KR', 'Noto Sans CJK KR', sans-serif;
+  --im-h1: 48px;
+  --im-h2: 26px;
+  --im-h2-small: 22px;
+  --im-h3: 15.5px;
+  --im-text: 12.5px;
+  --im-table: 11.5px;
+  --im-table-head: 11px;
+  --im-caption: 10.5px;
+  --im-micro: 8.5px;
+  --im-page-w: 210mm;
+  --im-page-h: 297mm;
+  --im-page-margin: 17mm;
+}
+
+[data-im-theme="minimal"] {
+  --im-primary: #111827;
+  --im-primary-mid: #4B5563;
+  --im-accent: #6B7280;
+  --im-accent-light: #9CA3AF;
+  --im-on-primary: #F9FAFB;
+  --im-on-primary-sub: #C3C9D2;
+  --im-surface-alt: #F7F7F8;
+  --im-body: #2E3949;
+  --im-body-2: #3C4759;
+  --im-muted: #6E7A8C;
+  --im-faint: #8A8578;
+  --im-faint-2: #A09A8C;
+  --im-rule-strong: #D8D2C6;
+  --im-rule-weak: #E4DFD4;
+  --im-surface: #FFFFFF;
+  --im-track: #EDE9E0;
+  --im-negative: #B4453A;
+  --im-brand-red: #C0392B;
+  --im-serif: 'Noto Serif KR', 'Noto Serif CJK KR', serif;
+  --im-sans: 'Noto Sans KR', 'Noto Sans CJK KR', sans-serif;
+  --im-h1: 48px;
+  --im-h2: 26px;
+  --im-h2-small: 22px;
+  --im-h3: 15.5px;
+  --im-text: 12.5px;
+  --im-table: 11.5px;
+  --im-table-head: 11px;
+  --im-caption: 10.5px;
+  --im-micro: 8.5px;
+  --im-page-w: 210mm;
+  --im-page-h: 297mm;
+  --im-page-margin: 17mm;
+}
+
+[data-im-theme="technology"] {
+  --im-primary: #0E1A2B;
+  --im-primary-mid: #1F7A8C;
+  --im-accent: #2FA8B8;
+  --im-accent-light: #67C6D2;
+  --im-on-primary: #E8F4F6;
+  --im-on-primary-sub: #8FB3BD;
+  --im-surface-alt: #F2F7F8;
+  --im-body: #2E3949;
+  --im-body-2: #3C4759;
+  --im-muted: #6E7A8C;
+  --im-faint: #8A8578;
+  --im-faint-2: #A09A8C;
+  --im-rule-strong: #D8D2C6;
+  --im-rule-weak: #E4DFD4;
+  --im-surface: #FFFFFF;
+  --im-track: #EDE9E0;
+  --im-negative: #B4453A;
+  --im-brand-red: #C0392B;
+  --im-serif: 'Noto Serif KR', 'Noto Serif CJK KR', serif;
+  --im-sans: 'Noto Sans KR', 'Noto Sans CJK KR', sans-serif;
+  --im-h1: 48px;
+  --im-h2: 26px;
+  --im-h2-small: 22px;
+  --im-h3: 15.5px;
+  --im-text: 12.5px;
+  --im-table: 11.5px;
+  --im-table-head: 11px;
+  --im-caption: 10.5px;
+  --im-micro: 8.5px;
+  --im-page-w: 210mm;
+  --im-page-h: 297mm;
+  --im-page-margin: 17mm;
+}
+
+[data-im-theme="renewable"] {
+  --im-primary: #0F3D2E;
+  --im-primary-mid: #2F6A52;
+  --im-accent: #7FA650;
+  --im-accent-light: #A7C579;
+  --im-on-primary: #EAF3EC;
+  --im-on-primary-sub: #9BB8A8;
+  --im-surface-alt: #F3F7F3;
+  --im-body: #2E3949;
+  --im-body-2: #3C4759;
+  --im-muted: #6E7A8C;
+  --im-faint: #8A8578;
+  --im-faint-2: #A09A8C;
+  --im-rule-strong: #D8D2C6;
+  --im-rule-weak: #E4DFD4;
+  --im-surface: #FFFFFF;
+  --im-track: #EDE9E0;
+  --im-negative: #B4453A;
+  --im-brand-red: #C0392B;
+  --im-serif: 'Noto Serif KR', 'Noto Serif CJK KR', serif;
+  --im-sans: 'Noto Sans KR', 'Noto Sans CJK KR', sans-serif;
+  --im-h1: 48px;
+  --im-h2: 26px;
+  --im-h2-small: 22px;
+  --im-h3: 15.5px;
+  --im-text: 12.5px;
+  --im-table: 11.5px;
+  --im-table-head: 11px;
+  --im-caption: 10.5px;
+  --im-micro: 8.5px;
+  --im-page-w: 210mm;
+  --im-page-h: 297mm;
+  --im-page-margin: 17mm;
+}
+
+[data-im-theme="infrastructure"] {
+  --im-primary: #263238;
+  --im-primary-mid: #4F6470;
+  --im-accent: #C07C2C;
+  --im-accent-light: #D9A052;
+  --im-on-primary: #F0F2F3;
+  --im-on-primary-sub: #A8B4BB;
+  --im-surface-alt: #F5F6F7;
+  --im-body: #2E3949;
+  --im-body-2: #3C4759;
+  --im-muted: #6E7A8C;
+  --im-faint: #8A8578;
+  --im-faint-2: #A09A8C;
+  --im-rule-strong: #D8D2C6;
+  --im-rule-weak: #E4DFD4;
+  --im-surface: #FFFFFF;
+  --im-track: #EDE9E0;
+  --im-negative: #B4453A;
+  --im-brand-red: #C0392B;
+  --im-serif: 'Noto Serif KR', 'Noto Serif CJK KR', serif;
+  --im-sans: 'Noto Sans KR', 'Noto Sans CJK KR', sans-serif;
+  --im-h1: 48px;
+  --im-h2: 26px;
+  --im-h2-small: 22px;
+  --im-h3: 15.5px;
+  --im-text: 12.5px;
+  --im-table: 11.5px;
+  --im-table-head: 11px;
+  --im-caption: 10.5px;
+  --im-micro: 8.5px;
+  --im-page-w: 210mm;
+  --im-page-h: 297mm;
+  --im-page-margin: 17mm;
+}
+
+[data-im-theme="luxury"] {
+  --im-primary: #1B1410;
+  --im-primary-mid: #4A3B31;
+  --im-accent: #BFA06A;
+  --im-accent-light: #D8C098;
+  --im-on-primary: #F5EADA;
+  --im-on-primary-sub: #BCA98F;
+  --im-surface-alt: #F9F6F1;
+  --im-body: #2E3949;
+  --im-body-2: #3C4759;
+  --im-muted: #6E7A8C;
+  --im-faint: #8A8578;
+  --im-faint-2: #A09A8C;
+  --im-rule-strong: #D8D2C6;
+  --im-rule-weak: #E4DFD4;
+  --im-surface: #FFFFFF;
+  --im-track: #EDE9E0;
+  --im-negative: #B4453A;
+  --im-brand-red: #C0392B;
+  --im-serif: 'Noto Serif KR', 'Noto Serif CJK KR', serif;
+  --im-sans: 'Noto Sans KR', 'Noto Sans CJK KR', sans-serif;
+  --im-h1: 48px;
+  --im-h2: 26px;
+  --im-h2-small: 22px;
+  --im-h3: 15.5px;
+  --im-text: 12.5px;
+  --im-table: 11.5px;
+  --im-table-head: 11px;
+  --im-caption: 10.5px;
+  --im-micro: 8.5px;
+  --im-page-w: 210mm;
+  --im-page-h: 297mm;
+  --im-page-margin: 17mm;
+}
+
+[data-im-theme="government"] {
+  --im-primary: #12365E;
+  --im-primary-mid: #41618A;
+  --im-accent: #6E7A8C;
+  --im-accent-light: #93A0B0;
+  --im-on-primary: #EEF3F8;
+  --im-on-primary-sub: #A7B8CB;
+  --im-surface-alt: #F4F6F9;
+  --im-body: #2E3949;
+  --im-body-2: #3C4759;
+  --im-muted: #6E7A8C;
+  --im-faint: #8A8578;
+  --im-faint-2: #A09A8C;
+  --im-rule-strong: #D8D2C6;
+  --im-rule-weak: #E4DFD4;
+  --im-surface: #FFFFFF;
+  --im-track: #EDE9E0;
+  --im-negative: #B4453A;
+  --im-brand-red: #C0392B;
+  --im-serif: 'Noto Serif KR', 'Noto Serif CJK KR', serif;
+  --im-sans: 'Noto Sans KR', 'Noto Sans CJK KR', sans-serif;
+  --im-h1: 48px;
+  --im-h2: 26px;
+  --im-h2-small: 22px;
+  --im-h3: 15.5px;
+  --im-text: 12.5px;
+  --im-table: 11.5px;
+  --im-table-head: 11px;
+  --im-caption: 10.5px;
+  --im-micro: 8.5px;
+  --im-page-w: 210mm;
+  --im-page-h: 297mm;
+  --im-page-margin: 17mm;
+}
+
+[data-im-theme="custom"] {
+  --im-primary: #10233C;
+  --im-primary-mid: #35506F;
+  --im-accent: #A6813C;
+  --im-accent-light: #C9A15A;
+  --im-on-primary: #F3E3C4;
+  --im-on-primary-sub: #9FB0C4;
+  --im-surface-alt: #F7F5F0;
+  --im-body: #2E3949;
+  --im-body-2: #3C4759;
+  --im-muted: #6E7A8C;
+  --im-faint: #8A8578;
+  --im-faint-2: #A09A8C;
+  --im-rule-strong: #D8D2C6;
+  --im-rule-weak: #E4DFD4;
+  --im-surface: #FFFFFF;
+  --im-track: #EDE9E0;
+  --im-negative: #B4453A;
+  --im-brand-red: #C0392B;
+  --im-serif: 'Noto Serif KR', 'Noto Serif CJK KR', serif;
+  --im-sans: 'Noto Sans KR', 'Noto Sans CJK KR', sans-serif;
+  --im-h1: 48px;
+  --im-h2: 26px;
+  --im-h2-small: 22px;
+  --im-h3: 15.5px;
+  --im-text: 12.5px;
+  --im-table: 11.5px;
+  --im-table-head: 11px;
+  --im-caption: 10.5px;
+  --im-micro: 8.5px;
+  --im-page-w: 210mm;
+  --im-page-h: 297mm;
+  --im-page-margin: 17mm;
+}
+
+/* ── 지면 ───────────────────────────────────────────────── */
+@page { size: A4; margin: 17mm; }
+
+.im-page {
+  width: var(--im-page-w);
+  min-height: var(--im-page-h);
+  padding: var(--im-page-margin);
+  background: var(--im-surface);
+  color: var(--im-body);
+  font-family: var(--im-sans);
+  font-size: var(--im-text);
+  line-height: 1.75;
+  box-sizing: border-box;
+}
+
+/* ★ 없으면 네이비 박스가 흰색으로 인쇄된다 (rules.json D6-print-color) */
+@media print {
+  .im-page, .im-navybox, .im-creambox, .im-kpi, .im-table th {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .im-chapter { break-before: page; break-inside: avoid; }
+  .im-table, .im-kpi, .im-navybox, .im-creambox, .im-figure { break-inside: avoid; }
+}
+
+/* ── 활자 ───────────────────────────────────────────────── */
+.im-h1 {
+  font-family: var(--im-serif); font-weight: 500;
+  font-size: var(--im-h1); line-height: 1.08; letter-spacing: -.02em;
+  color: var(--im-primary); margin: 0; text-wrap: balance;
+}
+.im-h2 {
+  font-family: var(--im-serif); font-weight: 500;
+  font-size: var(--im-h2); line-height: 1.2; letter-spacing: -.01em;
+  color: var(--im-primary); margin: 10px 0 0;
+}
+.im-h3 {
+  font-family: var(--im-serif); font-weight: 500;
+  font-size: var(--im-h3); color: var(--im-primary); margin: 0 0 8px;
+}
+.im-chapter-label {
+  font-family: var(--im-serif); font-size: 10px; font-weight: 600;
+  letter-spacing: .2em; text-transform: uppercase; color: var(--im-accent);
+}
+.im-sub { margin-top: 5px; font-size: 13px; color: var(--im-muted); }
+.im-text { font-size: var(--im-text); line-height: 1.75; color: var(--im-body); text-wrap: pretty; }
+.im-caption { margin: 0 0 14px; font-size: 9.5px; line-height: 1.65; color: var(--im-faint); }
+.im-micro { font-size: var(--im-micro); color: var(--im-faint-2); }
+
+/* ★ 숫자는 자릿수를 맞춘다 — 표에서 세로가 안 맞으면 비교가 안 된다 */
+.im-num, .im-table td, .im-kpi-value { font-variant-numeric: tabular-nums; }
+/* ★ 음수는 △ 로 적는다 (tokens.js eok) — 색까지 갈라 준다 */
+.im-neg { color: var(--im-negative); }
+
+/* ── 상자 ───────────────────────────────────────────────── */
+.im-navybox { background: var(--im-primary); padding: 18px 20px; }
+.im-navybox-label {
+  font-size: 11px; font-weight: 600; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--im-accent-light);
+}
+.im-navybox-value { font-family: var(--im-serif); font-size: 29px; color: var(--im-on-primary); }
+.im-navybox-sub { font-size: 11.5px; color: var(--im-on-primary-sub); }
+.im-creambox { background: var(--im-surface-alt); padding: 16px 18px; }
+.im-quote-gold { border-left: 2px solid var(--im-accent); padding: 2px 0 2px 14px; }
+.im-quote-red { border-left: 2px solid var(--im-negative); padding: 2px 0 2px 14px; }
+
+/* ── 표 ─────────────────────────────────────────────────── */
+.im-table { width: 100%; border-collapse: collapse; font-size: var(--im-table); }
+.im-table th {
+  font-size: var(--im-table-head); font-weight: 600; text-align: left;
+  color: var(--im-primary); background: var(--im-surface-alt);
+  border-top: 1px solid var(--im-rule-strong);
+  border-bottom: 1px solid var(--im-rule-strong);
+  padding: 7px 9px;
+}
+.im-table td { padding: 6px 9px; border-bottom: 1px solid var(--im-rule-weak); }
+.im-table td.im-r, .im-table th.im-r { text-align: right; }
+/* ★ 셀은 한 줄 — 접히면 행 높이가 들쭉날쭉해 표가 안 읽힌다 (CLAUDE.md §6-3 ⑤) */
+.im-table td, .im-table th { white-space: nowrap; }
+.im-table-wrap { overflow-x: auto; }
+
+/* ── KPI ────────────────────────────────────────────────── */
+.im-kpi {
+  border-top: 2px solid var(--im-primary);
+  background: var(--im-surface-alt); padding: 12px 14px;
+}
+.im-kpi-label {
+  font-size: 9.5px; font-weight: 600; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--im-accent);
+}
+.im-kpi-value {
+  font-family: var(--im-serif); font-size: 24px; line-height: 1.15;
+  color: var(--im-primary);
+}
+.im-kpi-sub { font-size: 10px; color: var(--im-muted); }
+
+/* ── 레이아웃 12종 ──────────────────────────────────────── */
+.im-layout { display: grid; gap: 10px; }
+.im-L01 { grid-template-columns:1fr;grid-template-rows:1fr auto; }
+.im-L02 { grid-template-columns:1fr 1fr; }
+.im-L03 { grid-template-columns:1fr 1fr 1fr; }
+.im-L04 { grid-template-columns:repeat(2,1fr);grid-auto-rows:min-content; }
+.im-L05 { grid-template-columns:1fr;grid-template-rows:1fr auto; }
+.im-L06 { grid-template-columns:1fr; }
+.im-L07 { grid-template-columns:1.4fr 1fr; }
+.im-L08 { grid-template-columns:1fr; }
+.im-L09 { grid-template-columns:1fr; }
+.im-L10 { grid-template-columns:1fr 1.1fr; }
+.im-L11 { grid-template-columns:repeat(3,1fr);grid-auto-rows:1fr; }
+.im-L12 { grid-template-columns:1fr; }
+
+/* ── 차트 트랙 ──────────────────────────────────────────── */
+.im-track { background: var(--im-track); height: 8px; }
+.im-bar { background: var(--im-primary); height: 8px; }
+.im-bar-2 { background: var(--im-primary-mid); }
+.im-bar-accent { background: var(--im-accent-light); }
+
+
+/* ── 견본 자체의 껍데기 (산출물 규격이 아니다) ────────────── */
+*{box-sizing:border-box}
+body{margin:0;background:#F2F1EE;color:var(--im-body);font-family:var(--im-sans);font-size:14px;line-height:1.7}
+.wrap{max-width:1180px;margin:0 auto;padding:44px 20px 90px}
+.eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--im-accent);font-weight:600;margin:0 0 14px}
+h1.top{font-family:var(--im-serif);font-size:clamp(28px,4.6vw,42px);line-height:1.12;letter-spacing:-.025em;color:var(--im-primary);margin:0 0 14px;font-weight:500}
+.lede{font-size:16px;color:var(--im-body-2);max-width:64ch;margin:0 0 6px}
+h2.sec{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--im-muted);font-weight:600;margin:52px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--im-rule-strong)}
+p{max-width:66ch;margin:0 0 12px}
+.small{font-size:13px;color:var(--im-muted)}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+
+/* 판정 한 줄 (CLAUDE.md §6-3 ①) */
+.verdict{display:flex;flex-wrap:wrap;gap:10px 26px;align-items:baseline;background:var(--im-surface);border-left:4px solid var(--im-accent);padding:18px 20px;margin:24px 0 8px}
+.verdict b{font-family:var(--im-serif);font-size:30px;color:var(--im-primary);font-variant-numeric:tabular-nums}
+.verdict span{font-size:14px;color:var(--im-body-2)}
+
+/* 테마 갈아 끼우기 */
+.themebar{display:flex;flex-wrap:wrap;gap:6px;margin:16px 0 4px}
+.themebar button{font:inherit;font-size:12px;cursor:pointer;border:1px solid var(--im-rule-strong);background:var(--im-surface);color:var(--im-body);padding:5px 11px}
+.themebar button[aria-pressed="true"]{background:var(--im-primary);color:var(--im-on-primary);border-color:var(--im-primary)}
+.themebar button:focus-visible{outline:2px solid var(--im-accent);outline-offset:1px}
+
+/* 팔레트 */
+.sws{display:grid;grid-template-columns:repeat(auto-fill,minmax(288px,1fr));gap:8px}
+.sw{display:flex;align-items:center;gap:10px;background:var(--im-surface);padding:9px 11px}
+.sw i{width:26px;height:26px;flex:none;border:1px solid rgba(0,0,0,.12)}
+.sw b{font-size:12px;font-weight:600;min-width:82px}
+.sw code{color:var(--im-muted);min-width:64px}
+.sw span{font-size:11.5px;color:var(--im-faint);line-height:1.35}
+
+/* 활자 계단 */
+.scale{background:var(--im-surface);padding:10px 16px}
+.scale div{display:flex;align-items:baseline;gap:14px;padding:7px 0;border-bottom:1px solid var(--im-rule-weak)}
+.scale div:last-child{border-bottom:0}
+.scale i{font-style:normal;font-family:var(--im-serif);color:var(--im-primary);line-height:1.1}
+.scale b{font-size:11.5px;font-weight:600;min-width:78px;color:var(--im-body-2)}
+.scale code{color:var(--im-muted);min-width:44px}
+.scale span{font-size:11.5px;color:var(--im-faint)}
+
+/* 레이아웃 열두 장 */
+.sheets{display:grid;grid-template-columns:repeat(auto-fill,minmax(258px,1fr));gap:18px}
+.sheet{margin:0;background:var(--im-surface);border:1px solid var(--im-rule-weak)}
+.paper{aspect-ratio:210/297;padding:14px;display:flex;flex-direction:column;gap:7px;overflow:hidden}
+.paper .tight{margin:0 0 2px;font-size:13px}
+.fill{flex:1;min-height:0}
+.tiny{font-size:8.5px;line-height:1.5}
+.ph{background:var(--im-track);display:flex;align-items:center;justify-content:center;min-height:44px}
+.ph span{font-size:8.5px;letter-spacing:.06em;color:var(--im-faint-2)}
+.paper .im-table{font-size:8px}
+.paper .im-table th,.paper .im-table td{padding:3px 4px}
+.paper .im-kpi{padding:6px 7px;border-top-width:1.5px}
+.paper .im-kpi-label{font-size:6.5px;letter-spacing:.08em}
+.paper .im-kpi-value{font-size:13px}
+.paper .im-kpi-sub{font-size:6.5px}
+.paper .im-navybox{padding:10px 11px}
+.paper .im-navybox-label{font-size:6.5px}
+.paper .im-navybox-value{font-size:16px}
+.paper .im-navybox-sub{font-size:7px}
+.paper .im-caption{font-size:7px;margin:0}
+.chart{display:flex;align-items:flex-end;gap:5px;height:100%;min-height:52px}
+.chart i{flex:1;background:var(--im-primary-mid);display:block}
+.chart i:nth-child(2){background:var(--im-primary)}
+.chart i:nth-child(4){background:var(--im-accent-light)}
+.tl{display:flex;align-items:center;gap:4px;height:100%;min-height:52px}
+.im-L08.fill{align-content:center}
+.tl b{flex:1;border-top:2px solid var(--im-primary);padding-top:5px;font-weight:400;display:block}
+.tl span{display:block;font-size:7.5px;color:var(--im-body)}
+.tl em{display:block;font-style:normal;font-size:6.5px;color:var(--im-faint)}
+.risk{display:flex;align-items:center;justify-content:center;min-height:26px;font-size:7px;color:#fff}
+.risk.r0{background:var(--im-primary)}
+.risk.r1{background:var(--im-primary-mid)}
+.risk.r2{background:var(--im-negative)}
+figcaption{padding:10px 12px;border-top:1px solid var(--im-rule-weak)}
+figcaption b{font-family:var(--im-serif);font-size:14px;color:var(--im-primary)}
+figcaption>span{font-size:12px;color:var(--im-body-2);margin-left:6px}
+figcaption .use{font-size:11.5px;color:var(--im-muted);margin-top:3px}
+figcaption .needs{font-size:11px;color:var(--im-faint);margin-top:2px}
+
+/* 표 */
+.tbl{background:var(--im-surface);overflow-x:auto}
+.tbl table{width:100%;border-collapse:collapse;font-size:13px;min-width:520px}
+.tbl th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--im-muted);font-weight:600;text-align:left;padding:9px 12px;border-bottom:1px solid var(--im-rule-strong)}
+.tbl td{padding:8px 12px;border-bottom:1px solid var(--im-rule-weak);white-space:nowrap}
+.tbl tr:last-child td{border-bottom:0}
+.tbl code{color:var(--im-primary);font-weight:500}
+.sev{font-size:11px;font-weight:600;padding:1px 8px;white-space:nowrap}
+.sev.RED{background:#F7E4E1;color:var(--im-negative)}
+.sev.YELLOW{background:#F7EFDC;color:#8A6100}
+
+footer{margin-top:60px;padding-top:16px;border-top:1px solid var(--im-rule-strong);font-size:12px;color:var(--im-muted)}
+@media print{body{background:#fff}.themebar{display:none}}
+</style>
+</head>
+<body>
+<div class="wrap" id="root">
+
+  <p class="eyebrow">LinkPilot IM &middot; Design System &middot; 생성물 · 손으로 고치지 않는다</p>
+  <h1 class="top">IM 레이아웃 시스템</h1>
+  <p class="lede">이 문서는 손으로 쓴 것이 아니다. <code>design/tokens.js</code> &middot; <code>themes.js</code> &middot; <code>layouts.js</code> &middot; <code>rules.json</code> 을 읽어 만든다. 값을 바꾸려면 그 네 곳을 고치고 다시 만든다 &mdash; 여기를 고치면 다음 생성 때 지워진다.</p>
+
+  <div class="verdict">
+    <b>12</b><span>레이아웃</span>
+    <b>13</b><span>테마</span>
+    <b>9</b><span>문체</span>
+    <b>11</b><span>문서 종류</span>
+    <b>14</b><span>디자인 규칙</span>
+  </div>
+  <p class="small">지면 A4 210&times;297mm &middot; 여백 17mm &middot; 기본 테마 <code>institutional</code> (기관투자자 / PF / Credit)</p>
+
+  <h2 class="sec">테마 — 눌러서 갈아 끼운다</h2>
+  <p class="small">아래 모든 그림이 그 자리에서 바뀐다. 구조 토큰(괘선 두께 &middot; 표 규격 &middot; 지면 기하)은 테마가 바꾸지 않는다 &mdash; 바꾸면 문서가 서로 다른 시스템처럼 보인다.</p>
+  <div class="themebar" id="themebar">
+    <button type="button" data-t="institutional" aria-pressed="true">Institutional</button>
+    <button type="button" data-t="global_ib" aria-pressed="false">Global Investment Bank</button>
+    <button type="button" data-t="private_equity" aria-pressed="false">Private Equity</button>
+    <button type="button" data-t="real_estate" aria-pressed="false">Real Estate Investment</button>
+    <button type="button" data-t="corporate" aria-pressed="false">Corporate</button>
+    <button type="button" data-t="premium" aria-pressed="false">Premium</button>
+    <button type="button" data-t="minimal" aria-pressed="false">Minimal</button>
+    <button type="button" data-t="technology" aria-pressed="false">Technology / Data Center</button>
+    <button type="button" data-t="renewable" aria-pressed="false">Renewable Energy</button>
+    <button type="button" data-t="infrastructure" aria-pressed="false">Infrastructure</button>
+    <button type="button" data-t="luxury" aria-pressed="false">Luxury / Hospitality</button>
+    <button type="button" data-t="government" aria-pressed="false">Government / Public</button>
+    <button type="button" data-t="custom" aria-pressed="false">Custom</button>
+  </div>
+
+  <h2 class="sec">팔레트 — 테마가 정하는 것</h2>
+  <div class="sws"><div class="sw"><i style="background:#10233C"></i><b>primary</b><code>#10233C</code><span>주색 — 제목·표 머리·네이비 박스</span></div><div class="sw"><i style="background:#35506F"></i><b>primaryMid</b><code>#35506F</code><span>보조 막대</span></div><div class="sw"><i style="background:#A6813C"></i><b>accent</b><code>#A6813C</code><span>라벨·강조</span></div><div class="sw"><i style="background:#C9A15A"></i><b>accentLight</b><code>#C9A15A</code><span>하이라이트</span></div><div class="sw"><i style="background:#F3E3C4"></i><b>onPrimary</b><code>#F3E3C4</code><span>주색 위 글자</span></div><div class="sw"><i style="background:#F7F5F0"></i><b>surfaceAlt</b><code>#F7F5F0</code><span>강조 박스 바탕</span></div></div>
+
+  <h2 class="sec">팔레트 — 테마가 바꾸지 않는 것</h2>
+  <div class="sws"><div class="sw"><i style="background:#2E3949"></i><b>body</b><code>#2E3949</code><span>본문</span></div><div class="sw"><i style="background:#6E7A8C"></i><b>muted</b><code>#6E7A8C</code><span>보조 설명</span></div><div class="sw"><i style="background:#8A8578"></i><b>faint</b><code>#8A8578</code><span>캡션</span></div><div class="sw"><i style="background:#D8D2C6"></i><b>ruleStrong</b><code>#D8D2C6</code><span>굵은 괘선</span></div><div class="sw"><i style="background:#E4DFD4"></i><b>ruleWeak</b><code>#E4DFD4</code><span>가는 괘선</span></div><div class="sw"><i style="background:#B4453A"></i><b>negative</b><code>#B4453A</code><span>음수·경고</span></div></div>
+
+  <h2 class="sec">활자</h2>
+  <p class="small">본문 <code>'Noto Sans KR', 'Noto Sans CJK KR', sans-serif</code> &middot; 제목 <code>'Noto Serif KR', 'Noto Serif CJK KR', serif</code>. 두 번째 이름을 지우지 않는다 &mdash; <code>Noto Sans KR</code> 만 적으면 그 이름이 없는 기계에서 브라우저가 <b>말없이 다른 CJK 글꼴로 그린다</b> (실측: 중국어 글꼴로 나갔다).</p>
+  <div class="scale">
+    <div><b>h1</b><code>48px</code><i style="font-size:34px">국문 Abc 123</i><span>표지 제목</span></div>
+    <div><b>h2</b><code>26px</code><i style="font-size:26px">국문 Abc 123</i><span>장 제목</span></div>
+    <div><b>h2Small</b><code>22px</code><i style="font-size:22px">국문 Abc 123</i><span>작은 장 제목</span></div>
+    <div><b>h3</b><code>15.5px</code><i style="font-size:15.5px">국문 Abc 123</i><span>절 제목</span></div>
+    <div><b>body</b><code>12.5px</code><i style="font-size:12.5px">국문 Abc 123</i><span>본문</span></div>
+    <div><b>table</b><code>11.5px</code><i style="font-size:11.5px">국문 Abc 123</i><span>표</span></div>
+    <div><b>tableHead</b><code>11px</code><i style="font-size:11px">국문 Abc 123</i><span>표 머리</span></div>
+    <div><b>caption</b><code>10.5px</code><i style="font-size:10.5px">국문 Abc 123</i><span>캡션</span></div>
+    <div><b>micro</b><code>8.5px</code><i style="font-size:8.5px">국문 Abc 123</i><span>각주·페이지번호</span></div>
+  </div>
+
+  <h2 class="sec">레이아웃 12종</h2>
+  <p class="small">각 장은 실제 A4 비율(210:297)로 그렸고, 격자는 <code>design/css.js</code> 의 <code>.im-L**</code> 규칙 그대로다.</p>
+  <div class="sheets">
+<figure class="sheet">
+  <div class="paper">
+    <div class="im-chapter-label">CHAPTER 03</div>
+    <div class="im-h3 tight">Full Image</div>
+    <div class="im-layout im-L01 fill"><div class="ph "><span>전경 이미지 (전면)</span></div><div class="im-caption">자료출처: 현장 촬영 2026-08</div></div>
+  </div>
+  <figcaption>
+    <b>L01</b> <span>Full Image</span>
+    <div class="use">표지·자산 전경·입지 항공사진</div>
+    <div class="needs">필요한 자료: image</div>
+  </figcaption>
+</figure>
+<figure class="sheet">
+  <div class="paper">
+    <div class="im-chapter-label">CHAPTER 03</div>
+    <div class="im-h3 tight">Two Column</div>
+    <div class="im-layout im-L02 fill"><div><div class="im-h3">서술</div><div class="im-text tiny">본문이 왼쪽에 선다.</div></div><div><table class="im-table"><thead><tr><th>구분</th><th class="im-r">값</th></tr></thead><tbody><tr><td>토지</td><td class="im-r">420.0억원</td></tr><tr><td>건축</td><td class="im-r">1,214.3억원</td></tr></tbody></table></div></div>
+  </div>
+  <figcaption>
+    <b>L02</b> <span>Two Column</span>
+    <div class="use">서술 + 데이터 병렬</div>
+    <div class="needs">필요한 자료: 없음</div>
+  </figcaption>
+</figure>
+<figure class="sheet">
+  <div class="paper">
+    <div class="im-chapter-label">CHAPTER 03</div>
+    <div class="im-h3 tight">Three Column</div>
+    <div class="im-layout im-L03 fill"><div><div class="im-h3">입지</div><div class="im-text tiny">축 하나.</div></div><div><div class="im-h3">규모</div><div class="im-text tiny">축 하나.</div></div><div><div class="im-h3">수익</div><div class="im-text tiny">축 하나.</div></div></div>
+  </div>
+  <figcaption>
+    <b>L03</b> <span>Three Column</span>
+    <div class="use">3개 축 비교</div>
+    <div class="needs">필요한 자료: 없음</div>
+  </figcaption>
+</figure>
+<figure class="sheet">
+  <div class="paper">
+    <div class="im-chapter-label">CHAPTER 03</div>
+    <div class="im-h3 tight">KPI Dashboard</div>
+    <div class="im-layout im-L04 fill"><div class="im-kpi"><div class="im-kpi-label">Equity IRR</div><div class="im-kpi-value">14.2%</div><div class="im-kpi-sub">세후</div></div><div class="im-kpi"><div class="im-kpi-label">Project IRR</div><div class="im-kpi-value">9.8%</div><div class="im-kpi-sub">세전</div></div><div class="im-kpi"><div class="im-kpi-label">최소 DSCR</div><div class="im-kpi-value">1.28배</div><div class="im-kpi-sub">운영 1~5년</div></div><div class="im-kpi"><div class="im-kpi-label">MOIC</div><div class="im-kpi-value">1.9배</div><div class="im-kpi-sub">보유 7년</div></div></div>
+  </div>
+  <figcaption>
+    <b>L04</b> <span>KPI Dashboard</span>
+    <div class="use">핵심 지표 카드</div>
+    <div class="needs">필요한 자료: kpi</div>
+  </figcaption>
+</figure>
+<figure class="sheet">
+  <div class="paper">
+    <div class="im-chapter-label">CHAPTER 03</div>
+    <div class="im-h3 tight">Chart Focus</div>
+    <div class="im-layout im-L05 fill"><div class="chart"><i style="height:62%"></i><i style="height:88%"></i><i style="height:45%"></i><i style="height:74%"></i><i style="height:96%"></i></div><div class="im-caption">자료출처: 민감도 분석</div></div>
+  </div>
+  <figcaption>
+    <b>L05</b> <span>Chart Focus</span>
+    <div class="use">차트 중심</div>
+    <div class="needs">필요한 자료: chart</div>
+  </figcaption>
+</figure>
+<figure class="sheet">
+  <div class="paper">
+    <div class="im-chapter-label">CHAPTER 03</div>
+    <div class="im-h3 tight">Table Focus</div>
+    <div class="im-layout im-L06 fill"><table class="im-table"><thead><tr><th>구분</th><th class="im-r">값</th></tr></thead><tbody><tr><td>매출</td><td class="im-r">284.1억원</td></tr><tr><td>영업이익</td><td class="im-r">61.9억원</td></tr><tr><td>당기순이익</td><td class="im-r">△12.4억원</td></tr></tbody></table><div class="im-caption">자료출처: 사업계획서 p.34</div></div>
+  </div>
+  <figcaption>
+    <b>L06</b> <span>Table Focus</span>
+    <div class="use">표 중심</div>
+    <div class="needs">필요한 자료: table</div>
+  </figcaption>
+</figure>
+<figure class="sheet">
+  <div class="paper">
+    <div class="im-chapter-label">CHAPTER 03</div>
+    <div class="im-h3 tight">Map Focus</div>
+    <div class="im-layout im-L07 fill"><div class="ph "><span>지도 · 위성</span></div><div><table class="im-table"><thead><tr><th>구분</th><th class="im-r">값</th></tr></thead><tbody><tr><td>지목</td><td class="im-r">공장용지</td></tr><tr><td>면적</td><td class="im-r">18,204㎡</td></tr><tr><td>용도지역</td><td class="im-r">일반공업</td></tr></tbody></table></div></div>
+  </div>
+  <figcaption>
+    <b>L07</b> <span>Map Focus</span>
+    <div class="use">지도·위성·GIS</div>
+    <div class="needs">필요한 자료: map</div>
+  </figcaption>
+</figure>
+<figure class="sheet">
+  <div class="paper">
+    <div class="im-chapter-label">CHAPTER 03</div>
+    <div class="im-h3 tight">Timeline</div>
+    <div class="im-layout im-L08 fill"><div class="tl"><b><span>설계</span><em>2026</em></b><b><span>인허가</span><em>2027</em></b><b><span>착공</span><em>2028</em></b><b><span>준공</span><em>2029</em></b></div></div>
+  </div>
+  <figcaption>
+    <b>L08</b> <span>Timeline</span>
+    <div class="use">일정·단계</div>
+    <div class="needs">필요한 자료: timeline</div>
+  </figcaption>
+</figure>
+<figure class="sheet">
+  <div class="paper">
+    <div class="im-chapter-label">CHAPTER 03</div>
+    <div class="im-h3 tight">Comparison</div>
+    <div class="im-layout im-L09 fill"><table class="im-table"><thead><tr><th>구분</th><th class="im-r">값</th></tr></thead><tbody><tr><td>본 사업</td><td class="im-r">14.2%</td></tr><tr><td>비교사업 A</td><td class="im-r">11.6%</td></tr><tr><td>비교사업 B</td><td class="im-r">9.4%</td></tr></tbody></table></div>
+  </div>
+  <figcaption>
+    <b>L09</b> <span>Comparison</span>
+    <div class="use">경쟁·대안 비교</div>
+    <div class="needs">필요한 자료: table</div>
+  </figcaption>
+</figure>
+<figure class="sheet">
+  <div class="paper">
+    <div class="im-chapter-label">CHAPTER 03</div>
+    <div class="im-h3 tight">Investment Structure</div>
+    <div class="im-layout im-L10 fill"><div><div class="im-navybox"><div class="im-navybox-label">Total</div><div class="im-navybox-value">1,634.3억원</div><div class="im-navybox-sub">Equity 30% / Debt 70%</div></div></div><div><table class="im-table"><thead><tr><th>구분</th><th class="im-r">값</th></tr></thead><tbody><tr><td>Equity</td><td class="im-r">490.3억원</td></tr><tr><td>Senior</td><td class="im-r">980.6억원</td></tr><tr><td>Mezzanine</td><td class="im-r">163.4억원</td></tr></tbody></table></div></div>
+  </div>
+  <figcaption>
+    <b>L10</b> <span>Investment Structure</span>
+    <div class="use">자본구조·지분구조</div>
+    <div class="needs">필요한 자료: 없음</div>
+  </figcaption>
+</figure>
+<figure class="sheet">
+  <div class="paper">
+    <div class="im-chapter-label">CHAPTER 03</div>
+    <div class="im-h3 tight">Risk Matrix</div>
+    <div class="im-layout im-L11 fill"><div class="risk r0"><span>인허가</span></div><div class="risk r1"><span>공사비</span></div><div class="risk r2"><span>분양</span></div><div class="risk r0"><span>금리</span></div><div class="risk r1"><span>환경</span></div><div class="risk r2"><span>준공지연</span></div></div>
+  </div>
+  <figcaption>
+    <b>L11</b> <span>Risk Matrix</span>
+    <div class="use">위험 매트릭스</div>
+    <div class="needs">필요한 자료: flags</div>
+  </figcaption>
+</figure>
+<figure class="sheet">
+  <div class="paper">
+    <div class="im-chapter-label">CHAPTER 03</div>
+    <div class="im-h3 tight">Full Text</div>
+    <div class="im-layout im-L12 fill"><div class="im-text tiny">서술만 있는 절이다. 표도 지표도 없을 때 이 레이아웃으로 간다. 자료가 부족하다는 사실을 감추지 않고, 있는 문장을 읽기 좋게 놓는 것이 이 판의 일이다.</div><div class="im-quote-gold"><div class="im-text tiny">근거가 부족한 문장은 인용선을 달아 갈라 둔다.</div></div></div>
+  </div>
+  <figcaption>
+    <b>L12</b> <span>Full Text</span>
+    <div class="use">순수 서술</div>
+    <div class="needs">필요한 자료: 없음</div>
+  </figcaption>
+</figure>
+  </div>
+
+  <h2 class="sec">어떤 절이 어떤 레이아웃으로 가는가</h2>
+  <p class="small">아래 표는 옮겨 적은 것이 아니라 <code>layouts.pick()</code> 을 <b>실제로 돌린 결과</b>다. 규칙을 고치면 이 표가 따라 바뀐다.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>절의 내용</th><th>고른 레이아웃</th><th>고른 이유</th></tr></thead>
+    <tbody>
+      <tr><td>지적·위성 자료가 있는 절</td><td><code>L07</code> Map Focus</td><td>지도·위성 자료 포함</td></tr>
+      <tr><td>위험 플래그가 붙은 절</td><td><code>L11</code> Risk Matrix</td><td>위험 플래그 포함</td></tr>
+      <tr><td>민감도 분석이 있는 절</td><td><code>L05</code> Chart Focus</td><td>민감도·차트 자료</td></tr>
+      <tr><td>일정만 있는 절</td><td><code>L08</code> Timeline</td><td>일정 정보</td></tr>
+      <tr><td>표와 지표가 함께 있는 절</td><td><code>L06</code> Table Focus</td><td>지표 표</td></tr>
+      <tr><td>표만 있는 절</td><td><code>L06</code> Table Focus</td><td>표 포함</td></tr>
+      <tr><td>지표만 있는 절</td><td><code>L04</code> KPI Dashboard</td><td>핵심 지표</td></tr>
+      <tr><td>이미지만 있는 절</td><td><code>L01</code> Full Image</td><td>이미지 자료</td></tr>
+      <tr><td>자료가 거의 없는 절</td><td><code>L12</code> Full Text</td><td>자료 부족</td></tr>
+      <tr><td>순수 서술 절</td><td><code>L12</code> Full Text</td><td>서술 중심</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2 class="sec">부품</h2>
+  <div class="sws" style="grid-template-columns:repeat(auto-fill,minmax(300px,1fr));align-items:stretch">
+    <div style="background:var(--im-surface);padding:14px">
+      <div class="im-navybox">
+        <div class="im-navybox-label">Total Investment</div>
+        <div class="im-navybox-value">1,634.3억원</div>
+        <div class="im-navybox-sub">Equity 30.0% / Debt 70.0%</div>
+      </div>
+    </div>
+    <div style="background:var(--im-surface);padding:14px">
+      <div class="im-creambox">
+        <div class="im-h3" style="margin:0 0 4px">강조 박스</div>
+        <div class="im-text" style="font-size:11.5px">근거는 있으나 가정이 섞인 값은 여기에 둔다.</div>
+      </div>
+    </div>
+    <div style="background:var(--im-surface);padding:14px">
+      <div class="im-kpi">
+        <div class="im-kpi-label">Equity IRR</div>
+        <div class="im-kpi-value">14.2%</div>
+        <div class="im-kpi-sub">세후 &middot; 보유 7년</div>
+      </div>
+    </div>
+    <div style="background:var(--im-surface);padding:14px">
+      <div class="im-quote-red">
+        <div class="im-text" style="font-size:11.5px">확인되지 않은 값은 붉은 인용선으로 갈라 둔다.</div>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="sec">표 · 숫자 · 캡션</h2>
+  <div style="background:var(--im-surface);padding:16px">
+    <div class="im-table-wrap"><table class="im-table">
+      <thead><tr><th>구분</th><th class="im-r">금액</th><th class="im-r">비중</th></tr></thead>
+      <tbody>
+        <tr><td>토지비</td><td class="im-r">420.0억원</td><td class="im-r">25.7%</td></tr>
+        <tr><td>건축공사비</td><td class="im-r">1,214.3억원</td><td class="im-r">74.3%</td></tr>
+        <tr><td>당기순이익</td><td class="im-r im-neg">△12.4억원</td><td class="im-r">&mdash;</td></tr>
+        <tr><td>합계</td><td class="im-r">1조762.4억원</td><td class="im-r">100.0%</td></tr>
+      </tbody>
+    </table></div>
+    <div class="im-caption">자료출처: 사업계획서 p.34 &middot; 기준일 2026-08-31</div>
+  </div>
+  <p class="small">금액은 원화 억원/조원, 음수는 <code>&#9651;</code>, 숫자는 <code>tabular-nums</code> 로 자릿수를 맞춘다. 캡션은 언제나 <code>자료출처:</code> 로 시작한다 &mdash; 출처 없는 표는 IM 에서 근거가 없는 것과 같다.</p>
+
+  <h2 class="sec">디자인 규칙 14개</h2>
+  <p class="small">규칙의 단일 소스는 <code>design/rules.json</code> 이고, 게이트(<code>design/check.js</code>)와 이 문서가 <b>같은 파일</b>을 읽는다.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>ID</th><th>규칙</th><th>적용</th><th>등급</th></tr></thead>
+    <tbody>
+      <tr><td><code>D1-chapter-break</code></td><td style="white-space:normal">챕터 오프너는 항상 새 페이지 최상단에서 시작</td><td>a4html</td><td><span class="sev RED">RED</span></td></tr>
+      <tr><td><code>D2-caption-prefix</code></td><td style="white-space:normal">모든 표·차트 아래 캡션은 '자료출처: ' 로 시작</td><td>a4html</td><td><span class="sev RED">RED</span></td></tr>
+      <tr><td><code>D3-no-emoji</code></td><td style="white-space:normal">대외 문서에 이모지 금지</td><td>a4html,markdown</td><td><span class="sev RED">RED</span></td></tr>
+      <tr><td><code>D4-krw-only</code></td><td style="white-space:normal">금액은 원화(억원/조원) 표기, 음수는 △</td><td>a4html</td><td><span class="sev YELLOW">YELLOW</span></td></tr>
+      <tr><td><code>D5-palette</code></td><td style="white-space:normal">IM 산출물은 IM 디자인 토큰만 사용 (아침 브리핑 팔레트 금지)</td><td>a4html,svg</td><td><span class="sev RED">RED</span></td></tr>
+      <tr><td><code>D6-print-color</code></td><td style="white-space:normal">인쇄 시 배경·막대·도넛이 실제로 인쇄되어야 한다</td><td>a4html</td><td><span class="sev RED">RED</span></td></tr>
+      <tr><td><code>D7-page-geometry</code></td><td style="white-space:normal">A4 210×297mm · 여백 17mm</td><td>a4html</td><td><span class="sev RED">RED</span></td></tr>
+      <tr><td><code>D8-source-marking</code></td><td style="white-space:normal">공시·감사 원문값과 본 자료 산출·추정치를 표기에서 구분</td><td>a4html,markdown</td><td><span class="sev RED">RED</span></td></tr>
+      <tr><td><code>D9-no-orphan-cell</code></td><td style="white-space:normal">표 셀은 1줄 표기 원칙</td><td>a4html</td><td><span class="sev YELLOW">YELLOW</span></td></tr>
+      <tr><td><code>D10-scale-notice</code></td><td style="white-space:normal">사업 규모가 서식 가정 구간을 벗어나면 첫머리에 명시</td><td>markdown,a4html</td><td><span class="sev YELLOW">YELLOW</span></td></tr>
+      <tr><td><code>D11-theme-consistency</code></td><td style="white-space:normal">문서의 색·서체는 선택된 테마 팔레트에서만 나온다</td><td>a4html</td><td><span class="sev YELLOW">YELLOW</span></td></tr>
+      <tr><td><code>D12-secret-leak</code></td><td style="white-space:normal">산출물에 열쇠·비밀정보가 없다</td><td>a4html,markdown,asset</td><td><span class="sev YELLOW">YELLOW</span></td></tr>
+      <tr><td><code>D13-personal-info</code></td><td style="white-space:normal">동의 없는 개인정보가 없다</td><td>a4html,markdown,asset</td><td><span class="sev YELLOW">YELLOW</span></td></tr>
+      <tr><td><code>D14-rights-unchecked</code></td><td style="white-space:normal">권리 확인이 필요한 자산에 표시가 있다</td><td>a4html,markdown,asset</td><td><span class="sev YELLOW">YELLOW</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <footer>
+    PDI GID &middot; LinkPilot IM Agent &middot; 생성 생성물 · 손으로 고치지 않는다<br>
+    이 문서에 보이는 숫자는 <b>디자인을 보이기 위한 예시</b>이지 실제 딜의 값이 아니다.
+    글꼴이 이 자리에 없으면 브라우저가 다른 활자로 그리므로, 활자 판단은 글꼴이 설치된 자리에서 한다.
+  </footer>
+</div>
+
+<script>
+(function(){
+  var bar=document.getElementById('themebar'), root=document.getElementById('root');
+  if(!bar||!root)return;
+  bar.addEventListener('click',function(e){
+    var b=e.target.closest('button[data-t]'); if(!b)return;
+    root.setAttribute('data-im-theme', b.getAttribute('data-t'));
+    Array.prototype.forEach.call(bar.querySelectorAll('button'),function(x){
+      x.setAttribute('aria-pressed', x===b?'true':'false');
+    });
+  });
+})();
+</script>
+</body></html>

@@ -1,0 +1,308 @@
+/**
+ * **특일정보를 열쇠가 있는 자리에서 받아 결과만 커밋한다** 〈2026-09-12 · D-206〉.
+ *
+ * 사장님 지시: 「특일정보 API 를 붙여라」.
+ *
+ * ★ 이 자리에는 열쇠가 없다. 그래서 **부르는 것은 못 잰다** (§4.3 — 키 없는 자리에서
+ *   실키를 판정하지 않는다). 대신 **열쇠 없이도 잴 수 있는 것**을 잰다:
+ *   못 받았을 때 어떻게 끝나는가 · 왜 안 되는지 갈라 말하는가 · 결과에 열쇠가
+ *   섞이면 막는가 · 워크플로가 접속 자격증명을 안 들고 있는가.
+ */
+'use strict';
+
+const test = require('node:test');
+const assert = require('node:assert');
+const fs = require('node:fs');
+const path = require('node:path');
+const { execFileSync } = require('node:child_process');
+
+const ROOT = path.join(__dirname, '..', '..');
+const kasi = require('../connectors/kasi');
+const tool = require('../tools/calendar-fetch');
+
+test('갈래 넷을 다 읽는다 (공휴일만 받으면 절기가 통째로 빠진다)', () => {
+  const want = ['holiday', 'term', 'sundry', 'anniversary'];
+  assert.deepStrictEqual(Object.keys(kasi.KINDS).sort(), want.slice().sort());
+  /* 지침서 v1.1 §4.6 이 요구하는 24절기가 그 안에 있어야 한다 */
+  assert.strictEqual(kasi.KINDS.term.label, '24절기');
+});
+
+test('날짜를 표가 쓰는 모양으로 편다 (0 을 안 붙인다)', () => {
+  assert.strictEqual(kasi.toKey('20260217'), '2026-2-17');
+  assert.strictEqual(kasi.toKey('2026-09-25'), '2026-9-25');
+  assert.strictEqual(kasi.toKey('엉뚱'), null);
+});
+
+test('★ 왜 안 되는지 갈라 말한다 — 「승인 전」과 「키 틀림」이 안 섞인다', () => {
+  /* [왜 급소인가] 활용신청 전이면 **키가 멀쩡해도 거부**되는데 그 응답이
+     「키가 틀렸다」와 똑같이 생겼다 (§4.2). 갈라 주지 않으면 사장님이
+     키를 다시 발급받으시고도 같은 증상을 보신다. */
+  const approval = kasi.diagnose(200, '<returnReasonCode>30</returnReasonCode>SERVICE_KEY_IS_NOT_REGISTERED_ERROR');
+  const key = kasi.diagnose(401, '');
+  const quota = kasi.diagnose(200, 'LIMITED_NUMBER_OF_SERVICE_REQUESTS_EXCEEDS_ERROR');
+  const gone = kasi.diagnose(200, 'NO_OPENAPI_SERVICE_ERROR');
+  assert.strictEqual(approval.kind, 'approval');
+  assert.strictEqual(key.kind, 'key');
+  assert.strictEqual(quota.kind, 'quota');
+  assert.strictEqual(gone.kind, 'endpoint');
+  const kinds = new Set([approval.kind, key.kind, quota.kind, gone.kind]);
+  assert.strictEqual(kinds.size, 4, '넷이 서로 다른 판정이어야 한다');
+  assert.match(approval.head, /활용신청/, '승인 안내에 무엇을 해야 하는지가 없다');
+  /* ★★★ **「이미 신청하신 분」에게도 맞는 글이어야 한다** 〈2026-09-14 · 사장님: 「활용신청 했음」〉.
+     data.go.kr 은 「신청 안 함」과 「승인·전파 대기」에 **똑같은 코드(30)**를 준다 —
+     코드는 갈라 «판정»할 수 없다. 그러니 **두 경우를 한 글에 함께** 적어야,
+     이미 하신 분이 **또 하시지 않는다** (M-86 과 같은 결).
+     ★ 앞 판의 글은 「신청한다」 하나뿐이었고, 그것이 이 파일 주석이 경계한 실수였다. */
+  assert.match(approval.head, /다시 신청하지 않는다/,
+    '이미 신청하신 경우가 안 적혀 있다 — 그 글을 보시면 하신 일을 또 하시게 된다 (M-86)');
+  assert.match(approval.head, /기다리/,
+    '기다리는 상태라는 것이 안 적혀 있다 — 「안 됐다」로만 읽힌다');
+  assert.match(approval.head, /결과 보기|작업 스케줄러/,
+    '다시 재는 법이 없다 — 「기다린다」만 적으면 아무도 다시 확인하지 않는다 (§5)');
+  assert.match(approval.head, /키 문제가 아니다/,
+    '키 탓으로 읽힐 여지를 안 막았다 — 새 키를 발급받으시게 된다 (§4.2)');
+});
+
+test('★★★ 「못 닿은 것」을 「승인 안 된 것」으로 말하지 않는다', () => {
+  /* [사고 2026-09-12 · 실측] 첫 실행에서 5년 × 4갈래 **스무 칸 전부**가
+     「판정하지 못했다 (HTTP undefined)」로 나왔다. 상태코드가 없다는 것은
+     **응답이 아예 안 온 것**인데, 그 글은 「승인이 안 됐나」로 읽힌다 —
+     사장님이 **이미 하신 활용신청을 또 하시게 된다.**
+     ★ 실제 원인은 자리였다: 같은 날 진단에서 data.go.kr 계열이 전부 `fetch failed` 였고
+       한국은행·부동산원은 살아 있었다. 열쇠가 있는 자리가 곧 «닿는 자리»는 아니다. */
+  const unreachable = kasi.diagnose(undefined, undefined, 'fetch failed (4회 시도 실패)');
+  assert.strictEqual(unreachable.kind, 'unreachable', '응답이 없는 것을 따로 갈라야 한다');
+  assert.match(unreachable.head, /못 닿았다/, '무엇이 일어난 것인지 말하지 않는다');
+  assert.match(unreachable.head, /fetch failed/, '실제 이유를 그대로 옮기지 않는다');
+  assert.doesNotMatch(unreachable.head, /HTTP undefined/, '「HTTP undefined」를 사람에게 보이면 안 된다');
+  /* ★ 승인 문제와 «다른 판정»이어야 한다 — 섞이면 갈라 둔 뜻이 없다 */
+  const approval2 = kasi.diagnose(200, 'SERVICE_KEY_IS_NOT_REGISTERED_ERROR');
+  assert.notStrictEqual(unreachable.kind, approval2.kind);
+});
+
+test('★★ 열쇠가 없으면 «못 쟀다»로 끝낸다 — 통과로도 실패로도 안 뭉갠다', () => {
+  const env = { ...process.env };
+  delete env.DATA_GO_KR_KEY;
+  let code = 0, out = '';
+  try {
+    out = execFileSync(process.execPath, [path.join(ROOT, 'im-agent/tools/calendar-fetch.js')],
+      { env, encoding: 'utf8' });
+  } catch (e) { code = e.status; out = String(e.stdout || ''); }
+  assert.strictEqual(code, 2, '열쇠가 없을 때 돌아오는 값이 2(못 쟀다)가 아니다 — ' + code);
+  assert.match(out, /못 받았다|미설정/, '왜 안 됐는지 안 말한다');
+});
+
+test('★★★ 결과에 열쇠 값이 섞이면 잡는다 (이 저장소는 공개다 — D-10)', () => {
+  const before = process.env.LP_TEST_FAKE_KEY;
+  process.env.LP_TEST_FAKE_KEY = 'abcd1234efgh5678ijkl';
+  try {
+    assert.deepStrictEqual(tool.leaks('아무 일 없는 본문'), []);
+    assert.deepStrictEqual(tool.leaks('앞 abcd1234efgh5678ijkl 뒤'), ['LP_TEST_FAKE_KEY'],
+      '본문에 열쇠 값이 있는데 못 잡는다');
+  } finally {
+    if (before === undefined) delete process.env.LP_TEST_FAKE_KEY; else process.env.LP_TEST_FAKE_KEY = before;
+  }
+});
+
+test('★★ 수집 잡에 접속 자격증명이 없다 (규정집 2-8 · §4)', () => {
+  const y = fs.readFileSync(path.join(ROOT, '.github/workflows/calendar-fetch.yml'), 'utf8');
+  const code = y.split('\n').filter((l) => !/^\s*#/.test(l)).join('\n');
+  for (const bad of ['NAS_HOST', 'NAS_SSH', 'TAILSCALE', 'DEPLOY_KEY', 'SSH_KEY']) {
+    assert.ok(code.indexOf(bad) < 0, '수집 잡에 접속 자격증명이 들어 있다: ' + bad);
+  }
+  assert.match(code, /DATA_GO_KR_KEY/, '데이터 열쇠를 안 넘겨준다 — 부를 수가 없다');
+});
+
+test('cron 은 UTC 로 적혀 있다 (KST 로 적으면 하루가 어긋난다 — §2)', () => {
+  const y = fs.readFileSync(path.join(ROOT, '.github/workflows/calendar-fetch.yml'), 'utf8');
+  const m = y.match(/cron:\s*'([^']+)'/);
+  assert.ok(m, 'schedule 이 없다');
+  /* 1월 2일 00:10 KST = 12월 31일 15:10 UTC — 날짜가 «앞으로» 밀린 것이 맞다 */
+  assert.strictEqual(m[1], '10 15 31 12 *',
+    'cron 이 UTC 변환값과 다르다 (KST 로 적었는지 본다): ' + m[1]);
+});
+
+/* ── 국내 자리(NAS) 수집 ─────────────────────────────────────────── */
+
+test('★★★ 도는 자리가 있다 — `im-agent/tools/calendar-nas.sh` (Actions 에서는 못 닿는다 · D-206)', () => {
+  /* ★ 왜 이 칸이 있나. 앞 판은 「NAS 에서 돈다」를 **규칙으로만** 적어 두었다.
+     그러면 그 규칙이 사람의 기억에 얹힌다 — 부를 것이 실제로 없어도 아무 오류가 안 난다
+     (M-31 과 같은 결). 그래서 **부를 것이 있는지**를 잰다. */
+  const sh = path.join(ROOT, 'im-agent', 'tools', 'calendar-nas.sh');
+  assert.ok(fs.existsSync(sh),
+    'im-agent/tools/calendar-nas.sh 가 없습니다 — 「NAS 에서 돈다」를 적어 두고 부를 것이 없습니다');
+  const code = fs.readFileSync(sh, 'utf8');
+
+  /* ① 수집을 실제로 부르는가 — 규칙만 적고 안 부르는 상태가 가장 잡기 어렵다 */
+  assert.match(code, /calendar-fetch\.js/,
+    'calendar-nas.sh 가 수집 도구를 안 부릅니다 — 껍데기입니다');
+
+  /* ② 「돌았다」와 「채워졌다」를 갈라 세는가 (§8 「걸었다 ≠ 닿았다」) */
+  assert.match(code, /exit 4/, '받은 해가 0 개일 때 빨갛게 끝나는 길이 없습니다');
+  assert.match(code, /exit 5/, '앱이 읽을 자리로 못 옮긴 것을 따로 가르는 길이 없습니다');
+
+  /* ③ ★★ 접속 자격증명도 데이터 열쇠도 없는가 (규정집 2-8 · §2) */
+  const noComment = code.split('\n').filter((l) => !/^\s*#/.test(l)).join('\n');
+  for (const bad of ['ssh ', 'scp ', 'id_deploy', 'DATA_GO_KR_KEY=', 'PRIVATE KEY']) {
+    assert.ok(noComment.indexOf(bad) < 0,
+      'calendar-nas.sh 에 「' + bad.trim() + '」 가 있습니다 — 수집이 도는 자리에는 자격증명을 두지 않습니다');
+  }
+
+  /* ④ npm 으로도 같은 것이 도는가 — 손으로 경로를 치게 만들지 않는다 */
+  const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+  assert.ok(String(pkg.scripts['calendar:nas'] || '').includes('calendar-nas.sh'),
+    'package.json 에 calendar:nas 가 없습니다');
+});
+
+test('★★★ 그 자리가 «배포가 올리는 자리»인가 (저장소에만 있으면 NAS 에서 부를 것이 없다)', () => {
+  /* ★★★ 내가 실제로 한 번 틀렸다 〈2026-09-12〉. 처음에 `deploy/calendar-nas.sh` 로
+     두었는데 `deploy/engine.sh` 가 NAS 로 올리는 것은 **`im-agent/` 뿐이다.**
+     그러면 그 파일은 NAS 에 아예 없고 사장님이 DSM 에서 부를 것이 없는데,
+     **검사는 초록이었다** — 저장소에는 있으니까.
+     ★ 「만들었다」와 「닿는다」는 다른 사실이다 (§8 「걸었다 ≠ 닿았다」).
+     ★★ 그래서 ① `im-agent/` 안에 있는지 ② 배포가 빼는 폴더에 걸리지 않는지 둘을 잰다. */
+  const rel = path.join('im-agent', 'tools', 'calendar-nas.sh');
+  const engine = fs.readFileSync(path.join(ROOT, 'deploy', 'engine.sh'), 'utf8');
+
+  assert.ok(rel.startsWith('im-agent' + path.sep),
+    '수집 스크립트가 `im-agent/` 밖에 있습니다 — 배포가 그것을 올리지 않습니다');
+
+  /* 배포가 빼는 폴더들 — `--exclude='im-agent/test'` 같은 줄에서 읽는다 */
+  const excluded = [...engine.matchAll(/--exclude='([^']+)'/g)].map((m) => m[1]);
+  assert.ok(excluded.length >= 3,
+    "engine.sh 에서 빼는 폴더 목록을 못 읽었습니다 — 이 칸은 아무것도 안 잽니다");
+  const hit = excluded.filter((e) => {
+    const pat = e.replace(/\*/g, '');
+    return pat && rel.indexOf(pat) === 0;
+  });
+  assert.deepStrictEqual(hit, [],
+    '수집 스크립트가 배포에서 «빼는» 자리에 있습니다 (' + hit.join('·')
+    + ') — 저장소에는 있는데 NAS 에는 안 올라갑니다');
+});
+
+test('★★ Actions 워크플로가 「여기서는 못 돈다」를 적어 두었다 (지운 것과 다른 사실이다)', () => {
+  /* ★★★ 이것이 없으면 다음 사람이 그 단추를 눌러 보고 실패를 **승인 문제로 읽는다** —
+     실제로 그랬고, 그 글이 이미 하신 활용신청을 또 하시게 만들었다. */
+  const wf = fs.readFileSync(path.join(ROOT, '.github', 'workflows', 'calendar-fetch.yml'), 'utf8');
+  const head = wf.slice(0, wf.indexOf('\non:\n'));
+  assert.match(head, /calendar-nas\.sh/,
+    '워크플로 머리가 진짜 도는 자리를 안 가리킵니다 — 눌러 본 사람이 어디로 가야 할지 모릅니다');
+  assert.match(head, /못 닿음/,
+    '워크플로 머리에 「못 닿음」과 「승인 안 됨」을 가르는 말이 없습니다');
+});
+
+test('★★★ 스케줄러의 좁은 PATH 에서도 node 를 찾는다 (깔려 있는데 «못 찾았다»가 나온다)', () => {
+  /* [왜 급소인가 · 2026-09-13 사장님 화면] 패키지 센터에 Node.js v22 가 「실행 중」인데도
+     DSM 「작업 스케줄러」가 부르면 못 찾을 수 있다 — 스케줄러가 주는 PATH 에 패키지 자리가
+     안 들어 있어서다. 그때 나오는 말이 「Node.js 패키지를 켜야 한다」라서
+     **이미 켜 두신 것을 또 하시게 된다** (§4.6 「원인을 사람 말로 적는다」와 같은 결).
+     ★ 글자로 대조하지 않고 **PATH 를 실제로 좁혀 돌려** 잰다. */
+  const sh = path.join(ROOT, 'im-agent', 'tools', 'calendar-nas.sh');
+  let out = '';
+  try {
+    out = execFileSync('/usr/bin/env', ['-i', 'PATH=/nonexistent', '/usr/bin/bash', sh], {
+      cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000,
+    });
+  } catch (err) {
+    out = String((err && err.stdout) || '') + String((err && err.stderr) || '');
+  }
+  assert.ok(/node 를 못 찾았다/.test(out) === false,
+    'PATH 가 좁다는 이유로 node 를 못 찾았습니다 — DSM 스케줄러에서 같은 일이 납니다:\n' + out.slice(0, 400));
+  assert.match(out, /· node: v\d+/,
+    '어떤 node 를 골랐는지가 안 찍힙니다 — 무엇으로 돌았는지 알 수 없습니다');
+});
+
+test('★★ 글로브가 안 맞을 때 그 «글자»가 node 로 새지 않는다', () => {
+  /* [왜 이 칸을 두나] 후보에 DSM 패키지 자리를 «별표가 든 무늬»로 적었는데,
+     그 자리가 없는 기계(이 컨테이너·러너)에서는 셸이 **글자 그대로** 넘겨준다.
+     ★ 이 설명에 그 무늬를 글자로 인용하지 않는다 — 별표와 빗금이 붙으면 이 주석이
+       거기서 끝나 파일이 통째로 깨진다 (§8 「주석 안의 글자가 코드를 깨뜨린다」 · 실제로 났다).
+     걸러 내지 않으면 `$NODE` 가 별표가 든 문자열이 되고, 그것으로 실행을 시도해
+     **원인이 안 보이는 오류**가 난다. 그래서 실행 가능 여부로 거르는지 실제로 잰다. */
+  const sh = fs.readFileSync(path.join(ROOT, 'im-agent', 'tools', 'calendar-nas.sh'), 'utf8');
+  const body = sh.split('\n').filter((l) => !/^\s*#/.test(l)).join('\n');
+  const loop = body.slice(body.indexOf('NODE=""'), body.indexOf('say "────────'));
+  assert.ok(loop.length > 40, '후보를 고르는 자리를 못 읽었습니다 — 이 칸은 아무것도 안 잽니다');
+  assert.match(loop, /\[\s*-x\s*"\$c"\s*\]/,
+    '실행 가능한지 안 보고 후보를 씁니다 — 안 맞은 글로브가 그대로 새어 들어갑니다');
+});
+
+test('★ 후보에 판 번호를 박지 않는다 (v22 로 박으면 다음 판에서 조용히 깨진다)', () => {
+  /* 사장님 NAS 는 지금 v22 다. 그 숫자를 박아 두면 v24 로 올리시는 날
+     **아무 오류 없이 못 찾게** 되고, 증상이 「Node.js 가 안 깔렸다」와 같아진다. */
+  const sh = fs.readFileSync(path.join(ROOT, 'im-agent', 'tools', 'calendar-nas.sh'), 'utf8');
+  const body = sh.split('\n').filter((l) => !/^\s*#/.test(l)).join('\n');
+  const cands = body.match(/Node\.js_v[^\s\\"]*/g) || [];
+  assert.ok(cands.length >= 2, 'DSM 패키지 자리를 안 훑습니다 (찾은 후보 ' + cands.length + '개)');
+  const pinned = cands.filter((c) => /Node\.js_v\d/.test(c));
+  assert.deepStrictEqual(pinned, [],
+    '판 번호가 박힌 후보가 있습니다 (' + pinned.join('·') + ') — 판을 올리시면 조용히 깨집니다');
+});
+
+/* ────────────────────────────────────────────────────────────────────
+ * 「아직 공표 안 됨」과 「못 받았다」 — 2026-09-17 실측으로 생긴 칸
+ *
+ * 무엇이 났나: 사장님이 Actions 에서 이 수집을 돌리셨는데 두 실행이 ❌ 였다.
+ * 로그를 갈라 읽어 보니 2026·2027·2028 은 **멀쩡히 왔고**(135·155·150건)
+ * 2029·2030 만 0건이었다. 그런데 글은 「한 건도 **못 받았다**」였고,
+ * 사유 줄은 **한 줄도 안 찍혔다** — 곧 오류가 없었다는 뜻이다.
+ *
+ * ★ 서버는 대답했고 그 해 자료가 아직 없는 것이다(공휴일은 관보 확정 뒤에 실린다).
+ *   **우리가 고칠 자리가 없는 일**인데 실패로 세어 날마다 빨개졌고, 그 빨강이
+ *   「활용신청을 또 하라」로 읽힌다 (§12-12 · D-206 이 겪은 그 자리).
+ * ──────────────────────────────────────────────────────────────────── */
+
+test('★★★ 「그 해 자료가 아직 없다」를 「못 받았다」와 갈라 돌려준다', () => {
+  const src = fs.readFileSync(path.join(ROOT, 'im-agent', 'connectors', 'kasi.js'), 'utf8');
+  const body = src.split('\n').filter((l) => !/^\s*[*/]/.test(l)).join('\n');
+  const at = body.indexOf('function year(');
+  assert.ok(at > 0, 'year() 를 못 읽었습니다 — 이 칸은 아무것도 안 잽니다');
+  const seg = body.slice(at);
+  /* 재려는 성질: 「갈래가 전부 성공했는데 0건」을 «따로 이름 붙여» 돌려주는가.
+     낱말이 아니라 «조건»을 본다 — 변수 이름이 바뀌어도 남는다. */
+  assert.match(seg, /empty\s*=[^;]*errors\.length\s*===\s*0/,
+    '빈 응답을 오류 없음과 «함께» 보지 않습니다 — 그러면 둘이 같은 값이 됩니다');
+  assert.match(seg, /return\s*\{[^}]*\bempty\b/,
+    '갈라 놓고 돌려주지 않습니다 — 부르는 쪽이 못 가릅니다');
+});
+
+test('★★★ 공표 전인 해를 실패로 세지 않는다 (날마다 빨개지면 그 빨강이 뜻을 잃는다)', () => {
+  const src = fs.readFileSync(path.join(ROOT, 'im-agent', 'tools', 'calendar-fetch.js'), 'utf8');
+  const body = src.split('\n').filter((l) => !/^\s*[*/]/.test(l)).join('\n');
+  const at = body.indexOf('if (r.empty)');
+  assert.ok(at > 0, '공표 전 갈래를 아예 안 봅니다 — 「못 받았다」와 한 덩어리입니다');
+  /* ★ 그 갈래가 hardFail 앞에 있어야 한다 — 뒤에 있으면 이미 실패로 세어진 뒤다. */
+  const hardAt = body.indexOf('hardFail++');
+  assert.ok(at < hardAt, '공표 전 판정이 실패 세는 자리보다 뒤에 있습니다 — 그대로 빨개집니다');
+  /* ★ 창을 글자 수로 잡지 않는다 — 400자로 잡았더니 **바로 뒤의 다른 블록**을
+     제 것으로 읽어 고침이 옳은데 빨개졌다 (§12-6 「같은 검사의 창이 세 번 어긋났다」).
+     여는 중괄호부터 짝이 닫히는 자리까지만 본다. */
+  const ob = body.indexOf('{', at);
+  let d = 0, end = ob;
+  for (let i = ob; i < body.length; i++) {
+    if (body[i] === '{') d++;
+    else if (body[i] === '}') { d--; if (d === 0) { end = i; break; } }
+  }
+  const seg = body.slice(at, end + 1);
+  assert.ok(end > ob, '공표 전 블록의 끝을 못 찾았습니다 — 이 칸은 아무것도 안 잽니다');
+  assert.ok(!/hardFail\+\+/.test(seg), '공표 전인데도 실패로 셉니다');
+  /* ★★ 그리고 사람 말로 «고칠 것이 없다»를 적어야 한다 — 안 적으면 사장님이
+     고칠 것이 없는 자리(활용신청·열쇠)를 보러 가신다 (§4.6 · §12-12). */
+  assert.match(seg, /고칠 것 없음|공표 전/,
+    '무엇인지 사람 말로 안 적습니다 — 「못 받았다」로 읽힙니다');
+});
+
+test('★★ 요약이 셋을 갈라 적는다 — 받음 · 공표 전 · 못 받음', () => {
+  const src = fs.readFileSync(path.join(ROOT, 'im-agent', 'tools', 'calendar-fetch.js'), 'utf8');
+  const body = src.split('\n').filter((l) => !/^\s*[*/]/.test(l)).join('\n');
+  /* 「통째로 못 받은 해」를 세는 자리가 공표 전인 해를 빼고 세는가 */
+  /* ★ `[^)]*` 로 쓰면 화살표 함수의 인자 괄호에서 막힌다 — 옳은 코드가 빨개졌다.
+     한 줄 안에서만 찾는다(줄바꿈은 안 넘는다). */
+  assert.match(body, /failed\s*=\s*rows\.filter\(.*!r\.ok\s*&&\s*!r\.empty/,
+    '못 받은 해를 셀 때 공표 전인 해를 빼지 않습니다 — 요약이 「없는 것」이라 적습니다');
+  assert.match(body, /\bempty\s*=\s*rows\.filter\(.*r\.empty/,
+    '공표 전인 해를 따로 세지 않습니다');
+  /* ★ 표에도 갈래가 보여야 한다 — ✓/✗ 둘뿐이면 요약만 봐서는 못 가린다 */
+  const tbl = body.slice(body.indexOf('L.push(`| ${r.year}'), body.indexOf('L.push(`| ${r.year}') + 200);
+  assert.match(tbl, /r\.empty/, '표가 공표 전인 해를 ✗ 로 적습니다 — 같은 글자가 됩니다');
+});

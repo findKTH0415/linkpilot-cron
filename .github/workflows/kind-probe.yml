@@ -1,0 +1,74 @@
+name: KIND 홈페이지 창구 진단
+
+# 한국해외인프라도시개발지원공사(KIND) 홈페이지가 화면을 그릴 때 부르는 창구(/api/v1/…)를 찾아
+# 상태·형식·응답 앞머리만 data/kind/_probe.md 로 남긴다 (CLAUDE.md §4 «진단부터 짠다»).
+# 2026-10-22 사장님: 「KIND API 추출하여 투자·정보지원 섹션 좌측상단에 · 지원 사업정보 실시간 업데이트」.
+# ★ 열쇠도 접속정보도 없다 — 공개 홈페이지만 부른다. 손으로만 건다(진단이라 시계 없음).
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+
+      - name: 창구 진단
+        id: probe
+        continue-on-error: true
+        run: |
+          set +e
+          node scripts/kind-probe.mjs 2>&1 | tee /tmp/kind.log
+          code=${PIPESTATUS[0]}
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          { echo '### KIND 창구 진단'; tail -1 data/kind/_probe.md 2>/dev/null || echo '(요약 없음)'; } >> "$GITHUB_STEP_SUMMARY"
+          exit $code
+
+      - name: 결과 커밋
+        if: always()
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -u
+          if [ -z "${DEFAULT_BRANCH:-}" ]; then
+            echo "::warning::기본 가지 이름을 못 받았다 — 커밋하지 않는다. 결과는 아래 아티팩트에 있다"
+            exit 0
+          fi
+          if [ "$REF_NAME" != "$DEFAULT_BRANCH" ]; then
+            echo "가지 '$REF_NAME' 에서 돌았다 — **결과를 커밋하지 않는다.**"
+            echo "  까닭: 열려 있는 PR 의 머리가 움직이면 검사가 다시 선다."
+            echo "  받을 곳: 아래 «아티팩트 업로드» 아티팩트 (kind-probe)"
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/kind
+          git diff --staged --quiet || git commit -m "KIND 창구 진단 ($(date -u +%Y-%m-%d))"
+          # 도는 사이 본가지가 움직이면 밀어 넣기가 거부된다 (2026-10-22 둘째 실행) — 받아 얹고 다시 민다.
+          for i in 1 2 3; do git pull --rebase -q origin "$DEFAULT_BRANCH" && git push && exit 0; sleep $((i*3)); done
+          exit 1
+
+      - name: 아티팩트 업로드
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: kind-probe
+          path: data/kind
+
+      - name: 판정
+        if: always()
+        env:
+          CODE: ${{ steps.probe.outputs.code }}
+        run: |
+          echo "진단 값: ${CODE:-못 받음} (0 = /api 주소를 찾음 · 2 = 주소를 하나도 못 찾음 · 3 = 첫 화면에 못 닿음)"
+          [ "${CODE:-2}" = "0" ] || exit 1

@@ -1,0 +1,513 @@
+'use strict';
+/**
+ * **「0/5 인데 초록」을 막는다** 〈2026-09-17 · D-213〉
+ *
+ * [무엇이 났나] 브이월드 수집이 **5필지 전부 실패한 실행을 초록으로 끝냈다**
+ *   (실측: `fetch failed` 3 · `HTTP 502` 2). 스크립트가 걸린 것을 요약 §4 에
+ *   **적기만** 하고 종료 코드가 늘 0 이었다. 초록이라 아무도 안 열어 보고,
+ *   정작 하려던 수집은 **한 번도 안 됐다.**
+ *
+ * [왜 갈래가 넷인가] 할 일이 **갈래마다 정반대**다 —
+ *   2(못 쟀다)는 **자리를 옮기는 일**이고 3(서버가 대답)은 **콘솔을 여는 일**이다.
+ *   뭉뚱그리면 이미 하신 활용신청을 또 하시게 되거나, 될 자리를 안 된다고 접는다
+ *   (§4 「못 닿음을 승인 안 됨으로 적지 않는다」와 같은 규칙).
+ *
+ * ★ **판정 함수를 떼어 내 돌려서 잰다.** 「그 낱말이 있는가」는 아무것도 안 재는 것이다 —
+ *   실제 오류 문구를 먹여 **어느 값으로 끝나는지** 본다.
+ * ★★ **주석을 떼고 본다** — 이 경위에 옛 글자를 그대로 적었으므로, 안 떼면
+ *   되돌려도 주석 때문에 초록이 된다 (§8 그 함정이 거꾸로 온 경우).
+ */
+
+const test = require('node:test');
+const assert = require('node:assert');
+const fs = require('node:fs');
+const path = require('node:path');
+
+const ROOT = path.join(__dirname, '..', '..');
+const SCRIPT = path.join(ROOT, 'scripts', 'vworld-fetch.mjs');
+const WF = path.join(ROOT, '.github', 'workflows', 'vworld.yml');
+
+const read = (p) => fs.readFileSync(p, 'utf8');
+/** 주석 줄을 떼고 본다 (`//` 와 `#`) */
+const codeOf = (p, mark) =>
+  read(p).split('\n').filter((l) => !new RegExp(`^\\s*${mark}`).test(l)).join('\n');
+
+/**
+ * 스크립트의 판정 규칙을 **소스에서 오려 내** 돌린다.
+ * ★ 베끼면 한쪽이 옛말을 한다 — 정규식 둘과 갈래 판정을 그 파일에서 읽는다.
+ */
+/**
+ * 스크립트의 판정을 **소스에서 오려 내 실제로 돌린다.**
+ *
+ * ★★★ **베끼면 한쪽이 옛말을 한다** 〈사보타주 둘이 빠져나가서 고쳤다〉.
+ *   앞 판은 정규식만 소스에서 읽고 **갈래 순서는 검사 안에 베껴** 두었다. 그래서
+ *   스크립트에서 5xx 갈래를 통째로 지워도, 순서를 뒤집어도 **검사는 초록이었다** —
+ *   재려던 것(「스크립트가 어떻게 가르는가」)을 안 재고 **제 논리를 재고 있었다**
+ *   (§8-1 「두 벌이면 한쪽이 옛말을 한다」 · §12-23 의 그 잣대와 같다).
+ *
+ * ★ 그래서 `let code = 0;` 부터 판정 끝까지를 **글자로 오려 내 `new Function` 으로
+ *   돌린다.** 순서·조건·문구가 전부 그 파일에서 온다.
+ * ★★ 오려 낼 자리를 **꼬리 글자로 찾지 않는다** — 중괄호 짝을 세어 블록 끝을 잡는다
+ *   (§12-6 에서 세 번 겪은 자리).
+ */
+function verdictOf({ got, total, problems }) {
+  const src = read(SCRIPT);
+
+  const pick = (name) => {
+    const m = src.match(new RegExp(`const ${name} = (\\/.*\\/i?);`));
+    assert.ok(m, `판정 정규식 \`${name}\` 을 못 찾았습니다 — 이 칸은 아무것도 안 잽니다`);
+    return m[1];
+  };
+
+  const at = src.indexOf('let code = 0;');
+  assert.ok(at > -1, '판정 블록을 못 찾았습니다 — 이 칸은 아무것도 안 잽니다');
+  /* 중괄호 짝으로 if/else 사슬의 끝을 잡는다 */
+  const from = src.indexOf('if (', at);
+  let depth = 0; let end = -1;
+  for (let i = from; i < src.length; i += 1) {
+    if (src[i] === '{') depth += 1;
+    else if (src[i] === '}') {
+      depth -= 1;
+      if (depth === 0) {
+        /* 다음이 ` else` 면 사슬이 이어진다 */
+        const rest = src.slice(i + 1, i + 8);
+        if (!/^\s*else/.test(rest)) { end = i + 1; break; }
+      }
+    }
+  }
+  assert.ok(end > from, '판정 사슬의 끝을 못 잡았습니다 — 이 칸은 아무것도 안 잽니다');
+  const chain = src.slice(at, end);
+  assert.ok(/else if/.test(chain),
+    '오려 낸 것에 갈래가 없습니다 — 엉뚱한 자리를 잡았습니다');
+
+  const body = `
+    const UNREACHED = ${pick('UNREACHED')};
+    const ANSWERED  = ${pick('ANSWERED')};
+    const SERVER5XX = ${pick('SERVER5XX')};
+    const AUTHDENY  = ${pick('AUTHDENY')};
+    const NOMATCH   = ${pick('NOMATCH')};
+    const n = (re) => problems.filter((t) => re.test(t)).length;
+    const unreached = n(UNREACHED), answered = n(ANSWERED);
+    const s5xx = n(SERVER5XX), deny = n(AUTHDENY), nomatch = n(NOMATCH);
+    ${chain}
+    return { code, verdict, unreached, answered, s5xx, deny, nomatch };
+  `;
+  // eslint-disable-next-line no-new-func
+  const run = new Function('parcels', 'LOTS', 'problems', body);
+  return run({ length: got }, { length: total }, problems);
+}
+
+/* ── 갈래 넷을 실제 문구로 먹여 돌린다 ───────────────────── */
+
+test('★★★ 전부 실패하면 **빨갛게 끝난다** — 「0/5 인데 초록」을 막는다 (D-213)', () => {
+  /* 사장님 화면에 실제로 찍힌 문구다 (실측 2026-09-17) */
+  const real = [
+    '695-4 지오코딩: 지오코딩 실패 — fetch failed (주소: …)',
+    '695-11 지오코딩: 지오코딩 실패 — HTTP 502 (주소: …)',
+    '610-1 지오코딩: 지오코딩 실패 — HTTP 502 (주소: …)',
+    '610-2 지오코딩: 지오코딩 실패 — fetch failed (주소: …)',
+    '612-1 지오코딩: 지오코딩 실패 — fetch failed (주소: …)',
+  ];
+  const v = verdictOf({ got: 0, total: 5, problems: real });
+  assert.notStrictEqual(v.code, 0,
+    '5필지 전부 실패했는데 0(초록)으로 끝납니다 — 이것이 D-213 의 그 고장입니다.');
+  /* ★★★ **실측에 인증 거부가 0건이었다.** 있는 것은 `fetch failed` 와 `HTTP 502` 뿐이다 —
+     열쇠가 틀렸으면 VWorld 는 `INVALID_KEY` 를 준다. 502 는 **그쪽 게이트웨이**다.
+     그러니 「콘솔을 보라」로 적으면 **거기에는 고칠 것이 없다** (§4.6 의 그 잣대). */
+  assert.strictEqual(v.code, 3,
+    `HTTP 5xx 만 왔으므로 3(그쪽 서버) 이어야 합니다 (받은 값 ${v.code}) — `
+    + '4(인증 거부)로 적으면 사장님이 고칠 것이 없는 콘솔을 여십니다.');
+  assert.strictEqual(v.deny, 0, '실측 문구에 인증 거부가 없는데 있다고 셉니다');
+  assert.ok(v.s5xx >= 1, 'HTTP 502 를 5xx 로 안 셉니다');
+});
+
+test('★★★ 「대답이 왔다」 안에서 **할 일이 다른 셋**을 갈라 준다 (5xx · 인증 · 주소)', () => {
+  const only5xx = verdictOf({ got: 0, total: 5, problems: ['695-4: HTTP 502 (4회 시도 실패)'] });
+  assert.strictEqual(only5xx.code, 3,
+    '5xx 만 왔는데 3(그쪽 서버)으로 안 갈립니다 — 우리 쪽에 고칠 것이 없는 갈래입니다.');
+
+  const denied = verdictOf({ got: 0, total: 5, problems: ['695-4: VWorld INVALID_KEY: 인증 실패'] });
+  assert.strictEqual(denied.code, 4,
+    '인증 거부인데 4 로 안 갈립니다 — 그러면 콘솔을 보라고 말하지 않습니다.');
+
+  const miss = verdictOf({ got: 0, total: 5, problems: ['695-4: 결과가 없습니다'] });
+  assert.strictEqual(miss.code, 5,
+    '주소 미매칭인데 5 로 안 갈립니다 — 열쇠를 보러 가시게 됩니다.');
+
+  /* ★★ **섞이면 고칠 것이 있는 쪽을 먼저 가리킨다** — 5xx 를 먼저 말하면
+     「기다리면 된다」로 읽혀 진짜 고칠 것(인증)이 묻힌다 */
+  const mixed = verdictOf({ got: 0, total: 5, problems: [
+    '695-4: HTTP 503', '695-11: VWorld INVALID_KEY: 권한 없음',
+  ] });
+  assert.strictEqual(mixed.code, 4,
+    '5xx 와 인증 거부가 섞였는데 5xx(기다리면 된다)를 먼저 말합니다 — 고칠 것이 묻힙니다.');
+});
+
+test('★★★ 「못 쟀다」와 「서버가 대답했다」를 **갈라 준다** — 할 일이 정반대다', () => {
+  const noAnswer = verdictOf({ got: 0, total: 5, problems: [
+    '695-4 지오코딩: fetch failed', '695-11 지오코딩: ETIMEDOUT',
+  ] });
+  assert.strictEqual(noAnswer.code, 2,
+    '응답이 한 번도 없었는데 「못 쟀다」(2) 로 안 갈립니다 — '
+    + '그러면 열쇠·활용신청을 보러 가시게 됩니다 (§4 의 그 규칙).');
+
+  const answered = verdictOf({ got: 0, total: 5, problems: [
+    '695-4 지오코딩: VWorld INVALID_KEY: 인증 실패',
+  ] });
+  assert.notStrictEqual(answered.code, 2,
+    '서버가 대답했는데 「못 쟀다」로 셉니다 — 그러면 될 자리를 안 된다고 접습니다.');
+});
+
+test('★★ 일부만 받은 것을 **전부 받은 것과 갈라** 센다', () => {
+  assert.strictEqual(verdictOf({ got: 5, total: 5, problems: [] }).code, 0,
+    '전부 받았는데 빨갛게 끝납니다');
+  assert.strictEqual(verdictOf({ got: 2, total: 5, problems: ['610-1 필지: 해당 좌표에 필지 없음'] }).code, 1,
+    '2/5 인데 초록으로 끝납니다 — 빠진 셋이 사라집니다');
+  /* ★ 지도 일부 실패는 경고로만 — 필지를 다 받았으면 초록이다 */
+  assert.strictEqual(verdictOf({ got: 5, total: 5, problems: ['지도 근접 위성 미수집'] }).code, 0,
+    '필지는 다 받았는데 지도 하나 때문에 빨갛게 끝납니다 — 고칠 것이 없는 자리를 고치라고 말합니다');
+});
+
+test('★★★ 스크립트가 **그 값으로 실제로 끝낸다** (`process.exit`) · 판정을 요약 «맨 앞»에 넣는다', () => {
+  const s = codeOf(SCRIPT, '//');
+  assert.ok(/process\.exit\(code\)/.test(s),
+    '판정 값으로 끝내지 않습니다 — 갈래를 갈라 놓고 종료 코드가 늘 0 이면 아무 뜻이 없습니다.');
+  /* ★ §6-3 ① — 판정이 §4 맨 끝에 있으면 안 읽힌다. 앞 판이 실제로 그랬다 */
+  assert.ok(/log\.splice\(\s*\d+\s*,\s*0\s*,/.test(s),
+    '판정을 요약 맨 앞에 끼워 넣지 않습니다 — 끝에 적으면 안 읽힙니다 (§6-3 ①).');
+  /* ★★ 나르는 자리가 집을 표지 */
+  assert.ok(/LP_VWORLD verdict=/.test(s),
+    '워크플로가 집어 갈 표지(`LP_VWORLD verdict=`)가 없습니다.');
+});
+
+test('★★★ 워크플로가 판정을 **나르고** 그 값으로 끝낸다 (D-212 계열 — 나르는 자리가 버리면 화면에 안 온다)', () => {
+  const w = codeOf(WF, '#');
+  assert.ok(/2>&1 \| tee/.test(w),
+    'stderr 를 함께 받지 않습니다 — 판정이 그쪽으로 나오면 통째로 버려집니다 (§12-19 의 그 자리).');
+  assert.ok(/GITHUB_STEP_SUMMARY/.test(w),
+    '판정을 실행 요약에 안 싣습니다 — Actions 로그만 보고는 아무도 안 봅니다.');
+  assert.ok(/PIPESTATUS\[0\]/.test(w),
+    '`tee` 뒤에서 스크립트의 종료 코드를 안 집습니다 — tee 의 0 이 판정을 덮습니다.');
+  /* ★ 갈래 넷 전부에 대응하는 자리가 있는가 — 그리고 0 말고는 다 빨갛게 */
+  const step = w.match(/- name: 판정[\s\S]*?esac/);
+  assert.ok(step, '판정으로 끝내는 단계가 없습니다.');
+  /* ★ 갈래 이름을 정규식에 넣을 때 **이스케이프를 손으로 붙이지 않는다** — `1)` 를
+     `\1)` 로 감쌌다가 **후방참조**가 되어 「정규식이 깨졌다」로 빨개졌다. 고침이 옳은데
+     재는 자리가 틀린 것이다. 낱말을 그대로 쓰고 escape 를 한 곳에서 한다. */
+  const esc = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  for (const c of ['1)', '2)', '3)', '4)', '5)', '*)']) {
+    const seg = step[0].match(new RegExp(`^\\s*${esc(c)}[^\\n]*exit 1`, 'm'));
+    assert.ok(seg, `갈래 \`${c}\` 가 빨갛게 끝나지 않습니다 — 「못 쟀다」도 통과가 아닙니다 (§8).`);
+  }
+  /* ★★ 결과를 다 남긴 뒤에 끝내야 빨간 실행에서도 받을 것이 있다 */
+  assert.ok(w.indexOf('upload-artifact') < w.indexOf('- name: 판정'),
+    '판정이 아티팩트 업로드보다 앞에 있습니다 — 빨갛게 끝나면 받을 것이 없어집니다.');
+  assert.ok(/- name: 결과 커밋\n\s*if: always\(\)/.test(w),
+    '결과 커밋이 `if: always()` 가 아닙니다 — 실패한 실행의 진단이 저장소에 안 남습니다.');
+});
+
+/*
+ * ★★★ **결과 커밋은 «기본 가지에서만» 돈다** 〈2026-09-17 · 실측 · D-213 이음〉.
+ *
+ *   고친 코드를 재려고 이 워크플로를 작업 가지로 걸었더니, 결과 커밋이 그 가지에
+ *   결과를 밀어 넣어 **열려 있던 PR 의 머리가 움직였다.** 봇이 민 커밋이라 새로 선
+ *   검사가 사람 손을 기다리는 상태가 됐고, 초록이던 PR 이 초록도 빨강도 아닌
+ *   자리로 내려앉았다.
+ *
+ * ★ **재는 것은 「그 낱말이 있는가」가 아니다** — 「기본 가지와 견주는가」·
+ *   「다르면 커밋 없이 끝나는가」·「왜 그런지와 어디서 받는지 적는가」 셋이다.
+ *   조용히 건너뛰면 「커밋이 없다」가 고장으로 읽힌다 (§8).
+ * ★★ 그리고 **아티팩트는 어느 가지에서든 남아야 한다** — 건너뛰는 것은 커밋뿐이다.
+ * ★★★ **주석을 떼고 본다.** 위 경위에 그 견줌을 말로 적었으므로, 안 떼면
+ *   되돌려도 주석 때문에 초록이 된다 (§8 그 함정이 거꾸로 온 경우).
+ */
+test('★★★ 결과 커밋은 **기본 가지에서만** 돈다 — 가지에서 돌면 PR 머리를 안 움직인다', () => {
+  const w = codeOf(WF, '#');
+  const step = w.match(/- name: 결과 커밋[\s\S]*?(?=\n      - name: )/);
+  assert.ok(step, '결과 커밋 단계를 못 떼어 냈습니다 — 이 칸은 아무것도 안 잽니다.');
+  const body = step[0];
+
+  assert.ok(/github\.event\.repository\.default_branch/.test(body),
+    '기본 가지 이름을 안 받습니다 — 어느 가지인지 견줄 수가 없습니다.');
+  assert.ok(/github\.ref_name/.test(body),
+    '지금 도는 가지 이름을 안 받습니다.');
+
+  /* ★ 견주고, 다르면 **커밋 없이** 끝나는가 — `git push` 앞에서 빠져나가야 한다 */
+  const guard = body.match(/if \[ "\$REF_NAME" != "\$DEFAULT_BRANCH" \][\s\S]*?\bexit 0\b/);
+  assert.ok(guard, '기본 가지가 아닐 때 커밋 없이 끝나는 자리가 없습니다.');
+  assert.ok(body.indexOf(guard[0]) < body.indexOf('git push'),
+    '빠져나가는 자리가 `git push` 뒤에 있습니다 — 그러면 여전히 밀어 넣습니다.');
+
+  /* ★★ 조용히 건너뛰지 않는다 — 까닭과 받을 곳을 적는가 */
+  assert.ok(/까닭/.test(guard[0]),
+    '왜 커밋하지 않는지를 안 적습니다 — 「커밋이 없다」가 고장으로 읽힙니다 (§8).');
+  assert.ok(/아티팩트/.test(guard[0]),
+    '어디서 받는지를 안 적습니다 — 막다른 길이 됩니다 (§6-3 ⑥).');
+
+  /* ★★★ 기본 가지 이름을 못 받은 것을 「기본 가지다」로 읽지 않는다 (§8 — 못 잰 것은 통과가 아니다) */
+  assert.ok(/-z "\$\{DEFAULT_BRANCH:-\}"[\s\S]*?exit 0/.test(body),
+    '기본 가지 이름을 못 받았을 때의 갈래가 없습니다 — 빈 값이면 견줌이 늘 참이 됩니다.');
+
+  /* ★★ 아티팩트는 어느 가지에서든 남는다 */
+  assert.ok(/- name: 아티팩트 업로드\n\s*if: always\(\)/.test(w),
+    '아티팩트 업로드가 `if: always()` 가 아닙니다 — 가지에서 돌면 받을 것이 통째로 없어집니다.');
+});
+
+/* ------------------------------------------------------------------------- *
+ * **502 의 «증거»를 버리지 않는다** 〈2026-09-18 · D-218〉
+ *
+ * [무엇이 났나] 5필지 전부 `HTTP 502` 로 죽은 실행에서 요약이
+ *   「VWorld 쪽 서버가 5xx · 우리 쪽에 고칠 것이 없다」로 **단정**했다.
+ *   그런데 그 판정의 근거가 «상태코드 하나»뿐이었다 — 응답 본문을 통째로
+ *   버렸기 때문이다(실측: 재시도로 끝난 `request()` 가 `body` 를 안 돌려줬다).
+ *
+ * [왜 이것이 위험한가] **502 를 기관 게이트웨이가 낼 수도, 중간의 프록시가 낼 수도
+ *   있다.** 그리고 할 일이 **정반대**다 — 앞은 「기다렸다 다시」, 뒤는 「도는 자리를
+ *   옮긴다」. 본문이 없으면 그 둘이 **한 글자로 뭉개진다**
+ *   (§4.6 · §12-12 · §12-24 와 같은 결).
+ *
+ * ★ **낱말이 아니라 «돌려서» 잰다** — 가짜 502 를 먹여 본문이 실제로 살아 오는지 본다.
+ * ★★ **값이 새지 않는지 함께 잰다** (§2) — 미끼 열쇠를 본문에 섞어 가려지는지 센다.
+ * ------------------------------------------------------------------------- */
+test('★★★ 재시도로 끝난 응답의 본문·상태를 버리지 않는다 (502 를 누가 냈는지 가릴 재료)', async () => {
+  const { request } = require('../connectors/http.js');
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async () =>
+    new Response('<html><title>502 Bad Gateway</title><body>nginx</body></html>', { status: 502 });
+  try {
+    const r = await request('https://example.invalid/x', { timeoutMs: 50 });
+    assert.equal(r.ok, false, '502 인데 성공으로 옵니다.');
+    assert.equal(r.status, 502,
+      '재시도로 끝난 뒤 상태코드를 버립니다 — 「502」인지 「503」인지조차 안 남습니다.');
+    assert.ok(r.body && /Bad Gateway/.test(String(r.body)),
+      '응답 본문을 버립니다 — 그 5xx 를 «누가 냈는지» 가릴 재료가 통째로 사라집니다 (§4 · §12-10).');
+  } finally { globalThis.fetch = realFetch; }
+});
+
+test('★★ 커넥터가 그 본문을 «따로» 나르고, error 글자에는 안 섞는다', async () => {
+  const vw = require('../connectors/vworld.js');
+  const BAIT = 'AIzaSyBAIT000000000000000000000000000000';
+  const realFetch = globalThis.fetch;
+  const prevKey = process.env.VWORLD_KEY, prevDom = process.env.VWORLD_DOMAIN;
+  process.env.VWORLD_KEY = BAIT;
+  process.env.VWORLD_DOMAIN = 'https://example.invalid/app.html';
+  globalThis.fetch = async () =>
+    new Response(`<html>INVALID_KEY ${BAIT} 502 Bad Gateway nginx</html>`, { status: 502 });
+  try {
+    const g = await vw.geocode('강원특별자치도 원주시 신림면 송계리 695-4');
+    assert.equal(g.ok, false);
+    const at = (g.attempts || []).filter(a => a.bodyHead);
+    assert.ok(at.length > 0,
+      '본문 앞머리를 한 시도도 안 실었습니다 — 나르는 자리가 버리면 요약에 한 줄도 안 옵니다 (§8).');
+    assert.ok(at.some(a => a.httpStatus === 502),
+      '상태코드를 같이 안 나릅니다.');
+
+    /* ★★ 값이 새지 않는가 (§2) — 미끼 열쇠가 본문에 있었는데 그대로 나오면 안 된다 */
+    const all = JSON.stringify(g);
+    assert.ok(!all.includes(BAIT),
+      '응답 본문에 섞인 열쇠가 그대로 나옵니다 — 가려야 합니다 (§2).');
+
+    /* ★★★ error 글자에는 안 섞는다 — isAuthReject 가 그 글자를 보므로,
+       HTML 속 낱말 하나에 엉뚱한 갈래로 넘어간다 */
+    assert.ok(!/Bad Gateway|nginx/.test(String(g.error)),
+      'error 글자에 본문을 섞었습니다 — 인증 거부 판정이 HTML 속 낱말에 흔들립니다.');
+  } finally {
+    globalThis.fetch = realFetch;
+    if (prevKey === undefined) delete process.env.VWORLD_KEY; else process.env.VWORLD_KEY = prevKey;
+    if (prevDom === undefined) delete process.env.VWORLD_DOMAIN; else process.env.VWORLD_DOMAIN = prevDom;
+  }
+});
+
+test('★★ 요약을 쓰는 자리가 그 본문을 실제로 적는다 — 그리고 «없을 때는 안 적는다»', () => {
+  /* ★ 주석 줄을 떼고 본다 — 이 고침의 경위를 그 파일 주석에 그대로 적었으므로,
+     안 떼면 **지워도 안 빨개진다** (§8 의 그 함정이 거꾸로 온 경우). */
+  const body = codeOf(SCRIPT, '//');
+  assert.ok(/a\.bodyHead/.test(body),
+    '요약 생성기가 본문 앞머리를 안 읽습니다 — 커넥터가 날라도 화면에 한 줄도 안 옵니다 (§8).');
+  /* ★ D-219 로 본문·헤더를 «따로» 세면서 `continue` 가 `if` 로 바뀌었다.
+     글자 모양을 박아 둔 탓에 **고침이 옳은데 빨개졌다** — 재려던 성질
+     (「본문이 없으면 그 줄을 안 적는다」)은 그대로 두고 **세는 자리만 옮겼다** (§6-2-5). */
+  assert.ok(/if \(a\.bodyHead\)/.test(body),
+    '본문이 없을 때도 그 줄을 찍습니다 — 빈 줄은 「본문이 비었다」로 읽혀 또 다른 거짓이 됩니다.');
+  assert.ok(/a\.httpStatus/.test(body),
+    '상태코드를 요약에 안 적습니다 — 502 인지 503 인지 사람이 못 가립니다.');
+});
+
+/* ------------------------------------------------------------------------- *
+ * **근거가 «사장님이 보시는 자리»까지 오는가** 〈2026-09-18 · D-218 이음 · 실측〉
+ *
+ * [무엇이 났나] 502 의 본문을 되살려 놓고 실제로 걸어 봤더니, 실행 요약에는
+ *   **판정 한 줄뿐**이고 근거는 한 글자도 안 왔다. 본문은 `_summary.md` 안에만
+ *   있는데, **작업 가지에서는 그 파일이 커밋도 안 된다**(D-213 이음) — 곧
+ *   **아티팩트를 받아 압축을 풀지 않으면 아무도 못 본다.**
+ *
+ * ★ §12-19 가 세운 그 자리다: **한 칸을 고치면 그 값이 흘러가는 자리를 함께 본다.**
+ *   「만들었다」와 「닿는다」는 다른 사실이다.
+ * ★★ **나르는 줄 수를 손으로 박지 않는다** — 최악 길이를 세어 견준다.
+ * ------------------------------------------------------------------------- */
+test('★★★ 걸렸을 때 «근거»를 stdout 으로도 낸다 — 파일 안에만 두지 않는다', () => {
+  const body = codeOf(SCRIPT, '//');
+  assert.ok(/const evidence = \[\]/.test(body),
+    '근거를 따로 모으는 자리가 없습니다 — 요약 파일 안에만 남으면 아무도 못 봅니다.');
+  assert.ok(/evidence\.push/.test(body),
+    '본문을 근거로 안 담습니다.');
+
+  /* ★ 걸렸을 때만 낸다 — 멀쩡한 실행에 붙이면 잡음이 된다 */
+  const blk = body.match(/if \(code !== 0 && evidence\.length\)[\s\S]*?\n\}/);
+  assert.ok(blk, '걸렸을 때 근거를 stdout 으로 내는 자리가 없습니다.');
+  assert.ok(/console\.log/.test(blk[0]),
+    '근거를 화면으로 안 냅니다 — 워크플로가 나를 것이 없습니다.');
+
+  /* ★★ 판정보다 «뒤»에 있어야 한다 — tail 로 자르므로 판정이 먼저 잘리면 안 된다 */
+  assert.ok(body.indexOf('LP_VWORLD verdict=') < body.indexOf('evidence.length'),
+    '근거가 판정보다 앞에 있습니다 — 뒤에서 자르면 판정이 밀려 사라집니다.');
+});
+
+test('★★ 나르는 줄 수가 «판정 + 근거»의 최악 길이를 덮는다 (손으로 박지 않는다)', () => {
+  const w = read(WF);
+  const m = w.match(/vworld\.log"\s*\|\s*tail -(\d+)/);
+  assert.ok(m, '요약으로 나르는 자리를 못 찾았습니다.');
+  const carry = Number(m[1]);
+
+  /* ★ 최악 길이를 «세어» 낸다 — 필지 수 × 갈래 둘 + 머리말·판정·완료 */
+  const src = read(SCRIPT);
+  const lots = (src.match(/label:/g) || []).length;
+  assert.ok(lots >= 1, '필지 표를 못 읽었습니다 — 이 칸은 아무것도 안 잽니다.');
+  /* ★ D-219 로 «본문»과 «헤더»가 각각 한 줄이 됐다 — 갈래 둘 × 두 줄이다.
+     한쪽만 세면 헤더가 붙는 날 판정이 조용히 밀려 사라진다. */
+  const worst = lots * 2 /* 도로명·지번 */ * 2 /* 본문·헤더 */
+    + 1 /* 근거 머리말 */ + 1 /* 판정 */ + 1 /* 완료 */;
+
+  assert.ok(carry >= worst,
+    `요약으로 ${carry}줄만 나르는데 최악은 ${worst}줄입니다 — 잘리는 첫 줄이 하필 `
+    + '「무엇이 막았는가」가 됩니다 (§12-19 의 그 자리).');
+});
+
+/* ------------------------------------------------------------------------- *
+ * **502 를 «누가 냈는가» — 헤더가 말한다** 〈2026-09-18 · D-219 · 실측〉
+ *
+ * [무엇이 남아 있었나] D-218 이 본문을 되살렸고, 실제로 걸어 보니 브이월드가
+ *   돌려준 것은 `502 Bad Gateway` **한 줄**이었다 — **서버 서명이 없다.**
+ *   그래서 **기관 게이트웨이인지 중간의 프록시인지** 아직 못 가린다.
+ *   할 일이 정반대다: 앞은 「기다렸다 다시」, 뒤는 「도는 자리를 옮긴다」 (§12-31).
+ *
+ * ★ `Server` 한 줄이면 대개 갈리고, `Via`·`X-Cache`·`CF-Ray` 는 **중간이 끼었다**는 표다.
+ * ★★ **통째로 담지 않는다** — 응답 헤더에는 쿠키·인증 챌린지가 섞여 온다 (§2).
+ *   그래서 **허용목록**이고, 이 칸이 그 허용목록이 실제로 «거르는지»를 잰다.
+ * ★★★ **낱말이 아니라 돌려서 잰다** — 「SAFE_RESPONSE_HEADERS 가 있는가」는
+ *   아무것도 안 재는 것이다. 진짜 `Response` 를 먹여 무엇이 담기는지 본다.
+ * ------------------------------------------------------------------------- */
+test('★★★ 헤더 허용목록이 실제로 «거른다» — 쿠키·인증 챌린지는 안 담는다 (§2)', () => {
+  const { pickHeaders, SAFE_RESPONSE_HEADERS } = require('../connectors/http.js');
+  assert.ok(Array.isArray(SAFE_RESPONSE_HEADERS) && SAFE_RESPONSE_HEADERS.length >= 3,
+    '허용목록을 못 읽었습니다 — 이 칸은 아무것도 안 잽니다.');
+
+  const r = new Response('x', {
+    status: 502,
+    headers: {
+      'server': 'nginx/1.18.0',
+      'via': '1.1 squid',
+      'x-cache': 'MISS',
+      'set-cookie': 'SESSIONID=SECRETCOOKIEVALUE; Path=/',
+      'www-authenticate': 'Basic realm="SECRETREALM"',
+      'authorization': 'Bearer SECRETTOKEN',
+    },
+  });
+  const h = pickHeaders(r);
+  assert.equal(h.server, 'nginx/1.18.0', '`Server` 를 안 담습니다 — 누가 냈는지 가릴 첫 줄입니다.');
+  assert.equal(h.via, '1.1 squid', '`Via` 를 안 담습니다 — 중간이 끼었다는 표입니다.');
+
+  const flat = JSON.stringify(h);
+  assert.ok(!/SECRETCOOKIEVALUE|SECRETTOKEN|SECRETREALM/.test(flat),
+    '허용목록 밖의 헤더가 담깁니다 — 쿠키·인증 챌린지가 그 자리에서 샙니다 (§2).');
+  assert.ok(!('set-cookie' in h) && !('authorization' in h),
+    '허용목록이 안 거릅니다 — 통째로 담고 있습니다 (§4.6 「진단 답을 통째로 찍지 않는다」).');
+});
+
+test('★★★ `request()` 가 헤더를 «세 갈래 모두»에 싣는다 (성공 · 재시도 무의미 · 재시도로 끝남)', async () => {
+  const { request } = require('../connectors/http.js');
+  const realFetch = globalThis.fetch;
+  const mk = (status) => async () =>
+    new Response('body', { status, headers: { server: 'nginx/1.18.0', via: '1.1 squid' } });
+  try {
+    globalThis.fetch = mk(200);
+    const ok = await request('https://example.invalid/x', { timeoutMs: 50 });
+    assert.equal(ok.headers && ok.headers.server, 'nginx/1.18.0', '성공 갈래에서 헤더를 버립니다.');
+
+    globalThis.fetch = mk(403);
+    const fatal = await request('https://example.invalid/x', { timeoutMs: 50 });
+    assert.equal(fatal.headers && fatal.headers.server, 'nginx/1.18.0',
+      '「재시도 무의미」 갈래에서 헤더를 버립니다 — 403 을 누가 냈는지 못 가립니다.');
+
+    globalThis.fetch = mk(502);
+    const dead = await request('https://example.invalid/x', { timeoutMs: 50 });
+    assert.equal(dead.headers && dead.headers.server, 'nginx/1.18.0',
+      '재시도로 끝난 갈래에서 헤더를 버립니다 — D-219 가 되살리려던 그 자리입니다.');
+    assert.equal(dead.headers.via, '1.1 squid', '`Via` 를 안 나릅니다.');
+  } finally { globalThis.fetch = realFetch; }
+});
+
+test('★★ 커넥터·요약이 헤더를 «따로» 나르고, error 글자에는 안 섞는다', async () => {
+  const vw = require('../connectors/vworld.js');
+  const BAIT = 'AIzaSyBAIT000000000000000000000000000000';
+  const realFetch = globalThis.fetch;
+  const prevKey = process.env.VWORLD_KEY, prevDom = process.env.VWORLD_DOMAIN;
+  process.env.VWORLD_KEY = BAIT;
+  process.env.VWORLD_DOMAIN = 'https://example.invalid/app.html';
+  globalThis.fetch = async () => new Response('502 Bad Gateway', {
+    status: 502,
+    /* ★ 헤더에 열쇠가 실려 오는 일이 실제로 있다 — 되비추는 안내 페이지 */
+    headers: { server: 'squid/5.7', via: `1.1 proxy ${BAIT}`, 'set-cookie': 'S=LEAKME' },
+  });
+  try {
+    const g = await vw.geocode('강원특별자치도 원주시 신림면 송계리 695-4');
+    assert.equal(g.ok, false);
+    const at = (g.attempts || []).filter(a => a.headHdr);
+    assert.ok(at.length > 0,
+      '헤더를 한 시도도 안 실었습니다 — 나르는 자리가 버리면 요약에 한 줄도 안 옵니다 (§8).');
+    assert.ok(/server: squid/.test(at[0].headHdr), '`Server` 가 안 실렸습니다.');
+
+    const all = JSON.stringify(g);
+    assert.ok(!all.includes(BAIT), '헤더에 섞인 열쇠가 그대로 나옵니다 — 가려야 합니다 (§2).');
+    assert.ok(!/LEAKME/.test(all), '허용목록 밖 헤더가 새어 나옵니다 (§2).');
+    assert.ok(!/squid/.test(String(g.error)),
+      'error 글자에 헤더를 섞었습니다 — 인증 거부 판정이 헤더 낱말에 흔들립니다.');
+
+    /* ★★ 요약 생성기가 실제로 그것을 적는가 — 나르는 자리는 셋이다 (§12-19) */
+    const body = codeOf(SCRIPT, '//');
+    assert.ok(/a\.headHdr/.test(body),
+      '요약 생성기가 헤더를 안 읽습니다 — 커넥터가 날라도 화면에 한 줄도 안 옵니다 (§8).');
+    assert.ok(/if \(a\.headHdr\)/.test(body),
+      '헤더가 없을 때도 그 줄을 찍습니다 — 빈 줄은 또 다른 거짓이 됩니다 (§8).');
+  } finally {
+    globalThis.fetch = realFetch;
+    if (prevKey === undefined) delete process.env.VWORLD_KEY; else process.env.VWORLD_KEY = prevKey;
+    if (prevDom === undefined) delete process.env.VWORLD_DOMAIN; else process.env.VWORLD_DOMAIN = prevDom;
+  }
+});
+
+test('★★ 헤더를 펴는 자리가 «한 벌»이다 — 커넥터마다 적으면 한쪽이 옛말을 한다 (§8-1)', () => {
+  const http = require('../connectors/http.js');
+  assert.equal(typeof http.fmtHeaders, 'function',
+    '공용 창구가 없습니다 — 커넥터마다 제 것을 두면 한쪽이 옛말을 합니다.');
+
+  const fs2 = require('node:fs');
+  const dir = path.join(__dirname, '..', 'connectors');
+  const own = fs2.readdirSync(dir)
+    .filter(f => f.endsWith('.js') && f !== 'http.js')
+    .filter(f => /function\s+fmtHeaders/.test(fs2.readFileSync(path.join(dir, f), 'utf8')));
+  assert.deepEqual(own, [],
+    `커넥터가 제 fmtHeaders 를 따로 갖고 있습니다: ${own.join(', ')} — 한 벌만 둡니다 (§8-1).`);
+
+  /* ★ 가리개를 지나가는가 — 헤더에 열쇠가 실려 오는 일이 실제로 있다 (§2) */
+  const BAIT = 'AIzaSyBAIT000000000000000000000000000000';
+  const prev = process.env.VWORLD_KEY;
+  process.env.VWORLD_KEY = BAIT;
+  try {
+    const line = http.fmtHeaders({ server: 'nginx', via: `1.1 proxy ${BAIT}` });
+    assert.ok(/server: nginx/.test(line), '헤더를 안 폅니다.');
+    assert.ok(!line.includes(BAIT), '헤더에 섞인 열쇠를 안 가립니다 (§2).');
+  } finally {
+    if (prev === undefined) delete process.env.VWORLD_KEY; else process.env.VWORLD_KEY = prev;
+  }
+});

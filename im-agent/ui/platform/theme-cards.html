@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>보고서 디자인 템플릿 13종</title>
+<style>
+  :root{--ink:#0A1419;--ink2:#41505F;--ink3:#6E7A8C;--line:#DDE3EA;--paper:#FAFBFC;--lime:#6F8F00}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font:14px/1.6 "Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif;padding:28px 16px 64px}
+  .wrap{max-width:960px;margin:0 auto}
+  h1{font-size:22px;margin:0 0 6px;letter-spacing:-.02em}
+  .sub{color:var(--ink2);font-size:13.5px;margin:0 0 4px}
+  .meta{color:var(--ink3);font-size:12px;margin:0 0 22px}
+  .thgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+  .thcard{display:flex;flex-direction:column;gap:5px;background:#fff;
+    border:1.5px solid var(--line);border-radius:8px;padding:9px}
+  .thcard__n{font-size:12px;font-weight:800;line-height:1.3;word-break:keep-all}
+  .thcard__k{font-size:10.5px;color:var(--ink3);line-height:1.35;word-break:keep-all}
+  .thcard__p{font-size:10.5px;color:var(--ink2);line-height:1.45;margin:3px 0 0;word-break:keep-all}
+  .thcov{position:relative;width:100%;aspect-ratio:1/1.414;border-radius:4px;overflow:hidden;
+    border:1px solid rgba(0,0,0,.10)}
+  .thcov__t{position:absolute;inset:0 0 auto 0}
+  .thcov__t .ln{position:absolute;left:14%;right:14%;height:1px;background:rgba(255,255,255,.28)}
+  .thcov__b1,.thcov__b2,.thcov__ac{position:absolute;display:block;border-radius:1px}
+  .thcov__b1{left:14%;width:56%;height:5%;top:64%;opacity:.92}
+  .thcov__b2{left:14%;width:38%;height:4%;top:72%;opacity:.66}
+  .thcov__ac{left:14%;width:22%;height:3%;top:83%}
+  .note{margin-top:26px;border:1px solid var(--line);border-left:3px solid var(--lime);
+    background:#fff;border-radius:4px;padding:14px 16px;font-size:12.5px;color:var(--ink2)}
+  .note b{color:var(--ink)}
+</style></head><body>
+<div class="wrap">
+  <h1>보고서 디자인 템플릿 13종</h1>
+  <p class="sub">보고서 만들기 화면의 <b>디자인 테마</b>에서 고르는 것들입니다. 고르시면 그대로 문서에 들어갑니다.</p>
+  <p class="meta">표지 갈래 rule 7 · split 2 · full 4 ·
+    색과 갈래는 <code>design/themes.js</code> 에서 읽습니다 — 이 페이지에 손으로 적은 값은 없습니다.</p>
+  <div class="thgrid">
+  <article class="thcard" data-theme-card="institutional" data-shape="rule">
+    <div class="thcov" style="background:#F7F5F0" data-serif="1">
+      <div class="thcov__t" style="height:100%;background:#10233C"><i class="ln" style="top:26%"></i><i class="ln" style="top:39%"></i><i class="ln" style="top:52%"></i><i class="ln" style="top:65%"></i></div>
+      <i class="thcov__b1" style="background:#FFFFFF"></i>
+      <i class="thcov__b2" style="background:#FFFFFF"></i>
+      <i class="thcov__ac" style="background:#A6813C"></i>
+    </div>
+    <span class="thcard__n">01 · Institutional</span>
+    <span class="thcard__k">기관투자자 / PF / Credit</span>
+    <p class="thcard__p">은행·기관투자자·금융기관·Credit Committee 제출용</p>
+  </article>
+
+  <article class="thcard" data-theme-card="global_ib" data-shape="split">
+    <div class="thcov" style="background:#F6F4EF" data-serif="1">
+      <div class="thcov__t" style="height:54%;background:#0B1B2B"></div>
+      <i class="thcov__b1" style="background:#0B1B2B"></i>
+      <i class="thcov__b2" style="background:#0B1B2B"></i>
+      <i class="thcov__ac" style="background:#B08D57"></i>
+    </div>
+    <span class="thcard__n">02 · Global Investment Bank</span>
+    <span class="thcard__k">M&amp;A / 글로벌 투자자</span>
+    <p class="thcard__p">글로벌 투자은행 및 해외 투자자용</p>
+  </article>
+
+  <article class="thcard" data-theme-card="private_equity" data-shape="rule">
+    <div class="thcov" style="background:#F6F5F1" data-serif="1">
+      <div class="thcov__t" style="height:100%;background:#14213D"><i class="ln" style="top:26%"></i><i class="ln" style="top:39%"></i><i class="ln" style="top:52%"></i><i class="ln" style="top:65%"></i></div>
+      <i class="thcov__b1" style="background:#FFFFFF"></i>
+      <i class="thcov__b2" style="background:#FFFFFF"></i>
+      <i class="thcov__ac" style="background:#C9A227"></i>
+    </div>
+    <span class="thcard__n">03 · Private Equity</span>
+    <span class="thcard__k">PE / VC / 대체투자</span>
+    <p class="thcard__p">PE·VC·Alternative Investment Fund</p>
+  </article>
+
+  <article class="thcard" data-theme-card="real_estate" data-shape="full">
+    <div class="thcov" style="background:#F7F5F0" data-serif="1">
+      <div class="thcov__t" style="height:100%;background:linear-gradient(160deg,#12314B,#A6813C)"></div>
+      <i class="thcov__b1" style="background:#FFFFFF"></i>
+      <i class="thcov__b2" style="background:#FFFFFF"></i>
+      <i class="thcov__ac" style="background:#A6813C"></i>
+    </div>
+    <span class="thcard__n">04 · Real Estate Investment</span>
+    <span class="thcard__k">부동산 개발 / 매입 / 매각</span>
+    <p class="thcard__p">부동산 개발·매입·매각·투자 프로젝트</p>
+  </article>
+
+  <article class="thcard" data-theme-card="corporate" data-shape="rule">
+    <div class="thcov" style="background:#F5F7FA" data-serif="1">
+      <div class="thcov__t" style="height:100%;background:#17457A"><i class="ln" style="top:26%"></i><i class="ln" style="top:39%"></i><i class="ln" style="top:52%"></i><i class="ln" style="top:65%"></i></div>
+      <i class="thcov__b1" style="background:#FFFFFF"></i>
+      <i class="thcov__b2" style="background:#FFFFFF"></i>
+      <i class="thcov__ac" style="background:#8C6D3F"></i>
+    </div>
+    <span class="thcard__n">05 · Corporate</span>
+    <span class="thcard__k">기업 보고서 / 사업계획서</span>
+    <p class="thcard__p">기업 보고서 및 사업계획서</p>
+  </article>
+
+  <article class="thcard" data-theme-card="premium" data-shape="full">
+    <div class="thcov" style="background:#F8F5F0" data-serif="1">
+      <div class="thcov__t" style="height:100%;background:linear-gradient(160deg,#14100E,#C9A15A)"></div>
+      <i class="thcov__b1" style="background:#FFFFFF"></i>
+      <i class="thcov__b2" style="background:#FFFFFF"></i>
+      <i class="thcov__ac" style="background:#C9A15A"></i>
+    </div>
+    <span class="thcard__n">06 · Premium</span>
+    <span class="thcard__k">호텔 / 복합개발 / 랜드마크</span>
+    <p class="thcard__p">호텔·복합개발·고급 주거·랜드마크 프로젝트</p>
+  </article>
+
+  <article class="thcard" data-theme-card="minimal" data-shape="rule">
+    <div class="thcov" style="background:#F7F7F8" data-serif="1">
+      <div class="thcov__t" style="height:100%;background:#111827"><i class="ln" style="top:26%"></i><i class="ln" style="top:39%"></i><i class="ln" style="top:52%"></i><i class="ln" style="top:65%"></i></div>
+      <i class="thcov__b1" style="background:#FFFFFF"></i>
+      <i class="thcov__b2" style="background:#FFFFFF"></i>
+      <i class="thcov__ac" style="background:#6B7280"></i>
+    </div>
+    <span class="thcard__n">07 · Minimal</span>
+    <span class="thcard__k">CEO / Executive 보고</span>
+    <p class="thcard__p">경영진 보고 및 Executive Presentation</p>
+  </article>
+
+  <article class="thcard" data-theme-card="technology" data-shape="split">
+    <div class="thcov" style="background:#F2F7F8" data-serif="1">
+      <div class="thcov__t" style="height:54%;background:#0E1A2B"></div>
+      <i class="thcov__b1" style="background:#0E1A2B"></i>
+      <i class="thcov__b2" style="background:#0E1A2B"></i>
+      <i class="thcov__ac" style="background:#2FA8B8"></i>
+    </div>
+    <span class="thcard__n">08 · Technology / Data Center</span>
+    <span class="thcard__k">Data Center / AI / ICT</span>
+    <p class="thcard__p">Data Center·AI Infrastructure·Cloud·ICT 프로젝트</p>
+  </article>
+
+  <article class="thcard" data-theme-card="renewable" data-shape="full">
+    <div class="thcov" style="background:#F3F7F3" data-serif="1">
+      <div class="thcov__t" style="height:100%;background:linear-gradient(160deg,#0F3D2E,#7FA650)"></div>
+      <i class="thcov__b1" style="background:#FFFFFF"></i>
+      <i class="thcov__b2" style="background:#FFFFFF"></i>
+      <i class="thcov__ac" style="background:#7FA650"></i>
+    </div>
+    <span class="thcard__n">09 · Renewable Energy</span>
+    <span class="thcard__k">Solar / Wind / ESS / Hydrogen</span>
+    <p class="thcard__p">재생에너지·에너지 인프라 프로젝트</p>
+  </article>
+
+  <article class="thcard" data-theme-card="infrastructure" data-shape="rule">
+    <div class="thcov" style="background:#F5F6F7" data-serif="1">
+      <div class="thcov__t" style="height:100%;background:#263238"><i class="ln" style="top:26%"></i><i class="ln" style="top:39%"></i><i class="ln" style="top:52%"></i><i class="ln" style="top:65%"></i></div>
+      <i class="thcov__b1" style="background:#FFFFFF"></i>
+      <i class="thcov__b2" style="background:#FFFFFF"></i>
+      <i class="thcov__ac" style="background:#C07C2C"></i>
+    </div>
+    <span class="thcard__n">10 · Infrastructure</span>
+    <span class="thcard__k">SOC / 물류 / 산업단지</span>
+    <p class="thcard__p">도로·철도·항만·발전소·산업단지·물류</p>
+  </article>
+
+  <article class="thcard" data-theme-card="luxury" data-shape="full">
+    <div class="thcov" style="background:#F9F6F1" data-serif="1">
+      <div class="thcov__t" style="height:100%;background:linear-gradient(160deg,#1B1410,#BFA06A)"></div>
+      <i class="thcov__b1" style="background:#FFFFFF"></i>
+      <i class="thcov__b2" style="background:#FFFFFF"></i>
+      <i class="thcov__ac" style="background:#BFA06A"></i>
+    </div>
+    <span class="thcard__n">11 · Luxury / Hospitality</span>
+    <span class="thcard__k">호텔 / 리조트 / 복합관광</span>
+    <p class="thcard__p">호텔·리조트·복합관광개발</p>
+  </article>
+
+  <article class="thcard" data-theme-card="government" data-shape="rule">
+    <div class="thcov" style="background:#F4F6F9" data-serif="1">
+      <div class="thcov__t" style="height:100%;background:#12365E"><i class="ln" style="top:26%"></i><i class="ln" style="top:39%"></i><i class="ln" style="top:52%"></i><i class="ln" style="top:65%"></i></div>
+      <i class="thcov__b1" style="background:#FFFFFF"></i>
+      <i class="thcov__b2" style="background:#FFFFFF"></i>
+      <i class="thcov__ac" style="background:#6E7A8C"></i>
+    </div>
+    <span class="thcard__n">12 · Government / Public</span>
+    <span class="thcard__k">공공기관 / 지자체 / 정책사업</span>
+    <p class="thcard__p">공공기관·지자체·정책사업·공공투자</p>
+  </article>
+
+  <article class="thcard" data-theme-card="custom" data-shape="rule">
+    <div class="thcov" style="background:#F7F5F0" data-serif="1">
+      <div class="thcov__t" style="height:100%;background:#10233C"><i class="ln" style="top:26%"></i><i class="ln" style="top:39%"></i><i class="ln" style="top:52%"></i><i class="ln" style="top:65%"></i></div>
+      <i class="thcov__b1" style="background:#FFFFFF"></i>
+      <i class="thcov__b2" style="background:#FFFFFF"></i>
+      <i class="thcov__ac" style="background:#A6813C"></i>
+    </div>
+    <span class="thcard__n">13 · Custom</span>
+    <span class="thcard__k">사용자 지정</span>
+    <p class="thcard__p">사용자가 직접 지정하거나 Brand Kit 을 적용</p>
+  </article>
+  </div>
+  <div class="note">
+    <b>표지 모양은 «갈래»를 보여 주는 것이지 실제 표지 그대로가 아닙니다.</b>
+    실제 표지에는 사업명·날짜·기밀 표기가 들어갑니다. 여기서 보시는 것은
+    <b>색·활자 느낌·표지 구성</b>입니다 — 그 셋이 테마를 가릅니다.<br>
+    판형(A4 세로 / 16:9 가로)·글자 크기·그림 비중은 <b>「출력 성격」에서 따로</b> 정합니다.
+  </div>
+</div>
+</body></html>
