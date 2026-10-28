@@ -58,17 +58,21 @@ async function main() {
   const at = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 16).replace('T', ' '); // Asia/Seoul (§5)
   const r = await probe();
   const g = r.groups || {};
-  const md = [`# NVIDIA AI 열쇠 진단 · ${at} KST`, '', `판정 ${r.code} — ${r.say}`, '',
+  const log = [
     `- 읽은 이름: ${r.name || '(없음)'} · 읽어 본 이름: ${NAMES.join(' · ')}`,
     r.http ? `- HTTP ${r.http} · ${MODELS_URL}` : '',
     r.head ? `- 응답 앞머리: \`${r.head.replace(/`/g, "'").replace(/\s+/g, ' ')}\`` : '',
     ...(r.ids ? ['', `## 갈래 (이름에 든 낱말로 나눔 · 확인 전)`, '', `- 그림 ${g.image.length} · 소리 ${g.speech.length} · 글 ${g.text.length} · 기타 ${g.other.length}`, '',
       '### 그림', ...g.image.map((x) => `- ${x}`), '', '### 소리', ...g.speech.map((x) => `- ${x}`), '', '### 글(앞 30)', ...g.text.slice(0, 30).map((x) => `- ${x}`)] : []),
     '', '- ★ 생성 호출은 아직 안 했다 — 무엇에 쓸지(장면 그림 · 목소리 · 대본 검토) 정한 뒤, 그 모델의 문서대로 진단을 한 번 더 짠다 (§4.3).',
-  ].filter((x) => x !== '').join('\n') + '\n';
+  ].filter((x) => x !== '');
+  log.unshift(`# NVIDIA AI 열쇠 진단 · ${at} KST`, '', `판정 ${r.code} — ${r.say}`, ''); // 판정은 요약 맨 앞 (§6-3 ①)
+  const md = log.join('\n') + '\n';
   const secrets = NAMES.map((n) => String(process.env[n] || '').trim()).filter((v) => v.length >= 8);
   if (secrets.some((s) => md.includes(s))) { console.error('✗ 요약에 열쇠 값이 섞였다 — 안 쓴다'); process.exit(9); }
-  await writeFile(`${out}/_summary.md`, md); console.log(md); process.exit(r.code);
+  await writeFile(`${out}/_summary.md`, md); console.log(md);
+  if (r.code === 2) console.error('✗ 열쇠가 없어 하나도 못 받았다 (판정 2)');
+  process.exit(r.code);
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) main();
