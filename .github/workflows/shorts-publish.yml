@@ -66,12 +66,20 @@ jobs:
         continue-on-error: true
         env:
           IN_ID: ${{ inputs.id }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           set -eu
           case "$IN_ID" in *[!a-z0-9-]*|'') echo "::error::번호에는 영문 소문자·숫자·- 만 쓴다"; exit 1;; esac
           git fetch -q origin shorts-preview
           mkdir -p "data/_shorts/out/$IN_ID"
           git show "origin/shorts-preview:$IN_ID/final.mp4" > "data/_shorts/out/$IN_ID/final.mp4"
+          # 같은 판의 사진 출처 — 영상과 함께 둔 것을 쓴다(체크아웃에는 옛 판이 있을 수 있다 · Codex #329)
+          git show "origin/shorts-preview:$IN_ID/_images.json" > "data/_shorts/out/$IN_ID/_images.json" 2>/dev/null || rm -f "data/_shorts/out/$IN_ID/_images.json"
+          # 올린 기록은 본가지 «지금» 것을 읽는다 — 다시 돌리거나 겹쳐 걸면 체크아웃이 옛 커밋이라 같은 영상을 또 올린다 (Codex #329)
+          git fetch -q origin "$DEFAULT_BRANCH"
+          for f in _publish.json _publish.md; do
+            git show "origin/$DEFAULT_BRANCH:data/_shorts/out/$IN_ID/$f" > "data/_shorts/out/$IN_ID/$f" 2>/dev/null || rm -f "data/_shorts/out/$IN_ID/$f"
+          done
           ls -l "data/_shorts/out/$IN_ID/final.mp4"
       - name: 올린다
         id: pub

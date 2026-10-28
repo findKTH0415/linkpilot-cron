@@ -111,6 +111,7 @@ jobs:
           ffmpeg -v error -y -ss 2 -i "$src/final.mp4" -frames:v 1 -vf scale=540:-1 "$src/poster.jpg"
           tmp=$(mktemp -d)
           cp "$src/final.mp4" "$src/poster.jpg" "$src/_summary.md" "$tmp/"
+          [ -f "$src/_images.json" ] && cp "$src/_images.json" "$tmp/"   # 올리기가 같은 판의 사진 출처를 읽는다 (Codex #329)
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           if git ls-remote --exit-code origin shorts-preview >/dev/null 2>&1; then
@@ -118,8 +119,8 @@ jobs:
           else
             git worktree add -q --detach ../pv && (cd ../pv && git checkout -q --orphan shorts-preview)
           fi
-          # ★ 이 가지에는 «<번호>/final.mp4 · poster.jpg · _summary.md» 만 둔다 — 앞 판은 저장소 나무가 통째로 딸려 들어갔다
-          (cd ../pv && git ls-files | grep -vE '^[a-z0-9-]+/(final\.mp4|poster\.jpg|_summary\.md)$' | xargs -r git rm -q --cached -- && git clean -fdxq -e '*/final.mp4' -e '*/poster.jpg' -e '*/_summary.md' || true)
+          # ★ 이 가지에는 «<번호>/final.mp4 · poster.jpg · _summary.md · _images.json» 만 둔다 — 앞 판은 저장소 나무가 통째로 딸려 들어갔다
+          (cd ../pv && git ls-files | grep -vE '^[a-z0-9-]+/(final\.mp4|poster\.jpg|_summary\.md|_images\.json)$' | xargs -r git rm -q --cached -- && git clean -fdxq -e '*/final.mp4' -e '*/poster.jpg' -e '*/_summary.md' -e '*/_images.json' || true)
           mkdir -p "../pv/$IN_ID" && cp "$tmp"/* "../pv/$IN_ID/"
           cd ../pv && git add "$IN_ID" && (git diff --staged --quiet || git commit -q -m "쇼츠 미리보기 $IN_ID") && git push -q origin shorts-preview
           echo "미리보기: shorts-preview/$IN_ID/final.mp4"

@@ -118,3 +118,14 @@ test('올리기 열쇠 다섯은 엔진(NAS)으로 안 퍼진다 — 이 잡에�
   }
   assert.ok(/secrets\.some\(\(k\) => md\.includes\(k\) \|\| js\.includes\(k\)\)/.test(src), '기록을 쓰기 전에 열쇠 값이 섞였는지 센다');
 });
+
+test('올리기는 «같은 판»의 사진 출처와 «지금» 본가지의 올린 기록을 읽는다 — 체크아웃의 옛 판으로 판단하지 않는다 (Codex #329)', () => {
+  const fs = require('fs');
+  const wf = (n) => fs.readFileSync(path.join(__dirname, '..', '..', '.github', 'workflows', n), 'utf8').split('\n').filter((l) => !/^\s*#/.test(l)).join('\n');
+  const pub = wf('shorts-publish.yml');
+  const make = wf('shorts-make.yml');
+  assert.ok(/origin\/shorts-preview:\$IN_ID\/_images\.json/.test(pub), '영상과 같은 자리의 사진 출처를 가져온다');
+  assert.ok(/git fetch -q origin "\$DEFAULT_BRANCH"/.test(pub) && /origin\/\$DEFAULT_BRANCH:data\/_shorts\/out\/\$IN_ID\/\$f/.test(pub), '올린 기록은 본가지 최신을 읽는다');
+  assert.ok(pub.indexOf('origin/$DEFAULT_BRANCH:data/_shorts') < pub.indexOf('node scripts/shorts-publish.mjs'), '올리기 전에 읽는다');
+  assert.ok(/cp "\$src\/_images\.json" "\$tmp\/"/.test(make) && /_images\\\.json\)\$/.test(make), '만들기가 사진 출처를 미리보기 가지에 함께 둔다');
+});
