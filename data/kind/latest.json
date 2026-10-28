@@ -1,5 +1,5 @@
 {
- "at": "2026-10-27T02:01:02.132Z",
+ "at": "2026-10-28T02:09:24.451Z",
  "source": "https://www.kindkorea.or.kr",
  "boards": {
   "notices": {
@@ -138,8 +138,20 @@
   },
   "activity": {
    "name": "활동소식",
-   "total": 320,
+   "total": 322,
    "items": [
+    {
+     "id": 11542,
+     "title": "주상진 사업개발본부장 취임식",
+     "date": "2026-10-27",
+     "url": "https://www.kindkorea.or.kr/pages/31?id=11542&menuMode=READ"
+    },
+    {
+     "id": 11540,
+     "title": "KIND-중미경제통합은행(CABEI) MOU 체결",
+     "date": "2026-10-27",
+     "url": "https://www.kindkorea.or.kr/pages/31?id=11540&menuMode=READ"
+    },
     {
      "id": 11506,
      "title": "탄자니아 공공사업부 장관 면담",
@@ -181,18 +193,6 @@
      "title": "카자흐스탄 바이테렉·QIC 의장 면담",
      "date": "2026-09-16",
      "url": "https://www.kindkorea.or.kr/pages/31?id=11483&menuMode=READ"
-    },
-    {
-     "id": 11480,
-     "title": "카자흐스탄 교통부 장관 면담",
-     "date": "2026-09-15",
-     "url": "https://www.kindkorea.or.kr/pages/31?id=11480&menuMode=READ"
-    },
-    {
-     "id": 11478,
-     "title": "우즈베키스탄 교통부 장관 면담",
-     "date": "2026-09-15",
-     "url": "https://www.kindkorea.or.kr/pages/31?id=11478&menuMode=READ"
     }
    ],
    "url": "https://www.kindkorea.or.kr/pages/31"
