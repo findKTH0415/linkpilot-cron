@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="bdf4329a">
+<html lang="ko" data-lp-build="fd73a639">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -263,7 +263,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=bdf4329a">
+<link rel="stylesheet" href="tokens.css?v=fd73a639">
 <style>
 :root {
   --side: 248px;
@@ -550,11 +550,11 @@ h1,h2,h3,h4 { margin: 0; }
   </main>
 </div>
 
-<script src="gate-core.js?v=bdf4329a"></script>
-<script src="flow-core.js?v=bdf4329a"></script>
-<script src="upload-core.js?v=bdf4329a"></script>
-<script src="catalog.js?v=bdf4329a"></script>
-<script src="inapp.js?v=bdf4329a"></script>
+<script src="gate-core.js?v=fd73a639"></script>
+<script src="flow-core.js?v=fd73a639"></script>
+<script src="upload-core.js?v=fd73a639"></script>
+<script src="catalog.js?v=fd73a639"></script>
+<script src="inapp.js?v=fd73a639"></script>
 <script>
 /**
  * 설정 — 서버가 로그인 세션을 보고 내려주는 것이 정석이다.
@@ -566,7 +566,7 @@ window.LINKPILOT_INTAKE = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=bdf4329a" data-lp-global="LINKPILOT_INTAKE"></script>
+<script src="embed-bridge.js?v=fd73a639" data-lp-global="LINKPILOT_INTAKE"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -1156,7 +1156,9 @@ var lpApiWhy = (function () {
       state.files.push(rec);
       // ★ 읽기·보내기는 upload-core.js 한 곳에 있다 — 화면마다 따로 쓰면 갈린다
       UP.readOne(f, function (err, data) {
-        if (err) { rec.error = err.message; } else { rec.data = data; }
+        /* ★ 2026-10-28 (Codex P2 #326) — 0바이트 파일은 읽기가 끝나도 data 가 빈 글자라 «읽는 중»으로 남아
+           [자료올리기 완료] 를 영영 막았다. 빈 파일은 오류로 갈라 올리지 않고, 나머지 자료는 그대로 보낸다 */
+        if (err) { rec.error = err.message; } else if (!data) { rec.error = '빈 파일(0바이트)이라 올리지 않습니다'; } else { rec.data = data; }
         render();
       });
     });
@@ -1791,6 +1793,7 @@ var lpApiWhy = (function () {
         mid.appendChild(el('div', 'file__n', f.name));
         var m = size(f.size);
         if (f.tooBig) m += ' · 한도를 넘어 올릴 수 없습니다';
+        else if (f.error) m += ' · ' + f.error;
         else if (!f.data) m += ' · 읽는 중…';
         else if (f.note) m += ' · ' + f.note;
         mid.appendChild(el('div', 'file__m' + (f.readable ? '' : ' no'), m));
