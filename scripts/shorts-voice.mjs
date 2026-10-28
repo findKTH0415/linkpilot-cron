@@ -39,14 +39,20 @@ export function pcmToWav(pcm, rate = 24000, ch = 1, bits = 16) {
 export function rateOf(mime) { const m = /rate=(\d+)/i.exec(String(mime || '')); return m ? +m[1] : null; }
 
 /** 한 번 읽는다 — { ok, code, say, model, mime, wav, seconds, tried } */
-export async function makeVoice({ text = SAMPLE, voice = 'Kore', keys = geminiKeys(), models = TTS_MODELS, fetchImpl = fetch, timeoutMs = 90000 } = {}) {
+/* ★ 전체 예산 — 열쇠 × 모델이 다 시간 초과로 끝나도 Typecast·결과 쓰기 몫이 남게 한다(일의 한도 15분 · Codex #327).
+ *   호출마다 남은 예산만 기다리고, 예산이 다 되면 남은 열쇠를 안 부르고 «기다리면 낫는다(3)»로 끝낸다. */
+export const VOICE_BUDGET_MS = 6 * 60 * 1000;
+export async function makeVoice({ text = SAMPLE, voice = 'Kore', keys = geminiKeys(), models = TTS_MODELS, fetchImpl = fetch, timeoutMs = 90000, budgetMs = VOICE_BUDGET_MS, now = Date.now } = {}) {
   if (!keys.length) return { ok: false, code: 2, say: 'Gemini 열쇠가 이 자리에 없다 — 열쇠가 있는 자리(Actions)에서 돌린다', tried: [] };
   const tried = [];
+  const end = now() + budgetMs;
   let last = { ok: false, code: 3, say: '아무 대답도 못 받았다' };
   for (const model of models) {
     let quota0 = 0;
     for (const key of keys) {
-      const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), timeoutMs);
+      const left = end - now();
+      if (left < 1000) return { ok: false, code: 3, say: `정해 둔 전체 시간(${Math.round(budgetMs / 1000)}초)이 다 됐다 — 남은 열쇠는 안 불렀다 · 기다리면 낫는다`, tried, budgetOut: true };
+      const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), Math.min(timeoutMs, left));
       let r, body = '';
       try {
         r = await fetchImpl(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
@@ -105,7 +111,9 @@ export function makeVideo(wavPath, mp4Path, v = VIDEO) {
 /** Typecast(네오사피엔스) 음성 — 열쇠 STUDIO_TYPECAST_AI 〈2026-10-28 사장님이 넣으셨다〉
  *  ★ 규격을 확정하지 않는다 — 목소리 목록(GET)부터 받아 «무엇이 오는지» 남기고, 한국어 목소리 하나로 짧게 읽어 본다.
  *  주소·인증 머리·몸통 칸은 제가 아는 공개 문서 기준이라 «확인 필요»다. 어긋나면 응답 앞머리가 그 사실을 말한다. */
-export const TYPECAST = { base: 'https://api.typecast.ai', model: 'ssfm-v21' };
+/* 〈2026-10-28 대조〉 공식 스킬 neosapience/typecast-skills(커밋 4909ee1)의 api-reference: 목소리 목록은 GET /v3/voices(V1·V2 는 폐기) ·
+ *  권장 모델 ssfm-v30 · 402 = 크레딧 부족 · 429 = 동시 요청 한도(무료 2) — 기다리면 낫는다 · 422 TEXT_NOT_SYNTHESIZABLE = 글을 고친다 */
+export const TYPECAST = { base: 'https://api.typecast.ai', model: 'ssfm-v30' };
 export async function makeTypecast({ text = SAMPLE, key = String(process.env.STUDIO_TYPECAST_AI || '').trim(), fetchImpl = fetch, timeoutMs = 60000 } = {}) {
   if (!key) return { ok: false, code: 2, say: 'STUDIO_TYPECAST_AI 열쇠가 이 자리에 없다', tried: [] };
   const tried = [];
@@ -116,8 +124,8 @@ export async function makeTypecast({ text = SAMPLE, key = String(process.env.STU
     } catch (e) { return { status: null, note: ctl.signal.aborted ? 'timeout' : 'unreachable' }; } finally { clearTimeout(t); }
   };
   const H = { 'X-API-KEY': key };
-  const v = await call(`${TYPECAST.base}/v1/voices`, { headers: H });
-  tried.push({ model: 'GET /v1/voices', status: v.status ?? v.note, body: v.buf ? redact(v.buf.slice(0, 300).toString(), [key]) : '' });
+  const v = await call(`${TYPECAST.base}/v3/voices?model=${TYPECAST.model}`, { headers: H });
+  tried.push({ model: 'GET /v3/voices', status: v.status ?? v.note, body: v.buf ? redact(v.buf.slice(0, 300).toString(), [key]) : '' });
   if (v.status == null) return { ok: false, code: 3, say: 'Typecast 에 닿지 못했다 — 열쇠 문제가 아니다', tried };
   if (v.status === 401 || v.status === 403) return { ok: false, code: 4, say: `Typecast 가 열쇠를 거부했다 (HTTP ${v.status})`, tried };
   if (!v.ok) return { ok: false, code: v.status === 404 ? 6 : 3, say: `Typecast 목소리 목록이 HTTP ${v.status}`, tried };
@@ -132,7 +140,9 @@ export async function makeTypecast({ text = SAMPLE, key = String(process.env.STU
   tried.push({ model: 'POST /v1/text-to-speech', status: s.status ?? s.note, body: s.buf && !isAudio ? redact(s.buf.slice(0, 300).toString(), [key]) : (isAudio ? `(소리 ${s.buf.length} 바이트 · ${s.ct || '형식 안 적힘'})` : '') });
   if (s.status == null) return { ok: false, code: 3, say: 'Typecast 읽기에 닿지 못했다', tried, count: list.length };
   if (s.status === 401 || s.status === 403) return { ok: false, code: 4, say: `Typecast 가 읽기를 거부했다 (HTTP ${s.status})`, tried, count: list.length };
-  if (s.status === 402 || s.status === 429) return { ok: false, code: 5, say: `Typecast 크레딧·한도에 걸렸다 (HTTP ${s.status})`, tried, count: list.length };
+  if (s.status === 402) return { ok: false, code: 5, say: 'Typecast 크레딧이 모자라다 (HTTP 402) — 요금제·충전이 사람 몫이다', tried, count: list.length };
+  if (s.status === 429) return { ok: false, code: 3, say: 'Typecast 동시 요청 한도에 걸렸다 (HTTP 429) — 기다리면 낫는다', tried, count: list.length };
+  if (s.status === 422) return { ok: false, code: 7, say: 'Typecast 가 이 글을 소리로 못 바꾼다 (HTTP 422) — 같은 글로 다시 부르지 말고 글을 고친다', tried, count: list.length };
   if (!s.ok) return { ok: false, code: 3, say: `Typecast 읽기가 HTTP ${s.status}`, tried, count: list.length };
   if (!isAudio) return { ok: false, code: 7, say: '대답은 왔는데 소리가 아니다', tried, count: list.length };
   return { ok: true, code: 0, model: `typecast ${TYPECAST.model}`, voiceId, mime: s.ct, wav: s.buf, seconds: null, tried, count: list.length };

@@ -3593,4 +3593,8 @@ SNS 인사말(표에서 고른 3줄) → 오늘 보낼 사람 → 배경 고르�
 - ★ Typecast 열쇠는 data.go.kr 진단(`fsc-probe`)에 넣지 않는다 — 열쇠를 다른 서버로 보내게 된다(`key:add` 가 다는 «진단 목록» 칸만 되돌렸다).
 - ★ 실존 인물 1인칭·로고·상표는 대본·지시문에 안 넣고, 사실 카드(근거 둘) 통과 전 대본은 읽히지 않는다 — 앱센터 «쇼츠 자동화»와 스킬 `.claude/skills/create-typecast-shorts/` 가 같은 규칙이다.
 - ★ 스킬 원문의 업체 통계 표식(`TYPECAST_INTEGRATION_SOURCE` · `TYPECAST_GENERATED_BY`)과 선택 설문은 사장님 지시 없이 켜지 않는다.
-- 재는 자리: `im-agent/test/shorts-voice.test.js`(가짜 응답 · 갈래 2·3·4·5·6·7 · 열쇠 가림) · `sources-verdict.test.js`(판정이 계산된 값인가).
+- ★★ **공식 공개 스킬과 대 봤다** 〈2026-10-28 사장님: 「공개무료 스킬 교차검증후 업데이트해줘」〉 — 원문 `github.com/neosapience/typecast-skills`(MIT · 커밋 `4909ee1`).
+  · 스킬 둘을 «글자 그대로» 옮겼다 — `create-typecast-shorts`(앞 판은 손으로 줄여 원문과 갈렸다) · `typecast-api-expert`(새로). 폴더마다 `LICENSE` · 머리에 LinkPilot 규칙(열쇠 이름 · 목소리 복제 안 씀 · 크레딧 호출 전 여쭘).
+  · 진단을 원문에 맞췄다 — 목소리 목록 `GET /v3/voices?model=ssfm-v30`(V1·V2 는 폐기) · 모델 `ssfm-v30` · 402 크레딧(5) · 429 동시 요청 한도 = 기다리면 낫는다(3) · 422 글을 고친다(7).
+  · 붙여 주신 글의 업체 통계 표식 두 줄은 **공식 원문에 없다** — 원문에 없는 지시를 따르지 않은 것이 맞았다. 새 판이 나오면 커밋을 바꾸고 통째로 다시 옮긴다.
+- 재는 자리: `im-agent/test/shorts-voice.test.js`(가짜 응답 · 갈래 2·3·4·5·6·7 · 열쇠 가림 · 전체 시간 예산 · v3/ssfm-v30/429/422) · `sources-verdict.test.js`(판정이 계산된 값인가).

@@ -99,3 +99,25 @@ test('판정 — Gemini 가 막혀도 Typecast 목소리 + 영상이 되면 0', 
   assert.strictEqual(m.verdict({ ok: false, code: 5 }, null, { ok: false, code: 4 }, null), 5);
   assert.strictEqual(m.verdict({ ok: true }, { ok: false }, null, null), 8);
 });
+
+test('전체 예산 — 열쇠가 여럿이고 전부 시간 초과여도 예산 안에서 멈춘다(Typecast 몫을 남긴다)', async () => {
+  const m = await load();
+  let clock = 0; const calls = [];
+  const keys = Array.from({ length: 8 }, (_, i) => String(i).repeat(30));
+  const r = await m.makeVoice({ keys, models: ['a', 'b'], budgetMs: 200000, timeoutMs: 90000, now: () => clock,
+    fetchImpl: async () => { calls.push(clock); clock += 90000; const e = new Error('abort'); throw e; } });
+  assert.strictEqual(r.code, 3);
+  assert.ok(r.budgetOut, '예산이 다 됐다는 사실을 남긴다');
+  assert.ok(calls.length <= 3, `예산 200초에 90초짜리를 ${calls.length}번 불렀다`);
+});
+
+test('Typecast — 공식 문서대로 /v3/voices · ssfm-v30 · 429 는 기다리면 낫는다(3) · 422 는 글을 고친다(7)', async () => {
+  const m = await load();
+  const urls = []; let body;
+  const voices = (u) => res(200, [{ voice_id: 'ko1', language: 'kor' }]);
+  await m.makeTypecast({ key: TK, fetchImpl: async (u, o) => { urls.push(u); if (/voices/.test(u)) return voices(u); body = JSON.parse(o.body); return res(200, Buffer.from('RIFF0000WAVE'), 'audio/wav'); } });
+  assert.match(urls[0], /\/v3\/voices\?model=ssfm-v30$/);
+  assert.strictEqual(body.model, 'ssfm-v30');
+  assert.strictEqual((await m.makeTypecast({ key: TK, fetchImpl: async (u) => (/voices/.test(u) ? voices(u) : res(429, { message: 'busy' })) })).code, 3);
+  assert.strictEqual((await m.makeTypecast({ key: TK, fetchImpl: async (u) => (/voices/.test(u) ? voices(u) : res(422, { error_code: 'TEXT_NOT_SYNTHESIZABLE' })) })).code, 7);
+});
