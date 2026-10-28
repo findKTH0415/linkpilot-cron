@@ -82,3 +82,10 @@ im-agent/ui/platform/.open-test-*.html
 # 공개 저장소이므로 시군구 단위만 `data/kepco/` 로 커밋하고,
 # 지번 단위는 실행 아티팩트 `kepco-site-private` 로 받는다 (2026-09-22).
 private/
+data/_shorts/probe/*.wav
+data/_shorts/probe/*.mp4
+data/_shorts/out/**/*.wav
+data/_shorts/out/**/*.mp4
+data/_shorts/out/**/*.srt
+data/_shorts/out/**/*.ass
+data/_shorts/out/**/*.txt

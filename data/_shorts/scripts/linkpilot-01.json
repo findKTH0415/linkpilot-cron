@@ -1,0 +1,22 @@
+{
+  "id": "linkpilot-01",
+  "theme": "글로벌 비즈니스 성공스토리",
+  "company": "3M",
+  "turningPoint": "동료 아트 프라이가 성가대 찬송가 책갈피에 실버의 접착제를 쓴 것",
+  "hiddenContributor": "스펜서 실버 — 1968년 «약한» 재사용 접착제를 만든 3M 연구원",
+  "reversal": "실패한 접착제가 사무용품의 대명사가 됐다",
+  "applyIdea": "실패한 결과도 버리지 말고 다른 팀에 보여 준다",
+  "brand": "글로벌 비즈니스 성공스토리",
+  "approvedA": true,
+  "approvedNote": "2026-10-28 사실 카드 — 줄마다 독립 출처 둘. 프라이의 착상 연도는 출처마다 1973·1974 로 갈려 연도를 안 쓴다(«몇 년 뒤»).",
+  "lines": [
+    { "text": "1968년, 3M 연구원 스펜서 실버는 강한 접착제를 만들려다 실패했습니다.", "src": ["invent.org/inductees/spencer-silver", "en.wikipedia.org/wiki/Post-it_note"] },
+    { "text": "붙었다 떨어지는 약한 접착제. 쓸 곳을 찾지 못했습니다.", "src": ["lemelson.mit.edu/resources/art-fry-spencer-silver", "invent.org/inductees/spencer-silver"] },
+    { "text": "반전은 몇 년 뒤, 동료 아트 프라이의 교회 성가대에서 왔습니다.", "src": ["invent.org/blog/inventors/art-fry-post-it-notes", "lemelson.mit.edu/resources/art-fry-spencer-silver"] },
+    { "text": "찬송가 책갈피가 자꾸 떨어지자, 그는 실버의 접착제를 떠올렸습니다.", "src": ["invent.org/blog/inventors/art-fry-post-it-notes", "mnopedia.org/thing/post-it-notes"] },
+    { "text": "그리고 1980년, 포스트잇이 미국 매장에 나왔습니다.", "src": ["mnopedia.org/thing/post-it-notes", "en.wikipedia.org/wiki/Post-it_note"] },
+    { "text": "숨은 공로자는 쓸모없어 보이던 접착제를 만든 스펜서 실버입니다.", "src": ["invent.org/inductees/spencer-silver", "lemelson.mit.edu/resources/art-fry-spencer-silver"] },
+    { "text": "오늘의 적용: 실패한 결과도 버리지 말고 다른 팀에 보여 주세요.", "src": ["적용 아이디어 — 사실 주장이 아니다"] },
+    { "text": "글로벌 비즈니스 성공스토리, 링크파일럿이었습니다.", "src": ["맺음말"] }
+  ]
+}

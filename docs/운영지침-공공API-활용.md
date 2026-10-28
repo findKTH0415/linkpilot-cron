@@ -151,6 +151,7 @@ SSH 개인키·NAS 접속정보·터널 인증키는 유출 시 **서버 접근�
 | `KOICA_GLOBAL_POLITICAL_DEVELOPMENTS` | **공공데이터포털 외교부** — 국가·지역별 정치현황 〈2026-10-10 사장님이 넣으셨다 · D-429〉. 서비스 번호는 진단이 포털 검색으로 찾는다. |
 | `KOICA_COUNTRY_INFORMATION` | **공공데이터포털 대한무역투자진흥공사(KOTRA)** — 국가정보 〈2026-10-10 사장님이 넣으셨다 · D-430〉. 서비스 번호는 진단이 포털 검색으로 찾는다. |
 | `KOTRA_KOREA_FDI_BY_INDUSTRY` | **공공데이터포털 대한무역투자진흥공사(KOTRA)** — 외국인투자(FDI) 업종별 현황 〈2026-10-17 사장님이 넣으셨다〉. 서비스 번호는 진단이 포털 검색으로 찾는다 · 규격 미측정. |
+| `STUDIO_TYPECAST_AI` | **Typecast(네오사피엔스) 음성 합성** — 쇼츠 자동화의 한국어 목소리 후보 〈2026-10-28 사장님이 넣으셨다〉. `shorts-voice.yml` 진단이 목소리 목록·짧은 문장 읽기를 재서 규격을 적는다 · 규격 미측정. |
 | `EAIS_ARCHITECTURAL_INFORMATION` | **공공데이터포털 · 국토교통부 건축HUB 건축물대장정보(15134735)** — 세움터 인증키 〈2026-10-26 사장님이 넣으시고 「OpenAPI 활용가이드 - 건축HUB 건축물대장정보 1.0」을 주셨다〉. 가이드의 요청주소가 `apis.data.go.kr/1613000/BldRgstHubService` · `serviceKey` 다 — 옛 open.eais.go.kr 개방은 건축HUB 로 넘어갔고 PK 가 22자리 일련번호로 바뀌었다(전환 규칙은 같은 날 받은 안내). 같은 서비스를 `MOLIT_HUB_BLDG_LEDGER` 로도 거니 진단(`fsc-probe`)이 이 열쇠로 **따로** 잰다. |
 | `GG_DATADREAM_OPENDATA` | **경기데이터드림(openapi.gg.go.kr) · 경기도** — 전체 공공데이터 인증키 〈2026-10-26 사장님이 `GG_DataDream_OpenData` 로 넣으셨다 · GitHub 은 대문자로 저장한다〉. **공공데이터포털(data.go.kr) 열쇠가 아니다** — 포털 검색 진단(`fsc-probe`)에 안 싣고 `scripts/gg-probe.mjs` 가 경기데이터드림 주소로 잰다. 규격 미측정. 용도 미정 — 진단 뒤 사장님께 여쭘. |
 | `EDINET_API_KEY` | **공공데이터포털 일본 금융청(FSA)** — EDINET API v2 〈2026-10-24 사장님이 `EDINET_API_KEY` 로 넣으셨다 · GitHub 은 대문자로 저장한다〉. 서비스 번호는 진단이 포털 검색으로 찾는다 · 규격 미측정. M&A 앱 — 일본 공시 서류 목록(공개매수·대량보유·임시보고·유가증권보고서). |
