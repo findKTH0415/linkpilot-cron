@@ -1,0 +1,119 @@
+# 쇼츠 올리기 — 완성한 쇼츠 한 편을 유튜브(Shorts)·인스타그램(릴스)에 〈2026-10-28 사장님: 「인스타그램, YouTube, 쇼츠 배포자동화까지 자동화 해줘」〉
+#
+# 영상: shorts-preview 가지의 <번호>/final.mp4 («쇼츠 만들기»가 거기 둔다) · 글: 대본에서만 만든다(scripts/shorts-publish.mjs)
+# ★ 외부 공개다 (§10) — 확인 칸에 «게시» 를 적어야 올라간다. 대본의 승인 A 도 있어야 한다.
+# ★ 같은 편을 같은 곳에 두 번 안 올린다 — 기록 _publish.json 에 있으면 건너뛴다(again=yes 일 때만 다시).
+# ★ 열쇠 다섯(YOUTUBE_CLIENT_ID · YOUTUBE_CLIENT_SECRET · YOUTUBE_REFRESH_TOKEN · INSTAGRAM_USER_ID · INSTAGRAM_ACCESS_TOKEN)은
+#   이 잡에만 있다 — 접속 자격증명(NAS·터널)은 안 넣는다 (§4 「수집 잡에 접속 자격증명을 넣지 않는다」).
+
+name: 쇼츠 올리기
+
+on:
+  workflow_dispatch:
+    inputs:
+      id:
+        description: 대본 번호 (data/_shorts/scripts/<번호>.json)
+        required: true
+        default: linkpilot-01
+      targets:
+        description: 올릴 곳 — youtube,instagram · youtube · instagram
+        required: true
+        default: youtube,instagram
+      privacy:
+        description: 유튜브 공개 범위 — private(비공개) · unlisted(일부 공개) · public(공개)
+        required: true
+        default: private
+      confirm:
+        description: 게시 승인 — 올리려면 «게시» 두 글자를 적는다
+        required: true
+        default: ''
+      again:
+        description: 이미 올린 곳에도 다시 올릴까 — no · yes
+        required: false
+        default: 'no'
+  workflow_call:
+    inputs:
+      id: { type: string, required: true }
+      targets: { type: string, required: true }
+      privacy: { type: string, required: false, default: private }
+      confirm: { type: string, required: true }
+      again: { type: string, required: false, default: 'no' }
+    secrets:
+      YOUTUBE_CLIENT_ID: { required: false }
+      YOUTUBE_CLIENT_SECRET: { required: false }
+      YOUTUBE_REFRESH_TOKEN: { required: false }
+      INSTAGRAM_USER_ID: { required: false }
+      INSTAGRAM_ACCESS_TOKEN: { required: false }
+
+permissions:
+  contents: write
+
+concurrency:
+  group: shorts-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: 영상을 가져온다
+        id: video
+        continue-on-error: true
+        env:
+          IN_ID: ${{ inputs.id }}
+        run: |
+          set -eu
+          case "$IN_ID" in *[!a-z0-9-]*|'') echo "::error::번호에는 영문 소문자·숫자·- 만 쓴다"; exit 1;; esac
+          git fetch -q origin shorts-preview
+          mkdir -p "data/_shorts/out/$IN_ID"
+          git show "origin/shorts-preview:$IN_ID/final.mp4" > "data/_shorts/out/$IN_ID/final.mp4"
+          ls -l "data/_shorts/out/$IN_ID/final.mp4"
+      - name: 올린다
+        id: pub
+        continue-on-error: true
+        env:
+          IN_ID: ${{ inputs.id }}
+          IN_TARGETS: ${{ inputs.targets }}
+          IN_PRIVACY: ${{ inputs.privacy }}
+          IN_CONFIRM: ${{ inputs.confirm }}
+          IN_AGAIN: ${{ inputs.again }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+        run: >-
+          node scripts/shorts-publish.mjs --id "$IN_ID" --video "data/_shorts/out/$IN_ID/final.mp4"
+          --targets "$IN_TARGETS" --privacy "${IN_PRIVACY:-private}" --confirm "$IN_CONFIRM" --again "${IN_AGAIN:-no}"
+      - name: 기록만 커밋한다
+        if: always()
+        env:
+          IN_ID: ${{ inputs.id }}
+          REF_NAME: ${{ github.ref_name }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -u
+          d="data/_shorts/out/$IN_ID"
+          [ -f "$d/_publish.md" ] || { echo "기록이 없다"; exit 0; }
+          if [ "$REF_NAME" != "$DEFAULT_BRANCH" ]; then echo "가지 '$REF_NAME' — 커밋하지 않는다"; exit 0; fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$d/_publish.md" "$d/_publish.json"
+          git diff --staged --quiet || git commit -m "쇼츠 올리기 $IN_ID ($(date -u +%Y-%m-%d))"
+          for i in 1 2 3; do
+            if git pull --rebase -q origin "$DEFAULT_BRANCH" && git push; then exit 0; fi
+            git rebase --abort 2>/dev/null || true; sleep 5
+          done
+      - name: 판정
+        if: always()
+        env:
+          V: ${{ steps.video.outcome }}
+          P: ${{ steps.pub.outcome }}
+        run: |
+          [ "$V" = success ] || { echo "::error::영상을 못 가져왔다 — 먼저 «쇼츠 만들기»를 main 에서 돌린다"; exit 1; }
+          [ "$P" = success ] && echo "올림" || { echo "::error::다 못 올렸다 — 기록(_publish.md)의 판정 줄을 본다"; exit 1; }
