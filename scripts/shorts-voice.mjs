@@ -114,7 +114,26 @@ export function makeVideo(wavPath, mp4Path, v = VIDEO) {
 /* 〈2026-10-28 대조〉 공식 스킬 neosapience/typecast-skills(커밋 4909ee1)의 api-reference: 목소리 목록은 GET /v3/voices(V1·V2 는 폐기) ·
  *  권장 모델 ssfm-v30 · 402 = 크레딧 부족 · 429 = 동시 요청 한도(무료 2) — 기다리면 낫는다 · 422 TEXT_NOT_SYNTHESIZABLE = 글을 고친다 */
 export const TYPECAST = { base: 'https://api.typecast.ai', model: 'ssfm-v30' };
-export async function makeTypecast({ text = SAMPLE, key = String(process.env.STUDIO_TYPECAST_AI || '').trim(), fetchImpl = fetch, timeoutMs = 60000 } = {}) {
+// 〈2026-10-28 사장님: 「타입캐스트(Typecast), 목소리 강일 — 1순위 · 진우 — 2순위 · 서현 — 3순위 자동으로」〉
+// ★ 목록에서 «이름»으로 찾는다 — 셋 다 없으면 아무 목소리나 고르지 않는다(§4.9). 영문 표기도 함께 본다.
+export const TC_VOICES = (process.env.TYPECAST_VOICES || '강일,진우,서현').split(',').map((x) => x.trim()).filter(Boolean);
+const TC_ALIAS = { 강일: ['kangil', 'kang-il', 'gangil', 'kang il'], 진우: ['jinwoo', 'jin-woo', 'jinu', 'jin woo'], 서현: ['seohyun', 'seo-hyun', 'seohyeon', 'seo hyun'] };
+// ★ 이름 칸이 글자가 아니라 묶음({ko,en} 따위)으로 올 수 있다 — 2026-10-28 실측: 608개 목록이 «[object Object]» 로 읽혀 셋 다 못 찾았다.
+//   그래서 이름 칸 안의 글자를 «모두» 꺼내 맞춘다. 화면에는 한글이 든 것을 먼저 적는다.
+const strs = (v, d = 0) => (typeof v === 'string' ? [v] : v && typeof v === 'object' && d < 2 ? Object.values(v).flatMap((x) => strs(x, d + 1)) : []);
+const vNames = (x) => (x ? ['voice_name', 'name', 'actor_name', 'display_name', 'names'].flatMap((k) => strs(x[k])).filter(Boolean) : []);
+const vName = (x) => { const a = vNames(x); return a.find((t) => /[가-힣]/.test(t)) || a[0] || ''; };
+export function pickVoice(list, names = TC_VOICES) {
+  for (const [rank, n] of names.entries()) {
+    const keys = [n, ...(TC_ALIAS[n] || [])].map((k) => k.toLowerCase().replace(/\s+/g, ''));
+    const hit = (list || []).find((x) => vNames(x).some((t) => { const v = t.toLowerCase().replace(/\s+/g, ''); return v && keys.some((k) => v === k || v.startsWith(k) || v.includes(k)); }));
+    if (hit) return { id: hit.voice_id || hit.id || hit.actor_id, name: vName(hit), rank: rank + 1, want: n };
+  }
+  return null;
+}
+/** 못 찾았을 때 «이름 칸 모양»만 적는다 — 값 대신 칸 이름 · 빈 줄이면 무엇이 있는지 (열쇠·개인정보 없음) */
+export const voiceShape = (list) => { const x = (list || [])[0]; if (!x || typeof x !== 'object') return ''; return Object.keys(x).map((k) => (x[k] && typeof x[k] === 'object' && !Array.isArray(x[k]) ? `${k}{${Object.keys(x[k]).join(',')}}` : k)).join(' · ').slice(0, 200); };
+export async function makeTypecast({ text = SAMPLE, key = String(process.env.STUDIO_TYPECAST_AI || '').trim(), fetchImpl = fetch, timeoutMs = 60000, voices = null, voiceId: fixedId = '' } = {}) {
   if (!key) return { ok: false, code: 2, say: 'STUDIO_TYPECAST_AI 열쇠가 이 자리에 없다', tried: [] };
   const tried = [];
   const call = async (url, opt) => {
@@ -124,15 +143,19 @@ export async function makeTypecast({ text = SAMPLE, key = String(process.env.STU
     } catch (e) { return { status: null, note: ctl.signal.aborted ? 'timeout' : 'unreachable' }; } finally { clearTimeout(t); }
   };
   const H = { 'X-API-KEY': key };
-  const v = await call(`${TYPECAST.base}/v3/voices?model=${TYPECAST.model}`, { headers: H });
+  let chosen = fixedId ? { id: fixedId } : null; let list = [];
+  const v = fixedId ? { status: 200, ok: true, buf: Buffer.from('[]') } : await call(`${TYPECAST.base}/v3/voices?model=${TYPECAST.model}`, { headers: H });
   tried.push({ model: 'GET /v3/voices', status: v.status ?? v.note, body: v.buf ? redact(v.buf.slice(0, 300).toString(), [key]) : '' });
   if (v.status == null) return { ok: false, code: 3, say: 'Typecast 에 닿지 못했다 — 열쇠 문제가 아니다', tried };
   if (v.status === 401 || v.status === 403) return { ok: false, code: 4, say: `Typecast 가 열쇠를 거부했다 (HTTP ${v.status})`, tried };
   if (!v.ok) return { ok: false, code: v.status === 404 ? 6 : 3, say: `Typecast 목소리 목록이 HTTP ${v.status}`, tried };
-  let list = [];
   try { const j = JSON.parse(v.buf.toString()); list = Array.isArray(j) ? j : (j.result || j.voices || j.data || []); } catch { /* 아래 */ }
-  const pick = list.find((x) => /ko|kor/i.test(JSON.stringify(x.language || x.languages || x.lang || ''))) || list[0];
-  const voiceId = pick && (pick.voice_id || pick.id || pick.actor_id);
+  if (!chosen && voices) {
+    chosen = pickVoice(list, voices);
+    if (!chosen) return { ok: false, code: 7, say: `목소리 ${voices.join(' · ')} 를 목록(${list.length}개)에서 못 찾았다 — 아무 목소리나 고르지 않는다`, tried, count: list.length, names: list.slice(0, 40).map(vName).filter(Boolean), shape: voiceShape(list) };
+  }
+  if (!chosen) { const pick = list.find((x) => /ko|kor/i.test(JSON.stringify(x.language || x.languages || x.lang || ''))) || list[0]; chosen = pick && { id: pick.voice_id || pick.id || pick.actor_id, name: vName(pick) }; }
+  const voiceId = chosen && chosen.id;
   if (!voiceId) return { ok: false, code: 7, say: '목소리 목록은 왔는데 목소리 번호를 못 읽었다 — 응답 모양을 보고 고친다', tried, count: list.length };
   const s = await call(`${TYPECAST.base}/v1/text-to-speech`, { method: 'POST', headers: { ...H, 'content-type': 'application/json' },
     body: JSON.stringify({ voice_id: voiceId, text, model: TYPECAST.model, language: 'kor', output: { audio_format: 'wav' } }) });
@@ -145,7 +168,7 @@ export async function makeTypecast({ text = SAMPLE, key = String(process.env.STU
   if (s.status === 422) return { ok: false, code: 7, say: 'Typecast 가 이 글을 소리로 못 바꾼다 (HTTP 422) — 같은 글로 다시 부르지 말고 글을 고친다', tried, count: list.length };
   if (!s.ok) return { ok: false, code: 3, say: `Typecast 읽기가 HTTP ${s.status}`, tried, count: list.length };
   if (!isAudio) return { ok: false, code: 7, say: '대답은 왔는데 소리가 아니다', tried, count: list.length };
-  return { ok: true, code: 0, model: `typecast ${TYPECAST.model}`, voiceId, mime: s.ct, wav: s.buf, seconds: null, tried, count: list.length };
+  return { ok: true, code: 0, model: `typecast ${TYPECAST.model}`, voiceId, voiceName: chosen.name || '', voiceRank: chosen.rank || null, mime: s.ct, wav: s.buf, seconds: null, tried, count: list.length };
 }
 
 /** 요약 — 첫 줄 판정은 앞에 올린다 (§6-3 ①) */

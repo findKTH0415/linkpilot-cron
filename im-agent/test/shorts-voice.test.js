@@ -141,3 +141,73 @@ test('쇼츠 만들기 — 자막 시각은 받은 소리 길이로 이어지고
   assert.strictEqual(m.assTime(65.5), '0:01:05.50');
   assert.match(m.toAss(tl, '브랜드'), /Dialogue: 0,0:00:04.50,0:00:05.50,Cap,,0,0,0,,\{\\fad\(120,120\)\}c/);
 });
+
+const jbuf = (obj) => ({ status: 200, ok: true, headers: { get: () => 'application/json' }, arrayBuffer: async () => Buffer.from(JSON.stringify(obj)) });
+/* 〈2026-10-28 사장님: 「타입캐스트 목소리 강일 1순위 · 진우 2순위 · 서현 3순위」 · 「스토리보드에 맞게 자동으로 이미지도」〉 */
+test('Typecast 목소리는 이름 순위로 고른다 — 강일 → 진우 → 서현 · 셋 다 없으면 아무거나 안 고른다', async () => {
+  const m = await load();
+  const L = [{ voice_name: '서현', voice_id: 's' }, { voice_name: 'Jinwoo', voice_id: 'j' }, { voice_name: '강일', voice_id: 'k' }];
+  assert.deepStrictEqual([m.pickVoice(L).id, m.pickVoice(L).rank], ['k', 1]);
+  assert.strictEqual(m.pickVoice(L.slice(0, 2)).id, 'j');
+  assert.strictEqual(m.pickVoice(L.slice(0, 1)).rank, 3);
+  assert.strictEqual(m.pickVoice([{ voice_name: '민수', voice_id: 'x' }]), null);
+  const r = await m.makeTypecast({ text: '가', key: 'k'.repeat(30), voices: m.TC_VOICES, fetchImpl: async () => jbuf([{ voice_name: '민수', voice_id: 'x' }]) });
+  assert.strictEqual(r.code, 7); assert.ok(/아무 목소리나 고르지 않는다/.test(r.say));
+});
+
+test('Typecast 는 고른 목소리 번호로 읽는다 — 정해 둔 번호가 있으면 목록을 다시 안 묻는다', async () => {
+  const m = await load();
+  const sent = []; const urls = [];
+  const wav = Buffer.concat([Buffer.from('RIFF'), Buffer.alloc(100)]);
+  const fetchImpl = async (u, o = {}) => { urls.push(u); if (/voices/.test(u)) return jbuf([{ voice_name: '진우', voice_id: 'jw' }]);
+    sent.push(JSON.parse(o.body)); return { status: 200, ok: true, headers: { get: () => 'audio/wav' }, arrayBuffer: async () => wav }; };
+  const a = await m.makeTypecast({ text: '가', key: 'k'.repeat(30), voices: m.TC_VOICES, fetchImpl });
+  assert.ok(a.ok); assert.strictEqual(a.voiceId, 'jw'); assert.strictEqual(a.voiceRank, 2);
+  const b = await m.makeTypecast({ text: '나', key: 'k'.repeat(30), voiceId: 'jw', fetchImpl });
+  assert.ok(b.ok); assert.strictEqual(urls.filter((u) => /voices/.test(u)).length, 1, '두 번째는 목록을 안 묻는다');
+  assert.deepStrictEqual(sent.map((x) => x.voice_id), ['jw', 'jw']);
+});
+
+const loadImg = () => import(path.join(__dirname, '..', '..', 'scripts', 'shorts-images.mjs'));
+test('장면 사진 — Pexels 공식 API · 세로 · 사람·로고 설명은 건너뛴다 · 같은 사진 두 번 안 씀 · 사진가 기록(눈 확인 전 null)', async () => {
+  const m = await loadImg();
+  const photos = [
+    { id: 1, alt: 'Woman holding a beaker', src: { portrait: 'p1' }, photographer: 'A' },
+    { id: 2, alt: 'Glass beakers on a shelf', src: { portrait: 'p2' }, photographer: 'B', photographer_url: 'u2', url: 'page2' },
+    { id: 3, alt: 'Beakers', src: { portrait: 'p3' }, photographer: 'C', url: 'page3' },
+  ];
+  const calls = []; const wrote = {};
+  const fetchImpl = async (u, o = {}) => { calls.push({ u, o });
+    if (u.startsWith(m.PEXELS)) return reply(200, { photos });
+    return { ok: true, status: 200, arrayBuffer: async () => Buffer.from('jpg' + u) }; };
+  const script = { lines: [{ scene: 'lab beakers' }, { scene: 'lab beakers' }, { text: '장면 없음' }] };
+  const rows = await m.storyboard({ script, key: 'px', out: '/o', fetchImpl, write: async (f, b) => { wrote[f] = String(b); } });
+  assert.strictEqual(calls[0].o.headers.Authorization, 'px');
+  assert.ok(/orientation=portrait/.test(calls[0].u));
+  assert.deepStrictEqual(rows.map((r) => r.ok), [true, true, false]);
+  assert.strictEqual(rows[0].credit.id, 2, '«Woman» 이 든 사진은 건너뛴다');
+  assert.strictEqual(rows[1].credit.id, 3, '같은 사진을 두 번 안 쓴다');
+  assert.strictEqual(rows[0].credit.people, null, '확인 안 한 것을 «아니다»로 적지 않는다 (§6-2-6)');
+  assert.ok(wrote['/o/scene-01.jpg'] && wrote['/o/scene-02.jpg']);
+  assert.deepStrictEqual(m.creditLines(rows), ['- B (Pexels) page2', '- C (Pexels) page3']);
+  const none = await m.storyboard({ script, key: '', out: '/o', fetchImpl, write: async () => {} });
+  assert.strictEqual(none[0].code, 2);
+});
+
+test('사진 구간은 다음 줄이 시작할 때까지 · 합이 영상 길이와 같다', async () => {
+  const m = await loadMake();
+  const tl = m.timeline([1.5, 1.2, 1.3], ['a', 'b', 'c']);
+  const segs = m.segments(tl, tl[2].end);
+  assert.ok(Math.abs(segs.reduce((a, b) => a + b, 0) - tl[2].end) < 0.01);
+  assert.ok(/Credit/.test(m.toAss(tl, 'T', ['사진 A · Pexels'])));
+});
+
+test('목소리 이름 칸이 묶음({ko,en})으로 와도 찾는다 — 2026-10-28 실측 608개가 [object Object] 로 읽혀 못 찾았다', async () => {
+  const m = await import(require('path').join(__dirname, '..', '..', 'scripts', 'shorts-voice.mjs'));
+  const list = [{ voice_id: 'a', voice_name: { ko: '민준', en: 'Minjun' } }, { voice_id: 'b', voice_name: { ko: '진우', en: 'Jinwoo' } }, { voice_id: 'c', voice_name: { ko: '강일', en: 'Kangil' } }];
+  const r = m.pickVoice(list, ['강일', '진우', '서현']);
+  assert.strictEqual(r.id, 'c'); assert.strictEqual(r.name, '강일'); assert.strictEqual(r.rank, 1);
+  assert.strictEqual(m.pickVoice([{ voice_id: 'd', voice_name: { en: 'Seohyun' } }], ['강일', '진우', '서현']).rank, 3, '영문 표기만 있어도 찾는다');
+  assert.strictEqual(m.pickVoice(list.slice(0, 1), ['강일', '진우', '서현']), null, '없으면 아무 목소리나 고르지 않는다');
+  assert.ok(/voice_name\{ko,en\}/.test(m.voiceShape(list)), '못 찾았을 때 칸 모양을 적는다');
+});

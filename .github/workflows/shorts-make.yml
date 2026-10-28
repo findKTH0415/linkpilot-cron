@@ -1,8 +1,9 @@
 # 쇼츠 만들기 — 승인된 대본 한 편을 목소리·자막·9:16 영상까지 〈2026-10-28 사장님: 「실제 쇼츠를 생산해서 배포까지 테스트해봐」〉
 #
-# 대본: data/_shorts/scripts/<id>.json (승인 A 가 true 인 것만) · 목소리: Gemini 먼저, 막히면 Typecast(크레딧을 쓴다)
+# 대본: data/_shorts/scripts/<id>.json (승인 A 가 true 인 것만) · 목소리: Typecast 먼저(강일→진우→서현 · 크레딧을 쓴다 · 사장님 지시 2026-10-28), 막히면 Gemini 한 목소리
+# 사진: 줄마다 장면(scene) 검색어로 Pexels 공식 API (§6-2-6)
 # 결과: 영상·소리·자막은 아티팩트 «shorts-final» 로만 · 저장소에는 요약(_summary.md)만 커밋한다(공개 저장소 · §2).
-# ★ 올리지 않는다 — 게시(유튜브·인스타)는 사장님이 하신다 (§10 외부 공개).
+# ★ 기본은 올리지 않는다 — «publish» 칸에서 올릴 곳을 고르셨을 때만 «쇼츠 올리기»로 이어진다(그 고름이 게시 승인이다 · §10).
 
 name: 쇼츠 만들기
 
@@ -14,13 +15,25 @@ on:
         required: true
         default: linkpilot-01
       engine:
-        description: 목소리 엔진 — auto(Gemini 먼저) · gemini · typecast
+        description: 목소리 엔진 — auto(Typecast 먼저 · 강일→진우→서현 · 막히면 Gemini) · typecast · gemini
         required: false
         default: auto
       voice:
         description: Gemini 목소리 이름
         required: false
         default: Kore
+      images:
+        description: 줄마다 장면 사진 — pexels(넣음) · none(잉크 바탕만)
+        required: false
+        default: pexels
+      publish:
+        description: 다 만들면 이어서 올릴 곳 — none(안 올림) · youtube · instagram · youtube,instagram  ★ 고르면 그것이 게시 승인이다 (§10)
+        required: false
+        default: none
+      privacy:
+        description: 유튜브 공개 범위 — private · unlisted · public
+        required: false
+        default: private
 
 permissions:
   contents: write
@@ -50,6 +63,8 @@ jobs:
           IN_ID: ${{ inputs.id }}
           IN_ENGINE: ${{ inputs.engine }}
           IN_VOICE: ${{ inputs.voice }}
+          IN_IMAGES: ${{ inputs.images }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
           STUDIO_TYPECAST_AI: ${{ secrets.STUDIO_TYPECAST_AI }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_API_KEY_2: ${{ secrets.GEMINI_API_KEY_2 }}
@@ -67,7 +82,7 @@ jobs:
           GEMINI_KEY_06: ${{ secrets.GEMINI_KEY_06 }}
           GEMINI_KEY_07: ${{ secrets.GEMINI_KEY_07 }}
           GEMINI_KEY_08: ${{ secrets.GEMINI_KEY_08 }}
-        run: node scripts/shorts-make.mjs --id "$IN_ID" --engine "${IN_ENGINE:-auto}" --voice "${IN_VOICE:-Kore}"
+        run: node scripts/shorts-make.mjs --id "$IN_ID" --engine "${IN_ENGINE:-auto}" --voice "${IN_VOICE:-Kore}" --images "${IN_IMAGES:-pexels}"
       - name: 영상·자막을 아티팩트로 남긴다
         if: always()
         uses: actions/upload-artifact@v5
@@ -80,30 +95,43 @@ jobs:
             data/_shorts/out/${{ inputs.id }}/captions.ass
             data/_shorts/out/${{ inputs.id }}/script.txt
             data/_shorts/out/${{ inputs.id }}/_summary.md
+            data/_shorts/out/${{ inputs.id }}/_images.json
+            data/_shorts/out/${{ inputs.id }}/scene-*.jpg
           if-no-files-found: warn
           retention-days: 14
       - name: 미리보기용으로 영상만 shorts-preview 가지에 둔다
         # ★ 아티팩트 저장소는 세션 쪽에서 못 닿아 미리보기 창에 못 싣는다 — 영상·포스터만 따로 가지에 둔다.
         #   공개 저장소라 이 가지도 공개다: 대본이 승인 A 를 지났고 개인정보·열쇠가 없는 영상만 여기 온다 (§2 · §30).
-        if: steps.make.outcome == 'success' && github.ref_name == github.event.repository.default_branch
+        # ★ 본가지가 아닌 가지에서 돈 판은 «<번호>--<가지>» 폴더에 둔다 — 올리기는 «<번호>/» 만 읽으므로 시험판이 올라가지 않는다.
+        if: steps.make.outcome == 'success'
         env:
           IN_ID: ${{ inputs.id }}
+          REF_NAME: ${{ github.ref_name }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           set -eu
           src="data/_shorts/out/$IN_ID"
+          dest="$IN_ID"
+          if [ "$REF_NAME" != "$DEFAULT_BRANCH" ]; then dest="$IN_ID--$(printf '%s' "$REF_NAME" | tr 'A-Z' 'a-z' | tr -c 'a-z0-9' '-' | sed 's/-\{2,\}/-/g; s/^-//; s/-$//' | cut -c1-40)"; fi
           ffmpeg -v error -y -ss 2 -i "$src/final.mp4" -frames:v 1 -vf scale=540:-1 "$src/poster.jpg"
           tmp=$(mktemp -d)
           cp "$src/final.mp4" "$src/poster.jpg" "$src/_summary.md" "$tmp/"
+          [ -f "$src/_images.json" ] && cp "$src/_images.json" "$tmp/"   # 올리기가 같은 판의 사진 출처를 읽는다 (Codex #329)
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           if git ls-remote --exit-code origin shorts-preview >/dev/null 2>&1; then
             git fetch -q origin shorts-preview && git worktree add -q ../pv origin/shorts-preview && (cd ../pv && git checkout -q -B shorts-preview)
           else
-            git worktree add -q --detach ../pv && (cd ../pv && git checkout -q --orphan shorts-preview && git rm -rq . 2>/dev/null || true)
+            git worktree add -q --detach ../pv && (cd ../pv && git checkout -q --orphan shorts-preview)
           fi
-          mkdir -p "../pv/$IN_ID" && cp "$tmp"/* "../pv/$IN_ID/"
-          cd ../pv && git add "$IN_ID" && (git diff --staged --quiet || git commit -q -m "쇼츠 미리보기 $IN_ID") && git push -q origin shorts-preview
-          echo "미리보기: shorts-preview/$IN_ID/final.mp4"
+          # ★ 이 가지에는 «<번호>/final.mp4 · poster.jpg · _summary.md · _images.json» 만 둔다 — 앞 판은 저장소 나무가 통째로 딸려 들어갔다
+          # ★ 파일 이름은 -z 로 받는다 — 한글 이름이 따옴표로 감싸여 나와 rm 이 통째로 실패했고, «|| true» 가 그것을 삼켜 저장소 941개가 남았다 (2026-10-29 실측)
+          (cd ../pv && { git ls-files -z | grep -zvE '^[a-z0-9-]+/(final\.mp4|poster\.jpg|_summary\.md|_images\.json)$' | xargs -0 -r git rm -q --cached -- ; } && git clean -fdxq -e '*/final.mp4' -e '*/poster.jpg' -e '*/_summary.md' -e '*/_images.json')
+          left=$(cd ../pv && git ls-files | grep -cvE '^[a-z0-9-]+/(final\.mp4|poster\.jpg|_summary\.md|_images\.json)$' || true)
+          [ "$left" = 0 ] || { echo "::error::미리보기 가지에 영상 말고 다른 파일 $left 개가 남았다"; exit 1; }
+          mkdir -p "../pv/$dest" && cp "$tmp"/* "../pv/$dest/"
+          cd ../pv && git add "$dest" && (git diff --staged --quiet || git commit -q -m "쇼츠 미리보기 $dest") && git push -q origin shorts-preview
+          echo "미리보기: shorts-preview/$dest/final.mp4"
       - name: 요약만 커밋한다
         if: always()
         env:
@@ -118,6 +146,7 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add "$f"
+          [ -f "data/_shorts/out/$IN_ID/_images.json" ] && git add "data/_shorts/out/$IN_ID/_images.json"   # 사진 출처 기록 (§6-2-6 · 사진 바이트는 안 올린다)
           git diff --staged --quiet || git commit -m "쇼츠 만들기 $IN_ID ($(date -u +%Y-%m-%d))"
           for i in 1 2 3; do
             if git pull --rebase -q origin "$DEFAULT_BRANCH" && git push; then exit 0; fi
@@ -129,3 +158,20 @@ jobs:
           OUTCOME: ${{ steps.make.outcome }}
         run: |
           [ "$OUTCOME" = success ] && echo "완성" || { echo "::error::쇼츠를 못 만들었다 — 요약(_summary.md)의 판정 줄을 본다"; exit 1; }
+
+  # ── 이어서 올리기 — publish 칸에서 고른 곳만 (none 이면 이 잡은 안 돈다) ──
+  publish:
+    needs: make
+    if: inputs.publish != 'none' && inputs.publish != '' && github.ref_name == github.event.repository.default_branch
+    uses: ./.github/workflows/shorts-publish.yml
+    with:
+      id: ${{ inputs.id }}
+      targets: ${{ inputs.publish }}
+      privacy: ${{ inputs.privacy }}
+      confirm: 게시
+    secrets:
+      YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+      YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+      YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+      INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+      INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}

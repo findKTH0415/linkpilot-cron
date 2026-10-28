@@ -2,22 +2,24 @@
 //
 // 쇼츠 한 편을 «처음부터 끝까지» 만든다 〈2026-10-28 사장님: 「실제 쇼츠를 생산해서 배포까지 테스트해봐」〉
 //
-// 흐름: 승인된 대본(data/_shorts/scripts/<id>.json) → 줄마다 목소리(Gemini 먼저 · 막히면 Typecast) →
+// 흐름: 승인된 대본(data/_shorts/scripts/<id>.json) → 줄마다 목소리(Typecast 먼저 · 강일→진우→서현 · 막히면 Gemini 한 목소리) →
 //       소리 이어 붙이기(줄 사이 0.35초) → 줄마다 잰 길이로 자막 시각(ASS·SRT) → FFmpeg 9:16 렌더 → ffprobe 로 잰다.
 // ★ 자막 시각은 «받은 소리의 바이트 수»로 잰다 — 추정하지 않는다. 그래서 자막과 목소리가 어긋날 수 없다.
-// ★ 배경은 FFmpeg 이 그린다(잉크 바탕 · 라임 진행 막대 · 글자) — 남의 사진·영상·로고를 안 쓰니 권리 문제가 없다 (§6-2-6 · §30).
+// ★ 배경: 줄마다 «장면(scene)» 검색어로 Pexels 공식 API 사진을 깐다(scripts/shorts-images.mjs · 사진가 표기 · §6-2-6)
+//   〈2026-10-28 사장님: 「스토리보드에 맞게 자동으로 이미지도 넣어줘」〉. 장면이 없거나 못 받은 줄은 FFmpeg 이 그린 잉크 바탕이다.
 // ★ 대본은 «승인 A» 칸이 true 인 것만 읽는다 — 사실 확인 전 대본은 소리로 안 만든다 (§30).
 // ★ 올리지 않는다 — 결과는 아티팩트와 요약뿐이다. 게시는 사장님이 하신다 (§10 외부 공개).
 // ★ 열쇠 값은 한 글자도 안 남긴다 (§2 · 공개 저장소).
 //
-// 쓰는 법  node scripts/shorts-make.mjs --id linkpilot-01 [--voice Kore] [--engine auto|gemini|typecast] [--out data/_shorts/out]
+// 쓰는 법  node scripts/shorts-make.mjs --id linkpilot-01 [--voice Kore] [--engine auto|gemini|typecast] [--images pexels|none] [--out data/_shorts/out]
 // 되돌아오는 값: 0 완성 · 2 열쇠 없음 · 3 기다리면 낫는다 · 4 거부 · 5 한도 0·크레딧 · 6 모델 없음 · 7 소리 아님 ·
 //                8 렌더 실패·규격 어긋남 · 9 열쇠 샘 · 10 대본 미승인·형식 오류
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import { geminiKeys } from './guide-review.mjs';
-import { makeVoice, makeTypecast, VIDEO } from './shorts-voice.mjs';
+import { makeVoice, makeTypecast, VIDEO, TC_VOICES } from './shorts-voice.mjs';
+import { storyboard } from './shorts-images.mjs';
 
 export const GAP_S = 0.35;          // 줄 사이 쉼
 export const RATE = 24000;          // 이어 붙이는 소리 — 16비트 모노 24kHz 로 맞춘다
@@ -50,15 +52,16 @@ export function assTime(s) { const cs = Math.round(s * 100); return `${Math.floo
 export function toSrt(tl) { return tl.map((c, k) => `${k + 1}\n${srtTime(c.start)} --> ${srtTime(c.end)}\n${c.text}\n`).join('\n'); }
 
 /** ASS — 가운데 큰 글자(잉크 바탕 위 흰 글자) · 줄 번호는 위 작은 라임 글자 */
-export function toAss(tl, title = '') {
+export function toAss(tl, title = '', credits = []) {
   const esc = (t) => String(t).replace(/[{}]/g, '').replace(/\n/g, '\\N');
   const head = [
     '[Script Info]', 'ScriptType: v4.00+', `PlayResX: ${VIDEO.w}`, `PlayResY: ${VIDEO.h}`, 'WrapStyle: 0', '',
     '[V4+ Styles]',
     'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding',
-    `Style: Cap,${FONT},84,&H00FFFFFF,&H00FFFFFF,&H00191400,&H00000000,1,0,0,0,100,100,0,0,1,0,0,5,110,110,0,1`,
+    `Style: Cap,${FONT},84,&H00FFFFFF,&H00FFFFFF,&H00191400,&H00000000,1,0,0,0,100,100,0,0,1,4,1,5,110,110,0,1`, // 테두리 4 — 사진 위에서도 읽힌다
     `Style: Num,${FONT},40,&H0006E1AA,&H0006E1AA,&H00000000,&H00000000,1,0,0,0,100,100,2,0,1,0,0,8,110,110,330,1`,
     `Style: Brand,${FONT},44,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,1,0,0,0,100,100,6,0,1,0,0,8,110,110,160,1`,
+    `Style: Credit,${FONT},26,&H00D8D8D8,&H00D8D8D8,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,2,0,2,110,110,190,1`,
     '', '[Events]', 'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text',
   ];
   const total = tl.length ? tl[tl.length - 1].end : 0;
@@ -66,6 +69,7 @@ export function toAss(tl, title = '') {
   for (const c of tl) {
     ev.push(`Dialogue: 0,${assTime(c.start)},${assTime(c.end)},Num,,0,0,0,,${pad(c.i + 1)} / ${pad(tl.length)}`);
     ev.push(`Dialogue: 0,${assTime(c.start)},${assTime(c.end)},Cap,,0,0,0,,{\\fad(120,120)}${esc(c.text)}`);
+    if (credits[c.i]) ev.push(`Dialogue: 0,${assTime(c.start)},${assTime(c.end)},Credit,,0,0,0,,${esc(credits[c.i])}`); // 사진가 표기 (§6-2-6)
   }
   return head.concat(ev).join('\n') + '\n';
 }
@@ -82,16 +86,37 @@ function wavHeader(len) {
   h.write('data', 36); h.writeUInt32LE(len, 40); return h;
 }
 
-/** 렌더 — 잉크 바탕 + 라임 진행 막대 + ASS 자막 + 목소리 */
-export function render({ wav, ass, mp4, seconds, fontsDir }) {
+/** 줄마다 화면에 머무는 길이 — 다음 줄이 시작할 때까지(줄 사이 쉼 포함) · 마지막 줄은 끝까지 */
+export function segments(tl, total) {
+  return tl.map((c, k) => +(((k < tl.length - 1 ? tl[k + 1].start : total) - (k ? c.start : 0))).toFixed(3));
+}
+
+/** 렌더 — 바탕(줄마다 장면 사진 · 없으면 잉크) + 라임 진행 막대 + ASS 자막 + 목소리 */
+export function render({ wav, ass, mp4, seconds, fontsDir, images = [], tl = [] }) {
   const D = seconds.toFixed(3);
+  const useImg = tl.length && images.some(Boolean);
+  const ins = []; let bg = '';
+  if (useImg) {
+    // ★ 사진은 9:16 을 채우도록 자르고 밝기를 절반으로(색은 그대로) 눌러 흰 자막이 읽히게 한다 — 사진이 없는 줄은 잉크 바탕
+    const segs = segments(tl, seconds);
+    const parts = segs.map((d, k) => {
+      if (images[k]) { ins.push('-loop', '1', '-framerate', String(VIDEO.fps), '-t', String(d), '-i', images[k]);
+        return `[${ins.filter((x) => x === '-i').length - 1}:v]scale=${VIDEO.w}:${VIDEO.h}:force_original_aspect_ratio=increase,crop=${VIDEO.w}:${VIDEO.h},setsar=1,fps=${VIDEO.fps},format=rgb24,colorchannelmixer=rr=0.5:gg=0.5:bb=0.5,format=yuv420p[s${k}]`; }
+      ins.push('-f', 'lavfi', '-t', String(d), '-i', `color=c=${VIDEO.bg}:s=${VIDEO.w}x${VIDEO.h}:r=${VIDEO.fps}`);
+      return `[${ins.filter((x) => x === '-i').length - 1}:v]setsar=1,format=yuv420p[s${k}]`;
+    });
+    bg = parts.join(';') + ';' + segs.map((_, k) => `[s${k}]`).join('') + `concat=n=${segs.length}:v=1:a=0[bg];[bg]`;
+  }
   const vf = [
     `drawbox=x=110:y=1640:w=860:h=10:color=0x1E2A31:t=fill`,
     `drawbox=x=110:y=1640:w='860*min(1,t/${D})':h=10:color=0xAAE106:t=fill`,
     `ass=${ass}${fontsDir ? `:fontsdir=${fontsDir}` : ''}`,
   ].join(',');
-  execFileSync('ffmpeg', ['-y', '-v', 'error', '-f', 'lavfi', '-i', `color=c=${VIDEO.bg}:s=${VIDEO.w}x${VIDEO.h}:r=${VIDEO.fps}:d=${D}`, '-i', wav,
-    '-vf', vf, '-shortest', '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-pix_fmt', 'yuv420p', '-r', String(VIDEO.fps),
+  const nIn = ins.filter((x) => x === '-i').length;
+  const head = useImg
+    ? [...ins, '-i', wav, '-filter_complex', `${bg}${vf}[v]`, '-map', '[v]', '-map', `${nIn}:a`]
+    : ['-f', 'lavfi', '-i', `color=c=${VIDEO.bg}:s=${VIDEO.w}x${VIDEO.h}:r=${VIDEO.fps}:d=${D}`, '-i', wav, '-vf', vf];
+  execFileSync('ffmpeg', ['-y', '-v', 'error', ...head, '-shortest', '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-pix_fmt', 'yuv420p', '-r', String(VIDEO.fps),
     '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', mp4]);
   const j = JSON.parse(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'stream=codec_type,codec_name,width,height:format=duration,size', '-of', 'json', mp4]).toString());
   const vs = (j.streams || []).find((s) => s.codec_type === 'video') || {};
@@ -102,24 +127,20 @@ export function render({ wav, ass, mp4, seconds, fontsDir }) {
   return { ok, probe };
 }
 
-/** 한 줄을 읽는다 — auto 면 Gemini 먼저, 막히면 Typecast */
-async function speak(text, { engine, voice, keys, tcKey }) {
-  const tried = [];
-  if (engine !== 'typecast') {
-    const g = await makeVoice({ text, voice, keys, budgetMs: 120000 });
-    tried.push({ engine: 'gemini', code: g.code, say: g.say });
-    if (g.ok) return { ok: true, engine: 'gemini', model: g.model, wav: g.wav, tried };
-    if (engine === 'gemini') return { ok: false, code: g.code, say: g.say, tried };
+/** 한 줄을 읽는다 — 엔진 하나로만(목소리가 줄마다 바뀌지 않게) · Typecast 는 정해 둔 목소리 번호를 쓴다 */
+async function speakOne(text, { use, voice, keys, tcKey, tc }) {
+  if (use === 'typecast') {
+    const t = await makeTypecast({ text, key: tcKey, voices: tc.id ? null : TC_VOICES, voiceId: tc.id || '' });
+    if (t.ok && !tc.id) { tc.id = t.voiceId; tc.name = t.voiceName; tc.rank = t.voiceRank; }
+    return t.ok ? { ok: true, engine: 'typecast', model: `${t.model}${tc.name ? ` · ${tc.name}` : ''}`, wav: t.wav } : { ok: false, code: t.code, say: t.say, names: t.names, shape: t.shape };
   }
-  const t = await makeTypecast({ text, key: tcKey });
-  tried.push({ engine: 'typecast', code: t.code, say: t.say });
-  if (t.ok) return { ok: true, engine: 'typecast', model: t.model, wav: t.wav, tried };
-  return { ok: false, code: t.code, say: t.say, tried };
+  const g = await makeVoice({ text, voice, keys, budgetMs: 120000 });
+  return g.ok ? { ok: true, engine: 'gemini', model: `${g.model} · ${voice}`, wav: g.wav } : { ok: false, code: g.code, say: g.say };
 }
 
 async function main() {
   const id = arg('id', 'linkpilot-01');
-  const engine = arg('engine', 'auto');
+  const engine = arg('engine', 'auto'); // auto = Typecast 먼저(강일 → 진우 → 서현) · 막히면 Gemini 한 목소리
   const voice = arg('voice', 'Kore');
   const out = `${arg('out', 'data/_shorts/out')}/${id}`;
   await mkdir(out, { recursive: true });
@@ -140,32 +161,55 @@ async function main() {
   };
   if (bad) return finish(10, bad);
 
-  const pcms = []; const durs = []; const used = new Set();
-  for (const [i, l] of script.lines.entries()) {
-    const r = await speak(l.text, { engine, voice, keys, tcKey });
-    log.push(`- ${pad(i + 1)} «${l.text}» — ${r.ok ? `${r.engine} \`${r.model}\`` : `판정 ${r.code} ${r.say}`}${r.tried.length > 1 ? ` (앞 길: ${r.tried[0].engine} 판정 ${r.tried[0].code})` : ''}`);
-    if (!r.ok) return finish(r.code, `${i + 1}번째 줄을 소리로 못 만들었다 — ${r.say}`);
-    used.add(r.engine);
-    const raw = `${out}/line-${pad(i + 1)}.wav`; await writeFile(raw, r.wav);
-    const pcm = toPcm(raw); pcms.push(pcm); durs.push(pcm.length / (RATE * 2));
+  // 〈2026-10-28 사장님: 「타입캐스트, 목소리 강일 1순위 · 진우 2순위 · 서현 3순위」〉 — auto 는 Typecast 먼저.
+  // ★ 한 편은 «한 목소리»다: Typecast 가 어느 줄에서든 막히면 처음부터 Gemini 한 목소리로 다시 읽는다(섞지 않는다).
+  const order = engine === 'gemini' ? ['gemini'] : engine === 'typecast' ? ['typecast'] : ['typecast', 'gemini'];
+  let pcms = [], durs = [], used = new Set(), lineLog = [], fail = null;
+  for (const use of order) {
+    pcms = []; durs = []; lineLog = []; fail = null;
+    const tc = {};
+    for (const [i, l] of script.lines.entries()) {
+      const r = await speakOne(l.text, { use, voice, keys, tcKey, tc });
+      lineLog.push(`- ${pad(i + 1)} «${l.text}» — ${r.ok ? `${r.engine} \`${r.model}\`` : `판정 ${r.code} ${r.say}`}`);
+      if (!r.ok) { fail = { use, i, ...r }; break; }
+      const raw = `${out}/line-${pad(i + 1)}.wav`; await writeFile(raw, r.wav);
+      const pcm = toPcm(raw); pcms.push(pcm); durs.push(pcm.length / (RATE * 2));
+    }
+    if (!fail) { used = new Set([use]); if (use === 'typecast' && tc.name) log.push(`- Typecast 목소리: ${tc.name} (${tc.rank}순위 · 순위 ${TC_VOICES.join(' → ')})`); break; }
+    log.push(`- ${use} 로 ${fail.i + 1}번째 줄에서 막혔다 — 판정 ${fail.code} ${fail.say}${fail.names && fail.names.length ? ` · 목록에 있는 이름 예: ${fail.names.slice(0, 12).join(', ')}` : ''}${fail.shape ? ` · 목록 한 줄의 칸: ${fail.shape}` : ''}`);
   }
+  log.push(...lineLog);
+  if (fail) return finish(fail.code, `${fail.i + 1}번째 줄을 소리로 못 만들었다 — ${fail.say}`);
   const gap = Buffer.alloc(Math.round(GAP_S * RATE) * 2);
   const body = Buffer.concat(pcms.flatMap((p, i) => (i < pcms.length - 1 ? [p, gap] : [p])));
   const wav = `${out}/narration.wav`; await writeFile(wav, Buffer.concat([wavHeader(body.length), body]));
   const seconds = body.length / (RATE * 2);
   const tl = timeline(durs, script.lines.map((l) => l.text));
   await writeFile(`${out}/captions.srt`, toSrt(tl));
-  await writeFile(`${out}/captions.ass`, toAss(tl, script.brand || 'LINKPILOT'));
+  // 스토리보드 — 줄마다 장면 사진 (Pexels 공식 API · §6-2-6). 열쇠가 없거나 못 받으면 그 줄은 잉크 바탕
+  let shots = [];
+  const pxKey = String(process.env.PEXELS_API_KEY || '').trim();
+  if (pxKey) secrets.push(pxKey);
+  if (arg('images', 'pexels') === 'pexels') {
+    if (!pxKey) log.push('- 사진: PEXELS_API_KEY 가 없어 잉크 바탕으로만 그린다');
+    else { shots = await storyboard({ script, key: pxKey, out, write: writeFile }); await writeFile(`${out}/_images.json`, JSON.stringify(shots.map(({ file, ...r }) => r), null, 2) + '\n'); }
+  }
+  const images = script.lines.map((_, k) => { const r = shots.find((x) => x.i === k); return r && r.ok ? r.file : null; });
+  const credits = script.lines.map((_, k) => { const r = shots.find((x) => x.i === k); return r && r.ok && r.credit.photographer ? `사진 ${r.credit.photographer} · Pexels` : ''; });
+  await writeFile(`${out}/captions.ass`, toAss(tl, script.brand || 'LINKPILOT', credits));
   await writeFile(`${out}/script.txt`, script.lines.map((l) => l.text).join('\n') + '\n');
 
   let r;
-  try { r = render({ wav, ass: `${out}/captions.ass`, mp4: `${out}/final.mp4`, seconds, fontsDir: process.env.SHORTS_FONTS_DIR || '' }); }
+  try { r = render({ wav, ass: `${out}/captions.ass`, mp4: `${out}/final.mp4`, seconds, fontsDir: process.env.SHORTS_FONTS_DIR || '', images, tl }); }
   catch (e) { return finish(8, 'FFmpeg 렌더가 실패했다 — ' + String(e && e.message).slice(0, 200)); }
   log.push('', `- 목소리: ${[...used].join(' + ')} · 줄 ${tl.length}개 · 줄 사이 ${GAP_S}초 · 자막 시각은 받은 소리 길이로 잼`,
     `- 영상: ${r.probe.width}×${r.probe.height} · ${r.probe.video}/${r.probe.audio} · ${r.probe.duration}초(목소리 ${seconds.toFixed(2)}초) · ${(r.probe.size / 1048576).toFixed(2)} MB`,
     `- 글꼴: ${FONT}(OFL) — 플랫폼 화면 글꼴 페이퍼로지와 다르다`,
-    '- 배경: FFmpeg 이 그린 잉크 바탕·라임 진행 막대 — 남의 사진·영상·로고 없음',
-    '- ★ 올리지 않았다 — 영상은 이 실행의 아티팩트(shorts-final)로만 받는다. 게시는 사장님이 하신다.');
+    images.some(Boolean)
+      ? `- 배경: 장면 사진 ${images.filter(Boolean).length}/${images.length}줄 (Pexels 공식 API · 밝기 절반 · 사진가 표기) — 나머지 줄은 잉크 바탕`
+      : '- 배경: FFmpeg 이 그린 잉크 바탕·라임 진행 막대 — 남의 사진·영상·로고 없음',
+    ...shots.map((x) => `  - ${pad(x.i + 1)} «${x.query || '-'}» — ${x.ok ? `${x.credit.photographer} · ${x.credit.page}` : `판정 ${x.code} ${x.say}`}`),
+    '- ★ 이 단계는 올리지 않는다 — 올리기는 «쇼츠 올리기»(게시 승인 «게시»)가 한다.');
   return finish(r.ok ? 0 : 8, r.ok ? `완성 — ${r.probe.duration}초 9:16 쇼츠` : '렌더는 됐는데 규격이 어긋난다');
 }
 
