@@ -1733,9 +1733,10 @@ test('★★ 「자료 업로드」 제목을 손으로 적지 않는다 (머리
   const code = codeOf(read('intake.html'));
   /* ★ `dropCard` 만 `cardHead` 를 안 거치고 직접 붙여서 머리와 겹쳤다.
      같은 실수가 다시 생기면 여기서 잡는다 */
-  const at = code.indexOf('function dropCard');
-  assert.ok(at > 0, 'dropCard 가 없다');
-  const fn = code.slice(at, code.indexOf('function dropCardLegacy'));
+  /* ★ 〈2026-10-28〉 자료 업로드 칸은 이제 이 화면 안의 올리는 칸(dropCardLegacy)이다 — 그쪽 제목을 잰다 */
+  const at = code.indexOf('function dropCardLegacy');
+  assert.ok(at > 0, '올리는 칸(dropCardLegacy)이 없다');
+  const fn = code.slice(at, code.indexOf('\n  function ', at + 10));
   assert.match(fn, /cardHead\(box, 'files'/, '머리와 겹치는지 안 보고 제목을 붙인다');
   assert.ok(!/card__t', '자료 업로드'/.test(fn), '제목을 손으로 적었다');
 });

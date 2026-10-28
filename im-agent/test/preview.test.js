@@ -25,15 +25,14 @@ const PLATFORM = path.join(__dirname, '..', 'ui', 'platform');
  *   옮겨 갈 곳이 없는 칸을 레일에 그리면 사용자는 「한 칸 더 남았다」로 읽고
  *   다음을 찾는다 — 찾을 것이 없다.
  */
-test('단계는 6개이고 순서·이름이 고정되어 있다', () => {
+test('단계는 4개이고 순서·이름이 고정되어 있다', () => {
   /* ★ 「완성 보고서」가 흐름 안으로 들어와 여섯이 되었다 〈2026-08-28 · D-157〉.
-   *   앞 판은 딴 탭이라, 만들고 나면 사용자가 갈 곳을 스스로 찾아야 했다. */
+   * ★★ 〈2026-10-28 사장님〉 «발행 주체»(제작 기본정보) · «무엇을 만들까요» 를 걷어 넷이 되었다. */
   assert.deepStrictEqual(
     SCREENS.map(s => `${s.no}. ${s.name}`),
-    ['1. 제작 기본정보 입력', '2. 무엇을 만들까요?', '3. 관련자료 업로드',
-      '4. 가이드 필드 (자동입력 + 직접입력)', '5. 출력조건', '6. 완성 보고서']);
+    ['1. 관련자료 업로드', '2. 가이드 필드 (자동입력 + 직접입력)', '3. 출력조건', '4. 완성 보고서']);
 
-  // 번호는 1..6 으로 이어져야 한다 — 건너뛰면 흐름이 아니라 목록이 된다
+  // 번호는 1..4 로 이어져야 한다 — 건너뛰면 흐름이 아니라 목록이 된다
   SCREENS.forEach((s, i) => assert.strictEqual(s.no, i + 1));
 });
 
@@ -61,8 +60,8 @@ test('단계 이름을 화면이 **읽어 온다** (베껴 쓰지 않는다)', (
  *   화면이 확정 뒤에 다른 것을 보여 준다는 것을 여기서 못 박아 둔다.
  */
 test('출력조건은 확정 전 상태다 (확정하면 같은 화면이 생성으로 바뀐다)', () => {
-  assert.strictEqual(SCREENS[4].file, 'reports.html');
-  assert.strictEqual(SCREENS[4].after, undefined, '마지막 단계는 확정 전이어야 한다');
+  assert.strictEqual(SCREENS[2].file, 'reports.html');
+  assert.strictEqual(SCREENS[2].after, undefined, '마지막 단계는 확정 전이어야 한다');
   assert.ok(!SCREENS.some(x => x.after === 'CONFIRM_SPEC'),
     '레일에 확정 뒤 칸이 남아 있다 — 옮겨 갈 곳이 없는 칸이다');
 });

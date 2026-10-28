@@ -83,7 +83,10 @@ window.fetch = function () {
   let dom;
   try { dom = drawn(renderDom(browser, probe, 9000, 1100)); } finally { fs.unlinkSync(probe); }
 
-  assert.match(dom, /<iframe/, '자료 업로드 칸이 아예 안 섰다 — 잰 것이 없다');
+  /* ★ 〈2026-10-28 사장님: 「업로드 UI필드가 안보임」〉 자료 업로드 칸은 틀(iframe) 대신 이 화면 안의
+   *   올리는 칸으로 선다 — 앱이 겹쳐 실릴 틀 자체가 없어졌다. 그래도 칸이 섰는지는 잰다 */
+  assert.match(dom, /data-lp-intake-drop/, '자료 업로드 칸이 아예 안 섰다 — 잰 것이 없다');
+  assert.ok(!/<iframe[^>]*files\.html/.test(dom), '자료 업로드 칸이 다시 틀(files.html)을 싣는다 — 사장님 화면에서 안 보이던 길이다');
   assert.ok(!/자료 업로드 화면을 못 불러왔습니다/.test(dom),
     '멀쩡한 칸에도 경고가 뜬다 — 진짜일 때도 안 읽히게 된다');
 });
