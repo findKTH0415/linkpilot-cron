@@ -29,7 +29,7 @@
    *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다. 화면이 자기
    *   지문과 대 보고 다르면 「함수가 없다」로 죽기 전에 사람 말로 알린다.
    */
-  var LP_BUILD = '82b07af1';
+  var LP_BUILD = 'f3a6f7c4';
 
   /**
    * 제작 과정을 사람이 아는 말로 묶은 카테고리.
@@ -290,7 +290,7 @@
    *     **진행률에서 통째로 빠진 채** 아무 오류도 안 난다.
    */
   var STEPS = [
-    { id: 'intake', n: 1, label: '입력 채우기 (1~2단계)', covers: ['ask', 'sources'] },
+    { id: 'intake', n: 1, label: '관련자료 업로드', covers: ['sources'] },
     { id: 'fields', n: 2, label: '가이드 필드 (자동입력 + 직접입력)', covers: ['fields'] },
     { id: 'spec', n: 3, label: '출력조건', covers: ['spec'] },
     /* ★★ **레일은 셋인데 여기는 넷이다** 〈2026-08-22 사용자 지시〉.

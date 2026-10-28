@@ -24,7 +24,7 @@
    *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다. 화면이 자기
    *   지문과 대 보고 다르면 「함수가 없다」로 죽기 전에 사람 말로 알린다.
    */
-  var LP_BUILD = '82b07af1';
+  var LP_BUILD = 'f3a6f7c4';
 
   /**
    * ★★★ **단계는 다섯이다** 〈2026-08-22 사용자 지시〉.
@@ -44,19 +44,15 @@
   var STEPS = [
     /* ★ 2026-10-28 사장님 화면: 「보고서생성에서 발행 주체 카테고리는 삭제해줘」 — 1단계 «제작 기본정보 입력»(발행 주체 칸)을 걷었다.
        발행 주체는 서버에 저장된 값(issuer.json)이 그대로 문서에 들어간다 — 화면에서 고르지 않을 뿐 엔진 규칙(core/issuer.js)은 그대로다 */
+    /* ★ 2026-10-28 사장님 화면: 「무엇을 만들까요 삭제해줘」 — 요청문 칸(ask)을 걷었다. 자료를 올리면 그것으로 시작한다 */
     {
-      id: 'ask', no: 1, name: '무엇을 만들까요?', file: 'intake.html', part: 'ask',
-      needsProject: false,
-      note: '요청문과 만들 산출물 종류를 받는다. 요청문에서 뽑은 값은 미확인으로 표시한다.',
-    },
-    {
-      id: 'sources', no: 2, name: '관련자료 업로드', file: 'intake.html', part: 'files',
+      id: 'sources', no: 1, name: '관련자료 업로드', file: 'intake.html', part: 'files',
       needsProject: false,
       note: '원본 자료를 받는다. 지원하지 않는 형식은 올리기 전에 막는다. '
         + '여기서 [프로젝트 만들기] 를 누르면 앞의 셋이 함께 서버로 간다.',
     },
     {
-      id: 'fields', no: 3, name: '가이드 필드 (자동입력 + 직접입력)', file: 'fields.html',
+      id: 'fields', no: 2, name: '가이드 필드 (자동입력 + 직접입력)', file: 'fields.html',
       needsProject: true,
       // ★★ **이름에 「자동입력 + 직접입력」을 박는다** 〈2026-08-20 사용자 지시〉.
       //   전에는 「가이드 필드 입력」이라 **전부 손으로 치는 칸**으로 읽혔다.
@@ -76,7 +72,7 @@
      *   ★ 없앤 것은 **레일의 칸**이지 기능이 아니다. 확정→생성은 그대로다.
      */
     {
-      id: 'spec', no: 4, name: '출력조건', file: 'reports.html',
+      id: 'spec', no: 3, name: '출력조건', file: 'reports.html',
       needsProject: true,
       note: '페이지 수·형식·언어를 사람이 못 박는다. 확정 전에는 생성 버튼이 열리지 '
         + '않고, **확정하면 그 자리에서 생성으로 바뀐다** — 옮겨 갈 칸이 따로 없다.',
@@ -89,7 +85,7 @@
      *   있었다. 사장님 지시대로 **마지막 칸**으로 들인다.
      */
     {
-      id: 'done', no: 5, name: '완성 보고서', file: 'outputs.html',
+      id: 'done', no: 4, name: '완성 보고서', file: 'outputs.html',
       needsProject: true,
       note: '만들어진 문서를 여기서 내려받는다. 흐름의 마지막 칸이다.',
     },
@@ -138,15 +134,13 @@
    *   모든 단계는 **정확히 한 절**에만 속한다 (`flow.test.js` 가 잰다).
    */
   var SECTIONS = [
-    { no: 1, id: 'ask', name: '무엇을 만들까요?', steps: ['ask'],
-      note: '요청문과 만들 산출물 종류를 받는다. 요청문에서 뽑은 값은 미확인으로 표시한다.' },
-    { no: 2, id: 'sources', name: '관련자료 업로드', steps: ['sources'],
+    { no: 1, id: 'sources', name: '관련자료 업로드', steps: ['sources'],
       note: '원본 자료를 받고 얼마나 읽었는지 보여 준다. 여기서 프로젝트를 만든다.' },
-    { no: 3, id: 'make', name: '보고서 생성 · 미리보기', steps: ['fields'],
+    { no: 2, id: 'make', name: '보고서 생성 · 미리보기', steps: ['fields'],
       note: '올린 자료가 채운 값을 확인하고 못 채운 것만 넣는다. 만들어진 문서는 아래 [미리보기] 로 본다.' },
-    { no: 4, id: 'spec', name: '출력정보 입력', steps: ['spec'],
+    { no: 3, id: 'spec', name: '출력정보 입력', steps: ['spec'],
       note: '쪽수·형식·언어를 못 박는다. 확정하면 그 자리에서 생성으로 바뀐다.' },
-    { no: 5, id: 'done', name: '완성결과물', steps: ['done'],
+    { no: 4, id: 'done', name: '완성결과물', steps: ['done'],
       note: '만들어진 문서를 내려받는다.' },
   ];
 
@@ -428,7 +422,7 @@
    */
   function stepState(ctx) {
     var c = ctx || {};
-    var currentId = c.current || (c.projectId ? 'fields' : 'ask');
+    var currentId = c.current || (c.projectId ? 'fields' : 'sources');
     return STEPS.map(function (s) {
       var why = null;
       // ★ 서버 미연결을 먼저 본다. 프로젝트가 없는 것은 서버가 없으면 당연한 결과라,
@@ -499,7 +493,8 @@
     var same = [];
     for (var i = 0; i < STEPS.length; i++) if (STEPS[i].file === f) same.push(STEPS[i]);
     if (!same.length) return null;
-    if (same.length === 1) return same[0];
+    /* 2026-10-28 — intake 칸이 하나만 남았다. 다른 칸(part=issuer·ask)을 가리키면 그 하나로 되돌리지 않는다 */
+    if (same.length === 1) return (!part || !same[0].part || same[0].part === part) ? same[0] : null;
 
     for (var j = 0; j < same.length; j++) if (same[j].part && same[j].part === part) return same[j];
     return null;   // 못 가른다 — 지어내지 않는다
@@ -621,12 +616,6 @@
     /* ★★★ **절이 여섯이 되면서 이 셈도 여섯이 되었다** 〈2026-08-29 · D-172〉.
      *   열쇠는 **절 id** 다(`SECTIONS[].id`). 절 이름을 쓰면 절과 어긋난다.
      *   ★ 못 잰 것은 `known:false` 로 둔다 — 「0%」는 「못 쟀다」가 아니다 (§4.9). */
-
-    /* ② 무엇을 만들까요 — 요청문을 적었는가.
-       ★ 프로젝트가 만들어졌다는 것은 요청문이 이미 들어갔다는 뜻이다 */
-    var asked = !!o.projectId || !!(o.request && String(o.request).trim());
-    put('ask', true, asked, null,
-      asked ? '무엇을 만들지 적었습니다' : '아직 무엇을 만들지 안 적었습니다');
 
     /* ③ 관련자료 업로드 — **프로젝트를 만들면 이 칸의 목적은 끝난다.**
        진행율은 그다음 일(올린 자료를 읽었는가)을 말한다. 자료를 안 올려도
@@ -1335,7 +1324,7 @@
    *   **끝난 것처럼 칠하지 않는다** — 4칸이 늘 «준비 중»이라 % 의 상한은 60 이다.
    *   그것이 지금 사실이다 (10칸 중 6칸만 만들어져 있다). */
   var V2_STEPS = [
-    { no: 1, name: '무엇을 만들까', secs: ['ask'] },
+    { no: 1, name: '무엇을 만들까', secs: ['sources'] }, /* 2026-10-28 — 요청문 칸을 걷어 자료 올리기가 1칸도 맡는다 */
     { no: 2, name: '사업 파악', secs: ['sources'] },
     { no: 3, name: '받는 곳·목적', secs: [], soon: '받는 곳·목적은 아직 엔진이 받지 않습니다' },
     { no: 4, name: '목차 정하기', secs: [], soon: '목차는 엔진이 정한 차례로 나갑니다 — 장을 고르는 칸은 준비 중입니다' },
@@ -1349,8 +1338,7 @@
 
   /** 지금 단계(STEPS id) → 10칸 번호 */
   function v2StepOf(stepId, specLocked) {
-    if (stepId === 'ask') return 1;
-    if (stepId === 'sources') return 2;
+        if (stepId === 'sources') return 2;
     if (stepId === 'fields') return 5;
     if (stepId === 'spec') return specLocked ? 8 : 6;
     if (stepId === 'done') return 10;
@@ -1375,7 +1363,7 @@
       var done = null;
       if (live) {
         if (st.no === 1) {
-          done = sdone('ask');
+          done = sdone('sources');
         } else if (st.no === 2) done = sdone('sources');
         else if (st.no === 5) done = sdone('make');
         else if (st.no === 6) done = sdone('spec');

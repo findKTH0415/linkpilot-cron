@@ -62,10 +62,10 @@ test('★ 디자인 파일의 예시 값이 화면 소스에 없다', () => {
 
 /* ── ⑥ ⑦ 순수 셈 ─────────────────────────────────────── */
 function secs(overrides) {
-  return ['ask', 'sources', 'make', 'spec', 'done'].map((id) => Object.assign({ id, locked: false, hidden: false }, (overrides || {})[id]));
+  return ['sources', 'make', 'spec', 'done'].map((id) => Object.assign({ id, locked: false, hidden: false }, (overrides || {})[id]));
 }
 test('⑥ 10칸 — 열림 여섯 · 준비 중 넷, 준비 중은 끝난 것으로 안 칠한다', () => {
-  const all = { ask: { known: true, done: true }, sources: { known: true, done: true },
+  const all = { sources: { known: true, done: true },
     make: { known: true, done: true }, spec: { known: true, done: true }, done: { known: false, done: false } };
   const st = F.v2Steps({ progress: all, sections: secs(), made: 3, current: 'done', specLocked: true });
   assert.strictEqual(st.length, 10);
@@ -82,10 +82,10 @@ test('⑥ 10칸 — 열림 여섯 · 준비 중 넷, 준비 중은 끝난 것으
 });
 
 test('⑦ 진행 % 는 잰 사실에서 나온다 — 상수가 아니다', () => {
-  const none = F.v2Progress(F.v2Steps({ progress: {}, sections: secs(), made: null, current: 'ask' }));
-  const some = F.v2Progress(F.v2Steps({ progress: { ask: { known: true, done: true },
+  const none = F.v2Progress(F.v2Steps({ progress: {}, sections: secs(), made: null, current: 'sources' }));
+  const some = F.v2Progress(F.v2Steps({ progress: {
     sources: { known: true, done: true } }, sections: secs(), made: 0, current: 'sources' }));
-  const most = F.v2Progress(F.v2Steps({ progress: { ask: { known: true, done: true },
+  const most = F.v2Progress(F.v2Steps({ progress: {
     sources: { known: true, done: true }, make: { known: true, done: true }, spec: { known: true, done: true } },
   sections: secs(), made: 2, current: 'spec', specLocked: true }));
   assert.deepStrictEqual([none.pct, some.pct, most.pct], [0, 20, 50]);
@@ -389,7 +389,7 @@ const ACT2 = `
 <script>
 window.addEventListener('load', function () { setTimeout(function () {
   var R = {}, q = function (s) { return document.querySelector(s); }, qa = function (s) { return [].slice.call(document.querySelectorAll(s)); };
-  var fr = q('iframe[name="lp-flow-ask"]');
+  var fr = q('iframe[name="lp-flow-sources"]');
   try { fr.contentDocument.getElementById('t').value = 'typed'; } catch (_) { R.cantType = true; }
   fr.__mark = 1;
   q('[data-lp-rv2-ptab="design"]').click();
@@ -401,7 +401,7 @@ window.addEventListener('load', function () { setTimeout(function () {
     R.len = qa('[data-lp-rv2-len]').filter(function (b) { return b.getAttribute('aria-pressed') === 'true'; }).map(function (b) { return b.getAttribute('data-lp-rv2-len'); });
     q('[data-lp-rv2-ptab="view"]').click();
     R.thumb = q('[data-lp-rv2-thumb]').getAttribute('data-lp-rv2-thumb');
-    var fr2 = q('iframe[name="lp-flow-ask"]');
+    var fr2 = q('iframe[name="lp-flow-sources"]');
     R.sameFrame = fr2 === fr && fr2.__mark === 1;
     try { R.typed = fr2.contentDocument.getElementById('t').value; } catch (_) { R.typed = null; }
     q('[data-lp-rv2-doc="im"]').click();
@@ -512,7 +512,7 @@ test('⑰ 병합 판 — 펴진 칸만 오른쪽에 · 단계·바꾸기·자료
   if (!browser) { t.skip('크로미움이 없다 — 못 쟀다'); return; }
   const R = run(browser, buildLive(), 1366);
   assert.ok(R, '결과가 없다 — 못 쟀다');
-  assert.deepStrictEqual(R.first, ['ask'], '처음에 펴진 칸이 «무엇을 만들까요?» 하나가 아니다(닫힌 옛 머리가 남았다): ' + JSON.stringify(R.first));
+  assert.deepStrictEqual(R.first, ['sources'], '처음에 펴진 칸이 «관련자료 업로드» 하나가 아니다(닫힌 옛 머리가 남았다): ' + JSON.stringify(R.first));
   const o = R.order, iAsk = o.indexOf('ask'), iWork = o.indexOf('work'), iOpts = o.indexOf('opts');
   assert.ok(iAsk >= 0 && iWork > iAsk && iOpts > iWork, '엔진 칸이 «사업 파악»과 «기능 옵션» 사이가 아니다: ' + JSON.stringify(o));
   assert.strictEqual(R.headTags, 1, '펴진 칸 머리가 고정 머리가 아니다');
@@ -521,7 +521,7 @@ test('⑰ 병합 판 — 펴진 칸만 오른쪽에 · 단계·바꾸기·자료
   assert.deepStrictEqual(R.afterUpload, ['sources'], '[+ 자료 올리기] 가 3번 칸을 안 연다: ' + JSON.stringify(R.afterUpload));
   assert.match(R.saidSoon, /준비 중/, '못 하는 칸을 눌러도 이유가 안 남는다');
   assert.match(R.saidSearch, /통합검색은 준비 중/, '통합검색이 이유를 안 남긴다');
-  assert.deepStrictEqual(R.afterNew, ['ask'], '[+ 새 보고서] 가 1번 칸으로 안 간다');
+  assert.deepStrictEqual(R.afterNew, ['sources'], '[+ 새 보고서] 가 1번 칸으로 안 간다');
   assert.ok(R.fmt[0] !== null && R.fmt[0] !== R.fmt[1], '형식 칩 «데스크탑 HTML» 을 눌러도 안 바뀐다: ' + JSON.stringify(R.fmt));
   assert.deepStrictEqual(R.hwp, ['false', true], '못 만드는 형식(HWP)이 켜졌다: ' + JSON.stringify(R.hwp));
   assert.match(R.saidText, /준비 중/, '글로 답해도 아무 말이 없다');

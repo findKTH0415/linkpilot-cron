@@ -82,15 +82,15 @@ test('★ 절을 되짚는 자리가 옳게 답한다', () => {
      바뀌었음을 알려 준다 — 검사가 옛말을 하지 않게 여기서 고친다. */
   /* 2026-10-28 — 발행 주체 단계(basics)를 걷었다 · 모르는 단계로 답한다 */
   assert.strictEqual(F.sectionOfStep('basics'), null);
-  assert.strictEqual(F.sectionOfStep('ask').id, 'ask');
+  assert.strictEqual(F.sectionOfStep('ask'), null, '걷은 요청문 칸을 안다고 한다');
   assert.strictEqual(F.sectionOfStep('fields').id, 'make');
   assert.strictEqual(F.sectionOfStep('spec').id, 'spec');
   assert.strictEqual(F.sectionOfStep('없는단계'), null, '모르는 단계를 아는 척한다');
 });
 
-test('flow-core 가 다른 절이라고 답한다 — ask 와 sources', () => {
-  const a = F.sectionOfStep('ask');
-  const b = F.sectionOfStep('sources');
+test('flow-core 가 다른 절이라고 답한다 — sources 와 fields', () => {
+  const a = F.sectionOfStep('sources');
+  const b = F.sectionOfStep('fields');
   assert.ok(a && b);
   assert.notStrictEqual(a.id, b.id, '1절과 2절이 같은 절이 되었다');
 });

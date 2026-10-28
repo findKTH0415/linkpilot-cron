@@ -56,9 +56,9 @@ test('★ 잠긴 단계는 이유를 말한다', () => {
   /* ★ 앞의 둘(무엇을·관련자료)은 **프로젝트를 만들기 전에 채우는 칸**이다.
      잠기면 프로젝트를 만들 길이 없어져 사용자가 갇힌다.
      〈2026-10-28 — 1단계 «제작 기본정보»(발행 주체)를 걷어 셋 → 둘〉 */
-  [0, 1].forEach((i) => assert.strictEqual(noProject[i].locked, false,
+  [0].forEach((i) => assert.strictEqual(noProject[i].locked, false,
     `${i + 1}단계는 프로젝트 없이도 열려야 한다`));
-  [2, 3].forEach((i) => {
+  [1, 2].forEach((i) => {
     assert.strictEqual(noProject[i].locked, true);
     assert.strictEqual(noProject[i].why, F.WHY.project);
   });
@@ -76,15 +76,15 @@ test('★ 서버 미연결이 프로젝트 없음보다 먼저 나온다', () =>
 
 test('단계 주소에 프로젝트가 붙는다 (화면들이 ?project= 를 읽는다)', () => {
   const ctx = { base: '/im/', projectId: 'LP-DC-2026-001' };
-  assert.strictEqual(F.urlFor(F.STEPS[0], ctx), '/im/intake.html?part=ask',
+  assert.strictEqual(F.urlFor(F.STEPS[0], ctx), '/im/intake.html?part=files',
     '1단계는 프로젝트가 없다 — 대신 어느 칸을 펼지가 붙는다');
-  assert.strictEqual(F.urlFor(F.STEPS[2], ctx), '/im/fields.html?project=LP-DC-2026-001');
-  assert.strictEqual(F.urlFor(F.STEPS[2], { projectId: null }), 'fields.html');
+  assert.strictEqual(F.urlFor(F.STEPS[1], ctx), '/im/fields.html?project=LP-DC-2026-001');
+  assert.strictEqual(F.urlFor(F.STEPS[1], { projectId: null }), 'fields.html');
 
   /* ★★ **앞의 셋이 서로 다른 주소여야 한다** 〈2026-08-22〉. 같으면 번호만 다른
      같은 화면이 되고, 2단계를 눌러도 1단계가 그대로 보인다 */
-  const two = [0, 1].map(i => F.urlFor(F.STEPS[i], ctx));
-  assert.strictEqual(new Set(two).size, 2, `앞의 둘 주소가 겹친다: ${two.join(' · ')}`);
+  /* 2026-10-28 — 발행 주체·요청문 칸을 걷어 intake 칸은 «자료 업로드» 하나만 남았다 */
+  assert.strictEqual(F.STEPS.filter(x => x.file === 'intake.html').length, 1, 'intake 칸이 하나가 아니다');
 });
 
 test('화면 파일에서 단계를 되찾는다 (화면이 스스로 넘어가도 레일이 따라간다)', () => {
@@ -93,15 +93,15 @@ test('화면 파일에서 단계를 되찾는다 (화면이 스스로 넘어가�
    *   앞의 셋은 같은 파일이고 `?part=` 로만 갈린다. 파일 이름만 보면 늘 첫째가
    *   나와서, 2단계를 눌러도 **1단계로 되돌리며 다시 그린다** — 누른 사람에게는
    *   눌러도 안 열리는 화면으로 보인다. */
-  assert.strictEqual(F.stepOfFile('intake.html?part=ask&api=x').id, 'ask');
+  assert.strictEqual(F.stepOfFile('intake.html?part=ask&api=x'), null, '걷은 요청문 칸(part=ask)을 단계로 되찾는다');
   assert.strictEqual(F.stepOfFile('/im/intake.html?api=x&part=files').id, 'sources');
   /* 2026-10-28 — 발행 주체 칸(part=issuer)은 흐름에서 걷었다. 그 주소로 와도 아무 단계로 되돌리지 않는다 */
   assert.strictEqual(F.stepOfFile('intake.html?part=issuer'), null);
 
   /* ★ 못 가르면 **아무거나 고르지 않는다** (§4.9). 틀린 단계로 되돌리는 것보다
      「모르겠다」가 낫다 — 부르는 쪽이 그대로 둔다 */
-  assert.strictEqual(F.stepOfFile('intake.html'), null,
-    'part 가 없는데 첫 칸을 골랐다 — 그 짐작이 2·3단계를 튕겨냈다');
+  /* 2026-10-28 — intake 칸이 «자료 업로드» 하나뿐이라 part 가 없어도 그 칸이다 */
+  assert.strictEqual(F.stepOfFile('intake.html').id, 'sources');
   assert.strictEqual(F.stepOfFile('membership.html'), null);
 });
 
@@ -758,7 +758,8 @@ test('★★ 단계 이름을 화면이 베껴 쓰지 않는다', () => {
  * ★ 「새보고서 진행률」 절을 뺐다. 그것이 ①이던 앞 판은 **절 번호와 단계
  *   번호가 하나씩 어긋나** 「1단계」라는 말이 어느 칸을 가리키는지 흐렸다.
  */
-test('★★ 절 다섯 — 순서·이름·품은 단계가 고정되어 있다', () => {
+test('★★ 절 넷 — 순서·이름·품은 단계가 고정되어 있다', () => {
+  /* ★ 2026-10-28 사장님: 「무엇을 만들까요 삭제해줘」 — 다섯 → 넷 */
   /* ★ 2026-10-28 사장님: 「보고서생성에서 발행 주체 카테고리는 삭제해줘」 — 1번 «기본정보 입력»을 걷어 여섯 → 다섯 */
   /* ★★★ **셋에서 여섯으로 다시 폈다** 〈2026-08-29 사장님 지시 · D-172:
    *   「1.기본정보 입력 → 펼치기 [완료] … 6.완성결과물」〉.
@@ -768,14 +769,13 @@ test('★★ 절 다섯 — 순서·이름·품은 단계가 고정되어 있다
    *   접는 장치를 두 번 덧대야 했던 것(D-163·D-169)이 그 증거다.
    *   ★ 이제 **한 절에 한 단계**이고, 대신 **아무 칸이나 펼 수 있다.** */
   assert.deepStrictEqual(F.SECTIONS.map(s => `${s.no}. ${s.name}`), [
-    '1. 무엇을 만들까요?',
-    '2. 관련자료 업로드',
-    '3. 보고서 생성 · 미리보기',
-    '4. 출력정보 입력',
-    '5. 완성결과물',
+    '1. 관련자료 업로드',
+    '2. 보고서 생성 · 미리보기',
+    '3. 출력정보 입력',
+    '4. 완성결과물',
   ]);
   assert.deepStrictEqual(F.SECTIONS.map(s => s.steps),
-    [['ask'], ['sources'], ['fields'], ['spec'], ['done']]);
+    [['sources'], ['fields'], ['spec'], ['done']]);
   // 모든 단계가 **정확히 한 절**에만 속한다 (빠진 단계도, 두 번 실린 단계도 없다)
   const owned = F.SECTIONS.flatMap(s => s.steps).sort();
   assert.deepStrictEqual(owned, F.STEPS.map(s => s.id).sort(),
@@ -795,18 +795,18 @@ test('★ 절 상태 — 잠긴 이유는 그 절이 품은 단계에서 나온�
   assert.ok(none.every(s => s.locked), '서버가 없는데 열린 절이 있다');
   assert.match(none[0].why, /서버/, '잠긴 이유를 안 적으면 고장으로 읽힌다');
 
-  /* ★ 프로젝트가 없어도 앞의 둘은 열려 있다 — 2절(자료 업로드)에서 만든다 */
+  /* ★ 프로젝트가 없어도 1절(자료 업로드)은 열려 있다 — 거기서 만든다 */
   const fresh = F.sectionState({ api: '/x', projectId: null });
   assert.deepStrictEqual(fresh.map(s => s.locked),
-    [false, false, true, true, true]);
-  assert.match(fresh[2].why, /프로젝트/, '3절이 왜 잠겼는지 안 적는다');
+    [false, true, true, true]);
+  assert.match(fresh[1].why, /프로젝트/, '2절이 왜 잠겼는지 안 적는다');
 
   // 다 열리면 「지금」이 하나뿐이다 — 둘이면 어디를 보는지 알 수 없다
   const open = F.sectionState({ api: '/x', projectId: 'LP-DC-2026-001', current: 'spec' });
   assert.ok(open.every(s => !s.locked), '프로젝트가 있는데 잠긴 절이 있다');
   assert.strictEqual(open.filter(s => s.current).length, 1);
-  assert.strictEqual(open[3].current, true, '출력정보 입력이 지금 절이어야 한다');
-  assert.strictEqual(open[3].opensTo, 'spec');
+  assert.strictEqual(open[2].current, true, '출력정보 입력이 지금 절이어야 한다');
+  assert.strictEqual(open[2].opensTo, 'spec');
 });
 
 /* ═════════ 완료·진행율 표기 〈2026-08-23 사장님 지시〉 ═════════ */
@@ -833,13 +833,13 @@ test('★★★ 못 쟀으면 완료도 진행율도 말하지 않는다', () =>
   assert.strictEqual(p.done.known, false, '못 재는 칸을 안다고 한다');
 });
 
-test('★★★ 다섯 절이 각자 맞는 표기를 낸다 (완료 / 진행율)', () => {
+test('★★★ 네 절이 각자 맞는 표기를 낸다 (완료 / 진행율)', () => {
   const p = F.sectionProgress({
     issuerSet: true, projectId: 'LP-DC-2026-001',
     sources: { total: 5, read: 3 }, fields: { filled: 7, total: 10 }, specLocked: true,
   });
 
-  assert.strictEqual(p.ask.done, true, '② 프로젝트가 있으면 요청문은 이미 들어간 것이다');
+  assert.strictEqual(p.ask, undefined, '걷은 요청문 칸이 진행률에 남았다');
 
   /* ③ 은 **프로젝트를 만들었는가**로 끝난다. 진행율은 자료를 얼마나 읽었는지다 */
   assert.strictEqual(p.sources.done, true, '③ 프로젝트를 만들었는데 완료가 아니다');
@@ -857,7 +857,6 @@ test('★★★ 다섯 절이 각자 맞는 표기를 낸다 (완료 / 진행율
 
   /* ★ 진행율은 **③④에만** 있다. 나머지는 중간이 없다 —
      없는 중간을 지어내면 뜻 없는 숫자가 돈다 */
-  assert.strictEqual(p.ask.pct, null, '②에 없는 진행율을 지어냈다');
   assert.strictEqual(p.spec.pct, null, '⑤에 없는 진행율을 지어냈다');
   assert.strictEqual(p.done.pct, null, '⑥에 없는 진행율을 지어냈다');
 });
@@ -944,7 +943,7 @@ test('★★★ 화면의 ctx() 가 issuerSet 을 실제로 나른다 (돌려서
   const run = new Function('C', 'state', 'facts',
     html.slice(at, end) + '\nreturn ctx();');
   const got = run({ api: '/api', base: '' },
-    { projectId: 'LP-1', current: 'ask' },
+    { projectId: 'LP-1', current: 'sources' },
     { issuerSet: false });
 
   assert.strictEqual(got.issuerSet, false, 'ctx() 가 issuerSet 을 안 나른다');
