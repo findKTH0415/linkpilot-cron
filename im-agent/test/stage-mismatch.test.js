@@ -36,7 +36,10 @@ function oddSrc() {
   return i < 0 ? '' : src.slice(i, i + 1200);
 }
 
-/** 칸을 안 나누는 옛 사본을 흉내 낸다 — 주소에서 `part` 를 떼고 부르게 만든다 */
+/** 어긋난 사본을 흉내 낸다 — 처음 펼쳐지는 「관련자료 업로드」 칸이 가이드 필드 화면(fields.html)을 부르게 만든다.
+ *  ★ 〈2026-10-28〉 앞 판은 주소에서 `part` 를 떼었다 — intake.html 을 두 칸(무엇을 만들까요 · 자료 업로드)이
+ *    나눠 쓸 때만 어긋났다. «무엇을 만들까요» 를 걷어 한 칸만 남자 떼어도 맞게 되짚어져, 이 검사가 잴 것을 잃었다.
+ *    사장님 신고와 같은 결(한 칸에 다른 칸의 화면)로 바꿨다 — 재려던 성질은 그대로다. 처음 펼쳐지는 칸이어야 실제로 그려진다. */
 const STUB = `
 <script>
 window.LINKPILOT_REPORT_FLOW.api = '/api/linkpilot';
@@ -49,7 +52,7 @@ window.fetch = function () {
   var real = F.urlFor;
   F.urlFor = function (step, ctx) {
     var u = real(step, ctx);
-    return u.replace(/([?&])part=[^&]*&?/, '$1').replace(/[?&]$/, '');
+    return u.indexOf('intake.html') >= 0 ? u.replace('intake.html', 'fields.html') : u;
   };
 }());
 </script>
@@ -73,7 +76,7 @@ test('★★★ 칸이 부른 화면과 실린 화면이 다르면 **화면이 �
   const seen = drawn(dom);
   assert.match(seen, /<div class="note note--bad"><b>이 칸이 부르는 주소가 이 단계로 되짚어지지 않습니다<\/b>/,
     '칸 표시 없이 실린 화면을 그냥 그렸다 — 어긋남이 화면에 한 글자도 안 남는다');
-  assert.match(seen, /intake\.html/, '무엇이 실렸는지를 안 적었다 — 이름이 없으면 못 고친다');
+  assert.match(seen, /fields\.html/, '무엇이 실렸는지를 안 적었다 — 이름이 없으면 못 고친다');
   assert.match(seen, /판 표시/, '어느 쪽이 옛 판인지 가릴 실마리를 안 줬다');
   /* ★ 안쪽 화면을 들여다보지 않는다 — 출처가 다르면 못 읽는다(앱·file 둘 다) */
   assert.ok(!/contentWindow/.test(String(oddSrc())), '안쪽을 들여다보는 방식이면 앱에서 안 돈다');

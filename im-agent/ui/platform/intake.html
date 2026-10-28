@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="289ad3e3">
+<html lang="ko" data-lp-build="83aa51de">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -263,7 +263,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=289ad3e3">
+<link rel="stylesheet" href="tokens.css?v=83aa51de">
 <style>
 :root {
   --side: 248px;
@@ -550,11 +550,11 @@ h1,h2,h3,h4 { margin: 0; }
   </main>
 </div>
 
-<script src="gate-core.js?v=289ad3e3"></script>
-<script src="flow-core.js?v=289ad3e3"></script>
-<script src="upload-core.js?v=289ad3e3"></script>
-<script src="catalog.js?v=289ad3e3"></script>
-<script src="inapp.js?v=289ad3e3"></script>
+<script src="gate-core.js?v=83aa51de"></script>
+<script src="flow-core.js?v=83aa51de"></script>
+<script src="upload-core.js?v=83aa51de"></script>
+<script src="catalog.js?v=83aa51de"></script>
+<script src="inapp.js?v=83aa51de"></script>
 <script>
 /**
  * 설정 — 서버가 로그인 세션을 보고 내려주는 것이 정석이다.
@@ -566,7 +566,7 @@ window.LINKPILOT_INTAKE = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=289ad3e3" data-lp-global="LINKPILOT_INTAKE"></script>
+<script src="embed-bridge.js?v=83aa51de" data-lp-global="LINKPILOT_INTAKE"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -945,8 +945,7 @@ var lpApiWhy = (function () {
     },
     files: {
       t: '자료 업로드',
-      s: '원본 자료를 올립니다. 여기서 [자료올리기 완료] 를 누르면 1·2·3단계가 '
-        + '함께 서버로 갑니다.',
+      s: '원본 자료를 올립니다. [자료올리기 완료] 를 누르면 서버로 가고 보고서 만들기가 시작됩니다.',
     },
   };
 
@@ -1167,8 +1166,14 @@ var lpApiWhy = (function () {
   function createProject() {
     if (state.busy) return;
     state.busy = true; state.error = null; render();
+    /* ★ 2026-10-28 — 요청문 칸(무엇을 만들까요)을 걷었다. 안 적었으면 올린 자료 이름으로 한 줄을 만든다(값을 지어내지 않는다 — 파일 이름뿐) */
+    var req = state.request.trim();
+    if (req.length < 5) {
+      var names = state.files.filter(function (f) { return f.data && !f.tooBig; }).map(function (f) { return f.name; });
+      req = '올린 자료로 보고서 작성 — ' + (names[0] || '자료') + (names.length > 1 ? ' 외 ' + (names.length - 1) + '건' : '');
+    }
     call('POST', '/projects', {
-      request: state.request,
+      request: req,
       assetType: state.assetType || undefined,
       // 회사명을 적었을 때만 보낸다. 빈 값을 보내면 서버가 거부한다
       issuer: (state.issuer && state.issuer.en.trim()) ? state.issuer : undefined,
@@ -1726,20 +1731,19 @@ var lpApiWhy = (function () {
      *   타이틀 중복 표기」〉. `cardHead` 는 머리(`fillHead`)가 이미 그 이름을
      *   말했으면 붙이지 않는다. 앞 판은 이 자리만 `cardHead` 를 안 거치고
      *   직접 붙여서 **머리와 카드가 같은 말을 두 번** 했다. */
-    cardHead(box, 'files', HEADS.files.t,
-      '사업계획서·기술제안서·재무자료 등. 모든 수치는 여기서 뽑고 출처로 기록됩니다. '
-      + '나중에 추가로 올릴 수도 있습니다.');
-    box.appendChild(filesFrame());
-    return box;
+    /* ★ 2026-10-28 사장님 화면: 「자료 업로드 카테고리에서 → 프로젝트 지정 삭제 · 업로드 UI필드가 안보임」 —
+       앞 판은 files.html 틀(① 프로젝트 지정 → ② 자료 넣는 방법)을 실어, 프로젝트를 고르기 전에는 올리는 칸이 아예 안 보였다.
+       이제 이 화면의 올리기 칸(끌어 놓기·고르기)을 바로 보인다 — [자료올리기 완료] 가 프로젝트를 만들고 그 프로젝트로 올린다 */
+    return dropCardLegacy();
   }
 
   /** 예전 판의 1회성 올리기 칸. 자료 업로드 화면이 같은 일을 더 잘 한다 */
   function dropCardLegacy() {
     var box = el('section', 'card');
-    box.appendChild(el('h2', 'card__t', '자료 업로드'));
-    box.appendChild(el('p', 'card__s',
+    cardHead(box, 'files', HEADS.files.t,
       '사업계획서·기술제안서·재무자료 등. 모든 수치는 여기서 뽑고 출처로 기록됩니다. '
-      + '나중에 추가로 올릴 수도 있습니다.'));
+      + '나중에 추가로 올릴 수도 있습니다.');
+    box.setAttribute('data-lp-intake-drop', '1');
 
     var drop = el('div', 'drop');
     drop.tabIndex = 0;
@@ -1796,7 +1800,8 @@ var lpApiWhy = (function () {
   }
 
   function canGo() {
-    return !!C.api && state.request.trim().length >= 5 && !state.busy && !state.created;
+    var ready = state.files.some(function (f) { return f.data && !f.tooBig; });
+    return !!C.api && (ready || state.request.trim().length >= 5) && !state.busy && !state.created;
   }
 
   /**
@@ -1869,7 +1874,9 @@ var lpApiWhy = (function () {
     row.appendChild(go);
 
     if (!C.api) row.appendChild(el('span', 'why', 'API 주소가 없어 만들 수 없습니다'));
-    else if (state.request.trim().length < 5) row.appendChild(el('span', 'why', '요청문을 한 줄 적어 주세요'));
+    else if (!state.files.length && state.request.trim().length < 5) row.appendChild(el('span', 'why', '자료를 하나 이상 골라 주세요'));
+    else if (!canGo() && !state.busy && !state.created) row.appendChild(el('span', 'why',
+      state.files.some(function (f) { return !f.data && !f.tooBig && !f.error; }) ? '고른 자료를 읽는 중입니다' : '올릴 수 있는 자료가 없습니다 — 한도를 넘었거나 읽지 못했습니다'));
     return row;
   }
 

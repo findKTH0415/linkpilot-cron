@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="289ad3e3">
+<html lang="ko" data-lp-build="83aa51de">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -288,7 +288,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=289ad3e3">
+<link rel="stylesheet" href="tokens.css?v=83aa51de">
 <style>
 /* 색·간격·반경 토큰은 tokens.css 하나가 정한다 (LinkPilot Design System v1.1) */
 * { box-sizing: border-box; }
@@ -766,12 +766,12 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
        조각들이 `F.` 를 바로 쓰는 지금 구조를 **한 글자도 안 건드린다**(`defer` 는 그것을 깬다).
      ★★ 주소는 스크립트 쪽과 **글자까지 같아야 한다** — 다르면 같은 파일을 두 번 받아
        오히려 느려진다. `build-stamp.js` 가 셋을 함께 지문 찍고 `--check` 가 함께 잰다. -->
-<link rel="preload" as="script" href="embed-bridge.js?v=289ad3e3">
-<link rel="preload" as="script" href="gate-core.js?v=289ad3e3">
-<link rel="preload" as="script" href="flow-core.js?v=289ad3e3">
-<link rel="preload" as="script" href="fields-core.js?v=289ad3e3">
-<link rel="preload" as="script" href="catalog.js?v=289ad3e3">
-<link rel="preload" as="script" href="inapp.js?v=289ad3e3">
+<link rel="preload" as="script" href="embed-bridge.js?v=83aa51de">
+<link rel="preload" as="script" href="gate-core.js?v=83aa51de">
+<link rel="preload" as="script" href="flow-core.js?v=83aa51de">
+<link rel="preload" as="script" href="fields-core.js?v=83aa51de">
+<link rel="preload" as="script" href="catalog.js?v=83aa51de">
+<link rel="preload" as="script" href="inapp.js?v=83aa51de">
 </head>
 <body>
 
@@ -821,14 +821,14 @@ window.LINKPILOT_REPORT_FLOW = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=289ad3e3" data-lp-global="LINKPILOT_REPORT_FLOW"></script>
-<script src="gate-core.js?v=289ad3e3"></script>
-<script src="flow-core.js?v=289ad3e3"></script>
+<script src="embed-bridge.js?v=83aa51de" data-lp-global="LINKPILOT_REPORT_FLOW"></script>
+<script src="gate-core.js?v=83aa51de"></script>
+<script src="flow-core.js?v=83aa51de"></script>
 <!-- ★ 4단계 진행율(필수 항목 채움)을 재는 데 쓴다. **값과 출처가 둘 다**
      있어야 세는 규칙이 여기 있다 — 화면이 따로 세면 두 벌이 된다 -->
-<script src="fields-core.js?v=289ad3e3"></script>
-<script src="catalog.js?v=289ad3e3"></script>
-<script src="inapp.js?v=289ad3e3"></script>
+<script src="fields-core.js?v=83aa51de"></script>
+<script src="catalog.js?v=83aa51de"></script>
+<script src="inapp.js?v=83aa51de"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -1292,10 +1292,10 @@ var lpApiWhy = (function () {
       if (u.searchParams.has('project')) { u.searchParams.delete('project'); history.replaceState(null, '', u.toString()); }
     } catch (_) { /* 주소를 못 고쳐도 화면 상태는 비운다 */ }
     v2.draft = null; v2.ans = {}; v2.ask = 0;
-    openBy = { basics: true };
-    state.current = 'basics';
+    openBy = { sources: true };
+    state.current = 'sources';
     draw();
-    var to = view.querySelector('[data-lp-flow-sec="basics"]');
+    var to = view.querySelector('[data-lp-flow-sec="sources"]');
     if (to && to.scrollIntoView) to.scrollIntoView({ block: 'start', behavior: 'smooth' });
   }
 
@@ -1895,30 +1895,10 @@ var lpApiWhy = (function () {
     var sp = facts.spec || null;
     var ou = v2Out();
 
-    /* 발행 주체 */
-    var o1 = v2Opt('발행 주체');
-    var is = el('div', 'rv2-issuer');
-    var lg = el('label', 'rv2-logo');
-    lg.appendChild(el('span', null, '로고'));
-    lg.appendChild(el('span', null, 'or'));
-    lg.appendChild(el('u', null, 'browse files'));
-    v2Soon(lg, '로고 올리기는 준비 중입니다 — 엔진에 로고를 받아 문서에 싣는 칸이 아직 없습니다.');
-    is.appendChild(lg);
-    var ib = el('div');
-    var nm = el('div', 'rv2-issuer__n');
-    nm.appendChild(el('b', null, facts.issuerName || ''));
-    var ch = el('button', 'rv2-link', '바꾸기');
-    ch.type = 'button';
-    ch.setAttribute('data-lp-rv2-go', 'basics');
-    ch.addEventListener('click', function () { if (!v2OpenSecs(['basics'])) v2Say(ch, '1번 «기본정보 입력» 칸을 지금 열 수 없습니다.'); });
-    nm.appendChild(ch);
-    ib.appendChild(nm);
-    ib.appendChild(el('p', 'rv2-issuer__d', '회사 로고 — 왼쪽 칸에 끌어 놓거나 눌러서 올립니다. PNG · SVG · JPG'));
-    is.appendChild(ib);
-    o1.appendChild(is);
+    /* 분량 — 2026-10-28 사장님: 발행 주체 칸 삭제(로고·회사명 [바꾸기] 를 걷었다) */
+    var o1 = v2Opt('분량');
     var len = el('div', 'rv2-opt__row');
     len.setAttribute('data-lp-rv2-lenrow', '');
-    len.appendChild(el('span', 'rv2-opt__lbl', '분량'));
     var curP = ou.pages != null ? ou.pages : ou.preset;
     v2PageItems().forEach(function (it) {
       var c = v2Chip(it.name, it.on(curP), ['data-lp-rv2-len', String(it.id)]);
@@ -2441,8 +2421,7 @@ var lpApiWhy = (function () {
       '「' + step.no + '. ' + step.name + '」 자리에서 ' + shown + ' 를 부르려 합니다. '
       + (got ? '되짚으면 「' + got.no + '. ' + got.name + '」 가 나옵니다. '
              : '어느 단계인지 되짚을 수가 없습니다. ')
-      + '앞의 세 단계는 같은 파일을 칸으로 나눠 쓰므로, 칸 표시가 빠지면 '
-      + '**세 칸이 한꺼번에** 보입니다 — 지금 보고 계신 모습이 그것일 수 있습니다. '
+      + '이 칸에 다른 단계의 화면이 실려 보일 수 있습니다. '
       + '앱이 들고 있는 화면 사본이 옛 판일 때 이렇게 됩니다. 화면 맨 아래 여덟 '
       + '글자(판 표시)를 알려 주시면 어느 쪽이 옛것인지 갈립니다.');
   }
@@ -2975,15 +2954,7 @@ var lpApiWhy = (function () {
      *     「여기서 끝」도 아니고 「안 고쳐졌다」도 아니다 (§8 · §12-28 · §12-29 와 같은 결).
      *   ★ **갈래를 가른다** — 서버 주소가 없는 것과 못 닿은 것은 **할 일이 정반대**다 (§4.6).
      *   ★★ 숨긴 것이 있으면 이 줄을 안 붙인다 — 그때는 장치가 제대로 돈 것이다. */
-    if (!_hid.length && (facts.issuerSet === null || facts.issuerSet === undefined)) {
-      var _why = C.api
-        ? '서버에 아직 못 물었습니다 — 못 닿았거나 대답이 늦습니다'
-        : '서버 주소가 설정되지 않았습니다 — 이 화면이 혼자 열렸을 때 그렇습니다';
-      var _u = notice('', '1번이 끝났는지 «아직 못 쟀습니다» — 그래서 아래를 모두 보여 드립니다',
-        _why + '. 1번을 끝내신 뒤에도 2~6번이 그대로 보이면 이 줄이 원인입니다.');
-      _u.setAttribute('data-lp-flow-unknown', C.api ? 'unreachable' : 'noapi');
-      view.appendChild(_u);
-    }
+    /* 2026-10-28 — 1번(발행 주체)을 걷어 «1번이 끝났는지 못 쟀다» 줄도 걷었다 */
 
     /* ★★★ **앱이 앱 안에 겹쳐 있으면 말한다** 〈2026-08-28 · D-164〉.
      *   배너·탭이 두 벌로 보이는 상태다. 이 화면이 만든 것이 아니고 이
