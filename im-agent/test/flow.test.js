@@ -53,11 +53,12 @@ test('★ 잠긴 단계는 이유를 말한다', () => {
   noApi.forEach(s => assert.strictEqual(s.why, F.WHY.api, `${s.no}단계에 사유가 없다`));
 
   const noProject = F.stepState({ api: '/api', projectId: null });
-  /* ★ 앞의 셋(제작 기본정보·무엇을·관련자료)은 **프로젝트를 만들기 전에 채우는
-     칸**이다. 잠기면 프로젝트를 만들 길이 없어져 사용자가 갇힌다 */
-  [0, 1, 2].forEach((i) => assert.strictEqual(noProject[i].locked, false,
+  /* ★ 앞의 둘(무엇을·관련자료)은 **프로젝트를 만들기 전에 채우는 칸**이다.
+     잠기면 프로젝트를 만들 길이 없어져 사용자가 갇힌다.
+     〈2026-10-28 — 1단계 «제작 기본정보»(발행 주체)를 걷어 셋 → 둘〉 */
+  [0, 1].forEach((i) => assert.strictEqual(noProject[i].locked, false,
     `${i + 1}단계는 프로젝트 없이도 열려야 한다`));
-  [3, 4].forEach((i) => {
+  [2, 3].forEach((i) => {
     assert.strictEqual(noProject[i].locked, true);
     assert.strictEqual(noProject[i].why, F.WHY.project);
   });
@@ -75,15 +76,15 @@ test('★ 서버 미연결이 프로젝트 없음보다 먼저 나온다', () =>
 
 test('단계 주소에 프로젝트가 붙는다 (화면들이 ?project= 를 읽는다)', () => {
   const ctx = { base: '/im/', projectId: 'LP-DC-2026-001' };
-  assert.strictEqual(F.urlFor(F.STEPS[0], ctx), '/im/intake.html?part=issuer',
+  assert.strictEqual(F.urlFor(F.STEPS[0], ctx), '/im/intake.html?part=ask',
     '1단계는 프로젝트가 없다 — 대신 어느 칸을 펼지가 붙는다');
-  assert.strictEqual(F.urlFor(F.STEPS[3], ctx), '/im/fields.html?project=LP-DC-2026-001');
-  assert.strictEqual(F.urlFor(F.STEPS[3], { projectId: null }), 'fields.html');
+  assert.strictEqual(F.urlFor(F.STEPS[2], ctx), '/im/fields.html?project=LP-DC-2026-001');
+  assert.strictEqual(F.urlFor(F.STEPS[2], { projectId: null }), 'fields.html');
 
   /* ★★ **앞의 셋이 서로 다른 주소여야 한다** 〈2026-08-22〉. 같으면 번호만 다른
      같은 화면이 되고, 2단계를 눌러도 1단계가 그대로 보인다 */
-  const three = [0, 1, 2].map(i => F.urlFor(F.STEPS[i], ctx));
-  assert.strictEqual(new Set(three).size, 3, `앞의 셋 주소가 겹친다: ${three.join(' · ')}`);
+  const two = [0, 1].map(i => F.urlFor(F.STEPS[i], ctx));
+  assert.strictEqual(new Set(two).size, 2, `앞의 둘 주소가 겹친다: ${two.join(' · ')}`);
 });
 
 test('화면 파일에서 단계를 되찾는다 (화면이 스스로 넘어가도 레일이 따라간다)', () => {
@@ -94,7 +95,8 @@ test('화면 파일에서 단계를 되찾는다 (화면이 스스로 넘어가�
    *   눌러도 안 열리는 화면으로 보인다. */
   assert.strictEqual(F.stepOfFile('intake.html?part=ask&api=x').id, 'ask');
   assert.strictEqual(F.stepOfFile('/im/intake.html?api=x&part=files').id, 'sources');
-  assert.strictEqual(F.stepOfFile('intake.html?part=issuer').id, 'basics');
+  /* 2026-10-28 — 발행 주체 칸(part=issuer)은 흐름에서 걷었다. 그 주소로 와도 아무 단계로 되돌리지 않는다 */
+  assert.strictEqual(F.stepOfFile('intake.html?part=issuer'), null);
 
   /* ★ 못 가르면 **아무거나 고르지 않는다** (§4.9). 틀린 단계로 되돌리는 것보다
      「모르겠다」가 낫다 — 부르는 쪽이 그대로 둔다 */
@@ -756,7 +758,8 @@ test('★★ 단계 이름을 화면이 베껴 쓰지 않는다', () => {
  * ★ 「새보고서 진행률」 절을 뺐다. 그것이 ①이던 앞 판은 **절 번호와 단계
  *   번호가 하나씩 어긋나** 「1단계」라는 말이 어느 칸을 가리키는지 흐렸다.
  */
-test('★★ 절 여섯 — 순서·이름·품은 단계가 고정되어 있다', () => {
+test('★★ 절 다섯 — 순서·이름·품은 단계가 고정되어 있다', () => {
+  /* ★ 2026-10-28 사장님: 「보고서생성에서 발행 주체 카테고리는 삭제해줘」 — 1번 «기본정보 입력»을 걷어 여섯 → 다섯 */
   /* ★★★ **셋에서 여섯으로 다시 폈다** 〈2026-08-29 사장님 지시 · D-172:
    *   「1.기본정보 입력 → 펼치기 [완료] … 6.완성결과물」〉.
    *
@@ -765,15 +768,14 @@ test('★★ 절 여섯 — 순서·이름·품은 단계가 고정되어 있다
    *   접는 장치를 두 번 덧대야 했던 것(D-163·D-169)이 그 증거다.
    *   ★ 이제 **한 절에 한 단계**이고, 대신 **아무 칸이나 펼 수 있다.** */
   assert.deepStrictEqual(F.SECTIONS.map(s => `${s.no}. ${s.name}`), [
-    '1. 기본정보 입력',
-    '2. 무엇을 만들까요?',
-    '3. 관련자료 업로드',
-    '4. 보고서 생성 · 미리보기',
-    '5. 출력정보 입력',
-    '6. 완성결과물',
+    '1. 무엇을 만들까요?',
+    '2. 관련자료 업로드',
+    '3. 보고서 생성 · 미리보기',
+    '4. 출력정보 입력',
+    '5. 완성결과물',
   ]);
   assert.deepStrictEqual(F.SECTIONS.map(s => s.steps),
-    [['basics'], ['ask'], ['sources'], ['fields'], ['spec'], ['done']]);
+    [['ask'], ['sources'], ['fields'], ['spec'], ['done']]);
   // 모든 단계가 **정확히 한 절**에만 속한다 (빠진 단계도, 두 번 실린 단계도 없다)
   const owned = F.SECTIONS.flatMap(s => s.steps).sort();
   assert.deepStrictEqual(owned, F.STEPS.map(s => s.id).sort(),
@@ -789,22 +791,22 @@ test('★★ 절 여섯 — 순서·이름·품은 단계가 고정되어 있다
 test('★ 절 상태 — 잠긴 이유는 그 절이 품은 단계에서 나온다', () => {
   // 서버가 없으면 전부 잠긴다
   const none = F.sectionState({ api: null, projectId: null });
-  assert.strictEqual(none.length, 6);
+  assert.strictEqual(none.length, F.SECTIONS.length);
   assert.ok(none.every(s => s.locked), '서버가 없는데 열린 절이 있다');
   assert.match(none[0].why, /서버/, '잠긴 이유를 안 적으면 고장으로 읽힌다');
 
-  /* ★ 프로젝트가 없어도 앞의 셋은 열려 있다 — 3절(자료 업로드)에서 만든다 */
+  /* ★ 프로젝트가 없어도 앞의 둘은 열려 있다 — 2절(자료 업로드)에서 만든다 */
   const fresh = F.sectionState({ api: '/x', projectId: null });
   assert.deepStrictEqual(fresh.map(s => s.locked),
-    [false, false, false, true, true, true]);
-  assert.match(fresh[3].why, /프로젝트/, '4절이 왜 잠겼는지 안 적는다');
+    [false, false, true, true, true]);
+  assert.match(fresh[2].why, /프로젝트/, '3절이 왜 잠겼는지 안 적는다');
 
   // 다 열리면 「지금」이 하나뿐이다 — 둘이면 어디를 보는지 알 수 없다
   const open = F.sectionState({ api: '/x', projectId: 'LP-DC-2026-001', current: 'spec' });
   assert.ok(open.every(s => !s.locked), '프로젝트가 있는데 잠긴 절이 있다');
   assert.strictEqual(open.filter(s => s.current).length, 1);
-  assert.strictEqual(open[4].current, true, '출력정보 입력이 지금 절이어야 한다');
-  assert.strictEqual(open[4].opensTo, 'spec');
+  assert.strictEqual(open[3].current, true, '출력정보 입력이 지금 절이어야 한다');
+  assert.strictEqual(open[3].opensTo, 'spec');
 });
 
 /* ═════════ 완료·진행율 표기 〈2026-08-23 사장님 지시〉 ═════════ */
@@ -822,9 +824,7 @@ test('★ 절 상태 — 잠긴 이유는 그 절이 품은 단계에서 나온�
 test('★★★ 못 쟀으면 완료도 진행율도 말하지 않는다', () => {
   const p = F.sectionProgress({});          // 아무것도 못 쟀다
 
-  assert.strictEqual(p.basics.known, false, '발행 주체를 못 쟀는데 안다고 한다');
-  assert.strictEqual(p.basics.done, false, '못 쟀는데 완료라고 한다');
-  assert.strictEqual(p.basics.pct, null, '못 쟀는데 숫자를 적었다 — 0% 는 「안 했다」로 읽힌다');
+  assert.strictEqual(p.basics, undefined, '걷은 발행 주체 칸이 진행률에 남았다');
   assert.strictEqual(p.make.known, false, '값을 못 쟀는데 안다고 한다');
   assert.strictEqual(p.make.pct, null, '못 쟀는데 숫자를 적었다');
   assert.strictEqual(p.spec.known, false, '출력조건을 못 쟀는데 안다고 한다');
@@ -833,13 +833,12 @@ test('★★★ 못 쟀으면 완료도 진행율도 말하지 않는다', () =>
   assert.strictEqual(p.done.known, false, '못 재는 칸을 안다고 한다');
 });
 
-test('★★★ 여섯 절이 각자 맞는 표기를 낸다 (완료 / 진행율)', () => {
+test('★★★ 다섯 절이 각자 맞는 표기를 낸다 (완료 / 진행율)', () => {
   const p = F.sectionProgress({
     issuerSet: true, projectId: 'LP-DC-2026-001',
     sources: { total: 5, read: 3 }, fields: { filled: 7, total: 10 }, specLocked: true,
   });
 
-  assert.strictEqual(p.basics.done, true, '① 발행 주체가 있는데 완료가 아니다');
   assert.strictEqual(p.ask.done, true, '② 프로젝트가 있으면 요청문은 이미 들어간 것이다');
 
   /* ③ 은 **프로젝트를 만들었는가**로 끝난다. 진행율은 자료를 얼마나 읽었는지다 */
@@ -858,7 +857,6 @@ test('★★★ 여섯 절이 각자 맞는 표기를 낸다 (완료 / 진행율
 
   /* ★ 진행율은 **③④에만** 있다. 나머지는 중간이 없다 —
      없는 중간을 지어내면 뜻 없는 숫자가 돈다 */
-  assert.strictEqual(p.basics.pct, null, '①에 없는 진행율을 지어냈다');
   assert.strictEqual(p.ask.pct, null, '②에 없는 진행율을 지어냈다');
   assert.strictEqual(p.spec.pct, null, '⑤에 없는 진행율을 지어냈다');
   assert.strictEqual(p.done.pct, null, '⑥에 없는 진행율을 지어냈다');
@@ -912,29 +910,17 @@ test('★★ 화면이 완료·진행율을 실제로 그린다 (규칙은 flow-
  *   `issuerSet` 이 `null` 이면 **안 숨긴다** — 서버가 느린 날 1번만 남으면
  *   그것이 「여기서 끝인가」로 읽히고, 고장과 구별되지 않는다.
  */
-test('★★★ 1번을 끝내기 전에는 2~6번을 안 보인다 — 다만 못 물었으면 안 숨긴다', () => {
+test('★★★ 발행 주체 칸을 걷었으니 어떤 값이어도 숨기는 칸이 없다 (2026-10-28)', () => {
+  /* 2026-09-19 「2~6번은 1번완료후 노출」은 1번(발행 주체)이 있을 때의 규칙이다.
+     1번을 걷은 뒤에도 남기면 발행 주체를 넣을 자리가 없는데 나머지가 영영 안 보인다 */
   const at = { api: '/x', projectId: 'LP-1' };
-
-  const off = F.sectionState(Object.assign({ issuerSet: false }, at));
-  /* ★ 개수를 손으로 적지 않는다 — 절이 늘면 그 수도 따라와야 한다 (§8-1) */
-  assert.strictEqual(off.length, F.SECTIONS.length);
-  assert.strictEqual(off[0].hidden, false, '1번을 숨겼다 — 할 일이 하나도 안 남는다');
-  assert.strictEqual(off.filter(s => s.hidden).length, F.SECTIONS.length - 1,
-    '1번을 빼고 전부 숨기지 않았다');
-
-  /* ★★ **못 물었을 때는 다 보인다.** null 과 undefined 둘 다 「못 물었다」다 */
-  [null, undefined].forEach((v) => {
-    const unknown = F.sectionState(Object.assign({ issuerSet: v }, at));
-    assert.strictEqual(unknown.filter(s => s.hidden).length, 0,
-      `issuerSet=${v} 는 「못 물었다」인데 숨겼다 — 「안 됐다」와 섞었다`);
+  [false, null, undefined, true].forEach((v) => {
+    const st = F.sectionState(Object.assign({ issuerSet: v }, at));
+    assert.strictEqual(st.length, F.SECTIONS.length);
+    assert.strictEqual(st.filter(x => x.hidden).length, 0, `issuerSet=${v} 인데 숨긴 칸이 있다 — 다시 열 길이 없다`);
+    assert.ok(st.every(x => typeof x.locked === 'boolean'), 'locked 가 사라졌다');
   });
-
-  /* ★ 끝냈으면 전부 보인다 */
-  const on = F.sectionState(Object.assign({ issuerSet: true }, at));
-  assert.strictEqual(on.filter(s => s.hidden).length, 0, '1번을 끝냈는데 아직 숨긴다');
-
-  /* ★★ 숨기는 것과 잠그는 것이 서로를 덮지 않는다 — 숨김은 1번 완료 여부만 본다 */
-  assert.ok(off.every(s => typeof s.locked === 'boolean'), 'locked 가 사라졌다');
+  assert.ok(!F.STEPS.some(x => x.part === 'issuer'), '발행 주체 칸(part=issuer)이 단계에 남았다');
 });
 
 /**
@@ -958,15 +944,13 @@ test('★★★ 화면의 ctx() 가 issuerSet 을 실제로 나른다 (돌려서
   const run = new Function('C', 'state', 'facts',
     html.slice(at, end) + '\nreturn ctx();');
   const got = run({ api: '/api', base: '' },
-    { projectId: 'LP-1', current: 'basics' },
+    { projectId: 'LP-1', current: 'ask' },
     { issuerSet: false });
 
   assert.strictEqual(got.issuerSet, false, 'ctx() 가 issuerSet 을 안 나른다');
 
-  /* ★ 그리고 그 값이 실제로 숨김을 만드는지 **이어서** 본다 —
-     나르기만 하고 `flow-core` 가 안 읽으면 그것도 안 도는 것이다 */
-  assert.strictEqual(F.sectionState(got).filter(s => s.hidden).length,
-    F.SECTIONS.length - 1, '나른 값으로 실제 숨김이 안 생긴다');
+  /* 2026-10-28 — 1번(발행 주체)을 걷어 나른 값이 false 여도 아무것도 안 숨긴다 */
+  assert.strictEqual(F.sectionState(got).filter(s => s.hidden).length, 0, '발행 주체가 없다고 칸을 숨겼다');
 });
 
 /**
@@ -1018,17 +1002,9 @@ test('★★ 숨긴 칸을 안 그리고, 몇 칸이 더 있는지 적는다', (
  * [고침] 모를 때는 **보이되 «왜 보이는지»를 적는다** (§8 · §12-28 · §12-29 와 같은 결).
  * ★ **갈래를 가른다** — 서버 주소가 없는 것과 못 닿은 것은 **할 일이 정반대**다 (§4.6).
  */
-test('★★★ 1번이 끝났는지 «못 쟀을 때» 화면이 그 사실을 말한다 (갈래를 갈라서)', () => {
-  const src = read('report-flow.html');
-  assert.match(src, /data-lp-flow-unknown/,
-    '못 쟀다는 사실을 화면에 안 남긴다 — 아무 말 없이 여섯 칸이 펴지면 「안 고쳐졌다」로 읽힌다');
-  /* 숨긴 것이 있으면 이 줄을 안 붙인다 — 그때는 장치가 제대로 돈 것이다 */
-  assert.match(src, /if \(!\w+\.length && \(facts\.issuerSet === null/,
-    '숨긴 칸이 있어도 「못 쟀다」를 띄운다 — 없는 걱정을 만든다');
-  /* ★ 낱말이 아니라 «갈래를 가르는가»를 잰다 (§4.6 의 그 잣대) */
-  const seg = src.slice(src.indexOf('data-lp-flow-unknown') - 900, src.indexOf('data-lp-flow-unknown') + 200);
-  assert.match(seg, /서버 주소가 설정되지 않았습니다/, '서버 주소가 없는 갈래를 안 적는다');
-  assert.match(seg, /못 닿았거나/, '못 닿은 갈래를 안 적는다');
-  assert.match(src, /data-lp-flow-unknown', C\.api \? 'unreachable' : 'noapi'/,
-    '두 갈래를 같은 값으로 적는다 — 그러면 재는 쪽이 못 가른다');
+test('★★ 1번(발행 주체)을 걷었으니 «1번이 끝났는지 못 쟀다» 줄도 없다 (2026-10-28)', () => {
+  const src = read('report-flow.html').replace(/\/\*[\s\S]*?\*\//g, '');
+  assert.ok(!/data-lp-flow-unknown/.test(src), '없는 1번을 «못 쟀다»고 적는 줄이 남았다');
+  assert.ok(!/data-lp-rv2-go', 'basics'/.test(src), '기능 옵션에 발행 주체 [바꾸기] 가 남았다');
+  assert.ok(!/v2Opt\('발행 주체'\)/.test(src), '기능 옵션에 «발행 주체» 칸이 남았다');
 });
