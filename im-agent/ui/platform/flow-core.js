@@ -24,7 +24,7 @@
    *   `build-stamp.js` 가 채운다 — 손으로 고치지 않는다. 화면이 자기
    *   지문과 대 보고 다르면 「함수가 없다」로 죽기 전에 사람 말로 알린다.
    */
-  var LP_BUILD = '289ad3e3';
+  var LP_BUILD = '39f65dfc';
 
   /**
    * ★★★ **단계는 다섯이다** 〈2026-08-22 사용자 지시〉.
@@ -1130,6 +1130,10 @@
     '.head__d{margin:7px 0 0;font-size:clamp(12px,3.4vw,13.5px);line-height:1.5;',
     'color:rgba(255,255,255,.78);display:-webkit-box;-webkit-line-clamp:2;',
     '-webkit-box-orient:vertical;overflow:hidden}',
+    /* ★★ 2026-10-28 사장님 폰 화면 «배너 삭제» — 폰(600px 이하)에서는 이 배너를 안 그린다.
+         바로 아래 큰 제목·날짜·탭·[통합검색 · + 새 보고서 · 번역] 줄이 그 자리로 올라온다(사장님이 고르신 안).
+         데스크탑은 앱 배너와 높이를 맞춘 그대로다(위 170px). 세 화면(만들기·완성·자료)이 같은 배너라 셋 다 같다. */
+    '@media (max-width:600px){.head{display:none}}',
   ].join('');
 
   /** 배너 모양을 문서에 **한 번만** 심는다 */

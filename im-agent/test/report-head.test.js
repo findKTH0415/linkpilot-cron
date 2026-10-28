@@ -188,3 +188,13 @@ test('★★★ 배너 크기가 앱 배너(SectionHero 170px)와 같다', () =>
   assert.match(css, /margin:0 0 14px/, '아래 여백이 앱(marginBottom 14)과 다르다');
   assert.ok(!/min-height:120px/.test(css), '옛 값(120px)이 아직 남아 있다');
 });
+
+/* ★★ 2026-10-28 사장님 폰 화면 «배너 삭제» — 폰(600px 이하)에서는 배너를 안 그리고, 아래 줄이 그 자리로 올라온다.
+ *   데스크탑은 그대로(170px)다. 「감춘다」는 폰 한 갈래뿐이어야 한다 — 바탕 규칙이 감추면 데스크탑에서도 사라진다. */
+test('★★ 폰(600px 이하)에서만 배너를 안 그린다 — 데스크탑은 그대로', () => {
+  const F = require(path.join(P, 'flow-core.js'));
+  const css = F.HEAD_CSS.replace(/\s/g, '');
+  assert.ok(/@media\(max-width:600px\)\{\.head\{display:none\}\}/.test(css), '폰에서 배너를 감추는 규칙이 없다');
+  const base = css.replace(/@media[^{]*\{(?:[^{}]*\{[^}]*\})*[^}]*\}/g, '');
+  assert.ok(/\.head\{/.test(base) && !/\.head\{[^}]*display:none/.test(base), '바탕 규칙이 배너를 감춘다 — 데스크탑에서도 사라진다');
+});
