@@ -201,3 +201,13 @@ test('사진 구간은 다음 줄이 시작할 때까지 · 합이 영상 길이
   assert.ok(Math.abs(segs.reduce((a, b) => a + b, 0) - tl[2].end) < 0.01);
   assert.ok(/Credit/.test(m.toAss(tl, 'T', ['사진 A · Pexels'])));
 });
+
+test('목소리 이름 칸이 묶음({ko,en})으로 와도 찾는다 — 2026-10-28 실측 608개가 [object Object] 로 읽혀 못 찾았다', async () => {
+  const m = await import(require('path').join(__dirname, '..', '..', 'scripts', 'shorts-voice.mjs'));
+  const list = [{ voice_id: 'a', voice_name: { ko: '민준', en: 'Minjun' } }, { voice_id: 'b', voice_name: { ko: '진우', en: 'Jinwoo' } }, { voice_id: 'c', voice_name: { ko: '강일', en: 'Kangil' } }];
+  const r = m.pickVoice(list, ['강일', '진우', '서현']);
+  assert.strictEqual(r.id, 'c'); assert.strictEqual(r.name, '강일'); assert.strictEqual(r.rank, 1);
+  assert.strictEqual(m.pickVoice([{ voice_id: 'd', voice_name: { en: 'Seohyun' } }], ['강일', '진우', '서현']).rank, 3, '영문 표기만 있어도 찾는다');
+  assert.strictEqual(m.pickVoice(list.slice(0, 1), ['강일', '진우', '서현']), null, '없으면 아무 목소리나 고르지 않는다');
+  assert.ok(/voice_name\{ko,en\}/.test(m.voiceShape(list)), '못 찾았을 때 칸 모양을 적는다');
+});

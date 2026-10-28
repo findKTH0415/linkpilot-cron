@@ -132,7 +132,7 @@ async function speakOne(text, { use, voice, keys, tcKey, tc }) {
   if (use === 'typecast') {
     const t = await makeTypecast({ text, key: tcKey, voices: tc.id ? null : TC_VOICES, voiceId: tc.id || '' });
     if (t.ok && !tc.id) { tc.id = t.voiceId; tc.name = t.voiceName; tc.rank = t.voiceRank; }
-    return t.ok ? { ok: true, engine: 'typecast', model: `${t.model}${tc.name ? ` · ${tc.name}` : ''}`, wav: t.wav } : { ok: false, code: t.code, say: t.say, names: t.names };
+    return t.ok ? { ok: true, engine: 'typecast', model: `${t.model}${tc.name ? ` · ${tc.name}` : ''}`, wav: t.wav } : { ok: false, code: t.code, say: t.say, names: t.names, shape: t.shape };
   }
   const g = await makeVoice({ text, voice, keys, budgetMs: 120000 });
   return g.ok ? { ok: true, engine: 'gemini', model: `${g.model} · ${voice}`, wav: g.wav } : { ok: false, code: g.code, say: g.say };
@@ -176,7 +176,7 @@ async function main() {
       const pcm = toPcm(raw); pcms.push(pcm); durs.push(pcm.length / (RATE * 2));
     }
     if (!fail) { used = new Set([use]); if (use === 'typecast' && tc.name) log.push(`- Typecast 목소리: ${tc.name} (${tc.rank}순위 · 순위 ${TC_VOICES.join(' → ')})`); break; }
-    log.push(`- ${use} 로 ${fail.i + 1}번째 줄에서 막혔다 — 판정 ${fail.code} ${fail.say}${fail.names && fail.names.length ? ` · 목록에 있는 이름 예: ${fail.names.slice(0, 12).join(', ')}` : ''}`);
+    log.push(`- ${use} 로 ${fail.i + 1}번째 줄에서 막혔다 — 판정 ${fail.code} ${fail.say}${fail.names && fail.names.length ? ` · 목록에 있는 이름 예: ${fail.names.slice(0, 12).join(', ')}` : ''}${fail.shape ? ` · 목록 한 줄의 칸: ${fail.shape}` : ''}`);
   }
   log.push(...lineLog);
   if (fail) return finish(fail.code, `${fail.i + 1}번째 줄을 소리로 못 만들었다 — ${fail.say}`);

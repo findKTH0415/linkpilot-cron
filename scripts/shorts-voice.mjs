@@ -118,15 +118,21 @@ export const TYPECAST = { base: 'https://api.typecast.ai', model: 'ssfm-v30' };
 // ★ 목록에서 «이름»으로 찾는다 — 셋 다 없으면 아무 목소리나 고르지 않는다(§4.9). 영문 표기도 함께 본다.
 export const TC_VOICES = (process.env.TYPECAST_VOICES || '강일,진우,서현').split(',').map((x) => x.trim()).filter(Boolean);
 const TC_ALIAS = { 강일: ['kangil', 'kang-il', 'gangil', 'kang il'], 진우: ['jinwoo', 'jin-woo', 'jinu', 'jin woo'], 서현: ['seohyun', 'seo-hyun', 'seohyeon', 'seo hyun'] };
-const vName = (x) => String((x && (x.voice_name || x.name || x.actor_name || x.display_name)) || '');
+// ★ 이름 칸이 글자가 아니라 묶음({ko,en} 따위)으로 올 수 있다 — 2026-10-28 실측: 608개 목록이 «[object Object]» 로 읽혀 셋 다 못 찾았다.
+//   그래서 이름 칸 안의 글자를 «모두» 꺼내 맞춘다. 화면에는 한글이 든 것을 먼저 적는다.
+const strs = (v, d = 0) => (typeof v === 'string' ? [v] : v && typeof v === 'object' && d < 2 ? Object.values(v).flatMap((x) => strs(x, d + 1)) : []);
+const vNames = (x) => (x ? ['voice_name', 'name', 'actor_name', 'display_name', 'names'].flatMap((k) => strs(x[k])).filter(Boolean) : []);
+const vName = (x) => { const a = vNames(x); return a.find((t) => /[가-힣]/.test(t)) || a[0] || ''; };
 export function pickVoice(list, names = TC_VOICES) {
   for (const [rank, n] of names.entries()) {
     const keys = [n, ...(TC_ALIAS[n] || [])].map((k) => k.toLowerCase().replace(/\s+/g, ''));
-    const hit = (list || []).find((x) => { const v = vName(x).toLowerCase().replace(/\s+/g, ''); return v && keys.some((k) => v === k || v.startsWith(k) || v.includes(k)); });
+    const hit = (list || []).find((x) => vNames(x).some((t) => { const v = t.toLowerCase().replace(/\s+/g, ''); return v && keys.some((k) => v === k || v.startsWith(k) || v.includes(k)); }));
     if (hit) return { id: hit.voice_id || hit.id || hit.actor_id, name: vName(hit), rank: rank + 1, want: n };
   }
   return null;
 }
+/** 못 찾았을 때 «이름 칸 모양»만 적는다 — 값 대신 칸 이름 · 빈 줄이면 무엇이 있는지 (열쇠·개인정보 없음) */
+export const voiceShape = (list) => { const x = (list || [])[0]; if (!x || typeof x !== 'object') return ''; return Object.keys(x).map((k) => (x[k] && typeof x[k] === 'object' && !Array.isArray(x[k]) ? `${k}{${Object.keys(x[k]).join(',')}}` : k)).join(' · ').slice(0, 200); };
 export async function makeTypecast({ text = SAMPLE, key = String(process.env.STUDIO_TYPECAST_AI || '').trim(), fetchImpl = fetch, timeoutMs = 60000, voices = null, voiceId: fixedId = '' } = {}) {
   if (!key) return { ok: false, code: 2, say: 'STUDIO_TYPECAST_AI 열쇠가 이 자리에 없다', tried: [] };
   const tried = [];
@@ -146,7 +152,7 @@ export async function makeTypecast({ text = SAMPLE, key = String(process.env.STU
   try { const j = JSON.parse(v.buf.toString()); list = Array.isArray(j) ? j : (j.result || j.voices || j.data || []); } catch { /* 아래 */ }
   if (!chosen && voices) {
     chosen = pickVoice(list, voices);
-    if (!chosen) return { ok: false, code: 7, say: `목소리 ${voices.join(' · ')} 를 목록(${list.length}개)에서 못 찾았다 — 아무 목소리나 고르지 않는다`, tried, count: list.length, names: list.slice(0, 40).map(vName).filter(Boolean) };
+    if (!chosen) return { ok: false, code: 7, say: `목소리 ${voices.join(' · ')} 를 목록(${list.length}개)에서 못 찾았다 — 아무 목소리나 고르지 않는다`, tried, count: list.length, names: list.slice(0, 40).map(vName).filter(Boolean), shape: voiceShape(list) };
   }
   if (!chosen) { const pick = list.find((x) => /ko|kor/i.test(JSON.stringify(x.language || x.languages || x.lang || ''))) || list[0]; chosen = pick && { id: pick.voice_id || pick.id || pick.actor_id, name: vName(pick) }; }
   const voiceId = chosen && chosen.id;
