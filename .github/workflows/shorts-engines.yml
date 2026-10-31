@@ -1,0 +1,82 @@
+# 쇼츠 제작 엔진 시험 — Remotion · HyperFrames 가 이 러너에서 9:16 영상을 «실제로» 그리는지 잰다 〈2026-10-28 사장님: 「제작 엔진(OpenMontage·Remotion·HyperFrames)은 설치해줘」〉
+#
+# 열쇠를 하나도 안 쓴다. 판은 engines/package.json 에 고정했다(2주 넘은 판).
+# ★ 시험판이다 — 운영 쇼츠는 여전히 FFmpeg 길(shorts-make.yml)이다. 엔진을 운영에 쓰려면 사용권부터 정한다(D-460):
+#   Remotion 은 사원 3명을 넘는 회사는 유료 회사 사용권 · OpenMontage 는 AGPL-3.0(고친 판을 서비스로 내면 소스 공개).
+# OpenMontage 는 설치하지 않고 «받아서 판·사용권만 적는다» — 파이썬 묶음이라 실행 전에 사용권 결정이 먼저다.
+
+name: 쇼츠 제작 엔진 시험
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: shorts-engines
+  cancel-in-progress: false
+
+jobs:
+  engines:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: FFmpeg 를 갖춘다
+        run: command -v ffmpeg >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg)
+      - name: 엔진을 설치한다 (판 고정 · npm ci)
+        working-directory: engines
+        run: npm ci --no-audit --no-fund
+      - name: HyperFrames 로 3초 9:16 을 그린다
+        id: hf
+        continue-on-error: true
+        working-directory: engines
+        env:
+          DO_NOT_TRACK: '1'
+          HYPERFRAMES_NO_TELEMETRY: '1'
+        run: |
+          cp node_modules/gsap/dist/gsap.min.js hyperframes/gsap.min.js
+          npx hyperframes browser ensure
+          cd hyperframes && npx hyperframes render -o ../out-hyperframes.mp4 -f 30 --quiet
+      - name: Remotion 으로 3초 9:16 을 그린다
+        id: rm
+        continue-on-error: true
+        working-directory: engines
+        env:
+          DO_NOT_TRACK: '1'
+        run: npx remotion render remotion/index.jsx Smoke out-remotion.mp4 --log=error
+      - name: OpenMontage 판·사용권을 적는다 (설치하지 않음)
+        id: om
+        continue-on-error: true
+        run: |
+          git clone -q --depth 1 https://github.com/calesthio/OpenMontage.git /tmp/om
+          echo "commit=$(git -C /tmp/om rev-parse --short=12 HEAD)" >> "$GITHUB_OUTPUT"
+          echo "license=$(head -n 3 /tmp/om/LICENSE* 2>/dev/null | tr -s ' \n' ' ' | cut -c1-80)" >> "$GITHUB_OUTPUT"
+      - name: 결과를 재서 요약을 쓴다
+        env:
+          HF: ${{ steps.hf.outcome }}
+          RM: ${{ steps.rm.outcome }}
+          OM_COMMIT: ${{ steps.om.outputs.commit }}
+          OM_LIC: ${{ steps.om.outputs.license }}
+        run: node scripts/shorts-engines-report.mjs || true
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: shorts-engines
+          path: |
+            engines/out-*.mp4
+            data/_shorts/engines/_summary.md
+          if-no-files-found: warn
+      - name: 요약만 커밋한다 (기본 가지에서만)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add data/_shorts/engines/_summary.md
+          git diff --cached --quiet || (git commit -q -m "쇼츠 제작 엔진 시험 결과" && git push -q)
+      - name: 판정
+        run: test -f data/_shorts/engines/.ok
