@@ -1,27 +1,26 @@
-# 쇼츠 만들기 — linkpilot-01 · 2026-10-29 00:58 KST
+# 쇼츠 만들기 — linkpilot-01 · 2026-10-31 12:28 KST
 
-판정 0 — 완성 — 39.95초 9:16 쇼츠
+판정 0 — 완성 — 55.25초 9:16 쇼츠
 
 - Typecast 목소리: 강일 (1순위 · 순위 강일 → 진우 → 서현)
-- 01 «1968년, 3M 연구원 스펜서 실버는 강한 접착제를 만들려다 실패했습니다.» — typecast `typecast ssfm-v30 · 강일`
-- 02 «붙었다 떨어지는 약한 접착제. 쓸 곳을 찾지 못했습니다.» — typecast `typecast ssfm-v30 · 강일`
-- 03 «반전은 몇 년 뒤, 동료 아트 프라이의 교회 성가대에서 왔습니다.» — typecast `typecast ssfm-v30 · 강일`
-- 04 «찬송가 책갈피가 자꾸 떨어지자, 그는 실버의 접착제를 떠올렸습니다.» — typecast `typecast ssfm-v30 · 강일`
-- 05 «그리고 1980년, 포스트잇이 미국 매장에 나왔습니다.» — typecast `typecast ssfm-v30 · 강일`
-- 06 «숨은 공로자는 쓸모없어 보이던 접착제를 만든 스펜서 실버입니다.» — typecast `typecast ssfm-v30 · 강일`
-- 07 «오늘의 적용: 실패한 결과도 버리지 말고 다른 팀에 보여 주세요.» — typecast `typecast ssfm-v30 · 강일`
-- 08 «글로벌 비즈니스 성공스토리, 링크파일럿이었습니다.» — typecast `typecast ssfm-v30 · 강일`
+- 01 «실패한 발명이 사무실의 필수품이 될 수 있을까요?» — typecast `typecast ssfm-v30 · 강일`
+- 02 «1968년, 3M 연구원 스펜서 실버는 강한 접착제를 만들려다 실패했습니다.» — typecast `typecast ssfm-v30 · 강일`
+- 03 «붙었다 떨어지는 약한 접착제. 쓸 곳을 찾지 못했습니다.» — typecast `typecast ssfm-v30 · 강일`
+- 04 «반전은 몇 년 뒤, 동료 아트 프라이의 교회 성가대에서 왔습니다.» — typecast `typecast ssfm-v30 · 강일`
+- 05 «찬송가 책갈피가 자꾸 떨어지자, 그는 실버의 접착제를 떠올렸습니다.» — typecast `typecast ssfm-v30 · 강일`
+- 06 «약하다는 약점이, 다시 뗄 수 있다는 장점으로 바뀐 순간입니다.» — typecast `typecast ssfm-v30 · 강일`
+- 07 «그리고 1980년, 포스트잇이 미국 매장에 나왔습니다.» — typecast `typecast ssfm-v30 · 강일`
+- 08 «숨은 공로자는 쓸모없어 보이던 접착제를 만든 스펜서 실버입니다.» — typecast `typecast ssfm-v30 · 강일`
+- 09 «실패와 쓸모 사이에는, 다른 사람의 문제가 있었습니다.» — typecast `typecast ssfm-v30 · 강일`
+- 10 «오늘의 적용: 실패한 결과도 버리지 말고 다른 팀에 보여 주세요.» — typecast `typecast ssfm-v30 · 강일`
+- 11 «글로벌 비즈니스 성공스토리, 링크파일럿이었습니다.» — typecast `typecast ssfm-v30 · 강일`
+- 장면: 자체 그래픽(강조 문구·연도 숫자·진행 막대) — 대본이 visual: graphic 이라 사진을 안 깔았다 (지침 v1.3 §5.3)
 
-- 목소리: typecast · 줄 8개 · 줄 사이 0.35초 · 자막 시각은 받은 소리 길이로 잼
-- 영상: 1080×1920 · h264/aac · 39.95초(목소리 39.95초) · 2.64 MB
-- 글꼴: NanumGothic(OFL) — 플랫폼 화면 글꼴 페이퍼로지와 다르다
-- 배경: 장면 사진 8/8줄 (Pexels 공식 API · 밝기 절반 · 사진가 표기) — 나머지 줄은 잉크 바탕
-  - 01 «laboratory glass beakers» — Jahra Tasfia Reza · https://www.pexels.com/photo/scientific-experiment-with-beakers-and-liquid-39833387/
-  - 02 «glue bottle close up» — cottonbro studio · https://www.pexels.com/photo/close-up-of-a-glue-gun-7508801/
-  - 03 «empty church pews» — Alexander Mass · https://www.pexels.com/photo/elegant-church-pew-decor-in-serene-setting-38482005/
-  - 04 «old hymn book pages» — el jusuf · https://www.pexels.com/photo/close-up-of-text-in-a-holy-book-at-indonesian-church-29179299/
-  - 05 «yellow sticky notes» — Tima Miroshnichenko · https://www.pexels.com/photo/sticky-notes-on-the-white-wall-6914470/
-  - 06 «chemistry laboratory bench» — Thirdman · https://www.pexels.com/photo/test-tubes-in-a-test-tube-rack-8940348/
-  - 07 «sticky notes on wall» — Mr Whittington · https://www.pexels.com/photo/colorful-wall-of-inspirational-sticky-notes-38675669/
-  - 08 «city skyline at night» — Alberto Alvarez · https://www.pexels.com/photo/illuminated-downtown-skyscrapers-at-night-25003437/
+- 목소리: typecast · 줄 11개 · 줄 사이 0.35초 · 자막 시각은 받은 소리 길이로 잼
+- 영상: 1080×1920 · h264/aac · 55.25초(목소리 55.25초) · 1.59 MB
+- 길이 55.25초 — 기본안 50~58초 안
+- 자막 글꼴: 페이퍼로지(Paperlogy · OFL) — 지침 v1.3 §8.2 기본안
+- 내려받기 묶음: final.mp4 · final-nocap.mp4 · captions.srt · captions.vtt · metadata.md · script.txt · SHA256SUMS
+- 합성 콘텐츠 표시: false — 대본 판단 — 실제처럼 보이는 생성·변형 장면이 없다 — 화면은 글자 그래픽이고, 목소리는 특정 실존 인물을 흉내 내지 않는 AI 음성이다(설명 글에 «AI 목소리» 표기)
+- 배경: FFmpeg 이 그린 잉크 바탕·라임 진행 막대 — 남의 사진·영상·로고 없음
 - ★ 이 단계는 올리지 않는다 — 올리기는 «쇼츠 올리기»(게시 승인 «게시»)가 한다.
