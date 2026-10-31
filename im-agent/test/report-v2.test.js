@@ -490,7 +490,7 @@ addEventListener('load', function () { setTimeout(async function () {
   var nw = q('[data-lp-rv2-new]'); if (nw) { nw.click(); await wait(200); } R.afterNew = work();
   var html = q('[data-lp-rv2-format="html"]'); var hb = html && html.getAttribute('aria-pressed'); if (html) { html.click(); await wait(100); }
   var html2 = q('[data-lp-rv2-format="html"]'); R.fmt = [hb, html2 && html2.getAttribute('aria-pressed')];
-  var hwp = q('[data-lp-rv2-format="hwp"]'); if (hwp) { hwp.click(); await wait(50); } R.hwp = [hwp && hwp.getAttribute('aria-pressed'), !!q('[data-lp-rv2-format="hwp"][data-lp-rv2-soon]')];
+  var hwp = q('[data-lp-rv2-format="hwp"]'); if (hwp) { hwp.click(); await wait(50); } R.hwp = [hwp && hwp.getAttribute('aria-pressed'), !!q('[data-lp-rv2-format="hwp"][data-lp-rv2-soon]')]; R.hwpName = hwp ? hwp.textContent : ''; R.hx = qa('[data-lp-rv2-hwpx]').map(function (b) { return [b.getAttribute('data-lp-rv2-hwpx'), b.hasAttribute('data-lp-rv2-soon')]; }); var hx1 = q('[data-lp-rv2-hwpx="edit_existing"]'); if (hx1) { hx1.click(); await wait(50); } R.hxSaid = (q('.rv2-opts [data-lp-rv2-said]') || {}).textContent || ''; R.dsHwpx = (q('[data-lp-rv2-dshwpx]') || {}).textContent || '';
   var form = q('[data-lp-rv2-say]'); if (form) { form.querySelector('input').value = '안녕하세요'; form.dispatchEvent(new Event('submit', { cancelable: true })); await wait(50); }
   R.saidText = (q('.rv2-ask [data-lp-rv2-said], [data-lp-rv2-part="ask"] [data-lp-rv2-said]') || {}).textContent || '';
   document.documentElement.setAttribute('data-rv2-test', JSON.stringify(R));
@@ -524,5 +524,10 @@ test('⑰ 병합 판 — 펴진 칸만 오른쪽에 · 단계·바꾸기·자료
   assert.deepStrictEqual(R.afterNew, ['sources'], '[+ 새 보고서] 가 1번 칸으로 안 간다');
   assert.ok(R.fmt[0] !== null && R.fmt[0] !== R.fmt[1], '형식 칩 «데스크탑 HTML» 을 눌러도 안 바뀐다: ' + JSON.stringify(R.fmt));
   assert.deepStrictEqual(R.hwp, ['false', true], '못 만드는 형식(HWP)이 켜졌다: ' + JSON.stringify(R.hwp));
+  /* HWPX 지침 v1.0 — 이름은 HWPX · 두 길(새로 만들기 / 기존 양식 고치기)을 갈라 두고 둘 다 준비 중 · 10종 ≠ HWPX 지원 */
+  assert.match(R.hwpName, /HWPX/, '한글 형식 이름은 HWPX: ' + R.hwpName);
+  assert.deepStrictEqual(R.hx, [['create_new', true], ['edit_existing', true]], 'HWPX 두 길: ' + JSON.stringify(R.hx));
+  assert.match(R.hxSaid, /준비 중/, '누르면 까닭을 말한다: ' + R.hxSaid);
+  assert.match(R.dsHwpx, /10종 모두 준비 중/, '10종 디자인과 HWPX 지원을 갈라 적는다: ' + R.dsHwpx);
   assert.match(R.saidText, /준비 중/, '글로 답해도 아무 말이 없다');
 });

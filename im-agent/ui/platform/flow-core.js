@@ -1770,12 +1770,25 @@
 
   var V2_FORMATS = [
     { id: 'pdf', name: 'PDF', ok: true },
-    { id: 'hwp', name: '한글(HWP)', ok: false },
+    /* 한글은 «HWPX» 다 — 바이너리 .hwp 는 이름만 바꿔 처리하지 않는다 (HWPX 지침 v1.0 §2). id 는 서버 사양(outputspec)과 같은 'hwp' 그대로 */
+    { id: 'hwp', name: '한글(HWPX)', ok: false, why: '한글(HWPX)은 준비 중입니다 — 생성·편집 도구와 한글 화면 검수 환경을 아직 시험하지 않았습니다. 지금 나가는 것은 PDF 와 데스크탑 HTML 입니다.' },
     { id: 'docx', name: '워드(DOCX)', ok: false },
     { id: 'pptx', name: 'PPT(PPTX)', ok: false },
     { id: 'html', name: '데스크탑 HTML', ok: true },
     { id: 'mhtml', name: '모바일 HTML', ok: false },
   ];
+
+  /* 한글 문서(HWPX) 두 길 — HWPX 지침 v1.0 §3 · §4 (create_new · edit_existing 을 섞지 않는다).
+   * ★ 둘 다 «준비 중»이다 — 생성(kist-aix/hwpx)·편집(hwpx-editing-skill) 어댑터와 한글 렌더 워커를 아직 안 붙였다(§13 0~4단계).
+   *   10종 디자인 선택 ≠ 10종 HWPX 지원 (§7) — ready 에 든 타입만 연다. 지금은 비어 있다. */
+  var V2_HWPX = {
+    starts: [
+      { id: 'create_new', name: '새 보고서 만들기', desc: '보고서 유형과 지원 양식을 선택해 새 문서 작성' },
+      { id: 'edit_existing', name: '기존 양식 가져오기', desc: '내 HWPX 양식을 불러와 필요한 부분만 수정' },
+    ],
+    why: '한글 문서(HWPX)는 준비 중입니다 — 기본 보고서 양식의 생성·검사부터 시험한 뒤 엽니다. 그전에는 PDF·데스크탑 HTML 로 받습니다.',
+    ready: [],
+  };
 
   return {
     BUILD: LP_BUILD,
@@ -1802,7 +1815,7 @@
     v2Doc: v2Doc, v2DocsOf: v2DocsOf, v2DocOfEngine: v2DocOfEngine, v2DocMeta: v2DocMeta,
     V2_STEPS: V2_STEPS, v2StepOf: v2StepOf, v2Steps: v2Steps, v2Progress: v2Progress, v2Next: v2Next,
     V2_FACT_KEYS: V2_FACT_KEYS, v2Tag: v2Tag, v2FactRows: v2FactRows, v2Conflicts: v2Conflicts,
-    V2_FORMATS: V2_FORMATS, V2_PAGES: V2_PAGES, V2_LANGS: V2_LANGS,
+    V2_FORMATS: V2_FORMATS, V2_HWPX: V2_HWPX, V2_PAGES: V2_PAGES, V2_LANGS: V2_LANGS,
     V2_DS: V2_DS, V2_DS_TOKENS: V2_DS_TOKENS, v2DsType: v2DsType, v2DsColors: v2DsColors, v2DsPages: v2DsPages, v2DsSvg: v2DsSvg, V2_DS_KIND: V2_DS_KIND, V2_DS_SAMPLE: V2_DS_SAMPLE, v2DsEm: v2DsEm, V2_IM_SIZES: V2_IM_SIZES,
   };
 }));

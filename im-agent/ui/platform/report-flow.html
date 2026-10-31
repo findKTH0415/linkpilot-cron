@@ -711,6 +711,8 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
 .rv2-tool:hover { background: var(--lp-brand-soft); }
 .rv2-tool--soon { color: var(--lp-text-3); background: var(--lp-fill-1); border-color: var(--lp-line-3); cursor: default; }
 .rv2-tool--soon:hover { background: var(--lp-fill-1); }
+.rv2-tool b { font-weight: 700; } .rv2-tool span small { white-space: normal; }
+.rv2-ds__hwpx { margin: 0 0 12px; font-size: 13px; color: var(--lp-text-3); }
 .rv2-tool small { font-size: 12.5px; color: var(--lp-text-3); white-space: nowrap; }
 
 
@@ -1981,7 +1983,7 @@ var lpApiWhy = (function () {
     F.V2_FORMATS.forEach(function (f) {
       var curF = (v2.draft && v2.draft.formats) || have;
       var c = v2Chip(f.name, f.ok && curF.indexOf(f.id) >= 0, ['data-lp-rv2-format', f.id]);
-      if (!f.ok) v2Soon(c, f.name + ' 은 아직 못 만듭니다 — 지금 나가는 것은 PDF 와 데스크탑 HTML 입니다.');   /* 엔진이 못 만든다 (outputspec SUPPORTED_FORMATS) */
+      if (!f.ok) v2Soon(c, f.why || (f.name + ' 은 아직 못 만듭니다 — 지금 나가는 것은 PDF 와 데스크탑 HTML 입니다.'));   /* 엔진이 못 만든다 (outputspec SUPPORTED_FORMATS) */
       else if (ou.locked) c.disabled = true;
       else c.addEventListener('click', function () {
         var nx = curF.indexOf(f.id) >= 0 ? curF.filter(function (x) { return x !== f.id; }) : curF.concat([f.id]);
@@ -1991,6 +1993,20 @@ var lpApiWhy = (function () {
       fr.appendChild(c);
     });
     o4.appendChild(fr);
+    /* 4. 한글 문서(HWPX) — 새로 만들기 / 기존 양식 고치기를 처음부터 갈라 둔다 (HWPX 지침 v1.0 §3 · §4). 둘 다 준비 중 */
+    var HX = F.V2_HWPX;
+    if (HX) {
+      o4.appendChild(el('p', 'rv2-opt__lbl', '4. 한글 문서(HWPX)'));
+      HX.starts.forEach(function (s) {
+        var b = el('button', 'rv2-tool rv2-tool--soon');
+        b.type = 'button';
+        b.setAttribute('data-lp-rv2-hwpx', s.id);
+        var tx = el('span'); tx.appendChild(el('b', null, s.name)); tx.appendChild(el('br')); tx.appendChild(el('small', null, s.desc));
+        b.appendChild(tx); b.appendChild(el('small', null, '준비 중'));
+        v2Soon(b, HX.why);
+        o4.appendChild(b);
+      });
+    }
     grid.appendChild(o4);
 
     /* 도구 */
@@ -2030,6 +2046,8 @@ var lpApiWhy = (function () {
     var box = el('section', 'rv2-card rv2-ds');
     box.setAttribute('data-lp-rv2-dsbox', String(F.V2_DS.length));
     box.appendChild(el('h2', 'rv2-kicker', '고정 타입 10종'));
+    /* 10종 디자인 선택 ≠ 10종 HWPX 지원 (HWPX 지침 v1.0 §7) — 열린 타입이 없으면 그 사실을 한 줄로 적는다 */
+    if (F.V2_HWPX) { var hxn = (F.V2_HWPX.ready || []).length; var hx = el('p', 'rv2-ds__hwpx', hxn ? ('한글(HWPX) 열린 타입 ' + hxn + '종 — 나머지는 준비 중') : '한글(HWPX)은 10종 모두 준비 중입니다 — 기본 보고서 양식부터 시험해 하나씩 엽니다. 고른 디자인은 PDF·데스크탑 HTML 에 쓰입니다.'); hx.setAttribute('data-lp-rv2-dshwpx', String(hxn)); box.appendChild(hx); }
     /* ★ 레이아웃 보기 — 가로(16:9)·세로(A4) 〈2026-10-26 사장님: 「디자인 선택 적용에 레이아웃 가로, 세로형을 보여주도록」〉
      *   보기만 바꾼다 — 실제 용지 방향은 문서 양식(서버 사양)이 정한다. 처음 값은 사양의 방향. */
     var sp = facts.spec || {};
