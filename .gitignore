@@ -90,3 +90,6 @@ data/_shorts/out/**/*.srt
 data/_shorts/out/**/*.ass
 data/_shorts/out/**/*.txt
 data/_shorts/out/**/*.jpg
+data/_shorts/engines/.ok
+engines/hyperframes/gsap.min.js
+engines/out-*.mp4
