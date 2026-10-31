@@ -3632,6 +3632,9 @@ SNS 인사말(표에서 고른 3줄) → 오늘 보낼 사람 → 배경 고르�
     ★ 새 사실(시험 출시·무료 견본 등)은 더하지 않았다 — 이 자리에서 출처 페이지가 안 열려(프록시 거부) 근거 둘을 못 쟀다.
   - ★★ **NVIDIA AI 열쇠** 〈2026-10-28 사장님: 「NVDIA_TAST_KEY 넣었어」〉 — 진단부터(`scripts/nvidia-probe.mjs` · Actions «NVIDIA AI 열쇠 진단»): 모델 목록만 묻고 그림·소리·글로 갈라 `data/_nvidia/_summary.md` 에 적는다.
     넣으신 이름 그대로 먼저 읽고 철자가 다를 만한 셋(`NVIDIA_TEST_KEY` · `NVIDIA_API_KEY` · `NVIDIA_KEY`)도 읽는다 — 실제로 든 이름은 요약이 말한다. 생성 호출은 쓸 곳이 정해진 뒤 그 모델 문서대로 짠다(§4.3). 재는 자리: `nvidia-probe.test.js`.
+  - ★★ **제작 엔진 시험판 — Remotion · HyperFrames** 〈2026-10-28 사장님: 「제작 엔진(OpenMontage·Remotion·HyperFrames)은 설치해줘」〉 — `engines/`(판 고정: remotion 4.0.535 · hyperframes 0.8.155 · gsap 3.14.2) · Actions «쇼츠 제작 엔진 시험»(`shorts-engines.yml` · 열쇠 없음 · 손으로만).
+    두 엔진이 3초 1080×1920·30fps 를 그리는지 ffprobe 로 재서 `data/_shorts/engines/_summary.md` 에 적는다(판정 0 둘 다 · 1 하나 · 2 없음). OpenMontage 는 설치하지 않고 판·사용권만 적는다.
+    ★ 운영 쇼츠는 그대로 FFmpeg 길이다 — 엔진을 운영에 쓰기 전에 사용권부터 정한다(D-460: Remotion 회사 사용권 · OpenMontage AGPL-3.0). 재는 자리: `im-agent/test/shorts-engines.test.js`.
 - 재는 자리: `im-agent/test/shorts-voice.test.js`(가짜 응답 · 갈래 2·3·4·5·6·7 · 열쇠 가림 · 전체 시간 예산 · v3/ssfm-v30/429/422 · 목소리 순위 · 장면 사진 · 구간 길이) · `sources-verdict.test.js`(판정이 계산된 값인가).
 
 ## 31. 한글 문서(HWPX) — 새로 만들기 · 기존 양식 고치기 〈2026-10-29 사장님: 「LinkPilot_HWPX_Integration_Work_Guide_v1.0 보고서생성섹션에 출력조건을 포함하여 반영해줘」〉

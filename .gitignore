@@ -90,3 +90,8 @@ data/_shorts/out/**/*.srt
 data/_shorts/out/**/*.ass
 data/_shorts/out/**/*.txt
 data/_shorts/out/**/*.jpg
+data/_shorts/engines/.ok
+engines/hyperframes/gsap.min.js
+engines/out-*.mp4
+# 엔진 시험판은 판을 lock 으로 고정한다 (npm ci)
+!engines/package-lock.json
