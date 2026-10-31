@@ -10,10 +10,12 @@
 // ★ 같은 편을 같은 곳에 두 번 올리지 않는다 — 기록(_publish.json)에 있으면 건너뛴다(--again yes 일 때만 다시).
 // ★ 유튜브는 처음엔 «비공개(private)»가 기본이다 — 공개는 실행 때 고른다. 그리고 검수 안 받은 API 프로젝트는
 //   유튜브가 강제로 비공개로 잠근다 — 돌려받은 공개 범위가 고른 것과 다르면 그 사실을 적는다(못 바꾼 것을 «공개됨»으로 안 적는다).
-// ★ AI 목소리로 읽었으니 유튜브에는 «합성 콘텐츠»(containsSyntheticMedia)를 켠다.
+// ★ «합성 콘텐츠»(containsSyntheticMedia)는 대본의 syntheticMedia 칸이 정한다 — 지침 v1.3 §10.2: 실제 쓴 장면·정책 판단과 잇는다.
+//   칸이 없으면 «판단 전»이라 켠다(안 알리는 쪽으로 기울지 않는다). AI 목소리 사실은 설명 글에 늘 적는다.
+// ★ 기본 올릴 곳은 유튜브 하나다 — 지침 v1.3 §1·§10.3: 릴스는 공식 규격·권한을 확인하기 전 «확장»이다(지원 완료로 표시하지 않는다).
 // ★ 열쇠 값은 한 글자도 안 남긴다 (§2 · 공개 저장소).
 //
-// 쓰는 법  node scripts/shorts-publish.mjs --id linkpilot-01 --video <final.mp4> --targets youtube,instagram
+// 쓰는 법  node scripts/shorts-publish.mjs --id linkpilot-01 --video <final.mp4> --targets youtube[,instagram]
 //                 --confirm 게시 [--privacy private|unlisted|public] [--again no|yes] [--out data/_shorts/out]
 // 되돌아오는 값: 0 모두 올림(또는 이미 올림) · 2 열쇠 없음 · 3 기다리면 낫는다 · 4 열쇠 거부·만료 · 5 영상 없음 ·
 //                6 승인 없음 · 7 그쪽이 영상을 거부 · 9 열쇠 샘 · 10 대본 형식 오류
@@ -26,6 +28,15 @@ export const IG_VER = 'v21.0';
 export const CONFIRM = '게시';
 export const TARGETS = ['youtube', 'instagram'];
 export const PRIVACY = ['private', 'unlisted', 'public'];
+export const DEFAULT_TARGETS = 'youtube'; // 지침 v1.3 — 1차 대상은 YouTube Shorts + 파일 내려받기
+
+/** 합성 콘텐츠 표시 — 대본 칸(syntheticMedia: true|false)을 따른다 · 없으면 판단 전이라 켠다 */
+export function syntheticOf(script) {
+  const v = script && script.syntheticMedia;
+  if (v === true) return { value: true, why: '대본이 «실제처럼 보이는 생성·변형 장면이 있다»고 적었다' };
+  if (v === false) return { value: false, why: script.syntheticNote ? `대본 판단 — ${script.syntheticNote}` : '대본이 «실제처럼 보이는 생성 장면이 없다»고 적었다' };
+  return { value: true, why: '대본에 판단(syntheticMedia)이 없어 켰다 — 사람이 정해 대본에 적는다' };
+}
 
 const clip = (s, n) => { const a = [...String(s)]; return a.length > n ? a.slice(0, n - 1).join('') + '…' : a.join(''); };
 const uniq = (a) => [...new Set(a)];
@@ -80,7 +91,7 @@ export async function youtube({ video, script, images = [], privacy = 'private',
   if (!access) return { ok: false, code: 4, say: '접속 열쇠가 비어 왔다' };
   const m = meta(script, images);
   const body = { snippet: { title: m.title, description: m.description, tags: m.tags, categoryId: '27', defaultLanguage: 'ko', defaultAudioLanguage: 'ko' },
-    status: { privacyStatus: privacy, selfDeclaredMadeForKids: false, containsSyntheticMedia: true } };
+    status: { privacyStatus: privacy, selfDeclaredMadeForKids: false, containsSyntheticMedia: syntheticOf(script).value } };
   r = await fetchImpl(`${YT.upload}?uploadType=resumable&part=snippet,status`, { method: 'POST',
     headers: { Authorization: `Bearer ${access}`, 'Content-Type': 'application/json; charset=UTF-8', 'X-Upload-Content-Type': 'video/mp4', 'X-Upload-Content-Length': String(video.length) },
     body: JSON.stringify(body) });
@@ -155,7 +166,7 @@ const arg = (n, d) => { const i = process.argv.indexOf(`--${n}`); return i > 0 &
 async function main() {
   const id = arg('id', 'linkpilot-01');
   const out = `${arg('out', 'data/_shorts/out')}/${id}`;
-  const targets = uniq(String(arg('targets', 'youtube,instagram')).split(/[,\s]+/).filter((x) => TARGETS.includes(x)));
+  const targets = uniq(String(arg('targets', DEFAULT_TARGETS)).split(/[,\s]+/).filter((x) => TARGETS.includes(x)));
   const privacy = PRIVACY.includes(arg('privacy', 'private')) ? arg('privacy', 'private') : 'private';
   const again = arg('again', 'no') === 'yes';
   await mkdir(out, { recursive: true });

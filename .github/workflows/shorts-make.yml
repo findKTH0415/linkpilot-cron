@@ -27,7 +27,7 @@ on:
         required: false
         default: pexels
       publish:
-        description: 다 만들면 이어서 올릴 곳 — none(안 올림) · youtube · instagram · youtube,instagram  ★ 고르면 그것이 게시 승인이다 (§10)
+        description: 다 만들면 이어서 올릴 곳 — none(안 올림) · youtube(1차 대상) · instagram · youtube,instagram  ★ 고르면 그것이 게시 승인이다 (§10) · 릴스는 확장 (지침 v1.3)
         required: false
         default: none
       privacy:
@@ -51,11 +51,24 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 22
-      - name: FFmpeg · 한글 글꼴을 갖춘다
+      - name: FFmpeg · 자막 글꼴(페이퍼로지)을 갖춘다
+        # ★ 지침 v1.3 §8.2 — 자막 기본안은 페이퍼로지. jsDelivr(커밋 고정)의 woff2 를 TTF 로 풀어 깐 뒤
+        #   fc-match 로 «그 이름으로 쓰이는지» 잰다(깔렸다 ≠ 쓰인다 · §6-2-1). 못 쓰면 나눔고딕으로 그리고 요약에 그 사실이 남는다.
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq ffmpeg fonts-nanum
-          fc-list | grep -c -i nanum
+          sudo apt-get install -y -qq ffmpeg fonts-nanum python3-fonttools python3-brotli
+          d="$HOME/.fonts/paperlogy"; mkdir -p "$d"
+          base=https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@892c5e6b51f8947b532156e3f6e4c09773086387
+          for w in 4Regular 7Bold; do
+            curl -fsSL --retry 3 -o "/tmp/p-$w.woff2" "$base/Paperlogy-$w.woff2" && python3 -m fontTools.ttLib.woff2 decompress -o "$d/Paperlogy-$w.ttf" "/tmp/p-$w.woff2" || echo "::warning::페이퍼로지 $w 를 못 받았다"
+          done
+          fc-cache -f >/dev/null
+          got=$(fc-match -f '%{family}' 'Paperlogy:bold' || true); echo "fc-match Paperlogy:bold → $got"
+          if printf '%s' "$got" | grep -qi paperlogy; then
+            echo "SHORTS_FONT=Paperlogy" >> "$GITHUB_ENV"; echo "SHORTS_FONTS_DIR=$d" >> "$GITHUB_ENV"
+          else
+            echo "::warning::페이퍼로지를 그 이름으로 못 찾았다 — 나눔고딕으로 그린다"; echo "SHORTS_FONT=NanumGothic" >> "$GITHUB_ENV"
+          fi
       - name: 쇼츠를 만든다
         id: make
         continue-on-error: true
@@ -90,8 +103,12 @@ jobs:
           name: shorts-final
           path: |
             data/_shorts/out/${{ inputs.id }}/final.mp4
+            data/_shorts/out/${{ inputs.id }}/final-nocap.mp4
             data/_shorts/out/${{ inputs.id }}/narration.wav
             data/_shorts/out/${{ inputs.id }}/captions.srt
+            data/_shorts/out/${{ inputs.id }}/captions.vtt
+            data/_shorts/out/${{ inputs.id }}/metadata.md
+            data/_shorts/out/${{ inputs.id }}/SHA256SUMS
             data/_shorts/out/${{ inputs.id }}/captions.ass
             data/_shorts/out/${{ inputs.id }}/script.txt
             data/_shorts/out/${{ inputs.id }}/_summary.md

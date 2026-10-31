@@ -1,0 +1,58 @@
+# NVIDIA AI 열쇠 진단 — 모델 목록만 묻는다 〈2026-10-28 사장님: 「NVDIA_TAST_KEY 넣었어」〉
+#
+# 열쇠가 있는 자리에서 부르고 «요약만 커밋»한다(data/_nvidia/_summary.md). 스크립트가 결과에 열쇠 값이 섞였는지 세고, 걸리면 안 쓴다 (§2).
+# ★ 접속 자격증명(NAS·터널)은 안 넣는다 (§4 「수집 잡에 접속 자격증명을 넣지 않는다」).
+
+name: NVIDIA AI 열쇠 진단
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nvidia-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: 모델 목록을 묻는다
+        id: probe
+        continue-on-error: true
+        env:
+          NVDIA_TAST_KEY: ${{ secrets.NVDIA_TAST_KEY }}
+          NVIDIA_TEST_KEY: ${{ secrets.NVIDIA_TEST_KEY }}
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          NVIDIA_KEY: ${{ secrets.NVIDIA_KEY }}
+        run: node scripts/nvidia-probe.mjs
+      - name: 요약만 커밋한다
+        if: always()
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -u
+          f=data/_nvidia/_summary.md
+          [ -f "$f" ] || { echo "요약이 없다"; exit 0; }
+          cat "$f"
+          if [ "$REF_NAME" != "$DEFAULT_BRANCH" ]; then echo "가지 '$REF_NAME' — 커밋하지 않는다"; exit 0; fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$f"; git diff --staged --quiet || git commit -m "NVIDIA AI 열쇠 진단 ($(date -u +%Y-%m-%d))"
+          for i in 1 2 3; do
+            if git pull --rebase -q origin "$DEFAULT_BRANCH" && git push; then exit 0; fi
+            git rebase --abort 2>/dev/null || true; sleep 5
+          done
+      - name: 판정
+        if: always()
+        env:
+          OUTCOME: ${{ steps.probe.outcome }}
+        run: '[ "$OUTCOME" = success ] && echo "받음" || { echo "::error::진단이 판정 0 이 아니다 — 요약 첫 줄을 본다"; exit 1; }'

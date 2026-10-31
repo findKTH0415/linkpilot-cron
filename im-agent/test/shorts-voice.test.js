@@ -131,7 +131,10 @@ test('쇼츠 만들기 — 승인 A 없는 대본은 소리로 안 만든다 · 
   assert.strictEqual(m.checkScript({ approvedA: true, lines: [{ text: '안녕' }] }), null);
   const real = JSON.parse(require('fs').readFileSync(path.join(__dirname, '..', '..', 'data', '_shorts', 'scripts', 'linkpilot-01.json'), 'utf8'));
   assert.strictEqual(m.checkScript(real), null, '첫 대본이 검사를 지난다');
-  for (const l of real.lines.slice(0, 6)) assert.ok(Array.isArray(l.src) && l.src.length >= 2, `사실 줄은 출처 둘: ${l.text}`);
+  const facts = real.lines.filter((l) => !(l.src || []).some((x) => /사실 주장이 아니다|해석|맺음말/.test(x)));
+  assert.ok(facts.length >= 5, '사실 줄이 다섯 이상');
+  for (const l of facts) assert.ok(Array.isArray(l.src) && l.src.length >= 2 && l.src.every((x) => /\./.test(x)), `사실 줄은 출처 둘(주소 모양): ${l.text}`);
+  if (real.visual === 'graphic') for (const l of real.lines) assert.ok(l.emph, `그래픽 편은 줄마다 강조 문구: ${l.text}`);
 });
 test('쇼츠 만들기 — 자막 시각은 받은 소리 길이로 이어지고 줄 사이에만 쉰다', async () => {
   const m = await loadMake();
@@ -210,4 +213,36 @@ test('목소리 이름 칸이 묶음({ko,en})으로 와도 찾는다 — 2026-10
   assert.strictEqual(m.pickVoice([{ voice_id: 'd', voice_name: { en: 'Seohyun' } }], ['강일', '진우', '서현']).rank, 3, '영문 표기만 있어도 찾는다');
   assert.strictEqual(m.pickVoice(list.slice(0, 1), ['강일', '진우', '서현']), null, '없으면 아무 목소리나 고르지 않는다');
   assert.ok(/voice_name\{ko,en\}/.test(m.voiceShape(list)), '못 찾았을 때 칸 모양을 적는다');
+});
+
+test('지침 v1.3 — 길이 50~58초 판정 · VTT 자막 · 자막 글꼴 기본 페이퍼로지 · 자막 없는 판', async () => {
+  const fs = require('fs');
+  const m = await loadMake();
+  assert.strictEqual(m.lengthJudge(54).ok, true);
+  assert.match(m.lengthJudge(40.03).say, /9\.97초 짧다/);
+  assert.match(m.lengthJudge(61).say, /3초 길다/);
+  assert.strictEqual(m.lengthJudge(50).ok, true); assert.strictEqual(m.lengthJudge(58).ok, true);
+  const tl = m.timeline([1.5, 2], ['a', 'b'], 0.5);
+  assert.match(m.toVtt(tl), /^WEBVTT\n\n1\n00:00:00\.000 --> 00:00:01\.500\na\n/);
+  if (!process.env.SHORTS_FONT) assert.strictEqual(m.FONT, 'Paperlogy', '기본안은 페이퍼로지 (§8.2)');
+  const wf = fs.readFileSync(path.join(__dirname, '..', '..', '.github', 'workflows', 'shorts-make.yml'), 'utf8');
+  assert.ok(/fc-match -f '%\{family\}' 'Paperlogy:bold'/.test(wf) && /SHORTS_FONT=Paperlogy/.test(wf) && /SHORTS_FONT=NanumGothic/.test(wf), '깔린 것을 그 이름으로 재고, 못 쓰면 나눔고딕으로 알린다');
+  for (const f of ['final-nocap.mp4', 'captions.vtt', 'metadata.md', 'SHA256SUMS']) assert.ok(wf.includes(`/${f}`), `내려받기 묶음 ${f} 를 아티팩트에 싣는다`);
+  // 자막 없는 판은 ass 필터를 안 건다 — 실제 FFmpeg 로 1초를 그려 잰다(없으면 못 잼)
+  const { execFileSync } = require('child_process');
+  try { execFileSync('ffmpeg', ['-version'], { stdio: 'ignore' }); } catch (_) { return; }
+  const os = require('os'); const d = fs.mkdtempSync(path.join(os.tmpdir(), 'nocap-'));
+  const wav = path.join(d, 'a.wav');
+  execFileSync('ffmpeg', ['-v', 'error', '-y', '-f', 'lavfi', '-i', 'anullsrc=r=24000:cl=mono', '-t', '1', wav]);
+  const r = m.render({ wav, ass: path.join(d, 'none.ass'), mp4: path.join(d, 'n.mp4'), seconds: 1, fontsDir: '', captions: false });
+  assert.ok(r.ok, JSON.stringify(r.probe));
+});
+
+test('지침 v1.3 — 강조 문구는 Emph 줄로 따로 그린다(자막과 분리 · §6.2)', async () => {
+  const m = await loadMake();
+  const tl = m.timeline([1, 1], ['가', '나'], 0.2);
+  const a = m.toAss(tl, '브랜드', [], ['1968', '']);
+  assert.ok(/Style: Emph,/.test(a));
+  assert.strictEqual((a.match(/,Emph,,/g) || []).length, 1, '강조 문구가 있는 줄만');
+  assert.match(a, /,Emph,,0,0,0,,\{\\fad\(160,120\)\}1968/);
 });

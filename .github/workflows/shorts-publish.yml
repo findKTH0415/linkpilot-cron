@@ -16,9 +16,9 @@ on:
         required: true
         default: linkpilot-01
       targets:
-        description: 올릴 곳 — youtube,instagram · youtube · instagram
+        description: 올릴 곳 — youtube(기본 · 1차 대상) · instagram · youtube,instagram  ★ 릴스는 공식 규격 확인 전 확장 (지침 v1.3)
         required: true
-        default: youtube,instagram
+        default: youtube
       privacy:
         description: 유튜브 공개 범위 — private(비공개) · unlisted(일부 공개) · public(공개)
         required: true

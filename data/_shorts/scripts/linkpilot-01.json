@@ -8,70 +8,107 @@
   "applyIdea": "실패한 결과도 버리지 말고 다른 팀에 보여 준다",
   "brand": "글로벌 비즈니스 성공스토리",
   "approvedA": true,
-  "approvedNote": "2026-10-28 사실 카드 — 줄마다 독립 출처 둘. 프라이의 착상 연도는 출처마다 1973·1974 로 갈려 연도를 안 쓴다(«몇 년 뒤»).",
+  "approvedNote": "2026-10-28 사실 카드 — 줄마다 독립 출처 둘. 프라이의 착상 연도는 출처마다 1973·1974 로 갈려 연도를 안 쓴다(«몇 년 뒤»). · 2026-10-28 재구성: 사실 줄 여섯은 앞 판 문장·출처 그대로 · 새 줄 넷(질문·해석 둘·적용)은 사실 주장이 아니라고 출처 칸에 적었다.",
   "lines": [
     {
+      "role": "질문",
+      "text": "실패한 발명이 사무실의 필수품이 될 수 있을까요?",
+      "emph": "실패작의 반전?",
+      "src": [
+        "도입 질문 — 사실 주장이 아니다"
+      ]
+    },
+    {
+      "role": "출발",
       "text": "1968년, 3M 연구원 스펜서 실버는 강한 접착제를 만들려다 실패했습니다.",
+      "emph": "1968",
       "src": [
         "invent.org/inductees/spencer-silver",
         "en.wikipedia.org/wiki/Post-it_note"
-      ],
-      "scene": "laboratory glass beakers"
+      ]
     },
     {
+      "role": "막힌 순간",
       "text": "붙었다 떨어지는 약한 접착제. 쓸 곳을 찾지 못했습니다.",
+      "emph": "약한 접착제",
       "src": [
         "lemelson.mit.edu/resources/art-fry-spencer-silver",
         "invent.org/inductees/spencer-silver"
-      ],
-      "scene": "glue bottle close up"
+      ]
     },
     {
+      "role": "전환점",
       "text": "반전은 몇 년 뒤, 동료 아트 프라이의 교회 성가대에서 왔습니다.",
+      "emph": "몇 년 뒤",
       "src": [
         "invent.org/blog/inventors/art-fry-post-it-notes",
         "lemelson.mit.edu/resources/art-fry-spencer-silver"
-      ],
-      "scene": "empty church pews"
+      ]
     },
     {
+      "role": "전환점",
       "text": "찬송가 책갈피가 자꾸 떨어지자, 그는 실버의 접착제를 떠올렸습니다.",
+      "emph": "떨어지는 책갈피",
       "src": [
         "invent.org/blog/inventors/art-fry-post-it-notes",
         "mnopedia.org/thing/post-it-notes"
-      ],
-      "scene": "old hymn book pages"
+      ]
     },
     {
+      "role": "해석",
+      "text": "약하다는 약점이, 다시 뗄 수 있다는 장점으로 바뀐 순간입니다.",
+      "emph": "약점 → 장점",
+      "src": [
+        "제작자 해석 — 위 두 줄의 사실에서 이끈 말이다"
+      ]
+    },
+    {
+      "role": "결과",
       "text": "그리고 1980년, 포스트잇이 미국 매장에 나왔습니다.",
+      "emph": "1980",
       "src": [
         "mnopedia.org/thing/post-it-notes",
         "en.wikipedia.org/wiki/Post-it_note"
-      ],
-      "scene": "yellow sticky notes"
+      ]
     },
     {
+      "role": "숨은 공로자",
       "text": "숨은 공로자는 쓸모없어 보이던 접착제를 만든 스펜서 실버입니다.",
+      "emph": "숨은 공로자",
       "src": [
         "invent.org/inductees/spencer-silver",
         "lemelson.mit.edu/resources/art-fry-spencer-silver"
-      ],
-      "scene": "chemistry laboratory bench"
+      ]
     },
     {
+      "role": "해석",
+      "text": "실패와 쓸모 사이에는, 다른 사람의 문제가 있었습니다.",
+      "emph": "다른 사람의 문제",
+      "src": [
+        "제작자 해석 — 사실 주장이 아니다"
+      ]
+    },
+    {
+      "role": "적용",
       "text": "오늘의 적용: 실패한 결과도 버리지 말고 다른 팀에 보여 주세요.",
+      "emph": "다른 팀에 보여 주기",
       "src": [
         "적용 아이디어 — 사실 주장이 아니다"
-      ],
-      "scene": "sticky notes on wall"
+      ]
     },
     {
+      "role": "맺음",
       "text": "글로벌 비즈니스 성공스토리, 링크파일럿이었습니다.",
+      "emph": "LinkPilot",
       "src": [
-        "맺음말"
+        "맺음말 — 채널 홍보 문구(선택 · 지침 v1.3 §8.3)"
       ],
-      "scene": "city skyline at night"
+      "promo": true
     }
   ],
-  "sceneNote": "2026-10-28 스토리보드 — 줄마다 Pexels 검색어(영어). 사람·로고가 안 나오는 사물·장소만 고른다 (§6-2-6). 사실 문장은 안 바꿨다."
+  "visual": "graphic",
+  "visualNote": "2026-10-28 지침 v1.3 재구성 — 사진 대신 자체 그래픽(강조 문구·연도 숫자·진행 막대). 회사 로고·제품 사진·실존 인물 얼굴 없음 (§5.3 · §6.1 · §8.1).",
+  "syntheticMedia": false,
+  "syntheticNote": "실제처럼 보이는 생성·변형 장면이 없다 — 화면은 글자 그래픽이고, 목소리는 특정 실존 인물을 흉내 내지 않는 AI 음성이다(설명 글에 «AI 목소리» 표기)",
+  "structure": "지침 v1.3 §6.1 — 질문 → 출발 → 막힌 순간 → 전환점 → 결과 → 해석·적용 · 맺음(선택)"
 }
