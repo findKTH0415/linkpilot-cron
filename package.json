@@ -79,8 +79,5 @@
     "routing:nas": "bash im-agent/tools/routing-nas.sh",
     "weather:nas": "bash im-agent/tools/weather-nas.sh",
     "arch:case": "node im-agent/tools/arch-case.js"
-  },
-  "dependencies": {
-    "solapi": "^5.5.1"
   }
 }

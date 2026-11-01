@@ -4,7 +4,7 @@
  *
  * 왜 직접 쓰는가: IFC-SPF(STEP Physical File)는 텍스트 형식이라 파싱에
  * 라이브러리가 필요 없다. IfcOpenShell 은 Python 런타임을 들여야 하는데,
- * 이 저장소는 Node 하나로 돌고 의존성이 `solapi` 뿐이다 (CLAUDE.md §5).
+ * 이 저장소는 Node 하나로 돌고 바깥 의존성이 없다 (CLAUDE.md §5).
  * `pdftext.js`·`ole.js` 와 같은 자리에 같은 방식으로 둔다.
  *
  * ★ **형상에서 물량을 새로 계산하지 않는다.** 벽·슬래브의 솔리드를 만들어
