@@ -81,6 +81,7 @@ jobs:
         env:
           REF_NAME: ${{ github.ref_name }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          FIG_NAME: ${{ inputs.name }}
         run: |
           set -u
           [ -d data/_figures ] || { echo "그린 것이 없다"; exit 0; }
@@ -88,7 +89,7 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/_figures
-          git diff --staged --quiet || git commit -m "제미나이 그림 — ${{ inputs.name }} ($(date -u +%Y-%m-%d))"
+          git diff --staged --quiet || git commit -m "제미나이 그림 — ${FIG_NAME} ($(date -u +%Y-%m-%d))"
           for i in 1 2 3; do
             if git pull --rebase -q origin "$DEFAULT_BRANCH" && git push; then exit 0; fi
             git rebase --abort 2>/dev/null || true; sleep 5

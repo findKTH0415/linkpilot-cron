@@ -61,10 +61,12 @@ jobs:
           APIS_DATA: ${{ secrets.APIS_DATA }}
           SPECIAL_DAY_INFO: ${{ secrets.SPECIAL_DAY_INFO }}
           DATA_GO_KR: ${{ secrets.DATA_GO_KR }}
+          # ★ 입력값은 env 로 넘긴다 — run 글에 바로 박으면 그 값이 셸 명령으로 읽힌다(보안 점검 2026-11-01)
+          FROM_YEAR: ${{ github.event.inputs.from_year }}
+          TO_YEAR: ${{ github.event.inputs.to_year }}
         run: |
-          FROM="${{ github.event.inputs.from_year }}"
-          TO="${{ github.event.inputs.to_year }}"
-          node im-agent/tools/calendar-fetch.js $FROM $TO
+          case "$FROM_YEAR$TO_YEAR" in *[!0-9]*) echo "::error::해는 숫자만 넣는다"; exit 2;; esac
+          node im-agent/tools/calendar-fetch.js $FROM_YEAR $TO_YEAR
           echo "──────── 요약 ────────"
           cat data/_calendar/_summary.md || echo "(요약이 없다)"
 
