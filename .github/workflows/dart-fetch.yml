@@ -24,8 +24,10 @@ jobs:
       - name: DART 조회
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
+          # ★ 입력값은 env 로 넘긴다 — run 글에 바로 박으면 그 값이 셸 명령으로 읽힌다(보안 점검 2026-11-01)
+          COMPANIES: ${{ inputs.companies }}
         run: |
-          IFS=',' read -ra ARR <<< "${{ inputs.companies }}"
+          IFS=',' read -ra ARR <<< "$COMPANIES"
           ARGS=()
           for c in "${ARR[@]}"; do ARGS+=("$(echo "$c" | xargs)"); done
           node scripts/dart-fetch.mjs "${ARGS[@]}"
