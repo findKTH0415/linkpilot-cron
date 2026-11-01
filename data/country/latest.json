@@ -1,5 +1,5 @@
 {
- "updatedAt": "2026-10-19T13:59:32.464Z",
+ "updatedAt": "2026-11-01T06:49:20.544Z",
  "sources": {
   "politic": {
    "org": "외교부",
@@ -627,9 +627,9 @@
     "country_iso_alp2": "ID",
     "country_nm": "인도네시아",
     "foreign_policy": null,
-    "government_form": "대통령중심제",
+    "government_form": "대통령중심제(5년 중임제)",
     "main_party": null,
-    "main_people": "대통령 : 프라보워 수비안토(Prabowo Subianto)\n부통령 : 기브란 라카부밍 라카(Gibran   Rakabuming Raka)\n국민평의회(MPR)의장 : 아흐마드 무자니(Ahmad Muzani)\n하원(DPR)의장 : 푸안 마하라니(Puan Maharani)\n상원(DPD)의장 : 술탄 박티아르 나자무딘(Sultan Bachtiar Najamudin)\n외교장관 : 수기오노(Sugiono)",
+    "main_people": "대통령 : 프라보워 수비안토(Prabowo Subianto)\n부통령 : 기브란 라카부밍 라카(Gibran   Rakabuming Raka)\n국민평의회(MPR)의장 : 아흐마드 무자니(Ahmad Muzani)\n하원(DPR)의장 : 푸안 마하라니(Puan Maharani)\n상원(DPD)의장 : 술탄 박티아르 나자무딘(Sultan Bachtiar Najamudin)\n외교장관 : 아르마나타 나시르(Arrmanatha Nasir)",
     "national_form": null
    },
    "kotra": [
@@ -830,12 +830,12 @@
     "country_eng_nm": "Indonesia",
     "country_iso_alp2": "ID",
     "country_nm": "인도네시아",
-    "diplomatic_relations": "1966.12. 영사급 수교 및 주자카르타 총영사관 개설\n1968.06. 주서울 인도네시아총영사관 개설\n1973.09. 대사급 수교 및 대사관으로 승격",
+    "diplomatic_relations": "1966.12.01. 주자카르타 총영사관 개설\n1968.06.01. 주서울 인도네시아총영사관 개설\n1973.09.18. 각 총영사관, 대사관으로 승격",
     "export_amount": "7000000000",
     "import_amount": "11300000000",
-    "investment_status": "(신고, 누계기준)\n - 대 인도네시아 : 290억 $, 9,215건 (한국수출입은행)(68-2025)\n - 대 한국 : 28.4백만 $, 220건 (산업통상부)(62-2025)",
-    "mission_status": "- 윤순구 주인도네시아대사 (2025.12 부임)\n- 체쳅 헤라완 주한대사 (2025.7 부임)",
-    "oda_status": "11.2억 $ (1987~2023 누계, 총지출 기준, OECD)\n- 무상원조 4.9억 $\n- 유상원조 6.3억 $",
+    "investment_status": "(신고, 누계기준)\n - 대 인도네시아 : 289억 $, 9,220건 (한국수출입은행)(68-2025)\n - 대 한국 : 28.4억 $, 220건 (산업통상부)(62-2025)",
+    "mission_status": "- 윤순구 주인도네시아대사 (2025.12 부임)\n- 체쳅 헤라완 주한인도네시아대사 (2025.07 부임)",
+    "oda_status": "12.8억 $ (1987~2024 누계, 총지출 기준, OECD)\n- 무상원조 5.5억 $\n- 유상원조 7.9억 $",
     "oks_status": " - 인도네시아 내 한국인 : 27,308명 (재외동포청, 2025)\n - 한국 내 인도네시아인 : 77,015명 (법무부, 2025)"
    },
    "ksure": {
@@ -854,7 +854,7 @@
     "foreign_policy": null,
     "government_form": "대통령제(6년 단임제)",
     "main_party": null,
-    "main_people": "대통령 : 페르디난드 마르코스 주니어(Ferdinand Marcos Jr.)\n부통령 : 사라 두테르테(Sara Duterte)\n상원의장 : 비센테 소토 3세(Vicente C. Sotto Ⅲ)\n하원의장 : 파우스티노 디(Faustino Bojie Dy Ⅲ)\n외교장관 : 마리아 테레사 라자로(Ma. Teresa Lazaro)",
+    "main_people": "대통령 : 페르디난드 마르코스 주니어(Ferdinand Marcos Jr.)\n부통령 : 사라 두테르테(Sara Duterte)\n상원의장 : 셔윈 가찰리안(Sherwin Gatchalian)\n하원의장 : 파우스티노 디(Faustino Bojie Dy Ⅲ)\n외교장관 : 마리아 테레사 라자로(Ma. Teresa Lazaro)",
     "national_form": null
    },
    "kotra": [
@@ -1015,11 +1015,11 @@
     "country_eng_nm": "Philippines",
     "country_iso_alp2": "PH",
     "country_nm": "필리핀",
-    "diplomatic_relations": "1949.03. 공사급 수교\n1954.01.19. 주마닐라 공사관 개설\n1958.02.01. 대사급 수교(대사관으로 승격)\n2015.03.17. 주세부 분관 개설",
+    "diplomatic_relations": "1949.03.03. 공사급 수교\n1954.01.19. 주마닐라 공사관 개설\n1958.02.01. 대사급 수교(대사관으로 승격)\n2015.03.17. 주세부분관 개설",
     "export_amount": "11600000000",
     "import_amount": "3500000000",
-    "investment_status": "(신고, 누계 기준)\n - 대 필리핀 : 66.3억 $, 5,429건 (한국수출입은행)(68-2025)\n - 대 한국 : 12억 $, 209건 (산업통상부)(62-2025)",
-    "mission_status": "- 이상화 주필리핀 대사(2023.6. 부임)\n- 버나뎃 테레스 페르난데즈 주한필리핀대사(2025.9월 부임)",
+    "investment_status": "(신고, 누계 기준)\n - 대 필리핀 : 67.1억 $, 5,453건 (한국수출입은행)(68-2025)\n - 대 한국 : 12억 $, 209건 (산업통상부)(62-2025)",
+    "mission_status": "- 이동기 주필리핀 대사(2026.08. 부임)\n- 버나뎃 테레스 페르난데즈 주한필리핀대사(2025.09. 부임)",
     "oda_status": "13.4억 불(1987~2024 누계(잠정), 총지출기준, OECD)\n- 무상원조 : 5.5억 $\n- 유상원조 : 7.9억 $",
     "oks_status": "필리핀 내 한국인 : 52,695명(재외동포청)(2025)\n한국 내 필리핀인 : 74,125명(법무부)(2025)"
    },
@@ -1032,7 +1032,7 @@
    "iso": "MY",
    "name": "말레이시아",
    "politic": {
-    "congress_composition": "양원제, 하원 우위",
+    "congress_composition": "양원제, 하원 우위\n하원 : 222석(임기 5년)\n상원 : 70석(임기 3년)",
     "country_eng_nm": "Malaysia",
     "country_iso_alp2": "MY",
     "country_nm": "말레이시아",
@@ -1352,11 +1352,11 @@
     "country_eng_nm": "Malaysia",
     "country_iso_alp2": "MY",
     "country_nm": "말레이시아",
-    "diplomatic_relations": "1960.02.23. 외교관계 수립\n1962.05. 주말레이시아 대사관 설치\n1964.04. 주한 말레이시아대사관 설치",
+    "diplomatic_relations": "1960.02.23. 외교관계 수립\n1962.05. 주말레이시아 대한민국 대사관 설치\n1964.04. 주한 말레이시아대사관 설치",
     "export_amount": "12370000000",
     "import_amount": "15510000000",
-    "investment_status": "(신고, 누계기준)\n- 대 말레이시아: 116.8억 불 (한국수출입은행)(68-2025)\n- 대 한국: 86.7억불 (산업통상부)(62-2025)",
-    "mission_status": " - 여승배 주말레이시아대사 (2022.10. 부임)\n - 모하메드 잠루니 빈 카리드 주한말레이시아대사 (2024.4. 부임)",
+    "investment_status": "(신고, 누계기준)\n- 대 말레이시아: 117.8억 불 (한국수출입은행)(68-2025)\n- 대 한국: 86.7억불 (산업통상부)(62-2025)",
+    "mission_status": " - 최정록 주말레이시아대사 (2026.10. 부임)\n - 모하메드 잠루니 빈 카리드 주한말레이시아대사 (2024.04. 부임)",
     "oda_status": null,
     "oks_status": "- 말레이시아 내 한국인:  17,979명 (‘25, 재외동포청)\n- 한국 내 말레이시아인: 18,224명 (‘25, 법무부)"
    },
