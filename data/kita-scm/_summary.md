@@ -1,11 +1,18 @@
 > 판정 0 — 목록을 받았다 (최근 호 10개)
 
-# 글로벌 공급망 인사이트 수집 — 2026-10-16T05:35:51.435Z
+# 글로벌 공급망 인사이트 수집 — 2026-11-01T07:02:02.221Z
 - 목록: https://www.kita.net/researchTrade/globalSupplyChain/globalSupplyChainList.do
-- HTTP 200 · 본문 229920자 · 찾은 호 10개
+- HTTP 200 · 본문 229929자 · 찾은 호 10개
 
-## 최근 호 (새로 0개)
+## 최근 호 (새로 1개)
 
+- 2026-10-22 · [2026.10.22] 글로벌 공급망 인사이트 182호 · https://www.kita.net/researchTrade/globalSupplyChain/globalSupplyChainDetail.do?no=2988
+  - [미-중·통상] 美, 14개 경제권과 과잉생산 공동 대응
+  - [인니·니켈] 공급과잉에 중간재 제련 생산시설 동결 검토
+  - [중-EU·통상] 중·EU, 하이브리드차·희토류 무역 관련 합의
+  - [한국·공급망] 경제안보품목 340개로 확대
+  - [중국·통상] 중국, 드론·터널굴착기·준설선 수출통제
+  - 심층분석 — 식량과 에너지를 잇는 핵심광물 ‘인’
 - 2026-10-08 · [2026.10.08] 글로벌 공급망 인사이트 181호 · https://www.kita.net/researchTrade/globalSupplyChain/globalSupplyChainDetail.do?no=2986
   - [미-중·통상] 미·중 정상회담, 무역휴전 연장
   - [EU·탄소] CBAM 하류제품 확대안 본회의 통과
@@ -41,8 +48,13 @@
   - [중-EU·통상] 中, EU 기업·기관 14곳 이중용도 수출통제
   - [미-중·로봇] 美, 中 겨냥해 외국산 로봇 수입 금지
   - 심층분석 — 전략금속 몰리브덴 공급망 재편 속 우리나라의 기회
-- 2026-07-16 · [2026.07.16] 글로벌 공급망 인사이트 176호 · https://www.kita.net/researchTrade/globalSupplyChain/globalSupplyChainDetail.do?no=2971 — 분석 못 함: 상세 응답 없음
-- 2026-07-02 · [2026.07.02] 글로벌 공급망 인사이트 175호 · https://www.kita.net/researchTrade/globalSupplyChain/globalSupplyChainDetail.do?no=2968
+- 2026-07-16 · [2026.07.16] 글로벌 공급망 인사이트 176호 · https://www.kita.net/researchTrade/globalSupplyChain/globalSupplyChainDetail.do?no=2971
+  - [중국·반도체] 中, 엔비디아 H200 칩 수입 허용 계획
+  - [미국·반도체] 애플, CXMT D램 테스트 착수
+  - [한-미·텅스텐] 美, 영월 텅스텐 광산 중요성 조명
+  - [미국·희토류] 미국산 희토류, 주로 韓·⽇에 수출
+  - [중국·헬륨] 中, 반도체 핵심 소재 ‘헬륨’ 수출 금지 DRC·핵심광물 민주콩고, 美 지원으로 철도 개보수 사업 시작
+  - [중동·원유] 미-이란 충돌 격화로 국제유가 급등
+- 2026-07-02 · [2026.07.02] 글로벌 공급망 인사이트 175호 · https://www.kita.net/researchTrade/globalSupplyChain/globalSupplyChainDetail.do?no=2968 — 분석 못 함: 상세 응답 없음
 - 2026-06-18 · [2026.06.18] 글로벌 공급망 인사이트 174호 · https://www.kita.net/researchTrade/globalSupplyChain/globalSupplyChainDetail.do?no=2962
 - 2026-05-21 · [2026.05.21] 글로벌 공급망 인사이트 173호 · https://www.kita.net/researchTrade/globalSupplyChain/globalSupplyChainDetail.do?no=2958
-- 2026-05-07 · [2026.05.07] 글로벌 공급망 인사이트 172호 · https://www.kita.net/researchTrade/globalSupplyChain/globalSupplyChainDetail.do?no=2957
