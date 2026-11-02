@@ -2,11 +2,11 @@
 
 # `GG_DATADREAM_OPENDATA` 가 먹는가 — 실측 진단
 
-조회일 2026-10-26 (KST) · 경기데이터드림 openapi.gg.go.kr
+조회일 2026-11-02 (KST) · 경기데이터드림 openapi.gg.go.kr
 
 - 열쇠 **`GG_DATADREAM_OPENDATA`** 로 읽었다 (길이 32자 · 값은 안 적는다)
 
-- `경기지역화폐 가맹점 현황 RegionMnyFacltStus (시험용)` — **못 닿음** (fetch failed) · 10556ms
+- `경기지역화폐 가맹점 현황 RegionMnyFacltStus (시험용)` — **못 닿음** (fetch failed) · 10550ms
   - 결과 코드: **못 읽었다** (앞 300자 밖이거나 JSON 이 아니다)
 - `일반음식점 현황 Genrestrtlist (시험용)` — **못 닿음** (fetch failed) · 10494ms
   - 결과 코드: **못 읽었다** (앞 300자 밖이거나 JSON 이 아니다)

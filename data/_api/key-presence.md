@@ -1,6 +1,6 @@
 # 열쇠 이름 — 들어 있는가
 
-> 이름 57개 중 **15개 들어 있음 · 42개 없음** — 값은 안 찍는다 · 길이만
+> 이름 58개 중 **16개 들어 있음 · 42개 없음** — 값은 안 찍는다 · 길이만
 
 | 이름 | 무엇 | 이 저장소 Actions 비밀 |
 |---|---|---|
@@ -16,6 +16,7 @@
 | `KPX_POWER_SUPPLY_DEMAND_FORECAST_GW` | 전력거래소 전력수급예보 | ✅ 있음 (길이 64) |
 | `KOICA_COUNTRY_INFORMATION` | KOTRA 국가정보 | ✅ 있음 (길이 64) |
 | `KOTRA_KOREA_FDI_BY_INDUSTRY` | KOTRA 외국인투자 업종별 | ✅ 있음 (길이 64) |
+| `STUDIO_TYPECAST_AI` | Typecast 음성 합성 | ✅ 있음 (길이 45) |
 | `EAIS_ARCHITECTURAL_INFORMATION` | 세움터 건축정보 | ✅ 있음 (길이 26) |
 | `GG_DATADREAM_OPENDATA` | 경기데이터드림 전체 공공데이터 | ✅ 있음 (길이 32) |
 | `EDINET_API_KEY` | EDINET API v2 | ✅ 있음 (길이 32) |
