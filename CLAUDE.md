@@ -2153,9 +2153,10 @@ linkpilot-cron     → 유저가 보고서 요청 및 생산
 ## 27. 그림·도표·조감도 — Diagram design 먼저 · 그다음 Figma · 막히면 제미나이 〈2026-10-26 사장님: 「Figma 소진되면 자동으로 구글 제미나이로 변경해서 작업이 되도록」 · 2026-11-03 사장님: 「Figma 보다 Diagram design으로 스킬에 지침으로 반영하여 넣어줘」〉
 
 - ★★★ **차례 (2026-11-03 개정)** — 도식·도표(흐름도 · 순서도 · 조직도 · 구조도 · ERD · 일정)는 **Diagram design** 이 먼저다:
-  ① Diagrams 플러그인(Kroki · `diagram` 스킬 — 깔려 있을 때) → ② Mermaid Chart 커넥터(`validate_and_render_mermaid_diagram` — 연결돼 있다) → ③ Figma(FigJam) → ④ 제미나이(아래 워크플로).
+  ① **로컬 렌더**(GraphViz `dot` · Mermaid `mmdc` — 계정 스킬 «pdi-im-diagram-연결»의 `pdi_diagram.py`·PDI 프리셋 · **IM·대외비는 이 길만**) → ② Diagrams 플러그인(Kroki · 깔려 있을 때) · Mermaid Chart 커넥터 — **기밀 없는 도식만** → ③ Figma(편집 원본 등록) → ④ 제미나이(아래 워크플로).
+  · 〈2026-11-03 같은 날 고침〉 계정 스킬 «pdi-im-diagram-연결» v1.0(22:45 KST)이 «외부 렌더 서버로 사업 자료를 보내지 않는다»를 정했다 — 앞 판(Kroki·Mermaid 먼저)과 부딪혀 로컬을 맨 앞으로 옮겼다. 이 컨테이너에는 `dot` 이 없어 `apt-get install graphviz` 로 깔고 렌더를 확인했다(2.43). `mmdc` 는 아직 없다(못 쟀다).
   · **까닭** — Figma 는 Starter 호출 한도로 자주 막혔고(10-26), 글로 적은 도식은 고치기 쉽고 SVG 로 바로 나온다. 절차: 스킬 [`.claude/skills/diagram-design/SKILL.md`](.claude/skills/diagram-design/SKILL.md).
-  · ★ Kroki·Mermaid 는 **바깥 서버에서 그린다** — 투자자 이름·금액·주소 같은 기밀은 도식 글에 넣지 않거나 «A사»처럼 가린다. 기밀을 가릴 수 없으면 ③·④(또는 손으로 쓴 SVG)로 간다.
+  · ★ Kroki·Mermaid Chart 는 **바깥 서버에서 그린다** — 사업 자료가 든 도식은 보내지 않는다(①로 그린다). 기밀이 없는 설명 도식(작업 흐름 등)에만 쓴다.
   · ★ 결과는 SVG + 같은 이름 JPEG(§6-1) · 싣기 전에 그려서 눈으로 본다 · 바꿔 간 도구를 답변에 적는다. 사진형·조감도는 이 차례가 아니다(③·④ · 실사 표준은 §7).
   · ★ claude.ai 계정 스킬 «pdi-im-디자인지침-v2» §7-2 의 «도식은 Figma 원본»은 이 지시가 나중이라 이긴다 — 그 스킬은 계정에서 동기화되는 것이라 이 저장소에서 못 고친다.
 - **규칙 (앞 판 · ③→④ 넘어가기)** — Figma 가 막히면(호출 한도 · 인증 · 연결 없음) **멈추지 않고** 워크플로 «그림 짓기 (제미나이)»(`figure-gemini.yml` → `scripts/gemini-figure.mjs`)로 이어 간다.
