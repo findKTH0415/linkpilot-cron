@@ -36,5 +36,6 @@ description: 도식·도표(흐름도·순서도·조직도·구조도·ERD·일
 ## 재는 자리
 
 - 2026-11-03 실측: Mermaid Chart 커넥터 `valid=true` · flowchart · SVG 63,457자 (변경→배포 흐름 예시 · 기밀 없음).
+- 2026-11-03 실측: Diagram Design 플러그인 2.6.141 — 견본 흐름도(`example-flowchart.html`)를 `export_svg.py` 로 SVG 8,720 바이트로 뽑았다. `export_png.py` 는 **파이썬 playwright 가 없어** 멈춘다(`ModuleNotFoundError`) — 이 컨테이너에 깔린 **Node playwright** 로 같은 HTML 을 찍어 PNG 를 냈다(따로 깔지 않는다). 견본 HTML 은 Google Fonts 를 1곳 부른다.
 - 2026-11-03 실측: 이 컨테이너에 `dot` 없음 → `apt-get install graphviz` 로 2.43 깔고 SVG 렌더 확인. `mmdc` 는 IM 에 안 쓰므로 깔지 않았다(계정 스킬 v1.1).
 - 자동 검사는 없다 — 바깥 커넥터라 이 저장소 테스트로 못 잰다. 그리는 턴마다 위 «그려서 눈으로 본다»로 잰다.
