@@ -1,5 +1,5 @@
 {
- "at": "2026-11-03T03:54:37.250Z",
+ "at": "2026-11-04T02:59:16.813Z",
  "source": "https://www.kindkorea.or.kr",
  "boards": {
   "notices": {
@@ -71,8 +71,14 @@
   },
   "news": {
    "name": "보도자료",
-   "total": 101,
+   "total": 102,
    "items": [
+    {
+     "id": 11553,
+     "title": "KIND, 우즈벡 타슈켄트 신공항 사업 주주협약 체결",
+     "date": null,
+     "url": "https://www.kindkorea.or.kr/pages/32?id=11553&menuMode=READ"
+    },
     {
      "id": 11537,
      "title": "'K-건설', AI 데이터센터 해외시장 문 열었다",
@@ -126,12 +132,6 @@
      "title": "KIND와 대한변리사회, 우리 기업의 해외 인프라사업 경쟁력 제고를 위한 업무협약(MOU) 체결",
      "date": null,
      "url": "https://www.kindkorea.or.kr/pages/32?id=11446&menuMode=READ"
-    },
-    {
-     "id": 11417,
-     "title": "KIND, 부패방지 국제표준 ISO 37001 사후심사 통과",
-     "date": null,
-     "url": "https://www.kindkorea.or.kr/pages/32?id=11417&menuMode=READ"
     }
    ],
    "url": "https://www.kindkorea.or.kr/pages/32"
