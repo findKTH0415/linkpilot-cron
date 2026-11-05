@@ -63,7 +63,7 @@ async function http(pathname, opt) {
 function localChecks() {
   // 탭 둘이 한 곳에서 나오는가 〈2026-08-22 — 자료 업로드는 1단계 안으로 들어갔다〉
   const tabs = FLOW.TABS.map(t => t.tab).join(' · ');
-  add('탭 둘이 flow-core 한 곳에서 나온다', FLOW.TABS.length === 2 ? 'ok' : 'fail', tabs);
+  add('탭이 flow-core 한 곳에서 나온다 — [보고서 만들기] 하나 (2026-11-05 완성 보고서 삭제)', FLOW.TABS.length === 1 && FLOW.TABS[0].id === 'make' ? 'ok' : 'fail', tabs);
 
   // 배포용 사본이 만들어지는가 (브리지 순서 확인 포함 — 여기서 걸리면 사본이 틀린다)
   try {

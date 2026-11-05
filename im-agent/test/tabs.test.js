@@ -39,13 +39,13 @@ test('구성안: 주소로 올릴 수 있는 조각이다', () => {
  * ★ 대신 **탭이 아니라는 것을 칸이 스스로 말해야 한다**(`inStep`). 안 그러면
  *   구성안이 여전히 「탭 셋」으로 읽히고, 그 오해가 앱 탭 바 작업으로 넘어간다.
  */
-test('구성안: 탭은 둘이고, 단계 안에 든 칸은 그렇다고 말한다', () => {
+test('구성안: 탭은 하나이고(2026-11-05 완성 보고서 삭제), 단계 안에 든 칸은 그렇다고 말한다', () => {
   const FLOWC = require('../ui/platform/flow-core.js');
   /* ★ 차례는 flow-core 를 따른다 — 만들기가 먼저다 〈2026-08-23 사장님 지시〉 */
   assert.deepEqual(B.TABS.map(t => t.id), ['make', 'done', 'files']);
 
   const inTab = B.TABS.filter(t => !t.inStep).map(t => t.id);
-  assert.deepEqual(inTab, ['make', 'done'], '앱 탭 바에 뜨는 것은 둘이어야 한다');
+  assert.deepEqual(inTab, ['make'], '앱 탭 바에 뜨는 것은 [보고서 만들기] 하나여야 한다 (2026-11-05)');
   assert.deepEqual(inTab, FLOWC.TABS.map(t => t.id),
     '구성안의 탭과 flow-core 의 TABS 가 다르다 — 한쪽만 고친 것이다');
 

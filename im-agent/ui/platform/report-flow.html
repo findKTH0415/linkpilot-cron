@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-lp-build="7f5d1004">
+<html lang="ko" data-lp-build="73e7eadf">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -288,7 +288,7 @@
   });
 }());
 </script>
-<link rel="stylesheet" href="tokens.css?v=7f5d1004">
+<link rel="stylesheet" href="tokens.css?v=73e7eadf">
 <style>
 /* 색·간격·반경 토큰은 tokens.css 하나가 정한다 (LinkPilot Design System v1.1) */
 * { box-sizing: border-box; }
@@ -768,12 +768,12 @@ h1 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.01em; }
        조각들이 `F.` 를 바로 쓰는 지금 구조를 **한 글자도 안 건드린다**(`defer` 는 그것을 깬다).
      ★★ 주소는 스크립트 쪽과 **글자까지 같아야 한다** — 다르면 같은 파일을 두 번 받아
        오히려 느려진다. `build-stamp.js` 가 셋을 함께 지문 찍고 `--check` 가 함께 잰다. -->
-<link rel="preload" as="script" href="embed-bridge.js?v=7f5d1004">
-<link rel="preload" as="script" href="gate-core.js?v=7f5d1004">
-<link rel="preload" as="script" href="flow-core.js?v=7f5d1004">
-<link rel="preload" as="script" href="fields-core.js?v=7f5d1004">
-<link rel="preload" as="script" href="catalog.js?v=7f5d1004">
-<link rel="preload" as="script" href="inapp.js?v=7f5d1004">
+<link rel="preload" as="script" href="embed-bridge.js?v=73e7eadf">
+<link rel="preload" as="script" href="gate-core.js?v=73e7eadf">
+<link rel="preload" as="script" href="flow-core.js?v=73e7eadf">
+<link rel="preload" as="script" href="fields-core.js?v=73e7eadf">
+<link rel="preload" as="script" href="catalog.js?v=73e7eadf">
+<link rel="preload" as="script" href="inapp.js?v=73e7eadf">
 </head>
 <body>
 
@@ -823,14 +823,14 @@ window.LINKPILOT_REPORT_FLOW = {
 };
 </script>
 <!-- 부모(앱)가 채운 설정을 받아 병합한다. 단독으로 열면 아무 일도 하지 않는다 -->
-<script src="embed-bridge.js?v=7f5d1004" data-lp-global="LINKPILOT_REPORT_FLOW"></script>
-<script src="gate-core.js?v=7f5d1004"></script>
-<script src="flow-core.js?v=7f5d1004"></script>
+<script src="embed-bridge.js?v=73e7eadf" data-lp-global="LINKPILOT_REPORT_FLOW"></script>
+<script src="gate-core.js?v=73e7eadf"></script>
+<script src="flow-core.js?v=73e7eadf"></script>
 <!-- ★ 4단계 진행율(필수 항목 채움)을 재는 데 쓴다. **값과 출처가 둘 다**
      있어야 세는 규칙이 여기 있다 — 화면이 따로 세면 두 벌이 된다 -->
-<script src="fields-core.js?v=7f5d1004"></script>
-<script src="catalog.js?v=7f5d1004"></script>
-<script src="inapp.js?v=7f5d1004"></script>
+<script src="fields-core.js?v=73e7eadf"></script>
+<script src="catalog.js?v=73e7eadf"></script>
+<script src="inapp.js?v=73e7eadf"></script>
 <!--
   ★★★ 짝 확인 — **화면과 스크립트가 같은 판인가** 〈2026-08-23 · D-93 사고〉.
 
@@ -2012,16 +2012,13 @@ var lpApiWhy = (function () {
     /* 도구 */
     var o5 = v2Opt('도구');
     var dd = F.v2Doc(v2.doc);
-    [['지난 보고서 불러오기', null], [dd && dd.engine !== 'im' ? 'IM 으로 이어 만들기' : '같은 자료로 티저 뽑기', null], ['금융기관 제출본', '준비 중']].forEach(function (x) {
+    [[dd && dd.engine !== 'im' ? 'IM 으로 이어 만들기' : '같은 자료로 티저 뽑기', null], ['금융기관 제출본', '준비 중']].forEach(function (x) {
       var b = el('button', 'rv2-tool' + (x[1] ? ' rv2-tool--soon' : ''));
       b.type = 'button';
       b.appendChild(el('span', null, x[0]));
       if (x[1]) b.appendChild(el('small', null, x[1]));
       if (x[1]) v2Soon(b, '금융기관 제출본은 준비 중입니다 — 엔진에 그 양식이 아직 없습니다.');
-      else if (x[0] === '지난 보고서 불러오기') {
-        b.setAttribute('data-lp-rv2-tool', 'past');
-        b.addEventListener('click', function () { var t = (F.TABS || []).filter(function (y) { return y.id !== F.SECTION.id; })[0]; if (t) goTab(t); });
-      } else {
+      else {
         var toEng = dd && dd.engine !== 'im' ? 'im' : 'teaser';
         b.setAttribute('data-lp-rv2-tool', toEng);
         b.addEventListener('click', function () {
@@ -2847,7 +2844,8 @@ var lpApiWhy = (function () {
        그때 여기서 던지면 화면이 통째로 빈다. 머리만 빠지고 나머지는 뜬다. */
     var hd = (F && F.headEl) ? F.headEl(F.SECTION, document, C.hero) : null;
     if (hd) view.appendChild(hd);
-    view.appendChild(tabBar());
+    /* ★ 탭이 하나뿐이면 줄을 안 그린다 (2026-11-05 «완성보고서는 삭제 해줘») */
+    if ((F && F.TABS || []).length > 1) view.appendChild(tabBar());
 
     // ★ 토큰이 안 실리면 색·글꼴이 통째로 빠지는데 **오류는 안 난다.**
     //   「화면이 이상하다」로 끝나지 않게 원인을 화면이 말한다

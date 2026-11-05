@@ -68,8 +68,10 @@ const TABS = [
     // 이름은 flow-core.js 의 OUTPUTS_SECTION 이 단일 출처다
     id: 'done', order: 2, name: FLOW.OUTPUTS_SECTION.tab,
     sub: FLOW.OUTPUTS_SECTION.tabNote,
+    /* ★ 2026-11-05 사장님 «완성보고서는 삭제 해줘» — 탭에서 뺐다. 완성본은 만들기 4절(완성결과물)에서 본다 */
+    inStep: '보고서 만들기 · 4절(완성결과물) 안 — 탭은 2026-11-05 삭제',
     state: 'have',
-    stateText: '있다 — outputs.html (inTab: true 로 얹는다)',
+    stateText: '있다 — outputs.html (탭이 아니라 단계 4가 쓴다)',
     plan: 'Pro',
   },
   {
