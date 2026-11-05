@@ -1,5 +1,5 @@
 {
- "at": "2026-11-04T02:59:16.813Z",
+ "at": "2026-11-05T03:27:15.489Z",
  "source": "https://www.kindkorea.or.kr",
  "boards": {
   "notices": {
@@ -138,8 +138,14 @@
   },
   "activity": {
    "name": "활동소식",
-   "total": 322,
+   "total": 323,
    "items": [
+    {
+     "id": 11555,
+     "title": "한-중앙아 투자협력 확대를 위한 면담 및 현장조사",
+     "date": "2026-11-04",
+     "url": "https://www.kindkorea.or.kr/pages/31?id=11555&menuMode=READ"
+    },
     {
      "id": 11542,
      "title": "주상진 사업개발본부장 취임식",
@@ -187,12 +193,6 @@
      "title": "카자흐스탄 대통령 면담",
      "date": "2026-09-16",
      "url": "https://www.kindkorea.or.kr/pages/31?id=11485&menuMode=READ"
-    },
-    {
-     "id": 11483,
-     "title": "카자흐스탄 바이테렉·QIC 의장 면담",
-     "date": "2026-09-16",
-     "url": "https://www.kindkorea.or.kr/pages/31?id=11483&menuMode=READ"
     }
    ],
    "url": "https://www.kindkorea.or.kr/pages/31"
