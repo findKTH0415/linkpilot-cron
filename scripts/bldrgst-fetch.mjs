@@ -21,7 +21,7 @@ const log = [];
 const P = (s = '') => { log.push(s); };
 const save = async () => { await writeFile(`${OUT}/_summary.md`, log.join('\n')); };
 
-P('# 건축물대장 조회 — 더헤리티지 커뮤니티동');
+P(`# 건축물대장 조회 — ${process.env.BLD_LABEL || '더헤리티지 커뮤니티동'}`);
 P();
 P(`조회일 ${new Date().toISOString().slice(0, 10)}`);
 P();
@@ -45,15 +45,24 @@ P();
 
 // ── 대상 필지 ──────────────────────────────────────────────
 // 법정동코드 4113511100 = 경기도 성남시 분당구 금곡동
+// ★ 실행 입력(workflow_dispatch inputs → env)으로 다른 필지를 잴 수 있다 〈2026-11-05〉.
+//   입력이 없으면 앞 판 그대로 금곡동 305-2 다. 자릿수는 여기서 맞춘다(지침 「자릿수」 —
+//   본번·부번 4자리 zero-padding · 틀리면 NODATA_ERROR).
+const pad = (v, n) => String(v ?? '').replace(/\D/g, '').padStart(n, '0');
+const E = process.env;
 const PLAT = {
-  sigunguCd: '41135',
-  bjdongCd : '11100',
-  platGbCd : '0',
-  bun      : '0305',
-  ji       : '0002',
+  sigunguCd: E.BLD_SIGUNGU ? pad(E.BLD_SIGUNGU, 5) : '41135',
+  bjdongCd : E.BLD_BJDONG  ? pad(E.BLD_BJDONG, 5)  : '11100',
+  platGbCd : E.BLD_PLATGB  ? String(E.BLD_PLATGB)  : '0',
+  bun      : E.BLD_BUN     ? pad(E.BLD_BUN, 4)     : '0305',
+  ji       : E.BLD_JI      ? pad(E.BLD_JI, 4)      : '0002',
 };
+if (!/^\d{5}$/.test(PLAT.sigunguCd) || !/^\d{5}$/.test(PLAT.bjdongCd) || !/^[012]$/.test(PLAT.platGbCd)) {
+  P('## 중단 — 필지 입력 형식이 틀렸다 (시군구 5자리 · 법정동 5자리 · 대지구분 0/1/2)');
+  await save(); process.exit(2);
+}
 
-P(`대상 성남시 분당구 금곡동 ${Number(PLAT.bun)}-${Number(PLAT.ji)}`);
+P(`대상 ${E.BLD_LABEL || '성남시 분당구 금곡동'} ${Number(PLAT.bun)}-${Number(PLAT.ji)}`);
 P(`파라미터 sigunguCd=${PLAT.sigunguCd} bjdongCd=${PLAT.bjdongCd} bun=${PLAT.bun} ji=${PLAT.ji}`);
 P();
 
@@ -158,6 +167,8 @@ for (const [op, label, ord] of OPS) {
       P(`- 기타용도 : ${i.etcPurps || '—'}`);
       P(`- 연면적 ${i.totArea || '—'}㎡ · 지상 ${i.grndFlrCnt || '—'}층 · 지하 ${i.ugrndFlrCnt || '—'}층`);
       P(`- 사용승인 ${i.useAprDay || '—'} · 구조 ${i.strctCdNm || '—'}`);
+      P(`- 대지면적 ${i.platArea || '—'}㎡ · 건축면적 ${i.archArea || '—'}㎡ · 건폐율 ${i.bcRat || '—'}% · 용적률 ${i.vlRat || '—'}%`);
+      P(`- 지붕 ${i.roofCdNm || '—'} · 높이 ${i.heit || '—'}m · 주/부속 ${i.mainAtchGbCdNm || '—'} · 대장 ${i.regstrKindCdNm || '—'}`);
       P(`- **위반건축물 : ${i.violUseYn ?? i.vioalYn ?? '(필드없음 — raw 확인)'}**`);
       P();
     }
