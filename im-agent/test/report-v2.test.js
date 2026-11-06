@@ -232,7 +232,10 @@ window.addEventListener('load', function () { setTimeout(function () {
   q('[data-lp-rv2-dsall="LP-DS-09"]').click();
   var fl = q('[data-lp-rv2-dsfull]');
   R.lay.full = fl ? { id: fl.getAttribute('data-lp-rv2-dsfull'), pages: fl.querySelectorAll('[data-lp-rv2-dspage] svg').length, nos: [].slice.call(fl.querySelectorAll('.rv2-dspg__no')).map(function (n) { return n.textContent; }).join(','),
-    land: fl.querySelectorAll('.rv2-dspg--land').length, text: fl.innerText } : null;
+    land: fl.querySelectorAll('.rv2-dspg--land').length, text: fl.innerText,
+    heroW: (function () { var p = fl.querySelectorAll('[data-lp-rv2-dspage]'); return p.length > 1 ? +(p[0].getBoundingClientRect().width / p[1].getBoundingClientRect().width).toFixed(2) : 0; })(),
+    hero: fl.querySelectorAll('.rv2-dspg--hero').length } : null;
+  R.lay.stripHero = (function () { var p = q('[data-lp-rv2-dsstrip]').querySelectorAll('[data-lp-rv2-dspage]'); return +(p[0].getBoundingClientRect().width / p[1].getBoundingClientRect().width).toFixed(2); })();
   var u2 = fl && fl.querySelector('[data-lp-rv2-dsuse]'); if (u2) u2.click();
   R.lay.usedFull = qa('[data-lp-rv2-dstype][aria-pressed="true"]').map(function (n) { return n.getAttribute('data-lp-rv2-dstype'); });
   q('[data-lp-rv2-dsorient="port"]').click();
@@ -324,10 +327,14 @@ test('②③④⑤⑦⑧ 그려서 누른다 — 분류·카드·이름표·되�
   assert.deepStrictEqual(R.dsPressed, ['ds:LP-DS-02']);
   assert.strictEqual(R.dsOpt, '부동산·투자 IM형');
   assert.strictEqual(R.coverDs, 'LP-DS-02');
-  // ⑱ 레이아웃 보기 — 세로 3쪽 띠 → 가로 2쪽 띠(16:9) · 전체 미리보기 12쪽 번호 01~12 · 거기서 [이 디자인 사용] · 다시 세로
+  // ⑱ 레이아웃 보기 — 세로 3쪽 띠 → 가로 3쪽 띠(16:9 · 표지 크게) · 전체 미리보기 12쪽 번호 01~12 · 거기서 [이 디자인 사용] · 다시 세로
   assert.strictEqual(R.lay.portOn, 'true', '사양이 세로인데 세로 보기가 안 골라졌다');
   assert.deepStrictEqual(R.lay.port, Array(10).fill('port:3'));
-  assert.deepStrictEqual(R.lay.land, Array(10).fill('land:2'));
+  assert.deepStrictEqual(R.lay.land, Array(10).fill('land:3'));
+  // 보드형 갤러리 — 표지가 다른 쪽보다 크게 (카드 띠 · 전체 미리보기 둘 다)
+  assert.ok(R.lay.stripHero >= 1.8, '카드 띠의 표지가 크지 않다: ' + R.lay.stripHero);
+  assert.strictEqual(R.lay.full.hero, 1, '전체 미리보기에 큰 표지가 없다');
+  assert.ok(R.lay.full.heroW >= 1.8, '전체 미리보기 표지가 크지 않다: ' + R.lay.full.heroW);   // 보드형: 표지 크게 + 작은 쪽 둘 (2026-11-06)
   assert.ok(R.lay.portRatio > 0.6 && R.lay.portRatio < 0.8, '세로 쪽 비율 ' + R.lay.portRatio);
   assert.ok(R.lay.landRatio > 1.6 && R.lay.landRatio < 1.9, '가로 쪽 비율 ' + R.lay.landRatio);
   assert.ok(R.lay.full, '[전체 미리보기] 를 눌렀는데 12쪽이 안 섰다');
