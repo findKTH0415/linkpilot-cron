@@ -159,6 +159,15 @@ test('⑱ 레이아웃 보기의 처음 값은 «그릴 때마다» 사양에서
   assert.match(src, /v2\.dsLand\s*!=\s*null\s*\?/, '누른 값이 없을 때 사양으로 돌아가는 갈래가 없다');
 });
 
+test('사업 파악 — 이해한 내용 표는 마지막 질문에서만 · 여쭐 것이 없으면 읽은 값이 있을 때만 (2026-11-06 사장님)', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'ui', 'platform', 'report-flow.html'), 'utf8')
+    .split('\n').filter((l) => !/^\s*(\/\*|\*|\/\/)/.test(l)).join('\n');
+  const body = src.slice(src.indexOf('function v2Ask()'), src.indexOf('function v2Pick('));
+  assert.match(body, /var factsNow = cf\.length \? v2\.ask >= cf\.length - 1 : !!\(rows && rows\.some\(function \(r\) \{ return !r\.empty; \}\)\);/, '표를 언제 그리는지 정하는 줄이 없다');
+  const i = body.indexOf('if (factsNow) {'), u = body.indexOf("el('ul', 'rv2-facts')"), h = body.indexOf('올린 자료를 이렇게 이해했습니다');
+  assert.ok(i > 0 && u > i && h > i, '이해한 내용 제목·표가 «마지막 질문일 때» 갈래 밖에 있다');
+});
+
 /* ── 그려서 재는 칸 ───────────────────────────────────── */
 const PRE = {
   issuerSet: true, issuerName: '시험 발행사',
@@ -187,6 +196,7 @@ window.addEventListener('load', function () { setTimeout(function () {
     kinds: qa('[data-lp-rv2-kinds="la"] button').map(function (b) { return b.getAttribute('aria-disabled'); }) };
   q('[data-lp-rv2-cat="invest"]').click();
   R.tags = qa('[data-lp-rv2-fact]').map(function (li) { var t = li.querySelector('[data-lp-rv2-tag]'); return li.getAttribute('data-lp-rv2-fact') + '|' + (t ? t.getAttribute('data-lp-rv2-tag') + '|' + t.textContent : '-'); });
+  R.factsNow = (q('[data-lp-rv2-ask]') || { getAttribute: function () { return null; } }).getAttribute('data-lp-rv2-factsnow');
   R.opts = qa('[data-lp-rv2-opt]').map(function (b) { return b.getAttribute('data-lp-rv2-opt'); });
   R.optText = qa('[data-lp-rv2-opt]').map(function (b) { return b.textContent; });
   document.dispatchEvent(new KeyboardEvent('keydown', { key: '2', bubbles: true }));
@@ -293,6 +303,8 @@ test('②③④⑤⑦⑧ 그려서 누른다 — 분류·카드·이름표·되�
   assert.ok(R.tags.some((x) => /^investment\.total\|need\|자료 필요/.test(x)), R.tags.join(' / '));
   // ⑤ 되묻기 — 견본 차례(다른 자료 → 지금 값 → 둘 다)
   assert.deepStrictEqual(R.opts, ['1', '2', '3', 'hold']);
+  /* 2026-11-06 사장님: «마지막 단계 질문에서 확인 · 첫단계에서는 노출하지 마» — 질문이 하나면 그것이 마지막이라 표가 선다 */
+  assert.strictEqual(R.factsNow, '1', '마지막 질문인데 이해한 내용 표가 없다');
   assert.match(R.optText[0], /^1대장 값 90㎡를 씁니다$/);
   assert.match(R.optText[1], /^2계획서 값 100㎡를 씁니다$/);
   assert.deepStrictEqual(R.picked, ['2'], '숫자 키 2 가 안 먹었다');
